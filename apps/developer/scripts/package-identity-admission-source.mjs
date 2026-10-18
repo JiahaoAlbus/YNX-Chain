@@ -4,6 +4,7 @@ import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
+import {identityAppCustodyPins,verifyIdentityAppCustodySource} from './identity-app-custody-source.mjs';
 
 const developer = dirname(dirname(fileURLToPath(import.meta.url)));
 const owned = join(developer, 'vendor/identity-admission');
@@ -340,6 +341,7 @@ export async function copyCanonicalNativeModule(codeRoot) {
 }
 
 export async function sealCanonicalNativeModule(resources) {
+  await verifyIdentityAppCustodySource();
   await verifyCanonicalIdentityAdmissionSource(join(resources,'code/packages/wallet-auth'));
   const modulePath=join(resources,'code',nativeRelative), receiptPath=join(resources,'code',nativeReceiptRelative);
   const bytes=await readFile(modulePath), raw=await readFile(receiptPath), inputs=await canonicalInputs();
@@ -351,6 +353,7 @@ export async function sealCanonicalNativeModule(resources) {
   execFileSync('/usr/bin/codesign',['--verify','--strict',modulePath],{stdio:'pipe'});
   const path=join(resources,'build-provenance.json'), provenance=JSON.parse(await readFile(path,'utf8'));
   provenance.identityAdmissionDistribution={schemaVersion:1,canonicalLayoutVerified:true,
+    identityAppCustodySource:identityAppCustodyPins,
     sdkManifestSha256:CANONICAL_IDENTITY_INPUTS_SHA256,
     nativeModule:{path:'Contents/Resources/code/'+nativeRelative,sourceSha256:receipt.output.sha256,
       packagedSha256:sha256(bytes),packagedBytes:bytes.length},
@@ -365,6 +368,7 @@ export async function verifySealedCanonicalNativeModule(resources) {
   const provenance=JSON.parse(await readFile(join(resources,'build-provenance.json'),'utf8'));
   const record=provenance.identityAdmissionDistribution;
   if (record?.schemaVersion!==1 || record.canonicalLayoutVerified!==true
+    || JSON.stringify(record.identityAppCustodySource)!==JSON.stringify(identityAppCustodyPins)
     || record.sdkManifestSha256!==CANONICAL_IDENTITY_INPUTS_SHA256
     || record.nativeQualified!==false || record.registrationAccepted!==false
     || record.nativeModule?.path!=='Contents/Resources/code/'+nativeRelative

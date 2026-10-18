@@ -13,8 +13,8 @@ test('original native launch consumer maps fd5 and retains actual spawn/cleanup 
   timeout: 30000,
 }, async () => {
   const header = await readFile(path.join(nativeInclude, 'original-ide-identity-launch-holder.h'));
-  assert.equal(header.length, 1897);
-  assert.equal(createHash('sha256').update(header).digest('hex'), 'a788b5290c58d8140eef80cf7176653b0019e0a9922cc90d017b30f845d38ce2');
+  assert.equal(header.length, 2258);
+  assert.equal(createHash('sha256').update(header).digest('hex'), '384d6a853f770cb7465b6d1bd31bd120182fc6b70a7c6761b6a9a55967af8a83');
   const directory = await mkdtemp(path.join(await realpath(os.tmpdir()), 'ynx-identity-control-'));
   try {
     const binary = path.join(directory, 'consumer');

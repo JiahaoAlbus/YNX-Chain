@@ -2,24 +2,26 @@
 // PUBLIC lifecycle controls only. This test double is linked instead of Auth;
 // it supplies no Source, Root, private key or qualified identity.
 static int finishes,duplicates,retires,joins,closes,oldAdoptions;
-static BOOL refuseCurrent,refusePost;
+static BOOL refuseCurrent,refusePost,handoffOnFinish;
+static int currentChecks;
 @implementation YNXOriginalIdentityPeerLaunchHolder {
     int _testEndpoint,_testPeer,_testDuplicate;
-    BOOL _testRetired,_testClosed;
+    BOOL _testRetired,_testClosed,_testHandedOff;
 }
 - (instancetype)init {if((self=[super init])){int pair[2];if(socketpair(AF_UNIX,SOCK_STREAM,0,pair))return nil;_testEndpoint=pair[0];_testPeer=pair[1];_testDuplicate=-1;}return self;}
 + (instancetype)captureInheritedOriginal:(NSError **)error {return nil;}
-- (BOOL)assertCurrent:(NSError **)error {return NSThread.isMainThread&&!refuseCurrent&&!_testRetired;}
+- (BOOL)assertCurrent:(NSError **)error {currentChecks++;return NSThread.isMainThread&&!refuseCurrent&&!_testRetired&&!_testHandedOff;}
 - (int)duplicateForBackendSpawn:(NSError **)error {duplicates++;return _testDuplicate=fcntl(_testEndpoint,F_DUPFD_CLOEXEC,10);}
 - (BOOL)finishBackendSpawn:(pid_t)pid spawnStatus:(int)status error:(NSError **)error {
     if(!NSThread.isMainThread||fcntl(_testDuplicate,F_GETFD)<0)abort();
-    finishes++;close(_testDuplicate);_testDuplicate=-1;return !status&&pid>0&&!refusePost;
+    finishes++;close(_testDuplicate);_testDuplicate=-1;BOOL ok=!status&&pid>0&&!refusePost;if(ok&&handoffOnFinish)_testHandedOff=YES;return ok;
 }
 - (void)retire {if(!NSThread.isMainThread)abort();if(!_testRetired){retires++;_testRetired=YES;}}
 - (BOOL)join:(NSError **)error {if(!NSThread.isMainThread)abort();joins++;return _testRetired;}
 - (BOOL)close:(NSError **)error {if(!NSThread.isMainThread)abort();if(!_testClosed){closes++;_testClosed=YES;close(_testEndpoint);close(_testPeer);if(_testDuplicate>=0)close(_testDuplicate);}return YES;}
 - (NSError *)firstCause {return nil;}
 - (BOOL)ready {return !_testRetired&&!refuseCurrent;}
+- (BOOL)handedOff {return _testHandedOff;}
 @end
 YNXIDEAdmissionAcquireOutcome *YNXOriginalAcquireIDEAdmissionParent(NSURL *r,pid_t p,NSError **e){return nil;}
 BOOL YNXFinishIDEAdmissionAcquireCleanup(YNXIDEAdmissionAcquireOutcome *o,NSError **e){return o==nil;}
@@ -63,6 +65,18 @@ int main(void){@autoreleasepool{
     YNXWalletAdmissionBackendTask *ordinary=task(resources,nil,nil);
     if(![ordinary launchAndReturnError:&error])return 52;[ordinary waitUntilExit];
     if(ordinary.terminationStatus||![ordinary finishIdentityCleanupForQuit:&error]||finishes!=3)return 53;
+    // Real child remains owned while launch qualification has ended. Running
+    // the actual main queue beyond the timer interval must not assertCurrent
+    // on the transferred holder or retire it as an expired qualification.
+    handoffOnFinish=YES;refusePost=NO;
+    [@"/bin/sleep 1\nexit 0\n" writeToFile:[root stringByAppendingPathComponent:@"server.mjs"] atomically:YES encoding:NSUTF8StringEncoding error:nil];
+    YNXOriginalIdentityPeerLaunchHolder *transferred=[YNXOriginalIdentityPeerLaunchHolder new];
+    YNXWalletAdmissionBackendTask *kept=task(resources,transferred,nil);
+    if(![kept launchAndReturnError:&error]||!transferred.handedOff)return 54;
+    int afterTransfer=currentChecks,retiredBefore=retires;
+    [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.4]];
+    if(currentChecks!=afterTransfer||retires!=retiredBefore||!kept.running)return 55;
+    [kept waitUntilExit];if(kept.terminationStatus||![kept finishIdentityCleanupForQuit:&error])return 56;
     [fs removeItemAtPath:root error:nil];
     printf("PUBLIC identity-only spawn/finish, failure ownership, post-failure local exit, partial refusal and standalone controls PASS\n");return 0;
 }}

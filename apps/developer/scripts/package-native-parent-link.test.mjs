@@ -16,5 +16,8 @@ test('normal Mac package links the original Native successor, excluding the supe
   const main = commands.find(line => line.includes('-c desktop/macos/main.m'));
   assert.ok(main, 'preserve Objective-C compilation of existing shell');
   assert.ok(main.includes('-I"$canonical_native_root/packages/wallet-auth/native"'), 'main must resolve the exact selected holder header');
+  assert.ok(main.includes('-I"$canonical_app_native_root/packages/wallet-auth/native"'));
+  assert.ok(main.indexOf('$canonical_app_native_root')<main.indexOf('$canonical_native_root'),'separate App successor header takes precedence over sealed NAPI inventory');
+  assert.ok(link.includes('"$canonical_app_native_root/packages/wallet-auth/native/original-ide-identity-launch-holder.mm"'));
   assert.equal(commands.filter(line=>line.includes('original-ide-identity-launch-holder.mm')).length,1,'App holder linked once, not added to Node NAPI build');
 });

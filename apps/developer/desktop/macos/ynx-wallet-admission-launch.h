@@ -219,9 +219,13 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
     @synchronized(self){if(_parent&&!_retired){_monitor=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0,0,dispatch_get_global_queue(QOS_CLASS_UTILITY,0));
         dispatch_source_set_timer(_monitor,dispatch_time(DISPATCH_TIME_NOW,250*NSEC_PER_MSEC),250*NSEC_PER_MSEC,10*NSEC_PER_MSEC);
         dispatch_source_set_event_handler(_monitor,^{typeof(self) owner=weakSelf;if(owner&&![owner current:nil])[owner retireAdmission];});dispatch_resume(_monitor);}}
-    if(_identityHolder&&!_identityFailure){_identityMonitor=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0,0,dispatch_get_main_queue());
+    if(_identityHolder&&!_identityFailure&&!_identityHolder.handedOff){_identityMonitor=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0,0,dispatch_get_main_queue());
         dispatch_source_set_timer(_identityMonitor,dispatch_time(DISPATCH_TIME_NOW,250*NSEC_PER_MSEC),250*NSEC_PER_MSEC,10*NSEC_PER_MSEC);
-        dispatch_source_set_event_handler(_identityMonitor,^{typeof(self) owner=weakSelf;if(!owner)return;NSError *identityError=nil;
+        dispatch_source_set_event_handler(_identityMonitor,^{typeof(self) owner=weakSelf;if(!owner)return;
+            // Launch qualification ends at the original one-shot transfer.
+            // Child reaping and cleanup custody remain with this exact task.
+            if(owner->_identityHolder.handedOff){dispatch_source_cancel(owner->_identityMonitor);owner->_identityMonitor=nil;return;}
+            NSError *identityError=nil;
             if(![owner->_identityHolder assertCurrent:&identityError]){if(!owner->_identityFailure)owner->_identityFailure=identityError?:owner->_identityHolder.firstCause;[owner retireIdentity];}
         });dispatch_resume(_identityMonitor);}
     return YES;
