@@ -6,13 +6,15 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 const url=new URL('../scripts/build-mac.mjs',import.meta.url);
 const source=readFileSync(url,'utf8').replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(url.href));
-async function entry(args,{version='42.10.0',directory=true}={}){
- const calls=[],stop={PUBLIC_STOP_BEFORE_ANY_BUILD:true};
+async function entry(args,{version='42.10.0',directory=true,status=19}={}){
+ const calls=[],images=[],sources=[],stop={PUBLIC_STOP_BEFORE_ANY_BUILD:true};
  const context={path,fileURLToPath,URL,process:{platform:'darwin',argv:['/PUBLIC/node','/PUBLIC/build-mac.mjs',...args],execPath:'/PUBLIC/node',env:{PUBLIC_ENV:'kept'},exit:()=>{throw stop;}},
-  stat:async p=>({size:1,isFile:()=>true,isDirectory:()=>directory}),readFile:async p=>String(p).endsWith('/version')?version:JSON.stringify({devDependencies:{electron:'42.10.0'}}),
-  spawnSync:(command,argv,options)=>{calls.push({command,argv:Array.from(argv),cwd:options.cwd,env:options.env});return {status:19};},execFileSync:()=>{throw Error('PUBLIC_DMG_FORBIDDEN');}};
+  stat:async p=>({size:1,isFile:()=>true,isDirectory:()=>directory}),readFile:async p=>String(p).endsWith('/version')?version:JSON.stringify({devDependencies:{electron:'42.10.0'},version:'0.6.10',build:{productName:'YNX Wallet'}}),
+  spawnSync:(command,argv,options)=>{calls.push({command,argv:Array.from(argv),cwd:options.cwd,env:options.env});return {status};},
+  withMacDmgSource:async(app,createImage)=>{sources.push(app);return createImage('/PUBLIC/exclusive-output');},
+  execFileSync:(command,args,options)=>{images.push({command,args:Array.from(args),options});}};
  let error;try{await runInNewContext('(async()=>{'+source+'})()',context);}catch(cause){if(cause!==stop)error=cause;}
- return {calls,error};
+ return {calls,error,images,sources};
 }
 test('normal Mac entry forwards only the explicit local Electron distribution and no-rebuild pair',async()=>{
  const result=await entry(['arm64','--config.electronDist=/PUBLIC/fixed electron-dist','--config.npmRebuild=false']);assert.equal(result.error,undefined);assert.equal(result.calls.length,1);
@@ -34,4 +36,12 @@ test('normal Mac entry refuses wrong or incomplete local Electron before a build
 test('normal Mac entry preserves the no-override recipe and architecture rejection',async()=>{
  const result=await entry([]);assert.equal(result.error,undefined);assert.deepEqual(result.calls[0].argv.slice(1),['--mac','--dir','--universal','--publish','never']);
  const rejected=await entry(['invalid']);assert.ok(rejected.error);assert.equal(rejected.calls.length,0);
+});
+test('successful normal Mac entry uses the exclusive source helper and unchanged native DMG command',async()=>{
+ const result=await entry(['arm64'],{status:0});assert.equal(result.error,undefined);
+ assert.equal(result.sources.length,1);assert.ok(result.sources[0].endsWith(path.join('apps','wallet-desktop','dist','mac-arm64','YNX Wallet.app')));
+ assert.equal(result.images.length,1);assert.equal(result.images[0].command,'/usr/bin/hdiutil');
+ assert.deepEqual(result.images[0].args.slice(0,-1),['create','-volname','YNX Wallet','-srcfolder','/PUBLIC/exclusive-output','-ov','-format','UDZO']);
+ assert.ok(result.images[0].args.at(-1).endsWith(path.join('apps','wallet-desktop','dist','ynx-wallet-macos-0.6.10-arm64.dmg')));
+ assert.equal(result.images[0].options.stdio,'inherit');
 });

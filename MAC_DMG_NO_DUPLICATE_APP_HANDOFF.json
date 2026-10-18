@@ -1,0 +1,32 @@
+{
+  "state": "NORMAL_MAC_DMG_SOURCE_COPY_REMOVED_FILESYSTEM_AND_ENTRY_CONTROLS_PASS_NOT_REAL_DMG",
+  "baseCommit": "d9bb203d9fd888a54db2196bc476ecfdcec3bc45",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "realSourceCause": "Normal build-mac entry copied the complete builder App into a temporary folder via ditto before hdiutil. This adds another logical full App copy to an already disk-limited build. Local cp(1) says -c can silently fall back to copyfile, and ditto --clone only attempts cloning; neither is a clone-only guarantee.",
+  "repair": "Use the original exclusive dist/mac-{arch} output directory directly as hdiutil srcfolder. Require it contains exactly the real target App, not a symlink/foreign entries. Exclusively create the same /Applications link formerly in temp, then remove only that invocation's still-identical link. Never copy, clone, move or mutate the App. No temporary second App and no clone fallback.",
+  "files": [
+    {"path": "apps/wallet-desktop/scripts/build-mac.mjs", "bytes": 3183, "sha256": "c3d22f149600dd140a48b9908c2d9fd8b0eb4087c670104f965d8190e69f688b"},
+    {"path": "apps/wallet-desktop/scripts/mac-dmg-source.mjs", "bytes": 2112, "sha256": "5e07e07efe77fca1957da01107f042b29699a8168b1f85134f1b880aa6c0abc2"}
+  ],
+  "controls": {
+    "tests": ["apps/wallet-desktop/test/mac-dmg-source.test.mjs", "apps/wallet-desktop/test/build-mac-offline-entry.test.mjs"],
+    "realNewRed": {"path": "apps/wallet-desktop/test/mac-dmg-source-before-20261018.raw", "bytes": 1011, "sha256": "40256767d6cae4438c4d533afec54babacd7f23169ecc6d75355ffff720f7e68", "fail": 1},
+    "after": {"path": "apps/wallet-desktop/test/mac-dmg-source-after-20261018.raw", "bytes": 1190, "sha256": "d2b23ea06c771a6d166b26988ba2ea0f6d8e87792122e00f0f8491ff884f77be", "pass": 10, "fail": 0, "skip": 0, "durationMs": 30.844458},
+    "runtime": "Pinned Node24 on this Mac; real small filesystem fixtures plus actual normal-entry body with controlled builder/hdiutil seam",
+    "covered": ["Same original App/file inode, unchanged bytes/mode/internal symlink/signature fixture", "Correct unchanged UDZO hdiutil command and source helper wiring", "Original offline options, architecture and Electron-version guards", "Image failure including undefined/false exact first cause retained", "Existing Applications link or foreign files refuse before image action and remain untouched", "Changed link retained with independent cleanup failure and original cause"],
+    "CI": "Existing Desktop npm test wildcard; four symlink filesystem fixtures explicitly not applicable on Windows, static/normal-entry controls portable. Actual run10PASS0skip is Mac only.",
+    "notMeasured": "No real signed App or hdiutil image was built by Wallet. Logical removal of duplicate App is code/inode evidence, not measured new packaging peak or end-to-end delivery."
+  },
+  "AIntegration": {
+    "owner": "Original A only, next unfrozen new Mac stage; not a replacement builder or shared IDE edit",
+    "importantNewInput": "Include scripts/mac-dmg-source.mjs along with build-mac.mjs in the exact normal source intake; partial script-only copy would omit the new import",
+    "recipe": "Normal build-mac argv unchanged; existing Electron42.10 distribution and no-rebuild pair remain exact. Same appDir/output path, UDZO image and /Applications link semantics.",
+    "capacity": "Keep the existing fresh safety floor, machine margin and real runner disk/RSS/time guards. Recompute only the eliminated duplicate-App stage term; retain source/canonical/UDRW/DMG/readback costs. Do not infer a safe full-build budget from these tiny fixtures.",
+    "acceptance": "On actual new candidate verify exclusive output, original App signature and inventory unchanged, real DMG mount+closed whole-App readback, normal download/install/upgrade. If unexpected output files exist, preserve and identify them; never delete to satisfy this helper.",
+    "interruption": "Before new image work, a pre-existing Applications entry refuses. A killed image step can leave that link and partial DMG for explicit original-owner recovery; no automatic adopt/remove/rebuild of UNKNOWN result.",
+    "concurrency": "This is the existing single-writer builder output, not an adversarial shared-directory atomic filesystem API. Never run multiple producers against the same output."
+  },
+  "preserved": "All frozen App/DMG/site versions, current source UI, SDK311, executed R44 module/receipt, original accounts, keys, history and UNKNOWN remain unchanged; no native recompilation or GUI started",
+  "independentGate": "SDK HostTerminalJournal cleanup RED remains blocked for related cold activation. Normal address browser output is independent and need not wait for this Mac-only build helper.",
+  "notClaimed": ["Actual new full App/DMG or measured peak", "Installed upgrade", "Published download", "Real Relay/address approval", "Source grant or cold recovery", "MONSTER", "Android/Windows/Linux release"]
+}

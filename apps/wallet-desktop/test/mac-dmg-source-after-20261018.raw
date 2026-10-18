@@ -1,0 +1,18 @@
+✔ normal Mac entry forwards only the explicit local Electron distribution and no-rebuild pair (1.590875ms)
+✔ normal Mac entry refuses partial, duplicate, unknown and unsafe overrides before spawning (2.149167ms)
+✔ normal Mac entry refuses wrong or incomplete local Electron before a build can download (0.705709ms)
+✔ normal Mac entry preserves the no-override recipe and architecture rejection (0.480709ms)
+✔ successful normal Mac entry uses the exclusive source helper and unchanged native DMG command (0.37975ms)
+✔ normal DMG source uses the original App inode and preserves bytes, modes and symlinks without a second App (3.835792ms)
+✔ image failures including falsy causes keep the App and exact cause while removing only the new link (5.105459ms)
+✔ pre-existing link or foreign output refuses before image creation without deleting anything (3.822834ms)
+✔ changed cleanup link is retained, independently from the original image failure (1.604084ms)
+✔ normal Mac entry uses the checked original output source rather than copying the App (0.177583ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 30.844458
