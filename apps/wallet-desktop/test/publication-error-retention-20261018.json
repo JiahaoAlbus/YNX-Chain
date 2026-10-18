@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "971961193abaccbed84dc44eae6f705e218115ec",
+  "scope": "Retain the first publication/return failure using the existing signed-original diagnostic writer, without another engine or journal version",
+  "red": {"test": "R3c normal fixed SDK HTTP caller drives actual App journal and cold recovery after lost publication ACK", "exitCode": 1, "failure": "firstCause.code undefined instead of NETWORK_UNAVAILABLE", "tests": 1, "fail": 1},
+  "green": {"testNamePattern": "publication first failure|R3c normal fixed|lost publication ACK|reference save lost|lock immediately after publication", "file": "test/password-wallet-pq.test.mjs", "exitCode": 0, "tests": 5, "fail": 0, "durationMs": 3840.916459},
+  "runtime": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r24-normal-install-qa-20261018/installed-r24/YNX Wallet.app/Contents/MacOS/YNX Wallet",
+  "runtimeMode": "ELECTRON_RUN_AS_NODE=1 --max-old-space-size=192 --test --test-isolation=none --test-concurrency=1",
+  "invariants": ["First publication failure summary survives restart in the same signed-original row", "Separate diagnostic-save acknowledgement failure remains main-only and cannot replace the first thrown cause", "Original publication stays UNKNOWN, deliveryAttempted remains false, and a not-found read never authorizes another publication", "No signed proof, network payload or diagnostic error is added to renderer summaries"],
+  "buildStatusObservedSeparately": {"receipt": "/Users/huangjiahao/.ynx-build-capacity-20261011/WALLET_R3C_MATCHING_ADMISSION_20261018.json", "receivedCommit": "971961193abaccbed84dc44eae6f705e218115ec", "state": "NEW_IMMUTABLE_INPUT_RECEIVED_FRESH_HEAVY_RESOURCE_REFUSED_NO_START", "memoryPressureLevel": 2, "requiredPressureLevel": 1, "actualCompilerPID": null, "newStageCreated": false},
+  "limits": ["Controlled HTTPS, producer and QA keys; no public Auth admission or native GUI acceptance", "Existing immutable build input was not hot-modified; any successor must be explicitly taken by original A", "Whole-App build/install, real external business input and MONSTER remain unverified"]
+}

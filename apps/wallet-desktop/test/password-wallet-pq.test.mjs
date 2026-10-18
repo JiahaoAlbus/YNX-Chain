@@ -410,11 +410,22 @@ test('R3c normal fixed SDK HTTP caller drives actual App journal and cold recove
  };
  const client=createProductWalletReturnPublisher({gatewayTimeoutMs:15000});
  await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),e=>e.code==='NETWORK_UNAVAILABLE');
+ const failedState=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8'));assert.equal(failedState.sessionOriginals[0].firstCause?.code,'NETWORK_UNAVAILABLE');
  const fresh=sessionQA(f),cold=new DesktopWalletAuthority({...fresh.options,sessionReturnClient:createProductWalletReturnPublisher({gatewayTimeoutMs:15000})});
  const recovered=await f.lifecycle.run(()=>cold.reconcileCanonicalAuthorization(s.request,f.account));
  assert.equal(recovered.approval.walletProof,published.approval.walletProof);assert.ok(recovered.callbackUrl.length<=4096);assert.equal(new URL(recovered.callbackUrl).searchParams.get('result'),'reference');
  assert.equal(publishes,1);assert.equal(reads,1);assert.equal(signs,1);
  const state=JSON.parse(await fs.readFile(fresh.options.transactionSender.submissions.intentStore.filePath,'utf8'));assert.equal(state.schemaVersion,8);assert.equal(state.sessionPublications[0].status,'reference-ready');assert.equal(state.sessionOriginals[0].deliveryAttempted,false);
+});
+test('publication first failure survives a separate diagnostic-save ACK failure without another publish',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f),store=s.options.transactionSender.submissions.intentStore,record=store.recordSessionFailure.bind(store),first=Object.assign(Error('QA_PUBLICATION_UNKNOWN'),{code:'QA_PUBLICATION_UNKNOWN'}),metadata=Error('QA_PUBLICATION_METADATA_ACK_LOST');let publications=0;
+ store.recordSessionFailure=async(token,options)=>{const result=await record(token,options);if(options.firstPresent&&options.first===first)throw metadata;return result;};
+ const client={async publishReturn(){publications++;throw first;},async publicationOutcome(){return {state:'not_found',retryAuthorized:false};}};
+ await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),e=>e===first&&e.sessionOriginalMetadataError===metadata);
+ assert.equal(Object.keys(first).includes('sessionOriginalMetadataError'),false);
+ const state=JSON.parse(await fs.readFile(store.filePath,'utf8'));assert.equal(state.sessionOriginals[0].firstCause.code,'QA_PUBLICATION_UNKNOWN');assert.equal(state.sessionPublications[0].status,'publish-unknown');assert.equal(state.sessionOriginals[0].deliveryAttempted,false);
+ const fresh=sessionQA(f);await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...fresh.options,sessionReturnClient:client}).reconcileCanonicalAuthorization(s.request,f.account)),e=>e.code==='SESSION_PUBLICATION_UNKNOWN');assert.equal(publications,1);
 });
 test('normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing',async t=>{
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);

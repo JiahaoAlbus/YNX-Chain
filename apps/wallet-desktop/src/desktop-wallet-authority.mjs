@@ -233,7 +233,15 @@ export class DesktopWalletAuthority {
     catch(error){if(token)try{await store.recordSessionFailure(token,{firstPresent:true,first:error,cleanupComplete:true});}catch{}throw error;}
     if(result.approval.version==='3'&&this.#sessionReturnClient){
       const original=await store.readSessionOriginal(account,digest,()=>guard.assert());guard.assert();
-      result=Object.freeze({...result,callbackUrl:await prepareSessionPublicationReturn({store,client:this.#sessionReturnClient,original,guard:()=>guard.assert(),clock:this.clock})});
+      try{result=Object.freeze({...result,callbackUrl:await prepareSessionPublicationReturn({store,client:this.#sessionReturnClient,original,guard:()=>guard.assert(),clock:this.clock})});}
+      catch(error){
+        // The signed original is already durable and its Source is closed.
+        // Keep the first publication/return failure through the existing
+        // diagnostic writer, without signing, publishing or replacing it.
+        if(token)try{await store.recordSessionFailure(token,{firstPresent:true,first:error,cleanupComplete:true});}
+        catch(metadataError){try{if(error&&typeof error==='object'&&Object.isExtensible(error))Object.defineProperty(error,'sessionOriginalMetadataError',{value:metadataError});}catch{}}
+        throw error;
+      }
     }
     return Object.freeze({...result,retained:true,originalRequestId});
   }
