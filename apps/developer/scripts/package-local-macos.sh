@@ -19,7 +19,7 @@ canonical_native_root=$(node scripts/package-identity-admission-source.mjs --nat
 node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs
 node --test scripts/admit-derived-native.test.mjs
 node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
-node --test desktop/wallet-identity-v2-caller.test.mjs
+node --test desktop/wallet-identity-v2-caller.test.mjs desktop/wallet-identity-v2-startup.test.mjs
 node --test scripts/normal-local-workspace-aliases.test.mjs
 node --test scripts/verify-packaged-local-imports.test.mjs
 node --test scripts/solidity-current-file-route.test.mjs
@@ -117,7 +117,7 @@ cp -R frontend/src "$app/Contents/Resources/code/apps/developer/frontend/src"
 cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
 mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
-cp desktop/local-workbench.mjs desktop/local-startup-process.mjs desktop/local-plugin-copy.mjs desktop/local-workbench-ipc.mjs desktop/local-python-toolchain.mjs desktop/wallet-admission-startup.mjs desktop/wallet-admission-delivery.mjs desktop/native-parent-control.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/local-workbench.mjs desktop/local-startup-process.mjs desktop/local-plugin-copy.mjs desktop/local-workbench-ipc.mjs desktop/local-python-toolchain.mjs desktop/wallet-admission-startup.mjs desktop/wallet-admission-delivery.mjs desktop/wallet-identity-v2-caller.mjs desktop/native-parent-control.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/original-service-pipe.mjs desktop/private-payload-pump.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/native-tools-client.mjs desktop/local-ai-tools-host.mjs desktop/admitted-local-project.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/marketplace-catalog-policy.mjs desktop/marketplace-catalog-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"

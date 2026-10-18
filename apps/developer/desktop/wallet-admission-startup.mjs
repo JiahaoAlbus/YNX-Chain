@@ -4,6 +4,27 @@
 // configured targets with independently approved original owner material.
 import * as supplier from '../../../packages/wallet-auth/scripts/ynx-ide-service-admission-supplier.mjs';
 import { openOriginalParentDelivery } from './wallet-admission-delivery.mjs';
+import { OriginalIDEIdentityCall } from './wallet-identity-v2-caller.mjs';
+
+// Separate from the old four session operations: identity receive/recovery can
+// precede a qualified session parent. Only the original Auth/SDK fixed loader
+// may obtain the Native table; no renderer path, object or expected statement
+// is accepted here. Old SDKs and missing Native exports stay unavailable.
+export async function openBundledWalletIdentityCaller(runningBackendModuleURL) {
+  const original = await import('../../../packages/wallet-auth/src/original-ide-admission-parent-delivery.js');
+  const acquire = original.acquireOriginalIDENativeAuthBinding;
+  const unavailable = () => Object.assign(Error('Original Native identity operations are unavailable.'), {
+    code: 'IDE_IDENTITY_NATIVE_UNAVAILABLE',
+  });
+  if (typeof acquire !== 'function') throw unavailable();
+  const binding = await acquire(runningBackendModuleURL);
+  if (binding === null || binding === undefined) throw unavailable();
+  const contract = await import('../../../packages/wallet-auth/native/original-auth-identity-v2-contract.mjs');
+  // The caller must be retained by the backend before explicit begin(). Do not
+  // construct/assert an owning partial here and then lose it on a late error.
+  return new OriginalIDEIdentityCall({ binding, actualEntryURL: runningBackendModuleURL, contract });
+}
+
 export async function openBundledWalletAdmission(runningBackendModuleURL) {
   let delivery;
   try { delivery = await openOriginalParentDelivery({ supplier, runningBackendModuleURL,
