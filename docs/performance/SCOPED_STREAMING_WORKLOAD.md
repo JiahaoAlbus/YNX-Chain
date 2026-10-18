@@ -71,3 +71,15 @@ boundary and eviction logic, not actual large-history throughput. A matching
 client binary, gradual four-node trials, real history and fresh Root resource
 coverage are still required. Steady-state TPS is not automatically asserted by
 selecting the profile or completing a record count.
+
+### Opt-in durable readback phase timings
+
+The explicit coupled store/cache profile reports `phaseTotalsNs`: cumulative
+monotonic wall time for fresh-file hashing, capture (including the second hash
+and writer-lease release), complete decode/validation/replay, index construction
+and publication, and transaction signature/fee/nonce checks. `loadNs` includes
+file and lease checks plus hashing/capture/decode/index; do not add it to its
+child phases. Timings exclude the outer profile/slot mutex wait. Failed attempts
+retain time in the active phase without producing valid transaction evidence.
+Legacy readers leave this optional field absent and do not take phase clocks.
+These diagnostics measure the observer's costs, not inclusion or BFT finality.

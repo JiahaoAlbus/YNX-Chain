@@ -150,3 +150,53 @@ func TestStreamingWorkloadReaderCrossesByteLimitAndEvictsWithoutStaleFallback(t 
 	}
 	t.Logf("synthetic_padding_actual_native_state input_bytes=%d cache_budget=%d evictions=%d; one real transfer, no history capacity/TPS claim", len(data), stats.ReaderBudget.CacheInputByteBudget, reader.stats().ReaderBudget.Evictions)
 }
+
+func TestStreamingWorkloadReadbackPhasesObserveCacheAndFailure(t *testing.T) {
+	_, migration, path, tx, height := durableReaderFixture(t)
+	ctx := context.Background()
+	legacy, err := newDurableReader(migration, []string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := legacy.verify(ctx, path, tx, height); err != nil {
+		t.Fatal(err)
+	}
+	if legacy.stats().PhaseTotalsNs != nil {
+		t.Fatal("legacy timing unexpectedly enabled")
+	}
+	reader, err := newDurableReaderWithLimits(migration, []string{path}, 16<<20, 16<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := reader.verify(ctx, path, tx, height)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := reader.stats().PhaseTotalsNs
+	if before == nil || before.HashNs <= 0 || before.CaptureNs <= 0 || before.DecodeNs <= 0 || before.IndexPublishNs <= 0 || before.TransactionVerifyNs <= 0 || before.LoadNs < before.HashNs+before.CaptureNs+before.DecodeNs+before.IndexPublishNs {
+		t.Fatal("missing actual cold phases", before)
+	}
+	again, err := reader.verify(ctx, path, tx, height)
+	if err != nil || !again.SnapshotCacheHit || first.AppHash != again.AppHash {
+		t.Fatal("warm read evidence differs", err)
+	}
+	warm := reader.stats().PhaseTotalsNs
+	if warm.HashNs <= before.HashNs || warm.TransactionVerifyNs <= before.TransactionVerifyNs || warm.CaptureNs != before.CaptureNs || warm.DecodeNs != before.DecodeNs || warm.IndexPublishNs != before.IndexPublishNs {
+		t.Fatal("warm hit skipped fresh hash or re-decoded", before, warm)
+	}
+	if err := os.WriteFile(path, []byte("corrupt current generation"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reader.verify(ctx, path, tx, height); err == nil {
+		t.Fatal("corrupt generation reused successful evidence")
+	}
+	failed := reader.stats().PhaseTotalsNs
+	if failed.DecodeNs <= warm.DecodeNs || failed.LoadNs <= warm.LoadNs || failed.TransactionVerifyNs != warm.TransactionVerifyNs {
+		t.Fatal("failed decode time missing or verified stale transaction", warm, failed)
+	}
+	// Returned aggregates own storage; a caller cannot rewrite retained metrics.
+	failed.LoadNs = -1
+	if reader.stats().PhaseTotalsNs.LoadNs <= 0 {
+		t.Fatal("timing aggregate escaped mutable state")
+	}
+}

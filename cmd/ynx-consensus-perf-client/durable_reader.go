@@ -30,7 +30,17 @@ type durableEvidence struct {
 	JournalIncompleteTail bool
 }
 
+type durableReadbackPhases struct {
+	LoadNs              int64 `json:"loadNs"`
+	HashNs              int64 `json:"hashNs"`
+	CaptureNs           int64 `json:"captureNs"`
+	DecodeNs            int64 `json:"decodeNs"`
+	IndexPublishNs      int64 `json:"indexPublishNs"`
+	TransactionVerifyNs int64 `json:"transactionVerifyNs"`
+}
+
 type durableReaderStats struct {
+	PhaseTotalsNs            *durableReadbackPhases                  `json:"phaseTotalsNs,omitempty"`
 	Attempts                 uint64                                  `json:"attempts"`
 	BytesHashed              uint64                                  `json:"bytesHashed"`
 	SnapshotValidations      uint64                                  `json:"snapshotValidations"`
@@ -60,6 +70,7 @@ type durableSnapshotSlot struct {
 	state                 *consensus.CommittedState
 	fees                  map[durableFeeKey]struct{}
 	nonces                map[string]uint64
+	phases                durableReadbackPhases
 	stats                 durableReaderStats
 }
 
@@ -121,9 +132,20 @@ func (r *durableReader) stats() durableReaderStats {
 		defer r.profileMu.Unlock()
 	}
 	var total durableReaderStats
+	if r.profileMu != nil {
+		total.PhaseTotalsNs = &durableReadbackPhases{}
+	}
 	for _, slot := range r.slots {
 		slot.mu.Lock()
 		s := slot.stats
+		if total.PhaseTotalsNs != nil {
+			total.PhaseTotalsNs.LoadNs += slot.phases.LoadNs
+			total.PhaseTotalsNs.HashNs += slot.phases.HashNs
+			total.PhaseTotalsNs.CaptureNs += slot.phases.CaptureNs
+			total.PhaseTotalsNs.DecodeNs += slot.phases.DecodeNs
+			total.PhaseTotalsNs.IndexPublishNs += slot.phases.IndexPublishNs
+			total.PhaseTotalsNs.TransactionVerifyNs += slot.phases.TransactionVerifyNs
+		}
 		slot.mu.Unlock()
 		total.Attempts += s.Attempts
 		total.BytesHashed += s.BytesHashed
@@ -212,6 +234,11 @@ func (r *durableReader) verifyBlockBatch(ctx context.Context, path string, raws 
 
 func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slot *durableSnapshotSlot) (durableEvidence, error) {
 	var evidence durableEvidence
+	loadTimer := readbackPhaseTimer{enabled: r.profileMu != nil}
+	loadTimer.begin(&slot.phases.LoadNs)
+	defer loadTimer.end()
+	phaseTimer := readbackPhaseTimer{enabled: r.profileMu != nil}
+	defer phaseTimer.end()
 	if err := ctx.Err(); err != nil {
 		return evidence, err
 	}
@@ -264,6 +291,7 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 	if !info.Mode().IsRegular() || info.Size() > r.storeByteLimit {
 		return evidence, errors.New("durable input must be a regular file within the size limit")
 	}
+	phaseTimer.begin(&slot.phases.HashNs)
 	hasher := sha256.New()
 	var size int64
 	for {
@@ -288,8 +316,10 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 	}
 	var digest [sha256.Size]byte
 	copy(digest[:], hasher.Sum(nil))
+	phaseTimer.end()
 	hit := slot.state != nil && slot.digest == digest
 	if !hit {
+		phaseTimer.begin(&slot.phases.CaptureNs)
 		if r.profileMu != nil {
 			if err := r.reserveStoreCache(slot, size); err != nil {
 				return evidence, err
@@ -315,11 +345,13 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 			release()
 			release = nil
 		}
+		phaseTimer.begin(&slot.phases.DecodeNs)
 		slot.stats.SnapshotValidations++
 		decoded, err := decodeDurableSnapshotWithFacts(ctx, data, r.migration, r.blockDecoder)
 		if err != nil {
 			return evidence, err
 		}
+		phaseTimer.begin(&slot.phases.IndexPublishNs)
 		slot.stats.BlockReplayBlocks += uint64(decoded.replayedBlocks)
 		slot.stats.BlockReplayTxInputs += uint64(decoded.replayedTxInputs)
 		state := decoded.state
@@ -343,6 +375,7 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 		slot.journalCompleteBytes, slot.journalIncompleteTail = decoded.completeBytes, decoded.incompleteTail
 		slot.state, slot.digest, slot.fees, slot.nonces = &state, digest, fees, nonces
 		slot.storeInputBytes = size
+		phaseTimer.end()
 	} else {
 		slot.stats.SnapshotCacheHits++
 	}
@@ -362,6 +395,9 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 }
 
 func (r *durableReader) verifyTransactionLocked(ctx context.Context, slot *durableSnapshotSlot, raw cmttypes.Tx, height int64) error {
+	phaseTimer := readbackPhaseTimer{enabled: r.profileMu != nil}
+	phaseTimer.begin(&slot.phases.TransactionVerifyNs)
+	defer phaseTimer.end()
 	state := slot.state
 
 	if !state.Initialized || state.Height < height {
@@ -435,4 +471,26 @@ func decodeDurableSnapshotWithFacts(ctx context.Context, data []byte, migration 
 		return decodedDurableSnapshot{}, err
 	}
 	return decoded, nil
+}
+
+// Timings are opt-in with the bounded reader profile. Load includes file/lease
+// checks and its child phases; children are disjoint. Failed attempts retain
+// time spent in their active phase and never produce successful evidence.
+type readbackPhaseTimer struct {
+	enabled bool
+	started time.Time
+	target  *int64
+}
+
+func (p *readbackPhaseTimer) begin(target *int64) {
+	p.end()
+	if p.enabled {
+		p.started, p.target = time.Now(), target
+	}
+}
+func (p *readbackPhaseTimer) end() {
+	if p.target != nil {
+		*p.target += time.Since(p.started).Nanoseconds()
+		p.target = nil
+	}
 }
