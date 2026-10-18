@@ -369,6 +369,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	if queryPQWallet(response, req, a.committed, a.migration) {
 		return response, nil
 	}
+	if queryPQAction(response, req, a.committed, a.migration) {
+		return response, nil
+	}
 	if req.Path == "/validator-registry" {
 		// No pending/candidate state or bootstrap authority is published here.
 		response.Value, _ = json.Marshal(a.committed.ValidatorRegistry)
