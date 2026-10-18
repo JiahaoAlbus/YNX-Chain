@@ -284,6 +284,8 @@ jobs:
           mkdir "$RUNNER_TEMP/ynx-darwin-phase-node"
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-darwin-phase-node/ynx-abci" ./cmd/ynx-abci
           node scripts/loadtest/write-phase-node-build-receipt.mjs "$RUNNER_TEMP/ynx-darwin-phase-node"
+          go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-darwin-phase-node/cometbft" github.com/cometbft/cometbft/cmd/cometbft
+          node scripts/loadtest/write-comet-build-receipt.mjs "$RUNNER_TEMP/ynx-darwin-phase-node"
       - name: Retain isolated Darwin phase-timing node candidate
         if: github.event_name == 'workflow_dispatch' && inputs.build_darwin_phase_node
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
