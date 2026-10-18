@@ -4,9 +4,12 @@
   "baseCommit": "41b21a9941275540f66aa397082a18cac4da4929",
   "red": {
     "sourcePatch": {
-      "path": "docs/performance/evidence/endpoint-elastic-red-41b21a994.patch",
-      "bytes": 8177,
-      "sha256": "b5a1e087ce30e15eb10ebe933bda06413925355236218a60c481f22e32b79051"
+      "path": "docs/performance/evidence/endpoint-elastic-red-41b21a994.patch.json",
+      "bytes": 8813,
+      "sha256": "2daf45fdf2a2331c005581bf402bf2c279b9ece61c948795e6f919f17fe3ed82",
+      "decodedPatchBytes": 8177,
+      "decodedPatchSHA256": "b5a1e087ce30e15eb10ebe933bda06413925355236218a60c481f22e32b79051",
+      "encoding": "JSON UTF-8 patch string"
     },
     "raw": {
       "path": "artifacts/chain-performance-20261017/endpoint-elastic-source/local-red.raw",
