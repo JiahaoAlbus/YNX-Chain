@@ -34,6 +34,7 @@ function reference(value){
  if(status&&(value.kind!=='collector-http'||![200,202,502].includes(value.httpStatus)))fail('PQ_FINALITY_EVIDENCE_INVALID');
  return Object.freeze({...value});
 }
+export {reference as parsePQFinalityEvidenceReference};
 function identity(original,binding){
  if(types.isProxy(binding))fail('PQ_FINALITY_EVIDENCE_INVALID');exactData(binding,['account','networkId'],'PQ_FINALITY_EVIDENCE_INVALID');
  const {binding:b}=preparePQTransferOriginal(original,binding);

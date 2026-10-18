@@ -57,6 +57,7 @@ import {createPQTransactionSubmission} from './features/pq-transaction/submissio
 import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
 import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
 import {createPQFinalityVerification} from './wallet-pq-finality-verification.mjs';
+import {pqFinalityRecordIdentity} from './wallet-pq-finality-record.mjs';
 import {createPQTransactionNodeTransport} from './features/pq-transaction/node-transport.mjs';
 import {CctpEVMAdapter} from './features/cross-chain/cctp-action.mjs';
 import {CctpStore,CctpFlow,installCctpIPC} from './features/cross-chain/cctp-flow.mjs';
@@ -860,7 +861,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const originalTransactionIntentStore=new FileTransactionIntentStore({filePath:path.join(userData,'transaction-intents-v1.json')});
   const originalPQNodeTransport=createPQTransactionNodeTransport();
   const originalPQFinalityEvidence=new PQFinalityEvidence({directory:path.join(userData,'pq-finality-evidence-v1')});
-  const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,selectSource:selectOriginalPQHostSource,createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier});
+  const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,selectSource:selectOriginalPQHostSource,createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordIdentity(record),()=>guard.assert())});
   pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:originalPQFinalityEvidence,transport:originalPQNodeTransport,verification:originalPQFinalityVerification});
   pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,
     acquireOriginalWalletTransactionPermission:request=>{

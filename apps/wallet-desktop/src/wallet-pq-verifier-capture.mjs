@@ -5,6 +5,7 @@ import {preparePQTransferFinalityInvocation} from './features/pq-transaction/fin
 import {bindSavedPQTransferFinalityInvocation} from './features/pq-transaction/finality-saved-invocation.mjs';
 import {parsePQTransferFinalityVerifierResult} from './features/pq-transaction/finality-verifier-result.mjs';
 import {PQ_FINALITY_EVIDENCE_LIMITS as limits} from './wallet-pq-finality-evidence.mjs';
+import {createPQFinalityRecord} from './wallet-pq-finality-record.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 function causeData(value,present){
@@ -60,7 +61,8 @@ export function createPQFinalityVerifierCapture({evidence,verifier}){
   guard.assert();
   if(waitingClose||packet.lifecycle.closeObserved!==true||packet.lifecycle.interruption!==null||packet.lifecycle.stdoutTruncated||packet.lifecycle.stderrTruncated||packet.lifecycle.firstCausePresent)fail('PQ_FINALITY_VERIFIER_PROCESS_INCOMPLETE');
   const result=parsePQTransferFinalityVerifierResult(plan.original,binding(),plan.expected,packet.result);
-  guard.assert();return Object.freeze({...result,records:Object.freeze(refs.slice()),independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});
+  guard.assert();const captured={...result,records:Object.freeze(refs.slice())};
+  return Object.freeze({...captured,journalRecord:createPQFinalityRecord(plan.original,binding(),plan.expected,captured),independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});
  }
  async function execute(guard){
   // Durable input capture must finish before spawning. Storage failure leaves

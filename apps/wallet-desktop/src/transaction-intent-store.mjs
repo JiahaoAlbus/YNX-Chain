@@ -15,6 +15,7 @@ import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from 
 import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
+import {parsePQFinalityRecord,pqFinalityRecordIdentity} from './wallet-pq-finality-record.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -52,10 +53,10 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(data.schemaVersion)) throw invalid();
+  if (!data || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
   const signed = data.schemaVersion >= 3;
-  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===9 ? "payHistory,payProgress,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===8 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===10 ? "payHistory,payProgress,pqFinalityObservations,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===9 ? "payHistory,payProgress,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===8 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
   if(data.schemaVersion>=5){
     if(!Array.isArray(data.preparations)||data.preparations.length>ORIGINAL_OWNER_LIMIT||new Set(data.preparations.map(x=>x.account)).size!==data.preparations.length)throw invalid();
     for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!['native','pay',...(data.schemaVersion>=6?PQ_ORIGINAL_KINDS:[])].includes(marker.kind))throw invalid();
@@ -89,9 +90,13 @@ function parseState(data) {
     if(!Array.isArray(data.sessionPublications)||data.sessionPublications.length>ORIGINAL_OWNER_LIMIT||new Set(data.sessionPublications.map(row=>row.account+':'+row.requestDigest)).size!==data.sessionPublications.length)throw invalid();
     try{for(const row of data.sessionPublications){const original=data.sessionOriginals.find(r=>r.account===row.account&&r.requestDigest===row.requestDigest);parseSessionPublication(row,original);}}catch{throw invalid();}
   }
-  if(data.schemaVersion===9){
+  if(data.schemaVersion>=9){
     if(!Array.isArray(data.pqProgress)||data.pqProgress.length>ORIGINAL_OWNER_LIMIT||new Set(data.pqProgress.map(row=>row.account+':'+row.hash)).size!==data.pqProgress.length)throw invalid();
     try{for(const row of data.pqProgress){const original=data.pqOriginals.find(r=>r.account===row.account&&r.hash===row.hash);parsePQProgress(row,original);}}catch{throw invalid();}
+  }
+  if(data.schemaVersion===10){
+    if(!Array.isArray(data.pqFinalityObservations)||data.pqFinalityObservations.length>64)throw invalid();
+    try{for(const row of data.pqFinalityObservations)parsePQFinalityRecord(row,data.pqOriginals.find(r=>r.account===row.account&&r.hash===row.hash));if(new Set(data.pqFinalityObservations.map(pqFinalityRecordIdentity)).size!==data.pqFinalityObservations.length)throw invalid();}catch{throw invalid();}
   }
   for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
   if (new Set(data.records.map(record => record.hash)).size !== data.records.length || new Set(data.records.map(record => record.account)).size !== data.records.length) throw invalid();
@@ -115,12 +120,13 @@ const payEntry=(record,broadcastAttempted=true)=>({version:1,record,broadcastAtt
 // Earlier schemas cannot prove that an outward effect did NOT start. Migration
 // conservatively fences a second POST, and never happens on a read alone.
 const paySuccessor=state=>state.schemaVersion>=4?state:{...state,schemaVersion:4,signedPayments:state.signedPayments??[],payProgress:(state.signedPayments??[]).map(record=>payEntry(record)),payHistory:[]};
-const pqProgressSuccessor=state=>({...paySuccessor(state),schemaVersion:9,pqOriginals:state.pqOriginals??[],preparations:state.preparations??[],sessionOriginals:state.sessionOriginals??[],sessionPublications:state.sessionPublications??[],pqProgress:state.pqProgress??[]});
+const pqProgressSuccessor=state=>({...paySuccessor(state),schemaVersion:Math.max(9,state.schemaVersion),pqOriginals:state.pqOriginals??[],preparations:state.preparations??[],sessionOriginals:state.sessionOriginals??[],sessionPublications:state.sessionPublications??[],pqProgress:state.pqProgress??[]});
 
 export class FileTransactionIntentStore {
   #mutations = Promise.resolve();
   #sessionPublicationResults = new Map();
   #pqProgressResults = new Map();
+  #pqFinalityResults = new Map();
   #pqClosing = false;
   constructor({ filePath, io = filesystem, filePolicy = new PrivateFilePolicy({ io }) }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; this.filePolicy = filePolicy; }
   async sessionOriginalStatus(account,digest){
@@ -432,12 +438,46 @@ export class FileTransactionIntentStore {
     });
   }
   selectPQProgressOutcome(account,hash,observer){if(typeof observer!=='function')throw invalid();const slot=this.#pqProgressResults.get(account+':'+hash);return observer(slot?Object.freeze({...slot}):null);}
+  /** Private DATA adoption only. No signature/broadcast, original removal or
+   * consensus-finality transition. Exact target includes both headers/index. */
+  savePQFinalityObservation(original,input){
+    const row=parsePQFinalityRecord(input,original),key=pqFinalityRecordIdentity(row);
+    const held=this.#pqFinalityResults.get(key);if(held){if(held.stored&&canonicalJSON({...held.row,storageCause:null})===canonicalJSON({...row,storageCause:null}))return this.#persistPQFinalityObservation(key,held);throw capabilityError('PQ_FINALITY_LOCAL_SAVE_REQUIRED','Save or reconcile the same held observation locally; do not run the verifier again.');}
+    if(this.#pqFinalityResults.size>=64)throw invalid();const slot={row,stored:false,firstPresent:false,first:undefined};this.#pqFinalityResults.set(key,slot);
+    return this.#persistPQFinalityObservation(key,slot);
+  }
+  #persistPQFinalityObservation(key,slot){
+    return this.#mutate(async()=>{
+      try{
+        const state=await this.#read(),original=state.pqOriginals?.find(r=>r.account===slot.row.account&&r.hash===slot.row.hash);let row=parsePQFinalityRecord(slot.row,original);
+        const existing=state.pqFinalityObservations??[],prior=existing.find(r=>pqFinalityRecordIdentity(r)===key);
+        if(prior){
+          const core=r=>canonicalJSON({...r,storageCause:null});if(core(prior)!==core(row))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Preserve both evidence generations; a different observation cannot overwrite the same target.');
+          row={...row,storageCause:prior.storageCause??row.storageCause};if(canonicalJSON(prior)===canonicalJSON(row)){slot.row=row;slot.stored=true;return Object.freeze({stored:true,changed:false,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});}
+        }
+        if(!prior&&existing.length>=64)throw capabilityError('PQ_FINALITY_STORAGE_CAPACITY','Keep original evidence; the observation journal is full.');
+        const next={...pqProgressSuccessor(state),schemaVersion:10,pqFinalityObservations:prior?existing.map(r=>r===prior?row:r):[...existing,row]};
+        if(Buffer.byteLength(JSON.stringify(next))+1>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_FINALITY_STORAGE_CAPACITY','Keep original evidence; the private journal is full.');
+        await this.#write(next);const readback=await this.#read();if(!readback.pqFinalityObservations?.some(r=>canonicalJSON(r)===canonicalJSON(row)))throw invalid();slot.row=row;slot.stored=true;
+        return Object.freeze({stored:true,changed:true,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});
+      }catch(cause){if(!slot.firstPresent){slot.firstPresent=true;slot.first=cause;let value=cause;const d=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'cause'):null;if(d&&Object.hasOwn(d,'value'))value=d.value;slot.row={...slot.row,storageCause:pqProgressCause(value)};}throw cause;}
+    });
+  }
+  flushPQFinalityObservation(account,hash,targetIdentity,guard){
+    if(typeof guard!=='function')throw invalid();guard();const slot=this.#pqFinalityResults.get(targetIdentity);if(!slot||slot.row.account!==account||slot.row.hash!==hash||slot.stored)throw invalid();
+    return this.#persistPQFinalityObservation(targetIdentity,slot);
+  }
+  async readPQFinalityObservations(account,hash,guard){
+    if(!ACCOUNT.test(account??'')||!HASH.test(hash??'')||typeof guard!=='function')throw invalid();guard();const state=await this.#read();guard();
+    const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();return freezePublic((state.pqFinalityObservations??[]).filter(r=>r.account===account&&r.hash===hash).map(r=>parsePQFinalityRecord(r,original)));
+  }
   /** Main-only shutdown barrier. Read-only: never signs, submits, flushes or
    * turns an UNKNOWN original into a retry. Late results may still be saved. */
   assertPQProgressSafeToClose(){
     this.#pqClosing=true;
     return this.#mutate(async()=>{
       const state=await this.#read();
+      for(const slot of this.#pqFinalityResults.values())if(!slot.stored||!state.pqFinalityObservations?.some(r=>canonicalJSON(r)===canonicalJSON(slot.row)))throw capabilityError('PQ_FINALITY_CLOSE_UNCONFIRMED','Keep Wallet open; a finality observation has unconfirmed local storage. Never resubmit or regenerate it.');
       for(const [key,slot] of this.#pqProgressResults){
         const split=key.indexOf(':'),account=key.slice(0,split),hash=key.slice(split+1),original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
         if(!slot.beginAttempted&&!slot.latestResult&&!slot.firstRawPresent)continue;
