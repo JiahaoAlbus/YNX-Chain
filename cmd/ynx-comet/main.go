@@ -36,10 +36,11 @@ type pqOptions struct {
 	remoteTimeout                                                     time.Duration
 	runtimePlan, runtimePlanHash                                      string
 	stateLayout                                                       string
+	heightHaltControl, heightHaltPlanHash, heightHaltSessionID        string
 }
 
 func (p pqOptions) enabled() bool {
-	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json"
+	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -57,6 +58,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateHeightHalt(); err != nil {
+		return err
+	}
 	if err := p.validateApplicationLayout(); err != nil {
 		return err
 	}
@@ -321,6 +325,12 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		return err
 	}
 	defer func() { result = errors.Join(result, closePQCustody(custody)) }()
+	if err := configureOperatorHeightHalt(node, options); err != nil {
+		_ = closePQCustody(custody)
+		node.OnStop()
+		_ = node.ProxyApp().Stop()
+		return err
+	}
 	if err := node.Start(); err != nil {
 		_ = closePQCustody(custody)
 		node.OnStop()
@@ -329,6 +339,10 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	}
 	defer func() { result = errors.Join(result, node.ProxyApp().Stop()) }()
 	var remoteDone <-chan struct{}
+	var heightHaltDone <-chan struct{}
+	if options.heightHaltConfigured() {
+		heightHaltDone = node.HeightHaltDone()
+	}
 	remote, isRemote := custody.(*consensus.PQRemotePrivValidator)
 	if isRemote {
 		remoteDone = remote.Done()
@@ -338,6 +352,8 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	case <-node.Quit():
 	case <-remoteDone:
 		result = remote.Err()
+	case <-heightHaltDone:
+		_, result = node.HeightHaltResult()
 	}
 	if options.remote() {
 		_ = custody.Close()
@@ -362,9 +378,12 @@ func main() {
 	root.AddCommand(newInspectOperatorCheckpointCommand(), newEncodeValidatorRegistrationCommand(), newApproveFirstValidatorRegistrationCommand())
 	root.AddCommand(commands.GenValidatorCmd, commands.InitFilesCmd, commands.LightCmd, commands.ReplayCmd, commands.ReplayConsoleCmd, commands.ResetAllCmd, commands.ResetPrivValidatorCmd, commands.ResetStateCmd, commands.ShowValidatorCmd, commands.TestnetFilesCmd, commands.ShowNodeIDCmd, commands.ReIndexEventCmd, commands.GenNodeKeyCmd, commands.VersionCmd, commands.RollbackStateCmd, commands.CompactGoLevelDBCmd, commands.InspectCmd, debug.DebugCmd, cli.NewCompletionCmd(root, true))
 	start := commands.NewRunNodeCmd(nm.DefaultNewNode)
+	// These protected maintenance controls are part of the independently pinned
+	// operator launcher; they grant no transaction or consensus authority.
 	legacyRun := start.RunE
 	options := pqOptions{recoveryFD: -1}
 	f := start.Flags()
+	registerHeightHaltFlags(f, &options)
 	f.StringVar(&options.runtimePlan, "runtime-upgrade-plan", "", "canonical independently pinned old-runtime upgrade plan")
 	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")
 	f.StringVar(&options.migration, "migration-state", "", "original validated key-bound migration JSON")

@@ -47,21 +47,23 @@ type ProductionOperatorPlan struct {
 	RuntimePlanHash         string                   `json:"runtimePlanHash"`
 	PQSchedule              []byte                   `json:"pqSchedule"`
 	PQScheduleHash          string                   `json:"pqScheduleHash"`
+	HeightHaltSessionID     string                   `json:"heightHaltSessionId,omitempty"`
 	Roles                   []ProductionOperatorRole `json:"roles"`
 }
 
 type ProductionOperatorRole struct {
-	Role                string                           `json:"role"`
-	Home                string                           `json:"home"`
-	ABCIState           string                           `json:"abciState"`
-	LegacyKeyPath       string                           `json:"legacyKeyPath"`
-	LegacyStatePath     string                           `json:"legacyStatePath"`
-	NodeKeyPath         string                           `json:"nodeKeyPath"`
-	HostBinding         *ynxconsensusauth.HostKeyBinding `json:"hostBinding"`
-	RemoteSigner        string                           `json:"remoteSigner"`
-	TransportKeyPath    string                           `json:"transportKeyPath"`
-	SignerPeerPublicKey string                           `json:"signerPeerPublicKey"`
-	RemoteTimeout       string                           `json:"remoteTimeout"`
+	Role                  string                           `json:"role"`
+	Home                  string                           `json:"home"`
+	ABCIState             string                           `json:"abciState"`
+	LegacyKeyPath         string                           `json:"legacyKeyPath"`
+	LegacyStatePath       string                           `json:"legacyStatePath"`
+	NodeKeyPath           string                           `json:"nodeKeyPath"`
+	HostBinding           *ynxconsensusauth.HostKeyBinding `json:"hostBinding"`
+	RemoteSigner          string                           `json:"remoteSigner"`
+	TransportKeyPath      string                           `json:"transportKeyPath"`
+	SignerPeerPublicKey   string                           `json:"signerPeerPublicKey"`
+	RemoteTimeout         string                           `json:"remoteTimeout"`
+	HeightHaltControlPath string                           `json:"heightHaltControlPath,omitempty"`
 }
 
 func (p *ProductionOperatorPlan) role(name string) ProductionOperatorRole {
@@ -265,6 +267,9 @@ func validateProductionOperatorPlan(p ProductionOperatorPlan, m chain.ConsensusM
 				return errors.New("operator requires explicit original paths outside the fresh candidate installation")
 			}
 		}
+		if err := validateProductionOperatorHeightHalt(p, r); err != nil {
+			return err
+		}
 		if r.ABCIState == r.LegacyStatePath || r.LegacyKeyPath == r.NodeKeyPath || r.ABCIState == r.LegacyKeyPath || r.ABCIState == r.NodeKeyPath || r.LegacyStatePath == r.LegacyKeyPath || r.LegacyStatePath == r.NodeKeyPath {
 			return errors.New("operator state and custody paths must be distinct")
 		}
@@ -338,6 +343,13 @@ func ProductionValidatorManifestHash(m ProductionValidatorManifest) (string, err
 func productionOperatorRoleFiles(p *ProductionOperatorPlan, r ProductionOperatorRole, config, roleManifest []byte) (map[string][]byte, error) {
 	files := map[string][]byte{}
 	args := []string{"start", "--home", r.Home, "--migration-state", ProductionCandidateRoot + "/config/bound-migration.json", "--abci-state", r.ABCIState, "--abci-state-layout", p.StateLayout, "--consensus-genesis-sha256", p.ConsensusGenesisSHA256, "--original-genesis-hash", p.OriginalGenesisHash, "--bound-migration-state-hash", p.MigrationStateHash}
+	if p.HeightHaltSessionID != "" {
+		canonicalPlan, err := json.Marshal(p)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, "--height-halt-control", r.HeightHaltControlPath, "--operator-plan-sha256", productionOperatorSHA(canonicalPlan), "--height-halt-session-id", p.HeightHaltSessionID)
+	}
 	if len(p.RuntimePlan) > 0 {
 		files["config/runtime-plan.json"] = p.RuntimePlan
 		args = append(args, "--runtime-upgrade-plan", ProductionCandidateRoot+"/config/runtime-plan.json", "--runtime-upgrade-plan-hash", p.RuntimePlanHash)

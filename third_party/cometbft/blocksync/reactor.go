@@ -54,6 +54,7 @@ type Reactor struct {
 	initialState sm.State
 
 	blockExec     *sm.BlockExecutor
+	heightHalt    *sm.HeightHalt
 	store         sm.BlockStore
 	pool          *BlockPool
 	blockSync     bool
@@ -378,6 +379,9 @@ func (r *Reactor) poolRoutine(stateSynced bool) {
 
 FOR_LOOP:
 	for {
+		if r.heightHalt.Blocked() {
+			break FOR_LOOP
+		}
 		select {
 		case <-switchToConsensusTicker.C:
 			height, numPending, lenRequesters := r.pool.GetStatus()
@@ -546,25 +550,19 @@ FOR_LOOP:
 			r.pool.PopRequest()
 
 			// TODO: batch saves so we dont persist to disk every block
-			if extensionsEnabled {
-				r.store.SaveBlockWithExtendedCommit(first, firstParts, extCommit)
-			} else {
-				// We use LastCommit here instead of extCommit. extCommit is not
-				// guaranteed to be populated by the peer if extensions are not enabled.
-				// Currently, the peer should provide an extCommit even if the vote extension data are absent
-				// but this may change so using second.LastCommit is safer.
-				r.store.SaveBlock(first, firstParts, second.LastCommit)
-			}
-
 			// TODO: same thing for app - but we would need a way to
 			// get the hash without persisting the state
-			state, err = r.blockExec.ApplyVerifiedBlock(state, firstID, first)
+			var halted bool
+			state, halted, err = r.applySyncedBlock(state, first, firstParts, second.LastCommit, extCommit, extensionsEnabled)
 			if err != nil {
 				// TODO This is bad, are we zombie?
 				panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 			}
 			r.metrics.recordBlockMetrics(first)
 			blocksSynced++
+			if halted {
+				break FOR_LOOP
+			}
 
 			if blocksSynced%100 == 0 {
 				lastRate = 0.9*lastRate + 0.1*(100/time.Since(lastHundred).Seconds())
@@ -578,6 +576,8 @@ FOR_LOOP:
 		case <-r.Quit():
 			break FOR_LOOP
 		case <-r.pool.Quit():
+			break FOR_LOOP
+		case <-r.heightHalt.Done():
 			break FOR_LOOP
 		}
 	}

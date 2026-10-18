@@ -88,7 +88,8 @@ type State struct {
 	blockStore sm.BlockStore
 
 	// create and execute blocks
-	blockExec *sm.BlockExecutor
+	blockExec  *sm.BlockExecutor
+	heightHalt *sm.HeightHalt // optional local maintenance barrier; not consensus authority
 
 	// notify us if txs are available
 	txNotifier txNotifier
@@ -253,6 +254,9 @@ func (cs *State) GetState() sm.State {
 func (cs *State) GetLastHeight() int64 {
 	cs.mtx.RLock()
 	defer cs.mtx.RUnlock()
+	if cs.heightHalt.Blocked() {
+		return cs.state.LastBlockHeight
+	}
 	return cs.Height - 1
 }
 
@@ -822,6 +826,10 @@ func (cs *State) receiveRoutine(maxSteps int) {
 	}()
 
 	for {
+		if cs.heightHalt.Blocked() {
+			onExit(cs)
+			return
+		}
 		if maxSteps > 0 {
 			if cs.nSteps >= maxSteps {
 				cs.Logger.Debug("reached max steps; exiting receive routine")
@@ -877,6 +885,9 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		case <-cs.Quit():
 			onExit(cs)
 			return
+		case <-cs.heightHalt.Done():
+			onExit(cs)
+			return
 		}
 	}
 }
@@ -885,6 +896,9 @@ func (cs *State) receiveRoutine(maxSteps int) {
 func (cs *State) handleMsg(mi msgInfo) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
+	if cs.heightHalt.Blocked() {
+		return
+	}
 	var (
 		added bool
 		err   error
@@ -985,6 +999,9 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	// the timeout will now cause a state transition
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
+	if cs.heightHalt.Blocked() {
+		return
+	}
 
 	switch ti.Step {
 	case cstypes.RoundStepNewHeight:
@@ -1026,6 +1043,9 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 func (cs *State) handleTxsAvailable() {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
+	if cs.heightHalt.Blocked() {
+		return
+	}
 
 	// We only need to do this for round 0.
 	if cs.Round != 0 {
@@ -1068,6 +1088,9 @@ func (cs *State) enterNewRound(height int64, round int32) {
 			"entering new round with invalid args",
 			"current", log.NewLazySprintf("%v/%v/%v", cs.Height, cs.Round, cs.Step),
 		)
+		return
+	}
+	if !cs.heightHalt.Enter(height) {
 		return
 	}
 
@@ -1212,6 +1235,9 @@ func (cs *State) isProposer(address []byte) bool {
 }
 
 func (cs *State) defaultDecideProposal(height int64, round int32) {
+	if !cs.heightHalt.Enter(height) {
+		return
+	}
 	var block *types.Block
 	var blockParts *types.PartSet
 
@@ -1708,6 +1734,9 @@ func (cs *State) finalizeCommit(height int64) {
 		)
 		return
 	}
+	if !cs.heightHalt.Enter(height) {
+		return
+	}
 
 	cs.calculatePrevoteMessageDelayMetrics()
 
@@ -1802,6 +1831,13 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// must be called before we update state
 	cs.recordMetrics(height, block)
+	if cs.heightHalt.Committed(stateCopy) {
+		// Keep the actual committed state without entering/scheduling H+1.
+		// The receive routine closes its WAL normally; the operator stops the
+		// node outside this lock and waits for all reactors/databases.
+		cs.state = stateCopy
+		return
+	}
 
 	// NewHeightStep!
 	cs.updateToState(stateCopy)
@@ -2379,6 +2415,9 @@ func (cs *State) signVote(
 	header types.PartSetHeader,
 	block *types.Block,
 ) (*types.Vote, error) {
+	if !cs.heightHalt.Enter(cs.Height) {
+		return nil, sm.ErrHeightHalt
+	}
 	// Flush the WAL. Otherwise, we may not recompute the same vote to sign,
 	// and the privValidator will refuse to sign anything.
 	if err := cs.wal.FlushAndSync(); err != nil {

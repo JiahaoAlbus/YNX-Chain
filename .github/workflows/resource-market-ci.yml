@@ -228,6 +228,10 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3
         run: go test -p 1 -count=1 -timeout=90s -run '^$' github.com/cometbft/cometbft/state github.com/cometbft/cometbft/consensus
+      - name: Verify exact-height maintenance stop with real engine commit and cold stores
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 3
+        run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXHeightHalt' github.com/cometbft/cometbft/state github.com/cometbft/cometbft/consensus github.com/cometbft/cometbft/blocksync github.com/cometbft/cometbft/node
       - name: Reproduce and repair same-directory database ownership without starting nodes
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3
@@ -356,6 +360,12 @@ jobs:
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
+      - name: Verify normal Host source producer with original signed transaction fixture
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 2
+        env:
+          YNX_PQ_HOST_PUBLIC_FIXTURE: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
+        run: go test -p 1 -count=1 -timeout=90s -run '^TestProofHostFromOriginalSignedPublicFixture$' ./cmd/ynx-consensus-proof-verify
       - name: Reproduce signed-history overwrite and unsafe rollback callers
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3

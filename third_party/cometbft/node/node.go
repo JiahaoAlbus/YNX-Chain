@@ -72,6 +72,7 @@ type Node struct {
 	stateSyncProvider statesync.StateProvider // provides state data for bootstrapping a node
 	stateSyncGenesis  sm.State                // provides the genesis state for state sync
 	consensusState    *cs.State               // latest consensus state
+	heightHalt        *heightHaltControl      // optional local maintenance stop, never protocol authority
 	consensusReactor  *cs.Reactor             // for participating in the consensus
 	pexReactor        *pex.Reactor            // for exchanging peer addresses
 	evidencePool      *evidence.Pool          // tracking evidence
@@ -562,7 +563,13 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 }
 
 // OnStart starts the Node. It implements service.Service.
-func (n *Node) OnStart() error {
+func (n *Node) OnStart() (startErr error) {
+	n.heightHalt.start()
+	defer func() {
+		if startErr != nil {
+			n.heightHalt.close()
+		}
+	}()
 	now := cmttime.Now()
 	genTime := n.genesisDoc.GenesisTime
 	if genTime.After(now) {
@@ -632,6 +639,7 @@ func (n *Node) OnStart() error {
 // OnStop stops the Node. It implements service.Service.
 func (n *Node) OnStop() {
 	n.BaseService.OnStop()
+	n.heightHalt.close()
 
 	n.Logger.Info("Stopping Node")
 
