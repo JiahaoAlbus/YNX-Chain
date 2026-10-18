@@ -91,7 +91,16 @@ export function takeOriginalAdmissionParentStream(ref,createStream,closeDescript
   }catch(error){first(s,error);retireOriginalAdmissionParentSource(ref,error);throw error;}
 }
 export function readOriginalAdmissionParentInstalledFrame(ref){const s=state(ref);assertOriginalAdmissionParentCurrent(ref);return s.host.readInstalledFrame();}
-export function acknowledgeOriginalAdmissionParentFrame(ref,raw){const s=state(ref);assertOriginalAdmissionParentCurrent(ref);const result=s.host.acknowledge(raw);if(result!==undefined)throw failure('ADMISSION_NATIVE_ACK_INCOMPLETE');assertOriginalAdmissionParentCurrent(ref);return undefined;}
+export function acknowledgeOriginalAdmissionParentFrame(ref,raw){const s=state(ref);assertOriginalAdmissionParentCurrent(ref);const result=s.host.acknowledge(raw);if(result!==undefined)throw failure('ADMISSION_NATIVE_ACK_INCOMPLETE');assertOriginalAdmissionParentCurrent(ref);s.installedAcknowledged=true;return undefined;}
+export async function handleOriginalAdmissionParentPayload(ref,raw){
+  const s=state(ref);assertOriginalAdmissionParentCurrent(ref);
+  if(s.installedAcknowledged!==true)throw failure('ADMISSION_PRIVATE_INSTALLED_ACK_REQUIRED');
+  if(typeof s.host?.handlePrivateServicePayload!=='function')throw failure('ADMISSION_PRIVATE_HANDLER_NOT_SUPPLIED');
+  // Register custody BEFORE supplier invocation, including synchronous failure
+  // or retirement reentry. Its full task is joined before the parent closes.
+  const work=Promise.resolve().then(async()=>{assertOriginalAdmissionParentCurrent(ref);const result=await s.host.handlePrivateServicePayload(raw);assertOriginalAdmissionParentCurrent(ref);return result;});
+  return await trackOriginalAdmissionParentCall(ref,work);
+}
 export function trackOriginalAdmissionParentCall(ref,promise){
   const s=state(ref);s.waiting.add(promise);
   void promise.then(()=>s.waiting.delete(promise),error=>{first(s,error);s.waiting.delete(promise);});return promise;

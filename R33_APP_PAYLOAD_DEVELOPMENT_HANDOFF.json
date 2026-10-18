@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "state": "APP_SINGLE_READER_SUCCESSOR_CODE_AND_CONTROLLED_TESTS_NOT_SDK35_OR_NATIVE_ACCEPTANCE",
+  "baseCommit": "d07538398b55f1bbbc15e812d086a590bbbd4ab6",
+  "ownership": ["apps/wallet-desktop/src/original-admission-broker.mjs", "apps/wallet-desktop/src/original-admission-parent-source.mjs", "apps/wallet-desktop/test/r33-admission-payload.test.mjs"],
+  "contract": {"path": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3e-20261018/source/packages/wallet-auth/integration/IDE_PRIVATE_PAYLOAD_R33_DEV_R1.md", "bytes": 5714, "sha256": "83df3338ba18d46ce40bac261a82b9ce238d26f23c8e535fd5a275b4d6ae0ee6"},
+  "changes": [
+    "Same retained stream reader transitions only after installed ACK and initial write completion; no second socket, prelude, Source or provider",
+    "Normal launcher routes through same retained parent host.handlePrivateServicePayload, with installed ACK and current checks before and after; absent SDK successor refuses",
+    "Serial payload handler and response writer, bounded sixteen queued frames and 576KiB queued input; per line 576KiB input, 192KiB response, valid UTF8 and no injected LF",
+    "Pending tasks join original parent cleanup, queued work stops on retirement; late response/current failure cannot write or resubmit",
+    "Business and cleanup first causes retain separate falsy values; same close pass and no retry"
+  ],
+  "red": {"runtime": "installed R24 Electron RunAsNode", "initialCases": 5, "fail": 3, "cause": "Original broker labels all post-installed-ACK data ADMISSION_ACK_DUPLICATE and never invokes the retained payload handler"},
+  "finalAffectedTests": {"files": ["r33-admission-payload.test.mjs", "native-parent-host.test.mjs", "parent-close-reentry.test.mjs"], "newCases": 8, "totalPass": 27, "fail": 0, "durationMs": 24.410084, "runtime": "installed R24 Electron RunAsNode, heap192MiB, isolation none, concurrency1", "publicStandInsOnly": true},
+  "notEstablished": ["formal SDK3.5 package consumption", "Native R33 positive Source or terminal ACK", "same actual Host business roundtrip", "full App package or installation", "end-user authorization", "MONSTER operation"],
+  "next": "Consume formal exact SDK3.5 and original A matching Native closure only when supplied, then run affected composition and same retained actual path. Do not hold already frozen R3d build for this successor."
+}

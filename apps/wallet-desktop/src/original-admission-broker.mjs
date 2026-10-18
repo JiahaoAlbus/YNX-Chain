@@ -1,7 +1,7 @@
 import {spawn as spawnChild} from 'node:child_process';
 import {Socket} from 'node:net';
 import {closeSync} from 'node:fs';
-import {acquireOriginalAdmissionParentSource,assertOriginalAdmissionParentCurrent,enterOriginalAdmissionParentLaunch,waitOriginalAdmissionParentPrelude,takeOriginalAdmissionParentStream,readOriginalAdmissionParentInstalledFrame,acknowledgeOriginalAdmissionParentFrame,trackOriginalAdmissionParentCall,attachOriginalAdmissionParentChannel,onOriginalAdmissionParentRetirement,retireOriginalAdmissionParentSource,joinOriginalAdmissionParentSource,closeOriginalAdmissionParentSource,selectOriginalAdmissionParentOutcome} from './original-admission-parent-source.mjs';
+import {acquireOriginalAdmissionParentSource,assertOriginalAdmissionParentCurrent,enterOriginalAdmissionParentLaunch,waitOriginalAdmissionParentPrelude,takeOriginalAdmissionParentStream,readOriginalAdmissionParentInstalledFrame,acknowledgeOriginalAdmissionParentFrame,handleOriginalAdmissionParentPayload,trackOriginalAdmissionParentCall,attachOriginalAdmissionParentChannel,onOriginalAdmissionParentRetirement,retireOriginalAdmissionParentSource,joinOriginalAdmissionParentSource,closeOriginalAdmissionParentSource,selectOriginalAdmissionParentOutcome} from './original-admission-parent-source.mjs';
 // Only an original trusted launcher may construct this endpoint over its held
 // inherited duplex stream. A descriptor number/opaque ID is never admission.
 const failure = code => Object.assign(new Error(code), {code});
@@ -34,10 +34,13 @@ export function captureInstalledAdmission(value, now) {
   if(v.selection.receiptSelection.receiptPath!==v.selection.receiptDirectory+'/'+r.requestNonce+'.admission.json') throw failure('ADMISSION_RECORD_INVALID');
   return v; // Structural capture only; IDE verifies original signatures/custody.
 }
-export function createOriginalAdmissionBroker({stream, assertChannelCurrent, readInstalledFrame=null, acknowledge=null, now=Date.now, schedule=setTimeout, unschedule=clearTimeout}) {
+export function createOriginalAdmissionBroker({stream, assertChannelCurrent, readInstalledFrame=null, acknowledge=null, handlePrivateServicePayload=null, now=Date.now, schedule=setTimeout, unschedule=clearTimeout}) {
   if(!stream||typeof assertChannelCurrent!=='function') throw failure('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');
   if((readInstalledFrame!==null||acknowledge!==null)&&(typeof readInstalledFrame!=='function'||typeof acknowledge!=='function'))throw failure('ADMISSION_NATIVE_FRAME_NOT_SUPPLIED');
+  if(handlePrivateServicePayload!==null&&typeof handlePrivateServicePayload!=='function')throw failure('ADMISSION_PRIVATE_HANDLER_NOT_SUPPLIED');
   let retired=false, pending=null, used=false, first=null, firstPresent=false, bytes=Buffer.alloc(0), floor=-1, expiry=null, holding=false, holdTimer=null, expiryTimer=null;
+  let payloadReady=false,payloadRunning=false,queuedBytes=0;
+  const payloadQueue=[],requestLimit=589824,responseLimit=196608;
   const waiters=[],drainers=[],entered=new Set();
   function drained(){if(entered.size)return;for(const resolve of drainers.splice(0))resolve();if(retired)for(const resolve of waiters.splice(0))resolve({reason:first?.code??'ADMISSION_CHANNEL_CLOSED',error:first});}
   function enter(){const record={};entered.add(record);let done=false;return()=>{if(done)return;done=true;entered.delete(record);drained();};}
@@ -46,15 +49,46 @@ export function createOriginalAdmissionBroker({stream, assertChannelCurrent, rea
     const error=args.length?args[0]:failure('ADMISSION_CHANNEL_CLOSED');
     if(retired)return;
     if(!firstPresent){first=error;firstPresent=true;} retired=true;
+    payloadQueue.length=0;queuedBytes=0;bytes=Buffer.alloc(0);
     unschedule(holdTimer);holdTimer=null;unschedule(expiryTimer);expiryTimer=null;
     if(pending){const p=pending;pending=null;unschedule(p.timer);p.reject(first);}
     stream.off('data',data); stream.off('end',ended); stream.off('close',ended); stream.off('error',errored);
     stream.on('error',()=>{});try{stream.destroy();}finally{drained();}
   };
   const ended=()=>close(failure('ADMISSION_CHANNEL_EOF')),errored=e=>close(e);
+  // Same reader and one serial writer, never a second socket/provider. SDK
+  // alone decodes/binds business frames and owns Native custody/terminal ACK.
+  async function pumpPayload(){
+    if(payloadRunning||retired)return;payloadRunning=true;const leave=enter();
+    try{
+      while(payloadQueue.length){
+        current();const raw=payloadQueue.shift();queuedBytes-=Buffer.byteLength(raw);
+        const response=await handlePrivateServicePayload(raw);current();
+        if(typeof response!=='string'||!response.length||response.includes('\n')||Buffer.byteLength(response)>responseLimit||Buffer.from(response).toString('utf8')!==response)throw failure('ADMISSION_PRIVATE_RESPONSE_INVALID');
+        await new Promise((resolve,reject)=>{
+          try{current();stream.write(response+'\n',error=>{try{if(error)throw error;current();resolve();}catch(cause){reject(cause);}});}catch(cause){reject(cause);}
+        });
+        current();
+      }
+    }catch(cause){close(cause);}finally{payloadRunning=false;leave();}
+  }
+  function receivePayload(chunk){
+    if(!handlePrivateServicePayload)throw failure('ADMISSION_PRIVATE_HANDLER_NOT_SUPPLIED');
+    const input=Buffer.from(chunk);let offset=0;
+    while(offset<input.length){
+      const lf=input.indexOf(10,offset),end=lf<0?input.length:lf;
+      if(bytes.length+end-offset>requestLimit)throw failure('ADMISSION_PRIVATE_FRAME_CAPACITY');
+      bytes=Buffer.concat([bytes,input.subarray(offset,end)]);offset=end+1;
+      if(lf<0)break;
+      const raw=bytes.toString('utf8');if(!raw.length||!Buffer.from(raw).equals(bytes))throw failure('ADMISSION_PRIVATE_FRAME_INVALID');
+      if(payloadQueue.length>=16||queuedBytes+bytes.length>requestLimit)throw failure('ADMISSION_PRIVATE_QUEUE_CAPACITY');
+      payloadQueue.push(raw);queuedBytes+=bytes.length;bytes=Buffer.alloc(0);
+    }
+    void pumpPayload();
+  }
   const data=chunk=>{
     try{
-      current();if(!pending||pending.acked)throw failure('ADMISSION_ACK_DUPLICATE');
+      current();if(payloadReady){receivePayload(chunk);return;}if(!pending||pending.acked)throw failure('ADMISSION_ACK_DUPLICATE');
       bytes=Buffer.concat([bytes,Buffer.from(chunk)]);if(bytes.length>65536)throw failure('ADMISSION_RECORD_CAPACITY');
       const i=bytes.indexOf(10);if(i<0)return;
       if(i!==bytes.length-1)throw failure('ADMISSION_ACK_CONFLICT');
@@ -65,7 +99,7 @@ export function createOriginalAdmissionBroker({stream, assertChannelCurrent, rea
       current();pending.acked=true;settle();
     }catch(e){close(e);}
   };
-  function settle(){if(pending?.acked&&pending.written){const p=pending;pending=null;unschedule(p.timer);p.resolve();}}
+  function settle(){if(pending?.acked&&pending.written){const p=pending;pending=null;bytes=Buffer.alloc(0);payloadReady=true;unschedule(p.timer);p.resolve();}}
   stream.on('data',data);stream.on('end',ended);stream.on('close',ended);stream.on('error',errored);
   return Object.freeze({
     assertCurrent(){current();},close,
@@ -148,7 +182,7 @@ export async function launchOriginalAdmissionIDE({executor,assertExecutorCurrent
     await trackOriginalAdmissionParentCall(ref,started);
     await waitOriginalAdmissionParentPrelude(ref);
     current();const stream=takeOriginalAdmissionParentStream(ref,fd=>new Socket({fd,readable:true,writable:true}),closeSync);
-    broker=createOriginalAdmissionBroker({stream,assertChannelCurrent:current,readInstalledFrame:()=>readOriginalAdmissionParentInstalledFrame(ref),acknowledge:raw=>acknowledgeOriginalAdmissionParentFrame(ref,raw),now,schedule,unschedule});
+    broker=createOriginalAdmissionBroker({stream,assertChannelCurrent:current,readInstalledFrame:()=>readOriginalAdmissionParentInstalledFrame(ref),acknowledge:raw=>acknowledgeOriginalAdmissionParentFrame(ref,raw),handlePrivateServicePayload:raw=>handleOriginalAdmissionParentPayload(ref,raw),now,schedule,unschedule});
     attachOriginalAdmissionParentChannel(ref,broker);
     return Object.freeze({assertCurrent:current,deliver:value=>broker.deliver(value),waitRetirement:assertOwner=>broker.waitRetirement(assertOwner),
       close(error){retire(error);},
