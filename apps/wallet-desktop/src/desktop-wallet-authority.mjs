@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Wallet, TypedDataEncoder, formatEther, getBytes, isAddress, isHexString } from "ethers";
-import { createProductSessionReturnURL, parseProductSessionWalletURL, signProductSessionApproval,evmAddressFromYNX,ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
+import { createProductSessionReturnURL, parseProductSessionWalletURL, signProductSessionApproval,evmAddressFromYNX,ynxAddressFromEVM,productSessionRequestDigest,parseProductSessionApproval } from "@ynx-chain/wallet-auth";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
@@ -110,11 +110,11 @@ export class DesktopWalletAuthority {
   async importAccount(input) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.importAccount(input); }
   async addAccountAndSelect() { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.addAccountAndSelect(); }
   async selectAccount(account) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.selectAccount(account); }
-  async approveCanonicalAuthorization(request, issuedAt, expectedAccount, permission) {
+  async approveCanonicalAuthorization(request, issuedAt, expectedAccount, permission, requestId=null) {
     if (!/^0x[0-9a-f]{40}$/.test(expectedAccount ?? "")) throw providerError(4100, "ACCOUNT_REVIEW_REQUIRED", "Review the selected account before approving");
     // Normal main always supplies this port. Its refusal never falls through
     // to historical classic authorization, even on cached/cold requests.
-    if(this.#pqSessionSource)return this.#trackPQ(()=>this.#approveCurrentSession(request,expectedAccount,permission));
+    if(this.#pqSessionSource)return this.#trackPQ(()=>this.#approveCurrentSession(request,expectedAccount,permission,{requestId}));
     return this.vault.withSecret((secret, identity) => {
       permission?.assert();
       if (identity.account !== expectedAccount) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
@@ -123,13 +123,40 @@ export class DesktopWalletAuthority {
       return Object.freeze({ approval, callbackUrl: createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, request, { result: "approved", approval }, at) });
     },permission);
   }
-  async #approveCurrentSession(request,account,permission){
+  reconcileCanonicalAuthorization(request,account,permission){
+    if(!this.#pqSessionSource)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Fresh committed policy is required for recovery.');
+    return this.#trackPQ(()=>this.#approveCurrentSession(request,account,permission,{readOnly:true}));
+  }
+  async canonicalAuthorizationStatus(request,account){
+    // Read-only display metadata remains available after auto-lock. Never
+    // return an approval, proof, callback or verification capability here.
+    const store=this.transactionSender?.submissions?.intentStore;if(typeof store?.sessionOriginalStatus!=='function')return null;
+    const digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,new Date(request.issuedAt));
+    return store.sessionOriginalStatus(account,digest);
+  }
+  async beginCanonicalAuthorizationDelivery(request,account){
+    if(!this.#pqSessionSource)throw providerError(4100,'SESSION_ORIGINAL_REQUIRED','Original pending custody is required.');
+    const guard=this.vault.authorization.current();guard.assert();if(guard.account!==account)throw providerError(4100,'ACCOUNT_CHANGED','Select the original account.');
+    const digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,this.clock());
+    return this.transactionSender.submissions.intentStore.beginSessionDelivery(account,digest,()=>guard.assert());
+  }
+  async #approveCurrentSession(request,account,permission,{requestId=null,readOnly=false}={}){
     const guard=bindPermissionGuard(this.vault.authorization.current(),permission);guard.assert();
     if(guard.account!==account)throw providerError(4100,'ACCOUNT_CHANGED','Review the selected original account.');
     if(!this.#pqNetworkId||!this.#pqSessionRecognized)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','The fixed committed policy source is required.');
     if(this.#pqOwners.size||this.#pqAcquiring)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy cleanup first.');
-    let resource,owner,failed=false,cause,result;
+    const store=this.transactionSender?.submissions?.intentStore;
+    if(['readSessionOriginal','reserveSessionOriginal','captureSessionOriginal','saveSessionOriginal','recordSessionFailure'].some(name=>typeof store?.[name]!=='function'))throw providerError(4100,'SESSION_ORIGINAL_STORE_REQUIRED','The original protected journal is required before signing.');
+    const digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,this.clock()),saved=await store.readSessionOriginal(account,digest,()=>guard.assert());guard.assert();
+    if(saved&&!saved.approval)throw providerError(4100,'SESSION_APPROVAL_RESULT_UNKNOWN','The original signature outcome is unknown. No new signature is permitted.');
+    if(saved?.deliveryAttempted)throw providerError(4100,'SESSION_CALLBACK_DELIVERY_UNKNOWN','The original callback may already have been delivered. No automatic repeat is permitted.');
+    if(saved&&(saved.cleanupCause||!saved.cleanupComplete))throw providerError(4100,'SESSION_ORIGINAL_CLEANUP_UNKNOWN','Read the original outcome; its cleanup remains unresolved.');
+    if(readOnly&&!saved)throw providerError(4100,'SESSION_ORIGINAL_REQUIRED','No original signed result is available for read-only recovery.');
+    const originalRequestId=saved?.requestId??requestId??this.requestId();
+    let resource,owner,failed=false,cause,result,token,savePass,cleanupFailed=false,cleanupCause;
+    const capture=approval=>{store.captureSessionOriginal(token,approval);savePass=store.saveSessionOriginal(token);void savePass.catch(()=>{});};
     try{
+      if(this.#pqOwners.size||this.#pqAcquiring)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy cleanup first.');
       this.#pqAcquiring=true;
       try{resource=await this.#pqSessionSource({networkId:this.#pqNetworkId,owner:account,operation:'approval',at:this.clock().toISOString()});}
       catch(error){const d=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'partial'):null;if(d&&Object.hasOwn(d,'value')&&d.value){owner=retainPQPolicyResource(d.value,{networkId:this.#pqNetworkId,account,now:this.clock});this.#pqOwners.add(owner);}throw error;}
@@ -141,24 +168,48 @@ export class DesktopWalletAuthority {
       const originalAccount=ynxAddressFromEVM(account),observation=captureProductSessionAccountPolicy(resource,{networkId:this.#pqNetworkId,account:originalAccount},this.clock());
       if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');guard.assert();owner.assert();
       const at=this.clock(),policy=readProductSessionAccountPolicy(observation,originalAccount,at);
+      if(saved){
+        if(policy.algorithmVersion==='legacy'){
+          if(saved.approval.version!=='2')throw providerError(4100,'ACCOUNT_POLICY_CHANGED','The retained approval does not match current account policy.');
+          const approval=parseProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,saved.approval,this.clock());
+          result=Object.freeze({approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval},this.clock()),originalRequestId:saved.requestId,recovered:true});
+        }else{
+          const verified=verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,saved.approval,observation,this.clock());
+          result=Object.freeze({approval:verified.approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval:verified.approval},this.clock(),verified.verifiedApproval),originalRequestId:saved.requestId,recovered:true});
+        }
+      }else{
+      token=await store.reserveSessionOriginal({version:1,account,requestId:originalRequestId,requestDigest:digest,request,createdAt:at.toISOString(),approval:null,deliveryAttempted:false,cleanupComplete:false,firstCause:null,storageCause:null,cleanupCause:null},()=>guard.assert());guard.assert();
       if(policy.algorithmVersion==='legacy'){
         result=await this.vault.withSecret((secret,identity)=>{
           guard.assert();assertReviewedAccount(identity.account,account);readProductSessionAccountPolicy(observation,originalAccount,this.clock());
           const approval=signProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,{accountSecret:secret,scopes:request.scopes,expiresAt:request.expiresAt,...(request.serviceConsent?{approvedServiceConsent:request.serviceConsent}:{})},this.clock());
+          capture(approval);
           return Object.freeze({approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval},this.clock())});
         },permission);
       }else{
         const binding=pqProductSessionRegisteredPublicBinding(observation,originalAccount,at),plan=preparePQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,{account:originalAccount,expiresAt:request.expiresAt,...(request.serviceConsent?{approvedServiceConsent:request.serviceConsent}:{})},observation,at);
         result=await this.vault.withPQKeys(binding,handle=>{
           guard.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
-          const approval=signPQWalletProductSessionApproval(handle,plan,this.clock()),verified=verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,approval,observation,this.clock());
+          const approval=signPQWalletProductSessionApproval(handle,plan,this.clock());capture(approval);
+          const verified=verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,approval,observation,this.clock());
           return Object.freeze({approval:verified.approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval:verified.approval},this.clock(),verified.verifiedApproval)});
         },permission);
       }
+      if(savePass)await savePass;
+      }
       guard.assert();if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');guard.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
     }catch(error){failed=true;cause=error;}
-    finally{if(owner)try{await this.#closePQ(owner,...(failed?[cause]:[]));}catch(error){if(!failed){failed=true;cause=error;}}}
-    if(failed)throw cause;guard.assert();return result;
+    finally{
+      // A storage-only original continuation must settle even after lock or
+      // Vault post-fence failure; it never reacquires or retains private keys.
+      if(savePass)try{await savePass;}catch(error){if(!failed){failed=true;cause=error;}}
+      if(owner)try{await this.#closePQ(owner,...(failed?[cause]:[]));}catch(error){cleanupFailed=true;cleanupCause=error;if(!failed){failed=true;cause=error;}}
+      if(token)try{await store.recordSessionFailure(token,{firstPresent:failed,first:cause,cleanupPresent:cleanupFailed,cleanup:cleanupCause,cleanupComplete:owner?.status().closed===true&&!owner.status().cleanupDebt});}catch(error){if(!failed){failed=true;cause=error;}}
+    }
+    if(failed)throw cause;
+    try{guard.assert();productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,this.clock());}
+    catch(error){if(token)try{await store.recordSessionFailure(token,{firstPresent:true,first:error,cleanupComplete:true});}catch{}throw error;}
+    return Object.freeze({...result,retained:true,originalRequestId});
   }
   async approveOrigin(originInput, expectedAccount = null) {
     const origin = exactHttpsOrigin(originInput);
@@ -317,7 +368,9 @@ export class DesktopWalletAuthority {
       case "ynx_requestProductSessionV2": {
         const request = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,pending.params[0],this.clock());
         if(request.origin !== pending.origin) throw providerError(4100,"PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this connected app");
-        const result = await this.approveCanonicalAuthorization(request,this.clock().toISOString(),pending.review.account,permission);
+        const result = await this.approveCanonicalAuthorization(request,this.clock().toISOString(),pending.review.account,permission,pending.id);
+        guard.assert();
+        if(result.retained)await this.beginCanonicalAuthorizationDelivery(request,pending.review.account);
         guard.assert();
         return success({version:2,returnUrl:result.callbackUrl});
       }

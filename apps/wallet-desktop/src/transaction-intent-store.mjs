@@ -12,6 +12,7 @@ import {canonicalJSON,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
 import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./wallet-pay-record.mjs";
 import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlement} from "./wallet-pay-settlement.mjs";
 import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
+import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -19,6 +20,8 @@ const invalid = () => capabilityError("TRANSACTION_JOURNAL_INVALID", "The local 
 export const ORIGINAL_OWNER_LIMIT=8;
 const owners=new WeakMap();
 const owner=store=>{let slots=owners.get(store);if(!slots){slots=new Map();owners.set(store,slots)}return slots};
+const sessionSlots=new WeakMap();
+const sessions=store=>{let slots=sessionSlots.get(store);if(!slots){slots=new Map();sessionSlots.set(store,slots);}return slots;};
 const freezePublic=value=>{if(value&&typeof value==="object"){for(const child of Object.values(value))freezePublic(child);Object.freeze(value)}return value};
 export function publicOriginalCause(error){return error?Object.freeze({name:String(error.name??"Error").slice(0,128),code:typeof error.code==="string"?error.code.slice(0,128):null,message:String(error.message??"Operation failed").slice(0,2048)}):null}
 export function originalRetention(slot){return Object.freeze({scope:"operation-memory",durable:false,originalCausePresent:slot.originalCausePresent===true||slot.originalCause!=null,storageCausePresent:slot.storageCausePresent===true||slot.storageCause!=null,originalCause:publicOriginalCause(slot.originalCause),storageCause:publicOriginalCause(slot.storageCause)})}
@@ -47,13 +50,13 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2, 3, 4, 5, 6].includes(data.schemaVersion)) throw invalid();
+  if (!data || ![1, 2, 3, 4, 5, 6, 7].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
   const signed = data.schemaVersion >= 3;
-  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
   if(data.schemaVersion>=5){
     if(!Array.isArray(data.preparations)||data.preparations.length>ORIGINAL_OWNER_LIMIT||new Set(data.preparations.map(x=>x.account)).size!==data.preparations.length)throw invalid();
-    for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!['native','pay',...(data.schemaVersion===6?PQ_ORIGINAL_KINDS:[])].includes(marker.kind))throw invalid();
+    for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!['native','pay',...(data.schemaVersion>=6?PQ_ORIGINAL_KINDS:[])].includes(marker.kind))throw invalid();
   }
   if(signed){
     if(!Array.isArray(data.signedPayments)||data.signedPayments.length>1024)throw invalid();
@@ -70,10 +73,15 @@ function parseState(data) {
       new Set([...data.payProgress,...data.payHistory].map(entry=>canonicalJSON([entry.record.account,entry.record.invoice.id]))).size!==data.payProgress.length+data.payHistory.length)throw invalid();
   }
   data.records.forEach(record => validateIntent(record, legacy));
-  if(data.schemaVersion===6){
+  if(data.schemaVersion>=6){
     if(!Array.isArray(data.pqOriginals)||data.pqOriginals.length>ORIGINAL_OWNER_LIMIT)throw invalid();
     try{data.pqOriginals.forEach(parsePQOriginalRecord);}catch{throw invalid();}
     if(new Set(data.pqOriginals.map(r=>r.account)).size!==data.pqOriginals.length||new Set(data.pqOriginals.map(r=>r.hash)).size!==data.pqOriginals.length||data.pqOriginals.some(r=>data.records.some(x=>x.account===r.account)||data.signedPayments.some(x=>evmAddressFromYNX(x.account)===r.account)||data.preparations.some(x=>x.account===r.account)))throw invalid();
+  }
+  if(data.schemaVersion===7){
+    if(!Array.isArray(data.sessionOriginals)||data.sessionOriginals.length>ORIGINAL_OWNER_LIMIT)throw invalid();
+    try{data.sessionOriginals.forEach(parseSessionOriginal);}catch{throw invalid();}
+    if(new Set(data.sessionOriginals.map(row=>row.account+':'+row.requestDigest)).size!==data.sessionOriginals.length)throw invalid();
   }
   for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
   if (new Set(data.records.map(record => record.hash)).size !== data.records.length || new Set(data.records.map(record => record.account)).size !== data.records.length) throw invalid();
@@ -101,6 +109,73 @@ const paySuccessor=state=>state.schemaVersion>=4?state:{...state,schemaVersion:4
 export class FileTransactionIntentStore {
   #mutations = Promise.resolve();
   constructor({ filePath, io = filesystem, filePolicy = new PrivateFilePolicy({ io }) }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; this.filePolicy = filePolicy; }
+  async sessionOriginalStatus(account,digest){
+    if(!ACCOUNT.test(account??'')||typeof digest!=='string')throw invalid();
+    const slot=sessions(this).get(account+':'+digest);let actual;
+    try{actual=(await this.#read()).sessionOriginals?.find(row=>row.account===account&&row.requestDigest===digest);}
+    catch{return Object.freeze({status:'storage-unknown',signed:slot?.captured===true,storageConfirmed:false,cleanupComplete:false,deliveryAttempted:null,requestId:slot?.record.requestId??null});}
+    if(!actual&&!slot)return null;
+    return Object.freeze({status:actual?.approval?'signed-retained':slot?.captured?'signed-save-unknown':'signing-unknown',signed:Boolean(actual?.approval||slot?.captured),storageConfirmed:Boolean(actual?.approval&&(!slot?.record.approval||canonicalJSON(slot.record.approval)===canonicalJSON(actual.approval))),cleanupComplete:actual?.cleanupComplete===true,deliveryAttempted:actual?.deliveryAttempted??false,requestId:actual?.requestId??slot.record.requestId});
+  }
+  async readSessionOriginal(account,digest,guard){
+    if(!ACCOUNT.test(account??'')||typeof digest!=='string'||typeof guard!=='function')throw invalid();guard();
+    const state=await this.#read();guard();const actual=state.sessionOriginals?.find(row=>row.account===account&&row.requestDigest===digest),slot=sessions(this).get(account+':'+digest);
+    if(slot?.record.approval&&(!actual?.approval||canonicalJSON(slot.record.approval)!==canonicalJSON(actual.approval)))throw capabilityError('SESSION_ORIGINAL_SAVE_UNKNOWN','The signed original remains in custody; readback did not prove its durable save. Do not sign again.');
+    if(slot&&!actual)throw capabilityError('SESSION_ORIGINAL_SAVE_UNKNOWN','The original reservation is unresolved. Do not sign again.');
+    return actual?parseSessionOriginal(actual):null;
+  }
+  async reserveSessionOriginal(input,guard){
+    const record=parseSessionOriginal(input),key=record.account+':'+record.requestDigest;
+    if(record.approval!==null||record.deliveryAttempted||record.cleanupComplete||record.firstCause!==null||record.storageCause!==null||record.cleanupCause!==null||typeof guard!=='function'||sessions(this).has(key)||sessions(this).size>=ORIGINAL_OWNER_LIMIT)throw invalid();
+    const token=Object.freeze(Object.create(null)),slot={token,record,captured:false,saveAttempted:false,firstRawPresent:false,cleanupRawPresent:false};sessions(this).set(key,slot);
+    await this.#mutate(async()=>{
+      guard();const state=paySuccessor(await this.#read());guard();
+      if(state.sessionOriginals?.some(row=>row.account===record.account&&row.requestDigest===record.requestDigest)||(state.sessionOriginals?.length??0)>=ORIGINAL_OWNER_LIMIT||Buffer.byteLength(canonicalJSON(state))+SESSION_ORIGINAL_RESERVE_BYTES*(1+(state.sessionOriginals??[]).filter(row=>!row.approval).length)>PRIVATE_FILE_MAX_BYTES)throw invalid();
+      const next={...state,schemaVersion:7,pqOriginals:state.pqOriginals??[],preparations:state.preparations??[],sessionOriginals:[...(state.sessionOriginals??[]),record]};
+      guard();await this.#write(next);guard();
+    });return token;
+  }
+  async beginSessionDelivery(account,digest,guard){
+    if(!ACCOUNT.test(account??'')||typeof digest!=='string'||typeof guard!=='function')throw invalid();
+    return this.#mutate(async()=>{
+      guard();const state=await this.#read();guard();const prior=state.sessionOriginals?.find(row=>row.account===account&&row.requestDigest===digest);
+      if(!prior?.approval||!prior.cleanupComplete||prior.cleanupCause)throw capabilityError('SESSION_ORIGINAL_REQUIRED','The original signed approval and completed cleanup are required.');
+      if(prior.deliveryAttempted)throw capabilityError('SESSION_CALLBACK_DELIVERY_UNKNOWN','The original callback may have been delivered. Preserve its original outcome.');
+      const next=parseSessionOriginal({...prior,deliveryAttempted:true});guard();
+      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(row=>row===prior?next:row)});guard();
+    });
+  }
+  #sessionSlot(token){const slot=[...sessions(this).values()].find(row=>row.token===token);if(!slot)throw invalid();return slot;}
+  captureSessionOriginal(token,approval){
+    const slot=this.#sessionSlot(token);if(slot.captured)throw capabilityError('SESSION_ORIGINAL_ALREADY_CAPTURED','The original signature is retained. Do not sign again.');
+    // Synchronous capture BEFORE verification, callback encoding, lock fences,
+    // or foreign Vault cleanup can throw and hide the returned signature.
+    slot.rawApproval=approval;slot.captured=true;
+    slot.record=parseSessionOriginal({...slot.record,approval});
+  }
+  saveSessionOriginal(token){
+    const slot=this.#sessionSlot(token);if(!slot.captured||slot.saveAttempted)throw capabilityError('SESSION_ORIGINAL_READBACK_REQUIRED','Recover this original by readback only; do not repeat saving or signing.');
+    slot.saveAttempted=true;
+    // Storage-only continuation selected by the pre-sign reservation. It may
+    // finish after auto-lock, but cannot acquire keys, sign or send anything.
+    return this.#mutate(async()=>{
+      try{const state=await this.#read(),prior=state.sessionOriginals?.find(row=>row.account===slot.record.account&&row.requestDigest===slot.record.requestDigest);
+        if(!prior||prior.approval!==null||prior.requestId!==slot.record.requestId)throw invalid();
+        await this.#write({...state,sessionOriginals:state.sessionOriginals.map(row=>row===prior?slot.record:row)});
+      }catch(error){if(slot.record.storageCause===null)slot.record=parseSessionOriginal({...slot.record,storageCause:sessionOriginalCause(error)});throw error;}
+    });
+  }
+  async recordSessionFailure(token,{firstPresent=false,first,cleanupPresent=false,cleanup,cleanupComplete=false}={}){
+    const slot=this.#sessionSlot(token);
+    if(firstPresent&&!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=first;slot.record=parseSessionOriginal({...slot.record,firstCause:slot.record.firstCause??sessionOriginalCause(first)});}
+    if(cleanupPresent&&!slot.cleanupRawPresent){slot.cleanupRawPresent=true;slot.cleanupRaw=cleanup;slot.record=parseSessionOriginal({...slot.record,cleanupCause:slot.record.cleanupCause??sessionOriginalCause(cleanup)});}
+    return this.#mutate(async()=>{
+      const state=await this.#read(),prior=state.sessionOriginals?.find(row=>row.account===slot.record.account&&row.requestDigest===slot.record.requestDigest);
+      if(!prior||canonicalJSON(prior.approval)!==canonicalJSON(slot.record.approval))throw capabilityError('SESSION_ORIGINAL_SAVE_UNKNOWN','Preserve the original; failure metadata could not be reconciled.');
+      const next=parseSessionOriginal({...prior,cleanupComplete:prior.cleanupComplete||cleanupComplete,firstCause:prior.firstCause??slot.record.firstCause,storageCause:prior.storageCause??slot.record.storageCause,cleanupCause:prior.cleanupCause??slot.record.cleanupCause});
+      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(row=>row===prior?next:row)});
+    });
+  }
   localOriginal(account){return owner(this).get(account)??null}
   async unresolvedPreparation(account){return (await this.#read()).preparations?.find(x=>x.account===account)??null}
   async assertNoPreparation(account){
@@ -115,7 +190,7 @@ export class FileTransactionIntentStore {
       if(state.preparations?.some(x=>x.account===account)||state.pqOriginals?.some(x=>x.account===account)||state.records.some(x=>x.account===account)||state.signedPayments.some(x=>evmAddressFromYNX(x.account)===account)||(state.preparations?.length??0)>=ORIGINAL_OWNER_LIMIT)throw invalid();
       const pq=PQ_ORIGINAL_KINDS.includes(kind);
       if(pq&&Buffer.byteLength(JSON.stringify(state))+PQ_ORIGINAL_RESERVE_BYTES*(1+(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).length)>PRIVATE_FILE_MAX_BYTES)throw invalid();
-      await this.#write({...state,schemaVersion:pq?6:Math.max(5,state.schemaVersion),...(pq?{pqOriginals:state.pqOriginals??[]}:{}),preparations:[...(state.preparations??[]),{account,kind}]});
+      await this.#write({...state,schemaVersion:pq?Math.max(6,state.schemaVersion):Math.max(5,state.schemaVersion),...(pq?{pqOriginals:state.pqOriginals??[]}:{}),preparations:[...(state.preparations??[]),{account,kind}]});
     });return slot}catch(error){slots.delete(account);throw error}
   }
   captureOriginal(account,value,kind){
@@ -210,7 +285,7 @@ export class FileTransactionIntentStore {
       const current=()=>{guard();if(owner(this).get(account)!==slot)throw invalid();};
       try{
         const state=await this.#read();current();
-        if(state.schemaVersion!==6||!state.preparations.some(x=>x.account===account&&x.kind===slot.kind)||state.pqOriginals.some(x=>x.account===account))throw invalid();
+        if(state.schemaVersion<6||!state.preparations.some(x=>x.account===account&&x.kind===slot.kind)||state.pqOriginals.some(x=>x.account===account))throw invalid();
         const original=parsePQOriginalRecord(slot.pq);
         const next={...state,pqOriginals:[...state.pqOriginals,original],preparations:state.preparations.filter(x=>x.account!==account)};
         current();slot.pqSaveAttempted=true;await this.#write(next);current();

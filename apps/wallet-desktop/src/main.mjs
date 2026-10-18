@@ -392,8 +392,10 @@ handleWalletIPC("wallet:authorization-action", async (_event, input) => {
 
 async function authorizationFailure(stageCode, action, error) {
   const underlyingCode = safeCode(error);
-  const outcomeUnknown = error?.data?.outcomeUnknown === true;
-  const result = { acceptedForReview: Boolean(authorizationController?.pending), action, code: stageCode, underlyingCode, failureClass: safeErrorClass(error), failureCategory: safeFailureCategory(error), callbackEmitted: outcomeUnknown ? null : false, callbackOutcomeUnknown: outcomeUnknown, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+  let sessionOriginal=null;const review=authorizationController?.pending;
+  if(review?.account&&review?.request)try{sessionOriginal=await walletAuthority.canonicalAuthorizationStatus(review.request,review.account);}catch{}
+  const outcomeUnknown = error?.data?.outcomeUnknown === true||sessionOriginal?.deliveryAttempted===true;
+  const result = { acceptedForReview: Boolean(authorizationController?.pending), action, code: stageCode, underlyingCode, failureClass: safeErrorClass(error), failureCategory: safeFailureCategory(error), sessionOriginal, callbackEmitted: outcomeUnknown ? null : false, callbackOutcomeUnknown: outcomeUnknown, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
   lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: result.callbackEmitted, callbackOutcomeUnknown: outcomeUnknown, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
   if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
   return result;

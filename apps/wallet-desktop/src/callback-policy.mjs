@@ -88,32 +88,42 @@ export class DesktopAuthorizationController {
     this.inFlight = true;
     const generation = this.generation;
     const assertCurrent = () => { if (generation !== this.generation || this.pending?.id !== review.id) throw authError("WALLET_OPERATION_CANCELLED"); };
-    let stage = "CANONICAL_AUTHORIZATION_SIGN_FAILED";
+    let stage = "CANONICAL_AUTHORIZATION_SIGN_FAILED",deliverySelected=false;
     try {
       const now = this.clock();
       parseProductSessionRequest(PRODUCT_SESSION_REGISTRY, review.request, now);
       if (!this.prepared) {
         const callback = action === "approve"
-          ? await this.authority.approveCanonicalAuthorization(review.request, now.toISOString(), review.account)
+          ? await this.authority.approveCanonicalAuthorization(review.request, now.toISOString(), review.account,undefined,review.id)
           : { callbackUrl: createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, review.request, { result: "rejected", reason: "user_rejected" }, now) };
+        // Capture the returned original before a late view/suspend fence can
+        // reject delivery. A later explicit action revalidates, never re-signs.
+        if(this.pending?.id===review.id)this.prepared = Object.freeze({ action, callbackUrl: callback.callbackUrl,requiresRecheck:callback.retained===true,originalRequestId:callback.originalRequestId??review.id });
         assertCurrent();
-        this.prepared = Object.freeze({ action, callbackUrl: callback.callbackUrl });
+      }else if(action==='approve'&&this.prepared.requiresRecheck&&typeof this.authority.reconcileCanonicalAuthorization==='function'){
+        const callback=await this.authority.reconcileCanonicalAuthorization(review.request,review.account);
+        if(this.pending?.id===review.id)this.prepared=Object.freeze({action,callbackUrl:callback.callbackUrl,requiresRecheck:true,originalRequestId:callback.originalRequestId??review.id});
       }
       stage = "CANONICAL_CALLBACK_LAUNCH_FAILED";
       assertCurrent();
+      if(action==='approve'&&this.prepared.requiresRecheck){deliverySelected=true;await this.authority.beginCanonicalAuthorizationDelivery(review.request,review.account);}
+      assertCurrent();
+      const originalRequestId=this.prepared.originalRequestId??review.id;
       await this.openExternal(this.prepared.callbackUrl);
       // Opening the destination normally blurs and locks Wallet. A completed
       // external launch remains a launch, even when that invalidated the review.
       if (this.pending?.id === review.id) { this.pending = null; this.prepared = null; }
       return Object.freeze({
-        acceptedForReview: true, requestId: review.id, action,
+        acceptedForReview: true, requestId: originalRequestId, action,
         code: action === "approve" ? CANONICAL_AUTHORIZATION_APPROVED : "USER_REJECTED",
         callbackEmitted: true, callbackReceivedProved: false,
         authorityGranted: action === "approve", productSessionCreated: false
       });
     } catch (error) {
       if (error?.code === "SESSION_EXPIRED") { this.pending = null; this.prepared = null; }
-      throw Object.assign(error, { authorizationStage: stage });
+      const failure=error&&typeof error==='object'&&Object.isExtensible(error)?error:Object.assign(new Error('The original authorization result is unavailable.'),{code:'CANONICAL_AUTHORIZATION_RESULT_UNAVAILABLE',cause:error});
+      if(deliverySelected)failure.data={...failure.data,outcomeUnknown:true};
+      throw Object.assign(failure, { authorizationStage: stage });
     } finally { this.inFlight = false; }
   }
 }

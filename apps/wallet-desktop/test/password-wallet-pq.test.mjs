@@ -17,10 +17,13 @@ import {pqPublicBindingToRegistrationKeys,decodePQTransferRequest,decodePQMigrat
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {DesktopWalletAuthority,MemoryPermissionStore} from '../src/desktop-wallet-authority.mjs';
 import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
+import {createPQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
+import {sessionOriginalCause} from '../src/wallet-session-original.mjs';
 import {createPQTransferReviewUI} from '../src/wallet-pq-transfer-ui.mjs';
 import {createPQMigrationReviewUI} from '../src/wallet-pq-migration-ui.mjs';
 import {runInNewContext} from 'node:vm';
-import {createProductSessionRequest,ynxAddressFromEVM} from '@ynx-chain/wallet-auth';
+import {createProductSessionRequest,encodeProductSessionWalletURL,ynxAddressFromEVM,productSessionRequestDigest} from '@ynx-chain/wallet-auth';
+import {DesktopAuthorizationController} from '../src/callback-policy.mjs';
 import {PRODUCT_SESSION_REGISTRY} from '../src/wallet-auth-contract.mjs';
 import {captureProductSessionAccountPolicy} from '@ynx-chain/wallet-auth/product-session-account-policy';
 import {verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
@@ -259,7 +262,7 @@ function sessionQA(f,{legacy=false}={}){
  const resource={readOriginal:()=>view,assertCurrent(){if(retired)throw Error('QA_RETIRED');},async recheck(){counts.recheck++;},retire(){counts.retire++;retired=true;},async join(){counts.join++;},async close(){counts.close++;}};
  const device=createECDH('prime256v1');device.setPrivateKey(Buffer.alloc(32,7));
  const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'finance',platform:'web',deviceId:'a'.repeat(43),deviceKey:device.getPublicKey(null,'compressed').toString('base64url'),scopes:['finance.portfolio.read'],purpose:'Explicit isolated QA sign-in',nonce:'b'.repeat(43),state:'c'.repeat(43)},at);
- const options={vault:f.vault,permissions:new MemoryPermissionStore(),clock:()=>at,pqNetworkId:CHAIN,pqSessionSource:async input=>{counts.acquire++;assert.equal(input.owner,f.account);assert.equal(input.operation,'approval');return resource;},pqSessionRecognized:value=>value===resource};
+ const options={vault:f.vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:new FileTransactionIntentStore({filePath:path.join(f.directory,'session-journal.json')})}},clock:()=>at,pqNetworkId:CHAIN,pqSessionSource:async input=>{counts.acquire++;assert.equal(input.owner,f.account);assert.equal(input.operation,'approval');return resource;},pqSessionRecognized:value=>value===resource};
  return {at,view,resource,request,counts,options};
 }
 test('normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing',async t=>{
@@ -286,4 +289,82 @@ test('original source acquisition reservation prevents overlapping session and t
   await assert.rejects(authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}),error=>error.data?.code==='PQ_POLICY_RESOURCE_UNRESOLVED');
   f.lifecycle.lock();release();await assert.rejects(first);
  }));await authority.shutdownPQReviews();assert.equal(s.counts.acquire,1);assert.equal(s.counts.close,1);
+});
+test('signed session original survives post-source failure durably and is recovered with fresh policy without another signature',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),failure=Object.assign(new Error('QA_POST_SOURCE'),{code:'QA_POST_SOURCE'});s.resource.recheck=async()=>{if(++s.counts.recheck===2)throw failure;};let signs=0;const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};
+ const authority=new DesktopWalletAuthority(s.options);await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),error=>error===failure);
+ const text=await fs.readFile(path.join(f.directory,'session-journal.json'),'utf8'),state=JSON.parse(text);assert.equal(state.sessionOriginals.length,1);const original=state.sessionOriginals[0];assert.equal(original.approval.version,'3');assert.equal(original.requestDigest,productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,s.request,s.at));assert.equal(original.firstCause.code,'QA_POST_SOURCE');assert.equal(original.deliveryAttempted,false);
+ const fresh=sessionQA(f),cold=new DesktopWalletAuthority({...fresh.options,transactionSender:{submissions:{intentStore:new FileTransactionIntentStore({filePath:path.join(f.directory,'session-journal.json')})}}});
+ // Preserve the original request, not a new random/renewed request. The new
+ // committed observation belongs to the independent cold owner only.
+ const recovered=await f.lifecycle.run(()=>cold.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));assert.equal(recovered.approval.walletProof,original.approval.walletProof);assert.equal(signs,1);
+});
+test('session signature capture before lock still completes only its reserved private save, then cold readback uses no keys',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),store=s.options.transactionSender.submissions.intentStore,capture=store.captureSessionOriginal.bind(store);let captures=0;
+ store.captureSessionOriginal=(...args)=>{capture(...args);captures++;f.lifecycle.lock();};const authority=new DesktopWalletAuthority(s.options);
+ await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)));
+ const state=JSON.parse(await fs.readFile(store.filePath,'utf8')),original=state.sessionOriginals[0];assert.equal(original.approval.version,'3');assert.equal(original.firstCause.kind,'error');assert.equal(f.lifecycle.status().locked,true);assert.equal(captures,1);
+ await f.lifecycle.unlock({password:PASSWORD});const fresh=sessionQA(f),cold=new DesktopWalletAuthority(fresh.options);f.vault.withPQKeys=()=>assert.fail('read-only recovery cannot acquire keys');
+ const result=await f.lifecycle.run(()=>cold.reconcileCanonicalAuthorization(s.request,f.account));assert.equal(result.approval.walletProof,original.approval.walletProof);assert.equal(captures,1);
+});
+test('falsy cleanup failure is persisted separately and blocks replacement acquisition without erasing the signature',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);s.resource.join=async()=>{s.counts.join++;throw false;};
+ await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),error=>error===false);
+ const [original]=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals;assert.ok(original.approval.walletProof);assert.deepEqual(original.firstCause,{kind:'boolean',value:false,code:null});assert.deepEqual(original.cleanupCause,original.firstCause);assert.equal(s.counts.close,0);
+ await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),error=>error.data?.code==='PQ_POLICY_RESOURCE_UNRESOLVED');assert.equal(s.counts.acquire,1);
+ const fresh=sessionQA(f),cold=new DesktopWalletAuthority(fresh.options);await assert.rejects(f.lifecycle.run(()=>cold.reconcileCanonicalAuthorization(s.request,f.account)),error=>error.data?.code==='SESSION_ORIGINAL_CLEANUP_UNKNOWN');assert.equal(fresh.counts.acquire,0);
+});
+test('reservation lost ACK leaves UNKNOWN across restart and never authorizes a new session signature',async t=>{
+ const f=await fixture(t),s=sessionQA(f),store=s.options.transactionSender.submissions.intentStore,reserve=store.reserveSessionOriginal.bind(store);let keys=0;f.vault.withPQKeys=()=>{keys++;};
+ store.reserveSessionOriginal=async(...args)=>{await reserve(...args);throw Object.assign(Error('QA_RESERVE_ACK'),{code:'QA_RESERVE_ACK'});};const authority=new DesktopWalletAuthority(s.options);
+ await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),error=>error.code==='QA_RESERVE_ACK');assert.equal(keys,0);
+ const fresh=sessionQA(f),cold=new DesktopWalletAuthority(fresh.options);await assert.rejects(f.lifecycle.run(()=>cold.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),error=>error.data?.code==='SESSION_APPROVAL_RESULT_UNKNOWN');assert.equal(keys,0);assert.equal(fresh.counts.acquire,0);
+});
+test('original Controller retries only fresh-policy readback of its original signed result after pre-prepared failure',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f);s.resource.recheck=async()=>{if(++s.counts.recheck===2)throw Object.assign(Error('QA_POST_SOURCE'),{code:'QA_POST_SOURCE'});};let signs=0,launches=0;const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};
+ const controller=new DesktopAuthorizationController({authority:new DesktopWalletAuthority(s.options),clock:()=>s.at,requestId:()=> 'QA-original-controller-id',openExternal:async()=>{launches++;}});
+ await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));await assert.rejects(f.lifecycle.run(()=>controller.act('approve')));assert.equal(controller.prepared,null);assert.equal(launches,0);
+ const original=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals[0];assert.equal(original.requestId,'QA-original-controller-id');
+ const fresh=sessionQA(f);controller.authority=new DesktopWalletAuthority(fresh.options);const result=await f.lifecycle.run(()=>controller.act('approve'));assert.equal(result.callbackEmitted,true);assert.equal(result.callbackReceivedProved,false);assert.equal(signs,1);assert.equal(launches,1);
+});
+test('signed session save lost ACK reconciles exact original on cold read without another save or signature',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),store=s.options.transactionSender.submissions.intentStore,replace=store.filePolicy.replace.bind(store.filePolicy),save=store.saveSessionOriginal.bind(store);let lost=false,saves=0,signs=0;const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};store.saveSessionOriginal=(...args)=>{saves++;return save(...args);};
+ store.filePolicy.replace=async(...args)=>{const next=JSON.parse(await fs.readFile(args[0],'utf8'));await replace(...args);if(!lost&&next.sessionOriginals?.[0]?.approval&&!next.sessionOriginals[0].cleanupComplete){lost=true;throw Object.assign(Error('QA_SIGNED_ACK_LOST'),{code:'QA_SIGNED_ACK_LOST'});}};
+ const authority=new DesktopWalletAuthority(s.options);await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)));
+ const [original]=JSON.parse(await fs.readFile(store.filePath,'utf8')).sessionOriginals;assert.equal(original.approval.version,'3');assert.ok(original.storageCause);assert.equal(original.cleanupComplete,true);assert.equal(lost,true);
+ const fresh=sessionQA(f),cold=new DesktopWalletAuthority(fresh.options);const recovered=await f.lifecycle.run(()=>cold.reconcileCanonicalAuthorization(s.request,f.account));assert.equal(recovered.approval.walletProof,original.approval.walletProof);assert.equal(saves,1);assert.equal(signs,1);assert.equal((await fs.stat(store.filePath)).mode&0o077,0);
+});
+test('session first source error and separate falsy cleanup error both survive without a misleading clean result',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),first=Object.assign(Error('QA_FIRST_SOURCE'),{code:'QA_FIRST_SOURCE'});s.resource.recheck=async()=>{if(++s.counts.recheck===2)throw first;};s.resource.join=async()=>{throw false;};
+ const authority=new DesktopWalletAuthority(s.options);await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),error=>error===first);
+ const [original]=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals;assert.equal(original.firstCause.code,'QA_FIRST_SOURCE');assert.deepEqual(original.cleanupCause,{kind:'boolean',value:false,code:null});assert.equal(original.cleanupComplete,false);assert.ok(original.approval.walletProof);
+});
+test('unknown callback delivery never becomes an automatic second launch or replacement signature',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f);let signs=0,launches=0;const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};
+ const controller=new DesktopAuthorizationController({authority:new DesktopWalletAuthority(s.options),clock:()=>s.at,openExternal:async()=>{launches++;throw Error('QA_EXTERNAL_UNKNOWN');}});await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));await assert.rejects(f.lifecycle.run(()=>controller.act('approve')));
+ const [original]=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals;assert.equal(original.deliveryAttempted,true);
+ await assert.rejects(f.lifecycle.run(()=>controller.act('approve')),error=>error.data?.code==='SESSION_CALLBACK_DELIVERY_UNKNOWN');assert.equal(signs,1);assert.equal(launches,1);
+});
+test('session successor journal preserves existing typed transfer ownership and never downgrades schema or loses either original',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),store=s.options.transactionSender.submissions.intentStore,authority=new DesktopWalletAuthority(s.options);
+ const approval=await f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));
+ const {snapshot,transfer}=syntheticTransfer(f);await store.reserveOriginal(f.account,'pq-transfer');const original=createPQOriginalRecord({account:f.account,kind:'pq-transfer',operationId:'QA-schema7-transfer',request:SDK.signPQWalletNativeTransfer(f.handle,transfer,snapshot)});store.captureOriginal(f.account,original,'pq-transfer');await store.saveOriginal(f.account,original.hash,()=>{});
+ const state=JSON.parse(await fs.readFile(store.filePath,'utf8'));assert.equal(state.schemaVersion,7);assert.equal(state.pqOriginals[0].hash,original.hash);assert.equal(state.sessionOriginals[0].approval.walletProof,approval.approval.walletProof);assert.equal((await new FileTransactionIntentStore({filePath:store.filePath}).readPQOriginals(f.account,()=>{}))[0].hash,original.hash);
+});
+test('corrupted saved session proof is rejected by fresh source and actual SDK verification without acquiring signing keys',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options),store=s.options.transactionSender.submissions.intentStore;
+ await f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));const state=JSON.parse(await fs.readFile(store.filePath,'utf8')),proof=state.sessionOriginals[0].approval.walletProof;state.sessionOriginals[0].approval.walletProof=proof.slice(0,-2)+(proof.endsWith('AA')?'BB':'AA');await fs.writeFile(store.filePath,JSON.stringify(state));
+ const fresh=sessionQA(f),cold=new DesktopWalletAuthority(fresh.options);f.vault.withPQKeys=()=>assert.fail('corrupt stored proof cannot trigger replacement signing');await assert.rejects(f.lifecycle.run(()=>cold.reconcileCanonicalAuthorization(s.request,f.account)));assert.equal(fresh.counts.close,1);
+});
+test('lock during successful source close records the late cause without discarding the durable signed result',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f);s.resource.close=async()=>{s.counts.close++;f.lifecycle.lock();};const authority=new DesktopWalletAuthority(s.options);
+ await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)));
+ const [original]=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals;assert.ok(original.approval.walletProof);assert.equal(original.cleanupComplete,true);assert.equal(original.firstCause.code,'WALLET_OPERATION_CANCELLED');
+ const summary=await authority.canonicalAuthorizationStatus(s.request,f.account);assert.equal(summary.status,'signed-retained');assert.equal(summary.storageConfirmed,true);assert.equal('approval' in summary,false);assert.equal('callbackUrl' in summary,false);
+ const main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf('async function authorizationFailure('),end=main.indexOf('\nhandleWalletIPC("wallet:account-status"',start),context={walletAuthority:authority,authorizationController:{pending:{request:s.request,account:f.account}},safeCode:()=> 'WALLET_OPERATION_CANCELLED',safeErrorClass:()=> 'Error',safeFailureCategory:()=> 'operation',mainWindow:null,lastCallback:null};runInNewContext(main.slice(start,end),context);
+ const displayed=await context.authorizationFailure('CANONICAL_AUTHORIZATION_SIGN_FAILED','approve',Error('QA_LOCK'));assert.equal(displayed.sessionOriginal.status,'signed-retained');assert.equal(displayed.callbackEmitted,false);assert.equal(displayed.productSessionCreated,false);assert.equal(JSON.stringify(displayed).includes(original.approval.walletProof),false);
+});
+test('session cause summaries preserve falsy causes without copying diagnostic payloads into storage or UI',()=>{
+ for(const value of [false,null,undefined,0,'']){const summary=sessionOriginalCause(value);assert.equal(summary.kind,typeof value);assert.equal(summary.value,value===undefined?null:value);}
+ const error=Object.assign(Error('PRIVATE_DIAGNOSTIC_DO_NOT_COPY'),{data:{code:'QA_SOURCE_FAILURE'}});assert.deepEqual(sessionOriginalCause(error),{kind:'error',value:null,code:'QA_SOURCE_FAILURE'});assert.equal(JSON.stringify(sessionOriginalCause(error)).includes('PRIVATE_DIAGNOSTIC'),false);
 });

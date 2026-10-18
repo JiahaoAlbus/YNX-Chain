@@ -295,7 +295,8 @@ async function act(action) {
 }
 
 function authorizationErrorText(result) {
-  if (result?.callbackOutcomeUnknown) return "The return link was handed to the system, but its outcome is unconfirmed. Check the app before requesting another sign-in.";
+  if (result?.callbackOutcomeUnknown) return "The original return link may already have been delivered. Its outcome is unknown; it will not be automatically sent or signed again.";
+  if(result?.sessionOriginal?.signed)return result.sessionOriginal.storageConfirmed&&result.sessionOriginal.cleanupComplete?"The original signed result is retained. Unlock Wallet to revalidate and recover that same result; do not create another signature.":"The original signing result is retained or its storage/cleanup is unresolved. No new signature will be created. Preserve this Wallet for read-only recovery.";
   const code = result?.underlyingCode ?? result?.code;
   return ({ ACCOUNT_CHANGED: "Your selected account changed. Connect again from the app.", ACCOUNT_NOT_CREATED: "Create or import an account before connecting.", SESSION_EXPIRED: "This request expired. Connect again from the app.", AUTHORIZATION_ACTION_IN_PROGRESS: "Your previous response is still being processed.", AUTHORIZATION_REVIEW_MISMATCH: "This request changed. Review a new connection from the app.", CANONICAL_CALLBACK_LAUNCH_FAILED: "The return link could not be opened. Retry to return to the app.", AUTHORIZATION_REQUEST_IN_PROGRESS: "Another connection is waiting for your review." })[code] ?? "This connection request could not be verified. Open the app and connect again.";
 }

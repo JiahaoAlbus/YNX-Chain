@@ -1,0 +1,34 @@
+{
+  "scope": "Original Wallet session signing result custody; no public signing, broadcast, Source qualification, GUI or App build",
+  "base": "ba5329640e3549559d2f620e51b3217e186fafd5",
+  "red": {
+    "test": "signed session original survives post-source failure durably and is recovered with fresh policy without another signature",
+    "exit": 1,
+    "observed": "Actual SDK dual signature generated; post-source failed; original private journal read returned ENOENT.",
+    "rawFileCaptured": false,
+    "provenance": "Original tool output retained in this task; this field is a summary, not reconstructed raw output."
+  },
+  "primary": {
+    "command": "ELECTRON_RUN_AS_NODE=1 '/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r24-normal-install-qa-20261018/installed-r24/YNX Wallet.app/Contents/MacOS/YNX Wallet' --max-old-space-size=192 --test --test-isolation=none --test-concurrency=1 --test-name-pattern='signed session original survives|session signature capture before lock|falsy cleanup failure|reservation lost ACK|original Controller retries|signed session save lost ACK|session first source error|unknown callback delivery|session successor journal|corrupted saved session proof|lock during successful source close|normal initial migration|normal original pending approval|callback launch retry|approval binds the reviewed|a second request and double approval|rejection returns the exact|restart resumes exact persisted raw|signed-byte retry is account-bound' apps/wallet-desktop/test/password-wallet-pq.test.mjs apps/wallet-desktop/test/callback-policy.test.mjs apps/wallet-desktop/test/transaction-durability.test.mjs",
+    "exit": 0,
+    "output": "✔ approval binds the reviewed account, origin, nonce and state without claiming a completed session (12.386084ms)\n✔ rejection returns the exact product state without signing or granting authority (1.250834ms)\n✔ a second request and double approval cannot replace or resolve the visible review twice (5.680833ms)\n✔ callback launch retry preserves the same signed result and cannot flip the decision (4.534209ms)\n✔ normal original pending approval performs actual protected typed signing and local save only (718.607334ms)\n✔ normal initial migration separately signs original classic digest and real new-pair PoP, then retains full wire only (698.400458ms)\n✔ signed session original survives post-source failure durably and is recovered with fresh policy without another signature (733.528458ms)\n✔ session signature capture before lock still completes only its reserved private save, then cold readback uses no keys (761.130583ms)\n✔ falsy cleanup failure is persisted separately and blocks replacement acquisition without erasing the signature (694.098792ms)\n✔ reservation lost ACK leaves UNKNOWN across restart and never authorizes a new session signature (187.855584ms)\n✔ original Controller retries only fresh-policy readback of its original signed result after pre-prepared failure (728.217333ms)\n✔ signed session save lost ACK reconciles exact original on cold read without another save or signature (711.198458ms)\n✔ session first source error and separate falsy cleanup error both survive without a misleading clean result (682.70025ms)\n✔ unknown callback delivery never becomes an automatic second launch or replacement signature (709.312625ms)\n✔ session successor journal preserves existing typed transfer ownership and never downgrades schema or loses either original (1024.677167ms)\n✔ corrupted saved session proof is rejected by fresh source and actual SDK verification without acquiring signing keys (688.154125ms)\n✔ lock during successful source close records the late cause without discarding the durable signed result (711.703125ms)\n✔ restart resumes exact persisted raw without a key or new nonce; later rejection cannot erase an unknown attempt (114.628208ms)\n✔ signed-byte retry is account-bound and lock after dispatch preserves its real acknowledgement (66.351542ms)\nℹ tests 19\nℹ suites 0\nℹ pass 19\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 9374.350417\n"
+  },
+  "latestDelta": {
+    "exit": 0,
+    "output": "✔ normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing (827.539292ms)\n✔ normal session source failure captures its partial and never enters classic fallback (198.831542ms)\n✔ normal lawful legacy session requires the same fresh committed source instead of treating the PQ backup as activation (257.911708ms)\n✔ original source acquisition reservation prevents overlapping session and transaction resources before either returns (175.942292ms)\n✔ lock during successful source close records the late cause without discarding the durable signed result (710.241084ms)\n✔ session cause summaries preserve falsy causes without copying diagnostic payloads into storage or UI (0.08475ms)\nℹ tests 6\nℹ suites 0\nℹ pass 6\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 2320.980292\n"
+  },
+  "storage": {
+    "owner": "Existing FileTransactionIntentStore",
+    "schemaVersion": 7,
+    "mode": "Original OS-private regular file/atomic replacement; NOT a new encrypted Vault format",
+    "capacity": "Original 1 MiB cap unchanged; bounded reservations",
+    "keysOrPasswordsStored": false,
+    "automaticResign": false,
+    "automaticCallbackRetry": false
+  },
+  "remaining": [
+    "Actual GUI/installed candidate acceptance",
+    "Matching R3b private terminal journal + long callback/completion recovery",
+    "No new Source/operator version pin or public deployment assumed"
+  ]
+}
