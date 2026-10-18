@@ -10,11 +10,17 @@ import {PQ_FINALITY_COLLECTOR_LIMITS} from './features/pq-transaction/finality-c
 // Private Main evidence only. A stored HTTP body/context/CLI result establishes
 // neither trust nor finality and never releases the original transaction.
 const magic=Buffer.from('YNXPQFE1\n'),uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const limits=Object.freeze({
+// Protocol c3/034 transaction.go: context and stdin have different bounds.
+// Count standard-base64 envelope/native wire plus the exact DTO overhead;
+// these DATA caps do not establish the context's independent provenance.
+const maxExpectedBytes=4*Math.ceil((24<<20)/3)+4*Math.ceil((8<<20)/3)+(8<<10);
+export const PQ_FINALITY_EVIDENCE_LIMITS=Object.freeze({
  'collector-http':PQ_FINALITY_COLLECTOR_LIMITS.proofBytes+PQ_FINALITY_COLLECTOR_LIMITS.envelopeBytes,
- 'verifier-stdin':(80<<20)+4*Math.ceil((24<<20)/3)+4*Math.ceil((8<<20)/3)+(8<<10)+1024,
- 'host-context':8<<20,'verifier-stdout':8<<20,'verifier-stderr':64<<10,'verifier-result':64<<10,
+ 'verifier-stdin':(80<<20)+maxExpectedBytes+1024,
+ 'host-context':maxExpectedBytes+(32<<10)+1024,
+ 'verifier-stdout':8<<20,'verifier-stderr':64<<10,'verifier-result':64<<10,
 });
+const limits=PQ_FINALITY_EVIDENCE_LIMITS;
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 function reference(value){

@@ -8,7 +8,7 @@ import {gunzipSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {createPQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
 import {preparePQTransferTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
-import {PQFinalityEvidence} from '../src/wallet-pq-finality-evidence.mjs';
+import {PQFinalityEvidence,PQ_FINALITY_EVIDENCE_LIMITS} from '../src/wallet-pq-finality-evidence.mjs';
 const vector=JSON.parse(gunzipSync(readFileSync(new URL('./fixtures/pq-public-http-af1cbaf.json.gz',import.meta.url)))),row=vector.originals.find(x=>x.name==='transfer-lost-response');
 const binding={account:vector.owner,networkId:vector.networkId},original=createPQOriginalRecord({account:vector.owner,kind:'pq-transfer',operationId:'QA-evidence-original',request:preparePQTransferTransport(Buffer.from(row.wire,'base64'))});
 const hash=b=>createHash('sha256').update(b).digest('hex');
@@ -60,4 +60,12 @@ test('reference and account-binding accessors never execute during main evidence
  const f=await fixture(t);let reads=0;const bad={account:binding.account};Object.defineProperty(bad,'networkId',{enumerable:true,get(){reads++;throw Error('PUBLIC must not run');}});
  await assert.rejects(f.store.append(original,bad,'collector-http',Buffer.alloc(1)));
  const ref={eventId:{toString(){reads++;throw Error('PUBLIC must not run');}},attemptId:'x',kind:'collector-http',bytes:1,sha256:'a'.repeat(64)};await assert.rejects(f.store.read(original,binding,ref));assert.equal(reads,0);assert.equal((await fs.readdir(f.directory)).length,0);
+});
+test('actual Protocol context bound accepts data above old 8MiB and rejects one byte beyond the full profile before file creation',async t=>{
+ const expected=4*Math.ceil((24*1024*1024)/3)+4*Math.ceil((8*1024*1024)/3)+8192;
+ assert.equal(PQ_FINALITY_EVIDENCE_LIMITS['host-context'],expected+32768+1024);assert.equal(PQ_FINALITY_EVIDENCE_LIMITS['verifier-stdin'],80*1024*1024+expected+1024);
+ const sentinel=Error('PUBLIC no disk write'),io={...fs,open:async()=>{throw sentinel;}},f=await fixture(t,io);
+ await assert.rejects(f.store.append(original,binding,'host-context',new Uint8Array(expected+32768+1025)),{code:'PQ_FINALITY_EVIDENCE_INVALID'});assert.equal(f.store.pending(),null);
+ await assert.rejects(f.store.append(original,binding,'host-context',new Uint8Array(8*1024*1024+1)),e=>e.code==='PQ_FINALITY_EVIDENCE_UNCONFIRMED'&&e.cause===sentinel);
+ assert.equal(f.store.pending().bytes,8*1024*1024+1);assert.equal((await fs.readdir(f.directory)).length,0);
 });
