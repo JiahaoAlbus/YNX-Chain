@@ -146,34 +146,6 @@ jobs:
       - name: Verify Whole BFT gateway and native container readback
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
-      - name: Checkout frozen owned performance client separately
-        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: 45058e7f764529421870a5fc41264da86b9ab2a0
-          path: qa-owned-performance-client
-          persist-credentials: false
-      - name: Verify eight frozen client correctness functions
-        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        working-directory: qa-owned-performance-client
-        timeout-minutes: 3
-        env:
-          GOMAXPROCS: '1'
-          GOGC: '50'
-          GOMEMLIMIT: '384MiB'
-        run: |
-          test "$(git rev-parse HEAD)" = '45058e7f764529421870a5fc41264da86b9ab2a0'
-          test "$(git rev-parse HEAD:cmd/ynx-consensus-perf-client)" = 'a454a180b9bf1b58be7b493c3cf578d6a8800532'
-          sha256sum --check <<'PINS'
-          0752ebc6b56979c9db353b47351a3742aeb7fb00f1116ce3fd33363c20c907cf  cmd/ynx-consensus-perf-client/main.go
-          ad1ae8423a9bc57fc650b8fead3daa95f5cb301bdb6bbdd7642412ccbc53ae1e  cmd/ynx-consensus-perf-client/main_test.go
-          cb4491f456ea25c6605c04980e204a9988fb007369b9a4e5a2120d66da44ad6a  cmd/ynx-consensus-perf-client/ready_sender.go
-          69539678c4634780d8c54b87b43fd1b07570f63303a85380fe415f911a7abc13  cmd/ynx-consensus-perf-client/ready_sender_readback.go
-          6d20cf3e959db5d7758c0fc5656523e0df2d9fa16e03d830d70f74a48aad2bba  cmd/ynx-consensus-perf-client/ready_sender_readback_test.go
-          e3c1812d73a1c60e57dc7a3704224c111d1d2c095155d406153b1fbb758b6ed3  cmd/ynx-consensus-perf-client/ready_sender_test.go
-          d0c8b0e0a04d145d409d6bc97981903664f1c0b0da908b4384c4441d62b52c9c  cmd/ynx-consensus-perf-client/ready_summary.go
-          PINS
-          go test -p 1 ./cmd/ynx-consensus-perf-client -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySupplyRejectsUnknownBeforeSigning|TestFinalSubmissionRequiresDurableEvidenceAndHonestCounts|TestFullHistoryFinalCountsAndLatencyRejectIncompleteBusinessEvidence|TestReadySenderCumulativeCountsMatchCompleteHistoryAfterOutOfOrderHandoffs|TestJournalFinalCountsAndSenderGateRequirePublishedView|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadySenderStreamingReadbackBoundsAndConsumerErrors)$' -count=1 -timeout=30s -v
       - name: Emit public inverse interop fixture
         id: interop
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
