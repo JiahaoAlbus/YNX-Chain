@@ -51,13 +51,13 @@ func readPartialObservation(file string, plan partialWindowPlan, senders int) (r
 }
 
 func TestTerminalStreamMissingReportUsesOnlyExplicitBoundedPlan(t *testing.T) {
-	plan := partialWindowPlan{3, 32, "ready-pool", true, true}
+	plan := partialWindowPlan{Count: 3, Rounds: 32, SenderMode: "ready-pool", TerminalStream: true, ReuseResultSlots: true}
 	file := filepath.Join(t.TempDir(), "missing.json")
 	observed, raw, present, err := readPartialObservation(file, plan, 3)
 	if err != nil || present || raw != nil || len(observed.Transactions) != 0 || observed.RoundsRequested != 0 {
 		t.Fatal("absence manufactured original observations", observed, present, err)
 	}
-	for _, invalid := range []partialWindowPlan{{3, 0, "ready-pool", true, true}, {3, 33, "ready-pool", true, true}, {2048, 32, "ready-pool", true, true}, {4, 32, "ready-pool", true, true}, {3, 32, "rounds", true, true}, {3, 32, "ready-pool", false, true}, {3, 32, "ready-pool", true, false}} {
+	for _, invalid := range []partialWindowPlan{{Count: 3, Rounds: 0, SenderMode: "ready-pool", TerminalStream: true, ReuseResultSlots: true}, {Count: 3, Rounds: 33, SenderMode: "ready-pool", TerminalStream: true, ReuseResultSlots: true}, {Count: 2048, Rounds: 32, SenderMode: "ready-pool", TerminalStream: true, ReuseResultSlots: true}, {Count: 4, Rounds: 32, SenderMode: "ready-pool", TerminalStream: true, ReuseResultSlots: true}, {Count: 3, Rounds: 32, SenderMode: "rounds", TerminalStream: true, ReuseResultSlots: true}, {Count: 3, Rounds: 32, SenderMode: "ready-pool", TerminalStream: false, ReuseResultSlots: true}, {Count: 3, Rounds: 32, SenderMode: "ready-pool", TerminalStream: true, ReuseResultSlots: false}} {
 		if _, _, _, err := readPartialObservation(file, invalid, 3); err == nil {
 			t.Fatal("invalid missing-report plan accepted", invalid)
 		}
@@ -65,7 +65,7 @@ func TestTerminalStreamMissingReportUsesOnlyExplicitBoundedPlan(t *testing.T) {
 }
 
 func TestTerminalStreamMissingReportDoesNotHideCorruptOrNonregularReport(t *testing.T) {
-	plan := partialWindowPlan{3, 32, "ready-pool", true, true}
+	plan := partialWindowPlan{Count: 3, Rounds: 32, SenderMode: "ready-pool", TerminalStream: true, ReuseResultSlots: true}
 	file := filepath.Join(t.TempDir(), "report.json")
 	if err := os.WriteFile(file, []byte("{"), 0600); err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestTerminalStreamMissingReportReceiptPlanDecodes(t *testing.T) {
 
 func TestTerminalStreamMissingReportStillRecoversSealedObservations(t *testing.T) {
 	stream, intents, _ := terminalPrefixFixture(t, nil)
-	observed, _, present, err := readPartialObservation(filepath.Join(t.TempDir(), "missing.json"), partialWindowPlan{3, 32, "ready-pool", true, true}, 3)
+	observed, _, present, err := readPartialObservation(filepath.Join(t.TempDir(), "missing.json"), partialWindowPlan{Count: 3, Rounds: 32, SenderMode: "ready-pool", TerminalStream: true, ReuseResultSlots: true}, 3)
 	if err != nil || present || len(observed.Transactions) != 0 {
 		t.Fatal("unexpected original observations", err)
 	}
