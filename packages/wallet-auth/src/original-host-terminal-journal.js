@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
+import {types} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
 import {originalPrivateCarrierBudget} from './original-wallet-service-private-carrier.js';
@@ -24,8 +25,57 @@ function terminalLinks(body,entered){
 }
 const names={open:'openOriginalHostTerminalJournal',ready:'assertOriginalHostTerminalJournalReady',list:'listOriginalHostTerminalJournal',read:'readOriginalHostTerminalJournal',write:'writeOriginalHostTerminalJournal',retire:'retireOriginalHostTerminalJournal',join:'joinOriginalHostTerminalJournal',close:'closeOriginalHostTerminalJournal'};
 
+
+const firstEnterNames={capture:'captureOriginalPersistentFirstEnter',ready:'assertOriginalPersistentFirstEnterReady',challenge:'copyOriginalPersistentFirstEnterChallenge',accept:'acceptOriginalPersistentFirstEnterWitness',retire:'retireOriginalPersistentFirstEnter',join:'joinOriginalPersistentFirstEnter',close:'closeOriginalPersistentFirstEnter'};
+function plainFields(value,fields){
+ if(!value||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail('FIRST_ENTER_DATA_INVALID');
+ const descriptors=Object.getOwnPropertyDescriptors(value),keys=Reflect.ownKeys(descriptors);
+ if(keys.length!==fields.length||keys.some(k=>typeof k!=='string'||!fields.includes(k)||!Object.hasOwn(descriptors[k],'value')||!descriptors[k].enumerable))fail('FIRST_ENTER_DATA_INVALID');
+}
+function firstEnterRequest(raw){
+ if(typeof raw!=='string'||!raw.length||Buffer.byteLength(raw)>65536)fail('FIRST_ENTER_REQUEST_INVALID');
+ let input;try{input=JSON.parse(raw);}catch{fail('FIRST_ENTER_REQUEST_INVALID');}
+ originalPrivateCarrierBudget(input);
+ if(canonicalJSON(input)!==raw||input.carrierVersion!=='YNX-PRODUCT-SESSION-PRIVATE/v4'||input.operation!=='handleReturn'||input.phase!=='effect'||input.referenceAction!=='complete')fail('FIRST_ENTER_REQUEST_INVALID');
+ return input;
+}
+function firstEnterChallenge(value,raw,input){
+ plainFields(value,['version','requestId','originalRequestRaw','binding','witnessNonce','dataOnly','nativeAdmission']);
+ plainFields(value.binding,['requestDigest','enteredDigest','hostStateDigest']);
+ if(value.version!=='YNX-AUTH-PERSISTENT-ENTERED/v1'||value.originalRequestRaw!==raw||value.requestId!==input.requestId||value.dataOnly!==true||value.nativeAdmission!==false||typeof value.witnessNonce!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(value.witnessNonce)||Buffer.from(value.witnessNonce,'base64url').toString('base64url')!==value.witnessNonce||Object.values(value.binding).some(x=>!digest(x))||value.binding.requestDigest!==sha(raw))fail('FIRST_ENTER_DATA_INVALID');
+ return Object.freeze({...value,binding:Object.freeze({...value.binding})});
+}
+function rememberFirstEnter(s,cause){s.unknown=true;if(!s.firstCausePresent){s.firstCausePresent=true;s.firstCause=cause;}s.remember?.(cause);}
+function currentFirstEnter(s){
+ if(s.retired||s.firstCausePresent)throw s.firstCausePresent?s.firstCause:Object.assign(new Error('First enter retired'),{code:'FIRST_ENTER_RETIRED'});
+ s.current();if(!s.owner||s.methods.ready(s.owner)!==undefined)fail('FIRST_ENTER_NOT_READY');
+}
+function firstEnterCleanup(s,step){
+ if(step==='retire')s.retired=true;
+ if(s.active){const cause=Object.assign(new Error('First enter work pending'),{code:'FIRST_ENTER_JOIN_PENDING'});if(!s.cleanupCausePresent){s.cleanupCausePresent=true;s.cleanupCause=cause;}rememberFirstEnter(s,cause);throw cause;}
+ const selected=step+'Selected',failed=step+'Failed',causeKey=step+'Cause';
+ if(s[selected]){if(s[failed])throw s[causeKey];return;}
+ s[selected]=true;
+ try{if(s.owner){if(s.methods[step](s.owner)!==undefined)fail('FIRST_ENTER_CLEANUP_UNKNOWN');}else if(s.captureEntered)fail('FIRST_ENTER_CAPTURE_UNKNOWN');if(step==='close')s.closeConfirmed=true;}
+ catch(cause){s[failed]=true;s[causeKey]=cause;if(!s.cleanupCausePresent){s.cleanupCausePresent=true;s.cleanupCause=cause;}rememberFirstEnter(s,cause);throw cause;}
+}
+function closeFirstEnter(s){
+ s.retired=true;for(const step of ['retire','join','close'])try{firstEnterCleanup(s,step);}catch{/* retain first cleanup failure independently */}
+ if(s.cleanupCausePresent)throw s.cleanupCause;s.cleanupComplete=true;
+}
+function firstEnterClient(s){return Object.freeze({
+ copyChallenge(){s.active++;try{currentFirstEnter(s);if(s.acceptSelected)fail('FIRST_ENTER_ALREADY_SELECTED');if(!s.challenge){s.originalChallenge=s.methods.challenge(s.owner);const data=firstEnterChallenge(s.originalChallenge,s.raw,s.input);currentFirstEnter(s);s.challenge=data;}return s.challenge;}catch(cause){rememberFirstEnter(s,cause);throw cause;}finally{s.active--;}},
+ acceptWitness(raw){s.active++;try{currentFirstEnter(s);if(s.acceptSelected||!s.challenge)fail('FIRST_ENTER_ALREADY_SELECTED');s.acceptSelected=true;
+  if(typeof raw!=='string'||!raw.length||Buffer.byteLength(raw)>32768)fail('FIRST_ENTER_WITNESS_INVALID');let witness;try{witness=JSON.parse(raw);}catch{fail('FIRST_ENTER_WITNESS_INVALID');}
+  if(canonicalJSON(witness)!==raw)fail('FIRST_ENTER_WITNESS_INVALID');s.witnessRaw=raw;
+  if(s.methods.accept(s.owner,raw)!==undefined)fail('FIRST_ENTER_ACCEPT_UNKNOWN');currentFirstEnter(s);s.accepted=true;
+ }catch(cause){rememberFirstEnter(s,cause);throw cause;}finally{s.active--;}},
+ retire(){return firstEnterCleanup(s,'retire');},join(){if(!s.retired)fail('FIRST_ENTER_JOIN_PENDING');return firstEnterCleanup(s,'join');},close(){return closeFirstEnter(s);},
+ status:()=>Object.freeze({retired:s.retired,accepted:s.accepted,unknown:s.unknown,firstCausePresent:s.firstCausePresent,firstCause:s.firstCause,cleanupCausePresent:s.cleanupCausePresent,cleanupCause:s.cleanupCause,cleanupComplete:s.cleanupComplete})
+ });}
+
 export class OriginalHostTerminalJournal {
- #path;#original;#native;#loan;#records=new Map();#coldCount=0;#unknown=false;#cause;#causePresent=false;#retired=false;#nativeCloseSelected=false;#closeComplete=false;#cleanupCause;#cleanupCausePresent=false;#entered=0;#opened=false;#retireSelected=false;#retireCause;#retireCausePresent=false;#joinSelected=false;#joinCause;#joinCausePresent=false;
+ #firstEnters=new Map();#path;#original;#native;#loan;#records=new Map();#coldCount=0;#unknown=false;#cause;#causePresent=false;#retired=false;#nativeCloseSelected=false;#closeComplete=false;#cleanupCause;#cleanupCausePresent=false;#entered=0;#opened=false;#retireSelected=false;#retireCause;#retireCausePresent=false;#joinSelected=false;#joinCause;#joinCausePresent=false;
  constructor(statePath,originalNativeBorrow){
   if(typeof statePath!=='string'||!statePath.startsWith('/')||statePath.split('/').some(part=>part==='.'||part==='..')||statePath.includes('\0')||!originalNativeBorrow)fail('HOST_DIRFD_ORIGINAL_OWNER_REQUIRED');
   this.#path=statePath;this.#original=originalNativeBorrow;
@@ -66,6 +116,24 @@ export class OriginalHostTerminalJournal {
   if(this.#native[names.write](this.#loan,name,raw)!==undefined)fail('HOST_TERMINAL_WRITE_UNKNOWN');
   const read=this.#read(name);if(read.raw.toString()!==raw)fail('HOST_TERMINAL_READBACK_MISMATCH');return read;
  }
+ /** Captures the exact original writer loan; no caller may supply a Native
+  * owner, path, Source, clock, signer or callback. Failed capture is once-only. */
+ capturePersistentFirstEnter(raw){
+  this.#entered++;let s;
+  try{
+   const prior=[...this.#firstEnters.values()].find(s=>s.raw===raw);if(prior){if(prior.firstCausePresent)throw prior.firstCause;fail('FIRST_ENTER_ALREADY_CAPTURED');}
+   this.#current();const input=firstEnterRequest(raw),key=sha(canonicalJSON({requestId:input.requestId,operation:input.operation,phase:input.phase}));
+   if(this.#firstEnters.has(key)||this.#records.has(key)||this.#coldCount+new Set([...this.#records.keys(),...this.#firstEnters.keys()]).size>=64)fail('FIRST_ENTER_ALREADY_CAPTURED');
+   s={raw,input,key,owner:null,methods:null,captureEntered:false,active:1,retired:false,unknown:true,accepted:false,acceptSelected:false,challenge:null,firstCausePresent:false,firstCause:undefined,cleanupCausePresent:false,cleanupCause:undefined,cleanupComplete:false,closeConfirmed:false,current:()=>this.#current(),remember:cause=>this.#remember(cause)};
+   s.client=firstEnterClient(s);this.#firstEnters.set(key,s); // Reserve before partial Native capture.
+   if(Object.values(firstEnterNames).some(name=>typeof this.#native[name]!=='function'))fail('FIRST_ENTER_IMPLEMENTATION_NOT_SUPPLIED');
+   s.methods=Object.freeze(Object.fromEntries(Object.entries(firstEnterNames).map(([k,name])=>[k,this.#native[name]])));
+   s.captureEntered=true;s.owner=s.methods.capture(this.#loan,raw);currentFirstEnter(s);return s.client;
+  }catch(cause){if(s)rememberFirstEnter(s,cause);this.#remember(cause);throw cause;}finally{if(s)s.active=0;this.#entered--;}
+ }
+ getPersistentFirstEnterCleanup(raw){
+  if(typeof raw!=='string')return null;for(const s of this.#firstEnters.values())if(s.raw===raw)return Object.freeze({retire:s.client.retire,join:s.client.join,close:s.client.close,status:s.client.status});return null;
+ }
  reserve(input,association,stateBeforeDigest){
   this.#entered++;
   try{
@@ -80,7 +148,12 @@ export class OriginalHostTerminalJournal {
    if(this.#records.has(key)||this.#coldCount+this.#records.size>=64)fail('HOST_TERMINAL_ALREADY_ENTERED');
    const row={key,entered:true,terminal:false,requestDigest,associationDigest,operation:input.operation,phase:input.phase,requestId:input.requestId,stateBeforeDigest,inputRaw:canonicalJSON(input),associationRaw:canonicalJSON(association),recoverable:input.carrierVersion==='YNX-PRODUCT-SESSION-PRIVATE/v4'&&input.referenceAction==='complete'};
    this.#records.set(key,row); // Preserve original even on late fsync/read failure.
-   row.original=this.#write(key+'.entered',{version:1,kind:'entered',requestDigest,associationDigest,operation:row.operation,phase:row.phase,requestId:row.requestId,stateBeforeDigest});
+   const entered={version:1,kind:'entered',requestDigest,associationDigest,operation:row.operation,phase:row.phase,requestId:row.requestId,stateBeforeDigest},attempt=this.#firstEnters.get(key);
+   if(attempt){
+    currentFirstEnter(attempt);if(!attempt.accepted||attempt.raw!==row.inputRaw||!attempt.challenge)fail('FIRST_ENTER_ACCEPT_REQUIRED');
+    row.original=this.#read(key+'.entered'); // R48 Native accept already durably wrote this exact entry.
+    if(row.original.raw.toString()!==canonicalJSON(entered)||sha(row.original.raw)!==attempt.challenge.binding.enteredDigest)fail('FIRST_ENTER_ENTERED_MISMATCH');
+   }else row.original=this.#write(key+'.entered',entered);
    row.claim=Object.freeze({key});return row.claim;
   }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered--;}
  }
@@ -123,8 +196,13 @@ export class OriginalHostTerminalJournal {
  #rememberCleanup(cause){
   if(!this.#cleanupCausePresent){this.#cleanupCausePresent=true;this.#cleanupCause=cause;}this.#remember(cause);
  }
+ #prepareFirstEnterCleanup(){
+  for(const s of this.#firstEnters.values())try{closeFirstEnter(s);}catch(cause){this.#rememberCleanup(cause);}
+  if([...this.#firstEnters.values()].some(s=>!s.closeConfirmed)){if(this.#cleanupCausePresent)throw this.#cleanupCause;fail('FIRST_ENTER_CLEANUP_UNKNOWN');}
+ }
  retire(){
   this.#retired=true; // Fence new work before any Native cleanup or failure.
+  this.#prepareFirstEnterCleanup(); // Local child preflight precedes Native once-selection.
   if(this.#retireSelected){if(this.#retireCausePresent)throw this.#retireCause;return;}
   this.#retireSelected=true;
   try{if(this.#loan&&this.#native[names.retire](this.#loan)!==undefined)fail('HOST_TERMINAL_RETIRE_UNKNOWN');}
@@ -134,6 +212,7 @@ export class OriginalHostTerminalJournal {
   // A local preflight refusal has not selected a Native join. After drain,
   // cleanup may enter it once; an actually entered Native failure is latched.
   if(!this.#retired||this.#entered){try{fail('HOST_TERMINAL_JOIN_PENDING');}catch(cause){this.#rememberCleanup(cause);throw cause;}}
+  this.#prepareFirstEnterCleanup();
   if(this.#joinSelected){if(this.#joinCausePresent)throw this.#joinCause;return;}
   this.#joinSelected=true;
   try{if(this.#loan&&this.#native[names.join](this.#loan)!==undefined)fail('HOST_TERMINAL_JOIN_PENDING');}
@@ -145,9 +224,11 @@ export class OriginalHostTerminalJournal {
   const attempt=action=>{try{action();}catch(cause){this.#rememberCleanup(cause);}};
   // Each Native step is selected once, including when a preceding step throws.
   // The owning Native close still enforces its independent busy/owner guards.
+  for(const s of this.#firstEnters.values())attempt(()=>closeFirstEnter(s));
   attempt(()=>this.retire());attempt(()=>this.join());
   attempt(()=>{
    if(this.#entered)fail('HOST_TERMINAL_JOIN_PENDING');
+   if([...this.#firstEnters.values()].some(s=>!s.closeConfirmed))fail('FIRST_ENTER_CLEANUP_UNKNOWN');
    this.#nativeCloseSelected=true; // Only after the local active-work guard.
    if(this.#loan){if(this.#native[names.close](this.#loan)!==undefined)fail('HOST_TERMINAL_CLOSE_UNKNOWN');}
    else if(this.#opened)fail('HOST_TERMINAL_CLOSE_UNKNOWN'); // No loan does not prove capture had no effect.
