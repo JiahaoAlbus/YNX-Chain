@@ -90,9 +90,11 @@ function retainedOwner(binding, { schedule = setTimeout, unschedule = clearTimeo
     original.then(() => { pending.delete(joined); settle(); }, () => { pending.delete(joined); settle(); });
     return Promise.race([original, retirement]);
   };
-  const close = (cause = unavailable()) => {
+  const close = (...causes) => {
     if (retired) return completion;
-    retired = true; firstCause = cause; rejectRetirement(refusal());
+    // An original promise can reject with undefined. Only an omitted cause
+    // selects our shutdown default; never replace an entered owner's failure.
+    retired = true; firstCause = causes.length ? causes[0] : unavailable(); rejectRetirement(refusal());
     for (const hook of hooks) { try { hook(); } catch {} }
     hooks.clear();
     cleanupState = 'draining';
@@ -150,7 +152,7 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
     if (now() < floor || epoch && now() >= epoch.expiresAtMs) throw denied();
     return at;
   };
-  const close = error => lifecycle.close(error);
+  const close = (...causes) => lifecycle.close(...causes);
   const ended = () => { close(unavailable()); }, errored = error => { close(error); };
   const install = async value => {
     epoch = value;

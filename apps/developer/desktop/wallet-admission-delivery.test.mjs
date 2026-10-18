@@ -25,6 +25,25 @@ class PublicStream extends EventEmitter {
   destroy() { this.destroyed = true; }
 }
 const flush = () => new Promise(resolve => setImmediate(resolve));
+for (const first of [undefined, null, false, 0, '']) test('R89 original parent failure preserves exact cause ' + String(first), async () => {
+  let fail = false;
+  const f = fixture({ parentCurrent() { if (fail) return Promise.reject(first); } });
+  f.send(); await flush(); fail = true;
+  await assert.rejects(f.receiver.assertCurrent(tuple), error => Object.hasOwn(error, 'cause') && error.cause === first);
+  assert.equal(f.receiver.cleanupStatus().firstCause, first);
+  assert.deepEqual(await f.receiver.finishCleanup(), { complete: true });
+  f.receiver.close(Error('PUBLIC_LATE'));
+  assert.equal(f.receiver.cleanupStatus().firstCause, first);
+  assert.equal(f.closes(), 1);
+});
+test('R89 omitted close differs from explicit undefined failure', async () => {
+  const omitted = fixture(); omitted.receiver.close();
+  assert.equal(omitted.receiver.cleanupStatus().firstCause.code, 'WALLET_SERVICE_ADMISSION_UNAVAILABLE');
+  await omitted.receiver.finishCleanup();
+  const explicit = fixture(); explicit.receiver.close(undefined);
+  assert.equal(explicit.receiver.cleanupStatus().firstCause, undefined);
+  await explicit.receiver.finishCleanup();
+});
 function fixture({ validate, parentCurrent, parentClose } = {}) {
   let clock = at, closes = 0, calls = 0;
   const timers = new Set(), stream = new PublicStream();
