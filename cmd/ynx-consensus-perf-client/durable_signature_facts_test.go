@@ -3,7 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -68,6 +70,20 @@ func TestStreamingWorkloadSignatureFactsBindChainBytesAndOwnership(t *testing.T)
 	if _, err := facts.decode(owned, migration.Network.ChainID+1); err == nil {
 		t.Fatal("cross-chain fact reused")
 	}
+	for _, mutate := range []func(*consensus.SignedTransaction){
+		func(tx *consensus.SignedTransaction) { tx.Version++ },
+		func(tx *consensus.SignedTransaction) { tx.PublicKey = "00" },
+	} {
+		changed := again
+		mutate(&changed)
+		changedRaw, err := json.Marshal(changed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := facts.decode(changedRaw, migration.Network.ChainID); err == nil {
+			t.Fatal("foreign version/public-key context accepted")
+		}
+	}
 	again.Amount++
 	invalid, err := json.Marshal(again)
 	if err != nil {
@@ -107,16 +123,24 @@ func TestStreamingWorkloadSignatureFactsEvictUnderCountAndByteCaps(t *testing.T)
 	if stats := facts.stats(); stats.Entries != durableSignatureCapacity || stats.StringBytes > durableSignatureStringLimit {
 		t.Fatal("entry cap exceeded", stats)
 	}
-	// Distinct valid encodings of one signed envelope exercise the byte cap;
-	// whitespace does not authorize any different business transaction.
+	// The original canonical decoder must reject padding, even after the
+	// unpadded signed envelope has been seen.
+	padded := append(append([]byte(nil), raw...), bytes.Repeat([]byte(" "), 10000)...)
+	if _, err := facts.decode(padded, migration.Network.ChainID); err == nil {
+		t.Fatal("noncanonical padded input accepted")
+	}
+	// Synthetic private storage-admission fixtures exercise the byte ceiling
+	// independently of cryptography. They never pass decode or business gates.
 	for i := 0; i < 220; i++ {
-		padded := append(append([]byte(nil), raw...), bytes.Repeat([]byte(" "), 10000+i)...)
-		if _, err := facts.decode(padded, migration.Network.ChainID); err != nil {
-			t.Fatal(err)
-		}
+		memoryOnly := fmt.Sprintf("synthetic storage-boundary fixture %d %s", i, padded)
+		key := durableSignatureKey{chain: migration.Network.ChainID, digest: sha256.Sum256([]byte(memoryOnly))}
+		facts.rememberVerified(key, memoryOnly, tx)
 		if stats := facts.stats(); stats.Entries > durableSignatureCapacity || stats.StringBytes > durableSignatureStringLimit {
 			t.Fatal("byte cap exceeded", stats)
 		}
+	}
+	if facts.stats().Entries >= durableSignatureCapacity {
+		t.Fatal("byte pressure failed to evict count-bounded entries")
 	}
 	before := facts.stats()
 	if _, err := facts.decode(raw, migration.Network.ChainID); err != nil {

@@ -40,6 +40,9 @@ type durableSignatureFacts struct {
 }
 
 func (c *durableSignatureFacts) decode(raw []byte, chain int64) (consensus.SignedTransaction, error) {
+	if len(raw) == 0 || len(raw) > consensus.MaxSignedTransactionSize {
+		return consensus.DecodeSignedTransaction(raw)
+	}
 	key := durableSignatureKey{chain: chain, digest: sha256.Sum256(raw)}
 	c.mu.Lock()
 	fact, found := c.entries[key]
@@ -59,12 +62,18 @@ func (c *durableSignatureFacts) decode(raw []byte, chain int64) (consensus.Signe
 		return consensus.SignedTransaction{}, err
 	}
 	key.digest = sha256.Sum256([]byte(owned))
+	c.rememberVerified(key, owned, tx)
+	return tx, nil
+}
+
+// Only decode calls this in production, after the complete native verifier.
+func (c *durableSignatureFacts) rememberVerified(key durableSignatureKey, owned string, tx consensus.SignedTransaction) {
 	cost := len(owned) + len(tx.Type) + len(tx.From) + len(tx.To) + len(tx.PublicKey) + len(tx.Signature)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.verified++
 	if _, exists := c.entries[key]; exists || cost > durableSignatureStringLimit {
-		return tx, nil
+		return
 	}
 	if c.entries == nil {
 		c.entries = make(map[durableSignatureKey]durableSignatureFact)
@@ -78,7 +87,6 @@ func (c *durableSignatureFacts) decode(raw []byte, chain int64) (consensus.Signe
 	c.order[(c.head+len(c.entries))%durableSignatureCapacity] = key
 	c.entries[key] = durableSignatureFact{raw: owned, tx: tx, bytes: cost}
 	c.bytes += cost
-	return tx, nil
 }
 
 func (c *durableSignatureFacts) stats() durableSignatureStats {
