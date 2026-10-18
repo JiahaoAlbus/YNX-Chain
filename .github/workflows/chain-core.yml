@@ -18,6 +18,7 @@ on:
       - "scripts/loadtest/**"
       - "scripts/verify/integration-contract-check.mjs"
       - "scripts/verify/chain-core-release-check.mjs"
+      - "scripts/verify/perf-v13-integration-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   pull_request:
     branches:
@@ -35,6 +36,7 @@ on:
       - "scripts/loadtest/**"
       - "scripts/verify/integration-contract-check.mjs"
       - "scripts/verify/chain-core-release-check.mjs"
+      - "scripts/verify/perf-v13-integration-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
     inputs:
