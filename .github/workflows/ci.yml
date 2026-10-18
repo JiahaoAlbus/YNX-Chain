@@ -45,14 +45,16 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Compile exact R50 production TU and five new budget controls without hardware
-        run: python3 scripts/ci/social-tpm-r41/compile.py "$RUNNER_TEMP/social-tpm-r41-result"
+      - name: Build fixed Linux crypto source and run public mathematical controls
+        run: python3 scripts/ci/social-linux-crypto-r1/execute.py "$RUNNER_TEMP/social-linux-crypto-r1-result"
       - name: Preserve first cause and exact compiler/dependency/header manifests
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: social-current-r50-compile-${{ github.run_id }}-${{ github.run_attempt }}
+          name: social-linux-crypto-r1-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/social-tpm-r41-result/*.json
-            ${{ runner.temp }}/social-tpm-r41-result/*.raw
+            ${{ runner.temp }}/social-linux-crypto-r1-result/*.json
+            ${{ runner.temp }}/social-linux-crypto-r1-result/*.raw
+            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/BUILD.log
+            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/OUTPUT_SHA256SUMS
           if-no-files-found: error

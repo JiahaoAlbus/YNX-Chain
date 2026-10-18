@@ -1,0 +1,75 @@
+{
+  "kind": "INDEPENDENT_FIXED_OFFICIAL_LINUX_CRYPTO_SUCCESSOR_NOT_ORIGINAL_BINARY_REPRODUCTION",
+  "supplier": {
+    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/linux-crypto-source-r1/HANDOFF.json",
+    "bytes": 5740,
+    "sha256": "4eccd84e7b86c881cade0ac1f2ae51d315603d0312cc0c13cd90d9321a14b2bd"
+  },
+  "files": [
+    {
+      "path": "source/native-ownkey-supplier-v4/veil_pq_auth.c",
+      "bytes": 2895,
+      "sha256": "0254d6b863a7628e08ea6a39a1fe5a1e085751d27e9b50fe231f4bbc7a7bb7f4"
+    },
+    {
+      "path": "source/native-ownkey-supplier-v4/veil_pq_auth.h",
+      "bytes": 1235,
+      "sha256": "5c8962a901fb1140538df6854b950499eec437012ef32c0b0074b01cf3db714f"
+    },
+    {
+      "path": "source/native-ownkey-supplier-v4/custodian/veil_pq_custodian.c",
+      "bytes": 7856,
+      "sha256": "efd6b267f46a4b5d7024c159696cde180baca65449a5eaf76f4b556e52c04564"
+    },
+    {
+      "path": "source/native-ownkey-supplier-v4/custodian/veil_pq_custodian.h",
+      "bytes": 3477,
+      "sha256": "b354c509947806ed464aef391ffbb11c6e7fca1cc6f74e10747152ac8b6c6b3e"
+    },
+    {
+      "path": "source/native-ownkey-supplier-v4/custodian/veil_classic_protection.c",
+      "bytes": 2676,
+      "sha256": "057918cb83b8e69ba2b6fdd93ae0e21de671a2f73bd9f2a9ea5752ae019ab0dc"
+    },
+    {
+      "path": "source/native-ownkey-supplier-v4/custodian/veil_classic_protection.h",
+      "bytes": 1442,
+      "sha256": "ec8ad8e836f6d5d665c0653fe08d06836f2ae153027472c2929e197c13f7c5e2"
+    },
+    {
+      "path": "source/crypto-source-control.c",
+      "bytes": 1975,
+      "sha256": "90921d980115185ae94f8ea9e30071c21eb110546b55acf8cd0182a25cf23028"
+    },
+    {
+      "path": "build-linux-crypto.sh",
+      "bytes": 4382,
+      "sha256": "2b6303549c6b252243bb93f3ca9c550b584451f53e3bf79fa6f0c26e62cc240c"
+    },
+    {
+      "path": "INPUT_SHA256SUMS",
+      "bytes": 853,
+      "sha256": "94a51decdec5123dd57c4bef68cd176709d96488fa340c87a66d1c3d711728f1"
+    }
+  ],
+  "officialSources": [
+    {
+      "repository": "open-quantum-safe/liboqs",
+      "tag": "0.16.0",
+      "commit": "5a1a854b0dc9f2141bdc771c555ee60c37950183",
+      "url": "https://codeload.github.com/open-quantum-safe/liboqs/tar.gz/5a1a854b0dc9f2141bdc771c555ee60c37950183",
+      "bytes": 9429917,
+      "sha256": "83c6e6cff490638312e1e20ed5de593fb5d7bfab162235f6238f519d6a1feafb"
+    },
+    {
+      "repository": "jedisct1/libsodium",
+      "tag": "1.0.22",
+      "commit": "77e1ce5d6dee871c49ef211222ba18ef0c486bda",
+      "url": "https://codeload.github.com/jedisct1/libsodium/tar.gz/77e1ce5d6dee871c49ef211222ba18ef0c486bda",
+      "bytes": 2269372,
+      "sha256": "58cb82cc07e45e296cd9c02446452d82dd2a5c5ecba9ff10a23ed8ee183d55b0"
+    }
+  ],
+  "normalEntry": "bash -x build-linux-crypto.sh NEW_ISOLATED_LINUX_DIRECTORY FROZEN_INPUT_DIRECTORY",
+  "sourceControlScope": "PUBLIC ephemeral real sign/verify/reject/pk_from_sk; no key output or persistence; no Source/device grant"
+}
