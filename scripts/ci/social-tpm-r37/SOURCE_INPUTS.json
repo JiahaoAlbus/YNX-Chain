@@ -74,8 +74,8 @@
     },
     {
       "path": "protected-source/linux/ynx_tpm2_esys_owner.c",
-      "bytes": 46255,
-      "sha256": "83cfafb01b6fa1c3abbcdd2996b38be176e25903ae41cf404805b62af2a41ec5"
+      "bytes": 46321,
+      "sha256": "58cef95d25e885e1b678de8304d702448925851a4738f0068a3621914e2408c2"
     },
     {
       "path": "protected-source/linux/ynx_tpm2_esys_owner.h",
@@ -359,5 +359,24 @@
     "protected-source/include"
   ],
   "compileOnly": true,
-  "noTpmRuntime": true
+  "noTpmRuntime": true,
+  "authR37aCOnlyRepair": {
+    "handoff": {
+      "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-r37a-20261018/GCC18_REPAIR_HANDOFF.json",
+      "bytes": 4449,
+      "sha256": "b247a88cb79ac027d9d8237de921e8f6bbbefe888c7934b3d35261ad4758d81d"
+    },
+    "before": {
+      "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-r37-20261018/source/protected-source/linux/ynx_tpm2_esys_owner.c",
+      "bytes": 46255,
+      "sha256": "83cfafb01b6fa1c3abbcdd2996b38be176e25903ae41cf404805b62af2a41ec5"
+    },
+    "after": {
+      "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-r37a-20261018/source/protected-source/linux/ynx_tpm2_esys_owner.c",
+      "bytes": 46321,
+      "sha256": "58cef95d25e885e1b678de8304d702448925851a4738f0068a3621914e2408c2"
+    },
+    "headerIncNotOverlaid": true,
+    "whitespaceOnlyVerified": true
+  }
 }

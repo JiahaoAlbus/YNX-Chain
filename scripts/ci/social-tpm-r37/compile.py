@@ -21,21 +21,22 @@ try:
  manifest=json.loads((HERE/'SOURCE_INPUTS.json').read_text())
  for row in manifest['files']:
   p=SOURCE/row['path'];assert p.is_file() and not p.is_symlink();actual=digest(p);assert actual['bytes']==row['bytes'] and actual['sha256']==row['sha256'],row
- # Resolve once from signed Ubuntu metadata, lock exact versions before download/install.
+ # Replay the exact package/compiler/header inputs obtained from the first real Linux CI.
+ lock=json.loads((HERE/'LINUX_DEPENDENCY_LOCK.json').read_text())
  run('APT_SIGNED_INDEX',['sudo','apt-get','update'],180)
- requested=['gcc','pkg-config','libtss2-dev','libssl-dev'];locked=[]
- for name in requested:
-  text=run('APT_POLICY_'+name,['apt-cache','policy',name],15)
-  version=next(s.split(':',1)[1].strip() for s in text.splitlines() if s.strip().startswith('Candidate:'))
-  assert version and version!='(none)',name
-  locked.append(name+'='+version)
- save('REQUESTED_DEPENDENCY_LOCK.json',{'packages':locked,'resolution':'single signed-index resolution; exact versions only below','rebuildRule':'use recorded versions/package SHA; unavailable exact input is a failure, never fallback'})
+ locked=lock['requestedExact']
+ save('REQUESTED_DEPENDENCY_LOCK.json',{'packages':locked,'fromActualCiRun':lock['fromActualCiRun'],'sourceLock':digest(HERE/'LINUX_DEPENDENCY_LOCK.json'),'rebuildRule':'recorded versions/package SHA/compiler/header/library bytes only; no candidate or fallback'})
  run('APT_DOWNLOAD_LOCKED',['sudo','apt-get','--download-only','--yes','--no-install-recommends','install',*locked],180)
  debs=[]
  for p in sorted(pathlib.Path('/var/cache/apt/archives').glob('*.deb')):
   fields=subprocess.check_output(['dpkg-deb','--show','--showformat=${Package}\t${Version}\t${Architecture}',str(p)],text=True).strip()
   debs.append(dict(**digest(p),packageVersionArchitecture=fields))
  save('DOWNLOADED_PACKAGE_SHA256.json',{'aptVerifiedAgainstSignedIndex':True,'packages':debs})
+ expected_debs={pathlib.Path(v['path']).name:v for v in lock['downloadedPackages']}
+ for v in debs:
+  expected=expected_debs.get(pathlib.Path(v['path']).name)
+  assert expected is not None and v['sha256']==expected['sha256'] and v['bytes']==expected['bytes'] and v['packageVersionArchitecture']==expected['packageVersionArchitecture'],('dependency archive differs from fixed CI input',v)
+
  run('APT_INSTALL_LOCKED',['sudo','apt-get','--yes','--no-download','--no-install-recommends','install',*locked],180)
  packages=run('INSTALLED_PACKAGE_VERSIONS',['dpkg-query','--show','--showformat=${Package}\t${Version}\t${Architecture}\n'],15)
  compiler=pathlib.Path(subprocess.check_output(['which','gcc'],text=True).strip()).resolve()
@@ -53,6 +54,12 @@ try:
   p=pathlib.Path(subprocess.check_output([str(compiler),'-print-file-name=lib'+name+'.so'],text=True).strip())
   assert p.is_file(),str(p);librows.append(digest(p.resolve()))
  save('ACTUAL_TOOLCHAIN_HEADERS_LIBRARIES.json',{'compiler':digest(compiler),'version':version,'target':target.strip(),'pkgConfigVersions':pkgversions,'cflags':flags,'linkFlagsObservedNotLinked':libs,'headers':headers,'libraries':librows,'installedPackagesLog':digest(OUT/'INSTALLED_PACKAGE_VERSIONS.raw')})
+ assert digest(compiler)==lock['compiler'],'compiler binary differs from fixed CI input'
+ assert version==lock['compilerVersion'] and target.strip()==lock['target'],'compiler version/target differs'
+ assert flags==lock['cflags'] and pkgversions==lock['pkgConfigVersions'],'pkg-config fixed input differs'
+ assert headers==lock['headers'],'actual TSS2/OpenSSL headers differ from fixed CI input'
+ assert librows==lock['libraries'],'actual TSS2/OpenSSL libraries differ from fixed CI input'
+
  includes=[SOURCE/p for p in manifest['privateIncludes']]
  argv=[str(compiler),'-std=c11','-Wall','-Wextra','-Werror','-pthread',*flags,*[a for p in includes for a in ['-I',str(p)]],'-c',str(SOURCE/manifest['productionTU']),'-o',str(OUT/'ynx_tpm2_esys_owner.o')]
  run('ACTUAL_FULL_PRODUCTION_TU_COMPILE',argv,45)

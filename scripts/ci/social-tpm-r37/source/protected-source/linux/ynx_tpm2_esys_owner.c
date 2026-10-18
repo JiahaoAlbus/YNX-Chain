@@ -305,14 +305,17 @@ int ynx_tpm2_owner_close(ynx_tpm2_owner **p) {
     ynx_tpm2_owner *o=*p;if(o->borrowed||o->wrapping_custody)return YNX_TPM2_REFUSED;
     if(dispose_secret(o)!=YNX_TPM2_OK)return YNX_TPM2_RESOURCE;
     if(o->session!=ESYS_TR_NONE){TSS2_RC rc=Esys_FlushContext(o->esys,o->session);
-        if(rc)return fail(o,rc,o->entered);o->session=ESYS_TR_NONE;}
+        if(rc)return fail(o,rc,o->entered);
+        o->session=ESYS_TR_NONE;}
     if(o->counter_session!=ESYS_TR_NONE){TSS2_RC rc=Esys_FlushContext(o->esys,o->counter_session);
-        if(rc)return fail(o,rc,o->entered);o->counter_session=ESYS_TR_NONE;}
+        if(rc)return fail(o,rc,o->entered);
+        o->counter_session=ESYS_TR_NONE;}
     for(unsigned i=0;i<2;i++){
         Esys_Free(o->signed_timeout[i]);o->signed_timeout[i]=NULL;
         Esys_Free(o->signed_ticket[i]);o->signed_ticket[i]=NULL;
         if(o->signed_public[i]!=ESYS_TR_NONE){TSS2_RC rc=Esys_FlushContext(o->esys,o->signed_public[i]);
-            if(rc)return fail(o,rc,o->entered);o->signed_public[i]=ESYS_TR_NONE;}
+            if(rc)return fail(o,rc,o->entered);
+            o->signed_public[i]=ESYS_TR_NONE;}
     }
     ESYS_TR *handles[]={&o->object,&o->salt,&o->ak,&o->nv};
     for(unsigned i=0;i<4;i++)if(*handles[i]!=ESYS_TR_NONE){TSS2_RC rc=Esys_TR_Close(o->esys,handles[i]);
@@ -369,15 +372,19 @@ static int recognize_authorizer(const ynx_tpm2_command_authorizer*p){
  pthread_mutex_unlock(&authorizer_inventory_lock);return found;
 }
 static int authorizer_fail(ynx_tpm2_command_authorizer*a,TSS2_RC rc,int unknown){
- if(!a->first)a->first=rc?rc:TSS2_ESYS_RC_BAD_VALUE;if(unknown)a->unknown=1;
+ if(!a->first)a->first=rc?rc:TSS2_ESYS_RC_BAD_VALUE;
+ if(unknown)a->unknown=1;
  return a->unknown?YNX_TPM2_UNKNOWN:YNX_TPM2_REFUSED;
 }
 static int remaining_seconds(uint64_t deadline,INT32*out){
  struct timespec now;if(!out||clock_gettime(CLOCK_MONOTONIC,&now)||now.tv_sec<0||(uint64_t)now.tv_sec>UINT64_MAX/1000000000)return 0;
  uint64_t t=(uint64_t)now.tv_sec*1000000000+(uint64_t)now.tv_nsec;
- if(t>=deadline)return 0;uint64_t seconds=(deadline-t)/1000000000;
+ if(t>=deadline)return 0;
+ uint64_t seconds=(deadline-t)/1000000000;
  /* Never round UP, renew, emit zero/unlimited, or reusable negative tickets. */
- if(!seconds||seconds>INT32_MAX)return 0;*out=(INT32)seconds;return 1;
+ if(!seconds||seconds>INT32_MAX)return 0;
+ *out=(INT32)seconds;
+ return 1;
 }
 static int authorizer_public_current(ynx_tpm2_command_authorizer*a){
  TPM2B_PUBLIC*p=NULL;TPM2B_NAME*n=NULL,*q=NULL;
@@ -414,7 +421,8 @@ int ynx_tpm2_command_authorizer_open(const ynx_tpm2_command_authorizer_selection
  if(!secret||!secret_size||secret_size>sizeof(((TPM2B_AUTH*)0)->buffer))return authorizer_fail(a,0,1);
  long page=sysconf(_SC_PAGESIZE);if(page<(long)sizeof(TPM2B_AUTH))return authorizer_fail(a,0,1);a->auth_pages=(size_t)page;
  a->auth=mmap(NULL,a->auth_pages,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANON,-1,0);if(a->auth==MAP_FAILED){a->auth=NULL;return authorizer_fail(a,0,1);}
- if(mlock(a->auth,a->auth_pages))return authorizer_fail(a,0,1);a->auth_locked=1;
+ if(mlock(a->auth,a->auth_pages))return authorizer_fail(a,0,1);
+ a->auth_locked=1;
  a->auth->size=(UINT16)secret_size;memcpy(a->auth->buffer,secret,secret_size);
  custody=ynx_tpm2_owner_current(command_auth);if(custody)return authorizer_fail(a,ynx_tpm2_owner_first_cause(command_auth),1);
  size_t size=0;TSS2_RC rc=Tss2_Tcti_Device_Init(NULL,&size,s->device);if(rc||!size||size>1048576)return authorizer_fail(a,rc,0);
@@ -427,7 +435,9 @@ int ynx_tpm2_command_authorizer_open(const ynx_tpm2_command_authorizer_selection
  a->ready=1;return ynx_tpm2_command_authorizer_current(a);
 }
 int ynx_tpm2_command_authorizer_current(ynx_tpm2_command_authorizer*a){
- if(!recognize_authorizer(a))return YNX_TPM2_REFUSED;if(a->unknown)return YNX_TPM2_UNKNOWN;if(!a->ready)return YNX_TPM2_REFUSED;
+ if(!recognize_authorizer(a))return YNX_TPM2_REFUSED;
+ if(a->unknown)return YNX_TPM2_UNKNOWN;
+ if(!a->ready)return YNX_TPM2_REFUSED;
  INT32 seconds;if(!remaining_seconds(a->selected.monotonic_deadline_ns,&seconds))return authorizer_fail(a,0,a->attempted);
  if(!a->command_auth||!a->auth||!a->auth_locked||!a->auth_borrowed||!a->auth->size)return authorizer_fail(a,0,1);
  int r=ynx_tpm2_owner_current(a->command_auth);if(r)return authorizer_fail(a,ynx_tpm2_owner_first_cause(a->command_auth),1);
@@ -500,25 +510,31 @@ int ynx_tpm2_owner_increment_signed_once(ynx_tpm2_owner*o,ynx_tpm2_command_autho
  if(rc||o->counter_session==ESYS_TR_NONE)return fail(o,rc,0);
  rc=Esys_TRSess_SetAttributes(o->esys,o->counter_session,TPMA_SESSION_CONTINUESESSION,TPMA_SESSION_CONTINUESESSION);
  if(!rc)rc=Esys_PolicyPCR(o->esys,o->counter_session,ESYS_TR_NONE,ESYS_TR_NONE,ESYS_TR_NONE,&o->selected.pcr_digest,&o->selected.pcrs);
- if(rc)return fail(o,rc,0);TPM2B_DIGEST cp={0};r=command_cp_hash(o,&cp);if(r)return r;
+ if(rc)return fail(o,rc,0);
+ TPM2B_DIGEST cp={0};r=command_cp_hash(o,&cp);if(r)return r;
  r=policy_signed_one(o,a,0,&cp);
- if(!r)r=policy_signed_one(o,b,1,&cp);wipe(&cp,sizeof(cp));
+ if(!r)r=policy_signed_one(o,b,1,&cp);
+ wipe(&cp,sizeof(cp));
  /* A command-signing custody uncertainty belongs to this same counter
   * attempt as well. Do not expose ordinary refusal on a later invocation. */
  if(r)return r==YNX_TPM2_UNKNOWN?fail(o,0,1):r;
  TPM2B_DIGEST*policy=NULL;rc=Esys_PolicyGetDigest(o->esys,o->counter_session,ESYS_TR_NONE,ESYS_TR_NONE,ESYS_TR_NONE,&policy);
  int valid=!rc&&digest_equal(policy,&o->selected.counter_policy);Esys_Free(policy);if(!valid)return fail(o,rc,0);
  r=ynx_tpm2_command_authorizer_current(a);if(!r)r=ynx_tpm2_command_authorizer_current(b);
- if(r)return r==YNX_TPM2_UNKNOWN?fail(o,0,1):r;r=ynx_tpm2_owner_current(o);if(r)return r;
+ if(r)return r==YNX_TPM2_UNKNOWN?fail(o,0,1):r;
+ r=ynx_tpm2_owner_current(o);if(r)return r;
  r=reserve_mutation(o);if(r)return r;rc=Esys_NV_Increment(o->esys,o->nv,o->nv,o->counter_session,ESYS_TR_NONE,ESYS_TR_NONE);
- if(rc)return fail(o,rc,1);return YNX_TPM2_UNKNOWN;
+ if(rc)return fail(o,rc,1);
+ return YNX_TPM2_UNKNOWN;
 }
 int ynx_tpm2_command_authorizer_close(ynx_tpm2_command_authorizer**out){
- if(!out||!recognize_authorizer(*out))return YNX_TPM2_REFUSED;ynx_tpm2_command_authorizer*a=*out;
+ if(!out||!recognize_authorizer(*out))return YNX_TPM2_REFUSED;
+ ynx_tpm2_command_authorizer*a=*out;
  Esys_Free(a->signature);a->signature=NULL;
  if(a->session!=ESYS_TR_NONE){TSS2_RC rc=Esys_FlushContext(a->esys,a->session);if(rc)return authorizer_fail(a,rc,a->attempted);a->session=ESYS_TR_NONE;}
  if(a->key!=ESYS_TR_NONE){TSS2_RC rc=Esys_TR_Close(a->esys,&a->key);if(rc)return authorizer_fail(a,rc,a->attempted);}
- if(a->esys)Esys_Finalize(&a->esys);if(a->tcti){Tss2_Tcti_Finalize(a->tcti);free(a->tcti);a->tcti=NULL;}
+ if(a->esys)Esys_Finalize(&a->esys);
+ if(a->tcti){Tss2_Tcti_Finalize(a->tcti);free(a->tcti);a->tcti=NULL;}
  /* Retire before wipe: failed unlock/unmap never permits an all-zero borrow.
   * ESAPI/context references are gone BEFORE the original auth page is wiped. */
  a->ready=0;
@@ -608,9 +624,12 @@ int ynx_tpm2_owner_product_selector_v1(ynx_tpm2_owner*o,const unsigned char iden
  static const unsigned char domain[]="YNX/PRODUCT/STORE-SELECTOR/V1";
  unsigned char message[sizeof(domain)+32+8+4+4+1024],digest[32];size_t n=0;
  memcpy(message,domain,sizeof(domain));n+=sizeof(domain);memcpy(message+n,store,32);n+=32;
- for(unsigned i=0;i<8;i++)message[n+7-i]=(unsigned char)(generation>>(8*i));n+=8;
- for(unsigned i=0;i<4;i++)message[n+3-i]=(unsigned char)(namespace_id>>(8*i));n+=4;
- for(unsigned i=0;i<4;i++)message[n+3-i]=(unsigned char)(id_size>>(8*i));n+=4;
+ for(unsigned i=0;i<8;i++)message[n+7-i]=(unsigned char)(generation>>(8*i));
+ n+=8;
+ for(unsigned i=0;i<4;i++)message[n+3-i]=(unsigned char)(namespace_id>>(8*i));
+ n+=4;
+ for(unsigned i=0;i<4;i++)message[n+3-i]=(unsigned char)(id_size>>(8*i));
+ n+=4;
  memcpy(message+n,id,id_size);n+=id_size;
  o->borrowed=1;unsigned got=0;int ok=HMAC(EVP_sha256(),o->secret,32,message,n,digest,&got)!=NULL&&got==32;o->borrowed=0;
  wipe(message,sizeof(message));
@@ -627,7 +646,8 @@ int ynx_tpm2_owner_product_seal_v1(ynx_tpm2_owner*o,const unsigned char identity
  if(!secret_available(o)||o->secret_size!=32)return YNX_TPM2_REFUSED;
  unsigned char actual[32];if(!SHA256(o->secret,32,actual))return fail(o,0,0);int same=!memcmp(actual,identity,32);wipe(actual,sizeof(actual));if(!same)return fail(o,0,0);
  o->borrowed=1;veil_store_status s=ynx_product_cipher_seal_v1(o->secret,expected,(ynx_original_bytes){plain,size},out);o->borrowed=0;
- if(s)return fail(o,0,1);return ynx_tpm2_owner_current(o); /* partial ciphertext stays owned on late error */
+ if(s)return fail(o,0,1);
+ return ynx_tpm2_owner_current(o); /* partial ciphertext stays owned on late error */
 }
 
 /* Private product read only. Caller is the same recognized registered-store
@@ -651,4 +671,5 @@ int ynx_tpm2_owner_product_open_v1(ynx_tpm2_owner*o,const unsigned char identity
  *written=n;return YNX_TPM2_OK;
 reject:wipe(sink,capacity);return z;
 }
+
 
