@@ -1,0 +1,45 @@
+{
+  "schema": "ynx-hardhat-output-preservation-actual-v1",
+  "runId": 39100925767,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39100925767",
+  "head": "b4951447d0febfa5bd3ca530a7e7874e6f46b968",
+  "conclusion": "success",
+  "rawPath": "artifacts/chain-performance-20261017/ci-39100925767-full.log",
+  "rawBytes": 317214,
+  "rawSHA256": "0e94738c1b3618d77b8edfccf37386686212f2b63acb8151c3a34bf6281145c1",
+  "hardhatCleanupProof": {
+    "hardhat": "3.11.1",
+    "sameCompiledABIAndBytecodes": true,
+    "cases": [
+      {
+        "isolated": false,
+        "buildCode": 0,
+        "controlledFiles": 3,
+        "missingAfter": [
+          "artifacts/owner-notes/b.json"
+        ],
+        "retainedByteAndIdentityEquality": false,
+        "bytecodeSHA256": "ab008e250fb9b8b3a51c3ffdf714f5fd43d4f746896eae826e0d01b009813bc0"
+      },
+      {
+        "isolated": true,
+        "buildCode": 0,
+        "controlledFiles": 3,
+        "missingAfter": [],
+        "retainedByteAndIdentityEquality": true,
+        "bytecodeSHA256": "ab008e250fb9b8b3a51c3ffdf714f5fd43d4f746896eae826e0d01b009813bc0"
+      }
+    ],
+    "scope": "actual compiler cleanup on temporary controlled fixtures, no Finance project execution or historical evidence recreation"
+  },
+  "loopbackEndpointRegressionPassed": true,
+  "scannerChanged": false,
+  "scannerMissingRegularStillRefused": true,
+  "scannerEphemeralPrivateKeyStillRefused": true,
+  "minimalFixCommit": "b4951447d0febfa5bd3ca530a7e7874e6f46b968",
+  "hardhatConfigBeforeBlob": "e5250e5b24569ac8bdb1b8787bf199ac35e43779",
+  "hardhatConfigAfterBlob": "9bfb09ba40bdfcbe64a1fd016aabf77c8ea435c1",
+  "internalTreeUnchanged": "fc5ccab4e9aa6923bc61a2dc7ac518343ac56703",
+  "v13CandidateManifestSHA256": "3834e2d9151065eae328f90964689e3aed42bb39460eb845343b36308d3c3e10",
+  "scope": "Actual pinned Hardhat build on temporary owned fixtures: old shared namespace deletes controlled evidence; isolated namespace preserves bytes/inode/device/mtime and compiledABI/bytecodes. Normal original ChainCI all gates passed. No Finance workstream execution, historical evidence creation, production activation or network TPS/finality inference."
+}
