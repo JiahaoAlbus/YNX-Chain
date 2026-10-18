@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.3.0-pq.3.32-auth.1",
+  "version": "1.3.0-pq.3.33-auth.1",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -208,6 +208,17 @@
       "browser": null,
       "node": "./src/pq-action-transport-node.js",
       "default": null
+    },
+    "./pq-contract-deployment-transport": {
+      "types": "./src/pq-contract-deployment-transport.d.ts",
+      "import": "./src/pq-contract-deployment-transport.js",
+      "default": "./src/pq-contract-deployment-transport.js"
+    },
+    "./pq-contract-deployment-transport-node": {
+      "types": "./src/pq-contract-deployment-transport-node.d.ts",
+      "browser": null,
+      "node": "./src/pq-contract-deployment-transport-node.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -260,7 +271,8 @@
     "test:types:node-private": "node test/check-type-closures.mjs --only=node-private",
     "test:auth-runtime-closure": "node --experimental-import-meta-resolve --test test/auth-runtime-closure.test.mjs",
     "test:source-v2-acquisition": "node integration/source-acquisition-r101/tests/run.mjs",
-    "test:pq-action-transport": "node --test --test-concurrency=1 test/pq-action-transport.test.mjs && tsc -p test/tsconfig.pq-action-transport-browser.json && tsc -p test/tsconfig.pq-action-transport-node.json"
+    "test:pq-action-transport": "node --test --test-concurrency=1 test/pq-action-transport.test.mjs && tsc -p test/tsconfig.pq-action-transport-browser.json && tsc -p test/tsconfig.pq-action-transport-node.json",
+    "test:pq-contract-deployment-transport": "node --test --test-concurrency=1 test/pq-contract-deployment-transport.test.mjs && tsc -p test/tsconfig.pq-contract-deployment-transport-browser.json && tsc -p test/tsconfig.pq-contract-deployment-transport-node.json"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
