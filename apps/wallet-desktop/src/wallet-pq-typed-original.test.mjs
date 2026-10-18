@@ -15,6 +15,7 @@ import {FileTransactionIntentStore} from './transaction-intent-store.mjs';
 import {TransactionSubmissions} from './transaction-submissions.mjs';
 import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
 import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
+import {pqTypedBroadcastPermissionRequest} from './wallet-pq-typed-permission.mjs';
 import {projectPendingTransactions,projectPQOriginalObservation} from './transaction-resolution-display.mjs';
 const sha=b=>'0x'+createHash('sha256').update(b).digest('hex'),copy=x=>JSON.parse(JSON.stringify(x));
 let handle,record,memberBytes;
@@ -219,4 +220,15 @@ test('typed observation and explicit flush preserve another signer reserved outp
  await assert.rejects(query.checkPQ(record.hash,record.account,{account:record.account,assert(){}}),e=>e.data?.code==='PQ_SUBMISSION_STORAGE_CAPACITY');
  await assert.rejects(f.store.flushPQProgressResult(record.account,record.hash,()=>{}),e=>e.data?.code==='PQ_SUBMISSION_STORAGE_CAPACITY');
  assert.equal(await fs.readFile(f.filePath,'utf8'),before);assert.equal((await f.store.unresolvedPreparation(other)).maxBytes,budget);assert.equal((await f.store.readPQProgress(record.account,record.hash,()=>{})).localResultHeld,true);
+});
+test('new independent typed broadcast request binds the exact original dual hashes and current policy, never extends sign consent',()=>{
+ const at=Date.parse(record.typed.review.expiresAt)+1000,expiresAt=new Date(at+30000).toISOString(),dto={...record.typed.signingSnapshot,executionHeight:'9007199254740995'},network={owner:record.account,chainId:record.typed.networkId,nativeChainId:'6423'};
+ const request=pqTypedBroadcastPermissionRequest(record,parsePQAccountAuthorization(dto,network),{at,expiresAt});
+ assert.equal(Object.keys(request).length,18);assert.equal(request.action,'broadcast');assert.equal(request.transportHash,record.hash);assert.equal(request.memberHash,record.typed.memberHash);assert.equal(request.requestDigest,record.typed.review.requestDigest);assert.equal(request.operationId,record.operationId);assert.equal(request.reviewExecutionHeight,record.typed.review.executionHeight);assert.equal(request.executionHeight,dto.executionHeight);assert.equal(request.expiresAt,expiresAt);assert.ok(Object.isFrozen(request.typedAction));assert.equal(Object.hasOwn(request,'approved'),false);
+});
+test('typed broadcast request refuses consumed nonce, regressed signing height and unbounded review expiry',()=>{
+ const at=Date.parse(record.typed.review.expiresAt)+1000,expiresAt=new Date(at+30000).toISOString(),network={owner:record.account,chainId:record.typed.networkId,nativeChainId:'6423'};
+ for(const mutation of [{ledgerNonce:'9007199254740994'},{executionHeight:record.typed.reviewSnapshot.executionHeight}])assert.throws(()=>pqTypedBroadcastPermissionRequest(record,parsePQAccountAuthorization({...record.typed.signingSnapshot,...mutation},network),{at,expiresAt}));
+ const snapshot=parsePQAccountAuthorization(record.typed.signingSnapshot,network);
+ for(const expiry of [new Date(at).toISOString(),new Date(at+30001).toISOString(),'not-a-date'])assert.throws(()=>pqTypedBroadcastPermissionRequest(record,snapshot,{at,expiresAt:expiry}));
 });
