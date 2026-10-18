@@ -1,0 +1,468 @@
+{
+  "schema": 1,
+  "kind": "prefix-child-phases-and-client-runtime-source-only",
+  "source": {
+    "source": "5388bf28a4ddfe0c970c21196d60d072ba8b5920",
+    "internalTree": "77b2d8c96939078be83327ab533c34e9c10d4395",
+    "clientTree": "3c331b40c978f49fc16133309bdd9c7c49983071",
+    "internalDeltaBytes": 32504,
+    "internalDeltaSHA256": "aaa02a659e557448d20cee3cbed443b819ff2a7211694d9eac0bd6beac53de00"
+  },
+  "networkExecutedForThisSource": false,
+  "newGrantConsumed": false,
+  "normalCIForThisSource": null,
+  "sustainedTPSQualified": false,
+  "scope": "Original opt-in timed paced round workload only; no extra RPC, retries, signer, account, authority, consensus, receipt or persistent-writer changes.",
+  "tests": {
+    "corePrefixSafety": "PASS0.981s",
+    "prefixRuntimeAndOriginalSharedObserverClient": "PASS1.061s",
+    "newCounterFixtureCore": "PASS0.585s",
+    "newCPUOccupancyFixtureClient": "PASS0.244s",
+    "controller": "67PASS4.269s",
+    "sourceQualification": "11top-levelPASS11.257s including original frozen suites",
+    "historicalActualPair4096": "exact JSON equality"
+  },
+  "localSamples": [
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-actual.raw",
+      "kind": "LOCAL_REAL_SIGNED_PREFIX_PHASES",
+      "branch": "identical",
+      "value": {
+        "gateWait": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 166
+        },
+        "prefixCheck": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 2667
+        },
+        "privateJSON": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 145625
+        },
+        "privateValidate": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 27917
+        },
+        "fullReplay": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixSetup": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixReplay": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixEncode": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "canonicalCopy": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 583
+        },
+        "certificatePublish": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        }
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-actual.raw",
+      "kind": "LOCAL_REAL_SIGNED_PREFIX_PHASES",
+      "branch": "suffix",
+      "value": {
+        "gateWait": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 167
+        },
+        "prefixCheck": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 2708
+        },
+        "privateJSON": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 66500
+        },
+        "privateValidate": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 28167
+        },
+        "fullReplay": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixSetup": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 103333
+        },
+        "suffixReplay": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 316375
+        },
+        "suffixEncode": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 39583
+        },
+        "canonicalCopy": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "certificatePublish": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 4416
+        }
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-actual.raw",
+      "kind": "LOCAL_REAL_SIGNED_PREFIX_PHASES",
+      "branch": "cold",
+      "value": {
+        "gateWait": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 1166
+        },
+        "prefixCheck": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 208
+        },
+        "privateJSON": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "privateValidate": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "fullReplay": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 570084
+        },
+        "suffixSetup": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixReplay": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixEncode": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "canonicalCopy": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "certificatePublish": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 6375
+        }
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-actual.raw",
+      "kind": "LOCAL_PROCESS_CPU_ACTUAL",
+      "branch": null,
+      "value": {
+        "available": true,
+        "samples": 2,
+        "userNs": 1702000,
+        "systemNs": 113000,
+        "totalNs": 1815000,
+        "measurementWallNs": 1757125,
+        "sampleBracketWallNs": 1760333,
+        "sampleBracketOverheadNs": 3208,
+        "cpuPercentOfOneCore": 103.10549197225752,
+        "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-actual.raw",
+      "kind": "CONTROLLED_CALLBACK_OCCUPANCY",
+      "branch": null,
+      "value": {
+        "callbackStarted": 12,
+        "callbackReturned": 12,
+        "activeCallbacksAtEnd": 0,
+        "peakActiveCallbacks": 2,
+        "callbackBusyNs": 11500,
+        "queueWaitSamples": 12,
+        "queueWaitNs": 295419,
+        "peakQueueWaitNs": 25917,
+        "measurementWallNs": 105834,
+        "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-frozen-actual.raw",
+      "kind": "LOCAL_REAL_SIGNED_PREFIX_PHASES",
+      "branch": "cold",
+      "value": {
+        "gateWait": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 1250
+        },
+        "prefixCheck": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 84
+        },
+        "privateJSON": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "privateValidate": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "fullReplay": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 530583
+        },
+        "suffixSetup": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixReplay": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixEncode": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "canonicalCopy": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "certificatePublish": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 6584
+        }
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-frozen-actual.raw",
+      "kind": "LOCAL_REAL_SIGNED_PREFIX_PHASES",
+      "branch": "identical",
+      "value": {
+        "gateWait": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 125
+        },
+        "prefixCheck": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 2291
+        },
+        "privateJSON": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 61917
+        },
+        "privateValidate": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 24208
+        },
+        "fullReplay": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixSetup": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixReplay": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixEncode": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "canonicalCopy": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 542
+        },
+        "certificatePublish": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        }
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-frozen-actual.raw",
+      "kind": "LOCAL_REAL_SIGNED_PREFIX_PHASES",
+      "branch": "suffix",
+      "value": {
+        "gateWait": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 208
+        },
+        "prefixCheck": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 2375
+        },
+        "privateJSON": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 55625
+        },
+        "privateValidate": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 26000
+        },
+        "fullReplay": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "suffixSetup": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 95917
+        },
+        "suffixReplay": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 278125
+        },
+        "suffixEncode": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 34917
+        },
+        "canonicalCopy": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "certificatePublish": {
+          "calls": 1,
+          "errors": 0,
+          "durationNs": 3750
+        }
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-frozen-actual.raw",
+      "kind": "LOCAL_PROCESS_CPU_ACTUAL",
+      "branch": null,
+      "value": {
+        "available": true,
+        "samples": 2,
+        "userNs": 1613000,
+        "systemNs": 8000,
+        "totalNs": 1621000,
+        "measurementWallNs": 1620250,
+        "sampleBracketWallNs": 1621916,
+        "sampleBracketOverheadNs": 1666,
+        "cpuPercentOfOneCore": 99.94352358568509,
+        "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+      }
+    },
+    {
+      "raw": "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-frozen-actual.raw",
+      "kind": "CONTROLLED_CALLBACK_OCCUPANCY",
+      "branch": null,
+      "value": {
+        "callbackStarted": 12,
+        "callbackReturned": 12,
+        "activeCallbacksAtEnd": 0,
+        "peakActiveCallbacks": 2,
+        "callbackBusyNs": 13085,
+        "queueWaitSamples": 12,
+        "queueWaitNs": 309583,
+        "peakQueueWaitNs": 27417,
+        "measurementWallNs": 132583,
+        "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+      }
+    }
+  ],
+  "raw": {
+    "artifacts/chain-performance-20261017/prefix-pair-source/prefix-phases-core-final.raw": {
+      "bytes": 64,
+      "sha256": "3083bec00073aef31275fa3ac9696b98b5e60a4110fab22f1ccc02060e01cfd7"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/runtime-client-final.raw": {
+      "bytes": 75,
+      "sha256": "8b4b05c3517b2eda55ad451eef62a986b042fc15e91c15a01833ae7e5c7e95a5"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-actual.raw": {
+      "bytes": 3823,
+      "sha256": "a1a43878307057f6ab0c465ca43837d10a91e32bd71a2ffeaea86ea2c8ced1e7"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/runtime-local-counters-frozen-actual.raw": {
+      "bytes": 3817,
+      "sha256": "fb3dcba7c10a9d2c0e1563550e6890096b67890c156468945cdf73db8d8f35ce"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/runtime-controller-final.raw": {
+      "bytes": 166,
+      "sha256": "f03a470163f86d3163a12926323a662a48714e673ebcc9f27edcafaf23d31ae8"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/runtime-source-qualification.raw": {
+      "bytes": 3124,
+      "sha256": "b8fd552c2b0a2fb611f56d82270e6a6e25a5e399cb2a910ffd3c8801004c00a9"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/runtime-historical-pair-compat.raw": {
+      "bytes": 206,
+      "sha256": "7323f27978c4b55c43787a5116b98c8fcd9bdf484b8ed742a656fbf581c69358"
+    }
+  },
+  "limits": "Local Darwin bounded real signed journal fixtures validate byte equivalence and exact phase branches; CPU probe wraps a short in-process hash loop, callback occupancy uses12 controlled callbacks with2 workers. Samples are not Linux, network, pure decoder CPU, business TPS, steady-state CPU or a speedup. Retain both local groups including CPU>100percent-of-one-core; do not select a favorable group."
+}
