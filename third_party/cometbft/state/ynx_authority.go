@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 
 	"github.com/cometbft/cometbft/types"
 )
@@ -94,59 +95,157 @@ type consensusAuthorityStore struct {
 	source             types.ConsensusAuthoritySource
 	handshakeAuthority types.ConsensusAuthority
 	handshakeHeight    int64
+	// Application.Commit precedes the engine's Store.Save. During that gap,
+	// RPC/evidence reads still select the old real database checkpoint. Retain
+	// only two already authenticated immutable views, keyed by its full identity.
+	// This is read authority, never permission to save an older state.
+	mu          sync.Mutex
+	checkpoints [2]consensusAuthorityCheckpoint
+}
+
+type consensusAuthorityCheckpoint struct {
+	chainID   string
+	height    int64
+	appHash   [32]byte
+	authority types.ConsensusAuthority
+}
+
+func checkpointIdentity(state State) (consensusAuthorityCheckpoint, error) {
+	height := state.LastBlockHeight
+	if height == 0 {
+		height = state.InitialHeight - 1
+	}
+	if state.ChainID == "" || height < 0 || len(state.AppHash) != 32 {
+		return consensusAuthorityCheckpoint{}, errors.New("consensus authority requires exact chain, height and full AppHash")
+	}
+	checkpoint := consensusAuthorityCheckpoint{chainID: state.ChainID, height: height}
+	copy(checkpoint.appHash[:], state.AppHash)
+	return checkpoint, nil
+}
+
+// Called with mu held. Historical reads cannot evict either newer checkpoint.
+func (s *consensusAuthorityStore) rememberAuthority(checkpoint consensusAuthorityCheckpoint, authority types.ConsensusAuthority) {
+	checkpoint.authority = authority
+	for i, prior := range s.checkpoints {
+		if prior.authority == nil || checkpoint.height > prior.height {
+			if i == 0 {
+				s.checkpoints[1] = s.checkpoints[0]
+			}
+			s.checkpoints[i] = checkpoint
+			return
+		}
+		if checkpoint.chainID == prior.chainID && checkpoint.height == prior.height && checkpoint.appHash == prior.appHash {
+			return
+		}
+	}
+}
+
+// Called with mu held, only for reads selected by the actual engine state.
+func (s *consensusAuthorityStore) readAuthority(state State) (types.ConsensusAuthority, error) {
+	checkpoint, err := checkpointIdentity(state)
+	if err != nil {
+		return nil, err
+	}
+	for _, prior := range s.checkpoints {
+		if prior.authority != nil && checkpoint.chainID == prior.chainID && checkpoint.height == prior.height && checkpoint.appHash == prior.appHash {
+			return prior.authority, nil
+		}
+	}
+	authority, err := authorityForState(state, s.source)
+	if err != nil {
+		return nil, err
+	}
+	s.rememberAuthority(checkpoint, authority)
+	return authority, nil
 }
 
 func (s *consensusAuthorityStore) BindState(state State) (State, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.bindState(state)
+}
+
+func (s *consensusAuthorityStore) bindState(state State) (State, error) {
 	if s.handshakeAuthority != nil && state.LastBlockHeight <= s.handshakeHeight {
 		return BindConsensusState(state, s.handshakeAuthority)
 	}
-	authority, err := authorityForState(state, s.source)
+	authority, err := s.readAuthority(state)
 	if err != nil {
 		return state, err
 	}
 	return BindConsensusState(state, authority)
 }
 func (s *consensusAuthorityStore) Load() (State, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	state, err := s.Store.Load()
 	if err != nil {
 		return state, err
 	}
-	return s.BindState(state)
+	return s.bindState(state)
 }
 func (s *consensusAuthorityStore) LoadFromDBOrGenesisDoc(doc *types.GenesisDoc) (State, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	state, err := s.Store.LoadFromDBOrGenesisDoc(doc)
 	if err != nil {
 		return state, err
 	}
-	return s.BindState(state)
+	return s.bindState(state)
 }
 func (s *consensusAuthorityStore) LoadFromDBOrGenesisFile(path string) (State, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	state, err := s.Store.LoadFromDBOrGenesisFile(path)
 	if err != nil {
 		return state, err
 	}
-	return s.BindState(state)
+	return s.bindState(state)
 }
 func (s *consensusAuthorityStore) Bootstrap(state State) error {
-	bound, err := BindConsensusStateFromSource(state, s.source)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	// Write paths deliberately bypass readAuthority, including exact cache hits.
+	authority, err := authorityForState(state, s.source)
 	if err != nil {
 		return err
 	}
-	return s.Store.Bootstrap(bound)
+	bound, err := BindConsensusState(state, authority)
+	if err != nil {
+		return err
+	}
+	if err := s.Store.Bootstrap(bound); err != nil {
+		return err
+	}
+	if checkpoint, err := checkpointIdentity(state); err == nil {
+		s.rememberAuthority(checkpoint, authority)
+	}
+	return nil
 }
 func (s *consensusAuthorityStore) Save(state State) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	// A newly written state always requires its exact post-Commit AppHash,
 	// even during recovery using an independently checked later checkpoint.
-	bound, err := BindConsensusStateFromSource(state, s.source)
+	authority, err := authorityForState(state, s.source)
+	if err != nil {
+		return err
+	}
+	bound, err := BindConsensusState(state, authority)
 	if err != nil {
 		return err
 	}
 	if err := s.Store.Save(bound); err != nil {
 		return err
 	}
+	if checkpoint, err := checkpointIdentity(state); err == nil {
+		s.rememberAuthority(checkpoint, authority)
+	}
 	return ConfirmRuntimeCheckpoint(s.source, bound)
 }
 func (s *consensusAuthorityStore) currentAuthority() (types.ConsensusAuthority, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.handshakeAuthority != nil {
 		return s.handshakeAuthority, nil
 	}
@@ -154,7 +253,7 @@ func (s *consensusAuthorityStore) currentAuthority() (types.ConsensusAuthority, 
 	if err != nil {
 		return nil, err
 	}
-	return authorityForState(state, s.source)
+	return s.readAuthority(state)
 }
 func (s *consensusAuthorityStore) BindValidatorSet(height int64, set *types.ValidatorSet) (*types.ValidatorSet, error) {
 	authority, err := s.currentAuthority()

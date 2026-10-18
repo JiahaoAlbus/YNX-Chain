@@ -174,6 +174,26 @@ jobs:
       - name: Verify real profile state transition and historical store without starting nodes
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXProfileActualStateUpdateHeaderAndHistoricalStore$' github.com/cometbft/cometbft/state
+      - name: Reproduce and repair real Commit and engine checkpoint read ordering
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          YNX_CHECKPOINT_CASE="$RUNNER_TEMP/ynx-pq-checkpoint-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          umask 077
+          mkdir "$YNX_CHECKPOINT_CASE"
+          cp third_party/cometbft/state/ynx_authority.go "$YNX_CHECKPOINT_CASE/fixed-authority.go"
+          trap 'cp "$YNX_CHECKPOINT_CASE/fixed-authority.go" third_party/cometbft/state/ynx_authority.go' EXIT
+          git show efdf467acd18bd56e267a37a411a6245b59f05f2:third_party/cometbft/state/ynx_authority.go > third_party/cometbft/state/ynx_authority.go
+          set +e
+          go test -p 1 -count=1 -timeout=60s -run '^TestPQEngineCheckpointReadSurvivesApplicationCommitBeforeStoreSave$' ./internal/consensus > "$YNX_CHECKPOINT_CASE/original-red.log" 2>&1
+          YNX_CHECKPOINT_RED_STATUS=$?
+          set -e
+          cp "$YNX_CHECKPOINT_CASE/fixed-authority.go" third_party/cometbft/state/ynx_authority.go
+          trap - EXIT
+          cat "$YNX_CHECKPOINT_CASE/original-red.log"
+          test "$YNX_CHECKPOINT_RED_STATUS" -ne 0
+          grep -F 'real P params lost during Commit gap: application authority differs' "$YNX_CHECKPOINT_CASE/original-red.log"
+          go test -p 1 -count=1 -timeout=90s -run '^TestPQEngineCheckpointReadSurvivesApplicationCommitBeforeStoreSave$' ./internal/consensus
       - name: Verify bounded remote signer transport and unchanged legacy protobuf vectors
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXRemote.*|TestPrivvalVectors)$' github.com/cometbft/cometbft/privval
