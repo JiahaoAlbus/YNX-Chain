@@ -1,6 +1,6 @@
 # Original Auth caller contract and version boundary
 
-This document maps implemented calls and type-only contracts in `1.3.0-pq.3.24-auth.1`. It does not
+This document maps implemented calls and type-only contracts in `1.3.0-pq.3.25-auth.1`. It does not
 register a credential or approve a Source release. Auth's R82 request schema is
 consumed unchanged; its three Native implementations remain incomplete.
 
@@ -190,3 +190,9 @@ migration/login entry points must not become fallback around the new policy.
 `./pq-wallet-key-backup` exports `signPQWalletAuthIdentityRequest(handle, requestRaw, snapshot, atMs)` for the original protected Wallet flow. It parses canonical R82 JSON, signs its exact E message with the current registered complete opaque key pair, and self-verifies one dual-PQ Member at index zero. Only RECEIVE, RECOVER and PROTECTED-KEY-CALL are allowed; LOGIN, raw messages and caller-selected signing domains are refused. Revision and request execution height must match the branded active snapshot exactly; R86 historical credential issuance does not relax this request rule.
 
 The function is synchronous crypto DATA. Neither comparing requestRaw to itself nor passing a parsed snapshot proves Native provenance, a fresh clock/current observation, user approval or once-only consumption. The original Wallet must retain its pending review, controlled key borrow, guard and independently acquired current checks before and after; Native retains expectedRaw, purpose and operation custody. No key material is exported.
+
+## Original bounded Source proof consumption
+
+The existing `./auth-identity-verification` entry adds `verifyOriginalAuthIdentityProofFrameData(frameRaw)`. The original Auth Source verifier dispatch imports this function in its existing pinned Node and bounded-pipe channel; no additional launcher or Source holder is created. The bounded canonical frame carries the original R82 request JSON and separately retained expected JSON, a registration DTO and expected network observation, three-purpose selection, decimal-string clock observation and canonical N1 wire bytes. The function brands the registration through the existing policy parser and calls the sole Auth N1 verifier. It returns only frozen verification DATA with request/proof digests and public bindings.
+
+`requestRaw` and `expectedRequestRaw` are original canonical JSON strings, not UTF-8 JSON used as a signing message or pre-encoded E bytes. The sole request encoder constructs E internally. This decoder authenticates neither the frame producer nor its policy, clock, currentness, Source, permission or invocation. Original Auth retains the expected request and invocation binding, image/pipe integrity and independent current/permission checks before and after; original Wallet owns protected effects and approved proof production. `authorized`, `nativeAdmission` and `effectRetryAuthorized` remain false. Actual Native dispatch and installed end-to-end acceptance are separate gates.
