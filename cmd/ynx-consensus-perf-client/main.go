@@ -735,9 +735,6 @@ func summarize(results []transactionResult, seconds float64) summary {
 		}
 		if r.QuorumVerified && r.TransactionProofVerified {
 			s.QuorumConfirmed++
-			if r.ConfirmedObservedAt != nil && r.DurableStateVerified && (!isJournalLayout(r.DurableStoreFormat) || (r.DurableInfoVerified && r.DurableInfoHeight >= r.DurableStateHeight)) {
-				s.FinalSubmitted++
-			}
 		}
 		switch r.Status {
 		case "submission_unknown":
@@ -758,8 +755,11 @@ func summarize(results []transactionResult, seconds float64) summary {
 		if r.InclusionMs != nil && r.TransactionProofVerified {
 			inclusion = append(inclusion, *r.InclusionMs)
 		}
-		if r.ConfirmationMs != nil {
-			confirmation = append(confirmation, *r.ConfirmationMs)
+		if qualifiedBusinessFinal(r) {
+			s.FinalSubmitted++
+			if r.ConfirmationMs != nil {
+				confirmation = append(confirmation, *r.ConfirmationMs)
+			}
 		}
 		if r.QueueDelayMs != nil {
 			queue = append(queue, *r.QueueDelayMs)
@@ -787,6 +787,11 @@ func summarize(results []transactionResult, seconds float64) summary {
 // it before it enters an effective inclusion count or block-rate calculation.
 func verifiedBusinessInclusion(r transactionResult) bool {
 	return r.Height > 0 && r.ExecutionCode != nil && *r.ExecutionCode == 0 && r.QuorumVerified && r.TransactionProofVerified && r.DurableStateVerified && r.DurableStateHeight >= r.Height && r.DurableSnapshotSHA256 != "" && (!isJournalLayout(r.DurableStoreFormat) || (r.DurableInfoVerified && r.DurableInfoHeight >= r.DurableStateHeight))
+}
+
+// Both retention modes use this gate for final business counts and latency.
+func qualifiedBusinessFinal(r transactionResult) bool {
+	return verifiedBusinessInclusion(r) && r.ConfirmedObservedAt != nil && r.Status == "confirmed" && r.CheckTxIdentityVerified && r.CheckTxCode != nil && *r.CheckTxCode == 0
 }
 
 func execute(o options) error {

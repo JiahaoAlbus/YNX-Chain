@@ -68,16 +68,12 @@ func newReadyCumulativeSummary(planned int) (*readyCumulativeSummary, error) {
 	return out, nil
 }
 
-func qualifiedReadyFinal(r transactionResult) bool {
-	return verifiedBusinessInclusion(r) && r.ConfirmedObservedAt != nil && r.Status == "confirmed" && r.CheckTxIdentityVerified && r.CheckTxCode != nil && *r.CheckTxCode == 0
-}
-
 func (s *readyCumulativeSummary) add(r transactionResult, identityBound bool) error {
 	if s.records >= s.planned {
 		return errors.New("cumulative terminal record bound")
 	}
 	business := identityBound && verifiedBusinessInclusion(r)
-	final := identityBound && qualifiedReadyFinal(r)
+	final := identityBound && qualifiedBusinessFinal(r)
 	values := [6]*float64{r.QueueDelayMs, r.CheckTxMs, nil, nil, nil, nil}
 	if r.TransactionProofVerified {
 		values[2] = r.InclusionMs

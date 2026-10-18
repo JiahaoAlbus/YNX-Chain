@@ -177,7 +177,7 @@ func TestFinalSubmissionRequiresDurableEvidenceAndHonestCounts(t *testing.T) {
 	latency := 5.0
 	results := []transactionResult{
 		{SubmittedAt: &at, CheckTxCode: &zero, CheckTxIdentityVerified: true, ExecutionCode: &zero, IncludedObservedAt: &at, InclusionMs: &latency, QuorumVerified: true, TransactionProofVerified: true, Status: "timeout"},
-		{SubmittedAt: &at, CheckTxCode: &zero, CheckTxIdentityVerified: true, ExecutionCode: &zero, IncludedObservedAt: &at, ConfirmedObservedAt: &at, ConfirmationMs: &latency, QuorumVerified: true, TransactionProofVerified: true, DurableStateVerified: true},
+		{SubmittedAt: &at, CheckTxCode: &zero, CheckTxIdentityVerified: true, ExecutionCode: &zero, IncludedObservedAt: &at, ConfirmedObservedAt: &at, ConfirmationMs: &latency, QuorumVerified: true, TransactionProofVerified: true, DurableStateVerified: true, Height: 1, DurableStateHeight: 1, DurableSnapshotSHA256: "unit-explicit-gate", Status: "confirmed"},
 		{SubmittedAt: &at, Status: "submission_unknown"},
 		{Status: "not_submitted"},
 	}
@@ -238,5 +238,45 @@ func TestDurableReadbackRejectsMissingWrongAndTamperedState(t *testing.T) {
 	}
 	if _, err := verifyDurableExecution(file, migration, raw, height); err == nil {
 		t.Fatal("tampered durable state accepted")
+	}
+}
+
+// Gate-input controls, not an assertion that these fixtures passed consensus.
+// Keep full-history and slot-retained final business metrics on the same gate.
+func TestFullHistoryFinalCountsAndLatencyRejectIncompleteBusinessEvidence(t *testing.T) {
+	mutations := map[string]func(*transactionResult){
+		"execution_failed":     func(r *transactionResult) { one := uint32(1); r.ExecutionCode = &one },
+		"missing_execution":    func(r *transactionResult) { r.ExecutionCode = nil },
+		"missing_snapshot":     func(r *transactionResult) { r.DurableSnapshotSHA256 = "" },
+		"durable_height_lag":   func(r *transactionResult) { r.DurableStateHeight = r.Height - 1 },
+		"height_zero":          func(r *transactionResult) { r.Height = 0 },
+		"unverified_ack":       func(r *transactionResult) { r.CheckTxIdentityVerified = false },
+		"rejected_ack":         func(r *transactionResult) { one := uint32(1); r.CheckTxCode = &one },
+		"terminal_timeout":     func(r *transactionResult) { r.Status = "timeout" },
+		"missing_confirmation": func(r *transactionResult) { r.ConfirmedObservedAt = nil },
+		"unpublished_journal":  func(r *transactionResult) { r.DurableStoreFormat = "block-journal"; r.DurableInfoVerified = false },
+		"lagging_publication": func(r *transactionResult) {
+			r.DurableStoreFormat = "block-journal"
+			r.DurableInfoVerified = true
+			r.DurableInfoHeight = r.DurableStateHeight - 1
+		},
+	}
+	for name, mutate := range mutations {
+		t.Run(name, func(t *testing.T) {
+			good := cumulativeFixture()[0]
+			if got := summarize([]transactionResult{good}, 1); got.FinalSubmitted != 1 || got.ConfirmationLatency.Samples != 1 {
+				t.Fatal("complete evidence not counted", got)
+			}
+			bad := good
+			mutate(&bad)
+			got := summarize([]transactionResult{bad}, 1)
+			if got.FinalSubmitted != 0 || got.FinalSubmissionRate != 0 || got.ConfirmationLatency.Samples != 0 || got.ConfirmationLatency.P95 != nil || got.QuorumConfirmed != 1 {
+				t.Fatal("incomplete business evidence became final or latency sample, or raw quorum hidden", got)
+			}
+			combined := summarize([]transactionResult{good, bad}, 2)
+			if combined.FinalSubmitted != 1 || combined.FinalSubmissionRate != 0.5 || combined.ConfirmationLatency.Samples != 1 {
+				t.Fatal("mixed row contaminated qualified metrics", combined)
+			}
+		})
 	}
 }
