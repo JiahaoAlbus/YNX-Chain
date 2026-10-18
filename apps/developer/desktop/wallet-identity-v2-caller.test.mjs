@@ -5,7 +5,7 @@ import { OriginalIDEIdentityCall } from './wallet-identity-v2-caller.mjs';
 // Caller lifecycle models only. These doubles are NOT Native authority,
 // signatures, public receipts, real key custody or product acceptance.
 const entry = 'file:///Applications/YNX%20Developer.app/Contents/Resources/server.mjs';
-function fixture({ kind = 'receive', overrides = {}, constructFailure } = {}) {
+function fixture({ kind = 'receive', overrides = {}, constructFailure, onConstruct } = {}) {
   const calls = [], raw = '{"native-held-public-request":true}';
   const causes = Object.freeze({ receive: 'AUTH-IDENTITY-RECEIVE', recover: 'AUTH-IDENTITY-RECOVER', keyCall: 'AUTH-PROTECTED-KEY-CALL' });
   const status = Object.freeze({ phase: 'unknown', ready: false, unknown: true,
@@ -21,7 +21,7 @@ function fixture({ kind = 'receive', overrides = {}, constructFailure } = {}) {
     status() { assert.equal(this, owner); return status; },
     ...overrides,
   };
-  const construct = (...args) => { calls.push(['construct', ...args]); if (constructFailure) throw constructFailure; return owner; };
+  const construct = (...args) => { calls.push(['construct', ...args]); onConstruct?.(); if (constructFailure) throw constructFailure; return owner; };
   const contract = {
     AUTH_IDENTITY_PURPOSES: causes,
     parseOriginalAuthIdentityRequest(value) { assert.equal(value, raw); calls.push(['parse', value]); return { purpose: causes[kind] }; },
@@ -134,4 +134,71 @@ test('repeated UI reads keep the same original challenge and isolate mutable mes
   // reacquire an owner nor submit a proof or manufacture a current window.
   assert.equal(f.calls.filter(c => c[0] === 'construct').length, 1);
   assert.equal(f.calls.filter(c => c[0] === 'proof').length, 0);
+});
+test('reentrant retirement during acquisition cannot join or close before the returned partial is retained', () => {
+  let joinError, closeError;
+  const f = fixture({ onConstruct() {
+    f.caller.retire();
+    try { f.caller.join(); } catch (error) { joinError = error; }
+    try { f.caller.close(); } catch (error) { closeError = error; }
+  } });
+  assert.throws(() => f.caller.begin('receive'), { code: 'IDE_IDENTITY_CALL_RETIRED' });
+  assert.equal(joinError?.code, 'IDE_IDENTITY_JOIN_PENDING');
+  assert.equal(closeError?.code, 'IDE_IDENTITY_JOIN_REQUIRED');
+  assert.equal(f.calls.filter(c => c[0] === 'ready').length, 0);
+  assert.equal(f.calls.filter(c => c[0] === 'retire').length, 1);
+  f.caller.join(); f.caller.close();
+  assert.equal(f.calls.filter(c => c[0] === 'close').length, 1);
+});
+test('retirement reentered from Native current blocks request copying and publication', () => {
+  const f = fixture({ overrides: { current() { f.caller.retire(); } } });
+  f.caller.begin('receive');
+  assert.throws(() => f.caller.request(), { code: 'IDE_IDENTITY_CALL_RETIRED' });
+  assert.equal(f.calls.filter(c => c[0] === 'request').length, 0);
+  assert.equal(f.calls.filter(c => c[0] === 'encode').length, 0);
+});
+test('retirement reentered at proof or invocation preflight cannot enter a new Native effect', () => {
+  for (const stage of ['proof', 'invoke']) {
+    let cancel = false;
+    const f = fixture({ kind: 'keyCall', overrides: { current() { if (cancel) f.caller.retire(); } } });
+    f.caller.begin('keyCall', 'PUBLIC_CAPTURED_INVOCATION'); f.caller.request();
+    if (stage === 'invoke') f.caller.completeProof(new Uint8Array([1]));
+    cancel = true;
+    assert.throws(() => stage === 'proof' ? f.caller.completeProof(new Uint8Array([1])) : f.caller.invoke(), { code: 'IDE_IDENTITY_CALL_RETIRED' });
+    assert.equal(f.calls.filter(c => c[0] === stage).length, 0);
+  }
+});
+test('an entered Native effect must unwind before reentrant join or close can dispose its owner', () => {
+  let joinError, closeError;
+  const f = fixture({ overrides: { completeProof() {
+    f.caller.retire();
+    try { f.caller.join(); } catch (error) { joinError = error; }
+    try { f.caller.close(); } catch (error) { closeError = error; }
+  } } });
+  f.caller.begin('receive'); f.caller.request();
+  assert.throws(() => f.caller.completeProof(new Uint8Array([1])), { code: 'IDE_IDENTITY_CALL_RETIRED' });
+  assert.equal(joinError?.code, 'IDE_IDENTITY_JOIN_PENDING');
+  assert.equal(closeError?.code, 'IDE_IDENTITY_JOIN_REQUIRED');
+  assert.equal(f.calls.filter(c => c[0] === 'close').length, 0);
+  f.caller.join(); f.caller.close();
+  assert.equal(f.calls.filter(c => c[0] === 'close').length, 1);
+});
+test('first retire failure remains independent of a prior business failure and never reenters retirement', () => {
+  const business = Error('business'), cleanup = Error('retire'); let retired = 0;
+  const f = fixture({ overrides: { completeProof() { throw business; }, retire() { retired++; throw cleanup; } } });
+  f.caller.begin('receive'); f.caller.request();
+  assert.throws(() => f.caller.completeProof(new Uint8Array([1])), e => e === business);
+  assert.throws(() => f.caller.retire(), e => e === cleanup);
+  assert.throws(() => f.caller.retire(), e => e === cleanup);
+  assert.equal(retired, 1);
+});
+test('reentrant close cannot report success before the entered original close finishes', () => {
+  let nestedError, closed = 0;
+  const f = fixture({ overrides: { close() {
+    closed++;
+    try { f.caller.close(); } catch (error) { nestedError = error; }
+  } } });
+  f.caller.begin('receive'); f.caller.retire(); f.caller.join(); f.caller.close();
+  assert.equal(nestedError?.code, 'IDE_IDENTITY_CLOSE_PENDING');
+  assert.equal(closed, 1);
 });

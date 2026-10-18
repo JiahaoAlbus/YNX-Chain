@@ -25,6 +25,9 @@ export class OriginalIDEIdentityCall {
   /** @type {keyof typeof operations | undefined} */ #kind;
   #closeFailurePresent = false;
   /** @type {unknown} */ #closeFailure;
+  #constructing = false; #ownerRetireSelected = false; #ownerRetireFailed = false;
+  #nativeDepth = 0;
+  /** @type {unknown} */ #ownerRetireFailure;
   /** @param {{binding:NativeBinding | null, actualEntryURL:string,
    * contract:typeof import('@ynx-chain/wallet-auth/auth-identity-contract')}} input */
   constructor({ binding, actualEntryURL, contract }) {
@@ -41,8 +44,16 @@ export class OriginalIDEIdentityCall {
   }
   /** @template T @param {()=>T} action @returns {T} */
   #enter(action) {
-    if (this.#retired || this.#failed || this.#closed) throw this.#failed ? this.#firstCause : failure('IDE_IDENTITY_CALL_RETIRED');
+    this.#assertLive();
     try { return action(); } catch (error) { return this.#fail(error); }
+  }
+  #assertLive() {
+    if (this.#retired || this.#failed || this.#closed) throw this.#failed ? this.#firstCause : failure('IDE_IDENTITY_CALL_RETIRED');
+  }
+  /** @template T @param {()=>T} action @returns {T} */
+  #native(action) {
+    this.#nativeDepth++;
+    try { return action(); } finally { this.#nativeDepth--; }
   }
   /** @param {keyof typeof operations} kind @param {string} [invocationOriginal] */
   begin(kind, invocationOriginal) {
@@ -51,6 +62,8 @@ export class OriginalIDEIdentityCall {
     this.#started = true; this.#kind = kind;
     return this.#enter(() => {
       // Store the SAME partial before any potentially failing late assertion.
+      this.#constructing = true;
+      try {
       if (kind === 'keyCall') {
         const construct = this.#binding?.acquireOriginalIDEProtectedKeyCall;
         if (typeof construct !== 'function') throw failure('IDE_IDENTITY_NATIVE_UNAVAILABLE');
@@ -65,22 +78,32 @@ export class OriginalIDEIdentityCall {
         if (typeof construct !== 'function') throw failure('IDE_IDENTITY_NATIVE_UNAVAILABLE');
         this.#owner = construct.call(this.#binding, this.#actualEntryURL);
       }
-      successful(this.#owner.assertReady());
+      } finally { this.#constructing = false; }
+      if (this.#retired) this.retire(); // Late returned partial still needs its own retirement.
+      this.#assertLive();
+      const owner = this.#owner;
+      successful(this.#native(() => owner.assertReady()));
+      this.#assertLive();
       return undefined;
     });
   }
   request() {
     return this.#enter(() => {
       if (!this.#owner || !this.#kind || this.#proofSelected) throw failure('IDE_IDENTITY_REQUEST_UNAVAILABLE');
-      successful(this.#owner.current());
-      const original = this.#owner.copyRequestOriginal();
+      const owner = this.#owner;
+      successful(this.#native(() => owner.current()));
+      this.#assertLive();
+      const original = this.#native(() => owner.copyRequestOriginal());
+      this.#assertLive();
       // Sole public SDK schema and E codec. No renderer-supplied expectedRaw,
       // clock, principal, Root or nonce is accepted as an argument here.
       const body = this.#contract.parseOriginalAuthIdentityRequest(original);
       if (body.purpose !== this.#contract.AUTH_IDENTITY_PURPOSES[operations[this.#kind][1]])
         throw failure('IDE_IDENTITY_PURPOSE_MISMATCH');
       const message = this.#contract.encodeOriginalAuthIdentityRequest(body);
-      successful(this.#owner.current());
+      this.#assertLive();
+      successful(this.#native(() => owner.current()));
+      this.#assertLive();
       this.#requestPrepared = true;
       return Object.freeze({ original, message: new Uint8Array(message), dataOnly: true, authorized: false });
     });
@@ -92,20 +115,28 @@ export class OriginalIDEIdentityCall {
       if (!this.#requestPrepared) throw failure('IDE_IDENTITY_REQUEST_UNAVAILABLE');
       if (!(memberWire instanceof Uint8Array) || !(memberWire.buffer instanceof ArrayBuffer))
         throw failure('IDE_IDENTITY_PROOF_BYTES_REQUIRED');
-      successful(this.#owner.current());
+      const owner = this.#owner;
+      successful(this.#native(() => owner.current()));
+      this.#assertLive();
       // Selection precedes the genuine Native call even if it throws UNKNOWN.
       this.#proofSelected = true;
-      successful(this.#owner.completeProof(new Uint8Array(memberWire)));
-      successful(this.#owner.current());
+      successful(this.#native(() => owner.completeProof(new Uint8Array(memberWire))));
+      this.#assertLive();
+      successful(this.#native(() => owner.current()));
+      this.#assertLive();
     });
   }
   result() {
     return this.#enter(() => {
       if (!this.#owner || !this.#proofSelected || (this.#kind === 'keyCall' && !this.#invokeSelected))
         throw failure('IDE_IDENTITY_RESULT_UNAVAILABLE');
-      successful(this.#owner.current());
-      const result = this.#owner.result(); // backend-only unknown, no invented DTO
-      successful(this.#owner.current());
+      const owner = this.#owner;
+      successful(this.#native(() => owner.current()));
+      this.#assertLive();
+      const result = this.#native(() => owner.result()); // backend-only unknown, no invented DTO
+      this.#assertLive();
+      successful(this.#native(() => owner.current()));
+      this.#assertLive();
       return result;
     });
   }
@@ -113,33 +144,48 @@ export class OriginalIDEIdentityCall {
     return this.#enter(() => {
       if (!this.#owner || this.#kind !== 'keyCall' || !this.#proofSelected || this.#invokeSelected)
         throw failure('IDE_IDENTITY_INVOCATION_UNAVAILABLE');
-      successful(this.#owner.current());
-      this.#invokeSelected = true;
       const owner = /** @type {import('@ynx-chain/wallet-auth/auth-native-contract').OriginalIDEProtectedKeyCallOwner} */ (this.#owner);
-      const result = owner.invoke(); // SAME captured call, zero arguments
-      successful(this.#owner.current());
+      successful(this.#native(() => owner.current()));
+      this.#assertLive();
+      this.#invokeSelected = true;
+      const result = this.#native(() => owner.invoke()); // SAME captured call, zero arguments
+      this.#assertLive();
+      successful(this.#native(() => owner.current()));
+      this.#assertLive();
       return result;
     });
   }
   retire() {
-    if (this.#retired) return;
     this.#retired = true; // Immediately refuse late UI/proof callbacks.
-    if (this.#owner) { try { successful(this.#owner.retire()); } catch (error) { this.#fail(error); } }
+    if (this.#ownerRetireSelected) { if (this.#ownerRetireFailed) throw this.#ownerRetireFailure; return; }
+    if (!this.#owner) return; // An entered constructor may still return a partial.
+    this.#ownerRetireSelected = true;
+    const owner = this.#owner;
+    try { successful(this.#native(() => owner.retire())); }
+    catch (error) {
+      this.#ownerRetireFailed = true; this.#ownerRetireFailure = error;
+      if (!this.#failed) { this.#failed = true; this.#firstCause = error; }
+      throw error;
+    }
   }
   join() {
     if (!this.#retired) throw failure('IDE_IDENTITY_RETIRE_REQUIRED');
+    if (this.#constructing || this.#nativeDepth) throw failure('IDE_IDENTITY_JOIN_PENDING');
     if (this.#joined) return;
-    if (this.#owner) successful(this.#owner.join()); // pending is retryable join, never business replay
+    const owner = this.#owner;
+    if (owner) successful(this.#native(() => owner.join())); // pending is retryable join, never business replay
     this.#joined = true;
   }
   close() {
     if (!this.#retired || !this.#joined) throw failure('IDE_IDENTITY_JOIN_REQUIRED');
+    if (this.#nativeDepth) throw failure('IDE_IDENTITY_CLOSE_PENDING');
     if (this.#closeSelected) {
       if (this.#closeFailurePresent) throw this.#closeFailure;
       return;
     }
     this.#closeSelected = true;
-    try { if (this.#owner) successful(this.#owner.close()); this.#closed = true; }
+    const owner = this.#owner;
+    try { if (owner) successful(this.#native(() => owner.close())); this.#closed = true; }
     catch (error) {
       this.#closeFailurePresent = true; this.#closeFailure = error;
       if (!this.#failed) { this.#failed = true; this.#firstCause = error; }
@@ -152,7 +198,8 @@ export class OriginalIDEIdentityCall {
     // caught exception. In particular UNKNOWN is never converted into success.
     let code;
     try { code = Object.getOwnPropertyDescriptor(this.#firstCause, 'code')?.value; } catch {}
-    return this.#owner?.status() ?? Object.freeze({ phase: 'partial', ready: false,
+    const owner = this.#owner;
+    return (owner ? this.#native(() => owner.status()) : undefined) ?? Object.freeze({ phase: 'partial', ready: false,
       unknown: false, retired: this.#retired, cleanupComplete: this.#closed,
       disposed: this.#closed, firstCauseCode: this.#failed && typeof code === 'string' && /^[A-Z0-9_]{1,128}$/.test(code)
         ? code : this.#failed ? 'IDE_IDENTITY_CALL_FAILED' : null });
