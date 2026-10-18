@@ -15,6 +15,7 @@ type partialWindowPlan struct {
 	SenderMode       string
 	TerminalStream   bool
 	ReuseResultSlots bool
+	SegmentedIntents bool
 }
 
 func readPartialObservation(file string, plan partialWindowPlan, senders int) (report, []byte, bool, error) {

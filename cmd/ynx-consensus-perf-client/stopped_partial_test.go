@@ -80,7 +80,7 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	if !observationPresent {
 		rounds = receipt.Rounds
 	}
-	recovered, err := readReadySenderIntents(context.Background(), filepath.Join(work, "network"), manifestRaw, m, initial, rounds, observed.ReadySenders.IntentSegments)
+	recovered, intentPrefix, err := readPartialReadySenderIntents(context.Background(), filepath.Join(work, "network"), manifestRaw, m, initial, rounds, receipt.SegmentedIntents, observed.ReadySenders.IntentSegments)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -287,18 +287,19 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 		observationSHA256 = hex.EncodeToString(sum[:])
 	}
 	output := struct {
-		Schema                int                     `json:"schema"`
-		VerifiedAt            time.Time               `json:"verifiedAt"`
-		ObservationPresent    bool                    `json:"observationPresent"`
-		ObservationSHA256     string                  `json:"observationSha256"`
-		SignedRecords         int                     `json:"signedRecords"`
-		JournalIncompleteTail bool                    `json:"journalIncompleteTail"`
-		Nodes                 []nodeEvidence          `json:"nodes"`
-		Transactions          []*transaction          `json:"transactions"`
-		TerminalPrefix        *terminalPrefixReadback `json:"terminalPrefix,omitempty"`
-		TerminalEvidenceError string                  `json:"terminalEvidenceError,omitempty"`
-		Interpretation        string                  `json:"interpretation"`
-	}{3, time.Now().UTC(), observationPresent, observationSHA256, recovered.Records, recovered.IncompleteTail, nodes, transactions, terminalPrefix, terminalEvidenceError, "Read-only authenticated replay through each node's actual durable height only. Original ACK/status/latency and partial-run TPS remain unchanged. Missing terminal evidence leaves signed-intent outcomes unknown, never unsubmitted by inference. A sealed terminal prefix is a structural observation record, not an observed writer Sync or consensus proof. Absence is not retry authorization; blocks above durable height are not promoted to persisted results."}
+		Schema                int                        `json:"schema"`
+		VerifiedAt            time.Time                  `json:"verifiedAt"`
+		ObservationPresent    bool                       `json:"observationPresent"`
+		ObservationSHA256     string                     `json:"observationSha256"`
+		SignedRecords         int                        `json:"signedRecords"`
+		JournalIncompleteTail bool                       `json:"journalIncompleteTail"`
+		Nodes                 []nodeEvidence             `json:"nodes"`
+		Transactions          []*transaction             `json:"transactions"`
+		IntentPrefix          *readyIntentPrefixReadback `json:"intentPrefix,omitempty"`
+		TerminalPrefix        *terminalPrefixReadback    `json:"terminalPrefix,omitempty"`
+		TerminalEvidenceError string                     `json:"terminalEvidenceError,omitempty"`
+		Interpretation        string                     `json:"interpretation"`
+	}{4, time.Now().UTC(), observationPresent, observationSHA256, recovered.Records, recovered.IncompleteTail, nodes, transactions, intentPrefix, terminalPrefix, terminalEvidenceError, "Read-only authenticated replay through each node's actual durable height only. Original ACK/status/latency and partial-run TPS remain unchanged. Missing terminal evidence leaves signed-intent outcomes unknown, never unsubmitted by inference. Signed-input prefix diagnostics do not establish writer acknowledgement; missing or poisoned receipts require the explicit retired segmented plan. A sealed terminal prefix is a structural observation record, not an observed writer Sync or consensus proof. Absence is not retry authorization; blocks above durable height are not promoted to persisted results."}
 	encoded, e := json.MarshalIndent(output, "", "  ")
 	if e != nil {
 		t.Fatal(e)

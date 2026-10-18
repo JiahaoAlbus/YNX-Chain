@@ -156,23 +156,13 @@ func (r *readyIntentSegmentReader) Read(p []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
-		first := bytes.IndexByte(raw, '\n')
-		if first < 0 || len(raw) == 0 || raw[len(raw)-1] != '\n' {
-			return 0, errors.New("ready intent segment incomplete")
-		}
-		var header readyIntentSegmentHeader
-		if err := strictJSON(raw[:first], &header); err != nil {
+		header, payload, chain, err := decodeReadyIntentSegment(raw, r.binding, r.next, r.records, r.chain)
+		if err != nil {
 			return 0, err
-		}
-		payload := raw[first+1:]
-		digest := sha256.Sum256(payload)
-		if header.Kind != "YNX_LOCAL_READY_INTENT_SEGMENT_V1" || header.Fixture != r.binding || header.Segment != r.next || header.FirstRecord != r.records || header.PreviousSHA256 != r.chain || header.Records < 1 || header.Records > terminalSegmentRecords || bytes.Count(payload, []byte{'\n'}) != header.Records || header.PayloadSHA256 != hex.EncodeToString(digest[:]) {
-			return 0, errors.New("ready intent segment fixture/prefix/payload mismatch")
 		}
 		r.records += header.Records
 		r.bytes += int64(len(raw))
-		digest = sha256.Sum256(raw)
-		r.chain = hex.EncodeToString(digest[:])
+		r.chain = chain
 		r.next++
 		r.current = bytes.NewReader(payload)
 	}
@@ -247,4 +237,22 @@ func scanReadyIntentSegments(ctx context.Context, report readyIntentSegmentRepor
 	}
 	out.BytesRead = reader.bytes
 	return out, nil
+}
+
+func decodeReadyIntentSegment(raw []byte, binding readySenderJournalHeader, segment, firstRecord int, previous string) (readyIntentSegmentHeader, []byte, string, error) {
+	first := bytes.IndexByte(raw, '\n')
+	if first < 0 || len(raw) == 0 || raw[len(raw)-1] != '\n' {
+		return readyIntentSegmentHeader{}, nil, "", errors.New("ready intent segment incomplete")
+	}
+	var header readyIntentSegmentHeader
+	if err := strictJSON(raw[:first], &header); err != nil {
+		return readyIntentSegmentHeader{}, nil, "", err
+	}
+	payload := raw[first+1:]
+	digest := sha256.Sum256(payload)
+	if header.Kind != "YNX_LOCAL_READY_INTENT_SEGMENT_V1" || header.Fixture != binding || header.Segment != segment || header.FirstRecord != firstRecord || header.PreviousSHA256 != previous || header.Records < 1 || header.Records > terminalSegmentRecords || bytes.Count(payload, []byte{'\n'}) != header.Records || header.PayloadSHA256 != hex.EncodeToString(digest[:]) {
+		return readyIntentSegmentHeader{}, nil, "", errors.New("ready intent segment fixture/prefix/payload mismatch")
+	}
+	digest = sha256.Sum256(raw)
+	return header, payload, hex.EncodeToString(digest[:]), nil
 }
