@@ -21,6 +21,7 @@ const transmitter = new Interface([
 ]);
 const API = 'https://iris-api-sandbox.circle.com';
 const MAX_BODY = 1_000_000;
+const PREFLIGHT_ERRORS = new Set(['MULTICHAIN_NETWORK_MISMATCH', 'MULTICHAIN_RPC_TIMEOUT', 'MULTICHAIN_RPC_ERROR', 'CCTP_NETWORK_MISMATCH', 'CCTP_PREFLIGHT_TIMEOUT']);
 const HASH = /^0x[0-9a-f]{64}$/i;
 const ZERO = '0x' + '0'.repeat(40);
 const lower = value => typeof value === 'string' ? value.toLowerCase() : '';
@@ -50,6 +51,15 @@ function nonce(value) {
   return '0x' + uint(value).toString(16).padStart(64, '0');
 }
 
+function receiptEvidence(receipt) {
+  return JSON.stringify([
+    lower(receipt.transactionHash), lower(receipt.blockHash), quantity(receipt.blockNumber).toString(),
+    quantity(receipt.transactionIndex).toString(), lower(receipt.from), lower(receipt.to), quantity(receipt.status).toString(),
+    receipt.logs.map(log => [lower(log.address), log.topics.map(lower), lower(log.data), lower(log.transactionHash),
+      lower(log.blockHash), quantity(log.blockNumber).toString(), quantity(log.transactionIndex).toString(), quantity(log.logIndex).toString(), log.removed]),
+  ]);
+}
+
 /** Public read-only reader. The main-only original wallet owns every review, signature and send. */
 export class CctpReader {
   constructor({evm = new EVMAdapter(), fetchImpl = globalThis.fetch, now = Date.now} = {}) {
@@ -60,6 +70,20 @@ export class CctpReader {
     if (!network || network.chainId !== hex(route.chainId) || !HASH.test(network.genesis ?? ''))
       fail('CCTP_NETWORK_MISMATCH', 'This route requires the saved Sepolia and Base Sepolia networks.');
     await this.evm.verify(network);
+  }
+
+  /** Read only the saved RPC's chain ID and genesis; this is not route/asset readiness. */
+  async preflightNetwork(network, route) {
+    const result = errorCode => Object.freeze({status: errorCode === null ? 'verified' : 'unverified', stage: 'rpc-identity', errorCode});
+    let timer;
+    const deadline = new Promise(resolve => {timer = setTimeout(() => resolve(result('CCTP_PREFLIGHT_TIMEOUT')), 25_000)});
+    const identity = Promise.resolve().then(() => this.network(network, route)).then(
+      () => result(null),
+      error => {let code; try {code = error?.code} catch {} return result(PREFLIGHT_ERRORS.has(code) ? code : 'CCTP_PREFLIGHT_UNAVAILABLE')},
+    );
+    // Both branches have closed results. A late identity completion cannot publish
+    // another result, and its rejection remains consumed after the deadline wins.
+    try {return await Promise.race([identity, deadline])} finally {clearTimeout(timer)}
   }
 
   async contracts(network, route) {
@@ -237,6 +261,12 @@ export class CctpReader {
       }
     }
     const balanceUnits = await this.read(request.destinationNetwork, ROUTE.destination.usdc, usdc, 'balanceOf', [request.recipient]);
+    // The canonical chain may have changed while nonce/finality/balance reads
+    // were outstanding. Reuse the full original-transaction verification last;
+    // a higher finalized head alone cannot prove this receipt is still included.
+    const currentReceipt = await this.receipt(request.destinationNetwork, hash, request.account, ROUTE.destination.messageTransmitter, data);
+    if (!currentReceipt || receiptEvidence(currentReceipt) !== receiptEvidence(receipt))
+      fail('CCTP_RECEIPT_MISMATCH', 'The original target receipt changed during verification. Query the same transaction again.');
     return {state, receipt: result, balanceUnits};
   }
 }

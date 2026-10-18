@@ -1,5 +1,5 @@
 import {exactData} from './features/pq-transaction/transfer-binding.mjs';
-import {preparePQTransferFinalityInvocation} from './features/pq-transaction/finality-invocation.mjs';
+import {bindSavedPQTransferFinalityInvocation} from './features/pq-transaction/finality-saved-invocation.mjs';
 import {parsePQTransferFinalityVerifierResult} from './features/pq-transaction/finality-verifier-result.mjs';
 const fail=()=>{throw Object.assign(Error('PQ_FINALITY_SAVED_CAPTURE_UNVERIFIED'),{code:'PQ_FINALITY_SAVED_CAPTURE_UNVERIFIED'});};
 function json(bytes){const text=new TextDecoder('utf-8',{fatal:true}).decode(bytes),value=JSON.parse(text);if(JSON.stringify(value)!==text)fail();return value;}
@@ -16,11 +16,10 @@ export async function readPQFinalityVerifierEvidence(original,binding,evidence,r
  if(contexts.length!==1||inputs.length!==1||!outputs.length||outputs.length!==errors.length)fail();
  if(contexts[0].sha256!==manifest.contextSha256||inputs[0].sha256!==manifest.stdinSha256)fail();
  // Complete readback of the selected generation, not only trusted headers.
- await evidence.read(original,binding,contexts[0]);
- const inputBytes=await evidence.read(original,binding,inputs[0]),input=json(inputBytes);
- exactData(input,['version','expected','proof'],'PQ_FINALITY_SAVED_CAPTURE_UNVERIFIED');
- const invocation=preparePQTransferFinalityInvocation(original,binding,input.expected,input.proof);
- if(!Buffer.from(invocation.stdin).equals(inputBytes)||invocation.stdinSha256!==manifest.stdinSha256)fail();
+ const contextBytes=await evidence.read(original,binding,contexts[0]);
+ const inputBytes=await evidence.read(original,binding,inputs[0]);
+ const invocation=bindSavedPQTransferFinalityInvocation(original,binding,contextBytes,inputBytes);
+ if(invocation.contextSha256!==manifest.contextSha256||invocation.stdinSha256!==manifest.stdinSha256)fail();
  const stdout=await evidence.read(original,binding,outputs.at(-1)),stderr=await evidence.read(original,binding,errors.at(-1));
  const state=manifest.lifecycle;
  exactData(state,['started','closeObserved','cleanupPending','interruption','stdoutTruncated','stderrTruncated','firstCausePresent','cleanupCausePresent','stdinSha256','stdinByteLength'],'PQ_FINALITY_SAVED_CAPTURE_UNVERIFIED');

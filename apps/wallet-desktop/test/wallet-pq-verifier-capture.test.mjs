@@ -13,6 +13,8 @@ import {createPQFinalityVerifierCapture} from '../src/wallet-pq-verifier-capture
 import {readPQFinalityVerifierEvidence} from '../src/wallet-pq-verifier-restore.mjs';
 import {createPQFinalityCollection} from '../src/wallet-pq-finality-collection.mjs';
 import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
+import {preparePQTransferFinalityInvocation} from '../src/features/pq-transaction/finality-invocation.mjs';
+import {fixture as hostFixture} from './helpers/pq-host-export.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const fixtureBytes=readFileSync(new URL('../src/features/pq-transaction/fixtures/finality-c3-public.json.gz',import.meta.url));
 assert.equal(sha(fixtureBytes),'ef1562c14a3528e29928dd1889e5fa94416e1223e405fac2a7648829c0b43095');
@@ -29,7 +31,8 @@ async function fixture(t){
  const verifier={async run(input){calls++;invocation=input;const before=await evidence.candidates(original,binding);assert.equal(before.candidates.length,2);for(const ref of before.candidates)await evidence.read(original,binding,ref);await hook(input);if(partial){closed=false;throw Error('PUBLIC bounded cleanup wait');}},
   snapshot(){return {result:{stdout:Buffer.from(stdout),stderr:Buffer.from([0,255]),exitCode:closed?0:null,signal:null},lifecycle:{started:calls>0,closeObserved:closed,cleanupPending:!closed,interruption:partial?'timeout':null,stdoutTruncated:false,stderrTruncated:false,firstCausePresent:partial,cleanupCausePresent:false,stdinSha256:invocation?sha(Buffer.from(invocation.stdin)):null,stdinByteLength:invocation?Buffer.byteLength(invocation.stdin):0},firstCause:partial?Error('PUBLIC timeout'):undefined};},
   assertSafeToClose(){if(!closed)throw Object.assign(Error('PUBLIC process remains'),{code:'PQ_FINALITY_VERIFIER_CLEANUP_PENDING'});},retire(){},join:async()=>{closed=true;}};
- const capture=createPQFinalityVerifierCapture({evidence,verifier}),context=Buffer.from('{"PUBLIC":"not Host authority"}');
+ // Structurally valid PUBLIC context, not real Host provenance or source files.
+ const capture=createPQFinalityVerifierCapture({evidence,verifier}),context=Buffer.from(JSON.stringify(hostFixture().context));
  const input={contextPath:path.join(directory,'not-opened-by-this-test'),contextSha256:sha(context),contextBytes:context,expected:row.expectedTransaction,proof:row.request.proof};
  return {root,directory,evidence,capture,input,guard,verifier,calls:()=>calls,failAt:v=>{failAt=v;},lock:v=>{locked=v;},partial:v=>{partial=v;},hook:fn=>{hook=fn;},refs:()=>evidence.candidates(original,binding)};
 }
@@ -80,4 +83,19 @@ test('cold normal collection restores only bounded result DATA from the same ori
  const cold=new PQFinalityEvidence({directory:f.directory}),service=createPQFinalityCollection({intentStore:new FileTransactionIntentStore({filePath}),networkId:binding.networkId,evidence:cold,transport:{readFinalityProof(){throw Error('no GET during restore');}}});
  const result=await service.restore(original.hash,f.guard);assert.equal(result.records.length,1);const row=result.records[0];assert.equal(row.status,'verifier-result-data');assert.equal(row.consensusFinality,false);assert.equal(row.canRetry,false);assert.equal(f.calls(),1);assert.equal(result.unreadable,0);assert.doesNotMatch(JSON.stringify(result),/contextPath|contextBytes|resourceIdentity|PUBLIC timeout|not Host authority/);assert.deepEqual(await fs.readFile(filePath),before);
  const ref=(await cold.candidates(original,binding)).candidates.find(r=>r.kind==='verifier-result');await assert.rejects(readPQFinalityVerifierEvidence({...original,operationId:'foreign'},binding,cold,ref));
+});
+test('first capture refuses context index1 with stdin index0 before evidence creation or any process dispatch',async t=>{
+ const f=await fixture(t),context=hostFixture().context;context.expectedTransaction.index='1';const bytes=Buffer.from(JSON.stringify(context));
+ await assert.rejects(f.capture.run(original,binding,{...f.input,contextBytes:bytes,contextSha256:sha(bytes)},f.guard),{code:'PQ_FINALITY_SAVED_INVOCATION_MISMATCH'});assert.equal(f.calls(),0);await assert.rejects(fs.stat(f.directory),{code:'ENOENT'});f.capture.assertSafeToClose();
+});
+test('actual cold restore rejects the original context1/stdin0/result0 RED while retaining every evidence byte and journal',async t=>{
+ const f=await fixture(t),filePath=path.join(f.root,'originals.json'),store=new FileTransactionIntentStore({filePath});await store.reserveOriginal(binding.account,'pq-transfer');store.captureOriginal(binding.account,original,'pq-transfer');await store.saveOriginal(binding.account,original.hash,()=>{});const journal=await fs.readFile(filePath);
+ const wrong=hostFixture().context;wrong.expectedTransaction.index='1';const contextBytes=Buffer.from(JSON.stringify(wrong)),invocation=preparePQTransferFinalityInvocation(original,binding,row.expectedTransaction,row.request.proof),stdin=Buffer.from(invocation.stdin),refs=[];
+ for(const [kind,body]of [['host-context',contextBytes],['verifier-stdin',stdin],['verifier-stdout',stdout],['verifier-stderr',Buffer.alloc(0)]])refs.push(await f.evidence.append(original,binding,kind,body));
+ const lifecycle={started:true,closeObserved:true,cleanupPending:false,interruption:null,stdoutTruncated:false,stderrTruncated:false,firstCausePresent:false,cleanupCausePresent:false,stdinSha256:sha(stdin),stdinByteLength:stdin.length};
+ const manifest={version:1,type:'verifier-capture',operationId:original.operationId,hash:original.hash,contextSha256:sha(contextBytes),stdinSha256:sha(stdin),resourceIdentity:null,references:refs,exitCode:0,signal:null,lifecycle,firstCause:{present:false},cleanupCause:{present:false}};
+ const ref=await f.evidence.append(original,binding,'verifier-result',Buffer.from(JSON.stringify(manifest))),names=await fs.readdir(f.directory);
+ await assert.rejects(readPQFinalityVerifierEvidence(original,binding,f.evidence,ref),{code:'PQ_FINALITY_SAVED_INVOCATION_MISMATCH'});assert.equal(f.calls(),0);assert.deepEqual(await fs.readdir(f.directory),names);assert.deepEqual(await f.evidence.read(original,binding,refs[0]),contextBytes);assert.deepEqual(await fs.readFile(filePath),journal);
+ const cold=createPQFinalityCollection({intentStore:new FileTransactionIntentStore({filePath}),networkId:binding.networkId,evidence:new PQFinalityEvidence({directory:f.directory}),transport:{readFinalityProof(){throw Error('must not query');}}}),result=await cold.restore(original.hash,f.guard);
+ assert.equal(result.records.length,1);assert.equal(result.records[0].status,'evidence-unverified');assert.equal(result.records[0].rawStored,true);assert.equal(result.records[0].canRetry,false);assert.equal(result.records[0].clearsOriginal,false);assert.equal(result.records[0].consensusFinality,false);assert.deepEqual(await fs.readFile(filePath),journal);
 });

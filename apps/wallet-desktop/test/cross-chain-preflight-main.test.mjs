@@ -1,0 +1,23 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+import {CctpFlow,installCctpIPC} from '../src/features/cross-chain/cctp-flow.mjs';
+import {CctpReader} from '../src/features/cross-chain/cctp-reader.mjs';
+import {ROUTE} from '../src/features/cross-chain/cctp-wire.mjs';
+import {MultichainService} from '../src/multichain-service.mjs';
+import {EVMAdapter} from '../src/multichain-evm.mjs';
+import {validateNetwork} from '../src/multichain-config.mjs';
+test('actual Main installer and full preload route readonly preflight through original Wallet/reader without a store or signing guard',async()=>{
+ const identity={account:'0x'+'1'.repeat(40),revision:1,locked:false},networks=[ROUTE.source,ROUTE.destination].map((route,i)=>validateNetwork({name:route.name,chainId:String(route.chainId),genesis:'0x'+String(i+1).repeat(64),rpcUrl:`https://public-qa-${i}.example.org/`,symbol:'ETH',decimals:18})),config={version:1,revision:5,selected:networks[0].id,networks,tokens:[]};
+ let forbidden=0;const no=()=>{forbidden++;throw Error('No write/custody/history/approval during preflight');},store=new Proxy({},{get:no}),calls=[];
+ const wallet=new MultichainService({config:{read:async()=>structuredClone(config)},getContext:async()=>({...identity}),withSecret:no,journal:store,adapter:{}});
+ const evm=new EVMAdapter({rpc:async(url,method,params)=>{const network=networks.find(n=>n.rpcUrl===url);assert.ok(network);calls.push({method,params});if(method==='eth_chainId')return network.chainId;assert.equal(method,'eth_getBlockByNumber');assert.deepEqual(params,['0x0',false]);return{hash:network.genesis};}}),cctpFlow=new CctpFlow({wallet,reader:new CctpReader({evm,fetchImpl:no}),store,id:no});
+ const main=readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8'),line=main.split('\n').find(l=>l.trim().startsWith('installCctpIPC(')),handlers=new Map();assert.equal(typeof line,'string');
+ runInNewContext(line,{installCctpIPC,cctpFlow,handleWalletIPC:(name,handler)=>{assert(!handlers.has(name));handlers.set(name,handler);},safeIPC:async fn=>{try{return{ok:true,value:await fn()};}catch(e){return{ok:false,error:{code:e.code}};}},sensitiveIPC:no,keyAccess:{current:no}});
+ assert.equal(handlers.size,9);let api;
+ new Function('require',readFileSync(new URL('../src/preload.cjs',import.meta.url),'utf8'))(()=>({contextBridge:{exposeInMainWorld:(_name,value)=>{api=value;}},ipcRenderer:{invoke:(name,...args)=>handlers.get(name)({},...args)}}));
+ const result=await api.crossChain.preflight({routeId:ROUTE.id});assert.equal(result.ok,true);assert.equal(result.value.available,true);for(const flag of ['canSign','approved','canRetry','targetReceived'])assert.equal(result.value[flag],false);assert.equal(calls.length,4);assert.equal(forbidden,0);
+ const invalid=await api.crossChain.preflight({routeId:ROUTE.id,approve:true});assert.equal(invalid.error.code,'MULTICHAIN_INVALID_INPUT');assert.equal(calls.length,4);
+ identity.locked=true;const locked=await api.crossChain.preflight({routeId:ROUTE.id});assert.equal(locked.error.code,'MULTICHAIN_LOCKED');assert.equal(calls.length,4);assert.equal(forbidden,0);
+});

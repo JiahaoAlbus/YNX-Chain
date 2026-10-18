@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {exactData,preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
 import {preparePQTransferFinalityInvocation} from './features/pq-transaction/finality-invocation.mjs';
+import {bindSavedPQTransferFinalityInvocation} from './features/pq-transaction/finality-saved-invocation.mjs';
 import {parsePQTransferFinalityVerifierResult} from './features/pq-transaction/finality-verifier-result.mjs';
 import {PQ_FINALITY_EVIDENCE_LIMITS as limits} from './wallet-pq-finality-evidence.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
@@ -21,6 +22,7 @@ function causeData(value,present){
  }
  return {present:true,type:typeof value};
 }
+export {causeData as pqProcessCauseData};
 function bytes(value,maximum){
  if(types.isProxy(value)||!types.isUint8Array(value)||![Buffer.prototype,Uint8Array.prototype].includes(Object.getPrototypeOf(value))||['buffer','byteLength','byteOffset','length'].some(k=>Object.hasOwn(value,k))||types.isSharedArrayBuffer(value.buffer)||value.byteLength>maximum)fail('PQ_FINALITY_CAPTURE_INVALID');
  return Buffer.from(value);
@@ -83,6 +85,7 @@ export function createPQFinalityVerifierCapture({evidence,verifier}){
     const invocation=preparePQTransferFinalityInvocation(own.original,capturedBinding,input.expected,input.proof);
     const context=bytes(input.contextBytes,limits['host-context']);
     if(!context.length||sha(context)!==input.contextSha256)fail('PQ_FINALITY_CONTEXT_UNVERIFIED');
+    bindSavedPQTransferFinalityInvocation(own.original,capturedBinding,context,Buffer.from(invocation.stdin));
     const contextPath=input.contextPath;if(typeof contextPath!=='string')fail('PQ_FINALITY_CAPTURE_INVALID');
     plan=Object.freeze({original:own.original,binding:capturedBinding,expected:invocation.expected,stdinSha256:invocation.stdinSha256,contextSha256:input.contextSha256,resourceIdentity:typeof verifier.identity==='function'?verifier.identity():null,
      invocation:Object.freeze({contextPath,contextSha256:input.contextSha256,stdin:invocation.stdin})});

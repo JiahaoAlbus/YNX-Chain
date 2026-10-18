@@ -5,6 +5,10 @@ import {exactData} from './features/pq-transaction/transfer-binding.mjs';
 import {PQ_FINALITY_EVIDENCE_LIMITS as limits} from './wallet-pq-finality-evidence.mjs';
 const error=code=>Object.assign(Error(code),{code});
 const digest=value=>createHash('sha256').update(value).digest('hex');
+const profiles=Object.freeze({
+ proof:Object.freeze({pathFlag:'--trust-context',hashFlag:'--trust-context-sha256',stdin:limits['verifier-stdin'],stdout:limits['verifier-stdout'],stderr:limits['verifier-stderr']}),
+ 'host-producer':Object.freeze({pathFlag:'--host-trust-source',hashFlag:'--host-trust-source-sha256',stdin:4096,stdout:104521276,stderr:65536}),
+});
 /** One fixed caller invocation, never a signer, provider or authority source.
  * Injection is restricted to this PUBLIC test kernel. The packaged factory
  * supplies its own fixed prepare and node:child_process implementation. */
@@ -13,7 +17,9 @@ export class PQFinalityVerifierProcessKernel {
  #stdout=[];#stderr=[];#sizes={stdout:0,stderr:0};#truncated={stdout:false,stderr:false};#exitCode=null;#signal=null;
  #tails={stdout:null,stderr:null};#tailSizes={stdout:0,stderr:0};#stdinSha=null;#stdinSize=0;
  #timers=[];#resolve;#reject;#settled=false;#joined;#join;#input=null;#interruption=null;
- constructor({prepare,spawn=nodeSpawn,schedule=setTimeout,unschedule=clearTimeout,timeoutMs=30000,graceMs=1000}){
+ #profile;
+ constructor({prepare,spawn=nodeSpawn,schedule=setTimeout,unschedule=clearTimeout,timeoutMs=30000,graceMs=1000,mode='proof'}){
+  if(!Object.hasOwn(profiles,mode))throw error('PQ_FINALITY_VERIFIER_MODE_INVALID');this.#profile=profiles[mode];
   this.prepare=prepare;this.spawn=spawn;this.schedule=schedule;this.unschedule=unschedule;this.timeoutMs=timeoutMs;this.graceMs=graceMs;
   this.#joined=new Promise(resolve=>{this.#join=resolve;});
  }
@@ -57,11 +63,11 @@ export class PQFinalityVerifierProcessKernel {
     exactData(prepared,['executable','contextPath','contextSha256','stdin'],'PQ_FINALITY_VERIFIER_INVOCATION_INVALID');
     for(const file of [prepared.executable,prepared.contextPath])if(typeof file!=='string'||!path.isAbsolute(file)||path.normalize(file)!==file)throw error('PQ_FINALITY_VERIFIER_INVOCATION_INVALID');
     if(typeof prepared.contextSha256!=='string'||!/^[a-f0-9]{64}$/.test(prepared.contextSha256))throw error('PQ_FINALITY_VERIFIER_INVOCATION_INVALID');
-    if(typeof prepared.stdin!=='string'||Buffer.byteLength(prepared.stdin)>limits['verifier-stdin']||Buffer.from(prepared.stdin).toString('utf8')!==prepared.stdin)throw error('PQ_FINALITY_VERIFIER_INPUT_LIMIT');
+    if(typeof prepared.stdin!=='string'||Buffer.byteLength(prepared.stdin)>this.#profile.stdin||Buffer.from(prepared.stdin).toString('utf8')!==prepared.stdin)throw error('PQ_FINALITY_VERIFIER_INPUT_LIMIT');
     this.#input=Buffer.from(prepared.stdin);this.#stdinSha=digest(this.#input);this.#stdinSize=this.#input.length;
     if(this.#retired){this.#complete(null,null);return;}
     // No shell, inherited credentials, NODE_OPTIONS, fd4/fd5 or clock flag.
-    this.#child=this.spawn(prepared.executable,['--trust-context',prepared.contextPath,'--trust-context-sha256',prepared.contextSha256],{shell:false,detached:false,windowsHide:true,env:{PATH:'/usr/bin:/bin:/usr/sbin:/sbin',LANG:'en_US.UTF-8'},stdio:['pipe','pipe','pipe']});
+    this.#child=this.spawn(prepared.executable,[this.#profile.pathFlag,prepared.contextPath,this.#profile.hashFlag,prepared.contextSha256],{shell:false,detached:false,windowsHide:true,env:{PATH:'/usr/bin:/bin:/usr/sbin:/sbin',LANG:'en_US.UTF-8'},stdio:['pipe','pipe','pipe']});
     const child=this.#child;
     child.on('error',cause=>{this.#remember(cause);this.#stop('process-error',cause);});
     child.once('close',(code,signal)=>this.#complete(code,signal));
@@ -70,7 +76,7 @@ export class PQFinalityVerifierProcessKernel {
      child[name].on('data',chunk=>{
       if(this.#closed)return;
       if(!Buffer.isBuffer(chunk)){this.#stop('output-invalid');return;}
-      const maximum=limits[name==='stdout'?'verifier-stdout':'verifier-stderr'],remaining=maximum-this.#sizes[name],count=Math.min(remaining,chunk.length);
+      const maximum=this.#profile[name],remaining=maximum-this.#sizes[name],count=Math.min(remaining,chunk.length);
       for(let offset=0;offset<count;){
        if(this.#tails[name]===null){this.#tails[name]=Buffer.allocUnsafe(Math.min(maximum,1<<20));this.#tailSizes[name]=0;}
        const copied=Math.min(count-offset,this.#tails[name].length-this.#tailSizes[name]);chunk.copy(this.#tails[name],this.#tailSizes[name],offset,offset+copied);this.#tailSizes[name]+=copied;this.#sizes[name]+=copied;offset+=copied;

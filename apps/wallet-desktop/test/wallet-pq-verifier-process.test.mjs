@@ -44,3 +44,15 @@ test('malformed prepare and oversized/noncanonical input refuse before child dis
  for(const change of [{executable:'relative'},{contextPath:'/PUBLIC/../wrong'},{contextSha256:'UPPER'},{stdin:'\ud800'}]){const f=fixture();f.kernel.prepare=async()=>({...f.prepared,...change});await assert.rejects(f.kernel.run({}),{code:'PQ_FINALITY_VERIFIER_NOT_STARTED'});assert.equal(f.spawns(),0);await f.kernel.join();f.kernel.assertSafeToClose();assert.equal(f.timers.size,0);}
  const f=fixture({prepare:async()=>{throw false;}});await assert.rejects(f.kernel.run({}),e=>e.code==='PQ_FINALITY_VERIFIER_NOT_STARTED'&&e.cause===false);assert.equal(f.kernel.snapshot().firstCause,false);assert.equal(f.spawns(),0);
 });
+test('new Host profile has only fixed source flags and its own output cap; normal proof profile stays unchanged',async()=>{
+ const child=new EventEmitter();for(const name of ['stdin','stdout','stderr']){child[name]=new EventEmitter();child[name].destroy=()=>{};}let calls=0;child.kill=()=>true;
+ const input={executable:'/PUBLIC/new-producer-not034',contextPath:'/PUBLIC/host-source',contextSha256:'a'.repeat(64),stdin:'{"PUBLIC":"not authority"}'};
+ child.stdin.end=()=>queueMicrotask(()=>{child.stdout.emit('data',Buffer.alloc(8*1024*1024+1,65));child.emit('close',0,null);});
+ const kernel=new PQFinalityVerifierProcessKernel({mode:'host-producer',prepare:async()=>input,spawn:(file,args,options)=>{calls++;assert.equal(file,input.executable);assert.deepEqual(args,['--host-trust-source',input.contextPath,'--host-trust-source-sha256',input.contextSha256]);assert.equal(options.shell,false);assert.deepEqual(Object.keys(options.env).sort(),['LANG','PATH']);return child;}});
+ const result=await kernel.run({});assert.equal(result.result.stdout.length,8*1024*1024+1);assert.equal(result.lifecycle.stdoutTruncated,false);assert.equal(calls,1);await kernel.join();kernel.assertSafeToClose();
+});
+test('Host request limit and unsupported modes fail before dispatch without relaxing original proof limits',async()=>{
+ let calls=0;const kernel=new PQFinalityVerifierProcessKernel({mode:'host-producer',prepare:async()=>({executable:'/PUBLIC/fixed-new-binary',contextPath:'/PUBLIC/source',contextSha256:'a'.repeat(64),stdin:'x'.repeat(4097)}),spawn:()=>{calls++;throw Error('must not spawn');}});
+ await assert.rejects(kernel.run({}),e=>e.code==='PQ_FINALITY_VERIFIER_NOT_STARTED'&&e.cause.code==='PQ_FINALITY_VERIFIER_INPUT_LIMIT');assert.equal(calls,0);await kernel.join();kernel.assertSafeToClose();
+ assert.throws(()=>new PQFinalityVerifierProcessKernel({mode:'shell',prepare:async()=>{}}),{code:'PQ_FINALITY_VERIFIER_MODE_INVALID'});
+});

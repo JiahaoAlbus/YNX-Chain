@@ -16,6 +16,7 @@ const activeOperations=r=>r.operations.filter(op=>op.state!=='cancelled');
 const activeStep=(r,step)=>activeOperations(r).find(op=>op.step===step);
 const pendingState=step=>step==='approve'?'approval-pending':step==='burn'?'burn-pending':'mint-pending';
 const maxOperations=32;
+const preflightErrors=new Set(['MULTICHAIN_NETWORK_MISMATCH','MULTICHAIN_RPC_TIMEOUT','MULTICHAIN_RPC_ERROR','CCTP_NETWORK_MISMATCH','CCTP_PREFLIGHT_TIMEOUT','CCTP_PREFLIGHT_UNAVAILABLE']);
 
 export function validateCctpBinding(q){
   exactObject(q,['routeId','account','recipient','amountUnits','maxFeeUnits','maxSourceGasFeeWei','maxDestinationGasFeeWei','sourceNetwork','destinationNetwork','context','configRevision','expiresAt','quoteId']);
@@ -72,9 +73,45 @@ export class CctpStore {
  * This coordinator never handles a secret, raw transaction or signer callback.
  */
 export class CctpFlow {
-  #quotes=new Map(); #reviews=new Map(); #busy=new Set(); #uncertain=new Set(); #quoteRevision=0;
+  #quotes=new Map(); #reviews=new Map(); #busy=new Set(); #uncertain=new Set(); #quoteRevision=0; #preflightRevision=0;
   constructor({wallet,reader,store,now=Date.now,id=randomUUID}){Object.assign(this,{wallet,reader,store,now,id})}
-  routes(){return [{...clone(ROUTE),available:true,mode:'standard',slippageBps:0,refundSupported:false}];}
+  routes(){return [{...clone(ROUTE),available:false,requiresPreflight:true,mode:'standard',slippageBps:0,refundSupported:false}];}
+  async preflight(input){
+    const ticket=++this.#preflightRevision;
+    exactObject(input,['routeId']);
+    if(input.routeId!==ROUTE.id)fail('UNSUPPORTED_ROUTE','Only the named USDC testnet route can be checked.');
+    const current=()=>{if(ticket!==this.#preflightRevision)fail('PREFLIGHT_REPLACED','A newer route check replaced this request.')};
+    const context=clone(await this.wallet.context({unlocked:true}));current();
+    const live=async revision=>{current();await this.wallet.assert(context,revision);current()};
+    await live();
+    const snapshot=clone(await this.wallet.snapshot());current();
+    if(!Number.isSafeInteger(snapshot.revision)||snapshot.revision<0||!Array.isArray(snapshot.networks)||snapshot.networks.length>32)fail('NETWORK_INVALID','The saved network snapshot is invalid.');
+    await live(snapshot.revision);
+    if(address(context.account)!==address(snapshot.account))fail('ACCOUNT_CHANGED','The route check account changed.');
+    const side=async(name,route)=>{
+      const report={side:name,chainId:route.chainId,networkId:null,genesis:null,status:'unverified',stage:'network-selection',errorCode:null};
+      const matches=snapshot.networks.filter(network=>{try{return BigInt(network?.chainId)===BigInt(route.chainId)}catch{return false}});
+      if(matches.length!==1)return {...report,errorCode:matches.length?'CCTP_NETWORK_AMBIGUOUS':'CCTP_NETWORK_REQUIRED'};
+      let network;
+      try{
+        exactObject(matches[0],['id','family','name','rpcUrl','chainId','genesis','symbol','decimals']);
+        const {id,family,...data}=matches[0];network=validateNetwork(data);
+        if(family!=='evm'||id!==network.id)throw Error('Invalid saved network identity');
+      }catch{return {...report,stage:'saved-network',errorCode:'CCTP_NETWORK_INVALID'}}
+      Object.assign(report,{networkId:network.id,genesis:network.genesis,stage:'rpc-identity'});
+      let result;
+      try{result=await this.reader.preflightNetwork(network,route)}catch{result=null}
+      await live(snapshot.revision);
+      try{
+        exactObject(result,['status','stage','errorCode']);
+        if(Object.keys(result).length!==3||result.stage!=='rpc-identity'||result.status!=='verified'&&result.status!=='unverified'||result.status==='verified'&&result.errorCode!==null||result.status==='unverified'&&!preflightErrors.has(result.errorCode))throw Error('Invalid preflight result');
+        return {...report,status:result.status,errorCode:result.errorCode};
+      }catch{return {...report,errorCode:'CCTP_PREFLIGHT_UNAVAILABLE'}}
+    };
+    const [source,destination]=await Promise.all([side('source',ROUTE.source),side('destination',ROUTE.destination)]);
+    await live(snapshot.revision);
+    return {routeId:ROUTE.id,available:source.status==='verified'&&destination.status==='verified',source,destination,canSign:false,approved:false,canRetry:false,targetReceived:false};
+  }
   async #live(q,guard){guard?.assert();await this.wallet.assert(q.context,q.configRevision);guard?.assert();}
   async #owned(id){const context=await this.wallet.context();const r=await this.store.get(id);if(context.account!==r.binding.account)fail('ACCOUNT_CHANGED','Select the account that owns this transfer.');await this.wallet.assert(context);return r}
   async #current(r,options){
@@ -152,7 +189,9 @@ export class CctpFlow {
       await this.#live(current);
       if(observed?.id!==op.id||op.hash&&observed.hash!==op.hash||observed.hash!==null&&!hash(observed.hash)||['included','reverted','submitted'].includes(observed.state)&&!hash(observed.hash))fail('RESULT_MISMATCH','Original transaction identity changed.');
       if(['included','reverted','submitted','unknown','signing-unknown','prepared','signed'].includes(observed.state)){
-        r=await this.#save(r,v=>{Object.assign(v.operations.find(x=>x.id===op.id),{state:['included','reverted','submitted'].includes(observed.state)?observed.state:'unknown',hash:observed.hash});if(observed.state==='reverted')v.state='failed';else if(observed.state==='included')v.state=op.step==='approve'?'burn-ready':op.step==='burn'?(v.proof?'mint-ready':'attestation-pending'):'mint-pending';else v.state=pendingState(op.step)});
+        // A cached proof can expire while no mint has been reviewed or sent.
+        // Re-read only this original burn; retain cached evidence while pending.
+        r=await this.#save(r,v=>{Object.assign(v.operations.find(x=>x.id===op.id),{state:['included','reverted','submitted'].includes(observed.state)?observed.state:'unknown',hash:observed.hash});if(observed.state==='reverted')v.state='failed';else if(observed.state==='included')v.state=op.step==='approve'?'burn-ready':op.step==='burn'?'attestation-pending':'mint-pending';else v.state=pendingState(op.step)});
         await this.#live(current);
       }else fail('RESULT_UNKNOWN','Keep the original transaction and its result.');
     }
@@ -184,7 +223,7 @@ export class CctpFlow {
 
 /** Mount only through the existing trusted-frame handler and lifecycle wrappers. */
 export function installCctpIPC({handle,safe,sensitive,flow,getGuard}){
-  const read={routes:()=>flow.routes(),history:()=>flow.history(),check:id=>flow.check(id)};
+  const read={routes:()=>flow.routes(),preflight:input=>flow.preflight(input),history:()=>flow.history(),check:id=>flow.check(id)};
   for(const [name,action] of Object.entries(read))handle('wallet:cross-chain-'+name,(_event,input)=>safe(()=>action(input)));
   const review={quote:input=>flow.quote(input),start:id=>flow.start(id),prepare:id=>flow.prepareStep(id),cancel:id=>flow.cancel(id)};
   for(const [name,action] of Object.entries(review))handle('wallet:cross-chain-'+name,(_event,input)=>sensitive(()=>action(input)));

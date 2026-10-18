@@ -133,7 +133,8 @@ for (const step of ['burn', 'mint']) test(`cold ${step} review can be discarded 
   const stable = await restarted.check(record.id);
   assert.equal(stable.state, `${step}-ready`, 'checking after cancellation must not regress an already confirmed prior step');
   assert.deepEqual(stable.proof, originalProof);
-  assert.equal(h.calls.attestation.length, attestationCount, 'an existing proof does not need a new attestation after unsigned review cancellation');
+  assert.equal(h.calls.attestation.length, attestationCount + (step === 'mint' ? 1 : 0), 'a cancelled mint review must refresh its original burn proof before another review');
+  if (step === 'mint') assert.equal(h.calls.attestation.at(-1).sourceTxHash, TX.burn);
   assert.ok(!h.calls.check.includes(review.id), 'discarded volatile review is not an owner dispatch to reconcile');
   if (step === 'mint') h.current.quoteError = multiError('SOURCE_ALREADY_BURNED', 'Mint must not demand the burned source balance.');
   const freshReview = await restarted.prepareStep(record.id);

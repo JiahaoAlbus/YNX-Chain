@@ -38,7 +38,7 @@ function fixture() {
   const ready = { id: ID, state: 'ready', binding: { quoteId: QUOTE_ID, recipient: RECIPIENT, amountUnits: '1000000' }, operations: [], proof: null, destination: null };
   const review = { id: REVIEW_ID, intentId: ID, step: 'burn', transaction: { to: '0x1111111111111111111111111111111111111111' }, fee: '123' };
   const pending = { ...clone(ready), state: 'burn-pending', operations: [{ id: REVIEW_ID, step: 'burn', state: 'unknown', hash: HASH }] };
-  const result = { quote, start: ready, prepare: review, confirm: pending, cancel: { cancelled: true, record: { ...clone(ready), state: 'cancelled' } }, history: [pending], check: pending };
+  const result = { preflight: {routeId:'cctp-v2-sepolia-base-sepolia-usdc',available:true,source:{side:'source',chainId:11155111,genesis:'0x'+'11'.repeat(32),status:'verified',stage:'rpc-identity',errorCode:null},destination:{side:'destination',chainId:84532,genesis:'0x'+'22'.repeat(32),status:'verified',stage:'rpc-identity',errorCode:null},canSign:false,approved:false,canRetry:false,targetReceived:false}, quote, start: ready, prepare: review, confirm: pending, cancel: { cancelled: true, record: { ...clone(ready), state: 'cancelled' } }, history: [pending], check: pending };
   const calls = [], overrides = {};
   const api = Object.fromEntries(Object.keys(result).map(method => [method, async input => { calls.push({ method, input: clone(input) }); return overrides[method] ? overrides[method](input) : ok(result[method]); }]));
   const ui = mountCctpUI({ root, api });

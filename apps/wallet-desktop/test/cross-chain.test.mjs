@@ -6,3 +6,8 @@ import '../src/features/cross-chain/cctp-ui.test.mjs';
 import '../src/features/cross-chain/cctp-recovery.test.mjs';
 import '../src/features/cross-chain/cctp-reconcile-delta.test.mjs';
 import '../src/features/cross-chain/cctp-ui-wait.test.mjs';
+import '../src/features/cross-chain/cctp-preflight-reader.test.mjs';
+import '../src/features/cross-chain/cctp-finality-recheck.test.mjs';
+import '../src/features/cross-chain/cctp-preflight-flow.test.mjs';
+import '../src/features/cross-chain/cctp-preflight-ui.test.mjs';
+import '../src/features/cross-chain/cctp-proof-refresh.test.mjs';
