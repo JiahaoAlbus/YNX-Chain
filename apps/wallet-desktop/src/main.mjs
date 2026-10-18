@@ -24,6 +24,7 @@ import {createRecipientCameraPermission} from "./recipient-camera-permission.mjs
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {installReceivingPNGDownloadOptions} from './receiving-png-download-options.mjs';
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "./rpc.mjs";
 import { YNX_TESTNET_CHAIN_QUANTITY, WALLET_AUTH_PROTOCOL_SOURCE } from "./wallet-auth-contract.mjs";
 import { DesktopAuthorizationController, parseWalletConnectActivation } from "./callback-policy.mjs";
@@ -784,6 +785,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     }
   });
   mainWindow = window;
+  installReceivingPNGDownloadOptions(window,pathToFileURL(path.join(directory,'index.html')).href);
   // Preserve non-capture permissions; video capture requires a current explicit
   // local-window permit. Microphone/display capture are never part of scanning.
   window.webContents.session.setPermissionCheckHandler((contents, permission, _origin, details) =>

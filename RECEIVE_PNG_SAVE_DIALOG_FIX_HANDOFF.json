@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "state": "VERIFIED_NOT_DEPLOYED_NATIVE_SAVE_PANEL_TITLE_SOURCE_REPAIR",
+  "baseCommit": "a2ba3c6b46de2acf1819d477b2b165ef8c7da80a",
+  "actualUICounterexample": {"candidate": "4bc11e271f09d49c4e6b44c65c9468bdc4839c83", "evidence": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r3e-4bc-normal-install-qa-20261018/NORMAL_FINDER_AND_APP_QA_HANDOFF.json", "evidenceSHA256": "be02ca08eeb3edca0e90be81a9f022457b0972baf101eb877093964335eb77d0", "observed": "Actual normal receiving-PNG native Save panel uses the whole public data:image/png base64 URL as window title; file save and content are correct"},
+  "owningCode": ["src/main.mjs installs native session will-download options from the normal BrowserWindow path", "src/receiving-png-download-options.mjs sets only concise YNX Wallet — PNG title for this exact original local Wallet WebContents and receiving-PNG filename/data URL", "All existing native dialog options, default folder/path, filename and user confirmation stay unchanged", "Other sender, navigation, file type, filename/path, oversized data or destroyed window gets no new options; errors cannot cancel/retry downloads", "Owning window close detaches only its listener"],
+  "pinnedAPIRead": "Installed Electron42.10.0 electron.d.ts: Session will-download(event,item,webContents), DownloadItem get/setSaveDialogOptions and SaveDialogOptions.title",
+  "red": {"normalMainWindowTest": "Existing normal window did not install native Save options; actual title remained unspecified/dataURL", "pass": 3, "fail": 1, "durationMs": 27.83775},
+  "regression": {"pass": 4, "fail": 0, "durationMs": 7.52175, "runtime": "actual installed R24 Electron42.10.0 Node24.18.1 RunAsNode heap192MiB isolation none concurrency1", "file": "test/receiving-png-download-options.test.mjs", "scope": "Actual normal main setup source and owning helper with explicit PUBLIC native-event resources, not a newly packaged Save panel"},
+  "automaticEntry": "Existing npm test glob discovers the new test; no remote CI execution claimed",
+  "preserved": ["Already installed 4bc App and actual GUI evidence", "Native A33 and SDK3.6 exact sources", "Original account/password/keys/history/UNKNOWN", "All existing security handlers and user save confirmation"],
+  "noHeavyOrGUIRequested": true,
+  "notEstablished": ["New matching App package containing this fix", "Normal GUI Save title readback of the repaired candidate", "Source admission or private Session", "Wallet public release"],
+  "next": "Original A integrates this owning source at the next authorized matching candidate; normal GUI verifies title when the single GUI slot is available. Do not modify the accepted4bc binary in place."
+}
