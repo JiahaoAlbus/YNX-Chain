@@ -32,7 +32,8 @@ PROFILE = dict(name="supply-256x4", senders=256, rounds=4, offeredRate=512,
                ownedRSSBytes=1 << 30, privateBytes=32 << 20, threads=320,
                availableMemoryFloorBytes=native.CAPS["availableMemoryFloorBytes"])
 PROFILES = {"supply-256x4": PROFILE,
-            "supply-512x2": dict(PROFILE, name="supply-512x2", senders=512, rounds=2)}
+            "supply-512x2": dict(PROFILE, name="supply-512x2", senders=512, rounds=2),
+            "supply-2048x1": dict(PROFILE, name="supply-2048x1", senders=2048, rounds=1, offeredRate=1000, senderMode="rounds")}
 ENV = dict(GOMAXPROCS="1", GOGC="100", GOMEMLIMIT="off")
 BINARIES = ("ynx-abci", "cometbft", "ynx-consensus-perf-fixture", "ynx-consensus-perf-client")
 PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
@@ -40,10 +41,14 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
 
 
 def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None):
+    one_shot=profile_name=="supply-2048x1"
+    if one_shot and (transport!="grpc" or pacing!="relative" or observer_phases is not True or shared_replay is not None and shared_replay is not True or endpoint_fair is not None or endpoint_elastic is not None):
+        raise RuntimeError("2048x1 requires explicit grpc/relative/observer phases/shared replay without endpoint candidates")
+    if one_shot:shared_replay=True
     if transport not in ("socket", "grpc"):
         raise RuntimeError("only existing socket/grpc ABCI transports allowed")
     if profile_name not in PROFILES:
-        raise RuntimeError("only fixed 256x4 or 512x2 Supply profiles allowed")
+        raise RuntimeError("only registered fixed Supply profiles allowed")
     if profile_name == "supply-512x2" and transport != "grpc":
         raise RuntimeError("the new 512x2 profile is explicitly gRPC only")
     if pacing not in ("relative", "bounded-cadence", "grouped-cadence4") or pacing != "relative" and profile_name != "supply-512x2":
@@ -60,7 +65,7 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
         result["observerPhaseTiming"]=True
         result["observerTraceLimits"]=dict(perWorker=256,aggregate=1024,totalsCompleteDespiteTraceCap=True)
     if shared_replay is not None:
-        if type(shared_replay) is not bool or not observer_phases or (transport,profile_name,pacing)!=("grpc","supply-512x2","bounded-cadence"):
+        if type(shared_replay) is not bool or not observer_phases or (transport,profile_name,pacing) not in (("grpc","supply-512x2","bounded-cadence"),("grpc","supply-2048x1","relative")):
             raise RuntimeError("shared replay selection requires fixed512x2/grpc/bounded-cadence and observer timing")
         result["sharedDurableReplay"]=shared_replay
     if endpoint_fair is not None:
@@ -120,14 +125,14 @@ def prepare_1000_tier():
                 executionAuthorized=False,executionAdmitted=False,nodesStarted=False,
                 workload=dict(independentSenders=2048,totalTransactions=2048,transactionsPerSender=1,
                               rounds=1,senderMode="rounds",offeredRate=1000,concurrency=4,observers=4,
-                              clientTimeoutMs=10000,inclusionMode="block-scan",observerPhaseTiming=True),
+                              clientTimeoutMs=10000,inclusionMode="block-scan",observerPhaseTiming=True,sharedDurableReplay=True),
                 resourceCaps={k:PROFILE[k] for k in ("activeMs","cleanupMs","totalMs","ownedProcesses","longLivedChildren","ownedRSSBytes","privateBytes","threads","availableMemoryFloorBytes")},
                 nativeAdmissionCaps={k:native.CAPS[k] for k in ("diskFloorBytes","rootReserveBytes","compileReserveBytes","buildBytes","logBytes","sampleMs")},
                 fixtureCommand=["<exact-built-fixture>","-ephemeral","-count","2048","-output","<new-private-network>"],
                 clientCommand=["<exact-built-client>","-manifest","<new-private-network>/network-manifest.json",
                                "-transactions","<new-private-network>/transactions.json","-output","<new-private-network>/transactions-result.json",
                                "-rounds","1","-sender-mode","rounds","-offered-rate","1000","-concurrency","4","-observers","4",
-                               "-timeout","10s","-inclusion-mode","block-scan","-observer-phase-timing"],
+                               "-timeout","10s","-inclusion-mode","block-scan","-observer-phase-timing","-shared-durable-replay"],
                 priorActual=dict(runId=39142884319,sourceCommit=evidence["sourceCommit"],
                                  evidenceSHA256=native.digest(evidence_path),totalTransactions=1024,
                                  independentSenders=512,peakPrivateBytes=peak_data,peakRSSBytes=peak_rss),
@@ -143,7 +148,8 @@ def prepare_1000_tier():
                                   "Historical2x data scenario exceeds original32MiB; measured2048 fixture is smaller than32MiB. Runtime DB, signed execution/history, reader, reports and cleanup growth still need actual charging. No cap increase or data deletion is authorized.",
                                   "Fixture generator/build RSS are actual measured phases, not a4node RSS estimate. Fixed4node/worker and variable account/history costs are not assumed linear. Existing1GiB guard remains mandatory; runtime fit remains unproven.",
                                   "Owned-process/thread, disk reserve, logs,45+15 window and actual MemAvailable guards remain unchanged. No workload starts from this plan."],
-                interpretation="Finite2048 signed business inputs, each with a distinct sender/nonce1. Configured1000offers/s is not accepted/included/final TPS and does not establish ten-minute capacity. Prepared through original fixture/client commands, intentionally not registered as an executable window until budget admissibility is established.")
+                registeredExecutionRecipe=recipe("grpc","supply-2048x1","relative",True),
+                interpretation="Finite2048 signed business inputs, each with a distinct sender/nonce1. Configured1000offers/s is not accepted/included/final TPS and does not establish ten-minute capacity. Registered as a separate explicit bounded2048x1 window with original caps; no execution/admission follows preparation. Actual node/reader/data peaks still require its own Root-granted measurement.")
 
 
 def fixture_resource_recipe():
@@ -305,9 +311,9 @@ def pair_case_qualified(row, mode):
         raise RuntimeError("pair case incomplete business results; no second case")
 
 
-def offer_latency_readout(report):
+def offer_latency_readout(report,total=1024):
     rows = report.get("transactions", [])
-    if len(rows) != 1024 or report.get("summary", {}).get("finalSubmitted") != 1024:
+    if len(rows) != total or report.get("summary", {}).get("finalSubmitted") != total:
         raise RuntimeError("complete actual business results required for offer latency")
     def quantiles(key):
         values=[]
@@ -319,15 +325,15 @@ def offer_latency_readout(report):
             if not math.isfinite(value): raise RuntimeError("offer latency overflow")
             values.append(value)
         values.sort()
-        return dict(samples=1024, **{name:values[math.ceil(q*1024)-1] for name,q in (("p50",.5),("p95",.95),("p99",.99))})
+        return dict(samples=total, **{name:values[math.ceil(q*total)-1] for name,q in (("p50",.5),("p95",.95),("p99",.99))})
     peaks=report.get("loadQueues",{})
     for name in ("peakOfferedAwaitingSubmission", "peakAcceptedAwaitingObservationCompletion"):
-        if type(peaks.get(name)) is not int or not 0 <= peaks[name] <= 1024:
+        if type(peaks.get(name)) is not int or not 0 <= peaks[name] <= total:
             raise RuntimeError("actual owned queue peak missing/invalid")
     return dict(offerToEffectiveInclusionLatencyMs=quantiles("inclusionMs"),
                 offerToQualifiedFinalLatencyMs=quantiles("confirmationMs"), actualQueuePeaks=peaks,
                 supply=report["readySenders"]["supply"],
-                scope="Actual per-row measured queueDelayMs+stageMs, nearest-rank over all1024 qualified business finals. Queue peaks are original atomic counters, not reconstructed from UTC.")
+                scope=f"Actual per-row measured queueDelayMs+stageMs, nearest-rank over all{total} qualified business finals. Queue peaks are original atomic counters, not reconstructed from UTC.")
 
 
 def validate_observer_phases(report):
@@ -391,11 +397,7 @@ def validate_shared_replay(report, expected):
                 interpretation="Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance.")
 
 
-def validate_endpoint_dispatch(report, expected, elastic=False):
-    if type(elastic) is not bool or elastic and not expected or report.get("endpointElasticSubmission",False) is not elastic:
-        raise RuntimeError("actual elastic endpoint selection absent/different")
-    if type(expected) is not bool or report.get("endpointFairSubmission") is not expected:
-        raise RuntimeError("actual endpoint fairness selection absent/different")
+def original_endpoint_binding(report,total):
     endpoints=report.get("endpoints",[])
     if len(endpoints)!=4 or len(set(endpoints))!=4:
         raise RuntimeError("four distinct original endpoint identities required")
@@ -403,8 +405,17 @@ def validate_endpoint_dispatch(report, expected, elastic=False):
         endpoint(value)
         if urlparse(value).scheme!="http":raise RuntimeError("original RPC HTTP endpoint required")
     rows=report.get("transactions",[])
-    if len(rows)!=1024 or any(row.get("index")!=i or row.get("endpoint")!=endpoints[i%4] for i,row in enumerate(rows)):
+    if len(rows)!=total or any(row.get("index")!=i or row.get("endpoint")!=endpoints[i%4] for i,row in enumerate(rows)):
         raise RuntimeError("original per-index endpoint binding differs")
+    return endpoints
+
+
+def validate_endpoint_dispatch(report, expected, elastic=False):
+    if type(elastic) is not bool or elastic and not expected or report.get("endpointElasticSubmission",False) is not elastic:
+        raise RuntimeError("actual elastic endpoint selection absent/different")
+    if type(expected) is not bool or report.get("endpointFairSubmission") is not expected:
+        raise RuntimeError("actual endpoint fairness selection absent/different")
+    original_endpoint_binding(report,1024)
     stats=report.get("readySenders",{}).get("endpointDispatch")
     if not expected:
         if stats is not None:raise RuntimeError("baseline unexpectedly enabled endpoint dispatch")
@@ -424,9 +435,9 @@ def validate_endpoint_dispatch(report, expected, elastic=False):
                 interpretation="Actual callback counts are not extra RPC or business successes; original1024-result business qualification is required separately. No request authority replacement or automatic UNKNOWN retry.")
 
 
-def validate_submission_phases(report):
+def validate_submission_phases(report,total=1024):
     rows=report.get("transactions",[])
-    if report.get("observerPhaseTiming") is not True or len(rows)!=1024:
+    if report.get("observerPhaseTiming") is not True or len(rows)!=total:
         raise RuntimeError("all1024 original timed submission rows required")
     counters=("getConnCalls","gotConnCalls","wroteRequestCalls","firstByteCalls")
     offsets=("firstGetConnNs","firstGotConnNs","firstWroteRequestNs","firstResponseByteNs","callbackReturnNs")
@@ -453,15 +464,15 @@ def validate_submission_phases(report):
     def quantiles(values):
         values=sorted(values);n=len(values)
         return dict(samples=n,**{name:values[math.ceil(q*n)-1] if n else None for name,q in (("p50",.5),("p95",.95),("p99",.99))})
-    return dict(samples=1024,hookCalls={key:1024 for key in counters},writeErrors=0,
+    return dict(samples=total,hookCalls={key:total for key in counters},writeErrors=0,
                 reusedConnections=reused,writeFirstByteHookOverlaps=overlap,
                 durationsMs={key:quantiles(values) for key,values in metrics.items()},
                 interpretation="Monotonic original client HTTP hooks; single-attempt rows only. First-byte wait includes server/transport scheduling; response tail includes body/decode/identity checks. Concurrent write/first-byte hooks may overlap: omit negative intervals and retain their count/sample denominator. Not pure network/server time and not additive across parallel callbacks.")
 
 
-def original_submission_tails(report):
+def original_submission_tails(report,total=1024):
     rows=report.get("transactions",[])
-    if len(rows)!=1024:
+    if len(rows)!=total:
         raise RuntimeError("all1024 original rows required for submission tail readback")
     result={}
     for summary_key,row_key in (("submissionQueueDelayMs","queueDelayMs"),("checkTxLatencyMs","checkTxMs")):
@@ -469,7 +480,7 @@ def original_submission_tails(report):
         if any(type(v) not in (int,float) or not math.isfinite(v) or v<0 for v in values):
             raise RuntimeError("original submission tail duration absent/invalid: "+row_key)
         values.sort()
-        observed=dict(samples=1024,**{name:values[math.ceil(q*1024)-1] for name,q in (("p50",.5),("p95",.95),("p99",.99))})
+        observed=dict(samples=total,**{name:values[math.ceil(q*total)-1] for name,q in (("p50",.5),("p95",.95),("p99",.99))})
         if report.get("summary",{}).get(summary_key)!=observed:
             raise RuntimeError("submission tail summary differs from original raw rows: "+summary_key)
         result[summary_key]=observed
@@ -705,7 +716,76 @@ def validate_manifest(m, root):
     return m
 
 
-def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False):
+def validate_oneshot_report(report,fixture_transactions):
+    total=2048
+    if (report.get("roundsRequested")!=1 or report.get("roundsCompleted")!=1 or report.get("senderMode")!="rounds"
+            or report.get("configuredOfferedRate")!=1000 or report.get("concurrency")!=4 or report.get("observerConcurrency")!=4
+            or report.get("pacingMode")!="relative" or report.get("inclusionMode")!="block-scan" or report.get("setupErrors")
+            or report.get("endpointFairSubmission",False) is not False or report.get("endpointElasticSubmission",False) is not False
+            or report.get("terminalStream") is not None or report.get("streamingWorkload") is not None
+            or report.get("retentionMode","")!=""):
+        raise RuntimeError("fixed2048x1/offer1000 original worker/profile selection differs")
+    summary=qualify_business_rows(report,total)
+    ready=report.get("readySenders",{})
+    if (any(ready.get(k,0)!=0 for k in ("prepared","offered","completed","quarantinedAccounts","roundsCompleted"))
+            or ready.get("endpointDispatch") is not None or ready.get("boundedSummary") is not None
+            or any(type(v) is not int or v!=0 for v in ready.get("supply",{}).values())):
+        raise RuntimeError("one-shot profile cannot claim ready-pool/successor work")
+    original_endpoint_binding(report,total)
+    if not isinstance(fixture_transactions,list) or len(fixture_transactions)!=total:
+        raise RuntimeError("all2048 original fixture envelopes required for result binding")
+    senders=set();recipients=set()
+    for row,encoded in zip(report["transactions"],fixture_transactions):
+        if row.get("round")!=1 or row.get("signedTransaction")!=encoded:
+            raise RuntimeError("one-shot result differs from original signed fixture")
+        wire=base64.b64decode(encoded,validate=True);tx=json.loads(wire)
+        if (base64.b64encode(wire).decode()!=encoded or not 1<=len(wire)<=65536 or row.get("bytes")!=len(wire)
+                or row.get("hash","").upper()!=hashlib.sha256(wire).hexdigest().upper()
+                or any(type(tx.get(k)) is not int for k in ("chainId","amount","fee","nonce"))
+                or tx.get("chainId")!=6423 or tx.get("type")!="transfer" or tx["nonce"]!=1
+                or tx.get("amount")!=1 or tx.get("fee")!=1 or not tx.get("signature") or not tx.get("publicKey")
+                or not tx.get("from") or not tx.get("to") or tx["from"] in senders):
+            raise RuntimeError("independent nonce1 business input identity/shape differs")
+        senders.add(tx["from"]);recipients.add(tx["to"])
+    if len(senders)!=total or len(recipients)!=1:
+        raise RuntimeError("fixed2048 independent sender/one recipient shape differs")
+    validate_shared_replay(report,True)
+    validate_observer_phases(report)
+    return dict(summary=summary,oneShot=dict(independentSenders=total,nonce=1,configuredOfferedRate=1000,
+                originalFixtureBytesBound=True,sustainedTPSQualified=False,
+                interpretation="Finite signed business probe. Fixture generation/signing precedes client measurement; no successor signing/journaling or ready-pool wait is inferred. Python verifies identity/shape, original Go path verifies signatures/business/quorum/durability. Not sustained1000TPS or independent cryptographic replay."),
+                offerLatency=offer_latency_readout(report,total),originalSubmissionTails=original_submission_tails(report,total),
+                submissionPhaseVerification=validate_submission_phases(report,total))
+
+
+def qualify_business_rows(report,total):
+    s = report["summary"]
+    for key in ("input", "offered", "submitted", "checkTxAccepted", "includedCodeZero",
+                "effectiveBusinessIncluded", "quorumConfirmed", "finalSubmitted"):
+        if type(s.get(key)) is not int or s[key] != total:
+            raise RuntimeError("unqualified business count: " + key)
+    for key in ("checkTxRejected", "checkTxUnverifiedResponses", "executionFailed", "submissionUnknown",
+                "timedOut", "observationFailed", "notSubmitted"):
+        if type(s.get(key)) is not int or s[key] != 0:
+            raise RuntimeError("business failure/UNKNOWN: " + key)
+    transactions = report.get("transactions", [])
+    if len(transactions) != total or {t.get("index") for t in transactions} != set(range(total)):
+        raise RuntimeError("complete per-transaction evidence required")
+    for t in transactions:
+        if (t.get("status") != "confirmed" or t.get("checkTxCode") != 0 or t.get("executionCode") != 0
+                or any(t.get(k) is not True for k in ("checkTxIdentityVerified", "quorumVerified", "transactionProofVerified", "durableStateVerified", "durableInfoVerified"))
+                or t.get("height", 0) <= 0 or t.get("durableStateHeight", 0) < t["height"]
+                or t.get("durableInfoHeight", 0) < t["durableStateHeight"]
+                or not t.get("durableSnapshotSha256") or not t.get("confirmedObservedAt")):
+            raise RuntimeError("per-transaction business qualification missing")
+    return s
+
+
+def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False,fixture_transactions=None):
+    if profile_name=="supply-2048x1":
+        if pacing!="relative" or endpoint_fair or endpoint_elastic:
+            raise RuntimeError("2048x1 cannot select pair endpoint or pacing candidates")
+        return validate_oneshot_report(report,fixture_transactions)
     profile = recipe("grpc", profile_name, pacing)["profile"]
     if report.get("endpointElasticSubmission",False) is not endpoint_elastic:
         raise RuntimeError("actual elastic endpoint selection differs from selected profile")
@@ -715,15 +795,7 @@ def validate_report(report, profile_name="supply-256x4", pacing="relative", endp
             or report.get("inclusionMode") != "block-scan" or report.get("configuredOfferedRate") != 512
             or report.get("pacingMode") != pacing or report.get("setupErrors")):
         raise RuntimeError("fixed Supply workload incomplete")
-    s = report["summary"]
-    for key in ("input", "offered", "submitted", "checkTxAccepted", "includedCodeZero",
-                "effectiveBusinessIncluded", "quorumConfirmed", "finalSubmitted"):
-        if type(s.get(key)) is not int or s[key] != 1024:
-            raise RuntimeError("unqualified business count: " + key)
-    for key in ("checkTxRejected", "checkTxUnverifiedResponses", "executionFailed", "submissionUnknown",
-                "timedOut", "observationFailed", "notSubmitted"):
-        if type(s.get(key)) is not int or s[key] != 0:
-            raise RuntimeError("business failure/UNKNOWN: " + key)
+    s=qualify_business_rows(report,1024)
     supply = report["readySenders"]["supply"]
     for key, value in supply.items():
         if type(value) is not int or value < 0:
@@ -751,16 +823,6 @@ def validate_report(report, profile_name="supply-256x4", pacing="relative", endp
             or type(supply.get("pacingPeakCatchupTargets")) is not int or not 0 <= supply["pacingPeakCatchupTargets"] <= 3
             or pacing == "relative" and (any(decisions) or supply["pacingPeakCatchupTargets"] != 0)):
         raise RuntimeError("pacing decision counters differ from selected mode")
-    transactions = report.get("transactions", [])
-    if len(transactions) != 1024 or {t.get("index") for t in transactions} != set(range(1024)):
-        raise RuntimeError("complete per-transaction evidence required")
-    for t in transactions:
-        if (t.get("status") != "confirmed" or t.get("checkTxCode") != 0 or t.get("executionCode") != 0
-                or any(t.get(k) is not True for k in ("checkTxIdentityVerified", "quorumVerified", "transactionProofVerified", "durableStateVerified", "durableInfoVerified"))
-                or t.get("height", 0) <= 0 or t.get("durableStateHeight", 0) < t["height"]
-                or t.get("durableInfoHeight", 0) < t["durableStateHeight"]
-                or not t.get("durableSnapshotSha256") or not t.get("confirmedObservedAt")):
-            raise RuntimeError("per-transaction business qualification missing")
     return dict(summary=s, supply=supply)
 
 
@@ -807,6 +869,43 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
     return row
 
 
+def enforce_captured_sample(sampled,result,initial=False):
+    try:
+        native.enforce(sampled,initial)
+        if sampled.get("processLogBytes",0)>native.CAPS["logBytes"]:
+            raise RuntimeError("combined process log cap exceeded")
+    except Exception:
+        result.setdefault("refusedSamples",[]).append(sampled)
+        raise
+
+
+def oneshot_post_fsync(result,receipt,capture_sample,started):
+    sampled=None
+    try:
+        sampled=capture_sample()
+        if (time.monotonic()-started)*1000>60000:
+            raise RuntimeError("one-shot total including receipt fsync exceeded60s")
+        scans=result.get("closureScans",[])
+        if (type(result.get("launcher")) is not int or result["launcher"]<=0
+                or len(scans)<2 or any(s.get("owned")!=[result.get("launcher")] or type(s.get("launcherStartTicks")) is not int or s["launcherStartTicks"]<=0 for s in scans[-2:])
+                or scans[-1].get("launcherStartTicks")!=scans[-2].get("launcherStartTicks")):
+            raise RuntimeError("one-shot final double owned closure absent")
+        if (result.get("cleanupComplete") is not True or result.get("nodesStarted") is not True
+                or result.get("measurement",{}).get("summary",{}).get("finalSubmitted")!=2048):
+            raise RuntimeError("one-shot final business/cleanup evidence incomplete")
+    except Exception as error:
+        result["firstCause"]=result.get("firstCause") or str(error)
+    digest=native.digest(receipt)
+    elapsed=int((time.monotonic()-started)*1000)
+    if elapsed>60000:result["firstCause"]=result.get("firstCause") or "one-shot total including receipt/hash exceeded60s"
+    qualified=result.get("firstCause") is None
+    print("YNX_ONESHOT_1000_TERMINAL "+json.dumps(dict(schema=1,kind="fixed2048x1-post-fsync-verdict",
+        qualified=qualified,nodesStarted=result.get("nodesStarted"),firstCause=result.get("firstCause"),
+        receiptSHA256=digest,elapsedMs=elapsed,
+        postFsyncSample=sampled,refusedSamples=result.get("refusedSamples",[]))),flush=True)
+    return qualified
+
+
 def preflight(build, case):
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required")
@@ -824,7 +923,16 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
+def supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases=False,shared_replay=None,endpoint_fair=None,endpoint_elastic=None):
+    return [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", str(profile["offeredRate"]), "-rounds", str(profile["rounds"]), "-sender-mode", profile.get("senderMode","ready-pool"), "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])
+
+
 def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None):
+    one_shot=not fixture_only and profile_name=="supply-2048x1"
+    if one_shot:
+        if shared_replay is not None and shared_replay is not True:
+            raise RuntimeError("2048x1 requires explicit shared replay selection")
+        shared_replay=True
     selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
@@ -846,6 +954,8 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
     go_cache = None
     cache_baseline = 0
     fixture_qualified = False
+    one_shot_qualified = False
+    if one_shot:result["launcher"]=os.getpid()
 
     def mark(phase):
         result["timeline"].append(dict(phase=phase, elapsedNs=int((time.monotonic()-started)*1e9), unixNs=time.time_ns()))
@@ -854,19 +964,15 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         return subprocess.check_output(args, cwd=source, timeout=pair_budget.io_timeout() if pair_budget else 5, stderr=subprocess.STDOUT).decode().strip()
 
     def capture_sample(initial=False):
-        sampled=native_sample(case,build,known,started,initial,enforce_limits=not fixture_only)
-        if fixture_only:
+        sampled=native_sample(case,build,known,started,initial,enforce_limits=not (fixture_only or one_shot))
+        if fixture_only or one_shot:
             sampled["privateBytes"]+=native.directory_bytes(receipt.parent)
+        if fixture_only:
             sampled["preexistingGoCacheBytes"]=cache_baseline
             sampled["sharedGoCacheBytes"]=native.directory_bytes(go_cache) if go_cache is not None else 0
             sampled["incrementalGoCacheBytes"]=max(0,sampled["sharedGoCacheBytes"]-cache_baseline)
             sampled["buildBytes"]+=sampled["incrementalGoCacheBytes"]
-            try:
-                native.enforce(sampled,initial)
-                if sampled.get("processLogBytes",0)>native.CAPS["logBytes"]:raise RuntimeError("combined process log cap exceeded")
-            except Exception:
-                result.setdefault("refusedSamples",[]).append(sampled)
-                raise
+        if fixture_only or one_shot:enforce_captured_sample(sampled,result,initial)
         return sampled
 
     def tick(initial=False):
@@ -963,7 +1069,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
                                cpuinfo=native.bounded(Path("/proc/cpuinfo"), 1 << 20).decode())
         network = case / "network"
         mark("fixture_start")
-        wait(spawn("fixture", [str(build / BINARIES[2]), "-ephemeral", "-output", str(network), "-count", str(profile["senders"])]+([] if fixture_only else ["-retain-ephemeral-senders"])))
+        wait(spawn("fixture", [str(build / BINARIES[2]), "-ephemeral", "-output", str(network), "-count", str(profile["senders"])]+([] if fixture_only or one_shot else ["-retain-ephemeral-senders"])))
         mark("fixture_complete")
         manifest_path = network / "network-manifest.json"
         manifest = validate_manifest(json.loads(native.bounded(manifest_path, 1 << 20)), network)
@@ -971,6 +1077,11 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             result["fixtureResources"]=fixture_resource_readout(network)
             tick();mark("fixture_resource_readback_complete")
         else:
+            if one_shot:
+                secrets=network/"ephemeral-sender-secrets.json"
+                if secrets.exists() or secrets.is_symlink():
+                    raise RuntimeError("one-shot fixture must not retain sender signing keys")
+                result["fixtureResources"]=fixture_resource_readout(network)
             for i, node in enumerate(manifest["nodes"]):
                 app, _ = server_commands(build, node, manifest["migrationPath"], transport)
                 spawn("abci-"+str(i), app, True)
@@ -996,9 +1107,9 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             mark("all_nodes_height2")
             output = network / "transactions-result.json"
             mark("client_start")
-            wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])))
+            wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic)))
             client_report=json.loads(native.bounded(output,16 << 20))
-            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True)
+            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True,fixture_transactions=json.loads(native.bounded(network/"transactions.json",16 << 20))["transactions"] if one_shot else None)
             if observer_phases:
                 result["observerPhases"]=validate_observer_phases(client_report)
             if shared_replay is not None:
@@ -1027,6 +1138,8 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             try:
                 rows, _ = native.proc_inventory()
                 ids = [pid for pid in native.owned_set(rows, os.getpid(), known=known) if pid != os.getpid()]
+                if one_shot:
+                    result.setdefault("closureScans",[]).append(dict(elapsedMs=int((time.monotonic()-started)*1000),owned=[os.getpid()]+ids,launcherStartTicks=rows[os.getpid()]["startTicks"]))
                 if not ids:
                     empty += 1
                     if empty == 2:
@@ -1067,6 +1180,8 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         if result["elapsedMs"] > 60000:
             result["firstCause"] = result["firstCause"] or "total60s deadline exceeded"
         result["measurementLimits"] = "Sampled RSS, not a hard cgroup ceiling; non-atomic proc scans. Build occurs before the bounded runtime window in the existing CI job. Finite 1024 business transactions, not sustained TPS. Terminal sink disabled in this finite profile; zero is not a missing measurement. No Darwin matched comparison."
+        if one_shot:
+            result["measurementLimits"]="Finite2048 independent signed nonce1 inputs, configured1000offers/s, not sustained TPS. Fixture generation/signing precedes measured client window. All original resource caps unchanged; actual node/reader/history/evidence growth may refuse this case. No retry, endpoint candidate or default promotion. Original native admission, cleanup and post-fsync verdict required."
         if fixture_only:
             result["measurementLimits"]="Fixture-only resource sampling including build/generation and structural file readback within45+15s. Preexisting shared Go cache is inventoried separately; build/tmp+incremental cache and all private data/evidence are charged. Non-atomic sampled RSS/process observations are not instantaneous upper bounds. No nodes/reader/network/business finality or1000TPS admission. Post-fsync terminal+exit0 required."
         with receipt.open("x") as handle:
@@ -1079,9 +1194,11 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             except Exception as error:result["firstCause"]=result["firstCause"] or str(error)
             fixture_qualified=result["firstCause"] is None and result["cleanupComplete"] and "fixtureResources" in result
             print("YNX_FIXTURE_RESOURCE_TERMINAL "+json.dumps(dict(qualified=fixture_qualified,nodesStarted=False,firstCause=result["firstCause"],receiptSHA256=native.digest(receipt),elapsedMs=int((time.monotonic()-started)*1000),postFsyncSample=post_sample,refusedSamples=result.get("refusedSamples",[]))),flush=True)
+        elif one_shot:
+            one_shot_qualified=oneshot_post_fsync(result,receipt,capture_sample,started)
         else:
             print(json.dumps({k: result.get(k) for k in ("firstCause", "nodesStarted", "cleanupComplete", "elapsedMs", "partialMeasurement")}), flush=True)
-    return (0 if fixture_qualified else 1) if fixture_only else (1 if result["firstCause"] else 0)
+    return (0 if fixture_qualified else 1) if fixture_only else (0 if one_shot_qualified else 1) if one_shot else (1 if result["firstCause"] else 0)
 
 
 if __name__ == "__main__":

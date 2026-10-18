@@ -62,11 +62,12 @@ on:
           - grpc
         default: socket
       linux_supply_profile:
-        description: "Fixed Supply shape, always1024 total; 512x2 is gRPC only"
+        description: "Fixed private profile; 2048x1 requires gRPC, observer timing and separate Root resource grant"
         type: choice
         options:
           - supply-256x4
           - supply-512x2
+          - supply-2048x1
         default: supply-256x4
       linux_supply_pacing:
         description: "Explicit bounded short-jitter compensation for512x2 only; relative remains default"

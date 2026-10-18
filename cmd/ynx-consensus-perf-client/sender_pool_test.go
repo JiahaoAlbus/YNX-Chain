@@ -106,6 +106,87 @@ func gateResult(raw cmttypes.Tx, height int64) transactionResult {
 	return transactionResult{Hash: fmt.Sprintf("%X", raw.Hash()), Status: "confirmed", CheckTxIdentityVerified: true, CheckTxCode: &zero, ExecutionCode: &zero, QuorumVerified: true, TransactionProofVerified: true, DurableStateVerified: true, ConfirmedObservedAt: &now, Height: height, DurableStateHeight: height, DurableSnapshotSHA256: "unit-gate-placeholder"}
 }
 
+// One-shot mode has no retained signing keys/pool. It must still retain exact
+// public input bytes for original result binding and read-only recovery.
+// Quorum flags below are explicit unit inputs, not a BFT network result.
+func TestSingleRoundWithoutSenderPoolRetainsOriginalSignedInputs(t *testing.T) {
+	_, _, _, migration, txs := senderFixture(t)
+	statePath := filepath.Join(t.TempDir(), "state.json")
+	app, err := consensus.NewPersistentApplication(migration, statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader, err := newDurableReader(migration, []string{statePath})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	height := int64(migration.Height) + 1
+	results := make([]transactionResult, len(txs))
+	calls := 0
+	rounds, err := runSenderRounds(ctx, 1, txs, nil, results, func(batch []cmttypes.Tx, current []transactionResult) {
+		calls++
+		for i, raw := range batch {
+			if current[i].SignedTransaction != base64.StdEncoding.EncodeToString(raw) {
+				t.Errorf("one-shot original signed input missing before submission: index%d", i)
+			}
+			check, e := app.CheckTx(ctx, &abci.RequestCheckTx{Tx: raw})
+			if e != nil || check.Code != 0 {
+				t.Fatalf("real signed CheckTx failed: %v", e)
+			}
+		}
+		input := make([][]byte, len(batch))
+		for i, raw := range batch {
+			input[i] = raw
+		}
+		final, e := app.FinalizeBlock(ctx, &abci.RequestFinalizeBlock{Height: height, Time: time.Unix(1802736000+height, 0), Txs: input})
+		if e != nil || len(final.TxResults) != len(batch) {
+			t.Fatal(e)
+		}
+		if _, e = app.Commit(ctx, &abci.RequestCommit{}); e != nil {
+			t.Fatal(e)
+		}
+		for i, raw := range batch {
+			if final.TxResults[i].Code != 0 {
+				t.Fatal("real native execution failed", i)
+			}
+			evidence, e := reader.verify(ctx, statePath, raw, height)
+			if e != nil {
+				t.Fatal("real fee/nonce readback failed", e)
+			}
+			r := gateResult(raw, height)
+			r.Index = i
+			r.Round = 1
+			r.Bytes = current[i].Bytes
+			r.SignedTransaction = current[i].SignedTransaction
+			r.DurableSnapshotSHA256 = evidence.SnapshotSHA256
+			current[i] = r
+		}
+	})
+	if err != nil || rounds != 1 || calls != 1 {
+		t.Fatal("one-shot path drift/retry", rounds, calls, err)
+	}
+	reopened, err := consensus.NewPersistentApplication(migration, statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	query, err := reopened.Query(ctx, &abci.RequestQuery{Path: "/state"})
+	var state consensus.CommittedState
+	if err != nil || json.Unmarshal(query.Value, &state) != nil || len(state.FeeEvents) != len(txs) {
+		t.Fatal("one-shot durable restart differs", err)
+	}
+	for i, raw := range txs {
+		decoded, e := base64.StdEncoding.DecodeString(results[i].SignedTransaction)
+		if e != nil || !bytes.Equal(raw, decoded) {
+			t.Errorf("one-shot retained evidence differs: index%d", i)
+		}
+		replayed, e := reopened.CheckTx(ctx, &abci.RequestCheckTx{Tx: raw})
+		if e != nil || replayed.Code == 0 {
+			t.Fatal("one-shot replay accepted after restart", i, e)
+		}
+	}
+}
+
 func TestSenderRoundsRealSignaturesExecutionPersistenceAndRestart(t *testing.T) {
 	path, manifestRaw, m, migration, txs := senderFixture(t)
 	p, err := loadSenderPool(path, manifestRaw, m, migration, txs, 4)

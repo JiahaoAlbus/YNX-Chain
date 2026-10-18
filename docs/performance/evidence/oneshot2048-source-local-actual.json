@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "kind": "source-only-oneshot2048-offer1000-registration-and-public-input-repair",
+  "baseCommit": "4ccfc35bc705eb30cd8a63337c5a9529e1d913fa",
+  "execute": false,
+  "nodesStarted": false,
+  "executionAuthorized": false,
+  "executionAdmitted": false,
+  "sustainedTPSQualified": false,
+  "red": {
+    "patch": {
+      "path": "docs/performance/evidence/oneshot-public-input-red-4ccfc35bc.patch.json",
+      "bytes": 4250,
+      "sha256": "4153ba04aa460144f22b9e7ad9c1dcf08076dbcc99e45b95a30de70393bb2554"
+    },
+    "raw": {
+      "path": "artifacts/chain-performance-20261017/oneshot-1000-source/signed-input-red.raw",
+      "bytes": 731,
+      "sha256": "b0b7335616f354b92ed3ef63cf3e644c97c477780e0be16c202cf70a613e8941"
+    },
+    "failure": "Single round without sender pool omitted original public signed bytes before submission and in retained results; real local execution/readback/restart completed, no crypto bypass."
+  },
+  "verification": {
+    "go": {
+      "path": "artifacts/chain-performance-20261017/oneshot-1000-source/signed-input-final.raw",
+      "bytes": 378,
+      "sha256": "b8c7ebdae7d90165c3c990906d46599bc47bd07af1b8624c95b689b4fc1c214d"
+    },
+    "python": {
+      "path": "artifacts/chain-performance-20261017/oneshot-1000-source/controller-final57.raw",
+      "bytes": 156,
+      "sha256": "4f7d064c0ee2bd0f116433d675382c15ba61f67850452cb284be4293aaa9c425"
+    },
+    "sourceOnlyPythonTests": 57,
+    "goTests": 2,
+    "prepared": {
+      "path": "artifacts/chain-performance-20261017/oneshot-1000-source/prepared.json",
+      "bytes": 1532,
+      "sha256": "c5e2b99337c2ed2e371b13fde6d90aef39e3a52a8d4bb423442590d059b0ce70"
+    },
+    "tierPrepared": {
+      "path": "artifacts/chain-performance-20261017/oneshot-1000-source/tier-prepared.json",
+      "bytes": 5773,
+      "sha256": "10852443306abdb7061e0fe27e4dd4fa29a329c2b971ed745a7fac0bf0d91146"
+    }
+  },
+  "limits": "Synthetic2048 orchestration/negative controls, not generated/verified2048 signatures or live nodes. Go test uses3 actual signed CheckTx/Finalize/Commit/fee nonce/readback/restart/replay rejection with unit quorum flags. Original Go verification and resource gates still required in future single Root-granted case. Configured1000offers/s is not final TPS. No cap increase, no retry, no endpoint candidates or gzip/streaming mode.",
+  "postFsyncContract": {
+    "totalMs": 60000,
+    "originalPrivateByteCap": 33554432,
+    "includesReceiptDirectory": true,
+    "actualRefusedSamplesRetained": true,
+    "finalDoubleOwnedClosureRequired": true,
+    "receiptSHA256BoundToTerminal": true,
+    "stdoutPrefix": "YNX_ONESHOT_1000_TERMINAL",
+    "exit0Required": true
+  }
+}

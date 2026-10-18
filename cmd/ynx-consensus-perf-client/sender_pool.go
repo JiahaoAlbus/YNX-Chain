@@ -45,9 +45,9 @@ func runSenderRounds(ctx context.Context, rounds int, txs []cmttypes.Tx, pool *e
 		for i, tx := range txs {
 			current[i].Hash = fmt.Sprintf("%X", tx.Hash())
 			current[i].Bytes = len(tx)
-			if pool != nil {
-				current[i].SignedTransaction = base64.StdEncoding.EncodeToString(tx)
-			}
+			// Public input evidence is required even for a one-shot round with
+			// no retained signing keys or successor pool.
+			current[i].SignedTransaction = base64.StdEncoding.EncodeToString(tx)
 		}
 		if pool != nil {
 			if err := pool.persistRound(round+1, txs); err != nil {

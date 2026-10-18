@@ -58,6 +58,136 @@ def report(profile="supply-256x4", pacing="relative"):
 
 
 class SupplySourceTests(unittest.TestCase):
+    def oneshot_report_fixture(self):
+        # Structural orchestration data only, not a cryptographic/business run.
+        import base64,hashlib
+        row=self.observer_report();template=row["transactions"][0]
+        row.update(roundsRequested=1,roundsCompleted=1,senderMode="rounds",configuredOfferedRate=1000,
+                   concurrency=4,observerConcurrency=4,pacingMode="relative",sharedDurableReplay=True,
+                   readySenders=dict(supply={}),endpoints=["http://127.0.0.1:"+str(31757+i) for i in range(4)])
+        for key in ("input","offered","submitted","checkTxAccepted","includedCodeZero","effectiveBusinessIncluded","quorumConfirmed","finalSubmitted"):row["summary"][key]=2048
+        row["summary"].update(submissionQueueDelayMs=dict(samples=2048,p50=10,p95=10,p99=10),checkTxLatencyMs=dict(samples=2048,p50=20,p95=20,p99=20))
+        row["groupedObservation"]["phases"]["totals"]["transaction_inclusion_proof"]["attempts"]=2048
+        row["durableReadback"].update(snapshotValidations=1,blockJournalReplayedBlocks=1,blockJournalReplayedTransactionInputs=2048,
+            sharedReplay=dict(lookups=1,hits=0,joins=0,fullReplays=1,failures=0,bypasses=0,waitNs=0,cachedCanonicalBytes=100,canonicalByteLimit=16<<20,peakFlights=1))
+        fixture=[];rows=[]
+        for i in range(2048):
+            wire=json.dumps(dict(chainId=6423,type="transfer",nonce=1,amount=1,fee=1,signature="synthetic-unit",publicKey="synthetic-unit",**{"from":"unit-sender-"+str(i),"to":"unit-recipient"})).encode()
+            encoded=base64.b64encode(wire).decode();fixture.append(encoded)
+            rows.append(dict(template,index=i,round=1,endpoint=row["endpoints"][i%4],signedTransaction=encoded,hash=hashlib.sha256(wire).hexdigest().upper(),bytes=len(wire),checkTxMs=20,durableStoreFormat="block-journal",submissionPhases=self.submission_phases()))
+        row["transactions"]=rows
+        return row,fixture
+
+    def test_oneshot2048_registered_but_no_execution_or_cap_increase(self):
+        plan=supply.recipe("grpc","supply-2048x1","relative",True)
+        self.assertFalse(plan["execute"]);self.assertFalse(plan["nodesStarted"]);self.assertTrue(plan["requiresSeparateRootGrant"])
+        self.assertEqual(plan["profile"]["senders"],2048);self.assertEqual(plan["profile"]["rounds"],1);self.assertEqual(plan["profile"]["offeredRate"],1000)
+        self.assertEqual(plan["resourceCaps"],supply.native.CAPS)
+        for k in ("activeMs","cleanupMs","totalMs","ownedProcesses","ownedRSSBytes","privateBytes","threads"):
+            self.assertEqual(plan["profile"][k],supply.PROFILE[k])
+        for args in (("socket","supply-2048x1","relative",True),("grpc","supply-2048x1"),("grpc","supply-2048x1","bounded-cadence",True),("grpc","supply-2048x1","relative",True,False),("grpc","supply-2048x1","relative",True,True,True)):
+            with self.subTest(args=args),self.assertRaises(RuntimeError):supply.recipe(*args)
+
+    def test_oneshot2048_all_original_business_and_phase_rows_required(self):
+        row,fixture=self.oneshot_report_fixture()
+        result=supply.validate_report(row,"supply-2048x1",fixture_transactions=fixture)
+        self.assertEqual(result["oneShot"]["independentSenders"],2048)
+        self.assertFalse(result["oneShot"]["sustainedTPSQualified"])
+        self.assertEqual(result["submissionPhaseVerification"]["samples"],2048)
+        self.assertEqual(result["offerLatency"]["offerToQualifiedFinalLatencyMs"]["p95"],1510)
+        self.assertEqual(result["originalSubmissionTails"]["checkTxLatencyMs"]["samples"],2048)
+
+    def test_oneshot2048_rejects_missing_identity_proof_nonce_phase_and_wrong_mode(self):
+        import copy,base64
+        original,fixture=self.oneshot_report_fixture()
+        for kind in ("missing","unknown","proof","authority","fixture","hash","nonce","duplicate","phase","count","ready","workers","offer","rounds","shared","tail"):
+            row=copy.deepcopy(original);inputs=list(fixture)
+            if kind=="missing":row["transactions"].pop()
+            if kind=="unknown":row["summary"]["submissionUnknown"]=1
+            if kind=="proof":row["transactions"][0]["quorumVerified"]=False
+            if kind=="authority":row["transactions"][0]["endpoint"]=row["endpoints"][1]
+            if kind=="fixture":inputs[0]=inputs[1]
+            if kind=="hash":row["transactions"][0]["hash"]="0"*64
+            if kind in ("nonce","duplicate"):
+                tx=json.loads(base64.b64decode(inputs[0]));tx["nonce"]=2 if kind=="nonce" else 1
+                if kind=="duplicate":tx["from"]="unit-sender-1"
+                inputs[0]=base64.b64encode(json.dumps(tx).encode()).decode();row["transactions"][0]["signedTransaction"]=inputs[0]
+                import hashlib
+                row["transactions"][0].update(hash=hashlib.sha256(base64.b64decode(inputs[0])).hexdigest().upper(),bytes=len(base64.b64decode(inputs[0])))
+            if kind=="phase":del row["transactions"][0]["submissionPhases"]
+            if kind=="count":row["summary"]["finalSubmitted"]=1024
+            if kind=="ready":row["readySenders"]["supply"]={"signAttempts":1}
+            if kind=="workers":row["concurrency"]=5
+            if kind=="offer":row["configuredOfferedRate"]=512
+            if kind=="rounds":row["roundsRequested"]=2
+            if kind=="shared":row["sharedDurableReplay"]=False
+            if kind=="tail":row["summary"]["submissionQueueDelayMs"]["p99"]=999
+            with self.subTest(kind=kind),self.assertRaises(RuntimeError):supply.validate_report(row,"supply-2048x1",fixture_transactions=inputs)
+
+    def test_oneshot2048_original_client_command_has_no_ready_pool_or_successor_keys(self):
+        profile=supply.recipe("grpc","supply-2048x1","relative",True)["profile"]
+        cmd=supply.supply_client_command(Path("build"),Path("network/manifest"),Path("network"),Path("out"),profile,"relative",True,True)
+        for flag,value in (("-offered-rate","1000"),("-sender-mode","rounds"),("-rounds","1"),("-concurrency","4"),("-observers","4")):
+            self.assertEqual(cmd[cmd.index(flag)+1],value)
+        self.assertIn("-shared-durable-replay",cmd);self.assertIn("-observer-phase-timing",cmd)
+        for flag in ("-endpoint-fair-submission","-endpoint-elastic-submission","-streaming-workload","-terminal-gzip"):
+            self.assertNotIn(flag,cmd)
+
+    def test_oneshot2048_cli_is_read_only_until_explicit_execute(self):
+        args=[sys.executable,"-B",str(FILE),"--profile","supply-2048x1","--transport","grpc","--observer-phases"]
+        result=subprocess.run(args,capture_output=True,text=True,timeout=5)
+        self.assertEqual(result.returncode,0,result.stderr)
+        plan=json.loads(result.stdout);self.assertFalse(plan["execute"]);self.assertFalse(plan["nodesStarted"])
+        self.assertTrue(plan["sharedDurableReplay"])
+        refused=subprocess.run(args[:-1],capture_output=True,text=True,timeout=5)
+        self.assertNotEqual(refused.returncode,0)
+        with self.assertRaisesRegex(RuntimeError,"shared replay"):
+            supply.run(Path("source"),Path("build"),Path("case"),Path("receipt"),"grpc","supply-2048x1",observer_phases=True,shared_replay=False)
+
+    def test_larger_probe_retains_actual_refused_bytes_without_raising_caps(self):
+        sample=dict(rssBytes=1,threads=1,privateBytes=(32<<20)+1,buildBytes=1,freeDiskBytes=10<<30,availableMemoryBytes=2<<30,processLogBytes=0)
+        result={}
+        with self.assertRaisesRegex(RuntimeError,"privateBytes cap"):
+            supply.enforce_captured_sample(sample,result)
+        self.assertIs(result["refusedSamples"][0],sample)
+        self.assertEqual(result["refusedSamples"][0]["privateBytes"],33554433)
+        self.assertEqual(supply.native.CAPS["privateBytes"],32<<20)
+        sample=dict(sample,privateBytes=1,processLogBytes=(1<<20)+1);result={}
+        with self.assertRaisesRegex(RuntimeError,"log cap"):
+            supply.enforce_captured_sample(sample,result)
+        self.assertEqual(result["refusedSamples"][0]["processLogBytes"],1048577)
+
+    def test_oneshot_terminal_requires_actual_post_fsync_caps_total_and_double_closure(self):
+        import copy,hashlib
+        base=dict(firstCause=None,nodesStarted=True,cleanupComplete=True,launcher=7,
+                  closureScans=[dict(owned=[7],launcherStartTicks=1),dict(owned=[7],launcherStartTicks=1)],
+                  measurement=dict(summary=dict(finalSubmitted=2048)))
+        with tempfile.TemporaryDirectory() as d:
+            receipt=Path(d)/"actual.json";receipt.write_text(json.dumps(base))
+            def check(row,capture=lambda:dict(privateBytes=1),elapsed=1):
+                out=io.StringIO()
+                with patch.object(supply.time,"monotonic",return_value=elapsed),contextlib.redirect_stdout(out):
+                    qualified=supply.oneshot_post_fsync(row,receipt,capture,0)
+                frame=json.loads(out.getvalue().split("YNX_ONESHOT_1000_TERMINAL ")[1])
+                self.assertEqual(frame["receiptSHA256"],hashlib.sha256(receipt.read_bytes()).hexdigest())
+                self.assertIs(frame["qualified"],qualified)
+                return qualified,frame
+            self.assertTrue(check(copy.deepcopy(base))[0])
+            for kind in ("child","missing","identity","incomplete","cause","cleanup","deadline","caps"):
+                row=copy.deepcopy(base);elapsed=1;capture=lambda:dict(privateBytes=1)
+                if kind=="child":row["closureScans"][-1]["owned"]=[7,8]
+                if kind=="missing":row["closureScans"].pop()
+                if kind=="identity":row["closureScans"][-1]["launcherStartTicks"]=2
+                if kind=="incomplete":row["measurement"]["summary"]["finalSubmitted"]=2047
+                if kind=="cause":row["firstCause"]="original UNKNOWN"
+                if kind=="cleanup":row["cleanupComplete"]=False
+                if kind=="deadline":elapsed=60.001
+                if kind=="caps":
+                    def capture():raise RuntimeError("original privateBytes cap exceeded after fsync")
+                with self.subTest(kind=kind):
+                    qualified,frame=check(row,capture,elapsed)
+                    self.assertFalse(qualified);self.assertIsNotNone(frame["firstCause"])
+
     def test_default_has_no_execution(self):
         raw = subprocess.check_output([sys.executable, "-B", str(FILE)], timeout=5)
         row = json.loads(raw)
