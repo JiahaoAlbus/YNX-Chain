@@ -3,7 +3,7 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018]
+    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-android-pq-native-20261019]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -18,6 +18,38 @@ permissions:
   contents: read
 
 jobs:
+  sdk-android-native-host:
+    name: Android Native host lifecycle (no device grant)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-android-pq-native-20261019'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.19.0
+      - name: Materialize fixed original math and current Native wrapper
+        run: |
+          git fetch --no-tags --depth=1 origin fd8b8dcf7dda9823a439db04b1e33e2375014568
+          node packages/wallet-auth/native/android/prepare-provider-stage.mjs "$GITHUB_WORKSPACE" fd8b8dcf7dda9823a439db04b1e33e2375014568 "$RUNNER_TEMP/android-native-stage"
+      - name: Run new Native restoration and actual C ABI controls
+        working-directory: ${{ runner.temp }}/android-native-stage
+        env:
+          GOTOOLCHAIN: go1.25.13
+          GOMAXPROCS: 1
+          CGO_ENABLED: 1
+        run: |
+          go mod download
+          set -o pipefail
+          go test -mod=mod -p 1 -tags ynx_bridge_test -v -run '^(TestBridge|TestNativeRestoreUsesWholeExpectedPairAndNoPlainExportAfterStorage)' ./packages/wallet-auth/native/android 2>&1 | tee native-controls.raw
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: android-native-host-source-and-controls
+          path: |
+            ${{ runner.temp }}/android-native-stage/PROVIDER_SOURCE.json
+            ${{ runner.temp }}/android-native-stage/native-controls.raw
+          if-no-files-found: error
   windows-x64-native:
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/codex/wallet-desktop-cli-sdk-20260813'
     runs-on: windows-2025
