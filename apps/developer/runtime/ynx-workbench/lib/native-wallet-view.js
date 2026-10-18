@@ -7,6 +7,15 @@ const api = require('./native-wallet-sdk.generated');
 const ID = 'ynx-native-wallet';
 const { EN, ZH } = require('./native-wallet-localization');
 const t = key => nls.localize('ynx/nativeWallet/' + key, EN[key] || key);
+const identityFailureKey=error=>({
+  IDE_NODE_ACTUAL_PARENT_ENTRY_UNAVAILABLE:'identityParentUnavailable',
+  AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED:'identitySourceUnverified',
+  AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED:'identityReceiverUnavailable',
+  AUTH_IDENTITY_RECOVERY_CONSUMER_NOT_IMPLEMENTED:'identityRecoveryUnavailable',
+  AUTH_IDENTITY_ORIGINAL_WINDOW_EXPIRED:'identityRequestExpired',
+  AUTH_IDENTITY_SOURCE_CURRENT_EXPIRED:'identityRequestExpired',
+  IDE_IDENTITY_REQUEST_BUSY:'identityRequestBusy',
+})[error?.code]||'identityFailed';
 function element(document, tag, text) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; return node; }
 class NativeWalletService {
   constructor(target = window, admission = MISSING_WALLET_ADMISSION) {
@@ -45,7 +54,7 @@ class NativeWalletWidget extends BaseWidget {
         const request=new AbortController();identityRequest=request;identityBusy(true);identityStatus.textContent=t('identityWaiting');
         void Promise.resolve().then(()=>{if(!live||request.signal.aborted)throw Object.assign(Error('Cancelled'),{name:'AbortError'});return bridge[kind]({signal:request.signal});}).then(result=>{
           if(live&&identityRequest===request&&!request.signal.aborted)identityStatus.textContent=t(result?.phase==='response-received'&&result.authorized===false&&result.dataOnly===true?'identityReceived':'identityFailed');
-        },error=>{if(live&&identityRequest===request)identityStatus.textContent=t(error?.name==='AbortError'?'identityCancelled':'identityFailed');}).finally(()=>{if(identityRequest===request){identityRequest=undefined;if(live)identityBusy(false);}});
+        },error=>{if(live&&identityRequest===request)identityStatus.textContent=t(error?.name==='AbortError'?'identityCancelled':identityFailureKey(error));}).finally(()=>{if(identityRequest===request){identityRequest=undefined;if(live)identityBusy(false);}});
       });
     }
     this.node.append(identityCancel);

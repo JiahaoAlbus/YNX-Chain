@@ -44,6 +44,17 @@ test('other Native failures are not relabelled as user cancellation',async()=>{
   await assert.rejects(pending,error=>error.name==='Error'&&error.message.includes('AUTH_IDENTITY_CURRENT_UNAVAILABLE'));
   assert.equal(f.frames.length,2);
 });
+test('Native readiness failure retains only its bounded public code for actionable UI handling',async()=>{
+  const f=fixture(),pending=f.window.ynxDesktopIdentity.receive();
+  f.reply(f.frames[0],{error:'AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED'});
+  await assert.rejects(pending,error=>error.code==='AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED');
+  assert.equal(f.frames.length,2);assert.equal(f.timers.size,0);
+});
+test('arbitrary Native error text is not copied into public UI failure metadata',async()=>{
+  const f=fixture(),pending=f.window.ynxDesktopIdentity.recover();
+  f.reply(f.frames[0],{error:'PRIVATE/raw secret not an error code'});
+  await assert.rejects(pending,error=>error.code==='IDE_IDENTITY_REQUEST_FAILED'&&!error.message.includes('PRIVATE'));
+});
 test('page retirement and timeout cancel the exact request, retain no active timer',async()=>{
   for(const mode of ['pagehide','timeout']){
     const f=fixture(),pending=f.window.ynxDesktopIdentity.recover();
@@ -72,10 +83,10 @@ async function widgetFixture(){
     if(name==='./native-wallet-sdk.generated')return {};
     throw Error(name);
   }});
-  let resolve;const entered=[],completion=new Promise(r=>resolve=r);
+  let resolve,reject;const entered=[],completion=new Promise((a,b)=>{resolve=a;reject=b;});
   const service={target:{ynxDesktopIdentity:{receive:options=>{entered.push(options);return completion;},recover:options=>{entered.push(options);return completion;}}},listeners:new Set(),controller:{state:{phase:'idle',session:{status:'disconnected'}},inspect:async()=>{},cancel:async()=>{}}};
   const widget=new loaded.exports.NativeWalletWidget(service),find=key=>widget.node.children.find(n=>n.textContent===locale.EN[key]);
-  return {widget,service,entered,resolve,find,flush:()=>new Promise(r=>setImmediate(r)),locale};
+  return {widget,service,entered,resolve,reject,find,flush:()=>new Promise(r=>setImmediate(r)),locale};
 }
 test('actual Wallet Widget buttons dispatch Native identity once without promoting Product Session',async()=>{
   const f=await widgetFixture(),before=f.service.controller.state;
@@ -93,6 +104,16 @@ test('actual Widget dispose cancels pending identity selection without later UI 
   const f=await widgetFixture();f.find('identityReceive').click();await f.flush();const text=f.widget.node.children.map(n=>n.textContent);
   f.widget.dispose();assert.equal(f.entered[0].signal.aborted,true);f.resolve({phase:'response-received',authorized:false,dataOnly:true});await f.flush();
   assert.deepEqual(f.widget.node.children.map(n=>n.textContent),text);
+});
+test('actual Widget distinguishes missing parent, protected receiver and recovery supplier without changing session',async()=>{
+  for(const [code,key] of [['IDE_NODE_ACTUAL_PARENT_ENTRY_UNAVAILABLE','identityParentUnavailable'],['AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED','identityReceiverUnavailable'],['AUTH_IDENTITY_RECOVERY_CONSUMER_NOT_IMPLEMENTED','identityRecoveryUnavailable'],['AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED','identitySourceUnverified']]){
+    const f=await widgetFixture(),before=f.service.controller.state;f.find('identityReceive').click();await f.flush();
+    f.reject(Object.assign(Error(code),{code}));await f.flush();assert.ok(f.find(key),code);assert.equal(f.service.controller.state,before);assert.equal(f.find('identityReceive').disabled,false);f.widget.dispose();
+  }
+});
+test('actual Widget expires only that request and requires an explicit retry',async()=>{
+  const f=await widgetFixture();f.find('identityRecover').click();await f.flush();f.reject(Object.assign(Error('expired'),{code:'AUTH_IDENTITY_ORIGINAL_WINDOW_EXPIRED'}));await f.flush();
+  assert.ok(f.find('identityRequestExpired'));assert.equal(f.entered.length,1);f.widget.dispose();
 });
 test('actual Foundation status guard rejects extra authority, wrong context and numeric booleans',{
   skip:process.platform!=='darwin'?'Requires Foundation':false,

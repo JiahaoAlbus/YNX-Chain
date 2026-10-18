@@ -16,9 +16,11 @@
     if(event.error){
       // Only the exact Native failure after original correlation/current checks
       // means user cancellation. Other failures keep their original error path.
-      finish(event.id,event.error==='AUTH_IDENTITY_PEER_USER_CANCELLED'
+      const code=typeof event.error==='string'&&/^[A-Z0-9_]{1,100}$/.test(event.error)?event.error:'IDE_IDENTITY_REQUEST_FAILED';
+      const error=code==='AUTH_IDENTITY_PEER_USER_CANCELLED'
         ?new DOMException('Cancelled by Wallet user','AbortError')
-        :new Error('Native identity request failed: '+event.error));return;
+        :new Error('Native identity request failed: '+code);
+      Object.defineProperty(error,'code',{value:code});finish(event.id,error);return;
     }
     if(event.phase!=='response-received'||event.authorized!==false||event.dataOnly!==true)return;
     finish(event.id,null,Object.freeze({phase:'response-received',authorized:false,dataOnly:true}));
