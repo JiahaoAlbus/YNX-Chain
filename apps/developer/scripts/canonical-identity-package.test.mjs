@@ -3,18 +3,19 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,readFile,writeFile,rm,stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import * as packager from './package-identity-admission-source.mjs';
 test('canonical package retains original SDK relative topology and detects changed bytes', async () => {
   assert.equal(typeof packager.copyCanonicalIdentityAdmissionSource,'function');
-  const temp=await mkdtemp(join(tmpdir(),'ynx-canonical-identity-'));
+  const temp=await mkdtemp(join(tmpdir(),'ynx-canonical-identity-中文 % # '));
   try {
     const code=join(temp,'Fixture.app/Contents/Resources/code'); await mkdir(code,{recursive:true});
     const receipt=await packager.copyCanonicalIdentityAdmissionSource(code);
     assert.equal(receipt.nativeModuleCopied,false);
     const sdk=join(code,'packages/wallet-auth');
     assert.equal((await stat(join(sdk,'src/original-ide-admission-parent-delivery.js'))).isFile(),true);
-    const loadPath=new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',new URL('file://'+join(sdk,'src/original-ide-admission-parent-delivery.js')));
-    assert.equal(loadPath.pathname,join(code,'apps/wallet-desktop/native/original-auth-identity.node'));
+    const loadPath=new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',pathToFileURL(join(sdk,'src/original-ide-admission-parent-delivery.js')));
+    assert.equal(fileURLToPath(loadPath),join(code,'apps/wallet-desktop/native/original-auth-identity.node'));
     const native=await packager.copyCanonicalNativeModule(code);
     assert.equal(native.registrationAccepted,false);
     assert.equal(native.sourcePinsVerified,true);
