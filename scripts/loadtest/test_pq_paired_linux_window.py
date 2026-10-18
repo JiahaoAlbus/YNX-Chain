@@ -66,6 +66,273 @@ class LinuxGuardControls(unittest.TestCase):
                  "--- PASS: " + guard.E2E_TEST + " (20.00s)", "PASS"]
         return lines, summary
 
+    def remote_e2e_recipe(self, temporary):
+        # Source/transport controls only: neither fake ELF is ever executed.
+        plan, prepared, source, case, build, binary = self.e2e_recipe(
+            temporary, guard.REMOTE_E2E_RETAINED_HISTORY_PROFILE)
+        for relative in (guard.REMOTE_E2E_SOURCE, guard.REMOTE_PROCESS_SOURCE):
+            original = Path(__file__).resolve().parents[2] / relative
+            (source / relative).write_bytes(original.read_bytes())
+        daemon = build / "ynx-consensus-pq-remote-signer"
+        daemon.write_bytes(b"\x7fELFcontrol-only-normal-daemon-shape-not-executed")
+        daemon.chmod(0o700)
+        plan.update(caps=guard.fixed_caps(guard.REMOTE_E2E_RETAINED_HISTORY_PROFILE),
+                    sourcePins=guard.consensus_remote_source_pins(),
+                    remoteSignerPin=dict(path=str(daemon), sha256=guard.digest(daemon)))
+        plan["command"][1] = "-test.run=^" + guard.REMOTE_E2E_TEST + "$"
+        plan["environment"] = guard.consensus_remote_environment(plan, build)
+        prepared.write_text(json.dumps(plan))
+        return plan, prepared, source, case, build, binary, daemon
+
+    def remote_e2e_output(self):
+        # Synthetic log controls do not attest to a daemon or valid signature.
+        lines, summary = self.e2e_output()
+        lines[0] = "=== RUN   " + guard.REMOTE_E2E_TEST
+        lines[-2] = "--- PASS: " + guard.REMOTE_E2E_TEST + " (20.00s)"
+        remote = dict(version="ynx-pq-four-node-remote-e2e/v1", syntheticOnly=True,
+            remoteValidatorIndex=0, normalBinarySHA256="7" * 64, daemonStarts=2, daemonExits=2,
+            checkpointPathSharedWithOriginalApp=True, originalHRSColdRecovered=True,
+            remoteProposalVerified=True, remotePrevoteVerified=True, remotePrecommitVerified=True,
+            remoteThreeOfFourCommitVerified=True, remoteColdCommitVerified=True,
+            proposalCount=1, prevoteCount=3, precommitCount=3, firstRemoteHeight=12,
+            lastRemoteHeight=16, threeOfFourCommitHeight=14, coldCommitHeight=15,
+            automaticReconnect=False, localSignerForRemoteValidator=False, publicDeployment=False)
+        lines.insert(4, "    pq_network_remote_e2e_test.go:404: PQ_NETWORK_REMOTE_E2E_SUMMARY " + json.dumps(remote))
+        return lines, summary, remote
+
+    def test_remote_profile_is_explicit_closed_and_preserves_all_resource_caps(self):
+        profile = guard.REMOTE_E2E_RETAINED_HISTORY_PROFILE
+        self.assertEqual(guard.fixed_caps(profile), guard.fixed_caps(guard.E2E_RETAINED_HISTORY_PROFILE))
+        self.assertEqual(guard.fixed_caps()["privateBytes"], 32 << 20)
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, prepared, source, case, build, binary, daemon = self.remote_e2e_recipe(tmp)
+            actual = guard.validate_consensus_remote_e2e_recipe(plan, prepared, inherited={})
+            self.assertEqual(actual, (source, case, plan["command"], plan["environment"]))
+            self.assertEqual(set(plan["sourcePins"]), {guard.E2E_SOURCE, guard.E2E_PROGRESS_SOURCE,
+                                                      guard.REMOTE_E2E_SOURCE, guard.REMOTE_PROCESS_SOURCE})
+            self.assertEqual(set(plan["environment"]), {"GOMAXPROCS", "GOGC", "GOMEMLIMIT", "YNX_PQ_NETWORK_REMOTE_E2E",
+                                                       "YNX_PQ_REMOTE_SIGNER_BINARY", "YNX_PQ_REMOTE_SIGNER_SHA256"})
+            self.assertEqual(guard.validate_consensus_remote_signer_binary(plan, build), daemon)
+            self.assertEqual(len(guard.validate_consensus_remote_e2e_files(plan, source, build)), 6)
+            self.assertEqual({p.name for p in build.iterdir()}, {binary.name, daemon.name})
+            self.assertEqual({p.name for p in case.iterdir()}, {"prepared.json"})
+            for selected in ("consensus-e2e", guard.E2E_RETAINED_HISTORY_PROFILE, profile):
+                with self.subTest(local=selected), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_e2e_recipe(plan, prepared, selected)
+            with self.assertRaises(RuntimeError): guard.validate_recipe(plan, prepared)
+            original = json.loads(json.dumps(plan))
+            for key in guard.CAPS:
+                changed = json.loads(json.dumps(original)); changed["caps"][key] += 1
+                with self.subTest(cap=key), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_remote_e2e_recipe(changed, prepared, inherited={})
+        valid = dict(rssBytes=1000000, threads=10, privateBytes=536870912, buildBytes=100,
+                     freeDiskBytes=3129999360, availableMemoryBytes=4 << 30)
+        guard.enforce(valid, True, profile)
+        for key, value in (("privateBytes", 536870913), ("rssBytes", (1 << 30) + 1),
+                           ("threads", 321), ("buildBytes", (1 << 30) + 1),
+                           ("freeDiskBytes", 3129999359),
+                           ("availableMemoryBytes", guard.CAPS["availableMemoryFloorBytes"] - 1)):
+            with self.subTest(limit=key), self.assertRaises(RuntimeError):
+                guard.enforce(dict(valid, **{key: value}), True, profile)
+
+    def test_remote_recipe_rejects_mode_selector_environment_and_pin_smuggling(self):
+        mutations = [lambda p:p.update(profile=guard.E2E_RETAINED_HISTORY_PROFILE),
+                     lambda p:p.update(executionAuthorized=True), lambda p:p.update(extra="not-reviewed"),
+                     lambda p:p.pop("caps"), lambda p:p.update(n=1),
+                     lambda p:p["command"].__setitem__(1, "-test.run=^" + guard.E2E_TEST + "$"),
+                     lambda p:p["command"].__setitem__(1, "-test.run=" + guard.REMOTE_E2E_TEST),
+                     lambda p:p["command"].__setitem__(3, "-test.timeout=150s"),
+                     lambda p:p["command"].append("-test.bench=.."),
+                     lambda p:p["environment"].update(YNX_PQ_NETWORK_REMOTE_E2E="authorized-four-node-window"),
+                     lambda p:p["environment"].update(YNX_PQ_NETWORK_E2E="authorized-four-node-window"),
+                     lambda p:p["environment"].update(YNX_PQ_REMOTE_PROCESS="authorized-signer-process-window"),
+                     lambda p:p["environment"].update(GOMAXPROCS="4"),
+                     lambda p:p["environment"].update(YNX_HOST_MODE="unapproved"),
+                     lambda p:p["environment"].pop("YNX_PQ_REMOTE_SIGNER_SHA256"),
+                     lambda p:p["environment"].update(YNX_PQ_REMOTE_SIGNER_BINARY=p["binaryPin"]["path"]),
+                     lambda p:p.pop("remoteSignerPin"),
+                     lambda p:p.update(remoteSignerPin=p["binaryPin"]),
+                     lambda p:p["remoteSignerPin"].update(sha256="0" * 64),
+                     lambda p:p["remoteSignerPin"].update(extra="not-reviewed"),
+                     lambda p:p["sourcePins"].update({"extra.go": dict(sha256="1" * 64)})]
+        mutations += [lambda p, key=key:p["sourcePins"].pop(key) for key in guard.consensus_remote_source_pins()]
+        mutations += [lambda p, key=key:p["sourcePins"][key].update(sha256="0" * 64)
+                      for key in guard.consensus_remote_source_pins()]
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, prepared, _, case, build, *_ = self.remote_e2e_recipe(tmp)
+            before = {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()}
+            for index, mutate in enumerate(mutations):
+                changed = json.loads(json.dumps(plan)); mutate(changed)
+                with self.subTest(index=index), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_remote_e2e_recipe(changed, prepared, inherited={})
+            self.assertEqual(before, {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()})
+
+    def test_remote_window_does_not_inherit_old_optins_keys_or_host_modes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, prepared, _, case, build, *_ = self.remote_e2e_recipe(tmp)
+            inherited = dict(PATH="/unapproved", HOME="/unapproved", GODEBUG="unapproved",
+                             YNX_HOST_MODE="unapproved", YNX_PRIVATE_KEY="control-only-not-a-real-secret")
+            actual = guard.consensus_runtime_environment(plan["environment"], case, build,
+                                                        guard.REMOTE_E2E_RETAINED_HISTORY_PROFILE, inherited)
+            self.assertEqual(actual, dict(plan["environment"], PATH="/usr/bin:/bin", TMPDIR=str(case / "tmp")))
+            for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT"):
+                for value in ("", "authorized-four-node-window", "authorized-signer-process-window"):
+                    with self.subTest(key=key, value=value), self.assertRaises(RuntimeError):
+                        guard.validate_consensus_remote_e2e_recipe(plan, prepared, inherited={key: value})
+                    with self.assertRaises(RuntimeError):
+                        guard.consensus_runtime_environment(plan["environment"], case, build,
+                            guard.REMOTE_E2E_RETAINED_HISTORY_PROFILE, {key: value})
+            with self.assertRaises(RuntimeError):
+                guard.consensus_runtime_environment(guard.E2E_ENV, case, build, "consensus-e2e",
+                                                    {"YNX_PQ_NETWORK_REMOTE_E2E": "authorized-four-node-remote-signer-window"})
+
+    def test_original_local_recipe_still_rejects_remote_binary_parameters_and_tree(self):
+        for kind in ("remote-pin", "remote-environment", "remote-source-pins", "second-binary"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, _, _, build, binary = self.e2e_recipe(tmp)
+                if kind == "remote-pin": plan["remoteSignerPin"] = dict(plan["binaryPin"])
+                elif kind == "remote-environment":
+                    plan["environment"].update(YNX_PQ_NETWORK_REMOTE_E2E="authorized-four-node-remote-signer-window")
+                elif kind == "remote-source-pins": plan["sourcePins"] = guard.consensus_remote_source_pins()
+                else:
+                    daemon = build / "ynx-consensus-pq-remote-signer"
+                    daemon.write_bytes(binary.read_bytes()); daemon.chmod(0o700)
+                with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared)
+
+    def test_remote_recipe_preserves_changed_or_aliased_daemon_and_source_material(self):
+        for kind in ("missing-daemon", "changed-daemon", "script-daemon", "symlink-daemon", "hardlink-daemon",
+                     "extra-build", "missing-source", "changed-source", "source-repinned", "symlink-source", "source-root-symlink"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, source, case, build, _, daemon = self.remote_e2e_recipe(tmp)
+                leaf = source / guard.REMOTE_E2E_SOURCE
+                if kind == "missing-daemon": daemon.rename(Path(tmp) / "retain-daemon")
+                elif kind == "changed-daemon": daemon.write_bytes(b"\x7fELFchanged")
+                elif kind == "script-daemon":
+                    daemon.write_bytes(b"#!/bin/sh\nexit 0\n")
+                    plan["remoteSignerPin"]["sha256"] = guard.digest(daemon)
+                    plan["environment"] = guard.consensus_remote_environment(plan, build)
+                elif kind == "symlink-daemon":
+                    retained = Path(tmp) / "retained-daemon"; daemon.rename(retained); daemon.symlink_to(retained)
+                elif kind == "hardlink-daemon": os.link(daemon, Path(tmp) / "retained-daemon")
+                elif kind == "extra-build": (build / "UNKNOWN").write_bytes(b"retain original effect")
+                elif kind == "missing-source": leaf.rename(Path(tmp) / "retain-source")
+                elif kind in ("changed-source", "source-repinned"):
+                    leaf.write_bytes(leaf.read_bytes() + b"\n// changed fixture source\n")
+                    if kind == "source-repinned": plan["sourcePins"][guard.REMOTE_E2E_SOURCE]["sha256"] = guard.digest(leaf)
+                elif kind == "symlink-source":
+                    retained = Path(tmp) / "retained-source"; leaf.rename(retained); leaf.symlink_to(retained)
+                elif kind == "source-root-symlink":
+                    alias = Path(tmp) / "source-alias"; alias.symlink_to(source, target_is_directory=True)
+                    plan["sourceRoot"] = str(alias)
+                before = {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()}
+                with self.assertRaises((RuntimeError, OSError)):
+                    guard.validate_consensus_remote_e2e_recipe(plan, prepared, inherited={})
+                self.assertEqual(before, {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()})
+
+    def test_remote_six_source_and_binary_identities_must_stay_immutable(self):
+        for target in (guard.E2E_SOURCE, guard.E2E_PROGRESS_SOURCE, guard.REMOTE_E2E_SOURCE,
+                       guard.REMOTE_PROCESS_SOURCE, "consensus.test", "ynx-consensus-pq-remote-signer"):
+            with self.subTest(target=target), tempfile.TemporaryDirectory() as tmp:
+                plan, _, source, _, build, *_ = self.remote_e2e_recipe(tmp)
+                captured = guard.validate_consensus_remote_e2e_files(plan, source, build)
+                leaf = source / target if target.startswith("internal/") else build / target
+                content, mode = leaf.read_bytes(), leaf.stat().st_mode & 0o777
+                retained = Path(tmp) / (leaf.name + ".retained")
+                leaf.rename(retained); leaf.write_bytes(content); leaf.chmod(mode)
+                # The byte pin still matches. A replacement inode cannot reuse
+                # admission from the original captured source/binary identity.
+                with self.assertRaisesRegex(RuntimeError, "since admission"):
+                    guard.validate_consensus_remote_e2e_files(plan, source, build, captured)
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, _, source, _, build, *_ = self.remote_e2e_recipe(tmp)
+            captured = guard.validate_consensus_remote_e2e_files(plan, source, build)
+            unknown = build / "UNKNOWN"
+            unknown.write_bytes(b"retain unexpected build effect")
+            with self.assertRaises(RuntimeError):
+                guard.validate_consensus_remote_e2e_files(plan, source, build, captured)
+            self.assertEqual(unknown.read_bytes(), b"retain unexpected build effect")
+
+    def test_remote_result_requires_sole_remote_test_and_all_actual_custody_evidence(self):
+        lines, _, original = self.remote_e2e_output()
+        stdout = ("\n".join(lines) + "\n").encode()
+        evidence = guard.validate_consensus_remote_e2e_result(stdout, b"", 0, "7" * 64)
+        self.assertEqual(evidence["remoteSigner"], original)
+        with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_result(stdout, b"", 0)
+        local, _ = self.e2e_output()
+        with self.assertRaises(RuntimeError):
+            guard.validate_consensus_remote_e2e_result(("\n".join(local) + "\n").encode(), b"", 0, "7" * 64)
+        for key in original:
+            changed = json.loads(json.dumps(original))
+            if key == "version": changed[key] = "ynx-pq-four-node-e2e/v1"
+            elif type(changed[key]) is bool: changed[key] = not changed[key]
+            elif key == "normalBinarySHA256": changed[key] = "8" * 64
+            elif key == "remoteValidatorIndex": changed[key] = 1
+            elif key in ("daemonStarts", "daemonExits"): changed[key] = 3
+            else: changed[key] = 0
+            output = list(lines)
+            output[4] = "    pq_network_remote_e2e_test.go:404: PQ_NETWORK_REMOTE_E2E_SUMMARY " + json.dumps(changed)
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                guard.validate_consensus_remote_e2e_result(("\n".join(output) + "\n").encode(), b"", 0, "7" * 64)
+        invalid = [lines[:4] + lines[5:], lines[:5] + [lines[4]] + lines[5:],
+                   lines[:4] + [lines[5], lines[4]] + lines[6:]]
+        for changed in invalid:
+            with self.assertRaises(RuntimeError):
+                guard.validate_consensus_remote_e2e_result(("\n".join(changed) + "\n").encode(), b"", 0, "7" * 64)
+        duplicate = stdout.replace(b'"daemonStarts": 2', b'"daemonStarts": 1, "daemonStarts": 2')
+        with self.assertRaises(RuntimeError): guard.validate_consensus_remote_e2e_result(duplicate, b"", 0, "7" * 64)
+        with self.assertRaises(RuntimeError): guard.validate_consensus_remote_e2e_result(stdout, b"", 0, "8" * 64)
+
+    def test_remote_cli_is_mutually_exclusive_and_default_never_starts_a_window(self):
+        flags = ("--consensus-e2e", "--consensus-e2e-retained-history", "--consensus-remote-e2e-retained-history")
+        for first in flags[:2]:
+            with self.subTest(first=first), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                guard.argument_parser().parse_args([first, flags[2]])
+        for selected in ((True, False, True), (False, True, True), (False, False, "true")):
+            with self.subTest(selected=selected), self.assertRaises(RuntimeError): guard.selected_profile(*selected)
+        with mock.patch.object(guard, "run") as run:
+            output = io.StringIO()
+            with redirect_stdout(output): self.assertEqual(guard.main([flags[2]]), 0)
+            self.assertEqual(json.loads(output.getvalue())["caps"], guard.fixed_caps(guard.REMOTE_E2E_RETAINED_HISTORY_PROFILE))
+            run.assert_not_called()
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit): guard.main([flags[2], "--execute"])
+            run.assert_not_called()
+        with mock.patch.object(guard, "run", return_value=7) as run:
+            self.assertEqual(guard.main([flags[2], "--execute", "--prepared", "/unused/prepared.json",
+                                         "--receipt", "/unused/receipt.json"]), 7)
+            self.assertEqual(run.call_args.kwargs, dict(case_n=1, consensus_e2e=False,
+                consensus_e2e_retained_history=False, consensus_remote_e2e_retained_history=True))
+
+    def test_remote_workflow_source_keeps_dispatch_exclusive_and_normal_build_pins(self):
+        # Static pipeline controls only. Reading YAML source does not dispatch
+        # a job, execute an ELF, prove Node.Start, or qualify network evidence.
+        workflow = (Path(__file__).resolve().parents[2] / ".github/workflows/resource-market-ci.yml").read_text()
+        name = "consensus_remote_e2e_retained_history"
+        declaration = workflow.split("      " + name + ":\n", 1)[1].split("      remote_signer_process:", 1)[0]
+        self.assertIn("default: false", declaration)
+        self.assertIn("type: boolean", declaration)
+        selections = next(line for line in workflow.splitlines() if "for YNX_WINDOW_SELECTED in" in line)
+        self.assertIn("inputs." + name, selections)
+        process = workflow.split("      - name: Run the separately authorized normal remote signer process\n", 1)[1].split("      - name:", 1)[0]
+        self.assertIn("!inputs." + name, process)
+        network = workflow.split("      - name: Run the authorized bounded four-validator transition\n", 1)[1].split("      - name:", 1)[0]
+        condition = next(line for line in network.splitlines() if line.strip().startswith("if:"))
+        self.assertIn("github.event_name == 'workflow_dispatch'", condition)
+        self.assertIn("inputs.candidate_sha == github.sha", condition)
+        self.assertIn("!inputs.remote_signer_process", condition)
+        self.assertIn("!inputs.paired_n1", condition)
+        self.assertIn("inputs." + name, condition)
+        self.assertIn("--consensus-remote-e2e-retained-history", network)
+        self.assertIn("go build -p 1 -trimpath", network)
+        self.assertIn("./cmd/ynx-consensus-pq-remote-signer", network)
+        self.assertIn("'remoteSignerPin'", network)
+        self.assertIn(guard.REMOTE_E2E_TEST, network)
+        for leaf, pin in guard.consensus_remote_source_pins().items():
+            with self.subTest(leaf=leaf):
+                self.assertIn("'" + leaf + "': '" + pin["sha256"] + "'", network)
+        self.assertIn("if digest(source / leaf) != pin:", network)
+        self.assertIn("sourcePins={leaf: dict(sha256=pin)", network)
+        self.assertNotIn("sourcePins={leaf: dict(sha256=digest", network)
+
     def test_consensus_e2e_accepts_only_sole_precompiled_pinned_recipe(self):
         with tempfile.TemporaryDirectory() as tmp:
             plan, prepared, source, case, build, binary = self.e2e_recipe(tmp)
@@ -157,7 +424,7 @@ class LinuxGuardControls(unittest.TestCase):
 
     def test_retained_history_keeps_exact_environment_command_and_two_pins(self):
         profile = guard.E2E_RETAINED_HISTORY_PROFILE
-        self.assertEqual(guard.E2E_SOURCE_SHA256, "ce70fd7cf167ff5e2ed3f1f633f75c80e6e28f2becae986ebb69793a7b5617af")
+        self.assertEqual(guard.E2E_SOURCE_SHA256, "9d9a0b0135177a8135a713e75799212c0a1bb2e3b9f567d5cf1ef653ca8d026f")
         self.assertEqual(guard.E2E_PROGRESS_SOURCE_SHA256, "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044")
         mutations = [lambda p:p.update(executionAuthorized=True),
                      lambda p:p["command"].__setitem__(3, "-test.timeout=150s"),

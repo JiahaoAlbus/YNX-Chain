@@ -30,23 +30,27 @@ CAPS = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
             sampleMs=200)
 
 E2E_RETAINED_HISTORY_PROFILE = "consensus-e2e-retained-history-v1"
+REMOTE_E2E_RETAINED_HISTORY_PROFILE = "consensus-remote-e2e-retained-history-v1"
 
 
 def fixed_caps(profile=None):
     # Profiles select reviewed constants; neither prepared JSON nor a caller
     # supplied dictionary can increase any limit. Keep the original CAPS intact.
-    if profile not in (None, "consensus-e2e", E2E_RETAINED_HISTORY_PROFILE):
+    if profile not in (None, "consensus-e2e", E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE):
         raise RuntimeError("unknown fixed resource profile")
     caps = dict(CAPS)
-    if profile == E2E_RETAINED_HISTORY_PROFILE:
+    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE):
         caps["privateBytes"] = 536870912
     return caps
 
 
-def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False):
-    if (type(consensus_e2e) is not bool or type(consensus_e2e_retained_history) is not bool
-            or consensus_e2e and consensus_e2e_retained_history):
+def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False,
+                     consensus_remote_e2e_retained_history=False):
+    flags = (consensus_e2e, consensus_e2e_retained_history, consensus_remote_e2e_retained_history)
+    if any(type(flag) is not bool for flag in flags) or sum(flags) > 1:
         raise RuntimeError("consensus E2E profile flags are mutually exclusive")
+    if consensus_remote_e2e_retained_history:
+        return REMOTE_E2E_RETAINED_HISTORY_PROFILE
     if consensus_e2e_retained_history:
         return E2E_RETAINED_HISTORY_PROFILE
     return "consensus-e2e" if consensus_e2e else None
@@ -55,11 +59,19 @@ def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False):
 E2E_TEST = "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart"
 E2E_SOURCE = "internal/consensus/pq_network_e2e_test.go"
 # Updated only with the separately frozen test leaves and normal CI compilation.
-E2E_SOURCE_SHA256 = "ce70fd7cf167ff5e2ed3f1f633f75c80e6e28f2becae986ebb69793a7b5617af"
+E2E_SOURCE_SHA256 = "9d9a0b0135177a8135a713e75799212c0a1bb2e3b9f567d5cf1ef653ca8d026f"
 E2E_PROGRESS_SOURCE = "internal/consensus/pq_network_progress_test.go"
 E2E_PROGRESS_SOURCE_SHA256 = "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044"
 E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
                YNX_PQ_NETWORK_E2E="authorized-four-node-window")
+REMOTE_E2E_TEST = "TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart"
+REMOTE_E2E_SOURCE = "internal/consensus/pq_network_remote_e2e_test.go"
+# Updated only after the owning normal test source is separately frozen.
+REMOTE_E2E_SOURCE_SHA256 = "8d5e5d11ff8145d38aaca6dee68495a6077337f5b141ad6ffc4b143df75d6aaa"
+REMOTE_PROCESS_SOURCE = "internal/consensus/pq_remote_process_test.go"
+REMOTE_PROCESS_SOURCE_SHA256 = "01663b399daf0c7c70faab41e629a85d2538ea4bb9bb395fe724ec2ccf06948d"
+REMOTE_E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
+                      YNX_PQ_NETWORK_REMOTE_E2E="authorized-four-node-remote-signer-window")
 
 
 def bounded(path, limit=65536):
@@ -187,6 +199,8 @@ def digest(path):
 
 
 def validate_recipe(plan, prepared, case_n=1):
+    if "remoteSignerPin" in plan:
+        raise RuntimeError("paired benchmark cannot select a remote signer")
     source = Path(plan["sourceRoot"]).resolve()
     case = prepared.parent.resolve()
     if source == case or source in case.parents or case in source.parents:
@@ -216,9 +230,7 @@ def validate_recipe(plan, prepared, case_n=1):
     return source, case, expected, expected_env
 
 
-def validate_consensus_e2e_binary(plan, build):
-    pin = plan.get("binaryPin")
-    binary = build / "consensus.test"
+def validate_pinned_consensus_binary(pin, binary):
     if (not isinstance(pin, dict) or set(pin) != {"path", "sha256"}
             or pin.get("path") != str(binary)
             or not re.fullmatch(r"[0-9a-f]{64}", pin.get("sha256", ""))):
@@ -239,13 +251,117 @@ def validate_consensus_e2e_binary(plan, build):
     return binary
 
 
+def validate_consensus_e2e_binary(plan, build):
+    return validate_pinned_consensus_binary(plan.get("binaryPin"), build / "consensus.test")
+
+
+def validate_consensus_remote_signer_binary(plan, build):
+    binary = build / "ynx-consensus-pq-remote-signer"
+    if binary.resolve(strict=True) != binary:
+        raise RuntimeError("normal remote signer must use the canonical sibling binary")
+    return validate_pinned_consensus_binary(plan.get("remoteSignerPin"), binary)
+
+
+def consensus_remote_source_pins():
+    return {E2E_SOURCE: {"sha256": E2E_SOURCE_SHA256},
+            E2E_PROGRESS_SOURCE: {"sha256": E2E_PROGRESS_SOURCE_SHA256},
+            REMOTE_E2E_SOURCE: {"sha256": REMOTE_E2E_SOURCE_SHA256},
+            REMOTE_PROCESS_SOURCE: {"sha256": REMOTE_PROCESS_SOURCE_SHA256}}
+
+
+def consensus_remote_environment(plan, build):
+    pin = plan.get("remoteSignerPin")
+    if (not isinstance(pin, dict) or set(pin) != {"path", "sha256"}
+            or pin.get("path") != str(build / "ynx-consensus-pq-remote-signer")
+            or not re.fullmatch(r"[0-9a-f]{64}", pin.get("sha256", ""))):
+        raise RuntimeError("independent normal remote signer binary pin required")
+    return dict(REMOTE_E2E_ENV, YNX_PQ_REMOTE_SIGNER_BINARY=pin["path"],
+                YNX_PQ_REMOTE_SIGNER_SHA256=pin["sha256"])
+
+
+def reject_inherited_remote_window_optins(inherited):
+    if any(key in inherited for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT")):
+        raise RuntimeError("remote network window cannot inherit the local network or separate process opt-in")
+
+
+def consensus_runtime_environment(pinned_env, case, build, profile, inherited):
+    if profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE:
+        reject_inherited_remote_window_optins(inherited)
+        # No caller key/Host mode, Go option or old opt-in is inherited. The
+        # compiled test and normal daemon need only their fixed public runtime
+        # environment, absolute executable paths and monitored private TMPDIR.
+        return dict(pinned_env, PATH="/usr/bin:/bin", TMPDIR=str(case / "tmp"))
+    if any(key in inherited for key in ("YNX_PQ_NETWORK_REMOTE_E2E",)):
+        raise RuntimeError("local profile cannot inherit a remote network opt-in")
+    environment = dict(inherited)
+    environment.pop("YNX_CHAIN_STOPPED_WINDOW", None)
+    environment.pop("YNX_CHAIN_PARTIAL_STOPPED_WINDOW", None)
+    environment.update(pinned_env, TMPDIR=str(case / "tmp"), GOTMPDIR=str(build / "tmp"),
+                       GOWORK="off", GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
+    return environment
+
+
+def validate_consensus_remote_e2e_files(plan, source, build, captured=None):
+    names = {"consensus.test", "ynx-consensus-pq-remote-signer"}
+    temporary = build / "tmp"
+    if temporary.exists() or temporary.is_symlink():
+        info = temporary.lstat()
+        if (not stat.S_ISDIR(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o700
+                or info.st_uid != os.getuid()):
+            raise RuntimeError("remote window build temp must remain an owned private directory")
+        names.add("tmp")
+    if {path.name for path in build.iterdir()} != names:
+        raise RuntimeError("remote window build must retain exactly the two original binaries and owned temp")
+    validate_consensus_e2e_binary(plan, build)
+    validate_consensus_remote_signer_binary(plan, build)
+    files = {source / relative: pin["sha256"] for relative, pin in consensus_remote_source_pins().items()}
+    files.update({build / "consensus.test": plan["binaryPin"]["sha256"],
+                  build / "ynx-consensus-pq-remote-signer": plan["remoteSignerPin"]["sha256"]})
+    identities = {}
+    identity = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
+                             info.st_ctime_ns, info.st_mode, info.st_uid, info.st_gid, info.st_nlink)
+    for path, pin in files.items():
+        before = path.lstat()
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.getuid() or before.st_nlink != 1
+                or before.st_mode & 0o022 or path.resolve(strict=True) != path
+                or not re.fullmatch(r"[0-9a-f]{64}", pin) or digest(path) != pin):
+            raise RuntimeError("remote window frozen source/binary identity mismatch")
+        after = path.lstat()
+        if identity(before) != identity(after):
+            raise RuntimeError("remote window source/binary changed while reading")
+        identities[str(path)] = identity(after)
+    if captured is not None and identities != captured:
+        raise RuntimeError("remote window source/binary changed since admission")
+    return identities
+
+
 def validate_consensus_e2e_recipe(plan, prepared, profile="consensus-e2e"):
     if profile not in ("consensus-e2e", E2E_RETAINED_HISTORY_PROFILE) or plan.get("profile") != profile:
         raise RuntimeError("explicit consensus E2E flag and prepared profile must match")
+    if "remoteSignerPin" in plan:
+        raise RuntimeError("local consensus recipe cannot select a remote signer")
+    return validate_consensus_window_recipe(plan, prepared, profile)
+
+
+def validate_consensus_remote_e2e_recipe(plan, prepared, inherited=None):
+    reject_inherited_remote_window_optins(os.environ if inherited is None else inherited)
+    if set(plan) != {"profile", "caps", "sourceRoot", "commit", "executionAuthorized", "workingDirectory",
+                     "sourcePins", "binaryPin", "remoteSignerPin", "command", "environment"}:
+        raise RuntimeError("exact closed remote consensus recipe required")
+    if plan.get("profile") != REMOTE_E2E_RETAINED_HISTORY_PROFILE:
+        raise RuntimeError("explicit remote consensus E2E flag and prepared profile must match")
+    if (not isinstance(plan.get("sourceRoot"), str) or not Path(plan["sourceRoot"]).is_absolute()
+            or str(Path(plan["sourceRoot"]).resolve(strict=True)) != plan["sourceRoot"]):
+        raise RuntimeError("remote consensus source checkout must be canonical and absolute")
+    return validate_consensus_window_recipe(plan, prepared, REMOTE_E2E_RETAINED_HISTORY_PROFILE)
+
+
+def validate_consensus_window_recipe(plan, prepared, profile):
+    remote = profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE
     caps = fixed_caps(profile)
     # Old prepared recipes need no new field. A claimed cap is never ignored;
     # the new profile must explicitly commit all of its unchanged limits too.
-    if profile == E2E_RETAINED_HISTORY_PROFILE or "caps" in plan:
+    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE) or "caps" in plan:
         claimed = plan.get("caps")
         if (not isinstance(claimed, dict) or claimed != caps
                 or any(type(value) is not int for value in claimed.values())):
@@ -261,16 +377,20 @@ def validate_consensus_e2e_recipe(plan, prepared, profile="consensus-e2e"):
             or not re.fullmatch(r"[0-9a-f]{40}", plan.get("commit", ""))
             or any(key in plan for key in ("n", "trial", "overlayPin", "productionMeasurementVersion"))):
         raise RuntimeError("explicit frozen consensus-e2e recipe required")
-    expected = [str(build / "consensus.test"), "-test.run=^" + E2E_TEST + "$",
+    test_name = REMOTE_E2E_TEST if remote else E2E_TEST
+    expected_env = consensus_remote_environment(plan, build) if remote else E2E_ENV
+    expected = [str(build / "consensus.test"), "-test.run=^" + test_name + "$",
                 "-test.count=1", "-test.timeout=120s", "-test.v"]
-    if (plan.get("command") != expected or plan.get("environment") != E2E_ENV
+    if (plan.get("command") != expected or plan.get("environment") != expected_env
             or plan.get("workingDirectory") != str(source / "internal/consensus")):
         raise RuntimeError("consensus E2E command/cwd/environment mismatch")
     pins = plan.get("sourcePins")
     required_pins = {E2E_SOURCE: {"sha256": E2E_SOURCE_SHA256},
                      E2E_PROGRESS_SOURCE: {"sha256": E2E_PROGRESS_SOURCE_SHA256}}
+    if remote:
+        required_pins = consensus_remote_source_pins()
     if not isinstance(pins, dict) or pins != required_pins:
-        raise RuntimeError("exact two frozen consensus E2E source pins required")
+        raise RuntimeError("exact frozen consensus E2E source pins required")
     for relative, pin in required_pins.items():
         test = source / relative
         try:
@@ -289,13 +409,20 @@ def validate_consensus_e2e_recipe(plan, prepared, profile="consensus-e2e"):
     if (prepared.name != "prepared.json" or not stat.S_ISREG(info.st_mode)
             or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_nlink != 1):
         raise RuntimeError("owned private prepared.json required")
-    if {p.name for p in case.iterdir()} != {"prepared.json"} or {p.name for p in build.iterdir()} != {"consensus.test"}:
+    binary_names = {"consensus.test", "ynx-consensus-pq-remote-signer"} if remote else {"consensus.test"}
+    if {p.name for p in case.iterdir()} != {"prepared.json"} or {p.name for p in build.iterdir()} != binary_names:
         raise RuntimeError("preserve prior E2E logs/tmp/UNKNOWN; only fresh prepared case and sole precompiled binary allowed")
     validate_consensus_e2e_binary(plan, build)
-    return source, case, expected, dict(E2E_ENV)
+    if remote:
+        validate_consensus_remote_e2e_files(plan, source, build)
+    return source, case, expected, dict(expected_env)
 
 
 def validate_consensus_e2e_result(stdout, stderr, terminal_code):
+    return validate_consensus_network_result(stdout, stderr, terminal_code, E2E_TEST)
+
+
+def validate_consensus_network_result(stdout, stderr, terminal_code, test_name):
     # These log controls are necessary evidence from the pinned test, not a
     # substitute for that test's real Comet/cryptographic assertions. Root's
     # normal CI compilation is the separate provenance boundary for the ELF.
@@ -307,7 +434,7 @@ def validate_consensus_e2e_result(stdout, stderr, terminal_code):
         raise RuntimeError("consensus E2E skip/failure cannot qualify")
     run = re.findall(r"^=== RUN   (.+)$", text, re.M)
     passed = re.findall(r"^--- PASS: (\S+) \([0-9]+(?:\.[0-9]+)?s\)$", text, re.M)
-    if (run != [E2E_TEST] or passed != [E2E_TEST] or len(re.findall(r"^PASS$", text, re.M)) != 1
+    if (run != [test_name] or passed != [test_name] or len(re.findall(r"^PASS$", text, re.M)) != 1
             or text.splitlines()[-1:] != ["PASS"]):
         raise RuntimeError("exact sole consensus E2E RUN/PASS markers required")
     prefix = r"^[ \t]+pq_network_e2e_test\.go:[0-9]+: "
@@ -325,7 +452,7 @@ def validate_consensus_e2e_result(stdout, stderr, terminal_code):
     pin, registry, p, u, a = schedule.groups()
     registry, p, u, a = map(int, (registry, p, u, a))
     height, tx_hash = int(pq[1]), pq[2]
-    pass_at = text.index("--- PASS: " + E2E_TEST + " (")
+    pass_at = text.index("--- PASS: " + test_name + " (")
     if (not ed.start() < schedule.start() < pq.start() < final.start() < pass_at or ordinary < initial or registry < ordinary
             or p != registry + 1 or a != registry + 4 or u != a - 2 or height < a
             or pin == "0" * 64 or tx_hash == "0x" + "0" * 64):
@@ -377,6 +504,48 @@ def validate_consensus_e2e_result(stdout, stderr, terminal_code):
     return dict(initialHeight=initial, ordinaryHeight=ordinary, registryHeight=registry,
                 paramsUpdateHeight=p, validatorUpdateHeight=u, activationHeight=a,
                 scheduleSHA256=pin, pqCommitHeight=height, pqTransactionHash=tx_hash, coldRestart=summary)
+
+
+def validate_consensus_remote_e2e_result(stdout, stderr, terminal_code, binary_sha256):
+    evidence = validate_consensus_network_result(stdout, stderr, terminal_code, REMOTE_E2E_TEST)
+    text = stdout.decode("utf8", errors="strict")
+    matches = list(re.finditer(r"^[ \t]+pq_network_remote_e2e_test\.go:[0-9]+: PQ_NETWORK_REMOTE_E2E_SUMMARY (\{[^\r\n]+\})$", text, re.M))
+    if len(matches) != 1:
+        raise RuntimeError("one original normal remote signer network summary required")
+    marker = matches[0]
+    if not (text.index("actual 3/4 PQ Commit:") < marker.start() < text.index("PQ_NETWORK_E2E_SUMMARY ")):
+        raise RuntimeError("remote summary must follow the actual PQ commit and precede final cold-restart evidence")
+    def unique_object(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise RuntimeError("duplicate remote network evidence field")
+            value[key] = item
+        return value
+    summary = json.loads(marker[1], object_pairs_hook=unique_object)
+    true_flags = ("syntheticOnly", "checkpointPathSharedWithOriginalApp", "originalHRSColdRecovered",
+                  "remoteProposalVerified", "remotePrevoteVerified", "remotePrecommitVerified",
+                  "remoteThreeOfFourCommitVerified", "remoteColdCommitVerified")
+    false_flags = ("automaticReconnect", "localSignerForRemoteValidator", "publicDeployment")
+    counts = ("proposalCount", "prevoteCount", "precommitCount")
+    heights = ("firstRemoteHeight", "lastRemoteHeight", "threeOfFourCommitHeight", "coldCommitHeight")
+    fields = {"version", "remoteValidatorIndex", "normalBinarySHA256", "daemonStarts", "daemonExits",
+              *true_flags, *false_flags, *counts, *heights}
+    if (not isinstance(summary, dict) or set(summary) != fields
+            or summary.get("version") != "ynx-pq-four-node-remote-e2e/v1"
+            or not isinstance(binary_sha256, str) or not re.fullmatch(r"[0-9a-f]{64}", binary_sha256)
+            or binary_sha256 == "0" * 64 or summary.get("normalBinarySHA256") != binary_sha256
+            or type(summary.get("remoteValidatorIndex")) is not int or summary["remoteValidatorIndex"] != 0
+            or any(type(summary.get(key)) is not int or summary[key] != 2 for key in ("daemonStarts", "daemonExits"))
+            or any(summary.get(key) is not True for key in true_flags)
+            or any(summary.get(key) is not False for key in false_flags)
+            or any(type(summary.get(key)) is not int or not 0 < summary[key] < 1 << 63 for key in (*counts, *heights))
+            or not evidence["activationHeight"] <= summary["firstRemoteHeight"] <= summary["threeOfFourCommitHeight"]
+            or summary["threeOfFourCommitHeight"] != evidence["pqCommitHeight"]
+            or not summary["threeOfFourCommitHeight"] < summary["coldCommitHeight"] <= summary["lastRemoteHeight"] <= evidence["coldRestart"]["finalHeight"] + 1):
+        raise RuntimeError("remote network evidence does not bind the normal daemon, actual votes and cold process restart")
+    evidence["remoteSigner"] = summary
+    return evidence
 
 
 def validate_production_measurement(row, report, plan):
@@ -483,9 +652,12 @@ def validate_result(report, plan, case):
         raise RuntimeError("paired paths did not share one signing preparation")
 
 
-def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained_history=False):
-    profile = selected_profile(consensus_e2e, consensus_e2e_retained_history)
+def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained_history=False,
+        consensus_remote_e2e_retained_history=False):
+    profile = selected_profile(consensus_e2e, consensus_e2e_retained_history,
+                               consensus_remote_e2e_retained_history)
     caps = fixed_caps(profile)
+    remote_e2e = profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE
     consensus_e2e = profile is not None
     if sys.platform != "linux":
         raise RuntimeError("Linux /proc/smaps_rollup/subreaper required; no macOS substitution")
@@ -495,11 +667,14 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
                   child=None, cleanupComplete=False, admissionPlatform="Linux, not macOS dispatch1")
     if consensus_e2e:
         result["kind"] = "four-validator-PQ-consensus-E2E-Linux-CI-window"
+    if remote_e2e:
+        result["kind"] = "four-validator-PQ-consensus-remote-E2E-Linux-CI-window"
     child = None
     selector = selectors.DefaultSelector()
     logs = {}
     known = {}
     case = build = None
+    remote_immutable = None
     def interrupted(signum, _frame):
         raise RuntimeError("wrapper signal " + str(signum))
     signal.signal(signal.SIGTERM, interrupted)
@@ -551,14 +726,23 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
 
     try:
         plan = json.loads(bounded(prepared, 1 << 20))
+        inherited_environment = dict(os.environ)
         if consensus_e2e:
             if case_n != 1:
                 raise RuntimeError("consensus E2E cannot select a paired benchmark case")
-            source, case, command, pinned_env = validate_consensus_e2e_recipe(plan, prepared, profile=profile)
+            if remote_e2e:
+                source, case, command, pinned_env = validate_consensus_remote_e2e_recipe(
+                    plan, prepared, inherited_environment)
+                remote_immutable = validate_consensus_remote_e2e_files(
+                    plan, source, case.with_name(case.name + ".build"))
+            else:
+                source, case, command, pinned_env = validate_consensus_e2e_recipe(plan, prepared, profile=profile)
         else:
             if "profile" in plan or "caps" in plan:
                 raise RuntimeError("explicit consensus E2E profile flag required; paired caps are fixed")
             source, case, command, pinned_env = validate_recipe(plan, prepared, case_n=case_n)
+        environment = consensus_runtime_environment(pinned_env, case, case.with_name(case.name + ".build"),
+                                                    profile, inherited_environment)
         if receipt.exists() or receipt.is_symlink() or case == receipt.parent or case in receipt.parents:
             raise RuntimeError("new guard receipt must be outside private case")
         result["preparedSHA256"] = digest(prepared)
@@ -567,6 +751,8 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             result.update(profile=profile, testSourceSHA256=E2E_SOURCE_SHA256,
                           binaryPin=plan["binaryPin"], command=command,
                           workingDirectory=plan["workingDirectory"], environment=pinned_env)
+            if remote_e2e:
+                result.update(remoteSignerPin=plan["remoteSignerPin"], sourcePins=plan["sourcePins"])
         else:
             result["explicitCaseN"] = case_n
         result["kernel"] = dict(release=os.uname().release, machine=os.uname().machine, logicalCPUs=os.cpu_count())
@@ -579,6 +765,8 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             for relative, pin in plan["sourcePins"].items():
                 if source not in (source / relative).resolve().parents or digest(source / relative) != pin["sha256"]:
                     raise RuntimeError("source pin mismatch")
+            if remote_e2e:
+                validate_consensus_remote_e2e_files(plan, source, case.with_name(case.name + ".build"), remote_immutable)
         source_check()
         for name in ("pq-paired-result.json", "pq-paired-result.json.members.snapshot.json", "pq-paired-result.json.whole.snapshot.json", "tmp", "go.stdout.log", "go.stderr.log"):
             if (case / name).exists() or (case / name).is_symlink():
@@ -592,7 +780,10 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             validate_consensus_e2e_binary(plan, build)
         else:
             build.mkdir(mode=0o700)
-        (build / "tmp").mkdir(); (case / "tmp").mkdir()
+        if remote_e2e:
+            (build / "tmp").mkdir(mode=0o700); (case / "tmp").mkdir(mode=0o700)
+        else:
+            (build / "tmp").mkdir(); (case / "tmp").mkdir()
         if len({os.stat(p).st_dev for p in (source, case, build, Path.home())}) != 1:
             raise RuntimeError("CI source/temp/default cache must share monitored filesystem")
         caches = dict(
@@ -629,6 +820,8 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
         if time.monotonic() - started >= CAPS["activeMs"] / 1000:
             raise RuntimeError("active deadline before Go START")
         if consensus_e2e:
+            if remote_e2e:
+                validate_consensus_remote_e2e_files(plan, source, build, remote_immutable)
             executable = str(validate_consensus_e2e_binary(plan, build))
             working_directory = source / "internal/consensus"
             result["testExecutable"] = dict(path=executable, sha256=plan["binaryPin"]["sha256"])
@@ -638,9 +831,6 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
                 raise RuntimeError("configured Go executable missing")
             working_directory = source
             result["goExecutable"] = dict(path=executable, sha256=digest(executable))
-        environment = dict(os.environ)
-        environment.pop("YNX_CHAIN_STOPPED_WINDOW", None); environment.pop("YNX_CHAIN_PARTIAL_STOPPED_WINDOW", None)
-        environment.update(pinned_env, TMPDIR=str(case / "tmp"), GOTMPDIR=str(build / "tmp"), GOWORK="off", GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
         for key in ("stdout", "stderr"):
             logs[key] = open(case / ("go." + key + ".log"), "xb", buffering=0)
         child = subprocess.Popen([executable] + command[1:], cwd=working_directory, env=environment,
@@ -679,9 +869,13 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
         # Neither a skipped Go test nor a leftover artifact can qualify success.
         if consensus_e2e:
             validate_consensus_e2e_binary(plan, build)
-            result["networkEvidence"] = validate_consensus_e2e_result(
-                bounded(case / "go.stdout.log", CAPS["logBytes"]),
-                bounded(case / "go.stderr.log", CAPS["logBytes"]), child.returncode)
+            stdout, stderr = (bounded(case / "go.stdout.log", CAPS["logBytes"]),
+                              bounded(case / "go.stderr.log", CAPS["logBytes"]))
+            if remote_e2e:
+                result["networkEvidence"] = validate_consensus_remote_e2e_result(
+                    stdout, stderr, child.returncode, plan["remoteSignerPin"]["sha256"])
+            else:
+                result["networkEvidence"] = validate_consensus_e2e_result(stdout, stderr, child.returncode)
             result["stdoutSHA256"] = digest(case / "go.stdout.log")
             result["stderrSHA256"] = digest(case / "go.stderr.log")
         else:
@@ -762,13 +956,15 @@ def argument_parser():
     profiles = parser.add_mutually_exclusive_group()
     profiles.add_argument("--consensus-e2e", action="store_true", help="original 32 MiB separately authorized four-node E2E using only a pinned precompiled consensus.test")
     profiles.add_argument("--consensus-e2e-retained-history", action="store_true", help="separately authorized retained-history-v1 E2E: fixed 512 MiB private files; every other original limit unchanged")
+    profiles.add_argument("--consensus-remote-e2e-retained-history", action="store_true", help="separate explicit remote signer retained-history-v1 profile; fixed two binaries, four source pins and unchanged resource limits")
     return parser
 
 
 def main(argv=None):
     parser = argument_parser()
     args = parser.parse_args(argv)
-    profile = selected_profile(args.consensus_e2e, args.consensus_e2e_retained_history)
+    profile = selected_profile(args.consensus_e2e, args.consensus_e2e_retained_history,
+                               args.consensus_remote_e2e_retained_history)
     if not args.execute:
         print(json.dumps(dict(status="prepared_only_no_Go_or_probe_started", supported=sys.platform == "linux", caps=fixed_caps(profile),
                               requires="Linux readable /proc + smaps_rollup, subreaper, exact prepared source, fresh Root isolated CI grant; not a macOS native-guard replacement")))
@@ -776,8 +972,11 @@ def main(argv=None):
     elif not args.prepared or not args.receipt:
         parser.error("--prepared and a new --receipt outside case are required")
     else:
-        return run(args.prepared.resolve(), args.receipt.resolve(), case_n=args.case_n,
-                   consensus_e2e=args.consensus_e2e, consensus_e2e_retained_history=args.consensus_e2e_retained_history)
+        options = dict(case_n=args.case_n, consensus_e2e=args.consensus_e2e,
+                       consensus_e2e_retained_history=args.consensus_e2e_retained_history)
+        if args.consensus_remote_e2e_retained_history:
+            options["consensus_remote_e2e_retained_history"] = True
+        return run(args.prepared.resolve(), args.receipt.resolve(), **options)
 
 
 if __name__ == "__main__":

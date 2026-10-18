@@ -109,13 +109,34 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	if optIn != "authorized-four-node-window" {
 		t.Fatal("invalid YNX_PQ_NETWORK_E2E value; this is not an authorized four-node window")
 	}
+	if os.Getenv("YNX_PQ_NETWORK_REMOTE_E2E") != "" {
+		t.Fatal("local and remote four-node windows cannot share an invocation")
+	}
+	runPQNetworkFourValidatorOriginalStateTransitionAndRestart(t, nil)
+}
+
+// A custody variant changes only one validator's normal signer construction.
+// It cannot supply blocks, votes, authority or application execution results.
+// The Linux remote variant is kept out of the default local test invocation.
+type pqNetworkE2ECustody interface {
+	PrivateRoot() string
+	IsRemote(*pqNetworkE2ENode) bool
+	Construct(*pqNetworkE2E, *pqNetworkE2ENode)
+	BeforeStop(*pqNetworkE2E, *pqNetworkE2ENode)
+	AfterStop(*pqNetworkE2E, *pqNetworkE2ENode)
+	Check(*pqNetworkE2E)
+	ColdRestart(*pqNetworkE2E, int64) int64
+	Complete(*pqNetworkE2E)
+}
+
+func runPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T, custody pqNetworkE2ECustody) {
 	previousProcs := runtime.GOMAXPROCS(2)
 	defer runtime.GOMAXPROCS(previousProcs)
 	// The isolated test process has a 120-second outer timeout. Reserve its
 	// final 15 seconds for normal Node.Stop and durable signer-lock cleanup.
 	ctx, cancel := context.WithTimeout(context.Background(), 105*time.Second)
 	defer cancel()
-	network := pqNetworkE2ENew(t, ctx)
+	network := pqNetworkE2ENew(t, ctx, custody)
 	defer network.stopAll()
 	network.phase = pqNetworkPhaseLegacy
 	network.startLegacy()
@@ -319,6 +340,12 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	network.verifyNativeReceipt(ordinary, ordinaryHeight, owner, recipient, 9, 1, 4)
 	network.verifyNativeReceipt(pqPayload, pqHeight, owner, recipient, 3, 1, 4)
 	network.verifyTransferTrace(beforeTrace, beforePQ, afterPQ, SignedTransactionHash(pqPayload), 4)
+	if network.custody != nil {
+		// Preserve every original cold-restart and trace assertion before the
+		// remote-only transaction proves fresh signing by the resumed daemon.
+		finalHeight = network.custody.ColdRestart(network, pqHeight)
+		network.verifyCommit(finalHeight, true, 4, false)
+	}
 	publicNodes := make([]map[string]any, len(network.nodes))
 	var finalAppHash, finalBlockHash string
 	for index, item := range network.nodes {
@@ -349,6 +376,9 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	for index, item := range network.nodes {
 		publicNodes[index]["legacyHRS"] = map[string]any{"height": item.lastLegacyHRS.height, "round": item.lastLegacyHRS.round, "step": item.lastLegacyHRS.step}
 		publicNodes[index]["pqHRS"] = map[string]any{"height": item.lastPQHRS.height, "round": item.lastPQHRS.round, "step": item.lastPQHRS.step}
+	}
+	if network.custody != nil {
+		network.custody.Complete(network)
 	}
 	summary, err := json.Marshal(map[string]any{
 		"version": "ynx-pq-four-node-e2e/v1", "syntheticOnly": true,
@@ -419,11 +449,12 @@ type pqNetworkE2E struct {
 	seen                   map[int64][]byte
 	phase                  pqNetworkProgressPhase
 	progress               pqNetworkProgressLimiter
+	custody                pqNetworkE2ECustody
 }
 
-func pqNetworkE2ENew(t *testing.T, ctx context.Context) *pqNetworkE2E {
+func pqNetworkE2ENew(t *testing.T, ctx context.Context, custody pqNetworkE2ECustody) *pqNetworkE2E {
 	t.Helper()
-	n := &pqNetworkE2E{t: t, ctx: ctx, seen: map[int64][]byte{}}
+	n := &pqNetworkE2E{t: t, ctx: ctx, seen: map[int64][]byte{}, custody: custody}
 	var err error
 	n.ownerKey, err = secp256k1.GeneratePrivateKey()
 	if err != nil {
@@ -465,7 +496,15 @@ func pqNetworkE2ENew(t *testing.T, ctx context.Context) *pqNetworkE2E {
 			t.Fatal(err)
 		}
 		address := sha256.Sum256(public)
-		root := filepath.Join(t.TempDir(), fmt.Sprintf("validator-%d", i))
+		var parent string
+		if custody == nil {
+			parent = t.TempDir()
+		} else {
+			// The remote case's original vault/HRS/UNKNOWN files are retained
+			// in its guard-owned TMPDIR, never deleted by testing.TempDir.
+			parent = custody.PrivateRoot()
+		}
+		root := filepath.Join(parent, fmt.Sprintf("validator-%d", i))
 		config := cfg.DefaultConfig().SetRoot(root)
 		for _, directory := range []string{filepath.Dir(config.GenesisFile()), filepath.Dir(config.PrivValidatorStateFile())} {
 			if err := os.MkdirAll(directory, 0700); err != nil {
@@ -574,7 +613,7 @@ func pqNetworkE2ENew(t *testing.T, ctx context.Context) *pqNetworkE2E {
 func (n *pqNetworkE2E) startLegacy() {
 	n.t.Helper()
 	for _, item := range n.nodes {
-		n.acquireWriterLeases(item)
+		n.acquireWriterLeases(item, true)
 		app, err := NewPersistentApplicationWithBootstrap(n.migration, item.appPath, n.bootstrap)
 		if err != nil {
 			n.t.Fatal(err)
@@ -621,7 +660,8 @@ func (n *pqNetworkE2E) constructPQ(item *pqNetworkE2ENode, initial bool) {
 	if item.node != nil {
 		n.t.Fatal("PQ construction would replace a live original node")
 	}
-	n.acquireWriterLeases(item)
+	remote := n.custody != nil && n.custody.IsRemote(item)
+	n.acquireWriterLeases(item, !remote)
 	app, err := NewPersistentApplicationWithEngineAuthorization(n.migration, item.appPath, n.bootstrap, n.authorization)
 	if err != nil {
 		n.t.Fatalf("normal pinned application restart: %v", err)
@@ -657,22 +697,26 @@ func (n *pqNetworkE2E) constructPQ(item *pqNetworkE2ENode, initial bool) {
 	}
 	beforePQ := pqNetworkE2ERead(n.t, item.binding.SignerStatePath)
 	beforeLegacy := pqNetworkE2ERead(n.t, item.config.PrivValidatorStateFile())
-	item.host, err = ynxconsensusauth.ResumeHostSigner(item.vaultPath, item.credential, item.binding, registry)
-	if err != nil {
-		n.t.Fatalf("normal host signer recovery: %v", err)
-	}
-	signer, err := item.host.Signer()
-	if err != nil {
-		n.t.Fatal(err)
-	}
-	pv := privval.LoadFilePV(item.config.PrivValidatorKeyFile(), item.config.PrivValidatorStateFile())
-	nodeKey, err := p2p.LoadNodeKey(item.config.NodeKeyFile())
-	if err != nil {
-		n.t.Fatal(err)
-	}
-	item.node, err = NewPQConsensusNode(item.config, app, pv, signer, nodeKey, log.NewNopLogger())
-	if err != nil {
-		n.t.Fatalf("normal PQ factory over original BlockStore/HRS: %v", err)
+	if remote {
+		n.custody.Construct(n, item)
+	} else {
+		item.host, err = ynxconsensusauth.ResumeHostSigner(item.vaultPath, item.credential, item.binding, registry)
+		if err != nil {
+			n.t.Fatalf("normal host signer recovery: %v", err)
+		}
+		signer, err := item.host.Signer()
+		if err != nil {
+			n.t.Fatal(err)
+		}
+		pv := privval.LoadFilePV(item.config.PrivValidatorKeyFile(), item.config.PrivValidatorStateFile())
+		nodeKey, err := p2p.LoadNodeKey(item.config.NodeKeyFile())
+		if err != nil {
+			n.t.Fatal(err)
+		}
+		item.node, err = NewPQConsensusNode(item.config, app, pv, signer, nodeKey, log.NewNopLogger())
+		if err != nil {
+			n.t.Fatalf("normal PQ factory over original BlockStore/HRS: %v", err)
+		}
 	}
 	if !bytes.Equal(item.keyBytes, pqNetworkE2ERead(n.t, item.config.PrivValidatorKeyFile())) || !bytes.Equal(item.nodeBytes, pqNetworkE2ERead(n.t, item.config.NodeKeyFile())) || !bytes.Equal(beforeLegacy, pqNetworkE2ERead(n.t, item.config.PrivValidatorStateFile())) || !bytes.Equal(beforePQ, pqNetworkE2ERead(n.t, item.binding.SignerStatePath)) {
 		n.t.Fatal("normal recovery replaced original validator/P2P identity or HRS")
@@ -708,6 +752,9 @@ func (n *pqNetworkE2E) startConstructed(count int) {
 func (n *pqNetworkE2E) stop(index int) {
 	item := n.nodes[index]
 	var historyErr error
+	if n.custody != nil {
+		n.custody.BeforeStop(n, item)
+	}
 	if item.node != nil {
 		if item.node.IsRunning() {
 			if err := item.node.Stop(); err != nil {
@@ -721,6 +768,9 @@ func (n *pqNetworkE2E) stop(index int) {
 		item.node = nil
 		item.store = nil
 		item.consensus = nil
+		if n.custody != nil {
+			n.custody.AfterStop(n, item)
+		}
 		historyErr = n.verifyStoppedSigningHistory(item)
 	}
 	if item.host != nil {
@@ -740,7 +790,7 @@ func (n *pqNetworkE2E) stop(index int) {
 	}
 }
 
-func (n *pqNetworkE2E) acquireWriterLeases(item *pqNetworkE2ENode) {
+func (n *pqNetworkE2E) acquireWriterLeases(item *pqNetworkE2ENode, legacy bool) {
 	n.t.Helper()
 	if item.appLease != nil || item.legacyLease != nil {
 		n.t.Fatal("normal restart attempted to replace a live writer lease")
@@ -750,9 +800,11 @@ func (n *pqNetworkE2E) acquireWriterLeases(item *pqNetworkE2ENode) {
 	if err != nil {
 		n.t.Fatal(err)
 	}
-	item.legacyLease, err = AcquireApplicationStateWriterLease(item.config.PrivValidatorStateFile())
-	if err != nil {
-		n.t.Fatal(err)
+	if legacy {
+		item.legacyLease, err = AcquireApplicationStateWriterLease(item.config.PrivValidatorStateFile())
+		if err != nil {
+			n.t.Fatal(err)
+		}
 	}
 }
 
@@ -1007,6 +1059,9 @@ func (n *pqNetworkE2E) wait(stage string, ready func() bool) {
 	ticker := time.NewTicker(25 * time.Millisecond)
 	defer ticker.Stop()
 	for {
+		if n.custody != nil {
+			n.custody.Check(n)
+		}
 		n.observeProgress(stage)
 		if ready() {
 			return

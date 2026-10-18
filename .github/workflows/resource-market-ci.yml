@@ -79,6 +79,11 @@ on:
         required: false
         default: false
         type: boolean
+      consensus_remote_e2e_retained_history:
+        description: Run one separately authorized bounded four-validator transition with one normal remote signer and unchanged retained-history limits
+        required: false
+        default: false
+        type: boolean
       remote_signer_process:
         description: Run one separately authorized normal signer process window without starting a node
         required: false
@@ -208,7 +213,7 @@ jobs:
           git status --porcelain
           if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
             YNX_WINDOW_SELECTIONS=0
-            for YNX_WINDOW_SELECTED in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}' '${{ inputs.remote_signer_process }}'; do
+            for YNX_WINDOW_SELECTED in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}' '${{ inputs.consensus_remote_e2e_retained_history }}' '${{ inputs.remote_signer_process }}'; do
               case "$YNX_WINDOW_SELECTED" in
                 true) YNX_WINDOW_SELECTIONS=$((YNX_WINDOW_SELECTIONS + 1)) ;;
                 false|'') ;;
@@ -820,7 +825,7 @@ jobs:
           PY
       - name: Run the separately authorized normal remote signer process
         id: pqremoteprocess
-        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history }}
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history }}
         timeout-minutes: 2
         env:
           YNX_REMOTE_AUTHORIZATION: ${{ inputs.remote_process_authorization }}
@@ -851,24 +856,30 @@ jobs:
           retention-days: 7
       - name: Run the authorized bounded four-validator transition
         id: pqnetwork
-        if: ${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 }}
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process }}
         timeout-minutes: 3
         run: |
           YNX_E2E_CASE="$RUNNER_TEMP/ynx-pq-network-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           YNX_E2E_BUILD="$YNX_E2E_CASE.build"
           export YNX_E2E_CASE YNX_E2E_BUILD
           export YNX_PQ_RETAINED_HISTORY='${{ inputs.consensus_e2e_retained_history }}'
+          export YNX_PQ_REMOTE_RETAINED_HISTORY='${{ inputs.consensus_remote_e2e_retained_history }}'
           umask 077
           mkdir "$YNX_E2E_CASE" "$YNX_E2E_BUILD"
           go test -p 1 -c -o "$YNX_E2E_BUILD/consensus.test" ./internal/consensus
+          if [ "$YNX_PQ_REMOTE_RETAINED_HISTORY" = 'true' ]; then
+            # Normal production command, compiled outside the guarded window.
+            go build -p 1 -trimpath -o "$YNX_E2E_BUILD/ynx-consensus-pq-remote-signer" ./cmd/ynx-consensus-pq-remote-signer
+          fi
           python3 -B - <<'PY'
           import hashlib, json, os
           from pathlib import Path
           source = Path(os.environ['GITHUB_WORKSPACE']).resolve()
           case = Path(os.environ['YNX_E2E_CASE']).resolve()
           binary = Path(os.environ['YNX_E2E_BUILD']).resolve() / 'consensus.test'
-          leaves = ('internal/consensus/pq_network_e2e_test.go',
-              'internal/consensus/pq_network_progress_test.go')
+          leaves = {
+              'internal/consensus/pq_network_e2e_test.go': '9d9a0b0135177a8135a713e75799212c0a1bb2e3b9f567d5cf1ef653ca8d026f',
+              'internal/consensus/pq_network_progress_test.go': '66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044'}
           def digest(path):
               h = hashlib.sha256()
               with open(path, 'rb') as f:
@@ -877,16 +888,33 @@ jobs:
               return h.hexdigest()
           profile = ('consensus-e2e-retained-history-v1'
               if os.environ['YNX_PQ_RETAINED_HISTORY'] == 'true' else 'consensus-e2e')
+          remote = os.environ['YNX_PQ_REMOTE_RETAINED_HISTORY'] == 'true'
+          if remote:
+              profile = 'consensus-remote-e2e-retained-history-v1'
+              leaves.update({
+                  'internal/consensus/pq_network_remote_e2e_test.go': '8d5e5d11ff8145d38aaca6dee68495a6077337f5b141ad6ffc4b143df75d6aaa',
+                  'internal/consensus/pq_remote_process_test.go': '01663b399daf0c7c70faab41e629a85d2538ea4bb9bb395fe724ec2ccf06948d'})
+          for leaf, pin in leaves.items():
+              if digest(source / leaf) != pin:
+                  raise RuntimeError('normal network source differs from separately frozen pin: ' + leaf)
+          test_name = ('TestPQNetworkFourValidatorRemoteSignerOriginalStateTransitionAndRestart'
+              if remote else 'TestPQNetworkFourValidatorOriginalStateTransitionAndRestart')
           plan = dict(profile=profile, sourceRoot=str(source),
               commit=os.environ['GITHUB_SHA'], executionAuthorized=False,
               workingDirectory=str(source / 'internal/consensus'),
-              command=[str(binary), '-test.run=^TestPQNetworkFourValidatorOriginalStateTransitionAndRestart$',
+              command=[str(binary), '-test.run=^' + test_name + '$',
                   '-test.count=1', '-test.timeout=120s', '-test.v'],
               environment=dict(GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB',
                   YNX_PQ_NETWORK_E2E='authorized-four-node-window'),
-              sourcePins={leaf: dict(sha256=digest(source / leaf)) for leaf in leaves},
+              sourcePins={leaf: dict(sha256=pin) for leaf, pin in leaves.items()},
               binaryPin=dict(path=str(binary), sha256=digest(binary)))
-          if profile == 'consensus-e2e-retained-history-v1':
+          if remote:
+              daemon = binary.parent / 'ynx-consensus-pq-remote-signer'
+              plan['remoteSignerPin'] = dict(path=str(daemon), sha256=digest(daemon))
+              plan['environment'] = dict(GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB',
+                  YNX_PQ_NETWORK_REMOTE_E2E='authorized-four-node-remote-signer-window',
+                  YNX_PQ_REMOTE_SIGNER_BINARY=str(daemon), YNX_PQ_REMOTE_SIGNER_SHA256=plan['remoteSignerPin']['sha256'])
+          if profile in ('consensus-e2e-retained-history-v1', 'consensus-remote-e2e-retained-history-v1'):
               plan['caps'] = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
                   ownedRSSBytes=1073741824, threads=320, ownedProcesses=16,
                   privateBytes=536870912, buildBytes=1073741824, logBytes=1048576,
@@ -896,8 +924,13 @@ jobs:
           with open(case / 'prepared.json', 'x', encoding='utf8') as f:
               json.dump(plan, f, separators=(',', ':'))
               f.write('\n')
+          print('YNX_PQ_NETWORK_BUILD_PINS ' + json.dumps(dict(commit=plan['commit'], profile=profile,
+              binaryPin=plan['binaryPin'], remoteSignerPin=plan.get('remoteSignerPin'), sourcePins=plan['sourcePins']),
+              sort_keys=True, separators=(',', ':')))
           PY
-          if [ "$YNX_PQ_RETAINED_HISTORY" = 'true' ]; then
+          if [ "$YNX_PQ_REMOTE_RETAINED_HISTORY" = 'true' ]; then
+            python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-remote-e2e-retained-history --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
+          elif [ "$YNX_PQ_RETAINED_HISTORY" = 'true' ]; then
             python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-e2e-retained-history --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
           else
             python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-e2e --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
