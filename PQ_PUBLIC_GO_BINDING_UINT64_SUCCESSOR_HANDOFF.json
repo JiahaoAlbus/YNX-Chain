@@ -1,0 +1,27 @@
+{
+  "state": "VERIFIED_NOT_PACKAGED",
+  "sourceCommit": "ebae095647f83b4e10ccd8a7a630dfa7f33976a1",
+  "predecessor": {
+    "commit": "46cbeb88f669fbd9aa19393e43bbebb661443731",
+    "path": "PQ_PUBLIC_GO_BINDING_HANDOFF.json",
+    "preservation": "Original delivered file restored byte-for-byte; this independently named successor records the later repair"
+  },
+  "scope": "Wallet public Go restore binding QA transport, not production policy authority",
+  "repair": "Embed original validated JSON text directly without numeric reserialization; reject null policy rows with the controlled binding error",
+  "validation": {
+    "test": "apps/wallet-desktop/test/pq-public-go-binding.test.mjs",
+    "runtime": "Previously installed R24 Electron RunAsNode",
+    "red": "3 PASS / 2 FAIL before repair: uint64 9007199254740993 rounded; null row threw uncontrolled TypeError",
+    "passed": 5,
+    "failed": 0,
+    "durationMs": 6.326833,
+    "diffCheck": "PASS",
+    "repeatedForMetadataOnly": false
+  },
+  "limitations": [
+    "No new crypto, Go verification, GUI, build, installation or deployment claimed",
+    "Existing immutable public evidence unchanged",
+    "No private data, credentials, additional signing or broadcast",
+    "SDK3.6/A33 unchanged; formal successor supply remains separate"
+  ]
+}
