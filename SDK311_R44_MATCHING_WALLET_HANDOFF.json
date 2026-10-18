@@ -1,0 +1,38 @@
+{
+  "state": "FORMAL_SDK311_AND_EXECUTED_R44_MATCHING_SOURCE_MODULE_RECEIPT_INTEGRATED_NOT_APP_PACKAGE",
+  "baseCommit": "61d72346fff9489b21ef26641ff5752795032de0",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "SDKAndBrowserRecipe": "SDK311_COMPATIBLE_APP_SUCCESSOR_HANDOFF.json remains immutable; exact SDK311 packed243 and selected SDK119/AppQR29 closures,18e bilingual markup and c432 UNKNOWN controller remain included",
+  "nativeSupplier": {
+    "handoff": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r44-cold-data-native-component-r2-20261018/FINAL_NATIVE_COMPONENT_HANDOFF.json",
+    "handoffBytes": 6688,
+    "handoffSha256": "a5280a614d3f5511ee62b9dbfc107a9682921f8fa94d8c620ecb652833c8ed39",
+    "fullNativeRoot": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r44-cold-data-native-component-r2-20261018/source",
+    "module": {"path": "apps/wallet-desktop/native/original-auth-identity.node", "bytes": 1096536, "sha256": "42075be96bf530da10ceb34d7f3e72b056e2abd588518e159bd2a62477a20e8b"},
+    "receipt": {"path": "apps/wallet-desktop/native/original-auth-identity-build.json", "bytes": 18945, "sha256": "1fd757d502c0eef116e9b27359be67df6a3b8230d1a1ebe41b411aefe7b0a324"},
+    "normalRuntime": "Original A actual Electron42.10/arm64 loads real linked module, exact56 exports and5new cold partial/firstCause/ready-read refusal/retire-join-close controls; no new positive authority",
+    "actualFirstCause": "AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_UNAVAILABLE",
+    "reusedNotRerun": "Four normal A terminals0: compile/link/receipt, target Electron cold negatives, target runtime identity and MachO arm64; no new local compilation or private calls"
+  },
+  "exactMechanicalIntake": {
+    "directSupplierReferencesChecked": 6,
+    "rawTerminalsChecked": 4,
+    "allSourceFilesMatched": 38,
+    "receiptInputFilesMatched": 32,
+    "onlyFourChanges": [
+      {"path": "apps/wallet-desktop/native/original-auth-identity-node.mm", "beforeSha256": "b5bdb6990156906a20e3fce237cb0cab5681f776f7be7970c64ecf4a1d6b5e93", "afterBytes": 61905, "afterSha256": "1100f9fedacebaa54173176973d09d8d52c74e51a1f1d31dd25cea3e92b37114"},
+      {"path": "packages/wallet-auth/native/original-host-dirfd-journal.h", "beforeSha256": "7a30fb0c7d13a316b4946424a62eb8fbb3055e7356ac9bc8feabd8dac8bbc857", "afterBytes": 10788, "afterSha256": "4636d5db5cc71d488ae63b9ed147d93d76a3fb0a4e2c768b1f74165900c6aaa0"},
+      {"path": "apps/wallet-desktop/native/original-auth-identity.node", "beforeSha256": "0ebfb6277f5c6bc40609404978624d192defe86fd465003ebfc9baff35b9eef7"},
+      {"path": "apps/wallet-desktop/native/original-auth-identity-build.json", "beforeSha256": "445c0b0ab02a9e8321e6406dfab7669d995f4b1522bfc1e1c3e409fae2e4433c"}
+    ],
+    "allBeforePinsCheckedPriorToCopy": true,
+    "originalExecutedReceiptUnchanged": true,
+    "noSupplierSourceImplementationByWallet": true,
+    "existingCanonicalGuard": "verifyCanonicalNativeReceipt passed with independent git-tree closed32 input paths, actual new module bytes, unchanged executed receipt and all current source bytes; actual raw in apps/wallet-desktop/test/r44-matching-canonical-receipt-readback-20261018.raw. This is not an ASAR/package or GUI check.",
+    "noInstalledAppOverlay": true
+  },
+  "preservedRealRed": "First R44 stage retained old7a30 header after inherited dependency enumeration although metadata declared R42. Actual normal compile lacked openRetained/readRetainedState at four NAPI locations. Wallet located final-file mismatch, original A repaired staging order in distinctr2 and verified both final supplier leaves; no stub/ABI weakening.",
+  "explicitColdActivationGate": "New SDK OriginalHostTerminalJournal cleanup controls have actual RED under supplier repair, independent of address factory. This R44 integration does not clear that gate, Source eligibility, canonical original request byte source or R45 unregistered producer. No activation, login, ACK, effect replay or qualified reclaim is authorized by component success.",
+  "AReceiptAndPackageNext": "Original A may select this new complete compatible source/module/receipt closure at its next safe new candidate stage; preserve already-frozen61d/c432/R3/V3. Do not rebuild native, rewrite its receipt or copy only module. Normal browser recipe unchanged and independent of cold activation; normal Mac canonical whole-source/native32/PQ316/fullSDK119/AppQR29 provenance then normal install/upgrade remains required.",
+  "notClaimed": ["New Mac App/DMG built", "Official download/installation/upgrade", "Windows/Linux/Android matching native module", "Normal browser Relay/proposal/address approval", "Cold recovery activation or SDK cleanup RED resolved", "Source grant or complete persistent-entered reclaim", "MONSTER", "Signatures, transfers or secret access"]
+}

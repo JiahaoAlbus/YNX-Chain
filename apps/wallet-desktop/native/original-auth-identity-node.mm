@@ -300,12 +300,14 @@ static napi_value TerminalPrivate(napi_env env,napi_callback_info info){
  if(recovery&&!IDEPrivateCurrent(h))return nullptr;
  if(!Current(h))return nullptr;h->terminalAcknowledged.insert(requestKey);if(h->kind==Kind::privateService)h->serviceAcknowledged.emplace(requestKey,resultDigest.UTF8String);return Undefined(env);
 }
-struct OriginalHostJournal {ynx_auth_private::HostDirfdJournal io;OriginalAuthHandle *parent;bool ready=false,busy=false,retired=false,closed=false,closeSelected=false;std::string first;};
+struct OriginalHostJournal {ynx_auth_private::HostDirfdJournal io;OriginalAuthHandle *parent;bool ready=false,busy=false,retired=false,closed=false,closeSelected=false;std::string first;bool retainedOnly=false;std::string stateLeaf;std::unordered_set<std::string> retainedReads;
+ napi_env coldEnv=nullptr;YNXAuthIdentitySourceAuthority *__strong coldSource=nil;NSDictionary *__strong coldSelection=nil;};
 static std::unordered_set<OriginalHostJournal *> hostJournals,hostJournalDebt;
-static OriginalHostJournal *HostJournalOriginal(napi_env env,napi_value ref){void *p=nullptr;if(napi_unwrap(env,ref,&p)!=napi_ok)return nullptr;auto *h=(OriginalHostJournal *)p;return hostJournals.count(h)&&originals.count(h->parent)&&h->parent->env==env?h:nullptr;}
+static OriginalHostJournal *HostJournalOriginal(napi_env env,napi_value ref){void *p=nullptr;if(napi_unwrap(env,ref,&p)!=napi_ok)return nullptr;auto *h=(OriginalHostJournal *)p;return hostJournals.count(h)&&((h->coldEnv==env&&h->parent==nullptr)||(originals.count(h->parent)&&h->parent->env==env))?h:nullptr;}
 static bool HostJournalClose(OriginalHostJournal *h){
  h->retired=true;if(h->busy)return false;if(h->closeSelected)return h->closed;h->closeSelected=true;h->closed=h->io.close();
- if(h->closed){if(h->parent->children)h->parent->children--;hostJournalDebt.erase(h);}else hostJournalDebt.insert(h);return h->closed;
+ if(h->coldSource){@try{NSError*error=nil;[h->coldSource retire];BOOL joined=[h->coldSource join:&error];BOOL closed=joined&&[h->coldSource close:&error];if(!closed){h->closed=false;if(h->first.empty())h->first=(error.localizedDescription?:@"HOST_DIRFD_COLD_SOURCE_CLOSE_UNKNOWN").UTF8String;}}@catch(id cause){(void)cause;h->closed=false;if(h->first.empty())h->first="HOST_DIRFD_COLD_SOURCE_CLOSE_EXCEPTION";}}
+ if(h->closed){if(h->parent&&h->parent->children)h->parent->children--;hostJournalDebt.erase(h);}else hostJournalDebt.insert(h);return h->closed;
 }
 static void HostJournalFinalize(napi_env,void *p,void *){auto *h=(OriginalHostJournal *)p;if(!hostJournals.count(h)||!HostJournalClose(h))return;hostJournals.erase(h);delete h;}
 static bool HostJournalString(napi_env env,napi_value input,size_t limit,std::string &out){size_t size=0;if(napi_get_value_string_utf8(env,input,nullptr,0,&size)!=napi_ok||size>limit)return false;out.assign(size+1,'\0');if(napi_get_value_string_utf8(env,input,out.data(),out.size(),&size)!=napi_ok)return false;out.resize(size);return out.find('\0')==std::string::npos;}
@@ -320,14 +322,84 @@ static napi_value HostJournalOpen(napi_env env,napi_callback_info info){
  try{h->io.open(selected.stringByDeletingLastPathComponent.UTF8String,journal.lastPathComponent.UTF8String);h->ready=true;NSError *e=nil;if(![parent->source assertAuthenticatedNativePurpose:&e]){h->first="HOST_DIRFD_SOURCE_CURRENT_CHANGED";h->ready=false;}}
  catch(const std::exception&e){h->first=e.what();h->ready=false;}return ref;
 }
+
+// Read-only cold DATA custody under the SAME authenticated parent. No state
+// path, Source instance, provider, floor or session is accepted from the caller.
+static napi_value HostJournalOpenRetained(napi_env env,napi_callback_info info){
+ napi_value a[1];if(!Args(env,info,1,a))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
+ auto*parent=PrivateOriginal(env,a[0]);if(!parent)return Error(env,"AUTH_IDENTITY_ORIGINAL_OWNER_REQUIRED");
+ if(!IDEPrivateCurrent(parent))return nullptr;
+ if(!YNXOriginalPrivateTerminalRecoveryRegistered(parent->selection))return Error(env,"AUTH_IDENTITY_TERMINAL_RECOVERY_NOT_REGISTERED");
+ NSString*selected=parent->selection[@"originalHostStatePath"],*journal=parent->selection[@"originalHostTerminalDirectory"];
+ if(![selected isKindOfClass:NSString.class]||![selected hasPrefix:@"/"]||![selected isEqual:selected.stringByStandardizingPath]||![journal isEqual:[selected stringByAppendingString:@".private-terminal"]])return Error(env,"HOST_DIRFD_ORIGINAL_SOURCE_SELECTION_REQUIRED");
+ auto*h=new OriginalHostJournal{};h->parent=parent;h->retainedOnly=true;h->stateLeaf=selected.lastPathComponent.UTF8String;parent->children++;hostJournals.insert(h);hostJournalDebt.insert(h);
+ napi_value ref;napi_create_object(env,&ref);if(napi_wrap(env,ref,h,HostJournalFinalize,nullptr,nullptr)!=napi_ok)return Error(env,"HOST_DIRFD_WRAP_UNKNOWN");
+ try{h->io.openRetained(selected.stringByDeletingLastPathComponent.UTF8String,journal.lastPathComponent.UTF8String);h->ready=true;if(!IDEPrivateCurrent(parent)){h->first="HOST_DIRFD_SOURCE_CURRENT_CHANGED";h->ready=false;}}
+ catch(const std::exception&e){h->first=e.what();h->ready=false;}
+ return ref; // A partial owner, never admission. assertReady must follow.
+}
+
+
+static NSDictionary*HostJournalSelection(OriginalHostJournal*h){return h->coldEnv?h->coldSelection:h->parent->selection;}
+static bool HostJournalCurrent(OriginalHostJournal*h,bool report=true){
+ if(!h->coldEnv)return IDEPrivateCurrent(h->parent);
+ auto refuse=[&](const char*code){if(h->first.empty())h->first=code;if(report)Error(h->coldEnv,h->first.c_str());return false;};
+ NSError*error=nil;
+ if(!h->coldSource||![h->coldSource assertAuthenticatedNativePurpose:&error])return refuse((error.localizedDescription?:@"HOST_DIRFD_COLD_SOURCE_CURRENT_UNKNOWN").UTF8String);
+ NSDictionary*selection=[h->coldSource copyOriginalSelection:&error];
+ if(error||!selection||![selection isEqual:h->coldSelection])return refuse((error.localizedDescription?:@"HOST_DIRFD_COLD_SOURCE_SELECTION_CHANGED").UTF8String);
+ return true;
+}
+// Cold caller is the actual IDE-owned runtime/node, verified by the original
+// acquireOriginalIDEConsumerSource implementation. It needs no lost Node
+// delivery, but it receives ONLY a read custodian, never a private-service owner.
+static napi_value HostJournalAcquireCold(napi_env env,napi_callback_info info){
+ napi_value unused[1];if(!Args(env,info,0,unused))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
+ auto*h=new OriginalHostJournal{};h->parent=nullptr;h->coldEnv=env;h->retainedOnly=true;hostJournals.insert(h);hostJournalDebt.insert(h);
+ napi_value ref;napi_create_object(env,&ref);if(napi_wrap(env,ref,h,HostJournalFinalize,nullptr,nullptr)!=napi_ok)return Error(env,"HOST_DIRFD_WRAP_UNKNOWN");
+ // Capture partial Source before any readiness/current/selection operation.
+ @try{
+  NSError*error=nil;h->coldSource=[YNXAuthIdentitySourceAuthority acquireOriginalIDEConsumerSource:&error];
+  if(error||!h->coldSource){h->first=(error.localizedDescription?:@"HOST_DIRFD_COLD_SOURCE_NOT_SUPPLIED").UTF8String;return ref;}
+  h->coldSelection=[h->coldSource copyOriginalSelection:&error];
+  NSString*selected=h->coldSelection[@"originalHostStatePath"],*journal=h->coldSelection[@"originalHostTerminalDirectory"];
+  if(error||!YNXOriginalPrivateTerminalRecoveryRegistered(h->coldSelection)||![selected isKindOfClass:NSString.class]||![selected hasPrefix:@"/"]||![selected isEqual:selected.stringByStandardizingPath]||![journal isEqual:[selected stringByAppendingString:@".private-terminal"]]){h->first="HOST_DIRFD_COLD_SOURCE_SELECTION_INVALID";return ref;}
+  h->stateLeaf=selected.lastPathComponent.UTF8String;
+  try{h->io.openRetained(selected.stringByDeletingLastPathComponent.UTF8String,journal.lastPathComponent.UTF8String);h->ready=true;}
+  catch(const std::exception&e){h->first=e.what();h->ready=false;}
+  if(h->ready&&!HostJournalCurrent(h,false)){if(h->first.empty())h->first="HOST_DIRFD_COLD_SOURCE_CURRENT_CHANGED";h->ready=false;}
+ }@catch(id cause){(void)cause;if(h->first.empty())h->first="HOST_DIRFD_COLD_SOURCE_CAPTURE_EXCEPTION";h->ready=false;}
+ return ref;
+}
+
 template<class Work>static napi_value HostJournalRun(napi_env env,napi_callback_info info,size_t count,Work work){
  napi_value a[4];if(!Args(env,info,count,a))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");auto *h=HostJournalOriginal(env,a[0]);if(!h)return Error(env,"HOST_DIRFD_ORIGINAL_OWNER_REQUIRED");
  if(h->busy||!h->ready||h->retired||!h->first.empty())return Error(env,h->first.empty()?"HOST_DIRFD_UNRESOLVED":h->first.c_str());h->busy=true;
- if(!Current(h->parent)){h->first="HOST_DIRFD_SOURCE_CURRENT_CHANGED";h->busy=false;return nullptr;}
- try{h->io.assertCurrent();napi_value result=work(h,a);h->io.assertCurrent();if(!Current(h->parent)){h->first="HOST_DIRFD_SOURCE_CURRENT_CHANGED";h->busy=false;return nullptr;}h->busy=false;return result;}
+ if(!HostJournalCurrent(h)){if(h->first.empty())h->first="HOST_DIRFD_SOURCE_CURRENT_CHANGED";h->busy=false;return nullptr;}
+ try{h->io.assertCurrent();napi_value result=work(h,a);h->io.assertCurrent();if(!HostJournalCurrent(h)){if(h->first.empty())h->first="HOST_DIRFD_SOURCE_CURRENT_CHANGED";h->busy=false;return nullptr;}h->busy=false;return result;}
  catch(const std::exception&e){if(h->first.empty())h->first=e.what();h->busy=false;return Error(env,h->first.c_str());}
 }
 static napi_value HostJournalReady(napi_env env,napi_callback_info info){return HostJournalRun(env,info,1,[&](OriginalHostJournal *,napi_value *){return Undefined(env);});}
+
+// Result is DATA only: immutable original entered+terminal+HostState bindings.
+// No existing request/admission/once maps are repopulated and no effect runs.
+static napi_value HostJournalRetainedResult(napi_env env,napi_callback_info info){return HostJournalRun(env,info,2,[&](OriginalHostJournal*h,napi_value*a){
+ if(!h->retainedOnly)throw std::runtime_error("HOST_DIRFD_RETAINED_OWNER_REQUIRED");
+ std::string request;if(!HostJournalString(env,a[1],65536,request))throw std::runtime_error("HOST_DIRFD_RETAINED_REQUEST_INVALID");
+ NSData*inputRaw=[NSData dataWithBytes:request.data() length:request.size()];NSDictionary*input=YNXTerminalObject(inputRaw,65536);
+ if(!YNXOriginalRecoverablePrivateCarrierBudget(input,inputRaw,HostJournalSelection(h))||![input[@"operation"] isEqual:@"handleReturn"]||![input[@"phase"] isEqual:@"effect"]||![input[@"referenceAction"] isEqual:@"complete"])throw std::runtime_error("HOST_DIRFD_RETAINED_REQUEST_INVALID");
+ NSString*leaf=TerminalSHA(TerminalCanonical(@{@"operation":input[@"operation"],@"phase":input[@"phase"],@"requestId":input[@"requestId"]}));std::string key=leaf.UTF8String;
+ if(h->retainedReads.size()>=64)throw std::runtime_error("HOST_DIRFD_RETAINED_READ_CAPACITY");
+ if(!h->retainedReads.insert(key).second)throw std::runtime_error("HOST_DIRFD_RETAINED_READ_ALREADY_SELECTED");
+ auto entered=h->io.read(key+".entered"),terminal=h->io.read(key+".terminal"),state=h->io.readRetainedState(h->stateLeaf);
+ NSString*cause=nil;NSDictionary*proof=YNXOriginalTerminalCustodyResult([NSData dataWithBytes:entered.data() length:entered.size()],[NSData dataWithBytes:terminal.data() length:terminal.size()],[NSData dataWithBytes:state.data() length:state.size()],inputRaw,TerminalCanonical(HostJournalSelection(h)[@"association"]),nil,&cause);
+ if(!proof)throw std::runtime_error((cause?:@"AUTH_IDENTITY_ORIGINAL_TERMINAL_UNKNOWN").UTF8String);
+ // Validate that the exact files remain the retained originals after parsing.
+ if(h->io.read(key+".entered")!=entered||h->io.read(key+".terminal")!=terminal||h->io.readRetainedState(h->stateLeaf)!=state)throw std::runtime_error("HOST_DIRFD_RETAINED_ORIGINAL_CHANGED");
+ NSMutableDictionary*result=[proof mutableCopy];result[@"dataOnly"]=@YES;result[@"effectRetryAuthorized"]=@NO;result[@"nativeAdmission"]=@NO;
+ return JSON(env,result);
+});}
+
 static napi_value HostJournalList(napi_env env,napi_callback_info info){return HostJournalRun(env,info,1,[&](OriginalHostJournal *h,napi_value *){NSMutableArray *rows=[NSMutableArray array];for(const auto &name:h->io.list())[rows addObject:[NSString stringWithUTF8String:name.c_str()]];return JSON(env,rows);});}
 static napi_value HostJournalRead(napi_env env,napi_callback_info info){return HostJournalRun(env,info,2,[&](OriginalHostJournal *h,napi_value *a){std::string name;if(!HostJournalString(env,a[1],73,name))throw std::runtime_error("HOST_DIRFD_RECORD_INVALID");auto raw=h->io.read(name);napi_value result;napi_create_string_utf8(env,raw.data(),raw.size(),&result);return result;});}
 static napi_value HostJournalWrite(napi_env env,napi_callback_info info){return HostJournalRun(env,info,3,[&](OriginalHostJournal *h,napi_value *a){std::string name,raw;if(!HostJournalString(env,a[1],73,name)||!HostJournalString(env,a[2],8192,raw))throw std::runtime_error("HOST_DIRFD_RECORD_INVALID");h->io.writeExclusive(name,raw);return Undefined(env);});}
@@ -349,6 +421,7 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 static napi_value Register(napi_env env,napi_value exports){
  struct Method {const char *name;napi_callback callback;void *data;};
  Method methods[]={{"captureOriginalIDEPrivateClient",IDEClientCapture,nullptr},{"assertOriginalIDEPrivateClientReady",IDEClientReady,nullptr},{"captureOriginalIDEPrivateClientResult",IDEClientResult,nullptr},{"acquireOriginalNativePrivateServiceOwner",ServiceAcquire,nullptr},{"assertOriginalNativePrivateServiceOwnerReady",ServiceReady,nullptr},{"readOriginalNativePrivateServiceRequest",ServiceRead,nullptr},{"writeOriginalNativePrivateServiceResponse",ServiceWrite,nullptr},{"retireOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)0},{"joinOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)1},{"closeOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)2},{"acquireOriginalIDEAdministrationProfile",IDEAcquireAdministration,nullptr},{"readOriginalIDEParentInstalledFrame",IDEInstalledFrame,nullptr},{"assertOriginalIDEParentAcknowledgement",IDEAcknowledge,nullptr},{"beginOriginalIDEParentPrelude",IDEBeginPrelude,nullptr},{"takeOriginalIDEParentSenderDescriptor",IDETakeSender,nullptr},{"acquireOriginalIDEAdmissionParentDelivery",IDENodeAcquire,nullptr},{"reserveOriginalIDEParentIntent",IDEReserve,nullptr},{"readOriginalIDEParentIntent",IDEIntentRead,nullptr},{"assertOriginalIDEParentIntentCurrent",IDEIntentLifecycle,(void *)ideIntentCurrent},{"retireOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentRetire},{"joinOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentJoin},{"closeOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentClose},{"acquireOriginalAdministrationProfile",Acquire,nullptr},{"readOriginalAdministrationProfile",ReadAdministration,nullptr},{"assertOriginalAdministrationProfileCurrent",Lifecycle,(void *)adminCurrent},{"retireOriginalAdministrationProfile",Lifecycle,(void *)adminRetire},{"joinOriginalAdministrationProfile",Lifecycle,(void *)adminJoin},{"closeOriginalAdministrationProfile",Lifecycle,(void *)adminClose},{"reserveOriginalJointRegistration",Reserve,nullptr},{"commitOriginalJointRegistration",Commit,nullptr},{"readOriginalJointRegistration",ReadJoint,nullptr},{"assertOriginalJointCurrent",Lifecycle,(void *)jointCurrent},{"assertOriginalJointExecutorChild",Lifecycle,(void *)jointChild},{"assertOriginalJointSuccession",Lifecycle,(void *)jointSuccession},{"retireOriginalJoint",Lifecycle,(void *)jointRetire},{"joinOriginalJoint",Lifecycle,(void *)jointJoin},{"closeOriginalJoint",Lifecycle,(void *)jointClose},
+ {"acquireOriginalIDEColdTerminalCustody",HostJournalAcquireCold,nullptr},{"openOriginalHostRetainedTerminalJournal",HostJournalOpenRetained,nullptr},{"readOriginalHostRetainedTerminalCustody",HostJournalRetainedResult,nullptr},
  {"openOriginalHostTerminalJournal",HostJournalOpen,nullptr},{"assertOriginalHostTerminalJournalReady",HostJournalReady,nullptr},{"listOriginalHostTerminalJournal",HostJournalList,nullptr},{"readOriginalHostTerminalJournal",HostJournalRead,nullptr},{"writeOriginalHostTerminalJournal",HostJournalWrite,nullptr},{"retireOriginalHostTerminalJournal",HostJournalRetire,nullptr},{"joinOriginalHostTerminalJournal",HostJournalJoin,nullptr},{"closeOriginalHostTerminalJournal",HostJournalDispose,nullptr},
  {"readOriginalNativePrivateServiceTerminalResult",ReadPrivateTerminalResult,nullptr},
  {"captureOriginalNativePrivateServiceBorrow",CapturePrivate,nullptr},{"assertOriginalNativePrivateServiceCurrent",Lifecycle,(void *)jointCurrent},{"assertOriginalNativePrivateServiceAdmission",AdmissionPrivate,nullptr},{"assertOriginalNativePrivateServiceTerminal",TerminalPrivate,nullptr},{"retireOriginalNativePrivateService",Lifecycle,(void *)jointRetire},{"joinOriginalNativePrivateService",Lifecycle,(void *)jointJoin},{"closeOriginalNativePrivateService",Lifecycle,(void *)jointClose}};

@@ -19,7 +19,7 @@ namespace ynx_auth_private {
 class HostDirfdJournal {
  struct FD {int number;bool selected=false,complete=false;};
  std::vector<FD> fds;int parent=-1,directory=-1;struct stat parentIdentity{},directoryIdentity{};
- std::string leaf;bool opened=false,retired=false,closeSelected=false,closeResult=false,unknown=false;
+ std::string leaf;bool readOnly=false;bool opened=false,retired=false,closeSelected=false,closeResult=false,unknown=false;
  std::unordered_map<std::string,struct stat> recordIdentities;
  std::string first;
  [[noreturn]] void fail(const char *code){unknown=true;if(first.empty())first=code;throw std::runtime_error(first);}
@@ -42,7 +42,9 @@ public:
  HostDirfdJournal()=default;HostDirfdJournal(const HostDirfdJournal&)=delete;HostDirfdJournal&operator=(const HostDirfdJournal&)=delete;
  // Destructor intentionally does not retry uncertain close. Original Native
  // inventory retains this owner on incomplete close instead of deleting it.
- void open(const std::string&parentPath,const std::string&journalLeaf){
+private:
+ void openSelected(const std::string&parentPath,const std::string&journalLeaf,bool existingOnly){
+  readOnly=existingOnly;
   if(opened||retired||parentPath.empty()||parentPath[0]!='/'||!component(journalLeaf))fail("HOST_DIRFD_SELECTION_INVALID");opened=true;leaf=journalLeaf;
   int current=own(::open("/",O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC));
   size_t start=1;
@@ -54,11 +56,16 @@ public:
    if(!closeOnce(current))fail("HOST_DIRFD_CLOSE_UNKNOWN");current=next;if(slash==std::string::npos)break;start=slash+1;if(start==parentPath.size())fail("HOST_DIRFD_SELECTION_INVALID");
   }
   parent=current;if(fstat(parent,&parentIdentity)||!safeDirectory(parentIdentity,true))fail("HOST_DIRFD_PARENT_INVALID");
-  if(mkdirat(parent,leaf.c_str(),0700)==0){if(fsync(parent))fail("HOST_DIRFD_SYNC_UNKNOWN");}else if(errno!=EEXIST)fail("HOST_DIRFD_CREATE_UNKNOWN");
+  if(!existingOnly){if(mkdirat(parent,leaf.c_str(),0700)==0){if(fsync(parent))fail("HOST_DIRFD_SYNC_UNKNOWN");}else if(errno!=EEXIST)fail("HOST_DIRFD_CREATE_UNKNOWN");}
   directory=own(openat(parent,leaf.c_str(),O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC));struct stat named{};
   if(fstat(directory,&directoryIdentity)||fstatat(parent,leaf.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!identity(named,directoryIdentity)||!safeDirectory(directoryIdentity,true))fail("HOST_DIRFD_DIRECTORY_CHANGED");
-  if(flock(directory,LOCK_EX|LOCK_NB))fail("HOST_DIRFD_WRITER_ALREADY_HELD");assertCurrent();
+  if(flock(directory,(existingOnly?LOCK_SH:LOCK_EX)|LOCK_NB))fail("HOST_DIRFD_WRITER_ALREADY_HELD");assertCurrent();
  }
+public:
+ void open(const std::string&parentPath,const std::string&journalLeaf){openSelected(parentPath,journalLeaf,false);}
+ // Existing original journal only: no mkdir, write, lease renewal or replay.
+ // This is read custody, NOT Source authentication or reclaimed admission.
+ void openRetained(const std::string&parentPath,const std::string&journalLeaf){openSelected(parentPath,journalLeaf,true);}
  void assertCurrent(){
   if(!opened||retired||unknown||parent<0||directory<0)fail("HOST_DIRFD_UNRESOLVED");
   struct stat p{},d{},named{};
@@ -80,8 +87,21 @@ public:
   if(fstat(fd,&after)||fstatat(directory,name.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!fileIdentity(before,after)||!fileIdentity(before,named))fail("HOST_DIRFD_RECORD_CHANGED");
   if(!closeOnce(fd))fail("HOST_DIRFD_CLOSE_UNKNOWN");assertCurrent();return raw;
  }
+ // Source-selected same-parent HostState snapshot; not an arbitrary path and
+ // never used to reconstruct a grant, once map or original session capability.
+ std::string readRetainedState(const std::string&stateLeaf){
+  assertCurrent();if(!readOnly||!component(stateLeaf))fail("HOST_DIRFD_RECLAIM_STATE_SELECTION_INVALID");
+  int fd=own(openat(parent,stateLeaf.c_str(),O_RDONLY|O_NOFOLLOW|O_NONBLOCK|O_CLOEXEC));
+  struct stat before{},named{},after{};const std::string key="state:"+stateLeaf;
+  if(fstat(fd,&before)||!safeFile(before,32*1024*1024)||fstatat(parent,stateLeaf.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!fileIdentity(before,named)||(recordIdentities.count(key)&&!fileIdentity(before,recordIdentities.at(key))))fail("HOST_DIRFD_RECLAIM_STATE_CHANGED");
+  if(!recordIdentities.count(key))recordIdentities.emplace(key,before);
+  std::string raw((size_t)before.st_size,'\0');size_t offset=0;
+  while(offset<raw.size()){ssize_t n=pread(fd,raw.data()+offset,raw.size()-offset,(off_t)offset);if(n<0&&errno==EINTR)continue;if(n<=0)fail("HOST_DIRFD_READ_UNKNOWN");offset+=(size_t)n;}
+  if(fstat(fd,&after)||fstatat(parent,stateLeaf.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!fileIdentity(before,after)||!fileIdentity(before,named))fail("HOST_DIRFD_RECLAIM_STATE_CHANGED");
+  if(!closeOnce(fd))fail("HOST_DIRFD_CLOSE_UNKNOWN");assertCurrent();return raw;
+ }
  void writeExclusive(const std::string&name,const std::string&raw){
-  assertCurrent();if(!recordName(name)||raw.empty()||raw.size()>8192)fail("HOST_DIRFD_RECORD_INVALID");
+  assertCurrent();if(readOnly)fail("HOST_DIRFD_RECLAIM_READ_ONLY");if(!recordName(name)||raw.empty()||raw.size()>8192)fail("HOST_DIRFD_RECORD_INVALID");
   int fd=own(openat(directory,name.c_str(),O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600));struct stat before{};
   if(fstat(fd,&before)||!S_ISREG(before.st_mode)||before.st_uid!=getuid()||(before.st_mode&0777)!=0600||before.st_nlink!=1||before.st_size!=0)fail("HOST_DIRFD_RECORD_CHANGED");size_t offset=0;
   while(offset<raw.size()){ssize_t n=::write(fd,raw.data()+offset,raw.size()-offset);if(n<0&&errno==EINTR)continue;if(n<=0)fail("HOST_DIRFD_WRITE_UNKNOWN");offset+=(size_t)n;}
