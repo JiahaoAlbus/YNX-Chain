@@ -30,7 +30,11 @@ export class TransactionSubmissions {
         const originals=await this.intentStore.readPQOriginals(account,()=>guard.assert());guard.assert();
         const saved=originals.find(row=>row.account===account&&row.hash===hash&&row.kind==='pq-typed-action');
         if(!saved)throw failure('TRANSACTION_INTENT_REQUIRED','The retained original typed record is required.');
-        const result=await observePQTypedOriginalQuery(saved,this.pqReadTypedOriginal,()=>guard.assert());guard.assert();return result;
+        const read=async(...args)=>{const response=await this.pqReadTypedOriginal(...args);await this.intentStore.savePQTypedReadResult(account,hash,response);return response;};
+        const result=await observePQTypedOriginalQuery(saved,read,()=>guard.assert());guard.assert();
+        const progress=await this.intentStore.readPQProgress(account,hash,()=>guard.assert());guard.assert();
+        const known={'inclusion-observed':'typed-commit-observed','rejection-observed':'typed-rejection-observed'}[progress.status];
+        return known?Object.freeze({...result,outcome:known}):result;
       }
       if (typeof this.intentStore?.readPQOriginals !== 'function' || typeof this.pqReadOriginal !== 'function') throw failure('PQ_READ_SOURCE_UNAVAILABLE', 'The fixed PQ producer read channel is not available. Preserve the original.');
       const originals = await this.intentStore.readPQOriginals(account, () => guard.assert());

@@ -18,6 +18,7 @@ import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
 import {parsePQFinalityRecord,pqFinalityRecordGeneration,pqFinalityRecordsConflict} from './wallet-pq-finality-record.mjs';
+import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -445,11 +446,17 @@ export class FileTransactionIntentStore {
   /** Capture before parsing/queued IO/post-response lock checks. Storage only;
    * fixed main supplies these bytes, never a renderer DTO or callback grant. */
   async savePQSubmissionResult(account,hash,input){
-    const slot=this.#pqProgressSlot(account,hash),raw=capturePQProgressResult(input);slot.awaitingResult=false;if(!slot.firstResult)slot.firstResult=raw;slot.latestResult=raw;slot.unparsedResult=raw;
+    const slot=this.#pqProgressSlot(account,hash);let raw;
+    if(input&&Object.hasOwn(input,'response')){
+      if(!slot.firstTypedResponsePresent){slot.firstTypedResponsePresent=true;slot.firstTypedResponse=input.response;}
+      try{const retained=retainPQTypedHTTPResponse(input.response);slot.latestTypedResponse=retained;if(!slot.firstTypedResponseCopied){slot.firstTypedResponse=retained;slot.firstTypedResponseCopied=true;}raw=capturePQProgressResult({phase:input.phase,response:retained});}
+      catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
+    }else raw=capturePQProgressResult(input);
+    slot.awaitingResult=false;if(!slot.firstResult)slot.firstResult=raw;slot.latestResult=raw;slot.unparsedResult=raw;
     return this.#mutate(async()=>{
       let state;try{state=await this.#read();}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
       let next;
-      try{let baseline=slot.best??prior;if(prior.result)baseline=mergePQProgressResult(baseline,prior.result,original);next=mergePQProgressResult(baseline,raw,original);}catch(cause){if(slot.unparsedResult===raw)slot.unparsedResult=null;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}if(slot.unparsedResult===raw)slot.unparsedResult=null;
+      try{let baseline=slot.best??prior;if(prior.result)baseline=mergePQProgressResult(baseline,prior.result,original);next=mergePQProgressResult(baseline,raw,original);}catch(cause){if(original.kind!=='pq-typed-action'&&slot.unparsedResult===raw)slot.unparsedResult=null;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}if(slot.unparsedResult===raw)slot.unparsedResult=null;
       slot.best=parsePQProgress({...next,firstCause:prior.firstCause??next.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior.storageCause??next.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);
       if(pqProgressCoreEqual(prior,slot.best))return Object.freeze({stored:true,status:prior.status,changed:false});
       try{await this.#write({...state,pqProgress:state.pqProgress.map(r=>r===prior?slot.best:r)});return Object.freeze({stored:true,status:slot.best.status,changed:true});}
@@ -466,6 +473,32 @@ export class FileTransactionIntentStore {
       catch(error){this.#pqProgressStorageFailure(slot,error);throw error;}
     });
   }
+  // Read observation, not broadcast admission. A pre-submission UNKNOWN must
+  // not manufacture an outward-operation marker. Known observations are kept
+  // in the existing progress journal and cannot regress to later UNKNOWN.
+  async savePQTypedReadResult(account,hash,response){
+    const slot=this.#pqProgressSlot(account,hash);let raw;
+    if(!slot.firstTypedResponsePresent){slot.firstTypedResponsePresent=true;slot.firstTypedResponse=response;}
+    try{
+      const retained=retainPQTypedHTTPResponse(response);slot.latestTypedResponse=retained;
+      if(!slot.firstTypedResponseCopied){slot.firstTypedResponse=retained;slot.firstTypedResponseCopied=true;}
+      raw=capturePQProgressResult({phase:'read',response:retained});slot.latestResult=raw;slot.unparsedResult=raw;
+    }catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
+    return this.#mutate(async()=>{
+      let state;try{state=await this.#read();}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
+      const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash&&r.kind==='pq-typed-action');if(!original)throw invalid();
+      const prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);let next;
+      try{let baseline=slot.best??prior??initialPQProgress(original);if(prior?.result)baseline=mergePQProgressResult(baseline,prior.result,original);next=mergePQProgressResult(baseline,raw,original);}catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
+      if(slot.unparsedResult===raw)slot.unparsedResult=null;
+      if(!prior&&!slot.beginAttempted&&next.status==='submission-unknown'){slot.latestResult=null;return Object.freeze({stored:false,status:'signed-unsubmitted',observationOnly:true});}
+      slot.best=parsePQProgress({...next,firstCause:prior?.firstCause??next.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior?.storageCause??next.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);
+      if(prior&&pqProgressCoreEqual(prior,slot.best))return Object.freeze({stored:true,status:prior.status,changed:false});
+      const successor=pqProgressSuccessor(state);successor.pqProgress=prior?successor.pqProgress.map(r=>r===prior?slot.best:r):[...successor.pqProgress,slot.best];
+      const reserved=(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).reduce((sum,x)=>sum+(x.kind==='pq-typed-action'?(x.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES),0);
+      try{if(Buffer.byteLength(JSON.stringify(successor))+reserved>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original response; its protected progress cannot fit.');await this.#write(successor);return Object.freeze({stored:true,status:slot.best.status,changed:true});}
+      catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
+    });
+  }
   async readPQProgress(account,hash,guard){
     if(!ACCOUNT.test(account??'')||!HASH.test(hash??'')||typeof guard!=='function')throw invalid();guard();const state=await this.#read();guard();
     const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
@@ -475,10 +508,10 @@ export class FileTransactionIntentStore {
   async flushPQProgressResult(account,hash,guard){
     if(typeof guard!=='function')throw invalid();const slot=this.#pqProgressSlot(account,hash);
     return this.#mutate(async()=>{
-      guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
-      let best=slot.best??prior;if(slot.unparsedResult){best=mergePQProgressResult(best,slot.unparsedResult,original);slot.unparsedResult=null;}if(prior.result)best=mergePQProgressResult(best,prior.result,original);
-      best=parsePQProgress({...best,firstCause:prior.firstCause??best.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior.storageCause??best.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);slot.best=best;
-      if(canonicalJSON(prior)!==canonicalJSON(best)){guard();try{await this.#write({...state,pqProgress:state.pqProgress.map(r=>r===prior?best:r)});}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}}
+      guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior&&!(original.kind==='pq-typed-action'&&slot.best&&slot.best.status!=='submission-unknown'))throw invalid();
+      let best=slot.best??prior;if(slot.unparsedResult){best=mergePQProgressResult(best,slot.unparsedResult,original);slot.unparsedResult=null;}if(prior?.result)best=mergePQProgressResult(best,prior.result,original);
+      best=parsePQProgress({...best,firstCause:prior?.firstCause??best.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior?.storageCause??best.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);slot.best=best;
+      if(!prior||canonicalJSON(prior)!==canonicalJSON(best)){guard();try{const next=pqProgressSuccessor(state);next.pqProgress=prior?next.pqProgress.map(r=>r===prior?best:r):[...next.pqProgress,best];if(original.kind==='pq-typed-action'){const reserved=(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).reduce((sum,x)=>sum+(x.kind==='pq-typed-action'?(x.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES),0);if(Buffer.byteLength(JSON.stringify(next))+reserved>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the same result; protected progress capacity is unavailable.');}await this.#write(next);}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}}
       guard();return Object.freeze({account,hash,status:best.status,stored:true,retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
     });
   }

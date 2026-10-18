@@ -3,6 +3,7 @@ import {canonicalJSON} from '@ynx-chain/wallet-auth';
 import {parsePQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {pqBFTOriginalIdentity,parsePQBFTOriginalResponse,parsePQBFTSubmissionResponse} from './wallet-pq-bft-evidence.mjs';
 import {sessionOriginalCause} from './wallet-session-original.mjs';
+import {pqTypedSubmissionIdentity,parsePQTypedProgressResult,capturePQTypedProgressResult} from './wallet-pq-typed-progress.mjs';
 const fail=()=>{throw Object.assign(Error('Preserve the original PQ submission and its unknown result.'),{code:'PQ_PROGRESS_INVALID'});};
 const exact=(v,keys)=>{if(!v||Object.getPrototypeOf(v)!==Object.prototype)fail();const d=Object.getOwnPropertyDescriptors(v),names=Reflect.ownKeys(d);if(names.length!==keys.length||names.some(k=>!keys.includes(k)||!Object.hasOwn(d[k],'value')||!d[k].enumerable))fail();};
 const digest=text=>createHash('sha256').update(text).digest('hex');
@@ -12,18 +13,21 @@ const stateOf=observation=>observation.outcome==='bft-inclusion-observed'?'inclu
 export function pqProgressCause(value){try{const result=sessionOriginalCause(value);if(typeof result.value==='number'&&!Number.isFinite(result.value))result.value=null;return Object.freeze(result);}catch{return Object.freeze({kind:'error',value:null,code:null});}}
 function cause(value){if(value===null)return;exact(value,['kind','value','code']);if(!['error','object','undefined','boolean','number','string'].includes(value.kind)||value.code!==null&&(typeof value.code!=='string'||! /^[A-Za-z0-9_:-]{1,128}$/.test(value.code))||['error','object','undefined'].includes(value.kind)&&value.value!==null||value.kind==='boolean'&&typeof value.value!=='boolean'||value.kind==='number'&&value.value!==null&&(typeof value.value!=='number'||!Number.isFinite(value.value))||value.kind==='string'&&!['','redacted'].includes(value.value))fail();}
 export function pqSubmissionIdentity(input){
+ if(input?.kind==='pq-typed-action')return pqTypedSubmissionIdentity(input);
  const original=parsePQOriginalRecord(input),identity=pqBFTOriginalIdentity(original);
  return Object.freeze({account:original.account,hash:original.hash,kind:original.kind,operationId:original.operationId,nativeTransactionHash:identity.nativeTransactionHash,abciTransactionHash:identity.abciTransactionHash});
 }
 /** Raw response is private journal custody, not a renderer receipt or a
  * qualified Source. No method here signs, POSTs, grants or clears an original. */
 export function parsePQProgressResult(input,original){
+ if(original?.kind==='pq-typed-action')return parsePQTypedProgressResult(input,original,PQ_PROGRESS_RESPONSE_BYTES);
  exact(input,['phase','statusCode','text','bodySha256']);
  if(!['submission','read'].includes(input.phase)||!Number.isInteger(input.statusCode)||typeof input.text!=='string'||Buffer.byteLength(input.text)>PQ_PROGRESS_RESPONSE_BYTES||input.bodySha256!==digest(input.text))fail();
  const observed=(input.phase==='submission'?parsePQBFTSubmissionResponse:parsePQBFTOriginalResponse)(original,input.statusCode,input.text);
  return Object.freeze({result:Object.freeze({...input}),observed,status:stateOf(observed)});
 }
 export function capturePQProgressResult(input){
+ if(input&&Object.hasOwn(input,'response'))return capturePQTypedProgressResult(input);
  exact(input,['phase','statusCode','text']);if(!['submission','read'].includes(input.phase)||!Number.isInteger(input.statusCode)||typeof input.text!=='string')fail();
  // A main caller retains even an oversized result in memory before the
  // bounded parser can refuse durable storage. No callback bytes are logged.
