@@ -28,6 +28,7 @@ type OperatorCheckpointOptions struct {
 	BackupOutput                                                 string
 	BackupLegacyKeyPath, BackupNodeKeyPath                       string
 	SigningLockKind                                              string
+	ProposePQActivationHeight                                    int64
 	Authorization, NextAuthorization                             *PQEngineAuthorization
 	RuntimeUpgrade                                               *RuntimeUpgradeAuthorization
 }
@@ -35,27 +36,28 @@ type OperatorCheckpointOptions struct {
 // OperatorCheckpointResult is stopped-source observation, not a signature,
 // process source qualification, deployment or permission to activate a profile.
 type OperatorCheckpointResult struct {
-	Version                  string                    `json:"version"`
-	ChainID                  string                    `json:"chainId"`
-	Height                   int64                     `json:"height,string"`
-	AppHash                  string                    `json:"appHash"`
-	AppVersion               uint64                    `json:"appVersion,string"`
-	ConsensusGenesisSHA256   string                    `json:"consensusGenesisSHA256"`
-	OriginalGenesisHash      string                    `json:"originalGenesisHash"`
-	MigrationStateHash       string                    `json:"migrationStateHash"`
-	StateLayout              string                    `json:"stateLayout"`
-	RegistryRoot             string                    `json:"registryRoot"`
-	RegistryEventCount       uint64                    `json:"registryEventCount,string"`
-	CommittedScheduleHash    *string                   `json:"committedScheduleHash"`
-	NextScheduleHash         *string                   `json:"nextScheduleHash"`
-	ReadOnly                 bool                      `json:"readOnly"`
-	WriterExcluded           bool                      `json:"writerExcluded"`
-	SigningWriterExcluded    bool                      `json:"signingWriterExcluded"`
-	EngineCheckpointVerified bool                      `json:"engineCheckpointVerified"`
-	PQActivationVerified     bool                      `json:"pqActivationVerified"`
-	SourceReadOnly           bool                      `json:"sourceReadOnly"`
-	BackupCreated            bool                      `json:"backupCreated"`
-	Backup                   *OperatorCheckpointBackup `json:"backup"`
+	Version                  string                               `json:"version"`
+	ChainID                  string                               `json:"chainId"`
+	Height                   int64                                `json:"height,string"`
+	AppHash                  string                               `json:"appHash"`
+	AppVersion               uint64                               `json:"appVersion,string"`
+	ConsensusGenesisSHA256   string                               `json:"consensusGenesisSHA256"`
+	OriginalGenesisHash      string                               `json:"originalGenesisHash"`
+	MigrationStateHash       string                               `json:"migrationStateHash"`
+	StateLayout              string                               `json:"stateLayout"`
+	RegistryRoot             string                               `json:"registryRoot"`
+	RegistryEventCount       uint64                               `json:"registryEventCount,string"`
+	CommittedScheduleHash    *string                              `json:"committedScheduleHash"`
+	NextScheduleHash         *string                              `json:"nextScheduleHash"`
+	ReadOnly                 bool                                 `json:"readOnly"`
+	WriterExcluded           bool                                 `json:"writerExcluded"`
+	SigningWriterExcluded    bool                                 `json:"signingWriterExcluded"`
+	EngineCheckpointVerified bool                                 `json:"engineCheckpointVerified"`
+	PQActivationVerified     bool                                 `json:"pqActivationVerified"`
+	SourceReadOnly           bool                                 `json:"sourceReadOnly"`
+	BackupCreated            bool                                 `json:"backupCreated"`
+	Backup                   *OperatorCheckpointBackup            `json:"backup"`
+	ScheduleCandidate        *OperatorCheckpointScheduleCandidate `json:"scheduleCandidate,omitempty"`
 }
 
 // InspectOperatorCheckpoint never calls an application writer constructor,
@@ -64,6 +66,9 @@ func InspectOperatorCheckpoint(migration chain.ConsensusMigrationState, rawGenes
 	bootstrap, err := NewConsensusBootstrap(rawGenesis, pins, migration)
 	if err != nil {
 		return result, err
+	}
+	if options.ProposePQActivationHeight < 0 || options.ProposePQActivationHeight != 0 && options.NextAuthorization != nil {
+		return result, errors.New("schedule proposal requires a positive activation height and cannot consume next authorization")
 	}
 	if options.RuntimeUpgrade != nil {
 		if err := validateRuntimeUpgradeBootstrap(migration, bootstrap, options.RuntimeUpgrade); err != nil {
@@ -196,6 +201,12 @@ func InspectOperatorCheckpoint(migration chain.ConsensusMigrationState, rawGenes
 			return OperatorCheckpointResult{}, errors.New("next independent schedule authorization is invalid")
 		}
 		result.NextScheduleHash = &hash
+	}
+	if options.ProposePQActivationHeight != 0 {
+		result.ScheduleCandidate, err = proposeOperatorCheckpointSchedule(bootstrap, state, actual.LastBlockHeight, options.ProposePQActivationHeight)
+		if err != nil {
+			return OperatorCheckpointResult{}, err
+		}
 	}
 	if options.BackupOutput != "" {
 		result.Backup, err = createOperatorCheckpointBackup(options, nil)

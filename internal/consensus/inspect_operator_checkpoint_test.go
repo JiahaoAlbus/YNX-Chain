@@ -26,7 +26,14 @@ type operatorInspectionFixture struct {
 // registry supplies the positive checkpoint.
 func newOperatorInspectionFixture(t *testing.T, layout string) *operatorInspectionFixture {
 	t.Helper()
-	h := newEngineWiringHarness(t)
+	return newOperatorInspectionFixtureWithHarness(t, layout, newEngineWiringHarness(t), -1)
+}
+
+func newOperatorInspectionFixtureWithHarness(t *testing.T, layout string, h *engineWiringHarness, registrationCount int) *operatorInspectionFixture {
+	t.Helper()
+	if registrationCount < 0 {
+		registrationCount = len(h.f.bootstrap.record.Members)
+	}
 	if layout != "atomic-json" {
 		path := filepath.Join(t.TempDir(), "original-application")
 		var app *Application
@@ -60,7 +67,7 @@ func newOperatorInspectionFixture(t *testing.T, layout string) *operatorInspecti
 		t.Fatal(err)
 	}
 	var registrations cmttypes.Txs
-	for i := range h.f.bootstrap.record.Members {
+	for i := 0; i < registrationCount; i++ {
 		key, wire := engineRegistration(t, h.f, i, h.f.doc.InitialHeight)
 		h.keys = append(h.keys, key)
 		payload, err := EncodeValidatorRegistryTransaction(wire)
@@ -70,21 +77,24 @@ func newOperatorInspectionFixture(t *testing.T, layout string) *operatorInspecti
 		registrations = append(registrations, payload)
 	}
 	actual := h.apply(t, registrations)
-	schedule, err := NewPQEngineSchedule(h.f.bootstrap, h.app.committed.ValidatorRegistry, actual.LastBlockHeight, actual.LastBlockHeight+4)
-	if err != nil {
-		t.Fatal(err)
-	}
-	raw, err := json.Marshal(schedule)
-	if err != nil {
-		t.Fatal(err)
-	}
-	pin, err := schedule.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
-	next, err := NewPQEngineAuthorization(raw, pin)
-	if err != nil {
-		t.Fatal(err)
+	var next *PQEngineAuthorization
+	if registrationCount == len(h.f.bootstrap.record.Members) {
+		schedule, err := NewPQEngineSchedule(h.f.bootstrap, h.app.committed.ValidatorRegistry, actual.LastBlockHeight, actual.LastBlockHeight+4)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := json.Marshal(schedule)
+		if err != nil {
+			t.Fatal(err)
+		}
+		pin, err := schedule.Hash()
+		if err != nil {
+			t.Fatal(err)
+		}
+		next, err = NewPQEngineAuthorization(raw, pin)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := database.Close(); err != nil {
 		t.Fatal(err)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"strconv"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -17,6 +18,7 @@ type inspectOperatorCheckpointFlags struct {
 	runtimePlan, runtimePlanHash                           string
 	backupOutput                                           string
 	backupLegacyKey, backupNodeKey, signingLockKind        string
+	proposeActivationHeight                                string
 }
 
 func newInspectOperatorCheckpointCommand() *cobra.Command {
@@ -28,6 +30,14 @@ func newInspectOperatorCheckpointCommand() *cobra.Command {
 		// genesis fallback. Every existing path and independent pin is explicit.
 		PersistentPreRunE: func(*cobra.Command, []string) error { return nil },
 		RunE: func(command *cobra.Command, _ []string) error {
+			var proposedHeight int64
+			if options.proposeActivationHeight != "" {
+				var err error
+				proposedHeight, err = strconv.ParseInt(options.proposeActivationHeight, 10, 64)
+				if err != nil || proposedHeight <= 0 || strconv.FormatInt(proposedHeight, 10) != options.proposeActivationHeight {
+					return errors.New("proposal activation height must be one canonical positive int64 decimal")
+				}
+			}
 			genesis, err := readInitializationInput(options.genesis, 64<<20)
 			if err != nil {
 				return err
@@ -71,7 +81,7 @@ func newInspectOperatorCheckpointCommand() *cobra.Command {
 					return err
 				}
 			}
-			result, err := consensus.InspectOperatorCheckpoint(migration, genesis, pins, consensus.OperatorCheckpointOptions{StatePath: options.state, StateLayout: options.layout, CometDataDirectory: options.data, SigningStatePath: options.signing, SigningLockKind: options.signingLockKind, Authorization: authorization, NextAuthorization: next, RuntimeUpgrade: runtime, BackupOutput: options.backupOutput, BackupLegacyKeyPath: options.backupLegacyKey, BackupNodeKeyPath: options.backupNodeKey})
+			result, err := consensus.InspectOperatorCheckpoint(migration, genesis, pins, consensus.OperatorCheckpointOptions{StatePath: options.state, StateLayout: options.layout, CometDataDirectory: options.data, SigningStatePath: options.signing, SigningLockKind: options.signingLockKind, Authorization: authorization, NextAuthorization: next, RuntimeUpgrade: runtime, BackupOutput: options.backupOutput, BackupLegacyKeyPath: options.backupLegacyKey, BackupNodeKeyPath: options.backupNodeKey, ProposePQActivationHeight: proposedHeight})
 			if err != nil {
 				return err
 			}
@@ -102,6 +112,7 @@ func newInspectOperatorCheckpointCommand() *cobra.Command {
 		{"backup-output", "optional exclusive private retained archive while the original writer and DB locks remain held", &options.backupOutput, false},
 		{"backup-legacy-key", "backup-only exact original legacy key path from the old independent plan; no private body is logged", &options.backupLegacyKey, false},
 		{"backup-node-key", "backup-only exact original P2P key path from the old independent plan; no private body is logged", &options.backupNodeKey, false},
+		{"propose-pq-activation-height", "optional canonical positive activation height for a candidate derived from this actual unscheduled four-member checkpoint; grants no authorization", &options.proposeActivationHeight, false},
 	} {
 		command.Flags().Var(&initializationStringFlag{target: flag.value}, flag.name, flag.help)
 		if flag.required {
