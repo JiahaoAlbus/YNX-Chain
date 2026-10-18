@@ -59,7 +59,7 @@ async function requestFixture() {
  const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-request-'))),require=createRequire(import.meta.url),module={exports:{}};
  const toolchain={root:'/fixture/go',executable:'/fixture/go/bin/go'},helpers=require('./go-toolchain.cjs'),hooks={buildExit:0};
  const originalFS=require('node:fs/promises'),observedFS={...originalFS,async open(...args){const handle=await originalFS.open(...args);const read=handle.read.bind(handle);handle.read=async(...values)=>{await hooks.headerRead?.();return read(...values);};return handle;}};
- vm.runInNewContext(await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='node:fs/promises'?observedFS:name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async()=>toolchain}:require(name)});
+ vm.runInNewContext(await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='node:fs/promises'?observedFS:name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async saved=>{if(hooks.verify)return hooks.verify(saved,toolchain);if(saved?.root!==toolchain.root)return helpers.verifyToolchain(saved,{YNX_IDE_GO_ROOT:toolchain.root});return toolchain;}}:require(name)});
  const file=join(root,'hello.go');await writeFile(file,'package main; func main() {}');
  const document={uri:{scheme:'file',fsPath:file},version:1,isDirty:false,isClosed:false,save:async()=>true},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),editorListeners=new Set();
  let saved,picks=0,notices=0,workflow;
@@ -77,7 +77,7 @@ async function requestFixture() {
   }} };
  const environment={YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'};
  const open=()=>workflow=module.exports.createGoTasks(api,{subscriptions:[]},environment);open();
- return {api,hooks,executions,submitted,get workflow(){return workflow;},open,counts:()=>({picks,notices}),switchEditor(value){api.window.activeTextEditor=value?{document:value}:undefined;for(const fn of editorListeners)fn(api.window.activeTextEditor);},document,async close(){workflow.dispose();await rm(root,{recursive:true,force:true});}};
+ return {api,hooks,executions,submitted,get saved(){return saved;},set saved(value){saved=value;},get workflow(){return workflow;},open,counts:()=>({picks,notices}),switchEditor(value){api.window.activeTextEditor=value?{document:value}:undefined;for(const fn of editorListeners)fn(api.window.activeTextEditor);},document,async close(){workflow.dispose();await rm(root,{recursive:true,force:true});}};
 }
 
 test('Go Project Test first configuration continues once with its notice open and uses the offline task terminal',{timeout:2000},async()=>{
@@ -402,4 +402,51 @@ test('Go final launch refuses source, editor or permission changes during execut
    assert.deepEqual(f.executions,['build','build','run']);assert.equal(f.counts().picks,1);
   }finally{await f.close();}
  }
+});
+
+test('stale saved Go root reconfigures from admitted toolchain and continues the original Run once', {timeout:2000}, async()=>{
+ const f=await requestFixture();try {
+  await f.workflow.run();f.executions.length=0;
+  f.saved={...f.saved,toolchain:{...f.saved.toolchain,root:'/old/runtime/go'}};
+  assert.equal((await f.workflow.run()).exitCode,0);assert.deepEqual(f.executions,['build','run']);
+  assert.equal(f.saved.toolchain.root,'/fixture/go');assert.equal(f.counts().picks,2);
+  await f.workflow.run();assert.equal(f.counts().picks,2);assert.equal(f.executions.length,4);
+ }finally{await f.close();}
+});
+test('stale Go recovery cancellation preserves the old setting and does not run, then retries', {timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  await f.workflow.run();f.executions.length=0;
+  const stale={...f.saved,toolchain:{...f.saved.toolchain,root:'/old/runtime/go'}};f.saved=stale;
+  f.hooks.pick=async()=>undefined;await f.workflow.run();assert.equal(f.saved,stale);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.pick;await f.workflow.run();assert.deepEqual(f.executions,['build','run']);
+ }finally{await f.close();}
+});
+test('stale Go recovery cannot revive a cancelled or switched original request', {timeout:2000},async()=>{
+ for(const change of ['cancel','file','trust']){const f=await requestFixture();try {
+  await f.workflow.run();f.executions.length=0;const stale={...f.saved,toolchain:{...f.saved.toolchain,root:'/old/runtime/go'}};f.saved=stale;
+  f.hooks.pick=async items=>{if(change==='cancel')f.workflow.cancel();if(change==='file')f.switchEditor({uri:{scheme:'file',fsPath:f.document.uri.fsPath+'other.go'}});if(change==='trust')f.api.workspace.isTrusted=false;return items[0];};
+  if(change==='trust')await assert.rejects(f.workflow.run(),/changed/);else await f.workflow.run();
+  assert.equal(f.saved,stale);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}}
+});
+test('runtime Go verification failure is not mistaken for stale project configuration', {timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  await f.workflow.run();f.executions.length=0;const saved=f.saved,picks=f.counts().picks;
+  f.hooks.verify=async()=>{throw Error('runtime metadata does not match installed binary');};
+  await assert.rejects(f.workflow.run(),/metadata does not match/);assert.equal(f.saved,saved);assert.equal(f.counts().picks,picks);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}
+});
+
+test('persisted Go choice without current runtime admission uses native selection, preserving settings until reopen',async()=>{
+ const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-stale-no-admission-')));
+ try {
+  const {createGoTasks}=createRequire(import.meta.url)('./go-tasks.cjs');let selections=0,launches=0,writes=0;
+  const old={mode:'package',target:'.',toolchain:{root:'/old/runtime/go'}};
+  const api={workspace:{isTrusted:true,workspaceFolders:[{uri:{scheme:'file',fsPath:root}}],getConfiguration:()=>({inspect:()=>({workspaceFolderValue:old}),update:()=>{writes++;}})},
+   CancellationTokenSource:class{token={};cancel(){}dispose(){}},
+   commands:{executeCommand:async id=>{assert.equal(id,'ynx.workbench.selectGoToolchain');selections++;return{effective:'after-reopen'};}},
+   tasks:{registerTaskProvider:()=>({dispose(){}}),executeTask:()=>{launches++;}}};
+  const workflow=createGoTasks(api,{subscriptions:[]},{YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'});
+  await workflow.run();assert.equal(selections,1);assert.equal(launches,0);assert.equal(writes,0);assert.equal(workflow.status().running,false);workflow.dispose();
+ }finally{await rm(root,{recursive:true,force:true});}
 });

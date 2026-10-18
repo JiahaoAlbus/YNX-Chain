@@ -4,8 +4,9 @@
   "private": true,
   "description": "Owned YNX Developer workbench and VS Code extension runtime composition",
   "scripts": {
-    "build": "node scripts/sync-owned-workbench.mjs && theia build --mode production && node scripts/sync-owned-workbench.mjs --seal-build",
-    "start": "theia start --hostname 127.0.0.1"
+    "build": "npm run test:run-controls && node scripts/sync-owned-workbench.mjs && theia build --mode production && node scripts/sync-owned-workbench.mjs --seal-build",
+    "start": "theia start --hostname 127.0.0.1",
+    "test:run-controls": "node --test scripts/workbench-controls.test.mjs"
   },
   "dependencies": {
     "@theia/callhierarchy": "1.76.0",

@@ -1,7 +1,7 @@
 {
   "name": "ynx-go",
   "publisher": "ynx",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "displayName": "%displayName%",
   "description": "%description%",
   "license": "MIT",
@@ -132,5 +132,8 @@
   },
   "categories": [
     "Programming Languages"
-  ]
+  ],
+  "scripts": {
+    "test": "node --test src/go-task-execution.test.mjs"
+  }
 }

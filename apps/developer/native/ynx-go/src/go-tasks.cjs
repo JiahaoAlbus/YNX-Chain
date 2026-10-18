@@ -118,6 +118,16 @@ function createGoTasks(api,context,environment,t=text=>text) {
    };
    if(operation.cancelled)return {cancelled:true};await operation.verify();
    let config=readConfiguration(binding);
+   if(config) {
+    try {await verifyToolchain(config.toolchain,environment);}
+    catch(error) {
+     // Persisted choices are not runtime admission. Recover only a typed stale
+     // choice through the normal picker, retaining the original request owner.
+     // Runtime metadata, permissions and unsafe binary failures remain errors.
+     if(error.code!=='YNX_GO_CONFIGURATION_STALE')throw error;
+     await operation.verify();config=undefined;
+    }
+   }
    if(!config){config=await configure(operation,binding);if(!config)return;}
    if(operation.cancelled)return {cancelled:true};await operation.verify();
    const prepared=await tasks(binding,config);

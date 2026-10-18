@@ -1,3 +1,4 @@
+.ynx-run-controls-group { display: inline-flex; align-items: center; }
 .ynx-run-controls { display: flex; align-items: center; border: 0; background: transparent; color: var(--theia-foreground); cursor: pointer; padding: 3px 5px; }
 .ynx-run-controls:hover { background: var(--theia-toolbar-hoverBackground); }
 .ynx-run-controls:focus-visible { outline: 1px solid var(--theia-focusBorder); outline-offset: -1px; }

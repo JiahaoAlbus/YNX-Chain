@@ -46,6 +46,8 @@ const entries = [
   ['runWithoutDebugging', 'Run Without Debugging', '无需调试直接运行'],
   ['runBuildTask', 'Run Build Task…', '运行生成任务…'],
   ['runTask', 'Run Task…', '运行任务…'],
+  ['runCurrentTarget', 'Run current file or project', '运行当前文件或项目'],
+  ['runOptions', 'More run and debug options', '更多运行与调试选项'],
   ['runToolbar', 'Run and Debug', '运行与调试'],
   ['runActionsAria', 'Run and Debug actions', '运行与调试操作'],
   ['workbenchViewsAria', 'Workbench views', '工作台视图'],

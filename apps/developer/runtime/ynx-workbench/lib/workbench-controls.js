@@ -227,14 +227,26 @@ class WorkbenchControlsContribution {
     this.disposables.push(toolbar.registerItem({
       id: 'ynx.workbench.run-menu', group: 'navigation', priority: 90, onDidChange: this.changed.event,
       isVisible: widget => this.editors.all.includes(widget),
-      render: widget => React.createElement('button', { type: 'button', className: 'ynx-run-controls',
-        title: this.translate('runToolbar', 'Run and Debug'),
-        'aria-label': this.translate('runActionsAria', 'Run and Debug actions'), 'aria-haspopup': 'menu',
-        disabled: !this.contextMenus,
-        onMouseDown: event => event.preventDefault(),
-        onClick: event => { try { this.openRunMenu(event.currentTarget, widget); } catch (error) { this.report(error); } },
-      }, React.createElement('span', { className: 'codicon codicon-play', 'aria-hidden': true }),
-         React.createElement('span', { className: 'codicon codicon-chevron-down', 'aria-hidden': true })),
+      render: widget => React.createElement('span', { className: 'ynx-run-controls-group', role: 'group',
+        'aria-label': this.translate('runActionsAria', 'Run and Debug actions') },
+        React.createElement('button', { type: 'button', className: 'ynx-run-controls',
+          title: this.translate('runCurrentTarget', 'Run current file or project'),
+          'aria-label': this.translate('runCurrentTarget', 'Run current file or project'),
+          disabled: !this.state('ynx.workbench.runCurrentFile').enabled,
+          onMouseDown: event => event.preventDefault(),
+          onClick: () => {
+            if (this.stopped || widget.isDisposed || this.editors.currentEditor !== widget) return;
+            this.closeRunMenu();
+            return this.run('ynx.workbench.runCurrentFile').catch(error => this.report(error));
+          },
+        }, React.createElement('span', { className: 'codicon codicon-play', 'aria-hidden': true })),
+        React.createElement('button', { type: 'button', className: 'ynx-run-controls',
+          title: this.translate('runOptions', 'More run and debug options'),
+          'aria-label': this.translate('runOptions', 'More run and debug options'), 'aria-haspopup': 'menu',
+          disabled: !this.contextMenus,
+          onMouseDown: event => event.preventDefault(),
+          onClick: event => { try { this.openRunMenu(event.currentTarget, widget); } catch (error) { this.report(error); } },
+        }, React.createElement('span', { className: 'codicon codicon-chevron-down', 'aria-hidden': true }))),
     }));
   }
   onStart() {

@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { readFile, writeFile, mkdir, readdir, cp, lstat, realpath, rename } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { dirname, resolve, join } from 'node:path';
@@ -128,6 +129,10 @@ await assertRegularTree(brand);
 await cp(brand, join(destination, 'plugins/ynx.ynx-developer-brand'), { recursive: true, errorOnExist: true, force: false });
 const go = join(developer, 'native/ynx-go');
 await assertRegularTree(go);
+// The owned Go lifecycle must pass before the normal runtime can package it.
+// This focused gate uses public task fixtures and does not compile user code.
+const goValidation = spawnSync(process.execPath, ['--test', 'src/go-task-execution.test.mjs'], { cwd: go, stdio: 'inherit', timeout: 30000 });
+if (goValidation.error || goValidation.signal || goValidation.status !== 0) throw Error('Owned Go task lifecycle validation failed.');
 const goMetadata = JSON.parse(await readFile(join(go, 'package.json'), 'utf8'));
 if (goMetadata.publisher !== 'ynx' || goMetadata.name !== 'ynx-go') throw Error('Unexpected owned Go extension identity.');
 await cp(go, join(destination, 'plugins/ynx.ynx-go'), { recursive: true, errorOnExist: true, force: false });

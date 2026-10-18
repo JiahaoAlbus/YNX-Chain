@@ -224,7 +224,8 @@ test('toolbar opens native context-menu overlay at button coordinates and dispos
   const f = fixture(); let item, options, disposed = 0;
   f.controls.contextMenus = { render: value => { options = value; return { dispose: () => { disposed++; value.onHide(); } }; } };
   f.controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
-  const rendered = item.render(f.editor); assert.equal(rendered.type, 'button'); assert.equal(rendered.props['aria-haspopup'], 'menu'); assert.ok(rendered.props['aria-label']);
+  const group = item.render(f.editor); assert.equal(group.props.role, 'group');
+  const [primary, rendered] = group.props.children; assert.equal(primary.type, 'button'); assert.equal(primary.props['aria-haspopup'], undefined); assert.equal(rendered.props['aria-haspopup'], 'menu'); assert.ok(rendered.props['aria-label']);
   const button = { getBoundingClientRect: () => ({ left: 100, bottom: 60 }) };
   rendered.props.onClick({ currentTarget: button });
   assert.deepEqual(Array.from(options.menuPath), Array.from(RUN_MENU)); assert.equal(options.anchor.x, 100); assert.equal(options.anchor.y, 60);
@@ -235,7 +236,7 @@ test('toolbar opens native context-menu overlay at button coordinates and dispos
 test('missing native popup renderer is explicitly unavailable and empty translation retains toolbar label', () => {
   const f = fixture(); const controls = new WorkbenchControlsContribution({ commands: f.commands, shell: f.shell, editors: { all: [f.editor] }, translate: () => undefined }); let item;
   controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
-  const rendered = item.render(f.editor); assert.equal(rendered.props.disabled, true); assert.ok(rendered.props['aria-label'].trim());
+  const [primary, rendered] = item.render(f.editor).props.children; assert.equal(rendered.props.disabled, true); assert.equal(primary.props.disabled, false); assert.ok(rendered.props['aria-label'].trim());
   assert.throws(() => controls.openRunMenu({}), /Unavailable in this runtime/); controls.dispose();
 });
 
@@ -355,4 +356,28 @@ test('Python direct menu click uses installed framework dispatch once and is ret
  const f=popupFixture('python.execInTerminal');f.commands.registerCommand({id:'python.execInTerminal'},{execute:(...args)=>{assert.deepEqual(args,[]);f.calls.push(['python.execInTerminal']);}});
  let popup=f.open();f.down(popup);f.up(popup);f.up(popup);await Promise.all(f.pending);assert.deepEqual(f.calls,[['python.execInTerminal']]);
  popup=f.open();f.controls.editors.currentEditor={};f.controls.refresh();f.down(popup);f.up(popup);await Promise.all(f.pending);assert.equal(f.calls.length,1);f.controls.dispose();
+});
+
+test('triangle runs once directly, independent of popup availability; chevron only opens options', async () => {
+  const f=fixture(); f.controls.editors.currentEditor=f.editor; let item, opened=0;
+  f.controls.contextMenus={render:()=>{opened++;return{dispose(){}};}};
+  f.controls.registerToolbarItems({registerItem:value=>{item=value;return{dispose(){}};}});
+  const [run, options]=item.render(f.editor).props.children;
+  assert.equal(run.props['aria-haspopup'],undefined); assert.equal(run.props.disabled,false);
+  await run.props.onClick();assert.deepEqual(f.calls.map(x=>x[0]),['ynx.workbench.runCurrentFile']);assert.equal(opened,0);
+  options.props.onClick({currentTarget:{getBoundingClientRect:()=>({left:0,bottom:0})}});
+  assert.equal(opened,1);assert.equal(f.calls.length,1);
+  f.controls.contextMenus=undefined;await item.render(f.editor).props.children[0].props.onClick();assert.equal(f.calls.length,2);
+  f.controls.editors.currentEditor={};await run.props.onClick();assert.equal(f.calls.length,2);
+  f.controls.dispose();await run.props.onClick();assert.equal(f.calls.length,2);
+});
+
+test('direct Run refuses command revocation and a disposed editor instead of falling back to debug',async()=>{
+ const f=fixture();f.controls.editors.currentEditor=f.editor;let item;
+ f.controls.registerToolbarItems({registerItem:value=>{item=value;return{dispose(){}};}});
+ const run=item.render(f.editor).props.children[0];
+ f.commands.unregisterCommand('ynx.workbench.runCurrentFile');
+ assert.equal(item.render(f.editor).props.children[0].props.disabled,true);
+ await run.props.onClick();assert.deepEqual(f.calls,[]);
+ f.editor.isDisposed=true;await run.props.onClick();assert.deepEqual(f.calls,[]);f.controls.dispose();
 });
