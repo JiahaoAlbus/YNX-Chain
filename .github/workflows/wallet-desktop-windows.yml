@@ -41,7 +41,7 @@ jobs:
         run: |
           go mod download
           set -o pipefail
-          go test -mod=mod -p 1 -tags ynx_bridge_test -v -run '^(TestBridge|TestNativeRestoreUsesWholeExpectedPairAndNoPlainExportAfterStorage)' ./packages/wallet-auth/native/android 2>&1 | tee native-controls.raw
+          go test -mod=readonly -p 1 -tags ynx_bridge_test -v -run '^(TestBridge|TestNativeRestoreUsesWholeExpectedPairAndNoPlainExportAfterStorage)' ./packages/wallet-auth/native/android 2>&1 | tee native-controls.raw
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
