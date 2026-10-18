@@ -179,6 +179,24 @@ const repository = resolve(developer, '../..');
 const canonicalNativeRoot = resolve(process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT || repository);
 const safeRelative = value => typeof value === 'string' && /^[A-Za-z0-9_@./-]+$/.test(value) && !value.startsWith('/') && !value.split('/').some(p => !p || p === '.' || p === '..');
 
+// The App holder is an exact original Auth input, not a Node NAPI TU. A former
+// SDK/Native selection cannot silently compile the new caller with a loose or
+// SDK-tar-only header. Keep source custody separate from any runtime grant.
+const identityAppSources = Object.freeze([
+  Object.freeze({path:'packages/wallet-auth/native/original-ide-identity-launch-holder.h',bytes:1897,sha256:'a788b5290c58d8140eef80cf7176653b0019e0a9922cc90d017b30f845d38ce2'}),
+  Object.freeze({path:'packages/wallet-auth/native/original-ide-identity-launch-holder.mm',bytes:14709,sha256:'6db6ea2f3cc63a2a95cd0557754f035f51549ac6fa5d8f1373a0072a98467fa1'}),
+]);
+export function validateOriginalIdentityAppSources(inputs) {
+  for(const pin of identityAppSources){
+    const found=inputs?.nativeSources?.filter(row=>row.path===pin.path);
+    if(found?.length!==1||found[0].bytes!==pin.bytes||found[0].sha256!==pin.sha256)
+      throw Error('Original identity App holder source selection differs: '+pin.path);
+    if(inputs.nativeBuildInputs?.some(row=>row.path===pin.path))
+      throw Error('Original identity App holder must not be added to Node NAPI build inputs.');
+  }
+  return identityAppSources;
+}
+
 // A build receipt records compilation, never registration or service rights.
 export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchitecture = process.arch) {
   if (record?.schemaVersion !== 1 || record.kind !== 'YNX_WALLET_ORIGINAL_NATIVE_BUILD'
@@ -260,6 +278,7 @@ export async function verifyCanonicalNativeSourceSelection(root = canonicalNativ
   const stat=await lstat(root);
   if (resolve(root)!==root || !stat.isDirectory() || stat.isSymbolicLink()) throw Error('Regular canonical Native source root required.');
   const inputs=await canonicalInputs();
+  validateOriginalIdentityAppSources(inputs);
   await verifyRows(ideRoot,inputs.nativeSources.filter(row=>row.path.startsWith('apps/developer/')));
   await verifyRows(root,inputs.nativeSources);
   const receiptBytes=await readFile(join(root,nativeReceiptRelative));

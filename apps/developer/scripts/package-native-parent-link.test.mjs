@@ -8,8 +8,11 @@ test('normal Mac package links the original Native successor, excluding the supe
   assert.ok(!commands.some(line => line.includes('ynx-wallet-admission-parent.m')));
   const link = commands.find(line => line.includes('original-ide-parent-supplier.mm'));
   assert.ok(link, 'normal package must actually link the delivered parent supplier');
-  for (const unit of ['original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-source-binding.mm','original-ide-parent-kernel.mm','original-ide-parent-observation.mm']) assert.ok(link.includes(unit), unit);
+  for (const unit of ['original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-source-binding.mm','original-ide-parent-kernel.mm','original-ide-parent-observation.mm','original-ide-identity-launch-holder.mm']) assert.ok(link.includes(unit), unit);
   assert.ok(link.includes('-lbsm'));
   assert.ok(link.includes('-std=c++17'));
-  assert.ok(commands.some(line => line.includes('-c desktop/macos/main.m')), 'preserve Objective-C compilation of existing shell');
+  const main = commands.find(line => line.includes('-c desktop/macos/main.m'));
+  assert.ok(main, 'preserve Objective-C compilation of existing shell');
+  assert.ok(main.includes('-I"$canonical_native_root/packages/wallet-auth/native"'), 'main must resolve the exact selected holder header');
+  assert.equal(commands.filter(line=>line.includes('original-ide-identity-launch-holder.mm')).length,1,'App holder linked once, not added to Node NAPI build');
 });
