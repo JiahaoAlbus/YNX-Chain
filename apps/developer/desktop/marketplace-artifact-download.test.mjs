@@ -7,10 +7,26 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { captureArtifactSelection, resolveSelectedArtifact } from './marketplace-artifact-policy.mjs';
-import { createArtifactDownloader } from './marketplace-artifact-transport.mjs';
+import { createArtifactDownloader, officialArtifactRedirect } from './marketplace-artifact-transport.mjs';
 const selection = { namespace: 'example', name: 'language', version: '1.2.3', targetPlatform: 'darwin-arm64' };
 const url = 'https://open-vsx.org/api/example/language/1.2.3/file/example.language-1.2.3.vsix';
 const metadata = value => ({ extensions: [{ namespace: 'example', name: 'language', version: '1.2.3', targetPlatform: 'universal', files: { download: value } }] });
+test('platform-specific catalog artifact keeps selected platform through its official redirect', () => {
+  const selected = { namespace: 'openai', name: 'chatgpt', version: '26.5908.31748', targetPlatform: 'darwin-arm64' };
+  const file = 'openai.chatgpt-26.5908.31748@darwin-arm64.vsix';
+  const source = `https://open-vsx.org/api/openai/chatgpt/darwin-arm64/26.5908.31748/file/${file}`;
+  const row = { ...selected, files: { download: source } };
+  assert.equal(resolveSelectedArtifact(selected, { extensions: [row] }).url, source);
+  for (const path of [`openai/chatgpt/darwin-arm64/26.5908.31748/${file}`, `openai/chatgpt/26.5908.31748/${file}`]) {
+    const target = `https://openvsx.eclipsecontent.org/${path}`;
+    assert.equal(officialArtifactRedirect(source, target), target);
+    for (const invalid of [target.replace('darwin-arm64.vsix', 'linux-x64.vsix'), target.replace('chatgpt/', 'other/'), target + '?token=x', target.replace('https:', 'http:')])
+      assert.throws(() => officialArtifactRedirect(source, invalid), /identity rejected/);
+  }
+  for (const invalid of [source.replace('/darwin-arm64/', '/linux-x64/'), source.replace('@darwin-arm64', '@linux-x64'), source.replace('openai.chatgpt-', 'openai.other-'), source.replace('@darwin-arm64', '%2fescape'), source + '#fragment'])
+    assert.throws(() => resolveSelectedArtifact(selected, { extensions: [{ ...row, files: { download: invalid } }] }));
+  assert.throws(() => resolveSelectedArtifact({ ...selected, targetPlatform: 'linux-x64' }, { extensions: [row] }));
+});
 test('selected metadata rejects caller capability injection and foreign or mismatched download locations', () => {
   assert.equal(resolveSelectedArtifact(selection, metadata(url)).url, url);
   for (const extra of ['url', 'headers', 'destination', 'cookie']) assert.throws(() => captureArtifactSelection({ ...selection, [extra]: 'private' }));
@@ -19,24 +35,26 @@ test('selected metadata rejects caller capability injection and foreign or misma
   }
   assert.throws(() => resolveSelectedArtifact(selection, { extensions: [...metadata(url).extensions, ...metadata(url).extensions] }), /ambiguous/);
 });
-async function fixture(t, status = 200) {
+async function fixture(t, status = 200, targeted = false) {
   const root = await realpath(await mkdtemp('/private/tmp/ynx-artifact-test-')); t.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(join(root, 'fixture'), { mode: 0o700 }); await mkdir(join(root, 'fixture', 'extension'));
   await writeFile(join(root, 'fixture', 'extension', 'package.json'), JSON.stringify({ name: 'language', publisher: 'example', version: '1.2.3', engines: { vscode: '^1.80.0' } }));
   execFileSync('/usr/bin/zip', ['-q', '-r', '../fixture.vsix', 'extension'], { cwd: join(root, 'fixture') });
   const archive = await readFile(join(root, 'fixture.vsix'));
   const staging = join(root, 'staging'); await mkdir(staging, { mode: 0o700 });
-  const calls = []; let live = true;
+  const selectedURL = targeted ? url.replace('/1.2.3/file/', '/darwin-arm64/1.2.3/file/').replace('.vsix', '@darwin-arm64.vsix') : url;
+  const redirectedURL = targeted ? selectedURL.replace('open-vsx.org/api/', 'openvsx.eclipsecontent.org/').replace('/file/', '/') : undefined;
+  const requests = [], calls = []; let live = true;
   const downloader = createArtifactDownloader({ directory: staging, assertCurrent: async () => { if (!live) throw Error('Session retired'); } }, {
-    catalog: async (operation, options) => { calls.push({ operation, options }); return metadata(url); },
+    catalog: async (operation, options) => { calls.push({ operation, options }); const value = metadata(selectedURL); if (targeted) value.extensions[0].targetPlatform = selection.targetPlatform; return value; },
     request: (requested, options, callback) => {
-      assert.equal(requested, url); assert.equal(options.rejectUnauthorized, true); assert.equal(options.agent, false);
+      assert.equal(requested, requests.length ? redirectedURL : selectedURL); requests.push(requested); assert.equal(options.rejectUnauthorized, true); assert.equal(options.agent, false);
       assert.deepEqual(options.headers, { Accept: 'application/octet-stream' });
       const req = new EventEmitter(); req.destroy = error => { if (error) req.emit('error', error); };
-      req.end = () => options.lookup('open-vsx.org', {}, error => {
+      req.end = () => options.lookup(new URL(requested).hostname, {}, error => {
         if (error) return req.emit('error', error);
-        const response = Readable.from([archive]); response.statusCode = status;
-        response.headers = { 'content-type': 'application/octet-stream', 'content-length': archive.length, ...(status === 302 ? { location: 'https://unapproved.example/file.vsix' } : {}) };
+        const response = Readable.from([archive]); response.statusCode = targeted && requests.length === 1 ? 302 : status;
+        response.headers = { 'content-type': 'application/octet-stream', 'content-length': archive.length, ...(response.statusCode === 302 ? { location: redirectedURL || 'https://unapproved.example/file.vsix' } : {}) };
         callback(response);
       });
       return req;
@@ -44,8 +62,16 @@ async function fixture(t, status = 200) {
     dnsLookup: (_host, _options, callback) => callback(null, [{ address: '8.8.8.8', family: 4 }]),
   });
   t.after(() => downloader.cleanup());
-  return { downloader, archive, calls, staging, retire() { live = false; } };
+  return { downloader, archive, calls, requests, staging, retire() { live = false; } };
 }
+test('target-specific artifact follows only its exact official hop and retains verified staged bytes', async t => {
+  const f = await fixture(t, 200, true), result = await f.downloader.download(selection);
+  assert.deepEqual(result.selection, selection);
+  assert.equal(f.requests.length, 2);
+  assert.deepEqual(await readFile(result.path), f.archive);
+  assert.equal(result.sha256, createHash('sha256').update(f.archive).digest('hex'));
+  await f.downloader.cleanup(); assert.deepEqual(await readdir(f.staging), []);
+});
 test('exact selected VSIX is privately staged with digest and file identity, then owned cleanup removes it', async t => {
   const f = await fixture(t); const result = await f.downloader.download(selection);
   assert.equal(result.sha256, createHash('sha256').update(f.archive).digest('hex'));
@@ -56,7 +82,7 @@ test('exact selected VSIX is privately staged with digest and file identity, the
 });
 test('unapproved redirect cleans its partial and retired or cancelled session cannot download', async t => {
   const f = await fixture(t, 302);
-  await assert.rejects(f.downloader.download(selection), /redirects are not approved/);
+  await assert.rejects(f.downloader.download(selection), /Official artifact redirect identity rejected/);
   assert.deepEqual(await readdir(f.staging), []);
   const controller = new AbortController(); controller.abort();
   await assert.rejects(f.downloader.download(selection, controller.signal), /cancelled/);

@@ -5,18 +5,21 @@ import { lstat, realpath, mkdtemp, open, unlink, rmdir, statfs } from 'node:fs/p
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { fetchCatalog, isPublicCatalogAddress } from './marketplace-catalog-transport.mjs';
-import { artifactLimits, captureArtifactSelection, resolveSelectedArtifact } from './marketplace-artifact-policy.mjs';
+import { artifactLimits, captureArtifactSelection, resolveSelectedArtifact, captureOfficialArtifactLocation } from './marketplace-artifact-policy.mjs';
 
 const same = (left, right) => left.dev === right.dev && left.ino === right.ino;
 const privateDirectory = value => value.isDirectory() && !value.isSymbolicLink() && value.uid === process.getuid() && !(value.mode & 0o077);
 // Preserve the catalog-selected publisher/name/version and filename at the hop.
 export function officialArtifactRedirect(source, location) {
-  const original = new URL(source), target = new URL(location, original);
-  const parts = original.pathname.split('/');
-  if (original.origin !== 'https://open-vsx.org' || parts.length !== 7 || parts[1] !== 'api' || parts[5] !== 'file'
-    || original.username || original.password || original.search || original.hash
-    || target.origin !== 'https://openvsx.eclipsecontent.org' || target.username || target.password || target.search || target.hash
-    || target.pathname !== `/${parts[2]}/${parts[3]}/${parts[4]}/${parts[6]}`) throw Error('Official artifact redirect identity rejected.');
+  let captured;
+  try { captured = captureOfficialArtifactLocation(source); }
+  catch { throw Error('Official artifact redirect identity rejected.'); }
+  const { url: original, targeted, revision, file } = captured;
+  const parts = original.pathname.split('/'), target = new URL(location, original);
+  const exact = `/${parts.slice(2, revision + 1).join('/')}/${parts[file]}`;
+  const flat = `/${parts[2]}/${parts[3]}/${parts[revision]}/${parts[file]}`;
+  if (target.origin !== 'https://openvsx.eclipsecontent.org' || target.username || target.password || target.search || target.hash
+    || (target.pathname !== exact && (!targeted || target.pathname !== flat))) throw Error('Official artifact redirect identity rejected.');
   return target.href;
 }
 // Open VSX query filters are exact: an ARM query excludes universal VSIXes.
