@@ -17,3 +17,14 @@ test('PID reuse, unknown inventory, other errno and missing roots remain fatal',
  assert.throws(()=>ownedBirthInventory('unknown',10,20));
  assert.throws(()=>inventory(`21 20 20 ${birth}\n21 20 20 ${birth}`));
 });
+
+test('a readable sibling can exit after the kernel query while the ESRCH child is reconciled',()=>{
+ const prior=inventory(`21 20 20 ${birth}\n22 20 20 ${birth}`);
+ const sample=raw();sample.processes.push({pid:22,readable:true,rssBytes:123,threads:1});
+ const checked=[];
+ const events=verifyExitedDuringSample(sample,prior,inventory(),10,20,p=>{checked.push(p);return true;});
+ assert.deepEqual(events.map(r=>r.pid),[21,22]);
+ assert.deepEqual(checked,[21,22]);
+ assert.equal(sample.processes[3].rssBytes,123);
+ assert.throws(()=>verifyExitedDuringSample(sample,prior,inventory(),10,20,p=>p===21));
+});

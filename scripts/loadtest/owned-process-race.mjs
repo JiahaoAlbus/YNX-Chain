@@ -29,7 +29,11 @@ export function verifyExitedDuringSample(sample,before,after,launcherPID,jobPID,
  for(const pid of before.ids){
   const a=before.identities.get(pid),b=after.identities.get(pid);
   if(b&&(a.birth!==b.birth||a.group!==b.group))throw Error('owned PID birth/group changed during sample');
-  if(!b&&!exited.some(r=>r.pid===pid))throw Error('unaccounted missing owned identity');
+  if(!b&&!exited.some(r=>r.pid===pid)){
+   const row=sample.processes.find(r=>r.pid===pid);
+   if(pid===launcherPID||pid===jobPID||!row||row.readable!==true||!Number.isSafeInteger(row.rssBytes)||row.rssBytes<0||!Number.isSafeInteger(row.threads)||row.threads<1||isAbsent(pid)!==true)throw Error('unaccounted missing owned identity');
+   exited.push({...a,exitedDuringSample:true,readableAtKernelQuery:true,kernelAbsenceVerified:true});
+  }
  }
  return exited;
 }
