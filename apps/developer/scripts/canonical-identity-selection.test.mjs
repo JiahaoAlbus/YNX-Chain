@@ -12,9 +12,10 @@ test('normal selection validates exact SDK329 and its new complete Native, witho
  assert.equal(sdk.sdkCommit,'95cf7484dd3d4503b4a1e13c9ba47b7900132322');assert.equal(sdk.files.length,272);
  assert.equal(sdk.dependencies.length,263);assert.equal(native.sourceLeaves,52);assert.equal(native.buildInputLeaves,50);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'8177c57480475b1c4b15d5ac965d4d59799bcb9705bf09903f12a0008230efb5');
+ assert.equal(inputs.predecessorManifestSha256,'c92930dcdb05e3813e918ea28d991de07e8dca5a6eff60f1390cd919359cab7c');
+ assert.equal(inputs.nativeSourceCommit,'8dce882963017ffb3386df763e93f1f53f517bad');
  assert.equal(sdk.runtimeClosure.files,454);assert.equal(sdk.runtimeClosure.edges,123);
- assert.equal(inputs.nativeComponent.module.sha256,'e6dcbb631284298244910d90df69d382d08c6d417df0527ee01b36c15645927b');
+ assert.equal(inputs.nativeComponent.module.sha256,'07805e7403b2501737ba464d126446b78081b6e961df5b2fc29c7026661b250a');
  assert.ok(inputs.nativeSourceUpdates.every(x=>Object.hasOwn(x,'parentSha256')));
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
