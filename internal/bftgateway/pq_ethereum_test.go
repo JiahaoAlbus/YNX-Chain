@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -424,7 +425,7 @@ func TestPQEthereumGatewayRejectsChangedIndexGasTypeAndFee(t *testing.T) {
 }
 
 func TestPQEthereumGatewayPreservesClassicRLPProjection(t *testing.T) {
-	f, m, _, g, _ := newEthereumGateway(t)
+	f, m, _, g, path := newEthereumGateway(t)
 	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), byte(214)))
 	before := queryPQGatewayAccount(t, f.a, f.recipient)
 	raw, classic, err := consensus.NewEthereumLegacyTransfer(key, 6423, before.Nonce, 2, f.owner, 9)
@@ -445,7 +446,7 @@ func TestPQEthereumGatewayPreservesClassicRLPProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	projected := evmCommittedTransaction(mapped, 0, raw)
-	if projected["hash"] != classic.Hash || projected["v"] == nil || projected["r"] == nil || projected["s"] == nil || projected["ynxAuthorization"] != nil {
+	if projected["hash"] != classic.Hash || projected["from"] != classic.From || projected["nonce"] != hexEVMQuantity(classic.Nonce) || projected["gas"] != hexEVMQuantity(classic.GasLimit) || projected["gasPrice"] != hexEVMQuantity(classic.GasPrice) || projected["v"] != hexEVMQuantity(classic.V) || projected["r"] != "0x"+hex.EncodeToString(classic.R[:]) || projected["s"] != "0x"+hex.EncodeToString(classic.S[:]) || projected["ynxAuthorization"] != nil {
 		t.Fatalf("classic projection changed: %+v", projected)
 	}
 	if g == nil || reflect.DeepEqual(before, queryPQGatewayAccount(t, f.a, f.recipient)) {
@@ -453,8 +454,58 @@ func TestPQEthereumGatewayPreservesClassicRLPProjection(t *testing.T) {
 	}
 	tampered := bytes.Clone(raw)
 	tampered[len(tampered)-2] ^= 1
-	if _, err := mappedTransaction(tampered, 4, strings.Repeat("b", 64), time.Unix(4, 0).UTC()); err == nil {
-		t.Fatal("classic signed RLP verification was weakened")
+	// A changed recoverable ECDSA scalar can remain a valid signature for a
+	// DIFFERENT recovered public key. It must not retain the original sender or
+	// hash, and projection alone must never grant that unfunded key execution.
+	altered, err := consensus.DecodeEthereumValueTransfer(tampered)
+	if err != nil || altered.Verify(6423) != nil {
+		t.Fatalf("known scalar-mutation recovery fixture changed: from=%s hash=%s err=%v", altered.From, altered.Hash, err)
+	}
+	if altered.From == classic.From || altered.Hash == classic.Hash {
+		t.Fatalf("scalar mutation retained original identity: originalFrom=%s alteredFrom=%s originalHash=%s alteredHash=%s", classic.From, altered.From, classic.Hash, altered.Hash)
+	}
+	t.Logf("CLASSIC_RECOVERED_ALTERNATE_IDENTITY originalFrom=%s alteredFrom=%s originalHash=%s alteredHash=%s", classic.From, altered.From, classic.Hash, altered.Hash)
+	alteredMapped, err := mappedTransaction(tampered, 4, strings.Repeat("b", 64), time.Unix(4, 0).UTC())
+	if err != nil || alteredMapped.From != altered.From || alteredMapped.Hash != altered.Hash {
+		t.Fatalf("projection failed to preserve recovered identity: %+v err=%v", alteredMapped, err)
+	}
+	missing, err := f.a.Query(context.Background(), &abcitypes.RequestQuery{Path: "/accounts/" + altered.From})
+	if err != nil || missing.Code == 0 {
+		t.Fatalf("alternate recovery unexpectedly has a funded fixture account: %+v err=%v", missing, err)
+	}
+	stateBefore, err := f.a.Query(context.Background(), &abcitypes.RequestQuery{Path: "/state"})
+	if err != nil || stateBefore.Code != 0 {
+		t.Fatalf("read complete committed state: %+v %v", stateBefore, err)
+	}
+	diskBefore, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check, err := f.a.CheckTx(context.Background(), &abcitypes.RequestCheckTx{Tx: tampered})
+	if err != nil || check.Code != consensus.CodeInsufficientYNXT || check.Log != "Ethereum transaction sender account does not exist" || len(check.Data) != 0 {
+		t.Fatalf("unfunded recovered identity acquired execution: %+v err=%v", check, err)
+	}
+	stateAfter, err := f.a.Query(context.Background(), &abcitypes.RequestQuery{Path: "/state"})
+	if err != nil || stateAfter.Code != 0 || stateAfter.Height != stateBefore.Height || !bytes.Equal(stateBefore.Value, stateAfter.Value) {
+		t.Fatalf("rejected recovered identity changed complete committed state: %+v err=%v", stateAfter, err)
+	}
+	diskAfter, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(diskBefore, diskAfter) {
+		t.Fatalf("rejected recovered identity changed persisted state: %v", err)
+	}
+	// Retain the real RLP framing but make its known final S scalar zero. This
+	// is mathematically invalid, unlike an arbitrary recoverable-signature flip.
+	scalar := bytes.TrimLeft(classic.S[:], "\x00")
+	if len(scalar) == 0 || !bytes.HasSuffix(raw, scalar) {
+		t.Fatal("real RLP signature scalar is not the final field")
+	}
+	zeroS := bytes.Clone(raw)
+	clear(zeroS[len(zeroS)-len(scalar):])
+	if _, err := consensus.DecodeEthereumValueTransfer(zeroS); err == nil || !strings.Contains(err.Error(), "signature s is outside the secp256k1 order") {
+		t.Fatalf("invalid zero-S scalar did not reach its original rejection: %v", err)
+	}
+	if mapped, err := mappedTransaction(zeroS, 4, strings.Repeat("b", 64), time.Unix(4, 0).UTC()); err == nil {
+		t.Fatalf("invalid classic signature acquired projection: %+v", mapped)
 	}
 }
 
