@@ -50,6 +50,10 @@ on:
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
     inputs:
+      run_linux_supply:
+        description: "Root-scheduled private Linux Supply256x4@512; 45s active+15s cleanup; separate from Darwin comparisons"
+        type: boolean
+        default: false
       measure_anchor_validation:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
         type: boolean
@@ -183,6 +187,8 @@ jobs:
           release/integration/candidates/perf-state-v13-seal-compact-default/check.test.mjs
           scripts/verify/perf-v13-anchor-order-integration-check.test.mjs
           release/integration/candidates/perf-state-v13-anchor-order/check.test.mjs
+      - name: Verify Linux Supply isolation and refusal counterexamples (no nodes)
+        run: python3 -B scripts/loadtest/test_supply_linux_window.py -v
       - name: Verify ready-sender Commit phases and bounded event timeline
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
@@ -265,6 +271,37 @@ jobs:
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan
+      - name: Build and run explicitly scheduled isolated Linux Supply case
+        if: github.event_name == 'workflow_dispatch' && inputs.run_linux_supply
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+          GOMAXPROCS: "1"
+          GOPROXY: "off"
+          GOTOOLCHAIN: local
+          GOFLAGS: -mod=readonly
+          GOWORK: "off"
+        run: |
+          set -o pipefail
+          mkdir "$RUNNER_TEMP/ynx-linux-supply-build" "$RUNNER_TEMP/ynx-linux-supply-evidence"
+          python3 -B scripts/loadtest/supply-linux-window.py > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+          python3 -B scripts/loadtest/supply-linux-window.py --check-runner --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-preflight" > "$RUNNER_TEMP/ynx-linux-supply-evidence/preflight.json"
+          go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-abci" ./cmd/ynx-abci
+          go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/cometbft" github.com/cometbft/cometbft/cmd/cometbft
+          go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-consensus-perf-fixture" ./cmd/ynx-consensus-perf-fixture
+          go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-consensus-perf-client" ./cmd/ynx-consensus-perf-client
+          python3 -B scripts/loadtest/supply-linux-window.py --execute --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+      - name: Preserve isolated Linux Supply raw evidence including failure
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.run_linux_supply
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-supply-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-linux-supply-evidence
+            ${{ runner.temp }}/ynx-linux-supply-case
+          if-no-files-found: error
+          retention-days: 90
       - name: Measure selected matched state hash encoders
         id: state_hash_encoding
         if: github.event_name == 'workflow_dispatch' && inputs.measure_state_hash_encoding
