@@ -125,3 +125,11 @@ not a heap dump; no temporary keys/seeds or transaction arguments are captured.
 This diagnostic does not replace any validation or alter the internal tree.
 A controlled real-state light test checks original failure propagation, state
 immutability, readable compressed output and exclusive evidence creation.
+
+Selected CPU diagnostics additionally upload a small dedicated artifact with
+only the bounded CPU profile, rendered top stacks and public result JSON. The
+complete actual-history artifact is retained separately. This avoids requiring
+a full history download when the artifact service does not support ZIP ranges.
+The top-stack renderer runs only after successful selected measurement, with
+one Go process and a 128 MiB Go memory target; incomplete profiles/results are
+still retained by the always-run small upload step. Normal runs skip both steps.

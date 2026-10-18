@@ -156,6 +156,26 @@ jobs:
           path: ${{ runner.temp }}/ynx-real-fee-history
           if-no-files-found: error
           retention-days: 90
+      - name: Render selected state validation CPU stacks
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.measure_real_fee_history && inputs.profile_state_validation
+        env:
+          GOMAXPROCS: "1"
+          GOMEMLIMIT: "128MiB"
+          GOTOOLCHAIN: local
+          GOPROXY: "off"
+          GOWORK: "off"
+        run: go tool pprof -top -nodecount=30 -unit=ms "${{ runner.temp }}/ynx-real-fee-history/state-validation.cpu.pprof" > "${{ runner.temp }}/ynx-real-fee-history/state-validation-top.txt"
+      - name: Retain small selected state validation profile
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure_real_fee_history && inputs.profile_state_validation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: state-validation-profile-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-real-fee-history/state-validation.cpu.pprof
+            ${{ runner.temp }}/ynx-real-fee-history/state-validation-top.txt
+            ${{ runner.temp }}/ynx-real-fee-history/result.json
+          if-no-files-found: error
+          retention-days: 90
       - name: Build isolated Darwin phase-timing node candidate
         if: github.event_name == 'workflow_dispatch' && inputs.build_darwin_phase_node
         env:
