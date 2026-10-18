@@ -41,7 +41,7 @@ const discovery=createWalletProviderDiscovery(window);
 const restart=document.createElement('button');restart.id='restart';restart.hidden=true;restart.textContent=t('Return to product and retry');cancel.after(restart);restart.addEventListener('click',()=>cancel.click());
 const safeReturn=document.createElement('a');safeReturn.id='return-product';safeReturn.hidden=true;safeReturn.textContent=t('Return to product without using this approval');
 const deniedReturn=new URL(challenge.initiator.redirectUri);deniedReturn.searchParams.set('state',challenge.initiator.state);deniedReturn.searchParams.set('error','access_denied');safeReturn.href=deniedReturn.href;restart.after(safeReturn);
-safeReturn.addEventListener('click',()=>{cancelled=true;revision++;approve.disabled=true;clearPairQR();if(pair)void pair.cancel();retireHosted();});
+safeReturn.addEventListener('click',()=>{cancelled=true;revision++;approve.disabled=true;clearPairQR();if(pair)void cancelPair();retireHosted();});
 let providers=[],selected=null,pending=null,revision=0,cancelled=false,hosted=null,hostedPending=null,hostedProvider=null;
 function retireHosted(){const previous=hosted;hosted=null;hostedProvider=null;if(previous)void previous.detach().catch(()=>{});}
 const diagnostics=document.createElement('details'),diagnosticSummary=document.createElement('summary'),diagnosticCode=document.createElement('code');diagnostics.id='connection-diagnostics';diagnostics.hidden=true;diagnosticSummary.textContent=t('Connection details');diagnostics.append(diagnosticSummary,diagnosticCode);status.after(diagnostics);
@@ -50,7 +50,7 @@ const message=value=>{status.textContent=t(value);};
 // pairing URI, request bodies or credentials. Public QA can inspect these
 // stable fields without logging the SDK's potentially sensitive error object.
 const failure=(error,phase)=>{
-  const known=new Set(['YNX_PAIR_TIMEOUT','YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_SESSION_SELECTION_REQUIRED','YNX_PAIR_METHOD_NOT_APPROVED','YNX_PAIR_CONTEXT_CHANGED','SSO_CLIENTS_MISMATCH','SSO_PROFILE_REPLAY','SSO_CONTEXT_CHANGED','SSO_CHALLENGE_EXPIRED','SSO_REQUEST_TIMEOUT','SSO_CSRF_MISMATCH','SSO_TRANSACTION_EXPIRED','SSO_LOGIN_REQUIRED','SSO_REQUEST_FAILED','PROVIDER_WRONG_CHAIN','HOSTED_POPUP_BLOCKED','HOSTED_POPUP_CLOSED','HOSTED_REQUEST_TIMEOUT','HOSTED_REQUEST_EXPIRED_OR_RELOADED','HOSTED_DISCONNECTED','HOSTED_ORIGIN_UNREGISTERED','HOSTED_METHOD_INVALID','HOSTED_REQUEST_FAILED']);
+  const known=new Set(['YNX_PAIR_TIMEOUT','YNX_PAIR_CLEANUP_UNCONFIRMED','YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_SESSION_SELECTION_REQUIRED','YNX_PAIR_METHOD_NOT_APPROVED','YNX_PAIR_CONTEXT_CHANGED','SSO_CLIENTS_MISMATCH','SSO_PROFILE_REPLAY','SSO_CONTEXT_CHANGED','SSO_CHALLENGE_EXPIRED','SSO_REQUEST_TIMEOUT','SSO_CSRF_MISMATCH','SSO_TRANSACTION_EXPIRED','SSO_LOGIN_REQUIRED','SSO_REQUEST_FAILED','PROVIDER_WRONG_CHAIN','HOSTED_POPUP_BLOCKED','HOSTED_POPUP_CLOSED','HOSTED_REQUEST_TIMEOUT','HOSTED_REQUEST_EXPIRED_OR_RELOADED','HOSTED_DISCONNECTED','HOSTED_ORIGIN_UNREGISTERED','HOSTED_METHOD_INVALID','HOSTED_REQUEST_FAILED']);
   const raw=typeof error?.code==='string'?error.code:typeof error?.message==='string'?error.message:'';
   for(const stage of ['INITIALIZATION','RELAY','APPROVAL','REQUEST','CLEANUP'])for(const suffix of ['TIMEOUT','UNAVAILABLE'])known.add(`YNX_PAIR_${stage}_${suffix}`);known.add('YNX_PAIR_TRANSPORT_DRAINING');
   const code=Number(error?.code)===4001||error?.code==='USER_REJECTED'?'USER_REJECTED':known.has(raw)?raw:error?.name==='AbortError'?'SSO_SERVICE_TIMEOUT':error?.name==='TypeError'?'SSO_TRANSPORT_UNAVAILABLE':'SSO_WALLET_OR_SERVICE_UNAVAILABLE';
@@ -62,7 +62,12 @@ const pairLabel=document.createElement('p');pairLabel.textContent=t('Scan with Y
 const pairCanvas=document.createElement('canvas');pairCanvas.setAttribute('role','img');pairCanvas.setAttribute('aria-label','Temporary YNX Wallet connection QR code');
 const pairOpen=document.createElement('a');pairOpen.id='pair-open';pairOpen.textContent=t('Open YNX Wallet');pairOpen.hidden=true;
 pairRegion.append(pairLabel,pairCanvas,pairOpen);picker.after(pairButton,pairRegion);
-let pair=null,pairPending=null,pairProvider=null;
+let pair=null,pairPending=null,pairProvider=null,pairCleanupBlocked=false;
+// Pair cleanup is independent of server cancellation and the selected wallet.
+// Render only a bounded classification; never expose SDK cause/URI/session data.
+const pairCleanupStatus=document.createElement('p');pairCleanupStatus.id='pair-cleanup-status';pairCleanupStatus.hidden=true;pairRegion.after(pairCleanupStatus);
+const pairCleanupUnknown=()=>{pairCleanupBlocked=true;pairButton.disabled=true;status.dataset.pairCleanup='unconfirmed';pairCleanupStatus.hidden=false;pairCleanupStatus.textContent=t('Mobile Wallet cleanup is not confirmed. This page will not retry that connection. You can choose another wallet or return without using this approval.');};
+const cancelPair=async()=>{try{await pair?.cancel();}catch{pairCleanupUnknown();}};
 const clearPairQR=()=>{pairRegion.hidden=true;pairCanvas.width=pairCanvas.height=0;pairOpen.hidden=true;pairOpen.removeAttribute('href');};
 const hostedButton=document.createElement('button');hostedButton.id='hosted';hostedButton.type='button';hostedButton.textContent=t('Connect YNX Wallet Web');pairButton.after(hostedButton);
 hostedButton.addEventListener('click',()=>{
@@ -81,10 +86,11 @@ hostedButton.addEventListener('click',()=>{
 });
 pairButton.addEventListener('click',()=>{
   if(cancelled||pending||pairPending||hostedPending){message('Finish or cancel your current request before opening another connection.');return;}
+  if(pairCleanupBlocked)return;
   const epoch=++revision;selected=null;approve.disabled=true;pairButton.disabled=true;pairButton.setAttribute('aria-busy','true');clearPairQR();message('Opening a mobile Wallet connection. No sign-in signature has been requested.');
-  pair??=new WalletConnectDAppConnection({origin:location.origin,methods:['ynx_requestCentralBrowserSignIn'],deadlineMs:Math.max(1,Math.min(30000,Date.parse(challenge.expiresAt)-Date.now()))});
+  if(!pair){pair=new WalletConnectDAppConnection({origin:location.origin,methods:['ynx_requestCentralBrowserSignIn'],deadlineMs:Math.max(1,Math.min(30000,Date.parse(challenge.expiresAt)-Date.now()))});pair.on('cancelUnconfirmed',pairCleanupUnknown);}
   const pairStage=event=>{if(epoch===revision&&!cancelled)status.dataset.phase=event.stage==='initialization'?'pair-initialize':event.stage==='approval'?'pair-approval':'pair-connect';};pair.on('stage',pairStage);
-  pairPending=(async()=>{
+  const task=(async()=>{
     status.dataset.phase='pair-initialize';delete status.dataset.errorCode;
     const provider=await pair.connect({restore:true,onURI:uri=>{
       if(epoch!==revision||cancelled)return;
@@ -95,10 +101,10 @@ pairButton.addEventListener('click',()=>{
       status.dataset.phase='pair-approval';
       message('Scan this temporary QR in YNX Wallet and approve the connection.');
     }});
-    if(epoch!==revision||cancelled){await pair.cancel();throw new Error('SSO_CONTEXT_CHANGED');}
+    if(epoch!==revision||cancelled){await cancelPair();throw new Error('SSO_CONTEXT_CHANGED');}
     clearPairQR();pairProvider=provider;selected=provider;picker.value='';approve.disabled=false;message('Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.');
-  })().catch(error=>{if(epoch===revision&&!cancelled){clearPairQR();const code=failure(error,status.dataset.phase);message(code==='YNX_PAIR_TRANSPORT_DRAINING'?'The previous network attempt is still finishing. Choose another wallet, or retry after it ends.':/^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code)?'The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted.':'Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.');}})
-    .finally(()=>{pair.removeListener?.('stage',pairStage);if(epoch===revision){pairPending=null;pairButton.disabled=cancelled;pairButton.removeAttribute('aria-busy');}});
+  })().catch(error=>{if(error?.cleanupError?.code==='YNX_PAIR_CLEANUP_UNCONFIRMED'||error?.code==='YNX_PAIR_CLEANUP_UNCONFIRMED')pairCleanupUnknown();if(epoch===revision&&!cancelled){clearPairQR();const code=failure(error,status.dataset.phase);message(pairCleanupBlocked?'Mobile connection did not finish. Its cleanup is not confirmed. Choose another wallet or return without using this approval.':code==='YNX_PAIR_TRANSPORT_DRAINING'?'The previous network attempt is still finishing. Choose another wallet, or retry after it ends.':/^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code)?'The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted.':'Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.');}})
+    .finally(()=>{pair.removeListener?.('stage',pairStage);if(pairPending===task){pairPending=null;pairButton.disabled=cancelled||pairCleanupBlocked;pairButton.removeAttribute('aria-busy');}});pairPending=task;
 });
 const request=async(path,input)=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
@@ -133,7 +139,7 @@ discovery.subscribe(snapshot=>{
   if(previous&&providers.includes(previous)){picker.value=String(providers.indexOf(previous));}else if(previous&&previous!==pairProvider&&previous!==hostedProvider){selected=null;revision++;}
   approve.disabled=!selected||cancelled||!!pending;if(!providers.length&&!pairPending&&!hostedPending&&!selected)message('Installed YNX Wallet is unavailable. Install/unlock it or explicitly choose Wallet Web or mobile Wallet.');
 });
-picker.addEventListener('change',()=>{if(pending||cancelled){picker.value=providers.includes(selected)?String(providers.indexOf(selected)):'';return;}selected=picker.value===''?null:providers[Number(picker.value)];revision++;if(pairPending){pairPending=null;pairButton.disabled=cancelled;pairButton.removeAttribute('aria-busy');clearPairQR();void pair.cancel();}if(hosted)retireHosted();approve.disabled=!selected||cancelled;message(pending?'Finish or cancel the current request before switching wallets.':'Connection is separate from browser sign-in approval.');if(selected&&!pending)connectInstalledWallet(selected);});
+picker.addEventListener('change',()=>{if(pending||cancelled){picker.value=providers.includes(selected)?String(providers.indexOf(selected)):'';return;}selected=picker.value===''?null:providers[Number(picker.value)];revision++;if(pairPending){pairPending=null;pairButton.disabled=cancelled||pairCleanupBlocked;pairButton.removeAttribute('aria-busy');clearPairQR();void cancelPair();}if(hosted)retireHosted();approve.disabled=!selected||cancelled;message(pending?'Finish or cancel the current request before switching wallets.':'Connection is separate from browser sign-in approval.');if(selected&&!pending)connectInstalledWallet(selected);});
 approve.addEventListener('click',()=>{
   if(pending){message('Your request is already open in YNX Wallet.');return;}
   if(!selected||cancelled)return;
@@ -173,7 +179,7 @@ approve.addEventListener('click',()=>{
 });
 cancel.addEventListener('click',async()=>{
   if(cancelled)return;cancelled=true;revision++;approve.disabled=true;cancel.disabled=true;message('Cancelling this sign-in request…');
-  clearPairQR();if(pair)void pair.cancel();retireHosted();
+  clearPairQR();if(pair)void cancelPair();retireHosted();
   try{const result=await request('cancel',{challengeId:challenge.challengeId});const redirect=new URL(result.redirectUri);
     if(redirect.origin!==challenge.initiator.origin||redirect.pathname!==new URL(challenge.initiator.redirectUri).pathname||redirect.searchParams.get('state')!==challenge.initiator.state||redirect.searchParams.get('error')!=='access_denied')throw new Error('SSO_REDIRECT_INVALID');
     if(context.mode==='oidc'){
