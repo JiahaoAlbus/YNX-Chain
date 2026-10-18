@@ -198,6 +198,10 @@ func (a *Application) applyPQStakingAction(state executionState, raw []byte, hei
 	if err != nil {
 		return fail(err)
 	}
+	i, ok := accountIndex(state.accounts, action.Owner)
+	if !ok || state.accounts[i].Nonce == math.MaxUint64 || action.Nonce != state.accounts[i].Nonce+1 {
+		return fail(errors.New("PQ staking requires exact next owner nonce"))
+	}
 	i, existed := stakingDelegationIndex(state.stakeDelegations, id)
 	opaque := existed && state.stakeDelegations[i].AuthorizationHistory == ""
 	if opaque {
@@ -211,10 +215,6 @@ func (a *Application) applyPQStakingAction(state executionState, raw []byte, hei
 		}
 	} else if len(originals) != 0 {
 		return fail(errors.New("staking originals are permitted only for the first PQ mutation of an existing opaque delegation"))
-	}
-	i, ok := accountIndex(state.accounts, action.Owner)
-	if !ok || state.accounts[i].Nonce == math.MaxUint64 || action.Nonce != state.accounts[i].Nonce+1 {
-		return fail(errors.New("PQ staking requires exact next owner nonce"))
 	}
 	validationOnly := at.IsZero()
 	if validationOnly {
