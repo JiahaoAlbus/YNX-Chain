@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
+import {originalPrivateCarrierBudget} from './original-wallet-service-private-carrier.js';
 
 // Fixed original Native owner only. No production Node filesystem writer,
 // alternate addon path, dependency callback or fallback implementation exists.
@@ -56,7 +57,7 @@ export class OriginalHostTerminalJournal {
  reserve(input,association,stateBeforeDigest){
   this.#entered++;
   try{
-   this.#current();exactFields(input,['requestId','operation','phase','body','proofHeader'],'Original Host terminal request');
+   this.#current();const budget=originalPrivateCarrierBudget(input);if(Buffer.byteLength(canonicalJSON(input))>budget.envelope)fail('HOST_TERMINAL_CAPACITY');
    if([...this.#records.values()].some(row=>!row.terminal))fail('HOST_TERMINAL_PREVIOUS_UNKNOWN');
    if(!/^req_[A-Za-z0-9_-]{12,80}$/.test(input.requestId)||!['beginYNX','handleReturn','restore','disconnect'].includes(input.operation)||!['time','effect'].includes(input.phase)||!digest(stateBeforeDigest))fail('HOST_TERMINAL_BINDING_INVALID');
    exactFields(association,['account','clientId','productId','platform','applicationId','deviceId'],'Original Host association');

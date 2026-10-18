@@ -1,3 +1,4 @@
+import {assertProductSessionRecordBudget,productSessionRecordWithinBudget} from './product-session-record-budget.js';
 import {canonicalJSON, digestHex, exactFields, WalletAuthError} from "./canonical.js";
 import {encodeBase64url, decodeBase64url} from "./base64url.js";
 import {productPlatformBinding} from "./product-session-registry.js";
@@ -8,7 +9,7 @@ import {RecoverableProductSessionClient} from "./product-session-recovery.js";
 // Platform ports must be implemented by the app's real protected native runtime.
 // No key creation, key export, browser persistence or signing fallback occurs here.
 export async function createNativeProductSessionClient(config) {
-  exactFields(config,["registry","productId","platform","scopes","purpose","gateway","runtime","clock",...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[])],"Native Product Session configuration");
+  exactFields(config,["registry","productId","platform","scopes","purpose","gateway","runtime","clock",...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[]),...(Object.hasOwn(config??{},"accountPolicy")?["accountPolicy"]:[])],"Native Product Session configuration");
   if(config.platform==="web")fail("INVALID_PLATFORM","Native adapter cannot replace Web-origin protection");
   const binding=productPlatformBinding(config.registry,config.productId,config.platform);
   const authority=productSessionGatewayAuthority(config.gateway);
@@ -29,8 +30,8 @@ export async function createNativeProductSessionClient(config) {
   function key(k){if(!allowed.has(k))fail("CROSS_PRODUCT_SESSION","Native protected store key crosses its product");}
   async function stored(method,k,...args){key(k);await live();const result=await nativeStore[method](namespace,k,...args,original);await live();return result;}
   function revocationRequested(){live();const result=nativeStore.revocationRequested(namespace,original);if(typeof result!=="boolean")fail("INSECURE_STORAGE","Native revocation signal must be synchronous and boolean");return result;}
-  async function get(k){const value=await stored("get",k);if(value!==null&&(typeof value!=="string"||value.length>16384))fail("INSECURE_STORAGE","Native protected state readback is invalid");return value;}
-  const storage={securityLevel:original.securityLevel,get,set:(k,v)=>stored("set",k,v),remove:k=>stored("remove",k),
+  async function get(k){const value=await stored("get",k);if(value!==null&&(!productSessionRecordWithinBudget(k,value)))fail("INSECURE_STORAGE","Native protected state readback is invalid");return value;}
+  const storage={securityLevel:original.securityLevel,get,set:(k,v)=>{assertProductSessionRecordBudget(k,v);return stored("set",k,v);},remove:k=>stored("remove",k),
     async saveRevocationIntent(k,v){const result=await stored("saveRevocationIntent",k,v);if(await get(k)!==result)fail("INSECURE_STORAGE","Native revocation intent did not persist exactly");return result;},
     async finishRevocationIntent(k,raw){const intent=parseRevocationIntent(raw,binding,device);await stored("finishRevocationIntent",k,raw);if(await get(k)!==null||revocationRequested())fail("REVOCATION_CHANGED","Native revoke cleanup did not confirm the original target");const current=await get(storageKey);if(revocationSessionMatches(current,intent.session))fail("REVOCATION_CHANGED","Native revoke target remains in protected storage");if(current===null)for(const suffix of ["pending","return","completion"])if(await get(storageKey+":"+suffix)!==null)fail("REVOCATION_CHANGED","Native cancelled request remains in protected storage");},
     requestRevocation(){live();nativeStore.requestRevocation(namespace,original);if(!revocationRequested())fail("INSECURE_STORAGE","Native sign-out signal was not saved synchronously");},revocationRequested};
@@ -63,7 +64,7 @@ export async function createNativeProductSessionClient(config) {
     const signature=await runtime.sign(Object.freeze({...input}),original);await live();return signature;
   }});
   const gateway=Object.freeze(Object.fromEntries(["currentTime","challenge","complete","introspect","revoke","walletInstalled","schemeRegistered"].map(name=>[name,async(...args)=>{await live();const result=await config.gateway[name](...args);await live();return result;}] )));
-  client=new RecoverableProductSessionClient({registry:config.registry,productId:config.productId,platform:config.platform,storage,gateway,device,tokenFactory:token,clock:config.clock,...(Object.hasOwn(config,"finiteServiceSeconds")?{finiteServiceSeconds:config.finiteServiceSeconds}:{})});
+  client=new RecoverableProductSessionClient({registry:config.registry,productId:config.productId,platform:config.platform,storage,gateway,device,tokenFactory:token,clock:config.clock,...(Object.hasOwn(config,"accountPolicy")?{accountPolicy:config.accountPolicy}:{}),...(Object.hasOwn(config,"finiteServiceSeconds")?{finiteServiceSeconds:config.finiteServiceSeconds}:{})});
   const api={get current(){try{live();return client.current;}catch{return inactive();}},binding:Object.freeze({...binding,scopes}),capabilities:Object.freeze({kind:"product-private",identityGrant:false,securityLevel:original.securityLevel,protectedRuntimeRequired:true,privateKeyExported:false,durableRevocationCompletion:typeof storage.getRevocationCompletions==="function",authority}),close(){closed=true;},setNetworkAvailable(value){if(closed)return inactive();return client.setNetworkAvailable(value);},enterGuest(){if(closed)return inactive();return client.enterGuest();}};
   for(const method of ["beginExplicit","beginDetected","retryDetected","restore","handleReturn","disconnect","createIntrospectionProof","createSocialAudienceProof","createBusinessProof","createBusinessProofCommitment","getRevocationCompletion","getRevocationCompletions","acknowledgeRevocationCompletion"])api[method]=async(...args)=>{await live();const result=await client[method](...args);await live();return result;};
   api.disconnect=()=>{live();const operation=client.disconnect();return operation.then(result=>{live();return result;});};

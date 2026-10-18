@@ -55,6 +55,23 @@ export class ProductSessionGatewayFetchAdapter {
     return this.#request(input.requestId, "/v2/product-sessions/complete", { request: input.request, approval: input.approval, completion: input.completion }, null);
   }
 
+  async publishReturn(input) {
+    exactFields(input,['requestId','request','approval'],'Original return publication');
+    return this.#request(input.requestId,'/v2/product-sessions/returns',{request:input.request,approval:input.approval},null);
+  }
+  async returnChallenge(input) {
+    exactFields(input,['requestId','reference','request'],'Original return challenge');
+    return this.#request(input.requestId,'/v2/product-sessions/returns/challenge',{reference:input.reference,request:input.request},null);
+  }
+  async completeReturn(input) {
+    exactFields(input,['requestId','reference','request','completion'],'Original return completion');
+    return this.#request(input.requestId,'/v2/product-sessions/returns/complete',{reference:input.reference,request:input.request,completion:input.completion},null);
+  }
+  async returnOutcome(input) {
+    exactFields(input,['requestId','reference','request','completion'],'Original return outcome');
+    return this.#request(input.requestId,'/v2/product-sessions/returns/outcome',{reference:input.reference,request:input.request,completion:input.completion},null);
+  }
+
   async introspect(input) {
     exactFields(input, ["requestId", "sessionBinding", "requiredScopes", "proof"], "Product Session Gateway introspection request");
     const proof = parseProductSessionProofV2(input.proof);
@@ -138,6 +155,10 @@ async function readGatewayResponse(response, requestId) {
 // public registration hook, endpoint selector or supplied dispatch callback.
 export class ProductSessionGatewayPrivateAdapter extends ProductSessionGatewayFetchAdapter {
   #client;
+  async publishReturn(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference publication requires the fixed normal HTTP adapter');}
+  async returnChallenge(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference challenge requires the fixed normal HTTP adapter');}
+  async completeReturn(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference completion requires the fixed normal HTTP adapter');}
+  async returnOutcome(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference outcome requires the fixed normal HTTP adapter');}
   constructor(config) {
     exactFields(config, ['walletInstalled', 'schemeRegistered', 'timeoutMs'], 'Original Wallet Gateway configuration');
     const client = new OriginalWalletServicePrivateClient({timeoutMs: config.timeoutMs});

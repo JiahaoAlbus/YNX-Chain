@@ -1,0 +1,45 @@
+{
+  "state": "FROZEN_R3B_APP_CONSUMER_SOURCE_NOT_MATCHING_INSTALLED_APP",
+  "sdk": {
+    "commit": "b164a68376ad784bfd5f83513611f6a4ee008070",
+    "handoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3b-20261018/SDK_PQ_R3B_HANDOFF.json",
+    "handoffBytes": 12395,
+    "handoffSHA256": "3833438febd09b15e5b3cdffa341dcf2087474ef48af950fe29208cc99fd6568",
+    "archiveBytes": 709505,
+    "archiveSHA256": "1dca362f3203e67a0ddddea5e29a987f588a6842682f8c624812de49b3b00d80",
+    "deltaLeaves": 31,
+    "localSourceFilesComparedToFrozen": 205
+  },
+  "runtimeDependencies": {
+    "files": 316,
+    "bytes": 52466,
+    "sha256": "f819d5b8c8b786b22f99d08afec38db9d2fa57a048a609c51121757f4e2979dd",
+    "actuallyRegenerated": true
+  },
+  "desktop": {
+    "chunk_id": "42906f",
+    "wall_time_seconds": 0.000009917,
+    "exit_code": 0,
+    "original_token_count": 208,
+    "output": "✔ normal initial migration separately signs original classic digest and real new-pair PoP, then retains full wire only (730.259375ms)\n✔ normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing (782.567833ms)\n✔ signed session original survives post-source failure durably and is recovered with fresh policy without another signature (713.63375ms)\n✔ R3b normal consumer retains the exact original SDK source receipt (0.078458ms)\n✔ unreviewed protocol bytes still fail before a registry or policy can be selected (1.813375ms)\n✔ normal original main IPC and canonical sender constructor reach only the fixed PQ hash reader (2.245125ms)\nℹ tests 6\nℹ suites 0\nℹ pass 6\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 3277.698208\n"
+  },
+  "mobile": {
+    "chunk_id": "f1f02c",
+    "wall_time_seconds": 0.287324917,
+    "exit_code": 0,
+    "original_token_count": 838,
+    "output": "✔ signature intent, callback, and revocation form a persistent hash-chained audit (2.773708ms)\n✔ authorization audit rejects field, binding, and hash tamper (0.689542ms)\n✔ independent audit owners sharing original storage cannot overwrite either concurrent event (0.469125ms)\n✔ queued revocation and append preserve both events and duplicate revoke remains once-only (0.892958ms)\n✔ lost audit write ACK permits readback only and never repeats the failed mutation (0.205042ms)\n✔ audit history capacity refuses before overwriting its last readable generation (23.763875ms)\n✔ direct product authorization displays and signs the exact finite service deadline without extending the approval window (16.473125ms)\n✔ android explicit approval completes the authoritative v2 challenge contract (14.976166ms)\n✔ ios explicit approval completes the authoritative v2 challenge contract (13.469042ms)\n✔ explicit rejection returns nonce and state to the canonical product without key access (2.905625ms)\n✔ v1, spoofed bindings, widened scopes and malformed routes fail before approval (2.767375ms)\n✔ mobile Wallet accepts web origins but rejects another native operating system (3.088083ms)\n✔ native payer and web merchant sessions remain separate canonical products (2.767459ms)\n✔ expiry is revalidated after biometric confirmation (0.76725ms)\n✔ switch while biometrics are pending cancels approval (0.72875ms)\n✔ background while biometrics are pending cancels approval (0.557875ms)\n✔ a key read resolving after an account change cannot sign or return for the replacement account (4.126458ms)\n✔ a storage adapter returning a different signing key is rejected (2.512417ms)\n✔ duplicate links retain the same review and another link cannot replace an active request (1.340125ms)\n✔ overlapping approve and reject cannot produce contradictory decisions (9.527708ms)\n✔ consumed request, nonce and state remain blocked after controller restart (5.09075ms)\n✔ approve callback failure retries the identical result without new authorization (12.458042ms)\n✔ reject callback failure retries the identical result without new authorization (3.442333ms)\n✔ unavailable or malformed durable replay storage fails before signing (3.775833ms)\n✔ no account and an unconfirmed backup cannot authorize a product (2.847375ms)\n✔ cancellation during durable consumption prevents signing and preserves consumption (2.257708ms)\n✔ a completed approval cannot be retried after expiry or account switch (15.805625ms)\n✔ native cold and warm entrypoints use only the v2 controller and cancel pending work on background (2.361959ms)\n✔ signed mobile original survives background before return and cold review recovers exact result without another key use (11.918375ms)\n✔ secure original save lost ACK cold-recovers the identical signature without consuming replay again (11.312459ms)\n✔ failed secure original save keeps signed custody and never falls back, re-saves, or signs on retry (5.228834ms)\n✔ restored original rejects changed account and corrupted proof before any new private-key access (9.358042ms)\n✔ two controllers sharing secure storage cannot consume or sign the same original request twice (9.812625ms)\nℹ tests 33\nℹ suites 0\nℹ pass 33\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 382.650542\n"
+  },
+  "strictScopedMobileTypesExit": 0,
+  "truth": {
+    "newNativeLink": false,
+    "newWholeAppBuild": false,
+    "installedGUI": false,
+    "realSourceGrant": false,
+    "referencePublisherSupplied": false,
+    "actualOSReferenceReturn": false,
+    "publicDeployment": false,
+    "MONSTER": false
+  },
+  "next": "Original main identity-bound publisher ABI and actual normal bootstrap supply; no arbitrary endpoint or oversized-URL fallback; unique original A performs matching build/install"
+}

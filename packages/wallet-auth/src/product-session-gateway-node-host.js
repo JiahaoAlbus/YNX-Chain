@@ -63,7 +63,10 @@ export function captureOriginalWalletServiceRuntimeHostSource(source) {
 const STATE_FIELDS = ["schemaVersion", "snapshotDigest", "snapshot"];
 const TIME_ROUTE = "/v2/product-sessions/time";
 const WALLET_ORIGIN = "https://wallet.ynxweb4.com";
+const RETURN_BASE = '/v2/product-sessions/returns';
+const RETURN_ROUTES = new Set([RETURN_BASE,...['challenge','complete','outcome'].map(x=>RETURN_BASE+'/'+x)]);
 const ROUTES = new Set([
+  ...RETURN_ROUTES,
   TIME_ROUTE,
   ...WALLET_SESSION_CONTROL_PATHS,
   "/v2/product-sessions/challenge",
@@ -361,16 +364,7 @@ export class ProductSessionGatewayNodeHost {
         const proofHeader = nullableHeader(request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2]);
         const walletControlProofHeader = nullableHeader(request.headers[WALLET_SESSION_CONTROL_PROOF_HEADER]);
         this.#assertOriginBinding(request.headers.origin, route, body, proofHeader);
-        const proof=proofHeader===null?null:decodeProductSessionGatewayProofHeaderV2(proofHeader);
-        const session=proof===null?null:this.#handler.snapshot().authority.sessions.find(value=>value.sessionBinding===proof.sessionBinding)??null;
-        const result=await this.#withAccountPolicy({requestId,method:request.method,path:route,body,proofHeader,walletControlProofHeader,session,at:this.#now().toISOString()},accountContext=>{
-          this.#assertStateIdentity();
-          const candidate=this.#newHandler(this.#handler.snapshot(),accountContext);
-          const result=candidate.handle({requestId,method:request.method,path:route,contentType:singleHeader(request.headers["content-type"]),body,proofHeader,walletControlProofHeader,networkAvailable:true},this.#now());
-          const before=snapshotDigest(this.#handler.snapshot()),after=snapshotDigest(candidate.snapshot());
-          if(after!==before)this.#persist(candidate.snapshot());
-          this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();return result;
-        });
+        const result=await this.#executePolicyRequest({requestId,route,body,proofHeader,walletControlProofHeader,contentType:singleHeader(request.headers["content-type"])});
         response.writeHead(result.status, { ...result.headers, ...corsHeaders }); response.end(result.body);
       } catch (caught) {
         const error = hostError(caught);
@@ -380,6 +374,52 @@ export class ProductSessionGatewayNodeHost {
     };
     this.#originalRuntimeHandler=handler;
     return handler;
+  }
+
+  async #executePolicyRequest({requestId,route,body,proofHeader=null,walletControlProofHeader=null,contentType='application/json'}){
+    this.#assertStateIdentity();
+    const referenceRoute=RETURN_ROUTES.has(route),originalDigest=snapshotDigest(this.#handler.snapshot());
+    const proof=proofHeader===null?null:decodeProductSessionGatewayProofHeaderV2(proofHeader);
+    let session=proof===null?null:this.#handler.snapshot().authority.sessions.find(value=>value.sessionBinding===proof.sessionBinding)??null,publication;
+    if(referenceRoute){
+      if(!this.#accountPolicy)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Reference returns require the original normal policy service');
+      let input;try{input=JSON.parse(body);}catch{fail('INVALID_BODY','Reference body is invalid');}
+      publication=route===RETURN_BASE?null:this.#handler.returnPublication(input.reference);
+      session=route===RETURN_BASE?null:this.#handler.returnPublicationSession(input.reference);
+    }
+    return this.#withAccountPolicy({requestId,method:'POST',path:route,body,proofHeader,walletControlProofHeader,session,at:this.#now().toISOString(),...(referenceRoute?{publication}:{})},accountContext=>{
+      this.#assertStateIdentity();
+      // A Source borrow cannot resume against a changed durable publication.
+      if(referenceRoute&&snapshotDigest(this.#handler.snapshot())!==originalDigest)fail('ACCOUNT_POLICY_OPERATION_CHANGED','Original publication changed while acquiring Source');
+      const candidate=this.#newHandler(this.#handler.snapshot(),accountContext);
+      const result=candidate.handle({requestId,method:'POST',path:route,contentType,body,proofHeader,walletControlProofHeader,networkAvailable:true},this.#now());
+      const before=snapshotDigest(this.#handler.snapshot()),after=snapshotDigest(candidate.snapshot());
+      if(after!==before)this.#persist(candidate.snapshot());
+      this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();return result;
+    });
+  }
+  // Main-only entry points share the HTTP transaction and its single snapshot.
+  #referenceInput(input,fields){privateData(input,fields);if(!validRequestId(input.requestId))fail('INVALID_REQUEST_ID','Original return requires a request ID');}
+  async publishOriginalProductSessionReturn(input){
+    this.#referenceInput(input,['requestId','request','approval']);
+    return this.#executePolicyRequest({requestId:input.requestId,route:RETURN_BASE,body:canonicalJSON({request:input.request,approval:input.approval})});
+  }
+  async readOriginalProductSessionReturnChallenge(input){
+    this.#referenceInput(input,['requestId','reference','request']);
+    return this.#executePolicyRequest({requestId:input.requestId,route:RETURN_BASE+'/challenge',body:canonicalJSON({reference:input.reference,request:input.request})});
+  }
+  async completeOriginalProductSessionReturn(input){
+    this.#referenceInput(input,['requestId','reference','request','completion']);
+    return this.#executePolicyRequest({requestId:input.requestId,route:RETURN_BASE+'/complete',body:canonicalJSON({reference:input.reference,request:input.request,completion:input.completion})});
+  }
+  async readOriginalProductSessionReturnCompletionOutcome(input){
+    this.#referenceInput(input,['requestId','reference','request','completion']);
+    return this.#executePolicyRequest({requestId:input.requestId,route:RETURN_BASE+'/outcome',body:canonicalJSON({reference:input.reference,request:input.request,completion:input.completion})});
+  }
+  // Owning caller recovery after publish ACK loss: metadata, never a grant.
+  readOriginalProductSessionReturnOutcome(requestId){
+    if(!validRequestId(requestId))fail('INVALID_REQUEST_ID','Original return requires a request ID');
+    this.#assertStateIdentity();return this.#handler.readOriginalReturnPublicationOutcome(requestId);
   }
 
   snapshot() { return this.#handler.snapshot(); }
@@ -396,7 +436,7 @@ export class ProductSessionGatewayNodeHost {
     if (origin === undefined) return; // Native clients and server proxies do not send a browser Origin.
     if (WALLET_SESSION_CONTROL_PATHS.includes(route)) return; // The Wallet-only origin policy was already checked; the owning account signature grants authority.
     let boundOrigin;
-    if (route === "/v2/product-sessions/challenge" || route === "/v2/product-sessions/complete") {
+    if (RETURN_ROUTES.has(route) || route === "/v2/product-sessions/challenge" || route === "/v2/product-sessions/complete") {
       let input; try { input = JSON.parse(body); } catch { fail("INVALID_BODY", "Product Session Gateway body is not JSON"); }
       boundOrigin = input?.request?.origin;
     } else {

@@ -1,3 +1,4 @@
+import type {PQClientAccountPolicyPorts} from "./product-session-pq-approval.js";
 import type {ProductSessionGatewayFetchAdapter,ProductBusinessProofInput,ProductBusinessCommitmentInput,SocialAudienceProofInput,ProductSessionIntrospectionProof,ProductSessionPlatform,ProductSessionRevocationCompletion} from "./index.js";
 export type NativeProductPlatform=Exclude<ProductSessionPlatform,"web">;
 export type NativeProductContext=Readonly<{platform:NativeProductPlatform;applicationId:string;deviceId:string;deviceKey:string;securityLevel:"hardware-backed"|"os-protected";generation:number;account:string|null}>;
@@ -39,4 +40,4 @@ export type NativeProductSessionAdapter=Readonly<{
  createSocialAudienceProof(input:SocialAudienceProofInput):Promise<import("./index.js").SocialAudienceProof>;
  setNetworkAvailable(available:boolean):NativeProductState;enterGuest():NativeProductState;close():void;
 }>;
-export declare function createNativeProductSessionClient(config:Readonly<{registry:unknown;productId:string;platform:NativeProductPlatform;scopes:readonly string[];purpose:string;gateway:ProductSessionGatewayFetchAdapter;runtime:NativeProductRuntime;clock:()=>Date;finiteServiceSeconds?:number}>):Promise<NativeProductSessionAdapter>;
+export declare function createNativeProductSessionClient(config:Readonly<{registry:unknown;productId:string;platform:NativeProductPlatform;scopes:readonly string[];purpose:string;gateway:ProductSessionGatewayFetchAdapter;runtime:NativeProductRuntime;clock:()=>Date;finiteServiceSeconds?:number;accountPolicy?:PQClientAccountPolicyPorts}>):Promise<NativeProductSessionAdapter>;
