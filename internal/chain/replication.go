@@ -529,38 +529,61 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 }
 
 func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
+	return d.persistPreparedSnapshotMeasured(snapshot, nil)
+}
+
+func (d *Devnet) persistPreparedSnapshotMeasured(snapshot devnetSnapshot, measurement *PQSnapshotMeasurement) error {
 	path := d.snapshotPath()
 	if path == "" {
 		return nil
 	}
+	enabled := measurement != nil
+	var ignored PQSnapshotMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
+	start := measurement.CheckpointBuild.begin(enabled)
 	checkpoint, err := checkpointForSnapshot(snapshot)
+	measurement.CheckpointBuild.finish(enabled, start, err)
 	if err != nil {
 		return err
 	}
 	// Normal checkpoints and replication both hold d.mu while persisting.
 	// Serialize their shared temp paths without acquiring d.mu here.
 	// No code holding persistenceMu acquires d.mu, avoiding lock inversion.
+	start = measurement.PersistenceLockWait.begin(enabled)
 	d.persistenceMu.Lock()
+	measurement.PersistenceLockWait.finish(enabled, start, nil)
 	defer d.persistenceMu.Unlock()
 	// Replacements/rebases can remove or change earlier transactions. Withdraw
 	// those proofs before disk I/O, while keeping already completed proofs for
 	// exact entries shared by both snapshots. Ordinary appended checkpoints
 	// must not make old receipts flicker to uncertain while the file is written.
 	d.durableCheckpoint.Store(checkpointRetainedDuringWrite(d.durableCheckpoint.Load(), checkpoint))
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+	start = measurement.Mkdir.begin(enabled)
+	err = os.MkdirAll(filepath.Dir(path), 0o700)
+	measurement.Mkdir.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
-	if err := writeDurableSnapshotJSON(path, snapshot); err != nil {
+	var snapshotFile, markerFile *PQDurableFileMeasurement
+	if enabled {
+		snapshotFile, markerFile = &measurement.SnapshotFile, &measurement.MarkerFile
+	}
+	if err := writeDurableSnapshotJSONMeasured(path, snapshot, syncSnapshotDirectory, snapshotFile); err != nil {
 		return err
 	}
 	marker := "2\n"
 	if snapshot.Version == pqDevnetSnapshotVersion {
 		marker = "3\n"
 	}
-	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte(marker)); err != nil {
+	if err := writeDurableSnapshotMeasured(d.snapshotIntegrityMarkerPath(), []byte(marker), markerFile); err != nil {
 		return fmt.Errorf("%w: persist devnet snapshot integrity marker: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	d.durableCheckpoint.Store(checkpoint)
+	if enabled {
+		measurement.Published = &PQLocalCheckpointMeasurement{Version: TransactionDurabilityVersion, Height: checkpoint.height, Hash: checkpoint.hash, SnapshotIntegrity: checkpoint.integrity}
+	}
 	return nil
 }
 

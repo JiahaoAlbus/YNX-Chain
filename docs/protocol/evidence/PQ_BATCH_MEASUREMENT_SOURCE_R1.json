@@ -1,0 +1,44 @@
+{
+  "base": "e9081b3a6a45217571a10935960c4ffc9e85d197",
+  "version": "ynx-pq-batch-measurement-v1",
+  "goExecuted": false,
+  "localGoAllowed": false,
+  "tests": [
+    "TestPQBatchMeasurementDurablePartialAndReplay",
+    "TestPQBatchMeasurementUnknownAndRollback",
+    "TestPQBatchMeasurementRejectAndMemoryBoundaries",
+    "TestPQBatchMeasurementDirectorySyncAndCanonicalBytes"
+  ],
+  "leaves": [
+    {
+      "path": "internal/chain/pq_batch.go",
+      "bytes": 14317,
+      "sha256": "2539e731c352a5489c08513df0c1d03adaeb27bf14aadfb215d9b217cb2fd312"
+    },
+    {
+      "path": "internal/chain/pq_batch_measurement.go",
+      "bytes": 5239,
+      "sha256": "352f78879645e508ada2892314eb9890db5e707a35b963685b347a4a1f153e09"
+    },
+    {
+      "path": "internal/chain/pq_batch_measurement_test.go",
+      "bytes": 11725,
+      "sha256": "df9c79ce235f42a33f67d22b26d950120aebe87d3d221b05697ee386a1332f15"
+    },
+    {
+      "path": "internal/chain/devnet.go",
+      "bytes": 207564,
+      "sha256": "b4199db5e57f32c61085d4217fa3e4256a1feac4bc0034b60ef5931843a89c9a"
+    },
+    {
+      "path": "internal/chain/replication.go",
+      "bytes": 32505,
+      "sha256": "71ac912b1c51900c4543fd44de23ff351e25e0c7b0a791aefc85ba300399b60e"
+    },
+    {
+      "path": "docs/protocol/PQ_BATCH_PRODUCTION_MEASUREMENT_R1.md",
+      "bytes": 6126,
+      "sha256": "a7e07585fb89365dff8fb4c6eef1249205177d6a0897af81048cd2d6213d5154"
+    }
+  ]
+}

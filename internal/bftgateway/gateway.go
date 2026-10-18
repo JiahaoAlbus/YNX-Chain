@@ -185,6 +185,7 @@ type cometRPCError struct {
 }
 
 type cometTxResult struct {
+	Data    []byte `json:"data"`
 	Code    uint32 `json:"code"`
 	Log     string `json:"log"`
 	GasUsed string `json:"gas_used"`
@@ -238,12 +239,15 @@ type BroadcastResponse struct {
 }
 
 type TransactionList struct {
-	Transactions   []chain.Transaction `json:"transactions"`
-	Page           int                 `json:"page"`
-	Limit          int                 `json:"limit"`
-	Total          uint64              `json:"total"`
-	NextPage       *int                `json:"nextPage"`
-	TruthfulStatus string              `json:"truthfulStatus"`
+	UnmappedTransactions []CometTransactionReference `json:"unmappedTransactions,omitempty"`
+	PQBatches            []PQWholeView               `json:"pqBatches,omitempty"`
+	TransactionOrder     []CometTransactionReference `json:"transactionOrder,omitempty"`
+	Transactions         []chain.Transaction         `json:"transactions"`
+	Page                 int                         `json:"page"`
+	Limit                int                         `json:"limit"`
+	Total                uint64                      `json:"total"`
+	NextPage             *int                        `json:"nextPage"`
+	TruthfulStatus       string                      `json:"truthfulStatus"`
 }
 
 func New(cfg Config) (*Gateway, error) {
@@ -280,6 +284,9 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /status", g.handleStatus)
 	g.mux.HandleFunc("GET /blocks/{height}", g.handleBlock)
 	g.mux.HandleFunc("POST /transactions/broadcast", g.handleBroadcastTransaction)
+	g.mux.HandleFunc("POST /transactions/pq/batches/broadcast", g.handlePQWholeBroadcast)
+	g.mux.HandleFunc("GET /transactions/pq/batches/{hash}", g.handlePQBatch)
+	g.mux.HandleFunc("GET /transactions/pq/wholes/{hash}", g.handlePQWhole)
 	g.mux.HandleFunc("GET /txs", g.handleTransactions)
 	g.mux.HandleFunc("GET /txs/{hash}", g.handleTransaction)
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
@@ -351,6 +358,10 @@ func (g *Gateway) routes() {
 }
 
 func (c *client) get(ctx context.Context, path string, query url.Values, out any) error {
+	return c.getBounded(ctx, path, query, out, 4<<20)
+}
+
+func (c *client) getBounded(ctx context.Context, path string, query url.Values, out any, limit int64) error {
 	endpoint := c.baseURL + path
 	if len(query) > 0 {
 		endpoint += "?" + query.Encode()
@@ -364,7 +375,7 @@ func (c *client) get(ctx context.Context, path string, query url.Values, out any
 		return err
 	}
 	defer resp.Body.Close()
-	payload, err := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	payload, err := readCometBody(resp.Body, limit)
 	if err != nil {
 		return fmt.Errorf("read CometBFT %s: %w", path, err)
 	}
@@ -509,47 +520,77 @@ func (g *Gateway) handleBlock(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, block)
 }
 
-func (g *Gateway) block(ctx context.Context, height uint64) (chain.Block, error) {
+func (g *Gateway) block(ctx context.Context, height uint64) (ProjectedBlock, error) {
 	var upstream cometBlock
-	if err := g.client.get(ctx, "/block", url.Values{"height": {strconv.FormatUint(height, 10)}}, &upstream); err != nil {
-		return chain.Block{}, err
+	if err := g.client.getBounded(ctx, "/block", url.Values{"height": {strconv.FormatUint(height, 10)}}, &upstream, cometBlockReadBytes); err != nil {
+		return ProjectedBlock{}, err
 	}
 	parsedHeight, err := strconv.ParseUint(upstream.Result.Block.Header.Height, 10, 64)
 	if err != nil || parsedHeight != height {
-		return chain.Block{}, errors.New("CometBFT block height mismatch")
+		return ProjectedBlock{}, errors.New("CometBFT block height mismatch")
 	}
 	transactions := make([]chain.Transaction, 0, len(upstream.Result.Block.Data.Txs))
-	for _, payload := range upstream.Result.Block.Data.Txs {
+	var batches []PQWholeView
+	var unmapped []CometTransactionReference
+	order := make([]CometTransactionReference, 0, len(upstream.Result.Block.Data.Txs))
+	var results []cometTxResult
+	for index, payload := range upstream.Result.Block.Data.Txs {
+		if isWholeEnvelope(payload) {
+			if results == nil {
+				results, err = g.wholeBlockResults(ctx, height, len(upstream.Result.Block.Data.Txs))
+				if err != nil {
+					return ProjectedBlock{}, err
+				}
+			}
+			hash := consensus.SignedTransactionHash(payload)
+			view, err := g.projectPQWhole(ctx, cometTx{Hash: strings.TrimPrefix(hash, "0x"), Height: strconv.FormatUint(height, 10), Index: uint32(index), Tx: payload, TxResult: results[index]})
+			if err != nil {
+				return ProjectedBlock{}, err
+			}
+			batches = append(batches, compactWhole(view))
+			order = append(order, CometTransactionReference{Hash: hash, Type: consensus.PQWholeType, CometIndex: uint32(index), Height: height})
+			continue
+		}
+		ref, unsupported, err := unmappedPQTransaction(cometTx{Hash: strings.TrimPrefix(consensus.SignedTransactionHash(payload), "0x"), Height: strconv.FormatUint(height, 10), Index: uint32(index), Tx: payload})
+		if err != nil {
+			return ProjectedBlock{}, err
+		}
+		if unsupported {
+			unmapped = append(unmapped, ref)
+			order = append(order, ref)
+			continue
+		}
 		tx, err := mappedTransaction(payload, parsedHeight, upstream.Result.BlockID.Hash, upstream.Result.Block.Header.Time)
 		if err != nil {
-			return chain.Block{}, errors.New("block contains an unsupported transaction envelope")
+			return ProjectedBlock{}, errors.New("block contains an unsupported transaction envelope")
 		}
 		if tx.Type == consensus.ActionResourceSponsor {
 			id := "rss_" + consensus.ApplicationActionRecordID("resource-sponsorship", tx.Hash)
 			var record consensus.BFTResourceSponsorship
 			if err := g.queryABCIJSON(ctx, "/resource/sponsorships/"+id, &record); err != nil || record.TxHash != tx.Hash || record.Beneficiary != tx.From {
-				return chain.Block{}, errors.New("committed Resource sponsorship evidence mismatch")
+				return ProjectedBlock{}, errors.New("committed Resource sponsorship evidence mismatch")
 			}
 			tx.Sponsor, tx.SponsorPoolID, tx.ResourceSource = record.Sponsor, record.PoolID, record.ResourceSource
 			tx.ResourceType, tx.ResourceConsumed, tx.ActionReference = record.ResourceType, record.Amount, record.ActionReference
 		}
 		transactions = append(transactions, tx)
+		order = append(order, CometTransactionReference{Hash: tx.Hash, Type: tx.Type, CometIndex: uint32(index), Height: height})
 	}
 	parentHash := strings.ToLower(upstream.Result.Block.Header.LastBlockID.Hash)
 	if g.migrationHeight > 0 && height == g.migrationHeight+1 {
 		if parentHash != "" && parentHash != g.migrationBlockHash {
-			return chain.Block{}, errors.New("candidate first block parent differs from the approved migration anchor")
+			return ProjectedBlock{}, errors.New("candidate first block parent differs from the approved migration anchor")
 		}
 		parentHash = g.migrationBlockHash
 	}
-	return chain.Block{
+	return ProjectedBlock{Block: chain.Block{
 		Height:       parsedHeight,
 		Hash:         strings.ToLower(upstream.Result.BlockID.Hash),
 		ParentHash:   parentHash,
 		Time:         upstream.Result.Block.Header.Time,
 		Validator:    strings.ToLower(upstream.Result.Block.Header.Proposer),
 		Transactions: transactions,
-	}, nil
+	}, UnmappedTransactions: unmapped, PQBatches: batches, CometTransactionCount: len(upstream.Result.Block.Data.Txs), TransactionOrder: order}, nil
 }
 
 func mappedTransaction(payload []byte, height uint64, blockHash string, blockTime time.Time) (chain.Transaction, error) {
@@ -684,6 +725,24 @@ func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": cometError(upstream.Error)})
 		return
 	}
+	if isWholeEnvelope(upstream.Result.Tx) {
+		view, err := g.projectPQWhole(r.Context(), upstream.Result)
+		if err != nil || view.ABCITransactionHash != hash {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Whole lookup evidence mismatch"})
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
+		return
+	}
+	ref, unsupported, err := unmappedPQTransaction(upstream.Result)
+	if err != nil || unsupported && ref.Hash != hash {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "PQ outer lookup mismatch"})
+		return
+	}
+	if unsupported {
+		writeJSON(w, http.StatusOK, ref)
+		return
+	}
 	mapped, err := g.mapCometTransaction(r.Context(), upstream.Result)
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
@@ -709,7 +768,10 @@ func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	}
 	var upstream cometTxSearch
 	query := url.Values{"query": {`"tx.height > 0"`}, "prove": {"true"}, "page": {strconv.Itoa(page)}, "per_page": {strconv.Itoa(limit)}, "order_by": {`"desc"`}}
-	if err := g.client.get(r.Context(), "/tx_search", query, &upstream); err != nil {
+	// Each requested row has at most a 1 MiB mempool envelope (base64 on RPC),
+	// plus bounded Whole results. Budget this operation per row; keep ordinary
+	// account/status/proof queries at 4 MiB and reject overflow explicitly.
+	if err := g.client.getBounded(r.Context(), "/tx_search", query, &upstream, int64(limit)*(2<<20)+(64<<10)); err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
 	}
@@ -727,21 +789,49 @@ func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		jHeight, _ := strconv.ParseUint(upstream.Result.Txs[j].Height, 10, 64)
 		return iHeight > jHeight || (iHeight == jHeight && upstream.Result.Txs[i].Index > upstream.Result.Txs[j].Index)
 	})
+	if len(upstream.Result.Txs) > limit {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Comet search exceeded requested page size"})
+		return
+	}
+	var batches []PQWholeView
+	var unmapped []CometTransactionReference
+	order := make([]CometTransactionReference, 0, len(upstream.Result.Txs))
 	transactions := make([]chain.Transaction, 0, len(upstream.Result.Txs))
 	for _, upstreamTx := range upstream.Result.Txs {
+		if isWholeEnvelope(upstreamTx.Tx) {
+			view, err := g.projectPQWhole(r.Context(), upstreamTx)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+				return
+			}
+			batches = append(batches, compactWhole(view))
+			order = append(order, CometTransactionReference{Hash: view.ABCITransactionHash, Type: consensus.PQWholeType, CometIndex: upstreamTx.Index, Height: view.ExecutionHeight})
+			continue
+		}
+		ref, unsupported, err := unmappedPQTransaction(upstreamTx)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			return
+		}
+		if unsupported {
+			unmapped = append(unmapped, ref)
+			order = append(order, ref)
+			continue
+		}
 		mapped, err := g.mapCometTransaction(r.Context(), upstreamTx)
 		if err != nil {
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 			return
 		}
 		transactions = append(transactions, mapped)
+		order = append(order, CometTransactionReference{Hash: mapped.Hash, Type: mapped.Type, CometIndex: upstreamTx.Index, Height: mapped.BlockNum})
 	}
 	var nextPage *int
 	if uint64(page*limit) < total {
 		next := page + 1
 		nextPage = &next
 	}
-	writeJSON(w, http.StatusOK, TransactionList{Transactions: transactions, Page: page, Limit: limit, Total: total, NextPage: nextPage, TruthfulStatus: "cometbft-tx-search-backed"})
+	writeJSON(w, http.StatusOK, TransactionList{UnmappedTransactions: unmapped, PQBatches: batches, TransactionOrder: order, Transactions: transactions, Page: page, Limit: limit, Total: total, NextPage: nextPage, TruthfulStatus: "cometbft-tx-search-backed"})
 }
 
 func (g *Gateway) mapCometTransaction(ctx context.Context, upstream cometTx) (chain.Transaction, error) {

@@ -88,6 +88,12 @@ func (g *Gateway) committedTransaction(ctx context.Context, hash string) (cometT
 	if upstream.Error != nil {
 		return cometTx{}, chain.Transaction{}, false, nil
 	}
+	if isWholeEnvelope(upstream.Result.Tx) {
+		return cometTx{}, chain.Transaction{}, false, errors.New("PQ Whole is a native batch container; Ethereum transaction and receipt projection is unsupported; query /transactions/pq/wholes/ with the original ABCI hash")
+	}
+	if _, unsupported, err := unmappedPQTransaction(upstream.Result); unsupported || err != nil {
+		return cometTx{}, chain.Transaction{}, false, errors.New("native PQ envelope Ethereum projection is unsupported")
+	}
 	tx, err := g.mapCometTransaction(ctx, upstream.Result)
 	if err != nil {
 		return cometTx{}, chain.Transaction{}, false, err

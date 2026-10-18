@@ -1279,7 +1279,11 @@ func (d *Devnet) persistMutationLocked(tx Transaction, rollback func()) (Transac
 }
 
 func (d *Devnet) confirmTransactionPersistenceLocked() error {
-	err := d.persistSnapshotLocked()
+	return d.confirmTransactionPersistenceLockedMeasured(nil)
+}
+
+func (d *Devnet) confirmTransactionPersistenceLockedMeasured(measurement *PQSnapshotMeasurement) error {
+	err := d.persistSnapshotLockedMeasured(measurement)
 	if err != nil {
 		// Retry failure cannot undo a prior admission or prove its current
 		// in-memory block inclusion was durably recorded.
@@ -3557,15 +3561,36 @@ func (d *Devnet) persistSnapshot() error {
 }
 
 func (d *Devnet) persistSnapshotLocked() error {
+	return d.persistSnapshotLockedMeasured(nil)
+}
+
+func (d *Devnet) persistSnapshotLockedMeasured(measurement *PQSnapshotMeasurement) (err error) {
 	path := d.snapshotPath()
 	if path == "" {
 		return nil
 	}
-	snapshot, err := sealDevnetSnapshot(d.snapshotLocked())
+	enabled := measurement != nil
+	var ignored PQSnapshotMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
+	totalStart := measurement.Total.begin(enabled)
+	defer func() { measurement.Total.finish(enabled, totalStart, err) }()
+	start := measurement.SnapshotBuild.begin(enabled)
+	snapshot := d.snapshotLocked()
+	measurement.SnapshotBuild.finish(enabled, start, nil)
+	start = measurement.IntegritySeal.begin(enabled)
+	snapshot, err = sealDevnetSnapshot(snapshot)
+	measurement.IntegritySeal.finish(enabled, start, err)
 	if err != nil {
 		return fmt.Errorf("seal devnet snapshot: %w", err)
 	}
-	return d.persistPreparedSnapshot(snapshot)
+	var selected *PQSnapshotMeasurement
+	if enabled {
+		measurement.CandidateIntegrity = snapshot.StateIntegrity
+		selected = measurement
+	}
+	return d.persistPreparedSnapshotMeasured(snapshot, selected)
 }
 
 func writeDurableSnapshotJSON(path string, value any) error {
@@ -3573,8 +3598,21 @@ func writeDurableSnapshotJSON(path string, value any) error {
 }
 
 func writeDurableSnapshotJSONWithDirectorySync(path string, value any, syncDirectory func(string) error) (err error) {
+	return writeDurableSnapshotJSONMeasured(path, value, syncDirectory, nil)
+}
+
+func writeDurableSnapshotJSONMeasured(path string, value any, syncDirectory func(string) error, measurement *PQDurableFileMeasurement) (err error) {
+	enabled := measurement != nil
+	var ignored PQDurableFileMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
+	totalStart := measurement.Total.begin(enabled)
+	defer func() { measurement.Total.finish(enabled, totalStart, err) }()
 	tmpPath := path + ".tmp"
+	start := measurement.OpenTemp.begin(enabled)
 	file, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	measurement.OpenTemp.finish(enabled, start, err)
 	if err != nil {
 		return fmt.Errorf("open devnet snapshot temp file: %w", err)
 	}
@@ -3586,27 +3624,47 @@ func writeDurableSnapshotJSONWithDirectorySync(path string, value any, syncDirec
 			_ = os.Remove(tmpPath)
 		}
 	}()
-	stream := jsonBodyWriter{target: file}
+	var target io.Writer = file
+	if enabled {
+		target = pqMeasuredWriter{target: file, file: measurement}
+	}
+	stream := jsonBodyWriter{target: target}
+	start = measurement.EncodeWrite.begin(enabled)
 	encoder := json.NewEncoder(&stream)
 	encoder.SetIndent("", "  ")
 	if err = encoder.Encode(value); err != nil {
+		measurement.EncodeWrite.finish(enabled, start, err)
 		return fmt.Errorf("encode devnet snapshot: %w", err)
 	}
 	if err = stream.Finish(); err != nil {
+		measurement.EncodeWrite.finish(enabled, start, err)
 		return fmt.Errorf("finish devnet snapshot: %w", err)
 	}
-	if err = file.Sync(); err != nil {
+	measurement.EncodeWrite.finish(enabled, start, nil)
+	start = measurement.FileSync.begin(enabled)
+	err = file.Sync()
+	measurement.FileSync.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("sync devnet snapshot: %w", err)
 	}
-	if err = file.Close(); err != nil {
+	start = measurement.Close.begin(enabled)
+	err = file.Close()
+	measurement.Close.finish(enabled, start, err)
+	if err != nil {
 		file = nil
 		return fmt.Errorf("close devnet snapshot: %w", err)
 	}
 	file = nil
-	if err = os.Rename(tmpPath, path); err != nil {
+	start = measurement.Rename.begin(enabled)
+	err = os.Rename(tmpPath, path)
+	measurement.Rename.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("replace devnet snapshot: %w", err)
 	}
-	if err = syncDirectory(filepath.Dir(path)); err != nil {
+	start = measurement.DirectorySync.begin(enabled)
+	err = syncDirectory(filepath.Dir(path))
+	measurement.DirectorySync.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("%w: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	return nil
@@ -3630,8 +3688,21 @@ func validateSnapshotIntegrityMarker(path string) (bool, error) {
 }
 
 func writeDurableSnapshot(path string, payload []byte) (err error) {
+	return writeDurableSnapshotMeasured(path, payload, nil)
+}
+
+func writeDurableSnapshotMeasured(path string, payload []byte, measurement *PQDurableFileMeasurement) (err error) {
+	enabled := measurement != nil
+	var ignored PQDurableFileMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
+	totalStart := measurement.Total.begin(enabled)
+	defer func() { measurement.Total.finish(enabled, totalStart, err) }()
 	tmpPath := path + ".tmp"
+	start := measurement.OpenTemp.begin(enabled)
 	file, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	measurement.OpenTemp.finish(enabled, start, err)
 	if err != nil {
 		return fmt.Errorf("open devnet snapshot temp file: %w", err)
 	}
@@ -3643,21 +3714,40 @@ func writeDurableSnapshot(path string, payload []byte) (err error) {
 			_ = os.Remove(tmpPath)
 		}
 	}()
-	if _, err = file.Write(payload); err != nil {
+	start = measurement.EncodeWrite.begin(enabled)
+	n, err := file.Write(payload)
+	if enabled {
+		measurement.WriteCalls++
+		measurement.BytesWritten += uint64(n)
+	}
+	measurement.EncodeWrite.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("write devnet snapshot: %w", err)
 	}
-	if err = file.Sync(); err != nil {
+	start = measurement.FileSync.begin(enabled)
+	err = file.Sync()
+	measurement.FileSync.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("sync devnet snapshot: %w", err)
 	}
-	if err = file.Close(); err != nil {
+	start = measurement.Close.begin(enabled)
+	err = file.Close()
+	measurement.Close.finish(enabled, start, err)
+	if err != nil {
 		file = nil
 		return fmt.Errorf("close devnet snapshot: %w", err)
 	}
 	file = nil
-	if err = os.Rename(tmpPath, path); err != nil {
+	start = measurement.Rename.begin(enabled)
+	err = os.Rename(tmpPath, path)
+	measurement.Rename.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("replace devnet snapshot: %w", err)
 	}
-	if err = syncSnapshotDirectory(filepath.Dir(path)); err != nil {
+	start = measurement.DirectorySync.begin(enabled)
+	err = syncSnapshotDirectory(filepath.Dir(path))
+	measurement.DirectorySync.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("%w: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	return nil

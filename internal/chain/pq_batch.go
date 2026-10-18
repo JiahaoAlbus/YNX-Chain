@@ -100,28 +100,49 @@ type pqBatchAdmission struct {
 }
 
 func authenticatePQBatch(wire []byte, state *ynxauth.State, height uint64, chainID int64) (*pqBatchAdmission, error) {
+	return authenticatePQBatchMeasured(wire, state, height, chainID, nil)
+}
+
+func authenticatePQBatchMeasured(wire []byte, state *ynxauth.State, height uint64, chainID int64, measurement *PQBatchMeasurement) (_ *pqBatchAdmission, err error) {
+	enabled := measurement != nil
+	var ignored PQBatchMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
 	if len(wire) == 0 || len(wire) > MaxPQBatchBytes {
 		return nil, errors.New("PQ batch wire exceeds bound")
 	}
+	start := measurement.PolicyValidation.begin(enabled)
 	if state == nil || !accountPolicyVersionSupported(state.Version) || height < state.EnableAt {
+		measurement.PolicyValidation.finish(enabled, start, ynxauth.ErrPolicy)
 		return nil, ynxauth.ErrPolicy
 	}
 	if err := state.Validate(state.NetworkID); err != nil {
+		measurement.PolicyValidation.finish(enabled, start, err)
 		return nil, err
 	}
+	measurement.PolicyValidation.finish(enabled, start, nil)
+	start = measurement.WireDecode.begin(enabled)
 	w, err := ynxbatch.DecodeWhole(wire)
 	if err != nil {
+		measurement.WireDecode.finish(enabled, start, err)
 		return nil, err
 	}
 	cert, err := ynxbatch.EncodeCertificate(w.Certificate)
+	measurement.WireDecode.finish(enabled, start, err)
 	if err != nil {
 		return nil, err
 	}
+	start = measurement.WholeAuthentication.begin(enabled)
+	defer func() { measurement.WholeAuthentication.finish(enabled, start, err) }()
 	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: state.NetworkID, Purpose: ynxauth.TransactionPurpose, CacheEntries: 1, Optimized: true, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
 		return state.TrustedRegistration(req.Owner, ynxauth.TransactionPurpose, req.Height)
 	}})
 	if err != nil {
 		return nil, err
+	}
+	if enabled {
+		defer func() { measurement.VerifierSignatureChecks += v.Stats().SignatureChecks }()
 	}
 	if err = v.VerifyWholeBatch(cert, w.Messages, height); err != nil {
 		v.Clear()
@@ -166,6 +187,10 @@ func (a *pqBatchAdmission) transfer(index uint32, height uint64) (ynxauth.Transf
 }
 
 func (d *Devnet) pqBatchReplayLocked(hash string, proof PQBatchProof) (PQBatchResult, error) {
+	return d.pqBatchReplayLockedMeasured(hash, proof, nil)
+}
+
+func (d *Devnet) pqBatchReplayLockedMeasured(hash string, proof PQBatchProof, measurement *PQBatchMeasurement) (PQBatchResult, error) {
 	out := PQBatchResult{BatchHash: hash, ExecutionHeight: proof.Height, Results: append([]PQBatchMemberResult(nil), proof.Results...), Status: "durable", Replayed: true}
 	if d.dataDir == "" {
 		out.Status = "memory"
@@ -183,7 +208,11 @@ func (d *Devnet) pqBatchReplayLocked(hash string, proof PQBatchProof) (PQBatchRe
 		confirm = confirm || uncertain || (d.dataDir != "" && !d.transactionCheckpointCovers(tx))
 	}
 	if confirm {
-		if err := d.confirmTransactionPersistenceLocked(); err != nil {
+		var persistence *PQSnapshotMeasurement
+		if measurement != nil {
+			persistence = &measurement.Persistence
+		}
+		if err := d.confirmTransactionPersistenceLockedMeasured(persistence); err != nil {
 			out.Status, out.Replayed = "uncertain", false
 			return out, err
 		}
@@ -197,21 +226,50 @@ func (d *Devnet) pqBatchReplayLocked(hash string, proof PQBatchProof) (PQBatchRe
 // use one existing durable snapshot checkpoint; persistence failure is not
 // misreported as per-member business rejection or partial durable acceptance.
 func (d *Devnet) SubmitPQBatch(wire []byte) (PQBatchResult, error) {
+	return d.submitPQBatch(wire, nil)
+}
+
+func (d *Devnet) submitPQBatch(wire []byte, measurement *PQBatchMeasurement) (PQBatchResult, error) {
+	enabled := measurement != nil
+	var ignored PQBatchMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
 	if len(wire) == 0 || len(wire) > MaxPQBatchBytes {
 		return PQBatchResult{}, errors.New("PQ batch wire exceeds bound")
 	}
+	start := measurement.InputCloneHash.begin(enabled)
 	wire = bytes.Clone(wire)
 	hash := pqBatchHash(wire)
+	measurement.InputCloneHash.finish(enabled, start, nil)
+	if enabled {
+		measurement.WireHash = hash
+	}
+	start = measurement.LockWait.begin(enabled)
 	d.mu.Lock()
+	measurement.LockWait.finish(enabled, start, nil)
 	defer d.mu.Unlock()
 	if old, ok := d.pqBatches[hash]; ok {
 		if !bytes.Equal(old.Whole, wire) {
 			return PQBatchResult{}, errors.New("PQ batch hash conflict")
 		}
-		return d.pqBatchReplayLocked(hash, old)
+		start = measurement.Replay.begin(enabled)
+		var selected *PQBatchMeasurement
+		if enabled {
+			selected = measurement
+			measurement.ExecutionHeight = old.Height
+		}
+		out, err := d.pqBatchReplayLockedMeasured(hash, old, selected)
+		measurement.Replay.finish(enabled, start, err)
+		return out, err
 	}
 	height := d.accountExecutionHeightLocked()
-	a, err := authenticatePQBatch(wire, d.accountPolicy, height, d.cfg.ChainID)
+	var selected *PQBatchMeasurement
+	if enabled {
+		measurement.ExecutionHeight = height
+		selected = measurement
+	}
+	a, err := authenticatePQBatchMeasured(wire, d.accountPolicy, height, d.cfg.ChainID, selected)
 	if err != nil {
 		return PQBatchResult{}, err
 	}
@@ -219,6 +277,7 @@ func (d *Devnet) SubmitPQBatch(wire []byte) (PQBatchResult, error) {
 	out := PQBatchResult{BatchHash: hash, ExecutionHeight: height, Status: "rejected", Results: make([]PQBatchMemberResult, a.whole.Certificate.N)}
 	undos := make([]transferUndo, 0, a.whole.Certificate.N)
 	for index := range out.Results {
+		start = measurement.MemberExecution.begin(enabled)
 		r := PQBatchMemberResult{Index: uint32(index), Outcome: "rejected"}
 		transfer, memberErr := a.transfer(r.Index, d.accountExecutionHeightLocked())
 		if memberErr == nil {
@@ -248,6 +307,14 @@ func (d *Devnet) SubmitPQBatch(wire []byte) (PQBatchResult, error) {
 				r.Error = r.Error[:256]
 			}
 		}
+		measurement.MemberExecution.finish(enabled, start, memberErr)
+		if enabled {
+			if r.Outcome == "admitted" {
+				measurement.MemberAdmitted++
+			} else {
+				measurement.MemberRejected++
+			}
+		}
 		out.Results[index] = r
 	}
 	if len(undos) == 0 {
@@ -258,7 +325,11 @@ func (d *Devnet) SubmitPQBatch(wire []byte) (PQBatchResult, error) {
 		d.pqBatches = make(map[string]PQBatchProof)
 	}
 	d.pqBatches[hash] = PQBatchProof{Whole: wire, Height: height, Results: append([]PQBatchMemberResult(nil), out.Results...)}
-	err = d.persistSnapshotLocked()
+	var persistence *PQSnapshotMeasurement
+	if enabled {
+		persistence = &measurement.Persistence
+	}
+	err = d.persistSnapshotLockedMeasured(persistence)
 	d.recordPersistenceErrorLocked(err)
 	if err != nil {
 		if errors.Is(err, ErrSnapshotDurabilityUncertain) {
