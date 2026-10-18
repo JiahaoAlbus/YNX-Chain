@@ -79,3 +79,20 @@ export interface OriginalIDEIdentityPeerOwner {
 export interface OriginalAuthIDEIdentityPeerBinding {
  readonly acquireOriginalIDEIdentityPeerChannel:(actualEntryURL:string,sameRequestOwner:OriginalIDEIdentityReceiveOwner|OriginalIDEIdentityRecoveryOwner|OriginalIDEProtectedKeyCallOwner)=>OriginalIDEIdentityPeerOwner;
 }
+
+/** Original R113 Wallet identity Source owner. Its hidden Native tag/env/thread
+ * prove identity, never UI approval. This is not the old four-operation parent. */
+declare const originalWalletIdentitySource:unique symbol;
+export interface OriginalIDEWalletIdentitySourceOwner {
+ readonly [originalWalletIdentitySource]:true;
+ assertReady():undefined;
+ /** Exactly two arguments; use undefined invocation for receive/recover. */
+ bindRequest(originalRequest:string,originalInvocation:string|undefined):undefined;
+ /** Requires a bound retained original request and fresh Source/current. */
+ current():undefined;
+ copyRequestOriginal():string;
+ /** Immutable signed selection DATA; never an account approval or trust root. */
+ copyRegistration():Readonly<Record<string,unknown>>;
+ retire():undefined;join():undefined;close():undefined;
+ status():Readonly<{bound:boolean;retired:boolean;closed:boolean;firstCause:string|null;dataOnly:true;userApproved:false}>;
+}

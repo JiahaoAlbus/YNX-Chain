@@ -1,4 +1,4 @@
-import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding} from './auth-native-contract.js';
+import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner} from './auth-native-contract.js';
 /** Private original backend only. Native returns the exact recognized owner.
  * A partial acquisition has descriptor -1 and is cleanup custody, not a guard.
  * The consumer retains it and selects its original close once. */
@@ -74,3 +74,9 @@ export declare function acquireOriginalIDENativeAuthBinding(actualEntryURL:strin
  * qualifying Source. Original IDE private closure calls its factory only after
  * begin() retained the exact Native request owner; retain partial before checks. */
 export declare function acquireOriginalIDEIdentityPeerBinding(actualEntryURL:string):OriginalAuthIDEIdentityPeerBinding|null;
+
+/** Wallet main only, fixed original Native module. Retain the returned cleanup
+ * partial before calling readiness/current; no descriptor/provider arguments. */
+export declare function acquireOriginalIDEWalletIdentitySource():OriginalIDEWalletIdentitySourceOwner|null;
+/** Native tag/inventory/env/thread recognition only, not Source or UI approval. */
+export declare function isOriginalIDEWalletIdentitySource(value:unknown):value is OriginalIDEWalletIdentitySourceOwner;

@@ -232,8 +232,7 @@ function assertColdEntry(actualEntryURL){
 /** Discover only the original Native callback table. This is not Source
  * admission and never constructs/asserts/closes an operation owner. Native
  * independently checks the real Node entry and owns all qualification. */
-function originalIdentityNativeModule(actualEntryURL){
- assertColdEntry(actualEntryURL);
+function originalIdentityNativeModule(){
  const target=fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url));
  let resolved;
  try{resolved=requireNative.resolve(target);}
@@ -246,7 +245,8 @@ function originalIdentityNativeModule(actualEntryURL){
  return requireNative(resolved);
 }
 export function acquireOriginalIDENativeAuthBinding(actualEntryURL){
- const native=originalIdentityNativeModule(actualEntryURL);
+ assertColdEntry(actualEntryURL);
+ const native=originalIdentityNativeModule();
  if(typeof native?.getOriginalIDENativeAuthBinding!=='function')return null;
  const binding=native.getOriginalIDENativeAuthBinding(actualEntryURL);
  if(!binding||typeof binding!=='object'||['receiveOriginalIDEIdentity','recoverOriginalIDEIdentity','acquireOriginalIDEProtectedKeyCall'].some(name=>typeof binding[name]!=='function'))return null;
@@ -256,11 +256,30 @@ export function acquireOriginalIDENativeAuthBinding(actualEntryURL){
  * No peer owner is constructed here. The original IDE private closure supplies
  * its retained R91 owner to this table only after call.begin has captured it. */
 export function acquireOriginalIDEIdentityPeerBinding(actualEntryURL){
- const native=originalIdentityNativeModule(actualEntryURL);
+ assertColdEntry(actualEntryURL);
+ const native=originalIdentityNativeModule();
  if(typeof native?.getOriginalIDEIdentityPeerBinding!=='function')return null;
  const binding=native.getOriginalIDEIdentityPeerBinding(actualEntryURL);
  if(!binding||typeof binding!=='object'||typeof binding.acquireOriginalIDEIdentityPeerChannel!=='function')return null;
  return binding;
+}
+/** Wallet main only. Native alone owns Wallet kernel/Source qualification.
+ * Return the SAME cleanup partial without inspecting readiness or disposing it;
+ * the original caller must retain it before assertReady/bind/current. */
+export function acquireOriginalIDEWalletIdentitySource(){
+ if(arguments.length!==0)fail('IDE_IDENTITY_WALLET_SOURCE_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.acquireOriginalIDEWalletIdentitySource!=='function')return null;
+ return native.acquireOriginalIDEWalletIdentitySource();
+}
+/** Identity only, never user approval or readiness. No structural fallback. */
+export function isOriginalIDEWalletIdentitySource(value){
+ if(arguments.length!==1)fail('IDE_IDENTITY_WALLET_SOURCE_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.isOriginalIDEWalletIdentitySource!=='function')return false;
+ const recognized=native.isOriginalIDEWalletIdentitySource(value);
+ if(typeof recognized!=='boolean')fail('IDE_IDENTITY_WALLET_SOURCE_RECOGNITION_INVALID');
+ return recognized;
 }
 /** Fixed Native cold reader only. Null startup selection is never a grant and
  * does not disable Native's independently qualified original Source acquisition. */
