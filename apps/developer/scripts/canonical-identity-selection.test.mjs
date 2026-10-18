@@ -3,17 +3,18 @@ import assert from 'node:assert/strict';
 import {mkdtemp,readFile,writeFile,mkdir,copyFile,rm,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates exact SDK328 and its new complete Native, without loading Native',async()=>{
+test('normal selection validates exact SDK329 and its new complete Native, without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
- assert.equal(sdk.sdkCommit,'3556a602d17162773e051babf0753e5118360580');assert.equal(sdk.files.length,267);
- assert.equal(sdk.dependencies.length,263);assert.equal(native.sourceLeaves,49);assert.equal(native.buildInputLeaves,47);
+ assert.equal(sdk.sdkCommit,'95cf7484dd3d4503b4a1e13c9ba47b7900132322');assert.equal(sdk.files.length,272);
+ assert.equal(sdk.dependencies.length,263);assert.equal(native.sourceLeaves,52);assert.equal(native.buildInputLeaves,50);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'0a9fae0c74d03e6a62fb308595a44faf043202369a89066f7d4a111c9e49ba48');
- assert.equal(sdk.runtimeClosure.files,451);assert.equal(sdk.runtimeClosure.edges,123);
- assert.equal(inputs.nativeComponent.module.sha256,'13e192554e5d47a6ea81c808bb5429466af2ef6eb2d02f74c3715c1ec1f3a367');
+ assert.equal(inputs.predecessorManifestSha256,'8177c57480475b1c4b15d5ac965d4d59799bcb9705bf09903f12a0008230efb5');
+ assert.equal(sdk.runtimeClosure.files,454);assert.equal(sdk.runtimeClosure.edges,123);
+ assert.equal(inputs.nativeComponent.module.sha256,'e6dcbb631284298244910d90df69d382d08c6d417df0527ee01b36c15645927b');
  assert.ok(inputs.nativeSourceUpdates.every(x=>Object.hasOwn(x,'parentSha256')));
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
@@ -39,7 +40,8 @@ test('missing or changed complete Native source and receipt mutation cannot subs
  assert.ok(source,'Run Native source-selection controls with the original fixed supplier root.');
  try{
   const rows=[...inputs.nativeSources,inputs.nativeComponent.receipt,inputs.nativeComponent.module];
-  for(const row of rows){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});await copyFile(join(source,row.path),p);}
+  const ideSource=fileURLToPath(new URL('../../../',import.meta.url));
+  for(const row of rows){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});await copyFile(join(row.path.startsWith('apps/developer/')?ideSource:source,row.path),p);}
   await verifyCanonicalNativeSourceSelection(root,root);
   const firstEnterHeader=join(root,'packages/wallet-auth/native/original-first-enter-selection.h'),firstEnterBytes=await readFile(firstEnterHeader);
   await rm(firstEnterHeader);await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/ENOENT/);

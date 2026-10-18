@@ -8,6 +8,8 @@ test('normal Mac package links the original Native successor, excluding the supe
   assert.ok(!commands.some(line => line.includes('ynx-wallet-admission-parent.m')));
   const link = commands.find(line => line.includes('original-ide-parent-supplier.mm'));
   assert.ok(link, 'normal package must actually link the delivered parent supplier');
+  assert.ok(link.includes('desktop/macos/original-ide-parent-supplier.mm'));
+  assert.ok(!link.includes('$canonical_native_root/apps/developer/'),'App-owned supplier comes from the pinned IDE checkout, not a second staged copy');
   for (const unit of ['original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-source-binding.mm','original-ide-parent-kernel.mm','original-ide-parent-observation.mm','original-ide-identity-launch-holder.mm']) assert.ok(link.includes(unit), unit);
   assert.ok(link.includes('-lbsm'));
   assert.ok(link.includes('-std=c++17'));
