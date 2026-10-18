@@ -75,4 +75,10 @@ test('portable byte capture never executes shadowed ArrayBuffer flag accessors',
   for(const name of ['resizable','detached'])Object.defineProperty(ordinary.buffer,name,{get(){calls++;return false;}});
   assert.deepEqual(Buffer.from(decodePQActionTransportData(ordinary).member),wire);
   assert.equal(calls,0);
+  if(Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'resizable')?.get){
+    const flexible=new ArrayBuffer(128,{maxByteLength:256});
+    Object.defineProperty(flexible,'resizable',{get(){calls++;return false;}});
+    assert.throws(()=>encodePQActionTransportData({member:new Uint8Array(flexible),originals:[]}),{code:'PQ_ACTION_TRANSPORT_INVALID'});
+    assert.equal(calls,0);
+  }
 });
