@@ -24,3 +24,15 @@ verifyOriginalAuthSourceCurrentV2('root','enrollment','profile','current',policy
 // @ts-expect-error Signed height cannot be relabeled to latest observed H.
 profile.credentialIssuedHeights.enrollment='new observed H';
 void [noGrant,height,principal,profile,version,signedEnrollmentHeight];
+import {verifyOriginalAuthSourceTransitionV2,type OriginalAuthSourceV2CurrentData} from '@ynx-chain/wallet-auth/auth-source-verification';
+const historical=verifyOriginalAuthSourceTransitionV2('root','enrollment','profile','current',policy,registrations,'nonce',previous,40000);
+const isHistorical:true=historical.historical;
+const signedStatementHeight:string=historical.statementExecutionHeight;
+const terminalOrActive:'active'|'revoked'|'retired'=historical.status;
+// @ts-expect-error Historical terminal DATA is not active current data.
+const currentAdmissionData:OriginalAuthSourceV2CurrentData=historical;
+// @ts-expect-error No extra mode override can relax current verification.
+verifyOriginalAuthSourceCurrentV2('root','enrollment','profile','current',policy,registrations,'nonce',previous,100,true);
+// @ts-expect-error No runtime mode switch on historical verification.
+verifyOriginalAuthSourceTransitionV2('root','enrollment','profile','current',policy,registrations,'nonce',previous,100,false);
+void [isHistorical,signedStatementHeight,terminalOrActive];
