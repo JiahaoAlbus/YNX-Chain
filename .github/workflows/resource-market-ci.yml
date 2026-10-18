@@ -484,10 +484,10 @@ jobs:
           cat "$YNX_STAKING_ORIGINAL_CASE/original-red.log"
           test "$YNX_STAKING_ORIGINAL_RED" -ne 0
           test "$(grep -c 'PQ_CLASSIC_STAKING_ORIGINAL_WITNESS_MISSING' "$YNX_STAKING_ORIGINAL_CASE/original-red.log")" -eq 1
-          go test -p 1 -count=1 -timeout=90s -v -run '^(TestLegacyStakingOriginalWitness|TestPQStakingTransport)' ./internal/consensus
-          # The following fixed staking lifecycle group also selects the
-          # ImportsSuccessfulClassicOriginals case with the restored executor.
-      - name: Reproduce missing PQ validator staking entry and verify original lifecycle preservation
+          # The complete fixed-source consensus suite below runs all witness,
+          # transport and lifecycle regressions once after both originals
+          # have been restored. Do not repeat those same fixed tests here.
+      - name: Reproduce the original missing PQ validator staking entry
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
@@ -527,7 +527,8 @@ jobs:
           cat "$YNX_STAKING_CASE/original-red.log"
           test "$YNX_STAKING_RED" -ne 0
           test "$(grep -c 'PQ_VALIDATOR_STAKING_TYPED_ENTRY_MISSING' "$YNX_STAKING_CASE/original-red.log")" -eq 1
-          go test -p 1 -count=1 -timeout=90s -v -run '^(TestABCIPQValidatorStaking|TestClassicValidatorStakingOriginalEffectAndHashCompatibility)' ./internal/consensus
+          # Current lifecycle and old-hash compatibility tests remain in the
+          # complete fixed-source consensus suite immediately below.
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
