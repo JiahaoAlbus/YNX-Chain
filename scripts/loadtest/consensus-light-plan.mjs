@@ -55,7 +55,7 @@ export function clientRegressionArgs(plan,remainingMs){
 }
 
 export function clientOwnedRSSCap(plan,rootCase){
- if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05'].includes(rootCase))throw Error('unsupported explicit client resource case');
+ if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06'].includes(rootCase))throw Error('unsupported explicit client resource case');
  if(rootCase!==undefined&&plan.mode!=='client_regression')throw Error('explicit RSS case requires fixed client regression');
- return rootCase==='client13-normal-05'?512*1024**2:400*1024**2;
+ return ['client13-normal-05','client13-normal-06'].includes(rootCase)?512*1024**2:400*1024**2;
 }

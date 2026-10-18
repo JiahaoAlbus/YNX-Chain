@@ -60,12 +60,12 @@ test('cache scans and Go consume one active deadline without restarting it',asyn
  for(const bad of [0,-1,NaN,Infinity])assert.throws(()=>clientRegressionArgs(plan,bad));
 });
 
-test('only explicit fixed normal05 raises owned RSS; other resource gates remain intact',async()=>{
+test('only explicit fixed normal05 and normal06 raise owned RSS; other resource gates remain intact',async()=>{
  const {clientOwnedRSSCap}=await import('./consensus-light-plan.mjs');
  const p=lightCommand('/work',undefined,false,true);
  assert.equal(clientOwnedRSSCap(p,undefined),400*1024**2);
  for(const c of ['client13-normal-02','client13-normal-03','client13-normal-04'])assert.equal(clientOwnedRSSCap(p,c),400*1024**2);
- assert.equal(clientOwnedRSSCap(p,'client13-normal-05'),512*1024**2);
+ for(const c of ['client13-normal-05','client13-normal-06'])assert.equal(clientOwnedRSSCap(p,c),512*1024**2);
  assert.throws(()=>clientOwnedRSSCap(lightCommand('/work'),'client13-normal-05'));
  assert.throws(()=>clientOwnedRSSCap(p,'unknown-case'));
  assert.equal(p.caps.ownedRSSBytes,400*1024**2);

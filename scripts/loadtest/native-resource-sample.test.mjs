@@ -65,10 +65,12 @@ test('normal-04 keeps pressure and identity failures fatal outside the authorize
  assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-04'}));
 });
 
-test('normal05 pressure exception rejects critical unknown and unreadable telemetry',()=>{
+test('normal05 and normal06 pressure exception rejects critical unknown and unreadable telemetry',()=>{
+ for(const rootCase of ['client13-normal-05','client13-normal-06']){
  const s=sample();s.memoryPressure.dispatchLevel=2;
- assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-05'}));
- for(const level of [0,3,4,8,undefined]){s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-05'}));}
+ assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase}));
+ for(const level of [0,3,4,8,undefined]){s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase}));}
  s.memoryPressure.dispatchLevel=2;s.memoryPressure.readable=false;
- assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-05'}));
+ assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase}));
+ }
 });
