@@ -287,7 +287,7 @@ func (j *snapshotJournal) save(state CommittedState, migration chain.ConsensusMi
 		}
 	}()
 	started := timings.start()
-	if err := state.Validate(migration); err != nil {
+	if err := timings.validateState(state, migration); err != nil {
 		return err
 	}
 	if state.Height <= j.height {

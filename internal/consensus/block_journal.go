@@ -390,7 +390,7 @@ func (j *blockJournal) saveBlock(previous, next CommittedState, request []byte, 
 		}
 	}()
 	started := timings.start()
-	if err := next.Validate(migration); err != nil {
+	if err := timings.validateState(next, migration); err != nil {
 		return err
 	}
 	if previous.Height != j.io.height || previous.AppHash != j.appHash || next.Height != previous.Height+1 || len(request) == 0 || len(request) > blockJournalMaxRequest {

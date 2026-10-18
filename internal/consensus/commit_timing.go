@@ -10,6 +10,8 @@ type CommitTimingSample struct {
 	ElapsedNs    int64            `json:"elapsedNs"`
 	PayloadBytes int              `json:"payloadBytes"`
 	StagesNs     map[string]int64 `json:"stagesNs"`
+	// Nested children of validate, not additional elapsed work.
+	ValidationStagesNs map[string]int64 `json:"validationStagesNs,omitempty"`
 }
 
 // SetCommitTimingEnabled enables bounded diagnostics of the existing Commit
@@ -37,6 +39,12 @@ func (a *Application) LastCommitTiming() (CommitTimingSample, bool) {
 	sample.StagesNs = make(map[string]int64, len(a.commitTimingLatest.StagesNs))
 	for stage, ns := range a.commitTimingLatest.StagesNs {
 		sample.StagesNs[stage] = ns
+	}
+	if sample.ValidationStagesNs != nil {
+		sample.ValidationStagesNs = make(map[string]int64, len(a.commitTimingLatest.ValidationStagesNs))
+		for stage, ns := range a.commitTimingLatest.ValidationStagesNs {
+			sample.ValidationStagesNs[stage] = ns
+		}
 	}
 	return sample, true
 }

@@ -73,3 +73,20 @@ Original selected-member recovery records and raw evidence are retained under
 `artifacts/chain-performance-20261017/oneshot-1000-39161413763/`.
 The tracked actual evidence is
 `evidence/oneshot2048-ci-39161413763-failure-actual.json`.
+
+## Validation child timing source
+
+The existing opt-in Commit diagnostic now records `validationStagesNs.semantics`
+and `validationStagesNs.app_hash` from the actual ordered validation calls. These
+are children already included in `stagesNs.validate`, not additive stages.
+Disabled diagnostics call the original Validate method with no child clock reads
+or allocations. Both success and first-error behavior remain unchanged; all three
+storage formats share this path. LastCommitTiming returns private child maps.
+
+Targeted actual signed execution tests PASS (0.563 s): atomic JSON, snapshot
+journal and block journal each commit and reopen; diagnostic-on and diagnostic-off
+durable bytes are identical; invalid pending state cannot alter persisted bytes;
+returned child-map mutation cannot change retained diagnostics. The memory-only
+path remains non-durable. Raw: `validation-child-final.raw` in the same artifact
+directory. This implements measurement only. Child costs are not yet measured
+on four nodes and no optimization benefit is claimed.

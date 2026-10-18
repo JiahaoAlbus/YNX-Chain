@@ -46,6 +46,15 @@ func TestCommitTimingObservesRealStorageWithoutChangingReplay(t *testing.T) {
 			if !ok || !sample.Durable || sample.Height != height || sample.Storage != tc.name || sample.ElapsedNs <= 0 || sample.PayloadBytes <= 0 {
 				t.Fatalf("missing real persistence measurement: %+v", sample)
 			}
+			children := sample.ValidationStagesNs
+			if len(children) != 2 || children["semantics"] <= 0 || children["app_hash"] <= 0 || children["semantics"]+children["app_hash"] > sample.StagesNs["validate"] {
+				t.Fatalf("missing or double-counted validation child stages: %+v", sample)
+			}
+			sample.ValidationStagesNs["semantics"] = -1
+			owned, _ := app.LastCommitTiming()
+			if owned.ValidationStagesNs["semantics"] <= 0 {
+				t.Fatal("caller mutated retained validation child timing")
+			}
 			var sum int64
 			for stage, ns := range sample.StagesNs {
 				if ns < 0 {
@@ -71,6 +80,21 @@ func TestCommitTimingObservesRealStorageWithoutChangingReplay(t *testing.T) {
 			before, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)
+			}
+			controlPath := filepath.Join(t.TempDir(), "without-diagnostics")
+			control, err := tc.open(migration, controlPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = control.FinalizeBlock(ctx, &abci.RequestFinalizeBlock{Height: height, Time: time.Unix(1802736000+height, 0), Txs: [][]byte{journalTransfer(t, 1)}}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = control.Commit(ctx, &abci.RequestCommit{}); err != nil {
+				t.Fatal(err)
+			}
+			controlBytes, err := os.ReadFile(controlPath)
+			if err != nil || !bytes.Equal(before, controlBytes) {
+				t.Fatal("diagnostics changed original durable bytes", err)
 			}
 			if _, err = app.FinalizeBlock(ctx, &abci.RequestFinalizeBlock{Height: height + 1, Time: time.Unix(1802736001+height, 0), Txs: [][]byte{journalTransfer(t, 2)}}); err != nil {
 				t.Fatal(err)

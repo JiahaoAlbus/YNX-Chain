@@ -785,9 +785,29 @@ func saveCommittedState(path string, state CommittedState, migration chain.Conse
 // commitTimings is opt-in, local instrumentation of the actual durable write.
 // A nil recorder avoids clock reads and allocation in normal operation.
 type commitTimings struct {
-	stages  map[string]time.Duration
-	bytes   int
-	onStage func(string) // nil except explicit owned resource probes
+	stages           map[string]time.Duration
+	validationStages map[string]time.Duration
+	bytes            int
+	onStage          func(string) // nil except explicit owned resource probes
+}
+
+// validateState retains the exact original validation order and failure behavior.
+// Child durations are separate from stages: they are already inside validate.
+func (t *commitTimings) validateState(state CommittedState, migration chain.ConsensusMigrationState) error {
+	if t == nil {
+		return state.Validate(migration)
+	}
+	t.validationStages = make(map[string]time.Duration, 2)
+	started := time.Now()
+	err := state.validateSemantics(migration)
+	t.validationStages["semantics"] = time.Since(started)
+	if err != nil {
+		return err
+	}
+	started = time.Now()
+	err = state.validateAppHash(migration)
+	t.validationStages["app_hash"] = time.Since(started)
+	return err
 }
 
 func (t *commitTimings) start() time.Time {
@@ -817,7 +837,7 @@ func saveCommittedStateWithTimings(path string, state CommittedState, migration 
 		return nil
 	}
 	started := timings.start()
-	if err := state.Validate(migration); err != nil {
+	if err := timings.validateState(state, migration); err != nil {
 		return err
 	}
 	started = timings.mark("validate", started)
