@@ -209,6 +209,61 @@ func TestGatewayPQMemberActualTransferAndOriginalReadback(t *testing.T) {
 	}
 }
 
+func assertGatewayPQPolicyFee(t *testing.T, a *consensus.Application, before, feeBefore chain.ConsensusAccount, kind, abciHash string, height int64, eventCount int) {
+	t.Helper()
+	after := queryPQGatewayAccount(t, a, before.Address)
+	feeAfter := queryPQGatewayAccount(t, a, feeBefore.Address)
+	usage := before.ResourceUsage
+	usage.BandwidthUsed++
+	if after.Balance != before.Balance-1 || after.Nonce != before.Nonce+1 || !reflect.DeepEqual(after.ResourceUsage, usage) || feeAfter.Balance != feeBefore.Balance+1 || feeAfter.Nonce != feeBefore.Nonce || !reflect.DeepEqual(feeAfter.ResourceUsage, feeBefore.ResourceUsage) {
+		t.Fatalf("policy fee effects differ: owner balance %d -> %d, nonce %d -> %d, recipient balance %d -> %d", before.Balance, after.Balance, before.Nonce, after.Nonce, feeBefore.Balance, feeAfter.Balance)
+	}
+	// Migration uses chargeApplicationAction; revocation has its own explicit
+	// one-lot fee flow. Both move fee lots, unlike N1 transfer's balance-only fee.
+	ids := map[string]bool{}
+	for _, lots := range []map[string]int64{before.Lots, after.Lots, feeBefore.Lots, feeAfter.Lots} {
+		for id := range lots {
+			ids[id] = true
+		}
+	}
+	var moved int64
+	for id := range ids {
+		debit := before.Lots[id] - after.Lots[id]
+		if debit < 0 || debit > 1 || feeAfter.Lots[id]-feeBefore.Lots[id] != debit || after.Lots[id] < 0 {
+			t.Fatalf("policy fee lot %s was not conserved between owner and recipient", id)
+		}
+		moved += debit
+	}
+	if moved != 1 {
+		t.Fatalf("policy fee moved %d lot units, want 1", moved)
+	}
+	response, err := a.Query(context.Background(), &abcitypes.RequestQuery{Path: "/economics/fees"})
+	if err != nil || response.Code != 0 {
+		t.Fatalf("fee event query: %v", err)
+	}
+	var events []consensus.BFTFeeEvent
+	if err := json.Unmarshal(response.Value, &events); err != nil {
+		t.Fatal(err)
+	}
+	if len(events) != eventCount {
+		t.Fatalf("fee event count = %d, want %d", len(events), eventCount)
+	}
+	found := 0
+	for _, event := range events {
+		if event.TxHash != abciHash {
+			continue
+		}
+		found++
+		sum := sha256.Sum256([]byte("YNX_FEE_EVENT_V1\x00" + abciHash))
+		if event.ID != "fee_"+hex.EncodeToString(sum[:12]) || event.PolicyVersion != consensus.FeePolicyVersion || event.TransactionType != kind || event.Payer != before.Address || event.Recipient != feeBefore.Address || event.GrossFeeYNXT != 1 || event.ValidatorYNXT != 1 || event.BurnYNXT != 0 || event.ProviderYNXT != 0 || event.ProtocolYNXT != 0 || event.TreasuryYNXT != 0 || event.Sponsored || event.Source != consensus.FixedFeeSource || event.BlockHeight != height || !event.RecordedAt.Equal(time.Unix(height, 0).UTC()) || len(event.AuditHash) != 64 {
+			t.Fatalf("actual policy fee event differs from executed original: %+v", event)
+		}
+	}
+	if found != 1 {
+		t.Fatalf("original has %d fee events, want 1", found)
+	}
+}
+
 func TestGatewayPQMemberMigrationRotationRestartAndHistoricalRevocation(t *testing.T) {
 	f, statePath, classic := newGatewayMigrationFixture(t)
 	m := newPQMock(t, f)
@@ -216,15 +271,23 @@ func TestGatewayPQMemberMigrationRotationRestartAndHistoricalRevocation(t *testi
 	server := gatewayPQServer(t, m)
 	route := "/accounts/" + f.owner + "/authorization/migrate"
 	before := queryPQGatewayAccount(t, f.a, f.owner)
+	feeRecipient := ""
+	for _, validator := range f.migration.Validators {
+		if validator.Active {
+			feeRecipient = validator.Address
+			break
+		}
+	}
+	if feeRecipient == "" || feeRecipient == f.owner {
+		t.Fatal("fixture requires its actual distinct active fee recipient")
+	}
+	feeBefore := queryPQGatewayAccount(t, f.a, feeRecipient)
 	code, initial := pqMemberPOST(t, server.URL, route, f.wire)
 	if code != http.StatusOK {
 		t.Fatalf("initial migration: %d %+v", code, initial)
 	}
 	assertGatewayMemberCommit(t, initial, f.wire, f.payload, 2, f.owner, f.owner, 0, 1)
-	after := queryPQGatewayAccount(t, f.a, f.owner)
-	if after.Balance != before.Balance-1 || after.Nonce != 1 || !reflect.DeepEqual(after.Lots, before.Lots) {
-		t.Fatal("migration fee or nonce incorrectly executed")
-	}
+	assertGatewayPQPolicyFee(t, f.a, before, feeBefore, consensus.PQMigrationType, initial.ABCITransactionHash, 2, 1)
 	wire := signGatewayMember(t, f.key, f.network, f.owner, ynxauth.TransactionPurpose, f.message(t, 2, 7))
 	setGatewayMemberOriginal(t, m, consensus.PQTransferType, wire, 3)
 	code, transfer := pqMemberPOST(t, server.URL, "/transactions/pq/broadcast", wire)
@@ -246,6 +309,7 @@ func TestGatewayPQMemberMigrationRotationRestartAndHistoricalRevocation(t *testi
 		t.Fatal(err)
 	}
 	beforeRotation := queryPQGatewayAccount(t, f.a, f.owner)
+	feeBeforeRotation := queryPQGatewayAccount(t, f.a, feeRecipient)
 	for _, branch := range []string{"current-A", "current-B", "classic-fallback"} {
 		invalid, err := ynxauth.DecodeMigration(rotation)
 		if err != nil {
@@ -290,6 +354,7 @@ func TestGatewayPQMemberMigrationRotationRestartAndHistoricalRevocation(t *testi
 		t.Fatalf("current dual-key rotation: %d %+v", code, rotated)
 	}
 	assertGatewayMemberCommit(t, rotated, rotation, f.payload, 4, f.owner, f.owner, 0, 3)
+	assertGatewayPQPolicyFee(t, f.a, beforeRotation, feeBeforeRotation, consensus.PQMigrationType, rotated.ABCITransactionHash, 4, 3)
 	restarted, err := consensus.NewPersistentApplication(f.migration, statePath)
 	if err != nil {
 		t.Fatal(err)
@@ -309,6 +374,8 @@ func TestGatewayPQMemberMigrationRotationRestartAndHistoricalRevocation(t *testi
 	if code != http.StatusOK {
 		t.Fatalf("current key rejected: %d %+v", code, latest)
 	}
+	beforeRevocation := queryPQGatewayAccount(t, f.a, f.owner)
+	feeBeforeRevocation := queryPQGatewayAccount(t, f.a, feeRecipient)
 	// Commit a real terminal revocation through the existing Application. This
 	// is history validation coverage, not an unimplemented gateway revoke route.
 	revoke := ynxauth.RevocationIntent{ChainID: f.network, Owner: f.owner, PKA: public.PKA, PKB: public.PKB, AuthorizingRevision: 2, ThroughRevision: 2, LedgerNonce: 5, ExecuteAt: 6, RevokeAt: 7}
@@ -337,6 +404,7 @@ func TestGatewayPQMemberMigrationRotationRestartAndHistoricalRevocation(t *testi
 			t.Fatal(err)
 		}
 	}
+	assertGatewayPQPolicyFee(t, f.a, beforeRevocation, feeBeforeRevocation, consensus.PQRevocationType, consensus.SignedTransactionHash(revokePayload), 6, 5)
 	restarted, err = consensus.NewPersistentApplication(f.migration, statePath)
 	if err != nil {
 		t.Fatal(err)
