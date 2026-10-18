@@ -41,13 +41,15 @@ func detachDexExecution(state executionState) executionState {
 	return state
 }
 func cloneBFTDexEvents(values []BFTDexEvent) []BFTDexEvent {
-	if values == nil {
+	if len(values) == 0 {
 		return nil
 	}
 	out := append([]BFTDexEvent{}, values...)
 	for i := range out {
-		if values[i].NativeFlows != nil {
-			out[i].NativeFlows = append([]chain.LotFlow{}, values[i].NativeFlows...)
+		if len(values[i].NativeFlows) != 0 {
+			out[i].NativeFlows = append([]chain.LotFlow(nil), values[i].NativeFlows...)
+		} else {
+			out[i].NativeFlows = nil
 		}
 	}
 	return out
