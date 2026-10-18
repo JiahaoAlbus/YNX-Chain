@@ -142,3 +142,11 @@ test('offline exception is prepare-only and limited to exact original window and
  assert.notEqual(run(wrong).status,0);assert.notEqual(run([...base,'--client-regression']).status,0);
  const other=[...base];other[4]='artifacts/chain-performance-20261017/other.json';assert.notEqual(run(other).status,0);
 });
+
+test('normal10 keeps the new phase source and fixed13 while only its explicit cap is768MiB',async()=>{
+ const {clientOwnedRSSCap,lightProbeInput}=await import('./consensus-light-plan.mjs'),p=lightCommand('/work',undefined,false,true);
+ assert.equal(p.sourceCommit,'463562ad5edacd8678b00472aafdc104cc4ada7a');assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'261a70b1e4f532e5b621d11b1660c5d2412b110a');
+ assert.equal(p.requiredPasses.length,13);assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.env.GOMEMLIMIT,'160MiB');
+ assert.equal(clientOwnedRSSCap(p,'client13-normal-10'),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
+ assert.deepEqual(lightProbeInput('/work','client13-normal-10'),lightProbeInput('/work','client13-normal-09'));
+});
