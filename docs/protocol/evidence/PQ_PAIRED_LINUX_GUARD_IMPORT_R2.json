@@ -1,0 +1,74 @@
+{
+  "kind": "explicit-owner-guard-result-qualification-supersession",
+  "sourceCommit": "37661a3833ff5cb5f21833e6f49a7293f859ac8c",
+  "pins": {
+    "scripts/loadtest/pq-paired-linux-window.py": [
+      "1d60209495572a4079a13c06b46b7d03fc6c2c50cfd53938e4f2d34db58652f1",
+      "4f7f8afae8fb556833e29f024e8b435dc61d43c104d420e31bbac5192097ea14"
+    ],
+    "scripts/loadtest/test_pq_paired_linux_window.py": [
+      "fd23f33dc3c0c484393414641175a5b5c80faf8e7e5f809a10292f9d96f57934",
+      "a992d1f592702b1fd732d15dff1cbe7337e4bd4ab5063039c4afeef42c84048c"
+    ]
+  },
+  "priorSourceCandidate": "f73e330311bc6e3299cbc14e6f23212dbae83389",
+  "priorCandidateExecuted": false,
+  "originalHandoff": {
+    "schema": 1,
+    "kind": "Linux-N1-result-qualification-r2",
+    "supersedes": {
+      "commit": "4cacdddc0",
+      "guardSHA256": "1d60209495572a4079a13c06b46b7d03fc6c2c50cfd53938e4f2d34db58652f1",
+      "testSHA256": "fd23f33dc3c0c484393414641175a5b5c80faf8e7e5f809a10292f9d96f57934",
+      "originalHandoff": "docs/performance/evidence/pq-linux-guard-handoff-20261018.json",
+      "preserved": true
+    },
+    "sources": [
+      {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/pq-paired-linux-window.py",
+        "bytes": 26144,
+        "sha256": "4f7f8afae8fb556833e29f024e8b435dc61d43c104d420e31bbac5192097ea14"
+      },
+      {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_pq_paired_linux_window.py",
+        "bytes": 9757,
+        "sha256": "a992d1f592702b1fd732d15dff1cbe7337e4bd4ab5063039c4afeef42c84048c"
+      }
+    ],
+    "compatibleOverlay": {
+      "commit": "b695424a7",
+      "bytes": 18973,
+      "sha256": "ddc6efe9afbb48b1a6f6ea40d2f4ce729bd2b818eeea57bd087dc75fbe5f58d9"
+    },
+    "causalBug": "Original result gate accepted a minimal JSON with matching commit/N/trial/businessProjectionEqual while omitting measured members, durable readback counts and even explicit BFT fields. Go0 and an underspecified artifact were insufficient qualification.",
+    "changes": [
+      "Exactly both modes in trial1 order and their complete measured member identities/counters required",
+      "r2 target-local peer preservation assertion required",
+      "API duration/request coverage/loop and per-member original timing coverage checked without inventing latency",
+      "Both explicit BFT final-count and finality fields must remain null",
+      "Final private snapshots must exist as regular files with matching measured size and SHA, stable through capture",
+      "Shared signing preparation must match across both paths",
+      "Final post-Go procfs/private/build/disk/memory sample collected even if test completed between interval samples"
+    ],
+    "validation": {
+      "red": {
+        "tool": "b76246",
+        "tests": 11,
+        "fail": 1,
+        "actualExit": 1
+      },
+      "pass": {
+        "tool": "9350d4",
+        "tests": 12,
+        "fail": 0,
+        "actualExit": 0,
+        "durationSeconds": 0.005
+      },
+      "scope": "Pure Python format/budget/identity controls on macOS. Positive format fixtures are unsigned synthetic artifacts, not valid ledger or business proof. No Linux runtime/Go/CI dispatched here."
+    },
+    "unchanged": "Same N1/trial1, frozen command/environment, PID/startTicks/subreaper ownership, Linux support conditions, RSS/disk/data/log/time caps and two-empty-scan cleanup. No new engine or resource framework.",
+    "next": "Root forwards this explicit new two-file supply to Protocol. After original state-preservation gate, Protocol alone dispatches the already-authorized single N1 controlled CI, retaining old guard/receipts. No stale old4c or972d overlay mixing."
+  },
+  "localGoExecuted": false,
+  "linuxExecuted": false
+}

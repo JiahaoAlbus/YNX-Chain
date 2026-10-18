@@ -178,6 +178,56 @@ def validate_recipe(plan, prepared):
     return source, case, expected, expected_env
 
 
+def validate_result(report, plan, case):
+    if report.get("sourceCommit") != plan["commit"] or report.get("n") != plan["n"] or report.get("trial") != plan["trial"] or report.get("businessProjectionEqual") is not True or report.get("bftFinalCommits") is not None:
+        raise RuntimeError("expected bounded paired result missing/mismatched")
+    if (report.get("schema") != 1 or report.get("kind") != "isolated-single-producer-PQ-paired-component"
+            or "bftFinalCommits" not in report or "consensusFinalityLatency" not in report
+            or report["consensusFinalityLatency"] is not None or report.get("gomaxprocs") != 1
+            or report.get("order") != ["members", "whole"]
+            or not re.fullmatch(r"[0-9a-f]{64}", report.get("sharedWholeSha256", ""))):
+        raise RuntimeError("paired result qualification fields missing")
+    rows = report.get("results")
+    if not isinstance(rows, list) or len(rows) != 2 or any(not isinstance(row, dict) for row in rows):
+        raise RuntimeError("both measured member paths required")
+    if [row.get("mode") for row in rows] != report["order"]:
+        raise RuntimeError("measured modes/order differ")
+    signing = []
+    for row in rows:
+        n, mode = plan["n"], row["mode"]
+        for key in ("members", "localBlockCheckpointMembers", "coldRestoredMembers"):
+            if type(row.get(key)) is not int or row[key] != n:
+                raise RuntimeError("actual member checkpoint/readback count missing")
+        if row.get("cloneLocalPeersPreserved") is not True or row.get("checkpointPointerTransitions") != (1 if mode == "whole" else n):
+            raise RuntimeError("local clone/checkpoint qualification missing")
+        hashes = row.get("memberHashes")
+        if not isinstance(hashes, list) or len(hashes) != n or any(not isinstance(h, str) or not re.fullmatch(r"0x[0-9a-f]{64}", h) for h in hashes) or len(set(hashes)) != n:
+            raise RuntimeError("distinct measured member identities missing")
+        for key in ("submitNs", "submitWallNs", "sharedSigningPreparationNs", "manualProduceBlockNs", "coldRestoreNs"):
+            if type(row.get(key)) is not int or row[key] <= 0:
+                raise RuntimeError("original measured phase duration missing")
+        if row["submitWallNs"] < row["submitNs"]:
+            raise RuntimeError("API duration exceeds actual loop window")
+        requests, observed = row.get("requestCheckpointNs"), row.get("memberOfferToCheckpointNs")
+        if not isinstance(requests, list) or len(requests) != (1 if mode == "whole" else n) or any(type(v) is not int or v <= 0 for v in requests) or sum(requests) != row["submitNs"]:
+            raise RuntimeError("request timing coverage missing")
+        if not isinstance(observed, list) or len(observed) != n or any(type(v) is not int or v <= 0 or v > row["submitWallNs"] for v in observed):
+            raise RuntimeError("member timing coverage missing")
+        signing.append(row["sharedSigningPreparationNs"])
+        for phase in ("pending", "block"):
+            if type(row.get(phase + "SnapshotBytes")) is not int or not 0 < row[phase + "SnapshotBytes"] <= CAPS["privateBytes"] or not re.fullmatch(r"[0-9a-f]{64}", row.get(phase + "SnapshotSha256", "")):
+                raise RuntimeError("snapshot measurement missing")
+        snapshot = case / ("pq-paired-result.json." + mode + ".snapshot.json")
+        before = snapshot.lstat()
+        if not stat.S_ISREG(before.st_mode) or before.st_size != row["blockSnapshotBytes"] or digest(snapshot) != row["blockSnapshotSha256"]:
+            raise RuntimeError("private retained snapshot differs from measured result")
+        after = snapshot.lstat()
+        if (before.st_ino, before.st_size, before.st_mtime_ns) != (after.st_ino, after.st_size, after.st_mtime_ns):
+            raise RuntimeError("private snapshot changed during qualification")
+    if signing[0] != signing[1]:
+        raise RuntimeError("paired paths did not share one signing preparation")
+
+
 def run(prepared, receipt):
     if sys.platform != "linux":
         raise RuntimeError("Linux /proc/smaps_rollup/subreaper required; no macOS substitution")
@@ -338,11 +388,11 @@ def run(prepared, receipt):
         result["child"]["code"] = child.returncode
         if child.returncode != 0:
             raise RuntimeError("actual Go terminal code " + str(child.returncode))
+        sample()  # Complete retired data/log scan, even if Go finished between ticks.
         source_check()
         # Neither a skipped Go test nor a leftover JSON can qualify success.
         report = json.loads(bounded(case / "pq-paired-result.json", 1 << 20))
-        if report.get("sourceCommit") != plan["commit"] or report.get("n") != plan["n"] or report.get("trial") != plan["trial"] or report.get("businessProjectionEqual") is not True or report.get("bftFinalCommits") is not None:
-            raise RuntimeError("expected bounded paired result missing/mismatched")
+        validate_result(report, plan, case)
         result["resultSHA256"] = digest(case / "pq-paired-result.json")
     except Exception as error:
         fail(error)

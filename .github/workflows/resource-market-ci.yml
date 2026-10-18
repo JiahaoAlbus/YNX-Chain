@@ -213,5 +213,7 @@ jobs:
           path: |
             ${{ env.YNX_PAIR_CI_CASE }}/pq-paired-result.json
             ${{ env.YNX_PAIR_CI_RECEIPT }}
+            ${{ env.YNX_PAIR_CI_CASE }}/go.stdout.log
+            ${{ env.YNX_PAIR_CI_CASE }}/go.stderr.log
           if-no-files-found: warn
           retention-days: 7
