@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {runInNewContext} from "node:vm";
 import {projectTransactionResolution,projectPendingTransactions,projectPQOriginalObservation} from "../src/transaction-resolution-display.mjs";
+import {appendPQOriginalRecoveryActions} from "../src/wallet-pq-original-recovery-ui.mjs";
+import {appendPQProgressActions} from "../src/wallet-pq-progress-ui.mjs";
+import {appendPQBroadcastActions} from "../src/wallet-pq-broadcast-ui.mjs";
 const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
 const html=await readFile(new URL("../src/index.html",import.meta.url),"utf8");
 const account="0x"+"1".repeat(40),hash="0x"+"2".repeat(64);
@@ -15,18 +18,21 @@ function harness(){
   const context={projectTransactionResolution,projectPendingTransactions,projectPQOriginalObservation,document:{querySelector:get,createElement:element},activeAccount:account,keyState:{locked:false,revision:1},transactionRevision:0,transactionActionRevision:0,errorText:result=>result.error.message,assetRefreshes:0,historyRefreshes:0,
     refreshAssets(){context.assetRefreshes++},transactionHistoryUI:{refresh(){context.historyRefreshes++}},window:{ynxWallet:{pendingTransactions:()=>new Promise((resolve,reject)=>reads.push({resolve,reject})),pqTransactionStatus:h=>new Promise((resolve,reject)=>actions.push({hash:h,pq:true,retry:false,resolve,reject})),transactionStatus:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:false,resolve,reject})),retryTransaction:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:true,resolve,reject}))}}};
   const start=source.indexOf("function clearTransactionResolution()"),fallback=source.indexOf("async function refreshTransactions()"),end=source.indexOf("function clearAssetBalance()",fallback);
+  // The fragment omits module imports; use the actual helpers and this fixture's
+  // document rather than silently losing the whole PQ row to ReferenceError.
+  for(const helper of [appendPQOriginalRecoveryActions,appendPQProgressActions,appendPQBroadcastActions])context[helper.name]=options=>helper({...options,document:context.document});
   const copyHelper=source.match(/function copyUI\([^\n]+/)[0];
   assert.ok(fallback>=0&&end>fallback);runInNewContext(copyHelper+"\n"+source.slice(start>=0?start:fallback,end),context);
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
   return {context,get,reads,actions,async load(response={ok:true,value:[record]}){const pending=context.refreshTransactions();reads.at(-1)?.resolve(response);await pending;return get("#pending-transactions").children[0]?.children.filter(item=>typeof item.click==="function")}};
 }
-test('normal renderer shows PQ stored custody with only its bound read action, no retry save or signing',async()=>{
+test('normal renderer shows PQ stored custody with bound read and separate broadcast review, no retry save or signing',async()=>{
  const h=harness(),buttons=await h.load({ok:true,value:[{account,hash,kind:'pq-transfer',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]});
- assert.equal(buttons.length,1);assert.match(buttons[0].textContent,/read only/);assert.equal(h.actions.length,0);assert.equal(h.context.assetRefreshes,0);
+ assert.equal(buttons.length,2);assert.ok(buttons.some(button=>/read only/.test(button.textContent)));assert.ok(buttons.some(button=>/Review broadcast/.test(button.textContent)));assert.equal(h.actions.length,0);assert.equal(h.context.assetRefreshes,0);
  const text=h.get('#pending-transactions').children[0].children.map(x=>x.textContent).join(' ');assert.match(text,/not submitted/);assert.match(text,/Not chain confirmation/);
 });
 test('PQ read uses original hash once and not-found never clears custody, refreshes assets, or calls legacy receipt transport',async()=>{
- const h=harness(),[check]=await h.load({ok:true,value:[{account,hash,kind:'pq-transfer',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]}),pending=check.click();await check.click();assert.equal(h.actions.length,1);assert.equal(h.actions[0].hash,hash);assert.equal(h.actions[0].pq,true);assert.equal(h.actions[0].retry,false);
+ const h=harness(),buttons=await h.load({ok:true,value:[{account,hash,kind:'pq-transfer',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]}),check=buttons.find(button=>/read only/.test(button.textContent)),pending=check.click();await check.click();assert.equal(h.actions.length,1);assert.equal(h.actions[0].hash,hash);assert.equal(h.actions[0].pq,true);assert.equal(h.actions[0].retry,false);
  h.actions[0].resolve({ok:true,value:{account,hash,kind:'pq-transfer',outcome:'not-found-observed',clearsOriginal:false,retryAuthorized:false,consensusFinality:false}});await pending;assert.match(h.get('#transaction-resolution-result').textContent,/UNKNOWN retained/);assert.equal(h.context.assetRefreshes,0);assert.equal(h.context.historyRefreshes,0);assert.equal(h.reads.length,1);
 });
 test('PQ locked, detached and late-result UI cannot dispatch or paint another account',async()=>{

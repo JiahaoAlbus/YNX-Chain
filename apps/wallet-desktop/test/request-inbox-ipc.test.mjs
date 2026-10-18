@@ -8,6 +8,10 @@ const source = await readFile(new URL("../src/main.mjs", import.meta.url), "utf8
 function installHandler(name, end, context) {
   let handler;
   const start = source.indexOf(`handleWalletIPC("${name}"`);
+  // These cases model legacy personal/provider requests, never PQ approval.
+  // Supply the actual authority's false classification explicitly so its
+  // newly imported PQ capsule path cannot be accidentally exercised here.
+  if(context.walletAuthority)context.walletAuthority={isPendingPQTransactionReview:()=>false,isPendingPQBroadcastReview:()=>false,...context.walletAuthority};
   runInNewContext(source.slice(start, source.indexOf(end, start)), {
     handleWalletIPC: (_name, value) => { handler = value; }, ...context
   });

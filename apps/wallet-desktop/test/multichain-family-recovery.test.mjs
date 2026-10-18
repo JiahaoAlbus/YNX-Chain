@@ -48,7 +48,7 @@ test('actual TRON result verifies and public projection never exports signed raw
 });
 test('production query bridge normalizes actual TRON receipt and retains execution evidence', async () => {
   const f = await fixture(); f.recovery.query = r => queryFamilyOriginal(r, {createTransport: () => responses(r)});
-  const checked = await f.recovery.check({id}); assert.equal(checked.state, 'included'); assert.equal(checked.receipt.blockHeight, '42'); assert.equal(checked.receipt.confirmationScope, 'rpc-block-inclusion'); assert.equal(checked.evidence.contractRet, 'SUCCESS');
+  const checked = await f.recovery.check({id}); assert.equal(checked.state, 'included'); assert.equal(checked.receipt.blockHeight, '42'); assert.equal(checked.receipt.confirmationScope, 'rpc-block-inclusion'); assert.equal(checked.evidence.observation.contractRet, 'SUCCESS');assert.equal(checked.evidence.submission,null,'a query does not invent a prior broadcast');
   assert.deepEqual((await f.recovery.journal.list())[0].result, f.record.result);
 });
 test('missing receipt and offline error persist unknown with evidence, not unsigned or failed', async () => {

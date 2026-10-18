@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
-const root=process.env.HOST_SOURCE??new URL('../src/',import.meta.url).pathname;
+import {fileURLToPath} from 'node:url';
+const root=process.env.HOST_SOURCE??fileURLToPath(new URL('../src/',import.meta.url));
 const text=readFileSync(root+'/original-admission-custodian.mjs','utf8');
 // PUBLIC closure reachability only: no SDK/Native import, actual joint,
 // original Source, vault secret, grant, OS operation or accepted service.

@@ -1,5 +1,3 @@
-import { FixtureIntentStore } from "./fixture-intent-store.mjs";
-import { fixtureEVMCapabilities } from "./fixture-evm-capabilities.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -10,6 +8,8 @@ import { DesktopKeyLifecycle, nativeDesktopAuthorizer } from "../src/key-lifecyc
 import { DesktopWalletVault } from "../src/desktop-wallet-vault.mjs";
 import { DesktopWalletAuthority, MemoryPermissionStore } from "../src/desktop-wallet-authority.mjs";
 import { CanonicalTransactionSender } from "../src/canonical-transaction-sender.mjs";
+import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
+import {parseFeeModel} from '../src/rpc-capabilities.mjs';
 import { ApprovalReviewQueue } from "../src/approval-review-queue.mjs";
 
 const SECRET = "1".padStart(64, "0"), ORIGIN = "https://desktop-lifecycle.invalid";
@@ -29,6 +29,15 @@ async function fixture(t) {
   return { life, vault, storage, account, calls, filePath };
 }
 const cancelled = error => ["WALLET_OPERATION_CANCELLED", "WALLET_LOCKED"].includes(error?.data?.code);
+async function transactionJournal(t){
+  const directory=await mkdtemp(join(tmpdir(),'ynx-key-lifecycle-journal-'));
+  t.after(()=>rm(directory,{recursive:true,force:true}));
+  return new FileTransactionIntentStore({filePath:join(directory,'original.json')});
+}
+async function nativeCapabilities(){
+  const proof=JSON.parse(await readFile(new URL('./fixtures/transaction-durability/native-json-contract-fixture.json',import.meta.url),'utf8'));
+  return parseFeeModel({version:'ynx-ethereum-native-v1',enabled:true,chainId:'0x1917',transactionType:'0x0',feeYNXT:'1',feeWei:'0xde0b6b3a7640000',gas:'0x61a8',gasPrice:'0x246139ca8000',decimals:18,amountQuantumWei:'0xde0b6b3a7640000',scope:'whole-YNXT plain native transfers',fullEVM:false,eip1559:false,durability:proof.capability});
+}
 
 test("public inventory stays readable while locked, while direct key/create access has no authorization fallback", async t => {
   const f = await fixture(t); f.life.lock();
@@ -112,12 +121,12 @@ test("permission grant interrupted by lock is not kept as a newly approved origi
   await assert.rejects(pending, cancelled); assert.equal(await permissions.hasAccount(ORIGIN, f.account.account), false);
 });
 
-for (const point of ["before-sign", "before-broadcast"]) test(`transaction ${point} cancellation uses the same key lease and sends nothing`, async () => {
+for (const point of ["before-sign", "before-broadcast"]) test(`transaction ${point} cancellation uses the same key lease and sends nothing`, async t => {
   const life = policy(); await life.unlock();
   const wallet = new Wallet(`0x${SECRET}`), entered = deferred(), gate = deferred(), calls = [];
-  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), network: { verifyChain: async () => {}, capabilities: async () => fixtureEVMCapabilities } });
-  sender.provider.send = async method => { calls.push(method); return { eth_getTransactionCount: "0x0", eth_gasPrice: "0x1", eth_estimateGas: "0x5208", eth_getBalance: "0xffffffffffffffff" }[method]; };
-  const transaction = await sender.prepare(wallet.address.toLowerCase(), { from: wallet.address.toLowerCase(), to: `0x${"22".repeat(20)}`, value: "0x1" });
+  const sender = new CanonicalTransactionSender({ intentStore: await transactionJournal(t), network: { verifyChain: async () => {}, capabilities: nativeCapabilities } });
+  sender.provider.send = async method => { calls.push(method); return { eth_getTransactionCount: "0x0", eth_gasPrice: "0x246139ca8000", eth_estimateGas: "0x61a8", eth_getBalance: "0xffffffffffffffff" }[method]; };
+  const transaction = await sender.prepare(wallet.address.toLowerCase(), { from: wallet.address.toLowerCase(), to: `0x${"22".repeat(20)}`, value: "0xde0b6b3a7640000" });
   let signs = 0;
   if (point === "before-sign") sender.network.verifyChain = async () => { entered.resolve(); await gate.promise; };
   const signer = { address: wallet.address, signTransaction: async fields => { signs++; const signature = await wallet.signTransaction(fields); entered.resolve(); if (point === "before-broadcast") await gate.promise; return signature; } };
@@ -150,15 +159,15 @@ test("a signer finishing after cancellation cannot initiate final delivery", asy
   await assert.rejects(pending, cancelled); assert.equal(deliveries, 0);
 });
 
-test("broadcast ACK after lock retains the real hash and blocks any subsequent DApp delivery", async () => {
+test("broadcast ACK after lock retains the real hash and blocks any subsequent DApp delivery", async t => {
   const life = policy(); await life.unlock(); const wallet = new Wallet(`0x${SECRET}`), calls = [];
-  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), network: { verifyChain: async () => {}, capabilities: async () => fixtureEVMCapabilities } });
+  const sender = new CanonicalTransactionSender({ intentStore: await transactionJournal(t), network: { verifyChain: async () => {}, capabilities: nativeCapabilities } });
   sender.provider.send = async (method, params) => {
     calls.push(method);
     if (method === "eth_sendRawTransaction") { life.lock(); return (await import("ethers")).Transaction.from(params[0]).hash; }
-    return { eth_getTransactionCount: "0x0", eth_gasPrice: "0x1", eth_estimateGas: "0x5208", eth_getBalance: "0xffffffffffffffff" }[method];
+    return { eth_getTransactionCount: "0x0", eth_gasPrice: "0x246139ca8000", eth_estimateGas: "0x61a8", eth_getBalance: "0xffffffffffffffff" }[method];
   };
-  const transaction = await sender.prepare(wallet.address.toLowerCase(), { from: wallet.address.toLowerCase(), to: `0x${"22".repeat(20)}`, value: "0x1" });
+  const transaction = await sender.prepare(wallet.address.toLowerCase(), { from: wallet.address.toLowerCase(), to: `0x${"22".repeat(20)}`, value: "0xde0b6b3a7640000" });
   const result = await life.run(lease => lease.step(async () => {
     const hash = await sender.send(wallet, transaction, lease);
     await assert.rejects(lease.deliver(() => assert.fail("late DApp reply")), cancelled);
@@ -169,14 +178,14 @@ test("broadcast ACK after lock retains the real hash and blocks any subsequent D
   assert.equal(calls.filter(method => method === "eth_sendRawTransaction").length, 1);
 });
 
-test("broadcast lost ACK is explicitly uncertain and retains the independently computable transaction hash", async () => {
+test("broadcast lost ACK is explicitly uncertain and retains the independently computable transaction hash", async t => {
   const life = policy(); await life.unlock(); const wallet = new Wallet(`0x${SECRET}`);
-  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), network: { verifyChain: async () => {}, capabilities: async () => fixtureEVMCapabilities } });
+  const sender = new CanonicalTransactionSender({ intentStore: await transactionJournal(t), network: { verifyChain: async () => {}, capabilities: nativeCapabilities } });
   sender.provider.send = async method => {
     if (method === "eth_sendRawTransaction") throw new Error("fixture lost ACK");
-    return { eth_getTransactionCount: "0x0", eth_gasPrice: "0x1", eth_estimateGas: "0x5208", eth_getBalance: "0xffffffffffffffff" }[method];
+    return { eth_getTransactionCount: "0x0", eth_gasPrice: "0x246139ca8000", eth_estimateGas: "0x61a8", eth_getBalance: "0xffffffffffffffff" }[method];
   };
-  const transaction = await sender.prepare(wallet.address.toLowerCase(), { from: wallet.address.toLowerCase(), to: `0x${"22".repeat(20)}`, value: "0x1" });
+  const transaction = await sender.prepare(wallet.address.toLowerCase(), { from: wallet.address.toLowerCase(), to: `0x${"22".repeat(20)}`, value: "0xde0b6b3a7640000" });
   await assert.rejects(life.run(lease => sender.send(wallet, transaction, lease)), error => error.data?.code === "EXTERNAL_OUTCOME_UNKNOWN" && error.data.outcomeUnknown === true && /^0x[0-9a-f]{64}$/.test(error.data.transactionHash));
 });
 

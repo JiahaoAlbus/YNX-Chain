@@ -183,7 +183,14 @@ for (const stage of ["file-sync", "publication-barrier"]) test(`${stage} failure
   if (stage === "publication-barrier") { const replace = store.filePolicy.replace.bind(store.filePolicy); store.filePolicy.replace = async (...args) => { await replace(...args); throw new Error("fixture native publication ACK failure"); }; }
   const snapshot = await sender.prepare(account, input());
   await assert.rejects(f.life.run(lease => sender.send(f.signer, snapshot, lease)), code("TRANSACTION_JOURNAL_WRITE_FAILED")); assert.equal(f.state.raw.length, 0);
-  if (stage === "publication-barrier") await assert.rejects(f.restart().prepare(account, input()), code("TRANSACTION_RESOLUTION_REQUIRED"));
+  if (stage === "publication-barrier") {
+    // The acknowledgement can fail at the earlier pre-sign reservation.
+    // A cold reader must retain that exact UNKNOWN barrier, not pretend a
+    // complete signed transaction necessarily exists or grant another sign.
+    assert.deepEqual(await new FileTransactionIntentStore({filePath:f.filePath}).unresolvedPreparation(account),{account,kind:'native'});
+    await assert.rejects(f.restart().prepare(account, input()), code("TRANSACTION_SIGNING_RESULT_UNKNOWN"));
+    assert.equal(f.state.raw.length,0);
+  }
 });
 
 test("receipt cleanup write failure retains the exact unresolved account and permits a later read-only recovery", async t => {

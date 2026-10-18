@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
-const root=process.env.HOST_SOURCE??new URL('../src/',import.meta.url).pathname;
+import {fileURLToPath} from 'node:url';
+const root=process.env.HOST_SOURCE??fileURLToPath(new URL('../src/',import.meta.url));
 // PUBLIC same-ref cleanup fault injection, never loads the Native/SDK module
 // or creates a real original Vault/Source, accepted session or grant.
 function configuration({step,cause}){

@@ -9,7 +9,7 @@ import { deriveBitcoinMnemonicAccount } from '../src/multichain-bitcoin.mjs';
 import * as fs from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { HDNodeWallet } from 'ethers';
 import bs58check from 'bs58check';
 import { createHash } from 'node:crypto';
@@ -260,8 +260,9 @@ test('BTC R3 rejects ETH scalar seed, foreign account/path/address and missing j
   await assert.rejects(f.adapter.signMnemonic(f.req.requestId, { ...f.custody, persistSigningAttempt() {}, onProduced() {} }), { code: 'BTC_SIGNING_ALREADY_ATTEMPTED' });
 });
 async function actualMnemonicVault(t) {
-  if (!process.env.BTC_MNEMONIC_HARNESS_SOURCE) throw new Error('Explicit isolated actual 9bdd mnemonic-vault harness required');
-  const base = join(process.env.BTC_MNEMONIC_HARNESS_SOURCE, 'apps/wallet-desktop/src');
+  // Default to this same-copy source; the vault/profile below is always a new
+  // private temporary QA fixture, never an installed human account.
+  const base = process.env.BTC_MNEMONIC_HARNESS_SOURCE ? join(process.env.BTC_MNEMONIC_HARNESS_SOURCE, 'apps/wallet-desktop/src') : fileURLToPath(new URL('../src/',import.meta.url));
   const [{ PasswordWalletVault }, { PasswordVaultFile }, { DesktopKeyLifecycle }] = await Promise.all(['password-wallet-vault.mjs', 'password-vault-file.mjs', 'key-lifecycle.mjs'].map(file => import(pathToFileURL(join(base, file)).href)));
   const directory = await fs.mkdtemp(join(tmpdir(), 'ynx-btc-public-mnemonic-r3-')); t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const filePath = join(directory, 'wallet-vault-v3.json'), life = new DesktopKeyLifecycle(); life.setFocused(true);

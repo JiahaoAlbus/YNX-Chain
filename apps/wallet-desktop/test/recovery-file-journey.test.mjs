@@ -8,7 +8,7 @@ const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{reso
 function fixture(){
   const nodes=new Map(),calls=[],renders=[];let keyState={locked:true,revision:1};
   const accounts=["account-a","account-b"].map(account=>({account,ynxAccount:account,state:"protected"}));
-  const status={initialized:true,passwordConfigured:true,account:"account-a",accounts};
+  let status={initialized:true,passwordConfigured:true,account:"account-a",accounts};
   const fieldIDs=["local-password","local-confirm","recovery-value","recovery-file","recovery-backup-password","recovery-current-password","recovery-new-password","recovery-confirm"];
   class Node{
     constructor(id=""){this.id=id;this.listeners={};this._value="";this.files=[];this.open=false;this.hidden=false;this.disabled=false;this.children=[];this.ownerDocument=doc;this.textContent=""}
@@ -36,7 +36,7 @@ function fixture(){
   const open=async()=>{await get("recover-wallet").emit("click");get("recovery-account").value=status.account;get("recovery-kind").value="encrypted-json";get("recovery-password-mode").value="keep";};
   const choose=(node,file)=>{node.emit("click");node.files=[file];node.emit("change")};
   const submit=()=>get("recovery-form").emit("submit");
-  return{get,api,ui,calls,status,open,choose,submit,renders,setKeyState:value=>{keyState=value}};
+  return{get,api,ui,calls,get status(){return status;},publishStatus:value=>{status=value;ui.render();},open,choose,submit,renders,setKeyState:value=>{keyState=value}};
 }
 const backup=text=>({size:Buffer.byteLength(text),text:async()=>text.replace(/^\uFEFF/,""),arrayBuffer:async()=>new TextEncoder().encode(text).buffer,slice(start,end){return backup(text.slice(start,end))}});
 for(const change of ['new-account','later-unlock'])test(`R38 old recovery receipt after ${change} cannot announce success or refresh a newer owner`,async()=>{
@@ -55,7 +55,7 @@ test('R38 exact own main custody notifications still publish the recovered publi
  h.api.lock=async()=>{life.lock();return life.status()};
  await h.open();h.get('recovery-account').value='account-a';h.get('recovery-account').emit('change');h.choose(h.get('recovery-file'),backup('PUBLIC current encrypted JSON'));await h.submit();
  let publishes=0,revokes=0;
- const context={accountChangeInProgress:false,walletConnectProposalActions:new Set(),keyAccess:life,walletConnectInbox:{pending:()=>[]},walletAuthority:{permissions:{revokeAll:async()=>{revokes++}}},walletConnect:{sessions:()=>[]},mainWindow:{webContents:{send:(name,value)=>{if(name==='wallet:account-status-result')Object.assign(h.status,value)}}}};
+ const context={accountChangeInProgress:false,walletConnectProposalActions:new Set(),keyAccess:life,walletConnectInbox:{pending:()=>[]},walletAuthority:{permissions:{revokeAll:async()=>{revokes++}}},walletConnect:{sessions:()=>[]},mainWindow:{webContents:{send:(name,value)=>{if(name==='wallet:account-status-result')h.publishStatus(value)}}}};
  const source=readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8'),start=source.indexOf('async function custodyChange('),end=source.indexOf('app.on("open-url"',start);assert.ok(start>=0&&end>start);runInNewContext(source.slice(start,end),context);
  h.api.commitRecovery=async()=>({ok:true,value:await context.custodyChange(async(guard,beforePublish)=>{guard.assert();await beforePublish();guard.assert();publishes++;return {...h.status,account:'account-a'};})});
  await h.get('commit-recovery').emit('click');assert.equal(life.status().account,'account-a');assert.equal(life.status().locked,true);assert.equal(h.status.account,'account-a');assert.equal(h.renders.at(-1).value.account,'account-a');assert.match(h.get('unlock-result').textContent,/Account recovery is saved/);assert.equal(publishes,1);assert.equal(revokes,1);assert.equal(context.accountChangeInProgress,false);
@@ -64,7 +64,7 @@ test('R38 own recovery public refresh cannot publish after a same-revision later
  const h=fixture();await h.open();h.choose(h.get('recovery-file'),backup('PUBLIC current encrypted JSON'));await h.submit();
  const read=deferred();let reading;const entered=new Promise(resolve=>reading=resolve);
  h.api.accountStatus=async()=>{reading();return read.promise};
- h.api.commitRecovery=async()=>{h.ui.cancel();h.setKeyState({locked:true,revision:4,account:'account-a',authenticating:false});return {ok:true,value:{...h.status,remoteDisconnectFailures:[]}}};
+ h.api.commitRecovery=async()=>{h.ui.cancel();h.setKeyState({locked:true,revision:4,account:'account-a',authenticating:false});h.publishStatus({...h.status});return {ok:true,value:{...h.status,remoteDisconnectFailures:[]}}};
  const pending=h.get('commit-recovery').emit('click');await entered;const renders=h.renders.length;
  h.setKeyState({locked:false,revision:4,account:'account-a',authenticating:false});h.get('unlock-result').textContent='Later unlock notice';
  read.resolve({ok:true,value:h.status});await pending;assert.equal(h.renders.length,renders);assert.equal(h.get('unlock-result').textContent,'Later unlock notice');

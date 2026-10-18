@@ -7,6 +7,8 @@ const copy={
 
 export function mountCctpUI({root,api,locale='en'}){
   const text=copy[locale.startsWith('zh')?'zh':'en'],doc=root.ownerDocument;
+  const discard=locale.startsWith('zh')?'取消当前预览':'Discard current review';
+  const discarded=locale.startsWith('zh')?'已取消当前预览，原交易记录仍保留；继续前请重新预览。':'Current review discarded. Original transactions are retained; review again to continue.';
   let disposed=false,generation=0,busy=false,quote=null,record=null,review=null;
   const el=(tag,value)=>{const node=doc.createElement(tag);if(value!==undefined)node.textContent=value;return node};
   const title=el('h2',text.title),route=el('p',text.route+' · '+text.asset),notice=el('p',text.notice),form=el('div'),status=el('p'),details=el('dl'),actions=el('div'),history=el('div');
@@ -40,9 +42,10 @@ export function mountCctpUI({root,api,locale='en'}){
     if(!record||['completed','failed','cancelled'].includes(record.state))button(text.quote,async ticket=>{const input=Object.fromEntries(Object.entries(fields).map(([k,v])=>[k,v.value.trim()]));const result=await invoke('quote',{routeId:'cctp-v2-sepolia-base-sepolia-usdc',asset:'USDC',...input});if(disposed||ticket!==generation)return;quote=result;record=null;review=null;status.textContent=''});
     if(quote&&!record)button(text.start,async ticket=>{const result=await invoke('start',quote.quoteId);if(disposed||ticket!==generation)return;record=result;quote=null;status.textContent=''});
     if(record&&!['completed','cancelled'].includes(record.state)){
-      if(!review&&['ready','burn-ready','mint-ready'].includes(record.state)&&!(record.operations??[]).some(o=>o.state==='review'))button(text.prepare,async ticket=>{const result=await invoke('prepare',record.id);if(disposed||ticket!==generation)return;review=result;status.textContent=''});
+      if(!review&&['ready','burn-ready','mint-ready'].includes(record.state)&&!(record.operations??[]).some(o=>o.state==='review'))button(text.prepare,async ticket=>{const result=await invoke('prepare',record.id);if(disposed||ticket!==generation)return;review=result;record={...record,operations:[...(record.operations??[]),{id:result.id,step:result.step,state:'review',hash:null}]};status.textContent=''});
       button(text.check,async ticket=>{const result=await invoke('check',record.id);if(disposed||ticket!==generation)return;record=result;review=null;status.textContent=record.state==='completed'?text.completed:record.state==='failed'?text.failed:text.waiting});
-      if(!(record.operations??[]).some(o=>o.state!=='review'))button(text.cancel,async ticket=>{const result=await invoke('cancel',record.id);if(disposed||ticket!==generation)return;record=result.record;review=null;status.textContent=result.cancelled?text.cancelled:text.waiting});
+      const active=(record.operations??[]).filter(o=>o.state!=='cancelled'),current=active.at(-1),prior=active.slice(0,-1);
+      if(['ready','burn-ready','mint-ready'].includes(record.state)&&(!current||current.state==='review'&&current.hash===null)&&prior.every(o=>o.state==='included'))button(prior.length?discard:text.cancel,async ticket=>{review=null;render();const result=await invoke('cancel',record.id);if(disposed||ticket!==generation)return;record=result.record;status.textContent=result.cancelled?(result.reason==='review-only'?discarded:text.cancelled):text.waiting});
     }
     button(text.history,async ticket=>{const records=await invoke('history');if(disposed||ticket!==generation)return;history.replaceChildren();for(const item of [...records].reverse()){const b=el('button',`${item.state} · ${item.binding.recipient} · ${usdc(item.binding.amountUnits)} USDC`);b.type='button';b.addEventListener('click',()=>{if(busy)return;generation++;record=item;review=null;quote=null;status.textContent=text.waiting;render()});history.append(b)}status.textContent=''});
   }

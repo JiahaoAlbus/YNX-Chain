@@ -85,7 +85,9 @@ test("Pay response accessors are rejected without running them",async()=>{
 });
 test("Pay display rejects custom prototypes cycles and oversized hidden fields",async()=>{
   const exotic=Object.assign(Object.create({}),review()),cyclic=review();cyclic.self=cyclic;
-  for(const item of [exotic,cyclic,{...review(),metadata:"x".repeat(513)}]){
+  // Public retained error messages use the same 2048-character bound; test
+  // the actual boundary without narrowing legitimate recovery diagnostics.
+  for(const item of [exotic,cyclic,{...review(),metadata:"x".repeat(2049)}]){
     const h=harness();await h.ui.open();h.response({ok:true,value:{kind:"review",review:item}});await h.ui.review(invoiceId);
     assert.equal(h.views.at(-1).review,null);assert.ok(h.views.at(-1).error);await h.ui.approve();assert.equal(h.calls.approve,0);
   }

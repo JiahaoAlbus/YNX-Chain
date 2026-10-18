@@ -116,7 +116,7 @@ test('actual main IPC and account-change helper commit once, lock the new accoun
   walletConnectInbox:{pending:()=>[]},walletConnect:{sessions:()=>[]},nativeWallet:{clear(){}},authorizationController:{pending:null,cancel:()=>false,refreshAccount:async()=>null},
   mainWindow:{isDestroyed:()=>false,webContents:{send:(...args)=>events.push(args)}},recordEvidence:async()=>{},rpcStatus:async()=>({})};
  const handlerStart=source.indexOf('handleWalletIPC("wallet:commit-mnemonic-account"'),handlerEnd=source.indexOf('handleWalletIPC("wallet:recovery-phrase"',handlerStart);
- const helperStart=source.indexOf('async function changeActiveAccount(change)'),helperEnd=source.indexOf('async function custodyChange(',helperStart);
+ const helperStart=source.indexOf('async function changeActiveAccount('),helperEnd=source.indexOf('async function custodyChange(',helperStart);
  assert.ok(handlerStart>=0&&handlerEnd>handlerStart&&helperStart>=0&&helperEnd>helperStart);
  runInNewContext(source.slice(helperStart,helperEnd)+source.slice(handlerStart,handlerEnd),context);
  const input={id:review.id,words:review.indexes.map(i=>review.phrase.split(' ')[i])};

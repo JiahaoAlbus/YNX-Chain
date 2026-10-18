@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
-const root=process.env.CALLER_SOURCE??new URL('../src/',import.meta.url).pathname;
+import {fileURLToPath} from 'node:url';
+const root=process.env.CALLER_SOURCE??fileURLToPath(new URL('../src/',import.meta.url));
 const read=name=>readFileSync(root+'/'+name,'utf8');
 // PUBLIC lexical caller tests only: no genuine Native module, Vault, grant,
 // user profile, accepted session, signatures or OS protected originals.

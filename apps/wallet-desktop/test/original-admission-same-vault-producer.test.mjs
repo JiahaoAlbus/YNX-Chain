@@ -203,11 +203,13 @@ test('PUBLIC actual rewrite retains catalog on unrelated account changes and ref
   const next=await rewrite(old,{},{});assert(next.vault.originalAdmissionCatalogBytes>2);
   await assert.rejects(rewrite(old,{approveOriginalAdmissionCatalogUpgrade:true},{}),/INVALID/);
 });
-test('PUBLIC normal missing supply returns null before product import; same main caller composition is present',async()=>{
-  const source=readFileSync(new URL('original-admission-supply.mjs',root),'utf8'),ctx=vm.createContext({});
-  vm.runInContext(source.replace('export ','')+'\nthis.open=openOriginalAdmissionSupply',ctx);
-  assert.equal(await ctx.open({PUBLIC:'VAULT_STANDIN'}),null);
-  const main=readFileSync(new URL('main.mjs',root),'utf8');assert(main.includes('originalAdmissionSupply=await openOriginalAdmissionSupply(passwordVault);'));
+test('PUBLIC normal missing supply requires an original guard and retains current Main entry composition',async()=>{
+  const source=readFileSync(new URL('original-admission-supply.mjs',root),'utf8');let imports=0,acquires=0,checks=0;const vault={PUBLIC:'VAULT_STANDIN'},guard={assert(){checks++;}},ctx=vm.createContext({PUBLIC_ORIGINAL:async()=>{imports++;return {acquireOriginalAdmissionConfiguration:async(v,g)=>{assert.equal(v,vault);assert.equal(g,guard);acquires++;return null;}}}});
+  const dynamic="await import('./original-admission-custodian.mjs')";assert.ok(source.includes(dynamic));
+  vm.runInContext(source.replace(/^import .*;$/mg,'').replaceAll('export ','').replace(dynamic,'await PUBLIC_ORIGINAL()')+'\nthis.open=openOriginalAdmissionSupply',ctx);
+  await assert.rejects(ctx.open(vault),/WALLET_LOCKED/);assert.equal(imports,0);
+  assert.equal(await ctx.open(vault,guard),null);assert.equal(imports,1);assert.equal(acquires,1);assert.equal(checks,3);
+  const main=readFileSync(new URL('main.mjs',root),'utf8');assert.match(main,/originalAdmissionEntry=createOriginalAdmissionEntry\(\{[^\n]*openSupply:openOriginalAdmissionSupply/);
 });
 test('PUBLIC actual delivery parser forbids records following unresolved entered/UNKNOWN',()=>{
   const source=readFileSync(new URL('../../../packages/wallet-auth/src/original-wallet-service-admission-publication-state.js',import.meta.url),'utf8');

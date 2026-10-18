@@ -439,7 +439,7 @@ function renderAccount(payload) {
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
   multichainUI?.render();
-  cctpUI?.invalidate();
+  if(typeof cctpUI!=='undefined')cctpUI?.invalidate();
   if(typeof transferAttemptUI!=="undefined")void transferAttemptUI.refresh();
   if (previousAccount !== activeAccount) {
     document.querySelector("#transfer-to").value = "";
@@ -895,7 +895,7 @@ async function refreshTransactions() {
         row.append(notice);
         appendPQOriginalRecoveryActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
         appendPQProgressActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
-        appendPQBroadcastActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
+        if(typeof appendPQBroadcastActions!=='undefined')appendPQBroadcastActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
         if(record.kind==='pq-revocation'&&record.status==='pq-signed-unsubmitted'){
           const unavailable=document.createElement('p');unavailable.textContent='当前可信节点的撤销原件查询格式尚未接通。保留本地原件；不表示已撤销，不重新签名或发送。 / Trusted revocation lookup is not yet supplied. Local original retained; no claim of revocation, no re-sign or send.';row.append(unavailable);
         }
@@ -1234,7 +1234,7 @@ function renderKeyState(state) {
   if(typeof sessionRecoveryUI!=='undefined')sessionRecoveryUI.render();
   updateOriginalAdmissionSecurity(previousKeyState,state);
   if(securityChanged)familyUI?.invalidate();
-  if(securityChanged)cctpUI?.invalidate();
+  if(securityChanged&&typeof cctpUI!=='undefined')cctpUI?.invalidate();
   multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");

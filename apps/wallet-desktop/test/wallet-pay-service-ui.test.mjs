@@ -155,10 +155,17 @@ test("Desktop every new channel rejects remote/subframe/stale sender before poli
   const f=await harness();for(const [channel,handler] of f.handlers){const result=await handler(channel==="wallet:pay-review"?f.input.rawInvoice.id:{action:"approve",id:"fake"},{sender:f.contents,senderFrame:{url:f.frame.url}});assert.equal(result.ok,false);assert.equal(result.error.code,"UNTRUSTED_WALLET_FRAME")}
   assert.equal(f.decryptions(),0);assert.equal(f.posts(),0);f.lifecycle.lock();
 });
-test("Desktop cancellation after protected key await prevents journal publication and any POST",async()=>{
+test("Desktop cancellation after protected key await retains generated original without durable success or any POST",async()=>{
   const f=await harness(),review=(await f.api.payReview(f.input.rawInvoice.id)).value.review,withSecret=f.vault.withSecret.bind(f.vault);let finish;
   f.vault.withSecret=async action=>{const result=await withSecret(action);await new Promise(resolve=>finish=resolve);return result};
-  const pending=f.api.payAction({action:"approve",id:review.id});while(!finish)await new Promise(resolve=>setImmediate(resolve));await f.api.payCancel();finish();assert.equal((await pending).ok,false);assert.equal(f.posts(),0);assert.equal(f.decryptions(),1);assert.equal(await f.store.signedPayProgress(f.identity.account,f.input.policy,()=>{}),null);f.lifecycle.lock();
+  const pending=f.api.payAction({action:"approve",id:review.id});while(!finish)await new Promise(resolve=>setImmediate(resolve));await f.api.payCancel();finish();assert.equal((await pending).ok,false);assert.equal(f.posts(),0);assert.equal(f.decryptions(),1);
+  const retained=await f.store.signedPayProgress(f.identity.account,f.input.policy,()=>{});
+  assert.ok(retained,'the key callback already generated the original before cancellation');
+  assert.equal(retained.localRetention.scope,'operation-memory');assert.equal(retained.localRetention.durable,false);assert.equal(retained.localRetention.originalCause.code,'PAY_REVIEW_CANCELLED');
+  assert.equal(retained.broadcastAttempted,false);assert.equal(retained.settlementAttempted,false);assert.equal(retained.consensusFinality,false);assert.match(retained.record.transfer.hash,/^0x[0-9a-f]{64}$/);
+  assert.ok(retained.record.transfer.payload);assert.equal(retained.record.paymentResult.transactionHash,retained.record.transfer.hash);
+  const restored=await f.api.payRestore();assert.equal(restored.ok,true);assert.equal(restored.value.original.hash,retained.record.transfer.hash);assert.equal(restored.value.original.localRetention.durable,false);
+  assert.equal(f.posts(),0);assert.equal(f.decryptions(),1);f.lifecycle.lock();
 });
 test("Desktop renderer state machine explicit review → approve → check → settle → Done → history uses real service",async()=>{
   const f=await harness(),views=[],context={open:true,account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:false},ui=createDesktopPayUI({api:f.api,getContext:()=>({...context}),render:view=>views.push(view)});

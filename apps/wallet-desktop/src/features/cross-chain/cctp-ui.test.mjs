@@ -197,3 +197,54 @@ test('IPC retains original safe/sensitive wrappers and obtains a custody guard o
   assert.equal(guardCalls, 1);
   assert.deepEqual(calls.at(-1), { method: 'confirmStep', args: [input, guard] });
 });
+
+test('recovery UI discards a cold burn or mint review while retaining prior confirmed hashes and requiring a fresh confirmation', async t => {
+  for (const step of ['burn', 'mint']) await t.test(step, async () => {
+    const h = fixture(), original = { ...copy(h.ready), state: `${step}-ready`, operations: [
+      { id: 'prior-id', step: step === 'mint' ? 'burn' : 'approve', state: 'included', hash: TX_HASH },
+      { id: REVIEW_ID, step, state: 'review', hash: null },
+    ] };
+    h.overrides.history = async () => ok([original]);
+    h.overrides.cancel = async () => ok({ cancelled: true, reason: 'review-only', record: { ...copy(original), operations: original.operations.map(op => op.id === REVIEW_ID ? { ...op, state: 'cancelled' } : op) } });
+    h.overrides.prepare = async () => ok({ ...h.review, id: 'fresh-review-id', step });
+    await button(h.root, 'Restore transfer history').click();
+    await nodes(h.root, 'button').find(node => node.textContent.startsWith(`${step}-ready ·`)).click();
+    assert.ok(!hasButton(h.root, 'Confirm and send this transaction'));
+    assert.ok(!hasButton(h.root, 'Review next transaction'));
+    assert.ok(!hasButton(h.root, 'Cancel before sending'));
+    await button(h.root, 'Discard current review').click();
+    assert.deepEqual(h.calls.map(call => call.method), ['history', 'cancel']);
+    assert.equal(h.calls.at(-1).input, INTENT_ID);
+    assert.ok(h.root.textContent.includes(TX_HASH));
+    assert.ok(h.root.textContent.includes(`${step}-ready`));
+    assert.ok(h.root.textContent.includes('Current review discarded.'));
+    assert.ok(!h.root.textContent.includes('Cancelled before sending'));
+    assert.ok(!hasButton(h.root, 'Confirm and send this transaction'));
+    await button(h.root, 'Review next transaction').click();
+    assert.ok(hasButton(h.root, 'Discard current review'), 'a fresh review also has a local discard action');
+    assert.equal(h.calls.filter(call => call.method === 'confirm').length, 0);
+    await button(h.root, 'Confirm and send this transaction').click();
+    assert.deepEqual(h.calls.at(-1), { method: 'confirm', input: { id: INTENT_ID, reviewId: 'fresh-review-id' } });
+  });
+});
+
+test('recovery UI does not offer discard for an uncertain original operation or reuse a review after cancellation timeout', async t => {
+  await t.test('original dispatch remains query-only', async () => {
+    const h = fixture();
+    await button(h.root, 'Restore transfer history').click();
+    await nodes(h.root, 'button').find(node => node.textContent.startsWith('burn-pending ·')).click();
+    assert.ok(!hasButton(h.root, 'Discard current review'));
+    assert.ok(!hasButton(h.root, 'Cancel before sending'));
+    assert.ok(hasButton(h.root, 'Check original transfer'));
+    assert.equal(h.calls.length, 1);
+  });
+  await t.test('cancel timeout consumes the visible confirmation', async () => {
+    const h = fixture(); await h.reachReview();
+    h.overrides.cancel = async () => { throw new Error('Cancellation response lost'); };
+    await button(h.root, 'Cancel before sending').click();
+    assert.ok(!hasButton(h.root, 'Confirm and send this transaction'));
+    assert.ok(!hasButton(h.root, 'Review next transaction'));
+    assert.ok(hasButton(h.root, 'Check original transfer'));
+    assert.equal(h.calls.filter(call => call.method === 'confirm').length, 0);
+  });
+});

@@ -96,7 +96,7 @@ function r14Display(){
   const api={multichainSnapshot:async()=>{calls.push("snapshot");return {ok:true,value:frame}},multichainBalances:()=>{throw Error("Unexpected balances")},multichainHistory:()=>{throw Error("Unexpected history")},multichainPrepare:()=>{throw Error("Unexpected prepare")},multichainSend:()=>{throw Error("Unexpected send")},multichainCancel:()=>{throw Error("Unexpected cancel")}};
   const ui=createMultichainUI({document,api,getContext:()=>context});
   const all=()=>{const result=[];function visit(node){result.push(node);for(const child of node.children??[])visit(child)}visit(nodes["multichain-content"]);return result};
-  const refresh=nodes["multichain-content"].children.find(node=>node.tagName==="BUTTON");
+  const refresh=nodes["multichain-content"].children.find(node=>node.tagName==="BUTTON"&&node.textContent===r14Refresh['zh-Hans']);
   return {ui,locale,nodes,document,context,frame,calls,refresh,all,displayStorage,async open(){await nodes["open-multichain"].emit("click");await new Promise(resolve=>setImmediate(resolve))}};
 }
 test("R14 PUBLIC Refresh is enrolled with exact display copy in twelve locales",()=>{

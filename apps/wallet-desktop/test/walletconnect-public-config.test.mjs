@@ -1,10 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
-import afterPack from "../scripts/after-pack.mjs";
+import {runInNewContext} from 'node:vm';
+import {desktopReleaseIdentity} from '../scripts/release-provenance.mjs';
 import { buildPublicWalletConnectConfig, loadPublicWalletConnectConfig, parsePublicWalletConnectConfig, WALLETCONNECT_PUBLIC_CONFIG_FILE } from "../src/walletconnect-public-config.mjs";
 import { createWalletConnectCore } from "../src/walletconnect-transport.mjs";
 
@@ -21,7 +22,12 @@ test("final package loads public Pair config with an empty user environment", as
   assert.deepEqual(loaded, shipped);
 });
 
-test("actual packaging hook writes resources read back from disk with an empty user environment", async t => {
+test("actual packaging hook writes public config with a controlled archive assembler and empty user environment", async t => {
+  // This test covers public config/normal hook ordering, not canonical ASAR
+  // acceptance. The real archive path is covered by release-provenance tests.
+  const hook=(await readFile(new URL('../scripts/after-pack.mjs',import.meta.url),'utf8')).replace(/^import .*;$/mg,'').replace('export default async function afterPack','async function afterPack').replace(/^export /mg,'');
+  const assemblies=[],integrity={algorithm:'SHA256',hash:'b'.repeat(64)},context={execFileSync,path,writeFile,desktopReleaseIdentity,assembleCanonicalDesktopPackage:(...args)=>assemblies.push(args),desktopAsarHeaderIntegrity:()=>integrity,buildPublicWalletConnectConfig,WALLETCONNECT_PUBLIC_CONFIG_FILE};
+  runInNewContext(hook+'\nthis.afterPack=afterPack;',context);
   const root = await mkdtemp(path.join(tmpdir(), "ynx-pair-public-config-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const project = path.join(root, "apps/wallet-desktop");
@@ -36,8 +42,10 @@ test("actual packaging hook writes resources read back from disk with an empty u
     for (const platform of ["win32", "linux", ...(process.platform === "darwin" ? ["darwin"] : [])]) {
       const out = path.join(root, platform), resources = platform === "darwin" ? path.join(out, "YNX Wallet.app/Contents/Resources") : path.join(out, "resources");
       await mkdir(resources, { recursive: true });
-      if (platform === "darwin") await writeFile(path.join(out, "YNX Wallet.app/Contents/Info.plist"), '<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>fixture</string><key>CFBundleShortVersionString</key><string>0.0.0</string><key>LSMinimumSystemVersion</key><string>1.0</string><key>CFBundleURLTypes</key><array/><key>NSAppTransportSecurity</key><dict/></dict></plist>');
-      await afterPack({ electronPlatformName: platform, appOutDir: out, packager: { projectDir: project, appInfo: { version: "0.6.11", productFilename: "YNX Wallet" } } });
+      if (platform === "darwin") await writeFile(path.join(out, "YNX Wallet.app/Contents/Info.plist"), '<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>fixture</string><key>CFBundleShortVersionString</key><string>0.0.0</string><key>LSMinimumSystemVersion</key><string>1.0</string><key>CFBundleURLTypes</key><array/><key>NSAppTransportSecurity</key><dict/><key>ElectronAsarIntegrity</key><dict><key>Resources/app.asar</key><dict><key>algorithm</key><string>SHA256</string><key>hash</key><string>'+integrity.hash+'</string></dict></dict></dict></plist>');
+      const count=assemblies.length;
+      await context.afterPack({ electronPlatformName: platform, appOutDir: out, packager: { projectDir: project, appInfo: { version: "0.6.11", productFilename: "YNX Wallet" } } });
+      assert.equal(assemblies.length,count+1);assert.deepEqual(assemblies.at(-1),[resources,project]);
       assert.equal((await loadPublicWalletConnectConfig({ resourcesPath: resources, environment: {} })).projectId, projectId);
     }
   } finally {

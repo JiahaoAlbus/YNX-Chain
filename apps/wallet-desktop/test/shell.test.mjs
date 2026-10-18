@@ -142,7 +142,7 @@ test("security invalidation clears old unlock success while an unchanged locked 
     const invoiceClear=renderer.match(/^function clearInvoiceInput\([^\n]+/m)?.[0];assert.ok(invoiceClear);
     const owners=renderer.slice(renderer.indexOf("let accountSecurityIntent="),renderer.indexOf('createAccount.addEventListener("click"'));
     runInNewContext(`${copyHelper}\n${invoiceClear}\n${owners}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
-      document, familyUI:{invalidate(){invalidatedFamilies++;}}, multichainUI:{render(){}}, keyState: fixture.before, securityViewRevision:0, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
+      document, updateOriginalAdmissionSecurity(){}, familyUI:{invalidate(){invalidatedFamilies++;}}, multichainUI:{render(){}}, keyState: fixture.before, securityViewRevision:0, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){invalidatedInvoices++;}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidateWalletConnectSessions(){},invalidatePaymentInput() { invalidatedInputs++; }
     });
@@ -199,7 +199,9 @@ async function sendEntryHarness() {
   const context = { document, window: { ynxWallet: api }, accountViewRevision:0, securityViewRevision:0, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
     familyUI:{invalidate(){}}, multichainUI:{render(){}}, paymentDraftRevision: 0, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
-    invalidateWalletConnectSessions(){},invalidatePaymentInput() { context.paymentDraftRevision++; },
+    // This password/Send fragment excludes the independently tested admission
+    // panel; only that panel's display notification is a no-op here.
+    updateOriginalAdmissionSecurity(){},invalidateWalletConnectSessions(){},invalidatePaymentInput() { context.paymentDraftRevision++; },
   };
   const extract = (startText, endText) => {
     const start = source.indexOf(startText), end = source.indexOf(endText, start);
@@ -329,7 +331,7 @@ test("actual password form localizes only the owned permission refusal in all tw
 
 test("a successful explicit unlock still needs a new Send click and subsequent lock closes the draft", async () => {
   const h = await sendEntryHarness();
-  h.api.unlock = async input => { h.calls.push(["unlock", input]); h.render({ locked: false, revision: 2 }); return { ok: true }; };
+  h.api.unlock = async input => { h.calls.push(["unlock", input]); h.render({ locked: false, revision: 2 }); return { ok: true, value:{...h.context.keyState} }; };
   await h.get("#open-send").click(); h.get("#local-password").value = "local-fixture-password";
   await h.get("#password-form").emit("submit");
   assert.equal(h.get("#send-sheet").open, false); assert.equal(h.get("#open-send").textContent, "Send YNXT");
@@ -341,6 +343,14 @@ test("a successful explicit unlock still needs a new Send click and subsequent l
   assert.equal(h.get("#prepare-transfer").disabled, true); assert.equal(h.get("#confirm-transfer").disabled, true);
   await h.get("#transfer-form").emit("submit");
   assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
+});
+test('malformed unlock acknowledgement after its own state event cannot crash feedback or claim successful confirmation',async()=>{
+  const h=await sendEntryHarness();
+  h.api.unlock=async()=>{h.render({locked:false,revision:2});return {ok:true};};
+  await h.get('#open-send').click();h.get('#local-password').value='PUBLIC local-only fixture';
+  await assert.doesNotReject(h.get('#password-form').emit('submit'));
+  assert.doesNotMatch(h.get('#unlock-result').textContent,/Wallet unlocked/);
+  assert.equal(h.get('#send-sheet').open,false);assert.equal(h.calls.some(([kind])=>['prepare','send'].includes(kind)),false);
 });
 
 for(const outcome of ["old-locked-same-generation","old-unlocked-before-lock","failure"])test(`initial security ${outcome} cannot undo a newer real security event`,async()=>{

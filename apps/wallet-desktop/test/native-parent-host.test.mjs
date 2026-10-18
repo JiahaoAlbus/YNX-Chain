@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {EventEmitter} from 'node:events';
-const source=process.env.HOST_SOURCE??new URL('../src/',import.meta.url).pathname;
+import {fileURLToPath} from 'node:url';
+const source=process.env.HOST_SOURCE??fileURLToPath(new URL('../src/',import.meta.url));
 function publicStream(onDestroy=()=>{}){const stream=new EventEmitter();stream.destroy=()=>{if(stream.destroyed)return;stream.destroyed=true;onDestroy();queueMicrotask(()=>{stream.closed=true;stream.emit('close');});};return stream;}
 // PUBLIC-only lexical resource controls. Never loads Native or creates a
 // registered source, real joint, account, OS child, descriptor or grant.

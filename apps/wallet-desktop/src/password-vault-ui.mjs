@@ -98,7 +98,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
       // An original successful unlock may reconcile a changed disk selection.
       // Its returned public state must match exactly; this grants no authority.
       return result?.ok===true&&state.revision===before.revision+1&&!state.locked&&
-        result.value?.account===state.account&&result.value.revision===state.revision&&result.value.locked===state.locked;
+        result.value?.account===state.account&&result.value?.revision===state.revision&&result.value?.locked===state.locked;
     };
     let password = $("#local-password").value, confirmation = $("#local-confirm").value;
     if (operation !== "unlock" && password !== confirmation) { setWalletCopy($("#password-result"),"The two passwords do not match."); return; }

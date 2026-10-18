@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 import {originalAuthNativeBuildPlan,validateOriginalMacMinimumSystemVersion} from '../scripts/build-original-auth-identity-native.mjs';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 test('R11r2 PUBLIC every architecture explicitly inherits package minimum system, never host default',()=>{
@@ -26,7 +27,7 @@ test('R11 PUBLIC actual fixed binding loader refuses missing/incomplete module a
  const text=read('../../../packages/wallet-auth/src/original-wallet-service-private-dispatch.js'),start=text.indexOf('function loadFixedOriginalNativeServiceBinding()'),end=text.indexOf('\nconst originalNativeServiceBinding=',start),body=text.slice(start,end).replaceAll('import.meta.url',JSON.stringify('file:///PUBLIC/packages/wallet-auth/src/module.js'));
  let loads=0,captures=0;const names=['captureOriginalNativePrivateServiceBorrow','assertOriginalNativePrivateServiceCurrent','assertOriginalNativePrivateServiceAdmission','assertOriginalNativePrivateServiceTerminal','retireOriginalNativePrivateService','joinOriginalNativePrivateService','closeOriginalNativePrivateService'];
  const native=Object.fromEntries(names.map(name=>[name,()=>undefined]));native.captureOriginalNativePrivateServiceBorrow=original=>{captures++;if(original!=='PUBLIC_OWNED_REFERENCE')throw Error('PUBLIC_ALIEN');return original;};
- const context={URL,createRequire:url=>path=>{loads++;assert.equal(url.href,'file:///PUBLIC/packages/wallet-auth/src/');assert.equal(path,'/PUBLIC/apps/wallet-desktop/native/original-auth-identity.node');return native;}};vm.createContext(context);vm.runInContext(body+'\nthis.load=loadFixedOriginalNativeServiceBinding;',context);
+ const context={URL,fileURLToPath,createRequire:url=>path=>{loads++;assert.equal(url.href,'file:///PUBLIC/packages/wallet-auth/src/');assert.equal(path,'/PUBLIC/apps/wallet-desktop/native/original-auth-identity.node');return native;}};vm.createContext(context);vm.runInContext(body+'\nthis.load=loadFixedOriginalNativeServiceBinding;',context);
  const binding=context.load();assert.equal(binding.capture('PUBLIC_OWNED_REFERENCE'),'PUBLIC_OWNED_REFERENCE');assert.throws(()=>binding.capture({}),/ALIEN/);assert.equal(captures,2);assert.equal(loads,1);
  delete native.closeOriginalNativePrivateService;assert.equal(context.load(),null);context.createRequire=()=>()=>{throw Error('PUBLIC_NO_MODULE');};assert.equal(context.load(),null);
 });
