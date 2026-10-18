@@ -90,3 +90,30 @@ returned child-map mutation cannot change retained diagnostics. The memory-only
 path remains non-durable. Raw: `validation-child-final.raw` in the same artifact
 directory. This implements measurement only. Child costs are not yet measured
 on four nodes and no optimization benefit is claimed.
+
+## Diagnostic readout and CI identity repair
+
+Normal CI 39162939622 at data64-only source 573f3d3b3 succeeded. CI 39163107485
+at 3982e7c0a failed the old anchor candidate's current-source identity assertion:
+`current anchor source differs: internal/consensus/application.go`. This is not
+reclassified as a green whole run. Its failed raw output remains retained.
+
+The existing node readout originally dropped the new validation children. A real
+RED test demonstrated missing aggregation and lack of malformed-child rejection.
+The repaired parser validates exactly two children, safe nonnegative integers,
+sum no greater than parent validate, and complete coverage across a session. It
+reports validationTotalsNs separately, without adding them into Commit totals.
+All five parser tests pass; the four recovered original logs produce exactly the
+same legacy readout as before. No original resource-failure result was rewritten.
+
+The frozen anchor bundle and original tests remain byte-for-byte unchanged.
+Normal CI now runs its original positive guard and all original contract tests
+against its explicitly frozen source, plus the existing original mutation tests.
+A separate diagnostic descendant check binds the complete current internal tree
+to 3982e7c0a and the exact 6939-byte internal delta from b3c0b8b2 (SHA256
+115f12bc31fa2845afe1c16cd9def89722dc31c184d32cde5796d1db94b2790e).
+Modified, missing or untracked internal inputs fail. This gate explicitly makes
+no new release qualification or network-performance claim. Current real Go source
+checks remain in the original CI. All five new qualification tests, including the
+original frozen guard and 29 original contract tests, pass locally (11.623 s).
+New CI confirmation remains required before applying for the new network slot.
