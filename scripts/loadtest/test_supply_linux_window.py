@@ -661,6 +661,7 @@ class SupplySourceTests(unittest.TestCase):
             def popen(args,**kwargs):
                 commands.append(args)
                 if args[:2]==["go","build"]:
+                    test.assertNotIn("-trimpath",args,"fixture-only build must reuse normal source-gate package cache")
                     wire=bytearray(20);wire[:6]=b'\x7fELF\x02\x01';wire[18:20]=b'\x3e\x00';(build/"ynx-consensus-perf-fixture").write_bytes(wire)
                 elif args[0]==str(build/"ynx-consensus-perf-fixture"):
                     test.assertNotIn("-retain-ephemeral-senders",args);test.assertEqual(args[-2:],["-count","2048"]);test.synthetic_2048_fixture(Path(args[args.index("-output")+1]))

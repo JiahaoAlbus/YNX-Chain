@@ -767,7 +767,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             result["goCacheAccounting"]=dict(path=str(go_cache),preexistingBytes=cache_baseline,charge="Original owned build/tmp plus actual incremental shared-cache bytes; preexisting cache remains visible and charged to filesystem free/reserve, never deleted.")
             (build/"tmp").mkdir(mode=0o700)
             tick(True);mark("fixture_build_start")
-            wait(spawn("fixture-build",["go","build","-p","1","-trimpath","-o",str(build/"ynx-consensus-perf-fixture"),"./cmd/ynx-consensus-perf-fixture"],cwd=source))
+            wait(spawn("fixture-build",["go","build","-p","1","-o",str(build/"ynx-consensus-perf-fixture"),"./cmd/ynx-consensus-perf-fixture"],cwd=source))
             mark("fixture_build_complete")
         result["binaries"] = {}
         for name in (("ynx-consensus-perf-fixture",) if fixture_only else BINARIES):

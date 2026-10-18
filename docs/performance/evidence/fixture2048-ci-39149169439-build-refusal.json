@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "runId": 39149169439,
+  "sourceCommit": "f03b7476e1930b74633ad320eb219567044c28cf",
+  "workflowConclusion": "failure",
+  "terminal": {
+    "qualified": false,
+    "nodesStarted": false,
+    "firstCause": "active45s deadline exceeded",
+    "receiptSHA256": "de9013ffc716e0806de859cf2d05f7bef06e7b89b3504b8e508be51be88fe165",
+    "elapsedMs": 45378,
+    "postFsyncSample": {
+      "elapsedMs": 45323,
+      "tasks": [
+        {
+          "pid": 23215,
+          "parent": 23212,
+          "group": 2099,
+          "startTicks": 16637,
+          "threads": 1,
+          "state": "R",
+          "rssBytes": 28913664
+        }
+      ],
+      "rssBytes": 28913664,
+      "threads": 1,
+      "privateBytes": 310197,
+      "buildBytes": 330259660,
+      "freeDiskBytes": 89123147776,
+      "availableMemoryBytes": 15670882304,
+      "hostIdentities": 169,
+      "vanishedHostPIDs": [],
+      "processLogBytes": 0,
+      "preexistingGoCacheBytes": 426427640,
+      "sharedGoCacheBytes": 590895236,
+      "incrementalGoCacheBytes": 164467596
+    },
+    "refusedSamples": []
+  },
+  "firstCause": "active45s deadline exceeded",
+  "nodesStarted": false,
+  "fixtureGeneratorStarted": false,
+  "cleanupComplete": true,
+  "timeline": [
+    {
+      "phase": "fixture_build_start",
+      "elapsedNs": 457031104,
+      "unixNs": 1792344198422952725
+    },
+    {
+      "phase": "cleanup_start",
+      "elapsedNs": 45069363927,
+      "unixNs": 1792344243035285117
+    },
+    {
+      "phase": "cleanup_complete",
+      "elapsedNs": 45242833278,
+      "unixNs": 1792344243208753658
+    }
+  ],
+  "children": [
+    {
+      "role": "fixture-build",
+      "pid": 23234,
+      "command": [
+        "go",
+        "build",
+        "-p",
+        "1",
+        "-trimpath",
+        "-o",
+        "/home/runner/work/_temp/ynx-fixture-resource-build/ynx-consensus-perf-fixture",
+        "./cmd/ynx-consensus-perf-fixture"
+      ]
+    }
+  ],
+  "sampledPeaks": {
+    "rssBytes": 296427520,
+    "threads": 8,
+    "privateBytes": 1906,
+    "buildBytes": 330259660,
+    "sharedGoCacheBytes": 590895236,
+    "incrementalGoCacheBytes": 164467596
+  },
+  "goCacheAccounting": {
+    "path": "/home/runner/.cache/go-build",
+    "preexistingBytes": 426427640,
+    "charge": "Original owned build/tmp plus actual incremental shared-cache bytes; preexisting cache remains visible and charged to filesystem free/reserve, never deleted."
+  },
+  "resourceCaps": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 33554432,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200
+  },
+  "selectedProfile": {
+    "name": "fixture-2048x1-only",
+    "senders": 2048,
+    "rounds": 1,
+    "offeredRate": 512,
+    "concurrency": 4,
+    "observers": 4,
+    "activeMs": 45000,
+    "cleanupMs": 15000,
+    "totalMs": 60000,
+    "ownedProcesses": 10,
+    "longLivedChildren": 9,
+    "ownedRSSBytes": 1073741824,
+    "privateBytes": 33554432,
+    "threads": 320,
+    "availableMemoryFloorBytes": 1207959552
+  },
+  "raw": {
+    "artifacts/chain-performance-20261017/fixture-2048-resources-39149169439/remote-actual.json": {
+      "bytes": 308291,
+      "sha256": "de9013ffc716e0806de859cf2d05f7bef06e7b89b3504b8e508be51be88fe165"
+    },
+    "artifacts/chain-performance-20261017/fixture-2048-resources-source/run39149169439-full.raw": {
+      "bytes": 521355,
+      "sha256": "a16b77ae34c0b3bacf24382940c7bb2f6e8a1280d90511211dad5b5e3f36d4d8"
+    },
+    "artifacts/chain-performance-20261017/fixture-2048-resources-39149169439/remote-recipe.json": {
+      "bytes": 1906,
+      "sha256": "ca07ec4a265c7e1e79244cb642c52b23ddd40f35771a6f810f440eaf7cc95c81"
+    }
+  },
+  "interpretation": "Build-only active45s refusal, not an actual2048 fixture/data/reader/network resource result. Only original go build was spawned; no generator/node/client. Retain first failure; do not infer32MiB insufficiency or fit, or retry automatically."
+}

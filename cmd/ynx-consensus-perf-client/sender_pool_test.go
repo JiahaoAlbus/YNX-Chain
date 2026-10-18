@@ -22,7 +22,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
-func senderFixture(t *testing.T) (string, []byte, consensus.EphemeralNetworkManifest, chain.ConsensusMigrationState, []cmttypes.Tx) {
+func senderFixture(t *testing.T, counts ...int) (string, []byte, consensus.EphemeralNetworkManifest, chain.ConsensusMigrationState, []cmttypes.Tx) {
 	t.Helper()
 	validators := make([]chain.Validator, 4)
 	for i := range validators {
@@ -33,7 +33,11 @@ func senderFixture(t *testing.T) (string, []byte, consensus.EphemeralNetworkMani
 	bundle.Purpose = consensus.EphemeralSenderPurpose
 	var txs []cmttypes.Tx
 	to, _ := consensus.NativeAddress(secp256k1.PrivKeyFromBytes([]byte{33}).PubKey().SerializeCompressed())
-	for i := 0; i < 3; i++ {
+	count := 3
+	if len(counts) > 0 {
+		count = counts[0]
+	}
+	for i := 0; i < count; i++ {
 		key, err := secp256k1.GeneratePrivateKey()
 		if err != nil {
 			t.Fatal(err)

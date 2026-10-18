@@ -59,6 +59,7 @@ type options struct {
 	intentPersistence              func(string, []byte) error
 	observerPhaseTiming            bool
 	sharedDurableReplay            bool
+	endpointFair                   bool
 }
 
 type transactionInput struct {
