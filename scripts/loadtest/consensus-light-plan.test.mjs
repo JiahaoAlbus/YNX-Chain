@@ -20,8 +20,8 @@ test('native compile is fixed clang only and cannot combine replay',()=>{
 
 test('client regression selects only the fixed thirteen functions and frozen Go source',()=>{
  const p=lightCommand('/work',undefined,false,true);
- assert.equal(p.mode,'client_regression');assert.equal(p.sourceCommit,'463562ad5edacd8678b00472aafdc104cc4ada7a');
- assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'261a70b1e4f532e5b621d11b1660c5d2412b110a');
+ assert.equal(p.mode,'client_regression');assert.equal(p.sourceCommit,'dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c');
+ assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'0b03f3ea50294ffc0d24c2252de08ed5e97e80ed');
  assert.equal(p.requiredPasses.length,13);assert.equal(new Set(p.requiredPasses).size,13);
  assert.equal(p.args[p.args.indexOf('-run')+1],'^('+p.requiredPasses.join('|')+')$');
  assert.ok(p.args.includes('-timeout=30s'));assert.ok(p.args.includes('-v'));assert.equal(p.env.GOPROXY,'off');assert.equal(p.env.GOTOOLCHAIN,'local');
@@ -93,7 +93,7 @@ test('normal09 alone receives 768MiB without changing prior caps or fixed worklo
  for(const c of ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08'])assert.equal(clientOwnedRSSCap(p,c),536870912);
  assert.equal(clientOwnedRSSCap(p),419430400);
  assert.deepEqual(lightProbeInput('/work','client13-normal-09'),lightProbeInput('/work','client13-normal-07'));
- assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'463562ad5edacd8678b00472aafdc104cc4ada7a');
+ assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c');
  assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);
  assert.equal(p.env.GOMEMLIMIT,'160MiB');assert.equal(p.env.GOPROXY,'off');
 });
@@ -145,8 +145,53 @@ test('offline exception is prepare-only and limited to exact original window and
 
 test('normal10 keeps the new phase source and fixed13 while only its explicit cap is768MiB',async()=>{
  const {clientOwnedRSSCap,lightProbeInput}=await import('./consensus-light-plan.mjs'),p=lightCommand('/work',undefined,false,true);
- assert.equal(p.sourceCommit,'463562ad5edacd8678b00472aafdc104cc4ada7a');assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'261a70b1e4f532e5b621d11b1660c5d2412b110a');
+ assert.equal(p.sourceCommit,'dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c');assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'0b03f3ea50294ffc0d24c2252de08ed5e97e80ed');
  assert.equal(p.requiredPasses.length,13);assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.env.GOMEMLIMIT,'160MiB');
  assert.equal(clientOwnedRSSCap(p,'client13-normal-10'),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
  assert.deepEqual(lightProbeInput('/work','client13-normal-10'),lightProbeInput('/work','client13-normal-09'));
+});
+
+test('actual phase output requires all three modes and refuses missing duplicate or invalid timings',async()=>{
+ const {requireReadySupplyPhases}=await import('./consensus-light-plan.mjs');
+ const sample=mode=>({schema:'ynx-ready-supply-phase-sample-v1',mode,businessTransactions:6,controllerNs:100000,finalizeCalls:6,finalizeNs:1000,commitCalls:6,commitNs:2000,terminalCloseNs:10,restartReadNs:100,supply:{signAttempts:3,signNs:30,encodeAttempts:3,encodeNs:20,signedSuccessors:3,journalSetupNs:10,journalAppendAttempts:2,journalAppendNs:20,journalDurableEnvelopes:6,journalDurableBytes:2000,offerDecodeAttempts:6,offerDecodeNs:10,pacingWaitAttempts:6,pacingWaitNs:10,dispatchAttempts:6,dispatchNs:10,terminalSinkAttempts:6,terminalSinkNs:10,completionWaitAttempts:0,completionWaitNs:0}});
+ const rows=['flat-full-history','flat-reused-slots','segmented-reused-slots'].map(sample),out=rows=>rows.map(r=>' ready_sender_test.go:99: YNX_READY_SUPPLY_PHASE_V1 '+JSON.stringify(r)).join('\n');
+ assert.equal(requireReadySupplyPhases(out(rows)).length,3);
+ assert.throws(()=>requireReadySupplyPhases(out(rows.slice(0,2))));assert.throws(()=>requireReadySupplyPhases(out([...rows,rows[0]])));
+ const bad=structuredClone(rows);bad[0].supply.signNs=-1;assert.throws(()=>requireReadySupplyPhases(out(bad)));
+ const missing=structuredClone(rows);delete missing[1].commitNs;assert.throws(()=>requireReadySupplyPhases(out(missing)));
+ const fake=structuredClone(rows);fake[0].supply.dispatchAttempts=5;assert.throws(()=>requireReadySupplyPhases(out(fake)));
+ const impossible=structuredClone(rows);impossible[0].commitNs=200000;assert.throws(()=>requireReadySupplyPhases(out(impossible)),/controller interval/);
+});
+
+test('phase sample case11 preserves original bounded resource policy and instrumented probe',async()=>{
+ const {clientOwnedRSSCap,lightProbeInput}=await import('./consensus-light-plan.mjs'),p=lightCommand('/work',undefined,false,true);
+ for(const c of ['client13-normal-11','client13-normal-12'])assert.equal(clientOwnedRSSCap(p,c),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
+ assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c');
+ assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.caps.threads,320);
+ assert.deepEqual(lightProbeInput('/work','client13-normal-11'),lightProbeInput('/work','client13-normal-10'));
+});
+
+test('scratch sampler distinguishes confirmed child cleanup from changed or missing root',()=>{
+ const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-scratch-cleanup-'))),child=path.join(base,'retiring');fs.mkdirSync(child);fs.writeFileSync(path.join(child,'data'),'actual temporary bytes');
+ const original=fs.readdirSync,events=[];let removed=false;
+ try{
+  fs.readdirSync=function(p,...args){const names=original.call(fs,p,...args);if(p===base&&!removed){removed=true;fs.rmSync(child,{recursive:true});}return names;};
+  assert.equal(lightScratchBytes(base,8192,e=>events.push(e)),0);
+  assert.equal(events.length,1);assert.equal(events[0].confirmedAbsent,true);assert.equal(events[0].stage,'lstat');
+ }finally{fs.readdirSync=original;fs.rmSync(base,{recursive:true,force:true});}
+ assert.throws(()=>lightScratchBytes(base));
+});
+
+test('scratch sampling cannot silently skip a recreated path or replacement root',()=>{
+ const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-scratch-replace-'))),child=path.join(base,'data');fs.writeFileSync(child,'live bytes');
+ const original=fs.lstatSync;let failed=false;
+ try{
+  fs.lstatSync=function(p,...args){if(p===child&&!failed){failed=true;const e=new Error('simulated just-deleted path now recreated');e.code='ENOENT';throw e;}return original.call(fs,p,...args);};
+  assert.throws(()=>lightScratchBytes(base),/recreated/);
+ }finally{fs.lstatSync=original;}
+ const readdir=fs.readdirSync,retired=base+'-retired';let replaced=false;
+ try{
+  fs.readdirSync=function(p,...args){const names=readdir.call(fs,p,...args);if(p===base&&!replaced){replaced=true;fs.renameSync(base,retired);fs.mkdirSync(base);}return names;};
+  assert.throws(()=>lightScratchBytes(base),/root identity changed/);
+ }finally{fs.readdirSync=readdir;fs.rmSync(base,{recursive:true,force:true});fs.rmSync(retired,{recursive:true,force:true});}
 });

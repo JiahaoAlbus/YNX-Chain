@@ -7,8 +7,8 @@ export function lightCommand(root, stoppedWindow, nativeCompile = false, clientR
     if(nativeCompile||stoppedWindow!==undefined)throw Error('client regression cannot combine native compile or stopped replay');
     const requiredPasses=['TestReadyIntentSegmentsPersistAndStreamExactSignedInputs','TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence','TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding','TestReadySenderSegmentedIntentBarrierAndRecovery','TestReadySenderSegmentedIntentFailureNeverSubmits','TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts','TestSegmentedIntentOptionsRequireBoundedEvidenceMode','TestReadySenderFastAccountAdvancesBeforeSlowPeer','TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities','TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves','TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged','TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix','TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption'];
     return {mode:'client_regression',command:'nice',args:['-n','10','/opt/homebrew/bin/go','test','-p','1','./cmd/ynx-consensus-perf-client','-run','^('+requiredPasses.join('|')+')$','-count=1','-timeout=30s','-v'],
-      env:{...env,GOPROXY:'off',GOTOOLCHAIN:'local',GOFLAGS:'-mod=readonly',GOWORK:'off'},requiredPasses,sourceCommit:'463562ad5edacd8678b00472aafdc104cc4ada7a',
-      sourceTree:'6af5591869a964561d89a717a1fa13b9d029eb2b',sourcePins:{'go.mod':'b9d7b1000986dad89c87ca0a1e1758636b5f6cdc','go.sum':'4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2',internal:'d39b4a8aeff715292e54cd82a49241f80ac55e89','cmd/ynx-consensus-perf-client':'261a70b1e4f532e5b621d11b1660c5d2412b110a'},
+      env:{...env,GOPROXY:'off',GOTOOLCHAIN:'local',GOFLAGS:'-mod=readonly',GOWORK:'off'},requiredPasses,sourceCommit:'dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c',
+      sourceTree:'e64976938ff04ea3968589c45b879b6c89db9465',sourcePins:{'go.mod':'b9d7b1000986dad89c87ca0a1e1758636b5f6cdc','go.sum':'4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2',internal:'d39b4a8aeff715292e54cd82a49241f80ac55e89','cmd/ynx-consensus-perf-client':'0b03f3ea50294ffc0d24c2252de08ed5e97e80ed'},
       caps:{activeMs:30000,totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024**2,scratchBytes:512*1024**2,threads:320,diskFloorBytes:1024**3,rootReserveBytes:425*1024**2},
       interpretation:'Only original performance-client correctness, no Protocol overlay/CI replacement, nodes or benchmark. Fixed Go source/dependencies; driver may be a clean later script-only descendant. Fresh Root scheduling and unchanged native normal pressure gate required.'};
   }
@@ -24,16 +24,33 @@ export function lightCommand(root, stoppedWindow, nativeCompile = false, clientR
   return {mode:'stopped_replay',command:'nice',args:['-n','10',binary,'-test.run','^(TestStoppedNetworkReplay|TestStoppedReadySenderAccountReadback)$','-test.count=1','-test.v','-test.timeout=45s'],env:{...env,YNX_CHAIN_STOPPED_WINDOW:window},window,binary,binarySHA256:'a77ce29169a4277df163a4cb4b156e32f7a7d3cf2b99bb75d1a6ae66853a19cc'};
 }
 
-export function lightScratchBytes(root,maxEntries=8192){
+export function lightScratchBytes(root,maxEntries=8192,onVanish=()=>{}){
  let total=0,entries=0;
+ const originalRoot=fs.lstatSync(root);
+ if(originalRoot.isSymbolicLink()||!originalRoot.isDirectory())throw Error('scratch root identity unavailable');
+ function confirmedGone(p,stage,error){
+  if(error.code!=='ENOENT'||p===root)throw error;
+  try{fs.lstatSync(p);}catch(second){
+   if(second.code!=='ENOENT')throw second;
+   onVanish({relativePath:path.relative(root,p),stage,firstCode:error.code,secondCode:second.code,confirmedAbsent:true});return true;
+  }
+  throw Error('scratch path recreated during inventory');
+ }
  function walk(p){
   if(++entries>maxEntries)throw Error('scratch inventory bound');
-  const st=fs.lstatSync(p);if(st.isSymbolicLink())throw Error('scratch symlink refused');
-  if(st.isDirectory()){for(const name of fs.readdirSync(p))walk(path.join(p,name));}
-  else if(st.isFile()){total+=Math.max(st.size,st.blocks*512);if(!Number.isSafeInteger(total))throw Error('scratch byte accounting invalid');}
+  let st;
+  try{st=fs.lstatSync(p);}catch(error){if(confirmedGone(p,'lstat',error))return;}
+  if(st.isSymbolicLink())throw Error('scratch symlink refused');
+  if(st.isDirectory()){
+   let names;try{names=fs.readdirSync(p);}catch(error){if(confirmedGone(p,'readdir',error))return;}
+   for(const name of names)walk(path.join(p,name));
+  }else if(st.isFile()){total+=Math.max(st.size,st.blocks*512);if(!Number.isSafeInteger(total))throw Error('scratch byte accounting invalid');}
   else throw Error('scratch nonregular file refused');
  }
- walk(root);return total;
+ walk(root);
+ const after=fs.lstatSync(root);
+ if(after.isSymbolicLink()||!after.isDirectory()||originalRoot.dev!==after.dev||originalRoot.ino!==after.ino)throw Error('scratch root identity changed');
+ return total;
 }
 
 export function requireClientRegressionPasses(plan,stdout){
@@ -55,14 +72,14 @@ export function clientRegressionArgs(plan,remainingMs){
 }
 
 export function clientOwnedRSSCap(plan,rootCase){
- if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10'].includes(rootCase))throw Error('unsupported explicit client resource case');
+ if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12'].includes(rootCase))throw Error('unsupported explicit client resource case');
  if(rootCase!==undefined&&plan.mode!=='client_regression')throw Error('explicit RSS case requires fixed client regression');
- if(['client13-normal-09','client13-normal-10'].includes(rootCase))return 768*1024**2;
- return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10'].includes(rootCase)?512*1024**2:400*1024**2;
+ if(['client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12'].includes(rootCase))return 768*1024**2;
+ return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12'].includes(rootCase)?512*1024**2:400*1024**2;
 }
 
 export function lightProbeInput(root,rootCase){
- return ['client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
+ return ['client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
 }
 
 // Inventory original stopped data; the proof outputs live outside this set.
@@ -109,4 +126,19 @@ export function requireStoppedProofPasses(stdout){
  const passed=[...stdout.matchAll(/^--- PASS: (Test[^ /]+) \(/gm)].map(m=>m[1]);
  if(/^\s*--- (?:FAIL|SKIP):/m.test(stdout)||passed.length!==2||names.some(n=>!passed.includes(n))||!/^PASS$/m.test(stdout))throw Error('both actual stopped proof functions must pass without skips');
  return passed;
+}
+
+export function requireReadySupplyPhases(stdout){
+ const rows=[...stdout.matchAll(/YNX_READY_SUPPLY_PHASE_V1 (\{[^\n]+\})/g)].map(m=>JSON.parse(m[1]));
+ const modes=['flat-full-history','flat-reused-slots','segmented-reused-slots'];
+ if(rows.length!==3||new Set(rows.map(r=>r.mode)).size!==3||modes.some(m=>!rows.some(r=>r.mode===m)))throw Error('three complete actual phase modes required');
+ for(const r of rows){
+  const s=r.supply;
+  if(r.schema!=='ynx-ready-supply-phase-sample-v1'||r.businessTransactions!==6||r.finalizeCalls!==6||r.commitCalls!==6||!s||s.signAttempts!==3||s.encodeAttempts!==3||s.signedSuccessors!==3||s.journalDurableEnvelopes!==6||!Number.isSafeInteger(s.journalDurableBytes)||s.journalDurableBytes<=0||!Number.isSafeInteger(s.journalAppendAttempts)||s.journalAppendAttempts<2||['offerDecodeAttempts','pacingWaitAttempts','dispatchAttempts','terminalSinkAttempts'].some(k=>s[k]!==6))throw Error('phase counters do not match actual six-business-input scenario');
+  for(const [object,keys]of [[r,['controllerNs','finalizeNs','commitNs','terminalCloseNs','restartReadNs']],[s,['signNs','encodeNs','journalSetupNs','journalAppendNs','offerDecodeNs','pacingWaitNs','dispatchNs','terminalSinkNs']]])for(const k of keys)if(!Number.isSafeInteger(object[k])||object[k]<=0)throw Error('actual positive phase duration required: '+k);
+  if(!Number.isSafeInteger(s.completionWaitAttempts)||s.completionWaitAttempts<0||!Number.isSafeInteger(s.completionWaitNs)||s.completionWaitNs<0)throw Error('invalid completion wait timing');
+  if(r.finalizeNs>r.controllerNs||r.commitNs>r.controllerNs||['signNs','encodeNs','journalSetupNs','journalAppendNs','offerDecodeNs','pacingWaitNs','dispatchNs','completionWaitNs','terminalSinkNs'].some(k=>s[k]>r.controllerNs))throw Error('phase duration exceeds actual controller interval');
+  r.phaseMs=Object.fromEntries([['successorSign',s.signNs],['successorEncode',s.encodeNs],['intentSetup',s.journalSetupNs],['intentAppend',s.journalAppendNs],['offerDecode',s.offerDecodeNs],['pacingWait',s.pacingWaitNs],['dispatch',s.dispatchNs],['completionWait',s.completionWaitNs],['terminalSink',s.terminalSinkNs],['finalize',r.finalizeNs],['durableCommit',r.commitNs],['terminalClose',r.terminalCloseNs],['restartRead',r.restartReadNs],['controllerElapsed',r.controllerNs]].map(([name,ns])=>[name,ns/1e6]));
+ }
+ return rows;
 }
