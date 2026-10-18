@@ -79,6 +79,9 @@ test('normal07 binds the actual instrumented probe while defaults retain the fro
  assert.deepEqual(lightProbeInput('/work','client13-normal-07'),{path:'/work/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages',sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'});
  assert.deepEqual(lightProbeInput('/work'),{path:'/work/artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure',sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'});
  const p=lightCommand('/work',undefined,false,true);
- assert.equal(clientOwnedRSSCap(p,'client13-normal-07'),512*1024**2);
+ for(const c of ['client13-normal-07','client13-normal-08']){
+ assert.equal(clientOwnedRSSCap(p,c),512*1024**2);
+ assert.deepEqual(lightProbeInput('/work',c),lightProbeInput('/work','client13-normal-07'));
+ }
  assert.equal(p.caps.ownedRSSBytes,400*1024**2);
 });

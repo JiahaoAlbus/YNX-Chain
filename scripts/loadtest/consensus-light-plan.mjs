@@ -55,11 +55,11 @@ export function clientRegressionArgs(plan,remainingMs){
 }
 
 export function clientOwnedRSSCap(plan,rootCase){
- if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07'].includes(rootCase))throw Error('unsupported explicit client resource case');
+ if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08'].includes(rootCase))throw Error('unsupported explicit client resource case');
  if(rootCase!==undefined&&plan.mode!=='client_regression')throw Error('explicit RSS case requires fixed client regression');
- return ['client13-normal-05','client13-normal-06','client13-normal-07'].includes(rootCase)?512*1024**2:400*1024**2;
+ return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08'].includes(rootCase)?512*1024**2:400*1024**2;
 }
 
 export function lightProbeInput(root,rootCase){
- return rootCase==='client13-normal-07'?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
+ return ['client13-normal-07','client13-normal-08'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
 }

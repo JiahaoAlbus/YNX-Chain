@@ -1,0 +1,236 @@
+{
+  "case": "client13-normal-08",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-08.json",
+  "rawSha256": "392968ed3fe793a2ff0e97d186af9b79c424346eee632d5d5d4565af35fc967e",
+  "startedAt": "2026-10-18T03:11:08.991Z",
+  "launcher": 14892,
+  "controllerSession": 57276,
+  "terminalCode": 1,
+  "elapsedMs": 18142,
+  "sourceChecks": [
+    {
+      "head": "c91e538aa4e860141fcdd8793b05002b3c1dfd45",
+      "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "1614f4ad2bc419612f3aba5bde492ad24a9920b6"
+      }
+    },
+    {
+      "head": "c91e538aa4e860141fcdd8793b05002b3c1dfd45",
+      "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "1614f4ad2bc419612f3aba5bde492ad24a9920b6"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "3cc48395176d1a0a2c296e138fa48151923a7ffbd1d61844f71d4262c864f19e",
+    "consensus-light-plan.mjs": "637be92ed8b5094be18028f7147cdda87194af331c583595154cdcd0b64c8f65",
+    "native-resource-sample.mjs": "f0f4b0bf0e0c81d9058f65faa1830d0d0fb0cd0071186407e0b037aa857ad6c5",
+    "owned-process-race.mjs": "a3ac57c2dfc95f565f6ec65991959a0877ec28978d2088e3eaa2379df9e1ef26",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "hostBinary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages",
+    "sha256": "bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d"
+  },
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=22041ms",
+    "-v"
+  ],
+  "ownedRSSCapBytes": 536870912,
+  "cacheBefore": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3370659840,
+      11753926656
+    ],
+    "totalBytes": 15124586496,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cacheAfter": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3370659840,
+      11753926656
+    ],
+    "totalBytes": 15124586496,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T03:11:09.084Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29907,
+      "endedAt": "2026-10-18T03:11:16.949Z"
+    },
+    {
+      "startedAt": "2026-10-18T03:11:19.494Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 19497,
+      "endedAt": "2026-10-18T03:11:27.051Z"
+    }
+  ],
+  "cacheNetGrowthBytes": 0,
+  "go": {
+    "pid": 14934,
+    "code": null,
+    "signal": "SIGKILL",
+    "stdout": "",
+    "stderr": "",
+    "exited": true
+  },
+  "actualPassedFunctions": [],
+  "firstCause": "512MiB control/owned RSS cap (native readable lower bound)",
+  "peakAcceptedSampleRSS": 371458048,
+  "peakReadableRSSLowerBoundBytes": 580812800,
+  "peakThreads": 17,
+  "peakScratchBytes": 49741824,
+  "lastAttemptedResourceSample": {
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 14892,
+        "readable": true,
+        "rssBytes": 64241664,
+        "virtualBytes": 501371469824,
+        "threads": 7
+      },
+      {
+        "pid": 14934,
+        "readable": true,
+        "rssBytes": 40730624,
+        "virtualBytes": 475980070912,
+        "threads": 5
+      },
+      {
+        "pid": 14947,
+        "readable": true,
+        "rssBytes": 318767104,
+        "virtualBytes": 476209872896,
+        "threads": 3
+      },
+      {
+        "pid": 14960,
+        "readable": true,
+        "rssBytes": 15581184,
+        "virtualBytes": 500638367744,
+        "threads": 1
+      },
+      {
+        "pid": 14961,
+        "readable": true,
+        "rssBytes": 137953280,
+        "virtualBytes": 500768030720,
+        "threads": 11
+      }
+    ],
+    "watchedRssBytes": 577273856,
+    "watchedThreads": 27,
+    "samplerRssBytes": 1769472,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 580812800,
+    "threadsWithControlReserve": 29,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 1,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 760,
+      "uid": 501,
+      "uidProcessCount": 576,
+      "unreadableBsdInfo": 184,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 3120,
+      "capacityBytes": 7216,
+      "returnedBytes": 3044,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 761,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 760,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 576,
+      "esrch": 0,
+      "eperm": 184,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 1219
+  },
+  "lastProbe": {
+    "command": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages",
+    "args": [
+      "--full",
+      "14892",
+      "14934",
+      "14947",
+      "14960",
+      "14961"
+    ],
+    "launcherPID": 14892,
+    "launcherParentPID": 1093,
+    "runtime": {
+      "platform": "darwin",
+      "arch": "arm64",
+      "node": "v26.7.0"
+    },
+    "spawnRequestedAt": "2026-10-18T03:11:19.481Z",
+    "spawnedAt": "2026-10-18T03:11:19.481Z",
+    "spawnElapsedMs": 0.4678330000006099,
+    "startedAt": "2026-10-18T03:11:19.481Z",
+    "pid": 14963,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":14892,\"readable\":true,\"rssBytes\":64241664,\"virtualBytes\":501371469824,\"threads\":7},{\"pid\":14934,\"readable\":true,\"rssBytes\":40730624,\"virtualBytes\":475980070912,\"threads\":5},{\"pid\":14947,\"readable\":true,\"rssBytes\":318767104,\"virtualBytes\":476209872896,\"threads\":3},{\"pid\":14960,\"readable\":true,\"rssBytes\":15581184,\"virtualBytes\":500638367744,\"threads\":1},{\"pid\":14961,\"readable\":true,\"rssBytes\":137953280,\"virtualBytes\":500768030720,\"threads\":11}],\"watchedRssBytes\":577273856,\"watchedThreads\":27,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":580812800,\"threadsWithControlReserve\":29,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":760,\"uid\":501,\"uidProcessCount\":576,\"unreadableBsdInfo\":184,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3120,\"capacityBytes\":7216,\"returnedBytes\":3044,\"queryErrno\":0,\"readErrno\":0,\"slots\":761,\"nonPositiveEntries\":1,\"positiveEntries\":760,\"duplicateEntries\":0,\"readableBsdInfo\":576,\"esrch\":0,\"eperm\":184,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1219}\n",
+    "stderr": "{\"stage\":\"main_entry\",\"pid\":14963,\"elapsedMicroseconds\":0}\n{\"stage\":\"arguments_validated\",\"pid\":14963,\"elapsedMicroseconds\":5}\n{\"stage\":\"watched_query_begin\",\"pid\":14963,\"watchedPID\":14892,\"index\":0}\n{\"stage\":\"watched_query_end\",\"pid\":14963,\"watchedPID\":14892,\"index\":0,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"watched_query_begin\",\"pid\":14963,\"watchedPID\":14934,\"index\":1}\n{\"stage\":\"watched_query_end\",\"pid\":14963,\"watchedPID\":14934,\"index\":1,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"watched_query_begin\",\"pid\":14963,\"watchedPID\":14947,\"index\":2}\n{\"stage\":\"watched_query_end\",\"pid\":14963,\"watchedPID\":14947,\"index\":2,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"watched_query_begin\",\"pid\":14963,\"watchedPID\":14960,\"index\":3}\n{\"stage\":\"watched_query_end\",\"pid\":14963,\"watchedPID\":14960,\"index\":3,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"watched_query_begin\",\"pid\":14963,\"watchedPID\":14961,\"index\":4}\n{\"stage\":\"watched_query_end\",\"pid\":14963,\"watchedPID\":14961,\"index\":4,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"self_query_begin\",\"pid\":14963,\"elapsedMicroseconds\":27}\n{\"stage\":\"self_query_end\",\"pid\":14963,\"elapsedMicroseconds\":28}\n{\"stage\":\"pressure_query_begin\",\"pid\":14963,\"elapsedMicroseconds\":29}\n{\"stage\":\"pressure_query_end\",\"pid\":14963,\"elapsedMicroseconds\":33}\n{\"stage\":\"list_query\",\"pid\":14963,\"elapsedMicroseconds\":33}\n{\"stage\":\"list_returned\",\"pid\":14963,\"elapsedMicroseconds\":120}\n{\"stage\":\"bsd_scan_complete\",\"pid\":14963,\"elapsedMicroseconds\":613}\n{\"stage\":\"fork_begin\",\"pid\":14963,\"elapsedMicroseconds\":622}\n{\"stage\":\"wait_begin\",\"pid\":14963,\"elapsedMicroseconds\":955}\n{\"stage\":\"fork_complete\",\"pid\":14963,\"elapsedMicroseconds\":1214}\n",
+    "exited": true,
+    "groupGone": true,
+    "elapsedMs": 3.294625000000451
+  },
+  "raceObservations": [],
+  "exitedDuringSample": [],
+  "groupGone": true,
+  "retryExecuted": false,
+  "interpretation": "Fixed repaired Go candidate started but actual native readable RSS lower bound exceeded explicit 512MiB case cap, guard killed Go before output. Accepted-sample peak is not the actual peak. No test PASS or throughput evidence; no automatic cap increase or retry."
+}
