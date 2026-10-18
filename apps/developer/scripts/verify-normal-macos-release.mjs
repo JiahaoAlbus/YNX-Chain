@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { join, resolve, posix } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
+import { createDmgMountWorkspace } from './package-macos-branding.mjs';
 export async function hashFile(path) {
   const hash = createHash('sha256'); for await (const bytes of createReadStream(path)) hash.update(bytes); return hash.digest('hex');
 }
@@ -40,7 +41,8 @@ export async function verifyNormalMacRelease({ app, dmg, core, corePin, source, 
     nativeGUI: 'NOT_VERIFIED', publication: 'NOT_EXECUTED', fullGoalComplete: false };
   const save = () => writeFile(join(output, 'whole-app-readback.json'), JSON.stringify(record, null, 2) + '\n');
   await save();
-  const temporary = join(output, 'temporary'), mount = join(temporary, 'volume');
+  const temporary = join(output, 'temporary');
+  let mountWorkspace, mount;
   let mounted = false, mountAttempted = false;
   try {
     const git = (...args) => execFileSync('/usr/bin/git', args, { cwd: source, encoding: 'utf8' }).trim();
@@ -67,7 +69,14 @@ export async function verifyNormalMacRelease({ app, dmg, core, corePin, source, 
       dmg: { path: dmg, bytes: (await lstat(dmg)).size, sha256: await hashFile(dmg) },
       appInventory: { entries: before.length, files: before.filter(p => p.type === 'file').length,
         symlinks: before.filter(p => p.type === 'symlink').length, sha256: await hashFile(join(output, 'whole-app-manifest.json')) } });
-    await mkdir(temporary, { mode: 0o700 }); await mkdir(mount, { mode: 0o700 });
+    await mkdir(temporary, { mode: 0o700 });
+    // Use the same validated, UID-owned system-temp mount view as the normal
+    // DMG producer. Large inventories and core extraction stay on the build
+    // volume; no image bytes or executable payload are copied to system temp.
+    mountWorkspace = await createDmgMountWorkspace();
+    mount = join(mountWorkspace, 'mount');
+    record.mountWorkspace = mountWorkspace;
+    await mkdir(mount, { mode: 0o700 });
     mountAttempted = true; record.mountState = 'ATTACH_ENTERED'; await save();
     execFileSync('/usr/bin/hdiutil', ['attach', '-readonly', '-nobrowse', '-mountpoint', mount, dmg], { stdio: 'pipe' });
     mounted = true; record.mountState = 'MOUNTED';
@@ -87,6 +96,7 @@ export async function verifyNormalMacRelease({ app, dmg, core, corePin, source, 
     assertSameInventory(await wholeInventory(app), before, 'App after readback');
     record.appUnchanged = true;
     await rm(temporary, { recursive: true });
+    await rm(mountWorkspace, { recursive: true });
     record.successfulOwnedScratchRemoved = true; record.state = 'NORMAL_SAME_SOURCE_WHOLE_APP_DMG_CORE_READBACK_PASS';
     await save(); return record;
   } catch (error) {
