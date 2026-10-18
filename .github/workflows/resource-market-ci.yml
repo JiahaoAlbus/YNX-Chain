@@ -787,8 +787,19 @@ jobs:
           test "$(grep -c 'cold loader accepted a rehashed packet that changed immutable source label coverage or its deterministic risk summary' "$YNX_TRUST_RED_LOG")" -eq 4
           go test -p 1 -count=1 -timeout=90s -v -run '^TestLegacyTrustSourceEvidenceCannotDropOriginalLabelAfterRehash$' ./internal/consensus
       - name: Verify Whole BFT gateway and native container readback
+        id: pqgateway
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        env:
+          YNX_PQ_STAKING_ORIGINALS_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-staking-originals-public-interop.json
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
+      - name: Upload only public classic staking originals and actual HTTP interoperability fixture
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqgateway.outcome == 'success') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-staking-originals-public-interop-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-pq-staking-originals-public-interop.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Verify existing Chain readback and recovery after protocol integration
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration') }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/mutationfreeze ./internal/indexer ./internal/explorer ./internal/faucet ./cmd/ynx-indexerd

@@ -444,7 +444,7 @@ def assert_workflow_contract(raw):
     ordinary = [step for step in steps if id(step) not in required and not step.startswith("      - uses:")]
     # Every old normal step keeps its original condition as the right operand.
     # A missing dispatch input is false, so !false && (old) preserves push.
-    need(len(steps) == 69 and len(ordinary) == 60)
+    need(len(steps) == 70 and len(ordinary) == 61)
     need(all(condition(step).startswith("${{ !inputs.consensus_remote_e2e_retained_history && (")
              and condition(step).endswith(") }}") for step in ordinary))
     need("  proof-verifier-macos:\n    needs: focused-go\n    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n" in raw)

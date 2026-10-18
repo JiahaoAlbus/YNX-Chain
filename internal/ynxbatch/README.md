@@ -33,9 +33,16 @@ https://github.com/cloudflare/circl/tree/v1.6.5/sign/slhdsa .
 accepts complete messages already authorized by the caller, creates its own
 fresh 16-byte batch ID and returns a private Batch only after both signatures.
 `Extract`, `Batch.CertificateWire` and `Batch.WholeWire` return detached public
-values. `PrivateKey.Destroy` disables further signing but does not promise
-physical erasure of Go/upstream allocations. No key export or recovery format
-is defined in this package; the Wallet owner controls protected backup handling.
+values. `ExportKeyMaterial` / `ImportKeyMaterial` share the original
+`YNX-BATCH/KEY-MATERIAL/v1` profile: exact 54-byte seed-only ML-DSA-87 PKCS8,
+150-byte SLH-DSA-SHA2-256f PKCS8 and both full public keys. Import recomputes both
+keys and the SLH root. Material fields are excluded from JSON and default string
+formatting is redacted; callers must not log the byte fields. `KeyMaterial.Clear`
+best-effort clears explicit buffers. `PrivateKey.Destroy` disables signing and
+export, without promising physical erasure of Go/upstream allocations. Wallet
+owns encryption, provenance, network/account binding and trusted recovery policy;
+import does not grant account authority. Callers must exclusively borrow material
+during import and clear their independent plaintext copies after protected use.
 
 `NewVerifier` requires a trusted 32-byte chain identifier, purpose and registration
 resolver. A resolver must read authoritative state for the supplied execution

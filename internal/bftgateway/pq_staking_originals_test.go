@@ -8,7 +8,10 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +21,136 @@ import (
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 )
+
+// Only explicit public fields enter this DATA fixture. In particular, neither
+// the fixture's key objects nor its full private Application checkpoint is
+// serializable through this DTO. Every byte slice is JSON base64, preserving
+// canonical transaction and actual HTTP bytes without parsing ledger integers
+// through a JavaScript number. HTTP paths are relative, never local server URLs.
+type pqStakingOriginalsPublicFixture struct {
+	Version                     string                            `json:"version"`
+	Classification              string                            `json:"classification"`
+	SourceTest                  string                            `json:"sourceTest"`
+	SyntheticOnly               bool                              `json:"syntheticOnly"`
+	ApplicationExecution        string                            `json:"applicationExecution"`
+	CometTransport              string                            `json:"cometTransport"`
+	ActualCometNode             bool                              `json:"actualCometNode"`
+	IndependentFinality         bool                              `json:"independentFinality"`
+	DeployedSourceQualification bool                              `json:"deployedSourceQualification"`
+	NativeGrant                 bool                              `json:"nativeGrant"`
+	Owner                       string                            `json:"owner"`
+	NativeChainID               string                            `json:"nativeChainId"`
+	NetworkID                   string                            `json:"networkId"`
+	ClassicOriginals            []pqStakingOriginalsPublicClassic `json:"classicOriginals"`
+	PQAction                    pqStakingOriginalsPublicAction    `json:"pqAction"`
+	HTTP                        []pqStakingOriginalsPublicHTTP    `json:"http"`
+	ColdRecoveryVerified        bool                              `json:"coldRecoveryVerified"`
+	PostCount                   string                            `json:"postCount"`
+}
+
+type pqStakingOriginalsPublicClassic struct {
+	Raw             []byte `json:"raw"`
+	TransactionHash string `json:"transactionHash"`
+	PublicKey       string `json:"publicKey"`
+	Signature       string `json:"signature"`
+}
+
+type pqStakingOriginalsPublicAction struct {
+	MemberWire            []byte `json:"memberWire"`
+	Transport             []byte `json:"transport"`
+	NativeTransactionHash string `json:"nativeTransactionHash"`
+	ABCITransactionHash   string `json:"abciTransactionHash"`
+	MemberCount           string `json:"memberCount"`
+	MemberIndex           string `json:"memberIndex"`
+	ExecutionHeight       string `json:"executionHeight"`
+	CometIndex            string `json:"cometIndex"`
+}
+
+type pqStakingOriginalsPublicHTTP struct {
+	Name                string `json:"name"`
+	Method              string `json:"method"`
+	Path                string `json:"path"`
+	RequestContentType  string `json:"requestContentType"`
+	RequestBody         []byte `json:"requestBody"`
+	StatusCode          string `json:"statusCode"`
+	ResponseContentType string `json:"responseContentType"`
+	CacheControl        string `json:"cacheControl"`
+	ResponseBody        []byte `json:"responseBody"`
+}
+
+// This records the same requests used by the lifecycle assertions below. It
+// neither resends a POST nor manufactures a response from the decoded view.
+func stakingOriginalsHTTP(t *testing.T, serverURL, name, path, contentType string, body []byte) pqStakingOriginalsPublicHTTP {
+	t.Helper()
+	method := http.MethodGet
+	if body != nil {
+		method = http.MethodPost
+	}
+	request, err := http.NewRequest(method, serverURL+path, bytes.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if contentType != "" {
+		request.Header.Set("Content-Type", contentType)
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	raw, err := io.ReadAll(io.LimitReader(response.Body, consensus.MaxPQWalletQueryBytes+1))
+	if err != nil || len(raw) > consensus.MaxPQWalletQueryBytes {
+		t.Fatalf("public staking response exceeds its existing query bound: %v", err)
+	}
+	if response.Header.Get("Cache-Control") != "no-store" {
+		t.Fatal("staking original response is cacheable")
+	}
+	return pqStakingOriginalsPublicHTTP{
+		Name: name, Method: method, Path: path, RequestContentType: contentType,
+		RequestBody: bytes.Clone(body), StatusCode: strconv.Itoa(response.StatusCode),
+		ResponseContentType: response.Header.Get("Content-Type"), CacheControl: response.Header.Get("Cache-Control"),
+		ResponseBody: raw,
+	}
+}
+
+// Normal tests create no artifact. An explicitly requested output is created
+// only after the real lifecycle and cold-read assertions pass. O_EXCL retains
+// existing files and failed partial writes; there is no cleanup or retry path.
+func exportPQStakingOriginalsPublicFixture(t *testing.T, fixture pqStakingOriginalsPublicFixture) {
+	t.Helper()
+	path := os.Getenv("YNX_PQ_STAKING_ORIGINALS_FIXTURE_OUT")
+	if path == "" || t.Failed() {
+		return
+	}
+	if !filepath.IsAbs(path) || filepath.Clean(path) != path || strings.TrimSpace(path) != path {
+		t.Fatal("staking fixture output must be an explicit absolute new file")
+	}
+	raw, err := json.MarshalIndent(fixture, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw = append(raw, '\n')
+	if len(raw) > 8<<20 {
+		t.Fatal("public staking fixture exceeds its bounded export size")
+	}
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, writeErr := file.Write(raw); writeErr != nil || n != len(raw) {
+		_ = file.Close()
+		t.Fatalf("public staking fixture write incomplete: %v", writeErr)
+	}
+	if err = file.Sync(); err != nil {
+		_ = file.Close()
+		t.Fatal(err)
+	}
+	if err = file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(raw)
+	t.Logf("PQ_STAKING_ORIGINALS_PUBLIC_FIXTURE version=%s bytes=%d sha256=%x classification=data syntheticOnly=true actualCometNode=false independentFinality=false nativeGrant=false", fixture.Version, len(raw), sum)
+}
 
 // Only the configured Comet HTTP/index transport is substituted. Original
 // classic signatures, current dual signatures, CheckTx, FinalizeBlock, Commit,
@@ -171,7 +304,22 @@ func TestGatewayPQStakingClassicOriginalWitnessHTTPAndColdRecovery(t *testing.T)
 	m := newPQMock(t, f)
 	setGatewayAction(t, m, wire, raw, 4)
 	server := gatewayPQServer(t, m)
-	code, view := actionHTTP(t, server.URL+"/transactions/pq/actions/broadcast", "application/json", raw)
+	var publicHTTP []pqStakingOriginalsPublicHTTP
+	readActionHTTP := func(name, path, contentType string, body []byte) (int, PQActionView) {
+		t.Helper()
+		record := stakingOriginalsHTTP(t, server.URL, name, path, contentType, body)
+		var view PQActionView
+		if err := json.Unmarshal(record.ResponseBody, &view); err != nil {
+			t.Fatal(err)
+		}
+		status, err := strconv.Atoi(record.StatusCode)
+		if err != nil {
+			t.Fatal(err)
+		}
+		publicHTTP = append(publicHTTP, record)
+		return status, view
+	}
+	code, view := readActionHTTP("broadcast", "/transactions/pq/actions/broadcast", "application/json", raw)
 	if code != http.StatusOK || !view.Committed || view.Status != "committed" || view.Source != "comet-rpc" || view.Type != ynxauth.ActionStakeUnbond || view.From != f.owner || view.To != id || view.Amount != 7 || view.Fee != 1 || view.Nonce != 3 || view.ExecutionHeight != 4 || view.CometIndex == nil || *view.CometIndex != 0 || view.NativeTransactionHash != consensus.SignedTransactionHash(wire) || view.ABCITransactionHash != consensus.SignedTransactionHash(raw) || view.NativeTransactionHash == view.ABCITransactionHash || !bytes.Equal(view.Wire, wire) || !bytes.Equal(view.Transport, raw) {
 		t.Fatalf("normal HTTP original-backed staking failed: %d %+v", code, view)
 	}
@@ -228,23 +376,20 @@ func TestGatewayPQStakingClassicOriginalWitnessHTTPAndColdRecovery(t *testing.T)
 	if publicFee.TxHash != classicFees[0].TxHash || publicFee.BlockHeight != "2" || publicFee.GrossFeeYNXT != "1" {
 		t.Fatal("public legacy fee identity or decimal-string execution coordinates differ")
 	}
-	readHTTPPolicy := func() (consensus.PQWalletAccountView, []byte) {
+	readHTTPPolicy := func(name string) (consensus.PQWalletAccountView, []byte) {
 		t.Helper()
-		response, err := http.Get(server.URL + "/accounts/" + f.owner + "/authorization")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer response.Body.Close()
-		body, err := io.ReadAll(io.LimitReader(response.Body, consensus.MaxPQWalletQueryBytes+1))
+		record := stakingOriginalsHTTP(t, server.URL, name, "/accounts/"+f.owner+"/authorization", "", nil)
+		body := record.ResponseBody
 		var public consensus.PQWalletAccountView
-		if err != nil || len(body) > consensus.MaxPQWalletQueryBytes || response.StatusCode != http.StatusOK || response.Header.Get("Cache-Control") != "no-store" || json.Unmarshal(body, &public) != nil || !reflect.DeepEqual(public, policy) {
+		if record.StatusCode != strconv.Itoa(http.StatusOK) || json.Unmarshal(body, &public) != nil || !reflect.DeepEqual(public, policy) {
 			t.Fatal("normal HTTP account policy did not retain its complete registered history")
 		}
+		publicHTTP = append(publicHTTP, record)
 		return public, body
 	}
-	_, publicPolicy := readHTTPPolicy()
+	_, publicPolicy := readHTTPPolicy("authorization")
 	for _, route := range []string{view.ReadbackURL, view.ABCIReadbackURL} {
-		code, got := actionHTTP(t, server.URL+route, "", nil)
+		code, got := readActionHTTP("original", route, "", nil)
 		if code != http.StatusOK || !reflect.DeepEqual(got, view) {
 			t.Fatal("native or ABCI HTTP original lookup changed the committed result")
 		}
@@ -263,12 +408,12 @@ func TestGatewayPQStakingClassicOriginalWitnessHTTPAndColdRecovery(t *testing.T)
 	if !reflect.DeepEqual(coldHistory, history) || !reflect.DeepEqual(after, queryPQGatewayAccount(t, cold, f.owner)) || !reflect.DeepEqual(feeAfter, queryPQGatewayAccount(t, cold, feeRecipient)) || !reflect.DeepEqual(fees, readFees()) {
 		t.Fatal("cold recovery changed original bytes, policy, fee history or staking funds")
 	}
-	_, coldPolicy := readHTTPPolicy()
+	_, coldPolicy := readHTTPPolicy("cold-authorization")
 	if !bytes.Equal(publicPolicy, coldPolicy) {
 		t.Fatal("cold HTTP policy differs from the same committed original")
 	}
 	for _, route := range []string{view.ReadbackURL, view.ABCIReadbackURL} {
-		code, got := actionHTTP(t, server.URL+route, "", nil)
+		code, got := readActionHTTP("cold-original", route, "", nil)
 		if code != http.StatusOK || !reflect.DeepEqual(got, view) {
 			t.Fatal("cold native or ABCI HTTP lookup lost its original witness")
 		}
@@ -280,4 +425,17 @@ func TestGatewayPQStakingClassicOriginalWitnessHTTPAndColdRecovery(t *testing.T)
 	if posts != 1 || !bytes.Equal(beforeCold, disk) || !os.SameFile(beforeColdInfo, info) || !beforeColdInfo.ModTime().Equal(info.ModTime()) {
 		t.Fatal("cold/readback rewrote original disk or repeated the one authorized HTTP POST")
 	}
+	exportPQStakingOriginalsPublicFixture(t, pqStakingOriginalsPublicFixture{
+		Version: "YNX-PQ-STAKING-ORIGINALS-INTEROP/v1", Classification: "data", SourceTest: t.Name(),
+		SyntheticOnly: true, ApplicationExecution: "real-abci", CometTransport: "application-backed-http-mock",
+		ActualCometNode: false, IndependentFinality: false, DeployedSourceQualification: false, NativeGrant: false,
+		Owner: f.owner, NativeChainID: strconv.FormatInt(policy.NativeChainID, 10), NetworkID: policy.NetworkID,
+		ClassicOriginals: []pqStakingOriginalsPublicClassic{{Raw: classicRaw, TransactionHash: consensus.ApplicationActionHash(classicRaw), PublicKey: delegation.PublicKey, Signature: delegation.Signature}},
+		PQAction: pqStakingOriginalsPublicAction{
+			MemberWire: wire, Transport: raw, NativeTransactionHash: view.NativeTransactionHash, ABCITransactionHash: view.ABCITransactionHash,
+			MemberCount: strconv.FormatUint(uint64(member.Certificate.N), 10), MemberIndex: strconv.FormatUint(uint64(member.Index), 10),
+			ExecutionHeight: strconv.FormatUint(view.ExecutionHeight, 10), CometIndex: strconv.FormatUint(uint64(*view.CometIndex), 10),
+		},
+		HTTP: publicHTTP, ColdRecoveryVerified: true, PostCount: strconv.Itoa(posts),
+	})
 }
