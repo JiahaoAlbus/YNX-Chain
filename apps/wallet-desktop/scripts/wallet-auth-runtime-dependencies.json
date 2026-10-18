@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "sdkCommit": "31bb24a5a315d3ba0b3bcdddf542af0943b0c4ef",
+  "sdkCommit": "cbf12aaaeae9ce3c93ceaed8f597b3c3e0c25c66",
   "provider": {
     "version": "0.1.0-candidate.2",
     "bytes": 17804,
@@ -1594,5 +1594,6 @@
       "bytes": 2472,
       "sha256": "93c41d45d78dce23ec449b214e29a6a161d154ed8dd2a40fe79fb0f67c7f647f"
     }
-  ]
+  ],
+  "profile": "Original IDE service and PQ provider;316 fixed bytes. WalletConnect runtime additionally requires clean SDK lock119 install with nested1.x; do not use this316 alone for WalletConnect."
 }

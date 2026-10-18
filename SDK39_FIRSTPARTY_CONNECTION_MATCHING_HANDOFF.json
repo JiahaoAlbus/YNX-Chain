@@ -1,0 +1,55 @@
+{
+  "state": "SOURCE_AND_CONTROLLED_COMBINATION_VERIFIED_NORMAL_BUILDS_PENDING",
+  "baseCommit": "9f34a03021ff683aca1e8791075d608c72968d0c",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "sdk": {
+    "version": "1.3.0-pq.3.9",
+    "sourceCommit": "cbf12aaaeae9ce3c93ceaed8f597b3c3e0c25c66",
+    "sourceTree": "9f495298c028750e8c54f97b73ae615cd324f93b",
+    "formalHandoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3i-20261018/SDK_PQ_R3I_HANDOFF.json",
+    "handoffBytes": 4278,
+    "handoffSha256": "74657b92e8c97495e731ffae0dab963981bbdf9002c0cdcffa6b8605bf1c1085",
+    "archiveBytes": 930977,
+    "archiveSha256": "615373667052430fcb5ea4b837321d57bb3733efc7c7bec724a0604d55bbd26e",
+    "allPackedLeavesMatchedSourceAndLocal": 243,
+    "exactSupplierBeforeAfterSourceDelta": 8,
+    "ci": "39099929783 / job117593932257: supplier actual80PASS and three hermetic types0 reused, not rerun",
+    "scope": "Original supplier source copied exactly; no SDK-owning implementation edits or A33 native replacement"
+  },
+  "dependencySelection": {
+    "fullSDKLock": "packages/wallet-auth/package-lock.json",
+    "fullSDKLockBytes": 68084,
+    "fullSDKLockSha256": "3d900249e953573543206c77031c8e37c6688f01056fcdfb19c961ca839d4643",
+    "cleanInstallRoot": "/Users/huangjiahao/.codex/worktrees/wallet-wc-address-profile/YNX Chain/packages/wallet-auth/node_modules",
+    "supplierCleanInstalledPackages": 119,
+    "normalBuildRequirement": "A uses this exact full lock/clean dependency closure in its new isolated stage; do not reuse SDK38 broad override closure or treat PQ316 as WC closure",
+    "WC": "SignClient/Core2.23.10 with required nested Noble1.x, real dynamic import and namespace validation already supplier CI verified",
+    "PQ": "Direct pinned Noble2.2 and provider candidate.2 bytes remain unchanged",
+    "PQManifest": "apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json",
+    "PQManifestEqualsSupplier": true,
+    "PQManifestSha256": "9f00e7b716b7f923ddad6c0e1c662cdf7558792c312632ba3b8f6a12800ca305",
+    "localFullWCInstallNotPerformed": true
+  },
+  "includedWalletChanges": ["04d normal first-party address-only HTML/CSS/UI and build entry", "9f34 cancel/late-stage fence and saved before/after raw", "Earlier PNG Save title, exact uint64 QA export, relay status event updates and closed Native package-evidence guard"],
+  "newCombinationValidation": [
+    {"test": "apps/wallet-desktop/test/walletconnect-address-sdk-matching.test.mjs", "pass": 1, "fail": 0, "durationMs": 37.370875, "scope": "Actual same-copy SDK39 factory and App controller; public synthetic SignClient only, no real Relay", "raw": "apps/wallet-desktop/test/walletconnect-address-sdk39-matching-20261018.raw"},
+    {"test": "apps/wallet-desktop/test/walletconnect-session-binding.test.mjs", "pattern": "first-party address-only", "pass": 1, "fail": 0, "durationMs": 345.784958, "scope": "Actual receiver retains empty methods; sign/transfer/identity and all remote requests denied"}
+  ],
+  "reusedNotRerun": ["Previous12 App page/controller controls", "SDK80/types/real dynamic-client dependency controls", "A33 original module and source closure"],
+  "normalBrowserBuild": {
+    "owner": "Sole original A via Root",
+    "argvAfterPinnedNode": ["apps/wallet-desktop/scripts/build-wallet-connection-page.mjs", "ABSOLUTE_CANONICAL_NEW_OUTPUT_DIRECTORY"],
+    "requires": "New selected SDK39 full119 install including exact local esbuild0.25.9; public SDK export and actual SC/Core resolve must stay in selected SDK closure",
+    "entry": "apps/wallet-desktop/web-connect/entry.mjs",
+    "route": "https://wallet.ynxweb4.com/connect/",
+    "publication": "Existing Wallet website origin only, preserve current other routes; never a new product or issuer"
+  },
+  "normalMacBuild": {
+    "owner": "Sole original A",
+    "argvAfterPinnedNodeFromDesktopCwd": ["scripts/build-mac.mjs", "arm64", "--config.electronDist=/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r65-normal-mac-matching-20261017/electron-dist", "--config.npmRebuild=false"],
+    "A33ModuleSha256": "0ebfb6277f5c6bc40609404978624d192defe86fd465003ebfc9baff35b9eef7",
+    "A33ReceiptSha256": "445c0b0ab02a9e8321e6406dfab7669d995f4b1522bfc1e1c3e409fae2e4433c",
+    "require": "New immutable matching stage, full canonical source and dependency readback; do not repeat SDK38 package or hot-overlay an installed app"
+  },
+  "notClaimed": ["Actual normal browser build or published /connect/ route", "New SDK39 matching App/install", "Actual Relay/QR/proposal/address permission acceptance", "MONSTER run", "IDE-private legal Source qualification", "Any signature or funds transfer"]
+}

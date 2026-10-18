@@ -6,7 +6,9 @@ export const YNX_PAIR_PROJECT_ID='41857128a14a593ca4e4a7cb7c838d71';
 const LEGACY_METHODS=Object.freeze(['personal_sign','ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn']);
 const PRIVATE_METHODS=Object.freeze(['ynx_requestProductSessionV2']);
 const IDENTITY_METHODS=Object.freeze(['ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn']);
+const ADDRESS_ORIGIN='https://wallet.ynxweb4.com';
 const ORIGIN_METHODS=new Map([
+  [ADDRESS_ORIGIN,Object.freeze([])],
   ...['finance','exchange','quant','wallet-auth'].map(host=>[`https://${host}.ynxweb4.com`,LEGACY_METHODS]),
   ...['social','assistant','video','creator'].map(host=>[`https://${host}.ynxweb4.com`,PRIVATE_METHODS]),
   ...['web4','docs','calendar','mail','developer','shop'].map(host=>[`https://${host}.ynxweb4.com`,IDENTITY_METHODS]),
@@ -59,7 +61,7 @@ const corePairings=client=>client.core.pairing.pairings.getAll();
 export class WalletConnectDAppConnection{
   #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;#cancelledAttempt=0;
   constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now()}={}){
-    if(!ORIGIN_METHODS.has(origin)||!Array.isArray(methods)||!methods.length||new Set(methods).size!==methods.length||methods.some(method=>!ORIGIN_METHODS.get(origin).includes(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_CONFIGURATION_INVALID');
+    if(!ORIGIN_METHODS.has(origin)||!Array.isArray(methods)||(!methods.length&&origin!==ADDRESS_ORIGIN)||new Set(methods).size!==methods.length||methods.some(method=>!ORIGIN_METHODS.get(origin).includes(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_CONFIGURATION_INVALID');
     if(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>120000)fail('YNX_PAIR_CONFIGURATION_INVALID');
     this.#origin=origin;this.#methods=[...methods];this.#factory=clientFactory??(options=>officialClient(options,this));this.#deadline=deadlineMs;this.#now=now;
   }
@@ -94,6 +96,8 @@ export class WalletConnectDAppConnection{
     if(url.origin!=='https://wallet.ynxweb4.com'||url.username||url.password)fail('YNX_PAIR_PEER_INVALID');
     const namespaces=session.namespaces;if(!namespaces||Object.keys(namespaces).join(',')!=='eip155')fail('YNX_PAIR_NAMESPACE_INVALID');
     const value=namespaces.eip155;
+    // Address-only sessions must never carry remote RPC or identity grants.
+    if(this.#origin===ADDRESS_ORIGIN&&(!Array.isArray(value.methods)||value.methods.length!==0))fail('YNX_PAIR_NAMESPACE_INVALID');
     if(!Array.isArray(value.accounts)||value.accounts.length!==1||!/^eip155:6423:0x[0-9a-fA-F]{40}$/.test(value.accounts[0])||!Array.isArray(value.methods)||this.#methods.some(method=>!value.methods.includes(method))||value.methods.some(method=>!WALLETCONNECT_SESSION_METHODS.includes(method)||(!ORIGIN_METHODS.get(this.#origin).includes(method)&&!READ_METHODS.has(method))))fail('YNX_PAIR_NAMESPACE_INVALID');
     if(value.chains&&(!Array.isArray(value.chains)||value.chains.length!==1||value.chains[0]!==WALLETCONNECT_CHAIN))fail('YNX_PAIR_CHAIN_INVALID');
     return session;
@@ -158,4 +162,10 @@ export class WalletConnectDAppConnection{
     const result=await this.#wait(this.#client.request({topic:session.topic,chainId:WALLETCONNECT_CHAIN,request:{method,params},expiry:300}));
     if(this.#epoch!==epoch||this.#session!==session)fail('YNX_PAIR_CONTEXT_CHANGED');this.#validate(session);return result;
   }
+}
+
+/** Address sharing only; uses the original SignClient lifetime and persistence. */
+export function createWalletAddressConnection(options={}){
+  if(!options||typeof options!=='object'||Array.isArray(options)||Reflect.ownKeys(options).some(key=>!['clientFactory','deadlineMs','now'].includes(key)))fail('YNX_PAIR_CONFIGURATION_INVALID');
+  return new WalletConnectDAppConnection({...options,origin:ADDRESS_ORIGIN,methods:[]});
 }

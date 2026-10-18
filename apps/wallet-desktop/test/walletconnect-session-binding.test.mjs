@@ -167,3 +167,16 @@ test("unsupported required namespaces and proposals without Testnet never reach 
   assert.deepEqual(visible, []);
   assert.deepEqual(invalid, Array(4).fill("UNSUPPORTED_WALLETCONNECT_NAMESPACE"));
 });
+test('first-party address-only proposal retains empty methods and cannot authorize any remote RPC',async()=>{
+ const visible=[],f=await fixture({sessions:[],handlers:{onSessionProposal:value=>visible.push(value.id)}});
+ await f.transport.pair(pairURI);
+ const input=proposal(301,{eip155:{chains:[WALLETCONNECT_CHAIN],methods:[],events:[...WALLETCONNECT_EVENTS]}});
+ input.params.proposer.metadata.url='https://wallet.ynxweb4.com';await f.handlers.get('session_proposal')(input);
+ assert.deepEqual(visible,[301]);assert.deepEqual(f.transport.proposalPermissions(301).methods,[]);
+ await f.transport.bindProposalAccount(301,ACCOUNT_A);await f.transport.approveSession(301,ACCOUNT_A);
+ assert.deepEqual(f.approvals[0].namespaces.eip155,{chains:[WALLETCONNECT_CHAIN],accounts:[`${WALLETCONNECT_CHAIN}:${ACCOUNT_A}`],methods:[],events:[...WALLETCONNECT_EVENTS]});
+ for(const method of ['personal_sign','eth_signTypedData_v4','eth_sendTransaction','ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn','eth_accounts']){
+  assert.throws(()=>f.transport.authorizeRequest({topic:'approved-topic',id:100,params:{chainId:WALLETCONNECT_CHAIN,request:{method,params:[]}}},ACCOUNT_A),code('UNAUTHORIZED_WALLETCONNECT_METHOD'));
+ }
+ assert.deepEqual(f.responses,[]);
+});
