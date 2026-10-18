@@ -1,0 +1,97 @@
+{
+  "kind": "single-original-client-regression-window",
+  "plan": {
+    "mode": "client_regression",
+    "command": "nice",
+    "args": [
+      "-n",
+      "10",
+      "/opt/homebrew/bin/go",
+      "test",
+      "-p",
+      "1",
+      "./cmd/ynx-consensus-perf-client",
+      "-run",
+      "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+      "-count=1",
+      "-timeout=30s",
+      "-v"
+    ],
+    "env": {
+      "GOMAXPROCS": "1",
+      "GOGC": "50",
+      "GOMEMLIMIT": "160MiB",
+      "GOPROXY": "off",
+      "GOTOOLCHAIN": "local",
+      "GOFLAGS": "-mod=readonly",
+      "GOWORK": "off"
+    },
+    "requiredPasses": [
+      "TestReadyIntentSegmentsPersistAndStreamExactSignedInputs",
+      "TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence",
+      "TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding",
+      "TestReadySenderSegmentedIntentBarrierAndRecovery",
+      "TestReadySenderSegmentedIntentFailureNeverSubmits",
+      "TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts",
+      "TestSegmentedIntentOptionsRequireBoundedEvidenceMode",
+      "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+      "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+      "TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves",
+      "TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged",
+      "TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix",
+      "TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption"
+    ],
+    "sourceCommit": "7cf9d332ddb6cd32cd7663da6dda5282d12a9b39",
+    "sourceTree": "124d2521d783c7dc91370a5b031342aa84bad8a2",
+    "sourcePins": {
+      "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+      "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+      "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+      "cmd/ynx-consensus-perf-client": "605730a6967b987cf31e57e824de007b9015d7b4"
+    },
+    "caps": {
+      "activeMs": 30000,
+      "totalMs": 45000,
+      "cleanupMs": 15000,
+      "ownedRSSBytes": 419430400,
+      "scratchBytes": 536870912,
+      "threads": 320,
+      "diskFloorBytes": 1073741824,
+      "rootReserveBytes": 445644800
+    },
+    "interpretation": "Only original performance-client correctness, no Protocol overlay/CI replacement, nodes or benchmark. Fixed Go source/dependencies; driver may be a clean later script-only descendant. Fresh Root scheduling and unchanged native normal pressure gate required."
+  },
+  "sourceReference": "7cf9d332ddb6cd32cd7663da6dda5282d12a9b39",
+  "pins": [
+    {
+      "path": "scripts/loadtest/consensus-light-plan.mjs",
+      "bytes": 4851,
+      "sha256": "f18875bfdcfba35c8431cc7e79603df064e10f0161f7a252f8e72d55a219dcc6"
+    },
+    {
+      "path": "scripts/loadtest/consensus-light-plan.test.mjs",
+      "bytes": 3905,
+      "sha256": "97915dc4b14a71e3e93dcc25496ea6379577068f7ffab974fe718f9ed3a4289a"
+    },
+    {
+      "path": "scripts/loadtest/consensus-light-window.mjs",
+      "bytes": 12247,
+      "sha256": "3fff36e37b95811056f4bfb8a6618c9dff8592047da0b2ac017a0bf344f2d647"
+    }
+  ],
+  "budget": {
+    "retainedComparableTestBinaryBytes": 30703538,
+    "tempAndPositiveCacheGrowthCapBytes": 536870912,
+    "estimatedNewPrivatePeakBytes": 100663296,
+    "estimatedNewWarmCacheBytes": 67108864,
+    "estimateProven": false,
+    "actualMemoryAdmission": "unchanged native dispatch1/fork/owned RSS400MiB",
+    "cache": "read-only go env only AFTER admission; original cache occupancy before/after separate; no global changes; negative/unknown attribution refuses qualification"
+  },
+  "actualLightPlanControls": {
+    "passed": 7,
+    "goTestsExecuted": false
+  },
+  "authority": "Root granted one original normal admission after fixed plan and Node controls; refuse once and retain, no loop/alternate entry",
+  "scope": "Only own old performance-client correctness; no Protocol code/CI replacement, network nodes or benchmark"
+}
