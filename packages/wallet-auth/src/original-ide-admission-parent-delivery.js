@@ -183,3 +183,72 @@ export async function acquireOriginalIDEPrivateServiceChannel(actualEntryURL){
 }
 /** Cleanup-only lookup for a failed selection, including falsy rejection. */
 export function getOriginalIDEPrivateServiceChannelCleanup(actualEntryURL){return clientState(actualEntryURL)?.cleanup??null;}
+
+// Independent cold DATA selection. Never reads or reconstructs selectedParent.
+let selectedColdCustody=null;
+const coldNames={capture:'acquireOriginalIDEColdTerminalCustody',ready:'assertOriginalHostTerminalJournalReady',read:'readOriginalHostRetainedTerminalCustody',retire:'retireOriginalHostTerminalJournal',join:'joinOriginalHostTerminalJournal',close:'closeOriginalHostTerminalJournal'};
+function latchCold(s,cause){if(!s.firstCausePresent){s.firstCausePresent=true;s.firstCause=cause;}}
+function currentCold(s){
+ if(s.retired||s.firstCausePresent)throw s.firstCausePresent?s.firstCause:clientError('IDE_COLD_CUSTODY_RETIRED');
+ if(!s.ready||s.methods.ready(s.owner)!==undefined)throw clientError('IDE_COLD_CUSTODY_NOT_READY');
+}
+function retireCold(s,...cause){
+ s.retired=true;if(cause.length)latchCold(s,cause[0]);
+ if(s.retireSelected){if(s.retireFailed)throw s.retireCause;return undefined;}s.retireSelected=true;
+ try{if(s.owner){if(s.methods.retire(s.owner)!==undefined)throw clientError('IDE_COLD_RETIRE_INCOMPLETE');}else if(s.captureEntered)throw clientError('IDE_COLD_CAPTURE_CUSTODY_UNKNOWN');}
+ catch(error){s.retireFailed=true;s.retireCause=error;throw error;}
+}
+function joinCold(s){
+ if(!s.joining){s.joining=Promise.resolve().then(async()=>{await s.promise.catch(()=>{});if(!s.retireSelected)throw clientError('IDE_COLD_NOT_RETIRED');if(s.owner){if(s.methods.join(s.owner)!==undefined)throw clientError('IDE_COLD_JOIN_INCOMPLETE');}else if(s.captureEntered)throw clientError('IDE_COLD_CAPTURE_CUSTODY_UNKNOWN');});void s.joining.catch(()=>{});}return s.joining;
+}
+function closeCold(s){
+ if(s.closing)return s.closing;
+ // Cancellation is visible immediately, including before acquire/import resumes.
+ s.retired=true;
+ s.closing=Promise.resolve().then(async()=>{
+  await s.promise.catch(()=>{});
+  let failed=false,cause;const attempt=async fn=>{try{if(await fn()!==undefined)throw clientError('IDE_COLD_CLEANUP_INCOMPLETE');}catch(error){if(!failed){failed=true;cause=error;}}};
+  await attempt(()=>retireCold(s));await attempt(()=>joinCold(s));
+  await attempt(()=>{if(s.owner){if(s.methods.close(s.owner)!==undefined)throw clientError('IDE_COLD_CLOSE_INCOMPLETE');}else if(s.captureEntered)throw clientError('IDE_COLD_CAPTURE_CUSTODY_UNKNOWN');});
+  if(failed){s.cleanupFailurePresent=true;s.cleanupCause=cause;latchCold(s,cause);throw cause;}s.cleanupComplete=true;
+ });void s.closing.catch(()=>{});return s.closing;
+}
+function readCold(s,raw){
+ try{
+  currentCold(s);const input=s.payload.decodeOriginalIDEColdTerminalCustodyRequest(raw),key=input.requestId;
+  if(s.rows.has(key)||s.rows.size>=64)throw clientError('IDE_COLD_TERMINAL_ALREADY_SELECTED');
+  const row={raw,proof:null,data:null};s.rows.set(key,row); // Reserve before Native entry; never replay a refusal.
+  row.proof=s.methods.read(s.owner,raw); // Retain before validation and late current fence.
+  const data=s.payload.captureOriginalIDEColdTerminalCustodyData(row.proof,raw);
+  currentCold(s);row.data=data;return data;
+ }catch(cause){latchCold(s,cause);throw cause;}
+}
+function assertColdEntry(actualEntryURL){
+ if(typeof actualEntryURL!=='string')fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');
+ let entry;try{const url=new URL(actualEntryURL);if(url.protocol!=='file:'||url.host||url.search||url.hash)fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');entry=fileURLToPath(url);}catch{fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');}
+ if(resolve(entry)!==entry||entry!==join(dirname(entry),'server.mjs')||typeof process.argv[1]!=='string'||resolve(process.argv[1])!==entry)fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');
+}
+/** Fixed Native cold reader only. Null startup selection is never a grant and
+ * does not disable Native's independently qualified original Source acquisition. */
+export async function acquireOriginalIDEColdTerminalCustody(actualEntryURL){
+ assertColdEntry(actualEntryURL);
+ if(selectedColdCustody){if(selectedColdCustody.entry!==actualEntryURL)throw clientError('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');if(selectedColdCustody.firstCausePresent||selectedColdCustody.retired)throw selectedColdCustody.firstCausePresent?selectedColdCustody.firstCause:clientError('IDE_COLD_CUSTODY_RETIRED');return selectedColdCustody.promise;}
+ const s={entry:actualEntryURL,owner:null,methods:null,captureEntered:false,ready:false,retired:false,rows:new Map(),firstCausePresent:false,firstCause:undefined,retireSelected:false,retireFailed:false,retireCause:undefined,joining:null,closing:null,cleanupComplete:false,cleanupFailurePresent:false,cleanupCause:undefined,promise:null,payload:null};
+ const cleanup=Object.freeze({retire:(...cause)=>retireCold(s,...cause),join:()=>joinCold(s),close:()=>closeCold(s),status:()=>Object.freeze({ready:s.ready,retired:s.retired,unknown:true,retained:s.rows.size,firstCausePresent:s.firstCausePresent,cleanupFailurePresent:s.cleanupFailurePresent,cleanupComplete:s.cleanupComplete})});
+ s.cleanup=cleanup;s.client=Object.freeze({...cleanup,readTerminalCustody:raw=>readCold(s,raw)});selectedColdCustody=s;
+ s.promise=Promise.resolve().then(async()=>{
+  try{
+   if(s.retired)throw clientError('IDE_COLD_CUSTODY_RETIRED');
+   const native=requireNative(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
+   if(Object.values(coldNames).some(name=>typeof native[name]!=='function'))throw clientError('IDE_COLD_IMPLEMENTATION_NOT_SUPPLIED');
+   s.methods=Object.freeze(Object.fromEntries(Object.entries(coldNames).map(([k,name])=>[k,native[name]])));
+   s.captureEntered=true;s.owner=s.methods.capture();
+   if(!s.owner||typeof s.owner!=='object'||s.methods.ready(s.owner)!==undefined)throw clientError('IDE_COLD_CUSTODY_NOT_READY');
+   s.payload=await import('./original-ide-private-payload.js');
+   if(s.retired)throw s.firstCausePresent?s.firstCause:clientError('IDE_COLD_CUSTODY_RETIRED');
+   if(s.methods.ready(s.owner)!==undefined)throw clientError('IDE_COLD_CUSTODY_NOT_READY');s.ready=true;return s.client;
+  }catch(cause){latchCold(s,cause);throw cause;}
+ });void s.promise.catch(()=>{});return s.promise;
+}
+/** Cleanup-only lookup also remains available after falsy partial failures. */
+export function getOriginalIDEColdTerminalCustodyCleanup(actualEntryURL){return selectedColdCustody?.entry===actualEntryURL?selectedColdCustody.cleanup:null;}

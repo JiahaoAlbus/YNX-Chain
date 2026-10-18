@@ -45,3 +45,21 @@ export declare function acquireOriginalIDEPrivateServiceChannel(actualRunningEnt
 /** Same selected partial custody after rejection, including false/undefined.
  * Null only if this SDK has no selection for the exact running entry. */
 export declare function getOriginalIDEPrivateServiceChannelCleanup(actualRunningEntryURL: string): OriginalIDEPrivateClientCleanup | null;
+
+/** Retained cold DATA only; cannot dispatch, acknowledge or recover authority. */
+export interface OriginalIDEColdTerminalCustodyCleanup {
+  retire(...cause: [] | [unknown]): void;
+  join(): Promise<void>;
+  close(): Promise<void>;
+  status(): Readonly<{ready:boolean;retired:boolean;unknown:true;retained:number;firstCausePresent:boolean;cleanupFailurePresent:boolean;cleanupComplete:boolean}>;
+}
+export interface OriginalIDEColdTerminalCustody extends OriginalIDEColdTerminalCustodyCleanup {
+  readTerminalCustody(canonicalOriginalRequestRaw:string): Readonly<{
+    proof:Readonly<{responseRaw:string;responseDigest:string;requestDigest:string;associationDigest:string;stateBeforeDigest:string;stateAfterDigest:string;stateFileDigest:string;enteredDigest:string;recordVersion:1|2|3;success:boolean;dataOnly:true;effectRetryAuthorized:false;nativeAdmission:false}>;
+    response:OriginalIDEPrivateServiceResponse;
+  }>;
+}
+/** Same fixed running backend and Native Source; no caller-selected provider,
+ * module, parent, association or grant. Failed acquisition is never retried. */
+export declare function acquireOriginalIDEColdTerminalCustody(actualRunningEntryURL:string):Promise<OriginalIDEColdTerminalCustody>;
+export declare function getOriginalIDEColdTerminalCustodyCleanup(actualRunningEntryURL:string):OriginalIDEColdTerminalCustodyCleanup|null;

@@ -64,3 +64,23 @@ export function captureOriginalIDEPrivateTerminalCustodyData(proof,canonicalInpu
  try{const input=decodeOriginalWalletServicePrivateRequest(canonicalInput);response=parseOriginalIDEPrivateResponse(proof.responseRaw,input.requestId);if(proof.success!==(response.status<300))invalid();}catch{invalid();}
  return Object.freeze({proof:Object.freeze({...proof}),response});
 }
+
+/** R44 retained cold journal DATA. Native alone checks Source association.
+ * Deliberately separate from the qualified, exact ten-field R30a parser. */
+export function captureOriginalIDEColdTerminalCustodyData(proof,canonicalInput){
+ const invalid=()=>{throw new WalletAuthError('IDE_PRIVATE_TERMINAL_CUSTODY_INVALID','Original cold terminal DATA is invalid');};
+ if(!proof||types.isProxy(proof)||Object.getPrototypeOf(proof)!==Object.prototype)invalid();
+ const fields=['responseRaw','responseDigest','requestDigest','associationDigest','stateBeforeDigest','stateAfterDigest','stateFileDigest','enteredDigest','recordVersion','success','dataOnly','effectRetryAuthorized','nativeAdmission'];
+ const descriptors=Object.getOwnPropertyDescriptors(proof);
+ if(Reflect.ownKeys(descriptors).length!==fields.length||Reflect.ownKeys(descriptors).some(k=>typeof k!=='string'||!fields.includes(k)||!Object.hasOwn(descriptors[k],'value')||!descriptors[k].enumerable))invalid();
+ if(proof.dataOnly!==true||proof.effectRetryAuthorized!==false||proof.nativeAdmission!==false||['responseDigest','requestDigest','associationDigest','stateBeforeDigest','stateAfterDigest','stateFileDigest','enteredDigest'].some(k=>!hex(proof[k]))||![1,2,3].includes(proof.recordVersion)||typeof proof.success!=='boolean'||typeof proof.responseRaw!=='string'||Buffer.byteLength(proof.responseRaw)>65536||sha(proof.responseRaw)!==proof.responseDigest||typeof canonicalInput!=='string'||sha(canonicalInput)!==proof.requestDigest)invalid();
+ let response;
+ try{const input=decodeOriginalIDEColdTerminalCustodyRequest(canonicalInput);response=parseOriginalIDEPrivateResponse(proof.responseRaw,input.requestId);if(proof.success!==(response.status<300))invalid();}catch{invalid();}
+ return Object.freeze({proof:Object.freeze({...proof}),response});
+}
+export function decodeOriginalIDEColdTerminalCustodyRequest(raw){
+ if(typeof raw!=='string'||!raw.length||Buffer.byteLength(raw)>65536)throw new WalletAuthError('IDE_PRIVATE_TERMINAL_CUSTODY_INVALID','Original cold terminal request is invalid');
+ const input=decodeOriginalWalletServicePrivateRequest(raw);
+ if(input.carrierVersion!=='YNX-PRODUCT-SESSION-PRIVATE/v4'||input.operation!=='handleReturn'||input.phase!=='effect'||input.referenceAction!=='complete')throw new WalletAuthError('IDE_PRIVATE_TERMINAL_CUSTODY_INVALID','Original cold terminal request is invalid');
+ return input;
+}
