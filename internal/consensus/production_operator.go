@@ -523,16 +523,10 @@ func verifyProductionOperatorFiles(root string, p *ProductionOperatorPlan) error
 		}
 		// Use the same normal Comet config decoder; checking only substrings
 		// would allow a self-rehashed duplicate/altered config to redirect HRS.
-		v := viper.New()
-		v.SetConfigType("toml")
-		if err = v.ReadConfig(bytes.NewReader(config)); err != nil {
+		actual, err := decodeProductionOperatorCometConfig(config, r.Home)
+		if err != nil {
 			return err
 		}
-		actual := cmtconfig.DefaultConfig()
-		if err = v.UnmarshalExact(actual); err != nil {
-			return err
-		}
-		actual.SetRoot(r.Home)
 		var node ProductionValidatorNode
 		for _, n := range nodes {
 			if n.Role == r.Role {
@@ -540,6 +534,10 @@ func verifyProductionOperatorFiles(root string, p *ProductionOperatorPlan) error
 			}
 		}
 		wantConfig := productionOperatorCometConfig(node, nodes, r)
+		wantConfig, err = productionOperatorDecodedTemplate(wantConfig, r.Home)
+		if err != nil {
+			return err
+		}
 		if !reflect.DeepEqual(actual, wantConfig) {
 			return errors.New("operator config differs from pinned single-App/original-path template")
 		}
@@ -564,6 +562,42 @@ func verifyProductionOperatorFiles(root string, p *ProductionOperatorPlan) error
 		}
 	}
 	return nil
+}
+
+func decodeProductionOperatorCometConfig(raw []byte, home string) (*cmtconfig.Config, error) {
+	v := viper.New()
+	v.SetConfigType("toml")
+	if err := v.ReadConfig(bytes.NewReader(raw)); err != nil {
+		return nil, err
+	}
+	config := cmtconfig.DefaultConfig()
+	if err := v.UnmarshalExact(config); err != nil {
+		return nil, err
+	}
+	return config.SetRoot(home), nil
+}
+
+// Compare two normal decoded configurations, not a decoded configuration to
+// the in-memory template defaults. For example, the real template writes a nil
+// StateSync.RPCServers as rpc_servers="", which Viper decodes to []string{}.
+// Render through the original Comet writer so every field and derived default
+// remains covered. The temporary directory contains only this public template;
+// no package, original home, checkpoint, key or HRS path is written.
+func productionOperatorDecodedTemplate(config *cmtconfig.Config, home string) (*cmtconfig.Config, error) {
+	dir, err := os.MkdirTemp("", "ynx-operator-public-config-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+	path := filepath.Join(dir, "config.toml")
+	if err = writeCometConfig(path, config); err != nil {
+		return nil, err
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return decodeProductionOperatorCometConfig(raw, home)
 }
 
 func productionOperatorCometConfig(node ProductionValidatorNode, nodes []ProductionValidatorNode, r ProductionOperatorRole) *cmtconfig.Config {

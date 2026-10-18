@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -15,9 +16,109 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxconsensusauth"
 	abci "github.com/cometbft/cometbft/abci/types"
+	cmtconfig "github.com/cometbft/cometbft/config"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/privval"
+	"github.com/spf13/viper"
 )
+
+func TestProductionOperatorConfigNormalTOMLRoundTrip(t *testing.T) {
+	f := newProductionOperatorFixture(t, false, false)
+	r := f.plan.Roles[0]
+	var node ProductionValidatorNode
+	for _, n := range f.validators.Validators {
+		if n.Role == r.Role {
+			node = n
+		}
+	}
+	want := productionOperatorCometConfig(node, f.validators.Validators, r)
+	path := filepath.Join(t.TempDir(), "config.toml")
+	if err := writeCometConfig(path, want); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v := viper.New()
+	v.SetConfigType("toml")
+	if err = v.ReadConfig(bytes.NewReader(raw)); err != nil {
+		t.Fatal(err)
+	}
+	actual := cmtconfig.DefaultConfig()
+	if err = v.UnmarshalExact(actual); err != nil {
+		t.Fatal(err)
+	}
+	actual.SetRoot(r.Home)
+	if want.StateSync.RPCServers != nil || actual.StateSync.RPCServers == nil || len(actual.StateSync.RPCServers) != 0 {
+		t.Fatalf("unexpected real TOML field conversion: template RPCServers=%#v decoded=%#v", want.StateSync.RPCServers, actual.StateSync.RPCServers)
+	}
+	// This identifies the actual old comparison failure, while retaining a
+	// complete comparison of all other fields, including original custody paths.
+	want.StateSync.RPCServers = []string{}
+	if !reflect.DeepEqual(actual, want) {
+		t.Fatalf("normal TOML changed additional public config fields: actual=%#v expected=%#v", actual, want)
+	}
+	t.Log("normal TOML field difference: StateSync.RPCServers nil -> []string{}; all other fields identical")
+	plan, pin := productionOperatorPlanBytes(t, f.plan)
+	root := filepath.Join(t.TempDir(), "candidate")
+	if _, err = GenerateProductionCandidatePackageWithOperator(f.migration, f.validators, root, f.genesisTime, plan, pin); err != nil {
+		t.Fatalf("OPERATOR_NORMAL_TOML_ROUNDTRIP_REJECTED: %v", err)
+	}
+	if err = VerifyProductionOperatorCandidatePackage(root, pin); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestProductionOperatorConfigRejectsRehashedTOMLChanges(t *testing.T) {
+	f := newProductionOperatorFixture(t, false, false)
+	plan, pin := productionOperatorPlanBytes(t, f.plan)
+	for _, tc := range []struct {
+		name   string
+		change func([]byte) []byte
+	}{
+		{"duplicate", func(raw []byte) []byte { return append([]byte("moniker = \"injected\"\n"), raw...) }},
+		{"unknown", func(raw []byte) []byte { return append([]byte("operator_unknown = true\n"), raw...) }},
+		{"state-sync-servers", func(raw []byte) []byte {
+			return bytes.Replace(raw, []byte(`rpc_servers = ""`), []byte(`rpc_servers = "https://untrusted.invalid:443"`), 1)
+		}},
+		{"original-sign-state", func(raw []byte) []byte {
+			return bytes.ReplaceAll(raw, []byte(f.plan.Roles[0].LegacyStatePath), []byte("/var/lib/other-sign-state.json"))
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := filepath.Join(t.TempDir(), "candidate")
+			manifest, err := GenerateProductionCandidatePackageWithOperator(f.migration, f.validators, root, f.genesisTime, plan, pin)
+			if err != nil {
+				t.Fatal(err)
+			}
+			relative := filepath.Join("roles", f.plan.Roles[0].Role, "config", "config.toml")
+			path := filepath.Join(root, relative)
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			changed := tc.change(bytes.Clone(raw))
+			if bytes.Equal(raw, changed) {
+				t.Fatal("test did not change real config")
+			}
+			if err = os.WriteFile(path, changed, 0600); err != nil {
+				t.Fatal(err)
+			}
+			manifest.Files[relative] = productionOperatorSHA(changed)
+			if err = writeJSON(filepath.Join(root, "package-manifest.json"), manifest, 0600); err != nil {
+				t.Fatal(err)
+			}
+			if err = VerifyProductionOperatorCandidatePackage(root, pin); err == nil {
+				t.Fatal("self-rehashed TOML change accepted")
+			}
+			retained, err := os.ReadFile(path)
+			if err != nil || !bytes.Equal(retained, changed) {
+				t.Fatal("verification modified original rejected input", err)
+			}
+		})
+	}
+}
 
 type productionOperatorFixture struct {
 	migration   chain.ConsensusMigrationState
