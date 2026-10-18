@@ -447,13 +447,19 @@ func TransactionEnvelopeType(payload []byte) (string, error) {
 		}
 		return envelope.Type, nil
 	}
-	if envelope.Type != SignedTransactionType && envelope.Type != SignedActionType && envelope.Type != PQTransferType && envelope.Type != PQMigrationType && envelope.Type != PQRevocationType && envelope.Type != PQWholeType {
+	if envelope.Type == PQEthereumValueType {
+		if len(payload) > MaxPQEthereumTransactionBytes {
+			return "", errors.New("PQ Ethereum envelope size is invalid")
+		}
+		return envelope.Type, nil
+	}
+	if envelope.Type != SignedTransactionType && envelope.Type != SignedActionType && envelope.Type != PQTransferType && envelope.Type != PQMigrationType && envelope.Type != PQRevocationType && envelope.Type != PQWholeType && envelope.Type != PQEthereumValueType {
 		return "", fmt.Errorf("unsupported transaction envelope type %q", envelope.Type)
 	}
 	if envelope.Type != PQWholeType && len(payload) > MaxPQTransactionBytes {
 		return "", errors.New("PQ transaction envelope size is invalid")
 	}
-	if envelope.Type != PQTransferType && envelope.Type != PQMigrationType && envelope.Type != PQRevocationType && envelope.Type != PQWholeType && len(payload) > MaxSignedActionSize {
+	if envelope.Type != PQTransferType && envelope.Type != PQMigrationType && envelope.Type != PQRevocationType && envelope.Type != PQWholeType && envelope.Type != PQEthereumValueType && len(payload) > MaxSignedActionSize {
 		return "", errors.New("legacy transaction envelope size is invalid")
 	}
 	return envelope.Type, nil

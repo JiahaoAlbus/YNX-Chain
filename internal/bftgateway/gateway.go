@@ -315,6 +315,9 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /blocks/{height}", g.handleBlock)
 	g.mux.HandleFunc("POST /transactions/broadcast", g.handleBroadcastTransaction)
 	g.mux.HandleFunc("POST /transactions/pq/broadcast", g.handlePQMemberBroadcast)
+	g.mux.HandleFunc("POST /transactions/pq/ethereum/broadcast", g.handlePQEthereumBroadcast)
+	g.mux.HandleFunc("GET /transactions/pq/ethereum/{hash}", g.handlePQEthereumTransaction)
+	g.mux.HandleFunc("GET /transactions/pq/ethereum/originals/{hash}", g.handlePQEthereumOriginal)
 	g.mux.HandleFunc("POST /transactions/pq/actions/broadcast", g.handlePQActionBroadcast)
 	g.mux.HandleFunc("GET /transactions/pq/actions/{hash}", g.handlePQActionTransaction)
 	g.mux.HandleFunc("GET /transactions/pq/actions/originals/{hash}", g.handlePQActionOriginal)
@@ -683,6 +686,25 @@ func (g *Gateway) mapCometBlock(ctx context.Context, upstream cometBlock, expect
 	mappedIndexes := make([]int, len(upstream.Result.Block.Data.Txs))
 	for index, payload := range upstream.Result.Block.Data.Txs {
 		mappedIndexes[index] = -1
+		if isPQEthereumEnvelope(payload) {
+			if results == nil {
+				results, err = g.wholeBlockResults(ctx, expectedHeight, len(upstream.Result.Block.Data.Txs))
+				if err != nil {
+					return committedBlockEvidence{}, err
+				}
+			}
+			view, err := g.projectPQEthereum(ctx, cometTx{Hash: strings.TrimPrefix(consensus.SignedTransactionHash(payload), "0x"), Height: strconv.FormatUint(expectedHeight, 10), Index: uint32(index), Tx: payload, TxResult: results[index]}, nil, 0)
+			if err != nil {
+				return committedBlockEvidence{}, err
+			}
+			if !view.Committed || view.transaction.BlockHash != blockHash {
+				return committedBlockEvidence{}, errors.New("PQ Ethereum block projection lacks matching committed execution")
+			}
+			mappedIndexes[index] = len(transactions)
+			transactions = append(transactions, view.transaction)
+			order = append(order, CometTransactionReference{Hash: view.NativeTransactionHash, Type: consensus.PQEthereumValueType, CometIndex: uint32(index), Height: expectedHeight})
+			continue
+		}
 		if isWholeEnvelope(payload) {
 			if results == nil {
 				results, err = g.wholeBlockResults(ctx, expectedHeight, len(upstream.Result.Block.Data.Txs))
@@ -1060,6 +1082,20 @@ func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, view)
 		return
 	}
+	if isPQEthereumEnvelope(upstream.Result.Tx) {
+		view, err := g.lookupPQEthereumABCI(r.Context(), hash)
+		if err != nil || view.ABCITransactionHash != hash {
+			view.Status, view.Committed, view.Original = "unknown", false, nil
+			view.Error = "PQ Ethereum lookup evidence mismatch"
+			if err != nil {
+				view.Error = err.Error()
+			}
+			writeJSON(w, http.StatusAccepted, view)
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
+		return
+	}
 	ref, unsupported, err := unmappedPQTransaction(upstream.Result)
 	if err != nil || unsupported && ref.Hash != hash {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "PQ outer lookup mismatch"})
@@ -1161,6 +1197,16 @@ func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *Gateway) mapCometTransaction(ctx context.Context, upstream cometTx) (chain.Transaction, error) {
+	if isPQEthereumEnvelope(upstream.Tx) {
+		view, err := g.projectPQEthereum(ctx, upstream, nil, 0)
+		if err != nil {
+			return chain.Transaction{}, err
+		}
+		if !view.Committed {
+			return chain.Transaction{}, errors.New("PQ Ethereum transaction is not committed success")
+		}
+		return view.transaction, nil
+	}
 	if upstream.TxResult.Code != 0 {
 		return chain.Transaction{}, fmt.Errorf("CometBFT transaction result code %d is not committed success", upstream.TxResult.Code)
 	}

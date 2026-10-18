@@ -492,6 +492,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateConsensusPQNativeActions(s, migration); err != nil {
 		return err
 	}
+	if err := validateConsensusPQEthereumValues(s, migration); err != nil {
+		return err
+	}
 	if err := validatePQOrderedResourceUsage(s, migration); err != nil {
 		return err
 	}
@@ -683,10 +686,11 @@ func (s CommittedState) hasNonMigrationApplicationRecords() bool {
 func validateFeeEvents(events []BFTFeeEvent) error {
 	seen := make(map[string]struct{}, len(events))
 	for _, event := range events {
-		isEthereumType := event.TransactionType == EthereumLegacyTransferType || event.TransactionType == EthereumAccessListTransferType || event.TransactionType == EthereumDynamicFeeTransferType
+		isEthereumType := event.TransactionType == EthereumLegacyTransferType || event.TransactionType == EthereumAccessListTransferType || event.TransactionType == EthereumDynamicFeeTransferType || event.TransactionType == PQEthereumValueType
 		sourceValid := (event.TransactionType == EthereumLegacyTransferType && event.Source == EthereumLegacyGasFeeSource) ||
 			(event.TransactionType == EthereumAccessListTransferType && event.Source == EthereumAccessListGasFeeSource) ||
 			(event.TransactionType == EthereumDynamicFeeTransferType && event.Source == EthereumDynamicFeeGasFeeSource) ||
+			(event.TransactionType == PQEthereumValueType && event.Source == PQEthereumGasFeeSource) ||
 			(!isEthereumType && event.Source == FixedFeeSource)
 		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || !sourceValid || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || event.AuditHash != feeEventAuditHash(event) {
 			return errors.New("committed fee events must be complete and audit-bound")

@@ -226,7 +226,7 @@ func ValidateBFTEVMReceipt(receipt BFTEVMReceipt) error {
 		if !IsNativeAddress(receipt.To) || receipt.ContractAddress != "" {
 			return errors.New("committed IDE call receipt has invalid addresses")
 		}
-	case EthereumLegacyTransferType, EthereumAccessListTransferType, EthereumDynamicFeeTransferType:
+	case EthereumLegacyTransferType, EthereumAccessListTransferType, EthereumDynamicFeeTransferType, PQEthereumValueType:
 		if !IsNativeAddress(receipt.To) || receipt.From == receipt.To || receipt.ContractAddress != "" || receipt.EncodedResult != "0x" || receipt.OpcodeStepCount != 0 || len(receipt.StorageWrites) != 0 || len(receipt.Logs) != 0 {
 			return errors.New("committed Ethereum transfer receipt is outside the bounded value-transfer profile")
 		}

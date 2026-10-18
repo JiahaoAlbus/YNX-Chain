@@ -129,7 +129,7 @@ func (a *Application) prepareConsensusExecution(state executionState, height int
 func validateHistoricalRuntimeEnvelope(state executionState, kind string) error {
 	if state.hashVersion == 12 || state.hashVersion == 13 {
 		switch kind {
-		case ValidatorRegistryTransactionType, PQActionType, PQTransferType, PQMigrationType, PQRevocationType, PQWholeType:
+		case ValidatorRegistryTransactionType, PQActionType, PQTransferType, PQMigrationType, PQRevocationType, PQWholeType, PQEthereumValueType:
 			return errors.New("new protocol transaction is not admitted under the historical runtime profile")
 		}
 	}

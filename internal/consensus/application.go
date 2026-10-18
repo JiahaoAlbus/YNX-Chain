@@ -372,6 +372,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	if queryPQWallet(response, req, a.committed, a.migration) {
 		return response, nil
 	}
+	if queryPQEthereumValue(response, req, a.committed, a.migration) {
+		return response, nil
+	}
 	if queryPQAction(response, req, a.committed, a.migration) {
 		return response, nil
 	}
@@ -1059,6 +1062,9 @@ func (a *Application) applyTransactionAt(state executionState, payload []byte, h
 	if kind == PQActionType {
 		return a.applyPQActionTransaction(state, payload, height, blockTime)
 	}
+	if kind == PQEthereumValueType {
+		return a.applyPQEthereumValueTransaction(state, payload, height, blockTime)
+	}
 	if kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType || kind == PQWholeType {
 		return a.applyPQTransaction(state, payload, height, blockTime)
 	}
@@ -1193,6 +1199,30 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
+	return a.applyAuthorizedEthereumValueTransfer(state, authorizedEthereumValueTransfer{
+		EnvelopeType: tx.EnvelopeType, From: tx.From, To: tx.To, Hash: tx.Hash,
+		Nonce: tx.Nonce, GasLimit: tx.GasLimit, Value: tx.Value, Fee: tx.Fee,
+		MaximumGasFee: maximumGasFee,
+	}, height, blockTime)
+}
+
+// This private business view contains no signature or recovered ECDSA fields.
+// Each caller must first authenticate its original complete envelope and the
+// account's policy at the actual execution height.
+type authorizedEthereumValueTransfer struct {
+	EnvelopeType, From, To, Hash string
+	Nonce, GasLimit              uint64
+	Value, Fee, MaximumGasFee    int64
+}
+
+func (a *Application) applyAuthorizedEthereumValueTransfer(state executionState, tx authorizedEthereumValueTransfer, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	if tx.EnvelopeType != EthereumLegacyTransferType && tx.EnvelopeType != EthereumAccessListTransferType && tx.EnvelopeType != EthereumDynamicFeeTransferType && tx.EnvelopeType != PQEthereumValueType {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("unsupported authorized Ethereum business profile"))
+	}
+	if !IsNativeAddress(tx.From) || !IsNativeAddress(tx.To) || tx.From == tx.To || tx.Value <= 0 || tx.Fee <= 0 || tx.MaximumGasFee < tx.Fee || tx.GasLimit != EthereumTransferGasLimit {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("invalid authorized Ethereum business values"))
+	}
+	maximumGasFee := tx.MaximumGasFee
 	accounts := state.accounts
 	senderIndex, ok := accountIndex(accounts, tx.From)
 	if !ok {
@@ -1214,6 +1244,9 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	if _, exists := bftEVMReceiptIndex(state.evmReceipts, tx.Hash); exists {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, errors.New("Ethereum transaction hash was already committed"))
 	}
+	// The lot mover mutates the sender's map. Preserve the original amounts
+	// before either value or fee movement to update their trace provenance.
+	senderLotsBefore := cloneInt64Map(sender.Lots)
 
 	credits := map[string]int64{tx.To: tx.Value}
 	if credits[a.feeRecipient] > math.MaxInt64-tx.Fee {
@@ -1243,7 +1276,7 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	}
 
 	state.traceLots = cloneTraceLots(state.traceLots)
-	for lotID, oldAmount := range sender.Lots {
+	for lotID, oldAmount := range senderLotsBefore {
 		if accounts[senderIndex].Lots[lotID] < oldAmount {
 			if lot, ok := state.traceLots[lotID]; ok {
 				lot.LastInbound = tx.Hash
@@ -1269,6 +1302,8 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 		envelope = "ethereum_access_list_eip2930_empty"
 	} else if tx.EnvelopeType == EthereumDynamicFeeTransferType {
 		envelope = "ethereum_dynamic_fee_eip1559_zero_base_fee"
+	} else if tx.EnvelopeType == PQEthereumValueType {
+		envelope = "ynx_pq_ethereum_abci_integer_gas_v1"
 	}
 	return state, transactionExecution{
 		typeName: tx.EnvelopeType,

@@ -286,6 +286,33 @@ jobs:
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
+      - name: Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: |
+          YNX_ETH_FIXED="$RUNNER_TEMP/ynx-ethereum-fixed-application.go"
+          YNX_ETH_RED_LOG="$RUNNER_TEMP/ynx-ethereum-lot-provenance-red.log"
+          cp internal/consensus/application.go "$YNX_ETH_FIXED"
+          trap 'cp "$YNX_ETH_FIXED" internal/consensus/application.go' EXIT
+          # Preserve current entry points and types. Recreate only the original
+          # map alias, so a compile error cannot count as the provenance failure.
+          python3 -B - <<'PY'
+          from pathlib import Path
+          path = Path('internal/consensus/application.go')
+          text = path.read_text()
+          fixed = 'senderLotsBefore := cloneInt64Map(sender.Lots)'
+          assert text.count(fixed) == 1
+          path.write_text(text.replace(fixed, 'senderLotsBefore := sender.Lots'))
+          PY
+          set +e
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestEthereumClassicMovedLotProvenanceSurvivesColdRestart$' ./internal/consensus > "$YNX_ETH_RED_LOG" 2>&1
+          YNX_ETH_RED_STATUS=$?
+          set -e
+          cp "$YNX_ETH_FIXED" internal/consensus/application.go
+          trap - EXIT
+          cat "$YNX_ETH_RED_LOG"
+          test "$YNX_ETH_RED_STATUS" -ne 0
+          test "$(grep -c 'Ethereum moved lot retained its stale LastInbound provenance' "$YNX_ETH_RED_LOG")" -eq 3
+          go test -p 1 -count=1 -timeout=90s -v -run '^(TestEthereumClassicMovedLotProvenanceSurvivesColdRestart|TestABCIPQEthereumTraceLastInboundUsesOriginalLotAmounts)$' ./internal/consensus
       - name: Reproduce historical AA policy counterexamples against the original state validator
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |

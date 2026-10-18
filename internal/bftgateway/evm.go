@@ -186,6 +186,13 @@ func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw jso
 		if err != nil {
 			return nil, err
 		}
+		if tx.Type == consensus.PQEthereumValueType {
+			_, intent, err := consensus.DecodePQEthereumValueTransaction(upstream.Tx)
+			if err != nil {
+				return nil, err
+			}
+			return pqEthereumEVMReceipt(tx, upstream.Index, gasUsed, cumulativeGasUsed, upstream.Tx, intent), nil
+		}
 		var ideReceipt consensus.BFTEVMReceipt
 		if err := g.queryABCIJSON(ctx, "/evm/receipts/"+hash, &ideReceipt); err == nil {
 			if err := consensus.ValidateBFTEVMReceipt(ideReceipt); err != nil {
@@ -848,6 +855,18 @@ func (g *Gateway) committedTransaction(ctx context.Context, hash string) (cometT
 	if isWholeEnvelope(upstream.Result.Tx) {
 		return cometTx{}, chain.Transaction{}, false, errors.New("PQ Whole is a native batch container; Ethereum transaction and receipt projection is unsupported; query /transactions/pq/wholes/ with the original ABCI hash")
 	}
+	if isPQEthereumEnvelope(upstream.Result.Tx) {
+		// The PQ reader requires explicit original index/result fields; the
+		// ordinary compatibility struct cannot distinguish omitted index from 0.
+		view, err := g.lookupPQEthereumABCI(ctx, hash)
+		if err != nil {
+			return cometTx{}, chain.Transaction{}, false, err
+		}
+		if view.ABCITransactionHash != hash {
+			return cometTx{}, chain.Transaction{}, false, errors.New("PQ Ethereum outer lookup hash mismatch")
+		}
+		return view.indexed, view.transaction, view.Committed, nil
+	}
 	if _, unsupported, err := unmappedPQTransaction(upstream.Result); unsupported || err != nil {
 		return cometTx{}, chain.Transaction{}, false, errors.New("native PQ envelope Ethereum projection is unsupported")
 	}
@@ -865,7 +884,7 @@ func (g *Gateway) committedEthereumTransaction(ctx context.Context, hash string)
 	var receipt consensus.BFTEVMReceipt
 	if err := g.queryABCIJSON(ctx, "/evm/receipts/"+hash, &receipt); err != nil {
 		if err.Error() == "EVM receipt not found" {
-			return cometTx{}, chain.Transaction{}, false, nil
+			return g.committedPQEthereumOriginal(ctx, hash)
 		}
 		return cometTx{}, chain.Transaction{}, false, err
 	}
@@ -928,6 +947,16 @@ func (g *Gateway) committedEthereumTransaction(ctx context.Context, hash string)
 }
 
 func evmCommittedTransaction(t chain.Transaction, index uint32, raws ...[]byte) map[string]any {
+	if t.Type == consensus.PQEthereumValueType {
+		if len(raws) != 1 {
+			return nil
+		}
+		wire, intent, err := consensus.DecodePQEthereumValueTransaction(raws[0])
+		if err != nil {
+			return nil
+		}
+		return pqEthereumEVMTransaction(t, index, wire, raws[0], intent)
+	}
 	var to any = t.To
 	input, gas, gasPrice, txType := "0x", "0x1", "0x1", "0x0"
 	nonce := t.Nonce
@@ -988,6 +1017,16 @@ func evmIDEReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeGasUsed
 }
 
 func evmCommittedReceipt(t chain.Transaction, index uint32, gasUsed, cumulativeGasUsed uint64, raws ...[]byte) map[string]any {
+	if t.Type == consensus.PQEthereumValueType {
+		if len(raws) != 1 {
+			return nil
+		}
+		_, intent, err := consensus.DecodePQEthereumValueTransaction(raws[0])
+		if err != nil {
+			return nil
+		}
+		return pqEthereumEVMReceipt(t, index, gasUsed, cumulativeGasUsed, raws[0], intent)
+	}
 	var to any = t.To
 	if t.To == "" {
 		to = nil
@@ -1358,6 +1397,9 @@ func mappedAtCometIndex(evidence committedBlockEvidence, index uint64) (chain.Tr
 		return chain.Transaction{}, errors.New("Comet transaction index is outside original block evidence")
 	}
 	raw := evidence.RawTransactions[index]
+	if isPQEthereumEnvelope(raw) {
+		return mappedPQEthereumAtCometIndex(evidence, index)
+	}
 	if isWholeEnvelope(raw) {
 		return chain.Transaction{}, fmt.Errorf("%w: PQ Whole requires the original native batch evidence", errPQEthereumProjection)
 	}
