@@ -1,6 +1,6 @@
 import SwiftUI
 
-let supportedLanguages=["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"]
+let supportedLanguages=ShopLanguage.supported
 
 struct ContentView:View {
     @EnvironmentObject var model:ShopModel

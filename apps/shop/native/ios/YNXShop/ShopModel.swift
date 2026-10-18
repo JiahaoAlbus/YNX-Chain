@@ -11,8 +11,8 @@ import SwiftUI
     @Published var signedIn=false
     @Published var privacyRevision=0
     @Published var privacyExportURL:URL?
-    @Published var appLanguage=UserDefaults.standard.string(forKey:"app-language") ?? Locale.current.identifier
-    @Published var aiLanguage=UserDefaults.standard.string(forKey:"ai-language") ?? Locale.current.language.languageCode?.identifier ?? "en"
+    @Published var appLanguage=ShopLanguage.read(.standard,key:"app-language")
+    @Published var aiLanguage=ShopLanguage.read(.standard,key:"ai-language")
     struct InvoicePresentation:Identifiable {let review:AppleBuyerJourney.Review;let session:ShopSession;let revision:Int;let url:URL;var id:String{review.key}}
     @Published var invoicePresentation:InvoicePresentation?
     let api:APIClient,queue:OfflineQueue,invoiceHandoffs:InvoiceHandoffJournal,journey:AppleBuyerJourney
@@ -35,8 +35,8 @@ import SwiftUI
     init(api:APIClient?=nil,queue:OfflineQueue?=nil,invoiceHandoffs:InvoiceHandoffJournal?=nil,journey:AppleBuyerJourney?=nil){self.api=api ?? APIClient();self.queue=queue ?? OfflineQueue();self.invoiceHandoffs=invoiceHandoffs ?? InvoiceHandoffJournal();self.journey=journey ?? AppleBuyerJourney();cart=(try? self.journey.guest()) ?? [];self.api.onSessionChanged={[weak self] in self?.reconcileIdentity()};Task{try? await self.api.restoreNative();self.reconcileIdentity()};Task{await loadCatalog()};Task{[weak self] in while !Task.isCancelled{try? await Task.sleep(for:.seconds(1));guard let self else{return};if self.presentedSession != self.api.currentSession{self.reconcileIdentity()}}}}
     private func reconcileIdentity(){let current=api.currentSession;guard current != presentedSession else{return};cancelInvoicePresentation();operationRevision+=1;mutationBusy=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();presentedSession=current;signedIn=current != nil;if let current{do{cart=try journey.load(current.account).items;Task{await loadOrders();await resumeOriginalOrder()}}catch{state="security_error"}};refreshCheckoutRecovery()}
     func sceneActive(){reconcileIdentity();refreshCheckoutRecovery();Task{await resumeOriginalOrder()}}
-    func setLanguage(_ value:String){appLanguage=value;UserDefaults.standard.set(value,forKey:"app-language")}
-    func setAILanguage(_ value:String){aiLanguage=value;UserDefaults.standard.set(value,forKey:"ai-language")}
+    func setLanguage(_ value:String){appLanguage=ShopLanguage.choose(value,in:.standard,key:"app-language")}
+    func setAILanguage(_ value:String){aiLanguage=ShopLanguage.choose(value,in:.standard,key:"ai-language")}
     private func failure(_ error:Error){if let error=error as? ShopError{if error == .contextChanged{if signedIn && api.currentSession==nil{signOut()};return};if error == .signedOut{signOut();return}};state="unavailable"}
     func signOut(){cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
     func loadCatalog()async {

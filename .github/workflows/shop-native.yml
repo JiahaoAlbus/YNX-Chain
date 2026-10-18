@@ -3,17 +3,37 @@ name: shop-ios-evidence
 on:
   pull_request:
     paths:
-      - "apps/shop/native/ios/**"
+      - "apps/shop/native/**"
+      - "apps/seller-console/scripts/current-wallet-sdk.mjs"
+      - "apps/seller-console/vendor/ynx-chain-wallet-auth-1.2.0-r9.tgz"
       - ".github/workflows/shop-native.yml"
   push:
-    branches: [main, codex/ecosystem-shop]
+    branches: [main, codex/ecosystem-shop, "codex/shop-*"]
     paths:
-      - "apps/shop/native/ios/**"
+      - "apps/shop/native/**"
+      - "apps/seller-console/scripts/current-wallet-sdk.mjs"
+      - "apps/seller-console/vendor/ynx-chain-wallet-auth-1.2.0-r9.tgz"
       - ".github/workflows/shop-native.yml"
   workflow_dispatch:
 
 jobs:
+  language-regression:
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check production language selection and legacy preference preservation
+        run: |
+          set -euo pipefail
+          xcrun swiftc apps/shop/native/ios/YNXShop/ShopLanguage.swift \
+            apps/shop/native/ios/tests/ShopLanguageChecks.swift \
+            -o "$RUNNER_TEMP/ynx-shop-language-checks"
+          "$RUNNER_TEMP/ynx-shop-language-checks"
+          xcrun swiftc -frontend -parse apps/shop/native/ios/YNXShop/ShopModel.swift \
+            apps/shop/native/ios/YNXShop/ContentView.swift
+
   ios-simulator:
+    needs: language-regression
     runs-on: macos-15
     timeout-minutes: 10
     defaults:
@@ -21,6 +41,16 @@ jobs:
         working-directory: apps/shop/native/ios
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Supply exact public dependencies for the normal Native R9 recipe
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/ynx-shop-native-tools" --no-package-lock --ignore-scripts \
+            esbuild@0.25.9 @noble/curves@2.2.0 @noble/hashes@2.2.0
+          ln -s "$RUNNER_TEMP/ynx-shop-native-tools/node_modules" ../../node_modules
+          node -e 'const r=require("node:module").createRequire(process.cwd()+"/YNXShop.xcodeproj/package-check.cjs");if(r("esbuild").version!=="0.25.9")throw Error("Native compiler mismatch")'
       - name: Build for iOS Simulator
         run: |
           set -o pipefail
