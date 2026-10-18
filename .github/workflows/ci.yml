@@ -2,12 +2,13 @@ name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/social-r37-tpm-compile-20261018]
   pull_request:
     branches: [main]
 
 jobs:
   test:
+    if: github.ref != 'refs/heads/codex/social-r37-tpm-compile-20261018' && github.head_ref != 'codex/social-r37-tpm-compile-20261018'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,3 +36,23 @@ jobs:
       - run: make ecosystem-package
       - run: make exchange-package
       - run: make mainnet-readiness
+
+  social-tpm-r37-compile:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/social-r37-tpm-compile-20261018'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile exact R37 production TU without hardware or services
+        run: python3 scripts/ci/social-tpm-r37/compile.py "$RUNNER_TEMP/social-tpm-r37-result"
+      - name: Preserve first cause and exact compiler/dependency/header manifests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-tpm-r37-compile-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/social-tpm-r37-result/*.json
+            ${{ runner.temp }}/social-tpm-r37-result/*.raw
+          if-no-files-found: error
