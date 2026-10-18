@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "kind": "fixed-same-VM-shared-prefix-data64-pair",
+  "execute": false,
+  "requiresSeparateRootGrant": true,
+  "nodesStarted": false,
+  "pairCaps": {
+    "totalMs": 120000,
+    "retainedBytes": 134217728,
+    "logBytes": 2097152,
+    "buildBytes": 1073741824,
+    "metadataReserveMs": 500
+  },
+  "cases": [
+    {
+      "schema": 1,
+      "profile": {
+        "name": "supply-2048x1-data64-grpc",
+        "senders": 2048,
+        "rounds": 1,
+        "offeredRate": 1000,
+        "concurrency": 4,
+        "observers": 4,
+        "activeMs": 45000,
+        "cleanupMs": 15000,
+        "totalMs": 60000,
+        "ownedProcesses": 10,
+        "longLivedChildren": 9,
+        "ownedRSSBytes": 1073741824,
+        "privateBytes": 67108864,
+        "threads": 320,
+        "availableMemoryFloorBytes": 1207959552,
+        "senderMode": "rounds"
+      },
+      "abciTransport": "grpc",
+      "pacingMode": "relative",
+      "pacingCatchupOfferLimit": 1,
+      "environment": {
+        "GOMAXPROCS": "1",
+        "GOGC": "100",
+        "GOMEMLIMIT": "off"
+      },
+      "execute": false,
+      "requiresSeparateRootGrant": true,
+      "nodesStarted": false,
+      "platform": "Linux native /proc; not macOS pressure1",
+      "comparison": "Independent private CI case; no Darwin before/after multiplier",
+      "resourceCaps": {
+        "activeMs": 105000,
+        "cleanupMs": 15000,
+        "totalMs": 120000,
+        "ownedRSSBytes": 1073741824,
+        "threads": 320,
+        "ownedProcesses": 16,
+        "privateBytes": 67108864,
+        "buildBytes": 1073741824,
+        "logBytes": 1048576,
+        "diskFloorBytes": 1073741824,
+        "rootReserveBytes": 445644800,
+        "compileReserveBytes": 1073741824,
+        "availableMemoryFloorBytes": 1207959552,
+        "sampleMs": 200
+      },
+      "input": "workflow_dispatch.run_linux_supply (default false)",
+      "capacityScope": {
+        "explicitProfileOnly": true,
+        "automaticRetry": false,
+        "priorFailedRun": 39161413763,
+        "priorFinalPrivateBytes": 40191359,
+        "priorProfile": "supply-2048x1",
+        "noPerformanceQualification": true
+      },
+      "observerPhaseTiming": true,
+      "observerTraceLimits": {
+        "perWorker": 256,
+        "aggregate": 1024,
+        "totalsCompleteDespiteTraceCap": true
+      },
+      "sharedDurableReplay": true
+    },
+    {
+      "schema": 1,
+      "profile": {
+        "name": "supply-2048x1-data64-grpc",
+        "senders": 2048,
+        "rounds": 1,
+        "offeredRate": 1000,
+        "concurrency": 4,
+        "observers": 4,
+        "activeMs": 45000,
+        "cleanupMs": 15000,
+        "totalMs": 60000,
+        "ownedProcesses": 10,
+        "longLivedChildren": 9,
+        "ownedRSSBytes": 1073741824,
+        "privateBytes": 67108864,
+        "threads": 320,
+        "availableMemoryFloorBytes": 1207959552,
+        "senderMode": "rounds"
+      },
+      "abciTransport": "grpc",
+      "pacingMode": "relative",
+      "pacingCatchupOfferLimit": 1,
+      "environment": {
+        "GOMAXPROCS": "1",
+        "GOGC": "100",
+        "GOMEMLIMIT": "off"
+      },
+      "execute": false,
+      "requiresSeparateRootGrant": true,
+      "nodesStarted": false,
+      "platform": "Linux native /proc; not macOS pressure1",
+      "comparison": "Independent private CI case; no Darwin before/after multiplier",
+      "resourceCaps": {
+        "activeMs": 105000,
+        "cleanupMs": 15000,
+        "totalMs": 120000,
+        "ownedRSSBytes": 1073741824,
+        "threads": 320,
+        "ownedProcesses": 16,
+        "privateBytes": 67108864,
+        "buildBytes": 1073741824,
+        "logBytes": 1048576,
+        "diskFloorBytes": 1073741824,
+        "rootReserveBytes": 445644800,
+        "compileReserveBytes": 1073741824,
+        "availableMemoryFloorBytes": 1207959552,
+        "sampleMs": 200
+      },
+      "input": "workflow_dispatch.run_linux_supply (default false)",
+      "capacityScope": {
+        "explicitProfileOnly": true,
+        "automaticRetry": false,
+        "priorFailedRun": 39161413763,
+        "priorFinalPrivateBytes": 40191359,
+        "priorProfile": "supply-2048x1",
+        "noPerformanceQualification": true
+      },
+      "prefixDurableReplay": true,
+      "observerPhaseTiming": true,
+      "observerTraceLimits": {
+        "perWorker": 256,
+        "aggregate": 1024,
+        "totalsCompleteDespiteTraceCap": true
+      },
+      "sharedDurableReplay": false
+    }
+  ],
+  "order": "shared-replay then prefix-replay; never concurrent; stop after failed or unclean first case",
+  "binaries": "same exact four ELF files, built once before pair runtime",
+  "input": {
+    "run_linux_supply": true,
+    "linux_supply_transport": "grpc",
+    "linux_supply_profile": "supply-2048x1-data64",
+    "linux_supply_pacing": "paired-shared-prefix-data64",
+    "measure_observer_phases": true,
+    "prefix_durable_replay": false
+  },
+  "timing": "120s total including both cases, receipt fsync and double empty closures; each case45s active+15s cleanup including fsync<=60s. Remaining time can only shorten admission.",
+  "admission": "Explicit pair128MiB retained including all case/aggregate receipts; each case64MiB, RSS1GiB, threads320, process10, logs1MiB, pair logs2MiB, build1GiB. Fresh native floors plus initial128MiB aggregate disk reserve. Original default pair64MiB unchanged. No grant or admission implied.",
+  "interpretation": "Same source/VM/ELFs/environment/workload policy and caps; only replay backend differs. Fresh private fixtures have different identities and startup/block scheduling. Preserve all2048 original business proofs per side, raw stage timing and queue-inclusive inclusion/final tails including negative results. Finite comparison, never sustained1000TPS qualification.",
+  "executionAuthorized": false,
+  "executionAdmitted": false,
+  "normalCIRequiredForExactDispatchCommit": true,
+  "sourceControllerCommit": "8f4532b3e0dc0b74e5c7af900ab513a05ea43152",
+  "sourceInternalCommit": "df556b61b7748254e364a9f193c4f599db9ecb71",
+  "sourceInternalTree": "08fd523362c16a578ae43655c30fce050671103a",
+  "nativeResourceFloors": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 33554432,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200
+  },
+  "sourceFiles": {
+    "scripts/loadtest/supply-linux-window.py": {
+      "bytes": 102952,
+      "sha256": "ab7ef94860519cfb6f60aa1b662d65805decd5d770b253e2fb417732536e321c"
+    },
+    "scripts/loadtest/test_supply_linux_window.py": {
+      "bytes": 91526,
+      "sha256": "28f0ab96e05e874982017a418775d1c0103ed0e011797e852749ce4da70fe674"
+    },
+    ".github/workflows/chain-core.yml": {
+      "bytes": 29123,
+      "sha256": "45d1c3d4f4617f438d1c37d56771a212492eb7e8a8da913c49445d051d965ec4"
+    }
+  }
+}

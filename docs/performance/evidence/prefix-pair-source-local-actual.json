@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "kind": "prefix-pair-controller-source-only",
+  "date": "2026-10-19",
+  "controllerSource": "8f4532b3e0dc0b74e5c7af900ab513a05ea43152",
+  "internalSource": "df556b61b7748254e364a9f193c4f599db9ecb71",
+  "normalCIForThisChange": null,
+  "networkExecuted": false,
+  "newGrantConsumed": false,
+  "sustainedTPSQualified": false,
+  "tests": {
+    "controller": {
+      "passed": 65,
+      "durationSeconds": 3.717
+    },
+    "sourceQualification": {
+      "topLevelPassed": 8,
+      "durationSeconds": 9.6405145,
+      "originalFrozenSuitesRetained": true
+    },
+    "baselineMissingRouteRED": true
+  },
+  "raw": {
+    "artifacts/chain-performance-20261017/prefix-pair-source/controller-tests.raw": {
+      "bytes": 164,
+      "sha256": "56337b8891e3774080c41e6e72cad85430663d1cae80f365be07c42c56443c02"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/original-controller-missing-route-red.raw": {
+      "bytes": 4282,
+      "sha256": "fe5e050e5a2ba0ca113b02cbca8ba255bcd56320c4c51212f78bc90bb82f7041"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/read-first-refusal.raw": {
+      "bytes": 272,
+      "sha256": "46c13626f34cbd56043c96412af6c7e2e5cb85cd5eb07d04da7d5c08ec103ed3"
+    },
+    "artifacts/chain-performance-20261017/prefix-pair-source/source-tests.raw": {
+      "bytes": 2945,
+      "sha256": "c661915262b1e1e02ba0d05f878a324b15a2294e92f84610819ef18517d3ca43"
+    }
+  }
+}

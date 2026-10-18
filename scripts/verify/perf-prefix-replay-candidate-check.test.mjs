@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {source,validatePrefixSource,withFixedDiagnosticSource} from './perf-prefix-replay-candidate-check.mjs';
+import {source,pairControllerSource,pairControllerFiles,validatePrefixSource,withFixedDiagnosticSource} from './perf-prefix-replay-candidate-check.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 test('exact prefix source has no network or release qualification',()=>{const actual=validatePrefixSource();assert.equal(actual.sourceCommit,source);assert.equal(actual.defaultFullDecodeRetained,true);assert.equal(actual.networkImprovementMeasured,false);assert.equal(actual.releaseQualified,false)});
 test('all original diagnostic and anchor tests run at their fixed source',()=>{
@@ -23,5 +23,17 @@ for(const mutation of ['modified','missing','untracked'])test('prefix candidate 
   const f=path.join(temp,'internal/consensus/block_journal_prefix.go');
   if(mutation==='modified')fs.appendFileSync(f,'\nchanged\n');if(mutation==='missing')fs.unlinkSync(f);if(mutation==='untracked')fs.writeFileSync(path.join(temp,'internal/new-prefix-input'),'new');
   assert.throws(()=>validatePrefixSource(temp),/prefix (?:source differs|internal input refused)/);
+ }finally{fs.rmSync(temp,{recursive:true,force:true})}
+});
+
+for(const file of pairControllerFiles)test('prefix candidate refuses changed paired controller '+file,()=>{
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-prefix-pair-source-'));
+ try{
+  execFileSync('git',['clone','--shared','--no-checkout','--quiet',root,temp],{stdio:'pipe'});
+  execFileSync('git',['-C',temp,'update-ref','HEAD',pairControllerSource],{stdio:'pipe'});
+  execFileSync('git',['-C',temp,'checkout',pairControllerSource,'--','internal',...pairControllerFiles,'scripts/verify/perf-commit-validation-timing-check.mjs','scripts/verify/perf-commit-validation-timing-check.test.mjs'],{stdio:'pipe'});
+  assert.equal(validatePrefixSource(temp).pairControllerSource,pairControllerSource);
+  fs.appendFileSync(path.join(temp,file),'\nchanged\n');
+  assert.throws(()=>validatePrefixSource(temp),/prefix pair controller source differs/);
  }finally{fs.rmSync(temp,{recursive:true,force:true})}
 });
