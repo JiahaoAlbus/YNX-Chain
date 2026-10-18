@@ -274,13 +274,31 @@ func TestABCIWholeCandidateRollbackAndTransferOverflow(t *testing.T) {
 			}
 		})
 	}
-	// Recipient == fee recipient combines amount+fee credits without double use.
-	message, err := (ynxauth.Transfer{ChainID: f.network, NativeChainID: uint64(f.m.Network.ChainID), From: f.owner, To: f.a.feeRecipient, Amount: 2, Fee: 1, Nonce: 2}).SigningBytes()
+	// Default devnet validator names are system accounts, not valid transfer
+	// recipients. Use the existing canonical recipient for this isolated alias
+	// execution case; the wire codec must continue rejecting system names.
+	originalFeeRecipient := f.a.feeRecipient
+	f.a.feeRecipient = f.other
+	defer func() { f.a.feeRecipient = originalFeeRecipient }()
+	message, err := (ynxauth.Transfer{ChainID: f.network, NativeChainID: uint64(f.m.Network.ChainID), From: f.owner, To: f.other, Amount: 2, Fee: 1, Nonce: 2}).SigningBytes()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err = f.a.applyTransaction(f.a.cloneExecutionState(), mustPQEnvelope(t, PQWholeType, abciWhole(t, f, message)), 3, time.Unix(3, 0).UTC()); err != nil {
+	aliasPayload := mustPQEnvelope(t, PQWholeType, abciWhole(t, f, message))
+	aliasState := f.a.cloneExecutionState()
+	aliasBefore := batchCandidateJSON(t, aliasState)
+	aliasNext, _, err := f.a.applyTransaction(aliasState, aliasPayload, 3, time.Unix(3, 0).UTC())
+	if err != nil {
 		t.Fatal("valid fee recipient alias rejected", err)
+	}
+	if aliasNext.accounts[recipient].Balance != aliasState.accounts[recipient].Balance+3 || aliasNext.accounts[sender].Balance != aliasState.accounts[sender].Balance-3 || aliasNext.accounts[sender].Nonce != 2 || aliasNext.accounts[recipient].Lots[lots[0]] != aliasState.accounts[recipient].Lots[lots[0]]+2 || !bytes.Equal(aliasBefore, batchCandidateJSON(t, aliasState)) {
+		t.Fatal("fee recipient alias lost amount/fee/nonce/amount-only lots or mutated candidate")
+	}
+	aliasOverflow := f.a.cloneExecutionState()
+	aliasOverflow.accounts[recipient].Balance = math.MaxInt64 - 2
+	overflowBefore := batchCandidateJSON(t, aliasOverflow)
+	if _, _, err := f.a.applyTransaction(aliasOverflow, aliasPayload, 3, time.Unix(3, 0).UTC()); err == nil || !bytes.Equal(overflowBefore, batchCandidateJSON(t, aliasOverflow)) {
+		t.Fatal("combined alias amount+fee overflow accepted or leaked state")
 	}
 }
 

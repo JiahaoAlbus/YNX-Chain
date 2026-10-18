@@ -184,6 +184,14 @@ func (a Action) Validate() error {
 		if v.Address != a.Owner {
 			return ErrAction
 		}
+	case ContractDeployPayload:
+		if a.Fee != ContractDeployFee {
+			return ErrAction
+		}
+	case ContractExecutePayload:
+		if a.Fee != ContractExecuteFee {
+			return ErrAction
+		}
 	}
 	return nil
 }
@@ -230,6 +238,10 @@ func DecodeAction(wire []byte) (Action, error) {
 func EncodeActionPayload(kind string, payload any) ([]byte, error) {
 	var f [][]byte
 	switch p := payload.(type) {
+	case ContractDeployPayload:
+		return encodeContractDeployPayload(kind, p)
+	case ContractExecutePayload:
+		return encodeContractExecutePayload(kind, p)
 	case StakePayload:
 		if kind != ActionStake || !actionPositive(p.Amount) {
 			return nil, ErrAction
@@ -317,6 +329,9 @@ func EncodeActionPayload(kind string, payload any) ([]byte, error) {
 // malformed integer widths, trailing bytes and noncanonical field values. The
 // decoded object carries no verified flag and never executes a state transition.
 func DecodeActionPayload(kind string, wire []byte) (any, error) {
+	if kind == ActionContractDeploy || kind == ActionContractExecute {
+		return decodeContractActionPayload(kind, wire)
+	}
 	count := 0
 	switch kind {
 	case ActionStake:
