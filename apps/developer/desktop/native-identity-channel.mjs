@@ -57,6 +57,10 @@ export async function attachNativeIdentityChannel(options){
       try{retirePeer(row);}catch{}
       try{await row.peer.close();}catch(error){cleanupFailure(error);throw error;}
       if(row.retireFailed)throw row.retireCause;
+      // Keep the request tombstone and original failure history, but do not
+      // root closed Native owners or opaque results for the whole App lifetime.
+      // Any uncertain retire/close above retains these private references.
+      delete row.peer;delete row.opaqueResult;
       row.cleaned=true;if(active===row)active=undefined;
     })();void row.cleanup.catch(()=>{});return row.cleanup;
   }
@@ -111,5 +115,7 @@ export async function attachNativeIdentityChannel(options){
       if(active){row.failed=true;return track(publish(row,'','failed',fail('IDE_IDENTITY_REQUEST_BUSY')).catch(cleanupFailure));}
       active=row;row.execution=track(execute(row));return row.execution;
     },onClose(){retire();return finishCleanup();}});
-  return Object.freeze({close(){retire();subscription.close();},finishCleanup,status:()=>Object.freeze({closed,requests:rows.size,busy:!!active,cleanupFailure:cleanupFailed})});
+  return Object.freeze({close(){retire();subscription.close();},finishCleanup,status:()=>Object.freeze({closed,requests:rows.size,busy:!!active,cleanupFailure:cleanupFailed,
+    retainedPrivateCalls:[...rows.values()].filter(row=>!!row.peer).length,
+    retainedPrivateResults:[...rows.values()].filter(row=>Object.hasOwn(row,'opaqueResult')).length})});
 }

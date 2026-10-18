@@ -50,6 +50,14 @@ test('normal parent pipe publishes only DATA; duplicate request cannot run twice
   await f.until(()=>f.stub.calls.some(x=>x[0]==='close'));
   assert.equal(f.stub.calls.filter(x=>x[0]==='close').length,1);
 }));
+test('confirmed cleanup releases private call/result references while retaining duplicate-request history',()=>fixture(async f=>{
+  const body=f.frame();f.send(body);await f.until(()=>f.read(body.id));
+  assert.equal(f.channel.status().retainedPrivateCalls,1);assert.equal(f.channel.status().retainedPrivateResults,1);
+  f.send({...body,action:'native-identity-cancel'});await f.until(()=>!f.channel.status().busy);
+  assert.equal(f.channel.status().retainedPrivateCalls,0);assert.equal(f.channel.status().retainedPrivateResults,0);
+  assert.equal(f.channel.status().requests,1);f.send(body);await new Promise(r=>setImmediate(r));
+  assert.equal(f.stub.calls.filter(x=>x[0]==='open').length,1);assert.equal(f.stub.calls.filter(x=>x[0]==='close').length,1);
+}));
 test('no renderer key call, extra authority field or cross-project request enters fixed factory',()=>fixture(async f=>{
   f.send(f.frame('native-identity-key-call'));f.send(f.frame(undefined,{expectedRoot:'PUBLIC'}));f.send(f.frame(undefined,{projectId:randomUUID()}));
   await new Promise(r=>setImmediate(r));assert.deepEqual(f.stub.calls,[]);
@@ -72,6 +80,7 @@ test('falsy close failure remains cleanup debt and cannot be replayed as clean',
   f.stub.failClose();const body=f.frame();f.send(body);await f.until(()=>f.read(body.id));
   const result=await f.channel.finishCleanup();assert.equal(result.complete,false);assert.equal(result.firstFailurePresent,true);assert.equal(result.firstFailure,undefined);
   assert.equal((await f.channel.finishCleanup()).complete,false);assert.equal(f.stub.calls.filter(x=>x[0]==='close').length,1);
+  assert.equal(f.channel.status().retainedPrivateCalls,1);assert.equal(f.channel.status().retainedPrivateResults,1);
 }));
 test('control-directory replacement refuses publication without entering a Native action',()=>fixture(async f=>{
   f.stub.deferOpen();const body=f.frame();f.send(body);await f.until(()=>f.stub.calls.length===1);
