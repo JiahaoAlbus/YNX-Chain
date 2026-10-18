@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {preparePackagedPQVerifierInvocation,createPackagedPQFinalityVerifier} from '../src/wallet-pq-verifier-assets.mjs';
+import {preparePackagedPQVerifierInvocation,createPackagedPQFinalityVerifier,preparePackagedPQHostInvocation,createPackagedPQHostProducer} from '../src/wallet-pq-verifier-assets.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),pin=b=>({bytes:b.length,sha256:sha(b)}),commit='0345970c7c616c24ebf3e494e9a8d9628ff8ae40',tree='9777a6f8544fe5f9d41b546c6a34b3e3e02ab54e';
 const source=readFileSync(new URL('./fixtures/proof-verifier-source-0345970.json',import.meta.url));assert.equal(source.length,1938);assert.equal(sha(source),'140cd07e512486ef812522cc9fcd20e53023256bf55c6290c4b10203d48bf027');
 async function fixture(t){
@@ -42,4 +42,24 @@ test('normal factory retains detached independent resource identity before any i
  const f=await fixture(t),expected=JSON.parse(JSON.stringify(f.receipt)),caller=createPackagedPQFinalityVerifier({app:{isPackaged:false},independentReceipt:f.receipt});
  f.receipt.bundled.sha256='0'.repeat(64);f.receipt.manifest.bytes=1;
  assert.deepEqual(caller.identity(),expected);assert.equal(Object.isFrozen(caller.identity()),true);assert.equal(Object.isFrozen(caller.identity().bundled),true);
+});
+test('old034 proof component cannot acquire Host mode, even with valid independent proof assets',async t=>{
+ const f=await fixture(t);
+ assert.throws(()=>createPackagedPQHostProducer({app:{isPackaged:false},independentReceipt:f.receipt}),{code:'PQ_HOST_COMPONENT_UNAVAILABLE'});
+ await assert.rejects(preparePackagedPQHostInvocation(f.root,f.receipt,{sourcePath:f.input.contextPath,sourceSha256:f.input.contextSha256,stdin:'{}'}),{code:'PQ_HOST_COMPONENT_UNAVAILABLE'});
+});
+test('591 identity cannot self-admit substituted bundle, manifest or SOURCE pins',()=>{
+ const receipt={sourceCommit:'59185090aab3e4eaa6f8c9a0b29e975a2917e8b1',forkTree:'f694a8c86f7ed65e19d1ce08c690d5d8fe84fd42',manifest:{bytes:729,sha256:'b574373a4304c682b73442c1cd8087562ff04be515a0fb4deba88f50104d098e'},bundled:{bytes:34310208,sha256:'a7e47ea79b3e4bdd40014c8c02aafbad7b37a69c9c15c7f45a9fd0c51d44479d'},sourceFile:{bytes:1938,sha256:'8775709d35a0f2734c09a51bd4db7f446922faa34b9ca37924335dadddef61ce'}};
+ for(const key of ['manifest','bundled','sourceFile']){
+  const altered=structuredClone(receipt);altered[key].sha256='0'.repeat(64);
+  assert.throws(()=>createPackagedPQHostProducer({app:{isPackaged:false},independentReceipt:altered}),{code:'PQ_FINALITY_ASSET_INVALID'});
+ }
+ const producer=createPackagedPQHostProducer({app:{isPackaged:false},independentReceipt:receipt});
+ assert.equal(Object.isFrozen(producer),true);assert.equal(Object.hasOwn(producer,'spawn'),false);assert.equal(Object.hasOwn(producer,'prepare'),false);
+ receipt.bundled.bytes=1;assert.equal(producer.identity().bundled.bytes,34310208);
+});
+test('normal Host factory refuses unpackaged execution without process or alternate fallback',async()=>{
+ const caller=createPackagedPQHostProducer({app:{isPackaged:false}});
+ await assert.rejects(caller.run({}),e=>e.code==='PQ_FINALITY_VERIFIER_NOT_STARTED'&&e.cause.code==='PQ_FINALITY_PACKAGED_VERIFIER_UNAVAILABLE');
+ assert.equal(caller.snapshot().lifecycle.started,false);await caller.join();caller.assertSafeToClose();
 });

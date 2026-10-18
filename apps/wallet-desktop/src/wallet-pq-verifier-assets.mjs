@@ -9,11 +9,27 @@ import {PQFinalityVerifierProcessKernel} from './wallet-pq-verifier-process.mjs'
 const sourceCommit='0345970c7c616c24ebf3e494e9a8d9628ff8ae40',forkTree='9777a6f8544fe5f9d41b546c6a34b3e3e02ab54e';
 const ciOriginal=Object.freeze({bytes:34423202,sha256:'e4011728d2c64d80c886f7648977e9812ca08932ad2d2d09e2e1a492612c3ca2'});
 const sourceFile=Object.freeze({bytes:1938,sha256:'140cd07e512486ef812522cc9fcd20e53023256bf55c6290c4b10203d48bf027'});
+// Protocol's fixed whole591 tree and five Host leaves were independently
+// read back by A. SOURCE/v1 remains its original five-leaf statement.
+const hostProfile=Object.freeze({sourceCommit:'59185090aab3e4eaa6f8c9a0b29e975a2917e8b1',forkTree:'f694a8c86f7ed65e19d1ce08c690d5d8fe84fd42',
+ ciOriginal:{bytes:34510674,sha256:'53de20fee3ae0a6717845d967eac95d1e4a0cb256d0fa5f01112f6a515d8f93b'},
+ sourceFile:{bytes:1938,sha256:'8775709d35a0f2734c09a51bd4db7f446922faa34b9ca37924335dadddef61ce'},
+ manifest:{bytes:729,sha256:'b574373a4304c682b73442c1cd8087562ff04be515a0fb4deba88f50104d098e'},
+ bundled:{bytes:34310208,sha256:'a7e47ea79b3e4bdd40014c8c02aafbad7b37a69c9c15c7f45a9fd0c51d44479d'}});
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function exact(value,fields){if(types.isProxy(value))fail('PQ_FINALITY_ASSET_INVALID');exactData(value,fields,'PQ_FINALITY_ASSET_INVALID');}
 function pin(value,maximum){exact(value,['bytes','sha256']);if(!Number.isSafeInteger(value.bytes)||value.bytes<1||value.bytes>maximum||typeof value.sha256!=='string'||!/^[a-f0-9]{64}$/.test(value.sha256))fail('PQ_FINALITY_ASSET_INVALID');return Object.freeze({...value});}
 function canonical(file){if(typeof file!=='string'||!path.isAbsolute(file)||path.normalize(file)!==file)fail('PQ_FINALITY_ASSET_INVALID');}
+function component(receipt){
+ exact(receipt,['sourceCommit','forkTree','manifest','bundled','sourceFile']);
+ if(receipt.sourceCommit===sourceCommit&&receipt.forkTree===forkTree)return {sourceCommit,forkTree,ciOriginal,sourceFile};
+ if(receipt.sourceCommit===hostProfile.sourceCommit&&receipt.forkTree===hostProfile.forkTree){
+  for(const key of ['manifest','bundled','sourceFile']){const p=pin(receipt[key],64<<20);if(p.bytes!==hostProfile[key].bytes||p.sha256!==hostProfile[key].sha256)fail('PQ_FINALITY_ASSET_INVALID');}
+  return hostProfile;
+ }
+ fail('PQ_FINALITY_ASSET_INVALID');
+}
 async function readPinned(file,expected,maximum,{executable=false}={}){
  canonical(file);let handle;
  try{
@@ -36,7 +52,7 @@ export async function verifyPackagedPQVerifierAssets(resourcesPath,independentRe
  canonical(resourcesPath);
  if(independentReceipt===null||independentReceipt===undefined)fail('PQ_FINALITY_ASSET_RECEIPT_NOT_SUPPLIED');
  exact(independentReceipt,['sourceCommit','forkTree','manifest','bundled','sourceFile']);
- if(independentReceipt.sourceCommit!==sourceCommit||independentReceipt.forkTree!==forkTree)fail('PQ_FINALITY_ASSET_INVALID');
+ const {sourceCommit,forkTree,ciOriginal,sourceFile}=component(independentReceipt);
  const receipt={manifest:pin(independentReceipt.manifest,16384),bundled:pin(independentReceipt.bundled,64<<20),sourceFile:pin(independentReceipt.sourceFile,65536)};
  if(receipt.sourceFile.bytes!==sourceFile.bytes||receipt.sourceFile.sha256!==sourceFile.sha256)fail('PQ_FINALITY_ASSET_INVALID');
  const root=path.join(resourcesPath,'consensus-proof-verifier'),manifestBytes=await readPinned(path.join(root,'manifest.json'),receipt.manifest,16384);
@@ -60,18 +76,32 @@ export async function preparePackagedPQVerifierInvocation(resourcesPath,independ
  await readPinned(input.contextPath,{bytes:context.size,sha256:input.contextSha256},limits['host-context']);
  return Object.freeze({executable,contextPath:input.contextPath,contextSha256:input.contextSha256,stdin:input.stdin});
 }
-export function createPackagedPQFinalityVerifier({app,independentReceipt=null}){
+export async function preparePackagedPQHostInvocation(resourcesPath,independentReceipt,input){
+ canonical(resourcesPath);if(independentReceipt===null||independentReceipt===undefined)fail('PQ_FINALITY_ASSET_RECEIPT_NOT_SUPPLIED');
+ if(component(independentReceipt)!==hostProfile)fail('PQ_HOST_COMPONENT_UNAVAILABLE');
+ exact(input,['sourcePath','sourceSha256','stdin']);canonical(input.sourcePath);
+ const captured={sourcePath:input.sourcePath,sourceSha256:input.sourceSha256,stdin:input.stdin};
+ if(Buffer.byteLength(captured.sourcePath)>4096||typeof captured.sourceSha256!=='string'||!/^[a-f0-9]{64}$/.test(captured.sourceSha256)||typeof captured.stdin!=='string'||Buffer.byteLength(captured.stdin)>4096||Buffer.from(captured.stdin).toString('utf8')!==captured.stdin)fail('PQ_HOST_INVOCATION_INVALID');
+ const {executable}=await verifyPackagedPQVerifierAssets(resourcesPath,independentReceipt);
+ const source=await fs.lstat(captured.sourcePath);if(!source.isFile()||source.size<1||source.size>16384)fail('PQ_HOST_SOURCE_UNVERIFIED');
+ await readPinned(captured.sourcePath,{bytes:source.size,sha256:captured.sourceSha256},16384);
+ return Object.freeze({executable,contextPath:captured.sourcePath,contextSha256:captured.sourceSha256,stdin:captured.stdin});
+}
+export function createPackagedPQFinalityVerifier(options){return packagedCaller(options,'proof');}
+export function createPackagedPQHostProducer(options){return packagedCaller(options,'host-producer');}
+function packagedCaller({app,independentReceipt=null},mode){
  // Normal factory has no injected spawn, filesystem, URL, clock or provider.
  // Its receipt is a private original-Main dependency, not a trust context.
  let receipt=null;
  if(independentReceipt!==null){
   exact(independentReceipt,['sourceCommit','forkTree','manifest','bundled','sourceFile']);
-  if(independentReceipt.sourceCommit!==sourceCommit||independentReceipt.forkTree!==forkTree)fail('PQ_FINALITY_ASSET_INVALID');
+  const {sourceCommit,forkTree}=component(independentReceipt);
+  if(mode==='host-producer'&&component(independentReceipt)!==hostProfile)fail('PQ_HOST_COMPONENT_UNAVAILABLE');
   receipt=Object.freeze({sourceCommit,forkTree,manifest:pin(independentReceipt.manifest,16384),bundled:pin(independentReceipt.bundled,64<<20),sourceFile:pin(independentReceipt.sourceFile,65536)});
  }
- const kernel=new PQFinalityVerifierProcessKernel({prepare:async input=>{
+ const kernel=new PQFinalityVerifierProcessKernel({mode,prepare:async input=>{
   if(app?.isPackaged!==true||process.platform!=='darwin'||process.arch!=='arm64'||typeof process.resourcesPath!=='string')fail('PQ_FINALITY_PACKAGED_VERIFIER_UNAVAILABLE');
-  return preparePackagedPQVerifierInvocation(process.resourcesPath,receipt,input);
+  return mode==='proof'?preparePackagedPQVerifierInvocation(process.resourcesPath,receipt,input):preparePackagedPQHostInvocation(process.resourcesPath,receipt,input);
  }});
  // Keep PUBLIC test seams off the actual Main caller. In particular the
  // packaged instance cannot have prepare/spawn replaced after construction.
@@ -82,7 +112,7 @@ export function createPackagedPQFinalityVerifier({app,independentReceipt=null}){
   async verifyAssets(){
    if(app?.isPackaged!==true||process.platform!=='darwin'||process.arch!=='arm64'||typeof process.resourcesPath!=='string')fail('PQ_FINALITY_PACKAGED_VERIFIER_UNAVAILABLE');
    await verifyPackagedPQVerifierAssets(process.resourcesPath,receipt);
-   return Object.freeze({available:true,sourceCommit,forkTree,sha256:receipt.bundled.sha256,independentFinality:false,nativeGrant:false});
+   return Object.freeze({available:true,sourceCommit:receipt.sourceCommit,forkTree:receipt.forkTree,sha256:receipt.bundled.sha256,independentFinality:false,nativeGrant:false});
   },
   join:()=>kernel.join(),assertSafeToClose:()=>kernel.assertSafeToClose(),
  });
