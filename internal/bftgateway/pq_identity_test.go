@@ -100,6 +100,9 @@ func newPQIdentityFixture(t *testing.T) *pqIdentityFixture {
 		t.Fatal(err)
 	}
 	f.set = cmttypes.NewValidatorSet(validators)
+	if len(f.set.Validators) == 0 {
+		t.Fatal("identity fixture requires an actual exported validator")
+	}
 	f.stateHeight = doc.InitialHeight
 	final, err := f.app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: f.stateHeight, Time: doc.GenesisTime.Add(time.Second), NextValidatorsHash: f.set.Hash()})
 	if err != nil {
@@ -152,8 +155,10 @@ func (f *pqIdentityFixture) serve(t *testing.T) http.Handler {
 			}
 			value = coretypes.ResultABCIQuery{Response: *response}
 		case "/status":
-			hash := strings.ToUpper(hex.EncodeToString(f.commit.Header.Hash()))
-			value = map[string]any{"node_info": map[string]any{"network": f.commit.Header.ChainID}, "sync_info": map[string]any{"latest_block_height": strconv.FormatInt(f.latest, 10), "earliest_block_height": strconv.FormatInt(f.earliest, 10), "latest_block_hash": hash, "earliest_block_hash": hash}}
+			var status coretypes.ResultStatus
+			status.NodeInfo.Network = f.commit.Header.ChainID
+			status.SyncInfo = coretypes.SyncInfo{LatestBlockHeight: f.latest, EarliestBlockHeight: f.earliest, LatestBlockHash: bytes.Clone(f.commit.Header.Hash()), EarliestBlockHash: bytes.Clone(f.commit.Header.Hash())}
+			value = status
 		case "/commit":
 			f.commitReads++
 			if r.URL.Query().Get("height") != strconv.FormatInt(f.stateHeight+1, 10) {
@@ -198,11 +203,25 @@ func (f *pqIdentityFixture) serve(t *testing.T) http.Handler {
 		if f.mode == "unknown-header" && r.URL.Path == "/commit" {
 			raw = bytes.Replace(raw, []byte(`"chain_id":`), []byte(`"unexpected":true,"chain_id":`), 1)
 		}
+		// The real Comet codec owns typed result/public-key encoding. The RPC
+		// wrapper is standard JSON containing those complete raw result bytes.
+		envelope := struct {
+			JSONRPC string          `json:"jsonrpc"`
+			ID      int             `json:"id"`
+			Result  json.RawMessage `json:"result"`
+			Unknown *bool           `json:"unknown,omitempty"`
+		}{JSONRPC: "2.0", ID: -1, Result: raw}
 		if f.mode == "unknown-envelope" {
-			_, _ = w.Write(append(append([]byte(`{"jsonrpc":"2.0","id":-1,"unknown":true,"result":`), raw...), '}'))
+			unknown := true
+			envelope.Unknown = &unknown
+		}
+		wrapped, err := json.Marshal(envelope)
+		if err != nil {
+			t.Error(err)
+			w.WriteHeader(500)
 			return
 		}
-		_, _ = w.Write(append(append([]byte(`{"jsonrpc":"2.0","id":-1,"result":`), raw...), '}'))
+		_, _ = w.Write(wrapped)
 	})
 }
 
@@ -350,13 +369,24 @@ func TestPQIdentityRejectsHeaderValidatorAndRequestSubstitution(t *testing.T) {
 				f.commit.Header.ValidatorsHash = bytes.Repeat([]byte{8}, 32)
 				f.commit.Commit.BlockID.Hash = f.commit.Header.Hash()
 			case "duplicate-validator":
-				f.validators.Validators[1] = f.validators.Validators[0]
+				duplicate := *f.validators.Validators[0]
+				duplicate.Address = bytes.Clone(duplicate.Address)
+				f.validators.Validators = append(f.validators.Validators, &duplicate)
+				f.validators.Count = len(f.validators.Validators)
+				f.validators.Total = f.validators.Count
+				signature := f.commit.Commit.Signatures[0]
+				signature.ValidatorAddress = bytes.Clone(signature.ValidatorAddress)
+				signature.Signature = bytes.Clone(signature.Signature)
+				f.commit.Commit.Signatures = append(f.commit.Commit.Signatures, signature)
+				set := cmttypes.ValidatorSet{Validators: f.validators.Validators}
+				f.commit.Header.ValidatorsHash = set.Hash()
+				f.commit.Commit.BlockID.Hash = f.commit.Header.Hash()
 			case "power":
 				f.validators.Validators[0].VotingPower++
 			case "signature-address":
 				f.commit.Commit.Signatures[0].ValidatorAddress = bytes.Repeat([]byte{9}, 20)
 			case "missing-signature":
-				f.commit.Commit.Signatures = f.commit.Commit.Signatures[:1]
+				f.commit.Commit.Signatures = f.commit.Commit.Signatures[:len(f.commit.Commit.Signatures)-1]
 			case "pagination":
 				f.validators.Total++
 			}

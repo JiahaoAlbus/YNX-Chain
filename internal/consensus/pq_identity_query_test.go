@@ -12,10 +12,36 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 )
 
+func newCommittedPQIdentityApp(t *testing.T, f *validatorRegistryFixture, path string) *Application {
+	t.Helper()
+	a := newPinnedRegistryApp(t, f, path)
+	assertUnavailable := func() {
+		t.Helper()
+		r, err := a.Query(context.Background(), &abci.RequestQuery{Path: PQWalletIdentityPath})
+		if err != nil || r.Code == 0 || len(r.Value) != 0 {
+			t.Fatal("InitChain or pending first block was mislabeled committed identity", err)
+		}
+	}
+	// InitChain validates the original genesis; it does not commit a block or
+	// set Initialized. Exercise the same first Finalize/Commit as the engine.
+	assertUnavailable()
+	if _, err := a.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: f.doc.InitialHeight, Time: f.doc.GenesisTime.Add(time.Second), NextValidatorsHash: bytes.Clone(f.bootstrap.validatorSetHash)}); err != nil {
+		t.Fatal(err)
+	}
+	assertUnavailable()
+	if _, err := a.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	if !a.committed.Initialized || a.committed.Height != f.doc.InitialHeight {
+		t.Fatal("first actual committed identity fixture was not initialized")
+	}
+	return a
+}
+
 func TestPQWalletIdentityOriginalPinsCurrentStateAndPendingIsolation(t *testing.T) {
 	f := newValidatorRegistryFixture(t)
 	path := filepath.Join(t.TempDir(), "identity.json")
-	a := newPinnedRegistryApp(t, f, path)
+	a := newCommittedPQIdentityApp(t, f, path)
 	read := func() PQWalletIdentityView {
 		t.Helper()
 		r, err := a.Query(context.Background(), &abci.RequestQuery{Path: PQWalletIdentityPath})
@@ -37,7 +63,7 @@ func TestPQWalletIdentityOriginalPinsCurrentStateAndPendingIsolation(t *testing.
 	}
 	committed := mustJSON(t, a.committed)
 	h := a.committed.Height + 1
-	if _, err := a.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: h, Time: time.Unix(h, 0).UTC(), NextValidatorsHash: bytes.Clone(f.bootstrap.validatorSetHash)}); err != nil {
+	if _, err := a.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: h, Time: f.doc.GenesisTime.Add(2 * time.Second), NextValidatorsHash: bytes.Clone(f.bootstrap.validatorSetHash)}); err != nil {
 		t.Fatal(err)
 	}
 	if read() != before || !bytes.Equal(committed, mustJSON(t, a.committed)) {
@@ -62,7 +88,7 @@ func TestPQWalletIdentityOriginalPinsCurrentStateAndPendingIsolation(t *testing.
 
 func TestPQWalletIdentityRefusesUnpinnedOrRelabeledState(t *testing.T) {
 	f := newValidatorRegistryFixture(t)
-	a := newPinnedRegistryApp(t, f, "")
+	a := newCommittedPQIdentityApp(t, f, "")
 	for _, req := range []*abci.RequestQuery{{Path: PQWalletIdentityPath, Height: a.committed.Height + 1}, {Path: PQWalletIdentityPath, Height: -1}, {Path: PQWalletIdentityPath, Prove: true}, {Path: PQWalletIdentityPath, Data: []byte("peer bootstrap")}} {
 		r, err := a.Query(context.Background(), req)
 		if err != nil || r.Code == 0 || len(r.Value) != 0 {
