@@ -16,3 +16,13 @@ test('missing original policy, wrong owner, malformed UTF8 and inexact uint64 re
 test('normal fresh-process parent freezes Go binding before restore and exports the exact CLI binding.json leaf',()=>{
  const text=readFileSync(new URL('./pq-fresh-process-vault.test.mjs',import.meta.url),'utf8');assert.ok(text.indexOf('const originalGoBinding=')<text.indexOf("const restored=run({operation:'restore'"));assert.ok(text.includes("['binding.json',originalGoBinding]"));assert.ok(text.includes("flag:'wx'"));
 });
+test('public Go binding embeds original JSON without rounding policy uint64 values',()=>{
+ const input=original(),raw=JSON.stringify(policy).replace('"ledgerNonce":1','"ledgerNonce":9007199254740993');
+ input.state=Buffer.from(raw);const encoded=encodePublicGoRestoreBinding(input).toString();
+ assert.ok(encoded.includes('"ledgerNonce":9007199254740993'));
+ assert.ok(encoded.includes(raw));
+});
+test('malformed policy rows fail with the controlled binding error',()=>{
+ const input=original();input.state=Buffer.from(JSON.stringify({...policy,records:[null]}));
+ assert.throws(()=>encodePublicGoRestoreBinding(input),/QA_ORIGINAL_PUBLIC_BINDING_REQUIRED/);
+});

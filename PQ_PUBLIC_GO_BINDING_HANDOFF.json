@@ -8,9 +8,9 @@
   "validation": {
     "test": "apps/wallet-desktop/test/pq-public-go-binding.test.mjs",
     "runtime": "Previously installed R24 Electron RunAsNode",
-    "passed": 3,
+    "passed": 5,
     "failed": 0,
-    "durationMs": 27.61775,
+    "regression": "Two real RED cases added for uint64 rounding and null-row uncontrolled failure; original JSON embedded without reserialization and controlled error restored",
     "diffCheck": "PASS",
     "existingTestEntry": "npm test: node --test test/*.test.mjs"
   },
