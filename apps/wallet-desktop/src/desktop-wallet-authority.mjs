@@ -13,6 +13,7 @@ import {pqPublicBindingToRegistrationKeys} from '@ynx-chain/wallet-auth/pq-walle
 import {createPQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {retainPQPolicyResource} from './wallet-pq-policy-owner.mjs';
 import {assertSessionReturnTransport} from './wallet-session-return-boundary.mjs';
+import {prepareSessionPublicationReturn} from './wallet-session-publication.mjs';
 
 export const YNX_EIP155_CHAIN = "eip155:6423";
 export const YNX_EVM_CHAIN_ID = YNX_TESTNET_CHAIN_QUANTITY;
@@ -35,9 +36,10 @@ export class DesktopWalletAuthority {
   #pqReviews = new WeakMap();
   #pqPolicySource; #pqPolicyRecognized; #pqNetworkId; #pqOwners=new Set();
   #pqSessionSource; #pqSessionRecognized;
+  #sessionReturnClient;
   #pqAcquiring=false;
   #pqInFlight=new Set(); #pqShuttingDown=false; #pqShutdownPass=null;
-  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null }) {
+  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null, sessionReturnClient = null }) {
     this.vault = vault;
     this.permissions = permissions;
     this.transactionSender = transactionSender;
@@ -52,6 +54,7 @@ export class DesktopWalletAuthority {
     this.#pqPolicySource=pqPolicySource;this.#pqPolicyRecognized=pqPolicyRecognized;this.#pqNetworkId=pqNetworkId;
     if(pqSessionSource!==null&&typeof pqSessionSource!=='function'||pqSessionRecognized!==null&&typeof pqSessionRecognized!=='function')throw Error('PQ_SESSION_SOURCE_INVALID');
     this.#pqSessionSource=pqSessionSource;this.#pqSessionRecognized=pqSessionRecognized;
+    this.#sessionReturnClient=sessionReturnClient;
   }
   #closePQ(owner,...causes){
     if(causes.length)owner.retire(causes[0]);
@@ -210,6 +213,10 @@ export class DesktopWalletAuthority {
     if(failed)throw cause;
     try{guard.assert();productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,this.clock());}
     catch(error){if(token)try{await store.recordSessionFailure(token,{firstPresent:true,first:error,cleanupComplete:true});}catch{}throw error;}
+    if(result.approval.version==='3'&&this.#sessionReturnClient){
+      const original=await store.readSessionOriginal(account,digest,()=>guard.assert());guard.assert();
+      result=Object.freeze({...result,callbackUrl:await prepareSessionPublicationReturn({store,client:this.#sessionReturnClient,original,guard:()=>guard.assert(),clock:this.clock})});
+    }
     return Object.freeze({...result,retained:true,originalRequestId});
   }
   async approveOrigin(originInput, expectedAccount = null) {

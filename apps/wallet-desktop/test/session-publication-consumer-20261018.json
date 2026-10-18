@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "scope": "Original Desktop session consumer, same private journal schema8 and Controller; main fixed publisher factory awaits formal matching SDK R3c",
+  "baseCommit": "0cd86bcaab4e33396f437c20342b0968fa9ff253",
+  "runtime": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r24-normal-install-qa-20261018/installed-r24/YNX Wallet.app/Contents/MacOS/YNX Wallet",
+  "commandArgs": "ELECTRON_RUN_AS_NODE=1 --max-old-space-size=192 --test --test-isolation=none --test-concurrency=1 apps/wallet-desktop/test/password-wallet-pq.test.mjs apps/wallet-desktop/test/callback-policy.test.mjs apps/wallet-desktop/test/wallet-session-return-boundary.test.mjs",
+  "actualResult": {"exitCode": 0, "tests": 76, "pass": 76, "fail": 0, "durationMs": 27359.275208},
+  "newControls": ["One concurrent publication admission with durable UNKNOWN marker", "Marker lost acknowledgement survives cold read without repeat admission", "Original Controller emits small reference only after durable save", "Publish acknowledgement lost recovers exact request and signed approval through read-only outcome without new signature or publication", "Not-found, wrong account, both wrong digests and retry permission substitution preserve UNKNOWN", "Immediate post-response lock preserves returned reference and blocks delivery", "Reference-save lost acknowledgement reconciles by journal readback", "Adding a second original retains schema8 and first publication"],
+  "fixtureCorrection": "Fault injection initially asserted raw error text; the original journal correctly wraps the error with data.code TRANSACTION_JOURNAL_WRITE_FAILED and retains cause. Corrected test asserts both without changing production failure handling.",
+  "evidenceLimits": ["Actual SDK PQ cryptography, protected QA Vault and private filesystem are used", "Publisher callee is a controlled in-process fixture, not a deployed Auth service", "No production key, account, mnemonic, signing, transfer, Host or endpoint was created", "Normal main factory wiring, matching SDK freeze, full build/install/upgrade, real external input and MONSTER remain unproved"]
+}

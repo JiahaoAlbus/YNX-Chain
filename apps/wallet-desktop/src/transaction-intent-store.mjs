@@ -13,6 +13,7 @@ import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./walle
 import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlement} from "./wallet-pay-settlement.mjs";
 import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
 import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
+import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -50,10 +51,10 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2, 3, 4, 5, 6, 7].includes(data.schemaVersion)) throw invalid();
+  if (!data || ![1, 2, 3, 4, 5, 6, 7, 8].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
   const signed = data.schemaVersion >= 3;
-  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===8 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
   if(data.schemaVersion>=5){
     if(!Array.isArray(data.preparations)||data.preparations.length>ORIGINAL_OWNER_LIMIT||new Set(data.preparations.map(x=>x.account)).size!==data.preparations.length)throw invalid();
     for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!['native','pay',...(data.schemaVersion>=6?PQ_ORIGINAL_KINDS:[])].includes(marker.kind))throw invalid();
@@ -78,10 +79,14 @@ function parseState(data) {
     try{data.pqOriginals.forEach(parsePQOriginalRecord);}catch{throw invalid();}
     if(new Set(data.pqOriginals.map(r=>r.account)).size!==data.pqOriginals.length||new Set(data.pqOriginals.map(r=>r.hash)).size!==data.pqOriginals.length||data.pqOriginals.some(r=>data.records.some(x=>x.account===r.account)||data.signedPayments.some(x=>evmAddressFromYNX(x.account)===r.account)||data.preparations.some(x=>x.account===r.account)))throw invalid();
   }
-  if(data.schemaVersion===7){
+  if(data.schemaVersion>=7){
     if(!Array.isArray(data.sessionOriginals)||data.sessionOriginals.length>ORIGINAL_OWNER_LIMIT)throw invalid();
     try{data.sessionOriginals.forEach(parseSessionOriginal);}catch{throw invalid();}
     if(new Set(data.sessionOriginals.map(row=>row.account+':'+row.requestDigest)).size!==data.sessionOriginals.length)throw invalid();
+  }
+  if(data.schemaVersion===8){
+    if(!Array.isArray(data.sessionPublications)||data.sessionPublications.length>ORIGINAL_OWNER_LIMIT||new Set(data.sessionPublications.map(row=>row.account+':'+row.requestDigest)).size!==data.sessionPublications.length)throw invalid();
+    try{for(const row of data.sessionPublications){const original=data.sessionOriginals.find(r=>r.account===row.account&&r.requestDigest===row.requestDigest);parseSessionPublication(row,original);}}catch{throw invalid();}
   }
   for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
   if (new Set(data.records.map(record => record.hash)).size !== data.records.length || new Set(data.records.map(record => record.account)).size !== data.records.length) throw invalid();
@@ -108,6 +113,7 @@ const paySuccessor=state=>state.schemaVersion>=4?state:{...state,schemaVersion:4
 
 export class FileTransactionIntentStore {
   #mutations = Promise.resolve();
+  #sessionPublicationResults = new Map();
   constructor({ filePath, io = filesystem, filePolicy = new PrivateFilePolicy({ io }) }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; this.filePolicy = filePolicy; }
   async sessionOriginalStatus(account,digest){
     if(!ACCOUNT.test(account??'')||typeof digest!=='string')throw invalid();
@@ -131,10 +137,43 @@ export class FileTransactionIntentStore {
     await this.#mutate(async()=>{
       guard();const state=paySuccessor(await this.#read());guard();
       if(state.sessionOriginals?.some(row=>row.account===record.account&&row.requestDigest===record.requestDigest)||(state.sessionOriginals?.length??0)>=ORIGINAL_OWNER_LIMIT||Buffer.byteLength(canonicalJSON(state))+SESSION_ORIGINAL_RESERVE_BYTES*(1+(state.sessionOriginals??[]).filter(row=>!row.approval).length)>PRIVATE_FILE_MAX_BYTES)throw invalid();
-      const next={...state,schemaVersion:7,pqOriginals:state.pqOriginals??[],preparations:state.preparations??[],sessionOriginals:[...(state.sessionOriginals??[]),record]};
+      const next={...state,schemaVersion:Math.max(7,state.schemaVersion),pqOriginals:state.pqOriginals??[],preparations:state.preparations??[],sessionOriginals:[...(state.sessionOriginals??[]),record]};
       guard();await this.#write(next);guard();
     });return token;
   }
+  async readSessionPublication(account,digest,guard){
+    guard();const state=await this.#read();guard();
+    const original=state.sessionOriginals?.find(r=>r.account===account&&r.requestDigest===digest),row=state.sessionPublications?.find(r=>r.account===account&&r.requestDigest===digest);
+    return row?parseSessionPublication(row,original):null;
+  }
+  async beginSessionPublication(account,digest,guard){
+    return this.#mutate(async()=>{
+      guard();const state=await this.#read();guard();const original=state.sessionOriginals?.find(r=>r.account===account&&r.requestDigest===digest);
+      const prior=state.sessionPublications?.find(r=>r.account===account&&r.requestDigest===digest);
+      if(prior)return Object.freeze({created:false,publication:parseSessionPublication(prior,original)});
+      const publication=parseSessionPublication({version:1,...sessionPublicationIdentity(original),status:'publish-unknown',result:null},original);
+      const next={...state,schemaVersion:8,sessionPublications:[...(state.sessionPublications??[]),publication]};
+      guard();await this.#write(next);guard();return Object.freeze({created:true,publication});
+    });
+  }
+  async saveSessionPublicationResult(account,digest,result){
+    const key=account+':'+digest;
+    if(!ACCOUNT.test(account??'')||typeof digest!=='string'||!this.#sessionPublicationResults.has(key)&&this.#sessionPublicationResults.size>=ORIGINAL_OWNER_LIMIT)throw invalid();
+    // Capture before parsing, queued IO, or any late lifecycle fence. This is
+    // main-only custody, never a renderer receipt or permission to publish.
+    const retained=this.#sessionPublicationResults.get(key);
+    this.#sessionPublicationResults.set(key,retained?{...retained,lateRawResult:result}:{rawResult:result});
+    // Storage-only continuation after the one admitted call. A late lock must
+    // not discard its returned reference; this cannot sign/publish/deliver.
+    return this.#mutate(async()=>{
+      const state=await this.#read(),original=state.sessionOriginals?.find(r=>r.account===account&&r.requestDigest===digest),prior=state.sessionPublications?.find(r=>r.account===account&&r.requestDigest===digest);
+      if(!prior)throw invalid();
+      const next=parseSessionPublication({...prior,status:'reference-ready',result},original);
+      if(prior.result){if(canonicalJSON(prior)!==canonicalJSON(next))throw invalid();return prior;}
+      await this.#write({...state,sessionPublications:state.sessionPublications.map(row=>row===prior?next:row)});return next;
+    });
+  }
+  retainedSessionPublicationResult(account,digest){return this.#sessionPublicationResults.get(account+':'+digest)??null;}
   async beginSessionDelivery(account,digest,guard){
     if(!ACCOUNT.test(account??'')||typeof digest!=='string'||typeof guard!=='function')throw invalid();
     return this.#mutate(async()=>{

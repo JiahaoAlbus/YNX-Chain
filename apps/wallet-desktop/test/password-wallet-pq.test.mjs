@@ -22,7 +22,7 @@ import {sessionOriginalCause} from '../src/wallet-session-original.mjs';
 import {createPQTransferReviewUI} from '../src/wallet-pq-transfer-ui.mjs';
 import {createPQMigrationReviewUI} from '../src/wallet-pq-migration-ui.mjs';
 import {runInNewContext} from 'node:vm';
-import {createProductSessionRequest,encodeProductSessionWalletURL,ynxAddressFromEVM,productSessionRequestDigest} from '@ynx-chain/wallet-auth';
+import {createProductSessionRequest,encodeProductSessionWalletURL,ynxAddressFromEVM,productSessionRequestDigest,productSessionApprovalDigest} from '@ynx-chain/wallet-auth';
 import {DesktopAuthorizationController} from '../src/callback-policy.mjs';
 import {PRODUCT_SESSION_REGISTRY} from '../src/wallet-auth-contract.mjs';
 import {captureProductSessionAccountPolicy} from '@ynx-chain/wallet-auth/product-session-account-policy';
@@ -288,6 +288,94 @@ test('normal PQ provider return also refuses oversized inline fallback before it
  await assert.rejects(f.lifecycle.run(()=>authority.approve(pending.request.id)),e=>e.code==='SESSION_REFERENCE_RETURN_REQUIRED');
  const original=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals[0];
  assert.equal(original.approval.version,'3');assert.equal(original.deliveryAttempted,false);assert.equal(original.cleanupComplete,true);
+});
+test('same session journal fences concurrent publication once and preserves its marker, returned reference and original across restart',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);await f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));
+ const store=s.options.transactionSender.submissions.intentStore,digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,s.request,s.at);
+ const results=await Promise.all([store.beginSessionPublication(f.account,digest,()=>{}),store.beginSessionPublication(f.account,digest,()=>{})]);
+ assert.deepEqual(results.map(r=>r.created),[true,false]);assert.equal(results[0].publication.publicationRequestId,results[1].publication.publicationRequestId);
+ const cold=new FileTransactionIntentStore({filePath:store.filePath});assert.equal((await cold.beginSessionPublication(f.account,digest,()=>{})).created,false);
+ const result={reference:'ynxpsr1_'+'r'.repeat(43),nonce:s.request.nonce,state:s.request.state,expiresAt:s.request.expiresAt};
+ f.lifecycle.lock();await store.saveSessionPublicationResult(f.account,digest,result);
+ assert.equal(f.lifecycle.status().locked,true);assert.equal((await cold.readSessionPublication(f.account,digest,()=>{})).result.reference,result.reference);
+ assert.equal(store.retainedSessionPublicationResult(f.account,digest).rawResult,result);
+ await assert.rejects(store.saveSessionPublicationResult(f.account,digest,{...result,reference:'ynxpsr1_'+'s'.repeat(43)}));
+ const state=JSON.parse(await fs.readFile(store.filePath,'utf8'));assert.equal(state.schemaVersion,8);assert.equal(state.sessionOriginals[0].approval.version,'3');assert.equal(state.sessionOriginals[0].deliveryAttempted,false);
+ assert.equal(state.sessionPublications[0].result.reference,result.reference);assert.equal((await fs.stat(store.filePath)).mode&0o077,0);
+});
+test('publication marker lost ACK permits only original readback and never a second admission',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f);await f.lifecycle.run(()=>new DesktopWalletAuthority(s.options).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));
+ const store=s.options.transactionSender.submissions.intentStore,digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,s.request,s.at),replace=store.filePolicy.replace.bind(store.filePolicy);let lost=false;
+ store.filePolicy.replace=async(...args)=>{await replace(...args);if(!lost){lost=true;throw Error('QA_PUBLICATION_MARKER_ACK_LOST');}};
+ await assert.rejects(store.beginSessionPublication(f.account,digest,()=>{}));
+ const cold=new FileTransactionIntentStore({filePath:store.filePath}),again=await cold.beginSessionPublication(f.account,digest,()=>{});
+ assert.equal(again.created,false);assert.equal(again.publication.status,'publish-unknown');assert.equal(again.publication.result,null);
+});
+test('original Controller turns an admitted publication into a small reference and emits only after durable save',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f);let publications=0,reads=0,launches=0;
+ const client={async publishReturn(input){publications++;assert.equal(input.approval.version,'3');return {reference:'ynxpsr1_'+'r'.repeat(43),nonce:input.request.nonce,state:input.request.state,expiresAt:input.request.expiresAt};},async publicationOutcome(){reads++;assert.fail('no outcome read before the sole publication');}};
+ const controller=new DesktopAuthorizationController({authority:new DesktopWalletAuthority({...s.options,sessionReturnClient:client}),clock:()=>s.at,openExternal:async url=>{
+  launches++;assert.ok(Buffer.byteLength(url)<=4096);assert.equal(new URL(url).searchParams.get('result'),'reference');assert.equal(url.includes('walletProof'),false);
+  const state=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8'));assert.equal(state.sessionPublications[0].status,'reference-ready');assert.equal(state.sessionOriginals[0].deliveryAttempted,true);
+ }});
+ await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));const result=await f.lifecycle.run(()=>controller.act('approve'));
+ assert.equal(result.callbackEmitted,true);assert.equal(result.productSessionCreated,false);assert.equal(result.callbackReceivedProved,false);assert.equal(publications,1);assert.equal(reads,0);assert.equal(launches,1);
+});
+test('lost publication ACK recovers exact full originals by outcome read without another publication or signature',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f);let publications=0,reads=0,signs=0;const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};
+ let submitted;
+ const client={async publishReturn(input){publications++;submitted=input;throw Error('QA_PUBLICATION_ACK_LOST');},async publicationOutcome(input){reads++;assert.equal(input.publicationRequestId,submitted.requestId);assert.deepEqual(input.request,submitted.request);assert.deepEqual(input.approval,submitted.approval);return {state:'pending',reference:'ynxpsr1_'+'r'.repeat(43),expiresAt:input.request.expiresAt,account:input.approval.account,requestDigest:input.approval.requestDigest,approvalDigest:productSessionApprovalDigest(input.approval),retryAuthorized:false};}};
+ await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),/ACK_LOST/);
+ const fresh=sessionQA(f),cold=new DesktopWalletAuthority({...fresh.options,sessionReturnClient:client});
+ const recovered=await f.lifecycle.run(()=>cold.reconcileCanonicalAuthorization(s.request,f.account));assert.ok(recovered.callbackUrl.length<=4096);assert.equal(recovered.approval.walletProof,submitted.approval.walletProof);
+ assert.equal(publications,1);assert.equal(reads,1);assert.equal(signs,1);
+});
+test('publication not-found or substituted account/digests never authorize retry or erase the UNKNOWN marker',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f);let publications=0,mode='not_found',original;
+ const client={async publishReturn(input){publications++;original=input;throw Error('QA_PUBLICATION_ACK_LOST');},async publicationOutcome(){
+  if(mode==='not_found')return {state:'not_found',retryAuthorized:false};
+  const found={state:'pending',reference:'ynxpsr1_'+'r'.repeat(43),expiresAt:original.request.expiresAt,account:original.approval.account,requestDigest:original.approval.requestDigest,approvalDigest:productSessionApprovalDigest(original.approval),retryAuthorized:false};
+  if(mode==='account')found.account='ynx1'+'q'.repeat(38);if(mode==='approvalDigest')found.approvalDigest='0'.repeat(64);if(mode==='requestDigest')found.requestDigest='0'.repeat(64);if(mode==='retry')found.retryAuthorized=true;return found;
+ }};
+ await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)));
+ for(mode of ['not_found','account','approvalDigest','requestDigest','retry']){
+  const fresh=sessionQA(f);await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...fresh.options,sessionReturnClient:client}).reconcileCanonicalAuthorization(s.request,f.account)),e=>e.code==='SESSION_PUBLICATION_UNKNOWN');
+ }
+ const state=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8'));assert.equal(state.sessionPublications[0].status,'publish-unknown');assert.equal(state.sessionPublications[0].result,null);assert.equal(publications,1);
+});
+test('lock immediately after publication response saves its original reference before refusing delivery',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f);let publications=0;
+ const client={async publishReturn(input){publications++;f.lifecycle.lock();return {reference:'ynxpsr1_'+'r'.repeat(43),nonce:input.request.nonce,state:input.request.state,expiresAt:input.request.expiresAt};},async publicationOutcome(){assert.fail('saved reference needs no extra outcome read');}};
+ await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)));
+ const store=s.options.transactionSender.submissions.intentStore,state=JSON.parse(await fs.readFile(store.filePath,'utf8'));
+ assert.equal(state.sessionPublications[0].status,'reference-ready');assert.equal(state.sessionOriginals[0].deliveryAttempted,false);assert.equal(f.lifecycle.status().locked,true);
+ await f.lifecycle.unlock({password:PASSWORD});const fresh=sessionQA(f);f.vault.withPQKeys=()=>assert.fail('recovery cannot sign again');
+ const result=await f.lifecycle.run(()=>new DesktopWalletAuthority({...fresh.options,sessionReturnClient:client}).reconcileCanonicalAuthorization(s.request,f.account));assert.ok(result.callbackUrl.length<=4096);assert.equal(publications,1);
+});
+test('reference save lost ACK is reconciled by original journal readback without republishing or overwriting',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f),store=s.options.transactionSender.submissions.intentStore,replace=store.filePolicy.replace.bind(store.filePolicy);let publications=0,lost=false;
+ store.filePolicy.replace=async(...args)=>{const data=JSON.parse(await fs.readFile(args[0],'utf8'));await replace(...args);if(!lost&&data.sessionPublications?.[0]?.status==='reference-ready'){lost=true;throw Error('QA_REFERENCE_SAVE_ACK_LOST');}};
+ const client={async publishReturn(input){publications++;return {reference:'ynxpsr1_'+'r'.repeat(43),nonce:input.request.nonce,state:input.request.state,expiresAt:input.request.expiresAt};},async publicationOutcome(){assert.fail('durable original reference must be read first');}};
+ await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),e=>e.data?.code==='TRANSACTION_JOURNAL_WRITE_FAILED'&&e.cause?.message==='QA_REFERENCE_SAVE_ACK_LOST');
+ const digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,s.request,s.at);assert.equal(store.retainedSessionPublicationResult(f.account,digest).rawResult.reference,'ynxpsr1_'+'r'.repeat(43));
+ const fresh=sessionQA(f);f.vault.withPQKeys=()=>assert.fail('no new signature');const result=await f.lifecycle.run(()=>new DesktopWalletAuthority({...fresh.options,sessionReturnClient:client}).reconcileCanonicalAuthorization(s.request,f.account));
+ assert.ok(result.callbackUrl.length<=4096);assert.equal(lost,true);assert.equal(publications,1);
+});
+test('adding another original session never downgrades schema8 or drops the existing publication',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f),client={async publishReturn(input){return {reference:'ynxpsr1_'+'r'.repeat(43),nonce:input.request.nonce,state:input.request.state,expiresAt:input.request.expiresAt};},async publicationOutcome(){assert.fail('unused');}};
+ await f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));
+ const fresh=sessionQA(f),second={...s.request,purpose:'A different isolated QA original'};
+ await f.lifecycle.run(()=>new DesktopWalletAuthority(fresh.options).approveCanonicalAuthorization(second,s.at.toISOString(),f.account));
+ const state=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8'));
+ assert.equal(state.schemaVersion,8);assert.equal(state.sessionOriginals.length,2);assert.equal(state.sessionPublications.length,1);assert.equal(state.sessionPublications[0].result.reference,'ynxpsr1_'+'r'.repeat(43));
 });
 test('normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing',async t=>{
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);
