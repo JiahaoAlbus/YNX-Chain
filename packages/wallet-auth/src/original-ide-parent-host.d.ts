@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import type {Buffer} from 'node:buffer';
 
 /** Transport metadata only. descriptor is borrowed from Native for spawn's
@@ -26,6 +27,8 @@ export interface OriginalIDEParentHostOutcome {
  * -> await begin -> takeSenderDescriptor -> one JS Socket -> raw frame/ACK.
  * Full/partial custody must be retained before any caller current check. */
 export interface OriginalIDEParentHost {
+  /** Same actual parent joint; caller owns the existing reader/writer. No replay. */
+  handlePrivateServicePayload(rawFrameWithoutLF: string): Promise<string>;
   assertCurrent(): void;
   readPending(): OriginalIDEParentPending;
   /** Starts the actual Native worker synchronously; resolves undefined. */

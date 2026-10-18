@@ -39,11 +39,43 @@ struct JointLifecycle {
 @class YNXAuthIdentityCurrentOwner;
 @interface YNXAuthIdentitySourceAuthority : NSObject
 + (instancetype)acquireOriginalSource:(NSError **)error;
+// Derived from actual parent app + actual runtime/node; no caller path.
++ (instancetype)acquireOriginalIDEConsumerSource:(NSError **)error;
++ (instancetype)acquireOriginalIDEParentSource:(NSError **)error;
+// Dedicated identity-purpose Wallet owner; never old four-operation admission.
++ (instancetype)acquireOriginalIDEIdentityWalletSource:(NSError **)error;
 - (BOOL)assertCurrent:(NSError **)error;
 - (BOOL)assertAuthenticatedNativePurpose:(NSError **)error;
 - (NSDictionary *)copyOriginalSelection:(NSError **)error;
+- (NSNumber *)copyOriginalCurrentSequence:(NSError **)error;
+// Private provisioning receiver input: exact signed public originals, DATA only.
+// This never lends a current signer or authenticates a reserve request.
+- (NSDictionary *)copyOriginalProvisioningPublicOriginals:(NSError **)error;
+// Private original privileged Native receiver. No path/UID/Root/key/approval
+// argument: target comes from actual kernel getuid and the existing registry.
+// Requires the SAME independently admitted Source purpose RECEIVE; login and
+// raw DATA cannot authorize installation. Exact public originals only, not a
+// recovery/signing/export/transaction capability. Partial stays this owner.
+- (NSDictionary *)installOriginalIDEIdentityPublicOriginals:(NSError **)error;
+// Actual cold filesystem readback against THIS Source's immutable originals.
+// This is DATA only, not identity/key recovery or a new Native admission.
+- (NSDictionary *)copyOriginalIDEInstalledPublicOriginals:(NSError **)error;
+// Private Native caller only. Returns authenticated DATA, never admission.
+// The original caller owns once-selection/lifetime/HostState+entered binding;
+// no caller policy, key, path, current original or clock is accepted here.
+- (NSDictionary *)verifyOriginalFirstEnterWitness:(NSData *)witness
+ binding:(NSDictionary *)binding requestId:(NSString *)requestId
+ nonce:(NSString *)nonce error:(NSError **)error;
+// Same original Source/task and independent compiled release, not a JS verifier.
+- (BOOL)assertOriginalIDEIdentityProofConsumerReady:(NSData *)request error:(NSError **)error;
+- (BOOL)assertOriginalIDEIdentityReceiveExecutionAvailable:(NSError **)error;
+- (BOOL)verifyOriginalIDEIdentityProof:(NSData *)wire expectedRequest:(NSData *)request invocation:(NSData *)invocation error:(NSError **)error;
 - (void)retire;
 - (BOOL)join:(NSError **)error;
 - (BOOL)close:(NSError **)error;
+@end
+// Implemented by the original R91 Native request category in the SAME image.
+@interface YNXAuthIdentitySourceAuthority (OriginalIDEIdentityRequestFence)
+- (BOOL)assertOriginalIDEIdentityRequestCurrent:(NSData *)request invocation:(NSData *)invocation error:(NSError **)error;
 @end
 #endif

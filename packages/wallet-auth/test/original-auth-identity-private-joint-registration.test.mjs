@@ -4,6 +4,8 @@ import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {types} from 'node:util';
+import * as PUBLIC_PAYLOAD from '../src/original-ide-private-payload.js';
+import {canonicalJSON as PUBLIC_CANONICAL} from '../src/canonical.js';
 test('R15 actual joint startup and both fixed loaders decode paths without Native calls',()=>{
  const joint=readFileSync(new URL('../src/original-auth-identity-private-joint-registration.js',import.meta.url),'utf8');
  const dispatch=readFileSync(new URL('../src/original-wallet-service-private-dispatch.js',import.meta.url),'utf8').match(/function loadFixedOriginalNativeServiceBinding\(\)\{[^]*?\n\}/)[0];
@@ -25,21 +27,21 @@ test('R15 actual joint startup and both fixed loaders decode paths without Nativ
 // PUBLIC lexical machinery controls. No real .node module, root/profile,
 // protected file, crypto or Native authority is loaded or supplied.
 const text=readFileSync(new URL('../src/original-auth-identity-private-joint-registration.js',import.meta.url),'utf8');
-function fixture({missing=false,commitFailure=false,hostNative={},typedNative=false,missingGenericAcquire=false,partialIDE=false,adminCloseFailure=false}={}){
+function fixture({missing=false,commitFailure=false,hostNative={},typedNative=false,missingGenericAcquire=false,partialIDE=false,adminCloseFailure=false,payloadSelection=null,payloadDispatch=null}={}){
  const association={account:'PUBLIC_ACCOUNT',clientId:'PUBLIC_CLIENT',productId:'developer',platform:'macos',applicationId:'PUBLIC_APP',deviceId:'PUBLIC_DEVICE'},original={},joint={},localRef={},events=[];
  let live=true,closed=0,commits=0,guardHook=null,genericAcquisitions=0,ideAcquisitions=0,administrationLane=null;const localOriginal={scope:'LOCAL_SELECTED_VAULT',account:'PUBLIC_ACCOUNT',nativeQualified:false,independentLatest:false};
  const guard={assert(){if(!live)throw false;guardHook?.();}};
  const local={read:async()=>localOriginal,assertObservationCurrent:value=>{assert.equal(value,localOriginal);guard.assert();},close:async()=>{events.push('local-close');}};
  const vault={acquireOriginalServiceRoleLocalCurrentSource:async()=>localRef};
  local.vault=vault;
- const installed={vault,association,raw:{PUBLIC:'original'},executor:{PUBLIC:'executor'},observer:{PUBLIC:'observer'}};
- const native={acquireOriginalAdministrationProfile:async()=>{genericAcquisitions++;administrationLane='generic';return original;},readOriginalAdministrationProfile:value=>{assert.equal(value,original);if(partialIDE&&administrationLane==='ide')throw undefined;return {association,expectedLocalCurrent:{PUBLIC:true}};},assertOriginalAdministrationProfileCurrent:value=>{assert.equal(value,original);guard.assert();},reserveOriginalJointRegistration:async(value,localValue)=>{assert.equal(value,original);assert.equal(localValue,localOriginal);events.push('reserved');return joint;},commitOriginalJointRegistration:async value=>{assert.equal(value,joint);commits++;if(commitFailure)throw undefined;return {PUBLIC:'original-commit'};},readOriginalJointRegistration:value=>{assert.equal(value,joint);return installed;},assertOriginalJointCurrent:value=>{assert.equal(value,joint);guard.assert();},assertOriginalJointExecutorChild:(value,executor,child)=>{assert.equal(value,joint);assert.equal(executor,installed.executor);if(child==='FOREIGN')throw Error('PUBLIC_CHILD_MISMATCH');},assertOriginalJointSuccession:()=>guard.assert(),retireOriginalJoint:()=>{events.push('retire');},joinOriginalJoint:async()=>{events.push('join');},closeOriginalJoint:async()=>{closed++;events.push('native-close');}};
+ const installed={vault,association,raw:{PUBLIC:'original'},executor:{PUBLIC:'executor',privateDispatch:payloadDispatch},observer:{PUBLIC:'observer'}};
+ const native={acquireOriginalAdministrationProfile:async()=>{genericAcquisitions++;administrationLane='generic';return original;},readOriginalAdministrationProfile:value=>{assert.equal(value,original);if(partialIDE&&administrationLane==='ide')throw undefined;return {association,expectedLocalCurrent:{PUBLIC:true},...payloadSelection};},assertOriginalAdministrationProfileCurrent:value=>{assert.equal(value,original);guard.assert();},reserveOriginalJointRegistration:async(value,localValue)=>{assert.equal(value,original);assert.equal(localValue,localOriginal);events.push('reserved');return joint;},commitOriginalJointRegistration:async value=>{assert.equal(value,joint);commits++;if(commitFailure)throw undefined;return {PUBLIC:'original-commit'};},readOriginalJointRegistration:value=>{assert.equal(value,joint);return installed;},assertOriginalJointCurrent:value=>{assert.equal(value,joint);guard.assert();},assertOriginalJointExecutorChild:(value,executor,child)=>{assert.equal(value,joint);assert.equal(executor,installed.executor);if(child==='FOREIGN')throw Error('PUBLIC_CHILD_MISMATCH');},assertOriginalJointSuccession:()=>guard.assert(),retireOriginalJoint:()=>{events.push('retire');},joinOriginalJoint:async()=>{events.push('join');},closeOriginalJoint:async()=>{closed++;events.push('native-close');}};
  Object.assign(native,{retireOriginalAdministrationProfile:value=>assert.equal(value,original),joinOriginalAdministrationProfile:async()=>undefined,closeOriginalAdministrationProfile:async()=>{events.push('admin-close');if(adminCloseFailure)throw false;}});
  if(typedNative)native.acquireOriginalIDEAdministrationProfile=function(){assert.equal(arguments.length,0);ideAcquisitions++;administrationLane='ide';return original;};
  if(missingGenericAcquire)native.acquireOriginalAdministrationProfile=undefined;
  Object.assign(native,hostNative);
- const context=vm.createContext({types,PUBLIC_NATIVE:missing?{}:native,assertOriginalAdmissionVault:value=>{if(value!==vault)throw Error('PUBLIC_FOREIGN_VAULT');},captureOriginalServiceRoleLocalCurrentSource:value=>{assert.equal(value,localRef);return local;}});
- const body=text.replace(/^import .*;$/mg,'').replace('const requireOriginal=createRequire(import.meta.url);','').replace(/^const loadOriginalNative=.*;$/m,'const loadOriginalNative=()=>PUBLIC_NATIVE;').replaceAll('export ','');
+ const context=vm.createContext({types,PUBLIC_PAYLOAD,PUBLIC_CANONICAL,PUBLIC_NATIVE:missing?{}:native,assertOriginalAdmissionVault:value=>{if(value!==vault)throw Error('PUBLIC_FOREIGN_VAULT');},captureOriginalServiceRoleLocalCurrentSource:value=>{assert.equal(value,localRef);return local;}});
+ const body=text.replace(/^import .*;$/mg,'').replace('const requireOriginal=createRequire(import.meta.url);','').replace(/^const loadOriginalNative=.*;$/m,'const loadOriginalNative=()=>PUBLIC_NATIVE;').replaceAll('export ','').replaceAll("import('./original-ide-private-payload.js')",'Promise.resolve(PUBLIC_PAYLOAD)').replaceAll("import('./canonical.js')",'Promise.resolve({canonicalJSON:PUBLIC_CANONICAL})');
  vm.runInContext(body+'\nthis.api={initializeOriginalAuthIdentityPrivateStartup,originalAuthIdentityStartupStatus,acquireOriginalAuthIdentityJointConfiguration,readOriginalAuthIdentityJointConfiguration,assertOriginalAuthIdentityJointCurrent,assertOriginalAuthIdentityJointExecutorChild,retireOriginalAuthIdentityJointConfiguration,joinOriginalAuthIdentityJointConfiguration,closeOriginalAuthIdentityJointConfiguration,originalAuthIdentityJointOutcome,originalAuthIdentityStartupUnresolved,reserveIDE:typeof reserveOriginalAuthIdentityIDEParentHost===\"function\"?reserveOriginalAuthIdentityIDEParentHost:null,initializeIDE:typeof initializeOriginalAuthIdentityIDEPrivateStartup===\"function\"?initializeOriginalAuthIdentityIDEPrivateStartup:null,acquireIDE:typeof acquireOriginalAuthIdentityIDEJointConfiguration===\"function\"?acquireOriginalAuthIdentityIDEJointConfiguration:null,statusIDE:typeof originalAuthIdentityIDEStartupStatus===\"function\"?originalAuthIdentityIDEStartupStatus:null};',context);
  return {api:context.api,vault,guard,installed,events,acquisitions:()=>({generic:genericAcquisitions,ide:ideAcquisitions}),setGuardHook(fn){guardHook=fn;},invalidate(){live=false;},closed:()=>closed,commits:()=>commits};
 }
@@ -177,4 +179,39 @@ test('R11 PUBLIC joint current retains committed original on late falsy invalida
 test('R11 PUBLIC failed commit remains UNKNOWN reachable through startup even without returned API',async()=>{
  const f=fixture({commitFailure:true});f.api.initializeOriginalAuthIdentityPrivateStartup(f.vault);let rejected=false;try{await f.api.acquireOriginalAuthIdentityJointConfiguration(f.vault,f.guard);}catch(cause){rejected=true;assert.equal(cause,undefined);}assert(rejected);
  await new Promise(resolve=>setImmediate(resolve));assert.equal(f.closed(),1);assert.equal(f.api.originalAuthIdentityStartupUnresolved(f.vault),true);await assert.rejects(f.api.acquireOriginalAuthIdentityJointConfiguration(f.vault,f.guard),/UNRESOLVED/);assert.equal(f.commits(),1);
+});
+
+// R33 actual parent SDK code, PUBLIC Native/Source stand-ins only.
+const r33Selection={expectedRequest:{requestNonce:'PUBLIC_NONCE',consumerManifestDigest:'a'.repeat(64)},receiptSelection:{receiptDigest:'b'.repeat(64)}};
+const r33Id='req_PUBLIC_REQUEST_001';
+const r33Input=PUBLIC_CANONICAL({operation:'restore',phase:'time',requestId:r33Id,body:null,proofHeader:null});
+const r33Frame=PUBLIC_PAYLOAD.createOriginalIDEPrivateRequestFrame(PUBLIC_PAYLOAD.originalIDEPrivateDeliveryBinding(r33Selection),r33Input);
+const r33Response={status:200,headers:{'content-type':'application/json','cache-control':'no-store','x-request-id':r33Id},body:PUBLIC_CANONICAL({ok:true,requestId:r33Id,schemaVersion:2,result:{PUBLIC:true}})};
+async function r33Fixture({dispatch=()=>r33Response,terminal=()=>undefined,initialACK=true}={}){
+ let calls=0,terminals=0;const events=[];
+ const hostNative={reserveOriginalIDEParentIntent:()=>({}),readOriginalIDEParentIntent:()=>({pending:true}),assertOriginalIDEParentIntentCurrent(){},beginOriginalIDEParentPrelude:()=>Promise.resolve(),takeOriginalIDEParentSenderDescriptor:()=>41,readOriginalIDEParentInstalledFrame:()=>Buffer.from('PUBLIC\n'),assertOriginalIDEParentAcknowledgement(){},retireOriginalIDEParentIntent(){events.push('retire');},joinOriginalIDEParentIntent(){events.push('join');return Promise.resolve();},closeOriginalIDEParentIntent(){events.push('close');return Promise.resolve();},assertOriginalNativePrivateServiceTerminal(...args){terminals++;assert.equal(args.length,5);return terminal();}};
+ const f=fixture({typedNative:true,hostNative,payloadSelection:r33Selection,payloadDispatch:raw=>{calls++;assert.equal(raw,r33Input);return dispatch();}});f.api.initializeIDE(f.vault);const ref=await f.api.acquireIDE(f.vault,f.guard),host=f.api.reserveIDE(ref);
+ await host.beginPrelude();host.takeSenderDescriptor();host.readInstalledFrame();if(initialACK)host.acknowledge(Buffer.from('PUBLIC_ACK'));
+ return {...f,host,ref,events,calls:()=>calls,terminals:()=>terminals};
+}
+test('R33 PUBLIC parent uses its same executor and independent Native ACK before frame',async()=>{
+ const f=await r33Fixture();const reply=await f.host.handlePrivateServicePayload(r33Frame);assert.equal(PUBLIC_PAYLOAD.parseOriginalIDEPrivatePayload(reply).responseRaw,PUBLIC_CANONICAL(r33Response));assert.equal(f.calls(),1);assert.equal(f.terminals(),1);assert.equal(f.host.outcome().unknown,false);await f.host.close();
+});
+test('R33 PUBLIC parent rejects payload before initial ACK without invoking business',async()=>{
+ const f=await r33Fixture({initialACK:false});await assert.rejects(f.host.handlePrivateServicePayload(r33Frame),{code:'AUTH_IDENTITY_IDE_PAYLOAD_NOT_READY'});assert.equal(f.calls(),0);assert.equal(f.host.outcome().unknown,true);await f.host.close();
+});
+test('R33 PUBLIC parent terminal falsy preserves first cause, blocks replay and keeps UNKNOWN',async()=>{
+ const f=await r33Fixture({terminal(){throw undefined;}});await assert.rejects(f.host.handlePrivateServicePayload(r33Frame),e=>e===undefined);assert.equal(f.host.outcome().firstCausePresent,true);assert.equal(f.host.outcome().firstCause,undefined);assert.equal(f.host.outcome().unknown,true);await assert.rejects(f.host.handlePrivateServicePayload(r33Frame),e=>e===undefined);assert.equal(f.calls(),1);assert.equal(f.terminals(),1);await f.host.close();
+});
+test('R33 PUBLIC parent source loss after DATA prevents terminal/publication',async()=>{
+ let f;f=await r33Fixture({dispatch(){f.invalidate();return r33Response;}});await assert.rejects(f.host.handlePrivateServicePayload(r33Frame),e=>e===false);assert.equal(f.calls(),1);assert.equal(f.terminals(),0);assert.equal(f.host.outcome().unknown,true);await f.host.close();
+});
+test('R33 PUBLIC parent retire drains entered response before Native join/close; late DATA never returns',async()=>{
+ let resolve,entered;const started=new Promise(r=>entered=r),result=new Promise(r=>resolve=r);
+ const f=await r33Fixture({dispatch(){entered();return result;}}),pending=f.host.handlePrivateServicePayload(r33Frame);await started;assert.equal(f.host.outcome().unknown,true);
+ const close=f.host.close();await Promise.resolve();assert.equal(f.events.includes('join'),false);resolve(r33Response);await assert.rejects(pending);await close;assert.deepEqual(f.events,['retire','join','close']);assert.equal(f.terminals(),0);
+});
+test('R33 PUBLIC parent rejects same request twice and foreign binding without replay',async()=>{
+ const f=await r33Fixture();await f.host.handlePrivateServicePayload(r33Frame);await assert.rejects(f.host.handlePrivateServicePayload(r33Frame),{code:'ORIGINAL_PRIVATE_ALREADY_ENTERED'});assert.equal(f.calls(),1);await f.host.close();
+ const g=await r33Fixture();await assert.rejects(g.host.handlePrivateServicePayload(PUBLIC_CANONICAL({...JSON.parse(r33Frame),bindingDigest:'0'.repeat(64)})),{code:'AUTH_IDENTITY_IDE_PAYLOAD_BINDING_MISMATCH'});assert.equal(g.calls(),0);await g.host.close();
 });

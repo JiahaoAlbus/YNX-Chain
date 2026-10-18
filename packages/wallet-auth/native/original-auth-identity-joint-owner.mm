@@ -1,8 +1,38 @@
 #import "original-auth-identity-joint-owner.h"
+#include "original-auth-identity-public-limits.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <libproc.h>
+#include <limits.h>
+#include "original-ide-public-originals.h"
+
+static NSURL *YNXActualIDEConsumerResources(void) {
+ char parent[PROC_PIDPATHINFO_MAXSIZE]={0},self[PROC_PIDPATHINFO_MAXSIZE]={0};
+ if(proc_pidpath(getppid(),parent,sizeof(parent))<=0||proc_pidpath(getpid(),self,sizeof(self))<=0)return nil;
+ NSString *image=[NSString stringWithUTF8String:parent];
+ NSString *app=image.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent;
+ NSBundle *bundle=[NSBundle bundleWithPath:app];NSURL *resources=bundle.resourceURL;
+ if(!resources.isFileURL||![bundle.executableURL.path isEqual:image])return nil;
+ NSString *expected=[resources.path stringByAppendingPathComponent:@"runtime/node"];
+ char canonical[PATH_MAX];if(!realpath(expected.fileSystemRepresentation,canonical)||strcmp(self,canonical)!=0||![expected isEqual:[NSString stringWithUTF8String:canonical]])return nil;
+ return resources;
+}
+// Public canonical original files live OUTSIDE signed App resources. Otherwise
+// the profile's final code identities and ephemeral request would sign-cycle.
+// Proposed fixed custody layout, not an enrollment/provisioning operation.
+// No HOME/ENV/caller path, no mkdir/write, no private key is ever accessed.
+static NSURL *YNXOriginalIDERegistryResources(void){
+ if(getuid()!=geteuid()||getgid()!=getegid())return nil;
+ NSString *base=[NSString stringWithUTF8String:ynx_auth_ide_private::originalIDERegistryBase(getuid()).c_str()];
+ return [NSURL fileURLWithPath:base isDirectory:YES];
+}
+static BOOL YNXOriginalIDEProtectedAncestors(NSString *path){
+ NSString *part=@"/";for(NSString *name in path.pathComponents){if([name isEqual:@"/"])continue;part=[part stringByAppendingPathComponent:name];struct stat s;
+  if(lstat(part.fileSystemRepresentation,&s)||!ynx_auth_ide_private::originalIDERegistryDirectory(s))return NO;
+ }return YES;
+}
 
 static NSError *YNXAuthError(NSString *code) {
  return [NSError errorWithDomain:@"YNXOriginalAuthIdentity" code:1 userInfo:@{NSLocalizedDescriptionKey:code}];
@@ -13,7 +43,7 @@ static BOOL YNXAuthSameIdentity(struct stat a,struct stat b) {
  &&a.st_ctimespec.tv_sec==b.st_ctimespec.tv_sec&&a.st_ctimespec.tv_nsec==b.st_ctimespec.tv_nsec;
 }
 static BOOL YNXAuthProtectedFile(struct stat s) {
- return S_ISREG(s.st_mode)&&s.st_nlink==1&&!(s.st_mode&0022)&&(s.st_uid==getuid()||s.st_uid==0)&&s.st_size>0&&s.st_size<=65536;
+ return S_ISREG(s.st_mode)&&s.st_nlink==1&&!(s.st_mode&0022)&&(s.st_uid==getuid()||s.st_uid==0)&&s.st_size>0&&s.st_size<=(off_t)ynx_auth_private::OriginalAuthPublicOriginalMax;
 }
 // Retains exact original raw bytes and FD. No pathname/profile/key is accepted
 // from renderer, environment, caller dictionary or an approving callback.
@@ -33,7 +63,8 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  NSString *_rootPath;
  NSData *_profileRaw,*_headRaw;
  BOOL _retired,_closeSelected,_cleanupComplete;
- NSUInteger _entered;
+ NSUInteger _entered;BOOL _ideConsumer,_ideRegistry;
+ NSString *_actualIDEResources;
  NSError *_firstCause,*_cleanupCause;
 }
 - (instancetype)init {if((self=[super init]))_root=_profile=_head=-1;return self;}
@@ -45,18 +76,31 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
 // retired owner is cleanup custody only, never an approving guard.
  [owner retire];if(![owner close:nil])return owner;return nil;
 }
++ (instancetype)acquireOriginalIDEConsumerProfile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideConsumer=YES;owner->_ideRegistry=YES;
+ if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
+}
++ (instancetype)acquireOriginalIDERegistryProfile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideRegistry=YES;
+ if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
+}
+- (NSString *)copyOriginalResourceDirectory:(NSError **)error {
+ @synchronized(self){if(![self assertOriginalCurrent:error])return nil;return [_rootPath.stringByDeletingLastPathComponent copy];}
+}
 - (BOOL)capture:(NSError **)error {
  @synchronized(self){
-  NSURL *resources=NSBundle.mainBundle.resourceURL;
+  if(_ideConsumer){_actualIDEResources=YNXActualIDEConsumerResources().path;if(!_actualIDEResources)return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_UNAVAILABLE" error:error];}
+  NSURL *resources=_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
   if(!resources.isFileURL)return [self fail:@"AUTH_IDENTITY_ORIGINAL_SOURCE_NOT_SUPPLIED" error:error];
   _rootPath=[[resources URLByAppendingPathComponent:@"original-auth-identity" isDirectory:YES] path];
+  if(_ideRegistry&&!YNXOriginalIDEProtectedAncestors(_rootPath))return [self fail:@"AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED" error:error];
   struct stat named;
   if(lstat(_rootPath.fileSystemRepresentation,&named)||!S_ISDIR(named.st_mode)||S_ISLNK(named.st_mode)||(named.st_mode&0022))return [self fail:@"AUTH_IDENTITY_ORIGINAL_SOURCE_NOT_SUPPLIED" error:error];
   _root=open(_rootPath.fileSystemRepresentation,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);
   if(_root<0||fstat(_root,&_rootStat)||!YNXAuthSameIdentity(named,_rootStat))return [self fail:@"AUTH_IDENTITY_ROOT_CUSTODY_CHANGED" error:error];
   _profile=openat(_root,"profile.original",O_RDONLY|O_NOFOLLOW|O_CLOEXEC);
   _head=openat(_root,"head.original",O_RDONLY|O_NOFOLLOW|O_CLOEXEC);
-  if(_profile<0||_head<0||fstat(_profile,&_profileStat)||fstat(_head,&_headStat)||!YNXAuthProtectedFile(_profileStat)||!YNXAuthProtectedFile(_headStat))return [self fail:@"AUTH_IDENTITY_PROFILE_CURRENT_NOT_SUPPLIED" error:error];
+  if(_profile<0||_head<0||fstat(_profile,&_profileStat)||fstat(_head,&_headStat)||!YNXAuthProtectedFile(_profileStat)||!YNXAuthProtectedFile(_headStat)||(_ideRegistry&&(!ynx_auth_ide_private::originalIDERegistryPublicFile(_profileStat)||!ynx_auth_ide_private::originalIDERegistryPublicFile(_headStat))))return [self fail:@"AUTH_IDENTITY_PROFILE_CURRENT_NOT_SUPPLIED" error:error];
   _profileRaw=YNXAuthReadHeld(_profile,_profileStat,error);_headRaw=YNXAuthReadHeld(_head,_headStat,error);
   if(!_profileRaw||!_headRaw)return NO;
   return [self assertOriginalCurrent:error];
@@ -65,6 +109,8 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
 - (BOOL)assertOriginalCurrent:(NSError **)error {
  @synchronized(self){
   if(_retired)return [self fail:@"AUTH_IDENTITY_ORIGINAL_RETIRED" error:error];
+  if(_ideConsumer&&![YNXActualIDEConsumerResources().path isEqual:_actualIDEResources])return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_CHANGED" error:error];
+  if(_ideRegistry&&(![YNXOriginalIDERegistryResources().path isEqual:_rootPath.stringByDeletingLastPathComponent]||!YNXOriginalIDEProtectedAncestors(_rootPath)))return [self fail:@"AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_CHANGED" error:error];
   struct stat root,profile,head,namedRoot,namedProfile,namedHead;
   if(_root<0||_profile<0||_head<0||fstat(_root,&root)||fstat(_profile,&profile)||fstat(_head,&head)||lstat(_rootPath.fileSystemRepresentation,&namedRoot)
    ||fstatat(_root,"profile.original",&namedProfile,AT_SYMLINK_NOFOLLOW)||fstatat(_root,"head.original",&namedHead,AT_SYMLINK_NOFOLLOW)

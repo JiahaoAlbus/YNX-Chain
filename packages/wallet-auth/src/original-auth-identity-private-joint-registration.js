@@ -65,6 +65,7 @@ async function acquireJointConfiguration(vault,guard,table,lane){
   s.administration=await startup.acquireAdministration();
   if(s.administration===null)throw failure('AUTH_IDENTITY_ORIGINAL_PROFILE_NOT_SUPPLIED');guard.assert();
   const selected=s.binding.readOriginalAdministrationProfile(s.administration);
+  s.originalSelection=selected; // Actual Native selection retained privately for payload correlation.
   if(s.binding.assertOriginalAdministrationProfileCurrent(s.administration)!==undefined)throw failure('AUTH_IDENTITY_ADMINISTRATION_CHANGED');
   const localRef=await vault.acquireOriginalServiceRoleLocalCurrentSource(selected.expectedLocalCurrent,guard);
   s.local=captureOriginalServiceRoleLocalCurrentSource(localRef);s.localOriginal=await s.local.read();guard.assert();
@@ -123,7 +124,7 @@ export function reserveOriginalAuthIdentityIDEParentHost(ref){
  if(parent.ideHostSelected)throw failure('AUTH_IDENTITY_IDE_HOST_ALREADY_SELECTED');
  parent.ideHostSelected=true;
  if(ideMethods.some(name=>typeof parent.binding[name]!=='function'))throw failure('AUTH_IDENTITY_IDE_IMPLEMENTATION_NOT_SUPPLIED');
- const h={native:null,retired:false,unknown:false,firstPresent:false,first:undefined,cleanupPresent:false,cleanup:undefined,retireSelected:false,retireFailed:false,retireCause:undefined,beginSelected:false,beginPromise:null,preludeComplete:false,senderSelected:false,frameSelected:false,ackSelected:false,joining:null,closing:null,closed:false};
+ const h={native:null,retired:false,unknown:false,firstPresent:false,first:undefined,cleanupPresent:false,cleanup:undefined,retireSelected:false,retireFailed:false,retireCause:undefined,beginSelected:false,beginPromise:null,preludeComplete:false,senderSelected:false,frameSelected:false,ackSelected:false,joining:null,closing:null,closed:false,payloadRows:new Map(),payloadEntered:new Set(),payloadTail:Promise.resolve()};
  const remember=cause=>{
   h.retired=true;h.unknown=true;if(!h.firstPresent){h.firstPresent=true;h.first=cause;}
   first(parent,cause);parent.unknown=true;parent.retired=true;debt.add(parent);
@@ -146,6 +147,7 @@ export function reserveOriginalAuthIdentityIDEParentHost(ref){
   if(h.joining)return h.joining;
   if(!h.retireSelected)throw failure('AUTH_IDENTITY_IDE_INTENT_NOT_RETIRED');
   h.joining=Promise.resolve().then(async()=>{
+   while(h.payloadEntered.size)await Promise.allSettled([...h.payloadEntered]);
    if(!h.native){if(h.firstPresent)throw h.first;return undefined;}
    const result=invoke('joinOriginalIDEParentIntent');
    if(!types.isPromise(result)||await result!==undefined)throw failure('AUTH_IDENTITY_IDE_JOIN_INCOMPLETE');return undefined;
@@ -168,7 +170,41 @@ export function reserveOriginalAuthIdentityIDEParentHost(ref){
    h.closed=true;return undefined;
   });void h.closing.catch(()=>{});return h.closing;
  };
+ // Single existing parent joint; no provider/endpoint/Source is accepted.
+ const handlePrivateServicePayload=raw=>{
+  const pending=h.payloadTail.then(async()=>{
+   let row;
+   try{
+    assertCurrent();
+    if(!h.preludeComplete||!h.senderSelected||!h.frameSelected||!h.ackSelected)throw failure('AUTH_IDENTITY_IDE_PAYLOAD_NOT_READY');
+    const payload=await import('./original-ide-private-payload.js');
+    const {canonicalJSON}=await import('./canonical.js');
+    assertCurrent();
+    const frame=payload.parseOriginalIDEPrivatePayload(raw);
+    if(frame.type!=='request'||frame.bindingDigest!==payload.originalIDEPrivateDeliveryBinding(parent.originalSelection))throw failure('AUTH_IDENTITY_IDE_PAYLOAD_BINDING_MISMATCH');
+    const key=frame.operation+':'+frame.phase+':'+frame.requestId;
+    if(h.payloadRows.has(key)||h.payloadRows.size>=64)throw failure('ORIGINAL_PRIVATE_ALREADY_ENTERED');
+    row={originalFrame:raw,canonicalInput:frame.canonicalInput,response:null,responseRaw:null,terminal:false,unknown:true};h.payloadRows.set(key,row);
+    if(typeof parent.installed.executor.privateDispatch!=='function'||typeof parent.binding.assertOriginalNativePrivateServiceTerminal!=='function')throw failure('AUTH_IDENTITY_IDE_PAYLOAD_IMPLEMENTATION_NOT_SUPPLIED');
+    assertCurrent();
+    row.response=await parent.installed.executor.privateDispatch(frame.canonicalInput);
+    row.responseRaw=canonicalJSON(row.response); // Retain original result before late current.
+    payload.parseOriginalIDEPrivateResponse(row.responseRaw,frame.requestId);
+    assertCurrent();
+    const responseFrame=payload.createOriginalIDEPrivateResponseFrame(raw,row.responseRaw);
+    const digest=payload.parseOriginalIDEPrivatePayload(responseFrame).responseDigest;
+    // This ACK belongs to the parent joint only. Child R33 independently ACKs.
+    if(parent.binding.assertOriginalNativePrivateServiceTerminal(parent.joint,frame.operation,frame.phase,frame.requestId,digest)!==undefined)throw failure('AUTH_IDENTITY_IDE_PAYLOAD_TERMINAL_INCOMPLETE');
+    assertCurrent();row.terminal=true;row.unknown=false;return responseFrame;
+   }catch(cause){if(row)row.unknown=true;remember(cause);throw cause;}
+  });
+  h.payloadTail=pending.catch(()=>{});
+  h.payloadEntered.add(pending);parent.entered.add(pending);
+  void pending.then(()=>{h.payloadEntered.delete(pending);parent.entered.delete(pending);},()=>{h.payloadEntered.delete(pending);parent.entered.delete(pending);});
+  return pending;
+ };
  const api=Object.freeze({
+  handlePrivateServicePayload,
   assertCurrent,
   readPending:()=>call('readOriginalIDEParentIntent'),
   beginPrelude(){
@@ -199,7 +235,7 @@ export function reserveOriginalAuthIdentityIDEParentHost(ref){
    }catch(cause){remember(cause);throw cause;}
   },
   retire,join,close,
-  outcome:()=>Object.freeze({nativeIntentRetained:h.native!==null,preludeStarted:h.beginSelected,preludeComplete:h.preludeComplete,senderTaken:h.senderSelected,retired:h.retired,unknown:h.unknown,firstCausePresent:h.firstPresent,firstCause:h.first,cleanupCausePresent:h.cleanupPresent,cleanupCause:h.cleanup,cleanupComplete:h.closed}),
+  outcome:()=>Object.freeze({nativeIntentRetained:h.native!==null,preludeStarted:h.beginSelected,preludeComplete:h.preludeComplete,senderTaken:h.senderSelected,retired:h.retired,unknown:h.unknown||[...h.payloadRows.values()].some(row=>row.unknown),firstCausePresent:h.firstPresent,firstCause:h.first,cleanupCausePresent:h.cleanupPresent,cleanupCause:h.cleanup,cleanupComplete:h.closed}),
  });
  (parent.ideHosts??=new Set()).add(api);
  try{h.native=parent.binding.reserveOriginalIDEParentIntent(parent.joint);if(!h.native)throw failure('AUTH_IDENTITY_IDE_ORIGINAL_INTENT_NOT_SUPPLIED');}

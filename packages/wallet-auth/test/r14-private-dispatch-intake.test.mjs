@@ -25,7 +25,12 @@ function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=fa
   ProductSessionGatewayHttpHandler:class{constructor(_r,_t,s){this.s=JSON.parse(JSON.stringify(s));}snapshot(){return this.s;}handle(input){kernelCalls++;events.push(input.path);this.s.revision=1;return {status:200,headers:{},body:JSON.stringify({ok:true,requestId:input.requestId})};}revalidate(session){if(session.account!=='PUBLIC_ACCOUNT')throw Error('PUBLIC_SESSION_MISMATCH');return session;}},
  };
  context.OriginalHostTerminalJournal=class {open(){events.push('PUBLIC_JOURNAL_BOUND');}reserve(){return Object.freeze({PUBLIC_NOT_AUTHORITY:true});}commit(){}assertTerminal(){events.push('PUBLIC_HOST_TERMINAL');if(context.PUBLIC_TERMINAL_FAIL)throw context.PUBLIC_TERMINAL_CAUSE;}retire(){events.push('PUBLIC_JOURNAL_RETIRE');}join(){events.push('PUBLIC_JOURNAL_JOIN');}close(){events.push('PUBLIC_JOURNAL_CLOSE');}};
- vm.createContext(context);vm.runInContext('this.hostAPI=(()=>{'+clean(read('../src/product-session-gateway-node-host.js'))+'\nreturn {Host:ProductSessionGatewayNodeHost,capture:captureOriginalWalletServiceRuntimeHostSource};})();',context);context.Host=context.hostAPI.Host;context.ProductSessionGatewayNodeHost=context.Host;context.captureOriginalWalletServiceRuntimeHostSource=context.hostAPI.capture;
+ vm.createContext(context);
+ // Exact browser-safe carrier parser in this PUBLIC VM realm. The Node PQ
+ // decoder is exercised with actual provider signatures by its dedicated test.
+ vm.runInContext('this.PUBLICCarrier=(()=>{'+clean(read('../src/original-wallet-service-private-carrier.js'))+';return {budget:originalPrivateCarrierBudget};})();',context);
+ context.assertOriginalPrivatePQCarrier=value=>context.PUBLICCarrier.budget(value);
+ vm.runInContext('this.hostAPI=(()=>{'+clean(read('../src/product-session-gateway-node-host.js'))+'\nreturn {Host:ProductSessionGatewayNodeHost,capture:captureOriginalWalletServiceRuntimeHostSource};})();',context);context.Host=context.hostAPI.Host;context.ProductSessionGatewayNodeHost=context.Host;context.captureOriginalWalletServiceRuntimeHostSource=context.hostAPI.capture;
  const host=new context.Host({products:[]},{now:()=>new Date(clock),statePath:'/PUBLIC/state',tokenFactory:()=>''});
 
  const original={expectedRequest:{service:'wallet-product-session-v2',productId:'developer',platform:'macos',gatewayOrigin:'https://wallet-auth.ynxweb4.com',operations:['beginYNX','handleReturn','restore','disconnect']},association};

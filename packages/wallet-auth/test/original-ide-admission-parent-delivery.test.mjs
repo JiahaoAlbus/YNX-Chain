@@ -10,7 +10,7 @@ const source=readFileSync(new URL('../src/original-ide-admission-parent-delivery
 const moduleURL=new URL('../src/original-ide-admission-parent-delivery.js',import.meta.url).href;
 function fixture(selection,entry='/PUBLIC/Resources/server.mjs',native={},loaded=[]){
   const ctx=vm.createContext({originalIDEServiceAdmissionStartupSelection:selection,URL,fileURLToPath,resolve,dirname,join,moduleURL,createRequire:()=>path=>{loaded.push(path);return native;},process:{argv:['PUBLIC_NODE',entry]}});
-  vm.runInContext(source.replace(/^import .*;$/mg,'').replaceAll('import.meta.url','moduleURL').replace('export ','')+'\nthis.acquire=acquireOriginalIDEAdmissionParentDelivery',ctx);return ctx.acquire;
+  vm.runInContext(source.replace(/^import .*;$/mg,'').replaceAll('import.meta.url','moduleURL').replaceAll('export ','')+'\nthis.acquire=acquireOriginalIDEAdmissionParentDelivery',ctx);return ctx.acquire;
 }
 test('PUBLIC normal fixed null returns null; no descriptor or graph acquisition',async()=>{
   assert.equal(await fixture(null)('file:///PUBLIC/Resources/server.mjs'),null);

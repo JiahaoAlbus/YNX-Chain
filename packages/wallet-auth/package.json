@@ -1,11 +1,21 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.2.0",
+  "version": "1.3.0-pq.3.31-auth.1",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
   "type": "module",
   "exports": {
+    "./pq-wallet-contract": {
+      "types": "./src/pq-wallet-contract.d.ts",
+      "import": "./src/pq-wallet-contract.js",
+      "default": "./src/pq-wallet-contract.js"
+    },
+    "./pq-wallet-backup": {
+      "types": "./src/pq-wallet-backup.d.ts",
+      "import": "./src/pq-wallet-backup.js",
+      "default": "./src/pq-wallet-backup.js"
+    },
     "./central-browser-session-contract": {
       "types": "./src/central-browser-session-contract.d.ts",
       "import": "./src/central-browser-session-contract.js",
@@ -110,6 +120,83 @@
       "types": "./src/product-wallet-connection.d.ts",
       "import": "./src/product-wallet-connection.js",
       "default": "./src/product-wallet-connection.js"
+    },
+    "./pq-wallet-key-backup": {
+      "types": "./src/pq-wallet-key-backup.d.ts",
+      "import": "./src/pq-wallet-key-backup.js",
+      "default": "./src/pq-wallet-key-backup.js"
+    },
+    "./pq-wallet-authorization": {
+      "types": "./src/pq-wallet-authorization.d.ts",
+      "import": "./src/pq-wallet-authorization.js",
+      "default": "./src/pq-wallet-authorization.js"
+    },
+    "./pq-wallet-policy": {
+      "types": "./src/pq-wallet-policy.d.ts",
+      "import": "./src/pq-wallet-policy.js",
+      "default": "./src/pq-wallet-policy.js"
+    },
+    "./product-session-account-policy": {
+      "types": "./src/product-session-account-policy.d.ts",
+      "import": "./src/product-session-account-policy.js",
+      "default": "./src/product-session-account-policy.js"
+    },
+    "./product-session-pq-approval": {
+      "types": "./src/product-session-pq-approval.d.ts",
+      "browser": null,
+      "node": "./src/product-session-pq-approval.js",
+      "default": null
+    },
+    "./product-session-completion": {
+      "types": "./src/product-session-completion-record.d.ts",
+      "import": "./src/product-session-completion-record.js",
+      "default": "./src/product-session-completion-record.js"
+    },
+    "./walletconnect-dapp-connection": {
+      "types": "./src/walletconnect-dapp-connection.d.ts",
+      "import": "./src/walletconnect-dapp-connection.js",
+      "default": "./src/walletconnect-dapp-connection.js"
+    },
+    "./original-ide-admission": {
+      "types": "./src/original-ide-admission-parent-delivery.d.ts",
+      "browser": null,
+      "node": "./src/original-ide-admission-parent-delivery.js",
+      "default": null
+    },
+    "./pq-registered-member": {
+      "types": "./src/pq-registered-member.d.ts",
+      "browser": null,
+      "node": "./src/pq-registered-member.js",
+      "default": null
+    },
+    "./auth-identity-contract": {
+      "types": "./native/original-auth-identity-v2-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-identity-v2-contract.mjs",
+      "default": null
+    },
+    "./auth-identity-verification": {
+      "types": "./src/auth-identity-verification.d.ts",
+      "browser": null,
+      "node": "./src/auth-identity-verification.js",
+      "default": null
+    },
+    "./auth-source-verification": {
+      "types": "./native/original-auth-identity-source-v2-verifier.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-identity-source-v2-verifier.mjs",
+      "default": null
+    },
+    "./auth-native-contract": {
+      "types": "./src/auth-native-contract.d.ts",
+      "browser": null,
+      "node": null,
+      "default": null
+    },
+    "./pq-native-action": {
+      "types": "./src/pq-native-action.d.ts",
+      "import": "./src/pq-native-action.js",
+      "default": "./src/pq-native-action.js"
     }
   },
   "types": "./src/index.d.ts",
@@ -125,7 +212,22 @@
     "CENTRAL_INTEGRATION.md",
     "EVM_PRODUCT_SESSION_V1.md",
     "FINANCE_EVM_PRIVATE_ORDER_V1.md",
-    "FINANCE_ORDER_OPAQUE_V2.md"
+    "FINANCE_ORDER_OPAQUE_V2.md",
+    "native/original-auth-identity-source-verifier.mjs",
+    "native/publication-readonly-source-r28-20261018/source",
+    "native/terminal-custody-recovery-r30a-20261018/source",
+    "native/policy-revocation-source-r35-20261018/source",
+    "native/original-auth-identity-v2-contract.mjs",
+    "native/original-auth-identity-v2-contract.d.mts",
+    "native/original-auth-identity-source-v2-verifier.mjs",
+    "native/original-auth-identity-source-v2-verifier.d.mts",
+    "AUTH_RUNTIME_CLOSURE.md",
+    "native/original-ide-auth-proof-dispatch.mjs",
+    "native/original-auth-source-v2-dispatch.mjs",
+    "native/original-auth-identity-source-authority.mm",
+    "native/original-auth-source-v2-native-data.h",
+    "native/original-ide-identity-peer-wire.h",
+    "native/original-ide-identity-peer-endpoint.h"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -135,12 +237,18 @@
   "scripts": {
     "build:central-browser": "esbuild src/central-browser-session-browser.js --bundle --platform=browser --format=iife --legal-comments=none --outfile=src/central-browser-session-browser.bundle.js",
     "test": "node --test test/*.test.mjs && npm run test:types",
-    "test:types": "tsc -p tsconfig.types.json",
+    "test:types": "node test/check-type-closures.mjs",
     "check": "npm test",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
     "proof:product-session": "node test/generate-product-session-visible-proof.mjs",
-    "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
+    "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs",
+    "qa:pq-recovery": "node scripts/qa-pq-wallet-recovery.mjs",
+    "test:owned-interfaces": "npm run test:source-v2-acquisition && npm run test:auth-runtime-closure && node scripts/assert-pq-test-provider.mjs && node --test --test-concurrency=1 test/pq-wallet-native-action-signing.test.mjs test/pq-native-action-codec.test.mjs test/pq-native-action-go-interop.test.mjs test/auth-identity-proof-frame.test.mjs test/pq-wallet-auth-identity-signing.test.mjs test/original-identity-peer-runtime.test.mjs test/original-wallet-identity-source-binding.test.mjs test/original-ide-identity-peer-binding.test.mjs test/original-ide-native-auth-binding.test.mjs test/auth-native-type-only-export.test.mjs test/auth-source-acquisition-driver.test.mjs test/auth-source-transition.test.mjs test/auth-source-issued-observed-height.test.mjs test/auth-source-v2-public-consumer.test.mjs test/auth-identity-verification.test.mjs test/pq-registered-member.test.mjs test/original-ide-public-export.test.mjs test/original-ide-private-client-r33.test.mjs test/original-auth-identity-private-joint-registration.test.mjs test/pq-wallet-policy.test.mjs test/pq-wallet-policy-v2.test.mjs test/pq-wallet-revocation-wire.test.mjs test/pq-wallet-revocation-policy.test.mjs test/auth-policy-r35-projection.test.mjs test/auth-policy-r35-normal-source-transaction.test.mjs test/walletconnect-address-profile.test.mjs test/walletconnect-dependency-closure.test.mjs test/walletconnect-partial-initialization.test.mjs test/walletconnect-cleanup-observation.test.mjs test/central-browser-pair-cleanup.test.mjs test/original-ide-cold-terminal-custody.test.mjs test/original-host-terminal-journal-cleanup.test.mjs test/original-host-first-enter-r48.test.mjs && npm run test:types",
+    "test:types:browser": "node test/check-type-closures.mjs --only=browser",
+    "test:types:node-private": "node test/check-type-closures.mjs --only=node-private",
+    "test:auth-runtime-closure": "node --experimental-import-meta-resolve --test test/auth-runtime-closure.test.mjs",
+    "test:source-v2-acquisition": "node integration/source-acquisition-r101/tests/run.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
@@ -150,10 +258,24 @@
   },
   "devDependencies": {
     "esbuild": "0.25.9",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@ynx/batch-v01-candidate": "file:testdata/ynx-batch-v01-candidate-0.1.0-candidate.2.tgz",
+    "@types/node": "24.13.3"
   },
   "engines": {
     "node": ">=22"
   },
-  "private": true
+  "private": true,
+  "peerDependencies": {
+    "@ynx/batch-v01-candidate": "0.1.0-candidate.2",
+    "@types/node": ">=22.13.9"
+  },
+  "peerDependenciesMeta": {
+    "@ynx/batch-v01-candidate": {
+      "optional": true
+    },
+    "@types/node": {
+      "optional": true
+    }
+  }
 }

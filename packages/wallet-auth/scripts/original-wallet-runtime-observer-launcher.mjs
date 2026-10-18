@@ -2,6 +2,17 @@ import {originalWalletRuntimeObserverSelection} from './original-wallet-runtime-
 import {createOriginalWalletServiceRuntimeObserver,assertOriginalWalletServiceRuntimeObserver,captureOriginalWalletServiceRuntimeObservation,assertOriginalWalletServiceRuntimeObservationCurrent,beginOriginalWalletRuntimeObserverAcquisition,closeOriginalWalletRuntimeObserverAcquisition} from '../src/original-wallet-service-runtime-observer.js';
 import {captureOriginalRecoveryJSON} from '../src/original-operation-recovery-state.js';
 import {exactFields} from '../src/canonical.js';
+const runtimeLifetimes=new WeakMap();
+// A same-copy lifetime proves the normal caller selected the original observer
+// implementation. Its actual Source/current checks remain mandatory separately.
+export function assertOriginalWalletRuntimeObserverLifetime(lifetime,host){
+ const original=runtimeLifetimes.get(lifetime);
+ if(!original||original.host!==host)throw Object.assign(Error('Original runtime lifetime required'),{code:'ORIGINAL_RUNTIME_LIFETIME_REQUIRED'});
+ original.assertCurrent();
+ const status=lifetime.status();
+ if(!status.entered||!status.configured||status.retired||status.firstCausePresent||status.cleanupFailurePresent)throw Object.assign(Error('Original runtime source unavailable'),{code:'ORIGINAL_RUNTIME_NOT_CONFIGURED'});
+ return undefined;
+}
 // Called only from the original daemon's actual listen callback, retaining the
 // same Host brand and exact intrinsic listener. Null is NOT_CONFIGURED, not ready.
 export function openOriginalWalletRuntimeObserverAfterListen(hostSource,server,acquisition){
@@ -18,7 +29,7 @@ export function createOriginalWalletRuntimeObserverLifetime(host,server){
  const fail=code=>{throw Object.assign(Error('Original runtime observer is unavailable'),{code});};
  const remember=cause=>{if(!firstPresent){first=cause;firstPresent=true;}};
  const current=()=>{if(retired)fail('ORIGINAL_RUNTIME_RETIRED');if(!observer)fail('ORIGINAL_RUNTIME_NOT_CONFIGURED');assertOriginalWalletServiceRuntimeObserver(observer);if(retired)fail('ORIGINAL_RUNTIME_RETIRED');};
- return Object.freeze({
+ const lifetime=Object.freeze({
   afterListen(){
    if(retired)fail('ORIGINAL_RUNTIME_RETIRED');if(entered)fail('ORIGINAL_RUNTIME_ALREADY_ENTERED');entered=true;acquiring=true;
    try{
@@ -46,4 +57,5 @@ export function createOriginalWalletRuntimeObserverLifetime(host,server){
   // Non-secret diagnostics only; no source/ref/raw exported to an IPC caller.
   status(){return Object.freeze({entered,retired,configured:observer!==null,firstCausePresent:firstPresent,cleanupFailurePresent:cleanupFailed});}
  });
+ runtimeLifetimes.set(lifetime,{host,server,assertCurrent(){try{current();}catch(cause){remember(cause);retired=true;throw cause;}}});return lifetime;
 }

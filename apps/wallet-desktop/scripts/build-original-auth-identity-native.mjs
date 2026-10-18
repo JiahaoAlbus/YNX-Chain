@@ -1,5 +1,5 @@
 import {execFileSync} from 'node:child_process';
-import {existsSync,readFileSync} from 'node:fs';
+import {existsSync,readFileSync,lstatSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 const here=fileURLToPath(import.meta.url),app=path.resolve(path.dirname(here),'..'),repo=path.resolve(app,'../..');
@@ -9,10 +9,18 @@ export function validateOriginalMacMinimumSystemVersion(value){
 }
 export function originalAuthNativeBuildPlan(arch,headers){
  if(!['arm64','x64','universal'].includes(arch)||typeof headers!=='string'||!path.isAbsolute(headers)||path.normalize(headers)!==headers)throw Error('AUTH_NATIVE_BUILD_INPUT_INVALID');
- const arches=arch==='universal'?['arm64','x64']:[arch],sources=[path.join(app,'native/original-auth-identity-node.mm'),path.join(repo,'packages/wallet-auth/native/original-auth-identity-joint-owner.mm'),path.join(repo,'packages/wallet-auth/native/original-auth-identity-source-authority.mm')];
+ const arches=arch==='universal'?['arm64','x64']:[arch],native=path.join(repo,'packages/wallet-auth/native');
+ // Same original module: the complete R111 baseline is six translation units.
+ const sources=[path.join(app,'native/original-auth-identity-node.mm'),...['original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-source-binding.mm','original-ide-parent-kernel.mm','original-ide-parent-node.mm'].map(name=>path.join(native,name))];
+ const transport=[path.join(app,'native/original-ide-wallet-identity-source-owner.inc.mm'),...['original-ide-wallet-identity-source.h','original-ide-wallet-identity-source.mm','original-ide-wallet-peer-launch.h','original-ide-wallet-peer-launch.mm'].map(name=>path.join(native,name))];
+ const regular=file=>{try{const st=lstatSync(file);if(!st.isFile()||st.isSymbolicLink())throw Error('AUTH_NATIVE_SOURCE_NOT_REGULAR');return true;}catch(error){if(error.code==='ENOENT')return false;throw error;}};
+ const selected=transport.map(regular),withTransport=selected.some(Boolean);
+ if(withTransport&&!selected.every(Boolean))throw Error('AUTH_NATIVE_TRANSPORT_SOURCE_SELECTION_INCOMPLETE');
+ if(sources.some(file=>!regular(file)))throw Error('AUTH_NATIVE_BASE_SOURCE_SELECTION_INCOMPLETE');
+ if(withTransport)sources.push(path.join(native,'original-ide-wallet-identity-source.mm'),path.join(native,'original-ide-wallet-peer-launch.mm'));
  const minimumSystemVersion=validateOriginalMacMinimumSystemVersion(JSON.parse(readFileSync(path.join(app,'package.json'),'utf8'))?.build?.mac?.minimumSystemVersion);
  const output=path.join(app,'native/original-auth-identity.node');
- const commands=arches.map(a=>({tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-mmacosx-version-min='+minimumSystemVersion,'-I'+headers,'-framework','Foundation','-framework','Security','-arch',a==='x64'?'x86_64':a,...sources,'-o',arches.length===1?output:output+'.'+a]}));
+ const commands=arches.map(a=>({tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=original_auth_identity','-mmacosx-version-min='+minimumSystemVersion,'-I'+headers,'-I'+native,'-framework','Foundation','-framework','Security',...(withTransport?['-framework','AppKit']:[]),'-lbsm','-arch',a==='x64'?'x86_64':a,...sources,'-o',arches.length===1?output:output+'.'+a]}));
  if(arches.length===2)commands.push({tool:'/usr/bin/lipo',argv:['-create',output+'.arm64',output+'.x64','-output',output]});
  // Client journal IO is part of this same original addon. The separate
  // Auth-current SERVER IO module has an explicit command, never an implicit

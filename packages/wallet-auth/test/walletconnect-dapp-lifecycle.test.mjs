@@ -60,7 +60,9 @@ test('existing global Core, extra consumer or historical approval preserves tran
 });
 test('late initialization closes only an owned empty Core and never starts a proposal',async()=>{
   const f=await fixture();let release;f.state.initWait=new Promise(resolve=>release=resolve);try{
-    const connection=f.connection(),pending=connection.connect(),rejected=assert.rejects(pending,/CANCELLED/);await tick();await connection.cancel();await rejected;
+    const connection=f.connection(),notices=[];connection.on('cancelUnconfirmed',event=>notices.push(event));
+    const pending=connection.connect(),rejected=assert.rejects(pending,/CANCELLED/);await tick();await assert.rejects(connection.cancel(),error=>error.code==='YNX_PAIR_CLEANUP_UNCONFIRMED');await rejected;
+    assert.ok(notices.some(event=>event.reason==='initialization-unresolved'));
     release();await tick();await tick();assert.equal(f.state.closed,1);assert.equal(f.state.connects,0);
   }finally{release();f.finishConnect();await tick();f.close();}
 });

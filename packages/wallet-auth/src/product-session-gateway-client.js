@@ -2,6 +2,7 @@ import { OriginalWalletServicePrivateClient } from './original-wallet-service-pr
 import { decodeBase64url, encodeBase64url } from "./base64url.js";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { parseProductSessionProofV2 } from "./product-session-proof-v2.js";
+import {productSessionApprovalDigest} from './product-session-v2.js';
 import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION } from "./product-session-gateway.js";
 
 export const PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 = "x-ynx-product-session-proof-v2";
@@ -53,6 +54,35 @@ export class ProductSessionGatewayFetchAdapter {
   async complete(input) {
     exactFields(input, ["requestId", "request", "approval", "completion"], "Product Session Gateway completion request");
     return this.#request(input.requestId, "/v2/product-sessions/complete", { request: input.request, approval: input.approval, completion: input.completion }, null);
+  }
+
+  async publishReturn(input) {
+    exactFields(input,['requestId','request','approval'],'Original return publication');
+    const result=await this.#request(input.requestId,'/v2/product-sessions/returns',{request:input.request,approval:input.approval},null);
+    exactFields(result,['reference','nonce','state','expiresAt'],'Original publication result');
+    if(!validPublicationReference(result.reference)||result.nonce!==input.request?.nonce||result.state!==input.request?.state||!validPublicationExpiry(result.expiresAt,input.request))fail('INVALID_GATEWAY_RESPONSE','Publication result differs from the exact original request');
+    return result;
+  }
+  async returnChallenge(input) {
+    exactFields(input,['requestId','reference','request'],'Original return challenge');
+    return this.#request(input.requestId,'/v2/product-sessions/returns/challenge',{reference:input.reference,request:input.request},null);
+  }
+  async completeReturn(input) {
+    exactFields(input,['requestId','reference','request','completion'],'Original return completion');
+    return this.#request(input.requestId,'/v2/product-sessions/returns/complete',{reference:input.reference,request:input.request,completion:input.completion},null);
+  }
+  async returnOutcome(input) {
+    exactFields(input,['requestId','reference','request','completion'],'Original return outcome');
+    return this.#request(input.requestId,'/v2/product-sessions/returns/outcome',{reference:input.reference,request:input.request,completion:input.completion},null);
+  }
+  async publicationOutcome(input) {
+    exactFields(input,['requestId','publicationRequestId','request','approval'],'Original publication recovery');
+    const result=await this.#request(input.requestId,'/v2/product-sessions/returns/outcome',{selector:'YNX-PRODUCT-SESSION-PUBLICATION/v1',publicationRequestId:input.publicationRequestId,request:input.request,approval:input.approval},null);
+    exactFields(result,result?.state==='not_found'?['state','retryAuthorized']:['state','reference','expiresAt','requestDigest','account','approvalDigest','retryAuthorized'],'Original publication outcome');
+    if(result.retryAuthorized!==false)fail('INVALID_GATEWAY_RESPONSE','Publication outcome cannot authorize retry');
+    if(result.state==='not_found')return result;
+    if(!['pending','completed'].includes(result.state)||!validPublicationReference(result.reference)||!validPublicationExpiry(result.expiresAt,input.request)||result.account!==input.approval?.account||result.requestDigest!==input.approval?.requestDigest||result.approvalDigest!==productSessionApprovalDigest(input.approval))fail('INVALID_GATEWAY_RESPONSE','Publication outcome differs from its exact original account and approval');
+    return result;
   }
 
   async introspect(input) {
@@ -110,6 +140,8 @@ export function encodeProductSessionGatewayProofHeaderV2(value) {
 function endpoint(value) { if (typeof value !== "string" || value.length > 512) fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); let parsed; try { parsed = new URL(value); } catch { fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin"); return parsed.origin; }
 function capability(value, label) { if (typeof value !== "boolean") fail("INVALID_GATEWAY", `${label} must return a boolean`); return value; }
 function fail(code, message) { throw new WalletAuthError(code, message); }
+function validPublicationReference(value){return typeof value==='string'&&/^ynxpsr1_[A-Za-z0-9_-]{43}$/.test(value);}
+function validPublicationExpiry(value,request){return typeof value==='string'&&Number.isFinite(Date.parse(value))&&new Date(value).toISOString()===value&&typeof request?.expiresAt==='string'&&value<=request.expiresAt;}
 
 async function readGatewayResponse(response, requestId) {
       if (!response || typeof response.status !== "number" || !response.headers || typeof response.headers.get !== "function" || typeof response.text !== "function") fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is invalid");
@@ -138,6 +170,24 @@ async function readGatewayResponse(response, requestId) {
 // public registration hook, endpoint selector or supplied dispatch callback.
 export class ProductSessionGatewayPrivateAdapter extends ProductSessionGatewayFetchAdapter {
   #client;
+  async publishReturn(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference publication requires the fixed normal HTTP adapter');}
+  async returnChallenge(input){
+    exactFields(input,['requestId','reference','request'],'Original Native reference challenge');
+    return this.#reference('challenge',input.requestId,{reference:input.reference,request:input.request});
+  }
+  async completeReturn(input){
+    exactFields(input,['requestId','reference','request','completion'],'Original Native reference complete');
+    return this.#reference('complete',input.requestId,{reference:input.reference,request:input.request,completion:input.completion});
+  }
+  async returnOutcome(input){
+    exactFields(input,['requestId','reference','request','completion'],'Original Native reference outcome');
+    return this.#reference('outcome',input.requestId,{reference:input.reference,request:input.request,completion:input.completion});
+  }
+  async #reference(action,requestId,body){
+    const response=await this.#client.requestReference(action,requestId,canonicalJSON(body));
+    return readGatewayResponse(responseView(response),requestId);
+  }
+  async publicationOutcome(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Publication recovery requires the fixed normal HTTP adapter');}
   constructor(config) {
     exactFields(config, ['walletInstalled', 'schemeRegistered', 'timeoutMs'], 'Original Wallet Gateway configuration');
     const client = new OriginalWalletServicePrivateClient({timeoutMs: config.timeoutMs});

@@ -1,5 +1,12 @@
-import type {ProductSessionPlatform,ProductSessionPlatformSigner,WalletConnectionCoordinator} from "./index.js";
+import type {ProductSessionPlatform,ProductSessionPlatformSigner,WalletConnectionCoordinator,ProductSessionPublicationOutcome} from "./index.js";
 export declare const PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN: "https://wallet-auth.ynxweb4.com";
+/** Fixed normal HTTPS caller only; not Native/Source or deployment admission.
+ * No endpoint/fetch/key/provider option and no automatic publish retry. */
+export declare function createProductWalletReturnPublisher(config:Readonly<{gatewayTimeoutMs:number}>):Readonly<{
+ currentTime(input:Readonly<{requestId:string}>):Promise<Date>;
+ publishReturn(input:Readonly<{requestId:string;request:unknown;approval:unknown}>):Promise<Readonly<{reference:string;nonce:string;state:string;expiresAt:string}>>;
+ publicationOutcome(input:Readonly<{requestId:string;publicationRequestId:string;request:unknown;approval:unknown}>):Promise<ProductSessionPublicationOutcome>;
+}>;
 /** Actual protected bridge, supplied by the native/platform owner. The label alone is not proof of OS custody. */
 export interface ProductWalletProtectedStorage {
  readonly securityLevel: "hardware-backed"|"os-protected"|"webcrypto-nonextractable";

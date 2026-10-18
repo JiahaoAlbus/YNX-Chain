@@ -10,6 +10,9 @@ export declare function hasOriginalWalletServicePrivateBridge():boolean;
 export declare class OriginalWalletServicePrivateClient {
  constructor(config:Readonly<{timeoutMs:number}>);
  request(operation:OriginalWalletServiceOperation,phase:'time'|'effect',requestId:string,body:string|null,proofHeader:string|null,signal?:AbortSignal):Promise<OriginalWalletServiceResponse>;
+ /** Explicit v4 framing; actual Native registration/current remain mandatory.
+  * A matching read after UNKNOWN never clears the original write or global latch. */
+ requestReference(action:'challenge'|'complete'|'outcome',requestId:string,body:string,signal?:AbortSignal):Promise<OriginalWalletServiceResponse>;
  selectOutcome(operation:OriginalWalletServiceOperation,phase:'time'|'effect',requestId:string):Readonly<{response:OriginalWalletServiceResponse|null;unknown:boolean}>;
  status():Readonly<{unknown:boolean;retained:number}>;
 }

@@ -222,3 +222,8 @@ test('R4 PUBLIC exact daemon v3 fallback retains admission and normal product ro
  const res=response();context.server.emit('request',request('/v2/product-sessions/challenge'),res);await Promise.resolve();assert.equal(res.status,200);assert.equal(res.body,'PUBLIC_V3');assert.equal(product,1);
  const held=f.admission.enter('127.0.0.1'),blocked=response();context.server.emit('request',request('/v2/product-sessions/challenge'),blocked);assert.equal(blocked.status,503);assert.equal(product,1);held.release();
 });
+
+test('R31 private service requires the same runtime lifetime and its live original Source check',async()=>{
+ const f=lifetimeFixture();f.lifetime.afterListen();const check=f.context.assertOriginalWalletRuntimeObserverLifetime;assert.equal(check(f.lifetime,f.host),undefined);assert.throws(()=>check({...f.lifetime},f.host),e=>e.code==='ORIGINAL_RUNTIME_LIFETIME_REQUIRED');assert.throws(()=>check(f.lifetime,{}),e=>e.code==='ORIGINAL_RUNTIME_LIFETIME_REQUIRED');
+ f.context.assertOriginalWalletServiceRuntimeObserver=()=>{throw false;};let failed=false;try{check(f.lifetime,f.host);}catch(cause){failed=true;assert.equal(cause,false);}assert.equal(failed,true);assert.equal(f.lifetime.status().firstCausePresent,true);assert.equal(f.lifetime.status().retired,true);await f.lifetime.close();
+});
