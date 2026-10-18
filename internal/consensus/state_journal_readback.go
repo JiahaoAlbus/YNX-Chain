@@ -45,6 +45,12 @@ func LockSnapshotJournalRead(path string) (func(), error) {
 // A valid record alone does not prove Sync completed. Live observers must also
 // corroborate the node's published ABCI committed height after reading it.
 func DecodeSnapshotJournal(ctx context.Context, data []byte, migration chain.ConsensusMigrationState) (SnapshotJournalReadback, error) {
+	return decodeSnapshotJournalWithBootstrap(ctx, data, migration, nil)
+}
+
+// bootstrap is independent operator configuration; never recover it from the
+// journal. The public legacy decoder deliberately continues to pass nil.
+func decodeSnapshotJournalWithBootstrap(ctx context.Context, data []byte, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap) (SnapshotJournalReadback, error) {
 	var result SnapshotJournalReadback
 	if err := ctx.Err(); err != nil {
 		return result, err
@@ -104,6 +110,7 @@ func DecodeSnapshotJournal(ctx context.Context, data []byte, migration chain.Con
 	if err := decodeStrictJSON(result.SnapshotJSON, &result.State); err != nil {
 		return SnapshotJournalReadback{}, err
 	}
+	result.State.bootstrap = bootstrap
 	if err := result.State.Validate(migration); err != nil {
 		return SnapshotJournalReadback{}, err
 	}

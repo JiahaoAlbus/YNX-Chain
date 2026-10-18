@@ -117,6 +117,10 @@ func replayBlockJournal(ctx context.Context, r io.Reader, migration chain.Consen
 }
 
 func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, facts *nativeVerificationCache) (CommittedState, error) {
+	return replayBlockJournalWithAuthority(ctx, r, migration, j, facts, nil)
+}
+
+func replayBlockJournalWithAuthority(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (CommittedState, error) {
 	header := make([]byte, len(j.io.header))
 	if _, err := io.ReadFull(r, header); err != nil || !bytes.Equal(header, j.io.header) {
 		return CommittedState{}, errors.New("block journal format/migration mismatch")
@@ -126,6 +130,10 @@ func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration cha
 		return CommittedState{}, err
 	}
 	replay.replayVerificationFacts = facts
+	if authority != nil {
+		replay.bootstrap = authority.bootstrap
+		replay.pqEngineAuthorization = authority.engine
+	}
 	j.io.end = int64(len(header))
 	for {
 		if err := ctx.Err(); err != nil {
@@ -150,6 +158,12 @@ func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration cha
 			if record.Kind != "checkpoint" || record.Snapshot == nil || len(record.Request) != 0 || record.BeforeAppHash != "" || record.AppHash != "" || record.ResponseHash != "" {
 				return CommittedState{}, errors.New("block journal must begin with one canonical checkpoint")
 			}
+			if authority != nil {
+				record.Snapshot.bootstrap = authority.bootstrap
+				if err := authority.validateCheckpoint(*record.Snapshot); err != nil {
+					return CommittedState{}, err
+				}
+			}
 			if err := record.Snapshot.Validate(migration); err != nil {
 				return CommittedState{}, err
 			}
@@ -173,6 +187,11 @@ func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration cha
 			if err := req.Unmarshal(record.Request); err != nil {
 				return CommittedState{}, err
 			}
+			if authority != nil {
+				if err := authority.validateDelta(replay.committed, req.Height); err != nil {
+					return CommittedState{}, err
+				}
+			}
 			j.replayedTxInputs += len(req.Txs)
 			response, err := replay.FinalizeBlock(ctx, &req)
 			if err != nil {
@@ -187,6 +206,11 @@ func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration cha
 			}
 			if _, err := replay.Commit(ctx, &abci.RequestCommit{}); err != nil {
 				return CommittedState{}, err
+			}
+			if authority != nil {
+				if err := authority.validateCheckpoint(replay.committed); err != nil {
+					return CommittedState{}, err
+				}
 			}
 			j.blocks++
 			j.tailBytes += frameBytes
@@ -211,7 +235,22 @@ func encodeBlockCheckpoint(state CommittedState) ([]byte, error) {
 }
 
 func openBlockJournal(path string, migration chain.ConsensusMigrationState) (*blockJournal, CommittedState, error) {
+	return openBlockJournalWithAuthority(path, migration, nil, nil)
+}
+
+func openBlockJournalWithAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization) (*blockJournal, CommittedState, error) {
 	j := &blockJournal{io: &snapshotJournal{path: path, header: []byte(blockJournalMagic + migration.StateHash + "\n")}}
+	initial := initialCommittedState(migration)
+	initial.bootstrap = bootstrap
+	if bootstrap != nil {
+		if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+			if err := validateJournalAuthority(initial, migration, bootstrap, authorization); err != nil {
+				return nil, CommittedState{}, err
+			}
+		} else if err != nil {
+			return nil, CommittedState{}, err
+		}
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, CommittedState{}, err
 	}
@@ -222,7 +261,6 @@ func openBlockJournal(path string, migration chain.ConsensusMigrationState) (*bl
 	defer releaseJournalLock(lock)
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
 	if err == nil {
-		initial := initialCommittedState(migration)
 		if err := initial.Validate(migration); err != nil {
 			_ = f.Close()
 			return nil, CommittedState{}, err
@@ -262,9 +300,22 @@ func openBlockJournal(path string, migration chain.ConsensusMigrationState) (*bl
 	if info.Size() > int64(blockJournalMaxFrame+blockJournalCheckpointBlocks*(2*blockJournalMaxRequest+snapshotJournalHeader)+len(j.io.header)) {
 		return nil, CommittedState{}, errors.New("block journal file exceeds bounded checkpoint/tail capacity")
 	}
-	state, err := replayBlockJournal(context.Background(), io.NewSectionReader(f, 0, info.Size()), migration, j)
+	var authority *blockJournalReplayAuthority
+	if bootstrap != nil {
+		authority = &blockJournalReplayAuthority{bootstrap: bootstrap, engine: authorization}
+	}
+	state, err := replayBlockJournalWithAuthority(context.Background(), io.NewSectionReader(f, 0, info.Size()), migration, j, nil, authority)
 	if err != nil {
 		return nil, CommittedState{}, err
+	}
+	if bootstrap != nil {
+		if j.io.end != info.Size() {
+			return nil, CommittedState{}, errors.New("authorized block journal has an incomplete tail; original bytes retained")
+		}
+		state.bootstrap = bootstrap
+		if err := validateJournalAuthority(state, migration, bootstrap, authorization); err != nil {
+			return nil, CommittedState{}, err
+		}
 	}
 	if err := f.Sync(); err != nil {
 		return nil, CommittedState{}, err

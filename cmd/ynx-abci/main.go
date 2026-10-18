@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -82,20 +83,41 @@ func readEngineAuthorization(path, pin, genesisPath string) (*consensus.PQEngine
 	return consensus.NewPQEngineAuthorization(raw, pin)
 }
 
-// Journal constructors currently have no authenticated bootstrap/engine-source
-// reattachment interface. Refuse that combination before opening any state,
-// rather than ignoring independent pins or treating restored metadata as trust.
+// Every layout requires the same complete independent authority configuration.
+// Partial pins fail before opening a state file or creating a writer lock.
 func validateStartupLayout(layout, genesisPath string, pins consensus.ConsensusBootstrapPins, schedulePath, scheduleHash string) error {
 	if layout != "atomic-json" && layout != "snapshot-journal" && layout != "block-journal" {
 		return fmt.Errorf("unsupported state layout %q", layout)
 	}
-	if layout != "atomic-json" && (genesisPath != "" || pins != (consensus.ConsensusBootstrapPins{}) || schedulePath != "" || scheduleHash != "") {
-		return fmt.Errorf("state layout %q does not support authenticated consensus bootstrap/PQ engine reattachment; use atomic-json for this configuration", layout)
-	}
 	if genesisPath == "" && pins != (consensus.ConsensusBootstrapPins{}) {
 		return fmt.Errorf("consensus bootstrap pins require -consensus-genesis")
 	}
+	if genesisPath != "" {
+		for _, pin := range []string{pins.CometGenesisSHA256, pins.OriginalGenesisHash, pins.MigrationStateHash} {
+			if !startupCanonicalHash(pin) {
+				return fmt.Errorf("consensus bootstrap requires all three independent canonical nonzero SHA256 pins")
+			}
+		}
+	}
+	if schedulePath != "" || scheduleHash != "" {
+		if genesisPath == "" || schedulePath == "" || !startupCanonicalHash(scheduleHash) {
+			return fmt.Errorf("PQ engine schedule requires its file, independent canonical hash and pinned consensus genesis")
+		}
+	}
 	return nil
+}
+
+func startupCanonicalHash(value string) bool {
+	decoded, err := hex.DecodeString(value)
+	if err != nil || len(decoded) != 32 || hex.EncodeToString(decoded) != value {
+		return false
+	}
+	for _, b := range decoded {
+		if b != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // prepareApplication is the normal startup path, separated from server.Start so
@@ -109,6 +131,25 @@ func prepareApplication(migrationPath, statePath, layout, genesisPath string, pi
 	if err != nil {
 		return nil, nil, 0, err
 	}
+	payload, err := os.ReadFile(migrationPath)
+	if err != nil {
+		return nil, lease, 0, fmt.Errorf("read migration state: %w", err)
+	}
+	var state chain.ConsensusMigrationState
+	if err = json.Unmarshal(payload, &state); err != nil {
+		return nil, lease, 0, fmt.Errorf("decode migration state: %w", err)
+	}
+	var bootstrap *consensus.ConsensusBootstrap
+	if genesisPath != "" {
+		rawGenesis, readErr := os.ReadFile(genesisPath)
+		if readErr != nil {
+			return nil, lease, 0, fmt.Errorf("read pinned Comet genesis: %w", readErr)
+		}
+		bootstrap, err = consensus.NewConsensusBootstrap(rawGenesis, pins, state)
+		if err != nil {
+			return nil, lease, 0, fmt.Errorf("validate operator-pinned consensus bootstrap: %w", err)
+		}
+	}
 	lease, err = consensus.AcquireApplicationStateWriterLease(statePath)
 	if err != nil {
 		return nil, nil, 0, err
@@ -120,33 +161,27 @@ func prepareApplication(migrationPath, statePath, layout, genesisPath string, pi
 			app = nil
 		}
 	}()
-	payload, err := os.ReadFile(migrationPath)
-	if err != nil {
-		return nil, lease, 0, fmt.Errorf("read migration state: %w", err)
-	}
-	var state chain.ConsensusMigrationState
-	if err = json.Unmarshal(payload, &state); err != nil {
-		return nil, lease, 0, fmt.Errorf("decode migration state: %w", err)
-	}
-	if genesisPath == "" {
-		switch layout {
-		case "block-journal":
+	switch layout {
+	case "block-journal":
+		if bootstrap == nil {
 			app, err = consensus.NewBlockJournaledApplication(state, statePath)
-		case "snapshot-journal":
+		} else if authorization == nil {
+			app, err = consensus.NewBlockJournaledApplicationWithBootstrap(state, statePath, bootstrap)
+		} else {
+			app, err = consensus.NewBlockJournaledApplicationWithEngineAuthorization(state, statePath, bootstrap, authorization)
+		}
+	case "snapshot-journal":
+		if bootstrap == nil {
 			app, err = consensus.NewJournaledApplication(state, statePath)
-		default:
+		} else if authorization == nil {
+			app, err = consensus.NewJournaledApplicationWithBootstrap(state, statePath, bootstrap)
+		} else {
+			app, err = consensus.NewJournaledApplicationWithEngineAuthorization(state, statePath, bootstrap, authorization)
+		}
+	default:
+		if bootstrap == nil {
 			app, err = consensus.NewPersistentApplication(state, statePath)
-		}
-	} else {
-		rawGenesis, readErr := os.ReadFile(genesisPath)
-		if readErr != nil {
-			return nil, lease, 0, fmt.Errorf("read pinned Comet genesis: %w", readErr)
-		}
-		bootstrap, bootstrapErr := consensus.NewConsensusBootstrap(rawGenesis, pins, state)
-		if bootstrapErr != nil {
-			return nil, lease, 0, fmt.Errorf("validate operator-pinned consensus bootstrap: %w", bootstrapErr)
-		}
-		if authorization == nil {
+		} else if authorization == nil {
 			app, err = consensus.NewPersistentApplicationWithBootstrap(state, statePath, bootstrap)
 		} else {
 			app, err = consensus.NewPersistentApplicationWithEngineAuthorization(state, statePath, bootstrap, authorization)

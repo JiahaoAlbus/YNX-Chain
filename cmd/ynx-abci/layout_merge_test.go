@@ -145,8 +145,8 @@ func TestMergedABCIJournalPQConfigurationRefusesBeforeAnyStateOpen(t *testing.T)
 					scheduleHash = strings.Repeat("04", 32)
 				}
 				app, lease, _, err := prepareApplication("missing-migration", path, layout, genesis, pins, schedule, scheduleHash)
-				if err == nil || app != nil || lease != nil || !strings.Contains(err.Error(), "does not support authenticated") {
-					t.Fatal("journal ignored or consumed unsupported PQ authority", err)
+				if err == nil || app != nil || lease != nil || !strings.Contains(err.Error(), "require") {
+					t.Fatal("journal ignored or consumed incomplete independent PQ authority", err)
 				}
 				for _, candidate := range []string{path, path + ".writer.lock", path + ".lock", path + ".read.lock"} {
 					if _, err = os.Lstat(candidate); !os.IsNotExist(err) {

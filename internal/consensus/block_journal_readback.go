@@ -62,6 +62,10 @@ func (d *BlockJournalDecoder) VerificationStats() BlockJournalVerificationStats 
 }
 
 func decodeBlockJournalWithFacts(ctx context.Context, data []byte, migration chain.ConsensusMigrationState, facts *nativeVerificationCache) (BlockJournalReadback, error) {
+	return decodeBlockJournalWithAuthority(ctx, data, migration, facts, nil)
+}
+
+func decodeBlockJournalWithAuthority(ctx context.Context, data []byte, migration chain.ConsensusMigrationState, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (BlockJournalReadback, error) {
 	var result BlockJournalReadback
 	if err := ctx.Err(); err != nil {
 		return result, err
@@ -74,7 +78,7 @@ func decodeBlockJournalWithFacts(ctx context.Context, data []byte, migration cha
 		return result, errors.New("block journal readback exceeds bounded capacity")
 	}
 	j := &blockJournal{io: &snapshotJournal{header: header}}
-	state, err := replayBlockJournalWithFacts(ctx, bytes.NewReader(data), migration, j, facts)
+	state, err := replayBlockJournalWithAuthority(ctx, bytes.NewReader(data), migration, j, facts, authority)
 	if err != nil {
 		return result, err
 	}

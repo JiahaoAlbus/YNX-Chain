@@ -343,6 +343,36 @@ jobs:
           test "$YNX_PRESERVE_RED_STATUS" -ne 0
           grep -F 'MIGRATION_PRESERVATION_FACTORY_BLOCKED' "$YNX_PRESERVE_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=90s -v -run '^TestMigrationPreservation' ./internal/consensus
+      - name: Reproduce JSON-only signing source and verify real journal recovery
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 4
+        run: |
+          YNX_READ_CASE="$RUNNER_TEMP/ynx-pq-state-read-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          umask 077
+          mkdir "$YNX_READ_CASE"
+          cp internal/consensus/pq_engine_file_source.go "$YNX_READ_CASE/fixed-source.go"
+          trap 'cp "$YNX_READ_CASE/fixed-source.go" internal/consensus/pq_engine_file_source.go' EXIT
+          # Recreate the original JSON-only production call with the same real
+          # writer, decoders and tests. Compilation errors are not evidence.
+          python3 -B - <<'PY'
+          from pathlib import Path
+          path = Path('internal/consensus/pq_engine_file_source.go')
+          text = path.read_text()
+          fixed = 'readPQEngineCommittedState(statePath, migration, bootstrap, authorization, runtime)'
+          assert text.count(fixed) == 1
+          path.write_text(text.replace(fixed, 'loadCommittedStateWithBootstrap(statePath, migration, bootstrap)'))
+          PY
+          set +e
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestPQEngineStateReadActualLayoutsRegistryRotationRevocation$' ./internal/consensus > "$YNX_READ_CASE/original-red.log" 2>&1
+          YNX_READ_RED_STATUS=$?
+          set -e
+          cp "$YNX_READ_CASE/fixed-source.go" internal/consensus/pq_engine_file_source.go
+          trap - EXIT
+          cat "$YNX_READ_CASE/original-red.log"
+          test "$YNX_READ_RED_STATUS" -ne 0
+          test "$(grep -c 'actual fresh signing source rejected the complete layout' "$YNX_READ_CASE/original-red.log")" -eq 2
+          grep -F -- '--- PASS: TestPQEngineStateReadActualLayoutsRegistryRotationRevocation/atomic-json' "$YNX_READ_CASE/original-red.log"
+          go test -p 1 -count=1 -timeout=120s -v -run '^TestPQEngineStateRead' ./internal/consensus
       - name: Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
@@ -495,6 +525,99 @@ jobs:
           python3 -B scripts/loadtest/test_pq_network_file_sizes.py
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
+      - name: Verify operator checkpoint format and original read-lock admission
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          umask 077
+          export LC_ALL=C
+          ynx_launch=scripts/ops/ynx-consensus-pq-remote-signer-launch.sh
+          bash -n "$ynx_launch"
+          jq -e '.schema == "ynx-pq-remote-service-v1" and .checkpointFormat == "@EXPLICIT_CHECKPOINT_FORMAT@" and .abciState == "@EXISTING_ORIGINAL_COMMITTED_STATE_FILE@"' scripts/ops/ynx-consensus-pq-remote-signer.conf.in >/dev/null
+          fail() { printf '%s\n' "checkpoint control refused: $1" >&2; exit 78; }
+          # Extract the actual production admission functions, never execute
+          # the launcher's top-level identity/credential/service operations.
+          for ynx_name in canonical_path trusted_parents regular_file private_file checkpoint_source; do
+            ynx_body=$(sed -n "/^${ynx_name}() {$/,/^}$/p" "$ynx_launch")
+            [[ -n $ynx_body ]] || fail "missing production function: $ynx_name"
+            eval "$ynx_body"
+            declare -F "$ynx_name" >/dev/null || fail 'production function not loaded'
+          done
+          ynx_fixture=$(mktemp -d "$GITHUB_WORKSPACE/.ynx-checkpoint-control.XXXXXX")
+          chmod 700 "$ynx_fixture"
+          trap 'rm -rf -- "$ynx_fixture"' EXIT
+          # Only mount observation is a fixture stub; real path, UID, mode,
+          # link and prefix checks remain the production implementation.
+          readonly_mount() {
+            [[ $1 == "$ynx_fixture/"* ]] || fail 'unexpected fixture mount path'
+            [[ $1 != "${ynx_non_ro:-}" ]] || fail 'source or credential mount is not read-only'
+          }
+          ynx_inventory() {
+            (cd "$ynx_fixture"; find . -type f -exec sha256sum -- {} +; find . -printf '%P|%y|%m|%l\n') | sort
+          }
+          ynx_cases=0
+          ynx_expect() {
+            local path=$1 format=$2 wanted=$3 reason=$4 before output rc=0
+            before=$(ynx_inventory)
+            output=$(checkpoint_source "$path" "$format" 2>&1) || rc=$?
+            if [[ $rc != "$wanted" || $output != *"$reason"* ]]; then
+              printf 'Unexpected result: format=%s rc=%s wanted=%s\n%s\n' "$format" "$rc" "$wanted" "$output" >&2
+              fail 'wrong outcome or rejection cause'
+            fi
+            [[ $(ynx_inventory) == "$before" ]] || fail 'admission changed fixture bytes or metadata'
+            ynx_cases=$((ynx_cases + 1))
+          }
+          ynx_formats=(atomic-committed-json-v1 snapshot-journal-v1 block-journal-v2)
+          ynx_magics=('{' $'YNX_ABCI_SNAPSHOT_JOURNAL_V1\n' $'YNX_ABCI_BLOCK_JOURNAL_V2\n')
+          for ynx_i in 0 1 2; do
+            ynx_dir="$ynx_fixture/$ynx_i"
+            mkdir -m 700 "$ynx_dir"
+            printf '%s' "${ynx_magics[$ynx_i]}" > "$ynx_dir/state"
+            chmod 600 "$ynx_dir/state"
+            if [[ $ynx_i != 0 ]]; then
+              : > "$ynx_dir/state.read.lock"
+              chmod 600 "$ynx_dir/state.read.lock"
+            fi
+            ynx_expect "$ynx_dir/state" "${ynx_formats[$ynx_i]}" 0 ''
+          done
+          # The atomic positive needed no lock. Add one only for wrong-format
+          # cases, so they reach prefix rejection rather than missing-lock refusal.
+          : > "$ynx_fixture/0/state.read.lock"
+          chmod 600 "$ynx_fixture/0/state.read.lock"
+          for ynx_i in 0 1 2; do
+            for ynx_j in 0 1 2; do
+              [[ $ynx_i != "$ynx_j" ]] || continue
+              ynx_expect "$ynx_fixture/$ynx_i/state" "${ynx_formats[$ynx_j]}" 78 'original committed source does not match the configured checkpoint format'
+            done
+          done
+          ynx_expect "$ynx_fixture/0/state" auto 78 'unsupported committed checkpoint format'
+          for ynx_i in 1 2; do
+            ynx_dir="$ynx_fixture/$ynx_i"
+            ynx_state="$ynx_dir/state"
+            ynx_lock="$ynx_state.read.lock"
+            ynx_format=${ynx_formats[$ynx_i]}
+            printf '%s' "${ynx_magics[$ynx_i]%$'\n'}" > "$ynx_state"
+            ynx_expect "$ynx_state" "$ynx_format" 78 'original committed source does not match the configured checkpoint format'
+            printf '%s' "${ynx_magics[$ynx_i]}" > "$ynx_state"
+            rm -- "$ynx_lock"
+            ynx_expect "$ynx_state" "$ynx_format" 78 'missing path or symlink component'
+            : > "$ynx_dir/lock-target"
+            chmod 600 "$ynx_dir/lock-target"
+            ln -s "$ynx_dir/lock-target" "$ynx_lock"
+            ynx_expect "$ynx_state" "$ynx_format" 78 'noncanonical or unsupported path'
+            rm -- "$ynx_lock"
+            : > "$ynx_lock"
+            chmod 644 "$ynx_lock"
+            ynx_expect "$ynx_state" "$ynx_format" 78 'original private file must be owned by service UID with mode 0600'
+            chmod 600 "$ynx_lock"
+            ynx_non_ro=$ynx_state
+            ynx_expect "$ynx_state" "$ynx_format" 78 'source or credential mount is not read-only'
+            ynx_non_ro=$ynx_lock
+            ynx_expect "$ynx_state" "$ynx_format" 78 'source or credential mount is not read-only'
+            unset ynx_non_ro
+          done
+          [[ $ynx_cases == 22 ]] || fail 'unexpected control count'
+          printf 'YNX_REMOTE_CHECKPOINT_OPERATOR_CONTROLS_PASS %s\n' "$ynx_cases"
       - name: Build and pin normal signer process binaries without running them
         id: pqremotebuild
         if: ${{ success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha)) }}

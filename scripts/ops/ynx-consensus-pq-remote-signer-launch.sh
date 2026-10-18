@@ -71,6 +71,31 @@ check_hash() {
   actual=$(sha256sum -- "$1") || fail 'cannot hash an independently pinned input'
   [[ ${actual%% *} == "$2" ]] || fail 'input differs from its independent operator pin'
 }
+checkpoint_source() {
+  local path=$1 format=$2 magic expected actual
+  # Explicit format only: a configured journal must never fall back to JSON.
+  # These bytes match the normal reader's IsSnapshotJournal / IsBlockJournal.
+  case "$format" in
+    atomic-committed-json-v1) magic='{' ;;
+    snapshot-journal-v1) magic=$'YNX_ABCI_SNAPSHOT_JOURNAL_V1\n' ;;
+    block-journal-v2) magic=$'YNX_ABCI_BLOCK_JOURNAL_V2\n' ;;
+    *) fail 'unsupported committed checkpoint format' ;;
+  esac
+  private_file "$path"; readonly_mount "$path"
+  if [[ $format != atomic-committed-json-v1 ]]; then
+    # Open no file for writing. The normal daemon later acquires this ORIGINAL
+    # lock O_RDONLY + SH|NB and reopens the journal to follow compaction. Missing
+    # locks require the original writer owner; never create a replacement here.
+    private_file "$path.read.lock"; readonly_mount "$path.read.lock"
+  fi
+  expected=$(printf '%s' "$magic" | od -An -tx1 | tr -d ' \n')
+  actual=$(od -An -tx1 -N"${#magic}" -- "$path" | tr -d ' \n') || fail 'cannot inspect committed checkpoint prefix'
+  [[ $actual == "$expected" ]] || fail 'original committed source does not match the configured checkpoint format'
+  # Prefix admission is not a valid/durable checkpoint. On EVERY signing
+  # request the normal FileSource fully validates the stable original bytes,
+  # rejects busy/changed/bad/incomplete journals without repair or cached
+  # fallback, and binds the independently authenticated engine H/AppHash.
+}
 
 config=$1
 regular_file "$config"
@@ -89,7 +114,9 @@ jq -e '
     "runtimePlan","runtimePlanHash","schedule","scheduleHash","schema","timeoutSeconds",
     "transportKey","transportKeySHA256","vault","vaultSHA256"] | sort)) and
   ([to_entries[] | select(.key != "timeoutSeconds") | .value | type == "string"] | all) and
-  .schema == "ynx-pq-remote-service-v1" and .checkpointFormat == "atomic-committed-json-v1" and
+  .schema == "ynx-pq-remote-service-v1" and
+  (.checkpointFormat == "atomic-committed-json-v1" or
+    .checkpointFormat == "snapshot-journal-v1" or .checkpointFormat == "block-journal-v2") and
   (.timeoutSeconds | type == "number") and (.timeoutSeconds == (.timeoutSeconds | floor)) and
   .timeoutSeconds >= 1 and .timeoutSeconds <= 60 and
   ([.binarySHA256,.bindingSHA256,.cometGenesisSHA256,.enginePeerPublicKey,.legacyKeySHA256,
@@ -143,15 +170,10 @@ check_hash "$transport_key" "$(field transportKeySHA256)"
 [[ $(cat -- "$peer_pin") == "$(field enginePeerPublicKey)" ]] || fail 'full peer key differs from the independent operator pin'
 
 canonical_path "$checkpoint_directory"
-[[ -d $checkpoint_directory && ${state%/*} == "$checkpoint_directory" ]] || fail 'snapshot must be directly inside the live checkpoint directory'
+[[ -d $checkpoint_directory && ${state%/*} == "$checkpoint_directory" ]] || fail 'committed state must be directly inside the live checkpoint directory'
 trusted_parents "$checkpoint_directory"
 readonly_mount "$checkpoint_directory"
-private_file "$state"
-# Only inspect the format prefix here; do not parse/copy a large snapshot or
-# take its self-reported height as authority. The CLI performs full validation
-# against the authenticated engine checkpoint on EACH request. Journal frames
-# are intentionally refused instead of silently exporting a stale JSON copy.
-[[ $(od -An -tx1 -N1 -- "$state" | tr -d ' \n') == 7b ]] || fail 'fresh atomic JSON checkpoint is required; journal format is unsupported'
+checkpoint_source "$state" "$(field checkpointFormat)"
 systemctl is-active --quiet -- "$provider" || fail 'configured real checkpoint provider is not active'
 
 args=(--serve --migration-state "$migration" --genesis "$genesis" --abci-state "$state"

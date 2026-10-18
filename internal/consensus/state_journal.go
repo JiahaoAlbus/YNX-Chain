@@ -120,8 +120,24 @@ func releaseJournalLock(locks *snapshotJournalLocks) {
 }
 
 func openSnapshotJournal(path string, migration chain.ConsensusMigrationState) (*snapshotJournal, CommittedState, error) {
+	return openSnapshotJournalWithAuthority(path, migration, nil, nil)
+}
+
+func openSnapshotJournalWithAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization) (*snapshotJournal, CommittedState, error) {
 	j := &snapshotJournal{path: path, header: []byte(snapshotJournalMagic + migration.StateHash + "\n"), height: int64(migration.Height), targetBytes: snapshotJournalTargetBytes}
 	initial := initialCommittedState(migration)
+	initial.bootstrap = bootstrap
+	if bootstrap != nil {
+		if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+			// A schedule pin for a later registry must not create an empty
+			// substitute for the operator's original journal.
+			if err := validateJournalAuthority(initial, migration, bootstrap, authorization); err != nil {
+				return nil, CommittedState{}, err
+			}
+		} else if err != nil {
+			return nil, CommittedState{}, err
+		}
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, CommittedState{}, err
 	}
@@ -206,15 +222,29 @@ func openSnapshotJournal(path string, migration chain.ConsensusMigrationState) (
 		j.end += j.lastBytes
 		latest = payload
 	}
+	if bootstrap != nil && j.end != info.Size() {
+		return nil, CommittedState{}, errors.New("authorized snapshot journal has an incomplete tail; original bytes require reconciliation")
+	}
 	if latest == nil {
+		if bootstrap != nil {
+			if err := validateJournalAuthority(initial, migration, bootstrap, authorization); err != nil {
+				return nil, CommittedState{}, err
+			}
+		}
 		return j, initial, nil
 	}
 	var state CommittedState
 	if err := decodeStrictJSON(latest, &state); err != nil {
 		return nil, CommittedState{}, err
 	}
+	state.bootstrap = bootstrap
 	if err := state.Validate(migration); err != nil {
 		return nil, CommittedState{}, fmt.Errorf("validate journal state: %w", err)
+	}
+	if bootstrap != nil {
+		if err := validateJournalAuthority(state, migration, bootstrap, authorization); err != nil {
+			return nil, CommittedState{}, err
+		}
 	}
 	// A complete record can come from an unacknowledged prior write. Sync it
 	// during recovery before Info publishes its height, without truncating it.

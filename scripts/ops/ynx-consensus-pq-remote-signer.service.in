@@ -4,13 +4,20 @@
 # Requires systemd >= 250 with working LoadCredentialEncrypted. No plaintext
 # EnvironmentFile, synthetic key initialization, automatic reconnect or retry.
 #
-# The checkpoint directory must expose the actual publisher's atomic committed
-# JSON replacements at the SAME path. Bind the directory, never an individual
-# snapshot inode. The daemon reopens and authenticates exact engine H/AppHash
-# on every request. This unit DOES NOT provide cross-host replication and does
-# not support the optional snapshot-journal backend. A frozen file is not a
-# live source. CHECKPOINT_PROVIDER_UNIT must name the real local source/mount
-# owner, not a dummy readiness unit. Its being active does not prove freshness.
+# The checkpoint directory must expose the actual writer's committed state at
+# the SAME original path. Set checkpointFormat explicitly to one of:
+# atomic-committed-json-v1, snapshot-journal-v1, block-journal-v2. For journals,
+# the ORIGINAL adjacent <state>.read.lock must also be visible and readable;
+# the daemon opens it read-only with SH|NB, never creates it, and rejects busy,
+# changed, corrupt or incomplete reads without source repair or cache fallback.
+# Bind the directory, never an individual inode, so writer compaction/atomic
+# replacements stay visible. The daemon reopens, fully reconstructs and binds
+# exact authenticated engine H/AppHash on every request. The independent
+# bootstrap, schedule, migration and optional runtime pins remain mandatory.
+# This unit DOES NOT provide cross-host replication. A frozen file is not a
+# live source. CHECKPOINT_PROVIDER_UNIT names the real local source/mount owner,
+# not a dummy readiness unit. Its being active does not prove freshness. Source
+# data and read locks must remain outside both writable HRS directory mounts.
 #
 # ORIGINAL_PQ_HRS_DIRECTORY must preserve HostKeyBinding.SignerStatePath.
 # Never rewrite that binding or move/reset either original history to fit this

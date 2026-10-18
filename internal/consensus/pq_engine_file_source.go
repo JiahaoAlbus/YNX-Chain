@@ -124,7 +124,7 @@ func loadPQEngineSnapshotWithRuntime(migration chain.ConsensusMigrationState, st
 	if err := bootstrap.matchesMigration(migration); err != nil {
 		return nil, err
 	}
-	state, err := loadCommittedStateWithBootstrap(statePath, migration, bootstrap)
+	state, err := readPQEngineCommittedState(statePath, migration, bootstrap, authorization, runtime)
 	if err != nil {
 		return nil, fmt.Errorf("read committed engine authority: %w", err)
 	}
