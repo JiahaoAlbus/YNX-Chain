@@ -173,7 +173,7 @@ jobs:
           e3c1812d73a1c60e57dc7a3704224c111d1d2c095155d406153b1fbb758b6ed3  cmd/ynx-consensus-perf-client/ready_sender_test.go
           d0c8b0e0a04d145d409d6bc97981903664f1c0b0da908b4384c4441d62b52c9c  cmd/ynx-consensus-perf-client/ready_summary.go
           PINS
-          go test -p 1 ./cmd/ynx-consensus-perf-client -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySupplyRejectsUnknownBeforeSigning|TestFinalSubmissionRequiresDurableEvidenceAndHonestCounts|TestFullHistoryFinalCountsAndLatencyRejectIncompleteBusinessEvidence|TestReadySenderCumulativeCountsMatchCompleteHistoryAfterOutOfOrderHandoffs|TestJournalFinalCountsAndSenderGateRequirePublishedView|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadySenderStreamingReadbackBoundsAndConsumerErrors)$' -count=1 -timeout=30s
+          go test -p 1 ./cmd/ynx-consensus-perf-client -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySupplyRejectsUnknownBeforeSigning|TestFinalSubmissionRequiresDurableEvidenceAndHonestCounts|TestFullHistoryFinalCountsAndLatencyRejectIncompleteBusinessEvidence|TestReadySenderCumulativeCountsMatchCompleteHistoryAfterOutOfOrderHandoffs|TestJournalFinalCountsAndSenderGateRequirePublishedView|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadySenderStreamingReadbackBoundsAndConsumerErrors)$' -count=1 -timeout=30s -v
       - name: Emit public inverse interop fixture
         id: interop
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
