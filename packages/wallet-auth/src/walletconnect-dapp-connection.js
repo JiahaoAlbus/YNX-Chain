@@ -21,24 +21,27 @@ const reason={code:6000,message:'User disconnected'};
 // singleton prevents retries from constructing another SDK over that store.
 // The locked SDK's global slot/count are additional fail-closed checks, never
 // permission to close a Core supplied by another consumer or factory.
-const clients=new Map(),records=new WeakMap();
+const clients=new Map(),records=new WeakMap(),ownerRecords=new WeakMap();
 async function officialClient(options,owner){
   let record=clients.get(options.storageOptions.database);
   if(!record){
-    record={owners:new Set(),leases:new Set(),client:null,core:null,count:null,candidate:false,paused:false,promise:null};
+    record={owners:new Set(),leases:new Set(),client:null,core:null,count:null,candidate:false,paused:false,promise:null,constructionStarted:false,state:'initializing',failure:undefined};
     record.promise=(async()=>{
       const [{default:SignClient},{Core,RELAYER_EVENTS}]=await Promise.all([import('@walletconnect/sign-client'),import('@walletconnect/core')]);
       const before=globalThis._walletConnectCore_,count=globalThis._walletConnectCore__count;
+      // Constructor/start may have allocated storage or transport before throwing.
+      // There is no proven rollback ABI: retain this attempt and its first cause.
+      record.constructionStarted=true;
       const core=new Core(options);record.core=core;record.count=globalThis._walletConnectCore__count;
       record.candidate=before===undefined&&(count===undefined||count===0)&&globalThis._walletConnectCore_===core&&record.count===1&&core.customStoragePrefix==='';
       const client=await SignClient.init({...options,core});record.client=client;records.set(client,record);
       core.relayer.on(RELAYER_EVENTS.connect,()=>{const flight=record.pauseFlight;if(record.paused&&flight&&exclusive(record,flight))void core.relayer.transportClose().catch(()=>{});});
-      return client;
+      record.state='ready';return client;
     })();
     clients.set(options.storageOptions.database,record);
-    record.promise.catch(()=>{if(clients.get(options.storageOptions.database)===record)clients.delete(options.storageOptions.database);});
+    record.promise.catch(error=>{record.failure=error;record.state='failed';if(!record.constructionStarted&&clients.get(options.storageOptions.database)===record)clients.delete(options.storageOptions.database);});
   }
-  record.owners.add(owner);return record.promise;
+  record.owners.add(owner);ownerRecords.set(owner,record);return record.promise;
 }
 function exclusive(record,flight){
   try{
@@ -69,13 +72,23 @@ export class WalletConnectDAppConnection{
   removeListener(event,listener){this.#listeners.get(event)?.delete(listener);}
   #emit(event,value){for(const listener of this.#listeners.get(event)??[])listener(value);}
   #unconfirmed(reason,attempt){this.#emit('cancelUnconfirmed',{reason,attempt,current:attempt===this.#attempt,userCancelled:attempt===this.#cancelledAttempt});}
+  #initializationCleanupDebt(attempt=this.#attempt){
+    const record=ownerRecords.get(this);
+    if(!record?.constructionStarted||record.state==='ready')return;
+    const debt=Object.assign(new Error('YNX_PAIR_CLEANUP_UNCONFIRMED'),{code:'YNX_PAIR_CLEANUP_UNCONFIRMED',stage:'cleanup',cause:record.failure});
+    // A consumer notification failure is independent of the original failure
+    // and cleanup debt. Never let it replace either first cause.
+    try{this.#unconfirmed('initialization-unresolved',attempt);}catch(error){debt.notificationCause=error;}
+    return debt;
+  }
   async #wait(work,{stage='request',flight,deadline=this.#deadline}={}){let timer;const code=`YNX_PAIR_${stage.toUpperCase()}_TIMEOUT`;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error(code),{code,stage})),deadline);}),...(flight?[flight.cancelled]:[])]);}finally{clearTimeout(timer);}}
   async initialize(flight){
     if(this.#client){if(!flight&&!this.#restoring){const record=records.get(this.#client);if(record)record.externallyExposed=true;}return this.#client;}
     // A caller deadline must not start a second Relay instance while the
-    // original factory still owns the same SDK storage. Rejection is retryable.
+    // original factory still owns the same SDK storage. Injected-factory failures
+    // remain retryable; default partial construction retains its original latch.
     if(!this.#initializing){const task=Promise.resolve().then(()=>this.#factory({projectId:YNX_PAIR_PROJECT_ID,metadata:{name:'YNX browser connection',description:'Explicit YNX Wallet connection and separate request approval',url:this.#origin,icons:[]},logger:'silent',storageOptions:{database:`ynx-pair-${new URL(this.#origin).hostname}`}}));this.#initializing=task;task.catch(()=>{if(this.#initializing===task)this.#initializing=null;});}
-    if(flight)this.#initializing.then(client=>{if(flight.terminated&&!this.#flight)void this.#pause(client,flight);},()=>{});
+    if(flight)this.#initializing.then(client=>{if(flight.terminated&&!this.#flight)void this.#pause(client,flight);},()=>{if(flight.terminated)this.#initializationCleanupDebt(flight.attempt);});
     const client=await this.#wait(this.#initializing,{stage:'initialization',flight});
     if(!flight&&!this.#restoring){const record=records.get(client);if(record)record.externallyExposed=true;}
     if(this.#client)return this.#client;this.#client=client;
@@ -136,7 +149,7 @@ export class WalletConnectDAppConnection{
       const session=await this.#wait(approving,{stage:'approval',flight});
       if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');try{this.#validate(session);}catch(error){await this.#retire(client,session,attempt);throw error;}this.#session=session;this.#pairing=null;
       this.#emit('connect',{chainId:'0x1917'});return this.provider();
-    })().catch(async error=>{flight.terminated=true;if(epoch===this.#epoch)this.#epoch++;await this.#cancelPairing(epoch);if(this.#client)await this.#pause(this.#client,flight);if(!String(error?.code??'').startsWith('YNX_PAIR_')){const code=[4001,5000,5001,5002,5003].includes(Number(error?.code))||error?.code==='USER_REJECTED'?'USER_REJECTED':`YNX_PAIR_${flight.stage.toUpperCase()}_UNAVAILABLE`;throw Object.assign(new Error(code),{code,stage:flight.stage});}throw error;}).finally(()=>{if(this.#pending===task)this.#pending=null;if(this.#flight===flight)this.#flight=null;if(this.#draining?.flight!==flight&&!flight.record?.paused)flight.record?.leases.delete(flight);});
+    })().catch(async error=>{flight.terminated=true;if(epoch===this.#epoch)this.#epoch++;await this.#cancelPairing(epoch);let cleanupError;if(this.#client)await this.#pause(this.#client,flight);else cleanupError=this.#initializationCleanupDebt(attempt);if(!String(error?.code??'').startsWith('YNX_PAIR_')){const code=[4001,5000,5001,5002,5003].includes(Number(error?.code))||error?.code==='USER_REJECTED'?'USER_REJECTED':`YNX_PAIR_${flight.stage.toUpperCase()}_UNAVAILABLE`;throw Object.assign(new Error(code),{code,stage:flight.stage,cause:error,...(cleanupError?{cleanupError}:{})});}throw error;}).finally(()=>{if(this.#pending===task)this.#pending=null;if(this.#flight===flight)this.#flight=null;if(this.#draining?.flight!==flight&&!flight.record?.paused)flight.record?.leases.delete(flight);});
     this.#pending=task;return task;
   }
   async #pause(client,flight){
@@ -148,8 +161,8 @@ export class WalletConnectDAppConnection{
   }
   async #cancelPairing(epoch){const pairing=this.#pairing;if(!pairing||epoch!==undefined&&pairing.epoch!==epoch)return;this.#pairing=null;if(this.#client)try{await this.#wait(this.#client.core.pairing.disconnect({topic:pairing.topic}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',pairing.attempt);}}
   async #retire(client,session,attempt){if(!session||!/^[0-9a-f]{64}$/.test(session.topic)){this.#unconfirmed('invalid-session',attempt);return;}try{await this.#wait(client.disconnect({topic:session.topic,reason}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',attempt);}}
-  async cancel(){this.#cancelledAttempt=this.#attempt;const epoch=this.#epoch++;this.#flight?.cancel();this.#pending=null;await this.#cancelPairing(epoch);}
-  async disconnect(){this.#epoch++;const session=this.#session;this.#session=null;await this.#cancelPairing();if(session)await this.#wait(this.#client.disconnect({topic:session.topic,reason}));this.#emit('disconnect',{code:4900,message:'PAIR_EXPLICIT_DISCONNECT',reason:'permission-revoked'});}
+  async cancel(){this.#cancelledAttempt=this.#attempt;const epoch=this.#epoch++;this.#flight?.cancel();this.#pending=null;await this.#cancelPairing(epoch);const debt=this.#initializationCleanupDebt();if(debt)throw debt;}
+  async disconnect(){this.#epoch++;const session=this.#session;this.#session=null;await this.#cancelPairing();if(session)await this.#wait(this.#client.disconnect({topic:session.topic,reason}));const debt=this.#initializationCleanupDebt();if(debt)throw debt;this.#emit('disconnect',{code:4900,message:'PAIR_EXPLICIT_DISCONNECT',reason:'permission-revoked'});}
   provider(){const owner=this;return {isYNXWallet:true,isMetaMask:false,isYNXPair:true,providerInfo:{rdns:'com.ynx.wallet.pair'},on:(event,listener)=>owner.on(event,listener),removeListener:(event,listener)=>owner.removeListener(event,listener),request:input=>owner.request(input)};}
   async request({method,params=[]}){
     const session=this.#validate(this.#session),epoch=this.#epoch,account=this.#accounts(session)[0];

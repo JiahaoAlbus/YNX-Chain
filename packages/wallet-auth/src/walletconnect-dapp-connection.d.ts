@@ -32,7 +32,10 @@ export declare class WalletConnectDAppConnection {
  initialize():Promise<WalletConnectSignClient>;
  restore():Promise<WalletConnectProvider|null>;
  connect(options?:{onURI?:(uri:string)=>void;restore?:boolean}):Promise<WalletConnectProvider>;
+ /** Local cancellation fences late approval; unresolved original initialization rejects
+  * YNX_PAIR_CLEANUP_UNCONFIRMED and emits cancelUnconfirmed independently. */
  cancel():Promise<void>;
+ /** No confirmed disconnect is emitted while original initialization cleanup is unknown. */
  disconnect():Promise<void>;
  provider():WalletConnectProvider;
  request(input:{method:string;params?:unknown[]}):Promise<unknown>;
