@@ -109,12 +109,13 @@ export class CanonicalAccountNetwork {
 }
 
 export class NativeWalletService {
+  #preparationVersion = 0;
   constructor({ vault, network = new CanonicalAccountNetwork(), sender, clock = () => Date.now(), requestId = randomUUID, onTransferAttempt = () => {} }) {
     this.vault = vault; this.network = network; this.sender = sender; this.clock = clock; this.requestId = requestId;
     this.pending = new Map();
     this.attemptSequence=0;this.attempts=new Map();this.onTransferAttempt=onTransferAttempt;
   }
-  clear() { this.pending.clear(); }
+  clear() { this.#preparationVersion++; this.pending.clear(); }
   beginTransferAttempt(id, action) {
     const review=this.pending.get(id);
     if(action!=="approve"||!review||this.attempts.get(id)?.state==="in-progress")return null;
@@ -146,6 +147,10 @@ export class NativeWalletService {
     return { account: status.account, raw: snapshot.raw, wei: snapshot.unit === "wei" ? snapshot.raw : null, unit: snapshot.unit, formatted: snapshot.formatted, transferEnabled: snapshot.capabilities.enabled && (snapshot.capabilities.fullEVM === true || Boolean(snapshot.capabilities.durability)), capabilityVersion: snapshot.capabilities.version, durabilityVersion: snapshot.capabilities.durability?.version ?? null, symbol: "YNXT", chainId: CHAIN_ID, checkedAt: new Date(this.clock()).toISOString() };
   }
   async prepareTransfer({ to, amount } = {}) {
+    const version = ++this.#preparationVersion;
+    const assertPreparationCurrent = () => {
+      if (version !== this.#preparationVersion) throw providerError(4100, "WALLET_OPERATION_CANCELLED", "The original transfer preview was cancelled or replaced. Nothing was signed.");
+    };
     this.pending.clear();
     let recipient, value;
     try {
@@ -155,22 +160,28 @@ export class NativeWalletService {
       if (value <= 0n) throw new Error();
     } catch { throw providerError(-32602, "INVALID_TRANSFER", "Enter a valid nonzero recipient and a positive YNXT amount with up to 18 decimals"); }
     const status = await this.vault.status();
+    assertPreparationCurrent();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create or import an account first");
     const tx = { from: status.account, to: recipient, value: toQuantity(value), chainId: CHAIN_ID };
     const capabilities = await this.network.capabilities();
+    assertPreparationCurrent();
     requireTransactionCapabilities(capabilities);
     // This UI creates a fresh plain transfer. A verified fixed-fee adapter
     // needs its exact gas quote, not execution-estimation headroom. Existing
     // caller-supplied transaction snapshots and budgets are never rewritten.
     if (!capabilities.fullEVM) tx.gas = capabilities.gas;
     const balance = BigInt(await this.network.balance(status.account));
+    assertPreparationCurrent();
     if (balance < value) throw providerError(-32000, "INSUFFICIENT_FUNDS", "Insufficient YNXT for this amount. Add Testnet funds before sending.");
     if (typeof this.sender?.prepare !== "function") throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction preparation is unavailable");
     const snapshot = await this.sender.prepare(status.account, tx);
+    assertPreparationCurrent();
     if ((await this.vault.status()).account !== status.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Prepare the transfer again.");
+    assertPreparationCurrent();
     const maximumFee = BigInt(snapshot.gasLimit) * BigInt(snapshot.gasPrice ?? snapshot.maxFeePerGas);
     if (balance < value + maximumFee) throw providerError(-32000, "INSUFFICIENT_FUNDS", "Insufficient YNXT to cover the amount and network fee");
     this.vault.authorization?.current().assert();
+    assertPreparationCurrent();
     const id = this.requestId(), createdAt = this.clock();
     const record = Object.freeze({ id, account: status.account, transaction: snapshot, createdAt });
     this.pending.clear();
