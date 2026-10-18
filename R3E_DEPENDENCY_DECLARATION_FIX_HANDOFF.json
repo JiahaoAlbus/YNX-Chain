@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "state": "OWNING_AFTERPACK_DECLARATION_FIX_READY_FOR_ORIGINAL_A_NOT_NEW_BUILD_PASS",
+  "baseCommit": "78c39e54e0353827ea0c199b84cac4148e627bff",
+  "realCounterexample": {"stage": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r3e-full-matching-20261018", "raw": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r3e-full-matching-20261018/logs/NORMAL_FULL_APP_AND_DMG.raw", "bytes": 5604, "sha256": "de8cae329c90525dbfee02896641ee20c0d6e77bfb9c9facdd6b44659ff80ef1", "terminalExit": 1, "cause": "SDK_RUNTIME_DEPENDENCY_DECLARATION_CHANGED, not resource or Native failure", "rawReadAndHashVerified": true},
+  "supplierDeclaration": {"original": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3f-20261018/SDK_RUNTIME_DEPENDENCY_DECLARATIONS_R1.json", "ownedExactCopy": "apps/wallet-desktop/test/runtime-declaration-supplier-r1-20261018.json", "bytes": 7877, "sha256": "8c92ea12415a9aa6b933fe2846cd7af2dcd44dcc3c21ae670676e5aa5a4340a2", "allFiveMetadataPinsAndOriginalRootLockVerified": true, "allFiveLockVersionResolvedAndIntegrityRowsVerified": true},
+  "repair": ["Keep the fixed resolved ciphers package.version 2.2.0 and every one of the 316 byte/SHA pins", "Only accept the exact SDK optional peer to provider0.1.0-candidate.2 to PQ0.6.1 to ciphers declaration ~2.2.0", "Do not accept direct SDK/peer/provider same-name declarations as a substitute for this ciphers edge", "Do not add generic semver matching, downloader, installer or Native replacement", "Record declaration text and source separately from resolvedVersion in package provenance"],
+  "tests": [
+    {"scope": "Actual frozen78 SDK metadata and actual316 runtime files", "initialRed": "SDK_RUNTIME_DEPENDENCY_DECLARATION_CHANGED", "actualRedMs": 68.42275},
+    {"file": "test/wallet-auth-declaration.test.mjs", "pass": 4, "fail": 0, "durationMs": 86.090792, "checks": "Actual316 passes; arbitrary ranges/resolved versions/missing graph/root-peer/foreign package and substitute direct declarations refuse"},
+    {"file": "test/release-provenance.test.mjs", "pattern": "R23 altered or missing|R23 regular alias|R3d canonical archive", "pass": 3, "fail": 0, "durationMs": 3633.405208, "checks": "Input tamper, source-bound dependency receipt and fresh-receipt codec mutation remain refused"},
+    {"file": "test/release-provenance.test.mjs", "pattern": "R3e ciphers byte", "pass": 1, "fail": 0, "durationMs": 727.268833, "checks": "Same-length one-byte ciphers package metadata mutation refuses at SHA guard, before declaration exception"}
+  ],
+  "testRuntime": "bundled ordinary Node24.19.0, heap192MiB, isolation none and concurrency1; no heavy build invoked",
+  "preserved": ["frozen78 and previous failedstage/raw", "SDKc2a2 package source", "316 runtime files and original manifest", "original A33 module and raw executed receipt", "all user accounts, backups and UNKNOWN records"],
+  "normalRecipe": {"cwd": "apps/wallet-desktop", "argvAfterOriginalPinnedNode": ["scripts/build-mac.mjs", "arm64", "--config.electronDist=/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r65-normal-mac-matching-20261017/electron-dist", "--config.npmRebuild=false"], "builder": "original A only, use immutable successor source in a new stage, preserve old stage"},
+  "notEstablished": ["new actual full builder START or PASS", "download/install/upgrade", "true Source or Native grant", "public release"],
+  "next": "Original A resumes its existing bounded normal build with this exact owning-code successor. No old phase repeat or extra builder is requested."
+}

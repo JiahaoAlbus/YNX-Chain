@@ -6,6 +6,26 @@ const manifestPath='apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies
 const prefix='code/packages/wallet-auth/node_modules/';
 const digest=b=>createHash('sha256').update(b).digest('hex');
 const git=(cwd,...args)=>execFileSync('git',args,{cwd,maxBuffer:16*1024*1024});
+// Build-only provenance check. Resolved files remain exact-version/SHA bound
+// below; this one frozen indirect edge is NOT generic semver acceptance.
+export function assertWalletAuthDependencyDeclarations(versions,sdk,provider,pq){
+ const declarations=[];
+ for(const [name,version] of Object.entries(versions)){
+  const sources=[['sdk.dependencies',sdk.dependencies],['sdk.peerDependencies',sdk.peerDependencies],['provider.dependencies',provider.dependencies],['pq.dependencies',pq.dependencies]];
+  const exact=sources.find(([,values])=>values?.[name]===version);
+  if(name!=='@noble/ciphers'&&exact){declarations.push({name,resolvedVersion:version,source:exact[0],declared:version});continue;}
+  // SDK optional peer -> fixed provider -> fixed PQ -> ciphers ~2.2.0.
+  // All participating package.json bytes were verified from the 316 pins.
+  const indirect=name==='@noble/ciphers'&&version==='2.2.0'&&
+   sdk.dependencies?.[name]===undefined&&sdk.peerDependencies?.[name]===undefined&&provider.dependencies?.[name]===undefined&&
+   sdk.peerDependencies?.['@ynx/batch-v01-candidate']==='0.1.0-candidate.2'&&sdk.peerDependenciesMeta?.['@ynx/batch-v01-candidate']?.optional===true&&
+   provider.name==='@ynx/batch-v01-candidate'&&provider.version==='0.1.0-candidate.2'&&provider.dependencies?.['@noble/post-quantum']==='0.6.1'&&
+   pq.name==='@noble/post-quantum'&&pq.version==='0.6.1'&&pq.dependencies?.[name]==='~2.2.0';
+  if(!indirect)throw Error('SDK_RUNTIME_DEPENDENCY_DECLARATION_CHANGED');
+  declarations.push({name,resolvedVersion:version,source:'pq.dependencies',declared:'~2.2.0'});
+ }
+ return declarations;
+}
 /** Build-time only. The fixed source-owned manifest binds the SDK's declared
  * dependency versions. No install, download, ambient lookup or runtime loader. */
 export function walletAuthDependencyPlan(cwd,sourceCommit){
@@ -24,8 +44,8 @@ export function walletAuthDependencyPlan(cwd,sourceCommit){
  }
  for(const [name,version] of Object.entries(manifest.versions)){const meta=JSON.parse(contents.get(prefix+name+'/package.json'));if(meta.name!==name||meta.version!==version)throw Error('SDK_RUNTIME_DEPENDENCY_VERSION_DIFFERS');}
  const provider=JSON.parse(contents.get(prefix+'@ynx/batch-v01-candidate/package.json')),pq=JSON.parse(contents.get(prefix+'@noble/post-quantum/package.json'));
- for(const [name,version] of Object.entries(manifest.versions))if(sdk.dependencies?.[name]!==version&&sdk.peerDependencies?.[name]!==version&&provider.dependencies?.[name]!==version&&pq.dependencies?.[name]!==version)throw Error('SDK_RUNTIME_DEPENDENCY_DECLARATION_CHANGED');
- return {rows,contents,public:{manifest:{path:manifestPath,bytes:bytes.length,sha256:digest(bytes)},versions:manifest.versions,files:manifest.files}};
+ const declarations=assertWalletAuthDependencyDeclarations(manifest.versions,sdk,provider,pq);
+ return {rows,contents,public:{manifest:{path:manifestPath,bytes:bytes.length,sha256:digest(bytes)},versions:manifest.versions,files:manifest.files,declarations}};
 }
 export function verifyPackagedWalletAuthDependencies(asar,archive,plan,sdkMetadata){
  for(const row of plan.rows){const bytes=asar.extractFile(archive,row.path);if(bytes.length!==row.bytes||digest(bytes)!==row.sha256)throw Error('PACKAGED_SDK_DEPENDENCY_DIFFERS:'+row.path);}

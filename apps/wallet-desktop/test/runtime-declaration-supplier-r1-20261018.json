@@ -1,0 +1,191 @@
+{
+  "state": "EXACT_EXISTING_RUNTIME_SOURCE_DECLARATIONS_NOT_A_NEW_INSTALL_OR_RELEASE",
+  "sdkSourceCommit": "c2a2fd132bee164710186fdfa744be21d35c257f",
+  "manifest": {
+    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json",
+    "bytes": 52466,
+    "sha256": "5d9ceb6a9f069a0b525a23d37892d7e5767e25f4128e3671fee2449d4bc79a5b"
+  },
+  "physicalFileCount": 316,
+  "resolvedVersions": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
+    "@noble/ciphers": "2.2.0",
+    "@noble/post-quantum": "0.6.1",
+    "@ynx/batch-v01-candidate": "0.1.0-candidate.2"
+  },
+  "directedDeclarationEdges": [
+    {
+      "from": "@ynx-chain/wallet-auth",
+      "field": "dependencies",
+      "to": "@noble/curves",
+      "declaredSpec": "2.2.0",
+      "fixedResolvedVersion": "2.2.0"
+    },
+    {
+      "from": "@ynx-chain/wallet-auth",
+      "field": "dependencies",
+      "to": "@noble/hashes",
+      "declaredSpec": "2.2.0",
+      "fixedResolvedVersion": "2.2.0"
+    },
+    {
+      "from": "@ynx-chain/wallet-auth",
+      "field": "peerDependencies",
+      "to": "@ynx/batch-v01-candidate",
+      "declaredSpec": "0.1.0-candidate.2",
+      "fixedResolvedVersion": "0.1.0-candidate.2"
+    },
+    {
+      "from": "@noble/curves",
+      "field": "dependencies",
+      "to": "@noble/hashes",
+      "declaredSpec": "2.2.0",
+      "fixedResolvedVersion": "2.2.0"
+    },
+    {
+      "from": "@noble/post-quantum",
+      "field": "dependencies",
+      "to": "@noble/ciphers",
+      "declaredSpec": "~2.2.0",
+      "fixedResolvedVersion": "2.2.0"
+    },
+    {
+      "from": "@noble/post-quantum",
+      "field": "dependencies",
+      "to": "@noble/curves",
+      "declaredSpec": "~2.2.0",
+      "fixedResolvedVersion": "2.2.0"
+    },
+    {
+      "from": "@noble/post-quantum",
+      "field": "dependencies",
+      "to": "@noble/hashes",
+      "declaredSpec": "~2.2.0",
+      "fixedResolvedVersion": "2.2.0"
+    },
+    {
+      "from": "@ynx/batch-v01-candidate",
+      "field": "dependencies",
+      "to": "@noble/post-quantum",
+      "declaredSpec": "0.6.1",
+      "fixedResolvedVersion": "0.6.1"
+    },
+    {
+      "from": "@ynx/batch-v01-candidate",
+      "field": "dependencies",
+      "to": "@noble/hashes",
+      "declaredSpec": "2.2.0",
+      "fixedResolvedVersion": "2.2.0"
+    }
+  ],
+  "metadataPins": [
+    {
+      "name": "@noble/curves",
+      "resolvedVersion": "2.2.0",
+      "metadata": {
+        "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/packages/wallet-auth/node_modules/@noble/curves/package.json",
+        "bytes": 3243,
+        "sha256": "b305a9a8e20df7767458bff98aafb7423cb39e00f543fffea5a9e0b88e0ada9e"
+      },
+      "supplierSameBytes": "/Users/huangjiahao/ynx-wallet-pq-sdk-r1-20261018/provider-install/node_modules/@noble/curves/package.json"
+    },
+    {
+      "name": "@noble/hashes",
+      "resolvedVersion": "2.2.0",
+      "metadata": {
+        "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/packages/wallet-auth/node_modules/@noble/hashes/package.json",
+        "bytes": 2971,
+        "sha256": "df2580ed1896b0deffc07437c6a8d83fcf233e4c4c1e77c12e491563222c4719"
+      },
+      "supplierSameBytes": "/Users/huangjiahao/ynx-wallet-pq-sdk-r1-20261018/provider-install/node_modules/@noble/hashes/package.json"
+    },
+    {
+      "name": "@noble/ciphers",
+      "resolvedVersion": "2.2.0",
+      "metadata": {
+        "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/packages/wallet-auth/node_modules/@noble/ciphers/package.json",
+        "bytes": 2449,
+        "sha256": "4038bb147bd3e6e862fcf93c2cb119007a6474038421f29a6a7d32967c6a1a1c"
+      },
+      "supplierSameBytes": "/Users/huangjiahao/ynx-wallet-pq-sdk-r1-20261018/provider-install/node_modules/@noble/ciphers/package.json"
+    },
+    {
+      "name": "@noble/post-quantum",
+      "resolvedVersion": "0.6.1",
+      "metadata": {
+        "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/packages/wallet-auth/node_modules/@noble/post-quantum/package.json",
+        "bytes": 2426,
+        "sha256": "40963a943deda8d07352543d7263316b7bac48b04bab121d3cf4d6fcce5a47f9"
+      },
+      "supplierSameBytes": "/Users/huangjiahao/ynx-wallet-pq-sdk-r1-20261018/provider-install/node_modules/@noble/post-quantum/package.json"
+    },
+    {
+      "name": "@ynx/batch-v01-candidate",
+      "resolvedVersion": "0.1.0-candidate.2",
+      "metadata": {
+        "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/packages/wallet-auth/node_modules/@ynx/batch-v01-candidate/package.json",
+        "bytes": 789,
+        "sha256": "931ef94fbfb3801373319a2c1e2293a701e08c95441f21dbbf80a753393ab256"
+      },
+      "supplierSameBytes": "/Users/huangjiahao/ynx-wallet-pq-sdk-r1-20261018/provider-install/node_modules/@ynx/batch-v01-candidate/package.json"
+    }
+  ],
+  "originalSupplierRoot": {
+    "path": "/Users/huangjiahao/ynx-wallet-pq-sdk-r1-20261018/provider-install/package.json",
+    "bytes": 385,
+    "sha256": "1f3379350781b88646902200d71cc3c20b61222d5be8bda54ea3a5ada15808b2"
+  },
+  "originalSupplierLock": {
+    "path": "/Users/huangjiahao/ynx-wallet-pq-sdk-r1-20261018/provider-install/package-lock.json",
+    "bytes": 2818,
+    "sha256": "595026d9ff34859342576cdec715f275c3ac8d493a5102ef471fd3c6a2c78252"
+  },
+  "originalSupplierRootOverrides": {
+    "@noble/curves": "2.2.0",
+    "@noble/ciphers": "2.2.0",
+    "@noble/hashes": "2.2.0"
+  },
+  "lockedRows": {
+    "@noble/curves": {
+      "version": "2.2.0",
+      "resolved": "https://registry.npmmirror.com/@noble/curves/-/curves-2.2.0.tgz",
+      "integrity": "sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ=="
+    },
+    "@noble/hashes": {
+      "version": "2.2.0",
+      "resolved": "https://registry.npmmirror.com/@noble/hashes/-/hashes-2.2.0.tgz",
+      "integrity": "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg=="
+    },
+    "@noble/ciphers": {
+      "version": "2.2.0",
+      "resolved": "https://registry.npmmirror.com/@noble/ciphers/-/ciphers-2.2.0.tgz",
+      "integrity": "sha512-Z6pjIZ/8IJcCGzb2S/0Px5J81yij85xASuk1teLNeg75bfT07MV3a/O2Mtn1I2se43k3lkVEcFaR10N4cgQcZA=="
+    },
+    "@noble/post-quantum": {
+      "version": "0.6.1",
+      "resolved": "https://registry.npmmirror.com/@noble/post-quantum/-/post-quantum-0.6.1.tgz",
+      "integrity": "sha512-+pormrDZwjRw05U8ADK4JpHejo87+gBd+muRBB/ozztH5yhDLMDF4jHQWN3NQQAsu1zBNPWTG0ZwVI0CR29H0A=="
+    },
+    "@ynx/batch-v01-candidate": {
+      "version": "0.1.0-candidate.2",
+      "resolved": "file:../../Desktop/YNX Protocol Worktrees/ynx-batch-v01-20261018/ynx-batch-v01-candidate-0.1.0-candidate.2.tgz",
+      "integrity": "sha512-BTXA8UMFMqf+k9fKvFXoQ+KvplNX5YnHeJdzPRbGjQfwT4NRDfkmtSCZVMt8tbcPABT3jdFSdTybTL5Oo7ROvw=="
+    }
+  },
+  "exactException": {
+    "parent": "@noble/post-quantum",
+    "parentVersion": "0.6.1",
+    "field": "dependencies",
+    "dependency": "@noble/ciphers",
+    "declaredSpec": "~2.2.0",
+    "fixedResolvedVersion": "2.2.0"
+  },
+  "semantics": [
+    "Declared ~2.2.0 is original metadata text, not the installed version.",
+    "Only fixed directed edges and byte-pinned package metadata are in scope; never accept arbitrary ranges.",
+    "The supplier install ROOT overrides and package-lock resolve 2.2.0. A transitive provider overrides field alone is not root override authority.",
+    "Resolved versions and all 316 byte/SHA pins stay mandatory. No download, new install or source rewrite is needed.",
+    "This sidecar describes the existing 3.5 matching graph; it does not hot-edit frozen SDK3.5 or select a later App build."
+  ]
+}

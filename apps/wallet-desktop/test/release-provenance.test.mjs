@@ -62,7 +62,10 @@ function fixture(t,{runtimeMetadata={},includeRegistry=true,extraSDKFiles={},sdk
  const files={'apps/wallet-desktop/package.json':JSON.stringify({name:'public-wallet-fixture',version:'0.6.10',type:'module',main:'src/main.mjs',...runtimeMetadata}),'packages/wallet-auth/package.json':JSON.stringify({name:'@ynx-chain/wallet-auth',type:'module',main:'src/index.js',dependencies:dependencyManifest.versions}),'packages/wallet-auth/src/index.js':'export const PUBLIC_ONLY=true;\n','packages/wallet-auth/product-session-registry.json':'{"PUBLIC":true}\n','apps/wallet-desktop/native/original-auth-identity.node':'PUBLIC DATA - NOT A NATIVE MODULE\n','apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json':dependencyManifestBytes};
  // The fixed R3d launcher is now a required relocation operand. Declare its
  // scripts scope in every public archive fixture, just as the actual SDK does.
- files['packages/wallet-auth/package.json']=JSON.stringify({...JSON.parse(files['packages/wallet-auth/package.json']),...sdkMetadata,files:[...new Set([...(sdkMetadata.files??['src']),'scripts'])]});
+ // Ciphers has no direct SDK edge: preserve the real optional provider -> PQ
+ // declaration chain even in public archive fixtures.
+ const fixtureSDK=JSON.parse(files['packages/wallet-auth/package.json']);delete fixtureSDK.dependencies['@noble/ciphers'];
+ files['packages/wallet-auth/package.json']=JSON.stringify({...fixtureSDK,peerDependencies:{'@ynx/batch-v01-candidate':'0.1.0-candidate.2'},peerDependenciesMeta:{'@ynx/batch-v01-candidate':{optional:true}},...sdkMetadata,files:[...new Set([...(sdkMetadata.files??['src']),'scripts'])]});
  for(const [name,body] of Object.entries(extraSDKFiles))files['packages/wallet-auth/'+name]=body;
  for(const row of dependencyManifest.files)files['packages/wallet-auth/node_modules/'+row.path]=readFileSync(path.join(dependencyRoot,row.path));
  if(!includeRegistry)delete files['packages/wallet-auth/product-session-registry.json'];
@@ -219,6 +222,11 @@ test('actual PUBLIC ASAR becomes canonical source closure with one SDK alias and
 });
 test('R23 altered or missing fixed SDK dependency input cannot fall back to old app dependencies',t=>{
  const f=fixture(t),file=path.join(f.root,'packages/wallet-auth/node_modules/@noble/hashes/package.json');writeFileSync(file,'{"name":"@noble/hashes","version":"1.8.0"}');assert.throws(()=>walletAuthDependencyPlan(f.app,f.git('rev-parse','HEAD')),/SDK_RUNTIME_DEPENDENCY_INPUT/);
+});
+test('R3e ciphers byte mutation is rejected before the fixed indirect declaration edge',t=>{
+ const f=fixture(t),file=path.join(f.root,'packages/wallet-auth/node_modules/@noble/ciphers/package.json'),bytes=readFileSync(file);
+ const changed=Buffer.from(bytes);changed[changed.length-1]^=1;writeFileSync(file,changed);
+ assert.throws(()=>walletAuthDependencyPlan(f.app,f.git('rev-parse','HEAD')),/SDK_RUNTIME_DEPENDENCY_INPUT_DIFFERS:@noble\/ciphers\/package.json/);
 });
 test('R23 regular alias descriptors and canonical nested dependency bytes stay receipt-bound',t=>{
  const f=fixture(t);relocateDesktopPackage(f.resources,f.app);const file=path.join(f.resources,PACKAGED_RELOCATION_RECEIPT),receipt=JSON.parse(readFileSync(file));receipt.sdkDependencies.files[0].sha256='0'.repeat(64);writeFileSync(file,JSON.stringify(receipt));assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/dependency receipt differs/);
