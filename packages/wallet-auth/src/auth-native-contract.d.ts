@@ -1,0 +1,57 @@
+/** Type-only description of the original fixed Native module's two-phase ABI.
+ * Native exports are still being implemented. This SDK module exports no
+ * JavaScript constructor, loader, provider, owner or successful wrapper.
+ * Types/brands alone never prove Native identity, admission or availability. */
+export type OriginalAuthNativePhase='partial'|'ready'|'proof-selected'|'verified'|'completed'|'rejected'|'unknown'|'retired'|'closed'|'disposed-error';
+export interface OriginalAuthNativeStatus {
+ readonly phase:OriginalAuthNativePhase;readonly ready:boolean;readonly unknown:boolean;
+ readonly retired:boolean;readonly cleanupComplete:boolean;readonly disposed:boolean;
+ /** Normalized code only; null before any failure. No credential or raw cause. */
+ readonly firstCauseCode:string|null;
+}
+declare const originalNativeOwner:unique symbol;
+/** Native's hidden same-env/thread owning instance performs the real checks.
+ * A partial must be retained before assertReady or any later status operation.
+ * Every method is synchronous; lifecycle/proof methods return undefined or
+ * throw the original failure. Unknown/rejected selections are never replayed. */
+export interface OriginalAuthNativeOwner<Kind extends 'receive'|'recover'|'protected-key-call'> {
+ readonly [originalNativeOwner]:Kind;
+ assertReady():undefined;
+ /** Canonical R82 JSON from Native's held Source/expected request/nonce/window.
+ * The permitted signer uses encodeOriginalAuthIdentityRequest(parsedOriginal)
+ * to form the exact E message, not naked UTF-8 JSON. No caller expected/time. */
+ copyRequestOriginal():string;
+ /** Select once before verification/effect; ordinary owned bounded bytes only.
+ * Native checks N1, exact held request/purpose, permissions and current state. */
+ completeProof(memberWire:Uint8Array):undefined;
+ /** Does not renew the original wall/monotonic challenge window. */
+ current():undefined;
+ /** Public immutable result only after actual completed/current validation.
+ * Shape is deliberately unknown until the actual operation defines a receipt;
+ * a verified phase alone does not mean an effect completed. */
+ result():unknown;
+ retire():undefined;
+ /** Throws pending until actual child work has joined; never starts work. */
+ join():undefined;
+ /** Preserves the first cleanup failure, including disposed-with-error.
+ * Retain a live partial. No repeated close or effect retry is authorized. */
+ close():undefined;
+ status():Readonly<OriginalAuthNativeStatus>;
+}
+export type OriginalIDEIdentityReceiveOwner=OriginalAuthNativeOwner<'receive'>;
+export type OriginalIDEIdentityRecoveryOwner=OriginalAuthNativeOwner<'recover'>;
+export interface OriginalIDEProtectedKeyCallOwner extends OriginalAuthNativeOwner<'protected-key-call'> {
+ /** Invoke the SAME captured operation once. No selector, key, path, callback
+ * or raw private material. Exact public result shape remains unknown. */
+ invoke():unknown;
+}
+/** Describe only the genuine, fixed, original Native binding. Acquiring and
+ * validating that binding belongs to original Auth, not to a caller adapter.
+ * Constructors return the SAME owning/partial object before late checks; they
+ * do not auto-assert, discard it, retry or manufacture a successful receipt.
+ * Invalid arguments before resource capture may throw without an owner. */
+export interface OriginalAuthIDENativeBinding {
+ readonly receiveOriginalIDEIdentity:(actualEntryURL:string)=>OriginalIDEIdentityReceiveOwner;
+ readonly recoverOriginalIDEIdentity:(actualEntryURL:string)=>OriginalIDEIdentityRecoveryOwner;
+ readonly acquireOriginalIDEProtectedKeyCall:(actualEntryURL:string,invocationOriginal:string)=>OriginalIDEProtectedKeyCallOwner;
+}
