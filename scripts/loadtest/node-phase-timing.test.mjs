@@ -8,3 +8,5 @@ test('node timing decoder rejects incomplete failed capped regressed and stale e
  for(const mutate of [r=>r.pop(),r=>r[0].commit.durable=false,r=>r[0].valid=false,r=>r[1].capped=true,r=>r[1].sequence++,r=>r[1].inFlight=1,r=>r[1].stages.check_tx.calls=0,r=>r[1].stages.check_tx.durationBuckets[1]++,r=>r[0].commit.stagesNs={},r=>r[1].commit=r[0].commit,r=>delete r[1].stages.check_tx]){const rows=fixture();mutate(rows);assert.throws(()=>readNodePhaseTiming(log(rows)))}
  assert.throws(()=>readNodePhaseTiming('no records'));assert.throws(()=>readNodePhaseTiming('x'.repeat(1024*1024+1)));
 });
+
+test('non-proposing validator retains true zero prepare calls',()=>{const rows=fixture();for(const row of rows)row.stages.prepare_proposal={calls:0,failedResponses:0,elapsedNs:0,durationBuckets:Array(64).fill(0)};assert.equal(readNodePhaseTiming(log(rows)).stages.prepare_proposal.calls,0)});

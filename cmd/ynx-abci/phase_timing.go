@@ -44,7 +44,11 @@ type phaseRecorder struct {
 }
 
 func newPhaseRecorder(writer io.Writer) *phaseRecorder {
-	return &phaseRecorder{started: time.Now(), stages: make(map[string]phaseTotals, 5), writer: writer}
+	stages := make(map[string]phaseTotals, 5)
+	for _, name := range []string{"check_tx", "prepare_proposal", "process_proposal", "finalize_block", "commit"} {
+		stages[name] = phaseTotals{}
+	}
+	return &phaseRecorder{started: time.Now(), stages: stages, writer: writer}
 }
 func (r *phaseRecorder) begin() time.Time {
 	r.mu.Lock()

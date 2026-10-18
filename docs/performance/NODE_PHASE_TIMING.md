@@ -25,7 +25,8 @@ node log remains capped at 1 MiB by the bounded controller. A future ten-minute
 profile must requalify its data/log budgets and streaming workload separately.
 
 The controller requires four complete shutdown records and exact monotonic
-sequence/counter/bucket progression. It retains raw node logs, records per-node
+sequence/counter/bucket progression. A validator that did not propose retains
+true zero PrepareProposal calls; coverage is required across the four-node set. It retains raw node logs, records per-node
 cumulative metrics and Commit subphase totals in the window receipt, and records
 missing/malformed/failed/capped output as a first cause. No missing stage is
 filled in. Signature verification and state copying remain inside their ABCI

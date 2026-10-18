@@ -13,7 +13,7 @@ export function readNodePhaseTiming(log){
   if(!row.stages||Object.keys(row.stages).some(name=>!stages.includes(name)))throw Error('unknown node timing stage');
   if(prior&&row.windowElapsedNs<prior.windowElapsedNs)throw Error('node timing clock regressed');
   for(const name of stages){
-   const value=row.stages[name];if(!value)continue;
+   const value=row.stages[name];if(!value)throw Error('missing node timing stage');
    if(!integer(value.calls)||!integer(value.failedResponses)||value.failedResponses>value.calls||!integer(value.elapsedNs)||!Array.isArray(value.durationBuckets)||value.durationBuckets.length!==64||value.durationBuckets.some(n=>!integer(n))||value.durationBuckets.reduce((a,b)=>a+b,0)!==value.calls)throw Error('invalid node stage totals');
    const old=prior?.stages[name];if(old&&(value.calls<old.calls||value.failedResponses<old.failedResponses||value.elapsedNs<old.elapsedNs||value.durationBuckets.some((n,j)=>n<old.durationBuckets[j])))throw Error('node stage totals regressed');
   }
@@ -27,6 +27,6 @@ export function readNodePhaseTiming(log){
   }else if(row.commit!==null)throw Error('shutdown has stale Commit timing');
   prior=row;
  }
- if(!commits||stages.some(name=>!prior.stages[name]?.calls)||prior.stages.commit.calls!==commits||prior.stages.commit.failedResponses!==0)throw Error('missing executed node phase coverage');
+ if(!commits||!prior.stages.finalize_block.calls||prior.stages.commit.calls!==commits||prior.stages.commit.failedResponses!==0)throw Error('missing executed node phase coverage');
  return {schema:1,commitAttempts:commits,windowElapsedNs:prior.windowElapsedNs,stages:prior.stages,commitTotalsNs,interpretation:'Cumulative completed ABCI handler wall durations include application lock waits; parallel stage sums may exceed window time. Commit subphases cover the original durable write path. Histogram quantiles are intervals, not exact points. Diagnostic emission overhead is outside handler timers and remains in client-observed latency. These are local node timings, not BFT finality.'};
 }
