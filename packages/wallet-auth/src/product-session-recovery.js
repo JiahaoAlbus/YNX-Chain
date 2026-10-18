@@ -1,12 +1,14 @@
+import {productSessionRecordWithinBudget} from './product-session-record-budget.js';
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { httpBodyDigest } from "./session-proof.js";
 import { createProductSessionProofV2, createProductSessionProofV2With } from "./product-session-proof-v2.js";
 import { createProductSessionChallenge, createProductSessionRequest, parseProductSession, parseProductSessionChallenge, parseProductSessionRequest, signProductSessionChallenge, signProductSessionChallengeWith } from "./product-session-v2.js";
 import { parseProductSessionRegistry, productPlatformBinding } from "./product-session-registry.js";
-import { parseProductSessionReturnURL, prepareWalletAttempt, prepareWalletOpen, walletConnectionChoices, WALLET_ROUTE_STATUS } from "./product-session-router.js";
+import { parseProductSessionReturnURL, inspectProductSessionReturnEnvelope, prepareWalletAttempt, prepareWalletOpen, walletConnectionChoices, WALLET_ROUTE_STATUS } from "./product-session-router.js";
 import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches, createRevocationCompletion, parseRevocationCompletion, readRevocationCompletions } from "./product-session-revocation-intent.js";
-import { deriveCompletionTarget, parseCompletionRecord } from "./product-session-completion-record.js";
-import { encodeProductSessionGatewayProofHeaderV2 } from "./product-session-gateway-client.js";
+import { deriveCompletionTarget, parseCompletionRecord, inspectCompletionRecord } from "./product-session-completion-record.js";
+import { encodeProductSessionGatewayProofHeaderV2,productSessionGatewayAuthority } from "./product-session-gateway-client.js";
+import {REFERENCE_COMPLETION_VERSION,assertReferenceChallenge,inspectReferenceCompletion,assertReferenceSession} from './product-session-reference-completion.js';
 
 export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
   DISCONNECTED: "disconnected", CONNECTING: "connecting", CONNECTED: "connected", GUEST: "guest", EXPIRED: "expired",
@@ -16,12 +18,13 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
 const REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Product Session revocation is pending; API authorization is suspended", { actions: ["retry"], revocationPending: true });
 
 export class RecoverableProductSessionClient {
+  #accountPolicy=null; #policyOperations=0; #policyDebt=[]; #policyFirstFailure=null;
   #finiteServiceSeconds; #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch; #disconnectPromise; #returnOperation; #recoveryPromise;
   #revocationRequested = false; #revocationIntent = null;
   #beginEpoch = 0; #beginMutation = Promise.resolve();
   #returnCompletions = new Map();
   constructor(config) {
-    exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock", ...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[])], "Recoverable Product Session client configuration");
+    exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock", ...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[]),...(Object.hasOwn(config??{},"accountPolicy")?["accountPolicy"]:[])], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
     this.#binding = productPlatformBinding(this.#registry, config.productId, config.platform);
     this.#storage = secureStorage(config.storage, config.platform, config.device);
@@ -30,6 +33,11 @@ export class RecoverableProductSessionClient {
     this.#device = device(config.device);
     this.#tokens = tokenFactory(config.tokenFactory);
     this.#clock = clock(config.clock);
+    if(Object.hasOwn(config,'accountPolicy')){
+      exactFields(config.accountPolicy,['acquire','verifyCompletion'],'Main account policy ports');
+      if(typeof config.accountPolicy.acquire!=='function'||typeof config.accountPolicy.verifyCompletion!=='function')fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Wallet approval verification is unavailable');
+      this.#accountPolicy=Object.freeze({...config.accountPolicy});
+    }
     if(Object.hasOwn(config,"finiteServiceSeconds")){
       if(!Number.isInteger(config.finiteServiceSeconds)||config.finiteServiceSeconds<300||config.finiteServiceSeconds>7200)fail("INVALID_SERVICE_CONSENT_TIME","Explicit finite service duration is outside the approved bounds");
       this.#finiteServiceSeconds=config.finiteServiceSeconds;
@@ -43,9 +51,134 @@ export class RecoverableProductSessionClient {
     this.#recoveryPromise = null;
   }
 
+  #isPQCompletion(raw){try{return typeof raw==='string'&&productSessionRecordWithinBudget(`${this.storageKey}:completion`,raw)&&JSON.parse(raw).approval?.version==='3';}catch{return false;}}
+  #isReferenceCompletion(raw){try{return typeof raw==='string'&&raw.length<=16384&&JSON.parse(raw).version===REFERENCE_COMPLETION_VERSION;}catch{return false;}}
+  #assertReferenceOwner(record){
+    for(const key of ['chainId','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback'])if(record.request[key]!==this.#binding[key])fail('SESSION_BINDING_MISMATCH','Original reference belongs to another product');
+    if(record.request.deviceId!==this.#device.id||record.request.deviceKey!==this.#device.key||canonicalJSON(record.request.scopes)!==canonicalJSON(this.#device.scopes))fail('DEVICE_CHANGED','Original reference belongs to another device or selection');
+    productSessionGatewayAuthority(this.#gateway); // fixed authority-bound adapter, never a supplied resolver
+  }
+  async #referenceTarget(raw){
+    const record=inspectReferenceCompletion(this.#registry,raw,true);this.#assertReferenceOwner(record);
+    const outcome=await this.#gateway.returnOutcome({requestId:gatewayRequestId('o',record.request.state),reference:record.reference,request:record.request,completion:record.completion});
+    exactFields(outcome,outcome?.state==='completed'?['state','session','retryAuthorized']:['state','retryAuthorized'],'Original reference outcome');
+    if(outcome.state!=='completed'||outcome.retryAuthorized!==false)fail('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN','Original completion has no confirmed outcome; it cannot be resubmitted');
+    return assertReferenceSession(record,outcome.session);
+  }
+  async #resumeReferenceCompletion(raw,epoch,networkEpoch){
+    const current=()=>this.#attemptCurrent(epoch,networkEpoch);
+    try{
+      const target=await this.#referenceTarget(raw);if(!current())return this.current;
+      await this.#introspect(target);if(!current())return this.current;
+      if(await this.#loadRevocationIntent()){if(current())return this.#pendingRevocation();return this.current;}if(!current())return this.current;
+      if(!await this.#mutateReturn(epoch,networkEpoch,()=>this.#storage.set(this.storageKey,canonicalJSON(target))))return this.current;
+      await this.#clearPending(epoch,networkEpoch);if(!current())return this.current;
+      this.#state=state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED,'The original reference session was verified',{session:target});
+    }catch{if(current())this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,'The original reference completion is unresolved; saved data was retained',{actions:['retry'],outcomeUnknown:true});}
+    return this.current;
+  }
+  async #handleReferenceReturn(envelope,url,epoch,networkEpoch){
+    const current=()=>this.#attemptCurrent(epoch,networkEpoch);
+    try{
+      this.#assertReferenceOwner(envelope);
+      if(!await this.#mutateReturn(epoch,networkEpoch,()=>this.#storage.set(`${this.storageKey}:return`,url)))return this.current;
+      const raw=await this.#storage.get(`${this.storageKey}:completion`);if(!current())return this.current;
+      if(raw!==null){const record=inspectReferenceCompletion(this.#registry,raw);if(record.reference!==envelope.reference||canonicalJSON(record.request)!==canonicalJSON(envelope.request))fail('SESSION_BINDING_MISMATCH','Original pending reference changed');return this.#resumeReferenceCompletion(raw,epoch,networkEpoch);}
+      const request=envelope.request,completionKey=canonicalJSON(request);
+      if(this.#returnCompletions.has(completionKey))fail('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN','Original device signing cannot be replaced');
+      const now=await this.#now('handleReturn');if(!current())return this.current;parseProductSessionRequest(this.#registry,request,now);
+      const returned=await this.#gateway.returnChallenge({requestId:gatewayRequestId('r',request.nonce),reference:envelope.reference,request});if(!current())return this.current;
+      exactFields(returned,['reference','challenge'],'Original reference challenge');if(returned.reference!==envelope.reference)fail('SESSION_BINDING_MISMATCH','Auth returned a different reference');
+      const {challenge}=assertReferenceChallenge(this.#registry,request,returned.challenge),signingTime=await this.#now('handleReturn');if(!current())return this.current;
+      if(challenge.expiresAt<=signingTime.toISOString())fail('SESSION_EXPIRED','Original reference challenge expired');
+      if(await this.#loadRevocationIntent()){if(current())return this.#pendingRevocation();return this.current;}if(!current())return this.current;
+      if(this.#returnCompletions.size>=64)fail('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN','Original signing outcomes require reconciliation');
+      const original={raw:null};this.#returnCompletions.set(completionKey,original);
+      // Persist the once-only signing intent before calling a device signer.
+      // Cold recovery of this marker must never produce a replacement signature.
+      const marker={version:REFERENCE_COMPLETION_VERSION,reference:envelope.reference,request,completion:{challenge,deviceSignature:null}};
+      if(!await this.#mutateReturn(epoch,networkEpoch,()=>this.#storage.set(`${this.storageKey}:completion`,canonicalJSON(marker))))return this.current;
+      let completion;try{completion=this.#device.sign?await signProductSessionChallengeWith(challenge,this.#device.sign):signProductSessionChallenge(challenge,this.#device.secret);}catch(cause){original.cause=cause;throw cause;}
+      original.raw=canonicalJSON({...marker,completion});if(!current())return this.current;
+      if(!await this.#mutateReturn(epoch,networkEpoch,()=>this.#storage.set(`${this.storageKey}:completion`,original.raw)))return this.current;
+      if(await this.#loadRevocationIntent()){if(current())return this.#pendingRevocation();return this.current;}if(!current())return this.current;
+      const session=assertReferenceSession(inspectReferenceCompletion(this.#registry,original.raw,true),await this.#gateway.completeReturn({requestId:gatewayRequestId('q',request.state),reference:envelope.reference,request,completion}));if(!current())return this.current;
+      await this.#introspect(session);if(!current())return this.current;
+      if(!await this.#mutateReturn(epoch,networkEpoch,()=>this.#storage.set(this.storageKey,canonicalJSON(session))))return this.current;
+      await this.#clearPending(epoch,networkEpoch);if(!current())return this.current;
+      this.#state=state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED,'Authoritative reference session connected',{session});
+    }catch{if(current())this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,'The original reference result is unresolved; saved data was retained',{actions:['retry'],outcomeUnknown:true});}
+    return this.current;
+  }
+  async #withAccountPolicy(input,work){
+    if(!this.#accountPolicy||this.#policyDebt.length)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Wallet approval could not be verified; the original was retained');
+    this.#policyOperations++;let owner,failed=false,cause,result,cleanupFailed=false,cleanup;
+    try{
+      try{owner=await this.#accountPolicy.acquire(input);}catch(error){const d=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'partial'):null;if(d&&Object.hasOwn(d,'value'))owner=d.value;throw error;}
+      if(!owner||['readContext','assertCurrent','recheck','retire','join','close'].some(k=>typeof owner[k]!=='function'))fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Original Wallet verification resource is unavailable');
+      await owner.recheck();owner.assertCurrent();result=await work(owner);await owner.recheck();owner.assertCurrent();
+    }catch(error){failed=true;cause=error;}
+    finally{
+      if(owner){let joined=false;const attempt=async fn=>{try{if(await fn()!==undefined)fail('ACCOUNT_POLICY_CLEANUP_UNKNOWN','Wallet verification cleanup is unresolved');}catch(error){if(!cleanupFailed){cleanupFailed=true;cleanup=error;}}};
+        await attempt(()=>owner.retire());await attempt(async()=>{await owner.join();joined=true;});if(joined)await attempt(()=>owner.close());
+        if(cleanupFailed)this.#policyDebt.push(Object.freeze({owner,cause:cleanup,firstCause:failed?cause:cleanup}));
+      }
+      this.#policyOperations--;
+    }
+    if(failed||cleanupFailed){if(this.#policyFirstFailure===null)this.#policyFirstFailure=Object.freeze({owner:owner??null,firstCausePresent:true,firstCause:failed?cause:cleanup,cleanupCausePresent:cleanupFailed,cleanupCause:cleanup});this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,'Wallet approval could not be verified; the saved original was retained',{actions:['retry'],outcomeUnknown:true});throw failed?cause:cleanup;}
+    return result;
+  }
+  async #deriveCompletionTarget(raw){
+    if(this.#isReferenceCompletion(raw))return this.#referenceTarget(raw);
+    if(!this.#isPQCompletion(raw))return deriveCompletionTarget(this.#registry,raw);
+    const record=inspectCompletionRecord(this.#registry,raw);
+    return this.#withAccountPolicy({account:record.approval.account,operation:'revalidation',request:null,approval:null},owner=>{
+      const verified=this.#accountPolicy.verifyCompletion(this.#registry,raw,owner.readContext().observation,this.#clock());
+      return deriveCompletionTarget(this.#registry,raw,this.#clock(),verified.verification);
+    });
+  }
+  async #resumePQStoredCompletion(raw,epoch,networkEpoch){
+    const record=inspectCompletionRecord(this.#registry,raw),current=()=>this.#attemptCurrent(epoch,networkEpoch);
+    for(const field of ['chainId','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback'])if(record.request[field]!==this.#binding[field])fail('SESSION_BINDING_MISMATCH','Saved completion crosses its product binding');
+    if(record.request.deviceId!==this.#device.id||record.request.deviceKey!==this.#device.key)fail('DEVICE_CHANGED','Saved completion belongs to another device');
+    try{
+      await this.#withAccountPolicy({account:record.approval.account,operation:'revalidation',request:null,approval:null},async owner=>{
+        const verified=this.#accountPolicy.verifyCompletion(this.#registry,raw,owner.readContext().observation,this.#clock()),target=deriveCompletionTarget(this.#registry,raw,this.#clock(),verified.verification);
+        if(!current())return this.current;
+        // Saved completion may already have entered. Read the exact target only;
+        // NOT_FOUND is not permission to sign, complete or publish again.
+        await this.#introspect(target);if(!current())return this.current;
+        owner.assertCurrent();
+        if(!await this.#mutateReturn(epoch,networkEpoch,()=>this.#storage.set(this.storageKey,canonicalJSON(target))))return this.current;
+        this.#state=state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED,'The original Product Session was verified',{session:target,actions:['disconnect']});return this.#state;
+      });
+      if(current()&&this.#state.status===PRODUCT_SESSION_CLIENT_STATE.CONNECTED)await this.#clearPending(epoch,networkEpoch);
+    }catch{if(current())this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,'The original completion is awaiting verification; saved data was retained',{actions:['retry'],outcomeUnknown:true});}
+    return this.current;
+  }
+  async #handleReturnWithPolicy(url,epoch,networkEpoch){
+    if(!this.#networkAvailable)return this.#handleReturn(url,epoch,networkEpoch);
+    const original=await this.#storage.get(`${this.storageKey}:completion`);
+    if(!this.#attemptCurrent(epoch,networkEpoch))return this.current;
+    if(original!==null&&this.#isReferenceCompletion(original))return this.#resumeReferenceCompletion(original,epoch,networkEpoch);
+    if(original!==null&&this.#isPQCompletion(original))return this.#resumePQStoredCompletion(original,epoch,networkEpoch);
+    const pending=await this.#storage.get(`${this.storageKey}:pending`);
+    if(!this.#attemptCurrent(epoch,networkEpoch))return this.current;
+    if(pending===null)return this.#handleReturn(url,epoch,networkEpoch);
+    let envelope;try{const request=JSON.parse(pending);envelope=inspectProductSessionReturnEnvelope(this.#registry,request,url,new Date(request.issuedAt));}catch{return this.#handleReturn(url,epoch,networkEpoch);}
+    if(envelope.status==='reference-unverified')return this.#handleReferenceReturn(envelope,url,epoch,networkEpoch);
+    if(envelope.status!=='approval-unverified'||envelope.approval.version!=='3')return this.#handleReturn(url,epoch,networkEpoch);
+    if(productSessionRecordWithinBudget(`${this.storageKey}:return`,url))await this.#mutateReturn(epoch,networkEpoch,()=>this.#storage.set(`${this.storageKey}:return`,url));
+    try{
+      await this.#withAccountPolicy({account:envelope.approval.account,operation:'challenge',request:envelope.request,approval:envelope.approval},owner=>this.#handleReturn(url,epoch,networkEpoch,owner));
+      if(this.#attemptCurrent(epoch,networkEpoch)&&this.#state.status===PRODUCT_SESSION_CLIENT_STATE.CONNECTED)await this.#clearPending(epoch,networkEpoch);
+    }catch{if(this.#attemptCurrent(epoch,networkEpoch))this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,'Wallet approval could not be verified; the original was retained',{actions:['retry'],outcomeUnknown:true});}
+    return this.current;
+  }
+
   // Suspend outward authority as soon as disconnect starts, including while its
   // clock lookup or a prior recovery is pending. Keep protected state for Retry.
-  get current() { if (this.#storage.revocationRequested?.() === true) this.#revocationRequested = true; return this.#disconnectPromise !== null || this.#revocationRequested && [PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, PRODUCT_SESSION_CLIENT_STATE.CONNECTED, PRODUCT_SESSION_CLIENT_STATE.CONNECTING, PRODUCT_SESSION_CLIENT_STATE.GUEST].includes(this.#state.status) ? REVOCATION_PENDING : this.#state; }
+  get current() { if(this.#policyOperations||this.#policyDebt.length)return state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,"Wallet approval verification is pending; the original request was retained",{actions:["retry"]}); if (this.#storage.revocationRequested?.() === true) this.#revocationRequested = true; return this.#disconnectPromise !== null || this.#revocationRequested && [PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, PRODUCT_SESSION_CLIENT_STATE.CONNECTED, PRODUCT_SESSION_CLIENT_STATE.CONNECTING, PRODUCT_SESSION_CLIENT_STATE.GUEST].includes(this.#state.status) ? REVOCATION_PENDING : this.#state; }
   get storageKey() { return `ynx.product-session.v2:${this.#binding.productId}:${this.#binding.platform}:${this.#binding.applicationId}`; }
   get connectionBinding() { return Object.freeze({ productId: this.#binding.productId, platform: this.#binding.platform, applicationId: this.#binding.applicationId }); }
 
@@ -92,6 +225,10 @@ export class RecoverableProductSessionClient {
     const restored = await this.#restoreStoredSession(epoch);
     if (epoch !== this.#beginEpoch) return this.current;
     if (restored !== null) return restored;
+    const storedCompletion=await this.#storage.get(`${this.storageKey}:completion`);
+    if(epoch!==this.#beginEpoch)return this.current;
+    if(storedCompletion!==null&&this.#isReferenceCompletion(storedCompletion))return this.#resumeReferenceCompletion(storedCompletion,epoch,this.#networkEpoch);
+    if(storedCompletion!==null&&this.#isPQCompletion(storedCompletion))return this.#resumePQStoredCompletion(storedCompletion,epoch,this.#networkEpoch);
     const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
     if (epoch !== this.#beginEpoch) return this.current;
     if (pendingReturn !== null) return this.handleReturn(pendingReturn);
@@ -244,7 +381,7 @@ export class RecoverableProductSessionClient {
       await this.#returnOperation.promise;
       return this.current;
     }
-    const operation = this.#handleReturn(url, this.#beginEpoch, this.#networkEpoch);
+    const operation = this.#handleReturnWithPolicy(url, this.#beginEpoch, this.#networkEpoch);
     this.#returnOperation = { url, promise: operation };
     try { await operation; return this.current; }
     finally { if (this.#returnOperation?.promise === operation) this.#returnOperation = null; }
@@ -259,11 +396,11 @@ export class RecoverableProductSessionClient {
     this.#beginMutation = mutation.catch(() => {});
     return mutation;
   }
-  async #handleReturn(url, epoch, networkEpoch) {
+  async #handleReturn(url, epoch, networkEpoch,policyOwner=null) {
     const current = () => this.#attemptCurrent(epoch, networkEpoch);
     const revoking = await this.#loadRevocationIntent(); if (!current()) return this.current; if (revoking) return this.#pendingRevocation();
     if (!this.#networkAvailable) {
-      if (typeof url === "string" && url.length <= 16_384 && await this.#storage.get(`${this.storageKey}:pending`) !== null) if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.set(`${this.storageKey}:return`, url))) return this.current;
+      if (productSessionRecordWithinBudget(`${this.storageKey}:return`,url) && await this.#storage.get(`${this.storageKey}:pending`) !== null) if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.set(`${this.storageKey}:return`, url))) return this.current;
       if (!current()) return this.current; return this.#offline();
     }
 
@@ -276,20 +413,20 @@ export class RecoverableProductSessionClient {
       if (isNetworkUnavailable(error)) {
         // Retain the bounded callback as pending data; Retry still verifies every
         // binding and signature before it can grant authority.
-        if (typeof url === "string" && url.length <= 16_384) if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.set(`${this.storageKey}:return`, url))) return this.current;
+        if (productSessionRecordWithinBudget(`${this.storageKey}:return`,url)) if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.set(`${this.storageKey}:return`, url))) return this.current;
         return this.#offline("Authority time is unavailable; the pending Wallet callback was retained for Retry");
       }
       throw error;
     }
     if (!current()) return this.current;
       if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) {
-      if (typeof url === "string" && url.length <= 16_384) if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.set(`${this.storageKey}:return`, url))) return this.current;
+      if (productSessionRecordWithinBudget(`${this.storageKey}:return`,url)) if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.set(`${this.storageKey}:return`, url))) return this.current;
       return this.#networkTransition("Network changed while reading authority time; Wallet callback was retained for Retry");
     }
     let request;
-    try { request = parseProductSessionRequest(this.#registry, JSON.parse(raw), now); } catch { if (!current()) return this.current; await this.#clearPending(epoch, networkEpoch); if (!current()) return this.current; this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Pending Wallet request expired or is invalid", { actions: ["retry", "guest"] }); return this.#state; }
-    const returned = parseProductSessionReturnURL(this.#registry, request, url, now);
-    if (returned.status === WALLET_ROUTE_STATUS.USER_REJECTED) { await this.#clearPending(epoch, networkEpoch); if (!current()) return this.current; this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Wallet approval was rejected; no session was created", { actions: returned.actions }); return this.#state; }
+    try { request = parseProductSessionRequest(this.#registry, JSON.parse(raw), now); } catch { if (!current()) return this.current; if(!policyOwner)await this.#clearPending(epoch, networkEpoch); if (!current()) return this.current; this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Pending Wallet request expired or is invalid", { actions: ["retry", "guest"] }); return this.#state; }
+    const returned = parseProductSessionReturnURL(this.#registry, request, url, now,policyOwner?.readContext().verifiedApproval??null);
+    if (returned.status === WALLET_ROUTE_STATUS.USER_REJECTED) { if(!policyOwner)await this.#clearPending(epoch, networkEpoch); if (!current()) return this.current; this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Wallet approval was rejected; no session was created", { actions: returned.actions }); return this.#state; }
     if (returned.status !== WALLET_ROUTE_STATUS.READY) { if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.remove(`${this.storageKey}:return`))) return this.current; this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, returned.message, { actions: returned.actions }); return this.#state; }
     if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.set(`${this.storageKey}:return`, url))) return this.current;
     try {
@@ -299,7 +436,7 @@ export class RecoverableProductSessionClient {
       const originalCompletion = storedCompletion ?? retained?.raw ?? null;
       let completion;
       if (originalCompletion !== null) {
-        const record = parseCompletionRecord(this.#registry, originalCompletion, now);
+        const record = parseCompletionRecord(this.#registry, originalCompletion, now,policyOwner?.readContext().verifiedApproval??null);
         if (canonicalJSON(record.request) !== canonicalJSON(request) || canonicalJSON(record.approval) !== canonicalJSON(returned.approval) || record.completion.challenge.deviceId !== this.#device.id || record.completion.challenge.deviceKey !== this.#device.key) fail("SESSION_BINDING_MISMATCH", "Protected completion belongs to another exact Wallet approval");
         if (record.completion.challenge.sessionExpiresAt <= now.toISOString()) fail("SESSION_EXPIRED", "Previously completed Product Session has expired");
         // Reuse the original signed body. Never sign a now-expired challenge,
@@ -308,7 +445,7 @@ export class RecoverableProductSessionClient {
       } else {
         const challenge = parseProductSessionChallenge(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
         if (!current()) return this.current;
-        const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
+        const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt),policyOwner?.readContext().verifiedApproval??null,policyOwner?this.#clock():new Date(challenge.issuedAt));
         if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
         const signingTime = await this.#now("handleReturn"); if (!current()) return this.current;
         if (challenge.expiresAt <= signingTime.toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
@@ -316,6 +453,7 @@ export class RecoverableProductSessionClient {
         const revoking = await this.#loadRevocationIntent(); if (!current()) return this.current; if (revoking) return this.#pendingRevocation();
         if (this.#returnCompletions.size >= 64) fail("ORIGINAL_PRIVATE_OUTCOME_UNKNOWN", "Original signing outcomes require reconciliation");
         const original = { raw: null }; this.#returnCompletions.set(completionKey, original);
+        if(policyOwner){await policyOwner.recheck();policyOwner.assertCurrent();if(!current())return this.current;}
         try {
           completion = this.#device.sign ? await signProductSessionChallengeWith(challenge, this.#device.sign) : signProductSessionChallenge(challenge, this.#device.secret);
         } catch (cause) { original.cause = cause; fail("ORIGINAL_PRIVATE_OUTCOME_UNKNOWN", "Original signing may have entered; no replacement signature was made"); }
@@ -327,6 +465,7 @@ export class RecoverableProductSessionClient {
       }
       if (!current()) return this.current;
       const revoking = await this.#loadRevocationIntent(); if (!current()) return this.current; if (revoking) return this.#pendingRevocation();
+      if(policyOwner){await policyOwner.recheck();policyOwner.assertCurrent();if(!current())return this.current;}
       const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion })); if (!current()) return this.current;
       if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.set(this.storageKey, JSON.stringify(session)))) return this.current;
       if (!current()) return this.current;
@@ -338,14 +477,15 @@ export class RecoverableProductSessionClient {
         throw error;
       }
       if (!current()) return this.current;
-      await this.#clearPending(epoch, networkEpoch); if (!current()) return this.current;
+      if(!policyOwner)await this.#clearPending(epoch, networkEpoch); if (!current()) return this.current;
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session connected", { session });
       return this.#state;
     } catch (error) {
       if (!current()) return this.current;
       if (this.#revocationRequested || error?.code === "REVOCATION_PENDING") return this.#pendingRevocation();
       if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while completing Wallet approval; the protected callback was retained for Retry");
-      if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.remove(this.storageKey))) return this.current; await this.#clearPending(epoch, networkEpoch); if (!current()) return this.current;
+      if(policyOwner||error?.code==='ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'){this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,'The original Wallet result is unresolved; saved data was retained for Retry',{actions:['retry'],outcomeUnknown:true});return this.#state;}
+      if (!await this.#mutateReturn(epoch, networkEpoch, () => this.#storage.remove(this.storageKey))) return this.current; if(!policyOwner)await this.#clearPending(epoch, networkEpoch); if (!current()) return this.current;
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Gateway did not issue or confirm a valid Product Session", { actions: ["retry", "guest"] });
       return this.#state;
     }
@@ -364,6 +504,10 @@ export class RecoverableProductSessionClient {
     const restored = await this.#restoreStoredSession(epoch);
     if (epoch !== this.#beginEpoch) return this.current;
     if (restored !== null) return restored;
+    const storedCompletion=await this.#storage.get(`${this.storageKey}:completion`);
+    if(epoch!==this.#beginEpoch)return this.current;
+    if(storedCompletion!==null&&this.#isReferenceCompletion(storedCompletion))return this.#resumeReferenceCompletion(storedCompletion,epoch,this.#networkEpoch);
+    if(storedCompletion!==null&&this.#isPQCompletion(storedCompletion))return this.#resumePQStoredCompletion(storedCompletion,epoch,this.#networkEpoch);
     const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
     if (epoch !== this.#beginEpoch) return this.current;
     if (pendingReturn !== null) return this.handleReturn(pendingReturn);
@@ -602,7 +746,7 @@ export class RecoverableProductSessionClient {
         // A newer account-selection request must not restore an older account.
         // Preserve the old raw session; only the exact current completion can
         // associate an already-issued session with this pending request.
-        if (completed === null || canonicalJSON(JSON.parse(completed).request) !== canonicalJSON(JSON.parse(pending)) || canonicalJSON(deriveCompletionTarget(this.#registry, completed)) !== canonicalJSON(session)) return null;
+        if (completed === null || canonicalJSON(JSON.parse(completed).request) !== canonicalJSON(JSON.parse(pending)) || canonicalJSON(await this.#deriveCompletionTarget(completed)) !== canonicalJSON(session)) return null;
       }
       await this.#introspect(session);
       if (!current()) return this.current;
@@ -643,7 +787,7 @@ export class RecoverableProductSessionClient {
       let intent = this.#revocationIntent;
       if (intent.session === null) {
         const completion = await this.#storage.get(`${this.storageKey}:completion`);
-        if (completion !== null) intent = createRevocationIntent(this.#binding, this.#device, intent.intentId, deriveCompletionTarget(this.#registry, completion));
+        if (completion !== null) intent = createRevocationIntent(this.#binding, this.#device, intent.intentId, await this.#deriveCompletionTarget(completion));
       }
       await this.#saveRevocationIntent(intent); return;
     }
@@ -651,7 +795,7 @@ export class RecoverableProductSessionClient {
     if (session === null) { const raw = await this.#storage.get(this.storageKey); if (raw !== null) session = parseProductSession(JSON.parse(raw)); }
     if (session === null) {
       const raw = await this.#storage.get(`${this.storageKey}:completion`);
-      if (raw !== null) session = deriveCompletionTarget(this.#registry, raw);
+      if (raw !== null) session = await this.#deriveCompletionTarget(raw);
     }
     const intent = createRevocationIntent(this.#binding, this.#device, this.#tokens(), session);
     // Retain the exact chosen target in memory even when the durable write fails.

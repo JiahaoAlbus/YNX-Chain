@@ -1,3 +1,6 @@
+import {p256} from '@noble/curves/nist.js';
+import {decodeBase64url} from './base64url.js';
+import {PRODUCT_SESSION_RETURN_VERSION,parseProductSessionReturns} from './product-session-return-record.js';
 import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, parseProductSessionGatewaySnapshot } from "./product-session-gateway-snapshot-v2.js";
 export { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, parseProductSessionGatewaySnapshot, migrateProductSessionGatewaySnapshotV1 } from "./product-session-gateway-snapshot-v2.js";
 import { assertProductSessionControlApprovalAllowed, assertProductSessionControlPlanBase, assertProductSessionControlSessionAllowed, parseProductSessionControlIntent, parseProductSessionControlSnapshot, prepareProductSessionControlIntent, productSessionControlClockFloor, projectProductSessionControlSnapshotV2 } from "./product-session-control-intent.js";
@@ -7,14 +10,17 @@ import { assertProductSessionControlOwnerAdmission, parseProductSessionControlCa
 import { parseProductSessionRegistry } from "./product-session-registry.js";
 import { deviceBinding, parseProductSession, parseProductSessionApproval, parseProductSessionChallenge, ProductSessionAuthority, parseProductSessionAuthoritySnapshot } from "./product-session-v2.js";
 import { productSessionProofV2Digest, verifyProductSessionProofV2 } from "./product-session-proof-v2.js";
+import {readAccountPolicyObservation,assertSessionAccountPolicy} from './product-session-account-private.js';
 import { verifyWalletSessionControlProof, walletSessionControlReplayKey, walletSessionControlReplayExpiry, walletSessionControlClockAnchor, walletSessionControlClockAnchorTime, walletSessionControlClockFloor, WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_INTENT_PATHS } from "./wallet-session-control.js";
 
 const INPUT_FIELDS = ["requestId", "method", "path", "body", "proof", "networkAvailable"];
 const IDEMPOTENT_PATHS = new Set(["/v2/product-sessions/challenge", "/v2/product-sessions/complete"]);
 
 export class ProductSessionGatewayKernel {
-  #registry; #authority; #tokens; #proofs; #idempotency; #audit; #controlIntents; #deviceScopes; #capacityPolicy;
-  constructor(registryInput, tokenFactory, snapshot, capacityPolicy) {
+  #returns=null;
+  #accountContext; #registry; #authority; #tokens; #proofs; #idempotency; #audit; #controlIntents; #deviceScopes; #capacityPolicy;
+  constructor(registryInput, tokenFactory, snapshot, capacityPolicy, accountContext = null) {
+    this.#accountContext = accountContext;
     this.#capacityPolicy = parseProductSessionControlCapacityPolicy(capacityPolicy);
     this.#registry = parseProductSessionRegistry(registryInput);
     if (typeof tokenFactory !== "function") fail("INVALID_RANDOM_SOURCE", "Product Session Gateway requires a cryptographic challenge source");
@@ -25,7 +31,8 @@ export class ProductSessionGatewayKernel {
     this.#controlIntents = parsed.schemaVersion === 3 ? [...parsed.controlIntents] : null;
     this.#deviceScopes = parsed.schemaVersion === 3 ? [...parsed.authority.revokedDeviceScopes] : [];
     const legacy = parsed.schemaVersion === 3 ? projectProductSessionControlSnapshotV2(parsed) : parsed;
-    this.#authority = new ProductSessionAuthority(this.#registry, legacy.authority);
+    this.#authority = new ProductSessionAuthority(this.#registry, legacy.authority, this.#accountContext);
+    this.#returns=parsed.returnPublications??null;
     this.#proofs = [...parsed.consumedProofs]; this.#idempotency = [...parsed.idempotency]; this.#audit = [...parsed.audit];
   }
 
@@ -66,6 +73,7 @@ export class ProductSessionGatewayKernel {
       this.#proofs = this.#proofs.filter(value => { const expires = walletSessionControlReplayExpiry(value); return expires === null || expires > instant.getTime(); });
     }
     let requestId = "req_invalid_request_000";
+    const beforeReturns=this.#returns;
     const beforeAuthority = this.#authority.snapshot();
     const beforeIntents = this.#controlIntents, beforeScopes = this.#deviceScopes;
     const beforeProofs = [...this.#proofs];
@@ -94,10 +102,11 @@ export class ProductSessionGatewayKernel {
         this.#idempotency.push(Object.freeze({ requestId, path: request.path, bodyDigest, responseBody: completed.body, subject, expiresAt: result.expiresAt }));
         this.#idempotency.sort((left, right) => left.requestId.localeCompare(right.requestId));
       }
-      this.#record(requestId, request.path, "ok", null, result?.preparedReceipt?.intentDigest ?? result?.sessionBinding ?? result?.session?.sessionBinding ?? result?.revoked ?? result?.challenge ?? "none", instant);
+      this.#record(requestId, request.path, "ok", null, result?.preparedReceipt?.intentDigest ?? result?.sessionBinding ?? result?.session?.sessionBinding ?? result?.revoked ?? result?.reference ?? (typeof result?.challenge==='string'?result.challenge:'none'), instant);
       return completed;
     } catch (error) {
-      this.#authority = new ProductSessionAuthority(this.#registry, beforeAuthority);
+      this.#returns=beforeReturns;
+      this.#authority = new ProductSessionAuthority(this.#registry, beforeAuthority, this.#accountContext);
       this.#controlIntents = beforeIntents; this.#deviceScopes = beforeScopes;
       this.#proofs = beforeProofs;
       this.#idempotency = beforeIdempotency;
@@ -108,14 +117,21 @@ export class ProductSessionGatewayKernel {
   }
 
   snapshot() {
-    const base = { schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, authority: this.#authority.snapshot(), consumedProofs: Object.freeze([...this.#proofs]), idempotency: Object.freeze([...this.#idempotency]), audit: Object.freeze([...this.#audit]) };
+    const base = { ...(this.#returns?{returnPublications:this.#returns}:{}),schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, authority: this.#authority.snapshot(), consumedProofs: Object.freeze([...this.#proofs]), idempotency: Object.freeze([...this.#idempotency]), audit: Object.freeze([...this.#audit]) };
     return this.#controlIntents === null ? Object.freeze(base) : Object.freeze({ ...base, schemaVersion: 3, authority: Object.freeze({ ...base.authority, schemaVersion: 3, revokedDeviceScopes: Object.freeze([...this.#deviceScopes]) }), controlIntents: Object.freeze([...this.#controlIntents]) });
+  }
+
+  #assertAccountPolicy(subject,at) {
+    const context=this.#accountContext;
+    if(context?.observation==null){if(context?.required||subject.version==='3')fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Original policy resource is required');return;}
+    assertSessionAccountPolicy(subject,readAccountPolicyObservation(context.observation,subject.account,at));
   }
 
   #assertCachedResponseUsable(cached, request, at) {
     const approval = this.#controlIntents === null
-      ? parseProductSessionApproval(this.#registry, request.body.request, request.body.approval, at)
-      : assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at);
+      ? parseProductSessionApproval(this.#registry, request.body.request, request.body.approval, at, this.#accountContext?.verifiedApproval ?? null)
+      : assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at, this.#accountContext?.verifiedApproval ?? null);
+    this.#assertAccountPolicy(approval,at);
     const snapshot = this.#authority.snapshot();
     if (snapshot.revokedDevices.includes(deviceBinding(approval, approval.account)) || snapshot.revokedAccounts.some((item) => item.account === approval.account && approval.issuedAt <= item.before)) fail("SESSION_REVOKED", "Wallet approval or its product device binding was revoked");
     const result = JSON.parse(cached.responseBody).result;
@@ -143,6 +159,7 @@ export class ProductSessionGatewayKernel {
   }
 
   #route(request, at) {
+    if(request.path.startsWith("/v2/product-sessions/returns"))return this.#returnRoute(request,at);
     if (WALLET_SESSION_CONTROL_INTENT_PATHS.includes(request.path)) return this.#walletIntent(request, at);
     if (WALLET_SESSION_CONTROL_PATHS.includes(request.path)) return this.#walletControl(request, at);
     if (request.path === "/v2/product-sessions/challenge") {
@@ -150,7 +167,7 @@ export class ProductSessionGatewayKernel {
       exactFields(request.body, ["request", "approval"], "Product Session Gateway challenge body");
       if (this.#controlIntents !== null) {
         const snapshot = this.snapshot();
-        const approval = assertProductSessionControlApprovalAllowed(snapshot, this.#registry, request.body.request, request.body.approval, at);
+        const approval = assertProductSessionControlApprovalAllowed(snapshot, this.#registry, request.body.request, request.body.approval, at, this.#accountContext?.verifiedApproval ?? null);
         assertProductSessionControlOwnerAdmission(snapshot, approval.account, this.#capacityPolicy);
       }
       return this.#authority.issueChallenge({ request: request.body.request, approval: request.body.approval, challenge: this.#tokens() }, at);
@@ -158,8 +175,8 @@ export class ProductSessionGatewayKernel {
     if (request.path === "/v2/product-sessions/complete") {
       if (request.proof !== null) fail("UNEXPECTED_PROOF", "Session completion does not accept an existing Product Session proof");
       exactFields(request.body, ["request", "approval", "completion"], "Product Session Gateway completion body");
-      if (this.#controlIntents !== null) assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at);
-      return this.#authority.complete(request.body, at);
+      if (this.#controlIntents !== null) assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at, this.#accountContext?.verifiedApproval ?? null);
+      const completed=this.#authority.complete(request.body, at);this.#markReturnCompleted(request.body,completed);return completed;
     }
     if (request.path === "/v2/product-sessions/introspect") {
       exactFields(request.body, ["requiredScopes"], "Product Session introspection body");
@@ -176,9 +193,77 @@ export class ProductSessionGatewayKernel {
     fail("ROUTE_NOT_FOUND", "Product Session Gateway route is not registered");
   }
 
+  returnPublication(reference){
+    const row=this.#returns?.records.find(r=>r.reference===reference);if(!row)return null;
+    return Object.freeze({requestRaw:row.requestRaw,approvalRaw:row.approvalRaw,completed:row.status==='completed'});
+  }
+  returnPublicationSession(reference){const row=this.#returns?.records.find(r=>r.reference===reference);return row?.sessionBinding?this.#authority.snapshot().sessions.find(s=>s.sessionBinding===row.sessionBinding)??null:null;}
+  readOriginalReturnPublicationOutcome(requestId){
+    const row=this.#returns?.records.find(r=>r.requestId===requestId);
+    return Object.freeze(row?{state:row.status,reference:row.reference,expiresAt:row.expiresAt,requestDigest:JSON.parse(row.approvalRaw).requestDigest,retryAuthorized:false}:{state:'not_found',retryAuthorized:false});
+  }
+  #setReturn(row){
+    const rows=[...(this.#returns?.records??[])],index=rows.findIndex(r=>r.reference===row.reference);
+    if(index<0)rows.push(row);else rows[index]=row;
+    rows.sort((a,b)=>a.requestId.localeCompare(b.requestId));this.#returns=parseProductSessionReturns({version:PRODUCT_SESSION_RETURN_VERSION,records:rows});
+  }
+  #markReturnCompleted(body,session){
+    const requestRaw=canonicalJSON(body.request),approvalRaw=canonicalJSON(body.approval);
+    const row=this.#returns?.records.find(r=>r.requestRaw===requestRaw&&r.approvalRaw===approvalRaw&&r.challengeRaw===canonicalJSON(body.completion.challenge));
+    if(row)this.#setReturn({...row,status:'completed',completionRaw:canonicalJSON(body.completion),sessionBinding:session.sessionBinding});
+  }
+  #returnRoute(request,at){
+    if(this.#accountContext?.required!==true)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Reference returns require the normal current account policy');
+    if(request.proof!==null||request.walletControlProof!=null)fail('UNEXPECTED_PROOF','Reference returns use only the original pending device completion');
+    const path=request.path,body=request.body;
+    if(path==='/v2/product-sessions/returns'){
+      exactFields(body,['request','approval'],'Original return publication');
+      const approval=parseProductSessionApproval(this.#registry,body.request,body.approval,at,this.#accountContext.verifiedApproval);
+      this.#assertAccountPolicy(approval,at);if(approval.version!=='3')fail('PQ_COMPLETION_V3_REQUIRED','Reference return requires full PQ approval');
+      const requestRaw=canonicalJSON(body.request),approvalRaw=canonicalJSON(approval),old=this.#returns?.records.find(r=>r.requestId===request.requestId||JSON.parse(r.approvalRaw).requestDigest===approval.requestDigest);
+      if(old){if(old.requestRaw!==requestRaw||old.approvalRaw!==approvalRaw)fail('IDEMPOTENCY_CONFLICT','Publication differs from its original approval');return Object.freeze({reference:old.reference,nonce:body.request.nonce,state:body.request.state,expiresAt:old.expiresAt});}
+      if((this.#returns?.records.length??0)>=64)fail('CAPACITY','Original pending return capacity is unavailable');
+      if(this.#controlIntents!==null)assertProductSessionControlApprovalAllowed(this.snapshot(),this.#registry,body.request,approval,at,this.#accountContext.verifiedApproval);
+      const token=this.#tokens();if(token.length!==43)fail('INVALID_RANDOM_SOURCE','Return references require an original 32-byte random token');
+      const reference='ynxpsr1_'+token;if(this.#returns?.records.some(r=>r.reference===reference))fail('IDEMPOTENCY_CONFLICT','Original return reference is already selected');
+      const challenge=this.#authority.issueChallenge({request:body.request,approval,challenge:this.#tokens()},at);
+      this.#setReturn({version:PRODUCT_SESSION_RETURN_VERSION,reference,requestId:request.requestId,requestRaw,approvalRaw,challengeRaw:canonicalJSON(challenge),createdAt:challenge.issuedAt,expiresAt:challenge.expiresAt,status:'pending',completionRaw:null,sessionBinding:null});
+      return Object.freeze({reference,nonce:body.request.nonce,state:body.request.state,expiresAt:challenge.expiresAt});
+    }
+    const challengeRead=path==='/v2/product-sessions/returns/challenge',outcome=path==='/v2/product-sessions/returns/outcome';
+    if(!challengeRead&&!outcome&&path!=='/v2/product-sessions/returns/complete')fail('ROUTE_NOT_FOUND','Reference return route is not registered');
+    exactFields(body,challengeRead?['reference','request']:['reference','request','completion'],'Original reference return');
+    const row=this.#returns?.records.find(r=>r.reference===body.reference);if(!row)fail('RETURN_REFERENCE_NOT_FOUND','Original return reference is unavailable');
+    if(canonicalJSON(body.request)!==row.requestRaw)fail('SESSION_BINDING_MISMATCH','Reference crosses its original request');
+    const approval=JSON.parse(row.approvalRaw),challenge=parseProductSessionChallenge(JSON.parse(row.challengeRaw));
+    this.#assertAccountPolicy(approval,at);
+    const state=this.#authority.snapshot(),binding=deviceBinding(approval,approval.account);
+    if(state.revokedDevices.includes(binding)||state.revokedAccounts.some(r=>r.account===approval.account&&approval.issuedAt<=r.before)||this.#deviceScopes.some(r=>r.account===approval.account&&r.deviceBinding===binding&&approval.issuedAt<=r.before))fail('SESSION_REVOKED','Original return approval was revoked');
+    if(row.status==='pending'&&row.expiresAt<=validDate(at).toISOString())fail('SESSION_EXPIRED','Original reference challenge expired');
+    if(challengeRead)return Object.freeze({reference:row.reference,challenge});
+    exactFields(body.completion,['challenge','deviceSignature'],'Original return completion');
+    if(canonicalJSON(body.completion.challenge)!==row.challengeRaw)fail('SESSION_BINDING_MISMATCH','Reference completion challenge changed');
+    let valid=false;try{valid=p256.verify(decodeBase64url(body.completion.deviceSignature,'deviceSignature'),new TextEncoder().encode('YNX_PRODUCT_SESSION_CHALLENGE_V2\n'+canonicalJSON(challenge)),decodeBase64url(challenge.deviceKey,'deviceKey'),{format:'der',lowS:false});}catch{}
+    if(!valid)fail('INVALID_DEVICE_PROOF','Reference completion device proof is invalid');
+    if(row.status==='completed'){
+      if(canonicalJSON(body.completion)!==row.completionRaw)fail('IDEMPOTENCY_CONFLICT','Reference completion differs from its captured original');
+      const session=this.#authority.snapshot().sessions.find(s=>s.sessionBinding===row.sessionBinding);if(!session)fail('SESSION_NOT_FOUND','Original completed session is unavailable');
+      if(this.#controlIntents!==null)assertProductSessionControlSessionAllowed(this.snapshot(),session.sessionBinding,at);
+      const {chainId,productId,clientId,platform,applicationId,bundleId,packageId,origin,callback,account,deviceId,deviceKey}=session;
+      const live=this.#authority.introspect(session.sessionBinding,{chainId,productId,clientId,platform,applicationId,bundleId,packageId,origin,callback,account,deviceId,deviceKey,requiredScopes:[]},at).session;
+      return outcome?Object.freeze({state:'completed',session:live,retryAuthorized:false}):live;
+    }
+    if(outcome)return Object.freeze({state:'pending',retryAuthorized:false});
+    const completeBody={request:body.request,approval,completion:body.completion};
+    const session=this.#authority.complete(completeBody,at);this.#markReturnCompleted(completeBody,session);return session;
+  }
+
   #verifyOwner(request, at) {
     if (request.walletControlProof == null) fail("PROOF_REQUIRED", "Wallet account owner proof is required");
     const proof = verifyWalletSessionControlProof(request.walletControlProof, { method: request.method, path: request.path, bodyDigest: httpBodyDigest(canonicalJSON(request.body)) }, at);
+    // Existing global account-control proof is classic. An active PQ account
+    // cannot use it as a fallback. Device-bound session revocation is separate.
+    this.#assertAccountPolicy({version:'2',account:proof.account},at);
     const replayKey = walletSessionControlReplayKey(proof);
     const controlRecords = this.#proofs.filter(value => walletSessionControlReplayExpiry(value) !== null);
     if (controlRecords.some(value => value.slice(28) === replayKey.slice(28))) fail("REPLAY", "Wallet session control nonce was already consumed");
@@ -193,7 +278,7 @@ export class ProductSessionGatewayKernel {
     const intent = parseProductSessionControlIntent({ account: proof.account, operation: request.path.endsWith("/revoke-all") ? "account-logout" : "device-logout", body: request.body });
     const before = this.snapshot(), prepared = prepareProductSessionControlIntent(before, intent, at, undefined, this.#capacityPolicy);
     const candidate = assertProductSessionControlPlanBase(prepared, before, this.#capacityPolicy);
-    this.#authority = new ProductSessionAuthority(this.#registry, projectProductSessionControlSnapshotV2(candidate).authority);
+    this.#authority = new ProductSessionAuthority(this.#registry, projectProductSessionControlSnapshotV2(candidate).authority, this.#accountContext);
     this.#deviceScopes = [...candidate.authority.revokedDeviceScopes];
     this.#controlIntents = [...candidate.controlIntents];
     if (needsAnchor) this.#proofs.push(walletSessionControlClockAnchor(at));

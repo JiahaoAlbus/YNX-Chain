@@ -8,7 +8,10 @@ const INPUT_FIELDS = ["requestId", "method", "path", "contentType", "body", "pro
 
 export class ProductSessionGatewayHttpHandler {
   #kernel;
-  constructor(registry, tokenFactory, snapshot, capacityPolicy) { this.#kernel = new ProductSessionGatewayKernel(registry, tokenFactory, snapshot, capacityPolicy); }
+  constructor(registry, tokenFactory, snapshot, capacityPolicy, accountContext = null) { this.#kernel = new ProductSessionGatewayKernel(registry, tokenFactory, snapshot, capacityPolicy, accountContext); }
+  returnPublication(reference){return this.#kernel.returnPublication(reference);}
+  returnPublicationSession(reference){return this.#kernel.returnPublicationSession(reference);}
+  readOriginalReturnPublicationOutcome(requestId){return this.#kernel.readOriginalReturnPublicationOutcome(requestId);}
 
   handle(input, at = new Date()) {
     let requestId = validRequestId(input?.requestId) ? input.requestId : "req_invalid_request_000";
