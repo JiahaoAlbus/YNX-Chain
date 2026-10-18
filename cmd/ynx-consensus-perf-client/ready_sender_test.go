@@ -50,6 +50,8 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if err != nil {
 		t.Fatal(err)
 	}
+	app.SetCommitTimingEnabled(true)
+	commitStagesNs := make(map[string]int64)
 	txs := make([]cmttypes.Tx, 6)
 	results := readyResults(3)
 	if reuseSlots {
@@ -125,6 +127,14 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 					_, execErr = app.Commit(ctx, &abci.RequestCommit{})
 					commitNs += time.Since(phaseStarted).Nanoseconds()
 					commitCalls++
+					timing, measured := app.LastCommitTiming()
+					if !measured || !timing.Durable || timing.Height != height || timing.Storage != "atomic-json" {
+						t.Errorf("actual Commit substage sample unavailable: %+v", timing)
+					}
+					for stage, ns := range timing.StagesNs {
+						commitStagesNs[stage] += ns
+					}
+
 					if execErr != nil {
 						t.Error(execErr)
 					}
@@ -216,6 +226,12 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if finalizeCalls != 6 || commitCalls != 6 || finalizeNs <= 0 || commitNs <= 0 || terminalCloseNs <= 0 || restartReadNs <= 0 {
 		t.Fatal("actual execution/persistence phase measurements missing")
 	}
+
+	for _, stage := range []string{"validate", "json_encode", "prepare_file", "write", "file_sync", "close_file", "rename", "directory_sync"} {
+		if commitStagesNs[stage] <= 0 {
+			t.Fatalf("missing actual Commit stage %s", stage)
+		}
+	}
 	mode := "flat-full-history"
 	if reuseSlots {
 		mode = "flat-reused-slots"
@@ -233,10 +249,11 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 		FinalizeNs           int64            `json:"finalizeNs"`
 		CommitCalls          int              `json:"commitCalls"`
 		CommitNs             int64            `json:"commitNs"`
+		CommitStagesNs       map[string]int64 `json:"commitStagesNs"`
 		TerminalCloseNs      int64            `json:"terminalCloseNs"`
 		RestartReadNs        int64            `json:"restartReadNs"`
 		Scope                string           `json:"scope"`
-	}{"ynx-ready-supply-phase-sample-v1", mode, 6, controllerNs, stats.Supply, finalizeCalls, finalizeNs, commitCalls, commitNs, terminalCloseNs, restartReadNs, "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive."})
+	}{"ynx-ready-supply-phase-sample-v1", mode, 6, controllerNs, stats.Supply, finalizeCalls, finalizeNs, commitCalls, commitNs, commitStagesNs, terminalCloseNs, restartReadNs, "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive."})
 	if err != nil {
 		t.Fatal(err)
 	}

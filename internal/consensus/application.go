@@ -40,7 +40,9 @@ type Application struct {
 	feeRecipient             string
 	snapshotExports          map[uint64]stateSyncSnapshotExport
 	snapshotRestore          *stateSyncSnapshotRestore
-	commitTimings            *commitTimings // nil outside the opt-in local performance probe
+	commitTimings            *commitTimings // nil outside opt-in diagnostics
+	commitTimingEnabled      bool
+	commitTimingLatest       *CommitTimingSample
 	nativeVerification       nativeVerificationCache
 	replayVerificationFacts  *nativeVerificationCache // decoder-owned crypto facts only; never mutable execution state
 }
@@ -695,14 +697,37 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcitypes.ResponseCommit, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.commitTimingEnabled {
+		a.commitTimingLatest = nil
+	}
+
 	if a.pending == nil {
 		return nil, errors.New("cannot commit without finalized state")
+	}
+	var started time.Time
+	if a.commitTimingEnabled {
+		started = time.Now()
+		a.commitTimings = &commitTimings{}
 	}
 	var err error
 	if a.blockJournal != nil {
 		err = a.blockJournal.saveBlock(a.committed, *a.pending, a.pendingBlockRequest, a.pendingBlockResponseHash, a.migration, a.commitTimings)
 	} else {
 		err = a.persistState(*a.pending, a.commitTimings)
+	}
+	if a.commitTimingEnabled {
+		storage := "atomic-json"
+		if a.journal != nil {
+			storage = "snapshot-journal-v1"
+		}
+		if a.blockJournal != nil {
+			storage = "block-journal-v2"
+		}
+		sample := &CommitTimingSample{Height: a.pending.Height, Storage: storage, Durable: err == nil && a.statePath != "", ElapsedNs: time.Since(started).Nanoseconds(), PayloadBytes: a.commitTimings.bytes, StagesNs: make(map[string]int64, len(a.commitTimings.stages))}
+		for stage, duration := range a.commitTimings.stages {
+			sample.StagesNs[stage] = duration.Nanoseconds()
+		}
+		a.commitTimingLatest = sample
 	}
 	if err != nil {
 		return nil, fmt.Errorf("persist finalized YNX state: %w", err)
