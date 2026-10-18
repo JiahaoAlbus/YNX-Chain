@@ -40,6 +40,7 @@ type durableReadbackPhases struct {
 }
 
 type durableReaderStats struct {
+	SignatureFacts           *durableSignatureStats                  `json:"signatureFacts,omitempty"`
 	PhaseTotalsNs            *durableReadbackPhases                  `json:"phaseTotalsNs,omitempty"`
 	Attempts                 uint64                                  `json:"attempts"`
 	BytesHashed              uint64                                  `json:"bytesHashed"`
@@ -85,6 +86,7 @@ type durableReader struct {
 	profileMu       *sync.Mutex
 	cacheTick       uint64
 	cacheEvictions  uint64
+	signatureFacts  *durableSignatureFacts
 }
 
 func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (*durableReader, error) {
@@ -108,6 +110,7 @@ func newDurableReaderWithLimits(migration chain.ConsensusMigrationState, paths [
 	r := &durableReader{slots: make(map[string]*durableSnapshotSlot), storeByteLimit: storeLimit, cacheByteBudget: cacheBudget}
 	if cacheBudget > 0 {
 		r.profileMu = &sync.Mutex{}
+		r.signatureFacts = &durableSignatureFacts{}
 	}
 	if err := json.Unmarshal(data, &r.migration); err != nil {
 		return nil, err
@@ -134,6 +137,8 @@ func (r *durableReader) stats() durableReaderStats {
 	var total durableReaderStats
 	if r.profileMu != nil {
 		total.PhaseTotalsNs = &durableReadbackPhases{}
+		facts := r.signatureFacts.stats()
+		total.SignatureFacts = &facts
 	}
 	for _, slot := range r.slots {
 		slot.mu.Lock()
@@ -403,12 +408,18 @@ func (r *durableReader) verifyTransactionLocked(ctx context.Context, slot *durab
 	if !state.Initialized || state.Height < height {
 		return errDurableNotReady
 	}
-	tx, err := consensus.DecodeSignedTransaction(raw)
-	if err != nil {
-		return fmt.Errorf("bounded fixture must use native signed transfers: %w", err)
+	var tx consensus.SignedTransaction
+	var err error
+	if r.signatureFacts != nil {
+		tx, err = r.signatureFacts.decode(raw, r.migration.Network.ChainID)
+	} else {
+		tx, err = consensus.DecodeSignedTransaction(raw)
+		if err == nil {
+			err = tx.Verify(r.migration.Network.ChainID)
+		}
 	}
-	if err := tx.Verify(r.migration.Network.ChainID); err != nil {
-		return err
+	if err != nil {
+		return fmt.Errorf("bounded fixture native signature: %w", err)
 	}
 	slot.stats.TransactionVerifications++
 	key := durableFeeKey{hash: consensus.SignedTransactionHash(raw), payer: tx.From, kind: consensus.SignedTransactionType, height: height, fee: tx.Fee}

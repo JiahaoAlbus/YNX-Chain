@@ -1,0 +1,146 @@
+{
+  "sourceCommit": "955a52422bad79b5d188d4befb0546c476324f8c",
+  "runId": 39110228928,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39110228928",
+  "artifactId": 12129981788,
+  "remoteArtifactBytes": 9429634,
+  "artifactRecovery": "Complete original artifact remains on GitHub; this turn recovered full original log and exact result JSON only, to preserve the local reserve.",
+  "rawLogSHA256": "024d026955662b02057f5c46694efe5507e0a8e8b30855bd28d068d599156f59",
+  "result": {
+    "applicationWallSeconds": 26.040036611,
+    "batchSize": 256,
+    "blocks": 122,
+    "businessTPS": null,
+    "coldReadbackStats": {
+      "phaseTotalsNs": {
+        "loadNs": 1815319795,
+        "hashNs": 10942723,
+        "captureNs": 42065074,
+        "decodeNs": 1746367996,
+        "indexPublishNs": 15887477,
+        "transactionVerifyNs": 41283282
+      },
+      "attempts": 1,
+      "bytesHashed": 16828054,
+      "snapshotValidations": 1,
+      "snapshotCacheHits": 0,
+      "transactionVerifications": 256,
+      "blockJournalReplayedBlocks": 10,
+      "blockJournalReplayedTransactionInputs": 2560,
+      "readerBudget": {
+        "storeByteLimit": 67108864,
+        "cacheInputByteBudget": 67108864,
+        "cachedInputBytes": 16828054,
+        "evictions": 0
+      },
+      "blockJournalNativeVerificationFacts": {
+        "capacity": 4096,
+        "string_byte_limit": 4194304,
+        "entries": 2560,
+        "retained_string_bytes": 1830544,
+        "lookups": 2560,
+        "hits": 0,
+        "successful_verifications": 2560
+      }
+    },
+    "commitStageTotalsNs": {
+      "close_file": 959036,
+      "delta_encode": 18282425,
+      "file_sync": 293987658,
+      "journal_maintenance": 453909874,
+      "prepare_file": 4129743,
+      "validate": 3931360745,
+      "write": 17163395
+    },
+    "executedPersistedTransactions": 31232,
+    "finalityLatency": null,
+    "goVersion": "go1.25.14",
+    "gomaxprocs": 1,
+    "inclusionLatency": null,
+    "largeReadbackNs": 1856737735,
+    "maxRSSPlatform": "linux",
+    "maxRSSRaw": 220944,
+    "maxTransactions": 65536,
+    "numCPU": 4,
+    "platform": "linux/amd64",
+    "readbackEvidence": {
+      "Evidence": {
+        "Height": 123,
+        "AppHash": "acb99e86acb0a80be9715fb1554f999588bd1e305b5ffa2f2572f716cc312033",
+        "SnapshotSHA256": "5ffdc56144c867fe3475176b37a246c5a027d17ff63d4fa8cc531f98297fd3ea",
+        "SnapshotCacheHit": false,
+        "StoreSHA256": "497fa53f413a1437cef0a9e657fdba3a653fb768e841b1c8040f41af083f97ef",
+        "StoreFormat": "block-journal",
+        "JournalCompleteBytes": 16828054,
+        "JournalIncompleteTail": false
+      },
+      "Transactions": 256,
+      "ObservedAt": "2026-10-18T08:09:25.95558576Z"
+    },
+    "readbackStats": {
+      "phaseTotalsNs": {
+        "loadNs": 1826366024,
+        "hashNs": 21906768,
+        "captureNs": 42065074,
+        "decodeNs": 1746367996,
+        "indexPublishNs": 15887477,
+        "transactionVerifyNs": 82199109
+      },
+      "attempts": 2,
+      "bytesHashed": 33656108,
+      "snapshotValidations": 1,
+      "snapshotCacheHits": 1,
+      "transactionVerifications": 512,
+      "blockJournalReplayedBlocks": 10,
+      "blockJournalReplayedTransactionInputs": 2560,
+      "readerBudget": {
+        "storeByteLimit": 67108864,
+        "cacheInputByteBudget": 67108864,
+        "cachedInputBytes": 16828054,
+        "evictions": 0
+      },
+      "blockJournalNativeVerificationFacts": {
+        "capacity": 4096,
+        "string_byte_limit": 4194304,
+        "entries": 2560,
+        "retained_string_bytes": 1830544,
+        "lookups": 2560,
+        "hits": 0,
+        "successful_verifications": 2560
+      }
+    },
+    "schema": 1,
+    "scope": "real_signed_application_pipeline_and_durable_readback_not_network_or_business_tps",
+    "stageTotalsNs": {
+      "application_commit": 4721505302,
+      "check_tx": 5297236977,
+      "finalize_block": 7358884457,
+      "prepare_proposal": 346986769,
+      "process_proposal": 339742547,
+      "sign_encode": 7332583282,
+      "signed_input_write_sync": 641140509
+    },
+    "stateSHA256": "5ffdc56144c867fe3475176b37a246c5a027d17ff63d4fa8cc531f98297fd3ea",
+    "storeBytes": 16828054,
+    "storeSHA256": "497fa53f413a1437cef0a9e657fdba3a653fb768e841b1c8040f41af083f97ef",
+    "testFailed": false,
+    "verifiedFeeEvents": 31232,
+    "verifiedSenders": 256,
+    "wallDeadlineSeconds": 210,
+    "warmReadbackNs": 52104998
+  },
+  "warmPhaseDeltaNs": {
+    "loadNs": 11046229,
+    "hashNs": 10964045,
+    "captureNs": 0,
+    "decodeNs": 0,
+    "indexPublishNs": 0,
+    "transactionVerifyNs": 40915827
+  },
+  "limits": [
+    "One cold and one same-store warm sample; no sustained network or BFT finality result.",
+    "Different temporary keys between first and second runs; their total wall times are not an optimization speedup.",
+    "Load is a parent of hash/capture/decode/index; do not sum parent with children.",
+    "Warm path still hashes the entire current file and rechecks each transaction signature, fee, and nonce."
+  ]
+}

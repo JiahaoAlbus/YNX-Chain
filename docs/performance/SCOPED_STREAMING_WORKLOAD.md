@@ -83,3 +83,14 @@ child phases. Timings exclude the outer profile/slot mutex wait. Failed attempts
 retain time in the active phase without producing valid transaction evidence.
 Legacy readers leave this optional field absent and do not take phase clocks.
 These diagnostics measure the observer's costs, not inclusion or BFT finality.
+
+The opt-in profile also retains up to 2,048 successfully verified native signed
+inputs, with a separate 2 MiB retained-string ceiling and FIFO eviction. Facts
+bind the chain ID, SHA-256 and exact input bytes; returned transaction values
+contain immutable strings. Invalid signatures are never retained. Cache hits
+reuse cryptographic facts only: every observation still hashes the current file,
+validates a changed generation, and checks current fee membership and nonce.
+`signatureFacts` reports actual crypto checks and reuse independently from
+`transactionVerifications`, which counts successful current-state checks.
+The default legacy reader does not enable this cache. This candidate does not
+change the frozen four-node comparison binaries or the internal consensus tree.
