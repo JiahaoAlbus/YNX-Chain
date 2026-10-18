@@ -63,3 +63,26 @@ test("Desktop malformed RPC envelopes and invalidated read guard cannot yield pr
   const f=fixture();f.state.response=value=>({...value,id:999});await assert.rejects(f.client.checkTransferDurability(f.signed.transaction,f.signed.hash));
   const next=fixture();let guards=0;await assert.rejects(next.client.checkTransferDurability(next.signed.transaction,next.signed.hash,()=>{if(++guards===2)throw Error("locked")}),/locked/);assert.equal(next.calls.length,1);
 });
+test('Desktop Pay account read consumes a bounded stream without calling the unbounded bulk-text path',async()=>{
+ const f=fixture(),fetch=f.client.fetchImpl;let bulk=0;
+ f.client.fetchImpl=async(...args)=>{const response=await fetch(...args);response.text=async()=>{bulk++;throw Error('QA_UNBOUNDED_BULK_READ');};return response;};
+ assert.equal((await f.client.account(f.f.identity.account)).balance,26);assert.equal(bulk,0);assert.equal(f.calls.length,1);
+});
+for(const mode of ['oversize','multibyte','invalid-utf8'])test(`Desktop Pay ${mode} streamed broadcast stays UNKNOWN and cancels without retry`,async()=>{
+ const f=fixture();let cancelled=0,reads=0;
+ const bytes=mode==='invalid-utf8'?new Uint8Array([0xc3,0x28]):new TextEncoder().encode(mode==='multibyte'?'中'.repeat(90000):' '.repeat(262145));
+ f.state.broadcast=async()=>new Response(new ReadableStream({pull(controller){reads++;controller.enqueue(bytes);},cancel(){cancelled++;}}));
+ await assert.rejects(f.client.broadcast(f.signed.payload,f.signed.transaction,f.signed.hash),error=>error.code==='NATIVE_BROADCAST_UNKNOWN'&&error.hash===f.signed.hash);
+ assert.equal(f.calls.length,1);assert.equal(cancelled,1);assert.ok(reads<=2);
+});
+test('Desktop Pay preserves a valid UTF-8 codepoint split across stream chunks',async()=>{
+ const f=fixture(),bytes=new TextEncoder().encode(JSON.stringify({account:{address:evmAddressFromYNX(f.f.identity.account),balance:26,nonce:1},note:'中'}));
+ const split=bytes.indexOf(0xe4)+1;
+ f.client.fetchImpl=async()=>new Response(new ReadableStream({start(c){c.enqueue(bytes.slice(0,split));c.enqueue(bytes.slice(split));c.close();}}));
+ assert.equal((await f.client.account(f.f.identity.account)).balance,26);
+});
+test('Desktop Pay rejects non-streaming response rather than using an unbounded fallback',async()=>{
+ const f=fixture();let bulk=0;
+ f.client.fetchImpl=async()=>({ok:true,text:async()=>{bulk++;return '{}';}});
+ await assert.rejects(f.client.account(f.f.identity.account));assert.equal(bulk,0);
+});

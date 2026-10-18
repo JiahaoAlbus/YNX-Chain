@@ -12,12 +12,33 @@ export class DesktopNativePayChain{
   #sequence=0;
   constructor({fetchImpl=globalThis.fetch}={}){this.fetchImpl=fetchImpl}
   get origin(){return CANONICAL_RPC_URL}
+  async #boundedText(response,signal){
+    if(!response.body||typeof response.body.getReader!=="function")throw durabilityError();
+    const reader=response.body.getReader(),decoder=new TextDecoder("utf-8",{fatal:true});
+    let bytes=0,text="",complete=false;
+    const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
+    signal.addEventListener("abort",cancel,{once:true});
+    try{
+      if(signal.aborted||!response.ok)throw durabilityError();
+      for(;;){
+        const {done,value}=await reader.read();
+        if(signal.aborted)throw durabilityError();
+        if(done){text+=decoder.decode();complete=true;return text}
+        if(!(value instanceof Uint8Array)||(bytes+=value.byteLength)>262144)throw durabilityError();
+        text+=decoder.decode(value,{stream:true});
+      }
+    }finally{
+      signal.removeEventListener("abort",cancel);
+      if(!complete)cancel();
+      reader.releaseLock();
+    }
+  }
   async #json(path,init){
     const controller=new AbortController();let timer;
     try{return await Promise.race([(async()=>{
       const url=this.origin+path,response=await this.fetchImpl(url,{...init,redirect:"error",signal:controller.signal,headers:{Accept:"application/json",...init.headers}});
       if(response.redirected||response.url&&response.url!==url)throw durabilityError();
-      const text=await response.text();if(text.length>262144||!response.ok)throw durabilityError();return JSON.parse(text);
+      const text=await this.#boundedText(response,controller.signal);return JSON.parse(text);
     })(),new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(durabilityError())},15000)})])}
     finally{clearTimeout(timer);controller.abort()}
   }
