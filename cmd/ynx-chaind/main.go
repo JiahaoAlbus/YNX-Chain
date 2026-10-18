@@ -43,7 +43,7 @@ func main() {
 	replicationInterval := flag.Duration("replication-interval", envDurationOrDefault("YNX_REPLICATION_INTERVAL", 2*time.Second), "authoritative replication polling interval")
 	checkConfig := flag.Bool("check-config", envBoolOrDefault("YNX_CHECK_CONFIG", false), "validate node config and exit without starting services")
 	ethereumNative := flag.Bool("ethereum-native-transfers", envBoolOrDefault("YNX_ETHEREUM_NATIVE_TRANSFERS_ENABLED", false), "enable bounded Ethereum legacy native transfer adapter on testnet/devnet")
-	exportConsensusState := flag.String("export-consensus-state", envOrDefault("YNX_EXPORT_CONSENSUS_STATE", ""), "export deterministic BFT migration state to a file and exit")
+	exportConsensusState := flag.String("export-consensus-state", envOrDefault("YNX_EXPORT_CONSENSUS_STATE", ""), "read an existing quiescent checkpoint and export V2 migration state to a new file (or - for stdout)")
 	pqAdmissionHeight := flag.String("pq-admission-height", envOrDefault("YNX_PQ_ADMISSION_HEIGHT", ""), "optional coordinated future account PQ admission height; persists immutable schedule")
 	flag.Parse()
 
@@ -148,6 +148,21 @@ func checkNodeRuntimeConfig(cfg nodeRuntimeConfig, out io.Writer) error {
 }
 
 func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
+	// Export is an offline read, before startup config, key loading, constructors,
+	// feature enables, validator overrides or services can touch the source.
+	if cfg.ExportConsensusState != "" {
+		if cfg.CheckConfig {
+			return errors.New("check-config and export-consensus-state are separate operations")
+		}
+		state, err := chain.ExportConsensusMigrationCheckpoint(cfg.DataDir)
+		if err != nil {
+			return fmt.Errorf("read consensus export checkpoint: %w", err)
+		}
+		if err := validateConsensusExportDestination(cfg.DataDir, cfg.ExportConsensusState); err != nil {
+			return err
+		}
+		return writeConsensusStateExport(state, cfg.ExportConsensusState, out, syncConsensusExportDirectory)
+	}
 	faucetCoreToken, err := loadFaucetCoreToken(os.Getenv("YNX_FAUCET_CORE_AUTH_TOKEN_FILE"))
 	if err != nil {
 		return err
@@ -171,9 +186,6 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	}
 	if err := devnet.SetEthereumNativeTransfers(cfg.EthereumNativeTransfers); err != nil {
 		return err
-	}
-	if cfg.ExportConsensusState != "" {
-		return exportConsensusState(devnet, cfg.ExportConsensusState, out)
 	}
 	devnet.SetNodeIdentityConfig(chain.NodeIdentityConfig{
 		ValidatorAddress:  cfg.LocalValidator,
@@ -225,33 +237,133 @@ func blockProductionPaused(marker string) bool {
 	return !errors.Is(err, os.ErrNotExist)
 }
 
+// A created export is never removed or overwritten after an uncertain write.
+// Reconcile that original file; a retry must not silently replace it.
+var errConsensusExportUncertain = errors.New("consensus export durability UNKNOWN; preserve and reconcile original target")
+
 func exportConsensusState(devnet *chain.Devnet, destination string, out io.Writer) error {
 	state, err := devnet.ExportConsensusMigrationState()
 	if err != nil {
 		return fmt.Errorf("export consensus migration state: %w", err)
 	}
+	return writeConsensusStateExport(state, destination, out, syncConsensusExportDirectory)
+}
+
+func validateConsensusExportDestination(dataDir, destination string) error {
+	if destination == "-" {
+		return nil
+	}
+	source, err := filepath.EvalSymlinks(dataDir)
+	if err != nil {
+		return err
+	}
+	source, err = filepath.Abs(source)
+	if err != nil {
+		return err
+	}
+	target, err := filepath.Abs(destination)
+	if err != nil {
+		return err
+	}
+	// Resolve an existing parent as well, so aliases cannot create a reserved
+	// checkpoint temp file under a different spelling of the source directory.
+	if parent, err := filepath.EvalSymlinks(filepath.Dir(target)); err == nil {
+		target = filepath.Join(parent, filepath.Base(target))
+	}
+	for _, name := range []string{"devnet-state.json", "devnet-state.integrity-version", "devnet-state.json.tmp", "devnet-state.integrity-version.tmp"} {
+		if target == filepath.Join(source, name) {
+			return errors.New("consensus export destination conflicts with source checkpoint")
+		}
+	}
+	return nil
+}
+
+func writeConsensusStateExport(state chain.ConsensusMigrationState, destination string, out io.Writer, syncDirectory func(string) error) error {
 	payload, err := state.CanonicalJSON()
 	if err != nil {
 		return fmt.Errorf("encode consensus migration state: %w", err)
 	}
+	payload = append(payload, '\n')
 	if destination == "-" {
-		_, err = out.Write(append(payload, '\n'))
+		n, err := out.Write(payload)
+		if err == nil && n != len(payload) {
+			err = io.ErrShortWrite
+		}
 		return err
 	}
+	if strings.TrimSpace(destination) == "" {
+		return errors.New("consensus export destination is required")
+	}
 	destination = filepath.Clean(destination)
-	if err := os.MkdirAll(filepath.Dir(destination), 0o700); err != nil {
+	// A leftover from the previous temp/rename exporter is also an unresolved
+	// result, not permission to overwrite or discard it.
+	if _, err := os.Lstat(destination + ".tmp"); !errors.Is(err, os.ErrNotExist) {
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("consensus export has an unresolved target: %s.tmp", destination)
+	}
+	directory := filepath.Dir(destination)
+	var createdParents []string
+	for candidate := directory; ; candidate = filepath.Dir(candidate) {
+		if _, err := os.Stat(candidate); err == nil {
+			break
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		parent := filepath.Dir(candidate)
+		if parent == candidate {
+			return errors.New("consensus export has no existing parent directory")
+		}
+		createdParents = append(createdParents, parent)
+	}
+	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return fmt.Errorf("create consensus export directory: %w", err)
 	}
-	temporary := destination + ".tmp"
-	if err := os.WriteFile(temporary, append(payload, '\n'), 0o600); err != nil {
-		return fmt.Errorf("write consensus migration state: %w", err)
+	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return fmt.Errorf("create exclusive consensus export: %w", err)
 	}
-	if err := os.Rename(temporary, destination); err != nil {
-		_ = os.Remove(temporary)
-		return fmt.Errorf("commit consensus migration state: %w", err)
+	defer file.Close()
+	uncertain := func(err error) error {
+		return fmt.Errorf("%w: path=%s: %w", errConsensusExportUncertain, destination, err)
 	}
-	fmt.Fprintf(out, "consensus migration state exported: path=%s height=%d accounts=%d validators=%d stateHash=%s\n", destination, state.Height, len(state.Accounts), len(state.Validators), state.StateHash)
+	n, err := file.Write(payload)
+	if err == nil && n != len(payload) {
+		err = io.ErrShortWrite
+	}
+	if err != nil {
+		return uncertain(err)
+	}
+	if err := file.Sync(); err != nil {
+		return uncertain(err)
+	}
+	if err := file.Close(); err != nil {
+		return uncertain(err)
+	}
+	// Include newly-created ancestor entries, not just the final file's parent.
+	for _, path := range append([]string{directory}, createdParents...) {
+		if err := syncDirectory(path); err != nil {
+			return uncertain(err)
+		}
+	}
+	_, err = fmt.Fprintf(out, "consensus migration state exported: path=%s height=%d accounts=%d validators=%d stateHash=%s\n", destination, state.Height, len(state.Accounts), len(state.Validators), state.StateHash)
+	if err != nil {
+		return fmt.Errorf("consensus export is durable at %s but reporting failed: %w", destination, err)
+	}
 	return nil
+}
+
+func syncConsensusExportDirectory(path string) error {
+	directory, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer directory.Close()
+	if err := directory.Sync(); err != nil {
+		return err
+	}
+	return directory.Close()
 }
 
 func replicationMode(cfg nodeRuntimeConfig) string {
