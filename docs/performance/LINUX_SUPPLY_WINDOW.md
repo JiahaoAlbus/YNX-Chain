@@ -287,3 +287,65 @@ execution/persistent-restart/slow-peer regression also runs the candidate mode.
 All new Go tests are selected by the original CI ready-sender gate; their result
 and network effect remain unverified until actual execution. This candidate does
 not authorize an additional network run or extend the current resource caps.
+
+## Same-VM fixed pair preparation
+
+The candidate's normal CI39137886641 at a8c2091c6 completed SUCCESS, including all
+four virtual-clock schedule tests and the actual six-signed-transaction candidate
+branch. That proves source/scheduling correctness only. Root then selected a
+same-VM fixed pair for **source and CI preparation**, not network execution.
+
+The original workflow adds `paired-relative-bounded` to `linux_supply_pacing`.
+With `run_linux_supply=false` by default, this choice starts nothing. An eventual
+explicit Root grant must select the exact new commit and inputs:
+`run_linux_supply=true`, `linux_supply_transport=grpc`,
+`linux_supply_profile=supply-512x2`, `linux_supply_pacing=paired-relative-bounded`;
+all other booleans false. Four native ELF binaries are compiled once after the
+original gates/preflight, before the pair runtime starts.
+
+```sh
+python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --transport grpc --profile supply-512x2
+```
+
+The pair invokes the same original `run` function twice in one native Python
+process, on the same actual VM, in fixed order relative→bounded-cadence. It uses
+two exclusive fresh fixtures with matched generation policy, same compiled ELF
+files, same1024total/512configured/4submit4observe/10s/ABCIgRPC conditions. The
+first case must finish all original business checks with no UNKNOWN/timeout or
+missing transaction and actual cleanup complete. Two fresh `/proc` owned-closure
+scans must contain only the launcher. Any first-case failure, unknown outcome or
+unclean closure stops the pair: never start the second, retry, pick a better
+sample, or reuse a nonce. Before second admission, all four binary hashes and host
+identity are rechecked; final source/tree/compiler/environment/binary identities
+must match across the two actual receipts.
+
+Each case retains45s active+15s cleanup maximum, owned RSS1GiB,320threads,
+9children+the wrapper,32MiB private data and1MiB logs. **Entire pair** budget is
+120s with aggregate retained64MiB and logs2MiB; single shared build limit remains
+1GiB and actual Linux MemAvailable floor remains1GiB+128MiB. Original native
+RSS/memory/disk/identity guards also sample the pair wrapper between cases and
+while preserving receipts. The pair adds a120s outer watchdog and reserves time
+for cleanup and metadata; remaining global time can shorten second admission,
+never extend either case. Combined retained bytes include both private cases and
+the evidence directory, including actual receipts.
+
+Both case wrappers, their raw receipt writes/fsync, the empty-closure checks and
+the pair receipt write/fsync are included in that global window. Per-case actual
+invocation wall time including receipt fsync must also be <=60s. The pair receipt
+records completed-case facts, actual bootID/PIDnamespace/launcher, fixed order,
+binary/source/compiler identities, resource samples, firstCause and raw member
+SHA256s. Its `casesQualified` field is **not terminal pair PASS**: the final
+`YNX_SUPPLY_PAIR_TERMINAL` stdout verdict is emitted only after pair receipt fsync
+and the final combined budget check, and requires exit0. Receipt fsync or final
+budget failure rejects the pair even if both case business counters succeeded.
+Native telemetry remains sampled, not a hard cgroup memory guarantee; any
+telemetry, cleanup, deadline or I/O failure keeps the case/pair unqualified.
+
+New source-only counterexamples cover fixed/default preparation, combined retained
+and unchanged build limits, total deadline, unexpected owned child, first-case
+failure/UNKNOWN/unclean stop, changed binary before second admission, serial order
+and rejection after final fsync. Synthetic orchestration tests launch no fixture
+or node and provide no capacity evidence. Actual paired network execution still
+requires a new Root grant after this exact source's normal CI succeeds. Record
+startup order and random fixture/cold-start differences; report finite paired
+observations, not sustained1000TPS or a generalized speedup.

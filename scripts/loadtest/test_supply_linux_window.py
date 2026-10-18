@@ -1,5 +1,7 @@
 """Source-only counterexamples; never start a fixture, node or compiler."""
 import importlib.util
+import contextlib
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -239,6 +241,116 @@ class SupplySourceTests(unittest.TestCase):
         row["readySenders"]["supply"]["pacingPeakCatchupTargets"] = 4
         with self.assertRaises(RuntimeError):
             supply.validate_report(row, "supply-512x2", "bounded-cadence")
+
+    def test_pair_prepare_is_fixed_and_never_starts(self):
+        row = json.loads(subprocess.check_output([sys.executable, "-B", str(FILE), "--prepare-pair", "--transport", "grpc", "--profile", "supply-512x2"], timeout=5))
+        self.assertFalse(row["execute"])
+        self.assertFalse(row["nodesStarted"])
+        self.assertEqual(row["pairCaps"], dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20, buildBytes=1 << 30, metadataReserveMs=500))
+        self.assertEqual([r["pacingMode"] for r in row["cases"]], ["relative", "bounded-cadence"])
+        for case in row["cases"]:
+            self.assertEqual(case["profile"]["privateBytes"], 32 << 20)
+            self.assertEqual(case["profile"]["activeMs"]+case["profile"]["cleanupMs"], 60000)
+            self.assertEqual(case["profile"]["senders"]*case["profile"]["rounds"], 1024)
+
+    def test_pair_total_retained_deadline_and_build_are_not_doubled(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve(); data=root/"data"; evidence=root/"evidence"; build=root/"build"
+            for directory in (data,evidence,build): directory.mkdir()
+            sample = dict(rssBytes=1, threads=1, privateBytes=1, buildBytes=1, freeDiskBytes=10 << 30, availableMemoryBytes=2 << 30)
+            budget = supply.PairBudget(data,evidence,0,build)
+            with patch.object(supply.time,"monotonic",return_value=1), patch.object(supply.native,"directory_bytes",return_value=33 << 20):
+                with self.assertRaisesRegex(RuntimeError,"retained64MiB"):
+                    budget.observe(sample)
+            with patch.object(supply.time,"monotonic",return_value=120):
+                with self.assertRaisesRegex(RuntimeError,"deadline"):
+                    budget.observe(sample)
+            with patch.object(supply.time,"monotonic",return_value=1):
+                with self.assertRaisesRegex(RuntimeError,"buildBytes"):
+                    budget.observe(dict(sample,buildBytes=(1 << 30)+1))
+
+    def test_pair_rejects_incomplete_or_unclean_case(self):
+        for change in (dict(firstCause="deadline"),dict(cleanupComplete=False),dict(nodesStarted=False)):
+            row = self.pair_row("relative");row.update(change)
+            with self.assertRaises(RuntimeError): supply.pair_case_qualified(row,"relative")
+        row = self.pair_row("relative");row["measurement"]["summary"]["submissionUnknown"]=4
+        with self.assertRaises(RuntimeError): supply.pair_case_qualified(row,"relative")
+
+    def test_pair_refuses_second_case_when_owned_closure_not_empty(self):
+        pid = supply.os.getpid()
+        rows = {pid:dict(pid=pid,parent=0,startTicks=1),pid+1000:dict(pid=pid+1000,parent=pid,startTicks=2)}
+        budget = type("Budget",(),dict(observe=lambda self:None,started=0))()
+        with patch.object(supply.native,"proc_inventory",return_value=(rows,[])):
+            with self.assertRaisesRegex(RuntimeError,"not empty"):
+                supply.empty_pair_closure(budget)
+
+    @staticmethod
+    def pair_row(mode):
+        return dict(firstCause=None,cleanupComplete=True,nodesStarted=True,pacingMode=mode,abciTransport="grpc",
+                    profile=supply.recipe("grpc","supply-512x2",mode)["profile"],
+                    measurement=dict(summary=report("supply-512x2",mode)["summary"]),nodePhases=[{} for _ in range(4)])
+
+    def mock_pair(self, first_failure=None, mutate_binary=False, fail_after_fsync=False):
+        # Synthetic orchestration only: no compiler, fixture, socket or node.
+        import hashlib
+        with tempfile.TemporaryDirectory() as temp:
+            parent=Path(temp).resolve();source=parent/"source";build=parent/"build";evidence=parent/"evidence"
+            for d in (source,build,evidence):d.mkdir()
+            binaries={}
+            for name in supply.BINARIES:
+                raw=name.encode();(build/name).write_bytes(raw);binaries[name]=dict(sha256=hashlib.sha256(raw).hexdigest())
+            order=[]
+            def fake_run(source,build,case,out,transport,profile,mode,**kwargs):
+                order.append(mode);case.mkdir()
+                row=self.pair_row(mode)
+                row.update(sourceCommit="a"*40,sourceTree="b"*40,internalTree="c"*40,compiler="synthetic-unit",
+                           binaries=binaries,environment=supply.ENV,host=dict(uname=list(supply.platform.uname()),cpuCount=supply.os.cpu_count()))
+                code=0
+                if first_failure=="error":row["firstCause"]="synthetic deadline";code=1
+                if first_failure=="cleanup":row["cleanupComplete"]=False
+                if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=4
+                out.write_text(json.dumps(row))
+                if mutate_binary:(build/supply.BINARIES[0]).write_bytes(b"changed")
+                return code
+            bounded=supply.native.bounded
+            def read(path,limit=65536):
+                return b"synthetic-unit-boot" if str(path)=="/proc/sys/kernel/random/boot_id" else bounded(path,limit)
+            def empty(budget):order.append("empty");return []
+            def observe(sample=None):
+                if fail_after_fsync and (evidence/"actual.json").exists():
+                    raise RuntimeError("synthetic pair budget exhausted after receipt fsync")
+            output=io.StringIO()
+            with patch.object(supply.sys,"platform","linux"),patch.object(supply.platform,"machine",return_value="x86_64"), \
+                    patch.object(supply.native,"bounded",side_effect=read),patch.object(supply.os,"readlink",return_value="pid:[unit]"), \
+                    patch.object(supply.PairBudget,"observe",side_effect=observe),patch.object(supply,"empty_pair_closure",side_effect=empty), \
+                    patch.object(supply,"run",side_effect=fake_run),patch.object(supply.signal,"signal"),patch.object(supply.signal,"setitimer"), \
+                    contextlib.redirect_stdout(output):
+                code=supply.run_pair(source,build,parent/"pair",evidence/"actual.json")
+            row=json.loads((evidence/"actual.json").read_text())
+            row["_terminal"]=json.loads(output.getvalue().split("YNX_SUPPLY_PAIR_TERMINAL ")[-1])
+            return code,order,row
+
+    def test_pair_stops_after_failed_unknown_or_unclean_first_case(self):
+        for reason in ("error","unknown","cleanup"):
+            with self.subTest(reason=reason):
+                code,order,row=self.mock_pair(first_failure=reason)
+                self.assertEqual(code,1);self.assertEqual(order,["relative"])
+                self.assertFalse(row["casesQualified"])
+
+    def test_pair_serial_order_and_changed_binary_refusal(self):
+        code,order,row=self.mock_pair()
+        self.assertEqual(code,0);self.assertEqual(order,["relative","empty","bounded-cadence","empty"])
+        self.assertTrue(row["casesQualified"])
+        code,order,row=self.mock_pair(mutate_binary=True)
+        self.assertEqual(code,1);self.assertEqual(order,["relative","empty"])
+        self.assertIn("binary changed",row["firstCause"])
+
+    def test_pair_post_fsync_budget_rejects_otherwise_qualified_cases(self):
+        code,order,row=self.mock_pair(fail_after_fsync=True)
+        self.assertEqual(code,1)
+        self.assertTrue(row["casesQualified"])
+        self.assertFalse(row["_terminal"]["qualified"])
+        self.assertIn("after receipt fsync",row["_terminal"]["firstCause"])
 
 
 if __name__ == "__main__":

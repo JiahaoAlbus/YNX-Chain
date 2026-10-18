@@ -32,6 +32,8 @@ PROFILES = {"supply-256x4": PROFILE,
             "supply-512x2": dict(PROFILE, name="supply-512x2", senders=512, rounds=2)}
 ENV = dict(GOMAXPROCS="1", GOGC="100", GOMEMLIMIT="off")
 BINARIES = ("ynx-abci", "cometbft", "ynx-consensus-perf-fixture", "ynx-consensus-perf-client")
+PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
+                 buildBytes=1 << 30, metadataReserveMs=500)
 
 
 def recipe(transport="socket", profile_name="supply-256x4", pacing="relative"):
@@ -51,6 +53,174 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative"):
                 comparison="Independent private CI case; no Darwin before/after multiplier",
                 resourceCaps=native.CAPS,
                 input="workflow_dispatch.run_linux_supply (default false)")
+
+
+def pair_recipe():
+    return dict(schema=1, kind="fixed-same-VM-pacing-pair", execute=False,
+                requiresSeparateRootGrant=True, nodesStarted=False, pairCaps=PAIR_CAPS,
+                cases=[recipe("grpc", "supply-512x2", mode) for mode in ("relative", "bounded-cadence")],
+                order="relative then bounded-cadence; never concurrent; stop after any failed or unclean first case",
+                binaries="same exact four ELF files, built once before pair runtime",
+                input=dict(run_linux_supply=True, linux_supply_transport="grpc", linux_supply_profile="supply-512x2", linux_supply_pacing="paired-relative-bounded"),
+                timing="Both case guards, raw receipt fsync, empty closure checks and pair receipt fsync count toward120s. Per-case invocation including fsync must also stay within60s. Remaining global time can shorten admission, never extend a case.",
+                interpretation="Two fresh private fixtures with matched generation policy on one actual VM. Startup order and random fixture identities differ; finite paired observation, not sustained capacity or a generalized speedup.")
+
+
+class PairBudget:
+    """Fixed pair accounting in the original wrapper, not a new job framework."""
+    def __init__(self, root, evidence, started, build):
+        self.root, self.evidence, self.started = root, evidence, started
+        self.build, self.active_case = build, root
+        self.deadline = started + PAIR_CAPS["totalMs"]/1000
+        self.samples = []
+
+    def remaining(self):
+        return self.deadline-time.monotonic()
+
+    def io_timeout(self):
+        remaining = self.remaining()-PAIR_CAPS["metadataReserveMs"]/1000
+        if remaining <= 0:
+            raise RuntimeError("pair120s metadata budget exhausted")
+        return min(5, remaining)
+
+    def observe(self, sample=None):
+        if self.remaining() <= 0:
+            raise RuntimeError("pair120s total deadline exceeded")
+        if sample is None:
+            sample = native_sample(self.active_case, self.build, {}, self.started)
+        native.enforce(sample)
+        roots = (self.root, self.evidence)
+        retained = sum(native.directory_bytes(p) for p in roots)
+        logs = sum(p.stat().st_size for r in roots for p in r.rglob("*.log"))
+        if retained > PAIR_CAPS["retainedBytes"] or logs > PAIR_CAPS["logBytes"]:
+            raise RuntimeError("combined pair retained64MiB/log2MiB cap exceeded")
+        row = dict(elapsedMs=int((time.monotonic()-self.started)*1000), retainedBytes=retained, logBytes=logs)
+        row.update({k:sample[k] for k in ("rssBytes", "threads", "availableMemoryBytes", "freeDiskBytes", "buildBytes")})
+        self.samples.append(row)
+        if self.remaining() <= 0:
+            raise RuntimeError("pair120s exceeded during guard I/O")
+
+
+def empty_pair_closure(budget):
+    scans = []
+    for _ in range(2):
+        budget.observe()
+        rows, _ = native.proc_inventory()
+        ids = native.owned_set(rows, os.getpid())
+        if ids != [os.getpid()]:
+            raise RuntimeError("pair prior owned closure is not empty; second case forbidden")
+        scans.append(dict(elapsedMs=int((time.monotonic()-budget.started)*1000), owned=ids,
+                          launcherStartTicks=rows[os.getpid()]["startTicks"]))
+        time.sleep(.05)
+    return scans
+
+
+def pair_case_qualified(row, mode):
+    if row.get("firstCause") is not None or row.get("cleanupComplete") is not True or row.get("nodesStarted") is not True:
+        raise RuntimeError("pair case failed or cleanup incomplete")
+    if row.get("pacingMode") != mode or row.get("abciTransport") != "grpc" or row.get("profile") != recipe("grpc", "supply-512x2", mode)["profile"]:
+        raise RuntimeError("pair case fixed configuration mismatch")
+    m = row.get("measurement", {})
+    if (any(m.get("summary", {}).get(k) != 1024 for k in ("input", "offered", "submitted", "checkTxAccepted", "effectiveBusinessIncluded", "quorumConfirmed", "finalSubmitted"))
+            or any(m.get("summary", {}).get(k) != 0 for k in ("submissionUnknown", "timedOut", "notSubmitted", "executionFailed", "checkTxRejected", "checkTxUnverifiedResponses", "observationFailed"))
+            or len(row.get("nodePhases", [])) != 4):
+        raise RuntimeError("pair case incomplete business results; no second case")
+
+
+def run_pair(source, build, root, receipt):
+    if sys.platform != "linux" or platform.machine() != "x86_64":
+        raise RuntimeError("same native Linux amd64 VM required")
+    source, build, root, receipt = map(lambda p:p.absolute(), (source, build, root, receipt))
+    if (root.exists() or root.is_symlink() or receipt.exists() or receipt.is_symlink()
+            or root.is_relative_to(source) or source.is_relative_to(root)
+            or root.is_relative_to(build) or build.is_relative_to(root)
+            or receipt.is_relative_to(root) or root.is_relative_to(receipt.parent)
+            or any(p.resolve() != p for p in (source, build, root.parent, receipt.parent))):
+        raise RuntimeError("exclusive disjoint fixed-pair roots required")
+    started = time.monotonic()
+    root.mkdir(mode=0o700)
+    budget = PairBudget(root, receipt.parent, started, build)
+    result = dict(pair_recipe(), execute=True, nodesStarted=None, launcher=os.getpid(), startedAtUnix=time.time(),
+                  host=dict(uname=list(platform.uname()), cpuCount=os.cpu_count(),
+                            bootID=native.bounded(Path("/proc/sys/kernel/random/boot_id")).decode().strip(),
+                            pidNamespace=os.readlink("/proc/self/ns/pid")),
+                  cases=[], closureScans=[], firstCause=None, casesQualified=False,
+                  preparedCases=pair_recipe()["cases"],
+                  terminalQualification="Requires post-fsync stdout verdict and exit0; receipt alone is not total-window PASS")
+    def exhausted(_signum, _frame):
+        raise RuntimeError("pair120s outer watchdog expired")
+    prior = signal.signal(signal.SIGALRM, exhausted)
+    signal.setitimer(signal.ITIMER_REAL, max(.001, budget.remaining()))
+    baseline = None
+    try:
+        for index, mode in enumerate(("relative", "bounded-cadence")):
+            budget.observe()
+            if budget.remaining() <= 15.5:
+                raise RuntimeError("pair lacks cleanup and metadata reserve; next case refused")
+            if baseline is not None:
+                for name in BINARIES:
+                    if native.digest(build/name) != baseline["binaries"][name]["sha256"]:
+                        raise RuntimeError("pair compiled binary changed before second case")
+                if list(platform.uname()) != baseline["host"]["uname"] or os.cpu_count() != baseline["host"]["cpuCount"]:
+                    raise RuntimeError("pair actual host changed")
+            case = root / ("before-relative" if index == 0 else "after-bounded-cadence")
+            out = root / (mode+"-actual.json")
+            budget.active_case = case
+            invoked = time.monotonic()
+            code = run(source, build, case, out, "grpc", "supply-512x2", mode, pair_budget=budget)
+            duration = time.monotonic()-invoked
+            row = json.loads(native.bounded(out, 4 << 20))
+            if result["nodesStarted"] is not True: result["nodesStarted"] = row.get("nodesStarted")
+            result["cases"].append(dict(order=index+1, mode=mode, receipt=str(out), sha256=native.digest(out),
+                                        invocationElapsedMs=int(duration*1000), code=code,
+                                        firstCause=row.get("firstCause"), summary=row.get("measurement", {}).get("summary")))
+            if code != 0 or duration > 60:
+                raise RuntimeError("pair case failed or invocation/fsync exceeded60s: "+str(row.get("firstCause")))
+            pair_case_qualified(row, mode)
+            result["closureScans"].append(empty_pair_closure(budget))
+            if baseline is None:
+                baseline = row
+                result["compiledBinaries"] = row["binaries"]
+                result["sourceCommit"], result["compiler"] = row["sourceCommit"], row["compiler"]
+            else:
+                for key in ("sourceCommit", "sourceTree", "internalTree", "compiler", "binaries", "environment"):
+                    if row[key] != baseline[key]:
+                        raise RuntimeError("pair identity differs: "+key)
+                if row["host"]["uname"] != baseline["host"]["uname"] or row["host"]["cpuCount"] != baseline["host"]["cpuCount"]:
+                    raise RuntimeError("pair VM identity differs")
+            budget.observe()
+        result["casesQualified"] = True
+    except Exception as error:
+        result["firstCause"] = str(error)
+    finally:
+        try:
+            budget.observe()
+        except Exception as error:
+            result["firstCause"] = result["firstCause"] or str(error)
+        result["samples"] = budget.samples
+        result["elapsedBeforePairReceiptFsyncMs"] = int((time.monotonic()-started)*1000)
+        try:
+            with receipt.open("x") as handle:
+                json.dump(result, handle, indent=2); handle.write("\n"); handle.flush(); os.fsync(handle.fileno())
+            budget.observe()  # Includes the actual pair receipt bytes and fsync wall time.
+        except Exception as error:
+            result["firstCause"] = result["firstCause"] or str(error)
+        pair_sha = native.digest(receipt) if receipt.is_file() else None
+        elapsed_exact = (time.monotonic()-started)*1000
+        elapsed = int(elapsed_exact)
+        if elapsed_exact > PAIR_CAPS["totalMs"]:
+            result["firstCause"] = result["firstCause"] or "pair total including fsync exceeded120s"
+        verdict = dict(schema=1, kind="fixed-pair-post-fsync-verdict", elapsedMs=elapsed,
+                       firstCause=result["firstCause"], casesQualified=result["casesQualified"],
+                       pairReceipt=str(receipt), pairReceiptSHA256=pair_sha,
+                       retainedBytesAfterFsync=budget.samples[-1]["retainedBytes"] if budget.samples else None,
+                       qualified=result["firstCause"] is None and result["casesQualified"])
+        try:
+            print("YNX_SUPPLY_PAIR_TERMINAL "+json.dumps(verdict), flush=True)
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, prior)
+    return 0 if verdict["qualified"] else 1
 
 
 def server_commands(build, node, migration, transport):
@@ -222,7 +392,7 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative"):
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None):
     selected = recipe(transport, profile_name, pacing)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
@@ -246,12 +416,16 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         result["timeline"].append(dict(phase=phase, elapsedNs=int((time.monotonic()-started)*1e9), unixNs=time.time_ns()))
 
     def command(args):
-        return subprocess.check_output(args, cwd=source, timeout=5, stderr=subprocess.STDOUT).decode().strip()
+        return subprocess.check_output(args, cwd=source, timeout=pair_budget.io_timeout() if pair_budget else 5, stderr=subprocess.STDOUT).decode().strip()
 
     def tick(initial=False):
         if time.monotonic()-started >= 45:
             raise RuntimeError("active45s deadline exceeded")
-        result["samples"].append(native_sample(case, build, known, started, initial))
+        if pair_budget and pair_budget.remaining() <= 15.5:
+            raise RuntimeError("pair active reserve exhausted; begin cleanup")
+        sampled = native_sample(case, build, known, started, initial)
+        result["samples"].append(sampled)
+        if pair_budget: pair_budget.observe(sampled)
         if any(p.poll() is not None for p in children if getattr(p, "server", False)):
             raise RuntimeError("node exited during active window")
 
@@ -365,8 +539,10 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
     finally:
         mark("cleanup_start")
         cleanup = time.monotonic()
+        cleanup_deadline = min(cleanup+15, started+60)
+        if pair_budget: cleanup_deadline = min(cleanup_deadline, pair_budget.deadline-.5)
         empty = 0
-        while time.monotonic()-cleanup < 15 and time.monotonic()-started < 60:
+        while time.monotonic() < cleanup_deadline:
             for p in children:
                 p.poll()
             try:
@@ -419,6 +595,8 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--prepare-pair", action="store_true")
+    parser.add_argument("--execute-pair", action="store_true")
     parser.add_argument("--transport", choices=("socket", "grpc"), default="socket")
     parser.add_argument("--profile", choices=tuple(PROFILES), default="supply-256x4")
     parser.add_argument("--pacing", choices=("relative", "bounded-cadence"), default="relative")
@@ -428,7 +606,17 @@ if __name__ == "__main__":
     parser.add_argument("--case", type=Path)
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
-    if args.check_runner:
+    if args.prepare_pair or args.execute_pair:
+        if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
+                or args.transport != "grpc" or args.profile != "supply-512x2" or args.pacing != "relative"):
+            parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
+        if args.prepare_pair:
+            print(json.dumps(pair_recipe(), indent=2))
+        else:
+            if not all((args.source, args.build, args.case, args.receipt)):
+                parser.error("pair execute requires exact source/build/new pair root/new receipt")
+            sys.exit(run_pair(args.source, args.build, args.case, args.receipt))
+    elif args.check_runner:
         if args.execute or not args.build or not args.case:
             parser.error("check-runner requires build/new case and excludes execute")
         print(json.dumps(preflight(args.build, args.case), indent=2))
