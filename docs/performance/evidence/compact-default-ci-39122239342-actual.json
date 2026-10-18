@@ -1,0 +1,180 @@
+{
+  "sourceCommit": "03ec827b34bd2723cc34b8a759810cff76e865a5",
+  "internalTree": "db59fb367d5c7382756ba8f6ebc2d50e5d9639fc",
+  "runId": 39122239342,
+  "runConclusion": "success",
+  "steps": [
+    {
+      "name": "Set up job",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prepare matched Commit probe dependencies",
+      "conclusion": "success"
+    },
+    {
+      "name": "Measure matched Commit storage and crash recovery",
+      "conclusion": "success"
+    },
+    {
+      "name": "Measure guarded seal phases and verify mutation fallback",
+      "conclusion": "success"
+    },
+    {
+      "name": "Retain actual matched Commit evidence even on failure",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm ci",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run hardhat:build",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify compiler output preserves controlled evidence and scanner failures",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make static-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make streambft-candidate-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make consensus-abci-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify bounded performance controller and evidence contracts",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify ready-sender Commit phases and bounded event timeline",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify opt-in node phase timings against real durable execution",
+      "conclusion": "success"
+    },
+    {
+      "name": "Measure bounded real signed fee history",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Measure same actual large-history seal phases without rewriting input",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain actual signed fee-history evidence",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain small selected application and seal phase reports",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Render selected state validation CPU stacks",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain small selected state validation profile",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Verify fixed unpublished compact-default V13 integration contract",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make chain-core-release-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make no-placeholder-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make secret-scan",
+      "conclusion": "success"
+    },
+    {
+      "name": "Measure selected matched state hash encoders",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain selected matched state hash encoder evidence",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Build isolated Darwin phase-timing node candidate",
+      "conclusion": "success"
+    },
+    {
+      "name": "Retain isolated Darwin phase-timing node candidate",
+      "conclusion": "success"
+    },
+    {
+      "name": "Upload Chain Core handoff",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "conclusion": "success"
+    }
+  ],
+  "rawLogBytes": 484167,
+  "rawLogSHA256": "8bcac2a5e526be6e56d52e90b769361bfd0ae2e7b8e052d4de6e6d02f8172943",
+  "binary": {
+    "name": "ynx-abci",
+    "bytes": 25956178,
+    "sha256": "1800a9d87a8ed156595621d09e436546bd6698b7764063dd02f21adbcd2b8829"
+  },
+  "wholeArtifactSHA256": "b37d736cb95b38396bafa28987b46d73ed4d4006e85f7c38f7fcfabafd508e3f",
+  "artifactCRCVerified": true,
+  "nativeHelp": {
+    "sourceCommit": "03ec827b34bd2723cc34b8a759810cff76e865a5",
+    "internalTree": "db59fb367d5c7382756ba8f6ebc2d50e5d9639fc",
+    "binarySHA256": "1800a9d87a8ed156595621d09e436546bd6698b7764063dd02f21adbcd2b8829",
+    "command": [
+      "/Volumes/Data/Users/huangjiahao/ynx-chain-perf-evidence-39122239342-20261018/darwin-candidate/ynx-abci",
+      "--help"
+    ],
+    "exit": 0,
+    "helpContainsUsage": true,
+    "stdoutBytes": 0,
+    "stderrBytes": 703,
+    "elapsedSeconds": 0.5259460419999868,
+    "nodesStarted": false,
+    "networkPerformance": null
+  },
+  "nodesStarted": false,
+  "networkPerformance": null,
+  "scope": "full normal integrated source and SDK6 qualification plus cross-build and native CLI help; no deployment or network performance qualification"
+}
