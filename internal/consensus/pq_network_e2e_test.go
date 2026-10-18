@@ -39,6 +39,55 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
+const (
+	pqNetworkE2EMaxBlocks = int64(48)
+	// Empty blocks are disabled. A submitted transaction can require its own
+	// block plus the following block that proves the changed application hash.
+	pqNetworkE2ESubmissionBlocks = int64(2)
+)
+
+func pqNetworkE2EBlockBudget(initial, tip, reserve int64) error {
+	if initial < 1 || tip < initial || reserve < 0 || reserve > pqNetworkE2EMaxBlocks {
+		return fmt.Errorf("invalid stable network checkpoint or block reservation")
+	}
+	// InitialHeight itself is a real block, including when it is greater than 1.
+	// Positive ordered heights also make this subtraction/addition overflow-safe.
+	used := tip - initial + 1
+	if used > pqNetworkE2EMaxBlocks-reserve {
+		return fmt.Errorf("small-block network budget: committed=%d reserved=%d limit=%d", used, reserve, pqNetworkE2EMaxBlocks)
+	}
+	return nil
+}
+
+func TestPQNetworkBlockBudget(t *testing.T) {
+	const largestHeight = int64(1<<63 - 1)
+	for _, test := range []struct {
+		name                  string
+		initial, tip, reserve int64
+		allowed               bool
+	}{
+		{"initial block counts", 7, 7, 0, true},
+		{"initial block is not free", 7, 7, 48, false},
+		{"46 blocks reserve transaction and proof", 7, 52, 2, true},
+		{"47 blocks cannot submit", 7, 53, 2, false},
+		{"48 blocks observation allowed", 7, 54, 0, true},
+		{"49 blocks rejected", 7, 55, 0, false},
+		{"48 blocks cannot submit", 7, 54, 2, false},
+		{"large initial height exact limit", largestHeight - 47, largestHeight, 0, true},
+		{"large accumulated height rejected", 1, largestHeight, 0, false},
+		{"unknown initial height", 0, 0, 0, false},
+		{"checkpoint before initial height", 7, 6, 0, false},
+		{"negative reservation", 7, 7, -1, false},
+		{"oversized reservation", 7, 7, 49, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if err := pqNetworkE2EBlockBudget(test.initial, test.tip, test.reserve); (err == nil) != test.allowed {
+				t.Fatalf("initial=%d tip=%d reserve=%d: error=%v allowed=%v", test.initial, test.tip, test.reserve, err, test.allowed)
+			}
+		})
+	}
+}
+
 // This is a deliberately opt-in, bounded local-network integration test, not a
 // benchmark. Ordinary CI only compiles it. Running it requires a separately
 // authorized four-node window and YNX_PQ_NETWORK_E2E=authorized-four-node-window.
@@ -228,7 +277,7 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 		t.Fatal("normal cold restart changed original account/contract/history state")
 	}
 	network.startConstructed(4)
-	network.quiet(4)
+	finalHeight := network.quiet(4)
 	if !bytes.Equal(beforeRestart, network.business()) {
 		t.Fatal("normal restarted consensus changed user state without a transaction")
 	}
@@ -240,7 +289,55 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 			}
 		}
 	}
+	network.verifyCommit(ordinaryHeight, false, 4, false)
 	network.verifyCommit(pqHeight, true, 4, false)
+	network.verifyCommit(finalHeight, true, 4, false)
+	network.verifyNativeReceipt(ordinary, ordinaryHeight, owner, recipient, 9, 1, 4)
+	network.verifyNativeReceipt(pqPayload, pqHeight, owner, recipient, 3, 1, 4)
+	network.verifyTransferTrace(beforeTrace, beforePQ, afterPQ, SignedTransactionHash(pqPayload), 4)
+	publicNodes := make([]map[string]any, len(network.nodes))
+	var finalAppHash, finalBlockHash string
+	for index, item := range network.nodes {
+		item.app.mu.RLock()
+		height, appHash := item.app.committed.Height, item.app.committed.AppHash
+		item.app.mu.RUnlock()
+		meta := item.node.BlockStore().LoadBlockMeta(finalHeight)
+		if height != finalHeight || appHash == "" || meta == nil || item.node.BlockStore().Height() != finalHeight {
+			t.Fatal("final restarted node lost the actual common checkpoint")
+		}
+		blockHash := hex.EncodeToString(meta.BlockID.Hash)
+		if index == 0 {
+			finalAppHash, finalBlockHash = appHash, blockHash
+		} else if appHash != finalAppHash || blockHash != finalBlockHash {
+			t.Fatal("final restarted nodes disagree on actual AppHash or block hash")
+		}
+		publicNodes[index] = map[string]any{"index": index, "height": height, "appHash": appHash, "blockHash": blockHash}
+	}
+	// Finish the original Node/Host cleanup and read their actual H/R/S before
+	// emitting success evidence. No key, credential or private path is logged.
+	network.stopAll()
+	if t.Failed() {
+		return
+	}
+	for index, item := range network.nodes {
+		publicNodes[index]["legacyHRS"] = map[string]any{"height": item.lastLegacyHRS.height, "round": item.lastLegacyHRS.round, "step": item.lastLegacyHRS.step}
+		publicNodes[index]["pqHRS"] = map[string]any{"height": item.lastPQHRS.height, "round": item.lastPQHRS.round, "step": item.lastPQHRS.step}
+	}
+	summary, err := json.Marshal(map[string]any{
+		"version": "ynx-pq-four-node-e2e/v1", "syntheticOnly": true,
+		"initialHeight": network.doc.InitialHeight, "finalHeight": finalHeight,
+		"blockCount":              finalHeight - network.doc.InitialHeight + 1,
+		"preservedOriginalBlocks": len(history), "scheduleHash": scheduleHash,
+		"ordinaryTransferHeight": ordinaryHeight, "pqTransferHeight": pqHeight,
+		"pqTransactionHash": SignedTransactionHash(pqPayload), "nodes": publicNodes,
+		"nativeReceiptsVerified": true, "traceLineageVerified": true,
+		"threeOfFourCommitVerified": true, "twoOfFourRejected": true,
+		"coldRestartVerified": true, "nodeStopAndHostCloseCompleted": true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("PQ_NETWORK_E2E_SUMMARY %s", summary)
 }
 
 type pqNetworkE2ENode struct {
@@ -669,8 +766,8 @@ func (n *pqNetworkE2E) quiet(count int) int64 {
 		if h < n.doc.InitialHeight {
 			return false
 		}
-		if h-n.doc.InitialHeight > 48 {
-			n.t.Fatal("small-block network test exceeded 48-block budget")
+		if err := pqNetworkE2EBlockBudget(n.doc.InitialHeight, h, 0); err != nil {
+			n.t.Fatal(err)
 		}
 		var expectedHash string
 		for i := 0; i < count; i++ {
@@ -729,6 +826,10 @@ func (n *pqNetworkE2E) check(payload []byte) *abci.ResponseCheckTx {
 
 func (n *pqNetworkE2E) submit(payload []byte, count int) int64 {
 	n.t.Helper()
+	checkpoint := n.quiet(count)
+	if err := pqNetworkE2EBlockBudget(n.doc.InitialHeight, checkpoint, pqNetworkE2ESubmissionBlocks); err != nil {
+		n.t.Fatalf("refuse transaction before mempool admission: %v", err)
+	}
 	if response := n.check(payload); response.Code != 0 {
 		n.t.Fatalf("normal signed mempool transaction rejected: code=%d log=%s", response.Code, response.Log)
 	}
@@ -865,8 +966,12 @@ func (n *pqNetworkE2E) classicTransfer(key *secp256k1.PrivateKey, to string, amo
 func (n *pqNetworkE2E) driveThrough(height int64, count int) {
 	n.t.Helper()
 	for step := 0; step < 8; step++ {
-		if n.quiet(count) >= height {
+		checkpoint := n.quiet(count)
+		if checkpoint >= height {
 			return
+		}
+		if err := pqNetworkE2EBlockBudget(n.doc.InitialHeight, checkpoint, pqNetworkE2ESubmissionBlocks); err != nil {
+			n.t.Fatalf("refuse P/U/A driver transaction before signing: %v", err)
 		}
 		n.submit(n.classicTransfer(n.recipientKey, n.owner, 1), count)
 	}

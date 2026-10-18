@@ -61,6 +61,22 @@ func TestOfflineConsensusExportPreservesCompiledRuntimeAndPQHistory(t *testing.T
 	expectedJSON, err := expected.CanonicalJSON()
 	pqMust(t, err)
 	before := captureOfflineConsensusSource(t, f.d.dataDir)
+	var checkpoint devnetSnapshot
+	pqMust(t, json.Unmarshal(before.files["devnet-state.json"].data, &checkpoint))
+	checkpointContract, ok := checkpoint.Contracts[artifact.Address]
+	if !ok || checkpoint.AccountPolicy == nil || len(checkpoint.AccountPolicy.Revocations) == 0 {
+		t.Fatal("original checkpoint lacks complete executed contract or terminal policy history")
+	}
+	// Compare the full durable representation. Compiler ABI builders retain
+	// empty non-nil Inputs (for example count()); their omitempty JSON fields
+	// decode as nil. No contract field is removed from either serialized value.
+	liveContractJSON, err := json.Marshal(written)
+	pqMust(t, err)
+	checkpointContractJSON, err := json.Marshal(checkpointContract)
+	pqMust(t, err)
+	if !bytes.Equal(liveContractJSON, checkpointContractJSON) {
+		t.Fatal("original checkpoint changed complete live contract artifact")
+	}
 	for i := 0; i < 2; i++ {
 		actual, err := ExportConsensusMigrationCheckpoint(f.d.dataDir)
 		pqMust(t, err)
@@ -69,8 +85,13 @@ func TestOfflineConsensusExportPreservesCompiledRuntimeAndPQHistory(t *testing.T
 		if !bytes.Equal(wire, expectedJSON) {
 			t.Fatal("offline export changed canonical V2 identity, accounts, nonce, runtime or history")
 		}
-		if !reflect.DeepEqual(actual.Runtime.Contracts[artifact.Address], written) || !reflect.DeepEqual(actual.AccountPolicy, policy) {
-			t.Fatal("offline export changed complete contract artifact or terminal policy history")
+		if !reflect.DeepEqual(actual.Runtime.Contracts, checkpoint.Contracts) {
+			t.Fatal("offline export changed complete checkpoint contract inventory or artifact")
+		}
+		// AccountAuthorization is an owner projection; the source checkpoint
+		// contains the complete global history that both export fields must keep.
+		if !reflect.DeepEqual(actual.AccountPolicy, checkpoint.AccountPolicy) || !reflect.DeepEqual(actual.Runtime.AccountPolicy, checkpoint.AccountPolicy) {
+			t.Fatal("offline export changed complete global terminal policy history")
 		}
 		restored, err := actual.RestoreSourceRuntime()
 		pqMust(t, err)
