@@ -119,10 +119,22 @@ function selectCurrentClientOutcome(s,operation,phase,requestId){
  try{currentClient(s,operation);if(!row)throw clientError('IDE_PRIVATE_OUTCOME_REQUIRED');const outcome=Object.freeze({result:row.result,unknown:row.unknown||s.firstCausePresent,terminal:row.terminal});currentClient(s,operation);return outcome;}
  catch(cause){if(row)row.unknown=true;latchClient(s,cause);throw cause;}
 }
+function readClientTerminalCustody(s,operation,phase,requestId){
+ const row=s.rows.get(operation+':'+phase+':'+requestId);
+ try{
+  currentClient(s,operation);
+  if(!row?.unknown||row.terminal||row.terminalReadSelected||typeof s.methods.readTerminal!=='function'||row.input.carrierVersion!=='YNX-PRODUCT-SESSION-PRIVATE/v4'||row.input.referenceAction!=='complete')throw clientError('IDE_PRIVATE_TERMINAL_CUSTODY_UNAVAILABLE');
+  row.terminalReadSelected=true; // Native entry selected once even on refusal.
+  row.originalTerminalCustodyProof=s.methods.readTerminal(s.owner,operation,phase,requestId); // Capture before validation/current.
+  const data=s.payload.captureOriginalIDEPrivateTerminalCustodyData(row.originalTerminalCustodyProof,row.originalRaw,s.owner.association,row.responseRaw);
+  currentClient(s,operation);row.terminalCustody=data;
+  return data; // DATA only; original/global UNKNOWN and ACK state unchanged.
+ }catch(cause){if(row)row.unknown=true;latchClient(s,cause);throw cause;}
+}
 function reserveClient(parent){
  const s={parent,owner:null,methods:null,captureEntered:false,ready:false,retired:false,firstCausePresent:false,firstCause:undefined,rows:new Map(),queue:[],waiter:null,payload:null,canonicalJSON:null,admission:null,bindingDigest:null,retireSelected:false,retireFailed:false,retireCause:undefined,joining:null,closing:null,cleanupComplete:false,cleanupFailurePresent:false,cleanupCause:undefined,promise:null};
  const cleanup=Object.freeze({retire(...cause){return retireClient(s,...cause);},join:()=>joinClient(s),close:()=>closeClient(s),status:()=>statusClient(s)});
- const original=Object.freeze({...cleanup,dispatch:raw=>dispatchClient(s,raw),acknowledge:(...args)=>acknowledgeClient(s,...args),selectCurrentOutcome:(...args)=>selectCurrentClientOutcome(s,...args)});
+ const original=Object.freeze({...cleanup,dispatch:raw=>dispatchClient(s,raw),acknowledge:(...args)=>acknowledgeClient(s,...args),selectCurrentOutcome:(...args)=>selectCurrentClientOutcome(s,...args),readTerminalCustody:(...args)=>readClientTerminalCustody(s,...args)});
  const framer=Object.freeze({nextOutboundFrame:()=>nextClientFrame(s),acceptInboundFrame:raw=>receiveClientFrame(s,raw),assertCurrent(){try{return currentClient(s);}catch(cause){latchClient(s,cause);throw cause;}},retireTransport(...cause){return retireClient(s,...cause);}});
  s.cleanup=cleanup;s.channel=Object.freeze({original,framer});return s;
 }
@@ -136,7 +148,7 @@ export async function acquireOriginalIDEPrivateServiceChannel(actualEntryURL){
   try{
    if(s.retired)throw clientError('IDE_PRIVATE_RETIRED');
    if(Object.values(clientNames).some(name=>typeof parent.native[name]!=='function'))throw clientError('IDE_PRIVATE_IMPLEMENTATION_NOT_SUPPLIED');
-   s.methods=Object.freeze(Object.fromEntries(Object.entries(clientNames).map(([key,name])=>[key,parent.native[name]])));
+   s.methods=Object.freeze({...Object.fromEntries(Object.entries(clientNames).map(([key,name])=>[key,parent.native[name]])),readTerminal:typeof parent.native.readOriginalNativePrivateServiceTerminalResult==='function'?parent.native.readOriginalNativePrivateServiceTerminalResult:null});
    s.captureEntered=true;s.owner=s.methods.capture(parent.binding); // Partial before ready.
    if(!s.owner||typeof s.owner!=='object'||s.methods.ready(s.owner)!==undefined)throw clientError('IDE_PRIVATE_NOT_READY');
    if(s.methods.borrow(s.owner)!==s.owner)throw clientError('IDE_PRIVATE_ORIGINAL_OWNER_REQUIRED');

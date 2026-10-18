@@ -1,5 +1,6 @@
 // Data framing only. No parser result, digest or response is Native authority.
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
 import {decodeOriginalWalletServicePrivateRequest} from './original-wallet-service-private-dispatch.js';
 export const ORIGINAL_IDE_PRIVATE_PAYLOAD_SCHEMA='YNX-IDE-PRIVATE-PAYLOAD/v1';
@@ -49,4 +50,17 @@ export function createOriginalIDEPrivateResponseFrame(requestFrame,responseRaw){
  const request=parseOriginalIDEPrivatePayload(requestFrame);if(request.type!=='request')fail();
  const {canonicalInput:_input,...fields}=request,raw=canonicalJSON({...fields,type:'response',responseRaw,responseDigest:sha(responseRaw)});
  parseOriginalIDEPrivatePayload(raw);return raw;
+}
+
+/** Existing R30a Native proof DATA only. No ACK, adoption or authority. */
+export function captureOriginalIDEPrivateTerminalCustodyData(proof,canonicalInput,association,expectedResponseRaw=null){
+ const invalid=()=>{throw new WalletAuthError('IDE_PRIVATE_TERMINAL_CUSTODY_INVALID','Original terminal custody DATA is invalid');};
+ if(!proof||types.isProxy(proof)||Object.getPrototypeOf(proof)!==Object.prototype)invalid();
+ const fields=['responseRaw','responseDigest','requestDigest','associationDigest','stateBeforeDigest','stateAfterDigest','stateFileDigest','enteredDigest','recordVersion','success'];
+ const descriptors=Object.getOwnPropertyDescriptors(proof);
+ if(Reflect.ownKeys(descriptors).length!==fields.length||Reflect.ownKeys(descriptors).some(k=>typeof k!=='string'||!fields.includes(k)||!Object.hasOwn(descriptors[k],'value')||!descriptors[k].enumerable))invalid();
+ if(['responseDigest','requestDigest','associationDigest','stateBeforeDigest','stateAfterDigest','stateFileDigest','enteredDigest'].some(k=>!hex(proof[k]))||![1,2,3].includes(proof.recordVersion)||typeof proof.success!=='boolean'||typeof proof.responseRaw!=='string'||Buffer.byteLength(proof.responseRaw)>65536||sha(proof.responseRaw)!==proof.responseDigest||sha(canonicalInput)!==proof.requestDigest||sha(canonicalJSON(association))!==proof.associationDigest||expectedResponseRaw!==null&&expectedResponseRaw!==proof.responseRaw)invalid();
+ let response;
+ try{const input=decodeOriginalWalletServicePrivateRequest(canonicalInput);response=parseOriginalIDEPrivateResponse(proof.responseRaw,input.requestId);if(proof.success!==(response.status<300))invalid();}catch{invalid();}
+ return Object.freeze({proof:Object.freeze({...proof}),response});
 }
