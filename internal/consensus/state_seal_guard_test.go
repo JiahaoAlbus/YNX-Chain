@@ -17,7 +17,7 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 )
 
-func retainedSealFixture(t *testing.T) (chain.ConsensusMigrationState, CommittedState) {
+func retainedSealFixture(t testing.TB) (chain.ConsensusMigrationState, CommittedState) {
 	t.Helper()
 	var migration chain.ConsensusMigrationState
 	var state CommittedState

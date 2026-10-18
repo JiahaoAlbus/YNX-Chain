@@ -259,7 +259,7 @@ func sealCommittedStateMeasuredMode(migration chain.ConsensusMigrationState, hei
 		DexEvents:                  append([]BFTDexEvent(nil), execution.dexEvents...),
 	}
 	started = timings.mark("clone_and_materialize", started)
-	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
+	if !state.hasApplicationRecords() && accountsEqual(state.Accounts, migration.Accounts) {
 		state.AppHash = migration.StateHash
 	} else {
 		hash, err := state.calculateHash()
@@ -436,7 +436,7 @@ func (s CommittedState) validateSemantics(migration chain.ConsensusMigrationStat
 
 func (s CommittedState) validateAppHash(migration chain.ConsensusMigrationState) error {
 	expected := migration.StateHash
-	if !accountsEqual(s.Accounts, migration.Accounts) || s.hasApplicationRecords() {
+	if s.hasApplicationRecords() || !accountsEqual(s.Accounts, migration.Accounts) {
 		var err error
 		expected, err = s.calculateHash()
 		if err != nil {
