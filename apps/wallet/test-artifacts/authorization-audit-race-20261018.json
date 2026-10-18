@@ -1,0 +1,36 @@
+{
+  "scope": "Original authorization audit storage ownership; no new authority or issuer",
+  "base": "c89504badfca9e4b452d0c7619d47e955b1582b1",
+  "red": {
+    "test": "independent audit owners sharing original storage cannot overwrite either concurrent event",
+    "exit": 1,
+    "actual": 1,
+    "expected": 2,
+    "rawFileCaptured": false,
+    "provenance": "Original tool output retained in task; summary only"
+  },
+  "actualRuntime": {
+    "chunk_id": "bf45ae",
+    "wall_time_seconds": 0.427249292,
+    "exit_code": 0,
+    "original_token_count": 836,
+    "output": "✔ signature intent, callback, and revocation form a persistent hash-chained audit (2.988167ms)\n✔ authorization audit rejects field, binding, and hash tamper (0.86725ms)\n✔ independent audit owners sharing original storage cannot overwrite either concurrent event (0.500208ms)\n✔ queued revocation and append preserve both events and duplicate revoke remains once-only (1.124917ms)\n✔ lost audit write ACK permits readback only and never repeats the failed mutation (0.404125ms)\n✔ audit history capacity refuses before overwriting its last readable generation (25.839209ms)\n✔ direct product authorization displays and signs the exact finite service deadline without extending the approval window (17.508125ms)\n✔ android explicit approval completes the authoritative v2 challenge contract (16.894875ms)\n✔ ios explicit approval completes the authoritative v2 challenge contract (14.931416ms)\n✔ explicit rejection returns nonce and state to the canonical product without key access (2.912875ms)\n✔ v1, spoofed bindings, widened scopes and malformed routes fail before approval (3.224792ms)\n✔ mobile Wallet accepts web origins but rejects another native operating system (2.928417ms)\n✔ native payer and web merchant sessions remain separate canonical products (2.931083ms)\n✔ expiry is revalidated after biometric confirmation (0.9975ms)\n✔ switch while biometrics are pending cancels approval (0.670333ms)\n✔ background while biometrics are pending cancels approval (0.645625ms)\n✔ a key read resolving after an account change cannot sign or return for the replacement account (4.731291ms)\n✔ a storage adapter returning a different signing key is rejected (3.384209ms)\n✔ duplicate links retain the same review and another link cannot replace an active request (1.388167ms)\n✔ overlapping approve and reject cannot produce contradictory decisions (10.183ms)\n✔ consumed request, nonce and state remain blocked after controller restart (5.291ms)\n✔ approve callback failure retries the identical result without new authorization (13.686709ms)\n✔ reject callback failure retries the identical result without new authorization (3.977917ms)\n✔ unavailable or malformed durable replay storage fails before signing (7.09425ms)\n✔ no account and an unconfirmed backup cannot authorize a product (3.933042ms)\n✔ cancellation during durable consumption prevents signing and preserves consumption (3.628917ms)\n✔ a completed approval cannot be retried after expiry or account switch (23.51025ms)\n✔ native cold and warm entrypoints use only the v2 controller and cancel pending work on background (1.77675ms)\n✔ signed mobile original survives background before return and cold review recovers exact result without another key use (15.706541ms)\n✔ secure original save lost ACK cold-recovers the identical signature without consuming replay again (19.454166ms)\n✔ failed secure original save keeps signed custody and never falls back, re-saves, or signs on retry (6.663458ms)\n✔ restored original rejects changed account and corrupted proof before any new private-key access (11.319042ms)\n✔ two controllers sharing secure storage cannot consume or sign the same original request twice (11.658208ms)\nℹ tests 33\nℹ suites 0\nℹ pass 33\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 401.1275\n"
+  },
+  "strictScopedTypesExit": 0,
+  "invariants": {
+    "sameStorageHandleQueue": true,
+    "crossProcessCAS": false,
+    "firstLostAckMutationAutomaticallyRepeated": false,
+    "capacityRefusesBeforeWrite": true,
+    "hashChainPreserved": true,
+    "AppTSXChanged": false,
+    "sharedSDKChanged": false
+  },
+  "truth": {
+    "realNativeSecureStore": false,
+    "AndroidAPK": false,
+    "actualWalletProfile": false,
+    "MONSTER": false,
+    "officialInstall": false
+  }
+}

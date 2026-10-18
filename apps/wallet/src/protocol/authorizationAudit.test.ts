@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { createProductSessionRequest, productSessionRequestDigest, walletIdentity } from "@ynx-chain/wallet-auth";
+import { createProductSessionRequest, productSessionRequestDigest, walletIdentity,digestHex } from "@ynx-chain/wallet-auth";
 import { AuthorizationAuditStore, AUTHORIZATION_AUDIT_KEY } from "./authorizationAudit";
 import { PRODUCT_SESSION_REGISTRY } from "./registry";
 import type { MobileProductSessionRequest } from "./productSessionController";
@@ -31,4 +31,23 @@ test("authorization audit rejects field, binding, and hash tamper",async()=>{
   await assert.rejects(store.load(),/hash chain/);
   storage.values.set(AUTHORIZATION_AUDIT_KEY,JSON.stringify([{...original[0],unknown:true}]));
   await assert.rejects(store.load(),/schema/);
+});
+test('independent audit owners sharing original storage cannot overwrite either concurrent event',async()=>{
+ const storage=new MemoryStorage(),a=new AuthorizationAuditStore(storage),b=new AuthorizationAuditStore(storage);
+ await Promise.all([a.appendProductSession(review,{action:'intent-approved',account,at:now.toISOString()}),b.appendProductSession(review,{action:'request-rejected',account,at:now.toISOString()})]);
+ const records=await new AuthorizationAuditStore(storage).load();assert.equal(records.length,2);assert.equal(records[1]!.sequence,2);assert.equal(records[1]!.previousHash,records[0]!.hash);assert.deepEqual(new Set(records.map(row=>row.action)),new Set(['intent-approved','request-rejected']));
+});
+test('queued revocation and append preserve both events and duplicate revoke remains once-only',async()=>{
+ const storage=new MemoryStorage(),a=new AuthorizationAuditStore(storage),b=new AuthorizationAuditStore(storage);await a.appendProductSession(review,{action:'approval-returned',account,at:now.toISOString()});
+ const result=await Promise.allSettled([a.revoke(review.id,now.toISOString()),b.appendProductSession(review,{action:'intent-approved',account,at:now.toISOString()}),b.revoke(review.id,now.toISOString())]);assert.equal(result.filter(row=>row.status==='fulfilled').length,2);assert.match((result.find(row=>row.status==='rejected') as PromiseRejectedResult).reason.message,/already revoked/);
+ const rows=await a.load();assert.equal(rows.length,3);assert.equal(rows.filter(row=>row.action==='approval-revoked').length,1);assert.equal(rows[2]!.previousHash,rows[1]!.hash);
+});
+test('lost audit write ACK permits readback only and never repeats the failed mutation',async()=>{
+ const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage),set=storage.setItem.bind(storage),failure=Error('QA_POST_COMMIT_ACK');let writes=0;storage.setItem=async(key,value)=>{writes++;await set(key,value);throw failure;};
+ await assert.rejects(store.appendProductSession(review,{action:'intent-approved',account,at:now.toISOString()}),error=>error===failure);const rows=await new AuthorizationAuditStore(storage).load();assert.equal(rows.length,1);assert.equal(rows[0]!.action,'intent-approved');assert.equal(writes,1);
+});
+test('audit history capacity refuses before overwriting its last readable generation',async()=>{
+ const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);await store.appendProductSession(review,{action:'intent-approved',account,at:now.toISOString()});const {hash:ignored,...base}=(await store.load())[0]!,rows:any[]=[];
+ for(let i=0;i<1000;i++){const unsigned={...base,sequence:i+1,previousHash:rows.at(-1)?.hash??null};rows.push({...unsigned,hash:digestHex('YNX_WALLET_AUTH_AUDIT_V1',unsigned)});}const text=JSON.stringify(rows);storage.values.set(AUTHORIZATION_AUDIT_KEY,text);let writes=0;storage.setItem=async()=>{writes++;};
+ await assert.rejects(store.appendProductSession(review,{action:'request-rejected',account,at:now.toISOString()}),/capacity/);assert.equal(writes,0);assert.equal(storage.values.get(AUTHORIZATION_AUDIT_KEY),text);assert.equal((await store.load()).length,1000);
 });
