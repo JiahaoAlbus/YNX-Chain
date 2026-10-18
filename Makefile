@@ -454,6 +454,9 @@ integration-contract-perf-v13-borrowed-recovery-check:
 integration-contract-perf-v13-seal-guarded-check:
 	node ./scripts/verify/perf-v13-seal-guarded-integration-check.mjs
 
+integration-contract-perf-v13-seal-compact-default-check:
+	node ./scripts/verify/perf-v13-seal-compact-default-integration-check.mjs
+
 integration-contract-check:
 	node ./scripts/verify/integration-contract-check.mjs
 
