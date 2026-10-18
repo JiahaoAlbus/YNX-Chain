@@ -69,7 +69,7 @@ test('retiring an unentered process settles join without spawning, including pre
 });
 test('normal Main close retires before joining actual proof owners and existing review cleanup',async()=>{
  const main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf('async function shutdownOriginalPQWallet(){'),end=main.indexOf('\nconst originalAdmissionExit=',start),calls=[];let release;
- const joined=new Promise(r=>{release=r;}),context={pqFinalityCollection:{retire(){calls.push('retire');},join(){calls.push('join');return joined;}},walletAuthority:{shutdownPQReviews(){calls.push('reviews');return Promise.resolve();}}};
+ const joined=new Promise(r=>{release=r;}),context={originalIDEIdentityPeer:undefined,pqFinalityCollection:{retire(){calls.push('retire');},join(){calls.push('join');return joined;}},walletAuthority:{shutdownPQReviews(){calls.push('reviews');return Promise.resolve();}}};
  assert(start>=0&&end>start);runInNewContext(main.slice(start,end)+'\nthis.shutdown=shutdownOriginalPQWallet;',context);let done=false;const work=context.shutdown().then(()=>{done=true;});assert.deepEqual(calls,['retire','reviews','join']);await Promise.resolve();assert.equal(done,false);release();await work;assert.equal(done,true);
  assert.match(main,/keyAccess\.subscribe\(status=>\{if\(status.locked\)pqFinalityCollection\?\.retire\(\)/);
 });

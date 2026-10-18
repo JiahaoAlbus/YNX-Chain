@@ -6,16 +6,18 @@ export function appendWalletIDEIdentityApproval({container,review,api,getKeyStat
  // reviewId for its already retained same-owner qualified Native request.
  if(!review||!bounded(review.reviewId,128)||!bounded(review.requestId,128)||!bounded(review.purpose,256)||!bounded(review.account,256)||!bounded(review.networkId,256))throw Error('IDE_IDENTITY_REVIEW_INVALID');
  const own=Object.freeze({reviewId:review.reviewId,requestId:review.requestId,purpose:review.purpose,account:review.account,networkId:review.networkId});
- let busy=false,entered=false;const buttons=[];
+ let busy=false,entered=false;const buttons=[],choices=new WeakMap(),approvalAvailable=review.approvalAvailable!==false;
  const live=before=>{const now=getKeyState();return isCurrent()&&!now.locked&&!now.authenticating&&now.account===own.account&&now.account===before.account&&now.revision===before.revision;};
  const heading=doc.createElement('h3');heading.textContent='IDE 身份请求 / IDE identity request';container.append(heading);
  for(const [label,value]of [['用途 / Purpose',own.purpose],['账户 / Account',own.account],['网络 / Network',own.networkId],['请求 / Request',own.requestId]]){const line=doc.createElement('p');line.textContent=label+': '+value;container.append(line);}
+ for(const key of ['principalId','productId','applicationId','deviceId','requestDigest','credentialDigest','keyVersion','executionHeight','issuedAtMs','expiresAtMs'])if(review[key]!==undefined){if(!bounded(review[key],256))throw Error('IDE_IDENTITY_REVIEW_INVALID');const line=doc.createElement('p');line.textContent=key+': '+review[key];container.append(line);}
  const note=doc.createElement('p');note.textContent='请核对原请求。此选择不授予转账或其他用途权限。 / Review the original request. This choice grants no transfer or unrelated-purpose permission.';container.append(note);
- const render=()=>{const s=getKeyState();for(const b of buttons)b.disabled=busy||entered||s.locked||s.authenticating||s.account!==own.account;};
+ if(!approvalAvailable){const unavailable=doc.createElement('p');unavailable.textContent='此密钥调用缺少可核对的操作说明，暂不能同意；仍可拒绝或取消。 / This key call lacks a reviewable operation description. Approval is unavailable; rejection or cancellation remains available.';container.append(unavailable);}
+ const render=()=>{const s=getKeyState();for(const b of buttons)b.disabled=busy||entered||s.locked||s.authenticating||s.account!==own.account||choices.get(b)==='approve'&&!approvalAvailable;};
  for(const [decision,label]of [['approve','同意此请求 / Approve this request'],['reject','拒绝 / Reject'],['cancel','取消 / Cancel']]){
-  const button=doc.createElement('button');button.type='button';button.textContent=label;buttons.push(button);
+  const button=doc.createElement('button');button.type='button';button.textContent=label;buttons.push(button);choices.set(button,decision);
   button.addEventListener('click',async()=>{
-   const before={...getKeyState()};if(busy||entered||!live(before))return;
+   const before={...getKeyState()};if(busy||entered||!live(before)||decision==='approve'&&!approvalAvailable)return;
    // Reserve once before IPC: a lost response never becomes permission to
    // send the same decision/proof again or fall back to reject on cancel.
    busy=true;entered=true;render();

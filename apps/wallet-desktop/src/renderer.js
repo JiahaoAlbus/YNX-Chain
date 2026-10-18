@@ -3,6 +3,7 @@ import { formatApprovalReview } from "./approval-review-display.mjs";
 import {appendPQBroadcastActions} from './wallet-pq-broadcast-ui.mjs';
 import {appendPQFinalityActions} from './wallet-pq-finality-ui.mjs';
 import {mountCctpUI} from './features/cross-chain/cctp-ui.mjs';
+import {mountWalletIDEIdentityPanel} from './wallet-ide-identity-panel.mjs';
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
@@ -41,6 +42,7 @@ import {createMultichainUI} from './multichain-ui.mjs';
 import {createFamilyUI} from './multichain-family-ui.mjs';
 let multichainUI;
 let cctpUI;
+let ideIdentityUI;
 let familyUI;
 
 // Explicit product copy only; never pass an original request/value container.
@@ -1237,6 +1239,7 @@ function renderKeyState(state) {
   updateOriginalAdmissionSecurity(previousKeyState,state);
   if(securityChanged)familyUI?.invalidate();
   if(securityChanged&&typeof cctpUI!=='undefined')cctpUI?.invalidate();
+  if(securityChanged)ideIdentityUI?.invalidate();else ideIdentityUI?.render();
   multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
@@ -1284,4 +1287,11 @@ cctpDialog.append(cctpClose,cctpRoot);document.body.append(cctpDialog);document.
 cctpUI=mountCctpUI({root:cctpRoot,api:window.ynxWallet.crossChain,locale:document.documentElement.lang||'en'});
 cctpOpen.addEventListener('click',()=>cctpDialog.showModal());cctpClose.addEventListener('click',()=>{cctpUI.invalidate();cctpDialog.close();});cctpDialog.addEventListener('cancel',()=>cctpUI.invalidate());
 window.addEventListener('blur',()=>cctpUI.invalidate());window.ynxWallet.onCrossChainContextChanged?.(()=>cctpUI.invalidate());
+const ideIdentityDialog=document.createElement('dialog'),ideIdentityRoot=document.createElement('section'),ideIdentityClose=document.createElement('button'),ideIdentityOpen=document.createElement('button');
+ideIdentityDialog.setAttribute('aria-label','IDE 身份请求 / IDE identity request');ideIdentityClose.type='button';ideIdentityClose.textContent='关闭视图 / Close view';ideIdentityOpen.type='button';ideIdentityOpen.textContent='IDE 身份请求 / IDE identity request';
+ideIdentityDialog.append(ideIdentityClose,ideIdentityRoot);document.body.append(ideIdentityDialog);document.querySelector('#open-multichain').parentElement.append(ideIdentityOpen);
+ideIdentityUI=mountWalletIDEIdentityPanel({root:ideIdentityRoot,api:window.ynxWallet,getKeyState:()=>keyState});
+ideIdentityOpen.addEventListener('click',()=>ideIdentityDialog.showModal());ideIdentityClose.addEventListener('click',()=>ideIdentityDialog.close());
+ideIdentityDialog.addEventListener('close',()=>{ideIdentityUI.invalidate();void window.ynxWallet.retireIDEIdentityPeer().catch(()=>{});});
+window.addEventListener('blur',()=>ideIdentityUI.invalidate());
 

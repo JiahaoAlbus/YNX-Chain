@@ -27,7 +27,7 @@ export class WalletIDEIdentityReviewKernel {
   try{if(await this.#persist(record)!==undefined)fail('AUTH_IDENTITY_RESULT_SAVE_UNCONFIRMED');this.#stored=true;this.#saveUnconfirmed=false;}
   catch(cause){this.#saveUnconfirmed=true;if(!this.#hasCleanup){this.#hasCleanup=true;this.#cleanup=cause;}throw cause;}
  }
- describe(){return Object.freeze({reviewId:this.#id,requestId:this.#body.requestId,purpose:this.#purpose,account:this.#body.owner,networkId:this.#body.networkId,expiresAtMs:this.#body.expiresAtMs});}
+ describe(){const detail={};for(const k of ['principalId','productId','applicationId','deviceId','requestDigest','credentialDigest','keyVersion','executionHeight','issuedAtMs'])if(typeof this.#body[k]==='string')detail[k]=this.#body[k];return Object.freeze({reviewId:this.#id,requestId:this.#body.requestId,purpose:this.#purpose,account:this.#body.owner,networkId:this.#body.networkId,expiresAtMs:this.#body.expiresAtMs,...detail});}
  status(){return Object.freeze({reviewId:this.#id,decision:this.#selected,phase:this.#phase,active:this.#active,recorded:this.#stored,hasSignedResult:this.#wire!==null,retired:this.#retired,firstCausePresent:this.#hasFirst,cleanupCausePresent:this.#hasCleanup,retryAuthorized:false,handoffAuthorized:false});}
  readOriginalResult(){return Object.freeze({...this.status(),requestOriginal:this.#raw,purpose:this.#purpose,wire:this.#wire?new Uint8Array(this.#wire):null,payload:this.#payload?{kind:this.#payload.kind,bytes:Buffer.from(this.#payload.payload)}:null,firstCause:this.#first,cleanupCause:this.#cleanup,dataOnly:true});}
  retire(){this.#retired=true;this.#action?.retire();}

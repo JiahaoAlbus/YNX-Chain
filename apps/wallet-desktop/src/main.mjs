@@ -112,6 +112,15 @@ let lastCallback = null;
 let walletAuthority;
 let pqTransactionSubmission;
 let pqFinalityCollection;
+let originalIDEIdentityPeer;
+let originalIDEIdentityPeerLoading;
+async function getOriginalIDEIdentityPeer(){
+ if(!walletAuthority?.vault)throw Object.assign(Error('Wallet is starting.'),{code:'WALLET_STARTING'});
+ // Fixed lazy product entry keeps old packages fail-closed, without selecting
+ // a replacement module/provider or touching Native on status/history alone.
+ originalIDEIdentityPeerLoading??=import('./wallet-ide-identity-peer.mjs').then(({createWalletIDEIdentityPeer})=>{originalIDEIdentityPeer=createWalletIDEIdentityPeer({vault:walletAuthority.vault,directory:path.join(app.getPath('userData'),'ide-identity-evidence-v1')});return originalIDEIdentityPeer;});
+ return originalIDEIdentityPeerLoading;
+}
 // Source-owned original A receipt, never Resources self-manifest or IPC DATA.
 // Each real Host invocation receives its own single-use process owner.
 const createOriginalPQFinalityVerifier=()=>createPackagedPQFinalityVerifier({app,independentReceipt:originalPQVerifierReceipt});
@@ -150,7 +159,7 @@ let pqKeyPreparation;
 let pqBackupActions;
 let pqRegisteredRestore;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
-keyAccess.subscribe(status=>{if(status.locked)pqFinalityCollection?.retire();});
+keyAccess.subscribe(status=>{if(status.locked)pqFinalityCollection?.retire();if(status.locked)originalIDEIdentityPeer?.retire();});
 // No lawful SAME-Vault custodian or inherited IDE control stream is provisioned
 // in R8/R9. Only the original main owner may replace this fixed source binding
 // after Auth/IDE integration. Never accept a renderer/ENV provider or key.
@@ -281,9 +290,9 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
 }
 async function shutdownOriginalPQWallet(){
   pqFinalityCollection?.retire();
-  await Promise.all([walletAuthority?.shutdownPQReviews(),pqFinalityCollection?.join()]);
+  await Promise.all([walletAuthority?.shutdownPQReviews(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown()]);
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -315,6 +324,12 @@ keyAccess.subscribe(state => {
   if (!state.locked && !state.authenticating) void drainWalletConnectInbox();
 });
 const sensitiveIPC = (action, options, displayOptions) => safeIPC(() => keyAccess.run(action, options), displayOptions);
+handleWalletIPC('wallet:ide-identity-peer-start',()=>sensitiveIPC(async()=>{const peer=await getOriginalIDEIdentityPeer();return peer.start(keyAccess.current());}));
+handleWalletIPC('wallet:ide-identity-peer-decide',(_event,reviewId,decision)=>sensitiveIPC(async()=>{const peer=await getOriginalIDEIdentityPeer();return peer.decide(reviewId,decision,keyAccess.current());}));
+handleWalletIPC('wallet:ide-identity-peer-save',()=>sensitiveIPC(async()=>{const peer=await getOriginalIDEIdentityPeer();return peer.save(keyAccess.current());}));
+handleWalletIPC('wallet:ide-identity-peer-records',()=>sensitiveIPC(async()=>{const peer=await getOriginalIDEIdentityPeer();return peer.history(keyAccess.current());}));
+handleWalletIPC('wallet:ide-identity-peer-status',()=>safeIPC(()=>originalIDEIdentityPeer?.status()??{phase:'idle',dataOnly:true,userApproved:false,handoffAuthorized:false,retryAuthorized:false}));
+handleWalletIPC('wallet:ide-identity-peer-retire',()=>safeIPC(()=>{originalIDEIdentityPeer?.retire();return originalIDEIdentityPeer?.status()??{phase:'idle',dataOnly:true};}));
 handleWalletIPC('wallet:family-account', (_event, input) => sensitiveIPC(() => {
   if (!familyAccounts) throw new Error('Wallet is starting.');
   return familyAccounts.account(input);
