@@ -135,8 +135,17 @@ func TestStreamingWorkloadEvidenceBudgetPreservesFailedWrite(t *testing.T) {
 // Real signed CheckTx/Finalize/Commit/reopen, synthetic quorum observations for
 // the controller interface only. This is not network finality or business TPS.
 func TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
+	testStreamingWorkloadRealExecution(t, false)
+}
+
+func TestStreamingWorkloadGzipRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
+	testStreamingWorkloadRealExecution(t, true)
+}
+
+func testStreamingWorkloadRealExecution(t *testing.T, compressed bool) {
 	path, manifest, m, migration, initial := senderFixture(t)
 	o := streamingOptions()
+	o.terminalGzip = compressed
 	o.output = filepath.Join(t.TempDir(), "transactions-result.json")
 	limits, _ := workloadLimits(o)
 	p, err := loadSenderPoolWithLimits(path, manifest, m, migration, initial, o.rounds, limits)
@@ -151,6 +160,10 @@ func TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
 	if err != nil || fmt.Sprintf("%x", sha256.Sum256(planBytes)) != planHash {
 		t.Fatal("durable public plan differs", err)
 	}
+	var plan streamingWorkloadPlan
+	if err = json.Unmarshal(planBytes, &plan); err != nil || (plan.TerminalEncoding == "gzip") != compressed {
+		t.Fatal("terminal encoding not bound to original durable plan", err)
+	}
 	if err := claimSenderPool(path); err != nil {
 		t.Fatal(err)
 	}
@@ -164,6 +177,9 @@ func TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	stream.maxBytes = limits.terminalBytes
+	if compressed {
+		stream.report.Encoding = "gzip"
+	}
 	o.evidenceBudget = &readyEvidenceBudgetReport{LimitBytes: o.evidenceByteBudget}
 	stream.persist = o.evidenceBudget.persist(stream.persist)
 	o.terminalSink = stream.append

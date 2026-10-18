@@ -13,6 +13,9 @@ type readyWorkloadLimits struct {
 }
 
 func workloadLimits(o options) (readyWorkloadLimits, error) {
+	if o.terminalGzip && !o.streamingWorkload {
+		return readyWorkloadLimits{}, errors.New("terminal gzip requires explicit streaming workload")
+	}
 	if _, _, err := durableReadLimits(o); err != nil {
 		return readyWorkloadLimits{}, err
 	}

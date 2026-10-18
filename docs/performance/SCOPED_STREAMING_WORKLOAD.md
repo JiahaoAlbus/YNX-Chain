@@ -72,6 +72,41 @@ client binary, gradual four-node trials, real history and fresh Root resource
 coverage are still required. Steady-state TPS is not automatically asserted by
 selecting the profile or completing a record count.
 
+### Explicit lossless terminal storage
+
+`-terminal-gzip` is default off and requires the complete explicit streaming
+profile. The durable public plan binds `terminalEncoding=gzip` before dispatch;
+the terminal receipt records actual encoding and cumulative compression wall
+time. Original JSON header, every full result field/signed input/status/error,
+footer and row hash-chain inputs remain unchanged. Each sealed segment is one
+gzip member at BestSpeed. File names/inventory, exclusive creation, Sync and
+failure poisoning remain in the original writer.
+
+The original1GiB per-stream and2GiB combined evidence budgets charge actual
+encoded bytes before persistence, without refund or retry. Readback retains the
+original segment expansion limit, rejects CRC failure, truncation, trailing
+bytes/multiple members and unknown encodings, then runs the original transactional
+decoder and signed-intent join. Legacy schema12/13 complete-window restoration
+refuses compressed receipts. Legacy partial readers remain fail closed on
+unsupported compressed data; compression does not authorize re-submission or
+upgrade UNKNOWN after a crash.
+
+The [source evidence](evidence/terminal-gzip-source-local-actual.json) records
+ordinary and gzip102-transfer/34-cycle real CheckTx/Finalize/Commit, fee/nonce
+readback/restart tests (unit quorum flags are synthetic). Separate controls retain
+identical unknown rows/hash chains and check corruption, expansion, budget and
+partial-write failures. These are source controls, not network capacity.
+
+An explicit offline measurement fed existing pinned1024 public result rows from
+run39154351784 through the real Go writer/Sync/decoder:2631664 plain bytes versus
+546903 gzip bytes,16 segments, identical row chain and all result fields.
+Compression timers totaled16066917ns. This used an encoding-only binding and
+retained index order, not original unrecorded hand-back order. It performs no new
+business execution and gives no future600k-row, state/history, allocated-disk or
+peak-RSS upper bound. Compression/Sync remain inside terminal-sink and full
+workload timing. A larger or long network profile still needs actual resource
+qualification and Root scheduling.
+
 ### Opt-in durable readback phase timings
 
 The explicit coupled store/cache profile reports `phaseTotalsNs`: cumulative

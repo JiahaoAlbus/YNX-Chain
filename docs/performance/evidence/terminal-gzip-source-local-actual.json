@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "kind": "terminal-gzip-source-and-offline-recorded-wire-measurement",
+  "basedOnCommit": "a9400a34d49ec3c87c55d3d717ec607f2fdbf201",
+  "enabledByDefault": false,
+  "networkPerformanceQualified": false,
+  "sustainedTPSQualified": false,
+  "originalCaps": {
+    "terminalStreamBytes": 1073741824,
+    "combinedEncodedEvidenceBytes": 2147483648,
+    "terminalRecords": 1000000,
+    "segmentRecords": 64,
+    "rowBytes": 65536,
+    "decodedSegmentBytes": 4202560
+  },
+  "sourceControls": {
+    "realApplicationModes": [
+      "plain102 signed transfers/34 nonce cycles",
+      "gzip102 signed transfers/34 nonce cycles"
+    ],
+    "quorumFlags": "explicit synthetic unit gate inputs, not network proof",
+    "codecControls": [
+      "exact UNKNOWN rows and identical row hash chain",
+      "original physical byte budget accounting",
+      "CRC corruption/truncation rejection",
+      "multi-member/trailing junk rejection",
+      "decoded expansion bound",
+      "corrupt compressed segment cannot advance decoder prefix",
+      "legacy complete-window reader refuses gzip",
+      "failed encoded write poisons charged reservation, no retry/refund",
+      "cap refusal writes nothing, no durable credit",
+      "explicit streaming-only option and original caps"
+    ]
+  },
+  "actualRecordedRows": {
+    "inputRun": 39154351784,
+    "inputSHA256": "5d4fa2c4745cbaf7512e468b4d458bcc0b11c397db0dc47e7a89e12d1d79a0f9",
+    "rows": 1024,
+    "segments": 16,
+    "plainBytes": 2631664,
+    "gzipBytes": 546903,
+    "compressionNs": 16066917,
+    "sameRowChain": "0e3b70ece2c872d10f3bb17cacade9b7237df2821fc5e19f2be07c07df5b6616",
+    "scope": "Actual Go writer/Sync/readback over existing public rows, semantic field equality and exact post-decode row serialization. Encoding-only binding uses input digest, rows are ordered by retained index rather than unknown original terminal hand-back order. No new transaction/signature/execution/consensus occurred. Not future history, throughput, peak memory or allocated filesystem upper bound."
+  },
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/terminal-gzip-source/local-first.raw",
+      "bytes": 1053,
+      "sha256": "b7c2fb81c91661fdd29f5591d295ea827d0137ef20be5deb4ffef33215efefdb"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/terminal-gzip-source/local-final.raw",
+      "bytes": 778,
+      "sha256": "8494a7bfd639c01eb7ffb20fc773ff172bf31f90bfb36de10ae9b3463fc8ed15"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/terminal-gzip-source/local-gzip-controls.raw",
+      "bytes": 846,
+      "sha256": "a52734e040c5b5ba7accc876a1c8eef54e670fec67093d12174c896be4392eac"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/terminal-gzip-source/actual-recorded-rows.raw",
+      "bytes": 582,
+      "sha256": "b102cd2a8a35c7ff1966d05d5d31c493ec8e0a7f87bdc1fc1866fcf82d288ebc"
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import (
 )
 
 type streamingWorkloadPlan struct {
+	TerminalEncoding            string                   `json:"terminalEncoding,omitempty"`
 	Kind                        string                   `json:"kind"`
 	Profile                     string                   `json:"profile"`
 	Fixture                     readySenderJournalHeader `json:"fixture"`
@@ -43,6 +44,9 @@ func persistStreamingWorkloadPlan(o options, manifest []byte, m consensus.Epheme
 	plan := streamingWorkloadPlan{DurableStoreByteLimit: storeLimit, DurableCacheInputByteBudget: cacheBudget, Kind: "YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1", Profile: "scoped_streaming_v1", Fixture: readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", fmt.Sprintf("%x", sha256.Sum256(manifest)), m.MigrationStateHash, m.GenesisHash}, Senders: len(initial), Rounds: o.rounds, PlannedRecords: total, RequiredBalancePerSender: int64(o.rounds) * 2, EncodedEvidenceBudget: o.evidenceByteBudget, TimeoutMs: o.timeout.Milliseconds()}
 	for _, raw := range initial {
 		plan.InitialSignedHashes = append(plan.InitialSignedHashes, fmt.Sprintf("%X", raw.Hash()))
+	}
+	if o.terminalGzip {
+		plan.TerminalEncoding = "gzip"
 	}
 	raw, err := json.Marshal(plan)
 	if err != nil {

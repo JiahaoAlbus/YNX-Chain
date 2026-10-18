@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const terminalSegmentRecords = 64
@@ -17,6 +18,8 @@ const terminalRowLimit = 64 << 10
 const terminalStreamRecordLimit = 1_000_000
 
 type terminalStreamReport struct {
+	Encoding       string `json:"encoding,omitempty"`
+	CompressionNs  int64  `json:"compressionNs,omitempty"`
 	Directory      string `json:"directory"`
 	Records        int    `json:"records"`
 	DurableRecords int    `json:"durableRecords"`
@@ -165,16 +168,25 @@ func (s *terminalStream) flush() error {
 	}
 	raw.Write(footer)
 	raw.WriteByte('\n')
+	encoded := raw.Bytes()
+	if s.report.Encoding != "" {
+		started := time.Now()
+		encoded, err = encodeTerminalSegment(encoded, s.report.Encoding)
+		s.report.CompressionNs += time.Since(started).Nanoseconds()
+		if err != nil {
+			return s.poison(err)
+		}
+	}
 	name := filepath.Join(s.report.Directory, fmt.Sprintf("terminal-%06d.jsonl", s.report.Segments))
-	if int64(s.report.Bytes)+int64(raw.Len()) > s.maxBytes {
+	if int64(s.report.Bytes)+int64(len(encoded)) > s.maxBytes {
 		return s.poison(errors.New("terminal stream byte budget"))
 	}
-	if err = s.persist(name, raw.Bytes()); err != nil {
+	if err = s.persist(name, encoded); err != nil {
 		return s.poison(err)
 	}
 	s.report.Segments++
 	s.report.DurableRecords += len(s.pending)
-	s.report.Bytes += raw.Len()
+	s.report.Bytes += len(encoded)
 	s.segmentPrevious = s.report.ChainSHA256
 	s.pending = nil
 	return nil

@@ -16,6 +16,9 @@ import (
 // This bounded completed-window reader recovers observations, never sends or
 // signs. BFT/state verification remains the responsibility of offline replay.
 func readCompletedTerminalResults(directory string, expected terminalStreamReport, binding readySenderJournalHeader, senders, total int) ([]transactionResult, error) {
+	if expected.Encoding != "" {
+		return nil, errors.New("compressed terminal evidence requires explicit streaming reader")
+	}
 	if senders < 1 || total < senders || total > maxTransactions || total%senders != 0 || expected.Poisoned || expected.Records != total || expected.DurableRecords != total || expected.Segments < 1 || expected.Segments > (total+terminalSegmentRecords-1)/terminalSegmentRecords || expected.Bytes < 1 || expected.Bytes > 16<<20 {
 		return nil, errors.New("incomplete or unbounded terminal stream receipt")
 	}

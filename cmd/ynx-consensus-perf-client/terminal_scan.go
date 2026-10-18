@@ -28,6 +28,9 @@ type completedTerminalScan struct {
 // arrays. Callback rows remain a prefix until Complete is true with a nil error.
 // Neither flags nor a hash chain replace independent BFT/state/signature proof.
 func scanCompletedTerminalResults(ctx context.Context, directory string, expected terminalStreamReport, binding readySenderJournalHeader, senders, total int, maxBytes int64, consume func(transactionResult) error) (out completedTerminalScan, runErr error) {
+	if expected.Encoding != "" && expected.Encoding != "gzip" {
+		return out, errors.New("unsupported terminal encoding")
+	}
 	if ctx == nil || consume == nil || senders < 1 || senders > maxTransactions || total < senders || total > terminalStreamRecordLimit || total%senders != 0 || maxBytes < 1 || maxBytes > 1<<30 || expected.Poisoned || expected.Records != total || expected.DurableRecords != total || expected.Segments < 1 || expected.Segments > (total+terminalSegmentRecords-1)/terminalSegmentRecords || expected.Bytes < 1 || int64(expected.Bytes) > maxBytes {
 		return out, errors.New("incomplete or unbounded terminal scan receipt")
 	}
@@ -97,7 +100,7 @@ func scanCompletedTerminalResults(ctx context.Context, directory string, expecte
 			return out, err
 		}
 		out.CapturedBytes += int64(len(raw))
-		rows, err := decoder.decode(raw)
+		rows, err := decoder.decodeStored(raw, expected.Encoding)
 		if err != nil {
 			return out, err
 		}

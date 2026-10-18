@@ -61,6 +61,7 @@ type options struct {
 	sharedDurableReplay            bool
 	endpointFair                   bool
 	endpointElastic                bool
+	terminalGzip                   bool
 }
 
 type transactionInput struct {
@@ -228,6 +229,7 @@ func main() {
 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
+	flag.BoolVar(&o.terminalGzip, "terminal-gzip", false, "explicit streaming only: compress sealed terminal segments without changing rows, hash chains or byte caps")
 	flag.BoolVar(&o.segmentedIntents, "segmented-intents", false, "durable signed-input segments; requires ready-pool, terminal-stream and slot reuse; finite caps unchanged")
 	flag.BoolVar(&o.reuseResultSlots, "reuse-result-slots", false, "one result slot per sender with cumulative interval statistics; requires terminal-stream; finite caps unchanged")
 	flag.BoolVar(&o.streamingWorkload, "streaming-workload", false, "explicit bounded streaming workload; requires slot retention, signed/terminal streams and an evidence budget")
@@ -246,6 +248,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.terminalGzip && !o.streamingWorkload {
+		return errors.New("terminal gzip requires explicit streaming workload")
+	}
 	if o.endpointElastic && !o.endpointFair {
 		return errors.New("elastic endpoint submission requires explicit endpoint fairness")
 	}
@@ -901,6 +906,9 @@ func execute(o options) error {
 		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
 	}}
 	r.EndpointFair = o.endpointFair
+	if o.terminalGzip {
+		r.Interpretation = append(r.Interpretation, "Explicit streaming terminal gzip retains original header/rows/seal and row hash chains. Receipt/shared evidence budgets charge actual encoded bytes before persistence without refund/retry; original1GiB per-stream/2GiB combined and decoded segment/record caps remain. Bounded readback checks a single complete gzip member and original decoder; corruption/unknown encoding never promotes outcomes. Compression wall time is reported and remains inside terminal-sink/workload time. Compression is not network TPS or resource admission.")
+	}
 	r.EndpointElastic = o.endpointElastic
 	if o.endpointElastic {
 		r.Interpretation = append(r.Interpretation, "Explicit elastic endpoint candidate: the original four submit goroutines fairly take pending work across unchanged index%4 authorities, with at most two active callbacks per endpoint. Total queue capacity and worker count are unchanged; callback attempts/returns/peaks count callbacks, not transmitted RPC or business successes. No retry or UNKNOWN promotion; legacy fixed endpoint mode and default shared queue are retained. Source counterexamples do not qualify network performance.")
@@ -1120,6 +1128,9 @@ func execute(o options) error {
 					return err
 				}
 				stream.maxBytes = limits.terminalBytes
+				if o.terminalGzip {
+					stream.report.Encoding = "gzip"
+				}
 				if o.evidenceBudget != nil {
 					stream.persist = o.evidenceBudget.persist(stream.persist)
 				}
