@@ -142,6 +142,11 @@ func TestPhaseTimingRealSignedExecutionPreservesDurableState(t *testing.T) {
 		if rows[0].Commit == nil || !rows[0].Commit.Durable || rows[0].Commit.Height != height || rows[0].Commit.StagesNs["file_sync"] <= 0 || rows[0].Commit.StagesNs["json_encode"] <= 0 {
 			t.Fatal("missing actual persistence timings", rows[0])
 		}
+		measured, err := json.Marshal(rows[0])
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("actual_single_signed_transfer_timing_smoke_not_network_performance=%s", measured)
 		if rows[1].Commit != nil || rows[1].Stages["commit"].FailedResponses != 1 {
 			t.Fatal("failed commit reused success timing", rows[1])
 		}
