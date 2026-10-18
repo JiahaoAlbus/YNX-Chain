@@ -110,6 +110,7 @@ export class DesktopWalletAuthority {
   async #preparePQTypedAction(input){
     if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).sort().join()!=='fee,kind,payload'||Object.values(Object.getOwnPropertyDescriptors(input)).some(d=>!Object.hasOwn(d,'value')))throw providerError(-32602,'PQ_TYPED_ACTION_INPUT_INVALID','Supply only kind, fee and payload. Account, network and nonce come from original policy.');
     if(['stake_delegate','stake_unbond','stake_withdraw'].includes(input.kind))throw providerError(4100,'PQ_TYPED_CLASSIC_ORIGINALS_NOT_SUPPLIED','The original protected staking witness source is required before signing.');
+    if(input.kind==='contract_deploy')throw providerError(4100,'PQ_TYPED_DEPLOYMENT_MATERIAL_NOT_SUPPLIED','The original canonical deployment source and material codec are required before signing.');
     const guard=this.vault.authorization.current(),permission=this.permissions.authorizationLease('ynx-wallet:local-pq');guard.assert();permission.assert();
     if(!this.#pqPolicySource||!this.#pqPolicyRecognized||!this.#pqNetworkId)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original current typed action policy is unavailable.');
     this.#pruneExpired();if(this.#pqOwners.size||this.#pqTxOwners.size||this.#pqAcquiring)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Preserve and finish the original review first.');

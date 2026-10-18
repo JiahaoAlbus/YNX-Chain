@@ -75,6 +75,7 @@ test('typed cancel and absent classic witness never enter keys or accept rendere
  }
  assert.equal(getter,false);
  for(const kind of ['stake_delegate','stake_unbond','stake_withdraw'])await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTypedAction({...f.action,kind})),e=>e.data?.code==='PQ_TYPED_CLASSIC_ORIGINALS_NOT_SUPPLIED');
+ await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTypedAction({...f.action,kind:'contract_deploy'})),e=>e.data?.code==='PQ_TYPED_DEPLOYMENT_MATERIAL_NOT_SUPPLIED');
  assert.equal(f.counts.source,0);const response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));assert.throws(()=>f.authority.reject(response.request.id));await f.authority.shutdownPQReviews();assert.equal(f.counts.sign,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
 });
 test('actual Auth factory and typed kernel consume actual Main private borrow and SDK sign once (PUBLIC Electron only)',async t=>{
