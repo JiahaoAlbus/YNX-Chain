@@ -1,6 +1,6 @@
 import {
   createProductSessionReturnURL, digestHex, parseProductSessionRequest,
-  parseProductSessionWalletURL, productSessionRequestDigest, signProductSessionApproval, walletIdentity,
+  parseProductSessionWalletURL, productSessionRequestDigest, signProductSessionApproval, walletIdentity,parseProductSessionApproval,walletIdentityFromPublicKey,
   type FinanceFiniteServiceConsent,
 } from "@ynx-chain/wallet-auth";
 import type { SecureStorageAdapter, WalletAccount } from "../storage/walletRepository";
@@ -27,14 +27,18 @@ type Dependencies = {
   audit?: (review: ProductSessionReview, action: AuditAction, at: Date) => Promise<unknown>;
   now?: () => Date;
 };
-type Pending = { review: ProductSessionReview; returnURL?: string; decision?: "approved" | "rejected" };
+type Original = Readonly<{schemaVersion:1;id:string;request:MobileProductSessionRequest;account:string;accountPublicKey:string;signedAt:string;decision:"approved"|"rejected";approval:ReturnType<typeof signProductSessionApproval>|null;deliveryAttempted:boolean;launchAccepted:boolean}>;
+type Pending = { review: ProductSessionReview; returnURL?: string; decision?: "approved" | "rejected";original?:Original;saveAttempted?:boolean;saveConfirmed?:boolean };
 type Consumed = { digest: string; nonce: string; state: string; expiresAt: string };
 export const PRODUCT_SESSION_REPLAY_KEY = "ynx.wallet.product-session-v2.replay";
+export const PRODUCT_SESSION_ORIGINAL_KEY = "ynx.wallet.product-session-v2.originals";
+const originalQueues=new WeakMap<SecureStorageAdapter,Promise<unknown>>();
 
 export class ProductSessionController {
   private pending: Pending | null = null;
   private generation = 0;
   private busy = false;
+  private readonly retained=new Map<string,Pending>();
   private readonly now: () => Date;
   constructor(private readonly dependencies: Dependencies) { this.now = dependencies.now ?? (() => new Date()); }
 
@@ -50,13 +54,22 @@ export class ProductSessionController {
       if (new URL(url).port) throw new Error("Wallet authorization route cannot contain a port");
       if (request.platform !== "web" && request.platform !== this.dependencies.platform) throw new Error("Request platform does not match this Wallet device");
       const id = productSessionRequestDigest(PRODUCT_SESSION_REGISTRY, request, at);
-      if (this.pending?.review.id === id) return this.pending.review;
+      const existing=this.pending;if(existing&&existing.review.id===id)return existing.review;
       if (this.pending) throw new Error("Finish or reject the current Wallet request before opening another");
       const account = this.dependencies.selectedAccount();
       if (!account) throw new Error("Create or import an account, then start a new product connection request");
       const records = await this.readConsumed(at);
       this.assertGeneration(generation);
       this.assertAccount(account);
+      const original=(await this.readOriginals()).find(row=>row.id===id);this.assertGeneration(generation);this.assertAccount(account);
+      if(original&&!original.launchAccepted){
+        const binding=this.binding(request,id);
+        if(original.account!==account.account||original.accountPublicKey!==account.accountPublicKey||!records.some(row=>row.digest===binding.digest&&row.nonce===binding.nonce&&row.state===binding.state))throw new Error('Wallet original return does not match its consumed request and selected account');
+        const review=Object.freeze({id,request,account:Object.freeze({...account})}),pending:Pending={review,original,decision:original.decision,saveAttempted:true,saveConfirmed:true};
+        pending.returnURL=this.originalReturn(original,at);this.pending=pending;this.retained.set(id,pending);return review;
+      }
+      const local=this.retained.get(id);
+      if(local?.original&&!original)throw new Error('The signed Wallet original is retained in this process but secure saving is unresolved. Do not sign again.');
       this.assertUnused(records, this.binding(request, id));
       const review = Object.freeze({ id, request, account: Object.freeze({ ...account }) });
       this.pending = { review };
@@ -78,6 +91,8 @@ export class ProductSessionController {
       const records = await this.readConsumed(this.now());
       this.check(pending, generation);
       this.assertUnused(records, this.binding(pending.review.request, pending.review.id));
+      if(this.retained.size>=32||(await this.readOriginals()).length>=32)throw new Error('Wallet original return capacity is full; preserve existing records before authorizing another request');
+      this.check(pending,generation);
       await this.dependencies.withAccountSecret(pending.review.account.account, () => this.check(pending, generation), async (secret, assertKeyCurrent) => {
         assertKeyCurrent(); this.check(pending, generation);
         const identity = walletIdentity(secret);
@@ -94,9 +109,14 @@ export class ProductSessionController {
           accountSecret: secret, scopes: pending.review.request.scopes, expiresAt: pending.review.request.expiresAt,
           ...(pending.review.request.serviceConsent ? { approvedServiceConsent: pending.review.request.serviceConsent } : {}),
         }, at);
-        if (approval.account !== pending.review.account.account) throw new Error("Approval account does not match the reviewed account");
-        pending.returnURL = createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, pending.review.request, { result: "approved", approval }, at);
+        // Capture the complete producer result before any callback encoding,
+        // post-key fence, background cancellation or storage await can hide it.
+        pending.original=Object.freeze({schemaVersion:1,id:pending.review.id,request:pending.review.request,account:pending.review.account.account,accountPublicKey:pending.review.account.accountPublicKey,signedAt:at.toISOString(),decision:'approved',approval,deliveryAttempted:false,launchAccepted:false});
+        this.retained.set(pending.review.id,pending);
         pending.decision = "approved";
+        const save=this.persistOriginal(pending);void save.catch(()=>{});
+        try{if(approval.account!==pending.review.account.account)throw new Error('Approval account does not match the reviewed account');pending.returnURL=this.originalReturn(pending.original,at);}
+        finally{await save;}
       });
       await this.deliver(pending, generation);
     });
@@ -114,6 +134,7 @@ export class ProductSessionController {
       this.check(pending, generation);
       pending.returnURL = createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, pending.review.request, { result: "rejected", reason: "user_rejected" }, this.now());
       pending.decision = "rejected";
+      pending.original=Object.freeze({schemaVersion:1,id:pending.review.id,request:pending.review.request,account:pending.review.account.account,accountPublicKey:pending.review.account.accountPublicKey,signedAt:this.now().toISOString(),decision:'rejected',approval:null,deliveryAttempted:false,launchAccepted:false});this.retained.set(pending.review.id,pending);await this.persistOriginal(pending);
       await this.deliver(pending, generation);
     });
   }
@@ -128,10 +149,54 @@ export class ProductSessionController {
 
   private async deliver(pending: Pending, generation: number): Promise<void> {
     this.check(pending, generation);
+    // Explicit return retry reads the SAME original first. A failed or lost
+    // secure-storage ACK is never permission to save/sign a replacement.
+    const original=(await this.readOriginals()).find(row=>row.id===pending.review.id);
+    this.check(pending,generation);
+    if(!original||!pending.original||this.originalIdentity(original)!==this.originalIdentity(pending.original))throw new Error('Secure saving of the original Wallet result is unresolved. Preserve it; do not sign again.');
+    if(original.launchAccepted)throw new Error('The original Wallet return was already handed to the system; no automatic return is permitted');
+    pending.saveConfirmed=true;pending.original=original;
+    pending.returnURL=this.originalReturn(original,this.now());
+    await this.updateOriginal(original,{deliveryAttempted:true});this.check(pending,generation);
     await this.dependencies.openURL(pending.returnURL!);
+    // This is system handoff only, NOT a product receipt or Session grant.
+    await this.updateOriginal(original,{deliveryAttempted:true,launchAccepted:true});
+    this.retained.delete(pending.review.id);
     // Opening the product normally backgrounds Wallet. It does not undo a delivered decision.
     if (this.pending === pending) this.pending = null;
     if (pending.decision === "approved") await this.dependencies.audit?.(pending.review, "approval-returned", this.now());
+  }
+
+  private originalIdentity(value:Original):string{return JSON.stringify({...value,deliveryAttempted:false,launchAccepted:false});}
+  private originalReturn(value:Original,at:Date):string{
+    parseProductSessionRequest(PRODUCT_SESSION_REGISTRY,value.request,at);
+    return createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,value.request,value.decision==='approved'?{result:'approved',approval:value.approval!}:{result:'rejected',reason:'user_rejected'},at);
+  }
+  private async mutation<T>(action:()=>Promise<T>):Promise<T>{
+    const prior=originalQueues.get(this.dependencies.storage)??Promise.resolve(),pass=prior.then(action,action);originalQueues.set(this.dependencies.storage,pass.then(()=>{},()=>{}));return pass;
+  }
+  private async readOriginals():Promise<Original[]>{
+    const raw=await this.dependencies.storage.getItem(PRODUCT_SESSION_ORIGINAL_KEY);if(raw===null)return [];
+    if(raw.length>262144)throw new Error('Wallet signed return storage exceeds its original budget');
+    let value:any;try{value=JSON.parse(raw);}catch{throw new Error('Wallet signed return storage is unreadable');}
+    if(!value||Object.keys(value).sort().join()!=='originals,schemaVersion'||value.schemaVersion!==1||!Array.isArray(value.originals)||value.originals.length>32)throw new Error('Wallet signed return storage is invalid');
+    const records:Original[]=[];
+    for(const row of value.originals){
+      if(!row||Object.keys(row).sort().join()!=='account,accountPublicKey,approval,decision,deliveryAttempted,id,launchAccepted,request,schemaVersion,signedAt'||row.schemaVersion!==1||!['approved','rejected'].includes(row.decision)||typeof row.signedAt!=='string'||!Number.isFinite(Date.parse(row.signedAt))||new Date(row.signedAt).toISOString()!==row.signedAt||typeof row.deliveryAttempted!=='boolean'||typeof row.launchAccepted!=='boolean'||row.launchAccepted&&!row.deliveryAttempted)throw new Error('Wallet signed return storage is invalid');
+      const at=new Date(row.signedAt),request=parseProductSessionRequest(PRODUCT_SESSION_REGISTRY,row.request,at) as MobileProductSessionRequest;
+      if(row.id!==productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,at)||walletIdentityFromPublicKey(row.accountPublicKey)!==row.account)throw new Error('Wallet signed original account or request changed');
+      if(row.decision==='approved'){const approval=parseProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,row.approval,at);if(approval.account!==row.account||approval.accountPublicKey!==row.accountPublicKey)throw new Error('Wallet signed original account changed');}
+      else if(row.approval!==null)throw new Error('Wallet rejection cannot carry an approval');
+      records.push(Object.freeze({...row,request}));
+    }
+    if(new Set(records.map(row=>row.id)).size!==records.length)throw new Error('Wallet signed return storage contains conflicting originals');return records;
+  }
+  private persistOriginal(pending:Pending):Promise<void>{
+    if(!pending.original||pending.saveAttempted)throw new Error('Read back the same signed Wallet original; never save or sign it again');pending.saveAttempted=true;
+    return this.mutation(async()=>{const records=await this.readOriginals();if(records.some(row=>row.id===pending.review.id)||records.length>=32)throw new Error('Wallet signed original already exists or storage is full');const text=JSON.stringify({schemaVersion:1,originals:[...records,pending.original]});if(text.length>262144)throw new Error('Wallet signed return storage is full');await this.dependencies.storage.setItem(PRODUCT_SESSION_ORIGINAL_KEY,text);if(await this.dependencies.storage.getItem(PRODUCT_SESSION_ORIGINAL_KEY)!==text)throw new Error('Wallet original save acknowledgement is unknown. Preserve the same signed result.');pending.saveConfirmed=true;});
+  }
+  private updateOriginal(original:Original,patch:{deliveryAttempted:boolean;launchAccepted?:boolean}):Promise<void>{
+    return this.mutation(async()=>{const records=await this.readOriginals(),actual=records.find(row=>row.id===original.id);if(!actual||this.originalIdentity(actual)!==this.originalIdentity(original))throw new Error('Original Wallet result changed before return');const next={...actual,deliveryAttempted:actual.deliveryAttempted||patch.deliveryAttempted,launchAccepted:actual.launchAccepted||patch.launchAccepted===true},text=JSON.stringify({schemaVersion:1,originals:records.map(row=>row===actual?next:row)});await this.dependencies.storage.setItem(PRODUCT_SESSION_ORIGINAL_KEY,text);if(await this.dependencies.storage.getItem(PRODUCT_SESSION_ORIGINAL_KEY)!==text)throw new Error('Wallet return handoff is unknown; preserve its original result');});
   }
 
   private check(pending: Pending, generation: number): void {
@@ -163,6 +228,7 @@ export class ProductSessionController {
     if (records.some((record) => record.digest === binding.digest || record.nonce === binding.nonce || record.state === binding.state)) throw new Error("Wallet request was already consumed; start a new product connection request");
   }
   private async consume(pending: Pending, generation: number, assertKeyCurrent: () => void = () => {}): Promise<void> {
+    return this.mutation(async()=>{
     assertKeyCurrent();
     const records = await this.readConsumed(this.now());
     assertKeyCurrent(); this.check(pending, generation);
@@ -175,6 +241,7 @@ export class ProductSessionController {
     const readback = await this.dependencies.storage.getItem(PRODUCT_SESSION_REPLAY_KEY);
     assertKeyCurrent(); this.check(pending, generation);
     if (readback !== serialized) throw new Error("Wallet replay consumption could not be verified. This request may already be consumed; do not automatically replace or approve it again.");
+    });
   }
   private async readConsumed(at: Date): Promise<Consumed[]> {
     const raw = await this.dependencies.storage.getItem(PRODUCT_SESSION_REPLAY_KEY);

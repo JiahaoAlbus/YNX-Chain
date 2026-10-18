@@ -1,0 +1,88 @@
+{
+  "state": "FROZEN_OWNED_MOBILE_V2_SIGNED_RETURN_RECOVERY_NOT_APK_OR_WEB_RELEASE",
+  "baseDesktopSource": "61bdbac08f3406a4b1af61a08ab54213f99c2e43",
+  "files": [
+    {
+      "path": "apps/wallet/src/protocol/productSessionController.ts",
+      "bytes": 20920,
+      "sha256": "2313fc5144a09a0763899af3e981cbad55fb59002488cb9b34b37f6c44348316"
+    },
+    {
+      "path": "apps/wallet/src/protocol/productSessionController.test.ts",
+      "bytes": 22892,
+      "sha256": "4e4561e89a56c0f863656000cdcf9288ba61a5159fd29eb6c26cf7162be87fa4"
+    },
+    {
+      "path": "apps/wallet/tsconfig.protocol-qa.json",
+      "bytes": 835,
+      "sha256": "bdf80782c3d4ae0d7a0b6d8fb77750e946861571f81973590989f7d4a3c01c7b"
+    },
+    {
+      "path": "apps/wallet/tsconfig.protocol-typecheck.json",
+      "bytes": 339,
+      "sha256": "2d3e95aa5981f60c20fc52930b35a88f7581be75e6dfe83a11f48fa0603670e9"
+    }
+  ],
+  "untouchedAppTSXGitBlob": "ce53b7ddd99b187caf96b596cdb99cc2501ff3cc",
+  "red": {
+    "test": "signed mobile original survives background before return and cold review recovers exact result without another key use",
+    "exit": 1,
+    "observed": "Actual V2 approval signed; background cancellation removed pending; cold receive rejected consumed request with no way to recover original result.",
+    "rawFileCaptured": false,
+    "provenance": "Original tool output retained in task; this is a summary only."
+  },
+  "tests": {
+    "runtime": "Actual installed R24 executable in ELECTRON_RUN_AS_NODE mode; not Android runtime",
+    "tsx": "4.23.1 from exact existing R68 tooling; explicit current SDK source resolution, no install or ambient fallback",
+    "SDKSource": "b07b03889b8d688334c54df212dccfa87ffbfb30",
+    "result": {
+      "chunk_id": "54048b",
+      "wall_time_seconds": 0.259659583,
+      "exit_code": 0,
+      "original_token_count": 691,
+      "output": "✔ direct product authorization displays and signs the exact finite service deadline without extending the approval window (21.218375ms)\n✔ android explicit approval completes the authoritative v2 challenge contract (17.387458ms)\n✔ ios explicit approval completes the authoritative v2 challenge contract (14.70275ms)\n✔ explicit rejection returns nonce and state to the canonical product without key access (2.8845ms)\n✔ v1, spoofed bindings, widened scopes and malformed routes fail before approval (3.16275ms)\n✔ mobile Wallet accepts web origins but rejects another native operating system (3.017458ms)\n✔ native payer and web merchant sessions remain separate canonical products (2.907ms)\n✔ expiry is revalidated after biometric confirmation (0.955792ms)\n✔ switch while biometrics are pending cancels approval (0.642708ms)\n✔ background while biometrics are pending cancels approval (0.666375ms)\n✔ a key read resolving after an account change cannot sign or return for the replacement account (3.419709ms)\n✔ a storage adapter returning a different signing key is rejected (1.395292ms)\n✔ duplicate links retain the same review and another link cannot replace an active request (1.583ms)\n✔ overlapping approve and reject cannot produce contradictory decisions (9.698042ms)\n✔ consumed request, nonce and state remain blocked after controller restart (5.227917ms)\n✔ approve callback failure retries the identical result without new authorization (13.795542ms)\n✔ reject callback failure retries the identical result without new authorization (3.562917ms)\n✔ unavailable or malformed durable replay storage fails before signing (3.547208ms)\n✔ no account and an unconfirmed backup cannot authorize a product (3.175958ms)\n✔ cancellation during durable consumption prevents signing and preserves consumption (2.498916ms)\n✔ a completed approval cannot be retried after expiry or account switch (16.578084ms)\n✔ native cold and warm entrypoints use only the v2 controller and cancel pending work on background (0.991375ms)\n✔ signed mobile original survives background before return and cold review recovers exact result without another key use (12.315375ms)\n✔ secure original save lost ACK cold-recovers the identical signature without consuming replay again (11.687125ms)\n✔ failed secure original save keeps signed custody and never falls back, re-saves, or signs on retry (5.377792ms)\n✔ restored original rejects changed account and corrupted proof before any new private-key access (9.719208ms)\n✔ two controllers sharing secure storage cannot consume or sign the same original request twice (9.919459ms)\nℹ tests 27\nℹ suites 0\nℹ pass 27\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 347.421541\n"
+    }
+  },
+  "types": {
+    "scope": "Strict scoped controller/tests and transitive declarations only; not Expo/App.tsx build",
+    "typescript": "6.0.3 existing R68 tooling",
+    "result": {
+      "chunk_id": "6c3db3",
+      "wall_time_seconds": 0.348845,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    }
+  },
+  "toolingFailuresPreserved": [
+    {
+      "observed": "Runtime MODULE_NOT_FOUND after using package-directory path alias selected only for type-checking",
+      "fix": "Separate explicit current-JS runtime alias and matching current-declaration type alias; no SDK production bytes or App dependencies changed"
+    }
+  ],
+  "behavior": {
+    "secureStorageOnly": true,
+    "replayConsumedBeforeSign": true,
+    "captureBeforeCallbackCodec": true,
+    "sameOriginalReadbackRecovery": true,
+    "automaticReturn": false,
+    "explicitRetryRetainsSameOriginal": true,
+    "unavailableSecureStorageFallsBack": false,
+    "privateKeysOrMnemonicStored": false,
+    "currentSupport": "Existing V2 account approval only. No PQ authority or native provider fabricated.",
+    "capacity": "32 retained originals and 262144-character explicit budget; archival/retention UX remains a follow-up, no UNKNOWN pruning"
+  },
+  "truth": {
+    "source": true,
+    "actualSDKFixtureCrypto": true,
+    "strictScopedTypes": true,
+    "actualBiometricOrKeystore": false,
+    "AndroidAPKBuild": false,
+    "AndroidInstall": false,
+    "WebBundle": false,
+    "newMacPackage": false,
+    "publicSourceOrAccountGrant": false,
+    "MONSTER": false,
+    "officialDownloadInstall": false
+  }
+}

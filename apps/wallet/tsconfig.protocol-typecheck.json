@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.protocol-qa.json",
+  "compilerOptions": {
+    "paths": {
+      "@ynx-chain/wallet-auth": ["../../packages/wallet-auth/src/index.d.ts"],
+      "@noble/curves/*": ["../../packages/wallet-auth/node_modules/@noble/curves/*"],
+      "ethers": ["../wallet-desktop/node_modules/ethers/lib.esm/ethers.d.ts"]
+    }
+  }
+}

@@ -5,7 +5,7 @@ import { createProductSessionRequest, encodeProductSessionWalletURL, parseProduc
 import { p256 } from "@noble/curves/nist.js";
 import { AuthorizationAuditStore } from "./authorizationAudit";
 import { PRODUCT_SESSION_REGISTRY as registry } from "./registry";
-import { ProductSessionController, PRODUCT_SESSION_REPLAY_KEY } from "./productSessionController";
+import { ProductSessionController, PRODUCT_SESSION_REPLAY_KEY,PRODUCT_SESSION_ORIGINAL_KEY } from "./productSessionController";
 import { finiteServiceReview } from "../i18n/finiteServiceCopy";
 import type { SecureStorageAdapter, WalletAccount } from "../storage/walletRepository";
 
@@ -233,4 +233,35 @@ test("native cold and warm entrypoints use only the v2 controller and cancel pen
   const source = await readFile(new URL("../../App.tsx", import.meta.url), "utf8");
   for (const legacy of ["parseWalletDeepLink", "signAuthorization", "createCallbackURL", "PersistentNonceStore"]) assert.equal(source.includes(legacy), false);
   for (const marker of ["Linking.getInitialURL()", 'Linking.addEventListener("url"', "productSessions.receive(url)", 'next==="background"', "controller[action](review.id)", 'decide("reject")']) assert.equal(source.includes(marker), true, marker);
+});
+test('signed mobile original survives background before return and cold review recovers exact result without another key use',async()=>{
+ const f=fixture(),req=request(),url=unsafeURL(req),review=await f.controller.receive(url),dependencies=(f.controller as any).dependencies,original=dependencies.withAccountSecret;
+ dependencies.withAccountSecret=(account:string,guard:()=>void,use:any)=>original(account,guard,async(secret:string,keyGuard:()=>void)=>{const result=await use(secret,keyGuard);f.controller.cancel();return result;});
+ await assert.rejects(f.controller.approve(review.id),/cancelled|active/);assert.equal(f.state.reads,1);assert.equal(f.state.opens.length,0);
+ const cold=fixture('android',f.storage),restored=await cold.controller.receive(url);assert.equal(restored.id,review.id);assert.equal(cold.controller.hasReturn(restored.id),true);assert.equal(cold.state.reads,0);
+ await cold.controller.retryReturn(restored.id);assert.equal(cold.state.reads,0);assert.equal(cold.state.authorizations,0);assert.equal(cold.state.opens.length,1);
+ const returned=parseProductSessionReturnURL(registry,req,cold.state.opens[0]!,NOW);assert.equal(returned.status,'ready');assert.equal((returned.approval as {account:string}).account,accountA.account);
+});
+test('secure original save lost ACK cold-recovers the identical signature without consuming replay again',async()=>{
+ const f=fixture(),req=request(),url=unsafeURL(req),review=await f.controller.receive(url),set=f.storage.setItem;let lost=false,originalWrites=0;
+ f.storage.setItem=async(key,value)=>{await set(key,value);if(key===PRODUCT_SESSION_ORIGINAL_KEY){const row=JSON.parse(value).originals[0];if(!row.deliveryAttempted){originalWrites++;if(!lost){lost=true;throw Error('Native original save ACK unknown');}}}};
+ await assert.rejects(f.controller.approve(review.id),/ACK unknown/);assert.equal(f.state.opens.length,0);assert.equal(f.controller.hasReturn(review.id),true);
+ const replay=f.storage.values.get(PRODUCT_SESSION_REPLAY_KEY),original=JSON.parse(f.storage.values.get(PRODUCT_SESSION_ORIGINAL_KEY)!).originals[0];f.controller.cancel();
+ const cold=fixture('android',f.storage),restored=await cold.controller.receive(url);await cold.controller.retryReturn(restored.id);assert.equal(cold.state.authorizations,0);assert.equal(cold.state.reads,0);assert.equal(originalWrites,1);assert.equal(f.storage.values.get(PRODUCT_SESSION_REPLAY_KEY),replay);
+ assert.equal((parseProductSessionReturnURL(registry,req,cold.state.opens[0]!,NOW).approval as any).walletSignature,original.approval.walletSignature);
+});
+test('failed secure original save keeps signed custody and never falls back, re-saves, or signs on retry',async()=>{
+ const f=fixture(),req=request(),url=unsafeURL(req),review=await f.controller.receive(url),set=f.storage.setItem;let attempts=0;
+ f.storage.setItem=async(key,value)=>{if(key===PRODUCT_SESSION_ORIGINAL_KEY){attempts++;throw Error('Secure original storage unavailable');}await set(key,value);};
+ await assert.rejects(f.controller.approve(review.id),/storage unavailable/);assert.equal(f.state.reads,1);await assert.rejects(f.controller.retryReturn(review.id),/unresolved/);assert.equal(attempts,1);assert.equal(f.state.opens.length,0);assert.equal(f.state.reads,1);
+ f.controller.cancel();await assert.rejects(f.controller.receive(url),/retained.*unresolved/);await assert.rejects(fixture('android',f.storage).controller.receive(url),/consumed/);assert.equal(attempts,1);assert.equal(f.state.reads,1);
+});
+test('restored original rejects changed account and corrupted proof before any new private-key access',async()=>{
+ const f=fixture(),req=request(),url=unsafeURL(req),review=await f.controller.receive(url);f.state.failOpen=true;await assert.rejects(f.controller.approve(review.id),/unavailable/);f.controller.cancel();
+ const other=fixture('android',f.storage);other.state.selected=accountB;await assert.rejects(other.controller.receive(url),/selected account/);assert.equal(other.state.reads,0);
+ const value=JSON.parse(f.storage.values.get(PRODUCT_SESSION_ORIGINAL_KEY)!);value.originals[0].approval.walletSignature='0'.repeat(128);f.storage.values.set(PRODUCT_SESSION_ORIGINAL_KEY,JSON.stringify(value));const cold=fixture('android',f.storage);await assert.rejects(cold.controller.receive(url),/signature|Signature/);assert.equal(cold.state.reads,0);assert.equal(cold.state.opens.length,0);
+});
+test('two controllers sharing secure storage cannot consume or sign the same original request twice',async()=>{
+ const storage=memoryStorage(),a=fixture('android',storage),b=fixture('android',storage),url=unsafeURL(request()),reviewA=await a.controller.receive(url),reviewB=await b.controller.receive(url);
+ const results=await Promise.allSettled([a.controller.approve(reviewA.id),b.controller.approve(reviewB.id)]);assert.equal(results.filter(row=>row.status==='fulfilled').length,1);assert.match((results.find(row=>row.status==='rejected') as PromiseRejectedResult).reason.message,/already consumed/);assert.equal(a.state.opens.length+b.state.opens.length,1);assert.equal(JSON.parse(storage.values.get(PRODUCT_SESSION_REPLAY_KEY)!).consumed.length,1);assert.equal(JSON.parse(storage.values.get(PRODUCT_SESSION_ORIGINAL_KEY)!).originals.length,1);
 });

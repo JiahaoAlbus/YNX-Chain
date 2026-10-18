@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
+    "typeRoots": ["/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r68-normal-android-kotlin-20261017/source/apps/wallet/node_modules/@types"],
+    "paths": {
+      "@ynx-chain/wallet-auth": ["../../packages/wallet-auth/src/index.js"],
+      "@noble/curves/*": ["../../packages/wallet-auth/node_modules/@noble/curves/*"],
+      "ethers": ["../wallet-desktop/node_modules/ethers/lib.esm/ethers.d.ts"]
+    }
+  },
+  "include": ["src/protocol/productSessionController.ts", "src/protocol/productSessionController.test.ts"]
+}
