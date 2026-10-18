@@ -44,3 +44,22 @@ Focused controls run through the existing `npm test` glob and original
 `test:owned-interfaces` CI entry. Stand-in clients prove protocol/lifecycle
 behavior only; actual relay pairing, installation and normal UI acceptance
 remain separate gates for original App/GUI owners.
+
+## Partial initialization and cleanup
+
+Once default Core construction starts, failure does not permit another Core or
+SignClient initialization over the same persisted database. The original failed
+promise and its exact first cause are retained for this module lifetime, including
+new connection instances. No rollback or cleanup is inferred from rejection, and
+no unknown/foreign Core is closed. Pre-construction module import failures remain
+retryable. The SDK does not erase uncertain persisted effects or reset this latch.
+
+`connect` preserves its existing error code and exposes the original failure in
+`error.cause`. Cancellation still fences the pending connect with its original
+`YNX_PAIR_CANCELLED`; its separate cleanup promise may reject with
+`YNX_PAIR_CLEANUP_UNCONFIRMED` and emit `cancelUnconfirmed` with reason
+`initialization-unresolved`. `disconnect` similarly refuses to emit confirmed
+permission revocation while initialization cleanup is unresolved. Consumers must
+handle these cleanup rejections independently and retain UNKNOWN. Late successful
+initialization continues the existing strictly owned empty-Core pause path; it
+does not adopt a cancelled session or claim remote session revocation.

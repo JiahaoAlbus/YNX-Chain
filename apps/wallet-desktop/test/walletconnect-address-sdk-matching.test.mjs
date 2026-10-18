@@ -6,7 +6,7 @@ import {createWalletAddressConnection} from '../../../packages/wallet-auth/src/w
 // Actual same-copy SDK transport/namespace checks plus App controller. The
 // SignClient network/remote session is an explicit PUBLIC instrument, not a
 // real Relay, protocol-generated network URI or installed approval flow.
-test('same-copy SDK39 address factory and normal Wallet controller connect with empty remote permission',async()=>{
+test('same-copy SDK address factory and normal Wallet controller connect with empty remote permission',async()=>{
  const now=2_000_000_000_000,account='0x'+'a'.repeat(40),topic='a'.repeat(64),reads=[],calls=[];
  const session={topic,expiry:now/1000+3600,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{chains:['eip155:6423'],accounts:[`eip155:6423:${account}`],methods:[],events:['accountsChanged','chainChanged']}}};
  const client={on(){},session:{getAll:()=>[]},core:{pairing:{disconnect:async()=>{calls.push('pairing-disconnect');}}},

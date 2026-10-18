@@ -1,0 +1,61 @@
+{
+  "state": "FORMAL_SDK310_AND_APP_UNKNOWN_COMBINATION_VERIFIED_NOT_BUILT_OR_INSTALLED",
+  "baseCommit": "f9393065cd61d629096e13a0cedf88aa78f5b900",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "sdk": {
+    "version": "1.3.0-pq.3.10",
+    "sourceCommit": "c9a869ccfb553776ab751ef474408a73a85214ee",
+    "sourceTree": "fd512fd83b869452b8944e965945e8898a113359",
+    "formalHandoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3j-20261018/SDK_PQ_R3J_HANDOFF.json",
+    "handoffBytes": 7164,
+    "handoffSha256": "ef179876d64ca49362462caa7ee0e666cc0849c5f183644f74672976dbd5302b",
+    "archiveBytes": 929522,
+    "archiveSha256": "64c95d3a603948e7558abf016e49be4f3692fdcd8e3da8c1c4e7eaaddb063d39",
+    "verifiedDirectReferences": 6,
+    "exactSupplierDelta": 8,
+    "allPackedMembersMatchTarGitAndLocal": 243,
+    "intake": "All eight BEFORE hashes verified before any copy; exact git blobs from frozen c9a copied mechanically, not mutable supplier working files. No SDK implementation changes by Wallet.",
+    "ciReused": "39101637293: 87 PASS, 0 fail/skip; three type profiles 0; not rerun"
+  },
+  "dependencySelection": {
+    "fullSDKLock": "packages/wallet-auth/package-lock.json",
+    "fullSDKLockBytes": 68086,
+    "fullSDKLockSha256": "ee6ed1438d82a469fc6886b807448ca83ce1da1424c679ea1d71516e477a3540",
+    "supplierFullInstallRoot": "/Users/huangjiahao/.codex/worktrees/wallet-wc-init-recovery/YNX Chain/packages/wallet-auth/node_modules",
+    "fullSDKPackages": 119,
+    "PQManifest": "apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json",
+    "PQManifestBytes": 52618,
+    "PQManifestSha256": "5eac541efd1d9882e6df2aefb8e71a90802758a9f01e2148b66122ee1a628772",
+    "PQManifestExactSupplierMatch": true,
+    "runtime": "Retain actual full SDK119 clean closure with required nested Noble1.x; direct PQ316 is not the WalletConnect closure. Preserve App qrcode1.5.4 exact locked29-package closure. No ambient fallback.",
+    "localFullWCInstallPerformed": false
+  },
+  "tests": {
+    "newSameCopyInitialization": "apps/wallet-desktop/test/walletconnect-address-sdk-initialization.test.mjs",
+    "normalSameCopy": "apps/wallet-desktop/test/walletconnect-address-sdk-matching.test.mjs",
+    "raw": "apps/wallet-desktop/test/walletconnect-sdk310-app-combination-20261018.raw",
+    "rawBytes": 438,
+    "rawSha256": "a06c50106bb878a9b03dbb50f8c3ed1d0ce6548204730dbd47de630d610a2aba",
+    "pass": 3,
+    "fail": 0,
+    "skip": 0,
+    "durationMs": 110.224833,
+    "scope": "Actual same-copy default SDK Core initialization latch and App controller. Only PUBLIC Core/SignClient imports instrumented. First cause exact, one Core/init, no close or replay, no false disconnected, no URI/account, cancellation cause retained, late failure stays UNKNOWN. Third test normal empty-method address connect/disconnect; no remote signing permission.",
+    "tooling": "Pinned Node24.19; explicitly selected original supplier SDK-declared esbuild0.25.9, resolution fenced to its own node_modules. Existing npm test wildcard and original CI clean SDK install include new test. No product runtime fallback."
+  },
+  "normalBuildRecipe": {
+    "owner": "Sole original A through Root; no direct child input",
+    "source": "Freeze this successor commit/tree in a NEW stage; include both src/walletconnect-address-consumer.mjs and src/walletconnect-address-page.mjs. Never overlay frozen SDK39/R3.",
+    "browserArgvAfterPinnedNode": ["apps/wallet-desktop/scripts/build-wallet-connection-page.mjs", "NEW_ABSOLUTE_CANONICAL_OUTPUT_DIRECTORY"],
+    "browserDependencies": "SDK310 full119 exact lock, selected local esbuild0.25.9 and SC/Core2.23.10; App qrcode1.5.4 recursive exact lock29 closure; preserve actual entry and public-subpath resolution checks.",
+    "publication": "Original Wallet /connect/ only. Preserve V3 explicit trailing-slash CSP/no-store config, existing40 assets and /hosted/. New built bytes require a new receipt and normal three-asset HTTP gate; existing SDK39 public result is not SDK310.",
+    "macArgvAfterPinnedNodeFromDesktopCwd": ["scripts/build-mac.mjs", "arm64", "--config.electronDist=/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r65-normal-mac-matching-20261017/electron-dist", "--config.npmRebuild=false"],
+    "A33ModuleSha256": "0ebfb6277f5c6bc40609404978624d192defe86fd465003ebfc9baff35b9eef7",
+    "A33ReceiptSha256": "445c0b0ab02a9e8321e6406dfab7669d995f4b1522bfc1e1c3e409fae2e4433c",
+    "native": "Existing A33 unchanged. R42 read-only DATA source is not a qualified reclaim or linked replacement module.",
+    "order": "Normal browser successor first, then compatible normal Mac source/dependency/package readback, real install/GUI after current IDE lease; original A owns heavy schedule."
+  },
+  "excludedIndependentWork": "SDK owner central-browser-session-browser.js void cancel/cancelUnconfirmed successor remains independent. Frozen310 consumed here does not close central-login cleanup UNKNOWN.",
+  "preserved": ["Original dirty d386 App.tsx and receivePNG files", "Prior immutable handoffs and frozen browser/App packages", "All accounts, private keys, mnemonics, balances, history and UNKNOWN", "Native original source/module and lawful authority gates"],
+  "notClaimed": ["New SDK310 normal browser/App package or publication", "Installed GUI acceptance", "Real Relay, proposal or address permission approval", "Any signature or transfer", "MONSTER", "IDE-private Source/grant", "Central login cleanup closure", "Android, Windows or Linux release"]
+}
