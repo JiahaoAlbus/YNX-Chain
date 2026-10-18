@@ -38,3 +38,29 @@ test('expected watched identities reject missing duplicate or unexpected rows',(
   s.processes[1]={pid:76462,readable:true,rssBytes:100,threads:1};
   assert.throws(()=>validateNativeResourceSample(s,76461,{expectedPIDs:[76461]}),/watched identities/);
 });
+
+test('only the explicit client13 normal-02 case admits real warning pressure without relabeling',()=>{
+ const s=sample();s.memoryPressure.dispatchLevel=2;
+ assert.throws(()=>validateNativeResourceSample(s,76461),/native memory pressure/);
+ assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-02'}));
+ assert.equal(s.memoryPressure.dispatchLevel,2);
+ for(const level of [0,3,4,8,undefined]){const s=sample();s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-02'}));}
+ for(const key of ['host','forkProbe','memoryPressure']){const s=sample();delete s[key];assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-02'}));}
+ assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'any-other-task'}));
+});
+
+test('normal-03 admits only actual warning pressure and preserves default refusal',()=>{
+ const s=sample();s.memoryPressure.dispatchLevel=2;
+ assert.throws(()=>validateNativeResourceSample(s,76461));
+ assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-03'}));
+ assert.equal(s.memoryPressure.dispatchLevel,2);
+ for(const level of [0,3,4,8,undefined]){s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-03'}));}
+});
+
+test('normal-04 keeps pressure and identity failures fatal outside the authorized warning case',()=>{
+ const s=sample();s.memoryPressure.dispatchLevel=2;
+ assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-04'}));
+ for(const level of [0,3,4,8,undefined]){s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-04'}));}
+ s.memoryPressure.dispatchLevel=2;s.processes[0].readable=false;
+ assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-04'}));
+});

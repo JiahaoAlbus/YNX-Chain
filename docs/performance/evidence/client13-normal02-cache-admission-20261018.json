@@ -1,0 +1,43 @@
+{
+  "case": "client13-normal-02",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-02.json",
+  "rawSha256": "8688363b8e8a40ded64e21ff970a98e759475d74501a1e92dcca580d49136da5",
+  "startedAt": "2026-10-18T02:54:56.503Z",
+  "launcher": 57116,
+  "controllerSession": 40410,
+  "terminalCode": 1,
+  "elapsedMs": 5315,
+  "actualPressure": 2,
+  "sourceChecks": [
+    {
+      "head": "ef70a83c9e78fac6837da391c04f54f3185270e5",
+      "sourceCommit": "7cf9d332ddb6cd32cd7663da6dda5282d12a9b39",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "605730a6967b987cf31e57e824de007b9015d7b4"
+      }
+    }
+  ],
+  "goEnvironmentRead": {
+    "pid": 57524,
+    "kind": "read-only go env after normal admission",
+    "code": 0
+  },
+  "testGo": null,
+  "actualPassedFunctions": [],
+  "firstCause": "Command failed: /usr/bin/du -sk /Users/huangjiahao/Library/Caches/go-build /Users/huangjiahao/go/pkg/mod\n",
+  "diagnosticLimit": "Original receipt omitted child error code/signal/killed/stderr. Five-second du timeout is suspected from elapsed time and configured limit, not proven. Later source adds these fields; original receipt remains unchanged.",
+  "peakRSS": 58294272,
+  "peakThreads": 9,
+  "peakScratchBytes": 0,
+  "groupGone": true,
+  "retryExecuted": false,
+  "lightControls": {
+    "command": "node --test --test-reporter=dot scripts/loadtest/native-resource-sample.test.mjs scripts/loadtest/consensus-light-plan.test.mjs",
+    "passed": 16,
+    "exitCode": 0
+  },
+  "interpretation": "Admission and fixed Go source check passed; only read-only go env executed. No Go tests, nodes, benchmark, throughput or finality result."
+}

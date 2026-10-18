@@ -7,8 +7,8 @@ export function lightCommand(root, stoppedWindow, nativeCompile = false, clientR
     if(nativeCompile||stoppedWindow!==undefined)throw Error('client regression cannot combine native compile or stopped replay');
     const requiredPasses=['TestReadyIntentSegmentsPersistAndStreamExactSignedInputs','TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence','TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding','TestReadySenderSegmentedIntentBarrierAndRecovery','TestReadySenderSegmentedIntentFailureNeverSubmits','TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts','TestSegmentedIntentOptionsRequireBoundedEvidenceMode','TestReadySenderFastAccountAdvancesBeforeSlowPeer','TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities','TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves','TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged','TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix','TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption'];
     return {mode:'client_regression',command:'nice',args:['-n','10','/opt/homebrew/bin/go','test','-p','1','./cmd/ynx-consensus-perf-client','-run','^('+requiredPasses.join('|')+')$','-count=1','-timeout=30s','-v'],
-      env:{...env,GOPROXY:'off',GOTOOLCHAIN:'local',GOFLAGS:'-mod=readonly',GOWORK:'off'},requiredPasses,sourceCommit:'7cf9d332ddb6cd32cd7663da6dda5282d12a9b39',
-      sourceTree:'124d2521d783c7dc91370a5b031342aa84bad8a2',sourcePins:{'go.mod':'b9d7b1000986dad89c87ca0a1e1758636b5f6cdc','go.sum':'4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2',internal:'d39b4a8aeff715292e54cd82a49241f80ac55e89','cmd/ynx-consensus-perf-client':'605730a6967b987cf31e57e824de007b9015d7b4'},
+      env:{...env,GOPROXY:'off',GOTOOLCHAIN:'local',GOFLAGS:'-mod=readonly',GOWORK:'off'},requiredPasses,sourceCommit:'6597ca8f55e6eb5e84091883f92315b3d296b147',
+      sourceTree:'e2af793fa5d5395f4041179f2a80a78c7467ea9d',sourcePins:{'go.mod':'b9d7b1000986dad89c87ca0a1e1758636b5f6cdc','go.sum':'4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2',internal:'d39b4a8aeff715292e54cd82a49241f80ac55e89','cmd/ynx-consensus-perf-client':'fa815ca2eaabee4fe37d8959ba5bac10995eae7c'},
       caps:{activeMs:30000,totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024**2,scratchBytes:512*1024**2,threads:320,diskFloorBytes:1024**3,rootReserveBytes:425*1024**2},
       interpretation:'Only original performance-client correctness, no Protocol overlay/CI replacement, nodes or benchmark. Fixed Go source/dependencies; driver may be a clean later script-only descendant. Fresh Root scheduling and unchanged native normal pressure gate required.'};
   }
@@ -41,4 +41,15 @@ export function requireClientRegressionPasses(plan,stdout){
  const passed=[...stdout.matchAll(/^--- PASS: (Test[^ /]+) \(/gm)].map(m=>m[1]);
  if(passed.length!==plan.requiredPasses.length||new Set(passed).size!==passed.length||plan.requiredPasses.some(n=>!passed.includes(n))||!/^ok\s+github\.com\/JiahaoAlbus\/YNX-Chain\/cmd\/ynx-consensus-perf-client\s/m.test(stdout))throw Error('all thirteen actual Go passes and package terminal required');
  return passed;
+}
+
+export function remainingPhaseBudget(started,activeMs,now,phaseCapMs=activeMs){
+ if(![started,activeMs,now,phaseCapMs].every(Number.isSafeInteger)||activeMs<=0||phaseCapMs<=0||now<started)throw Error('invalid active deadline budget');
+ const remaining=activeMs-(now-started);
+ if(remaining<=0)throw Error('client active deadline exhausted before phase');
+ return Math.min(remaining,phaseCapMs);
+}
+export function clientRegressionArgs(plan,remainingMs){
+ if(plan.mode!=='client_regression'||!Number.isSafeInteger(remainingMs)||remainingMs<=0||remainingMs>plan.caps.activeMs)throw Error('invalid remaining client Go budget');
+ return plan.args.map(arg=>arg.startsWith('-timeout=')?`-timeout=${remainingMs}ms`:arg);
 }

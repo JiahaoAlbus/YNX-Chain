@@ -2,16 +2,21 @@ import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
-import {ownedProcessSet} from './owned-process-set.mjs';
+import {ownedBirthInventory,verifyExitedDuringSample} from './owned-process-race.mjs';
 import {validateNativeResourceSample} from './native-resource-sample.mjs';
 import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
-import {lightCommand,lightScratchBytes,requireClientRegressionPasses} from './consensus-light-plan.mjs';
-const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false}}});
+import {lightCommand,lightScratchBytes,requireClientRegressionPasses,remainingPhaseBudget,clientRegressionArgs} from './consensus-light-plan.mjs';
+const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false}}});
 const plan=lightCommand(process.cwd(),values['stopped-window'],values['native-compile'],values['client-regression']);
-if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',plan,caps:plan.caps??{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
+const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04'].filter(k=>values[k]);
+if(explicitCases.length>1)throw Error('only one explicit resource case');
+const admissionCase=explicitCases[0];
+const caseSuffix=admissionCase?.slice(-2);
+if(admissionCase&&(plan.mode!=='client_regression'||!values.output||path.resolve(values.output)!==path.join(process.cwd(),`artifacts/chain-performance-20261017/client13-normal-20261018-${caseSuffix}.json`)))throw Error('explicit case is only the fixed client13 case and original new receipt path');
+if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',plan,admissionCase,caps:plan.caps??{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
 if(process.platform!=='darwin'||!values.output)throw Error('macOS and a new explicit --output required');
 const output=path.resolve(values.output);if(fs.existsSync(output))throw Error('receipt path already exists; preserve original');
 const exec=promisify(execFile),started=Date.now(),root=process.cwd();
@@ -19,11 +24,11 @@ const hostPath=root+'/artifacts/chain-performance-20261017/ynx-consensus-perf-ho
 const hostBinary={path:hostPath,sha256:createHash('sha256').update(fs.readFileSync(hostPath)).digest('hex')};
 const probe=createNativeResourceProbe(hostPath);
 const goEnvironment=plan.env;
-const result={plan,hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete test process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
+const result={plan,hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete test process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,admissionCase,allowedNativePressureLevels:admissionCase?[1,2]:[1],firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
 const regression=plan.mode==='client_regression';
 let scratchRoot;
 result.scratchSamples=[];result.peakScratchBytes=0;
-if(regression)result.driverPins=Object.fromEntries(['consensus-light-window.mjs','consensus-light-plan.mjs'].map(name=>[name,createHash('sha256').update(fs.readFileSync(new URL(name,import.meta.url))).digest('hex')]));
+if(regression)result.driverPins=Object.fromEntries(['consensus-light-window.mjs','consensus-light-plan.mjs','native-resource-sample.mjs','owned-process-race.mjs'].map(name=>[name,createHash('sha256').update(fs.readFileSync(new URL(name,import.meta.url))).digest('hex')]));
 const fail=e=>result.firstCause??=String(e);
 let child,done=false,busy=false,monitor;
 const kill=()=>{if(child?.pid)try{process.kill(-child.pid,'SIGKILL')}catch(e){if(e.code!=='ESRCH')fail(e)}};
@@ -32,7 +37,13 @@ const deadline=setTimeout(()=>{fail(regression?'30s client active deadline':'45s
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{fail(signal);kill()});
 async function cacheOccupancy(){
  const paths=result.cachePaths;
- const {stdout}=await exec('/usr/bin/du',['-sk',...paths],{timeout:5000,killSignal:'SIGKILL',maxBuffer:65536});
+ const timeoutMs=remainingPhaseBudget(started,activeMs,Date.now(),['client13-normal-03','client13-normal-04'].includes(admissionCase)?12000:5000);
+ const phase={startedAt:new Date().toISOString(),timeoutMs,remainingActiveMs:remainingPhaseBudget(started,activeMs,Date.now())};
+ (result.cachePhases??=[]).push(phase);
+ let stdout;
+ try{({stdout}=await exec('/usr/bin/du',['-sk',...paths],{timeout:timeoutMs,killSignal:'SIGKILL',maxBuffer:65536}));}
+ catch(e){result.cacheOccupancyError={command:'/usr/bin/du',args:['-sk',...paths],timeoutMs,code:e.code??null,signal:e.signal??null,killed:e.killed??null,stdout:e.stdout??'',stderr:e.stderr??'',message:e.message};phase.failed=true;phase.endedAt=new Date().toISOString();throw e;}
+ phase.endedAt=new Date().toISOString();
  const rows=stdout.trim().split('\n');
  if(rows.length!==paths.length)throw Error('original Go cache occupancy unavailable');
  const bytes=rows.map(line=>Number(line.match(/^(\d+)\s/)?.[1])*1024);
@@ -60,13 +71,24 @@ function scratchAndDisk(initial=false){
  if(bytes>plan.caps.scratchBytes)throw Error('512MiB private scratch cap');
  if(!Number.isSafeInteger(freeDiskBytes)||freeDiskBytes<floor)throw Error('actual free disk below client floor/reserve');
 }
+async function birthInventory(){
+ const {stdout}=await exec('/bin/ps',['-axo','pid=,ppid=,pgid=,lstart='],{env:{...process.env,LC_ALL:'C'},timeout:1500,killSignal:'SIGKILL',maxBuffer:1024*1024});
+ return ownedBirthInventory(stdout,process.pid,child.pid);
+}
 async function sample(initial=false){
- let ids=[process.pid];
- if(child?.pid){const {stdout}=await exec('/bin/ps',['-axo','pid=,ppid=,pgid='],{timeout:1500,killSignal:'SIGKILL',maxBuffer:1024*1024});ids=ownedProcessSet(stdout,process.pid,child.pid)}
+ let ids=[process.pid],before;
+ if(child?.pid){before=await birthInventory();ids=before.ids;}
  ids=[...new Set(ids)];if(ids.length>16)throw Error('kernel probe watched PID bound');
- const raw=await probe.run(['--full',...ids.map(String)]);const s=JSON.parse(raw.stdout);
+ let raw=await probe.run(['--full',...ids.map(String)]),s=JSON.parse(raw.stdout);
  result.lastAttemptedResourceSample=s;
- validateNativeResourceSample(s,process.pid,{expectedPIDs:ids});
+ if(before&&s.processes?.some(p=>p.readable!==true)){
+  const after=await birthInventory();
+  const exited=verifyExitedDuringSample(s,before,after,process.pid,child.pid,pid=>{try{process.kill(pid,0);return false;}catch(e){if(e.code==='ESRCH')return true;throw e;}});
+  (result.exitedDuringSample??=[]).push({at:new Date().toISOString(),exited,rejectedSample:s,replacementPIDs:after.ids,birthPrecision:'ps lstart seconds; excluded PID must also be wholly absent from fresh global inventory and kernel kill(0) ESRCH'});
+  ids=after.ids;raw=await probe.run(['--full',...ids.map(String)]);s=JSON.parse(raw.stdout);
+  result.lastAttemptedResourceSample=s;
+ }
+ validateNativeResourceSample(s,process.pid,{expectedPIDs:ids,rootCase:admissionCase});
  result.peakRSS=Math.max(result.peakRSS,s.rssWithControlReserveBytes);result.peakThreads=Math.max(result.peakThreads,s.threadsWithControlReserve);
  result.samples.push({at:new Date().toISOString(),...s});
  if(s.rssWithControlReserveBytes>400*1024*1024)throw Error('400MiB control/owned RSS cap');
@@ -103,7 +125,9 @@ try{
   scratchAndDisk(true);
  }
 
- child=spawn(plan.command,plan.args,{detached:true,env:{...childEnv,...goEnvironment},stdio:['ignore','pipe','pipe']});
+ const actualArgs=regression?clientRegressionArgs(plan,remainingPhaseBudget(started,activeMs,Date.now())):plan.args;
+ if(regression)result.actualGoArgs=actualArgs;
+ child=spawn(plan.command,actualArgs,{detached:true,env:{...childEnv,...goEnvironment},stdio:['ignore','pipe','pipe']});
  result.go={pid:child.pid,code:null,signal:null,stdout:'',stderr:'',exited:false};console.log(JSON.stringify({startedAt:result.startedAt,launcher:process.pid,go:child.pid}));
  const capture=key=>d=>{if(Buffer.byteLength(result.go.stdout)+Buffer.byteLength(result.go.stderr)+d.length>1024*1024){fail('1MiB log cap');kill()}else result.go[key]+=d.toString()};child.stdout.on('data',capture('stdout'));child.stderr.on('data',capture('stderr'));
  const closed=new Promise(resolve=>{child.on('error',e=>{fail(e.message)});child.on('close',(code,signal)=>{result.go.code=code;result.go.signal=signal;result.go.exited=true;done=true;resolve()})});

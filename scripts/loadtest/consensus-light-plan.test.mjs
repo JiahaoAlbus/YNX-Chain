@@ -20,8 +20,8 @@ test('native compile is fixed clang only and cannot combine replay',()=>{
 
 test('client regression selects only the fixed thirteen functions and frozen Go source',()=>{
  const p=lightCommand('/work',undefined,false,true);
- assert.equal(p.mode,'client_regression');assert.equal(p.sourceCommit,'7cf9d332ddb6cd32cd7663da6dda5282d12a9b39');
- assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'605730a6967b987cf31e57e824de007b9015d7b4');
+ assert.equal(p.mode,'client_regression');assert.equal(p.sourceCommit,'6597ca8f55e6eb5e84091883f92315b3d296b147');
+ assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'fa815ca2eaabee4fe37d8959ba5bac10995eae7c');
  assert.equal(p.requiredPasses.length,13);assert.equal(new Set(p.requiredPasses).size,13);
  assert.equal(p.args[p.args.indexOf('-run')+1],'^('+p.requiredPasses.join('|')+')$');
  assert.ok(p.args.includes('-timeout=30s'));assert.ok(p.args.includes('-v'));assert.equal(p.env.GOPROXY,'off');assert.equal(p.env.GOTOOLCHAIN,'local');
@@ -43,4 +43,19 @@ test('zero exit without thirteen real PASS records cannot qualify the client che
  const good=plan.requiredPasses.map(n=>'--- PASS: '+n+' (0.00s)').join('\n')+'\nok  \tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\t0.1s\n';
  assert.deepEqual(requireClientRegressionPasses(plan,good),plan.requiredPasses);
  for(const bad of [good.replace(plan.requiredPasses[0],'TestNotSelected'),good+'--- PASS: '+plan.requiredPasses[0]+' (0.00s)\n',good+'    --- SKIP: TestSubcase (0.00s)\n',good.replace(/^ok.*$/m,''),'PASS\n'])assert.throws(()=>requireClientRegressionPasses(plan,bad));
+});
+
+test('cache scans and Go consume one active deadline without restarting it',async()=>{
+ const {remainingPhaseBudget,clientRegressionArgs}=await import('./consensus-light-plan.mjs');
+ const plan=lightCommand('/work',undefined,false,true), started=1000;
+ assert.equal(remainingPhaseBudget(started,plan.caps.activeMs,1300,12000),12000);
+ const args=clientRegressionArgs(plan,remainingPhaseBudget(started,30000,14300));
+ assert.ok(args.includes('-timeout=16700ms'));
+ assert.equal(args.filter(x=>x.startsWith('-timeout=')).length,1);
+ assert.equal(remainingPhaseBudget(started,30000,29300,12000),1700);
+ assert.throws(()=>remainingPhaseBudget(started,30000,31000,12000),/active deadline/);
+ assert.throws(()=>remainingPhaseBudget(started,30000,32000),/active deadline/);
+ assert.equal(plan.args.includes('-timeout=30s'),true);
+ assert.deepEqual(args.filter(x=>!x.startsWith('-timeout=')),plan.args.filter(x=>!x.startsWith('-timeout=')));
+ for(const bad of [0,-1,NaN,Infinity])assert.throws(()=>clientRegressionArgs(plan,bad));
 });
