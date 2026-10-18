@@ -18,7 +18,7 @@ async function fixture(t){
  return {root,stage,resources,files,checked,install:context.install};
 }
 test('source-owned independent receipt retains original signed identity, not the CI raw signature',()=>{
- assert.equal(originalPQVerifierReceipt.bundled.bytes,34223248);assert.equal(originalPQVerifierReceipt.bundled.sha256,'5e90e692f2ee84ebcf9db88b7a160eb544e8d82321eb059ebf2b5c332fb0aea8');assert.equal(originalPQVerifierReceipt.manifest.sha256,'459278dd4689724b251f0ddce764a86c76bbe89d6c7eea54f2cf7d323c312140');assert.equal(Object.isFrozen(originalPQVerifierReceipt),true);assert.equal(Object.isFrozen(originalPQVerifierReceipt.manifest),true);
+ assert.equal(originalPQVerifierReceipt.sourceCommit,'59185090aab3e4eaa6f8c9a0b29e975a2917e8b1');assert.equal(originalPQVerifierReceipt.bundled.bytes,34310208);assert.equal(originalPQVerifierReceipt.bundled.sha256,'a7e47ea79b3e4bdd40014c8c02aafbad7b37a69c9c15c7f45a9fd0c51d44479d');assert.equal(originalPQVerifierReceipt.manifest.sha256,'b574373a4304c682b73442c1cd8087562ff04be515a0fb4deba88f50104d098e');assert.equal(Object.isFrozen(originalPQVerifierReceipt),true);assert.equal(Object.isFrozen(originalPQVerifierReceipt.manifest),true);
 });
 test('PUBLIC copy-policy seam copies three fixed paths exclusively and verifies both sides after copy, without signing',async t=>{
  const f=await fixture(t),result=await f.install(f.resources,f.stage);assert.deepEqual(f.checked,[f.stage,f.stage,f.resources]);assert.equal(result.bundledSha256,originalPQVerifierReceipt.bundled.sha256);assert.equal(result.outerSealed,false);

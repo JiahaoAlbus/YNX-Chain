@@ -1,10 +1,10 @@
-// Original A's independently read post-inner-sign receipt, H4641bfd987a8918f.
+// Original A's independently read post-inner-sign receipt, H7621fcf6cc98e0c9.
 // This source-owned identity is separate from the Resources manifest being
 // checked. It is NOT Host trust, a Native grant, notarization or finality.
 export const originalPQVerifierReceipt=Object.freeze({
- sourceCommit:'0345970c7c616c24ebf3e494e9a8d9628ff8ae40',
- forkTree:'9777a6f8544fe5f9d41b546c6a34b3e3e02ab54e',
- manifest:Object.freeze({bytes:729,sha256:'459278dd4689724b251f0ddce764a86c76bbe89d6c7eea54f2cf7d323c312140'}),
- bundled:Object.freeze({bytes:34223248,sha256:'5e90e692f2ee84ebcf9db88b7a160eb544e8d82321eb059ebf2b5c332fb0aea8'}),
- sourceFile:Object.freeze({bytes:1938,sha256:'140cd07e512486ef812522cc9fcd20e53023256bf55c6290c4b10203d48bf027'}),
+ sourceCommit:'59185090aab3e4eaa6f8c9a0b29e975a2917e8b1',
+ forkTree:'f694a8c86f7ed65e19d1ce08c690d5d8fe84fd42',
+ manifest:Object.freeze({bytes:729,sha256:'b574373a4304c682b73442c1cd8087562ff04be515a0fb4deba88f50104d098e'}),
+ bundled:Object.freeze({bytes:34310208,sha256:'a7e47ea79b3e4bdd40014c8c02aafbad7b37a69c9c15c7f45a9fd0c51d44479d'}),
+ sourceFile:Object.freeze({bytes:1938,sha256:'8775709d35a0f2734c09a51bd4db7f446922faa34b9ca37924335dadddef61ce'}),
 });
