@@ -1,4 +1,5 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
+import {recordRPCMetadataFailure} from './rpc-metadata-failure-record.mjs';
 import {createProductWalletReturnPublisher} from '@ynx-chain/wallet-auth/product-wallet-connection';
 import {createOriginalAdmissionController} from './original-admission-controller.mjs';
 import {openOriginalAdmissionSupply,closeOriginalAdmissionSupply,readOriginalAdmissionSummary,originalAdmissionSelectionUnresolved} from './original-admission-supply.mjs';
@@ -974,6 +975,9 @@ function protocolActivationFingerprint(value) {
 async function safeIPC(action, displayOptions) {
   try { return { ok: true, value: await action() }; }
   catch (error) {
+    // Observe only private metadata failure DATA, before normal IPC projection.
+    // Never change the original error/outcome if diagnostics are unavailable.
+    try { recordRPCMetadataFailure(error, path.join(app.getPath('userData'), 'wallet-rpc-metadata-failures-v1.jsonl')); } catch {}
     const storageStage = error?.data?.storageStage;
     // Only the existing preparation route opts in. Require the exact native
     // refusal shape, not merely matching display text or a projected code.

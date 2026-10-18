@@ -15,6 +15,8 @@ export class CanonicalAccountNetwork {
   #sequence = 0;
   constructor({ fetchImpl = globalThis.fetch } = {}) { this.fetchImpl = fetchImpl; }
   async request(method, params = []) {
+    const started = performance.now();
+    let stage = "fetch", httpStatus = null;
     try {
       const id = ++this.#sequence;
       const response = await this.fetchImpl(CANONICAL_RPC_URL, {
@@ -22,10 +24,14 @@ export class CanonicalAccountNetwork {
         body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
         redirect: "error", signal: AbortSignal.timeout(10_000)
       });
+      httpStatus = Number.isInteger(response.status) ? response.status : null;
+      stage = "response";
       // Fetch serializes an origin's root URL with '/'. Accept only those two
       // fixed spellings of the same resource, never another path or redirect.
       if (response.redirected || response.url && response.url !== CANONICAL_RPC_URL && response.url !== CANONICAL_RPC_URL + "/") throw providerError(4900, "RPC_INVALID_RESPONSE", "The RPC response origin changed.");
+      stage = "decode";
       const payload = await response.json();
+      stage = "envelope";
       if (!payload || typeof payload !== "object" || Array.isArray(payload) || payload.jsonrpc !== "2.0" || payload.id !== id || Object.hasOwn(payload, "result") === Object.hasOwn(payload, "error")) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
       if (Object.hasOwn(payload, "error")) {
         if (!payload.error || typeof payload.error !== "object" || Array.isArray(payload.error) || !Number.isSafeInteger(payload.error.code) || typeof payload.error.message !== "string") throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid RPC error");
@@ -35,9 +41,17 @@ export class CanonicalAccountNetwork {
       if (!("result" in payload)) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
       return payload.result;
     } catch (error) {
-      if (error?.data?.code) throw error;
-      const timedOut = ["AbortError", "TimeoutError"].includes(error?.name);
-      throw providerError(4900, timedOut ? "RPC_TIMEOUT" : "RPC_UNAVAILABLE", timedOut ? "The network check timed out. Please try again." : "Unable to reach YNX Testnet. Check your connection and try again.");
+      let failure = error;
+      if (!error?.data?.code) {
+        const timedOut = ["AbortError", "TimeoutError"].includes(error?.name);
+        failure = Object.assign(providerError(4900, timedOut ? "RPC_TIMEOUT" : stage === "decode" ? "RPC_INVALID_RESPONSE" : "RPC_UNAVAILABLE", timedOut ? "The network check timed out. Please try again." : stage === "decode" ? "YNX Testnet returned an invalid response" : "Unable to reach YNX Testnet. Check your connection and try again."), { cause: error });
+      }
+      // Original-main diagnostic DATA only; no params/body/account/credential.
+      // Non-enumerable so ordinary IPC error serialization is not expanded.
+      if (["ynx_getFeeModel", "ynx_getDurabilityModel"].includes(method) && failure && typeof failure === "object" && Object.isExtensible(failure) && !Object.hasOwn(failure, "rpcMetadataObservation")) {
+        Object.defineProperty(failure, "rpcMetadataObservation", { value: Object.freeze({ method, stage, httpStatus, elapsedMs: Math.max(0, Math.round(performance.now() - started)) }), configurable: false, enumerable: false });
+      }
+      throw failure;
     }
   }
   async verifyChain() {
