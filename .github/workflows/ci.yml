@@ -46,17 +46,19 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
-      - name: Compile exact R61 whole administration TU with selected SQLite 3.50.4 header
-        run: python3 scripts/ci/social-tpm-r61/compile.py "$RUNNER_TEMP/social-tpm-r61-result"
-      - name: Preserve R61 first cause and exact dependency/compiler/header inputs
+      - name: Compile R62 complete codec then link exact retained R60 real storage-open graph
+        run: python3 scripts/ci/social-tpm-r62/compile.py "$RUNNER_TEMP/social-tpm-r62-result"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Preserve R62 first cause and exact dependency/compiler/header inputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: social-tpm-r61-${{ github.run_id }}-${{ github.run_attempt }}
+          name: social-tpm-r62-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/social-tpm-r61-result/*.json
-            ${{ runner.temp }}/social-tpm-r61-result/*.raw
-            ${{ runner.temp }}/social-tpm-r61-result/*.o
-            ${{ runner.temp }}/social-tpm-r61-result/*.d
+            ${{ runner.temp }}/social-tpm-r62-result/*.json
+            ${{ runner.temp }}/social-tpm-r62-result/*.raw
+            ${{ runner.temp }}/social-tpm-r62-result/*.o
+            ${{ runner.temp }}/social-tpm-r62-result/r60-storage-open-link
           if-no-files-found: error
           retention-days: 1

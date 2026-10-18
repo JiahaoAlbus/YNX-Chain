@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "kind": "AUTH_R62_COMPLETE_CODEC_AND_RETAINED_R60_STORAGE_OPEN_GRAPH",
+  "supplier": {
+    "path": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/signal-storage-open-r60/HANDOFF.json",
+    "bytes": 4107,
+    "sha256": "dda346d2415d69c58cf8e73a64906dce0d1461b413d2cc22c7551c31d04c52b4"
+  },
+  "files": [
+    {
+      "path": "c/include/veil_checked_store.h",
+      "bytes": 12373,
+      "sha256": "2bf311e05acaa079787ed1a976b24bee6ca2150d1860c7bf5a5ac140682c1b8a"
+    },
+    {
+      "path": "c/src/veil_producer_private.h",
+      "bytes": 6912,
+      "sha256": "04d4f4961749cb51c082ced66545d496f30be1dd1c11786fdb2f9dd324ef04db"
+    },
+    {
+      "path": "c/src/veil_source_private.h",
+      "bytes": 7021,
+      "sha256": "2dbc8b368a1737bb268376e72cf8b527c9fa2da00be64926a293ae21103754e9"
+    },
+    {
+      "path": "c/src/veil_supplier_owner_private.h",
+      "bytes": 6186,
+      "sha256": "1c5d5ef281866bab8e95810c44f6731e70142e44dcb7ea22c96278fdc8b49254"
+    },
+    {
+      "path": "protected-source/include/veil_classic_protection.h",
+      "bytes": 1442,
+      "sha256": "ec8ad8e836f6d5d665c0653fe08d06836f2ae153027472c2929e197c13f7c5e2"
+    },
+    {
+      "path": "protected-source/include/veil_pq_custodian.h",
+      "bytes": 3477,
+      "sha256": "b354c509947806ed464aef391ffbb11c6e7fca1cc6f74e10747152ac8b6c6b3e"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_cipher.inc",
+      "bytes": 4344,
+      "sha256": "1baf1f583c5370f79e69d4f39ac3f261e13362759e5b365fc9af06f21dd71616"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_cipher_private.h",
+      "bytes": 1010,
+      "sha256": "a874d16803b9b88be1c1546e3b337678c07fac47c42ed727b9c66e79e1fe8978"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_record_limits.h",
+      "bytes": 681,
+      "sha256": "ff8f49b90e67cff780e577e947dc9dd59edfecc4b9489ce449f1ff556b67b5d5"
+    },
+    {
+      "path": "protected-source/linux/ynx_server_completed_current_private.inc",
+      "bytes": 3304,
+      "sha256": "beb4301374968003776a5f316478f94e2e29546affda69785051cb43c5e91928"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_platform_qualified.c",
+      "bytes": 31566,
+      "sha256": "5261adda28e6f3f2faf5cdb57283c0c879b8720283015e429bc2008ef73a481e"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_platform_qualified.h",
+      "bytes": 7031,
+      "sha256": "86820b66d9b624ddb288098cd8b925775493c0bde0480293af90ed9ec0ed36c6"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_sealed_role_launcher.h",
+      "bytes": 3506,
+      "sha256": "aedf3c9e8ba26f2a08796350362a494c7a092459996e0077532a2fbd8a7d59fd"
+    },
+    {
+      "path": "protected-source/linux/ynx_storage_initialization_aad_private.h",
+      "bytes": 2020,
+      "sha256": "7aa5b362595a47ada940b35fc7a67172730a4fdffa6aeefbad85089a1482129f"
+    },
+    {
+      "path": "protected-source/linux/ynx_tpm2_esys_owner.c",
+      "bytes": 49358,
+      "sha256": "2c47436070a81771eec976c55be008922e67b26bcf5bf89aeb0a291290994a8d"
+    },
+    {
+      "path": "protected-source/linux/ynx_tpm2_esys_owner.h",
+      "bytes": 7314,
+      "sha256": "d9d147b5e23d8c0b16463b76d626be61421728bb9e6c7a66bd869e5bf8756c0d"
+    },
+    {
+      "path": "protected-source/source_server_private.h",
+      "bytes": 1246,
+      "sha256": "6ff35bcc7afeed39f5ef8f50ba1eeb804481a6df99758c848bd570e2c39d177c"
+    },
+    {
+      "path": "protected-source/ynx_message_platform_owner.h",
+      "bytes": 1433,
+      "sha256": "8fcc4e45376e181aac959c64393a1961019be21c20c0c95ba0c8e5f4b05f4ef0"
+    },
+    {
+      "path": "protected-source/ynx_source_platform_private.h",
+      "bytes": 33528,
+      "sha256": "126cb01edfe47120d0641980d059c11bc4bf5831b55fcf1e7956a84acf6678ac"
+    }
+  ],
+  "productionTU": "protected-source/linux/ynx_tpm2_esys_owner.c",
+  "codecTU": "protected-source/linux/ynx_source_platform_qualified.c",
+  "privateIncludes": [
+    "protected-source/linux",
+    "protected-source",
+    "c/src",
+    "c/include",
+    "protected-source/include"
+  ],
+  "mainSelectedBefore": {
+    "sourceRoot": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source",
+    "composition": {
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/SOURCE14_COMPOSITION.json",
+      "expectedBytes": 9288,
+      "expectedSha256": "f3e0de6b401164d1eab3a6e09fd58b05eb98794988ae9fc2e517b890baea1acf"
+    },
+    "files": [
+      {
+        "path": "protected-source/linux/ynx_tpm2_esys_owner.c",
+        "bytes": 46201,
+        "sha256": "afb553c9dcbad0d260055536464eb49bdb7efdda5b63f85a287648d6c89ae9fd"
+      },
+      {
+        "path": "protected-source/linux/ynx_tpm2_esys_owner.h",
+        "bytes": 6295,
+        "sha256": "ce478a7adddf78acc62579955572d89a5ae36cfe1e27081999075327ebc133ad"
+      }
+    ],
+    "note": "Main Source15/16/17 inherits Source14 without TPM override; CI successor does not claim Main already upgraded."
+  },
+  "supplierParentBefore": {
+    "root": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-r37a-20261018/source/protected-source/linux",
+    "c": {
+      "bytes": 46321,
+      "sha256": "58cef95d25e885e1b678de8304d702448925851a4738f0068a3621914e2408c2"
+    },
+    "header": {
+      "bytes": 6620,
+      "sha256": "5acea552d90dafb044078de94e551f1ab6142bb722a490eea38ea253b79e0326"
+    },
+    "composition": "Before-pin check required; do not overwrite newer canonical TPM leaf. New API and overlap helper are additive. Existing product open and Source/FirstDevice preimage whitelists unchanged."
+  },
+  "originalCiClosure": {
+    "manifest": {
+      "path": "scripts/ci/social-tpm-r37/SOURCE_INPUTS.json",
+      "bytes": 19216,
+      "sha256": "ab42f7d66ce33cb809943946feb87985cd0fa5495fee2bf89faa0da33a56c571"
+    },
+    "headerBefore": {
+      "path": "protected-source/linux/ynx_tpm2_esys_owner.h",
+      "bytes": 6619,
+      "sha256": "31194bfa29b5115239c7ef3f021afbf03ec24263e216c3a0c8bc8c3f2b7f1798"
+    },
+    "headerToSupplierParent": "Original CI header + exactly one LF equals declared R37a header6620/5acea; preserve original 6619/31194 closure; overlay R60 only in new successor",
+    "cBeforeExact": true
+  },
+  "addedActualCodecClosure": [
+    {
+      "path": "protected-source/linux/ynx_source_platform_qualified.c",
+      "source": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_source_platform_qualified.c",
+      "bytes": 31490,
+      "sha256": "0a126668fe6fb4278750aae934e0de83b4214a3462c2e608419d513937d67653"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_cipher.inc",
+      "source": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_product_cipher.inc",
+      "bytes": 4336,
+      "sha256": "871b8768398ff0712da03645ebdb27b57ec6c11c96b139695bccf5e13d1b324d"
+    }
+  ],
+  "dependencyLock": {
+    "path": "scripts/ci/social-tpm-r37/LINUX_DEPENDENCY_LOCK.json",
+    "bytes": 30333,
+    "sha256": "55b1b253b795f6a5550aa43575be77710244d2245d3456022985d4353cb8c516"
+  },
+  "linkScope": "Actual complete R60 TPM and complete Source14 codec TUs compile -Werror; minimal live graph of storage_open_v1 linked using real TSS2/OpenSSL, dead unused platform sections may be gc-sections. Not whole-platform closure or hardware run. No stubs/body extraction/suppressed warnings.",
+  "fixtureIncluded": false,
+  "hardwareExecuted": false,
+  "qualified": false,
+  "linkProbe": {
+    "path": "storage-open-link.c",
+    "bytes": 379,
+    "sha256": "ab07d1c376095ef08aa504812d73ff3df51238ea4dcd1d9edb3f83f56eb9cc99"
+  },
+  "codecSuccessorH": {
+    "path": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-codec-format-r62/HANDOFF.json",
+    "bytes": 3737,
+    "sha256": "67ea40ce492507ec356045055175456959ef11b3f6242922e3cb827bb2b172bf"
+  },
+  "retainedTPMObject": {
+    "run": 39115134535,
+    "artifact": "social-tpm-r60-39115134535-1",
+    "bytes": 61264,
+    "sha256": "2459f3bf83655aecaad9ea0b24d266694bed44ae305c364899258fd4698555f5",
+    "sourceManifestSha256": "a8f07eb0ecd5514bd9e42148f5edd9e6baba5524fb09f8549471162eede1e43b"
+  }
+}
