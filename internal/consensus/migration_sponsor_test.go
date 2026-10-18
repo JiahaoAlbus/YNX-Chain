@@ -173,6 +173,9 @@ func TestMigratedSponsorExecutesReplaysAndRestarts(t *testing.T) {
 	if !reflect.DeepEqual(a.committed, restarted.committed) {
 		before, after := reflect.ValueOf(a.committed), reflect.ValueOf(restarted.committed)
 		for i := 0; i < before.NumField(); i++ {
+			if !before.Field(i).CanInterface() || !after.Field(i).CanInterface() {
+				continue // Diagnostic logging only; the full DeepEqual assertion above still includes private fields.
+			}
 			if !reflect.DeepEqual(before.Field(i).Interface(), after.Field(i).Interface()) {
 				t.Logf("restart difference in %s: before=%#v after=%#v", before.Type().Field(i).Name, before.Field(i).Interface(), after.Field(i).Interface())
 			}
