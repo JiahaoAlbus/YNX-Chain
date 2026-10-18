@@ -40,7 +40,7 @@ func TestStateHashFeeChunkingMatchesEveryCanonicalByte(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := hashCommittedStateDocument(doc)
+			got, err := hashFeeChunkedDocument(doc)
 			if err != nil || got != old {
 				t.Fatalf("canonical digest differs count=%d version=%d: %v", count, version, err)
 			}
@@ -59,7 +59,7 @@ func TestStateHashFeeChunkingRejectsLateErrorsAndInvalidFraming(t *testing.T) {
 	if _, err := hashSingleBufferDocument(doc); err == nil {
 		t.Fatal("old encoder accepted invalid late timestamp")
 	}
-	if got, err := hashCommittedStateDocument(doc); err == nil || got != "" {
+	if got, err := hashFeeChunkedDocument(doc); err == nil || got != "" {
 		t.Fatal("late chunk error produced a digest", err)
 	}
 	fees[512].RecordedAt = time.Time{}
@@ -73,9 +73,29 @@ func TestStateHashFeeChunkingRejectsLateErrorsAndInvalidFraming(t *testing.T) {
 			t.Fatal("invalid chunk framing accepted", raw)
 		}
 	}
-	for _, raw := range []string{"[]", "{}", `{"feeEvents":null}`, `{"nested":{"feeEvents":[]}}`} {
+	for _, raw := range []string{"[]", "{}", `{"feeEvents":null}`, `{"nested":{"feeEvents":[]}}`, `{"feeEvents":[]} trailing`} {
 		if _, _, err := feeArrayBounds([]byte(raw)); err == nil {
 			t.Fatal("invalid top-level fee array accepted", raw)
+		}
+	}
+}
+
+func TestStateHashFeeBoundsIgnoreNestedNamesAndEscapedValues(t *testing.T) {
+	for _, raw := range []string{
+		`{"domain":"feeEvents","before":{"feeEvents":[1]},"feeEvents":[],"tail":{"feeEvents":[2]}}`,
+		`{"feeEvents":[{"text":"quote\" [] {}","nested":[{"feeEvents":[]}]}],"tail":"x"}`,
+		" \n{\"feeEvents\" : [ {\"x\": \"[]{}\"} ] } \t",
+	} {
+		start, end, err := feeArrayBounds([]byte(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(raw), &fields); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal([]byte(raw)[start:end], fields["feeEvents"]) {
+			t.Fatal("wrong top-level array boundary", raw)
 		}
 	}
 }
@@ -135,6 +155,10 @@ func TestStateHashFeeChunkingRealSignedHistoryPreservesRestartAndAudit(t *testin
 	old, err := hashSingleBufferDocument(doc)
 	if err != nil || old != app.committed.AppHash {
 		t.Fatal("real state differs from original encoder", err)
+	}
+	experimental, err := hashFeeChunkedDocument(doc)
+	if err != nil || experimental != old {
+		t.Fatal("experimental real-state hash differs from baseline", err)
 	}
 	want, err := json.Marshal(doc)
 	if err != nil {

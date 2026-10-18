@@ -33,9 +33,8 @@ func (w *committedStateHashWriter) Write(payload []byte) (int, error) {
 }
 
 func hashCommittedStateDocument(doc committedStateHashDocument) (string, error) {
-	if len(doc.FeeEvents) > stateHashFeeChunk {
-		return hashFeeChunkedDocument(doc)
-	}
+	// The first chunked candidate regressed the matched real-state benchmark.
+	// Keep the measured baseline active; experiments are invoked explicitly.
 	return hashSingleBufferDocument(doc)
 }
 
@@ -52,7 +51,7 @@ func hashSingleBufferDocument(doc committedStateHashDocument) (string, error) {
 
 const stateHashFeeChunk = 256
 
-// Marshal the unchanged surrounding document once, then encode the original
+// Encode the unchanged surrounding document once, then encode the original
 // ordered fee array in fixed-size chunks. No history or validation is omitted.
 // The SHA receives exactly json.Marshal(doc), without any framing newline.
 func hashFeeChunkedDocument(doc committedStateHashDocument) (string, error) {
@@ -73,63 +72,118 @@ func encodeFeeChunkedDocument(destination io.Writer, doc committedStateHashDocum
 		return writeStateHashPiece(destination, raw)
 	}
 	doc.FeeEvents = []BFTFeeEvent{{}}
-	scaffold, err := json.Marshal(doc)
-	if err != nil {
-		return err
+	writer := feeScaffoldHashWriter{destination: destination, fees: fees}
+	return json.NewEncoder(&writer).Encode(doc)
+}
+
+type feeScaffoldHashWriter struct {
+	destination io.Writer
+	fees        []BFTFeeEvent
+	wrote       bool
+}
+
+// Borrow Encoder's scaffold buffer during Write, avoiding Marshal's owned
+// copy. A nested Encoder owns a different encode state until this Write ends.
+func (w *feeScaffoldHashWriter) Write(raw []byte) (int, error) {
+	if w.wrote || len(raw) < 3 || raw[len(raw)-1] != '\n' {
+		return 0, errors.New("state hash scaffold requires one framed document")
 	}
+	w.wrote = true
+	scaffold := raw[:len(raw)-1]
 	start, end, err := feeArrayBounds(scaffold)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	if err := writeStateHashPiece(destination, scaffold[:start]); err != nil {
-		return err
+	if err := writeStateHashPiece(w.destination, scaffold[:start]); err != nil {
+		return 0, err
 	}
-	if err := writeStateHashPiece(destination, []byte{'['}); err != nil {
-		return err
+	if err := writeStateHashPiece(w.destination, []byte{'['}); err != nil {
+		return 0, err
 	}
-	writer := feeChunkHashWriter{digest: destination, first: true}
+	writer := feeChunkHashWriter{digest: w.destination, first: true}
 	encoder := json.NewEncoder(&writer)
-	for offset := 0; offset < len(fees); offset += stateHashFeeChunk {
+	for offset := 0; offset < len(w.fees); offset += stateHashFeeChunk {
 		limit := offset + stateHashFeeChunk
-		if limit > len(fees) {
-			limit = len(fees)
+		if limit > len(w.fees) {
+			limit = len(w.fees)
 		}
-		if err := encoder.Encode(fees[offset:limit]); err != nil {
-			return err
+		if err := encoder.Encode(w.fees[offset:limit]); err != nil {
+			return 0, err
 		}
 	}
-	if err := writeStateHashPiece(destination, []byte{']'}); err != nil {
-		return err
+	if err := writeStateHashPiece(w.destination, []byte{']'}); err != nil {
+		return 0, err
 	}
-	return writeStateHashPiece(destination, scaffold[end:])
+	if err := writeStateHashPiece(w.destination, scaffold[end:]); err != nil {
+		return 0, err
+	}
+	return len(raw), nil
 }
 
 // Decode only top-level field boundaries. A string or nested field named
 // feeEvents cannot be mistaken for the committed history array.
 func feeArrayBounds(raw []byte) (int, int, error) {
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	first, err := decoder.Token()
-	if err != nil || first != json.Delim('{') {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || trimmed[0] != '{' || !json.Valid(raw) {
 		return 0, 0, errors.New("state hash scaffold is not an object")
 	}
-	for decoder.More() {
-		name, err := decoder.Token()
-		if err != nil {
-			return 0, 0, err
-		}
-		var value json.RawMessage
-		if err := decoder.Decode(&value); err != nil {
-			return 0, 0, err
-		}
-		if name == "feeEvents" {
-			if len(value) < 2 || value[0] != '[' || value[len(value)-1] != ']' {
-				return 0, 0, errors.New("state hash scaffold fee field is not an array")
+	depth := 0
+	for i := 0; i < len(raw); i++ {
+		switch raw[i] {
+		case '{', '[':
+			depth++
+		case '}', ']':
+			depth--
+		case '"':
+			end := stateHashStringEnd(raw, i)
+			if depth == 1 && bytes.Equal(raw[i:end], []byte(`"feeEvents"`)) {
+				value := stateHashSkipSpace(raw, end)
+				if value < len(raw) && raw[value] == ':' {
+					value = stateHashSkipSpace(raw, value+1)
+					if value >= len(raw) || raw[value] != '[' {
+						return 0, 0, errors.New("state hash scaffold fee field is not an array")
+					}
+					level := 0
+					for cursor := value; cursor < len(raw); cursor++ {
+						switch raw[cursor] {
+						case '"':
+							cursor = stateHashStringEnd(raw, cursor) - 1
+						case '{', '[':
+							level++
+						case '}', ']':
+							level--
+							if level == 0 {
+								return value, cursor + 1, nil
+							}
+						}
+					}
+				}
 			}
-			end := int(decoder.InputOffset())
-			return end - len(value), end, nil
+			i = end - 1
 		}
 	}
 	return 0, 0, errors.New("state hash scaffold has no fee array")
+}
+
+// Input has already passed json.Valid; escaped quotes must not end a string.
+func stateHashStringEnd(raw []byte, start int) int {
+	for cursor := start + 1; cursor < len(raw); cursor++ {
+		if raw[cursor] == '\\' {
+			cursor++
+			continue
+		}
+		if raw[cursor] == '"' {
+			return cursor + 1
+		}
+	}
+	return len(raw)
+}
+
+func stateHashSkipSpace(raw []byte, start int) int {
+	for start < len(raw) && (raw[start] == ' ' || raw[start] == '\n' || raw[start] == '\r' || raw[start] == '\t') {
+		start++
+	}
+	return start
 }
 
 type feeChunkHashWriter struct {

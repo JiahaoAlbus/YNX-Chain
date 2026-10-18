@@ -1,8 +1,9 @@
 # Fee-array state-hash encoding candidate
 
-Status: source and canonical-equivalence tests passed in run 39113606753.
-Performance is unmeasured. Not deployed. The full CI run remains red because
-the unchanged old V13 source-identity gate rejects the derivative runtime.
+Status: the first candidate passed full integrated CI 39114641191 but regressed
+the matched encoding measurement 39114847427. Runtime activation is withdrawn:
+the original borrowed-buffer encoder is the default. The revised experimental
+encoder awaits source validation and a new independent identity pin. Not deployed.
 
 This candidate derives from internal tree
 `fc5ccab4e9aa6923bc61a2dc7ac518343ac56703`. The original hash leaf and its
@@ -14,14 +15,15 @@ CPU milliseconds to the state-hash JSON path. This is cumulative CPU attribution
 not a before/after performance result. Complete fee validation and audit hashing
 remain separate, unchanged requirements.
 
-For more than 256 fee events, the candidate serializes the surrounding hash
+The experiment serializes the surrounding hash
 document using the original JSON encoder, identifies its top-level fee array,
 and supplies that array in ordered chunks of at most 256 records. SHA-256 still
 receives every original canonical byte. Each chunk removes only its enclosing
 array brackets and Encoder framing newline; separators are restored between
 chunks. Field order, escaping, timestamps, numbers and hash domains are unchanged.
-The original single-buffer implementation remains the path for smaller arrays
-and is retained as the comparison implementation.
+The original single-buffer implementation is restored for all runtime calls.
+The benchmark invokes the experimental function directly, so it cannot silently
+compare the baseline with itself after deactivation.
 
 The fee-array temporary buffer scales with a 256-record chunk rather than the
 entire fee history. Individual record size is not newly restricted. Other state
@@ -47,7 +49,8 @@ The supplied independent `perf-state-v13-fee-chunks` SDK candidate keeps state
 version 13 and application version 19. Its new strict checker and all 53
 candidate/current-source controls are connected to the original Chain workflow.
 The old candidate, checker and rejection controls remain separate and unchanged.
-Full integrated CI still needs to qualify the adopted source.
+The first adopted source passed full CI. Its immutable bundle is retained;
+the revised source must receive its own strict identity qualification.
 
 The default-false `measure_state_hash_encoding` workflow input uses the retained
 real 1024-transfer snapshot, SHA-256
@@ -58,3 +61,13 @@ and a 160 MiB Go memory target. Both must reproduce the original AppHash before
 timing. The public snapshot and provenance are retained under `fixtures/`;
 the original local measurement remains intact. This is an encoding comparison,
 not a new executed workload or a network/finality result.
+
+The first matched measurement had three samples per mode on this exact input.
+Medians were 1,321,967 ns/op and 76,993 B/op for the original encoder versus
+2,065,477 ns/op and 511,707 B/op for the first chunked experiment: 56.24% slower
+and 6.65 times the allocated bytes. This negative result is preserved, not a
+throughput improvement. The revised experiment removes Marshal's owned scaffold
+copy and Decoder/RawMessage value copies by borrowing the encoded scaffold and
+finding validated structural boundaries without materializing its fields.
+CPU/allocation gains remain unproven. All JSON value encoding, full fee audits,
+state validation, canonical-byte and hash checks remain intact.
