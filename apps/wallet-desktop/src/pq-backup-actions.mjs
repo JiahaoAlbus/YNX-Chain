@@ -9,7 +9,8 @@ export function createPQBackupActions({lifecycle,vault,sdk,networkId,files,choos
  const retain=cause=>{if(!firstCausePresent){firstCause=cause;firstCausePresent=true;}};
  async function execute(exporting){
   if(cleanupDebt)fail('PQ_KEY_CLEANUP_UNRESOLVED');
-  return lifecycle.run(async guard=>{
+  const security=lifecycle.status();
+  const result=await lifecycle.run(async guard=>{
    const binding=await vault.readPQProposalBinding(networkId);guard.assert();
    const filePath=await (exporting?chooseExportFile(binding.owner):chooseVerifyFile(binding.owner));guard.assert();
    if(!filePath)return Object.freeze({saved:false,verified:false,walletChanged:false});
@@ -36,6 +37,9 @@ export function createPQBackupActions({lifecycle,vault,sdk,networkId,files,choos
    });}
    catch(error){original.failed=true;if(!cleanupDebt)retain(error);fail(cleanupDebt?'PQ_KEY_CLEANUP_UNRESOLVED':original.writeEntered?'PQ_BACKUP_EXPORT_UNCONFIRMED':'PQ_BACKUP_FILE_UNVERIFIED');}
   });
+  const current=lifecycle.status();
+  if(current.locked||current.authenticating||current.account!==security.account||current.revision!==security.revision){const cause=Object.assign(Error('PQ_BACKUP_VIEW_EXPIRED'),{code:'PQ_BACKUP_VIEW_EXPIRED'});retain(cause);throw cause;}
+  return result;
  }
  return Object.freeze({export:()=>execute(true),verify:()=>execute(false),
   status:()=>Object.freeze({cleanupDebt:!!cleanupDebt,firstCausePresent,exportAttempted:lastOriginal?.writeEntered??false,lastFileVerified:lastOriginal?.verified??false}),

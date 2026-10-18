@@ -12,8 +12,8 @@ async function fixture({late=false}={}){
  let creates=0,saves=0,reads=0,retires=0,resolve,entered;
  const started=new Promise(r=>entered=r),gate=new Promise(r=>resolve=r);
  const sdk={validatePQNetworkBinding:v=>v,createPQWalletKeyHandle:async()=>{creates++;return handle;},readPQWalletKeyPublic:()=>binding,assertPQPublicBindingMatches:(a,b)=>assert.deepEqual(a,b),restorePQWalletKeyHandle:()=>assert.fail('No restore or signature requested'),destroyPQWalletKeyHandle:()=>{retires++;return true;},readPQWalletKeyCleanupOutcome:()=>({retired:true,cleanupComplete:true,cleanupUnknown:false})};
- const vault={reservePQPreparation:async input=>{assert.equal(input.operationId,'TEST-original');assert.equal(input.network.owner,account);},savePQKeys:async input=>{assert.equal(input.handle,handle);saves++;entered();if(late)await gate;return receipt;},readPQKeys:async()=>{reads++;return receipt;},verifySavedPQKeys:async input=>input.receipt===receipt};
- return {entry:createPQKeyPreparationEntry({lifecycle,vault,sdk,networkId:network,id:()=> 'TEST-original'}),lifecycle,started,resolve,counts:()=>({creates,saves,reads,retires})};
+ const vault={assertPQPreparationAvailable:async()=>{},reservePQPreparation:async input=>{assert.equal(input.operationId,'TEST-original');assert.equal(input.network.owner,account);},savePQKeys:async input=>{assert.equal(input.handle,handle);saves++;entered();if(late)await gate;return receipt;},readPQKeys:async()=>{reads++;return receipt;},verifySavedPQKeys:async input=>input.receipt===receipt};
+ return {entry:createPQKeyPreparationEntry({lifecycle,vault,sdk,networkId:network,id:()=> 'TEST-original'}),lifecycle,vault,started,resolve,counts:()=>({creates,saves,reads,retires})};
 }
 test('normal PQ entry binds selected protected account and saves once, exposing no SDK handle',async()=>{
  const f=await fixture();const result=await f.entry.generate();assert.equal(result.persisted,true);
@@ -31,4 +31,13 @@ test('normal main and preload expose only status, explicit generate, original re
  assert.ok(main.includes('pqKeyPreparation = createPQKeyPreparationEntry'),'normal-main factory must be instantiated');
  for(const action of ['status','generate','reconcile','cancel','recover']){assert.ok(main.includes(`wallet:pq-keys-${action}`));assert.ok(preload.includes(`wallet:pq-keys-${action}`));}
  assert.equal(preload.includes('selectRetainedOutcome'),false);assert.equal(preload.includes('selectOriginal'),false);
+});
+test('PQ known existing record is refused before entering custody generation or creating false UNKNOWN',async()=>{
+ const f=await fixture();const refuse=async()=>{throw Object.assign(Error('ORIGINAL_EXISTS'),{code:'PASSWORD_VAULT_PQ_ORIGINAL_EXISTS'});};f.vault.assertPQPreparationAvailable=refuse;f.vault.reservePQPreparation=refuse;
+ await assert.rejects(f.entry.generate());assert.equal(f.entry.status().preparationUnknown,false);assert.equal(f.counts().creates,0);
+});
+test('PQ recovered fact cannot be cached under another account after lifecycle result delivery',async()=>{
+ const f=await fixture();f.vault.readPQPreparationStatus=async()=>({phase:'saved',persisted:true,cleanupDebt:false});
+ const run=f.lifecycle.run.bind(f.lifecycle);f.lifecycle.run=async action=>{const value=await run(action);f.lifecycle.setAccount('0x'+'3'.repeat(40));return value;};
+ await assert.rejects(f.entry.recover());assert.equal(f.entry.status().persisted,false);
 });

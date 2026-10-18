@@ -14,7 +14,7 @@ function fixture(){
  const api={generatePQKeys:async()=>{generates++;return {ok:true,value:{persisted:true,phase:'saved'}};},recoverPQKeys:async()=>{reads++;reconciles++;return {ok:true,value:{persisted:true,phase:'saved'}};}};
  const ui=createPQKeyPreparationUI({api,getKeyState:()=>state,document:doc});ui.render();
  const [title,help,prepare,check,result,dialog]=panel.children[0].children,[notice,confirm,cancel]=dialog.children;
- return {ui,prepare,check,result,dialog,confirm,cancel,lock:()=>state={...state,revision:2,locked:true},counts:()=>({generates,reads,reconciles})};
+ return {ui,api,prepare,check,result,dialog,confirm,cancel,lock:()=>state={...state,revision:2,locked:true},counts:()=>({generates,reads,reconciles})};
 }
 const settled=()=>new Promise(resolve=>setImmediate(resolve));
 test('PQ preparation UI requires modal confirmation; cancel does not generate',async()=>{
@@ -28,4 +28,7 @@ test('PQ modal approval is invalidated by lock and cannot generate late',async()
 });
 test('PQ original-result button reconciles unknown save without generating',async()=>{
  const f=fixture();f.check.click();await settled();assert.deepEqual(f.counts(),{generates:0,reads:1,reconciles:1});assert.equal(f.prepare.disabled,true);
+});
+test('PQ existing-record refusal points to original-result check, not a newly unknown key generation',async()=>{
+ const f=fixture();f.api.generatePQKeys=async()=>({ok:false,error:{code:4100,data:{code:'PASSWORD_VAULT_PQ_ORIGINAL_EXISTS'}}});f.prepare.click();f.confirm.click();await settled();assert.match(f.result.textContent,/已有原密钥或原准备记录/);assert.equal(f.counts().reconciles,0);
 });

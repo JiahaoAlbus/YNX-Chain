@@ -46,3 +46,8 @@ test('PQ backup normal main/preload wiring never accepts a renderer path, bindin
  assert.equal(preload.includes('withPQBackup'),false);assert.ok(main.includes('pqBackupActions=createPQBackupActions('));
  assert.equal(preload.includes('selectOriginalOutcome'),false);
 });
+test('PQ backup credential cannot cross a changed account after the lifecycle has delivered its result',async()=>{
+ const f=await fixture(),run=f.lifecycle.run.bind(f.lifecycle);
+ f.lifecycle.run=async action=>{const value=await run(action);f.lifecycle.setAccount('0x'+'4'.repeat(40));return value;};
+ await assert.rejects(f.actions.export());assert.equal(f.actions.status().lastFileVerified,true);assert.equal(f.counts().retires,1);
+});

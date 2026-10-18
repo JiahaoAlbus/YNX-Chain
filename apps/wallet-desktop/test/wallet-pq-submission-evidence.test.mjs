@@ -5,6 +5,7 @@ import {pqPublicBindingToRegistrationKeys,encodePQMigrationRequest,preparePQMigr
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {createPQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
 import {parsePQSubmissionResponse,parsePQReadResponse} from '../src/wallet-pq-submission-evidence.mjs';
+import {pqBFTOriginalIdentity,parsePQBFTOriginalResponse,parsePQBFTSubmissionResponse} from '../src/wallet-pq-bft-evidence.mjs';
 import {TransactionSubmissions} from '../src/transaction-submissions.mjs';
 import {CanonicalTransactionSender} from '../src/canonical-transaction-sender.mjs';
 import {readFileSync} from 'node:fs';
@@ -104,4 +105,37 @@ test('normal original main IPC and canonical sender constructor reach only the f
   runInNewContext(main.slice(start,end),{handleWalletIPC:(name,fn)=>handlers.set(name,fn),sensitiveIPC:action=>action(),keyAccess:{current:()=>guard},walletAuthority:{accountStatus:async()=>({account:owner}),transactionSender:sender}});
   const result=await handlers.get('wallet:pq-transaction-status')({},transfer.hash);assert.equal(result.outcome,'pending-local-durable');assert.equal(result.clearsOriginal,false);assert.equal(result.retryAuthorized,false);assert.equal(reads,1);
  }finally{sender.provider.destroy();}
+});
+function bft(original){return {...pqBFTOriginalIdentity(original),type:original.kind==='pq-transfer'?'pq_transfer':'account_migration',status:'committed',committed:true,wire:Buffer.from(original.wire,'base64url').toString('base64'),executionHeight:'30',cometIndex:0,from:owner,to:original.kind==='pq-transfer'?'0x'+'22'.repeat(20):owner,amount:original.kind==='pq-transfer'?amount:'0',fee:'1',nonce,transaction:{...tx(original),blockNumber:30}};}
+test('BFT observations distinguish both exact hashes and high integers without native durability or finality',()=>{
+ for(const original of [transfer,migration]){
+  const body=bft(original),observed=parsePQBFTOriginalResponse(original,200,JSON.stringify(body));
+  assert.notEqual(body.nativeTransactionHash,body.abciTransactionHash);assert.equal(observed.nativeTransactionHash,original.hash);assert.equal(observed.abciTransactionHash,body.abciTransactionHash);
+  assert.equal(observed.decimalFields.nonce,nonce);assert.equal(observed.outcome,'bft-inclusion-observed');assert.equal(observed.consensusFinality,false);assert.equal(observed.producerDurability,false);assert.equal(observed.clearsOriginal,false);assert.equal(observed.retryAuthorized,false);
+  assert.equal(parsePQBFTSubmissionResponse(original,200,JSON.stringify(body)).outcome,'bft-inclusion-observed');
+ }
+});
+test('BFT candidates never fall through to native producer parsing or durability semantics',()=>{
+ for(const original of [transfer,migration]){
+  invalid(()=>parsePQReadResponse(original,200,JSON.stringify(bft(original))));
+  assert.throws(()=>parsePQBFTOriginalResponse(original,200,JSON.stringify(read(original))),{code:'PQ_BFT_RESPONSE_INVALID'});
+  const wrong=bft(original);wrong.source='authoritative_producer';assert.throws(()=>parsePQBFTOriginalResponse(original,200,JSON.stringify(wrong)),{code:'PQ_BFT_RESPONSE_INVALID'});
+ }
+});
+test('BFT returned original cannot substitute native/ABCI hash, wire, decimals, index or execution',()=>{
+ for(const original of [transfer,migration])for(const change of [v=>v.abciTransactionHash=v.nativeTransactionHash,v=>v.nativeTransactionHash=v.abciTransactionHash,v=>v.wire=Buffer.from('not the original').toString('base64'),v=>v.nonce=Number(nonce),v=>v.nonce='9007199254740992',v=>delete v.cometIndex,v=>v.readbackUrl='/txs/'+v.abciTransactionHash,v=>v.transaction.blockHash=h('22'),v=>v.transaction.nonce=1,v=>v.error='contradictory result']){
+  const value=bft(original);change(value);assert.throws(()=>parsePQBFTOriginalResponse(original,200,JSON.stringify(value)),{code:'PQ_BFT_RESPONSE_INVALID'});
+ }
+});
+test('BFT exact minimal unknown preserves the original, never reinterprets failed ABCI lookup as native',()=>{
+ const unknown={status:'unknown',committed:false,source:'comet-rpc',nativeTransactionHash:transfer.hash,readbackUrl:'/transactions/pq/originals/'+transfer.hash,amount:'0',fee:'0',nonce:'0',executionHeight:'0',error:'Original not proven'};
+ const observed=parsePQBFTOriginalResponse(transfer,202,JSON.stringify(unknown));assert.equal(observed.outcome,'outcome-unknown');assert.equal('abciTransactionHash' in observed,false);assert.equal(observed.retryAuthorized,false);
+ assert.throws(()=>parsePQBFTOriginalResponse(transfer,404,JSON.stringify(unknown)),{code:'PQ_BFT_RESPONSE_INVALID'});
+ assert.throws(()=>parsePQBFTSubmissionResponse(transfer,202,JSON.stringify(unknown)),{code:'PQ_BFT_RESPONSE_INVALID'});
+});
+test('BFT submission unknown and observed rejection never erase original or authorize replay',()=>{
+ for(const original of [transfer,migration])for(const status of ['unknown','rejected']){
+  const value=bft(original);delete value.transaction;delete value.from;delete value.to;delete value.cometIndex;Object.assign(value,{status,committed:false,amount:'0',fee:'0',nonce:'0',executionHeight:'0'});
+  const observed=parsePQBFTSubmissionResponse(original,status==='unknown'?202:422,JSON.stringify(value));assert.equal(observed.outcome,status==='unknown'?'outcome-unknown':'rejection-observed');assert.equal(observed.retryAuthorized,false);assert.equal(observed.clearsOriginal,false);
+ }
 });

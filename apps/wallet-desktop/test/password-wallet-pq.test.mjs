@@ -43,6 +43,7 @@ test('App production PQ entry composes real SDK and encrypted SAME Vault without
  await f.lifecycle.unlock({password:PASSWORD});
  const reopened=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId:CHAIN,id:()=> 'TEST-replacement'});
  const original=await fs.readFile(f.filePath,'utf8');await assert.rejects(reopened.generate());
+ assert.equal(reopened.status().preparationUnknown,false);
  assert.equal(await fs.readFile(f.filePath,'utf8'),original);
 });
 test('App production PQ entry reads saved original after a new controller, without generation or a write',async t=>{
