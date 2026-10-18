@@ -228,7 +228,7 @@ func (g *Gateway) handlePQEthereumBroadcast(w http.ResponseWriter, r *http.Reque
 	}
 	limit := int64(consensus.MaxPQEthereumMemberBytes)
 	if ct == "application/json" {
-		limit = consensus.MaxPQEthereumTransactionBytes
+		limit = int64(consensus.MaxPQEthereumTransactionBytes)
 	}
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 	if err != nil {
