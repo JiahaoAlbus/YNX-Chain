@@ -1,7 +1,7 @@
 import type {PQPublicBinding} from './pq-wallet-contract.js';
 import type {PQProductSessionSigningPlan,PQProductSessionApproval} from './product-session-pq-approval.js';
 import type {PQAuthorizationSnapshot} from './pq-wallet-policy.js';
-import type {PQNativeTransferInput, PQRegistrationIntentInput, PQTransportRequest} from './pq-wallet-authorization.js';
+import type {PQNativeTransferInput, PQRegistrationIntentInput, PQTransportRequest,PQRevocationIntentInput} from './pq-wallet-authorization.js';
 declare const custody: unique symbol;
 /** Opaque protected-main custody. This is NOT a migrated-account or signing grant. */
 export interface PQWalletKeyHandle { readonly [custody]: never }
@@ -26,3 +26,8 @@ export function signPQWalletCurrentMigration(handle: PQWalletKeyHandle, intent: 
 /** Protected main only, within original pending review/keyAccess/permission guards.
  * No generic raw signer, classic fallback, RPC effect or new permission engine. */
 export function signPQWalletProductSessionApproval(handle:PQWalletKeyHandle,reviewPlan:PQProductSessionSigningPlan,at?:Date):PQProductSessionApproval;
+
+/** Current active registered pair only, N1 Member ACCOUNT-REVOCATION. Original
+ * App pending review/keyAccess guards before/after and fresh node fence required.
+ * No classic/replacement-key fallback, RPC effect or implicit authorization. */
+export function signPQWalletAccountRevocation(handle: PQWalletKeyHandle, intent: PQRevocationIntentInput, snapshot: PQAuthorizationSnapshot): PQTransportRequest;

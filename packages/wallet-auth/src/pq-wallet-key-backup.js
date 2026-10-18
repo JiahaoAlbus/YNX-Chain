@@ -4,8 +4,9 @@ import {PQ_PROTOCOL_VERSION, PQ_SUITE, validatePQPublicBinding, assertPQPublicBi
   pqBase64url, pqDecodeBase64url, pqError, validatePQNetworkBinding} from './pq-wallet-contract.js';
 import {sealPQWalletBackup, openPQWalletBackup} from './pq-wallet-backup.js';
 import {encodePQNativeTransfer, encodePQRegistrationIntent, normalizePQRegistrationIntent,
-  preparePQTransferTransport} from './pq-wallet-authorization.js';
+  preparePQTransferTransport, encodePQRevocationIntent, preparePQRevocationTransport, encodePQRevocationRequest} from './pq-wallet-authorization.js';
 import {planPQNativeTransfer, planPQAccountMigration} from './pq-wallet-policy.js';
+import {planPQAccountRevocation} from './pq-wallet-policy.js';
 import {capturePQSessionSigningPlan} from './product-session-account-private.js';
 
 // Protected main only. A key-custody handle never asserts migration, active
@@ -151,4 +152,14 @@ export function signPQWalletProductSessionApproval(handle, reviewPlan, at=new Da
   const wire=signOne(handle,state,plan.message,plan.purpose,false);
   capturePQSessionSigningPlan(reviewPlan,at);live(handle);
   return Object.freeze({...plan.unsigned,walletProof:wire.toString('base64url')});
+}
+
+/** Original App review/keyAccess guards and current-policy fences remain mandatory
+ * before and after this synchronous typed operation. No RPC or activation grant. */
+export function signPQWalletAccountRevocation(handle, value, snapshot) {
+  const state = live(handle), plan = planPQAccountRevocation(snapshot, value), active = plan.policy.activeRecord;
+  signingBinding(state, {chainId: plan.policy.chainId, owner: plan.policy.owner}, active.pkA, active.pkB);
+  const currentPQMember = signOne(handle, state, encodePQRevocationIntent(plan.intent), 'ACCOUNT-REVOCATION', false);
+  live(handle);
+  return preparePQRevocationTransport(encodePQRevocationRequest({intent: plan.intent, currentPQMember}));
 }
