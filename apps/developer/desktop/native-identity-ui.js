@@ -13,7 +13,13 @@
   };
   Object.defineProperty(window,'__ynxIdentityReply',{value:event=>{
     if(event?.document!==document||!jobs.has(event.id))return;
-    if(event.error){finish(event.id,new Error('Native identity request failed: '+event.error));return;}
+    if(event.error){
+      // Only the exact Native failure after original correlation/current checks
+      // means user cancellation. Other failures keep their original error path.
+      finish(event.id,event.error==='AUTH_IDENTITY_PEER_USER_CANCELLED'
+        ?new DOMException('Cancelled by Wallet user','AbortError')
+        :new Error('Native identity request failed: '+event.error));return;
+    }
     if(event.phase!=='response-received'||event.authorized!==false||event.dataOnly!==true)return;
     finish(event.id,null,Object.freeze({phase:'response-received',authorized:false,dataOnly:true}));
   }});

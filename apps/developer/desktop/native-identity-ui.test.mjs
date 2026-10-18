@@ -32,6 +32,18 @@ test('abort and late status never revive a UI request; no automatic retry',async
   const body=f.frames[0];controller.abort();await assert.rejects(pending,{name:'AbortError'});
   f.reply(body);assert.equal(f.frames.length,2);assert.equal(f.frames[1].action,'native-identity-cancel');
 });
+test('correlated Native user cancellation maps to AbortError without synthesizing an approval or retry',async()=>{
+  const f=fixture(),pending=f.window.ynxDesktopIdentity.receive();
+  f.reply(f.frames[0],{error:'AUTH_IDENTITY_PEER_USER_CANCELLED'});
+  await assert.rejects(pending,{name:'AbortError'});
+  assert.equal(f.frames.length,2);assert.equal(f.frames[1].action,'native-identity-cancel');assert.equal(f.timers.size,0);
+});
+test('other Native failures are not relabelled as user cancellation',async()=>{
+  const f=fixture(),pending=f.window.ynxDesktopIdentity.recover();
+  f.reply(f.frames[0],{error:'AUTH_IDENTITY_CURRENT_UNAVAILABLE'});
+  await assert.rejects(pending,error=>error.name==='Error'&&error.message.includes('AUTH_IDENTITY_CURRENT_UNAVAILABLE'));
+  assert.equal(f.frames.length,2);
+});
 test('page retirement and timeout cancel the exact request, retain no active timer',async()=>{
   for(const mode of ['pagehide','timeout']){
     const f=fixture(),pending=f.window.ynxDesktopIdentity.recover();
