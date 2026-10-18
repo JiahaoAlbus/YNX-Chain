@@ -1118,7 +1118,7 @@ func execute(o options) error {
 				return errors.New("streaming workload plan changed or unavailable")
 			}
 			began := time.Now()
-			err := verifyStreamingWorkloadEvidence(ctx, manifestRaw, m, txs, o.rounds, r.ReadySenders.IntentSegments, r.TerminalStream, r.Transactions, o.output, o.evidenceByteBudget)
+			err = verifyStreamingWorkloadEvidence(ctx, manifestRaw, m, txs, o.rounds, r.ReadySenders.IntentSegments, r.TerminalStream, r.Transactions, o.output, o.evidenceByteBudget)
 			r.StreamingWorkload.EvidenceReadbackMs = float64(time.Since(began).Nanoseconds()) / 1e6
 			if err != nil {
 				return err
