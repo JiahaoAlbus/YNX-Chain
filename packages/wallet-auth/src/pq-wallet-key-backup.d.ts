@@ -1,3 +1,4 @@
+import type {PQNativeActionInput} from './pq-native-action.js';
 import type {PQPublicBinding} from './pq-wallet-contract.js';
 import type {PQProductSessionSigningPlan,PQProductSessionApproval} from './product-session-pq-approval.js';
 import type {PQAuthorizationSnapshot} from './pq-wallet-policy.js';
@@ -39,3 +40,8 @@ export function signPQWalletAccountRevocation(handle: PQWalletKeyHandle, intent:
  * review/keyAccess and Native-held expected/current guards remain mandatory
  * before/after. atMs is the original U64 decimal-string clock observation. */
 export function signPQWalletAuthIdentityRequest(handle:PQWalletKeyHandle,requestRaw:string,snapshot:PQAuthorizationSnapshot,atMs:string):Uint8Array;
+
+/** Protected-main typed Action only, N1/index0 TX-BATCH Member bytes. Requires
+ * the original pending review/keyAccess lease and fresh policy/guard fences
+ * before and after; never a generic signer, approval, RPC or retry permission. */
+export function signPQWalletNativeAction(handle:PQWalletKeyHandle,action:PQNativeActionInput,snapshot:PQAuthorizationSnapshot):Uint8Array;
