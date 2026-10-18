@@ -28,17 +28,18 @@ const maxPQFinalityRPCBytes int64 = 4 << 20
 // PQFinalityView is a collector observation, not the result of the independently
 // anchored consensus proof verifier. A successful response grants no authority.
 type PQFinalityView struct {
-	Version               string                               `json:"version"`
-	Source                string                               `json:"source"`
-	Status                string                               `json:"status"`
-	NativeTransactionHash string                               `json:"nativeTransactionHash"`
-	ABCITransactionHash   string                               `json:"abciTransactionHash,omitempty"`
-	ExecutionHeight       uint64                               `json:"executionHeight,string"`
-	CometIndex            *uint32                              `json:"cometIndex,omitempty"`
-	IndependentFinality   bool                                 `json:"independentFinality"`
-	ProofVerification     string                               `json:"proofVerification"`
-	Proof                 *consensus.PQTransactionProofRequest `json:"proof,omitempty"`
-	Error                 string                               `json:"error,omitempty"`
+	Version                 string                               `json:"version"`
+	Source                  string                               `json:"source"`
+	Status                  string                               `json:"status"`
+	ObservedExecutionStatus string                               `json:"observedExecutionStatus,omitempty"`
+	NativeTransactionHash   string                               `json:"nativeTransactionHash"`
+	ABCITransactionHash     string                               `json:"abciTransactionHash,omitempty"`
+	ExecutionHeight         uint64                               `json:"executionHeight,string"`
+	CometIndex              *uint32                              `json:"cometIndex,omitempty"`
+	IndependentFinality     bool                                 `json:"independentFinality"`
+	ProofVerification       string                               `json:"proofVerification"`
+	Proof                   *consensus.PQTransactionProofRequest `json:"proof,omitempty"`
+	Error                   string                               `json:"error,omitempty"`
 }
 
 // Decode through Comet's real codec and require its complete field grammar.
@@ -142,7 +143,7 @@ func (t pqFinalityLookupTransport) RoundTrip(req *http.Request) (*http.Response,
 	return response, nil
 }
 
-func (g *Gateway) finalityOriginal(ctx context.Context, hash string) (PQMemberView, error) {
+func (g *Gateway) finalityLookupGateway() *Gateway {
 	client, transport := *g.client.httpClient, g.client.httpClient.Transport
 	if transport == nil {
 		transport = http.DefaultTransport
@@ -152,7 +153,11 @@ func (g *Gateway) finalityOriginal(ctx context.Context, hash string) (PQMemberVi
 	rpc, gateway := *g.client, *g
 	rpc.httpClient = &client
 	gateway.client = &rpc
-	return gateway.lookupPQOriginal(ctx, hash)
+	return &gateway
+}
+
+func (g *Gateway) finalityOriginal(ctx context.Context, hash string) (PQMemberView, error) {
+	return g.finalityLookupGateway().lookupPQOriginal(ctx, hash)
 }
 
 func (g *Gateway) finalityRPC(ctx context.Context, path string, query url.Values, limit int64, target any) ([]byte, error) {
@@ -232,18 +237,45 @@ func (g *Gateway) collectPQFinality(ctx context.Context, hash string) (PQFinalit
 	if err != nil {
 		return view, err
 	}
-	if !original.Committed || original.ExecutionHeight == 0 || original.ExecutionHeight >= math.MaxInt64 || original.CometIndex == nil {
+	if !original.Committed {
 		return view, errors.New("successful original PQ execution unavailable")
 	}
+	return g.collectPQOriginalFinality(ctx, view, original)
+}
+
+// An unsuccessful included transaction has no successful native PQHistory.
+// Its journal-retained ABCI identity is the only lookup key for this route.
+// A committed outcome still takes the existing complete history validation.
+func (g *Gateway) collectPQABCIFinality(ctx context.Context, hash string) (PQFinalityView, error) {
+	view := PQFinalityView{Version: "YNX-PQ-RPC-TRANSACTION-PROOF/v1", Source: "configured-comet-rpc", Status: "unavailable", ABCITransactionHash: hash, ProofVerification: "not-performed"}
+	original, err := g.finalityLookupGateway().lookupPQMemberABCI(ctx, hash)
+	if err != nil {
+		return view, err
+	}
+	return g.collectPQOriginalFinality(ctx, view, original)
+}
+
+func (g *Gateway) collectPQOriginalFinality(ctx context.Context, view PQFinalityView, original PQMemberView) (PQFinalityView, error) {
+	rejected := original.Status == "rejected"
+	if original.ExecutionHeight == 0 || original.ExecutionHeight >= math.MaxInt64 || original.CometIndex == nil || (!rejected && (original.Status != "committed" || !original.Committed || original.Transaction == nil)) || (rejected && (original.Committed || original.Transaction != nil)) {
+		return view, errors.New("terminal indexed PQ execution unavailable")
+	}
+	if consensus.SignedTransactionHash(original.Wire) != original.NativeTransactionHash {
+		return view, errors.New("indexed native identity differs from exact original wire")
+	}
+	view.NativeTransactionHash, view.ObservedExecutionStatus = original.NativeTransactionHash, original.Status
 	view.ABCITransactionHash, view.ExecutionHeight, view.CometIndex = original.ABCITransactionHash, original.ExecutionHeight, original.CometIndex
 	h := int64(original.ExecutionHeight)
 	var tx coretypes.ResultTx
-	if _, err = g.finalityRPC(ctx, "/tx", url.Values{"hash": {original.ABCITransactionHash}, "prove": {"true"}}, maxPQFinalityRPCBytes, &tx); err != nil {
+	if _, err := g.finalityRPC(ctx, "/tx", url.Values{"hash": {original.ABCITransactionHash}, "prove": {"true"}}, maxPQFinalityRPCBytes, &tx); err != nil {
 		return view, err
 	}
 	_, payload, err := decodeIngressPQMember(original.Type, original.Wire)
-	if err != nil || tx.Height != h || tx.Index != *original.CometIndex || !bytes.Equal(tx.Tx, payload) || consensus.SignedTransactionHash(tx.Tx) != original.ABCITransactionHash || !bytes.Equal(tx.Hash, tx.Tx.Hash()) || tx.TxResult.Code != 0 || !bytes.Equal(tx.TxResult.Data, []byte(original.ABCITransactionHash)) {
-		return view, errors.New("finality indexed transaction differs from committed original")
+	if err != nil || tx.Height != h || tx.Index != *original.CometIndex || !bytes.Equal(tx.Tx, payload) || consensus.SignedTransactionHash(tx.Tx) != original.ABCITransactionHash || !bytes.Equal(tx.Hash, tx.Tx.Hash()) {
+		return view, errors.New("finality indexed transaction differs from exact original")
+	}
+	if rejected && (tx.TxResult.Code == 0 || len(tx.TxResult.Data) != 0) || !rejected && (tx.TxResult.Code != 0 || !bytes.Equal(tx.TxResult.Data, []byte(original.ABCITransactionHash))) {
+		return view, errors.New("finality execution outcome or data differs from indexed original")
 	}
 	block, first, err := g.finalityBlock(ctx, h)
 	if err != nil {
@@ -306,14 +338,27 @@ func (g *Gateway) collectPQFinality(ctx context.Context, hash string) (PQFinalit
 }
 
 func (g *Gateway) handlePQFinality(w http.ResponseWriter, r *http.Request) {
+	g.handlePQFinalityLookup(w, r, false)
+}
+
+func (g *Gateway) handlePQABCIFinality(w http.ResponseWriter, r *http.Request) {
+	g.handlePQFinalityLookup(w, r, true)
+}
+
+func (g *Gateway) handlePQFinalityLookup(w http.ResponseWriter, r *http.Request, abciHash bool) {
 	w.Header().Set("Cache-Control", "no-store")
 	hash := r.PathValue("hash")
 	b, err := hex.DecodeString(strings.TrimPrefix(hash, "0x"))
 	if r.URL.RawQuery != "" || err != nil || len(b) != 32 || "0x"+hex.EncodeToString(b) != hash {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical native SHA256 hash and no query parameters are required"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical SHA256 hash and no query parameters are required"})
 		return
 	}
-	view, err := g.collectPQFinality(r.Context(), hash)
+	var view PQFinalityView
+	if abciHash {
+		view, err = g.collectPQABCIFinality(r.Context(), hash)
+	} else {
+		view, err = g.collectPQFinality(r.Context(), hash)
+	}
 	if err != nil {
 		view.Error = err.Error()
 		writeJSON(w, http.StatusBadGateway, view)

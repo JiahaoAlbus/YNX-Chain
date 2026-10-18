@@ -329,6 +329,7 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /transactions/pq/originals/{hash}/finality-proof", g.handlePQFinality)
 	g.mux.HandleFunc("GET /txs", g.handleTransactions)
 	g.mux.HandleFunc("GET /txs/{hash}", g.handleTransaction)
+	g.mux.HandleFunc("GET /txs/{hash}/pq-finality-proof", g.handlePQABCIFinality)
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
 	g.mux.HandleFunc("GET /accounts/{address}/authorization", g.handlePQAuthorization)
 	g.mux.HandleFunc("POST /accounts/{address}/authorization/migrate", g.handlePQMigrationBroadcast)

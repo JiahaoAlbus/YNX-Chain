@@ -4,24 +4,36 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
+	dbm "github.com/cometbft/cometbft-db"
 	abci "github.com/cometbft/cometbft/abci/types"
+	cmtconsensus "github.com/cometbft/cometbft/consensus"
 	"github.com/cometbft/cometbft/crypto/ed25519"
 	"github.com/cometbft/cometbft/crypto/merkle"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
+	"github.com/cometbft/cometbft/libs/log"
+	"github.com/cometbft/cometbft/mempool"
 	cmtversion "github.com/cometbft/cometbft/proto/tendermint/version"
+	"github.com/cometbft/cometbft/proxy"
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	rpctypes "github.com/cometbft/cometbft/rpc/jsonrpc/types"
+	sm "github.com/cometbft/cometbft/state"
+	blockstore "github.com/cometbft/cometbft/store"
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/cometbft/cometbft/version"
 )
@@ -32,6 +44,7 @@ import (
 type pqFinalityFixture struct {
 	f          *pqGatewayFixture
 	statePath  string
+	bootstrap  *consensus.ConsensusBootstrap
 	tx         coretypes.ResultTx
 	results    coretypes.ResultBlockResults
 	blocks     [2]coretypes.ResultCommit
@@ -135,6 +148,9 @@ func (f *pqFinalityFixture) serve(t *testing.T) http.Handler {
 			http.Redirect(w, r, f.redirect, http.StatusTemporaryRedirect)
 			return
 		}
+		// Normal Comet RPC methods return pointers. An unaddressable value
+		// bypasses nested ABCI pointer MarshalJSON methods and omits defaults,
+		// producing a different grammar from the real RPC response.
 		var value any
 		switch r.URL.Path {
 		case "/abci_query":
@@ -150,19 +166,19 @@ func (f *pqFinalityFixture) serve(t *testing.T) http.Handler {
 				w.WriteHeader(500)
 				return
 			}
-			value = coretypes.ResultABCIQuery{Response: *response}
+			value = &coretypes.ResultABCIQuery{Response: *response}
 		case "/tx":
 			if r.URL.Query().Get("hash") != consensus.SignedTransactionHash(f.f.payload) || r.URL.Query().Get("prove") != "true" {
 				t.Error("original proof query lost exact ABCI hash or prove=true")
 			}
-			value = f.tx
+			value = &f.tx
 		case "/status":
-			value = f.status
+			value = &f.status
 		case "/block_results":
 			if r.URL.Query().Get("height") != strconv.FormatInt(f.tx.Height, 10) {
 				t.Error("result query lost exact height")
 			}
-			value = f.results
+			value = &f.results
 		case "/commit", "/validators":
 			h, err := strconv.ParseInt(r.URL.Query().Get("height"), 10, 64)
 			i := h - f.tx.Height
@@ -172,12 +188,12 @@ func (f *pqFinalityFixture) serve(t *testing.T) http.Handler {
 				return
 			}
 			if r.URL.Path == "/commit" {
-				value = f.blocks[i]
+				value = &f.blocks[i]
 			} else {
 				if r.URL.Query().Get("page") != "1" || r.URL.Query().Get("per_page") != "100" {
 					t.Error("unbounded validator lookup")
 				}
-				value = f.validators[i]
+				value = &f.validators[i]
 			}
 		default:
 			t.Error("unexpected collector RPC", r.URL.Path)
@@ -199,9 +215,43 @@ func (f *pqFinalityFixture) serve(t *testing.T) http.Handler {
 	})
 }
 
+func TestGatewayPQFinalityUsesNormalRPCPointerEncoding(t *testing.T) {
+	query := coretypes.ResultABCIQuery{Response: abci.ResponseQuery{Height: 2, Value: []byte(`{"public":"original"}`)}}
+	response := rpctypes.NewRPCSuccessResponse(rpctypes.JSONRPCIntID(-1), &query)
+	var decoded coretypes.ResultABCIQuery
+	if err := pqFinalityDecode(response.Result, &decoded); err != nil || decoded.Response.Height != query.Response.Height || decoded.Response.Code != 0 || !bytes.Equal(decoded.Response.Value, query.Response.Value) {
+		t.Fatal("normal Comet query result was not accepted", err)
+	}
+	var fields struct {
+		Response map[string]json.RawMessage `json:"response"`
+	}
+	if json.Unmarshal(response.Result, &fields) != nil || !bytes.Equal(fields.Response["code"], []byte("0")) {
+		t.Fatal("normal ABCI pointer marshaler did not emit the default code")
+	}
+	byValue, err := cmtjson.Marshal(query)
+	if err != nil || bytes.Equal(byValue, response.Result) {
+		t.Fatal("fixture did not reproduce the pointer/value encoding difference", err)
+	}
+	if err = pqFinalityDecode(byValue, &coretypes.ResultABCIQuery{}); err == nil {
+		t.Fatal("non-RPC fixture grammar silently filled missing defaults")
+	}
+	delete(fields.Response, "code")
+	missing, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = pqFinalityDecode(missing, &coretypes.ResultABCIQuery{}); err == nil {
+		t.Fatal("missing real query field was accepted")
+	}
+}
+
 func finalityGET(t *testing.T, g *Gateway, nativeHash string) (int, PQFinalityView) {
+	return finalityRouteGET(t, g, "/transactions/pq/originals/"+nativeHash+"/finality-proof")
+}
+
+func finalityRouteGET(t *testing.T, g *Gateway, route string) (int, PQFinalityView) {
 	t.Helper()
-	r := httptest.NewRequest(http.MethodGet, "/transactions/pq/originals/"+nativeHash+"/finality-proof", nil)
+	r := httptest.NewRequest(http.MethodGet, route, nil)
 	w := httptest.NewRecorder()
 	g.Handler().ServeHTTP(w, r)
 	var view PQFinalityView
@@ -235,6 +285,10 @@ func TestGatewayPQFinalityCollectsOriginalProofsAndRestart(t *testing.T) {
 			code, got := finalityGET(t, g, hash)
 			if code != 200 || got.Status != "collected" || got.Proof == nil || got.IndependentFinality || got.ProofVerification != "not-performed" || got.Source != "configured-comet-rpc" || got.NativeTransactionHash != hash || got.ABCITransactionHash != consensus.SignedTransactionHash(f.f.payload) || got.CometIndex == nil || *got.CometIndex != 1 {
 				t.Fatalf("real original proof collection failed: HTTP %d %+v", code, got)
+			}
+			code, byABCI := finalityRouteGET(t, g, "/txs/"+got.ABCITransactionHash+"/pq-finality-proof")
+			if code != 200 || !reflect.DeepEqual(byABCI, got) || byABCI.ObservedExecutionStatus != "committed" {
+				t.Fatalf("ABCI successful collector bypassed original history: %d %s", code, byABCI.Error)
 			}
 			raw, err := json.Marshal(got.Proof)
 			if err != nil {
@@ -307,7 +361,7 @@ func TestGatewayPQFinalityRejectsInconsistentOrUnavailableEvidence(t *testing.T)
 					case "wrong-index":
 						v.Index = 0
 					}
-					return marshal(v)
+					return marshal(&v)
 				}
 				if path == "/block_results" {
 					var v coretypes.ResultBlockResults
@@ -324,7 +378,7 @@ func TestGatewayPQFinalityRejectsInconsistentOrUnavailableEvidence(t *testing.T)
 					case "changed-data":
 						v.TxsResults[1].Data = []byte("different result")
 					}
-					return marshal(v)
+					return marshal(&v)
 				}
 				if path == "/status" {
 					var v coretypes.ResultStatus
@@ -335,7 +389,7 @@ func TestGatewayPQFinalityRejectsInconsistentOrUnavailableEvidence(t *testing.T)
 					if mode == "wrong-chain" {
 						v.NodeInfo.Network += "other"
 					}
-					return marshal(v)
+					return marshal(&v)
 				}
 				if path == "/validators" {
 					var v coretypes.ResultValidators
@@ -348,7 +402,7 @@ func TestGatewayPQFinalityRejectsInconsistentOrUnavailableEvidence(t *testing.T)
 						v.Count++
 						v.Total++
 					}
-					return marshal(v)
+					return marshal(&v)
 				}
 				if path == "/commit" {
 					var v coretypes.ResultCommit
@@ -379,7 +433,7 @@ func TestGatewayPQFinalityRejectsInconsistentOrUnavailableEvidence(t *testing.T)
 						// negatives exercise the collector's actual cross-bindings.
 						v.Commit.BlockID.Hash = v.Header.Hash()
 					}
-					return marshal(v)
+					return marshal(&v)
 				}
 				return raw
 			}
@@ -456,7 +510,7 @@ func TestGatewayPQFinalityDeterministicResultStripsOnlyUncommittedFields(t *test
 		v.TxsResults[1].Log = "uncommitted RPC log"
 		v.TxsResults[1].Info = "uncommitted RPC info"
 		v.TxsResults[1].Events = []abci.Event{{Type: "uncommitted-event"}}
-		b, err := cmtjson.Marshal(v)
+		b, err := cmtjson.Marshal(&v)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -469,5 +523,279 @@ func TestGatewayPQFinalityDeterministicResultStripsOnlyUncommittedFields(t *test
 	var result abci.ExecTxResult
 	if result.Unmarshal(view.Proof.ExecutionResult) != nil || result.Log != "" || result.Info != "" || len(result.Events) != 0 || result.Code != 0 || !bytes.Equal(result.Data, []byte(view.ABCITransactionHash)) {
 		t.Fatal("execution proof included non-deterministic metadata or lost real result")
+	}
+}
+
+// Reuse the existing account/key fixture and the normal Comet execution APIs.
+// Both conflicting envelopes pass CheckTx against the same committed nonce.
+// They are then deliberately supplied to BlockExecutor, which preserves the
+// actual second transaction's failure. This does not claim proposal acceptance.
+func newPQFinalityRejectedFixture(t *testing.T) *pqFinalityFixture {
+	t.Helper()
+	f, _, _ := newGatewayMigrationFixture(t)
+	keys := map[string]ed25519.PrivKey{}
+	var bindings []chain.ConsensusValidatorKeyBinding
+	for i, validator := range f.migration.Validators {
+		key := ed25519.GenPrivKeyFromSecret([]byte(fmt.Sprintf("public-finality-engine-member-%d", i)))
+		pub := key.PubKey()
+		keys[string(pub.Address())] = key
+		bindings = append(bindings, chain.ConsensusValidatorKeyBinding{ValidatorAddress: validator.Address, KeyType: chain.ConsensusPubKeyTypeEd25519, PublicKey: base64.StdEncoding.EncodeToString(pub.Bytes()), ConsensusAddress: strings.ToUpper(hex.EncodeToString(pub.Address()))})
+	}
+	var err error
+	f.migration, err = f.migration.BindConsensusValidatorKeys(bindings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc, err := consensus.BuildCometGenesis(f.migration, time.Date(2026, 10, 18, 1, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := cmtjson.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(raw)
+	bootstrap, err := consensus.NewConsensusBootstrap(raw, consensus.ConsensusBootstrapPins{CometGenesisSHA256: hex.EncodeToString(digest[:]), OriginalGenesisHash: f.migration.OriginalGenesisHash, MigrationStateHash: f.migration.StateHash}, f.migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "actual-execution.json")
+	f.a, err = consensus.NewPersistentApplicationWithBootstrap(f.migration, path, bootstrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	db, blockDB := dbm.NewMemDB(), dbm.NewMemDB()
+	t.Cleanup(func() { _ = db.Close(); _ = blockDB.Close() })
+	store := sm.NewStore(db, sm.StoreOptions{})
+	blocks := blockstore.NewBlockStore(blockDB)
+	appConns := proxy.NewAppConns(proxy.NewLocalClientCreator(f.a), proxy.NopMetrics())
+	if err = appConns.Start(); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = appConns.Stop() })
+	initial, err := sm.MakeGenesisState(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial.AppHash = nil
+	if err = store.Save(initial); err != nil {
+		t.Fatal(err)
+	}
+	handshake := cmtconsensus.NewHandshaker(store, initial, blocks, doc)
+	handshake.SetConsensusAuthoritySource(f.a)
+	if err = handshake.Handshake(appConns); err != nil {
+		t.Fatal(err)
+	}
+	boundStore := sm.WithConsensusAuthorityStore(store, f.a)
+	apply := func(txs cmttypes.Txs) int64 {
+		state, err := boundStore.Load()
+		if err != nil {
+			t.Fatal(err)
+		}
+		h := state.LastBlockHeight + 1
+		previous := &cmttypes.Commit{}
+		if state.LastBlockHeight == 0 {
+			h = state.InitialHeight
+		} else {
+			previous = blocks.LoadSeenCommit(state.LastBlockHeight)
+		}
+		block, err := state.MakeBlock(h, txs, previous, nil, state.Validators.GetProposer().Address)
+		if err != nil {
+			t.Fatal(err)
+		}
+		parts, err := block.MakePartSet(cmttypes.BlockPartSizeBytes)
+		if err != nil {
+			t.Fatal(err)
+		}
+		id := cmttypes.BlockID{Hash: block.Hash(), PartSetHeader: parts.Header()}
+		commit := &cmttypes.Commit{Height: h, BlockID: id}
+		for _, member := range state.Validators.Validators {
+			commit.Signatures = append(commit.Signatures, cmttypes.CommitSig{BlockIDFlag: cmttypes.BlockIDFlagCommit, ValidatorAddress: member.Address, Timestamp: block.Time.Add(time.Second)})
+		}
+		for i, member := range state.Validators.Validators {
+			key, ok := keys[string(member.Address)]
+			if !ok {
+				t.Fatal("missing original synthetic consensus key")
+			}
+			commit.Signatures[i].Signature, err = key.Sign(commit.VoteSignBytes(doc.ChainID, int32(i)))
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		blocks.SaveBlock(block, parts, commit)
+		executor := sm.NewBlockExecutor(boundStore, log.NewNopLogger(), appConns.Consensus(), &mempool.NopMempool{}, sm.EmptyEvidencePool{}, blocks)
+		if _, err = executor.ApplyBlock(state, id, block); err != nil {
+			t.Fatal("actual finality fixture BlockExecutor:", err)
+		}
+		return h
+	}
+	registrationH := apply(cmttypes.Txs{cmttypes.Tx(f.payload)})
+	registration, err := store.LoadFinalizeBlockResponse(registrationH)
+	if err != nil || registration == nil || len(registration.TxResults) != 1 || registration.TxResults[0] == nil || registration.TxResults[0].Code != 0 {
+		t.Fatalf("actual migration failed: %v %+v", err, registration)
+	}
+	winnerWire := signGatewayMember(t, f.key, f.network, f.owner, ynxauth.TransactionPurpose, f.message(t, 2, 7))
+	f.wire = signGatewayMember(t, f.key, f.network, f.owner, ynxauth.TransactionPurpose, f.message(t, 2, 9))
+	winner, err := consensus.EncodePQTransaction(consensus.PQTransferType, winnerWire)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.payload, err = consensus.EncodePQTransaction(consensus.PQTransferType, f.wire)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, payload := range [][]byte{winner, f.payload} {
+		check, err := f.a.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: payload})
+		if err != nil || check.Code != 0 {
+			t.Fatalf("competing original was not independently admissible: %v %+v", err, check)
+		}
+	}
+	before := queryPQGatewayAccount(t, f.a, f.owner)
+	height := apply(cmttypes.Txs{cmttypes.Tx(winner), cmttypes.Tx(f.payload)})
+	results, err := store.LoadFinalizeBlockResponse(height)
+	if err != nil || results == nil || len(results.TxResults) != 2 || results.TxResults[0] == nil || results.TxResults[1] == nil || results.TxResults[0].Code != 0 || results.TxResults[1].Code == 0 || len(results.TxResults[1].Data) != 0 {
+		t.Fatalf("actual competing-nonce outcomes missing: %v %+v", err, results)
+	}
+	apply(nil)
+	after := queryPQGatewayAccount(t, f.a, f.owner)
+	if after.Nonce != 2 || after.Balance != before.Balance-8 || after.ResourceUsage.BandwidthUsed != before.ResourceUsage.BandwidthUsed+1 {
+		t.Fatal("failed execution changed nonce, balance or resource usage")
+	}
+	missing, err := f.a.Query(context.Background(), &abci.RequestQuery{Path: consensus.PQWalletHistoryPath + consensus.SignedTransactionHash(f.wire)})
+	if err != nil || missing.Code == 0 {
+		t.Fatalf("failed original acquired successful PQHistory: %v %+v", err, missing)
+	}
+	actual := blocks.LoadBlock(height)
+	if actual == nil || len(actual.Data.Txs) != 2 {
+		t.Fatal("actual execution block was not retained")
+	}
+	v := &pqFinalityFixture{f: f, statePath: path, bootstrap: bootstrap, tx: coretypes.ResultTx{Hash: actual.Data.Txs[1].Hash(), Height: height, Index: 1, TxResult: *results.TxResults[1], Tx: actual.Data.Txs[1], Proof: actual.Data.Txs.Proof(1)}}
+	v.results = coretypes.ResultBlockResults{Height: height, TxsResults: results.TxResults, FinalizeBlockEvents: results.Events, ValidatorUpdates: results.ValidatorUpdates, ConsensusParamUpdates: results.ConsensusParamUpdates, AppHash: results.AppHash}
+	for i := range v.blocks {
+		h := height + int64(i)
+		block := blocks.LoadBlock(h)
+		commit := blocks.LoadSeenCommit(h)
+		if i == 0 {
+			commit = blocks.LoadBlockCommit(h)
+		}
+		if block == nil || commit == nil {
+			t.Fatal("actual execution block or original commit missing", h)
+		}
+		v.blocks[i] = *coretypes.NewResultCommit(&block.Header, commit, i == 0)
+		validators, err := store.LoadValidators(h)
+		if err != nil || validators == nil {
+			t.Fatal(err)
+		}
+		v.validators[i] = coretypes.ResultValidators{BlockHeight: h, Validators: validators.Validators, Count: len(validators.Validators), Total: len(validators.Validators)}
+	}
+	v.status.NodeInfo.Network = doc.ChainID
+	first := blocks.LoadBlock(doc.InitialHeight)
+	if first == nil {
+		t.Fatal("original first block missing")
+	}
+	v.status.SyncInfo = coretypes.SyncInfo{LatestBlockHeight: height + 1, EarliestBlockHeight: doc.InitialHeight, LatestBlockHash: v.blocks[1].Header.Hash(), EarliestBlockHash: first.Hash()}
+	return v
+}
+
+func TestGatewayPQFinalityRejectedABCIOriginalBlockExecutorAndRestart(t *testing.T) {
+	f := newPQFinalityRejectedFixture(t)
+	g := finalityGateway(t, f)
+	native, outer := consensus.SignedTransactionHash(f.f.wire), consensus.SignedTransactionHash(f.f.payload)
+	route := "/txs/" + outer + "/pq-finality-proof"
+	code, got := finalityRouteGET(t, g, route)
+	if code != 200 || got.Status != "collected" || got.ObservedExecutionStatus != "rejected" || got.Proof == nil || got.IndependentFinality || got.ProofVerification != "not-performed" || got.NativeTransactionHash != native || got.ABCITransactionHash != outer || got.CometIndex == nil || *got.CometIndex != 1 {
+		t.Fatalf("actual failed original proof unavailable: %d %+v", code, got)
+	}
+	for _, request := range f.requests {
+		if strings.HasPrefix(request, "/abci_query") {
+			t.Fatal("failed original required a nonexistent successful PQHistory")
+		}
+	}
+	var result abci.ExecTxResult
+	var proof merkle.Proof
+	var txProof cmttypes.TxProof
+	if result.Unmarshal(got.Proof.ExecutionResult) != nil || result.Code != f.tx.TxResult.Code || result.Code == 0 || len(result.Data) != 0 || cmtjson.Unmarshal(got.Proof.ExecutionProof, &proof) != nil || proof.Verify(f.blocks[1].LastResultsHash, got.Proof.ExecutionResult) != nil || cmtjson.Unmarshal(got.Proof.TransactionProof, &txProof) != nil || txProof.Validate(f.blocks[0].DataHash) != nil || !bytes.Equal(txProof.Data, f.f.payload) || proof.Index != txProof.Proof.Index || proof.Total != txProof.Proof.Total {
+		t.Fatal("failed proof lost exact transaction, code, empty data or real Merkle root")
+	}
+	raw, _ := json.Marshal(got.Proof)
+	if _, err := consensus.DecodePQTransactionProofRequest(raw); err != nil {
+		t.Fatal(err)
+	}
+	code, nativeView := finalityGET(t, g, native)
+	if code != 502 || nativeView.Proof != nil {
+		t.Fatal("successful-native route accepted absent failed history")
+	}
+	before := queryPQGatewayAccount(t, f.f.a, f.f.owner)
+	var err error
+	f.f.a, err = consensus.NewPersistentApplicationWithBootstrap(f.f.migration, f.statePath, f.bootstrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, restored := finalityRouteGET(t, g, route)
+	if code != 200 || !reflect.DeepEqual(got, restored) || !reflect.DeepEqual(before, queryPQGatewayAccount(t, f.f.a, f.f.owner)) {
+		t.Fatalf("cold failed proof recovery changed original or ledger: %d %s", code, restored.Error)
+	}
+	for _, mode := range []string{"fake-success", "nonempty-failure-data", "different-failure-code", "different-subject", "missing-successor"} {
+		t.Run(mode, func(t *testing.T) {
+			f.mutate = func(path string, raw []byte) []byte {
+				if path == "/tx" {
+					var tx coretypes.ResultTx
+					_ = cmtjson.Unmarshal(raw, &tx)
+					switch mode {
+					case "fake-success":
+						tx.TxResult.Code = 0
+						tx.TxResult.Data = []byte(outer)
+					case "nonempty-failure-data":
+						tx.TxResult.Data = []byte(outer)
+					case "different-failure-code":
+						tx.TxResult.Code++
+					case "different-subject":
+						tx.Tx = append(bytes.Clone(tx.Tx), ' ')
+						tx.Hash = tx.Tx.Hash()
+					}
+					b, err := cmtjson.Marshal(&tx)
+					if err != nil {
+						t.Fatal(err)
+					}
+					return b
+				}
+				if mode == "different-failure-code" && path == "/block_results" {
+					var results coretypes.ResultBlockResults
+					_ = cmtjson.Unmarshal(raw, &results)
+					results.TxsResults[1].Code++
+					b, err := cmtjson.Marshal(&results)
+					if err != nil {
+						t.Fatal(err)
+					}
+					return b
+				}
+				if mode == "missing-successor" && path == "/commit" {
+					var block coretypes.ResultCommit
+					_ = cmtjson.Unmarshal(raw, &block)
+					if block.Height == f.tx.Height+1 {
+						return []byte("null")
+					}
+				}
+				return raw
+			}
+			code, bad := finalityRouteGET(t, g, route)
+			if code != 502 || bad.Proof != nil || bad.Status == "pending" || bad.IndependentFinality {
+				t.Fatalf("%s became terminal proof: %d %+v", mode, code, bad)
+			}
+			f.mutate = nil
+		})
+	}
+	f.status.SyncInfo.LatestBlockHeight, f.status.SyncInfo.LatestBlockHash = f.tx.Height, f.blocks[0].Header.Hash()
+	code, pending := finalityRouteGET(t, g, route)
+	if code != 202 || pending.Status != "pending" || pending.ObservedExecutionStatus != "rejected" || pending.Proof != nil {
+		t.Fatalf("rejected tx before H+1 was claimed final: %d %+v", code, pending)
+	}
+	for _, invalid := range []string{route + "?height=3", "/txs/" + strings.ToUpper(outer) + "/pq-finality-proof"} {
+		before := len(f.requests)
+		w := httptest.NewRecorder()
+		g.Handler().ServeHTTP(w, httptest.NewRequest(http.MethodGet, invalid, nil))
+		if w.Code != 400 || len(f.requests) != before {
+			t.Fatal("invalid ABCI finality route reached RPC")
+		}
 	}
 }
