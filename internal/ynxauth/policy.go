@@ -128,6 +128,14 @@ func registration(r Record, network []byte, purpose string) ynxbatch.Registratio
 // It also binds the complete application message; a valid certificate by itself
 // cannot authorize different decoded execution fields.
 func (s State) VerifyMember(owner, purpose string, message, wire []byte, height uint64) error {
+	return s.VerifyMemberWithCache(owner, purpose, message, wire, height, nil, nil)
+}
+
+// VerifyMemberWithCache preserves all live policy, height and membership checks.
+// scope is the caller's trusted 32-byte policy/root commitment. It must change
+// when that trusted root changes and must not come from the submitted proof.
+// The caller still holds its state lock or supplies an immutable state snapshot.
+func (s State) VerifyMemberWithCache(owner, purpose string, message, wire []byte, height uint64, cache *ynxbatch.CertificateCache, scope []byte) error {
 	if err := s.Validate(s.NetworkID); err != nil {
 		return err
 	}
@@ -141,7 +149,7 @@ func (s State) VerifyMember(owner, purpose string, message, wire []byte, height 
 	if m.Certificate.Owner != owner || !bytes.Equal(m.Message, message) {
 		return errors.New("authorization message or sender mismatch")
 	}
-	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: s.NetworkID, Purpose: purpose, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
+	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: s.NetworkID, Purpose: purpose, CertificateCache: cache, CacheScope: scope, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
 		return s.TrustedRegistration(req.Owner, purpose, req.Height)
 	}})
 	if err != nil {

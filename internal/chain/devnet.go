@@ -3004,6 +3004,15 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 		if !ok {
 			return ContractCallResult{}, Transaction{}, errors.New("bounded local contract execution requires deployed bytecode")
 		}
+		// Anchored history replays the original pinned executable. Reject drift
+		// before running it or changing the checkpoint, including legacy callers
+		// whose account has not migrated to the PQ authorization policy.
+		if artifact.PQAnchorTransactionHash != "" {
+			codeHash, codeErr := ValidateBoundedPinnedIdentity(artifact.Name, artifact.SourceHash, bytecode)
+			if codeErr != nil || codeHash != artifact.DeployedBytecodeHash {
+				return ContractCallResult{}, Transaction{}, errors.New("PQ-anchored contract deployed bytecode differs from its pinned execution identity")
+			}
+		}
 		transition, err := runStatefulEVMSubset(bytecode, normalizedCallData, caller, artifact.RuntimeStorage)
 		if err != nil {
 			return ContractCallResult{}, Transaction{}, fmt.Errorf("bounded local EVM state-transition subset does not support this calldata/write path: %w", err)

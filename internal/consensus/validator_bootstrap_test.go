@@ -36,7 +36,10 @@ type validatorRegistryFixture struct {
 
 func newValidatorRegistryFixture(t *testing.T) *validatorRegistryFixture {
 	t.Helper()
-	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	d := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), []chain.Validator{
+		{Address: "ynx_validator_primary", Moniker: "ynx-primary", VotingPower: 1, Active: true},
+		{Address: "ynx_validator_seoul", Moniker: "ynx-seoul", VotingPower: 1, Active: true},
+	})
 	d.ProduceBlock()
 	migration, err := d.ExportConsensusMigrationState()
 	if err != nil {

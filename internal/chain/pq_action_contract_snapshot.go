@@ -424,11 +424,22 @@ func pqLegacyContractCalldata(tx Transaction, a ContractArtifact, mined bool) (s
 
 func validatePQContractLegacyLogs(tx Transaction, transition BoundedContractTransition, mined bool, txIndex, firstLog uint64) error {
 	raw := evmLogsFromExecutionLogs(contractExecutionLogs(tx.To, transition.Logs))
+	legacyERC20 := strings.HasPrefix(tx.Memo, "erc20-transfer:")
+	if legacyERC20 {
+		parts := strings.Split(tx.Memo, ":")
+		if len(parts) != 6 || len(parts[2]) != 42 || len(parts[3]) != 42 || len(raw) != 1 || len(raw[0].Topics) != 3 {
+			return errors.New("legacy ERC20 memo lacks its exact replayed Transfer log")
+		}
+		amount, ok := new(big.Int).SetString(parts[4], 10)
+		if !ok || amount.Sign() < 0 || amount.BitLen() > 256 || raw[0].Topics[0] != parts[5] || raw[0].Topics[1] != "0x"+strings.Repeat("0", 24)+parts[2][2:] || raw[0].Topics[2] != "0x"+strings.Repeat("0", 24)+parts[3][2:] || raw[0].Data != "0x"+fmt.Sprintf("%064x", amount) {
+			return errors.New("legacy ERC20 arguments differ from the actual replayed VM log")
+		}
+	}
 	if !mined {
 		if tx.BlockNum != 0 || tx.BlockHash != "" {
 			return errors.New("pending legacy call claims inclusion")
 		}
-		if strings.HasPrefix(tx.Memo, "erc20-transfer:") {
+		if legacyERC20 {
 			raw = nil
 		}
 		if !reflect.DeepEqual(tx.Logs, raw) {
@@ -442,6 +453,13 @@ func validatePQContractLegacyLogs(tx Transaction, transition BoundedContractTran
 	projection := tx
 	projection.Memo = ""
 	projection.Logs = raw
+	if legacyERC20 {
+		// The original producer hashes 20-byte address strings with evmTopic;
+		// actual LOG3 uses ABI-padded addresses. Keep that one legacy receipt
+		// representation after proving its arguments against the VM above.
+		// All system/event fields and containing positions remain exact.
+		projection.Memo, projection.Logs = tx.Memo, nil
+	}
 	expected := (&Devnet{}).evmLogsForTransactionLocked(projection, txIndex, firstLog)
 	if !reflect.DeepEqual(tx.Logs, expected) {
 		return errors.New("legacy contract logs do not match replayed bytecode and actual positions")

@@ -1,6 +1,25 @@
 name: Resource Market Candidate Gates
 
 on:
+  push:
+    branches:
+      - 'codex/ynx-pq-public-upgrade'
+    paths:
+      - 'internal/ynxbatch/**'
+      - 'internal/ynxauth/**'
+      - 'internal/ynxconsensusauth/**'
+      - 'internal/chain/**'
+      - 'internal/consensus/**'
+      - 'internal/api/**'
+      - 'internal/bftgateway/**'
+      - 'cmd/**'
+      - 'pkg/**'
+      - 'third_party/cometbft/**'
+      - 'scripts/loadtest/**'
+      - 'scripts/fixtures/verify-pq-wallet-restored/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/resource-market-ci.yml'
   pull_request:
     paths:
       - 'apps/resource-market/**'
@@ -82,7 +101,10 @@ jobs:
           compression-level: 6
 
   focused-go:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha
+    if: github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))
+    concurrency:
+      group: ynx-pq-fixed-source-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
@@ -95,7 +117,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.candidate_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 64
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -106,11 +128,16 @@ jobs:
         id: identity
         run: |
           git rev-parse HEAD
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
           go version
           git status --porcelain
       - name: Verify pure dual-PQ protocol and account authorization
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: go test -p 1 -count=1 -timeout=180s ./internal/ynxbatch ./internal/ynxauth ./internal/ynxconsensusauth
+        run: go test -p 1 -count=1 -timeout=180s ./internal/ynxbatch ./internal/ynxauth ./internal/ynxconsensusauth ./scripts/fixtures/verify-pq-wallet-restored
+      - name: Measure bounded certificate cache cold and warm paths
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 2
+        run: go test -p 1 ./internal/ynxbatch -run '^$' -bench '^BenchmarkCertificateCache$' -benchtime=10x -count=1 -timeout=90s
       - name: Install pinned contract build runtime
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -126,7 +153,7 @@ jobs:
           GOMEMLIMIT: '512MiB'
         run: |
           YNX_OVERLAY_COMPILE_CASE="$RUNNER_TEMP/ynx-pq-overlay-compile-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          node scripts/loadtest/prepare-pq-paired-benchmark.mjs --source-root "$GITHUB_WORKSPACE" --commit '${{ inputs.candidate_sha }}' --output-dir "$YNX_OVERLAY_COMPILE_CASE" --n 16 --trial 1 --write
+          node scripts/loadtest/prepare-pq-paired-benchmark.mjs --source-root "$GITHUB_WORKSPACE" --commit '${{ github.sha }}' --output-dir "$YNX_OVERLAY_COMPILE_CASE" --n 16 --trial 1 --write
           go test -overlay "$YNX_OVERLAY_COMPILE_CASE/overlay.json" -p 1 ./internal/chain -run '^$' -count=1 -timeout=90s
           test -z "$(git status --porcelain --untracked-files=normal)"
       - name: Generate canonical IDE contract fixture

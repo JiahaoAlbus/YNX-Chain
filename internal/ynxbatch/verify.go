@@ -34,6 +34,11 @@ type VerifierOptions struct {
 	ResolveTrustedOwner func(TrustRequest) (Registration, error)
 	CacheEntries        int
 	Optimized           bool
+	// CertificateCache may be shared by short-lived verifiers. CacheScope must
+	// be a 32-byte trusted policy/root commitment, never supplied by a submitter.
+	// The complete registration is additionally bound and refreshed on every use.
+	CertificateCache *CertificateCache
+	CacheScope       []byte
 }
 type authenticatedState struct {
 	c     Certificate
@@ -57,24 +62,29 @@ type VerifierStats struct {
 	SignatureChecks, CacheHits uint64
 }
 type Verifier struct {
-	mu           sync.Mutex
-	chainID      []byte
-	purpose      string
-	resolve      func(TrustRequest) (Registration, error)
-	cacheEntries int
-	optimized    bool
-	cache        map[string]*list.Element
-	lru          *list.List
-	epoch        uint64
-	checks, hits uint64
+	mu               sync.Mutex
+	chainID          []byte
+	purpose          string
+	resolve          func(TrustRequest) (Registration, error)
+	cacheEntries     int
+	optimized        bool
+	cache            map[string]*list.Element
+	lru              *list.List
+	epoch            uint64
+	checks, hits     uint64
+	certificateCache *CertificateCache
+	cacheScope       []byte
 }
 
 func NewVerifier(o VerifierOptions) (*Verifier, error) {
 	if len(o.ChainID) != 32 || !validASCII(o.Purpose, 64) || o.ResolveTrustedOwner == nil || o.CacheEntries < 0 || o.CacheEntries > 64 {
 		return nil, invalid("verifier configuration")
 	}
+	if o.CertificateCache != nil && (!o.CertificateCache.enabled() || len(o.CacheScope) != 32) || o.CertificateCache == nil && len(o.CacheScope) != 0 {
+		return nil, invalid("certificate cache scope")
+	}
 	return &Verifier{chainID: clone(o.ChainID), purpose: o.Purpose, resolve: o.ResolveTrustedOwner, cacheEntries: o.CacheEntries, optimized: o.Optimized,
-		cache: make(map[string]*list.Element), lru: list.New(), epoch: 1}, nil
+		cache: make(map[string]*list.Element), lru: list.New(), epoch: 1, certificateCache: o.CertificateCache, cacheScope: clone(o.CacheScope)}, nil
 }
 func (v *Verifier) current(c Certificate, height uint64) ([]byte, error) {
 	if !bytes.Equal(c.ChainID, v.chainID) || c.Purpose != v.purpose {
@@ -120,7 +130,12 @@ func (v *Verifier) AuthenticateCertificate(wire []byte, height uint64) (*Authent
 	if err != nil {
 		return nil, err
 	}
-	keyBytes, err := EncodeFields(frozen, trust)
+	var keyBytes []byte
+	if v.certificateCache != nil {
+		keyBytes, err = EncodeFields(v.cacheScope, frozen, trust)
+	} else {
+		keyBytes, err = EncodeFields(frozen, trust)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -131,13 +146,20 @@ func (v *Verifier) AuthenticateCertificate(wire []byte, height uint64) (*Authent
 		state = entry.Value.(cacheEntry).state
 		v.hits++
 	} else {
-		keys, err := importPublic(c.Context)
-		if err != nil {
-			return nil, err
+		var generation uint64
+		sharedHit := false
+		if v.certificateCache != nil {
+			generation, sharedHit = v.certificateCache.lookup(key)
 		}
-		v.checks += 2
-		if err = verifySignatures(c, keys); err != nil {
-			return nil, err
+		if !sharedHit {
+			keys, err := importPublic(c.Context)
+			if err != nil {
+				return nil, err
+			}
+			v.checks += 2
+			if err = verifySignatures(c, keys); err != nil {
+				return nil, err
+			}
 		}
 		now, err := v.current(c, height)
 		if err != nil {
@@ -149,6 +171,9 @@ func (v *Verifier) AuthenticateCertificate(wire []byte, height uint64) (*Authent
 		h, err := newDualHasher(c.Context, c.N, v.optimized)
 		if err != nil {
 			return nil, err
+		}
+		if v.certificateCache != nil && !sharedHit {
+			v.certificateCache.remember(key, generation)
 		}
 		state = &authenticatedState{c: c, trust: trust, hash: h}
 		if v.cacheEntries > 0 {

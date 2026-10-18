@@ -1,0 +1,27 @@
+{
+  "baselineCommit": "253e5c035fd4438be00fb2204c06e892304ef3d0",
+  "evidence": "source-only; local Go execution prohibited; remote test/benchmark pending",
+  "unchangedProviderAndTree": true,
+  "files": [
+    {
+      "path": "internal/ynxbatch/provider.go",
+      "gitBlob": "4fd7f6a20f2baabd69381c4f90185d1b2423b23e",
+      "sha256": "702eb55b625a429dc37d6d2ae2374e036992da4cd5da583dbea63c45bddfecca"
+    },
+    {
+      "path": "internal/ynxbatch/verify.go",
+      "gitBlob": "3544d30a7ce9cb5f6e3ca226cede8ae21e523445",
+      "sha256": "182e78c1c5040609c0c0562e2363eb2f895c9d1b862ccb6f72c9fe9bcc5b582a"
+    },
+    {
+      "path": "internal/ynxbatch/tree.go",
+      "gitBlob": "883439e618b73c5fa654dfe1c8cd49edd2e3ff9b",
+      "sha256": "2affe538430a6bca557ecd7a726dbe750bebc51b1983c2c3df241adf1e6fb387"
+    },
+    {
+      "path": "internal/ynxauth/policy.go",
+      "gitBlob": "dc9fb2cf8c631cd2fea6ad7e5bac3e3861db6770",
+      "sha256": "39d887709c61903a621a1f00b59f18ac6d91d7891fd3eeb7ad59960d806a6f4d"
+    }
+  ]
+}

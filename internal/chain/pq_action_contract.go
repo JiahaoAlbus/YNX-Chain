@@ -297,6 +297,19 @@ func (d *Devnet) submitPQContractActionLocked(a ynxauth.Action, payload any, has
 		if next.SourceHash != p.SourceHash || next.DeployedBytecodeHash != p.DeployedBytecodeHash || next.CompilerConfigHash != p.CompilerConfigHash {
 			return Transaction{}, errors.New("signed deployment identity differs from actual pinned compiler output")
 		}
+		// The compiler builder uses empty non-nil ABI input/output slices. Their
+		// omitempty fields decode as nil on snapshot/receipt roundtrip. Store the
+		// complete canonical artifact now so copying it preserves exact in-memory
+		// identity too; no field is scrubbed and its JSON spelling is unchanged.
+		canonical, err := json.Marshal(next)
+		if err != nil {
+			return Transaction{}, err
+		}
+		var normalized ContractArtifact
+		if err := json.Unmarshal(canonical, &normalized); err != nil {
+			return Transaction{}, err
+		}
+		next = normalized
 		r.Artifact = next
 	case ynxauth.ContractExecutePayload:
 		before, ok := d.contracts[p.Target]
