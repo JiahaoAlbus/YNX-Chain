@@ -89,6 +89,17 @@ func run(args []string, input io.Reader, output io.Writer, localClock func() tim
 	if err != nil {
 		return failure("INVALID_ARGUMENTS", "explicit pinned trust-context flags are required")
 	}
+	// Only the externally selected context can choose the transaction profile.
+	// Its larger bound accommodates the exact original envelope and native wire;
+	// the v1 reader below retains its original 32 KiB context/request contract.
+	if contextRaw, readErr := readPublicFile(o.contextPath, maxTransactionContextBytes); readErr == nil {
+		var discriminator struct {
+			Version string `json:"version"`
+		}
+		if json.Unmarshal(contextRaw, &discriminator) == nil && discriminator.Version == transactionContextVersion {
+			return runTransactionProof(o, contextRaw, input, output, localClock)
+		}
+	}
 	raw, err := io.ReadAll(io.LimitReader(input, consensus.MaxPQLightProofRequestBytes+(4<<10)+1))
 	if err != nil || len(raw) > consensus.MaxPQLightProofRequestBytes+(4<<10) {
 		return failure("INVALID_REQUEST", "proof request read failed or exceeded its bound")

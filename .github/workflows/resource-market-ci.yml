@@ -331,6 +331,7 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         env:
           YNX_PQ_LIGHT_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-light-proof-public.json
+          YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
@@ -1277,6 +1278,107 @@ jobs:
               target.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
           print('YNX_PQ_PROOF_CLI_INTEROP ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
           PY
+      - name: Verify normal transaction proof CLI with exact public two-header fixture
+        id: pqtransactionproofcli
+        if: ${{ success() && github.event_name == 'push' }}
+        timeout-minutes: 2
+        run: |
+          umask 077
+          python3 -B - <<'PY'
+          import base64, hashlib, json, os, re, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          fixture_path = root / 'ynx-pq-consensus-transaction-proof-public.json'
+          fixture_raw = fixture_path.read_bytes()
+          if not 0 < len(fixture_raw) <= 128 << 20:
+              raise RuntimeError('public transaction fixture exceeds its bound')
+          fixture = json.loads(fixture_raw)
+          if (fixture['version'] != 'YNX-PQ-CONSENSUS-TRANSACTION-PROOF-PUBLIC-FIXTURE/v1'
+                  or fixture['syntheticOnly'] is not True):
+              raise RuntimeError('unexpected transaction proof fixture')
+          def sha(raw):
+              return hashlib.sha256(raw).hexdigest()
+          case = root / ('ynx-pq-transaction-proof-cli-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          case.mkdir(mode=0o700)
+          names = {'migration.json', 'genesis.json', 'committed-state.json', 'schedule.json', 'trusted-light-block.json'}
+          if len(fixture['materials']) != 5 or {m['name'] for m in fixture['materials']} != names:
+              raise RuntimeError('transaction public material allowlist differs')
+          original = {}
+          for material in fixture['materials']:
+              raw = base64.b64decode(material['bytes'], validate=True)
+              if str(len(raw)) != material['byteLength'] or sha(raw) != material['sha256']:
+                  raise RuntimeError('transaction proof public material pin differs')
+              with (case / material['name']).open('xb') as target:
+                  target.write(raw)
+              original[material['name']] = raw
+          mappings = dict(migrationFile='migration.json', genesisFile='genesis.json', stateFile='committed-state.json',
+              scheduleFile='schedule.json', trustedLightBlockFile='trusted-light-block.json')
+          parameters = fixture['trustContextParameters']
+          if (fixture['trustContextFiles'] != mappings or len(parameters) != 19
+                  or not all(isinstance(v, str) for v in parameters.values()) or set(parameters) & set(mappings)):
+              raise RuntimeError('transaction light trust parameters differ from original contract')
+          light_trust = dict(parameters)
+          light_trust.update({key:str(case / name) for key,name in mappings.items()})
+          if len(fixture['cases']) != 3 or len(fixture['negativeCases']) < 3:
+              raise RuntimeError('missing actual success, failure, partial or negative transaction proofs')
+          candidate = root / 'ynx-pq-linux-runtime-candidate'
+          source = json.loads((candidate / 'SOURCE.json').read_bytes())
+          binary = candidate / 'ynx-consensus-proof-verify'
+          binary_pin = source['binaries'][binary.name]
+          if source['commit'] != os.environ['GITHUB_SHA'] or binary_pin != dict(bytes=binary.stat().st_size, sha256=sha(binary.read_bytes())):
+              raise RuntimeError('transaction verifier differs from exact normal candidate binary')
+          environment = dict(PATH='/usr/bin:/bin', GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB')
+          commands, results = [], []
+          def invoke(name, command, request, code, exit_code):
+              body = json.dumps(request, separators=(',', ':')).encode()
+              result = subprocess.run(command, input=body, capture_output=True, cwd=case, env=environment, timeout=20, check=False)
+              if result.returncode != exit_code or result.stderr or not 0 < len(result.stdout) <= 1 << 20:
+                  raise RuntimeError('transaction proof CLI did not terminate as expected: ' + name + ' ' + result.stderr[:4096].decode(errors='replace'))
+              value = json.loads(result.stdout)
+              if value.get('version') != 'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1' or value.get('code') != code:
+                  raise RuntimeError('transaction CLI returned wrong stage: ' + name + ' ' + result.stdout[:4096].decode(errors='replace'))
+              results.append(dict(name=name, exitCode=result.returncode, code=value['code'], stdoutSHA256=sha(result.stdout)))
+              return value
+          codes = ('VERIFIED_TRANSACTION_DATA', 'VERIFIED_TRANSACTION_REJECTED_DATA', 'VERIFIED_TRANSACTION_PARTIAL_DATA')
+          for index, item in enumerate(fixture['cases']):
+              expected = item['expectedTransaction']
+              if item['request']['expected'] != expected:
+                  raise RuntimeError('producer request lost independently selected transaction target')
+              context = dict(version='YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1', lightTrust=light_trust, expectedTransaction=expected)
+              raw = (json.dumps(context, sort_keys=True, separators=(',', ':')) + '\n').encode()
+              path = case / ('trust-context-' + str(index) + '.json')
+              with path.open('xb') as target:
+                  target.write(raw)
+              original[path.name] = raw
+              command = [str(binary), '--trust-context', str(path), '--trust-context-sha256', sha(raw)]
+              commands.append(command)
+              verified = invoke(item['name'], command, item['request'], codes[index], 0)
+              if verified != item['expectedResponse']:
+                  raise RuntimeError('normal transaction CLI changed verified inclusion or deterministic result')
+          for item in fixture['negativeCases']:
+              index = item['caseIndex']
+              if not isinstance(index, str) or not re.fullmatch('[0-2]', index) or item['expectedExitCode'] != '1':
+                  raise RuntimeError('transaction negative case selects invalid independent context')
+              invoke(item['name'], commands[int(index)], item['request'], item['cliExpectedCode'], 1)
+          if {p.name for p in case.iterdir()} != set(original) or any((case / name).read_bytes() != raw for name, raw in original.items()):
+              raise RuntimeError('transaction verifier changed original public context/materials')
+          receipt = dict(version='YNX-PQ-TRANSACTION-PROOF-CLI-RECEIPT/v1', commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'],
+              fixtureSHA256=sha(fixture_raw), binaryPin=binary_pin, cases=results, syntheticOnly=True, normalCLIExecuted=True,
+              originalSourcesUnchanged=True, dataAuthorized=False, nativeRootAuthorized=False, runtimeStarted=False, publicDeployment=False, pqActivation=False)
+          with (root / 'ynx-pq-transaction-proof-cli-public-receipt.json').open('x') as target:
+              target.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
+          print('YNX_PQ_TRANSACTION_PROOF_CLI ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
+          PY
+      - name: Upload only public transaction proof fixture and normal CLI receipt
+        if: ${{ !cancelled() && steps.pqtransactionproofcli.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-transaction-proof-public-interop-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
+            ${{ runner.temp }}/ynx-pq-transaction-proof-cli-public-receipt.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload only public consensus proof fixture and normal CLI receipt
         if: ${{ !cancelled() && steps.pqproofcli.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -326,6 +326,7 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /transactions/pq/batches/{hash}", g.handlePQBatch)
 	g.mux.HandleFunc("GET /transactions/pq/wholes/{hash}", g.handlePQWhole)
 	g.mux.HandleFunc("GET /transactions/pq/originals/{hash}", g.handlePQOriginal)
+	g.mux.HandleFunc("GET /transactions/pq/originals/{hash}/finality-proof", g.handlePQFinality)
 	g.mux.HandleFunc("GET /txs", g.handleTransactions)
 	g.mux.HandleFunc("GET /txs/{hash}", g.handleTransaction)
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
