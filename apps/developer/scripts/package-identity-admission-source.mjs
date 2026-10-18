@@ -263,6 +263,13 @@ export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchit
     'packages/wallet-auth/native/original-ide-parent-source-binding.mm',
     'packages/wallet-auth/native/original-ide-parent-kernel.mm',
     'packages/wallet-auth/native/original-ide-parent-node.mm'];
+  const transportUnits=['packages/wallet-auth/native/original-ide-wallet-identity-source.mm',
+    'packages/wallet-auth/native/original-ide-wallet-peer-launch.mm'];
+  const walletTransport=transportUnits.some(unit=>seen.has(unit));
+  if(walletTransport){
+    if(!transportUnits.every(unit=>seen.has(unit)))throw Error('Canonical Native transport source closure differs.');
+    units.push(...transportUnits);
+  }
   for (const required of units) if (!seen.has(required)) throw Error('Canonical Native build closure differs.');
   const headers = new Map(inputs.node22HeaderPins.map(pin => [pin.path, pin]));
   const selectedHeaders = new Set();
@@ -275,6 +282,7 @@ export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchit
   const compilers = record.commands.filter(command => command.tool === '/usr/bin/clang++');
   if (!compilers.length || compilers.some(command => !Array.isArray(command.argv)
     || ['-std=c++17', '-fobjc-arc', '-dynamiclib', '-DNAPI_VERSION=8', '-mmacosx-version-min=13.0', '-lbsm', 'Foundation', 'Security'].some(flag => !command.argv.includes(flag))
+    || (walletTransport&&!command.argv.some((flag,index)=>flag==='-framework'&&command.argv[index+1]==='AppKit'))
     || units.some(unit => !command.argv.includes(join(record.sourceRoot, unit))))) throw Error('Canonical Native compile command differs.');
   return record;
 }

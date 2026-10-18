@@ -18,6 +18,7 @@ node --input-type=module -e "import('./scripts/package-identity-admission-source
 canonical_native_root=$(node scripts/package-identity-admission-source.mjs --native-source-root)
 canonical_app_native_root=$(node scripts/identity-app-custody-source.mjs)
 node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs
+node --test scripts/native-wallet-transport-recipe.test.mjs
 node --test scripts/admit-derived-native.test.mjs
 node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
 node --test desktop/wallet-identity-v2-caller.test.mjs desktop/wallet-identity-v2-startup.test.mjs
