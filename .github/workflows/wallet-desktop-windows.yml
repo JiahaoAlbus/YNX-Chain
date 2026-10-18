@@ -74,7 +74,8 @@ jobs:
           cache: npm
           cache-dependency-path: packages/wallet-auth/package-lock.json
       - name: Install exact SDK dependencies without package scripts
-        run: npm ci --ignore-scripts --no-audit --fund=false --prefix packages/wallet-auth
+        timeout-minutes: 4
+        run: npm ci --ignore-scripts --no-audit --fund=false --fetch-retries=1 --fetch-timeout=30000 --loglevel=verbose --prefix packages/wallet-auth
       - name: Run only new byte-envelope, original snapshot binding and type controls
         run: npm run test:pq-contract-deployment-transport --prefix packages/wallet-auth
       - name: Pack SDK333 and compare every archive member to the exact Git blob
@@ -104,6 +105,13 @@ jobs:
           name: sdk333-contract-deployment-transport-candidate
           path: ${{ runner.temp }}/sdk333/*
           if-no-files-found: error
+      - name: Retain dependency diagnostics on failure
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sdk333-install-diagnostics
+          path: ~/.npm/_logs/*
+          if-no-files-found: warn
   windows-x64-native:
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/codex/wallet-desktop-cli-sdk-20260813'
     runs-on: windows-2025
