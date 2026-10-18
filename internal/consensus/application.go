@@ -777,7 +777,7 @@ func (a *Application) cloneExecutionState() executionState {
 		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
 		contracts: cloneBFTContracts(a.committed.Contracts), evmReceipts: cloneBFTEVMReceipts(a.committed.EVMReceipts), evmLogs: cloneBFTEVMLogs(a.committed.EVMLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), a.committed.IDEIdempotency...),
 		governanceExecutions: append([]BFTGovernanceExecution(nil), a.committed.GovernanceExecutions...), governanceExecutionAudit: append([]BFTGovernanceExecutionAudit(nil), a.committed.GovernanceExecutionAudit...),
-		dexAssets: append([]BFTDexAsset(nil), a.committed.DexAssets...), dexBalances: append([]BFTDexBalance(nil), a.committed.DexBalances...), dexPools: cloneDexPools(a.committed.DexPools), dexEvents: append([]BFTDexEvent(nil), a.committed.DexEvents...),
+		dexAssets: append([]BFTDexAsset(nil), a.committed.DexAssets...), dexBalances: append([]BFTDexBalance(nil), a.committed.DexBalances...), dexPools: cloneDexPools(a.committed.DexPools), dexEvents: cloneBFTDexEvents(a.committed.DexEvents),
 	}
 }
 

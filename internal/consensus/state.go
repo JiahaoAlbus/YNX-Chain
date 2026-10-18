@@ -269,7 +269,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		DexAssets:                  append([]BFTDexAsset(nil), execution.dexAssets...),
 		DexBalances:                append([]BFTDexBalance(nil), execution.dexBalances...),
 		DexPools:                   cloneDexPools(execution.dexPools),
-		DexEvents:                  append([]BFTDexEvent(nil), execution.dexEvents...),
+		DexEvents:                  cloneBFTDexEvents(execution.dexEvents),
 	}
 	if state.ValidatorRegistry != nil {
 		state.Version = ValidatorRegistryStateVersion
@@ -411,6 +411,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 		return err
 	}
 	if err := validateConsensusPQResources(s, migration); err != nil {
+		return err
+	}
+	if err := validateConsensusPQDex(s, migration); err != nil {
 		return err
 	}
 	if err := validateConsensusPQContracts(s, migration); err != nil {

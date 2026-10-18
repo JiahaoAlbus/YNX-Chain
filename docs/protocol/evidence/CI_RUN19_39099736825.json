@@ -1,0 +1,165 @@
+{
+  "run": 39099736825,
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39099736825",
+  "head": "8d5080e6caacdcd069ef205978e9b67e760c0a55",
+  "conclusion": "success",
+  "rawLog": {
+    "bytes": 161213,
+    "sha256": "2e1ef9d43a5435668e825d21bd05d85ad434edb3291984089becc61ea7c26000"
+  },
+  "jobs": [
+    {
+      "name": "focused-go",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "conclusion": "success"
+        },
+        {
+          "name": "Record exact candidate identity",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify pure dual-PQ protocol and account authorization",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify forked engine keys and actual consensus objects",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile forked state and consensus engine without starting nodes",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify real profile state transition and historical store without starting nodes",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify bounded remote signer transport and unchanged legacy protobuf vectors",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify actual engine signing caller uses committed height key and round context",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure fresh single and bounded concurrent dual signature paths",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure actual policy certificate cache consumer cold and warm paths",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned contract build runtime",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify failed candidate deployment preserves services and signing history",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile frozen measured production overlay without executing cases",
+          "conclusion": "success"
+        },
+        {
+          "name": "Generate canonical IDE contract fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify native ledger and HTTP PQ integration",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile production entry points",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify complete state bridge and sponsor continuity",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify Whole BFT gateway and native container readback",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify shared Wallet policy and Chain payment authorization regressions",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout fixed repaired performance client",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify fixed segmented client integration with original assertions",
+          "conclusion": "success"
+        },
+        {
+          "name": "Emit public inverse interop fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload public signature fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout fixed repaired performance client",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Install pinned contract build runtime",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "verify",
+      "conclusion": "skipped",
+      "steps": []
+    },
+    {
+      "name": "pq-paired-n1",
+      "conclusion": "skipped",
+      "steps": []
+    }
+  ],
+  "actualCertificateConsumer10IterationRows": [
+    "BenchmarkPQCertificateConsumer/N1/members1/old-2         \t      10\t   1949676 ns/op\t         0 cache_hits/op\t         0 cache_misses/op\t         1.000 members/op\t         0 policy_roots/op\t  683296 B/op\t     192 allocs/op",
+    "BenchmarkPQCertificateConsumer/N1/members1/new-2         \t      10\t   1912438 ns/op\t         0 cache_hits/op\t         0 cache_misses/op\t         1.000 members/op\t         0 policy_roots/op\t  551449 B/op\t     161 allocs/op",
+    "BenchmarkPQCertificateConsumer/N16/members1/old-2        \t      10\t   2079105 ns/op\t         0 cache_hits/op\t         0 cache_misses/op\t         1.000 members/op\t         0 policy_roots/op\t  690464 B/op\t     326 allocs/op",
+    "BenchmarkPQCertificateConsumer/N16/members1/new-2        \t      10\t   2102729 ns/op\t         0 cache_hits/op\t         1.000 cache_misses/op\t         1.000 members/op\t         1.000 policy_roots/op\t  560202 B/op\t     282 allocs/op",
+    "BenchmarkPQCertificateConsumer/N16/members16/old-2       \t      10\t  32792388 ns/op\t         0 cache_hits/op\t         0 cache_misses/op\t        16.00 members/op\t         0 policy_roots/op\t11047488 B/op\t    5216 allocs/op",
+    "BenchmarkPQCertificateConsumer/N16/members16/new-2       \t      10\t   6139437 ns/op\t        15.00 cache_hits/op\t         1.000 cache_misses/op\t        16.00 members/op\t         1.000 policy_roots/op\t 7468513 B/op\t    3469 allocs/op"
+  ],
+  "scope": {
+    "realNodeStarted": false,
+    "multiNodeFinalityMeasured": false,
+    "publicTestnetDeployedOrActivated": false,
+    "remoteContextSuccessorIncluded": false,
+    "dexSuccessorIncluded": false,
+    "newKeyCeremonySuccessorIncluded": false
+  },
+  "interpretation": "Source correctness and focused integration passed at the exact head. Six actual consumer microbenchmark rows are not sustained throughput or BFT finality. Earlier unchanged parallel-provider benchmark evidence was reused, not rerun."
+}
