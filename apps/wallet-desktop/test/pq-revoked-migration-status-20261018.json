@@ -1,0 +1,15 @@
+{
+  "state": "VERIFIED_NOT_DEPLOYED",
+  "baseCommit": "9cc6a1b10a50094542b9c92530d2603347c00722",
+  "fixedChainContract": "69e788b4bd726689ea5d1709fd5ba0162c6ec0da",
+  "contractsRead": ["docs/protocol/PQ_HTTP_SUBMISSION_CONTRACT_R2.md", "docs/protocol/PQ_HTTP_REVOCATION_CONTRACT_R1.md"],
+  "owningRepair": "Only pq-migration HTTP200 observations can carry revocation_pending or revoked. Keep exact original hash/wire/decimal validation; return outcome-unknown plus actual admissionStatus, retryAuthorized false, clearsOriginal false and consensusFinality false. Transfers and unknown statuses still refuse.",
+  "red": {"tests": 2, "fail": 1, "durationMs": 4200.705208, "cause": "New valid fixed-contract terminal migration status rejected as PQ_RESPONSE_INVALID"},
+  "affectedRegression": {"tests": 4, "pass": 4, "fail": 0, "durationMs": 1104.31, "runtime": "actual R24 Electron RunAsNode, heap192MiB, isolation none, concurrency1", "pattern": "terminal revocation migration|terminal migration status|POST validates|POST uncertainty", "PUBLICPolicyAndHTTPOnly": true},
+  "guards": ["Both revocation statuses preserve original nonce/hash and UNKNOWN", "Wrong hash, memo, revision or unsafe-number nonce still refuse", "Transfers cannot use terminal migration statuses", "Arbitrary future status still refuses", "No submission, signing, replay, active-authority or journal-clear permission added"],
+  "executionPolicy": {"canonical": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md", "actualOwnedGuidance": "apps/wallet-desktop/AGENTS.md", "activeManagedChildAgents": 0, "futureDelegationInherits": true},
+  "automaticTests": {"existingEntry": "npm test -> node --test test/*.test.mjs", "changedTestAutoDiscovered": true, "remoteRunNotClaimed": true, "sharedWorkflowFollowup": "Root notified that original Windows CI has old branch filter/Node22; shared pipeline owner must select current fixed source and appropriate runtime, not counted as executed remotely"},
+  "preserved": ["A build38fc stage and source", "SDK3.5 and NativeA33", "real user profiles/accounts/funds/keys/backup/history/UNKNOWN/first causes"],
+  "notEstablished": ["SDK3.7 full v2 authority parser", "Auth R35 positive Source", "full matching App package/install", "live migration/revocation", "public activation"],
+  "next": "Original SDK/Auth owners supply fixed v2 policy successor; original A integrates this owning App change at its next matching candidate without interrupting the current build."
+}

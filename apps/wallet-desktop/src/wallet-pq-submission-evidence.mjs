@@ -3,7 +3,8 @@ import {decodePQTransferRequest,decodePQMigrationRequest,pqU64} from '@ynx-chain
 import {parsePQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {parseDurabilityProof,DURABILITY_MODEL} from './transaction-durability.mjs';
 // Fixed source contract with focused CI success, NOT public deployment or
-// authority to submit. Unsupported terminal-revocation states fail closed.
+// authority to submit. Historical migration revocation status is DATA only;
+// it never restores active authority or resolves the original UNKNOWN outcome.
 export const PQ_HTTP_CONTRACT_SOURCE='69e788b4bd726689ea5d1709fd5ba0162c6ec0da';
 const fail=()=>{throw Object.assign(new Error('The PQ response cannot be bound to this original.'),{code:'PQ_RESPONSE_INVALID'});};
 const hash=value=>typeof value==='string'&&/^0x[0-9a-f]{64}$/.test(value);
@@ -53,11 +54,12 @@ export function parsePQSubmissionResponse(original,httpStatus,text){
   }
   if(httpStatus!==200)fail();
   exactPQRecord(value,['transaction','wireHash','decimalFields','replayed','status',...(e.migration?['activationHeight','revision','executionHeight']:[])]);
-  if(value.wireHash!==e.original.hash||typeof value.replayed!=='boolean'||!(e.migration?['registered_pending_activation','active','superseded']:['accepted']).includes(value.status))fail();
+  if(value.wireHash!==e.original.hash||typeof value.replayed!=='boolean'||!(e.migration?['registered_pending_activation','active','superseded','revocation_pending','revoked']:['accepted']).includes(value.status))fail();
   const fields=decimals(value.decimalFields,e,{executionRequired:true});transaction(value.transaction,e,fields);
   const extra={decimalFields:fields,replayed:value.replayed,admissionStatus:value.status};
   if(e.migration){if(decimal(value.activationHeight,true)!==e.activationHeight||decimal(value.revision,true)!==e.revision)fail();extra.nextExecutionHeight=decimal(value.executionHeight,true);}
-  return observation(e,'admitted-unconfirmed',extra);
+  const revokedMigration=e.migration&&['revocation_pending','revoked'].includes(value.status);
+  return observation(e,revokedMigration?'outcome-unknown':'admitted-unconfirmed',extra);
  }catch{fail();}
 }
 export function parsePQReadResponse(original,httpStatus,text){

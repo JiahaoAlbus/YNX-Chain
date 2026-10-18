@@ -45,7 +45,16 @@ test('POST uncertainty and every observed HTTP refusal preserve the original and
  }
 });
 test('fixed-contract terminal revocation migration replay never becomes a false active result',()=>{
- for(const status of ['revocation_pending','revoked']){const body=posted(migration);body.status=status;invalid(()=>parsePQSubmissionResponse(migration,200,JSON.stringify(body)));}
+ for(const status of ['revocation_pending','revoked']){const body=posted(migration);body.status=status;body.replayed=true;
+  const observed=parsePQSubmissionResponse(migration,200,JSON.stringify(body));assert.equal(observed.admissionStatus,status);assert.equal(observed.outcome,'outcome-unknown');assert.equal(observed.retryAuthorized,false);assert.equal(observed.clearsOriginal,false);assert.equal(observed.consensusFinality,false);assert.equal(observed.replayed,true);assert.equal(observed.decimalFields.nonce,nonce);assert.equal('active' in observed,false);
+ }
+});
+test('terminal migration status does not weaken original hash, fields or transfer status validation',()=>{
+ for(const status of ['revocation_pending','revoked']){
+  const wrong=posted(transfer);wrong.status=status;invalid(()=>parsePQSubmissionResponse(transfer,200,JSON.stringify(wrong)));
+  for(const mutate of [body=>body.wireHash=h('00'),body=>body.transaction.memo='wrong original',body=>body.revision='3',body=>body.decimalFields.nonce=Number(nonce)]){const body=posted(migration);body.status=status;mutate(body);invalid(()=>parsePQSubmissionResponse(migration,200,JSON.stringify(body)));}
+ }
+ const unknown=posted(migration);unknown.status='revoked_but_active';invalid(()=>parsePQSubmissionResponse(migration,200,JSON.stringify(unknown)));
 });
 test('GET pending checkpoint and uncertain observed inclusion are distinct from local durable inclusion',()=>{
  for(const original of [transfer,migration]){
