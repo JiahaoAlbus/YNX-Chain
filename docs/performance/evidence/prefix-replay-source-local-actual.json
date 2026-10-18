@@ -17,8 +17,8 @@
       "sha256": "d71766ed3b6ed154c8c5a1c2af4a1a4286f8112529d17f41e3d067c4cb873eae"
     },
     "internal/consensus/block_journal_prefix_test.go": {
-      "bytes": 9071,
-      "sha256": "ce730e6d714cbfabdea88ebbf7cf9f863d733c9b0ceab2a8a4b20449cdc518b6"
+      "bytes": 9554,
+      "sha256": "6299f00020c890579a9371965fe88a91809e29c180c1c387e541effc52a6b284"
     },
     "internal/consensus/block_journal_prefix_cost_test.go": {
       "bytes": 4916,
@@ -138,6 +138,22 @@
     "artifacts/chain-performance-20261017/prefix-replay-source/original2048-ABBA.raw": {
       "bytes": 1870,
       "sha256": "112d69b433d9f4569c620a677a1def0cde2e57a241333ebb1cd31a192e24ec1f"
+    },
+    "artifacts/chain-performance-20261017/prefix-replay-source/gate-wait-observed-pass.raw": {
+      "bytes": 219,
+      "sha256": "b54dcc8ee5231ec1b70d5905567a6a4ce05117338bbb2ca67a98922ae8b7dc13"
+    },
+    "artifacts/chain-performance-20261017/prefix-replay-source/source-qualification-final.raw": {
+      "bytes": 22421,
+      "sha256": "14cbf59047db367393baff05ea125fd631348efa48ca1926e98898caee67a7a8"
+    },
+    "artifacts/chain-performance-20261017/prefix-replay-source/source-qualification-post-EAGAIN.raw": {
+      "bytes": 2623,
+      "sha256": "0df7bf28cbbc3b54a781202f71cb0441f55c495a3b3d6e77a4d59c54b7b431e9"
+    },
+    "artifacts/chain-performance-20261017/prefix-replay-source/source-qualification-make-final.raw": {
+      "bytes": 1857,
+      "sha256": "070da5c0f27f2edf048598e29a592f42f00195e3a5e44977b446018af1dbbb03"
     }
   },
   "baselineREDInterpretation": "The explicitly labeled adapter delegates the new API to unchanged original full Decode. It fails the new reuse/work contract, not original data correctness. It is not a pre-existing public prefix API bug.",
@@ -146,5 +162,14 @@
     "Original full writer/decoder behavior retained. Shared frame validation moved verbatim into a helper; candidate is a separate opt-in read-only API.",
     "Full default decoder and candidate each successfully verify all2048 original signature facts. Candidate only reuses exact already-validated prefix bytes and independently revalidates copied state.",
     "Cache limit16MiB canonical, input16MiB; short original input fit does not qualify600k rows or10minute budgets. No client flag/profile/network execution is activated by this API."
-  ]
+  ],
+  "gateCancellationProof": "Context Done() observation confirms entry into an actually held serial gate before cancellation; not merely a pre-cancelled call.",
+  "sourceCommit": "bc5586c4400163251a6e09f02c4471fc630913ad",
+  "runtimePrototypeCommit": "989ac55529fb1443a1b6d79bac6c152ef1cc0888",
+  "localQualification": {
+    "initialWholeMatrix": "failed: Git spawnSync EAGAIN, raw retained",
+    "makePositive": "success",
+    "singleSameMatrixRetry": "success,5top-level tests incl original frozen suites",
+    "retryReason": "fresh original Make positive guard completed after transient spawn shortage; no original assertions modified"
+  }
 }

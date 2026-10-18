@@ -7,16 +7,16 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {withFrozenAnchor} from './perf-commit-validation-timing-check.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
-export const source='989ac55529fb1443a1b6d79bac6c152ef1cc0888';
+export const source='bc5586c4400163251a6e09f02c4471fc630913ad';
 const parent='9cdaeb0a64bff4d26b2e4b1558c96863d2791640';
-const tree='94c281bf73e146396c5bffb0e11b28901c8cc820';
+const tree='c1e25203c67ab5e42d34775aff168f0d3b2d3fe0';
 const diagnosticGuard='scripts/verify/perf-commit-validation-timing-check.mjs';
 const diagnosticTests='scripts/verify/perf-commit-validation-timing-check.test.mjs';
 const git=(repo,...args)=>execFileSync('git',['-C',repo,...args],{env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},maxBuffer:16<<20,stdio:['ignore','pipe','pipe']});
 const requireValue=(v,m)=>{if(!v)throw Error(m)};
 export function validatePrefixSource(repo=root){
  const delta=git(repo,'diff','--binary',parent,source,'--','internal');
- requireValue(createHash('sha256').update(delta).digest('hex')==='ccae26147247c0d3f9a5e548914b0c4bef72fa25939ed350f8b0308b14808efd','prefix source derivation differs');
+ requireValue(createHash('sha256').update(delta).digest('hex')==='e8b92b5504672de731010926330dc2f2d8c9d4947818784c7fe7063ecec90ae6','prefix source derivation differs');
  requireValue(git(repo,'rev-parse','HEAD:internal').toString().trim()===tree,'current prefix internal tree differs');
  try{git(repo,'diff','--quiet',source,'--','internal')}catch{throw Error('current prefix source differs')}
  requireValue(!git(repo,'ls-files','--others','--exclude-standard','--','internal').toString().trim(),'untracked prefix internal input refused');

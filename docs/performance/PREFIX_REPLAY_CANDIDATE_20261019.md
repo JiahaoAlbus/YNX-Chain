@@ -99,3 +99,15 @@ tests passed locally8.488s, including all original diagnostic/anchor tests; the
 normal Make entry also passed. These checks are integrated in the original
 chain-core CI. The optional offline ABBA test is explicitly selected by
 YNX_PREFIX_REPLAY_FIXTURE_DIR and is not claimed to run in ordinary CI.
+
+A test-only follow-up bc5586c4400163251a6e09f02c4471fc630913ad strengthens cancellation evidence: the wrapped
+context confirms the decoder reached the actually held gate before cancellation.
+The new targeted test passed0.515s. Candidate runtime implementation and ABBA
+measurement remain unchanged. Updated complete internal tree c1e25203c67ab5e42d34775aff168f0d3b2d3fe0;
+exact full internal delta from9cdaeb0a6 is 20297B SHA256
+e8b92b5504672de731010926330dc2f2d8c9d4947818784c7fe7063ecec90ae6. Source-only qualification binds this complete follow-up tree.
+
+The full local source-qualification rerun encountered Git spawnSync EAGAIN in
+the unchanged old anchor matrix. Original raw remains. After the original Make
+positive guard succeeded, one identical retry passed all five top-level tests
+(including all original frozen suites) in9.480s. No failure assertion was relaxed.
