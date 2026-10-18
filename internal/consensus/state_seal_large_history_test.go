@@ -74,7 +74,7 @@ func TestSealGuardedActualLargeHistoryPhases(t *testing.T) {
 	fixture := decoded.State
 	store, decoded.SnapshotJSON = nil, nil
 	execution := (&Application{committed: fixture}).committedExecutionStateView()
-	want, err := sealCommittedState(migration, fixture.Height, execution)
+	want, err := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, sealWitnessNone, nil)
 	if err != nil || want.AppHash != fixture.AppHash {
 		t.Fatal("baseline differs from complete actual state", err)
 	}
@@ -126,7 +126,7 @@ func TestSealGuardedActualLargeHistoryPhases(t *testing.T) {
 	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &usage); err != nil {
 		t.Fatal(err)
 	}
-	report := map[string]any{"measurement": "same_completed_actual_large_history_seal_ABCCBA_not_business_or_network_TPS", "fee_events": len(fixture.FeeEvents), "app_hash": want.AppHash, "input_store_sha256": original.StoreSHA256, "input_bytes": info.Size(), "input_unchanged": true, "replayed_blocks": decoded.ReplayedBlocks, "replayed_signed_inputs": decoded.ReplayedTransactionInputs, "gomaxprocs": runtime.GOMAXPROCS(0), "go_version": runtime.Version(), "max_rss_raw": usage.Maxrss, "max_rss_platform": runtime.GOOS, "runtime_candidate_enabled": false, "business_tps": nil, "inclusion_latency": nil, "finality_latency": nil, "rows": rows}
+	report := map[string]any{"measurement": "same_completed_actual_large_history_seal_ABCCBA_not_business_or_network_TPS", "fee_events": len(fixture.FeeEvents), "app_hash": want.AppHash, "input_store_sha256": original.StoreSHA256, "input_bytes": info.Size(), "input_unchanged": true, "replayed_blocks": decoded.ReplayedBlocks, "replayed_signed_inputs": decoded.ReplayedTransactionInputs, "gomaxprocs": runtime.GOMAXPROCS(0), "go_version": runtime.Version(), "max_rss_raw": usage.Maxrss, "max_rss_platform": runtime.GOOS, "runtime_candidate_enabled": defaultSealWitnessMode != sealWitnessNone, "business_tps": nil, "inclusion_latency": nil, "finality_latency": nil, "rows": rows}
 	raw, err := json.MarshalIndent(report, "", "  ")
 	if err != nil || len(raw) > 1<<20 {
 		t.Fatal("bounded phase report encoding failed", err)

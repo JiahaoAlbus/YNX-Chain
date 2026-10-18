@@ -1,0 +1,204 @@
+{
+  "sourceCommit": "24607fdec2175bec29818891d38ed04c6e2f24ff",
+  "internalTree": "028ad93cc55aba21ca0488d141de37ca864fe4a9",
+  "runId": 39120302554,
+  "runConclusion": "failure",
+  "failureGate": "previous immutable SDK candidate.4 exact source identity; all source and selected measurement steps passed",
+  "fullGoSourceGate": "success",
+  "newCompactActualExecutionAndMutationControls": "success",
+  "largeHistoryAndThreeWayMeasurement": "success",
+  "measurement": {
+    "app_hash": "80ce41dd81f9aa54ba2128813beac38cd2228f48acb47f340c8e0ea4b48c7e6c",
+    "business_tps": null,
+    "fee_events": 31232,
+    "finality_latency": null,
+    "go_version": "go1.25.14",
+    "gomaxprocs": 1,
+    "inclusion_latency": null,
+    "input_bytes": 16827962,
+    "input_store_sha256": "8ee841235b43d4061bdec1f120f009166b4f696333c7db05d12ca1ea028e7df1",
+    "input_unchanged": true,
+    "max_rss_platform": "linux",
+    "max_rss_raw": 163608,
+    "measurement": "same_completed_actual_large_history_seal_ABCCBA_not_business_or_network_TPS",
+    "replayed_blocks": 10,
+    "replayed_signed_inputs": 2560,
+    "rows": [
+      {
+        "full_state_equal": true,
+        "guarded": false,
+        "order": 0,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 16096496,
+        "seal_allocations": 135109,
+        "seal_elapsed_ns": 114921166,
+        "seal_stages_ns": {
+          "clone_and_materialize": 745958,
+          "final_hash": 45243017,
+          "initial_hash": 46622491,
+          "semantic_validate": 22305482,
+          "witness_compare": 571,
+          "witness_copy": 1543
+        },
+        "second_hash_executed": true,
+        "witness_mode": "original"
+      },
+      {
+        "full_state_equal": true,
+        "guarded": true,
+        "order": 1,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 20971320,
+        "seal_allocations": 102364,
+        "seal_elapsed_ns": 81893545,
+        "seal_stages_ns": {
+          "clone_and_materialize": 728576,
+          "initial_hash": 45718367,
+          "semantic_validate": 33231061,
+          "witness_compare": 853940,
+          "witness_copy": 1359868
+        },
+        "second_hash_executed": false,
+        "witness_mode": "full_copy"
+      },
+      {
+        "full_state_equal": true,
+        "guarded": true,
+        "order": 2,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 17973272,
+        "seal_allocations": 102365,
+        "seal_elapsed_ns": 72700210,
+        "seal_stages_ns": {
+          "clone_and_materialize": 860652,
+          "initial_hash": 44793415,
+          "semantic_validate": 22353752,
+          "witness_compare": 1529125,
+          "witness_copy": 3161544
+        },
+        "second_hash_executed": false,
+        "witness_mode": "compact"
+      },
+      {
+        "full_state_equal": true,
+        "guarded": true,
+        "order": 3,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 17973272,
+        "seal_allocations": 102365,
+        "seal_elapsed_ns": 73900700,
+        "seal_stages_ns": {
+          "clone_and_materialize": 718506,
+          "initial_hash": 45629521,
+          "semantic_validate": 22826257,
+          "witness_compare": 1500982,
+          "witness_copy": 3223650
+        },
+        "second_hash_executed": false,
+        "witness_mode": "compact"
+      },
+      {
+        "full_state_equal": true,
+        "guarded": true,
+        "order": 4,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 20971320,
+        "seal_allocations": 102364,
+        "seal_elapsed_ns": 82196864,
+        "seal_stages_ns": {
+          "clone_and_materialize": 785031,
+          "initial_hash": 45307458,
+          "semantic_validate": 34397156,
+          "witness_compare": 861464,
+          "witness_copy": 843651
+        },
+        "second_hash_executed": false,
+        "witness_mode": "full_copy"
+      },
+      {
+        "full_state_equal": true,
+        "guarded": false,
+        "order": 5,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 16096496,
+        "seal_allocations": 135109,
+        "seal_elapsed_ns": 112586653,
+        "seal_stages_ns": {
+          "clone_and_materialize": 756427,
+          "final_hash": 45087876,
+          "initial_hash": 44707624,
+          "semantic_validate": 22029794,
+          "witness_compare": 582,
+          "witness_copy": 1203
+        },
+        "second_hash_executed": true,
+        "witness_mode": "original"
+      }
+    ],
+    "runtime_candidate_enabled": false
+  },
+  "means": {
+    "original": {
+      "seal_elapsed_ns": 113753909.5,
+      "seal_allocated_bytes": 16096496,
+      "seal_allocations": 135109,
+      "stages_mean_ns": {
+        "witness_copy": 1373,
+        "semantic_validate": 22167638,
+        "clone_and_materialize": 751192.5,
+        "final_hash": 45165446.5,
+        "initial_hash": 45665057.5,
+        "witness_compare": 576.5
+      }
+    },
+    "full_copy": {
+      "seal_elapsed_ns": 82045204.5,
+      "seal_allocated_bytes": 20971320,
+      "seal_allocations": 102364,
+      "stages_mean_ns": {
+        "witness_copy": 1101759.5,
+        "semantic_validate": 33814108.5,
+        "clone_and_materialize": 756803.5,
+        "initial_hash": 45512912.5,
+        "witness_compare": 857702
+      }
+    },
+    "compact": {
+      "seal_elapsed_ns": 73300455,
+      "seal_allocated_bytes": 17973272,
+      "seal_allocations": 102365,
+      "stages_mean_ns": {
+        "witness_copy": 3192597,
+        "semantic_validate": 22590004.5,
+        "clone_and_materialize": 789579,
+        "initial_hash": 45211468,
+        "witness_compare": 1515053.5
+      }
+    }
+  },
+  "sameRunChangesPercent": {
+    "full_copy_to_compact": {
+      "seal_elapsed_ns": -10.658452926398642,
+      "seal_allocated_bytes": -14.295943221504414,
+      "seal_allocations": 0.0009769059434949767
+    },
+    "original_to_compact": {
+      "seal_elapsed_ns": -35.562254236193965,
+      "seal_allocated_bytes": 11.659531366329666,
+      "seal_allocations": -24.235247096788516
+    },
+    "original_to_full_copy": {
+      "seal_elapsed_ns": -27.874826579037272,
+      "seal_allocated_bytes": 30.285001158016,
+      "seal_allocations": -24.2359872399322
+    }
+  },
+  "rawLogBytes": 472736,
+  "rawLogSHA256": "d9c8b5a52d5fc0ad9a9e0f92eae4a58e9ea30491cf0d709c5c84cf55724ab6c4",
+  "limits": [
+    "Two short samples per mode in ABC CBA order, same exact actually executed and persisted large state.",
+    "Runtime candidates remain disabled. No transaction generation or input rewrite inside seal comparison.",
+    "maxRSS covers the whole test including replay and all three modes; allocations are total bytes, not RSS.",
+    "No sustained workload, network inclusion or BFT-finality result."
+  ]
+}

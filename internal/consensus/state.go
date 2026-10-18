@@ -189,8 +189,9 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 }
 
 func sealCommittedState(migration chain.ConsensusMigrationState, height int64, execution executionState) (CommittedState, error) {
-	// The guarded candidate is measured explicitly before runtime activation.
-	return sealCommittedStateMeasured(migration, height, execution, false, nil)
+	// Native states use the measured exact-value witness. Unsupported states
+	// retain the full second hash; public Validate and Commit always hash fully.
+	return sealCommittedStateMeasuredMode(migration, height, execution, defaultSealWitnessMode, nil)
 }
 
 func sealCommittedStateMeasured(migration chain.ConsensusMigrationState, height int64, execution executionState, guarded bool, timings *commitTimings) (CommittedState, error) {

@@ -147,7 +147,7 @@ func TestSealGuardedRealStateMatchedPhases(t *testing.T) {
 	migration, fixture := retainedSealFixture(t)
 	app := &Application{committed: fixture}
 	execution := app.committedExecutionStateView()
-	want, err := sealCommittedState(migration, fixture.Height, execution)
+	want, err := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, sealWitnessNone, nil)
 	if err != nil || want.AppHash != fixture.AppHash {
 		t.Fatal("baseline differs from retained canonical digest", err)
 	}
@@ -198,7 +198,7 @@ func TestSealGuardedRealStateMatchedPhases(t *testing.T) {
 		}
 		rows = append(rows, map[string]any{"order": index, "guarded": guarded, "seal_elapsed_ns": elapsed.Nanoseconds(), "seal_allocated_bytes": afterAlloc.TotalAlloc - beforeAlloc.TotalAlloc, "seal_allocations": afterAlloc.Mallocs - beforeAlloc.Mallocs, "seal_stages_ns": phases.stages, "second_hash_executed": rechecked, "atomic_commit_elapsed_ns": commitElapsed.Nanoseconds(), "atomic_commit_stages_ns": commit.stages, "payload_bytes": commit.bytes})
 	}
-	report, err := json.Marshal(map[string]any{"measurement": "retained_real_1024_state_seal_ABBA_and_atomic_persistence", "fee_events": len(fixture.FeeEvents), "app_hash": want.AppHash, "runtime_candidate_enabled": false, "business_tps": nil, "inclusion_latency": nil, "finality_latency": nil, "rows": rows})
+	report, err := json.Marshal(map[string]any{"measurement": "retained_real_1024_state_seal_ABBA_and_atomic_persistence", "fee_events": len(fixture.FeeEvents), "app_hash": want.AppHash, "runtime_candidate_enabled": defaultSealWitnessMode != sealWitnessNone, "business_tps": nil, "inclusion_latency": nil, "finality_latency": nil, "rows": rows})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,5 +345,37 @@ func TestSealCompactRealExecutionPersistenceAndTamper(t *testing.T) {
 	reopened, err = NewBlockJournaledApplication(migration, path)
 	if err != nil || !reflect.DeepEqual(committed, reopened.committed) {
 		t.Fatal("failed compact Commit published or persisted tampered state", err)
+	}
+}
+
+func TestSealRuntimeUsesCanonicalStateAcrossNativeAndFallbackRecords(t *testing.T) {
+	migration, fixture := retainedSealFixture(t)
+	for _, nativeOnly := range []bool{true, false} {
+		state := fixture
+		if !nativeOnly {
+			// An incomplete non-native record must retain its original semantic
+			// rejection, never gain validity from the new default native guard.
+			state.PayEvents = []BFTPayEvent{{}}
+		}
+		execution := (&Application{committed: state}).committedExecutionStateView()
+		original, originalErr := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, sealWitnessNone, nil)
+		actual, actualErr := sealCommittedState(migration, fixture.Height, execution)
+		if (originalErr == nil) != (actualErr == nil) {
+			t.Fatalf("default seal changed acceptance: original=%v actual=%v", originalErr, actualErr)
+		}
+		if originalErr != nil {
+			if originalErr.Error() != actualErr.Error() {
+				t.Fatal("default seal changed first semantic error")
+			}
+			continue
+		}
+		want, err := json.Marshal(original)
+		got, gotErr := json.Marshal(actual)
+		if err != nil || gotErr != nil || !bytes.Equal(want, got) {
+			t.Fatal("default seal changed any canonical state byte", err, gotErr)
+		}
+		if err := actual.Validate(migration); err != nil {
+			t.Fatal("default seal failed public full validation", err)
+		}
 	}
 }

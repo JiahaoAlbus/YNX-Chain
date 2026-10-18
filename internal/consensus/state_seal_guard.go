@@ -17,6 +17,10 @@ const (
 	sealWitnessCompact
 )
 
+// The measured compact witness is used only while sealing newly owned state.
+// Unsupported schemas/record families still perform the complete second hash.
+const defaultSealWitnessMode = sealWitnessCompact
+
 // snapshotNativeSealState is a per-call, owned mutation witness, never a cached
 // validation result. Only native-account/fee states are eligible. Other record
 // families and future unsupported fields conservatively use full validation.
