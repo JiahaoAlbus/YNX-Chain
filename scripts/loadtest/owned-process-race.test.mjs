@@ -28,3 +28,11 @@ test('a readable sibling can exit after the kernel query while the ESRCH child i
  assert.equal(sample.processes[3].rssBytes,123);
  assert.throws(()=>verifyExitedDuringSample(sample,prior,inventory(),10,20,p=>p===21));
 });
+
+test('actual program paths and births survive inventory parsing without reading arguments',()=>{
+ const i=ownedBirthInventory(`10 1 10 ${birth} /opt/homebrew/bin/node
+20 10 20 ${birth} /path with spaces/tool`,10,20);
+ assert.equal(i.identities.get(20).comm,'/path with spaces/tool');
+ assert.equal(i.identities.get(20).birth,birth);
+ assert.equal(i.identities.get(10).comm,'/opt/homebrew/bin/node');
+});

@@ -85,3 +85,15 @@ test('normal07 binds the actual instrumented probe while defaults retain the fro
  }
  assert.equal(p.caps.ownedRSSBytes,400*1024**2);
 });
+
+test('normal09 alone receives 768MiB without changing prior caps or fixed workload',async()=>{
+ const {clientOwnedRSSCap,lightProbeInput}=await import('./consensus-light-plan.mjs');
+ const p=lightCommand('/work',undefined,false,true);
+ assert.equal(clientOwnedRSSCap(p,'client13-normal-09'),805306368);
+ for(const c of ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08'])assert.equal(clientOwnedRSSCap(p,c),536870912);
+ assert.equal(clientOwnedRSSCap(p),419430400);
+ assert.deepEqual(lightProbeInput('/work','client13-normal-09'),lightProbeInput('/work','client13-normal-07'));
+ assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'aa25500bdb13c52e56133ec0876651257cf31a1a');
+ assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);
+ assert.equal(p.env.GOMEMLIMIT,'160MiB');assert.equal(p.env.GOPROXY,'off');
+});

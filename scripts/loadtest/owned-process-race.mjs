@@ -5,11 +5,11 @@ export function ownedBirthInventory(raw,launcherPID,jobPID){
  const identities=new Map();
  for(const line of raw.split('\n')){
   if(!line.trim())continue;
-  const m=line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+([A-Z][a-z]{2}\s+[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4})$/);
+  const m=line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+([A-Z][a-z]{2}\s+[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}\s+\d{4})(?:\s+(.+))?$/);
   if(!m)throw Error('birth inventory row unavailable');
   const [pid,parent,group]=m.slice(1,4).map(Number);
   if(identities.has(pid))throw Error('duplicate birth identity');
-  identities.set(pid,{pid,parent,group,birth:m[4].replace(/\s+/g,' ')});
+  identities.set(pid,{pid,parent,group,birth:m[4].replace(/\s+/g,' '),...(m[5]?{comm:m[5]}:{})});
  }
  const ids=ownedProcessSet([...identities.values()].map(r=>`${r.pid} ${r.parent} ${r.group}`).join('\n'),launcherPID,jobPID);
  return {ids,identities};
