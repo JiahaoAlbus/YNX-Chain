@@ -12,17 +12,25 @@ Offer-to-final percentiles sum the original monotonic queue and confirmation spa
 
 The observer freshly hashed 10,593,751 bytes over 29 durable attempts, performed 23 snapshot validations and 1,024 independent observed transaction signature checks. The 15,384 historical replay inputs across 149 replayed blocks are repeated verification work, not new business transactions. The 8,079 interim observation error occurrences did not become terminal business failures.
 
-Controller session 26119 exited 0 without a firstCause. Peak owned/control RSS was 551,845,888 bytes, peak data 22,335,488 bytes and sampled threads 72. Independent cleanup checked 58 original PID/group identities and all 12 loopback ports twice. Original databases and reports remain preserved. All-four stopped-node replay/account readback is still pending.
+Controller session 26119 exited 0 without a firstCause. Peak owned/control RSS was 551,845,888 bytes, peak data 22,335,488 bytes and sampled threads 72. Independent cleanup checked 58 original PID/group identities and all 12 loopback ports twice. Original databases and reports remain preserved. All-four original stopped-node replay/account readback subsequently passed in the single offline-baseline-stopped-01 window; see [actual offline proof](evidence/offline-baseline-stopped-actual-20261018.json).
 
 [Configuration, exact metrics and original file hashes](evidence/same-control-before-20261018.json). [Frozen common controls](SAME_CONTROL_COMPARISON_PREPARATION_20261018.md). Hardware: Apple M4, 10 logical CPUs, 24 GiB RAM; darwin/arm64, Go 1.25.7.
 
-Pending offline proof command, only after a new Root light-window grant:
+The separate offline baseline proof has now executed once using the retained
+`a77ce29169a4277df163a4cb4b156e32f7a7d3cf2b99bb75d1a6ae66853a19cc`
+test binary through the original light runner. Both original functions passed:
+each of the four original stopped blockstores verified genesis-weighted commit
+signatures and replayed all1,024 business inputs to byte-identical complete
+canonical state; each node also verified256 sender balances, nonce4 and1,024 fee
+events. All114 original files and24 data directories retained identical
+path/dev/inode/size/mtime/SHA inventories before and after. No listener or live
+original-file owner was found before or after, and the test group retired.
 
-```sh
-YNX_CHAIN_STOPPED_WINDOW="$PWD/artifacts/chain-network-performance/window-eEfGE7" artifacts/chain-performance-20261017/partial-reconciliation-client.test -test.run '^(TestStoppedNetworkReplay|TestStoppedReadySenderAccountReadback)$' -test.count=1 -test.timeout=45s
-```
-
-This reuses the retained older test binary for its existing completed-window checks, requires resource admission, and writes new exclusive evidence files. It does not compile the new partial-prefix source. It has not been executed for this window. No automatic cached run, retry, resubmission, reset or deployment is authorized.
+This2.381-second offline operation started no node, RPC or Go compilation and
+adds no new throughput or latency samples. Original proof outputs were created
+exclusively and copied byte-exactly to the performance evidence directory.
+The cached after run remains unexecuted. The earlier refused admission remains
+historical evidence; it was not retried or relabeled as successful.
 
 ## Observer and workload sizing diagnosis
 
@@ -30,4 +38,4 @@ All 8,079 interim occurrences are accounted for: 7,776 block_scan_wait observati
 
 Mean submission-to-qualified-final time was 1,191.975ms. The per-transaction residual from inclusion observation to qualified final observation averaged269.411ms (P95 554.393ms); it includes local readback and observer overhead and is not an internal consensus timer. With the same mean lifetime, Little-law sizing suggests about1,192 in-flight transactions for1,000/s, versus this run's256 sender slots. This is a sizing inference, not measured capacity: higher load can change latency. The existing small matched pair isolates cache effects but cannot establish target capacity; later scaling needs an independently scheduled larger continuous workload and resource budget.
 
-[Derived diagnostics](evidence/same-control-before-observer-diagnosis-20261018.json). [First offline admission attempt](STOPPED_BEFORE_ADMISSION_20261018.md) was rejected by native pressure2 before the test binary started; stopped-node proofs remain pending.
+[Derived diagnostics](evidence/same-control-before-observer-diagnosis-20261018.json). [First offline admission attempt](STOPPED_BEFORE_ADMISSION_20261018.md) was rejected by native pressure2 before the test binary started; the later explicitly authorized offline-baseline-stopped-01 proof is recorded above.

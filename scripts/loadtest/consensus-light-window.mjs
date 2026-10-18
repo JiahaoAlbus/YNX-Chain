@@ -8,16 +8,19 @@ import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
-import {lightCommand,lightScratchBytes,requireClientRegressionPasses,remainingPhaseBudget,clientRegressionArgs,clientOwnedRSSCap,lightProbeInput} from './consensus-light-plan.mjs';
-const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false},'client13-normal-05':{type:'boolean',default:false},'client13-normal-06':{type:'boolean',default:false},'client13-normal-07':{type:'boolean',default:false},'client13-normal-08':{type:'boolean',default:false},'client13-normal-09':{type:'boolean',default:false}}});
+import {lightCommand,lightScratchBytes,requireClientRegressionPasses,remainingPhaseBudget,clientRegressionArgs,clientOwnedRSSCap,lightProbeInput,stoppedOriginalInventory,requireSameStoppedOriginals,requireStoppedProofPasses} from './consensus-light-plan.mjs';
+const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false},'client13-normal-05':{type:'boolean',default:false},'client13-normal-06':{type:'boolean',default:false},'client13-normal-07':{type:'boolean',default:false},'client13-normal-08':{type:'boolean',default:false},'client13-normal-09':{type:'boolean',default:false},'offline-baseline-stopped-01':{type:'boolean',default:false}}});
 const plan=lightCommand(process.cwd(),values['stopped-window'],values['native-compile'],values['client-regression']);
-const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09'].filter(k=>values[k]);
+const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','offline-baseline-stopped-01'].filter(k=>values[k]);
 if(explicitCases.length>1)throw Error('only one explicit resource case');
 const admissionCase=explicitCases[0];
 const caseSuffix=admissionCase?.slice(-2);
-const ownedRSSCapBytes=clientOwnedRSSCap(plan,admissionCase);
-if(admissionCase&&(plan.mode!=='client_regression'||!values.output||path.resolve(values.output)!==path.join(process.cwd(),`artifacts/chain-performance-20261017/client13-normal-20261018-${caseSuffix}.json`)))throw Error('explicit case is only the fixed client13 case and original new receipt path');
-if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',plan,admissionCase,ownedRSSCapBytes,caps:plan.caps??{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
+const offlineBaseline=admissionCase==='offline-baseline-stopped-01';
+const offlineCaps=offlineBaseline?{activeMs:45000,cleanupMs:15000,totalMs:60000,ownedRSSBytes:419430400,threads:320,freeDiskFloorBytes:1073741824,rootReserveBytes:445644800}:undefined;
+const ownedRSSCapBytes=offlineBaseline?400*1024**2:clientOwnedRSSCap(plan,admissionCase);
+if(offlineBaseline&&(plan.mode!=='stopped_replay'||plan.window!==path.join(process.cwd(),'artifacts/chain-network-performance/window-eEfGE7')||!values.output||path.resolve(values.output)!==path.join(process.cwd(),'artifacts/chain-performance-20261017/offline-baseline-stopped-20261018-01.json')))throw Error('offline case requires original baseline, retained binary and fixed exclusive receipt');
+if(admissionCase&&!offlineBaseline&&(plan.mode!=='client_regression'||!values.output||path.resolve(values.output)!==path.join(process.cwd(),`artifacts/chain-performance-20261017/client13-normal-20261018-${caseSuffix}.json`)))throw Error('explicit case is only the fixed client13 case and original new receipt path');
+if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',plan,admissionCase,ownedRSSCapBytes,offlineCaps,caps:plan.caps??{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
 if(process.platform!=='darwin'||!values.output)throw Error('macOS and a new explicit --output required');
 const output=path.resolve(values.output);if(fs.existsSync(output))throw Error('receipt path already exists; preserve original');
 const exec=promisify(execFile),started=Date.now(),root=process.cwd();
@@ -28,11 +31,11 @@ const hostBinary={path:hostPath,sha256:createHash('sha256').update(fs.readFileSy
 if(hostBinary.sha256!==expectedProbe.sha256)throw Error('actual native probe binary digest differs from the fixed case');
 const probe=createNativeResourceProbe(hostPath);
 const goEnvironment=plan.env;
-const result={plan,hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete test process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,admissionCase,ownedRSSCapBytes,priorRSSLimitEvidence:['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09'].includes(admissionCase)?{case:'client13-normal-04',limitBytes:419430400,actualPeakBytes:432111616,rawSHA256:'cdcd85e86a8ce5c89fd1c675334403c58a9d09b61226ce1106aae26b53f98791'}:undefined,allowedNativePressureLevels:admissionCase?[1,2]:[1],firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
+const result={plan,hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete test process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,admissionCase,offlineCaps,ownedRSSCapBytes,priorRSSLimitEvidence:['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09'].includes(admissionCase)?{case:'client13-normal-04',limitBytes:419430400,actualPeakBytes:432111616,rawSHA256:'cdcd85e86a8ce5c89fd1c675334403c58a9d09b61226ce1106aae26b53f98791'}:undefined,allowedNativePressureLevels:admissionCase?[1,2]:[1],firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
 const regression=plan.mode==='client_regression';
 let scratchRoot;
 result.scratchSamples=[];result.peakScratchBytes=0;
-if(regression)result.driverPins=Object.fromEntries(['consensus-light-window.mjs','consensus-light-plan.mjs','native-resource-sample.mjs','owned-process-race.mjs','native-resource-probe.mjs'].map(name=>[name,createHash('sha256').update(fs.readFileSync(new URL(name,import.meta.url))).digest('hex')]));
+if(regression||offlineBaseline)result.driverPins=Object.fromEntries(['consensus-light-window.mjs','consensus-light-plan.mjs','native-resource-sample.mjs','owned-process-race.mjs','native-resource-probe.mjs'].map(name=>[name,createHash('sha256').update(fs.readFileSync(new URL(name,import.meta.url))).digest('hex')]));
 const fail=e=>result.firstCause??=String(e);
 let child,done=false,busy=false,monitor;
 const kill=()=>{if(child?.pid)try{process.kill(-child.pid,'SIGKILL')}catch(e){if(e.code!=='ESRCH')fail(e)}};
@@ -110,8 +113,22 @@ async function sample(initial=false){
  result.peakRSS=Math.max(result.peakRSS,s.rssWithControlReserveBytes);result.peakThreads=Math.max(result.peakThreads,s.threadsWithControlReserve);
  result.samples.push({at:new Date().toISOString(),...s});
  if(s.rssWithControlReserveBytes>ownedRSSCapBytes)throw Error(`${ownedRSSCapBytes/1024**2}MiB control/owned RSS cap`);
+ if(offlineBaseline){
+  if(s.threadsWithControlReserve>320)throw Error('320 offline thread cap');
+  const st=fs.statfsSync(root),freeDiskBytes=Number(st.bavail)*Number(st.bsize);
+  (result.offlineDiskSamples??=[]).push({at:new Date().toISOString(),freeDiskBytes});
+  if(freeDiskBytes<1024**3+425*1024**2)throw Error('offline disk below floor/reserve');
+ }
  if(regression){if(s.threadsWithControlReserve>plan.caps.threads)throw Error('320 client thread cap');scratchAndDisk(initial)}
  if(initial){const {stdout}=await exec('/usr/bin/vm_stat',[],{timeout:1500,killSignal:'SIGKILL',maxBuffer:65536});const free=Number(stdout.match(/Pages free:\s+(\d+)/)?.[1])*Number(stdout.match(/page size of (\d+)/)?.[1]);result.vmStat={sampledAt:new Date().toISOString(),raw:stdout,freePageBytes:Number.isFinite(free)?free:null,interpretation:'Diagnostic free pages only, not available bytes; admission uses native memoryPressure dispatch level and actual owned RSS cap'}}
+}
+async function requireNoOriginalOwners(stage,inventory){
+ const checks=[{kind:'12 loopback listeners',args:['-nP','-iTCP:31656-31659','-iTCP:31757-31760','-iTCP:31858-31861','-sTCP:LISTEN']},{kind:'original input open-file owners',args:['-nP','-Fpcn','--',...inventory.rows.filter(r=>r.type==='file').map(r=>path.join(plan.window,r.path))]}];
+ for(const check of checks){
+  const observation={stage,kind:check.kind,startedAt:new Date().toISOString()};(result.offlineOwnerChecks??=[]).push(observation);
+  try{const query=exec('/usr/sbin/lsof',check.args,{timeout:3000,killSignal:'SIGKILL',maxBuffer:1024*1024});observation.pid=query.child?.pid;const answer=await query;observation.stdout=answer.stdout;observation.stderr=answer.stderr;observation.code=0;throw Error('live listener or original input owner exists');}
+  catch(e){if(observation.code===0)throw e;Object.assign(observation,{code:e.code,signal:e.signal??null,killed:e.killed??false,stdout:e.stdout??'',stderr:e.stderr??''});if(e.code!==1||e.stdout||e.stderr)throw Error('original input ownership unavailable');}
+ }
 }
 try{
  if(plan.mode==='native_compile'&&fs.existsSync(plan.args.at(-1)))throw Error('preserve existing native candidate binary');
@@ -124,6 +141,11 @@ try{
   for(const name of ['stopped-replay.json','ready-account-readback.json'])if(fs.existsSync(path.join(plan.window,name)))throw Error('preserve existing offline output: '+name);
  }
  await sample(true);
+ if(offlineBaseline){
+  result.originalsUnchanged=false;
+  result.offlineBefore=await stoppedOriginalInventory(plan.window,started+activeMs);
+  await requireNoOriginalOwners('before',result.offlineBefore);
+ }
  if(regression){
   await verifyGoSource();
   const query=exec('/opt/homebrew/bin/go',['env','GOCACHE','GOMODCACHE'],{cwd:root,env:{...process.env,...goEnvironment},timeout:3000,killSignal:'SIGKILL',maxBuffer:65536});
@@ -152,13 +174,30 @@ try{
  monitor=setInterval(async()=>{if(busy||done)return;busy=true;try{await sample()}catch(e){if(!done){fail(e.message);kill()}}finally{busy=false}},500);
  await closed;
  if(result.go.code!==0)fail(`go test terminal code=${result.go.code} signal=${result.go.signal}`);
+ if(offlineBaseline){
+  result.offlineAfter=await stoppedOriginalInventory(plan.window,started+activeMs);
+  requireSameStoppedOriginals(result.offlineBefore,result.offlineAfter);result.originalsUnchanged=true;
+  await requireNoOriginalOwners('after',result.offlineAfter);
+  if(result.go.code===0)result.actualPassedFunctions=requireStoppedProofPasses(result.go.stdout);
+  result.proofArtifacts=[];
+  for(const name of ['stopped-replay.json','ready-account-readback.json']){
+   const source=path.join(plan.window,name),destination=path.join(path.dirname(output),'offline-baseline-stopped-01-'+name);
+   if(!fs.existsSync(source))throw Error('actual stopped proof output missing');
+   fs.copyFileSync(source,destination,fs.constants.COPYFILE_EXCL);
+   result.proofArtifacts.push({source,path:destination,sha256:createHash('sha256').update(fs.readFileSync(source)).digest('hex'),bytes:fs.statSync(source).size});
+  }
+ }
  if(regression){scratchAndDisk();result.cacheAfter=await cacheOccupancy();result.cacheNetGrowthBytes=result.cacheAfter.totalBytes-result.cacheBefore.totalBytes;if(result.cacheNetGrowthBytes<0)throw Error('shared cache decreased; new cache attribution unknown');if(result.peakScratchBytes+result.cacheNetGrowthBytes>plan.caps.scratchBytes)throw Error('512MiB scratch plus attributable cache growth cap');await verifyGoSource();if(result.go.code===0)result.actualPassedFunctions=requireClientRegressionPasses(plan,result.go.stdout);}
 }catch(e){fail(e.message);kill()}finally{
  clearTimeout(deadline);clearInterval(monitor);const stop=Date.now();await probe.stop();
  const cleanupMs=regression?Math.max(0,Math.min(plan.caps.cleanupMs,plan.caps.totalMs-(stop-started))):15000;
  if(child?.pid){kill();while(Date.now()-stop<cleanupMs){try{process.kill(-child.pid,0)}catch(e){if(e.code==='ESRCH'){result.groupGone=true;break}fail(e.message)}await delay(50)}if(!result.groupGone)fail('original process group still present')}
  else result.groupGone=true;
+ if(offlineBaseline&&result.offlineBefore&&!result.offlineAfter){
+  try{result.offlineAfter=await stoppedOriginalInventory(plan.window,started+60000);requireSameStoppedOriginals(result.offlineBefore,result.offlineAfter);result.originalsUnchanged=true;}catch(e){result.originalsUnchanged=false;result.offlineAfterError=e.message;fail(e.message);}
+ }
  result.elapsedMs=Date.now()-started;
+ if(offlineBaseline&&result.elapsedMs>60000)fail('60s offline total deadline');
  if(regression&&result.elapsedMs>plan.caps.totalMs)fail('45s client total deadline');
  if(regression)result.measurementLimits='Sampled native RSS/scratch, not hard OS enforcement; short peaks may occur between samples. Private scratch includes compiler/tests; original shared Go cache occupancy is separately read before/after and positive net growth is conservatively combined with peak scratch; no hard cache peak enforcement, actual free disk is separately checked.';
  fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});

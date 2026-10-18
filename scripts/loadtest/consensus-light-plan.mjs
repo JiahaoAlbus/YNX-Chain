@@ -64,3 +64,49 @@ export function clientOwnedRSSCap(plan,rootCase){
 export function lightProbeInput(root,rootCase){
  return ['client13-normal-07','client13-normal-08','client13-normal-09'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
 }
+
+// Inventory original stopped data; the proof outputs live outside this set.
+export async function stoppedOriginalInventory(window,deadlineAt=Infinity){
+ const {createHash}=await import('node:crypto');
+ const base=path.resolve(window);
+ if(fs.realpathSync(base)!==base)throw Error('stopped root symlink refused');
+ const manifestPath=path.join(base,'network/network-manifest.json');
+ if(fs.statSync(manifestPath).size>1024*1024)throw Error('stopped manifest byte bound');
+ const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
+ if(manifest.nodes?.length!==4)throw Error('four original node identities required');
+ const selected=new Set([path.join(base,'window-receipt.json'),path.join(base,'transactions-result.json'),manifestPath,path.join(base,'network/transactions.json'),path.join(base,'network/sender-ready.signed.jsonl'),manifest.migrationPath]);
+ const roots=[];
+ for(const node of manifest.nodes){
+  selected.add(path.join(node.home,'config/genesis.json'));selected.add(path.join(node.home,'config/config.toml'));
+  selected.add(node.abciStatePath);roots.push(path.join(node.home,'data'));
+ }
+ if(new Set(roots).size!==4)throw Error('duplicate stopped node identity');
+ const check=p=>{if(Date.now()>=deadlineAt)throw Error('stopped inventory active deadline');if(typeof p!=='string'||!p.startsWith(base+path.sep)||fs.realpathSync(p)!==p)throw Error('stopped input escaped or symlinked');};
+ function list(){
+  const paths=new Set(selected);
+  function walk(p){check(p);paths.add(p);if(paths.size>1024)throw Error('stopped file inventory bound');const st=fs.lstatSync(p);if(st.isDirectory())for(const name of fs.readdirSync(p).sort())walk(path.join(p,name));else if(!st.isFile())throw Error('stopped nonregular input');}
+  for(const p of roots)walk(p);
+  return [...paths].sort();
+ }
+ const metadata=p=>{const s=fs.lstatSync(p,{bigint:true});if(!s.isFile()&&!s.isDirectory())throw Error('stopped nonregular input');return {path:path.relative(base,p),type:s.isFile()?'file':'directory',dev:String(s.dev),inode:String(s.ino),size:String(s.size),mtimeNs:String(s.mtimeNs)};};
+ const paths=list(),rows=[];let totalBytes=0;
+ for(const p of paths){
+  check(p);const before=metadata(p);
+  if(before.type==='file'){
+   totalBytes+=Number(before.size);if(!Number.isSafeInteger(totalBytes)||totalBytes>64*1024**2)throw Error('stopped input bytes bound');
+   const h=createHash('sha256');for await(const chunk of fs.createReadStream(p,{highWaterMark:64*1024,...(Number.isFinite(deadlineAt)?{signal:AbortSignal.timeout(Math.max(1,deadlineAt-Date.now()))}:{})}))h.update(chunk);before.sha256=h.digest('hex');
+  }
+  if(JSON.stringify({...before,sha256:undefined})!==JSON.stringify(metadata(p)))throw Error('stopped file changed during hash');rows.push(before);
+ }
+ if(JSON.stringify(paths)!==JSON.stringify(list()))throw Error('stopped inventory changed during hash');
+ return {root:base,totalBytes,rows};
+}
+export function requireSameStoppedOriginals(before,after){
+ if(JSON.stringify(before)!==JSON.stringify(after))throw Error('original stopped file identity/content/inventory changed');
+}
+export function requireStoppedProofPasses(stdout){
+ const names=['TestStoppedNetworkReplay','TestStoppedReadySenderAccountReadback'];
+ const passed=[...stdout.matchAll(/^--- PASS: (Test[^ /]+) \(/gm)].map(m=>m[1]);
+ if(/^\s*--- (?:FAIL|SKIP):/m.test(stdout)||passed.length!==2||names.some(n=>!passed.includes(n))||!/^PASS$/m.test(stdout))throw Error('both actual stopped proof functions must pass without skips');
+ return passed;
+}

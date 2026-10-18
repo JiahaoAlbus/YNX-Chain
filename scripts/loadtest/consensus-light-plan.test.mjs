@@ -97,3 +97,48 @@ test('normal09 alone receives 768MiB without changing prior caps or fixed worklo
  assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);
  assert.equal(p.env.GOMEMLIMIT,'160MiB');assert.equal(p.env.GOPROXY,'off');
 });
+
+test('stopped proof requires both real functions and refuses skip/partial output',async()=>{
+ const {requireStoppedProofPasses}=await import('./consensus-light-plan.mjs');
+ const s='--- PASS: TestStoppedNetworkReplay (0.1s)\n--- PASS: TestStoppedReadySenderAccountReadback (0.1s)\nPASS\n';
+ assert.equal(requireStoppedProofPasses(s).length,2);
+ for(const bad of [s.replace('--- PASS: TestStoppedNetworkReplay','--- SKIP: TestStoppedNetworkReplay'),s.replace('TestStoppedReadySenderAccountReadback','TestOther'),s+'--- FAIL: TestOther (0.1s)\n'])assert.throws(()=>requireStoppedProofPasses(bad));
+});
+test('stopped original identity gate rejects replacement, content, mtime and inventory changes',async()=>{
+ const {requireSameStoppedOriginals}=await import('./consensus-light-plan.mjs');
+ const before={root:'/window',rows:[{path:'db/CURRENT',inode:'1',dev:'2',size:'4',mtimeNs:'5',sha256:'original'}]};
+ requireSameStoppedOriginals(before,structuredClone(before));
+ for(const [key,value]of [['inode','99'],['sha256','changed'],['mtimeNs','6'],['dev','3'],['size','5']]){const after=structuredClone(before);after.rows[0][key]=value;assert.throws(()=>requireSameStoppedOriginals(before,after));}
+ const after=structuredClone(before);after.rows.push({path:'new'});assert.throws(()=>requireSameStoppedOriginals(before,after));
+});
+
+test('real filesystem inventory detects same-name replacement and refuses missing or symlinked originals',async()=>{
+ const {stoppedOriginalInventory,requireSameStoppedOriginals}=await import('./consensus-light-plan.mjs');
+ const base=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-stopped-identity-')));
+ try{
+  const network=path.join(base,'network');fs.mkdirSync(network);
+  for(const file of ['window-receipt.json','transactions-result.json'])fs.writeFileSync(path.join(base,file),'{}');
+  for(const file of ['transactions.json','sender-ready.signed.jsonl','migration.json'])fs.writeFileSync(path.join(network,file),'{}');
+  const nodes=[];
+  for(let i=0;i<4;i++){const home=path.join(network,'n'+i);fs.mkdirSync(path.join(home,'config'),{recursive:true});fs.mkdirSync(path.join(home,'data/blockstore.db'),{recursive:true});for(const file of ['genesis.json','config.toml'])fs.writeFileSync(path.join(home,'config',file),'{}');const state=path.join(home,'data/state');fs.writeFileSync(state,'state');fs.writeFileSync(path.join(home,'data/blockstore.db/CURRENT'),'db');nodes.push({home,abciStatePath:state});}
+  fs.writeFileSync(path.join(network,'network-manifest.json'),JSON.stringify({migrationPath:path.join(network,'migration.json'),nodes}));
+  const before=await stoppedOriginalInventory(base);requireSameStoppedOriginals(before,await stoppedOriginalInventory(base));
+  const original=nodes[0].abciStatePath;fs.renameSync(original,original+'.retired');fs.writeFileSync(original,'state');
+  assert.throws(()=>requireSameStoppedOriginals(before,{...before,rows:[]}));
+  assert.notDeepEqual(before,await stoppedOriginalInventory(base));
+  fs.unlinkSync(original);fs.symlinkSync(original+'.retired',original);
+  await assert.rejects(stoppedOriginalInventory(base),/symlinked/);
+  fs.unlinkSync(original);await assert.rejects(stoppedOriginalInventory(base));
+ }finally{fs.rmSync(base,{recursive:true,force:true});}
+});
+
+test('offline exception is prepare-only and limited to exact original window and receipt',async()=>{
+ const {spawnSync}=await import('node:child_process');const {fileURLToPath}=await import('node:url');
+ const runner=fileURLToPath(new URL('./consensus-light-window.mjs',import.meta.url));
+ const base=['--offline-baseline-stopped-01','--stopped-window',path.join(process.cwd(),'artifacts/chain-network-performance/window-eEfGE7'),'--output','artifacts/chain-performance-20261017/offline-baseline-stopped-20261018-01.json'];
+ const run=args=>spawnSync(process.execPath,[runner,...args],{encoding:'utf8',timeout:3000});
+ const good=run(base);assert.equal(good.status,0,good.stderr);const result=JSON.parse(good.stdout);assert.equal(result.status,'prepared_only_no_processes_started');assert.equal(result.ownedRSSCapBytes,419430400);assert.equal(result.offlineCaps.totalMs,60000);
+ const wrong=[...base];wrong[2]=path.join(process.cwd(),'artifacts/chain-network-performance/window-AAAAAA');
+ assert.notEqual(run(wrong).status,0);assert.notEqual(run([...base,'--client-regression']).status,0);
+ const other=[...base];other[4]='artifacts/chain-performance-20261017/other.json';assert.notEqual(run(other).status,0);
+});

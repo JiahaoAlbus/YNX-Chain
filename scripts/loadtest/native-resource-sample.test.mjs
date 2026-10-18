@@ -74,3 +74,10 @@ test('normal05 and normal06 pressure exception rejects critical unknown and unre
  assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase}));
  }
 });
+
+test('offline baseline case alone admits pressure2 and still rejects4 or unknown',()=>{
+ const s=sample();s.memoryPressure.dispatchLevel=2;
+ assert.throws(()=>validateNativeResourceSample(s,76461));
+ assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase:'offline-baseline-stopped-01'}));
+ for(const level of [4,0,undefined]){s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'offline-baseline-stopped-01'}));}
+});
