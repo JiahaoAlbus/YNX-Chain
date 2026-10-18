@@ -96,7 +96,7 @@ function pqRecords(value,accounts){
 function pqReservations(value,accounts){
   list(value);const seen=new Set();return value.map(record=>{
     exact(record,['version','account','operationId','networkId','kind']);
-    if(record.version!==1||!accounts.some(a=>a.account===record.account&&a.state==='protected')||seen.has(record.account)||typeof record.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(record.operationId)||typeof record.networkId!=='string'||! /^[a-f0-9]{64}$/.test(record.networkId)||record.kind!=='generate')fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
+    if(record.version!==1||!accounts.some(a=>a.account===record.account&&a.state==='protected')||seen.has(record.account)||typeof record.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(record.operationId)||typeof record.networkId!=='string'||! /^[a-f0-9]{64}$/.test(record.networkId)||!['generate','restore'].includes(record.kind))fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
     seen.add(record.account);return {...record};
   });
 }

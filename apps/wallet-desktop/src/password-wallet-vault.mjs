@@ -111,7 +111,7 @@ export class PasswordWalletVault {
   async assertPQPreparationAvailable(){
     const guard=this.authorization.current();return this.#serialize(async()=>{const current=await this.#readUnlocked(guard);if(!guard.account||guard.account!==current.vault.activeAccount)throw cancelled();if(current.vault.pqKeyRecords?.some(r=>r.account===guard.account)||current.vault.pqPreparationReservations?.some(r=>r.account===guard.account))fail('PASSWORD_VAULT_PQ_ORIGINAL_EXISTS','Use the original dual-key record or explicit recovery; do not generate replacement keys.');return undefined;});
   }
-  async savePQKeys({handle,publicBinding,operationId}={}){
+  async savePQKeys({handle,publicBinding,operationId,restoration}={}){
     const guard=this.authorization.current(),sdk=this.#pqRequired();
     if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Resolve the original key cleanup before creating another record.');
     return this.#serialize(async()=>{
@@ -120,7 +120,13 @@ export class PasswordWalletVault {
       if(current.vault.pqKeyRecords?.some(r=>r.account===guard.account))fail('PASSWORD_VAULT_PQ_ORIGINAL_EXISTS','The original dual-key record is retained.');
       let credential,wire,candidate;
       try{
-        credential=sdk.createPQRecoveryCredential();wire=await sdk.exportPQWalletBackup(handle,credential);guard.assert();
+        if(restoration){
+          // Main-only explicit restore: preserve the exact original encrypted
+          // backup and independent credential, not a silently rekeyed copy.
+          if(!(restoration.wire instanceof Uint8Array)||restoration.wire.buffer instanceof SharedArrayBuffer||typeof restoration.credential!=='string')fail('PQ_RECOVERY_INPUT_REQUIRED','Use the original encrypted backup and credential.');
+          wire=new Uint8Array(restoration.wire);credential=restoration.credential;
+          await this.#verifyPQRecovery({wire,credential},publicBinding,guard);guard.assert();
+        }else{credential=sdk.createPQRecoveryCredential();wire=await sdk.exportPQWalletBackup(handle,credential);guard.assert();}
         candidate=await preparePasswordVaultPQRecord(current.vault,current.session,{account:guard.account,operationId,binding:publicBinding,wire,credential},options(guard));
         const checked=await decryptPasswordVaultPQRecord(candidate.vault,guard.account,candidate.session,options(guard));
         try{await this.#verifyPQRecovery(checked,publicBinding,guard);}finally{checked.wire.fill(0);checked.credential=null;}

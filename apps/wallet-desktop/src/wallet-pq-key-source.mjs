@@ -24,14 +24,16 @@ export function createPQKeyPreparationSource({sdk,repository,getOriginalNetwork,
   }
   return Object.freeze({
     async prepare(kind,{binding,guard,operationId}){
-      const network=await networkFor(binding,guard);let handle;
+      const network=await networkFor(binding,guard);let handle,expected,input;
+      if(kind==='restore'){
+        expected=await getRegisteredBinding({network,account:binding.account,guard});guard.assert();
+        if(expected?.chainId!==network.chainId||expected?.owner!==network.owner)fail('PQ_KEY_BINDING_CHANGED');
+        input=await readRestoreInput({guard});guard.assert();
+        if(!input||!(input.wire instanceof Uint8Array)||typeof input.credential!=='string')fail('PQ_RECOVERY_INPUT_REQUIRED');
+      }
       await repository.assertCanPrepare({kind,account:binding.account,network,guard,operationId});guard.assert();
       if(kind==='generate')handle=await sdk.createPQWalletKeyHandle(network);
       else if(kind==='restore'){
-        const expected=await getRegisteredBinding({network,account:binding.account,guard});guard.assert();
-        if(expected?.chainId!==network.chainId||expected?.owner!==network.owner)fail('PQ_KEY_BINDING_CHANGED');
-        const input=await readRestoreInput({guard});guard.assert();
-        if(!input||!(input.wire instanceof Uint8Array)||typeof input.credential!=='string')fail('PQ_RECOVERY_INPUT_REQUIRED');
         // Expected keys come only from the original/on-chain source above.
         handle=await sdk.restorePQWalletKeyHandle(input.wire,input.credential,expected);
       }else fail('PQ_KEY_PREPARATION_KIND_INVALID');

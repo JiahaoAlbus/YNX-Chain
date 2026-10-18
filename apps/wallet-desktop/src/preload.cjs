@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   cancelPQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-cancel'),
   exportPQBackup:()=>ipcRenderer.invoke('wallet:pq-backup-export'),
   verifyPQBackup:()=>ipcRenderer.invoke('wallet:pq-backup-verify'),
+  restoreRegisteredPQ:input=>ipcRenderer.invoke('wallet:pq-restore',input),
+  recoverRegisteredPQ:()=>ipcRenderer.invoke('wallet:pq-restore-recover'),
   preparePQTransfer:input=>ipcRenderer.invoke('wallet:pq-transfer-review',input),
   preparePQMigration:input=>ipcRenderer.invoke('wallet:pq-migration-review',input),
   originalAdmissionStatus:()=>ipcRenderer.invoke('wallet:original-admission-status'),

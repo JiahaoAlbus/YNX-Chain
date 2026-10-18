@@ -121,6 +121,40 @@ test('App normal PQ export is a standalone SDK backup restored in a fresh proces
  // Export cannot clobber this existing file or replace the independent pair.
  await assert.rejects(backup.export());assert.deepEqual(await fs.readFile(filePath),file);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
 });
+test('App normal registered restore uses original R54 factory and real SDK into SAME isolated Vault without replacing accounts',async t=>{
+ const {createRegisteredPQRestore}=await import('../src/wallet-pq-registered-restore.mjs'),{PQBackupFile}=await import('../src/pq-backup-file.mjs');
+ const https=(await import('node:https')).default,{EventEmitter}=await import('node:events'),{syncBuiltinESMExports}=await import('node:module');
+ const f=await fixture(t),networkId='16366ff25bcc73c6bb95d12733be74d1ac885d3daf518ddd0e4bd4438cff243f';
+ const originalRequest=https.request;let sourceKind='authoritative_producer',calls=[];
+ t.after(()=>{https.request=originalRequest;syncBuiltinESMExports();});
+ const key=await SDK.createPQWalletKeyHandle({chainId:networkId,owner:f.account}),binding=SDK.readPQWalletKeyPublic(key),credential=SDK.createPQRecoveryCredential();let wire;
+ try{wire=await SDK.exportPQWalletBackup(key,credential);}finally{SDK.destroyPQWalletKeyHandle(key);}
+ const file=path.join(f.directory,'registered-original.ynxpq');await new PQBackupFile().write(file,wire,{assert(){}});
+ const registered=pqPublicBindingToRegistrationKeys(binding),rpc=()=>({owner:f.account,executionHeight:'25',ledgerNonce:'1',algorithmVersion:'YNX-BATCH/v0.1',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId,enableAt:'10',activeRevision:'1',records:[{algorithmVersion:'YNX-BATCH/v0.1',owner:f.account,pkA:registered.pkA,pkB:registered.pkB,revision:'1',registeredAt:'10',activeFrom:'20',ledgerNonce:'1'}],policyView:'next_execution',recordsView:'includes_pending',source:sourceKind,committedHeight:'24',committedBlockHash:'a'.repeat(64),committedAlgorithmVersion:'YNX-BATCH/v0.1',committedActiveRevision:'1',checkpointStatus:'durable',checkpointIntegrity:'b'.repeat(64),recordsComplete:true});
+ // PUBLIC HTTP/TLS boundary instrumentation, not a live node, source grant,
+ // test-kernel brand or authority fixture injected into the production caller.
+ https.request=(url,options,callback)=>{
+  assert.equal(url.origin,'https://rpc.ynxweb4.com');assert.equal(options.method,'GET');assert.equal(options.rejectUnauthorized,true);assert.equal(typeof options.checkServerIdentity,'function');calls.push(url.pathname);
+  const request=new EventEmitter();request.destroy=()=>{};request.end=()=>queueMicrotask(()=>{const response=new EventEmitter();response.destroy=()=>{};response.statusCode=200;response.headers={'content-type':'application/json','cache-control':'no-store'};const body=url.pathname==='/status'?{chainId:6423,catchingUp:false,persistence:true,persistenceError:'',build:{commit:'65efa82e0615',release:'ynx-network-surgical-65efa82e0615'}}:url.pathname==='/blocks/0'?{height:0,hash:networkId}:rpc();callback(response);response.emit('data',Buffer.from(JSON.stringify(body)));response.emit('end');});return request;
+ };syncBuiltinESMExports();
+ const {acquireOriginalWalletRegisteredBinding:acquire,isOriginalWalletRegisteredBinding:isOriginal}=await import('../src/original-policy-supplier/registered-binding-resource.mjs');
+ const actions=createRegisteredPQRestore({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId,id:()=> 'TEST-normal-registered-restore',acquire,isOriginal,files:new PQBackupFile(),chooseFile:async()=>file});
+ const saved=await actions.restore({credential});assert.equal(saved.persisted,true);assert.equal(saved.sourceClosed,true);assert.equal(saved.signingAuthorized,false);assert.equal(saved.transactionAuthorized,false);
+ assert.deepEqual(calls,['/status','/blocks/0','/accounts/'+f.account+'/authorization','/status','/status','/blocks/0','/accounts/'+f.account+'/authorization','/status']);
+ const before=parsePasswordVault(f.original),afterText=await fs.readFile(f.filePath,'utf8'),after=parsePasswordVault(afterText);
+ assert.deepEqual(after.accounts,before.accounts);assert.deepEqual(after.records,before.records);assert.deepEqual(after.passwordWrap,before.passwordWrap);assert.equal(after.activeAccount,before.activeAccount);assert.equal(after.pqPreparationReservations[0].kind,'restore');
+ await f.lifecycle.run(()=>f.vault.withPQBackup(networkId,(payload)=>{assert.deepEqual(payload.wire,Buffer.from(wire));assert.equal(payload.credential,credential);return true;}));
+ assert.deepEqual(new Uint8Array(await fs.readFile(file)),wire);await assert.rejects(actions.restore({credential}));assert.equal(await fs.readFile(f.filePath,'utf8'),afterText);
+ // Normal original source refusal: no backup metadata fallback or reservation.
+ const refused=await fixture(t),refusedBefore=await fs.readFile(refused.filePath,'utf8');sourceKind='comet-rpc';
+ const declined=createRegisteredPQRestore({lifecycle:refused.lifecycle,vault:refused.vault,sdk:SDK,networkId,id:()=> 'TEST-refused-source',acquire,isOriginal,files:new PQBackupFile(),chooseFile:async()=>file});
+ await assert.rejects(declined.restore({credential}));assert.equal(await fs.readFile(refused.filePath,'utf8'),refusedBefore);declined.selectOriginalOutcome(r=>{assert(r.resource);assert.equal(r.closed,true);assert.equal(r.firstCause.code,'AUTH_POLICY_QUERY_UNHEALTHY');});
+ // An incorrect credential is known input refusal BEFORE durable import.
+ const wrong=await fixture(t),wrongBefore=await fs.readFile(wrong.filePath,'utf8');sourceKind='authoritative_producer';
+ const corrected=createRegisteredPQRestore({lifecycle:wrong.lifecycle,vault:wrong.vault,sdk:SDK,networkId,id:()=> 'TEST-corrected-credential',acquire,isOriginal,files:new PQBackupFile(),chooseFile:async()=>file});
+ await assert.rejects(corrected.restore({credential:SDK.createPQRecoveryCredential()}));assert.equal(await fs.readFile(wrong.filePath,'utf8'),wrongBefore);assert.equal((await corrected.restore({credential})).persisted,true);
+ wire.fill(0);
+});
 async function fixture(t,pqSDK=SDK){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');
  const lifecycle=new DesktopKeyLifecycle();lifecycle.setFocused(true);
