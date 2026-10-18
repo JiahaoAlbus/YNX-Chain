@@ -4,8 +4,9 @@ import {appendPQFinalityActions} from '../src/wallet-pq-finality-ui.mjs';
 const account='0x'+'1'.repeat(40),hash='0x'+'2'.repeat(64),record={kind:'pq-transfer',account,hash,status:'pq-submission-unknown'};
 const value=()=>({account,hash,nativeTransactionHash:hash,status:'pending',rawStored:true,consensusFinality:false,independentFinality:false,canRetry:false,clearsOriginal:false});
 const restored=(heldLocally=false)=>({account,hash,records:[],unreadable:0,heldLocally,consensusFinality:false,independentFinality:false,canRetry:false,clearsOriginal:false});
-function fixture(){
+function fixture(withVerification=false){
  let state={account,revision:1,locked:false},attached=true,reply=async method=>({ok:true,value:method==='restore'?restored():value()});const calls=[],messages=[],row={children:[],append(n){this.children.push(n);}},document={createElement(){return {hidden:false,disabled:false,addEventListener(t,fn){this[t]=fn;}};}},api=Object.fromEntries([['collectPQFinalityEvidence','collect'],['restorePQFinalityEvidence','restore'],['savePQFinalityEvidence','save']].map(([name,method])=>[name,async h=>{calls.push([method,h]);return reply(method);} ]));
+ if(withVerification)api.verifyPQFinalityEvidence=async h=>{calls.push(['verify',h]);return reply('verify');};
  appendPQFinalityActions({row,record,api,getKeyState:()=>state,isCurrent:()=>attached,onResult:m=>messages.push(m),document});
  return {buttons:row.children,calls,messages,change:s=>{state={...state,...s};},detach:()=>{attached=false;},reply:fn=>{reply=fn;}};
 }
@@ -28,4 +29,10 @@ test('foreign hashes and inflated finality/clearing/retry flags cannot be painte
 });
 test('unavailable collector with empty native observation retains journal hash binding and never becomes not-found success',async()=>{
  const f=fixture();f.reply(async()=>({ok:true,value:{...value(),status:'unavailable',executionHeight:'0',nativeTransactionHash:''}}));await f.buttons[0].click();assert.match(f.messages.at(-1),/not independently verified/);assert.doesNotMatch(f.messages.at(-1),/transaction confirmed/);
+});
+test('normal Host action reports missing source without presenting a verified result or silently retrying',async()=>{
+ const f=fixture(true);assert.equal(f.buttons.length,4);f.reply(async()=>({ok:false,error:{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'}}));await f.buttons[3].click();assert.match(f.messages.at(-1),/verification unavailable/);assert.equal(f.buttons[3].disabled,true);await f.buttons[3].click();assert.deepEqual(f.calls,[['verify',hash]]);
+});
+test('same-original verification DATA is never painted as finality or a send',async()=>{
+ const f=fixture(true);f.reply(async()=>({ok:true,value:{account,hash,status:'verifier-result-data',rawStored:true,consensusFinality:false,independentFinality:false,canRetry:false,clearsOriginal:false}}));await f.buttons[3].click();assert.match(f.messages.at(-1),/not independently verified/);assert.deepEqual(f.calls,[['verify',hash]]);
 });

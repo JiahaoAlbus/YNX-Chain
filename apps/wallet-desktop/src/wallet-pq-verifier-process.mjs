@@ -51,7 +51,7 @@ export class PQFinalityVerifierProcessKernel {
    firstCause:this.#first,cleanupCause:this.#cleanup});
  }
  assertSafeToClose(){if(this.#active)throw error('PQ_FINALITY_VERIFIER_CLEANUP_PENDING');}
- retire(){if(!this.#used){this.#retired=true;this.#interruption='cancelled';this.#remember(error('PQ_FINALITY_VERIFIER_CANCELLED'));return;}this.#stop('cancelled');}
+ retire(){if(!this.#used){this.#retired=true;this.#interruption='cancelled';this.#remember(error('PQ_FINALITY_VERIFIER_CANCELLED'));this.#join();return;}this.#stop('cancelled');}
  join(){return this.#joined;}
  run(invocation){
   if(this.#used)return Promise.reject(error('PQ_FINALITY_VERIFIER_ALREADY_ENTERED'));this.#used=true;if(this.#retired){this.#closed=true;this.#join();return Promise.reject(error('PQ_FINALITY_VERIFIER_CANCELLED'));}this.#active=true;

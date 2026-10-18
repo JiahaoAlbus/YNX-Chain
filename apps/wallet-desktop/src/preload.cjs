@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   preparePQBroadcast:hash=>ipcRenderer.invoke('wallet:pq-broadcast-review',hash),
   queryPQSubmission:hash=>ipcRenderer.invoke('wallet:pq-submission-query',hash),
   collectPQFinalityEvidence:hash=>ipcRenderer.invoke('wallet:pq-finality-collect',hash),
+  verifyPQFinalityEvidence:hash=>ipcRenderer.invoke('wallet:pq-finality-verify',hash),
   restorePQFinalityEvidence:hash=>ipcRenderer.invoke('wallet:pq-finality-restore',hash),
   savePQFinalityEvidence:hash=>ipcRenderer.invoke('wallet:pq-finality-save',hash),
   pqFinalityVerifierStatus:()=>ipcRenderer.invoke('wallet:pq-finality-verifier-status'),

@@ -54,10 +54,18 @@ test('cold scan retains incomplete/unknown files as warnings rather than silentl
 });
 test('actual normal Main and preload bind only the retained hash to the same collection and private journal',async t=>{
  const f=await fixture(t),main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),preload=await fs.readFile(new URL('../src/preload.cjs',import.meta.url),'utf8'),handlers=new Map();
- const lines=main.split('\n').filter(line=>line.startsWith("handleWalletIPC('wallet:pq-finality-")&&!line.includes('wallet:pq-finality-verifier-status'));assert.equal(lines.length,3);
+ const lines=main.split('\n').filter(line=>line.startsWith("handleWalletIPC('wallet:pq-finality-")&&!line.includes('wallet:pq-finality-verifier-status'));assert.equal(lines.length,4);
  runInNewContext(lines.join('\n'),{handleWalletIPC:(name,fn)=>handlers.set(name,fn),pqFinalityCollection:f.service,keyAccess:{current:()=>f.guard},sensitiveIPC:async fn=>{try{return {ok:true,value:await fn()};}catch(e){return {ok:false,error:{code:e.code}};}}});
  let api;new Function('require',preload)(name=>{assert.equal(name,'electron');return {contextBridge:{exposeInMainWorld:(key,value)=>{assert.equal(key,'ynxWallet');api=value;}},ipcRenderer:{invoke:(channel,...args)=>{assert.equal(args.length,1);assert.equal(args[0],original.hash);return handlers.get(channel)(null,...args);}}};});
  const collected=await api.collectPQFinalityEvidence(original.hash);assert.equal(collected.ok,true);assert.equal(collected.value.consensusFinality,false);const restored=await api.restorePQFinalityEvidence(original.hash);assert.equal(restored.value.records.length,1);assert.equal(f.calls(),1);
  assert.equal((await api.savePQFinalityEvidence(original.hash)).error.code,'PQ_FINALITY_NO_HELD_EVIDENCE');assert.equal(f.calls(),1);await f.unchanged();
+ assert.equal((await api.verifyPQFinalityEvidence(original.hash)).error.code,'PQ_HOST_SOURCE_NOT_SUPPLIED');assert.equal(f.calls(),1);
  assert.equal((main.match(/const originalPQNodeTransport=createPQTransactionNodeTransport\(\)/g)??[]).length,1);assert.match(main,/pqFinalityCollection=createPQFinalityCollection\(\{intentStore:originalTransactionIntentStore/);assert.match(main,/pqTransactionSubmission=createPQTransactionSubmission\(\{intentStore:originalTransactionIntentStore/);assert.ok(main.includes('pqFinalityCollection?.assertSafeToClose()'));
+});
+test('explicit verification hands only a durably retained same-original proof to the private Main verifier',async t=>{
+ const f=await fixture(t),proof={version:'YNX-PQ-TRANSACTION-PROOF/v1',block:{version:'YNX-PQ-LIGHT-PROOF/v1',commitResult:'AQ==',validatorsResult:'AQ=='},successor:{version:'YNX-PQ-LIGHT-PROOF/v1',commitResult:'AQ==',validatorsResult:'AQ=='},transactionProof:'AQ==',executionResult:'AQ==',executionProof:'AQ=='};let verifications=0;
+ f.reply(async()=>({status:200,rawBytes:Buffer.from(JSON.stringify({...JSON.parse(bytes()),status:'collected',proof}))}));
+ const verification={pending:()=>false,assertSafeToClose(){},async verify(o,b,p,g){verifications++;g.assert();assert.deepEqual(o,original);assert.deepEqual(b,binding);assert.deepEqual(p,proof);const found=await f.evidence.candidates(o,b);assert.equal(found.candidates.length,1);assert.equal(found.candidates[0].kind,'collector-http');return {PUBLIC:true};}};
+ const service=createPQFinalityCollection({intentStore:f.intentStore,networkId:binding.networkId,evidence:f.evidence,transport:f.transport,verification});
+ assert.deepEqual(await service.verify(original.hash,f.guard),{PUBLIC:true});assert.equal(verifications,1);assert.equal(f.calls(),1);await f.unchanged();
 });
