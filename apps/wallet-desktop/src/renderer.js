@@ -11,6 +11,7 @@ import {createPQMigrationReviewUI} from './wallet-pq-migration-ui.mjs';
 const pqMigrationReviewUI=createPQMigrationReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQRevocationReviewUI} from './wallet-pq-revocation-ui.mjs';
 import {appendPQOriginalRecoveryActions} from './wallet-pq-original-recovery-ui.mjs';
+import {appendPQProgressActions} from './wallet-pq-progress-ui.mjs';
 const pqRevocationReviewUI=createPQRevocationReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQKeyPreparationUI} from './wallet-pq-key-ui.mjs';
 const pqKeyPreparationUI=createPQKeyPreparationUI({api:window.ynxWallet,getKeyState:()=>keyState});
@@ -886,9 +887,10 @@ async function refreshTransactions() {
       if(['pq-transfer','pq-migration','pq-revocation'].includes(record.kind)){
         const kind=record.kind==='pq-transfer'?'PQ 转账 / PQ transfer':record.kind==='pq-migration'?'PQ 账户迁移 / PQ account migration':'PQ 终止授权 / Terminal PQ revocation';
         description.textContent=kind+' · '+record.hash;row.append(description);
-        const notice=document.createElement('p');notice.textContent=record.status==='pq-save-unconfirmed'?'签名结果已保留，持久化保存尚未确认。请保持钱包运行；不会重新签名或发送。 / Signed result retained; durable saving is unconfirmed. Keep Wallet running; no replacement signature or send.':'签名结果已本地保存，尚未提交。不代表链上确认、迁移或撤销成功，不允许直接重试。 / Signed result saved locally, not submitted. Not chain confirmation, migration or revocation success; no direct retry.';
+        const notice=document.createElement('p');notice.textContent=({'pq-save-unconfirmed':'签名结果已保留，持久化保存尚未确认。请保持钱包运行；不会重新签名或发送。 / Signed result retained; durable saving is unconfirmed. Keep Wallet running; no replacement signature or send.','pq-signed-unsubmitted':'签名结果已本地保存，尚未提交。不代表链上确认、迁移或撤销成功，不允许直接重试。 / Signed result saved locally, not submitted. Not chain confirmation, migration or revocation success; no direct retry.','pq-submission-unknown':'已进入原提交流程，结果未知。保留同一原件，不视为未提交，不自动重新签名或重发。 / Original submission entered; outcome unknown. Original retained, not reset to unsubmitted; no re-sign or automatic send.','pq-inclusion-observed':'已观察到同一原件入块；不代表独立共识最终性。原件与历史保留，不重发。 / Inclusion of the same original observed, not independent consensus finality. Original and history retained; no resend.','pq-rejection-observed':'观察到原提交被拒绝；原件仍保留，不自动重签或重发。 / Original submission rejection observed; original retained without automatic re-sign or resend.'})[record.status];
         row.append(notice);
         appendPQOriginalRecoveryActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
+        appendPQProgressActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
         if(record.kind==='pq-revocation'&&record.status==='pq-signed-unsubmitted'){
           const unavailable=document.createElement('p');unavailable.textContent='当前可信节点的撤销原件查询格式尚未接通。保留本地原件；不表示已撤销，不重新签名或发送。 / Trusted revocation lookup is not yet supplied. Local original retained; no claim of revocation, no re-sign or send.';row.append(unavailable);
         }

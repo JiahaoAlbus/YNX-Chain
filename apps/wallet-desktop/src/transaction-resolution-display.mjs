@@ -24,8 +24,10 @@ export function projectPendingTransactions(response,account){
     if(!descriptors[index]||!Object.hasOwn(descriptors[index],"value"))throw Error("Invalid pending row");
     const source=descriptors[index].value,local=Object.getOwnPropertyDescriptor(source??{},"localRetention"),unknown=Object.getOwnPropertyDescriptor(source??{},"signingUnknown");
     if(Object.getOwnPropertyDescriptor(source??{},'kind')){
-      const row=values(source,['hash','account','status','canRetryExact','kind','operationId']);
-      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||!['pq-transfer','pq-migration','pq-revocation'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
+      const progress=Object.hasOwn(source,'resultStorageConfirmed')||Object.hasOwn(source,'resultHeldInMemory');
+      const row=values(source,['hash','account','status','canRetryExact','kind','operationId',...(progress?['resultStorageConfirmed','resultHeldInMemory']:[])]);
+      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||!['pq-transfer','pq-migration','pq-revocation'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed','pq-submission-unknown','pq-inclusion-observed','pq-rejection-observed'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
+      if(progress&&(typeof row.resultStorageConfirmed!=='boolean'||typeof row.resultHeldInMemory!=='boolean'))throw Error('Invalid PQ progress storage display');
       records.push(Object.freeze(row));continue;
     }
     if(unknown){const row=values(source,["hash","account","status","canRetryExact","to","amount","signingUnknown"]);if(row.account!==account||row.hash!==null||row.to!==null||row.amount!==null||row.status!=="signing_unknown"||row.canRetryExact!==false||row.signingUnknown!==true)throw Error("Invalid unknown signing display");records.push(Object.freeze(row));continue}

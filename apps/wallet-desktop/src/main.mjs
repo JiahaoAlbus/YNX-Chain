@@ -469,6 +469,16 @@ handleWalletIPC('wallet:pq-original-reconcile',(_event,hash)=>sensitiveIPC(async
   const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
   return walletAuthority.transactionSender.submissions.recoverPQOriginal(hash,status.account,guard,{readOnly:true});
 }));
+handleWalletIPC('wallet:pq-progress-read',(_event,hash)=>sensitiveIPC(async()=>{
+  const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
+  if(guard.account!==status.account)throw Object.assign(Error('Select the original account.'),{data:{code:'ACCOUNT_CHANGED'}});
+  return walletAuthority.transactionSender.submissions.intentStore.readPQProgress(status.account,hash,()=>guard.assert());
+}));
+handleWalletIPC('wallet:pq-progress-flush',(_event,hash)=>sensitiveIPC(async()=>{
+  const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
+  if(guard.account!==status.account)throw Object.assign(Error('Select the original account.'),{data:{code:'ACCOUNT_CHANGED'}});
+  return walletAuthority.transactionSender.submissions.intentStore.flushPQProgressResult(status.account,hash,()=>guard.assert());
+}));
 handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async () => {
   const account = (await walletAuthority.accountStatus()).account;
   const page = await walletAuthority.transactionSender.submissions.history(account, cursor ?? null);

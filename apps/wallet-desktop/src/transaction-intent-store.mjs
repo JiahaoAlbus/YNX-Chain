@@ -14,6 +14,7 @@ import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlem
 import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
 import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
+import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -51,10 +52,10 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2, 3, 4, 5, 6, 7, 8].includes(data.schemaVersion)) throw invalid();
+  if (!data || ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
   const signed = data.schemaVersion >= 3;
-  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===8 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===9 ? "payHistory,payProgress,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===8 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
   if(data.schemaVersion>=5){
     if(!Array.isArray(data.preparations)||data.preparations.length>ORIGINAL_OWNER_LIMIT||new Set(data.preparations.map(x=>x.account)).size!==data.preparations.length)throw invalid();
     for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!['native','pay',...(data.schemaVersion>=6?PQ_ORIGINAL_KINDS:[])].includes(marker.kind))throw invalid();
@@ -84,9 +85,13 @@ function parseState(data) {
     try{data.sessionOriginals.forEach(parseSessionOriginal);}catch{throw invalid();}
     if(new Set(data.sessionOriginals.map(row=>row.account+':'+row.requestDigest)).size!==data.sessionOriginals.length)throw invalid();
   }
-  if(data.schemaVersion===8){
+  if(data.schemaVersion>=8){
     if(!Array.isArray(data.sessionPublications)||data.sessionPublications.length>ORIGINAL_OWNER_LIMIT||new Set(data.sessionPublications.map(row=>row.account+':'+row.requestDigest)).size!==data.sessionPublications.length)throw invalid();
     try{for(const row of data.sessionPublications){const original=data.sessionOriginals.find(r=>r.account===row.account&&r.requestDigest===row.requestDigest);parseSessionPublication(row,original);}}catch{throw invalid();}
+  }
+  if(data.schemaVersion===9){
+    if(!Array.isArray(data.pqProgress)||data.pqProgress.length>ORIGINAL_OWNER_LIMIT||new Set(data.pqProgress.map(row=>row.account+':'+row.hash)).size!==data.pqProgress.length)throw invalid();
+    try{for(const row of data.pqProgress){const original=data.pqOriginals.find(r=>r.account===row.account&&r.hash===row.hash);parsePQProgress(row,original);}}catch{throw invalid();}
   }
   for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
   if (new Set(data.records.map(record => record.hash)).size !== data.records.length || new Set(data.records.map(record => record.account)).size !== data.records.length) throw invalid();
@@ -110,10 +115,12 @@ const payEntry=(record,broadcastAttempted=true)=>({version:1,record,broadcastAtt
 // Earlier schemas cannot prove that an outward effect did NOT start. Migration
 // conservatively fences a second POST, and never happens on a read alone.
 const paySuccessor=state=>state.schemaVersion>=4?state:{...state,schemaVersion:4,signedPayments:state.signedPayments??[],payProgress:(state.signedPayments??[]).map(record=>payEntry(record)),payHistory:[]};
+const pqProgressSuccessor=state=>({...paySuccessor(state),schemaVersion:9,pqOriginals:state.pqOriginals??[],preparations:state.preparations??[],sessionOriginals:state.sessionOriginals??[],sessionPublications:state.sessionPublications??[],pqProgress:state.pqProgress??[]});
 
 export class FileTransactionIntentStore {
   #mutations = Promise.resolve();
   #sessionPublicationResults = new Map();
+  #pqProgressResults = new Map();
   constructor({ filePath, io = filesystem, filePolicy = new PrivateFilePolicy({ io }) }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; this.filePolicy = filePolicy; }
   async sessionOriginalStatus(account,digest){
     if(!ACCOUNT.test(account??'')||typeof digest!=='string')throw invalid();
@@ -157,7 +164,7 @@ export class FileTransactionIntentStore {
       const prior=state.sessionPublications?.find(r=>r.account===account&&r.requestDigest===digest);
       if(prior)return Object.freeze({created:false,publication:parseSessionPublication(prior,original)});
       const publication=parseSessionPublication({version:1,...sessionPublicationIdentity(original),status:'publish-unknown',result:null},original);
-      const next={...state,schemaVersion:8,sessionPublications:[...(state.sessionPublications??[]),publication]};
+      const next={...state,schemaVersion:Math.max(8,state.schemaVersion),sessionPublications:[...(state.sessionPublications??[]),publication]};
       guard();await this.#write(next);guard();return Object.freeze({created:true,publication});
     });
   }
@@ -267,7 +274,7 @@ export class FileTransactionIntentStore {
       if(state.preparations?.some(x=>x.account===account))throw invalid();
       const native=state.records.find(x=>x.account===account&&x.hash===hash),pay=state.signedPayments?.find(x=>evmAddressFromYNX(x.account)===account&&x.transfer.hash===hash);
       const pq=state.pqOriginals?.find(x=>x.account===account&&x.hash===hash);
-      if(pq){parsePQOriginalRecord(pq);guard();return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});}
+      if(pq){parsePQOriginalRecord(pq);guard();return pqSavedCustodyResult(account,hash,state.pqProgress?.find(row=>row.account===account&&row.hash===hash));}
       if(!native&&!pay)throw invalid();
       // Legacy reads may retain hash-only intents. They cannot prove custody
       // of a complete signed original, even for an idempotent save request.
@@ -345,7 +352,7 @@ export class FileTransactionIntentStore {
   }
   async pqSummaries(account){
     if(!ACCOUNT.test(account??''))throw invalid();const state=await this.#read();
-    return (state.pqOriginals??[]).filter(x=>x.account===account).map(row=>{const original=parsePQOriginalRecord(row);return Object.freeze({hash:original.hash,account,kind:original.kind,operationId:original.operationId,status:'pq-signed-unsubmitted',canRetryExact:false});});
+    return (state.pqOriginals??[]).filter(x=>x.account===account).map(row=>{const original=parsePQOriginalRecord(row),local=this.#pqProgressResults.get(account+':'+row.hash),progress=state.pqProgress?.find(r=>r.account===account&&r.hash===row.hash),best=this.#pqEffectiveProgress(progress,local,original),stored=!!progress&&!local?.unparsedResult&&(!best||pqProgressCoreEqual(progress,best)),needsSave=!!best&&(!progress||canonicalJSON(progress)!==canonicalJSON(best));return Object.freeze({hash:original.hash,account,kind:original.kind,operationId:original.operationId,status:best?'pq-'+best.status:local?.beginAttempted?'pq-submission-unknown':'pq-signed-unsubmitted',canRetryExact:false,...(best||local?.beginAttempted?{resultStorageConfirmed:stored,resultHeldInMemory:!!local&&(!!local.unparsedResult||needsSave&&(!!local.latestResult||local.firstRawPresent||local.storageRawPresent))}:{})});});
   }
   async reconcilePQOriginal(account,hash,guard){
     if(!ACCOUNT.test(account??'')||!HASH.test(hash??'')||typeof guard!=='function')throw invalid();
@@ -354,9 +361,74 @@ export class FileTransactionIntentStore {
       const actual=state.pqOriginals?.find(x=>x.account===account&&x.hash===hash);
       if(!actual||state.preparations?.some(x=>x.account===account)||slot&&(!slot.pq||canonicalJSON(slot.pq)!==canonicalJSON(actual)))throw invalid();
       parsePQOriginalRecord(actual);guard();if(slot&&owner(this).get(account)!==slot)throw invalid();
-      if(slot)this.originalSaved(account);return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});
+      if(slot)this.originalSaved(account);return pqSavedCustodyResult(account,hash,state.pqProgress?.find(row=>row.account===account&&row.hash===hash));
     });
   }
+  #pqProgressSlot(account,hash){
+    if(!ACCOUNT.test(account??'')||!HASH.test(hash??''))throw invalid();const key=account+':'+hash;let slot=this.#pqProgressResults.get(key);
+    if(!slot){if(this.#pqProgressResults.size>=ORIGINAL_OWNER_LIMIT)throw invalid();slot={beginAttempted:false,best:null,firstRawPresent:false,storageRawPresent:false};this.#pqProgressResults.set(key,slot);}return slot;
+  }
+  #pqProgressStorageFailure(slot,cause){if(!slot.storageRawPresent){slot.storageRawPresent=true;let descriptor;try{descriptor=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'cause'):null;}catch{}slot.storageRaw=descriptor&&Object.hasOwn(descriptor,'value')?descriptor.value:cause;}if(slot.best&&!slot.best.storageCause)slot.best={...slot.best,storageCause:pqProgressCause(slot.storageRaw)};}
+  #pqEffectiveProgress(actual,slot,original){let base=slot?.best??actual;if(base&&actual?.result)try{base=mergePQProgressResult(base,actual.result,original);}catch(cause){if(slot&&!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}base=actual;}return base?{...base,firstCause:actual?.firstCause??base.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:actual?.storageCause??base.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null)}:null;}
+  /** Durable uncertainty marker BEFORE one separately approved outward call.
+   * created=true is storage acknowledgement, never permission to broadcast. */
+  async beginPQSubmission(account,hash,guard){
+    if(typeof guard!=='function')throw invalid();const slot=this.#pqProgressSlot(account,hash);
+    return this.#mutate(async()=>{
+      guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
+      if(owner(this).has(account)||state.preparations?.some(r=>r.account===account))throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Reconcile the original signing/save result before entering submission.');
+      const prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(prior)return Object.freeze({created:false,status:prior.status});
+      if(slot.beginAttempted)throw capabilityError('PQ_SUBMISSION_RECONCILE_REQUIRED','The original admission write is unconfirmed. Do not start another outward call.');
+      const progress=initialPQProgress(original),next=pqProgressSuccessor(state);next.pqProgress=[...next.pqProgress,progress];
+      // Reserve a bounded full response in the existing private journal before
+      // any POST can start; never truncate another original to make it fit.
+      if(Buffer.byteLength(JSON.stringify(next))+PQ_PROGRESS_RESPONSE_BYTES+4096>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; there is insufficient private journal capacity for its response.');
+      guard();slot.beginAttempted=true;slot.best=progress;
+      try{await this.#write(next);guard();const readback=await this.#read();guard();if(!readback.pqProgress?.some(r=>canonicalJSON(r)===canonicalJSON(progress)))throw invalid();return Object.freeze({created:true,status:'submission-unknown'});}
+      catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
+    });
+  }
+  /** Capture before parsing/queued IO/post-response lock checks. Storage only;
+   * fixed main supplies these bytes, never a renderer DTO or callback grant. */
+  async savePQSubmissionResult(account,hash,input){
+    const slot=this.#pqProgressSlot(account,hash),raw=capturePQProgressResult(input);if(!slot.firstResult)slot.firstResult=raw;slot.latestResult=raw;slot.unparsedResult=raw;
+    return this.#mutate(async()=>{
+      let state;try{state=await this.#read();}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
+      let next;
+      try{let baseline=slot.best??prior;if(prior.result)baseline=mergePQProgressResult(baseline,prior.result,original);next=mergePQProgressResult(baseline,raw,original);}catch(cause){if(slot.unparsedResult===raw)slot.unparsedResult=null;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}if(slot.unparsedResult===raw)slot.unparsedResult=null;
+      slot.best=parsePQProgress({...next,firstCause:prior.firstCause??next.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior.storageCause??next.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);
+      if(pqProgressCoreEqual(prior,slot.best))return Object.freeze({stored:true,status:prior.status,changed:false});
+      try{await this.#write({...state,pqProgress:state.pqProgress.map(r=>r===prior?slot.best:r)});return Object.freeze({stored:true,status:slot.best.status,changed:true});}
+      catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
+    });
+  }
+  async savePQSubmissionFailure(account,hash,cause){
+    const slot=this.#pqProgressSlot(account,hash);if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}
+    return this.#mutate(async()=>{
+      let state;try{state=await this.#read();}catch(error){this.#pqProgressStorageFailure(slot,error);throw error;}const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
+      let best=slot.best??prior;if(prior.result)best=mergePQProgressResult(best,prior.result,original);slot.best=parsePQProgress({...best,firstCause:prior.firstCause??best.firstCause??pqProgressCause(slot.firstRaw)},original);
+      if(canonicalJSON(prior)===canonicalJSON(slot.best))return Object.freeze({stored:true,status:prior.status});
+      try{await this.#write({...state,pqProgress:state.pqProgress.map(r=>r===prior?slot.best:r)});return Object.freeze({stored:true,status:slot.best.status});}
+      catch(error){this.#pqProgressStorageFailure(slot,error);throw error;}
+    });
+  }
+  async readPQProgress(account,hash,guard){
+    if(!ACCOUNT.test(account??'')||!HASH.test(hash??'')||typeof guard!=='function')throw invalid();guard();const state=await this.#read();guard();
+    const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
+    const actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash),slot=this.#pqProgressResults.get(account+':'+hash),best=this.#pqEffectiveProgress(actual,slot,original);
+    return Object.freeze({account,hash,kind:original.kind,status:best?.status??(slot?.beginAttempted?'submission-unknown':'signed-unsubmitted'),storageConfirmed:!!actual&&!slot?.unparsedResult&&(!best||pqProgressCoreEqual(actual,best)),metadataConfirmed:!!actual&&!slot?.unparsedResult&&(!best||canonicalJSON(actual)===canonicalJSON(best)),localResultHeld:!!slot?.latestResult,firstCause:best?.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:best?.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null),retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
+  }
+  async flushPQProgressResult(account,hash,guard){
+    if(typeof guard!=='function')throw invalid();const slot=this.#pqProgressSlot(account,hash);
+    return this.#mutate(async()=>{
+      guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
+      let best=slot.best??prior;if(slot.unparsedResult){best=mergePQProgressResult(best,slot.unparsedResult,original);slot.unparsedResult=null;}if(prior.result)best=mergePQProgressResult(best,prior.result,original);
+      best=parsePQProgress({...best,firstCause:prior.firstCause??best.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior.storageCause??best.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);slot.best=best;
+      if(canonicalJSON(prior)!==canonicalJSON(best)){guard();try{await this.#write({...state,pqProgress:state.pqProgress.map(r=>r===prior?best:r)});}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}}
+      guard();return Object.freeze({account,hash,status:best.status,stored:true,retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
+    });
+  }
+  selectPQProgressOutcome(account,hash,observer){if(typeof observer!=='function')throw invalid();const slot=this.#pqProgressResults.get(account+':'+hash);return observer(slot?Object.freeze({...slot}):null);}
   async snapshot() { return (await this.#read()).records; }
   async resolutions() { return (await this.#read()).resolutions; }
   async assertNoSignedPayment(account){

@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   preparePQRevocation:input=>ipcRenderer.invoke('wallet:pq-revocation-review',input),
   savePQOriginal:hash=>ipcRenderer.invoke('wallet:pq-original-save',hash),
   reconcilePQOriginal:hash=>ipcRenderer.invoke('wallet:pq-original-reconcile',hash),
+  readPQProgress:hash=>ipcRenderer.invoke('wallet:pq-progress-read',hash),
+  flushPQProgressResult:hash=>ipcRenderer.invoke('wallet:pq-progress-flush',hash),
   originalAdmissionStatus:()=>ipcRenderer.invoke('wallet:original-admission-status'),
   originalAdmissionReview:()=>ipcRenderer.invoke('wallet:original-admission-review'),
   originalAdmissionConfirm:reviewId=>ipcRenderer.invoke('wallet:original-admission-confirm',reviewId),
