@@ -6,6 +6,7 @@ import {projectTransactionResolution,projectPendingTransactions,projectPQOrigina
 import {appendPQOriginalRecoveryActions} from "../src/wallet-pq-original-recovery-ui.mjs";
 import {appendPQProgressActions} from "../src/wallet-pq-progress-ui.mjs";
 import {appendPQBroadcastActions} from "../src/wallet-pq-broadcast-ui.mjs";
+import {appendPQFinalityActions} from "../src/wallet-pq-finality-ui.mjs";
 const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
 const html=await readFile(new URL("../src/index.html",import.meta.url),"utf8");
 const account="0x"+"1".repeat(40),hash="0x"+"2".repeat(64);
@@ -20,7 +21,7 @@ function harness(){
   const start=source.indexOf("function clearTransactionResolution()"),fallback=source.indexOf("async function refreshTransactions()"),end=source.indexOf("function clearAssetBalance()",fallback);
   // The fragment omits module imports; use the actual helpers and this fixture's
   // document rather than silently losing the whole PQ row to ReferenceError.
-  for(const helper of [appendPQOriginalRecoveryActions,appendPQProgressActions,appendPQBroadcastActions])context[helper.name]=options=>helper({...options,document:context.document});
+  for(const helper of [appendPQOriginalRecoveryActions,appendPQProgressActions,appendPQBroadcastActions,appendPQFinalityActions])context[helper.name]=options=>helper({...options,document:context.document});
   const copyHelper=source.match(/function copyUI\([^\n]+/)[0];
   assert.ok(fallback>=0&&end>fallback);runInNewContext(copyHelper+"\n"+source.slice(start>=0?start:fallback,end),context);
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
@@ -28,7 +29,7 @@ function harness(){
 }
 test('normal renderer shows PQ stored custody with bound read and separate broadcast review, no retry save or signing',async()=>{
  const h=harness(),buttons=await h.load({ok:true,value:[{account,hash,kind:'pq-transfer',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]});
- assert.equal(buttons.length,2);assert.ok(buttons.some(button=>/read only/.test(button.textContent)));assert.ok(buttons.some(button=>/Review broadcast/.test(button.textContent)));assert.equal(h.actions.length,0);assert.equal(h.context.assetRefreshes,0);
+ assert.equal(buttons.length,5);assert.ok(buttons.some(button=>/read only/.test(button.textContent)));assert.ok(buttons.some(button=>/Review broadcast/.test(button.textContent)));assert.ok(buttons.some(button=>/Collect proof evidence/.test(button.textContent)));assert.equal(buttons.filter(button=>button.hidden).length,1);assert.equal(h.actions.length,0);assert.equal(h.context.assetRefreshes,0);
  const text=h.get('#pending-transactions').children[0].children.map(x=>x.textContent).join(' ');assert.match(text,/not submitted/);assert.match(text,/Not chain confirmation/);
 });
 test('PQ read uses original hash once and not-found never clears custody, refreshes assets, or calls legacy receipt transport',async()=>{

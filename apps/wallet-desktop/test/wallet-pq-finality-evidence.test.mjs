@@ -69,3 +69,12 @@ test('actual Protocol context bound accepts data above old 8MiB and rejects one 
  await assert.rejects(f.store.append(original,binding,'host-context',new Uint8Array(8*1024*1024+1)),e=>e.code==='PQ_FINALITY_EVIDENCE_UNCONFIRMED'&&e.cause===sentinel);
  assert.equal(f.store.pending().bytes,8*1024*1024+1);assert.equal((await fs.readdir(f.directory)).length,0);
 });
+test('cold discovery binds recorded HTTP status separately from raw body and preserves malformed candidates',async t=>{
+ const f=await fixture(t),body=Buffer.from('unparsed raw HTTP DATA'),ref=await f.store.append(original,binding,'collector-http',body,{httpStatus:502});
+ const cold=new PQFinalityEvidence({directory:f.directory}),found=await cold.candidates(original,binding);assert.deepEqual(found,{candidates:[ref],unreadable:0});assert.deepEqual(await cold.read(original,binding,ref),body);
+ await assert.rejects(cold.read(original,binding,{...ref,httpStatus:200}));const pathName=file(f.directory,ref);await fs.writeFile(pathName,Buffer.from('incomplete header'),{mode:0o600});const partial=await cold.candidates(original,binding);assert.equal(partial.candidates.length,0);assert.equal(partial.unreadable,1);assert.deepEqual(await fs.readFile(pathName),Buffer.from('incomplete header'));
+});
+test('filesystem details remain in private cause rather than public evidence read error text',async t=>{
+ const f=await fixture(t),ref=await f.store.append(original,binding,'host-context',Buffer.from('PUBLIC context DATA'));const cause=Error('/private/PUBLIC-path-must-not-be-projected');
+ const cold=new PQFinalityEvidence({directory:f.directory,io:{...fs,open:async()=>{throw cause;}}});await assert.rejects(cold.read(original,binding,ref),e=>e.code==='PQ_FINALITY_EVIDENCE_UNVERIFIED'&&e.message==='PQ_FINALITY_EVIDENCE_UNVERIFIED'&&e.cause===cause);
+});

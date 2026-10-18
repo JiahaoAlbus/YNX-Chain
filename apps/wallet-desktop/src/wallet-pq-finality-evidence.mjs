@@ -23,10 +23,13 @@ export const PQ_FINALITY_EVIDENCE_LIMITS=Object.freeze({
 const limits=PQ_FINALITY_EVIDENCE_LIMITS;
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+async function readExactly(handle,length){const bytes=Buffer.alloc(length);let offset=0;while(offset<length){const result=await handle.read(bytes,offset,length-offset,null);if(!result.bytesRead)fail('PQ_FINALITY_EVIDENCE_UNVERIFIED');offset+=result.bytesRead;}return bytes;}
 function reference(value){
  if(types.isProxy(value))fail('PQ_FINALITY_EVIDENCE_INVALID');
- exactData(value,['eventId','attemptId','kind','bytes','sha256'],'PQ_FINALITY_EVIDENCE_INVALID');
+ const status=Object.hasOwn(value??{},'httpStatus');
+ exactData(value,['eventId','attemptId','kind','bytes','sha256',...(status?['httpStatus']:[])],'PQ_FINALITY_EVIDENCE_INVALID');
  if(typeof value.eventId!=='string'||typeof value.attemptId!=='string'||typeof value.kind!=='string'||typeof value.sha256!=='string'||!uuid.test(value.eventId)||!uuid.test(value.attemptId)||!Object.hasOwn(limits,value.kind)||!Number.isSafeInteger(value.bytes)||value.bytes<0||value.bytes>limits[value.kind]||! /^[a-f0-9]{64}$/.test(value.sha256))fail('PQ_FINALITY_EVIDENCE_INVALID');
+ if(status&&(value.kind!=='collector-http'||![200,202,502].includes(value.httpStatus)))fail('PQ_FINALITY_EVIDENCE_INVALID');
  return Object.freeze({...value});
 }
 function identity(original,binding){
@@ -51,7 +54,7 @@ export class PQFinalityEvidence {
  async #read(ref,owner){
   let handle;const file=this.#file(ref);
   try{
-   handle=await this.io.open(file,constants.O_RDONLY|(constants.O_NOFOLLOW??0));const before=await this.#private(handle,file);
+   handle=await this.io.open(file,constants.O_RDONLY|(constants.O_NOFOLLOW??0)|(constants.O_NONBLOCK??0));const before=await this.#private(handle,file);
    const metadata=Buffer.from(JSON.stringify({version:1,reference:ref,original:owner}));
    if(metadata.length>8192||before.size!==magic.length+4+metadata.length+ref.bytes)fail('PQ_FINALITY_EVIDENCE_UNVERIFIED');
    const prefix=Buffer.alloc(magic.length+4+metadata.length);let offset=0;
@@ -65,22 +68,46 @@ export class PQFinalityEvidence {
  }
  async read(original,binding,value){
   const ref=reference(value),owner=identity(original,binding);this.#active++;
-  try{await this.#directory();return await this.#read(ref,owner);}finally{this.#active--;}
+  try{await this.#directory();return await this.#read(ref,owner);}catch(cause){throw Object.assign(Error('PQ_FINALITY_EVIDENCE_UNVERIFIED'),{code:'PQ_FINALITY_EVIDENCE_UNVERIFIED',cause});}finally{this.#active--;}
+ }
+ // Discover bounded reference headers after restart. These are candidates,
+ // not durable proof claims: read() must still verify the complete bytes.
+ // Unknown/partial files are counted, never removed or treated as absence.
+ async candidates(original,binding){
+  const owner=identity(original,binding);this.#active++;
+  try{
+   await this.#directory();const names=await this.io.readdir(this.directory);if(names.length>1024)fail('PQ_FINALITY_EVIDENCE_CAPACITY');
+   const candidates=[];let unreadable=0;
+   for(const name of names.sort()){
+    let handle;
+    try{
+     if(!name.endsWith('.pqfe')){unreadable++;continue;}
+     const file=path.join(this.directory,name);handle=await this.io.open(file,constants.O_RDONLY|(constants.O_NOFOLLOW??0)|(constants.O_NONBLOCK??0));await this.#private(handle,file);
+     const prefix=await readExactly(handle,magic.length+4),length=prefix.readUInt32BE(magic.length);if(!prefix.subarray(0,magic.length).equals(magic)||length<1||length>8192)fail('PQ_FINALITY_EVIDENCE_UNVERIFIED');
+     const text=new TextDecoder('utf-8',{fatal:true}).decode(await readExactly(handle,length)),metadata=JSON.parse(text);
+     exactData(metadata,['version','reference','original'],'PQ_FINALITY_EVIDENCE_INVALID');if(metadata.version!==1||JSON.stringify(metadata)!==text)fail('PQ_FINALITY_EVIDENCE_UNVERIFIED');
+     const ref=reference(metadata.reference);if(path.basename(this.#file(ref))!==name)fail('PQ_FINALITY_EVIDENCE_BINDING_MISMATCH');
+     await this.#private(handle,file);if(JSON.stringify(metadata.original)===JSON.stringify(owner))candidates.push(ref);
+    }catch{unreadable++;}finally{try{await handle?.close();}catch{unreadable++;}}
+   }
+   return Object.freeze({candidates:Object.freeze(candidates),unreadable});
+  }catch(cause){throw Object.assign(Error('PQ_FINALITY_EVIDENCE_UNVERIFIED'),{code:'PQ_FINALITY_EVIDENCE_UNVERIFIED',cause});}finally{this.#active--;}
  }
  // Captures a detached exact copy before the first await. There is deliberately
  // no key-state check that could discard a result arriving after focus lock.
- async append(original,binding,kind,bytes){
+ async append(original,binding,kind,bytes,transport=null){
   if(this.#held||this.#active)fail('PQ_FINALITY_EVIDENCE_UNCONFIRMED');
   const owner=identity(original,binding);
+  let extra={};if(transport!==null){if(types.isProxy(transport))fail('PQ_FINALITY_EVIDENCE_INVALID');exactData(transport,['httpStatus'],'PQ_FINALITY_EVIDENCE_INVALID');if(kind!=='collector-http'||![200,202,502].includes(transport.httpStatus))fail('PQ_FINALITY_EVIDENCE_INVALID');extra={httpStatus:transport.httpStatus};}
   if(typeof kind!=='string'||!Object.hasOwn(limits,kind)||types.isProxy(bytes)||!types.isUint8Array(bytes)||![Uint8Array.prototype,Buffer.prototype].includes(Object.getPrototypeOf(bytes))||['buffer','byteLength','byteOffset','length'].some(key=>Object.hasOwn(bytes,key))||types.isSharedArrayBuffer(bytes.buffer)||bytes.byteLength>limits[kind])fail('PQ_FINALITY_EVIDENCE_INVALID');
-  const body=Buffer.from(bytes);this.#held={owner,kind,body,eventId:randomUUID(),sha256:sha(body),lastAttempt:null,causePresent:false,cause:undefined};
+  const body=Buffer.from(bytes);this.#held={owner,kind,body,extra,eventId:randomUUID(),sha256:sha(body),lastAttempt:null,causePresent:false,cause:undefined};
   return this.flush(this.#held.eventId);
  }
  // Explicit local saving only. Each attempt uses a NEW exclusive file; failed
  // and uncertain partial attempts remain untouched, never overwritten/reused.
  async flush(eventId){
   const h=this.#held;if(!h||h.eventId!==eventId||this.#active)fail('PQ_FINALITY_EVIDENCE_INVALID');this.#active++;
-  const ref=reference({eventId:h.eventId,attemptId:randomUUID(),kind:h.kind,bytes:h.body.length,sha256:h.sha256});h.lastAttempt=ref;
+  const ref=reference({eventId:h.eventId,attemptId:randomUUID(),kind:h.kind,bytes:h.body.length,sha256:h.sha256,...h.extra});h.lastAttempt=ref;
   let handle,failed=false;
   try{
    await this.#directory();const file=this.#file(ref),metadata=Buffer.from(JSON.stringify({version:1,reference:ref,original:h.owner})),length=Buffer.alloc(4);length.writeUInt32BE(metadata.length);

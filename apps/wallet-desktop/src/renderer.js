@@ -1,6 +1,7 @@
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
 import { formatApprovalReview } from "./approval-review-display.mjs";
 import {appendPQBroadcastActions} from './wallet-pq-broadcast-ui.mjs';
+import {appendPQFinalityActions} from './wallet-pq-finality-ui.mjs';
 import {mountCctpUI} from './features/cross-chain/cctp-ui.mjs';
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
@@ -910,6 +911,7 @@ async function refreshTransactions() {
             finally{busy=false;if(current())check.disabled=keyState.locked;}
           });row.append(check);
         }
+        if(typeof appendPQFinalityActions!=='undefined')appendPQFinalityActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;}});
         list.append(row);continue;
       }
       copyUI(description,"{amount} YNXT to {to} · {hash}",{amount:record.amount,to:record.to,hash:record.hash}); row.append(description);

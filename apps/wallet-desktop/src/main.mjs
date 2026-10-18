@@ -52,6 +52,8 @@ import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import {captureOriginalWalletTransactionApprovalIPC,retireUnusedOriginalWalletTransactionApproval,acquireOriginalWalletTransactionPermission,isOriginalWalletTransactionPermission} from './original-policy-supplier/transaction-permission.mjs';
 import {createPQTransactionSubmission} from './features/pq-transaction/submission.mjs';
+import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
+import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
 import {createPQTransactionNodeTransport} from './features/pq-transaction/node-transport.mjs';
 import {CctpEVMAdapter} from './features/cross-chain/cctp-action.mjs';
 import {CctpStore,CctpFlow,installCctpIPC} from './features/cross-chain/cctp-flow.mjs';
@@ -105,6 +107,7 @@ let protocolReady = false;
 let lastCallback = null;
 let walletAuthority;
 let pqTransactionSubmission;
+let pqFinalityCollection;
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
 async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
   const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
@@ -263,7 +266,7 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
   }
   return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{closingWindows.delete(window);});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:()=>walletAuthority?.shutdownPQReviews(),assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:()=>walletAuthority?.shutdownPQReviews(),assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -491,6 +494,9 @@ handleWalletIPC('wallet:pq-broadcast-review',(_event,hash)=>sensitiveIPC(async()
   return {requestId:response.request.id,submitted:false};
 }));
 handleWalletIPC('wallet:pq-submission-query',(_event,hash)=>sensitiveIPC(()=>pqTransactionSubmission.reconcile(hash,keyAccess.current())));
+handleWalletIPC('wallet:pq-finality-collect',(_event,hash)=>sensitiveIPC(()=>pqFinalityCollection.collect(hash,keyAccess.current())));
+handleWalletIPC('wallet:pq-finality-restore',(_event,hash)=>sensitiveIPC(()=>pqFinalityCollection.restore(hash,keyAccess.current())));
+handleWalletIPC('wallet:pq-finality-save',(_event,hash)=>sensitiveIPC(()=>pqFinalityCollection.save(hash,keyAccess.current())));
 handleWalletIPC('wallet:pq-migration-review',(_event,input)=>sensitiveIPC(async()=>{
   const response=await walletAuthority.requestPQMigration(input);
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
@@ -834,7 +840,9 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     chooseFile:async()=>{const selected=await keyAccess.withOwnedDialog(()=>dialog.showOpenDialog(mainWindow,{title:'Restore original registered PQ keys / 恢复已登记的原 PQ 密钥',properties:['openFile'],filters:[{name:'Original encrypted PQ backup',extensions:['ynxpq']}]}));return selected.canceled?null:selected.filePaths?.[0]??null;},
   });
   const originalTransactionIntentStore=new FileTransactionIntentStore({filePath:path.join(userData,'transaction-intents-v1.json')});
-  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:createPQTransactionNodeTransport(),isOriginalWalletTransactionPermission,
+  const originalPQNodeTransport=createPQTransactionNodeTransport();
+  pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:new PQFinalityEvidence({directory:path.join(userData,'pq-finality-evidence-v1')}),transport:originalPQNodeTransport});
+  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,
     acquireOriginalWalletTransactionPermission:request=>{
       const context=pqBroadcastApprovalContext.getStore();
       if(!context||context.closed||context.selected||JSON.stringify(request)!==JSON.stringify(context.request))throw Object.assign(Error('Original broadcast approval is required.'),{code:'PQ_BROADCAST_APPROVAL_REQUIRED'});
