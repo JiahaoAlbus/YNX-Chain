@@ -111,6 +111,32 @@ class PrivateCopyControls(unittest.TestCase):
             return caller.validate_inputs(self.case, capture_sha or self.capture_sha,
                                           source_sha or self.source_sha, commit or caller.TOOL_COMMIT)
 
+    def prepare_execution(self):
+        # Tiny parser/control material, never a claimed migration validation.
+        # No original copy, actual ELF or subprocess is read or executed.
+        (self.case/"devnet-state.json.gz").unlink()
+        self.migration = b'{"syntheticRetainedMigrationControlOnly":true}\n'
+        self.write("migration.json", self.migration)
+        self.execution_tool_archive = b"synthetic new pinned tools archive; never unpacked"
+        self.write("tools.zip", self.execution_tool_archive)
+        self.source["commit"] = caller.EXECUTION_TOOL_COMMIT
+        self.refresh()
+
+    def validate_execution(self, **overrides):
+        args = dict(expected_capture=self.capture_sha, expected_source=self.source_sha,
+                    expected_commit=caller.EXECUTION_TOOL_COMMIT,
+                    verify_migration_execution=True, expected_migration=sha(self.migration))
+        args.update(overrides)
+        # Substitute only tiny input pins for real parser tests, not the
+        # verifier, process results, signature acceptance or business state.
+        with patch.object(caller, "CAPTURE_SHA256", self.capture_sha), \
+                patch.object(caller, "EXECUTION_SOURCE_SHA256", self.source_sha), \
+                patch.object(caller, "EXECUTION_TOOLS_ARCHIVE_SHA256", sha(self.execution_tool_archive)), \
+                patch.object(caller, "EXECUTION_TOOLS_ARCHIVE_BYTES", len(self.execution_tool_archive)), \
+                patch.object(caller, "EXECUTION_MIGRATION_SHA256", sha(self.migration)), \
+                patch.object(caller, "EXECUTION_MIGRATION_BYTES", len(self.migration)):
+            return caller.validate_inputs(self.case, **args)
+
     def guard(self):
         # Reuse real guard identity algorithms as definitions, without run(),
         # /proc collection, subreaper, affinity, child creation or kill.
@@ -468,6 +494,166 @@ class PrivateCopyControls(unittest.TestCase):
         for codes, data in (([0],output), ([0,1],output), ([0,0],b""), ([0,0],b"SKIP\n"), ([0,0],output+b"UNKNOWN\n")):
             with self.subTest(codes=codes, data=data), self.assertRaises(RuntimeError):
                 caller.qualify(codes, data)
+
+    def test_execution_profile_fixed_pins_do_not_replace_af1_profile(self):
+        self.assertEqual(caller.TOOL_COMMIT, "af1cbaf94313e628e212aabad60d05d85c2aa3fc")
+        self.assertEqual(caller.TOOLS_ARCHIVE_SHA256, "7d05d35e49cffb681a4f3f5ec52582c7450b5d6209cdbbdffd479c4d52930ed1")
+        self.assertEqual(caller.TOOLS_ARCHIVE_BYTES, 17650233)
+        self.assertEqual(caller.EXECUTION_TOOL_COMMIT, "6e07ff1f8ac20317ab14b932b265f06d4f4a3f35")
+        self.assertEqual(caller.EXECUTION_SOURCE_SHA256, "28c065f052f0a3925b256191cc6a39b4457c86b74cf78d7ed2fa7a9094d0391c")
+        self.assertEqual(caller.EXECUTION_TOOLS_ARCHIVE_SHA256, "20160d5cb6087ae124e1833e1101451794fb6b16e7154d318aea52be29387c23")
+        self.assertEqual(caller.EXECUTION_TOOLS_ARCHIVE_BYTES, 17671146)
+        self.assertEqual(caller.EXECUTION_MIGRATION_SHA256, "72606eb9ad4187117f47b14f8745caaed81bd347011b6c5f8bb0b62c1ee84028")
+        self.assertEqual(caller.EXECUTION_MIGRATION_BYTES, 683131154)
+        self.assertEqual(caller.GUARD_SHA256, "5601bf3eaab58b5986a9ce859a77563956e148989f61134027799bf7ff481a16")
+        self.assertEqual(caller.LIMITS, dict(activeMs=120000, cleanupMs=15000, totalMs=135000,
+                         rssBytes=4 << 30, privateBytes=8 << 30, logBytes=1 << 20,
+                         threads=320, processes=16, diskFloorBytes=2 << 30,
+                         memoryFloorBytes=4 << 30, sampleMs=200))
+
+    def test_execution_profile_preparation_is_inert(self):
+        before = {p.name for p in self.case.iterdir()}
+        with patch.object(caller, "run", side_effect=AssertionError("execute called")), \
+                patch.object(caller, "validate_inputs", side_effect=AssertionError("input read")), \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(caller.main(["--verify-migration-execution"]), 0)
+        prepared = json.loads(output.getvalue())
+        self.assertEqual(prepared["status"], "prepared_only_no_copy_or_process_started")
+        self.assertEqual(prepared["profile"], "verify-migration-execution")
+        self.assertEqual(prepared["toolCommit"], caller.EXECUTION_TOOL_COMMIT)
+        self.assertEqual(prepared["sourceManifestSHA256"], caller.EXECUTION_SOURCE_SHA256)
+        self.assertEqual(prepared["migrationSHA256"], caller.EXECUTION_MIGRATION_SHA256)
+        self.assertEqual({p.name for p in self.case.iterdir()}, before)
+
+    def test_execution_profile_uses_only_fixed_existing_migration_command(self):
+        self.assertEqual(caller.fixed_commands(self.case, True), [[
+            str(self.case/"tools/ynx-consensus-package"), "-verify-migration-execution", str(self.case/"migration.json")]])
+        self.assertEqual(caller.ENVIRONMENT, dict(GOMAXPROCS="1", GOGC="50", GOMEMLIMIT="3GiB",
+                         GOTOOLCHAIN="local", GOWORK="off", TZ="UTC", LANG="C"))
+        self.prepare_execution()
+        capture, pins = self.validate_execution()
+        self.assertEqual(capture, self.capture)
+        self.assertEqual(set(pins), {"capture.json", "tools/SOURCE.json", "tools.zip", "migration.json",
+                                     "tools/ynx-chaind", "tools/ynx-consensus-package"})
+        self.assertEqual(pins["migration.json"]["sha256"], sha(self.migration))
+        self.assertEqual((self.case/"migration.json").read_bytes(), self.migration)
+        self.assertEqual({p.name for p in self.case.iterdir()}, caller.EXECUTION_INITIAL_FILES)
+        self.assertFalse((self.case/"state").exists())
+
+    def test_execution_profile_requires_exact_new_tools_and_migration_pins(self):
+        self.prepare_execution()
+        self.validate_execution()
+        for overrides in ({"expected_capture":"0"*64}, {"expected_source":"0"*64},
+                          {"expected_commit":caller.TOOL_COMMIT}, {"expected_commit":"8"*40},
+                          {"expected_migration":None}, {"expected_migration":"0"*64}):
+            with self.subTest(overrides=overrides), self.assertRaises(RuntimeError):
+                self.validate_execution(**overrides)
+        self.source["commit"] = caller.TOOL_COMMIT
+        self.refresh()
+        with self.assertRaisesRegex(RuntimeError, "CI tools do not match"):
+            self.validate_execution()
+
+    def test_execution_profile_rejects_old_archive_and_changed_binary(self):
+        self.prepare_execution()
+        self.write("tools.zip", self.tool_archive)
+        with self.assertRaisesRegex(RuntimeError, "archive SHA or size"):
+            self.validate_execution()
+        self.write("tools.zip", self.execution_tool_archive)
+        path = "tools/ynx-consensus-package"
+        self.write(path, (self.case/path).read_bytes()+b"changed", 0o700)
+        with self.assertRaisesRegex(RuntimeError, "binary SHA or size"):
+            self.validate_execution()
+
+    def test_execution_profile_rejects_migration_size_hash_and_links(self):
+        self.prepare_execution()
+        for payload in (self.migration+b" ", b"X"+self.migration[1:]):
+            self.write("migration.json", payload)
+            with self.subTest(payload=payload), self.assertRaisesRegex(RuntimeError, "migration SHA or size"):
+                self.validate_execution()
+        self.write("migration.json", self.migration)
+        target = self.case.parent/"retained-migration-link"
+        os.link(self.case/"migration.json", target)
+        with self.assertRaisesRegex(RuntimeError, "private regular owned input"):
+            self.validate_execution()
+        target.unlink()
+        (self.case/"migration.json").rename(target)
+        (self.case/"migration.json").symlink_to(target)
+        with self.assertRaisesRegex(RuntimeError, "private regular owned input"):
+            self.validate_execution()
+
+    def test_execution_profile_preserves_unknown_and_extra_case_artifacts(self):
+        self.prepare_execution()
+        for name in ("UNKNOWN", "state", "tmp", "devnet-state.json.gz", "export.stdout.log",
+                     "verify-execution.stdout.log", "verify-execution.stderr.log", "validation-receipt.json"):
+            self.write(name, b"retain original uncertain artifact")
+            with self.subTest(name=name), self.assertRaisesRegex(RuntimeError, "preserve UNKNOWN"):
+                self.validate_execution()
+            self.assertEqual((self.case/name).read_bytes(), b"retain original uncertain artifact")
+            self.assertEqual((self.case/"migration.json").read_bytes(), self.migration)
+            (self.case/name).unlink()
+
+    def test_execution_profile_detects_same_inode_change_and_replacement(self):
+        self.prepare_execution()
+        _, pins = self.validate_execution()
+        path = self.case/"migration.json"
+        original_inode = path.stat().st_ino
+        with path.open("r+b") as target:
+            target.write(b"XX")
+        self.assertEqual(path.stat().st_ino, original_inode)
+        with self.assertRaisesRegex(RuntimeError, "original private input changed"):
+            caller.unchanged(self.case, pins, lambda:None)
+        # Restore bytes only in this synthetic fixture, then pin anew and
+        # replace by a different inode carrying identical content.
+        self.write("migration.json", self.migration)
+        _, pins = self.validate_execution()
+        path.rename(self.case.parent/"retained-synthetic-original")
+        self.write("migration.json", self.migration)
+        with self.assertRaisesRegex(RuntimeError, "original private input changed"):
+            caller.unchanged(self.case, pins, lambda:None)
+
+    def test_execution_profile_requires_one_terminal_and_exact_full_completion(self):
+        output = ("consensus migration execution passed: height=12 lastBlockHash="+"a"*64+" stateHash="+"b"*64+
+                  " blockers=0 scope=executor-compatibility-only validatorBinding=unchecked applicationRestore=unchecked"
+                  " deployment=not-performed initChain=not-performed pqActivation=not-performed\n").encode()
+        caller.qualify([0], output, True)
+        old = ("consensus migration state passed: height=12 lastBlockHash="+"a"*64+" stateHash="+"b"*64+
+               " accounts=2 validators=4\n").encode()
+        for codes, data in (([],output), ([1],output), ([0,0],output), ([0],old), ([0],b""),
+                            ([0],b"SKIP\n"), ([0],output+output), ([0],output+b"UNKNOWN\n"),
+                            ([0],output.replace(b"blockers=0", b"blockers=1")),
+                            ([0],output.replace(b"applicationRestore=unchecked", b"applicationRestore=passed")),
+                            ([0],output.rstrip(b"\n"))):
+            with self.subTest(codes=codes, data=data), self.assertRaisesRegex(RuntimeError, "compatibility completion missing"):
+                caller.qualify(codes, data, True)
+        with self.assertRaises(RuntimeError):
+            caller.qualify([0,0], output)
+
+    def test_execution_profile_rejects_extra_arguments_and_missing_external_pin(self):
+        common = ["--execute", "--verify-migration-execution", "--case", str(self.case), "--guard", "/not-read",
+                  "--expected-capture-sha256", caller.CAPTURE_SHA256,
+                  "--expected-source-sha256", caller.EXECUTION_SOURCE_SHA256,
+                  "--expected-commit", caller.EXECUTION_TOOL_COMMIT, "--authorization-id", "synthetic-grant"]
+        for args in (["--verify-migration-execution", "unexpected"],
+                     ["--verify-migration-execution", "--command", "never-execute"],
+                     ["--expected-migration-sha256", caller.EXECUTION_MIGRATION_SHA256],
+                     common, common+["--expected-migration-sha256", "0"*64]):
+            with self.subTest(args=args), patch.object(caller, "run", side_effect=AssertionError("invalid CLI entered run")), \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as error:
+                caller.main(args)
+            self.assertEqual(error.exception.code, 2)
+
+    def test_execution_profile_live_unreadable_rss_still_fails_closed(self):
+        reads = [("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic live unreadable")),
+                 ("stat", stat_line(101,100,1001,"R"))]*4
+        with self.sampled_exit(reads, terminal=0) as (window, pending, calls, pauses):
+            window.command_label = "verify-execution"
+            with self.assertRaisesRegex(RuntimeError, "^active owned RSS unreadable$"):
+                window.tick(True)
+            self.assertEqual(pending, [])
+            self.assertEqual(calls, ["smaps_rollup", "stat"]*4)
+            self.assertEqual(pauses, [0.01]*3)
+            self.assertEqual(window.samples, [])
+            self.assertEqual(window.telemetry_failure, {"command":"verify-execution", "pid":101, "startTicks":1001})
 
 
 if __name__ == "__main__":

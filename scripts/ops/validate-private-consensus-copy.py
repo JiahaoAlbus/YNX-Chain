@@ -30,12 +30,22 @@ TOOL_COMMIT = "af1cbaf94313e628e212aabad60d05d85c2aa3fc"
 CAPTURE_SHA256 = "fd62921bb90a4565fab3a34af39daacd73698fd597daa759129b0bdcbdbbcef5"
 TOOLS_ARCHIVE_SHA256 = "7d05d35e49cffb681a4f3f5ec52582c7450b5d6209cdbbdffd479c4d52930ed1"
 TOOLS_ARCHIVE_BYTES = 17650233
+# A separate profile reads the exact retained r2 migration, never the original
+# case or a newly exported replacement. These pins do not authorize execution;
+# the external SOURCE hash and a fresh Root window remain mandatory.
+EXECUTION_TOOL_COMMIT = "6e07ff1f8ac20317ab14b932b265f06d4f4a3f35"
+EXECUTION_SOURCE_SHA256 = "28c065f052f0a3925b256191cc6a39b4457c86b74cf78d7ed2fa7a9094d0391c"
+EXECUTION_TOOLS_ARCHIVE_SHA256 = "20160d5cb6087ae124e1833e1101451794fb6b16e7154d318aea52be29387c23"
+EXECUTION_TOOLS_ARCHIVE_BYTES = 17671146
+EXECUTION_MIGRATION_SHA256 = "72606eb9ad4187117f47b14f8745caaed81bd347011b6c5f8bb0b62c1ee84028"
+EXECUTION_MIGRATION_BYTES = 683131154
 LIMITS = dict(activeMs=120000, cleanupMs=15000, totalMs=135000,
               rssBytes=4 << 30, privateBytes=8 << 30, logBytes=1 << 20,
               threads=320, processes=16, diskFloorBytes=2 << 30,
               memoryFloorBytes=4 << 30, sampleMs=200)
 TOOL_NAMES = ("ynx-chaind", "ynx-consensus-package")
 INITIAL_FILES = {"capture.json", "devnet-state.json.gz", "tools.zip", "tools"}
+EXECUTION_INITIAL_FILES = {"capture.json", "migration.json", "tools.zip", "tools"}
 ENVIRONMENT = dict(GOMAXPROCS="1", GOGC="50", GOMEMLIMIT="3GiB",
                    GOTOOLCHAIN="local", GOWORK="off", TZ="UTC", LANG="C")
 
@@ -120,16 +130,28 @@ def checked_json(path, expected, progress):
     return record, json.loads(raw, object_pairs_hook=unique_object)
 
 
-def validate_inputs(case, expected_capture, expected_source, expected_commit, progress=lambda: None):
+def validate_inputs(case, expected_capture, expected_source, expected_commit, progress=lambda: None,
+                    *, verify_migration_execution=False, expected_migration=None):
     private_directory(case)
-    if {p.name for p in case.iterdir()} != INITIAL_FILES:
+    initial_files = EXECUTION_INITIAL_FILES if verify_migration_execution else INITIAL_FILES
+    if {p.name for p in case.iterdir()} != initial_files:
+        if verify_migration_execution:
+            raise RuntimeError("fresh execution case must contain only retained migration, capture metadata, pinned tools.zip and tools; preserve UNKNOWN")
         raise RuntimeError("fresh case must contain only captured gzip, capture metadata, original tools.zip and tools; preserve UNKNOWN")
     tools = case / "tools"
     private_directory(tools)
     if {p.name for p in tools.iterdir()} != {"SOURCE.json", *TOOL_NAMES}:
         raise RuntimeError("unexpected tool directory entries")
-    if expected_commit != TOOL_COMMIT or expected_capture != CAPTURE_SHA256:
+    tool_commit = EXECUTION_TOOL_COMMIT if verify_migration_execution else TOOL_COMMIT
+    if expected_commit != tool_commit or expected_capture != CAPTURE_SHA256:
         raise RuntimeError("this profile requires the approved read-only integration build and captured copy")
+    if verify_migration_execution:
+        if expected_migration != EXECUTION_MIGRATION_SHA256:
+            raise RuntimeError("execution profile requires the exact external retained migration SHA")
+        if expected_source != EXECUTION_SOURCE_SHA256:
+            raise RuntimeError("execution profile requires the exact external CI SOURCE SHA")
+    elif expected_migration is not None:
+        raise RuntimeError("migration input pin requires the execution compatibility profile")
     capture_pin, capture = checked_json(case / "capture.json", expected_capture, progress)
     if (capture.get("format") != "YNX-PRIVATE-CHECKPOINT-CAPTURE/v1"
             or any(capture.get(k) is not True for k in ("complete", "sourceDescriptorUnchanged", "localGzipVerified"))
@@ -147,13 +169,21 @@ def validate_inputs(case, expected_capture, expected_source, expected_commit, pr
         raise RuntimeError("CI tools do not match the externally pinned read-only source")
     pins = {"capture.json":capture_pin, "tools/SOURCE.json":source_pin}
     tool_archive, _ = read_file(case / "tools.zip", progress=progress)
-    if tool_archive["sha256"] != TOOLS_ARCHIVE_SHA256 or tool_archive["bytes"] != TOOLS_ARCHIVE_BYTES:
+    archive_sha = EXECUTION_TOOLS_ARCHIVE_SHA256 if verify_migration_execution else TOOLS_ARCHIVE_SHA256
+    archive_bytes = EXECUTION_TOOLS_ARCHIVE_BYTES if verify_migration_execution else TOOLS_ARCHIVE_BYTES
+    if tool_archive["sha256"] != archive_sha or tool_archive["bytes"] != archive_bytes:
         raise RuntimeError("original CI tools archive SHA or size mismatch")
     pins["tools.zip"] = tool_archive
-    archive, _ = read_file(case / "devnet-state.json.gz", progress=progress)
-    if archive["sha256"] != capture["archiveSHA256"] or archive["bytes"] != capture["archiveBytes"]:
-        raise RuntimeError("captured gzip identity mismatch")
-    pins["devnet-state.json.gz"] = archive
+    if verify_migration_execution:
+        migration, _ = read_file(case / "migration.json", progress=progress)
+        if migration["sha256"] != expected_migration or migration["bytes"] != EXECUTION_MIGRATION_BYTES:
+            raise RuntimeError("retained migration SHA or size mismatch")
+        pins["migration.json"] = migration
+    else:
+        archive, _ = read_file(case / "devnet-state.json.gz", progress=progress)
+        if archive["sha256"] != capture["archiveSHA256"] or archive["bytes"] != capture["archiveBytes"]:
+            raise RuntimeError("captured gzip identity mismatch")
+        pins["devnet-state.json.gz"] = archive
     for name in TOOL_NAMES:
         path = tools / name
         regular(path, executable=True)
@@ -218,7 +248,9 @@ def restore_copy(case, capture, progress=lambda: None):
     return {name:read_file(state/name, progress=progress)[0] for name in ("devnet-state.json", "devnet-state.integrity-version")}
 
 
-def fixed_commands(case):
+def fixed_commands(case, verify_migration_execution=False):
+    if verify_migration_execution:
+        return [[str(case/"tools/ynx-consensus-package"), "-verify-migration-execution", str(case/"migration.json")]]
     return [
         [str(case/"tools/ynx-chaind"), "-data-dir", str(case/"state"), "-export-consensus-state", str(case/"migration.json")],
         [str(case/"tools/ynx-consensus-package"), "-verify-migration-state", str(case/"migration.json")],
@@ -440,7 +472,11 @@ def unchanged(case, pins, progress):
             raise RuntimeError("original private input changed")
 
 
-def qualify(codes, output):
+def qualify(codes, output, verify_migration_execution=False):
+    if verify_migration_execution:
+        if codes != [0] or re.fullmatch(rb"consensus migration execution passed: height=[0-9]+ lastBlockHash=(?:0x)?[0-9a-fA-F]{64} stateHash=[0-9a-f]{64} blockers=0 scope=executor-compatibility-only validatorBinding=unchecked applicationRestore=unchecked deployment=not-performed initChain=not-performed pqActivation=not-performed\n", output) is None:
+            raise RuntimeError("actual canonical migration execution compatibility completion missing")
+        return
     if codes != [0, 0] or re.fullmatch(rb"consensus migration state passed: height=[0-9]+ lastBlockHash=(?:0x)?[0-9a-fA-F]{64} stateHash=[0-9a-f]{64} accounts=[1-9][0-9]* validators=[1-9][0-9]*\n", output) is None:
         raise RuntimeError("actual canonical migration verification completion missing")
 
@@ -450,6 +486,7 @@ def run(args):
         raise RuntimeError("only the separately granted Linux amd64 window is supported")
     if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{7,127}", args.authorization_id or "") is None:
         raise RuntimeError("external Root authorization reference required")
+    execution = args.verify_migration_execution
     guard = load_guard(args.guard)
     private_directory(args.case)
     receipt = args.case/"validation-receipt.json"
@@ -459,22 +496,31 @@ def run(args):
     result = dict(version="YNX-PRIVATE-CONSENSUS-COPY-VALIDATION/v1", authorization=args.authorization_id,
                   sourceCommit=args.expected_commit, sourceManifestSHA256=args.expected_source_sha256,
                   captureSHA256=args.expected_capture_sha256, guardSHA256=GUARD_SHA256,
-                  toolsArchiveSHA256=TOOLS_ARCHIVE_SHA256, toolsArchiveBytes=TOOLS_ARCHIVE_BYTES,
+                  toolsArchiveSHA256=EXECUTION_TOOLS_ARCHIVE_SHA256 if execution else TOOLS_ARCHIVE_SHA256,
+                  toolsArchiveBytes=EXECUTION_TOOLS_ARCHIVE_BYTES if execution else TOOLS_ARCHIVE_BYTES,
                   limits=LIMITS, status="unknown", firstCause=None, cleanupComplete=False,
                   scope="private copied-state semantic validation only; not deployed or activated")
+    if execution:
+        result.update(profile="verify-migration-execution", expectedMigrationSHA256=args.expected_migration_sha256,
+                      scope="retained migration executor compatibility only; not validator binding, application restore, deployment, InitChain or PQ activation")
     def interrupted(signum, _frame):
         raise RuntimeError("private wrapper interrupted by signal "+str(signum))
     signal.signal(signal.SIGTERM, interrupted)
     signal.signal(signal.SIGINT, interrupted)
     try:
         window.start()
-        capture, pins = validate_inputs(args.case, args.expected_capture_sha256, args.expected_source_sha256, args.expected_commit, window.tick)
-        source_pins = restore_copy(args.case, capture, window.tick)
-        pins.update({"state/"+name:pin for name, pin in source_pins.items()})
+        capture, pins = validate_inputs(args.case, args.expected_capture_sha256, args.expected_source_sha256,
+                                       args.expected_commit, window.tick, verify_migration_execution=execution,
+                                       expected_migration=args.expected_migration_sha256)
+        source_pins = {}
+        if not execution:
+            source_pins = restore_copy(args.case, capture, window.tick)
+            pins.update({"state/"+name:pin for name, pin in source_pins.items()})
         (args.case/"tmp").mkdir(mode=0o700)
         sync_directory(args.case)
         result["terminalCodes"] = []
-        for command, label in zip(fixed_commands(args.case), ("export", "verify")):
+        labels = ("verify-execution",) if execution else ("export", "verify")
+        for command, label in zip(fixed_commands(args.case, execution), labels):
             unchanged(args.case, pins, window.tick)
             result["terminalCodes"].append(window.command(command, label, pins["tools/"+Path(command[0]).name]))
             unchanged(args.case, pins, window.tick)
@@ -485,20 +531,28 @@ def run(args):
                 pins["migration.json"] = migration_pin
         # Exact real verifier completion; a code-zero no-op or leftover output
         # cannot qualify. Full migration validation is performed by the tool.
-        output = guard.bounded(args.case/"verify.stdout.log", LIMITS["logBytes"])
-        qualify(result["terminalCodes"], output)
+        output = guard.bounded(args.case/(labels[-1]+".stdout.log"), LIMITS["logBytes"])
+        qualify(result["terminalCodes"], output, execution)
         migration_pin, _ = read_file(args.case/"migration.json", progress=window.tick)
         if migration_pin["bytes"] == 0:
             raise RuntimeError("empty migration output")
-        if {p.name for p in (args.case/"state").iterdir()} != set(source_pins):
+        if execution and migration_pin != pins["migration.json"]:
+            raise RuntimeError("original private input changed")
+        if not execution and {p.name for p in (args.case/"state").iterdir()} != set(source_pins):
             raise RuntimeError("unexpected source state artifact; preserve UNKNOWN")
-        expected_files = INITIAL_FILES | {"state", "tmp", "migration.json", "export.stdout.log", "export.stderr.log", "verify.stdout.log", "verify.stderr.log"}
+        expected_files = (EXECUTION_INITIAL_FILES | {"tmp", "verify-execution.stdout.log", "verify-execution.stderr.log"}
+                          if execution else INITIAL_FILES | {"state", "tmp", "migration.json", "export.stdout.log", "export.stderr.log", "verify.stdout.log", "verify.stderr.log"})
         if ({p.name for p in args.case.iterdir()} != expected_files
                 or {p.name for p in (args.case/"tools").iterdir()} != {"SOURCE.json", *TOOL_NAMES}
                 or any((args.case/"tmp").iterdir())):
             raise RuntimeError("unexpected private result artifact; preserve UNKNOWN")
-        result.update(migrationSHA256=migration_pin["sha256"], migrationBytes=migration_pin["bytes"],
-                      sourceCopyUnchanged=True, originalMarkerPreserved=True, status="validated_private_copy")
+        result.update(migrationSHA256=migration_pin["sha256"], migrationBytes=migration_pin["bytes"])
+        if execution:
+            result.update(migrationInputUnchanged=True, executorCompatibilityVerified=True,
+                          validatorBinding="unchecked", applicationRestore="unchecked", deployment="not-performed",
+                          initChain="not-performed", pqActivation="not-performed", status="validated_migration_execution")
+        else:
+            result.update(sourceCopyUnchanged=True, originalMarkerPreserved=True, status="validated_private_copy")
     except Exception as error:
         # Never echo private tool logs, paths, account contents or raw state.
         result["firstCause"] = str(error) if isinstance(error, RuntimeError) else type(error).__name__
@@ -520,26 +574,40 @@ def run(args):
         exclusive(receipt, (json.dumps(result, sort_keys=True)+"\n").encode())
         sync_directory(args.case)
         print(json.dumps({k:result[k] for k in ("status", "cleanupComplete", "elapsedMs")}))
-    return 0 if result["status"] == "validated_private_copy" else 1
+    return 0 if result["status"] == ("validated_migration_execution" if execution else "validated_private_copy") else 1
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--verify-migration-execution", action="store_true",
+                        help="check only the fixed retained migration in a new case; never export or restore an Application")
     parser.add_argument("--case", type=Path)
     parser.add_argument("--guard", type=Path)
     parser.add_argument("--expected-capture-sha256")
     parser.add_argument("--expected-source-sha256")
     parser.add_argument("--expected-commit")
+    parser.add_argument("--expected-migration-sha256")
     parser.add_argument("--authorization-id")
     args = parser.parse_args(argv)
+    if args.expected_migration_sha256 is not None and not args.verify_migration_execution:
+        parser.error("--expected-migration-sha256 requires --verify-migration-execution")
     if not args.execute:
-        print(json.dumps(dict(status="prepared_only_no_copy_or_process_started", toolCommit=TOOL_COMMIT,
-                              guardSHA256=GUARD_SHA256, limits=LIMITS,
-                              requires="fresh external Root/central Linux execution grant and exact CI SOURCE SHA")))
+        prepared = dict(status="prepared_only_no_copy_or_process_started",
+                        toolCommit=EXECUTION_TOOL_COMMIT if args.verify_migration_execution else TOOL_COMMIT,
+                        guardSHA256=GUARD_SHA256, limits=LIMITS,
+                        requires="fresh external Root/central Linux execution grant and exact CI SOURCE SHA")
+        if args.verify_migration_execution:
+            prepared.update(profile="verify-migration-execution", migrationSHA256=EXECUTION_MIGRATION_SHA256,
+                            migrationBytes=EXECUTION_MIGRATION_BYTES,
+                            sourceManifestSHA256=EXECUTION_SOURCE_SHA256,
+                            scope="executor-compatibility-only; applicationRestore=unchecked")
+        print(json.dumps(prepared))
         return 0
     if any(getattr(args, k) is None for k in ("case", "guard", "expected_capture_sha256", "expected_source_sha256", "expected_commit", "authorization_id")):
         parser.error("execute requires new private case, frozen guard and all external pins/authorization")
+    if args.verify_migration_execution and args.expected_migration_sha256 != EXECUTION_MIGRATION_SHA256:
+        parser.error("execution profile requires the exact external retained migration SHA")
     try:
         return run(args)
     except Exception as error:
