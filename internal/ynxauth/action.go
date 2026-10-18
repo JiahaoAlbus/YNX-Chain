@@ -192,6 +192,10 @@ func (a Action) Validate() error {
 		if a.Fee != ContractExecuteFee {
 			return ErrAction
 		}
+	case StakeDelegatePayload, StakeUnbondPayload, StakeWithdrawPayload:
+		if a.Fee != StakingActionFee {
+			return ErrAction
+		}
 	}
 	return nil
 }
@@ -242,6 +246,8 @@ func EncodeActionPayload(kind string, payload any) ([]byte, error) {
 		return encodeContractDeployPayload(kind, p)
 	case ContractExecutePayload:
 		return encodeContractExecutePayload(kind, p)
+	case StakeDelegatePayload, StakeUnbondPayload, StakeWithdrawPayload:
+		return encodeStakingActionPayload(kind, p)
 	case StakePayload:
 		if kind != ActionStake || !actionPositive(p.Amount) {
 			return nil, ErrAction
@@ -329,6 +335,9 @@ func EncodeActionPayload(kind string, payload any) ([]byte, error) {
 // malformed integer widths, trailing bytes and noncanonical field values. The
 // decoded object carries no verified flag and never executes a state transition.
 func DecodeActionPayload(kind string, wire []byte) (any, error) {
+	if kind == ActionStakeDelegate || kind == ActionStakeUnbond || kind == ActionStakeWithdraw {
+		return decodeStakingActionPayload(kind, wire)
+	}
 	if kind == ActionContractDeploy || kind == ActionContractExecute {
 		return decodeContractActionPayload(kind, wire)
 	}
