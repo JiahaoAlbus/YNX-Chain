@@ -91,8 +91,18 @@ export function fetchSourceCurrent(endpoint,spki,profileDigest,nonce){
  });
 }
 async function run(){
- let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>131072)bad();chunks.push(chunk);}
- const input=parse(Buffer.concat(chunks).toString('utf8'),131072);exact(input,['rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
+ let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>2097152)bad();chunks.push(chunk);}
+ const input=parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)),2097152);
+ // SAME original bounded driver/process. No second CLI, Source owner or
+ // renderer-selected module. Native retains expected + trusted node binding;
+ // this branch returns cryptographic DATA only, never an admission/grant.
+ if(input?.operation==='auth-identity-proof-native-node/v1'){
+  const {dispatchOriginalIDEAuthProof}=await import('./original-ide-auth-proof-dispatch.mjs');
+  process.stdout.write(canonical(await dispatchOriginalIDEAuthProof(input))+'\n');return;
+ }
+ // Keep the original legacy operation's input bound and exact fields.
+ if(size>131072)bad();
+ exact(input,['rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
  const before=Date.now(),profile=verifySourceProfile(input.rootRaw,input.enrollmentRaw,input.profileRaw,input.policy,before);
  // The original signed acquisition head is an authenticated floor only, never
  // treated as latest/current. A NEW nonce-bound network head is mandatory.
@@ -107,3 +117,4 @@ async function run(){
  process.stdout.write(canonical({projection,currentRaw})+'\n');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){run().catch(error=>{process.stderr.write(String(error?.code??'AUTH_IDENTITY_SOURCE_VERIFICATION_FAILED')+'\n');process.exitCode=1;});}
+

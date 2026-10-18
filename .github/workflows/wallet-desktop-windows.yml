@@ -336,6 +336,33 @@ jobs:
           (root/'whole-tar-git-readback.json').write_text(json.dumps(result,indent=2)+'\n')
           print('Exact Git blob members:',len(rows))
           PYCODE
+      - name: Inventory the exact packed original Auth runtime in a normal isolated install
+        run: |
+          python3 <<'PYCODE'
+          import json,os,pathlib,tarfile
+          out=pathlib.Path(os.environ['RUNNER_TEMP'])/'wallet-auth-sdk-pack'
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'wallet-auth-runtime-install';root.mkdir()
+          archive=out/json.loads((out/'npm-pack.json').read_text())[0]['filename']
+          with tarfile.open(archive,'r:gz') as tar:
+            for member in tar.getmembers():
+              p=pathlib.PurePosixPath(member.name)
+              assert member.isfile() and p.parts[0]=='package' and not p.is_absolute() and '..' not in p.parts
+            tar.extractall(root,filter='data')
+          PYCODE
+          npm install --ignore-scripts --no-audit --no-fund --no-package-lock --prefix "$RUNNER_TEMP/wallet-auth-runtime-install/package"
+          node --input-type=module <<'NODE'
+          import {writeFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          import {createHash} from 'node:crypto';
+          import {generateAuthRuntimeClosure,validateAuthRuntimeClosure} from './packages/wallet-auth/scripts/auth-runtime-closure.mjs';
+          import {canonicalJSON} from './packages/wallet-auth/src/canonical.js';
+          const root=join(process.env.RUNNER_TEMP,'wallet-auth-runtime-install/package'),result=generateAuthRuntimeClosure(root),raw=canonicalJSON(result.manifest);
+          validateAuthRuntimeClosure(root,raw);
+          const out=join(process.env.RUNNER_TEMP,'wallet-auth-sdk-pack');
+          writeFileSync(join(out,'original-auth-runtime-manifest.json'),raw);
+          writeFileSync(join(out,'original-auth-runtime-report.json'),JSON.stringify({...result.report,manifestDigest:createHash('sha256').update(raw).digest('hex'),scope:'exact packed SDK plus frozen R92 original driver/dispatch',NativeBuild:false,AppBuild:false},null,2)+'\n');
+          console.log('Installed runtime closure files:',result.manifest.files.length);
+          NODE
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: wallet-auth-owned-interface-sdk-pack
