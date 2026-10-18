@@ -1,0 +1,173 @@
+{
+  "sourceCommit": "9d9531c14230bdde8a67863dfc73550d70d80419",
+  "runtimeSourceCommit": "3008845b6b4135b8f968fe4365722588be00f1b0",
+  "internalTree": "cfbd76d52a6e22ebfae809699a37b6c039cb20f5",
+  "runId": 39130560126,
+  "runConclusion": "success",
+  "steps": [
+    {
+      "name": "Set up job",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prepare matched Commit probe dependencies",
+      "conclusion": "success"
+    },
+    {
+      "name": "Measure matched Commit storage and crash recovery",
+      "conclusion": "success"
+    },
+    {
+      "name": "Measure guarded seal phases and verify mutation fallback",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify anchor ordering and explicitly selected full validation cost",
+      "conclusion": "success"
+    },
+    {
+      "name": "Retain actual matched Commit evidence even on failure",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm ci",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm run hardhat:build",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify compiler output preserves controlled evidence and scanner failures",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make static-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make streambft-candidate-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make consensus-abci-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify bounded performance controller and evidence contracts",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify ready-sender Commit phases and bounded event timeline",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify opt-in node phase timings against real durable execution",
+      "conclusion": "success"
+    },
+    {
+      "name": "Measure bounded real signed fee history",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Measure same actual large-history seal phases without rewriting input",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain actual signed fee-history evidence",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain small selected application and seal phase reports",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Render selected state validation CPU stacks",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain small selected state validation profile",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Verify fixed unpublished anchor-order V13 integration contract",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make chain-core-release-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make no-placeholder-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make secret-scan",
+      "conclusion": "success"
+    },
+    {
+      "name": "Measure selected matched state hash encoders",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain selected matched state hash encoder evidence",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Build isolated Darwin phase-timing node candidate",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Retain isolated Darwin phase-timing node candidate",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Upload Chain Core handoff",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "conclusion": "success"
+    }
+  ],
+  "rawLogBytes": 489552,
+  "rawLogSHA256": "b33560670c4b8f4df9be43e5b8f894094aefab331d87eec03b88c3fe21ba744a",
+  "microBenchmarkRepeated": false,
+  "largeHistoryRepeated": false,
+  "nodeBuildSelected": false,
+  "candidate": "perf-state-v13-anchor-order",
+  "candidateCreationClaimsUnmodified": true,
+  "normalMatchingCIVerifiedNow": true,
+  "deployed": false,
+  "nodeCutover": false,
+  "businessTPS": null,
+  "networkFinality": null,
+  "frozenSupplyCandidateUnchanged": {
+    "sourceCommit": "599fa7eebf5aa4f1472fe80a1d308e6915600a02",
+    "internalTree": "db59fb367d5c7382756ba8f6ebc2d50e5d9639fc"
+  }
+}
