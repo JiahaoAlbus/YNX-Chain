@@ -8,7 +8,7 @@ import {createRequire} from 'node:module';
 import {runInNewContext} from 'node:vm';
 import {createHash} from 'node:crypto';
 import {originalAuthNativeBuildPlan,captureOriginalAuthNativeBuildReceipt,originalAuthNativeInputPins} from '../scripts/build-original-auth-identity-native.mjs';
-import {relocateDesktopRuntimeSource,PACKAGED_RELOCATION_RULES,relocateDesktopPackage,verifyDesktopPackage,desktopReleaseIdentity,PACKAGED_RELOCATION_RECEIPT,desktopAsarHeaderIntegrity} from '../scripts/release-provenance.mjs';
+import {relocateDesktopRuntimeSource,PACKAGED_RELOCATION_RULES,relocateDesktopPackage,verifyDesktopPackage,desktopReleaseIdentity,PACKAGED_RELOCATION_RECEIPT,desktopAsarHeaderIntegrity,declaredSDKRuntimeSources} from '../scripts/release-provenance.mjs';
 import {canonicalArchivePlan,CANONICAL_MAIN,NATIVE_CANONICAL,SDK_ALIAS,verifyCanonicalNativeReceipt,PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
 import {walletAuthDependencyPlan} from '../scripts/wallet-auth-dependencies.mjs';
 test('normal builder metadata selects canonical entry before its post-afterPack sanity check',()=>{
@@ -56,10 +56,12 @@ test('R22 actual entire SDK runtime closure has no unlisted repository operands'
  for(const name of names){const source=readFileSync(path.join(sdkRuntime,name));assert.deepEqual(relocateDesktopRuntimeSource('packages/wallet-auth/src/'+name,source).bytes,source,name);}
  assert.ok(names.length>100);console.log(JSON.stringify({scope:'actual SDK runtime source bytes/operand inventory, no shared module evaluation',files:names.length}));
 });
-function fixture(t,{runtimeMetadata={},includeRegistry=true}={}){
+function fixture(t,{runtimeMetadata={},includeRegistry=true,extraSDKFiles={},sdkMetadata={}}={}){
  const root=mkdtempSync(path.join(tmpdir(),'ynx-canonical-public-')),app=path.join(root,'apps/wallet-desktop'),stage=path.join(root,'raw'),resources=path.join(root,'resources');
  t.after(()=>rmSync(root,{recursive:true,force:true}));
  const files={'apps/wallet-desktop/package.json':JSON.stringify({name:'public-wallet-fixture',version:'0.6.10',type:'module',main:'src/main.mjs',...runtimeMetadata}),'packages/wallet-auth/package.json':JSON.stringify({name:'@ynx-chain/wallet-auth',type:'module',main:'src/index.js',dependencies:dependencyManifest.versions}),'packages/wallet-auth/src/index.js':'export const PUBLIC_ONLY=true;\n','packages/wallet-auth/product-session-registry.json':'{"PUBLIC":true}\n','apps/wallet-desktop/native/original-auth-identity.node':'PUBLIC DATA - NOT A NATIVE MODULE\n','apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json':dependencyManifestBytes};
+ files['packages/wallet-auth/package.json']=JSON.stringify({...JSON.parse(files['packages/wallet-auth/package.json']),...sdkMetadata});
+ for(const [name,body] of Object.entries(extraSDKFiles))files['packages/wallet-auth/'+name]=body;
  for(const row of dependencyManifest.files)files['packages/wallet-auth/node_modules/'+row.path]=readFileSync(path.join(dependencyRoot,row.path));
  if(!includeRegistry)delete files['packages/wallet-auth/product-session-registry.json'];
  const headers=path.join(root,'PUBLIC-headers');mkdirSync(headers);for(const p of PINNED_NODE_HEADER_PINS)copyFileSync(new URL('./fixtures/node-22.13.1/'+p.relative,import.meta.url),path.join(headers,p.relative));
@@ -98,6 +100,35 @@ for(const field of ['recipe','sourceCommit'])test('forged canonical receipt reje
 });
 test('nonlisted SDK body and required registry are still source-byte-bound',t=>{
  const f=fixture(t);writeFileSync(path.join(f.stage,SDK_ALIAS,'src/index.js'),'export const FOREIGN=true;\n');f.rawPack();relocateDesktopPackage(f.resources,f.app);assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/Packaged source differs/);
+});
+test('canonical verification rejects changed declared SDK Native runtime source outside src',t=>{
+ const name='native/publication-readonly-source-r28-20261018/source/service-publisher.mjs',f=fixture(t,{sdkMetadata:{files:['src','native/publication-readonly-source-r28-20261018/source']},extraSDKFiles:{[name]:'export const PUBLIC_SOURCE=true;\n'}});
+ relocateDesktopPackage(f.resources,f.app);verifyDesktopPackage(f.resources,f.app);
+ writeFileSync(path.join(f.stage,SDK_ALIAS,name),'export const FOREIGN_SOURCE=true;\n');f.rawPack();relocateDesktopPackage(f.resources,f.app);
+ assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/Packaged source differs/);
+});
+test('canonical declared closure binds all six actual R28 sources plus normal daemon from frozen Git',()=>{
+ const root=path.resolve(project,'../..'),commit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),names=declaredSDKRuntimeSources(root,commit);
+ assert.equal(names.filter(name=>name.startsWith('packages/wallet-auth/native/publication-readonly-source-r28-20261018/source/')).length,6);
+ assert.ok(names.includes('packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs'));assert.ok(names.includes('packages/wallet-auth/native/original-auth-identity-source-verifier.mjs'));assert.equal(names.some(name=>name.includes('node_modules/')),false);
+ for(const name of names){const bytes=execFileSync('git',['show',`${commit}:${name}`],{cwd:root});assert.deepEqual(relocateDesktopRuntimeSource(name,bytes).bytes,bytes,name);}
+});
+test('canonical verification rejects missing declared SDK Native runtime and altered declared daemon',t=>{
+ for(const [mode,name,scope] of [['missing','native/publication-readonly-source-r28-20261018/source/service-publisher.mjs','native/publication-readonly-source-r28-20261018/source'],['altered','scripts/ynx-wallet-gatewayd.mjs','scripts']]){
+  const f=fixture(t,{sdkMetadata:{files:['src',scope]},extraSDKFiles:{[name]:'export const PUBLIC_SOURCE=true;\n'}});
+  relocateDesktopPackage(f.resources,f.app);verifyDesktopPackage(f.resources,f.app);
+  if(mode==='missing')rmSync(path.join(f.stage,SDK_ALIAS,name));else writeFileSync(path.join(f.stage,SDK_ALIAS,name),'export const FOREIGN_SOURCE=true;\n');
+  f.rawPack();relocateDesktopPackage(f.resources,f.app);assert.throws(()=>verifyDesktopPackage(f.resources,f.app),mode==='missing'?/not found/:/Packaged source differs/);
+ }
+});
+test('canonical verification refuses undeclared SDK Native executable even with a fresh archive receipt',t=>{
+ const f=fixture(t,{sdkMetadata:{files:['src']}}),name=path.join(f.stage,SDK_ALIAS,'native/unlisted-runtime.mjs');mkdirSync(path.dirname(name),{recursive:true});writeFileSync(name,'export const FOREIGN_SOURCE=true;\n');
+ f.rawPack();relocateDesktopPackage(f.resources,f.app);assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/Unlisted packaged runtime member/);
+});
+test('canonical declared runtime inventory reads frozen metadata instead of a changed checkout',t=>{
+ const name='native/publication-readonly-source-r28-20261018/source/service-publisher.mjs',f=fixture(t,{sdkMetadata:{files:['src','native/publication-readonly-source-r28-20261018/source']},extraSDKFiles:{[name]:'export const PUBLIC_SOURCE=true;\n'}}),commit=f.git('rev-parse','HEAD');
+ writeFileSync(path.join(f.root,'packages/wallet-auth/package.json'),JSON.stringify({files:['src']}));
+ assert.ok(declaredSDKRuntimeSources(f.root,commit).includes('packages/wallet-auth/'+name));
 });
 test('required registry absence and additional executable member are rejected',t=>{
  const f=fixture(t);rmSync(path.join(f.stage,SDK_ALIAS,'product-session-registry.json'));f.rawPack();relocateDesktopPackage(f.resources,f.app);assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/was not found/);

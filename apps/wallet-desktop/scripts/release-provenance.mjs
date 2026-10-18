@@ -46,6 +46,24 @@ const escapeRE = text => text.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const repositoryOperand = /(?:from\s*|new\s+URL\s*\(\s*)["']\.\.\/\.\.\/\.\.\/(?:packages\/wallet-auth|apps\/wallet-desktop)\//;
 const packedRuntimePath = canonicalSourcePath;
 
+// SDK production JS can live outside src (for example the R28 same-Host
+// publisher). Derive that closure from the selected commit's package files,
+// never from the mutable checkout, archive receipt or an ambient SDK copy.
+export function declaredSDKRuntimeSources(root,sourceCommit){
+ const sdk=JSON.parse(git(root,'show',`${sourceCommit}:packages/wallet-auth/package.json`));
+ if(sdk.files===undefined)return [];
+ if(!Array.isArray(sdk.files)||sdk.files.some(name=>typeof name!=='string'))throw Error('SDK declared runtime inventory is invalid');
+ const scopes=sdk.files.filter(name=>name==='scripts'||name.startsWith('scripts/')||name.startsWith('native/'));
+ for(const name of scopes)if(path.posix.normalize(name)!==name||name.includes('\\')||name.split('/').includes('..')||/[\0*?\[\]{}!]/.test(name))throw Error('SDK declared runtime scope is invalid');
+ const names=new Set();
+ for(const scope of scopes){
+  const prefix='packages/wallet-auth/'+scope,found=git(root,'ls-tree','-r','--name-only',sourceCommit,'--',prefix).split('\n').filter(name=>/\.(?:mjs|js|cjs|json)$/.test(name)&&!name.endsWith('.test.mjs'));
+  if(!found.length)throw Error(`SDK declared runtime source is missing: ${scope}`);
+  for(const name of found)names.add(name);
+ }
+ return [...names].sort();
+}
+
 export function relocateDesktopRuntimeSource(name, source) {
   const rule = PACKAGED_RELOCATION_RULES.find(item=>item.sourcePath===name);
   let text = source.toString("utf8");
@@ -228,8 +246,9 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // Require it in the commit as well as the archive: ls-tree alone can silently
   // omit a named path that no longer exists in the selected commit.
   const requiredRuntimeAssets = ["packages/wallet-auth/package.json", "packages/wallet-auth/product-session-registry.json"];
-  const names = git(root, "ls-tree", "-r", "--name-only", expected.sourceCommit, "apps/wallet-desktop/src", "packages/wallet-auth/src", ...requiredRuntimeAssets).split("\n");
-  names.push(...nativeInputs.filter(name=>name.startsWith('packages/wallet-auth/')&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs')));
+  const declaredSDKRuntimeAssets=declaredSDKRuntimeSources(root,expected.sourceCommit);
+  const names = [...new Set([...git(root, "ls-tree", "-r", "--name-only", expected.sourceCommit, "apps/wallet-desktop/src", "packages/wallet-auth/src", ...requiredRuntimeAssets).split("\n"),...declaredSDKRuntimeAssets,
+    ...nativeInputs.filter(name=>name.startsWith('packages/wallet-auth/')&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs'))])];
   for (const name of requiredRuntimeAssets) {
     if (!names.includes(name)) throw new Error(`Required runtime asset is missing from the selected commit: ${name}`);
   }
@@ -251,10 +270,11 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   }
   const allowed=new Set(names.filter(name=>!name.endsWith(".d.ts")).map(packedRuntimePath));
   for(const row of receipt.after){
-    if(row.type!=="directory"&&(row.path.startsWith("code/apps/wallet-desktop/src/")||row.path.startsWith("code/packages/wallet-auth/src/"))&&!allowed.has(row.path)) throw new Error(`Unlisted packaged runtime member: ${row.path}`);
+    const additionalSDKRuntime=/^code\/packages\/wallet-auth\/(?:native|scripts)\/.+\.(?:mjs|js|cjs|json)$/.test(row.path);
+    if(row.type!=="directory"&&(row.path.startsWith("code/apps/wallet-desktop/src/")||row.path.startsWith("code/packages/wallet-auth/src/")||additionalSDKRuntime)&&!allowed.has(row.path)) throw new Error(`Unlisted packaged runtime member: ${row.path}`);
   }
   return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
-    canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,
+    canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,declaredSDKRuntimeAssets,
     unavailableOptionalRuntimeAssets,
     sdkRuntimeDependenciesVerified:true,sdkRuntimeDependencies,
     staticPathRelocationVerified:true,staticPathRelocation:receipt.files,macAsarIntegrityVerified,

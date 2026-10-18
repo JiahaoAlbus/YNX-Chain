@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "3b98f956a6dccb4f4d41fb0f80f9b0b2efc1dd9e",
+  "scope": "Existing canonical package verifier now binds SDK-declared scripts and Native runtime sources outside src to the frozen Git commit",
+  "toolRuntime": {
+    "path": "/Users/huangjiahao/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "version": "v24.19.0",
+    "heapMiB": 192,
+    "testIsolation": "none",
+    "concurrency": 1,
+    "kind": "Pure ASAR packaging-tool fixture, not installed Electron product QA"
+  },
+  "red": {"test": "canonical verification rejects changed declared SDK Native runtime source outside src", "validBaselineFirst": true, "mutation": "Replace declared R28 service-publisher.mjs and produce a fresh canonical archive receipt", "failure": "Missing expected exception", "exitCode": 1, "tests": 1, "fail": 1, "durationMs": 2023.336125},
+  "actualPass": {"testNamePattern": "canonical verification|canonical declared|source-bound runtime metadata|forged canonical receipt|nonlisted SDK|additional executable|closed canonical plan", "file": "test/release-provenance.test.mjs", "exitCode": 0, "tests": 21, "fail": 0, "durationMs": 23204.672542},
+  "coverage": ["All six actual frozen R28 Native-source mjs files and the normal daemon are derived from SDK package.files at the pinned Git commit", "Declared Native/source bytes and daemon replacement or omission are rejected", "An undeclared Native executable is rejected even with a newly generated archive receipt", "Changing mutable checkout package metadata does not shrink the frozen inventory", "Actual declared production source operands remain byte-identical; no runtime entrypoint or Native module is evaluated", "Existing runtime metadata, registry, canonical recipe, source commit, double-Native and alias guards remain passing"],
+  "bootstrapFailureNotProductRed": "Initial Electron RunAsNode fixture hit Electron virtual ASAR filesystem interception when hashing the raw archive root. The baseline did not pass, so it was not counted as a product defect. Selected the explicit existing bundled ordinary Node v24.19.0 for the packaging-tool fixture; production guards were not weakened. Ambient Node v26.7.0 was not substituted.",
+  "limits": ["Synthetic ASAR and public Native stand-ins only; no new full Mac build or real Native compilation", "No actual installed App, Source admission, public download or user journey acceptance", "Existing immutable build candidates are not hot-overwritten", "Real external business input and MONSTER remain unexecuted"]
+}
