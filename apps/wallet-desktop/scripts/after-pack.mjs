@@ -3,6 +3,7 @@ import path from "node:path";
 import { writeFile } from "node:fs/promises";
 import { desktopReleaseIdentity, relocateDesktopPackage as assembleCanonicalDesktopPackage, desktopAsarHeaderIntegrity } from "./release-provenance.mjs";
 import { buildPublicWalletConnectConfig, WALLETCONNECT_PUBLIC_CONFIG_FILE } from "../src/walletconnect-public-config.mjs";
+import {installPackagedPQVerifierAssets} from './packaged-proof-verifier.mjs';
 
 export function updatedMacAsarIntegrity(existing, relocated) {
   if(!existing||typeof existing!=="object"||Array.isArray(existing)||existing["Resources/app.asar"]?.algorithm!=="SHA256"||relocated?.algorithm!=="SHA256"||!/^[a-f0-9]{64}$/.test(relocated.hash)) throw new Error("Expected normal Mac ASAR integrity metadata");
@@ -46,6 +47,9 @@ export default async function afterPack(context) {
   assembleCanonicalDesktopPackage(resources, context.packager.projectDir);
   await writeFile(path.join(resources, WALLETCONNECT_PUBLIC_CONFIG_FILE), JSON.stringify(buildPublicWalletConnectConfig(), null, 2) + "\n");
   if (context.electronPlatformName !== "darwin") return;
+  // builder-util Arch.arm64 is 3; other platform/architecture builds do not
+  // inherit this arm64-only proof executable or falsely report it available.
+  if(context.arch===3)await installPackagedPQVerifierAssets(resources,process.env.YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE);
   // electron-builder writes this header hash BEFORE afterPack. Refresh only
   // this archive's entry before signing; never disable the integrity fuse or
   // discard integrity entries for other archives.

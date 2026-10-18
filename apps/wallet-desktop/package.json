@@ -95,6 +95,7 @@
       ]
     },
     "mac": {
+      "signIgnore": ["/Contents/Resources/consensus-proof-verifier/darwin-arm64/ynx-consensus-proof-verify$"],
       "extendInfo": {
         "NSCameraUsageDescription": "Scan a YNX receiving QR code locally. Camera frames are not uploaded, and scanning never authorizes a payment."
       },

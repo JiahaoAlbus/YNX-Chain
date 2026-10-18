@@ -1,5 +1,7 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import {recordRPCMetadataFailure} from './rpc-metadata-failure-record.mjs';
+import {createPackagedPQFinalityVerifier} from './wallet-pq-verifier-assets.mjs';
+import {originalPQVerifierReceipt} from './wallet-pq-verifier-receipt.mjs';
 import {createProductWalletReturnPublisher} from '@ynx-chain/wallet-auth/product-wallet-connection';
 import {createOriginalAdmissionController} from './original-admission-controller.mjs';
 import {openOriginalAdmissionSupply,closeOriginalAdmissionSupply,readOriginalAdmissionSummary,originalAdmissionSelectionUnresolved} from './original-admission-supply.mjs';
@@ -108,6 +110,9 @@ let lastCallback = null;
 let walletAuthority;
 let pqTransactionSubmission;
 let pqFinalityCollection;
+// Source-owned original A receipt, never Resources self-manifest or IPC DATA.
+// Each real Host invocation receives its own single-use process owner.
+const createOriginalPQFinalityVerifier=()=>createPackagedPQFinalityVerifier({app,independentReceipt:originalPQVerifierReceipt});
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
 async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
   const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
@@ -497,6 +502,7 @@ handleWalletIPC('wallet:pq-submission-query',(_event,hash)=>sensitiveIPC(()=>pqT
 handleWalletIPC('wallet:pq-finality-collect',(_event,hash)=>sensitiveIPC(()=>pqFinalityCollection.collect(hash,keyAccess.current())));
 handleWalletIPC('wallet:pq-finality-restore',(_event,hash)=>sensitiveIPC(()=>pqFinalityCollection.restore(hash,keyAccess.current())));
 handleWalletIPC('wallet:pq-finality-save',(_event,hash)=>sensitiveIPC(()=>pqFinalityCollection.save(hash,keyAccess.current())));
+handleWalletIPC('wallet:pq-finality-verifier-status',()=>safeIPC(()=>createOriginalPQFinalityVerifier().verifyAssets()));
 handleWalletIPC('wallet:pq-migration-review',(_event,input)=>sensitiveIPC(async()=>{
   const response=await walletAuthority.requestPQMigration(input);
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);

@@ -32,16 +32,13 @@ async function readPinned(file,expected,maximum,{executable=false}={}){
  * must come from the original builder's frozen post-inner-sign handoff, never
  * the manifest being checked or an IPC argument. CI and bundled hashes differ
  * when signing changes the executable. No signing/notarization is inferred. */
-export async function preparePackagedPQVerifierInvocation(resourcesPath,independentReceipt,input){
+export async function verifyPackagedPQVerifierAssets(resourcesPath,independentReceipt){
  canonical(resourcesPath);
  if(independentReceipt===null||independentReceipt===undefined)fail('PQ_FINALITY_ASSET_RECEIPT_NOT_SUPPLIED');
  exact(independentReceipt,['sourceCommit','forkTree','manifest','bundled','sourceFile']);
  if(independentReceipt.sourceCommit!==sourceCommit||independentReceipt.forkTree!==forkTree)fail('PQ_FINALITY_ASSET_INVALID');
  const receipt={manifest:pin(independentReceipt.manifest,16384),bundled:pin(independentReceipt.bundled,64<<20),sourceFile:pin(independentReceipt.sourceFile,65536)};
  if(receipt.sourceFile.bytes!==sourceFile.bytes||receipt.sourceFile.sha256!==sourceFile.sha256)fail('PQ_FINALITY_ASSET_INVALID');
- exact(input,['contextPath','contextSha256','stdin']);canonical(input.contextPath);
- input=Object.freeze({contextPath:input.contextPath,contextSha256:input.contextSha256,stdin:input.stdin});
- if(typeof input.contextSha256!=='string'||!/^[a-f0-9]{64}$/.test(input.contextSha256)||typeof input.stdin!=='string'||Buffer.byteLength(input.stdin)>limits['verifier-stdin']||Buffer.from(input.stdin).toString('utf8')!==input.stdin)fail('PQ_FINALITY_VERIFIER_INVOCATION_INVALID');
  const root=path.join(resourcesPath,'consensus-proof-verifier'),manifestBytes=await readPinned(path.join(root,'manifest.json'),receipt.manifest,16384);
  let manifest;try{manifest=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(manifestBytes));}catch{fail('PQ_FINALITY_ASSET_INVALID');}
  exact(manifest,['schema','sourceCommit','forkTree','platform','architecture','binaryPath','ciOriginal','bundled','sourceFile','signingClass']);
@@ -51,6 +48,14 @@ export async function preparePackagedPQVerifierInvocation(resourcesPath,independ
  await readPinned(path.join(root,'SOURCE.json'),receipt.sourceFile,65536);
  const executable=path.join(root,'darwin-arm64','ynx-consensus-proof-verify'),binary=await readPinned(executable,receipt.bundled,64<<20,{executable:true});
  if(binary.length<32||binary.readUInt32LE(0)!==0xfeedfacf||binary.readUInt32LE(4)!==0x0100000c)fail('PQ_FINALITY_ASSET_ARCHITECTURE');
+ return Object.freeze({executable});
+}
+export async function preparePackagedPQVerifierInvocation(resourcesPath,independentReceipt,input){
+ canonical(resourcesPath);if(independentReceipt===null||independentReceipt===undefined)fail('PQ_FINALITY_ASSET_RECEIPT_NOT_SUPPLIED');
+ exact(input,['contextPath','contextSha256','stdin']);canonical(input.contextPath);
+ input=Object.freeze({contextPath:input.contextPath,contextSha256:input.contextSha256,stdin:input.stdin});
+ if(typeof input.contextSha256!=='string'||!/^[a-f0-9]{64}$/.test(input.contextSha256)||typeof input.stdin!=='string'||Buffer.byteLength(input.stdin)>limits['verifier-stdin']||Buffer.from(input.stdin).toString('utf8')!==input.stdin)fail('PQ_FINALITY_VERIFIER_INVOCATION_INVALID');
+ const {executable}=await verifyPackagedPQVerifierAssets(resourcesPath,independentReceipt);
  const context=await fs.lstat(input.contextPath);if(!context.isFile()||context.size<1||context.size>limits['host-context'])fail('PQ_FINALITY_CONTEXT_UNVERIFIED');
  await readPinned(input.contextPath,{bytes:context.size,sha256:input.contextSha256},limits['host-context']);
  return Object.freeze({executable,contextPath:input.contextPath,contextSha256:input.contextSha256,stdin:input.stdin});
@@ -74,6 +79,11 @@ export function createPackagedPQFinalityVerifier({app,independentReceipt=null}){
   run:input=>kernel.run(input).catch(cause=>{if(cause?.partial===kernel)cause.partial=caller;throw cause;}),
   snapshot:()=>kernel.snapshot(),retire:()=>kernel.retire(),
   identity:()=>receipt,
+  async verifyAssets(){
+   if(app?.isPackaged!==true||process.platform!=='darwin'||process.arch!=='arm64'||typeof process.resourcesPath!=='string')fail('PQ_FINALITY_PACKAGED_VERIFIER_UNAVAILABLE');
+   await verifyPackagedPQVerifierAssets(process.resourcesPath,receipt);
+   return Object.freeze({available:true,sourceCommit,forkTree,sha256:receipt.bundled.sha256,independentFinality:false,nativeGrant:false});
+  },
   join:()=>kernel.join(),assertSafeToClose:()=>kernel.assertSafeToClose(),
  });
  return caller;
