@@ -1,6 +1,8 @@
 # Fee-array state-hash encoding candidate
 
-Status: implemented, awaiting source and equivalence validation. Not deployed.
+Status: source and canonical-equivalence tests passed in run 39113606753.
+Performance is unmeasured. Not deployed. The full CI run remains red because
+the unchanged old V13 source-identity gate rejects the derivative runtime.
 
 This candidate derives from internal tree
 `fc5ccab4e9aa6923bc61a2dc7ac518343ac56703`. The original hash leaf and its
@@ -26,7 +28,7 @@ entire fee history. Individual record size is not newly restricted. Other state
 fields still occupy the surrounding JSON buffer. No general constant-memory or
 CPU speedup claim is made before measurement.
 
-New regressions compare all canonical bytes and hashes across chunk boundaries,
+New passing regressions compare all canonical bytes and hashes across chunk boundaries,
 historical hash versions, unusual Unicode/HTML, invalid UTF-8, integer extremes,
 time zones, late encoding errors and short writes. A real 512-transfer case
 checks persistence, full-state restart equality, nonce replay rejection and
@@ -35,6 +37,8 @@ encoder and new candidate side by side on the same real 1024-transfer snapshot.
 
 The existing unpublished performance V13 integration gate deliberately binds
 the entire old internal tree. It must continue refusing this new runtime until
-a separately pinned derivative candidate is supplied. The old bundle and
+a separately pinned derivative candidate is supplied. Kernel commit
+`eb6e3199280adde67426e1c04a5403fc1e31d16a` has internal tree
+`f1342d3123f2366797e71c65a4e160cac377c9f2`. The old bundle and
 published contract are not modified to hide that identity boundary. Source
 tests and compatibility/release qualification must be reported separately.
