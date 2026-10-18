@@ -46,13 +46,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Compile exact R37 production TU without hardware or services
-        run: python3 scripts/ci/social-tpm-r37/compile.py "$RUNNER_TEMP/social-tpm-r37-result"
+        run: python3 scripts/ci/social-tpm-r41/compile.py "$RUNNER_TEMP/social-tpm-r41-result"
       - name: Preserve first cause and exact compiler/dependency/header manifests
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: social-tpm-r37-compile-${{ github.run_id }}-${{ github.run_attempt }}
+          name: social-current-r41-compile-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/social-tpm-r37-result/*.json
-            ${{ runner.temp }}/social-tpm-r37-result/*.raw
+            ${{ runner.temp }}/social-tpm-r41-result/*.json
+            ${{ runner.temp }}/social-tpm-r41-result/*.raw
           if-no-files-found: error
