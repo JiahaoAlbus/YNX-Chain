@@ -34,14 +34,6 @@ func NewPQConsensusNode(config *cmtconfig.Config, app *Application, legacy cmtty
 	if bootstrap == nil || authorization == nil {
 		return nil, errors.New("PQ node requires independently pinned bootstrap and activation schedule")
 	}
-	rawGenesis, err := os.ReadFile(config.GenesisFile())
-	if err != nil {
-		return nil, fmt.Errorf("read original node genesis: %w", err)
-	}
-	hash := sha256.Sum256(rawGenesis)
-	if !bytes.Equal(hash[:], bootstrap.genesisID) {
-		return nil, errors.New("node genesis differs from independently pinned application genesis")
-	}
 	pq, err := NewPQPrivValidator(resumedPQSigner, app)
 	if err != nil {
 		return nil, err
@@ -49,6 +41,27 @@ func NewPQConsensusNode(config *cmtconfig.Config, app *Application, legacy cmtty
 	transition, err := NewPQTransitionPrivValidator(legacy, pq, bootstrap, authorization)
 	if err != nil {
 		return nil, err
+	}
+	return newPQNodeWithValidator(config, app, transition, nodeKey, logger)
+}
+
+func newPQNodeWithValidator(config *cmtconfig.Config, app *Application, validator cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger) (*node.Node, error) {
+	return newPQNodeWithDatabase(config, app, validator, nodeKey, logger, cmtconfig.DefaultDBProvider)
+}
+
+// The same constructor accepts an explicit database provider for isolated
+// constructor/recovery tests. Production always supplies DefaultDBProvider.
+func newPQNodeWithDatabase(config *cmtconfig.Config, app *Application, validator cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger, database cmtconfig.DBProvider) (*node.Node, error) {
+	app.mu.RLock()
+	bootstrap := app.bootstrap
+	app.mu.RUnlock()
+	rawGenesis, err := os.ReadFile(config.GenesisFile())
+	if err != nil {
+		return nil, fmt.Errorf("read original node genesis: %w", err)
+	}
+	hash := sha256.Sum256(rawGenesis)
+	if bootstrap == nil || !bytes.Equal(hash[:], bootstrap.genesisID) {
+		return nil, errors.New("node genesis differs from independently pinned application genesis")
 	}
 	// Parse the checked immutable bytes on every provider call, not a path that
 	// could be replaced after its hash check. Bootstrap already validated all
@@ -60,7 +73,7 @@ func NewPQConsensusNode(config *cmtconfig.Config, app *Application, legacy cmtty
 		}
 		return &genesis, nil
 	}
-	return node.NewNodeWithConsensusAuthority(config, transition, nodeKey,
-		proxy.NewLocalClientCreator(app), genesisProvider, cmtconfig.DefaultDBProvider,
+	return node.NewNodeWithConsensusAuthority(config, validator, nodeKey,
+		proxy.NewLocalClientCreator(app), genesisProvider, database,
 		node.DefaultMetricsProvider(config.Instrumentation), logger, app)
 }
