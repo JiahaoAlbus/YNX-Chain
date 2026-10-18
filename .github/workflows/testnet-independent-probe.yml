@@ -29,8 +29,6 @@ jobs:
     if: github.repository == 'JiahaoAlbus/YNX-Chain'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    env:
-      ENDPOINT_OFFLINE_EVIDENCE: ${{ runner.temp }}/ynx-endpoint-offline-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Check out current source separately
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -58,7 +56,9 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          ENDPOINT_OFFLINE_EVIDENCE="$RUNNER_TEMP/ynx-endpoint-offline-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           mkdir -- "$ENDPOINT_OFFLINE_EVIDENCE"
+          printf 'ENDPOINT_OFFLINE_EVIDENCE=%s\n' "$ENDPOINT_OFFLINE_EVIDENCE" >> "$GITHUB_ENV"
       - name: Require real original-producer RED (local file, zero target requests)
         timeout-minutes: 2
         working-directory: old-producer
