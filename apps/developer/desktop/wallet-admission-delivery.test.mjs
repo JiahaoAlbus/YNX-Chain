@@ -126,6 +126,16 @@ test('R91 reentrant startup shares one failed original selection without another
   assert.equal(a,b);assert.equal(acquisitions,1);await a.finishCleanup();assert.equal(closes,1);
   assert.equal(await openOriginalParentDelivery(options),a);assert.equal(acquisitions,1);
 });
+for(const first of [undefined,false,Error('PUBLIC_READY_FIRST')])test('R94 immediate readiness consumer cannot replace original cause '+String(first),async()=>{
+  let lookups=0;
+  const f=fixture({privateAcquire(){return Promise.reject(first);},privateCleanup(){lookups++;return null;}});
+  f.send();
+  try{await f.receiver.whenOriginalServiceReady();assert.fail('must refuse');}catch(error){assert.equal(error,first);}
+  // No flush before cleanup: this is the actual external consumer interleave
+  // that previously selected the default cause ahead of the partial lookup.
+  assert.deepEqual(await f.receiver.finishCleanup(),{complete:true});
+  assert.equal(f.receiver.cleanupStatus().firstCause,first);assert.equal(lookups,1);assert.equal(f.closes(),1);
+});
 test('R90 payload before installed ACK completion cannot acquire child or reach SDK',async()=>{
   const child=privateFixture();let acquired=0;const f=fixture({privateAcquire(){acquired++;return child.channel;}});
   f.stream.holdWrite=true;f.send();await flush();f.stream.emit('data',Buffer.from('{}\n'));

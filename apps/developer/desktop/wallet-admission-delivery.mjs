@@ -186,6 +186,10 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
         payload.start();
         await retirement;
       } catch (error) {
+        // Latch the original failure BEFORE publishing the readiness rejection.
+        // Its consumer may immediately select finishCleanup(), whose omitted
+        // cause must not replace this entered acquisition's actual failure.
+        void close(error)?.catch(() => {});
         rejectOriginal(error);
         // Only the same fixed SDK's chosen-client cleanup accessor can prove
         // that a failed acquisition selected no client (null), or return the
@@ -199,7 +203,6 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
             else throw missing();
           } catch (cleanupError) { lifecycle.retainChildCleanupDebt(cleanupError); }
         }
-        void close(error)?.catch(() => {});
       }
       finally {
         if (privateChannel !== null && privateChannel !== undefined) {
