@@ -191,7 +191,7 @@ func validateConsensusPQContracts(s CommittedState, m chain.ConsensusMigrationSt
 	}
 	if len(entries) == 0 {
 		for _, fee := range s.FeeEvents {
-			if fee.TransactionType == PQActionType {
+			if fee.TransactionType == PQActionType && !pqDexFeeHash(s, fee.TxHash) {
 				return errors.New("ABCI contract fee has no proof")
 			}
 		}
@@ -291,7 +291,7 @@ func validateConsensusPQContracts(s CommittedState, m chain.ConsensusMigrationSt
 		}
 	}
 	for _, fee := range s.FeeEvents {
-		if fee.TransactionType == PQActionType {
+		if fee.TransactionType == PQActionType && !pqDexFeeHash(s, fee.TxHash) {
 			if _, exists := entries[fee.TxHash]; !exists {
 				return errors.New("ABCI contract fee has no original proof")
 			}

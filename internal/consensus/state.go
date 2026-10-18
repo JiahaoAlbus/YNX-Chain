@@ -300,7 +300,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		DexAssets:                  append([]BFTDexAsset(nil), execution.dexAssets...),
 		DexBalances:                append([]BFTDexBalance(nil), execution.dexBalances...),
 		DexPools:                   cloneDexPools(execution.dexPools),
-		DexEvents:                  append([]BFTDexEvent(nil), execution.dexEvents...),
+		DexEvents:                  cloneBFTDexEvents(execution.dexEvents),
 	}
 	if execution.hashVersion != 0 {
 		if execution.hashVersion < 7 || execution.hashVersion > 13 || state.ValidatorRegistry != nil || state.PQEngineSchedule != nil || state.TraceLots != nil || state.AccountPolicy != nil || len(state.PQHistory)+len(state.PQBatches)+len(state.NativeTransfers) != 0 {
@@ -451,6 +451,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 		return err
 	}
 	if err := validateConsensusPQResources(s, migration); err != nil {
+		return err
+	}
+	if err := validateConsensusPQDex(s, migration); err != nil {
 		return err
 	}
 	if err := validateConsensusPQContracts(s, migration); err != nil {

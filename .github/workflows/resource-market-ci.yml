@@ -149,10 +149,10 @@ jobs:
         run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXProfileActualStateUpdateHeaderAndHistoricalStore$' github.com/cometbft/cometbft/state
       - name: Verify bounded remote signer transport and unchanged legacy protobuf vectors
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXRemoteSignerTransport.*|TestPrivvalVectors)$' github.com/cometbft/cometbft/privval
+        run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXRemote.*|TestPrivvalVectors)$' github.com/cometbft/cometbft/privval
       - name: Verify actual engine signing caller uses committed height key and round context
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXActualSignVoteConsumesHeightKeyAndRoundContext$' github.com/cometbft/cometbft/consensus
+        run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXActualSignVoteConsumesHeightKeyAndRoundContext|TestYNXActualRemoteCallerPassesCheckpointBeforeHeightKeyAndSign)$' github.com/cometbft/cometbft/consensus
       - name: Measure fresh single and bounded concurrent dual signature paths
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 2
@@ -165,7 +165,12 @@ jobs:
       - name: Measure actual policy certificate cache consumer cold and warm paths
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 2
-        run: go test -p 1 ./internal/chain -run '^$' -bench '^BenchmarkPQCertificateConsumer$' -benchtime=10x -count=1 -timeout=90s
+        run: |
+          if git diff --quiet 8d5080e6caacdcd069ef205978e9b67e760c0a55 HEAD -- internal/chain internal/ynxauth internal/ynxbatch; then
+            echo 'Unchanged certificate consumer source: reuse the six actual CI19 rows in docs/protocol/evidence/CI_RUN19_39099736825.json.'
+          else
+            go test -p 1 ./internal/chain -run '^$' -bench '^BenchmarkPQCertificateConsumer$' -benchtime=10x -count=1 -timeout=90s
+          fi
       - name: Install pinned contract build runtime
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -207,7 +212,7 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
-          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet
+          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-pq-key-init
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |

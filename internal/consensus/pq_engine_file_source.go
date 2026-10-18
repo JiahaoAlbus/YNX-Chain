@@ -24,6 +24,11 @@ type PQEngineFileSource struct {
 	bootstrap     *ConsensusBootstrap
 	authorization *PQEngineAuthorization
 	checkpoints   [2]pqEngineCheckpoint
+	// Signing observations cannot be evicted by historical engine reads.
+	// Protected by mu; durable anti-equivocation still belongs to Signer H/R/S.
+	signingSeen   bool
+	signingHeight int64
+	signingHash   [32]byte
 }
 
 var _ cmttypes.ConsensusAuthoritySource = (*PQEngineFileSource)(nil)

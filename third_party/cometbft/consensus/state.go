@@ -2494,6 +2494,15 @@ func (cs *State) updatePrivValidatorPubKey() error {
 		cs.privValidatorPubKey = nil
 		return nil
 	}
+	// Remote key selection needs the same exact checkpoint as signing. Capture
+	// it before asking a height-aware remote validator; never reuse startup Ed
+	// identity or let a historical source cache grant permission at a new H.
+	if setter, ok := cs.privValidator.(types.ConsensusCheckpointSigningContextSetter); ok {
+		if err := cs.setConsensusCheckpointSigningContext(setter, cs.Height, cs.Round); err != nil {
+			cs.privValidatorPubKey = nil
+			return err
+		}
+	}
 
 	var pubKey crypto.PubKey
 	var err error

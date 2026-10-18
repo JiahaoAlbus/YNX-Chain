@@ -1,6 +1,8 @@
 package consensus
 
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,7 +14,6 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
-	abcitypes "github.com/cometbft/cometbft/abci/types"
 )
 
 const DexNativeAssetID = "YNXT"
@@ -128,19 +129,23 @@ type BFTDexPool struct {
 }
 
 type BFTDexEvent struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"`
-	PoolID      string    `json:"poolId,omitempty"`
-	Signer      string    `json:"signer"`
-	Asset0      string    `json:"asset0,omitempty"`
-	Asset1      string    `json:"asset1,omitempty"`
-	Amount0     int64     `json:"amount0,omitempty"`
-	Amount1     int64     `json:"amount1,omitempty"`
-	Shares      int64     `json:"shares,omitempty"`
-	BlockHeight int64     `json:"blockHeight"`
-	OccurredAt  time.Time `json:"occurredAt"`
-	TxHash      string    `json:"txHash"`
-	AuditHash   string    `json:"auditHash"`
+	// Empty optional fields preserve every old event's JSON and audit hash.
+	ClassicAuthorization string          `json:"classicAuthorization,omitempty"`
+	PQTransactionHash    string          `json:"pqTransactionHash,omitempty"`
+	NativeFlows          []chain.LotFlow `json:"nativeFlows,omitempty"`
+	ID                   string          `json:"id"`
+	Type                 string          `json:"type"`
+	PoolID               string          `json:"poolId,omitempty"`
+	Signer               string          `json:"signer"`
+	Asset0               string          `json:"asset0,omitempty"`
+	Asset1               string          `json:"asset1,omitempty"`
+	Amount0              int64           `json:"amount0,omitempty"`
+	Amount1              int64           `json:"amount1,omitempty"`
+	Shares               int64           `json:"shares,omitempty"`
+	BlockHeight          int64           `json:"blockHeight"`
+	OccurredAt           time.Time       `json:"occurredAt"`
+	TxHash               string          `json:"txHash"`
+	AuditHash            string          `json:"auditHash"`
 }
 
 func isDexAction(action string) bool {
@@ -252,228 +257,18 @@ func canonicalDexActionPayload(action string, raw []byte) ([]byte, error) {
 	}
 }
 
+// The application gateway already verified this original classic envelope
+// and the actual-height legacy policy before calling this private wrapper.
 func (a *Application) applyDexAction(state executionState, payload []byte, tx SignedApplicationAction, height int64, blockTime time.Time, validationOnly bool) (executionState, transactionExecution, error) {
+	state = detachDexExecution(state)
+	if i, ok := accountIndex(state.accounts, a.feeRecipient); ok && a.feeRecipient != tx.Signer && state.accounts[i].Balance > math.MaxInt64-tx.Fee {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX classic fee recipient overflows"))
+	}
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
 	}
-	txHash := ApplicationActionHash(payload)
-	event := BFTDexEvent{ID: ApplicationActionRecordID("dex-event", txHash), Type: tx.Action, Signer: tx.Signer, BlockHeight: height, OccurredAt: blockTime, TxHash: txHash}
-	switch tx.Action {
-	case ActionDexAssetCreate:
-		var input DexAssetCreatePayload
-		_ = json.Unmarshal(tx.Payload, &input)
-		if _, ok := dexAssetIndex(state.dexAssets, input.AssetID); ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX asset already exists"))
-		}
-		if _, ok := dexAssetBySymbol(state.dexAssets, input.Symbol); ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX asset symbol already exists"))
-		}
-		asset := BFTDexAsset{ID: input.AssetID, Symbol: input.Symbol, Name: input.Name, Decimals: input.Decimals, Issuer: tx.Signer, MaxSupply: input.MaxSupply, TotalSupply: input.InitialSupply, CreatedAt: blockTime, UpdatedAt: blockTime, BlockHeight: height, TxHash: txHash}
-		asset.AuditHash = dexAssetAuditHash(asset)
-		state.dexAssets = insertDexAsset(state.dexAssets, asset)
-		state.dexBalances = setDexBalance(state.dexBalances, input.AssetID, tx.Signer, input.InitialSupply)
-		event.Asset0, event.Amount0 = input.AssetID, input.InitialSupply
-	case ActionDexAssetMint:
-		var input DexAssetAmountPayload
-		_ = json.Unmarshal(tx.Payload, &input)
-		index, ok := dexAssetIndex(state.dexAssets, input.AssetID)
-		if !ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX asset does not exist"))
-		}
-		asset := state.dexAssets[index]
-		if asset.Issuer != tx.Signer {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("only the DEX asset issuer may mint"))
-		}
-		if asset.TotalSupply > asset.MaxSupply-input.Amount {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX asset max supply exceeded"))
-		}
-		current := dexBalanceAmount(state.dexBalances, input.AssetID, tx.Signer)
-		if current > math.MaxInt64-input.Amount {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX balance overflow"))
-		}
-		asset.TotalSupply += input.Amount
-		asset.UpdatedAt, asset.BlockHeight, asset.TxHash = blockTime, height, txHash
-		asset.AuditHash = dexAssetAuditHash(asset)
-		state.dexAssets[index] = asset
-		state.dexBalances = setDexBalance(state.dexBalances, input.AssetID, tx.Signer, current+input.Amount)
-		event.Asset0, event.Amount0 = input.AssetID, input.Amount
-	case ActionDexAssetTransfer:
-		var input DexAssetTransferPayload
-		_ = json.Unmarshal(tx.Payload, &input)
-		if _, ok := dexAssetIndex(state.dexAssets, input.AssetID); !ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX asset does not exist"))
-		}
-		if err := moveDexBalance(&state, input.AssetID, tx.Signer, input.Recipient, input.Amount); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		event.Asset0, event.Amount0 = input.AssetID, input.Amount
-	case ActionDexPoolCreate:
-		var input DexPoolCreatePayload
-		_ = json.Unmarshal(tx.Payload, &input)
-		if _, ok := dexPoolIndex(state.dexPools, input.PoolID); ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX pool already exists"))
-		}
-		if !dexAssetExists(state.dexAssets, input.Asset0) || !dexAssetExists(state.dexAssets, input.Asset1) {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX pool asset does not exist"))
-		}
-		for _, pool := range state.dexPools {
-			if pool.Asset0 == input.Asset0 && pool.Asset1 == input.Asset1 && pool.FeeBps == input.FeeBps {
-				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX pool pair and fee tier already exists"))
-			}
-		}
-		pool := BFTDexPool{ID: input.PoolID, Kind: "ynx-cpmm-v1", Asset0: input.Asset0, Asset1: input.Asset1, FeeBps: input.FeeBps, Shares: []BFTDexShare{}, NativeLots0: map[string]int64{}, NativeLots1: map[string]int64{}, CreatedAt: blockTime, UpdatedAt: blockTime, BlockHeight: height, TxHash: txHash}
-		pool.AuditHash = dexPoolAuditHash(pool)
-		state.dexPools = insertDexPool(state.dexPools, pool)
-		event.PoolID, event.Asset0, event.Asset1 = input.PoolID, input.Asset0, input.Asset1
-	case ActionDexLiquidityAdd:
-		var input DexLiquidityPayload
-		_ = json.Unmarshal(tx.Payload, &input)
-		if err := requireDexDeadline(input.DeadlineUnix, blockTime, validationOnly); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		index, ok := dexPoolIndex(state.dexPools, input.PoolID)
-		if !ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX pool does not exist"))
-		}
-		pool := state.dexPools[index]
-		shares, err := dexLiquidityShares(pool, input.Amount0, input.Amount1)
-		if err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		if shares < input.MinShares {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX minted shares are below minimum"))
-		}
-		if pool.Reserve0 > math.MaxInt64-input.Amount0 || pool.Reserve1 > math.MaxInt64-input.Amount1 || pool.TotalShares > math.MaxInt64-shares {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX pool overflow"))
-		}
-		if err := debitDexAssetToPool(&state, &pool, true, tx.Signer, input.Amount0); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
-		}
-		if err := debitDexAssetToPool(&state, &pool, false, tx.Signer, input.Amount1); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
-		}
-		pool.Reserve0 += input.Amount0
-		pool.Reserve1 += input.Amount1
-		pool.TotalShares += shares
-		pool.Shares = addDexShares(pool.Shares, tx.Signer, shares)
-		updateDexPool(&pool, height, blockTime, txHash)
-		state.dexPools[index] = pool
-		event.PoolID, event.Asset0, event.Asset1, event.Amount0, event.Amount1, event.Shares = pool.ID, pool.Asset0, pool.Asset1, input.Amount0, input.Amount1, shares
-	case ActionDexLiquidityRemove:
-		var input DexLiquidityRemovePayload
-		_ = json.Unmarshal(tx.Payload, &input)
-		if err := requireDexDeadline(input.DeadlineUnix, blockTime, validationOnly); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		index, ok := dexPoolIndex(state.dexPools, input.PoolID)
-		if !ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX pool does not exist"))
-		}
-		pool := state.dexPools[index]
-		owned := dexShareAmount(pool.Shares, tx.Signer)
-		if owned < input.Shares || pool.TotalShares <= 0 {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("insufficient DEX LP shares"))
-		}
-		amount0, err := mulDivFloor(input.Shares, pool.Reserve0, pool.TotalShares)
-		if err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		amount1, err := mulDivFloor(input.Shares, pool.Reserve1, pool.TotalShares)
-		if err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		if amount0 <= 0 || amount1 <= 0 || amount0 < input.MinAmount0 || amount1 < input.MinAmount1 {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX liquidity output is below minimum"))
-		}
-		if err := creditDexAssetFromPool(&state, &pool, true, tx.Signer, amount0); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		if err := creditDexAssetFromPool(&state, &pool, false, tx.Signer, amount1); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		pool.Reserve0 -= amount0
-		pool.Reserve1 -= amount1
-		pool.TotalShares -= input.Shares
-		pool.Shares = addDexShares(pool.Shares, tx.Signer, -input.Shares)
-		updateDexPool(&pool, height, blockTime, txHash)
-		state.dexPools[index] = pool
-		event.PoolID, event.Asset0, event.Asset1, event.Amount0, event.Amount1, event.Shares = pool.ID, pool.Asset0, pool.Asset1, amount0, amount1, input.Shares
-	case ActionDexSwapExactInput:
-		var input DexSwapExactInputPayload
-		_ = json.Unmarshal(tx.Payload, &input)
-		if err := requireDexDeadline(input.DeadlineUnix, blockTime, validationOnly); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		index, ok := dexPoolIndex(state.dexPools, input.PoolID)
-		if !ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX pool does not exist"))
-		}
-		pool := state.dexPools[index]
-		inIs0, err := dexPoolDirection(pool, input.AssetIn)
-		if err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		reserveIn, reserveOut := dexReserves(pool, inIs0)
-		amountOut, err := dexExactInputQuote(reserveIn, reserveOut, input.AmountIn, pool.FeeBps)
-		if err != nil || amountOut < input.MinAmountOut {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX exact-input output is below minimum"))
-		}
-		if err := debitDexAssetToPool(&state, &pool, inIs0, tx.Signer, input.AmountIn); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
-		}
-		if err := creditDexAssetFromPool(&state, &pool, !inIs0, tx.Signer, amountOut); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		if inIs0 {
-			pool.Reserve0 += input.AmountIn
-			pool.Reserve1 -= amountOut
-		} else {
-			pool.Reserve1 += input.AmountIn
-			pool.Reserve0 -= amountOut
-		}
-		updateDexPool(&pool, height, blockTime, txHash)
-		state.dexPools[index] = pool
-		event.PoolID, event.Asset0, event.Asset1, event.Amount0, event.Amount1 = pool.ID, input.AssetIn, dexOtherAsset(pool, input.AssetIn), input.AmountIn, amountOut
-	case ActionDexSwapExactOutput:
-		var input DexSwapExactOutputPayload
-		_ = json.Unmarshal(tx.Payload, &input)
-		if err := requireDexDeadline(input.DeadlineUnix, blockTime, validationOnly); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		index, ok := dexPoolIndex(state.dexPools, input.PoolID)
-		if !ok {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX pool does not exist"))
-		}
-		pool := state.dexPools[index]
-		outIs0, err := dexPoolDirection(pool, input.AssetOut)
-		if err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		reserveOut, reserveIn := dexReserves(pool, outIs0)
-		amountIn, err := dexExactOutputQuote(reserveIn, reserveOut, input.AmountOut, pool.FeeBps)
-		if err != nil || amountIn > input.MaxAmountIn {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("DEX exact-output input exceeds maximum"))
-		}
-		if err := debitDexAssetToPool(&state, &pool, !outIs0, tx.Signer, amountIn); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
-		}
-		if err := creditDexAssetFromPool(&state, &pool, outIs0, tx.Signer, input.AmountOut); err != nil {
-			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-		}
-		if outIs0 {
-			pool.Reserve1 += amountIn
-			pool.Reserve0 -= input.AmountOut
-		} else {
-			pool.Reserve0 += amountIn
-			pool.Reserve1 -= input.AmountOut
-		}
-		updateDexPool(&pool, height, blockTime, txHash)
-		state.dexPools[index] = pool
-		event.PoolID, event.Asset0, event.Asset1, event.Amount0, event.Amount1 = pool.ID, dexOtherAsset(pool, input.AssetOut), input.AssetOut, amountIn, input.AmountOut
-	}
-	event.AuditHash = dexEventAuditHash(event)
-	state.dexEvents = append(state.dexEvents, event)
-	return state, transactionExecution{typeName: tx.Action, hash: txHash, event: abcitypes.Event{Type: "ynx.dex", Attributes: []abcitypes.EventAttribute{{Key: "action", Value: tx.Action, Index: true}, {Key: "pool_id", Value: event.PoolID, Index: true}, {Key: "signer", Value: tx.Signer, Index: true}}}}, nil
+	auth := authorizedDexAction{Signer: tx.Signer, Action: tx.Action, Payload: bytes.Clone(tx.Payload), ClassicAuthorization: hex.EncodeToString(payload)}
+	return applyAuthorizedDexBusiness(state, auth, ApplicationActionHash(payload), height, blockTime, validationOnly, liveDexNativeMovement(0))
 }
 
 func requireDexDeadline(deadline int64, at time.Time, validationOnly bool) error {
@@ -536,6 +331,9 @@ func moveDexBalance(state *executionState, asset, from, to string, amount int64)
 	toAmount := dexBalanceAmount(state.dexBalances, asset, to)
 	if fromAmount < amount {
 		return errors.New("insufficient DEX asset balance")
+	}
+	if from == to {
+		return nil
 	}
 	if toAmount > math.MaxInt64-amount {
 		return errors.New("DEX asset balance overflow")
@@ -731,6 +529,9 @@ func moveAccountLotsToDexPool(account *chain.ConsensusAccount, poolLots map[stri
 		if moved > remaining {
 			moved = remaining
 		}
+		if poolLots[key] > math.MaxInt64-moved {
+			return errors.New("DEX pool lot overflow")
+		}
 		account.Lots[key] -= moved
 		poolLots[key] += moved
 		remaining -= moved
@@ -757,6 +558,9 @@ func moveDexPoolLotsToAccount(poolLots map[string]int64, account *chain.Consensu
 		moved := available
 		if moved > remaining {
 			moved = remaining
+		}
+		if account.Lots[key] > math.MaxInt64-moved {
+			return errors.New("DEX recipient lot overflow")
 		}
 		poolLots[key] -= moved
 		account.Lots[key] += moved

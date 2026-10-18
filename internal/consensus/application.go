@@ -1257,7 +1257,7 @@ func cloneExecutionStateValue(state executionState) executionState {
 		governanceRequests: cloneGovernanceRequests(state.governanceRequests), trustAppeals: cloneTrustAppeals(state.trustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), state.trustCorrections...), trustLabels: cloneTrustLabels(state.trustLabels), trustEvidence: cloneTrustEvidence(state.trustEvidence), trackingReviews: cloneTrackingReviews(state.trackingReviews), transparency: cloneTransparencyEntries(state.transparency),
 		contracts: cloneBFTContracts(state.contracts), evmReceipts: cloneBFTEVMReceipts(state.evmReceipts), evmLogs: cloneBFTEVMLogs(state.evmLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), state.ideIdempotency...),
 		governanceExecutions: append([]BFTGovernanceExecution(nil), state.governanceExecutions...), governanceExecutionAudit: append([]BFTGovernanceExecutionAudit(nil), state.governanceExecutionAudit...),
-		dexAssets: append([]BFTDexAsset(nil), state.dexAssets...), dexBalances: append([]BFTDexBalance(nil), state.dexBalances...), dexPools: cloneDexPools(state.dexPools), dexEvents: append([]BFTDexEvent(nil), state.dexEvents...),
+		dexAssets: append([]BFTDexAsset(nil), state.dexAssets...), dexBalances: append([]BFTDexBalance(nil), state.dexBalances...), dexPools: cloneDexPools(state.dexPools), dexEvents: cloneBFTDexEvents(state.dexEvents),
 	}
 }
 

@@ -620,7 +620,7 @@ func validatePQOrderedResourceUsage(s CommittedState, m chain.ConsensusMigration
 	first := map[string]uint64{}
 	for _, entry := range s.PQHistory {
 		tx := entry.Transaction
-		if isPQContractHistory(tx) || isPQNativeActionHistory(tx) || isPQResourceHistory(tx) {
+		if isPQContractHistory(tx) || isPQNativeActionHistory(tx) || isPQResourceHistory(tx) || isPQDexHistory(tx) {
 			if first[tx.From] == 0 {
 				first[tx.From] = tx.BlockNum
 			}
@@ -647,6 +647,8 @@ func validatePQOrderedResourceUsage(s CommittedState, m chain.ConsensusMigration
 			if tx.Type == "contract_deploy" {
 				compute = 5
 			}
+		case isPQDexHistory(tx):
+			bw = 1
 		case isPQNativeActionHistory(tx):
 			compute = 1
 		case isPQResourceHistory(tx):
