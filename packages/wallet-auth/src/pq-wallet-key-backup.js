@@ -8,6 +8,9 @@ import {encodePQNativeTransfer, encodePQRegistrationIntent, normalizePQRegistrat
 import {planPQNativeTransfer, planPQAccountMigration} from './pq-wallet-policy.js';
 import {planPQAccountRevocation} from './pq-wallet-policy.js';
 import {capturePQSessionSigningPlan} from './product-session-account-private.js';
+import {AUTH_IDENTITY_PURPOSES,parseOriginalAuthIdentityRequest,inspectOriginalAuthIdentityRequest,encodeOriginalAuthIdentityRequest} from '../native/original-auth-identity-v2-contract.mjs';
+import {assertPQRegisteredRecoveryBindingData} from './pq-registered-member.js';
+import {verifyOriginalAuthIdentityMemberData} from './auth-identity-verification.js';
 
 // Protected main only. A key-custody handle never asserts migration, active
 // registration, signing approval, a product session, or transaction authority.
@@ -162,4 +165,23 @@ export function signPQWalletAccountRevocation(handle, value, snapshot) {
   const currentPQMember = signOne(handle, state, encodePQRevocationIntent(plan.intent), 'ACCOUNT-REVOCATION', false);
   live(handle);
   return preparePQRevocationTransport(encodePQRevocationRequest({intent: plan.intent, currentPQMember}));
+}
+
+/** Typed R82 proof DATA only. The original Wallet review/keyAccess guards and
+ * Native-held expected request/current/provenance remain mandatory before and
+ * after this call. No generic raw signer, new approval, replay gate or Source. */
+export function signPQWalletAuthIdentityRequest(handle,requestRaw,snapshot,atMs){
+  const body=parseOriginalAuthIdentityRequest(requestRaw);
+  if(![AUTH_IDENTITY_PURPOSES.receive,AUTH_IDENTITY_PURPOSES.recover,AUTH_IDENTITY_PURPOSES.keyCall].includes(body.purpose))throw pqError('PQ_AUTH_IDENTITY_PURPOSE_UNSUPPORTED');
+  inspectOriginalAuthIdentityRequest(requestRaw,requestRaw,body.purpose,atMs);
+  const state=live(handle),context={chainId:body.networkId,owner:body.owner,keyVersion:body.keyVersion,executionHeight:body.executionHeight};
+  // Existing branded policy gate checks actual H, activation, revocation and
+  // Record.Revision; the complete active pair must match this opaque key.
+  assertPQRegisteredRecoveryBindingData(snapshot,state.binding,context);
+  const wire=signOne(handle,state,Buffer.from(encodeOriginalAuthIdentityRequest(body)),body.purpose,false);
+  live(handle);
+  assertPQRegisteredRecoveryBindingData(snapshot,state.binding,context);
+  verifyOriginalAuthIdentityMemberData(snapshot,wire,requestRaw,requestRaw,body.purpose,atMs);
+  live(handle);
+  return wire;
 }

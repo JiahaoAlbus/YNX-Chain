@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include "original-auth-identity-public-limits.h"
 #include <chrono>
 #include <cerrno>
 #include <cstdint>
@@ -15,11 +16,12 @@ namespace ynx_auth_private {
 inline std::vector<unsigned char> boundedVerifierIO(
  int input,int output,int errors,const unsigned char *bytes,std::size_t size,
  const std::function<bool()> &finishInput,const std::function<bool()> &running,
- unsigned budgetMS=7000){
+ unsigned budgetMS=7000,std::size_t maximumInput=131072,std::size_t maximumOutput=65536){
  using Clock=std::chrono::steady_clock;
  const auto end=Clock::now()+std::chrono::milliseconds(std::min(budgetMS,7000u));
  auto fail=[](const char *code)->void{throw std::runtime_error(code);};
- if(input<0||output<0||errors<0||input==output||input==errors||output==errors||size>131072||!budgetMS)fail("AUTH_IDENTITY_VERIFIER_IO_INVALID");
+ if(input<0||output<0||errors<0||input==output||input==errors||output==errors||
+  !maximumInput||maximumInput>OriginalAuthVerifierInputMax||!maximumOutput||maximumOutput>OriginalAuthVerifierOutputMax||size>maximumInput||!budgetMS)fail("AUTH_IDENTITY_VERIFIER_IO_INVALID");
  for(int fd:{input,output,errors}){int flags=fcntl(fd,F_GETFL);if(flags<0||fcntl(fd,F_SETFL,flags|O_NONBLOCK))fail("AUTH_IDENTITY_VERIFIER_NONBLOCK_UNKNOWN");}
 #ifdef F_SETNOSIGPIPE
  if(fcntl(input,F_SETNOSIGPIPE,1))fail("AUTH_IDENTITY_VERIFIER_NOSIGPIPE_UNKNOWN");
@@ -42,7 +44,7 @@ inline std::vector<unsigned char> boundedVerifierIO(
   for(unsigned index=1;index<3;index++)if(fds[index].fd>=0&&(fds[index].revents&(POLLIN|POLLHUP|POLLERR))){
    unsigned char chunk[4096];ssize_t n=read(fds[index].fd,chunk,sizeof(chunk));deadline();
    if(n==0){if(index==1)outEOF=true;else errEOF=true;}
-   else if(n>0){if(index==2)fail("AUTH_IDENTITY_VERIFIER_STDERR_REJECTED");if((std::size_t)n>65536-result.size())fail("AUTH_IDENTITY_VERIFIER_OUTPUT_CAPACITY");result.insert(result.end(),chunk,chunk+n);}
+   else if(n>0){if(index==2)fail("AUTH_IDENTITY_VERIFIER_STDERR_REJECTED");if((std::size_t)n>maximumOutput-result.size())fail("AUTH_IDENTITY_VERIFIER_OUTPUT_CAPACITY");result.insert(result.end(),chunk,chunk+n);}
    else if(errno!=EAGAIN&&errno!=EINTR)fail("AUTH_IDENTITY_VERIFIER_READ_UNKNOWN");
   }
  }

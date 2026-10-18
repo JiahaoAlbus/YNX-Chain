@@ -1,0 +1,56 @@
+{
+  "candidate": "YNX-BATCH/v0.1",
+  "createdAt": "2026-10-17T16:53:41.051Z",
+  "sourceInputs": [
+    {
+      "path": "/Users/huangjiahao/Downloads/YNX_新协议技术规范_v0.1.docx",
+      "bytes": 24196,
+      "sha256": "36ae29d9a59ca6bc0917efbe363247e21f52f5c83f46b1f1a40241b6dc45abb2"
+    },
+    {
+      "path": "/Users/huangjiahao/Downloads/YNX_Chain密码学升级实施要求_v0.1.docx",
+      "bytes": 13672,
+      "sha256": "f02a3fc11e67a18fbff2aa311c75d482548079eee97e6571d60106d857c8f7c0"
+    },
+    {
+      "path": "/Users/huangjiahao/Downloads/YNX-v0.1-reference.zip",
+      "bytes": 29065,
+      "sha256": "7c5cb70d3af008e15cabfafe0f93617fa5d8bf3ab06d89d8e4a758bac68b1f23"
+    }
+  ],
+  "runtime": {
+    "node": "26.7.0",
+    "openssl": "3.6.4",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M4"
+  },
+  "originalSharedCheckout": {
+    "branch": "main",
+    "head": "d33a6c790ec26223394810ff48da92b404526136",
+    "edited": false
+  },
+  "fullSuite": {
+    "timeUTC": "2026-10-17T16:52:22.513601+00:00",
+    "command": [
+      "/opt/homebrew/bin/node",
+      "--max-old-space-size=128",
+      "--test-isolation=none",
+      "--test-concurrency=1",
+      "--test",
+      "test/codec.test.mjs",
+      "test/crypto.test.mjs",
+      "test/interop.test.mjs",
+      "test/nist.test.mjs"
+    ],
+    "wallSeconds": 1.5666172910005116,
+    "exitCode": 0,
+    "timeout": false,
+    "workers": 1,
+    "heapLimitMiB": 128,
+    "wallLimitSeconds": 30,
+    "cpuLimitSeconds": 25,
+    "note": "Heap/CPU/time bounds; native allocations are measured, not an enforced RSS cap."
+  },
+  "scope": "Independent crypto candidate only. Subsequent Chain/Wallet/consensus work now authorized and in progress."
+}

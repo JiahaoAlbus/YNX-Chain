@@ -70,6 +70,10 @@ static bool fileDigest(NSString *path,NSString *expected,ResourceCloseDebt&debt)
 bool registeredResources(NSString *resources,const SourceBinding&source,ResourceCloseDebt&debt){
  if(!debt.clean())return false;NSDictionary *r=source.registration();return fileDigest([resources stringByAppendingPathComponent:@"runtime/node"],r[@"nodeSHA256"],debt)&&fileDigest([resources stringByAppendingPathComponent:@"server.mjs"],r[@"entrySHA256"],debt)&&fileDigest([resources stringByAppendingPathComponent:@"build-provenance.json"],r[@"provenanceSHA256"],debt);
 }
+bool identityResourceBytes(NSString *resources,NSDictionary *r,ResourceCloseDebt&debt){
+ if(!debt.clean()||![r isKindOfClass:NSDictionary.class])return false;
+ return fileDigest([resources stringByAppendingPathComponent:@"runtime/node"],r[@"nodeSHA256"],debt)&&fileDigest([resources stringByAppendingPathComponent:@"server.mjs"],r[@"entrySHA256"],debt)&&fileDigest([resources stringByAppendingPathComponent:@"build-provenance.json"],r[@"provenanceSHA256"],debt);
+}
 std::array<unsigned char,32> originalRequestDigest(const SourceBinding&s){
  NSData *raw=[NSJSONSerialization dataWithJSONObject:s.request() options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];if(!raw||raw.length>65536)throw std::runtime_error("IDE_SOURCE_REQUEST_CAPACITY");std::array<unsigned char,32>digest{};CC_SHA256(raw.bytes,(CC_LONG)raw.length,digest.data());return digest;
 }

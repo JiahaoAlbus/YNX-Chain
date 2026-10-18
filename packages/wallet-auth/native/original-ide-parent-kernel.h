@@ -16,6 +16,10 @@ bool sameKernel(const KernelProcess&,const KernelProcess&);
 NSString *actualNodeParentResources();
 bool actualNodeEntry(NSString *resources,NSString *entryFileURL);
 bool registeredResources(NSString *resources,const SourceBinding&,ResourceCloseDebt&);
+// File-byte matching only, not Source/process admission. Qualified identity
+// holder supplies its authenticated registration; old four-op SourceBinding
+// is not constructed or lent to the identity path.
+bool identityResourceBytes(NSString *resources,NSDictionary *registration,ResourceCloseDebt&);
 std::array<unsigned char,32> originalRequestDigest(const SourceBinding&);
 Prelude originalPrelude(PreludeKind,const SourceBinding&);
 bool originalPreludeBinding(const Prelude&,const SourceBinding&);

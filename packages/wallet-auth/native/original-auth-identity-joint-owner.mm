@@ -1,4 +1,5 @@
 #import "original-auth-identity-joint-owner.h"
+#include "original-auth-identity-public-limits.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -42,7 +43,7 @@ static BOOL YNXAuthSameIdentity(struct stat a,struct stat b) {
  &&a.st_ctimespec.tv_sec==b.st_ctimespec.tv_sec&&a.st_ctimespec.tv_nsec==b.st_ctimespec.tv_nsec;
 }
 static BOOL YNXAuthProtectedFile(struct stat s) {
- return S_ISREG(s.st_mode)&&s.st_nlink==1&&!(s.st_mode&0022)&&(s.st_uid==getuid()||s.st_uid==0)&&s.st_size>0&&s.st_size<=65536;
+ return S_ISREG(s.st_mode)&&s.st_nlink==1&&!(s.st_mode&0022)&&(s.st_uid==getuid()||s.st_uid==0)&&s.st_size>0&&s.st_size<=(off_t)ynx_auth_private::OriginalAuthPublicOriginalMax;
 }
 // Retains exact original raw bytes and FD. No pathname/profile/key is accepted
 // from renderer, environment, caller dictionary or an approving callback.

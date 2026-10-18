@@ -76,23 +76,44 @@ function verifyCurrentStatement(rootRaw,enrollmentRaw,profileRaw,currentRaw,poli
 export function verifySourceCurrent(...args){return verifyCurrentStatement(...args,false);}
 // Original signed journal transition mathematics only; NEVER current admission.
 export function verifySourceTransitionOriginal(...args){return verifyCurrentStatement(...args,true);}
-export function fetchSourceCurrent(endpoint,spki,profileDigest,nonce){
+function fetchSourceCurrentBounded(endpoint,spki,profileDigest,nonce,capacity,timeoutMs){
  if(endpoint!=='https://wallet-auth.ynxweb4.com/v1/auth-identity/source-current'||!hex(spki)||!hex(profileDigest)||!/^[A-Za-z0-9_-]{43}$/.test(nonce))bad();
  const url=new URL(endpoint);url.searchParams.set('profile',profileDigest);url.searchParams.set('nonce',nonce);
  return new Promise((resolve,reject)=>{
+  const coded=code=>Object.assign(new Error(code),{code});
   let bytes=0;const chunks=[];let settled=false;
   const finish=(error,raw)=>{if(settled)return;settled=true;error?reject(error):resolve(raw);};
-  const req=httpsRequest(url,{method:'GET',timeout:5000,agent:false,headers:{accept:'application/json','cache-control':'no-store'},checkServerIdentity(host,cert){const error=checkServerIdentity(host,cert);if(error)return error;try{if(sha(new X509Certificate(cert.raw).publicKey.export({type:'spki',format:'der'}))!==spki)return new Error('AUTH_IDENTITY_SOURCE_TLS_PIN_MISMATCH');}catch{return new Error('AUTH_IDENTITY_SOURCE_TLS_PIN_MISMATCH');}}},res=>{
-   if(res.statusCode!==200||!String(res.headers['content-type']??'').toLowerCase().startsWith('application/json')){res.destroy();finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE'));return;}
-   res.on('data',chunk=>{bytes+=chunk.length;if(bytes>8192){res.destroy();finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_CAPACITY'));}else chunks.push(chunk);});
-   res.on('end',()=>{try{const raw=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks));parse(raw,8192);finish(null,raw);}catch{finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_INVALID'));}});
-   res.on('error',()=>finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));
-  });const timer=setTimeout(()=>req.destroy(new Error('AUTH_IDENTITY_SOURCE_CURRENT_TIMEOUT')),5000);req.on('close',()=>clearTimeout(timer));req.on('timeout',()=>req.destroy(new Error('AUTH_IDENTITY_SOURCE_CURRENT_TIMEOUT')));req.on('error',()=>finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));req.end();
+  const req=httpsRequest(url,{method:'GET',timeout:timeoutMs,agent:false,headers:{accept:'application/json','cache-control':'no-store'},checkServerIdentity(host,cert){const error=checkServerIdentity(host,cert);if(error)return error;try{if(sha(new X509Certificate(cert.raw).publicKey.export({type:'spki',format:'der'}))!==spki)return new Error('AUTH_IDENTITY_SOURCE_TLS_PIN_MISMATCH');}catch{return new Error('AUTH_IDENTITY_SOURCE_TLS_PIN_MISMATCH');}}},res=>{
+   res.on('error',()=>finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));
+   if(res.statusCode!==200||!/^application\/json(?:\s*;|$)/i.test(String(res.headers['content-type']??''))){finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE'));res.destroy();return;}
+   res.on('data',chunk=>{bytes+=chunk.length;if(bytes>capacity){finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_CAPACITY'));res.destroy();}else chunks.push(chunk);});
+   res.on('end',()=>{try{const raw=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks));parse(raw,capacity);finish(null,raw);}catch{finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_INVALID'));}});
+   res.on('aborted',()=>finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));
+   res.on('close',()=>{if(!res.complete)finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE'));});
+  });const timeout=()=>{finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_TIMEOUT'));req.destroy();};const timer=setTimeout(timeout,timeoutMs);req.on('close',()=>clearTimeout(timer));req.on('timeout',timeout);req.on('error',()=>finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));req.end();
  });
 }
+export function fetchSourceCurrent(endpoint,spki,profileDigest,nonce){return fetchSourceCurrentBounded(endpoint,spki,profileDigest,nonce,8192,5000);}
+// Same transport/endpoint/TLS identity, different fixed envelope cap for N1 PQ.
+// Neither capacity nor timeout is accepted from stdin/renderer/caller policy.
+export function fetchSourceCurrentV2(endpoint,spki,profileDigest,nonce){return fetchSourceCurrentBounded(endpoint,spki,profileDigest,nonce,393216,2000);}
 async function run(){
- let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>131072)bad();chunks.push(chunk);}
- const input=parse(Buffer.concat(chunks).toString('utf8'),131072);exact(input,['rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
+ let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>2097152)bad();chunks.push(chunk);}
+ const input=parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)),2097152);
+ // SAME original bounded driver/process. No second CLI, Source owner or
+ // renderer-selected module. Native retains expected + trusted node binding;
+ // this branch returns cryptographic DATA only, never an admission/grant.
+ if(input?.operation==='auth-identity-proof-native-node/v1'){
+  const {dispatchOriginalIDEAuthProof}=await import('./original-ide-auth-proof-dispatch.mjs');
+  process.stdout.write(canonical(await dispatchOriginalIDEAuthProof(input))+'\n');return;
+ }
+ if(input?.operation==='auth-source-v2-native-node/v1'){
+  const {dispatchOriginalSourceV2}=await import('./original-auth-source-v2-dispatch.mjs');
+  process.stdout.write(canonical(await dispatchOriginalSourceV2(input))+'\n');return;
+ }
+ // Keep the original legacy operation's input bound and exact fields.
+ if(size>131072)bad();
+ exact(input,['rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
  const before=Date.now(),profile=verifySourceProfile(input.rootRaw,input.enrollmentRaw,input.profileRaw,input.policy,before);
  // The original signed acquisition head is an authenticated floor only, never
  // treated as latest/current. A NEW nonce-bound network head is mandatory.
@@ -107,3 +128,4 @@ async function run(){
  process.stdout.write(canonical({projection,currentRaw})+'\n');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){run().catch(error=>{process.stderr.write(String(error?.code??'AUTH_IDENTITY_SOURCE_VERIFICATION_FAILED')+'\n');process.exitCode=1;});}
+
