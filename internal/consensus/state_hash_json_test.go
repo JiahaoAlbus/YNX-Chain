@@ -109,7 +109,7 @@ func BenchmarkCommittedStateHashJSON(b *testing.B) {
 	for _, candidate := range []struct {
 		name string
 		hash func(committedStateHashDocument) (string, error)
-	}{{"legacy_marshal", legacyHashDocument}, {"borrowed_encoder", hashCommittedStateDocument}} {
+	}{{"legacy_marshal", legacyHashDocument}, {"original_borrowed_encoder", hashSingleBufferDocument}, {"fee_chunked_encoder", hashCommittedStateDocument}} {
 		b.Run(candidate.name, func(b *testing.B) {
 			got, err := candidate.hash(doc)
 			if err != nil || got != want {
