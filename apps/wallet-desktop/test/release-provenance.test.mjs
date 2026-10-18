@@ -33,12 +33,13 @@ test('Native normal build has the six Auth-frozen units and libbsm for every arc
   for(const c of p.commands.filter(c=>c.tool.endsWith('clang++'))){assert.equal(c.argv.filter(a=>a==='-lbsm').length,1);assert.equal(c.argv.filter(a=>a==='-DNODE_GYP_MODULE_NAME=original_auth_identity').length,1);assert.ok(c.argv.includes('-mmacosx-version-min=13.0'));assert.equal(p.sources.filter(s=>c.argv.includes(s)).length,6);}
  }
 });
-test('R23 Native input snapshot retains exact original Node closure plus new IO header, not IDE inputs',()=>{
+test('current SDK318 Native input snapshot retains independently frozen R44 closure, not the historical R23 count',()=>{
+ const identityBytes=readFileSync(new URL('./fixtures/native-sdk318-r44-identity.json',import.meta.url));assert.equal(identityBytes.length,9629);assert.equal(createHash('sha256').update(identityBytes).digest('hex'),'542f0b3d18d0f620326ab60d004f102316237a89890d928f0845ef7f139f8bfe');const identity=JSON.parse(identityBytes);
  const nativeRoot=process.env.PROVENANCE_NATIVE_SOURCE_ROOT??path.resolve(fileURLToPath(new URL('../',import.meta.url)),'../..');
  const headers=fileURLToPath(new URL('./fixtures/node-22.13.1/',import.meta.url)).replace(/\/$/,''),plan=originalAuthNativeBuildPlan('arm64',headers),planRoot=path.resolve(path.dirname(plan.output),'../../..');
  const mapped={...plan,output:plan.output.replace(planRoot,nativeRoot),sources:plan.sources.map(p=>p.replace(planRoot,nativeRoot))};
  const pins=originalAuthNativeInputPins(mapped,headers).inputFiles,receipt=JSON.parse(readFileSync(nativeRoot+'/apps/wallet-desktop/native/original-auth-identity-build.json'));
- assert.deepEqual(pins,receipt.inputFiles);assert.equal(pins.length,24);
+ assert.deepEqual(pins,identity.sourceInputs);assert.deepEqual(pins,receipt.inputFiles);assert.equal(pins.length,32);
  const names=pins.map(p=>p.relative);assert.ok(names.includes('packages/wallet-auth/native/original-source-verifier-io.h'));assert.ok(names.includes('packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs'));assert.ok(names.includes('packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'));assert.equal(names.some(p=>p.startsWith('apps/developer/')),false);
  assert.equal(plan.sources.length,6);
 });
