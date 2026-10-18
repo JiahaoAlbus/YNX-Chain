@@ -88,6 +88,51 @@ class SupplySourceTests(unittest.TestCase):
         for args in (("socket","supply-2048x1","relative",True),("grpc","supply-2048x1"),("grpc","supply-2048x1","bounded-cadence",True),("grpc","supply-2048x1","relative",True,False),("grpc","supply-2048x1","relative",True,True,True)):
             with self.subTest(args=args),self.assertRaises(RuntimeError):supply.recipe(*args)
 
+    def test_data64_profile_is_explicit_and_preserves_original_workload_and_defaults(self):
+        legacy=supply.recipe("grpc","supply-2048x1","relative",True)
+        scoped=supply.recipe("grpc","supply-2048x1-data64","relative",True)
+        self.assertEqual(legacy["resourceCaps"]["privateBytes"],32<<20)
+        self.assertEqual(supply.native.CAPS["privateBytes"],32<<20)
+        self.assertEqual(scoped["resourceCaps"],dict(legacy["resourceCaps"],privateBytes=64<<20))
+        self.assertEqual(scoped["profile"],dict(legacy["profile"],name="supply-2048x1-data64-grpc",privateBytes=64<<20))
+        self.assertFalse(scoped["execute"]);self.assertFalse(scoped["nodesStarted"])
+        self.assertTrue(scoped["requiresSeparateRootGrant"])
+        self.assertFalse(scoped["capacityScope"]["automaticRetry"])
+        args=(Path("build"),Path("manifest"),Path("network"),Path("output"))
+        self.assertEqual(supply.supply_client_command(*args,legacy["profile"],"relative",True,True),supply.supply_client_command(*args,scoped["profile"],"relative",True,True))
+        for args in (("socket","supply-2048x1-data64","relative",True),("grpc","supply-2048x1-data64"),("grpc","supply-2048x1-data64","bounded-cadence",True),("grpc","supply-2048x1-data64","relative",True,False)):
+            with self.subTest(args=args),self.assertRaises(RuntimeError):supply.recipe(*args)
+        row,fixture=self.oneshot_report_fixture()
+        self.assertEqual(supply.validate_report(row,"supply-2048x1-data64",fixture_transactions=fixture),supply.validate_report(row,"supply-2048x1",fixture_transactions=fixture))
+        row["summary"]["submissionUnknown"]=1
+        with self.assertRaises(RuntimeError):supply.validate_report(row,"supply-2048x1-data64",fixture_transactions=fixture)
+
+    def test_data64_actual_failure_bytes_and_all_other_guards_remain_charged(self):
+        import copy
+        sample=dict(rssBytes=721408000,threads=63,privateBytes=40191359,buildBytes=118951286,freeDiskBytes=89040670720,availableMemoryBytes=15097982976,processLogBytes=133944)
+        original=copy.deepcopy(sample)
+        legacy={"profile":supply.recipe("grpc","supply-2048x1","relative",True)["profile"]}
+        scoped={"profile":supply.recipe("grpc","supply-2048x1-data64","relative",True)["profile"]}
+        with self.assertRaisesRegex(RuntimeError,"privateBytes cap"):
+            supply.enforce_captured_sample(sample,legacy)
+        self.assertIs(legacy["refusedSamples"][0],sample)
+        supply.enforce_captured_sample(sample,scoped)
+        self.assertEqual(sample,original)
+        for key,value in (("privateBytes",(64<<20)+1),("rssBytes",(1<<30)+1),("threads",321),("buildBytes",(1<<30)+1),("processLogBytes",(1<<20)+1),("availableMemoryBytes",1),("freeDiskBytes",1)):
+            changed=dict(sample,**{key:value});result={"profile":scoped["profile"]}
+            with self.subTest(key=key),self.assertRaises(RuntimeError):supply.enforce_captured_sample(changed,result)
+            self.assertIs(result["refusedSamples"][0],changed)
+            self.assertEqual(changed[key],value)
+        floor=sum(supply.native.CAPS[k] for k in ("diskFloorBytes","rootReserveBytes","compileReserveBytes"))
+        reserve=dict(sample,privateBytes=1,freeDiskBytes=floor+(32<<20))
+        supply.enforce_captured_sample(reserve,legacy,True)
+        with self.assertRaisesRegex(RuntimeError,"disk floor"):
+            supply.enforce_captured_sample(reserve,scoped,True)
+        for bad in (32<<20,65<<20,True):
+            with self.subTest(bad=bad),self.assertRaisesRegex(RuntimeError,"unregistered"):
+                supply.native.enforce(sample,private_bytes_cap=bad)
+        self.assertEqual(supply.native.CAPS["privateBytes"],32<<20)
+
     def test_oneshot2048_all_original_business_and_phase_rows_required(self):
         row,fixture=self.oneshot_report_fixture()
         result=supply.validate_report(row,"supply-2048x1",fixture_transactions=fixture)

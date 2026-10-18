@@ -34,6 +34,9 @@ PROFILE = dict(name="supply-256x4", senders=256, rounds=4, offeredRate=512,
 PROFILES = {"supply-256x4": PROFILE,
             "supply-512x2": dict(PROFILE, name="supply-512x2", senders=512, rounds=2),
             "supply-2048x1": dict(PROFILE, name="supply-2048x1", senders=2048, rounds=1, offeredRate=1000, senderMode="rounds")}
+# A separate opt-in diagnostic budget, never selected by fallback from a failed case.
+ONESHOT_PROFILES = ("supply-2048x1", "supply-2048x1-data64")
+PROFILES[ONESHOT_PROFILES[1]] = dict(PROFILES[ONESHOT_PROFILES[0]], name=ONESHOT_PROFILES[1], privateBytes=64 << 20)
 ENV = dict(GOMAXPROCS="1", GOGC="100", GOMEMLIMIT="off")
 BINARIES = ("ynx-abci", "cometbft", "ynx-consensus-perf-fixture", "ynx-consensus-perf-client")
 PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
@@ -41,7 +44,7 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
 
 
 def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None):
-    one_shot=profile_name=="supply-2048x1"
+    one_shot=profile_name in ONESHOT_PROFILES
     if one_shot and (transport!="grpc" or pacing!="relative" or observer_phases is not True or shared_replay is not None and shared_replay is not True or endpoint_fair is not None or endpoint_elastic is not None):
         raise RuntimeError("2048x1 requires explicit grpc/relative/observer phases/shared replay without endpoint candidates")
     if one_shot:shared_replay=True
@@ -61,11 +64,16 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
                 comparison="Independent private CI case; no Darwin before/after multiplier",
                 resourceCaps=native.CAPS,
                 input="workflow_dispatch.run_linux_supply (default false)")
+    if profile_name == "supply-2048x1-data64":
+        result["resourceCaps"] = dict(native.CAPS, privateBytes=64 << 20)
+        result["capacityScope"] = dict(explicitProfileOnly=True, automaticRetry=False,
+            priorFailedRun=39161413763, priorFinalPrivateBytes=40191359,
+            priorProfile="supply-2048x1", noPerformanceQualification=True)
     if observer_phases:
         result["observerPhaseTiming"]=True
         result["observerTraceLimits"]=dict(perWorker=256,aggregate=1024,totalsCompleteDespiteTraceCap=True)
     if shared_replay is not None:
-        if type(shared_replay) is not bool or not observer_phases or (transport,profile_name,pacing) not in (("grpc","supply-512x2","bounded-cadence"),("grpc","supply-2048x1","relative")):
+        if type(shared_replay) is not bool or not observer_phases or (transport,profile_name,pacing) not in (("grpc","supply-512x2","bounded-cadence"),("grpc","supply-2048x1","relative"),("grpc","supply-2048x1-data64","relative")):
             raise RuntimeError("shared replay selection requires fixed512x2/grpc/bounded-cadence and observer timing")
         result["sharedDurableReplay"]=shared_replay
     if endpoint_fair is not None:
@@ -782,7 +790,7 @@ def qualify_business_rows(report,total):
 
 
 def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False,fixture_transactions=None):
-    if profile_name=="supply-2048x1":
+    if profile_name in ONESHOT_PROFILES:
         if pacing!="relative" or endpoint_fair or endpoint_elastic:
             raise RuntimeError("2048x1 cannot select pair endpoint or pacing candidates")
         return validate_oneshot_report(report,fixture_transactions)
@@ -871,7 +879,8 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
 
 def enforce_captured_sample(sampled,result,initial=False):
     try:
-        native.enforce(sampled,initial)
+        scoped = result.get("profile", {}).get("name") == "supply-2048x1-data64-grpc"
+        native.enforce(sampled,initial,private_bytes_cap=64 << 20 if scoped else None)
         if sampled.get("processLogBytes",0)>native.CAPS["logBytes"]:
             raise RuntimeError("combined process log cap exceeded")
     except Exception:
@@ -928,7 +937,7 @@ def supply_client_command(build,manifest_path,network,output,profile,pacing,obse
 
 
 def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None):
-    one_shot=not fixture_only and profile_name=="supply-2048x1"
+    one_shot=not fixture_only and profile_name in ONESHOT_PROFILES
     if one_shot:
         if shared_replay is not None and shared_replay is not True:
             raise RuntimeError("2048x1 requires explicit shared replay selection")

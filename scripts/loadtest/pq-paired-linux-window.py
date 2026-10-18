@@ -129,14 +129,19 @@ def directory_bytes(root):
     return total
 
 
-def enforce(sample, initial=False):
+def enforce(sample, initial=False, *, private_bytes_cap=None):
+    # Only the explicitly registered Supply data64 profile opts into this budget.
+    # Default and all legacy callers retain the original cap. No sample is clipped.
+    if private_bytes_cap is not None and (type(private_bytes_cap) is not int or private_bytes_cap != 64 << 20):
+        raise RuntimeError("unregistered private data cap")
+    caps = CAPS if private_bytes_cap is None else dict(CAPS, privateBytes=private_bytes_cap)
     for key, cap in (("rssBytes", "ownedRSSBytes"), ("threads", "threads"),
                      ("privateBytes", "privateBytes"), ("buildBytes", "buildBytes")):
-        if not isinstance(sample[key], int) or sample[key] < 0 or sample[key] > CAPS[cap]:
+        if not isinstance(sample[key], int) or sample[key] < 0 or sample[key] > caps[cap]:
             raise RuntimeError(key + " cap exceeded/invalid")
     floor = CAPS["diskFloorBytes"] + CAPS["rootReserveBytes"]
     if initial:
-        floor += CAPS["compileReserveBytes"] + CAPS["privateBytes"]
+        floor += CAPS["compileReserveBytes"] + caps["privateBytes"]
     if type(sample["freeDiskBytes"]) is not int or sample["freeDiskBytes"] < floor:
         raise RuntimeError("actual disk floor/reserve failed")
     if type(sample["availableMemoryBytes"]) is not int or sample["availableMemoryBytes"] < CAPS["availableMemoryFloorBytes"]:
