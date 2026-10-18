@@ -3,7 +3,9 @@
 Status: the first candidate passed full integrated CI 39114641191 but regressed
 the matched encoding measurement 39114847427. Runtime activation is withdrawn:
 the original borrowed-buffer encoder is the default. The revised experimental
-encoder awaits source validation and a new independent identity pin. Not deployed.
+encoder passed full Go source tests in run 39115542457. Its independent
+borrowed-recovery candidate.3 and normal checker are adopted; full integrated
+CI and a new matched performance measurement remain pending. Not deployed.
 
 This candidate derives from internal tree
 `fc5ccab4e9aa6923bc61a2dc7ac518343ac56703`. The original hash leaf and its

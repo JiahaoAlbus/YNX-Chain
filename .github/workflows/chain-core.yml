@@ -20,6 +20,7 @@ on:
       - "scripts/verify/chain-core-release-check.mjs"
       - "scripts/verify/perf-v13-integration-check*.mjs"
       - "scripts/verify/perf-v13-fee-chunks-integration-check*.mjs"
+      - "scripts/verify/perf-v13-borrowed-recovery-integration-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   pull_request:
     branches:
@@ -39,6 +40,7 @@ on:
       - "scripts/verify/chain-core-release-check.mjs"
       - "scripts/verify/perf-v13-integration-check*.mjs"
       - "scripts/verify/perf-v13-fee-chunks-integration-check*.mjs"
+      - "scripts/verify/perf-v13-borrowed-recovery-integration-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
     inputs:
@@ -88,6 +90,7 @@ jobs:
           GOGC: "50"
           GOMEMLIMIT: "160MiB"
         run: |
+          set -o pipefail
           mkdir -p "$RUNNER_TEMP/ynx-commit-storage-pair"
           git rev-parse HEAD HEAD:internal HEAD:cmd/ynx-consensus-perf-client > "$RUNNER_TEMP/ynx-commit-storage-pair/source-pins.txt"
           go version > "$RUNNER_TEMP/ynx-commit-storage-pair/go-version.txt"
@@ -104,6 +107,7 @@ jobs:
           YNX_CHAIN_PERF: "1"
           YNX_CHAIN_PERF_DIR: ${{ runner.temp }}/ynx-commit-storage-pair
         run: |
+          set -o pipefail
           go test -p 1 ./internal/consensus -run '^(TestCommitStorageMatchedPerformance|TestBlockJournalAbruptExit|TestBlockJournalFailedWriterRetiresWithoutPublishing)$' -count=1 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-commit-storage-pair/go-test.log"
       - name: Retain actual matched Commit evidence even on failure
         if: always()
@@ -132,6 +136,8 @@ jobs:
           scripts/verify/perf-v13-integration-check.test.mjs
           scripts/verify/perf-v13-fee-chunks-integration-check.test.mjs
           release/integration/candidates/perf-state-v13-fee-chunks/check.test.mjs
+          scripts/verify/perf-v13-borrowed-recovery-integration-check.test.mjs
+          release/integration/candidates/perf-state-v13-borrowed-recovery/check.test.mjs
       - name: Verify ready-sender Commit phases and bounded event timeline
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
@@ -139,8 +145,8 @@ jobs:
           -count=1 -timeout=45s -v
       - name: Verify opt-in node phase timings against real durable execution
         run: go test -p 1 ./cmd/ynx-abci -run '^TestPhaseTiming' -count=1 -timeout=45s -v
-      - name: Verify fixed unpublished fee-chunk performance V13 integration contract
-        run: make integration-contract-perf-v13-fee-chunks-check
+      - name: Verify fixed unpublished borrowed-recovery V13 integration contract
+        run: make integration-contract-perf-v13-borrowed-recovery-check
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan
