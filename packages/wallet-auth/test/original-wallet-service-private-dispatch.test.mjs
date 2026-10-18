@@ -19,7 +19,8 @@ test('R14 actual sole fixed loader decodes file URLs and retains seven-method nu
  for(const directory of ['YNXChain','YNX%20Chain','YNX%25%20Chain','YNX%23Chain','YNX%E9%92%B1%E5%8C%85%20Wallet']){
   const moduleURL='file:///PUBLIC/'+directory+'/packages/wallet-auth/src/original-wallet-service-private-dispatch.js';
   const native=Object.fromEntries(names.map(name=>[name,()=>{++methodsCalled;throw Error('no native method invocation');}]));
-  const selected=execute(moduleURL,native);assert.ok(selected);assert.ok(Object.isFrozen(selected));assert.deepEqual(Object.keys(selected),aliases);aliases.forEach((alias,i)=>assert.equal(selected[alias],native[names[i]]));++cases;
+  native.readOriginalNativePrivateServiceTerminalResult=()=>{++methodsCalled;throw Error('not invoked');};
+  const selected=execute(moduleURL,native);assert.ok(selected);assert.ok(Object.isFrozen(selected));assert.deepEqual(Object.keys(selected),[...aliases,'readTerminal']);assert.equal(selected.readTerminal,native.readOriginalNativePrivateServiceTerminalResult);aliases.forEach((alias,i)=>assert.equal(selected[alias],native[names[i]]));++cases;
  }
  const moduleURL='file:///PUBLIC/YNX%20Chain/packages/wallet-auth/src/original-wallet-service-private-dispatch.js';
  for(const name of names){const native=Object.fromEntries(names.map(k=>[k,()=>{++methodsCalled;}]));native[name]=null;assert.equal(execute(moduleURL,native),null);++cases;}
@@ -28,13 +29,13 @@ test('R14 actual sole fixed loader decodes file URLs and retains seven-method nu
 });
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const clean=s=>s.replace(/^import .*;$/mg,'').replace(/^import \{[\s\S]*?\} from .*;$/mg,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify('file:///PUBLIC/original-module.js'));
-function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=false,unselected=false,localTerminal=false,prepareFail=false}={}){
+function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=false,unselected=false,localTerminal=false,prepareFail=false,oversizeResponse=false}={}){
  const events=[],writes=new Map(),fds=new Map();let next=1,live=true,kernelCalls=0,closed=0;
  const hash=s=>String(s).includes('"revision":1')?'b'.repeat(64):'a'.repeat(64);
  const association={account:'PUBLIC_ACCOUNT',clientId:'public-client',productId:'developer',platform:'macos',applicationId:'PUBLIC_APPLICATION',deviceId:'PUBLIC_DEVICE'};
  const initial={authority:{sessions:[{sessionBinding:'PUBLIC_BINDING',...association}]},revision:0};
  const envelope={schemaVersion:1,snapshotDigest:hash(JSON.stringify(initial)),snapshot:initial};writes.set('/PUBLIC/state',JSON.stringify(envelope));
- const context={URL,Buffer,Date,types,
+ const context={URL,Buffer,Date,TextEncoder,types,
   // New Host journal boundary is a lexical PUBLIC standin; real IO is covered
   // by the separate combined caller integration controls, not these fixtures.
   OriginalHostTerminalJournal:class {open(){}reserve(){return Object.freeze({PUBLIC:true});}prepare(){events.push('prepare');if(prepareFail)throw Error('PUBLIC_TERMINAL_PREPARE_REFUSED');}commit(){}assertTerminal(){}retire(){}join(){}close(){}},
@@ -46,7 +47,7 @@ function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=fa
   fstatSync:fd=>context.lstatSync(fds.get(fd)),renameSync:(from,to)=>{if(persistFail)throw Error('PUBLIC_PERSIST_FAIL');writes.set(to,writes.get(from));writes.delete(from);events.push('persist');},unlinkSync:p=>writes.delete(p),
   WALLET_SESSION_CONTROL_PATHS:[],WALLET_SESSION_CONTROL_PROOF_HEADER:'PUBLIC',PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION:2,walletSessionControlClockFloor:()=>floor,
   decodeProductSessionGatewayProofHeaderV2:header=>{if(header!=='PUBLIC_PROOF')throw Error('PUBLIC_INVALID_PROOF');return {sessionBinding:'PUBLIC_BINDING'};},
-  ProductSessionGatewayHttpHandler:class{constructor(_r,_t,s){this.s=JSON.parse(JSON.stringify(s));}snapshot(){return this.s;}handle(input){kernelCalls++;events.push(input.path);this.s.revision=1;return {status:200,headers:{},body:JSON.stringify({ok:true,requestId:input.requestId})};}revalidate(session){if(session.account!=='PUBLIC_ACCOUNT')throw Error('PUBLIC_SESSION_MISMATCH');return session;}},
+  ProductSessionGatewayHttpHandler:class{constructor(_r,_t,s){this.s=JSON.parse(JSON.stringify(s));}snapshot(){return this.s;}handle(input){kernelCalls++;events.push(input.path);this.s.revision=1;return {status:200,headers:{},body:JSON.stringify({ok:true,requestId:input.requestId,...(oversizeResponse?{PUBLIC_OVERSIZE:'x'.repeat(65536)}:{})})};}revalidate(session){if(session.account!=='PUBLIC_ACCOUNT')throw Error('PUBLIC_SESSION_MISMATCH');return session;}},
  };
  vm.createContext(context);
  // Exact browser-safe carrier parser in this PUBLIC VM realm. The Node PQ
@@ -253,4 +254,18 @@ test('normal delivery cannot publish when the second current fence fails with an
  const f=fixture(),result=await f.dispatcher.dispatch(f.packet()),digest=f.context.createHash().update(JSON.stringify(result)).digest('hex');f.dispatcher.acknowledge('beginYNX','effect','req_PUBLIC_REQUEST_001',digest);
  let checks=0;f.context.PUBLIC_NATIVE.assertCurrent=()=>{if(++checks===2)throw undefined;};let threw=false;try{f.dispatcher.selectCurrentOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001');}catch(cause){threw=true;assert.equal(cause,undefined);}assert.equal(threw,true);assert.equal(checks,2);
  const out=f.dispatcher.selectOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001');assert.equal(out.result,result);assert.equal(out.unknown,true);assert.equal(f.dispatcher.status().firstCausePresent,true);await f.dispatcher.close();
+});
+
+test('Native response envelope overflow preserves the candidate result without persisting its state',()=>{
+ const f=fixture({unselected:true,localTerminal:true,oversizeResponse:true}),input=f.context.decode(f.packet()),row={result:null},before=f.writes.get('/PUBLIC/state'),owner=f.host.reserveOriginalWalletServicePrivateTransaction(input,row,f.original.association);
+ assert.throws(()=>f.host.executeOriginalWalletServicePrivateTransaction(owner),e=>e.code==='ORIGINAL_PRIVATE_RESPONSE_CAPACITY');assert.equal(f.writes.get('/PUBLIC/state'),before);assert.equal(f.events.includes('persist'),false);assert.equal(f.events.includes('prepare'),false);assert.equal(row.result.status,200);assert.equal(f.host.originalWalletServicePrivateTransactionOutcome(owner).unknown,true);
+});
+
+test('original Native terminal reader is optional for legacy loading and fails closed once for an unknown v4 original',async()=>{
+ const v=JSON.parse(readFileSync(new URL('../testdata/private-reference-carrier-r29a.json',import.meta.url),'utf8')).vectors.find(x=>x.name==='structural_complete'),input=JSON.parse(v.raw);
+ for(const supplied of [false,true]){
+  const f=fixture();await assert.rejects(f.dispatcher.dispatch(v.raw));let reads=0;if(supplied)f.context.PUBLIC_NATIVE.readTerminal=()=>{reads++;throw false;};
+  let caught=false;try{f.dispatcher.readTerminalCustody(input.operation,input.phase,input.requestId);}catch(cause){caught=true;if(supplied)assert.equal(cause,false);else assert.equal(cause.code,'ORIGINAL_PRIVATE_TERMINAL_CUSTODY_UNAVAILABLE');}assert.equal(caught,true);assert.equal(reads,supplied?1:0);
+  assert.throws(()=>f.dispatcher.readTerminalCustody(input.operation,input.phase,input.requestId));assert.equal(reads,supplied?1:0);assert.equal(f.dispatcher.selectOutcome(input.operation,input.phase,input.requestId).unknown,true);assert.equal(f.dispatcher.status().firstCausePresent,true);await f.dispatcher.close();
+ }
 });

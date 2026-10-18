@@ -36,3 +36,8 @@ test('normal private Gateway adapter forwards the three exact v4 actions without
   await assert.rejects(()=>adapter.publishReturn(),{code:'ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED'});await assert.rejects(()=>adapter.publicationOutcome(),{code:'ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED'});assert.equal(calls.length,3);assert.equal(http,0);
  }finally{globalThis.fetch=originalFetch;if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
 });
+
+test('legacy private transport also respects the actual Native 65536-byte response envelope',async()=>{
+ const previous=globalThis.window;let calls=0;globalThis.window={ynxDesktopWallet:{async originalServiceDispatch(raw){calls++;const id=JSON.parse(raw).requestId;return {...response(id),body:canonicalJSON({ok:true,requestId:id,result:{PUBLIC_OVERSIZE:'x'.repeat(65536)},schemaVersion:2})};}}};
+ try{const client=new OriginalWalletServicePrivateClient({timeoutMs:1000});await assert.rejects(()=>client.request('beginYNX','time','req_native_response_0001',null,null),{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});assert.equal(calls,1);assert.equal(client.status().unknown,true);}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});

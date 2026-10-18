@@ -13,9 +13,14 @@ the old write/global UNKNOWN or authorize any other effect. Its owning kernel pa
 retains current/proof checks without changing the snapshot or auditing a new effect.
 
 The original journal now prepares the terminal before candidate state persistence
-and binds commit to the same response/state digest. This intermediate source still
-writes the original v1 terminal format. Auth's R30 formal compact codec/native
-custody reader must be consumed before claiming lost-response terminal recovery.
+and binds commit to the same response/state digest. Reference complete uses Auth's
+exact frozen R30a v3 codec; legacy actions keep v1. The earlier R30 v2 codec failed
+with the normal 52-byte request ID, despite its short-ID fixture passing. That
+actual Host/PQ/P256 counterexample is retained. R30a preserves the same complete
+response in 7836 bytes; actual normal Host and private Host/journal controls pass.
+These controls use explicit PUBLIC Native IO instruments, not a qualified owner.
+The fixed Native custody reader is wired as a once-only DATA read; it does not
+adopt a Host, acknowledge a terminal, clear UNKNOWN or establish connected status.
 
 Normal delivery uses the same dispatcher's selectCurrentOutcome, which checks the
 actual original owner before and after reading its result. selectOutcome remains
@@ -28,7 +33,7 @@ prepare/commit binding and pre-persist refusal, plus both current delivery fence
 IO/kernel/bridge fixtures are explicitly PUBLIC instruments. They do not establish
 qualified Native execution, protected files, real Source approval or a user journey.
 
-Still incomplete: R30 formal codec and Native consumption; original listener
+Still incomplete: matching R30a Native build and actual custody execution; original listener
 acquisition and daemon business dispatch/ACK pump; IDE's normal success branch;
 original Host adoption/custody reconciliation after restart; safe client UNKNOWN
 resolution; legal Source/profile/current/release registration and protected install;

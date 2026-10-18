@@ -3,6 +3,7 @@ import {sameOriginalReferenceCompletion} from './original-wallet-service-private
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
+import {types} from 'node:util';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
 import {ProductSessionGatewayNodeHost,captureOriginalWalletServiceRuntimeHostSource} from './product-session-gateway-node-host.js';
 import {prepareOriginalWalletServiceAdmission} from './original-wallet-service-admission.js';
@@ -15,7 +16,7 @@ function loadFixedOriginalNativeServiceBinding(){
   const native=createRequire(new URL('.',import.meta.url))(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
   const names={capture:'captureOriginalNativePrivateServiceBorrow',assertCurrent:'assertOriginalNativePrivateServiceCurrent',assertAdmission:'assertOriginalNativePrivateServiceAdmission',assertTerminal:'assertOriginalNativePrivateServiceTerminal',retire:'retireOriginalNativePrivateService',join:'joinOriginalNativePrivateService',close:'closeOriginalNativePrivateService'};
   if(Object.values(names).some(name=>typeof native[name]!=='function'))return null;
-  return Object.freeze(Object.fromEntries(Object.entries(names).map(([name,method])=>[name,native[method]])));
+  return Object.freeze({...Object.fromEntries(Object.entries(names).map(([name,method])=>[name,native[method]])),readTerminal:typeof native.readOriginalNativePrivateServiceTerminalResult==='function'?native.readOriginalNativePrivateServiceTerminalResult:null});
  }catch{return null;}
 }
 const originalNativeServiceBinding=loadFixedOriginalNativeServiceBinding();
@@ -131,6 +132,29 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    }catch(cause){remember(cause);if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}throw cause;}
   },
   selectOutcome(operation,phase,requestId){const row=records.get(operation+':'+phase+':'+requestId);if(!row)fail('ORIGINAL_PRIVATE_OUTCOME_REQUIRED');return Object.freeze({result:row.result,unknown:row.unknown,terminal:row.terminal});},
+  readTerminalCustody(operation,phase,requestId){
+   const row=records.get(operation+':'+phase+':'+requestId);
+   try{
+    current(operation);
+    if(!row?.unknown||row.terminal||row.terminalReadSelected||typeof originalNativeServiceBinding.readTerminal!=='function')fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_UNAVAILABLE');
+    const input=decodeOriginalWalletServicePrivateRequest(row.originalRaw);
+    if(input.carrierVersion!=='YNX-PRODUCT-SESSION-PRIVATE/v4'||input.referenceAction!=='complete')fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_UNAVAILABLE');
+    row.terminalReadSelected=true;
+    const proof=originalNativeServiceBinding.readTerminal(original,operation,phase,requestId);
+    row.originalTerminalCustodyProof=proof; // Retain before validation/late current.
+    if(!proof||types.isProxy(proof)||Object.getPrototypeOf(proof)!==Object.prototype||Object.values(Object.getOwnPropertyDescriptors(proof)).some(d=>!Object.hasOwn(d,'value')))fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_INVALID');
+    exactFields(proof,['responseRaw','responseDigest','requestDigest','associationDigest','stateBeforeDigest','stateAfterDigest','stateFileDigest','enteredDigest','recordVersion','success'],'Original Native terminal custody');
+    if(['responseDigest','requestDigest','associationDigest','stateBeforeDigest','stateAfterDigest','stateFileDigest','enteredDigest'].some(k=>typeof proof[k]!=='string'||!/^[a-f0-9]{64}$/.test(proof[k]))||![1,2,3].includes(proof.recordVersion)||typeof proof.success!=='boolean'||typeof proof.responseRaw!=='string'||Buffer.byteLength(proof.responseRaw)>65536||hash(proof.responseRaw)!==proof.responseDigest||proof.requestDigest!==row.inputDigest||proof.associationDigest!==hash(canonicalJSON(original.association)))fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_INVALID');
+    let response;try{response=JSON.parse(proof.responseRaw);}catch{fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_INVALID');}
+    exactFields(response,['status','headers','body'],'Original recovered response');
+    if(canonicalJSON(response)!==proof.responseRaw||!Number.isInteger(response.status)||response.status<200||response.status>599||proof.success!==(response.status<300)||response.headers?.['x-request-id']!==requestId||typeof response.body!=='string'||row.result&&canonicalJSON(row.result)!==proof.responseRaw)fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_INVALID');
+    current(operation);
+    row.terminalCustody=Object.freeze({proof:Object.freeze({...proof}),response:Object.freeze({...response,headers:Object.freeze({...response.headers})})});
+    return row.terminalCustody; // DATA only: no ACK, Host adoption or UNKNOWN clear.
+   }catch(cause){
+    remember(cause);if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}throw cause;
+   }
+  },
   // Normal delivery must recheck the actual original owner after asynchronous
   // transport work. The historical reader above remains cleanup/forensics only.
   selectCurrentOutcome(operation,phase,requestId){

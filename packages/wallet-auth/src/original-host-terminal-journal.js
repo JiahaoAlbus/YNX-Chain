@@ -3,6 +3,7 @@ import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
 import {originalPrivateCarrierBudget} from './original-wallet-service-private-carrier.js';
+import {prepareOriginalPrivateTerminalV3} from '../native/terminal-custody-recovery-r30a-20261018/source/terminal-response-v3.mjs';
 
 // Fixed original Native owner only. No production Node filesystem writer,
 // alternate addon path, dependency callback or fallback implementation exists.
@@ -10,6 +11,17 @@ const requireNative=createRequire(import.meta.url);
 const sha=raw=>createHash('sha256').update(raw).digest('hex');
 const digest=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const fail=code=>{throw new WalletAuthError(code,'Original Host terminal custody unavailable');};
+function terminalLinks(body,entered){
+ if(![2,3].includes(body?.v))return body;
+ exactFields(body,body.v===3?['v','k','e','s','x']:['v','k','e','q','a','o','p','id','r','b','s','x'],'Original compact terminal');
+ if(body.k!=='terminal'||typeof body.x!=='string'||Buffer.byteLength(body.x)>65536||!digest(body.s)||body.v===2&&(!digest(body.r)||sha(body.x)!==body.r||!digest(body.b)))fail('HOST_TERMINAL_COLD_UNKNOWN');
+ let response;try{response=JSON.parse(body.x);}catch{fail('HOST_TERMINAL_COLD_UNKNOWN');}
+ if(canonicalJSON(response)!==body.x)fail('HOST_TERMINAL_COLD_UNKNOWN');
+ exactFields(response,['status','headers','body'],'Original compact response');
+ if(response.headers?.['x-request-id']!==(body.v===3?entered.requestId:body.id))fail('HOST_TERMINAL_COLD_UNKNOWN');
+ if(body.v===3)return {kind:body.k,enteredDigest:body.e,requestDigest:entered.requestDigest,associationDigest:entered.associationDigest,operation:entered.operation,phase:entered.phase,requestId:entered.requestId,stateBeforeDigest:entered.stateBeforeDigest,stateAfterDigest:body.s};
+ return {kind:body.k,enteredDigest:body.e,requestDigest:body.q,associationDigest:body.a,operation:body.o,phase:body.p,requestId:body.id,stateBeforeDigest:body.b,stateAfterDigest:body.s};
+}
 const names={open:'openOriginalHostTerminalJournal',ready:'assertOriginalHostTerminalJournalReady',list:'listOriginalHostTerminalJournal',read:'readOriginalHostTerminalJournal',write:'writeOriginalHostTerminalJournal',retire:'retireOriginalHostTerminalJournal',join:'joinOriginalHostTerminalJournal',close:'closeOriginalHostTerminalJournal'};
 
 export class OriginalHostTerminalJournal {
@@ -31,8 +43,8 @@ export class OriginalHostTerminalJournal {
    for(const name of files){
     if(!name.endsWith('.entered'))continue;
     const key=name.slice(0,64);if(!files.includes(key+'.terminal'))fail('HOST_TERMINAL_COLD_UNKNOWN');
-    const entered=this.#read(name),terminal=this.#read(key+'.terminal');
-    if(entered.body.kind!=='entered'||terminal.body.kind!=='terminal'||terminal.body.enteredDigest!==sha(entered.raw)||sha(canonicalJSON({requestId:entered.body.requestId,operation:entered.body.operation,phase:entered.body.phase}))!==key||terminal.body.requestDigest!==entered.body.requestDigest||terminal.body.associationDigest!==entered.body.associationDigest)fail('HOST_TERMINAL_COLD_UNKNOWN');
+    const entered=this.#read(name),terminal=terminalLinks(this.#read(key+'.terminal').body,entered.body);
+    if(entered.body.kind!=='entered'||terminal.kind!=='terminal'||terminal.enteredDigest!==sha(entered.raw)||sha(canonicalJSON({requestId:entered.body.requestId,operation:entered.body.operation,phase:entered.body.phase}))!==key||terminal.requestDigest!==entered.body.requestDigest||terminal.associationDigest!==entered.body.associationDigest||['operation','phase','requestId','stateBeforeDigest'].some(k=>terminal[k]!==entered.body[k]))fail('HOST_TERMINAL_COLD_UNKNOWN');
    }
    if(files.some(name=>name.endsWith('.terminal')&&!files.includes(name.slice(0,64)+'.entered')))fail('HOST_TERMINAL_COLD_UNKNOWN');
    this.#coldCount=files.length/2;this.#current();
@@ -66,7 +78,7 @@ export class OriginalHostTerminalJournal {
    // Same operation ID cannot be reused with altered body/proof/association.
    const key=sha(canonicalJSON({requestId:input.requestId,operation:input.operation,phase:input.phase}));
    if(this.#records.has(key)||this.#coldCount+this.#records.size>=64)fail('HOST_TERMINAL_ALREADY_ENTERED');
-   const row={key,entered:true,terminal:false,requestDigest,associationDigest,operation:input.operation,phase:input.phase,requestId:input.requestId,stateBeforeDigest};
+   const row={key,entered:true,terminal:false,requestDigest,associationDigest,operation:input.operation,phase:input.phase,requestId:input.requestId,stateBeforeDigest,inputRaw:canonicalJSON(input),associationRaw:canonicalJSON(association),recoverable:input.carrierVersion==='YNX-PRODUCT-SESSION-PRIVATE/v4'&&input.referenceAction==='complete'};
    this.#records.set(key,row); // Preserve original even on late fsync/read failure.
    row.original=this.#write(key+'.entered',{version:1,kind:'entered',requestDigest,associationDigest,operation:row.operation,phase:row.phase,requestId:row.requestId,stateBeforeDigest});
    row.claim=Object.freeze({key});return row.claim;
@@ -79,7 +91,7 @@ export class OriginalHostTerminalJournal {
    if(!row||row.claim!==claim||row.claimed||row.terminal||row.prepared||!digest(stateAfterDigest))fail('HOST_TERMINAL_ORIGINAL_CLAIM_REQUIRED');
    const original=this.#read(row.key+'.entered');if(!original.raw.equals(row.original.raw))fail('HOST_TERMINAL_ENTERED_CHANGED');
    const responseDigest=sha(canonicalJSON(response));
-   const body=Object.freeze({version:1,kind:'terminal',enteredDigest:sha(row.original.raw),requestDigest:row.requestDigest,associationDigest:row.associationDigest,operation:row.operation,phase:row.phase,requestId:row.requestId,responseDigest,stateBeforeDigest:row.stateBeforeDigest,stateAfterDigest});
+   const body=Object.freeze(row.recoverable?JSON.parse(prepareOriginalPrivateTerminalV3({enteredRaw:row.original.raw.toString(),inputRaw:row.inputRaw,associationRaw:row.associationRaw,responseRaw:canonicalJSON(response),stateAfterDigest}).raw):{version:1,kind:'terminal',enteredDigest:sha(row.original.raw),requestDigest:row.requestDigest,associationDigest:row.associationDigest,operation:row.operation,phase:row.phase,requestId:row.requestId,responseDigest,stateBeforeDigest:row.stateBeforeDigest,stateAfterDigest});
    if(Buffer.byteLength(canonicalJSON(body))>8192)fail('HOST_TERMINAL_CAPACITY');
    row.prepared=Object.freeze({body,responseDigest,stateAfterDigest});return undefined;
   }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered--;}
@@ -103,7 +115,7 @@ export class OriginalHostTerminalJournal {
   try{
    this.#current();const row=this.#records.get(claim?.key);if(!row?.terminal||row.claim!==claim)fail('HOST_TERMINAL_UNKNOWN');
    const entered=this.#read(row.key+'.entered'),terminal=this.#read(row.key+'.terminal');
-   if(!entered.raw.equals(row.original.raw)||!terminal.raw.equals(row.result.raw)||terminal.body.responseDigest!==sha(canonicalJSON(response)))fail('HOST_TERMINAL_READBACK_MISMATCH');
+   if(!entered.raw.equals(row.original.raw)||!terminal.raw.equals(row.result.raw)||(row.recoverable?sha(terminal.body.x):terminal.body.responseDigest)!==sha(canonicalJSON(response)))fail('HOST_TERMINAL_READBACK_MISMATCH');
    this.#current();return undefined;
   }catch(cause){this.#remember(cause);throw cause;}
  }

@@ -285,6 +285,7 @@ export class ProductSessionGatewayNodeHost {
     const request={requestId:input.requestId,method:'POST',path:reference?originalPrivateReferenceRoute(input):paths[input.operation],contentType:'application/json',body:input.body,proofHeader:input.proofHeader,networkAvailable:true};
     const result=reference&&input.referenceAction==='outcome'?candidate.handleOriginalReferenceOutcome(request,this.#now()):candidate.handle(request,this.#now());
     this.#privateCaptureResult(record,result); // Original before late persistence.
+    if(Buffer.byteLength(record.resultRaw)>budget.response)fail('ORIGINAL_PRIVATE_RESPONSE_CAPACITY','Original Native response exceeds its fixed transport budget');
     const before=snapshotDigest(this.#handler.snapshot()),after=snapshotDigest(candidate.snapshot());
     // Freeze and capacity-check the exact terminal before the candidate state
     // becomes durable. A later commit must consume these same response bytes.

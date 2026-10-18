@@ -31,6 +31,13 @@ Use decodeOriginalWalletServicePrivateRequest unchanged as the only parser:
 * v4: envelope 65536 bytes, body 49152 bytes, response 65536 bytes.
   Other versions retain the existing decoder's purpose-specific limits.
 
+The actual Native private response reader caps the outer canonical response at
+65536 bytes for all carriers. The private JS budget and Host now enforce that
+same cap before persistence. The HTTP adapter's independent 1 MiB body limit is
+not evidence that Native can deliver it. IDE may use a service-only escaped
+transport wrapper sufficient for the existing 262144-byte v3 input; this does not
+expand the inner carrier or response limits or other parent-control subscriptions.
+
 The response is the exact canonical JSON string of {status,headers,body}; retain
 its original body string, x-request-id and SHA256. Do not reconstruct it from a
 session/result DTO. Envelope metadata locates/matches an original; it grants no
@@ -80,10 +87,11 @@ a terminal metadata flag does not provide that path.
 
 ## Recovery boundaries still incomplete
 
-R30 Native getter is readOriginalNativePrivateServiceTerminalResult(original,
+R30/R30a Native getter is readOriginalNativePrivateServiceTerminalResult(original,
 operation,phase,originalRequestId). Its ten-field result is data, not a capability.
-v1 requires exact late response bytes. v2 retains exact original response bytes in
-the same 8192-byte immutable terminal. Neither proves fresh account-policy/current
+v1 requires exact late response bytes. v2 historical reads remain; new v3 writes
+use the exact R30a codec, binding the original entered record and retaining the
+complete response within 8192 bytes. None proves fresh account-policy/current
 introspection or grants connected status.
 
 AdmissionPrivate can register a qualified exact input without an effect. This alone
@@ -95,9 +103,10 @@ live-handle recovery as restart recovery or dispatch complete again to register 
 
 ## Delivery gates
 
-Auth's listener successor must only borrow the actual already registered listener
-resource for its current service PID; no socket/bind/listen creation or arbitrary
-FD input. That resource and its lawful Source registration remain external gates.
+Auth's listener successor must use the actual Source-registered literal socket
+resource for its current service PID. Root authorizes its normal bind/listen code;
+no arbitrary path/FD/provider selector or substitute endpoint is allowed. Its
+lawful Source registration remains an external gate.
 The SDK normal daemon pump and IDE success branch await that exact formal callee.
-R30 compact codec is independently consumable once its formal H is supplied.
+R30a's formal compact codec is consumed by the owning journal prepare step.
 Development source/control results do not establish those gates or an installation.
