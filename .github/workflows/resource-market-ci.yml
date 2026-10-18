@@ -28,6 +28,8 @@ on:
       - 'scripts/verify/consensus-candidate-deploy-gate.sh'
       - 'scripts/verify/verify-consensus-candidate.sh'
       - 'scripts/ops/public-bft-production-driver.sh'
+      - 'scripts/ops/write-owner-handover-packet.mjs'
+      - 'scripts/ops/write-production-custody-review-packet.mjs'
       - 'scripts/ops/public-bft-cutover-transaction.sh'
       - 'scripts/ops/public-bft-operator-transition.sh'
       - 'scripts/ops/remote/public-bft-operator-transition.sh'
@@ -38,6 +40,11 @@ on:
       - 'scripts/verify/public-bft-candidate-binding.mjs'
       - 'scripts/verify/public-bft-production-candidate-check.sh'
       - 'scripts/verify/public-bft-production-driver-check.sh'
+      - 'scripts/verify/lib/owner-handover.mjs'
+      - 'scripts/verify/validate-owner-handover-receipt.mjs'
+      - 'scripts/verify/validate-production-custody-review.mjs'
+      - 'scripts/verify/owner-handover-check.sh'
+      - 'scripts/verify/production-custody-review-check.sh'
       - 'scripts/verify/public-bft-cutover-transaction-check.sh'
       - 'scripts/verify/public-bft-operator-transition-check.sh'
       - 'scripts/verify/public-bft-validator-registration-check.sh'
@@ -379,6 +386,7 @@ jobs:
         env:
           YNX_PQ_LIGHT_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-light-proof-public.json
           YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
+          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
@@ -1307,6 +1315,8 @@ jobs:
           cat "$YNX_OLD_SNAPSHOT_LOG"
           test "$(grep -c 'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED' "$YNX_OLD_SNAPSHOT_LOG")" -eq 1
           bash scripts/verify/public-bft-production-driver-check.sh --snapshot-only
+          bash scripts/verify/owner-handover-check.sh
+          bash scripts/verify/production-custody-review-check.sh
           bash scripts/verify/public-bft-production-candidate-check.sh
           # Original transaction-order fixtures replace the external driver;
           # no service, remote transport or paused product is started.
@@ -1501,6 +1511,166 @@ jobs:
               target.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
           print('YNX_PQ_TRANSACTION_PROOF_CLI ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
           PY
+      - name: Verify stopped-source publication and original Host ABI through normal binaries
+        id: pqhostsourcecli
+        if: ${{ success() && github.event_name == 'push' }}
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PY'
+          import base64, hashlib, json, os, re, stat, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']).resolve()
+          case = root / 'ynx-proof-host-source-public'
+          def sha(raw):
+              return hashlib.sha256(raw).hexdigest()
+          def unique(pairs):
+              value = {}
+              for key, item in pairs:
+                  if key in value:
+                      raise RuntimeError('duplicate normal source-delivery field')
+                  value[key] = item
+              return value
+          def decode(raw):
+              return json.loads(raw, object_pairs_hook=unique)
+          def read(path, maximum):
+              info = path.lstat()
+              if (path.resolve(strict=True) != path or not stat.S_ISREG(info.st_mode)
+                      or info.st_nlink != 1 or info.st_mode & 0o022 or not 0 < info.st_size <= maximum):
+                  raise RuntimeError('bounded original regular public fixture required')
+              return path.read_bytes()
+          metadata_raw = read(case / 'metadata.json', 16384)
+          metadata = decode(metadata_raw)
+          if set(metadata) != {'sourcePlanSHA256', 'sourcePlanPath', 'deliveryPath', 'sourceId', 'epoch', 'requestPath', 'expectedVerifierCode'}:
+              raise RuntimeError('exact persisted source fixture metadata required')
+          if (metadata['sourcePlanPath'] != str(case / 'source-plan.json')
+                  or metadata['deliveryPath'] != str(case / 'delivery')
+                  or metadata['requestPath'] != str(case / 'request.json')
+                  or metadata['expectedVerifierCode'] != 'VERIFIED_TRANSACTION_DATA'):
+              raise RuntimeError('persisted fixture cannot choose an alternate caller or output')
+          plan_path, destination = Path(metadata['sourcePlanPath']), Path(metadata['deliveryPath'])
+          plan_raw = read(plan_path, 48 << 20)
+          if sha(plan_raw) != metadata['sourcePlanSHA256']:
+              raise RuntimeError('source plan differs from the original core fixture pin')
+          plan = decode(plan_raw)
+          request_raw = read(Path(metadata['requestPath']), 128 << 20)
+          request = decode(request_raw)
+          if (plan['sourceId'] != metadata['sourceId'] or plan['epoch'] != metadata['epoch']
+                  or request['version'] != 'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1'
+                  or request['expected'] != plan['expectedTransaction']):
+              raise RuntimeError('original operator plan and verifier request binding differ')
+          candidate = root / 'ynx-pq-linux-runtime-candidate'
+          runtime_raw = read(candidate / 'SOURCE.json', 65536)
+          runtime = decode(runtime_raw)
+          if runtime['commit'] != os.environ['GITHUB_SHA'] or runtime['runtimeStarted'] is not False:
+              raise RuntimeError('normal binary source identity differs from this fixed CI source')
+          binary_pins = {}
+          for name in ('ynx-comet', 'ynx-consensus-proof-verify'):
+              binary = candidate / name
+              raw = read(binary, 128 << 20)
+              pin = dict(bytes=len(raw), sha256=sha(raw))
+              if raw[:6] != b'\x7fELF\x02\x01' or raw[18:20] != b'\x3e\x00' or pin != runtime['binaries'][name]:
+                  raise RuntimeError('source delivery requires the actual independently built normal ELF pin')
+              binary_pins[name] = pin
+          environment = dict(PATH='/usr/bin:/bin', GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB')
+          observations = []
+          def invoke(name, command, body, maximum, expected_exit=0):
+              completed = subprocess.run(command, input=body, capture_output=True, env=environment,
+                  cwd=case, timeout=25, check=False)
+              if completed.returncode != expected_exit or completed.stderr or not 0 < len(completed.stdout) <= maximum:
+                  raise RuntimeError('normal source/Host caller failed at ' + name)
+              value = decode(completed.stdout)
+              observations.append(dict(name=name, exitCode=completed.returncode,
+                  stdoutSHA256=sha(completed.stdout), stdoutBytes=str(len(completed.stdout))))
+              return value
+          publish = [str(candidate / 'ynx-comet'), 'export-proof-host-source',
+              '--source-plan', str(plan_path), '--source-plan-sha256', metadata['sourcePlanSHA256'],
+              '--output', str(destination)]
+          delivery = invoke('export-stopped-original-source', publish, b'', 16384)
+          if (set(delivery) != {'version', 'manifestPath', 'manifestSHA256', 'sourcePath', 'sourceSHA256', 'sourceId', 'epoch', 'publicDataOnly', 'nativeRootAuthorized', 'deploymentVerified'}
+                  or delivery['version'] != 'YNX-CONSENSUS-PROOF-HOST-DELIVERY-RECEIPT/v1'
+                  or delivery['manifestPath'] != str(destination / 'delivery.json')
+                  or delivery['sourcePath'] != str(destination / 'host-source.json')
+                  or delivery['sourceId'] != metadata['sourceId'] or delivery['epoch'] != metadata['epoch']
+                  or delivery['publicDataOnly'] is not True or delivery['nativeRootAuthorized'] is not False
+                  or delivery['deploymentVerified'] is not False):
+              raise RuntimeError('publisher receipt lost exact binding or claimed authority')
+          manifest_raw = read(destination / 'delivery.json', 16384)
+          if sha(manifest_raw) != delivery['manifestSHA256']:
+              raise RuntimeError('normal publisher manifest readback pin differs')
+          manifest = decode(manifest_raw)
+          originals = {'delivery.json': manifest_raw}
+          for item in manifest['files']:
+              if Path(item['name']).name != item['name']:
+                  raise RuntimeError('delivery catalog attempted a non-leaf source')
+              raw = read(destination / item['name'], 1 << 30)
+              if str(len(raw)) != item['bytes'] or sha(raw) != item['sha256']:
+                  raise RuntimeError('normal delivery file pin differs')
+              originals[item['name']] = raw
+          host = [str(candidate / 'ynx-consensus-proof-verify'), '--host-trust-source',
+              delivery['sourcePath'], '--host-trust-source-sha256', delivery['sourceSHA256']]
+          def check_host(operation, fingerprint, label=None):
+              body = json.dumps(dict(version='YNX-CONSENSUS-PROOF-HOST-REQUEST/v1', operation=operation,
+                  sourceId=metadata['sourceId'], epoch=metadata['epoch'], sourceFingerprint=fingerprint), separators=(',', ':')).encode()
+              result = invoke(label or 'host-' + operation, host, body, 104521276)
+              if set(result) != {'version', 'code', 'context'} or result['version'] != 'YNX-CONSENSUS-PROOF-HOST-RESULT/v1' or result['code'] != 'EXPORTED_PROOF_TRUST_DATA':
+                  raise RuntimeError('normal original Host ABI did not export source DATA')
+              context = result['context']
+              if (context['version'] != 'YNX-CONSENSUS-PROOF-HOST-CONTEXT/v1' or context['classification'] != 'data'
+                      or context['sourceId'] != metadata['sourceId'] or context['epoch'] != metadata['epoch']
+                      or context['sourceSHA256'] != delivery['sourceSHA256'] or context['currentChecked'] is not True
+                      or any(context[key] is not False for key in ('nativeRootAuthorized', 'sourceDeploymentQualified', 'proofVerified'))
+                      or context['expectedTransaction'] != request['expected']
+                      or context['contextPath'] != str(destination / 'trust-context.json')):
+                  raise RuntimeError('normal Host changed original source/transaction binding or granted authority')
+              if not re.fullmatch('[0-9a-f]{64}', context['sourceFingerprint']) or operation == 'current' and context['sourceFingerprint'] != fingerprint:
+                  raise RuntimeError('normal current check did not retain the original source identity')
+              for field, name, pin in (('sourceBytes', 'host-source.json', 'sourceSHA256'),
+                      ('lifecycleBytes', 'lifecycle.json', 'lifecycleSHA256'), ('contextBytes', 'trust-context.json', 'contextSHA256')):
+                  raw = base64.b64decode(context[field], validate=True)
+                  if raw != originals[name] or sha(raw) != context[pin]:
+                      raise RuntimeError('normal Host did not retain exact original public bytes')
+              return context
+          context = check_host('acquire', '')
+          fingerprint = context['sourceFingerprint']
+          context = check_host('current', fingerprint)
+          verified = invoke('original-transaction-proof', [str(candidate / 'ynx-consensus-proof-verify'),
+              '--trust-context', context['contextPath'], '--trust-context-sha256', context['contextSHA256']], request_raw, 1 << 20)
+          if set(verified) != {'version', 'code', 'result'} or verified['version'] != 'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1' or verified['code'] != metadata['expectedVerifierCode']:
+              raise RuntimeError('normal transaction proof verifier did not close the source delivery path')
+          result, expected = verified['result'], request['expected']
+          if (result['classification'] != 'data' or result['transactionType'] != expected['transactionType']
+                  or result['transactionHash'] != expected['transactionHash'] or result['nativeWireHash'] != expected['nativeWireHash']
+                  or result['height'] != expected['block']['headerHeight'] or result['index'] != expected['index']
+                  or result['included'] is not True or result['finalized'] is not True or result['executionSuccessful'] is not True
+                  or result['executionCode'] != '0' or result['outcome'] != 'succeeded' or result['nativeGrant'] is not False):
+              raise RuntimeError('normal verifier lost original inclusion/execution DATA binding')
+          check_host('current', fingerprint, 'host-current-after-proof')
+          if set(p.name for p in destination.iterdir()) != set(originals) or any((destination / name).read_bytes() != raw for name, raw in originals.items()):
+              raise RuntimeError('readonly Host/proof verification changed the delivered original bytes')
+          if read(plan_path, 48 << 20) != plan_raw or read(Path(metadata['requestPath']), 128 << 20) != request_raw:
+              raise RuntimeError('normal source delivery changed original pinned plan/request')
+          receipt = dict(version='YNX-PROOF-HOST-SOURCE-CLI-INTEROP/v1', commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'],
+              metadataSHA256=sha(metadata_raw), sourcePlanSHA256=metadata['sourcePlanSHA256'], runtimeSOURCEsha256=sha(runtime_raw),
+              binaryPins=binary_pins, deliveryManifestSHA256=delivery['manifestSHA256'], sourceSHA256=delivery['sourceSHA256'],
+              sourceFingerprint=fingerprint, cases=observations, syntheticOnly=True, normalCLIExecuted=True,
+              originalDeliveredBytesUnchanged=True, transactionProofVerified=True, nativeRootAuthorized=False,
+              sourceDeploymentQualified=False, actualCometNode=False, installedWallet=False, publicDeployment=False, pqActivation=False)
+          with (root / 'ynx-proof-host-source-cli-public-receipt.json').open('x') as output:
+              output.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
+          print('YNX_PROOF_HOST_SOURCE_CLI ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
+          PY
+      - name: Upload only public Host delivery and normal CLI receipt
+        if: ${{ !cancelled() && steps.pqhostsourcecli.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-proof-host-source-public-delivery-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-proof-host-source-public/delivery
+            ${{ runner.temp }}/ynx-proof-host-source-cli-public-receipt.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload only public transaction proof fixture and normal CLI receipt
         if: ${{ !cancelled() && steps.pqtransactionproofcli.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
