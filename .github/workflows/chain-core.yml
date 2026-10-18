@@ -157,38 +157,6 @@ jobs:
           -count=1 -timeout=45s -v
       - name: Verify opt-in node phase timings against real durable execution
         run: go test -p 1 ./cmd/ynx-abci -run '^TestPhaseTiming' -count=1 -timeout=45s -v
-      - name: Verify fixed unpublished borrowed-recovery V13 integration contract
-        run: make integration-contract-perf-v13-borrowed-recovery-check
-      - run: make chain-core-release-check
-      - run: make no-placeholder-check
-      - run: make secret-scan
-      - name: Measure selected matched state hash encoders
-        id: state_hash_encoding
-        if: github.event_name == 'workflow_dispatch' && inputs.measure_state_hash_encoding
-        env:
-          YNX_CHAIN_ENCODING_STATE: ${{ github.workspace }}/docs/performance/fixtures/state-hash-real-1024.json
-          GOMAXPROCS: "1"
-          GOGC: "50"
-          GOMEMLIMIT: "160MiB"
-          GOPROXY: "off"
-          GOTOOLCHAIN: local
-          GOFLAGS: -mod=readonly
-          GOWORK: "off"
-        run: |
-          set -o pipefail
-          mkdir "$RUNNER_TEMP/ynx-state-hash-encoding"
-          git rev-parse HEAD HEAD:internal > "$RUNNER_TEMP/ynx-state-hash-encoding/source-pins.txt"
-          printf '%s  %s\n' 'ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56' 'docs/performance/fixtures/state-hash-real-1024.json' | sha256sum -c -
-          cp docs/performance/fixtures/state-hash-real-1024.manifest.json "$RUNNER_TEMP/ynx-state-hash-encoding/fixture-manifest.json"
-          go test -p 1 ./internal/consensus -run '^$' -bench '^BenchmarkCommittedStateHashJSON/(original_borrowed_encoder|fee_chunked_encoder)$' -benchtime=200ms -count=3 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-state-hash-encoding/go-benchmark.log"
-      - name: Retain selected matched state hash encoder evidence
-        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure_state_hash_encoding && steps.state_hash_encoding.outcome != 'skipped'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: state-hash-encoding-${{ github.sha }}
-          path: ${{ runner.temp }}/ynx-state-hash-encoding
-          if-no-files-found: error
-          retention-days: 90
       - name: Measure bounded real signed fee history
         if: github.event_name == 'workflow_dispatch' && inputs.measure_real_fee_history
         env:
@@ -244,6 +212,38 @@ jobs:
             ${{ runner.temp }}/ynx-real-fee-history/state-validation.cpu.pprof
             ${{ runner.temp }}/ynx-real-fee-history/state-validation-top.txt
             ${{ runner.temp }}/ynx-real-fee-history/result.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Verify fixed unpublished borrowed-recovery V13 integration contract
+        run: make integration-contract-perf-v13-borrowed-recovery-check
+      - run: make chain-core-release-check
+      - run: make no-placeholder-check
+      - run: make secret-scan
+      - name: Measure selected matched state hash encoders
+        id: state_hash_encoding
+        if: github.event_name == 'workflow_dispatch' && inputs.measure_state_hash_encoding
+        env:
+          YNX_CHAIN_ENCODING_STATE: ${{ github.workspace }}/docs/performance/fixtures/state-hash-real-1024.json
+          GOMAXPROCS: "1"
+          GOGC: "50"
+          GOMEMLIMIT: "160MiB"
+          GOPROXY: "off"
+          GOTOOLCHAIN: local
+          GOFLAGS: -mod=readonly
+          GOWORK: "off"
+        run: |
+          set -o pipefail
+          mkdir "$RUNNER_TEMP/ynx-state-hash-encoding"
+          git rev-parse HEAD HEAD:internal > "$RUNNER_TEMP/ynx-state-hash-encoding/source-pins.txt"
+          printf '%s  %s\n' 'ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56' 'docs/performance/fixtures/state-hash-real-1024.json' | sha256sum -c -
+          cp docs/performance/fixtures/state-hash-real-1024.manifest.json "$RUNNER_TEMP/ynx-state-hash-encoding/fixture-manifest.json"
+          go test -p 1 ./internal/consensus -run '^$' -bench '^BenchmarkCommittedStateHashJSON/(original_borrowed_encoder|fee_chunked_encoder)$' -benchtime=200ms -count=3 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-state-hash-encoding/go-benchmark.log"
+      - name: Retain selected matched state hash encoder evidence
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure_state_hash_encoding && steps.state_hash_encoding.outcome != 'skipped'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: state-hash-encoding-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-state-hash-encoding
           if-no-files-found: error
           retention-days: 90
       - name: Build isolated Darwin phase-timing node candidate
