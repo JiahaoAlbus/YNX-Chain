@@ -189,6 +189,12 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 }
 
 func sealCommittedState(migration chain.ConsensusMigrationState, height int64, execution executionState) (CommittedState, error) {
+	// The guarded candidate is measured explicitly before runtime activation.
+	return sealCommittedStateMeasured(migration, height, execution, false, nil)
+}
+
+func sealCommittedStateMeasured(migration chain.ConsensusMigrationState, height int64, execution executionState, guarded bool, timings *commitTimings) (CommittedState, error) {
+	started := timings.start()
 	state := CommittedState{
 		Version:                    CommittedStateVersion,
 		ChainID:                    migration.Network.ChainID,
@@ -243,6 +249,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		DexPools:                   cloneDexPools(execution.dexPools),
 		DexEvents:                  append([]BFTDexEvent(nil), execution.dexEvents...),
 	}
+	started = timings.mark("clone_and_materialize", started)
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
 		state.AppHash = migration.StateHash
 	} else {
@@ -252,13 +259,37 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		}
 		state.AppHash = hash
 	}
-	if err := state.Validate(migration); err != nil {
+	started = timings.mark("initial_hash", started)
+	var unchanged func(CommittedState) bool
+	if guarded {
+		unchanged = snapshotNativeSealState(state)
+	}
+	started = timings.mark("witness_copy", started)
+	if err := state.validateSemantics(migration); err != nil {
 		return CommittedState{}, err
+	}
+	started = timings.mark("semantic_validate", started)
+	reuse := unchanged != nil && unchanged(state)
+	started = timings.mark("witness_compare", started)
+	if !reuse {
+		if err := state.validateAppHash(migration); err != nil {
+			return CommittedState{}, err
+		}
+		timings.mark("final_hash", started)
 	}
 	return state, nil
 }
 
+// Validate always checks the complete current state, including AppHash. The
+// local seal experiment grants no reusable validation authority to callers.
 func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error {
+	if err := s.validateSemantics(migration); err != nil {
+		return err
+	}
+	return s.validateAppHash(migration)
+}
+
+func (s CommittedState) validateSemantics(migration chain.ConsensusMigrationState) error {
 	if err := migration.Validate(); err != nil {
 		return fmt.Errorf("invalid migration anchor: %w", err)
 	}
@@ -387,6 +418,10 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if liquid+staked+vaultLiquid+unbonding+int64(paymasterLocked)+dexNativeEscrow != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
 		return errors.New("committed state changed total liquid plus staked YNXT supply")
 	}
+	return nil
+}
+
+func (s CommittedState) validateAppHash(migration chain.ConsensusMigrationState) error {
 	expected := migration.StateHash
 	if !accountsEqual(s.Accounts, migration.Accounts) || s.hasApplicationRecords() {
 		var err error

@@ -109,6 +109,18 @@ jobs:
         run: |
           set -o pipefail
           go test -p 1 ./internal/consensus -run '^(TestCommitStorageMatchedPerformance|TestBlockJournalAbruptExit|TestBlockJournalFailedWriterRetiresWithoutPublishing)$' -count=1 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-commit-storage-pair/go-test.log"
+      - name: Measure guarded seal phases and verify mutation fallback
+        env:
+          GOMAXPROCS: "1"
+          GOGC: "50"
+          GOMEMLIMIT: "160MiB"
+          GOPROXY: "off"
+          GOTOOLCHAIN: "local"
+          GOFLAGS: "-mod=readonly"
+          GOWORK: "off"
+        run: |
+          set -o pipefail
+          go test -p 1 ./internal/consensus -run '^TestSeal' -count=1 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-commit-storage-pair/seal-phases-and-safety.log"
       - name: Retain actual matched Commit evidence even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
