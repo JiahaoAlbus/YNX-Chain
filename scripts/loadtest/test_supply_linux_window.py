@@ -371,12 +371,17 @@ class SupplySourceTests(unittest.TestCase):
                         client.update(endpointFairSubmission=flag,endpoints=["http://127.0.0.1:"+str(31757+i) for i in range(4)])
                         for tx in client["transactions"]:tx["endpoint"]=client["endpoints"][tx["index"]%4]
                         if flag:client["readySenders"]["endpointDispatch"]=dict(workers=4,perEndpointInFlightLimit=1,queueCapacityTotal=1024,callbackAttempts=[256]*4,callbackReturns=[256]*4)
-                        for name in ("submissionQueueDelayMs","checkTxLatencyMs"):client["summary"][name]=dict(samples=1024,p50=10,p95=20,p99=30)
+                        for tx in client["transactions"]:tx["checkTxMs"]=20
+                        client["summary"]["submissionQueueDelayMs"]=dict(samples=1024,p50=10,p95=10,p99=10)
+                        client["summary"]["checkTxLatencyMs"]=dict(samples=1024,p50=20,p95=20,p99=20)
                         row["measurement"]["summary"]=client["summary"]
+                        row["measurement"]["supply"]=client["readySenders"]["supply"]
                         if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=4
                         row.update(endpointFairSubmission=flag,endpointDispatchVerification=supply.validate_endpoint_dispatch(client,flag))
                         if replay_fault=="endpoint-selection":row["endpointFairSubmission"]=not flag
                         if replay_fault=="authority":client["transactions"][0]["endpoint"]=client["endpoints"][1]
+                        if replay_fault=="tail-summary":client["summary"]["submissionQueueDelayMs"]["p99"]=999
+                        if replay_fault=="case-measurement":row["measurement"]["supply"]=dict(client["readySenders"]["supply"],signAttempts=511)
                     network=case/"network";network.mkdir()
                     encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
                     row["resultSHA256"]=hashlib.sha256(encoded).hexdigest() if not corrupt_result else "0"*64
@@ -659,7 +664,7 @@ class SupplySourceTests(unittest.TestCase):
         self.assertTrue(row["cases"][1]["endpointDispatchVerification"]["stats"]["workers"]==4)
         self.assertIn("dispatchTailObservation",row)
         self.assertFalse(row["dispatchTailObservation"]["sustainedTPSQualified"])
-        for kwargs in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(replay_fault="authority"),dict(replay_fault="endpoint-selection")):
+        for kwargs in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(replay_fault="authority"),dict(replay_fault="endpoint-selection"),dict(replay_fault="tail-summary"),dict(replay_fault="case-measurement")):
             with self.subTest(kwargs=kwargs):
                 code,order,row=self.mock_pair(comparison="shared-fair",**kwargs)
                 self.assertEqual(code,1);self.assertEqual(order,["shared-baseline"])
@@ -697,6 +702,21 @@ class SupplySourceTests(unittest.TestCase):
                 self.assertFalse(supply.dispatch_tail_observation(before,changed,joint)["finiteJointAndTailImprovement"])
         after["offerLatency"]["offerToQualifiedFinalLatencyMs"]["p99"]+=1
         self.assertFalse(supply.dispatch_tail_observation(before,after,joint)["finiteJointAndTailImprovement"])
+
+    def test_submission_tail_summary_must_match_all_original_rows(self):
+        import copy
+        row=report("supply-512x2")
+        for i,tx in enumerate(row["transactions"]):tx.update(queueDelayMs=i,checkTxMs=20)
+        row["summary"].update(submissionQueueDelayMs=dict(samples=1024,p50=511,p95=972,p99=1013),checkTxLatencyMs=dict(samples=1024,p50=20,p95=20,p99=20))
+        self.assertEqual(supply.original_submission_tails(row)["submissionQueueDelayMs"]["p99"],1013)
+        for mode in ("summary","count","missing","negative","nan"):
+            changed=copy.deepcopy(row)
+            if mode=="summary":changed["summary"]["submissionQueueDelayMs"]["p99"]=1
+            if mode=="count":changed["transactions"].pop()
+            if mode=="missing":del changed["transactions"][0]["checkTxMs"]
+            if mode=="negative":changed["transactions"][0]["queueDelayMs"]=-1
+            if mode=="nan":changed["transactions"][0]["checkTxMs"]=float("nan")
+            with self.subTest(mode=mode),self.assertRaises(RuntimeError):supply.original_submission_tails(changed)
 
     def test_2048_fixture_readback_binds_every_sender_nonce_and_all_file_bytes(self):
         import base64

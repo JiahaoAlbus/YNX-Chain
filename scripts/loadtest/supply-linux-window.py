@@ -403,6 +403,23 @@ def validate_endpoint_dispatch(report, expected):
                 interpretation="Actual callback counts are not extra RPC or business successes; original1024-result business qualification is required separately. No request authority replacement or automatic UNKNOWN retry.")
 
 
+def original_submission_tails(report):
+    rows=report.get("transactions",[])
+    if len(rows)!=1024:
+        raise RuntimeError("all1024 original rows required for submission tail readback")
+    result={}
+    for summary_key,row_key in (("submissionQueueDelayMs","queueDelayMs"),("checkTxLatencyMs","checkTxMs")):
+        values=[row.get(row_key) for row in rows]
+        if any(type(v) not in (int,float) or not math.isfinite(v) or v<0 for v in values):
+            raise RuntimeError("original submission tail duration absent/invalid: "+row_key)
+        values.sort()
+        observed=dict(samples=1024,**{name:values[math.ceil(q*1024)-1] for name,q in (("p50",.5),("p95",.95),("p99",.99))})
+        if report.get("summary",{}).get(summary_key)!=observed:
+            raise RuntimeError("submission tail summary differs from original raw rows: "+summary_key)
+        result[summary_key]=observed
+    return result
+
+
 def dispatch_tail_observation(before, after, joint):
     metrics={}
     for key in ("submissionQueueDelayMs","checkTxLatencyMs"):
@@ -501,7 +518,9 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                 if hashlib.sha256(client_raw).hexdigest() != row.get("resultSHA256"):
                     raise RuntimeError("grouping pair raw client result hash differs")
                 client=json.loads(client_raw)
-                validate_report(client,"supply-512x2",pace,endpoint_fair=comparison=="shared-fair" and index==1)
+                measured=validate_report(client,"supply-512x2",pace,endpoint_fair=comparison=="shared-fair" and index==1)
+                if comparison=="shared-fair" and measured!=row.get("measurement"):
+                    raise RuntimeError("fair pair case measurement differs from original client facts")
                 result["cases"][-1]["offerLatency"]=offer_latency_readout(client)
                 result["cases"][-1]["nodePhases"]=row["nodePhases"]
                 if comparison in ("independent-shared","shared-fair"):
@@ -516,6 +535,7 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                     if row.get("endpointDispatchVerification")!=dispatch or row.get("endpointFairSubmission") is not (index==1):
                         raise RuntimeError("endpoint dispatch receipt differs from actual original client counters/selection")
                     result["cases"][-1]["endpointDispatchVerification"]=dispatch
+                    result["cases"][-1]["originalSubmissionTails"]=original_submission_tails(client)
             result["closureScans"].append(empty_pair_closure(budget))
             if baseline is None:
                 baseline = row
