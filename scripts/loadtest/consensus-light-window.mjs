@@ -8,10 +8,10 @@ import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
-import {lightCommand,lightScratchBytes,requireClientRegressionPasses,requireReadySupplyPhases,remainingPhaseBudget,clientRegressionArgs,clientOwnedRSSCap,lightProbeInput,stoppedOriginalInventory,requireSameStoppedOriginals,requireStoppedProofPasses} from './consensus-light-plan.mjs';
-const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false},'client13-normal-05':{type:'boolean',default:false},'client13-normal-06':{type:'boolean',default:false},'client13-normal-07':{type:'boolean',default:false},'client13-normal-08':{type:'boolean',default:false},'client13-normal-09':{type:'boolean',default:false},'client13-normal-10':{type:'boolean',default:false},'client13-normal-11':{type:'boolean',default:false},'client13-normal-12':{type:'boolean',default:false},'client13-normal-13':{type:'boolean',default:false},'offline-baseline-stopped-01':{type:'boolean',default:false}}});
+import {currentCacheOccupancy,lightCommand,lightScratchBytes,requireClientRegressionPasses,requireReadySupplyPhases,remainingPhaseBudget,clientRegressionArgs,clientOwnedRSSCap,lightProbeInput,stoppedOriginalInventory,requireSameStoppedOriginals,requireStoppedProofPasses} from './consensus-light-plan.mjs';
+const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false},'client13-normal-05':{type:'boolean',default:false},'client13-normal-06':{type:'boolean',default:false},'client13-normal-07':{type:'boolean',default:false},'client13-normal-08':{type:'boolean',default:false},'client13-normal-09':{type:'boolean',default:false},'client13-normal-10':{type:'boolean',default:false},'client13-normal-11':{type:'boolean',default:false},'client13-normal-12':{type:'boolean',default:false},'client13-normal-13':{type:'boolean',default:false},'client13-normal-14':{type:'boolean',default:false},'offline-baseline-stopped-01':{type:'boolean',default:false}}});
 const plan=lightCommand(process.cwd(),values['stopped-window'],values['native-compile'],values['client-regression']);
-const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','offline-baseline-stopped-01'].filter(k=>values[k]);
+const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','offline-baseline-stopped-01'].filter(k=>values[k]);
 if(explicitCases.length>1)throw Error('only one explicit resource case');
 const admissionCase=explicitCases[0];
 const caseSuffix=admissionCase?.slice(-2);
@@ -31,7 +31,7 @@ const hostBinary={path:hostPath,sha256:createHash('sha256').update(fs.readFileSy
 if(hostBinary.sha256!==expectedProbe.sha256)throw Error('actual native probe binary digest differs from the fixed case');
 const probe=createNativeResourceProbe(hostPath);
 const goEnvironment=plan.env;
-const result={plan,hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete test process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,admissionCase,offlineCaps,ownedRSSCapBytes,priorRSSLimitEvidence:['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13'].includes(admissionCase)?{case:'client13-normal-04',limitBytes:419430400,actualPeakBytes:432111616,rawSHA256:'cdcd85e86a8ce5c89fd1c675334403c58a9d09b61226ce1106aae26b53f98791'}:undefined,allowedNativePressureLevels:admissionCase?[1,2]:[1],firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
+const result={plan,hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete test process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,admissionCase,offlineCaps,ownedRSSCapBytes,priorRSSLimitEvidence:['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14'].includes(admissionCase)?{case:'client13-normal-04',limitBytes:419430400,actualPeakBytes:432111616,rawSHA256:'cdcd85e86a8ce5c89fd1c675334403c58a9d09b61226ce1106aae26b53f98791'}:undefined,allowedNativePressureLevels:admissionCase?[1,2]:[1],firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
 const regression=plan.mode==='client_regression';
 let scratchRoot;
 result.scratchSamples=[];result.peakScratchBytes=0;
@@ -44,18 +44,16 @@ const deadline=setTimeout(()=>{fail(regression?'30s client active deadline':'45s
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{fail(signal);kill()});
 async function cacheOccupancy(){
  const paths=result.cachePaths;
- const timeoutMs=remainingPhaseBudget(started,activeMs,Date.now(),['client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13'].includes(admissionCase)?12000:5000);
+ const timeoutMs=remainingPhaseBudget(started,activeMs,Date.now(),['client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14'].includes(admissionCase)?12000:5000);
  const phase={startedAt:new Date().toISOString(),timeoutMs,remainingActiveMs:remainingPhaseBudget(started,activeMs,Date.now())};
  (result.cachePhases??=[]).push(phase);
- let stdout;
- try{({stdout}=await exec('/usr/bin/du',['-sk',...paths],{timeout:timeoutMs,killSignal:'SIGKILL',maxBuffer:65536}));}
- catch(e){result.cacheOccupancyError={command:'/usr/bin/du',args:['-sk',...paths],timeoutMs,code:e.code??null,signal:e.signal??null,killed:e.killed??null,stdout:e.stdout??'',stderr:e.stderr??'',message:e.message};phase.failed=true;phase.endedAt=new Date().toISOString();throw e;}
- phase.endedAt=new Date().toISOString();
- const rows=stdout.trim().split('\n');
- if(rows.length!==paths.length)throw Error('original Go cache occupancy unavailable');
- const bytes=rows.map(line=>Number(line.match(/^(\d+)\s/)?.[1])*1024);
- if(bytes.some(v=>!Number.isSafeInteger(v)||v<0))throw Error('actual original Go cache byte counts unavailable');
- return {paths,bytes,totalBytes:bytes.reduce((a,b)=>a+b,0),method:'du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected'};
+ try{
+  const occupancy=await currentCacheOccupancy(paths,exec,timeoutMs,started+activeMs);
+  phase.measurements=occupancy.measurements;phase.endedAt=new Date().toISOString();return occupancy;
+ }catch(e){
+  result.cacheOccupancyError={command:'/usr/bin/du',paths,timeoutMs,measurements:e.measurements??[],message:e.message};
+  phase.measurements=e.measurements??[];phase.failed=true;phase.endedAt=new Date().toISOString();throw e;
+ }
 }
 async function verifyGoSource(){
  const options={cwd:root,env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},timeout:1500,killSignal:'SIGKILL',maxBuffer:1024*1024};

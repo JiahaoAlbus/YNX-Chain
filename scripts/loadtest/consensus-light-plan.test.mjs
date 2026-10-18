@@ -165,7 +165,7 @@ test('actual phase output requires all three modes and refuses missing duplicate
 
 test('phase sample case11 preserves original bounded resource policy and instrumented probe',async()=>{
  const {clientOwnedRSSCap,lightProbeInput}=await import('./consensus-light-plan.mjs'),p=lightCommand('/work',undefined,false,true);
- for(const c of ['client13-normal-11','client13-normal-12','client13-normal-13'])assert.equal(clientOwnedRSSCap(p,c),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
+ for(const c of ['client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14'])assert.equal(clientOwnedRSSCap(p,c),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
  assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c');
  assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.caps.threads,320);
  assert.deepEqual(lightProbeInput('/work','client13-normal-11'),lightProbeInput('/work','client13-normal-10'));
@@ -194,4 +194,22 @@ test('scratch sampling cannot silently skip a recreated path or replacement root
   fs.readdirSync=function(p,...args){const names=readdir.call(fs,p,...args);if(p===base&&!replaced){replaced=true;fs.renameSync(base,retired);fs.mkdirSync(base);}return names;};
   assert.throws(()=>lightScratchBytes(base),/root identity changed/);
  }finally{fs.readdirSync=readdir;fs.rmSync(base,{recursive:true,force:true});fs.rmSync(retired,{recursive:true,force:true});}
+});
+
+test('cache accounting starts both independent current scans before awaiting and preserves path/PID counts',async()=>{
+ const {currentCacheOccupancy}=await import('./consensus-light-plan.mjs');const calls=[],resolvers=[];
+ const run=(command,args,options)=>{calls.push({command,args,options});const p=new Promise(resolve=>resolvers.push(resolve));p.child={pid:100+calls.length};return p;};
+ const pending=currentCacheOccupancy(['/cache/build','/cache/mod'],run,12000,Date.now()+30000);
+ assert.equal(calls.length,2);assert.deepEqual(calls.map(c=>c.args),[['-sk','/cache/build'],['-sk','/cache/mod']]);
+ resolvers[1]({stdout:'8\t/cache/mod\n',stderr:''});resolvers[0]({stdout:'4\t/cache/build\n',stderr:''});
+ const result=await pending;assert.deepEqual(result.bytes,[4096,8192]);assert.equal(result.totalBytes,12288);assert.deepEqual(result.measurements.map(m=>m.pid),[101,102]);
+ assert.ok(calls.every(c=>c.options.timeout<=12000&&c.options.killSignal==='SIGKILL'));
+});
+test('cache failure waits for the other original scan and cannot invent missing or wrong-path size',async()=>{
+ const {currentCacheOccupancy}=await import('./consensus-light-plan.mjs');let failed,finished=false,release;let n=0;
+ const run=()=>{n++;const p=n===1?new Promise((_,reject)=>{failed=reject;}):new Promise(resolve=>{release=resolve;});p.child={pid:n};return p;};
+ const pending=currentCacheOccupancy(['/cache/build','/cache/mod'],run,12000,Date.now()+30000);pending.then(()=>{finished=true;},()=>{finished=true;});
+ const err=new Error('actual timed out scan');Object.assign(err,{signal:'SIGKILL',killed:true,stdout:'',stderr:''});failed(err);await Promise.resolve();assert.equal(finished,false);
+ release({stdout:'8\t/cache/mod\n',stderr:''});await assert.rejects(pending,e=>e.measurements.length===2&&e.measurements[0].killed===true&&e.measurements[1].bytes===8192);
+ await assert.rejects(currentCacheOccupancy(['/cache/build','/cache/mod'],()=>Promise.resolve({stdout:'9\t/wrong\n',stderr:''}),12000,Date.now()+30000));
 });

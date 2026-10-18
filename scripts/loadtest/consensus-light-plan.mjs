@@ -72,14 +72,14 @@ export function clientRegressionArgs(plan,remainingMs){
 }
 
 export function clientOwnedRSSCap(plan,rootCase){
- if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13'].includes(rootCase))throw Error('unsupported explicit client resource case');
+ if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14'].includes(rootCase))throw Error('unsupported explicit client resource case');
  if(rootCase!==undefined&&plan.mode!=='client_regression')throw Error('explicit RSS case requires fixed client regression');
- if(['client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13'].includes(rootCase))return 768*1024**2;
- return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13'].includes(rootCase)?512*1024**2:400*1024**2;
+ if(['client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14'].includes(rootCase))return 768*1024**2;
+ return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14'].includes(rootCase)?512*1024**2:400*1024**2;
 }
 
 export function lightProbeInput(root,rootCase){
- return ['client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
+ return ['client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
 }
 
 // Inventory original stopped data; the proof outputs live outside this set.
@@ -141,4 +141,24 @@ export function requireReadySupplyPhases(stdout){
   r.phaseMs=Object.fromEntries([['successorSign',s.signNs],['successorEncode',s.encodeNs],['intentSetup',s.journalSetupNs],['intentAppend',s.journalAppendNs],['offerDecode',s.offerDecodeNs],['pacingWait',s.pacingWaitNs],['dispatch',s.dispatchNs],['completionWait',s.completionWaitNs],['terminalSink',s.terminalSinkNs],['finalize',r.finalizeNs],['durableCommit',r.commitNs],['terminalClose',r.terminalCloseNs],['restartRead',r.restartReadNs],['controllerElapsed',r.controllerNs]].map(([name,ns])=>[name,ns/1e6]));
  }
  return rows;
+}
+
+export async function currentCacheOccupancy(paths,run,timeoutMs,activeDeadlineAt){
+ if(!Array.isArray(paths)||paths.length!==2||new Set(paths).size!==2||paths.some(p=>!path.isAbsolute(p))||!Number.isSafeInteger(timeoutMs)||timeoutMs<=0||!Number.isSafeInteger(activeDeadlineAt))throw Error('actual cache paths/deadline unavailable');
+ const stopAt=Math.min(Date.now()+timeoutMs,activeDeadlineAt),measurements=[];
+ const settled=await Promise.allSettled(paths.map(async p=>{
+  const m={path:p,startedAt:new Date().toISOString(),pid:null,code:null,signal:null,killed:false};measurements.push(m);
+  try{
+   const remaining=stopAt-Date.now();if(remaining<=0)throw Error('cache phase active deadline');m.timeoutMs=remaining;
+   const query=run('/usr/bin/du',['-sk',p],{timeout:remaining,killSignal:'SIGKILL',maxBuffer:65536});m.pid=query.child?.pid??null;
+   const answer=await query;Object.assign(m,{code:0,stdout:answer.stdout,stderr:answer.stderr??''});
+   const lines=answer.stdout.trim().split('\n'),row=lines.length===1?lines[0].match(/^(\d+)\s+(.+)$/):null;
+   if(!row||row[2]!==p||m.stderr)throw Error('cache current occupancy row/path unavailable');
+   const bytes=Number(row[1])*1024;if(!Number.isSafeInteger(bytes)||bytes<0)throw Error('cache allocated byte count unavailable');m.bytes=bytes;return bytes;
+  }catch(e){Object.assign(m,{error:e.message,code:e.code??m.code,signal:e.signal??null,killed:e.killed??false,stdout:e.stdout??m.stdout??'',stderr:e.stderr??m.stderr??''});throw e;}
+  finally{m.endedAt=new Date().toISOString();}
+ }));
+ if(settled.some(r=>r.status!=='fulfilled')){const error=new Error('current cache occupancy unavailable: '+measurements.filter(m=>m.error).map(m=>m.error).join('; '));error.measurements=measurements;throw error;}
+ const bytes=settled.map(r=>r.value),totalBytes=bytes.reduce((a,b)=>a+b,0);if(!Number.isSafeInteger(totalBytes))throw Error('cache byte sum invalid');
+ return {paths,bytes,totalBytes,measurements,method:'two actual du -sk scans in parallel under one unchanged phase/global deadline; no cache copied/deleted/redirected or old sizes reused'};
 }
