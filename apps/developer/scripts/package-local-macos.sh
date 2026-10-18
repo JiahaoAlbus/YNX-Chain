@@ -22,6 +22,7 @@ node --test scripts/admit-derived-native.test.mjs
 node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
 node --test desktop/wallet-identity-v2-caller.test.mjs desktop/wallet-identity-v2-startup.test.mjs
 node --test desktop/native-identity-channel.test.mjs
+node --test desktop/native-identity-ui.test.mjs
 YNX_IDE_PEER_KERNEL_SOURCE="${YNX_DEVELOPER_CANONICAL_SDK_ROOT:-$repo_root/packages/wallet-auth}/src/original-identity-peer-runtime.js" node --test desktop/wallet-identity-peer-bridge.test.mjs
 # Test the normal App consumer against the same selected holder header. The
 # holder is App-only; it is not another Node NAPI translation unit.
@@ -127,6 +128,7 @@ cp -R services "$app/Contents/Resources/code/apps/developer/services"
 mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
 cp desktop/local-workbench.mjs desktop/local-startup-process.mjs desktop/local-plugin-copy.mjs desktop/local-workbench-ipc.mjs desktop/local-python-toolchain.mjs desktop/wallet-admission-startup.mjs desktop/wallet-admission-delivery.mjs desktop/wallet-identity-v2-caller.mjs desktop/native-parent-control.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/original-service-pipe.mjs desktop/private-payload-pump.mjs desktop/native-identity-channel.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/native-identity-ui.js "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/native-tools-client.mjs desktop/local-ai-tools-host.mjs desktop/admitted-local-project.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/marketplace-catalog-policy.mjs desktop/marketplace-catalog-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/marketplace-artifact-policy.mjs desktop/marketplace-artifact-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"

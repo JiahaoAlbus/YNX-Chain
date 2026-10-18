@@ -16,6 +16,7 @@
 #import "ynx-native-file-picker.h"
 #import "ynx-project-focus.h"
 #import "ynx-original-service-pipe.h"
+#import "ynx-native-identity-status.h"
 #import <CommonCrypto/CommonDigest.h>
 
 static NSString *YNXTrashExpectedProfile(NSString *support,NSString *workspace) {
@@ -657,6 +658,8 @@ static NSError *YNXEarlyIdentityCaptureError;
 @property(nonatomic,strong) NSPipe *localGoInput;
 @property(nonatomic,strong) NSMutableDictionary<NSString *,NSMutableDictionary *> *localOriginalServiceRequests;
 @property(nonatomic,strong) NSTimer *localOriginalServicePoll;
+@property(nonatomic,strong) NSMutableDictionary<NSString *,NSMutableDictionary *> *localIdentityRequests;
+@property(nonatomic,strong) NSTimer *localIdentityPoll;
 @property(nonatomic,copy) NSString *localGoInstance;
 @property(nonatomic,copy) NSString *localGoRequest;
 @property(nonatomic,copy) NSString *localGoProjectID;
@@ -748,6 +751,8 @@ static NSError *YNXEarlyIdentityCaptureError;
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWallet"];
     NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const serviceJobs=new Map(),serviceDocument=crypto.randomUUID();Object.defineProperty(window,'__ynxOriginalServiceDocument',{value:serviceDocument});Object.defineProperty(window,'__ynxOriginalServiceReply',{value:e=>{if(e.document!==serviceDocument)return;const job=serviceJobs.get(e.id);if(!job)return;serviceJobs.delete(e.id);job.cleanup();e.error?job.reject(new Error(e.error)):job.resolve(e.value);}});const service=(canonicalInput,options={})=>new Promise((resolve,reject)=>{const signal=options.signal;if(signal?.aborted){reject(new DOMException('Cancelled','AbortError'));return;}if(typeof canonicalInput!=='string'||new TextEncoder().encode(canonicalInput).length>262144||serviceJobs.size>=32){reject(new Error('Invalid or excessive original service request'));return;}const id=crypto.randomUUID(),cancel=()=>{try{window.webkit.messageHandlers.ynxLocalWallet.postMessage({action:'original-service-cancel',id,document:serviceDocument});}catch{}};let timer;const cleanup=()=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);};const abort=()=>{if(!serviceJobs.delete(id))return;cancel();cleanup();reject(new DOMException('Cancelled','AbortError'));};timer=setTimeout(()=>{if(!serviceJobs.delete(id))return;cancel();cleanup();reject(new Error('Original service request timed out; no automatic retry'));},60000);serviceJobs.set(id,{resolve,reject,cleanup,cancel});signal?.addEventListener('abort',abort,{once:true});try{window.webkit.messageHandlers.ynxLocalWallet.postMessage({action:'original-service-dispatch',id,document:serviceDocument,canonicalInput});}catch(error){serviceJobs.delete(id);cleanup();reject(error);}});addEventListener('pagehide',()=>{for(const job of serviceJobs.values()){job.cancel();job.cleanup();job.reject(new Error('Original service document retired'));}serviceJobs.clear();},{once:true});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({originalServiceDispatch:service,beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key}),saveRevocationIntent:(key,rawIntent)=>call('storage-save-intent',{key,rawIntent}),finishRevocationIntentWithCompletion:(key,expectedRawIntent,receiptRaw)=>call('storage-finish-intent',{key,expectedRawIntent,receiptRaw}),getRevocationCompletions:key=>call('storage-get-completions',{key}),getRevocationCompletion:(key,intentId)=>call('storage-get-completion',{key,intentId}),acknowledgeRevocationCompletion:(key,expectedReceiptRaw)=>call('storage-ack-completion',{key,expectedReceiptRaw}),consumerJournalPersist:receiptRaw=>call('consumer-journal-persist',{receiptRaw}),consumerJournalRead:intentId=>call('consumer-journal-read',{intentId})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(walletScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    NSString *identityScript=[NSString stringWithContentsOfURL:[[self resources]URLByAppendingPathComponent:@"code/apps/developer/desktop/native-identity-ui.js"] encoding:NSUTF8StringEncoding error:nil];
+    if(identityScript)[configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(identityScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *goScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeGoReply',{value:r=>{const j=jobs.get(r.id);if(!j)return;jobs.delete(r.id);r.status==='selected'?j.resolve({effective:'after-reopen',version:r.version}):j.reject(Object.assign(new Error(r.error||'Go toolchain selection cancelled.'),{cancelled:r.status==='cancelled'}));}});Object.defineProperty(window,'ynxDesktopGo',{value:Object.freeze({selectToolchain(){if(jobs.size)return Promise.reject(new Error('Go selection is already pending.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'select-go-toolchain',requestId});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Go selection document closed.'));jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(goScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *fileScript=[NSString stringWithFormat:@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();let initial=%@;Object.defineProperty(window,'__ynxNativeFileReply',{value:r=>{const j=jobs.get(r.requestId);if(!j)return;jobs.delete(r.requestId);r.error?j.reject(new Error(r.error)):j.resolve(r);}});Object.defineProperty(window,'ynxDesktopFiles',{value:Object.freeze({takeInitialFile(){const value=initial;initial=null;return value;},save(options){const name=options?.name??'',directoryUri=options?.directoryUri;if(directoryUri!==undefined&&(typeof directoryUri!=='string'||directoryUri.length>16384))return Promise.reject(new Error('Invalid starting directory.'));if(typeof name!=='string'||name.includes('/')||name.includes(String.fromCharCode(0))||['.','..'].includes(name)||new TextEncoder().encode(name).length>255||jobs.size)return Promise.reject(new Error('A file selection is already pending or invalid.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'save-file',requestId,name,...(directoryUri===undefined?{}:{directoryUri})});});},open(options){if(!options||!['file','folder','workspace','any'].includes(options.kind)||jobs.size)return Promise.reject(new Error('A file selection is already pending or invalid.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'pick-file',requestId,kind:options.kind});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('File selection document closed.'));jobs.clear();},{once:true});})();",YNXJSON(_localInitialFile?[NSURL fileURLWithPath:_localInitialFile].absoluteString:NSNull.null)];
@@ -1406,6 +1411,7 @@ static NSError *YNXEarlyIdentityCaptureError;
     return [_localGoInput.fileHandleForWriting writeData:line error:nil];
 }
 - (void)cancelLocalOriginalServices {
+    [self cancelLocalIdentities];
     for(NSMutableDictionary *row in _localOriginalServiceRequests.allValues){
         if([row[@"completed"] boolValue]||[row[@"cancelled"] boolValue])continue;
         row[@"cancelled"]=@YES;
@@ -1478,8 +1484,64 @@ static NSError *YNXEarlyIdentityCaptureError;
     NSDictionary *reply=error?@{@"id":identifier,@"ok":@NO,@"error":error.localizedDescription}:@{@"id":identifier,@"ok":@YES,@"value":value?:NSNull.null};
     YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"if(location.pathname==='/')window.__ynxNativeWalletReply?.(%@);",YNXJSON(reply)]);
 }
+- (void)localIdentityReply:(NSDictionary *)row error:(NSString *)error {
+    NSDictionary *reply=error?@{@"id":row[@"id"],@"document":row[@"document"],@"error":error}:@{@"id":row[@"id"],@"document":row[@"document"],@"phase":@"response-received",@"authorized":@NO,@"dataOnly":@YES};
+    NSString *script=[NSString stringWithFormat:@"if(location.pathname==='/'&&window.__ynxIdentityDocument===%@)window.__ynxIdentityReply?.(%@);",YNXJSON(row[@"document"]),YNXJSON(reply)];
+    YNXEvaluateTrustedScript(_webView,_port,script);
+}
+- (void)cancelLocalIdentities {
+    for(NSMutableDictionary *row in _localIdentityRequests.allValues){
+        if([row[@"cancelled"]boolValue])continue;row[@"cancelled"]=@YES;
+        if([row[@"sent"]boolValue])[self sendLocalOriginalService:@"native-identity-cancel" row:row];
+    }
+    [_localIdentityPoll invalidate];_localIdentityPoll=nil;
+}
+- (void)handleLocalIdentity:(NSDictionary *)body {
+    if(!YNXDeviceFields(body,@"action id document"))return;
+    NSString *identifier=body[@"id"],*document=body[@"document"],*action=body[@"action"];
+    if(![identifier isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:identifier]||![document isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:document])return;
+    NSMutableDictionary *row=_localIdentityRequests[identifier];
+    if([action isEqual:@"native-identity-cancel"]){
+        if(row&&[row[@"document"]isEqual:document]&&![row[@"cancelled"]boolValue]){row[@"cancelled"]=@YES;if([row[@"sent"]boolValue])[self sendLocalOriginalService:action row:row];}return;
+    }
+    if(![@[@"native-identity-receive",@"native-identity-recover"]containsObject:action])return;
+    NSString *workspace=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
+    NSDictionary *binding=[self localTrashAdmittedBinding];
+    NSDictionary *replyRow=@{@"id":identifier,@"document":document};
+    if(row||_localIdentityRequests.count>=32||!binding||!_localCommandDocumentReady||!_server.running||_localCloseRequest||!YNXLocalGoPrivateControl([self localGoControlDirectory],workspace)){
+        [self localIdentityReply:replyRow error:@"IDE_IDENTITY_CONTEXT_UNAVAILABLE"];return;
+    }
+    if(!_localIdentityRequests)_localIdentityRequests=[NSMutableDictionary new];
+    row=[@{@"id":identifier,@"document":document,@"documentURL":_webView.URL.absoluteString,@"instance":_localGoInstance,@"projectId":binding[@"projectId"],@"workspace":workspace,@"kind":[action isEqual:@"native-identity-receive"]?@"receive":@"recover",@"generation":@(_localWalletGeneration),@"started":@(NSProcessInfo.processInfo.systemUptime),@"sent":@NO,@"cancelled":@NO,@"completed":@NO}mutableCopy];
+    _localIdentityRequests[identifier]=row;
+    YNXWalletAdmissionBackendTask *server=_server;
+    NSString *check=[NSString stringWithFormat:@"window.__ynxIdentityDocument===%@",YNXJSON(document)];
+    [_webView evaluateJavaScript:YNXOriginBoundScript(check,_port) completionHandler:^(id matches,NSError *error){
+        if(error||![matches isEqual:@YES]||self.server!=server||![self localOriginalServiceRowCurrent:row]){row[@"cancelled"]=@YES;row[@"completed"]=@YES;return;}
+        if(![self sendLocalOriginalService:action row:row]){row[@"cancelled"]=@YES;row[@"completed"]=@YES;[self localIdentityReply:row error:@"IDE_IDENTITY_TRANSPORT_UNCERTAIN"];return;}
+        row[@"sent"]=@YES;
+        if(!self.localIdentityPoll){__weak typeof(self) weakSelf=self;self.localIdentityPoll=[NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer *timer){[weakSelf pollLocalIdentities];}];}
+    }];
+}
+- (void)pollLocalIdentities {
+    BOOL pending=NO;
+    for(NSMutableDictionary *row in _localIdentityRequests.allValues){
+        if([row[@"completed"]boolValue]||[row[@"cancelled"]boolValue]||![row[@"sent"]boolValue])continue;
+        if(![self localOriginalServiceRowCurrent:row]||NSProcessInfo.processInfo.systemUptime-[row[@"started"]doubleValue]>60){row[@"cancelled"]=@YES;[self sendLocalOriginalService:@"native-identity-cancel" row:row];continue;}
+        pending=YES;
+        if(!YNXLocalGoPrivateControl([self localGoControlDirectory],row[@"workspace"]))continue;
+        NSString *file=[[self localGoControlDirectory]stringByAppendingPathComponent:[NSString stringWithFormat:@"identity-%@.json",row[@"id"]]];
+        NSDictionary *result=YNXOriginalServiceReadRecord(file);
+        if(!YNXNativeIdentityStatus(result,row))continue;
+        row[@"completed"]=@YES;row[@"retainedStatus"]=result;
+        // Status arrival alone supplies no account, session or service grant.
+        [self localIdentityReply:row error:[result[@"phase"]isEqual:@"failed"]?result[@"errorCode"]:nil];
+    }
+    if(!pending){[_localIdentityPoll invalidate];_localIdentityPoll=nil;}
+}
 - (void)handleLocalWalletMessage:(id)value {
     NSDictionary *body=[value isKindOfClass:NSDictionary.class]?value:nil;NSString *identifier=body[@"id"],*action=body[@"action"];
+    if([@[@"native-identity-receive",@"native-identity-recover",@"native-identity-cancel"]containsObject:action?:@""]){[self handleLocalIdentity:body];return;}
     if([action isEqual:@"original-service-dispatch"]||[action isEqual:@"original-service-cancel"]){[self handleLocalOriginalService:body];return;}
     if(![identifier isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:identifier]||![action isKindOfClass:NSString.class])return;
     NSDictionary *fields=@{@"availability":@"id action",@"begin-connection":@"id action",@"end-connection":@"id action",@"device-info":@"id action",@"device-sign":@"id action input",@"open-authorization":@"id action url",@"storage-get":@"id action key",@"storage-set":@"id action key value",@"storage-remove":@"id action key",@"storage-save-intent":@"id action key rawIntent",@"storage-finish-intent":@"id action key expectedRawIntent receiptRaw",@"storage-get-completions":@"id action key",@"storage-get-completion":@"id action key intentId",@"storage-ack-completion":@"id action key expectedReceiptRaw",@"consumer-journal-persist":@"id action receiptRaw",@"consumer-journal-read":@"id action intentId"};

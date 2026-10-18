@@ -27,6 +27,29 @@ class NativeWalletWidget extends BaseWidget {
     const details = element(document, 'details'); details.append(element(document, 'summary', t('details')), this.source);
     this.node.append(element(document, 'h3', t('title')), this.status, this.session, this.detail, element(document, 'p', t('project')), element(document, 'p', t('standard')), element(document, 'p', t('closed')), details);
     this.buttons = {}; let live = true;
+    // Native identity bootstrap is separate from Product Session and project
+    // permissions. A DATA response must never promote controller.session.
+    const identityStatus=element(document,'p',t('identityNote'));
+    identityStatus.setAttribute('role','status');identityStatus.setAttribute('aria-live','polite');
+    this.node.append(element(document,'h4',t('identityTitle')),identityStatus);
+    let identityRequest;const identityButtons=[];
+    const identityBusy=busy=>{for(const button of identityButtons)button.disabled=busy;identityCancel.disabled=!busy;};
+    const identityCancel=element(document,'button',t('identityCancel'));identityCancel.type='button';identityCancel.className='theia-button secondary';identityCancel.disabled=true;
+    identityCancel.addEventListener('click',()=>{if(identityRequest){identityStatus.textContent=t('identityCancelled');identityRequest.abort();}});
+    for(const kind of ['receive','recover']){
+      const button=element(document,'button',t(kind==='receive'?'identityReceive':'identityRecover'));button.type='button';button.className='theia-button secondary';identityButtons.push(button);this.node.append(button);
+      button.addEventListener('click',()=>{
+        if(!live||identityRequest)return;
+        const bridge=service.target?.ynxDesktopIdentity;
+        if(typeof bridge?.[kind]!=='function'){identityStatus.textContent=t('identityUnavailable');return;}
+        const request=new AbortController();identityRequest=request;identityBusy(true);identityStatus.textContent=t('identityWaiting');
+        void Promise.resolve().then(()=>{if(!live||request.signal.aborted)throw Object.assign(Error('Cancelled'),{name:'AbortError'});return bridge[kind]({signal:request.signal});}).then(result=>{
+          if(live&&identityRequest===request&&!request.signal.aborted)identityStatus.textContent=t(result?.phase==='response-received'&&result.authorized===false&&result.dataOnly===true?'identityReceived':'identityFailed');
+        },error=>{if(live&&identityRequest===request)identityStatus.textContent=t(error?.name==='AbortError'?'identityCancelled':'identityFailed');}).finally(()=>{if(identityRequest===request){identityRequest=undefined;if(live)identityBusy(false);}});
+      });
+    }
+    this.node.append(identityCancel);
+    this.toDispose.push({dispose:()=>{identityRequest?.abort();}});
     const operations = { connect: 'connect', restore: 'restore', returned: 'resumeCallback', disconnect: 'disconnect', cancel: 'cancel', guest: 'guest' };
     for (const [key, operation] of Object.entries(operations)) {
       const button = element(document, 'button', t(key)); button.type = 'button'; button.className = 'theia-button secondary';
