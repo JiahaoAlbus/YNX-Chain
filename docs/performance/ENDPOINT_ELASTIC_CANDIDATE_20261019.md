@@ -1,5 +1,7 @@
 # Elastic endpoint submission candidate
 
+Actual follow-up: [run39157615295](ENDPOINT_ELASTIC_ACTUAL_20261019.md) passed original business/resource/cleanup gates but final rate fell15.0874%, final P95 rose6.8841% and queue P95 worsened. Joint-and-tail acceptance failed. Keep the candidate default off; the following source controls are not a network improvement claim.
+
 Status: source repair passed original CI `39156122998` at `329e5811fdd06ea05c8949560a424a82e3337072`; default off, no measured network benefit yet. The [source CI proof](evidence/endpoint-elastic-source-ci-39156122998-actual.json) binds the actual job/raw and shows fixture/network steps skipped. The [actual fixed-endpoint pair](ENDPOINT_FAIR_ACTUAL_20261019.md) retained its adverse queue tails and is not promoted.
 
 Fixed one-worker-per-endpoint scheduling can strand otherwise available submitters while a slow request holds up different senders at that same endpoint. A controlled ordinary HTTP/JSON-RPC test now reproduces this with actual signed input and the original submission function: hold index0's request; index4 at the same authority cannot progress under the original fixed-worker policy. The RED run failed the intended progress assertion after completing real local execution, durability/readback and restart checks. Base commit plus the committed [RED patch](evidence/endpoint-elastic-red-41b21a994.patch.json) reproduce the failing source. The [local source evidence](evidence/endpoint-elastic-source-local-actual.json) pins raw outputs and patch SHA256.

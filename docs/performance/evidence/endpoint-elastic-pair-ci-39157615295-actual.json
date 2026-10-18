@@ -1,0 +1,1110 @@
+{
+  "sourceCommit": "6183555d44a35d908e97fae9407e91d58be10c8f",
+  "compiler": "go version go1.25.14 linux/amd64",
+  "terminal": {
+    "schema": 1,
+    "kind": "fixed-pair-post-fsync-verdict",
+    "elapsedMs": 14082,
+    "firstCause": null,
+    "casesQualified": true,
+    "pairReceipt": "/home/runner/work/_temp/ynx-linux-supply-evidence/actual.json",
+    "pairReceiptSHA256": "d27f4abc2597077d43b18912e5c602895c755f4d51b9de772f7b01674af02f36",
+    "retainedBytesAfterFsync": 44958449,
+    "qualified": true
+  },
+  "jointObservation": {
+    "finiteFinalRateIncreased": false,
+    "offerToInclusionP95NotWorse": false,
+    "offerToFinalP95NotWorse": false,
+    "finiteFinalP95Within3s": true,
+    "finiteJointImprovementObserved": false,
+    "sustainedTPSQualified": false,
+    "interpretation": "This comparison does not change case safety qualification. A higher finite TPS alone is not joint performance acceptance; no ten-minute or sustained1000TPS claim."
+  },
+  "dispatchTailObservation": {
+    "metrics": {
+      "submissionQueueDelayMs": {
+        "before": {
+          "samples": 1024,
+          "p50": 0.025136000000000002,
+          "p95": 70.499644,
+          "p99": 336.82036500000004
+        },
+        "after": {
+          "samples": 1024,
+          "p50": 0.026268999999999997,
+          "p95": 153.215459,
+          "p99": 288.978611
+        },
+        "p95NotWorse": false,
+        "p99NotWorse": true
+      },
+      "checkTxLatencyMs": {
+        "before": {
+          "samples": 1024,
+          "p50": 1.1740089999999999,
+          "p95": 43.862216000000004,
+          "p99": 87.27648
+        },
+        "after": {
+          "samples": 1024,
+          "p50": 0.9912409999999999,
+          "p95": 18.632556,
+          "p99": 55.446166
+        },
+        "p95NotWorse": true,
+        "p99NotWorse": true
+      }
+    },
+    "offerToInclusionP99NotWorse": false,
+    "offerToFinalP99NotWorse": false,
+    "finiteJointAndTailImprovement": false,
+    "sustainedTPSQualified": false,
+    "interpretation": "Finite actual same-VM comparison only. Keep adverse submission/CheckTx tails and original inclusion/final quantiles visible. Source tests or lower queue tails alone do not qualify TPS, sustained capacity or default promotion."
+  },
+  "finiteObservedChanges": {
+    "finalRatePercent": -15.087367370217352,
+    "offeredRatePercent": -2.067197081030936,
+    "offerToFinalP95Percent": 6.884120177067032
+  },
+  "sustainedTPS": null,
+  "limits": "Single fixed recorded pair order; fresh random fixture identities and startup/cache order differ. Finite1024/case, not ten-minute or1000TPS qualification.",
+  "schema": 1,
+  "runId": 39157615295,
+  "kind": "actual-finite-same-VM-elastic-endpoint-comparison",
+  "sourceRef": "codex/chain-elastic-6183555d4",
+  "artifact": {
+    "id": 12147527764,
+    "zipBytes": 11652965,
+    "verification": "selected members exact206, CRC/size and receipt-bound SHA; not whole-ZIP digest"
+  },
+  "slotReturned": true,
+  "rawFiles": [
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-pair-39157615295/remote-actual.json",
+      "bytes": 956343,
+      "sha256": "d27f4abc2597077d43b18912e5c602895c755f4d51b9de772f7b01674af02f36"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-pair-39157615295/remote-shared-baseline-actual.json",
+      "bytes": 581551,
+      "sha256": "fb41e2a3503ae29393e84244ba937e931b632dbee47e0c0ee1eeebf498e0d462"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-pair-39157615295/remote-shared-endpoint-elastic-actual.json",
+      "bytes": 589317,
+      "sha256": "671c4fc0a3e1e91a5145458cfed1b9dd362a57680ae2210a14ad2e042d8b1424"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-pair-39157615295/before-transactions-result.json",
+      "bytes": 3594330,
+      "sha256": "9ba6d740a09bd9ee388c7271a56af1f6137784a56cf05d24acf80357bd7084a7"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-pair-39157615295/after-transactions-result.json",
+      "bytes": 3592679,
+      "sha256": "5bba1ae1128bd068b59134ee2f247c46fbae40fbf3accbc9811524a00e4fd6cd"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-pair-39157615295/verified-comparison.json",
+      "bytes": 895691,
+      "sha256": "00fe64409b16d55f4d845e425bfde98b416b33ab8af259813af610f0d4282100"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-pair-39157615295/slot-return-actual.json",
+      "bytes": 2063,
+      "sha256": "6e43653f79560bcbc89b5accf5810db0d6307d1c1d7340b76ca5a4ed43331f3a"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-pair-39157615295/remote-preflight.json",
+      "bytes": 411,
+      "sha256": "49c424a832068815111f79528f5a330aa6e9860a83676461de7334c945421e15"
+    }
+  ],
+  "cases": [
+    {
+      "mode": "shared-baseline",
+      "offerLatency": {
+        "offerToEffectiveInclusionLatencyMs": {
+          "samples": 1024,
+          "p50": 948.158415,
+          "p95": 1344.011766,
+          "p99": 1457.670533
+        },
+        "offerToQualifiedFinalLatencyMs": {
+          "samples": 1024,
+          "p50": 1157.5810989999998,
+          "p95": 1531.090819,
+          "p99": 1584.182204
+        },
+        "actualQueuePeaks": {
+          "peakOfferedAwaitingSubmission": 27,
+          "peakAcceptedAwaitingObservationCompletion": 494
+        },
+        "supply": {
+          "completionWaitAttempts": 5,
+          "completionWaitNs": 882889600,
+          "completionSupplyWaitAttempts": 1,
+          "completionSupplyWaitNs": 257424023,
+          "completionDrainWaitAttempts": 4,
+          "completionDrainWaitNs": 625465577,
+          "completionFailureWaitAttempts": 0,
+          "completionFailureWaitNs": 0,
+          "terminalSinkAttempts": 0,
+          "terminalSinkNs": 0,
+          "offerDecodeAttempts": 1024,
+          "offerDecodeNs": 15536981,
+          "pacingWaitAttempts": 1024,
+          "pacingWaitNs": 2845688886,
+          "pacingFutureTargetAttempts": 883,
+          "pacingAlreadyDueAttempts": 141,
+          "pacingPositiveRemainingNs": 1228718423,
+          "pacingWakeLatenessNs": 1616935968,
+          "pacingMaxWakeLatenessNs": 32704456,
+          "pacingCatchupTargets": 129,
+          "pacingCadenceResets": 69,
+          "pacingPeakCatchupTargets": 3,
+          "dispatchAttempts": 1024,
+          "dispatchNs": 385361,
+          "signAttempts": 512,
+          "signNs": 69730103,
+          "encodeAttempts": 512,
+          "encodeNs": 147205003,
+          "signedSuccessors": 512,
+          "journalSetupNs": 424658,
+          "journalAppendAttempts": 17,
+          "journalAppendNs": 15048527,
+          "journalDurableEnvelopes": 1024,
+          "journalDurableBytes": 698150
+        },
+        "scope": "Actual per-row measured queueDelayMs+stageMs, nearest-rank over all1024 qualified business finals. Queue peaks are original atomic counters, not reconstructed from UTC."
+      },
+      "originalSubmissionTails": {
+        "submissionQueueDelayMs": {
+          "samples": 1024,
+          "p50": 0.025136000000000002,
+          "p95": 70.499644,
+          "p99": 336.82036500000004
+        },
+        "checkTxLatencyMs": {
+          "samples": 1024,
+          "p50": 1.1740089999999999,
+          "p95": 43.862216000000004,
+          "p99": 87.27648
+        }
+      },
+      "submissionPhaseVerification": {
+        "samples": 1024,
+        "hookCalls": {
+          "getConnCalls": 1024,
+          "gotConnCalls": 1024,
+          "wroteRequestCalls": 1024,
+          "firstByteCalls": 1024
+        },
+        "writeErrors": 0,
+        "reusedConnections": 1013,
+        "writeFirstByteHookOverlaps": 0,
+        "durationsMs": {
+          "beforeGetConnMs": {
+            "samples": 1024,
+            "p50": 0.033312,
+            "p95": 0.053389,
+            "p99": 0.081321
+          },
+          "connectionAcquireMs": {
+            "samples": 1024,
+            "p50": 0.002725,
+            "p95": 0.005229,
+            "p99": 3.327224
+          },
+          "connectionToWriteMs": {
+            "samples": 1024,
+            "p50": 0.009778,
+            "p95": 0.031909,
+            "p99": 0.146913
+          },
+          "writeToFirstByteMs": {
+            "samples": 1024,
+            "p50": 1.027641,
+            "p95": 26.002881,
+            "p99": 55.230475
+          },
+          "firstByteToReturnMs": {
+            "samples": 1024,
+            "p50": 0.059961,
+            "p95": 17.412407,
+            "p99": 27.572333
+          },
+          "callbackReturnMs": {
+            "samples": 1024,
+            "p50": 1.182125,
+            "p95": 43.863849,
+            "p99": 87.277853
+          }
+        },
+        "interpretation": "Monotonic original client HTTP hooks; single-attempt rows only. First-byte wait includes server/transport scheduling; response tail includes body/decode/identity checks. Concurrent write/first-byte hooks may overlap: omit negative intervals and retain their count/sample denominator. Not pure network/server time and not additive across parallel callbacks."
+      },
+      "peaks": {
+        "rssBytes": 556249088,
+        "threads": 62,
+        "privateBytes": 21442700
+      },
+      "observerPhases": {
+        "observer": {
+          "schema": 1,
+          "totals": {
+            "block_capture_and_merkle": {
+              "attempts": 24,
+              "errors": 0,
+              "durationNs": 50550798
+            },
+            "block_envelope_verification": {
+              "attempts": 144,
+              "errors": 0,
+              "durationNs": 1428049
+            },
+            "block_query": {
+              "attempts": 120,
+              "errors": 0,
+              "durationNs": 2403845134
+            },
+            "block_results_query": {
+              "attempts": 24,
+              "errors": 0,
+              "durationNs": 1099313149
+            },
+            "commit_query": {
+              "attempts": 24,
+              "errors": 0,
+              "durationNs": 458643246
+            },
+            "durable_business_batch": {
+              "attempts": 20,
+              "errors": 0,
+              "durationNs": 2730540882
+            },
+            "published_info_query": {
+              "attempts": 20,
+              "errors": 0,
+              "durationNs": 546711642
+            },
+            "published_state_verification": {
+              "attempts": 20,
+              "errors": 0,
+              "durationNs": 13074
+            },
+            "quorum_verification": {
+              "attempts": 24,
+              "errors": 0,
+              "durationNs": 4121319
+            },
+            "transaction_inclusion_proof": {
+              "attempts": 1024,
+              "errors": 0,
+              "durationNs": 3746428
+            },
+            "validators_query": {
+              "attempts": 24,
+              "errors": 0,
+              "durationNs": 176478074
+            }
+          },
+          "traceCapped": true,
+          "originalTraceSamples": 1024,
+          "originalTraceRetainedInVerifiedComparison": true
+        },
+        "durableReader": {
+          "loadNs": 2104281540,
+          "hashNs": 10752418,
+          "captureNs": 23518496,
+          "decodeNs": 2057947934,
+          "indexPublishNs": 10776910,
+          "transactionVerifyNs": 579953394
+        },
+        "interpretation": "Original call wall times include server/transport/lock waits; trace may be explicitly capped while totals remain complete. Reader load includes children. Parallel workers and nested scopes are not additive BFT latency."
+      },
+      "sharedReplayVerification": {
+        "sharedDurableReplay": true,
+        "stats": {
+          "lookups": 20,
+          "hits": 6,
+          "joins": 9,
+          "fullReplays": 5,
+          "failures": 0,
+          "bypasses": 0,
+          "waitNs": 1103382630,
+          "cachedCanonicalBytes": 1016761,
+          "canonicalByteLimit": 16777216,
+          "peakFlights": 1
+        },
+        "interpretation": "Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance."
+      },
+      "endpointDispatchVerification": {
+        "endpointFairSubmission": false,
+        "originalEndpointBindingVerified": true,
+        "stats": null,
+        "interpretation": "Actual callback counts are not extra RPC or business successes; original1024-result business qualification is required separately. No request authority replacement or automatic UNKNOWN retry."
+      },
+      "cleanupComplete": true,
+      "business": {
+        "input": 1024,
+        "offered": 1024,
+        "submitted": 1024,
+        "checkTxAccepted": 1024,
+        "checkTxRejected": 0,
+        "effectiveBusinessIncluded": 1024,
+        "executionFailed": 0,
+        "quorumConfirmed": 1024,
+        "finalSubmitted": 1024,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "notSubmitted": 0,
+        "measurementWindowSeconds": 3.984316621,
+        "finalSubmittedPerMeasurementSecond": 257.0076872412294,
+        "offeredInterarrivalRate": 304.7744316138434,
+        "submissionInterarrivalRate": 304.81401879611127,
+        "validInclusionBlocks": {
+          "blocks": [
+            {
+              "height": 3,
+              "signedBlockTime": "2026-10-18T19:16:34.121139595Z",
+              "blockHash": "1B9A32E94D33384DE255B8972E6BF8F569091F66D5DD313FD5E25904F1EFEB5E",
+              "observedValidWorkloadTransactions": 117,
+              "merkleProofTotalTransactions": 117,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 4,
+              "signedBlockTime": "2026-10-18T19:16:34.846682735Z",
+              "blockHash": "409852D91ACE1B9DEC352285A212436562F460F2E7A41F252A4A5AE30A3E81ED",
+              "observedValidWorkloadTransactions": 301,
+              "merkleProofTotalTransactions": 301,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 5,
+              "signedBlockTime": "2026-10-18T19:16:35.704904673Z",
+              "blockHash": "7548C5926BD7C51ACD834F69714FFD60E5398E938307D1DE4EEFEC81AA48369C",
+              "observedValidWorkloadTransactions": 210,
+              "merkleProofTotalTransactions": 210,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 6,
+              "signedBlockTime": "2026-10-18T19:16:36.47719869Z",
+              "blockHash": "489D8D51AECFE9AB730ED58EA278199BB53EB72F6DA01A6C4529A03BB123DC83",
+              "observedValidWorkloadTransactions": 216,
+              "merkleProofTotalTransactions": 216,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 7,
+              "signedBlockTime": "2026-10-18T19:16:37.257430574Z",
+              "blockHash": "CAA804591CD3193E263DA70EDFF8A29B426CF2B84A816C9321430DD5852C07EA",
+              "observedValidWorkloadTransactions": 180,
+              "merkleProofTotalTransactions": 180,
+              "allBlockTransactionsObservedValid": true
+            }
+          ],
+          "completeObservedBlockCoverage": true,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Finite per-account ready pool without whole-round barriers. Full block observations retained; interior/steady TPS withheld until continuous-load coverage is qualified. Full workload rate includes signing, journal Sync, waits and drain."
+        }
+      },
+      "nodePhases": [
+        {
+          "commitAttempts": 6,
+          "windowElapsedNs": 5842151035,
+          "commitTotalsNs": {
+            "close_file": 43791,
+            "delta_encode": 4696736,
+            "file_sync": 7308083,
+            "journal_maintenance": 568195,
+            "prepare_file": 147794,
+            "validate": 27306609,
+            "write": 990432
+          },
+          "stages": {
+            "check_tx": {
+              "calls": 1476,
+              "elapsedNs": 394726206,
+              "failedResponses": 0
+            },
+            "commit": {
+              "calls": 6,
+              "elapsedNs": 41171384,
+              "failedResponses": 0
+            },
+            "finalize_block": {
+              "calls": 6,
+              "elapsedNs": 66695374,
+              "failedResponses": 0
+            },
+            "prepare_proposal": {
+              "calls": 1,
+              "elapsedNs": 2324403,
+              "failedResponses": 0
+            },
+            "process_proposal": {
+              "calls": 6,
+              "elapsedNs": 17872499,
+              "failedResponses": 0
+            }
+          }
+        },
+        {
+          "commitAttempts": 6,
+          "windowElapsedNs": 5855578853,
+          "commitTotalsNs": {
+            "close_file": 39813,
+            "delta_encode": 1049417,
+            "file_sync": 3684708,
+            "journal_maintenance": 619430,
+            "prepare_file": 163052,
+            "validate": 31236242,
+            "write": 887488
+          },
+          "stages": {
+            "check_tx": {
+              "calls": 1475,
+              "elapsedNs": 390403089,
+              "failedResponses": 0
+            },
+            "commit": {
+              "calls": 6,
+              "elapsedNs": 37834757,
+              "failedResponses": 0
+            },
+            "finalize_block": {
+              "calls": 6,
+              "elapsedNs": 79690101,
+              "failedResponses": 0
+            },
+            "prepare_proposal": {
+              "calls": 1,
+              "elapsedNs": 7843257,
+              "failedResponses": 0
+            },
+            "process_proposal": {
+              "calls": 6,
+              "elapsedNs": 22091559,
+              "failedResponses": 0
+            }
+          }
+        },
+        {
+          "commitAttempts": 6,
+          "windowElapsedNs": 5838200617,
+          "commitTotalsNs": {
+            "close_file": 44945,
+            "delta_encode": 844358,
+            "file_sync": 7997139,
+            "journal_maintenance": 537829,
+            "prepare_file": 149515,
+            "validate": 25711018,
+            "write": 820545
+          },
+          "stages": {
+            "check_tx": {
+              "calls": 1517,
+              "elapsedNs": 404070983,
+              "failedResponses": 0
+            },
+            "commit": {
+              "calls": 6,
+              "elapsedNs": 36212416,
+              "failedResponses": 0
+            },
+            "finalize_block": {
+              "calls": 6,
+              "elapsedNs": 60685940,
+              "failedResponses": 0
+            },
+            "prepare_proposal": {
+              "calls": 2,
+              "elapsedNs": 4336549,
+              "failedResponses": 0
+            },
+            "process_proposal": {
+              "calls": 6,
+              "elapsedNs": 20575762,
+              "failedResponses": 0
+            }
+          }
+        },
+        {
+          "commitAttempts": 6,
+          "windowElapsedNs": 5807054848,
+          "commitTotalsNs": {
+            "close_file": 55933,
+            "delta_encode": 932701,
+            "file_sync": 3478357,
+            "journal_maintenance": 508404,
+            "prepare_file": 136451,
+            "validate": 25312388,
+            "write": 765132
+          },
+          "stages": {
+            "check_tx": {
+              "calls": 1459,
+              "elapsedNs": 445444845,
+              "failedResponses": 0
+            },
+            "commit": {
+              "calls": 6,
+              "elapsedNs": 31287137,
+              "failedResponses": 0
+            },
+            "finalize_block": {
+              "calls": 6,
+              "elapsedNs": 70905137,
+              "failedResponses": 0
+            },
+            "prepare_proposal": {
+              "calls": 2,
+              "elapsedNs": 5922673,
+              "failedResponses": 0
+            },
+            "process_proposal": {
+              "calls": 6,
+              "elapsedNs": 17878670,
+              "failedResponses": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mode": "shared-endpoint-elastic",
+      "offerLatency": {
+        "offerToEffectiveInclusionLatencyMs": {
+          "samples": 1024,
+          "p50": 1070.839351,
+          "p95": 1403.4317019999999,
+          "p99": 1606.354697
+        },
+        "offerToQualifiedFinalLatencyMs": {
+          "samples": 1024,
+          "p50": 1256.938161,
+          "p95": 1636.492951,
+          "p99": 1735.695207
+        },
+        "actualQueuePeaks": {
+          "peakOfferedAwaitingSubmission": 46,
+          "peakAcceptedAwaitingObservationCompletion": 512
+        },
+        "supply": {
+          "completionWaitAttempts": 6,
+          "completionWaitNs": 1882859168,
+          "completionSupplyWaitAttempts": 1,
+          "completionSupplyWaitNs": 620203511,
+          "completionDrainWaitAttempts": 5,
+          "completionDrainWaitNs": 1262655657,
+          "completionFailureWaitAttempts": 0,
+          "completionFailureWaitNs": 0,
+          "terminalSinkAttempts": 0,
+          "terminalSinkNs": 0,
+          "offerDecodeAttempts": 1024,
+          "offerDecodeNs": 16893285,
+          "pacingWaitAttempts": 1024,
+          "pacingWaitNs": 2590446626,
+          "pacingFutureTargetAttempts": 922,
+          "pacingAlreadyDueAttempts": 102,
+          "pacingPositiveRemainingNs": 1299842426,
+          "pacingWakeLatenessNs": 1290575887,
+          "pacingMaxWakeLatenessNs": 44434759,
+          "pacingCatchupTargets": 90,
+          "pacingCadenceResets": 54,
+          "pacingPeakCatchupTargets": 3,
+          "dispatchAttempts": 1024,
+          "dispatchNs": 853287,
+          "signAttempts": 512,
+          "signNs": 56416556,
+          "encodeAttempts": 512,
+          "encodeNs": 122601133,
+          "signedSuccessors": 512,
+          "journalSetupNs": 428065,
+          "journalAppendAttempts": 17,
+          "journalAppendNs": 15073731,
+          "journalDurableEnvelopes": 1024,
+          "journalDurableBytes": 698138
+        },
+        "scope": "Actual per-row measured queueDelayMs+stageMs, nearest-rank over all1024 qualified business finals. Queue peaks are original atomic counters, not reconstructed from UTC."
+      },
+      "originalSubmissionTails": {
+        "submissionQueueDelayMs": {
+          "samples": 1024,
+          "p50": 0.026268999999999997,
+          "p95": 153.215459,
+          "p99": 288.978611
+        },
+        "checkTxLatencyMs": {
+          "samples": 1024,
+          "p50": 0.9912409999999999,
+          "p95": 18.632556,
+          "p99": 55.446166
+        }
+      },
+      "submissionPhaseVerification": {
+        "samples": 1024,
+        "hookCalls": {
+          "getConnCalls": 1024,
+          "gotConnCalls": 1024,
+          "wroteRequestCalls": 1024,
+          "firstByteCalls": 1024
+        },
+        "writeErrors": 0,
+        "reusedConnections": 1019,
+        "writeFirstByteHookOverlaps": 0,
+        "durationsMs": {
+          "beforeGetConnMs": {
+            "samples": 1024,
+            "p50": 0.034774,
+            "p95": 0.05908,
+            "p99": 0.097441
+          },
+          "connectionAcquireMs": {
+            "samples": 1024,
+            "p50": 0.002755,
+            "p95": 0.003837,
+            "p99": 0.013114
+          },
+          "connectionToWriteMs": {
+            "samples": 1024,
+            "p50": 0.010159,
+            "p95": 0.026148,
+            "p99": 0.092462
+          },
+          "writeToFirstByteMs": {
+            "samples": 1024,
+            "p50": 0.840579,
+            "p95": 17.018466,
+            "p99": 50.158505
+          },
+          "firstByteToReturnMs": {
+            "samples": 1024,
+            "p50": 0.058188,
+            "p95": 0.576319,
+            "p99": 21.36335
+          },
+          "callbackReturnMs": {
+            "samples": 1024,
+            "p50": 0.992494,
+            "p95": 18.634179,
+            "p99": 55.446917
+          }
+        },
+        "interpretation": "Monotonic original client HTTP hooks; single-attempt rows only. First-byte wait includes server/transport scheduling; response tail includes body/decode/identity checks. Concurrent write/first-byte hooks may overlap: omit negative intervals and retain their count/sample denominator. Not pure network/server time and not additive across parallel callbacks."
+      },
+      "peaks": {
+        "rssBytes": 588607488,
+        "threads": 62,
+        "privateBytes": 21304311
+      },
+      "observerPhases": {
+        "observer": {
+          "schema": 1,
+          "totals": {
+            "block_capture_and_merkle": {
+              "attempts": 25,
+              "errors": 0,
+              "durationNs": 9543343
+            },
+            "block_envelope_verification": {
+              "attempts": 155,
+              "errors": 0,
+              "durationNs": 1492729
+            },
+            "block_query": {
+              "attempts": 130,
+              "errors": 0,
+              "durationNs": 2241747393
+            },
+            "block_results_query": {
+              "attempts": 25,
+              "errors": 0,
+              "durationNs": 1255287748
+            },
+            "commit_query": {
+              "attempts": 25,
+              "errors": 0,
+              "durationNs": 337629657
+            },
+            "durable_business_batch": {
+              "attempts": 19,
+              "errors": 0,
+              "durationNs": 2654873863
+            },
+            "published_info_query": {
+              "attempts": 19,
+              "errors": 0,
+              "durationNs": 464695276
+            },
+            "published_state_verification": {
+              "attempts": 19,
+              "errors": 0,
+              "durationNs": 13535
+            },
+            "quorum_verification": {
+              "attempts": 25,
+              "errors": 0,
+              "durationNs": 5277083
+            },
+            "transaction_inclusion_proof": {
+              "attempts": 1024,
+              "errors": 0,
+              "durationNs": 2708873
+            },
+            "validators_query": {
+              "attempts": 25,
+              "errors": 0,
+              "durationNs": 116138291
+            }
+          },
+          "traceCapped": true,
+          "originalTraceSamples": 1024,
+          "originalTraceRetainedInVerifiedComparison": true
+        },
+        "durableReader": {
+          "loadNs": 2165234465,
+          "hashNs": 10059959,
+          "captureNs": 24543273,
+          "decodeNs": 2119106716,
+          "indexPublishNs": 10228233,
+          "transactionVerifyNs": 489025603
+        },
+        "interpretation": "Original call wall times include server/transport/lock waits; trace may be explicitly capped while totals remain complete. Reader load includes children. Parallel workers and nested scopes are not additive BFT latency."
+      },
+      "sharedReplayVerification": {
+        "sharedDurableReplay": true,
+        "stats": {
+          "lookups": 19,
+          "hits": 2,
+          "joins": 11,
+          "fullReplays": 6,
+          "failures": 0,
+          "bypasses": 0,
+          "waitNs": 1069880307,
+          "cachedCanonicalBytes": 1016685,
+          "canonicalByteLimit": 16777216,
+          "peakFlights": 1
+        },
+        "interpretation": "Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance."
+      },
+      "endpointDispatchVerification": {
+        "endpointFairSubmission": true,
+        "originalEndpointBindingVerified": true,
+        "stats": {
+          "workers": 4,
+          "perEndpointInFlightLimit": 2,
+          "queueCapacityTotal": 1024,
+          "callbackAttempts": [
+            256,
+            256,
+            256,
+            256
+          ],
+          "callbackReturns": [
+            256,
+            256,
+            256,
+            256
+          ],
+          "peakInFlight": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "peakTotalInFlight": 4
+        },
+        "interpretation": "Actual callback counts are not extra RPC or business successes; original1024-result business qualification is required separately. No request authority replacement or automatic UNKNOWN retry."
+      },
+      "cleanupComplete": true,
+      "business": {
+        "input": 1024,
+        "offered": 1024,
+        "submitted": 1024,
+        "checkTxAccepted": 1024,
+        "checkTxRejected": 0,
+        "effectiveBusinessIncluded": 1024,
+        "executionFailed": 0,
+        "quorumConfirmed": 1024,
+        "finalSubmitted": 1024,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "notSubmitted": 0,
+        "measurementWindowSeconds": 4.692254259,
+        "finalSubmittedPerMeasurementSecond": 218.23199329744588,
+        "offeredInterarrivalRate": 298.47414345979337,
+        "submissionInterarrivalRate": 297.7937140529711,
+        "validInclusionBlocks": {
+          "blocks": [
+            {
+              "height": 3,
+              "signedBlockTime": "2026-10-18T19:16:40.841761263Z",
+              "blockHash": "D13F569C4A5B4232652AF6EB29F5FF7B0E099A6D75E4172982856F2D16894714",
+              "observedValidWorkloadTransactions": 73,
+              "merkleProofTotalTransactions": 73,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 4,
+              "signedBlockTime": "2026-10-18T19:16:41.610279979Z",
+              "blockHash": "AB8D2CB19A1B6FAF453B3E4BACE1813670E78A14D611A0581CDB2BF7DBC81345",
+              "observedValidWorkloadTransactions": 393,
+              "merkleProofTotalTransactions": 393,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 5,
+              "signedBlockTime": "2026-10-18T19:16:42.399361576Z",
+              "blockHash": "F7F88808680567114BB146286BC6654529A174FFC9B2CCC2E335402BDA29ACDB",
+              "observedValidWorkloadTransactions": 119,
+              "merkleProofTotalTransactions": 119,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 6,
+              "signedBlockTime": "2026-10-18T19:16:43.187255045Z",
+              "blockHash": "880A85BCC7D71A3E14105EC67ADC329AC8CCEED3F919AA32DEA8FFD5558720E1",
+              "observedValidWorkloadTransactions": 171,
+              "merkleProofTotalTransactions": 171,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 7,
+              "signedBlockTime": "2026-10-18T19:16:43.98868801Z",
+              "blockHash": "9F504997FD083144A770B945A54DD6A467A260F16CDDF222545AB3903CAA1666",
+              "observedValidWorkloadTransactions": 260,
+              "merkleProofTotalTransactions": 260,
+              "allBlockTransactionsObservedValid": true
+            },
+            {
+              "height": 8,
+              "signedBlockTime": "2026-10-18T19:16:44.78213Z",
+              "blockHash": "6600965EB58B83DD67BDBB66F6A775082636F759887C175FF5B6F0B8D6E35014",
+              "observedValidWorkloadTransactions": 8,
+              "merkleProofTotalTransactions": 8,
+              "allBlockTransactionsObservedValid": true
+            }
+          ],
+          "completeObservedBlockCoverage": true,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Finite per-account ready pool without whole-round barriers. Full block observations retained; interior/steady TPS withheld until continuous-load coverage is qualified. Full workload rate includes signing, journal Sync, waits and drain."
+        }
+      },
+      "nodePhases": [
+        {
+          "commitAttempts": 7,
+          "windowElapsedNs": 6524779722,
+          "commitTotalsNs": {
+            "close_file": 61903,
+            "delta_encode": 682336,
+            "file_sync": 3686523,
+            "journal_maintenance": 581838,
+            "prepare_file": 167823,
+            "validate": 32176381,
+            "write": 799162
+          },
+          "stages": {
+            "check_tx": {
+              "calls": 1560,
+              "elapsedNs": 384157029,
+              "failedResponses": 0
+            },
+            "commit": {
+              "calls": 7,
+              "elapsedNs": 38313237,
+              "failedResponses": 0
+            },
+            "finalize_block": {
+              "calls": 7,
+              "elapsedNs": 89200770,
+              "failedResponses": 0
+            },
+            "prepare_proposal": {
+              "calls": 2,
+              "elapsedNs": 3099382,
+              "failedResponses": 0
+            },
+            "process_proposal": {
+              "calls": 7,
+              "elapsedNs": 21921587,
+              "failedResponses": 0
+            }
+          }
+        },
+        {
+          "commitAttempts": 7,
+          "windowElapsedNs": 6514609963,
+          "commitTotalsNs": {
+            "close_file": 49502,
+            "delta_encode": 661777,
+            "file_sync": 7227033,
+            "journal_maintenance": 568085,
+            "prepare_file": 182018,
+            "validate": 32286222,
+            "write": 712293
+          },
+          "stages": {
+            "check_tx": {
+              "calls": 1510,
+              "elapsedNs": 395411619,
+              "failedResponses": 0
+            },
+            "commit": {
+              "calls": 7,
+              "elapsedNs": 41813768,
+              "failedResponses": 0
+            },
+            "finalize_block": {
+              "calls": 7,
+              "elapsedNs": 80257104,
+              "failedResponses": 0
+            },
+            "prepare_proposal": {
+              "calls": 2,
+              "elapsedNs": 6055539,
+              "failedResponses": 0
+            },
+            "process_proposal": {
+              "calls": 7,
+              "elapsedNs": 22052727,
+              "failedResponses": 0
+            }
+          }
+        },
+        {
+          "commitAttempts": 7,
+          "windowElapsedNs": 6497344735,
+          "commitTotalsNs": {
+            "close_file": 47711,
+            "delta_encode": 734803,
+            "file_sync": 3865307,
+            "journal_maintenance": 553005,
+            "prepare_file": 172862,
+            "validate": 35416075,
+            "write": 821854
+          },
+          "stages": {
+            "check_tx": {
+              "calls": 1556,
+              "elapsedNs": 390534117,
+              "failedResponses": 0
+            },
+            "commit": {
+              "calls": 7,
+              "elapsedNs": 41735065,
+              "failedResponses": 0
+            },
+            "finalize_block": {
+              "calls": 7,
+              "elapsedNs": 80441616,
+              "failedResponses": 0
+            },
+            "prepare_proposal": {
+              "calls": 2,
+              "elapsedNs": 10042851,
+              "failedResponses": 0
+            },
+            "process_proposal": {
+              "calls": 7,
+              "elapsedNs": 15752025,
+              "failedResponses": 0
+            }
+          }
+        },
+        {
+          "commitAttempts": 7,
+          "windowElapsedNs": 6472244671,
+          "commitTotalsNs": {
+            "close_file": 48339,
+            "delta_encode": 676354,
+            "file_sync": 4530950,
+            "journal_maintenance": 479541,
+            "prepare_file": 175847,
+            "validate": 29231673,
+            "write": 712940
+          },
+          "stages": {
+            "check_tx": {
+              "calls": 1527,
+              "elapsedNs": 385808113,
+              "failedResponses": 0
+            },
+            "commit": {
+              "calls": 7,
+              "elapsedNs": 36017645,
+              "failedResponses": 0
+            },
+            "finalize_block": {
+              "calls": 7,
+              "elapsedNs": 67436755,
+              "failedResponses": 0
+            },
+            "prepare_proposal": {
+              "calls": 1,
+              "elapsedNs": 2042852,
+              "failedResponses": 0
+            },
+            "process_proposal": {
+              "calls": 7,
+              "elapsedNs": 18353352,
+              "failedResponses": 0
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "hardware": {
+    "cpuCount": 4,
+    "cpuModel": "AMD EPYC 7763 64-Core Processor",
+    "memTotalKiB": 16373452,
+    "uname": [
+      "Linux",
+      "runnervm8k3b6",
+      "6.17.0-1022-azure",
+      "#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+      "x86_64",
+      "x86_64"
+    ],
+    "environment": {
+      "GOMAXPROCS": "1",
+      "GOGC": "100",
+      "GOMEMLIMIT": "off"
+    },
+    "bootID": "47e32230-01ff-41c9-97c2-013c30cd64c5"
+  },
+  "nativePreflight": {
+    "elapsedMs": 6,
+    "tasks": [
+      {
+        "pid": 31530,
+        "parent": 31527,
+        "group": 2065,
+        "startTicks": 44028,
+        "threads": 1,
+        "state": "R",
+        "rssBytes": 29097984
+      }
+    ],
+    "rssBytes": 29097984,
+    "threads": 1,
+    "privateBytes": 0,
+    "buildBytes": 0,
+    "freeDiskBytes": 89508950016,
+    "availableMemoryBytes": 15564820480,
+    "hostIdentities": 160,
+    "vanishedHostPIDs": []
+  },
+  "interpretation": "Both1024 qualified originals recomputed without selection. Negative finite performance; elastic and fixed-fair remain default off. Candidate last8 transactions landed in sixth workload block versus baseline five blocks; supply/drain wait increased. Fixed pair order, fresh fixture identities and scheduling/startup/cache/I/O differences prevent attribution of entire15.1percent loss to policy. HTTP intervals describe client boundaries, observer totals are nested/parallel cumulative work, neither is a disjoint BFT latency partition. No blind retry, no sustained qualification.",
+  "nodePhaseScope": "Original full node duration buckets retained in recovered cases and verified-comparison.json. Compact proof retains actual counts/cumulative times/Commit subphases; no point P95/P99 is fabricated from histogram intervals."
+}
