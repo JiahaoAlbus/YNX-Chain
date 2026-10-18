@@ -1,0 +1,28 @@
+{
+  "version": "YNX-CONSENSUS-MESSAGE/v0.2",
+  "sourceCommit": "7feeac343068c27b6809a4409aa1cdddc7bdf162",
+  "consumerCommit": "224e63250cadaf8e56b4126f224c9a449e1658c7",
+  "originalREDRun": "39086730691",
+  "originalREDSource": "e9081b3a6a45217571a10935960c4ffc9e85d197",
+  "originalREDTestSha256": "b242b74491e1298df4f7559858a11a8d52957a8b9e19a7244c53acf6d2d3e10f",
+  "sourceManifestSha256": "19d86213ede109ccf37e93b57cc1d01dfc74df21e6042661e0a3538cfd0a1a3c",
+  "greenRun": "39087825323",
+  "overallConclusion": "success",
+  "actualFullPackage": "internal/ynxconsensusauth 7.853s",
+  "newTests": [
+    "TestConsensusGenesisV2WireAndUnboundInputsFailClosed",
+    "TestConsensusGenesisV2AllObjectKindsAndCommit",
+    "TestConsensusGenesisV2DuplicateEvidenceUsesSameAnchor",
+    "TestConsensusGenesisV2RejectsOldOrReboundStateWithoutWrite",
+    "TestConsensusGenesisV2UnknownCannotChangeAnchorOrLoseFence"
+  ],
+  "originalExecutedTest": "TestConsensusGenesisBoundaryReplayRejected; only mandatory v2 setup migrated, both original rejection assertions and three positive controls retained and strengthened",
+  "notEvidenceOf": [
+    "Comet engine integration",
+    "remote signer integration",
+    "committed validator-key registration",
+    "public deployment or consensus activation",
+    "BFT latency or throughput"
+  ],
+  "rawLogSha256": "d388065dbe977607ed6c4f5d454af65c2d0ab0877786f99bcff72f9df873faba"
+}
