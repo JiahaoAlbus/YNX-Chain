@@ -181,7 +181,7 @@ func TestConsensusPackageOperatorRealGenerationAndIndependentVerification(t *tes
 				if err != nil {
 					t.Fatal(err)
 				}
-				for _, required := range []string{"exec '" + consensus.ProductionCandidateRoot + "/bin/ynx-comet'", "'--home' '" + role.Home + "'", "'--abci-state' '" + role.ABCIState + "'", "'--abci-state-layout' '" + layout + "'", "'--consensus-genesis-sha256' '" + plan.ConsensusGenesisSHA256 + "'", "'--original-genesis-hash' '" + plan.OriginalGenesisHash + "'", "'--bound-migration-state-hash' '" + plan.MigrationStateHash + "'"} {
+				for _, required := range []string{"\nexec env -i PATH=/usr/bin:/bin '" + consensus.ProductionCandidateRoot + "/bin/ynx-comet' 'start'", "'--home' '" + role.Home + "'", "'--migration-state' '" + consensus.ProductionCandidateRoot + "/config/bound-migration.json'", "'--abci-state' '" + role.ABCIState + "'", "'--abci-state-layout' '" + layout + "'", "'--consensus-genesis-sha256' '" + plan.ConsensusGenesisSHA256 + "'", "'--original-genesis-hash' '" + plan.OriginalGenesisHash + "'", "'--bound-migration-state-hash' '" + plan.MigrationStateHash + "'"} {
 					if !strings.Contains(string(launcher), required) {
 						t.Fatalf("single Application launcher lost exact argument %s", required)
 					}
