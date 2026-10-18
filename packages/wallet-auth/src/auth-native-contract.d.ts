@@ -80,7 +80,7 @@ export interface OriginalAuthIDEIdentityPeerBinding {
  readonly acquireOriginalIDEIdentityPeerChannel:(actualEntryURL:string,sameRequestOwner:OriginalIDEIdentityReceiveOwner|OriginalIDEIdentityRecoveryOwner|OriginalIDEProtectedKeyCallOwner)=>OriginalIDEIdentityPeerOwner;
 }
 
-/** Original R113 Wallet identity Source owner. Its hidden Native tag/env/thread
+/** Original R114 Wallet identity Source and dedicated transport owner. Its hidden Native tag/env/thread
  * prove identity, never UI approval. This is not the old four-operation parent. */
 declare const originalWalletIdentitySource:unique symbol;
 export interface OriginalIDEWalletIdentitySourceOwner {
@@ -94,5 +94,12 @@ export interface OriginalIDEWalletIdentitySourceOwner {
  /** Immutable signed selection DATA; never an account approval or trust root. */
  copyRegistration():Readonly<Record<string,unknown>>;
  retire():undefined;join():undefined;close():undefined;
- status():Readonly<{bound:boolean;retired:boolean;closed:boolean;firstCause:string|null;dataOnly:true;userApproved:false}>;
+ /** Once-only fixed registered App launch; no caller FD/PID/path/provider. */
+ launch():undefined;
+ /** Native captures and binds the original request. Never call bindRequest again. */
+ receiveRequest():Promise<Readonly<{requestRaw:string;invocationRaw:null|string}>>;
+ /** Send/current completion only, not Node effect acceptance or user approval. */
+ sendDecision(kind:'approve',proof:Uint8Array):Promise<void>;
+ sendDecision(kind:'reject'|'cancel',proof:undefined):Promise<void>;
+ status():Readonly<{bound:boolean;retired:boolean;closed:boolean;busy:number;firstCause:string|null;dataOnly:true;userApproved:false;transport:Readonly<{launched:boolean;requestCaptured:boolean;decisionSelected:boolean;capturedProofBytes:number;childReaped:boolean;childExitStatus:number|null;retired:boolean;closed:boolean;shutdownSelected:boolean;firstCause:string|null;closeCause:string|null;dataOnly:true;userApproved:false}>|null}>;
 }

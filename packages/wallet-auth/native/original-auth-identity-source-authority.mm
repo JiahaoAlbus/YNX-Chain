@@ -106,6 +106,25 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
  [s retire];if(![s close:nil])return s;return nil;
 }
+// Separate fixed factory, SAME original authenticated registry mechanics;
+// no old four-operation SourceBinding, administration or Host purpose loan.
++ (instancetype)acquireOriginalIDEIdentityWalletSource:(NSError **)error {
+ YNXAuthIdentitySourceAuthority *s=[self new];s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
+ s->_custody=[YNXAuthIdentityCurrentOwner acquireOriginalIDERegistryProfile:error];if(!s->_custody)return nil;
+ s->_profileOriginal=[s->_custody copyOriginalProfile:error];s->_headOriginal=[s->_custody copyOriginalHead:error];
+ if(s->_profileOriginal&&s->_headOriginal){
+  NSDictionary *body=SourceOriginalBodyHint(s->_profileOriginal);id source=body[@"sourceId"];
+  if([source isKindOfClass:NSString.class])for(const auto &policy:ynx_auth_private::originalNativeSourceReleases())if(policy.sourceId==[source UTF8String]){s->_policy=&policy;break;}
+  if(!s->_policy||(s->_policy->purpose!="AUTH-IDENTITY-RECEIVE"&&s->_policy->purpose!="AUTH-IDENTITY-RECOVER"&&s->_policy->purpose!="AUTH-PROTECTED-KEY-CALL"))[s fail:@"AUTH_IDENTITY_WALLET_IDENTITY_PURPOSE_REQUIRED" error:error];
+  else{
+   NSString *root=[[s->_custody copyOriginalResourceDirectory:error] stringByAppendingPathComponent:@"original-auth-identity"];
+   s->_rootOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"root.original"] maximum:ynx_auth_private::OriginalAuthPublicRootMax image:NO digest:s->_policy->rootDigest error:error];
+   if(s->_rootOriginal)s->_enrollmentOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"enrollment.original"] maximum:ynx_auth_private::OriginalAuthPublicOriginalMax image:NO digest:s->_policy->enrollmentDigest error:error];
+   if(s->_enrollmentOriginal&&[s holdPublic:[NSString stringWithUTF8String:s->_policy->verifierImagePath.c_str()] maximum:131072 image:YES digest:s->_policy->verifierImageDigest error:error]&&[s holdPublic:[NSString stringWithUTF8String:s->_policy->nodeImagePath.c_str()] maximum:134217728 image:YES digest:s->_policy->nodeImageDigest error:error]&&[s assertAuthenticatedNativePurpose:error])return s;
+  }
+ }
+ [s retire];if(![s close:nil])return s;return nil;
+}
 - (BOOL)heldCurrent:(NSError **)error {
  if(_invalid||_retired||!_policy||![_custody assertOriginalCurrent:error])return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CURRENT_UNAVAILABLE" error:error];
  for(const auto &file:_files){struct stat held{},named{};if(file.selected||fstat(file.fd,&held)||lstat(file.path.fileSystemRepresentation,&named)||!SourceSame(file.identity,held)||!SourceSame(file.identity,named))return [self fail:@"AUTH_IDENTITY_NATIVE_RELEASE_CHANGED" error:error];}return YES;
@@ -338,4 +357,3 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   NSError *cause=nil;BOOL custodyClosed=[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return _cleanupComplete;}
 }
 @end
-

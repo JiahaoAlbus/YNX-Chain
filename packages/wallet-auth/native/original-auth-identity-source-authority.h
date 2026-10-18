@@ -42,6 +42,8 @@ struct JointLifecycle {
 // Derived from actual parent app + actual runtime/node; no caller path.
 + (instancetype)acquireOriginalIDEConsumerSource:(NSError **)error;
 + (instancetype)acquireOriginalIDEParentSource:(NSError **)error;
+// Dedicated identity-purpose Wallet owner; never old four-operation admission.
++ (instancetype)acquireOriginalIDEIdentityWalletSource:(NSError **)error;
 - (BOOL)assertCurrent:(NSError **)error;
 - (BOOL)assertAuthenticatedNativePurpose:(NSError **)error;
 - (NSDictionary *)copyOriginalSelection:(NSError **)error;
@@ -77,4 +79,3 @@ struct JointLifecycle {
 - (BOOL)assertOriginalIDEIdentityRequestCurrent:(NSData *)request invocation:(NSData *)invocation error:(NSError **)error;
 @end
 #endif
-
