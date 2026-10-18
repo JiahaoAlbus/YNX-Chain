@@ -22,7 +22,9 @@ export class CanonicalAccountNetwork {
         body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
         redirect: "error", signal: AbortSignal.timeout(10_000)
       });
-      if (response.redirected || response.url && response.url !== CANONICAL_RPC_URL) throw providerError(4900, "RPC_INVALID_RESPONSE", "The RPC response origin changed.");
+      // Fetch serializes an origin's root URL with '/'. Accept only those two
+      // fixed spellings of the same resource, never another path or redirect.
+      if (response.redirected || response.url && response.url !== CANONICAL_RPC_URL && response.url !== CANONICAL_RPC_URL + "/") throw providerError(4900, "RPC_INVALID_RESPONSE", "The RPC response origin changed.");
       const payload = await response.json();
       if (!payload || typeof payload !== "object" || Array.isArray(payload) || payload.jsonrpc !== "2.0" || payload.id !== id || Object.hasOwn(payload, "result") === Object.hasOwn(payload, "error")) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
       if (Object.hasOwn(payload, "error")) {
@@ -50,8 +52,16 @@ export class CanonicalAccountNetwork {
     try {
       const model = parseFeeModel(await this.request("ynx_getFeeModel"));
       if (model.durability) {
-        try { parseDurabilityModel(await this.request("ynx_getDurabilityModel")); }
-        catch { throw capabilityError("RPC_DURABILITY_UNSUPPORTED", "The node's explicit local durability model could not be verified."); }
+        let advertised;
+        try { advertised = await this.request("ynx_getDurabilityModel"); }
+        catch (cause) {
+          // Network/protocol failures are not evidence of an unsupported
+          // contract. Preserve the exact first cause and do not retry it.
+          if (cause?.data?.rpcCode !== -32601) throw cause;
+          throw Object.assign(capabilityError("RPC_DURABILITY_UNSUPPORTED", "The node's explicit local durability model could not be verified."), { cause });
+        }
+        try { parseDurabilityModel(advertised); }
+        catch (cause) { throw Object.assign(capabilityError("RPC_DURABILITY_UNSUPPORTED", "The node's explicit local durability model could not be verified."), { cause }); }
       }
       return model;
     }
