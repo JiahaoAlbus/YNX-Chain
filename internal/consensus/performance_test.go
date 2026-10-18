@@ -45,10 +45,12 @@ func TestABCITransferPerformance(t *testing.T) {
 	}
 	const accounts = 256
 	batch, blocks := 64, 16
-	if os.Getenv("YNX_CHAIN_PERF_BLOCKS") == "32" {
+	if os.Getenv("YNX_CHAIN_PERF_BLOCKS") == "36" {
+		batch, blocks = 32, 36
+	} else if os.Getenv("YNX_CHAIN_PERF_BLOCKS") == "32" {
 		batch, blocks = 32, 32
 	} else if value := os.Getenv("YNX_CHAIN_PERF_BLOCKS"); value != "" && value != "16" {
-		t.Fatal("bounded benchmark supports 16 or 32 blocks only")
+		t.Fatal("bounded benchmark supports 16, 32 or 36 blocks only")
 	}
 	layout := os.Getenv("YNX_CHAIN_PERF_LAYOUT")
 	constructor := NewPersistentApplication
@@ -370,4 +372,91 @@ func TestABCITransferPerformance(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("report=%s pipeline_tx_per_second=%.2f accepted=%d executed=%d duration=%s", filepath.Join(runDir, "result.json"), float64(executed)/elapsed.Seconds(), accepted, executed, elapsed)
+}
+
+// TestCommitStorageMatchedPerformance reuses the signed ABCI workload and
+// durable restart assertions above.36 blocks cross the V2 checkpoints at17/33
+// and retain a live tail, so checkpoint costs are included in the measured run.
+func TestCommitStorageMatchedPerformance(t *testing.T) {
+	if os.Getenv("YNX_CHAIN_PERF") != "1" {
+		t.Skip("explicit local paired storage probe only")
+	}
+	root := os.Getenv("YNX_CHAIN_PERF_DIR")
+	if root == "" {
+		root = t.TempDir()
+	}
+	t.Setenv("YNX_CHAIN_PERF_DIR", root)
+	t.Setenv("YNX_CHAIN_PERF_BLOCKS", "36")
+	t.Setenv("YNX_CHAIN_PERF_STORAGE_PROBE", "1")
+	if err := os.MkdirAll(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	reports := make([]map[string]any, 0, 2)
+	canonical := make([][]byte, 0, 2)
+	paths := make([]string, 0, 2)
+	for _, layout := range []string{"atomic-json", "block-journal"} {
+		if !t.Run(layout, func(t *testing.T) {
+			t.Setenv("YNX_CHAIN_PERF_LAYOUT", layout)
+			before, err := filepath.Glob(filepath.Join(root, "abci-run-*"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			TestABCITransferPerformance(t)
+			after, err := filepath.Glob(filepath.Join(root, "abci-run-*"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			known := make(map[string]bool)
+			for _, p := range before {
+				known[p] = true
+			}
+			var created []string
+			for _, p := range after {
+				if !known[p] {
+					created = append(created, p)
+				}
+			}
+			if len(created) != 1 {
+				t.Fatal("paired run artifact identity unavailable", created)
+			}
+			reportPath := filepath.Join(created[0], "result.json")
+			raw, err := os.ReadFile(reportPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var report map[string]any
+			if err = json.Unmarshal(raw, &report); err != nil {
+				t.Fatal(err)
+			}
+			if report["blocks"] != float64(36) || report["executed_code_zero"] != float64(1152) || report["persisted_fee_events"] != float64(1152) || report["failed"] != float64(0) || report["restart_full_state_equal"] != true || report["replay_rejected_after_restart"] != true {
+				t.Fatal("actual paired business/recovery gate missing")
+			}
+			statePath := filepath.Join(created[0], "state.json")
+			if layout == "block-journal" {
+				statePath = filepath.Join(created[0], "canonical-state.json")
+				if report["journal_compactions"] != float64(2) || report["recovery_replayed_blocks"] != float64(4) {
+					t.Fatal("full checkpoint cycles and uncheckpointed tail were not measured")
+				}
+			}
+			state, err := os.ReadFile(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			reports = append(reports, report)
+			canonical = append(canonical, state)
+			paths = append(paths, reportPath)
+		}) {
+			return
+		}
+	}
+	if !bytes.Equal(canonical[0], canonical[1]) || !reflect.DeepEqual(reports[0]["block_app_hashes"], reports[1]["block_app_hashes"]) || reports[0]["migration_hash"] != reports[1]["migration_hash"] {
+		t.Fatal("paired workload committed states or per-block hashes differ")
+	}
+	sum := sha256.Sum256(canonical[0])
+	paired := map[string]any{"schema": "ynx-commit-storage-pair-v1", "reports": reports, "reportPaths": paths, "canonicalStateSHA256": hex.EncodeToString(sum[:]), "sameMigrationAndAllBlockHashes": true, "canonicalStatesEqual": true, "scope": "Two local sequential signed ABCI storage runs including two checkpoints and live-tail recovery. Single pair; no statistical stability, network inclusion/finality or sustained TPS claim."}
+	raw, err := json.Marshal(paired)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("YNX_COMMIT_STORAGE_PAIR_V1 %s", raw)
 }
