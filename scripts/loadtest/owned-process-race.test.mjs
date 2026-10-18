@@ -36,3 +36,15 @@ test('actual program paths and births survive inventory parsing without reading 
  assert.equal(i.identities.get(20).birth,birth);
  assert.equal(i.identities.get(10).comm,'/opt/homebrew/bin/node');
 });
+
+test('replacement sample can close proven exit races without subtracting aggregate RSS or resampling',async()=>{
+ const {closeReplacementExitRace}=await import('./owned-process-race.mjs');
+ const prior=before(),after=inventory(),s={processes:[{pid:10,readable:true,rssBytes:100,threads:1},{pid:20,readable:true,rssBytes:200,threads:1},{pid:21,readable:false,errno:3}],rssWithControlReserveBytes:999,threadsWithControlReserve:7};
+ const closed=closeReplacementExitRace(s,prior,after,10,20,()=>true);
+ assert.deepEqual(closed.sample.processes.map(p=>p.pid),[10,20]);
+ assert.equal(closed.sample.rssWithControlReserveBytes,999);assert.equal(closed.sample.threadsWithControlReserve,7);
+ assert.equal(s.processes.length,3);assert.equal(closed.exited[0].pid,21);
+ assert.throws(()=>closeReplacementExitRace(s,prior,inventory(`22 20 20 ${birth}`),10,20,()=>true),/current owned.*unmeasured/);
+ assert.throws(()=>closeReplacementExitRace(s,prior,after,10,20,()=>false));
+ const live=inventory(`21 20 20 Sun Oct 18 10:01:00 2026`);assert.throws(()=>closeReplacementExitRace(s,prior,live,10,20,()=>true));
+});

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
-import {ownedBirthInventory,verifyExitedDuringSample} from './owned-process-race.mjs';
+import {ownedBirthInventory,verifyExitedDuringSample,closeReplacementExitRace} from './owned-process-race.mjs';
 import {validateNativeResourceSample} from './native-resource-sample.mjs';
 import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
@@ -108,6 +108,16 @@ async function sample(initial=false){
   (result.exitedDuringSample??=[]).push({at:new Date().toISOString(),exited,rejectedSample:s,replacementPIDs:after.ids,birthPrecision:'ps lstart seconds; excluded PID must also be wholly absent from fresh global inventory and kernel kill(0) ESRCH'});
   ids=after.ids;raw=await probe.run(['--full',...ids.map(String)]);s=JSON.parse(raw.stdout);
   retainNativeAttempt(s);
+  if(s.processes?.some(p=>p.readable!==true)){
+   const finalInventory=await birthInventory();
+   const closure={at:new Date().toISOString(),rawNativeSample:s,before:after.ids.map(pid=>after.identities.get(pid)),after:finalInventory.ids.map(pid=>finalInventory.identities.get(pid)),kernelAbsenceQueries:[],kernelReplacementCount:1};
+   (result.replacementExitClosures??=[]).push(closure);
+   try{
+    const reconciled=closeReplacementExitRace(s,after,finalInventory,process.pid,child.pid,pid=>{try{process.kill(pid,0);closure.kernelAbsenceQueries.push({pid,absent:false});return false;}catch(e){closure.kernelAbsenceQueries.push({pid,absent:e.code==='ESRCH',code:e.code});if(e.code==='ESRCH')return true;throw e;}});
+    closure.exited=reconciled.exited;closure.aggregateRSSBefore=s.rssWithControlReserveBytes;closure.aggregateRSSAfter=reconciled.sample.rssWithControlReserveBytes;
+    s=reconciled.sample;ids=finalInventory.ids;
+   }catch(e){closure.failure=e.message;throw e;}
+  }
  }
  validateNativeResourceSample(s,process.pid,{expectedPIDs:ids,rootCase:admissionCase});
  result.peakRSS=Math.max(result.peakRSS,s.rssWithControlReserveBytes);result.peakThreads=Math.max(result.peakThreads,s.threadsWithControlReserve);

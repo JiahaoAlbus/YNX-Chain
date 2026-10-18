@@ -37,3 +37,19 @@ export function verifyExitedDuringSample(sample,before,after,launcherPID,jobPID,
  }
  return exited;
 }
+
+// One kernel replacement has already occurred. A final identity inventory can
+// prove only exited children; it cannot excuse any unmeasured current process.
+// Keep the native RSS/thread aggregate unchanged, including any now-exited
+// readable rows. Never invent zero RSS for an unreadable live identity.
+export function closeReplacementExitRace(sample,before,after,launcherPID,jobPID,isAbsent){
+ const pids=sample.processes?.map(p=>p.pid);
+ if(!pids||pids.length!==before.ids.length||new Set(pids).size!==pids.length||pids.some(pid=>!before.ids.includes(pid)))throw Error('replacement native identities differ from requested set');
+ const exited=verifyExitedDuringSample(sample,before,after,launcherPID,jobPID,isAbsent);
+ for(const pid of after.ids){
+  const row=sample.processes.find(p=>p.pid===pid);
+  if(!row||row.readable!==true)throw Error('current owned process remains unmeasured');
+ }
+ const retained=sample.processes.filter(p=>after.ids.includes(p.pid));
+ return {sample:{...sample,processes:retained,captureDisposition:'post-read proven child exits; original RSS/thread aggregate unchanged'},exited};
+}
