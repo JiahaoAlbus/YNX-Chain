@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {pqBatchMemberHash,classifyPQBatchReceipt,createPQReceiptCounter} from './pq-batch-receipt.mjs';
+import {pqBatchMemberHash,classifyPQBatchReceipt,createPQReceiptCounter,qualifyPQBatchMeasurement} from './pq-batch-receipt.mjs';
 
 // Parser fixtures only: no valid PQ signature or business acceptance is implied.
 function fixture(){
@@ -78,4 +78,34 @@ test('capacity exhaustion retains old hashes and cannot reset a previous count',
  const after=counter.observe(first.wire,first.response,first.expected);
  assert.equal(after.uniqueServerReportedDurableMembers,2);
  assert.equal(after.newUniqueServerReportedDurableMembers,0);
+});
+
+function measurementFixture(){
+ const f=fixture(),phase=(a=0,c=0,e=0,ns='0')=>({attempts:a,completed:c,errors:e,durationNs:ns});
+ const file=()=>Object.fromEntries([...['total','openTemp','encodeWrite','fileSync','close','rename','directorySync'].map(k=>[k,phase(1,1,0,'10')]),['writeCalls',2],['bytesWritten',1024]]);
+ const m={version:'ynx-pq-batch-measurement-v1',wireHash:f.response.batchHash,executionHeight:f.response.executionHeight,result:{executionHeight:f.response.executionHeight,batchHash:f.response.batchHash,status:f.response.status,replayed:false,results:f.response.results.map(r=>({index:r.index,outcome:r.outcome,transactionHash:r.transactionHash,error:r.error}))},total:phase(1,1,0,'9007199254740993'),inputCloneHash:phase(1,1,0,'10'),lockWait:phase(1,1,0,'10'),policyValidation:phase(1,1,0,'10'),wireDecode:phase(1,1,0,'10'),wholeAuthentication:phase(1,1,0,'100'),memberExecution:phase(4,2,2,'200'),replay:phase(),verifierSignatureChecks:2,memberAdmitted:2,memberRejected:2,persistence:{...Object.fromEntries(['total','snapshotBuild','integritySeal','checkpointBuild','persistenceLockWait','mkdir'].map(k=>[k,phase(1,1,0,'20')])),snapshotFile:file(),markerFile:file(),candidateIntegrity:'source-local-integrity',published:{version:'ynx-local-durability-v1',height:'1',hash:'source-local-block-hash',snapshotIntegrity:'source-local-integrity'}}};
+ return {...f,m,phase};
+}
+test('production phase receipt binds exact result and preserves large ns and distinct checkpoint height',()=>{const f=measurementFixture();
+ const q=qualifyPQBatchMeasurement(f.m,classifyPQBatchReceipt(f.wire,f.response,f.expected));
+ assert.equal(q.phaseDurationsNs.total,'9007199254740993');assert.deepEqual(q.fileWrites.snapshotFile,{writeCalls:2,bytesWritten:1024});assert.equal(q.executionHeight,'2');assert.equal(q.publishedLocalCheckpoint.height,'1');assert.equal(q.verifiedFinalCommits,null);assert.equal(q.phaseDurationsAreInclusive,true);
+});
+test('covered replay has zero new signature/member/persistence work and cannot invent publication',()=>{const f=measurementFixture();f.response.replayed=f.m.result.replayed=true;
+ f.m.memberAdmitted=f.m.memberRejected=f.m.verifierSignatureChecks=0;
+ for(const k of ['policyValidation','wireDecode','wholeAuthentication','memberExecution'])f.m[k]=f.phase();
+ f.m.replay=f.phase(1,1,0,'10');
+ for(const k of ['total','snapshotBuild','integritySeal','checkpointBuild','persistenceLockWait','mkdir'])f.m.persistence[k]=f.phase();
+ for(const file of ['snapshotFile','markerFile']){for(const k of ['total','openTemp','encodeWrite','fileSync','close','rename','directorySync'])f.m.persistence[file][k]=f.phase();f.m.persistence[file].writeCalls=f.m.persistence[file].bytesWritten=0;}
+ delete f.m.persistence.published;delete f.m.persistence.candidateIntegrity;
+ const q=qualifyPQBatchMeasurement(f.m,classifyPQBatchReceipt(f.wire,f.response,f.expected));assert.equal(q.publishedLocalCheckpoint,null);assert.equal(q.verifierSignatureChecks,0);
+});
+test('successful snapshot sync followed by failed marker never qualifies a published checkpoint',()=>{const f=measurementFixture();f.response.status=f.m.result.status='uncertain';
+ f.m.total=f.m.persistence.total=f.m.persistence.markerFile.total=f.m.persistence.markerFile.directorySync=f.phase(1,0,1,'10');delete f.m.persistence.published;
+ const receipt=classifyPQBatchReceipt(f.wire,f.response,f.expected);
+ assert.equal(qualifyPQBatchMeasurement(f.m,receipt).publishedLocalCheckpoint,null);
+ f.m.persistence.published={version:'ynx-local-durability-v1',height:'1',hash:'source-local-block-hash',snapshotIntegrity:f.m.persistence.candidateIntegrity};
+ assert.throws(()=>qualifyPQBatchMeasurement(f.m,receipt));
+});
+test('malformed and mismatched measurement fields fail before use',()=>{
+ for(const mutate of [f=>f.m.wireHash='0x'+'0'.repeat(64),f=>f.m.executionHeight='3',f=>f.m.result.status='memory',f=>f.m.result.results[1].transactionHash='0x'+'0'.repeat(64),f=>f.m.total.durationNs=1,f=>f.m.total.durationNs='-1',f=>f.m.total.durationNs='9223372036854775808',f=>f.m.total.completed=0,f=>f.m.verifierSignatureChecks=9007199254740992,f=>f.m.persistence.published.snapshotIntegrity='other',f=>f.m.memberAdmitted=4,f=>f.m.persistence.markerFile.bytesWritten=9007199254740992]){const f=measurementFixture();mutate(f);assert.throws(()=>qualifyPQBatchMeasurement(f.m,classifyPQBatchReceipt(f.wire,f.response,f.expected)));}
 });

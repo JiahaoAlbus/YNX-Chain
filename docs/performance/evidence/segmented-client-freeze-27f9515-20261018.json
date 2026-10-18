@@ -1,0 +1,87 @@
+{
+  "sourceCommit": "27f9515035ecd66cf4df050042c72cdd8fddfd97",
+  "previousTestedCommit": "45058e7f764529421870a5fc41264da86b9ab2a0",
+  "sourcePackageTree": "28c9c75f9834f2bdbfad20c4632d46c83695db1e",
+  "leaves": [
+    {
+      "path": "cmd/ynx-consensus-perf-client/main.go",
+      "bytes": 49056,
+      "sha256": "553967af4280d83895692a40626d72a9e49fdd8dbf2e78b967ae04ab059037cd"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/ready_intent_segments.go",
+      "bytes": 9712,
+      "sha256": "0661c00304d42f9fe1d3f1652833131336e49db7e5e6a0a10b1a09738b452e5d"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/ready_intent_segments_test.go",
+      "bytes": 7847,
+      "sha256": "947b4bbb5459f2b9befcecc962986c84114857dd376abf2c8fff07dc0e6701de"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/ready_sender.go",
+      "bytes": 15500,
+      "sha256": "0a24124745db1d0a90af804dc6d434b280f27ebd61a0d4449ae67d3321dd57df"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/ready_sender_readback.go",
+      "bytes": 8059,
+      "sha256": "6fc91957c61facce005f4b2dba0b049e1b31f04ee5c688a00c23dcfde11d854d"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/ready_sender_readback_test.go",
+      "bytes": 6950,
+      "sha256": "b518de49d4837c90fa96ee8a38e2e9a7dec29f72ed80dbd7aa6c40b40420d3df"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/ready_sender_test.go",
+      "bytes": 16811,
+      "sha256": "65e24f01554c5245df3672d62fc39e89233b1eb28bc3204ab4def9d5a83c9362"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/stopped_partial_test.go",
+      "bytes": 13114,
+      "sha256": "4356fe6116c0a6ab2b00702836aa09b85277cd0ae75c4a93c475844d54ab09c1"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/stopped_replay_test.go",
+      "bytes": 10386,
+      "sha256": "9495e4f2ceef9be845a5005d0af3b3ddb367ee359ae1d77c338719ac8073ffbc"
+    }
+  ],
+  "tests": [
+    "TestReadyIntentSegmentsPersistAndStreamExactSignedInputs",
+    "TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence",
+    "TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding",
+    "TestReadySenderSegmentedIntentBarrierAndRecovery",
+    "TestReadySenderSegmentedIntentFailureNeverSubmits",
+    "TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts",
+    "TestSegmentedIntentOptionsRequireBoundedEvidenceMode",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities"
+  ],
+  "selector": "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities)$",
+  "recipe": {
+    "command": "go",
+    "args": [
+      "test",
+      "-p",
+      "1",
+      "./cmd/ynx-consensus-perf-client",
+      "-run",
+      "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities)$",
+      "-count=1",
+      "-timeout=30s",
+      "-v"
+    ],
+    "env": {
+      "GOMAXPROCS": "1",
+      "GOGC": "50",
+      "GOMEMLIMIT": "384MiB"
+    },
+    "scope": "same original normal CI independent exact performance checkout; no nodes/N1/bench"
+  },
+  "actualGoResult": "pending",
+  "requiresSourceAvailability": "Remote ref still fixed at previousTestedCommit; next exact push/CI coordinated by Root",
+  "interpretation": "Seven newly added tests plus two regressions whose source changed after previous PASS. Do not rerun unchanged eight-test suite as a new result; do not import this old performance tree into production."
+}

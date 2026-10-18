@@ -33,10 +33,10 @@ export function classifyPQBatchReceipt(wire,response,expectedMembers){
       if(row.transactionHash!==''||row.error==='')throw Error('PQ rejected member has execution identity');
       rejected++;
     }else throw Error('unknown PQ member outcome');
-    return {index,outcome:row.outcome,transactionHash:row.transactionHash};
+    return {index,outcome:row.outcome,transactionHash:row.transactionHash,error:row.error};
   });
   if((response.status==='rejected'&&(admitted!==0||response.replayed))||(response.status!=='rejected'&&admitted===0))throw Error('PQ batch status inconsistent with member outcomes');
-  return {batchHash,status:response.status,replayed:response.replayed,members,serverReportedAdmitted:admitted,serverReportedRejected:rejected,newServerReportedDurableMembers:response.status==='durable'&&!response.replayed?admitted:0,verifiedEffectiveInclusions:null,verifiedFinalCommits:null,interpretation:'Server claims only. Replayed identities are not new business. Independent execution/readback, actual block inclusion and applicable consensus finality are separate evidence.'};
+  return {batchHash,executionHeight:response.executionHeight,status:response.status,replayed:response.replayed,members,serverReportedAdmitted:admitted,serverReportedRejected:rejected,newServerReportedDurableMembers:response.status==='durable'&&!response.replayed?admitted:0,verifiedEffectiveInclusions:null,verifiedFinalCommits:null,interpretation:'Server claims only. Replayed identities are not new business. Independent execution/readback, actual block inclusion and applicable consensus finality are separate evidence.'};
 }
 
 // One counter per run. Retain exact hashes up to the caller's explicit bound;
@@ -56,4 +56,32 @@ export function createPQReceiptCounter(maxMembers){
     for(const h of newDurable)durable.add(h);
     return {...receipt,newUniqueServerReportedDurableMembers:receipt.replayed?0:newDurable.length,uniqueServerReportedAdmittedMembers:admitted.size,uniqueServerReportedDurableMembers:durable.size,interpretation:'Run-scoped exact hash deduplication of server claims. First-seen durable replays are observed durable identities, never new execution. Inclusion, execution readback and weighted consensus commit verification remain separate.'};
   }});
+}
+
+// Format/binding checks for the production owner's call-local measurement API.
+// This does not verify signatures, state execution or consensus evidence.
+export function qualifyPQBatchMeasurement(m,receipt){
+ const count=n=>Number.isSafeInteger(n)&&n>=0;
+ const int64=s=>typeof s==='string'&&/^(0|[1-9][0-9]*)$/.test(s)&&BigInt(s)<=9223372036854775807n;
+ if(!receipt||!canonicalHash(receipt.batchHash)||!decimal(receipt.executionHeight)||!m||m.version!=='ynx-pq-batch-measurement-v1'||m.wireHash!==receipt.batchHash||m.executionHeight!==receipt.executionHeight||!m.result||m.result.batchHash!==receipt.batchHash||m.result.executionHeight!==receipt.executionHeight||m.result.status!==receipt.status||m.result.replayed!==receipt.replayed||!Array.isArray(m.result.results)||m.result.results.length!==receipt.members.length)throw Error('PQ measurement identity/result mismatch');
+ for(let i=0;i<receipt.members.length;i++){const a=m.result.results[i],b=receipt.members[i];if(!a||a.index!==b.index||a.outcome!==b.outcome||(a.transactionHash??'')!==b.transactionHash||(a.error??'')!==b.error)throw Error('PQ measurement original member result mismatch');}
+ const durations={},counters={};
+ const phase=(p,name)=>{
+  if(!p||!['attempts','completed','errors'].every(k=>count(p[k]))||p.completed>p.attempts||p.errors!==p.attempts-p.completed||!int64(p.durationNs)||(p.attempts===0&&p.durationNs!=='0'))throw Error('PQ measurement phase shape: '+name);
+  durations[name]=p.durationNs;counters[name]={attempts:p.attempts,completed:p.completed,errors:p.errors};
+ };
+ for(const name of ['total','inputCloneHash','lockWait','policyValidation','wireDecode','wholeAuthentication','memberExecution','replay'])phase(m[name],name);
+ if(m.total.attempts!==1)throw Error('PQ measured API total attempt missing');
+ const persistence=m.persistence;if(!persistence)throw Error('PQ persistence measurement missing');
+ for(const name of ['total','snapshotBuild','integritySeal','checkpointBuild','persistenceLockWait','mkdir'])phase(persistence[name],'persistence.'+name);
+ for(const name of ['snapshotFile','markerFile']){const f=persistence[name];if(!f||!count(f.writeCalls)||!count(f.bytesWritten))throw Error('PQ write counters invalid');for(const k of ['total','openTemp','encodeWrite','fileSync','close','rename','directorySync'])phase(f[k],'persistence.'+name+'.'+k);}
+ if(!count(m.verifierSignatureChecks)||!count(m.memberAdmitted)||!count(m.memberRejected)||m.memberExecution.attempts!==m.memberAdmitted+m.memberRejected||m.memberExecution.completed!==m.memberAdmitted||m.memberExecution.errors!==m.memberRejected)throw Error('PQ evaluation counters mismatch');
+ if(receipt.replayed){if(m.verifierSignatureChecks!==0||m.memberAdmitted!==0||m.memberRejected!==0||m.wholeAuthentication.attempts!==0||m.replay.attempts!==1)throw Error('PQ replay invented new work');}
+ else if(m.memberAdmitted!==receipt.serverReportedAdmitted||m.memberRejected!==receipt.serverReportedRejected)throw Error('PQ original evaluation outcomes mismatch');
+ const published=persistence.published??null;
+ if(published!==null){
+  if(receipt.status!=='durable'||published.version!=='ynx-local-durability-v1'||!decimal(published.height)||typeof published.hash!=='string'||(published.height!=='0'&&published.hash==='')||typeof published.snapshotIntegrity!=='string'||published.snapshotIntegrity===''||published.snapshotIntegrity!==persistence.candidateIntegrity||persistence.total.completed!==1||m.total.completed!==1)throw Error('PQ checkpoint publication mismatch');
+  for(const name of ['snapshotFile','markerFile'])for(const k of ['total','openTemp','encodeWrite','fileSync','close','rename','directorySync'])if(persistence[name][k].completed!==1||persistence[name][k].errors!==0)throw Error('PQ checkpoint published before durable boundary');
+ }
+ return {wireHash:m.wireHash,executionHeight:m.executionHeight,status:receipt.status,replayed:receipt.replayed,phaseDurationsNs:durations,phaseCounters:counters,phaseDurationsAreInclusive:true,fileWrites:Object.fromEntries(['snapshotFile','markerFile'].map(name=>[name,{writeCalls:persistence[name].writeCalls,bytesWritten:persistence[name].bytesWritten}])),verifierSignatureChecks:m.verifierSignatureChecks,publishedLocalCheckpoint:published===null?null:{...published},verifiedEffectiveInclusions:null,verifiedFinalCommits:null,interpretation:'Bound server measurement fields only. Nanoseconds remain exact decimal strings; parent and child phases overlap and must not be summed. Published checkpoint height can precede pending transaction execution height. Local checkpoints are separate from block inclusion and BFT finality.'};
 }

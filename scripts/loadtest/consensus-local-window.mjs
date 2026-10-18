@@ -19,6 +19,7 @@ const { values } = parseArgs({ options: {
   'inclusion-mode': { type: 'string', default: 'tx-query' },
   'terminal-stream': { type: 'boolean', default: false },
   'reuse-result-slots': { type: 'boolean', default: false },
+ 'segmented-intents': {type:'boolean',default:false},
 	'state-layout': {type:'string',default:'atomic-json'},
   'offered-rate': { type: 'string', default: '0' },
 } });
@@ -35,8 +36,10 @@ const senderMode=values['sender-mode'];
 const inclusionMode=values['inclusion-mode'];
 const terminalStream=values['terminal-stream'];
 const reuseResultSlots=values['reuse-result-slots'];
+const segmentedIntents=values['segmented-intents'];
 if(terminalStream&&senderMode!=='ready-pool')throw Error('terminal-stream requires ready-pool');
 if(reuseResultSlots&&(!terminalStream||senderMode!=='ready-pool'))throw Error('reuse-result-slots requires ready-pool and terminal-stream');
+if(segmentedIntents&&!reuseResultSlots)throw Error('segmented-intents requires ready-pool, terminal-stream and reuse-result-slots');
 if(!['tx-query','block-scan'].includes(inclusionMode))throw Error('unsupported inclusion-mode');
 if(inclusionMode==='block-scan'&&offeredRate<=0)throw Error('block-scan requires paced submission');
 if(!['rounds','ready-pool'].includes(senderMode))throw Error('unsupported sender-mode');
@@ -45,6 +48,8 @@ if (!Number.isFinite(offeredRate) || offeredRate < 0 || offeredRate > 2048) thro
 if (offeredRate > 0 && rounds * (count - 1) / offeredRate >= 10) throw Error('offering span does not fit the full 10-second client deadline');
 if(senderMode==='ready-pool'&&(count*rounds-1)/offeredRate>=10)throw Error('ready-pool offering span does not fit client deadline');
 if (!values['bin-dir'] || !values['comet-bin']) throw Error('prebuilt --bin-dir and --comet-bin are required');
+// The prepared plan and actual launch consume one exact argument list.
+const clientModeArguments=[...(senderMode==='ready-pool'?['-sender-mode',senderMode]:[]), ...(inclusionMode==='block-scan'?['-inclusion-mode',inclusionMode]:[]), ...(terminalStream?['-terminal-stream']:[]), ...(reuseResultSlots?['-reuse-result-slots']:[]),...(segmentedIntents?['-segmented-intents']:[])];
 const bin = path.resolve(values['bin-dir']);
 const commands = {
   fixture: path.join(bin, 'ynx-consensus-perf-fixture'),
@@ -56,7 +61,7 @@ const commands = {
 for (const command of Object.values(commands)) fs.accessSync(command, fs.constants.X_OK);
 const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 32 * 1024 * 1024, rssBytes: 1024 ** 3, freeDiskFloorBytes: 1024 ** 3, rootDiskReserveBytes: 425 * 1024 ** 2, longLivedChildren: 9, threadsWithControlReserve: 320, fullHostSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, clientObservers: 4, gomaxprocs: 1, gogc: '100', gomemlimit: 'off' };
 if (!values.execute) {
-  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, stateLayout, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
+  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
   process.exit(0);
 }
 
@@ -226,7 +231,7 @@ try {
       await delay(100);
     }
   }
-  await waitExit(launch('client', commands.client, ['-manifest', manifestPath, '-transactions', path.join(network, 'transactions.json'), '-output', path.join(work, 'transactions-result.json'), '-timeout', caps.clientTimeout, '-concurrency', String(caps.clientConcurrency), '-observers', String(caps.clientObservers), '-offered-rate', String(offeredRate), '-rounds', String(rounds), ...(senderMode==='ready-pool'?['-sender-mode',senderMode]:[]), ...(inclusionMode==='block-scan'?['-inclusion-mode',inclusionMode]:[]), ...(terminalStream?['-terminal-stream']:[]), ...(reuseResultSlots?['-reuse-result-slots']:[])]));
+  await waitExit(launch('client', commands.client, ['-manifest', manifestPath, '-transactions', path.join(network, 'transactions.json'), '-output', path.join(work, 'transactions-result.json'), '-timeout', caps.clientTimeout, '-concurrency', String(caps.clientConcurrency), '-observers', String(caps.clientObservers), '-offered-rate', String(offeredRate), '-rounds', String(rounds), ...clientModeArguments]));
 } catch (error) {
   fail(error.message);
 } finally {
@@ -250,7 +255,7 @@ try {
     if (!exited || !groupGone) fail(`${name} process/group did not fully exit`);
     return { name, pid, exitCode, signal, exited, groupGone };
   });
-  const receipt = { schema: 5, sharedParentExcluded: process.ppid, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: owned launcher/live children plus native sampler and conservative fork-child reserve; shared parent excluded', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
+  const receipt = { schema: 5, sharedParentExcluded: process.ppid, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: owned launcher/live children plus native sampler and conservative fork-child reserve; shared parent excluded', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
   fs.writeFileSync(path.join(work, 'window-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   console.log(JSON.stringify(receipt, null, 2));
   process.exitCode = firstCause ? 1 : 0;

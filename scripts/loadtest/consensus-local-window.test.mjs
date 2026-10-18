@@ -69,3 +69,21 @@ test('expanded plans remain prepare-only and do not expand resource budgets', { 
     }
   } finally { fs.rmSync(root, { recursive: true }); }
 });
+
+test('segmented intent plans preserve the exact client arguments and finite budgets', {skip:process.platform!=='darwin'},()=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-segment-plan-'));
+ try{
+  for(const name of ['ynx-consensus-perf-fixture','ynx-abci','ynx-consensus-perf-client','ynx-consensus-perf-host','cometbft'])fs.writeFileSync(path.join(root,name),'',{mode:0o700});
+  const work=path.join(root,'must-not-exist');
+  const common=[runner,'--count','32','--rounds','2','--offered-rate','128','--bin-dir',root,'--comet-bin',path.join(root,'cometbft'),'--work-parent',work];
+  for(const [terminal,slots,mode,ok] of [[true,true,'ready-pool',true],[false,true,'ready-pool',false],[true,false,'ready-pool',false],[true,true,'rounds',false]]){
+   const r=spawnSync(process.execPath,[...common,'--sender-mode',mode,'--segmented-intents',...(terminal?['--terminal-stream']:[]),...(slots?['--reuse-result-slots']:[])],{encoding:'utf8',timeout:5000});
+   assert.equal(r.status===0,ok,r.stderr);
+   if(ok){const p=JSON.parse(r.stdout);assert.equal(p.status,'prepared_only_no_processes_started');assert.equal(p.segmentedIntents,true);assert.deepEqual(p.clientModeArguments,['-sender-mode','ready-pool','-terminal-stream','-reuse-result-slots','-segmented-intents']);assert.equal(p.totalTransactions,64);assert.equal(p.caps.rssBytes,1024**3);assert.equal(p.caps.dataBytes,32*1024**2);assert.equal(p.caps.activeMs,45000);assert.equal(p.caps.clientTimeout,'10s');}
+   assert.equal(fs.existsSync(work),false);
+  }
+  const ordinary=spawnSync(process.execPath,[...common],{encoding:'utf8',timeout:5000});
+  assert.equal(ordinary.status,0,ordinary.stderr);
+  const p=JSON.parse(ordinary.stdout);assert.equal(p.segmentedIntents,false);assert.deepEqual(p.clientModeArguments,[]);assert.equal(fs.existsSync(work),false);
+ }finally{fs.rmSync(root,{recursive:true})}
+});
