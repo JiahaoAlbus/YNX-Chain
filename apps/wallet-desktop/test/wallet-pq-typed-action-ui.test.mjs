@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
+import {AsyncLocalStorage} from 'node:async_hooks';
 import {createPQTypedActionReviewUI,PQ_TYPED_ACTION_FORM} from '../src/wallet-pq-typed-action-ui.mjs';
 function fixture(prepare){
  const nodes=[],calls=[],state={account:'0x'+'11'.repeat(20),revision:1,locked:false,authenticating:false};let ready=false;
@@ -40,4 +41,17 @@ test('typed normal Main/preload provider-review route is wired without sign or s
  const input={kind:'stake',fee:'0',payload:{amount:'1'}},result=await handlers.get('wallet:pq-typed-action-review')({},input);assert.equal(result.requestId,request.id);assert.equal(result.submitted,false);assert.equal(calls[0],input);assert.equal(events[0][1],request);
  let api;const invoked=[];runInNewContext(readFileSync(new URL('../src/preload.cjs',import.meta.url),'utf8'),{require:()=>({contextBridge:{exposeInMainWorld:(_name,value)=>{api=value}},ipcRenderer:{invoke:(...args)=>invoked.push(args)}})});api.preparePQTypedAction(input);assert.equal(invoked[0][0],'wallet:pq-typed-action-review');
  const renderer=readFileSync(new URL('../src/renderer.js',import.meta.url),'utf8');assert.match(renderer,/createPQTypedActionReviewUI\(\{api:window\.ynxWallet/);assert.match(renderer,/if\(securityChanged\)pqTypedActionReviewUI\.invalidate\(\)/);
+});
+test('actual Main sole broadcast caller passes the same independent typed request as private third argument, legacy two arguments unchanged',async()=>{
+ const main=readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf('async function executeOriginalPQBroadcast('),end=main.indexOf('\nlet nativeWallet;',start),context=new AsyncLocalStorage(),calls=[];
+ assert.ok(start>=0&&end>start);
+ const execute=runInNewContext(main.slice(start,end)+';executeOriginalPQBroadcast;',{
+  pqBroadcastApprovalContext:context,
+  pqTransactionSubmission:{async broadcast(...args){if(args.length===3)assert.equal(context.getStore().request,args[2]);else assert.equal(Object.hasOwn(context.getStore().request,'transfer'),true);calls.push(args);return {controlledCallerOnly:true}}},
+  retireUnusedOriginalWalletTransactionApproval(){},
+ });
+ const hash='0x'+'aa'.repeat(32),guard={assert(){}},borrow={retire(){},async join(){},async close(){}},request={action:'broadcast',typedAction:{kind:'stake'}};
+ await execute({hash,request,capsule:{PUBLIC:true},borrow,guard});assert.equal(calls[0].length,3);assert.equal(calls[0][2],request);
+ // The existing transfer entry still uses exactly its original two arguments.
+ const legacy={action:'broadcast',transfer:{}};await execute({hash,request:legacy,capsule:{PUBLIC:true},borrow,guard});assert.equal(calls[1].length,2);
 });

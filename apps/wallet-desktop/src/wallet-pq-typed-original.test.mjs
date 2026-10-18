@@ -120,8 +120,10 @@ test('actual Main checkPQ reads retained original under cold store and projects 
    reads++;assertCurrent();assert.deepEqual(review,record.typed.review);assert.equal(Buffer.from(raw).toString('base64url'),record.wire);assert.equal(original.memberHash,record.typed.memberHash);assert.equal(original.transportHash,record.hash);return nodeResponse(status);
   }});
   const observed=await query.checkPQ(record.hash,record.account,{account:record.account,assert(){}});assert.equal(observed.outcome,outcome);assert.equal(observed.networkQueryPerformed,true);
+  assert.equal(observed.status,status==='committed'?'pq-inclusion-observed':status==='rejected'?'pq-rejection-observed':'pq-signed-unsubmitted');
   for(const key of ['submitted','canRetry','clearsOriginal','consensusFinality','permissionGranted'])assert.equal(observed[key],false);
   assert.deepEqual(projectPQOriginalObservation({ok:true,value:observed},{account:record.account,hash:record.hash,kind:record.kind}),{outcome});
+  if(status!=='unknown')assert.throws(()=>projectPQOriginalObservation({ok:true,value:{...observed,status:'pq-signed-unsubmitted'}},{account:record.account,hash:record.hash,kind:record.kind}));
   if(status==='unknown')assert.equal(await fs.readFile(f.filePath,'utf8'),before);
   else {const progress=await new FileTransactionIntentStore({filePath:f.filePath}).readPQProgress(record.account,record.hash,()=>{});assert.equal(progress.status,status==='committed'?'inclusion-observed':'rejection-observed');assert.equal(progress.storageConfirmed,true);}
   assert.deepEqual((await cold.readPQOriginals(record.account,()=>{}))[0],record);await assert.rejects(cold.reserveOriginal(record.account,record.kind));

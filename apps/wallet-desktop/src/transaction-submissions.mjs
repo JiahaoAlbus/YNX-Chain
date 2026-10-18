@@ -34,7 +34,7 @@ export class TransactionSubmissions {
         const result=await observePQTypedOriginalQuery(saved,read,()=>guard.assert());guard.assert();
         const progress=await this.intentStore.readPQProgress(account,hash,()=>guard.assert());guard.assert();
         const known={'inclusion-observed':'typed-commit-observed','rejection-observed':'typed-rejection-observed'}[progress.status];
-        return known?Object.freeze({...result,outcome:known}):result;
+        return Object.freeze({...result,outcome:known??result.outcome,status:'pq-'+progress.status});
       }
       if (typeof this.intentStore?.readPQOriginals !== 'function' || typeof this.pqReadOriginal !== 'function') throw failure('PQ_READ_SOURCE_UNAVAILABLE', 'The fixed PQ producer read channel is not available. Preserve the original.');
       const originals = await this.intentStore.readPQOriginals(account, () => guard.assert());

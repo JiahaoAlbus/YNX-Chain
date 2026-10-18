@@ -133,7 +133,7 @@ const selectOriginalPQHostSource=async()=>{throw Object.assign(Error('Original P
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
 async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
   const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
-  try{result=await pqBroadcastApprovalContext.run(context,()=>pqTransactionSubmission.broadcast(hash,guard));}
+  try{result=await pqBroadcastApprovalContext.run(context,()=>Object.hasOwn(request,'typedAction')?pqTransactionSubmission.broadcast(hash,guard,request):pqTransactionSubmission.broadcast(hash,guard));}
   catch(error){failed=true;cause=error;}
   finally{
     context.closed=true;
