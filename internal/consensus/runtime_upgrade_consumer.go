@@ -17,12 +17,8 @@ var _ cmttypes.ConsensusRuntimeCheckpointConsumer = (*Application)(nil)
 // in-process engine must confirm its actual durable checkpoint during handshake.
 // PQ activation remains a separate, optional operator authorization.
 func NewPersistentApplicationWithRuntimeUpgrade(migration chain.ConsensusMigrationState, path string, bootstrap *ConsensusBootstrap, pq *PQEngineAuthorization, authorization *RuntimeUpgradeAuthorization) (*Application, error) {
-	plan, err := authorization.Plan()
-	if err != nil {
+	if err := validateRuntimeUpgradeBootstrap(migration, bootstrap, authorization); err != nil {
 		return nil, err
-	}
-	if bootstrap == nil || bootstrap.record.CometGenesisSHA256 != plan.CometGenesisSHA256 || bootstrap.record.Params.Version == nil || bootstrap.record.Params.Version.App != plan.OldApplicationVersion || bootstrap.record.MigrationStateHash != plan.MigrationStateHash || migration.OriginalGenesisHash != plan.OriginalGenesisHash {
-		return nil, errors.New("runtime upgrade does not bind the original bootstrap and historical application version")
 	}
 	a, err := newPersistentApplicationWithAuthorization(migration, path, bootstrap, nil, pq)
 	if err != nil {
@@ -33,6 +29,19 @@ func NewPersistentApplicationWithRuntimeUpgrade(migration chain.ConsensusMigrati
 		return nil, err
 	}
 	return a, nil
+}
+
+// Shared by the normal atomic and journal factories before recovery can Sync
+// or create any writer/lock file. A serialized checkpoint supplies no plan.
+func validateRuntimeUpgradeBootstrap(migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *RuntimeUpgradeAuthorization) error {
+	plan, err := authorization.Plan()
+	if err != nil {
+		return err
+	}
+	if bootstrap == nil || bootstrap.record.CometGenesisSHA256 != plan.CometGenesisSHA256 || bootstrap.record.Params.Version == nil || bootstrap.record.Params.Version.App != plan.OldApplicationVersion || bootstrap.record.MigrationStateHash != plan.MigrationStateHash || migration.OriginalGenesisHash != plan.OriginalGenesisHash {
+		return errors.New("runtime upgrade does not bind the original bootstrap and historical application version")
+	}
+	return nil
 }
 
 // ConfirmConsensusRuntimeCheckpoint is called by the repository-owned engine

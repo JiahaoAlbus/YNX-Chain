@@ -35,10 +35,11 @@ type pqOptions struct {
 	remoteAddress, transportKey, peerPin                              string
 	remoteTimeout                                                     time.Duration
 	runtimePlan, runtimePlanHash                                      string
+	stateLayout                                                       string
 }
 
 func (p pqOptions) enabled() bool {
-	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD >= 0 || p.remote() || p.runtimeConfigured()
+	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD >= 0 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json"
 }
 
 func (p pqOptions) remote() bool {
@@ -56,6 +57,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateApplicationLayout(); err != nil {
+		return err
+	}
 	if (p.runtimePlan == "") != (p.runtimePlanHash == "") {
 		return errors.New("runtime upgrade requires both independent plan and hash pin")
 	}
@@ -358,6 +362,7 @@ func main() {
 	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")
 	f.StringVar(&options.migration, "migration-state", "", "original validated key-bound migration JSON")
 	f.StringVar(&options.state, "abci-state", "", "existing durable application state for the in-process PQ node")
+	f.StringVar(&options.stateLayout, "abci-state-layout", "atomic-json", "original application storage layout: atomic-json, snapshot-journal or block-journal")
 	f.StringVar(&options.genesisHash, "consensus-genesis-sha256", "", "independent hash of the exact original Comet genesis")
 	f.StringVar(&options.originalGenesisHash, "original-genesis-hash", "", "independent native genesis pin")
 	f.StringVar(&options.migrationHash, "bound-migration-state-hash", "", "independent original bound migration pin")

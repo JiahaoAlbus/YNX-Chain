@@ -124,6 +124,18 @@ func openSnapshotJournal(path string, migration chain.ConsensusMigrationState) (
 }
 
 func openSnapshotJournalWithAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization) (*snapshotJournal, CommittedState, error) {
+	return openSnapshotJournalWithRuntimeAuthority(path, migration, bootstrap, authorization, nil)
+}
+
+func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization) (*snapshotJournal, CommittedState, error) {
+	var preflight os.FileInfo
+	if runtime != nil {
+		var err error
+		preflight, err = preflightRuntimeJournalAuthority(path, migration, bootstrap, authorization, runtime, false)
+		if err != nil {
+			return nil, CommittedState{}, err
+		}
+	}
 	j := &snapshotJournal{path: path, header: []byte(snapshotJournalMagic + migration.StateHash + "\n"), height: int64(migration.Height), targetBytes: snapshotJournalTargetBytes}
 	initial := initialCommittedState(migration)
 	initial.bootstrap = bootstrap
@@ -146,7 +158,11 @@ func openSnapshotJournalWithAuthority(path string, migration chain.ConsensusMigr
 		return nil, CommittedState{}, err
 	}
 	defer releaseJournalLock(lock)
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	var f *os.File
+	err = os.ErrExist
+	if runtime == nil {
+		f, err = os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	}
 	if err == nil {
 		n, writeErr := f.Write(j.header)
 		if n != len(j.header) && writeErr == nil {
@@ -167,6 +183,9 @@ func openSnapshotJournalWithAuthority(path string, migration chain.ConsensusMigr
 	info, err := f.Stat()
 	if err != nil {
 		return nil, CommittedState{}, err
+	}
+	if preflight != nil && !samePQStateFile(preflight, info) {
+		return nil, CommittedState{}, errors.New("runtime snapshot journal changed after authority preflight")
 	}
 	if info.Size() > int64((snapshotJournalMaxPayload+snapshotJournalHeader)*snapshotJournalCompactRecords+len(j.header)) {
 		return nil, CommittedState{}, errors.New("snapshot journal exceeds bounded record capacity")
@@ -242,7 +261,7 @@ func openSnapshotJournalWithAuthority(path string, migration chain.ConsensusMigr
 		return nil, CommittedState{}, fmt.Errorf("validate journal state: %w", err)
 	}
 	if bootstrap != nil {
-		if err := validateJournalAuthority(state, migration, bootstrap, authorization); err != nil {
+		if err := validateJournalRuntimeAuthority(state, migration, bootstrap, authorization, runtime); err != nil {
 			return nil, CommittedState{}, err
 		}
 	}
