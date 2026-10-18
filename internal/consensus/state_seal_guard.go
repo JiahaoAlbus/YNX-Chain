@@ -7,12 +7,30 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+// sealWitnessMode selects only private, per-call measurement paths. It is not
+// serialized and grants no authority to public Validate or Commit.
+type sealWitnessMode int
+
+const (
+	sealWitnessNone sealWitnessMode = iota
+	sealWitnessFullCopy
+	sealWitnessCompact
+)
+
 // snapshotNativeSealState is a per-call, owned mutation witness, never a cached
 // validation result. Only native-account/fee states are eligible. Other record
 // families and future unsupported fields conservatively use full validation.
 // The caller must compute AppHash before taking the snapshot, and must still
 // run all semantic validation before consulting it.
 func snapshotNativeSealState(s CommittedState) func(CommittedState) bool {
+	return snapshotNativeSealStateWithFeeMode(s, false)
+}
+
+func snapshotNativeSealStateCompact(s CommittedState) func(CommittedState) bool {
+	return snapshotNativeSealStateWithFeeMode(s, true)
+}
+
+func snapshotNativeSealStateWithFeeMode(s CommittedState, compact bool) func(CommittedState) bool {
 	if len(s.FeeEvents) == 0 {
 		return nil
 	}
@@ -68,23 +86,20 @@ func snapshotNativeSealState(s CommittedState) func(CommittedState) bool {
 			}
 		}
 	}
-	fees := append([]BFTFeeEvent(nil), s.FeeEvents...)
+	var feesUnchanged func([]BFTFeeEvent) bool
+	if compact {
+		feesUnchanged = snapshotCompactFeeRows(s.FeeEvents)
+	} else {
+		feesUnchanged = snapshotFullFeeRows(s.FeeEvents)
+	}
 	header := s
 	header.Accounts, header.FeeEvents = nil, nil
 	return func(current CommittedState) bool {
 		currentHeader := current
 		currentHeader.Accounts, currentHeader.FeeEvents = nil, nil
-		if !reflect.DeepEqual(header, currentHeader) || !reflect.DeepEqual(accounts, current.Accounts) || len(fees) != len(current.FeeEvents) {
-			return false
-		}
-		for i := range fees {
-			// A new non-comparable fee field is a compile error, not an aliased
-			// snapshot. time.Time is a value; its Location API is immutable.
-			if fees[i] != current.FeeEvents[i] {
-				return false
-			}
-		}
-		return true
+		return reflect.DeepEqual(header, currentHeader) &&
+			reflect.DeepEqual(accounts, current.Accounts) &&
+			feesUnchanged(current.FeeEvents)
 	}
 }
 
@@ -107,5 +122,71 @@ func sealValueOnlySchema(typ reflect.Type) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+// These fields vary across otherwise identical native fee records. The shared
+// metadata is retained as a complete BFTFeeEvent, so future value fields remain
+// part of exact reconstruction and comparison instead of being silently lost.
+type sealFeeVariableValues struct {
+	ID, TxHash, Payer, Recipient, AuditHash string
+	BlockHeight                             int64
+	RecordedAt                              time.Time
+}
+
+func splitSealFeeValues(event BFTFeeEvent) (BFTFeeEvent, sealFeeVariableValues) {
+	values := sealFeeVariableValues{event.ID, event.TxHash, event.Payer, event.Recipient, event.AuditHash, event.BlockHeight, event.RecordedAt}
+	event.ID, event.TxHash, event.Payer, event.Recipient, event.AuditHash = "", "", "", "", ""
+	event.BlockHeight, event.RecordedAt = 0, time.Time{}
+	return event, values
+}
+
+func snapshotFullFeeRows(input []BFTFeeEvent) func([]BFTFeeEvent) bool {
+	owned := append([]BFTFeeEvent(nil), input...)
+	return func(current []BFTFeeEvent) bool {
+		if len(current) != len(owned) {
+			return false
+		}
+		for i := range owned {
+			if current[i] != owned[i] {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+func snapshotCompactFeeRows(input []BFTFeeEvent) func([]BFTFeeEvent) bool {
+	if len(input) == 0 {
+		return snapshotFullFeeRows(input)
+	}
+	metadata, _ := splitSealFeeValues(input[0])
+	// Verify all shared values before making the smaller allocation. Mixed
+	// metadata uses the exact previous full-copy witness, with no validation
+	// or fee-policy restriction imposed on the state.
+	for _, event := range input[1:] {
+		other, _ := splitSealFeeValues(event)
+		if other != metadata {
+			return snapshotFullFeeRows(input)
+		}
+	}
+	owned := make([]sealFeeVariableValues, len(input))
+	for i, event := range input {
+		_, owned[i] = splitSealFeeValues(event)
+	}
+	return func(current []BFTFeeEvent) bool {
+		if len(current) != len(owned) {
+			return false
+		}
+		for i, values := range owned {
+			expected := metadata
+			expected.ID, expected.TxHash, expected.Payer, expected.Recipient, expected.AuditHash = values.ID, values.TxHash, values.Payer, values.Recipient, values.AuditHash
+			expected.BlockHeight, expected.RecordedAt = values.BlockHeight, values.RecordedAt
+			// Complete value equality, never an audit digest, authorizes reuse.
+			if current[i] != expected {
+				return false
+			}
+		}
+		return true
 	}
 }

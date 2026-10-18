@@ -78,8 +78,12 @@ func TestSealGuardedActualLargeHistoryPhases(t *testing.T) {
 	if err != nil || want.AppHash != fixture.AppHash {
 		t.Fatal("baseline differs from complete actual state", err)
 	}
-	rows := make([]map[string]any, 0, 4)
-	for index, guarded := range []bool{false, true, true, false} {
+	rows := make([]map[string]any, 0, 6)
+	// ABC CBA: original runtime, previous full-copy witness, compact witness.
+	modes := []sealWitnessMode{sealWitnessNone, sealWitnessFullCopy, sealWitnessCompact, sealWitnessCompact, sealWitnessFullCopy, sealWitnessNone}
+	for index, mode := range modes {
+		guarded := mode != sealWitnessNone
+		name := map[sealWitnessMode]string{sealWitnessNone: "original", sealWitnessFullCopy: "full_copy", sealWitnessCompact: "compact"}[mode]
 		if err := ctx.Err(); err != nil {
 			t.Fatal(err)
 		}
@@ -88,7 +92,7 @@ func TestSealGuardedActualLargeHistoryPhases(t *testing.T) {
 		var before, after runtime.MemStats
 		runtime.ReadMemStats(&before)
 		started := time.Now()
-		got, err := sealCommittedStateMeasured(migration, fixture.Height, execution, guarded, phases)
+		got, err := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, mode, phases)
 		elapsed := time.Since(started)
 		runtime.ReadMemStats(&after)
 		if err != nil || !reflect.DeepEqual(want, got) {
@@ -101,7 +105,7 @@ func TestSealGuardedActualLargeHistoryPhases(t *testing.T) {
 		if rechecked == guarded {
 			t.Fatal("guarded and original paths were not actually distinct")
 		}
-		rows = append(rows, map[string]any{"order": index, "guarded": guarded, "seal_elapsed_ns": elapsed.Nanoseconds(), "seal_allocated_bytes": after.TotalAlloc - before.TotalAlloc, "seal_allocations": after.Mallocs - before.Mallocs, "seal_stages_ns": phases.stages, "second_hash_executed": rechecked, "full_state_equal": true, "public_full_validate_passed": true})
+		rows = append(rows, map[string]any{"order": index, "witness_mode": name, "guarded": guarded, "seal_elapsed_ns": elapsed.Nanoseconds(), "seal_allocated_bytes": after.TotalAlloc - before.TotalAlloc, "seal_allocations": after.Mallocs - before.Mallocs, "seal_stages_ns": phases.stages, "second_hash_executed": rechecked, "full_state_equal": true, "public_full_validate_passed": true})
 	}
 	if err := ctx.Err(); err != nil {
 		t.Fatal(err)
@@ -122,7 +126,7 @@ func TestSealGuardedActualLargeHistoryPhases(t *testing.T) {
 	if err := syscall.Getrusage(syscall.RUSAGE_SELF, &usage); err != nil {
 		t.Fatal(err)
 	}
-	report := map[string]any{"measurement": "same_completed_actual_large_history_seal_ABBA_not_business_or_network_TPS", "fee_events": len(fixture.FeeEvents), "app_hash": want.AppHash, "input_store_sha256": original.StoreSHA256, "input_bytes": info.Size(), "input_unchanged": true, "replayed_blocks": decoded.ReplayedBlocks, "replayed_signed_inputs": decoded.ReplayedTransactionInputs, "gomaxprocs": runtime.GOMAXPROCS(0), "go_version": runtime.Version(), "max_rss_raw": usage.Maxrss, "max_rss_platform": runtime.GOOS, "runtime_candidate_enabled": false, "business_tps": nil, "inclusion_latency": nil, "finality_latency": nil, "rows": rows}
+	report := map[string]any{"measurement": "same_completed_actual_large_history_seal_ABCCBA_not_business_or_network_TPS", "fee_events": len(fixture.FeeEvents), "app_hash": want.AppHash, "input_store_sha256": original.StoreSHA256, "input_bytes": info.Size(), "input_unchanged": true, "replayed_blocks": decoded.ReplayedBlocks, "replayed_signed_inputs": decoded.ReplayedTransactionInputs, "gomaxprocs": runtime.GOMAXPROCS(0), "go_version": runtime.Version(), "max_rss_raw": usage.Maxrss, "max_rss_platform": runtime.GOOS, "runtime_candidate_enabled": false, "business_tps": nil, "inclusion_latency": nil, "finality_latency": nil, "rows": rows}
 	raw, err := json.MarshalIndent(report, "", "  ")
 	if err != nil || len(raw) > 1<<20 {
 		t.Fatal("bounded phase report encoding failed", err)

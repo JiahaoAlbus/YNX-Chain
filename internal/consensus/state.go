@@ -194,6 +194,14 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 }
 
 func sealCommittedStateMeasured(migration chain.ConsensusMigrationState, height int64, execution executionState, guarded bool, timings *commitTimings) (CommittedState, error) {
+	mode := sealWitnessNone
+	if guarded {
+		mode = sealWitnessFullCopy
+	}
+	return sealCommittedStateMeasuredMode(migration, height, execution, mode, timings)
+}
+
+func sealCommittedStateMeasuredMode(migration chain.ConsensusMigrationState, height int64, execution executionState, mode sealWitnessMode, timings *commitTimings) (CommittedState, error) {
 	started := timings.start()
 	state := CommittedState{
 		Version:                    CommittedStateVersion,
@@ -261,9 +269,13 @@ func sealCommittedStateMeasured(migration chain.ConsensusMigrationState, height 
 	}
 	started = timings.mark("initial_hash", started)
 	var unchanged func(CommittedState) bool
-	if guarded {
+	switch mode {
+	case sealWitnessFullCopy:
 		unchanged = snapshotNativeSealState(state)
+	case sealWitnessCompact:
+		unchanged = snapshotNativeSealStateCompact(state)
 	}
+	// Unknown modes deliberately retain the complete second hash.
 	started = timings.mark("witness_copy", started)
 	if err := state.validateSemantics(migration); err != nil {
 		return CommittedState{}, err

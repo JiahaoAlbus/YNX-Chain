@@ -50,8 +50,17 @@ func retainedSealFixture(t *testing.T) (chain.ConsensusMigrationState, Committed
 }
 
 func TestSealWitnessRejectsEveryRecordAndValueMutation(t *testing.T) {
+	checkSealWitnessMutations(t, snapshotNativeSealState)
+}
+
+func TestSealCompactWitnessRejectsEveryRecordAndValueMutation(t *testing.T) {
+	checkSealWitnessMutations(t, snapshotNativeSealStateCompact)
+}
+
+func checkSealWitnessMutations(t *testing.T, snapshot func(CommittedState) func(CommittedState) bool) {
+	t.Helper()
 	_, original := retainedSealFixture(t)
-	unchanged := snapshotNativeSealState(original)
+	unchanged := snapshot(original)
 	if unchanged == nil || !unchanged(original) {
 		t.Fatal("native state not eligible or snapshot not exact")
 	}
@@ -74,7 +83,7 @@ func TestSealWitnessRejectsEveryRecordAndValueMutation(t *testing.T) {
 				field.SetInt(field.Int() + 1)
 			case reflect.Slice:
 				field.Set(reflect.MakeSlice(field.Type(), 1, 1))
-				if snapshotNativeSealState(changed) != nil {
+				if snapshot(changed) != nil {
 					t.Fatal("non-native record family got a witness")
 				}
 			default:
@@ -218,9 +227,11 @@ func TestSealGuardPreservesFirstErrorAndCommitTamperRejection(t *testing.T) {
 			app := &Application{committed: state}
 			execution := app.committedExecutionStateView()
 			_, before := sealCommittedStateMeasured(anchor, state.Height, execution, false, nil)
-			_, after := sealCommittedStateMeasured(anchor, state.Height, execution, true, nil)
-			if before == nil || after == nil || before.Error() != after.Error() {
-				t.Fatalf("first error changed: before=%v after=%v", before, after)
+			for _, mode := range []sealWitnessMode{sealWitnessFullCopy, sealWitnessCompact} {
+				_, after := sealCommittedStateMeasuredMode(anchor, state.Height, execution, mode, nil)
+				if before == nil || after == nil || before.Error() != after.Error() {
+					t.Fatalf("first error changed mode=%d: before=%v after=%v", mode, before, after)
+				}
 			}
 		})
 	}
@@ -249,5 +260,90 @@ func TestSealGuardPreservesFirstErrorAndCommitTamperRejection(t *testing.T) {
 	}
 	if _, err := app.Commit(ctx, &abci.RequestCommit{}); err == nil {
 		t.Fatal("Commit reused stale seal authority")
+	}
+}
+
+func TestSealCompactWitnessPreservesMixedMetadataAndOwnedValues(t *testing.T) {
+	_, original := retainedSealFixture(t)
+	original.FeeEvents[1].GrossFeeYNXT++ // structural fixture forces full-copy fallback
+	unchanged := snapshotNativeSealStateCompact(original)
+	if unchanged == nil || !unchanged(original) {
+		t.Fatal("mixed metadata state lost the complete witness")
+	}
+	original.FeeEvents[1].Source += "changed"
+	if unchanged(original) {
+		t.Fatal("mixed metadata mutation escaped full-copy fallback")
+	}
+	original.FeeEvents[1].Source = original.FeeEvents[0].Source
+	original.FeeEvents[1023].TxHash += "changed"
+	if unchanged(original) {
+		t.Fatal("mixed metadata row values were aliased")
+	}
+}
+
+func TestSealUnknownWitnessModeRechecksCompleteHash(t *testing.T) {
+	migration, fixture := retainedSealFixture(t)
+	execution := (&Application{committed: fixture}).committedExecutionStateView()
+	phases := &commitTimings{}
+	sealed, err := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, sealWitnessMode(999), phases)
+	if err != nil || sealed.AppHash != fixture.AppHash {
+		t.Fatal("unknown witness mode changed state", err)
+	}
+	if _, ok := phases.stages["final_hash"]; !ok {
+		t.Fatal("unknown witness mode skipped the complete second hash")
+	}
+}
+
+func TestSealCompactRealExecutionPersistenceAndTamper(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewBlockJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	first := journalTransfer(t, 1)
+	finalize := func(nonce uint64) {
+		t.Helper()
+		r, err := app.FinalizeBlock(ctx, &abci.RequestFinalizeBlock{Height: int64(migration.Height) + int64(nonce), Time: time.Unix(1802736000+int64(nonce), 0), Txs: [][]byte{journalTransfer(t, nonce)}})
+		if err != nil || len(r.TxResults) != 1 || r.TxResults[0].Code != 0 {
+			t.Fatal("real signed transfer failed", err)
+		}
+		view := (&Application{committed: *app.pending}).committedExecutionStateView()
+		baseline, err := sealCommittedStateMeasuredMode(migration, app.pending.Height, view, sealWitnessNone, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		compact, err := sealCommittedStateMeasuredMode(migration, app.pending.Height, view, sealWitnessCompact, nil)
+		want, encodeErr := json.Marshal(baseline)
+		actual, compactEncodeErr := json.Marshal(compact)
+		if err != nil || encodeErr != nil || compactEncodeErr != nil || !bytes.Equal(want, actual) {
+			t.Fatal("compact actual execution changed complete canonical state", err, encodeErr, compactEncodeErr)
+		}
+		app.pending = &compact
+	}
+	finalize(1)
+	if _, err := app.Commit(ctx, &abci.RequestCommit{}); err != nil {
+		t.Fatal("actual compact state did not persist", err)
+	}
+	reopened, err := NewBlockJournaledApplication(migration, path)
+	if err != nil || !reflect.DeepEqual(app.committed, reopened.committed) {
+		t.Fatal("compact committed state changed on replay", err)
+	}
+	check, err := reopened.CheckTx(ctx, &abci.RequestCheckTx{Tx: first})
+	if err != nil || check.Code != CodeInvalidNonce {
+		t.Fatal("compact commit allowed nonce replay", err)
+	}
+	committed := app.committed
+	finalize(2)
+	app.pending.Accounts[0].Nonce++
+	if err := app.pending.Validate(migration); err == nil {
+		t.Fatal("public validation accepted compact sealed state tampering")
+	}
+	if _, err := app.Commit(ctx, &abci.RequestCommit{}); err == nil {
+		t.Fatal("Commit accepted compact sealed state tampering")
+	}
+	reopened, err = NewBlockJournaledApplication(migration, path)
+	if err != nil || !reflect.DeepEqual(committed, reopened.committed) {
+		t.Fatal("failed compact Commit published or persisted tampered state", err)
 	}
 }
