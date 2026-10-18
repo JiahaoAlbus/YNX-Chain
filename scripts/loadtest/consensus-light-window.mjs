@@ -8,15 +8,16 @@ import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
-import {lightCommand,lightScratchBytes,requireClientRegressionPasses,remainingPhaseBudget,clientRegressionArgs} from './consensus-light-plan.mjs';
-const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false}}});
+import {lightCommand,lightScratchBytes,requireClientRegressionPasses,remainingPhaseBudget,clientRegressionArgs,clientOwnedRSSCap} from './consensus-light-plan.mjs';
+const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false},'client13-normal-05':{type:'boolean',default:false}}});
 const plan=lightCommand(process.cwd(),values['stopped-window'],values['native-compile'],values['client-regression']);
-const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04'].filter(k=>values[k]);
+const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05'].filter(k=>values[k]);
 if(explicitCases.length>1)throw Error('only one explicit resource case');
 const admissionCase=explicitCases[0];
 const caseSuffix=admissionCase?.slice(-2);
+const ownedRSSCapBytes=clientOwnedRSSCap(plan,admissionCase);
 if(admissionCase&&(plan.mode!=='client_regression'||!values.output||path.resolve(values.output)!==path.join(process.cwd(),`artifacts/chain-performance-20261017/client13-normal-20261018-${caseSuffix}.json`)))throw Error('explicit case is only the fixed client13 case and original new receipt path');
-if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',plan,admissionCase,caps:plan.caps??{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
+if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',plan,admissionCase,ownedRSSCapBytes,caps:plan.caps??{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
 if(process.platform!=='darwin'||!values.output)throw Error('macOS and a new explicit --output required');
 const output=path.resolve(values.output);if(fs.existsSync(output))throw Error('receipt path already exists; preserve original');
 const exec=promisify(execFile),started=Date.now(),root=process.cwd();
@@ -24,7 +25,7 @@ const hostPath=root+'/artifacts/chain-performance-20261017/ynx-consensus-perf-ho
 const hostBinary={path:hostPath,sha256:createHash('sha256').update(fs.readFileSync(hostPath)).digest('hex')};
 const probe=createNativeResourceProbe(hostPath);
 const goEnvironment=plan.env;
-const result={plan,hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete test process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,admissionCase,allowedNativePressureLevels:admissionCase?[1,2]:[1],firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
+const result={plan,hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete test process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,admissionCase,ownedRSSCapBytes,priorRSSLimitEvidence:admissionCase==='client13-normal-05'?{case:'client13-normal-04',limitBytes:419430400,actualPeakBytes:432111616,rawSHA256:'cdcd85e86a8ce5c89fd1c675334403c58a9d09b61226ce1106aae26b53f98791'}:undefined,allowedNativePressureLevels:admissionCase?[1,2]:[1],firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
 const regression=plan.mode==='client_regression';
 let scratchRoot;
 result.scratchSamples=[];result.peakScratchBytes=0;
@@ -37,7 +38,7 @@ const deadline=setTimeout(()=>{fail(regression?'30s client active deadline':'45s
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{fail(signal);kill()});
 async function cacheOccupancy(){
  const paths=result.cachePaths;
- const timeoutMs=remainingPhaseBudget(started,activeMs,Date.now(),['client13-normal-03','client13-normal-04'].includes(admissionCase)?12000:5000);
+ const timeoutMs=remainingPhaseBudget(started,activeMs,Date.now(),['client13-normal-03','client13-normal-04','client13-normal-05'].includes(admissionCase)?12000:5000);
  const phase={startedAt:new Date().toISOString(),timeoutMs,remainingActiveMs:remainingPhaseBudget(started,activeMs,Date.now())};
  (result.cachePhases??=[]).push(phase);
  let stdout;
@@ -91,7 +92,7 @@ async function sample(initial=false){
  validateNativeResourceSample(s,process.pid,{expectedPIDs:ids,rootCase:admissionCase});
  result.peakRSS=Math.max(result.peakRSS,s.rssWithControlReserveBytes);result.peakThreads=Math.max(result.peakThreads,s.threadsWithControlReserve);
  result.samples.push({at:new Date().toISOString(),...s});
- if(s.rssWithControlReserveBytes>400*1024*1024)throw Error('400MiB control/owned RSS cap');
+ if(s.rssWithControlReserveBytes>ownedRSSCapBytes)throw Error(`${ownedRSSCapBytes/1024**2}MiB control/owned RSS cap`);
  if(regression){if(s.threadsWithControlReserve>plan.caps.threads)throw Error('320 client thread cap');scratchAndDisk(initial)}
  if(initial){const {stdout}=await exec('/usr/bin/vm_stat',[],{timeout:1500,killSignal:'SIGKILL',maxBuffer:65536});const free=Number(stdout.match(/Pages free:\s+(\d+)/)?.[1])*Number(stdout.match(/page size of (\d+)/)?.[1]);result.vmStat={sampledAt:new Date().toISOString(),raw:stdout,freePageBytes:Number.isFinite(free)?free:null,interpretation:'Diagnostic free pages only, not available bytes; admission uses native memoryPressure dispatch level and actual owned RSS cap'}}
 }

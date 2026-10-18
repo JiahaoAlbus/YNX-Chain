@@ -64,3 +64,11 @@ test('normal-04 keeps pressure and identity failures fatal outside the authorize
  s.memoryPressure.dispatchLevel=2;s.processes[0].readable=false;
  assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-04'}));
 });
+
+test('normal05 pressure exception rejects critical unknown and unreadable telemetry',()=>{
+ const s=sample();s.memoryPressure.dispatchLevel=2;
+ assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-05'}));
+ for(const level of [0,3,4,8,undefined]){s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-05'}));}
+ s.memoryPressure.dispatchLevel=2;s.memoryPressure.readable=false;
+ assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'client13-normal-05'}));
+});

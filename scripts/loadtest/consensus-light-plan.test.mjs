@@ -20,8 +20,8 @@ test('native compile is fixed clang only and cannot combine replay',()=>{
 
 test('client regression selects only the fixed thirteen functions and frozen Go source',()=>{
  const p=lightCommand('/work',undefined,false,true);
- assert.equal(p.mode,'client_regression');assert.equal(p.sourceCommit,'6597ca8f55e6eb5e84091883f92315b3d296b147');
- assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'fa815ca2eaabee4fe37d8959ba5bac10995eae7c');
+ assert.equal(p.mode,'client_regression');assert.equal(p.sourceCommit,'aa25500bdb13c52e56133ec0876651257cf31a1a');
+ assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'1614f4ad2bc419612f3aba5bde492ad24a9920b6');
  assert.equal(p.requiredPasses.length,13);assert.equal(new Set(p.requiredPasses).size,13);
  assert.equal(p.args[p.args.indexOf('-run')+1],'^('+p.requiredPasses.join('|')+')$');
  assert.ok(p.args.includes('-timeout=30s'));assert.ok(p.args.includes('-v'));assert.equal(p.env.GOPROXY,'off');assert.equal(p.env.GOTOOLCHAIN,'local');
@@ -58,4 +58,18 @@ test('cache scans and Go consume one active deadline without restarting it',asyn
  assert.equal(plan.args.includes('-timeout=30s'),true);
  assert.deepEqual(args.filter(x=>!x.startsWith('-timeout=')),plan.args.filter(x=>!x.startsWith('-timeout=')));
  for(const bad of [0,-1,NaN,Infinity])assert.throws(()=>clientRegressionArgs(plan,bad));
+});
+
+test('only explicit fixed normal05 raises owned RSS; other resource gates remain intact',async()=>{
+ const {clientOwnedRSSCap}=await import('./consensus-light-plan.mjs');
+ const p=lightCommand('/work',undefined,false,true);
+ assert.equal(clientOwnedRSSCap(p,undefined),400*1024**2);
+ for(const c of ['client13-normal-02','client13-normal-03','client13-normal-04'])assert.equal(clientOwnedRSSCap(p,c),400*1024**2);
+ assert.equal(clientOwnedRSSCap(p,'client13-normal-05'),512*1024**2);
+ assert.throws(()=>clientOwnedRSSCap(lightCommand('/work'),'client13-normal-05'));
+ assert.throws(()=>clientOwnedRSSCap(p,'unknown-case'));
+ assert.equal(p.caps.ownedRSSBytes,400*1024**2);
+ assert.equal(p.caps.scratchBytes,512*1024**2);
+ assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);
+ assert.equal(p.env.GOMEMLIMIT,'160MiB');assert.equal(p.requiredPasses.length,13);
 });

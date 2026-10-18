@@ -1,0 +1,309 @@
+{
+  "case": "client13-normal-05",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-05.json",
+  "rawSha256": "b815ff8fb6550983b9ff6efbc838098ae9854db2e9911e4b9f1320690d2ea287",
+  "startedAt": "2026-10-18T03:00:50.699Z",
+  "launcher": 79825,
+  "controllerSession": 16991,
+  "terminalCode": 1,
+  "elapsedMs": 21275,
+  "sourceChecks": [
+    {
+      "head": "27d821d894aef4caed5537b06827cf6bed677f51",
+      "sourceCommit": "6597ca8f55e6eb5e84091883f92315b3d296b147",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "fa815ca2eaabee4fe37d8959ba5bac10995eae7c"
+      }
+    },
+    {
+      "head": "27d821d894aef4caed5537b06827cf6bed677f51",
+      "sourceCommit": "6597ca8f55e6eb5e84091883f92315b3d296b147",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "fa815ca2eaabee4fe37d8959ba5bac10995eae7c"
+      }
+    }
+  ],
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=21966ms",
+    "-v"
+  ],
+  "ownedRSSCapBytes": 536870912,
+  "priorRSSLimitEvidence": {
+    "case": "client13-normal-04",
+    "limitBytes": 419430400,
+    "actualPeakBytes": 432111616,
+    "rawSHA256": "cdcd85e86a8ce5c89fd1c675334403c58a9d09b61226ce1106aae26b53f98791"
+  },
+  "cacheBefore": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3361660928,
+      11753926656
+    ],
+    "totalBytes": 15115587584,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cacheAfter": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3361669120,
+      11753926656
+    ],
+    "totalBytes": 15115595776,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T03:00:50.765Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29933,
+      "endedAt": "2026-10-18T03:00:58.731Z"
+    },
+    {
+      "startedAt": "2026-10-18T03:01:04.121Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 16577,
+      "endedAt": "2026-10-18T03:01:11.873Z"
+    }
+  ],
+  "cacheNetGrowthBytes": 8192,
+  "go": {
+    "pid": 79896,
+    "code": 1,
+    "signal": null,
+    "stdout": "=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/complete\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/gap\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/partial\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/corrupt\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/bad_signature\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/wrong_fixture\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/budget\n--- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves (0.37s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/complete (0.06s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/gap (0.06s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/partial (0.08s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/corrupt (0.03s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/bad_signature (0.05s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/wrong_fixture (0.03s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/budget (0.05s)\n=== RUN   TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged\n--- PASS: TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged (0.04s)\n=== RUN   TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix\n--- PASS: TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix (0.03s)\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/no_plan\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/missing_receipt\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/poisoned\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/full_receipt\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/corrupt_acknowledged\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/mixed\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/escaped\n--- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption (0.25s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/no_plan (0.04s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/missing_receipt (0.03s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/poisoned (0.03s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/full_receipt (0.03s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/corrupt_acknowledged (0.04s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/mixed (0.04s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/escaped (0.04s)\n=== RUN   TestReadyIntentSegmentsPersistAndStreamExactSignedInputs\n--- PASS: TestReadyIntentSegmentsPersistAndStreamExactSignedInputs (0.04s)\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/false\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/true\n--- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence (0.04s)\n    --- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/false (0.01s)\n    --- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/true (0.03s)\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/missing\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/extra\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/corrupt\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/manifest\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/chain\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/budget\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/signature\n--- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding (0.24s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/missing (0.02s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/extra (0.04s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/corrupt (0.04s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/manifest (0.04s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/chain (0.03s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/budget (0.03s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/signature (0.04s)\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/valid\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/missing_receipt\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/mixed\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/escaped\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/poisoned\n--- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts (0.16s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/valid (0.03s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/missing_receipt (0.03s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/mixed (0.04s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/escaped (0.03s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/poisoned (0.03s)\n=== RUN   TestSegmentedIntentOptionsRequireBoundedEvidenceMode\n--- PASS: TestSegmentedIntentOptionsRequireBoundedEvidenceMode (0.00s)\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/fixture\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/duplicate\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_hash\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/nonce_gap\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_signature\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/unknown_field\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/cancel\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/partial\n--- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities (0.04s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/fixture (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/duplicate (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_hash (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/nonce_gap (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_signature (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/unknown_field (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/cancel (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/partial (0.00s)\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer/full_history\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer/reused_slots\n--- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer (0.28s)\n    --- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer/full_history (0.14s)\n    --- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer/reused_slots (0.13s)\n=== RUN   TestReadySenderSegmentedIntentBarrierAndRecovery\n    ready_sender_test.go:185: existing ready journal reused\n--- FAIL: TestReadySenderSegmentedIntentBarrierAndRecovery (0.14s)\n=== RUN   TestReadySenderSegmentedIntentFailureNeverSubmits\n--- PASS: TestReadySenderSegmentedIntentFailureNeverSubmits (0.01s)\nFAIL\nFAIL\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\t2.042s\nFAIL\n",
+    "stderr": "",
+    "exited": true
+  },
+  "actualPassedFunctions": [
+    "TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves",
+    "TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged",
+    "TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix",
+    "TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption",
+    "TestReadyIntentSegmentsPersistAndStreamExactSignedInputs",
+    "TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence",
+    "TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding",
+    "TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts",
+    "TestSegmentedIntentOptionsRequireBoundedEvidenceMode",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySenderSegmentedIntentFailureNeverSubmits"
+  ],
+  "actualFailedFunctions": [
+    "TestReadySenderSegmentedIntentBarrierAndRecovery"
+  ],
+  "firstCause": "go test terminal code=1 signal=null",
+  "peakRSS": 404127744,
+  "peakThreads": 21,
+  "peakScratchBytes": 21798912,
+  "exitedDuringSample": [
+    {
+      "at": "2026-10-18T03:01:00.301Z",
+      "exited": [
+        {
+          "pid": 79931,
+          "parent": 79896,
+          "group": 79896,
+          "birth": "Sun Oct 18 11:01:00 2026",
+          "errno": 3,
+          "exitedDuringSample": true
+        }
+      ],
+      "rejectedSample": {
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 79825,
+            "readable": true,
+            "rssBytes": 63717376,
+            "virtualBytes": 501370241024,
+            "threads": 7
+          },
+          {
+            "pid": 79896,
+            "readable": true,
+            "rssBytes": 41140224,
+            "virtualBytes": 476008857600,
+            "threads": 4
+          },
+          {
+            "pid": 79931,
+            "readable": false,
+            "errno": 3
+          }
+        ],
+        "watchedRssBytes": 104857600,
+        "watchedThreads": 11,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 108396544,
+        "threadsWithControlReserve": 13,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 2,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 740,
+          "uid": 501,
+          "uidProcessCount": 557,
+          "unreadableBsdInfo": 183,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3040,
+          "capacityBytes": 7136,
+          "returnedBytes": 2964,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 741,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 740,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 557,
+          "esrch": 0,
+          "eperm": 183,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1153
+      },
+      "replacementPIDs": [
+        79825,
+        79896,
+        79934
+      ],
+      "birthPrecision": "ps lstart seconds; excluded PID must also be wholly absent from fresh global inventory and kernel kill(0) ESRCH"
+    },
+    {
+      "at": "2026-10-18T03:01:01.802Z",
+      "exited": [
+        {
+          "pid": 79934,
+          "parent": 79896,
+          "group": 79896,
+          "birth": "Sun Oct 18 11:01:00 2026",
+          "errno": 3,
+          "exitedDuringSample": true
+        }
+      ],
+      "rejectedSample": {
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 79825,
+            "readable": true,
+            "rssBytes": 67928064,
+            "virtualBytes": 501374697472,
+            "threads": 7
+          },
+          {
+            "pid": 79896,
+            "readable": true,
+            "rssBytes": 41222144,
+            "virtualBytes": 476008857600,
+            "threads": 4
+          },
+          {
+            "pid": 79934,
+            "readable": false,
+            "errno": 3
+          }
+        ],
+        "watchedRssBytes": 109150208,
+        "watchedThreads": 11,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 112689152,
+        "threadsWithControlReserve": 13,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 2,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 740,
+          "uid": 501,
+          "uidProcessCount": 556,
+          "unreadableBsdInfo": 184,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3040,
+          "capacityBytes": 7136,
+          "returnedBytes": 2964,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 741,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 740,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 556,
+          "esrch": 0,
+          "eperm": 184,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1981
+      },
+      "replacementPIDs": [
+        79825,
+        79896
+      ],
+      "birthPrecision": "ps lstart seconds; excluded PID must also be wholly absent from fresh global inventory and kernel kill(0) ESRCH"
+    }
+  ],
+  "groupGone": true,
+  "retryExecuted": false,
+  "interpretation": "All 13 fixed top-level functions ran: 12 PASS and 1 FAIL, no SKIP. Normal code1/signalnull, not a resource kill. Shared test helper incorrectly attempted flat-journal reuse after segmented execution; later source fixes only the assertion to check selected-format reuse and absence of a flat journal. No performance evidence."
+}
