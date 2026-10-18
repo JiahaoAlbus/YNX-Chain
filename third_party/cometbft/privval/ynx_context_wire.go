@@ -171,7 +171,7 @@ func (c *contextConnection) read() ([]byte, error) {
 		return nil, err
 	}
 	n := binary.BigEndian.Uint32(prefix[:])
-	if n == 0 || n > maxRemoteSignerMsgSize {
+	if n == 0 || uint64(n) > uint64(maxRemoteSignerMsgSize) {
 		return nil, errors.New("remote consensus declared frame exceeds bound")
 	}
 	wire := make([]byte, int(n))
