@@ -130,7 +130,9 @@ permissions:
 
 jobs:
   verify:
-    if: github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration'
+    # Frozen protocol refs have their own fail-closed identity gate below;
+    # they must never fall through into unrelated product build/test jobs.
+    if: github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -184,7 +186,7 @@ jobs:
           compression-level: 6
 
   focused-go:
-    if: (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))
+    if: ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-'))
     concurrency:
       group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade
       cancel-in-progress: false
@@ -221,6 +223,15 @@ jobs:
           go version
           git status --porcelain
           if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
+            test '${{ inputs.candidate_sha }}' = '${{ github.sha }}'
+            if [ '${{ startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') }}' = 'true' ]; then
+              # This frozen-ref entry is exclusively the new remote retained
+              # case. Invalid mode combinations stop before any tests/builds.
+              test '${{ inputs.consensus_remote_e2e_retained_history }}' = 'true'
+              for YNX_OTHER_WINDOW in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}' '${{ inputs.remote_signer_process }}'; do
+                case "$YNX_OTHER_WINDOW" in false|'') ;; *) exit 1 ;; esac
+              done
+            fi
             YNX_WINDOW_SELECTIONS=0
             for YNX_WINDOW_SELECTED in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}' '${{ inputs.consensus_remote_e2e_retained_history }}' '${{ inputs.remote_signer_process }}'; do
               case "$YNX_WINDOW_SELECTED" in
