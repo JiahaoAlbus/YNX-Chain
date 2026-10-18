@@ -1,0 +1,61 @@
+{
+  "state": "FORMAL_SDK312_CLEANUP_REPAIR_WITH_MATCHING_R44_AND_MAC_NO_DUPLICATE_APP_SOURCE_READY_NOT_APP_OR_USER_FLOW",
+  "baseCommit": "e2accfa47682779f660788b0c5bdac9b70904657",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "sdk": {
+    "version": "1.3.0-pq.3.12",
+    "sourceCommit": "20499b17f3b0600ec6cf5316fd2a5d6c8e64cdf5",
+    "sourceTree": "1c1e8e82576e6f73e954898106273a01fa0099e0",
+    "formalHandoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3l-20261018/SDK_PQ_R3L_HANDOFF.json",
+    "handoffBytes": 5679,
+    "handoffSha256": "da6d56dbc359613437e7bfb02d9e9a354cb8f6c11fbd6cc095e937902afb8120",
+    "archiveBytes": 933200,
+    "archiveSha256": "ea3ce76882a7785183c685fd625a9a5b0809e6ad51da5a6bd94714f1eb979e6f",
+    "directReferencesVerified": 8,
+    "exactSupplierDelta": 4,
+    "allPackedMembersMatchTarGitAndCurrentLocal": 243,
+    "intake": "All four BEFORE pins verified before any copy; exact frozen20499 Git blobs only; no SDK implementation changes authored by Wallet",
+    "CIReused": "39103187003 success124PASS0fail0skip, three type closures0, including14 new cleanup controls. No old3/16/110/124 rerun.",
+    "repair": "Original production HostTerminalJournal retire/join/close first-selection and exact falsy cleanup failures retained, no repeated Native cleanup, retired/entered preflight separated from already-entered Native UNKNOWN; old journal v1/8192 and Source gates unchanged",
+    "unchangedLeavesVerified": ["src/walletconnect-dapp-connection.js", "src/original-ide-admission-parent-delivery.js", "scripts/original-ide-service-admission-native-selection.mjs", "src/central-browser-session-browser.bundle.js"],
+    "actualColdCallerReused": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3k-20261018/SDK311_R44_ACTUAL_CALLER_HANDOFF.json2850/7c6fed30d4e473acc67122aaf28c3ad82b62b056a9543de2ae34e60b24b6ed80: original SDK fixed caller plus actual R44 module under Electron42 negative/partial firstcause/cleanup, not normal login or Source positive"
+  },
+  "dependencies": {
+    "fullSDKLock": "packages/wallet-auth/package-lock.json",
+    "fullSDKLockBytes": 68086,
+    "fullSDKLockSha256": "c08bf9a905b986a0f653033387ab6140de1b4374180e3acc03f63d4eaac3ef61",
+    "supplierFullInstallRoot": "/Users/huangjiahao/.codex/worktrees/wallet-browser-cleanup-recovery/YNX Chain/packages/wallet-auth/node_modules",
+    "require": "Unchanged original119 locked SDK closure with nested Noble1.x plus App's exactqrcode1.5.4 recursive29 closure; PQ316 is not WC runtime. Original local esbuild0.25.9, no ambient fallback.",
+    "PQManifest": "apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json",
+    "PQManifestBytes": 52612,
+    "PQManifestSha256": "1a44ec7173e884254c9789f88acf372ef4dff1401eb7a12a4eecf6f123240915",
+    "generatedManifestEqualsSupplier": true,
+    "AppAndMobileLocalLocksUpdated": true,
+    "fullInstallHere": false
+  },
+  "nativeStillExact": {
+    "fullNativeRoot": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r44-cold-data-native-component-r2-20261018/source",
+    "moduleBytes": 1096536,
+    "moduleSha256": "42075be96bf530da10ceb34d7f3e72b056e2abd588518e159bd2a62477a20e8b",
+    "receiptBytes": 18945,
+    "receiptSha256": "1fd757d502c0eef116e9b27359be67df6a3b8230d1a1ebe41b411aefe7b0a324",
+    "fullSource38AndReceipt32Evidence": "SDK311_R44_MATCHING_WALLET_HANDOFF.json4873/b49b72efd0bb5be870d4592f6bbf5926b3b90f974f13378bd3a3001a24f57146; original canonical guard passed; unchanged in this SDK intake",
+    "notNewlyCompiledOrInstalled": true
+  },
+  "MacPackagingDelta": {
+    "handoff": "MAC_DMG_NO_DUPLICATE_APP_HANDOFF.json5033/8e7f2ed6abf6882f0a04dab4cb5b670d9a7b3d82a83f02bb98590d80b6fe4b11",
+    "important": "Include both build-mac.mjs and new scripts/mac-dmg-source.mjs. Normal hdiutil reads checked original exclusive App output; no full second App copy, no clone fallback. Existing safety floor/margin and actual runner limits stay unchanged.",
+    "evidenceReused": "Actual newRED1 then10 Mac small-filesystem/normal-entry controls PASS; no real DMG/peak claimed"
+  },
+  "normalARecipe": {
+    "owner": "Sole original A via Root",
+    "selection": "New immutable successor only at next affected checkpoint. Keep any already-started61d normal address browser output frozen; address class/browser bytes unchanged, do not repeat its build just to chase SDK metadata. Next full Mac may select this complete SDK312/R44/packaging source once.",
+    "browserArgvAfterPinnedNode": ["apps/wallet-desktop/scripts/build-wallet-connection-page.mjs", "NEW_ABSOLUTE_CANONICAL_OUTPUT_DIRECTORY"],
+    "browserInputs": "Actual App src/walletconnect-address-consumer.mjs + src/walletconnect-address-page.mjs, reviewed18e bilingual HTML, exact SDK public export and normal selected deps. Original V3 explicit/connect/ CSP/no-store and old40/hosted preserved.",
+    "MacArgvAfterPinnedNodeFromDesktopCwd": ["scripts/build-mac.mjs", "arm64", "--config.electronDist=/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r65-normal-mac-matching-20261017/electron-dist", "--config.npmRebuild=false"],
+    "acceptance": "Normal full canonical native32/PQ316/SDK119/QR29 packaging, actual signature/mounted closed whole-App readback, official download/install/upgrade then same-package GUI; not just this source handoff. Mac-only no-copy change does not establish Android/Windows/Linux outputs."
+  },
+  "remainingAuthority": "Related SDK source cleanup RED is formally repaired here, not full cold recovery acceptance. Auth R45 producer/R46 first-enter compatibility and private-write NAPI are not formally supplied, registered or activated; retain historical UNKNOWN and canonical original bytes requirements. No Source, grant, ACK or replay inferred from CI/component success.",
+  "preserved": "All frozen prior candidates, original dirty d386 and A App.tsx/startup scope, shared protocol, installed Apps, accounts, keys, mnemonics, balances, histories, first causes and UNKNOWN remain untouched",
+  "notClaimed": ["New full App or DMG", "Measured new packaging peak", "New public delivery or install/upgrade", "Actual same-package Relay or address approval", "Positive Source/qualified cold reclaim", "MONSTER", "Real signature/transfer", "Other platform release"]
+}
