@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -101,6 +102,31 @@ func TestSharedReplayCandidateRealFilesStillHashValidateAndCheckBusiness(t *test
 	if first.StoreSHA256 != second.StoreSHA256 || first.AppHash != second.AppHash || s.SharedReplay.FullReplays != 1 || s.SharedReplay.Hits != 1 || s.BlockReplayTxInputs != 1 || s.TransactionVerifications != 2 || s.SnapshotValidations != 2 || s.BytesHashed != uint64(2*len(data)) {
 		t.Fatal("candidate skipped fresh input/business checks or failed to remove duplicate replay", s)
 	}
+	encoded, err := json.Marshal(s.SharedReplay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var observed map[string]any
+	if err := json.Unmarshal(encoded, &observed); err != nil {
+		t.Fatal(err)
+	}
+	if observed["workPhases"] == nil {
+		t.Fatal("actual replay and private state validation completed, but producer/copy/JSON/validation costs are missing")
+	}
+	work := s.SharedReplay.WorkPhases
+	if work.Produce.Calls != 1 || work.CanonicalCopy.Calls != 2 || work.PrivateJSON.Calls != 1 || work.PrivateValidate.Calls != 1 || work.CanonicalCopyBytes != uint64(2*s.SharedReplay.CachedCanonicalBytes) {
+		t.Fatalf("actual work calls/copy bytes differ: %+v", work)
+	}
+	for _, phase := range []sharedReplayPhaseWork{work.Produce, work.CanonicalCopy, work.PrivateJSON, work.PrivateValidate} {
+		if phase.Errors != 0 || phase.DurationNs <= 0 {
+			t.Fatalf("actual work cost absent: %+v", work)
+		}
+	}
+	s.SharedReplay.WorkPhases.Produce.Calls = 999
+	if r.stats().SharedReplay.WorkPhases.Produce.Calls != 1 {
+		t.Fatal("work snapshot aliases retained counters")
+	}
+	t.Logf("real_signed_store_replay_cost_not_business_tps=%s", encoded)
 	// State and nested account arrays belong to individual path slots.
 	if r.slots[path].state == r.slots[other].state || &r.slots[path].state.Accounts[0] == &r.slots[other].state.Accounts[0] {
 		t.Fatal("mutable state escaped across paths")
@@ -181,10 +207,17 @@ func TestSharedReplayCandidateFailureCancellationAndBoundedRetention(t *testing.
 	if calls != 2 || cache.snapshot().Failures != 2 || cache.snapshot().CachedCanonicalBytes != 0 {
 		t.Fatal("failure cached as successful snapshot")
 	}
+	work := cache.snapshot().WorkPhases
+	if work.Produce.Calls != 2 || work.Produce.Errors != 2 || work.CanonicalCopy.Calls != 0 {
+		t.Fatalf("producer first errors lost: %+v", work)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if _, err := cache.get(ctx, key, produce); !errors.Is(err, context.Canceled) || calls != 2 {
 		t.Fatal("cancellation invoked decode or returned success")
+	}
+	if cache.snapshot().WorkPhases != work {
+		t.Fatal("pre-cancelled lookup recorded nonexistent work")
 	}
 	for i := byte(0); i < 3; i++ {
 		k := sha256.Sum256([]byte{i})
@@ -235,6 +268,11 @@ func TestSharedReplayCandidateConcurrentSameBytesJoinAndCancel(t *testing.T) {
 	if err != nil || string(v.payload) != "valid" || !v.reused || cache.snapshot().FullReplays != 1 || cache.snapshot().WaitNs <= 0 {
 		t.Fatal("single-flight result/count/wait differs", v, err, cache.snapshot())
 	}
+	work := cache.snapshot().WorkPhases
+	if work.Produce.Calls != 1 || work.Produce.Errors != 0 || work.CanonicalCopy.Calls != 2 || work.CanonicalCopyBytes != 10 || work.PrivateJSON.Calls != 0 {
+		t.Fatalf("join/cancel/hit work differs: %+v", work)
+	}
+
 }
 
 func TestSharedReplayCandidateOversizedCanonicalIsNotRetained(t *testing.T) {
@@ -249,5 +287,52 @@ func TestSharedReplayCandidateOversizedCanonicalIsNotRetained(t *testing.T) {
 	}
 	if calls != 2 || cache.snapshot().CachedCanonicalBytes != 0 || cache.snapshot().Bypasses != 2 {
 		t.Fatal("oversized canonical state retained or original decode rejected", cache.snapshot())
+	}
+}
+
+func TestSharedReplayWorkPhasesRetainPrivateDecodeAndValidationFailures(t *testing.T) {
+	_, migration, path, _, _ := durableJournalFixture(t, "block-journal")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := newDurableReader(migration, []string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.sharedReplay = &sharedReplayCache{}
+	digest := sha256.Sum256(data)
+	original, err := r.decodeCurrentSnapshot(context.Background(), data, digest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.sharedReplay.mu.Lock()
+	r.sharedReplay.value.payload = []byte("{")
+	r.sharedReplay.mu.Unlock()
+	if _, err = r.decodeCurrentSnapshot(context.Background(), data, digest); err == nil {
+		t.Fatal("malformed cached bytes accepted")
+	}
+	var fields map[string]json.RawMessage
+	if err = json.Unmarshal(original.payload, &fields); err != nil {
+		t.Fatal(err)
+	}
+	fields["appHash"] = json.RawMessage(`"tampered"`)
+	bad, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.sharedReplay.mu.Lock()
+	r.sharedReplay.value.payload = bad
+	r.sharedReplay.mu.Unlock()
+	if _, err = r.decodeCurrentSnapshot(context.Background(), data, digest); err == nil {
+		t.Fatal("invalid private state accepted")
+	}
+	w := r.sharedReplay.snapshot().WorkPhases
+	if w.Produce.Calls != 1 || w.Produce.Errors != 0 || w.PrivateJSON.Calls != 2 || w.PrivateJSON.Errors != 1 || w.PrivateValidate.Calls != 1 || w.PrivateValidate.Errors != 1 {
+		t.Fatalf("first errors or phase counts lost: %+v", w)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(data, after) {
+		t.Fatal("diagnostic failure changed durable bytes", err)
 	}
 }

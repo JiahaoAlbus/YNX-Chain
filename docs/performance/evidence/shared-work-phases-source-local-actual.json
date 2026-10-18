@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "kind": "shared-replay-child-work-source-local-evidence",
+  "baseSourceCommit": "d224e7babd595de6dedfb4dbad2ec43f4ad43e91",
+  "internalTreeUnchanged": "152c0501404b7da2c3826ff746c0ed48a521e998",
+  "nodesStarted": false,
+  "newFourNodeRun": false,
+  "performanceImprovementMeasured": false,
+  "normalCIConclusion": null,
+  "sourcePins": {
+    "cmd/ynx-consensus-perf-client/shared_replay.go": {
+      "bytes": 5400,
+      "sha256": "a3731a1e66851d3bc9bbc55f9cf0299692d2d1bcd3c7b13431d11064a4b418d0"
+    },
+    "cmd/ynx-consensus-perf-client/durable_reader.go": {
+      "bytes": 19683,
+      "sha256": "40f2d3bfa0efe92356410584b67bb25f2bca6c47178201f0429ef3a62d74df3f"
+    },
+    "cmd/ynx-consensus-perf-client/shared_replay_test.go": {
+      "bytes": 12714,
+      "sha256": "d3875c06d2d84f53f5141a7e3b4a2f5ee10f5a949e05d4619e129f36da656807"
+    },
+    "scripts/loadtest/supply-linux-window.py": {
+      "bytes": 93846,
+      "sha256": "036ef81b21cdb7c5363369564aff59b0e10bb16fecaeb1af018a1dd38623ffe6"
+    },
+    "scripts/loadtest/test_supply_linux_window.py": {
+      "bytes": 80414,
+      "sha256": "7c45c92b7682e597efd5fdb677b22eebbcab3721634bde253e0a61e622b446bf"
+    }
+  },
+  "reconstructibleRED": {
+    "path": "docs/performance/evidence/shared-work-phases-red-d224.patch.json",
+    "bytes": 1424,
+    "sha256": "cdffdc9ed89cd33fdf7465503cec8c0e1667b4e81fd4bc657ff26b32492cdc77",
+    "firstCause": "actual replay and private state validation completed, but producer/copy/JSON/validation costs are missing"
+  },
+  "rawPins": {
+    "artifacts/chain-performance-20261017/shared-work-phases-source/real-work-phases-red.raw": {
+      "bytes": 386,
+      "sha256": "4988c35e8c6cc0c8f9e59c930fd95a0670190c830495f32ed69abbc0aeb56046"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/complete-work-phases-pass.raw": {
+      "bytes": 2189,
+      "sha256": "4db65728c11ef1bb97cd665a0997f71018f13470794622ea14c99dc709c30cf2"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/controller-final.raw": {
+      "bytes": 159,
+      "sha256": "5c3c2e0af2c24487ac6c62eb2c3eeae21d147c054f4c237d9930acff97aa42f3"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/previous-data64-verified-after.json": {
+      "bytes": 439927,
+      "sha256": "dd9499b3b04f99726a51d0b7136d868a493c14332a2d291bfeda2da7ac0415b6"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/original2048-cost.raw": {
+      "bytes": 386,
+      "sha256": "fd28616196671e70eacc9072e1c079590913007d520eb93687338a55e5e88899"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/original2048-cost-with-lock.raw": {
+      "bytes": 1756,
+      "sha256": "461e5777e6a05cc3dbc047b69115990706fc61d94c7c45663994fced0f70f7f1"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/original-replay-inputs-recovery.raw": {
+      "bytes": 1258,
+      "sha256": "a8efee2e5c8d64af729e8255e30a8ca82933260df7e6478bb752f38f8a7334a8"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/shared_real_replay_cost_test.go": {
+      "bytes": 3236,
+      "sha256": "d58ce95a7f97279016f3018e9ed02aa70b487d3ce0cceea587eef41972538ad4"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/original2048-overlay.json": {
+      "bytes": 329,
+      "sha256": "188a85b1d6043df258e8e78ad80ac6fbb5eba66388a610317e62bec25365a320"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/original-replay-binding.json": {
+      "bytes": 747,
+      "sha256": "f2bd1eb29b853a2c00758d9d052bf784f744ba680f930220e2bb4e58781ecdcb"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/bound-migration.json": {
+      "bytes": 847001,
+      "sha256": "92b3040f1ac4aab8e4ab3163fa7132af772ea8ad22d5caaed72c98fb37981b94"
+    },
+    "artifacts/chain-performance-20261017/shared-work-phases-source/ynx-abci-state.json": {
+      "bytes": 1717048,
+      "sha256": "7c2a5b38bdb057972462068772196e74e4ab5c8564712fea1f54a6e89bee4d0a"
+    }
+  },
+  "realSignedTwoStoreUnitReadout": {
+    "workPhases": {
+      "produce": {
+        "calls": 1,
+        "errors": 0,
+        "durationNs": 821208
+      },
+      "canonicalCopy": {
+        "calls": 2,
+        "errors": 0,
+        "durationNs": 1416
+      },
+      "privateJSON": {
+        "calls": 1,
+        "errors": 0,
+        "durationNs": 63041
+      },
+      "privateValidate": {
+        "calls": 1,
+        "errors": 0,
+        "durationNs": 27458
+      },
+      "canonicalCopyBytes": 7968
+    },
+    "lookups": 2,
+    "hits": 1,
+    "joins": 0,
+    "fullReplays": 1,
+    "failures": 0,
+    "bypasses": 0,
+    "waitNs": 0,
+    "cachedCanonicalBytes": 3984,
+    "canonicalByteLimit": 16777216,
+    "peakFlights": 1
+  },
+  "previousActualCaseCompatibility": {
+    "runId": 39164390241,
+    "sourceCommit": "b61d6b05306c9a452077cf79029be8fd165bff37",
+    "receiptSHA256": "bef4bdaccf1cb2fce60c87bc4911a6beb8d8f3dba51def56f7fa61a21c213c62",
+    "complete2048ReadoutUnchanged": true
+  },
+  "limits": [
+    "Real signed unit execution/reopen/tamper/fee+nonce/published quorum tests, not fresh four-node consensus or business TPS.",
+    "Fixed work counters record actual nested call wall durations; copied bytes are cumulative work, not retained RSS. Original waitNs remains separate.",
+    "No signature/state/business/publication/persistence check skipped. Default non-shared path has no new phase recorder.",
+    "Current online execution requires new work fields; historical offline readouts keep their exact original interpretation."
+  ],
+  "original2048OfflineCost": {
+    "arch": "arm64",
+    "feeEvents": 2048,
+    "goVersion": "go1.25.7",
+    "gomaxprocs": 1,
+    "kind": "offline_original2048_replay_cost_not_network_tps",
+    "limits": "One cold replay plus one private hit on two offline copies of the original signed journal, with original fee/nonce checks. No RPC, new quorum/published-info proof, inclusion/finality measurement, sustained qualification or matched speedup.",
+    "originalJournalBytes": 1717048,
+    "originalRun": 39164390241,
+    "os": "darwin",
+    "snapshotSHA256": "67af2a5cdeeb6a0b5c4b9aa74bede75b3ed730e3e3f5828ac390f123149e9357",
+    "stats": {
+      "sharedReplay": {
+        "workPhases": {
+          "produce": {
+            "calls": 1,
+            "errors": 0,
+            "durationNs": 298120542
+          },
+          "canonicalCopy": {
+            "calls": 2,
+            "errors": 0,
+            "durationNs": 367958
+          },
+          "privateJSON": {
+            "calls": 1,
+            "errors": 0,
+            "durationNs": 14778250
+          },
+          "privateValidate": {
+            "calls": 1,
+            "errors": 0,
+            "durationNs": 4697834
+          },
+          "canonicalCopyBytes": 5221666
+        },
+        "lookups": 2,
+        "hits": 1,
+        "joins": 0,
+        "fullReplays": 1,
+        "failures": 0,
+        "bypasses": 0,
+        "waitNs": 0,
+        "cachedCanonicalBytes": 2610833,
+        "canonicalByteLimit": 16777216,
+        "peakFlights": 1
+      },
+      "phaseTotalsNs": {
+        "loadNs": 324796125,
+        "hashNs": 1330001,
+        "captureNs": 3311542,
+        "decodeNs": 318030125,
+        "indexPublishNs": 1770126,
+        "transactionVerifyNs": 208167
+      },
+      "attempts": 2,
+      "bytesHashed": 3434096,
+      "snapshotValidations": 2,
+      "snapshotCacheHits": 0,
+      "transactionVerifications": 2,
+      "blockJournalReplayedBlocks": 7,
+      "blockJournalReplayedTransactionInputs": 2048,
+      "blockJournalNativeVerificationFacts": {
+        "capacity": 4096,
+        "string_byte_limit": 4194304,
+        "entries": 2048,
+        "retained_string_bytes": 1460288,
+        "lookups": 2048,
+        "hits": 0,
+        "successful_verifications": 2048
+      }
+    }
+  },
+  "original2048OfflineLimits": [
+    "Two fresh offline copies of original journal; original capture/read-lock protocol kept. First attempt failed because fixture omitted read.lock; raw retained; fixture corrected without production guard change.",
+    "Cold full replay verifies2048 original signature facts across7blocks; private hit reconstructs and fully validates its own state. Both original fee/nonce checks passed.",
+    "Canonical final-state SHA256 matched original network receipt. Both copied journal bytes remained unchanged.",
+    "Local darwin/arm64 Go1.25.7 GOMAXPROCS1, one cold replay/one hit, not the Linux4node VM, not a speedup comparison or throughput/finality measurement."
+  ]
+}

@@ -17,17 +17,42 @@ type sharedReplayValue struct {
 	reused         bool
 }
 
+// Nested call wall durations, not independent CPU or finality measurements.
+// Fixed value fields keep snapshots private and bound retained diagnostics.
+type sharedReplayPhaseWork struct {
+	Calls      uint64 `json:"calls"`
+	Errors     uint64 `json:"errors"`
+	DurationNs int64  `json:"durationNs"`
+}
+
+func (p *sharedReplayPhaseWork) add(elapsed time.Duration, err error) {
+	p.Calls++
+	if err != nil {
+		p.Errors++
+	}
+	p.DurationNs += elapsed.Nanoseconds()
+}
+
+type sharedReplayWork struct {
+	Produce            sharedReplayPhaseWork `json:"produce"`
+	CanonicalCopy      sharedReplayPhaseWork `json:"canonicalCopy"`
+	PrivateJSON        sharedReplayPhaseWork `json:"privateJSON"`
+	PrivateValidate    sharedReplayPhaseWork `json:"privateValidate"`
+	CanonicalCopyBytes uint64                `json:"canonicalCopyBytes"`
+}
+
 type sharedReplayStats struct {
-	Lookups              uint64 `json:"lookups"`
-	Hits                 uint64 `json:"hits"`
-	Joins                uint64 `json:"joins"`
-	FullReplays          uint64 `json:"fullReplays"`
-	Failures             uint64 `json:"failures"`
-	Bypasses             uint64 `json:"bypasses"`
-	WaitNs               int64  `json:"waitNs"`
-	CachedCanonicalBytes int    `json:"cachedCanonicalBytes"`
-	CanonicalByteLimit   int    `json:"canonicalByteLimit"`
-	PeakFlights          int    `json:"peakFlights"`
+	WorkPhases           sharedReplayWork `json:"workPhases"`
+	Lookups              uint64           `json:"lookups"`
+	Hits                 uint64           `json:"hits"`
+	Joins                uint64           `json:"joins"`
+	FullReplays          uint64           `json:"fullReplays"`
+	Failures             uint64           `json:"failures"`
+	Bypasses             uint64           `json:"bypasses"`
+	WaitNs               int64            `json:"waitNs"`
+	CachedCanonicalBytes int              `json:"cachedCanonicalBytes"`
+	CanonicalByteLimit   int              `json:"canonicalByteLimit"`
+	PeakFlights          int              `json:"peakFlights"`
 }
 
 type sharedReplayFlight struct {
@@ -48,6 +73,36 @@ func copySharedReplay(v sharedReplayValue, reused bool) sharedReplayValue {
 	v.payload = append([]byte(nil), v.payload...)
 	v.reused = reused
 	return v
+}
+
+func (c *sharedReplayCache) produceTimed(produce func() (sharedReplayValue, error)) (sharedReplayValue, error) {
+	started := time.Now()
+	v, err := produce()
+	elapsed := time.Since(started)
+	c.mu.Lock()
+	c.stats.WorkPhases.Produce.add(elapsed, err)
+	c.mu.Unlock()
+	return v, err
+}
+func (c *sharedReplayCache) copyForReader(v sharedReplayValue) sharedReplayValue {
+	started := time.Now()
+	copied := copySharedReplay(v, true)
+	elapsed := time.Since(started)
+	c.mu.Lock()
+	c.stats.WorkPhases.CanonicalCopy.add(elapsed, nil)
+	c.stats.WorkPhases.CanonicalCopyBytes += uint64(len(v.payload))
+	c.mu.Unlock()
+	return copied
+}
+func (c *sharedReplayCache) recordPrivateWork(jsonDecode bool, started time.Time, err error) {
+	elapsed := time.Since(started)
+	c.mu.Lock()
+	if jsonDecode {
+		c.stats.WorkPhases.PrivateJSON.add(elapsed, err)
+	} else {
+		c.stats.WorkPhases.PrivateValidate.add(elapsed, err)
+	}
+	c.mu.Unlock()
 }
 
 func (c *sharedReplayCache) snapshot() sharedReplayStats {
@@ -71,7 +126,7 @@ func (c *sharedReplayCache) get(ctx context.Context, key [sha256.Size]byte, prod
 		c.stats.Hits++
 		v := *c.value
 		c.mu.Unlock()
-		return copySharedReplay(v, true), nil
+		return c.copyForReader(v), nil
 	}
 	if f := c.flights[key]; f != nil {
 		c.stats.Joins++
@@ -93,13 +148,13 @@ func (c *sharedReplayCache) get(ctx context.Context, key [sha256.Size]byte, prod
 			if f.err != nil {
 				return sharedReplayValue{}, f.err
 			}
-			return copySharedReplay(f.value, true), nil
+			return c.copyForReader(f.value), nil
 		}
 	}
 	if len(c.flights) >= 4 {
 		c.stats.Bypasses++
 		c.mu.Unlock()
-		return produce()
+		return c.produceTimed(produce)
 	}
 	if c.flights == nil {
 		c.flights = make(map[[sha256.Size]byte]*sharedReplayFlight)
@@ -111,13 +166,16 @@ func (c *sharedReplayCache) get(ctx context.Context, key [sha256.Size]byte, prod
 		c.stats.PeakFlights = len(c.flights)
 	}
 	c.mu.Unlock()
-	v, err := produce()
+	v, err := c.produceTimed(produce)
 	if err == nil {
 		err = ctx.Err()
 	}
 	c.mu.Lock()
 	if err == nil {
+		copyStarted := time.Now()
 		f.value = copySharedReplay(v, false)
+		c.stats.WorkPhases.CanonicalCopy.add(time.Since(copyStarted), nil)
+		c.stats.WorkPhases.CanonicalCopyBytes += uint64(len(v.payload))
 		if len(v.payload) <= durableSnapshotLimit {
 			c.key = key
 			c.value = &f.value

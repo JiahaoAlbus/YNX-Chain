@@ -429,10 +429,16 @@ func (r *durableReader) decodeCurrentSnapshot(ctx context.Context, data []byte, 
 		return decoded, nil
 	}
 	var state consensus.CommittedState
-	if err := strictJSON(v.payload, &state); err != nil {
+	started := time.Now()
+	err = strictJSON(v.payload, &state)
+	r.sharedReplay.recordPrivateWork(true, started, err)
+	if err != nil {
 		return decodedDurableSnapshot{}, err
 	}
-	if err := state.Validate(r.migration); err != nil {
+	started = time.Now()
+	err = state.Validate(r.migration)
+	r.sharedReplay.recordPrivateWork(false, started, err)
+	if err != nil {
 		return decodedDurableSnapshot{}, err
 	}
 	if err := ctx.Err(); err != nil {

@@ -381,7 +381,7 @@ def validate_observer_phases(report):
                 interpretation="Original call wall times include server/transport/lock waits; trace may be explicitly capped while totals remain complete. Reader load includes children. Parallel workers and nested scopes are not additive BFT latency.")
 
 
-def validate_shared_replay(report, expected):
+def validate_shared_replay(report, expected, require_work_phases=False):
     if type(expected) is not bool or report.get("sharedDurableReplay") is not expected or report.get("observerPhaseTiming") is not True:
         raise RuntimeError("actual shared replay selection/timing differs")
     reader=report.get("durableReadback",{})
@@ -391,7 +391,7 @@ def validate_shared_replay(report, expected):
             raise RuntimeError("independent replay baseline unexpectedly enabled shared cache")
         return dict(sharedDurableReplay=False,stats=None)
     names={"lookups","hits","joins","fullReplays","failures","bypasses","waitNs","cachedCanonicalBytes","canonicalByteLimit","peakFlights"}
-    if not isinstance(stats,dict) or set(stats)!=names or any(type(v) is not int or v<0 for v in stats.values()):
+    if not isinstance(stats,dict) or set(stats) not in (names,names|{"workPhases"}) or any(type(stats.get(k)) is not int or stats[k]<0 for k in names):
         raise RuntimeError("shared replay actual bounded counters missing/invalid")
     if (stats["canonicalByteLimit"]!=16 << 20 or stats["cachedCanonicalBytes"]>16 << 20
             or not 1<=stats["peakFlights"]<=4 or stats["fullReplays"]<1
@@ -399,6 +399,27 @@ def validate_shared_replay(report, expected):
             or stats["hits"]+stats["joins"]+stats["fullReplays"]>stats["lookups"]
             or stats["lookups"]!=reader.get("snapshotValidations")):
         raise RuntimeError("shared replay work counts/retention bound differ")
+    work=stats.get("workPhases")
+    if require_work_phases and "workPhases" not in stats:
+        raise RuntimeError("actual shared replay work phases required")
+    if "workPhases" in stats:
+        phases={"produce","canonicalCopy","privateJSON","privateValidate"}
+        if not isinstance(work,dict) or set(work)!=phases|{"canonicalCopyBytes"} or type(work.get("canonicalCopyBytes")) is not int or work["canonicalCopyBytes"]<0:
+            raise RuntimeError("shared replay work phases missing/invalid")
+        for name in phases:
+            phase=work.get(name)
+            if (not isinstance(phase,dict) or set(phase)!={"calls","errors","durationNs"}
+                    or any(type(v) is not int or v<0 for v in phase.values()) or phase["errors"]>phase["calls"]
+                    or phase["calls"]==0 and (phase["durationNs"]!=0 or phase["errors"]!=0)
+                    or phase["calls"]>0 and phase["durationNs"]<=0):
+                raise RuntimeError("shared replay work phase counters invalid")
+        produce,copy,decode,validate=(work[k] for k in ("produce","canonicalCopy","privateJSON","privateValidate"))
+        if (not stats["fullReplays"]<=produce["calls"]<=stats["fullReplays"]+stats["bypasses"]
+                or produce["calls"]>stats["lookups"] or copy["errors"]!=0 or copy["calls"]>stats["lookups"]
+                or decode["calls"]>stats["hits"]+stats["joins"] or copy["calls"]<decode["calls"]
+                or validate["calls"]!=decode["calls"]-decode["errors"]
+                or copy["calls"]==0 and work["canonicalCopyBytes"]!=0):
+            raise RuntimeError("shared replay work counts differ from original replay/copy paths")
     if any(row.get("durableStoreFormat")!="block-journal" for row in report.get("transactions",[])):
         raise RuntimeError("shared replay comparison requires actual block-journal business readback")
     return dict(sharedDurableReplay=True,stats=stats,
@@ -1122,7 +1143,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             if observer_phases:
                 result["observerPhases"]=validate_observer_phases(client_report)
             if shared_replay is not None:
-                result["sharedReplayVerification"]=validate_shared_replay(client_report,shared_replay)
+                result["sharedReplayVerification"]=validate_shared_replay(client_report,shared_replay,require_work_phases=shared_replay is True)
             if endpoint_fair is not None:
                 result["endpointDispatchVerification"]=validate_endpoint_dispatch(client_report,endpoint_fair,elastic=endpoint_elastic is True)
             if endpoint_elastic is not None:

@@ -758,6 +758,35 @@ class SupplySourceTests(unittest.TestCase):
         row["sharedDurableReplay"]=False
         with self.assertRaises(RuntimeError):supply.validate_shared_replay(row,False)
 
+    def test_shared_replay_work_phases_validate_actual_counts_without_rebinding_legacy_results(self):
+        import copy
+        row=self.observer_report();row["sharedDurableReplay"]=True
+        stats=dict(lookups=3,hits=1,joins=1,fullReplays=1,failures=0,bypasses=0,waitNs=10,cachedCanonicalBytes=100,canonicalByteLimit=16<<20,peakFlights=1)
+        row["durableReadback"].update(snapshotValidations=3,sharedReplay=stats)
+        for tx in row["transactions"]:tx["durableStoreFormat"]="block-journal"
+        legacy=copy.deepcopy(supply.validate_shared_replay(row,True))
+        with self.assertRaisesRegex(RuntimeError,"work phases required"):
+            supply.validate_shared_replay(row,True,require_work_phases=True)
+        phase=lambda calls,ns:dict(calls=calls,errors=0,durationNs=ns)
+        stats["workPhases"]=dict(produce=phase(1,100),canonicalCopy=phase(3,10),privateJSON=phase(2,60),privateValidate=phase(2,50),canonicalCopyBytes=300)
+        self.assertEqual(supply.validate_shared_replay(row,True,require_work_phases=True)["stats"],stats)
+        for kind in ("missing","unknown","negative","boolean","zero_duration","too_many_errors","produce_count","copy_count","private_count","validation_count","copy_bytes"):
+            changed=copy.deepcopy(row);work=changed["durableReadback"]["sharedReplay"]["workPhases"]
+            if kind=="missing":del work["produce"]
+            if kind=="unknown":work["extra"]={}
+            if kind=="negative":work["privateJSON"]["durationNs"]=-1
+            if kind=="boolean":work["produce"]["calls"]=True
+            if kind=="zero_duration":work["privateValidate"]["durationNs"]=0
+            if kind=="too_many_errors":work["privateJSON"]["errors"]=3
+            if kind=="produce_count":work["produce"]["calls"]=2
+            if kind=="copy_count":work["canonicalCopy"]["calls"]=4
+            if kind=="private_count":work["privateJSON"]["calls"]=3
+            if kind=="validation_count":work["privateValidate"]["calls"]=1
+            if kind=="copy_bytes":work["canonicalCopyBytes"]=-1
+            with self.subTest(kind=kind),self.assertRaises(RuntimeError):supply.validate_shared_replay(changed,True)
+        del stats["workPhases"]
+        self.assertEqual(supply.validate_shared_replay(row,True),legacy)
+
     def test_shared_replay_pair_is_only_prepared_and_preserves_original_caps(self):
         plan=supply.prepare_shared_replay_pair()
         self.assertFalse(plan["execute"])
