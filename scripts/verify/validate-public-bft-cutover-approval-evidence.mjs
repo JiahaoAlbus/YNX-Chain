@@ -28,6 +28,12 @@ if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequi
 if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("approval evidence custody recovery is incomplete");
 if (!/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("approval evidence service signer manifest checksum is invalid");
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) fail("validator manifest checksum is invalid");
+for (const field of ["operatorPlanSha256", "runtimeManifestSha256"]) {
+  const value = approval[field];
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
+    fail(`${field} must preserve an independent nonzero lowercase SHA256 from the original approval`);
+  }
+}
 if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "")) fail("candidate genesis time is invalid");
 if (!Number.isFinite(Date.parse(approval.expiresAt || ""))) fail("approval expiry is invalid");
 process.stdout.write(`${JSON.stringify({
@@ -53,6 +59,8 @@ process.stdout.write(`${JSON.stringify({
   rotationProcedureVerified: true,
   serviceSignerManifestSha256: approval.serviceSignerManifestSha256,
   validatorManifestSha256: approval.validatorManifestSha256,
+  operatorPlanSha256: approval.operatorPlanSha256,
+  runtimeManifestSha256: approval.runtimeManifestSha256,
   candidateGenesisTime: approval.candidateGenesisTime,
   expiresAt: approval.expiresAt,
   validated: true,

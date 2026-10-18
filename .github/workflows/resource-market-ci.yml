@@ -27,6 +27,17 @@ on:
       - 'scripts/verify/consensus-production-package-check*'
       - 'scripts/verify/consensus-candidate-deploy-gate.sh'
       - 'scripts/verify/verify-consensus-candidate.sh'
+      - 'scripts/ops/public-bft-production-driver.sh'
+      - 'scripts/ops/public-bft-cutover-transaction.sh'
+      - 'scripts/ops/remote/public-bft-dependencies.sh'
+      - 'scripts/ops/remote/public-bft-ingress.sh'
+      - 'scripts/verify/public-bft-candidate-binding.mjs'
+      - 'scripts/verify/public-bft-production-candidate-check.sh'
+      - 'scripts/verify/public-bft-cutover-transaction-check.sh'
+      - 'scripts/verify/public-bft-gateway-dependencies-check.sh'
+      - 'scripts/verify/public-bft-gateway-ingress-check.sh'
+      - 'scripts/verify/validate-public-bft-cutover-approval.mjs'
+      - 'scripts/verify/validate-public-bft-cutover-approval-evidence.mjs'
       - 'scripts/ops/rollback-consensus-candidate*'
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
       - 'go.mod'
@@ -1137,6 +1148,33 @@ jobs:
                       raise RuntimeError('shared production caller lost operator verification')
                   if mode != 'pinned' and result.stdout:
                       raise RuntimeError('rejected plan produced success output')
+          # Exercise the actual fixed-source single-App binary's explicit
+          # first import. No engine, signer, listener or service is started.
+          initializer = candidate / 'ynx-comet'
+          initializer_pin = source['binaries'][initializer.name]
+          if initializer_pin != dict(bytes=initializer.stat().st_size, sha256=sha(initializer.read_bytes())):
+              raise RuntimeError('normal application initializer differs from pinned runtime')
+          for item in manifest['layouts']:
+              layout = item['stateLayout']
+              plan = decode(materials[item['operatorPlan']])
+              package = case / ('candidate-' + layout)
+              state = case / ('initial-application-' + layout) / 'state'
+              command = [str(initializer), 'initialize-application', '--consensus-genesis', str(package / 'common/genesis.json'),
+                  '--migration-state', str(package / 'common/bound-migration.json'), '--abci-state', str(state), '--abci-state-layout', layout,
+                  '--consensus-genesis-sha256', plan['consensusGenesisSHA256'], '--original-genesis-hash', plan['originalGenesisHash'],
+                  '--bound-migration-state-hash', plan['migrationStateHash']]
+              result = execute(layout + '-normal-application-initialization', command, 0, environment)
+              initialized = decode(result.stdout)
+              if (initialized['version'] != 'YNX-APPLICATION-INITIALIZATION/v1' or initialized['stateLayout'] != layout
+                      or initialized['statePath'] != str(state) or not initialized['coldReadVerified']
+                      or any(initialized[k] for k in ('initialized', 'deployed', 'pqActivated'))
+                      or initialized['appHash'] != plan['migrationStateHash']):
+                  raise RuntimeError('offline initialization escaped original migration/authority boundary')
+              before = {str(path.relative_to(state.parent)): path.read_bytes() for path in state.parent.iterdir() if path.is_file()}
+              execute(layout + '-repeated-initialization-rejected', command, 1, environment)
+              after = {str(path.relative_to(state.parent)): path.read_bytes() for path in state.parent.iterdir() if path.is_file()}
+              if before != after:
+                  raise RuntimeError('repeated initialization changed original state or retained attempt')
           # Exercise the real deployment script in its original transport-free
           # dry-run. No signer process, node, SSH, service, or activation runs.
           env_file = case / 'deploy.env'
@@ -1182,6 +1220,16 @@ jobs:
             ${{ runner.temp }}/ynx-consensus-operator-cli-public-receipt.json
           if-no-files-found: error
           retention-days: 7
+      - name: Verify original public cutover caller preserves independent operator and runtime pins
+        if: ${{ success() && github.event_name == 'push' }}
+        timeout-minutes: 3
+        run: |
+          bash scripts/verify/public-bft-production-candidate-check.sh
+          # Original transaction-order fixtures replace the external driver;
+          # no service, remote transport or paused product is started.
+          bash scripts/verify/public-bft-cutover-transaction-check.sh
+          bash scripts/verify/public-bft-gateway-dependencies-check.sh
+          bash scripts/verify/public-bft-gateway-ingress-check.sh
       - name: Verify normal proof CLI with exact public interoperability fixture
         id: pqproofcli
         if: ${{ success() && github.event_name == 'push' }}

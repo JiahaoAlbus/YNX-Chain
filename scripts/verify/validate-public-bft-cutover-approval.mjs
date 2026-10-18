@@ -57,6 +57,12 @@ if (participants.some((value) => value.length < 3) || new Set(participants).size
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) {
   fail("validatorManifestSha256 is required");
 }
+for (const field of ["operatorPlanSha256", "runtimeManifestSha256"]) {
+  const value = approval[field];
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
+    fail(`${field} must be an independent nonzero lowercase SHA256 in the original approval`);
+  }
+}
 if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "") || !Number.isFinite(Date.parse(approval.candidateGenesisTime))) {
   fail("candidateGenesisTime must be whole-second UTC RFC3339");
 }
@@ -89,6 +95,8 @@ process.stdout.write(JSON.stringify({
   rotationProcedureVerified: true,
   serviceSignerManifestSha256: approval.serviceSignerManifestSha256,
   validatorManifestSha256: approval.validatorManifestSha256,
+  operatorPlanSha256: approval.operatorPlanSha256,
+  runtimeManifestSha256: approval.runtimeManifestSha256,
   candidateGenesisTime: approval.candidateGenesisTime,
   expiresAt: new Date(expiresAt).toISOString().replace(".000Z", "Z"),
 }) + "\n");
