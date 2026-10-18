@@ -318,11 +318,13 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
-          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer
+          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        env:
+          YNX_PQ_LIGHT_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-light-proof-public.json
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
@@ -907,7 +909,7 @@ jobs:
           export YNX_RUNTIME_CANDIDATE
           umask 077
           mkdir "$YNX_RUNTIME_CANDIDATE" "$YNX_RUNTIME_CANDIDATE/operator"
-          for YNX_RUNTIME_COMMAND in ynx-abci ynx-comet ynx-consensus-pq-key-init; do
+          for YNX_RUNTIME_COMMAND in ynx-abci ynx-comet ynx-consensus-pq-key-init ynx-consensus-proof-verify; do
             go build -p 1 -trimpath -o "$YNX_RUNTIME_CANDIDATE/$YNX_RUNTIME_COMMAND" "./cmd/$YNX_RUNTIME_COMMAND"
           done
           cp "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer" "$YNX_RUNTIME_CANDIDATE/ynx-consensus-pq-remote-signer"
@@ -922,7 +924,8 @@ jobs:
           from pathlib import Path
           root = Path(os.environ['YNX_RUNTIME_CANDIDATE'])
           names = ('ynx-abci', 'ynx-comet', 'ynx-bft-gatewayd',
-              'ynx-consensus-pq-remote-signer', 'ynx-consensus-pq-key-init')
+              'ynx-consensus-pq-remote-signer', 'ynx-consensus-pq-key-init',
+              'ynx-consensus-proof-verify')
           def pin(path):
               with path.open('rb') as source:
                   digest = hashlib.file_digest(source, 'sha256').hexdigest()
@@ -942,12 +945,123 @@ jobs:
               commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], platform='linux/amd64',
               cometForkTree=subprocess.check_output(['git','rev-parse','HEAD:third_party/cometbft'],text=True).strip(),
               goMod=pin(Path('go.mod')), goSum=pin(Path('go.sum')),
+              proofVerifierContract='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1',
+              proofVerifierSources={name:pin(Path(name)) for name in
+                  ('internal/consensus/pq_light_proof.go',
+                   'cmd/ynx-consensus-proof-verify/main.go',
+                   'cmd/ynx-consensus-proof-verify/trust.go')},
               binaries=binaries, operator=operator, runtimeStarted=False,
               publicDeployment=False, pqActivation=False,
               purpose='normal entrypoint binaries and operator configuration only; no keys, credentials, ledger or signing history')
           (root / 'SOURCE.json').write_text(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf8')
           print('YNX_LINUX_RUNTIME_CANDIDATE ' + json.dumps(record, sort_keys=True, separators=(',', ':')))
           PY
+      - name: Verify normal proof CLI with exact public interoperability fixture
+        id: pqproofcli
+        if: ${{ success() && github.event_name == 'push' }}
+        timeout-minutes: 2
+        run: |
+          umask 077
+          python3 -B - <<'PY'
+          import base64, hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          fixture_path = root / 'ynx-pq-consensus-light-proof-public.json'
+          fixture_raw = fixture_path.read_bytes()
+          if not 0 < len(fixture_raw) <= 32 << 20:
+              raise RuntimeError('public proof fixture exceeds its bound')
+          fixture = json.loads(fixture_raw)
+          if (fixture['version'] != 'YNX-PQ-CONSENSUS-LIGHT-PROOF-PUBLIC-FIXTURE/v1'
+                  or fixture['syntheticOnly'] is not True
+                  or fixture['normalFileLoaderVerified'] is not True
+                  or any(fixture[name] is not False for name in
+                      ('dataAuthorized', 'nativeRootAuthorized', 'deployedSourceQualification',
+                       'actualCometNode', 'transactionInclusion'))):
+              raise RuntimeError('fixture cannot supply production trust or authority')
+          def sha(raw):
+              return hashlib.sha256(raw).hexdigest()
+          names = {'migration.json', 'genesis.json', 'committed-state.json',
+              'schedule.json', 'trusted-light-block.json'}
+          if len(fixture['materials']) != len(names) or {m['name'] for m in fixture['materials']} != names:
+              raise RuntimeError('unexpected public material allowlist')
+          case = root / ('ynx-pq-proof-cli-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          case.mkdir(mode=0o700)
+          original = {}
+          for material in fixture['materials']:
+              raw = base64.b64decode(material['bytes'], validate=True)
+              if str(len(raw)) != material['byteLength'] or sha(raw) != material['sha256']:
+                  raise RuntimeError('public material byte pin mismatch')
+              with (case / material['name']).open('xb') as target:
+                  target.write(raw)
+              original[material['name']] = raw
+          mappings = dict(migrationFile='migration.json', genesisFile='genesis.json',
+              stateFile='committed-state.json', scheduleFile='schedule.json',
+              trustedLightBlockFile='trusted-light-block.json')
+          if fixture['trustContextFiles'] != mappings:
+              raise RuntimeError('public context path mapping differs from allowlist')
+          context = dict(fixture['trustContextParameters'])
+          if not all(isinstance(v, str) for v in context.values()) or set(context) & set(mappings):
+              raise RuntimeError('context parameters must be exact independent strings')
+          context.update({field:str(case / name) for field,name in mappings.items()})
+          context_raw = (json.dumps(context, sort_keys=True, separators=(',', ':')) + '\n').encode()
+          context_path = case / 'trust-context.json'
+          with context_path.open('xb') as target:
+              target.write(context_raw)
+          original[context_path.name] = context_raw
+          candidate = root / 'ynx-pq-linux-runtime-candidate'
+          binary = candidate / 'ynx-consensus-proof-verify'
+          source = json.loads((candidate / 'SOURCE.json').read_bytes())
+          binary_pin = source['binaries'][binary.name]
+          if source['commit'] != os.environ['GITHUB_SHA'] or sha(binary.read_bytes()) != binary_pin['sha256']:
+              raise RuntimeError('actual proof CLI differs from exact candidate binary pin')
+          command = [str(binary), '--trust-context', str(context_path),
+              '--trust-context-sha256', sha(context_raw)]
+          environment = dict(PATH='/usr/bin:/bin', GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB')
+          results = []
+          def invoke(name, request, expected_code, expected_exit):
+              body = json.dumps(request, separators=(',', ':')).encode()
+              completed = subprocess.run(command, input=body, capture_output=True,
+                  timeout=15, cwd=case, env=environment, check=False)
+              if completed.returncode != expected_exit or completed.stderr or not 0 < len(completed.stdout) < 65536:
+                  raise RuntimeError('normal proof CLI did not terminate as expected: ' + name)
+              value = json.loads(completed.stdout)
+              if value.get('version') != 'YNX-CONSENSUS-PROOF-VERIFY-RESULT/v1' or value.get('code') != expected_code:
+                  raise RuntimeError('normal proof CLI returned wrong stage: ' + name + ' ' + completed.stdout[:4096].decode())
+              results.append(dict(name=name, exitCode=completed.returncode, code=value['code'],
+                  stdoutSHA256=sha(completed.stdout)))
+              return value
+          verified = invoke('valid-full-commit-and-light-transition', fixture['request'], 'VERIFIED_DATA', 0)
+          if verified != fixture['expectedResponse']:
+              raise RuntimeError('actual normal CLI result lost original verified anchors')
+          failures = {'invalid-dual-commit-signatures':'PROOF_REJECTED',
+              'incomplete-validator-result':'PROOF_REJECTED',
+              'wrong-preceding-state-apphash':'INVALID_REQUEST'}
+          if len(fixture['negativeCases']) != len(failures) or {c['name'] for c in fixture['negativeCases']} != set(failures):
+              raise RuntimeError('unexpected public negative cases')
+          for negative in fixture['negativeCases']:
+              invoke(negative['name'], negative['request'], failures[negative['name']], 1)
+          if {p.name for p in case.iterdir()} != set(original) or any((case / name).read_bytes() != raw for name,raw in original.items()):
+              raise RuntimeError('read-only proof CLI changed original public sources')
+          receipt = dict(version='YNX-PQ-CONSENSUS-PROOF-CLI-INTEROP/v1', commit=os.environ['GITHUB_SHA'],
+              runId=os.environ['GITHUB_RUN_ID'], fixtureSHA256=sha(fixture_raw), binaryPin=binary_pin,
+              trustContextSHA256=sha(context_raw), cases=results, syntheticOnly=True,
+              normalCLIExecuted=True, originalSourcesUnchanged=True, dataAuthorized=False,
+              nativeRootAuthorized=False, actualCometNode=False, transactionInclusion=False,
+              publicDeployment=False, pqActivation=False)
+          with (root / 'ynx-pq-consensus-proof-cli-public-receipt.json').open('x') as target:
+              target.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
+          print('YNX_PQ_PROOF_CLI_INTEROP ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
+          PY
+      - name: Upload only public consensus proof fixture and normal CLI receipt
+        if: ${{ !cancelled() && steps.pqproofcli.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-consensus-proof-public-interop-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-consensus-light-proof-public.json
+            ${{ runner.temp }}/ynx-pq-consensus-proof-cli-public-receipt.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload only public Linux runtime candidate
         if: ${{ success() && github.event_name == 'push' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

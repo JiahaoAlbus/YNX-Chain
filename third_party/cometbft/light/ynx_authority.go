@@ -37,6 +37,9 @@ func BindLightBlock(authority types.ConsensusAuthority, block *types.LightBlock)
 	if err != nil {
 		return nil, err
 	}
+	if block.Version.App != params.Version.App {
+		return nil, errors.New("light header application version differs from authenticated height-specific parameters")
+	}
 	if !bytes.Equal(params.Hash(), block.ConsensusHash) {
 		return nil, errors.New("light header consensus hash differs from authenticated profile")
 	}
