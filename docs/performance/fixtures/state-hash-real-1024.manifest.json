@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "scope": "retained isolated real 1024-transfer application snapshot; canonical encoding benchmark input, not a new business or network run",
+  "sourceReceipt": "docs/performance/evidence/fee-audit-encoding-20261017.json",
+  "originalSnapshot": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-1234288681/state.json",
+  "snapshotFile": "state-hash-real-1024.json",
+  "bytes": 812656,
+  "sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+  "committedStateVersion": 13,
+  "feeEvents": 1024,
+  "appHash": "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65",
+  "containsPrivateKeysOrSeeds": false,
+  "originalRetainedUnchanged": true
+}

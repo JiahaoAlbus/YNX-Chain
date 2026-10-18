@@ -445,6 +445,9 @@ streambft-candidate-check:
 integration-contract-perf-v13-check:
 	node ./scripts/verify/perf-v13-integration-check.mjs
 
+integration-contract-perf-v13-fee-chunks-check:
+	node ./scripts/verify/perf-v13-fee-chunks-integration-check.mjs
+
 integration-contract-check:
 	node ./scripts/verify/integration-contract-check.mjs
 

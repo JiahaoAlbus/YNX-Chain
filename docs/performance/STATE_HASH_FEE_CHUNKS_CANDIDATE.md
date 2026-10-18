@@ -42,3 +42,19 @@ a separately pinned derivative candidate is supplied. Kernel commit
 `f1342d3123f2366797e71c65a4e160cac377c9f2`. The old bundle and
 published contract are not modified to hide that identity boundary. Source
 tests and compatibility/release qualification must be reported separately.
+
+The supplied independent `perf-state-v13-fee-chunks` SDK candidate keeps state
+version 13 and application version 19. Its new strict checker and all 53
+candidate/current-source controls are connected to the original Chain workflow.
+The old candidate, checker and rejection controls remain separate and unchanged.
+Full integrated CI still needs to qualify the adopted source.
+
+The default-false `measure_state_hash_encoding` workflow input uses the retained
+real 1024-transfer snapshot, SHA-256
+`ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56`.
+It compares the original borrowed-buffer encoder and fee-chunk candidate in
+the existing Go benchmark, 200 ms per case with three repetitions, one Go CPU
+and a 160 MiB Go memory target. Both must reproduce the original AppHash before
+timing. The public snapshot and provenance are retained under `fixtures/`;
+the original local measurement remains intact. This is an encoding comparison,
+not a new executed workload or a network/finality result.
