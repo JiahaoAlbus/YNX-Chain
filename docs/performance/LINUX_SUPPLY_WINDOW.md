@@ -530,3 +530,54 @@ capacity evidence. The grouped production client source is unchanged from
 fa596b5fc, whose actual signed/persistent/nonce/slow-peer regression passed
 CI39141981675; the new pair source must also pass its own normal CI before a
 separate Root grant can authorize one actual bounded→grouped network window.
+
+## Actual bounded→grouped negative throughput result
+
+After06c483e69 passed normalCI39142589456, Root explicitly granted its one new
+pair. Run39142884319 completed SUCCESS on one AMD EPYC9V45/4CPU VM with the same
+four exact ELF binaries, source and Go1.25.14. Both cases actually completed1024
+signed business-qualified final transactions, zero UNKNOWN, timeout, business
+rejection, failed execution or missing submission. Both owned child closures
+cleaned, two empty scans separated the cases, and the post-fsync terminal verdict
+was qualifiedtrue at12.771s, aggregate retained41544944bytes. That is successful
+finite business measurement, **not joint performance improvement**.
+
+| Actual finite1024 case | Bounded cadence | Grouped4 |
+|---|---:|---:|
+| Full workload seconds |3.633006|4.173999|
+| Effective business inclusion/final rate per second |281.860273|245.328292|
+| Actual offered interarrival rate per second |367.753322|345.421404|
+| Offer→effective inclusion P50/P95/P99 ms |1019.902/1359.385/1586.969|1015.546/1319.099/1405.387|
+| Offer→qualified final P50/P95/P99 ms |1184.228/1522.261/1662.922|1147.831/1469.260/1517.138|
+| Future timer targets |930|271|
+| Future-target wake lateness total ms |960.862|436.203|
+| Pacing wait total ms |2268.260|2343.954|
+| Supply-channel wait ms |391.523|362.095|
+| Final-drain-channel wait ms |849.719|1210.551|
+| Peak offered awaiting submission |16|12|
+| Peak accepted awaiting observation completion |512|512|
+| Peak RSS bytes |559521792|583417856|
+| Peak private data bytes |20413292|20440541|
+
+Final rate decreased12.9610%, offer rate decreased6.0725%, offer→final P95
+improved3.4817%. All raw quantiles include the actual per-input submission queue.
+The joint guard correctly reports rateIncreased=false, inclusion/finalP95NotWorse
+=true, finiteFinalP95Within3s=true, jointImprovement=false and sustainedTPS=false.
+Keep grouped mode opt-in; fewer timer wakes alone are not acceptance evidence.
+
+Both modes retained the four-offer bound. Grouped decisions752catch-up targets,
+27resets, peak3immediately due successors. The observed node Commit mean was
+2.867–3.710ms (bounded,5Commits/node) versus3.826–4.999ms (grouped,6Commits/node).
+Per-node cumulative fileSync2.177–3.605ms versus7.759–13.884ms; encode/validate/
+write remain separately recorded. Four workload inclusion blocks versus five,
+fixed order, fresh random fixtures and I/O/startup phase remain attribution
+limits. Do not label this a generalized grouping slowdown or hide it by selecting
+an earlier faster VM. It proves the candidate did not meet the joint improvement
+criterion in this finite paired observation.
+
+Full source/raw/member hashes, per-node phases and retained nonzero pending
+observation errors are in
+`evidence/bounded-grouped-pair-ci-39142884319-actual.json`. Raw selected members
+were recovered by exact206 and checked with ZIP size/CRC plus individual SHA256;
+the entire ZIP was not downloaded or hash-verified. No automatic retry, higher
+cap, default promotion or further network run is authorized by this result.
