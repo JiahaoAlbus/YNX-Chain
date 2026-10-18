@@ -1,0 +1,22 @@
+{
+  "kind": "unmodified-contract-execution-state-regression",
+  "base": "dbf3b850cff086a505b17ff5bf74f1f3a84b88f7",
+  "test": {
+    "path": "internal/chain/pq_contract_verify_regression_test.go",
+    "bytes": 8621,
+    "sha256": "6ac8dc6f9c0a74e8320374a4e2e7dd2f57587bcc3ab6407574d70f8ee4757251"
+  },
+  "cases": "Actual pinned compiler counter/ERC20 execution followed by real dual-key migration or terminal revocation; public matching-source verification must preserve whole execution state, repeated verification and restart.",
+  "allowedMetadata": [
+    "Verified",
+    "VerifiedAt",
+    "VerifierStatus",
+    "ReproducibleBuild",
+    "ReproducibilityStatus",
+    "DeployedBytecodeComparisonStatus"
+  ],
+  "localGoExecuted": false,
+  "productionRepairApplied": false,
+  "expectedRemoteResult": "RED from executed storage reset, not compile or fixture failure",
+  "publicRuntimeReproduction": false
+}

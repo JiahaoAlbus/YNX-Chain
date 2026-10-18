@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "kind": "public-read-only-status-observation",
+  "observedAt": "2026-10-18T01:01:51.315Z",
+  "request": {
+    "method": "GET",
+    "url": "https://rpc.ynxweb4.com/status",
+    "maxSeconds": 8,
+    "tlsVerification": true
+  },
+  "rawSha256": "0dcaa2aae754e6c54dc9cfba809e8c40a9462e015f5163e2981d35ce8fb424ab",
+  "status": {
+    "build": {
+      "commit": "65efa82e0615",
+      "release": "ynx-network-surgical-65efa82e0615",
+      "buildTime": "2026-09-25T00:00:00Z"
+    },
+    "catchingUp": false,
+    "chainId": 6423,
+    "chainIdConflictCheck": "chainid.network snapshot checked on 2026-07-01: 6420, 6423, 6425 not listed; repeat before mainnet launch",
+    "decimals": 18,
+    "height": 1934885,
+    "latestBlockHash": "c0b205774973b0a5ef55b07509ec03b19547148a56f91ce1c3c072d8a93ea947",
+    "latestBlockTime": "2026-10-18T01:01:28.792101321Z",
+    "mainnetReady": false,
+    "nativeCoinName": "YNXT",
+    "nativeCurrencySymbol": "YNXT",
+    "network": "YNX Testnet",
+    "nodeIdentity": {
+      "configured": true,
+      "validatorAddress": "ynx_validator_primary",
+      "validatorMoniker": "ynx-primary",
+      "validatorRole": "primary validator",
+      "validatorHost": "43.153.202.237",
+      "validatorPeerId": "primary-43.153.202.237",
+      "expectedValidatorCount": 4,
+      "peerSyncTargetCount": 3,
+      "peerSyncTargetAddresses": [
+        "ynx_validator_seoul",
+        "ynx_validator_silicon_valley",
+        "ynx_validator_singapore"
+      ],
+      "peerSyncInterval": "5s",
+      "blockProductionEnabled": true,
+      "replicationMode": "authoritative_producer",
+      "runtimeEvidence": "local-runtime-config",
+      "build": {
+        "commit": "65efa82e0615",
+        "release": "ynx-network-surgical-65efa82e0615",
+        "buildTime": "2026-09-25T00:00:00Z"
+      },
+      "peerSyncFreshness": {
+        "status": "stale_peer_sync",
+        "targetCount": 3,
+        "synced": 3,
+        "lagging": 0,
+        "missing": 0,
+        "stale": 1,
+        "fresh": 2,
+        "totalRecords": 3,
+        "staleAfterSeconds": 15,
+        "generatedAt": "2026-10-18T01:01:38.144086937Z",
+        "records": [
+          {
+            "target": "ynx_validator_seoul",
+            "status": "synced",
+            "updatedAt": "2026-10-18T01:01:19.75507736Z",
+            "ageSeconds": 18,
+            "fresh": false,
+            "evidence": "peer-rpc-poll:http://43.164.132.81:6420/status"
+          },
+          {
+            "target": "ynx_validator_silicon_valley",
+            "status": "synced",
+            "updatedAt": "2026-10-18T01:01:38.097210671Z",
+            "fresh": true,
+            "evidence": "peer-rpc-poll:http://43.162.100.54:6420/status"
+          },
+          {
+            "target": "ynx_validator_singapore",
+            "status": "synced",
+            "updatedAt": "2026-10-18T01:01:28.791760016Z",
+            "ageSeconds": 9,
+            "fresh": true,
+            "evidence": "peer-rpc-poll:http://43.134.23.58:6420/status"
+          }
+        ]
+      },
+      "replication": {
+        "configured": false,
+        "status": "not_configured",
+        "catchingUp": false,
+        "fresh": true,
+        "localHeight": 1934885,
+        "localBlockHash": "c0b205774973b0a5ef55b07509ec03b19547148a56f91ce1c3c072d8a93ea947",
+        "sourceHeight": 0,
+        "lagBlocks": 0,
+        "attempts": 0,
+        "successes": 0,
+        "failures": 0,
+        "consecutiveFailures": 0
+      }
+    },
+    "pendingTxCount": 0,
+    "persistence": true,
+    "persistenceError": "",
+    "publicNetwork": true,
+    "readyValidatorCount": 4,
+    "replication": {
+      "configured": false,
+      "status": "not_configured",
+      "catchingUp": false,
+      "fresh": true,
+      "localHeight": 1934885,
+      "localBlockHash": "c0b205774973b0a5ef55b07509ec03b19547148a56f91ce1c3c072d8a93ea947",
+      "sourceHeight": 0,
+      "lagBlocks": 0,
+      "attempts": 0,
+      "successes": 0,
+      "failures": 0,
+      "consecutiveFailures": 0
+    },
+    "slug": "testnet",
+    "truthfulStatus": "ynx-testnet-node",
+    "validatorCount": 4,
+    "validatorPeerDiscovery": {
+      "expected": 4,
+      "observed": 4,
+      "total": 4
+    },
+    "validatorPeerReadiness": {
+      "ready": 4,
+      "total": 4
+    },
+    "validatorPeerSync": {
+      "lagging": 0,
+      "synced": 3,
+      "total": 3
+    }
+  },
+  "interpretation": "Public producer self-report only. No deployment performed; readyValidatorCount is not BFT quorum evidence. No operator identity, binary SHA, canonical data-directory or restore point inferred."
+}
