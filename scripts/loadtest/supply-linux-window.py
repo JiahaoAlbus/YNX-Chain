@@ -39,7 +39,7 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
                  buildBytes=1 << 30, metadataReserveMs=500)
 
 
-def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None):
     if transport not in ("socket", "grpc"):
         raise RuntimeError("only existing socket/grpc ABCI transports allowed")
     if profile_name not in PROFILES:
@@ -67,6 +67,10 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
         if type(endpoint_fair) is not bool or shared_replay is not True:
             raise RuntimeError("fairness comparison requires explicit shared replay and its fixed timed profile")
         result["endpointFairSubmission"]=endpoint_fair
+    if endpoint_elastic is not None:
+        if type(endpoint_elastic) is not bool or type(endpoint_fair) is not bool or shared_replay is not True or endpoint_elastic and endpoint_fair is not True:
+            raise RuntimeError("elastic endpoint selection requires explicit shared replay/timed profile and fairness")
+        result["endpointElasticSubmission"]=endpoint_elastic
     return result
 
 
@@ -91,7 +95,8 @@ def prepare_shared_replay_pair():
 PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
               "bounded-grouped": ("bounded-cadence", "grouped-cadence4"),
               "independent-shared": ("independent-replay", "shared-replay"),
-              "shared-fair": ("shared-baseline", "shared-endpoint-fair")}
+              "shared-fair": ("shared-baseline", "shared-endpoint-fair"),
+              "shared-elastic": ("shared-baseline", "shared-endpoint-elastic")}
 
 
 def pair_modes(comparison):
@@ -194,6 +199,14 @@ def fixture_resource_readout(network):
 
 
 def pair_recipe(comparison="relative-bounded"):
+    if comparison == "shared-elastic":
+        selected=pair_recipe("shared-fair")
+        selected.update(kind="fixed-same-VM-elastic-endpoint-pair",
+                        cases=[recipe("grpc","supply-512x2","bounded-cadence",True,True,flag,flag) for flag in (False,True)],
+                        order="shared-baseline then shared-endpoint-elastic; never concurrent; stop after failed or unclean first case",
+                        input=dict(run_linux_supply=True,linux_supply_transport="grpc",linux_supply_profile="supply-512x2",linux_supply_pacing="paired-shared-elastic",measure_observer_phases=True),
+                        interpretation="Same source/VM/ELFs/caps; original shared submission queue versus explicit elastic endpoint policy. Shared replay, observer and original HTTP boundary timing on both sides. Four workers and total queue unchanged; candidate limit2 per unchanged index%4 authority. Preserve all1024 original business, raw stage/queue/CheckTx quantiles and joint tail guards. Finite only, no sustained1000TPS claim.")
+        return selected
     before, after = pair_modes(comparison)
     if comparison == "shared-fair":
         selected=pair_recipe("independent-shared")
@@ -378,7 +391,9 @@ def validate_shared_replay(report, expected):
                 interpretation="Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance.")
 
 
-def validate_endpoint_dispatch(report, expected):
+def validate_endpoint_dispatch(report, expected, elastic=False):
+    if type(elastic) is not bool or elastic and not expected or report.get("endpointElasticSubmission",False) is not elastic:
+        raise RuntimeError("actual elastic endpoint selection absent/different")
     if type(expected) is not bool or report.get("endpointFairSubmission") is not expected:
         raise RuntimeError("actual endpoint fairness selection absent/different")
     endpoints=report.get("endpoints",[])
@@ -395,12 +410,53 @@ def validate_endpoint_dispatch(report, expected):
         if stats is not None:raise RuntimeError("baseline unexpectedly enabled endpoint dispatch")
     else:
         names={"workers","perEndpointInFlightLimit","queueCapacityTotal","callbackAttempts","callbackReturns"}
+        if elastic:names|={"peakInFlight","peakTotalInFlight"}
         if (not isinstance(stats,dict) or set(stats)!=names
-                or any(type(stats.get(k)) is not int or stats[k]!=v for k,v in (("workers",4),("perEndpointInFlightLimit",1),("queueCapacityTotal",1024)))
+                or any(type(stats.get(k)) is not int or stats[k]!=v for k,v in (("workers",4),("perEndpointInFlightLimit",2 if elastic else 1),("queueCapacityTotal",1024)))
                 or any(not isinstance(stats.get(k),list) or stats[k]!=[256]*4 or any(type(v) is not int for v in stats[k]) for k in ("callbackAttempts","callbackReturns"))):
             raise RuntimeError("actual original worker/queue/callback bounds differ")
+        if elastic:
+            peaks=stats["peakInFlight"];total=stats["peakTotalInFlight"]
+            if (not isinstance(peaks,list) or len(peaks)!=4 or any(type(v) is not int or not 1<=v<=2 for v in peaks)
+                    or type(total) is not int or not max(peaks)<=total<=min(4,sum(peaks))):
+                raise RuntimeError("actual elastic callback peaks exceed original worker/endpoint bounds")
     return dict(endpointFairSubmission=expected,originalEndpointBindingVerified=True,stats=stats,
                 interpretation="Actual callback counts are not extra RPC or business successes; original1024-result business qualification is required separately. No request authority replacement or automatic UNKNOWN retry.")
+
+
+def validate_submission_phases(report):
+    rows=report.get("transactions",[])
+    if report.get("observerPhaseTiming") is not True or len(rows)!=1024:
+        raise RuntimeError("all1024 original timed submission rows required")
+    counters=("getConnCalls","gotConnCalls","wroteRequestCalls","firstByteCalls")
+    offsets=("firstGetConnNs","firstGotConnNs","firstWroteRequestNs","firstResponseByteNs","callbackReturnNs")
+    metrics={name:[] for name in ("beforeGetConnMs","connectionAcquireMs","connectionToWriteMs","writeToFirstByteMs","firstByteToReturnMs","callbackReturnMs")}
+    reused=overlap=0
+    for row in rows:
+        p=row.get("submissionPhases")
+        if (not isinstance(p,dict) or set(p)!=set(counters+offsets+("writeErrors","firstConnReused"))
+                or any(type(p[k]) is not int or p[k]!=1 for k in counters)
+                or type(p["writeErrors"]) is not int or p["writeErrors"]!=0
+                or any(type(p[k]) is not int or p[k]<0 for k in offsets)
+                or type(p["firstConnReused"]) is not bool):
+            raise RuntimeError("original single-attempt HTTP phase facts absent/invalid")
+        get,got,wrote,first,end=(p[k] for k in offsets)
+        wall=row.get("checkTxMs")
+        if (not get<=got<=min(wrote,first) or max(wrote,first)>end
+                or type(wall) not in (int,float) or not math.isfinite(wall) or wall<0 or end+1<wall*1e6):
+            raise RuntimeError("HTTP monotonic boundaries differ from original callback duration")
+        reused+=p["firstConnReused"]
+        for name,value in (("beforeGetConnMs",get),("connectionAcquireMs",got-get),("connectionToWriteMs",wrote-got),("firstByteToReturnMs",end-first),("callbackReturnMs",end)):
+            metrics[name].append(value/1e6)
+        if first>=wrote:metrics["writeToFirstByteMs"].append((first-wrote)/1e6)
+        else:overlap+=1
+    def quantiles(values):
+        values=sorted(values);n=len(values)
+        return dict(samples=n,**{name:values[math.ceil(q*n)-1] if n else None for name,q in (("p50",.5),("p95",.95),("p99",.99))})
+    return dict(samples=1024,hookCalls={key:1024 for key in counters},writeErrors=0,
+                reusedConnections=reused,writeFirstByteHookOverlaps=overlap,
+                durationsMs={key:quantiles(values) for key,values in metrics.items()},
+                interpretation="Monotonic original client HTTP hooks; single-attempt rows only. First-byte wait includes server/transport scheduling; response tail includes body/decode/identity checks. Concurrent write/first-byte hooks may overlap: omit negative intervals and retain their count/sample denominator. Not pure network/server time and not additive across parallel callbacks.")
 
 
 def original_submission_tails(report):
@@ -495,9 +551,9 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
             out = root / (mode+"-actual.json")
             budget.active_case = case
             invoked = time.monotonic()
-            pace = "bounded-cadence" if comparison in ("independent-shared","shared-fair") else mode
-            if comparison == "shared-fair":
-                code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=True,endpoint_fair=index==1)
+            pace = "bounded-cadence" if comparison in ("independent-shared","shared-fair","shared-elastic") else mode
+            if comparison in ("shared-fair","shared-elastic"):
+                code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=True,endpoint_fair=index==1,**(dict(endpoint_elastic=index==1) if comparison=="shared-elastic" else {}))
             elif comparison == "independent-shared":
                 code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=index==1)
             else:
@@ -511,31 +567,36 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
             if code != 0 or duration > 60:
                 raise RuntimeError("pair case failed or invocation/fsync exceeded60s: "+str(row.get("firstCause")))
             pair_case_qualified(row, pace)
-            if comparison in ("bounded-grouped","independent-shared","shared-fair"):
+            if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic"):
                 # Read only the already qualified original client result. This
                 # I/O and its hash/quantiles remain inside the same pair budget.
                 client_raw=native.bounded(case/"network/transactions-result.json",16 << 20)
                 if hashlib.sha256(client_raw).hexdigest() != row.get("resultSHA256"):
                     raise RuntimeError("grouping pair raw client result hash differs")
                 client=json.loads(client_raw)
-                measured=validate_report(client,"supply-512x2",pace,endpoint_fair=comparison=="shared-fair" and index==1)
-                if comparison=="shared-fair" and measured!=row.get("measurement"):
+                measured=validate_report(client,"supply-512x2",pace,endpoint_fair=comparison in ("shared-fair","shared-elastic") and index==1,endpoint_elastic=comparison=="shared-elastic" and index==1)
+                if comparison in ("shared-fair","shared-elastic") and measured!=row.get("measurement"):
                     raise RuntimeError("fair pair case measurement differs from original client facts")
                 result["cases"][-1]["offerLatency"]=offer_latency_readout(client)
                 result["cases"][-1]["nodePhases"]=row["nodePhases"]
-                if comparison in ("independent-shared","shared-fair"):
+                if comparison in ("independent-shared","shared-fair","shared-elastic"):
                     phases=validate_observer_phases(client)
-                    shared_expected=comparison=="shared-fair" or index==1
+                    shared_expected=comparison in ("shared-fair","shared-elastic") or index==1
                     shared=validate_shared_replay(client,shared_expected)
                     if row.get("observerPhases") != phases or row.get("sharedReplayVerification") != shared or row.get("sharedDurableReplay") is not shared_expected:
                         raise RuntimeError("shared replay receipt differs from actual client timing/selection")
                     result["cases"][-1].update(observerPhases=phases,sharedReplayVerification=shared,durableReadback=client["durableReadback"])
-                if comparison == "shared-fair":
-                    dispatch=validate_endpoint_dispatch(client,index==1)
+                if comparison in ("shared-fair","shared-elastic"):
+                    dispatch=validate_endpoint_dispatch(client,index==1,elastic=comparison=="shared-elastic" and index==1)
                     if row.get("endpointDispatchVerification")!=dispatch or row.get("endpointFairSubmission") is not (index==1):
                         raise RuntimeError("endpoint dispatch receipt differs from actual original client counters/selection")
                     result["cases"][-1]["endpointDispatchVerification"]=dispatch
                     result["cases"][-1]["originalSubmissionTails"]=original_submission_tails(client)
+                    if comparison=="shared-elastic":
+                        phases=validate_submission_phases(client)
+                        if row.get("endpointElasticSubmission") is not (index==1) or row.get("submissionPhaseVerification")!=phases:
+                            raise RuntimeError("elastic selection/submission phases differ from original client")
+                        result["cases"][-1]["submissionPhaseVerification"]=phases
             result["closureScans"].append(empty_pair_closure(budget))
             if baseline is None:
                 baseline = row
@@ -549,9 +610,9 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                     raise RuntimeError("pair VM identity differs")
             budget.observe()
         result["casesQualified"] = True
-        if comparison in ("bounded-grouped","independent-shared","shared-fair"):
+        if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic"):
             result["jointObservation"]=joint_observation(*result["cases"])
-        if comparison=="shared-fair":
+        if comparison in ("shared-fair","shared-elastic"):
             result["dispatchTailObservation"]=dispatch_tail_observation(*result["cases"],result["jointObservation"])
     except Exception as error:
         result["firstCause"] = str(error)
@@ -644,8 +705,10 @@ def validate_manifest(m, root):
     return m
 
 
-def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False):
+def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False):
     profile = recipe("grpc", profile_name, pacing)["profile"]
+    if report.get("endpointElasticSubmission",False) is not endpoint_elastic:
+        raise RuntimeError("actual elastic endpoint selection differs from selected profile")
     if report.get("endpointFairSubmission",False) is not endpoint_fair:
         raise RuntimeError("actual endpoint fairness differs from selected profile")
     if (report.get("roundsCompleted") != profile["rounds"] or report.get("roundsRequested") != profile["rounds"] or report.get("senderMode") != "ready-pool"
@@ -761,8 +824,8 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None):
-    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair)
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None):
+    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -933,15 +996,17 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             mark("all_nodes_height2")
             output = network / "transactions-result.json"
             mark("client_start")
-            wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])))
+            wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])))
             client_report=json.loads(native.bounded(output,16 << 20))
-            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True)
+            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True)
             if observer_phases:
                 result["observerPhases"]=validate_observer_phases(client_report)
             if shared_replay is not None:
                 result["sharedReplayVerification"]=validate_shared_replay(client_report,shared_replay)
             if endpoint_fair is not None:
-                result["endpointDispatchVerification"]=validate_endpoint_dispatch(client_report,endpoint_fair)
+                result["endpointDispatchVerification"]=validate_endpoint_dispatch(client_report,endpoint_fair,elastic=endpoint_elastic is True)
+            if endpoint_elastic is not None:
+                result["submissionPhaseVerification"]=validate_submission_phases(client_report)
             mark("client_complete")
             result["resultSHA256"] = native.digest(output)
     except Exception as error:
@@ -1066,7 +1131,7 @@ if __name__ == "__main__":
     if args.prepare_pair or args.execute_pair:
         if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
                 or args.transport != "grpc" or args.profile != "supply-512x2" or args.pacing != "relative"
-                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair"))):
+                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair","shared-elastic"))):
             parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
         if args.prepare_pair:
             print(json.dumps(pair_recipe(args.pair_kind), indent=2))

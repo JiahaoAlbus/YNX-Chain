@@ -79,6 +79,7 @@ on:
           - paired-bounded-grouped
           - paired-independent-shared
           - paired-shared-fair
+          - paired-shared-elastic
         default: relative
       measure_anchor_validation:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
@@ -367,6 +368,9 @@ jobs:
           elif [ "$YNX_SUPPLY_PACING" = paired-shared-fair ]; then
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind shared-fair --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-shared-elastic ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind shared-elastic --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           else
             python3 -B scripts/loadtest/supply-linux-window.py --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" "${observer_args[@]}" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           fi
@@ -383,6 +387,8 @@ jobs:
             python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind independent-shared --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           elif [ "$YNX_SUPPLY_PACING" = paired-shared-fair ]; then
             python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind shared-fair --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-shared-elastic ]; then
+            python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind shared-elastic --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           else
             python3 -B scripts/loadtest/supply-linux-window.py --execute --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" "${observer_args[@]}" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           fi

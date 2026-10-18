@@ -1,0 +1,94 @@
+{
+  "databaseId": 39156122998,
+  "headSha": "329e5811fdd06ea05c8949560a424a82e3337072",
+  "event": "push",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39156122998",
+  "jobs": [
+    {
+      "databaseId": 117759593609,
+      "status": "completed",
+      "conclusion": "success",
+      "steps": [
+        {
+          "number": 15,
+          "name": "Run make consensus-abci-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 16,
+          "name": "Verify bounded performance controller and evidence contracts",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 17,
+          "name": "Verify Linux Supply isolation and refusal counterexamples (no nodes)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 18,
+          "name": "Verify ready-sender Commit phases and bounded event timeline",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 19,
+          "name": "Verify opt-in node phase timings against real durable execution",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 27,
+          "name": "Run make chain-core-release-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 28,
+          "name": "Run make no-placeholder-check",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 29,
+          "name": "Run make secret-scan",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 30,
+          "name": "Measure explicitly selected2048 fixture resources without nodes",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 32,
+          "name": "Build and run explicitly scheduled isolated Linux Supply case",
+          "status": "completed",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ],
+  "schema": 1,
+  "kind": "source-ci-only-no-network-measurement",
+  "runtimeCommit": "3c9a53c8044c312719ba55b1f0fdfde2b4a7182c",
+  "networkPerformanceQualified": false,
+  "sustainedTPSQualified": false,
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-source/normal-ci39156122998-actual.json",
+      "bytes": 8393,
+      "sha256": "04a5af170f806432bf8136eb27edbf458354ba819d6db623909ebeaca2ae371d"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-source/normal-ci39156122998-pass.raw",
+      "bytes": 528241,
+      "sha256": "a0189143e87dda29de27a0ca6e5401fd3bd49705caa219b489e90d389369df11"
+    }
+  ]
+}

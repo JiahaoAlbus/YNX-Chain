@@ -341,9 +341,9 @@ class SupplySourceTests(unittest.TestCase):
                 raw=name.encode();(build/name).write_bytes(raw);binaries[name]=dict(sha256=hashlib.sha256(raw).hexdigest())
             order=[]
             def fake_run(source,build,case,out,transport,profile,mode,**kwargs):
-                label=("shared-endpoint-fair" if kwargs.get("endpoint_fair") else "shared-baseline") if comparison=="shared-fair" else ("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode
+                label=(("shared-endpoint-elastic" if comparison=="shared-elastic" else "shared-endpoint-fair") if kwargs.get("endpoint_fair") else "shared-baseline") if comparison in ("shared-fair","shared-elastic") else ("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode
                 order.append(label);case.mkdir()
-                if replay_fault=="rss" and (kwargs.get("endpoint_fair") if comparison=="shared-fair" else kwargs.get("shared_replay")):
+                if replay_fault=="rss" and (kwargs.get("endpoint_fair") if comparison in ("shared-fair","shared-elastic") else kwargs.get("shared_replay")):
                     raise RuntimeError("synthetic candidate owned RSS cap exceeded")
                 row=self.pair_row(mode)
                 row.update(sourceCommit="a"*40,sourceTree="b"*40,internalTree="c"*40,compiler="synthetic-unit",
@@ -352,9 +352,9 @@ class SupplySourceTests(unittest.TestCase):
                 if first_failure=="error":row["firstCause"]="synthetic deadline";code=1
                 if first_failure=="cleanup":row["cleanupComplete"]=False
                 if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=4
-                if comparison in ("bounded-grouped","independent-shared","shared-fair"):
+                if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic"):
                     client=report("supply-512x2",mode)
-                    if comparison in ("independent-shared","shared-fair"):
+                    if comparison in ("independent-shared","shared-fair","shared-elastic"):
                         self.assertTrue(kwargs["observer_phases"])
                         self.assertIsInstance(kwargs["shared_replay"],bool)
                         timed=self.observer_report()
@@ -365,7 +365,7 @@ class SupplySourceTests(unittest.TestCase):
                             client["durableReadback"]["sharedReplay"]=dict(lookups=1,hits=0,joins=0,fullReplays=1,failures=0,bypasses=0,waitNs=0,cachedCanonicalBytes=100,canonicalByteLimit=16 << 20,peakFlights=1)
                         row.update(observerPhaseTiming=True,sharedDurableReplay=kwargs["shared_replay"],observerPhases=supply.validate_observer_phases(client),sharedReplayVerification=supply.validate_shared_replay(client,kwargs["shared_replay"]))
                         if replay_fault=="selection":row["sharedDurableReplay"]=not kwargs["shared_replay"]
-                    if comparison=="shared-fair":
+                    if comparison in ("shared-fair","shared-elastic"):
                         self.assertTrue(kwargs["shared_replay"])
                         flag=kwargs["endpoint_fair"]
                         client.update(endpointFairSubmission=flag,endpoints=["http://127.0.0.1:"+str(31757+i) for i in range(4)])
@@ -382,6 +382,18 @@ class SupplySourceTests(unittest.TestCase):
                         if replay_fault=="authority":client["transactions"][0]["endpoint"]=client["endpoints"][1]
                         if replay_fault=="tail-summary":client["summary"]["submissionQueueDelayMs"]["p99"]=999
                         if replay_fault=="case-measurement":row["measurement"]["supply"]=dict(client["readySenders"]["supply"],signAttempts=511)
+                        if comparison=="shared-elastic":
+                            elastic=kwargs["endpoint_elastic"]
+                            self.assertIs(elastic,flag)
+                            client["endpointElasticSubmission"]=elastic
+                            if elastic:client["readySenders"]["endpointDispatch"].update(perEndpointInFlightLimit=2,peakInFlight=[1,2,1,2],peakTotalInFlight=4)
+                            for tx in client["transactions"]:tx["submissionPhases"]=self.submission_phases()
+                            row.update(endpointElasticSubmission=elastic,submissionPhaseVerification=supply.validate_submission_phases(client),endpointDispatchVerification=supply.validate_endpoint_dispatch(client,flag,elastic=elastic))
+                            if replay_fault=="elastic-selection":row["endpointElasticSubmission"]=not elastic
+                            if replay_fault=="phase-missing":del client["transactions"][0]["submissionPhases"]
+                            if replay_fault=="phase-repeat":client["transactions"][0]["submissionPhases"]["wroteRequestCalls"]=2
+                            if replay_fault=="phase-case-drift":row["submissionPhaseVerification"]["samples"]=1
+                            if replay_fault=="elastic-peaks" and elastic:client["readySenders"]["endpointDispatch"]["peakTotalInFlight"]=5
                     network=case/"network";network.mkdir()
                     encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
                     row["resultSHA256"]=hashlib.sha256(encoded).hexdigest() if not corrupt_result else "0"*64
@@ -639,11 +651,99 @@ class SupplySourceTests(unittest.TestCase):
             self.assertEqual(refused.returncode,2)
             self.assertIn("cannot combine",refused.stderr)
 
+    @staticmethod
+    def submission_phases():
+        return dict(getConnCalls=1,gotConnCalls=1,wroteRequestCalls=1,firstByteCalls=1,writeErrors=0,
+                    firstGetConnNs=1000000,firstGotConnNs=2000000,firstWroteRequestNs=3000000,
+                    firstResponseByteNs=4000000,firstConnReused=True,callbackReturnNs=25000000)
+
+    def test_elastic_pair_keeps_original_budget_and_only_changes_dispatch_policy(self):
+        plan=supply.pair_recipe("shared-elastic");a,b=plan["cases"]
+        self.assertEqual(plan["pairCaps"],supply.PAIR_CAPS)
+        self.assertFalse(plan["execute"])
+        self.assertTrue(plan["requiresSeparateRootGrant"])
+        for key in ("endpointFairSubmission","endpointElasticSubmission"):
+            self.assertIs(a[key],False);self.assertIs(b[key],True)
+        omitted={"endpointFairSubmission","endpointElasticSubmission"}
+        self.assertEqual({k:v for k,v in a.items() if k not in omitted},{k:v for k,v in b.items() if k not in omitted})
+        self.assertEqual(plan["input"]["linux_supply_pacing"],"paired-shared-elastic")
+        for args in (("grpc","supply-512x2","bounded-cadence",True,True,False,True),
+                     ("grpc","supply-512x2","bounded-cadence",True,False,True,True)):
+            with self.assertRaises(RuntimeError):supply.recipe(*args)
+
+    def test_elastic_pair_reads_both_original_phases_and_rejects_drift_or_failures(self):
+        code,order,row=self.mock_pair(comparison="shared-elastic")
+        self.assertEqual(code,0,row.get("firstCause"))
+        self.assertEqual(order,["shared-baseline","empty","shared-endpoint-elastic","empty"])
+        self.assertTrue(all(c["submissionPhaseVerification"]["samples"]==1024 for c in row["cases"]))
+        self.assertEqual(row["cases"][1]["endpointDispatchVerification"]["stats"]["perEndpointInFlightLimit"],2)
+        for fault in ("phase-missing","phase-repeat","phase-case-drift","elastic-selection","elastic-peaks","authority","endpoint-selection","tail-summary","case-measurement","rss"):
+            with self.subTest(fault=fault):
+                code,order,row=self.mock_pair(comparison="shared-elastic",replay_fault=fault)
+                self.assertNotEqual(code,0)
+                self.assertIsNotNone(row["firstCause"])
+        for kwargs in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(mutate_binary=True),dict(fail_after_fsync=True)):
+            with self.subTest(kwargs=kwargs):
+                code,order,row=self.mock_pair(comparison="shared-elastic",**kwargs)
+                self.assertNotEqual(code,0)
+
+    def test_elastic_pair_cli_requires_explicit_timed_fixed_profile(self):
+        args=[sys.executable,"-B",str(FILE),"--prepare-pair","--pair-kind","shared-elastic","--observer-phases","--transport","grpc","--profile","supply-512x2"]
+        result=subprocess.run(args,capture_output=True,text=True,timeout=5)
+        self.assertEqual(result.returncode,0,result.stderr)
+        plan=json.loads(result.stdout)
+        self.assertFalse(plan["execute"]);self.assertFalse(plan["nodesStarted"])
+        for kind in ("untimed","socket","profile","not-pair"):
+            changed=list(args)
+            if kind=="untimed":changed.remove("--observer-phases")
+            if kind=="socket":changed[changed.index("grpc")]="socket"
+            if kind=="profile":changed[changed.index("supply-512x2")]="supply-256x4"
+            if kind=="not-pair":changed.remove("--prepare-pair")
+            with self.subTest(kind=kind):
+                refused=subprocess.run(changed,capture_output=True,text=True,timeout=5)
+                self.assertEqual(refused.returncode,2)
+
+    def test_original_http_phase_offsets_reject_missing_repeated_or_fabricated_boundaries(self):
+        import copy
+        row=report("supply-512x2","bounded-cadence");row["observerPhaseTiming"]=True
+        for tx in row["transactions"]:tx.update(checkTxMs=20,submissionPhases=self.submission_phases())
+        result=supply.validate_submission_phases(row)
+        self.assertEqual(result["durationsMs"]["connectionAcquireMs"],dict(samples=1024,p50=1,p95=1,p99=1))
+        self.assertEqual(result["durationsMs"]["callbackReturnMs"]["p99"],25)
+        for key,value in (("getConnCalls",2),("gotConnCalls",True),("writeErrors",1),("firstGetConnNs",-1),("firstGotConnNs",0),("callbackReturnNs",19000000),("firstConnReused",1)):
+            changed=copy.deepcopy(row);changed["transactions"][0]["submissionPhases"][key]=value
+            with self.subTest(key=key),self.assertRaises(RuntimeError):supply.validate_submission_phases(changed)
+        for mode in ("missing","count","untimed","nan"):
+            changed=copy.deepcopy(row)
+            if mode=="missing":del changed["transactions"][0]["submissionPhases"]["firstResponseByteNs"]
+            if mode=="count":changed["transactions"].pop()
+            if mode=="untimed":changed["observerPhaseTiming"]=False
+            if mode=="nan":changed["transactions"][0]["checkTxMs"]=float("nan")
+            with self.subTest(mode=mode),self.assertRaises(RuntimeError):supply.validate_submission_phases(changed)
+        row["transactions"][0]["submissionPhases"]["firstResponseByteNs"]=2500000
+        result=supply.validate_submission_phases(row)
+        self.assertEqual(result["writeFirstByteHookOverlaps"],1)
+        self.assertEqual(result["durationsMs"]["writeToFirstByteMs"]["samples"],1023)
+        self.assertEqual(result["durationsMs"]["firstByteToReturnMs"]["samples"],1024)
+
+    def test_elastic_dispatch_refuses_excess_peaks_or_legacy_mislabel(self):
+        import copy
+        row=report("supply-512x2","bounded-cadence")
+        row.update(endpointFairSubmission=True,endpointElasticSubmission=True,endpoints=["http://127.0.0.1:"+str(31757+i) for i in range(4)])
+        for tx in row["transactions"]:tx["endpoint"]=row["endpoints"][tx["index"]%4]
+        row["readySenders"]["endpointDispatch"]=dict(workers=4,perEndpointInFlightLimit=2,queueCapacityTotal=1024,callbackAttempts=[256]*4,callbackReturns=[256]*4,peakInFlight=[2]*4,peakTotalInFlight=4)
+        supply.validate_endpoint_dispatch(row,True,elastic=True)
+        with self.assertRaises(RuntimeError):supply.validate_endpoint_dispatch(row,True)
+        for key,value in (("workers",5),("perEndpointInFlightLimit",3),("peakInFlight",[3,1,1,1]),("peakInFlight",[True]*4),("peakTotalInFlight",5),("peakTotalInFlight",True),("peakTotalInFlight",1)):
+            changed=copy.deepcopy(row);changed["readySenders"]["endpointDispatch"][key]=value
+            with self.subTest(key=key),self.assertRaises(RuntimeError):supply.validate_endpoint_dispatch(changed,True,elastic=True)
+
     def test_fair_pair_changes_only_dispatch_and_keeps_existing_recipes_pinned(self):
         import hashlib
         pins={"relative-bounded":"d13f9f6bcbc2051cef78b9b46041bde79d713de810bad98efdedc0287c4f7dc7",
               "bounded-grouped":"f474659891e8d4ac20d5cdf023cb8a3f31f7e55f151689c8dc125369fe72b874",
-              "independent-shared":"c504a71a2d7860693d78d67888ba2d245f3e7071e894c06a15684b770c9ce8c2"}
+              "independent-shared":"c504a71a2d7860693d78d67888ba2d245f3e7071e894c06a15684b770c9ce8c2",
+              "shared-fair":"00ca9b48e2b8e9cca442f4a28406b4c71cedd74a5ed5e4b6902f9bafea3a90a6"}
         for kind,pin in pins.items():self.assertEqual(hashlib.sha256((json.dumps(supply.pair_recipe(kind),indent=2)+"\n").encode()).hexdigest(),pin)
         plan=supply.pair_recipe("shared-fair");a,b=plan["cases"]
         self.assertFalse(plan["execute"])
