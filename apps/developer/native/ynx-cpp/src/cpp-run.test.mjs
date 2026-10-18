@@ -477,7 +477,11 @@ for(const mode of ['prepare','debug-start']){
   const f=await r47OuterScenario({mode});await assert.rejects(f.run(),e=>e===f.primary);
   assert.equal(f.active.size,1);assert.ok(f.reports.includes('launchStopFailed'));
   assert.equal(f.debuggerStarts,mode==='debug-start'?1:0);
-  const starts=f.debuggerStarts;await f.run();assert.equal(f.debuggerStarts,starts);
+  const starts=f.debuggerStarts;
+  // R48 retries actual pre-start cleanup. Its explicit refusal must reach the
+  // caller; an already-started unknown adapter still stays blocked as busy.
+  if(mode==='prepare')await assert.rejects(f.run(),e=>e===f.secondary);else await f.run();
+  assert.equal(f.debuggerStarts,starts);assert.equal(f.active.size,1);
  });
 }
 test('R47 outer failure with successful cleanup releases exact owner and preserves primary',async()=>{

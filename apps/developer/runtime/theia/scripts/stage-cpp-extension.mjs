@@ -1,6 +1,7 @@
 import { readFile, readdir, lstat, realpath, mkdir, cp, writeFile } from 'node:fs/promises';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { composedTreeDigest } from '../../../services/codeoss-service/src/composed-runtime.mjs';
 const developer = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const [destination, clientInput, syntaxInput, noticesInput, jsoncInput] = process.argv.slice(2);
@@ -49,8 +50,15 @@ await writeFile(join(extension, 'ThirdPartyNotices.txt'), legal, { flag: 'wx' })
 await cp(join(clients, 'vscode-languageclient/License.txt'), join(extension, 'MICROSOFT-MIT-NOTICE.txt'), { errorOnExist: true, force: false });
 await writeFile(join(extension, 'NOTICE.txt'), 'YNX C/C++ uses local cached MIT/ISC language-client dependencies and MIT-declared VS Code C/C++ syntax. All original component notices and full installed syntax third-party notices are retained. No proprietary C/C++ extension or compiler binary is included.\n', { flag: 'wx' });
 if (await composedTreeDigest(syntax) !== syntaxTreeSha256) throw Error('Cached syntax changed during staging.');
+// Exercise the staged source with its exact staged parser dependency. This
+// normal component build gate uses no compiler, GUI, network or SDK supplier.
+const validationArgs = ['--test', 'src/cpp-active-source.test.mjs'];
+const validation = spawnSync(process.execPath, validationArgs, { cwd: extension, stdio: 'inherit', timeout: 10000 });
+if (validation.error || validation.signal || validation.status !== 0)
+  throw new Error('Staged C/C++ current-source validation failed.', { cause: validation.error });
 const extensionMetadata = JSON.parse(await readFile(join(extension, 'package.json'), 'utf8'));
 const receipt = { schema: 'ynx-cpp-offline-input/v1', version: extensionMetadata.version, components,
+  currentSourceValidation: { command: 'node', args: validationArgs, exitCode: validation.status },
   ownedSourceTreeSha256: await composedTreeDigest(join(developer, 'native/ynx-cpp')),
   syntax: { version: syntaxMetadata.version, license: syntaxMetadata.license, sourceTreeSha256: syntaxTreeSha256 },
   extensionTreeSha256: await composedTreeDigest(extension),

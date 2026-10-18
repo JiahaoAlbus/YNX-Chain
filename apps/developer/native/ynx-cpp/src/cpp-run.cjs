@@ -13,6 +13,7 @@ const TEXT = {
   debugView: ['Open Run and Debug', '打开运行和调试'],
   source: ['Select a saved C or C++ source file in this project.', '请选择本项目内已保存的 C 或 C++ 源文件。'],
   save: ['Save the source file before running.', '请先保存源文件，再运行。'],
+  sourceChanged: ['The active C/C++ source changed. Run again from the intended file.', '当前 C/C++ 源文件已切换，请从要运行的文件重新运行。'],
   compiler: ['Select C/C++ compiler', '选择 C/C++ 编译器'],
   tool: ['Use the installed Apple Clang compiler and macOS SDK.', '使用已安装的 Apple Clang 编译器与 macOS SDK。'],
   tasks: ['Select the existing project task', '选择已有项目任务'],
@@ -41,16 +42,31 @@ function translator(vscode) { return key => {
 async function sourceContext(vscode, env) {
   const root = cppProjectRoot(env), folders = vscode.workspace.workspaceFolders, document = vscode.window.activeTextEditor?.document;
   const t = translator(vscode);
-  if (!root || !vscode.workspace.isTrusted || folders?.length !== 1 || folders[0].uri.scheme !== 'file' || await realpath(folders[0].uri.fsPath) !== root) throw Error(t('project'));
-  if (!document || !['c', 'cpp'].includes(document.languageId) || document.uri.scheme !== 'file' || document.isUntitled) throw Error(t('source'));
-  const path = await realpath(document.uri.fsPath), within = relative(root, path);
-  if (!within || within === '..' || within.startsWith('../') || isAbsolute(within)) throw Error(t('source'));
-  // The extension's dirty bit is an asynchronous mirror of the editor. Always
-  // cross its save RPC before selecting/building a target, even when that mirror
-  // still looks clean after formatting. No delay or implicit source replacement.
-  if (!await document.save()) throw Error(t('save'));
-  if (document.isClosed || document.isDirty) throw Error(t('save'));
-  return { root, path, version: document.version, folder: folders[0], document, language: document.languageId };
+  let changed = false, retained = false;
+  const watcher = vscode.window.onDidChangeActiveTextEditor?.(editor => {
+    if (editor?.document?.uri?.scheme === 'file' && editor.document !== document) changed = true;
+  });
+  const assertSourceCurrent = () => {
+    // Welcome/tool panels can take focus. Selecting another actual file
+    // invalidates this request, even if the user later returns to the source.
+    if (changed || vscode.window.activeTextEditor?.document?.uri?.scheme === 'file' && vscode.window.activeTextEditor.document !== document)
+      throw Error(t('sourceChanged'));
+  };
+  try {
+    if (!root || !vscode.workspace.isTrusted || folders?.length !== 1 || folders[0].uri.scheme !== 'file' || await realpath(folders[0].uri.fsPath) !== root) throw Error(t('project'));
+    if (!document || !['c', 'cpp'].includes(document.languageId) || document.uri.scheme !== 'file' || document.isUntitled) throw Error(t('source'));
+    const path = await realpath(document.uri.fsPath), within = relative(root, path);
+    if (!within || within === '..' || within.startsWith('../') || isAbsolute(within)) throw Error(t('source'));
+    // The extension dirty bit can lag formatting. Cross the normal save RPC
+    // before building, then recheck this request instead of adding a delay.
+    if (!await document.save()) throw Error(t('save'));
+    if (document.isClosed || document.isDirty) throw Error(t('save'));
+    assertSourceCurrent();
+    if (vscode.workspace.workspaceFolders?.length !== 1 || vscode.workspace.workspaceFolders[0] !== folders[0] || cppProjectRoot(env) !== root || !vscode.workspace.isTrusted) throw Error(t('project'));
+    retained = true;
+    return { root, path, version: document.version, folder: folders[0], document, language: document.languageId,
+      assertSourceCurrent, dispose: () => watcher?.dispose() };
+  } finally { if (!retained) watcher?.dispose(); }
 }
 // Subscribe before executeTask: short native tasks may finish before its RPC promise.
 async function executeAndWait(vscode, task, token) {
@@ -205,8 +221,9 @@ function registerCppRun(vscode, context, env) {
   }));
   async function validateScope(scope) {
     const folders = vscode.workspace.workspaceFolders;
-    if (!vscode.workspace.isTrusted || folders?.length !== 1 || folders[0].uri.scheme !== 'file' || await realpath(folders[0].uri.fsPath) !== scope.root || cppProjectRoot(env) !== scope.root)
+    if (!vscode.workspace.isTrusted || folders?.length !== 1 || folders[0] !== scope.folder || folders[0].uri.scheme !== 'file' || await realpath(folders[0].uri.fsPath) !== scope.root || cppProjectRoot(env) !== scope.root)
       throw Error(t('project'));
+    scope.assertSourceCurrent?.();
     if (scope.document.isClosed || scope.document.isDirty || scope.document.version !== scope.version || await realpath(scope.document.uri.fsPath) !== scope.path) throw Error(t('save'));
   }
   async function setup(scope) {
@@ -271,6 +288,7 @@ function registerCppRun(vscode, context, env) {
   }
   async function operation(debug) {
     const scope = await sourceContext(vscode, env);
+    try {
     const previous = active.get(scope.root);
     if (previous?.kind === 'debug' && previous.cleanupPending && previous.terminalPrepared && !previous.debugStartRequested) {
       // A fresh user request can retry only the exact pre-adapter holder's
@@ -392,11 +410,16 @@ function registerCppRun(vscode, context, env) {
         if (!cleanupFailed && active.get(scope.root) === owner) active.delete(scope.root);
       }
     }
+    } finally { scope.dispose?.(); }
   }
   function command(id, callback) { context.subscriptions.push(vscode.commands.registerCommand(id, () => callback().catch(error => vscode.window.showErrorMessage(error.message)))); }
   command('ynx.cpp.runActive', () => operation(false));
   command('ynx.cpp.debugActive', () => operation(true));
-  command('ynx.cpp.configureBuildTasks', async () => { const scope = await sourceContext(vscode, env), config = await setup(scope); if (config) await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(vscode.Uri.file(config.path))); });
+  command('ynx.cpp.configureBuildTasks', async () => {
+    const scope = await sourceContext(vscode, env);
+    try { const config = await setup(scope); if (config) await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(vscode.Uri.file(config.path))); }
+    finally { scope.dispose?.(); }
+  });
   return { active };
 }
 module.exports = { registerCppRun, sourceContext, executeAndWait, terminalLaunchConfiguration, createDebugBuildTarget, CPP_TRANSLATIONS };
