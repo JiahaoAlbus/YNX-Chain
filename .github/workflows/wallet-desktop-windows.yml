@@ -3,9 +3,14 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018]
     paths:
       - apps/wallet-desktop/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-desktop-windows.yml
+
+  pull_request:
+    paths:
       - packages/wallet-auth/**
       - .github/workflows/wallet-desktop-windows.yml
 
@@ -14,6 +19,7 @@ permissions:
 
 jobs:
   windows-x64-native:
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/codex/wallet-desktop-cli-sdk-20260813'
     runs-on: windows-2025
     timeout-minutes: 35
     steps:
@@ -275,4 +281,62 @@ jobs:
         with:
           name: ynx-wallet-desktop-windows-x64-evidence-only
           path: apps/wallet-desktop/evidence/windows-x64/**
+          if-no-files-found: error
+
+  sdk-owned-interfaces:
+    if: github.ref == 'refs/heads/codex/wallet-pq-sdk-r1-20261018' || github.head_ref == 'codex/wallet-pq-sdk-r1-20261018'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NODE_OPTIONS: --max-old-space-size=512
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: packages/wallet-auth/package-lock.json
+      - name: Verify fixed local PUBLIC test provider
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const b=readFileSync('packages/wallet-auth/testdata/ynx-batch-v01-candidate-0.1.0-candidate.2.tgz');
+          if(b.length!==17804||createHash('sha256').update(b).digest('hex')!=='401eca733083c2ac67998295c54f09f0553760b99eaf0adf9ef1e1a85b4cbd0b')throw Error('SDK_TEST_PROVIDER_INPUT_DIFFERS');
+          NODE
+      - name: Clean install only the SDK closure without package scripts
+        run: npm ci --ignore-scripts --no-audit --fund=false --prefix packages/wallet-auth
+      - name: Run current owned interfaces and types serially
+        run: npm run test:owned-interfaces --prefix packages/wallet-auth
+      - name: Pack the explicit SDK package only after the tests pass
+        run: |
+          mkdir -p "$RUNNER_TEMP/wallet-auth-sdk-pack"
+          npm pack ./packages/wallet-auth --ignore-scripts --pack-destination "$RUNNER_TEMP/wallet-auth-sdk-pack" --json > "$RUNNER_TEMP/wallet-auth-sdk-pack/npm-pack.json"
+      - name: Read back every tar member against the checked-out Git blob
+        run: |
+          python3 <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess,tarfile
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'wallet-auth-sdk-pack'
+          report=json.loads((root/'npm-pack.json').read_text());assert len(report)==1
+          package=report[0];assert package['name']=='@ynx-chain/wallet-auth'
+          archive=root/package['filename'];assert archive.is_file()
+          expected={r['path']:r for r in package['files']};assert expected and len(expected)==len(package['files'])
+          actual={};rows=[]
+          with tarfile.open(archive,'r:gz') as tar:
+            for member in tar.getmembers():
+              assert member.isfile() and member.name.startswith('package/')
+              rel=member.name[len('package/'):];p=pathlib.PurePosixPath(rel)
+              assert str(p)==rel and not p.is_absolute() and '..' not in p.parts and rel not in actual
+              blob=subprocess.check_output(['git','show','HEAD:packages/wallet-auth/'+rel])
+              raw=tar.extractfile(member).read();assert raw==blob and len(raw)==expected[rel]['size'],rel
+              actual[rel]=True;rows.append({'path':rel,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()})
+          assert set(actual)==set(expected)
+          result={'state':'ALL_PACKED_MEMBERS_MATCH_CURRENT_GIT_BLOBS','sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'archive':archive.name,'bytes':archive.stat().st_size,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'files':rows,'NativeBuild':False,'AppBuild':False,'grant':False}
+          (root/'whole-tar-git-readback.json').write_text(json.dumps(result,indent=2)+'\n')
+          print('Exact Git blob members:',len(rows))
+          PYCODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wallet-auth-owned-interface-sdk-pack
+          path: ${{ runner.temp }}/wallet-auth-sdk-pack/*
           if-no-files-found: error
