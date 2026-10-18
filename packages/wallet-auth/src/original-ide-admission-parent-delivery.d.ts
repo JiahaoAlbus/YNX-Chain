@@ -7,3 +7,34 @@ export interface OriginalIDEAdmissionParentDelivery {
   close(): void | Promise<void>;
 }
 export declare function acquireOriginalIDEAdmissionParentDelivery(actualEntryURL: string): Promise<OriginalIDEAdmissionParentDelivery | null>;
+
+/** Cleanup custody only; never grants authority to the parent or child. */
+export interface OriginalIDEPrivateClientCleanup {
+  retire(...cause: [] | [unknown]): void;
+  join(): Promise<void>;
+  close(): Promise<void>;
+  status(): Readonly<{ready: boolean; retired: boolean; unknown: boolean; retained: number; firstCausePresent: boolean; cleanupFailurePresent: boolean; cleanupComplete: boolean}>;
+}
+export interface OriginalIDEPrivateServiceResponse {
+  readonly status: number;
+  readonly headers: Readonly<Record<string,string>>;
+  readonly body: string;
+}
+export interface OriginalIDEPrivateServiceChannel {
+  readonly original: OriginalIDEPrivateClientCleanup & {
+    dispatch(canonicalInput: string): Promise<OriginalIDEPrivateServiceResponse>;
+    acknowledge(operation: string, phase: string, requestId: string, responseDigest: string): void;
+    selectCurrentOutcome(operation: string, phase: string, requestId: string): Readonly<{result: OriginalIDEPrivateServiceResponse | null; unknown: boolean; terminal: boolean}>;
+  };
+  readonly framer: {
+    nextOutboundFrame(): Promise<string | null>;
+    acceptInboundFrame(rawFrameWithoutLF: string): void;
+    assertCurrent(): void;
+    retireTransport(...cause: [] | [unknown]): void;
+  };
+}
+/** Fixed same-copy R33 callee. No parent/provider/Socket injection or reacquire. */
+export declare function acquireOriginalIDEPrivateServiceChannel(actualRunningEntryURL: string): Promise<OriginalIDEPrivateServiceChannel>;
+/** Same selected partial custody after rejection, including false/undefined.
+ * Null only if this SDK has no selection for the exact running entry. */
+export declare function getOriginalIDEPrivateServiceChannelCleanup(actualRunningEntryURL: string): OriginalIDEPrivateClientCleanup | null;
