@@ -48,7 +48,7 @@ const dependencyRoot=process.env.PROVENANCE_SDK_DEPENDENCY_ROOT??path.resolve(pr
 const dependencyManifestBytes=readFileSync(new URL('../scripts/wallet-auth-runtime-dependencies.json',import.meta.url)),dependencyManifest=JSON.parse(dependencyManifestBytes);
 const additionalNativeOperands=[['original-auth-identity-source-current.js','original-source-current-dirfd.node'],['original-host-terminal-journal.js','original-auth-identity.node'],['original-ide-admission-parent-delivery.js','original-auth-identity.node']];
 for(const [file,module] of additionalNativeOperands)test('R22 actual SDK reference remains exact: '+file,()=>{
- const source=readFileSync(path.join(sdkRuntime,file)),result=relocateDesktopRuntimeSource('packages/wallet-auth/src/'+file,source);assert.deepEqual(result.bytes,source);assert.equal(result.operands.length,1);assert.equal(result.operands[0].from,'../../../apps/wallet-desktop/native/'+module);assert.equal(result.operands[0].count,1);
+ const source=readFileSync(path.join(sdkRuntime,file)),result=relocateDesktopRuntimeSource('packages/wallet-auth/src/'+file,source);assert.deepEqual(result.bytes,source);assert.equal(result.operands.length,1);assert.equal(result.operands[0].from,'../../../apps/wallet-desktop/native/'+module);assert.equal(result.operands[0].count,file==='original-ide-admission-parent-delivery.js'?2:1);
  for(const body of [source.toString().replace(result.operands[0].from,'../../../apps/wallet-desktop/native/foreign.node'),source.toString()+`\nnew URL('${result.operands[0].from}',import.meta.url);\n`])assert.throws(()=>relocateDesktopRuntimeSource('packages/wallet-auth/src/'+file,Buffer.from(body)),/operand count|Unlisted repository operand/i);
 });
 test('R22 actual entire SDK runtime closure has no unlisted repository operands',()=>{
@@ -72,7 +72,7 @@ function fixture(t,{runtimeMetadata={},includeRegistry=true,extraSDKFiles={},sdk
  const headers=path.join(root,'PUBLIC-headers');mkdirSync(headers);for(const p of PINNED_NODE_HEADER_PINS)copyFileSync(new URL('./fixtures/node-22.13.1/'+p.relative,import.meta.url),path.join(headers,p.relative));
  const plan=originalAuthNativeBuildPlan('arm64',headers),planRoot=path.resolve(path.dirname(plan.output),'../../..');
  for(const source of plan.sources)files[path.relative(planRoot,source)]='// PUBLIC Native source stand-in; never compiled\n';
- for(const rule of PACKAGED_RELOCATION_RULES)files[rule.sourcePath]=rule.operands.map(o=>o.kind==='from'?`import {} from '${o.from}';\n`:`const PUBLIC_URL=new URL('${o.from}',import.meta.url);\n`).join('');
+ for(const rule of PACKAGED_RELOCATION_RULES)files[rule.sourcePath]=rule.operands.map(o=>(o.kind==='from'?`import {} from '${o.from}';\n`:`const PUBLIC_URL=new URL('${o.from}',import.meta.url);\n`).repeat(o.count)).join('');
  for(const rule of PACKAGED_RELOCATION_RULES)for(const o of rule.operands){const target=path.posix.normalize(path.posix.join(path.posix.dirname(rule.sourcePath),o.from));if('code/'+target===rule.unavailableNativeAsset)continue;files[target]??='export const PUBLIC_ONLY=true;\n';}
  files['packages/wallet-auth/src/index.d.ts']='export declare const PUBLIC_ONLY:boolean;\n';
  for(const [name,body] of Object.entries(files)){

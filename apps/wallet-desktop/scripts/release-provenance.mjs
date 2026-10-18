@@ -37,7 +37,8 @@ export const PACKAGED_RELOCATION_RULES = Object.freeze([
   {sourcePath:"packages/wallet-auth/scripts/original-wallet-private-service-launcher.mjs",packedPath:"code/packages/wallet-auth/scripts/original-wallet-private-service-launcher.mjs",operands:[
     {kind:"url",from:"../../../apps/wallet-desktop/native/original-auth-identity.node",to:"../../../apps/wallet-desktop/native/original-auth-identity.node",count:1}]},
   ...['original-host-terminal-journal.js','original-ide-admission-parent-delivery.js'].map(file=>({sourcePath:`packages/wallet-auth/src/${file}`,packedPath:`code/packages/wallet-auth/src/${file}`,operands:[
-    {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]})),
+    // SDK318 has distinct parent and cold delivery loads; both must survive.
+    {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:file==='original-ide-admission-parent-delivery.js'?2:1}]})),
   // This existing SDK daemon is explicitly unconfigured. Its separate optional
   // IO module is NOT the Wallet authority module; preserve its URL unchanged,
   // do not synthesize a substitute or claim that the service is supplied.
