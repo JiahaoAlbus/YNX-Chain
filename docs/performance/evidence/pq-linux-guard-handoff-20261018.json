@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "kind": "fixed-N1-trial1-Linux-CI-resource-guard-source",
+  "sourceOwner": "original Chain performance owner; Protocol consumes frozen files and owns workflow/dispatch only",
+  "sources": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/pq-paired-linux-window.py",
+      "bytes": 22315,
+      "sha256": "1d60209495572a4079a13c06b46b7d03fc6c2c50cfd53938e4f2d34db58652f1"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_pq_paired_linux_window.py",
+      "bytes": 6903,
+      "sha256": "fd23f33dc3c0c484393414641175a5b5c80faf8e7e5f809a10292f9d96f57934"
+    }
+  ],
+  "fixedCandidateABI": {
+    "commit": "69e788b4bd726689ea5d1709fd5ba0162c6ec0da",
+    "tool": "184c5d",
+    "verified": [
+      "newPQLedger(t *testing.T)",
+      "pqLedgerFixture.activate(t *testing.T)",
+      "pqLedgerFixture.batchTransfer(nonce,amount uint64)",
+      "pqBatchSuccessDiskSnapshot(t *testing.T,d *Devnet) devnetSnapshot",
+      "BatchSign returns *Batch",
+      "Extract(*Batch,uint32)"
+    ]
+  },
+  "caps": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 33554432,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200
+  },
+  "runtimeSupport": [
+    "Linux Python3 stdlib; no sudo, packages or monitor ps subprocess",
+    "Readable procfs without hidepid; all selected live task smaps_rollup RSS readable",
+    "Private wrapper can set and confirm Linux child subreaper with prctl and perform initial real fork/wait",
+    "Exact clean source commit and frozen overlay, N1/trial1 only, GOMAXPROCS1/GOGC50/GOMEMLIMIT512MiB",
+    "Case and guard receipt external to source; case/tmp owns fixture data, separate case.build/tmp owns Go compiler scratch",
+    "Source/temp/home/Go caches must share monitored filesystem for disk floor/reserve accounting"
+  ],
+  "ownership": "Real current parent closure from wrapper plus subreaper-adopted descendants and previously observed PID/startTicks; no unconditional numeric job PID/PGID ownership. Active job root must match captured birth startTicks. Cleanup fresh-checks identity and requires two empty-owned scans. Incomplete identity/memory/error/cleanup is failure.",
+  "cli": "python3 PATH/pq-paired-linux-window.py --prepared \"$RUNNER_TEMP/pq-n1-trial1/prepared.json\" --receipt \"$RUNNER_TEMP/pq-n1-trial1-guard.json\" --execute",
+  "executionNotes": [
+    "Default invocation is prepare-only; --execute is only for the independently Root-authorized CI job",
+    "Node prepared case must use full actual checkout SHA, sourceRoot=$GITHUB_WORKSPACE, new canonical RUNNER_TEMP case outside checkout",
+    "Guard fixes argv to selected paired test only; no arbitrary command, nodes or network load",
+    "Guard output/summary may be retained by workflow; QA snapshots remain private runner data and are not automatically uploaded by this source",
+    "firstCause remains original; no automatic retry or larger case; always distinguish child START from preparation and final actual code",
+    "Go case output must exist with matching commit/N/trial/projection and explicit null BFT-final field; skip/Go0 alone is insufficient"
+  ],
+  "validation": {
+    "red": {
+      "tool": "1047b0",
+      "tests": 10,
+      "fail": 1,
+      "actualExit": 1,
+      "meaning": "reused job PID/PGID wrongly claimed unrelated processes"
+    },
+    "pass": {
+      "tool": "e476c7",
+      "tests": 10,
+      "fail": 0,
+      "actualExit": 0,
+      "durationSeconds": 0.005
+    },
+    "prepareOnly": {
+      "tool": "39f3fc",
+      "actualExit": 0,
+      "supported": false,
+      "platform": "macOS; no Linux or Go runtime executed"
+    }
+  },
+  "limits": [
+    "Not yet run on Linux; actual procfs, smaps, subreaper, fork, admission, process cleanup and Go target behavior require first controlled CI evidence",
+    "RSS is summed kernel smaps_rollup sampled every200ms, not a hard cgroup ceiling; brief peaks between samples can be missed",
+    "Procfs capture is sequential, not atomic. Unknown/unreadable live identities fail rather than being inferred unrelated",
+    "Linux MemAvailable floor is its own kernel signal; never mapped to macOS dispatch1",
+    "Build scratch1GiB is distinct from32MiB business fixtures; default Go cache growth shares monitored free space and is not counted as fixture data"
+  ],
+  "primaryReference": "https://www.kernel.org/doc/html/latest/filesystems/proc.html",
+  "noGoOrNetworkStarted": true
+}

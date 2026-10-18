@@ -1,0 +1,422 @@
+#!/usr/bin/env python3
+"""Linux-only, one prepared PQ paired test. Default never launches Go.
+
+Kernel /proc/stat identities + smaps_rollup RSS; no monitor ps subprocess.
+Sampled limits are not a hard cgroup ceiling or an atomic host snapshot.
+"""
+import argparse
+import ctypes
+import errno
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import selectors
+import shutil
+import signal
+import stat
+import subprocess
+import sys
+import time
+
+CAPS = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
+            ownedRSSBytes=1 << 30, threads=320, ownedProcesses=16,
+            privateBytes=32 << 20, buildBytes=1 << 30, logBytes=1 << 20,
+            diskFloorBytes=1 << 30, rootReserveBytes=425 << 20,
+            compileReserveBytes=1 << 30, availableMemoryFloorBytes=(1 << 30) + (128 << 20),
+            sampleMs=200)
+
+
+def bounded(path, limit=65536):
+    with open(path, "rb") as handle:
+        raw = handle.read(limit + 1)
+    if len(raw) > limit:
+        raise RuntimeError("bounded kernel/input read exceeded: " + str(path))
+    return raw
+
+
+def parse_stat(raw, expected):
+    end = raw.rfind(b")")
+    if not raw.startswith((str(expected) + " (").encode()) or end < 0:
+        raise RuntimeError("invalid proc stat identity")
+    fields = raw[end + 1:].split()
+    if len(fields) < 22 or len(fields[0]) != 1:
+        raise RuntimeError("truncated proc stat")
+    row = dict(pid=expected, parent=int(fields[1]), group=int(fields[2]),
+               startTicks=int(fields[19]), threads=int(fields[17]), state=fields[0].decode("ascii"))
+    if expected < 1 or any(row[k] < 0 for k in ("parent", "group", "startTicks", "threads")):
+        raise RuntimeError("invalid proc stat fields")
+    return row
+
+
+def proc_inventory(root=Path("/proc")):
+    entries = [p for p in root.iterdir() if p.name.isdecimal()]
+    if len(entries) > 65536:
+        raise RuntimeError("host PID inventory bound")
+    rows = {}
+    vanished = []
+    for directory in entries:
+        pid = int(directory.name)
+        try:
+            rows[pid] = parse_stat(bounded(directory / "stat"), pid)
+        except OSError as error:
+            if error.errno not in (errno.ENOENT, errno.ESRCH):
+                raise  # Unknown host identities cannot be excluded by guessing.
+            vanished.append(pid)
+    return rows, vanished
+
+
+def owned_set(rows, launcher, job=None, known=None, require_job=False, job_start=None):
+    if launcher not in rows or (require_job and job not in rows):
+        raise RuntimeError("active owned root missing")
+    owned = {launcher}
+    for pid, row in rows.items():
+        if (known or {}).get(pid) == row["startTicks"]:
+            owned.add(pid)
+    changed = True
+    while changed:
+        changed = False
+        for pid, row in rows.items():
+            # The disposable wrapper is a subreaper; adopted children are owned.
+            if row["parent"] in owned and pid not in owned:
+                owned.add(pid)
+                changed = True
+    if len(owned) > CAPS["ownedProcesses"]:
+        raise RuntimeError("owned PID bound; inventory not truncated")
+    # Never seed ownership from a recycled numeric PID/PGID. The disposable
+    # wrapper's real child/adopted closure and prior startTicks establish it.
+    if require_job and (job not in owned or job_start is None or rows[job]["startTicks"] != job_start):
+        raise RuntimeError("active owned root identity mismatch")
+    return sorted(owned)
+
+
+def smaps_rss(raw):
+    found = re.findall(rb"^Rss:\s+(\d+)\s+kB\s*$", raw, re.M)
+    if len(found) != 1:
+        raise RuntimeError("smaps_rollup RSS missing or duplicate")
+    return int(found[0]) * 1024
+
+
+def memory_available(root=Path("/proc")):
+    found = re.findall(rb"^MemAvailable:\s+(\d+)\s+kB\s*$", bounded(root / "meminfo"), re.M)
+    if len(found) != 1:
+        raise RuntimeError("actual Linux MemAvailable unavailable")
+    return int(found[0]) * 1024
+
+
+def directory_bytes(root):
+    total, count = 0, 0
+    pending = [(Path(root), 0)]
+    while pending:
+        directory, depth = pending.pop()
+        if depth > 32:
+            raise RuntimeError("private directory depth bound")
+        for entry in directory.iterdir():
+            count += 1
+            if count > 10000:
+                raise RuntimeError("private file count bound")
+            try:
+                info = entry.lstat()
+            except FileNotFoundError:
+                continue  # A rename/unlink completed; final retired scan is strict/stable.
+            if stat.S_ISDIR(info.st_mode):
+                pending.append((entry, depth + 1))
+            elif stat.S_ISREG(info.st_mode):
+                total += info.st_size
+            else:
+                raise RuntimeError("nonregular private artifact")
+    return total
+
+
+def enforce(sample, initial=False):
+    for key, cap in (("rssBytes", "ownedRSSBytes"), ("threads", "threads"),
+                     ("privateBytes", "privateBytes"), ("buildBytes", "buildBytes")):
+        if not isinstance(sample[key], int) or sample[key] < 0 or sample[key] > CAPS[cap]:
+            raise RuntimeError(key + " cap exceeded/invalid")
+    floor = CAPS["diskFloorBytes"] + CAPS["rootReserveBytes"]
+    if initial:
+        floor += CAPS["compileReserveBytes"] + CAPS["privateBytes"]
+    if type(sample["freeDiskBytes"]) is not int or sample["freeDiskBytes"] < floor:
+        raise RuntimeError("actual disk floor/reserve failed")
+    if type(sample["availableMemoryBytes"]) is not int or sample["availableMemoryBytes"] < CAPS["availableMemoryFloorBytes"]:
+        raise RuntimeError("Linux MemAvailable floor failed; not a macOS pressure signal")
+
+
+def digest(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(65536), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def validate_recipe(plan, prepared):
+    source = Path(plan["sourceRoot"]).resolve()
+    case = prepared.parent.resolve()
+    if source == case or source in case.parents or case in source.parents:
+        raise RuntimeError("private CI case must be outside source checkout")
+    if plan.get("n") != 1 or plan.get("trial") != 1:
+        raise RuntimeError("initial Linux CI scope is exactly N1/trial1")
+    expected = ["go", "test", "-overlay", str(case / "overlay.json"), "-p", "1",
+                "./internal/chain", "-run", "^TestPQPairedPersistentPerformance$", "-count=1", "-timeout=90s"]
+    if plan.get("command") != expected or plan.get("executionAuthorized") is not False:
+        raise RuntimeError("unapproved command/recipe shape")
+    overlay = plan["overlayPin"]
+    frozen = case / "pq_paired_performance_test.go.in"
+    if Path(overlay["path"]) != frozen or frozen.is_symlink() or digest(frozen) != overlay["sha256"]:
+        raise RuntimeError("frozen overlay pin mismatch")
+    mappings = json.loads(bounded(case / "overlay.json", 1 << 20))
+    if mappings != {"Replace": {str(source / "internal/chain/pq_paired_performance_test.go"): str(frozen)}}:
+        raise RuntimeError("overlay maps outside owned test")
+    env = plan["environment"]
+    expected_env = dict(GOMAXPROCS="1", GOGC="50", GOMEMLIMIT="512MiB",
+                        YNX_PQ_PAIR_SOURCE_COMMIT=plan["commit"], YNX_PQ_PAIR_N=str(plan["n"]),
+                        YNX_PQ_PAIR_TRIAL=str(plan["trial"]), YNX_PQ_PAIR_OUTPUT=str(case / "pq-paired-result.json"))
+    if env != expected_env or not re.fullmatch(r"[0-9a-f]{40}", plan["commit"]):
+        raise RuntimeError("frozen environment mismatch")
+    return source, case, expected, expected_env
+
+
+def run(prepared, receipt):
+    if sys.platform != "linux":
+        raise RuntimeError("Linux /proc/smaps_rollup/subreaper required; no macOS substitution")
+    started = time.monotonic()
+    result = dict(schema=1, kind="single-PQ-paired-Linux-CI-window", launcher=os.getpid(),
+                  startedAtUnix=time.time(), caps=CAPS, firstCause=None, samples=[], known={},
+                  child=None, cleanupComplete=False, admissionPlatform="Linux, not macOS dispatch1")
+    child = None
+    selector = selectors.DefaultSelector()
+    logs = {}
+    known = {}
+    case = build = None
+    def interrupted(signum, _frame):
+        raise RuntimeError("wrapper signal " + str(signum))
+    signal.signal(signal.SIGTERM, interrupted)
+    signal.signal(signal.SIGINT, interrupted)
+
+    def fail(error):
+        if result["firstCause"] is None:
+            result["firstCause"] = str(error)
+
+    def sample(initial=False):
+        rows, vanished = proc_inventory()
+        running = child is not None and child.poll() is None
+        ids = owned_set(rows, os.getpid(), child.pid if child else None, known, running,
+                        result["child"].get("startTicks") if child else None)
+        tasks = []
+        for pid in ids:
+            before = rows[pid]
+            try:
+                raw = bounded(Path("/proc") / str(pid) / "smaps_rollup") if before["state"] != "Z" else None
+                after = parse_stat(bounded(Path("/proc") / str(pid) / "stat"), pid)
+            except OSError as error:
+                if error.errno not in (errno.ENOENT, errno.ESRCH):
+                    raise
+                try:
+                    current = parse_stat(bounded(Path("/proc") / str(pid) / "stat"), pid)
+                except OSError as absent:
+                    if absent.errno in (errno.ENOENT, errno.ESRCH):
+                        continue  # Proved gone, not a missing live RSS row.
+                    raise
+                if current["startTicks"] != before["startTicks"] or current["state"] != "Z":
+                    raise RuntimeError("active owned task RSS unreadable")
+                after, raw = current, None
+            if after["startTicks"] != before["startTicks"]:
+                raise RuntimeError("owned PID reused during capture")
+            if raw is None and after["state"] != "Z":
+                raise RuntimeError("live owned task missing RSS")
+            tasks.append(dict(after, rssBytes=smaps_rss(raw) if raw is not None else 0))
+        known.clear()
+        known.update({p["pid"]: p["startTicks"] for p in tasks if p["pid"] != os.getpid()})
+        free = os.statvfs(case)
+        item = dict(elapsedMs=int((time.monotonic() - started) * 1000),
+                    rssBytes=sum(p["rssBytes"] for p in tasks), threads=sum(p["threads"] for p in tasks),
+                    privateBytes=directory_bytes(case), buildBytes=directory_bytes(build),
+                    freeDiskBytes=free.f_bavail * free.f_frsize, availableMemoryBytes=memory_available(),
+                    hostIdentities=len(rows), vanishedHostPIDs=vanished, tasks=tasks)
+        result["samples"].append(item)
+        enforce(item, initial)
+        return rows, ids
+
+    try:
+        plan = json.loads(bounded(prepared, 1 << 20))
+        source, case, command, pinned_env = validate_recipe(plan, prepared)
+        if receipt.exists() or receipt.is_symlink() or case == receipt.parent or case in receipt.parents:
+            raise RuntimeError("new guard receipt must be outside private case")
+        result["preparedSHA256"] = digest(prepared)
+        result["sourceCommit"] = plan["commit"]
+        result["kernel"] = dict(release=os.uname().release, machine=os.uname().machine, logicalCPUs=os.cpu_count())
+        def source_check():
+            git_env = dict(os.environ, GIT_OPTIONAL_LOCKS="0")
+            head = subprocess.run(["git", "-C", str(source), "rev-parse", "HEAD"], env=git_env, check=True, capture_output=True, timeout=3).stdout.strip().decode()
+            dirty = subprocess.run(["git", "-C", str(source), "status", "--porcelain", "--untracked-files=normal"], env=git_env, check=True, capture_output=True, timeout=3).stdout
+            if head != plan["commit"] or dirty:
+                raise RuntimeError("source no longer exact/clean")
+            for relative, pin in plan["sourcePins"].items():
+                if source not in (source / relative).resolve().parents or digest(source / relative) != pin["sha256"]:
+                    raise RuntimeError("source pin mismatch")
+        source_check()
+        for name in ("pq-paired-result.json", "pq-paired-result.json.members.snapshot.json", "pq-paired-result.json.whole.snapshot.json", "tmp", "go.stdout.log", "go.stderr.log"):
+            if (case / name).exists() or (case / name).is_symlink():
+                raise RuntimeError("preserve prior case artifacts")
+        build = case.with_name(case.name + ".build")
+        build.mkdir(mode=0o700)
+        (build / "tmp").mkdir(); (case / "tmp").mkdir()
+        if len({os.stat(p).st_dev for p in (source, case, build, Path.home())}) != 1:
+            raise RuntimeError("CI source/temp/default cache must share monitored filesystem")
+        caches = dict(
+            GOCACHE=os.environ.get("GOCACHE") or str(Path(os.environ.get("XDG_CACHE_HOME") or Path.home()/".cache")/"go-build"),
+            GOMODCACHE=os.environ.get("GOMODCACHE") or str(Path((os.environ.get("GOPATH") or str(Path.home()/"go")).split(os.pathsep)[0])/"pkg/mod"))
+        for name, value in caches.items():
+            cache = Path(value)
+            if not cache.is_absolute():
+                raise RuntimeError("absolute supported Go cache required: " + name)
+            while not cache.exists():
+                cache = cache.parent
+            if cache.stat().st_dev != case.stat().st_dev:
+                raise RuntimeError("Go caches must share monitored filesystem")
+        result["goCachePaths"] = caches
+        mounts = [line.split() for line in bounded(Path("/proc/mounts"), 1 << 20).splitlines()]
+        proc_mounts = [row for row in mounts if len(row) >= 4 and row[1:3] == [b"/proc", b"proc"]]
+        if len(proc_mounts) != 1 or any(option.startswith(b"hidepid=") and option != b"hidepid=0" for option in proc_mounts[0][3].split(b",")):
+            raise RuntimeError("complete visible procfs without hidepid required")
+        libc = ctypes.CDLL(None, use_errno=True)
+        libc.prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+        current = ctypes.c_int(0)
+        if libc.prctl(36, 1, 0, 0, 0) != 0 or libc.prctl(37, ctypes.cast(ctypes.pointer(current), ctypes.c_void_p).value, 0, 0, 0) != 0 or current.value != 1:
+            raise RuntimeError("private child subreaper unavailable")
+        result["subreaper"] = True
+        pid = os.fork()
+        if pid == 0:
+            os._exit(0)
+        result["forkProbe"] = dict(pid=pid, waited=None, status=None)
+        waited, status = os.waitpid(pid, 0)
+        result["forkProbe"] = dict(pid=pid, waited=waited, status=status)
+        if waited != pid or status != 0:
+            raise RuntimeError("actual fork/wait failed")
+        sample(True)
+        if time.monotonic() - started >= CAPS["activeMs"] / 1000:
+            raise RuntimeError("active deadline before Go START")
+        executable = shutil.which("go")
+        if not executable:
+            raise RuntimeError("configured Go executable missing")
+        result["goExecutable"] = dict(path=executable, sha256=digest(executable))
+        environment = dict(os.environ)
+        environment.pop("YNX_CHAIN_STOPPED_WINDOW", None); environment.pop("YNX_CHAIN_PARTIAL_STOPPED_WINDOW", None)
+        environment.update(pinned_env, TMPDIR=str(case / "tmp"), GOTMPDIR=str(build / "tmp"), GOWORK="off", GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
+        for key in ("stdout", "stderr"):
+            logs[key] = open(case / ("go." + key + ".log"), "xb", buffering=0)
+        child = subprocess.Popen([executable] + command[1:], cwd=source, env=environment,
+                                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+        result["child"] = dict(pid=child.pid, code=None)
+        print(json.dumps(dict(stage="START", launcher=os.getpid(), go=child.pid, birthIdentityPending=True)), flush=True)
+        birth = parse_stat(bounded(Path("/proc") / str(child.pid) / "stat"), child.pid)
+        if birth["parent"] != os.getpid():
+            raise RuntimeError("Go root was not born as this wrapper's child")
+        result["child"]["startTicks"] = birth["startTicks"]
+        for key, stream in (("stdout", child.stdout), ("stderr", child.stderr)):
+            os.set_blocking(stream.fileno(), False); selector.register(stream, selectors.EVENT_READ, key)
+        byte_count, next_sample = 0, 0.0
+        while True:
+            if time.monotonic() - started >= CAPS["activeMs"] / 1000:
+                raise RuntimeError("105s active deadline")
+            for key, _ in selector.select(0.05):
+                block = os.read(key.fileobj.fileno(), 65536)
+                if not block:
+                    selector.unregister(key.fileobj); continue
+                byte_count += len(block)
+                if byte_count > CAPS["logBytes"]:
+                    raise RuntimeError("combined Go log bound")
+                logs[key.data].write(block)
+            if time.monotonic() >= next_sample:
+                sample(); next_sample = time.monotonic() + CAPS["sampleMs"] / 1000
+            if child.poll() is not None and not selector.get_map():
+                break
+        if time.monotonic() - started >= CAPS["activeMs"] / 1000:
+            raise RuntimeError("active deadline exceeded before qualification")
+        result["child"]["code"] = child.returncode
+        if child.returncode != 0:
+            raise RuntimeError("actual Go terminal code " + str(child.returncode))
+        source_check()
+        # Neither a skipped Go test nor a leftover JSON can qualify success.
+        report = json.loads(bounded(case / "pq-paired-result.json", 1 << 20))
+        if report.get("sourceCommit") != plan["commit"] or report.get("n") != plan["n"] or report.get("trial") != plan["trial"] or report.get("businessProjectionEqual") is not True or report.get("bftFinalCommits") is not None:
+            raise RuntimeError("expected bounded paired result missing/mismatched")
+        result["resultSHA256"] = digest(case / "pq-paired-result.json")
+    except Exception as error:
+        fail(error)
+    finally:
+        # Signal only fresh PID+start identities in this wrapper's child tree.
+        cleanup_start = time.monotonic()
+        cleanup_deadline = min(cleanup_start + CAPS["cleanupMs"] / 1000, started + CAPS["totalMs"] / 1000)
+        empty_checks = 0
+        result["emptyOwnedScans"] = []
+        while (child is not None or result.get("subreaper")) and time.monotonic() < cleanup_deadline:
+            try:
+                if child is not None:
+                    child.poll()
+                rows, _ = proc_inventory()
+                ids = [p for p in owned_set(rows, os.getpid(), child.pid if child else None, known) if p != os.getpid()]
+                if not ids:
+                    empty_checks += 1
+                    result["emptyOwnedScans"].append(dict(elapsedMs=int((time.monotonic()-started)*1000), hostIdentities=len(rows)))
+                    if empty_checks >= 2:
+                        result["cleanupComplete"] = True
+                        break
+                    time.sleep(0.05)
+                    continue
+                empty_checks = 0
+                for pid in ids:
+                    row = rows[pid]
+                    fresh = parse_stat(bounded(Path("/proc") / str(pid) / "stat"), pid)
+                    if fresh["startTicks"] != row["startTicks"]:
+                        raise RuntimeError("cleanup PID identity changed; not signalled")
+                    if fresh["state"] == "Z" and fresh["parent"] == os.getpid() and (child is None or pid != child.pid):
+                        os.waitpid(pid, os.WNOHANG)
+                    else:
+                        os.kill(pid, signal.SIGKILL if time.monotonic() - cleanup_start > 2 else signal.SIGTERM)
+                known.update({pid: rows[pid]["startTicks"] for pid in ids})
+            except OSError as error:
+                if error.errno not in (errno.ENOENT, errno.ESRCH, errno.ECHILD):
+                    fail(error)
+            except Exception as error:
+                fail(error)
+                # On incomplete telemetry, only the directly owned Popen PID
+                # can be signalled safely; no shared/guessed group is killed.
+                if child is not None and child.poll() is None:
+                    child.kill()
+            time.sleep(0.05)
+        if child is None and not result.get("subreaper"):
+            result["cleanupComplete"] = True
+        if child is not None:
+            result["child"]["code"] = child.poll()
+        if not result["cleanupComplete"]:
+            fail("owned process cleanup incomplete")
+        selector.close()
+        for handle in logs.values():
+            handle.close()
+        result.pop("known", None)
+        result["elapsedMs"] = int((time.monotonic() - started) * 1000)
+        if result["elapsedMs"] > CAPS["totalMs"]:
+            fail("total120s window exceeded")
+        result["measurementLimits"] = "Sampled smaps RSS, not hard cgroup enforcement; non-atomic /proc scans; no macOS pressure equivalence. No PASS if telemetry or cleanup is incomplete."
+        with open(receipt, "x", encoding="utf8") as handle:
+            json.dump(result, handle, indent=2); handle.write("\n"); handle.flush(); os.fsync(handle.fileno())
+        print(json.dumps({k: result[k] for k in ("firstCause", "child", "cleanupComplete", "elapsedMs")}), flush=True)
+    return 1 if result["firstCause"] else 0
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--prepared", type=Path)
+    parser.add_argument("--receipt", type=Path)
+    parser.add_argument("--execute", action="store_true")
+    args = parser.parse_args()
+    if not args.execute:
+        print(json.dumps(dict(status="prepared_only_no_Go_or_probe_started", supported=sys.platform == "linux", caps=CAPS,
+                              requires="Linux readable /proc + smaps_rollup, subreaper, exact prepared source, fresh Root isolated CI grant; not a macOS native-guard replacement")))
+    elif not args.prepared or not args.receipt:
+        parser.error("--prepared and a new --receipt outside case are required")
+    else:
+        sys.exit(run(args.prepared.resolve(), args.receipt.resolve()))
