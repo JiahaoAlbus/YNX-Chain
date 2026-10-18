@@ -1,0 +1,71 @@
+{
+  "origin": "/Users/huangjiahao/.codex/worktrees/ynx-batch-v01/YNX Chain/docs/protocol/crypto-go-first-run-20261018-02.json",
+  "originSHA256": "4d34ed26e4518d8971ecbd8867ab2ec2b47843f1e84f6be2cecadc08bc845b7d",
+  "sample": {
+    "at": "2026-10-17T17:22:43.246Z",
+    "freeDiskBytes": 37419917312,
+    "watchedPIDs": [
+      32122
+    ],
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 32122,
+        "readable": true,
+        "rssBytes": 56918016,
+        "virtualBytes": 501373550592,
+        "threads": 7
+      }
+    ],
+    "watchedRssBytes": 56918016,
+    "watchedThreads": 7,
+    "samplerRssBytes": 1769472,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 60456960,
+    "threadsWithControlReserve": 9,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 1,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 3669,
+      "uid": 501,
+      "uidProcessCount": 2087,
+      "unreadableBsdInfo": 1582,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 14760,
+      "capacityBytes": 18856,
+      "returnedBytes": 14680,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 3670,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 3669,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 2087,
+      "esrch": 1388,
+      "eperm": 194,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 19319
+  },
+  "interpretation": "Actual preflight before Go START. Not evidence of a missing live Go measurement; used to reject stale/aggregate-only substitution."
+}

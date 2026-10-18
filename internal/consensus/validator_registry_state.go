@@ -14,7 +14,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxconsensusauth"
 )
 
-const ValidatorRegistryStateVersion = 16
+const ValidatorRegistryStateVersion = 19
 
 // ValidatorRegistryState is application-committed registration evidence. It
 // neither changes Comet's active Ed25519 set nor activates a PQ signing profile.
@@ -102,12 +102,12 @@ func replayValidatorRegistry(value *ValidatorRegistryState, bootstrap *Consensus
 
 func validateValidatorRegistryState(s CommittedState, migration chain.ConsensusMigrationState) error {
 	if s.ValidatorRegistry == nil {
-		if s.Version == ValidatorRegistryStateVersion || s.Version == PQEngineScheduleStateVersion {
+		if s.Version == 16 || s.Version == 17 || s.Version == ValidatorRegistryStateVersion || s.Version == PQEngineScheduleStateVersion {
 			return errors.New("registry state version cannot omit registry history")
 		}
 		return nil
 	}
-	if s.Version != ValidatorRegistryStateVersion && s.Version != PQEngineScheduleStateVersion {
+	if s.Version != 16 && s.Version != 17 && s.Version != ValidatorRegistryStateVersion && s.Version != PQEngineScheduleStateVersion {
 		return errors.New("legacy state version cannot carry validator registry")
 	}
 	if err := s.bootstrap.matchesMigration(migration); err != nil {

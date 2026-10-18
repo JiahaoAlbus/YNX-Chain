@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "source": "window-eEfGE7/transactions-result.json",
+  "interimObservations": {
+    "block_scan_wait": {
+      "occurrences": 7776,
+      "distinctTransactions": 1024,
+      "messages": {
+        "block inclusion not observed yet": 7648,
+        "block inclusion not observed yet: block results query: error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: could not find results for height #4": 64,
+        "block inclusion not observed yet: block results query: error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: could not find results for height #5": 64
+      }
+    },
+    "local_durable_readback": {
+      "occurrences": 303,
+      "distinctTransactions": 303,
+      "messages": {
+        "local durable state has not reached transaction height": 289,
+        "block readback transaction 0: local durable state has not reached transaction height": 14
+      }
+    }
+  },
+  "submissionToFinalMs": {
+    "samples": 1024,
+    "mean": 1191.9749952246093,
+    "p50": 1176.174834,
+    "p95": 1767.879958,
+    "p99": 1851.966167
+  },
+  "inclusionToQualifiedFinalResidualMs": {
+    "samples": 1024,
+    "mean": 269.41087851269543,
+    "p50": 286.98412499999995,
+    "p95": 554.3932500000001,
+    "p99": 554.423208
+  },
+  "readyPool": {
+    "peakInFlight": 256,
+    "accountCount": 256,
+    "cycles": 4,
+    "configuredOfferCeiling": 512,
+    "measuredOfferInterarrival": 180.03418935841273
+  },
+  "capacityInference": {
+    "inflightNeededAt1000PerSecondAndSameMeanLatency": 1191.9749952246093,
+    "finite256PoolCeilingAtSameMeanLatency": 214.76960592764848,
+    "interpretation": "Little-law sizing inference under unchanged mean latency only; not measured capacity or a claim that latency remains unchanged under higher load. This finite pool cannot test 1000/s at its measured mean completion time."
+  },
+  "limitations": [
+    "Residual computed per transaction from original monotonic spans; it includes observer overhead, not internal consensus timing",
+    "Observation waits are not terminal business failures",
+    "No causal attribution to signature CPU or disk from these counters alone",
+    "No steady or sustained TPS inference"
+  ],
+  "sourceHashes": {
+    "artifacts/chain-performance-20261017/matched-before-stopped-light-result-20261018.json": {
+      "bytes": 5343,
+      "sha256": "5e4f938937c025db4e32b2b48b43e3a0e53083b06a2696265018a0303bc81169"
+    },
+    "artifacts/chain-performance-20261017/matched-before-stopped-light-cleanup-20261018.json": {
+      "bytes": 828,
+      "sha256": "35c11b9c3b944b29d424025825d32bc6fe4b6eac0d7bf2fd6d8a8e1e52c2585f"
+    },
+    "artifacts/chain-network-performance/window-eEfGE7/derived-observer-diagnosis.json": {
+      "bytes": 2311,
+      "sha256": "6cce5e34b07f1cabc367fb2d79fc58ed25042dda77d50242a639b97fb2d4b7b4"
+    }
+  }
+}

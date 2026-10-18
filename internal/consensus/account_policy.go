@@ -159,7 +159,7 @@ func (a *Application) applyPQTransaction(state executionState, payload []byte, h
 			return executionState{}, transactionExecution{}, err
 		}
 		state.accountPolicy = &next
-		state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(abciHash, PQMigrationType, migration.Intent.Owner, a.feeRecipient, 1, height, blockTime))
+		state.feeEvents = state.feeEvents.append(newCurrentFeeEvent(abciHash, PQMigrationType, migration.Intent.Owner, a.feeRecipient, 1, height, blockTime))
 		tx = chain.Transaction{Hash: nativeHash, Type: PQMigrationType, From: migration.Intent.Owner, To: migration.Intent.Owner, Fee: 1, Nonce: migration.Intent.LedgerNonce, Memo: pqMigrationMemo + envelope.WireHex}
 		executed = transactionExecution{typeName: PQMigrationType, hash: abciHash, event: abcitypes.Event{Type: "ynx.account_migration", Attributes: []abcitypes.EventAttribute{{Key: "owner", Value: tx.From, Index: true}, {Key: "revision", Value: fmt.Sprint(migration.Intent.NewRevision)}}}}
 	} else {

@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "sourceCommit": "d53533c63",
+  "receipt": {
+    "startedAt": "2026-10-17T15:23:52.632Z",
+    "launcher": 20425,
+    "parent": 1093,
+    "firstCause": "400MiB control/owned RSS cap",
+    "peakRSS": 1129463808,
+    "peakThreads": 79,
+    "samples": [
+      {
+        "at": "2026-10-17T15:23:52.644Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 20425,
+            "readable": true,
+            "rssBytes": 51380224,
+            "virtualBytes": 501365768192,
+            "threads": 7
+          },
+          {
+            "pid": 1093,
+            "readable": true,
+            "rssBytes": 1074511872,
+            "virtualBytes": 502082371584,
+            "threads": 70
+          }
+        ],
+        "watchedRssBytes": 1125892096,
+        "watchedThreads": 77,
+        "samplerRssBytes": 1785856,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 1129463808,
+        "threadsWithControlReserve": 79,
+        "host": {
+          "processCount": 903,
+          "uid": 501,
+          "uidProcessCount": 748,
+          "unreadableBsdInfo": 155,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1038
+      }
+    ],
+    "probes": [
+      {
+        "startedAt": "2026-10-17T15:23:52.633Z",
+        "pid": 20427,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":20425,\"readable\":true,\"rssBytes\":51380224,\"virtualBytes\":501365768192,\"threads\":7},{\"pid\":1093,\"readable\":true,\"rssBytes\":1074511872,\"virtualBytes\":502082371584,\"threads\":70}],\"watchedRssBytes\":1125892096,\"watchedThreads\":77,\"samplerRssBytes\":1785856,\"samplerThreads\":1,\"rssWithControlReserveBytes\":1129463808,\"threadsWithControlReserve\":79,\"host\":{\"processCount\":903,\"uid\":501,\"uidProcessCount\":748,\"unreadableBsdInfo\":155,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1038}\n",
+        "stderr": "",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 11.355916999999998
+      }
+    ],
+    "go": null,
+    "groupGone": true,
+    "elapsedMs": 12
+  },
+  "independentCleanup": {
+    "at": "2026-10-17T15:24:35.468Z",
+    "checks": [
+      {
+        "id": 20425,
+        "absent": true
+      },
+      {
+        "id": -20425,
+        "absent": true
+      },
+      {
+        "id": 20427,
+        "absent": true
+      },
+      {
+        "id": -20427,
+        "absent": true
+      }
+    ]
+  },
+  "interpretation": "No Go process started. Direct exec made parent PID1093 the tool service; its 1074511872B was incorrectly included in owned/control cap. Keep this failure, launch a persistent owned shell for a separately scheduled attempt; no monitoring removal or cap increase."
+}

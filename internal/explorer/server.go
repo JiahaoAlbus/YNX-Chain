@@ -85,6 +85,14 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/search", s.handleSearch)
 }
 
+func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service":   "ynx-explorerd",
+		"build":     s.build,
+		"startedAt": s.startedAt,
+	})
+}
+
 func (s *Server) handleLogo(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "public, max-age=86400, immutable")
@@ -142,6 +150,7 @@ func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, erro
 		resources = map[string]any{}
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	return dashboardSnapshot{Summary: summary, Blocks: blocks, Transactions: transactions, Validators: validators, Resources: resources, Warnings: warnings}, nil
 }
 
@@ -292,6 +301,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	status := http.StatusOK
 	if !summary.OK {
 		status = http.StatusServiceUnavailable
@@ -306,6 +316,7 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	writeJSON(w, http.StatusOK, summary)
 }
 

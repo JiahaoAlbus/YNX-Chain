@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -89,17 +90,21 @@ type Status struct {
 }
 
 type Store struct {
-	path           string
-	journalPath    string
-	mu             sync.RWMutex
-	loaded         bool
-	ready          atomic.Bool
-	db             Database
-	journalRecords uint64
+	path            string
+	journalPath     string
+	walPath         string
+	journalMode     bool
+	checkpointEvery int
+	pendingBlocks   int
+	mu              sync.RWMutex
+	loaded          bool
+	ready           atomic.Bool
+	db              Database
+	journalRecords  uint64
 }
 
 func NewStore(path string) *Store {
-	return &Store{path: path, journalPath: path + ".journal"}
+	return &Store{path: path, journalPath: path + ".journal", walPath: path + ".wal", checkpointEvery: 250}
 }
 
 func (s *Store) Ready() bool { return s.ready.Load() }
@@ -128,7 +133,7 @@ func (s *Store) Load() (Database, error) {
 	if err := s.ensureLoadedLocked(); err != nil {
 		return Database{}, err
 	}
-	return s.db, nil
+	return cloneDatabase(s.db), nil
 }
 
 func (s *Store) View(fn func(Database) error) error {
@@ -164,16 +169,27 @@ func (s *Store) TryView(fn func(Database) error) (bool, error) {
 func (s *Store) Save(db Database) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	db = cloneDatabase(db)
 	normalizeDatabase(&db)
 	if s.loaded && db.JournalSequence < s.db.JournalSequence {
 		db.JournalSequence = s.db.JournalSequence
 	}
+	// Save is the original explicit snapshot/journal API. Crossing from a
+	// pending Perf WAL gives the checkpoint a sequence marker before tail cleanup;
+	// that durable marker prevents a stale WAL from resurrecting rolled-back data.
+	if s.pendingBlocks > 0 && db.JournalSequence == 0 {
+		db.JournalSequence = 1
+	}
 	if err := s.saveSnapshotLocked(db); err != nil {
+		s.loaded = false
+		s.ready.Store(false)
 		return err
 	}
-	s.db = db
-	s.loaded = true
+	s.db, s.loaded, s.journalMode = db, true, true
 	if err := s.resetJournalLocked(); err != nil {
+		return err
+	}
+	if err := s.resetWALLocked(); err != nil {
 		return err
 	}
 	s.ready.Store(true)
@@ -181,29 +197,140 @@ func (s *Store) Save(db Database) error {
 }
 
 func (s *Store) UpsertBlock(sourceURL string, status Status, block chain.Block) (Database, error) {
+	return s.UpsertBlocks(sourceURL, status, []chain.Block{block})
+}
+
+func (s *Store) UpsertBlocks(sourceURL string, status Status, blocks []chain.Block) (Database, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.ensureLoadedLocked(); err != nil {
 		return Database{}, err
 	}
-	recordedAt := time.Now().UTC()
-	record := storeJournalRecord{
-		Version:    storeJournalVersion,
-		Sequence:   s.db.JournalSequence + 1,
-		Operation:  "upsert-block",
-		SourceURL:  sourceURL,
-		Status:     &status,
-		Block:      &block,
-		RecordedAt: recordedAt,
+	next := cloneDatabase(s.db)
+	if s.journalMode && uint64(len(blocks)) > ^uint64(0)-next.JournalSequence {
+		return Database{}, fmt.Errorf("index journal sequence exhausted")
 	}
-	if err := s.appendJournalLocked(record); err != nil {
-		return Database{}, err
+	applySourceStatus(&next, sourceURL, status)
+	expectedParent := ""
+	expectedHeight := uint64(0)
+	requireContinuity := len(next.Blocks) > 0
+	if requireContinuity {
+		if next.LastIndexedHeight == ^uint64(0) {
+			return Database{}, fmt.Errorf("stored index height is exhausted; indexer rebuild required")
+		}
+		expectedParent = next.LastBlockHash
+		expectedHeight = next.LastIndexedHeight + 1
 	}
-	applyUpsertRecord(&s.db, record)
-	if err := s.compactJournalIfNeededLocked(); err != nil {
-		return Database{}, err
+	validatedTransactions := make(map[string]chain.Transaction, len(next.Transactions)+len(blocks))
+	for hash, transaction := range next.Transactions {
+		validatedTransactions[hash] = transaction
 	}
-	return s.db, nil
+	recordedAt := make([]time.Time, len(blocks))
+	for position, block := range blocks {
+		// Bound the exact format and timestamp that will be appended, before
+		// any disk write, including all journal framing and sequence bytes.
+		recordedAt[position] = time.Now().UTC()
+		var record any = walRecord{Version: 1, SourceURL: sourceURL, Status: status, Block: block, IndexedAt: recordedAt[position]}
+		if s.journalMode {
+			record = storeJournalRecord{Version: storeJournalVersion, Sequence: next.JournalSequence + uint64(position) + 1, Operation: "upsert-block", SourceURL: sourceURL, Status: &status, Block: &block, RecordedAt: recordedAt[position]}
+		}
+		payload, err := json.Marshal(record)
+		if err != nil {
+			return Database{}, err
+		}
+		if len(payload)+1 > storeJournalRecordBytes {
+			return Database{}, fmt.Errorf("index record exceeds the %d byte replay limit", storeJournalRecordBytes)
+		}
+		if block.Hash == "" {
+			return Database{}, fmt.Errorf("indexer block %d has no hash", block.Height)
+		}
+		if requireContinuity {
+			if block.Height != expectedHeight {
+				return Database{}, fmt.Errorf("indexer block batch is discontinuous at height %d", block.Height)
+			}
+			if block.ParentHash != expectedParent {
+				return Database{}, fmt.Errorf("indexer block batch parent mismatch at height %d", block.Height)
+			}
+		}
+		if err := validateBlockTransactions(block, validatedTransactions); err != nil {
+			return Database{}, err
+		}
+		for _, transaction := range block.Transactions {
+			validatedTransactions[transaction.Hash] = transaction
+		}
+		if block.Height == ^uint64(0) && position+1 < len(blocks) {
+			return Database{}, fmt.Errorf("indexer block height is exhausted")
+		}
+		expectedParent = block.Hash
+		expectedHeight = block.Height + 1
+		requireContinuity = true
+	}
+	if s.journalMode {
+		if err := s.resetWALLocked(); err != nil {
+			return Database{}, err
+		}
+	}
+	for position, block := range blocks {
+		indexedAt := recordedAt[position]
+		var err error
+		if s.journalMode {
+			if next.JournalSequence == ^uint64(0) {
+				return Database{}, fmt.Errorf("index journal sequence exhausted")
+			}
+			record := storeJournalRecord{Version: storeJournalVersion, Sequence: next.JournalSequence + 1, Operation: "upsert-block", SourceURL: sourceURL, Status: &status, Block: &block, RecordedAt: indexedAt}
+			err = s.appendJournalLocked(record)
+			if err == nil {
+				next.JournalSequence = record.Sequence
+			}
+		} else {
+			err = s.appendWALLocked(walRecord{Version: 1, SourceURL: sourceURL, Status: status, Block: block, IndexedAt: indexedAt})
+		}
+		if err != nil {
+			// A prefix may already be durable. Reconcile it on the next read;
+			// never keep an older in-memory tip available for blind resubmission.
+			s.loaded = false
+			s.ready.Store(false)
+			return Database{}, err
+		}
+		storedBlock := cloneBlock(block)
+		next.Blocks[strconv.FormatUint(storedBlock.Height, 10)] = storedBlock
+		next.LastIndexedHeight = storedBlock.Height
+		next.LastBlockHash = storedBlock.Hash
+		next.LastSyncAt = indexedAt
+		for _, tx := range storedBlock.Transactions {
+			next.Transactions[tx.Hash] = cloneTransaction(tx)
+		}
+	}
+	if len(blocks) == 0 {
+		s.db = next
+		s.loaded = true
+		return cloneDatabase(next), nil
+	}
+	s.db = next
+	s.loaded = true
+	s.ready.Store(true)
+	if s.journalMode {
+		if err := s.compactJournalIfNeededLocked(); err != nil {
+			s.loaded = false
+			s.ready.Store(false)
+			return Database{}, err
+		}
+	} else {
+		s.pendingBlocks += len(blocks)
+		if s.pendingBlocks >= s.checkpointEvery {
+			if err := s.saveLocked(next); err != nil {
+				s.loaded = false
+				s.ready.Store(false)
+				return Database{}, err
+			}
+			if err := s.resetWALLocked(); err != nil {
+				s.loaded = false
+				s.ready.Store(false)
+				return Database{}, err
+			}
+		}
+	}
+	return cloneDatabase(next), nil
 }
 
 func (s *Store) RollbackTo(height uint64) (Database, int, int, error) {
@@ -246,17 +373,23 @@ func (s *Store) RollbackTo(height uint64) (Database, int, int, error) {
 	candidate.LastIndexedHeight = height
 	candidate.LastBlockHash = ancestor.Hash
 	candidate.LastSyncAt = time.Now().UTC()
+	if candidate.JournalSequence == ^uint64(0) {
+		return Database{}, 0, 0, fmt.Errorf("index journal sequence exhausted")
+	}
 	candidate.JournalSequence++
 	if err := s.saveSnapshotLocked(candidate); err != nil {
 		return Database{}, 0, 0, err
 	}
 	// The canonical candidate is now durable. Publish it before journal cleanup so
 	// memory and the restart snapshot cannot diverge if cleanup itself fails.
-	s.db = candidate
+	s.db, s.journalMode = candidate, true
+	if err := s.resetWALLocked(); err != nil {
+		return Database{}, 0, 0, err
+	}
 	if err := s.resetJournalLocked(); err != nil {
 		return Database{}, 0, 0, err
 	}
-	return s.db, removedBlocks, removedTransactions, nil
+	return cloneDatabase(s.db), removedBlocks, removedTransactions, nil
 }
 
 func (s *Store) RecordSourceStatus(sourceURL string, status Status) (Database, error) {
@@ -266,7 +399,7 @@ func (s *Store) RecordSourceStatus(sourceURL string, status Status) (Database, e
 		return Database{}, err
 	}
 	applySourceStatus(&s.db, sourceURL, status)
-	return s.db, nil
+	return cloneDatabase(s.db), nil
 }
 
 func applySourceStatus(db *Database, sourceURL string, status Status) {
@@ -302,18 +435,53 @@ func (s *Store) ensureLoadedLocked() error {
 	if s.loaded {
 		return nil
 	}
+	if strings.TrimSpace(s.path) == "" {
+		s.db = Database{Version: 2, Blocks: map[string]chain.Block{}, Transactions: map[string]chain.Transaction{}}
+		s.loaded = true
+		s.ready.Store(true)
+		return nil
+	}
+	// The two established formats never form a dual-written ledger. A positive
+	// sequence in the checkpoint is the durable Protocol journal authority.
+	journalInfo, journalErr := os.Lstat(s.journalPath)
+	if journalErr != nil && !os.IsNotExist(journalErr) {
+		return journalErr
+	}
+	if journalErr == nil && (!journalInfo.Mode().IsRegular() || journalInfo.Mode().Perm()&0o077 != 0) {
+		return fmt.Errorf("index journal must be a private regular file")
+	}
+	s.journalMode = journalErr == nil
 	db, err := s.loadSnapshotLocked()
 	if err != nil {
 		return err
 	}
-	records, err := s.replayJournalLocked(&db)
-	if err != nil {
-		return err
+	if db.JournalSequence > 0 {
+		s.journalMode = true
 	}
-	s.db = db
-	s.loaded = true
+	walInfo, walErr := os.Lstat(s.walPath)
+	if walErr != nil && !os.IsNotExist(walErr) {
+		return walErr
+	}
+	if journalErr == nil && walErr == nil && walInfo.Size() > 0 && db.JournalSequence == 0 {
+		return fmt.Errorf("ambiguous index journal and WAL tails; preserve both and reconcile their original checkpoint")
+	}
+	if !s.journalMode {
+		pending, err := s.replayWALLocked(&db)
+		if err != nil {
+			return err
+		}
+		s.pendingBlocks = pending
+	} else {
+		records, err := s.replayJournalLocked(&db)
+		if err != nil {
+			return err
+		}
+		s.journalRecords = records
+		// An explicit sequenced checkpoint supersedes its pre-switch WAL. Keep
+		// that file until the next durable mutation cleans it; never replay it.
+	}
+	s.db, s.loaded = db, true
 	s.ready.Store(true)
-	s.journalRecords = records
 	return nil
 }
 
@@ -322,17 +490,49 @@ func (s *Store) loadSnapshotLocked() (Database, error) {
 	if strings.TrimSpace(s.path) == "" {
 		return db, nil
 	}
+	info, err := os.Lstat(s.path)
+	if err == nil {
+		if !info.Mode().IsRegular() {
+			return Database{}, fmt.Errorf("indexer checkpoint must be a regular file")
+		}
+		if info.Mode().Perm()&0o077 != 0 {
+			return Database{}, fmt.Errorf("indexer checkpoint permissions must be 0600")
+		}
+	} else if !os.IsNotExist(err) {
+		return Database{}, err
+	}
 	payload, err := os.ReadFile(s.path)
-	if os.IsNotExist(err) {
-		return db, nil
-	}
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return Database{}, err
 	}
-	if err := json.Unmarshal(payload, &db); err != nil {
-		return Database{}, err
+	if err == nil {
+		// Keep strict JSON syntax in both known dialects. Legacy journal
+		// snapshots retain their original metadata compatibility below.
+		decoder := json.NewDecoder(bytes.NewReader(payload))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&db); err != nil {
+			return Database{}, fmt.Errorf("indexer checkpoint is invalid")
+		}
+		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			return Database{}, fmt.Errorf("indexer checkpoint is invalid")
+		}
 	}
-	normalizeDatabase(&db)
+	if db.Blocks == nil {
+		db.Blocks = map[string]chain.Block{}
+	}
+	if db.Transactions == nil {
+		db.Transactions = map[string]chain.Transaction{}
+	}
+	if db.JournalSequence > 0 {
+		// Original compacted journal checkpoints can outlive a removed tail.
+		s.journalMode = true
+	}
+	if !s.journalMode {
+		if err := validateDatabase(db); err != nil {
+			return Database{}, err
+		}
+	}
+
 	return db, nil
 }
 
@@ -352,18 +552,11 @@ func (s *Store) saveSnapshotLocked(db Database) error {
 	if strings.TrimSpace(s.path) == "" {
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return err
-	}
 	payload, err := json.MarshalIndent(db, "", "  ")
 	if err != nil {
 		return err
 	}
-	tmp := s.path + ".tmp"
-	if err := os.WriteFile(tmp, payload, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, s.path)
+	return writeFileAtomic(s.path, payload)
 }
 
 func (s *Store) appendJournalLocked(record storeJournalRecord) error {
@@ -380,6 +573,16 @@ func (s *Store) appendJournalLocked(record storeJournalRecord) error {
 	payload = append(payload, '\n')
 	if len(payload) > storeJournalRecordBytes {
 		return fmt.Errorf("index journal record exceeds the %d byte replay limit", storeJournalRecordBytes)
+	}
+	created := false
+	if info, err := os.Lstat(s.journalPath); err == nil {
+		if !info.Mode().IsRegular() || info.Mode().Perm()&0o077 != 0 {
+			return fmt.Errorf("index journal must be a private regular file")
+		}
+	} else if os.IsNotExist(err) {
+		created = true
+	} else {
+		return err
 	}
 	journal, err := os.OpenFile(s.journalPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
@@ -398,6 +601,11 @@ func (s *Store) appendJournalLocked(record storeJournalRecord) error {
 	}
 	if closeErr != nil {
 		return closeErr
+	}
+	if created {
+		if err := syncDirectory(filepath.Dir(s.journalPath)); err != nil {
+			return err
+		}
 	}
 	s.journalRecords++
 	return nil
@@ -493,6 +701,9 @@ func applyUpsertRecord(db *Database, record storeJournalRecord) {
 }
 
 func (s *Store) compactJournalIfNeededLocked() error {
+	if strings.TrimSpace(s.path) == "" {
+		return nil
+	}
 	if s.journalRecords < storeJournalCompactEvents {
 		if info, err := os.Stat(s.journalPath); err == nil && info.Size() < storeJournalCompactBytes {
 			return nil
@@ -509,15 +720,27 @@ func (s *Store) compactJournalIfNeededLocked() error {
 }
 
 func (s *Store) resetJournalLocked() error {
+	if strings.TrimSpace(s.path) != "" {
+		if err := writeFileAtomic(s.journalPath, nil); err != nil {
+			return err
+		}
+	}
 	s.journalRecords = 0
-	if strings.TrimSpace(s.path) == "" {
-		return nil
+	return nil
+}
+
+func (s *Store) resetWALLocked() error {
+	if strings.TrimSpace(s.path) != "" {
+		if err := os.Remove(s.walPath); err != nil {
+			if !os.IsNotExist(err) {
+				return err
+			}
+		} else if err := syncDirectory(filepath.Dir(s.walPath)); err != nil {
+			return err
+		}
 	}
-	tmp := s.journalPath + ".tmp"
-	if err := os.WriteFile(tmp, nil, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, s.journalPath)
+	s.pendingBlocks = 0
+	return nil
 }
 
 type Indexer struct {
@@ -657,6 +880,11 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 	if remaining := end - start + 1; remaining > i.cfg.MaxBlocksPerRun {
 		end = start + i.cfg.MaxBlocksPerRun - 1
 	}
+	validatedTransactions := make(map[string]chain.Transaction, len(db.Transactions))
+	for hash, tx := range db.Transactions {
+		validatedTransactions[hash] = tx
+	}
+	blocks := make([]chain.Block, 0, end-start+1)
 	for height := start; height <= end; height++ {
 		block, err := i.client.Block(ctx, height)
 		if err != nil {
@@ -668,12 +896,19 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 		if expectedParent != "" && block.ParentHash != expectedParent {
 			return SyncResult{}, fmt.Errorf("source chain divergence at height %d: parent %s does not match indexed hash %s; indexer rebuild required", height, block.ParentHash, expectedParent)
 		}
-		db, err = i.store.UpsertBlock(i.cfg.RPCURL, status, block)
-		if err != nil {
+		if err := validateBlockTransactions(block, validatedTransactions); err != nil {
 			return SyncResult{}, err
 		}
+		for _, tx := range block.Transactions {
+			validatedTransactions[tx.Hash] = tx
+		}
+		blocks = append(blocks, block)
 		result.NewBlocksThisRun++
 		expectedParent = block.Hash
+	}
+	db, err = i.store.UpsertBlocks(i.cfg.RPCURL, status, blocks)
+	if err != nil {
+		return SyncResult{}, err
 	}
 	result.LastIndexedHeight = db.LastIndexedHeight
 	result.IndexedBlockCount = len(db.Blocks)
@@ -890,4 +1125,344 @@ func normalizePageLimit(limit int) int {
 		return 25
 	}
 	return limit
+}
+
+func (s *Store) saveLocked(db Database) error {
+	if err := validateDatabase(db); err != nil {
+		return err
+	}
+	if strings.TrimSpace(s.path) == "" {
+		s.db = db
+		s.loaded = true
+		return nil
+	}
+	payload, err := json.MarshalIndent(db, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := writeFileAtomic(s.path, payload); err != nil {
+		return err
+	}
+	s.db = db
+	s.loaded = true
+	return nil
+}
+
+func writeFileAtomic(path string, payload []byte) error {
+	directory := filepath.Dir(path)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return err
+	}
+	tmp := path + ".tmp"
+	if err := os.Remove(tmp); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	file, err := os.OpenFile(tmp, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	cleanup := true
+	defer func() {
+		_ = file.Close()
+		if cleanup {
+			_ = os.Remove(tmp)
+		}
+	}()
+	if err := file.Chmod(0o600); err != nil {
+		return err
+	}
+	if n, err := file.Write(payload); err != nil {
+		return err
+	} else if n != len(payload) {
+		return io.ErrShortWrite
+	}
+	if err := file.Sync(); err != nil {
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		return err
+	}
+	cleanup = false
+	return syncDirectory(directory)
+}
+
+func syncDirectory(path string) error {
+	directory, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer directory.Close()
+	return directory.Sync()
+}
+
+func cloneDatabase(db Database) Database {
+	next := db
+	next.Blocks = make(map[string]chain.Block, len(db.Blocks))
+	for height, block := range db.Blocks {
+		next.Blocks[height] = cloneBlock(block)
+	}
+	next.Transactions = make(map[string]chain.Transaction, len(db.Transactions))
+	for hash, transaction := range db.Transactions {
+		next.Transactions[hash] = cloneTransaction(transaction)
+	}
+	return next
+}
+
+func cloneBlock(block chain.Block) chain.Block {
+	next := block
+	if block.Transactions != nil {
+		next.Transactions = make([]chain.Transaction, len(block.Transactions))
+		for position, transaction := range block.Transactions {
+			next.Transactions[position] = cloneTransaction(transaction)
+		}
+	}
+	return next
+}
+
+func cloneTransaction(transaction chain.Transaction) chain.Transaction {
+	next := transaction
+	if transaction.LotFlows != nil {
+		next.LotFlows = append([]chain.LotFlow(nil), transaction.LotFlows...)
+	}
+	if transaction.Logs != nil {
+		next.Logs = make([]chain.EVMLog, len(transaction.Logs))
+		for position, log := range transaction.Logs {
+			next.Logs[position] = log
+			if log.Topics != nil {
+				next.Logs[position].Topics = append([]string(nil), log.Topics...)
+			}
+		}
+	}
+	return next
+}
+
+func validateDatabase(db Database) error {
+	if db.Version != 2 {
+		return fmt.Errorf("indexer checkpoint version %d is unsupported", db.Version)
+	}
+	if db.Blocks == nil || db.Transactions == nil {
+		return fmt.Errorf("indexer checkpoint maps are missing")
+	}
+	heights := make([]uint64, 0, len(db.Blocks))
+	for rawHeight, block := range db.Blocks {
+		height, err := strconv.ParseUint(rawHeight, 10, 64)
+		if err != nil || strconv.FormatUint(height, 10) != rawHeight || block.Height != height || block.Hash == "" {
+			return fmt.Errorf("indexer checkpoint block key %q is invalid", rawHeight)
+		}
+		heights = append(heights, height)
+	}
+	sort.Slice(heights, func(a, b int) bool { return heights[a] < heights[b] })
+	expectedTransactions := make(map[string]chain.Transaction, len(db.Transactions))
+	var previous chain.Block
+	for position, height := range heights {
+		block := db.Blocks[strconv.FormatUint(height, 10)]
+		if position > 0 {
+			if height != previous.Height+1 || block.ParentHash != previous.Hash {
+				return fmt.Errorf("indexer checkpoint chain is discontinuous at height %d", height)
+			}
+		}
+		if err := validateBlockTransactions(block, expectedTransactions); err != nil {
+			return fmt.Errorf("indexer checkpoint transaction index is invalid: %w", err)
+		}
+		for _, transaction := range block.Transactions {
+			expectedTransactions[transaction.Hash] = transaction
+		}
+		previous = block
+	}
+	if len(heights) == 0 {
+		if db.LastIndexedHeight != 0 || db.LastBlockHash != "" || len(db.Transactions) != 0 {
+			return fmt.Errorf("indexer checkpoint empty-state metadata is inconsistent")
+		}
+		return nil
+	}
+	if db.LastIndexedHeight != previous.Height || db.LastBlockHash != previous.Hash {
+		return fmt.Errorf("indexer checkpoint tip metadata is inconsistent")
+	}
+	if db.LastSourceHeight < db.LastIndexedHeight {
+		return fmt.Errorf("indexer checkpoint source height is below indexed tip")
+	}
+	if db.ChainID != 6423 || db.NativeSymbol != "YNXT" {
+		return fmt.Errorf("indexer checkpoint chain identity is invalid")
+	}
+	if db.SourceEarliestHash != "" {
+		if block, ok := db.Blocks[strconv.FormatUint(db.SourceEarliestHeight, 10)]; ok && block.Hash != db.SourceEarliestHash {
+			return fmt.Errorf("indexer checkpoint source earliest hash is inconsistent")
+		}
+	}
+	if len(expectedTransactions) != len(db.Transactions) {
+		return fmt.Errorf("indexer checkpoint transaction map is inconsistent")
+	}
+	for hash, expected := range expectedTransactions {
+		stored, ok := db.Transactions[hash]
+		if !ok || stored.Hash != hash || !reflect.DeepEqual(stored, expected) {
+			return fmt.Errorf("indexer checkpoint transaction %s is inconsistent", hash)
+		}
+	}
+	return nil
+}
+
+type walRecord struct {
+	Version   int         `json:"version"`
+	SourceURL string      `json:"sourceUrl"`
+	Status    Status      `json:"status"`
+	Block     chain.Block `json:"block"`
+	IndexedAt time.Time   `json:"indexedAt"`
+}
+
+func (s *Store) appendWALLocked(record walRecord) error {
+	if strings.TrimSpace(s.path) == "" {
+		return nil
+	}
+	directory := filepath.Dir(s.walPath)
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		return err
+	}
+	created := false
+	if info, err := os.Lstat(s.walPath); err == nil {
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("indexer WAL must be a regular file")
+		}
+		if info.Mode().Perm()&0o077 != 0 {
+			return fmt.Errorf("indexer WAL permissions must be 0600")
+		}
+	} else if os.IsNotExist(err) {
+		created = true
+	} else {
+		return err
+	}
+	payload, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+	payload = append(payload, '\n')
+	if len(payload) > storeJournalRecordBytes {
+		return fmt.Errorf("index WAL record exceeds the %d byte replay limit", storeJournalRecordBytes)
+	}
+	file, err := os.OpenFile(s.walPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	if err := file.Chmod(0o600); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if n, err := file.Write(payload); err != nil {
+		_ = file.Close()
+		return err
+	} else if n != len(payload) {
+		_ = file.Close()
+		return io.ErrShortWrite
+	}
+	if err := file.Sync(); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := file.Close(); err != nil {
+		return err
+	}
+	if created {
+		return syncDirectory(directory)
+	}
+	return nil
+}
+
+func (s *Store) replayWALLocked(db *Database) (int, error) {
+	linkInfo, err := os.Lstat(s.walPath)
+	if os.IsNotExist(err) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	if !linkInfo.Mode().IsRegular() {
+		return 0, fmt.Errorf("indexer WAL must be a regular file")
+	}
+	file, err := os.Open(s.walPath)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	if info.Mode().Perm()&0o077 != 0 {
+		return 0, fmt.Errorf("indexer WAL permissions must be 0600")
+	}
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 64*1024), 8*1024*1024)
+	pending := 0
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		decoder := json.NewDecoder(bytes.NewReader(line))
+		decoder.DisallowUnknownFields()
+		var record walRecord
+		if err := decoder.Decode(&record); err != nil {
+			return 0, fmt.Errorf("indexer WAL record is invalid")
+		}
+		if err := decoder.Decode(&struct{}{}); err != io.EOF {
+			return 0, fmt.Errorf("indexer WAL record is invalid")
+		}
+		if record.Version != 1 || strings.TrimSpace(record.SourceURL) == "" || record.Block.Hash == "" || record.IndexedAt.IsZero() {
+			return 0, fmt.Errorf("indexer WAL record schema is invalid")
+		}
+		key := strconv.FormatUint(record.Block.Height, 10)
+		if existing, ok := db.Blocks[key]; ok {
+			if !reflect.DeepEqual(existing, record.Block) {
+				return 0, fmt.Errorf("indexer WAL conflicts with checkpoint at height %d", record.Block.Height)
+			}
+			applySourceStatus(db, record.SourceURL, record.Status)
+			continue
+		}
+		if len(db.Blocks) > 0 {
+			if record.Block.Height != db.LastIndexedHeight+1 || record.Block.ParentHash != db.LastBlockHash {
+				return 0, fmt.Errorf("indexer WAL chain is discontinuous at height %d", record.Block.Height)
+			}
+		}
+		if err := validateBlockTransactions(record.Block, db.Transactions); err != nil {
+			return 0, err
+		}
+		applySourceStatus(db, record.SourceURL, record.Status)
+		db.Blocks[key] = record.Block
+		db.LastIndexedHeight = record.Block.Height
+		db.LastBlockHash = record.Block.Hash
+		db.LastSyncAt = record.IndexedAt
+		for _, transaction := range record.Block.Transactions {
+			db.Transactions[transaction.Hash] = transaction
+		}
+		pending++
+	}
+	if err := scanner.Err(); err != nil {
+		return 0, err
+	}
+	if err := validateDatabase(*db); err != nil {
+		return 0, err
+	}
+	return pending, nil
+}
+
+func validateBlockTransactions(block chain.Block, indexed map[string]chain.Transaction) error {
+	seen := make(map[string]struct{}, len(block.Transactions))
+	for position, tx := range block.Transactions {
+		if strings.TrimSpace(tx.Hash) == "" {
+			return fmt.Errorf("source block %d contains transaction %d without a hash", block.Height, position)
+		}
+		if tx.BlockNum != block.Height {
+			return fmt.Errorf("source transaction %s claims block %d but was returned in block %d", tx.Hash, tx.BlockNum, block.Height)
+		}
+		if tx.BlockHash != "" && tx.BlockHash != block.Hash {
+			return fmt.Errorf("source transaction %s block hash does not match block %d", tx.Hash, block.Height)
+		}
+		if _, ok := seen[tx.Hash]; ok {
+			return fmt.Errorf("source block %d contains duplicate transaction hash %s", block.Height, tx.Hash)
+		}
+		seen[tx.Hash] = struct{}{}
+		if previous, ok := indexed[tx.Hash]; ok && (previous.BlockNum != block.Height || previous.BlockHash != tx.BlockHash) {
+			return fmt.Errorf("source transaction hash %s conflicts with indexed block %d; indexer rebuild required", tx.Hash, previous.BlockNum)
+		}
+	}
+	return nil
 }

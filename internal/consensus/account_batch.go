@@ -151,9 +151,9 @@ func parseConsensusBatchMemberMemo(memo string) (string, uint32, error) {
 // remain untouched. A failed member cannot contaminate the preceding successes
 // or its caller, even if a slice happens to have spare backing capacity.
 func cloneBatchTransferCandidate(state executionState) executionState {
-	state.accounts = cloneAccounts(state.accounts)
+	state.accounts = cloneExecutionAccounts(state)
+	state.nativeAccounts = nil
 	state.traceLots = cloneTraceLots(state.traceLots)
-	state.feeEvents = append([]BFTFeeEvent(nil), state.feeEvents...)
 	state.nativeTransfers = append([]BFTNativeTransfer(nil), state.nativeTransfers...)
 	state.pqHistory = clonePQHistory(state.pqHistory)
 	return state

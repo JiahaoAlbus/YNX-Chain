@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "measurement": "local_durable_snapshot_readback_cost_not_business_tps_or_finality",
+  "gomaxprocs": 1,
+  "nice": 10,
+  "fixture": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-1234288681/state.json",
+  "snapshotBytes": 812656,
+  "runs": [
+    {
+      "method": "original",
+      "nsPerOp": 7945555,
+      "bytesPerOp": 8581436,
+      "allocsPerOp": 15811,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkDurableSnapshotReadback/original         \t      32\t   7945555 ns/op\t 102.28 MB/s\t 8581436 B/op\t   15811 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "method": "fresh_hash_reuse",
+      "nsPerOp": 448620,
+      "bytesPerOp": 4504,
+      "allocsPerOp": 51,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkDurableSnapshotReadback/fresh_hash_reuse         \t     514\t    448620 ns/op\t1811.46 MB/s\t    4504 B/op\t      51 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "method": "fresh_hash_reuse",
+      "nsPerOp": 443681,
+      "bytesPerOp": 4504,
+      "allocsPerOp": 51,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkDurableSnapshotReadback/fresh_hash_reuse         \t     572\t    443681 ns/op\t1831.62 MB/s\t    4504 B/op\t      51 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "method": "original",
+      "nsPerOp": 7720809,
+      "bytesPerOp": 8581463,
+      "allocsPerOp": 15811,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkDurableSnapshotReadback/original         \t      32\t   7720809 ns/op\t 105.26 MB/s\t 8581463 B/op\t   15811 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "method": "original",
+      "nsPerOp": 7874976,
+      "bytesPerOp": 8581444,
+      "allocsPerOp": 15811,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkDurableSnapshotReadback/original         \t      33\t   7874976 ns/op\t 103.19 MB/s\t 8581444 B/op\t   15811 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "method": "fresh_hash_reuse",
+      "nsPerOp": 441648,
+      "bytesPerOp": 4504,
+      "allocsPerOp": 51,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkDurableSnapshotReadback/fresh_hash_reuse         \t     541\t    441648 ns/op\t1840.05 MB/s\t    4504 B/op\t      51 allocs/op\nPASS\n",
+      "stderr": ""
+    }
+  ],
+  "binarySHA256": "dc14144c5a57125293572efbea2deb02796535067c895cb21847301251b2fcae",
+  "sourceHashes": {
+    "cmd/ynx-consensus-perf-client/main.go": "bd7b21c3fd8a8d02b5d64df921bfe4ed5f3e81cc46f9c5f4853572ec3f704be1",
+    "cmd/ynx-consensus-perf-client/durability.go": "98d31c8cd7731ce63d9838dce800e9d4f083b683b3494c8d9d5d028e6b153c16",
+    "cmd/ynx-consensus-perf-client/durable_reader.go": "2123608ba3562d3a8370808ffe1d22323fc77779a4fdf920bffd38c6cd6fd1ec",
+    "cmd/ynx-consensus-perf-client/durable_reader_test.go": "b3733c481b28afb726e203d22158f6223f47c6609d9ec1d86a68efd360749b3e"
+  },
+  "validation": {
+    "clientSuite": "PASS; focused tamper/deletion/replacement/concurrency/cancellation/signature tests and all existing ordinary client tests",
+    "coreAndNetworkUntouched": true,
+    "networkClientIn128Run": "original frozen440, not this changed source",
+    "raceDetectorRun": false
+  }
+}

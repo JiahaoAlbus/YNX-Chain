@@ -117,6 +117,48 @@ func TestGenerateEphemeralNetworkRefusesExistingOutputAndOverlappingPorts(t *tes
 	}
 }
 
+func TestGenerateEphemeralNetworkSetsPositiveConsensusMaxGas(t *testing.T) {
+	migration := fourValidatorMigration(t)
+	root := filepath.Join(t.TempDir(), "positive-max-gas")
+	manifest, err := GenerateEphemeralNetwork(migration, EphemeralNetworkOptions{
+		RootDir: root, BaseP2P: 34656, BaseRPC: 34757, BaseABCI: 34858, ConsensusMaxGas: 42000,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.ConsensusMaxGas != 42000 {
+		t.Fatalf("manifest did not preserve consensus max gas: %+v", manifest)
+	}
+	var firstGenesis []byte
+	for _, node := range manifest.Nodes {
+		payload, err := os.ReadFile(filepath.Join(node.Home, "config", "genesis.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if firstGenesis == nil {
+			firstGenesis = payload
+		} else if !bytes.Equal(firstGenesis, payload) {
+			t.Fatal("positive max-gas validators did not receive byte-identical genesis files")
+		}
+		genesis, err := cmttypes.GenesisDocFromJSON(payload)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if genesis.ConsensusParams == nil || genesis.ConsensusParams.Block.MaxGas != 42000 {
+			t.Fatalf("unexpected consensus max gas: %+v", genesis.ConsensusParams)
+		}
+	}
+}
+
+func TestGenerateEphemeralNetworkRejectsNegativeConsensusMaxGas(t *testing.T) {
+	migration := fourValidatorMigration(t)
+	if _, err := GenerateEphemeralNetwork(migration, EphemeralNetworkOptions{
+		RootDir: filepath.Join(t.TempDir(), "negative-max-gas"), BaseP2P: 35656, BaseRPC: 35757, BaseABCI: 35858, ConsensusMaxGas: -1,
+	}); err == nil || !strings.Contains(err.Error(), "max gas") {
+		t.Fatalf("negative consensus max gas was accepted: %v", err)
+	}
+}
+
 func TestGenerateEphemeralNetworkRejectsInactiveValidator(t *testing.T) {
 	validators := []chain.Validator{
 		{Address: "ynx_validator_primary", Moniker: "ynx-primary", VotingPower: 1, Active: true},

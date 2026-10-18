@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "measurement": "synthetic_hot_lot_native_execution_cost_not_business_tps",
+  "accounts": 2048,
+  "gomaxprocs": 1,
+  "nice": 10,
+  "benchtime": "100ms",
+  "sourceFile": "internal/consensus/hot_lots_scale_test.go",
+  "sourceSHA256": "aba7e4f6ed5be6d9a2572517ce6680f04e6b1e23d450a5c3e421ef9d52660e6b",
+  "binary": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/account-hot-lots-before.test",
+  "binarySHA256": "2589ba4c704f1877d974cdaf0770d1426c9b02afd9cdd171abb0227d8b221fae",
+  "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/internal/consensus\ncpu: Apple M4\nBenchmarkNativeHotLots/1         \t    3726\t     30677 ns/op\t  182053 B/op\t      22 allocs/op\nBenchmarkNativeHotLots/1         \t    3856\t     29127 ns/op\t  182052 B/op\t      22 allocs/op\nBenchmarkNativeHotLots/1         \t    4024\t     29732 ns/op\t  182052 B/op\t      22 allocs/op\nBenchmarkNativeHotLots/64        \t    3506\t     33666 ns/op\t  188628 B/op\t      26 allocs/op\nBenchmarkNativeHotLots/64        \t    3238\t     32819 ns/op\t  188628 B/op\t      26 allocs/op\nBenchmarkNativeHotLots/64        \t    3596\t     32757 ns/op\t  188628 B/op\t      26 allocs/op\nBenchmarkNativeHotLots/256       \t    2408\t     42880 ns/op\t  208852 B/op\t      26 allocs/op\nBenchmarkNativeHotLots/256       \t    2416\t     42721 ns/op\t  208852 B/op\t      26 allocs/op\nBenchmarkNativeHotLots/256       \t    2552\t     50182 ns/op\t  208852 B/op\t      26 allocs/op\nBenchmarkNativeHotLots/2048      \t     786\t    155528 ns/op\t  400071 B/op\t      38 allocs/op\nBenchmarkNativeHotLots/2048      \t     778\t    149923 ns/op\t  400071 B/op\t      38 allocs/op\nBenchmarkNativeHotLots/2048      \t     789\t    153424 ns/op\t  400071 B/op\t      38 allocs/op\nPASS\n",
+  "stderr": "",
+  "rows": [
+    {
+      "lotsPerReceiverAndFee": 1,
+      "iterations": 3726,
+      "nsPerOp": 30677,
+      "bytesPerOp": 182053,
+      "allocsPerOp": 22
+    },
+    {
+      "lotsPerReceiverAndFee": 1,
+      "iterations": 3856,
+      "nsPerOp": 29127,
+      "bytesPerOp": 182052,
+      "allocsPerOp": 22
+    },
+    {
+      "lotsPerReceiverAndFee": 1,
+      "iterations": 4024,
+      "nsPerOp": 29732,
+      "bytesPerOp": 182052,
+      "allocsPerOp": 22
+    },
+    {
+      "lotsPerReceiverAndFee": 64,
+      "iterations": 3506,
+      "nsPerOp": 33666,
+      "bytesPerOp": 188628,
+      "allocsPerOp": 26
+    },
+    {
+      "lotsPerReceiverAndFee": 64,
+      "iterations": 3238,
+      "nsPerOp": 32819,
+      "bytesPerOp": 188628,
+      "allocsPerOp": 26
+    },
+    {
+      "lotsPerReceiverAndFee": 64,
+      "iterations": 3596,
+      "nsPerOp": 32757,
+      "bytesPerOp": 188628,
+      "allocsPerOp": 26
+    },
+    {
+      "lotsPerReceiverAndFee": 256,
+      "iterations": 2408,
+      "nsPerOp": 42880,
+      "bytesPerOp": 208852,
+      "allocsPerOp": 26
+    },
+    {
+      "lotsPerReceiverAndFee": 256,
+      "iterations": 2416,
+      "nsPerOp": 42721,
+      "bytesPerOp": 208852,
+      "allocsPerOp": 26
+    },
+    {
+      "lotsPerReceiverAndFee": 256,
+      "iterations": 2552,
+      "nsPerOp": 50182,
+      "bytesPerOp": 208852,
+      "allocsPerOp": 26
+    },
+    {
+      "lotsPerReceiverAndFee": 2048,
+      "iterations": 786,
+      "nsPerOp": 155528,
+      "bytesPerOp": 400071,
+      "allocsPerOp": 38
+    },
+    {
+      "lotsPerReceiverAndFee": 2048,
+      "iterations": 778,
+      "nsPerOp": 149923,
+      "bytesPerOp": 400071,
+      "allocsPerOp": 38
+    },
+    {
+      "lotsPerReceiverAndFee": 2048,
+      "iterations": 789,
+      "nsPerOp": 153424,
+      "bytesPerOp": 400071,
+      "allocsPerOp": 38
+    }
+  ]
+}

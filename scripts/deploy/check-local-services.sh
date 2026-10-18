@@ -58,6 +58,9 @@ case "$url" in
   http://127.0.0.1:6439/health)
     printf '%s\n' '{"ok":true,"service":"ynx-wallet-gatewayd","remoteDeployed":true,"stateDigest":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","truthfulStatus":"remote-canonical-wallet-gateway"}'
     ;;
+  http://127.0.0.1:6439/health)
+    printf '%s\n' '{"ok":true,"service":"ynx-wallet-gatewayd","registryVersion":2,"adapterStateVersion":2,"persistence":"atomic-local-state","truthfulStatus":"canonical-wallet-auth-local-runtime","build":{"commit":"abc123def456","release":"ynx-chain-abc123def456","buildTime":"2026-07-10T00:00:00Z"}}'
+    ;;
   *)
     echo "unexpected URL: $url" >&2
     exit 1
@@ -65,7 +68,7 @@ case "$url" in
 esac
 EOF
   chmod +x "$tmp/bin/curl"
-  YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 YNX_EXPECT_SQUARE_SERVICE=1 YNX_EXPECT_APP_GATEWAY_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
+  YNX_EXPECT_BRIDGE_SERVICE=1 YNX_EXPECT_STABLECOIN_SERVICE=1 YNX_EXPECT_CHAT_SERVICE=1 YNX_EXPECT_SQUARE_SERVICE=1 YNX_EXPECT_APP_GATEWAY_SERVICE=1 YNX_EXPECT_WALLET_GATEWAY_SERVICE=1 PATH="$tmp/bin:$PATH" "$0" primary abc123def456 ynx-chain-abc123def456 6423 full
   PATH="$tmp/bin:$PATH" "$0" singapore abc123def456 ynx-chain-abc123def456 6423 validator
   echo "check-local-services self-test passed"
   exit 0
@@ -222,6 +225,17 @@ check_full_stack_surface() {
     require_contains "App Gateway health" "$app_gateway" '"truthfulStatus":"remote-first-party-app-gateway"'
     require_contains "App Gateway health build commit" "$app_gateway" "$expected_commit"
     require_contains "App Gateway health release" "$app_gateway" "$expected_release"
+  fi
+
+  if [[ "${YNX_EXPECT_WALLET_GATEWAY_SERVICE:-0}" == "1" ]]; then
+    wallet_gateway="$(fetch_with_retry "canonical Wallet Gateway health" "http://127.0.0.1:6439/health")"
+    require_contains "canonical Wallet Gateway health" "$wallet_gateway" '"service":"ynx-wallet-gatewayd"'
+    require_contains "canonical Wallet Gateway registry" "$wallet_gateway" '"registryVersion":2'
+    require_contains "canonical Wallet Gateway adapter" "$wallet_gateway" '"adapterStateVersion":2'
+    require_contains "canonical Wallet Gateway persistence" "$wallet_gateway" '"persistence":"atomic-local-state"'
+    require_contains "canonical Wallet Gateway truth" "$wallet_gateway" '"truthfulStatus":"canonical-wallet-auth-local-runtime"'
+    require_contains "canonical Wallet Gateway build commit" "$wallet_gateway" "$expected_commit"
+    require_contains "canonical Wallet Gateway release" "$wallet_gateway" "$expected_release"
   fi
 }
 

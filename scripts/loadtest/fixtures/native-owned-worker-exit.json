@@ -1,0 +1,12 @@
+{
+  "origin": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-owned-v2-host-differential-20261018-01.json",
+  "originSHA256": "d0c5c6ec418103ccd5d70e5c21a7cb947c9136c37ff9e9f5eccd994d6f090596",
+  "actualOuterExit": 0,
+  "job": {
+    "pid": 97613,
+    "exited": true,
+    "code": 1,
+    "signal": null
+  },
+  "interpretation": "Original captured result, not a clean worker exit. Original stderr was ignored; cause unresolved."
+}

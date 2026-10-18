@@ -1,0 +1,41 @@
+{
+  "schema": "ynx-chain-recovery-evidence/v1",
+  "generatedAt": "2026-07-22T14:45:00Z",
+  "sourceBaseline": "719e1018267ed5a53e6fae5211c5fd8a1503c35c",
+  "repositoryInventory": {
+    "localBranches": 32,
+    "remoteBranches": 23,
+    "tags": 4,
+    "reflogEntries": 1296,
+    "reachableCommits": 411,
+    "registeredWorktrees": 33,
+    "recoverySourceDirtyEntries": 0
+  },
+  "github": {
+    "releaseCountObserved": 4,
+    "actionsInventoryComplete": false,
+    "artifactsInventoryComplete": false,
+    "failure": "TLS handshake timeout during repeated Actions and Artifacts API inventory"
+  },
+  "deployedRuntime": {
+    "release": "ynx-chain-02f4ccd8770c",
+    "commit": "02f4ccd8770c",
+    "manifestSha256": "77f21c7a5d581af47f579bb33deb3cc4557433d87bb2b81dbc7805bf26998f4c",
+    "daemonSha256": "a91a6ff83c2f346efd84de8d4b86e1fd991745edd66a0c888cbe9e723c56398e",
+    "roles": {
+      "primary": {"strictSsh": true, "serviceActive": true, "releaseVerified": true},
+      "singapore": {"strictSsh": true, "serviceActive": true, "releaseVerified": true},
+      "siliconValley": {"strictSsh": true, "serviceActive": true, "releaseVerified": true},
+      "seoul": {"strictSsh": true, "serviceActive": true, "releaseVerified": true}
+    },
+    "publicFourValidatorBft": false,
+    "topology": "authoritative-producer-with-three-read-only-authenticated-followers"
+  },
+  "workstationPublicIngress": {
+    "generatedAt": "2026-07-22T14:17:09.671Z",
+    "routeClassification": "transparent-proxy-or-vpn-fake-ip",
+    "directProofEligible": false,
+    "passedProbes": 13,
+    "totalProbes": 42
+  }
+}

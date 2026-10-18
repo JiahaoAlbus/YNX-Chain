@@ -1,0 +1,102 @@
+{
+  "schema": "ynx-public-product-metadata/v1",
+  "generatedAt": "2026-07-29T19:06:46Z",
+  "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+  "product": {
+    "id": "chain-core",
+    "name": "YNX Chain Core",
+    "shortName": "Chain Core",
+    "owner": "01-chain-core",
+    "summary": "Deterministic YNX Testnet execution, committed state, EVM-compatible reads and bounded signed transfers, with a fail-closed StreamBFT shadow candidate.",
+    "repository": "https://github.com/JiahaoAlbus/YNX-Chain"
+  },
+  "network": {
+    "name": "YNX Testnet",
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "evmChainIdHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "nativeAddressPrefix": "ynx1",
+    "status": "public-testnet"
+  },
+  "release": {
+    "class": "source-candidate",
+    "streamBftMode": "shadow",
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "independentPublicProof": false
+  },
+  "artifacts": [
+    {
+      "kind": "source-archive",
+      "label": "YNX Chain Core v0.2.0 Source Candidate",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz",
+      "sha256": "6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6",
+      "bytes": 6474374,
+      "signingClass": "unsigned-source",
+      "productionSigned": false
+    }
+  ],
+  "capabilities": [
+    "committed-state-v12-and-abci-v18",
+    "signed-native-transfer-and-replay-rejection",
+    "bounded-eip155-eip2930-eip1559-value-transfers",
+    "committed-evm-transaction-receipt-log-and-fee-history-reads",
+    "state-sync-snapshot-and-validator-backup-restore",
+    "four-validator-local-cometbft-safety-baseline",
+    "streambft-shadow-lanes-dag-qc-safety-pacemaker-and-deterministic-execution",
+    "streambft-overflow-safe-quorum-resource-and-timeout-accounting",
+    "governance-execution-begin-verify-and-audit"
+  ],
+  "boundaries": [
+    "The authoritative public runtime does not run this source candidate.",
+    "The public topology is not four-validator StreamBFT voting.",
+    "StreamBFT canary promotion fails closed until formal, differential, WAN, fault, soak, restore and rollback evidence is complete.",
+    "No production signer, independent audit, Mainnet launch or public StreamBFT cutover is claimed."
+  ],
+  "website": {
+    "targetOrigin": "https://ynxweb4.com",
+    "canonicalPath": "/chain",
+    "publicationStatus": "external-blocked",
+    "currentPublicReference": "https://ynxweb4.com/what-is-ynx-chain",
+    "requiredRoutes": {
+      "product": "/chain",
+      "userManual": "/chain/manual",
+      "developerDocs": "/chain/developers",
+      "api": "/chain/api",
+      "faq": "/chain/faq",
+      "security": "/chain/security",
+      "status": "/chain/status",
+      "support": "/chain/support"
+    },
+    "experienceRequirements": [
+      "global-search",
+      "command-palette",
+      "loading-empty-error-and-recovery-states",
+      "mobile-responsive",
+      "dark-mode",
+      "rtl",
+      "wcag-2.2-aa"
+    ],
+    "handoff": "docs/integration/WEBSITE_HANDOFF.md"
+  },
+  "evidence": [
+    "FEATURE_COMPLETION_EVIDENCE.md",
+    "docs/architecture/STREAMBFT_CANDIDATE.md",
+    "docs/integration/CHAIN_CORE_INTEGRATION_HANDOFF.md",
+    "release/chain-core/product-release.json",
+    "release/integration/chain-core-contract.json",
+    "scripts/verify/streambft-candidate-check.sh",
+    "release/chain-core/artifact-registry.json"
+  ],
+  "externalBlockers": [
+    "Central Product Session integration and cross-product vectors require the 29-integration owner.",
+    "Publishing the required ynxweb4.com routes and production deployment requires the Website/domain owner and Website repository.",
+    "Canary or public StreamBFT activation requires the recorded promotion evidence, owner approval, production signing and an independent security audit."
+  ]
+}

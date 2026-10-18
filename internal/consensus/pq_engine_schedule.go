@@ -19,7 +19,7 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 )
 
-const PQEngineScheduleStateVersion = 17
+const PQEngineScheduleStateVersion = 20
 
 // PQEngineAuthorization is independent local operator configuration. It is
 // neither persisted as authority in the ledger nor constructed by an API peer.

@@ -18,18 +18,20 @@ func main() {
 	output := flag.String("output", "", "new directory for the ephemeral four-validator network")
 	migrationPath := flag.String("migration-state", "", "validated unbound YNX migration state")
 	localFixture := flag.Bool("local-fixture", false, "create a local-only four-validator migration fixture")
+	fixtureBalance := flag.Int64("fixture-balance", 1000, "local-only fixture signer YNXT balance; used only with -local-fixture")
+	consensusMaxGas := flag.Int64("consensus-max-gas", 0, "optional positive CometBFT block max_gas for local evidence; zero keeps the default unlimited profile")
 	ephemeral := flag.Bool("ephemeral", false, "required acknowledgement that generated keys are local-only and disposable")
 	baseP2P := flag.Int("base-p2p-port", 27656, "first local P2P port")
 	baseRPC := flag.Int("base-rpc-port", 27757, "first local RPC port")
 	baseABCI := flag.Int("base-abci-port", 27858, "first local ABCI port")
 	flag.Parse()
-	if err := run(*output, *migrationPath, *localFixture, *ephemeral, *baseP2P, *baseRPC, *baseABCI); err != nil {
+	if err := run(*output, *migrationPath, *localFixture, *ephemeral, *fixtureBalance, *consensusMaxGas, *baseP2P, *baseRPC, *baseABCI); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(output, migrationPath string, localFixture, ephemeral bool, baseP2P, baseRPC, baseABCI int) error {
+func run(output, migrationPath string, localFixture, ephemeral bool, fixtureBalance, consensusMaxGas int64, baseP2P, baseRPC, baseABCI int) error {
 	if !ephemeral {
 		return errors.New("-ephemeral acknowledgement is required; generated keys must never be used for remote testnet or custody")
 	}
@@ -39,11 +41,17 @@ func run(output, migrationPath string, localFixture, ephemeral bool, baseP2P, ba
 	if localFixture == (strings.TrimSpace(migrationPath) != "") {
 		return errors.New("choose exactly one of -local-fixture or -migration-state")
 	}
+	if consensusMaxGas < 0 {
+		return errors.New("-consensus-max-gas must be zero or positive")
+	}
 	var migration chain.ConsensusMigrationState
 	var fixtureSigner *secp256k1.PrivateKey
 	var err error
 	if localFixture {
-		migration, fixtureSigner, err = localMigrationFixture()
+		if fixtureBalance <= 0 {
+			return errors.New("-fixture-balance must be positive")
+		}
+		migration, fixtureSigner, err = localMigrationFixture(fixtureBalance)
 	} else {
 		payload, readErr := os.ReadFile(migrationPath)
 		if readErr != nil {
@@ -58,10 +66,11 @@ func run(output, migrationPath string, localFixture, ephemeral bool, baseP2P, ba
 		return fmt.Errorf("prepare migration state: %w", err)
 	}
 	manifest, err := consensus.GenerateEphemeralNetwork(migration, consensus.EphemeralNetworkOptions{
-		RootDir:  output,
-		BaseP2P:  baseP2P,
-		BaseRPC:  baseRPC,
-		BaseABCI: baseABCI,
+		RootDir:         output,
+		BaseP2P:         baseP2P,
+		BaseRPC:         baseRPC,
+		BaseABCI:        baseABCI,
+		ConsensusMaxGas: consensusMaxGas,
 	})
 	if err != nil {
 		return err
@@ -90,7 +99,10 @@ func run(output, migrationPath string, localFixture, ephemeral bool, baseP2P, ba
 	return nil
 }
 
-func localMigrationFixture() (chain.ConsensusMigrationState, *secp256k1.PrivateKey, error) {
+func localMigrationFixture(fixtureBalance int64) (chain.ConsensusMigrationState, *secp256k1.PrivateKey, error) {
+	if fixtureBalance <= 0 {
+		return chain.ConsensusMigrationState{}, nil, errors.New("local fixture balance must be positive")
+	}
 	validators := []chain.Validator{
 		{Address: "ynx_validator_primary", Moniker: "ynx-primary", VotingPower: 1, Active: true},
 		{Address: "ynx_validator_singapore", Moniker: "ynx-singapore", VotingPower: 1, Active: true},
@@ -106,7 +118,7 @@ func localMigrationFixture() (chain.ConsensusMigrationState, *secp256k1.PrivateK
 	if err != nil {
 		return chain.ConsensusMigrationState{}, nil, err
 	}
-	if _, err := devnet.Faucet(fixtureAddress, 1000); err != nil {
+	if _, err := devnet.Faucet(fixtureAddress, fixtureBalance); err != nil {
 		return chain.ConsensusMigrationState{}, nil, err
 	}
 	devnet.ProduceBlock()

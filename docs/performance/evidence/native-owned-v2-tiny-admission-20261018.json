@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "kind": "native-owned-v2-first-tiny-window-admission",
+  "rootGrant": "tiny-native 60s/400MiB after A55056 actual exit0; obey stricter original guard",
+  "toolChunk": "6de9ad",
+  "actualExit": 1,
+  "compilerStarted": false,
+  "familyStarted": false,
+  "candidateBinaryProduced": false,
+  "launcher": 82067,
+  "probe": 82070,
+  "firstCause": "native memory pressure is not normal: {\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":2,\"errno\":0}",
+  "memoryPressure": {
+    "source": "kern.memorystatus_vm_pressure_level",
+    "readable": true,
+    "dispatchLevel": 2,
+    "errno": 0
+  },
+  "ownedSampleRSS": 53755904,
+  "hostComplete": true,
+  "forkProbe": {
+    "available": true,
+    "forkSucceeded": true,
+    "forkErrno": 0,
+    "waitErrno": 0,
+    "childExitCode": 0,
+    "childSignal": 0
+  },
+  "sources": [
+    {
+      "path": "scripts/loadtest/native-owned-inventory-check.mjs",
+      "bytes": 8538,
+      "sha256": "8d7f7075824a99f056d2314a09435e075ebdc51fc0540a3d9c061045b1cf66c1"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-owned-v2-admission-20261018-01.json",
+      "bytes": 3582,
+      "sha256": "ff61674cb567696af79408541d93a9e8ad30817bc1ef5ee8473c49b6d3c143b2"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-owned-v2-admission-cleanup-20261018-01.json",
+      "bytes": 645,
+      "sha256": "45352b0dc957b5974cc8cb0d84725472c0116cdf4ed4c5138e58b609765f33ee"
+    }
+  ],
+  "prepareOnly": {
+    "toolChunk": "1e4f2d",
+    "actualExit": 0,
+    "processesStarted": 0
+  },
+  "cleanup": {
+    "toolChunk": "dd8439",
+    "actualExit": 0,
+    "twoChecks": "original launcher/probe/probe group ESRCH at17:36:43.628Z/17:36:43.731Z"
+  },
+  "interpretation": "Pressure2 is retained as actual data. The original level1 admission guard stopped the component attempt before clang or the private family. No native candidate PASS, no successful heavy admission, no Go/network run and no automatic retry."
+}

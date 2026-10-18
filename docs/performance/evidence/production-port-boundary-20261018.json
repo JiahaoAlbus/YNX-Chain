@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "kind": "performance-source-port-boundary",
+  "performanceHead": "9f1a01549",
+  "productionReference": {
+    "commit": "65efa82e06158f9616172144c3c9efdd8088f227",
+    "subject": "test(faucet): verify cold Core and service recovery after lost ACK",
+    "source": "Root identifies this as chaind production reference; commit object verified locally. This record does not independently verify runtime deployment."
+  },
+  "mergeBase": "2a78ace0a647b73dd2961fae3361189116453a7d",
+  "selectedDirectoryDiff": {
+    "paths": [
+      "cmd/ynx-chaind",
+      "internal/chain",
+      "internal/api",
+      "internal/consensus"
+    ],
+    "files": 119,
+    "insertions": 11152,
+    "deletions": 9161,
+    "direction": "production reference to performance HEAD; includes both absent production code and added performance/consensus code, not an intentional deletion patch"
+  },
+  "mustRetainProductionExamples": [
+    "cmd/ynx-chaind/faucet_authority.go",
+    "cmd/ynx-chaind/http_shutdown.go",
+    "internal/api/transaction_durability.go",
+    "internal/chain/transaction_durability.go",
+    "internal/chain/native_dex.go",
+    "internal/chain/consensus_migration_dex.go",
+    "internal/consensus/migration_dex.go"
+  ],
+  "semanticConflictExample": {
+    "path": "internal/consensus/pay_application.go",
+    "productionOnlyCases": [
+      "ActionPayInvoiceSettle",
+      "ActionPayRefundComplete"
+    ],
+    "otherFields": [
+      "BFTPayInvoice.PayoutAddress",
+      "BFTPaySettlement",
+      "native transfer claims and expanded audit fields"
+    ],
+    "requirement": "Do not overwrite this file or schema using the performance tree. Preserve every production state field and execution guard; requalify canonical hash, rollback and replay against the complete production model."
+  },
+  "candidateOptimizationCommits": [
+    {
+      "commit": "50385dc72",
+      "change": "immutable fee journal and durable commit phase measurement",
+      "scope": [
+        "internal/consensus/fee_journal.go",
+        "internal/consensus/application.go",
+        "internal/consensus/state.go"
+      ],
+      "risk": "State schema and all mutation/rollback paths must use the production base, including current Pay fields."
+    },
+    {
+      "commit": "c14e7e403",
+      "change": "avoid redundant CheckTx state clone",
+      "risk": "Read-only CheckTx isolation must cover all production action variants; no state mutation may leak."
+    },
+    {
+      "commit": "2f446351f",
+      "change": "bounded successful native signature facts",
+      "risk": "Pin exact signed bytes and chain identity; retain policy/nonce/fee execution checks."
+    },
+    {
+      "commit": "aa121ecc1",
+      "change": "sparse immutable native account and lot updates",
+      "risk": "Preserve production module state and real transfer persistence consistency."
+    },
+    {
+      "commit": "1aa47ab08",
+      "change": "explicit checkpoint and block execution delta layout",
+      "risk": "Format change and state continuity require complete production schema, recovery and migration validation; no in-place production conversion is authorized."
+    },
+    {
+      "commit": "a8bf51776",
+      "change": "share bounded verified native facts across independent full readback replays",
+      "risk": "Observer optimization; no matched-network after result yet. Every execution/state/response replay remains required."
+    }
+  ],
+  "evidenceScope": {
+    "network": "window-eEfGE7=1024 qualified finals/7.552927125s=135.576576/s; offline four-node proofs pending; cached variant unexecuted.",
+    "target": "Sustained 1000 valid final commits/s for 10 minutes remains unproven.",
+    "applicationBenchmarks": "Existing short ABCI evidence measures the historical performance source and fixture; gains cannot be asserted for the production reference without port and retest."
+  },
+  "next": "Root coordinates the existing production upgrade owner. Share selective performance hunks and relevant tests; do not merge/reset/deploy the performance tree wholesale. Keep frozen before/cached comparison artifacts unchanged."
+}

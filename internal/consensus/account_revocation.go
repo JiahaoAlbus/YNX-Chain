@@ -74,7 +74,7 @@ func (a *Application) applyPQRevocation(state executionState, wire []byte, nativ
 	lot.LastInbound = a.feeRecipient
 	state.traceLots[flow.LotID] = lot
 	state.accountPolicy = &next
-	state.feeEvents = append(append([]BFTFeeEvent(nil), state.feeEvents...), newCurrentFeeEvent(abciHash, PQRevocationType, owner, a.feeRecipient, 1, height, blockTime))
+	state.feeEvents = state.feeEvents.append(newCurrentFeeEvent(abciHash, PQRevocationType, owner, a.feeRecipient, 1, height, blockTime))
 	tx := chain.Transaction{Hash: nativeHash, Type: PQRevocationType, From: owner, To: owner, Fee: 1, Nonce: revocation.Intent.LedgerNonce, LotFlows: []chain.LotFlow{flow}, Memo: pqRevocationMemo + hex.EncodeToString(wire)}
 	executed := transactionExecution{typeName: PQRevocationType, hash: abciHash, event: abcitypes.Event{Type: "ynx.account_revocation", Attributes: []abcitypes.EventAttribute{{Key: "owner", Value: owner, Index: true}, {Key: "through_revision", Value: fmt.Sprint(revocation.Intent.ThroughRevision)}, {Key: "revoked_from", Value: fmt.Sprint(revocation.Intent.RevokeAt)}}}}
 	return state, tx, executed, nil

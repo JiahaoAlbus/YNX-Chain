@@ -48,6 +48,7 @@ const required = [
   "config/ynx-chatd.env",
   "config/ynx-squared.env",
   "config/ynx-app-gatewayd.env",
+  "config/ynx-wallet-gatewayd.env",
   "config/ynx-chaind-primary.env",
   "config/ynx-chaind-singapore.env",
   "config/ynx-chaind-silicon-valley.env",
@@ -60,6 +61,13 @@ const required = [
   "systemd/ynx-chatd.service",
   "systemd/ynx-squared.service",
   "systemd/ynx-app-gatewayd.service",
+  "systemd/ynx-wallet-gatewayd.service",
+  "wallet-gateway/cmd/ynx-wallet-gatewayd/main.mjs",
+  "wallet-gateway/internal/walletgateway/server.mjs",
+  "wallet-gateway/packages/wallet-auth/central-registry.json",
+  "wallet-gateway/packages/wallet-auth/package-lock.json",
+  "wallet-gateway/packages/wallet-auth/node_modules/@noble/curves/index.js",
+  "wallet-gateway/packages/wallet-auth/node_modules/@noble/hashes/index.js",
   "nginx/ynx-chain.conf",
 ];
 

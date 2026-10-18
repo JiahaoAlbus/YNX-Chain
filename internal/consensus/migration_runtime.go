@@ -80,6 +80,11 @@ func validateMigrationTraceLots(s CommittedState, migration chain.ConsensusMigra
 	if migration.Runtime == nil {
 		return nil
 	}
+	if s.Version <= 13 {
+		// The original state commits its source migration hash, not a v15 trace map.
+		// Preserve that exact checkpoint; source lineage is imported only in the next execution view.
+		return nil
+	}
 	if len(s.TraceLots) != len(migration.Runtime.Lots) {
 		return errors.New("committed trace lineage inventory differs from source")
 	}

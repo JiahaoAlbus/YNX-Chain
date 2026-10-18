@@ -1,0 +1,262 @@
+{
+  "case": "client13-normal-09",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-09.json",
+  "rawBytes": 87144,
+  "rawSha256": "62f5ad63f612c9c2e0e12e732002f4fbb23ddda25f7285d2fa96542a18a7c762",
+  "startedAt": "2026-10-18T03:13:29.136Z",
+  "launcher": 32250,
+  "controllerSession": 52756,
+  "terminalCode": 0,
+  "elapsedMs": 21311,
+  "sourceChecks": [
+    {
+      "head": "36e1e2115e5357c5d2a6ea16984efd613c2e5770",
+      "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "1614f4ad2bc419612f3aba5bde492ad24a9920b6"
+      }
+    },
+    {
+      "head": "36e1e2115e5357c5d2a6ea16984efd613c2e5770",
+      "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "1614f4ad2bc419612f3aba5bde492ad24a9920b6"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "47eb59f2a51259568fb5c1e3926d9645d971e0219a1f8697cf163f06da953a71",
+    "consensus-light-plan.mjs": "295d4303d201011a2516c4b424e595901fa2118d872d4509cb86855dbb3b056a",
+    "native-resource-sample.mjs": "e0c3b4baf8557d6196246c9eec7f7c3a8ef684b7d0c0298c1c2f218762e46e9a",
+    "owned-process-race.mjs": "edeaa6284921b805eb8eb7b45a24c51580da1de131a0d830c11b3ce92e10127c",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "hostBinary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages",
+    "sha256": "bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d"
+  },
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=21041ms",
+    "-v"
+  ],
+  "ownedRSSCapBytes": 805306368,
+  "cacheBefore": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3370659840,
+      11753926656
+    ],
+    "totalBytes": 15124586496,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cacheAfter": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3370668032,
+      11753926656
+    ],
+    "totalBytes": 15124594688,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T03:13:29.237Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29898,
+      "endedAt": "2026-10-18T03:13:38.093Z"
+    },
+    {
+      "startedAt": "2026-10-18T03:13:42.753Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 16382,
+      "endedAt": "2026-10-18T03:13:50.349Z"
+    }
+  ],
+  "cacheNetGrowthBytes": 8192,
+  "go": {
+    "pid": 32991,
+    "code": 0,
+    "signal": null,
+    "stdout": "=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/complete\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/gap\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/partial\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/corrupt\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/bad_signature\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/wrong_fixture\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/budget\n--- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves (0.33s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/complete (0.04s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/gap (0.04s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/partial (0.03s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/corrupt (0.02s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/bad_signature (0.02s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/wrong_fixture (0.05s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/budget (0.13s)\n=== RUN   TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged\n--- PASS: TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged (0.02s)\n=== RUN   TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix\n--- PASS: TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix (0.02s)\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/no_plan\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/missing_receipt\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/poisoned\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/full_receipt\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/corrupt_acknowledged\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/mixed\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/escaped\n--- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption (0.16s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/no_plan (0.02s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/missing_receipt (0.02s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/poisoned (0.02s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/full_receipt (0.02s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/corrupt_acknowledged (0.02s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/mixed (0.02s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/escaped (0.02s)\n=== RUN   TestReadyIntentSegmentsPersistAndStreamExactSignedInputs\n--- PASS: TestReadyIntentSegmentsPersistAndStreamExactSignedInputs (0.02s)\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/false\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/true\n--- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence (0.03s)\n    --- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/false (0.01s)\n    --- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/true (0.02s)\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/missing\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/extra\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/corrupt\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/manifest\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/chain\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/budget\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/signature\n--- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding (0.14s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/missing (0.02s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/extra (0.02s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/corrupt (0.02s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/manifest (0.02s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/chain (0.02s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/budget (0.02s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/signature (0.02s)\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/valid\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/missing_receipt\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/mixed\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/escaped\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/poisoned\n--- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts (0.10s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/valid (0.02s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/missing_receipt (0.02s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/mixed (0.02s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/escaped (0.02s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/poisoned (0.02s)\n=== RUN   TestSegmentedIntentOptionsRequireBoundedEvidenceMode\n--- PASS: TestSegmentedIntentOptionsRequireBoundedEvidenceMode (0.00s)\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/fixture\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/duplicate\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_hash\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/nonce_gap\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_signature\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/unknown_field\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/cancel\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/partial\n--- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities (0.03s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/fixture (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/duplicate (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_hash (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/nonce_gap (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_signature (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/unknown_field (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/cancel (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/partial (0.00s)\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer/full_history\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer/reused_slots\n--- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer (0.18s)\n    --- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer/full_history (0.08s)\n    --- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer/reused_slots (0.09s)\n=== RUN   TestReadySenderSegmentedIntentBarrierAndRecovery\n--- PASS: TestReadySenderSegmentedIntentBarrierAndRecovery (0.09s)\n=== RUN   TestReadySenderSegmentedIntentFailureNeverSubmits\n--- PASS: TestReadySenderSegmentedIntentFailureNeverSubmits (0.01s)\nPASS\nok  \tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\t1.720s\n",
+    "stderr": "",
+    "exited": true
+  },
+  "actualPassedFunctions": [
+    "TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves",
+    "TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged",
+    "TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix",
+    "TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption",
+    "TestReadyIntentSegmentsPersistAndStreamExactSignedInputs",
+    "TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence",
+    "TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding",
+    "TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts",
+    "TestSegmentedIntentOptionsRequireBoundedEvidenceMode",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySenderSegmentedIntentBarrierAndRecovery",
+    "TestReadySenderSegmentedIntentFailureNeverSubmits"
+  ],
+  "firstCause": null,
+  "peakAcceptedSampleRSS": 583270400,
+  "peakReadableRSSLowerBoundBytes": 583270400,
+  "peakThreads": 28,
+  "peakScratchBytes": 49741824,
+  "peakSample": {
+    "at": "2026-10-18T03:13:40.644Z",
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 32250,
+        "readable": true,
+        "rssBytes": 65880064,
+        "virtualBytes": 501372567552,
+        "threads": 7
+      },
+      {
+        "pid": 32991,
+        "readable": true,
+        "rssBytes": 40599552,
+        "virtualBytes": 475979497472,
+        "threads": 4
+      },
+      {
+        "pid": 33009,
+        "readable": true,
+        "rssBytes": 319504384,
+        "virtualBytes": 476277063680,
+        "threads": 3
+      },
+      {
+        "pid": 33022,
+        "readable": true,
+        "rssBytes": 15613952,
+        "virtualBytes": 500638203904,
+        "threads": 1
+      },
+      {
+        "pid": 33023,
+        "readable": true,
+        "rssBytes": 138100736,
+        "virtualBytes": 500767555584,
+        "threads": 11
+      }
+    ],
+    "watchedRssBytes": 579698688,
+    "watchedThreads": 26,
+    "samplerRssBytes": 1785856,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 583270400,
+    "threadsWithControlReserve": 28,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 2,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 734,
+      "uid": 501,
+      "uidProcessCount": 581,
+      "unreadableBsdInfo": 153,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 3016,
+      "capacityBytes": 7112,
+      "returnedBytes": 2940,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 735,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 734,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 581,
+      "esrch": 0,
+      "eperm": 153,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 1215
+  },
+  "nearestPriorOwnedInventory": {
+    "at": "2026-10-18T03:13:40.639Z",
+    "identities": [
+      {
+        "pid": 32250,
+        "parent": 1093,
+        "group": 32250,
+        "birth": "Sun Oct 18 11:13:29 2026",
+        "comm": "/opt/homebrew/bin/node"
+      },
+      {
+        "pid": 32991,
+        "parent": 32250,
+        "group": 32991,
+        "birth": "Sun Oct 18 11:13:38 2026",
+        "comm": "/opt/homebrew/bin/go"
+      },
+      {
+        "pid": 33009,
+        "parent": 32991,
+        "group": 32991,
+        "birth": "Sun Oct 18 11:13:39 2026",
+        "comm": "/opt/homebrew/Cellar/go/1.25.7_1/libexec/pkg/tool/darwin_arm64/link"
+      },
+      {
+        "pid": 33022,
+        "parent": 33009,
+        "group": 32991,
+        "birth": "Sun Oct 18 11:13:40 2026",
+        "comm": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang"
+      },
+      {
+        "pid": 33023,
+        "parent": 33022,
+        "group": 32991,
+        "birth": "Sun Oct 18 11:13:40 2026",
+        "comm": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld"
+      }
+    ],
+    "source": "actual ps pid,ppid,pgid,lstart,comm; program path only, no arguments/environment"
+  },
+  "raceObservations": [],
+  "exitedDuringSample": [],
+  "groupGone": true,
+  "retryExecuted": false,
+  "interpretation": "One actual Go invocation: all 13 fixed top-level functions PASS, package1.720s, no FAIL/SKIP. Same repaired source aa255, exact instrumented probe; explicit768MiB case, default400 unchanged. Validates original performance-client correctness only, not PQ N16, nodes, throughput, BFT finality or deployment."
+}

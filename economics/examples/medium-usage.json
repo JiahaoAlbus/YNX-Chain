@@ -1,0 +1,10 @@
+{
+  "asOf": "2026-07-22T00:00:00Z",
+  "totalSupplyYnxt": 1000000000,
+  "stakedSupplyYnxt": 500000000,
+  "validatorCount": 16,
+  "largestOperatorBps": 3000,
+  "annualNetworkFeesYnxt": 10000000,
+  "annualServiceBurnYnxt": 1000000,
+  "years": 5
+}

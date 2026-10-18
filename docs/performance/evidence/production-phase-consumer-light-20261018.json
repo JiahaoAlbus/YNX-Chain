@@ -1,0 +1,44 @@
+{
+  "kind": "source-and-format-controls-not-performance",
+  "node": "v26.7.0",
+  "platform": "darwin/arm64",
+  "receiptTests": {
+    "positiveRedFailuresBeforeImplementation": 3,
+    "finalPassed": 14,
+    "finalFailed": 0,
+    "fixtures": "unsigned format-only, not PQ signature or ledger proof"
+  },
+  "launcherTests": {
+    "red": "unknown --segmented-intents option",
+    "finalPassed": 2,
+    "finalFailed": 0,
+    "mode": "prepare only, executable placeholders inspected but never launched"
+  },
+  "source": [
+    {
+      "path": "scripts/loadtest/pq-batch-receipt.mjs",
+      "bytes": 9792,
+      "sha256": "33a67dce79c3031277891215a9fc1cc2cd21ca25b711954cad9da25259eb70ed"
+    },
+    {
+      "path": "scripts/loadtest/pq-batch-receipt.test.mjs",
+      "bytes": 11307,
+      "sha256": "c2dde567b8a6d6818c497da96a87b0fefde4c6cd9b116decf38c328a35b305db"
+    },
+    {
+      "path": "scripts/loadtest/consensus-local-window.mjs",
+      "bytes": 16324,
+      "sha256": "d6e3a32870c9c3c54eb2c56dfc14339ea69b24c5afe9d1b0b58a65e20c5ce7a3"
+    },
+    {
+      "path": "scripts/loadtest/consensus-local-window.test.mjs",
+      "bytes": 8169,
+      "sha256": "51c98c7c6bbe6cf43f9cb621d8e368affbbcb0e0d6119d6362e1d67a174c98a5"
+    }
+  ],
+  "productionAPISourceCommit": "6a3b8f813bcc5a2ee8ab0280783b6ebddf3d9c71",
+  "originalClientActualGoReceipt": "client-ci13-actual-45058e7-20261018.json",
+  "newNetworkRun": false,
+  "newTPSResult": false,
+  "bftFinalityMeasured": false
+}

@@ -227,7 +227,7 @@ func (a *Application) applyPQContractAction(state executionState, raw []byte, he
 	}
 	bftReceipt.AuditHash = bftEVMReceiptAuditHash(bftReceipt)
 	state.evmReceipts = insertBFTEVMReceipt(state.evmReceipts, bftReceipt)
-	state.feeEvents = append(append([]BFTFeeEvent(nil), state.feeEvents...), newCurrentFeeEvent(abciHash, PQActionType, action.Owner, a.feeRecipient, int64(action.Fee), height, blockTime))
+	state.feeEvents = state.feeEvents.append(newCurrentFeeEvent(abciHash, PQActionType, action.Owner, a.feeRecipient, int64(action.Fee), height, blockTime))
 	state.pqHistory = append(clonePQHistory(state.pqHistory), PQCommittedAuthorization{ABCITransactionHash: abciHash, Transaction: tx})
 	return state, transactionExecution{typeName: PQActionType, hash: abciHash, event: abcitypes.Event{Type: "ynx.pq_contract", Attributes: []abcitypes.EventAttribute{{Key: "action", Value: action.Kind, Index: true}, {Key: "owner", Value: action.Owner, Index: true}, {Key: "contract", Value: post.Address, Index: true}, {Key: "native_hash", Value: nativeHash, Index: true}}}}, nil
 }

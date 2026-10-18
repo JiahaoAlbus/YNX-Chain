@@ -1,0 +1,756 @@
+{
+  "schema": "ynx-cross-product-test-vectors/v1",
+  "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "nativeAsset": "YNXT"
+  },
+  "vectors": [
+    {
+      "id": "chain-network-identity-accept",
+      "owner": "chain-core",
+      "operation": "read-status",
+      "inputSource": "chain-metadata/ynx-testnet.json",
+      "expected": "accept"
+    },
+    {
+      "id": "native-transfer-valid-accept",
+      "owner": "chain-core",
+      "operation": "broadcast-transfer",
+      "inputSource": "testdata/mobile-native-transfer-vector.json",
+      "expected": "accept"
+    },
+    {
+      "id": "native-transfer-replay-reject",
+      "owner": "chain-core",
+      "operation": "broadcast-transfer",
+      "inputSource": "testdata/mobile-native-transfer-vector.json",
+      "mutation": "resubmit-identical-envelope-after-commit",
+      "expected": "reject",
+      "errorClass": "replay"
+    },
+    {
+      "id": "native-transfer-wrong-chain-reject",
+      "owner": "chain-core",
+      "operation": "broadcast-transfer",
+      "inputSource": "testdata/mobile-native-transfer-vector.json",
+      "mutation": "replace-chain-id",
+      "expected": "reject",
+      "errorClass": "wrong-chain"
+    },
+    {
+      "id": "evm-eip155-legacy-value-transfer-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "chain-id-6423",
+        "secp256k1-sender-recovery",
+        "zero-based-account-nonce",
+        "exact-21000-gas-limit",
+        "ethereum-keccak-and-comet-sha256-dual-identity",
+        "committed-audited-receipt"
+      ]
+    },
+    {
+      "id": "evm-eip155-wrong-chain-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "sign-the-envelope-for-a-chain-id-other-than-6423",
+      "expected": "reject",
+      "errorClass": "wrong-chain",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip155-malformed-or-typed-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "use-non-canonical-RLP-or-an-unsupported-EIP-2718-envelope-such-as-type-0x03",
+      "expected": "reject",
+      "errorClass": "unsupported-or-malformed-envelope",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip155-replay-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "resubmit-the-identical-EIP-155-envelope-after-commit",
+      "expected": "reject",
+      "errorClass": "nonce-replay",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip2930-empty-access-list-value-transfer-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "type-0x01-envelope",
+        "chain-id-6423",
+        "empty-access-list",
+        "secp256k1-sender-recovery-and-y-parity",
+        "zero-based-account-nonce",
+        "exact-21000-gas-limit",
+        "ethereum-keccak-and-comet-sha256-dual-identity",
+        "type-0x1-transaction-and-receipt-mapping",
+        "committed-audited-receipt"
+      ]
+    },
+    {
+      "id": "evm-eip2930-non-empty-access-list-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "replace-the-empty-access-list-with-one-or-more-entries",
+      "expected": "reject",
+      "errorClass": "unsupported-access-list",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip2930-calldata-or-contract-creation-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "add-calldata-or-remove-the-20-byte-recipient",
+      "expected": "reject",
+      "errorClass": "outside-bounded-value-transfer-profile",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip2930-wrong-chain-or-unsupported-typed-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "mutation": "sign-type-0x01-for-another-chain-or-submit-an-unsupported-type-such-as-0x03",
+      "expected": "reject",
+      "errorClass": "wrong-chain-or-unsupported-envelope",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip2930-replay-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "resubmit-the-identical-type-0x01-envelope-after-commit",
+      "expected": "reject",
+      "errorClass": "nonce-replay",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip1559-zero-base-fee-transfer-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "type-0x02-envelope",
+        "chain-id-6423",
+        "zero-base-fee-compatibility-profile",
+        "priority-fee-at-or-below-max-fee",
+        "maximum-fee-affordability-check",
+        "effective-fee-debit-at-priority-fee",
+        "empty-access-list-and-exact-21000-gas",
+        "type-0x2-transaction-and-receipt-mapping"
+      ]
+    },
+    {
+      "id": "evm-eip1559-invalid-fee-relation-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "set-maxPriorityFeePerGas-to-zero-or-above-maxFeePerGas",
+      "expected": "reject",
+      "errorClass": "invalid-dynamic-fee-profile",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip1559-max-fee-affordability-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "fund-sender-for-effective-fee-but-below-maxFeePerGas-times-21000",
+      "expected": "reject",
+      "errorClass": "insufficient-maximum-fee-exposure",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip1559-non-empty-access-list-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "replace-empty-access-list-with-one-or-more-entries",
+      "expected": "reject",
+      "errorClass": "unsupported-access-list",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip1559-calldata-or-contract-creation-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/consensus/ethereum_transaction_test.go",
+      "mutation": "add-calldata-or-remove-the-20-byte-recipient",
+      "expected": "reject",
+      "errorClass": "outside-bounded-value-transfer-profile",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-eip1559-wrong-chain-replay-or-unsupported-type-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "mutation": "sign-type-0x02-for-another-chain-resubmit-after-commit-or-submit-type-0x03",
+      "expected": "reject",
+      "errorClass": "wrong-chain-replay-or-unsupported-envelope",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-receipt-audit-tamper-reject",
+      "owner": "chain-core",
+      "operation": "eth_getTransactionReceipt",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "mutation": "change-receipt-address-or-content-without-recomputing-the-committed-audit-hash",
+      "expected": "reject",
+      "errorClass": "committed-evidence-mismatch",
+      "expectedRpcCode": -32603
+    },
+    {
+      "id": "evm-committed-block-evidence-accept",
+      "owner": "chain-core",
+      "operation": "eth_getBlockByNumber",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "status-bound-block-hash",
+        "migration-parent-anchor",
+        "app-hash",
+        "data-hash",
+        "block-results-gas"
+      ]
+    },
+    {
+      "id": "evm-block-transaction-count-index-accept",
+      "owner": "chain-core",
+      "operation": "eth_getBlockTransactionCountByNumber-and-eth_getBlockTransactionCountByHash-and-eth_getTransactionByBlockNumberAndIndex-and-eth_getTransactionByBlockHashAndIndex",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "status-bound-block-hash",
+        "app-hash",
+        "data-hash",
+        "raw-and-mapped-transaction-count-match",
+        "canonical-transaction-index"
+      ]
+    },
+    {
+      "id": "evm-block-transaction-pending-or-missing-null-accept",
+      "owner": "chain-core",
+      "operation": "block-transaction-count-or-index-lookup",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "request-pending-height-future-height-or-unknown-block-hash",
+      "expected": "accept",
+      "expectedResult": null
+    },
+    {
+      "id": "evm-block-transaction-out-of-range-null-accept",
+      "owner": "chain-core",
+      "operation": "eth_getTransactionByBlockNumberAndIndex",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "request-canonical-index-equal-to-transaction-count",
+      "expected": "accept",
+      "expectedResult": null
+    },
+    {
+      "id": "evm-block-transaction-malformed-quantity-reject",
+      "owner": "chain-core",
+      "operation": "eth_getBlockTransactionCountByNumber-or-eth_getTransactionByBlockNumberAndIndex",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "use-leading-zero-block-quantity-or-transaction-index",
+      "expected": "reject",
+      "errorClass": "invalid-params",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-block-transaction-malformed-hash-reject",
+      "owner": "chain-core",
+      "operation": "eth_getBlockTransactionCountByHash-or-eth_getTransactionByBlockHashAndIndex",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "use-uppercase-short-or-non-hex-block-hash",
+      "expected": "reject",
+      "errorClass": "invalid-params",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-block-transaction-wrong-parameter-count-reject",
+      "owner": "chain-core",
+      "operation": "block-transaction-count-or-index-lookup",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "omit-required-index-or-add-extra-parameter",
+      "expected": "reject",
+      "errorClass": "invalid-params",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-block-transaction-upstream-evidence-failure-reject",
+      "owner": "chain-core",
+      "operation": "block-transaction-count-or-index-lookup",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "make-CometBFT-block-evidence-unavailable-or-inconsistent",
+      "expected": "reject",
+      "errorClass": "upstream-or-evidence-failure",
+      "expectedRpcCode": -32603
+    },
+    {
+      "id": "evm-current-account-state-accept",
+      "owner": "chain-core",
+      "operation": "eth_getBalance-and-eth_getTransactionCount",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "expected": "accept"
+    },
+    {
+      "id": "evm-historical-account-state-reject",
+      "owner": "chain-core",
+      "operation": "eth_getBalance",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "request-retained-height-before-current-state",
+      "expected": "reject",
+      "errorClass": "historical-state-unavailable"
+    },
+    {
+      "id": "evm-signed-ynxt-broadcast-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "testdata/mobile-native-transfer-vector.json",
+      "expected": "accept",
+      "requiredEvidence": [
+        "comet-broadcast-commit",
+        "transaction-hash-match",
+        "committed-block-membership"
+      ]
+    },
+    {
+      "id": "evm-signed-ynxt-replay-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/gateway_test.go",
+      "mutation": "resubmit-identical-envelope-after-commit",
+      "expected": "reject",
+      "errorClass": "replay",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "evm-bounded-contract-code-call-accept",
+      "owner": "chain-core",
+      "operation": "eth_getCode-and-eth_call-and-eth_estimateGas",
+      "inputSource": "internal/bftgateway/ide_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "consensus-pinned-artifact-identity",
+        "committed-abci-contract-state",
+        "bounded-static-interpreter-result",
+        "one-consensus-resource-unit-estimate"
+      ]
+    },
+    {
+      "id": "evm-bounded-contract-historical-state-reject",
+      "owner": "chain-core",
+      "operation": "eth_getCode",
+      "inputSource": "internal/bftgateway/ide_test.go",
+      "mutation": "request-contract-code-at-prior-height",
+      "expected": "reject",
+      "errorClass": "historical-state-unavailable",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-bounded-contract-value-or-state-override-reject",
+      "owner": "chain-core",
+      "operation": "eth_call",
+      "inputSource": "internal/bftgateway/ide_test.go",
+      "mutation": "set-non-zero-value-or-state-override",
+      "expected": "reject",
+      "errorClass": "unsupported-execution-context",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "wallet-product-session-wrong-product-reject",
+      "owner": "wallet-auth",
+      "operation": "forward-signed-mutation",
+      "inputSource": "accepted-wallet-auth-contract",
+      "mutation": "bind-session-to-another-product",
+      "expected": "reject",
+      "errorClass": "wrong-product",
+      "blockedUntil": "accepted Wallet/Auth contract"
+    },
+    {
+      "id": "wallet-product-session-scope-widening-reject",
+      "owner": "wallet-auth",
+      "operation": "forward-signed-mutation",
+      "inputSource": "accepted-wallet-auth-contract",
+      "mutation": "add-unapproved-mutation-scope",
+      "expected": "reject",
+      "errorClass": "scope-widening",
+      "blockedUntil": "accepted Wallet/Auth scope identifiers"
+    },
+    {
+      "id": "user-operation-sponsored-batch-accept",
+      "owner": "chain-core",
+      "operation": "submit-user-operation",
+      "inputSource": "internal/consensus/account_abstraction_action_test.go",
+      "expected": "accept"
+    },
+    {
+      "id": "user-operation-expired-reject",
+      "owner": "chain-core",
+      "operation": "submit-user-operation",
+      "inputSource": "chain/accounts/user-operation.schema.json",
+      "mutation": "set-valid-until-before-block-time",
+      "expected": "reject",
+      "errorClass": "expired"
+    },
+    {
+      "id": "user-operation-paymaster-budget-reject",
+      "owner": "chain-core",
+      "operation": "submit-user-operation",
+      "inputSource": "internal/consensus/account_abstraction_action_test.go",
+      "mutation": "raise-fee-above-remaining-paymaster-budget",
+      "expected": "reject",
+      "errorClass": "limit-exceeded"
+    },
+    {
+      "id": "bundler-sponsored-user-operation-e2e-accept",
+      "owner": "chain-core",
+      "operation": "bundler-submit-and-read-receipt",
+      "inputSource": "internal/bftgateway/account_abstraction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "bundler-account-nonce-read",
+        "outer-application-action-signature",
+        "comet-commit",
+        "inner-user-operation-signature",
+        "paymaster-exact-fee-debit",
+        "receipt-readback"
+      ]
+    },
+    {
+      "id": "bundler-sponsored-user-operation-replay-reject",
+      "owner": "chain-core",
+      "operation": "bundler-submit-user-operation",
+      "inputSource": "internal/bftgateway/account_abstraction_test.go",
+      "mutation": "resubmit-identical-user-operation-after-commit",
+      "expected": "reject",
+      "errorClass": "nonce-replay"
+    },
+    {
+      "id": "strategy-mandate-create-accept",
+      "owner": "chain-core",
+      "operation": "create-strategy-mandate",
+      "inputSource": "chain/governance/strategy-mandate.schema.json",
+      "expected": "accept"
+    },
+    {
+      "id": "strategy-mandate-revoked-action-reject",
+      "owner": "chain-core",
+      "operation": "execute-strategy-action",
+      "inputSource": "internal/assetauth/mandate_test.go",
+      "mutation": "execute-after-revoke",
+      "expected": "reject",
+      "errorClass": "revoked"
+    },
+    {
+      "id": "strategy-vault-owner-withdraw-accept",
+      "owner": "chain-core",
+      "operation": "withdraw-strategy-vault",
+      "inputSource": "internal/assetauth/vault.go",
+      "expected": "accept"
+    },
+    {
+      "id": "strategy-vault-engine-withdraw-reject",
+      "owner": "chain-core",
+      "operation": "withdraw-strategy-vault",
+      "inputSource": "internal/bftgateway/quant_test.go",
+      "mutation": "replace-owner-signer-with-engine-or-attacker",
+      "expected": "reject",
+      "errorClass": "wrong-owner"
+    },
+    {
+      "id": "strategy-vault-funding-after-kill-reject",
+      "owner": "chain-core",
+      "operation": "deposit-strategy-vault",
+      "inputSource": "internal/bftgateway/quant_test.go",
+      "mutation": "activate-mandate-kill-switch-before-deposit",
+      "expected": "reject",
+      "errorClass": "mandate-disabled"
+    },
+    {
+      "id": "strategy-vault-funding-after-revoke-or-expiry-reject",
+      "owner": "chain-core",
+      "operation": "create-or-deposit-strategy-vault",
+      "inputSource": "internal/consensus/asset_authorization_action_test.go",
+      "mutation": "revoke-mandate-or-set-block-time-at-expiry",
+      "expected": "reject",
+      "errorClass": "mandate-disabled"
+    },
+    {
+      "id": "strategy-vault-emergency-exit-after-kill-accept",
+      "owner": "chain-core",
+      "operation": "emergency-exit-strategy-vault",
+      "inputSource": "internal/bftgateway/quant_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "owner-signature",
+        "zero-final-vault-balance",
+        "closed-at",
+        "returned-traceable-lots"
+      ]
+    },
+    {
+      "id": "strategy-vault-refund-after-close-reject",
+      "owner": "chain-core",
+      "operation": "deposit-strategy-vault",
+      "inputSource": "internal/consensus/asset_authorization_action_test.go",
+      "mutation": "deposit-after-emergency-exit",
+      "expected": "reject",
+      "errorClass": "vault-closed"
+    },
+    {
+      "id": "strategy-vault-rejected-mutation-atomicity",
+      "owner": "chain-core",
+      "operation": "verify-rejected-vault-mutation",
+      "inputSource": "internal/bftgateway/quant_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "unchanged-nonce",
+        "unchanged-fee-balance",
+        "unchanged-vault-balance",
+        "unchanged-lots",
+        "no-audit-event"
+      ]
+    },
+    {
+      "id": "staking-withdraw-before-maturity-reject",
+      "owner": "chain-core",
+      "operation": "withdraw-unbonding",
+      "inputSource": "internal/consensus/staking_action_test.go",
+      "mutation": "submit-before-completion-time",
+      "expected": "reject",
+      "errorClass": "state-conflict"
+    },
+    {
+      "id": "solvency-liability-proof-tamper-reject",
+      "owner": "chain-core",
+      "operation": "verify-liability-proof",
+      "inputSource": "internal/consensus/solvency_snapshot_test.go",
+      "mutation": "change-leaf-amount-after-proof-generation",
+      "expected": "reject",
+      "errorClass": "invalid-proof"
+    },
+    {
+      "id": "abci-state-sync-roundtrip-accept",
+      "owner": "chain-core",
+      "operation": "restore-committed-state-snapshot",
+      "inputSource": "internal/consensus/snapshot_test.go",
+      "expected": "accept"
+    },
+    {
+      "id": "abci-state-sync-tampered-chunk-reject",
+      "owner": "chain-core",
+      "operation": "restore-committed-state-snapshot",
+      "inputSource": "internal/consensus/snapshot_test.go",
+      "mutation": "change-final-chunk-after-offer",
+      "expected": "reject",
+      "errorClass": "invalid-snapshot"
+    },
+    {
+      "id": "validator-backup-rollback-replay-accept",
+      "owner": "chain-core",
+      "operation": "restore-validator-backup-and-replay",
+      "inputSource": "scripts/verify/consensus-quorum-check.sh",
+      "expected": "accept"
+    },
+    {
+      "id": "evm-gas-price-minimum-suggestion-accept",
+      "owner": "chain-core",
+      "operation": "eth_gasPrice",
+      "inputSource": "internal/bftgateway/fee_suggestion_test.go",
+      "expected": "accept",
+      "expectedResult": "0x1",
+      "semantics": "minimum-accepted-protocol-value-not-market-estimate"
+    },
+    {
+      "id": "evm-max-priority-fee-minimum-suggestion-accept",
+      "owner": "chain-core",
+      "operation": "eth_maxPriorityFeePerGas",
+      "inputSource": "internal/bftgateway/fee_suggestion_test.go",
+      "expected": "accept",
+      "expectedResult": "0x1",
+      "semantics": "minimum-accepted-protocol-value-not-market-estimate"
+    },
+    {
+      "id": "evm-fee-suggestion-invalid-params-reject",
+      "owner": "chain-core",
+      "operation": "eth_gasPrice-or-eth_maxPriorityFeePerGas",
+      "inputSource": "internal/bftgateway/fee_suggestion_test.go",
+      "mutation": "supply-null-object-or-extra-parameters",
+      "expected": "reject",
+      "errorClass": "invalid-params",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-fee-history-committed-positive-max-gas-accept",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "retained-committed-blocks",
+        "valid-app-hash-and-data-hash",
+        "block-results-gas-used",
+        "positive-committed-consensus-max-gas",
+        "zero-base-fee-array",
+        "evidence-derived-gas-used-ratio"
+      ]
+    },
+    {
+      "id": "evm-fee-history-retained-range-clamp-accept",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "mutation": "request-more-blocks-than-the-retained-committed-range",
+      "expected": "accept",
+      "requiredEvidence": [
+        "oldest-block-equals-earliest-retained-height",
+        "base-fee-array-length-is-returned-block-count-plus-one",
+        "no-pruned-block-fabrication"
+      ]
+    },
+    {
+      "id": "evm-fee-history-reward-percentiles-reject",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "mutation": "request-a-non-empty-reward-percentile-array",
+      "expected": "reject",
+      "errorClass": "unsupported-reward-estimate",
+      "expectedRpcCode": -32602
+    },
+    {
+      "id": "evm-fee-history-non-positive-max-gas-reject",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "mutation": "CometBFT-committed-consensus-max-gas-is-zero-or-negative",
+      "expected": "reject",
+      "errorClass": "truthful-history-unavailable",
+      "expectedRpcCode": -32004
+    },
+    {
+      "id": "evm-fee-history-gas-evidence-mismatch-reject",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "internal/bftgateway/fee_history_test.go",
+      "mutation": "block-results-gas-used-exceeds-committed-consensus-max-gas",
+      "expected": "reject",
+      "errorClass": "committed-evidence-mismatch",
+      "expectedRpcCode": -32603
+    },
+    {
+      "id": "consensus-signer-cli-bounded-envelopes-accept",
+      "owner": "chain-core",
+      "operation": "sign-bounded-transaction",
+      "inputSource": "cmd/ynx-consensus-tx/main_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "ynx-eip155-eip2930-eip1559",
+        "raw-and-json-output",
+        "0600-key-file",
+        "no-private-key-output",
+        "ethereum-and-comet-dual-hash"
+      ]
+    },
+    {
+      "id": "consensus-lab-configurable-fixture-balance-accept",
+      "owner": "chain-core",
+      "operation": "create-local-four-validator-fixture",
+      "inputSource": "cmd/ynx-consensus-lab/main_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "exact-positive-balance",
+        "migration-supply-binding",
+        "zero-and-negative-rejected",
+        "ephemeral-local-only"
+      ]
+    },
+    {
+      "id": "consensus-four-validator-eip1559-commit-rollback-accept",
+      "owner": "chain-core",
+      "operation": "commit-and-recover-bounded-eip1559-transfer",
+      "inputSource": "scripts/verify/consensus-eip1559-commit-check.sh and scripts/verify/consensus-quorum-check.sh",
+      "expected": "accept",
+      "requiredEvidence": [
+        "four-validator-apphash-equality",
+        "gateway-broadcast-commit",
+        "ethereum-and-comet-dual-identity",
+        "all-validator-receipt-equality",
+        "wrong-chain-and-replay-rejection",
+        "backup-rollback-replay-includes-type-0x02-state",
+        "deployedPublic-false"
+      ]
+    },
+    {
+      "id": "evm-broadcast-committed-evidence-binding-accept",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "expected": "accept",
+      "requiredEvidence": [
+        "broadcast-height-and-comet-hash",
+        "exact-raw-transaction-block-membership",
+        "valid-app-hash-and-data-hash",
+        "block-results-gas-equals-broadcast-gas",
+        "audited-receipt-equals-block-transaction"
+      ]
+    },
+    {
+      "id": "evm-broadcast-committed-evidence-mismatch-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/ethereum_transaction_test.go",
+      "mutation": "change-receipt-party-gas-hash-height-or-raw-block-membership-after-broadcast-success",
+      "expected": "reject",
+      "errorClass": "committed-evidence-mismatch",
+      "expectedRpcCode": -32603
+    },
+    {
+      "id": "evm-comet-cache-duplicate-reject",
+      "owner": "chain-core",
+      "operation": "eth_sendRawTransaction",
+      "inputSource": "internal/bftgateway/gateway_test.go and internal/bftgateway/broadcast_rejection_test.go",
+      "mutation": "resubmit-a-transaction-that-CometBFT-reports-as-already-existing-in-cache",
+      "expected": "reject",
+      "errorClass": "duplicate-or-replay",
+      "expectedRpcCode": -32003
+    },
+    {
+      "id": "consensus-four-validator-positive-max-gas-fee-history-accept",
+      "owner": "chain-core",
+      "operation": "eth_feeHistory",
+      "inputSource": "scripts/verify/consensus-fee-history-check.sh",
+      "expected": "accept",
+      "requiredEvidence": [
+        "four-validator-block-and-apphash-equality",
+        "consensus-max-gas-42000",
+        "committed-type-0x02-gas-used-21000",
+        "zero-base-fee-history",
+        "gas-used-ratio-0.5",
+        "empty-reward-row",
+        "deployedPublic-false",
+        "productionSigned-false"
+      ]
+    }
+  ]
+}
