@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "kind": "source-counterexample-and-elastic-endpoint-repair",
+  "baseCommit": "41b21a9941275540f66aa397082a18cac4da4929",
+  "red": {
+    "sourcePatch": {
+      "path": "docs/performance/evidence/endpoint-elastic-red-41b21a994.patch",
+      "bytes": 8177,
+      "sha256": "b5a1e087ce30e15eb10ebe933bda06413925355236218a60c481f22e32b79051"
+    },
+    "raw": {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-source/local-red.raw",
+      "bytes": 423,
+      "sha256": "183b409b1857f18c48c17c3755a40aec0d2bf1b5c51d97afbc919a4f48ea0529"
+    },
+    "assertion": "fixed endpoint worker head-of-line: one blocked signed RPC prevented another sender on the same authority progressing while three workers were available",
+    "command": "env GOMAXPROCS=1 go test -p 1 ./cmd/ynx-consensus-perf-client -run '^TestEndpointElasticSignedRequestsProgressPastOneDelayedRequest$' -count=1 -timeout=30s -v"
+  },
+  "verification": {
+    "targeted": {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-source/local-final.raw",
+      "bytes": 1780,
+      "sha256": "59981ff1a7b46825b039c232f5233bf8b8d8c881febf33c09e94fb15b29a6c8a"
+    },
+    "reusedSlots": {
+      "path": "artifacts/chain-performance-20261017/endpoint-elastic-source/local-reused-slots.raw",
+      "bytes": 2050,
+      "sha256": "bb96ef9cfbd37657fb5cff1521d39fc4511d60f9531f2878705af77766695e67"
+    },
+    "targetedTests": 12,
+    "reusedSlotTests": 1
+  },
+  "intermediate": {
+    "path": "artifacts/chain-performance-20261017/endpoint-elastic-source/local-first-fix.raw",
+    "bytes": 360,
+    "sha256": "4f2897ad295135ba380e168f224e23c76045630a5b0393494d8383e0c083de3c"
+  },
+  "bounds": {
+    "globalSubmitters": 4,
+    "perEndpointActiveCallbacks": 2,
+    "totalQueuedSlots": "len(results), divided by original slot index%4",
+    "newGoroutinePools": 0,
+    "authoritySelector": "original index%4",
+    "retry": false,
+    "enabledByDefault": false
+  },
+  "businessGates": [
+    "actual signed CheckTx",
+    "real local FinalizeBlock and Commit",
+    "fee and nonce readback",
+    "restart",
+    "UNKNOWN identity never retried",
+    "two cancelled original calls retain UNKNOWN after late replies",
+    "no unsubmitted successor dispatch",
+    "four ordinary HTTP endpoints",
+    "existing fixed endpoint and shared default remain"
+  ],
+  "networkPerformanceQualified": false,
+  "sustainedTPSQualified": false,
+  "limits": "Unit gate quorum/Merkle flags are explicit fixture inputs. These tests are not CometBFT quorum proof, four-node throughput or measured network latency improvement. One intermediate fix run failed the test helper legacy per-endpoint1 assertion; helper now requires1 for old mode and2 only for the newly explicit elastic option, preserving global4 and original queue budget."
+}

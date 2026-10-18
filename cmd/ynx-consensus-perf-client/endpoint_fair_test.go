@@ -32,6 +32,44 @@ func TestEndpointFairCancellationKeepsLateReplyUnknown(t *testing.T) {
 	testEndpointFairRPC(t, "cancel_late")
 }
 
+func TestEndpointElasticSignedRequestsProgressPastOneDelayedRequest(t *testing.T) {
+	testEndpointFairRPC(t, "one", true)
+}
+func TestEndpointElasticSignedRequestsKeepOtherEndpointsProgressing(t *testing.T) {
+	testEndpointFairRPC(t, "slow", true)
+}
+func TestEndpointElasticUnknownIdentityIsNeverRetried(t *testing.T) {
+	testEndpointFairRPC(t, "unknown", true)
+}
+func TestEndpointElasticCancellationKeepsLateRepliesUnknown(t *testing.T) {
+	testEndpointFairRPC(t, "cancel_late", true)
+}
+
+func TestEndpointElasticRequiresOriginalFourWorkersAndExplicitSelection(t *testing.T) {
+	o := options{manifest: "manifest", transactions: "transactions", output: "new-result.json", timeout: 10 * time.Second, poll: 100 * time.Millisecond, rounds: 2, senderMode: "ready-pool", offeredRate: 512, concurrency: 4, observers: 4, endpointFair: true, endpointElastic: true}
+	if err := validateOptions(o); err != nil {
+		t.Fatal(err)
+	}
+	for _, kind := range []string{"no_fair", "workers", "observers", "unpaced", "rounds"} {
+		changed := o
+		switch kind {
+		case "no_fair":
+			changed.endpointFair = false
+		case "workers":
+			changed.concurrency = 5
+		case "observers":
+			changed.observers = 3
+		case "unpaced":
+			changed.offeredRate = 0
+		case "rounds":
+			changed.senderMode = "rounds"
+		}
+		if validateOptions(changed) == nil {
+			t.Fatal("elastic scope widened", kind)
+		}
+	}
+}
+
 func TestEndpointFairOptionGuardPreservesLegacyDefault(t *testing.T) {
 	o := options{manifest: "manifest", transactions: "transactions", output: "new-result.json", timeout: 10 * time.Second, poll: 100 * time.Millisecond, rounds: 2, senderMode: "ready-pool", offeredRate: 512, concurrency: 4, observers: 4, endpointFair: true}
 	if err := validateOptions(o); err != nil {
@@ -60,7 +98,8 @@ func TestEndpointFairOptionGuardPreservesLegacyDefault(t *testing.T) {
 	}
 }
 
-func testEndpointFairRPC(t *testing.T, mode string) {
+func testEndpointFairRPC(t *testing.T, mode string, elastic ...bool) {
+	useElastic := len(elastic) > 0 && elastic[0]
 	path, manifest, m, migration, initial := senderFixture(t, 16)
 	pool, err := loadSenderPool(path, manifest, m, migration, initial, 2)
 	if err != nil {
@@ -134,7 +173,7 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 			n := active[endpoint].Add(1)
 			atomicMaximum(&peaks[endpoint], n)
 			defer active[endpoint].Add(-1)
-			if endpoint == 0 && mode == "slow" {
+			if endpoint == 0 && (mode == "slow" || mode == "one" && index == 0) {
 				if n == 4 {
 					saturatedOnce.Do(func() { close(saturated) })
 				}
@@ -144,7 +183,7 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 					return
 				}
 			}
-			if index == 13 {
+			if mode == "one" && index == 4 || mode != "one" && index == 13 {
 				fastOnce.Do(func() { close(fast) })
 			}
 			checked, err := app.CheckTx(r.Context(), &abci.RequestCheckTx{Tx: request.Params.Tx})
@@ -153,7 +192,7 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 				http.Error(w, "check failed", 500)
 				return
 			}
-			if mode == "cancel_late" && index == 0 {
+			if mode == "cancel_late" && (index == 0 || useElastic && endpoint == 0) {
 				<-release
 			}
 			responseHash := cmttypes.Tx(request.Params.Tx).Hash()
@@ -186,7 +225,7 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 	var execution sync.Mutex
 	height := int64(migration.Height)
 	go func() {
-		stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, endpointFair: true}, pool, txs, results,
+		stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, endpointFair: true, endpointElastic: useElastic}, pool, txs, results,
 			func(i int) (time.Time, bool) {
 				return submitTransactionMeasured(ctx, clients[i%4], txs[i], &results[i], true)
 			},
@@ -228,12 +267,13 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 			})
 		done <- outcome{stats, err}
 	}()
-	progressed := mode != "slow"
-	if mode == "slow" {
+	progressed := mode != "slow" && mode != "one"
+	if mode == "slow" || mode == "one" {
 		select {
 		case <-fast:
 			progressed = true
 		case <-saturated:
+		case <-time.After(500 * time.Millisecond):
 		case <-ctx.Done():
 			t.Error("controlled completion deadline", ctx.Err())
 		}
@@ -265,19 +305,25 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 	}
 	if mode == "cancel_late" {
 		final, offered, submitted, unknown, quarantined = 24, 28, 25, 1, 4
+		if useElastic {
+			submitted, unknown = 26, 2
+		}
 	}
-	if (mode == "slow" && result.err != nil) || (mode != "slow" && result.err == nil) || result.stats.Completed != final || result.stats.Offered != offered || result.stats.Quarantined != quarantined {
+	if ((mode == "slow" || mode == "one") && result.err != nil) || (mode != "slow" && mode != "one" && result.err == nil) || result.stats.Completed != final || result.stats.Offered != offered || result.stats.Quarantined != quarantined {
 		t.Fatal("original business/quarantine counts changed", mode, result.stats, result.err)
 	}
 	suppressed := func(i int) bool { return mode == "unknown" && i%16 == 0 || mode == "cancel_late" && i%4 == 0 }
 	mu.Lock()
 	for i := 0; i < 32; i++ {
 		want := 1
-		if mode == "unknown" && i == 16 || mode == "cancel_late" && i%4 == 0 && i != 0 {
+		if mode == "unknown" && i == 16 || mode == "cancel_late" && i%4 == 0 && i != 0 && !(useElastic && i == 4) {
 			want = 0
 		}
 		if requests[i] != want || results[i].Endpoint != urls[i%4] || (!suppressed(i) && !qualifiedBusinessFinal(results[i])) {
 			t.Fatal("request replay/authority/business drift", mode, i, requests[i], results[i].Status)
+		}
+		if useElastic && mode == "cancel_late" && i == 4 && (results[i].Status != "submission_unknown" || results[i].CheckTxObservedAt != nil || qualifiedBusinessFinal(results[i])) {
+			t.Fatal("second late endpoint reply promoted UNKNOWN", results[i].Status)
 		}
 		phases := results[i].SubmissionPhases
 		if results[i].SubmittedAt == nil {
@@ -295,8 +341,30 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 	if counts.Offered != offered || counts.Submitted != submitted || counts.EffectiveBusinessIncluded != final || counts.FinalSubmitted != final || counts.SubmissionUnknown != unknown || counts.NotSubmitted != 32-submitted {
 		t.Fatal("original submission/inclusion/final counters drifted", mode, counts)
 	}
-	if result.stats.EndpointDispatch == nil || result.stats.EndpointDispatch.Workers != 4 || result.stats.EndpointDispatch.PerEndpointInFlightLimit != 1 || result.stats.EndpointDispatch.QueueCapacityTotal != 32 {
+	endpointLimit := 1
+	if useElastic {
+		if result.stats.EndpointDispatch.PeakTotalInFlight > 4 || result.stats.EndpointDispatch.PeakTotalInFlight == 0 {
+			t.Fatal("original total worker bound lost", result.stats.EndpointDispatch)
+		}
+		endpointLimit = 2
+	}
+	if result.stats.EndpointDispatch == nil || result.stats.EndpointDispatch.Workers != 4 || result.stats.EndpointDispatch.PerEndpointInFlightLimit != endpointLimit || result.stats.EndpointDispatch.QueueCapacityTotal != 32 {
 		t.Fatal("candidate changed original worker/queue bound", result.stats.EndpointDispatch)
+	}
+	if useElastic {
+		if result.stats.EndpointDispatch.PeakInFlight == nil {
+			t.Fatal("elastic callback peaks missing")
+		}
+		for _, peak := range result.stats.EndpointDispatch.PeakInFlight {
+			if peak > 2 {
+				t.Fatal("elastic callback endpoint limit exceeded", peak)
+			}
+		}
+		if (mode == "one" || mode == "slow" || mode == "cancel_late") && result.stats.EndpointDispatch.PeakInFlight[0] != 2 {
+			t.Fatal("controlled endpoint never used second original worker")
+		}
+	} else if result.stats.EndpointDispatch.PeakInFlight != nil {
+		t.Fatal("legacy dispatch report changed")
 	}
 	callbacks, returns := uint64(0), uint64(0)
 	for i := range result.stats.EndpointDispatch.CallbackAttempts {
@@ -326,11 +394,14 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 		}
 	}
 	if !progressed {
+		if mode == "one" {
+			t.Fatal("fixed endpoint worker head-of-line: one blocked signed RPC prevented another sender on the same authority progressing while three workers were available")
+		}
 		t.Fatal("shared pool head-of-line: four signed requests to one endpoint blocked ready sender13 on another authority")
 	}
 	for i := range peaks {
-		if peaks[i].Load() > 1 {
-			t.Fatal(fmt.Sprintf("endpoint%d escaped one in-flight bound: %d", i, peaks[i].Load()))
+		if peaks[i].Load() > int64(endpointLimit) {
+			t.Fatal(fmt.Sprintf("endpoint%d escaped %d in-flight bound: %d", i, endpointLimit, peaks[i].Load()))
 		}
 	}
 }

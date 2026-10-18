@@ -207,11 +207,13 @@ type readySupplyStats struct {
 }
 
 type endpointDispatchStats struct {
-	Workers                  int       `json:"workers"`
-	PerEndpointInFlightLimit int       `json:"perEndpointInFlightLimit"`
-	QueueCapacityTotal       int       `json:"queueCapacityTotal"`
-	CallbackAttempts         [4]uint64 `json:"callbackAttempts"`
-	CallbackReturns          [4]uint64 `json:"callbackReturns"`
+	Workers                  int        `json:"workers"`
+	PerEndpointInFlightLimit int        `json:"perEndpointInFlightLimit"`
+	QueueCapacityTotal       int        `json:"queueCapacityTotal"`
+	CallbackAttempts         [4]uint64  `json:"callbackAttempts"`
+	CallbackReturns          [4]uint64  `json:"callbackReturns"`
+	PeakInFlight             *[4]uint64 `json:"peakInFlight,omitempty"`
+	PeakTotalInFlight        uint64     `json:"peakTotalInFlight,omitempty"`
 }
 
 type readySenderStats struct {
@@ -234,6 +236,9 @@ type readySenderStats struct {
 // There is one reserved/in-flight nonce per sender, with no whole-round barrier.
 // Unknown/rejected/failed/timed-out senders are quarantined while peers continue.
 func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, txs []cmttypes.Tx, results []transactionResult, submit func(int) (time.Time, bool), observe func(int, <-chan acceptedObservation, func(int))) (stats readySenderStats, runErr error) {
+	if o.endpointElastic && !o.endpointFair {
+		return stats, errors.New("elastic endpoint submission requires explicit endpoint fairness")
+	}
 	if o.endpointFair && (o.concurrency != 4 || o.observers != 4) {
 		return stats, errors.New("endpoint fairness requires exactly the original four submitters and observers")
 	}
@@ -331,12 +336,17 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 	defer func() { runErr = errors.Join(runErr, journal.close()) }()
 	var jobs chan int
 	var endpointJobs [4]chan int
+	var elastic *elasticEndpointQueue
 	if o.endpointFair {
 		stats.EndpointDispatch = &endpointDispatchStats{Workers: 4, PerEndpointInFlightLimit: 1, QueueCapacityTotal: len(results)}
-		for endpoint := range endpointJobs {
-			// Sum of capacities equals the old shared queue. No extra pool,
-			// authority substitution, retry or per-sender nonce advancement.
-			endpointJobs[endpoint] = make(chan int, (len(results)+3-endpoint)/4)
+		if o.endpointElastic {
+			elastic = newElasticEndpointQueue(len(results))
+		} else {
+			for endpoint := range endpointJobs {
+				// Sum of capacities equals the old shared queue. No extra pool,
+				// authority substitution, retry or per-sender nonce advancement.
+				endpointJobs[endpoint] = make(chan int, (len(results)+3-endpoint)/4)
+			}
 		}
 	} else {
 		jobs = make(chan int, len(results))
@@ -359,20 +369,32 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 	}
 	for worker := 0; worker < o.concurrency; worker++ {
 		queue := jobs
-		if o.endpointFair {
+		if o.endpointFair && elastic == nil {
 			queue = endpointJobs[worker]
 		}
 		submitters.Add(1)
 		go func(worker int, queue <-chan int) {
 			defer submitters.Done()
-			for index := range queue {
+			for {
+				var index int
+				var open bool
+				if elastic != nil {
+					index, open = elastic.take()
+				} else {
+					index, open = <-queue
+				}
+				if !open {
+					return
+				}
 				generation := resultGeneration(index)
 				pendingSubmit.Add(-1)
-				if o.endpointFair {
+				if o.endpointFair && elastic == nil {
 					stats.EndpointDispatch.CallbackAttempts[worker]++
 				}
 				started, ok := submit(index)
-				if o.endpointFair {
+				if elastic != nil {
+					elastic.complete(index)
+				} else if o.endpointFair {
 					stats.EndpointDispatch.CallbackReturns[worker]++
 				}
 				if !started.IsZero() {
@@ -394,7 +416,9 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			return
 		}
 		closed = true
-		if o.endpointFair {
+		if elastic != nil {
+			elastic.close()
+		} else if o.endpointFair {
 			for _, queue := range endpointJobs {
 				close(queue)
 			}
@@ -402,6 +426,9 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			close(jobs)
 		}
 		submitters.Wait()
+		if elastic != nil {
+			elastic.report(stats.EndpointDispatch)
+		}
 		for _, queue := range accepted {
 			close(queue)
 		}
@@ -604,7 +631,9 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			}
 			atomicMaximum(&peakSubmit, pendingSubmit.Add(1))
 			dispatchStarted := time.Now()
-			if o.endpointFair {
+			if elastic != nil {
+				elastic.enqueue(index)
+			} else if o.endpointFair {
 				endpointJobs[index%4] <- index
 			} else {
 				jobs <- index

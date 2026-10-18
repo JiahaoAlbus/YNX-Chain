@@ -60,6 +60,7 @@ type options struct {
 	observerPhaseTiming            bool
 	sharedDurableReplay            bool
 	endpointFair                   bool
+	endpointElastic                bool
 }
 
 type transactionInput struct {
@@ -186,6 +187,7 @@ type report struct {
 	ObserverPhaseTiming  bool                     `json:"observerPhaseTiming"`
 	SharedDurableReplay  bool                     `json:"sharedDurableReplay"`
 	EndpointFair         bool                     `json:"endpointFairSubmission"`
+	EndpointElastic      bool                     `json:"endpointElasticSubmission,omitempty"`
 	SenderMode           string                   `json:"senderMode"`
 	PacingMode           string                   `json:"pacingMode"`
 	InclusionMode        string                   `json:"inclusionMode"`
@@ -221,6 +223,7 @@ func main() {
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
 	flag.StringVar(&o.pacingMode, "pacing-mode", "relative", "ready-pool pacing: relative, bounded-cadence or grouped-cadence4 (at most four offers, expired groups discarded)")
 	flag.BoolVar(&o.endpointFair, "endpoint-fair-submission", false, "candidate: original four submit workers, one per original index%4 endpoint, bounded total queue, no retry")
+	flag.BoolVar(&o.endpointElastic, "endpoint-elastic-submission", false, "candidate: requires endpoint fairness; reuse original four workers across unchanged endpoints, maximum two in flight per endpoint")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
@@ -243,6 +246,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.endpointElastic && !o.endpointFair {
+		return errors.New("elastic endpoint submission requires explicit endpoint fairness")
+	}
 	if o.endpointFair && (o.senderMode != "ready-pool" || o.concurrency != 4 || o.observers != 4 || o.offeredRate <= 0) {
 		return errors.New("endpoint fairness requires paced ready-pool and exactly four submitters/observers")
 	}
@@ -895,7 +901,10 @@ func execute(o options) error {
 		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
 	}}
 	r.EndpointFair = o.endpointFair
-	if o.endpointFair {
+	r.EndpointElastic = o.endpointElastic
+	if o.endpointElastic {
+		r.Interpretation = append(r.Interpretation, "Explicit elastic endpoint candidate: the original four submit goroutines fairly take pending work across unchanged index%4 authorities, with at most two active callbacks per endpoint. Total queue capacity and worker count are unchanged; callback attempts/returns/peaks count callbacks, not transmitted RPC or business successes. No retry or UNKNOWN promotion; legacy fixed endpoint mode and default shared queue are retained. Source counterexamples do not qualify network performance.")
+	} else if o.endpointFair {
 		r.Interpretation = append(r.Interpretation, "Explicit endpoint fairness candidate: four original submit goroutines each consume a bounded queue for the unchanged index%4 endpoint. Total queue capacity is unchanged. Callback counts are not extra RPC or business successes; cancellation, UNKNOWN quarantine, durable-before-dispatch, signature/fee/nonce and consensus gates are unchanged. Per-endpoint concurrency1 can trade concentrated load throughput for isolation; no network latency improvement is inferred from source tests.")
 	}
 	r.SharedDurableReplay = o.sharedDurableReplay

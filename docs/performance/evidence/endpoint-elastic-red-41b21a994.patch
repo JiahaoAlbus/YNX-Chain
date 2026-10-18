@@ -1,0 +1,133 @@
+diff --git a/cmd/ynx-consensus-perf-client/endpoint_fair_test.go b/cmd/ynx-consensus-perf-client/endpoint_fair_test.go
+index 3be472d36..1e03165b9 100644
+--- a/cmd/ynx-consensus-perf-client/endpoint_fair_test.go
++++ b/cmd/ynx-consensus-perf-client/endpoint_fair_test.go
+@@ -32,6 +32,10 @@ func TestEndpointFairCancellationKeepsLateReplyUnknown(t *testing.T) {
+ 	testEndpointFairRPC(t, "cancel_late")
+ }
+ 
++func TestEndpointElasticSignedRequestsProgressPastOneDelayedRequest(t *testing.T) {
++	testEndpointFairRPC(t, "one", true)
++}
++
+ func TestEndpointFairOptionGuardPreservesLegacyDefault(t *testing.T) {
+ 	o := options{manifest: "manifest", transactions: "transactions", output: "new-result.json", timeout: 10 * time.Second, poll: 100 * time.Millisecond, rounds: 2, senderMode: "ready-pool", offeredRate: 512, concurrency: 4, observers: 4, endpointFair: true}
+ 	if err := validateOptions(o); err != nil {
+@@ -60,7 +64,8 @@ func TestEndpointFairOptionGuardPreservesLegacyDefault(t *testing.T) {
+ 	}
+ }
+ 
+-func testEndpointFairRPC(t *testing.T, mode string) {
++func testEndpointFairRPC(t *testing.T, mode string, elastic ...bool) {
++	useElastic := len(elastic) > 0 && elastic[0]
+ 	path, manifest, m, migration, initial := senderFixture(t, 16)
+ 	pool, err := loadSenderPool(path, manifest, m, migration, initial, 2)
+ 	if err != nil {
+@@ -134,7 +139,7 @@ func testEndpointFairRPC(t *testing.T, mode string) {
+ 			n := active[endpoint].Add(1)
+ 			atomicMaximum(&peaks[endpoint], n)
+ 			defer active[endpoint].Add(-1)
+-			if endpoint == 0 && mode == "slow" {
++			if endpoint == 0 && (mode == "slow" || mode == "one" && index == 0) {
+ 				if n == 4 {
+ 					saturatedOnce.Do(func() { close(saturated) })
+ 				}
+@@ -144,7 +149,7 @@ func testEndpointFairRPC(t *testing.T, mode string) {
+ 					return
+ 				}
+ 			}
+-			if index == 13 {
++			if mode == "one" && index == 4 || mode != "one" && index == 13 {
+ 				fastOnce.Do(func() { close(fast) })
+ 			}
+ 			checked, err := app.CheckTx(r.Context(), &abci.RequestCheckTx{Tx: request.Params.Tx})
+@@ -186,7 +191,7 @@ func testEndpointFairRPC(t *testing.T, mode string) {
+ 	var execution sync.Mutex
+ 	height := int64(migration.Height)
+ 	go func() {
+-		stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, endpointFair: true}, pool, txs, results,
++		stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, endpointFair: true, endpointElastic: useElastic}, pool, txs, results,
+ 			func(i int) (time.Time, bool) {
+ 				return submitTransactionMeasured(ctx, clients[i%4], txs[i], &results[i], true)
+ 			},
+@@ -228,12 +233,13 @@ func testEndpointFairRPC(t *testing.T, mode string) {
+ 			})
+ 		done <- outcome{stats, err}
+ 	}()
+-	progressed := mode != "slow"
+-	if mode == "slow" {
++	progressed := mode != "slow" && mode != "one"
++	if mode == "slow" || mode == "one" {
+ 		select {
+ 		case <-fast:
+ 			progressed = true
+ 		case <-saturated:
++		case <-time.After(500 * time.Millisecond):
+ 		case <-ctx.Done():
+ 			t.Error("controlled completion deadline", ctx.Err())
+ 		}
+@@ -266,7 +272,7 @@ func testEndpointFairRPC(t *testing.T, mode string) {
+ 	if mode == "cancel_late" {
+ 		final, offered, submitted, unknown, quarantined = 24, 28, 25, 1, 4
+ 	}
+-	if (mode == "slow" && result.err != nil) || (mode != "slow" && result.err == nil) || result.stats.Completed != final || result.stats.Offered != offered || result.stats.Quarantined != quarantined {
++	if ((mode == "slow" || mode == "one") && result.err != nil) || (mode != "slow" && mode != "one" && result.err == nil) || result.stats.Completed != final || result.stats.Offered != offered || result.stats.Quarantined != quarantined {
+ 		t.Fatal("original business/quarantine counts changed", mode, result.stats, result.err)
+ 	}
+ 	suppressed := func(i int) bool { return mode == "unknown" && i%16 == 0 || mode == "cancel_late" && i%4 == 0 }
+@@ -326,6 +332,9 @@ func testEndpointFairRPC(t *testing.T, mode string) {
+ 		}
+ 	}
+ 	if !progressed {
++		if mode == "one" {
++			t.Fatal("fixed endpoint worker head-of-line: one blocked signed RPC prevented another sender on the same authority progressing while three workers were available")
++		}
+ 		t.Fatal("shared pool head-of-line: four signed requests to one endpoint blocked ready sender13 on another authority")
+ 	}
+ 	for i := range peaks {
+diff --git a/cmd/ynx-consensus-perf-client/main.go b/cmd/ynx-consensus-perf-client/main.go
+index eaa83af03..30f56012c 100644
+--- a/cmd/ynx-consensus-perf-client/main.go
++++ b/cmd/ynx-consensus-perf-client/main.go
+@@ -60,6 +60,7 @@ type options struct {
+ 	observerPhaseTiming            bool
+ 	sharedDurableReplay            bool
+ 	endpointFair                   bool
++	endpointElastic                bool
+ }
+ 
+ type transactionInput struct {
+@@ -186,6 +187,7 @@ type report struct {
+ 	ObserverPhaseTiming  bool                     `json:"observerPhaseTiming"`
+ 	SharedDurableReplay  bool                     `json:"sharedDurableReplay"`
+ 	EndpointFair         bool                     `json:"endpointFairSubmission"`
++	EndpointElastic      bool                     `json:"endpointElasticSubmission,omitempty"`
+ 	SenderMode           string                   `json:"senderMode"`
+ 	PacingMode           string                   `json:"pacingMode"`
+ 	InclusionMode        string                   `json:"inclusionMode"`
+@@ -221,6 +223,7 @@ func main() {
+ 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
+ 	flag.StringVar(&o.pacingMode, "pacing-mode", "relative", "ready-pool pacing: relative, bounded-cadence or grouped-cadence4 (at most four offers, expired groups discarded)")
+ 	flag.BoolVar(&o.endpointFair, "endpoint-fair-submission", false, "candidate: original four submit workers, one per original index%4 endpoint, bounded total queue, no retry")
++	flag.BoolVar(&o.endpointElastic, "endpoint-elastic-submission", false, "candidate: requires endpoint fairness; reuse original four workers across unchanged endpoints, maximum two in flight per endpoint")
+ 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
+ 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
+ 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
+@@ -243,6 +246,9 @@ func main() {
+ }
+ 
+ func validateOptions(o options) error {
++	if o.endpointElastic && !o.endpointFair {
++		return errors.New("elastic endpoint submission requires explicit endpoint fairness")
++	}
+ 	if o.endpointFair && (o.senderMode != "ready-pool" || o.concurrency != 4 || o.observers != 4 || o.offeredRate <= 0) {
+ 		return errors.New("endpoint fairness requires paced ready-pool and exactly four submitters/observers")
+ 	}
+@@ -895,6 +901,7 @@ func execute(o options) error {
+ 		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
+ 	}}
+ 	r.EndpointFair = o.endpointFair
++	r.EndpointElastic = o.endpointElastic
+ 	if o.endpointFair {
+ 		r.Interpretation = append(r.Interpretation, "Explicit endpoint fairness candidate: four original submit goroutines each consume a bounded queue for the unchanged index%4 endpoint. Total queue capacity is unchanged. Callback counts are not extra RPC or business successes; cancellation, UNKNOWN quarantine, durable-before-dispatch, signature/fee/nonce and consensus gates are unchanged. Per-endpoint concurrency1 can trade concentrated load throughput for isolation; no network latency improvement is inferred from source tests.")
+ 	}
