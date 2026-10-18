@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "head": "d414237e551b2761ff7dd317541cb86dc40d3653",
+  "runID": 39108587328,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39108587328",
+  "status": "completed",
+  "conclusion": "success",
+  "actualStreamingPassedFunctions": [
+    "TestStreamingWorkloadReaderRequiresExplicitCoupledLimits",
+    "TestStreamingWorkloadReaderCrossesByteLimitAndEvictsWithoutStaleFallback",
+    "TestStreamingWorkloadScopeAndLegacyLimits",
+    "TestStreamingWorkloadFundingAndNonceAreInstanceBound",
+    "TestStreamingWorkloadEvidenceBudgetPreservesFailedWrite",
+    "TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary",
+    "TestStreamingWorkloadReadbackBindsBothStreamsAndLatestSlots",
+    "TestStreamingWorkloadReadbackRejectsUnmatchedButValidSignedBytes",
+    "TestStreamingWorkloadDurablePlanNeverOverwritesPriorScope"
+  ],
+  "readerBoundarySamples": [
+    {
+      "inputBytes": 16781349,
+      "cacheInputByteBudget": 33554432,
+      "evictions": 2,
+      "fixture": "one actual native transfer in a valid backend-opened V2 checkpoint with synthetic JSON whitespace padding"
+    }
+  ],
+  "rawLog": "artifacts/chain-performance-20261017/ci-39108587328-full.log",
+  "rawLogSHA256": "3e0c195c7026d80f32e9c6649d50e87dc0540aabc9adbde2e4c5f2990934a1da",
+  "preservedFailure": {
+    "runID": 39108318423,
+    "cause": "padded test checkpoint omitted normal writer-created read.lock; production reader correctly refused",
+    "rawLog": "artifacts/chain-performance-20261017/ci-39108318423-failed.log",
+    "sha256": "1f4affa6b8c28c9e440dc0c9d83fdfd9f2ecea5913bee8fa35bbc34603bbff60",
+    "fix": "Fixture uses actual storage backend open, checks bytes/height unchanged; missing read.lock remains a negative control. No production lock or decoder weakened."
+  },
+  "qualification": "Explicit file/cache-byte bounds and real application-level controls only. Not actual large-history throughput, node runtime, network finality or sustained load.",
+  "businessTPS": null,
+  "inclusionLatency": null,
+  "finalityLatency": null
+}
