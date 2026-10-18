@@ -38,6 +38,10 @@ on:
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
     inputs:
+      measure_real_fee_history:
+        description: "Measure bounded actual signed application history beyond the default reader limit"
+        type: boolean
+        default: false
       build_darwin_phase_node:
         description: "Build an isolated darwin/arm64 phase-timing node candidate after all normal gates"
         type: boolean
@@ -126,6 +130,27 @@ jobs:
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan
+      - name: Measure bounded real signed fee history
+        if: github.event_name == 'workflow_dispatch' && inputs.measure_real_fee_history
+        env:
+          YNX_CHAIN_REAL_HISTORY: "1"
+          YNX_CHAIN_REAL_HISTORY_DIR: ${{ runner.temp }}/ynx-real-fee-history
+          GOMAXPROCS: "1"
+          GOGC: "50"
+          GOMEMLIMIT: "512MiB"
+          GOPROXY: "off"
+          GOTOOLCHAIN: local
+          GOFLAGS: -mod=readonly
+          GOWORK: "off"
+        run: go test -p 1 ./cmd/ynx-consensus-perf-client -run '^TestStreamingWorkloadActualFeeHistoryReadback$' -count=1 -timeout=240s -v
+      - name: Retain actual signed fee-history evidence
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure_real_fee_history
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: real-fee-history-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-real-fee-history
+          if-no-files-found: error
+          retention-days: 90
       - name: Build isolated Darwin phase-timing node candidate
         if: github.event_name == 'workflow_dispatch' && inputs.build_darwin_phase_node
         env:
