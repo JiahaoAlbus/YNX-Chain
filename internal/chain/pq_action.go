@@ -17,7 +17,7 @@ const (
 	MaxPQActionMemberBytes  = 128 << 10
 	pqActionMemo            = "ynx-pq-action-v1:"
 	maxPQActionPolicyBytes  = 8192
-	maxPQActionHistoryBytes = MaxPQActionMemberBytes + maxPQActionPolicyBytes + 12
+	maxPQActionHistoryBytes = MaxPQActionMemberBytes + maxPQContractReceiptBytes + 12
 )
 
 // SubmitPQAction authenticates the original complete MemberWire while holding
@@ -66,6 +66,10 @@ func (d *Devnet) SubmitPQAction(wire []byte) (Transaction, bool, error) {
 	payload, err := ynxauth.DecodeActionPayload(a.Kind, a.Payload)
 	if err != nil {
 		return Transaction{}, false, err
+	}
+	if pqContractKind(a.Kind) {
+		tx, err := d.submitPQContractActionLocked(a, payload, hash, wire)
+		return tx, false, err
 	}
 	memo, err := encodePQActionMemo(a, wire, d.resourcePolicy.withCurrentHash())
 	if err != nil {
@@ -122,6 +126,7 @@ type pqActionHistory struct {
 	Action        ynxauth.Action
 	Message, Wire []byte
 	Policy        *ResourceMarketPolicy
+	Contract      *pqContractReceipt
 }
 
 func encodePQActionMemo(a ynxauth.Action, wire []byte, policy ResourceMarketPolicy) (string, error) {
@@ -166,7 +171,7 @@ func decodePQActionMemo(memo string) (pqActionHistory, error) {
 		return h, ynxauth.ErrAction
 	}
 	fields, err := ynxbatch.DecodeFields(raw, 2, maxPQActionHistoryBytes)
-	if err != nil || len(fields[0]) > MaxPQActionMemberBytes || len(fields[1]) > maxPQActionPolicyBytes {
+	if err != nil || len(fields[0]) > MaxPQActionMemberBytes || len(fields[1]) > maxPQContractReceiptBytes {
 		return h, ynxauth.ErrAction
 	}
 	h.Wire = fields[0]
@@ -179,6 +184,13 @@ func decodePQActionMemo(memo string) (pqActionHistory, error) {
 		return h, err
 	}
 	h.Message = m.Message
+	if pqContractKind(h.Action.Kind) {
+		h.Contract, err = decodePQContractReceipt(fields[1])
+		return h, err
+	}
+	if len(fields[1]) > maxPQActionPolicyBytes {
+		return h, errors.New("PQ historical resource policy exceeds its original bound")
+	}
 	resource := h.Action.Kind == ynxauth.ActionResourceDelegate || h.Action.Kind == ynxauth.ActionResourceRent
 	if resource {
 		var policy ResourceMarketPolicy
@@ -211,6 +223,9 @@ func validateHistoricalPQAction(tx Transaction, state *ynxauth.State, height uin
 	p, err := ynxauth.DecodeActionPayload(a.Kind, a.Payload)
 	if err != nil {
 		return err
+	}
+	if pqContractKind(a.Kind) {
+		return validateHistoricalPQContractAction(tx, h, p, state, height)
 	}
 	typeName, to, amount := a.Kind, "", int64(0)
 	switch v := p.(type) {
@@ -286,6 +301,13 @@ func validateHistoricalPQAction(tx Transaction, state *ynxauth.State, height uin
 }
 
 func validatePQActionLogs(tx Transaction, txIndex, firstLogIndex uint64) error {
+	if tx.Type == "contract_deploy" || tx.Type == "contract_call" {
+		h, err := decodePQActionMemo(tx.Memo)
+		if err != nil {
+			return err
+		}
+		return validatePQContractLogs(tx, h.Contract, txIndex, firstLogIndex)
+	}
 	if tx.BlockNum == 0 {
 		if tx.BlockHash != "" || len(tx.Logs) != 0 {
 			return errors.New("pending PQ action contains block identity or logs")

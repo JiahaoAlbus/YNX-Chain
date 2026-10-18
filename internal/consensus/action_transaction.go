@@ -397,6 +397,12 @@ func TransactionEnvelopeType(payload []byte) (string, error) {
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		return "", errors.New("transaction envelope is not JSON")
 	}
+	if envelope.Type == ValidatorRegistryTransactionType {
+		if len(payload) > MaxValidatorRegistryTransactionBytes {
+			return "", errors.New("validator registry envelope size is invalid")
+		}
+		return envelope.Type, nil
+	}
 	if envelope.Type != SignedTransactionType && envelope.Type != SignedActionType && envelope.Type != PQTransferType && envelope.Type != PQMigrationType && envelope.Type != PQRevocationType && envelope.Type != PQWholeType {
 		return "", fmt.Errorf("unsupported transaction envelope type %q", envelope.Type)
 	}

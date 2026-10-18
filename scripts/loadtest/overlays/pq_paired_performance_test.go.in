@@ -23,25 +23,26 @@ import (
 // This overlay consumes the protocol owner's existing QA fixture and disk
 // reader. It never installs a provider or implements a replacement signer.
 type pqPairTiming struct {
-	Mode                         string   `json:"mode"`
-	Members                      int      `json:"members"`
-	SubmitNs                     int64    `json:"submitNs"`
-	SubmitWallNs                 int64    `json:"submitWallNs"`
-	SigningPreparationNs         int64    `json:"sharedSigningPreparationNs"`
-	RequestCheckpointNs          []int64  `json:"requestCheckpointNs"`
-	MemberOfferToCheckpointNs    []int64  `json:"memberOfferToCheckpointNs"`
-	MemberHashes                 []string `json:"memberHashes"`
-	PendingSnapshotBytes         int64    `json:"pendingSnapshotBytes"`
-	PendingSnapshotSHA256        string   `json:"pendingSnapshotSha256"`
-	BlockSnapshotBytes           int64    `json:"blockSnapshotBytes"`
-	BlockSnapshotSHA256          string   `json:"blockSnapshotSha256"`
-	ManualProduceBlockNs         int64    `json:"manualProduceBlockNs"`
-	ColdRestoreNs                int64    `json:"coldRestoreNs"`
-	CheckpointPointerTransitions int      `json:"checkpointPointerTransitions"`
-	LocalBlockCheckpointMembers  int      `json:"localBlockCheckpointMembers"`
-	ColdRestoredMembers          int      `json:"coldRestoredMembers"`
-	CloneLocalPeersPreserved     bool     `json:"cloneLocalPeersPreserved"`
-	Projection                   []byte   `json:"-"`
+	WholeMeasurement             *PQBatchMeasurement `json:"wholeMeasurement,omitempty"`
+	Mode                         string              `json:"mode"`
+	Members                      int                 `json:"members"`
+	SubmitNs                     int64               `json:"submitNs"`
+	SubmitWallNs                 int64               `json:"submitWallNs"`
+	SigningPreparationNs         int64               `json:"sharedSigningPreparationNs"`
+	RequestCheckpointNs          []int64             `json:"requestCheckpointNs"`
+	MemberOfferToCheckpointNs    []int64             `json:"memberOfferToCheckpointNs"`
+	MemberHashes                 []string            `json:"memberHashes"`
+	PendingSnapshotBytes         int64               `json:"pendingSnapshotBytes"`
+	PendingSnapshotSHA256        string              `json:"pendingSnapshotSha256"`
+	BlockSnapshotBytes           int64               `json:"blockSnapshotBytes"`
+	BlockSnapshotSHA256          string              `json:"blockSnapshotSha256"`
+	ManualProduceBlockNs         int64               `json:"manualProduceBlockNs"`
+	ColdRestoreNs                int64               `json:"coldRestoreNs"`
+	CheckpointPointerTransitions int                 `json:"checkpointPointerTransitions"`
+	LocalBlockCheckpointMembers  int                 `json:"localBlockCheckpointMembers"`
+	ColdRestoredMembers          int                 `json:"coldRestoredMembers"`
+	CloneLocalPeersPreserved     bool                `json:"cloneLocalPeersPreserved"`
+	Projection                   []byte              `json:"-"`
 }
 
 func pqPairDigest(raw []byte) string { sum := sha256.Sum256(raw); return hex.EncodeToString(sum[:]) }
@@ -221,11 +222,13 @@ func pqPairRun(t *testing.T, f *pqLedgerFixture, mode string, whole []byte, memb
 	started := time.Now()
 	if mode == "whole" {
 		request := time.Now()
-		out, e := d.SubmitPQBatch(whole)
+		out, measured, e := d.SubmitPQBatchMeasured(whole)
 		elapsed := time.Since(request).Nanoseconds()
 		r.SubmitWallNs = time.Since(started).Nanoseconds()
 		r.SubmitNs = elapsed
 		pqMust(t, e)
+		pqPairAssertProductionMeasurement(t, d, whole, out, measured, n)
+		r.WholeMeasurement = &measured
 		if out.Status != "durable" || out.Replayed || out.BatchHash != pqBatchHash(whole) || len(out.Results) != n {
 			t.Fatal("whole did not return original durable admissions")
 		}
@@ -489,12 +492,44 @@ func TestPQPairedPersistentPerformance(t *testing.T) {
 			percentile := func(p int) int64 { return sorted[(len(sorted)*p+99)/100-1] }
 			summaries[r.Mode] = map[string]any{"serverCallLocalCheckpointMembersPerSecond": float64(n) * 1e9 / float64(r.SubmitNs), "submissionLoopMembersPerSecond": float64(n) * 1e9 / float64(r.SubmitWallNs), "offerToLocalCheckpointNs": map[string]int64{"p50": percentile(50), "p95": percentile(95), "p99": percentile(99)}, "samples": n}
 		}
-		report := map[string]any{"schema": 1, "kind": "isolated-single-producer-PQ-paired-component", "sourceCommit": os.Getenv("YNX_PQ_PAIR_SOURCE_COMMIT"), "goVersion": runtime.Version(), "platform": runtime.GOOS + "/" + runtime.GOARCH, "gomaxprocs": runtime.GOMAXPROCS(0), "n": n, "trial": trial, "order": order, "sharedWholeSha256": pqPairDigest(whole), "wholeWireBytes": len(whole), "standaloneWireBytes": memberWireBytes, "results": results, "summary": summaries, "businessProjectionEqual": true, "bftFinalCommits": nil, "consensusFinalityLatency": nil, "interpretation": "Finite component measurement, not sustained capacity or BFT. Distinct real PQ members use one signed Whole and identical activated-state clones. Whole/member history identities differ. SubmitNs excludes common signing/setup, assertions, replay and cold recovery; signing time is separate. Whole per-member observations share one request and are correlated. Manually produced local blocks and local durable checkpoints are separate from consensus finality."}
+		report := map[string]any{"schema": 1, "kind": "isolated-single-producer-PQ-paired-component", "sourceCommit": os.Getenv("YNX_PQ_PAIR_SOURCE_COMMIT"), "goVersion": runtime.Version(), "platform": runtime.GOOS + "/" + runtime.GOARCH, "gomaxprocs": runtime.GOMAXPROCS(0), "n": n, "trial": trial, "order": order, "productionMeasurementVersion": PQBatchMeasurementVersion, "sharedWholeSha256": pqPairDigest(whole), "wholeWireBytes": len(whole), "standaloneWireBytes": memberWireBytes, "results": results, "summary": summaries, "businessProjectionEqual": true, "bftFinalCommits": nil, "consensusFinalityLatency": nil, "interpretation": "Finite component measurement, not sustained capacity or BFT. Distinct real PQ members use one signed Whole and identical activated-state clones. Whole/member history identities differ. SubmitNs excludes common signing/setup, assertions, replay and cold recovery; signing time is separate. Whole per-member observations share one request and are correlated. Manually produced local blocks and local durable checkpoints are separate from consensus finality."}
 		raw, err := json.MarshalIndent(report, "", "  ")
 		pqMust(t, err)
 		pqPairWrite(t, output, append(raw, '\n'))
 		pqPairBudget(t, dirs)
 	}) {
 		t.Fatal("paired component case failed; no successful performance qualification")
+	}
+}
+
+// Preserve the exact call-local production output. All phase checks remain
+// local checkpoint/correctness checks, never consensus finality evidence.
+func pqPairAssertProductionMeasurement(t *testing.T, d *Devnet, wire []byte, out PQBatchResult, m PQBatchMeasurement, n int) {
+	t.Helper()
+	if m.Version != PQBatchMeasurementVersion || m.WireHash != pqBatchHash(wire) || m.ExecutionHeight != out.ExecutionHeight || !reflect.DeepEqual(m.Result, out) || m.VerifierSignatureChecks != 2 || m.MemberAdmitted != uint32(n) || m.MemberRejected != 0 {
+		t.Fatal("production measurement not bound to exact call", m)
+	}
+	check := func(p PQPhaseMeasurement, a, c, e uint64) {
+		if p.Attempts != a || p.Completed != c || p.Errors != e || p.DurationNs < 0 || (a == 0 && p.DurationNs != 0) {
+			t.Fatal("production phase coverage mismatch", p, a, c, e)
+		}
+	}
+	for _, p := range []PQPhaseMeasurement{m.Total, m.InputCloneHash, m.LockWait, m.PolicyValidation, m.WireDecode, m.WholeAuthentication, m.Persistence.Total, m.Persistence.SnapshotBuild, m.Persistence.IntegritySeal, m.Persistence.CheckpointBuild, m.Persistence.PersistenceLockWait, m.Persistence.Mkdir} {
+		check(p, 1, 1, 0)
+	}
+	check(m.MemberExecution, uint64(n), uint64(n), 0)
+	check(m.Replay, 0, 0, 0)
+	for _, f := range []PQDurableFileMeasurement{m.Persistence.SnapshotFile, m.Persistence.MarkerFile} {
+		for _, p := range []PQPhaseMeasurement{f.Total, f.OpenTemp, f.EncodeWrite, f.FileSync, f.Close, f.Rename, f.DirectorySync} {
+			check(p, 1, 1, 0)
+		}
+		if f.WriteCalls == 0 || f.BytesWritten == 0 {
+			t.Fatal("production writes not measured", f)
+		}
+	}
+	cp := d.durableCheckpoint.Load()
+	published := m.Persistence.Published
+	if cp == nil || published == nil || published.Version != TransactionDurabilityVersion || published.Height != cp.height || published.Hash != cp.hash || published.SnapshotIntegrity != cp.integrity || m.Persistence.CandidateIntegrity != cp.integrity {
+		t.Fatal("measurement publication differs from actual local checkpoint")
 	}
 }

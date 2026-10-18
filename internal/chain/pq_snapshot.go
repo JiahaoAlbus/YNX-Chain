@@ -222,6 +222,12 @@ func (d *Devnet) commitReplicationSnapshot(snapshot devnetSnapshot, expectedHeig
 	if err := validatePQBatchContinuation(d.pqBatches, snapshot.PQBatches); err != nil {
 		return err
 	}
+	// This continuation check reads only contract and transaction history under
+	// the same write lock. Avoid building/cloning an unrelated full snapshot.
+	localContractHistory := devnetSnapshot{Contracts: d.contracts, Blocks: d.blocks, Pending: d.pending}
+	if err := validatePQContractContinuation(localContractHistory, snapshot); err != nil {
+		return err
+	}
 	// Peer observations belong to this node. Persist the same local observations
 	// that remain in memory below; otherwise full-snapshot replication writes the
 	// producer's observations to disk and silently replaces ours after restart.

@@ -46,6 +46,29 @@ class LinuxGuardControls(unittest.TestCase):
             (case/"pq-paired-result.json.members.snapshot.json").write_bytes(b"tampered")
             with self.assertRaises(RuntimeError):guard.validate_result(report,plan,case)
 
+    def test_production_measurement_requires_bound_result_and_every_durable_boundary(self):
+        # Synthetic shape controls, not actual dual signatures or local CP proof.
+        phase=lambda a=1:dict(attempts=a,completed=a,errors=0,durationNs="10" if a else "0")
+        file=lambda:dict(**{k:phase() for k in ("total","openTemp","encodeWrite","fileSync","close","rename","directorySync")},writeCalls=1,bytesWritten=100)
+        hashes=["0x"+"1"*64]
+        measurement=dict(version="ynx-pq-batch-measurement-v1",wireHash="0x"+"3"*64,executionHeight="2",
+            result=dict(executionHeight="2",batchHash="0x"+"3"*64,status="durable",replayed=False,results=[dict(index=0,outcome="admitted",transactionHash=hashes[0])]),
+            **{k:phase() for k in ("total","inputCloneHash","lockWait","policyValidation","wireDecode","wholeAuthentication","memberExecution")},
+            replay=phase(0),verifierSignatureChecks=2,memberAdmitted=1,memberRejected=0,
+            persistence=dict(**{k:phase() for k in ("total","snapshotBuild","integritySeal","checkpointBuild","persistenceLockWait","mkdir")},
+                snapshotFile=file(),markerFile=file(),candidateIntegrity="local-integrity",published=dict(version="ynx-local-durability-v1",height="1",hash="local-block",snapshotIntegrity="local-integrity")))
+        row=dict(memberHashes=hashes,wholeMeasurement=measurement)
+        plan=dict(n=1,productionMeasurementVersion="ynx-pq-batch-measurement-v1")
+        report=dict(sharedWholeSha256="3"*64,productionMeasurementVersion=plan["productionMeasurementVersion"])
+        guard.validate_production_measurement(row,report,plan)
+        for mutate in (lambda m:m.pop("persistence"),lambda m:m.update(wireHash="0x"+"0"*64),
+                       lambda m:m["total"].update(durationNs=10),lambda m:m["total"].update(durationNs="-1"),
+                       lambda m:m["persistence"].update(published=None),
+                       lambda m:m["persistence"]["markerFile"]["directorySync"].update(completed=0,errors=1),
+                       lambda m:m["result"].update(replayed=True),lambda m:m.update(verifierSignatureChecks=0)):
+            changed=json.loads(json.dumps(measurement));mutate(changed)
+            with self.assertRaises(RuntimeError):guard.validate_production_measurement(dict(row,wholeMeasurement=changed),report,plan)
+
     def test_minimal_claim_without_actual_member_results_does_not_qualify(self):
         plan=dict(commit="a"*40,n=1,trial=1)
         incomplete=dict(sourceCommit=plan["commit"],n=1,trial=1,businessProjectionEqual=True)
@@ -63,6 +86,11 @@ class LinuxGuardControls(unittest.TestCase):
                       overlayPin=dict(path=str(overlay),sha256=guard.digest(overlay)),
                       environment=dict(GOMAXPROCS="1",GOGC="50",GOMEMLIMIT="512MiB",YNX_PQ_PAIR_SOURCE_COMMIT=commit,YNX_PQ_PAIR_N="1",YNX_PQ_PAIR_TRIAL="1",YNX_PQ_PAIR_OUTPUT=str(case/"pq-paired-result.json")))
             guard.validate_recipe(plan,case/"prepared.json")
+            measured16=json.loads(json.dumps(plan));measured16.update(n=16,productionMeasurementVersion="ynx-pq-batch-measurement-v1");measured16["environment"]["YNX_PQ_PAIR_N"]="16"
+            with self.assertRaises(RuntimeError):guard.validate_recipe(measured16,case/"prepared.json")
+            guard.validate_recipe(measured16,case/"prepared.json",case_n=16)
+            self.assertEqual(guard.CAPS["privateBytes"],32<<20)
+            self.assertEqual(guard.CAPS["ownedRSSBytes"],1<<30)
             for mutate in (lambda p:p.update(n=16),lambda p:p.update(trial=2),lambda p:p["command"].append("./..."),lambda p:p["environment"].update(GOMAXPROCS="2"),lambda p:p["overlayPin"].update(sha256="0"*64)):
                 changed=json.loads(json.dumps(plan));mutate(changed)
                 with self.assertRaises(RuntimeError):guard.validate_recipe(changed,case/"prepared.json")

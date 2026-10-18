@@ -1,0 +1,12 @@
+{
+  "sourceStatus": "expected_red_pending_remote",
+  "test": "internal/chain/pq_contract_legacy_code_drift_test.go",
+  "testSha256": "a409a2130d4c9f7478e18bcc75d083a396dcd52f25c71d8f7ce9730188803fb4",
+  "sourceReviewCause": "anchored legacy ExecuteContract loads unverified disk bytecode while cold/import history replays retained pinned bytecode",
+  "actualRED": false,
+  "productionRepairApplied": false,
+  "baselineDevnetSha256": "b4199db5e57f32c61085d4217fa3e4256a1feac4bc0034b60ef5931843a89c9a",
+  "isolatedFixtureOnly": true,
+  "noLocalGo": true,
+  "noPublicCalls": true
+}

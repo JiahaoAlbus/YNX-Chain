@@ -20,6 +20,10 @@ func main() {
 	transport := flag.String("transport", "socket", "ABCI transport: socket or grpc")
 	migrationPath := flag.String("migration-state", "", "validated YNX consensus migration JSON path")
 	statePath := flag.String("state", "", "durable ABCI committed state path (default: <migration-state>.abci-state.json)")
+	consensusGenesis := flag.String("consensus-genesis", "", "operator-pinned raw Comet genesis file (registry registration only)")
+	consensusGenesisHash := flag.String("consensus-genesis-sha256", "", "independent operator SHA256 pin for exact raw Comet genesis bytes")
+	nativeGenesisHash := flag.String("original-genesis-hash", "", "independent operator pin for original native genesis hash")
+	migrationHash := flag.String("bound-migration-state-hash", "", "independent operator pin for validated key-bound migration StateHash")
 	flag.Parse()
 	if *migrationPath == "" {
 		log.Fatal("-migration-state is required")
@@ -27,12 +31,17 @@ func main() {
 	if *statePath == "" {
 		*statePath = *migrationPath + ".abci-state.json"
 	}
-	if err := run(*listen, *transport, *migrationPath, *statePath); err != nil {
+	pins := consensus.ConsensusBootstrapPins{CometGenesisSHA256: *consensusGenesisHash, OriginalGenesisHash: *nativeGenesisHash, MigrationStateHash: *migrationHash}
+	if err := runWithBootstrap(*listen, *transport, *migrationPath, *statePath, *consensusGenesis, pins); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func run(listen, transport, migrationPath, statePath string) error {
+	return runWithBootstrap(listen, transport, migrationPath, statePath, "", consensus.ConsensusBootstrapPins{})
+}
+
+func runWithBootstrap(listen, transport, migrationPath, statePath, genesisPath string, pins consensus.ConsensusBootstrapPins) error {
 	payload, err := os.ReadFile(migrationPath)
 	if err != nil {
 		return fmt.Errorf("read migration state: %w", err)
@@ -41,7 +50,23 @@ func run(listen, transport, migrationPath, statePath string) error {
 	if err := json.Unmarshal(payload, &state); err != nil {
 		return fmt.Errorf("decode migration state: %w", err)
 	}
-	app, err := consensus.NewPersistentApplication(state, statePath)
+	var app *consensus.Application
+	if genesisPath == "" {
+		if pins != (consensus.ConsensusBootstrapPins{}) {
+			return fmt.Errorf("consensus bootstrap pins require -consensus-genesis")
+		}
+		app, err = consensus.NewPersistentApplication(state, statePath)
+	} else {
+		rawGenesis, readErr := os.ReadFile(genesisPath)
+		if readErr != nil {
+			return fmt.Errorf("read pinned Comet genesis: %w", readErr)
+		}
+		bootstrap, bootstrapErr := consensus.NewConsensusBootstrap(rawGenesis, pins, state)
+		if bootstrapErr != nil {
+			return fmt.Errorf("validate operator-pinned consensus bootstrap: %w", bootstrapErr)
+		}
+		app, err = consensus.NewPersistentApplicationWithBootstrap(state, statePath, bootstrap)
+	}
 	if err != nil {
 		return err
 	}

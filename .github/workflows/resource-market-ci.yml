@@ -96,6 +96,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.candidate_sha }}
+          fetch-depth: 64
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
@@ -116,6 +117,18 @@ jobs:
         with:
           node-version: '24.19.0'
           cache: npm
+      - name: Compile frozen measured production overlay without executing cases
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 3
+        env:
+          GOMAXPROCS: '1'
+          GOGC: '50'
+          GOMEMLIMIT: '512MiB'
+        run: |
+          YNX_OVERLAY_COMPILE_CASE="$RUNNER_TEMP/ynx-pq-overlay-compile-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          node scripts/loadtest/prepare-pq-paired-benchmark.mjs --source-root "$GITHUB_WORKSPACE" --commit '${{ inputs.candidate_sha }}' --output-dir "$YNX_OVERLAY_COMPILE_CASE" --n 16 --trial 1 --write
+          go test -overlay "$YNX_OVERLAY_COMPILE_CASE/overlay.json" -p 1 ./internal/chain -run '^$' -count=1 -timeout=90s
+          test -z "$(git status --porcelain --untracked-files=normal)"
       - name: Generate canonical IDE contract fixture
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3
@@ -134,7 +147,7 @@ jobs:
         run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
       - name: Compile production entry points
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./cmd/ynx-app-gatewayd ./internal/consensus ./internal/appgateway ./internal/paygateway
+        run: go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./cmd/ynx-abci ./cmd/ynx-app-gatewayd ./internal/consensus ./internal/appgateway ./internal/paygateway
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
@@ -146,6 +159,36 @@ jobs:
       - name: Verify Whole BFT gateway and native container readback
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
+      - name: Checkout frozen segmented performance client separately
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 27f9515035ecd66cf4df050042c72cdd8fddfd97
+          path: qa-owned-performance-client
+          persist-credentials: false
+      - name: Verify nine frozen segmented client correctness functions
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        working-directory: qa-owned-performance-client
+        timeout-minutes: 3
+        env:
+          GOMAXPROCS: '1'
+          GOGC: '50'
+          GOMEMLIMIT: '384MiB'
+        run: |
+          test "$(git rev-parse HEAD)" = '27f9515035ecd66cf4df050042c72cdd8fddfd97'
+          test "$(git rev-parse HEAD:cmd/ynx-consensus-perf-client)" = '28c9c75f9834f2bdbfad20c4632d46c83695db1e'
+          sha256sum --check <<'PINS'
+          553967af4280d83895692a40626d72a9e49fdd8dbf2e78b967ae04ab059037cd  cmd/ynx-consensus-perf-client/main.go
+          0661c00304d42f9fe1d3f1652833131336e49db7e5e6a0a10b1a09738b452e5d  cmd/ynx-consensus-perf-client/ready_intent_segments.go
+          947b4bbb5459f2b9befcecc962986c84114857dd376abf2c8fff07dc0e6701de  cmd/ynx-consensus-perf-client/ready_intent_segments_test.go
+          0a24124745db1d0a90af804dc6d434b280f27ebd61a0d4449ae67d3321dd57df  cmd/ynx-consensus-perf-client/ready_sender.go
+          6fc91957c61facce005f4b2dba0b049e1b31f04ee5c688a00c23dcfde11d854d  cmd/ynx-consensus-perf-client/ready_sender_readback.go
+          b518de49d4837c90fa96ee8a38e2e9a7dec29f72ed80dbd7aa6c40b40420d3df  cmd/ynx-consensus-perf-client/ready_sender_readback_test.go
+          65e24f01554c5245df3672d62fc39e89233b1eb28bc3204ab4def9d5a83c9362  cmd/ynx-consensus-perf-client/ready_sender_test.go
+          4356fe6116c0a6ab2b00702836aa09b85277cd0ae75c4a93c475844d54ab09c1  cmd/ynx-consensus-perf-client/stopped_partial_test.go
+          9495e4f2ceef9be845a5005d0af3b3ddb367ee359ae1d77c338719ac8073ffbc  cmd/ynx-consensus-perf-client/stopped_replay_test.go
+          PINS
+          go test -p 1 ./cmd/ynx-consensus-perf-client -run '^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities)$' -count=1 -timeout=30s -v
       - name: Emit public inverse interop fixture
         id: interop
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}

@@ -991,6 +991,7 @@ type ContractArtifact struct {
 	VerifierStatus                   string                    `json:"verifierStatus"`
 	DeployedAt                       time.Time                 `json:"deployedAt"`
 	VerifiedAt                       *time.Time                `json:"verifiedAt,omitempty"`
+	PQAnchorTransactionHash          string                    `json:"pqAnchorTransactionHash,omitempty"`
 }
 
 type ContractCompilerConfig struct {

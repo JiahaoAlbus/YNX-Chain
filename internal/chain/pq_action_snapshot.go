@@ -81,6 +81,9 @@ func validatePQActionSnapshot(s devnetSnapshot) error {
 	for hash, entry := range actions {
 		tx, a := entry.tx, entry.history.Action
 		switch p := entry.payload.(type) {
+		case ynxauth.ContractDeployPayload, ynxauth.ContractExecutePayload:
+			// Complete typed contract replay, including legacy interleaving, is
+			// checked in the dedicated ordered pass below.
 		case ynxauth.StakePayload:
 		case ynxauth.ResourceDelegationPayload:
 			if entry.history.Policy == nil {
@@ -197,7 +200,7 @@ func validatePQActionSnapshot(s devnetSnapshot) error {
 	if len(dexSeen) != len(dexExpected) {
 		return errors.New("PQ DEX transaction lacks its original execution event")
 	}
-	return nil
+	return validatePQContractSnapshot(s)
 }
 
 func validatePQDexEvent(s devnetSnapshot, tx Transaction, a ynxauth.Action, p any, e NativeDexEvent) error {

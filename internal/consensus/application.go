@@ -28,12 +28,14 @@ const (
 
 type Application struct {
 	abcitypes.BaseApplication
-	mu           sync.RWMutex
-	migration    chain.ConsensusMigrationState
-	committed    CommittedState
-	pending      *CommittedState
-	statePath    string
-	feeRecipient string
+	mu               sync.RWMutex
+	bootstrap        *ConsensusBootstrap
+	persistenceHooks *committedPersistenceHooks
+	migration        chain.ConsensusMigrationState
+	committed        CommittedState
+	pending          *CommittedState
+	statePath        string
+	feeRecipient     string
 }
 
 type transactionError struct {
@@ -42,6 +44,8 @@ type transactionError struct {
 }
 
 type executionState struct {
+	bootstrap                  *ConsensusBootstrap
+	validatorRegistry          *ValidatorRegistryState
 	legacyContracts            *LegacyContracts
 	legacyResourceMarket       *LegacyResourceMarket
 	legacyResourceSponsor      *LegacyResourceSponsor
@@ -120,6 +124,19 @@ func NewApplication(state chain.ConsensusMigrationState) (*Application, error) {
 }
 
 func NewPersistentApplication(state chain.ConsensusMigrationState, statePath string) (*Application, error) {
+	return newPersistentApplication(state, statePath, nil, nil)
+}
+
+// Bootstrap is explicit operator configuration, not recovered authority.
+// Omitting it preserves legacy hashes and refuses registry-bearing state.
+func NewPersistentApplicationWithBootstrap(state chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap) (*Application, error) {
+	if bootstrap == nil {
+		return nil, errors.New("explicit consensus bootstrap is required")
+	}
+	return newPersistentApplication(state, statePath, bootstrap, nil)
+}
+
+func newPersistentApplication(state chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, hooks *committedPersistenceHooks) (*Application, error) {
 	if err := state.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid YNX consensus migration state: %w", err)
 	}
@@ -134,12 +151,20 @@ func NewPersistentApplication(state chain.ConsensusMigrationState, statePath str
 	if err := json.Unmarshal(payload, &migration); err != nil {
 		return nil, fmt.Errorf("clone YNX consensus migration state: %w", err)
 	}
-	committed, err := loadCommittedState(strings.TrimSpace(statePath), migration)
+	if bootstrap != nil {
+		if err := bootstrap.matchesMigration(migration); err != nil {
+			return nil, err
+		}
+	}
+	committed, err := loadCommittedStateWithBootstrap(strings.TrimSpace(statePath), migration, bootstrap)
 	if err != nil {
 		return nil, err
 	}
 	if err := committed.Validate(migration); err != nil {
 		return nil, fmt.Errorf("validate imported or restored application state: %w", err)
+	}
+	if err := confirmLoadedCommittedState(strings.TrimSpace(statePath), hooks); err != nil {
+		return nil, err
 	}
 	feeRecipient := ""
 	for _, validator := range migration.Validators {
@@ -152,10 +177,12 @@ func NewPersistentApplication(state chain.ConsensusMigrationState, statePath str
 		return nil, errors.New("YNX migration has no active fee recipient")
 	}
 	return &Application{
-		migration:    migration,
-		committed:    committed,
-		statePath:    strings.TrimSpace(statePath),
-		feeRecipient: feeRecipient,
+		bootstrap:        bootstrap,
+		persistenceHooks: hooks,
+		migration:        migration,
+		committed:        committed,
+		statePath:        strings.TrimSpace(statePath),
+		feeRecipient:     feeRecipient,
 	}, nil
 }
 
@@ -185,6 +212,11 @@ func (a *Application) Info(context.Context, *abcitypes.RequestInfo) (*abcitypes.
 func (a *Application) InitChain(_ context.Context, req *abcitypes.RequestInitChain) (*abcitypes.ResponseInitChain, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.bootstrap != nil {
+		if err := a.bootstrap.validateInitChain(req); err != nil {
+			return nil, err
+		}
+	}
 	expectedChainID := fmt.Sprintf("ynx_%d-1", a.migration.Network.ChainID)
 	if req.ChainId != "" && req.ChainId != expectedChainID {
 		return nil, fmt.Errorf("CometBFT chain ID %q does not match YNX migration chain ID %q", req.ChainId, expectedChainID)
@@ -215,6 +247,11 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	response := &abcitypes.ResponseQuery{Code: abcitypes.CodeTypeOK, Height: a.committed.Height}
+	if req.Path == "/validator-registry" {
+		// No pending/candidate state or bootstrap authority is published here.
+		response.Value, _ = json.Marshal(a.committed.ValidatorRegistry)
+		return response, nil
+	}
 	if queryLegacySponsor(response, req.Path, a.committed) {
 		return response, nil
 	}
@@ -510,6 +547,11 @@ func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) 
 func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
+	if a.bootstrap != nil {
+		if err := a.bootstrap.validateFixedMembership(req.NextValidatorsHash); err != nil {
+			return nil, err
+		}
+	}
 	height := req.Height
 	if height == 0 {
 		height = a.committed.Height + 1
@@ -524,7 +566,7 @@ func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestP
 		if req.MaxTxBytes > 0 && selectedBytes+int64(len(payload)) > req.MaxTxBytes {
 			continue
 		}
-		next, _, err := a.applyTransaction(state, payload, height, req.Time)
+		next, _, err := a.applyTransactionAt(state, payload, height, req.Time, uint32(len(selected)))
 		if err != nil {
 			continue
 		}
@@ -538,6 +580,11 @@ func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestP
 func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestProcessProposal) (*abcitypes.ResponseProcessProposal, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
+	if a.bootstrap != nil {
+		if err := a.bootstrap.validateFixedMembership(req.NextValidatorsHash); err != nil {
+			return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
+		}
+	}
 	if req.Height != 0 && req.Height != a.committed.Height+1 {
 		return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
 	}
@@ -546,8 +593,8 @@ func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestP
 		height = a.committed.Height + 1
 	}
 	state := a.cloneExecutionState()
-	for _, payload := range req.Txs {
-		next, _, err := a.applyTransaction(state, payload, height, req.Time)
+	for i, payload := range req.Txs {
+		next, _, err := a.applyTransactionAt(state, payload, height, req.Time, uint32(i))
 		if err != nil {
 			return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
 		}
@@ -562,13 +609,18 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if a.pending != nil {
 		return nil, errors.New("cannot finalize another block before committing pending state")
 	}
+	if a.bootstrap != nil {
+		if err := a.bootstrap.validateFixedMembership(req.NextValidatorsHash); err != nil {
+			return nil, err
+		}
+	}
 	if req.Height != a.committed.Height+1 {
 		return nil, fmt.Errorf("finalize height %d must immediately follow committed height %d", req.Height, a.committed.Height)
 	}
 	state := a.cloneExecutionState()
 	results := make([]*abcitypes.ExecTxResult, len(req.Txs))
 	for i, payload := range req.Txs {
-		next, tx, err := a.applyTransaction(state, payload, req.Height, req.Time)
+		next, tx, err := a.applyTransactionAt(state, payload, req.Height, req.Time, uint32(i))
 		if err != nil {
 			results[i] = &abcitypes.ExecTxResult{Code: transactionCode(err), Log: err.Error(), Data: tx.resultData}
 			continue
@@ -593,6 +645,9 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if err := validateConsensusPQContinuation(a.committed, pending); err != nil {
 		return nil, err
 	}
+	if err := validateValidatorRegistryContinuation(a.committed, pending); err != nil {
+		return nil, err
+	}
 	a.pending = &pending
 	appHash, err := hex.DecodeString(pending.AppHash)
 	if err != nil {
@@ -610,7 +665,10 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	if err := validateConsensusPQContinuation(a.committed, *a.pending); err != nil {
 		return nil, err
 	}
-	if err := saveCommittedState(a.statePath, *a.pending, a.migration); err != nil {
+	if err := validateValidatorRegistryContinuation(a.committed, *a.pending); err != nil {
+		return nil, err
+	}
+	if err := saveCommittedStateWithHooks(a.statePath, *a.pending, a.migration, a.persistenceHooks); err != nil {
 		return nil, fmt.Errorf("persist finalized YNX state: %w", err)
 	}
 	a.committed = *a.pending
@@ -620,6 +678,8 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
+		bootstrap:             a.bootstrap,
+		validatorRegistry:     cloneValidatorRegistry(a.committed.ValidatorRegistry),
 		legacyContracts:       cloneLegacyContracts(a.committed.LegacyContracts),
 		legacyResourceMarket:  cloneLegacyResourceMarket(a.committed.LegacyResourceMarket),
 		legacyResourceSponsor: cloneLegacyResourceSponsor(a.committed.LegacyResourceSponsor),
@@ -639,9 +699,16 @@ func (a *Application) cloneExecutionState() executionState {
 }
 
 func (a *Application) applyTransaction(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	return a.applyTransactionAt(state, payload, height, blockTime, 0)
+}
+
+func (a *Application) applyTransactionAt(state executionState, payload []byte, height int64, blockTime time.Time, transactionIndex uint32) (executionState, transactionExecution, error) {
 	kind, err := TransactionEnvelopeType(payload)
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if kind == ValidatorRegistryTransactionType {
+		return a.applyValidatorRegistryTransaction(state, payload, height, transactionIndex)
 	}
 	if kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType || kind == PQWholeType {
 		return a.applyPQTransaction(state, payload, height, blockTime)

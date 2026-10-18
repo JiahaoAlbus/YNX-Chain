@@ -151,13 +151,16 @@ def digest(path):
     return h.hexdigest()
 
 
-def validate_recipe(plan, prepared):
+def validate_recipe(plan, prepared, case_n=1):
     source = Path(plan["sourceRoot"]).resolve()
     case = prepared.parent.resolve()
     if source == case or source in case.parents or case in source.parents:
         raise RuntimeError("private CI case must be outside source checkout")
-    if plan.get("n") != 1 or plan.get("trial") != 1:
-        raise RuntimeError("initial Linux CI scope is exactly N1/trial1")
+    if case_n not in (1, 16) or type(plan.get("n")) is not int or plan["n"] != case_n or plan.get("trial") != 1:
+        raise RuntimeError("explicit case scope must match one N1 or N16/trial1")
+    version = plan.get("productionMeasurementVersion")
+    if version not in (None, "ynx-pq-batch-measurement-v1") or (case_n == 16 and version is None):
+        raise RuntimeError("N16 requires frozen production measurement API")
     expected = ["go", "test", "-overlay", str(case / "overlay.json"), "-p", "1",
                 "./internal/chain", "-run", "^TestPQPairedPersistentPerformance$", "-count=1", "-timeout=90s"]
     if plan.get("command") != expected or plan.get("executionAuthorized") is not False:
@@ -178,6 +181,56 @@ def validate_recipe(plan, prepared):
     return source, case, expected, expected_env
 
 
+def validate_production_measurement(row, report, plan):
+    version = "ynx-pq-batch-measurement-v1"
+    m = row.get("wholeMeasurement")
+    if plan.get("productionMeasurementVersion") != version or report.get("productionMeasurementVersion") != version or not isinstance(m, dict) or m.get("version") != version:
+        raise RuntimeError("production measurement version/result missing")
+    def decimal(value, maximum, length):
+        return isinstance(value, str) and len(value) <= length and re.fullmatch(r"0|[1-9][0-9]*", value) is not None and int(value) <= maximum
+    def phase(value, attempts):
+        if (not isinstance(value, dict) or any(type(value.get(k)) is not int for k in ("attempts", "completed", "errors"))
+                or value["attempts"] != attempts or value["completed"] != attempts or value["errors"] != 0
+                or not decimal(value.get("durationNs"), (1 << 63)-1, 19)
+                or (attempts == 0 and value["durationNs"] != "0")):
+            raise RuntimeError("actual successful production phase coverage missing")
+    wire_hash = "0x" + report["sharedWholeSha256"]
+    out = m.get("result")
+    if (m.get("wireHash") != wire_hash or not decimal(m.get("executionHeight"), (1 << 64)-1, 20)
+            or not isinstance(out, dict) or out.get("batchHash") != wire_hash or out.get("executionHeight") != m["executionHeight"]
+            or out.get("status") != "durable" or out.get("replayed") is not False
+            or type(m.get("verifierSignatureChecks")) is not int or m["verifierSignatureChecks"] != 2
+            or type(m.get("memberAdmitted")) is not int or m["memberAdmitted"] != plan["n"]
+            or type(m.get("memberRejected")) is not int or m["memberRejected"] != 0):
+        raise RuntimeError("production measurement differs from original successful Whole call")
+    members = out.get("results")
+    if not isinstance(members, list) or len(members) != plan["n"]:
+        raise RuntimeError("production member outcomes missing")
+    for i, member in enumerate(members):
+        if not isinstance(member, dict) or type(member.get("index")) is not int or member["index"] != i or member.get("outcome") != "admitted" or member.get("transactionHash") != row["memberHashes"][i] or member.get("error", "") != "":
+            raise RuntimeError("production member result identity differs")
+    for name in ("total", "inputCloneHash", "lockWait", "policyValidation", "wireDecode", "wholeAuthentication"):
+        phase(m.get(name), 1)
+    phase(m.get("memberExecution"), plan["n"]); phase(m.get("replay"), 0)
+    persistence = m.get("persistence")
+    if not isinstance(persistence, dict):
+        raise RuntimeError("production persistence phases missing")
+    for name in ("total", "snapshotBuild", "integritySeal", "checkpointBuild", "persistenceLockWait", "mkdir"):
+        phase(persistence.get(name), 1)
+    for name in ("snapshotFile", "markerFile"):
+        f = persistence.get(name)
+        if not isinstance(f, dict) or any(type(f.get(k)) is not int or f[k] < 1 for k in ("writeCalls", "bytesWritten")):
+            raise RuntimeError("actual production writes missing")
+        for name in ("total", "openTemp", "encodeWrite", "fileSync", "close", "rename", "directorySync"):
+            phase(f.get(name), 1)
+    published = persistence.get("published")
+    if (not isinstance(published, dict) or published.get("version") != "ynx-local-durability-v1"
+            or not decimal(published.get("height"), (1 << 64)-1, 20) or not isinstance(published.get("hash"), str)
+            or not isinstance(published.get("snapshotIntegrity"), str) or not published["snapshotIntegrity"]
+            or published["snapshotIntegrity"] != persistence.get("candidateIntegrity")):
+        raise RuntimeError("production local checkpoint publication missing")
+
+
 def validate_result(report, plan, case):
     if report.get("sourceCommit") != plan["commit"] or report.get("n") != plan["n"] or report.get("trial") != plan["trial"] or report.get("businessProjectionEqual") is not True or report.get("bftFinalCommits") is not None:
         raise RuntimeError("expected bounded paired result missing/mismatched")
@@ -192,6 +245,10 @@ def validate_result(report, plan, case):
         raise RuntimeError("both measured member paths required")
     if [row.get("mode") for row in rows] != report["order"]:
         raise RuntimeError("measured modes/order differ")
+    if plan.get("productionMeasurementVersion") is not None or report.get("productionMeasurementVersion") is not None:
+        if rows[0].get("wholeMeasurement") is not None:
+            raise RuntimeError("standalone member path cannot claim Whole phase measurement")
+        validate_production_measurement(rows[1], report, plan)
     signing = []
     for row in rows:
         n, mode = plan["n"], row["mode"]
@@ -228,7 +285,7 @@ def validate_result(report, plan, case):
         raise RuntimeError("paired paths did not share one signing preparation")
 
 
-def run(prepared, receipt):
+def run(prepared, receipt, case_n=1):
     if sys.platform != "linux":
         raise RuntimeError("Linux /proc/smaps_rollup/subreaper required; no macOS substitution")
     started = time.monotonic()
@@ -291,11 +348,12 @@ def run(prepared, receipt):
 
     try:
         plan = json.loads(bounded(prepared, 1 << 20))
-        source, case, command, pinned_env = validate_recipe(plan, prepared)
+        source, case, command, pinned_env = validate_recipe(plan, prepared, case_n=case_n)
         if receipt.exists() or receipt.is_symlink() or case == receipt.parent or case in receipt.parents:
             raise RuntimeError("new guard receipt must be outside private case")
         result["preparedSHA256"] = digest(prepared)
         result["sourceCommit"] = plan["commit"]
+        result["explicitCaseN"] = case_n
         result["kernel"] = dict(release=os.uname().release, machine=os.uname().machine, logicalCPUs=os.cpu_count())
         def source_check():
             git_env = dict(os.environ, GIT_OPTIONAL_LOCKS="0")
@@ -460,6 +518,7 @@ def run(prepared, receipt):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prepared", type=Path)
+    parser.add_argument("--case-n", type=int, choices=(1, 16), default=1, help="explicit Root-scheduled case only; does not grant execution or expand budgets")
     parser.add_argument("--receipt", type=Path)
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
@@ -469,4 +528,4 @@ if __name__ == "__main__":
     elif not args.prepared or not args.receipt:
         parser.error("--prepared and a new --receipt outside case are required")
     else:
-        sys.exit(run(args.prepared.resolve(), args.receipt.resolve()))
+        sys.exit(run(args.prepared.resolve(), args.receipt.resolve(), case_n=args.case_n))

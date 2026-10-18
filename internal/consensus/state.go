@@ -34,6 +34,8 @@ type BFTNativeTransfer struct {
 // for restart recovery but excluded from AppHash because empty blocks do not
 // change application state.
 type CommittedState struct {
+	bootstrap                  *ConsensusBootstrap
+	ValidatorRegistry          *ValidatorRegistryState         `json:"validatorRegistry,omitempty"`
 	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
 	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
 	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
@@ -91,6 +93,7 @@ type CommittedState struct {
 }
 
 type committedStateHashDocument struct {
+	ValidatorRegistry          *ValidatorRegistryState         `json:"validatorRegistry,omitempty"`
 	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
 	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
 	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
@@ -209,6 +212,8 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 
 func sealCommittedState(migration chain.ConsensusMigrationState, height int64, execution executionState) (CommittedState, error) {
 	state := CommittedState{
+		bootstrap:                  execution.bootstrap,
+		ValidatorRegistry:          cloneValidatorRegistry(execution.validatorRegistry),
 		LegacyContracts:            cloneLegacyContracts(execution.legacyContracts),
 		LegacyResourceMarket:       cloneLegacyResourceMarket(execution.legacyResourceMarket),
 		LegacyResourceSponsor:      cloneLegacyResourceSponsor(execution.legacyResourceSponsor),
@@ -263,6 +268,9 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		DexPools:                   cloneDexPools(execution.dexPools),
 		DexEvents:                  append([]BFTDexEvent(nil), execution.dexEvents...),
 	}
+	if state.ValidatorRegistry != nil {
+		state.Version = ValidatorRegistryStateVersion
+	}
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() && sameConsensusPolicy(state.AccountPolicy, migration.AccountPolicy) {
 		state.AppHash = migration.StateHash
 	} else {
@@ -282,8 +290,11 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := migration.Validate(); err != nil {
 		return fmt.Errorf("invalid migration anchor: %w", err)
 	}
-	if s.Version != CommittedStateVersion && s.Version != 14 {
+	if s.Version != CommittedStateVersion && s.Version != 14 && s.Version != ValidatorRegistryStateVersion {
 		return fmt.Errorf("unsupported committed state version %d", s.Version)
+	}
+	if err := validateValidatorRegistryState(s, migration); err != nil {
+		return err
 	}
 	if err := validateConsensusPQState(s, migration); err != nil {
 		return err
@@ -413,6 +424,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 }
 
 func (s CommittedState) calculateHash() (string, error) {
+	if s.Version == ValidatorRegistryStateVersion {
+		return s.calculateHashFor("YNX_ABCI_STATE_V16", ValidatorRegistryStateVersion)
+	}
 	if s.Version == 14 {
 		return s.calculateHashFor("YNX_ABCI_STATE_V14", 14)
 	}
@@ -421,6 +435,7 @@ func (s CommittedState) calculateHash() (string, error) {
 
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
 	doc := committedStateHashDocument{
+		ValidatorRegistry:          s.ValidatorRegistry,
 		LegacyContracts:            s.LegacyContracts,
 		LegacyResourceMarket:       s.LegacyResourceMarket,
 		LegacyResourceSponsor:      s.LegacyResourceSponsor,
@@ -489,7 +504,7 @@ func (s CommittedState) hasApplicationRecords() bool {
 			resourcePools++
 		}
 	}
-	if len(s.PQHistory) != 0 || len(s.PQBatches) != 0 {
+	if s.ValidatorRegistry != nil || len(s.PQHistory) != 0 || len(s.PQBatches) != 0 {
 		return true
 	}
 	return len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+resourcePools+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0
@@ -655,6 +670,10 @@ func settlementStatus(value string) bool {
 }
 
 func loadCommittedState(path string, migration chain.ConsensusMigrationState) (CommittedState, error) {
+	return loadCommittedStateWithBootstrap(path, migration, nil)
+}
+
+func loadCommittedStateWithBootstrap(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap) (CommittedState, error) {
 	if strings.TrimSpace(path) == "" {
 		return initialCommittedState(migration), nil
 	}
@@ -675,6 +694,10 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 	var state CommittedState
 	if err := json.Unmarshal(payload, &state); err != nil {
 		return CommittedState{}, fmt.Errorf("decode committed state: %w", err)
+	}
+	state.bootstrap = bootstrap
+	if state.Version < ValidatorRegistryStateVersion && state.ValidatorRegistry != nil {
+		return CommittedState{}, errors.New("legacy state cannot carry a validator registry")
 	}
 	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || len(state.PQBatches) != 0 || state.TraceLots != nil || migration.AccountPolicy != nil || state.LegacyResourceSponsor != nil || migrationResourceSponsor(migration) != nil || state.LegacyResourceMarket != nil || migrationResourceMarket(migration) != nil || state.LegacyContracts != nil || migrationLegacyContracts(migration) != nil) {
 		return CommittedState{}, errors.New("legacy state cannot import or erase v15 authorization/lineage fields")
@@ -730,6 +753,10 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 }
 
 func saveCommittedState(path string, state CommittedState, migration chain.ConsensusMigrationState) error {
+	return saveCommittedStateWithHooks(path, state, migration, nil)
+}
+
+func saveCommittedStateWithHooks(path string, state CommittedState, migration chain.ConsensusMigrationState, hooks *committedPersistenceHooks) error {
 	if strings.TrimSpace(path) == "" {
 		return nil
 	}
@@ -766,16 +793,16 @@ func saveCommittedState(path string, state CommittedState, migration chain.Conse
 	if err := temp.Close(); err != nil {
 		return fmt.Errorf("close committed state temp file: %w", err)
 	}
+	if hooks != nil && hooks.beforeRename != nil {
+		if err := hooks.beforeRename(); err != nil {
+			return fmt.Errorf("before committed state rename: %w", err)
+		}
+	}
 	if err := os.Rename(tempPath, path); err != nil {
 		return fmt.Errorf("replace committed state: %w", err)
 	}
-	directory, err := os.Open(dir)
-	if err == nil {
-		err = directory.Sync()
-		_ = directory.Close()
-	}
-	if err != nil {
-		return fmt.Errorf("sync committed state directory: %w", err)
+	if err := syncCommittedDirectory(dir, hooks); err != nil {
+		return fmt.Errorf("%w: sync committed state directory: %w", ErrCommittedStateDurabilityUncertain, err)
 	}
 	return nil
 }
