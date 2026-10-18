@@ -29,11 +29,16 @@ on:
       - 'scripts/verify/verify-consensus-candidate.sh'
       - 'scripts/ops/public-bft-production-driver.sh'
       - 'scripts/ops/public-bft-cutover-transaction.sh'
+      - 'scripts/ops/public-bft-operator-transition.sh'
+      - 'scripts/ops/remote/public-bft-operator-transition.sh'
+      - 'scripts/ops/public-bft-validator-registration.sh'
       - 'scripts/ops/remote/public-bft-dependencies.sh'
       - 'scripts/ops/remote/public-bft-ingress.sh'
       - 'scripts/verify/public-bft-candidate-binding.mjs'
       - 'scripts/verify/public-bft-production-candidate-check.sh'
       - 'scripts/verify/public-bft-cutover-transaction-check.sh'
+      - 'scripts/verify/public-bft-operator-transition-check.sh'
+      - 'scripts/verify/public-bft-validator-registration-check.sh'
       - 'scripts/verify/public-bft-gateway-dependencies-check.sh'
       - 'scripts/verify/public-bft-gateway-ingress-check.sh'
       - 'scripts/verify/validate-public-bft-cutover-approval.mjs'
@@ -300,6 +305,11 @@ jobs:
       - name: Verify failed candidate deployment preserves services and signing history
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: node --test scripts/deploy/consensus-candidate-failure-retention.test.mjs scripts/verify/consensus-production-package-check.test.mjs
+      - name: Verify original-state operator transition preserves custody and uncertain attempts
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          bash scripts/verify/public-bft-operator-transition-check.sh
       - name: Compile frozen measured production overlay without executing cases
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3
@@ -1230,6 +1240,7 @@ jobs:
           bash scripts/verify/public-bft-cutover-transaction-check.sh
           bash scripts/verify/public-bft-gateway-dependencies-check.sh
           bash scripts/verify/public-bft-gateway-ingress-check.sh
+          bash scripts/verify/public-bft-validator-registration-check.sh "$RUNNER_TEMP/ynx-pq-linux-runtime-candidate/ynx-comet" "$RUNNER_TEMP/ynx-pq-consensus-light-proof-public.json"
       - name: Verify normal proof CLI with exact public interoperability fixture
         id: pqproofcli
         if: ${{ success() && github.event_name == 'push' }}
