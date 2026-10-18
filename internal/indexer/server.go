@@ -178,15 +178,6 @@ func trySummarizeDatabase(store *Store) (databaseSummary, bool, error) {
 	return summary, ready, err
 }
 
-func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"service":       "ynx-indexerd",
-		"schemaVersion": 2,
-		"build":         s.build,
-		"startedAt":     s.startedAt,
-	})
-}
-
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	db, err := summarizeDatabase(s.indexer.Store())
 	if err != nil {

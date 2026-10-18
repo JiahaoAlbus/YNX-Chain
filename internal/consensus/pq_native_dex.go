@@ -571,7 +571,7 @@ func (a *Application) applyPQDexAction(state executionState, raw []byte, height 
 	}
 	event := next.dexEvents[len(next.dexEvents)-1]
 	tx := dexHistoryTransaction(action, nativeHash, event, raw, flows)
-	next.feeEvents = append(append([]BFTFeeEvent(nil), state.feeEvents...), newCurrentFeeEvent(abciHash, PQActionType, action.Owner, a.feeRecipient, 1, height, at))
+	next.feeEvents = state.feeEvents.append(newCurrentFeeEvent(abciHash, PQActionType, action.Owner, a.feeRecipient, 1, height, at))
 	next.pqHistory = append(clonePQHistory(state.pqHistory), PQCommittedAuthorization{ABCITransactionHash: abciHash, Transaction: tx})
 	execution.typeName, execution.hash = PQActionType, abciHash
 	return next, execution, nil

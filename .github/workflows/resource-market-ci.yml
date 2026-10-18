@@ -225,7 +225,7 @@ jobs:
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
       - name: Verify existing Chain readback and recovery after protocol integration
         if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration' }}
-        run: go test -p 1 -count=1 -timeout=180s ./internal/indexer ./internal/explorer ./internal/faucet ./cmd/ynx-indexerd
+        run: go test -p 1 -count=1 -timeout=180s ./internal/mutationfreeze ./internal/indexer ./internal/explorer ./internal/faucet ./cmd/ynx-indexerd
       - name: Verify existing Chain SDK after protocol integration
         if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration' }}
         run: node --test sdk/js/index.test.mjs
