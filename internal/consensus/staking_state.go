@@ -50,5 +50,5 @@ func validateStakingState(state CommittedState, migration chain.ConsensusMigrati
 		}
 		previous = value.ID
 	}
-	return nil
+	return validateConsensusPQStaking(state, migration)
 }

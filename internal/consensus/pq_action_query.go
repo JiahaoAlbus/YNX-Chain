@@ -53,6 +53,11 @@ type pqActionDexEffects struct {
 	Event    BFTDexEvent     `json:"event"`
 }
 
+type pqActionStakingEffects struct {
+	Delegation BFTStakeDelegation  `json:"delegation"`
+	Unbondings []BFTUnbondingEntry `json:"unbondings"`
+}
+
 type pqActionEffects struct {
 	FeeRecipient string       `json:"feeRecipient"`
 	Fee          *BFTFeeEvent `json:"fee"`
@@ -62,6 +67,7 @@ type pqActionEffects struct {
 	Resource  *pqActionResourceEffects       `json:"resource"`
 	DEX       *pqActionDexEffects            `json:"dex"`
 	Contract  *BFTEVMReceipt                 `json:"contract"`
+	Staking   *pqActionStakingEffects        `json:"staking,omitempty"`
 }
 
 // DecodePQActionTransport uses exactly the existing executor codecs. It does
@@ -116,7 +122,7 @@ func pqActionOriginal(entry PQCommittedAuthorization) ([]byte, error) {
 		r, _, _, err := decodePQContractHistory(tx)
 		return r.Transport, err
 	}
-	for _, prefix := range []string{pqNativeActionHistoryMemo, pqResourceHistoryMemo, pqDexHistoryMemo} {
+	for _, prefix := range []string{pqNativeActionHistoryMemo, pqResourceHistoryMemo, pqDexHistoryMemo, pqStakingHistoryMemo} {
 		if strings.HasPrefix(tx.Memo, prefix) && len(tx.Memo) <= 4*chain.MaxPQActionMemberBytes+1024 {
 			raw, err := hex.DecodeString(strings.TrimPrefix(tx.Memo, prefix))
 			if err != nil || tx.Memo != prefix+hex.EncodeToString(raw) {
@@ -171,7 +177,7 @@ func ValidatePQActionHistoryView(v PQActionHistoryView, queryHeight int64) (chai
 	if tx.BlockHash != "" || len(tx.Logs) != 0 || tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" {
 		return fail(errors.New("action history contains unexecuted metadata"))
 	}
-	feeBearing := isDexAction(action.Kind) || action.Kind == ynxauth.ActionContractDeploy || action.Kind == ynxauth.ActionContractExecute
+	feeBearing := isDexAction(action.Kind) || isStakingAction(action.Kind) || action.Kind == ynxauth.ActionContractDeploy || action.Kind == ynxauth.ActionContractExecute
 	if feeBearing {
 		if err := validatePQActionFee(entry, effects); err != nil {
 			return fail(err)
@@ -181,12 +187,12 @@ func ValidatePQActionHistoryView(v PQActionHistoryView, queryHeight int64) (chai
 	}
 	switch {
 	case action.Kind == ynxauth.ActionStake:
-		if effects.Resource != nil || effects.DEX != nil || effects.Contract != nil {
+		if effects.Resource != nil || effects.DEX != nil || effects.Contract != nil || effects.Staking != nil {
 			return fail(errors.New("stake acquired another action's effects"))
 		}
 		_, _, err = decodePQNativeActionHistory(entry)
 	case action.Kind == ynxauth.ActionResourceDelegate || action.Kind == ynxauth.ActionResourceRent:
-		if effects.Resource == nil || effects.DEX != nil || effects.Contract != nil {
+		if effects.Resource == nil || effects.DEX != nil || effects.Contract != nil || effects.Staking != nil {
 			return fail(errors.New("resource action lacks exclusive original effects"))
 		}
 		var r authorizedResourceRecords
@@ -196,7 +202,7 @@ func ValidatePQActionHistoryView(v PQActionHistoryView, queryHeight int64) (chai
 			err = errors.New("resource quote, income, event or idempotency differs from actual computation")
 		}
 	case isDexAction(action.Kind):
-		if effects.DEX == nil || effects.Resource != nil || effects.Contract != nil {
+		if effects.DEX == nil || effects.Resource != nil || effects.Contract != nil || effects.Staking != nil {
 			return fail(errors.New("DEX action lacks exclusive original effects"))
 		}
 		var a authorizedDexAction
@@ -221,10 +227,15 @@ func ValidatePQActionHistoryView(v PQActionHistoryView, queryHeight int64) (chai
 			_, err = validateDexState(next.dexAssets, next.dexBalances, next.dexPools, next.dexEvents)
 		}
 	case action.Kind == ynxauth.ActionContractDeploy || action.Kind == ynxauth.ActionContractExecute:
-		if effects.Contract == nil || effects.Resource != nil || effects.DEX != nil {
+		if effects.Contract == nil || effects.Resource != nil || effects.DEX != nil || effects.Staking != nil {
 			return fail(errors.New("contract action lacks exclusive original execution receipt"))
 		}
 		err = validatePQActionContract(entry, effects, action, wire)
+	case isStakingAction(action.Kind):
+		if effects.Staking == nil || effects.Resource != nil || effects.DEX != nil || effects.Contract != nil {
+			return fail(errors.New("staking action lacks exclusive original business effects"))
+		}
+		err = validatePQActionStaking(entry, *effects.Staking, auth)
 	default:
 		err = errors.New("unsupported PQ action kind")
 	}
@@ -358,6 +369,11 @@ func pqActionHistoryView(s CommittedState, m chain.ConsensusMigrationState, hash
 	switch {
 	case action.Kind == ynxauth.ActionStake:
 		err = validateConsensusPQNativeActions(s, m)
+	case isStakingAction(action.Kind):
+		err = validateConsensusPQStaking(s, m)
+		if err == nil {
+			effects.Staking, err = pqActionStakingEffectsFor(s, entry.ABCITransactionHash)
+		}
 	case action.Kind == ynxauth.ActionResourceDelegate || action.Kind == ynxauth.ActionResourceRent:
 		err = validateConsensusPQResources(s, m)
 		if err == nil {
@@ -387,7 +403,7 @@ func pqActionHistoryView(s CommittedState, m chain.ConsensusMigrationState, hash
 	if err != nil {
 		return v, err
 	}
-	if isDexAction(action.Kind) || isPQContractHistory(entry.Transaction) {
+	if isDexAction(action.Kind) || isStakingAction(action.Kind) || isPQContractHistory(entry.Transaction) {
 		if m.Runtime == nil {
 			return v, errors.New("action fee lacks complete original source lineage")
 		}

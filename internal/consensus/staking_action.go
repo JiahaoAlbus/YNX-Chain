@@ -41,6 +41,10 @@ type BFTStakeDelegation struct {
 	BlockHeight   int64     `json:"blockHeight"`
 	TxHash        string    `json:"txHash"`
 	AuditHash     string    `json:"auditHash"`
+	// Canonical original transactions and execution coordinates, beginning at
+	// creation. Empty retains the old opaque checkpoint contract; it never
+	// authorizes a new PQ mutation of that delegation.
+	AuthorizationHistory string `json:"authorizationHistory,omitempty"`
 }
 
 type BFTUnbondingEntry struct {

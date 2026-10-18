@@ -13,15 +13,35 @@ import (
 )
 
 func (a *Application) applyStakingAction(state executionState, raw []byte, tx SignedApplicationAction, height int64, blockTime time.Time, validationOnly bool) (executionState, transactionExecution, error) {
+	// The normal dispatcher has already verified the original classic signature
+	// and its historical account-policy gate. No synthetic signature is used by
+	// the PQ route: both callers enter the private business view below.
+	auth := authorizedStakingAction{Signer: tx.Signer, Action: tx.Action, Payload: tx.Payload}
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
 	}
-	txHash, recordID := ApplicationActionHash(raw), ""
+	next, execution, err := applyAuthorizedStakingBusiness(state, auth, ApplicationActionHash(raw), height, blockTime, validationOnly, a.activeValidator)
+	if err != nil {
+		return executionState{}, transactionExecution{}, err
+	}
+	// Preserve every old classic effect and hash, including 18/19/20 journals.
+	// There is no implicit activation height for adding original-wire fields to
+	// old classic executions. Their missing history remains explicitly opaque.
+	execution.typeName = tx.Type
+	return next, execution, nil
+}
+
+func applyAuthorizedStakingBusiness(state executionState, tx authorizedStakingAction, txHash string, height int64, blockTime time.Time, validationOnly bool, activeValidator func(string) bool) (executionState, transactionExecution, error) {
+	canonical, err := canonicalStakingActionPayload(tx.Action, tx.Payload)
+	if err != nil || string(canonical) != string(tx.Payload) {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("staking business payload is not canonical"))
+	}
+	recordID := ""
 	switch tx.Action {
 	case ActionStakeDelegate:
 		var input StakeDelegatePayload
 		_ = json.Unmarshal(tx.Payload, &input)
-		if !a.activeValidator(input.Validator) {
+		if !activeValidator(input.Validator) {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("staking validator is not active in the migration validator set"))
 		}
 		accountIndex, ok := accountIndex(state.accounts, tx.Signer)
@@ -111,8 +131,10 @@ func (a *Application) applyStakingAction(state executionState, raw []byte, tx Si
 		entry.AuditHash = stakingAuditHash(entry)
 		state.unbondings[index] = entry
 		recordID = entry.ID
+	default:
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("unsupported staking business action"))
 	}
-	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.staking", Attributes: []abcitypes.EventAttribute{{Key: "action", Value: tx.Action, Index: true}, {Key: "signer", Value: tx.Signer, Index: true}, {Key: "record_id", Value: recordID, Index: true}}}}, nil
+	return state, transactionExecution{event: abcitypes.Event{Type: "ynx.staking", Attributes: []abcitypes.EventAttribute{{Key: "action", Value: tx.Action, Index: true}, {Key: "signer", Value: tx.Signer, Index: true}, {Key: "record_id", Value: recordID, Index: true}}}}, nil
 }
 
 func (a *Application) activeValidator(address string) bool {

@@ -415,6 +415,47 @@ jobs:
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
+      - name: Reproduce missing PQ validator staking entry and verify original lifecycle preservation
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          umask 077
+          YNX_STAKING_CASE="$RUNNER_TEMP/ynx-pq-validator-staking-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$YNX_STAKING_CASE"
+          cp internal/consensus/pq_native_action.go "$YNX_STAKING_CASE/fixed-action.go"
+          trap 'cp "$YNX_STAKING_CASE/fixed-action.go" internal/consensus/pq_native_action.go' EXIT
+          # Run the exact original dispatcher against the new signed request.
+          # Retain current codec/types so compilation cannot masquerade as RED.
+          python3 -B - <<'PY'
+          import subprocess
+          from pathlib import Path
+          path = Path('internal/consensus/pq_native_action.go')
+          fixed = path.read_text()
+          original = subprocess.check_output(['git', 'show', '7c5e2889df10741467c53d06bd093ef77325e24c:internal/consensus/pq_native_action.go'], text=True)
+          start = 'func (a *Application) applyPQActionTransaction('
+          end = '\nfunc (a *Application) applyPQNativeAction('
+          def span(text):
+              if text.count(start) != 1 or text.count(end) != 1:
+                  raise RuntimeError('exact original staking dispatcher boundary required')
+              a = text.index(start)
+              return a, text.index(end, a)
+          a, b = span(fixed)
+          c, d = span(original)
+          if 'applyPQStakingAction' not in fixed[a:b] or 'applyPQStakingAction' in original[c:d]:
+              raise RuntimeError('staking counterexample must select the actual missing dispatcher')
+          path.write_text(fixed[:a] + original[c:d] + fixed[b:])
+          PY
+          set +e
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestABCIPQValidatorStakingMigratedOwnerLifecycle$' ./internal/consensus > "$YNX_STAKING_CASE/original-red.log" 2>&1
+          YNX_STAKING_RED=$?
+          set -e
+          cp "$YNX_STAKING_CASE/fixed-action.go" internal/consensus/pq_native_action.go
+          trap - EXIT
+          cat "$YNX_STAKING_CASE/original-red.log"
+          test "$YNX_STAKING_RED" -ne 0
+          test "$(grep -c 'PQ_VALIDATOR_STAKING_TYPED_ENTRY_MISSING' "$YNX_STAKING_CASE/original-red.log")" -eq 1
+          go test -p 1 -count=1 -timeout=90s -v -run '^(TestABCIPQValidatorStaking|TestClassicValidatorStakingOriginalEffectAndHashCompatibility)' ./internal/consensus
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         env:

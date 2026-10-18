@@ -227,7 +227,7 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 		// These fields are never produced by the ABCI PQ executors. A valid
 		// signature over a migration/transfer/revocation cannot grant sponsorship,
 		// mint resource usage or manufacture source-chain receipts on restore.
-		if tx.BlockHash != "" || len(tx.Logs) != 0 || tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" || tx.Type != PQRevocationType && !isPQContractHistory(tx) && !isPQDexHistory(tx) && !isPQEthereumValueHistory(tx) && len(tx.LotFlows) != 0 {
+		if tx.BlockHash != "" || len(tx.Logs) != 0 || tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" || tx.Type != PQRevocationType && !isPQContractHistory(tx) && !isPQDexHistory(tx) && !isPQEthereumValueHistory(tx) && !isPQStakingHistory(tx) && len(tx.LotFlows) != 0 {
 			return errors.New("ABCI PQ history contains unexecuted receipt or resource metadata")
 		}
 		if tx.BlockNum <= migration.Height || tx.BlockNum < previousHeight || tx.BlockNum > uint64(state.Height) || seen[tx.Hash] {
@@ -238,7 +238,7 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 		// validators in CommittedState.Validate (including contract code/trace
 		// lots and Resource request/settlement records). Every kind retains
 		// the common metadata, chronological height and replay gates above.
-		if isPQContractHistory(tx) || isPQNativeActionHistory(tx) || isPQResourceHistory(tx) || isPQDexHistory(tx) || isPQEthereumValueHistory(tx) {
+		if isPQContractHistory(tx) || isPQNativeActionHistory(tx) || isPQResourceHistory(tx) || isPQDexHistory(tx) || isPQEthereumValueHistory(tx) || isPQStakingHistory(tx) {
 			continue
 		}
 		if strings.HasPrefix(tx.Memo, pqBatchMemberMemoPrefix) {
