@@ -21,6 +21,7 @@ on:
       - "scripts/verify/perf-v13-integration-check*.mjs"
       - "scripts/verify/perf-v13-fee-chunks-integration-check*.mjs"
       - "scripts/verify/perf-v13-borrowed-recovery-integration-check*.mjs"
+      - "scripts/verify/perf-v13-seal-guarded-integration-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   pull_request:
     branches:
@@ -41,6 +42,7 @@ on:
       - "scripts/verify/perf-v13-integration-check*.mjs"
       - "scripts/verify/perf-v13-fee-chunks-integration-check*.mjs"
       - "scripts/verify/perf-v13-borrowed-recovery-integration-check*.mjs"
+      - "scripts/verify/perf-v13-seal-guarded-integration-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
     inputs:
@@ -150,6 +152,8 @@ jobs:
           release/integration/candidates/perf-state-v13-fee-chunks/check.test.mjs
           scripts/verify/perf-v13-borrowed-recovery-integration-check.test.mjs
           release/integration/candidates/perf-state-v13-borrowed-recovery/check.test.mjs
+          scripts/verify/perf-v13-seal-guarded-integration-check.test.mjs
+          release/integration/candidates/perf-state-v13-seal-guarded/check.test.mjs
       - name: Verify ready-sender Commit phases and bounded event timeline
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
@@ -214,8 +218,8 @@ jobs:
             ${{ runner.temp }}/ynx-real-fee-history/result.json
           if-no-files-found: error
           retention-days: 90
-      - name: Verify fixed unpublished borrowed-recovery V13 integration contract
-        run: make integration-contract-perf-v13-borrowed-recovery-check
+      - name: Verify fixed unpublished guarded-seal V13 integration contract
+        run: make integration-contract-perf-v13-seal-guarded-check
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan

@@ -1,0 +1,137 @@
+{
+  "sourceCommit": "6bde90f34284a70e8a78b77c677258246d3cbb1c",
+  "internalTree": "1f99b28575b63877470a94ab46fb2671508b4bf1",
+  "runId": 39119368274,
+  "runConclusion": "failure",
+  "failureGate": "old SDK candidate.3 exact internal identity, after all selected measurements passed",
+  "fullGoSourceGate": "success",
+  "realSignedHistoryMacro": "success",
+  "largeSealMeasurement": "success",
+  "measurement": {
+    "app_hash": "c1826010d503909049c960fe9afcf048322bc2abf838ea2ffaa529dbaa8f53ee",
+    "business_tps": null,
+    "fee_events": 31232,
+    "finality_latency": null,
+    "go_version": "go1.25.14",
+    "gomaxprocs": 1,
+    "inclusion_latency": null,
+    "input_bytes": 16827942,
+    "input_store_sha256": "98a5495fb1f45049290e8aef0ce37b6ad495eed723ad5279938aa1f66f0f2b33",
+    "input_unchanged": true,
+    "max_rss_platform": "linux",
+    "max_rss_raw": 154744,
+    "measurement": "same_completed_actual_large_history_seal_ABBA_not_business_or_network_TPS",
+    "replayed_blocks": 10,
+    "replayed_signed_inputs": 2560,
+    "rows": [
+      {
+        "full_state_equal": true,
+        "guarded": false,
+        "order": 0,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 16096496,
+        "seal_allocations": 135109,
+        "seal_elapsed_ns": 89819356,
+        "seal_stages_ns": {
+          "clone_and_materialize": 565400,
+          "final_hash": 34941378,
+          "initial_hash": 35585894,
+          "semantic_validate": 18722737,
+          "witness_compare": 531,
+          "witness_copy": 1292
+        },
+        "second_hash_executed": true
+      },
+      {
+        "full_state_equal": true,
+        "guarded": true,
+        "order": 1,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 20971304,
+        "seal_allocations": 102363,
+        "seal_elapsed_ns": 66413035,
+        "seal_stages_ns": {
+          "clone_and_materialize": 560783,
+          "initial_hash": 35431628,
+          "semantic_validate": 28792114,
+          "witness_compare": 697393,
+          "witness_copy": 929044
+        },
+        "second_hash_executed": false
+      },
+      {
+        "full_state_equal": true,
+        "guarded": true,
+        "order": 2,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 20971304,
+        "seal_allocations": 102363,
+        "seal_elapsed_ns": 66262355,
+        "seal_stages_ns": {
+          "clone_and_materialize": 640981,
+          "initial_hash": 35395555,
+          "semantic_validate": 28898660,
+          "witness_compare": 712867,
+          "witness_copy": 611818
+        },
+        "second_hash_executed": false
+      },
+      {
+        "full_state_equal": true,
+        "guarded": false,
+        "order": 3,
+        "public_full_validate_passed": true,
+        "seal_allocated_bytes": 16096776,
+        "seal_allocations": 135113,
+        "seal_elapsed_ns": 93899343,
+        "seal_stages_ns": {
+          "clone_and_materialize": 576916,
+          "final_hash": 40292822,
+          "initial_hash": 35651922,
+          "semantic_validate": 17371885,
+          "witness_compare": 741,
+          "witness_copy": 2473
+        },
+        "second_hash_executed": true
+      }
+    ],
+    "runtime_candidate_enabled": false
+  },
+  "means": {
+    "original": {
+      "seal_elapsed_ns": 91859349.5,
+      "seal_allocated_bytes": 16096636,
+      "seal_allocations": 135111,
+      "stages_mean_ns": {
+        "semantic_validate": 18047311,
+        "witness_compare": 636,
+        "final_hash": 37617100,
+        "witness_copy": 1882.5,
+        "clone_and_materialize": 571158,
+        "initial_hash": 35618908
+      }
+    },
+    "guarded": {
+      "seal_elapsed_ns": 66337695,
+      "seal_allocated_bytes": 20971304,
+      "seal_allocations": 102363,
+      "stages_mean_ns": {
+        "semantic_validate": 28845387,
+        "witness_compare": 705130,
+        "witness_copy": 770431,
+        "clone_and_materialize": 600882,
+        "initial_hash": 35413591.5
+      }
+    }
+  },
+  "sealElapsedChangePercent": -27.783404344704188,
+  "allocationBytesChangePercent": 30.283768608546534,
+  "rawLogBytes": 424074,
+  "rawLogSHA256": "f734d2fd6ea0628aa232e86cfeb9103bbeee42966ae0473df00d89edf8a4864a",
+  "limits": [
+    "Two short samples per mode in ABBA order on one actual same-run large signed-history state.",
+    "Runtime candidate remains disabled, no network nodes or inclusion/finality measurement.",
+    "Allocations are total Go allocations; maxRSS is whole test process including replay and both modes, not per-mode peak.",
+    "Public Validate and actual macro Commit retain full current-state hash."
+  ]
+}

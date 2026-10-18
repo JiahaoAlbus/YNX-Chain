@@ -451,6 +451,9 @@ integration-contract-perf-v13-fee-chunks-check:
 integration-contract-perf-v13-borrowed-recovery-check:
 	node ./scripts/verify/perf-v13-borrowed-recovery-integration-check.mjs
 
+integration-contract-perf-v13-seal-guarded-check:
+	node ./scripts/verify/perf-v13-seal-guarded-integration-check.mjs
+
 integration-contract-check:
 	node ./scripts/verify/integration-contract-check.mjs
 
