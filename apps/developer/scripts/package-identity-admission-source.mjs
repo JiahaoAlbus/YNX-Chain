@@ -78,15 +78,18 @@ export async function copyIdentityAdmissionSource(destination) {
 }
 // Canonical source custody is independent of runtime service admission. Keep the
 // original SDK loader relative to its unique apps/wallet-desktop Native module.
-export const CANONICAL_IDENTITY_INPUTS_SHA256 = '0a9fae0c74d03e6a62fb308595a44faf043202369a89066f7d4a111c9e49ba48';
+export const CANONICAL_IDENTITY_INPUTS_SHA256 = '8177c57480475b1c4b15d5ac965d4d59799bcb9705bf09903f12a0008230efb5';
 // These select source custody, never runtime authority. Every selected byte is
 // still checked against the immutable manifest; there is no fallback on error.
 const canonicalOwned = resolve(process.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT || resolve(developer, '../../packages/wallet-auth'));
 const canonicalDependencies = resolve(process.env.YNX_DEVELOPER_CANONICAL_DEPENDENCY_ROOT || join(developer,'node_modules'));
+// The build parser is not part of the held SDK runtime. Keep its existing
+// reviewed tool installation separate from the new runtime-only dependency root.
+const canonicalBuildDependencies = resolve(process.env.YNX_DEVELOPER_CANONICAL_BUILD_DEPENDENCY_ROOT || canonicalDependencies);
 async function build(options) {
   // Parse with the already-installed, declared SDK tool. Never resolve an
   // ancestor's unrelated esbuild when a source-only stage has no node_modules.
-  const tool=join(canonicalDependencies,'esbuild');
+  const tool=join(canonicalBuildDependencies,'esbuild');
   const stat=await lstat(tool), metadata=JSON.parse(await readFile(join(tool,'package.json')));
   if(!stat.isDirectory() || stat.isSymbolicLink() || metadata.name!=='esbuild' || metadata.version!=='0.25.9') throw Error('Declared canonical esbuild 0.25.9 required.');
   return createRequire(import.meta.url)(tool).build(options);
@@ -95,7 +98,7 @@ async function canonicalInputs() {
   const bytes = await readFile(new URL('./canonical-identity-inputs.json', import.meta.url));
   if (sha256(bytes) !== CANONICAL_IDENTITY_INPUTS_SHA256) throw Error('Canonical identity source manifest differs.');
   const record = JSON.parse(bytes);
-  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== 'f9d8ec4fcbee12f75df2d6276c1e7c5a27bebc98' || record.sdkTree !== '3cfd0f4eee8dc083402e9470e017273339533670') throw Error('Canonical identity source selection differs.');
+  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== '3556a602d17162773e051babf0753e5118360580' || record.sdkTree !== '0b74d073ded95a277f9903dc99158d6983da79cd') throw Error('Canonical identity source selection differs.');
   for (const rows of [record.files, record.dependencies, record.nativeSources, record.nativeBuildInputs]) {
     if (!Array.isArray(rows) || !rows.length || new Set(rows.map(x => x.path)).size !== rows.length) throw Error('Canonical identity source inventory differs.');
     for (const row of rows) if (!/^[A-Za-z0-9_@./-]+$/.test(row.path) || row.path.startsWith('/') || row.path.split('/').some(p => !p || p === '.' || p === '..') || !Number.isSafeInteger(row.bytes) || !/^[a-f0-9]{64}$/.test(row.sha256)) throw Error('Canonical identity source pin differs.');
@@ -123,6 +126,15 @@ export async function verifyCanonicalIdentityAdmissionSource(root = canonicalOwn
   const record = await canonicalInputs();
   await verifyRows(root, record.files);
   await verifyRows(dependencies, record.dependencies);
+  const closure=record.runtimeClosure;
+  if(closure?.version!==1||closure.files!==451||closure.edges!==123||closure.nativeQualified!==false||closure.registrationAccepted!==false
+    ||closure.manifest?.path!=='native/original-ide-auth-runtime-manifest.json')throw Error('Canonical SDK328 runtime closure selection differs.');
+  const held=record.files.find(row=>row.path===closure.manifest.path);
+  if(!held||held.bytes!==closure.manifest.bytes||held.sha256!==closure.manifest.sha256)throw Error('Canonical runtime manifest is not held by the SDK selection.');
+  const runtime=JSON.parse(await readFile(join(root,held.path)));
+  if(runtime.version!=='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'||runtime.files?.length!==451||new Set(runtime.files.map(row=>row.path)).size!==451)throw Error('Canonical runtime manifest inventory differs.');
+  const rows=new Map([...record.files,...record.dependencies.map(row=>({...row,path:'node_modules/'+row.path}))].map(row=>[row.path,row]));
+  for(const row of runtime.files){const selected=rows.get(row.path);if(!selected||selected.bytes!==row.bytes||selected.sha256!==row.sha256)throw Error('Canonical runtime manifest leaf differs: '+row.path);}
   if (root !== canonicalOwned) {
     const expected = new Set([...record.files.map(row => row.path), ...(dependencies===join(root,'node_modules') ? record.dependencies.map(row => 'node_modules/' + row.path) : [])]);
     const expectedDirectories = new Set();
@@ -186,13 +198,16 @@ const identityAppSources = Object.freeze([
   Object.freeze({path:'packages/wallet-auth/native/original-ide-identity-launch-holder.h',bytes:1897,sha256:'a788b5290c58d8140eef80cf7176653b0019e0a9922cc90d017b30f845d38ce2'}),
   Object.freeze({path:'packages/wallet-auth/native/original-ide-identity-launch-holder.mm',bytes:14709,sha256:'6db6ea2f3cc63a2a95cd0557754f035f51549ac6fa5d8f1373a0072a98467fa1'}),
 ]);
-export function validateOriginalIdentityAppSources(inputs) {
+export function validateOriginalIdentityAppSources(inputs, receipt) {
   for(const pin of identityAppSources){
     const found=inputs?.nativeSources?.filter(row=>row.path===pin.path);
     if(found?.length!==1||found[0].bytes!==pin.bytes||found[0].sha256!==pin.sha256)
       throw Error('Original identity App holder source selection differs: '+pin.path);
-    if(inputs.nativeBuildInputs?.some(row=>row.path===pin.path))
-      throw Error('Original identity App holder must not be added to Node NAPI build inputs.');
+    // The original builder inventories all materialized source inputs, including
+    // App-only files. That is not its translation-unit list. Inspect actual
+    // recorded compiler argv, rather than rejecting a complete source inventory.
+    if(pin.path.endsWith('.mm')&&receipt?.commands?.some(command=>command.argv?.includes(join(receipt.sourceRoot,pin.path))))
+      throw Error('Original identity App holder must not be a Node NAPI translation unit.');
   }
   return identityAppSources;
 }
@@ -220,6 +235,10 @@ export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchit
     || record.headers.length < 4 || !safeRelative(record.headers[0]?.relative)
     || typeof record.headerRoot !== 'string' || resolve(record.headerRoot) !== record.headerRoot) throw Error('Canonical Native build receipt differs.');
   if (typeof record.sourceRoot !== 'string' || resolve(record.sourceRoot) !== record.sourceRoot) throw Error('Canonical Native source root differs.');
+  // Keep historical receipt validation available to the original derivation
+  // controls. The active SDK328 selection itself always requires the new App
+  // holder; an older receipt cannot select or activate the current candidate.
+  if(inputs.sdkCommit==='3556a602d17162773e051babf0753e5118360580')validateOriginalIdentityAppSources(inputs,record);
   if (record.readbackOnly && (typeof record.existingComponentEvidence?.path !== 'string'
     || resolve(record.existingComponentEvidence.path) !== record.existingComponentEvidence.path
     || !Number.isSafeInteger(record.existingComponentEvidence.bytes)

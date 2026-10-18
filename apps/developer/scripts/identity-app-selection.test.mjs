@@ -8,10 +8,11 @@ test('App holder selection rejects the old closure, header-only and modified imp
     assert.throws(()=>validateOriginalIdentityAppSources({nativeSources:rows,nativeBuildInputs:[]}),/source selection differs/);
 });
 test('App holder cannot be spliced into the Node NAPI component recipe',()=>{
-  for(const row of [header,body])assert.throws(()=>validateOriginalIdentityAppSources({nativeSources:[header,body],nativeBuildInputs:[row]}),/must not be added/);
+  assert.throws(()=>validateOriginalIdentityAppSources({nativeSources:[header,body],nativeBuildInputs:[header,body]},
+    {sourceRoot:'/PUBLIC',commands:[{argv:['/PUBLIC/'+body.path]}]}),/must not be a Node NAPI translation unit/);
 });
 test('exact App-only sources preserve the separate existing Node component closure',()=>{
-  const nativeBuildInputs=[{path:'apps/wallet-desktop/native/original-auth-identity-node.mm',bytes:1,sha256:'1'.repeat(64)}];
+  const nativeBuildInputs=[header,body,{path:'apps/wallet-desktop/native/original-auth-identity-node.mm',bytes:1,sha256:'1'.repeat(64)}];
   const before=JSON.stringify(nativeBuildInputs);
   assert.equal(validateOriginalIdentityAppSources({nativeSources:[header,body],nativeBuildInputs}).length,2);
   assert.equal(JSON.stringify(nativeBuildInputs),before);

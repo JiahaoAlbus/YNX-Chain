@@ -5,13 +5,15 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates independent exact SDK and complete R51, without loading Native',async()=>{
+test('normal selection validates exact SDK328 and its new complete Native, without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
- assert.equal(sdk.sdkCommit,inputs.sdkCommit);assert.equal(sdk.files.length,243);
- assert.equal(sdk.dependencies.length,316);assert.equal(native.sourceLeaves,41);assert.equal(native.buildInputLeaves,35);
+ assert.equal(sdk.sdkCommit,'3556a602d17162773e051babf0753e5118360580');assert.equal(sdk.files.length,267);
+ assert.equal(sdk.dependencies.length,263);assert.equal(native.sourceLeaves,49);assert.equal(native.buildInputLeaves,47);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'c1b7ba5b460fb6243ee2366bcbc2599659a0917b850c91816905abfd73992249');
+ assert.equal(inputs.predecessorManifestSha256,'0a9fae0c74d03e6a62fb308595a44faf043202369a89066f7d4a111c9e49ba48');
+ assert.equal(sdk.runtimeClosure.files,451);assert.equal(sdk.runtimeClosure.edges,123);
+ assert.equal(inputs.nativeComponent.module.sha256,'13e192554e5d47a6ea81c808bb5429466af2ef6eb2d02f74c3715c1ec1f3a367');
  assert.ok(inputs.nativeSourceUpdates.every(x=>Object.hasOwn(x,'parentSha256')));
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
@@ -31,7 +33,7 @@ test('wrong SDK bytes, missing source and a symlink are refused on the selected 
   await assert.rejects(verifyCanonicalIdentityAdmissionSource(root,deps),/source leaf differs/);
  }finally{await rm(root,{recursive:true,force:true});}
 });
-test('missing or changed R51 source and receipt mutation cannot substitute SDK Native fragments',async()=>{
+test('missing or changed complete Native source and receipt mutation cannot substitute SDK fragments',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ynx-native-selection-'));
  const source=process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT;
  assert.ok(source,'Run Native source-selection controls with the original fixed supplier root.');
