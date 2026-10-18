@@ -670,7 +670,31 @@ def assert_workflow_contract(raw):
     need("('included', 'finalized', 'executionSuccessful')" in publisher
          and "target_verification['executionCode'] != '0'" in publisher)
     host_upload = by_name("Upload only public Host delivery and normal CLI receipt")[0]
-    need("target-original" not in host_upload and "source-plan.json" not in host_upload and "/original" not in host_upload)
+    need("        timeout-minutes: 2\n" in publisher and "cwd=case, timeout=25, check=False" in publisher)
+    need("def run_case(prefix, expected_type, receipt_name):" in publisher)
+    need("metadata_raw = read(case / (prefix + 'metadata.json'), 16384)" in publisher)
+    for name in ('source-plan.json', 'delivery', 'request.json'):
+        need("case / (prefix + '" + name + "')" in publisher)
+    need("plan['expectedTransaction']['transactionType'] != expected_type" in publisher)
+    need("single_plan = run_case('', 'pq_transfer', 'ynx-proof-host-source-cli-public-receipt.json')" in publisher)
+    need("typed_plan = run_case('typed-', 'pq_action', 'ynx-proof-host-typed-source-cli-public-receipt.json')" in publisher)
+    need("path = case / (prefix + name)" in publisher)
+    need("('cometDataDirectory', 'engineHeight', 'engineAppHash')" in publisher)
+    need("transactionType=result['transactionType'], transactionHash=result['transactionHash'], nativeWireHash=result['nativeWireHash']" in publisher
+         and "height=result['height'], index=result['index']" in publisher)
+    need("public_catalog = dict(migration='migration.json', genesis='genesis.json', state='committed-state.json'" in publisher)
+    need("public_catalog.get(item['role']) != item['name']" in publisher
+         and "len({item['role'] for item in entries}) != len(entries)" in publisher)
+    need("set(p.name for p in destination.iterdir()) != set(originals)" in publisher
+         and "str(len(raw)) != item['bytes'] or sha(raw) != item['sha256']" in publisher)
+    upload_paths = host_upload.split("          path: |\n", 1)[1].split("          if-no-files-found:", 1)[0]
+    paths = [line.strip() for line in upload_paths.splitlines() if line.strip()]
+    need(paths == ['${{ runner.temp }}/ynx-proof-host-source-public/delivery',
+                   '${{ runner.temp }}/ynx-proof-host-source-public/request.json',
+                   '${{ runner.temp }}/ynx-proof-host-source-cli-public-receipt.json',
+                   '${{ runner.temp }}/ynx-proof-host-source-public/typed-delivery',
+                   '${{ runner.temp }}/ynx-proof-host-source-public/typed-request.json',
+                   '${{ runner.temp }}/ynx-proof-host-typed-source-cli-public-receipt.json'])
     need("test_pq_ci_stage_inputs.py" in controls[0])
 
 
@@ -783,6 +807,34 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             with self.subTest(index=index), self.assertRaises(AssertionError):
                 assert_workflow_contract(changed)
 
+    def test_single_and_typed_host_rounds_use_original_full_plans_and_only_public_catalogs(self):
+        # Source counterexamples, not execution or a trust grant. The normal
+        # ELF validates both real retained originals in the delivery job.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        _, steps = workflow_steps(raw, "protocol-delivery")
+        publisher = next(step for step in steps if "        id: pqhostsourcecli\n" in step)
+        upload = next(step for step in steps if step.startswith("      - name: Upload only public Host delivery and normal CLI receipt\n"))
+        typed_call = "typed_plan = run_case('typed-', 'pq_action', 'ynx-proof-host-typed-source-cli-public-receipt.json')"
+        mutations = [
+            raw.replace(publisher, publisher.replace(typed_call, "# omitted typed proof round", 1), 1),
+            raw.replace(publisher, publisher.replace("run_case('typed-', 'pq_action'", "run_case('typed-', 'pq_transfer'", 1), 1),
+            raw.replace(publisher, publisher.replace("plan['expectedTransaction']['transactionType'] != expected_type", "False", 1), 1),
+            raw.replace(publisher, publisher.replace("path = case / (prefix + name)", "path = case / name", 1), 1),
+            raw.replace(publisher, publisher.replace("public_catalog.get(item['role']) != item['name']", "False", 1), 1),
+            raw.replace(publisher, publisher.replace("str(len(raw)) != item['bytes'] or sha(raw) != item['sha256']", "False", 1), 1),
+            raw.replace(publisher, publisher.replace("timeout-minutes: 2", "timeout-minutes: 4", 1), 1),
+            raw.replace(upload, upload.replace("            ${{ runner.temp }}/ynx-proof-host-source-public/typed-delivery\n", "", 1), 1)]
+        for private_path in ('source-plan.json', 'typed-source-plan.json', 'metadata.json', 'typed-metadata.json',
+                             'original', 'original/application-state', 'original/data/state.db',
+                             'original/data/blockstore.db', 'original/pq-signing-state.lock',
+                             'original/validator-key.json', 'target-original-envelope', 'typed-target-original-native-wire', ''):
+            forbidden = '            ${{ runner.temp }}/ynx-proof-host-source-public/' + private_path + '\n'
+            mutations.append(raw.replace(upload, upload.replace("          if-no-files-found:", forbidden + "          if-no-files-found:", 1), 1))
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(changed)
+
     def test_retained_target_cmd_and_actual_pinned_elf_cannot_be_skipped_or_adopt_trust(self):
         # Source mutation controls only. Actual CLI execution is the separate
         # normal delivery job, using its original retained stores and clock.
@@ -790,8 +842,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         _, steps = workflow_steps(raw, "protocol-delivery")
         command = next(step for step in steps if "        id: pqprooftargetcmd\n" in step)
         publisher = next(step for step in steps if "        id: pqhostsourcecli\n" in step)
-        inspect_call = "          inspected = invoke('inspect-stopped-original-target', inspect, b'', 48 << 20)\n"
-        export_call = "          delivery = invoke('export-stopped-original-source', publish, b'', 16384)\n"
+        inspect_call = "              inspected = invoke('inspect-stopped-original-target', inspect, b'', 48 << 20)\n"
+        export_call = "              delivery = invoke('export-stopped-original-source', publish, b'', 16384)\n"
         mutations = [raw.replace(command, "", 1),
             raw.replace(command, command.replace("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT:", "UNUSED_FIXTURE_PATH:", 1), 1),
             raw.replace(command, command.replace("grep -F -- '--- PASS:", "echo '--- PASS:", 1), 1),

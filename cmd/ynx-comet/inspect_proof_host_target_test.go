@@ -82,13 +82,39 @@ func TestInspectProofHostTargetNormalCommandRetainedFixture(t *testing.T) {
 	if root == "" {
 		t.Skip("requires the explicitly retained original public engine fixture")
 	}
-	metadataRaw, err := os.ReadFile(filepath.Join(root, "metadata.json"))
+	var original consensus.ProofHostSourcePlan
+	for _, test := range []struct{ name, prefix, kind string }{
+		{"transfer", "", consensus.PQTransferType},
+		{"typed-action", "typed-", consensus.PQActionType},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			plan := inspectProofHostTargetRetainedCase(t, root, test.prefix, test.kind)
+			if test.prefix == "" {
+				original = plan
+			} else if plan.EngineHeight != original.EngineHeight || plan.EngineAppHash != original.EngineAppHash || plan.StateFile != original.StateFile || plan.CometDataDirectory != original.CometDataDirectory || plan.TrustedHeight != original.TrustedHeight || plan.TrustedBlockHash != original.TrustedBlockHash {
+				t.Fatal("typed normal command substituted a different checkpoint or trust anchor")
+			}
+		})
+	}
+}
+
+func inspectProofHostTargetRetainedCase(t *testing.T, root, prefix, wantKind string) consensus.ProofHostSourcePlan {
+	t.Helper()
+	metadataRaw, err := os.ReadFile(filepath.Join(root, prefix+"metadata.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	var metadata map[string]string
 	if err = json.Unmarshal(metadataRaw, &metadata); err != nil {
 		t.Fatal(err)
+	}
+	for _, key := range []string{"sourcePlanSHA256", "sourcePlanPath", "deliveryPath", "sourceId", "epoch", "requestPath", "expectedVerifierCode"} {
+		if len(metadata) != 7 || metadata[key] == "" {
+			t.Fatal("incomplete retained metadata", key)
+		}
+	}
+	if metadata["sourcePlanPath"] != filepath.Join(root, prefix+"source-plan.json") || metadata["requestPath"] != filepath.Join(root, prefix+"request.json") || metadata["deliveryPath"] != filepath.Join(root, prefix+"delivery") || metadata["expectedVerifierCode"] != "VERIFIED_TRANSACTION_DATA" {
+		t.Fatal("retained metadata redirected the normal caller")
 	}
 	raw, err := os.ReadFile(metadata["sourcePlanPath"])
 	if err != nil {
@@ -101,6 +127,9 @@ func TestInspectProofHostTargetNormalCommandRetainedFixture(t *testing.T) {
 	// The already independent fixture target is only the comparison oracle.
 	// No expected H/H+1 hash or partial plan is passed into the new command.
 	x := plan.ExpectedTransaction
+	if x.TransactionType != wantKind || x.TransactionHash == x.NativeWireHash || plan.OriginalHash != "0x"+x.NativeWireHash || plan.SourceID != metadata["sourceId"] || plan.Epoch != metadata["epoch"] {
+		t.Fatal("retained target lost native/transport hash separation or changed type")
+	}
 	envelope, err := base64.StdEncoding.DecodeString(x.Envelope)
 	if err != nil {
 		t.Fatal(err)
@@ -146,7 +175,7 @@ func TestInspectProofHostTargetNormalCommandRetainedFixture(t *testing.T) {
 	if err = json.Unmarshal(out, &result); err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(result.ExpectedTransaction, x) || !result.LedgerProofVerified || result.NativeRootAuthorized || result.DeploymentVerified || result.Verification.NativeGrant {
+	if !reflect.DeepEqual(result.ExpectedTransaction, x) || !result.LedgerProofVerified || result.NativeRootAuthorized || result.DeploymentVerified || result.Verification.NativeGrant || result.Verification.TransactionType != wantKind || !result.Verification.ExecutionSuccessful || result.Verification.TransactionHash != x.TransactionHash || result.Verification.NativeWireHash != x.NativeWireHash {
 		t.Fatal("normal target changed pinned original or claimed authority")
 	}
 	bad := append([]string(nil), args...)
@@ -167,6 +196,7 @@ func TestInspectProofHostTargetNormalCommandRetainedFixture(t *testing.T) {
 			t.Fatal("retained original input changed", err)
 		}
 	}
+	return plan
 }
 
 func proofTargetCommandFiles(t *testing.T, root string) map[string]string {

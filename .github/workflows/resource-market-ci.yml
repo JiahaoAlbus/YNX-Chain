@@ -1961,186 +1961,205 @@ jobs:
                       or info.st_nlink != 1 or info.st_mode & 0o022 or not 0 < info.st_size <= maximum):
                   raise RuntimeError('bounded original regular public fixture required')
               return path.read_bytes()
-          metadata_raw = read(case / 'metadata.json', 16384)
-          metadata = decode(metadata_raw)
-          if set(metadata) != {'sourcePlanSHA256', 'sourcePlanPath', 'deliveryPath', 'sourceId', 'epoch', 'requestPath', 'expectedVerifierCode'}:
-              raise RuntimeError('exact persisted source fixture metadata required')
-          if (metadata['sourcePlanPath'] != str(case / 'source-plan.json')
-                  or metadata['deliveryPath'] != str(case / 'delivery')
-                  or metadata['requestPath'] != str(case / 'request.json')
-                  or metadata['expectedVerifierCode'] != 'VERIFIED_TRANSACTION_DATA'):
-              raise RuntimeError('persisted fixture cannot choose an alternate caller or output')
-          plan_path, destination = Path(metadata['sourcePlanPath']), Path(metadata['deliveryPath'])
-          plan_raw = read(plan_path, 48 << 20)
-          if sha(plan_raw) != metadata['sourcePlanSHA256']:
-              raise RuntimeError('source plan differs from the original core fixture pin')
-          plan = decode(plan_raw)
-          request_raw = read(Path(metadata['requestPath']), 128 << 20)
-          request = decode(request_raw)
-          if (plan['sourceId'] != metadata['sourceId'] or plan['epoch'] != metadata['epoch']
-                  or request['version'] != 'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1'
-                  or request['expected'] != plan['expectedTransaction']):
-              raise RuntimeError('original operator plan and verifier request binding differ')
-          candidate = root / 'ynx-pq-linux-runtime-candidate'
-          runtime_raw = read(candidate / 'SOURCE.json', 65536)
-          runtime = decode(runtime_raw)
-          if runtime['commit'] != os.environ['GITHUB_SHA'] or runtime['runtimeStarted'] is not False:
-              raise RuntimeError('normal binary source identity differs from this fixed CI source')
-          binary_pins = {}
-          for name in ('ynx-comet', 'ynx-consensus-proof-verify'):
-              binary = candidate / name
-              raw = read(binary, 128 << 20)
-              pin = dict(bytes=len(raw), sha256=sha(raw))
-              if raw[:6] != b'\x7fELF\x02\x01' or raw[18:20] != b'\x3e\x00' or pin != runtime['binaries'][name]:
-                  raise RuntimeError('source delivery requires the actual independently built normal ELF pin')
-              binary_pins[name] = pin
-          environment = dict(PATH='/usr/bin:/bin', GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB')
-          observations = []
-          def invoke(name, command, body, maximum, expected_exit=0):
-              completed = subprocess.run(command, input=body, capture_output=True, env=environment,
-                  cwd=case, timeout=25, check=False)
-              if completed.returncode != expected_exit or completed.stderr or not 0 < len(completed.stdout) <= maximum:
-                  raise RuntimeError('normal source/Host caller failed at ' + name)
-              value = decode(completed.stdout)
-              observations.append(dict(name=name, exitCode=completed.returncode,
-                  stdoutSHA256=sha(completed.stdout), stdoutBytes=str(len(completed.stdout))))
-              return value
-          # Use only the retained, independently pinned full original. These
-          # two public byte inputs stay inside this fixture; no plan is rewritten.
-          expected_target = plan['expectedTransaction']
-          retained_inputs = {}
-          for field, name, hash_field in (('envelope', 'target-original-envelope', 'transactionHash'),
-                  ('nativeWire', 'target-original-native-wire', 'nativeWireHash')):
-              original = base64.b64decode(expected_target[field], validate=True)
-              if not 0 < len(original) <= 24 << 20 or sha(original) != expected_target[hash_field]:
-                  raise RuntimeError('target inspection requires the full original bytes and independent hash')
-              path = case / name
-              descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-              with os.fdopen(descriptor, 'wb') as output:
-                  output.write(original)
-                  output.flush()
-                  os.fsync(output.fileno())
-              if path.lstat().st_mode & 0o777 != 0o600 or read(path, 24 << 20) != original:
-                  raise RuntimeError('retained target input did not preserve exact private-mode public bytes')
-              retained_inputs[field] = (path, original)
-          inspect = [str(candidate / 'ynx-comet'), 'inspect-proof-host-target',
-              '--consensus-genesis', plan['genesisFile'], '--migration-state', plan['migrationFile'],
-              '--abci-state', plan['stateFile'], '--abci-state-layout', plan['stateLayout'],
-              '--comet-data-dir', plan['cometDataDirectory'], '--signing-state', plan['signingStatePath'],
-              '--signing-lock-kind', plan['signingLockKind'], '--consensus-genesis-sha256', plan['consensusGenesisSHA256'],
-              '--original-genesis-hash', plan['originalGenesisHash'], '--bound-migration-state-hash', plan['migrationStateHash'],
-              '--pq-engine-schedule', plan['scheduleFile'], '--pq-engine-schedule-hash', plan['scheduleHash'],
-              '--account', plan['account'], '--transaction-type', expected_target['transactionType'],
-              '--envelope', str(retained_inputs['envelope'][0]), '--native-wire', str(retained_inputs['nativeWire'][0]),
-              '--transaction-hash', expected_target['transactionHash'], '--native-wire-hash', expected_target['nativeWireHash'],
-              '--lookup-height', expected_target['block']['headerHeight'], '--lookup-index', expected_target['index'],
-              '--engine-height', plan['engineHeight'], '--engine-app-hash', plan['engineAppHash'],
-              '--trusted-height', plan['trustedHeight'], '--trusted-block-hash', plan['trustedBlockHash'],
-              '--trusting-period-nanoseconds', plan['trustingPeriodNanoseconds'],
-              '--max-clock-drift-nanoseconds', plan['maxClockDriftNanoseconds'],
-              '--trust-level-numerator', plan['trustLevelNumerator'], '--trust-level-denominator', plan['trustLevelDenominator']]
-          if plan['runtimePlanFile']:
-              inspect.extend(['--runtime-upgrade-plan', plan['runtimePlanFile'], '--runtime-upgrade-plan-hash', plan['runtimePlanHash']])
-          inspected = invoke('inspect-stopped-original-target', inspect, b'', 48 << 20)
-          if (set(inspected) != {'version', 'classification', 'account', 'networkId', 'engineHeight', 'engineAppHash',
-                  'trustedHeight', 'trustedBlockHash', 'trustingPeriodNanoseconds', 'maxClockDriftNanoseconds',
-                  'trustLevelNumerator', 'trustLevelDenominator', 'expectedTransaction', 'verification',
-                  'sourceReadOnly', 'writerExcluded', 'signingWriterExcluded', 'ledgerProofVerified',
-                  'nativeRootAuthorized', 'deploymentVerified'}
-                  or inspected['version'] != 'YNX-PROOF-HOST-TARGET/v1' or inspected['classification'] != 'data'
-                  or inspected['expectedTransaction'] != expected_target
-                  or any(inspected[key] != plan[key] for key in ('account', 'networkId', 'engineHeight', 'engineAppHash',
+          def run_case(prefix, expected_type, receipt_name):
+              metadata_raw = read(case / (prefix + 'metadata.json'), 16384)
+              metadata = decode(metadata_raw)
+              if set(metadata) != {'sourcePlanSHA256', 'sourcePlanPath', 'deliveryPath', 'sourceId', 'epoch', 'requestPath', 'expectedVerifierCode'}:
+                  raise RuntimeError('exact persisted source fixture metadata required')
+              if (metadata['sourcePlanPath'] != str(case / (prefix + 'source-plan.json'))
+                      or metadata['deliveryPath'] != str(case / (prefix + 'delivery'))
+                      or metadata['requestPath'] != str(case / (prefix + 'request.json'))
+                      or metadata['expectedVerifierCode'] != 'VERIFIED_TRANSACTION_DATA'):
+                  raise RuntimeError('persisted fixture cannot choose an alternate caller or output')
+              plan_path, destination = Path(metadata['sourcePlanPath']), Path(metadata['deliveryPath'])
+              plan_raw = read(plan_path, 48 << 20)
+              if sha(plan_raw) != metadata['sourcePlanSHA256']:
+                  raise RuntimeError('source plan differs from the original core fixture pin')
+              plan = decode(plan_raw)
+              request_raw = read(Path(metadata['requestPath']), 128 << 20)
+              request = decode(request_raw)
+              if (plan['sourceId'] != metadata['sourceId'] or plan['epoch'] != metadata['epoch']
+                      or request['version'] != 'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1'
+                      or request['expected'] != plan['expectedTransaction']
+                      or plan['expectedTransaction']['transactionType'] != expected_type):
+                  raise RuntimeError('original operator plan and verifier request binding differ')
+              candidate = root / 'ynx-pq-linux-runtime-candidate'
+              runtime_raw = read(candidate / 'SOURCE.json', 65536)
+              runtime = decode(runtime_raw)
+              if runtime['commit'] != os.environ['GITHUB_SHA'] or runtime['runtimeStarted'] is not False:
+                  raise RuntimeError('normal binary source identity differs from this fixed CI source')
+              binary_pins = {}
+              for name in ('ynx-comet', 'ynx-consensus-proof-verify'):
+                  binary = candidate / name
+                  raw = read(binary, 128 << 20)
+                  pin = dict(bytes=len(raw), sha256=sha(raw))
+                  if raw[:6] != b'\x7fELF\x02\x01' or raw[18:20] != b'\x3e\x00' or pin != runtime['binaries'][name]:
+                      raise RuntimeError('source delivery requires the actual independently built normal ELF pin')
+                  binary_pins[name] = pin
+              environment = dict(PATH='/usr/bin:/bin', GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB')
+              observations = []
+              def invoke(name, command, body, maximum, expected_exit=0):
+                  completed = subprocess.run(command, input=body, capture_output=True, env=environment,
+                      cwd=case, timeout=25, check=False)
+                  if completed.returncode != expected_exit or completed.stderr or not 0 < len(completed.stdout) <= maximum:
+                      raise RuntimeError('normal source/Host caller failed at ' + prefix + name)
+                  value = decode(completed.stdout)
+                  observations.append(dict(name=prefix + name, exitCode=completed.returncode,
+                      stdoutSHA256=sha(completed.stdout), stdoutBytes=str(len(completed.stdout))))
+                  return value
+              # Use only the retained, independently pinned full original. These
+              # two public byte inputs stay inside this fixture; no plan is rewritten.
+              expected_target = plan['expectedTransaction']
+              retained_inputs = {}
+              for field, name, hash_field in (('envelope', 'target-original-envelope', 'transactionHash'),
+                      ('nativeWire', 'target-original-native-wire', 'nativeWireHash')):
+                  original = base64.b64decode(expected_target[field], validate=True)
+                  if not 0 < len(original) <= 24 << 20 or sha(original) != expected_target[hash_field]:
+                      raise RuntimeError('target inspection requires the full original bytes and independent hash')
+                  path = case / (prefix + name)
+                  descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+                  with os.fdopen(descriptor, 'wb') as output:
+                      output.write(original)
+                      output.flush()
+                      os.fsync(output.fileno())
+                  if path.lstat().st_mode & 0o777 != 0o600 or read(path, 24 << 20) != original:
+                      raise RuntimeError('retained target input did not preserve exact private-mode public bytes')
+                  retained_inputs[field] = (path, original)
+              inspect = [str(candidate / 'ynx-comet'), 'inspect-proof-host-target',
+                  '--consensus-genesis', plan['genesisFile'], '--migration-state', plan['migrationFile'],
+                  '--abci-state', plan['stateFile'], '--abci-state-layout', plan['stateLayout'],
+                  '--comet-data-dir', plan['cometDataDirectory'], '--signing-state', plan['signingStatePath'],
+                  '--signing-lock-kind', plan['signingLockKind'], '--consensus-genesis-sha256', plan['consensusGenesisSHA256'],
+                  '--original-genesis-hash', plan['originalGenesisHash'], '--bound-migration-state-hash', plan['migrationStateHash'],
+                  '--pq-engine-schedule', plan['scheduleFile'], '--pq-engine-schedule-hash', plan['scheduleHash'],
+                  '--account', plan['account'], '--transaction-type', expected_target['transactionType'],
+                  '--envelope', str(retained_inputs['envelope'][0]), '--native-wire', str(retained_inputs['nativeWire'][0]),
+                  '--transaction-hash', expected_target['transactionHash'], '--native-wire-hash', expected_target['nativeWireHash'],
+                  '--lookup-height', expected_target['block']['headerHeight'], '--lookup-index', expected_target['index'],
+                  '--engine-height', plan['engineHeight'], '--engine-app-hash', plan['engineAppHash'],
+                  '--trusted-height', plan['trustedHeight'], '--trusted-block-hash', plan['trustedBlockHash'],
+                  '--trusting-period-nanoseconds', plan['trustingPeriodNanoseconds'],
+                  '--max-clock-drift-nanoseconds', plan['maxClockDriftNanoseconds'],
+                  '--trust-level-numerator', plan['trustLevelNumerator'], '--trust-level-denominator', plan['trustLevelDenominator']]
+              if plan['runtimePlanFile']:
+                  inspect.extend(['--runtime-upgrade-plan', plan['runtimePlanFile'], '--runtime-upgrade-plan-hash', plan['runtimePlanHash']])
+              inspected = invoke('inspect-stopped-original-target', inspect, b'', 48 << 20)
+              if (set(inspected) != {'version', 'classification', 'account', 'networkId', 'engineHeight', 'engineAppHash',
                       'trustedHeight', 'trustedBlockHash', 'trustingPeriodNanoseconds', 'maxClockDriftNanoseconds',
-                      'trustLevelNumerator', 'trustLevelDenominator'))
-                  or any(inspected[key] is not True for key in ('sourceReadOnly', 'writerExcluded', 'signingWriterExcluded', 'ledgerProofVerified'))
-                  or inspected['nativeRootAuthorized'] is not False or inspected['deploymentVerified'] is not False):
-              raise RuntimeError('normal target inspector changed original target/trust pins or claimed authority')
-          target_verification = inspected['verification']
-          if (target_verification['version'] != 'YNX-PQ-TRANSACTION-PROOF/v1' or target_verification['classification'] != 'data'
-                  or any(target_verification[key] != expected_target[key] for key in ('transactionType', 'transactionHash', 'nativeWireHash', 'index'))
-                  or target_verification['height'] != expected_target['block']['headerHeight']
-                  or any(target_verification[key] is not True for key in ('included', 'finalized', 'executionSuccessful'))
-                  or target_verification['executionCode'] != '0' or target_verification['outcome'] != 'succeeded'
-                  or target_verification['nativeGrant'] is not False):
-              raise RuntimeError('normal target inspector did not verify actual original inclusion and execution DATA')
-          publish = [str(candidate / 'ynx-comet'), 'export-proof-host-source',
-              '--source-plan', str(plan_path), '--source-plan-sha256', metadata['sourcePlanSHA256'],
-              '--output', str(destination)]
-          delivery = invoke('export-stopped-original-source', publish, b'', 16384)
-          if (set(delivery) != {'version', 'manifestPath', 'manifestSHA256', 'sourcePath', 'sourceSHA256', 'sourceId', 'epoch', 'publicDataOnly', 'nativeRootAuthorized', 'deploymentVerified'}
-                  or delivery['version'] != 'YNX-CONSENSUS-PROOF-HOST-DELIVERY-RECEIPT/v1'
-                  or delivery['manifestPath'] != str(destination / 'delivery.json')
-                  or delivery['sourcePath'] != str(destination / 'host-source.json')
-                  or delivery['sourceId'] != metadata['sourceId'] or delivery['epoch'] != metadata['epoch']
-                  or delivery['publicDataOnly'] is not True or delivery['nativeRootAuthorized'] is not False
-                  or delivery['deploymentVerified'] is not False):
-              raise RuntimeError('publisher receipt lost exact binding or claimed authority')
-          manifest_raw = read(destination / 'delivery.json', 16384)
-          if sha(manifest_raw) != delivery['manifestSHA256']:
-              raise RuntimeError('normal publisher manifest readback pin differs')
-          manifest = decode(manifest_raw)
-          originals = {'delivery.json': manifest_raw}
-          for item in manifest['files']:
-              if Path(item['name']).name != item['name']:
-                  raise RuntimeError('delivery catalog attempted a non-leaf source')
-              raw = read(destination / item['name'], 1 << 30)
-              if str(len(raw)) != item['bytes'] or sha(raw) != item['sha256']:
-                  raise RuntimeError('normal delivery file pin differs')
-              originals[item['name']] = raw
-          host = [str(candidate / 'ynx-consensus-proof-verify'), '--host-trust-source',
-              delivery['sourcePath'], '--host-trust-source-sha256', delivery['sourceSHA256']]
-          def check_host(operation, fingerprint, label=None):
-              body = json.dumps(dict(version='YNX-CONSENSUS-PROOF-HOST-REQUEST/v1', operation=operation,
-                  sourceId=metadata['sourceId'], epoch=metadata['epoch'], sourceFingerprint=fingerprint), separators=(',', ':')).encode()
-              result = invoke(label or 'host-' + operation, host, body, 104521276)
-              if set(result) != {'version', 'code', 'context'} or result['version'] != 'YNX-CONSENSUS-PROOF-HOST-RESULT/v1' or result['code'] != 'EXPORTED_PROOF_TRUST_DATA':
-                  raise RuntimeError('normal original Host ABI did not export source DATA')
-              context = result['context']
-              if (context['version'] != 'YNX-CONSENSUS-PROOF-HOST-CONTEXT/v1' or context['classification'] != 'data'
-                      or context['sourceId'] != metadata['sourceId'] or context['epoch'] != metadata['epoch']
-                      or context['sourceSHA256'] != delivery['sourceSHA256'] or context['currentChecked'] is not True
-                      or any(context[key] is not False for key in ('nativeRootAuthorized', 'sourceDeploymentQualified', 'proofVerified'))
-                      or context['expectedTransaction'] != request['expected']
-                      or context['contextPath'] != str(destination / 'trust-context.json')):
-                  raise RuntimeError('normal Host changed original source/transaction binding or granted authority')
-              if not re.fullmatch('[0-9a-f]{64}', context['sourceFingerprint']) or operation == 'current' and context['sourceFingerprint'] != fingerprint:
-                  raise RuntimeError('normal current check did not retain the original source identity')
-              for field, name, pin in (('sourceBytes', 'host-source.json', 'sourceSHA256'),
-                      ('lifecycleBytes', 'lifecycle.json', 'lifecycleSHA256'), ('contextBytes', 'trust-context.json', 'contextSHA256')):
-                  raw = base64.b64decode(context[field], validate=True)
-                  if raw != originals[name] or sha(raw) != context[pin]:
-                      raise RuntimeError('normal Host did not retain exact original public bytes')
-              return context
-          context = check_host('acquire', '')
-          fingerprint = context['sourceFingerprint']
-          context = check_host('current', fingerprint)
-          verified = invoke('original-transaction-proof', [str(candidate / 'ynx-consensus-proof-verify'),
-              '--trust-context', context['contextPath'], '--trust-context-sha256', context['contextSHA256']], request_raw, 1 << 20)
-          if set(verified) != {'version', 'code', 'result'} or verified['version'] != 'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1' or verified['code'] != metadata['expectedVerifierCode']:
-              raise RuntimeError('normal transaction proof verifier did not close the source delivery path')
-          result, expected = verified['result'], request['expected']
-          if (result['classification'] != 'data' or result['transactionType'] != expected['transactionType']
-                  or result['transactionHash'] != expected['transactionHash'] or result['nativeWireHash'] != expected['nativeWireHash']
-                  or result['height'] != expected['block']['headerHeight'] or result['index'] != expected['index']
-                  or result['included'] is not True or result['finalized'] is not True or result['executionSuccessful'] is not True
-                  or result['executionCode'] != '0' or result['outcome'] != 'succeeded' or result['nativeGrant'] is not False):
-              raise RuntimeError('normal verifier lost original inclusion/execution DATA binding')
-          check_host('current', fingerprint, 'host-current-after-proof')
-          if set(p.name for p in destination.iterdir()) != set(originals) or any((destination / name).read_bytes() != raw for name, raw in originals.items()):
-              raise RuntimeError('readonly Host/proof verification changed the delivered original bytes')
-          if read(plan_path, 48 << 20) != plan_raw or read(Path(metadata['requestPath']), 128 << 20) != request_raw:
-              raise RuntimeError('normal source delivery changed original pinned plan/request')
-          if any(read(path, 24 << 20) != original for path, original in retained_inputs.values()):
-              raise RuntimeError('normal target inspection changed retained original envelope/native wire')
-          receipt = dict(version='YNX-PROOF-HOST-SOURCE-CLI-INTEROP/v1', commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'],
-              metadataSHA256=sha(metadata_raw), sourcePlanSHA256=metadata['sourcePlanSHA256'], requestSHA256=sha(request_raw), runtimeSOURCEsha256=sha(runtime_raw),
-              binaryPins=binary_pins, deliveryManifestSHA256=delivery['manifestSHA256'], sourceSHA256=delivery['sourceSHA256'],
-              sourceFingerprint=fingerprint, cases=observations, syntheticOnly=True, normalCLIExecuted=True,
-              originalDeliveredBytesUnchanged=True, transactionProofVerified=True, nativeRootAuthorized=False,
-              sourceDeploymentQualified=False, actualCometNode=False, installedWallet=False, publicDeployment=False, pqActivation=False)
-          with (root / 'ynx-proof-host-source-cli-public-receipt.json').open('x') as output:
-              output.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
-          print('YNX_PROOF_HOST_SOURCE_CLI ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
+                      'trustLevelNumerator', 'trustLevelDenominator', 'expectedTransaction', 'verification',
+                      'sourceReadOnly', 'writerExcluded', 'signingWriterExcluded', 'ledgerProofVerified',
+                      'nativeRootAuthorized', 'deploymentVerified'}
+                      or inspected['version'] != 'YNX-PROOF-HOST-TARGET/v1' or inspected['classification'] != 'data'
+                      or inspected['expectedTransaction'] != expected_target
+                      or any(inspected[key] != plan[key] for key in ('account', 'networkId', 'engineHeight', 'engineAppHash',
+                          'trustedHeight', 'trustedBlockHash', 'trustingPeriodNanoseconds', 'maxClockDriftNanoseconds',
+                          'trustLevelNumerator', 'trustLevelDenominator'))
+                      or any(inspected[key] is not True for key in ('sourceReadOnly', 'writerExcluded', 'signingWriterExcluded', 'ledgerProofVerified'))
+                      or inspected['nativeRootAuthorized'] is not False or inspected['deploymentVerified'] is not False):
+                  raise RuntimeError('normal target inspector changed original target/trust pins or claimed authority')
+              target_verification = inspected['verification']
+              if (target_verification['version'] != 'YNX-PQ-TRANSACTION-PROOF/v1' or target_verification['classification'] != 'data'
+                      or any(target_verification[key] != expected_target[key] for key in ('transactionType', 'transactionHash', 'nativeWireHash', 'index'))
+                      or target_verification['height'] != expected_target['block']['headerHeight']
+                      or any(target_verification[key] is not True for key in ('included', 'finalized', 'executionSuccessful'))
+                      or target_verification['executionCode'] != '0' or target_verification['outcome'] != 'succeeded'
+                      or target_verification['nativeGrant'] is not False):
+                  raise RuntimeError('normal target inspector did not verify actual original inclusion and execution DATA')
+              publish = [str(candidate / 'ynx-comet'), 'export-proof-host-source',
+                  '--source-plan', str(plan_path), '--source-plan-sha256', metadata['sourcePlanSHA256'],
+                  '--output', str(destination)]
+              delivery = invoke('export-stopped-original-source', publish, b'', 16384)
+              if (set(delivery) != {'version', 'manifestPath', 'manifestSHA256', 'sourcePath', 'sourceSHA256', 'sourceId', 'epoch', 'publicDataOnly', 'nativeRootAuthorized', 'deploymentVerified'}
+                      or delivery['version'] != 'YNX-CONSENSUS-PROOF-HOST-DELIVERY-RECEIPT/v1'
+                      or delivery['manifestPath'] != str(destination / 'delivery.json')
+                      or delivery['sourcePath'] != str(destination / 'host-source.json')
+                      or delivery['sourceId'] != metadata['sourceId'] or delivery['epoch'] != metadata['epoch']
+                      or delivery['publicDataOnly'] is not True or delivery['nativeRootAuthorized'] is not False
+                      or delivery['deploymentVerified'] is not False):
+                  raise RuntimeError('publisher receipt lost exact binding or claimed authority')
+              manifest_raw = read(destination / 'delivery.json', 16384)
+              if sha(manifest_raw) != delivery['manifestSHA256']:
+                  raise RuntimeError('normal publisher manifest readback pin differs')
+              manifest = decode(manifest_raw)
+              public_catalog = dict(migration='migration.json', genesis='genesis.json', state='committed-state.json',
+                  schedule='schedule.json', runtime='runtime-plan.json', trustedLightBlock='trusted-light-block.json',
+                  context='trust-context.json', lifecycle='lifecycle.json', source='host-source.json')
+              required_roles = set(public_catalog) - {'runtime'}
+              entries = manifest['files']
+              if (not isinstance(entries, list) or len(entries) not in (8, 9)
+                      or any(set(item) != {'role', 'name', 'bytes', 'sha256'}
+                          or public_catalog.get(item['role']) != item['name'] for item in entries)
+                      or len({item['role'] for item in entries}) != len(entries)
+                      or not required_roles <= {item['role'] for item in entries} <= set(public_catalog)):
+                  raise RuntimeError('normal delivery catalog contains a non-public, duplicate or missing source')
+              originals = {'delivery.json': manifest_raw}
+              for item in manifest['files']:
+                  if Path(item['name']).name != item['name']:
+                      raise RuntimeError('delivery catalog attempted a non-leaf source')
+                  raw = read(destination / item['name'], 1 << 30)
+                  if str(len(raw)) != item['bytes'] or sha(raw) != item['sha256']:
+                      raise RuntimeError('normal delivery file pin differs')
+                  originals[item['name']] = raw
+              host = [str(candidate / 'ynx-consensus-proof-verify'), '--host-trust-source',
+                  delivery['sourcePath'], '--host-trust-source-sha256', delivery['sourceSHA256']]
+              def check_host(operation, fingerprint, label=None):
+                  body = json.dumps(dict(version='YNX-CONSENSUS-PROOF-HOST-REQUEST/v1', operation=operation,
+                      sourceId=metadata['sourceId'], epoch=metadata['epoch'], sourceFingerprint=fingerprint), separators=(',', ':')).encode()
+                  result = invoke(label or 'host-' + operation, host, body, 104521276)
+                  if set(result) != {'version', 'code', 'context'} or result['version'] != 'YNX-CONSENSUS-PROOF-HOST-RESULT/v1' or result['code'] != 'EXPORTED_PROOF_TRUST_DATA':
+                      raise RuntimeError('normal original Host ABI did not export source DATA')
+                  context = result['context']
+                  if (context['version'] != 'YNX-CONSENSUS-PROOF-HOST-CONTEXT/v1' or context['classification'] != 'data'
+                          or context['sourceId'] != metadata['sourceId'] or context['epoch'] != metadata['epoch']
+                          or context['sourceSHA256'] != delivery['sourceSHA256'] or context['currentChecked'] is not True
+                          or any(context[key] is not False for key in ('nativeRootAuthorized', 'sourceDeploymentQualified', 'proofVerified'))
+                          or context['expectedTransaction'] != request['expected']
+                          or context['contextPath'] != str(destination / 'trust-context.json')):
+                      raise RuntimeError('normal Host changed original source/transaction binding or granted authority')
+                  if not re.fullmatch('[0-9a-f]{64}', context['sourceFingerprint']) or operation == 'current' and context['sourceFingerprint'] != fingerprint:
+                      raise RuntimeError('normal current check did not retain the original source identity')
+                  for field, name, pin in (('sourceBytes', 'host-source.json', 'sourceSHA256'),
+                          ('lifecycleBytes', 'lifecycle.json', 'lifecycleSHA256'), ('contextBytes', 'trust-context.json', 'contextSHA256')):
+                      raw = base64.b64decode(context[field], validate=True)
+                      if raw != originals[name] or sha(raw) != context[pin]:
+                          raise RuntimeError('normal Host did not retain exact original public bytes')
+                  return context
+              context = check_host('acquire', '')
+              fingerprint = context['sourceFingerprint']
+              context = check_host('current', fingerprint)
+              verified = invoke('original-transaction-proof', [str(candidate / 'ynx-consensus-proof-verify'),
+                  '--trust-context', context['contextPath'], '--trust-context-sha256', context['contextSHA256']], request_raw, 1 << 20)
+              if set(verified) != {'version', 'code', 'result'} or verified['version'] != 'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1' or verified['code'] != metadata['expectedVerifierCode']:
+                  raise RuntimeError('normal transaction proof verifier did not close the source delivery path')
+              result, expected = verified['result'], request['expected']
+              if (result['classification'] != 'data' or result['transactionType'] != expected['transactionType']
+                      or result['transactionHash'] != expected['transactionHash'] or result['nativeWireHash'] != expected['nativeWireHash']
+                      or result['height'] != expected['block']['headerHeight'] or result['index'] != expected['index']
+                      or result['included'] is not True or result['finalized'] is not True or result['executionSuccessful'] is not True
+                      or result['executionCode'] != '0' or result['outcome'] != 'succeeded' or result['nativeGrant'] is not False):
+                  raise RuntimeError('normal verifier lost original inclusion/execution DATA binding')
+              check_host('current', fingerprint, 'host-current-after-proof')
+              if set(p.name for p in destination.iterdir()) != set(originals) or any((destination / name).read_bytes() != raw for name, raw in originals.items()):
+                  raise RuntimeError('readonly Host/proof verification changed the delivered original bytes')
+              if read(plan_path, 48 << 20) != plan_raw or read(Path(metadata['requestPath']), 128 << 20) != request_raw:
+                  raise RuntimeError('normal source delivery changed original pinned plan/request')
+              if any(read(path, 24 << 20) != original for path, original in retained_inputs.values()):
+                  raise RuntimeError('normal target inspection changed retained original envelope/native wire')
+              receipt = dict(version='YNX-PROOF-HOST-SOURCE-CLI-INTEROP/v1', commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'],
+                  transactionType=result['transactionType'], transactionHash=result['transactionHash'], nativeWireHash=result['nativeWireHash'],
+                  height=result['height'], index=result['index'], metadataSHA256=sha(metadata_raw), sourcePlanSHA256=metadata['sourcePlanSHA256'], requestSHA256=sha(request_raw), runtimeSOURCEsha256=sha(runtime_raw),
+                  binaryPins=binary_pins, deliveryManifestSHA256=delivery['manifestSHA256'], sourceSHA256=delivery['sourceSHA256'],
+                  sourceFingerprint=fingerprint, cases=observations, syntheticOnly=True, normalCLIExecuted=True,
+                  originalDeliveredBytesUnchanged=True, transactionProofVerified=True, nativeRootAuthorized=False,
+                  sourceDeploymentQualified=False, actualCometNode=False, installedWallet=False, publicDeployment=False, pqActivation=False)
+              with (root / receipt_name).open('x') as output:
+                  output.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
+              print(('YNX_TYPED_PROOF_HOST_SOURCE_CLI ' if prefix else 'YNX_PROOF_HOST_SOURCE_CLI ') + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
+              return plan
+          single_plan = run_case('', 'pq_transfer', 'ynx-proof-host-source-cli-public-receipt.json')
+          typed_plan = run_case('typed-', 'pq_action', 'ynx-proof-host-typed-source-cli-public-receipt.json')
+          if any(single_plan[key] != typed_plan[key] for key in ('cometDataDirectory', 'engineHeight', 'engineAppHash')):
+              raise RuntimeError('single and typed sources did not inspect the same original final engine checkpoint')
           PY
       - name: Upload only public Host delivery and normal CLI receipt
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqhostsourcecli.outcome == 'success') }}
@@ -2151,6 +2170,9 @@ jobs:
             ${{ runner.temp }}/ynx-proof-host-source-public/delivery
             ${{ runner.temp }}/ynx-proof-host-source-public/request.json
             ${{ runner.temp }}/ynx-proof-host-source-cli-public-receipt.json
+            ${{ runner.temp }}/ynx-proof-host-source-public/typed-delivery
+            ${{ runner.temp }}/ynx-proof-host-source-public/typed-request.json
+            ${{ runner.temp }}/ynx-proof-host-typed-source-cli-public-receipt.json
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public transaction proof fixture and normal CLI receipt

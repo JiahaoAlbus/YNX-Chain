@@ -90,6 +90,7 @@ type pqContractDeployPublicPayload struct {
 	DeployedBytecodeHash string   `json:"deployedBytecodeHash"`
 	CompilerConfigHash   string   `json:"compilerConfigHash"`
 	ConstructorArgs      []string `json:"constructorArgs"`
+	Value                string   `json:"value"`
 }
 
 type pqContractDeployPreparedRequest struct {
@@ -170,7 +171,7 @@ func emitPQContractDeployPublicFixture(t *testing.T, observed *pqFinalityFixture
 		ApplicationExecution: "normal-handshake-blockexecutor-commit", ProofVerification: "not-performed",
 		AccountBefore: before, History: history, TransactionType: consensus.PQActionType, ActionKind: action.Kind, Owner: action.Owner,
 		NetworkID: hex.EncodeToString(action.ChainID), NativeChainID: strconv.FormatUint(action.NativeChainID, 10), Nonce: strconv.FormatUint(action.Nonce, 10), Fee: strconv.FormatUint(action.Fee, 10),
-		Payload: pqContractDeployPublicPayload{Name: payload.Name, SourceHash: payload.SourceHash, DeployedBytecodeHash: payload.DeployedBytecodeHash, CompilerConfigHash: payload.CompilerConfigHash, ConstructorArgs: make([]string, len(payload.ConstructorArgs))},
+		Payload: pqContractDeployPublicPayload{Name: payload.Name, SourceHash: payload.SourceHash, DeployedBytecodeHash: payload.DeployedBytecodeHash, CompilerConfigHash: payload.CompilerConfigHash, ConstructorArgs: make([]string, len(payload.ConstructorArgs)), Value: strconv.FormatUint(payload.Value, 10)},
 		Source:  source, NativeWire: bytes.Clone(wire), NativeWireSHA256: pqContractDeploySHA(wire), Transport: bytes.Clone(raw), TransportSHA256: pqContractDeploySHA(raw), TransportFields: fields,
 		MemberN: strconv.FormatUint(uint64(member.Certificate.N), 10), MemberIndex: strconv.FormatUint(uint64(member.Index), 10), CometIndex: strconv.FormatUint(uint64(observed.tx.Index), 10), ExecutionHeight: strconv.FormatInt(observed.tx.Height, 10), ExecutionCode: strconv.FormatUint(uint64(observed.tx.TxResult.Code), 10),
 		PreparedRequest: pqContractDeployPreparedRequest{Method: http.MethodPost, Path: "/transactions/pq/actions/broadcast", ContentType: "application/json", Body: bytes.Clone(raw), EncodedRPCBytes: strconv.Itoa(4*((len(raw)+2)/3) + 74), MaxRPCBytes: "792658", EligibleForRPC: 4*((len(raw)+2)/3)+74 <= 792658}, HTTP: responses,
@@ -201,6 +202,25 @@ func emitPQContractDeployPublicFixture(t *testing.T, observed *pqFinalityFixture
 	var roundtrip pqContractDeployPublicFixture
 	if json.Unmarshal(data, &roundtrip) != nil || !bytes.Equal(roundtrip.Transport, raw) || !bytes.Equal(roundtrip.NativeWire, wire) || !reflect.DeepEqual(roundtrip.Files, fixture.Files) || !reflect.DeepEqual(roundtrip.HTTP, responses) || !bytes.Equal(roundtrip.PreparedRequest.Body, raw) || roundtrip.BroadcastExecuted || roundtrip.PreparedRequest.Executed || roundtrip.IndependentFinality || roundtrip.NativeGrant || roundtrip.PublicBFT || roundtrip.ActualCometNode || roundtrip.DeployedSourceQualification {
 		t.Fatal("public deployment serialization changed raw bytes or claimed a higher evidence layer")
+	}
+	// The SDK's exact contract payload includes value, even when it is zero.
+	// Re-encode the exported decimal strings through the original Go codec so
+	// the public projection cannot omit or invent a signed field.
+	projected := ynxauth.ContractDeployPayload{Name: roundtrip.Payload.Name, SourceHash: roundtrip.Payload.SourceHash, DeployedBytecodeHash: roundtrip.Payload.DeployedBytecodeHash, CompilerConfigHash: roundtrip.Payload.CompilerConfigHash}
+	projected.Value, err = strconv.ParseUint(roundtrip.Payload.Value, 10, 64)
+	if err != nil || strconv.FormatUint(projected.Value, 10) != roundtrip.Payload.Value {
+		t.Fatal("public deployment value is not the original canonical decimal", err)
+	}
+	for _, decimal := range roundtrip.Payload.ConstructorArgs {
+		arg, err := strconv.ParseUint(decimal, 10, 64)
+		if err != nil || strconv.FormatUint(arg, 10) != decimal {
+			t.Fatal("public deployment constructor argument is not an exact decimal", err)
+		}
+		projected.ConstructorArgs = append(projected.ConstructorArgs, arg)
+	}
+	projectedBytes, err := ynxauth.EncodeActionPayload(roundtrip.ActionKind, projected)
+	if err != nil || !bytes.Equal(projectedBytes, action.Payload) {
+		t.Fatal("public deployment payload differs from the actual signed Member", err)
 	}
 	output := os.Getenv("YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT")
 	if output == "" {

@@ -52,6 +52,9 @@ func pqFinalityDecode(raw []byte, target any) error {
 	if err := cmtjson.Unmarshal(raw, target); err != nil {
 		return errors.New("invalid finality RPC typed result")
 	}
+	if err := consensus.RestorePQCometSingleLeafAunts(raw, target); err != nil {
+		return err
+	}
 	canonical, err := cmtjson.Marshal(target)
 	if err != nil {
 		return errors.New("cannot encode finality RPC typed result")

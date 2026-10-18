@@ -264,73 +264,107 @@ func (s *proofHostSourceFixture) export(t *testing.T, output string) (ProofHostS
 }
 
 func TestProofHostSourceFromOriginalLedger(t *testing.T) {
-	f := newProofHostSourceFixture(t, "atomic-json", os.Getenv("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT"))
-	before := proofSourceTree(t, filepath.Join(f.root, "original"))
-	output := filepath.Join(f.root, "delivery")
-	result, err := f.export(t, output)
-	if err != nil {
-		t.Fatal(err)
+	// One original four-validator ledger supplies both targets. The typed action
+	// is executed before copying the stopped stores; neither retained plan
+	// adopts a different checkpoint later or rewrites the original transfer.
+	signed := newPQTransactionProofFixture(t)
+	typed, typedOwner := proofTargetTypedAction(t, signed)
+	f := newProofHostSourceFixtureFromTransaction(t, signed, "atomic-json", os.Getenv("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT"))
+	typedFixture := *f
+	typedFixture.plan = f.plan
+	typedFixture.plan.SourceID = "qa-ledger-typed-proof-source"
+	typedFixture.plan.OperationID = "qa-original-typed-stake"
+	typedFixture.plan.Account = typedOwner
+	typedFixture.plan.OriginalHash = "0x" + hex.EncodeToString(typed.NativeWireHash)
+	typedFixture.plan.ExpectedTransaction = proofSourceExpected(typed)
+	if f.plan.ExpectedTransaction.TransactionType != PQTransferType || typedFixture.plan.ExpectedTransaction.TransactionType != PQActionType || f.plan.EngineHeight != typedFixture.plan.EngineHeight || f.plan.EngineAppHash != typedFixture.plan.EngineAppHash || f.plan.StateFile != typedFixture.plan.StateFile || f.plan.CometDataDirectory != typedFixture.plan.CometDataDirectory {
+		t.Fatal("transfer and typed target must retain the same actual final source")
 	}
-	if result.Version != "YNX-PROOF-HOST-SOURCE-EXPORT/v1" || !result.SourceReadOnly || !result.LedgerProofVerified || result.NativeRootAuthorized || result.DeploymentVerified || len(result.Files) != 8 {
-		t.Fatal("wrong public source semantics")
-	}
-	if !reflect.DeepEqual(before, proofSourceTree(t, filepath.Join(f.root, "original"))) {
-		t.Fatal("source export mutated original ledger or signing material")
-	}
-	proof, err := DecodePQTransactionProofRequest(result.Proof)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expected, _ := f.plan.ExpectedTransaction.expectation()
-	if r, e := VerifyPQTransactionProof(f.f.light.trust, expected, proof); e != nil || !r.ExecutionSuccessful {
-		t.Fatal("exported ledger proof failed original verifier", e)
-	}
-	if os.Getenv("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT") != "" {
-		// Only this isolated CI working root is retained. The workflow must not
-		// upload original databases/signing-lock sentinel or claim real custody.
-		raw := proofSourceJSON(t, f.plan)
-		planPath := filepath.Join(f.root, "source-plan.json")
-		proofSourceWrite(t, planPath, raw)
-		requestPath := filepath.Join(f.root, "request.json")
-		request := proofSourceJSON(t, map[string]any{"version": "YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1", "expected": f.plan.ExpectedTransaction, "proof": proof})
-		proofSourceWrite(t, requestPath, request)
-		proofSourceWrite(t, filepath.Join(f.root, "metadata.json"), proofSourceJSON(t, map[string]string{"sourcePlanSHA256": proofHostSHA(raw), "sourcePlanPath": planPath, "deliveryPath": output, "sourceId": f.plan.SourceID, "epoch": f.plan.Epoch, "requestPath": requestPath, "expectedVerifierCode": "VERIFIED_TRANSACTION_DATA"}))
-		return
-	}
-	receipt, err := WriteProofHostDelivery(output, result)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if receipt.SourceSHA256 != result.SourceSHA256 {
-		t.Fatal("delivery changed source bytes")
-	}
-	// Reopen the exported complete checkpoint through the same normal loader
-	// used by the external Host, not a fixture-owned authority pointer.
-	source, err := NewPQEngineFileSource(f.f.light.harness.f.migration, filepath.Join(output, "committed-state.json"), f.f.light.harness.f.bootstrap, f.f.light.authorization)
-	if err != nil {
-		t.Fatal(err)
-	}
-	h, _ := strconv.ParseInt(f.plan.EngineHeight, 10, 64)
-	hash, _ := hex.DecodeString(f.plan.EngineAppHash)
-	authority, err := source.ConsensusAuthorityForState(expected.Block.ChainID, h, hash)
-	if err != nil {
-		t.Fatal(err)
-	}
-	trust := f.f.light.trust
-	trust.Snapshot = authority.(*PQEngineSnapshot)
-	trustedRaw, err := os.ReadFile(filepath.Join(output, "trusted-light-block.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	trust.TrustedLightBlock, err = DecodePQTrustedLightBlock(trustedRaw)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err = VerifyPQTransactionProof(trust, expected, proof); err != nil {
-		t.Fatal(err)
-	}
-	if _, err = WriteProofHostDelivery(output, result); err == nil {
-		t.Fatal("existing/UNKNOWN delivery was overwritten")
+	for _, test := range []struct {
+		name, prefix string
+		fixture      *proofHostSourceFixture
+	}{
+		{"transfer", "", f},
+		{"typed-action", "typed-", &typedFixture},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			f := test.fixture
+			before := proofSourceTree(t, filepath.Join(f.root, "original"))
+			output := filepath.Join(f.root, test.prefix+"delivery")
+			raw := proofSourceJSON(t, f.plan)
+			if decoded, err := DecodeProofHostSourcePlan(raw, proofHostSHA(raw)); err != nil || !reflect.DeepEqual(decoded, f.plan) {
+				t.Fatal("retained complete source plan failed the unchanged external-pin validator", err)
+			}
+			result, err := f.export(t, output)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Version != "YNX-PROOF-HOST-SOURCE-EXPORT/v1" || !result.SourceReadOnly || !result.LedgerProofVerified || result.NativeRootAuthorized || result.DeploymentVerified || len(result.Files) != 8 {
+				t.Fatal("wrong public source semantics")
+			}
+			if !reflect.DeepEqual(before, proofSourceTree(t, filepath.Join(f.root, "original"))) {
+				t.Fatal("source export mutated original ledger or signing material")
+			}
+			proof, err := DecodePQTransactionProofRequest(result.Proof)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expected, err := f.plan.ExpectedTransaction.expectation()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r, e := VerifyPQTransactionProof(f.f.light.trust, expected, proof); e != nil || !r.ExecutionSuccessful || r.TransactionType != f.plan.ExpectedTransaction.TransactionType || r.TransactionHash != f.plan.ExpectedTransaction.TransactionHash || r.NativeWireHash != f.plan.ExpectedTransaction.NativeWireHash || r.NativeGrant {
+				t.Fatal("exported original proof failed the unchanged verifier", e)
+			}
+			if os.Getenv("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT") != "" {
+				// Only this isolated CI working root is retained. Neither database,
+				// plan nor signing-lock sentinel belongs in a public artifact. The
+				// original metadata's seven-string contract remains unchanged; typed
+				// uses a separate sidecar with the identical closed field set.
+				planPath := filepath.Join(f.root, test.prefix+"source-plan.json")
+				proofSourceWrite(t, planPath, raw)
+				requestPath := filepath.Join(f.root, test.prefix+"request.json")
+				request := proofSourceJSON(t, map[string]any{"version": "YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1", "expected": f.plan.ExpectedTransaction, "proof": proof})
+				proofSourceWrite(t, requestPath, request)
+				proofSourceWrite(t, filepath.Join(f.root, test.prefix+"metadata.json"), proofSourceJSON(t, map[string]string{"sourcePlanSHA256": proofHostSHA(raw), "sourcePlanPath": planPath, "deliveryPath": output, "sourceId": f.plan.SourceID, "epoch": f.plan.Epoch, "requestPath": requestPath, "expectedVerifierCode": "VERIFIED_TRANSACTION_DATA"}))
+				return
+			}
+			receipt, err := WriteProofHostDelivery(output, result)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if receipt.SourceSHA256 != result.SourceSHA256 {
+				t.Fatal("delivery changed source bytes")
+			}
+			// Reopen the exported SAME full checkpoint through the normal loader
+			// used by the Host. No per-target ledger or synthetic authority exists.
+			source, err := NewPQEngineFileSource(f.f.light.harness.f.migration, filepath.Join(output, "committed-state.json"), f.f.light.harness.f.bootstrap, f.f.light.authorization)
+			if err != nil {
+				t.Fatal(err)
+			}
+			h, _ := strconv.ParseInt(f.plan.EngineHeight, 10, 64)
+			hash, _ := hex.DecodeString(f.plan.EngineAppHash)
+			authority, err := source.ConsensusAuthorityForState(expected.Block.ChainID, h, hash)
+			if err != nil {
+				t.Fatal(err)
+			}
+			trust := f.f.light.trust
+			trust.Snapshot = authority.(*PQEngineSnapshot)
+			trustedRaw, err := os.ReadFile(filepath.Join(output, "trusted-light-block.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			trust.TrustedLightBlock, err = DecodePQTrustedLightBlock(trustedRaw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = VerifyPQTransactionProof(trust, expected, proof); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = WriteProofHostDelivery(output, result); err == nil {
+				t.Fatal("existing/UNKNOWN delivery was overwritten")
+			}
+		})
 	}
 }
 

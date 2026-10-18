@@ -78,6 +78,27 @@ func proofTargetTypedAction(t *testing.T, f *pqTransactionProofFixture) (PQTrans
 		return PQLightProofExpectation{ChainID: b.ChainID, HeaderHeight: b.Height, BlockHash: bytes.Clone(b.Hash()), StateHeight: b.Height - 1, StateAppHash: bytes.Clone(b.AppHash)}
 	}
 	abci, native := sha256.Sum256(raw), sha256.Sum256(wire)
+	// The same original stores now contain the typed H/H+1 pair. Refresh only
+	// through the normal independently pinned file source, so later retained
+	// transfer and typed exports share this exact final authority checkpoint.
+	source, err := NewPQEngineFileSource(h.f.migration, h.path, h.f.bootstrap, f.light.authorization)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := h.raw.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	authority, err := source.ConsensusAuthorityForState(actual.ChainID, actual.LastBlockHeight, actual.AppHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot, ok := authority.(*PQEngineSnapshot)
+	if !ok {
+		t.Fatal("typed source did not restore the exact original authority")
+	}
+	f.light.trust.Snapshot = snapshot
+	f.light.trust.Now = f.light.block(t, height+1).Time.Add(time.Second)
 	return PQTransactionProofExpectation{Block: header(f.light.block(t, height)), Successor: header(f.light.block(t, height+1)), TransactionType: PQActionType, Envelope: raw, NativeWire: wire, TransactionHash: abci[:], NativeWireHash: native[:], Index: 0}, a.owner
 }
 

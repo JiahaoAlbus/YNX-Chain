@@ -129,10 +129,74 @@ func pqTransactionComet(raw []byte, out any, limit int) error {
 	if len(raw) == 0 || len(raw) > limit || pqLightUniqueJSON(raw) != nil || cmtjson.Unmarshal(raw, out) != nil {
 		return pqLightFailure("invalid_proof", "invalid bounded Comet transaction proof")
 	}
+	if err := RestorePQCometSingleLeafAunts(raw, out); err != nil {
+		return pqLightFailure("invalid_proof", err.Error())
+	}
 	canonical, err := cmtjson.Marshal(out)
 	if err != nil || !pqLightJSONEquivalent(raw, canonical) {
 		return pqLightFailure("invalid_proof", "noncanonical Comet transaction proof fields")
 	}
+	return nil
+}
+
+// RestorePQCometSingleLeafAunts preserves Comet's own single-leaf encoding
+// after its Amino-compatible decoder converts an explicit empty slice to nil.
+// Only these three proof DTOs, the exact aunts field, Total=1 and Index=0 are
+// eligible. Callers still enforce bounded unique JSON, complete canonical
+// fields, expected coordinates, Merkle roots and independent consensus trust.
+// This is not general null/empty equivalence and grants no proof validity.
+func RestorePQCometSingleLeafAunts(raw []byte, out any) error {
+	var proof *merkle.Proof
+	depth := 0
+	switch value := out.(type) {
+	case *coretypes.ResultTx:
+		if value != nil {
+			proof, depth = &value.Proof.Proof, 2
+		}
+	case *cmttypes.TxProof:
+		if value != nil {
+			proof, depth = &value.Proof, 1
+		}
+	case *merkle.Proof:
+		proof = value
+	default:
+		return nil
+	}
+	if proof == nil {
+		return errors.New("missing typed Comet proof")
+	}
+	for i := 0; i < depth; i++ {
+		var nested struct {
+			Proof json.RawMessage `json:"proof"`
+		}
+		if err := json.Unmarshal(raw, &nested); err != nil {
+			return err
+		}
+		if len(nested.Proof) == 0 {
+			return nil
+		}
+		raw = nested.Proof
+	}
+	var fields struct {
+		Aunts json.RawMessage `json:"aunts"`
+	}
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return err
+	}
+	if len(fields.Aunts) == 0 {
+		return nil
+	}
+	var aunts []json.RawMessage
+	if err := json.Unmarshal(fields.Aunts, &aunts); err != nil {
+		return err
+	}
+	if aunts == nil || len(aunts) != 0 {
+		return nil
+	}
+	if proof.Total != 1 || proof.Index != 0 || len(proof.LeafHash) != sha256.Size || len(proof.Aunts) != 0 {
+		return errors.New("empty Comet aunts require an exact single-leaf proof")
+	}
+	proof.Aunts = make([][]byte, 0)
 	return nil
 }
 
