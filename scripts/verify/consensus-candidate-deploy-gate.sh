@@ -8,7 +8,21 @@ ynx_ops_init
 
 package_root="${CONSENSUS_CANDIDATE_PACKAGE:-}"
 [[ -d "$package_root" ]] || { echo "CONSENSUS_CANDIDATE_PACKAGE is required" >&2; exit 1; }
-go run ./cmd/ynx-consensus-package -verify-package "$package_root" >/dev/null
+[[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]] || { echo "candidate deploy gate requires the pinned Linux amd64 runtime; no native rebuild fallback is allowed" >&2; exit 1; }
+# Sourcing defines the exact runtime parser only; it never starts deployment.
+source scripts/deploy/deploy-consensus-candidate.sh
+runtime_bundle="${CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:-}"
+runtime_commit="${CONSENSUS_CANDIDATE_RUNTIME_COMMIT:-}"
+runtime_manifest_sha="${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:-}"
+validate_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha"
+[[ "$(git rev-parse HEAD)" == "$runtime_commit" ]] || { echo "candidate deploy gate source differs from pinned runtime commit" >&2; exit 1; }
+verifier_bundle="$runtime_bundle"
+if [[ ! -x "$verifier_bundle/ynx-consensus-package" ]]; then
+  verifier_bundle="${CONSENSUS_CANDIDATE_GATE_RUNTIME_DESTINATION:-}"
+  [[ -n "$verifier_bundle" ]] || { echo "artifact mode requires an explicit fresh retained CONSENSUS_CANDIDATE_GATE_RUNTIME_DESTINATION; source mode is never changed" >&2; exit 1; }
+  prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$verifier_bundle"
+fi
+"$verifier_bundle/ynx-consensus-package" -verify-package "$package_root" >/dev/null
 [[ "$(git branch --show-current)" == "main" ]] || { echo "candidate deploy gate requires main branch" >&2; exit 1; }
 [[ -z "$(git status --short --untracked-files=no)" ]] || { echo "candidate deploy gate requires no tracked worktree changes" >&2; exit 1; }
 

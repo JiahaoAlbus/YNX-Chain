@@ -618,12 +618,19 @@ test "$(id -u)" = 0 || { echo "candidate install requires root" >&2; exit 1; }
 role_dir="$(cd "$(dirname "$0")/.." && pwd)"
 binary_dir="$(cd "$role_dir/../bin" && pwd)"
 key_dir=/etc/ynx/consensus-candidate/%s
+umask 077
 test -x "$binary_dir/ynx-abci"
 test -x "$binary_dir/ynx-consensus-keycheck"
 test -x "$binary_dir/cometbft"
 test -s "$key_dir/priv_validator_key.json"
 test -s "$key_dir/node_key.json"
+test -s "$key_dir/priv_validator_state.json"
 "$binary_dir/ynx-consensus-keycheck" -role-manifest "$role_dir/role-manifest.json" -private-validator-key "$key_dir/priv_validator_key.json" -node-key "$key_dir/node_key.json"
+# Claim a NEW tree atomically after real key verification. EEXIST also refuses
+# symlinks, partial installs, old HRS and a concurrent install. Never clean up a
+# failed claim or partial install: it may already contain signing history.
+mkdir -p /var/lib/ynx-chain
+mkdir -m 0700 /var/lib/ynx-chain/consensus-candidate
 install -d -m 0755 -o root -g root /var/lib/ynx-chain/consensus-candidate/bin
 install -m 0755 -o root -g root "$binary_dir/ynx-abci" /var/lib/ynx-chain/consensus-candidate/bin/ynx-abci
 install -m 0755 -o root -g root "$binary_dir/ynx-consensus-keycheck" /var/lib/ynx-chain/consensus-candidate/bin/ynx-consensus-keycheck
@@ -633,25 +640,35 @@ install -m 0600 -o ynx -g ynx "$key_dir/priv_validator_state.json" /var/lib/ynx-
 install -m 0600 -o ynx -g ynx "$role_dir/config/config.toml" /var/lib/ynx-chain/consensus-candidate/config/config.toml
 install -m 0600 -o ynx -g ynx "$role_dir/config/genesis.json" /var/lib/ynx-chain/consensus-candidate/config/genesis.json
 install -m 0600 -o ynx -g ynx "$role_dir/config/bound-migration.json" /var/lib/ynx-chain/consensus-candidate/config/bound-migration.json
+# Permit the service account to traverse the root only after installation.
+chmod 0755 /var/lib/ynx-chain/consensus-candidate
 install -m 0644 "$role_dir/systemd/ynx-consensus-abci-candidate.service" /etc/systemd/system/ynx-consensus-abci-candidate.service
 install -m 0644 "$role_dir/systemd/ynx-consensus-comet-candidate.service" /etc/systemd/system/ynx-consensus-comet-candidate.service
 systemctl daemon-reload
 systemctl enable --now ynx-consensus-abci-candidate.service ynx-consensus-comet-candidate.service
-echo "candidate installed on parallel ports; authoritative ynx-chaind was not modified"
+echo "fresh candidate tree installed without replacing prior signing state; protocol activation or recovery is not established"
 `, role),
 		"backup-candidate.sh": `#!/usr/bin/env bash
 set -euo pipefail
 test "$(id -u)" = 0 || { echo "candidate backup requires root" >&2; exit 1; }
 output="${1:?candidate snapshot archive is required}"
+test "$#" = 1
 test -d /var/lib/ynx-chain/consensus-candidate
+umask 077
 mkdir -p "$(dirname "$output")"
 partial="$output.partial"
-rm -f "$partial"
-tar -czf "$partial" /var/lib/ynx-chain/consensus-candidate /etc/systemd/system/ynx-consensus-abci-candidate.service /etc/systemd/system/ynx-consensus-comet-candidate.service
+if test -e "$output" || test -L "$output"; then
+  echo "candidate backup output already exists; retained unchanged" >&2
+  exit 1
+fi
+# GNU dd conv=excl claims the partial with O_EXCL, including symlinks/FIFOs.
+# pipefail retains tar/dd's failure and any partial bytes without a retry.
+tar -czf - /var/lib/ynx-chain/consensus-candidate /etc/systemd/system/ynx-consensus-abci-candidate.service /etc/systemd/system/ynx-consensus-comet-candidate.service | dd of="$partial" conv=excl status=none
 tar -tzf "$partial" >/dev/null
-mv "$partial" "$output"
-chmod 0600 "$output"
-echo "candidate state snapshot created; validator private keys require separate owner-controlled backup"
+# A hard link publishes without overwriting any competing destination; -T
+# also rejects directory destinations. Retain the partial on success or error.
+ln -T -- "$partial" "$output"
+echo "candidate archive captured; partial retained; online consistency is not established and automatic signing-state restoration is forbidden"
 `,
 		"verify-candidate.sh": `#!/usr/bin/env bash
 set -euo pipefail
@@ -675,17 +692,10 @@ set -euo pipefail
 test "$(id -u)" = 0 || { echo "candidate rollback requires root" >&2; exit 1; }
 snapshot="${1:?candidate snapshot archive is required}"
 test -s "$snapshot"
-while IFS= read -r entry; do
-  case "$entry" in
-    var/lib/ynx-chain/consensus-candidate|var/lib/ynx-chain/consensus-candidate/*|etc/systemd/system/ynx-consensus-abci-candidate.service|etc/systemd/system/ynx-consensus-comet-candidate.service) ;;
-    *) echo "unsafe candidate snapshot entry: $entry" >&2; exit 1 ;;
-  esac
-done < <(tar -tzf "$snapshot")
-systemctl stop ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service || true
-rm -rf /var/lib/ynx-chain/consensus-candidate
-tar -xzf "$snapshot" -C /
-systemctl daemon-reload
-echo "candidate state restored; authoritative ynx-chaind was not modified"
+# A snapshot cannot prove that its HRS and signed history are still current.
+# Do not stop services, remove the tree, extract old state, or report success.
+echo "unsafe automatic candidate state rollback refused: preserve current HRS, signed history and archive; independently review recovery without rewinding signing state" >&2
+exit 1
 `,
 	}
 	for name, body := range scripts {

@@ -17,24 +17,17 @@ if [[ -n "$candidate_release" && ! "$candidate_release" =~ ^ynx-consensus-candid
   exit 1
 fi
 
+# Approval to request rollback is not proof that an old archive contains the
+# latest HRS/signed history. Refuse before invoking transport or changing any
+# service, candidate tree, staged release, archive, or uncertain result.
+if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
+  echo "UNSAFE_AUTOMATIC_CANDIDATE_ROLLBACK_REFUSED: retain current HRS, signed history, staged packages, archives and UNKNOWN results; independently review recovery without rewinding signing state" >&2
+  exit 1
+fi
+
 rollback_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
-  local command="sudo systemctl disable --now ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service || true"
-  if [[ -n "$backup_release" ]]; then
-    local snapshot="/var/backups/ynx-chain/consensus-candidate-before-${backup_release}-${role}.tar.gz"
-    command+="; sudo test -s '$snapshot'; entries=\$(sudo tar -tzf '$snapshot'); while IFS= read -r entry; do case \"\$entry\" in var/lib/ynx-chain/consensus-candidate|var/lib/ynx-chain/consensus-candidate/*|etc/systemd/system/ynx-consensus-abci-candidate.service|etc/systemd/system/ynx-consensus-comet-candidate.service) ;; *) echo \"unsafe candidate snapshot entry: \$entry\" >&2; exit 1 ;; esac; done <<< \"\$entries\"; sudo rm -rf /var/lib/ynx-chain/consensus-candidate; sudo tar -xzf '$snapshot' -C /; sudo systemctl daemon-reload"
-  else
-    command+="; sudo rm -rf /var/lib/ynx-chain/consensus-candidate; sudo rm -f /etc/systemd/system/ynx-consensus-abci-candidate.service /etc/systemd/system/ynx-consensus-comet-candidate.service; sudo systemctl daemon-reload"
-  fi
-  if [[ -n "$candidate_release" ]]; then
-    command+="; sudo rm -rf '/opt/ynx-chain/consensus-candidates/$candidate_release/$role'; rm -f '/tmp/$candidate_release-$role.tar.gz'"
-  fi
-  command+="; systemctl is-active ynx-chaind >/dev/null; ! systemctl is-active --quiet ynx-consensus-comet-candidate.service; ! systemctl is-active --quiet ynx-consensus-abci-candidate.service"
-  if [[ -z "$backup_release" ]]; then
-    command+="; sudo test ! -e /var/lib/ynx-chain/consensus-candidate; ! ss -ltn | awk '{print \$4}' | grep -Eq ':(27656|27757|27858)$'"
-  fi
-  command+="; echo 'candidate rolled back; authoritative ynx-chaind remains active'"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "$command"
+  printf 'DRY RUN [%s] UNSAFE_AUTOMATIC_CANDIDATE_ROLLBACK_REFUSED: preserve signing state, staged packages and archives; no transport or rollback performed\n' "$role"
 }
 
 ynx_ops_each_node rollback_candidate_role

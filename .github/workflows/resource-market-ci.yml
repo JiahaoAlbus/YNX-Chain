@@ -24,6 +24,10 @@ on:
       - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
       - 'scripts/deploy/consensus-candidate-failure-retention.test.mjs'
+      - 'scripts/verify/consensus-production-package-check*'
+      - 'scripts/verify/consensus-candidate-deploy-gate.sh'
+      - 'scripts/verify/verify-consensus-candidate.sh'
+      - 'scripts/ops/rollback-consensus-candidate*'
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
       - 'go.mod'
       - 'go.sum'
@@ -284,7 +288,7 @@ jobs:
           cache: npm
       - name: Verify failed candidate deployment preserves services and signing history
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: node --test scripts/deploy/consensus-candidate-failure-retention.test.mjs
+        run: node --test scripts/deploy/consensus-candidate-failure-retention.test.mjs scripts/verify/consensus-production-package-check.test.mjs
       - name: Compile frozen measured production overlay without executing cases
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3
@@ -318,7 +322,7 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
-          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify
+          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
       - name: Verify complete state bridge and sponsor continuity
@@ -328,6 +332,36 @@ jobs:
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
+      - name: Reproduce signed-history overwrite and unsafe rollback callers
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          YNX_HISTORY_SCRIPT_CASE="$RUNNER_TEMP/ynx-history-scripts-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          umask 077
+          mkdir "$YNX_HISTORY_SCRIPT_CASE"
+          cp internal/consensus/production.go "$YNX_HISTORY_SCRIPT_CASE/fixed-production.go"
+          cp scripts/ops/rollback-consensus-candidate.sh "$YNX_HISTORY_SCRIPT_CASE/fixed-rollback.sh"
+          trap 'cp "$YNX_HISTORY_SCRIPT_CASE/fixed-production.go" internal/consensus/production.go; cp "$YNX_HISTORY_SCRIPT_CASE/fixed-rollback.sh" scripts/ops/rollback-consensus-candidate.sh' EXIT
+          git show 3a72627aae36a94b61d3c771ad14e313f3510361:internal/consensus/production.go > internal/consensus/production.go
+          set +e
+          go test -p 1 -count=1 -timeout=60s -v -run '^TestProductionRoleScriptsPreserveSignedStateAndUnknownResults$/^existing-signed-install$' ./internal/consensus > "$YNX_HISTORY_SCRIPT_CASE/original-install-red.log" 2>&1
+          YNX_HISTORY_INSTALL_RED=$?
+          set -e
+          cp "$YNX_HISTORY_SCRIPT_CASE/fixed-production.go" internal/consensus/production.go
+          cat "$YNX_HISTORY_SCRIPT_CASE/original-install-red.log"
+          test "$YNX_HISTORY_INSTALL_RED" -ne 0
+          grep -Fq 'PRODUCTION_SCRIPT_HISTORY_NOT_PRESERVED' "$YNX_HISTORY_SCRIPT_CASE/original-install-red.log"
+          git show 3a72627aae36a94b61d3c771ad14e313f3510361:scripts/ops/rollback-consensus-candidate.sh > scripts/ops/rollback-consensus-candidate.sh
+          set +e
+          go test -p 1 -count=1 -timeout=60s -v -run '^TestProductionRollbackCallerRefusesBeforeTransport$/^without-archive$' ./internal/consensus > "$YNX_HISTORY_SCRIPT_CASE/original-rollback-red.log" 2>&1
+          YNX_HISTORY_ROLLBACK_RED=$?
+          set -e
+          cp "$YNX_HISTORY_SCRIPT_CASE/fixed-rollback.sh" scripts/ops/rollback-consensus-candidate.sh
+          cat "$YNX_HISTORY_SCRIPT_CASE/original-rollback-red.log"
+          test "$YNX_HISTORY_ROLLBACK_RED" -ne 0
+          grep -Fq 'PRODUCTION_ROLLBACK_TRANSPORT_NOT_PRESERVED' "$YNX_HISTORY_SCRIPT_CASE/original-rollback-red.log"
+          go test -p 1 -count=1 -timeout=60s -v -run '^TestProduction(RoleScriptsPreserveSignedStateAndUnknownResults|RollbackCallerRefusesBeforeTransport)$/^(existing-signed-install|without-archive)$' ./internal/consensus
       - name: Reproduce source-authority initialization coupling and verify independent execution
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 4
@@ -909,7 +943,7 @@ jobs:
           export YNX_RUNTIME_CANDIDATE
           umask 077
           mkdir "$YNX_RUNTIME_CANDIDATE" "$YNX_RUNTIME_CANDIDATE/operator"
-          for YNX_RUNTIME_COMMAND in ynx-abci ynx-comet ynx-consensus-pq-key-init ynx-consensus-proof-verify; do
+          for YNX_RUNTIME_COMMAND in ynx-abci ynx-comet ynx-consensus-keycheck ynx-consensus-package ynx-consensus-pq-key-init ynx-consensus-proof-verify; do
             go build -p 1 -trimpath -o "$YNX_RUNTIME_CANDIDATE/$YNX_RUNTIME_COMMAND" "./cmd/$YNX_RUNTIME_COMMAND"
           done
           cp "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer" "$YNX_RUNTIME_CANDIDATE/ynx-consensus-pq-remote-signer"
@@ -925,7 +959,8 @@ jobs:
           root = Path(os.environ['YNX_RUNTIME_CANDIDATE'])
           names = ('ynx-abci', 'ynx-comet', 'ynx-bft-gatewayd',
               'ynx-consensus-pq-remote-signer', 'ynx-consensus-pq-key-init',
-              'ynx-consensus-proof-verify')
+              'ynx-consensus-proof-verify', 'ynx-consensus-package',
+              'ynx-consensus-keycheck')
           def pin(path):
               with path.open('rb') as source:
                   digest = hashlib.file_digest(source, 'sha256').hexdigest()
@@ -941,7 +976,7 @@ jobs:
           if not all(1 << 20 < p['bytes'] <= 128 << 20 for p in binaries.values()) or sum(p['bytes'] for p in binaries.values()) > 512 << 20:
               raise RuntimeError('candidate binary artifact size bound exceeded')
           operator = {p.name:pin(p) for p in (root / 'operator').iterdir()}
-          record = dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v1',
+          record = dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2',
               commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], platform='linux/amd64',
               cometForkTree=subprocess.check_output(['git','rev-parse','HEAD:third_party/cometbft'],text=True).strip(),
               goMod=pin(Path('go.mod')), goSum=pin(Path('go.sum')),
@@ -956,6 +991,39 @@ jobs:
           (root / 'SOURCE.json').write_text(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf8')
           print('YNX_LINUX_RUNTIME_CANDIDATE ' + json.dumps(record, sort_keys=True, separators=(',', ':')))
           PY
+      - name: Verify original candidate delivery with pinned archive permissions
+        if: ${{ success() && github.event_name == 'push' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          umask 077
+          YNX_DELIVERY_ORIGINAL="$RUNNER_TEMP/ynx-pq-linux-runtime-candidate"
+          YNX_DELIVERY_ARCHIVE="$RUNNER_TEMP/ynx-pq-runtime-delivery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          # Eight retained/staged copies plus 1 GiB reserve bound the normal
+          # offline role-package/dry-run I/O; this never starts a service.
+          YNX_DELIVERY_SOURCE_KB=$(du -sk "$YNX_DELIVERY_ORIGINAL" | awk '{print $1}')
+          YNX_DELIVERY_FREE_KB=$(df -Pk "$RUNNER_TEMP" | awk 'NR==2 {print $4}')
+          YNX_DELIVERY_REQUIRED_KB=$((YNX_DELIVERY_SOURCE_KB * 8 + 1048576))
+          df -Pk "$RUNNER_TEMP"
+          awk '/MemAvailable:/ {print}' /proc/meminfo
+          test "$YNX_DELIVERY_FREE_KB" -gt "$YNX_DELIVERY_REQUIRED_KB"
+          mkdir -m 0700 "$YNX_DELIVERY_ARCHIVE" "$YNX_DELIVERY_ARCHIVE/operator"
+          for YNX_DELIVERY_BINARY in ynx-abci ynx-comet ynx-bft-gatewayd ynx-consensus-pq-remote-signer ynx-consensus-pq-key-init ynx-consensus-proof-verify ynx-consensus-package ynx-consensus-keycheck; do
+            install -m 0644 "$YNX_DELIVERY_ORIGINAL/$YNX_DELIVERY_BINARY" "$YNX_DELIVERY_ARCHIVE/$YNX_DELIVERY_BINARY"
+          done
+          install -m 0644 "$YNX_DELIVERY_ORIGINAL/SOURCE.json" "$YNX_DELIVERY_ARCHIVE/SOURCE.json"
+          for YNX_DELIVERY_OPERATOR in ynx-consensus-pq-remote-signer.service.in ynx-consensus-pq-remote-signer-launch.sh ynx-consensus-pq-remote-signer.conf.in; do
+            install -m 0644 "$YNX_DELIVERY_ORIGINAL/operator/$YNX_DELIVERY_OPERATOR" "$YNX_DELIVERY_ARCHIVE/operator/$YNX_DELIVERY_OPERATOR"
+          done
+          export CONSENSUS_CANDIDATE_RUNTIME_BUNDLE="$YNX_DELIVERY_ARCHIVE"
+          export CONSENSUS_CANDIDATE_RUNTIME_COMMIT="$GITHUB_SHA"
+          CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256=$(sha256sum "$YNX_DELIVERY_ORIGINAL/SOURCE.json" | awk '{print $1}')
+          export CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256
+          bash scripts/verify/consensus-production-package-check.sh
+          for YNX_DELIVERY_BINARY in ynx-abci ynx-comet ynx-bft-gatewayd ynx-consensus-pq-remote-signer ynx-consensus-pq-key-init ynx-consensus-proof-verify ynx-consensus-package ynx-consensus-keycheck; do
+            test "$(stat -c %a "$YNX_DELIVERY_ARCHIVE/$YNX_DELIVERY_BINARY")" = 644
+            cmp "$YNX_DELIVERY_ORIGINAL/$YNX_DELIVERY_BINARY" "$YNX_DELIVERY_ARCHIVE/$YNX_DELIVERY_BINARY"
+          done
       - name: Verify normal proof CLI with exact public interoperability fixture
         id: pqproofcli
         if: ${{ success() && github.event_name == 'push' }}
