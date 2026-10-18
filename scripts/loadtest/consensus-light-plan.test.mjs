@@ -165,7 +165,7 @@ test('actual phase output requires all three modes and refuses missing duplicate
 
 test('phase sample case11 preserves original bounded resource policy and instrumented probe',async()=>{
  const {clientOwnedRSSCap,lightProbeInput}=await import('./consensus-light-plan.mjs'),p=lightCommand('/work',undefined,false,true);
- for(const c of ['client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14'])assert.equal(clientOwnedRSSCap(p,c),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
+ for(const c of ['client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15'])assert.equal(clientOwnedRSSCap(p,c),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
  assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c');
  assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.caps.threads,320);
  assert.deepEqual(lightProbeInput('/work','client13-normal-11'),lightProbeInput('/work','client13-normal-10'));
