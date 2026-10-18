@@ -40,6 +40,7 @@ type pqPairTiming struct {
 	CheckpointPointerTransitions int      `json:"checkpointPointerTransitions"`
 	LocalBlockCheckpointMembers  int      `json:"localBlockCheckpointMembers"`
 	ColdRestoredMembers          int      `json:"coldRestoredMembers"`
+	CloneLocalPeersPreserved     bool     `json:"cloneLocalPeersPreserved"`
 	Projection                   []byte   `json:"-"`
 }
 
@@ -93,7 +94,11 @@ func pqPairProjection(t *testing.T, d *Devnet) []byte {
 	t.Helper()
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	s := d.snapshotLocked()
+	return pqPairSnapshotProjection(t, d.snapshotLocked())
+}
+
+func pqPairSnapshotProjection(t *testing.T, s devnetSnapshot) []byte {
+	t.Helper()
 	s.SavedAt = time.Time{}
 	s.StateIntegrity = ""
 	// Different proof layouts, transaction IDs and wall-clock block identities
@@ -101,9 +106,67 @@ func pqPairProjection(t *testing.T, d *Devnet) []byte {
 	s.Blocks = nil
 	s.Pending = nil
 	s.PQBatches = nil
+	// Full replication intentionally preserves each target's own peer facts.
+	// These are checked separately across its memory/disk/restart, not erased.
+	s.Peers = nil
+	s.PeerSyncs = nil
 	raw, err := json.Marshal(s)
 	pqMust(t, err)
 	return raw
+}
+
+func pqPairProjectionControls(t *testing.T, f *pqLedgerFixture) {
+	t.Helper()
+	original := pqBatchSuccessDiskSnapshot(t, f.d)
+	raw, err := json.Marshal(original)
+	pqMust(t, err)
+	clone := func() devnetSnapshot {
+		var s devnetSnapshot
+		pqMust(t, json.Unmarshal(raw, &s))
+		return s
+	}
+	want := pqPairSnapshotProjection(t, original)
+	local := clone()
+	local.Peers = nil
+	local.PeerSyncs = map[string]ValidatorPeerSync{"local-projection-control": {}}
+	if reflect.DeepEqual(local.Peers, original.Peers) || !bytes.Equal(want, pqPairSnapshotProjection(t, local)) {
+		t.Fatal("only explicit node-local peer facts may differ in business projection")
+	}
+	for name, mutate := range map[string]func(*devnetSnapshot){
+		"balance":  func(s *devnetSnapshot) { s.Accounts[f.owner].Balance++ },
+		"nonce":    func(s *devnetSnapshot) { s.Accounts[f.owner].Nonce++ },
+		"resource": func(s *devnetSnapshot) { s.Accounts[f.owner].ResourceUsage.BandwidthUsed++ },
+		"owner lot": func(s *devnetSnapshot) {
+			for id := range s.Accounts[f.owner].Lots {
+				s.Accounts[f.owner].Lots[id]++
+				break
+			}
+		},
+		"lot origin": func(s *devnetSnapshot) {
+			for id, lot := range s.Lots {
+				lot.LastInbound = "projection-control"
+				s.Lots[id] = lot
+				break
+			}
+		},
+		"contract": func(s *devnetSnapshot) {
+			if s.Contracts == nil {
+				s.Contracts = map[string]ContractArtifact{}
+			}
+			s.Contracts["projection-control"] = ContractArtifact{Address: "projection-control", SourceHash: "changed"}
+		},
+		"policy":    func(s *devnetSnapshot) { s.AccountPolicy.EnableAt++ },
+		"validator": func(s *devnetSnapshot) { s.Validators[0].VotingPower++ },
+	} {
+		s := clone()
+		mutate(&s)
+		if bytes.Equal(want, pqPairSnapshotProjection(t, s)) {
+			t.Fatalf("business projection hid changed %s", name)
+		}
+	}
+	if !bytes.Equal(raw, func() []byte { b, e := json.Marshal(original); pqMust(t, e); return b }()) {
+		t.Fatal("projection controls mutated the actual fixture snapshot")
+	}
 }
 
 func pqPairRun(t *testing.T, f *pqLedgerFixture, mode string, whole []byte, members [][]byte, seed []byte, output string, dirs *[]string, signNs int64) pqPairTiming {
@@ -112,8 +175,29 @@ func pqPairRun(t *testing.T, f *pqLedgerFixture, mode string, whole []byte, memb
 	*dirs = append(*dirs, dir)
 	d, err := NewPersistentDevnet(f.d.cfg, dir)
 	pqMust(t, err)
+	localPeers := copyValidatorPeers(d.validatorPeers)
+	localSyncs := copyValidatorPeerSyncs(d.validatorPeerSyncs)
+	if reflect.DeepEqual(localPeers, f.d.validatorPeers) {
+		t.Fatal("fixture must distinguish source-produced peer observations from target-local peers")
+	}
 	applied, err := d.ApplyReplicationSnapshotJSON(seed, false)
 	pqMust(t, err)
+	if !reflect.DeepEqual(d.validatorPeers, localPeers) || !reflect.DeepEqual(d.validatorPeerSyncs, localSyncs) {
+		t.Fatal("replication replaced target-local in-memory peer observations")
+	}
+	cloneDisk := pqBatchSuccessDiskSnapshot(t, d)
+	if !reflect.DeepEqual(cloneDisk.Peers, localPeers) || !reflect.DeepEqual(cloneDisk.PeerSyncs, localSyncs) {
+		t.Fatal("replication wrote source peer observations to target disk")
+	}
+	cloned, err := NewPersistentDevnet(d.cfg, d.dataDir)
+	pqMust(t, err)
+	if !reflect.DeepEqual(cloned.validatorPeers, localPeers) || !reflect.DeepEqual(cloned.validatorPeerSyncs, localSyncs) {
+		t.Fatal("clone cold restore replaced target-local peer observations")
+	}
+	if !bytes.Equal(pqPairProjection(t, cloned), pqPairProjection(t, d)) {
+		t.Fatal("clone cold restore changed authoritative business state")
+	}
+	d = cloned
 	if !applied.Applied || !bytes.Equal(pqPairProjection(t, d), pqPairProjection(t, f.d)) {
 		t.Fatal("isolated clone differs from activated fixture")
 	}
@@ -129,7 +213,7 @@ func pqPairRun(t *testing.T, f *pqLedgerFixture, mode string, whole []byte, memb
 	if feeAddress == f.owner || feeAddress == f.to || owner.Nonce != 1 || owner.Balance < int64(2*n) || len(d.pending) != 0 {
 		t.Fatal("invalid funded/policy clone")
 	}
-	r := pqPairTiming{Mode: mode, Members: n, SigningPreparationNs: signNs}
+	r := pqPairTiming{Mode: mode, Members: n, SigningPreparationNs: signNs, CloneLocalPeersPreserved: true}
 	prior := d.durableCheckpoint.Load()
 	if prior == nil {
 		t.Fatal("no initial checkpoint")
@@ -360,6 +444,7 @@ func TestPQPairedPersistentPerformance(t *testing.T) {
 			t.Fatal("success fixture must fund distinct amounts/fees plus migration")
 		}
 		f.activate(t)
+		pqPairProjectionControls(t, f)
 		seed, err := f.d.ReplicationSnapshotJSON()
 		pqMust(t, err)
 		signStart := time.Now()
