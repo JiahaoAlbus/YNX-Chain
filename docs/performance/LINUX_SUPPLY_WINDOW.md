@@ -140,3 +140,52 @@ The corrected wire test has a5s startup context bound, retains the real signatur
 commit and recovery assertions, and executes once in the original full ABCI
 package gate. The later original phase-test selector is unchanged. This fix is
 not verified until the new CI actually executes it; no second network START.
+
+## Verified gRPC execution
+
+Correction615a9323e passed normal CI39134864620, including the real transport
+concurrency/recovery test. Root then explicitly scheduled one gRPC case at that
+exact source. Run39135113804 actually completed SUCCESS: all1024 transactions
+were offered, submitted, accepted, effectively included and quorum/durable-business
+qualified final, with0 UNKNOWN, timeout, missing submission, CheckTx rejection or
+execution failure. FirstCause is null and the owned process closure was cleaned.
+The7993 recorded observation errors were all `block_scan_wait: block inclusion
+not observed yet`; this is not a zero-error RPC history.
+
+Workload6.664903s, full-window effective inclusion and qualified final153.640648/s,
+actual offer184.575299/s versus configured512/s. Steady-state TPS remains null;
+this is a finite1024 transaction success, **not sustained1000TPS**.
+
+| Actual measurement | P50 ms | P95 ms | P99 ms |
+|---|---:|---:|---:|
+| Submission queue |0.018845|1.854397|22.903963|
+| RPC CheckTx response |0.749330|20.200675|58.621731|
+| Effective business inclusion |999.820678|1390.828249|1500.977072|
+| Submission to qualified final |1189.716864|1541.218294|1591.893938|
+| Offer to qualified final |1190.449749|1541.235637|1591.921950|
+
+Supply cumulative durations: completion wait2849.674ms, pacing3529.947ms,
+successor signing83.213ms/768, encoding157.367ms, offer decode14.981ms,
+journal append21.604ms/22calls and1024durable envelopes, dispatch0.374ms.
+Completion wait includes final drain; it is not independently measured nonce or
+consensus latency. Each node recorded9 durable Commits, mean4.055–4.955ms;
+per-node cumulative validation29.324–33.872ms, delta encoding0.645–0.827ms,
+write0.802–1.014ms and file Sync4.287–7.891ms. Runtime9.024s, cleanup complete,
+peak RSS562790400bytes,62threads,19794811private bytes.
+
+Hardware **differs**: socket used Intel Xeon6973P-C4CPU, gRPC used AMD EPYC7763
+4CPU. Both used Go1.25.14 and identical application internal treecfbd76d5, with
+the same workload policy, workers, timeouts and resource limits. Report these
+observations independently; no causal transport speedup multiplier is justified.
+The complete receipt and member hashes are in
+`evidence/linux-supply-grpc-ci-39135113804-actual.json`; full ZIP was not downloaded
+or hash-verified, but each recovered evidence member has exact206/header/size/CRC
+verification and its own SHA256.
+
+The next useful workload change is to test the ready-account supply limit with
+the already planned512accounts×2rounds, keeping1024total/512configured rate and
+all existing caps. It requires its own fixed-profile guards and Root schedule;
+it has not been implemented or launched in this revision. For a strict transport
+comparison, both transports must execute on the same actual runner with otherwise
+matched settings; the two completed runs do not provide that evidence. Preserve
+both existing cases rather than silently substituting them as matched results.

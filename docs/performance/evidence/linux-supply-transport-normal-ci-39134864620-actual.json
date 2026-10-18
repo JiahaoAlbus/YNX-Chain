@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "sourceCommit": "615a9323e4af7cbec98b206fcdb94a9ae8878d3e",
+  "runId": 39134864620,
+  "conclusion": "success",
+  "inputRunLinuxSupply": false,
+  "networkStarted": false,
+  "sourceRefusalTests": 12,
+  "transportWireTest": "TestABCITransportConcurrentAdmissionAndDurability executed by original full go test ./internal/consensus ./cmd/ynx-abci gate",
+  "runtimeProductionInternalTree": "cfbd76d52a6e22ebfae809699a37b6c039cb20f5",
+  "raw": {
+    "path": "artifacts/chain-performance-20261017/linux-supply-source-20261018/transport-ci39134864620-full.raw",
+    "bytes": 494368,
+    "sha256": "441468cb3614ce766658c6bddfed17d5b7badef39ce88c5a677dea46dcca2929"
+  },
+  "businessMeasurement": null
+}
