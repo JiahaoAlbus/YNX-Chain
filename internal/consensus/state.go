@@ -40,6 +40,7 @@ type CommittedState struct {
 	TraceLots                  map[string]chain.TrustTraceLot  `json:"traceLots,omitempty"`
 	AccountPolicy              *ynxauth.State                  `json:"accountPolicy,omitempty"`
 	PQHistory                  []PQCommittedAuthorization      `json:"pqHistory,omitempty"`
+	PQBatches                  map[string]PQCommittedBatch     `json:"pqBatches,omitempty"`
 	Version                    int                             `json:"version"`
 	ChainID                    int64                           `json:"chainId"`
 	MigrationStateHash         string                          `json:"migrationStateHash"`
@@ -96,6 +97,7 @@ type committedStateHashDocument struct {
 	TraceLots                  map[string]chain.TrustTraceLot  `json:"traceLots,omitempty"`
 	AccountPolicy              *ynxauth.State                  `json:"accountPolicy,omitempty"`
 	PQHistory                  []PQCommittedAuthorization      `json:"pqHistory,omitempty"`
+	PQBatches                  map[string]PQCommittedBatch     `json:"pqBatches,omitempty"`
 	Domain                     string                          `json:"domain"`
 	Version                    int                             `json:"version"`
 	ChainID                    int64                           `json:"chainId"`
@@ -213,6 +215,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		TraceLots:                  cloneTraceLots(execution.traceLots),
 		AccountPolicy:              cloneConsensusAccountPolicy(execution.accountPolicy),
 		PQHistory:                  clonePQHistory(execution.pqHistory),
+		PQBatches:                  cloneConsensusPQBatches(execution.pqBatches),
 		Version:                    CommittedStateVersion,
 		ChainID:                    migration.Network.ChainID,
 		MigrationStateHash:         migration.StateHash,
@@ -424,6 +427,7 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 		TraceLots:                  s.TraceLots,
 		AccountPolicy:              s.AccountPolicy,
 		PQHistory:                  s.PQHistory,
+		PQBatches:                  s.PQBatches,
 		Domain:                     domain,
 		Version:                    version,
 		ChainID:                    s.ChainID,
@@ -485,7 +489,7 @@ func (s CommittedState) hasApplicationRecords() bool {
 			resourcePools++
 		}
 	}
-	if len(s.PQHistory) != 0 {
+	if len(s.PQHistory) != 0 || len(s.PQBatches) != 0 {
 		return true
 	}
 	return len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+resourcePools+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0
@@ -672,7 +676,7 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 	if err := json.Unmarshal(payload, &state); err != nil {
 		return CommittedState{}, fmt.Errorf("decode committed state: %w", err)
 	}
-	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || state.TraceLots != nil || migration.AccountPolicy != nil || state.LegacyResourceSponsor != nil || migrationResourceSponsor(migration) != nil || state.LegacyResourceMarket != nil || migrationResourceMarket(migration) != nil || state.LegacyContracts != nil || migrationLegacyContracts(migration) != nil) {
+	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || len(state.PQBatches) != 0 || state.TraceLots != nil || migration.AccountPolicy != nil || state.LegacyResourceSponsor != nil || migrationResourceSponsor(migration) != nil || state.LegacyResourceMarket != nil || migrationResourceMarket(migration) != nil || state.LegacyContracts != nil || migrationLegacyContracts(migration) != nil) {
 		return CommittedState{}, errors.New("legacy state cannot import or erase v15 authorization/lineage fields")
 	}
 	if state.Version == 13 {

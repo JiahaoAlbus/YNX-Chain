@@ -42,7 +42,11 @@ type PQCommittedAuthorization struct {
 }
 
 func EncodePQTransaction(kind string, wire []byte) ([]byte, error) {
-	if kind != PQTransferType && kind != PQMigrationType && kind != PQRevocationType || len(wire) == 0 || len(wire) > ynxauth.MaxMigrationBytes || kind == PQRevocationType && len(wire) > ynxauth.MaxRevocationBytes {
+	limit := ynxauth.MaxMigrationBytes
+	if kind == PQWholeType {
+		limit = chain.MaxPQBatchBytes
+	}
+	if kind != PQTransferType && kind != PQMigrationType && kind != PQRevocationType && kind != PQWholeType || len(wire) == 0 || len(wire) > limit || kind == PQRevocationType && len(wire) > ynxauth.MaxRevocationBytes {
 		return nil, errors.New("unsupported or oversized ABCI PQ authorization")
 	}
 	return json.Marshal(PQTransaction{Version: 1, Type: kind, WireHex: hex.EncodeToString(wire)})
@@ -50,7 +54,7 @@ func EncodePQTransaction(kind string, wire []byte) ([]byte, error) {
 
 func DecodePQTransaction(payload []byte) (PQTransaction, []byte, error) {
 	var tx PQTransaction
-	if len(payload) == 0 || len(payload) > MaxPQTransactionBytes {
+	if len(payload) == 0 || len(payload) > MaxPQWholeTransactionBytes {
 		return tx, nil, errors.New("ABCI PQ envelope size is invalid")
 	}
 	d := json.NewDecoder(bytes.NewReader(payload))
@@ -103,6 +107,9 @@ func (a *Application) applyPQTransaction(state executionState, payload []byte, h
 	envelope, wire, err := DecodePQTransaction(payload)
 	if err != nil {
 		return fail(err)
+	}
+	if envelope.Type == PQWholeType {
+		return a.applyPQWhole(state, payload, wire, height, blockTime)
 	}
 	nativeHash, abciHash := SignedTransactionHash(wire), SignedTransactionHash(payload)
 	for _, prior := range state.pqHistory {
@@ -167,7 +174,7 @@ func (a *Application) applyPQTransaction(state executionState, payload []byte, h
 }
 
 func validateConsensusPQState(state CommittedState, migration chain.ConsensusMigrationState) error {
-	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || migration.AccountPolicy != nil) {
+	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || len(state.PQBatches) != 0 || migration.AccountPolicy != nil) {
 		return errors.New("legacy ABCI state cannot carry or erase account policy")
 	}
 	if migration.AccountPolicy == nil && state.AccountPolicy != nil {
@@ -176,11 +183,11 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 	if err := chain.ValidateConsensusAccountPolicyContinuation(migration.AccountPolicy, state.AccountPolicy); err != nil {
 		return err
 	}
-	if !state.Initialized && (!sameConsensusPolicy(state.AccountPolicy, migration.AccountPolicy) || len(state.PQHistory) != 0) {
+	if !state.Initialized && (!sameConsensusPolicy(state.AccountPolicy, migration.AccountPolicy) || len(state.PQHistory) != 0 || len(state.PQBatches) != 0) {
 		return errors.New("uninitialized ABCI policy differs from migration anchor")
 	}
 	if state.AccountPolicy == nil {
-		if len(state.PQHistory) != 0 {
+		if len(state.PQHistory) != 0 || len(state.PQBatches) != 0 {
 			return errors.New("PQ history without account policy")
 		}
 		for _, event := range state.FeeEvents {
@@ -223,6 +230,9 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 			return errors.New("invalid ABCI PQ history height or replay")
 		}
 		previousHeight, seen[tx.Hash] = tx.BlockNum, true
+		if strings.HasPrefix(tx.Memo, pqBatchMemberMemoPrefix) {
+			continue
+		}
 		if err := chain.ValidateConsensusHistoricalPQTransaction(tx, state.AccountPolicy, tx.BlockNum, state.ChainID); err != nil {
 			return err
 		}
@@ -273,6 +283,9 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 		if r.RegisteredAt > uint64(state.Height) || (!knownRevocations[r.Owner] && revocationProofs[r.Owner] != 1) {
 			return errors.New("ABCI revocation lacks its committed original proof")
 		}
+	}
+	if err := validateConsensusPQBatches(state, migration); err != nil {
+		return err
 	}
 	for _, event := range state.FeeEvents {
 		if event.TransactionType == PQRevocationType && !revocationTransactions[event.TxHash] {

@@ -129,6 +129,12 @@ func validateConsensusPQContinuation(previous, next CommittedState) error {
 	if len(next.PQHistory) < len(previous.PQHistory) {
 		return errors.New("ABCI authorization history cannot shrink")
 	}
+	for hash, proof := range previous.PQBatches {
+		nextProof, exists := next.PQBatches[hash]
+		if !exists || !reflect.DeepEqual(proof, nextProof) {
+			return errors.New("ABCI Whole proof or original partial results cannot be removed or rewritten")
+		}
+	}
 	for i, prior := range previous.PQHistory {
 		if !reflect.DeepEqual(prior, next.PQHistory[i]) {
 			return errors.New("ABCI authorization history cannot be rewritten")

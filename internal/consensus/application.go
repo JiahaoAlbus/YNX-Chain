@@ -47,6 +47,7 @@ type executionState struct {
 	legacyResourceSponsor      *LegacyResourceSponsor
 	traceLots                  map[string]chain.TrustTraceLot
 	accountPolicy              *ynxauth.State
+	pqBatches                  map[string]PQCommittedBatch
 	pqHistory                  []PQCommittedAuthorization
 	accounts                   []chain.ConsensusAccount
 	feeEvents                  []BFTFeeEvent
@@ -226,6 +227,20 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	switch {
 	case req.Path == "/migration/compatibility":
 		response.Value, _ = json.Marshal(MigrationExecutionBlockers(a.migration))
+		return response, nil
+	case strings.HasPrefix(req.Path, "/pq-batches/"):
+		hash := strings.TrimPrefix(req.Path, "/pq-batches/")
+		if proof, ok := a.committed.PQBatches[hash]; ok {
+			response.Value, _ = json.Marshal(proof)
+			return response, nil
+		}
+		if a.migration.Runtime != nil {
+			if proof, ok := a.migration.Runtime.PQBatches[hash]; ok {
+				response.Value, _ = json.Marshal(proof)
+				return response, nil
+			}
+		}
+		response.Code, response.Log = 1, "PQ batch not found"
 		return response, nil
 	case req.Path == "/account-policy":
 		response.Value, _ = json.Marshal(a.committed.AccountPolicy)
@@ -487,7 +502,7 @@ func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) 
 	state := a.cloneExecutionState()
 	_, tx, err := a.applyTransaction(state, req.Tx, a.committed.Height+1, time.Time{})
 	if err != nil {
-		return &abcitypes.ResponseCheckTx{Code: transactionCode(err), Log: err.Error()}, nil
+		return &abcitypes.ResponseCheckTx{Code: transactionCode(err), Log: err.Error(), Data: tx.resultData}, nil
 	}
 	return &abcitypes.ResponseCheckTx{Code: abcitypes.CodeTypeOK, Data: executionResultData(tx, req.Tx), GasWanted: 1, GasUsed: 1, Info: tx.typeName}, nil
 }
@@ -555,7 +570,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	for i, payload := range req.Txs {
 		next, tx, err := a.applyTransaction(state, payload, req.Height, req.Time)
 		if err != nil {
-			results[i] = &abcitypes.ExecTxResult{Code: transactionCode(err), Log: err.Error()}
+			results[i] = &abcitypes.ExecTxResult{Code: transactionCode(err), Log: err.Error(), Data: tx.resultData}
 			continue
 		}
 		state = next
@@ -611,6 +626,7 @@ func (a *Application) cloneExecutionState() executionState {
 		traceLots:             cloneTraceLots(a.committed.TraceLots),
 		accountPolicy:         cloneConsensusAccountPolicy(a.committed.AccountPolicy),
 		pqHistory:             clonePQHistory(a.committed.PQHistory),
+		pqBatches:             cloneConsensusPQBatches(a.committed.PQBatches),
 		accounts:              cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), nativeTransfers: append([]BFTNativeTransfer(nil), a.committed.NativeTransfers...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), paySettlements: append([]BFTPaySettlement(nil), a.committed.PaySettlements...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
@@ -627,7 +643,7 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
-	if kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType {
+	if kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType || kind == PQWholeType {
 		return a.applyPQTransaction(state, payload, height, blockTime)
 	}
 	if kind == SignedActionType {
@@ -674,6 +690,24 @@ func (a *Application) applyAuthorizedTransfer(state executionState, tx SignedTra
 	}
 	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("sender bandwidth usage overflow"))
+	}
+	// Compute net credit with sender/receiver/fee aliases before any write.
+	credits := map[string]int64{tx.To: tx.Amount}
+	if credits[a.feeRecipient] > math.MaxInt64-tx.Fee {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("native credit exceeds ledger range"))
+	}
+	credits[a.feeRecipient] += tx.Fee
+	for address, credit := range credits {
+		balance := int64(0)
+		if i, exists := accountIndex(accounts, address); exists {
+			balance = accounts[i].Balance
+		}
+		if address == tx.From {
+			balance -= tx.Amount + tx.Fee
+		}
+		if balance > math.MaxInt64-credit {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("native recipient balance would overflow"))
+		}
 	}
 	accounts, _ = ensureAccount(accounts, tx.To)
 	accounts, _ = ensureAccount(accounts, a.feeRecipient)
@@ -947,6 +981,9 @@ func moveTraceableLots(sender, receiver *chain.ConsensusAccount, amount int64) e
 		moved := available
 		if moved > remaining {
 			moved = remaining
+		}
+		if sender != receiver && receiver.Lots[lotID] > math.MaxInt64-moved {
+			return errors.New("native recipient lot would overflow")
 		}
 		sender.Lots[lotID] -= moved
 		receiver.Lots[lotID] += moved
