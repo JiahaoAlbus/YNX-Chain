@@ -222,6 +222,12 @@ class WorkbenchControlsContribution {
     this.popupEditor = undefined; this.popupDocument = undefined;
     access?.dispose();
   }
+  primaryRunLabel() {
+    const editor = this.editors.currentEditor?.editor;
+    return !this.debugConfigurations?.current && editor?.uri?.scheme === 'file' && editor.document?.languageId === 'solidity'
+      ? this.translate('compileSolidityProject', 'Compile Solidity project')
+      : this.translate('runCurrentTarget', 'Run current file or project');
+  }
   registerToolbarItems(toolbar) {
     const React = require('react');
     this.disposables.push(toolbar.registerItem({
@@ -230,8 +236,8 @@ class WorkbenchControlsContribution {
       render: widget => React.createElement('span', { className: 'ynx-run-controls-group', role: 'group',
         'aria-label': this.translate('runActionsAria', 'Run and Debug actions') },
         React.createElement('button', { type: 'button', className: 'ynx-run-controls',
-          title: this.translate('runCurrentTarget', 'Run current file or project'),
-          'aria-label': this.translate('runCurrentTarget', 'Run current file or project'),
+          title: this.primaryRunLabel(),
+          'aria-label': this.primaryRunLabel(),
           disabled: !this.state('ynx.workbench.runCurrentFile').enabled,
           onMouseDown: event => event.preventDefault(),
           onClick: () => {
@@ -308,7 +314,7 @@ class WorkbenchControlsContribution {
     if (this.noSelectedDebug) this.noSelectedDebug.set(!this.debugConfigurations?.current);
     const editor = this.editors.currentEditor;
     if (this.editorLanguage) this.editorLanguage.set(editor && !editor.isDisposed ? editor.editor?.document?.languageId : undefined);
-    const runState = [...RUN_ACTIONS, ...CPP_ACTIONS, ...JS_ACTIONS, ...TS_ACTIONS, ...GO_ACTIONS, ...PYTHON_ACTIONS].map(action => this.state(action.id).enabled).join('|');
+    const runState = [this.primaryRunLabel(), ...[...RUN_ACTIONS, ...CPP_ACTIONS, ...JS_ACTIONS, ...TS_ACTIONS, ...GO_ACTIONS, ...PYTHON_ACTIONS].map(action => this.state(action.id).enabled)].join('|');
     if (runState !== this.runState) { this.runState = runState; this.changed.fire(); }
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i], area = i === 0 ? 'left' : 'bottom';

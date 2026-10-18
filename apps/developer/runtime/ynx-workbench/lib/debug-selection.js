@@ -7,6 +7,9 @@ class DebugSelectionContribution {
     const editor = this.editors?.currentEditor?.editor;
     if (editor?.uri?.scheme !== 'file') return debug ? 'select.debug.configuration' : 'workbench.action.debug.run';
     const language = editor.document?.languageId;
+    // Solidity has a real local compiler, not a directly executable process or
+    // an admitted default debugger. A selected launch above remains explicit.
+    if (language === 'solidity') return debug ? undefined : 'ynx.compileSolidity';
     const pair = {
       c: ['ynx.cpp.runActive', 'ynx.cpp.debugActive'], cpp: ['ynx.cpp.runActive', 'ynx.cpp.debugActive'],
       javascript: ['ynx.js.runActive', 'ynx.js.debugActive'],
@@ -22,8 +25,15 @@ class DebugSelectionContribution {
     });
     for (const [id, debug] of [['ynx.workbench.runCurrentFile', false], ['ynx.workbench.debugCurrentFile', true]]) {
       registry.registerCommand({ id }, {
-        execute: () => this.commands.executeCommand(this.currentFileCommand(debug)),
-        isEnabled: () => this.commands.isEnabled(this.currentFileCommand(debug)),
+        execute: () => {
+          const command = this.currentFileCommand(debug);
+          if (!command) throw Error('No applicable current-file command is available.');
+          return this.commands.executeCommand(command);
+        },
+        isEnabled: () => {
+          const command = this.currentFileCommand(debug);
+          return !!command && this.commands.isEnabled(command);
+        },
       });
     }
   }

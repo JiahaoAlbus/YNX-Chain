@@ -21,6 +21,7 @@ node --test scripts/admit-derived-native.test.mjs
 node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
 node --test scripts/normal-local-workspace-aliases.test.mjs
 node --test scripts/verify-packaged-local-imports.test.mjs
+node --test scripts/solidity-current-file-route.test.mjs
 node --test scripts/bundle-composed-core.test.mjs
 runtime_checkpoint="$source_commit"
 # One deployment target for the native shell, bundle declaration and all bundled
