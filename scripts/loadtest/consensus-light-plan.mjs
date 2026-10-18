@@ -72,14 +72,14 @@ export function clientRegressionArgs(plan,remainingMs){
 }
 
 export function clientOwnedRSSCap(plan,rootCase){
- if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15'].includes(rootCase))throw Error('unsupported explicit client resource case');
+ if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16'].includes(rootCase))throw Error('unsupported explicit client resource case');
  if(rootCase!==undefined&&plan.mode!=='client_regression')throw Error('explicit RSS case requires fixed client regression');
- if(['client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15'].includes(rootCase))return 768*1024**2;
- return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15'].includes(rootCase)?512*1024**2:400*1024**2;
+ if(['client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16'].includes(rootCase))return 768*1024**2;
+ return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16'].includes(rootCase)?512*1024**2:400*1024**2;
 }
 
 export function lightProbeInput(root,rootCase){
- return ['client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
+ return ['client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
 }
 
 // Inventory original stopped data; the proof outputs live outside this set.
@@ -161,4 +161,9 @@ export async function currentCacheOccupancy(paths,run,timeoutMs,activeDeadlineAt
  if(settled.some(r=>r.status!=='fulfilled')){const error=new Error('current cache occupancy unavailable: '+measurements.filter(m=>m.error).map(m=>m.error).join('; '));error.measurements=measurements;throw error;}
  const bytes=settled.map(r=>r.value),totalBytes=bytes.reduce((a,b)=>a+b,0);if(!Number.isSafeInteger(totalBytes))throw Error('cache byte sum invalid');
  return {paths,bytes,totalBytes,measurements,method:'two actual du -sk scans in parallel under one unchanged phase/global deadline; no cache copied/deleted/redirected or old sizes reused'};
+}
+
+export function cachePhaseLimit(rootCase){
+ if(rootCase==='client13-normal-16')return 20000;
+ return /^client13-normal-(0[3-9]|1[0-5])$/.test(rootCase??'')?12000:5000;
 }

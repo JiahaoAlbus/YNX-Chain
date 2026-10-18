@@ -165,7 +165,7 @@ test('actual phase output requires all three modes and refuses missing duplicate
 
 test('phase sample case11 preserves original bounded resource policy and instrumented probe',async()=>{
  const {clientOwnedRSSCap,lightProbeInput}=await import('./consensus-light-plan.mjs'),p=lightCommand('/work',undefined,false,true);
- for(const c of ['client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15'])assert.equal(clientOwnedRSSCap(p,c),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
+ for(const c of ['client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16'])assert.equal(clientOwnedRSSCap(p,c),805306368);assert.equal(clientOwnedRSSCap(p),419430400);
  assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c');
  assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.caps.threads,320);
  assert.deepEqual(lightProbeInput('/work','client13-normal-11'),lightProbeInput('/work','client13-normal-10'));
@@ -212,4 +212,15 @@ test('cache failure waits for the other original scan and cannot invent missing 
  const err=new Error('actual timed out scan');Object.assign(err,{signal:'SIGKILL',killed:true,stdout:'',stderr:''});failed(err);await Promise.resolve();assert.equal(finished,false);
  release({stdout:'8\t/cache/mod\n',stderr:''});await assert.rejects(pending,e=>e.measurements.length===2&&e.measurements[0].killed===true&&e.measurements[1].bytes===8192);
  await assert.rejects(currentCacheOccupancy(['/cache/build','/cache/mod'],()=>Promise.resolve({stdout:'9\t/wrong\n',stderr:''}),12000,Date.now()+30000));
+});
+
+test('case16 measured cache allowance consumes the same active deadline without extending Go',async()=>{
+ const {cachePhaseLimit,currentCacheOccupancy}=await import('./consensus-light-plan.mjs');
+ assert.equal(cachePhaseLimit('client13-normal-16'),20000);assert.equal(cachePhaseLimit('client13-normal-15'),12000);assert.equal(cachePhaseLimit(),5000);
+ const now=Date.now(),calls=[];
+ const run=(cmd,args,opts)=>{calls.push(opts);const p=Promise.resolve({stdout:'1\t'+args[1]+'\n',stderr:''});p.child={pid:101+calls.length};return p;};
+ const r=await currentCacheOccupancy(['/cache/build','/cache/mod'],run,20000,now+100);
+ assert.equal(r.measurements.length,2);assert.ok(calls.every(c=>c.timeout>0&&c.timeout<=100));
+ assert.ok(remainingPhaseBudget(now,30000,now+20000)<=10000);
+ await assert.rejects(currentCacheOccupancy(['/cache/build','/cache/mod'],run,20000,Date.now()-1));
 });

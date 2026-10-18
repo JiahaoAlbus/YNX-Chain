@@ -1,0 +1,25 @@
+{
+  "case": "client13-normal-14",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-14.json",
+  "rawSHA256": "4f797778e7b45940ed40515f1cc9786b52dc930919637ca11abafd07ce0c5795",
+  "rawBytes": 9851,
+  "controllerSession": null,
+  "launcher": 4691,
+  "elapsedMs": 11,
+  "peakRSS": 0,
+  "firstCause": "unsupported explicit Root resource case",
+  "go": null,
+  "sourceChecks": null,
+  "driverPins": {
+    "consensus-light-window.mjs": "cef98074eb492837dc8fdbbd122d7d32620427117a7b6cc1c5972cdb586af761",
+    "consensus-light-plan.mjs": "e5937e7cd322c1d208ada874e8295761fff74ffd6d2e175b920eacb03a097e93",
+    "native-resource-sample.mjs": "7d57c8baf4e809d951fe13b684d60df8a6355a3a63026ddc050d9a99ea057a00",
+    "owned-process-race.mjs": "9cd25ffdcf0f1fa522a757e681998e682cae069a4eee3289c98a8536ddce23a7",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "cachePhases": null,
+  "cacheOccupancyError": null,
+  "groupGone": true,
+  "actualSupplyPhases": [],
+  "interpretation": "No Go started, no business phase values. Explicit case native admission list was incomplete; repaired without relaxing pressure/resource limits."
+}
