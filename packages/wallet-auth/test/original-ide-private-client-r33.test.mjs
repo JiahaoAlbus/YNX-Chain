@@ -15,14 +15,14 @@ const input=canonicalJSON({requestId,operation:'restore',phase:'time',body:null,
 const responseRaw=canonicalJSON({status:200,headers:{'content-type':'application/json','cache-control':'no-store','x-request-id':requestId},body:canonicalJSON({ok:true,requestId,schemaVersion:2,result:{PUBLIC:true}})});
 const entry='file:///PUBLIC/server.mjs';
 function fixture({readyFailure=false,captureFailure=false,terminalFailure=false,closeFailure=false,readProof=null,onResult=null}={}){
- let live=true,captures=0,terminals=0,reads=0,closed=0,currents=0,failAt=Infinity,monotonic=0;
+ let live=true,captures=0,terminals=0,reads=0,closed=0,currents=0,failAt=Infinity,monotonic=0,currentCause=false;
  const parent={},owner={...selection,association:{account:'PUBLIC_ACCOUNT'}},events=[];
- const native={acquireOriginalIDEAdmissionParentDelivery:()=>parent,captureOriginalIDEPrivateClient(p){assert.equal(p,parent);captures++;if(captureFailure)throw undefined;return owner;},assertOriginalIDEPrivateClientReady(p){assert.equal(p,owner);if(readyFailure)throw false;},captureOriginalNativePrivateServiceBorrow:p=>p,assertOriginalNativePrivateServiceCurrent(p){assert.equal(p,owner);if(!live||++currents===failAt)throw false;},assertOriginalNativePrivateServiceAdmission(p){assert.equal(p,owner);events.push('admit');},captureOriginalIDEPrivateClientResult(p,...args){assert.equal(p,owner);assert.equal(args.length,4);assert.equal(args[3],responseRaw);events.push('result');onResult?.();},assertOriginalNativePrivateServiceTerminal(p){assert.equal(p,owner);terminals++;if(terminalFailure)throw undefined;},retireOriginalNativePrivateService(){events.push('retire');},joinOriginalNativePrivateService(){events.push('join');},closeOriginalNativePrivateService(){closed++;events.push('close');if(closeFailure)throw false;}};
+ const native={acquireOriginalIDEAdmissionParentDelivery:()=>parent,captureOriginalIDEPrivateClient(p){assert.equal(p,parent);captures++;if(captureFailure)throw undefined;return owner;},assertOriginalIDEPrivateClientReady(p){assert.equal(p,owner);if(readyFailure)throw false;},captureOriginalNativePrivateServiceBorrow:p=>p,assertOriginalNativePrivateServiceCurrent(p){assert.equal(p,owner);if(!live||++currents===failAt)throw currentCause;},assertOriginalNativePrivateServiceAdmission(p){assert.equal(p,owner);events.push('admit');},captureOriginalIDEPrivateClientResult(p,...args){assert.equal(p,owner);assert.equal(args.length,4);assert.equal(args[3],responseRaw);events.push('result');onResult?.();},assertOriginalNativePrivateServiceTerminal(p){assert.equal(p,owner);terminals++;if(terminalFailure)throw undefined;},retireOriginalNativePrivateService(){events.push('retire');},joinOriginalNativePrivateService(){events.push('join');},closeOriginalNativePrivateService(){closed++;events.push('close');if(closeFailure)throw false;}};
  let source=readFileSync(new URL('../src/original-ide-admission-parent-delivery.js',import.meta.url),'utf8').replace(/^import .*;$/mg,'').replaceAll('export ','').replaceAll('import.meta.url','moduleURL').replaceAll("import('./original-ide-private-payload.js')","Promise.resolve(PUBLIC_PAYLOAD)").replaceAll("import('./canonical.js')","Promise.resolve({canonicalJSON:PUBLIC_CANONICAL})").replaceAll("import('./original-wallet-service-admission.js')","Promise.resolve({prepareOriginalWalletServiceAdmission:PUBLIC_PREPARE})");
  if(readProof)native.readOriginalNativePrivateServiceTerminalResult=(p,...args)=>{assert.equal(p,owner);assert.deepEqual(args,['handleReturn','effect',requestId]);reads++;return readProof();};
  const ctx=vm.createContext({types,performance:{now:()=>monotonic},URL,fileURLToPath,resolve,dirname,join,process:{argv:['PUBLIC','/PUBLIC/server.mjs']},moduleURL:new URL('../src/original-ide-admission-parent-delivery.js',import.meta.url).href,createRequire:()=>()=>native,originalIDEServiceAdmissionStartupSelection:{PUBLIC:true},PUBLIC_PAYLOAD:payload,PUBLIC_CANONICAL:canonicalJSON,PUBLIC_PREPARE:()=>({assertCurrent(){if(!live)throw false;}}),setTimeout,clearTimeout});
  vm.runInContext(source+'\nthis.api={parent:acquireOriginalIDEAdmissionParentDelivery,acquire:acquireOriginalIDEPrivateServiceChannel,cleanup:getOriginalIDEPrivateServiceChannelCleanup};',ctx);
- return {api:ctx.api,events,invalidate(){live=false;},failNextCurrent(offset=1){failAt=currents+offset;},captures:()=>captures,terminals:()=>terminals,closed:()=>closed,reads:()=>reads,advance(ms){monotonic+=ms;}};
+ return {api:ctx.api,events,invalidate(){live=false;},failNextCurrent(offset=1,...cause){failAt=currents+offset;currentCause=cause.length?cause[0]:false;},currentCalls:()=>currents,captures:()=>captures,terminals:()=>terminals,closed:()=>closed,reads:()=>reads,advance(ms){monotonic+=ms;}};
 }
 // PUBLIC lexical Native/Source stand-ins only. Actual protocol codec is used.
 test('R33 PUBLIC fixed actual JS channel retains same client, full result and independent ACK',async()=>{
@@ -133,4 +133,18 @@ test('R37 transport stop cannot turn missing current into a diagnostic grant or 
   c.framer.retireTransport(undefined);await assert.rejects(pending,e=>e===undefined);assert.equal(f.events.includes('retire'),false);f.invalidate();
   assert.throws(()=>c.original.readTerminalCustody('handleReturn','effect',requestId),e=>e===false);assert.equal(f.reads(),0);await assert.rejects(c.original.dispatch(r36Input),e=>e===undefined);assert.equal(c.original.status().unknown,true);
  }finally{await c.original.close();}
+});
+
+test('R317 transport first cause keeps assertCurrent false without another Native current',async()=>{
+ const f=fixture();await f.api.parent(entry);const c=await f.api.acquire(entry);f.failNextCurrent();assert.throws(()=>c.framer.assertCurrent(),cause=>cause===false);const calls=f.currentCalls();
+ assert.throws(()=>c.framer.assertCurrent(),cause=>cause===false);assert.equal(f.currentCalls(),calls);assert.equal(f.events.filter(e=>e==='admit').length,0);await c.original.close();
+});
+test('R317 transport dispatch keeps original false before later Native undefined without admission',async()=>{
+ const f=fixture();await f.api.parent(entry);const c=await f.api.acquire(entry);f.failNextCurrent();assert.throws(()=>c.framer.assertCurrent(),cause=>cause===false);const calls=f.currentCalls();f.failNextCurrent(1,undefined);
+ await assert.rejects(c.original.dispatch(input),cause=>cause===false);assert.equal(f.currentCalls(),calls);assert.equal(f.events.filter(e=>e==='admit').length,0);await c.original.close();
+});
+test('R317 transport guard still permits original terminal DATA after latched ACK failure without clearing UNKNOWN',async()=>{
+ const {f,c,result}=await r36Entered({readProof:r36Proof}),calls=f.currentCalls();assert.throws(()=>c.framer.assertCurrent(),cause=>cause===undefined);assert.equal(f.currentCalls(),calls);
+ const data=c.original.readTerminalCustody('handleReturn','effect',requestId);assert.equal(data.response.body,result.body);assert.equal(f.reads(),1);assert.equal(f.terminals(),1);assert(f.currentCalls()>calls);assert.equal(c.original.status().unknown,true);
+ const afterData=f.currentCalls();await assert.rejects(c.original.dispatch(r36Input),cause=>cause===undefined);assert.equal(f.currentCalls(),afterData);await c.original.close();
 });
