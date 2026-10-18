@@ -2818,10 +2818,28 @@ func (d *Devnet) VerifyContract(address, source string) (ContractArtifact, error
 		return ContractArtifact{}, errors.New("source hash does not match deployed contract")
 	}
 	verifiedAt := time.Now().UTC()
-	deployedAt := artifact.DeployedAt
 	constructorArgs := append([]string(nil), artifact.ConstructorArgs...)
-	artifact = buildContractArtifactWithArgs(artifact.Address, artifact.Deployer, artifact.Name, source, true, &verifiedAt, constructorArgs)
-	artifact.DeployedAt = deployedAt
+	verification := buildContractArtifactWithArgs(artifact.Address, artifact.Deployer, artifact.Name, source, true, &verifiedAt, constructorArgs)
+	if verification.SourceHash != artifact.SourceHash || verification.BytecodeHash != artifact.BytecodeHash || verification.DeployedBytecodeHash != artifact.DeployedBytecodeHash || verification.ArtifactHash != artifact.ArtifactHash || verification.ArtifactKind != artifact.ArtifactKind || verification.CompilerConfigHash != artifact.CompilerConfigHash {
+		return ContractArtifact{}, errors.New("verification identity differs from deployed contract")
+	}
+	if (verification.CompilerArtifact == nil) != (artifact.CompilerArtifact == nil) {
+		return ContractArtifact{}, errors.New("verification compiler provenance differs from deployed contract")
+	}
+	if original, candidate := artifact.CompilerArtifact, verification.CompilerArtifact; original != nil {
+		if original.SourceName != candidate.SourceName || original.ContractName != candidate.ContractName || original.BuildInfoID != candidate.BuildInfoID || original.ArtifactPath != candidate.ArtifactPath || original.BytecodeHash != candidate.BytecodeHash || original.DeployedBytecodeHash != candidate.DeployedBytecodeHash || original.ABIHash != candidate.ABIHash {
+			return ContractArtifact{}, errors.New("verification compiler identity differs from deployed contract")
+		}
+	}
+	// Public source verification updates evidence only. Replacing the deployed
+	// artifact would reset executed storage to constructor values and could
+	// replace code/ABI identity without the runtime mutation's authorization.
+	artifact.Verified = verification.Verified
+	artifact.VerifiedAt = verification.VerifiedAt
+	artifact.VerifierStatus = verification.VerifierStatus
+	artifact.ReproducibleBuild = verification.ReproducibleBuild
+	artifact.ReproducibilityStatus = verification.ReproducibilityStatus
+	artifact.DeployedBytecodeComparisonStatus = verification.DeployedBytecodeComparisonStatus
 	d.contracts[address] = artifact
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)

@@ -1,0 +1,22 @@
+{
+  "kind": "preserve-contract-runtime-during-public-source-verification",
+  "redRun": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39085111463",
+  "base": "a0201636d985ee0292734b89813dd801bb7d65ab",
+  "repair": {
+    "path": "internal/chain/devnet.go",
+    "bytes": 204267,
+    "sha256": "b31eea77bb71e085ad401af0137397602e67683d1ef9cf1c99ffd341ba010b9f",
+    "scope": "VerifyContract only; deployed identity/provenance must match, copy exactly six verification metadata fields to existing artifact"
+  },
+  "regression": {
+    "path": "internal/chain/pq_contract_verify_regression_test.go",
+    "bytes": 8621,
+    "sha256": "6ac8dc6f9c0a74e8320374a4e2e7dd2f57587bcc3ab6407574d70f8ee4757251",
+    "unchanged": true
+  },
+  "actualRed": "All counter/ERC20 active/revoked cases reset executed storage and retained loss through restart; not compile or fixture failure",
+  "localGoExecuted": false,
+  "remoteRepairResult": "pending fixed-candidate CI",
+  "publicRuntimeReproduction": false,
+  "publicDeploymentPerformed": false
+}

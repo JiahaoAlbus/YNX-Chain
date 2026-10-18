@@ -17,6 +17,11 @@ on:
         description: Exact candidate commit for the isolated PQ branch only
         required: false
         type: string
+      paired_n1:
+        description: Run one guarded N1 trial1 PQ component pair after correctness gates
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -154,4 +159,59 @@ jobs:
           name: ynx-pq-public-go-interop-${{ github.sha }}
           path: /tmp/ynx-go-public-interop.json
           if-no-files-found: error
+          retention-days: 7
+
+  pq-paired-n1:
+    needs: focused-go
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GOMAXPROCS: '1'
+      GOGC: '50'
+      GOMEMLIMIT: '512MiB'
+      CGO_ENABLED: '0'
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout exact paired candidate with baseline ancestry
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          fetch-depth: 16
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Set private case paths
+        run: |
+          printf '%s\n' "YNX_PAIR_CI_CASE=$RUNNER_TEMP/ynx-pq-pair-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" "YNX_PAIR_CI_RECEIPT=$RUNNER_TEMP/ynx-pq-pair-guard-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json" >> "$GITHUB_ENV"
+      - name: Verify bounded preparation and Linux process ownership controls
+        run: |
+          node --test scripts/loadtest/pq-paired-recipe.test.mjs
+          python3 scripts/loadtest/test_pq_paired_linux_window.py
+          test "$(git rev-parse HEAD)" = '${{ inputs.candidate_sha }}'
+          test -z "$(git status --porcelain --untracked-files=normal)"
+      - name: Prepare one exact-source N1 trial1 overlay
+        run: |
+          node scripts/loadtest/prepare-pq-paired-benchmark.mjs --source-root "$GITHUB_WORKSPACE" --commit '${{ inputs.candidate_sha }}' --output-dir "$YNX_PAIR_CI_CASE" --n 1 --trial 1 --write
+      - name: Execute single guarded PQ component pair
+        id: performance
+        timeout-minutes: 3
+        run: |
+          python3 scripts/loadtest/pq-paired-linux-window.py --prepared "$YNX_PAIR_CI_CASE/prepared.json" --receipt "$YNX_PAIR_CI_RECEIPT" --execute
+      - name: Upload QA measurement and guard receipt
+        if: ${{ always() && steps.performance.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-paired-n1-trial1-${{ github.sha }}
+          path: |
+            ${{ env.YNX_PAIR_CI_CASE }}/pq-paired-result.json
+            ${{ env.YNX_PAIR_CI_RECEIPT }}
+          if-no-files-found: warn
           retention-days: 7
