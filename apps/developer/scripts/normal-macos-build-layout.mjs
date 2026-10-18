@@ -26,7 +26,8 @@ export function normalNpmAlias(row, inventory) {
   if (!relative(row.path) || row.kind !== 'npm-bin-alias' || typeof row.target !== 'string' ||
       row.target.startsWith('/') || row.target.includes('\\') || !row.path.includes('/.bin/') ||
       row.bytes !== Buffer.byteLength(row.target) || row.sha256 !== createHash('sha256').update(row.target).digest('hex')) throw Error('Normal npm alias differs');
-  const role = Object.entries(NORMAL_ROLES).find(([name, root]) => name.endsWith('dependencies') && row.path.startsWith(root + '/'));
+  const packageRoles = ['workbench-dependencies', 'developer-dependencies', 'canonical-build-dependencies', 'npm-cli'];
+  const role = Object.entries(NORMAL_ROLES).find(([name, root]) => packageRoles.includes(name) && row.path.startsWith(root + '/'));
   if (!role) throw Error('Normal npm alias role differs');
   const target = posix.normalize(posix.join(posix.dirname(row.path), row.target));
   const pin = inventory.find(p => p.path === target);
@@ -58,9 +59,19 @@ export function normalMacLayout(inventory, electronRelative) {
     networkOrInstall: false, packageLifecycle: false };
 }
 
-export function normalMacPlan({ source, inputs, work }) {
+export function normalMacPlan({ source, inputs, work, nativeMode = 'derived-remote', nativeSourceRoot, sdkRoot, retainedRoleRoots = {} }) {
   for (const p of [source, inputs, work]) if (typeof p !== 'string' || resolve(p) !== p) throw Error('Canonical absolute normal recipe roots required');
-  const dev = join(source, 'apps/developer'), role = name => join(inputs, NORMAL_ROLES[name]);
+  if (!['derived-remote', 'canonical-local'].includes(nativeMode)) throw Error('Unknown Native recipe mode');
+  const local = nativeMode === 'canonical-local';
+  if (!local && (nativeSourceRoot || sdkRoot || Object.keys(retainedRoleRoots).length)) throw Error('Remote recipe cannot override admitted inputs');
+  const materialized = new Set(['developer-dependencies', 'workbench-dependencies', 'typescript-runtime', 'portable-node', 'workbench-plugins', 'cpp-dependencies', 'npm-cli']);
+  for (const [name, root] of Object.entries(retainedRoleRoots)) {
+    if (!Object.hasOwn(NORMAL_ROLES, name) || materialized.has(name) || name === 'electron42' || typeof root !== 'string' || resolve(root) !== root)
+      throw Error('Only nonmaterialized normal local role roots may be retained');
+  }
+  if (local && [nativeSourceRoot, sdkRoot].some(p => typeof p !== 'string' || resolve(p) !== p))
+    throw Error('Local recipe requires explicit canonical Native and SDK source roots');
+  const dev = join(source, 'apps/developer'), role = name => retainedRoleRoots[name] || join(inputs, NORMAL_ROLES[name]);
   const candidates = join(dev, '.ynx-developer-candidates'), cpp = join(candidates, 'cpp-normal-current');
   const portable = join(candidates, 'portable-local-node24-legal-20261007'), plugins = join(candidates, 'normal-offline-plugins');
   const core = join(work, 'outputs/composed-core'), output = join(work, 'outputs/macos-arm64');
@@ -77,10 +88,10 @@ export function normalMacPlan({ source, inputs, work }) {
   const prefix = join(work, 'toolchain');
   mappings.push({ role: 'npm-cli', from: role('npm-cli'), to: join(prefix, 'lib/node_modules/npm') });
   const node = join(portable, 'node'), npm = join(prefix, 'lib/node_modules/npm/bin/npm-cli.js'), privateBin = join(work, 'bin');
-  const env = { YNX_DEVELOPER_CANONICAL_SDK_ROOT: join(inputs, 'sdk'),
+  const env = { YNX_DEVELOPER_CANONICAL_SDK_ROOT: local ? sdkRoot : join(inputs, 'sdk'),
     // Full retained builder root includes esbuild0.25.9, not merely distributable316.
     YNX_DEVELOPER_CANONICAL_DEPENDENCY_ROOT: role('canonical-build-dependencies'),
-    YNX_DEVELOPER_CANONICAL_NATIVE_ROOT: join(work, 'component/source'),
+    YNX_DEVELOPER_CANONICAL_NATIVE_ROOT: local ? nativeSourceRoot : join(work, 'component/source'),
     YNX_DEVELOPER_BUILD_OUTPUT_ROOT: join(work, 'outputs'), YNX_DEVELOPER_MACOS_OUTPUT_DIR: output,
     YNX_DEVELOPER_MACOS_REQUIRE_CLONE: '1', YNX_DEVELOPER_LOCAL_NODE_RUNTIME: portable,
     YNX_DEVELOPER_COMPOSED_ARTIFACT: core, YNX_DEVELOPER_COMPOSED_PIN: core + '.pin.json',
@@ -94,12 +105,12 @@ export function normalMacPlan({ source, inputs, work }) {
     { name: 'normal-core-package', tool: node, argv: [join(dev, 'runtime/theia/scripts/package-runtime.mjs'), core, plugins, cpp], cwd: source },
     { name: 'normal-native-app-dmg', tool: '/bin/bash', argv: [join(dev, 'scripts/package-local-macos.sh')], cwd: source },
   ];
-  return { mappings, commands, env, node, npm, output, core, privateBin,
+  return { nativeMode, mappings, commands, env, node, npm, output, core, privateBin,
     toolBindings: [{ name: 'node', tool: node, argv: [] }, { name: 'npm', tool: node, argv: [npm] }],
-    checkpoints: ['Original A binds fresh component under work/component and calls strict derived admission before relocation.',
+    checkpoints: [local ? 'Reuse only the exact original R51 component through the unchanged canonical guard. No new Native compile/load claim. The original Mac packager builds the IDE shell freshly.' : 'Original A binds fresh component under work/component and calls strict derived admission before relocation.',
       'Owned workbench build regenerates its consumer; original A commits only admitted component2pins/normal consumer3paths before final App package.',
       'Provide private PATH node/npm and npm_config_prefix whose global npm tree is this exact retained npm-cli role; no ambient npm/toolchain fallback.',
-      'Stage inputs/source/output on the same admitted APFS volume. Use original Mac cp -cR; no alternate copy path. Account actual physical delta in A capacity guard.',
+      'Local workbench dependencies must be the complete real R36 tree, not the R102 absolute-link overlay. Separately admit physical cross-volume staging first; materialized inputs/source/output must share the admitted APFS volume. Use original Mac cp -cR and account actual delta in A capacity guard.',
       'Original normal build gates run once in the actual new build. Do not separately repeat old source suites.',
       'A must validate complete input inventory, exact npm alias endpoints, Mac framework links and file modes before materialization.'],
     readback: { script: 'apps/developer/scripts/verify-normal-macos-release.mjs', args: ['APP', 'DMG', core, core + '.pin.json', source, 'FRESH_READBACK_OUTPUT'] } };
@@ -125,9 +136,12 @@ export async function materializeNormalMacInputs(plan) {
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [contractFile, source, inputs, work, action] = process.argv.slice(2), contract = JSON.parse(await readFile(contractFile));
-  normalMacLayout(contract.reviewedBuildInventory, contract.reviewedBuildLayout.electronBinary.relative);
-  const plan = normalMacPlan({ source, inputs, work });
-  if (action === '--materialize') await materializeNormalMacInputs(plan);
-  else if (action && action !== '--plan') throw Error('Unknown normal recipe action');
+  const local = ['--plan-local', '--materialize-local'].includes(action);
+  if (!local) normalMacLayout(contract.reviewedBuildInventory, contract.reviewedBuildLayout.electronBinary.relative);
+  else if (contract.nativeMode !== 'canonical-local' || Object.keys(contract).some(k => !['nativeMode', 'nativeSourceRoot', 'sdkRoot', 'retainedRoleRoots'].includes(k)))
+    throw Error('Explicit original canonical local recipe required');
+  const plan = normalMacPlan({ ...(local ? contract : {}), source, inputs, work });
+  if (action === '--materialize' || action === '--materialize-local') await materializeNormalMacInputs(plan);
+  else if (action && !['--plan', '--plan-local'].includes(action)) throw Error('Unknown normal recipe action');
   console.log(JSON.stringify(plan, null, 2));
 }

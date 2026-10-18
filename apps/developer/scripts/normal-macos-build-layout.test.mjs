@@ -6,6 +6,20 @@ import { tmpdir } from 'node:os';
 import { createHash } from 'node:crypto';
 import { NORMAL_ROLES, normalMacLayout, normalMacPlan, normalNpmAlias, materializeNormalMacInputs } from './normal-macos-build-layout.mjs';
 const inventory = () => Object.values(NORMAL_ROLES).map(root => ({ path: root + '/example', type: 'file', bytes: 1, sha256: 'a'.repeat(64), mode: 0o755 }));
+test('local canonical plan keeps original guard and refuses remote input overrides', () => {
+  const roots = { source: '/PUBLIC/source', inputs: '/PUBLIC/inputs', work: '/PUBLIC/work' };
+  const local = { nativeMode: 'canonical-local', nativeSourceRoot: '/PUBLIC/r51/source', sdkRoot: '/PUBLIC/sdk317',
+    retainedRoleRoots: { 'canonical-build-dependencies': '/PUBLIC/builder/node_modules' } };
+  const p = normalMacPlan({ ...roots, ...local });
+  assert.equal(p.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT, local.nativeSourceRoot);
+  assert.equal(p.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT, local.sdkRoot);
+  assert.equal(p.commands.length, 4);
+  assert.equal(p.mappings.length, 7);
+  assert.throws(() => normalMacPlan({ ...roots, nativeMode: 'canonical-local' }), /explicit canonical/);
+  assert.throws(() => normalMacPlan({ ...roots, ...local, nativeMode: 'derived-remote' }), /cannot override/);
+  for (const name of ['electron42', 'workbench-dependencies', 'unknown'])
+    assert.throws(() => normalMacPlan({ ...roots, ...local, retainedRoleRoots: { [name]: '/PUBLIC/other' } }), /nonmaterialized/);
+});
 test('finite layout includes every original builder role; 316 runtime profile is separate from full builder dependencies', () => {
   const rows = inventory(), layout = normalMacLayout(rows, NORMAL_ROLES.electron42 + '/example');
   assert.equal(Object.keys(layout.roles).length, 13);
@@ -41,6 +55,13 @@ test('normal plan preserves existing commands, relative plugin/C++ inputs and ex
   assert.equal(p.env.YNX_DEVELOPER_CANONICAL_DEPENDENCY_ROOT, '/PUBLIC/inputs/build/canonical-node-modules');
   assert.equal(p.mappings.some(m => m.to.includes('cpp-offline-language-release-inputs-20261004')), true);
   assert.throws(() => normalMacPlan({ source: 'relative', inputs: '/x', work: '/y' }), /absolute/);
+});
+test('bundled npm dependency bin alias remains confined to its own npm role', () => {
+  const target = '../node-gyp/bin/node-gyp.js';
+  const alias = { path: 'build/npm/node_modules/.bin/node-gyp', kind: 'npm-bin-alias', target,
+    bytes: Buffer.byteLength(target), sha256: createHash('sha256').update(target).digest('hex') };
+  const file = { path: 'build/npm/node_modules/node-gyp/bin/node-gyp.js', bytes: 1, sha256: 'a'.repeat(64) };
+  assert.equal(normalNpmAlias(alias, [alias, file]).resolved, file.path);
 });
 test('materialization never merges an existing destination', async () => {
   const root = await mkdtemp(join(tmpdir(), 'ynx-normal-map-'));
