@@ -4,6 +4,9 @@
 // pack supplies the host/editor translations; this contribution never claims
 // to be a complete display language on its own.
 const entries = [
+  ['extensionInstallFailed','Extension installation failed. Check the IDE connection diagnostics and extension compatibility, then retry.','扩展安装失败。请查看 IDE 连接诊断和扩展兼容情况后重试。'],
+  ['configureDisplayLanguage','Configure Display Language','配置显示语言'],
+  ['languagePackInstalled','Language pack installed. Choose a display language to apply its available translations. The IDE will ask before reloading.','语言包已安装。请选择显示语言以应用其中可用的翻译；IDE 会在重新加载前请求确认。'],
   ['runTsFile', 'Run TypeScript File', '运行 TypeScript 文件'],
   ['debugTsFile', 'Debug TypeScript File', '调试 TypeScript 文件'],
   ['cancelTsBuild', 'Cancel TypeScript Build', '取消 TypeScript 编译'],
