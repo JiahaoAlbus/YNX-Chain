@@ -1,0 +1,65 @@
+{
+  "integration": {
+    "argv": [
+      "/opt/homebrew/bin/node",
+      "scripts/verify/integration-contract-check.mjs"
+    ],
+    "code": 1,
+    "stdout": "",
+    "stderr": "file:///Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX%20Chain/scripts/verify/integration-contract-check.mjs:8\n  throw new Error(`integration-contract-check: ${message}`);\n        ^\n\nError: integration-contract-check: runtime committed-state version drift\n    at fail (file:///Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX%20Chain/scripts/verify/integration-contract-check.mjs:8:9)\n    at requireValue (file:///Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX%20Chain/scripts/verify/integration-contract-check.mjs:11:19)\n    at file:///Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX%20Chain/scripts/verify/integration-contract-check.mjs:67:1\n    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)\n    at async node:internal/modules/esm/loader:650:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v26.7.0\n"
+  },
+  "release": {
+    "argv": [
+      "/opt/homebrew/bin/node",
+      "scripts/verify/chain-core-release-check.mjs"
+    ],
+    "code": 0,
+    "stdout": "chain-core release check passed: source=cb20b1591f81328a26ce5c412600135ffb6894bb, routes=8, StreamBFT=shadow\n",
+    "stderr": ""
+  },
+  "sourceHead": "f25623cb912ae65e069b7fe6e15723efd306e5f8",
+  "runtime": {
+    "committedStateVersion": 13,
+    "appHashDomain": "YNX_ABCI_STATE_V13",
+    "applicationVersion": 19
+  },
+  "existingContract": {
+    "committedStateVersion": 12,
+    "applicationVersion": 18,
+    "appHashDomain": "YNX_ABCI_STATE_V12",
+    "stateSyncSnapshotFormat": 1,
+    "stateSyncSnapshotMaxBytes": 67108864
+  },
+  "repair": "Restore three Make.PHONY entrypoints to original complete validators; do not delete or weaken gates.",
+  "successorCI": {
+    "runId": 39097694244,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39097694244"
+  },
+  "scope": "Published contract V12 vs performance runtime V13 remains a real integration/release blocker for original owner coordination, not a reason to discard local pair results or claim network capacity.",
+  "files": [
+    {
+      "path": "Makefile",
+      "sha256": "54567bae24af250e0c87379f22395c368997379caef9a4eaab06b310990a6504"
+    },
+    {
+      "path": "internal/consensus/state.go",
+      "sha256": "6b27334fb8020b3ed0f23de88f2047f80caf251242b2c45359978c085409f82b"
+    },
+    {
+      "path": "internal/consensus/application.go",
+      "sha256": "38b813c45e43027749e90e2d70c418c4df5088336527ec11290443cad79fb4a9"
+    },
+    {
+      "path": "release/integration/chain-core-contract.json",
+      "sha256": "df00c4cf5d32e82fa120048c4ee83d6b6ea077e6d311f53c0dbe396e50edf676"
+    },
+    {
+      "path": "scripts/verify/integration-contract-check.mjs",
+      "sha256": "299486844e0d17929cd7cc9c043c28fb192172d6f8cab91f260f49e48e627ac3"
+    },
+    {
+      "path": "scripts/verify/chain-core-release-check.mjs",
+      "sha256": "e3c7ff123693d541865eefa2374e9115ec6a42a25ce5142cf1a999e125f62df6"
+    }
+  ]
+}
