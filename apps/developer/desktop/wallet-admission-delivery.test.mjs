@@ -136,6 +136,32 @@ for(const first of [undefined,false,Error('PUBLIC_READY_FIRST')])test('R94 immed
   assert.deepEqual(await f.receiver.finishCleanup(),{complete:true});
   assert.equal(f.receiver.cleanupStatus().firstCause,first);assert.equal(lookups,1);assert.equal(f.closes(),1);
 });
+test('R98 entered caller and its DATA diagnostic finish before Native retirement',async()=>{
+  const child=privateFixture();let rejectOperation;
+  const gate=new Promise((_,reject)=>{rejectOperation=reject;});
+  const f=fixture({privateAcquire:()=>child.channel,parentClose(){child.events.push(['parent-close']);}});
+  f.send();await f.receiver.whenOriginalServiceReady();
+  const first=Error('PUBLIC_DISPATCH_FAILED');
+  const task=f.receiver.runEnteredOriginalService(async()=>{
+    child.events.push(['entered']);try{await gate;}catch(error){assert.equal(error,first);assert.equal(child.events.some(e=>e[0]==='retire'),false);child.events.push(['diagnostic-data']);throw error;}
+  });
+  await flush();f.receiver.close(false);await flush();
+  assert.equal(child.events.some(e=>e[0]==='retire'),false);assert.equal(f.closes(),0);
+  rejectOperation(first);await assert.rejects(task,error=>error===first);
+  assert.deepEqual(await f.receiver.finishCleanup(),{complete:true});
+  assert.deepEqual(child.events.filter(e=>['entered','diagnostic-data','retire','join','close','parent-close'].includes(e[0])).map(e=>e[0]),['entered','diagnostic-data','retire','join','close','parent-close']);
+  assert.equal(f.receiver.cleanupStatus().firstCause,false);
+});
+test('R98 retired receiver refuses a new caller rather than manufacturing a loan',async()=>{
+  const child=privateFixture(),f=fixture({privateAcquire:()=>child.channel});f.send();await f.receiver.whenOriginalServiceReady();
+  f.receiver.close();let entered=0;await assert.rejects(f.receiver.runEnteredOriginalService(()=>{entered++;}));
+  await f.receiver.finishCleanup();assert.equal(entered,0);
+});
+test('R98 exact failed entered task drains even when it rejects undefined',async()=>{
+  const child=privateFixture(),f=fixture({privateAcquire:()=>child.channel});f.send();await f.receiver.whenOriginalServiceReady();
+  await assert.rejects(f.receiver.runEnteredOriginalService(()=>Promise.reject(undefined)),error=>error===undefined);
+  f.receiver.close();assert.deepEqual(await f.receiver.finishCleanup(),{complete:true});assert.equal(f.closes(),1);
+});
 test('R90 payload before installed ACK completion cannot acquire child or reach SDK',async()=>{
   const child=privateFixture();let acquired=0;const f=fixture({privateAcquire(){acquired++;return child.channel;}});
   f.stream.holdWrite=true;f.send();await flush();f.stream.emit('data',Buffer.from('{}\n'));

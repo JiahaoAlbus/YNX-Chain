@@ -3,7 +3,7 @@ import { constants, linkSync, unlinkSync, lstatSync } from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { attachUnavailableOriginalServiceChannel, NATIVE_ORIGINAL_SERVICE_FRAME_LIMIT } from './native-parent-control.mjs';
-import { originalServiceForRunningEntry } from './wallet-admission-delivery.mjs';
+import { originalServiceForRunningEntry, runEnteredOriginalServiceForRunningEntry } from './wallet-admission-delivery.mjs';
 
 // Transport only. The original SDK owns parsing, admission, journal, execution
 // and terminal proof. This is not an acquisition/provider registration API.
@@ -23,14 +23,15 @@ export async function attachOriginalServicePipe(options) {
   const allowed = ['control', 'instance', 'context', 'directory', 'onError', 'runningBackendModuleURL'];
   if (!options || Object.getPrototypeOf(options) !== Object.prototype || Object.keys(options).some(key => !allowed.includes(key))) throw failure();
   const acquired = originalServiceForRunningEntry(options.runningBackendModuleURL);
-  return acquired === null ? attachUnavailableOriginalServiceChannel(options) : attachAcquiredOriginalServicePipe(options, acquired);
+  return acquired === null ? attachUnavailableOriginalServiceChannel(options) : attachAcquiredOriginalServicePipe(options, acquired,
+    task => runEnteredOriginalServiceForRunningEntry(options.runningBackendModuleURL, task));
 }
 
 // Success implementation remains module-private. Normal startup can reach it
 // only through readiness of the same fixed SDK acquisition above.
 // PUBLIC controls expose this unchanged body with an external test-only loader;
 // the production module never exports an object-injection/provider hook.
-async function attachAcquiredOriginalServicePipe({ control, instance, context, directory, onError = () => {} }, acquired) {
+async function attachAcquiredOriginalServicePipe({ control, instance, context, directory, onError = () => {} }, acquired, runEntered = task => task()) {
   let original;
   if (!UUID.test(instance || '') || !UUID.test(context?.id || '') || !path.isAbsolute(context.workspace)
     || path.normalize(context.workspace) !== context.workspace) throw failure();
@@ -55,6 +56,15 @@ async function attachAcquiredOriginalServicePipe({ control, instance, context, d
   const failRow = (row, error) => {
     if (!row.firstFailurePresent) { row.firstFailurePresent = true; row.firstFailure = error; }
     if (row.entered) { row.unknown = true; poisoned = true; }
+    // Sole SDK-decoded complete coordinates, same actual current original.
+    // DATA remains private; never replace result, publish terminal, ACK or
+    // clear UNKNOWN from this read. It runs inside the original entered loan.
+    if (row.entered && !row.diagnosticSelected && row.request?.carrierVersion === 'YNX-PRODUCT-SESSION-PRIVATE/v4'
+      && row.request.referenceAction === 'complete' && typeof original?.readTerminalCustody === 'function') {
+      row.diagnosticSelected = true;
+      try { row.terminalCustodyData = original.readTerminalCustody(row.request.operation, row.request.phase, row.request.requestId); }
+      catch (cause) { row.diagnosticFailurePresent = true; row.diagnosticFailure = cause; }
+    }
     report(error);
   };
   const live = row => !closed && !poisoned && !row.cancelled && rows.get(row.id) === row;
@@ -167,7 +177,7 @@ async function attachAcquiredOriginalServicePipe({ control, instance, context, d
       if (body.action === 'original-service-received' && exact(body, [...common, 'resultDigest'])) {
         const row = rows.get(body.id);
         if (!row || row.document !== body.document || row.receiptSelected || !row.publication || !HEX.test(body.resultDigest || '')) return;
-        row.receiptSelected = true; return track(receipt(row, body.resultDigest));
+        row.receiptSelected = true; return track(runEntered(() => receipt(row, body.resultDigest)));
       }
       if (body.action !== 'original-service-dispatch' || !exact(body, [...common, 'canonicalInput']) || rows.has(body.id)
         || rows.size >= 32 || typeof body.canonicalInput !== 'string' || Buffer.byteLength(body.canonicalInput) > 262144) return;
@@ -175,7 +185,7 @@ async function attachAcquiredOriginalServicePipe({ control, instance, context, d
         cancelled: false, receiptSelected: false, firstFailurePresent: false, terminalPublished: false };
       rows.set(row.id, row);
       if (poisoned) return track(rejectBeforeEntry(row).catch(error => failRow(row, error)));
-      return track(Promise.resolve().then(() => dispatch(row)));
+      return track(Promise.resolve().then(() => runEntered(() => dispatch(row))));
     },
     async onClose() {
       closed = true; for (const row of rows.values()) if (row.entered && !row.terminalPublished) { row.cancelled = true; row.unknown = true; }
@@ -187,6 +197,8 @@ async function attachAcquiredOriginalServicePipe({ control, instance, context, d
     // This drains transport calls, not the SDK's Source/Native acquisition.
     // The acquiring backend must retain and close that original owner itself.
     finishCleanup,
-    status: () => ({ closed, poisoned, firstFailurePresent, firstFailure, pending: pending.size, retained: rows.size, unknown: [...rows.values()].some(row => row.unknown) }),
+    status: () => ({ closed, poisoned, firstFailurePresent, firstFailure, pending: pending.size, retained: rows.size,
+      unknown: [...rows.values()].some(row => row.unknown), diagnosticRetained: [...rows.values()].filter(row => row.terminalCustodyData !== undefined).length,
+      diagnosticFailures: [...rows.values()].filter(row => row.diagnosticFailurePresent).length }),
   });
 }

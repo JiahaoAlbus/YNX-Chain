@@ -30,21 +30,22 @@ async function waitFor(read) {
   throw last;
 }
 const request = serial => codec.canonicalJSON({ requestId: 'req_PUBLIC_PIPE_' + String(serial).padStart(6, '0'), operation: 'restore', phase: 'time', body: null, proofHeader: null });
-async function fixture({ earlyDispatch = false, heldOriginal = false } = {}) {
+async function fixture({ earlyDispatch = false, heldOriginal = false, enteredRunner } = {}) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ynx-ide-pipe-public-')); await fs.chmod(directory, 0o700);
   const input = new PassThrough(), control = createNativeParentControl({ input }), instance = randomUUID(), context = { id: randomUUID(), workspace: '/public/transport-only' };
   const state = { dispatches: [], acks: [], currentReads: 0, terminal: false, response: { status: 200, headers: { 'x-request-id': 'req_PUBLIC_PIPE_000001' }, body: '{ "exact": "PUBLIC" }' } };
   const original = {
-    async dispatch(raw) { state.dispatches.push(raw); if (state.dispatchGate) await state.dispatchGate; return state.response; },
+    async dispatch(raw) { state.dispatches.push(raw); if (state.dispatchGate) await state.dispatchGate; if(state.dispatchFailurePresent)throw state.dispatchFailure; return state.response; },
     async acknowledge(...args) { state.acks.push(args); if (state.forbidAck) throw Error('PUBLIC_DUPLICATE_BUSINESS_ACK'); if (state.ackGate) await state.ackGate; if (state.ackFailurePresent) throw state.ackFailure; state.terminal = true; },
     selectCurrentOutcome() { state.currentReads++; if (state.currentFailureAt === state.currentReads) throw state.currentFailure;
       return { result: state.response, terminal: state.terminal, unknown: !state.terminal }; },
+    readTerminalCustody(...coordinates) { state.onDiagnostic?.();state.diagnosticCalls??=[];state.diagnosticCalls.push(coordinates);if(state.diagnosticFailurePresent)throw state.diagnosticFailure;return state.diagnosticData; },
   };
   const body = { action: 'original-service-dispatch', id: randomUUID(), document: randomUUID(), instance, projectId: context.id, workspace: context.workspace, canonicalInput: request(1) };
   const send = value => input.write(Buffer.from(JSON.stringify(value) + '\n'));
   if (earlyDispatch) { control.subscribe({ actions: ['prepare-go'], receive() {} }); await tick(); }
   const ownerGate = heldOriginal ? deferred() : undefined;
-  const errors = [], attaching = attachAcquired({ control, instance, context, directory, onError: e => errors.push(e) }, ownerGate?.promise || original);
+  const errors = [], attaching = attachAcquired({ control, instance, context, directory, onError: e => errors.push(e) }, ownerGate?.promise || original, enteredRunner);
   if (earlyDispatch) send(body);
   const channel = await attaching;
   const read = suffix => fs.readFile(path.join(directory, 'wallet-' + body.id + suffix + '.json'), 'utf8').then(JSON.parse);
@@ -54,6 +55,61 @@ async function fixture({ earlyDispatch = false, heldOriginal = false } = {}) {
     originalReady() { ownerGate?.resolve(original); },
     async dispose() { channel.close(); await channel.finishCleanup(); await control.finishCleanup(); input.destroy(); await fs.rm(directory, { recursive: true, force: true }); } };
 }
+const completeRequest = () => codec.canonicalJSON({ requestId: 'req_PUBLIC_COMPLETE_001', operation: 'handleReturn', phase: 'effect', proofHeader: null,
+  carrierVersion: 'YNX-PRODUCT-SESSION-PRIVATE/v4', referenceAction: 'complete', body: codec.canonicalJSON({ reference: 'ynxpsr1_' + 'A'.repeat(43),
+    request: { version: '2' }, completion: { challenge: {}, deviceSignature: 'PUBLIC_NOT_A_SIGNATURE' } }) });
+for (const cause of [false, undefined]) test(`R98 complete failure ${String(cause)} retains DATA only inside entered caller`, async () => {
+  let active = 0;
+  const f = await fixture({ enteredRunner: async task => { active++; try { return await task(); } finally { active--; } } });
+  try {
+    f.body.canonicalInput = completeRequest();
+    f.state.dispatchFailurePresent = true; f.state.dispatchFailure = cause;
+    f.state.diagnosticData = Object.freeze({ PUBLIC_DATA_ONLY: 'never-publish' });
+    f.state.onDiagnostic = () => assert.equal(active, 1);
+    f.send(f.body);
+    await waitFor(async () => { if (!f.channel.status().firstFailurePresent) throw Object.assign(Error(), { code: 'NOT_YET' }); });
+    assert.equal((await f.channel.finishCleanup()).complete, false);
+    assert.equal(active, 0); assert.equal(f.channel.status().firstFailure, cause);
+    assert.equal(f.channel.status().unknown, true); assert.equal(f.channel.status().diagnosticRetained, 1);
+    assert.deepEqual(f.state.diagnosticCalls, [['handleReturn', 'effect', 'req_PUBLIC_COMPLETE_001']]);
+    assert.equal(f.state.dispatches.length, 1); assert.equal(f.state.acks.length, 0);
+    await assert.rejects(f.read(''), { code: 'ENOENT' }); await assert.rejects(f.read('-terminal'), { code: 'ENOENT' });
+    assert.equal(JSON.stringify(f.channel.status()).includes('never-publish'), false);
+    f.send(f.body); await tick(); await f.channel.finishCleanup(); assert.equal(f.state.diagnosticCalls.length, 1);
+  } finally { await f.dispose(); }
+});
+test('R98 diagnostic refusal preserves business first cause and UNKNOWN without retry', async () => {
+  const f = await fixture(); try {
+    f.body.canonicalInput = completeRequest(); f.state.dispatchFailurePresent = true; f.state.dispatchFailure = false;
+    f.state.diagnosticFailurePresent = true; f.state.diagnosticFailure = Error('PUBLIC_DATA_REFUSED'); f.send(f.body);
+    await waitFor(async () => { if (!f.channel.status().firstFailurePresent) throw Object.assign(Error(), { code: 'NOT_YET' }); });
+    await f.channel.finishCleanup();
+    assert.equal(f.channel.status().firstFailure, false); assert.equal(f.channel.status().unknown, true);
+    assert.equal(f.channel.status().diagnosticFailures, 1); assert.equal(f.state.diagnosticCalls.length, 1);
+    assert.deepEqual(f.errors, [false]); assert.equal(f.state.acks.length, 0);
+  } finally { await f.dispose(); }
+});
+test('R98 non-complete failure never selects terminal custody', async () => {
+  const f = await fixture(); try {
+    f.state.dispatchFailurePresent = true; f.state.dispatchFailure = false; f.send(f.body);
+    await waitFor(async () => { if (!f.channel.status().firstFailurePresent) throw Object.assign(Error(), { code: 'NOT_YET' }); });
+    await f.channel.finishCleanup(); assert.equal(f.state.diagnosticCalls, undefined);
+    assert.equal(f.channel.status().diagnosticRetained ?? 0, 0); assert.equal(f.channel.status().unknown, true);
+  } finally { await f.dispose(); }
+});
+test('R98 ACK failure diagnostic also remains inside entered caller', async () => {
+  let active = 0;
+  const f = await fixture({ enteredRunner: async task => { active++; try { return await task(); } finally { active--; } } });
+  try {
+    f.body.canonicalInput = completeRequest(); f.state.ackFailurePresent = true; f.state.ackFailure = undefined;
+    f.state.diagnosticData = {}; f.state.onDiagnostic = () => assert.equal(active, 1);
+    f.send(f.body); const p = await waitFor(() => f.read('')); f.send(f.received(p.resultDigest));
+    await waitFor(async () => { if (!f.channel.status().firstFailurePresent) throw Object.assign(Error(), { code: 'NOT_YET' }); });
+    await f.channel.finishCleanup(); assert.equal(active, 0); assert.equal(f.state.acks.length, 1);
+    assert.equal(f.state.diagnosticCalls.length, 1); assert.equal(f.channel.status().unknown, true);
+    await assert.rejects(f.read('-terminal'), { code: 'ENOENT' });
+  } finally { await f.dispose(); }
+});
 test('R91 first renderer request waits for the same selected SDK original before entering',async()=>{
   const f=await fixture({heldOriginal:true});try{
     f.send(f.body);await tick();assert.equal(f.state.dispatches.length,0);

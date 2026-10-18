@@ -14,7 +14,12 @@ const missing = () => fail('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');
 // acquisition below. Entry coordinates select no authority or replacement SDK.
 const originalServiceReadiness = new Map();
 export function originalServiceForRunningEntry(actualEntryURL) {
-  return originalServiceReadiness.get(actualEntryURL) || null;
+  return originalServiceReadiness.get(actualEntryURL)?.ready || null;
+}
+export function runEnteredOriginalServiceForRunningEntry(actualEntryURL, task) {
+  const selected = originalServiceReadiness.get(actualEntryURL);
+  if (!selected || typeof task !== 'function') throw missing();
+  return selected.run(task);
 }
 const hex = v => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v);
 export function admissionDeliveryCanonical(value) {
@@ -151,6 +156,7 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
   const lifecycle = retained || retainedOwner(parentBinding, { schedule, unschedule });
   let received = false, active = false, ready = false, epoch, validator;
   let payload, privateChannel, privateSelected = false;
+  const privateLoans = new Set();
   let releasePrivate;
   const retirement = new Promise(resolve => { releasePrivate = resolve; });
   let resolveOriginal, rejectOriginal;
@@ -209,9 +215,13 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
           try {
             const original = privateChannel.original;
             if (typeof original?.retire !== 'function' || typeof original.join !== 'function' || typeof original.close !== 'function') throw missing();
-            if (original.retire(lifecycle.status().firstCause) !== undefined) throw denied();
             payload?.retire(lifecycle.status().firstCause);
             if (payload && (await payload.finishCleanup()).complete !== true) throw unavailable();
+            // SDK 3.7 stops/poisons transport without Native retirement. The
+            // already entered caller may still collect guarded DATA, then its
+            // exact completion releases this loan. No new business is allowed.
+            while (privateLoans.size) await Promise.all([...privateLoans]);
+            if (original.retire(lifecycle.status().firstCause) !== undefined) throw denied();
             if (await original.join() !== undefined) throw denied();
             if (await original.close() !== undefined) throw denied();
             privateChannel = undefined;
@@ -276,6 +286,17 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
     // This returns only the SDK facade from the already selected actual child;
     // there is no setter, provider argument, new capture or raw Native handle.
     whenOriginalServiceReady() { return originalReady; },
+    async runEnteredOriginalService(task) {
+      lifecycle.assertLive();
+      const original = await originalReady;
+      lifecycle.assertLive();
+      if (typeof task !== 'function' || privateChannel?.original !== original) throw missing();
+      let release;
+      const joined = new Promise(resolve => { release = resolve; });
+      privateLoans.add(joined); // BEFORE invoking the real entered operation
+      try { return await task(); }
+      finally { privateLoans.delete(joined); release(); }
+    },
     async assertCurrent(input) {
       lifecycle.assertLive();
       if (active) { close(denied()); lifecycle.assertLive(); }
@@ -335,7 +356,9 @@ async function openSelectedOriginalParentDelivery({ supplier, runningBackendModu
     if (originalServiceReadiness.has(runningBackendModuleURL)) {
       lifecycle.close(denied()); return cleanupOnly(lifecycle);
     }
-    originalServiceReadiness.set(runningBackendModuleURL, receiver.whenOriginalServiceReady());
+    originalServiceReadiness.set(runningBackendModuleURL, {
+      ready: receiver.whenOriginalServiceReady(), run: task => receiver.runEnteredOriginalService(task),
+    });
     clearTimeout(timer); return receiver;
   } catch (error) { lifecycle.close(error); return cleanupOnly(lifecycle); }
 }
