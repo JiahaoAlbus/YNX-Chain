@@ -13,10 +13,15 @@ const typed=Object.getPrototypeOf(Uint8Array.prototype);
 // it does not replace that original decoder or historical validation.
 const originalMin=128;
 const getBuffer=Object.getOwnPropertyDescriptor(typed,'buffer').get,getLength=Object.getOwnPropertyDescriptor(typed,'length').get,getOffset=Object.getOwnPropertyDescriptor(typed,'byteOffset').get;
+const abLength=Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'byteLength').get;
+const abResizable=Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'resizable')?.get;
+const abDetached=Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'detached')?.get;
 function bytes(value,max){
   try{
     const buffer=getBuffer.call(value),length=getLength.call(value),offset=getOffset.call(value);
-    if(!(value instanceof Uint8Array)||!length||length>max||buffer.resizable||buffer.detached||(typeof SharedArrayBuffer!=='undefined'&&buffer instanceof SharedArrayBuffer))fail();
+    // Intrinsics both reject SharedArrayBuffer and ignore caller shadow getters.
+    const capacity=abLength.call(buffer);
+    if(!(value instanceof Uint8Array)||!length||length>max||offset+length>capacity||abResizable?.call(buffer)||abDetached?.call(buffer))fail();
     return new Uint8Array(new Uint8Array(buffer,offset,length));
   }catch{fail();}
 }

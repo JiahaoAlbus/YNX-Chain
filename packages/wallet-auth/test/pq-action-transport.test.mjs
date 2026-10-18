@@ -70,3 +70,9 @@ test('oversized originals count refuses before allocating or enumerating million
   const impossible=JSON.stringify({version:1,type:'pq_action',wireHex:wire.toString('hex'),originals:['AA==']});
   assert.throws(()=>decodePQActionTransportData(new TextEncoder().encode(impossible)),{code:'PQ_ACTION_TRANSPORT_INVALID'});
 });
+test('portable byte capture never executes shadowed ArrayBuffer flag accessors',()=>{
+  const ordinary=Uint8Array.from(body);let calls=0;
+  for(const name of ['resizable','detached'])Object.defineProperty(ordinary.buffer,name,{get(){calls++;return false;}});
+  assert.deepEqual(Buffer.from(decodePQActionTransportData(ordinary).member),wire);
+  assert.equal(calls,0);
+});
