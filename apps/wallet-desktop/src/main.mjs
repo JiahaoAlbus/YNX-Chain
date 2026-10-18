@@ -520,6 +520,11 @@ handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(async()
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
   return {requestId:response.request.id,submitted:false};
 }));
+handleWalletIPC('wallet:pq-typed-action-review',(_event,input)=>sensitiveIPC(async()=>{
+  const response=await walletAuthority.requestPQTypedAction(input);
+  keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
+  return {requestId:response.request.id,submitted:false};
+}));
 handleWalletIPC('wallet:pq-broadcast-review',(_event,hash)=>sensitiveIPC(async()=>{
   const response=await walletAuthority.requestPQBroadcast(hash);
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);

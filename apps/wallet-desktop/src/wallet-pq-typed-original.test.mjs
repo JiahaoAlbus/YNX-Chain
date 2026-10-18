@@ -80,3 +80,24 @@ test('late lock rejects typed local observation without mutating the original jo
  await assert.rejects(f.store.inspectPQTypedOriginal(record.account,record.hash,()=>{if(++assertions>1)throw Error('QA_LOCKED')}),/QA_LOCKED/);
  assert.equal(await fs.readFile(f.filePath,'utf8'),before);
 });
+test('typed save preserves another outstanding protected output budget before writing',async t=>{
+ const f=await setup(t),other='0x'+'ab'.repeat(20);
+ await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);
+ const state=JSON.parse(await fs.readFile(f.filePath,'utf8'));
+ // Controlled disk state models an older unresolved operation; its reservation
+ // is not permission to sign and cannot be consumed by this account's save.
+ state.preparations.push({account:other,kind:record.kind,maxBytes:1048576});
+ await fs.writeFile(f.filePath,JSON.stringify(state),{mode:0o600});const before=await fs.readFile(f.filePath,'utf8');
+ await assert.rejects(f.store.saveOriginal(record.account,record.hash,()=>{}),e=>e.data?.code==='PQ_ORIGINAL_STORAGE_CAPACITY');
+ assert.equal(await fs.readFile(f.filePath,'utf8'),before);assert.equal(f.store.localOriginal(record.account).pq.wire,record.wire);
+ assert.equal(f.store.localOriginal(record.account).pqSaveAttempted,undefined);
+ assert.equal(f.store.localOriginal(record.account).storageCausePresent,true);
+});
+test('typed pre-sign reservation persists exact output budget and rejects an oversized concurrent claim',async t=>{
+ const f=await setup(t),budget=700000,other='0x'+'ab'.repeat(20);
+ await f.store.reserveOriginal(record.account,record.kind,{reserveBytes:budget});
+ assert.deepEqual(await f.store.unresolvedPreparation(record.account),{account:record.account,kind:record.kind,maxBytes:budget});
+ await assert.rejects(f.store.reserveOriginal(other,record.kind,{reserveBytes:350000}));
+ assert.equal(f.store.localOriginal(other),null);assert.equal(await f.store.unresolvedPreparation(other),null);
+ assert.deepEqual(await new FileTransactionIntentStore({filePath:f.filePath}).unresolvedPreparation(record.account),{account:record.account,kind:record.kind,maxBytes:budget});
+});

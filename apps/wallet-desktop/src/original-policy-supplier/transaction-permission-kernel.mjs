@@ -3,10 +3,12 @@
 // may construct a production instance. A caller-supplied object is NOT that
 // producer, even if it implements this interface. No signing or POST here.
 import {createHash} from 'node:crypto';
+import {types} from 'node:util';
+import {normalizePQNativeAction,encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
 import {encodePQNativeTransfer} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>{
- if(!v||Object.getPrototypeOf(v)!==Object.prototype)fail('AUTH_TX_PERMISSION_SCHEMA');
+ if(!v||types.isProxy(v)||Object.getPrototypeOf(v)!==Object.prototype)fail('AUTH_TX_PERMISSION_SCHEMA');
  const ds=Object.getOwnPropertyDescriptors(v),ks=Reflect.ownKeys(ds);
  if(ks.length!==keys.length||ks.some(k=>!keys.includes(k)||!ds[k].enumerable||!Object.hasOwn(ds[k],'value')))fail('AUTH_TX_PERMISSION_SCHEMA');
 };
@@ -14,6 +16,8 @@ const time=v=>{if(typeof v!=='string'||!Number.isSafeInteger(Date.parse(v))||new
 const hash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const transportHash=v=>typeof v==='string'&&/^0x[a-f0-9]{64}$/.test(v);
 export function bindTransactionPermissionRequest(value){
+ if(types.isProxy(value))fail('AUTH_TX_PERMISSION_SCHEMA');
+ if(value&&Object.hasOwn(value,'typedAction'))return bindTypedSignRequest(value);
  const sign=value&&Object.getOwnPropertyDescriptor(value,'action')?.value==='sign';
  exact(value,['action','networkId','nativeChainId','account','operationId','origin','transfer','requestDigest',...(sign?['policyRevision','expiresAt']:['transportHash'])]);
  if(!['sign','broadcast'].includes(value.action)||!hash(value.networkId)||value.nativeChainId!=='6423'||typeof value.account!=='string'||!/^0x[a-f0-9]{40}$/.test(value.account)||typeof value.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(value.operationId)||value.origin!=='ynx-wallet:local-pq')fail('AUTH_TX_PERMISSION_BINDING');
@@ -27,6 +31,29 @@ export function bindTransactionPermissionRequest(value){
  if(sign){if(typeof value.policyRevision!=='string'||! /^[1-9][0-9]*$/.test(value.policyRevision))fail('AUTH_TX_PERMISSION_POLICY');time(value.expiresAt);}
  else if(!transportHash(value.transportHash))fail('AUTH_TX_PERMISSION_TRANSPORT_HASH');
  return Object.freeze({action:value.action,networkId:value.networkId,nativeChainId:value.nativeChainId,account:value.account,operationId:value.operationId,origin:value.origin,transfer,requestDigest:value.requestDigest,...(sign?{policyRevision:value.policyRevision,expiresAt:value.expiresAt}:{transportHash:value.transportHash})});
+}
+// Typed sign is additive to the original Transfer permission. Broadcast is
+// intentionally NOT inferred: it needs a separately agreed original request.
+const u64=v=>typeof v==='string'&&/^[1-9][0-9]*$/.test(v)&&BigInt(v)<=18446744073709551615n;
+function sameCanonicalData(actual,expected){
+ if(expected===null||typeof expected!=='object')return actual===expected;
+ if(!actual||typeof actual!=='object'||types.isProxy(actual)||Object.getPrototypeOf(actual)!==Object.getPrototypeOf(expected))return false;
+ const a=Object.getOwnPropertyDescriptors(actual),e=Object.getOwnPropertyDescriptors(expected),keys=Reflect.ownKeys(e);
+ return Reflect.ownKeys(a).length===keys.length&&keys.every(key=>Object.hasOwn(a,key)&&Object.hasOwn(a[key],'value')&&a[key].enumerable===e[key].enumerable&&sameCanonicalData(a[key].value,e[key].value));
+}
+function bindTypedSignRequest(value){
+ exact(value,['action','purpose','memberCount','memberIndex','networkId','nativeChainId','account','operationId','origin','typedAction','requestDigest','policyRevision','pair','reviewExecutionHeight','executionHeight','expiresAt']);
+ if(value.action!=='sign'||value.purpose!=='TX-BATCH'||value.memberCount!==1||value.memberIndex!==0||!hash(value.networkId)||value.nativeChainId!=='6423'||typeof value.account!=='string'||!/^0x[a-f0-9]{40}$/.test(value.account)||typeof value.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(value.operationId)||value.origin!=='ynx-wallet:local-pq')fail('AUTH_TX_PERMISSION_BINDING');
+ exact(value.pair,['pkA','pkB']);
+ if(typeof value.pair.pkA!=='string'||! /^[a-f0-9]{5184}$/.test(value.pair.pkA)||typeof value.pair.pkB!=='string'||! /^[a-f0-9]{128}$/.test(value.pair.pkB)||!u64(value.policyRevision)||!u64(value.reviewExecutionHeight)||!u64(value.executionHeight)||BigInt(value.reviewExecutionHeight)>BigInt(value.executionHeight))fail('AUTH_TX_PERMISSION_POLICY');
+ time(value.expiresAt);
+ // The original SDK alone defines all sixteen payloads and fees. Normalize
+ // then require the exact already-reviewed canonical data; no Transfer cast.
+ const typedAction=normalizePQNativeAction(value.typedAction);
+ if(!sameCanonicalData(value.typedAction,typedAction)||typedAction.chainId!==value.networkId||typedAction.nativeChainId!==value.nativeChainId||typedAction.owner!==value.account)fail('AUTH_TX_PERMISSION_BINDING');
+ const digest=createHash('sha256').update(encodePQNativeAction(typedAction)).digest('hex');
+ if(value.requestDigest!==digest)fail('AUTH_TX_PERMISSION_INTENT_MISMATCH');
+ return Object.freeze({action:'sign',purpose:'TX-BATCH',memberCount:1,memberIndex:0,networkId:value.networkId,nativeChainId:value.nativeChainId,account:value.account,operationId:value.operationId,origin:value.origin,typedAction,requestDigest:digest,policyRevision:value.policyRevision,pair:Object.freeze({pkA:value.pair.pkA,pkB:value.pair.pkB}),reviewExecutionHeight:value.reviewExecutionHeight,executionHeight:value.executionHeight,expiresAt:value.expiresAt});
 }
 export class TransactionPermissionKernel {
  #request;#peer;#clock;#floor=0;#binding;#expires;#pending=new Set();#initialized=false;#checking=false;#busy=false;
@@ -85,7 +112,7 @@ export class TransactionPermissionKernel {
  complete(value){
   try{
    if(this.#busy||this.#phase!=='entered')fail('AUTH_TX_PERMISSION_COMPLETE_ONCE');
-   exact(value,['outcome','transportHash']);if(!['returned','unknown'].includes(value.outcome)||!transportHash(value.transportHash)||(this.#request.action==='broadcast'&&value.transportHash!==this.#request.transportHash))fail('AUTH_TX_PERMISSION_RESULT_BINDING');
+   exact(value,this.#request.typedAction?['outcome','transportHash','memberHash']:['outcome','transportHash']);if(!['returned','unknown'].includes(value.outcome)||!transportHash(value.transportHash)||(this.#request.typedAction&&!transportHash(value.memberHash))||(this.#request.action==='broadcast'&&value.transportHash!==this.#request.transportHash))fail('AUTH_TX_PERMISSION_RESULT_BINDING');
    this.#result=Object.freeze({...value}); // Retain BEFORE any foreign call.
    this.#phase='completed';this.#window();this.#busy=true;
    try{this.#peerVoid(()=>this.#peer.completeOriginal(this.#result));}finally{this.#busy=false;}

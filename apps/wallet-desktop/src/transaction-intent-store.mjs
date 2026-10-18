@@ -13,7 +13,7 @@ import {canonicalJSON,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
 import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./wallet-pay-record.mjs";
 import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlement} from "./wallet-pay-settlement.mjs";
 import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
-import {pqTypedOriginalSummary} from './wallet-pq-typed-original.mjs';
+import {pqTypedOriginalSummary,createPQTypedOriginalFromMember} from './wallet-pq-typed-original.mjs';
 import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
@@ -61,7 +61,10 @@ function parseState(data) {
   if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===10 ? "payHistory,payProgress,pqFinalityObservations,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===9 ? "payHistory,payProgress,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===8 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
   if(data.schemaVersion>=5){
     if(!Array.isArray(data.preparations)||data.preparations.length>ORIGINAL_OWNER_LIMIT||new Set(data.preparations.map(x=>x.account)).size!==data.preparations.length)throw invalid();
-    for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!['native','pay',...(data.schemaVersion>=6?PQ_ORIGINAL_KINDS:[])].includes(marker.kind))throw invalid();
+    for(const marker of data.preparations){
+      const typed=marker?.kind==='pq-typed-action',budget=typed&&Object.hasOwn(marker,'maxBytes');
+      if(!marker||Object.keys(marker).sort().join()!==(budget?'account,kind,maxBytes':'account,kind')||!ACCOUNT.test(marker.account??'')||!['native','pay',...(data.schemaVersion>=6?PQ_ORIGINAL_KINDS:[])].includes(marker.kind)||budget&&(!Number.isSafeInteger(marker.maxBytes)||marker.maxBytes<PQ_ORIGINAL_RESERVE_BYTES||marker.maxBytes>PRIVATE_FILE_MAX_BYTES))throw invalid();
+    }
   }
   if(signed){
     if(!Array.isArray(data.signedPayments)||data.signedPayments.length>1024)throw invalid();
@@ -241,16 +244,20 @@ export class FileTransactionIntentStore {
   async assertNoPreparation(account){
     const state=await this.#read();if(owner(this).has(account)||state.preparations?.some(x=>x.account===account)||state.pqOriginals?.some(x=>x.account===account))throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","An original signing operation remains unresolved. Do not sign or send a replacement.");
   }
-  async reserveOriginal(account,kind){
+  async reserveOriginal(account,kind,options={}){
     if(!ACCOUNT.test(account??"")||!["native","pay",...PQ_ORIGINAL_KINDS].includes(kind))throw invalid();
+    if(!options||Object.keys(options).some(k=>k!=='reserveBytes')||Object.hasOwn(options,'reserveBytes')&&kind!=='pq-typed-action')throw invalid();
+    const reserveBytes=options.reserveBytes??PQ_ORIGINAL_RESERVE_BYTES;
+    if(!Number.isSafeInteger(reserveBytes)||reserveBytes<PQ_ORIGINAL_RESERVE_BYTES||reserveBytes>PRIVATE_FILE_MAX_BYTES)throw invalid();
     const slots=owner(this);if(slots.has(account)||slots.size>=ORIGINAL_OWNER_LIMIT)throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","Original operation capacity or account conflict; nothing new was signed.");
     const slot={account,kind,native:null,pay:null,pq:null,originalCause:null,storageCause:null,originalCausePresent:false,storageCausePresent:false};slots.set(account,slot);
     try{await this.#mutate(async()=>{
       const state=paySuccessor(await this.#read());
       if(state.preparations?.some(x=>x.account===account)||state.pqOriginals?.some(x=>x.account===account)||state.records.some(x=>x.account===account)||state.signedPayments.some(x=>evmAddressFromYNX(x.account)===account)||(state.preparations?.length??0)>=ORIGINAL_OWNER_LIMIT)throw invalid();
       const pq=PQ_ORIGINAL_KINDS.includes(kind);
-      if(pq&&Buffer.byteLength(JSON.stringify(state))+PQ_ORIGINAL_RESERVE_BYTES*(1+(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).length)>PRIVATE_FILE_MAX_BYTES)throw invalid();
-      await this.#write({...state,schemaVersion:pq?Math.max(6,state.schemaVersion):Math.max(5,state.schemaVersion),...(pq?{pqOriginals:state.pqOriginals??[]}:{}),preparations:[...(state.preparations??[]),{account,kind}]});
+      const outstanding=(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).reduce((sum,x)=>sum+(x.kind==='pq-typed-action'?(x.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES),0);
+      if(pq&&Buffer.byteLength(JSON.stringify(state))+reserveBytes+outstanding>PRIVATE_FILE_MAX_BYTES)throw invalid();
+      await this.#write({...state,schemaVersion:pq?Math.max(6,state.schemaVersion):Math.max(5,state.schemaVersion),...(pq?{pqOriginals:state.pqOriginals??[]}:{}),preparations:[...(state.preparations??[]),{account,kind,...(kind==='pq-typed-action'?{maxBytes:reserveBytes}:{})}]});
     });return slot}catch(error){slots.delete(account);throw error}
   }
   captureOriginal(account,value,kind){
@@ -271,6 +278,19 @@ export class FileTransactionIntentStore {
     else if(kind==="pay"){assertDesktopSignedPayStorage(captured);if(evmAddressFromYNX(captured.account)!==account||slot.kind!=="pay")throw invalid();if(slot.pay&&canonicalJSON(slot.pay)!==canonicalJSON(captured))throw invalid();slot.pay=Object.freeze(captured)}
     else{if(kind!=='native'||PQ_ORIGINAL_KINDS.includes(slot.kind))throw invalid();if(slot.native&&canonicalJSON(slot.native)!==canonicalJSON(captured))throw invalid();slot.native=Object.freeze(captured)}
     return slot;
+  }
+  capturePQTypedMember(account,member,archive){
+    const slot=owner(this).get(account);
+    if(slot?.kind!=='pq-typed-action'||slot.pqMemberUnverified)throw invalid();
+    // Adopt before encoder/hash/policy verification or any late lock fence.
+    slot.pqMemberUnverified=member;
+    try{
+      if(!nativeTypes.isUint8Array(member)||nativeTypes.isProxy(member))throw invalid();
+      slot.pqMemberData=Buffer.from(member);
+      const original=createPQTypedOriginalFromMember(slot.pqMemberData,archive);
+      this.captureOriginal(account,original,'pq-typed-action');
+      return Object.freeze({transportHash:original.hash,memberHash:original.typed.memberHash});
+    }catch(cause){this.originalFailed(account,cause);throw cause}
   }
   originalFailed(account,error,{storage=false}={}){
     const slot=owner(this).get(account);if(!slot)return;
@@ -359,6 +379,12 @@ export class FileTransactionIntentStore {
         if(state.schemaVersion<6||!state.preparations.some(x=>x.account===account&&x.kind===slot.kind)||state.pqOriginals.some(x=>x.account===account))throw invalid();
         const original=parsePQOriginalRecord(slot.pq);
         const next={...state,pqOriginals:[...state.pqOriginals,original],preparations:state.preparations.filter(x=>x.account!==account)};
+        const marker=state.preparations.find(x=>x.account===account&&x.kind===slot.kind);
+        const budget=slot.kind==='pq-typed-action'?(marker.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES;
+        const remaining=next.preparations.filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).reduce((sum,x)=>sum+(x.kind==='pq-typed-action'?(x.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES),0);
+        // A successful save must not consume space promised to another original
+        // signer. Refuse before the first write and keep this captured result.
+        if(Buffer.byteLength(JSON.stringify(original))>budget||Buffer.byteLength(JSON.stringify(next))+remaining>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_ORIGINAL_STORAGE_CAPACITY','Keep the signed original; protected output capacity cannot be verified.');
         current();slot.pqSaveAttempted=true;await this.#write(next);current();
         const readback=await this.#read();current();
         if(!readback.pqOriginals?.some(x=>canonicalJSON(x)===canonicalJSON(original))||readback.preparations?.some(x=>x.account===account))throw invalid();

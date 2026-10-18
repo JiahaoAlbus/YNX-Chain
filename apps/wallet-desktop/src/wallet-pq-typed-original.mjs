@@ -2,6 +2,8 @@ import {exactPQRecord} from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {inspectPQReviewedTypedTransportOriginal} from './features/pq-transaction/typed-action-reviewed-transport.mjs';
 import {PRIVATE_FILE_MAX_BYTES} from './bounded-private-file-read.mjs';
+import {encodePQActionTransportData} from '@ynx-chain/wallet-auth/pq-action-transport';
+import {createHash} from 'node:crypto';
 const fail=()=>{throw Object.assign(new Error('Keep the original typed PQ record; its retained inputs could not be verified.'),{code:'PQ_TYPED_ORIGINAL_INVALID'})};
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}return value};
 function inspect(value){
@@ -20,6 +22,12 @@ function inspect(value){
 }
 export function parsePQTypedOriginalRecord(value){
  try{inspect(value);return freeze(JSON.parse(JSON.stringify(value)))}catch{fail()}
+}
+/** Called only after Main has retained the returned Member in its original
+ * pre-sign slot. Encoding is not signing, sending or permission acquisition. */
+export function createPQTypedOriginalFromMember(member,{review,reviewSnapshot,signingSnapshot}){
+ const wire=encodePQActionTransportData({member,originals:[]}),hash=bytes=>'0x'+createHash('sha256').update(bytes).digest('hex');
+ return {version:2,account:review.account,kind:'pq-typed-action',operationId:review.operationId,hash:hash(wire),wire:Buffer.from(wire).toString('base64url'),status:'signed-unsubmitted',typed:{networkId:review.networkId,memberHash:hash(member),review:JSON.parse(JSON.stringify(review)),reviewSnapshot:JSON.parse(JSON.stringify(reviewSnapshot)),signingSnapshot:JSON.parse(JSON.stringify(signingSnapshot))}};
 }
 export function pqTypedOriginalSummary(value){
  try{

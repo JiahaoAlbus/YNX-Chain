@@ -11,6 +11,7 @@ const labels = Object.freeze({
   authorizingRevision: "签名的当前密钥版本 / Current signing key revision",
   throughRevision: "包含待生效密钥的撤销范围 / Revoke through pending revision",
   executionHeight: "审查执行高度 / Reviewed execution height",
+  typedReview: "完整原 PQ 操作、网络、费用、nonce 和密钥版本 / Exact original PQ action, network, fee, nonce and key revision",
   revokeAt: "撤销生效高度 / Revocation effective height",
 });
 

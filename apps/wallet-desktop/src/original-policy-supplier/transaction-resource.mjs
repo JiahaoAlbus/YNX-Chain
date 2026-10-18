@@ -3,7 +3,7 @@ import {CANONICAL_NETWORK_ID,openNormalOperatorSource} from './operator-query.mj
 const supplied=new WeakSet(),fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>{if(!v||typeof v!=='object'||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).some(k=>typeof k!=='string'||!Object.hasOwn(Object.getOwnPropertyDescriptor(v,k),'value')||!Object.getOwnPropertyDescriptor(v,k).enumerable)||Reflect.ownKeys(v).sort().join('|')!==[...keys].sort().join('|'))fail('AUTH_TX_POLICY_SCHEMA');};
 const time=v=>{if(typeof v!=='string'||!Number.isFinite(Date.parse(v))||new Date(Date.parse(v)).toISOString()!==v)fail('AUTH_TX_POLICY_TIME');return Date.parse(v);};
-const req=v=>{exact(v,['networkId','nativeChainId','owner','operation','at']);if(v.networkId!==CANONICAL_NETWORK_ID||v.nativeChainId!=='6423'||typeof v.owner!=='string'||!/^0x[0-9a-f]{40}$/.test(v.owner)||!['transfer','migration','revocation'].includes(v.operation))fail('AUTH_TX_POLICY_BINDING');time(v.at);return Object.freeze({...v});};
+const req=v=>{exact(v,['networkId','nativeChainId','owner','operation','at']);if(v.networkId!==CANONICAL_NETWORK_ID||v.nativeChainId!=='6423'||typeof v.owner!=='string'||!/^0x[0-9a-f]{40}$/.test(v.owner)||!['transfer','migration','revocation','typed-action'].includes(v.operation))fail('AUTH_TX_POLICY_BINDING');time(v.at);return Object.freeze({...v});};
 function packet(raw,expected,now){
  if(typeof raw!=='string'||Buffer.byteLength(raw)>8*1024*1024)fail('AUTH_TX_POLICY_BYTES');let v;try{v=JSON.parse(raw);}catch{fail('AUTH_TX_POLICY_BYTES');}
  exact(v,['version','networkId','nativeChainId','canonicalOwner','authorization','observedAt','expiresAt']);

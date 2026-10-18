@@ -1,7 +1,7 @@
 import type {PQAuthorizationSnapshot} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 export interface WalletTransactionPolicyRequest{
  readonly networkId:string;readonly nativeChainId:'6423';readonly owner:string;
- readonly operation:'transfer'|'migration'|'revocation';readonly at:string;
+ readonly operation:'transfer'|'migration'|'revocation' | 'typed-action';readonly at:string;
 }
 export interface WalletTransactionPolicyOriginal{
  readonly version:'YNX-WALLET-TRANSACTION-POLICY/v1';readonly networkId:string;readonly nativeChainId:'6423';readonly canonicalOwner:string;
