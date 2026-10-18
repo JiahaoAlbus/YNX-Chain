@@ -48,6 +48,14 @@ export const PACKAGED_RELOCATION_RULES = Object.freeze([
 const escapeRE = text => text.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const repositoryOperand = /(?:from\s*|new\s+URL\s*\(\s*)["']\.\.\/\.\.\/\.\.\/(?:packages\/wallet-auth|apps\/wallet-desktop)\//;
 const packedRuntimePath = canonicalSourcePath;
+const SDK330_VERSION='1.3.0-pq.3.30-auth.1';
+function selectedRelocationRules(sdkVersion){
+  // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
+  // a selected-source-version contract, never a count inferred from the input.
+  if(sdkVersion!==SDK330_VERSION)return PACKAGED_RELOCATION_RULES;
+  return PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
+    ?{...rule,operands:rule.operands.map(operand=>({...operand,count:3}))}:rule);
+}
 // Fixed original Native build-evidence inputs may be carried by the normal
 // builder. They are not runtime entrypoints; never allow arbitrary *.test.mjs.
 const NATIVE_BUILD_EVIDENCE_TESTS=Object.freeze([
@@ -73,8 +81,8 @@ export function declaredSDKRuntimeSources(root,sourceCommit){
  return [...names].sort();
 }
 
-export function relocateDesktopRuntimeSource(name, source) {
-  const rule = PACKAGED_RELOCATION_RULES.find(item=>item.sourcePath===name);
+export function relocateDesktopRuntimeSource(name, source, sdkVersion='1.3.0-pq.3.18') {
+  const rule = selectedRelocationRules(sdkVersion).find(item=>item.sourcePath===name);
   let text = source.toString("utf8");
   if (!rule) {
     if (repositoryOperand.test(text)) throw new Error(`Unlisted repository operand: ${name}`);
@@ -95,9 +103,10 @@ export function relocateDesktopRuntimeSource(name, source) {
 
 function relocationPlan(cwd, expected) {
   const root=git(cwd,"rev-parse","--show-toplevel");
-  return PACKAGED_RELOCATION_RULES.map(rule=>{
+  const sdk=JSON.parse(git(root,'show',`${expected.sourceCommit}:packages/wallet-auth/package.json`));
+  return selectedRelocationRules(sdk.version).map(rule=>{
     const source=execFileSync("git",["show",`${expected.sourceCommit}:${rule.sourcePath}`],{cwd:root,maxBuffer:16*1024*1024});
-    const output=relocateDesktopRuntimeSource(rule.sourcePath,source);
+    const output=relocateDesktopRuntimeSource(rule.sourcePath,source,sdk.version);
     return {...rule,gitBlob:git(root,"rev-parse",`${expected.sourceCommit}:${rule.sourcePath}`),inputBytes:source.length,inputSHA256:digest(source),emittedBytes:output.bytes.length,emittedSHA256:digest(output.bytes),operands:output.operands,source,output:output.bytes};
   });
 }
@@ -278,7 +287,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     const packed = asar.extractFile(archive, path.normalize(packedName));
     // Evidence data is never interpreted as runtime or relocated. This exact
     // closed subset can contain source-inspection operands in its test body.
-    const emitted=nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source).bytes;
+    const emitted=nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source,sdkMetadata.version).bytes;
     if (!emitted.equals(packed)) throw new Error(`Packaged source differs: ${name}`);
     verified.push({ path: packedName, bytes: packed.length, sha256: digest(packed) });
   }
