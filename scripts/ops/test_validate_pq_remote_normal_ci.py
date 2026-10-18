@@ -48,8 +48,8 @@ def api_fixture():
                    run_started_at="2026-10-19T02:03:04Z")
     return {RUN_PATH: run_metadata(), WORKFLOW: dict(id=73, path=gate.WORKFLOW_PATH),
             CURRENT_PATH: current,
-            JOBS: dict(total_count=3, jobs=[job_metadata("focused-go", 100),
-                                         job_metadata("proof-verifier-macos", 101),
+            JOBS: dict(total_count=4, jobs=[job_metadata("focused-go", 100),
+                                         job_metadata("proof-verifier-macos", 101), job_metadata("protocol-delivery", 103),
                                          dict(id=102, name="verify", status="completed", conclusion="skipped")])}
 
 
@@ -75,8 +75,9 @@ class NormalCIMetadataControls(unittest.TestCase):
         self.assertEqual(set(result), {"version", "classification", "source", "repo", "candidateSha",
                          "normalRunId", "currentRunId", "currentRunStartedAt", "normalRunAttempt", "workflowPath", "normalBranch",
                          "jobs", "normalCIReusable", "nodeStartAuthorized", "publicDeployment"})
+        self.assertEqual(gate.REQUIRED_JOBS, ("focused-go", "protocol-delivery", "proof-verifier-macos"))
         self.assertEqual(result["version"], "YNX-PQ-REMOTE-NORMAL-CI/v1")
-        self.assertEqual(result["jobs"], {"focused-go": "100", "proof-verifier-macos": "101"})
+        self.assertEqual(result["jobs"], {"focused-go": "100", "protocol-delivery": "103", "proof-verifier-macos": "101"})
         self.assertEqual(result["normalRunAttempt"], "2")
         self.assertEqual(result["currentRunStartedAt"], "2026-10-19T02:03:04Z")
         self.assertTrue(result["normalCIReusable"])
@@ -163,7 +164,7 @@ class NormalCIMetadataControls(unittest.TestCase):
             self.validate(fixture)
 
     def test_required_jobs_reject_missing_duplicate_failed_skipped_pending_and_mixed_identity(self):
-        for index in (0, 1):
+        for index in (0, 1, 2):
             for key, value in (("run_id", int(CURRENT)), ("run_id", PRIOR), ("run_id", True),
                                ("head_sha", "b" * 40), ("run_attempt", 1), ("run_attempt", "2"),
                                ("run_url", "https://evil.invalid/token"),
@@ -200,7 +201,7 @@ class NormalCIMetadataControls(unittest.TestCase):
     def test_pagination_is_complete_bounded_and_fixed_to_original_attempt(self):
         fixture = api_fixture()
         rows = fixture[JOBS]["jobs"]
-        rows.extend(dict(id=1000+i, name="unrelated-"+str(i)) for i in range(98))
+        rows.extend(dict(id=1000+i, name="unrelated-"+str(i)) for i in range(101 - len(rows)))
         fixture[JOBS] = dict(total_count=101, jobs=rows[:100])
         next_page = JOBS[:-1] + "2"
         fixture[next_page] = dict(total_count=101, jobs=rows[100:])
@@ -354,11 +355,77 @@ class NormalCITransportControls(unittest.TestCase):
             fetcher.assert_not_called()
 
 
-def workflow_steps(raw):
+# Fixed pre-split normal commands: source assertions, not execution evidence.
+NORMAL_STEP_NAMES = (
+    "Verify pure dual-PQ protocol and account authorization",
+    "Upload public canonical action vectors from the actual Go codec",
+    "Verify forked engine keys and actual consensus objects",
+    "Compile forked state and consensus engine without starting nodes",
+    "Verify exact-height maintenance stop with real engine commit and cold stores",
+    "Reproduce and repair same-directory database ownership without starting nodes",
+    "Verify real profile state transition and historical store without starting nodes",
+    "Reproduce and repair real Commit and engine checkpoint read ordering",
+    "Verify bounded remote signer transport and unchanged legacy protobuf vectors",
+    "Verify actual engine signing caller uses committed height key and round context",
+    "Measure fresh single and bounded concurrent dual signature paths",
+    "Measure actual policy certificate cache consumer cold and warm paths",
+    "Install pinned contract build runtime",
+    "Verify failed candidate deployment preserves services and signing history",
+    "Verify original-state operator transition preserves custody and uncertain attempts",
+    "Compile frozen measured production overlay without executing cases",
+    "Generate canonical IDE contract fixture",
+    "Verify native ledger and HTTP PQ integration",
+    "Compile production entry points",
+    "Reproduce opaque classic staking refusal with original successful transactions",
+    "Reproduce the original missing PQ validator staking entry",
+    "Verify complete state bridge and sponsor continuity",
+    "Verify original Host source, live lifecycle and delivery persistence",
+    "Verify normal Host source producer with original signed transaction fixture",
+    "Reproduce signed-history overwrite and unsafe rollback callers",
+    "Reproduce source-authority initialization coupling and verify independent execution",
+    "Reproduce JSON-only signing source and verify real journal recovery",
+    "Reproduce atomic-only Comet operator startup and verify normal journal selection",
+    "Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery",
+    "Reproduce historical AA policy counterexamples against the original state validator",
+    "Reproduce source evidence rehash counterexamples and verify original-label coverage",
+    "Verify Whole BFT gateway and native container readback",
+    "Upload only public classic staking originals and actual HTTP interoperability fixture",
+    "Verify existing Chain readback and recovery after protocol integration",
+    "Verify existing Chain SDK after protocol integration",
+    "Emit application-backed public Wallet HTTP fixture",
+    "Upload only public Wallet HTTP fixture",
+    "Verify shared Wallet policy and Chain payment authorization regressions",
+    "Reproduce private verifier process-exit telemetry counterexample",
+    "Verify operator checkpoint format and original read-lock admission",
+    "Build and pin normal signer process binaries without running them",
+    "Run the separately authorized normal remote signer process",
+    "Preserve only public remote process receipt",
+    "Checkout fixed repaired performance client",
+    "Verify fixed segmented client integration with original assertions",
+    "Emit public inverse interop fixture",
+    "Upload public signature fixture",
+    "Build fixed-source offline migration validation tools",
+    "Upload public offline migration validation tools",
+    "Build public Linux runtime candidate without starting services",
+    "Verify original candidate delivery with pinned archive permissions",
+    "Verify normal single-App operator package and original deployment caller",
+    "Upload only public operator inputs and normal CLI receipt",
+    "Verify original public cutover caller preserves independent operator and runtime pins",
+    "Verify normal proof CLI with exact public interoperability fixture",
+    "Verify normal transaction proof CLI with exact public two-header fixture",
+    "Verify stopped-source publication and original Host ABI through normal binaries",
+    "Upload only public Host delivery and normal CLI receipt",
+    "Upload only public transaction proof fixture and normal CLI receipt",
+    "Upload only public consensus proof fixture and normal CLI receipt",
+    "Upload only public Linux runtime candidate",
+)
+
+
+def workflow_steps(raw, name="focused-go"):
     """Exact indentation/source contract only; not a YAML/GitHub scheduler."""
-    matches = re.findall(r"(?ms)^  focused-go:\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)", raw)
+    matches = re.findall(r"(?ms)^  " + re.escape(name) + r":\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)", raw)
     if len(matches) != 1:
-        raise AssertionError("one actual focused-go job required")
+        raise AssertionError("one actual named job required")
     job = matches[0]
     chunks = re.split(r"(?m)(?=^      - (?:name:|uses:))", job)
     return job, chunks[1:]
@@ -440,14 +507,82 @@ def assert_workflow_contract(raw):
     need(len(receipts) == 2)
     need(all(condition(step) == "${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}" for step in receipts))
     need(".cleanupComplete == true" in receipts[0])
-    required = {id(step) for step in [by_id("identity"), normal, build, network, controls[0], *receipts]}
-    ordinary = [step for step in steps if id(step) not in required and not step.startswith("      - uses:")]
-    # Every old normal step keeps its original condition as the right operand.
-    # A missing dispatch input is false, so !false && (old) preserves push.
-    need(len(steps) == 70 and len(ordinary) == 61)
-    need(all(condition(step).startswith("${{ !inputs.consensus_remote_e2e_retained_history && (")
-             and condition(step).endswith(") }}") for step in ordinary))
-    need("  proof-verifier-macos:\n    needs: focused-go\n    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n" in raw)
+    delivery_job, delivery_steps = workflow_steps(raw, "protocol-delivery")
+    mac_job, _ = workflow_steps(raw, "proof-verifier-macos")
+    need("    needs: focused-go\n" in delivery_job and "    timeout-minutes: 12\n" in delivery_job)
+    need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success'\n" in delivery_job)
+    need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 6\n" in mac_job)
+    need("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n" in mac_job)
+    need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
+    combined = steps + delivery_steps
+    by_name = lambda name: [step for step in combined if step.startswith("      - name: " + name + "\n")]
+    signer_name = "Build and pin normal signer process binaries without running them"
+    for name in NORMAL_STEP_NAMES:
+        found = by_name(name)
+        need(len(found) == (2 if name == signer_name else 1))
+        for step in found:
+            need(condition(step).startswith("${{ !inputs.consensus_remote_e2e_retained_history && (")
+                 and condition(step).endswith(") }}"))
+    non_host = by_name("Verify complete state bridge and sponsor continuity")[0]
+    host = by_name("Verify original Host source, live lifecycle and delivery persistence")[0]
+    need("-skip '^TestProofHost' ./internal/consensus" in non_host)
+    need("-run '^TestProofHost' ./internal/consensus" in host)
+    need("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public" in host)
+    cutover = by_name("Verify original public cutover caller preserves independent operator and runtime pins")[0]
+    for script in ("public-bft-production-driver-check.sh --snapshot-only", "owner-handover-check.sh",
+                   "production-service-signer-ceremony-check.sh", "production-custody-review-check.sh",
+                   "public-bft-production-candidate-check.sh", "public-bft-cutover-transaction-check.sh",
+                   "public-bft-gateway-dependencies-check.sh", "public-bft-gateway-ingress-check.sh",
+                   "public-bft-validator-registration-check.sh"):
+        need("bash scripts/verify/" + script in cutover)
+    need("PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED" in cutover)
+    # Both complementary current consensus groups still execute once, with
+    # the original whole selectors. Private Host stores stay on their runner.
+    for name in ("Verify complete state bridge and sponsor continuity", "Verify Whole BFT gateway and native container readback"):
+        need(by_name(name)[0] in steps)
+    for name in ("Verify original Host source, live lifecycle and delivery persistence",
+                 "Verify normal Host source producer with original signed transaction fixture",
+                 "Verify original public cutover caller preserves independent operator and runtime pins",
+                 "Verify normal proof CLI with exact public interoperability fixture",
+                 "Verify normal transaction proof CLI with exact public two-header fixture",
+                 "Verify stopped-source publication and original Host ABI through normal binaries"):
+        need(by_name(name)[0] in delivery_steps)
+    focused_signer, delivery_signer = by_name(signer_name)
+    need("success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process" in condition(focused_signer))
+    need("github.event_name == 'push' ||" in condition(delivery_signer))
+    need("      inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}\n" in job)
+    need("      inputs-manifest-sha256: ${{ steps.stagepack.outputs.manifest-sha256 }}\n" in job)
+    pack, upload = by_id("stagepack"), by_id("stageupload")
+    need(condition(pack) == "${{ success() && github.event_name == 'push' }}")
+    need(condition(upload) == "${{ success() && github.event_name == 'push' && steps.stagepack.outcome == 'success' }}")
+    need("scripts/ops/pq-ci-stage-inputs.py export" in pack and 'test -z "$(git status --porcelain --untracked-files=normal)"' in pack)
+    need("name: ynx-pq-stage-inputs-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}" in upload)
+    admit = by_name("Admit only the successful producer artifact identity")
+    download = by_name("Download only this producer artifact by immutable ID")
+    need(len(admit) == len(download) == 1)
+    need("uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093" in download[0])
+    need("          merge-multiple: true\n" in download[0])
+    need(delivery_steps.index(admit[0]) < delivery_steps.index(download[0]))
+    need("artifact-ids: ${{ needs.focused-go.outputs.inputs-artifact-id }}" in delivery_job)
+    need("          name: ynx-pq-stage-inputs-" not in delivery_job)
+    restore = [step for step in delivery_steps if "        id: identity\n" in step]
+    need(len(restore) == 1 and "scripts/ops/pq-ci-stage-inputs.py restore" in restore[0])
+    need('YNX_STAGE_MANIFEST_SHA256: ${{ needs.focused-go.outputs.inputs-manifest-sha256 }}' in restore[0])
+    for parameter in ('--commit "$GITHUB_SHA"', '--source-tree "$(git rev-parse HEAD^{tree})"',
+                      '--run-id "$GITHUB_RUN_ID"', '--run-attempt "$GITHUB_RUN_ATTEMPT"'):
+        need(parameter in pack and parameter in restore[0])
+    need('--manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"' in restore[0])
+    need(delivery_steps.index(restore[0]) < delivery_steps.index(by_name("Verify original Host source, live lifecycle and delivery persistence")[0]))
+    need(delivery_steps.index(download[0]) < delivery_steps.index(restore[0]))
+    compiled = by_name("Prepare same-source compiled contract inputs for delivery callers")
+    need(len(compiled) == 1 and compiled[0] in delivery_steps)
+    need(delivery_steps.index(restore[0]) < delivery_steps.index(compiled[0])
+         < delivery_steps.index(by_name("Verify original candidate delivery with pinned archive permissions")[0]))
+    for command in ("npm ci --ignore-scripts --no-audit --no-fund",
+                    "npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol",
+                    "npm run contracts:selectors", "git diff --exit-code -- artifacts"):
+        need(command in compiled[0])
+    need("test_pq_ci_stage_inputs.py" in controls[0])
 
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
@@ -458,6 +593,15 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_source_contract_rejects_missing_gate_injection_skipped_controls_and_cap_increase(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         changes = [
+            ("          merge-multiple: true\n", "          merge-multiple: false\n"),
+            ("      - name: Prepare same-source compiled contract inputs for delivery callers\n", "      - name: Silently omitted delivery compiler inputs\n"),
+            ("bash scripts/verify/public-bft-gateway-ingress-check.sh", "# skipped public-bft-gateway-ingress-check.sh"),
+            ("    needs: protocol-delivery\n", "    needs: focused-go\n"),
+            ("artifact-ids: ${{ needs.focused-go.outputs.inputs-artifact-id }}", "name: old-same-name-artifact"),
+            ('--manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"', '--manifest-sha256 "0000000000000000000000000000000000000000000000000000000000000000"'),
+            ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),
+            ("-skip '^TestProofHost'", "-skip '^TestProofHost|TestABCI'"),
+            ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
             (" || steps.normalci.outcome == 'success'", " || true"),
             ('--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', "--normal-run-id '${{ inputs.normal_ci_run_id }}'"),
             ("    timeout-minutes: 12\n", "    timeout-minutes: 15\n"),

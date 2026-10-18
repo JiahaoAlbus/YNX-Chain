@@ -23,6 +23,8 @@ on:
       - 'scripts/ops/validate-pq-remote-window-entry.sh'
       - 'scripts/ops/test_validate_pq_remote_signer_process.py'
       - 'scripts/ops/validate-pq-remote-normal-ci.py'
+      - 'scripts/ops/pq-ci-stage-inputs.py'
+      - 'scripts/ops/test_pq_ci_stage_inputs.py'
       - 'scripts/ops/test_validate_pq_remote_normal_ci.py'
       - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
@@ -199,6 +201,9 @@ jobs:
 
   focused-go:
     if: ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))
+    outputs:
+      inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
+      inputs-manifest-sha256: ${{ steps.stagepack.outputs.manifest-sha256 }}
     concurrency:
       group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade
       cancel-in-progress: false
@@ -550,17 +555,6 @@ jobs:
           # The complementary Host group below runs every excluded test with
           # the same timeout; this group still covers every non-Host test.
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -skip '^TestProofHost' ./internal/consensus
-      - name: Verify original Host source, live lifecycle and delivery persistence
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
-        env:
-          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
-        run: YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost' ./internal/consensus
-      - name: Verify normal Host source producer with original signed transaction fixture
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 2
-        env:
-          YNX_PQ_HOST_PUBLIC_FIXTURE: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
-        run: go test -p 1 -count=1 -timeout=90s -run '^TestProofHostFromOriginalSignedPublicFixture$' ./cmd/ynx-consensus-proof-verify
       - name: Reproduce signed-history overwrite and unsafe rollback callers
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
@@ -902,6 +896,7 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
       - name: Verify operator checkpoint format and original read-lock admission
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
@@ -997,7 +992,7 @@ jobs:
           printf 'YNX_REMOTE_CHECKPOINT_OPERATOR_CONTROLS_PASS %s\n' "$ynx_cases"
       - name: Build and pin normal signer process binaries without running them
         id: pqremotebuild
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha))) }}
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha) }}
         timeout-minutes: 3
         run: |
           YNX_REMOTE_CASE="$RUNNER_TEMP/ynx-pq-remote-process-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
@@ -1197,6 +1192,157 @@ jobs:
       # The external client was independently fixed and all 13 functions passed
       # at aa25500; see PERF_SEGMENTED_CLIENT_AA255_NORMAL09_ACTUAL_R1.json.
       # The repaired source is also pinned below for the integration run.
+      - name: Seal only successful same-source public delivery inputs
+        id: stagepack
+        if: ${{ success() && github.event_name == 'push' }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          python3 -B scripts/ops/pq-ci-stage-inputs.py export \
+            --root "$RUNNER_TEMP" --bundle "$RUNNER_TEMP/ynx-pq-stage-inputs" \
+            --commit "$GITHUB_SHA" --source-tree "$(git rev-parse HEAD^{tree})" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT"
+          printf 'manifest-sha256=%s\n' "$(sha256sum "$RUNNER_TEMP/ynx-pq-stage-inputs/manifest.json" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+      - name: Upload exact same-run public delivery inputs
+        id: stageupload
+        if: ${{ success() && github.event_name == 'push' && steps.stagepack.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-stage-inputs-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-pq-stage-inputs
+          if-no-files-found: error
+          retention-days: 7
+
+  # Current tests and delivery checks remain separate bounded stages of the
+  # same run/source. Only the closed public fixture catalog crosses runners.
+  protocol-delivery:
+    needs: focused-go
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+    steps:
+      - name: Checkout the same successful protocol source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install the same pinned caller runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Admit only the successful producer artifact identity
+        env:
+          YNX_STAGE_ARTIFACT_ID: ${{ needs.focused-go.outputs.inputs-artifact-id }}
+          YNX_STAGE_MANIFEST_SHA256: ${{ needs.focused-go.outputs.inputs-manifest-sha256 }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor aa97f102fc72ee89ef3c61b6125256b288694b39 HEAD
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          [[ "$YNX_STAGE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$YNX_STAGE_MANIFEST_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          umask 077
+          mkdir -m 0700 "$RUNNER_TEMP/ynx-pq-stage-download"
+      - name: Download only this producer artifact by immutable ID
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ needs.focused-go.outputs.inputs-artifact-id }}
+          path: ${{ runner.temp }}/ynx-pq-stage-download
+          merge-multiple: true
+      - name: Verify all public bytes before any delivery caller runs
+        id: identity
+        env:
+          YNX_STAGE_MANIFEST_SHA256: ${{ needs.focused-go.outputs.inputs-manifest-sha256 }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -B scripts/ops/pq-ci-stage-inputs.py restore \
+            --root "$RUNNER_TEMP" --bundle "$RUNNER_TEMP/ynx-pq-stage-download" \
+            --commit "$GITHUB_SHA" --source-tree "$(git rev-parse HEAD^{tree})" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"
+      - name: Prepare same-source compiled contract inputs for delivery callers
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        env:
+          NODE_OPTIONS: --max-old-space-size=1536
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol
+          npm run contracts:selectors
+          git diff --exit-code -- artifacts
+          test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json
+          test -s artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
+          sha256sum contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json
+          sha256sum contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
+      # Keep the original Host stores, locks, source plan and normal publisher
+      # on this runner. None enters the inter-stage public artifact.
+      - name: Verify original Host source, live lifecycle and delivery persistence
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        env:
+          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
+        run: YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost' ./internal/consensus
+      - name: Verify normal Host source producer with original signed transaction fixture
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 2
+        env:
+          YNX_PQ_HOST_PUBLIC_FIXTURE: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
+        run: go test -p 1 -count=1 -timeout=90s -run '^TestProofHostFromOriginalSignedPublicFixture$' ./cmd/ynx-consensus-proof-verify
+      - name: Build and pin normal signer process binaries without running them
+        id: pqremotebuild
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha))) }}
+        timeout-minutes: 3
+        run: |
+          YNX_REMOTE_CASE="$RUNNER_TEMP/ynx-pq-remote-process-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          YNX_REMOTE_BUILD="$YNX_REMOTE_CASE.build"
+          export YNX_REMOTE_CASE YNX_REMOTE_BUILD
+          umask 077
+          mkdir "$YNX_REMOTE_BUILD"
+          printf '%s\n' "YNX_REMOTE_CASE=$YNX_REMOTE_CASE" "YNX_REMOTE_BUILD=$YNX_REMOTE_BUILD" >> "$GITHUB_ENV"
+          # Compilation is outside the fixed 75s + 15s process window.
+          go build -p 1 -trimpath -o "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer" ./cmd/ynx-consensus-pq-remote-signer
+          go test -p 1 -trimpath -c -o "$YNX_REMOTE_BUILD/consensus.test" ./internal/consensus
+          cp internal/consensus/pq_remote_process_test.go "$YNX_REMOTE_BUILD/pq_remote_process_test.go"
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ['YNX_REMOTE_BUILD']).resolve()
+          def pin(path):
+              with path.open('rb') as source:
+                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
+              return dict(bytes=path.stat().st_size, sha256=digest)
+          binaries = {name: pin(root / name) for name in
+              ('consensus.test', 'ynx-consensus-pq-remote-signer')}
+          source = dict(version='YNX-PQ-REMOTE-SIGNER-PROCESS-BUILD/v1',
+              commit=os.environ['GITHUB_SHA'], platform='linux/amd64',
+              sourceLeaves={'internal/consensus/pq_remote_process_test.go':
+                  pin(root / 'pq_remote_process_test.go')['sha256']}, binaries=binaries)
+          with (root / 'SOURCE.json').open('x') as target:
+              target.write(json.dumps(source, sort_keys=True, separators=(',', ':')) + '\n')
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              for name, value in (('YNX_REMOTE_MANIFEST_SHA', pin(root / 'SOURCE.json')['sha256']),
+                      ('YNX_REMOTE_TEST_SHA', binaries['consensus.test']['sha256']),
+                      ('YNX_REMOTE_DAEMON_SHA', binaries['ynx-consensus-pq-remote-signer']['sha256'])):
+                  target.write(name + '=' + value + '\n')
+          print('YNX_REMOTE_PROCESS_BUILD_PINS ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'],
+              manifestSHA256=pin(root / 'SOURCE.json')['sha256'], binaries=binaries,
+              sourceLeaves=source['sourceLeaves']), sort_keys=True, separators=(',', ':')))
+          PY
       - name: Checkout fixed repaired performance client
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -1925,7 +2071,7 @@ jobs:
           retention-days: 7
 
   proof-verifier-macos:
-    needs: focused-go
+    needs: protocol-delivery
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-24.04
     timeout-minutes: 6
@@ -1941,6 +2087,7 @@ jobs:
       - name: Checkout the same verified protocol source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Install the original pinned Go toolchain
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
