@@ -70,6 +70,15 @@ static napi_value PeerResponseValue(napi_env env,IDEIdentityPeerOwner*p,bool app
  else if(napi_get_null(env,&proof)!=napi_ok)return nullptr;
  if(napi_set_named_property(env,value,"proof",proof)!=napi_ok||napi_object_freeze(env,value)!=napi_ok)return nullptr;return value;
 }
+// DATA classification only. Source/request current and original proof verification
+// remain independent mandatory gates; cancellation never becomes rejection/grant.
+enum class PeerDecision{invalid,approve,reject,cancel};
+static PeerDecision PeerClassifyReturn(const Frame&frame,const unsigned char digest[32]){
+ if(frame.kind==Message::proof)return !frame.payload.empty()&&frame.payload.size()<=262144?PeerDecision::approve:PeerDecision::invalid;
+ if(frame.kind!=Message::reject&&frame.kind!=Message::cancel)return PeerDecision::invalid;
+ if(frame.payload.size()!=32||memcmp(frame.payload.data(),digest,32))return PeerDecision::invalid;
+ return frame.kind==Message::cancel?PeerDecision::cancel:PeerDecision::reject;
+}
 static void PeerComplete(napi_env env,napi_status status,void*raw){
  std::unique_ptr<PeerWork>w(static_cast<PeerWork*>(raw));auto*p=w->p;
  // Capture the returned bytes BEFORE ANY Source/current callback or cancel.
@@ -81,14 +90,13 @@ static void PeerComplete(napi_env env,napi_status status,void*raw){
   if(PeerCurrent(p)){
    if(w->sending)success=true;
    else{
-    auto&frame=p->selectedReturn;bool approved=frame.kind==Message::proof;
-    if((!approved&&frame.kind!=Message::reject)||(approved&&frame.payload.size()>262144))PeerFail(p,"AUTH_IDENTITY_PEER_RETURN_KIND_INVALID");
+    auto&frame=p->selectedReturn;
+    unsigned char digest[CC_SHA256_DIGEST_LENGTH];CC_SHA256(p->parent->expected.bytes,(CC_LONG)p->parent->expected.length,digest);
+    PeerDecision decision=PeerClassifyReturn(frame,digest);
+    if(decision==PeerDecision::cancel)PeerFail(p,"AUTH_IDENTITY_PEER_USER_CANCELLED");
+    else if(decision==PeerDecision::invalid)PeerFail(p,(frame.kind==Message::reject||frame.kind==Message::cancel)?"AUTH_IDENTITY_PEER_REJECT_CORRELATION_INVALID":"AUTH_IDENTITY_PEER_RETURN_KIND_INVALID");
     else{
-     unsigned char digest[CC_SHA256_DIGEST_LENGTH];CC_SHA256(p->parent->expected.bytes,(CC_LONG)p->parent->expected.length,digest);
-     if(!approved&&(frame.payload.size()!=sizeof(digest)||memcmp(frame.payload.data(),digest,sizeof(digest))))PeerFail(p,"AUTH_IDENTITY_PEER_REJECT_CORRELATION_INVALID");
-     else{
-      value=PeerResponseValue(env,p,approved);if(!value)PeerFail(p,"AUTH_IDENTITY_PEER_RETURN_ALLOC_UNKNOWN");else success=PeerCurrent(p);
-     }
+     value=PeerResponseValue(env,p,decision==PeerDecision::approve);if(!value)PeerFail(p,"AUTH_IDENTITY_PEER_RETURN_ALLOC_UNKNOWN");else success=PeerCurrent(p);
     }
    }
   }
