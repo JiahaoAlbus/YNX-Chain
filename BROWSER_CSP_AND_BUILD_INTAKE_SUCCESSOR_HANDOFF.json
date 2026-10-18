@@ -1,0 +1,30 @@
+{
+  "state": "SOURCE_CSP_AND_NORMAL_BUILT_ASSET_INTAKE_VERIFIED_NOT_PUBLISHED",
+  "baseCommit": "50e3f50c1c60539f92c2d82a8b52994ff29e605a",
+  "sourceCspDelta": "Remove unused wss://relay.walletconnect.com from connect-src; preserve exact SDK39 default Relay.org, Verify org/com, Pulse and both hidden verification frames, local scripts/QR. No global CSP changes.",
+  "endpointAuthority": {"path": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3i-20261018/SDK39_FIRSTPARTY_CSP_ENDPOINTS.json", "bytes": 3534, "sha256": "15f955e7a179a9ed4b5ac256314b621b55dea1ea68b596df19cc9431dae475b9", "all6SourcePinsVerified": true},
+  "sourceCspTests": {"before": "1FAIL/1PASS, extra Relay.com", "after": "2PASS/0FAIL,4.832208ms", "rawBefore": "apps/wallet-desktop/test/walletconnect-address-csp-before-20261018.raw", "rawAfter": "apps/wallet-desktop/test/walletconnect-address-csp-after-20261018.raw"},
+  "normalBuiltAssets": {
+    "handoff": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-sdk39-firstparty-browser-20261018/NORMAL_BROWSER_ASSETS_HANDOFF.json",
+    "bytes": 2783,
+    "sha256": "2e295d6620d088db6487fbee634916d19a7bedf1a179df726f141083adbde358",
+    "sourceCommit": "8cf79dd0f81c6a7c431adcb9b567daa0a88dfa91",
+    "all3AssetsAnd6DirectEvidenceRefsVerified": true,
+    "actualCallerModulesInMetafile": true,
+    "actualQrBrowserModuleInMetafile": true,
+    "AppQrLockClosurePackages": 29,
+    "AppQrNoAmbientFallback": true,
+    "SDKFull119EvidenceBytes": 1649113,
+    "normalBuildSeconds": 0.432851959,
+    "artifactFilesChangedByThisTask": false
+  },
+  "obsoleteFailureReconciliation": {
+    "oldError": "First stage omitted both actual App callers and its own declared qrcode closure",
+    "actualRecovery": "Original A supplied same-source callers and declared exact App-lock1.5.4 recursive QR closure, normal R3 build succeeded",
+    "provisionalSdkOnlyQrResolver": "Explored but not delivered; not required because App's declared qrcode1.5.4 is a legitimate normal dependency. Owning build script restored byte-for-byte to successful8cf source.",
+    "currentResolutionTests": "2PASS/0FAIL,22.682667ms: exact App lock1.5.4 local resolution plus real caller imports and no externalized browser dependency",
+    "raw": "apps/wallet-desktop/test/walletconnect-address-app-resolution-20261018.raw"
+  },
+  "delivery": "Reuse immutable connect-r3 assets with website owner's exact route-only HTTP CSP. Source meta-policy tightening is an additive future-source delta, not authority to overwrite R3 hashes or repeat JS bundling. Effective deployed CSP and actual network flow must be verified after normal A publication.",
+  "notClaimed": ["Published /connect/", "Actual browser Relay/permission acceptance", "New installed Mac or Android", "Any funds/signature/grant", "MONSTER or full Wallet completion"]
+}

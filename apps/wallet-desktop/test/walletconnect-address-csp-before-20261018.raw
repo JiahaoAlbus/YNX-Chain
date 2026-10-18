@@ -1,0 +1,40 @@
+✖ first-party connection page permits only exact SDK39 relay, verification and default event endpoints (1.070542ms)
+✔ connection policy retains local scripts, local QR images and no inline/eval/wildcard or external base (0.33475ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14.838375
+
+✖ failing tests:
+
+test at apps/wallet-desktop/test/walletconnect-address-csp.test.mjs:8:1
+✖ first-party connection page permits only exact SDK39 relay, verification and default event endpoints (1.070542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + Set(6) {
+  - Set(5) {
+      "'self'",
+      'https://pulse.walletconnect.org',
+      'https://verify.walletconnect.com',
+      'https://verify.walletconnect.org',
+  +   'wss://relay.walletconnect.com',
+      'wss://relay.walletconnect.org'
+    }
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/test/walletconnect-address-csp.test.mjs:9:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.start (node:internal/test_runner/test:1191:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [Set],
+    expected: [Set],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

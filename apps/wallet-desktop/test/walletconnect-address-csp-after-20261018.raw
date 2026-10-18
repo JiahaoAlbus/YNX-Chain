@@ -1,0 +1,10 @@
+✔ first-party connection page permits only exact SDK39 relay, verification and default event endpoints (0.436541ms)
+✔ connection policy retains local scripts, local QR images and no inline/eval/wildcard or external base (0.089875ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4.832208
