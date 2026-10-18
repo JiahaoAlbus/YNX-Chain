@@ -17,6 +17,10 @@ import (
 	"strings"
 )
 
+const readyIntentSegmentsName = "sender-ready-intents"
+
+func (s *readyIntentSegments) durableBytes() int64 { return s.report.Bytes }
+
 // One segment is one already-ready wave. Persist uses the existing exclusive
 // write/file-Sync/close/directory-Sync primitive used by terminal evidence.
 // This is signed-intent evidence, never a business-state store or retry queue.

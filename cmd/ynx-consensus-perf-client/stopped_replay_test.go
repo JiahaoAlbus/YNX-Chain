@@ -84,11 +84,7 @@ func TestStoppedNetworkReplay(t *testing.T) {
 		initial := txs
 		var readyInputs []cmttypes.Tx
 		if result.SenderMode == "ready-pool" {
-			data, err := readBounded(filepath.Join(work, "network", readySenderJournalName), 8<<20)
-			if err != nil {
-				t.Fatal(err)
-			}
-			recovered, err := decodeReadySenderJournal(context.Background(), data, manifestRaw, m, initial, result.RoundsRequested)
+			recovered, err := readReadySenderIntents(context.Background(), filepath.Join(work, "network"), manifestRaw, m, initial, result.RoundsRequested, result.ReadySenders.IntentSegments)
 			if err != nil || recovered.IncompleteTail || recovered.Records != len(result.Transactions) {
 				t.Fatal("incomplete ready sender identity journal", err)
 			}

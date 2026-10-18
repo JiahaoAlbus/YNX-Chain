@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	cmttypes "github.com/cometbft/cometbft/types"
@@ -141,4 +143,54 @@ func scanReadySenderJournal(ctx context.Context, input io.Reader, manifestRaw []
 		lastNonce[e.Sender] = tx.Nonce
 		out.Records++
 	}
+}
+
+// Select exactly the recorded input format. A missing/poisoned segment receipt
+// or mixed legacy+segment evidence never authorizes fallback or resubmission.
+func readReadySenderIntents(ctx context.Context, networkDir string, manifestRaw []byte, m consensus.EphemeralNetworkManifest, initial []cmttypes.Tx, rounds int, expected *readyIntentSegmentReport) (readySenderReadback, error) {
+	if rounds < 2 || rounds > 32 || len(initial) < 1 || len(initial)*rounds > maxTransactions {
+		return readySenderReadback{}, errors.New("bounded ready input readback plan")
+	}
+	legacy := filepath.Join(networkDir, readySenderJournalName)
+	segmented, err := filepath.Abs(filepath.Join(networkDir, readyIntentSegmentsName))
+	if err != nil {
+		return readySenderReadback{}, err
+	}
+	flatInfo, flatErr := os.Lstat(legacy)
+	_, segmentErr := os.Lstat(segmented)
+	if flatErr != nil && !os.IsNotExist(flatErr) {
+		return readySenderReadback{}, flatErr
+	}
+	if segmentErr != nil && !os.IsNotExist(segmentErr) {
+		return readySenderReadback{}, segmentErr
+	}
+	if expected == nil {
+		if segmentErr == nil {
+			return readySenderReadback{}, errors.New("segment receipt absent; preserve uncertain identities, no legacy fallback")
+		}
+		if flatErr != nil {
+			return readySenderReadback{}, flatErr
+		}
+		if !flatInfo.Mode().IsRegular() {
+			return readySenderReadback{}, errors.New("legacy intent file is not regular")
+		}
+		raw, err := readBounded(legacy, 8<<20)
+		if err != nil {
+			return readySenderReadback{}, err
+		}
+		return decodeReadySenderJournal(ctx, raw, manifestRaw, m, initial, rounds)
+	}
+	if flatErr == nil || expected.Directory != segmented || segmentErr != nil {
+		return readySenderReadback{}, errors.New("mixed or escaped signed-intent evidence")
+	}
+	out := readySenderReadback{Transactions: make([]cmttypes.Tx, len(initial)*rounds)}
+	stream, err := scanReadyIntentSegments(ctx, *expected, manifestRaw, m, initial, rounds, 8<<20, func(e readySenderEnvelope) error {
+		out.Transactions[e.Index] = append(cmttypes.Tx(nil), e.Transaction...)
+		return nil
+	})
+	if err != nil {
+		return readySenderReadback{}, err
+	}
+	out.Records, out.IncompleteTail = stream.Records, stream.IncompleteTail
+	return out, nil
 }

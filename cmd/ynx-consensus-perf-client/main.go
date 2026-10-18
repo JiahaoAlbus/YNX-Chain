@@ -49,6 +49,8 @@ type options struct {
 	terminalStream                 bool
 	terminalSink                   func(transactionResult) error
 	reuseResultSlots               bool
+	segmentedIntents               bool
+	intentPersistence              func(string, []byte) error
 }
 
 type transactionInput struct {
@@ -204,6 +206,7 @@ func main() {
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
+	flag.BoolVar(&o.segmentedIntents, "segmented-intents", false, "durable signed-input segments; requires ready-pool, terminal-stream and slot reuse; finite caps unchanged")
 	flag.BoolVar(&o.reuseResultSlots, "reuse-result-slots", false, "one result slot per sender with cumulative interval statistics; requires terminal-stream; finite caps unchanged")
 	flag.Parse()
 	if flag.NArg() != 0 {
@@ -234,6 +237,9 @@ func validateOptions(o options) error {
 	}
 	if o.reuseResultSlots && (!o.terminalStream || o.senderMode != "ready-pool") {
 		return errors.New("result slot reuse requires ready-pool and terminal-stream")
+	}
+	if o.segmentedIntents && !o.reuseResultSlots {
+		return errors.New("segmented intents require ready-pool, terminal-stream and result slot reuse")
 	}
 	if o.rounds < 0 || o.rounds > 32 || (o.rounds > 1 && o.output == "") {
 		return errors.New("rounds must be 1..32 and repeated runs require a new output file")
@@ -837,6 +843,9 @@ func execute(o options) error {
 		r.SchemaVersion = 12
 		r.RetentionMode = "latest_per_account_slots"
 		r.Interpretation = append(r.Interpretation, "Schema12 slot retention: transactions contains only the latest per-account slot. Every handed-back terminal result is in the segmented terminal stream. Summary stage counts are cumulative; exact point percentiles are withheld and bounded intervals are in readySenders.boundedSummary.latencyIntervalsNs. No lifetime block list or sustained TPS is inferred.")
+	}
+	if o.segmentedIntents {
+		r.Interpretation = append(r.Interpretation, "Signed-input waves use private hash-chained segments persisted before dispatch. readySenders.intentSegments binds their completed inventory. Failed or missing receipt evidence is never a resubmission authorization. Workload and byte caps are unchanged.")
 	}
 	runErr := func() error {
 		data, err := readBounded(o.manifest, 1024*1024)

@@ -53,6 +53,10 @@ func TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities(t *tes
 	if err != nil || decoded.Records != 6 || decoded.IncompleteTail {
 		t.Fatal("complete journal recovery failed", decoded, err)
 	}
+	selected, selectErr := readReadySenderIntents(context.Background(), p.root, manifest, m, initial, 2, nil)
+	if selectErr != nil || selected.Records != 6 || selected.IncompleteTail {
+		t.Fatal("legacy format selection failed", selected, selectErr)
+	}
 	streamRecords := 0
 	streamed, streamErr := scanReadySenderJournal(context.Background(), iotest.OneByteReader(bytes.NewReader(raw)), manifest, m, initial, terminalStreamRecordLimit/len(initial), int64(len(raw)), func(e readySenderEnvelope) error {
 		if !bytes.Equal(e.Transaction, decoded.Transactions[e.Index]) {

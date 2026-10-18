@@ -34,6 +34,15 @@ type readySenderJournalHeader struct {
 	GenesisHash    string `json:"genesisHash"`
 }
 
+type readyInputJournal interface {
+	append([]readySenderEnvelope) error
+	close() error
+	durableBytes() int64
+}
+
+func (j *readySenderJournal) close() error        { return j.file.Close() }
+func (j *readySenderJournal) durableBytes() int64 { return int64(j.bytes) }
+
 type readySenderJournal struct {
 	file interface {
 		io.Writer
@@ -167,15 +176,16 @@ type readySupplyStats struct {
 }
 
 type readySenderStats struct {
-	Supply          readySupplyStats       `json:"supply"`
-	Prepared        int                    `json:"prepared"`
-	Offered         int                    `json:"offered"`
-	Completed       int                    `json:"completed"`
-	Quarantined     int                    `json:"quarantinedAccounts"`
-	PeakInFlight    int                    `json:"peakInFlightAccounts"`
-	RoundsCompleted int                    `json:"roundsCompleted"`
-	Queues          pacedStatistics        `json:"queues"`
-	BoundedSummary  *readyCumulativeReport `json:"boundedSummary,omitempty"`
+	IntentSegments  *readyIntentSegmentReport `json:"intentSegments,omitempty"`
+	Supply          readySupplyStats          `json:"supply"`
+	Prepared        int                       `json:"prepared"`
+	Offered         int                       `json:"offered"`
+	Completed       int                       `json:"completed"`
+	Quarantined     int                       `json:"quarantinedAccounts"`
+	PeakInFlight    int                       `json:"peakInFlightAccounts"`
+	RoundsCompleted int                       `json:"roundsCompleted"`
+	Queues          pacedStatistics           `json:"queues"`
+	BoundedSummary  *readyCumulativeReport    `json:"boundedSummary,omitempty"`
 }
 
 // This controller alone signs/advances account state. Submitters and observers
@@ -225,13 +235,30 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		defer func() { stats.BoundedSummary = cumulative.snapshot(time.Since(started).Seconds()) }()
 	}
 	defer func() { p.stopped = true }()
+	if o.segmentedIntents && (!o.reuseResultSlots || o.terminalSink == nil) {
+		return stats, errors.New("segmented intents require slot retention and terminal evidence")
+	}
 	journalStarted := time.Now()
-	journal, err := newReadySenderJournal(p)
+	var journal readyInputJournal
+	var err error
+	if o.segmentedIntents {
+		var segmented *readyIntentSegments
+		segmented, err = newReadyIntentSegments(filepath.Join(p.root, readyIntentSegmentsName), p, senders*o.rounds, 8<<20)
+		if err == nil {
+			if o.intentPersistence != nil {
+				segmented.persist = o.intentPersistence
+			}
+			journal = segmented
+			stats.IntentSegments = &segmented.report
+		}
+	} else {
+		journal, err = newReadySenderJournal(p)
+	}
 	stats.Supply.JournalSetupNs = time.Since(journalStarted).Nanoseconds()
 	if err != nil {
 		return stats, err
 	}
-	defer func() { runErr = errors.Join(runErr, journal.file.Close()) }()
+	defer func() { runErr = errors.Join(runErr, journal.close()) }()
 	jobs := make(chan int, len(results))
 	type completion struct{ index, generation int }
 	terminal := make(chan completion, len(results))
@@ -381,13 +408,13 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		ready = ready[waveCount:]
 		if runErr == nil {
 			started := time.Now()
-			beforeBytes := journal.bytes
+			beforeBytes := journal.durableBytes()
 			runErr = journal.append(wave)
 			stats.Supply.JournalAppendAttempts++
 			stats.Supply.JournalAppendNs += time.Since(started).Nanoseconds()
 			if runErr == nil {
 				stats.Supply.JournalDurableEnvelopes += len(wave)
-				stats.Supply.JournalDurableBytes += journal.bytes - beforeBytes
+				stats.Supply.JournalDurableBytes += int(journal.durableBytes() - beforeBytes)
 			}
 		}
 		if runErr != nil {

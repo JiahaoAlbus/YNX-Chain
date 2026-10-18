@@ -25,8 +25,9 @@ submission, business execution or finality, and no identity is retried.
 
 ## Integration and verification status
 
-The helper and focused test sources are complete and formatted. They are NOT
-wired into live CLI/ready sender dispatch yet. The existing journal, driver
+The helper and focused test sources are complete and formatted. The subsequent integration adds an explicit `--segmented-intents` mode to the
+existing CLI/controller and both stopped readback paths. The existing journal remains
+the default. The driver
 2,048-input/32-nonce limits and launch resource caps remain unchanged. This new
 source is excluded from the fixed `45058e7f764529421870a5fc41264da86b9ab2a0`
 eight-function CI delivery. Do not infer that its tests have executed.
@@ -47,9 +48,9 @@ TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence
 TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding
 ```
 
-Next: actual Go validation, then wire the existing controller's pre-submit
-journal barrier and stopped readback to these same segments together. Only after
-that can larger nonce/funding plans be introduced under measured capacity. A
+Next: actual Go validation of both the standalone helper and controller/readback
+integration. Only after that can larger nonce/funding plans be introduced under
+measured capacity. A
 larger record constant alone does not enable a ten-minute test.
 
 ## Fixed source delivery for current CI
@@ -68,3 +69,43 @@ No production-tree merge, new workflow, N1 or network nodes is implied.
 leaf hashes, the source/base commit pins, the eight-function selector and the
 observed missing target package. This is source availability; actual Go terminal
 results remain pending the CI owner.
+
+## Controller/readback integration
+
+The explicit segmented mode requires ready-pool, terminal-stream and result-slot
+reuse. Both journal implementations satisfy one internal append/close/byte-count
+interface. The same existing pre-submit wave barrier waits for append success;
+no segment is deferred beyond dispatch. The default flat journal behavior and
+all actual workload/resource limits remain unchanged. The supply byte counter
+includes per-wave segment header bytes in this mode; the format is explicit in
+readySenders.intentSegments and comparisons must retain it.
+
+Completed and partial stopped readers use one recorded-format selector. It
+checks the fixed fixture-local directory, forbids mixed flat+segment evidence
+and refuses absent/poisoned/escaped segment receipts. There is no automatic
+fallback, resume or inferred unsubmitted status. If a process dies before it
+writes a usable segment receipt, the files remain uncertain and this full
+reader refuses them; a future prefix diagnostic must preserve that boundary.
+
+New Go source tests extend the existing actual signed-transfer/execution/durable
+restart test with the segmented barrier and exact input recovery. Another
+controller test injects a partial actual file write returning io.ErrShortWrite
+and requires zero dispatch/prepared/completed, zero successful intent bytes,
+a poisoned report and retained evidence. Format-selection tests reject missing,
+mixed, escaped and poisoned receipts; option validation refuses missing terminal
+or slot evidence. Legacy format selection is also exercised by the existing
+readback test. These Go tests remain unexecuted at this revision.
+
+Additional next focused selectors:
+
+```text
+TestReadySenderSegmentedIntentBarrierAndRecovery
+TestReadySenderSegmentedIntentFailureNeverSubmits
+TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts
+TestSegmentedIntentOptionsRequireBoundedEvidenceMode
+```
+
+The original frozen 45058e7 source and eight-function CI recipe stay unchanged.
+The production owner's phase API has been read for integration planning, but
+its new tests have not yet passed remotely; no new measured phase numbers or
+N1/N16/N64 runtime is claimed.

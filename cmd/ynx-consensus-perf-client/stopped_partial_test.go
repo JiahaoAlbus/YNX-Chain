@@ -80,8 +80,7 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	if !observationPresent {
 		rounds = receipt.Rounds
 	}
-	journalRaw := read(filepath.Join(work, "network", readySenderJournalName), nil)
-	recovered, err := decodeReadySenderJournal(context.Background(), journalRaw, manifestRaw, m, initial, rounds)
+	recovered, err := readReadySenderIntents(context.Background(), filepath.Join(work, "network"), manifestRaw, m, initial, rounds, observed.ReadySenders.IntentSegments)
 	if err != nil {
 		t.Fatal(err)
 	}

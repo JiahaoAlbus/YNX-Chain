@@ -35,7 +35,8 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 	t.Run("reused_slots", func(t *testing.T) { testReadySenderFastAccount(t, true) })
 }
 
-func testReadySenderFastAccount(t *testing.T, reuseSlots bool) {
+func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...bool) {
+	segmented := len(segmentOption) > 0 && segmentOption[0]
 	path, manifest, m, migration, initial := senderFixture(t)
 	p, err := loadSenderPool(path, manifest, m, migration, initial, 2)
 	if err != nil {
@@ -64,9 +65,24 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append, reuseResultSlots: reuseSlots}, p, txs, results,
+	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append, reuseResultSlots: reuseSlots, segmentedIntents: segmented}, p, txs, results,
 		func(index int) (time.Time, bool) {
-			data, readErr := os.ReadFile(filepath.Join(p.root, readySenderJournalName))
+			var data []byte
+			var readErr error
+			if segmented {
+				var entries []os.DirEntry
+				entries, readErr = os.ReadDir(filepath.Join(p.root, readyIntentSegmentsName))
+				for _, entry := range entries {
+					if readErr != nil {
+						break
+					}
+					var part []byte
+					part, readErr = os.ReadFile(filepath.Join(p.root, readyIntentSegmentsName, entry.Name()))
+					data = append(data, part...)
+				}
+			} else {
+				data, readErr = os.ReadFile(filepath.Join(p.root, readySenderJournalName))
+			}
 			if readErr != nil || !bytes.Contains(data, []byte(base64.StdEncoding.EncodeToString(txs[index]))) {
 				t.Error("dispatch without durable public input identity")
 			}
@@ -121,6 +137,17 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool) {
 	}
 	if stats.Supply.SignAttempts != 3 || stats.Supply.EncodeAttempts != 3 || stats.Supply.SignedSuccessors != 3 || stats.Supply.JournalDurableEnvelopes != 6 || stats.Supply.JournalAppendAttempts < 2 || stats.Supply.JournalDurableBytes <= 0 || stats.Supply.SignNs <= 0 || stats.Supply.EncodeNs <= 0 || stats.Supply.JournalAppendNs <= 0 || stats.Supply.JournalSetupNs <= 0 {
 		t.Fatalf("supply stages do not match actual signed/durable workload: %+v", stats.Supply)
+	}
+	if segmented {
+		recovered, readErr := readReadySenderIntents(context.Background(), p.root, manifest, m, initial, 2, stats.IntentSegments)
+		if readErr != nil || recovered.Records != 6 || recovered.IncompleteTail {
+			t.Fatal("controller segmented inputs did not recover", recovered, readErr)
+		}
+		for i := 0; i < 3; i++ {
+			if !bytes.Equal(recovered.Transactions[i], initial[i]) || !bytes.Equal(recovered.Transactions[i+3], p.pending[i]) {
+				t.Fatal("controller identity changed", i)
+			}
+		}
 	}
 	if err = stream.close(); err != nil || stream.report.DurableRecords != 6 {
 		t.Fatal("actual executed terminal evidence was not sealed", stream.report, err)
@@ -403,5 +430,35 @@ func TestReadySupplyRejectsUnknownBeforeSigning(t *testing.T) {
 	}
 	if supply != (readySupplyStats{}) || !bytes.Equal(before, p.pending[0]) {
 		t.Fatal("rejected predecessor mutated signing supply or pending identity", supply)
+	}
+}
+
+func TestReadySenderSegmentedIntentBarrierAndRecovery(t *testing.T) {
+	testReadySenderFastAccount(t, true, true)
+}
+
+func TestReadySenderSegmentedIntentFailureNeverSubmits(t *testing.T) {
+	p := terminalFixture(t)
+	results := readyResults(3)[:3]
+	txs := make([]cmttypes.Tx, 3)
+	var submitted atomic.Int64
+	var path string
+	stats, err := runReadySenderPool(context.Background(), options{rounds: 2, offeredRate: 2048, concurrency: 1, observers: 1, reuseResultSlots: true, segmentedIntents: true, terminalSink: func(transactionResult) error { return nil }, intentPersistence: func(name string, raw []byte) error {
+		path = name
+		if err := os.WriteFile(name, raw[:len(raw)/2], 0600); err != nil {
+			return err
+		}
+		return io.ErrShortWrite
+	}}, p, txs, results, func(int) (time.Time, bool) { submitted.Add(1); return time.Now(), true }, func(_ int, queue <-chan acceptedObservation, _ func(int)) {
+		for range queue {
+			t.Error("unpersisted input reached observer")
+		}
+	})
+	if err == nil || submitted.Load() != 0 || stats.Prepared != 0 || stats.Offered != 0 || stats.Completed != 0 || stats.Supply.JournalDurableEnvelopes != 0 || stats.Supply.JournalDurableBytes != 0 || stats.IntentSegments == nil || !stats.IntentSegments.Poisoned || !p.stopped {
+		t.Fatal("failed input persistence crossed dispatch barrier", stats, err)
+	}
+	raw, readErr := os.ReadFile(path)
+	if readErr != nil || len(raw) == 0 {
+		t.Fatal("failed input evidence lost", readErr)
 	}
 }

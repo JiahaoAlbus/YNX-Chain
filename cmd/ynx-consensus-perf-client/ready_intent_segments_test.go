@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
@@ -172,5 +173,64 @@ func TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding(t *testing.T) {
 				t.Fatal("invalid intent stream accepted", mode)
 			}
 		})
+	}
+}
+
+func TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts(t *testing.T) {
+	for _, mode := range []string{"valid", "missing_receipt", "mixed", "escaped", "poisoned"} {
+		t.Run(mode, func(t *testing.T) {
+			path, manifest, m, migration, initial := senderFixture(t)
+			p, err := loadSenderPool(path, manifest, m, migration, initial, 2)
+			if err != nil {
+				t.Fatal(err)
+			}
+			s, err := newReadyIntentSegments(filepath.Join(p.root, readyIntentSegmentsName), p, 6, 8<<20)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, wave := range intentWaves(t, p) {
+				if err := s.append(wave); err != nil {
+					t.Fatal(err)
+				}
+			}
+			receipt := s.report
+			expected := &receipt
+			switch mode {
+			case "missing_receipt":
+				expected = nil
+			case "mixed":
+				if err := os.WriteFile(filepath.Join(p.root, readySenderJournalName), []byte("retain ambiguous evidence\n"), 0600); err != nil {
+					t.Fatal(err)
+				}
+			case "escaped":
+				receipt.Directory = t.TempDir()
+			case "poisoned":
+				receipt.Poisoned = true
+			}
+			got, err := readReadySenderIntents(context.Background(), p.root, manifest, m, initial, 2, expected)
+			if mode == "valid" {
+				if err != nil || got.Records != 6 || got.IncompleteTail {
+					t.Fatal("complete recorded input format not recovered", got, err)
+				}
+			} else if err == nil || got.Records != 0 {
+				t.Fatal("ambiguous input format accepted", got, err)
+			}
+		})
+	}
+}
+
+func TestSegmentedIntentOptionsRequireBoundedEvidenceMode(t *testing.T) {
+	o := options{manifest: "manifest", transactions: "transactions", output: "new-output", concurrency: 1, observers: 4, rounds: 2, senderMode: "ready-pool", inclusionMode: "block-scan", offeredRate: 128, timeout: time.Second, poll: 100 * time.Millisecond, reuseResultSlots: true, terminalStream: true, segmentedIntents: true}
+	if err := validateOptions(o); err != nil {
+		t.Fatal(err)
+	}
+	o.reuseResultSlots = false
+	if validateOptions(o) == nil {
+		t.Fatal("segmented mode without slot/terminal recovery accepted")
+	}
+	o.reuseResultSlots = true
+	o.terminalStream = false
+	if validateOptions(o) == nil {
+		t.Fatal("segmented mode without terminal evidence accepted")
 	}
 }
