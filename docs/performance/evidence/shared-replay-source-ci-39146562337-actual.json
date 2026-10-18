@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "candidateSource": "488a7435a62531f524bf53f9cc7977730e1bb33e",
+  "internalTree": "cfbd76d52a6e22ebfae809699a37b6c039cb20f5",
+  "defaultEnabled": false,
+  "normalCI": {
+    "runId": 39146562337,
+    "event": "push",
+    "conclusion": "success"
+  },
+  "actualPassedTests": [
+    "TestDurableReaderSharesOnlyReplayCryptoFactsAcrossIndependentStores",
+    "TestSharedReplayCandidateConcurrentSameBytesJoinAndCancel",
+    "TestSharedReplayCandidateDeduplicatesExactBytesWithoutSharingMutableState",
+    "TestSharedReplayCandidateFailureCancellationAndBoundedRetention",
+    "TestSharedReplayCandidateOversizedCanonicalIsNotRetained",
+    "TestSharedReplayCandidatePublicationAndQuorumRemainRequired",
+    "TestSharedReplayCandidatePublicationAndQuorumRemainRequired/bad_quorum",
+    "TestSharedReplayCandidatePublicationAndQuorumRemainRequired/stale_info",
+    "TestSharedReplayCandidatePublicationAndQuorumRemainRequired/valid",
+    "TestSharedReplayCandidateRealFilesStillHashValidateAndCheckBusiness"
+  ],
+  "red": {
+    "runId": 39145953773,
+    "source": "70c0382214a64289ff46411e5b95cac96293cc2f",
+    "cause": "identical current-file content repeated full replay: calls=2 err=<nil>"
+  },
+  "intermediateFailure": {
+    "runId": 39146295519,
+    "source": "0d2a20e923730f6dccf2f9e77c1efaa255ab15cd",
+    "cause": "Test peer copied journal without original read lease file; lstat correctly refused. Fixed test peer using original writer and real signed execution, without runtime guard changes."
+  },
+  "pythonRefusalTests": 34,
+  "networkStarted": false,
+  "networkBeforeAfter": null,
+  "sustained1000TPSQualified": false,
+  "preparedPair": {
+    "executionAdmitted": false,
+    "executionAuthorized": false,
+    "originalCapsUnchanged": true,
+    "requiresWrapperIntegrationAndFreshRootGrant": true
+  },
+  "raw": {
+    "normal-ci39145953773-red.raw": {
+      "bytes": 495853,
+      "sha256": "d7a83bab4ee9bd4245f269f956d211e1c3c1f3c6ee67899bf3e85a387066513f"
+    },
+    "normal-ci39146295519.raw": {
+      "bytes": 499807,
+      "sha256": "a100923ae8bfc9f7bf135bdcdb5c862c60abbfe9e97dd16f4771181cf76e5667"
+    },
+    "normal-ci39146562337-actual.json": {
+      "bytes": 7923,
+      "sha256": "ca93b46b0cb11ab1758742679be6c634ee118143764cec92c84214314a2f564a"
+    },
+    "normal-ci39146562337-pass.raw": {
+      "bytes": 516927,
+      "sha256": "1ebcfb4edb870b711a86db10c57df815a22d293d38ef98a455012247a04ec776"
+    },
+    "prepared-pair.json": {
+      "bytes": 3145,
+      "sha256": "bf96409afb0afe873997f452ce556f6086bad5c7a7c3d8268adf0d61b0d03089"
+    },
+    "refusal-tests.raw": {
+      "bytes": 5025,
+      "sha256": "74694c3c1c59ea1e4265251af125556b066a9229cbff095d9e632d85802d1df4"
+    }
+  }
+}
