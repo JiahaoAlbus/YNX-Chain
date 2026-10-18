@@ -63,9 +63,19 @@ try:
  includes=[SOURCE/p for p in manifest['privateIncludes']]
  argv=[str(compiler),'-std=c11','-Wall','-Wextra','-Werror','-pthread',*flags,*[a for p in includes for a in ['-I',str(p)]],'-c',str(SOURCE/manifest['productionTU']),'-o',str(OUT/'ynx_source_server_resource_owner.o')]
  run('ACTUAL_FULL_PRODUCTION_TU_COMPILE',argv,45)
- save('OBJECT_READBACK.json',digest(OUT/'ynx_source_server_resource_owner.o'));state='FULL_PRODUCTION_TU_COMPILE_EXIT0_NOT_LINK_OR_TPM_RUNTIME'
+ save('OBJECT_READBACK.json',digest(OUT/'ynx_source_server_resource_owner.o'))
+ for row in manifest['newControls']['files']:
+  actual=digest(HERE/row['path']);assert actual['bytes']==row['bytes'] and actual['sha256']==row['sha256'],row
+ body=HERE/'controls/production-after-current.inc'
+ assert body.read_bytes() in (SOURCE/manifest['productionTU']).read_bytes(),'control body differs from actual complete production TU'
+ control=HERE/'controls/original-budget-current-control.c';binary=OUT/'original-budget-current-control'
+ run('R50_NEW_FIVE_CONTROL_COMPILE',[str(compiler),'-std=c11','-Wall','-Wextra','-Werror','-pthread','-DPRODUCTION_CURRENT="'+str(body)+'"',str(control),'-o',str(binary)],30)
+ text=run('R50_NEW_FIVE_CONTROL_RUN',[str(binary)],15)
+ assert 'physical_original_budget_new_controls=5 failed_assertions=0 real_resource_or_grant=false' in text,'new controls did not execute five cases'
+ save('R50_NEW_CONTROLS_READBACK.json',{'cases':5,'source':digest(control),'body':digest(body),'bodyVerbatimInWholeProductionTU':True,'binary':digest(binary),'noHardwareOrQualification':True})
+ state='R50_COMPLETE_PRODUCTION_TU_AND_FIVE_NEW_PUBLIC_BOUNDARY_CONTROLS_EXIT0_NOT_PLATFORM_LINK_OR_HARDWARE' 
 except BaseException as e:
  cause=repr(e);save('FIRST_FAILURE.json',{'firstCause':cause,'traceback':traceback.format_exc()})
 finally:
- save('RESULT.json',{'state':state,'firstCause':cause,'elapsedSeconds':time.monotonic()-start,'sourceManifest':digest(HERE/'SOURCE_INPUTS.json'),'commands':events,'fixtureCompiled':False,'linkedPlatform':False,'tpmExecuted':False,'rootQualified':False,'serverQualified':False,'issued':False})
+ save('RESULT.json',{'state':state,'firstCause':cause,'elapsedSeconds':time.monotonic()-start,'sourceManifest':digest(HERE/'SOURCE_INPUTS.json'),'commands':events,'fixtureCompiled':True,'productionTUFixtureSubstitution':False,'publicClockPlatformBoundaryControlsOnly':True,'linkedPlatform':False,'tpmExecuted':False,'rootQualified':False,'serverQualified':False,'issued':False})
 if cause:sys.exit(1)

@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "kind": "YNX_SOCIAL_R41_LINUX_CURRENT_FULL_PRODUCTION_TU_COMPILE_INPUTS",
+  "kind": "YNX_SOCIAL_R50_ORIGINAL_BUDGET_COMPLETE_PRODUCTION_TU_AND_FIVE_BOUNDARY_CONTROLS",
   "supplier": {
-    "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-window-r41a-20261018/GCC32_REPAIR_HANDOFF.json",
-    "bytes": 3278,
-    "sha256": "39d57d3234f58db62ae74c30937a280da1a6aeb5359d2fded8c1e57fd275dc6d"
+    "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-original-budget-latch-r50-20261018/HANDOFF.json",
+    "bytes": 5177,
+    "sha256": "392d8d5a9520e43ffa2d9a1023a9e66e06bd6688f97d4ead3dd475715593298e"
   },
   "directParent": {
     "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source12/native-source/protected-source/linux/ynx_source_server_resource_owner.c",
@@ -108,8 +108,8 @@
     },
     {
       "path": "protected-source/linux/ynx_source_server_resource_owner.c",
-      "bytes": 58000,
-      "sha256": "175f590eb14cc8f6f65eb70e7a427b715f44882693e9b79bbe8eba3f03b591eb"
+      "bytes": 58297,
+      "sha256": "63c11c16fb158748a8d4eec887611f6c218643fccbd456175b0957566eeb4164"
     },
     {
       "path": "protected-source/linux/ynx_source_server_resource_owner.h",
@@ -457,5 +457,21 @@
     "bytes": 3798,
     "sha256": "edf7926c37205d0f275dafb023f180474995850c6748d54c32a4c83b2c99b206"
   },
-  "repairOfActualFailedCI": 39103822342
+  "repairOfActualFailedCI": 39103822342,
+  "newControls": {
+    "cases": 5,
+    "scope": "real selected function verbatim with PUBLIC clock/platform seams; not hardware or qualified Source",
+    "files": [
+      {
+        "path": "controls/original-budget-current-control.c",
+        "bytes": 3894,
+        "sha256": "79663f9f37c33aeb50fbd53c46be7120df9f208dad5c308b9bf28b7bc46df927"
+      },
+      {
+        "path": "controls/production-after-current.inc",
+        "bytes": 2007,
+        "sha256": "b6ddfcec80a30274d1d4ce35b48cd8d4f62feda71f839149c9a5cd331b44c7dd"
+      }
+    ]
+  }
 }

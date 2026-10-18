@@ -45,13 +45,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Compile exact R37 production TU without hardware or services
+      - name: Compile exact R50 production TU and five new budget controls without hardware
         run: python3 scripts/ci/social-tpm-r41/compile.py "$RUNNER_TEMP/social-tpm-r41-result"
       - name: Preserve first cause and exact compiler/dependency/header manifests
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: social-current-r41-compile-${{ github.run_id }}-${{ github.run_attempt }}
+          name: social-current-r50-compile-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/social-tpm-r41-result/*.json
             ${{ runner.temp }}/social-tpm-r41-result/*.raw
