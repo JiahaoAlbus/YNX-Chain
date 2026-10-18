@@ -1,0 +1,128 @@
+{
+  "sourceCommit": "3a3644703202f589656a33860ee3ed2e7fa80c89",
+  "runId": 39109536868,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39109536868",
+  "artifactId": 12129439418,
+  "remoteArtifactBytes": 9429264,
+  "result": {
+    "applicationWallSeconds": 29.161062811,
+    "batchSize": 256,
+    "blocks": 122,
+    "businessTPS": null,
+    "commitStageTotalsNs": {
+      "close_file": 1092045,
+      "delta_encode": 19014256,
+      "file_sync": 85260487,
+      "journal_maintenance": 246261854,
+      "prepare_file": 4303785,
+      "validate": 4627813740,
+      "write": 20227401
+    },
+    "executedPersistedTransactions": 31232,
+    "finalityLatency": null,
+    "goVersion": "go1.25.14",
+    "gomaxprocs": 1,
+    "inclusionLatency": null,
+    "largeReadbackNs": 2338130758,
+    "maxRSSPlatform": "linux",
+    "maxRSSRaw": 224508,
+    "maxTransactions": 65536,
+    "numCPU": 4,
+    "platform": "linux/amd64",
+    "readbackEvidence": {
+      "Evidence": {
+        "Height": 123,
+        "AppHash": "16f9ff08097fefb45356105fa682074102e2f086dd6d607d5745ff7a6b9d5605",
+        "SnapshotSHA256": "1b383605e7a470bebf15bbca8d7bbbe2a4d10858f4b037d7f5da88d8f40876a1",
+        "SnapshotCacheHit": false,
+        "StoreSHA256": "ec8b55dfa976c4cfb96bf1721f1b7d78c4a18ee58f979ecde4165fcd07c2ab15",
+        "StoreFormat": "block-journal",
+        "JournalCompleteBytes": 16827930,
+        "JournalIncompleteTail": false
+      },
+      "Transactions": 256,
+      "ObservedAt": "2026-10-18T07:59:44.387979195Z"
+    },
+    "readbackStats": {
+      "attempts": 1,
+      "bytesHashed": 16827930,
+      "snapshotValidations": 1,
+      "snapshotCacheHits": 0,
+      "transactionVerifications": 256,
+      "blockJournalReplayedBlocks": 10,
+      "blockJournalReplayedTransactionInputs": 2560,
+      "readerBudget": {
+        "storeByteLimit": 67108864,
+        "cacheInputByteBudget": 67108864,
+        "cachedInputBytes": 16827930,
+        "evictions": 0
+      },
+      "blockJournalNativeVerificationFacts": {
+        "capacity": 4096,
+        "string_byte_limit": 4194304,
+        "entries": 2560,
+        "retained_string_bytes": 1830356,
+        "lookups": 2560,
+        "hits": 0,
+        "successful_verifications": 2560
+      }
+    },
+    "schema": 1,
+    "scope": "real_signed_application_pipeline_and_durable_readback_not_network_or_business_tps",
+    "stageTotalsNs": {
+      "application_commit": 5005764602,
+      "check_tx": 6135817764,
+      "finalize_block": 8672168610,
+      "prepare_proposal": 411908675,
+      "process_proposal": 399021469,
+      "sign_encode": 8422372183,
+      "signed_input_write_sync": 111195401
+    },
+    "stateSHA256": "1b383605e7a470bebf15bbca8d7bbbe2a4d10858f4b037d7f5da88d8f40876a1",
+    "storeBytes": 16827930,
+    "storeSHA256": "ec8b55dfa976c4cfb96bf1721f1b7d78c4a18ee58f979ecde4165fcd07c2ab15",
+    "testFailed": false,
+    "verifiedFeeEvents": 31232,
+    "verifiedSenders": 256,
+    "wallDeadlineSeconds": 210
+  },
+  "retainedFiles": {
+    "state.journal": {
+      "bytes": 16827930,
+      "sha256": "ec8b55dfa976c4cfb96bf1721f1b7d78c4a18ee58f979ecde4165fcd07c2ab15"
+    },
+    "result.json": {
+      "bytes": 2559,
+      "sha256": "b3d3f0b2d3ef5a36ea91066160e8eed35a4a35a1dc0713f333967076919f3013"
+    },
+    "signed-inputs.jsonl": {
+      "bytes": 17411596,
+      "sha256": "23159c6e277bfa5c84a875b87fcdc5caff01178e4dd51086da5ffc3f4c83bffc"
+    },
+    "migration.json": {
+      "bytes": 108269,
+      "sha256": "671c221e28acb2c434be77da6f18aefd4f5ed37228992b7306997d3d8b273cc8"
+    },
+    "state.journal.lock": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "state.journal.read.lock": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "rawLogSHA256": "b553102ea33f96c78c53c923dc89f83ef620c2629877b3e90dbb6ce6fdad30f6",
+  "limits": [
+    "single-process application only; no network inclusion or BFT finality",
+    "one cold readback; no measured warm readback in this source",
+    "31,232 real native signed transfers; no padding or synthetic fee events",
+    "stage totals overlap Commit subphases; do not add parent and child times",
+    "GOMEMLIMIT is a runtime target, not a kernel RSS cap"
+  ],
+  "interpretation": {
+    "commitValidationShare": 0.9244968766911266,
+    "commitFileSyncShare": 0.017032460329024477,
+    "next": "Separate cold decode/replay from hash/capture/index and fresh-byte warm readback before changing validation; retain all cryptographic and durable-state checks."
+  }
+}
