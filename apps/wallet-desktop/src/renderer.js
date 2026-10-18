@@ -11,6 +11,8 @@ import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
 import { projectTransactionResolution, projectPendingTransactions,projectPQOriginalObservation } from "./transaction-resolution-display.mjs";
 import {createPQTransferReviewUI} from './wallet-pq-transfer-ui.mjs';
 const pqTransferReviewUI=createPQTransferReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
+import {createPQTypedActionReviewUI} from './wallet-pq-typed-action-ui.mjs';
+const pqTypedActionReviewUI=createPQTypedActionReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQMigrationReviewUI} from './wallet-pq-migration-ui.mjs';
 const pqMigrationReviewUI=createPQMigrationReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQRevocationReviewUI} from './wallet-pq-revocation-ui.mjs';
@@ -1230,6 +1232,7 @@ function renderKeyState(state) {
   const previousKeyState=keyState;
   keyState = state;
   if(typeof pqTransferReviewUI!=='undefined')pqTransferReviewUI.render();
+  if(typeof pqTypedActionReviewUI!=='undefined'){if(securityChanged)pqTypedActionReviewUI.invalidate();else pqTypedActionReviewUI.render();}
   if(typeof pqMigrationReviewUI!=='undefined')pqMigrationReviewUI.render();
   if(typeof pqRevocationReviewUI!=='undefined'){if(securityChanged)pqRevocationReviewUI.invalidate();else pqRevocationReviewUI.render();}
   if(typeof pqKeyPreparationUI!=='undefined'){if(securityChanged)pqKeyPreparationUI.invalidate();else pqKeyPreparationUI.render();}
