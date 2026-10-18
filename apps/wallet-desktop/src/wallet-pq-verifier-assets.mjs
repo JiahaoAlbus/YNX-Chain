@@ -58,15 +58,22 @@ export async function preparePackagedPQVerifierInvocation(resourcesPath,independ
 export function createPackagedPQFinalityVerifier({app,independentReceipt=null}){
  // Normal factory has no injected spawn, filesystem, URL, clock or provider.
  // Its receipt is a private original-Main dependency, not a trust context.
+ let receipt=null;
+ if(independentReceipt!==null){
+  exact(independentReceipt,['sourceCommit','forkTree','manifest','bundled','sourceFile']);
+  if(independentReceipt.sourceCommit!==sourceCommit||independentReceipt.forkTree!==forkTree)fail('PQ_FINALITY_ASSET_INVALID');
+  receipt=Object.freeze({sourceCommit,forkTree,manifest:pin(independentReceipt.manifest,16384),bundled:pin(independentReceipt.bundled,64<<20),sourceFile:pin(independentReceipt.sourceFile,65536)});
+ }
  const kernel=new PQFinalityVerifierProcessKernel({prepare:async input=>{
   if(app?.isPackaged!==true||process.platform!=='darwin'||process.arch!=='arm64'||typeof process.resourcesPath!=='string')fail('PQ_FINALITY_PACKAGED_VERIFIER_UNAVAILABLE');
-  return preparePackagedPQVerifierInvocation(process.resourcesPath,independentReceipt,input);
+  return preparePackagedPQVerifierInvocation(process.resourcesPath,receipt,input);
  }});
  // Keep PUBLIC test seams off the actual Main caller. In particular the
  // packaged instance cannot have prepare/spawn replaced after construction.
  const caller=Object.freeze({
   run:input=>kernel.run(input).catch(cause=>{if(cause?.partial===kernel)cause.partial=caller;throw cause;}),
   snapshot:()=>kernel.snapshot(),retire:()=>kernel.retire(),
+  identity:()=>receipt,
   join:()=>kernel.join(),assertSafeToClose:()=>kernel.assertSafeToClose(),
  });
  return caller;

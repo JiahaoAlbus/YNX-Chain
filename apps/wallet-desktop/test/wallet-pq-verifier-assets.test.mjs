@@ -38,3 +38,8 @@ test('caller input mutation during filesystem waits cannot retarget the already 
 test('normal factory refuses an unpackaged caller with no process or alternate PATH/ENV fallback',async()=>{
  const caller=createPackagedPQFinalityVerifier({app:{isPackaged:false},independentReceipt:null});assert.equal(Object.isFrozen(caller),true);assert.equal(Object.hasOwn(caller,'prepare'),false);assert.equal(Object.hasOwn(caller,'spawn'),false);assert.throws(()=>{caller.spawn=()=>{throw Error('foreign spawn');};},TypeError);await assert.rejects(caller.run({}),e=>e.code==='PQ_FINALITY_VERIFIER_NOT_STARTED'&&e.cause.code==='PQ_FINALITY_PACKAGED_VERIFIER_UNAVAILABLE');assert.equal(caller.snapshot().lifecycle.started,false);await caller.join();caller.assertSafeToClose();
 });
+test('normal factory retains detached independent resource identity before any invocation',async t=>{
+ const f=await fixture(t),expected=JSON.parse(JSON.stringify(f.receipt)),caller=createPackagedPQFinalityVerifier({app:{isPackaged:false},independentReceipt:f.receipt});
+ f.receipt.bundled.sha256='0'.repeat(64);f.receipt.manifest.bytes=1;
+ assert.deepEqual(caller.identity(),expected);assert.equal(Object.isFrozen(caller.identity()),true);assert.equal(Object.isFrozen(caller.identity().bundled),true);
+});

@@ -1,6 +1,7 @@
 import {types} from 'node:util';
 import {exactData,readPQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
 import {parsePQTransferFinalityCollector} from './features/pq-transaction/finality-collector.mjs';
+import {readPQFinalityVerifierEvidence} from './wallet-pq-verifier-restore.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 // Original Main's read-only collector. Neither a 200 response, saved proof,
 // returned observation nor this controller can release or mutate an outbox.
@@ -46,10 +47,11 @@ export function createPQFinalityCollection({intentStore,networkId,evidence,trans
    return enter(hash,guard,async plan=>{
     const found=await evidence.candidates(plan.original,binding(plan));guard.assert();const records=[];
     for(const ref of found.candidates){
-     if(ref.kind!=='collector-http')continue;
+     if(ref.kind!=='collector-http'&&ref.kind!=='verifier-result')continue;
      let rawStored=false;
      try{
       const raw=await evidence.read(plan.original,binding(plan),ref);rawStored=true;
+      if(ref.kind==='verifier-result'){records.push(await readPQFinalityVerifierEvidence(plan.original,binding(plan),evidence,ref));guard.assert();continue;}
       const parsed=parsePQTransferFinalityCollector(plan.original,binding(plan),ref.httpStatus,raw);
       records.push(Object.freeze({...parsed.observation,hash:plan.original.hash,evidence:ref,rawStored:true,proofCollected:parsed.proof!==null,clearsOriginal:false,consensusFinality:false,independentFinality:false,canRetry:false}));
      }catch{records.push(Object.freeze({evidence:ref,rawStored,status:'evidence-unverified',clearsOriginal:false,consensusFinality:false,independentFinality:false,canRetry:false}));}
