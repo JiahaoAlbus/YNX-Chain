@@ -165,11 +165,16 @@ func newHeightHaltControl(config HeightHaltControl) (*heightHaltControl, error) 
 	if !heightHaltPrivate(info, true) {
 		return nil, errors.New("height halt parent must be an owned private 0700 directory")
 	}
-	if _, err := os.Lstat(config.Path); !errors.Is(err, os.ErrNotExist) {
-		if err != nil {
-			return nil, err
+	// A new process must not cross an unfinished or uncertain publication.
+	// This check belongs only to startup: a running poll must allow the normal
+	// publisher's transient private staging file before its atomic rename.
+	for _, suffix := range []string{"", ".partial", ".UNKNOWN", ".tmp"} {
+		if _, err := os.Lstat(config.Path + suffix); !errors.Is(err, os.ErrNotExist) {
+			if err != nil {
+				return nil, err
+			}
+			return nil, errors.New("height halt request or retained publication marker already exists; preserve it and use an independently approved new session/path")
 		}
-		return nil, errors.New("height halt request already exists; preserve it and use an independently approved new session/path")
 	}
 	return &heightHaltControl{config: config, parent: info, stop: make(chan struct{})}, nil
 }

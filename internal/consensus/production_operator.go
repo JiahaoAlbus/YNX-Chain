@@ -267,7 +267,7 @@ func validateProductionOperatorPlan(p ProductionOperatorPlan, m chain.ConsensusM
 				return errors.New("operator requires explicit original paths outside the fresh candidate installation")
 			}
 		}
-		if err := validateProductionOperatorHeightHalt(p, r); err != nil {
+		if err := validateProductionOperatorHeightHalt(&p, r); err != nil {
 			return err
 		}
 		if r.ABCIState == r.LegacyStatePath || r.LegacyKeyPath == r.NodeKeyPath || r.ABCIState == r.LegacyKeyPath || r.ABCIState == r.NodeKeyPath || r.LegacyStatePath == r.LegacyKeyPath || r.LegacyStatePath == r.NodeKeyPath {

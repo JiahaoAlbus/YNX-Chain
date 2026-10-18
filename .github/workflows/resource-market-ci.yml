@@ -242,6 +242,21 @@ jobs:
           cp third_party/cometbft/node/node.go "$YNX_DB_CASE/fixed-node.go"
           trap 'cp "$YNX_DB_CASE/fixed-node.go" third_party/cometbft/node/node.go' EXIT
           git show 359766879bdb1fa10114394c58ab287c5b8996ae:third_party/cometbft/node/node.go > "$YNX_DB_CASE/original-node.go"
+          # Retain the exact original and supply only the new optional field
+          # needed by separate current API leaves to compile against it. Nil
+          # never starts maintenance work; original close logic stays broken.
+          python3 -B - "$YNX_DB_CASE/original-node.go" <<'PY'
+          import pathlib, sys
+          source = pathlib.Path(sys.argv[1])
+          raw = source.read_bytes()
+          anchor = b'type Node struct {\n'
+          if raw.count(anchor) != 1 or b'heightHalt *heightHaltControl' in raw:
+              raise RuntimeError('unexpected frozen original node API')
+          with source.with_name('original-node-upstream.go').open('xb') as saved:
+              saved.write(raw)
+          field = b'\theightHalt *heightHaltControl // optional API only; nil in original DB regression\n'
+          source.write_bytes(raw.replace(anchor, anchor + field, 1))
+          PY
           cp "$YNX_DB_CASE/original-node.go" third_party/cometbft/node/node.go
           set +e
           go test -p 1 -count=1 -timeout=60s -run '^TestNodeOwnedDatabaseSameDirectoryReopen$' github.com/cometbft/cometbft/node > "$YNX_DB_CASE/original-red.log" 2>&1

@@ -3,6 +3,20 @@ set -Eeuo pipefail
 
 # Separate from first native import. The three explicit phases never initialize
 # an App, generate a key, approve a registration, undo HRS, or retry UNKNOWN.
+operator_transition_quiesce_all() {
+  local -a transition_pids=()
+  dispatch_operator_transition_async() { dispatch_operator_transition "$@" & transition_pids+=("$!"); }
+  local pid first_failure=0 status
+  for transition_action in prepare complete; do
+    transition_pids=()
+    ynx_ops_each_node dispatch_operator_transition_async
+    for pid in "${transition_pids[@]}"; do
+      if wait "$pid"; then :; else status="$?"; if [[ "$first_failure" == 0 ]]; then first_failure="$status"; fi; fi
+    done
+    if [[ "$first_failure" != 0 ]]; then echo "quiesce $transition_action has failed/UNKNOWN roles; preserve all freezes/requests/attempts without stop, resume or retry" >&2; return "$first_failure"; fi
+  done
+}
+
 operator_transition_driver() {
   [[ "$#" == 1 && ( "$1" == quiesce || "$1" == install || "$1" == start ) ]] || return 64
   local phase="$1" repo tx work approval approval_pin old_package old_pin next_package next_pin
@@ -87,40 +101,41 @@ PY
   if [[ "$phase" != quiesce ]]; then cp -R "$next_package" "$payload/new-package"; fi
   (set -o noclobber; tar -czf - -C "$payload" . >"$archive")
   archive_pin="$(operator_transition_sha "$archive")"; size="$(du -sk "$payload" | awk '{printf "%.0f\n", $1*1024}')"
+  local transition_action=run
   # Normal transport and original host-key verification remain in lib.sh.
   # Every remote destination is reserved before cat-based copy can write it.
   dispatch_operator_transition() {
     local role="$1" user="$2" host="$3" key="$4" _kind="$5"
     local remote_parent="/opt/ynx-chain/operator-transitions/$tx/$role" remote_stage
     remote_stage="$remote_parent/$phase"
-    local upload="$remote_stage/source.tar.gz" extracted="$remote_stage/source"
-    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; umask 077; sudo mkdir -p '$remote_parent'; sudo test \"\$(realpath -e '$remote_parent')\" = '$remote_parent'; free=\$(df -PB1 '$remote_parent' | awk 'NR==2 {print \$4}'); test \"\$free\" -gt '$((size * 2 + 1073741824))'; sudo mkdir -m 0700 '$remote_stage'; sudo chown \"\$(id -un)\" '$remote_stage'; (set -o noclobber; : > '$upload')" >"$phase_root/$role.reserve.txt"
-    ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$upload"
+    local upload="$remote_stage/source.tar.gz" extracted="$remote_stage/source" extract_command='' receipt="$role.result"
+    if [[ "$transition_action" == prepare ]]; then receipt="$role.prepared"; fi
+    if [[ "$transition_action" != complete ]]; then
+      ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; umask 077; sudo mkdir -p '$remote_parent'; sudo test \"\$(realpath -e '$remote_parent')\" = '$remote_parent'; free=\$(df -PB1 '$remote_parent' | awk 'NR==2 {print \$4}'); test \"\$free\" -gt '$((size * 2 + 1073741824))'; sudo mkdir -m 0700 '$remote_stage'; sudo chown \"\$(id -un)\" '$remote_stage'; (set -o noclobber; : > '$upload')" >"$phase_root/$role.reserve.txt"
+      ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$upload"
+      extract_command="sudo mkdir -m 0700 '$extracted'; sudo tar -xzf '$upload' -C '$extracted'; sudo chmod 0755 '$extracted/bin/ynx-comet' '$extracted/bin/ynx-consensus-package' '$extracted/bin/ynx-consensus-keycheck';"
+    fi
     # Mark dispatch before SSH: lost replies are UNKNOWN even if no remote
     # success receipt reached this host. No phase retries or automatic undo.
-    (set -o noclobber; printf '%s\n' "$archive_pin" >"$phase_root/$role.dispatched")
-    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; sudo mkdir -m 0700 '$extracted'; sudo tar -xzf '$upload' -C '$extracted'; sudo chmod 0755 '$extracted/bin/ynx-comet' '$extracted/bin/ynx-consensus-package' '$extracted/bin/ynx-consensus-keycheck'; sudo bash '$extracted/helper.sh' '$phase' '$tx' '$role' '$extracted' '$approval_pin' '$old_pin' '$old_commit' '$old_manifest' '$next_pin' '$commit' '$manifest' '$helper_pin' '$archive_pin' '$old_comet_pin' '$comet_pin' '$verifier_pin' '$keycheck_pin'" >"$phase_root/$role.result.partial" 2>"$phase_root/$role.error.txt"
-    python3 -B - "$phase_root/$role.binding.json" "$phase_root/$role.result.partial" <<'PY'
+    (set -o noclobber; printf '%s\n' "$archive_pin" >"$phase_root/$role.$transition_action.dispatched")
+    sync -f "$phase_root/$role.$transition_action.dispatched"; sync -f "$phase_root"
+    (set -o noclobber; ynx_ops_ssh "$role" "$user" "$host" "$key" "set -Eeuo pipefail; printf '%s  %s\\n' '$archive_pin' '$upload' | sha256sum --strict -c - >/dev/null; $extract_command sudo bash '$extracted/helper.sh' '$phase' '$tx' '$role' '$extracted' '$approval_pin' '$old_pin' '$old_commit' '$old_manifest' '$next_pin' '$commit' '$manifest' '$helper_pin' '$archive_pin' '$old_comet_pin' '$comet_pin' '$verifier_pin' '$keycheck_pin' '$transition_action'" >"$phase_root/$receipt.partial" 2>"$phase_root/$role.$transition_action.error.txt")
+    python3 -B - "$phase_root/$role.binding.json" "$phase_root/$receipt.partial" "$transition_action" <<'PY'
 import json,sys
-b,r=(json.load(open(p)) for p in sys.argv[1:]); assert r['version']=='YNX-OPERATOR-TRANSITION-RESULT/v1'
-for k in ('transitionId','phase','role','approvalSHA256','oldOperatorPlanSHA256','nextOperatorPlanSHA256','oldRuntimeCommit','oldRuntimeManifestSHA256','runtimeCommit','runtimeManifestSHA256'): assert b[k]==r[k]
-assert r['status']=={'quiesce':'stopped','install':'installed_not_started','start':'started_activation_unproven'}[b['phase']]
+b,r=(json.load(open(p)) for p in sys.argv[1:3]); assert r['version']=='YNX-OPERATOR-TRANSITION-RESULT/v1'
+for k in ('transitionId','phase','role','approvalSHA256','oldOperatorPlanSHA256','nextOperatorPlanSHA256','oldRuntimeCommit','oldRuntimeManifestSHA256','runtimeCommit','runtimeManifestSHA256','quiesceMode','heightHaltSessionId','futureTargetHeight'): assert b[k]==r[k]
+assert r['status']==('prepared_not_stopped' if sys.argv[3]=='prepare' else {'quiesce':'stopped','install':'installed_not_started','start':'started_activation_unproven'}[b['phase']])
+if sys.argv[3]=='prepare': assert r['checkpoint'] is None and r['backupSHA256'] is None
+elif b['phase']=='quiesce' and b['quiesceMode']=='height-halt': assert r['checkpoint']['height']==b['futureTargetHeight']
 assert r['originalMaterialRetained'] is True and r['pqActivationVerified'] is False and r['independentFinalityVerified'] is False
 PY
-    ln "$phase_root/$role.result.partial" "$phase_root/$role.result.json"
+    ln "$phase_root/$receipt.partial" "$phase_root/$receipt.json"
+    sync -f "$phase_root/$receipt.json"; sync -f "$phase_root"
   }
   if [[ "$phase" == quiesce ]]; then
-    # Sequential stops can leave the first node one block behind a remaining
-    # quorum. Dispatch the four normal stop callers together; still require
-    # exact equal DB checkpoints afterwards, never round a lagging height up.
-    local -a transition_pids=()
-    dispatch_operator_transition_async() { dispatch_operator_transition "$@" & transition_pids+=("$!"); }
-    ynx_ops_each_node dispatch_operator_transition_async
-    local pid first_failure=0 status
-    for pid in "${transition_pids[@]}"; do
-      if wait "$pid"; then :; else status="$?"; if [[ "$first_failure" == 0 ]]; then first_failure="$status"; fi; fi
-    done
-    if [[ "$first_failure" != 0 ]]; then echo 'quiesce has failed/UNKNOWN roles; preserve every original attempt without resume or retry' >&2; return "$first_failure"; fi
+    # No role publishes a halt request (or stops a legacy operator) until all
+    # four live original processes and independently approved freezes pass.
+    operator_transition_quiesce_all
     python3 -B - "$phase_root" <<'PY'
 import json,pathlib,sys
 p=pathlib.Path(sys.argv[1]); expected=None
