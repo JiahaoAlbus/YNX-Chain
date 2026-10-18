@@ -230,3 +230,15 @@ test('Commit production delta is pinned, exclusive and keeps original default bu
  assert.equal(p.requiredPasses.length,4);assert.ok(p.args.includes('./internal/consensus'));assert.equal(p.sourceCommit,'2706dcbd1ea0e85d19b041d5b3fdca25e17388ac');assert.equal(p.caps.activeMs,45000);assert.equal(p.caps.totalMs,60000);assert.equal(cachePhaseLimit('commit-phases-01'),20000);assert.equal(clientOwnedRSSCap(p,'commit-phases-01'),805306368);assert.deepEqual(lightProbeInput('/work','commit-phases-01'),lightProbeInput('/work','client13-normal-16'));
  assert.equal(lightCommand('/work',undefined,false,true).caps.activeMs,30000);
 });
+
+test('Commit phase reader rejects incomplete unknown and impossible real observed storage intervals',async()=>{
+ const {requireCommitStoragePhases}=await import('./consensus-light-plan.mjs');
+ const evidence=JSON.parse(fs.readFileSync(new URL('../../docs/performance/evidence/commit-phases01-actual-20261018.json',import.meta.url),'utf8'));
+ const output=rows=>rows.map(r=>'YNX_READY_SUPPLY_PHASE_V1 '+JSON.stringify(r)).join('\n')+'\nok  github.com/JiahaoAlbus/YNX-Chain/internal/consensus 0.585s\n';
+ const rows=evidence.actualSupplyPhases;assert.equal(requireCommitStoragePhases(output(rows)).length,3);
+ const missing=structuredClone(rows);delete missing[0].commitStagesNs.file_sync;assert.throws(()=>requireCommitStoragePhases(output(missing)));
+ const unknown=structuredClone(rows);unknown[0].commitStagesNs.estimated_sync=1;assert.throws(()=>requireCommitStoragePhases(output(unknown)));
+ const negative=structuredClone(rows);negative[0].commitStagesNs.directory_sync=-1;assert.throws(()=>requireCommitStoragePhases(output(negative)));
+ const impossible=structuredClone(rows);impossible[0].commitStagesNs.file_sync=impossible[0].commitNs+1;assert.throws(()=>requireCommitStoragePhases(output(impossible)));
+ assert.throws(()=>requireCommitStoragePhases(output(rows).replace('ok  github','not_run  github')));
+});
