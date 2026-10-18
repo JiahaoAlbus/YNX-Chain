@@ -47,6 +47,12 @@ export const PACKAGED_RELOCATION_RULES = Object.freeze([
 const escapeRE = text => text.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const repositoryOperand = /(?:from\s*|new\s+URL\s*\(\s*)["']\.\.\/\.\.\/\.\.\/(?:packages\/wallet-auth|apps\/wallet-desktop)\//;
 const packedRuntimePath = canonicalSourcePath;
+// Fixed original Native build-evidence inputs may be carried by the normal
+// builder. They are not runtime entrypoints; never allow arbitrary *.test.mjs.
+const NATIVE_BUILD_EVIDENCE_TESTS=Object.freeze([
+ 'packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs',
+ 'packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'
+]);
 
 // SDK production JS can live outside src (for example the R28 same-Host
 // publisher). Derive that closure from the selected commit's package files,
@@ -231,6 +237,9 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
   if(!lstatSync(localNative).isFile()||!lstatSync(localReceipt).isFile()||!nativeBytes.equals(readFileSync(localNative))||!nativeReceiptBytes.equals(readFileSync(localReceipt)))throw Error('Packaged native module or receipt differs from frozen build input');
   const nativeModuleBuild={...verifyCanonicalNativeReceipt(nativeReceipt,nativeBytes,nativeInputs,name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024})),receipt:{path:NATIVE_RECEIPT,bytes:nativeReceiptBytes.length,sha256:digest(nativeReceiptBytes)}};
+  // Include only the two closed names already in the independently validated
+  // Native source/receipt closure. Every packaged byte still matches Git.
+  const nativeBuildEvidenceAssets=NATIVE_BUILD_EVIDENCE_TESTS.filter(name=>nativeInputs.includes(name)&&nativeReceipt.inputFiles.some(row=>row.relative===name));
   // Matching src bytes are insufficient if package.json can select another
   // entrypoint or alter resolution. Release version remains separately bound
   // by the existing identity; these runtime fields must match source exactly.
@@ -250,7 +259,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const requiredRuntimeAssets = ["packages/wallet-auth/package.json", "packages/wallet-auth/product-session-registry.json"];
   const declaredSDKRuntimeAssets=declaredSDKRuntimeSources(root,expected.sourceCommit);
   const names = [...new Set([...git(root, "ls-tree", "-r", "--name-only", expected.sourceCommit, "apps/wallet-desktop/src", "packages/wallet-auth/src", ...requiredRuntimeAssets).split("\n"),...declaredSDKRuntimeAssets,
-    ...nativeInputs.filter(name=>name.startsWith('packages/wallet-auth/')&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs'))])];
+    ...nativeInputs.filter(name=>name.startsWith('packages/wallet-auth/')&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs')),...nativeBuildEvidenceAssets])];
   for (const name of requiredRuntimeAssets) {
     if (!names.includes(name)) throw new Error(`Required runtime asset is missing from the selected commit: ${name}`);
   }
@@ -266,7 +275,9 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     const source = execFileSync("git", ["show", `${expected.sourceCommit}:${name}`], { cwd: root, maxBuffer: 16 * 1024 * 1024 });
     // @electron/asar traverses its header with the host path separator.
     const packed = asar.extractFile(archive, path.normalize(packedName));
-    const emitted=relocateDesktopRuntimeSource(name,source).bytes;
+    // Evidence data is never interpreted as runtime or relocated. This exact
+    // closed subset can contain source-inspection operands in its test body.
+    const emitted=nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source).bytes;
     if (!emitted.equals(packed)) throw new Error(`Packaged source differs: ${name}`);
     verified.push({ path: packedName, bytes: packed.length, sha256: digest(packed) });
   }
@@ -276,7 +287,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     if(row.type!=="directory"&&(row.path.startsWith("code/apps/wallet-desktop/src/")||row.path.startsWith("code/packages/wallet-auth/src/")||additionalSDKRuntime)&&!allowed.has(row.path)) throw new Error(`Unlisted packaged runtime member: ${row.path}`);
   }
   return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
-    canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,declaredSDKRuntimeAssets,
+    canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,declaredSDKRuntimeAssets,nativeBuildEvidenceAssets,
     unavailableOptionalRuntimeAssets,
     sdkRuntimeDependenciesVerified:true,sdkRuntimeDependencies,
     staticPathRelocationVerified:true,staticPathRelocation:receipt.files,macAsarIntegrityVerified,

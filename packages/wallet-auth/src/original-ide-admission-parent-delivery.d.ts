@@ -24,6 +24,11 @@ export interface OriginalIDEPrivateServiceChannel {
   readonly original: OriginalIDEPrivateClientCleanup & {
     dispatch(canonicalInput: string): Promise<OriginalIDEPrivateServiceResponse>;
     acknowledge(operation: string, phase: string, requestId: string, responseDigest: string): void;
+    /** Once-only original Native terminal DATA. Never ACKs/adopts/clears UNKNOWN. */
+    readTerminalCustody(operation: string, phase: string, requestId: string): Readonly<{
+      proof: Readonly<{responseRaw:string;responseDigest:string;requestDigest:string;associationDigest:string;stateBeforeDigest:string;stateAfterDigest:string;stateFileDigest:string;enteredDigest:string;recordVersion:1|2|3;success:boolean}>;
+      response: OriginalIDEPrivateServiceResponse;
+    }>;
     selectCurrentOutcome(operation: string, phase: string, requestId: string): Readonly<{result: OriginalIDEPrivateServiceResponse | null; unknown: boolean; terminal: boolean}>;
   };
   readonly framer: {

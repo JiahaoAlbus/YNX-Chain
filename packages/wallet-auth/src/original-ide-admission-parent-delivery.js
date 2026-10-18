@@ -2,6 +2,7 @@ import {originalIDEServiceAdmissionStartupSelection} from '../scripts/original-i
 import {fileURLToPath} from 'node:url';
 import {resolve,dirname,join} from 'node:path';
 import {createRequire} from 'node:module';
+import {performance} from 'node:perf_hooks';
 const requireNative=createRequire(import.meta.url);
 let selectedParent=null;
 const fail=code=>{throw Object.assign(Error('Original private IDE parent admission is unavailable'),{code});};
@@ -67,15 +68,22 @@ function closeClient(s){
  });void s.closing.catch(()=>{});return s.closing;
 }
 function statusClient(s){return Object.freeze({ready:s.ready,retired:s.retired,unknown:s.captureEntered&&!s.owner||[...s.rows.values()].some(row=>row.unknown),retained:s.rows.size,firstCausePresent:s.firstCausePresent,cleanupFailurePresent:s.cleanupFailurePresent,cleanupComplete:s.cleanupComplete});}
+function clientResponseDeadline(row){
+ if(!row||performance.now()>=row.deadline)throw clientError('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN');
+}
+function queuedClientResponseDeadline(s,raw){
+ const frame=s.payload.parseOriginalIDEPrivatePayload(raw);
+ clientResponseDeadline(s.rows.get(frame.operation+':'+frame.phase+':'+frame.requestId));
+}
 function nextClientFrame(s){
  if(s.retired||s.firstCausePresent)return Promise.resolve(null);
  try{currentClient(s);}catch(cause){latchClient(s,cause);return Promise.reject(cause);}
- if(s.queue.length)return Promise.resolve(s.queue.shift());
+ if(s.queue.length){const raw=s.queue.shift();try{queuedClientResponseDeadline(s,raw);return Promise.resolve(raw);}catch(cause){latchClient(s,cause);return Promise.reject(cause);}}
  if(s.waiter)throw clientError('IDE_PRIVATE_WRITER_ALREADY_SELECTED');
  return new Promise(resolve=>{s.waiter={resolve};});
 }
 function queueClientFrame(s,raw){
- if(s.waiter){const waiter=s.waiter;try{currentClient(s);s.waiter=null;waiter.resolve(raw);}catch(cause){latchClient(s,cause);throw cause;}}else s.queue.push(raw);
+ if(s.waiter){const waiter=s.waiter;try{currentClient(s);queuedClientResponseDeadline(s,raw);s.waiter=null;waiter.resolve(raw);}catch(cause){latchClient(s,cause);throw cause;}}else s.queue.push(raw);
 }
 async function dispatchClient(s,raw){
  let row;
@@ -84,10 +92,10 @@ async function dispatchClient(s,raw){
   const frameRaw=s.payload.createOriginalIDEPrivateRequestFrame(s.bindingDigest,raw),frame=s.payload.parseOriginalIDEPrivatePayload(frameRaw),key=frame.operation+':'+frame.phase+':'+frame.requestId;
   if(s.rows.has(key)||s.rows.size>=64)throw clientError('ORIGINAL_PRIVATE_ALREADY_ENTERED');
   let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});void promise.catch(()=>{});
-  row={input:JSON.parse(raw),originalRaw:raw,requestDigest:frame.requestDigest,result:null,responseRaw:null,responseDigest:null,unknown:true,terminal:false,fulfilled:false,settled:false,resolve,reject,promise,timer:null};s.rows.set(key,row);
+  row={input:JSON.parse(raw),originalRaw:raw,requestDigest:frame.requestDigest,result:null,responseRaw:null,responseDigest:null,unknown:true,terminal:false,fulfilled:false,settled:false,resolve,reject,promise,timer:null,deadline:performance.now()+15000};s.rows.set(key,row);
   if(s.methods.admit(s.owner,row.input)!==undefined)throw clientError('IDE_PRIVATE_ADMISSION_INCOMPLETE');currentClient(s,frame.operation);
   row.timer=setTimeout(()=>{if(!row.settled)latchClient(s,clientError('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'));},15000);
-  queueClientFrame(s,frameRaw);return promise;
+  clientResponseDeadline(row);queueClientFrame(s,frameRaw);return promise;
  }catch(cause){latchClient(s,cause);throw cause;}
 }
 function receiveClientFrame(s,raw){
@@ -99,9 +107,9 @@ function receiveClientFrame(s,raw){
   if(frame.type==='failure')throw clientError(frame.errorCode);
   row.responseRaw=frame.responseRaw;row.responseDigest=frame.responseDigest;row.result=s.payload.parseOriginalIDEPrivateResponse(frame.responseRaw,frame.requestId);
   if(s.retired||s.firstCausePresent)throw s.firstCausePresent?s.firstCause:clientError('IDE_PRIVATE_RETIRED');
-  currentClient(s,frame.operation);
+  currentClient(s,frame.operation);clientResponseDeadline(row);
   if(s.methods.result(s.owner,frame.operation,frame.phase,frame.requestId,frame.responseRaw)!==undefined)throw clientError('IDE_PRIVATE_RESULT_CAPTURE_INCOMPLETE');
-  currentClient(s,frame.operation);row.fulfilled=true;
+  currentClient(s,frame.operation);clientResponseDeadline(row);row.fulfilled=true;
   if(!row.settled){row.settled=true;clearTimeout(row.timer);row.resolve(row.result);}return undefined;
  }catch(cause){latchClient(s,cause);throw cause;}
 }
@@ -119,10 +127,22 @@ function selectCurrentClientOutcome(s,operation,phase,requestId){
  try{currentClient(s,operation);if(!row)throw clientError('IDE_PRIVATE_OUTCOME_REQUIRED');const outcome=Object.freeze({result:row.result,unknown:row.unknown||s.firstCausePresent,terminal:row.terminal});currentClient(s,operation);return outcome;}
  catch(cause){if(row)row.unknown=true;latchClient(s,cause);throw cause;}
 }
+function readClientTerminalCustody(s,operation,phase,requestId){
+ const row=s.rows.get(operation+':'+phase+':'+requestId);
+ try{
+  currentClient(s,operation);
+  if(!row?.unknown||row.terminal||row.terminalReadSelected||typeof s.methods.readTerminal!=='function'||row.input.carrierVersion!=='YNX-PRODUCT-SESSION-PRIVATE/v4'||row.input.referenceAction!=='complete')throw clientError('IDE_PRIVATE_TERMINAL_CUSTODY_UNAVAILABLE');
+  row.terminalReadSelected=true; // Native entry selected once even on refusal.
+  row.originalTerminalCustodyProof=s.methods.readTerminal(s.owner,operation,phase,requestId); // Capture before validation/current.
+  const data=s.payload.captureOriginalIDEPrivateTerminalCustodyData(row.originalTerminalCustodyProof,row.originalRaw,s.owner.association,row.responseRaw);
+  currentClient(s,operation);row.terminalCustody=data;
+  return data; // DATA only; original/global UNKNOWN and ACK state unchanged.
+ }catch(cause){if(row)row.unknown=true;latchClient(s,cause);throw cause;}
+}
 function reserveClient(parent){
  const s={parent,owner:null,methods:null,captureEntered:false,ready:false,retired:false,firstCausePresent:false,firstCause:undefined,rows:new Map(),queue:[],waiter:null,payload:null,canonicalJSON:null,admission:null,bindingDigest:null,retireSelected:false,retireFailed:false,retireCause:undefined,joining:null,closing:null,cleanupComplete:false,cleanupFailurePresent:false,cleanupCause:undefined,promise:null};
  const cleanup=Object.freeze({retire(...cause){return retireClient(s,...cause);},join:()=>joinClient(s),close:()=>closeClient(s),status:()=>statusClient(s)});
- const original=Object.freeze({...cleanup,dispatch:raw=>dispatchClient(s,raw),acknowledge:(...args)=>acknowledgeClient(s,...args),selectCurrentOutcome:(...args)=>selectCurrentClientOutcome(s,...args)});
+ const original=Object.freeze({...cleanup,dispatch:raw=>dispatchClient(s,raw),acknowledge:(...args)=>acknowledgeClient(s,...args),selectCurrentOutcome:(...args)=>selectCurrentClientOutcome(s,...args),readTerminalCustody:(...args)=>readClientTerminalCustody(s,...args)});
  const framer=Object.freeze({nextOutboundFrame:()=>nextClientFrame(s),acceptInboundFrame:raw=>receiveClientFrame(s,raw),assertCurrent(){try{return currentClient(s);}catch(cause){latchClient(s,cause);throw cause;}},retireTransport(...cause){return retireClient(s,...cause);}});
  s.cleanup=cleanup;s.channel=Object.freeze({original,framer});return s;
 }
@@ -136,7 +156,7 @@ export async function acquireOriginalIDEPrivateServiceChannel(actualEntryURL){
   try{
    if(s.retired)throw clientError('IDE_PRIVATE_RETIRED');
    if(Object.values(clientNames).some(name=>typeof parent.native[name]!=='function'))throw clientError('IDE_PRIVATE_IMPLEMENTATION_NOT_SUPPLIED');
-   s.methods=Object.freeze(Object.fromEntries(Object.entries(clientNames).map(([key,name])=>[key,parent.native[name]])));
+   s.methods=Object.freeze({...Object.fromEntries(Object.entries(clientNames).map(([key,name])=>[key,parent.native[name]])),readTerminal:typeof parent.native.readOriginalNativePrivateServiceTerminalResult==='function'?parent.native.readOriginalNativePrivateServiceTerminalResult:null});
    s.captureEntered=true;s.owner=s.methods.capture(parent.binding); // Partial before ready.
    if(!s.owner||typeof s.owner!=='object'||s.methods.ready(s.owner)!==undefined)throw clientError('IDE_PRIVATE_NOT_READY');
    if(s.methods.borrow(s.owner)!==s.owner)throw clientError('IDE_PRIVATE_ORIGINAL_OWNER_REQUIRED');

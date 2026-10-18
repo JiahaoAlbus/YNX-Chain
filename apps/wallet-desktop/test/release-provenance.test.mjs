@@ -125,6 +125,19 @@ test('R3d canonical archive refuses changed custody codec with a freshly regener
  writeFileSync(path.join(f.stage,SDK_ALIAS,name),'export const FOREIGN_SOURCE=true;\n');f.rawPack();relocateDesktopPackage(f.resources,f.app);
  assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/Packaged source differs/);
 });
+test('actual Native receipt build-evidence test members are exact source-bound data, not generic test executables',t=>{
+ const names=['native/original-auth-identity-joint-owner.test.mjs','native/original-auth-identity-source-authority.test.mjs'];
+ const f=fixture(t,{extraSDKFiles:Object.fromEntries(names.map(name=>[name,"const PUBLIC_DATA=new URL('../../../apps/wallet-desktop/native/original-auth-identity-node.mm',import.meta.url);\n"]))});
+ relocateDesktopPackage(f.resources,f.app);const result=verifyDesktopPackage(f.resources,f.app);
+ assert.deepEqual(result.nativeBuildEvidenceAssets,names.map(name=>'packages/wallet-auth/'+name));
+ for(const name of names)assert.ok(result.files.some(row=>row.path==='code/packages/wallet-auth/'+name));
+ writeFileSync(path.join(f.stage,SDK_ALIAS,names[0]),'// FOREIGN receipt input\n');f.rawPack();relocateDesktopPackage(f.resources,f.app);
+ assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/Packaged source differs/);
+});
+test('a new Native test executable stays unlisted even if a fresh receipt pins its source',t=>{
+ const name='native/foreign-runtime.test.mjs',f=fixture(t,{extraSDKFiles:{[name]:'export const FOREIGN=true;\n'}});
+ relocateDesktopPackage(f.resources,f.app);assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/Unlisted packaged runtime member/);
+});
 test('canonical declared closure binds all six actual R28 sources plus normal daemon from frozen Git',()=>{
  const root=path.resolve(project,'../..'),commit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),names=declaredSDKRuntimeSources(root,commit);
  assert.equal(names.filter(name=>name.startsWith('packages/wallet-auth/native/publication-readonly-source-r28-20261018/source/')).length,6);

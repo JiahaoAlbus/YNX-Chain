@@ -5,6 +5,14 @@ the current unified policy before continuing or delegating work:
 `/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md`.
 The canonical root guidance is `/Users/huangjiahao/Desktop/YNX Chain/AGENTS.md`.
 
+Scope correction 2026-10-18: this is an execution policy, not authority to
+restart every product. Continue only Wallet and necessary original SDK/Auth,
+build/publishing/website-delivery dependencies, alongside the separately owned
+Social, IDE and Chain throughput/protocol lines. Media, Mail, Commerce,
+Finance/Card, AI, Cloud and Docs remain paused: preserve their existing work and
+services, without new development, tests, builds, GUI, publishing or routine
+inventory. Future tasks require a concrete authorized goal and scope.
+
 - Continue the complete authorized product goal; reproduce, repair and run
   affected regression tests when a failure appears. Do not stop at a report.
 - Keep independent source and light tests moving. Original A remains the sole
