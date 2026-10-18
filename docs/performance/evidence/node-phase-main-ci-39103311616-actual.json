@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "head": "95794caaecc665d6d8c14005fd5544d95986d6be",
+  "runID": 39103311616,
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39103311616",
+  "status": "completed",
+  "conclusion": "success",
+  "rawLog": "artifacts/chain-performance-20261017/ci-39103311616-full.log",
+  "rawLogSHA256": "301fb2bc8f81c7f2dd85d096b41e9545198b63b6d454c6fa5f8fd73acc7023c0",
+  "actualPhasePasses": [
+    "TestPhaseTimingRealSignedExecutionPreservesDurableState",
+    "TestPhaseTimingSinkFailureAndBoundsNeverPromoteValidEvidence",
+    "TestPhaseTimingShutdownWithActiveHandlerWithholdsValidity"
+  ],
+  "qualification": "Go real signed transfer correctness, exact durable bytes equal with diagnostics disabled/enabled, reopen state equal; this is not a four-node performance result.",
+  "latestDescendantPending": "76430cab726e2cb4340e5a650fdf3bc5b879658d / run39103401718"
+}
