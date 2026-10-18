@@ -1,0 +1,7 @@
+diff --git a/apps/wallet-desktop/test/pq-typed-action-transport.test.mjs b/apps/wallet-desktop/test/pq-typed-action-transport.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-typed-action-transport.test.mjs
+@@ -0,0 +1,2 @@
++// Apply only in the original Main's separately matched SDK332 successor.
++import '../src/features/pq-transaction/typed-action-transport-reader.test.mjs';

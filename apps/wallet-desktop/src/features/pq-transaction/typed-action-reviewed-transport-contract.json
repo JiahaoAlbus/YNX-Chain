@@ -1,0 +1,64 @@
+{
+  "kind": "PQ_REVIEWED_TYPED_TRANSPORT_ORIGINAL_COMPOSITION",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "baseline": {
+    "commit": "f160fb6c28b0909b78047480ec09aa5de7033860",
+    "tree": "9c5162eee6824e17737db5904986bd6f8897bdcc",
+    "existingTrackedFilesChanged": false,
+    "retainedReaders": ["371067e0 normal typed-action-caller", "f160fb6c transport-reader"]
+  },
+  "sdk": {
+    "version": "1.3.0-pq.3.32-auth.1",
+    "sourceCommit": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
+    "sourceTree": "891e6da1b704537071f375c56bd0c781bb937314",
+    "supplierH": "/Users/huangjiahao/.codex/worktrees/wallet-auth-native-actions/YNX Chain/.native-action-evidence/SDK332_PQ_ACTION_TRANSPORT_HANDOFF.json",
+    "supplierHBytes": 7617,
+    "supplierHSha256": "a62b34424e9cb4ad905a42a5773515b20da1a6fd16b8ca09190e6502d5eee3fb",
+    "archiveBytes": 1145117,
+    "archiveSha256": "9a6db386b7a9b3adcd6d2f11ebeee4987c78765e6ac6dbacbcccb205ccbf0ee0",
+    "runtimeManifestBytes": 65346,
+    "runtimeManifestSha256": "0abdc434eb6e7aacc4708127e413c686e10963f4744b730c74f3d4300f522d07",
+    "f160MatchingRuntimeEvidenceReused": "same sealed extracted package and normal isolated dependencies; f160 already compared 460 runtime files, no old test group rerun"
+  },
+  "export": "inspectPQReviewedTypedTransportOriginal(archivedReview:unknown,rawTransport:Uint8Array,original:PQReviewedTypedTransportOriginal):PQReviewedTypedTransportData",
+  "closedInput": {
+    "original": "exactly {reviewSnapshot:PQAuthorizationSnapshot,signingSnapshot:PQAuthorizationSnapshot,selectedBinding:{account:lower0x40,networkId:lowerhex64},memberHash:lower0x64,transportHash:lower0x64}; no additional fields, getters or proxies",
+    "review": "Existing serialized PQTypedActionReview from 371; all action/digest/owner/network/full pair/revision/review H/nonce and canonical metadata checked by its original reader",
+    "snapshots": "Both original Main-retained complete public policy DTOs are parsed by the original SDK after JSON recovery. The combination never parses or synthesizes snapshot DTOs and never replaces them with latest post-execution policy."
+  },
+  "closedResult": "{operationId,account,networkId,action,pair,requestDigest,policyRevision,reviewExecutionHeight,executionHeight,memberHash,transportHash,purpose:'TX-BATCH',memberCount:1,memberIndex:0,originalsCount:number,signatureVerified:true,classicWitnessValidationRequired:boolean,dataOnly:true,nativeAdmission:false,permissionGranted:false,submitted:false,canRetry:false,clearsOriginal:false,consensusFinality:false,body:Uint8Array,member:Uint8Array,originals:readonly Uint8Array[]}",
+  "errors": "PQ_REVIEWED_TRANSPORT_ORIGINAL_INVALID for non-closed options; PQ_REVIEWED_TRANSPORT_BINDING_MISMATCH for contradictory callee observations; original 371/f160/SDK Error.code propagates. Errors cannot delete custody, reset entered or authorize retries.",
+  "composition": [
+    "Validate the exact five original fields and exact two selectedBinding fields without executing accessors.",
+    "Call f160 inspectPQTypedActionTransportOriginal(signingSnapshot,rawTransport,{account,networkId,memberHash,transportHash}). It copies original bytes, checks transportHash BEFORE decoding, checks memberHash, and uses original SDK semantic/policy/full dual-AND validation.",
+    "Call 371 inspectPQTypedActionMember(archivedReview,transport.member,{reviewSnapshot,signingSnapshot,selectedBinding}). It validates original policy continuity and complete review/action/digest/pair/H/nonce binding, retaining the local N1/index0 contract.",
+    "Return only after both real callees succeed. Both do their existing signature verification; no new parser/verifier or optimization bypass is introduced.",
+    "Operation ID comes from validated member DATA. It remains original Main journal metadata, not a cryptographically Member-signed claim.",
+    "The validated review snapshot supplies reviewExecutionHeight, while executionHeight is the original signing snapshot height. Both remain canonical strings without Number conversion.",
+    "Explicit fresh-copy getters delegate body/member/originals to f160; never spread its byte getters into persistent mutable properties. Classic raw bytes remain exact, and nonempty classicWitnessValidationRequired remains true."
+  ],
+  "mainIntegration": [
+    "Main owns original raw transport/member retention, both hashes, the review, both complete original snapshots, private journal, query scheduling and the only custody/review/send path.",
+    "After restoring its own original JSON record, Main parses both retained public snapshot DTOs using the original SDK and calls this export with its original review, raw transport and strict five-field options.",
+    "Use returned operationId, memberHash, transportHash and public DATA for Main's existing original journal query/display. The function performs no journal mutation, network request, send, approval, key access, native call or UNKNOWN replay.",
+    "This normal composed reader refuses N2/index1. The f160 generic N2 public fixture remains a separate DATA interoperability observation, not local signer acceptance.",
+    "A latest execution reply with consumed nonce cannot substitute the original signing snapshot. If original inputs are missing, preserve the original and remain unavailable; do not decrement nonce/H or invent policy history.",
+    "Apply typed-action-reviewed-transport-ci.patch to Main's original test/*.test.mjs entry only in its matching SDK332 successor. Patch is supplied but not applied outside this owned leaf.",
+    "All original Go classic witness canonical/history/ECDSA checks and contract_deploy compiler material requirements remain in their owning layers."
+  ],
+  "validation": {
+    "newFocusedTests": 9,
+    "actualColdChildJSONReviewAndSnapshots": true,
+    "actualEphemeralNormalSDKSignPerRun": 1,
+    "ephemeralHandleDestroyedAfterRun": true,
+    "actualDualANDMath": true,
+    "independentSigmaAAndSigmaBNegativeControls": true,
+    "initial": "7 pass / 1 fail: test expected a math error for a malformed N1 proof; actual original codec correctly rejected field count",
+    "correction": "Keep exact malformed-proof ERR_YNX_BATCH rejection and separately corrupt each full signature using the original codec; both reject with PQ_REGISTERED_MEMBER_SIGNATURE_INVALID. No production validation was relaxed.",
+    "oldTyped7OriginalRead10Transport9Mobile25AndSDKGroupsRerun": false,
+    "actualWalletKeysOrApproval": false,
+    "NativeOrGUIOrNetworkOrBuild": false
+  },
+  "status": "composed normal original-reader source and matching SDK332 focused validation; Main integration, App/Native package, installed authorization and real-user flow remain separate"
+}

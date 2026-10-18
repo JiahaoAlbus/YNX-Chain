@@ -1,0 +1,88 @@
+{
+  "kind": "PQ_TYPED_ACTION_TRANSPORT_ORIGINAL_READ_CONTRACT",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "parent": {
+    "commit": "371067e045e8a94e018a129aee2e6579af5b144e",
+    "tree": "50f72effcd47029f3a0301eb4802a3180763f502",
+    "existingTrackedFilesChanged": false,
+    "normalSignerCoordinates": "N1/index0 unchanged"
+  },
+  "sdk": {
+    "version": "1.3.0-pq.3.32-auth.1",
+    "apiIntroducedCommit": "ca79c28a3bc84a69ec5f9c363f0a2b44fd84e1fd",
+    "apiIntroducedTree": "e461f8a05ffcd28884a3b45b09495ae1742a2473",
+    "parent": "688e2f6289b886bcfe50e71d0584d8d8279241fd",
+    "supplierCommit": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
+    "supplierTree": "891e6da1b704537071f375c56bd0c781bb937314",
+    "supplierHBytes": 7617,
+    "supplierHSha256": "a62b34424e9cb4ad905a42a5773515b20da1a6fd16b8ca09190e6502d5eee3fb",
+    "archiveBytes": 1145117,
+    "archiveSha256": "9a6db386b7a9b3adcd6d2f11ebeee4987c78765e6ac6dbacbcccb205ccbf0ee0",
+    "runtimeManifestBytes": 65346,
+    "runtimeManifestSha256": "0abdc434eb6e7aacc4708127e413c686e10963f4744b730c74f3d4300f522d07",
+    "actualConsumerRuntimeFilesCompared": 460,
+    "compatiblePackageClosure": "Final repaired SDK332 archive and all 460 runtime files read back and pinned in this consumer; the new nine consumer tests and strict types pass against this package. Supplier's original 280 packed-file Git comparison and CI evidence are reused, not reexecuted here.",
+    "imports": [
+      "@ynx-chain/wallet-auth/pq-action-transport::PQ_ACTION_TRANSPORT_MAX_BYTES,decodePQActionTransportData",
+      "@ynx-chain/wallet-auth/pq-action-transport-node::preparePQNativeActionTransportData"
+    ],
+    "otherRuntimeImports": ["node:crypto", "node:util"],
+    "platform": "Main-only Node/Electron consumer; not an RN/browser/Android Native implementation"
+  },
+  "export": "inspectPQTypedActionTransportOriginal(snapshot:PQAuthorizationSnapshot,raw:Uint8Array,expected:{account,networkId,memberHash,transportHash}):PQTypedTransportOriginalData",
+  "closedShapes": {
+    "expected": "{account:lower0x40,networkId:lowerhex64,memberHash:lower0x64,transportHash:lower0x64}; all four are required original custody/selected binding DATA, not an approval",
+    "result": "{account,networkId,memberHash,transportHash,action:PQNativeAction,keyVersion,executionHeight,purpose,memberCount:number,memberIndex:number,originalsCount:number,signatureVerified:true,classicWitnessValidationRequired:boolean,dataOnly:true,nativeAdmission:false,permissionGranted:false,submitted:false,canRetry:false,clearsOriginal:false,consensusFinality:false,body:Uint8Array,member:Uint8Array,originals:readonly Uint8Array[]}",
+    "bytes": "result body/member/originals getters return fresh detached copies; classic bytes are never parsed and re-encoded through JS Number",
+    "localErrors": "PQ_TYPED_TRANSPORT_{BYTES_INVALID|BINDING_INVALID|HASH_MISMATCH|BINDING_MISMATCH|BYTES_MISMATCH}; original SDK Error.code propagates. No failure mutates retained bytes, retries or clears custody."
+  },
+  "normalCallerUse": [
+    "Main has already captured exact original transport and both hashes in its original custody. This observer consumes those bytes; it sends no HTTP requests and creates no journal or receipt.",
+    "Supply the complete original signing snapshot already retained by Main and re-parsed using the original SDK. Never derive pre-sign nonce/H from an executed transaction, a latest policy response, Member certificate or an API failure.",
+    "Main must independently retain trustworthy source/current policy and original permissions. A branded parsed snapshot is DATA, not Source authentication or consent.",
+    "This generic original-transport observation preserves SDK N/index, including fixed public N2/index1 interop. It does not replace inspectPQTypedActionMember for locally signed N1/index0 output or create a live review in its WeakMap.",
+    "Nonempty classic originals retain classicWitnessValidationRequired:true. The original Go/Native executor still owns canonical classic semantics, ECDSA, historical fees, ordering and complete staking history. PQ signatureVerified never clears this requirement.",
+    "Existing SDK grammar alone handles exact three/four fields and empty-originals omission. The caller contains no envelope parser, action codec, signer or new endpoint.",
+    "Apply typed-action-transport-ci-integration.patch to the original Main test/*.test.mjs directory only in the matching repaired SDK332 successor. This remains a proposal until Main integrates it."
+  ],
+  "publicFixture": {
+    "protocolCommit": "fd8b8dcf7dda9823a439db04b1e33e2375014568",
+    "sourceBytes": 3022392,
+    "sourceSha256": "6243aaecb56f4c0c78efeaf7b5ba1143ca4b9d60417ba7694dff5c179e300aea",
+    "memberBytes": 57979,
+    "transportBytes": 116764,
+    "nativeTransactionHash": "0x529707c25533f695dc7800c976344858685aa8c3868f3f3d5284daa373439f87",
+    "abciTransactionHash": "0xf369ab6394cdfa2a7a96ab1b9a98e0adb83ff52ea7ab91a6d12ee413c9e6c8ae",
+    "memberCount": 2,
+    "memberIndex": 1,
+    "postExecutionPolicy": "The actual supplied authorization replies are H5/nonce3. They are not suitable for pre-sign planning of nonce3.",
+    "controlledTestSnapshot": "The explicit H4/nonce2 fixture is controlled test DATA using supplied public policy fields, not an authenticated historical Source or an actual retained Main signing snapshot.",
+    "syntheticOnly": true,
+    "actualCometNode": false,
+    "independentFinality": false,
+    "nativeGrant": false
+  },
+  "validation": {
+    "newConsumerTests": 9,
+    "sourcePass": 9,
+    "sourceFail": 0,
+    "sourceSkip": 0,
+    "matchingFinalPackagePass": 9,
+    "matchingFinalPackageFail": 0,
+    "matchingFinalPackageSkip": 0,
+    "strictTypecheckExit": 0,
+    "ciPatchCheckExit": 0,
+    "oldTypedSevenRerun": false,
+    "oldOriginalReadTenRerun": false,
+    "oldMobileTwentyFiveRerun": false,
+    "sdkFiveRerun": false,
+    "signerInvoked": false,
+    "actualSDKDualSignatureMath": true,
+    "NativeOrGUIOrBuild": false,
+    "network": false,
+    "consumerOrderRedFixed": "Known original transportHash is checked before any SDK envelope decode; unrelated malformed bytes now fail hash identity before parse/allocation. Real targeted RED retained.",
+    "SDKDisclosure": "ca79 portable bytes buffer flags invoked caller-owned getters twice in a focused new reproduction. Original SDK owner repaired intrinsic capture and oversized-originals allocation; final supplier 34b00c43 contains both fixes. Consumer independently copies through intrinsic getters before handing bytes to SDK.",
+    "fixtureBoundAdjustment": "Opaque unvalidated classic witness negative control exceeds the repaired SDK's conservative 128-byte floor; its bytes still require Go validation and are never parsed through JS Number."
+  },
+  "status": "minimal readonly consumer verified against matching final SDK332 package; Main production integration, installed flow and deployment pending"
+}

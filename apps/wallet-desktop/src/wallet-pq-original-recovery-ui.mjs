@@ -1,6 +1,6 @@
 /** Explicit recovery of an existing signed result; never signing or transport. */
 export function appendPQOriginalRecoveryActions({row,record,api,getKeyState,isCurrent,onResult,onRefresh,document:doc=document}){
- if(record.status!=='pq-save-unconfirmed'||!['pq-transfer','pq-migration','pq-revocation'].includes(record.kind))return;
+ if(record.status!=='pq-save-unconfirmed'||!['pq-transfer','pq-migration','pq-revocation','pq-typed-action'].includes(record.kind))return;
  let busy=false;
  for(const readOnly of [false,true]){
   const button=doc.createElement('button');button.type='button';button.disabled=getKeyState().locked;

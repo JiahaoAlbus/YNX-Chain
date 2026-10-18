@@ -23,6 +23,8 @@ export class TransactionSubmissions {
     guard.assert();
     return this.#exclusive(account, async () => {
       guard.assert();
+      const typed=await this.intentStore?.inspectPQTypedOriginal?.(account,hash,()=>guard.assert());
+      guard.assert();if(typed)return typed;
       if (typeof this.intentStore?.readPQOriginals !== 'function' || typeof this.pqReadOriginal !== 'function') throw failure('PQ_READ_SOURCE_UNAVAILABLE', 'The fixed PQ producer read channel is not available. Preserve the original.');
       const originals = await this.intentStore.readPQOriginals(account, () => guard.assert());
       guard.assert();

@@ -1,0 +1,277 @@
+{
+  "source": "SDK331 Go codec public inputs; source SHA256 1aa661eab331054cf249e2a8ca5c121cada9e879f80194efc10e1d44bc3375d2",
+  "adaptation": "Wallet nativeChainId6423 and planner executor fees; decimal payload values preserved. No signed or private data.",
+  "rows": [
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "0",
+      "kind": "stake",
+      "payload": {
+        "amount": "9007199254740995"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "0",
+      "kind": "resource_delegation_create",
+      "payload": {
+        "amountYNXT": "9007199254740995",
+        "beneficiary": "0xabcdef1234567890abcdef1234567890abcdef12",
+        "idempotencyKey": "delegate-key",
+        "policyHash": "abababababababababababababababababababababababababababababababab",
+        "provider": "0x1234567890abcdef1234567890abcdef12345678",
+        "requestHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "0",
+      "kind": "resource_rental_create",
+      "payload": {
+        "address": "0x1234567890abcdef1234567890abcdef12345678",
+        "aiCredits": "3",
+        "bandwidth": "9007199254740995",
+        "compute": "2",
+        "idempotencyKey": "rental-key",
+        "maxPriceYNXT": "9007199254740997",
+        "policyHash": "abababababababababababababababababababababababababababababababab",
+        "provider": "ynx_protocol_resource_pool",
+        "quoteExpiresAt": "2030-01-02T03:04:05.123456789Z",
+        "quoteID": "0123456789abcdef01234567",
+        "requestHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "trustCredits": "4"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "dex_asset_create",
+      "payload": {
+        "assetID": "asset-test",
+        "decimals": 18,
+        "initialSupply": "9007199254740995",
+        "maxSupply": "9223372036854775807",
+        "name": "Test 资产",
+        "symbol": "TEST"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "dex_asset_mint",
+      "payload": {
+        "amount": "9007199254740995",
+        "assetID": "asset-test"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "dex_asset_transfer",
+      "payload": {
+        "amount": "9007199254740995",
+        "assetID": "asset-test",
+        "recipient": "0xabcdef1234567890abcdef1234567890abcdef12"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "dex_pool_create",
+      "payload": {
+        "asset0": "YNXT",
+        "asset1": "asset-test",
+        "feeBps": 1000,
+        "poolID": "dex_test"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "dex_liquidity_add",
+      "payload": {
+        "amount0": "9007199254740995",
+        "amount1": "2",
+        "deadlineUnix": "1893456000",
+        "minShares": "3",
+        "poolID": "dex_test"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "dex_liquidity_remove",
+      "payload": {
+        "deadlineUnix": "1893456000",
+        "minAmount0": "2",
+        "minAmount1": "3",
+        "poolID": "dex_test",
+        "shares": "9007199254740995"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "dex_swap_exact_input",
+      "payload": {
+        "amountIn": "9007199254740995",
+        "assetIn": "YNXT",
+        "deadlineUnix": "1893456000",
+        "minAmountOut": "2",
+        "poolID": "dex_test"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "dex_swap_exact_output",
+      "payload": {
+        "amountOut": "9007199254740995",
+        "assetOut": "asset-test",
+        "deadlineUnix": "1893456000",
+        "maxAmountIn": "2",
+        "poolID": "dex_test"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "10",
+      "kind": "contract_deploy",
+      "payload": {
+        "compilerConfigHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "constructorArgs": [
+          "18446744073709551615"
+        ],
+        "deployedBytecodeHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "name": "SampleEVMWriteCounter",
+        "sourceHash": "abababababababababababababababababababababababababababababababab",
+        "value": "0"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "2",
+      "kind": "contract_execute",
+      "payload": {
+        "calldata": "0x7cf5dab0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "compilerConfigHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "deployedBytecodeHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "expectedStorageCommitment": "0101010101010101010101010101010101010101010101010101010101010101",
+        "name": "SampleEVMWriteCounter",
+        "sourceHash": "abababababababababababababababababababababababababababababababab",
+        "target": "0xabcdef1234567890abcdef1234567890abcdef12",
+        "value": "0"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "10",
+      "kind": "contract_deploy",
+      "payload": {
+        "compilerConfigHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "constructorArgs": [
+          "18446744073709551615"
+        ],
+        "deployedBytecodeHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "name": "SampleYNXTCompatibleERC20",
+        "sourceHash": "abababababababababababababababababababababababababababababababab",
+        "value": "0"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "2",
+      "kind": "contract_execute",
+      "payload": {
+        "calldata": "0xa9059cbb000000000000000000000000abcdef1234567890abcdef1234567890abcdef12ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "compilerConfigHash": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef",
+        "deployedBytecodeHash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "expectedStorageCommitment": "0101010101010101010101010101010101010101010101010101010101010101",
+        "name": "SampleYNXTCompatibleERC20",
+        "sourceHash": "abababababababababababababababababababababababababababababababab",
+        "target": "0xabcdef1234567890abcdef1234567890abcdef12",
+        "value": "0"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "stake_delegate",
+      "payload": {
+        "amountYNXT": "9007199254740995",
+        "validator": "ynx_validator_0"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "stake_unbond",
+      "payload": {
+        "amountYNXT": "9007199254740995",
+        "delegationID": "0123456789abcdef01234567"
+      }
+    },
+    {
+      "chainId": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nativeChainId": "6423",
+      "owner": "0x1234567890abcdef1234567890abcdef12345678",
+      "nonce": "9007199254740994",
+      "fee": "1",
+      "kind": "stake_withdraw",
+      "payload": {
+        "unbondingID": "0123456789abcdef01234567"
+      }
+    }
+  ]
+}

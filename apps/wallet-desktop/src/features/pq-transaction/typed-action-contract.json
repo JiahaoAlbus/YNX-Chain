@@ -1,0 +1,138 @@
+{
+  "kind": "PQ_TYPED16_MAIN_CALLER_CONTRACT",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "baseline": {
+    "desktopCommit": "137941ab4c8c80006a71edec47dd5c60db2ea351",
+    "desktopTree": "161280e9a8bfc08c6c68ce7ee724fb15f8d036ac",
+    "originalReadParentCommit": "17ade0f7565d75c05012574f2b2301fe485efda2",
+    "originalReadParentTree": "41efff3f38ecfd6390e155c7f78ea6660dbcd0ba",
+    "mainCandidate": "R114 SDK330/Native55 frozen candidate is separate and unchanged"
+  },
+  "sdk": {
+    "version": "1.3.0-pq.3.31-auth.1",
+    "commit": "688e2f6289b886bcfe50e71d0584d8d8279241fd",
+    "tree": "7808abe6a8a73c38842195710285bb3b3b7b0f53",
+    "sealedTarBytes": 1001429,
+    "sealedTarSha256": "bf7c6657bdbc9e4bba7bc512729998248c77907eefaa3fc76f20fff6066e5ee2",
+    "formalH": "/Users/huangjiahao/.codex/worktrees/wallet-auth-native-actions/YNX Chain/.native-action-evidence/SDK331_TYPED_ACTION_CI_COMPLETION.json",
+    "formalHBytes": 7531,
+    "formalHSha256": "681411af28c2436e963b4c965bb4d78e8afa7c77f8ec5a9d30ec028d0943351b",
+    "originalRuntimeManifest": {
+      "bytes": 64825,
+      "sha256": "dfb99a9034eca30b9eef0313525006692aef1e85b3088d9caadeacb2e93fca79",
+      "files": 456,
+      "edges": 129
+    },
+    "nativeBuild": false
+  },
+  "owned": "new typed-action-* files and fixtures/typed-action-public-inputs.json only; all old desktop137/mobile34ab leaves unchanged",
+  "exports": {
+    "preparePQTypedActionReview": "(snapshot:PQAuthorizationSnapshot,input:PQNativeActionInput,metadata:{operationId,account,networkId,createdAt,expiresAt}) -> immutable PQTypedActionReview DATA",
+    "recheckPQTypedActionReview": "(review,refreshedSnapshot,{account,networkId},at?:epochMilliseconds) -> actual SDK PQNativeActionReviewPlan DATA",
+    "signPQReviewedTypedAction": "(review,refreshedSnapshot,opaqueHandle,{account,networkId},at?:epochMilliseconds) -> actual SDK Uint8Array TX-BATCH Member; Main-only synchronous normal caller",
+    "pqTypedActionInvocationData": "(review) -> {operationId,signerEntered:boolean,dataOnly:true,canRetry:false}",
+    "inspectPQTypedActionMember": "(liveReview,alreadyCapturedWire:Uint8Array) OR (archivedReview:unknown,alreadyCapturedWire:Uint8Array,{reviewSnapshot:PQAuthorizationSnapshot,signingSnapshot:PQAuthorizationSnapshot,selectedBinding:{account,networkId}}) -> immutable PQTypedActionMemberData; validates exact review and signing policy continuity, message/pair/revision/H/N1/index0, no transport or live review registration"
+  },
+  "closedShapes": {
+    "input": "{chainId:lowerhex64,nativeChainId:'6423',owner:lower0x40,nonce:canonicalString|bigint,fee:canonicalString|bigint,kind:16-kind-enum,payload:SDK331-closed-kind-payload}",
+    "review": "{operationId,account,networkId,origin:'ynx-wallet:local-pq',action:PQNativeAction,requestDigest:sha256(canonicalActionBytes),policyRevision:string,executionHeight:string,pair:{pkA:hex5184,pkB:hex128},createdAt:ISO,expiresAt:ISO,dataOnly:true,permissionGranted:false}",
+    "archivedReadOptions": "{reviewSnapshot:original SDK-branded snapshot from review preparation,signingSnapshot:original SDK-branded refreshed snapshot supplied at signer entry,selectedBinding:{account,networkId}}; both snapshots are mandatory even when identical. Main persists their original complete public DTOs and re-parses retained JSON with parsePQAccountAuthorization after restart; this module does not parse raw snapshot objects.",
+    "result": "{operationId,account,networkId,action,pair,policyRevision,executionHeight,requestDigest,memberHash:0x+sha256(originalMemberBytes),purpose:'TX-BATCH',memberCount:1,memberIndex:0,signatureVerified:true,dataOnly:true,nativeAdmission:false,submitted:false,canRetry:false,clearsOriginal:false,consensusFinality:false}",
+    "errors": "original SDK Error.code propagates; local Error.code is PQ_TYPED_ACTION_{BINDING_INVALID|BINDING_MISMATCH|REVIEW_TIME_INVALID|REVIEW_ID_INVALID|ORIGINAL_REVIEW_REQUIRED|REVIEW_EXPIRED|SIGNER_ALREADY_ENTERED|MEMBER_INVALID|MEMBER_COORDINATES_INVALID}; errors never authorize retry or erase raw originals"
+  },
+  "payloadShapes": {
+    "stake": "{amount}",
+    "resource_delegation_create": "{provider:ownerAddress,beneficiary:resourceId,amountYNXT,policyHash,idempotencyKey,requestHash}",
+    "resource_rental_create": "{address:ownerAddress,provider:resourceId,bandwidth,compute,aiCredits,trustCredits,quoteID,quoteExpiresAt,policyHash,maxPriceYNXT,idempotencyKey,requestHash}",
+    "dex_asset_create": "{assetID,symbol,name,decimals:number,maxSupply,initialSupply}",
+    "dex_asset_mint": "{assetID,amount}",
+    "dex_asset_transfer": "{assetID,recipient,amount}",
+    "dex_pool_create": "{poolID,asset0,asset1,feeBps:number}",
+    "dex_liquidity_add": "{poolID,amount0,amount1,minShares,deadlineUnix}",
+    "dex_liquidity_remove": "{poolID,shares,minAmount0,minAmount1,deadlineUnix}",
+    "dex_swap_exact_input": "{poolID,assetIn,amountIn,minAmountOut,deadlineUnix}",
+    "dex_swap_exact_output": "{poolID,assetOut,amountOut,maxAmountIn,deadlineUnix}",
+    "contract_deploy": "{name,sourceHash,deployedBytecodeHash,compilerConfigHash,constructorArgs:[U64],value:'0'}",
+    "contract_execute": "{name,target,sourceHash,deployedBytecodeHash,compilerConfigHash,expectedStorageCommitment,calldata,value:'0'}",
+    "stake_delegate": "{validator,amountYNXT}",
+    "stake_unbond": "{delegationID,amountYNXT}",
+    "stake_withdraw": "{unbondingID}"
+  },
+  "feeRules": {
+    "stake": "0",
+    "resource_delegation_create": "0",
+    "resource_rental_create": "0",
+    "DEX": "1",
+    "contract_deploy": "10",
+    "contract_execute": "2",
+    "newStaking": "1",
+    "codecFixtureSeven": "not an executor fee"
+  },
+  "normalCallerIntegration": [
+    "Use separately sealed SDK331 candidate normal package exports. Never mix the SDK331 runtime manifest into R114 SDK330/Native55 or frozen mobile318.",
+    "Main obtains genuine original authenticated snapshot and canonical selected binding, prepares this DATA using its own operation ID/timestamps, and retains it alongside its real private pending review.",
+    "Main supplies actual typed-action original permission and durable reservation before entering existing vault.withPQKeys(pqRegisteredPublicBinding(refreshed), callback, permission). Existing transfer-only permission and journal are NOT sufficient.",
+    "Inside original callback: original guard.assert(); signPQReviewedTypedAction(review,refreshed,handle,{account,networkId},clockMs); immediately retain returned raw bytes in original Main custody before any post-sign guard, result validation, public view or cleanup check.",
+    "Then inspectPQTypedActionMember(review,capturedWire), original guard/current checks and Main-owned save/permission completion/cleanup. Preserve original bytes, exact review and signing public snapshot DTOs, and first cause if any later step fails. Main must arrange durable original reservation/capture; this leaf does not persist anything.",
+    "Restart: Main reads the original stored review, raw Member and both complete public snapshot DTOs; re-parses only retained JSON DATA through the original SDK parser; calls inspectPQTypedActionMember(archivedReview,wire,{reviewSnapshot,signingSnapshot,selectedBinding}). A latest snapshot with consumed nonce, changed pair, revision or revoked policy cannot substitute either original snapshot. Missing original inputs remain unavailable and must not trigger replacement signing or erase the original.",
+    "Broadcast requires its own future real original review/permission/journal/transport integration. No preparePQTransferTransport fallback; contract_deploy needs original material-envelope submit path.",
+    "Apply typed-action-ci-integration.patch only in SDK331-compatible successor: one existing npm test glob entry imports the previous caller tests plus the new original-read tests. Patch is not applied here; Main owns the existing test directory."
+  ],
+  "actualMissingMainCode": [
+    {
+      "owner": "Main",
+      "component": "desktop-wallet-authority original pending-review and permission schema",
+      "gap": "no 16-kind typed Action branch/typed approval; existing PQ transfer cannot substitute"
+    },
+    {
+      "owner": "Main",
+      "component": "wallet-pq-intent-record and transaction-intent-store",
+      "gap": "existing closed kinds are pq-transfer/migration/revocation, not typed Action Member; implement original raw result reservation/capture/save/recovery/UNKNOWN with exact review and signing snapshot retention before activation"
+    },
+    {
+      "owner": "Main/Chain original submit owner",
+      "component": "typed Action submit and contract_deploy material envelope",
+      "gap": "Member is not transfer transport; no guessed endpoint/envelope is provided"
+    },
+    {
+      "owner": "A",
+      "component": "matching installed package and Native/runtime identity",
+      "gap": "must seal a separate compatible SDK331 candidate; no installed Native/Source/E2E acceptance is implied"
+    }
+  ],
+  "authorityBoundaries": [
+    "Only Main owns review, permission, Vault, nonce, raw custody, persistent journal and genuine current Source. This module invokes no permission or native factory and imports no identity-keyCall path.",
+    "WeakMap identity and signerEntered are process-local correlation/no-double-call safeguards, never authority or durable no-replay. Main must preserve no-replay across fresh review objects, process restart, exceptions and unknown writes.",
+    "No imported/injected generic signer, protocol rewrite, JS Android provider, raw message API, Tauri fallback, RPC or fake consent.",
+    "inspect permits checking captured output after view expiry, using exact immutable signing snapshot. Archived reads check canonical timestamps and ordering but do not enforce a fresh approval window. Signature math proves no fresh Source, activation, business permission, receipt finality or BFT finality.",
+    "Archived inspection never enters or resets the WeakMap. Copied reviews still fail live recheck/sign/invocation APIs. Operation ID and timestamps are original Main journal metadata; the Member does not cryptographically bind them or snapshot height. SDK signature math is checked against the supplied retained policy DATA.",
+    "Wire copying uses intrinsic TypedArray and ArrayBuffer getters, rejects proxies, extra byte properties, shared/resizable/detached storage, then copies original bytes before SDK verification. It executes no caller-owned getter."
+  ],
+  "tests": {
+    "newDelta": 10,
+    "previousTypedCallerSevenReusedWithoutRerun": true,
+    "previousMobileTwentyFiveReusedWithoutRerun": true,
+    "actualFreshProcessArchivedRead": true,
+    "newRed": "original-read first run 2 pass / 6 fail with real fresh-process ORIGINAL_REVIEW_REQUIRED; separate old Member getter admission failure; added ArrayBuffer own-getter case exposed 2 reads during repair and was fixed",
+    "newPass": "10 pass / 0 fail / 0 skip, strict consumer typecheck and proposed CI patch check",
+    "publicRequestShapes": 18,
+    "kinds": 16,
+    "oneSyntheticEphemeralSDKSignPerRun": true,
+    "actualWalletKeys": false,
+    "realMainPermission": false,
+    "Native": false,
+    "network": false,
+    "chainEffect": false,
+    "sourceBugsFixed": ["WeakMap-only captured Member inspection rejected JSON-restored originals", "Member copy accessed caller-owned byteLength and ArrayBuffer flag getters"],
+    "previousSourceBugFixed": "foreign invocation lookup accessed operationId getter before WeakMap check",
+    "previousTestExpectationsCorrected": [
+      "SDK contract/new-staking fee rejection happens in codec before planner",
+      "registration-keys helper contains network metadata in addition to two keys"
+    ],
+    "oldSDK18ShapeSigningSuiteRerun": false,
+    "Native55Rebuilt": false,
+    "typeClosure": true
+  },
+  "localDependencyResolution": "Sealed SDK331 extracted outside source; only ignored local feature/node_modules resolves it for new caller tests. Existing tracked app/node_modules, source SDK318, manifests and locks untouched. This is not an installed product runtime or App integration.",
+  "status": "owned source and controlled caller verified; Main integration, A package, normal App route/permission, real Native and end-to-end delivery remain incomplete"
+}

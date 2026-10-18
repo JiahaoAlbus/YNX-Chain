@@ -26,7 +26,7 @@ export function projectPendingTransactions(response,account){
     if(Object.getOwnPropertyDescriptor(source??{},'kind')){
       const progress=Object.hasOwn(source,'resultStorageConfirmed')||Object.hasOwn(source,'resultHeldInMemory');
       const row=values(source,['hash','account','status','canRetryExact','kind','operationId',...(progress?['resultStorageConfirmed','resultHeldInMemory']:[])]);
-      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||!['pq-transfer','pq-migration','pq-revocation'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed','pq-submission-unknown','pq-inclusion-observed','pq-rejection-observed'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
+      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||!['pq-transfer','pq-migration','pq-revocation','pq-typed-action'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed','pq-submission-unknown','pq-inclusion-observed','pq-rejection-observed'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
       if(progress&&(typeof row.resultStorageConfirmed!=='boolean'||typeof row.resultHeldInMemory!=='boolean'))throw Error('Invalid PQ progress storage display');
       records.push(Object.freeze(row));continue;
     }
@@ -52,6 +52,12 @@ export function projectPQOriginalObservation(response,{account,hash,kind}){
   const ok=Object.getOwnPropertyDescriptor(response??{},'ok');if(!ok||!Object.hasOwn(ok,'value'))throw Error('Invalid PQ observation');
   if(ok.value===false){values(response,['ok','error']);return null;}
   const envelope=values(response,['ok','value']),value=envelope.value;
+  if(kind==='pq-typed-action'){
+    const row=values(value,['account','kind','operationId','hash','memberHash','networkId','actionKind','nonce','reviewExecutionHeight','executionHeight','status','outcome','signatureVerified','classicWitnessValidationRequired','networkQueryPerformed','dataOnly','nativeAdmission','permissionGranted','submitted','canRetryExact','canRetry','clearsOriginal','consensusFinality']);
+    const decimal=v=>typeof v==='string'&&/^[1-9][0-9]{0,19}$/.test(v)&&BigInt(v)<=18446744073709551615n;
+    if(envelope.ok!==true||row.account!==account||row.hash!==hash||row.kind!==kind||row.outcome!=='original-verified-locally'||row.status!=='pq-signed-unsubmitted'||row.signatureVerified!==true||row.dataOnly!==true||typeof row.classicWitnessValidationRequired!=='boolean'||!HASH.test(row.memberHash??'')||!/^[0-9a-f]{64}$/.test(row.networkId??'')||!/^[A-Za-z0-9_-]{1,128}$/.test(row.operationId??'')||!/^[a-z_]{1,64}$/.test(row.actionKind??'')||![row.nonce,row.reviewExecutionHeight,row.executionHeight].every(decimal)||['networkQueryPerformed','nativeAdmission','permissionGranted','submitted','canRetryExact','canRetry','clearsOriginal','consensusFinality'].some(k=>row[k]!==false))throw Error('Unbound local typed original');
+    return Object.freeze({outcome:row.outcome});
+  }
   const row=values(value,['account','hash','kind','outcome','retryAuthorized','clearsOriginal','consensusFinality',...(Object.hasOwn(value??{},'decimalFields')?['decimalFields']:[]),...(Object.hasOwn(value??{},'durability')?['durability']:[])]);
   if(envelope.ok!==true||row.account!==account||row.hash!==hash||row.kind!==kind||!['pending-local-durable','local-inclusion-durable','not-found-observed','outcome-unknown'].includes(row.outcome)||row.retryAuthorized!==false||row.clearsOriginal!==false||row.consensusFinality!==false)throw Error('Unbound PQ observation');
   return Object.freeze({outcome:row.outcome});

@@ -1,8 +1,10 @@
 import {exactPQRecord} from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {decodePQMigrationRequest,preparePQMigrationTransport,decodePQTransferRequest,preparePQTransferTransport,decodePQRevocationRequest,preparePQRevocationTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
+import {types} from 'node:util';
 const fail=()=>{throw Object.assign(new Error('The original PQ journal record cannot be verified.'),{code:'PQ_ORIGINAL_RECORD_INVALID'});};
 export const PQ_ORIGINAL_RESERVE_BYTES=350_000;
-export const PQ_ORIGINAL_KINDS=Object.freeze(['pq-migration','pq-transfer','pq-revocation']);
+export const PQ_ORIGINAL_KINDS=Object.freeze(['pq-migration','pq-transfer','pq-revocation','pq-typed-action']);
 function originalCodec(kind){
  if(kind==='pq-migration')return {decode:decodePQMigrationRequest,transport:preparePQMigrationTransport,owner:value=>value.intent.owner};
  if(kind==='pq-transfer')return {decode:decodePQTransferRequest,transport:preparePQTransferTransport,owner:value=>value.transfer.from};
@@ -13,6 +15,7 @@ function originalCodec(kind){
  * owns wire parsing; a journal read does not verify chain policy or finality. */
 export function parsePQOriginalRecord(value){
  try{
+  if(value&&typeof value==='object'&&!types.isProxy(value)&&Object.getOwnPropertyDescriptor(value,'kind')?.value==='pq-typed-action')return parsePQTypedOriginalRecord(value);
   exactPQRecord(value,['version','account','kind','operationId','hash','wire','status']);
   if(value.version!==1||!PQ_ORIGINAL_KINDS.includes(value.kind)||value.status!=='signed-unsubmitted'||typeof value.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(value.operationId)||typeof value.wire!=='string'||value.wire.length>349526||! /^[A-Za-z0-9_-]+$/.test(value.wire))fail();
   const wire=Buffer.from(value.wire,'base64url');if(!wire.length||wire.length>262144||wire.toString('base64url')!==value.wire)fail();

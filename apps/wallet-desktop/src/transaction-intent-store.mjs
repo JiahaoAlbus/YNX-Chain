@@ -1,6 +1,7 @@
 import * as filesystem from "node:fs/promises";
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
+import {types as nativeTypes} from 'node:util';
 import path from "node:path";
 import { PrivateFilePolicy } from "./platform-private-file.mjs";
 import {readBoundedPrivateFile,PRIVATE_FILE_MAX_BYTES} from "./bounded-private-file-read.mjs";
@@ -12,6 +13,7 @@ import {canonicalJSON,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
 import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./wallet-pay-record.mjs";
 import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlement} from "./wallet-pay-settlement.mjs";
 import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
+import {pqTypedOriginalSummary} from './wallet-pq-typed-original.mjs';
 import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
@@ -253,6 +255,17 @@ export class FileTransactionIntentStore {
   }
   captureOriginal(account,value,kind){
     const slot=owner(this).get(account);if(!slot)throw invalid();
+    if(kind==='pq-typed-action'){
+      if(slot.kind!==kind||slot.pqRawUnverified)throw invalid();
+      // Keep the first producer output before parsing/snapshot math or late
+      // lock checks. A malformed result remains UNKNOWN, not a second signer.
+      const wire=value&&typeof value==='object'&&!nativeTypes.isProxy(value)?Object.getOwnPropertyDescriptor(value,'wire'):null;
+      slot.pqRawUnverified=Object.freeze({value,wire:wire&&Object.hasOwn(wire,'value')&&typeof wire.value==='string'?wire.value:null});
+      try{
+        const parsed=parsePQOriginalRecord(value);if(parsed.kind!==kind||parsed.account!==account)throw invalid();
+        slot.pq=parsed;return slot;
+      }catch(cause){this.originalFailed(account,cause);throw cause}
+    }
     const captured=PQ_ORIGINAL_KINDS.includes(kind)?parsePQOriginalRecord(value):freezePublic(JSON.parse(JSON.stringify(value)));
     if(PQ_ORIGINAL_KINDS.includes(kind)){const parsed=parsePQOriginalRecord(captured);if(parsed.kind!==kind||parsed.account!==account||slot.kind!==kind||slot.pq&&canonicalJSON(slot.pq)!==canonicalJSON(parsed))throw invalid();slot.pq=parsed;}
     else if(kind==="pay"){assertDesktopSignedPayStorage(captured);if(evmAddressFromYNX(captured.account)!==account||slot.kind!=="pay")throw invalid();if(slot.pay&&canonicalJSON(slot.pay)!==canonicalJSON(captured))throw invalid();slot.pay=Object.freeze(captured)}
@@ -356,6 +369,12 @@ export class FileTransactionIntentStore {
   async readPQOriginals(account,guard){
     if(!ACCOUNT.test(account??'')||typeof guard!=='function')throw invalid();guard();const state=await this.#read();guard();
     return (state.pqOriginals??[]).filter(x=>x.account===account).map(parsePQOriginalRecord);
+  }
+  async inspectPQTypedOriginal(account,hash,guard){
+    if(!ACCOUNT.test(account??'')||!HASH.test(hash??'')||typeof guard!=='function')throw invalid();
+    guard();const state=await this.#read();guard();
+    const row=state.pqOriginals?.find(row=>row.account===account&&row.hash===hash&&row.kind==='pq-typed-action');
+    if(!row)return null;const summary=pqTypedOriginalSummary(row);guard();return summary;
   }
   async pqSummaries(account){
     if(!ACCOUNT.test(account??''))throw invalid();const state=await this.#read();
