@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {runInNewContext} from "node:vm";
-import {projectTransactionResolution,projectPendingTransactions} from "../src/transaction-resolution-display.mjs";
+import {projectTransactionResolution,projectPendingTransactions,projectPQOriginalObservation} from "../src/transaction-resolution-display.mjs";
 const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
 const html=await readFile(new URL("../src/index.html",import.meta.url),"utf8");
 const account="0x"+"1".repeat(40),hash="0x"+"2".repeat(64);
@@ -12,18 +12,29 @@ function harness(){
   const ids=new Set([...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1])),nodes=new Map(),reads=[],actions=[];
   function element(){return {textContent:"",children:[],hidden:false,disabled:false,dataset:{},append(...items){this.children.push(...items)},replaceChildren(){this.children=[]},addEventListener(type,fn){this[type]=fn}}}
   const get=selector=>{assert.ok(ids.has(selector.slice(1)),selector);if(!nodes.has(selector))nodes.set(selector,element());return nodes.get(selector)};
-  const context={projectTransactionResolution,projectPendingTransactions,document:{querySelector:get,createElement:element},activeAccount:account,keyState:{locked:false,revision:1},transactionRevision:0,transactionActionRevision:0,errorText:result=>result.error.message,assetRefreshes:0,historyRefreshes:0,
-    refreshAssets(){context.assetRefreshes++},transactionHistoryUI:{refresh(){context.historyRefreshes++}},window:{ynxWallet:{pendingTransactions:()=>new Promise((resolve,reject)=>reads.push({resolve,reject})),transactionStatus:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:false,resolve,reject})),retryTransaction:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:true,resolve,reject}))}}};
+  const context={projectTransactionResolution,projectPendingTransactions,projectPQOriginalObservation,document:{querySelector:get,createElement:element},activeAccount:account,keyState:{locked:false,revision:1},transactionRevision:0,transactionActionRevision:0,errorText:result=>result.error.message,assetRefreshes:0,historyRefreshes:0,
+    refreshAssets(){context.assetRefreshes++},transactionHistoryUI:{refresh(){context.historyRefreshes++}},window:{ynxWallet:{pendingTransactions:()=>new Promise((resolve,reject)=>reads.push({resolve,reject})),pqTransactionStatus:h=>new Promise((resolve,reject)=>actions.push({hash:h,pq:true,retry:false,resolve,reject})),transactionStatus:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:false,resolve,reject})),retryTransaction:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:true,resolve,reject}))}}};
   const start=source.indexOf("function clearTransactionResolution()"),fallback=source.indexOf("async function refreshTransactions()"),end=source.indexOf("function clearAssetBalance()",fallback);
   const copyHelper=source.match(/function copyUI\([^\n]+/)[0];
   assert.ok(fallback>=0&&end>fallback);runInNewContext(copyHelper+"\n"+source.slice(start>=0?start:fallback,end),context);
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
   return {context,get,reads,actions,async load(response={ok:true,value:[record]}){const pending=context.refreshTransactions();reads.at(-1)?.resolve(response);await pending;return get("#pending-transactions").children[0]?.children.filter(item=>typeof item.click==="function")}};
 }
-test('normal renderer shows PQ stored custody without check retry save or signing actions',async()=>{
+test('normal renderer shows PQ stored custody with only its bound read action, no retry save or signing',async()=>{
  const h=harness(),buttons=await h.load({ok:true,value:[{account,hash,kind:'pq-transfer',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]});
- assert.equal(buttons.length,0);assert.equal(h.actions.length,0);assert.equal(h.context.assetRefreshes,0);
+ assert.equal(buttons.length,1);assert.match(buttons[0].textContent,/read only/);assert.equal(h.actions.length,0);assert.equal(h.context.assetRefreshes,0);
  const text=h.get('#pending-transactions').children[0].children.map(x=>x.textContent).join(' ');assert.match(text,/not submitted/);assert.match(text,/Not chain confirmation/);
+});
+test('PQ read uses original hash once and not-found never clears custody, refreshes assets, or calls legacy receipt transport',async()=>{
+ const h=harness(),[check]=await h.load({ok:true,value:[{account,hash,kind:'pq-transfer',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]}),pending=check.click();await check.click();assert.equal(h.actions.length,1);assert.equal(h.actions[0].hash,hash);assert.equal(h.actions[0].pq,true);assert.equal(h.actions[0].retry,false);
+ h.actions[0].resolve({ok:true,value:{account,hash,kind:'pq-transfer',outcome:'not-found-observed',clearsOriginal:false,retryAuthorized:false,consensusFinality:false}});await pending;assert.match(h.get('#transaction-resolution-result').textContent,/UNKNOWN retained/);assert.equal(h.context.assetRefreshes,0);assert.equal(h.context.historyRefreshes,0);assert.equal(h.reads.length,1);
+});
+test('PQ locked, detached and late-result UI cannot dispatch or paint another account',async()=>{
+ for(const boundary of ['locked','detached','late']){const h=harness(),[check]=await h.load({ok:true,value:[{account,hash,kind:'pq-migration',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]});
+  if(boundary==='locked')h.context.keyState.locked=true;if(boundary==='detached')h.context.clearTransactionResolution();const pending=check.click();
+  if(boundary==='late'){h.context.keyState.revision++;h.actions[0].resolve({ok:true,value:{account,hash,kind:'pq-migration',outcome:'local-inclusion-durable',clearsOriginal:false,retryAuthorized:false,consensusFinality:false}});}else assert.equal(h.actions.length,0);
+  await pending;assert.equal(h.get('#transaction-resolution-result').textContent,'');assert.equal(h.context.assetRefreshes,0);
+ }
 });
 test('r5 actual normal renderer saves original without check retry or signer and reports only local custody',async()=>{
  const h=harness(),saves=[],retention={scope:'operation-memory',durable:false,originalCause:null,storageCause:null};h.context.window.ynxWallet.saveTransactionOriginal=value=>new Promise(resolve=>saves.push({value,resolve}));

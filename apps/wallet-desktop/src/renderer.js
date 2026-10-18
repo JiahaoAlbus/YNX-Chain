@@ -4,7 +4,7 @@ import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
-import { projectTransactionResolution, projectPendingTransactions } from "./transaction-resolution-display.mjs";
+import { projectTransactionResolution, projectPendingTransactions,projectPQOriginalObservation } from "./transaction-resolution-display.mjs";
 import {createPQTransferReviewUI} from './wallet-pq-transfer-ui.mjs';
 const pqTransferReviewUI=createPQTransferReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQMigrationReviewUI} from './wallet-pq-migration-ui.mjs';
@@ -870,7 +870,19 @@ async function refreshTransactions() {
         const kind=record.kind==='pq-transfer'?'PQ 转账 / PQ transfer':'PQ 账户迁移 / PQ account migration';
         description.textContent=kind+' · '+record.hash;row.append(description);
         const notice=document.createElement('p');notice.textContent=record.status==='pq-save-unconfirmed'?'签名结果已保留，持久化保存尚未确认。请保持钱包运行；不会重新签名或发送。 / Signed result retained; durable saving is unconfirmed. Keep Wallet running; no replacement signature or send.':'签名结果已本地保存，尚未提交。不是链上确认或迁移成功，不允许直接重试。 / Signed result saved locally, not submitted. Not chain confirmation or migration success; no direct retry.';
-        row.append(notice);list.append(row);continue;
+        row.append(notice);
+        if(record.status==='pq-signed-unsubmitted'){
+          const check=document.createElement('button');check.type='button';check.textContent='只读核对原件 / Check original (read only)';check.disabled=keyState.locked;let busy=false;
+          check.addEventListener('click',async()=>{
+            if(busy||!current()||keyState.locked)return;busy=true;check.disabled=true;
+            const action=++transactionActionRevision,keyRevision=keyState.revision,live=()=>current()&&action===transactionActionRevision&&keyRevision===keyState.revision&&!keyState.locked;
+            try{const response=await window.ynxWallet.pqTransactionStatus(record.hash);if(!live())return;const observed=projectPQOriginalObservation(response,{account,hash:record.hash,kind:record.kind});
+              if(!live())return;document.querySelector('#transaction-resolution-result').textContent=observed?({'pending-local-durable':'原件已存在于节点本地快照，尚未入块。原件保留，不重试。 / Pending in the local snapshot; original retained, no retry.','local-inclusion-durable':'原件已在节点本地快照中入块，不代表共识最终性；原件保留。 / Local durable inclusion, not consensus finality; original retained.','not-found-observed':'该节点当前未找到原件，不证明未发生；保留 UNKNOWN，不重签或重发。 / Not found at this producer; UNKNOWN retained, no replacement signature or send.','outcome-unknown':'原件结果仍未知；保留原件，不重签或重发。 / Outcome unknown; original retained, no replacement signature or send.'}[observed.outcome]):'可信原件查询未供给或被拒绝；记录保留，不自动重试。 / Trusted lookup unavailable or refused; original retained, no automatic retry.';
+            }catch{if(live())document.querySelector('#transaction-resolution-result').textContent='无法核实原件结果；记录保留，不重签或重发。 / Original outcome unverified; retained without re-signing or sending.';}
+            finally{busy=false;if(current())check.disabled=keyState.locked;}
+          });row.append(check);
+        }
+        list.append(row);continue;
       }
       copyUI(description,"{amount} YNXT to {to} · {hash}",{amount:record.amount,to:record.to,hash:record.hash}); row.append(description);
       if(record.localRetention){

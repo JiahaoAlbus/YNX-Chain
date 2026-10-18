@@ -6,6 +6,9 @@ import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-poli
 import {createPQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
 import {parsePQSubmissionResponse,parsePQReadResponse} from '../src/wallet-pq-submission-evidence.mjs';
 import {TransactionSubmissions} from '../src/transaction-submissions.mjs';
+import {CanonicalTransactionSender} from '../src/canonical-transaction-sender.mjs';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
 // Actual fresh QA crypto with explicit synthetic policy/HTTP bodies. No node,
 // real funds, network writes or claimed source recognition is exercised here.
 const owner='0x'+'11'.repeat(20),network={chainId:'71'.repeat(32),owner},nonce='18446744073709551615',amount='9223372036854775806';
@@ -83,4 +86,13 @@ test('PQ original check fails closed before source wiring and discards a late re
  await assert.rejects(submissions.checkPQ(transfer.hash,owner,activeGuard),error=>error.data?.code==='TRANSACTION_CHECK_IN_PROGRESS');
  locked=true;release({status:200,text:JSON.stringify(read(transfer))});await assert.rejects(pending,{code:'WALLET_LOCKED'});
  locked=false;await assert.rejects(submissions.checkPQ(h('00'),owner,activeGuard),error=>error.data?.code==='TRANSACTION_INTENT_REQUIRED');
+});
+test('normal original main IPC and canonical sender constructor reach only the fixed PQ hash reader',async()=>{
+ let reads=0;const guard={account:owner,assert(){}},sender=new CanonicalTransactionSender({intentStore:{async readPQOriginals(account,current){current();assert.equal(account,owner);return [transfer];}},pqReadOriginal:async hash=>{reads++;assert.equal(hash,transfer.hash);return {status:200,text:JSON.stringify(read(transfer))};}});
+ try{
+  sender.provider.send=()=>assert.fail('main PQ original lookup cannot fall through to EVM');
+  const main=readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf("handleWalletIPC('wallet:pq-transaction-status'"),end=main.indexOf("handleWalletIPC('wallet:pq-transfer-review'",start),handlers=new Map();assert.ok(start>=0&&end>start);
+  runInNewContext(main.slice(start,end),{handleWalletIPC:(name,fn)=>handlers.set(name,fn),sensitiveIPC:action=>action(),keyAccess:{current:()=>guard},walletAuthority:{accountStatus:async()=>({account:owner}),transactionSender:sender}});
+  const result=await handlers.get('wallet:pq-transaction-status')({},transfer.hash);assert.equal(result.outcome,'pending-local-durable');assert.equal(result.clearsOriginal,false);assert.equal(result.retryAuthorized,false);assert.equal(reads,1);
+ }finally{sender.provider.destroy();}
 });

@@ -1,0 +1,32 @@
+{
+  "scope": "Original normal main -> CanonicalTransactionSender -> TransactionSubmissions.checkPQ -> fixed authenticated producer reader, plus mounted read-only pending UI",
+  "supplier": {
+    "handoff": "/Users/huangjiahao/ynx-social-qa-authority/producer-original-read-r23-20261018/HANDOFF.json",
+    "bytes": 4086,
+    "sha256": "f4d5826b4e1176daea720cf0bff5934767c0516de18adb4ab3d8361d3a714125",
+    "stagedSourceBytes": 10259,
+    "stagedSourceSHA256": "b7b67868ccc4a8628810a473b1aeb3f79fceff958601a3088779f1bf0d836379",
+    "otherThreeResourceLeavesChanged": false,
+    "oldDeploymentPinChanged": false
+  },
+  "actualAppTests": {
+    "runtime": "Installed R24 Electron executable with ELECTRON_RUN_AS_NODE=1, max-old-space-size=192",
+    "pass": 6,
+    "fail": 0,
+    "durationMs": 1588.592375,
+    "pattern": "normal renderer shows PQ|PQ read uses original|PQ locked|normal original main IPC|original submissions owner checks PQ|PQ original check fails closed",
+    "files": ["transaction-resolution-mounted.test.mjs", "wallet-pq-submission-evidence.test.mjs"],
+    "evidence": "Actual tool results retained in task; this JSON is a result summary, not a raw output file"
+  },
+  "truth": {
+    "originalHashOnly": true,
+    "rawWireExported": false,
+    "signOrPost": false,
+    "automaticRetry": false,
+    "journalClearedOnAbsence": false,
+    "consensusFinalityClaimed": false,
+    "actualPublicQueryExecuted": false,
+    "actualInstalledGUIAcceptance": false,
+    "newWholeAppPackaged": false
+  }
+}

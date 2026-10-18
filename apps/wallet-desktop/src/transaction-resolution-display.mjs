@@ -46,6 +46,14 @@ export function projectPendingTransactions(response,account){
 }
 // Presentation of the existing TransactionSubmissions DTO only. This neither
 // proves a receipt nor authorizes retry, signing, or clearing the private journal.
+export function projectPQOriginalObservation(response,{account,hash,kind}){
+  const ok=Object.getOwnPropertyDescriptor(response??{},'ok');if(!ok||!Object.hasOwn(ok,'value'))throw Error('Invalid PQ observation');
+  if(ok.value===false){values(response,['ok','error']);return null;}
+  const envelope=values(response,['ok','value']),value=envelope.value;
+  const row=values(value,['account','hash','kind','outcome','retryAuthorized','clearsOriginal','consensusFinality',...(Object.hasOwn(value??{},'decimalFields')?['decimalFields']:[]),...(Object.hasOwn(value??{},'durability')?['durability']:[])]);
+  if(envelope.ok!==true||row.account!==account||row.hash!==hash||row.kind!==kind||!['pending-local-durable','local-inclusion-durable','not-found-observed','outcome-unknown'].includes(row.outcome)||row.retryAuthorized!==false||row.clearsOriginal!==false||row.consensusFinality!==false)throw Error('Unbound PQ observation');
+  return Object.freeze({outcome:row.outcome});
+}
 export function projectTransactionResolution(response,{account,hash,retry=false}){
   const ok=Object.getOwnPropertyDescriptor(response??{},"ok");
   if(!ok||!Object.hasOwn(ok,"value"))throw Error("Invalid transaction display");

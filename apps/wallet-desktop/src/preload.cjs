@@ -77,6 +77,7 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   pendingTransactions: () => ipcRenderer.invoke("wallet:pending-transactions"),
   transactionHistory: cursor => ipcRenderer.invoke("wallet:transaction-history", cursor),
   transactionStatus: hash => ipcRenderer.invoke("wallet:transaction-status", hash),
+  pqTransactionStatus:hash=>ipcRenderer.invoke('wallet:pq-transaction-status',hash),
   retryTransaction: hash => ipcRenderer.invoke("wallet:retry-transaction", hash),
   saveTransactionOriginal: hash => ipcRenderer.invoke("wallet:save-transaction-original", hash),
   prepareTransfer: input => ipcRenderer.invoke("wallet:prepare-transfer", input),

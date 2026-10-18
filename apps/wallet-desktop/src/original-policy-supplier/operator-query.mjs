@@ -13,6 +13,9 @@ const u64=v=>{if(typeof v!=='string'||! /^(0|[1-9][0-9]{0,19})$/.test(v)||BigInt
 const extra=['policyView','recordsView','source','committedHeight','committedBlockHash','committedAlgorithmVersion','checkpointStatus','checkpointIntegrity','recordsComplete'];
 export function inspectOperatorProjection(body,owner){
  if(!body||Object.getPrototypeOf(body)!==Object.prototype)fail('AUTH_POLICY_QUERY_SCHEMA');
+ // This R1 supplier is not a v2 revocation interpreter. Never discard a
+ // tombstone/status/global version and project a revoked owner back to v1.
+ if(body.policyVersion==='YNX-ACCOUNT-POLICY/v2'||['revocations','authorizationStatus','pqSigningEnabled','committedAuthorizationStatus','committedPQSigningEnabled','globalPolicyVersion'].some(k=>Object.hasOwn(body,k)))fail('AUTH_POLICY_QUERY_REVOCATION_UNSUPPORTED');
  const extras=[...extra];if(body.committedAlgorithmVersion==='YNX-BATCH/v0.1')extras.push('committedActiveRevision');
  const allowed=['owner','executionHeight','ledgerNonce','algorithmVersion','enabled','records',...extras];
  if(body.enabled===true)allowed.push('policyVersion','networkId','enableAt');if(body.algorithmVersion==='YNX-BATCH/v0.1')allowed.push('activeRevision');
@@ -26,7 +29,7 @@ export function inspectOperatorProjection(body,owner){
  else if(body.committedAlgorithmVersion!=='legacy'||Object.hasOwn(body,'committedActiveRevision'))fail('AUTH_POLICY_QUERY_COMMITTED_MISMATCH');
  return Object.freeze({authorization,committedRecord:committed,committedHeight:body.committedHeight,committedBlockHash:body.committedBlockHash,checkpointIntegrity:body.checkpointIntegrity});
 }
-function readJSON(path,signal,remaining){
+function readResponse(path,signal,remaining,allowAbsence=false){
  return new Promise((resolve,reject)=>{
   let settled=false,size=0;const chunks=[];let timer;
   const done=(error,value)=>{if(settled)return;settled=true;clearTimeout(timer);error?reject(error):resolve(value);};
@@ -34,12 +37,15 @@ function readJSON(path,signal,remaining){
    const error=checkServerIdentity(host,cert);if(error)return error;
    try{const spki=new X509Certificate(cert.raw).publicKey.export({format:'der',type:'spki'});if(createHash('sha256').update(spki).digest('hex')!==NORMAL_OPERATOR.spkiSha256)return Error('AUTH_POLICY_TLS_PIN');}catch{return Error('AUTH_POLICY_TLS_PIN');}
   }},res=>{
-   if(res.statusCode!==200||String(res.headers['content-type']??'').split(';')[0].trim().toLowerCase()!=='application/json'||(path.startsWith('/accounts/')&&!String(res.headers['cache-control']??'').toLowerCase().split(',').some(v=>v.trim()==='no-store'))){res.destroy();done(Error('AUTH_POLICY_SOURCE_NOT_SUPPLIED'));return;}
+   if((res.statusCode!==200&&!(allowAbsence&&res.statusCode===404))||String(res.headers['content-type']??'').split(';')[0].trim().toLowerCase()!=='application/json'||((path.startsWith('/accounts/')||path.startsWith('/txs/'))&&!String(res.headers['cache-control']??'').toLowerCase().split(',').some(v=>v.trim()==='no-store'))){res.destroy();done(Error('AUTH_POLICY_SOURCE_NOT_SUPPLIED'));return;}
    res.on('data',b=>{size+=b.length;if(size>NORMAL_OPERATOR.maxBytes){res.destroy();done(Error('AUTH_POLICY_QUERY_SIZE'));}else chunks.push(b);});res.on('error',e=>done(e));
-   res.on('end',()=>{try{done(null,JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks))));}catch{done(Error('AUTH_POLICY_QUERY_JSON'));}});
+   res.on('end',()=>{try{done(null,Object.freeze({status:res.statusCode,text:new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks))}));}catch{done(Error('AUTH_POLICY_QUERY_UTF8'));}});
   });
   timer=setTimeout(()=>{done(Error('AUTH_POLICY_QUERY_TIMEOUT'));req.destroy();},Math.max(1,remaining));req.on('error',e=>done(e));req.end();
  });
+}
+async function readJSON(path,signal,remaining){
+ const raw=await readResponse(path,signal,remaining);try{return JSON.parse(raw.text);}catch{fail('AUTH_POLICY_QUERY_JSON');}
 }
 const healthy=status=>{if(status?.chainId!==6423||status.catchingUp!==false||status.persistence!==true||status.persistenceError!==''||status.build?.commit!==NORMAL_OPERATOR.reportedCommit||status.build?.release!==NORMAL_OPERATOR.reportedRelease)fail('AUTH_POLICY_OPERATOR_VERSION_OR_HEALTH_CHANGED');};
 // Private normal source port, no caller-specified endpoint, key, DTO or mode.
@@ -61,4 +67,21 @@ export function openNormalOperatorSource(mode,clock=Date.now){
  };
  const enter=request=>{const p=Promise.resolve().then(()=>read(request));pending.add(p);void p.then(()=>pending.delete(p),()=>pending.delete(p));return p;};
  return Object.freeze({readOriginal:enter,recheck:enter,retire(){if(!retired){retired=true;controller.abort();}},join(){if(!joining)joining=Promise.resolve().then(async()=>{await Promise.allSettled([...pending]);});return joining;},close(){if(!closing)closing=Promise.resolve().then(async()=>{if(pending.size)fail('AUTH_POLICY_SOURCE_JOIN_PENDING');retired=true;closed=true;controller.abort();});return closing;}});
+}
+
+// Fixed normal Node-side GET reader for the original Wallet checkPQ caller.
+// Raw text preserves decimal lexemes; only the existing Wallet DTO parser may
+// interpret lookup/durability. No wire, nonce or signing/POST/retry surface.
+export async function readOriginalTransaction(hash){
+ if(typeof hash!=='string'||!/^0x[0-9a-f]{64}$/.test(hash))fail('AUTH_POLICY_TRANSACTION_HASH');
+ const controller=new AbortController(),start=Date.now(),deadline=start+NORMAL_OPERATOR.lifetimeMs;
+ const remaining=()=>{const now=Date.now();if(now<start||now>=deadline)fail('AUTH_POLICY_SOURCE_EXPIRED');return Math.min(NORMAL_OPERATOR.readTimeoutMs,deadline-now);};
+ try{
+  healthy(await readJSON('/status',controller.signal,remaining()));
+  const genesis=await readJSON('/blocks/0',controller.signal,remaining());
+  if(genesis.height!==0||genesis.hash!==CANONICAL_NETWORK_ID)fail('AUTH_POLICY_SOURCE_NETWORK');
+  const original=await readResponse('/txs/'+hash,controller.signal,remaining(),true);
+  healthy(await readJSON('/status',controller.signal,remaining()));remaining();
+  return original;
+ }finally{controller.abort();}
 }

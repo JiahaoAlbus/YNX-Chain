@@ -8,11 +8,11 @@ import { TransactionSubmissions } from "./transaction-submissions.mjs";
 export class CanonicalTransactionSender {
   #prepared = new WeakSet();
   #quotes = new WeakMap();
-  constructor({ rpcUrl = CANONICAL_RPC_URL, network, fetchImpl = globalThis.fetch, intentStore } = {}) {
+  constructor({ rpcUrl = CANONICAL_RPC_URL, network, fetchImpl = globalThis.fetch, intentStore, pqReadOriginal = null } = {}) {
     if (rpcUrl !== CANONICAL_RPC_URL) throw Object.assign(new Error("Only the frozen canonical RPC is accepted"), { code: "RPC_ENDPOINT_REJECTED" });
     this.provider = new CanonicalJsonRpcProvider(fetchImpl);
     this.network = network ?? new CanonicalAccountNetwork({ fetchImpl });
-    this.submissions = new TransactionSubmissions({ provider: this.provider, capabilities: () => this.#capabilities(), verifyChain: () => this.network.verifyChain(), intentStore });
+    this.submissions = new TransactionSubmissions({ provider: this.provider, capabilities: () => this.#capabilities(), verifyChain: () => this.network.verifyChain(), intentStore, pqReadOriginal });
   }
   async prepare(account, input) {
     try {
