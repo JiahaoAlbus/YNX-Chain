@@ -25,7 +25,7 @@ function terminalLinks(body,entered){
 const names={open:'openOriginalHostTerminalJournal',ready:'assertOriginalHostTerminalJournalReady',list:'listOriginalHostTerminalJournal',read:'readOriginalHostTerminalJournal',write:'writeOriginalHostTerminalJournal',retire:'retireOriginalHostTerminalJournal',join:'joinOriginalHostTerminalJournal',close:'closeOriginalHostTerminalJournal'};
 
 export class OriginalHostTerminalJournal {
- #path;#original;#native;#loan;#records=new Map();#coldCount=0;#unknown=false;#cause;#causePresent=false;#retired=false;#closeSelected=false;#closeComplete=false;#cleanupCause;#cleanupCausePresent=false;#entered=0;#opened=false;
+ #path;#original;#native;#loan;#records=new Map();#coldCount=0;#unknown=false;#cause;#causePresent=false;#retired=false;#closeSelected=false;#closeComplete=false;#cleanupCause;#cleanupCausePresent=false;#entered=0;#opened=false;#retireSelected=false;#retireCause;#retireCausePresent=false;#joinSelected=false;#joinCause;#joinCausePresent=false;
  constructor(statePath,originalNativeBorrow){
   if(typeof statePath!=='string'||!statePath.startsWith('/')||statePath.split('/').some(part=>part==='.'||part==='..')||statePath.includes('\0')||!originalNativeBorrow)fail('HOST_DIRFD_ORIGINAL_OWNER_REQUIRED');
   this.#path=statePath;this.#original=originalNativeBorrow;
@@ -120,16 +120,36 @@ export class OriginalHostTerminalJournal {
   }catch(cause){this.#remember(cause);throw cause;}
  }
 
- retire(){this.#retired=true;if(this.#loan&&this.#native[names.retire](this.#loan)!==undefined)fail('HOST_TERMINAL_RETIRE_UNKNOWN');}
- join(){if(!this.#retired||this.#entered)fail('HOST_TERMINAL_JOIN_PENDING');if(this.#loan&&this.#native[names.join](this.#loan)!==undefined)fail('HOST_TERMINAL_JOIN_PENDING');}
+ #rememberCleanup(cause){
+  if(!this.#cleanupCausePresent){this.#cleanupCausePresent=true;this.#cleanupCause=cause;}this.#remember(cause);
+ }
+ retire(){
+  this.#retired=true; // Fence new work before any Native cleanup or failure.
+  if(this.#retireSelected){if(this.#retireCausePresent)throw this.#retireCause;return;}
+  this.#retireSelected=true;
+  try{if(this.#loan&&this.#native[names.retire](this.#loan)!==undefined)fail('HOST_TERMINAL_RETIRE_UNKNOWN');}
+  catch(cause){this.#retireCausePresent=true;this.#retireCause=cause;this.#rememberCleanup(cause);throw cause;}
+ }
+ join(){
+  if(this.#joinSelected){if(this.#joinCausePresent)throw this.#joinCause;return;}
+  this.#joinSelected=true;
+  try{if(!this.#retired||this.#entered)fail('HOST_TERMINAL_JOIN_PENDING');if(this.#loan&&this.#native[names.join](this.#loan)!==undefined)fail('HOST_TERMINAL_JOIN_PENDING');}
+  catch(cause){this.#joinCausePresent=true;this.#joinCause=cause;this.#rememberCleanup(cause);throw cause;}
+ }
  close(){
   if(this.#closeSelected){if(this.#cleanupCausePresent)throw this.#cleanupCause;if(!this.#closeComplete)fail('HOST_TERMINAL_CLOSE_UNKNOWN');return;}
-  this.retire();this.join();this.#closeSelected=true;
-  try{
-   if(this.#loan){if(this.#native[names.close](this.#loan)!==undefined)fail('HOST_TERMINAL_CLOSE_UNKNOWN');this.#closeComplete=true;}
-   else if(!this.#opened)this.#closeComplete=true;
-   else fail('HOST_TERMINAL_CLOSE_UNKNOWN'); // Unknown acquisition is never assumed resource-free.
-  }catch(cause){this.#cleanupCausePresent=true;this.#cleanupCause=cause;this.#remember(cause);throw cause;}
+  this.#closeSelected=true;this.#retired=true;
+  const attempt=action=>{try{action();}catch(cause){this.#rememberCleanup(cause);}};
+  // Each Native step is selected once, including when a preceding step throws.
+  // The owning Native close still enforces its independent busy/owner guards.
+  attempt(()=>this.retire());attempt(()=>this.join());
+  attempt(()=>{
+   if(this.#entered)fail('HOST_TERMINAL_JOIN_PENDING');
+   if(this.#loan){if(this.#native[names.close](this.#loan)!==undefined)fail('HOST_TERMINAL_CLOSE_UNKNOWN');}
+   else if(this.#opened)fail('HOST_TERMINAL_CLOSE_UNKNOWN'); // No loan does not prove capture had no effect.
+  });
+  if(this.#cleanupCausePresent)throw this.#cleanupCause;
+  this.#closeComplete=true;
  }
  status(){return Object.freeze({retired:this.#retired,unknown:this.#unknown||[...this.#records.values()].some(row=>!row.terminal),firstCausePresent:this.#causePresent,firstCause:this.#cause,cleanupCausePresent:this.#cleanupCausePresent,cleanupCause:this.#cleanupCause,cleanupComplete:this.#closeComplete});}
 }
