@@ -16,6 +16,41 @@ def stat_line(pid, parent=1, group=1, start=100, threads=2):
 
 
 class LinuxGuardControls(unittest.TestCase):
+    def test_complete_result_shape_and_retained_bytes_are_required(self):
+        # Format-only fake files: never a valid PQ ledger or business acceptance.
+        with tempfile.TemporaryDirectory() as tmp:
+            case=Path(tmp);plan=dict(commit="a"*40,n=1,trial=1);rows=[]
+            for mode in ("members","whole"):
+                snapshot=case/("pq-paired-result.json."+mode+".snapshot.json")
+                snapshot.write_bytes(b"parser-only artifact")
+                rows.append(dict(mode=mode,members=1,localBlockCheckpointMembers=1,coldRestoredMembers=1,
+                                 cloneLocalPeersPreserved=True,checkpointPointerTransitions=1,
+                                 memberHashes=["0x"+"1"*64],submitNs=100,submitWallNs=110,
+                                 sharedSigningPreparationNs=50,manualProduceBlockNs=10,coldRestoreNs=10,
+                                 requestCheckpointNs=[100],memberOfferToCheckpointNs=[110],
+                                 pendingSnapshotBytes=1,pendingSnapshotSha256="2"*64,
+                                 blockSnapshotBytes=snapshot.stat().st_size,blockSnapshotSha256=guard.digest(snapshot)))
+            report=dict(schema=1,kind="isolated-single-producer-PQ-paired-component",sourceCommit=plan["commit"],
+                        n=1,trial=1,businessProjectionEqual=True,bftFinalCommits=None,consensusFinalityLatency=None,
+                        gomaxprocs=1,order=["members","whole"],sharedWholeSha256="3"*64,results=rows)
+            guard.validate_result(report,plan,case)
+            for mutate in (lambda r:r.pop("bftFinalCommits"),lambda r:r.pop("consensusFinalityLatency"),
+                           lambda r:r["results"].pop(),lambda r:r["results"][0].update(coldRestoredMembers=0),
+                           lambda r:r["results"][0].pop("cloneLocalPeersPreserved"),
+                           lambda r:r["results"][0].update(memberHashes=[]),
+                           lambda r:r["results"][0].update(requestCheckpointNs=[]),
+                           lambda r:r["results"][0].update(sharedSigningPreparationNs=51),
+                           lambda r:r["results"][0].update(blockSnapshotSha256="0"*64)):
+                changed=json.loads(json.dumps(report));mutate(changed)
+                with self.assertRaises(RuntimeError):guard.validate_result(changed,plan,case)
+            (case/"pq-paired-result.json.members.snapshot.json").write_bytes(b"tampered")
+            with self.assertRaises(RuntimeError):guard.validate_result(report,plan,case)
+
+    def test_minimal_claim_without_actual_member_results_does_not_qualify(self):
+        plan=dict(commit="a"*40,n=1,trial=1)
+        incomplete=dict(sourceCommit=plan["commit"],n=1,trial=1,businessProjectionEqual=True)
+        with self.assertRaises(RuntimeError):guard.validate_result(incomplete,plan,Path("/unused"))
+
     def test_exact_prepared_case_and_overlay_are_required(self):
         with tempfile.TemporaryDirectory() as tmp:
             parent=Path(tmp).resolve();source=parent/"source";source.mkdir();case=parent/"case";case.mkdir()
