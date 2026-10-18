@@ -229,6 +229,26 @@ function assertColdEntry(actualEntryURL){
  let entry;try{const url=new URL(actualEntryURL);if(url.protocol!=='file:'||url.host||url.search||url.hash)fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');entry=fileURLToPath(url);}catch{fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');}
  if(resolve(entry)!==entry||entry!==join(dirname(entry),'server.mjs')||typeof process.argv[1]!=='string'||resolve(process.argv[1])!==entry)fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');
 }
+/** Discover only the original Native callback table. This is not Source
+ * admission and never constructs/asserts/closes an operation owner. Native
+ * independently checks the real Node entry and owns all qualification. */
+export function acquireOriginalIDENativeAuthBinding(actualEntryURL){
+ assertColdEntry(actualEntryURL);
+ const target=fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url));
+ let resolved;
+ try{resolved=requireNative.resolve(target);}
+ catch(cause){if(cause?.code==='MODULE_NOT_FOUND')return null;throw cause;}
+ // Node may resolve a missing target through extension fallback or symlinks.
+ // Only the exact fixed Native operand may be loaded.
+ if(resolved!==target)return null;
+ // Load outside the missing-target catch: addon or transitive dependency
+ // failures, including MODULE_NOT_FOUND, preserve the original first cause.
+ const native=requireNative(resolved);
+ if(typeof native?.getOriginalIDENativeAuthBinding!=='function')return null;
+ const binding=native.getOriginalIDENativeAuthBinding(actualEntryURL);
+ if(!binding||typeof binding!=='object'||['receiveOriginalIDEIdentity','recoverOriginalIDEIdentity','acquireOriginalIDEProtectedKeyCall'].some(name=>typeof binding[name]!=='function'))return null;
+ return binding;
+}
 /** Fixed Native cold reader only. Null startup selection is never a grant and
  * does not disable Native's independently qualified original Source acquisition. */
 export async function acquireOriginalIDEColdTerminalCustody(actualEntryURL){

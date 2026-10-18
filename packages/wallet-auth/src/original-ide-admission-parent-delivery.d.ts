@@ -1,3 +1,4 @@
+import type {OriginalAuthIDENativeBinding} from './auth-native-contract.js';
 /** Private original backend only. Native returns the exact recognized owner.
  * A partial acquisition has descriptor -1 and is cleanup custody, not a guard.
  * The consumer retains it and selects its original close once. */
@@ -63,3 +64,8 @@ export interface OriginalIDEColdTerminalCustody extends OriginalIDEColdTerminalC
  * module, parent, association or grant. Failed acquisition is never retried. */
 export declare function acquireOriginalIDEColdTerminalCustody(actualRunningEntryURL:string):Promise<OriginalIDEColdTerminalCustody>;
 export declare function getOriginalIDEColdTerminalCustodyCleanup(actualRunningEntryURL:string):OriginalIDEColdTerminalCustodyCleanup|null;
+
+/** Same original Native callback table, synchronously discovered through the
+ * fixed loader. Null means unavailable; neither shape nor discovery grants
+ * qualification. Native/getter failures retain the original thrown cause. */
+export declare function acquireOriginalIDENativeAuthBinding(actualEntryURL:string):OriginalAuthIDENativeBinding|null;

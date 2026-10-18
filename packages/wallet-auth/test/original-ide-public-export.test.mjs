@@ -5,7 +5,7 @@ import * as published from '@ynx-chain/wallet-auth/original-ide-admission';
 import * as original from '../src/original-ide-admission-parent-delivery.js';
 
 test('versioned Node entry exports the same existing production callers and custody',()=>{
-  const names=['acquireOriginalIDEAdmissionParentDelivery','acquireOriginalIDEPrivateServiceChannel','getOriginalIDEPrivateServiceChannelCleanup','acquireOriginalIDEColdTerminalCustody','getOriginalIDEColdTerminalCustodyCleanup'].sort();
+  const names=['acquireOriginalIDENativeAuthBinding','acquireOriginalIDEAdmissionParentDelivery','acquireOriginalIDEPrivateServiceChannel','getOriginalIDEPrivateServiceChannelCleanup','acquireOriginalIDEColdTerminalCustody','getOriginalIDEColdTerminalCustodyCleanup'].sort();
   assert.deepEqual(Object.keys(published).sort(),names);
   for(const name of names)assert.equal(published[name],original[name]);
 });

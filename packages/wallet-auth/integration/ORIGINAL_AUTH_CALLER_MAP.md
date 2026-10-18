@@ -1,6 +1,6 @@
 # Original Auth caller contract and version boundary
 
-This document maps implemented calls and type-only contracts in `1.3.0-pq.3.22-auth.1`. It does not
+This document maps implemented calls and type-only contracts in `1.3.0-pq.3.23-auth.1`. It does not
 register a credential or approve a Source release. Auth's R82 request schema is
 consumed unchanged; its three Native implementations remain incomplete.
 
@@ -12,6 +12,7 @@ There is no provider, key, root, grant, path or clock injection parameter.
 
 | Export | Caller / input | Output / authority | Failure and lifecycle |
 | --- | --- | --- | --- |
+| `acquireOriginalIDENativeAuthBinding` | Original running backend entry URL; same fixed Native target and existing entry guard | Original synchronous frozen Native callback table, or null when absent/incomplete; never constructs an owner | R87 getter validates kernel parent/argv; discovery does not require old selection or grant Source; original load/getter failures propagate; extension fallback and target aliases refused |
 | `acquireOriginalIDEAdmissionParentDelivery` | Original backend, actual `Resources/server.mjs` file URL, also bound to `process.argv[1]` | Same fixed Native parent's owner, or `null` for unconfigured selection; descriptor `-1` is partial cleanup custody, not admission | No alternate module or reacquire; original owner `assertCurrent` / `close`; caller retains partial before checking readiness |
 | `acquireOriginalIDEPrivateServiceChannel` | Same backend URL after the same parent acquisition | Same Native private client; existing canonical four-operation dispatch and original response | Original first cause / UNKNOWN retained; no resend; retire transport, then drain/join/close the original owner |
 | `getOriginalIDEPrivateServiceChannelCleanup` | Same backend URL | Selected partial cleanup custody, or `null` if never selected | Cleanup only, including falsy acquisition failure; no new selection |
