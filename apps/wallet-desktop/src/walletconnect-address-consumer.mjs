@@ -17,7 +17,7 @@ export function createAddressConnectionConsumer({origin,createConnection,onState
   if(connection)return connection;
   connection=createConnection({origin:ADDRESS_CONNECTION_ORIGIN,methods:[]});
   for(const name of ['connect','cancel','disconnect','on'])if(typeof connection?.[name]!=='function')throw Error('WALLET_CONNECTION_INTERFACE_REQUIRED');
-  connection.on('stage',value=>{if(pending&&phases.has(value?.stage))publish(value.stage);});
+  connection.on('stage',value=>{if(pending&&!uncertain&&phases.has(state.phase)&&phases.has(value?.stage))publish(value.stage);});
   connection.on('cancelUnconfirmed',value=>{if(value?.current!==true)return;uncertain=true;provider=null;clearURI();publish('cleanup-unconfirmed');});
   for(const name of ['accountsChanged','chainChanged','disconnect'])connection.on(name,changed);
   return connection;

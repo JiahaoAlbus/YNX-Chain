@@ -1,0 +1,13 @@
+{
+  "state": "CONTROLLED_REGRESSION_VERIFIED_NOT_DEPLOYED",
+  "predecessorCommit": "04d0accbb37197d5630990aefc3b518b92f0c9c4",
+  "predecessorHandoffUnchanged": "FIRSTPARTY_ADDRESS_CONSUMER_SOURCE_HANDOFF.json",
+  "scope": "Existing Wallet address-only page notification state",
+  "realRed": "Late controlled approval-stage notification revived cancelled phase while original work still drained",
+  "repair": "Accept stage notifications only while pending, not cleanup-unknown and still in a live connection phase",
+  "beforeRaw": "apps/wallet-desktop/test/walletconnect-address-stage-before-20261018.raw",
+  "afterRaw": "apps/wallet-desktop/test/walletconnect-address-stage-after-20261018.raw",
+  "tests": {"pass": 12, "fail": 0, "durationMs": 12.574667, "runtime": "Previously installed R24 RunAsNode, controlled public transport/DOM only"},
+  "notClaimed": ["Formal SDK39 consumption", "Browser bundle or publication", "Actual Relay or session", "New installed App", "Signature, funds or Source grant"],
+  "next": "Consume original SDK39 fixed dependency closure and address-only public ABI, then same-copy matching and sole-A normal build/publication; no repeated SDK38 build"
+}

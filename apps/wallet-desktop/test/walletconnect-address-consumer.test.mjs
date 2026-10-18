@@ -43,3 +43,12 @@ test('account and chain events invalidate display instead of silently adopting c
 test('transport errors expose bounded codes, never original error messages or pairing material',async()=>{
  const f=fixture({connect:async()=>{throw Object.assign(Error('SECRET_URI_AND_CREDENTIAL'),{code:'SECRET_URI_AND_CREDENTIAL'});}});await f.ui.connect();assert.equal(f.ui.snapshot().code,'WALLET_CONNECTION_UNAVAILABLE');assert.equal(JSON.stringify(f.states).includes('SECRET'),false);
 });
+test('late stage notifications cannot revive a cancelled original or erase cleanup uncertainty',async()=>{
+ for(const mode of ['cancelled','unknown']){
+  const pending=defer(),f=fixture({connect:()=>pending.promise});const work=f.ui.connect();await Promise.resolve();
+  if(mode==='cancelled')await f.ui.cancel();else f.handlers.get('cancelUnconfirmed')({current:true});
+  const before=f.ui.snapshot();f.handlers.get('stage')({stage:'approval',attempt:1});
+  assert.deepEqual(f.ui.snapshot(),before);
+  pending.resolve(f.provider);await work;assert.notEqual(f.ui.snapshot().phase,'connected');
+ }
+});
