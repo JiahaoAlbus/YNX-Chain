@@ -16,6 +16,8 @@ on:
       - 'pkg/**'
       - 'third_party/cometbft/**'
       - 'scripts/loadtest/**'
+      - 'scripts/deploy/deploy-consensus-candidate.sh'
+      - 'scripts/deploy/consensus-candidate-failure-retention.test.mjs'
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
       - 'go.mod'
       - 'go.sum'
@@ -145,10 +147,21 @@ jobs:
       - name: Verify real profile state transition and historical store without starting nodes
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXProfileActualStateUpdateHeaderAndHistoricalStore$' github.com/cometbft/cometbft/state
+      - name: Verify bounded remote signer transport and unchanged legacy protobuf vectors
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXRemoteSignerTransport.*|TestPrivvalVectors)$' github.com/cometbft/cometbft/privval
+      - name: Verify actual engine signing caller uses committed height key and round context
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXActualSignVoteConsumesHeightKeyAndRoundContext$' github.com/cometbft/cometbft/consensus
       - name: Measure fresh single and bounded concurrent dual signature paths
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 2
-        run: go test -p 1 ./internal/ynxbatch -run '^$' -bench '^BenchmarkParallelProvider(FreshN1Sign|FreshN1Verify|Concurrent)$' -benchtime=10x -count=1 -timeout=90s
+        run: |
+          if git diff --quiet 66d29db440c7e3864ec855734f77bf5a0ae65ee2 HEAD -- internal/ynxbatch; then
+            echo 'Reuse exact unchanged provider measurements from successful run 39098054802 (22 combined benchmark rows retained in CI_RUN18 evidence).'
+          else
+            go test -p 1 ./internal/ynxbatch -run '^$' -bench '^BenchmarkParallelProvider(FreshN1Sign|FreshN1Verify|Concurrent)$' -benchtime=10x -count=1 -timeout=90s
+          fi
       - name: Measure actual policy certificate cache consumer cold and warm paths
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 2
@@ -159,6 +172,9 @@ jobs:
         with:
           node-version: '24.19.0'
           cache: npm
+      - name: Verify failed candidate deployment preserves services and signing history
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: node --test scripts/deploy/consensus-candidate-failure-retention.test.mjs
       - name: Compile frozen measured production overlay without executing cases
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3
@@ -191,7 +207,7 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
-          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci
+          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |

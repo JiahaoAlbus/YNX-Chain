@@ -33,7 +33,7 @@ func EncodePQNativeActionTransaction(wire []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if action.Kind != ynxauth.ActionStake {
+	if action.Kind != ynxauth.ActionStake && action.Kind != ynxauth.ActionResourceDelegate && action.Kind != ynxauth.ActionResourceRent {
 		return nil, errors.New("ABCI native action executor is not enabled for this kind")
 	}
 	return json.Marshal(PQTransaction{Version: 1, Type: PQActionType, WireHex: hex.EncodeToString(wire)})
@@ -85,6 +85,9 @@ func (a *Application) applyPQActionTransaction(state executionState, raw []byte,
 	}
 	if action.Kind == ynxauth.ActionContractDeploy || action.Kind == ynxauth.ActionContractExecute {
 		return a.applyPQContractAction(state, raw, height, at)
+	}
+	if action.Kind == ynxauth.ActionResourceDelegate || action.Kind == ynxauth.ActionResourceRent {
+		return a.applyPQResourceAction(state, raw, height, at)
 	}
 	return a.applyPQNativeAction(state, raw, height, at)
 }
@@ -166,6 +169,9 @@ func decodePQNativeActionHistory(entry PQCommittedAuthorization) ([]byte, ynxaut
 	value, err := ynxauth.DecodeActionPayload(action.Kind, action.Payload)
 	if err != nil {
 		return nil, action, err
+	}
+	if action.Kind != ynxauth.ActionStake {
+		return nil, action, errors.New("non-stake action in stake history")
 	}
 	expected := chain.Transaction{Hash: SignedTransactionHash(wire), Type: "stake", From: action.Owner, To: "ynx_staking", Amount: int64(value.(ynxauth.StakePayload).Amount), Nonce: action.Nonce, BlockNum: tx.BlockNum, Timestamp: tx.Timestamp, Memo: tx.Memo}
 	if action.Fee != 0 || entry.ABCITransactionHash != SignedTransactionHash(raw) || tx.Timestamp.IsZero() || tx.Timestamp.Location() != time.UTC || !reflect.DeepEqual(tx, expected) {
@@ -254,17 +260,10 @@ func validateConsensusPQNativeActions(s CommittedState, m chain.ConsensusMigrati
 			}
 		}
 	}
-	for owner, compute := range counts {
+	for owner := range counts {
 		index, ok := accountIndex(s.Accounts, owner)
 		if !ok || s.Accounts[index].Nonce < lastNonce[owner] {
 			return errors.New("PQ native final owner or nonce is missing")
-		}
-		_, base, err := pqContractRemainingSourceUsage(s, m, owner, first[owner])
-		if err != nil {
-			return err
-		}
-		if base > math.MaxInt64-compute || s.Accounts[index].ResourceUsage.ComputeUsed < base+compute {
-			return errors.New("PQ native compute effects were removed")
 		}
 	}
 	for _, event := range s.FeeEvents {

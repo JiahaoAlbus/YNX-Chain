@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cometbft/cometbft/light"
+	sm "github.com/cometbft/cometbft/state"
 	"github.com/cometbft/cometbft/types"
 )
 
@@ -55,6 +56,17 @@ func (evpool *Pool) verify(evidence types.Evidence) error {
 		return VerifyDuplicateVote(ev, state.ChainID, valSet)
 
 	case *types.LightClientAttackEvidence:
+		// Peer decoding carries keys, never signing authority. Preserve the
+		// original evidence bytes/hash while authenticating its embedded set.
+		boundSet, err := sm.BindEvidenceValidatorSetFromStore(evpool.stateDB, ev.ConflictingBlock.Height, ev.ConflictingBlock.ValidatorSet)
+		if err != nil {
+			return err
+		}
+		boundBlock := *ev.ConflictingBlock
+		boundBlock.ValidatorSet = boundSet
+		boundEvidence := *ev
+		boundEvidence.ConflictingBlock = &boundBlock
+		ev = &boundEvidence
 		commonHeader, err := getSignedHeader(evpool.blockStore, evidence.Height())
 		if err != nil {
 			return err
@@ -121,7 +133,8 @@ func VerifyLightClientAttack(
 	// In the case of lunatic attack there will be a different commonHeader height. Therefore the node perform a single
 	// verification jump between the common header and the conflicting one
 	if commonHeader.Height != e.ConflictingBlock.Height {
-		err := commonVals.VerifyCommitLightTrustingAllSignatures(trustedHeader.ChainID, e.ConflictingBlock.Commit, light.DefaultTrustLevel)
+		overlap := types.CommitForFullKeyOverlap(commonVals, e.ConflictingBlock.ValidatorSet, e.ConflictingBlock.Commit)
+		err := commonVals.VerifyCommitLightTrustingAllSignatures(trustedHeader.ChainID, overlap, light.DefaultTrustLevel)
 		if err != nil {
 			return fmt.Errorf("skipping verification of conflicting block failed: %w", err)
 		}

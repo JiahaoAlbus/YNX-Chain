@@ -90,6 +90,13 @@ func CreateSigner(path string, key *CandidateKey, policy Policy, registry Regist
 // ResumeSigner rejects v1/unbound files before reconfirming their durability.
 // It never upgrades, resets or replaces incompatible anti-equivocation history.
 func ResumeSigner(path string, key *CandidateKey, registry Registry) (*Signer, error) {
+	return resumeSigner(path, key, registry, nil)
+}
+
+// The custody path supplies a detached complete expected identity. Check it
+// under the same original OS lock as load and durability reconfirmation; a
+// read-only preflight alone cannot close a check-before-lock window.
+func resumeSigner(path string, key *CandidateKey, registry Registry, expected *SignerIdentity) (*Signer, error) {
 	s, err := openSigner(path, key, registry)
 	if err != nil {
 		return nil, err
@@ -124,6 +131,22 @@ func ResumeSigner(path string, key *CandidateKey, registry Registry) (*Signer, e
 	}
 	if err = s.validateState(); err != nil {
 		return nil, err
+	}
+	if expected != nil {
+		st := s.state
+		if st.Policy.Version != expected.Policy.Version || st.Policy.ChainID != expected.Policy.ChainID || st.Policy.ActivationHeight != expected.Policy.ActivationHeight || !bytes.Equal(st.Policy.GenesisID, expected.Policy.GenesisID) || st.Epoch != expected.Epoch || !bytes.Equal(st.Address, expected.ValidatorAddress) || !bytes.Equal(st.PublicA, expected.MLDSA87PublicKey) || !bytes.Equal(st.PublicB, expected.SLHDSASHA2256fPublicKey) {
+			err = errors.New("locked signer history differs from expected complete custody identity")
+			return nil, err
+		}
+		var canonical []byte
+		canonical, err = json.Marshal(st)
+		if err != nil {
+			return nil, err
+		}
+		if !bytes.Equal(canonical, b) {
+			err = errors.New("locked custody signer history is not its exact canonical encoding")
+			return nil, err
+		}
 	}
 	// Reconfirm a file left visible by a previous uncertain directory fsync.
 	if err = s.write(s.path, s.state, false); err != nil {

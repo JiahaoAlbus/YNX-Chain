@@ -231,10 +231,11 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 			return errors.New("invalid ABCI PQ history height or replay")
 		}
 		previousHeight, seen[tx.Hash] = tx.BlockNum, true
-		// Contract history has its own complete signed intent, code/prestate,
-		// execution and trace-lot validator in CommittedState.Validate. Keep the
-		// common metadata, height and replay gates above for every contract too.
-		if isPQContractHistory(tx) || isPQNativeActionHistory(tx) {
+		// Typed actions have their own original-proof and exact execution
+		// validators in CommittedState.Validate (including contract code/trace
+		// lots and Resource request/settlement records). Every kind retains
+		// the common metadata, chronological height and replay gates above.
+		if isPQContractHistory(tx) || isPQNativeActionHistory(tx) || isPQResourceHistory(tx) {
 			continue
 		}
 		if strings.HasPrefix(tx.Memo, pqBatchMemberMemoPrefix) {

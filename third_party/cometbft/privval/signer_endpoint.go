@@ -5,14 +5,20 @@ import (
 	"net"
 	"time"
 
+	"github.com/cometbft/cometbft/crypto/ynxpq"
 	"github.com/cometbft/cometbft/libs/protoio"
 	"github.com/cometbft/cometbft/libs/service"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
 	privvalproto "github.com/cometbft/cometbft/proto/tendermint/privval"
+	"github.com/cometbft/cometbft/types"
 )
 
 const (
 	defaultTimeoutReadWriteSeconds = 5
+	// The frozen extension limit and two exact PQ envelopes fit without
+	// changing any consensus signature, extension, block or evidence limit.
+	// The remaining 4096 bytes bound protobuf framing and object metadata.
+	maxRemoteSignerMsgSize = types.MaxVoteExtensionSize + 2*ynxpq.EnvelopeSize + 4096
 )
 
 type signerEndpoint struct {
@@ -92,7 +98,6 @@ func (se *signerEndpoint) ReadMessage() (msg privvalproto.Message, err error) {
 	if err != nil {
 		return
 	}
-	const maxRemoteSignerMsgSize = 1024 * 10
 	protoReader := protoio.NewDelimitedReader(se.conn, maxRemoteSignerMsgSize)
 	_, err = protoReader.ReadMsg(&msg)
 	if _, ok := err.(timeoutError); ok {
@@ -111,6 +116,9 @@ func (se *signerEndpoint) ReadMessage() (msg privvalproto.Message, err error) {
 
 // WriteMessage writes a message from the endpoint
 func (se *signerEndpoint) WriteMessage(msg privvalproto.Message) (err error) {
+	if msg.Size() > maxRemoteSignerMsgSize {
+		return fmt.Errorf("remote signer message exceeds %d bytes", maxRemoteSignerMsgSize)
+	}
 	se.connMtx.Lock()
 	defer se.connMtx.Unlock()
 

@@ -297,24 +297,13 @@ func validateConsensusPQContracts(s CommittedState, m chain.ConsensusMigrationSt
 			}
 		}
 	}
-	for owner, used := range usage {
-		i, exists := accountIndex(s.Accounts, owner)
-		if !exists {
-			return errors.New("PQ contract resource owner missing")
-		}
-		bandwidth, compute, err := pqContractRemainingSourceUsage(s, m, owner, firstUse[owner])
-		if err != nil {
-			return err
-		}
-		if bandwidth > math.MaxInt64-used[0] || compute > math.MaxInt64-used[1] || s.Accounts[i].ResourceUsage.BandwidthUsed < bandwidth+used[0] || s.Accounts[i].ResourceUsage.ComputeUsed < compute+used[1] {
-			return errors.New("PQ contract resource effects were removed from final account")
-		}
-	}
 	return nil
 }
 
 // Resource validators run before this check. Their actual policy-recomputed
 // rentals and reconciled pool records may legitimately release source usage.
+// PQ-marked rentals are verified bidirectionally before this helper and are
+// folded at their original history positions by validatePQOrderedResourceUsage.
 // Only pre-PQ classic effects are considered here: an earlier oversized rental
 // must never cancel later PQ execution. Unknown classic usage increases remain
 // outside this lower bound; this is not a reconstruction of omitted old bodies.
@@ -335,7 +324,7 @@ func pqContractRemainingSourceUsage(s CommittedState, m chain.ConsensusMigration
 		return nil
 	}
 	for _, rental := range s.ResourceRentals {
-		if rental.Address == owner {
+		if rental.Address == owner && rental.PQTransactionHash == "" {
 			if err := add(rental.BlockHeight, rental.Bandwidth, rental.Compute); err != nil {
 				return 0, 0, err
 			}

@@ -179,8 +179,12 @@ func doHandshake(
 	eventBus types.BlockEventPublisher,
 	proxyApp proxy.AppConns,
 	consensusLogger log.Logger,
+	authoritySources ...types.ConsensusAuthoritySource,
 ) error {
 	handshaker := cs.NewHandshaker(stateStore, state, blockStore, genDoc)
+	if len(authoritySources) > 0 {
+		handshaker.SetConsensusAuthoritySource(authoritySources[0])
+	}
 	handshaker.SetLogger(consensusLogger)
 	handshaker.SetEventBus(eventBus)
 	if err := handshaker.HandshakeWithContext(ctx, proxyApp); err != nil {

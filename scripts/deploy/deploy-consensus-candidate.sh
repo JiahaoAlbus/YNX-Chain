@@ -28,7 +28,7 @@ bft_gateway_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=yn
 service_ldflags="-s -w -X main.buildCommit=${commit} -X main.buildRelease=ynx-chain-${commit} -X main.buildTime=${build_time}"
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/ynx-abci" ./cmd/ynx-abci
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/ynx-consensus-keycheck" ./cmd/ynx-consensus-keycheck
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/cometbft" github.com/cometbft/cometbft/cmd/cometbft
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o "$work/bin/cometbft" ./cmd/ynx-comet
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$bft_gateway_ldflags" -o "$work/bin/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd
 for service in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced; do
   GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$service_ldflags" -o "$work/bin/$service" "./cmd/$service"
@@ -36,17 +36,15 @@ done
 
 candidate_mutation_started=0
 deployment_complete=0
-cleanup_candidate_role() {
-  local role="$1" user="$2" host="$3" key="$4" _kind="$5"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo systemctl disable --now ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service 2>/dev/null || true; sudo rm -rf /var/lib/ynx-chain/consensus-candidate '/opt/ynx-chain/consensus-candidates/$release/$role'; rm -f '/tmp/$release-$role.tar.gz'; sudo rm -f /etc/systemd/system/ynx-consensus-comet-candidate.service /etc/systemd/system/ynx-consensus-abci-candidate.service; sudo systemctl daemon-reload; systemctl is-active ynx-chaind >/dev/null"
-}
 cleanup_failed_candidate_deploy() {
   local status="$?"
   trap - EXIT
   if [[ "$status" != "0" && "$candidate_mutation_started" == "1" && "$deployment_complete" == "0" ]]; then
-    set +e
-    ynx_ops_each_node cleanup_candidate_role
-    echo "candidate deployment failed; parallel candidate services and state removed from all roles" >&2
+    # A role may already have committed blocks, reserved H/R/S or returned
+    # UNKNOWN. Another role's failure is not evidence that these writes can be
+    # undone. Retain all services, keys, state, backups and staged artifacts;
+    # recovery must reconcile the exact installed release and durable state.
+    echo "candidate deployment failed for $release; all existing services, state, signer history, backups and staged artifacts are retained for exact-result recovery" >&2
   fi
   exit "$status"
 }

@@ -25,6 +25,8 @@ type PQEngineSnapshot struct {
 
 var _ ynxpq.Authorizer = (*PQEngineSnapshot)(nil)
 var _ ynxconsensusauth.Registry = (*PQEngineSnapshot)(nil)
+var _ cmttypes.ConsensusAuthority = (*PQEngineSnapshot)(nil)
+var _ cmttypes.ConsensusEvidenceAuthority = (*PQEngineSnapshot)(nil)
 
 // CommittedPQEngineSnapshot publishes only the successfully committed state.
 // Expensive replay occurs after releasing Application.mu. In-lock candidate
@@ -232,4 +234,36 @@ func (s *PQEngineSnapshot) ValidateNextValidatorsHash(proposalHeight int64, actu
 		return fmt.Errorf("wrong next validator hash at proposal height %d", proposalHeight)
 	}
 	return nil
+}
+
+// BindEvidenceValidatorSet preserves a conflicting set's claimed powers so
+// the normal evidence verifier can prove that claim was malicious. Authority
+// is limited to independently registered full keys at the evidence height;
+// this method cannot authorize a real engine or light-client validator set.
+func (s *PQEngineSnapshot) BindEvidenceValidatorSet(height int64, actual *cmttypes.ValidatorSet) (*cmttypes.ValidatorSet, error) {
+	expected, err := s.expectedMembersAt(height)
+	if err != nil {
+		return nil, err
+	}
+	if actual == nil {
+		return nil, errors.New("missing conflicting evidence validator set")
+	}
+	if err := actual.ValidateBasic(); err != nil {
+		return nil, err
+	}
+	if s.schedule == nil || height < s.schedule.ActivationHeight {
+		if cmttypes.ValidatorSetRequiresConsensusAuthority(actual) {
+			return nil, errors.New("PQ evidence key before consensus activation")
+		}
+		// Preserve stock preactivation evidence semantics, including a
+		// conflicting Ed set, without reinterpreting old signed history.
+		return actual.Copy(), nil
+	}
+	for _, member := range actual.Validators {
+		_, registered := expected.GetByAddress(member.Address)
+		if registered == nil || !registered.PubKey.Equals(member.PubKey) {
+			return nil, errors.New("conflicting evidence key is not registered at its historical height")
+		}
+	}
+	return actual.WithConsensusAuthorizer(s)
 }

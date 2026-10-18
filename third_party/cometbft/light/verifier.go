@@ -55,7 +55,8 @@ func VerifyNonAdjacent(
 	}
 
 	// Ensure that +`trustLevel` (default 1/3) or more of last trusted validators signed correctly.
-	err := trustedVals.VerifyCommitLightTrusting(trustedHeader.ChainID, untrustedHeader.Commit, trustLevel)
+	overlap := types.CommitForFullKeyOverlap(trustedVals, untrustedVals, untrustedHeader.Commit)
+	err := trustedVals.VerifyCommitLightTrusting(trustedHeader.ChainID, overlap, trustLevel)
 	if err != nil {
 		switch e := err.(type) {
 		case types.ErrNotEnoughVotingPowerSigned:

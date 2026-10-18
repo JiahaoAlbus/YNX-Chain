@@ -72,6 +72,11 @@ func runWithEngineAuthorization(listen, transport, migrationPath, statePath, gen
 	if err != nil {
 		return err
 	}
+	lease, err := consensus.AcquireApplicationStateWriterLease(statePath)
+	if err != nil {
+		return err
+	}
+	defer lease.Close()
 	payload, err := os.ReadFile(migrationPath)
 	if err != nil {
 		return fmt.Errorf("read migration state: %w", err)

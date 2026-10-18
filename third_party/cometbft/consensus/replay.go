@@ -199,12 +199,15 @@ func makeHeightSearchFunc(height int64) auto.SearchFunc {
 //---------------------------------------------------
 
 type Handshaker struct {
-	stateStore   sm.Store
-	initialState sm.State
-	store        sm.BlockStore
-	eventBus     types.BlockEventPublisher
-	genDoc       *types.GenesisDoc
-	logger       log.Logger
+	pqAuthoritySource types.ConsensusAuthoritySource
+	pqAppHeight       int64
+	pqAppHash         []byte
+	stateStore        sm.Store
+	initialState      sm.State
+	store             sm.BlockStore
+	eventBus          types.BlockEventPublisher
+	genDoc            *types.GenesisDoc
+	logger            log.Logger
 
 	nBlocks int // number of blocks applied to the state
 }
@@ -304,6 +307,8 @@ func (h *Handshaker) ReplayBlocksWithContext(
 	appBlockHeight int64,
 	proxyApp proxy.AppConns,
 ) ([]byte, error) {
+	h.pqAppHeight = appBlockHeight
+	h.pqAppHash = append([]byte(nil), appHash...)
 	storeBlockBase := h.store.Base()
 	storeBlockHeight := h.store.Height()
 	stateBlockHeight := state.LastBlockHeight
@@ -370,6 +375,14 @@ func (h *Handshaker) ReplayBlocksWithContext(
 				return nil, err
 			}
 		}
+	}
+
+	// Before the first Comet block, the state deliberately has LastBlockHeight
+	// zero even when InitialHeight continues a migrated chain at H > 1. Use
+	// H-1 only for replay distance comparisons; never invent a LastCommit or
+	// rewrite the actual state/history to that virtual comparison height.
+	if stateBlockHeight == 0 && storeBlockHeight > 0 {
+		stateBlockHeight = state.InitialHeight - 1
 	}
 
 	// First handle edge cases and constraints on the storeBlockHeight and storeBlockBase.
@@ -528,10 +541,13 @@ func (h *Handshaker) replayBlock(state sm.State, height int64, proxyApp proxy.Ap
 
 	// Use stubs for both mempool and evidence pool since no transactions nor
 	// evidence are needed here - block already exists.
-	blockExec := sm.NewBlockExecutor(h.stateStore, h.logger, proxyApp, emptyMempool{}, sm.EmptyEvidencePool{}, h.store)
+	authorityStore, err := h.consensusReplayStore(state, height)
+	if err != nil {
+		return sm.State{}, err
+	}
+	blockExec := sm.NewBlockExecutor(authorityStore, h.logger, proxyApp, emptyMempool{}, sm.EmptyEvidencePool{}, h.store)
 	blockExec.SetEventBus(h.eventBus)
 
-	var err error
 	state, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 	if err != nil {
 		return sm.State{}, err

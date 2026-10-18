@@ -216,6 +216,11 @@ func (blockExec *BlockExecutor) ValidateBlockSkipLastCommit(state State, block *
 }
 
 func (blockExec *BlockExecutor) validateBlockAndCheckEvidence(state State, block *types.Block, opts ...func(*blockValidationOptions)) error {
+	var err error
+	state, err = blockExec.BindState(state)
+	if err != nil {
+		return err
+	}
 	if err := validateBlock(state, block, append(opts, blockExec.withBlockTimeTolerance)...); err != nil {
 		return err
 	}
@@ -246,6 +251,11 @@ func (blockExec *BlockExecutor) ApplyVerifiedBlock(
 func (blockExec *BlockExecutor) ApplyBlock(
 	state State, blockID types.BlockID, block *types.Block,
 ) (State, error) {
+	var err error
+	state, err = blockExec.BindState(state)
+	if err != nil {
+		return state, err
+	}
 
 	if err := validateBlock(state, block, blockExec.withBlockTimeTolerance); err != nil {
 		return state, ErrInvalidBlock(err)
@@ -255,6 +265,13 @@ func (blockExec *BlockExecutor) ApplyBlock(
 }
 
 func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, block *types.Block) (State, error) {
+	// ApplyVerifiedBlock also reaches here; authority is never skipped with
+	// ordinary block validation, including replay and blocksync fast paths.
+	var bindingErr error
+	state, bindingErr = blockExec.BindState(state)
+	if bindingErr != nil {
+		return state, bindingErr
+	}
 	startTime := time.Now().UnixNano()
 	abciResponse, err := blockExec.proxyApp.FinalizeBlock(context.TODO(), &abci.RequestFinalizeBlock{
 		Hash:               block.Hash(),
@@ -327,16 +344,19 @@ func (blockExec *BlockExecutor) applyBlock(state State, blockID types.BlockID, b
 		return state, fmt.Errorf("commit failed for application: %v", err)
 	}
 
-	// Update evpool with the latest state.
-	blockExec.evpool.Update(state, block.Evidence.Evidence)
-
 	fail.Fail() // XXX
 
 	// Update the app hash and save the state.
 	state.AppHash = abciResponse.AppHash
+	state, err = blockExec.BindState(state)
+	if err != nil {
+		return state, fmt.Errorf("bind actually committed application state: %w", err)
+	}
 	if err := blockExec.store.Save(state); err != nil {
 		return state, err
 	}
+	// The pool can now load historical sets against this same committed anchor.
+	blockExec.evpool.Update(state, block.Evidence.Evidence)
 
 	fail.Fail() // XXX
 

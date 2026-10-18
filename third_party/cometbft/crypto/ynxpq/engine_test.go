@@ -117,6 +117,9 @@ func TestRealDualSignaturesThroughVoteCommitProposalAndExtension(t *testing.T) {
 	if err := v.VerifyVoteAndExtension("ynx-engine-test", f.key); err != nil {
 		t.Fatal(err)
 	}
+	if err := v.VerifyExtension("ynx-engine-test", f.key); err != nil {
+		t.Fatal("actual consensus addVote extension caller rejected genuine bound extension:", err)
+	}
 	for _, offset := range []int{len(v.Signature) - 1, len("YNX-CONSENSUS-SIG/v0.2\x00") + 4 + 8 + 4 + 4} {
 		bad := v.Copy()
 		bad.Signature = bytes.Clone(v.Signature)

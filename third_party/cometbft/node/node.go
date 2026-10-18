@@ -280,7 +280,7 @@ func NewNode(config *cfg.Config,
 }
 
 // NewNodeWithContext is cancellable version of NewNode.
-func NewNodeWithContext(ctx context.Context,
+func newNodeWithContextAndAuthority(ctx context.Context,
 	config *cfg.Config,
 	privValidator types.PrivValidator,
 	nodeKey *p2p.NodeKey,
@@ -289,6 +289,7 @@ func NewNodeWithContext(ctx context.Context,
 	dbProvider cfg.DBProvider,
 	metricsProvider MetricsProvider,
 	logger log.Logger,
+	authoritySource types.ConsensusAuthoritySource,
 	options ...Option,
 ) (*Node, error) {
 	blockStore, stateDB, err := initDBs(config, dbProvider)
@@ -355,7 +356,7 @@ func NewNodeWithContext(ctx context.Context,
 	// and replays any blocks as necessary to sync CometBFT with the app.
 	consensusLogger := logger.With("module", "consensus")
 	if !stateSync {
-		if err := doHandshake(ctx, stateStore, state, blockStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
+		if err := doHandshake(ctx, stateStore, state, blockStore, genDoc, eventBus, proxyApp, consensusLogger, authoritySource); err != nil {
 			return nil, err
 		}
 
@@ -365,6 +366,24 @@ func NewNodeWithContext(ctx context.Context,
 		state, err = stateStore.Load()
 		if err != nil {
 			return nil, fmt.Errorf("cannot load state: %w", err)
+		}
+	}
+
+	// Bind only after handshake has reconciled the real application checkpoint.
+	// Historical keys loaded by evidence/blocksync use the same local source.
+	stateStore = sm.WithConsensusAuthorityStore(stateStore, authoritySource)
+	if stateSync {
+		state, err = sm.BindConsensusStateFromSource(state, authoritySource)
+	} else {
+		state, err = stateStore.Load()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("authenticate post-handshake consensus state: %w", err)
+	}
+	if authoritySource == nil {
+		state, err = sm.BindConsensusState(state, nil)
+		if err != nil {
+			return nil, err
 		}
 	}
 

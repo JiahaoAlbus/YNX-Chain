@@ -179,6 +179,11 @@ func NewState(
 	for _, option := range options {
 		option(cs)
 	}
+	var bindingErr error
+	state, bindingErr = blockExec.BindState(state)
+	if bindingErr != nil {
+		panic(fmt.Errorf("authenticate initial consensus state: %w", bindingErr))
+	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
 	cs.doPrevote = cs.defaultDoPrevote
@@ -645,6 +650,11 @@ func (cs *State) votesFromSeenCommit(state sm.State) (*types.VoteSet, error) {
 // Updates State and increments height to match that of state.
 // The round becomes 0 and cs.Step becomes cstypes.RoundStepNewHeight.
 func (cs *State) updateToState(state sm.State) {
+	var bindingErr error
+	state, bindingErr = cs.blockExec.BindState(state)
+	if bindingErr != nil {
+		panic(fmt.Errorf("authenticate consensus transition: %w", bindingErr))
+	}
 	if cs.CommitRound > -1 && 0 < cs.Height && cs.Height != state.LastBlockHeight {
 		panic(fmt.Sprintf(
 			"updateToState() expected state height of %v but found %v",
@@ -1237,6 +1247,10 @@ func (cs *State) defaultDecideProposal(height int64, round int32) {
 	propBlockID := types.BlockID{Hash: block.Hash(), PartSetHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
 	p := proposal.ToProto()
+	if err := cs.setConsensusSigningContext(height, round); err != nil {
+		cs.Logger.Error("proposal lacks authenticated signing context", "err", err)
+		return
+	}
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, p); err == nil {
 		proposal.Signature = p.Signature
 
@@ -2401,6 +2415,9 @@ func (cs *State) signVote(
 		}
 	}
 
+	if err := cs.setConsensusSigningContext(vote.Height, vote.Round); err != nil {
+		return nil, err
+	}
 	recoverable, err := types.SignAndCheckVote(vote, cs.privValidator, cs.state.ChainID, extEnabled && (msgType == cmtproto.PrecommitType))
 	if err != nil && !recoverable {
 		panic(fmt.Sprintf("non-recoverable error when signing vote %v: %v", vote, err))
@@ -2474,12 +2491,31 @@ func (cs *State) signAddVote(
 // responding or responds with an error.
 func (cs *State) updatePrivValidatorPubKey() error {
 	if cs.privValidator == nil {
+		cs.privValidatorPubKey = nil
 		return nil
 	}
 
-	pubKey, err := cs.privValidator.GetPubKey()
+	var pubKey crypto.PubKey
+	var err error
+	if byHeight, ok := cs.privValidator.(types.HeightPrivValidator); ok {
+		pubKey, err = byHeight.GetPubKeyForHeight(cs.state.ChainID, cs.Height)
+	} else {
+		pubKey, err = cs.privValidator.GetPubKey()
+	}
 	if err != nil {
+		cs.privValidatorPubKey = nil
 		return err
+	}
+	if pubKey == nil {
+		cs.privValidatorPubKey = nil
+		return errPubKeyIsNotSet
+	}
+	if cs.Validators != nil {
+		_, member := cs.Validators.GetByAddress(pubKey.Address())
+		if member != nil && !member.PubKey.Equals(pubKey) {
+			cs.privValidatorPubKey = nil
+			return errors.New("private validator full key differs from actual height-specific validator set")
+		}
 	}
 	cs.privValidatorPubKey = pubKey
 	return nil

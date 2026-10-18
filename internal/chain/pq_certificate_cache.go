@@ -119,18 +119,19 @@ func (c *PQCertificateCache) VerifierCache(policy *ynxauth.State) (*ynxbatch.Cer
 	if len(canonical.Revocations) == 0 {
 		canonical.Revocations = nil
 	}
-	encoded, err := json.Marshal(canonical)
-	if err != nil {
-		return nil, nil, err
-	}
-	wire, err := ynxbatch.EncodeFields([]byte(pqPolicyScopeDomain), encoded)
-	if err != nil {
+	// This local scope is not protocol wire. Stream the complete normalized
+	// policy into the domain-separated hash rather than allocating a JSON copy
+	// and then another length-framed copy on a certificate's cold path.
+	hash := sha256.New()
+	hash.Write([]byte(pqPolicyScopeDomain + "\x00"))
+	if err := json.NewEncoder(hash).Encode(canonical); err != nil {
 		return nil, nil, err
 	}
 	if root == nil {
 		root = &pqPolicyScopeRoot{}
 	}
-	root.scope, root.ready = sha256.Sum256(wire), true
+	copy(root.scope[:], hash.Sum(nil))
+	root.ready = true
 	c.computed++
 	c.rememberScopeLocked(pqPolicyScopeMemo{policy: policy, stamp: stamp, root: root})
 	return c.certificates, append([]byte(nil), root.scope[:]...), nil

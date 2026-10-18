@@ -410,10 +410,16 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateIDECommittedState(s); err != nil {
 		return err
 	}
+	if err := validateConsensusPQResources(s, migration); err != nil {
+		return err
+	}
 	if err := validateConsensusPQContracts(s, migration); err != nil {
 		return err
 	}
 	if err := validateConsensusPQNativeActions(s, migration); err != nil {
+		return err
+	}
+	if err := validatePQOrderedResourceUsage(s, migration); err != nil {
 		return err
 	}
 	if err := validateFeeEvents(s.FeeEvents); err != nil {
