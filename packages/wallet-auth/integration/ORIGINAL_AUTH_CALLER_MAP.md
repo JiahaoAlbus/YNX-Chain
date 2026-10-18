@@ -1,6 +1,6 @@
 # Original Auth caller contract and version boundary
 
-This document maps implemented calls and type-only contracts in `1.3.0-pq.3.23-auth.1`. It does not
+This document maps implemented calls and type-only contracts in `1.3.0-pq.3.24-auth.1`. It does not
 register a credential or approve a Source release. Auth's R82 request schema is
 consumed unchanged; its three Native implementations remain incomplete.
 
@@ -31,7 +31,7 @@ remain in the original Native/JS lifecycle; an import or parsed DTO grants none.
 
 | Interface | Original owner and current state | Required consumption boundary |
 | --- | --- | --- |
-| Identity reception | Auth: R65 `copyOriginalProvisioningPublicOriginals:` returns signed public DATA. R66 filesystem installation exists as a draft, without normal receiver hookup | Normal owned Source -> fixed kernel-UID registry install -> original cold readback. R65 alone cannot authorize an IDE parent |
+| Identity reception | Auth: R65 `copyOriginalProvisioningPublicOriginals:` returns signed public DATA. R83 private install/cold receiver hook supplied; actual public receive constructor is still incomplete | Normal owned Source -> fixed kernel-UID registry install -> original cold readback. Private install/cold readback alone cannot authorize an IDE parent |
 | Identity/key recovery | Auth: R82 canonical request schema supplied; Native `recoverOriginalIDEIdentity` implementation remains incomplete | Separate recovery purpose, original account/history, current keyVersion and trusted rotation/revocation policy. Existing terminal DATA or product-session `restore` cannot substitute |
 | Protected-key invocation | Auth: authenticated reserve -> original protected current-key borrow -> R49 hookup remains incomplete | Exact original purpose/request binding and protected same-owner custody. Ordinary login never grants recovery, export or transaction signing |
 
@@ -184,3 +184,9 @@ revocation, restart and UNKNOWN readback remain separate acceptance gates.
 
 Existing account/permission/history and uncertain effects stay intact. Legacy
 migration/login entry points must not become fallback around the new policy.
+
+## Dedicated approved AuthRequest proof DATA
+
+`./pq-wallet-key-backup` exports `signPQWalletAuthIdentityRequest(handle, requestRaw, snapshot, atMs)` for the original protected Wallet flow. It parses canonical R82 JSON, signs its exact E message with the current registered complete opaque key pair, and self-verifies one dual-PQ Member at index zero. Only RECEIVE, RECOVER and PROTECTED-KEY-CALL are allowed; LOGIN, raw messages and caller-selected signing domains are refused. Revision and request execution height must match the branded active snapshot exactly; R86 historical credential issuance does not relax this request rule.
+
+The function is synchronous crypto DATA. Neither comparing requestRaw to itself nor passing a parsed snapshot proves Native provenance, a fresh clock/current observation, user approval or once-only consumption. The original Wallet must retain its pending review, controlled key borrow, guard and independently acquired current checks before and after; Native retains expectedRaw, purpose and operation custody. No key material is exported.

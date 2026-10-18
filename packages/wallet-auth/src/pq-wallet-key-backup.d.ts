@@ -31,3 +31,11 @@ export function signPQWalletProductSessionApproval(handle:PQWalletKeyHandle,revi
  * App pending review/keyAccess guards before/after and fresh node fence required.
  * No classic/replacement-key fallback, RPC effect or implicit authorization. */
 export function signPQWalletAccountRevocation(handle: PQWalletKeyHandle, intent: PQRevocationIntentInput, snapshot: PQAuthorizationSnapshot): PQTransportRequest;
+
+/** Protected Wallet-only R82 request proof, N1/index0 with the current full
+ * registered pair. Only receive/recover/protected-key-call purposes; LOGIN and
+ * arbitrary raw messages are refused. This crypto DATA proves no request
+ * provenance, current freshness, approval or once-only use. Original pending
+ * review/keyAccess and Native-held expected/current guards remain mandatory
+ * before/after. atMs is the original U64 decimal-string clock observation. */
+export function signPQWalletAuthIdentityRequest(handle:PQWalletKeyHandle,requestRaw:string,snapshot:PQAuthorizationSnapshot,atMs:string):Uint8Array;
