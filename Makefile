@@ -513,3 +513,7 @@ emergency-action-policy-check:
 
 privacy-safety-check:
 	bash ./scripts/verify/anti-unreasonable-tracking-check.sh
+
+.PHONY: integration-contract-perf-commit-validation-timing-check
+integration-contract-perf-commit-validation-timing-check:
+	node ./scripts/verify/perf-commit-validation-timing-check.mjs

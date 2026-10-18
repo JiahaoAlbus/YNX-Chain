@@ -117,3 +117,12 @@ no new release qualification or network-performance claim. Current real Go sourc
 checks remain in the original CI. All five new qualification tests, including the
 original frozen guard and 29 original contract tests, pass locally (11.623 s).
 New CI confirmation remains required before applying for the new network slot.
+
+CI 39163586044 at 385315d19 passed the repaired controller/evidence-contract test
+stage, then failed the separate later Make invocation of the original live-source
+anchor guard. That second call site now uses a distinct diagnostic Make target,
+which runs both the exact current diagnostic derivation and original positive
+anchor guard on its frozen source. The original Make target itself is retained
+for callers explicitly verifying that original candidate. The new Make command
+passed locally (`diagnostic-make-local.raw`); no historical release or failed CI
+result is promoted. A fresh whole-run result is still required.

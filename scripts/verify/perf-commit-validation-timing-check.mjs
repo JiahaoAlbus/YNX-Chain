@@ -35,4 +35,8 @@ export function withFrozenAnchor(repo,action){
   return action(fixture);
  }finally{fs.rmSync(temp,{recursive:true,force:true})}
 }
-if(process.argv[1]===fileURLToPath(import.meta.url))console.log(JSON.stringify(validateTimingSource()));
+if(process.argv[1]===fileURLToPath(import.meta.url)){
+ const diagnostic=validateTimingSource();
+ const frozenAnchor=withFrozenAnchor(root,fixture=>JSON.parse(execFileSync(process.execPath,['scripts/verify/perf-v13-anchor-order-integration-check.mjs'],{cwd:fixture,encoding:'utf8',timeout:10000})));
+ console.log(JSON.stringify({diagnostic,frozenAnchor,interpretation:'Frozen candidate is verified only at its original source; current descendant is diagnostics-only and has no release or network-performance qualification.'}));
+}

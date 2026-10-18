@@ -305,8 +305,8 @@ jobs:
             ${{ runner.temp }}/ynx-real-fee-history/result.json
           if-no-files-found: error
           retention-days: 90
-      - name: Verify fixed unpublished anchor-order V13 integration contract
-        run: make integration-contract-perf-v13-anchor-order-check
+      - name: Verify exact diagnostic derivation and original frozen anchor contract
+        run: make integration-contract-perf-commit-validation-timing-check
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan
