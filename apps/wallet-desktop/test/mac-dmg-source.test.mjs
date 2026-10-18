@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,readFile,lstat,symlink,readlink,readdir,unlink,rm,chmod} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,readFile,lstat,symlink,readlink,readdir,unlink,rm,chmod,statfs} from 'node:fs/promises';
+import {execFile} from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import {withMacDmgSource} from '../scripts/mac-dmg-source.mjs';
 
-// Real small filesystem fixtures, not a built/signed App or a real DMG.
+// Real small filesystem fixtures, never a built/signed Wallet App. The final
+// Darwin-only case also runs the real native image tool without mounting it.
 async function fixture(){
  const root=await mkdtemp(path.join(os.tmpdir(),'wallet-dmg-source-test-'));
  const output=path.join(root,'mac-arm64'),app=path.join(output,'QA Wallet.app'),executable=path.join(app,'Contents/MacOS/QA');
@@ -56,4 +58,40 @@ test('normal Mac entry uses the checked original output source rather than copyi
  assert.ok(source.includes('withMacDmgSource(appDir,'));
  assert.equal(source.includes('"/usr/bin/ditto"'),false);
  assert.equal(source.includes('mkdtemp('),false);
+});
+test('real Darwin hdiutil creates and verifies a tiny DMG from the unchanged original fixture',{skip:process.platform!=='darwin',timeout:45000},async t=>{
+ const floor=445644800,deltaCap=67108864;
+ const free=async()=>{const v=await statfs(os.tmpdir());return v.bavail*v.bsize;};
+ const start=await free();
+ if(start<floor+deltaCap){t.skip('Explicit fixture capacity refusal; no native image process started');return;}
+ const f=await fixture(),image=path.join(f.root,'PUBLIC-fixture.dmg');let passed=false,minFree=start;
+ async function native(args){
+  let resourceFailure=null,checking=false;
+  await new Promise((resolve,reject)=>{
+   const child=execFile('/usr/bin/hdiutil',args,{timeout:15000,maxBuffer:32768},(error,stdout,stderr)=>{
+    clearInterval(watcher);
+    if(resourceFailure)reject(resourceFailure);
+    else if(error)reject(Object.assign(error,{nativeOutput:stdout+stderr}));
+    else resolve();
+   });
+   const watcher=setInterval(async()=>{
+    if(checking)return;checking=true;
+    try{const available=await free();minFree=Math.min(minFree,available);if(available<floor||start-available>deltaCap){resourceFailure=Error('DMG_FIXTURE_CAPACITY_GUARD');child.kill('SIGTERM');}}
+    catch(error){resourceFailure=error;child.kill('SIGTERM');}
+    finally{checking=false;}
+   },25);
+  });
+ }
+ try{
+  const original=await lstat(f.app,{bigint:true});
+  await withMacDmgSource(f.app,source=>native(['create','-volname','PUBLIC fixture','-srcfolder',source,'-ov','-format','UDZO',image]));
+  await native(['verify',image]);
+  assert.equal((await lstat(f.app,{bigint:true})).ino,original.ino);
+  assert.deepEqual(await readdir(f.output),['QA Wallet.app']);assert.equal(await readFile(f.executable,'utf8'),'PUBLIC_TEST_BYTES');
+  const size=(await lstat(image)).size;assert.ok(size>0&&size<deltaCap);
+  const end=await free();minFree=Math.min(minFree,end);assert.ok(minFree>=floor);assert.ok(start-minFree<=deltaCap);
+  t.diagnostic(JSON.stringify({actualNativeCreate:0,actualNativeVerify:0,imageBytes:size,startFree:start,minFree,sampledDelta:start-minFree,AppBuilt:false,mounted:false,installed:false}));
+  passed=true;
+ }catch(error){t.diagnostic('Public fixture and any partial native output retained at '+f.root);throw error;}
+ finally{if(passed)await f.close();}
 });

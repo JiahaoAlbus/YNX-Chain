@@ -1,0 +1,10 @@
+✔ real Darwin hdiutil creates and verifies a tiny DMG from the unchanged original fixture (8765.353208ms)
+ℹ {"actualNativeCreate":0,"actualNativeVerify":0,"imageBytes":17421,"startFree":769548288,"minFree":763781120,"sampledDelta":5767168,"AppBuilt":false,"mounted":false,"installed":false}
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8809.201375

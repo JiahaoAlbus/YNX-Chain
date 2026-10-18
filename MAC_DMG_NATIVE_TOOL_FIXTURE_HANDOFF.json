@@ -1,0 +1,35 @@
+{
+  "state": "REAL_HDIUTIL_TINY_IMAGE_CREATE_AND_VERIFY_PASS_NOT_WALLET_PACKAGE",
+  "baseCommit": "3bf28a8b76f6b91c78813dcd46905edeb04b690a",
+  "productionScriptsUnchanged": {
+    "apps/wallet-desktop/scripts/build-mac.mjs": "c3d22f149600dd140a48b9908c2d9fd8b0eb4087c670104f965d8190e69f688b",
+    "apps/wallet-desktop/scripts/mac-dmg-source.mjs": "5e07e07efe77fca1957da01107f042b29699a8168b1f85134f1b880aa6c0abc2"
+  },
+  "test": "apps/wallet-desktop/test/mac-dmg-source.test.mjs: real Darwin hdiutil",
+  "raw": {"path": "apps/wallet-desktop/test/mac-dmg-source-real-native-20261018.raw", "bytes": 411, "sha256": "b1417ff04a9b5efdd819e5881d25d9d6ff6b50d0d12192955c79efcb77ba4071"},
+  "actualRun": {
+    "runtime": "Pinned Node24 on actual Darwin",
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "durationMs": 8809.201375,
+    "nativeCreateExit": 0,
+    "nativeVerifyExit": 0,
+    "imageBytes": 17421,
+    "startFree": 769548288,
+    "minSampledFree": 763781120,
+    "sampledDelta": 5767168,
+    "floor": 445644800,
+    "deltaCap": 67108864,
+    "guard": "Fresh admission floor+delta,25ms free-space sampling, own native child15s timeout, test45s; no concurrent compiler/hdiutil observed at preflight",
+    "input": "Tiny public fake .app directory and bytes, no executable Wallet, no account or secrets",
+    "source": "Actual withMacDmgSource -> /usr/bin/hdiutil create -volname PUBLIC fixture -srcfolder ORIGINAL_EXCLUSIVE_OUTPUT -ov -format UDZO NEW_IMAGE, then /usr/bin/hdiutil verify",
+    "preservation": "Original fixture App inode and bytes remain at original path; only this invocation's Applications link removed; successful public fixture and tiny image cleaned afterwards",
+    "mounted": false,
+    "AppBuilt": false,
+    "installed": false
+  },
+  "CI": "New case lives in the existing Desktop npm test wildcard. It is explicitly Darwin-only and skips with a visible capacity refusal before starting any native process when floor+delta is unavailable. Actual native failure remains a failure and retains fixture plus partial output, never bypassed or silently retried.",
+  "AUse": "Supplementary proof for the byte-identical e2/3bf production scripts; no new production candidate or rebuild required just for this test-only successor. Original A still must run the actual full App/DMG/signature/mounted closed inventory and normal website/download/install flow. Tiny fixture delta is not a full packaging peak estimate and cannot lower actual safety floors or omit UDRW/DMG/source/readback costs.",
+  "notClaimed": ["Real Wallet App build or DMG", "Actual signed App contents in mounted volume", "New packaging measured peak", "Download/install/upgrade", "Relay or Source authority", "Other platforms"]
+}
