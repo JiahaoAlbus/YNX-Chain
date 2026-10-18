@@ -49,11 +49,17 @@ const escapeRE = text => text.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const repositoryOperand = /(?:from\s*|new\s+URL\s*\(\s*)["']\.\.\/\.\.\/\.\.\/(?:packages\/wallet-auth|apps\/wallet-desktop)\//;
 const packedRuntimePath = canonicalSourcePath;
 const SDK330_VERSION='1.3.0-pq.3.30-auth.1';
+const SDK332_VERSION='1.3.0-pq.3.32-auth.1';
+export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
+ [SDK330_VERSION]:Object.freeze({bytes:64574,sha256:'3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693'}),
+ [SDK332_VERSION]:Object.freeze({bytes:65346,sha256:'0abdc434eb6e7aacc4708127e413c686e10963f4744b730c74f3d4300f522d07'})
+});
 const FIXED_SDK_RUNTIME_MANIFEST='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
 export function fixedSDKRuntimeManifestSources(root,sourceCommit){
  const sdk=JSON.parse(git(root,'show',`${sourceCommit}:packages/wallet-auth/package.json`));
  const present=git(root,'ls-tree','-r','--name-only',sourceCommit,'--',FIXED_SDK_RUNTIME_MANIFEST)===FIXED_SDK_RUNTIME_MANIFEST;
- if(sdk.version!==SDK330_VERSION){
+ const identity=Object.hasOwn(FIXED_SDK_RUNTIME_IDENTITIES,sdk.version)?FIXED_SDK_RUNTIME_IDENTITIES[sdk.version]:null;
+ if(!identity){
   if(present)throw Error('Unsupported SDK runtime manifest selection');
   return [];
  }
@@ -62,13 +68,13 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
  // not authorize itself or arbitrary adjacent JSON. Pin its reviewed identity
  // as well as requiring byte equality with the immutable composed source.
  const bytes=execFileSync('git',['show',`${sourceCommit}:${FIXED_SDK_RUNTIME_MANIFEST}`],{cwd:root,maxBuffer:1024*1024});
- if(bytes.length!==64574||digest(bytes)!=='3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693')throw Error('Fixed SDK runtime manifest identity differs');
+ if(bytes.length!==identity.bytes||digest(bytes)!==identity.sha256)throw Error('Fixed SDK runtime manifest identity differs');
  return [FIXED_SDK_RUNTIME_MANIFEST];
 }
 function selectedRelocationRules(sdkVersion){
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
-  if(sdkVersion!==SDK330_VERSION)return PACKAGED_RELOCATION_RULES;
+  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION)return PACKAGED_RELOCATION_RULES;
   return PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
     ?{...rule,operands:rule.operands.map(operand=>({...operand,count:3}))}:rule);
 }
