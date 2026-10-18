@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "runID": 39103922279,
+  "head": "8f437a3f673497074b047d887427de1c08a8c02e",
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39103922279",
+  "status": "completed",
+  "conclusion": "success",
+  "actualPassedFunctions": [
+    "TestTerminalStreamReadbackRestoresCompleteReportWithoutChangingObservations",
+    "TestTerminalStreamReadbackRejectsReceiptAndPathSubstitution",
+    "TestTerminalStreamReadbackRejectsIncompleteTailWithoutRepair",
+    "TestTerminalStreamReadbackRejectsChangedLatestSlot",
+    "TestTerminalStreamReadbackRelativeOutputSurvivesWorkingDirectoryChange",
+    "TestTerminalStreamReadbackKeepsSchema13TimingQualificationAndRejectsUnknownSchema",
+    "TestTerminalStreamReadbackStreamingBeyondLegacyLimitKeepsExactIdentities",
+    "TestTerminalStreamReadbackStreamingFailureNeverCompletesOrRepairs",
+    "TestTerminalStreamReadbackStreamingLaterCorruptionRetainsPrefixOnly",
+    "TestTerminalStreamReadbackStreamingInventoryMutationWithholdsCompletion"
+  ],
+  "actualFixtureSamples": [
+    {
+      "records": 2112,
+      "segments": 33,
+      "bytes": 2699621,
+      "signatures": "real",
+      "observationFlags": "synthetic_not_network_proof"
+    }
+  ],
+  "rawLog": "artifacts/chain-performance-20261017/ci-39103922279-full.log",
+  "rawLogSHA256": "dffd5eca030633970ce616e616be91b1055d86220525fbc8d45fd6d92c3e23d0",
+  "scope": "Source/readback correctness only. Original live 2048 transaction/32 nonce/30 second limits remain unchanged. No nodes or transactions submitted.",
+  "businessTPS": null,
+  "inclusionLatency": null,
+  "finalityLatency": null
+}
