@@ -284,7 +284,8 @@ jobs:
           if-no-files-found: error
 
   sdk-owned-interfaces:
-    if: github.ref == 'refs/heads/codex/wallet-pq-sdk-r1-20261018' || github.head_ref == 'codex/wallet-pq-sdk-r1-20261018'
+    name: SDK owned interfaces (${{ github.event_name }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-pq-sdk-r1-20261018'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:

@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import type {Buffer} from 'node:buffer';
 
 /** Transport metadata only. descriptor is borrowed from Native for spawn's
