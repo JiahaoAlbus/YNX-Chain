@@ -4,9 +4,14 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	abci "github.com/cometbft/cometbft/abci/types"
 )
 
 func TestSharedReplayCandidateDeduplicatesExactBytesWithoutSharingMutableState(t *testing.T) {
@@ -51,5 +56,183 @@ func TestSharedReplayCandidateDeduplicatesExactBytesWithoutSharingMutableState(t
 	}
 	if _, err := r.verify(context.Background(), path, raw, height); err != nil {
 		t.Fatal("original fee/nonce verifier failed", err)
+	}
+}
+
+func TestSharedReplayCandidateRealFilesStillHashValidateAndCheckBusiness(t *testing.T) {
+	app, migration, path, raw, height := durableJournalFixture(t, "block-journal")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := filepath.Join(t.TempDir(), "other.blocks")
+	if err := os.WriteFile(other, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := newDurableReader(migration, []string{path, other})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.sharedReplay = &sharedReplayCache{}
+	first, err := r.verify(context.Background(), path, raw, height)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := r.verify(context.Background(), other, raw, height)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := r.stats()
+	if first.StoreSHA256 != second.StoreSHA256 || first.AppHash != second.AppHash || s.SharedReplay.FullReplays != 1 || s.SharedReplay.Hits != 1 || s.BlockReplayTxInputs != 1 || s.TransactionVerifications != 2 || s.SnapshotValidations != 2 || s.BytesHashed != uint64(2*len(data)) {
+		t.Fatal("candidate skipped fresh input/business checks or failed to remove duplicate replay", s)
+	}
+	// State and nested account arrays belong to individual path slots.
+	if r.slots[path].state == r.slots[other].state || &r.slots[path].state.Accounts[0] == &r.slots[other].state.Accounts[0] {
+		t.Fatal("mutable state escaped across paths")
+	}
+	bad := append([]byte(nil), data...)
+	bad[len(bad)-2] ^= 1
+	if err := os.WriteFile(other, bad, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.verify(context.Background(), other, raw, height); err == nil {
+		t.Fatal("same-size tamper used old success")
+	}
+	if err := os.Remove(other); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.verify(context.Background(), other, raw, height); !errors.Is(err, errDurableNotReady) {
+		t.Fatal("deleted node file reused success", err)
+	}
+	if err := os.WriteFile(other, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.verify(context.Background(), other, raw, height+1); !errors.Is(err, errDurableNotReady) {
+		t.Fatal("future height accepted", err)
+	}
+	badTx := append([]byte(nil), raw...)
+	badTx[len(badTx)-4] ^= 1
+	if _, err := r.verify(context.Background(), other, badTx, height); err == nil {
+		t.Fatal("cached replay skipped transaction signature")
+	}
+	if _, err := app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: height + 1, Time: time.Unix(1802736001, 0)}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := app.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	changed, err := r.verify(context.Background(), path, raw, height)
+	if err != nil || changed.Height != height+1 || changed.StoreSHA256 == first.StoreSHA256 || r.stats().SharedReplay.FullReplays != 3 {
+		t.Fatal("changed bytes failed full replay", changed, err, r.stats())
+	}
+}
+
+func TestSharedReplayCandidatePublicationAndQuorumRemainRequired(t *testing.T) {
+	for _, mode := range []string{"valid", "stale_info", "bad_quorum"} {
+		t.Run(mode, func(t *testing.T) {
+			g, c, jobs := groupedObservationFixture(t)
+			g.reader.sharedReplay = &sharedReplayCache{}
+			for _, slot := range g.reader.slots {
+				clearDurableCache(slot)
+			}
+			if mode == "stale_info" {
+				c.info.Response.LastBlockHeight--
+			}
+			if mode == "bad_quorum" {
+				c.commit.Commit.Signatures[0].Signature[0] ^= 1
+			}
+			g.step(context.Background(), jobs)
+			for _, job := range jobs {
+				confirmed := g.results[job.index].Status == "confirmed" && verifiedBusinessInclusion(g.results[job.index])
+				if confirmed != (mode == "valid") {
+					t.Fatal("candidate changed final business gate", mode, g.results[job.index])
+				}
+			}
+		})
+	}
+}
+
+func TestSharedReplayCandidateFailureCancellationAndBoundedRetention(t *testing.T) {
+	var cache sharedReplayCache
+	key := sha256.Sum256([]byte("key"))
+	cause := errors.New("real decode failure")
+	calls := 0
+	produce := func() (sharedReplayValue, error) { calls++; return sharedReplayValue{}, cause }
+	for i := 0; i < 2; i++ {
+		if _, err := cache.get(context.Background(), key, produce); !errors.Is(err, cause) {
+			t.Fatal(err)
+		}
+	}
+	if calls != 2 || cache.snapshot().Failures != 2 || cache.snapshot().CachedCanonicalBytes != 0 {
+		t.Fatal("failure cached as successful snapshot")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := cache.get(ctx, key, produce); !errors.Is(err, context.Canceled) || calls != 2 {
+		t.Fatal("cancellation invoked decode or returned success")
+	}
+	for i := byte(0); i < 3; i++ {
+		k := sha256.Sum256([]byte{i})
+		if _, err := cache.get(context.Background(), k, func() (sharedReplayValue, error) { return sharedReplayValue{payload: []byte{i}}, nil }); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if s := cache.snapshot(); s.CachedCanonicalBytes != 1 || s.CanonicalByteLimit != durableSnapshotLimit || len(cache.flights) != 0 {
+		t.Fatal("cache retained generations or unfinished flights", s)
+	}
+}
+
+func TestSharedReplayCandidateConcurrentSameBytesJoinAndCancel(t *testing.T) {
+	var cache sharedReplayCache
+	key := sha256.Sum256([]byte("same"))
+	started, release, done := make(chan struct{}), make(chan struct{}), make(chan error, 1)
+	go func() {
+		_, err := cache.get(context.Background(), key, func() (sharedReplayValue, error) {
+			close(started)
+			<-release
+			return sharedReplayValue{payload: []byte("valid")}, nil
+		})
+		done <- err
+	}()
+	<-started
+	ctx, cancel := context.WithCancel(context.Background())
+	joined := make(chan error, 1)
+	go func() {
+		_, err := cache.get(ctx, key, func() (sharedReplayValue, error) { return sharedReplayValue{}, errors.New("duplicate producer") })
+		joined <- err
+	}()
+	deadline := time.Now().Add(time.Second)
+	for cache.snapshot().Joins != 1 && time.Now().Before(deadline) {
+		time.Sleep(time.Millisecond)
+	}
+	cancel()
+	if err := <-joined; !errors.Is(err, context.Canceled) {
+		t.Fatal("waiting observer ignored cancellation", err)
+	}
+	close(release)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	v, err := cache.get(context.Background(), key, func() (sharedReplayValue, error) {
+		t.Error("duplicate replay after leader success")
+		return sharedReplayValue{}, nil
+	})
+	if err != nil || string(v.payload) != "valid" || !v.reused || cache.snapshot().FullReplays != 1 || cache.snapshot().WaitNs <= 0 {
+		t.Fatal("single-flight result/count/wait differs", v, err, cache.snapshot())
+	}
+}
+
+func TestSharedReplayCandidateOversizedCanonicalIsNotRetained(t *testing.T) {
+	var cache sharedReplayCache
+	key := sha256.Sum256([]byte("oversize"))
+	calls := 0
+	value := make([]byte, durableSnapshotLimit+1)
+	for i := 0; i < 2; i++ {
+		if _, err := cache.get(context.Background(), key, func() (sharedReplayValue, error) { calls++; return sharedReplayValue{payload: value}, nil }); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if calls != 2 || cache.snapshot().CachedCanonicalBytes != 0 || cache.snapshot().Bypasses != 2 {
+		t.Fatal("oversized canonical state retained or original decode rejected", cache.snapshot())
 	}
 }

@@ -61,6 +61,24 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
     return result
 
 
+def prepare_shared_replay_pair():
+    selected=recipe("grpc","supply-512x2","bounded-cadence",True)
+    return dict(schema=1,name="prepared-same-VM-shared-replay-pair",execute=False,
+                executionAuthorized=False,executionAdmitted=False,nodesStarted=False,
+                selected=selected,pairCaps=PAIR_CAPS,
+                before=dict(observerPhaseTiming=True,sharedDurableReplay=False),
+                after=dict(observerPhaseTiming=True,sharedDurableReplay=True,
+                           extraClientArgument="-shared-durable-replay"),
+                cache=dict(entries=1,canonicalByteLimit=16 << 20,inFlightLimit=4,
+                           exactCurrentContent=True,privateStateCloneAndFullValidation=True,
+                           signaturesFeeNonceAndPublishedInfoUnchanged=True),
+                priorActual=dict(runId=39145119313,source="1a071fe7ab021e3e9535ea12395df40b97d968af",
+                                 receiptSHA256="5e991c731b053fee329f94c2ef2ea24ac76460a6716f8c1727105f96b494d334",
+                                 role="diagnostic only, not the before side of a future pair"),
+                admission="Preparation only. Candidate peak RSS not measured; extra canonical bytes/private decode states are not an RSS bound. Original1GiB RSS/32MiB data caps stay unchanged. Future pair needs actual fresh admission, original wrapper integration and a separate Root grant.",
+                comparison="Same source/VM/ELFs/caps/profile, observer timing on both sides. Preserve original full business and joint latency/rate guards; finite case never qualifies sustained1000TPS.")
+
+
 PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
               "bounded-grouped": ("bounded-cadence", "grouped-cadence4")}
 
@@ -746,6 +764,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--prepare-1000-tier", action="store_true")
+    parser.add_argument("--prepare-shared-replay-pair", action="store_true")
     parser.add_argument("--prepare-pair", action="store_true")
     parser.add_argument("--execute-pair", action="store_true")
     parser.add_argument("--pair-kind", choices=tuple(PAIR_MODES), default="relative-bounded")
@@ -759,6 +778,11 @@ if __name__ == "__main__":
     parser.add_argument("--case", type=Path)
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
+    if args.prepare_shared_replay_pair:
+        if args.execute or args.execute_pair or args.prepare_pair or args.check_runner or args.prepare_1000_tier:
+            parser.error("shared replay preparation cannot execute any workload")
+        print(json.dumps(prepare_shared_replay_pair(),indent=2))
+        sys.exit(0)
     if args.prepare_1000_tier:
         if args.execute or args.execute_pair or args.prepare_pair or args.check_runner:
             parser.error("1000tier budget preparation cannot execute any workload")

@@ -40,6 +40,7 @@ type durableReadbackPhases struct {
 }
 
 type durableReaderStats struct {
+	SharedReplay             *sharedReplayStats                      `json:"sharedReplay,omitempty"`
 	SignatureFacts           *durableSignatureStats                  `json:"signatureFacts,omitempty"`
 	PhaseTotalsNs            *durableReadbackPhases                  `json:"phaseTotalsNs,omitempty"`
 	Attempts                 uint64                                  `json:"attempts"`
@@ -87,7 +88,8 @@ type durableReader struct {
 	cacheTick       uint64
 	cacheEvictions  uint64
 	signatureFacts  *durableSignatureFacts
-	measurePhases   bool // Set only during construction, before any observer starts.
+	measurePhases   bool               // Set only during construction, before any observer starts.
+	sharedReplay    *sharedReplayCache // Explicit candidate only; never enabled by timing.
 }
 
 func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (*durableReader, error) {
@@ -136,6 +138,10 @@ func (r *durableReader) stats() durableReaderStats {
 		defer r.profileMu.Unlock()
 	}
 	var total durableReaderStats
+	if r.sharedReplay != nil {
+		s := r.sharedReplay.snapshot()
+		total.SharedReplay = &s
+	}
 	if r.profileMu != nil || r.measurePhases {
 		total.PhaseTotalsNs = &durableReadbackPhases{}
 		if r.signatureFacts != nil {
@@ -355,7 +361,7 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 		}
 		phaseTimer.begin(&slot.phases.DecodeNs)
 		slot.stats.SnapshotValidations++
-		decoded, err := decodeDurableSnapshotWithFacts(ctx, data, r.migration, r.blockDecoder)
+		decoded, err := r.decodeCurrentSnapshot(ctx, data, digest)
 		if err != nil {
 			return evidence, err
 		}
@@ -400,6 +406,40 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 		return evidence, errDurableNotReady
 	}
 	return durableEvidence{Height: state.Height, AppHash: state.AppHash, SnapshotSHA256: hex.EncodeToString(slot.snapshotDigest[:]), SnapshotCacheHit: hit, StoreSHA256: hex.EncodeToString(digest[:]), StoreFormat: slot.format, JournalCompleteBytes: slot.journalCompleteBytes, JournalIncompleteTail: slot.journalIncompleteTail}, nil
+}
+
+// Sharing is restricted to identical, freshly captured block-journal content
+// within one migration-bound reader. A hit reconstructs its own mutable state,
+// runs full state validation and still undergoes original per-transaction and
+// published-Info verification. No path, height or mtime substitutes for bytes.
+func (r *durableReader) decodeCurrentSnapshot(ctx context.Context, data []byte, digest [sha256.Size]byte) (decodedDurableSnapshot, error) {
+	if r.sharedReplay == nil || !consensus.IsBlockJournal(data) {
+		return decodeDurableSnapshotWithFacts(ctx, data, r.migration, r.blockDecoder)
+	}
+	var decoded decodedDurableSnapshot
+	v, err := r.sharedReplay.get(ctx, digest, func() (sharedReplayValue, error) {
+		var err error
+		decoded, err = decodeDurableSnapshotWithFacts(ctx, data, r.migration, r.blockDecoder)
+		return sharedReplayValue{payload: decoded.payload, format: decoded.format, completeBytes: decoded.completeBytes, incompleteTail: decoded.incompleteTail}, err
+	})
+	if err != nil {
+		return decodedDurableSnapshot{}, err
+	}
+	if !v.reused {
+		return decoded, nil
+	}
+	var state consensus.CommittedState
+	if err := strictJSON(v.payload, &state); err != nil {
+		return decodedDurableSnapshot{}, err
+	}
+	if err := state.Validate(r.migration); err != nil {
+		return decodedDurableSnapshot{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return decodedDurableSnapshot{}, err
+	}
+	// Replay counters count work actually performed, never cached logical work.
+	return decodedDurableSnapshot{state: state, payload: v.payload, format: v.format, completeBytes: v.completeBytes, incompleteTail: v.incompleteTail}, nil
 }
 
 func (r *durableReader) verifyTransactionLocked(ctx context.Context, slot *durableSnapshotSlot, raw cmttypes.Tx, height int64) error {

@@ -58,6 +58,7 @@ type options struct {
 	evidenceBudget                 *readyEvidenceBudgetReport
 	intentPersistence              func(string, []byte) error
 	observerPhaseTiming            bool
+	sharedDurableReplay            bool
 }
 
 type transactionInput struct {
@@ -181,6 +182,7 @@ type report struct {
 	DurableReadback      durableReaderStats       `json:"durableReadback"`
 	GroupedObservation   groupedObservationStats  `json:"groupedObservation"`
 	ObserverPhaseTiming  bool                     `json:"observerPhaseTiming"`
+	SharedDurableReplay  bool                     `json:"sharedDurableReplay"`
 	SenderMode           string                   `json:"senderMode"`
 	PacingMode           string                   `json:"pacingMode"`
 	InclusionMode        string                   `json:"inclusionMode"`
@@ -215,6 +217,7 @@ func main() {
 	flag.IntVar(&o.rounds, "rounds", 1, "retained fixture nonce cycles (default 1..32 and <=2048 transactions; explicit streaming scope has separate limits)")
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
 	flag.StringVar(&o.pacingMode, "pacing-mode", "relative", "ready-pool pacing: relative, bounded-cadence or grouped-cadence4 (at most four offers, expired groups discarded)")
+	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
@@ -236,6 +239,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.sharedDurableReplay && (!o.observerPhaseTiming || o.offeredRate <= 0 || o.durableStoreByteLimit > durableSnapshotLimit || o.durableCacheByteBudget > 0) {
+		return errors.New("shared replay candidate requires explicit paced observer timing and original16MiB unprofiled reader bounds")
+	}
 	if o.observerPhaseTiming && o.offeredRate <= 0 {
 		return errors.New("observer phase timing requires paced grouped observation")
 	}
@@ -872,6 +878,10 @@ func execute(o options) error {
 		"Submission transport errors retain unknown outcome and are never automatically retried. Repeated identical observation errors retain counts and first/last timestamps.",
 		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
 	}}
+	r.SharedDurableReplay = o.sharedDurableReplay
+	if o.sharedDurableReplay {
+		r.Interpretation = append(r.Interpretation, "Explicit shared replay candidate: one <=16MiB canonical replay result and <=4 in-flight digests, bound to this reader's migration. Each node freshly captures/hashes its current file, reconstructs private state and validates it, verifies transaction signatures/fee/nonce, and corroborates published Info. Cache hits are not new replay work. Additional canonical/clone memory has no measured peak until a separately scheduled case; original resource caps remain unchanged.")
+	}
 	r.ObserverPhaseTiming = o.observerPhaseTiming
 	if o.observerPhaseTiming {
 		r.Interpretation = append(r.Interpretation, "Explicit observer phase timings surround existing calls without extra RPC. Totals include failed attempts; bounded per-worker traces mark truncation. RPC wall durations include transport and server waits, not pure network latency. Durable load includes its disjoint child phases. Worker and parent/child sums overlap; never sum them as BFT latency.")
@@ -918,6 +928,9 @@ func execute(o options) error {
 			return err
 		}
 		reader.measurePhases = o.observerPhaseTiming
+		if o.sharedDurableReplay {
+			reader.sharedReplay = &sharedReplayCache{}
+		}
 		defer func() { r.DurableReadback = reader.stats() }()
 		r.ChainID, r.GenesisSHA256 = m.ChainID, m.GenesisHash
 		for _, n := range m.Nodes {

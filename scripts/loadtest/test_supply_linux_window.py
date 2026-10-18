@@ -486,6 +486,22 @@ class SupplySourceTests(unittest.TestCase):
             if change=="missing_opt_in":row["observerPhaseTiming"]=False
             with self.subTest(change=change),self.assertRaises(RuntimeError):supply.validate_observer_phases(row)
 
+    def test_shared_replay_pair_is_only_prepared_and_preserves_original_caps(self):
+        plan=supply.prepare_shared_replay_pair()
+        self.assertFalse(plan["execute"])
+        self.assertFalse(plan["executionAdmitted"])
+        self.assertFalse(plan["executionAuthorized"])
+        self.assertFalse(plan["nodesStarted"])
+        self.assertEqual(plan["selected"]["profile"],supply.recipe("grpc","supply-512x2","bounded-cadence",True)["profile"])
+        self.assertTrue(plan["before"]["observerPhaseTiming"] and plan["after"]["observerPhaseTiming"])
+        self.assertEqual(plan["cache"]["entries"],1)
+        self.assertEqual(plan["pairCaps"],supply.PAIR_CAPS)
+        self.assertEqual(plan["selected"]["profile"]["privateBytes"],32 << 20)
+        self.assertNotIn(plan["name"],supply.PROFILES)
+        denied=subprocess.run([sys.executable,"-B",str(FILE),"--prepare-shared-replay-pair","--execute"],capture_output=True,text=True,timeout=5)
+        self.assertEqual(denied.returncode,2)
+        self.assertIn("cannot execute any workload",denied.stderr)
+
     def test_1000_tier_is_budget_only_and_never_admitted_by_extrapolation(self):
         tier=supply.prepare_1000_tier()
         self.assertFalse(tier["execute"])
