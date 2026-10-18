@@ -12,6 +12,17 @@ import (
 	"time"
 )
 
+type prefixGateObservedContext struct {
+	context.Context
+	reached chan struct{}
+	once    sync.Once
+}
+
+func (c *prefixGateObservedContext) Done() <-chan struct{} {
+	c.once.Do(func() { close(c.reached) })
+	return c.Context.Done()
+}
+
 func TestBlockJournalPrefixReusesOnlyValidatedBytesAndPreservesRotation(t *testing.T) {
 	migration, path := journalFixture(t)
 	app, err := NewBlockJournaledApplication(migration, path)
@@ -188,8 +199,16 @@ func TestBlockJournalPrefixCancellationBoundAndIndependentResults(t *testing.T) 
 	}
 	<-d.gate
 	ctx, cancel := context.WithCancel(context.Background())
+	observed := &prefixGateObservedContext{Context: ctx, reached: make(chan struct{})}
 	done := make(chan error, 1)
-	go func() { _, e := d.Decode(ctx, data); done <- e }()
+	go func() { _, e := d.Decode(observed, data); done <- e }()
+	select {
+	case <-observed.reached:
+	case <-time.After(time.Second):
+		cancel()
+		d.gate <- struct{}{}
+		t.Fatal("decoder never reached cancellable gate wait")
+	}
 	cancel()
 	select {
 	case e := <-done:
