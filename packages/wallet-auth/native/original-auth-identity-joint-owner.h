@@ -4,6 +4,10 @@
 // Raw custody and current reads alone NEVER qualify an executor or Root.
 @interface YNXAuthIdentityCurrentOwner : NSObject
 + (instancetype)acquireOriginalAdministrationProfile:(NSError **)error;
+// Actual inherited Node entry only; no path/ENV/caller constructor.
++ (instancetype)acquireOriginalIDEConsumerProfile:(NSError **)error;
++ (instancetype)acquireOriginalIDERegistryProfile:(NSError **)error;
+- (NSString *)copyOriginalResourceDirectory:(NSError **)error;
 - (NSData *)copyOriginalProfile:(NSError **)error;
 - (NSData *)copyOriginalHead:(NSError **)error;
 - (BOOL)assertOriginalCurrent:(NSError **)error;
