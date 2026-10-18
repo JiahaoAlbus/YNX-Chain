@@ -4,8 +4,11 @@ Status: the first candidate passed full integrated CI 39114641191 but regressed
 the matched encoding measurement 39114847427. Runtime activation is withdrawn:
 the original borrowed-buffer encoder is the default. The revised experimental
 encoder passed full Go source tests in run 39115542457. Its independent
-borrowed-recovery candidate.3 and normal checker are adopted; full integrated
-CI and a new matched performance measurement remain pending. Not deployed.
+borrowed-recovery candidate.3 and normal checker are adopted. Full integrated
+CI 39116674848 passed. The revised matched measurement 39116956504 also
+regressed: its median was 2,137,304 ns/op versus 1,718,595 ns/op for the
+original, 24.36% slower. Allocated bytes were 77,406 versus 76,994 per operation.
+Both negative experiments remain preserved and inactive. Not deployed.
 
 This candidate derives from internal tree
 `fc5ccab4e9aa6923bc61a2dc7ac518343ac56703`. The original hash leaf and its
@@ -71,5 +74,7 @@ and 6.65 times the allocated bytes. This negative result is preserved, not a
 throughput improvement. The revised experiment removes Marshal's owned scaffold
 copy and Decoder/RawMessage value copies by borrowing the encoded scaffold and
 finding validated structural boundaries without materializing its fields.
-CPU/allocation gains remain unproven. All JSON value encoding, full fee audits,
+The second same-input comparison above does not establish a CPU or allocation
+gain. Further chunk-encoder tuning is stopped in favor of the measured duplicate
+seal hash bottleneck. All JSON value encoding, full fee audits,
 state validation, canonical-byte and hash checks remain intact.

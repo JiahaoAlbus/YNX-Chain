@@ -1,0 +1,189 @@
+{
+  "sourceCommit": "8782774edb3034a316294e844d96e33936908640",
+  "internalTree": "0223c12969236080e86ad7534ec98bd8e43180cb",
+  "runId": 39118758324,
+  "runConclusion": "failure",
+  "failureGate": "old SDK candidate.3 exact internal identity, not source or phase tests",
+  "fullGoSourceGate": "success",
+  "phaseAndMutationTests": "success",
+  "measurement": {
+    "app_hash": "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65",
+    "business_tps": null,
+    "fee_events": 1024,
+    "finality_latency": null,
+    "inclusion_latency": null,
+    "measurement": "retained_real_1024_state_seal_ABBA_and_atomic_persistence",
+    "rows": [
+      {
+        "atomic_commit_elapsed_ns": 14719763,
+        "atomic_commit_stages_ns": {
+          "close_file": 9037,
+          "directory_sync": 183020,
+          "file_sync": 3813715,
+          "json_encode": 6391748,
+          "prepare_file": 40946,
+          "rename": 131475,
+          "validate": 3917147,
+          "write": 214991
+        },
+        "guarded": false,
+        "order": 0,
+        "payload_bytes": 812656,
+        "seal_allocated_bytes": 1159392,
+        "seal_allocations": 11071,
+        "seal_elapsed_ns": 6708558,
+        "seal_stages_ns": {
+          "clone_and_materialize": 637638,
+          "final_hash": 2063373,
+          "initial_hash": 2731068,
+          "semantic_validate": 1275396,
+          "witness_compare": 201,
+          "witness_copy": 220
+        },
+        "second_hash_executed": true
+      },
+      {
+        "atomic_commit_elapsed_ns": 10849964,
+        "atomic_commit_stages_ns": {
+          "close_file": 7945,
+          "directory_sync": 208098,
+          "file_sync": 838222,
+          "json_encode": 6553549,
+          "prepare_file": 40315,
+          "rename": 24816,
+          "validate": 2967548,
+          "write": 199031
+        },
+        "guarded": true,
+        "order": 1,
+        "payload_bytes": 812656,
+        "seal_allocated_bytes": 1249968,
+        "seal_allocations": 8913,
+        "seal_elapsed_ns": 5381936,
+        "seal_stages_ns": {
+          "clone_and_materialize": 475797,
+          "initial_hash": 2573454,
+          "semantic_validate": 1534689,
+          "witness_compare": 176289,
+          "witness_copy": 621107
+        },
+        "second_hash_executed": false
+      },
+      {
+        "atomic_commit_elapsed_ns": 11401812,
+        "atomic_commit_stages_ns": {
+          "close_file": 6532,
+          "directory_sync": 150771,
+          "file_sync": 1001566,
+          "json_encode": 6749444,
+          "prepare_file": 36749,
+          "rename": 24045,
+          "validate": 3200713,
+          "write": 221883
+        },
+        "guarded": true,
+        "order": 2,
+        "payload_bytes": 812656,
+        "seal_allocated_bytes": 1250000,
+        "seal_allocations": 8914,
+        "seal_elapsed_ns": 4817145,
+        "seal_stages_ns": {
+          "clone_and_materialize": 493670,
+          "initial_hash": 3112218,
+          "semantic_validate": 951683,
+          "witness_compare": 172882,
+          "witness_copy": 85960
+        },
+        "second_hash_executed": false
+      },
+      {
+        "atomic_commit_elapsed_ns": 10295721,
+        "atomic_commit_stages_ns": {
+          "close_file": 6983,
+          "directory_sync": 145020,
+          "file_sync": 740690,
+          "json_encode": 6025426,
+          "prepare_file": 91780,
+          "rename": 24756,
+          "validate": 3048790,
+          "write": 202067
+        },
+        "guarded": false,
+        "order": 3,
+        "payload_bytes": 812656,
+        "seal_allocated_bytes": 1159248,
+        "seal_allocations": 11069,
+        "seal_elapsed_ns": 5245453,
+        "seal_stages_ns": {
+          "clone_and_materialize": 148356,
+          "final_hash": 2120441,
+          "initial_hash": 2062082,
+          "semantic_validate": 913522,
+          "witness_compare": 120,
+          "witness_copy": 250
+        },
+        "second_hash_executed": true
+      }
+    ],
+    "runtime_candidate_enabled": false
+  },
+  "means": {
+    "original": {
+      "seal_elapsed_ns": 5977005.5,
+      "seal_allocated_bytes": 1159320,
+      "seal_allocations": 11070,
+      "atomic_commit_elapsed_ns": 12507742,
+      "seal_stages_mean_ns": {
+        "clone_and_materialize": 392997,
+        "final_hash": 2091907,
+        "semantic_validate": 1094459,
+        "initial_hash": 2396575,
+        "witness_copy": 235,
+        "witness_compare": 160.5
+      },
+      "atomic_commit_stages_mean_ns": {
+        "json_encode": 6208587,
+        "write": 208529,
+        "validate": 3482968.5,
+        "prepare_file": 66363,
+        "close_file": 8010,
+        "directory_sync": 164020,
+        "file_sync": 2277202.5,
+        "rename": 78115.5
+      }
+    },
+    "guarded": {
+      "seal_elapsed_ns": 5099540.5,
+      "seal_allocated_bytes": 1249984,
+      "seal_allocations": 8913.5,
+      "atomic_commit_elapsed_ns": 11125888,
+      "seal_stages_mean_ns": {
+        "clone_and_materialize": 484733.5,
+        "semantic_validate": 1243186,
+        "initial_hash": 2842836,
+        "witness_copy": 353533.5,
+        "witness_compare": 174585.5
+      },
+      "atomic_commit_stages_mean_ns": {
+        "json_encode": 6651496.5,
+        "write": 210457,
+        "validate": 3084130.5,
+        "prepare_file": 38532,
+        "close_file": 7238.5,
+        "directory_sync": 179434.5,
+        "file_sync": 919894,
+        "rename": 24430.5
+      }
+    }
+  },
+  "sealElapsedChangePercent": -14.68067914610418,
+  "allocationBytesChangePercent": 7.820446468619546,
+  "rawLogBytes": 378512,
+  "rawLogSHA256": "f3d069bc32f704a0c316cc179b28de2f58cbc67069f0b9aa917b1acc6f71eb2c",
+  "limits": [
+    "Two short samples per mode in ABBA order on retained actual 1024-transfer state; not sustained workload or TPS.",
+    "Atomic snapshot persistence is measured unchanged; guarded seal only targets local Finalize sealing.",
+    "Both modes use identical canonical hash and complete state bytes; original runtime default remains active.",
+    "No network inclusion or BFT finality measurement in this case."
+  ]
+}

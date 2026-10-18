@@ -203,6 +203,21 @@ jobs:
           GOFLAGS: -mod=readonly
           GOWORK: "off"
         run: go test -p 1 ./cmd/ynx-consensus-perf-client -run '^TestStreamingWorkloadActualFeeHistoryReadback$' -count=1 -timeout=240s -v
+      - name: Measure same actual large-history seal phases without rewriting input
+        if: github.event_name == 'workflow_dispatch' && inputs.measure_real_fee_history
+        env:
+          YNX_CHAIN_SEAL_REAL_HISTORY: "1"
+          YNX_CHAIN_REAL_HISTORY_DIR: ${{ runner.temp }}/ynx-real-fee-history
+          GOMAXPROCS: "1"
+          GOGC: "50"
+          GOMEMLIMIT: "512MiB"
+          GOPROXY: "off"
+          GOTOOLCHAIN: local
+          GOFLAGS: -mod=readonly
+          GOWORK: "off"
+        run: |
+          set -o pipefail
+          go test -p 1 ./internal/consensus -run '^TestSealGuardedActualLargeHistoryPhases$' -count=1 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-real-fee-history/seal-phases.log"
       - name: Retain actual signed fee-history evidence
         if: always() && github.event_name == 'workflow_dispatch' && inputs.measure_real_fee_history
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
