@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'codex/ynx-pq-public-upgrade'
+      - 'codex/ynx-pq-perf-integration'
     paths:
       - 'internal/ynxbatch/**'
       - 'internal/ynxauth/**'
@@ -49,7 +50,7 @@ permissions:
 
 jobs:
   verify:
-    if: github.ref != 'refs/heads/codex/ynx-pq-public-upgrade'
+    if: github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -103,9 +104,9 @@ jobs:
           compression-level: 6
 
   focused-go:
-    if: github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))
+    if: (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))
     concurrency:
-      group: ynx-pq-fixed-source-${{ github.ref }}
+      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 12
@@ -201,6 +202,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol
           npm run contracts:selectors
+          git diff --exit-code -- artifacts
           test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json
           test -s artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
           sha256sum contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json
@@ -221,6 +223,12 @@ jobs:
       - name: Verify Whole BFT gateway and native container readback
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
+      - name: Verify existing Chain readback and recovery after protocol integration
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration' }}
+        run: go test -p 1 -count=1 -timeout=180s ./internal/indexer ./internal/explorer ./internal/faucet ./cmd/ynx-indexerd
+      - name: Verify existing Chain SDK after protocol integration
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration' }}
+        run: node --test sdk/js/index.test.mjs
       - name: Verify shared Wallet policy and Chain payment authorization regressions
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestClassicSession.*|TestAccountPolicyConfigRequiresExplicitExactOriginAndNetwork|TestBFTPaySerializesNonceAndReturnsZeroFeeIdempotentReplay|TestBFTPayRejectsInconsistentCommittedResponse|TestMerchantBindingRejectsForeignIntentAndInvoiceWithoutEffects|TestMerchantBindingRejectsMissingUntrustedOrUnavailableOriginal)$' ./internal/appgateway ./internal/paygateway
