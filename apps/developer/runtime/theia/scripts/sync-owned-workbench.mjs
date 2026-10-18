@@ -34,7 +34,7 @@ if (seal) {
   await cp(join(source, 'lib/plugin-vscode-init-adapter.js'), join(runtime, 'lib/backend/ynx-plugin-vscode-init.js'));
   // These helpers are required dynamically by the external plugin-host adapter.
   // Bundling the frontend does not carry them into lib/backend.
-  for (const helper of ['python-terminal-creation.js', 'local-js-launch-observer.js']) {
+  for (const helper of ['python-terminal-creation.js', 'local-js-launch-observer.js', 'local-cpp-debug-cleanup.js']) {
     const input = join(source, 'lib', helper), output = join(runtime, 'lib/backend', helper);
     const stat = await lstat(input);
     assert.ok(stat.isFile() && !stat.isSymbolicLink(), 'Only regular owned plugin-host helpers are admitted.');

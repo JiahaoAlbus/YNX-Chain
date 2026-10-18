@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
@@ -26,14 +26,16 @@ const { createLocalIpcSession } = appRuntime
 
 // Real DAP transport to the installed Apple LLDB under the product sandbox.
 // This exercises the native debugger, not an App/UI acceptance substitute.
-async function connect(policy, cwd, env, retainedTransport = false) {
+async function connect(policy, cwd, env, retainedTransport = false, ownedCleanup) {
   let child, bridge, forward;
   const trace = { requests: [], responses: [] };
   if (retainedTransport) {
     const { NodeDebugAdapterCreator } = runtimeRequire('@theia/plugin-ext/lib/plugin/node/debug/plugin-node-debug-adapter-creator');
     const { PluginDebugAdapterSession } = runtimeRequire('@theia/plugin-ext/lib/plugin/debug/plugin-debug-adapter-session');
     const { DebugAdapterExecutable } = runtimeRequire('@theia/plugin-ext/lib/plugin/types-impl');
-    const session = { id: randomUUID(), name: 'Actual LLDB transport control', type: 'lldb-dap', configuration: { type: 'lldb-dap', request: 'launch' } };
+    if (ownedCleanup) require('../../../runtime/ynx-workbench/lib/local-cpp-debug-cleanup').install(NodeDebugAdapterCreator.prototype, { environment: ownedCleanup.environment });
+    const session = { id: randomUUID(), name: 'Actual LLDB transport control', type: 'lldb-dap',
+      workspaceFolder: { uri: { fsPath: cwd } }, configuration: { type: 'lldb-dap', request: 'launch', ...ownedCleanup?.configuration } };
     const executable = new DebugAdapterExecutable('/usr/bin/sandbox-exec', ['-p', policy, '/Library/Developer/CommandLineTools/usr/bin/lldb-dap'], { cwd, env });
     const adapter = await new NodeDebugAdapterCreator().createDebugAdapter(session, session.configuration, undefined, {
       createDebugAdapterDescriptor: async () => executable,
@@ -77,7 +79,7 @@ async function connect(policy, cwd, env, retainedTransport = false) {
   });
   const timeout = (promise, label) => Promise.race([promise, new Promise((_, reject) => { const timer = setTimeout(() => reject(Error('LLDB DAP timed out: ' + label + '; output=' + output + '; stderr=' + stderr)), 12000); timer.unref(); promise.finally(() => clearTimeout(timer)).catch(() => {}); })]);
   return {
-    child, closed, trace, output: () => output,
+    child, closed, trace, stopAdapter: () => bridge.stop(), output: () => output,
     request(command, args = {}) {
       const seq = ++sequence, bytes = Buffer.from(JSON.stringify({ seq, type: 'request', command, arguments: args }));
       const promise = new Promise((resolve, reject) => pending.set(seq, { resolve, reject }));
@@ -111,6 +113,8 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
   const cleanupHelper = join(context.temporary, 'ynx-process-tree');
   const helperBytes = (await exec('/usr/bin/tar', ['-xOf', join(dirname(appRuntime), 'composed-core/workbench.tar'), './lib/backend/ynx-process-tree'], { encoding: 'buffer', maxBuffer: 1024 * 1024 })).stdout;
   await writeFile(cleanupHelper, helperBytes, { flag: 'wx', mode: 0o700 });
+  await mkdir(join(root, 'lib/backend'), { recursive: true, mode: 0o700 });
+  await writeFile(join(root, 'lib/backend/ynx-process-tree'), helperBytes, { flag: 'wx', mode: 0o700 });
   const ipc = await createLocalIpcSession(context); context.ipcTemporary = ipc.path;
   const node = join(appRuntime, 'node'), helper = join(appRuntime, 'workspace-path-identity');
   assert.ok(isSupportedLocalNodeVersion(process.version), 'Use an exact reviewed Node runtime.');
@@ -140,7 +144,7 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
     const failed = await old.request('launch', { ...config, console: 'integratedTerminal' });
     assert.equal(failed.success, false); assert.match(failed.body.error.format, /unique file name for runInTerminal/);
     await old.request('disconnect', { terminateDebuggee: true }); await old.closed;
-    for (const mode of ['finish', 'stop', 'retry', 'pty-finish', 'pty-stop', 'pty-retry', 'retained-pty-finish', 'retained-pty-stop', 'retained-pty-retry']) {
+    for (const mode of ['finish', 'stop', 'retry', 'pty-finish', 'pty-stop', 'pty-retry', 'retained-pty-finish', 'retained-pty-stop', 'retained-pty-retry', 'retained-owned-pty-stop']) {
       console.log(JSON.stringify({ nativeDapMode: mode, workspace: context.workspace }));
       let terminalOutput = '', holder;
       if (mode.includes('pty')) {
@@ -150,7 +154,11 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
         assert.match(holder.ptsName, /^\/dev\/ttys[0-9]+$/);
         holder.write('7\n');
       }
-      const session = await connect(policy, context.workspace, env, mode.startsWith('retained-')); sessions.push(session);
+      const ownedCleanup = mode === 'retained-owned-pty-stop' && debugOutput ? {
+        environment: { ...env, THEIA_APP_PROJECT_PATH: root },
+        configuration: { __ynxCppRunId: basename(dirname(program)).slice(4), program, cwd: context.workspace },
+      } : undefined;
+      const session = await connect(policy, context.workspace, env, mode.startsWith('retained-'), ownedCleanup); sessions.push(session);
       await success(session, 'initialize', { adapterID: 'lldb-dap', clientID: 'theia', pathFormat: 'path', linesStartAt1: true, columnsStartAt1: true, supportsRunInTerminalRequest: true });
       await success(session, 'launch', holder ? terminalLaunchConfiguration({ ...config, args: ['input'] }, holder.ptsName) : config); await session.event('initialized');
       const breakpoints = await success(session, 'setBreakpoints', { source: { path: source }, breakpoints: [{ line: 4 }] }); assert.equal(breakpoints.breakpoints.length, 1);
@@ -164,9 +172,12 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
         if (holder) { assert.match(terminalOutput, /Hello World 42/); assert.match(terminalOutput, /Input 7/); }
         else assert.match(session.output(), /Hello World 42/);
       }
-      await success(session, 'disconnect', { terminateDebuggee: true }); const closed = await session.closed; assert.equal(closed.code, 0);
+      if (ownedCleanup) {
+        await session.stopAdapter(); await session.closed;
+        assert.notEqual(session.child.exitCode === null && session.child.signalCode === null, true);
+      } else { await success(session, 'disconnect', { terminateDebuggee: true }); const closed = await session.closed; assert.equal(closed.code, 0); }
       if (mode.startsWith('retained-')) {
-        for (const command of ['initialize', 'launch', 'setBreakpoints', 'configurationDone', 'disconnect']) {
+        for (const command of ['initialize', 'launch', 'setBreakpoints', 'configurationDone', ...ownedCleanup ? [] : ['disconnect']]) {
           assert.equal(session.trace.requests.filter(value => value === command).length, 1);
           assert.equal(session.trace.responses.filter(value => value === command).length, 1);
         }
