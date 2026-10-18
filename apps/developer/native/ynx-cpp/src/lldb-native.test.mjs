@@ -6,14 +6,23 @@ import { promisify } from 'node:util';
 import { join, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { localWorkbenchSandboxPolicy, localWorkbenchPathIdentities, localWorkbenchEnvironment, inspectTrustedLocalClangd, isSupportedLocalNodeVersion } from '../../../desktop/local-workbench.mjs';
-import { createLocalIpcSession } from '../../../desktop/local-workbench-ipc.mjs';
+import { pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const { createBuildTasks, createLaunchConfiguration, installedCompiler } = require('./build-tasks.cjs');
 const { terminalLaunchConfiguration, createDebugBuildTarget } = require('./cpp-run.cjs');
 const runtimeRequire = createRequire(new URL('../../../runtime/theia/package.json', import.meta.url));
 const exec = promisify(execFile);
 const appRuntime = process.env.YNX_QA_MACOS_APP_RUNTIME;
+// Installed runtime proofs deliberately belong to that package's own module.
+// Importing the checkout's module cannot attest a root:admin /Applications
+// installation and must not be worked around by relaxing ancestor checks.
+const packagedDesktop = appRuntime && join(dirname(appRuntime), 'code/apps/developer/desktop');
+const { localWorkbenchSandboxPolicy, localWorkbenchPathIdentities, localWorkbenchEnvironment, inspectTrustedLocalClangd, isSupportedLocalNodeVersion } = appRuntime
+  ? await import(pathToFileURL(join(packagedDesktop, 'local-workbench.mjs')).href)
+  : await import('../../../desktop/local-workbench.mjs');
+const { createLocalIpcSession } = appRuntime
+  ? await import(pathToFileURL(join(packagedDesktop, 'local-workbench-ipc.mjs')).href)
+  : await import('../../../desktop/local-workbench-ipc.mjs');
 
 // Real DAP transport to the installed Apple LLDB under the product sandbox.
 // This exercises the native debugger, not an App/UI acceptance substitute.
@@ -81,7 +90,7 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
   const node = join(appRuntime, 'node'), helper = join(appRuntime, 'workspace-path-identity');
   assert.ok(isSupportedLocalNodeVersion(process.version), 'Use an exact reviewed Node runtime.');
   assert.equal((await exec(node, ['--version'])).stdout.trim(), process.version);
-  const runtime = { root }, lockHelper = helper;
+  const runtime = { root }, lockHelper = join(appRuntime, 'ynx-local-workbench-lock');
   const pathIdentities = await localWorkbenchPathIdentities({ helper, node, lockHelper, runtime, context });
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port: 58999, pathIdentities });
   assert.ok(policy.includes('(deny network*)'));
