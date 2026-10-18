@@ -11,3 +11,4 @@ import '../src/features/cross-chain/cctp-finality-recheck.test.mjs';
 import '../src/features/cross-chain/cctp-preflight-flow.test.mjs';
 import '../src/features/cross-chain/cctp-preflight-ui.test.mjs';
 import '../src/features/cross-chain/cctp-proof-refresh.test.mjs';
+import '../src/features/cross-chain/cctp-fee-status.test.mjs';
