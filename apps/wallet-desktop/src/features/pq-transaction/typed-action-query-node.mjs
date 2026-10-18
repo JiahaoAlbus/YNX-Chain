@@ -6,5 +6,5 @@ import {PQTransactionNodeTransportKernel} from './node-transport.mjs';
  * Normal operator pins are unchanged; unavailable/mismatched nodes fail closed. */
 export function createPQTypedActionNodeReader(){
  const kernel=new PQTransactionNodeTransportKernel(httpsRequest);
- return Object.freeze({readOriginal:(review,raw,original,assertCurrent)=>kernel.readTypedActionOriginal(review,raw,original,assertCurrent)});
+ return Object.freeze({readOriginal:(review,raw,original,assertCurrent,captureResponse)=>kernel.readTypedActionOriginal(review,raw,original,assertCurrent,captureResponse)});
 }

@@ -122,3 +122,66 @@ test('later input mutation or a failed read cannot mutate a previous valid proje
   input.status = 'submission-unknown'; input.hash = '0x' + '5'.repeat(64); pqProgressReadUnavailable(binding);
   assert.equal(view.status, 'inclusion-observed'); assert.equal(view.hash, binding.hash); assert.deepEqual(binding, before);
 });
+
+// Main e9bca readPQProgress uses the same public journal DTO for typed actions.
+// Its hash is the complete transport hash, distinct from the original Member.
+const typedBinding = Object.freeze({...binding, hash: '0x' + '6'.repeat(64), kind: 'pq-typed-action'});
+const typedJournal = (status = 'submission-unknown', patch = {}) => ({...journal(status), ...typedBinding, ...patch});
+
+test('typed journal keeps all four states bound to the original transport hash with the same closed output', () => {
+  for (const [status, fact] of [['signed-unsubmitted', false], ['submission-unknown', null], ['rejection-observed', null], ['inclusion-observed', true]]) {
+    const value = projectPQTransactionProgress(typedJournal(status), typedBinding);
+    assert.deepEqual(value, {...typedBinding, status, source: 'local-journal', submitted: fact, included: fact,
+      consensusFinality: false, canRetry: false, clearsOriginal: false,
+      storageConfirmed: status !== 'signed-unsubmitted', metadataConfirmed: status !== 'signed-unsubmitted', localResultHeld: false});
+    assert.ok(Object.isFrozen(value)); assert.deepEqual(JSON.parse(JSON.stringify(value)), value);
+    assert.notEqual(value.hash, binding.hash);
+  }
+});
+
+test('typed held observations preserve storage uncertainty without exposing causes or upgrading authority', () => {
+  for (const status of ['submission-unknown', 'rejection-observed', 'inclusion-observed']) {
+    const value = projectPQTransactionProgress(typedJournal(status, {storageConfirmed: false, metadataConfirmed: false, localResultHeld: true,
+      firstCause: {kind: 'error', value: null, code: 'ORIGINAL_FAILURE'}, storageCause: {kind: 'error', value: null, code: 'SAVE_FAILED'}}), typedBinding);
+    assert.equal(value.status, status); assert.equal(value.localResultHeld, true);
+    assert.equal(value.storageConfirmed, false); assert.equal(value.metadataConfirmed, false);
+    assert.equal(value.submitted, status === 'inclusion-observed' ? true : null);
+    for (const key of ['consensusFinality', 'canRetry', 'clearsOriginal']) assert.equal(value[key], false);
+    for (const key of ['firstCause', 'storageCause', 'permissionGranted', 'nativeAdmission', 'wire', 'proof']) assert.equal(Object.hasOwn(value, key), false);
+  }
+  const stored = projectPQTransactionProgress(typedJournal('inclusion-observed', {metadataConfirmed: false, localResultHeld: true}), typedBinding);
+  assert.equal(stored.storageConfirmed, true); assert.equal(stored.metadataConfirmed, false); assert.equal(stored.localResultHeld, true);
+  reject(typedJournal('submission-unknown', {storageConfirmed: false, metadataConfirmed: true}), typedBinding);
+  reject(typedJournal('signed-unsubmitted', {localResultHeld: true}), typedBinding);
+  for (const key of ['retryAuthorized', 'clearsOriginal', 'consensusFinality']) reject(typedJournal('inclusion-observed', {[key]: true}), typedBinding);
+});
+
+test('typed binding never accepts legacy BFT DTOs even when native and transport hashes are made equal', () => {
+  for (const outcome of ['outcome-unknown', 'rejection-observed', 'bft-inclusion-observed']) {
+    reject(bft(outcome, {...typedBinding, nativeTransactionHash: typedBinding.hash}), typedBinding);
+    reject(bft(outcome, {...typedBinding, nativeTransactionHash: binding.hash}), typedBinding);
+  }
+});
+
+test('typed journal rejects Member-hash substitution, retargeting and extra or accessor data', () => {
+  for (const patch of [{hash: binding.hash}, {account: '0x' + '7'.repeat(40)}, {kind: 'pq-transfer'}]) reject(typedJournal('inclusion-observed', patch), typedBinding);
+  reject(typedJournal(), {...typedBinding, hash: binding.hash});
+  for (const key of ['nativeTransactionHash', 'abciTransactionHash', 'raw', 'text', 'secret', 'permissionGranted']) reject(typedJournal('submission-unknown', {[key]: 'PRIVATE_TEST'}), typedBinding);
+  reject({...typedJournal(), [Symbol('PRIVATE_TEST')]: true}, typedBinding);
+  let reads = 0;
+  const input = typedJournal(); Object.defineProperty(input, 'status', {enumerable: true, get() { reads++; return 'inclusion-observed'; }});
+  reject(input, typedBinding);
+  const expected = {...typedBinding}; Object.defineProperty(expected, 'hash', {enumerable: true, get() { reads++; return binding.hash; }});
+  reject(typedJournal(), expected); assert.equal(reads, 0);
+});
+
+test('typed unavailable and later mutation add no facts and preserve the previous original projection', () => {
+  const input = typedJournal('inclusion-observed'), before = {...typedBinding};
+  const prior = projectPQTransactionProgress(input, typedBinding), unavailable = pqProgressReadUnavailable(typedBinding);
+  assert.deepEqual(unavailable, {...typedBinding, status: 'unavailable', source: 'unavailable', submitted: null, included: null,
+    consensusFinality: false, canRetry: false, clearsOriginal: false, storageConfirmed: null, metadataConfirmed: null, localResultHeld: null});
+  assert.ok(Object.isFrozen(unavailable)); assert.deepEqual(JSON.parse(JSON.stringify(unavailable)), unavailable);
+  input.hash = binding.hash; input.status = 'submission-unknown';
+  assert.equal(prior.hash, typedBinding.hash); assert.equal(prior.status, 'inclusion-observed'); assert.deepEqual(typedBinding, before);
+  assert.throws(() => pqProgressReadUnavailable({...typedBinding, memberHash: binding.hash}), {code: 'PQ_TRANSACTION_PROGRESS_INVALID'});
+});

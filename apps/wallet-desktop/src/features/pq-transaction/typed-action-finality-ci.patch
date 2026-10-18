@@ -1,0 +1,7 @@
+diff --git a/apps/wallet-desktop/test/pq-typed-action-finality.test.mjs b/apps/wallet-desktop/test/pq-typed-action-finality.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-typed-action-finality.test.mjs
+@@ -0,0 +1,2 @@
++// Controlled typed collector DATA and capture; independent proof stays separate.
++import '../src/features/pq-transaction/typed-action-finality.test.mjs';

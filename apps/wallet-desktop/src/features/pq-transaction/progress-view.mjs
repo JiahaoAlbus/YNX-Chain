@@ -1,6 +1,6 @@
 // Public DATA projection only. Its input must come from the original journal
 // or BFT parser; this module supplies no authority, transport or finality proof.
-const kinds = ['pq-transfer', 'pq-migration', 'pq-revocation'];
+const kinds = ['pq-transfer', 'pq-migration', 'pq-revocation', 'pq-typed-action'];
 const statuses = ['signed-unsubmitted', 'submission-unknown', 'rejection-observed', 'inclusion-observed'];
 const hashPattern = /^0x[0-9a-f]{64}$/;
 const accountPattern = /^0x[0-9a-f]{40}$/;
@@ -70,6 +70,9 @@ function journalView(input, binding) {
 }
 
 function bftView(input, binding) {
+  // Typed journal hashes name complete transports; legacy BFT DTOs bind their
+  // native hash instead. Only Main's original journal projects typed progress.
+  if (binding.kind === 'pq-typed-action') invalid();
   const value = record(input, ['account', 'hash', 'kind', 'source', 'nativeTransactionHash', 'outcome',
     'executionHeight', 'retryAuthorized', 'clearsOriginal', 'consensusFinality', 'producerDurability'],
     ['abciTransactionHash', 'decimalFields', 'cometIndex', 'signedRevocation', 'feeLotFlowObserved', 'feeEffectsVerified']);

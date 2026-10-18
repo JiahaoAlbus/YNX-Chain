@@ -1,4 +1,5 @@
-import {readPQTransferOriginal, exactData} from './transfer-binding.mjs';
+import {exactData} from './transfer-binding.mjs';
+import {readPQSubmissionOriginal,bindPQTypedBroadcastRequest,assertPQTypedBroadcastPermission} from './typed-action-submission-binding.mjs';
 import {projectPQTransactionProgress} from './progress-view.mjs';
 
 const failure = code => Object.assign(Error(code), {code});
@@ -30,12 +31,13 @@ function assertPermissionBinding(resource, expected, originalBinding = null) {
  * marker can substitute for it. Transport is the fixed original node adapter.
  * Supplying these dependencies in a test is controlled testing only.
  *
- * ABI follows the Auth owner's proposed transaction peer. Activation awaits
- * its frozen production handoff; absent dependencies fail before journal/POST.
+ * Typed broadcast follows Main's 18-field builder and Auth R142's 19-field
+ * resource/dual-hash completion. Actual private approval remains mandatory;
+ * absent dependencies fail before journal/POST.
  */
 export function createPQTransactionSubmission({intentStore, networkId,
   acquireOriginalWalletTransactionPermission = null,
-  isOriginalWalletTransactionPermission = null, transport = null}) {
+  isOriginalWalletTransactionPermission = null, transport = null, readTypedOriginal = null}) {
   const active = new Set(), resources = new Set();
   let closing = false;
   const requirePermission = () => {
@@ -61,19 +63,22 @@ export function createPQTransactionSubmission({intentStore, networkId,
   const publicProgress = async (plan, guard, afterEffect = false) => {
     const assert = () => afterEffect ? guard.assertEffectCurrent() : guard.assert();
     assert();
-    return projectPQTransactionProgress(await intentStore.readPQProgress(guard.account, plan.binding.hash, assert), {account:guard.account, hash:plan.binding.hash, kind:'pq-transfer'});
+    return projectPQTransactionProgress(await intentStore.readPQProgress(guard.account, plan.binding.hash, assert), {account:guard.account, hash:plan.binding.hash, kind:plan.binding.kind});
   };
   return Object.freeze({
-    async broadcast(hash, guard) {
+    async broadcast(hash, guard, typedBroadcastRequest = null) {
       requirePermission();
       if (resources.size) throw failure('PQ_TRANSACTION_CLEANUP_PENDING');
-      if (typeof transport?.submitTransfer !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
       if (typeof guard?.submit !== 'function' || typeof guard?.assertEffectCurrent !== 'function') throw failure('PQ_TRANSACTION_EFFECT_GUARD_REQUIRED');
       return exclusive(guard, async () => {
-        const plan = await readPQTransferOriginal(intentStore, hash, {account:guard.account, networkId, guard});
+        const plan = await readPQSubmissionOriginal(intentStore, hash, {account:guard.account, networkId, guard});
+        if (typeof transport?.[plan.typed?'submitTypedAction':'submitTransfer'] !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
+        if (!plan.typed && typedBroadcastRequest !== null) throw failure('PQ_TRANSACTION_PERMISSION_BINDING');
         const before = await intentStore.readPQProgress(guard.account, hash, () => guard.assert());
         if (before.status !== 'signed-unsubmitted') throw failure('PQ_TRANSACTION_ALREADY_ENTERED');
-        const request = pqBroadcastPermissionRequest(plan.binding);
+        const request = plan.typed?bindPQTypedBroadcastRequest(plan,typedBroadcastRequest):pqBroadcastPermissionRequest(plan.binding);
+        const assertBinding = plan.typed?assertPQTypedBroadcastPermission:assertPermissionBinding;
+        const completion = outcome => ({outcome,transportHash:hash,...(plan.typed?{memberHash:plan.typed.local.memberHash}:{})});
         let resource, permissionBinding, entered = false, submitted = false, returned = false, completed = false, failed = false, cause, result, transportCause, transportFailed = false;
         try {
           try {resource = await acquireOriginalWalletTransactionPermission(request);} catch (error) {
@@ -86,15 +91,15 @@ export function createPQTransactionSubmission({intentStore, networkId,
           if (isOriginalWalletTransactionPermission(resource) !== true) throw failure('PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');
           for (const name of ['readOriginal','assertCurrent','recheck','enterBroadcast','complete','retire','join','close']) if (typeof resource?.[name] !== 'function') throw failure('PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');
           if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
-          permissionBinding = assertPermissionBinding(resource, request);
+          permissionBinding = assertBinding(resource, request);
           if (await resource.recheck() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
-          guard.assert(); assertPermissionBinding(resource, request, permissionBinding);
+          guard.assert(); assertBinding(resource, request, permissionBinding);
           const marker = await intentStore.beginPQSubmission(guard.account, hash, () => {guard.assert();resource.assertCurrent();});
           if (marker.created !== true) throw failure('PQ_TRANSACTION_ALREADY_ENTERED');
           entered = true;
           guard.assert();
           if (await resource.recheck() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
-          guard.assert(); assertPermissionBinding(resource, request, permissionBinding);
+          guard.assert(); assertBinding(resource, request, permissionBinding);
           if (await resource.enterBroadcast() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_ENTRY_UNKNOWN');
           guard.assert();
           const response = await guard.submit(async () => {
@@ -102,19 +107,20 @@ export function createPQTransactionSubmission({intentStore, networkId,
             if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
             submitted = true;
             try {
-              return await transport.submitTransfer(plan.request, () => {
+              const assertCurrent = () => {
                 guard.assertEffectCurrent();
                 if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
-                assertPermissionBinding(resource, request, permissionBinding);
-              });
+                assertBinding(resource, request, permissionBinding);
+              };
+              return await (plan.typed?transport.submitTypedAction(plan.typed.review,plan.typed.raw,plan.typed.original,assertCurrent):transport.submitTransfer(plan.request,assertCurrent));
             } catch (error) {transportFailed = true; transportCause = error; throw error;}
           });
           returned = true;
           // The journal captures the complete result before any late-lock,
           // current, completion, cleanup, or public-DTO check can reject it.
-          await intentStore.savePQSubmissionResult(guard.account, hash, {phase:'submission',statusCode:response?.status,text:response?.text});
+          await intentStore.savePQSubmissionResult(guard.account, hash, plan.typed?{phase:'submission',response}:{phase:'submission',statusCode:response?.status,text:response?.text});
           completed = true;
-          if (await resource.complete({outcome:'returned',transportHash:hash}) !== undefined) throw failure('PQ_TRANSACTION_COMPLETION_UNKNOWN');
+          if (await resource.complete(completion('returned')) !== undefined) throw failure('PQ_TRANSACTION_COMPLETION_UNKNOWN');
           guard.assertEffectCurrent();
           result = await publicProgress(plan, guard, true);
         } catch (error) {
@@ -124,7 +130,7 @@ export function createPQTransactionSubmission({intentStore, networkId,
           }
           if (resource && submitted && !completed) {
             completed = true;
-            try {await resource.complete({outcome:returned?'returned':'unknown',transportHash:hash});} catch { /* first cause wins; resource cleanup is still required */ }
+            try {await resource.complete(completion(returned?'returned':'unknown'));} catch { /* first cause wins; resource cleanup is still required */ }
           }
         } finally {
           if (resource) try {await closeResource(resource);} catch (error) {if (!failed) {failed = true; cause = error;}}
@@ -137,18 +143,29 @@ export function createPQTransactionSubmission({intentStore, networkId,
       });
     },
     async reconcile(hash, guard) {
-      if (typeof transport?.readOriginal !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
       return exclusive(guard, async () => {
-        const plan = await readPQTransferOriginal(intentStore,hash,{account:guard.account,networkId,guard});
+        const plan = await readPQSubmissionOriginal(intentStore,hash,{account:guard.account,networkId,guard});
+        if(typeof (plan.typed?readTypedOriginal:transport?.readOriginal)!=='function')throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
         const prior = await intentStore.readPQProgress(guard.account,hash,()=>guard.assert());
-        if (prior.status === 'signed-unsubmitted') throw failure('PQ_TRANSACTION_NOT_ENTERED');
+        if (!plan.typed && prior.status === 'signed-unsubmitted') throw failure('PQ_TRANSACTION_NOT_ENTERED');
         guard.assert();
         try {
-          const response = await transport.readOriginal(hash);
-          await intentStore.savePQSubmissionResult(guard.account,hash,{phase:'read',statusCode:response?.status,text:response?.text});
+          if(plan.typed){
+            const t=plan.typed;let captured=false;
+            await readTypedOriginal(t.review,t.raw,t.original,()=>guard.assert(),async response=>{
+              if(captured)throw failure('PQ_TRANSACTION_CAPTURE_DUPLICATE');captured=true;
+              await intentStore.savePQTypedReadResult(guard.account,hash,response);
+            });
+            if(!captured)throw failure('PQ_TRANSACTION_CAPTURE_REQUIRED');
+          }else{
+            const response = await transport.readOriginal(hash);
+            await intentStore.savePQSubmissionResult(guard.account,hash,{phase:'read',statusCode:response?.status,text:response?.text});
+          }
           guard.assert();
           return await publicProgress(plan,guard);
         } catch (error) {
+          // The original store updates an existing progress record only. With
+          // no marker it keeps the local cause and refuses to invent a marker.
           try {await intentStore.savePQSubmissionFailure(guard.account,hash,error);} catch { /* retained by original store */ }
           throw error;
         }

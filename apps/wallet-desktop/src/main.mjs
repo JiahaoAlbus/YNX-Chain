@@ -885,6 +885,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,selectSource:selectOriginalPQHostSource,createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert())});
   pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:originalPQFinalityEvidence,transport:originalPQNodeTransport,verification:originalPQFinalityVerification});
   pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,
+    readTypedOriginal:createPQTypedActionNodeReader().readOriginal,
     acquireOriginalWalletTransactionPermission:request=>{
       const context=pqBroadcastApprovalContext.getStore();
       if(!context||context.closed||context.selected||JSON.stringify(request)!==JSON.stringify(context.request))throw Object.assign(Error('Original broadcast approval is required.'),{code:'PQ_BROADCAST_APPROVAL_REQUIRED'});

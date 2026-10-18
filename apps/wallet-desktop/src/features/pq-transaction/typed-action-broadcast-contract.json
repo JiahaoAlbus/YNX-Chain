@@ -1,0 +1,214 @@
+{
+  "kind": "PQ_REVIEWED_TYPED_ACTION_BROADCAST_DATA_AND_TRANSPORT",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "parent": "9db3d99f4e1d347a37fb08dd71461590cc943f67",
+  "cumulativeMainBase": "1d9efe5742b800e1beb545f7dcd74f615b626c10",
+  "scope": "Original owned POST DATA/transport plus required typed proof route correction. Existing sole submission controller, actual Auth broadcast schema, Main progress/custody and activation remain their original owners; no second sender.",
+  "platform": "Node/Electron Main only",
+  "exports": {
+    "plan": "preparePQReviewedTypedActionBroadcast(review,raw,original):PQTypedActionBroadcastPlan",
+    "decode": "decodePQTypedActionBroadcastResponse(response):{requestPath,httpStatus,view:PQActionView|null,errorOnly,dataOnly:true,proofVerification:not-performed,independentFinality:false}",
+    "inspect": "inspectPQReviewedTypedActionBroadcast(review,raw,original,response):PQTypedActionBroadcastObservation",
+    "transport": "createPQTransactionNodeTransport().submitTypedAction(review,raw,original,assertCurrent):Promise<PQTypedActionBroadcastHTTPResponse>",
+    "declarations": [
+      "typed-action-broadcast.d.mts",
+      "typed-action-query.d.mts",
+      "node-transport.d.mts"
+    ]
+  },
+  "request": {
+    "path": "/transactions/pq/actions/broadcast",
+    "method": "POST",
+    "contentType": "application/json",
+    "body": "Exact complete original canonical transport, copied before first await. Never JSON rewrite or naked Member/legacy Transfer encoding.",
+    "originalBinding": "aeeb full original review, both original SDK public snapshots, both hashes, account/network, normal N1/index0 and full dual-AND. Main original retained record is sole source.",
+    "rpcProfile": "4 * ceil(raw.length / 3) + 74 <= 792658; also original SDK Member128KiB/outer24MiB limits. Consumer refuses oversized complete body before I/O, never strips originals or increases producer cap.",
+    "deploy": "Original SDK332 first rejects absent compiler material with PQ_ACTION_COMPILER_MATERIAL_REQUIRED. Consumer also fences contract_deploy; original Main must fence before keys until exact original SDK/Go complete5-field source/material exists."
+  },
+  "response": {
+    "200": "Only indexed committed PQActionView with complete body identity, both hashes and H/index/effects",
+    "202": "Full original identity unknown, amount zero, H0, no destination/index/effects",
+    "400": "Error-only, no observed execution identity",
+    "413": "Either error-only unknown or full original rejected profile view with H0/noindex",
+    "415": "Error-only, no observed execution identity",
+    "422": "Complete rejected original view; H0/noindex CheckTx refusal or positive H/index actual indexed rejection",
+    "closed": "Exactly {method:POST,requestPath,status,contentType,cacheControl,body:Uint8Array}; same strict bytes/JSON grammar as GET, separate POST rules",
+    "invariants": "Error-only view is null; observer keeps local hashes separately, observed status/H null, bodyIdentityObserved false, outcome-unknown. Rejected HTTP never proves non-occurrence or permits retry.",
+    "bounds": "8 MiB typed body; original metadata remains524288B and finality proof cap unchanged. Fatal UTF-8 and parsing happen after Main capture; Node raw return preserves malformed UTF-8.",
+    "sharedJSON": "Existing parseView and body copy reused; closed fields/duplicate aliases/prototype keys/canonical integer strings/base64/both body hashes enforced. Query exported API/results unchanged."
+  },
+  "errors": {
+    "shape": "Thrown Error with code; original SDK/transport first cause propagates unchanged, never converted to a successful observation",
+    "codes": [
+      "PQ_TYPED_CONTRACT_MATERIAL_UNAVAILABLE",
+      "PQ_TYPED_ACTION_RPC_PROFILE_EXCEEDED",
+      "PQ_TYPED_QUERY_RESPONSE_INVALID",
+      "PQ_TYPED_QUERY_HTTP_STATUS",
+      "PQ_TYPED_QUERY_BINDING_MISMATCH"
+    ],
+    "inherited": "aeeb/SDK original authorization/codec/dual-signature errors and existing PQ_TRANSACTION_NODE_* errors retain original semantics",
+    "onFailure": "Keep original body, both snapshots, journal and UNKNOWN; do not retry, clear, fabricate execution identity or release permission"
+  },
+  "observation": {
+    "schema": "Exact declaration is authoritative; original action/digest/nonce/H values plus both hashes and node-observed outcome/status/H/Comet index, no raw/errors/effects",
+    "outcomes": [
+      "inclusion-observed",
+      "rejection-observed",
+      "outcome-unknown"
+    ],
+    "flags": {
+      "dataOnly": true,
+      "observationOnly": true,
+      "effectsVerified": false,
+      "proofVerification": "not-performed",
+      "independentFinality": false,
+      "nativeAdmission": false,
+      "permissionGranted": false,
+      "submitted": false,
+      "canRetry": false,
+      "clearsOriginal": false,
+      "consensusFinality": false
+    }
+  },
+  "transport": {
+    "factory": "Original factory extends from3 to4 explicit methods: submitTransfer/readOriginal/readFinalityProof/submitTypedAction. No separate controller.",
+    "flow": [
+      "Validate exact original/profile and current guard before any I/O",
+      "GET original pinned status and genesis with guard/deadline",
+      "POST exact original body and application/json to fixed path",
+      "Return complete six-field bytes/status immediately for Main capture before late lock/current/completion/cleanup"
+    ],
+    "pins": "Original NORMAL_OPERATOR origin/SPKI/build/network unchanged",
+    "failure": "No redirect, retry, fallback, post-effect network call or automatic resend; original stream first cause/copy/bounds/abort/close/deadline reused."
+  },
+  "producer": {
+    "commit": "3163b894cfca54ec75bbecc0b8ce21ecbaf4291a",
+    "source": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/protocol-3163-pq_action.go",
+      "bytes": 13047,
+      "sha256": "bdec0a7ceb97bd6c65bb6f86318173e04425ecb0aadd619bf1c1d4fa2d60a593"
+    },
+    "qualification": "Actual POST module contract; this does not assert whole3163 Gateway/runtime success. That candidate has separate proof route CI failure.",
+    "fixture": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/source/apps/wallet-desktop/src/features/pq-transaction/fixtures/typed-action-broadcast-fd8-http.json.gz",
+      "bytes": 354589,
+      "sha256": "43eeb39f76d513b456717b64dc46f16c19c9c9dc68b78af6c558fe74eaf9d842"
+    },
+    "originalFixture": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/staking-originals-fd8-39165250907/ynx-pq-staking-originals-public-interop.json",
+      "bytes": 3022392,
+      "sha256": "6243aaecb56f4c0c78efeaf7b5ba1143ca4b9d60417ba7694dff5c179e300aea"
+    },
+    "fixtureProvenance": "Exact fd8 http[0] POST requestBody/responseBody; actual ABCI + HTTP mock Comet, N2/index1, Cometindex0/H4, not live RPC/BFT/Auth/local signer acceptance"
+  },
+  "proofRouteCorrection": {
+    "previous": "/transactions/pq/actions/{abciHash}/pq-finality-proof",
+    "current": "/txs/{abciHash}/pq-action-finality-proof",
+    "nativeUnchanged": "/transactions/pq/actions/originals/{nativeHash}/pq-finality-proof",
+    "firstCause": "Original Protocol CI reported Go ServeMux wildcard conflict with old /actions/originals/{hash}; NewGateway panic. This leaf did not run Go CI.",
+    "actualReadOnlySource": {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-typed-action-finality/YNX Chain/internal/bftgateway/gateway.go",
+      "bytes": 71943,
+      "sha256": "4dbfb0cf243ba68cd7b1cd1e9e744688b50c8e24e43479e40682ed65d1f004b1"
+    },
+    "savedCandidate": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/protocol-route-successor-gateway.go",
+      "bytes": 71943,
+      "sha256": "4dbfb0cf243ba68cd7b1cd1e9e744688b50c8e24e43479e40682ed65d1f004b1"
+    },
+    "base": "ea5cefae477d8f66e9058be832a5608b2fd480f1",
+    "originalProducerFixedH": null,
+    "actualHTTPProofFixture": null,
+    "validation": "New exact route and refusal of old/native routes pass14 controlled proof tests; not Go startup/runtime verification",
+    "fallback": false,
+    "evidence": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/proof-route-successor.json",
+      "bytes": 1173,
+      "sha256": "949dea7d019f92e7f0ceca3af9a4a308674899cbf3d011063844c2abd20730a7"
+    }
+  },
+  "validation": {
+    "newPOST": 14,
+    "newPOSTFail": 0,
+    "newPOSTSkip": 0,
+    "strictThreeSurfacesExit": 0,
+    "actual202RED": {
+      "pass": 0,
+      "fail": 1,
+      "cause": "POST202 initial unknown identity incorrectly accepted nonzero amount or a destination; controlled assertion actually failed before production fix",
+      "fix": "Broadcast-only 202 branch requires amount zero and no to; GET behavior unchanged",
+      "red": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/typed-broadcast-202-red.tap",
+        "bytes": 1094,
+        "sha256": "e747cbc4203676a0eea3914765a780ae61e2ab30daa5b45ebdd9946bd62977e5"
+      },
+      "passEvidence": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/typed-broadcast-final-pass.tap",
+        "bytes": 1691,
+        "sha256": "441bc9a7b962036a4c4a78439dd2c646cf91598e164660270110d99f32b10c61"
+      }
+    },
+    "affected": {
+      "initialTests": 51,
+      "initialPass": 50,
+      "initialFail": 1,
+      "cause": "Old factory test asserted exact3keys before explicitly adding same-factory typed method",
+      "correction": "Retained closed-factory test with exact4keys; targeted1PASS, no production relaxation or repeated50greens"
+    },
+    "proofRouteAfterChange": {
+      "pass": 14,
+      "fail": 0,
+      "skip": 0
+    },
+    "initialNewPOST": {
+      "pass": 11,
+      "fail": 2,
+      "cause": "Test original witness was shorter than SDK128B minimum; deployment expectation named consumer error while original SDK already refused missing compiler material. Corrected test fixture/oracle only."
+    },
+    "ephemeralSDKSigns": 2,
+    "realWalletAccounts": false,
+    "actualPOST": false,
+    "liveNetwork": false,
+    "actualTLSHandshake": false,
+    "GUI": false,
+    "Native": false,
+    "build": false
+  },
+  "main": {
+    "base": "70b4648c66bf94cb9ea96ba7e235bd5bc1dbe5e0",
+    "patch": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/source/apps/wallet-desktop/src/features/pq-transaction/typed-action-broadcast-main-integration.patch",
+      "bytes": 1757,
+      "sha256": "d0f461cdbbfcc769e9a4285522d7393d88e8e5dfd0566583084bc6c3d34a461a"
+    },
+    "before": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/main-before/apps/wallet-desktop/src/wallet-pq-typed-original.mjs",
+      "bytes": 5350,
+      "sha256": "bb1f4d9dddc44e118f6fc79a44f2f31c181b50e4edcc98cc1d1a0124b6ba2847"
+    },
+    "after": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/main-after/apps/wallet-desktop/src/wallet-pq-typed-original.mjs",
+      "bytes": 6208,
+      "sha256": "192fa3485588af2d366cbab600f9558219f4c3ceeb28351c586ada965ffc523c"
+    },
+    "applied": false,
+    "applyCheckExit": 0,
+    "syntaxCheckExit": 0,
+    "adapter": "Pure inspectPQTypedOriginalBroadcast after original SDK snapshot reparse; caller must already hold exact response raw bytes.",
+    "savedInput": "Main confirmed {phase:read|submission,response:{method,requestPath,status,contentType,cacheControl,body:Uint8Array}}. Do not feed raw response into old text-only ABI.",
+    "required": "Main original typed journal must copy/hold before UTF8/parse, preserve actual response fields, account/native=memberHash/abci=transportHash, UNKNOWN, known terminal monotonicity, ACK-loss/flush/close and explicit capacity behavior. Source alone does not activate broadcast."
+  },
+  "CI": {
+    "patch": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/source/apps/wallet-desktop/src/features/pq-transaction/typed-action-broadcast-ci.patch",
+      "bytes": 404,
+      "sha256": "45c7ab82329d2d281e2507f5d83e31d488a9bb57c7606ed9ca27d23882bc2b24"
+    },
+    "applied": false,
+    "checkExit": 0,
+    "destination": "apps/wallet-desktop/test/pq-typed-action-broadcast.test.mjs"
+  },
+  "next": "Continue original submission.mjs/progress-view typed branches only against Main frozen18-field broadcast request/actual Auth resource and typed progress DTO. No permission bool, sign reuse, fake resource or second sender.",
+  "status": "Owned POST source validated with actual public fixture and controlled I/O; original Main/Auth sole-broadcast integration, producer proof route runtime, Host/finality and package/install/user flow remain in progress"
+}

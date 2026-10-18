@@ -1,0 +1,496 @@
+{
+  "kind": "ORIGINAL_WALLET_TYPED_PQ_SUBMISSION_CONSUMER",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "parent": "e4b4fe8b7301d6ec6420e81ec3b6ab77d935e31b",
+  "platform": "Node/Electron Main only",
+  "scope": "Extend the existing submission singleton and public journal projection; original Main remains sole pending-review/custody/caller owner, Auth sole real resource owner. No additional sender, factory, keys, endpoints or sign grant reuse.",
+  "exports": {
+    "factory": "createPQTransactionSubmission({intentStore,networkId,acquireOriginalWalletTransactionPermission,isOriginalWalletTransactionPermission,transport,readTypedOriginal?})",
+    "broadcast": "controller.broadcast(hash,guard,typedBroadcastRequest=null)",
+    "reconcile": "controller.reconcile(hash,guard)",
+    "close": "controller.assertSafeToClose()",
+    "projection": "projectPQTransactionProgress(input,binding) / pqProgressReadUnavailable(binding)",
+    "typedReader": "createPQTypedActionNodeReader().readOriginal(review,raw,original,assertCurrent,captureResponse?)",
+    "capture": "captureResponse(response:PQTypedActionHTTPResponse):unknown|Promise<unknown>; optional fifth callback, never approval or an endpoint",
+    "binding": [
+      "readPQSubmissionOriginal(store,hash,{account,networkId,guard})",
+      "bindPQTypedBroadcastRequest(plan,request)",
+      "assertPQTypedBroadcastPermission(resource,request,prior=null)"
+    ]
+  },
+  "closedInputs": {
+    "binding": "Exactly {account,hash,kind}; typed kind is pq-typed-action and hash is full transportHash",
+    "typedRequest": [
+      "action",
+      "purpose",
+      "memberCount",
+      "memberIndex",
+      "networkId",
+      "nativeChainId",
+      "account",
+      "operationId",
+      "origin",
+      "typedAction",
+      "requestDigest",
+      "policyRevision",
+      "pair",
+      "reviewExecutionHeight",
+      "executionHeight",
+      "expiresAt",
+      "transportHash",
+      "memberHash"
+    ],
+    "typedResource": "Exactly the 18 request fields plus issuedAt (19); expiresAt is same key, privately shortened at most, never extended. Same frozen binding object survives rechecks; complete action/pair compared by descriptors without invoking accessors/proxies.",
+    "completion": "Exactly {outcome:returned|unknown,transportHash,memberHash}; legacy Transfer keeps original two-field completion.",
+    "save": "Original Main savePQSubmissionResult(account,hash,{phase:submission,response:{method,requestPath,status,contentType,cacheControl,body:Uint8Array}})",
+    "read": "Original Main savePQTypedReadResult(account,hash,response6fields) runs inside the same normal reader capture callback before post-await current/health checks.",
+    "authorization": "Third request argument is Main builder DATA only. Actual original acquire/recognizer, private IPC capsule/borrow and independently current guard remain mandatory."
+  },
+  "sourceBinding": {
+    "MainBuilder": {
+      "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+      "tree": "0e01cee2a1750dd3861edde123b75e13d23290ca",
+      "callee": "pqTypedBroadcastPermissionRequest(savedOriginal,currentSDKSnapshot,{at,expiresAt})",
+      "copiedBuilder": false
+    },
+    "MainCaller": {
+      "commit": "413c00f763b0636e11640b95858749e3deb7635a",
+      "tree": "44bd7ed7d01b33f46321d8692f494535cc481773",
+      "contract": "Existing executeOriginalPQBroadcast passes original context.request as third argument for typed; legacy two arguments retained.",
+      "actualWholeMainFlowTestedHere": false
+    },
+    "Auth": {
+      "handoff": {
+        "path": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/wallet-typed-broadcast-permission-r142/HANDOFF.json",
+        "bytes": 4373,
+        "sha256": "2993aafad74935b7993b1cfb73a7a92f3b50a5fed55ee6f6dbb899d6520c8e92"
+      },
+      "kernel": {
+        "path": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/wallet-typed-broadcast-permission-r142/source/apps/wallet-desktop/src/original-policy-supplier/transaction-permission-kernel.mjs",
+        "bytes": 13470,
+        "sha256": "1c772aa1190639c5bb987abb560501021b353a712eae6b80f0a994d119946f23"
+      },
+      "gitCommit": null,
+      "actualKernelUsed": true,
+      "privateBorrowAndRecognizer": "controlled test seams only; genuine factory/approval still required in Main"
+    },
+    "originals": "Existing Main parsePQTypedOriginalRecord plus original SDK snapshot parsing and aeeb full review/body/dual hashes/dual-AND/N1-index0 checks. Current request H cannot precede saved signing H. No snapshot reconstruction, re-sign, material stripping or raw-codec duplicate."
+  },
+  "lifecycle": [
+    "Read original retained record and current progress before permission; any prior submission/known observation refuses another POST",
+    "Bind exact Main18 and original RPC profile before acquire; acquire through same original factory and keep partial ownership before checks",
+    "Recheck same Auth19 object and current guard, durably write original UNKNOWN before enterBroadcast",
+    "Same guard.submit and original Node POST preserve first cause; only complete original raw six-field response enters Main custody before late checks or completion",
+    "Complete with both original hashes, then project original journal; retire/join/close remain ordered and unresolved cleanup debt blocks reacquisition",
+    "Typed read needs original capture callback and saves existing first cause on failure; signed-only read UNKNOWN creates no marker, existing known result never downgrades"
+  ],
+  "queryCapture": {
+    "callbackBefore": [
+      "late lifecycle assert",
+      "post-health request",
+      "post-health lifetime check",
+      "observation return"
+    ],
+    "copies": "Callback receives independent copy of complete body bytes. Return value is ignored; rejection preserves exact first cause and prevents further reads.",
+    "legacyFourArgs": "Unchanged post-health and guard behavior. Reader factory still exposes only readOriginal; Node POST factory unchanged.",
+    "reconcile": "Reuse same fixed reader injected by Main; missing or duplicate capture refuses. No new node transport or signer."
+  },
+  "projection": {
+    "input": "Original readPQProgress closed12 public fields; typed same shape and full transportHash",
+    "output": "Same existing13 public fields; no raw bytes, pair, errors, effects or separate native identity. Data only; retry/finality/clear always false.",
+    "legacyBFT": "Typed input explicitly refused because legacy BFT nativeHash equals journal hash rule does not apply to typed member/transport identities."
+  },
+  "errors": {
+    "local": [
+      "PQ_TRANSACTION_TYPED_REVIEW_REQUIRED",
+      "PQ_TRANSACTION_PERMISSION_BINDING",
+      "PQ_TRANSACTION_CAPTURE_REQUIRED",
+      "PQ_TRANSACTION_CAPTURE_DUPLICATE",
+      "PQ_TRANSACTION_NODE_CAPTURE_REQUIRED",
+      "PQ_TRANSACTION_PROGRESS_INVALID"
+    ],
+    "inherited": "Original Main/SDK/Auth/Node/controller errors and falsy first causes propagate. Completed HTTP result is held before parser, lock, completion or cleanup errors. No errors authorize retry or clear originals."
+  },
+  "validation": {
+    "newController": {
+      "pass": 11,
+      "fail": 0,
+      "skip": 0,
+      "evidence": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-submission-post-proposal-pass.tap",
+        "bytes": 1316,
+        "sha256": "4848658a308d7a1b62e966b80299494393aba5327007f03eed570d4c396e5668"
+      },
+      "Main": "Fixed f423 actual modules plus explicit POST progress proposal; not actual Main checkout integration",
+      "Auth": "Actual pinned R142 kernel, controlled private borrow/recognizer; no real capsule",
+      "SDK": "Final332 actual canonical dual signing, one ephemeral fixture handle per run, destroyed afterward",
+      "storage": "Actual original FileTransactionIntentStore on temporary files including actual rename ACK loss and cold read"
+    },
+    "newPostMapping": {
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "evidence": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-post-progress-mapping-pass.tap",
+        "bytes": 234,
+        "sha256": "3a3053480ecc6835cf03f7f6426878282f1b8b9e6d639b9abc8e65b6dd9e4a1a"
+      },
+      "notSingle12Run": true
+    },
+    "queryCapture": {
+      "pass": 8,
+      "fail": 0,
+      "skip": 0,
+      "evidence": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-query-capture-pass.tap",
+        "bytes": 972,
+        "sha256": "f129e1a6bc237371b438fbfbddfe0327dcc1f4dbd1999ebbb0de7e4c2d5f2253"
+      }
+    },
+    "progressView": {
+      "pass": 19,
+      "fail": 0,
+      "skip": 0,
+      "evidence": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-progress-view-pass.tap",
+        "bytes": 4791,
+        "sha256": "7c8f9ed409237e2245c83cf0091110152a6e11d6bcc6c105336bf440dd0ac194"
+      }
+    },
+    "affectedLegacy": {
+      "pass": 11,
+      "fail": 0,
+      "skip": 0,
+      "evidence": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-submission-legacy-pass.tap",
+        "bytes": 1306,
+        "sha256": "f8b3a44a4058fa7aec32db6e8bae7f10eabc53c67d6e6940a9151e49e338381b"
+      },
+      "laterChanges": "Only typed-reconcile skip was removed, restoring legacy original error branch; new typed binder/controller tests and comments. Legacy unchanged after PASS."
+    },
+    "strict": {
+      "exit": 0,
+      "evidence": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-submission-types.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "surfaces": [
+        "typed-action-query.typecheck.mts",
+        "typed-action-broadcast.typecheck.mts"
+      ],
+      "compilerOnly331": true,
+      "SDK332": true
+    },
+    "realRED": {
+      "queryCapture": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-query-capture-red.tap",
+        "bytes": 1065,
+        "sha256": "bf7434cfc6777709876173c3f259397fcfa6b96943c491d61582061b19e505b2"
+      },
+      "reconcileFirstCause": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-reconcile-firstcause-red.tap",
+        "bytes": 1250,
+        "sha256": "0d5573d09f27ca6feaff8ef759f67cf0aa036014d0bbbb5c61c33a252cb214b9"
+      },
+      "firstCauseFixPass": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-reconcile-firstcause-pass.tap",
+        "bytes": 361,
+        "sha256": "3323ee73d087820c30133b0f6d11c935545ad2c2ddb5a9e21e4538b11bfed6ac"
+      },
+      "progressView": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-progress-view-red.tap",
+        "bytes": 8756,
+        "sha256": "4e63eff07cdd647e6a2678a0388815af19e440351dc1b05d555df4693ec888f3"
+      }
+    },
+    "early": {
+      "MainOnlyRead": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-submission-main-f423-controls.tap",
+        "bytes": 8004,
+        "sha256": "ad40b2fe137e748b1c639d8a3348909788b62e2dd0d4e3d6ca4330cc3f1f57e3"
+      },
+      "classification": "6PASS/4FAIL:3 actual f423 onlyread integration failures plus1 ACK-loss test oracle expected raw false instead of original wrapped error.cause=false. Oracle corrected, production never relaxed.",
+      "oraclePass": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-marker-oracle-pass.tap",
+        "bytes": 210,
+        "sha256": "b7e49a17b4cde7d4226aa6f919b1978cf7112f65c01fffc32c0548b17321f941"
+      },
+      "bootstrapEAGAIN": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/typed-submission-main-f423-initial.tap",
+        "bytes": 1705,
+        "sha256": "b87079bea3ad984cbeefdc6a14332bdc2b67395bd07a845f9c4ccd587aa4d3d0"
+      },
+      "bootstrapExplanation": "No tests executed: git child-process EAGAIN. Fixed Main source read once in two bounded git commands; later validation loader creates no git subprocesses. Not a tested RED."
+    },
+    "actualUserAccounts": false,
+    "actualApproval": false,
+    "actualNetwork": false,
+    "actualTLS": false,
+    "actualPOST": false,
+    "GUI": false,
+    "Native": false,
+    "build": false
+  },
+  "testDependencies": {
+    "MainFixedModules": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/main-f423-fixed-modules.json",
+      "bytes": 2164931,
+      "sha256": "f63c88315508233a44d0760f3bd4073507788ac0fe20c2ea14b1f9297d238795"
+    },
+    "actualImportedModules": [
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pq-intent-record.mjs",
+        "bytes": 2978,
+        "sha256": "28777022903236987f28973b04fc6c198c3c208917e59fb15fa6c6c660f07068"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pq-typed-original.mjs",
+        "bytes": 5350,
+        "sha256": "bb1f4d9dddc44e118f6fc79a44f2f31c181b50e4edcc98cc1d1a0124b6ba2847"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/bounded-private-file-read.mjs",
+        "bytes": 1226,
+        "sha256": "653e7143136ace444fa8fcbf9982f032ff6ca5b119da64202cebcf14d5e987d1"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pq-progress.mjs",
+        "bytes": 6117,
+        "sha256": "ef00fea1dee0dedb48267b63a8ee522a4d8b0b09dd41411fd8c74e87b436f717"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pq-bft-evidence.mjs",
+        "bytes": 8832,
+        "sha256": "bcfb0fcfadd55b5df0606947062e1c5e260fcece15001cc3acc785d92c082a6a"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-session-original.mjs",
+        "bytes": 3348,
+        "sha256": "75d2ca05d479e8bfc14bb08aaa267120ad819be098d5746ced63c37c36d7f48d"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-auth-contract.mjs",
+        "bytes": 1929,
+        "sha256": "45fe16885d2eaa08cfcc6897e3c4b90aac7d871a76dda00800c19b4dcc18e749"
+      },
+      {
+        "commit": null,
+        "postProposal": true,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pq-typed-progress.mjs",
+        "bytes": 4088,
+        "sha256": "9fc37d70019c9a84acce08ea59bd24839ba4929df261e907e27e7eb09e88e826"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/transaction-intent-store.mjs",
+        "bytes": 72688,
+        "sha256": "731d2a85ed083254c1682dba9bdd26c6c5e4691301b0d6478319f5000f5dfe59"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/platform-private-file.mjs",
+        "bytes": 11553,
+        "sha256": "5e516d0fb50c56bc4646f50a1afea67ad9e77ccaa1847e82afa30c7d71f81f74"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/rpc-capabilities.mjs",
+        "bytes": 5267,
+        "sha256": "4c4cd796d928182e0413b13d27cc00d848084551b328c3a304b07a429f6265d8"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/transaction-durability.mjs",
+        "bytes": 9240,
+        "sha256": "abaa41f8c7957b59c944d9e8914c94cb22fcfbf7f456bdf3a736bace53b7df2a"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/rpc.mjs",
+        "bytes": 3437,
+        "sha256": "58e5ed773107fa13be42a2d1e1c3b3ff86a4b5d99d8072d380206071aa3ec141"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pay-record.mjs",
+        "bytes": 2979,
+        "sha256": "cfe1e33062a2898fee5c5119ae88e538f7c2d987c9a5ff1aa973b4d1c141ad1f"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pay-prepare.mjs",
+        "bytes": 5887,
+        "sha256": "0078b05e3073ef57db23a678aee8e7fbf240bbd90ef5d48232c7e7e88b2b1cb2"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pay-quote.mjs",
+        "bytes": 1730,
+        "sha256": "4270a60a34042c73a80a1bca8a4c629d58e6baf6bc2c5fdc658b5ddc0b9347b6"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pay-signed-invoice.mjs",
+        "bytes": 7699,
+        "sha256": "0ffb2241bdc448b0fa0d395d923a9ca265d2ea67e4a3121a3fede59e7bb374e9"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pay-settlement.mjs",
+        "bytes": 4832,
+        "sha256": "2e75c1e33a8b18a6f7a6f6e28a92bac0ffcd6343324196dfeeca6e123af80d02"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-session-publication.mjs",
+        "bytes": 4837,
+        "sha256": "65b4caf1621480d4001b4f7fba3d0b94a23f95f4b96905599af88905ca97c6b2"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pq-finality-record.mjs",
+        "bytes": 6620,
+        "sha256": "e1ea8fb6c858d237267c7cefa36d982c662ed5fb4b88f98e956105613c6dd872"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pq-finality-evidence.mjs",
+        "bytes": 11079,
+        "sha256": "2f5359c4728cbd7edefb07e4d3434dc92bb324f95a216815c98ec72035ffb183"
+      },
+      {
+        "commit": "f42349e493786026c8e0385f91a2ba99d656e622",
+        "postProposal": false,
+        "auth": null,
+        "relative": "apps/wallet-desktop/src/wallet-pq-typed-permission.mjs",
+        "bytes": 3037,
+        "sha256": "501fb322feb155b9988d4d621540500c0fe632535c8f5978ed2716042e885c33"
+      },
+      {
+        "commit": null,
+        "postProposal": false,
+        "auth": "R142",
+        "relative": "apps/wallet-desktop/src/original-policy-supplier/transaction-permission-kernel.mjs",
+        "bytes": 13470,
+        "sha256": "1c772aa1190639c5bb987abb560501021b353a712eae6b80f0a994d119946f23"
+      }
+    ],
+    "loader": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/main-post-proposal-loader.mjs",
+      "bytes": 2518,
+      "sha256": "c21d2b4ab00e50a980f4b1b85ba4bc3a57cba5a828db6931d6b59a09e66a7573"
+    },
+    "originalLoader": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/main-f423-loader.mjs",
+      "bytes": 2205,
+      "sha256": "d32614441c06eb17b92b85c8498a6d74d85467ce5a8101f4be1c133f7d26855c"
+    },
+    "ethers": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-sdk332-product-integration-20261019/apps/wallet-desktop/node_modules/ethers/package.json",
+      "bytes": 4945,
+      "sha256": "d644d7df228197962e4ca19824b06e8d50dce0b5ee2aced63dcfc2a11ec7b90f"
+    },
+    "SDK332Runtime": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/sdk332-package",
+    "temporaryTrackedLink": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/temporary-test-dependencies.json",
+      "bytes": 378,
+      "sha256": "acf6552fefe42e45c174f6f9bc9cd6f6834bc2417e75811f5a9092a5ddbe75fd"
+    }
+  },
+  "MainProposals": {
+    "captureAndReader": {
+      "base": "413c00f763b0636e11640b95858749e3deb7635a",
+      "patch": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/source/apps/wallet-desktop/src/features/pq-transaction/typed-action-submission-main-integration.patch",
+        "bytes": 3304,
+        "sha256": "abb4791a0647b66d3d0f6a50b0f7f90306adef18c0f6b8632fb6ea435e103551"
+      },
+      "applyCheck": 0,
+      "syntaxCheck": 0,
+      "applied": false
+    },
+    "postProgress": {
+      "base": "f42349e493786026c8e0385f91a2ba99d656e622",
+      "relative": "apps/wallet-desktop/src/wallet-pq-typed-progress.mjs",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/post-main-before/apps/wallet-desktop/src/wallet-pq-typed-progress.mjs",
+        "bytes": 3832,
+        "sha256": "db2f4cb5a32e200311b249d54f58b7b159ba5896c11043bbfd322e1f2449e670"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/evidence/post-main-after/apps/wallet-desktop/src/wallet-pq-typed-progress.mjs",
+        "bytes": 4088,
+        "sha256": "9fc37d70019c9a84acce08ea59bd24839ba4929df261e907e27e7eb09e88e826"
+      },
+      "patch": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/source/apps/wallet-desktop/src/features/pq-transaction/typed-action-submission-main-post-progress.patch",
+        "bytes": 2580,
+        "sha256": "6f2ebad8ff03be51fb228c74450155e1162efaad14b2d6bd0c8fa33f9af40587"
+      },
+      "appliedToOriginalMain": false,
+      "applyCheck": 0,
+      "syntaxCheck": 0
+    },
+    "CI": {
+      "patch": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-submission-20261019/source/apps/wallet-desktop/src/features/pq-transaction/typed-action-submission-ci.patch",
+        "bytes": 407,
+        "sha256": "b8f80cbf8428490d7c7177118035cdbe90323652828bf7a4e8a40017f301d8e4"
+      },
+      "applyCheck": 0,
+      "applied": false
+    }
+  },
+  "status": "Owned source and controlled combined original Main/Auth-kernel/SDK/journal tests validated. Main integration and actual approval, package/install, live broadcast and independent finality remain separate unverified gates.",
+  "next": "Original Main consumes exact owned files plus reviewed minimal Main/CI proposals and actual R142 kernel, then validates its true pending/borrow/single-caller flow. Original builder/publisher owns app integration and later normal QA; no live signing or send performed here."
+}

@@ -1,0 +1,25 @@
+diff --git a/apps/wallet-desktop/src/transaction-submissions.mjs b/apps/wallet-desktop/src/transaction-submissions.mjs
+index ff93a1e1..f9e1e977 100644
+--- a/apps/wallet-desktop/src/transaction-submissions.mjs
++++ b/apps/wallet-desktop/src/transaction-submissions.mjs
+@@ -30,7 +30,7 @@ export class TransactionSubmissions {
+         const originals=await this.intentStore.readPQOriginals(account,()=>guard.assert());guard.assert();
+         const saved=originals.find(row=>row.account===account&&row.hash===hash&&row.kind==='pq-typed-action');
+         if(!saved)throw failure('TRANSACTION_INTENT_REQUIRED','The retained original typed record is required.');
+-        const read=async(...args)=>{const response=await this.pqReadTypedOriginal(...args);await this.intentStore.savePQTypedReadResult(account,hash,response);return response;};
++        const read=async(...args)=>{let captured=false;const response=await this.pqReadTypedOriginal(...args,async response=>{if(captured)throw failure('PQ_READ_CAPTURE_DUPLICATE','Keep the original typed response.');captured=true;await this.intentStore.savePQTypedReadResult(account,hash,response);});if(!captured)throw failure('PQ_READ_CAPTURE_REQUIRED','The original typed response must be retained before observation.');return response;};
+         const result=await observePQTypedOriginalQuery(saved,read,()=>guard.assert());guard.assert();
+         const progress=await this.intentStore.readPQProgress(account,hash,()=>guard.assert());guard.assert();
+         const known={'inclusion-observed':'typed-commit-observed','rejection-observed':'typed-rejection-observed'}[progress.status];
+diff --git a/apps/wallet-desktop/src/main.mjs b/apps/wallet-desktop/src/main.mjs
+index c3c2b907..afc70e29 100644
+--- a/apps/wallet-desktop/src/main.mjs
++++ b/apps/wallet-desktop/src/main.mjs
+@@ -885,6 +885,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
+   const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,selectSource:selectOriginalPQHostSource,createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert())});
+   pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:originalPQFinalityEvidence,transport:originalPQNodeTransport,verification:originalPQFinalityVerification});
+   pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,
++    readTypedOriginal:createPQTypedActionNodeReader().readOriginal,
+     acquireOriginalWalletTransactionPermission:request=>{
+       const context=pqBroadcastApprovalContext.getStore();
+       if(!context||context.closed||context.selected||JSON.stringify(request)!==JSON.stringify(context.request))throw Object.assign(Error('Original broadcast approval is required.'),{code:'PQ_BROADCAST_APPROVAL_REQUIRED'});

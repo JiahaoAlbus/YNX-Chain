@@ -1,0 +1,22 @@
+diff --git a/apps/wallet-desktop/src/wallet-pq-typed-original.mjs b/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
+index 5283a87f..6aa8f17c 100644
+--- a/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
++++ b/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
+@@ -1,3 +1,4 @@
++import {inspectPQReviewedTypedActionBroadcast} from './features/pq-transaction/typed-action-broadcast.mjs';
+ import {exactPQRecord} from '@ynx-chain/wallet-auth/pq-wallet-contract';
+ import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
+ import {inspectPQReviewedTypedTransportOriginal} from './features/pq-transaction/typed-action-reviewed-transport.mjs';
+@@ -53,3 +54,12 @@ export async function observePQTypedOriginalQuery(value,readOriginal,assertCurre
+  const outcome={committed:'typed-commit-observed',rejected:'typed-rejection-observed',unknown:'typed-outcome-unknown'}[observed.observedStatus];
+  return Object.freeze({...summary,outcome,networkQueryPerformed:true});
+ }
++
++// Original Main calls after copying/holding the full submission HTTP response.
++// The result is DATA for its typed progress branch, never a resend capability.
++export function inspectPQTypedOriginalBroadcast(value,response){
++ const saved=parsePQTypedOriginalRecord(value),t=saved.typed;
++ const network={owner:saved.account,chainId:t.networkId,nativeChainId:'6423'};
++ const original={reviewSnapshot:parsePQAccountAuthorization(t.reviewSnapshot,network),signingSnapshot:parsePQAccountAuthorization(t.signingSnapshot,network),selectedBinding:{account:saved.account,networkId:t.networkId},memberHash:t.memberHash,transportHash:saved.hash};
++ return inspectPQReviewedTypedActionBroadcast(t.review,Buffer.from(saved.wire,'base64url'),original,response);
++}

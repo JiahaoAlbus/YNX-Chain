@@ -1,6 +1,7 @@
 import type {PQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
 export const PQ_TYPED_QUERY_MAX_BYTES: number;
 export type PQTypedActionHTTPResponse=Readonly<{method:'GET';requestPath:string;status:number;contentType:string;cacheControl:string;body:Uint8Array}>;
+export type PQTypedActionBroadcastHTTPResponse=Readonly<{method:'POST';requestPath:string;status:number;contentType:string;cacheControl:string;body:Uint8Array}>;
 export type PQTypedQueryEffect=string|boolean|null|readonly PQTypedQueryEffect[]|{readonly [key:string]:PQTypedQueryEffect};
 export type PQTypedActionNodeView=Readonly<{
  type:string;status:'committed'|'rejected'|'unknown';committed:boolean;source:'comet-rpc';
@@ -20,5 +21,7 @@ export type PQTypedActionQueryObservation=Readonly<{
 }>;
 /** HTTP DATA only; no signature verification, journal mutation or network I/O. */
 export function decodePQTypedActionQueryResponse(response:PQTypedActionHTTPResponse):PQTypedActionDecodedResponse;
+/** POST-only original PQActionView variants; error-only responses supply no identity. */
+export function decodePQTypedActionBroadcastResponse(response:PQTypedActionBroadcastHTTPResponse):Readonly<{requestPath:string;httpStatus:200|202|400|413|415|422;view:PQTypedActionNodeView|null;errorOnly:boolean;dataOnly:true;proofVerification:'not-performed';independentFinality:false}>;
 /** Node/Main only; both snapshots must come from original retained custody. */
 export function inspectPQReviewedTypedActionQuery(archivedReview:unknown,rawTransport:Uint8Array,original:PQReviewedTypedTransportOriginal,response:PQTypedActionHTTPResponse):PQTypedActionQueryObservation;

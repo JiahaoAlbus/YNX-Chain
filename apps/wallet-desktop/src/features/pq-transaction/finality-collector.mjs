@@ -178,11 +178,13 @@ export function planPQTransferFinalityCollector(original, binding) {
   return Object.freeze({method: 'GET', path: '/txs/' + prepared.abciTransactionHash + '/pq-finality-proof'});
 }
 
-/** Raw bytes remain with the original Main caller for its existing evidence
- * persistence. Only observation may cross public UI; proof stays main-only. */
-export function parsePQTransferFinalityCollector(original, binding, httpStatus, rawBytes) {
+/** Shared collector DATA grammar; expected hashes are caller-bound identity,
+ * never a Host trust expectation. No transaction or signature parser here. */
+export function decodePQFinalityCollectorData(expected, httpStatus, rawBytes) {
   if (![200, 202, 502].includes(httpStatus)) invalid();
-  const prepared = originalBinding(original, binding), raw = snapshotBytes(rawBytes);
+  closedData(expected, ['nativeTransactionHash', 'abciTransactionHash'], 'PQ_FINALITY_COLLECTOR_INVALID');
+  if (![expected.nativeTransactionHash, expected.abciTransactionHash].every(v => typeof v === 'string' && /^0x[0-9a-f]{64}$/.test(v))) invalid();
+  const raw = snapshotBytes(rawBytes);
   let text;
   try { text = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(raw); } catch { invalid(); }
   const {value, proofBytes} = collectorJSON(text);
@@ -190,12 +192,12 @@ export function parsePQTransferFinalityCollector(original, binding, httpStatus, 
   const required = ['version', 'source', 'status', 'nativeTransactionHash', 'abciTransactionHash', 'executionHeight', 'independentFinality', 'proofVerification'];
   if (required.some(key => !Object.hasOwn(value, key)) || value.version !== collectorVersion
     || value.source !== 'configured-comet-rpc' || value.independentFinality !== false || value.proofVerification !== 'not-performed') invalid();
-  if (value.abciTransactionHash !== prepared.abciTransactionHash
-    || (value.nativeTransactionHash !== '' && value.nativeTransactionHash !== prepared.hash)) fail('PQ_FINALITY_ORIGINAL_MISMATCH');
+  if (value.abciTransactionHash !== expected.abciTransactionHash
+    || (value.nativeTransactionHash !== '' && value.nativeTransactionHash !== expected.nativeTransactionHash)) fail('PQ_FINALITY_ORIGINAL_MISMATCH');
   if (!/^(0|[1-9][0-9]{0,18})$/.test(value.executionHeight) || BigInt(value.executionHeight) >= 9223372036854775807n) invalid();
   const terminal = value.executionHeight !== '0';
   if (terminal) {
-    if (value.nativeTransactionHash !== prepared.hash || !Object.hasOwn(value, 'cometIndex')
+    if (value.nativeTransactionHash !== expected.nativeTransactionHash || !Object.hasOwn(value, 'cometIndex')
       || !['committed', 'rejected'].includes(value.observedExecutionStatus)) invalid();
   } else if (value.nativeTransactionHash !== '' || Object.hasOwn(value, 'cometIndex') || Object.hasOwn(value, 'observedExecutionStatus')) invalid();
   if (httpStatus === 200) {
@@ -204,11 +206,23 @@ export function parsePQTransferFinalityCollector(original, binding, httpStatus, 
     if (value.status !== 'pending' || !terminal || Object.hasOwn(value, 'proof') || Object.hasOwn(value, 'error')) invalid();
   } else if (value.status !== 'unavailable' || Object.hasOwn(value, 'proof') || typeof value.error !== 'string' || value.error.length === 0) invalid();
   const proof = httpStatus === 200 ? validatePQTransactionProofDTO(value.proof) : null;
+  if (proof) value.proof = proof;
+  return Object.freeze({view: Object.freeze(value), proof,
+    rawSha256: createHash('sha256').update(raw).digest('hex'), byteLength: raw.length});
+}
+
+/** Raw bytes remain with the original Main caller for its existing evidence
+ * persistence. Only observation may cross public UI; proof stays main-only. */
+export function parsePQTransferFinalityCollector(original, binding, httpStatus, rawBytes) {
+  if (![200, 202, 502].includes(httpStatus)) invalid();
+  const prepared = originalBinding(original, binding);
+  const {view: value, proof, rawSha256, byteLength} = decodePQFinalityCollectorData({
+    nativeTransactionHash: prepared.hash, abciTransactionHash: prepared.abciTransactionHash}, httpStatus, rawBytes);
   const observation = Object.freeze({account: prepared.account, operationId: prepared.operationId,
     kind: 'pq-transfer', transactionType: 'pq_transfer', source: 'configured-comet-rpc', status: value.status,
     observedExecutionStatus: value.observedExecutionStatus ?? null,
     nativeTransactionHash: value.nativeTransactionHash, abciTransactionHash: prepared.abciTransactionHash,
     executionHeight: value.executionHeight, cometIndex: value.cometIndex ?? null,
     independentFinality: false, proofVerification: 'not-performed', consensusFinality: false, canRetry: false});
-  return Object.freeze({observation, proof, rawSha256: createHash('sha256').update(raw).digest('hex'), byteLength: raw.length});
+  return Object.freeze({observation, proof, rawSha256, byteLength});
 }

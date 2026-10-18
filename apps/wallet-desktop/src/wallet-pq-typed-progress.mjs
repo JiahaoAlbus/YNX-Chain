@@ -3,6 +3,7 @@ import {types} from 'node:util';
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
 import {inspectPQReviewedTypedActionQuery} from './features/pq-transaction/typed-action-query.mjs';
+import {inspectPQReviewedTypedActionBroadcast} from './features/pq-transaction/typed-action-broadcast.mjs';
 const fail=()=>{throw Object.assign(Error('Keep the original typed response and progress.'),{code:'PQ_TYPED_PROGRESS_INVALID'})};
 const hash=text=>createHash('sha256').update(text).digest('hex');
 const typed=Object.getPrototypeOf(Uint8Array.prototype),bufferOf=Object.getOwnPropertyDescriptor(typed,'buffer').get,lengthOf=Object.getOwnPropertyDescriptor(typed,'length').get,offsetOf=Object.getOwnPropertyDescriptor(typed,'byteOffset').get;
@@ -26,10 +27,10 @@ export function pqTypedSubmissionIdentity(value){
 }
 export function parsePQTypedProgressResult(input,value,maxBytes){
  exact(input,['phase','method','requestPath','statusCode','contentType','cacheControl','text','bodySha256']);
- if(input.phase!=='read'||input.method!=='GET'||typeof input.text!=='string'||Buffer.byteLength(input.text)>maxBytes||input.bodySha256!==hash(input.text))fail();
+ if(!['read','submission'].includes(input.phase)||input.method!==(input.phase==='submission'?'POST':'GET')||typeof input.text!=='string'||Buffer.byteLength(input.text)>maxBytes||input.bodySha256!==hash(input.text))fail();
  const saved=parsePQTypedOriginalRecord(value),t=saved.typed,network={owner:saved.account,chainId:t.networkId,nativeChainId:'6423'};
  const original={reviewSnapshot:parsePQAccountAuthorization(t.reviewSnapshot,network),signingSnapshot:parsePQAccountAuthorization(t.signingSnapshot,network),selectedBinding:{account:saved.account,networkId:t.networkId},memberHash:t.memberHash,transportHash:saved.hash};
- const observed=inspectPQReviewedTypedActionQuery(t.review,Buffer.from(saved.wire,'base64url'),original,{method:input.method,requestPath:input.requestPath,status:input.statusCode,contentType:input.contentType,cacheControl:input.cacheControl,body:Buffer.from(input.text)});
- const status={committed:'inclusion-observed',rejected:'rejection-observed',unknown:'submission-unknown'}[observed.observedStatus];
+ const observed=(input.phase==='submission'?inspectPQReviewedTypedActionBroadcast:inspectPQReviewedTypedActionQuery)(t.review,Buffer.from(saved.wire,'base64url'),original,{method:input.method,requestPath:input.requestPath,status:input.statusCode,contentType:input.contentType,cacheControl:input.cacheControl,body:Buffer.from(input.text)});
+ const status=observed.observedStatus==='committed'?'inclusion-observed':observed.observedStatus==='rejected'?'rejection-observed':'submission-unknown';
  return Object.freeze({result:Object.freeze({...input}),observed,status});
 }

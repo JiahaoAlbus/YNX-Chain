@@ -75,18 +75,24 @@ function base64(value,max){
 
 /** Decode actual GET metadata/UTF-8 bytes. Generic DATA accepts the original
  * N2 fixture without granting it the local signer's N1/index0 contract. */
-export function decodePQTypedActionQueryResponse(input){
+function decodeResponse(input,broadcast=false){
  const response=responseData(input);
- if(response.method!=='GET'||typeof response.requestPath!=='string'||!/^\/transactions\/pq\/actions\/(?:originals\/)?0x[0-9a-f]{64}$/.test(response.requestPath)||response.cacheControl!=='no-store'||typeof response.contentType!=='string'||!/^application\/json(?:;\s*charset=utf-8)?$/i.test(response.contentType))invalid();
- if(response.status!==200&&response.status!==202)fail('PQ_TYPED_QUERY_HTTP_STATUS');
+ if(response.method!==(broadcast?'POST':'GET')||typeof response.requestPath!=='string'||(broadcast?response.requestPath!=='/transactions/pq/actions/broadcast':!/^\/transactions\/pq\/actions\/(?:originals\/)?0x[0-9a-f]{64}$/.test(response.requestPath))||response.cacheControl!=='no-store'||typeof response.contentType!=='string'||!/^application\/json(?:;\s*charset=utf-8)?$/i.test(response.contentType))invalid();
+ if(!(broadcast?[200,202,400,413,415,422]:[200,202]).includes(response.status))fail('PQ_TYPED_QUERY_HTTP_STATUS');
  let text;try{text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(copyBody(response.body));}catch{invalid();}
  const view=parseView(text),has=k=>Object.hasOwn(view,k);
+ if(broadcast&&Object.keys(view).length===1&&has('error')){
+  if(![400,413,415].includes(response.status)||typeof view.error!=='string'||!view.error.length)invalid();
+  // No body identity or execution fact was supplied. Original Main retains
+  // the response and UNKNOWN; HTTP rejection never grants a replacement send.
+  return Object.freeze({requestPath:response.requestPath,httpStatus:response.status,view:null,errorOnly:true,dataOnly:true,proofVerification:'not-performed',independentFinality:false});
+ }
  if(required.some(k=>!has(k))||view.source!=='comet-rpc'||typeof view.committed!=='boolean'||!['committed','rejected','unknown'].includes(view.status))invalid();
  for(const k of ['type','nativeTransactionHash','readbackUrl','abciTransactionHash','wire','transport','from','to','abciReadbackUrl','error'])if(has(k)&&typeof view[k]!=='string')invalid();
  decimal(view.executionHeight);decimal(view.fee);decimal(view.nonce);decimal(view.amount,true);
  const nativePath=response.requestPath.includes('/originals/'),requested=response.requestPath.split('/').at(-1);
  if(view.nativeTransactionHash!==''&&!hashPattern.test(view.nativeTransactionHash)||has('abciTransactionHash')&&!hashPattern.test(view.abciTransactionHash))invalid();
- if(nativePath?view.nativeTransactionHash!==requested:view.abciTransactionHash!==requested)fail('PQ_TYPED_QUERY_BINDING_MISMATCH');
+ if(!broadcast&&(nativePath?view.nativeTransactionHash!==requested:view.abciTransactionHash!==requested))fail('PQ_TYPED_QUERY_BINDING_MISMATCH');
  if(view.readbackUrl!==(view.nativeTransactionHash?'/transactions/pq/actions/originals/'+view.nativeTransactionHash:''))invalid();
  if(has('abciTransactionHash')?view.abciReadbackUrl!=='/transactions/pq/actions/'+view.abciTransactionHash:has('abciReadbackUrl'))invalid();
  if(has('cometIndex')&&(!Number.isInteger(view.cometIndex)||view.cometIndex<0||view.cometIndex>0xffffffff))invalid();
@@ -96,17 +102,28 @@ export function decodePQTypedActionQueryResponse(input){
   if(!/^[a-z][a-z0-9_]{0,63}$/.test(view.type)||!hashPattern.test(view.nativeTransactionHash)||!has('abciTransactionHash')||!/^0x[0-9a-f]{40}$/.test(view.from??'')||!has('wire')||!has('transport'))invalid();
   if(hash(base64(view.wire,PQ_ACTION_MEMBER_MAX_BYTES))!==view.nativeTransactionHash||hash(base64(view.transport,PQ_ACTION_TRANSPORT_MAX_BYTES))!==view.abciTransactionHash)fail('PQ_TYPED_QUERY_BINDING_MISMATCH');
  }else if(['wire','transport','from','to','effects','cometIndex'].some(has)||view.fee!=='0'||view.nonce!=='0'||view.amount!=='0')invalid();
+ if(broadcast&&!identity)invalid();
  if(response.status===202){
   if(view.status!=='unknown'||view.committed||view.executionHeight!=='0'||has('effects')||has('cometIndex')||!has('error'))invalid();
+  if(broadcast&&(view.amount!=='0'||has('to')))invalid();
+ }else if(broadcast&&[413,422].includes(response.status)){
+  if(view.status!=='rejected'||view.committed||has('effects')||has('to')||view.amount!=='0'||(view.executionHeight==='0'?has('cometIndex'):!has('cometIndex')))invalid();
+  if(response.status===413&&(view.executionHeight!=='0'||!has('error')||!view.error.length))invalid();
  }else{
+  if(response.status!==200||broadcast&&view.status!=='committed')invalid();
   if(!identity||view.executionHeight==='0'||!has('cometIndex')||view.status==='unknown')invalid();
   // The original-hash route requires committed history; Go converts its
   // disagreement with an indexed rejection to 202/unknown. ABCI can reject.
   if(nativePath&&view.status==='rejected')invalid();
   if(view.status==='committed'?!view.committed||!has('effects')||has('error'):view.committed||has('effects')||has('to')||view.amount!=='0')invalid();
  }
- return Object.freeze({requestPath:response.requestPath,httpStatus:response.status,view,dataOnly:true,proofVerification:'not-performed',independentFinality:false});
+ return Object.freeze({requestPath:response.requestPath,httpStatus:response.status,view,...(broadcast?{errorOnly:false}:{}),dataOnly:true,proofVerification:'not-performed',independentFinality:false});
 }
+
+export function decodePQTypedActionQueryResponse(input){return decodeResponse(input);}
+/** Same original PQActionView JSON grammar, with the actual POST-only HTTP
+ * status variants. No response can confer retry, permission or finality. */
+export function decodePQTypedActionBroadcastResponse(input){return decodeResponse(input,true);}
 
 /** Normal Main observer. Revalidate retained original review/snapshots/raw and
  * both hashes using aeeb first; node response can never substitute those inputs.

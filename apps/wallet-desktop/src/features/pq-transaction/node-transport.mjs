@@ -7,6 +7,7 @@ import {PQ_PROGRESS_RESPONSE_BYTES} from '../../wallet-pq-progress.mjs';
 import {planPQTransferFinalityCollector,PQ_FINALITY_COLLECTOR_LIMITS} from './finality-collector.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
 import {PQ_TYPED_QUERY_MAX_BYTES} from './typed-action-query.mjs';
+import {preparePQReviewedTypedActionBroadcast} from './typed-action-broadcast.mjs';
 
 const fail=code=>{throw Object.assign(Error(code),{code});};
 function healthy(value) {
@@ -25,7 +26,7 @@ function tlsIdentity(host,cert) {
  */
 export class PQTransactionNodeTransportKernel {
   constructor(requestImpl,clock=Date.now) {this.requestImpl=requestImpl;this.clock=clock;}
-  async #exchange(path,{method='GET',body=null,deadline,metadata=false,assertCurrent=null,finalityBytes=false,typedQuery=false}) {
+  async #exchange(path,{method='GET',body=null,deadline,metadata=false,assertCurrent=null,finalityBytes=false,typedQuery=false,typedProof=false,typedBroadcast=false}) {
     const remaining=Math.min(NORMAL_OPERATOR.readTimeoutMs,deadline-this.clock());
     if(remaining<=0)fail('PQ_TRANSACTION_NODE_TIMEOUT');
     return new Promise((resolve,reject)=>{
@@ -36,10 +37,10 @@ export class PQTransactionNodeTransportKernel {
         if(error){destroy(response);destroy(req);reject(error);}else resolve(value);
       };
       const stop=code=>finish(Object.assign(Error(code),{code}));
-      const maximum=typedQuery?PQ_TYPED_QUERY_MAX_BYTES:finalityBytes?PQ_FINALITY_COLLECTOR_LIMITS.proofBytes+PQ_FINALITY_COLLECTOR_LIMITS.envelopeBytes:PQ_PROGRESS_RESPONSE_BYTES;
+      const maximum=typedQuery||typedBroadcast?PQ_TYPED_QUERY_MAX_BYTES:finalityBytes||typedProof?PQ_FINALITY_COLLECTOR_LIMITS.proofBytes+PQ_FINALITY_COLLECTOR_LIMITS.envelopeBytes:PQ_PROGRESS_RESPONSE_BYTES;
       try {
         assertCurrent?.();
-        req=this.requestImpl(new URL(path,NORMAL_OPERATOR.origin),{method,agent:false,rejectUnauthorized:true,checkServerIdentity:tlsIdentity,headers:{accept:'application/json','cache-control':'no-cache',...(finalityBytes||typedQuery?{'accept-encoding':'identity'}:{}),...(body?{'content-type':'application/octet-stream','content-length':String(body.length)}:{})}},res=>{
+        req=this.requestImpl(new URL(path,NORMAL_OPERATOR.origin),{method,agent:false,rejectUnauthorized:true,checkServerIdentity:tlsIdentity,headers:{accept:'application/json','cache-control':'no-cache',...(finalityBytes||typedQuery||typedProof||typedBroadcast?{'accept-encoding':'identity'}:{}),...(body?{'content-type':typedBroadcast?'application/json':'application/octet-stream','content-length':String(body.length)}:{})}},res=>{
           // Install error handling before any destroy, including header errors.
           res.on('error',error=>finish(error));
           if(settled){destroy(res);return;}
@@ -47,9 +48,9 @@ export class PQTransactionNodeTransportKernel {
           res.on('aborted',()=>stop('PQ_TRANSACTION_NODE_RESPONSE_ABORTED'));
           res.on('close',()=>{if(!ended)stop('PQ_TRANSACTION_NODE_RESPONSE_ABORTED');});
           const status=res.statusCode,contentType=String(res.headers['content-type']??'').split(';')[0].trim().toLowerCase();
-          if(!Number.isInteger(status)||status<200||status>=300&&status<400||contentType!=='application/json'||metadata&&status!==200||finalityBytes&&![200,202,502].includes(status)||typedQuery&&![200,202].includes(status)){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
+          if(!Number.isInteger(status)||status<200||status>=300&&status<400||contentType!=='application/json'||metadata&&status!==200||(finalityBytes||typedProof)&&![200,202,502].includes(status)||typedQuery&&![200,202].includes(status)||typedBroadcast&&![200,202,400,413,415,422].includes(status)){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
           if(!metadata&&!String(res.headers['cache-control']??'').toLowerCase().split(',').some(v=>v.trim()==='no-store')){stop('PQ_TRANSACTION_NODE_CACHE_POLICY');return;}
-          if(typedQuery&&res.headers['content-encoding']!==undefined&&res.headers['content-encoding']!=='identity'){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
+          if((typedQuery||typedProof||typedBroadcast)&&res.headers['content-encoding']!==undefined&&res.headers['content-encoding']!=='identity'){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
           res.on('data',chunk=>{
             if(settled)return;
             if(!Buffer.isBuffer(chunk)){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
@@ -69,8 +70,8 @@ export class PQTransactionNodeTransportKernel {
             try {
               if(used)chunks.push(slab.subarray(0,used));
               const bytes=Buffer.concat(chunks,size);
-              finish(null,Object.freeze(typedQuery?{method:'GET',requestPath:path,status,contentType:String(res.headers['content-type']),cacheControl:String(res.headers['cache-control']),body:new Uint8Array(bytes)}:finalityBytes?{status,rawBytes:bytes}:{status,text:new TextDecoder('utf-8',{fatal:true}).decode(bytes)}));
-            }catch {stop(finalityBytes?'PQ_TRANSACTION_NODE_RESPONSE':'PQ_TRANSACTION_NODE_UTF8');}
+              finish(null,Object.freeze(typedQuery||typedProof||typedBroadcast?{method,requestPath:path,status,contentType:String(res.headers['content-type']),cacheControl:String(res.headers['cache-control']),body:new Uint8Array(bytes)}:finalityBytes?{status,rawBytes:bytes}:{status,text:new TextDecoder('utf-8',{fatal:true}).decode(bytes)}));
+            }catch {stop(finalityBytes||typedProof||typedBroadcast?'PQ_TRANSACTION_NODE_RESPONSE':'PQ_TRANSACTION_NODE_UTF8');}
           });
         });
         req.on('error',error=>finish(error));
@@ -108,7 +109,27 @@ export class PQTransactionNodeTransportKernel {
     const deadline=this.clock()+NORMAL_OPERATOR.lifetimeMs;await this.#preflight(deadline);
     return this.#exchange('/transactions/pq/originals/'+hash,{deadline});
   }
-  async readTypedActionOriginal(review,raw,original,assertCurrent) {
+  async submitTypedAction(review,raw,original,assertCurrent){
+    if(typeof assertCurrent!=='function')fail('PQ_TRANSACTION_NODE_CURRENT_REQUIRED');
+    assertCurrent();
+    const expected=preparePQReviewedTypedActionBroadcast(review,raw,original);
+    if(original.selectedBinding.networkId!==CANONICAL_NETWORK_ID)fail('PQ_TRANSACTION_NODE_NETWORK');
+    // Capture a detached original body before the first await. Caller changes
+    // cannot substitute different bytes after original binding or permission.
+    const body=expected.body,deadline=this.clock()+NORMAL_OPERATOR.lifetimeMs;
+    await this.#preflight(deadline,assertCurrent);assertCurrent();
+    // Original Main persists the complete response before late lock, parsing,
+    // completion and cleanup. No post-effect health request or retry.
+    return this.#exchange(expected.path,{method:'POST',body,deadline,assertCurrent,typedBroadcast:true});
+  }
+  async readTypedActionOriginal(review,raw,original,assertCurrent,captureResponse) {
+    if(captureResponse!==undefined&&typeof captureResponse!=='function')fail('PQ_TRANSACTION_NODE_CAPTURE_REQUIRED');
+    return this.#readTypedAction(review,raw,original,assertCurrent,false,captureResponse);
+  }
+  async readTypedActionFinalityProof(review,raw,original,assertCurrent) {
+    return this.#readTypedAction(review,raw,original,assertCurrent,true);
+  }
+  async #readTypedAction(review,raw,original,assertCurrent,proof,captureResponse) {
     if(typeof assertCurrent!=='function')fail('PQ_TRANSACTION_NODE_CURRENT_REQUIRED');
     assertCurrent();
     const local=inspectPQReviewedTypedTransportOriginal(review,raw,original);
@@ -117,7 +138,15 @@ export class PQTransactionNodeTransportKernel {
     await this.#preflight(deadline,assertCurrent);assertCurrent();
     // Only original transportHash chooses the ABCI route, which can observe
     // indexed rejection. No body/URL/credentials or signing surface leaves here.
-    const response=await this.#exchange('/transactions/pq/actions/'+local.transportHash,{deadline,typedQuery:true,assertCurrent});
+    const requestPath=proof?'/txs/'+local.transportHash+'/pq-action-finality-proof':'/transactions/pq/actions/'+local.transportHash;
+    const response=await this.#exchange(requestPath,{deadline,typedQuery:!proof,typedProof:proof,assertCurrent});
+    // Original Main captures complete proof HTTP bytes/status before any
+    // post-await current/health check or parsing, just like readFinalityProof.
+    // This returns DATA only; Main must persist it before exposing observation.
+    if(proof)return response;
+    // Original custody receives its own byte copy before any late lifecycle
+    // or post-health refusal. Capture failure keeps its exact first cause.
+    if(captureResponse)await captureResponse(Object.freeze({...response,body:new Uint8Array(response.body)}));
     assertCurrent();
     const post=await this.#exchange('/status',{deadline,metadata:true,assertCurrent});
     let health;try{health=JSON.parse(post.text);}catch{fail('PQ_TRANSACTION_NODE_JSON');}healthy(health);
@@ -137,5 +166,5 @@ export class PQTransactionNodeTransportKernel {
 }
 export function createPQTransactionNodeTransport() {
   const kernel=new PQTransactionNodeTransportKernel(httpsRequest);
-  return Object.freeze({submitTransfer:(request,assertCurrent)=>kernel.submitTransfer(request,assertCurrent),readOriginal:hash=>kernel.readOriginal(hash),readFinalityProof:(original,binding)=>kernel.readFinalityProof(original,binding)});
+  return Object.freeze({submitTransfer:(request,assertCurrent)=>kernel.submitTransfer(request,assertCurrent),readOriginal:hash=>kernel.readOriginal(hash),readFinalityProof:(original,binding)=>kernel.readFinalityProof(original,binding),submitTypedAction:(review,raw,original,assertCurrent)=>kernel.submitTypedAction(review,raw,original,assertCurrent)});
 }

@@ -2,10 +2,10 @@
  * a separate broadcast review or query the same retained original. No wire,
  * account override, signing callback, endpoint or approval boolean crosses IPC. */
 export function appendPQBroadcastActions({row,record,api,getKeyState,isCurrent,onResult,onRefresh,document:doc=document}){
- if(record.kind!=='pq-transfer'||!/^0x[0-9a-f]{64}$/.test(record.hash??''))return;
+ if(!['pq-transfer','pq-typed-action'].includes(record.kind)||!/^0x[0-9a-f]{64}$/.test(record.hash??''))return;
  const prepare=record.status==='pq-signed-unsubmitted';
  if(!prepare&&!['pq-submission-unknown','pq-inclusion-observed','pq-rejection-observed'].includes(record.status))return;
- const button=doc.createElement('button');button.type='button';button.textContent=prepare?'另行审查提交原 PQ 转账 / Review broadcast of original PQ transfer':'查询同一 PQ 提交 / Query the same PQ submission';button.disabled=getKeyState().locked;
+ const button=doc.createElement('button');button.type='button';button.textContent=prepare?(record.kind==='pq-typed-action'?'另行审查提交原 PQ 操作 / Review broadcast of original PQ action':'另行审查提交原 PQ 转账 / Review broadcast of original PQ transfer'):'查询同一 PQ 提交 / Query the same PQ submission';button.disabled=getKeyState().locked;
  let consumed=false;
  button.addEventListener('click',async()=>{
   const before={...getKeyState()};if(consumed||before.locked||before.authenticating||before.account!==record.account||!isCurrent())return;

@@ -17,13 +17,17 @@ import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-poli
 import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
 import {registerHooks} from 'node:module';
 import {createPUBLICPeer} from './wallet-pq-typed-auth-peer.fixture.mjs';
+import {AsyncLocalStorage} from 'node:async_hooks';
+import {runInNewContext} from 'node:vm';
+import {createPQTransactionSubmission} from '../src/features/pq-transaction/submission.mjs';
+import {inspectPQReviewedTypedTransportOriginal} from '../src/features/pq-transaction/typed-action-reviewed-transport.mjs';
 const hooks=registerHooks({resolve(specifier,context,next){return specifier==='electron'?{url:new URL('./wallet-pq-typed-auth-peer.fixture.mjs',import.meta.url).href,shortCircuit:true}:next(specifier,context)}});
 const realFactory=await import('../src/original-policy-supplier/transaction-permission.mjs');hooks.deregister();
 const SDK=Object.freeze({...keys,...backup,...contract}),PASSWORD='synthetic-typed-authority-QA-only';
 const input=JSON.parse(readFileSync(new URL('../src/features/pq-transaction/fixtures/typed-action-public-inputs.json',import.meta.url))).rows.find(row=>row.kind==='resource_delegation_create');
 // These resources model Auth boundaries, NOT real IPC/Root approval. Real SDK,
 // Main private borrow, encrypted synthetic vault and protected journal execute.
-async function fixture(t,{permission=true,afterComplete,actualFactory=false,broadcast=false}={}){
+async function fixture(t,{permission=true,afterComplete,actualFactory=false,broadcast=false,wireController=false,latePostLock=false}={}){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-typed-authority-')),lifecycle=new DesktopKeyLifecycle();lifecycle.setFocused(true);
  const filePath=path.join(directory,'vault.json'),vault=new PasswordWalletVault({filePath,authorization:lifecycle,pqSDK:SDK,randomSecret:()=> '1'.padStart(64,'0')});lifecycle.authorizer=vault.authorizer();
  t.after(async()=>{lifecycle.lock();await fs.rm(directory,{recursive:true,force:true});});
@@ -33,7 +37,7 @@ async function fixture(t,{permission=true,afterComplete,actualFactory=false,broa
  await lifecycle.run(()=>vault.savePQKeys({handle,publicBinding:binding,operationId:'synthetic-existing-pair'}));
  const pair=pqPublicBindingToRegistrationKeys(binding),authorization=parsePQAccountAuthorization({owner:status.account,executionHeight:'9007199254740993',ledgerNonce:'9007199254740993',algorithmVersion:'YNX-BATCH/v0.1',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId:input.chainId,enableAt:'10',activeRevision:'1',records:[{algorithmVersion:pair.algorithmVersion,owner:status.account,pkA:pair.pkA,pkB:pair.pkB,revision:'1',registeredAt:'10',activeFrom:'11',ledgerNonce:'1'}]},{chainId:input.chainId,nativeChainId:'6423',owner:status.account});
  const view=Object.freeze({version:'YNX-WALLET-TRANSACTION-POLICY/v1',networkId:input.chainId,nativeChainId:'6423',canonicalOwner:status.account,authorization,observedAt:new Date(Date.now()-1000).toISOString(),expiresAt:new Date(Date.now()+60000).toISOString()});
- const counts={source:0,sign:0,close:0,permission:0,complete:0};let request,completion;const policyResources=new WeakSet();
+ const counts={source:0,sign:0,close:0,permission:0,complete:0,posts:0};let request,completion;const policyResources=new WeakSet();
  const source=async r=>{counts.source++;assert.equal(r.operation,'typed-action');assert.equal(r.owner,status.account);let retired=false;const resource={assertCurrent(){if(retired)throw Error('QA_RETIRED');},readOriginal(){return view;},async recheck(){},retire(){retired=true;},async join(){},async close(){counts.close++;}};policyResources.add(resource);return resource;};
  const originalWithKeys=vault.withPQKeys.bind(vault);vault.withPQKeys=(binding,action,lease)=>originalWithKeys(binding,(...args)=>{counts.sign++;return action(...args);},lease);
  const capsule=Object.freeze({testOnly:true}),recognized=new WeakSet();
@@ -43,9 +47,22 @@ async function fixture(t,{permission=true,afterComplete,actualFactory=false,broa
   assert.equal(r.requestDigest,createHash('sha256').update(encodePQNativeAction(r.typedAction)).digest('hex'));assert.equal(r.purpose,'TX-BATCH');assert.equal(r.memberCount,1);assert.equal(r.memberIndex,0);assert.equal(Object.hasOwn(r,'transportHash'),false);
   const auth={assertCurrent(){borrow.assertCurrent();},async recheck(){await borrow.recheck();},enterSign(){borrow.enterOriginal('sign');},complete(result){counts.complete++;completion=result;borrow.completeOriginal(result);borrow.assertCompletedCurrent(result);afterComplete?.(lifecycle);},async close(){borrow.retire();await borrow.close();}};recognized.add(auth);return auth;
  };
- const store=new FileTransactionIntentStore({filePath:path.join(directory,'journal.json')}),authority=new DesktopWalletAuthority({vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqPolicySource:source,pqPolicyRecognized:v=>policyResources.has(v),pqNetworkId:input.chainId,...(broadcast?{pqBroadcastSource:async()=>{throw Error('QA_SENDER_MUST_NOT_ENTER_WITHOUT_APPROVAL')}}:{}),...(permission?{pqTransactionPermissionSource:actualFactory?realFactory.acquireOriginalWalletTransactionPermission:permissionSource,pqTransactionPermissionRecognized:actualFactory?realFactory.isOriginalWalletTransactionPermission:v=>recognized.has(v)}:{})});
+ const store=new FileTransactionIntentStore({filePath:path.join(directory,'journal.json')});let execute;
+ if(wireController){
+  const context=new AsyncLocalStorage(),controller=createPQTransactionSubmission({intentStore:store,networkId:input.chainId,isOriginalWalletTransactionPermission:realFactory.isOriginalWalletTransactionPermission,
+   acquireOriginalWalletTransactionPermission:request=>{const selected=context.getStore();assert.equal(selected.selected,false);assert.equal(JSON.stringify(selected.request),JSON.stringify(request));selected.selected=true;return realFactory.acquireOriginalWalletTransactionPermission(request,selected.capsule,selected.borrow)},
+   transport:{async submitTypedAction(review,raw,original,assertCurrent){
+    assertCurrent();counts.posts++;const local=inspectPQReviewedTypedTransportOriginal(review,raw,original),progress=await new FileTransactionIntentStore({filePath:path.join(directory,'journal.json')}).readPQProgress(status.account,original.transportHash,()=>{});assert.equal(progress.status,'submission-unknown');
+    const view={type:local.action.kind,status:'committed',committed:true,source:'comet-rpc',nativeTransactionHash:local.memberHash,abciTransactionHash:local.transportHash,wire:Buffer.from(local.member).toString('base64'),transport:Buffer.from(raw).toString('base64'),executionHeight:(BigInt(local.executionHeight)+1n).toString(),cometIndex:0,from:status.account,to:local.action.payload.beneficiary,amount:local.action.payload.amountYNXT,fee:local.action.fee,nonce:local.action.nonce,effects:{synthetic:true},readbackUrl:'/transactions/pq/actions/originals/'+local.memberHash,abciReadbackUrl:'/transactions/pq/actions/'+local.transportHash};
+    if(latePostLock)lifecycle.setFocused(false);
+    return{method:'POST',requestPath:'/transactions/pq/actions/broadcast',status:200,contentType:'application/json',cacheControl:'no-store',body:Buffer.from(JSON.stringify(view))};
+   }}});
+  const main=readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf('async function executeOriginalPQBroadcast('),end=main.indexOf('\nlet nativeWallet;',start);
+  execute=runInNewContext(main.slice(start,end)+';executeOriginalPQBroadcast;',{pqBroadcastApprovalContext:context,pqTransactionSubmission:controller,retireUnusedOriginalWalletTransactionApproval:realFactory.retireUnusedOriginalWalletTransactionApproval});
+ }
+ const authority=new DesktopWalletAuthority({vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqPolicySource:source,pqPolicyRecognized:v=>policyResources.has(v),pqNetworkId:input.chainId,...(wireController?{pqBroadcastSource:execute}:broadcast?{pqBroadcastSource:async()=>{throw Error('QA_SENDER_MUST_NOT_ENTER_WITHOUT_APPROVAL')}}:{}),...(permission?{pqTransactionPermissionSource:actualFactory?realFactory.acquireOriginalWalletTransactionPermission:permissionSource,pqTransactionPermissionRecognized:actualFactory?realFactory.isOriginalWalletTransactionPermission:v=>recognized.has(v)}:{})});
  t.after(()=>authority.shutdownPQReviews());
- return {directory,filePath,lifecycle,vault,authority,store,counts,capsule,capsuleFor:id=>realFactory.captureOriginalWalletTransactionApprovalIPC(createPUBLICPeer(new URL('../src/index.html',import.meta.url).href),id,'sign'),account:status.account,get request(){return request},get completion(){return completion},action:{kind:input.kind,fee:input.fee,payload:{...input.payload,provider:status.account}}};
+ return {directory,filePath,lifecycle,vault,authority,store,counts,capsule,capsuleFor:(id,action='sign')=>realFactory.captureOriginalWalletTransactionApprovalIPC(createPUBLICPeer(new URL('../src/index.html',import.meta.url).href),id,action),account:status.account,get request(){return request},get completion(){return completion},action:{kind:input.kind,fee:input.fee,payload:{...input.payload,provider:status.account}}};
 }
 test('typed Main normal pending review and synthetic SDK sign retain both original hashes without submission',async t=>{
  const f=await fixture(t),before=await fs.readFile(f.filePath,'utf8'),response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));
@@ -101,4 +118,17 @@ test('normal typed broadcast review refuses an existing uncertain submission bef
  const f=await fixture(t,{actualFactory:true,broadcast:true}),sign=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));await f.lifecycle.run(()=>f.authority.approve(sign.request.id,f.capsuleFor(sign.request.id)));
  const [record]=await f.store.readPQOriginals(f.account,()=>{});await f.store.beginPQSubmission(f.account,record.hash,()=>{});
  await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQBroadcast(record.hash)),e=>e.data?.code==='PQ_TRANSACTION_ALREADY_ENTERED');assert.equal(f.counts.source,1);assert.equal(f.counts.sign,1);
+});
+test('actual Main pending/private borrow/normal ALS/real Auth factory/sole controller retain one typed result (PUBLIC Electron and transport)',async t=>{
+ const f=await fixture(t,{actualFactory:true,wireController:true}),sign=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));await f.lifecycle.run(()=>f.authority.approve(sign.request.id,f.capsuleFor(sign.request.id)));
+ const [record]=await f.store.readPQOriginals(f.account,()=>{}),broadcast=await f.lifecycle.run(()=>f.authority.requestPQBroadcast(record.hash));
+ const result=await f.lifecycle.run(()=>f.authority.approve(broadcast.request.id,f.capsuleFor(broadcast.request.id,'broadcast')));assert.equal(result.result.status,'inclusion-observed');assert.equal(result.result.consensusFinality,false);assert.equal(f.counts.posts,1);assert.equal(f.counts.sign,1);
+ const cold=new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')});assert.equal((await cold.readPQProgress(f.account,record.hash,()=>{})).status,'inclusion-observed');assert.deepEqual((await cold.readPQOriginals(f.account,()=>{}))[0],record);
+ await assert.rejects(f.lifecycle.run(()=>f.authority.approve(broadcast.request.id,f.capsuleFor(broadcast.request.id,'broadcast'))));assert.equal(f.counts.posts,1);
+});
+test('actual Main composed typed broadcast saves complete result across focus-loss lock and never signs/posts again',async t=>{
+ const f=await fixture(t,{actualFactory:true,wireController:true,latePostLock:true}),sign=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));await f.lifecycle.run(()=>f.authority.approve(sign.request.id,f.capsuleFor(sign.request.id)));
+ const [record]=await f.store.readPQOriginals(f.account,()=>{}),broadcast=await f.lifecycle.run(()=>f.authority.requestPQBroadcast(record.hash));await assert.rejects(f.lifecycle.run(()=>f.authority.approve(broadcast.request.id,f.capsuleFor(broadcast.request.id,'broadcast'))));
+ const cold=new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')});assert.equal((await cold.readPQProgress(f.account,record.hash,()=>{})).status,'inclusion-observed');assert.equal(f.lifecycle.status().locked,true);assert.equal(f.counts.posts,1);assert.equal(f.counts.sign,1);
+ f.lifecycle.setFocused(true);await f.lifecycle.unlock({password:PASSWORD});await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQBroadcast(record.hash)));assert.equal(f.counts.posts,1);assert.equal(f.counts.sign,1);
 });

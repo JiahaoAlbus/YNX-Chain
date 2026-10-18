@@ -1,0 +1,170 @@
+{
+  "kind": "PQ_REVIEWED_TYPED_ACTION_PROOF_COLLECTION",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "parent": "1d9efe5742b800e1beb545f7dcd74f615b626c10",
+  "owner": "Original Wallet PQ leaf; Main owns capture/evidence/journal/Host/permissions; original builder/publisher unchanged",
+  "platform": "Node/Electron Main only",
+  "exports": {
+    "plan": "planPQReviewedTypedActionFinalityCollector(review,rawTransport,original):Readonly<{method:GET,path:string}>",
+    "inspect": "inspectPQReviewedTypedActionFinalityCollector(review,rawTransport,original,response):PQTypedActionFinalityCollection",
+    "factory": "createPQTypedActionFinalityNodeReader():{readOriginalProof(review,rawTransport,original,assertCurrent):Promise<PQTypedActionFinalityHTTPResponse>}",
+    "sharedDATA": "decodePQFinalityCollectorData({nativeTransactionHash,abciTransactionHash},httpStatus,rawBytes)",
+    "declarations": [
+      "typed-action-finality.d.mts",
+      "typed-action-finality-node.d.mts"
+    ]
+  },
+  "inputs": {
+    "original": "Exact original aeeb review, full transport, both original public snapshots, selected account/network, memberHash and transportHash; normal N1/index0 retained",
+    "HTTP": "Exactly six own enumerable data fields {method:GET,requestPath,status,contentType,cacheControl,body:Uint8Array}; no proxy/getter/extra/shared/resizable/detached bytes",
+    "path": "Only /txs/{originalTransportHash}/pq-action-finality-proof",
+    "headers": "application/json with optional utf-8 charset; no-store; transport requests identity encoding and refuses redirects/other encodings"
+  },
+  "decoder": {
+    "reuse": "Original finality-collector JSON/proof DTO grammar, limits and signature-free DATA validation; no second parser and no transfer-record fabrication",
+    "sharedChange": "Extract existing grammar/status/proof/dual-hash DATA checks into one helper; retain old transfer original-first ABI, observation keys, errors and c3 provenance constant",
+    "outcomes": {
+      "200": "collected, committed or rejected, both hashes, positive H and uint32 Comet index, Main-only proof",
+      "202": "pending H+1, original execution coordinates and outcome, no proof",
+      "502": "unavailable; early only requested ABCI hash with native empty/H0/no index/outcome; late complete coordinates; no proof. Error stays private"
+    },
+    "heights": "Original reviewExecutionHeight and signingExecutionHeight remain separate from observedExecutionHeight. No equality or ordering inferred for node observations, especially rejection. Terminal H is 0 < H < MaxInt64",
+    "indices": "Normal Member index remains 0; Comet index is any uint32. Original Host plan later imposes MaxInt32 and decimal-string index independently",
+    "bounds": "Existing 80 MiB proof + 64 KiB local envelope; original nested proof/base64 budgets unchanged. Status remains 8 MiB; metadata retains its original smaller cap"
+  },
+  "result": {
+    "shape": "Exactly {observation,proof,rawSha256,byteLength}; exact closed public observation type in declaration. Proof remains private Main DATA; all returned objects including proof/light DTOs are frozen detached copies",
+    "observedVsLocal": "Original memberHash/transportHash retained; observedNativeTransactionHash may be empty on early unavailable, never filled from local originals",
+    "flags": {
+      "dataOnly": true,
+      "observationOnly": true,
+      "httpResponseInspected": true,
+      "proofVerification": "not-performed",
+      "independentFinality": false,
+      "nativeAdmission": false,
+      "permissionGranted": false,
+      "submitted": false,
+      "canRetry": false,
+      "clearsOriginal": false,
+      "consensusFinality": false
+    },
+    "excludedPublicFields": [
+      "proof",
+      "error",
+      "raw",
+      "wire",
+      "expected",
+      "lightTrust",
+      "networkQueryPerformed"
+    ]
+  },
+  "transport": {
+    "pins": "Existing NORMAL_OPERATOR origin/SPKI/build/network unchanged",
+    "flow": [
+      "Validate full original and current guard before I/O",
+      "Pinned GET status and genesis with guard/deadline",
+      "Pinned GET fixed typed ABCI proof path, accepts200/202/502 complete raw response",
+      "Immediately return complete HTTP bytes/status to original Main capture before post-await lock/health/parse; no later request in proof branch"
+    ],
+    "capture": "Original Main must append/read back proof evidence first, then apply current guard and decode/project. A fulfilled byte response is not permission or verified observation. Partial/aborted streams preserve original first cause; no retry/fallback.",
+    "statusUnchanged": "Typed status branch still GET status/genesis/query/status and post-health/guard. Old transfer finality capture order unchanged."
+  },
+  "errors": [
+    "PQ_TYPED_FINALITY_RESPONSE_INVALID",
+    "PQ_FINALITY_ORIGINAL_MISMATCH",
+    "Original collector/SDK/aeeb/transport error codes propagate; preserve original/UNKNOWN and first cause"
+  ],
+  "validation": {
+    "focused": 14,
+    "focusedFail": 0,
+    "focusedSkip": 0,
+    "strictTypesExit": 0,
+    "affected": 44,
+    "affectedFail": 0,
+    "affectedSkip": 0,
+    "provenance": "Controlled N1 ephemeral SDK sign and controlled proof/HTTP/event grammar only. No actual typed Gateway response fixture, cryptographic Comet proof, independent Host expectation/context, CLI invocation or real network executed.",
+    "captureRED": "One targeted real failure CONTROLLED_LOCK after complete response; fixed proof branch to return captured response before postguard. Status postguard unchanged.",
+    "testSetup": "Initial suite failed at missing sparse dependency import; added final SDK332 isolated links. Not a production defect or completed test. After capture fix a deadline test clock threshold expected two requests but produced one; corrected test oracle, no production relaxation.",
+    "priorEvidence": "Original aeeb cold child and final SDK332 460-file readback reused. New controlled composition 14 tests, extracted old collector and kernel affected 44 tests; no other old product/SDK groups rerun."
+  },
+  "sdk": {
+    "version": "1.3.0-pq.3.32-auth.1",
+    "sourceCommit": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
+    "dependency": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/sdk332-package",
+    "runtime460EvidenceReused": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/evidence/sdk332-final-runtime-readback.json",
+    "compilerOnlyFrom331": true
+  },
+  "producerCandidate": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-proof-20261019/evidence/protocol-candidate-source.json",
+    "bytes": 2315,
+    "sha256": "48b85d8cc3ef6008e2dba706feeb7fc58e69a00cdd2aefad23670dc3611dd775"
+  },
+  "main": {
+    "patch": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-proof-20261019/source/apps/wallet-desktop/src/features/pq-transaction/typed-action-finality-main-integration.patch",
+      "bytes": 1919,
+      "sha256": "04a6f67860deffbb37331af9b3382d9dd40e24c72ea0e4dbdbaca5b694b62af4"
+    },
+    "base": "Main e421266cfa03d57598103a0cfa82a4d9b33e8fce plus exact six-file status-query proposal from1d9efe57",
+    "before": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-proof-20261019/evidence/main-before/apps/wallet-desktop/src/wallet-pq-typed-original.mjs",
+      "bytes": 4430,
+      "sha256": "be707b76d318115997330a48accc4a4afeb74e439650f03fa9b0e927a0e9e053"
+    },
+    "after": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-proof-20261019/evidence/main-after/apps/wallet-desktop/src/wallet-pq-typed-original.mjs",
+      "bytes": 5450,
+      "sha256": "8a6e5fc7eb321400041335940a7e654134a5ebbf2bc64e4b6429db6524d8992d"
+    },
+    "applied": false,
+    "applyCheckExit": 0,
+    "syntaxCheckExit": 0,
+    "scope": "Add pure inspectPQTypedOriginalProof adapter after existing private record parsing and original SDK snapshot parsing; no new storage/controller or live call",
+    "required": "Original Main evidence.identity/collection/controller currently transfer-only. Add actual typed original branch preserving journal.hash=transportHash and Host.originalHash=memberHash, capture-before-guard, held/ACK-loss/cold readback/close behavior. Never wrap typed as transfer or put proof/trust/raw into UI."
+  },
+  "CI": {
+    "patch": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-proof-20261019/source/apps/wallet-desktop/src/features/pq-transaction/typed-action-finality-ci.patch",
+      "bytes": 405,
+      "sha256": "b2c6e57aa6ca7bf2ab967f82fc313bfec37bc145d4d5a92f71568c0bd8042ab7"
+    },
+    "applied": false,
+    "checkExit": 0,
+    "destination": "apps/wallet-desktop/test/pq-typed-action-finality.test.mjs"
+  },
+  "remaining": [
+    "Original Protocol frozen producer commit and exact collected/pending/unavailable HTTP artifacts",
+    "Main typed evidence/capture/restore and Host target identity integration",
+    "Independent original Host typed expected/context and actual normal CLI outcomes, including rejection/partial handling",
+    "Original compatible package/install/normal user flow and any live read acceptance"
+  ],
+  "status": "Owned controlled proof source and route successor tested; original Protocol fixed producer/runtime HTTP fixture and Main/Host/CLI delivery still unverified",
+  "routeSuccessor": {
+    "previous": "/transactions/pq/actions/{abciHash}/pq-finality-proof",
+    "current": "/txs/{abciHash}/pq-action-finality-proof",
+    "nativeUnchanged": "/transactions/pq/actions/originals/{nativeHash}/pq-finality-proof",
+    "firstCause": "Original Protocol CI reported Go ServeMux wildcard conflict with old /actions/originals/{hash}; NewGateway panic. This leaf did not run Go CI.",
+    "actualReadOnlySource": {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-typed-action-finality/YNX Chain/internal/bftgateway/gateway.go",
+      "bytes": 71943,
+      "sha256": "4dbfb0cf243ba68cd7b1cd1e9e744688b50c8e24e43479e40682ed65d1f004b1"
+    },
+    "savedCandidate": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/protocol-route-successor-gateway.go",
+      "bytes": 71943,
+      "sha256": "4dbfb0cf243ba68cd7b1cd1e9e744688b50c8e24e43479e40682ed65d1f004b1"
+    },
+    "base": "ea5cefae477d8f66e9058be832a5608b2fd480f1",
+    "originalProducerFixedH": null,
+    "actualHTTPProofFixture": null,
+    "validation": "New exact route and refusal of old/native routes pass14 controlled proof tests; not Go startup/runtime verification",
+    "fallback": false,
+    "evidence": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-broadcast-20261019/evidence/proof-route-successor.json",
+      "bytes": 1173,
+      "sha256": "949dea7d019f92e7f0ceca3af9a4a308674899cbf3d011063844c2abd20730a7"
+    },
+    "supersedesOldRouteIn9db": true
+  }
+}

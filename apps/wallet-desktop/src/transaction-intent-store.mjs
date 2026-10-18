@@ -448,8 +448,10 @@ export class FileTransactionIntentStore {
   async savePQSubmissionResult(account,hash,input){
     const slot=this.#pqProgressSlot(account,hash);let raw;
     if(input&&Object.hasOwn(input,'response')){
-      if(!slot.firstTypedResponsePresent){slot.firstTypedResponsePresent=true;slot.firstTypedResponse=input.response;}
-      try{const retained=retainPQTypedHTTPResponse(input.response);slot.latestTypedResponse=retained;if(!slot.firstTypedResponseCopied){slot.firstTypedResponse=retained;slot.firstTypedResponseCopied=true;}raw=capturePQProgressResult({phase:input.phase,response:retained});}
+      const first=!slot.firstTypedResponsePresent,submission=input.phase==='submission',firstSubmission=submission&&!slot.firstTypedSubmissionResponsePresent;
+      if(first){slot.firstTypedResponsePresent=true;slot.firstTypedResponse=input.response;}
+      if(firstSubmission){slot.firstTypedSubmissionResponsePresent=true;slot.firstTypedSubmissionResponse=input.response;}
+      try{const retained=retainPQTypedHTTPResponse(input.response);slot.latestTypedResponse=retained;if(first){slot.firstTypedResponse=retained;slot.firstTypedResponseCopied=true;}if(firstSubmission){slot.firstTypedSubmissionResponse=retained;slot.firstTypedSubmissionResponseCopied=true;}raw=capturePQProgressResult({phase:input.phase,response:retained});}
       catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
     }else raw=capturePQProgressResult(input);
     slot.awaitingResult=false;if(!slot.firstResult)slot.firstResult=raw;slot.latestResult=raw;slot.unparsedResult=raw;
@@ -478,10 +480,10 @@ export class FileTransactionIntentStore {
   // in the existing progress journal and cannot regress to later UNKNOWN.
   async savePQTypedReadResult(account,hash,response){
     const slot=this.#pqProgressSlot(account,hash);let raw;
-    if(!slot.firstTypedResponsePresent){slot.firstTypedResponsePresent=true;slot.firstTypedResponse=response;}
+    const first=!slot.firstTypedResponsePresent;if(first){slot.firstTypedResponsePresent=true;slot.firstTypedResponse=response;}
     try{
       const retained=retainPQTypedHTTPResponse(response);slot.latestTypedResponse=retained;
-      if(!slot.firstTypedResponseCopied){slot.firstTypedResponse=retained;slot.firstTypedResponseCopied=true;}
+      if(first){slot.firstTypedResponse=retained;slot.firstTypedResponseCopied=true;}
       raw=capturePQProgressResult({phase:'read',response:retained});slot.latestResult=raw;slot.unparsedResult=raw;
     }catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
     return this.#mutate(async()=>{

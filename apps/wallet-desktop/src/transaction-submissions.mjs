@@ -30,7 +30,7 @@ export class TransactionSubmissions {
         const originals=await this.intentStore.readPQOriginals(account,()=>guard.assert());guard.assert();
         const saved=originals.find(row=>row.account===account&&row.hash===hash&&row.kind==='pq-typed-action');
         if(!saved)throw failure('TRANSACTION_INTENT_REQUIRED','The retained original typed record is required.');
-        const read=async(...args)=>{const response=await this.pqReadTypedOriginal(...args);await this.intentStore.savePQTypedReadResult(account,hash,response);return response;};
+        const read=async(...args)=>{let captured=false;const response=await this.pqReadTypedOriginal(...args,async response=>{if(captured)throw failure('PQ_READ_CAPTURE_DUPLICATE','Keep the original typed response.');captured=true;await this.intentStore.savePQTypedReadResult(account,hash,response);});if(!captured)throw failure('PQ_READ_CAPTURE_REQUIRED','The original typed response must be retained before observation.');return response;};
         const result=await observePQTypedOriginalQuery(saved,read,()=>guard.assert());guard.assert();
         const progress=await this.intentStore.readPQProgress(account,hash,()=>guard.assert());guard.assert();
         const known={'inclusion-observed':'typed-commit-observed','rejection-observed':'typed-rejection-observed'}[progress.status];

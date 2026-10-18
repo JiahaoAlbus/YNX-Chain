@@ -45,6 +45,24 @@ function fixture({phase=2,status=200,headers={},bytes=Buffer.from(' {"exact":"ra
 }
 const read=(f,guard=()=>{})=>f.kernel.readTypedActionOriginal(review,raw,original,guard);
 
+test('original Main capture receives complete typed GET before late lock or failed post-health',async()=>{
+ for(const mode of ['lock','health']){
+  const bytes=Buffer.from(' {"retained":"original"}\n'),f=fixture({bytes,...(mode==='health'?{postHealth:{...health,persistence:false}}:{})});let held;
+  const guard=()=>{if(mode==='lock'&&f.calls.length===3)throw Object.assign(Error('locked'),{code:'CONTROLLED_LATE_LOCK'});};
+  await assert.rejects(f.kernel.readTypedActionOriginal(review,raw,original,guard,async response=>{held={...response,body:Buffer.from(response.body)};}),{code:mode==='lock'?'CONTROLLED_LATE_LOCK':'PQ_TRANSACTION_NODE_VERSION_OR_HEALTH'});
+  assert.ok(held,'Main must receive the complete response before later refusal');assert.deepEqual(held.body,bytes);assert.equal(held.method,'GET');assert.equal(held.requestPath,'/transactions/pq/actions/'+original.transportHash);assert.equal(f.calls.length,mode==='lock'?3:4);
+ }
+});
+test('capture failure retains original cause without post-health or retry; capture cannot mutate returned bytes',async()=>{
+ const f=fixture();let captures=0;
+ await assert.rejects(f.kernel.readTypedActionOriginal(review,raw,original,()=>{},async()=>{captures++;throw false;}),error=>error===false);
+ assert.equal(captures,1);assert.equal(f.calls.length,3);
+ const bytes=Buffer.from(' {"source":"exact"}\n'),g=fixture({bytes});
+ const response=await g.kernel.readTypedActionOriginal(review,raw,original,()=>{},async captured=>{captured.body.fill(0);return {stored:true};});
+ assert.deepEqual(Buffer.from(response.body),bytes);assert.equal(g.calls.length,4);
+ const bad=fixture();await assert.rejects(bad.kernel.readTypedActionOriginal(review,raw,original,()=>{},false),{code:'PQ_TRANSACTION_NODE_CAPTURE_REQUIRED'});assert.equal(bad.calls.length,0);
+});
+
 test('typed readonly factory exposes only original GET; kernel reuses fixed pins and pre/post source gates',async()=>{
  assert.deepEqual(Object.keys(createPQTypedActionNodeReader()),['readOriginal']);
  const bytes=Buffer.from(' {"notYetDecoded":true}\n'),f=fixture({status:202,bytes}),out=await read(f);

@@ -11,6 +11,9 @@ const retry:false=observed.canRetry;
 const unknownStatus:'committed'|'rejected'|'unknown'=observed.observedStatus;
 const wide:string=decoded.view.nonce;
 createPQTypedActionNodeReader().readOriginal(review,bytes,original,()=>{});
+createPQTypedActionNodeReader().readOriginal(review,bytes,original,()=>{},async response=>{const method:'GET'=response.method;return {stored:method==='GET'};});
+// @ts-expect-error Original capture is a callback, not a caller permission flag.
+createPQTypedActionNodeReader().readOriginal(review,bytes,original,()=>{},true);
 // @ts-expect-error Readonly facade never exposes submission.
 createPQTypedActionNodeReader().submitTransfer;
 // @ts-expect-error Main current-account lifecycle guard is required.

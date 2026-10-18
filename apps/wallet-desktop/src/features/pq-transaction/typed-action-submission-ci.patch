@@ -1,0 +1,7 @@
+diff --git a/apps/wallet-desktop/test/pq-typed-action-submission.test.mjs b/apps/wallet-desktop/test/pq-typed-action-submission.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-typed-action-submission.test.mjs
+@@ -0,0 +1,2 @@
++// Actual Main journal and Auth kernel, controlled borrow and network only.
++import '../src/features/pq-transaction/typed-action-submission.test.mjs';
