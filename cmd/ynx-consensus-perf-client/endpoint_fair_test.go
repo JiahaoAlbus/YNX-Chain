@@ -187,7 +187,9 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 	height := int64(migration.Height)
 	go func() {
 		stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, endpointFair: true}, pool, txs, results,
-			func(i int) (time.Time, bool) { return submitTransaction(ctx, clients[i%4], txs[i], &results[i]) },
+			func(i int) (time.Time, bool) {
+				return submitTransactionMeasured(ctx, clients[i%4], txs[i], &results[i], true)
+			},
 			func(_ int, q <-chan acceptedObservation, terminal func(int)) {
 				for job := range q {
 					execution.Lock()
@@ -276,6 +278,16 @@ func testEndpointFairRPC(t *testing.T, mode string) {
 		}
 		if requests[i] != want || results[i].Endpoint != urls[i%4] || (!suppressed(i) && !qualifiedBusinessFinal(results[i])) {
 			t.Fatal("request replay/authority/business drift", mode, i, requests[i], results[i].Status)
+		}
+		phases := results[i].SubmissionPhases
+		if results[i].SubmittedAt == nil {
+			if phases != nil {
+				t.Fatal("unsubmitted request gained transport evidence", i)
+			}
+		} else if phases == nil || phases.CallbackReturnNs < 0 || phases.GetConnCalls != 1 || phases.GotConnCalls != 1 || phases.WroteRequestCalls != 1 {
+			t.Fatal("actual request transport boundaries missing/repeated", i, phases)
+		} else if results[i].CheckTxObservedAt != nil && (phases.FirstByteCalls != 1 || phases.FirstResponseByteNs == nil || phases.CallbackReturnNs < *phases.FirstResponseByteNs) {
+			t.Fatal("returned response lost first-byte/return evidence", i, phases)
 		}
 	}
 	mu.Unlock()

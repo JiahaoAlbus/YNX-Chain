@@ -92,6 +92,7 @@ type transactionResult struct {
 	IncludedObservedAt           *time.Time         `json:"includedObservedAt,omitempty"`
 	ConfirmedObservedAt          *time.Time         `json:"confirmedObservedAt,omitempty"`
 	CheckTxMs                    *float64           `json:"checkTxMs,omitempty"`
+	SubmissionPhases             *submissionPhases  `json:"submissionPhases,omitempty"`
 	InclusionMs                  *float64           `json:"inclusionMs,omitempty"`
 	ConfirmationMs               *float64           `json:"confirmationMs,omitempty"`
 	CheckTxCode                  *uint32            `json:"checkTxCode,omitempty"`
@@ -580,6 +581,10 @@ func observeTransaction(ctx context.Context, o options, m consensus.EphemeralNet
 }
 
 func submitTransaction(ctx context.Context, client *rpchttp.HTTP, raw cmttypes.Tx, result *transactionResult) (time.Time, bool) {
+	return submitTransactionMeasured(ctx, client, raw, result, false)
+}
+
+func submitTransactionMeasured(ctx context.Context, client *rpchttp.HTTP, raw cmttypes.Tx, result *transactionResult, measure bool) (time.Time, bool) {
 	if ctx.Err() != nil {
 		result.Status = "not_submitted"
 		addError(&result.Errors, "before_submission", ctx.Err())
@@ -589,6 +594,11 @@ func submitTransaction(ctx context.Context, client *rpchttp.HTTP, raw cmttypes.T
 	result.submitMonotonic = start
 	submitted := start.UTC()
 	result.SubmittedAt = &submitted
+	if measure {
+		var finish func() *submissionPhases
+		ctx, finish = traceSubmission(ctx, start)
+		defer func() { result.SubmissionPhases = finish() }()
+	}
 	broadcast, err := client.BroadcastTxSync(ctx, raw)
 	if err != nil {
 		result.Status = "submission_unknown"
@@ -895,6 +905,7 @@ func execute(o options) error {
 	r.ObserverPhaseTiming = o.observerPhaseTiming
 	if o.observerPhaseTiming {
 		r.Interpretation = append(r.Interpretation, "Explicit observer phase timings surround existing calls without extra RPC. Totals include failed attempts; bounded per-worker traces mark truncation. RPC wall durations include transport and server waits, not pure network latency. Durable load includes its disjoint child phases. Worker and parent/child sums overlap; never sum them as BFT latency.")
+		r.Interpretation = append(r.Interpretation, "Submission phases use monotonic offsets from the original callback start: first GetConn, GotConn, WroteRequest, first response byte and callback return. Hook counts expose repeated transport events; missing hooks remain absent on UNKNOWN/failure. These are client boundaries: first-byte wait includes transport/server scheduling; return includes body reading, JSON decode and original identity checks. Hooks may overlap, so subtract only compatible single-attempt boundaries. No added requests, retries or authority changes; disabled by default.")
 	}
 	if o.reuseResultSlots {
 		r.SchemaVersion = 13
@@ -1035,7 +1046,9 @@ func execute(o options) error {
 				r.LoadMode = "paced_submission_and_grouped_observation"
 				workerStats := make([]groupedObservationStats, o.observers)
 				roundQueues := runPacedWorkers(ctx, o, roundStarted, results,
-					func(i int) (time.Time, bool) { return submitTransaction(ctx, clients[i%4], txs[i], &results[i]) },
+					func(i int) (time.Time, bool) {
+						return submitTransactionMeasured(ctx, clients[i%4], txs[i], &results[i], o.observerPhaseTiming)
+					},
 					func(worker int, queue <-chan acceptedObservation, completed func(int)) {
 						observationClients := make([]observationClient, len(clients))
 						for i, client := range clients {
@@ -1115,7 +1128,7 @@ func execute(o options) error {
 			workerStats := make([]groupedObservationStats, o.observers)
 			r.ReadySenders, roundErr = runReadySenderPool(ctx, o, pool, allTxs, r.Transactions,
 				func(i int) (time.Time, bool) {
-					return submitTransaction(ctx, clients[i%4], allTxs[i], &r.Transactions[i])
+					return submitTransactionMeasured(ctx, clients[i%4], allTxs[i], &r.Transactions[i], o.observerPhaseTiming)
 				},
 				func(worker int, queue <-chan acceptedObservation, terminal func(int)) {
 					observationClients := make([]observationClient, len(clients))
