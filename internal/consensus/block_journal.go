@@ -126,6 +126,11 @@ func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration cha
 	}
 	replay.replayVerificationFacts = facts
 	j.io.end = int64(len(header))
+	return replayBlockJournalFrames(ctx, r, migration, j, replay)
+}
+
+// Shared exact frame validation; the default full path enters after its header.
+func replayBlockJournalFrames(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, replay *Application) (CommittedState, error) {
 	for {
 		if err := ctx.Err(); err != nil {
 			return CommittedState{}, err

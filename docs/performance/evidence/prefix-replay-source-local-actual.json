@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "kind": "opt-in-prefix-replay-candidate-local-actual",
+  "baseSourceCommit": "9cdaeb0a64bff4d26b2e4b1558c96863d2791640",
+  "defaultFullDecodeRetained": true,
+  "clientIntegrated": false,
+  "nodesStarted": false,
+  "networkImprovementMeasured": false,
+  "normalCIConclusion": null,
+  "sourcePins": {
+    "internal/consensus/block_journal.go": {
+      "bytes": 15643,
+      "sha256": "13f76f6449bfb0ccd91fbf6af8c849f204ea24a47e643c68be7c97d18e9119b0"
+    },
+    "internal/consensus/block_journal_prefix.go": {
+      "bytes": 3758,
+      "sha256": "d71766ed3b6ed154c8c5a1c2af4a1a4286f8112529d17f41e3d067c4cb873eae"
+    },
+    "internal/consensus/block_journal_prefix_test.go": {
+      "bytes": 9071,
+      "sha256": "ce730e6d714cbfabdea88ebbf7cf9f863d733c9b0ceab2a8a4b20449cdc518b6"
+    },
+    "internal/consensus/block_journal_prefix_cost_test.go": {
+      "bytes": 4916,
+      "sha256": "5b51a8c0fcffb2cea853049d0b5c4f776e848939180e09aa50214f46ba6bf48f"
+    }
+  },
+  "actualABBA": {
+    "arch": "arm64",
+    "goVersion": "go1.25.7",
+    "gomaxprocs": 1,
+    "inputPrefixes": 8,
+    "journalBytes": 1717048,
+    "kind": "matched_offline_original2048_prefix_replay_ABBA_not_network_tps",
+    "limits": "Same original journal/migration/prefix order, new decoders per mode with bounded original native facts. No nodes/RPC/new quorum/publication/finality, only two samples per mode. Allocations are cumulative Go work, not peak RSS. No network speedup or sustained qualification.",
+    "originalRun": 39164390241,
+    "os": "darwin",
+    "samples": [
+      {
+        "mode": "full",
+        "elapsedNs": 636996667,
+        "allocatedBytes": 367841624,
+        "replayedBlocks": 28,
+        "replayedInputs": 7475,
+        "prefixReuses": 0,
+        "facts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 7475,
+          "hits": 5427,
+          "successful_verifications": 2048
+        }
+      },
+      {
+        "mode": "prefix",
+        "elapsedNs": 510173708,
+        "allocatedBytes": 223756264,
+        "replayedBlocks": 7,
+        "replayedInputs": 2048,
+        "prefixReuses": 7,
+        "facts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      {
+        "mode": "prefix",
+        "elapsedNs": 522577125,
+        "allocatedBytes": 223755752,
+        "replayedBlocks": 7,
+        "replayedInputs": 2048,
+        "prefixReuses": 7,
+        "facts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      {
+        "mode": "full",
+        "elapsedNs": 684551917,
+        "allocatedBytes": 365770984,
+        "replayedBlocks": 28,
+        "replayedInputs": 7475,
+        "prefixReuses": 0,
+        "facts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 7475,
+          "hits": 5427,
+          "successful_verifications": 2048
+        }
+      }
+    ]
+  },
+  "localMeanDifferencesOnly": {
+    "elapsedNs": {
+      "full": 660774292.0,
+      "prefix": 516375416.5,
+      "reductionPercent": 21.85298024578717
+    },
+    "allocatedBytes": {
+      "full": 366806304.0,
+      "prefix": 223756008.0,
+      "reductionPercent": 38.99886518853286
+    }
+  },
+  "rawPins": {
+    "artifacts/chain-performance-20261017/prefix-replay-source/full_replay_baseline.go": {
+      "bytes": 971,
+      "sha256": "eb8164ae51793799d00c9b913af9ef5c0d9186fe76abf99ba9cb0ad605f6efef"
+    },
+    "artifacts/chain-performance-20261017/prefix-replay-source/full-baseline-overlay.json": {
+      "bytes": 291,
+      "sha256": "3ef42c3e326f456593cda2367aee6ccd4c9a0e1a60b6da9e2b7ecd405e09b9fe"
+    },
+    "artifacts/chain-performance-20261017/prefix-replay-source/full-baseline-red.raw": {
+      "bytes": 333,
+      "sha256": "33a05f5b8b607842a7ce0fc560167c8506986ab366b9648d2d1a2c39c7cea7a7"
+    },
+    "artifacts/chain-performance-20261017/prefix-replay-source/final-prefix-and-original-guards.raw": {
+      "bytes": 3251,
+      "sha256": "ae90f06fb1811b89c0a14e6968c03b82db6fbd141150df8f367d5033287c1de9"
+    },
+    "artifacts/chain-performance-20261017/prefix-replay-source/original2048-ABBA.raw": {
+      "bytes": 1870,
+      "sha256": "112d69b433d9f4569c620a677a1def0cde2e57a241333ebb1cd31a192e24ec1f"
+    }
+  },
+  "baselineREDInterpretation": "The explicitly labeled adapter delegates the new API to unchanged original full Decode. It fails the new reuse/work contract, not original data correctness. It is not a pre-existing public prefix API bug.",
+  "limits": [
+    "Same-source/offline original2048 prefix sequence, ABBA with two samples per mode; not network TPS or long-duration result.",
+    "Original full writer/decoder behavior retained. Shared frame validation moved verbatim into a helper; candidate is a separate opt-in read-only API.",
+    "Full default decoder and candidate each successfully verify all2048 original signature facts. Candidate only reuses exact already-validated prefix bytes and independently revalidates copied state.",
+    "Cache limit16MiB canonical, input16MiB; short original input fit does not qualify600k rows or10minute budgets. No client flag/profile/network execution is activated by this API."
+  ]
+}
