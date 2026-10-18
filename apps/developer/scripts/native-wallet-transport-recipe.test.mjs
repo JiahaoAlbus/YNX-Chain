@@ -25,7 +25,7 @@ async function fixture(){
   }
   return {record,next};
 }
-test('unchanged selected predecessor receipt remains valid without new transport units or AppKit',async()=>{
+test('already-selected matching receipt remains valid with its complete actual recipe',async()=>{
   assert.ok(root,'Supply original selected Native root');
   const record=JSON.parse(await readFile(join(root,inputs.nativeComponent.receipt.path)));
   assert.equal(validateCanonicalNativeBuildReceipt(record,inputs),record);

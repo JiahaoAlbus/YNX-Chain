@@ -6,16 +6,16 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates exact SDK329 and its new complete Native, without loading Native',async()=>{
+test('normal selection validates exact SDK330 and its complete R114 Native, without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
- assert.equal(sdk.sdkCommit,'95cf7484dd3d4503b4a1e13c9ba47b7900132322');assert.equal(sdk.files.length,272);
- assert.equal(sdk.dependencies.length,263);assert.equal(native.sourceLeaves,52);assert.equal(native.buildInputLeaves,50);
+ assert.equal(sdk.sdkCommit,'4de6b5c8f4848b62c486df9dbb9b61d672df10e7');assert.equal(sdk.files.length,272);
+ assert.equal(sdk.dependencies.length,263);assert.equal(native.sourceLeaves,57);assert.equal(native.buildInputLeaves,55);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'c92930dcdb05e3813e918ea28d991de07e8dca5a6eff60f1390cd919359cab7c');
- assert.equal(inputs.nativeSourceCommit,'8dce882963017ffb3386df763e93f1f53f517bad');
+ assert.equal(inputs.predecessorManifestSha256,'5d2b6a0854e8234221f6c3deb32c6ed8e33d5b84b6b1a82e5b2e50aff8f62f4b');
+ assert.equal(inputs.nativeSourceCommit,'4de6b5c8f4848b62c486df9dbb9b61d672df10e7');
  assert.equal(sdk.runtimeClosure.files,454);assert.equal(sdk.runtimeClosure.edges,123);
- assert.equal(inputs.nativeComponent.module.sha256,'07805e7403b2501737ba464d126446b78081b6e961df5b2fc29c7026661b250a');
+ assert.equal(inputs.nativeComponent.module.sha256,'d03c19b153003e57f1c02c7d72c2bbdf797981685bbb8cba510c197282b5f214');
  assert.ok(inputs.nativeSourceUpdates.every(x=>Object.hasOwn(x,'parentSha256')));
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{

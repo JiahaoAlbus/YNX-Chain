@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "sdkCommit": "95cf7484dd3d4503b4a1e13c9ba47b7900132322",
-  "sdkTree": "67ac87938c18c987e50524efa0ee634b151a5abd",
+  "sdkCommit": "4de6b5c8f4848b62c486df9dbb9b61d672df10e7",
+  "sdkTree": "7d8a1810f069688b7a89b93e90d1248e555bde1e",
   "sourceOnly": true,
-  "nativeSourceManifestSha256": "ada9d2a5d0c3b13d9c59209a711f9da659303e6f77b421b72171eafa4c37521a",
+  "nativeSourceManifestSha256": "98d76e9f3e475b5933c729f2771c53dcd88504a6fc80140e98174b09e407eec5",
   "files": [
     {
       "path": "AUTH_RUNTIME_CLOSURE.md",
@@ -232,8 +232,8 @@
     },
     {
       "path": "native/original-auth-identity-source-authority.mm",
-      "bytes": 37991,
-      "sha256": "11e9bb4291ec12df62fd280507f1cb323638cfdab522004a212213c3e326327e"
+      "bytes": 40187,
+      "sha256": "7e9654fdf85b91795e73553eb839c9285bd50ec5298781585d134cd5d950b356"
     },
     {
       "path": "native/original-auth-identity-source-v2-verifier.d.mts",
@@ -278,7 +278,7 @@
     {
       "path": "native/original-ide-auth-runtime-manifest.json",
       "bytes": 64574,
-      "sha256": "d31582e4902e8a5b830ccd2d35fded5503d4cd7b0e4ded0b4a8b8993643ebf43"
+      "sha256": "3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693"
     },
     {
       "path": "native/original-ide-identity-peer-endpoint.h",
@@ -362,8 +362,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 11962,
-      "sha256": "cb4f1b0aa2e8a28ad1742f48262b5ddcf2edeb766064bc088fbed4d0a417cc53"
+      "bytes": 12016,
+      "sha256": "654b401558450500318dbe7b4b854baadd15fa6170087513fc461f212c1ba8bb"
     },
     {
       "path": "product-session-registry.json",
@@ -482,8 +482,8 @@
     },
     {
       "path": "src/auth-native-contract.d.ts",
-      "bytes": 5116,
-      "sha256": "9520e83adea3fa47d22f521f55cd8106f4816dbd4019cb6a9dbe9f4a4985bb6d"
+      "bytes": 6900,
+      "sha256": "29174b1b0620415a8ecb87cbe4d64758dc9bb1484f699f35f4b81f4d59eae5d8"
     },
     {
       "path": "src/base64url.js",
@@ -792,13 +792,13 @@
     },
     {
       "path": "src/original-ide-admission-parent-delivery.d.ts",
-      "bytes": 5163,
-      "sha256": "6b556ff551b7a242277053fff5ffe71382180bcb27139a1bfbf38200d0571acf"
+      "bytes": 5675,
+      "sha256": "e59d675ab6b1c234a3e54470987bff520b3377478e0ddbd153be7aae2b64d9e2"
     },
     {
       "path": "src/original-ide-admission-parent-delivery.js",
-      "bytes": 24608,
-      "sha256": "1d39cdfbfa0d2a283bb75fb7f2fe9a6047d1a4cf4b6b88fc5b9e6bc12af517f1"
+      "bytes": 25679,
+      "sha256": "59fa39819b9f283ece392f528cdf0ea53b8ce2e9d3169c5e436abc62a53ff6ce"
     },
     {
       "path": "src/original-ide-parent-host.d.ts",
@@ -2696,8 +2696,8 @@
     },
     {
       "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
-      "bytes": 80274,
-      "sha256": "2aec4a6094d5e4652df458bc302ddacb1222c7bf7aad4ce25217992bf20b1db0"
+      "bytes": 80504,
+      "sha256": "cca146d0381e57d7cb54cc7e146e033c4ed5d02a1106a11754dee5ca89c43561"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-auth-identity-binding.inc.mm",
@@ -2728,6 +2728,11 @@
       "path": "apps/wallet-desktop/native/original-ide-private-client.inc.mm",
       "bytes": 5405,
       "sha256": "590d22d8585ab9ed609ca47a1f6c4d6ecda0f2ef6fab5e5971c3ed7b38193075"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-wallet-identity-source-owner.inc.mm",
+      "bytes": 14449,
+      "sha256": "d2e845aa51cec1fa268efc9787b0d6e67783465d968cf26b3ac8f7345a8496f8"
     },
     {
       "path": "apps/wallet-desktop/native/original-private-reference-carrier.h",
@@ -2781,13 +2786,13 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 4744,
-      "sha256": "10872a51e7cf11250026f512f5a6f5094acaa737dac77ffe42e27df213a0dfeb"
+      "bytes": 4897,
+      "sha256": "b9b739e08c32545f992b65a9cf0b60c713df3caca93260c187076ff80d2351f9"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 37991,
-      "sha256": "11e9bb4291ec12df62fd280507f1cb323638cfdab522004a212213c3e326327e"
+      "bytes": 40187,
+      "sha256": "7e9654fdf85b91795e73553eb839c9285bd50ec5298781585d134cd5d950b356"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
@@ -2928,6 +2933,26 @@
       "path": "packages/wallet-auth/native/original-ide-public-originals.h",
       "bytes": 835,
       "sha256": "6296a5ca5ee42251b8c712579baf658a06a8966dd9916da6deb45363f3d7a109"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-identity-source.h",
+      "bytes": 816,
+      "sha256": "c1951e807204797fb0a52e62f6ecdd962340d0c52f232881b50c9dea113e2a24"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-identity-source.mm",
+      "bytes": 11127,
+      "sha256": "bdc4b2a2c5b19da5c37b149ee99a4a9841b28e82f500412435da7da0e4e3d0a4"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.h",
+      "bytes": 1170,
+      "sha256": "bc59ce3c3c2648d86e9c1706590f7799bd808de1ded82fd79416ffbce8f80324"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.mm",
+      "bytes": 17777,
+      "sha256": "246155ef4b7deae5d2a763c20d92d78baacdd1b2edac25f5efd9c68fe73cd8fd"
     },
     {
       "path": "packages/wallet-auth/native/original-source-provisioning-fence.h",
@@ -14835,22 +14860,89 @@
       "parentSha256": "5eb5b459012898325e60341c933efd2cce0e935921b5a197ca9652100aa89f84",
       "bytes": 21592,
       "sha256": "5628b5d89c8c1b242c8e3817ed1b707acad9a76cee429c01aa04d19568db368e"
+    },
+    {
+      "handoff": "SDK330_R114_NATIVE_COMPONENT_HANDOFF.json",
+      "handoffSha256": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "parentSha256": "2aec4a6094d5e4652df458bc302ddacb1222c7bf7aad4ce25217992bf20b1db0",
+      "bytes": 80504,
+      "sha256": "cca146d0381e57d7cb54cc7e146e033c4ed5d02a1106a11754dee5ca89c43561"
+    },
+    {
+      "handoff": "SDK330_R114_NATIVE_COMPONENT_HANDOFF.json",
+      "handoffSha256": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+      "path": "apps/wallet-desktop/native/original-ide-wallet-identity-source-owner.inc.mm",
+      "parentSha256": null,
+      "bytes": 14449,
+      "sha256": "d2e845aa51cec1fa268efc9787b0d6e67783465d968cf26b3ac8f7345a8496f8"
+    },
+    {
+      "handoff": "SDK330_R114_NATIVE_COMPONENT_HANDOFF.json",
+      "handoffSha256": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+      "parentSha256": "10872a51e7cf11250026f512f5a6f5094acaa737dac77ffe42e27df213a0dfeb",
+      "bytes": 4897,
+      "sha256": "b9b739e08c32545f992b65a9cf0b60c713df3caca93260c187076ff80d2351f9"
+    },
+    {
+      "handoff": "SDK330_R114_NATIVE_COMPONENT_HANDOFF.json",
+      "handoffSha256": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+      "parentSha256": "11e9bb4291ec12df62fd280507f1cb323638cfdab522004a212213c3e326327e",
+      "bytes": 40187,
+      "sha256": "7e9654fdf85b91795e73553eb839c9285bd50ec5298781585d134cd5d950b356"
+    },
+    {
+      "handoff": "SDK330_R114_NATIVE_COMPONENT_HANDOFF.json",
+      "handoffSha256": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+      "path": "packages/wallet-auth/native/original-ide-wallet-identity-source.h",
+      "parentSha256": null,
+      "bytes": 816,
+      "sha256": "c1951e807204797fb0a52e62f6ecdd962340d0c52f232881b50c9dea113e2a24"
+    },
+    {
+      "handoff": "SDK330_R114_NATIVE_COMPONENT_HANDOFF.json",
+      "handoffSha256": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+      "path": "packages/wallet-auth/native/original-ide-wallet-identity-source.mm",
+      "parentSha256": null,
+      "bytes": 11127,
+      "sha256": "bdc4b2a2c5b19da5c37b149ee99a4a9841b28e82f500412435da7da0e4e3d0a4"
+    },
+    {
+      "handoff": "SDK330_R114_NATIVE_COMPONENT_HANDOFF.json",
+      "handoffSha256": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+      "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.h",
+      "parentSha256": null,
+      "bytes": 1170,
+      "sha256": "bc59ce3c3c2648d86e9c1706590f7799bd808de1ded82fd79416ffbce8f80324"
+    },
+    {
+      "handoff": "SDK330_R114_NATIVE_COMPONENT_HANDOFF.json",
+      "handoffSha256": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+      "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.mm",
+      "parentSha256": null,
+      "bytes": 17777,
+      "sha256": "246155ef4b7deae5d2a763c20d92d78baacdd1b2edac25f5efd9c68fe73cd8fd"
     }
   ],
-  "predecessorManifestSha256": "c92930dcdb05e3813e918ea28d991de07e8dca5a6eff60f1390cd919359cab7c",
+  "predecessorManifestSha256": "5d2b6a0854e8234221f6c3deb32c6ed8e33d5b84b6b1a82e5b2e50aff8f62f4b",
   "supplierPins": {
-    "sdkReadback": "5ab1ec03cddf76cd88f4703c85d40a2e8d5353d9c3851b7b888322201abcc345",
-    "nativeIntake": "cffbdc5ae235114773fbde84f17da8e0debdcf2b9e8a69857b526c5a3cf6d2f3",
-    "runtimeManifest": "d31582e4902e8a5b830ccd2d35fded5503d4cd7b0e4ded0b4a8b8993643ebf43",
+    "sdkReadback": "1fdfdb8aea9702728bafdb60de00ca93054e6e920fbbd1ada00b73234a6c5693",
+    "nativeIntake": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+    "runtimeManifest": "3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693",
     "appHolder": "85e5696f3f08ad3bc277ec8005e58b1a9c8be9694785ac24031f941ee1743b98",
     "r111NativeComponent": "a302d188748ab5b66e2156a282ab62a5446d7418dc23771de78cae270073bf25",
-    "r111NativeInventory": "ada9d2a5d0c3b13d9c59209a711f9da659303e6f77b421b72171eafa4c37521a"
+    "r111NativeInventory": "ada9d2a5d0c3b13d9c59209a711f9da659303e6f77b421b72171eafa4c37521a",
+    "r114NativeComponent": "ffb165ebf4ad87d37e8e5237cae0e711e46f17b51d09d66a58a523d169fdb0db",
+    "r114NativeInventory": "98d76e9f3e475b5933c729f2771c53dcd88504a6fc80140e98174b09e407eec5",
+    "normalBuildHookSuccessor": "a6afeaae736b702876042a6697fa2b2a01b5ffd50bbdc0ffa7c8650bc081f080"
   },
   "nativeBuildInputs": [
     {
       "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
-      "bytes": 80274,
-      "sha256": "2aec4a6094d5e4652df458bc302ddacb1222c7bf7aad4ce25217992bf20b1db0"
+      "bytes": 80504,
+      "sha256": "cca146d0381e57d7cb54cc7e146e033c4ed5d02a1106a11754dee5ca89c43561"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-auth-identity-binding.inc.mm",
@@ -14881,6 +14973,11 @@
       "path": "apps/wallet-desktop/native/original-ide-private-client.inc.mm",
       "bytes": 5405,
       "sha256": "590d22d8585ab9ed609ca47a1f6c4d6ecda0f2ef6fab5e5971c3ed7b38193075"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-wallet-identity-source-owner.inc.mm",
+      "bytes": 14449,
+      "sha256": "d2e845aa51cec1fa268efc9787b0d6e67783465d968cf26b3ac8f7345a8496f8"
     },
     {
       "path": "apps/wallet-desktop/native/original-private-reference-carrier.h",
@@ -14934,13 +15031,13 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 4744,
-      "sha256": "10872a51e7cf11250026f512f5a6f5094acaa737dac77ffe42e27df213a0dfeb"
+      "bytes": 4897,
+      "sha256": "b9b739e08c32545f992b65a9cf0b60c713df3caca93260c187076ff80d2351f9"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 37991,
-      "sha256": "11e9bb4291ec12df62fd280507f1cb323638cfdab522004a212213c3e326327e"
+      "bytes": 40187,
+      "sha256": "7e9654fdf85b91795e73553eb839c9285bd50ec5298781585d134cd5d950b356"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
@@ -15083,6 +15180,26 @@
       "sha256": "6296a5ca5ee42251b8c712579baf658a06a8966dd9916da6deb45363f3d7a109"
     },
     {
+      "path": "packages/wallet-auth/native/original-ide-wallet-identity-source.h",
+      "bytes": 816,
+      "sha256": "c1951e807204797fb0a52e62f6ecdd962340d0c52f232881b50c9dea113e2a24"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-identity-source.mm",
+      "bytes": 11127,
+      "sha256": "bdc4b2a2c5b19da5c37b149ee99a4a9841b28e82f500412435da7da0e4e3d0a4"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.h",
+      "bytes": 1170,
+      "sha256": "bc59ce3c3c2648d86e9c1706590f7799bd808de1ded82fd79416ffbce8f80324"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.mm",
+      "bytes": 17777,
+      "sha256": "246155ef4b7deae5d2a763c20d92d78baacdd1b2edac25f5efd9c68fe73cd8fd"
+    },
+    {
       "path": "packages/wallet-auth/native/original-source-provisioning-fence.h",
       "bytes": 2584,
       "sha256": "9c09eca2d4dcda6373d6ce5fe43ea8b42e1ad922050146bed58978aabbda3a36"
@@ -15101,13 +15218,13 @@
   "nativeComponent": {
     "module": {
       "path": "apps/wallet-desktop/native/original-auth-identity.node",
-      "bytes": 1634360,
-      "sha256": "07805e7403b2501737ba464d126446b78081b6e961df5b2fc29c7026661b250a"
+      "bytes": 1771752,
+      "sha256": "d03c19b153003e57f1c02c7d72c2bbdf797981685bbb8cba510c197282b5f214"
     },
     "receipt": {
       "path": "apps/wallet-desktop/native/original-auth-identity-build.json",
-      "bytes": 22620,
-      "sha256": "9a599de07d1807c6fa6e7b0f25bfd70fc722ab98f2466b9438be6b8e81f20edb"
+      "bytes": 24052,
+      "sha256": "e6636ed847ef5ab434f2fa343cebd612affd2485de4a3b060e93fceb4fdf5ba7"
     }
   },
   "runtimeClosure": {
@@ -15115,12 +15232,19 @@
     "manifest": {
       "path": "native/original-ide-auth-runtime-manifest.json",
       "bytes": 64574,
-      "sha256": "d31582e4902e8a5b830ccd2d35fded5503d4cd7b0e4ded0b4a8b8993643ebf43"
+      "sha256": "3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693"
     },
     "files": 454,
     "edges": 123,
     "nativeQualified": false,
     "registrationAccepted": false
   },
-  "nativeSourceCommit": "8dce882963017ffb3386df763e93f1f53f517bad"
+  "nativeSourceCommit": "4de6b5c8f4848b62c486df9dbb9b61d672df10e7",
+  "normalBuildHookSuccessor": {
+    "sourceCommit": "87282947210038a9947eae9e5f5b67362e0489ab",
+    "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
+    "bytes": 5353,
+    "sha256": "76ca99bd96b94ad062131956842c2dea01682fd13e43ad7448dd681961c4bebd",
+    "componentRecompiledForHook": false
+  }
 }
