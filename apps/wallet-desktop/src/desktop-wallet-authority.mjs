@@ -12,6 +12,7 @@ import {preparePQProductSessionApproval,verifyPQProductSessionApproval} from '@y
 import {pqPublicBindingToRegistrationKeys} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {createPQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {retainPQPolicyResource} from './wallet-pq-policy-owner.mjs';
+import {assertSessionReturnTransport} from './wallet-session-return-boundary.mjs';
 
 export const YNX_EIP155_CHAIN = "eip155:6423";
 export const YNX_EVM_CHAIN_ID = YNX_TESTNET_CHAIN_QUANTITY;
@@ -370,6 +371,7 @@ export class DesktopWalletAuthority {
         if(request.origin !== pending.origin) throw providerError(4100,"PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this connected app");
         const result = await this.approveCanonicalAuthorization(request,this.clock().toISOString(),pending.review.account,permission,pending.id);
         guard.assert();
+        assertSessionReturnTransport(result.callbackUrl);
         if(result.retained)await this.beginCanonicalAuthorizationDelivery(request,pending.review.account);
         guard.assert();
         return success({version:2,returnUrl:result.callbackUrl});

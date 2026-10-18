@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { WalletAuthError, createProductSessionReturnURL, parseProductSessionRequest, parseProductSessionWalletURL } from "@ynx-chain/wallet-auth";
 import { PRODUCT_SESSION_REGISTRY, WALLET_AUTH_PROTOCOL_SOURCE } from "./wallet-auth-contract.mjs";
+import {assertSessionReturnTransport} from './wallet-session-return-boundary.mjs';
 
 export const CALLBACK_PROTOCOL_SOURCE = Object.freeze({
   protocolCommit: WALLET_AUTH_PROTOCOL_SOURCE.sourceCommit,
@@ -106,6 +107,7 @@ export class DesktopAuthorizationController {
       }
       stage = "CANONICAL_CALLBACK_LAUNCH_FAILED";
       assertCurrent();
+      assertSessionReturnTransport(this.prepared.callbackUrl);
       if(action==='approve'&&this.prepared.requiresRecheck){deliverySelected=true;await this.authority.beginCanonicalAuthorizationDelivery(review.request,review.account);}
       assertCurrent();
       const originalRequestId=this.prepared.originalRequestId??review.id;

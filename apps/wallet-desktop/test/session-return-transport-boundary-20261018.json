@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "scope": "Original Desktop Controller and Provider return transport boundaries; not publisher or deployment acceptance",
+  "baseCommit": "d428368950b59caac2f5c4cc3680cfa2737410fa",
+  "sdkFrozenCommit": "b164a68376ad784bfd5f83513611f6a4ee008070",
+  "runtime": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r24-normal-install-qa-20261018/installed-r24/YNX Wallet.app/Contents/MacOS/YNX Wallet",
+  "runtimeMode": "ELECTRON_RUN_AS_NODE=1 --max-old-space-size=192 --test --test-isolation=none --test-concurrency=1",
+  "red": {"test": "normal PQ callback refuses oversized inline fallback before delivery and retains the exact signed original", "exitCode": 1, "failure": "Missing expected rejection", "tests": 1, "failed": 1},
+  "green": [
+    {"files": ["test/password-wallet-pq.test.mjs", "test/callback-policy.test.mjs"], "exitCode": 0, "tests": 66, "failed": 0, "durationMs": 21664.714458},
+    {"files": ["test/wallet-session-return-boundary.test.mjs", "test/native-pay-chain.test.mjs"], "exitCode": 0, "tests": 20, "failed": 0, "durationMs": 455.88625}
+  ],
+  "invariants": ["Both normal return channels reject inline URLs above 4096 UTF-8 bytes before the original delivery marker", "SDK signed originals stay in the original private journal; no new signature, publication or external launch on rejected return", "Explicit revalidation uses the original signed proof and request ID", "Normal lawful legacy bounded return and lost-delivery UNKNOWN no-repeat remain tested", "Actual renderer does not recommend repeated unlocking to fix a missing reference-return service", "No App.tsx or startup assets changed"],
+  "remaining": ["Qualified original publisher/code bridge and frozen R3c consumer integration", "Original A whole-App compatible build, install and upgrade acceptance", "Actual external input and product session receipt", "MONSTER not executed"]
+}

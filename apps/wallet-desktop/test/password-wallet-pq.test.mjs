@@ -265,6 +265,30 @@ function sessionQA(f,{legacy=false}={}){
  const options={vault:f.vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:new FileTransactionIntentStore({filePath:path.join(f.directory,'session-journal.json')})}},clock:()=>at,pqNetworkId:CHAIN,pqSessionSource:async input=>{counts.acquire++;assert.equal(input.owner,f.account);assert.equal(input.operation,'approval');return resource;},pqSessionRecognized:value=>value===resource};
  return {at,view,resource,request,counts,options};
 }
+test('normal PQ callback refuses oversized inline fallback before delivery and retains the exact signed original',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);let signs=0,launches=0;
+ const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};
+ const controller=new DesktopAuthorizationController({authority,clock:()=>s.at,openExternal:async()=>{launches++;}});
+ await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));
+ await assert.rejects(f.lifecycle.run(()=>controller.act('approve')),e=>e.code==='SESSION_REFERENCE_RETURN_REQUIRED');
+ const store=s.options.transactionSender.submissions.intentStore,original=JSON.parse(await fs.readFile(store.filePath,'utf8')).sessionOriginals[0];
+ assert.equal(original.approval.version,'3');assert.equal(original.deliveryAttempted,false);assert.equal(original.cleanupComplete,true);
+ assert.equal(signs,1);assert.equal(launches,0);assert.ok(controller.prepared);
+ const fresh=sessionQA(f);controller.authority=new DesktopWalletAuthority(fresh.options);
+ await assert.rejects(f.lifecycle.run(()=>controller.act('approve')),e=>e.code==='SESSION_REFERENCE_RETURN_REQUIRED');
+ assert.equal(signs,1);assert.equal(launches,0);
+ const retained=JSON.parse(await fs.readFile(store.filePath,'utf8')).sessionOriginals[0];assert.equal(retained.approval.walletProof,original.approval.walletProof);assert.equal(retained.deliveryAttempted,false);
+});
+test('normal PQ provider return also refuses oversized inline fallback before its original delivery marker',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);
+ await f.lifecycle.run(()=>authority.approveOrigin(s.request.origin,f.account));
+ const pending=await f.lifecycle.run(()=>authority.request({origin:s.request.origin,method:'ynx_requestProductSessionV2',params:[encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at)]}));
+ await assert.rejects(f.lifecycle.run(()=>authority.approve(pending.request.id)),e=>e.code==='SESSION_REFERENCE_RETURN_REQUIRED');
+ const original=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals[0];
+ assert.equal(original.approval.version,'3');assert.equal(original.deliveryAttempted,false);assert.equal(original.cleanupComplete,true);
+});
 test('normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing',async t=>{
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);
  let classic=0;f.vault.withSecret=()=>{classic++;assert.fail('active PQ cannot use classic approval');};
@@ -325,7 +349,7 @@ test('original Controller retries only fresh-policy readback of its original sig
  const controller=new DesktopAuthorizationController({authority:new DesktopWalletAuthority(s.options),clock:()=>s.at,requestId:()=> 'QA-original-controller-id',openExternal:async()=>{launches++;}});
  await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));await assert.rejects(f.lifecycle.run(()=>controller.act('approve')));assert.equal(controller.prepared,null);assert.equal(launches,0);
  const original=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals[0];assert.equal(original.requestId,'QA-original-controller-id');
- const fresh=sessionQA(f);controller.authority=new DesktopWalletAuthority(fresh.options);const result=await f.lifecycle.run(()=>controller.act('approve'));assert.equal(result.callbackEmitted,true);assert.equal(result.callbackReceivedProved,false);assert.equal(signs,1);assert.equal(launches,1);
+ const fresh=sessionQA(f);controller.authority=new DesktopWalletAuthority(fresh.options);await assert.rejects(f.lifecycle.run(()=>controller.act('approve')),e=>e.code==='SESSION_REFERENCE_RETURN_REQUIRED');assert.equal(controller.prepared.originalRequestId,original.requestId);assert.equal(signs,1);assert.equal(launches,0);
 });
 test('signed session save lost ACK reconciles exact original on cold read without another save or signature',async t=>{
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),store=s.options.transactionSender.submissions.intentStore,replace=store.filePolicy.replace.bind(store.filePolicy),save=store.saveSessionOriginal.bind(store);let lost=false,saves=0,signs=0;const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};store.saveSessionOriginal=(...args)=>{saves++;return save(...args);};
@@ -340,7 +364,7 @@ test('session first source error and separate falsy cleanup error both survive w
  const [original]=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals;assert.equal(original.firstCause.code,'QA_FIRST_SOURCE');assert.deepEqual(original.cleanupCause,{kind:'boolean',value:false,code:null});assert.equal(original.cleanupComplete,false);assert.ok(original.approval.walletProof);
 });
 test('unknown callback delivery never becomes an automatic second launch or replacement signature',async t=>{
- const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f);let signs=0,launches=0;const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};
+ const f=await fixture(t),s=sessionQA(f,{legacy:true});let signs=0,launches=0;const keys=f.vault.withSecret.bind(f.vault);f.vault.withSecret=(...args)=>{signs++;return keys(...args);};
  const controller=new DesktopAuthorizationController({authority:new DesktopWalletAuthority(s.options),clock:()=>s.at,openExternal:async()=>{launches++;throw Error('QA_EXTERNAL_UNKNOWN');}});await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));await assert.rejects(f.lifecycle.run(()=>controller.act('approve')));
  const [original]=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals;assert.equal(original.deliveryAttempted,true);
  await assert.rejects(f.lifecycle.run(()=>controller.act('approve')),error=>error.data?.code==='SESSION_CALLBACK_DELIVERY_UNKNOWN');assert.equal(signs,1);assert.equal(launches,1);
