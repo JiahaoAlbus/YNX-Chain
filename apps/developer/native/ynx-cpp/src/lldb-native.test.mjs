@@ -26,39 +26,64 @@ const { createLocalIpcSession } = appRuntime
 
 // Real DAP transport to the installed Apple LLDB under the product sandbox.
 // This exercises the native debugger, not an App/UI acceptance substitute.
-function connect(policy, cwd, env) {
-  const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, '/Library/Developer/CommandLineTools/usr/bin/lldb-dap'], {
-    cwd, env,
-  });
+async function connect(policy, cwd, env, retainedTransport = false) {
+  let child, bridge, forward;
+  const trace = { requests: [], responses: [] };
+  if (retainedTransport) {
+    const { NodeDebugAdapterCreator } = runtimeRequire('@theia/plugin-ext/lib/plugin/node/debug/plugin-node-debug-adapter-creator');
+    const { PluginDebugAdapterSession } = runtimeRequire('@theia/plugin-ext/lib/plugin/debug/plugin-debug-adapter-session');
+    const { DebugAdapterExecutable } = runtimeRequire('@theia/plugin-ext/lib/plugin/types-impl');
+    const session = { id: randomUUID(), name: 'Actual LLDB transport control', type: 'lldb-dap', configuration: { type: 'lldb-dap', request: 'launch' } };
+    const executable = new DebugAdapterExecutable('/usr/bin/sandbox-exec', ['-p', policy, '/Library/Developer/CommandLineTools/usr/bin/lldb-dap'], { cwd, env });
+    const adapter = await new NodeDebugAdapterCreator().createDebugAdapter(session, session.configuration, undefined, {
+      createDebugAdapterDescriptor: async () => executable,
+    });
+    child = adapter.process;
+    bridge = new PluginDebugAdapterSession(adapter, {
+      onWillReceiveMessage: message => { if (message.type === 'request') trace.requests.push(message.command); },
+      onDidSendMessage: message => { if (message.type === 'response') trace.responses.push(message.command); },
+    }, session);
+  } else {
+    child = spawn('/usr/bin/sandbox-exec', ['-p', policy, '/Library/Developer/CommandLineTools/usr/bin/lldb-dap'], { cwd, env });
+  }
   let sequence = 0, buffer = Buffer.alloc(0), stderr = '', output = '';
   const pending = new Map(), events = [], waiters = [];
   const closed = new Promise(resolve => child.once('close', (code, signal) => {
     for (const request of pending.values()) request.reject(Error(`LLDB closed ${code}/${signal}: ${stderr}`));
     pending.clear(); resolve({ code, signal });
   }));
-  child.stderr.on('data', bytes => stderr += bytes);
-  child.stdout.on('data', bytes => {
+  const receive = message => {
+    if (message.type === 'response') { pending.get(message.request_seq)?.resolve(message); pending.delete(message.request_seq); }
+    if (message.event === 'output') output += message.body.output;
+    if (message.type === 'event') {
+      const index = waiters.findIndex(item => item.name === message.event);
+      if (index >= 0) waiters.splice(index, 1)[0].resolve(message); else events.push(message);
+    }
+  };
+  child.stderr?.on('data', bytes => stderr += bytes);
+  if (bridge) await bridge.start({
+    onMessage: callback => { forward = callback; },
+    onClose() {}, close() {}, send: raw => receive(JSON.parse(raw)),
+  });
+  else child.stdout.on('data', bytes => {
     buffer = Buffer.concat([buffer, bytes]);
     for (;;) {
       const end = buffer.indexOf('\r\n\r\n'); if (end < 0) return;
       const length = Number(/Content-Length: (\d+)/.exec(buffer.subarray(0, end).toString())[1]);
       if (buffer.length < end + 4 + length) return;
       const message = JSON.parse(buffer.subarray(end + 4, end + 4 + length)); buffer = buffer.subarray(end + 4 + length);
-      if (message.type === 'response') { pending.get(message.request_seq)?.resolve(message); pending.delete(message.request_seq); }
-      if (message.event === 'output') output += message.body.output;
-      if (message.type === 'event') {
-        const index = waiters.findIndex(item => item.name === message.event);
-        if (index >= 0) waiters.splice(index, 1)[0].resolve(message); else events.push(message);
-      }
+      receive(message);
     }
   });
   const timeout = (promise, label) => Promise.race([promise, new Promise((_, reject) => { const timer = setTimeout(() => reject(Error('LLDB DAP timed out: ' + label + '; output=' + output + '; stderr=' + stderr)), 12000); timer.unref(); promise.finally(() => clearTimeout(timer)).catch(() => {}); })]);
   return {
-    child, closed, output: () => output,
+    child, closed, trace, output: () => output,
     request(command, args = {}) {
       const seq = ++sequence, bytes = Buffer.from(JSON.stringify({ seq, type: 'request', command, arguments: args }));
       const promise = new Promise((resolve, reject) => pending.set(seq, { resolve, reject }));
-      child.stdin.write(`Content-Length: ${bytes.length}\r\n\r\n`); child.stdin.write(bytes); return timeout(promise, command);
+      if (bridge) forward(bytes.toString('utf8'));
+      else { child.stdin.write(`Content-Length: ${bytes.length}\r\n\r\n`); child.stdin.write(bytes); }
+      return timeout(promise, command);
     },
     event(name) {
       const index = events.findIndex(item => item.event === name); if (index >= 0) return Promise.resolve(events.splice(index, 1)[0]);
@@ -110,22 +135,22 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
   try {
     // Negative control: the previous generated terminal default fails before
     // configurationDone; its failure cannot be counted as debugger startup.
-    const old = connect(policy, context.workspace, env); sessions.push(old);
+    const old = await connect(policy, context.workspace, env); sessions.push(old);
     await success(old, 'initialize', { adapterID: 'lldb-dap', clientID: 'theia', pathFormat: 'path', linesStartAt1: true, columnsStartAt1: true, supportsRunInTerminalRequest: true });
     const failed = await old.request('launch', { ...config, console: 'integratedTerminal' });
     assert.equal(failed.success, false); assert.match(failed.body.error.format, /unique file name for runInTerminal/);
     await old.request('disconnect', { terminateDebuggee: true }); await old.closed;
-    for (const mode of ['finish', 'stop', 'retry', 'pty-finish', 'pty-stop', 'pty-retry']) {
+    for (const mode of ['finish', 'stop', 'retry', 'pty-finish', 'pty-stop', 'pty-retry', 'retained-pty-finish', 'retained-pty-stop', 'retained-pty-retry']) {
       console.log(JSON.stringify({ nativeDapMode: mode, workspace: context.workspace }));
       let terminalOutput = '', holder;
-      if (mode.startsWith('pty')) {
+      if (mode.includes('pty')) {
         const pty = runtimeRequire('node-pty');
         holder = pty.spawn('/usr/bin/sandbox-exec', ['-p', policy, '/usr/bin/tail', '-f', '/dev/null'], { cwd: context.workspace, env, cols: 80, rows: 24 });
         holders.push(holder); holder.onData(data => { terminalOutput += data; });
         assert.match(holder.ptsName, /^\/dev\/ttys[0-9]+$/);
         holder.write('7\n');
       }
-      const session = connect(policy, context.workspace, env); sessions.push(session);
+      const session = await connect(policy, context.workspace, env, mode.startsWith('retained-')); sessions.push(session);
       await success(session, 'initialize', { adapterID: 'lldb-dap', clientID: 'theia', pathFormat: 'path', linesStartAt1: true, columnsStartAt1: true, supportsRunInTerminalRequest: true });
       await success(session, 'launch', holder ? terminalLaunchConfiguration({ ...config, args: ['input'] }, holder.ptsName) : config); await session.event('initialized');
       const breakpoints = await success(session, 'setBreakpoints', { source: { path: source }, breakpoints: [{ line: 4 }] }); assert.equal(breakpoints.breakpoints.length, 1);
@@ -140,6 +165,12 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
         else assert.match(session.output(), /Hello World 42/);
       }
       await success(session, 'disconnect', { terminateDebuggee: true }); const closed = await session.closed; assert.equal(closed.code, 0);
+      if (mode.startsWith('retained-')) {
+        for (const command of ['initialize', 'launch', 'setBreakpoints', 'configurationDone', 'disconnect']) {
+          assert.equal(session.trace.requests.filter(value => value === command).length, 1);
+          assert.equal(session.trace.responses.filter(value => value === command).length, 1);
+        }
+      }
     }
     console.log(JSON.stringify({ root, actualNode: node, adapter: '/Library/Developer/CommandLineTools/usr/bin/lldb-dap', checks: ['previous integrated terminal rejected', 'real source breakpoint', 'value 41', 'step to 42', 'stdout and exit0', 'stop own debuggee', 'retry', 'product PTY launchCommands finish/stop/retry', 'PTY stdin 7 and output'], limitations: ['native App UI remains a separate required check'] }));
     assert.equal(JSON.parse(await readFile(generated.path)).configurations[0].console, 'internalConsole');
