@@ -358,6 +358,7 @@ func closePQCustody(custody io.Closer) error {
 
 func main() {
 	root := commands.RootCmd
+	root.AddCommand(newInitializeApplicationCommand())
 	root.AddCommand(commands.GenValidatorCmd, commands.InitFilesCmd, commands.LightCmd, commands.ReplayCmd, commands.ReplayConsoleCmd, commands.ResetAllCmd, commands.ResetPrivValidatorCmd, commands.ResetStateCmd, commands.ShowValidatorCmd, commands.TestnetFilesCmd, commands.ShowNodeIDCmd, commands.ReIndexEventCmd, commands.GenNodeKeyCmd, commands.VersionCmd, commands.RollbackStateCmd, commands.CompactGoLevelDBCmd, commands.InspectCmd, debug.DebugCmd, cli.NewCompletionCmd(root, true))
 	start := commands.NewRunNodeCmd(nm.DefaultNewNode)
 	legacyRun := start.RunE
