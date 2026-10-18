@@ -32,13 +32,31 @@ ENV = dict(GOMAXPROCS="1", GOGC="100", GOMEMLIMIT="off")
 BINARIES = ("ynx-abci", "cometbft", "ynx-consensus-perf-fixture", "ynx-consensus-perf-client")
 
 
-def recipe():
-    return dict(schema=1, profile=PROFILE, environment=ENV, execute=False,
+def recipe(transport="socket"):
+    if transport not in ("socket", "grpc"):
+        raise RuntimeError("only existing socket/grpc ABCI transports allowed")
+    profile = dict(PROFILE, name=PROFILE["name"] + ("-grpc" if transport == "grpc" else ""))
+    return dict(schema=1, profile=profile, abciTransport=transport, environment=ENV, execute=False,
                 requiresSeparateRootGrant=True, nodesStarted=False,
                 platform="Linux native /proc; not macOS pressure1",
                 comparison="Independent private CI case; no Darwin before/after multiplier",
                 resourceCaps=native.CAPS,
                 input="workflow_dispatch.run_linux_supply (default false)")
+
+
+def server_commands(build, node, migration, transport):
+    recipe(transport)  # Reject unknown transports before any process is spawned.
+    return ([str(build / "ynx-abci"), "-listen", node["abciListen"], "-transport", transport,
+             "-migration-state", migration, "-state", node["abciStatePath"], "-state-layout", "block-journal", "-phase-timing"],
+            [str(build / "cometbft"), "start", "--home", node["home"], "--abci", transport])
+
+
+def partial_measurement(output):
+    if not output.is_file():
+        return None
+    row = json.loads(native.bounded(output, 16 << 20))
+    return dict(qualified=False, resultSHA256=native.digest(output), summary=row.get("summary"),
+                supply=row.get("readySenders", {}).get("supply"), setupErrors=row.get("setupErrors"))
 
 
 def inside(value, root):
@@ -174,7 +192,8 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt):
+def run(source, build, case, receipt, transport="socket"):
+    selected = recipe(transport)
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
     source, build, case, receipt = map(lambda p: p.absolute(), (source, build, case, receipt))
@@ -185,7 +204,7 @@ def run(source, build, case, receipt):
     if any(p.resolve() != p for p in (source, build, case.parent, receipt.parent)):
         raise RuntimeError("symlinked runner roots refused")
     case.mkdir(mode=0o700)
-    result = dict(recipe(), execute=True, source=str(source), build=str(build), case=str(case),
+    result = dict(selected, execute=True, source=str(source), build=str(build), case=str(case),
                   host=dict(uname=list(platform.uname()), cpuCount=os.cpu_count()),
                   samples=[], children=[], timeline=[], readinessWaitErrors=0,
                   firstCause=None, cleanupComplete=False)
@@ -278,9 +297,11 @@ def run(source, build, case, receipt):
         manifest_path = network / "network-manifest.json"
         manifest = validate_manifest(json.loads(native.bounded(manifest_path, 1 << 20)), network)
         for i, node in enumerate(manifest["nodes"]):
-            spawn("abci-"+str(i), [str(build / "ynx-abci"), "-listen", node["abciListen"], "-migration-state", manifest["migrationPath"], "-state", node["abciStatePath"], "-state-layout", "block-journal", "-phase-timing"], True)
+            app, _ = server_commands(build, node, manifest["migrationPath"], transport)
+            spawn("abci-"+str(i), app, True)
         for i, node in enumerate(manifest["nodes"]):
-            spawn("comet-"+str(i), [str(build / "cometbft"), "start", "--home", node["home"]], True)
+            _, comet = server_commands(build, node, manifest["migrationPath"], transport)
+            spawn("comet-"+str(i), comet, True)
         result["nodesStarted"] = True
         mark("nodes_spawned")
         opener = build_opener(ProxyHandler({}), NoRedirect())
@@ -306,6 +327,10 @@ def run(source, build, case, receipt):
         result["resultSHA256"] = native.digest(output)
     except Exception as error:
         result["firstCause"] = str(error)
+        try:
+            result["partialMeasurement"] = partial_measurement(case / "network/transactions-result.json")
+        except Exception as diagnostic_error:
+            result["partialReadError"] = str(diagnostic_error)
     finally:
         mark("cleanup_start")
         cleanup = time.monotonic()
@@ -356,12 +381,14 @@ def run(source, build, case, receipt):
         result["measurementLimits"] = "Sampled RSS, not a hard cgroup ceiling; non-atomic proc scans. Build occurs before the bounded runtime window in the existing CI job. Finite 1024 business transactions, not sustained TPS. Terminal sink disabled in this finite profile; zero is not a missing measurement. No Darwin matched comparison."
         with receipt.open("x") as handle:
             json.dump(result, handle, indent=2); handle.write("\n"); handle.flush(); os.fsync(handle.fileno())
+        print(json.dumps({k: result.get(k) for k in ("firstCause", "nodesStarted", "cleanupComplete", "elapsedMs", "partialMeasurement")}), flush=True)
     return 1 if result["firstCause"] else 0
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--transport", choices=("socket", "grpc"), default="socket")
     parser.add_argument("--check-runner", action="store_true")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--build", type=Path)
@@ -373,8 +400,8 @@ if __name__ == "__main__":
             parser.error("check-runner requires build/new case and excludes execute")
         print(json.dumps(preflight(args.build, args.case), indent=2))
     elif not args.execute:
-        print(json.dumps(recipe(), indent=2))
+        print(json.dumps(recipe(args.transport), indent=2))
     else:
         if not all((args.source, args.build, args.case, args.receipt)):
             parser.error("execute requires exact source/build/new case/new receipt")
-        sys.exit(run(args.source, args.build, args.case, args.receipt))
+        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport))

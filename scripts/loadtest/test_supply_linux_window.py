@@ -139,6 +139,37 @@ class SupplySourceTests(unittest.TestCase):
         self.assertIn("github.event_name == 'workflow_dispatch' && inputs.run_linux_supply", text[step:step+250])
         self.assertIn("test_supply_linux_window.py -v", text)
 
+    def test_transport_pair_is_explicit_and_caps_identical(self):
+        original, grpc = supply.recipe(), supply.recipe("grpc")
+        self.assertEqual(original["abciTransport"], "socket")
+        for key in original["profile"]:
+            if key != "name":
+                self.assertEqual(original["profile"][key], grpc["profile"][key])
+        node = manifest(Path("/private"))["nodes"][0]
+        app, comet = supply.server_commands(Path("/build"), node, "/private/migration.json", "grpc")
+        self.assertEqual(app[app.index("-transport")+1], "grpc")
+        self.assertEqual(comet[comet.index("--abci")+1], "grpc")
+        self.assertIn("-phase-timing", app)
+        self.assertIn("block-journal", app)
+        with self.assertRaises(RuntimeError):
+            supply.server_commands(Path("/build"), node, "/private/migration.json", "local-unverified")
+
+    def test_actual_deadline_shape_retained_but_cannot_qualify(self):
+        row = report()
+        row["summary"].update(offered=990, submitted=819, finalSubmitted=734,
+                              submissionUnknown=4, timedOut=81, notSubmitted=205)
+        row["setupErrors"] = [dict(stage="run", message="context deadline exceeded")]
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "failed.json"
+            output.write_text(json.dumps(row))
+            partial = supply.partial_measurement(output)
+            self.assertIs(partial["qualified"], False)
+            self.assertEqual(partial["summary"]["submissionUnknown"], 4)
+            self.assertEqual(partial["summary"]["timedOut"], 81)
+            self.assertEqual(partial["supply"], row["readySenders"]["supply"])
+            with self.assertRaises(RuntimeError):
+                supply.validate_report(row)
+
 
 if __name__ == "__main__":
     unittest.main()

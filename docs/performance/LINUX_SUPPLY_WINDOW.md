@@ -78,3 +78,51 @@ effective inclusion and qualified final rates plus P50/P95/P99 inclusion and
 confirmation latency. A finite1024 transaction case **does not prove sustained
 1000 TPS or ten-minute capacity**. Actual Linux execution is still unverified
 until Root grants and this case executes.
+
+## First actual socket case and next controlled difference
+
+Run39132052058 at `cd6b075d35e1beabc57656c808a099e4205ed54c` actually started
+the private four nodes on Linux4CPU, then failed at the unchanged10s client
+deadline. It offered990, submitted819, accepted815 and qualified734 final
+business transactions. Four submissions remain UNKNOWN,81 observations timed
+out and205 were not submitted; no CheckTx business rejection or failed execution
+was observed. The workload is **not qualified**. Runtime12.137s, cleanup complete;
+peak RSS500125696bytes,61threads,16183702private bytes. Preserve all failed raw
+results and do not retry UNKNOWN transactions.
+
+Actual cumulative Supply durations: completion wait6942.104ms, pacing2705.992ms,
+successor signing57.386ms, encoding110.027ms, offer decode8.133ms,
+journal append107.572ms, dispatch0.119ms. These scopes do not define independent
+additive consensus latency. Client RPC CheckTx response P50/P95/P99 is
+41.871/106.843/151.864ms, while actual node CheckTx handler means are
+0.133–0.135ms. Each node committed12blocks: mean Commit2.576–2.798ms;
+cumulative validation19.140–21.591ms, delta encoding0.401–0.532ms,
+write0.497–0.627ms and file Sync7.612–9.925ms per node.
+
+For the734 completed transactions, inclusion P50/P95/P99 is
+1082.379/1583.132/1698.344ms and confirmation from submission is
+1168.187/1655.712/1747.284ms. Including the actual offer-to-submission queue,
+offer-to-final is2645.577/3584.029/3627.250ms. These are censored completed-only
+samples: incomplete/UNKNOWN results prevent an overall latency qualification.
+See `evidence/linux-supply-socket-ci-39132052058-actual.json` for source identities,
+all phase totals, raw member hashes and limits.
+
+The pinned CometBFT0.38.23 `abci/client/socket_client.go` has a20ms flush timer;
+the gRPC client calls CheckTx directly. This is a hypothesis for the measured
+RPC/handler gap, not proven causality. Existing production `ynx-abci -transport`
+and Comet `--abci` already support gRPC, so the next prepared difference is
+`linux_supply_transport=grpc` (choice, socket remains default). Profile
+`supply-256x4-grpc` preserves the exact workload, four submit workers, client10s
+deadline, consensus timeouts, business/safety checks and resource caps. Both
+server commands must select the same transport. No shared runtime code or Mac
+case changes. The failure path now retains explicitly unqualified partial Supply
+and prints firstCause/cleanup to CI stdout so artifact download latency cannot
+hide the initial diagnosis.
+
+New source tests cover paired transport selection and preserving failed partial
+results without qualifying them. The normal original Go phase-test gate also
+covers real socket/gRPC wire admission with16 concurrent valid/invalid calls,
+unchanged committed state, signed execution, durable Commit/reopen, nonce replay
+rejection and exact journal bytes across transports. Until that test executes in
+CI, its result is unverified. A second four-node gRPC case still needs a fresh
+Root grant at its exact source SHA; do not auto-dispatch or extend deadlines.

@@ -54,6 +54,13 @@ on:
         description: "Root-scheduled private Linux Supply256x4@512; 45s active+15s cleanup; separate from Darwin comparisons"
         type: boolean
         default: false
+      linux_supply_transport:
+        description: "Existing ABCI transport for explicitly scheduled Linux Supply case; other workload/caps unchanged"
+        type: choice
+        options:
+          - socket
+          - grpc
+        default: socket
       measure_anchor_validation:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
         type: boolean
@@ -282,16 +289,17 @@ jobs:
           GOTOOLCHAIN: local
           GOFLAGS: -mod=readonly
           GOWORK: "off"
+          YNX_SUPPLY_TRANSPORT: ${{ inputs.linux_supply_transport }}
         run: |
           set -o pipefail
           mkdir "$RUNNER_TEMP/ynx-linux-supply-build" "$RUNNER_TEMP/ynx-linux-supply-evidence"
-          python3 -B scripts/loadtest/supply-linux-window.py > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+          python3 -B scripts/loadtest/supply-linux-window.py --transport "$YNX_SUPPLY_TRANSPORT" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           python3 -B scripts/loadtest/supply-linux-window.py --check-runner --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-preflight" > "$RUNNER_TEMP/ynx-linux-supply-evidence/preflight.json"
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-abci" ./cmd/ynx-abci
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/cometbft" github.com/cometbft/cometbft/cmd/cometbft
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-consensus-perf-fixture" ./cmd/ynx-consensus-perf-fixture
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-consensus-perf-client" ./cmd/ynx-consensus-perf-client
-          python3 -B scripts/loadtest/supply-linux-window.py --execute --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+          python3 -B scripts/loadtest/supply-linux-window.py --execute --transport "$YNX_SUPPLY_TRANSPORT" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
       - name: Preserve isolated Linux Supply raw evidence including failure
         if: always() && github.event_name == 'workflow_dispatch' && inputs.run_linux_supply
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
