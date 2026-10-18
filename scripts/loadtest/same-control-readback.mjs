@@ -64,3 +64,36 @@ export function compareSameControlReadbacks(before,after){
  requireValue(before.inputIdentities===after.inputIdentities&&before.qualifiedClientFinal===before.inputIdentities&&after.qualifiedClientFinal===after.inputIdentities,'matched complete business windows required');
  return {before,after,fullWindowRateChangePercent:(after.fullWindowClientFinalTPS/before.fullWindowClientFinalTPS-1)*100,clientFinalP95ChangeMs:after.clientFinalMs.p95-before.clientFinalMs.p95,interpretation:'Finite-window client comparison only; actual source/configuration/fixture policy must be bound separately. No sustained capacity, independent BFT proof or ten-minute claim.'};
 }
+
+// The expected guard digest comes from the separately inspected local receipt.
+// This binds an actual retained Go verifier result; it does not implement a
+// second signature engine or authenticate an arbitrary caller-supplied digest.
+export function bindBaselineStoppedProof({observationRaw,guardRaw,expectedGuardSHA256,replayRaw,accountsRaw}){
+ for(const raw of [observationRaw,guardRaw,replayRaw,accountsRaw])requireValue(Buffer.isBuffer(raw)&&raw.length<=8*1024**2,'bounded original proof bytes required');
+ requireValue(/^[a-f0-9]{64}$/.test(expectedGuardSHA256)&&sha(guardRaw)===expectedGuardSHA256,'trusted original guard digest mismatch');
+ const guard=JSON.parse(guardRaw),report=JSON.parse(observationRaw),replay=JSON.parse(replayRaw),accounts=JSON.parse(accountsRaw);
+ requireValue(guard.admissionCase==='offline-baseline-stopped-01'&&guard.plan?.mode==='stopped_replay'&&guard.plan.binarySHA256==='a77ce29169a4277df163a4cb4b156e32f7a7d3cf2b99bb75d1a6ae66853a19cc'&&guard.firstCause===null&&guard.groupGone===true&&guard.go?.code===0&&guard.go.signal===null&&guard.go.exited===true,'actual original stopped verifier did not complete');
+ const names=['TestStoppedNetworkReplay','TestStoppedReadySenderAccountReadback'];
+ const passed=[...guard.go.stdout.matchAll(/^--- PASS: (Test[^ /]+) \(/gm)].map(m=>m[1]);
+ requireValue(passed.length===2&&names.every(n=>passed.includes(n))&&!/^\s*--- (?:FAIL|SKIP):/m.test(guard.go.stdout)&&/^PASS$/m.test(guard.go.stdout),'both original verifier functions must actually pass');
+ requireValue(guard.originalsUnchanged===true&&guard.offlineBefore?.rows?.length>0&&JSON.stringify(guard.offlineBefore)===JSON.stringify(guard.offlineAfter),'original input identities changed or unavailable');
+ requireValue(guard.offlineOwnerChecks?.length===4&&guard.offlineOwnerChecks.every(c=>c.code===1&&!c.stdout&&!c.stderr),'original owner/port absence unavailable');
+ const replayHash=sha(replayRaw),accountsHash=sha(accountsRaw);
+ requireValue(guard.proofArtifacts?.length===2&&guard.proofArtifacts.some(a=>a.sha256===replayHash&&a.source.endsWith('/stopped-replay.json'))&&guard.proofArtifacts.some(a=>a.sha256===accountsHash&&a.source.endsWith('/ready-account-readback.json')),'proof bytes differ from completed original guard');
+ requireValue(replay.observationSha256===sha(observationRaw),'stopped proof belongs to another transaction report');
+ const count=report.summary?.input,rounds=report.roundsRequested;
+ requireValue(Number.isSafeInteger(count)&&count>0&&count===report.summary.finalSubmitted&&rounds===report.roundsCompleted&&count%rounds===0,'stopped report workload incomplete');
+ requireValue(replay.nodes?.length===4&&accounts?.length===4&&new Set(replay.nodes.map(n=>n.name)).size===4&&new Set(accounts.map(n=>n.name)).size===4,'four distinct actual stopped stores required');
+ const canonical=replay.nodes[0],seen=new Set();
+ for(const n of replay.nodes){
+  requireValue(n.readOnlyBlockstore===true&&n.exactStateEqual===true&&n.replayedTransactions===count&&n.height===canonical.height&&n.appHash===canonical.appHash&&n.snapshotSha256===canonical.snapshotSha256&&n.storeSha256===canonical.storeSha256,'actual stopped state/replay disagreement');
+  const a=accounts.find(a=>a.name===n.name);requireValue(a&&a.height===n.height&&a.snapshotSha256===n.snapshotSha256&&a.storeSha256===n.storeSha256&&a.sendersVerified===count/rounds&&a.expectedNonce===rounds&&a.feeEvents===count,'actual account/nonce/fee proof disagreement');
+ }
+ requireValue(Array.isArray(replay.publicSignedBlocks)&&replay.publicSignedBlocks.length>0,'retained signed blocks missing');
+ let businessInputs=0;
+ for(const b of replay.publicSignedBlocks){
+  requireValue(Number.isSafeInteger(b.height)&&!seen.has(b.height)&&Number(b.header?.height)===b.height&&b.header.chain_id===report.chainId&&Number(b.commit?.height)===b.height&&Array.isArray(b.commit.signatures)&&Array.isArray(b.transactions),'retained signed-block identity missing');seen.add(b.height);businessInputs+=b.transactions.length;
+ }
+ requireValue(businessInputs===count,'signed blocks do not retain the complete business input count');
+ return {kind:'original baseline proof bound to separately inspected retained Go verifier receipt',guardSHA256:expectedGuardSHA256,observationSHA256:sha(observationRaw),replaySHA256:replayHash,accountsSHA256:accountsHash,originalStores:4,verifiedBusinessInputsPerStore:count,signedBlockHeights:[...seen],finalHeight:canonical.height,finalAppHash:canonical.appHash,canonicalSnapshotSHA256:canonical.snapshotSha256,cryptographicVerifier:'existing retained Go VerifyCommitLight and application replay; no cryptographic re-verification in this JavaScript consumer',newThroughputOrLatencySamples:false};
+}

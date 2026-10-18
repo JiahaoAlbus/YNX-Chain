@@ -20,8 +20,8 @@ test('native compile is fixed clang only and cannot combine replay',()=>{
 
 test('client regression selects only the fixed thirteen functions and frozen Go source',()=>{
  const p=lightCommand('/work',undefined,false,true);
- assert.equal(p.mode,'client_regression');assert.equal(p.sourceCommit,'aa25500bdb13c52e56133ec0876651257cf31a1a');
- assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'1614f4ad2bc419612f3aba5bde492ad24a9920b6');
+ assert.equal(p.mode,'client_regression');assert.equal(p.sourceCommit,'463562ad5edacd8678b00472aafdc104cc4ada7a');
+ assert.equal(p.sourcePins['cmd/ynx-consensus-perf-client'],'261a70b1e4f532e5b621d11b1660c5d2412b110a');
  assert.equal(p.requiredPasses.length,13);assert.equal(new Set(p.requiredPasses).size,13);
  assert.equal(p.args[p.args.indexOf('-run')+1],'^('+p.requiredPasses.join('|')+')$');
  assert.ok(p.args.includes('-timeout=30s'));assert.ok(p.args.includes('-v'));assert.equal(p.env.GOPROXY,'off');assert.equal(p.env.GOTOOLCHAIN,'local');
@@ -93,7 +93,7 @@ test('normal09 alone receives 768MiB without changing prior caps or fixed worklo
  for(const c of ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08'])assert.equal(clientOwnedRSSCap(p,c),536870912);
  assert.equal(clientOwnedRSSCap(p),419430400);
  assert.deepEqual(lightProbeInput('/work','client13-normal-09'),lightProbeInput('/work','client13-normal-07'));
- assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'aa25500bdb13c52e56133ec0876651257cf31a1a');
+ assert.equal(p.requiredPasses.length,13);assert.equal(p.sourceCommit,'463562ad5edacd8678b00472aafdc104cc4ada7a');
  assert.equal(p.caps.scratchBytes,536870912);assert.equal(p.caps.activeMs,30000);assert.equal(p.caps.totalMs,45000);
  assert.equal(p.env.GOMEMLIMIT,'160MiB');assert.equal(p.env.GOPROXY,'off');
 });

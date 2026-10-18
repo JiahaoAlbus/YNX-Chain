@@ -1,0 +1,39 @@
+{
+  "kind": "source-only supply controller timing candidate and bound baseline evidence consumer",
+  "goSourceCommit": "463562ad5edacd8678b00472aafdc104cc4ada7a",
+  "goPackageTree": "261a70b1e4f532e5b621d11b1660c5d2412b110a",
+  "sourcePins": {
+    "cmd/ynx-consensus-perf-client/ready_sender.go": {
+      "sha256": "6c9f75e5f01233649b4c629b7eb47f16a1df0ae874195bf5d92dcd0e730f1abf",
+      "bytes": 17131
+    },
+    "cmd/ynx-consensus-perf-client/ready_sender_test.go": {
+      "sha256": "41f2de1dd937cfbb711eda48ac821e4188c02ed7c3c749b503d5a8a703905b46",
+      "bytes": 17601
+    },
+    "scripts/loadtest/same-control-readback.mjs": {
+      "sha256": "4802665fbc211520ec8a6593d50860ba13130eb94342c41d8343e0ceff420a77",
+      "bytes": 12782
+    },
+    "scripts/loadtest/same-control-readback.test.mjs": {
+      "sha256": "a53fad236b79ead7953f331cfc548e9eead6b3eb634490f23beb7e72eed861ab",
+      "bytes": 6306
+    }
+  },
+  "goSourceCompiled": false,
+  "goSourceExecuted": false,
+  "priorClient13PassBelongsTo": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+  "timings": {
+    "completionWait": "controller channel receive only, excludes verification and terminal callback; not consensus internals",
+    "terminalSink": "whole existing callback including any durable evidence work; not pure disk sync",
+    "offerDecode": "existing DecodeSignedTransaction before offering durable input",
+    "pacingWait": "existing waitUntil call including fast-path/failed attempts",
+    "dispatch": "existing jobs channel handoff"
+  },
+  "safety": "Existing signature, signed-intent persistence barrier, nonce ownership, quarantine, terminal evidence and finality gates retained. Timing sums can overlap concurrent worker activity and must not be added into consensus latency.",
+  "focusedLightChecks": {
+    "planAndConsumerGroups": 19,
+    "command": "node --test --test-reporter=dot scripts/loadtest/consensus-light-plan.test.mjs scripts/loadtest/same-control-readback.test.mjs"
+  },
+  "networkComparison": "Frozen cached/before images and a5df recipe unchanged; no network executed. Fresh pressure1 and Root heavy slot still required."
+}
