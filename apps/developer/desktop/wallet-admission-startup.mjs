@@ -5,6 +5,8 @@
 import * as supplier from '../../../packages/wallet-auth/scripts/ynx-ide-service-admission-supplier.mjs';
 import { openOriginalParentDelivery } from './wallet-admission-delivery.mjs';
 import { OriginalIDEIdentityCall } from './wallet-identity-v2-caller.mjs';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 // Separate from the old four session operations: identity receive/recovery can
 // precede a qualified session parent. Only the original Auth/SDK fixed loader
@@ -19,7 +21,12 @@ export async function openBundledWalletIdentityCaller(runningBackendModuleURL) {
   if (typeof acquire !== 'function') throw unavailable();
   const binding = await acquire(runningBackendModuleURL);
   if (binding === null || binding === undefined) throw unavailable();
-  const contract = await import('../../../packages/wallet-auth/native/original-auth-identity-v2-contract.mjs');
+  // Resolve the owner's public self-reference from its fixed bundled package,
+  // only after its guarded getter actually supplies the Native table. SDK317
+  // has neither capability; it must stay locally usable without an eager edge
+  // to a future SDK's private files. No cwd/renderer/ambient package selection.
+  const originalSDK = createRequire(new URL('../../../packages/wallet-auth/package.json', import.meta.url));
+  const contract = await import(pathToFileURL(originalSDK.resolve('@ynx-chain/wallet-auth/auth-identity-contract')).href);
   // The caller must be retained by the backend before explicit begin(). Do not
   // construct/assert an owning partial here and then lose it on a late error.
   return new OriginalIDEIdentityCall({ binding, actualEntryURL: runningBackendModuleURL, contract });

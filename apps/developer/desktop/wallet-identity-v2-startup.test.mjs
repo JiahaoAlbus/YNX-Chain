@@ -16,7 +16,7 @@ async function fixture(mode, run) {
     for (const name of ['wallet-admission-startup.mjs', 'wallet-admission-delivery.mjs', 'wallet-identity-v2-caller.mjs', 'private-payload-pump.mjs'])
       await copyFile(fileURLToPath(new URL(name, import.meta.url)), join(desktop, name));
     for (const name of ['src', 'scripts', 'native']) await mkdir(join(sdk, name), { recursive: true });
-    await writeFile(join(sdk, 'package.json'), '{"type":"module"}');
+    await writeFile(join(sdk, 'package.json'), JSON.stringify({ name: '@ynx-chain/wallet-auth', type: 'module', exports: mode === 'missing-contract' ? {} : { './auth-identity-contract': './native/original-auth-identity-v2-contract.mjs' } }));
     await writeFile(join(sdk, 'scripts/ynx-ide-service-admission-supplier.mjs'), `
       export let legacyAcquisitions=0;
       export function acquireOriginalIDEAdmissionParentDelivery(){legacyAcquisitions++;return null;}
@@ -33,7 +33,7 @@ async function fixture(mode, run) {
       ${mode === 'absent' ? '' : `export async function acquireOriginalIDENativeAuthBinding(...args){calls.push(['acquire',...args]);${mode === 'null' ? 'return null;' : mode === 'throw' ? 'throw original;' : mode === 'undefined-throw' ? 'throw undefined;' : 'return binding;'}}`}
     `;
     await writeFile(join(sdk, 'src/original-ide-admission-parent-delivery.js'), construct);
-    await writeFile(join(sdk, 'native/original-auth-identity-v2-contract.mjs'), ['absent', 'null', 'throw', 'undefined-throw'].includes(mode)
+    if (mode !== 'absent') await writeFile(join(sdk, 'native/original-auth-identity-v2-contract.mjs'), ['null', 'throw', 'undefined-throw'].includes(mode)
       ? `throw Error('REQUEST_GRAPH_MUST_NOT_BE_LOADED');`
       : `export const AUTH_IDENTITY_PURPOSES={receive:'AUTH-IDENTITY-RECEIVE',recover:'AUTH-IDENTITY-RECOVER',keyCall:'AUTH-PROTECTED-KEY-CALL'};export function parseOriginalAuthIdentityRequest(raw){if(raw!=='PUBLIC_NATIVE_ORIGINAL')throw Error('changed');return {purpose:AUTH_IDENTITY_PURPOSES.receive};}export function encodeOriginalAuthIdentityRequest(){return new Uint8Array([69]);}`);
     const startup = await import(pathToFileURL(join(desktop, 'wallet-admission-startup.mjs')));
@@ -46,6 +46,10 @@ for (const mode of ['absent', 'null']) test('normal startup ' + mode + ' getter 
   await assert.rejects(startup.openBundledWalletIdentityCaller(entry), { code: 'IDE_IDENTITY_NATIVE_UNAVAILABLE' });
   assert.deepEqual(original.calls, mode === 'null' ? [['acquire', entry]] : []);
   assert.equal(supplier.legacyAcquisitions, 0);
+}));
+test('a guarded getter without its original public request contract refuses before constructing any owner', () => fixture('missing-contract', async (startup, original) => {
+  await assert.rejects(startup.openBundledWalletIdentityCaller(entry), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+  assert.deepEqual(original.calls, [['acquire', entry]]);
 }));
 for (const mode of ['throw', 'undefined-throw']) test('normal startup preserves exact original acquisition failure ' + mode, () => fixture(mode, async (startup, original) => {
   let rejected = false;
