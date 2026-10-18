@@ -5,13 +5,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates independent exact SDK and complete A33, without loading Native',async()=>{
+test('normal selection validates independent exact SDK and complete R44, without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
  assert.equal(sdk.sdkCommit,inputs.sdkCommit);assert.equal(sdk.files.length,243);
  assert.equal(sdk.dependencies.length,316);assert.equal(native.sourceLeaves,38);assert.equal(native.buildInputLeaves,32);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'99f9cdc00fd75c9900a454ca92839f6edf486177314abdc780873b7e086480d8');
+ assert.equal(inputs.predecessorManifestSha256,'229c540471209feb7f60c8734f5dd25fee36202a620c424fad6aedcc018dd188');
  assert.ok(inputs.nativeSourceUpdates.every(x=>Object.hasOwn(x,'parentSha256')));
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
@@ -31,7 +31,7 @@ test('wrong SDK bytes, missing source and a symlink are refused on the selected 
   await assert.rejects(verifyCanonicalIdentityAdmissionSource(root,deps),/source leaf differs/);
  }finally{await rm(root,{recursive:true,force:true});}
 });
-test('missing or changed A33 source and receipt mutation cannot substitute SDK Native fragments',async()=>{
+test('missing or changed R44 source and receipt mutation cannot substitute SDK Native fragments',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ynx-native-selection-'));
  const source=process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT;
  assert.ok(source,'Run Native source-selection controls with the original fixed supplier root.');
