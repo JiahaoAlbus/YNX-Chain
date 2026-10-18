@@ -66,4 +66,7 @@ test('oversized originals count refuses before allocating or enumerating million
   const huge=new Proxy(new Array(3600000),{ownKeys(){enumerations++;throw Error('bulk descriptors must not be allocated');}});
   assert.throws(()=>encodePQActionTransportData({member:wire,originals:huge}),{code:'PQ_ACTION_TRANSPORT_INVALID'});
   assert.equal(enumerations,0);
+  assert.throws(()=>encodePQActionTransportData({member:wire,originals:[new Uint8Array(127)]}),{code:'PQ_ACTION_TRANSPORT_INVALID'});
+  const impossible=JSON.stringify({version:1,type:'pq_action',wireHex:wire.toString('hex'),originals:['AA==']});
+  assert.throws(()=>decodePQActionTransportData(new TextEncoder().encode(impossible)),{code:'PQ_ACTION_TRANSPORT_INVALID'});
 });

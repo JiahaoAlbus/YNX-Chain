@@ -26,6 +26,10 @@ unknown/duplicate fields, extra whitespace, noncanonical hex/base64 and field
 reordering refuse during decoding. Limits are the original 128 KiB Member,
 16 KiB per classic original and 24 MiB encoded envelope. Outputs detach input
 bytes; repeated access returns fresh copies.
+Impossible classic witnesses below 128 bytes also refuse before per-item
+allocation: even the shortest Go canonical staking struct is larger. This
+conservative floor prevents tiny fake originals from amplifying object memory;
+it does not claim classic transaction semantic validation.
 
 Classic originals remain exact raw bytes, including full-width JSON numbers,
 public key, signature, payload and their original spelling. The portable leaf

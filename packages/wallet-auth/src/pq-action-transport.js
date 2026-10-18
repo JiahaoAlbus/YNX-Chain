@@ -7,6 +7,11 @@ export const PQ_ACTION_ORIGINAL_MAX_BYTES=16<<10;
 const fail=()=>{throw Object.assign(new Error('PQ_ACTION_TRANSPORT_INVALID'),{code:'PQ_ACTION_TRANSPORT_INVALID'});};
 const te=new TextEncoder(),td=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true});
 const typed=Object.getPrototypeOf(Uint8Array.prototype);
+// Even Go's shortest canonical SignedApplicationAction staking struct (empty
+// strings, zero numbers, one-byte payload) exceeds 128 bytes. This conservative
+// lower bound rejects impossible witnesses before allocating per-item objects;
+// it does not replace that original decoder or historical validation.
+const originalMin=128;
 const getBuffer=Object.getOwnPropertyDescriptor(typed,'buffer').get,getLength=Object.getOwnPropertyDescriptor(typed,'length').get,getOffset=Object.getOwnPropertyDescriptor(typed,'byteOffset').get;
 function bytes(value,max){
   try{
@@ -24,8 +29,8 @@ function record(value,keys){
 function originalCopies(input,baseSize){
   if(!Array.isArray(input)||Object.getPrototypeOf(input)!==Array.prototype)fail();
   const length=Object.getOwnPropertyDescriptor(input,'length')?.value;
-  // Even a one-byte original takes four base64 bytes, quotes and a comma.
-  if(!Number.isSafeInteger(length)||length<0||baseSize+(length?',"originals":[]'.length+length*7-1:0)>PQ_ACTION_TRANSPORT_MAX_BYTES)fail();
+  const minimumEncoded=4*Math.ceil(originalMin/3)+3;
+  if(!Number.isSafeInteger(length)||length<0||baseSize+(length?',"originals":[]'.length+length*minimumEncoded-1:0)>PQ_ACTION_TRANSPORT_MAX_BYTES)fail();
   const out=[];let size=baseSize+(length?',"originals":[]'.length:0);
   for(let i=0;i<length;i++){
     // Inspect only the next element. Never allocate a descriptor object for a
@@ -33,6 +38,7 @@ function originalCopies(input,baseSize){
     const d=Object.getOwnPropertyDescriptor(input,String(i));
     if(!d||!Object.hasOwn(d,'value'))fail();
     const copy=bytes(d.value,PQ_ACTION_ORIGINAL_MAX_BYTES);
+    if(copy.length<originalMin)fail();
     size+=4*Math.ceil(copy.length/3)+2+(i?1:0);
     if(size>PQ_ACTION_TRANSPORT_MAX_BYTES)fail();
     out.push(copy);
@@ -56,7 +62,7 @@ function unbase64(s){
     const n=(abc.indexOf(s[i])<<18)|(abc.indexOf(s[i+1])<<12)|((s[i+2]==='='?0:abc.indexOf(s[i+2]))<<6)|(s[i+3]==='='?0:abc.indexOf(s[i+3]));
     if(at<out.length)out[at++]=n>>>16;if(at<out.length)out[at++]=(n>>>8)&255;if(at<out.length)out[at++]=n&255;
   }
-  if(!out.length||out.length>PQ_ACTION_ORIGINAL_MAX_BYTES||base64(out)!==s)fail();return out;
+  if(out.length<originalMin||out.length>PQ_ACTION_ORIGINAL_MAX_BYTES||base64(out)!==s)fail();return out;
 }
 function hex(b){return Array.from(b,n=>n.toString(16).padStart(2,'0')).join('');}
 function unhex(s){if(typeof s!=='string'||!s.length||s.length>2*PQ_ACTION_MEMBER_MAX_BYTES||s.length%2||!/^[0-9a-f]+$/.test(s))fail();const out=new Uint8Array(s.length/2);for(let i=0;i<out.length;i++)out[i]=parseInt(s.slice(i*2,i*2+2),16);return out;}
