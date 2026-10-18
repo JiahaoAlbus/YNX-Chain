@@ -568,6 +568,7 @@ class SupplySourceTests(unittest.TestCase):
             order=[]
             def fake_run(source,build,case,out,transport,profile,mode,**kwargs):
                 label=(("shared-endpoint-elastic" if comparison=="shared-elastic" else "shared-endpoint-fair") if kwargs.get("endpoint_fair") else "shared-baseline") if comparison in ("shared-fair","shared-elastic") else ("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode
+                if comparison=="shared-prefix-data64":label="prefix-replay" if kwargs["prefix_replay"] else "shared-replay"
                 order.append(label);case.mkdir()
                 if replay_fault=="rss" and (kwargs.get("endpoint_fair") if comparison in ("shared-fair","shared-elastic") else kwargs.get("shared_replay")):
                     raise RuntimeError("synthetic candidate owned RSS cap exceeded")
@@ -623,6 +624,26 @@ class SupplySourceTests(unittest.TestCase):
                     network=case/"network";network.mkdir()
                     encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
                     row["resultSHA256"]=hashlib.sha256(encoded).hexdigest() if not corrupt_result else "0"*64
+                if comparison=="shared-prefix-data64":
+                    prefix=kwargs["prefix_replay"]
+                    client,fixture=self.prefix_report_fixture() if prefix else self.oneshot_report_fixture()
+                    self.assertEqual(profile,"supply-2048x1-data64");self.assertEqual(mode,"relative")
+                    if not prefix:
+                        client["durableReadback"]["sharedReplay"]["workPhases"]=dict(produce=dict(calls=1,errors=0,durationNs=100),canonicalCopy=dict(calls=1,errors=0,durationNs=10),privateJSON=dict(calls=0,errors=0,durationNs=0),privateValidate=dict(calls=0,errors=0,durationNs=0),canonicalCopyBytes=100)
+                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix)["profile"],
+                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix),
+                        observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
+                        sharedReplayVerification=supply.validate_shared_replay(client,not prefix,require_work_phases=not prefix))
+                    if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True))
+                    if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=1
+                    network=case/"network";network.mkdir()
+                    if replay_fault=="fixture":fixture[-1]=fixture[0]
+                    if replay_fault=="phase":del client["transactions"][-1]["submissionPhases"]
+                    if replay_fault=="selection":row["sharedDurableReplay"]=prefix
+                    if replay_fault=="receipt":row["measurement"]["submissionPhaseVerification"]["samples"]=1
+                    (network/"transactions.json").write_text(json.dumps(dict(transactions=fixture)))
+                    encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
+                    row["resultSHA256"]=hashlib.sha256(encoded).hexdigest() if not corrupt_result else "0"*64
                 out.write_text(json.dumps(row))
                 if mutate_binary:(build/supply.BINARIES[0]).write_bytes(b"changed")
                 return code
@@ -643,6 +664,60 @@ class SupplySourceTests(unittest.TestCase):
             row=json.loads((evidence/"actual.json").read_text())
             row["_terminal"]=json.loads(output.getvalue().split("YNX_SUPPLY_PAIR_TERMINAL ")[-1])
             return code,order,row
+
+    def test_prefix_pair_serial_original_proofs_and_refusal_guards(self):
+        code,order,row=self.mock_pair(comparison="shared-prefix-data64")
+        self.assertEqual(code,0,row["firstCause"])
+        self.assertEqual(order,["shared-replay","empty","prefix-replay","empty"])
+        self.assertEqual(row["pairCaps"]["retainedBytes"],128 << 20)
+        self.assertFalse(row["jointObservation"]["sustainedTPSQualified"])
+        self.assertEqual([r["offerLatency"]["offerToQualifiedFinalLatencyMs"]["samples"] for r in row["cases"]],[2048,2048])
+        for options in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(mutate_binary=True),dict(replay_fault="fixture"),dict(replay_fault="phase"),dict(replay_fault="selection"),dict(replay_fault="receipt"),dict(fail_after_fsync=True)):
+            with self.subTest(options=options):
+                code,order,row=self.mock_pair(comparison="shared-prefix-data64",**options)
+                self.assertEqual(code,1);self.assertIsNotNone(row["_terminal"]["firstCause"])
+                self.assertFalse(row["_terminal"]["qualified"])
+                if not options.get("fail_after_fsync"):self.assertEqual(order.count("prefix-replay"),0)
+
+    def test_prefix_pair_receipts_are_charged_once_and_workflow_routes_match(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);receipt=root/"second.json"
+            (root/"first.json").write_bytes(b"old"*100)
+            self.assertEqual(supply.case_evidence_bytes(receipt,True),0)
+            receipt.write_bytes(b"new")
+            self.assertEqual(supply.case_evidence_bytes(receipt,True),3)
+            self.assertEqual(supply.case_evidence_bytes(receipt),303)
+            self.assertEqual(supply.native.directory_bytes(root),303)
+        workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
+        self.assertEqual(workflow.count('elif [ "$YNX_SUPPLY_PACING" = paired-shared-prefix-data64 ]; then'),2)
+        for action in ("prepare","execute"):
+            self.assertIn("--"+action+"-pair --pair-kind shared-prefix-data64 --observer-phases",workflow)
+
+    def test_prefix_pair_scoped_caps_cli_and_initial_reserve(self):
+        args=[sys.executable,"-B",str(FILE),"--prepare-pair","--pair-kind","shared-prefix-data64","--profile","supply-2048x1-data64","--transport","grpc","--observer-phases"]
+        plan=json.loads(subprocess.check_output(args,timeout=5))
+        self.assertFalse(plan["execute"]);self.assertTrue(plan["requiresSeparateRootGrant"])
+        before,after=plan["cases"]
+        self.assertTrue(before["sharedDurableReplay"]);self.assertTrue(after["prefixDurableReplay"])
+        omit={"prefixDurableReplay","sharedDurableReplay"}
+        self.assertEqual({k:v for k,v in before.items() if k not in omit},{k:v for k,v in after.items() if k not in omit})
+        self.assertEqual(supply.PAIR_CAPS["retainedBytes"],64 << 20)
+        for altered in (args+["--prefix-replay"],args[:-1],args[:args.index("supply-2048x1-data64")]+["supply-512x2"]+args[args.index("supply-2048x1-data64")+1:]):
+            self.assertNotEqual(subprocess.run(altered,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=5).returncode,0)
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);data=root/"data";evidence=root/"evidence";build=root/"build"
+            for d in (data,evidence,build):d.mkdir()
+            sample=dict(rssBytes=1,threads=1,privateBytes=63 << 20,buildBytes=1,freeDiskBytes=10 << 30,availableMemoryBytes=2 << 30)
+            budget=supply.PairBudget(data,evidence,0,build,"shared-prefix-data64")
+            with patch.object(supply.time,"monotonic",return_value=1):
+                floor=sum(supply.native.CAPS[k] for k in ("diskFloorBytes","rootReserveBytes","compileReserveBytes"))
+                with self.assertRaisesRegex(RuntimeError,"initial disk reserve"):
+                    budget.observe(dict(sample,freeDiskBytes=floor+(128 << 20)-1))
+                budget.observe(sample)
+                with self.assertRaisesRegex(RuntimeError,"privateBytes"):
+                    budget.observe(dict(sample,privateBytes=(64 << 20)+1))
+                with patch.object(supply.native,"directory_bytes",return_value=(64 << 20)+1):
+                    with self.assertRaisesRegex(RuntimeError,"retained128MiB"):budget.observe(sample)
 
     def test_pair_stops_after_failed_unknown_or_unclean_first_case(self):
         for reason in ("error","unknown","cleanup"):

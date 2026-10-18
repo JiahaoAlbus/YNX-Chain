@@ -112,7 +112,8 @@ PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
               "bounded-grouped": ("bounded-cadence", "grouped-cadence4"),
               "independent-shared": ("independent-replay", "shared-replay"),
               "shared-fair": ("shared-baseline", "shared-endpoint-fair"),
-              "shared-elastic": ("shared-baseline", "shared-endpoint-elastic")}
+              "shared-elastic": ("shared-baseline", "shared-endpoint-elastic"),
+              "shared-prefix-data64": ("shared-replay", "prefix-replay")}
 
 
 def pair_modes(comparison):
@@ -216,6 +217,17 @@ def fixture_resource_readout(network):
 
 
 def pair_recipe(comparison="relative-bounded"):
+    if comparison == "shared-prefix-data64":
+        return dict(schema=1,kind="fixed-same-VM-shared-prefix-data64-pair",execute=False,
+                    requiresSeparateRootGrant=True,nodesStarted=False,
+                    pairCaps=dict(PAIR_CAPS,retainedBytes=128 << 20),
+                    cases=[recipe("grpc","supply-2048x1-data64","relative",True,prefix_replay=flag) for flag in (False,True)],
+                    order="shared-replay then prefix-replay; never concurrent; stop after failed or unclean first case",
+                    binaries="same exact four ELF files, built once before pair runtime",
+                    input=dict(run_linux_supply=True,linux_supply_transport="grpc",linux_supply_profile="supply-2048x1-data64",linux_supply_pacing="paired-shared-prefix-data64",measure_observer_phases=True,prefix_durable_replay=False),
+                    timing="120s total including both cases, receipt fsync and double empty closures; each case45s active+15s cleanup including fsync<=60s. Remaining time can only shorten admission.",
+                    admission="Explicit pair128MiB retained including all case/aggregate receipts; each case64MiB, RSS1GiB, threads320, process10, logs1MiB, pair logs2MiB, build1GiB. Fresh native floors plus initial128MiB aggregate disk reserve. Original default pair64MiB unchanged. No grant or admission implied.",
+                    interpretation="Same source/VM/ELFs/environment/workload policy and caps; only replay backend differs. Fresh private fixtures have different identities and startup/block scheduling. Preserve all2048 original business proofs per side, raw stage timing and queue-inclusive inclusion/final tails including negative results. Finite comparison, never sustained1000TPS qualification.")
     if comparison == "shared-elastic":
         selected=pair_recipe("shared-fair")
         selected.update(kind="fixed-same-VM-elastic-endpoint-pair",
@@ -258,16 +270,18 @@ class PairBudget:
     def __init__(self, root, evidence, started, build, comparison="relative-bounded"):
         self.root, self.evidence, self.started = root, evidence, started
         self.build, self.active_case = build, root
+        self.caps = pair_recipe(comparison)["pairCaps"]
+        self.data64 = comparison == "shared-prefix-data64"
         before, after = pair_modes(comparison)
         self.case_names = ("before-"+before, "after-"+after)
-        self.deadline = started + PAIR_CAPS["totalMs"]/1000
+        self.deadline = started + self.caps["totalMs"]/1000
         self.samples = []
 
     def remaining(self):
         return self.deadline-time.monotonic()
 
     def io_timeout(self):
-        remaining = self.remaining()-PAIR_CAPS["metadataReserveMs"]/1000
+        remaining = self.remaining()-self.caps["metadataReserveMs"]/1000
         if remaining <= 0:
             raise RuntimeError("pair120s metadata budget exhausted")
         return min(5, remaining)
@@ -276,8 +290,10 @@ class PairBudget:
         if self.remaining() <= 0:
             raise RuntimeError("pair120s total deadline exceeded")
         if sample is None:
-            sample = native_sample(self.active_case, self.build, {}, self.started)
-        native.enforce(sample)
+            sample = native_sample(self.active_case, self.build, {}, self.started,enforce_limits=not self.data64)
+        native.enforce(sample,private_bytes_cap=64 << 20 if self.data64 else None)
+        if self.data64 and not self.samples and sample["freeDiskBytes"] < (native.CAPS["diskFloorBytes"]+native.CAPS["rootReserveBytes"]+native.CAPS["compileReserveBytes"]+self.caps["retainedBytes"]):
+            raise RuntimeError("pair128MiB initial disk reserve failed")
         roots = (self.root, self.evidence)
         retained = sum(native.directory_bytes(p) for p in roots)
         # The original per-case log cap covers child stdout/stderr directly in
@@ -285,9 +301,9 @@ class PairBudget:
         # data, already charged to each32MiB and the aggregate64MiB data caps.
         logs = sum(p.stat().st_size for case_name in self.case_names
                    for p in (self.root/case_name).glob("*.log"))
-        if retained > PAIR_CAPS["retainedBytes"]:
-            raise RuntimeError("combined pair retained64MiB cap exceeded")
-        if logs > PAIR_CAPS["logBytes"]:
+        if retained > self.caps["retainedBytes"]:
+            raise RuntimeError("combined pair retained%dMiB cap exceeded" % (self.caps["retainedBytes"] >> 20))
+        if logs > self.caps["logBytes"]:
             raise RuntimeError("combined pair child stdout/stderr log2MiB cap exceeded")
         row = dict(elapsedMs=int((time.monotonic()-self.started)*1000), retainedBytes=retained, logBytes=logs)
         row.update({k:sample[k] for k in ("rssBytes", "threads", "availableMemoryBytes", "freeDiskBytes", "buildBytes")})
@@ -310,13 +326,13 @@ def empty_pair_closure(budget):
     return scans
 
 
-def pair_case_qualified(row, mode):
+def pair_case_qualified(row, mode, profile="supply-512x2", total=1024):
     if row.get("firstCause") is not None or row.get("cleanupComplete") is not True or row.get("nodesStarted") is not True:
         raise RuntimeError("pair case failed or cleanup incomplete")
-    if row.get("pacingMode") != mode or row.get("abciTransport") != "grpc" or row.get("profile") != recipe("grpc", "supply-512x2", mode)["profile"]:
+    if row.get("pacingMode") != mode or row.get("abciTransport") != "grpc" or row.get("profile") != recipe("grpc", profile, mode,profile in ONESHOT_PROFILES)["profile"]:
         raise RuntimeError("pair case fixed configuration mismatch")
     m = row.get("measurement", {})
-    if (any(m.get("summary", {}).get(k) != 1024 for k in ("input", "offered", "submitted", "checkTxAccepted", "effectiveBusinessIncluded", "quorumConfirmed", "finalSubmitted"))
+    if (any(m.get("summary", {}).get(k) != total for k in ("input", "offered", "submitted", "checkTxAccepted", "effectiveBusinessIncluded", "quorumConfirmed", "finalSubmitted"))
             or any(m.get("summary", {}).get(k) != 0 for k in ("submissionUnknown", "timedOut", "notSubmitted", "executionFailed", "checkTxRejected", "checkTxUnverifiedResponses", "observationFailed"))
             or len(row.get("nodePhases", [])) != 4):
         raise RuntimeError("pair case incomplete business results; no second case")
@@ -623,8 +639,10 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
             out = root / (mode+"-actual.json")
             budget.active_case = case
             invoked = time.monotonic()
-            pace = "bounded-cadence" if comparison in ("independent-shared","shared-fair","shared-elastic") else mode
-            if comparison in ("shared-fair","shared-elastic"):
+            pace = "relative" if comparison == "shared-prefix-data64" else "bounded-cadence" if comparison in ("independent-shared","shared-fair","shared-elastic") else mode
+            if comparison == "shared-prefix-data64":
+                code = run(source,build,case,out,"grpc","supply-2048x1-data64",pace,pair_budget=budget,observer_phases=True,prefix_replay=index==1)
+            elif comparison in ("shared-fair","shared-elastic"):
                 code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=True,endpoint_fair=index==1,**(dict(endpoint_elastic=index==1) if comparison=="shared-elastic" else {}))
             elif comparison == "independent-shared":
                 code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=index==1)
@@ -638,7 +656,24 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                                         firstCause=row.get("firstCause"), summary=row.get("measurement", {}).get("summary")))
             if code != 0 or duration > 60:
                 raise RuntimeError("pair case failed or invocation/fsync exceeded60s: "+str(row.get("firstCause")))
-            pair_case_qualified(row, pace)
+            pair_case_qualified(row, pace,"supply-2048x1-data64" if comparison=="shared-prefix-data64" else "supply-512x2",2048 if comparison=="shared-prefix-data64" else 1024)
+            if comparison == "shared-prefix-data64":
+                client_raw=native.bounded(case/"network/transactions-result.json",16 << 20)
+                if hashlib.sha256(client_raw).hexdigest()!=row.get("resultSHA256"):
+                    raise RuntimeError("prefix pair original client hash differs")
+                client=json.loads(client_raw)
+                fixture=json.loads(native.bounded(case/"network/transactions.json",16 << 20))["transactions"]
+                measured=validate_report(client,"supply-2048x1-data64",pace,fixture_transactions=fixture,prefix_replay=index==1)
+                phases=validate_observer_phases(client)
+                shared=validate_shared_replay(client,index==0,require_work_phases=index==0)
+                prefix=validate_prefix_replay(client,index==1)
+                if (measured!=row.get("measurement") or phases!=row.get("observerPhases")
+                        or shared!=row.get("sharedReplayVerification") or row.get("sharedDurableReplay") is not (index==0)
+                        or prefix!=row.get("prefixReplayVerification",dict(prefixDurableReplay=False,stats=None)) or row.get("prefixDurableReplay",False) is not (index==1)):
+                    raise RuntimeError("prefix pair receipt differs from original business/backend/timing facts")
+                result["cases"][-1].update(offerLatency=offer_latency_readout(client,2048),nodePhases=row["nodePhases"],
+                    observerPhases=phases,sharedReplayVerification=shared,prefixReplayVerification=prefix,
+                    durableReadback=client["durableReadback"],submissionPhaseVerification=validate_submission_phases(client,2048))
             if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic"):
                 # Read only the already qualified original client result. This
                 # I/O and its hash/quantiles remain inside the same pair budget.
@@ -682,7 +717,7 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                     raise RuntimeError("pair VM identity differs")
             budget.observe()
         result["casesQualified"] = True
-        if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic"):
+        if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic","shared-prefix-data64"):
             result["jointObservation"]=joint_observation(*result["cases"])
         if comparison in ("shared-fair","shared-elastic"):
             result["dispatchTailObservation"]=dispatch_tail_observation(*result["cases"],result["jointObservation"])
@@ -704,7 +739,7 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
         pair_sha = native.digest(receipt) if receipt.is_file() else None
         elapsed_exact = (time.monotonic()-started)*1000
         elapsed = int(elapsed_exact)
-        if elapsed_exact > PAIR_CAPS["totalMs"]:
+        if elapsed_exact > budget.caps["totalMs"]:
             result["firstCause"] = result["firstCause"] or "pair total including fsync exceeded120s"
         verdict = dict(schema=1, kind="fixed-pair-post-fsync-verdict", elapsedMs=elapsed,
                        firstCause=result["firstCause"], casesQualified=result["casesQualified"],
@@ -992,6 +1027,12 @@ def supply_client_command(build,manifest_path,network,output,profile,pacing,obse
     return [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", str(profile["offeredRate"]), "-rounds", str(profile["rounds"]), "-sender-mode", profile.get("senderMode","ready-pool"), "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])+(["-prefix-durable-replay"] if prefix_replay else [])
 
 
+def case_evidence_bytes(receipt, paired=False):
+    # Pair roots retain earlier case data/receipts; only this receipt belongs to
+    # the current case. PairBudget independently charges every retained byte.
+    return (receipt.stat().st_size if receipt.is_file() else 0) if paired else native.directory_bytes(receipt.parent)
+
+
 def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None,prefix_replay=None):
     one_shot=not fixture_only and profile_name in ONESHOT_PROFILES
     if one_shot:
@@ -1031,7 +1072,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
     def capture_sample(initial=False):
         sampled=native_sample(case,build,known,started,initial,enforce_limits=not (fixture_only or one_shot))
         if fixture_only or one_shot:
-            sampled["privateBytes"]+=native.directory_bytes(receipt.parent)
+            sampled["privateBytes"]+=case_evidence_bytes(receipt,pair_budget is not None)
         if fixture_only:
             sampled["preexistingGoCacheBytes"]=cache_baseline
             sampled["sharedGoCacheBytes"]=native.directory_bytes(go_cache) if go_cache is not None else 0
@@ -1316,8 +1357,8 @@ if __name__ == "__main__":
         parser.error("nondefault pair-kind requires an explicit pair action")
     if args.prepare_pair or args.execute_pair:
         if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
-                or args.transport != "grpc" or args.profile != "supply-512x2" or args.pacing != "relative"
-                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair","shared-elastic"))):
+                or args.transport != "grpc" or args.profile != ("supply-2048x1-data64" if args.pair_kind=="shared-prefix-data64" else "supply-512x2") or args.pacing != "relative"
+                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair","shared-elastic","shared-prefix-data64"))):
             parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
         if args.prepare_pair:
             print(json.dumps(pair_recipe(args.pair_kind), indent=2))
