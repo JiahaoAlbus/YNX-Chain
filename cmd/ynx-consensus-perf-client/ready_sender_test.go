@@ -138,6 +138,9 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if stats.Supply.SignAttempts != 3 || stats.Supply.EncodeAttempts != 3 || stats.Supply.SignedSuccessors != 3 || stats.Supply.JournalDurableEnvelopes != 6 || stats.Supply.JournalAppendAttempts < 2 || stats.Supply.JournalDurableBytes <= 0 || stats.Supply.SignNs <= 0 || stats.Supply.EncodeNs <= 0 || stats.Supply.JournalAppendNs <= 0 || stats.Supply.JournalSetupNs <= 0 {
 		t.Fatalf("supply stages do not match actual signed/durable workload: %+v", stats.Supply)
 	}
+	if stats.Supply.OfferDecodeAttempts != 6 || stats.Supply.PacingWaitAttempts != 6 || stats.Supply.DispatchAttempts != 6 || stats.Supply.TerminalSinkAttempts != 6 || stats.Supply.OfferDecodeNs <= 0 || stats.Supply.PacingWaitNs <= 0 || stats.Supply.DispatchNs <= 0 || stats.Supply.TerminalSinkNs <= 0 || stats.Supply.CompletionWaitNs < 0 {
+		t.Fatalf("controller phase counts differ from the actual six business inputs: %+v", stats.Supply)
+	}
 	if segmented {
 		recovered, readErr := readReadySenderIntents(context.Background(), p.root, manifest, m, initial, 2, stats.IntentSegments)
 		if readErr != nil || recovered.Records != 6 || recovered.IncompleteTail {

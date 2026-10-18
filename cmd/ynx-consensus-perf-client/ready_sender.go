@@ -162,7 +162,20 @@ func (p *ephemeralSenderPool) nextForSenderMeasured(sender int, prior transactio
 // Controller-owned sums of actual calls, including failed attempts. Initial
 // fixture signatures precede the run and are not included as successor signing.
 // Journal append includes JSON encoding, write and Sync; it is not pure disk I/O.
+// CompletionWait measures only the controller's terminal-channel wait, excluding
+// consume/verification/terminalSink. It is not an internal consensus timer.
+// TerminalSink measures the complete evidence callback, not pure file Sync.
 type readySupplyStats struct {
+	CompletionWaitAttempts  int   `json:"completionWaitAttempts"`
+	CompletionWaitNs        int64 `json:"completionWaitNs"`
+	TerminalSinkAttempts    int   `json:"terminalSinkAttempts"`
+	TerminalSinkNs          int64 `json:"terminalSinkNs"`
+	OfferDecodeAttempts     int   `json:"offerDecodeAttempts"`
+	OfferDecodeNs           int64 `json:"offerDecodeNs"`
+	PacingWaitAttempts      int   `json:"pacingWaitAttempts"`
+	PacingWaitNs            int64 `json:"pacingWaitNs"`
+	DispatchAttempts        int   `json:"dispatchAttempts"`
+	DispatchNs              int64 `json:"dispatchNs"`
 	SignAttempts            int   `json:"signAttempts"`
 	SignNs                  int64 `json:"signNs"`
 	EncodeAttempts          int   `json:"encodeAttempts"`
@@ -334,7 +347,11 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		active--
 		inFlight[sender] = false
 		if o.terminalSink != nil {
-			if err := o.terminalSink(results[index]); err != nil {
+			started := time.Now()
+			err := o.terminalSink(results[index])
+			stats.Supply.TerminalSinkAttempts++
+			stats.Supply.TerminalSinkNs += time.Since(started).Nanoseconds()
+			if err != nil {
 				runErr = errors.Join(runErr, fmt.Errorf("terminal evidence: %w", err))
 			}
 		}
@@ -374,16 +391,25 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			if active == 0 {
 				break
 			}
+			started := time.Now()
+			var event completion
+			received := false
 			if closed {
-				consume(<-terminal)
+				event, received = <-terminal, true
 			} else {
 				select {
-				case index := <-terminal:
-					consume(index)
+				case event = <-terminal:
+					received = true
 				case <-ctx.Done():
-					runErr = ctx.Err()
-					stopSubmitting()
 				}
+			}
+			stats.Supply.CompletionWaitAttempts++
+			stats.Supply.CompletionWaitNs += time.Since(started).Nanoseconds()
+			if received {
+				consume(event)
+			} else {
+				runErr = ctx.Err()
+				stopSubmitting()
 			}
 			continue
 		}
@@ -431,13 +457,20 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			}
 			txs[index] = e.Transaction
 			results[index].Hash, results[index].Bytes, results[index].SignedTransaction = e.Hash, len(e.Transaction), base64.StdEncoding.EncodeToString(e.Transaction)
+			decodeStarted := time.Now()
 			template, decodeErr := consensus.DecodeSignedTransaction(e.Transaction)
+			stats.Supply.OfferDecodeAttempts++
+			stats.Supply.OfferDecodeNs += time.Since(decodeStarted).Nanoseconds()
 			if decodeErr != nil {
 				runErr = decodeErr
 				break
 			}
 			p.pending[e.Sender], p.templates[e.Sender] = e.Transaction, template
-			if !waitUntil(ctx, nextOffer) {
+			paceStarted := time.Now()
+			paceReady := waitUntil(ctx, nextOffer)
+			stats.Supply.PacingWaitAttempts++
+			stats.Supply.PacingWaitNs += time.Since(paceStarted).Nanoseconds()
+			if !paceReady {
 				runErr = ctx.Err()
 				break
 			}
@@ -452,7 +485,10 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 				stats.PeakInFlight = active
 			}
 			atomicMaximum(&peakSubmit, pendingSubmit.Add(1))
+			dispatchStarted := time.Now()
 			jobs <- index
+			stats.Supply.DispatchAttempts++
+			stats.Supply.DispatchNs += time.Since(dispatchStarted).Nanoseconds()
 			// A stalled account cannot cause a catch-up burst when it returns.
 			nextOffer = now.Add(interval)
 		}
