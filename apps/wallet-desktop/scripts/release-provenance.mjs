@@ -49,6 +49,22 @@ const escapeRE = text => text.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const repositoryOperand = /(?:from\s*|new\s+URL\s*\(\s*)["']\.\.\/\.\.\/\.\.\/(?:packages\/wallet-auth|apps\/wallet-desktop)\//;
 const packedRuntimePath = canonicalSourcePath;
 const SDK330_VERSION='1.3.0-pq.3.30-auth.1';
+const FIXED_SDK_RUNTIME_MANIFEST='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
+export function fixedSDKRuntimeManifestSources(root,sourceCommit){
+ const sdk=JSON.parse(git(root,'show',`${sourceCommit}:packages/wallet-auth/package.json`));
+ const present=git(root,'ls-tree','-r','--name-only',sourceCommit,'--',FIXED_SDK_RUNTIME_MANIFEST)===FIXED_SDK_RUNTIME_MANIFEST;
+ if(sdk.version!==SDK330_VERSION){
+  if(present)throw Error('Unsupported SDK runtime manifest selection');
+  return [];
+ }
+ if(!present)throw Error('Required SDK runtime manifest is missing');
+ // This independent supplier manifest is not part of package.files and must
+ // not authorize itself or arbitrary adjacent JSON. Pin its reviewed identity
+ // as well as requiring byte equality with the immutable composed source.
+ const bytes=execFileSync('git',['show',`${sourceCommit}:${FIXED_SDK_RUNTIME_MANIFEST}`],{cwd:root,maxBuffer:1024*1024});
+ if(bytes.length!==64574||digest(bytes)!=='3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693')throw Error('Fixed SDK runtime manifest identity differs');
+ return [FIXED_SDK_RUNTIME_MANIFEST];
+}
 function selectedRelocationRules(sdkVersion){
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
@@ -271,7 +287,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // wallet-auth-contract.mjs reads this registry from the SDK root at runtime.
   // Require it in the commit as well as the archive: ls-tree alone can silently
   // omit a named path that no longer exists in the selected commit.
-  const requiredRuntimeAssets = ["packages/wallet-auth/package.json", "packages/wallet-auth/product-session-registry.json"];
+  const requiredRuntimeAssets = ["packages/wallet-auth/package.json", "packages/wallet-auth/product-session-registry.json",...fixedSDKRuntimeManifestSources(root,expected.sourceCommit)];
   const declaredSDKRuntimeAssets=declaredSDKRuntimeSources(root,expected.sourceCommit);
   const names = [...new Set([...git(root, "ls-tree", "-r", "--name-only", expected.sourceCommit, "apps/wallet-desktop/src", "packages/wallet-auth/src", ...requiredRuntimeAssets).split("\n"),...declaredSDKRuntimeAssets,
     ...nativeInputs.filter(name=>name.startsWith('packages/wallet-auth/')&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs')),...nativeBuildEvidenceAssets])];
