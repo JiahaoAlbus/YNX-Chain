@@ -246,6 +246,12 @@ func validateHistoricalStateFields(s CommittedState, migration chain.ConsensusMi
 	if !supportedCommittedStateVersion(s.Version) {
 		return errors.New("unsupported historical committed state version")
 	}
+	// These source domains were never admitted by earlier executors. Omitted
+	// optional fields preserve every existing checkpoint's wire and hash; they
+	// cannot be smuggled into historical projections which do not commit them.
+	if s.Version < 18 && (s.LegacyPaySource != nil || s.LegacyAISource != nil || s.LegacyTrustSource != nil) {
+		return errors.New("historical state cannot carry uncommitted source business records")
+	}
 	if s.Version <= 13 {
 		if s.ValidatorRegistry != nil || s.PQEngineSchedule != nil || s.LegacyContracts != nil || s.LegacyResourceMarket != nil || s.LegacyResourceSponsor != nil || s.TraceLots != nil || s.AccountPolicy != nil || len(s.PQHistory)+len(s.PQBatches)+len(s.NativeTransfers)+len(s.PaySettlements) != 0 || migration.AccountPolicy != nil {
 			return errors.New("legacy performance state cannot carry uncommitted protocol authorization or lineage fields")

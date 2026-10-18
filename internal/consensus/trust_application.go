@@ -163,6 +163,13 @@ func (a *Application) applyTrustAction(state executionState, raw []byte, tx Sign
 		}
 		recordID = ApplicationActionRecordID("trust-evidence", txHash)
 		labels := chainLabelsForSubject(state.trustLabels, input.Subject)
+		if state.legacyTrustSource != nil {
+			imported, err := legacyTrustLabelsWithCurrent(state.legacyTrustSource, a.migration, CommittedState{Height: height, AccountPolicy: state.accountPolicy, TrustLabels: state.trustLabels}, input.Subject)
+			if err != nil {
+				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+			}
+			labels = imported
+		}
 		if _, accountExists := accountIndex(state.accounts, input.Subject); !accountExists && len(labels) == 0 {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Trust evidence subject has no committed account or label state"))
 		}

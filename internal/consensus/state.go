@@ -47,6 +47,9 @@ type CommittedState struct {
 	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
 	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
 	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
+	LegacyPaySource            *LegacyPaySource                `json:"legacyPaySource,omitempty"`
+	LegacyAISource             *LegacyAISource                 `json:"legacyAISource,omitempty"`
+	LegacyTrustSource          *LegacyTrustSource              `json:"legacyTrustSource,omitempty"`
 	TraceLots                  map[string]chain.TrustTraceLot  `json:"traceLots,omitempty"`
 	AccountPolicy              *ynxauth.State                  `json:"accountPolicy,omitempty"`
 	PQHistory                  []PQCommittedAuthorization      `json:"pqHistory,omitempty"`
@@ -114,6 +117,9 @@ type committedStateHashDocument struct {
 	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
 	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
 	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
+	LegacyPaySource            *LegacyPaySource                `json:"legacyPaySource,omitempty"`
+	LegacyAISource             *LegacyAISource                 `json:"legacyAISource,omitempty"`
+	LegacyTrustSource          *LegacyTrustSource              `json:"legacyTrustSource,omitempty"`
 	TraceLots                  map[string]chain.TrustTraceLot  `json:"traceLots,omitempty"`
 	AccountPolicy              *ynxauth.State                  `json:"accountPolicy,omitempty"`
 	PQHistory                  []PQCommittedAuthorization      `json:"pqHistory,omitempty"`
@@ -175,7 +181,8 @@ type committedStateHashDocument struct {
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
 	dexAssets, dexBalances, dexPools, dexEvents := dexStateFromMigration(migration)
-	contracts, _ := migrationContracts(migration) // Constructor validates closure before this projection.
+	contracts, _ := migrationContracts(migration)     // Constructor validates closure before this projection.
+	trustSource, _ := migrationTrustSource(migration) // Validate propagates source errors; this is not execution admission.
 	if contracts == nil {
 		contracts = []BFTContract{}
 	}
@@ -183,6 +190,9 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		LegacyContracts:            migrationLegacyContracts(migration),
 		LegacyResourceMarket:       migrationResourceMarket(migration),
 		LegacyResourceSponsor:      migrationResourceSponsor(migration),
+		LegacyPaySource:            migrationPaySource(migration),
+		LegacyAISource:             migrationAISource(migration),
+		LegacyTrustSource:          trustSource,
 		TraceLots:                  migrationTraceLots(migration),
 		AccountPolicy:              cloneConsensusAccountPolicy(migration.AccountPolicy),
 		Version:                    CommittedStateVersion,
@@ -251,6 +261,9 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		LegacyContracts:            cloneLegacyContracts(execution.legacyContracts),
 		LegacyResourceMarket:       cloneLegacyResourceMarket(execution.legacyResourceMarket),
 		LegacyResourceSponsor:      cloneLegacyResourceSponsor(execution.legacyResourceSponsor),
+		LegacyPaySource:            cloneLegacyPaySource(execution.legacyPaySource),
+		LegacyAISource:             cloneLegacyAISource(execution.legacyAISource),
+		LegacyTrustSource:          cloneLegacyTrustSource(execution.legacyTrustSource),
 		TraceLots:                  cloneTraceLots(execution.traceLots),
 		AccountPolicy:              cloneConsensusAccountPolicy(execution.accountPolicy),
 		PQHistory:                  clonePQHistory(execution.pqHistory),
@@ -311,7 +324,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		DexEvents:                  cloneBFTDexEvents(execution.dexEvents),
 	}
 	if execution.hashVersion != 0 {
-		if execution.hashVersion < 7 || execution.hashVersion > 13 || state.ValidatorRegistry != nil || state.PQEngineSchedule != nil || state.TraceLots != nil || state.AccountPolicy != nil || len(state.PQHistory)+len(state.PQBatches)+len(state.NativeTransfers) != 0 {
+		if execution.hashVersion < 7 || execution.hashVersion > 13 || state.ValidatorRegistry != nil || state.PQEngineSchedule != nil || state.TraceLots != nil || state.AccountPolicy != nil || state.LegacyPaySource != nil || state.LegacyAISource != nil || state.LegacyTrustSource != nil || len(state.PQHistory)+len(state.PQBatches)+len(state.NativeTransfers) != 0 {
 			return CommittedState{}, errors.New("historical replay cannot activate or erase protocol state")
 		}
 		state.Version = execution.hashVersion
@@ -374,6 +387,15 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 		return err
 	}
 	if err := validateLegacyContracts(s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyPaySource(s.LegacyPaySource, s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyAISource(s.LegacyAISource, s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyTrustSource(s.LegacyTrustSource, s, migration); err != nil {
 		return err
 	}
 	if s.ChainID != migration.Network.ChainID || s.MigrationStateHash != migration.StateHash {
@@ -568,6 +590,7 @@ func (s CommittedState) hashDocument(domain string, version int) committedStateH
 	return committedStateHashDocument{
 		ValidatorRegistry: s.ValidatorRegistry, PQEngineSchedule: s.PQEngineSchedule,
 		LegacyContracts: s.LegacyContracts, LegacyResourceMarket: s.LegacyResourceMarket, LegacyResourceSponsor: s.LegacyResourceSponsor,
+		LegacyPaySource: s.LegacyPaySource, LegacyAISource: s.LegacyAISource, LegacyTrustSource: s.LegacyTrustSource,
 		TraceLots: s.TraceLots, AccountPolicy: s.AccountPolicy, PQHistory: s.PQHistory, PQBatches: s.PQBatches,
 
 		Domain:                     domain,
@@ -633,7 +656,7 @@ func (s CommittedState) hasApplicationRecords() bool {
 			resourcePools++
 		}
 	}
-	if s.ValidatorRegistry != nil || s.PQEngineSchedule != nil || len(s.PQHistory) != 0 || len(s.PQBatches) != 0 {
+	if s.ValidatorRegistry != nil || s.PQEngineSchedule != nil || len(s.PQHistory) != 0 || len(s.PQBatches) != 0 || s.LegacyTrustSource != nil && len(s.LegacyTrustSource.Updates) != 0 {
 		return true
 	}
 	return len(s.StrategyMandates)+len(s.StrategyVaults)+len(s.AssetAuditEvents)+len(s.SmartAccounts)+len(s.Paymasters)+len(s.UserOperationEvents)+len(s.StakeDelegations)+len(s.Unbondings)+len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+resourcePools+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0

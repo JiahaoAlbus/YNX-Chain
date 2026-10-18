@@ -290,10 +290,31 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
           YNX_AA_FIXED_STATE="$RUNNER_TEMP/ynx-aa-fixed-state.go"
+          YNX_AA_ORIGINAL_STATE="$RUNNER_TEMP/ynx-aa-original-state.go"
           YNX_AA_OLD_LOG="$RUNNER_TEMP/ynx-aa-original-state-red.log"
           cp internal/consensus/state.go "$YNX_AA_FIXED_STATE"
           trap 'cp "$YNX_AA_FIXED_STATE" internal/consensus/state.go' EXIT
-          git show af1cbaf94313e628e212aabad60d05d85c2aa3fc:internal/consensus/state.go > internal/consensus/state.go
+          git show af1cbaf94313e628e212aabad60d05d85c2aa3fc:internal/consensus/state.go > "$YNX_AA_ORIGINAL_STATE"
+          # Execute the exact original validator method while retaining current
+          # optional source types, so a compile error cannot masquerade as RED.
+          python3 -B - "$YNX_AA_ORIGINAL_STATE" internal/consensus/state.go <<'PY'
+          from pathlib import Path
+          import sys
+          original, current = (Path(p) for p in sys.argv[1:])
+          old, fixed = original.read_text(), current.read_text()
+          start = 'func (s CommittedState) Validate('
+          end = '\nfunc (s CommittedState) calculateHash()'
+          def bounds(text):
+              assert text.count(start) == 1 and text.count(end) == 1
+              a = text.index(start)
+              b = text.index(end, a)
+              return a, b
+          oa, ob = bounds(old)
+          fa, fb = bounds(fixed)
+          assert 'validateAccountAbstractionPolicyState(s)' not in old[oa:ob]
+          assert 'validateAccountAbstractionPolicyState(s)' in fixed[fa:fb]
+          current.write_text(fixed[:fa] + old[oa:ob] + fixed[fb:])
+          PY
           set +e
           go test -p 1 -count=1 -timeout=90s -v -run '^TestAACommittedHistory' ./internal/consensus > "$YNX_AA_OLD_LOG" 2>&1
           YNX_AA_OLD_CODE=$?

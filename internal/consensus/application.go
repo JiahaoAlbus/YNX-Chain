@@ -68,6 +68,9 @@ type executionState struct {
 	legacyContracts            *LegacyContracts
 	legacyResourceMarket       *LegacyResourceMarket
 	legacyResourceSponsor      *LegacyResourceSponsor
+	legacyPaySource            *LegacyPaySource
+	legacyAISource             *LegacyAISource
+	legacyTrustSource          *LegacyTrustSource
 	traceLots                  map[string]chain.TrustTraceLot
 	accountPolicy              *ynxauth.State
 	pqBatches                  map[string]PQCommittedBatch
@@ -384,6 +387,15 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	}
 	if queryLegacyContracts(response, req.Path, a.committed) {
+		return response, nil
+	}
+	if queryLegacyPaySource(response, req.Path, a.committed.LegacyPaySource, a.committed) {
+		return response, nil
+	}
+	if queryLegacyAISource(response, req.Path, a.committed.LegacyAISource, a.committed) {
+		return response, nil
+	}
+	if queryLegacyTrustSource(response, req.Path, a.committed.LegacyTrustSource, a.committed) {
 		return response, nil
 	}
 	switch {
@@ -883,6 +895,9 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if err := validateConsensusPQContinuation(a.committed, pending); err != nil {
 		return nil, err
 	}
+	if err := validateLegacySourceContinuation(a.committed, pending); err != nil {
+		return nil, err
+	}
 	if err := validateValidatorRegistryContinuation(a.committed, pending); err != nil {
 		return nil, err
 	}
@@ -935,6 +950,9 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 		}
 	}
 	if err := validateConsensusPQContinuation(a.committed, *a.pending); err != nil {
+		return nil, err
+	}
+	if err := validateLegacySourceContinuation(a.committed, *a.pending); err != nil {
 		return nil, err
 	}
 	if err := validateValidatorRegistryContinuation(a.committed, *a.pending); err != nil {
@@ -1005,6 +1023,7 @@ func (a *Application) committedExecutionStateView() executionState {
 		hashVersion: a.replayStateVersion,
 		bootstrap:   a.bootstrap, validatorRegistry: a.committed.ValidatorRegistry, pqEngineSchedule: a.committed.PQEngineSchedule,
 		legacyContracts: a.committed.LegacyContracts, legacyResourceMarket: a.committed.LegacyResourceMarket, legacyResourceSponsor: a.committed.LegacyResourceSponsor,
+		legacyPaySource: a.committed.LegacyPaySource, legacyAISource: a.committed.LegacyAISource, legacyTrustSource: a.committed.LegacyTrustSource,
 		traceLots: traceLots, accountPolicy: a.committed.AccountPolicy, pqHistory: a.committed.PQHistory, pqBatches: a.committed.PQBatches,
 		nativeTransfers: a.committed.NativeTransfers, paySettlements: a.committed.PaySettlements,
 
@@ -1270,6 +1289,7 @@ func cloneExecutionStateValue(state executionState) executionState {
 		hashVersion: state.hashVersion,
 		bootstrap:   state.bootstrap, validatorRegistry: cloneValidatorRegistry(state.validatorRegistry), pqEngineSchedule: clonePQEngineSchedule(state.pqEngineSchedule),
 		legacyContracts: cloneLegacyContracts(state.legacyContracts), legacyResourceMarket: cloneLegacyResourceMarket(state.legacyResourceMarket), legacyResourceSponsor: cloneLegacyResourceSponsor(state.legacyResourceSponsor),
+		legacyPaySource: cloneLegacyPaySource(state.legacyPaySource), legacyAISource: cloneLegacyAISource(state.legacyAISource), legacyTrustSource: cloneLegacyTrustSource(state.legacyTrustSource),
 		traceLots: cloneTraceLots(state.traceLots), accountPolicy: cloneConsensusAccountPolicy(state.accountPolicy), pqHistory: clonePQHistory(state.pqHistory), pqBatches: cloneConsensusPQBatches(state.pqBatches),
 		nativeTransfers: append([]BFTNativeTransfer(nil), state.nativeTransfers...), paySettlements: append([]BFTPaySettlement(nil), state.paySettlements...),
 
@@ -1300,6 +1320,24 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 		blockTime = time.Unix(1, 0).UTC()
 	} else {
 		blockTime = blockTime.UTC()
+	}
+	// The original source's text identities never become BFT signer authority.
+	// Refuse source ID/transfer reuse before charging a fee or consuming a nonce.
+	if err := rejectLegacyPayActionWrite(state.legacyPaySource, tx, ApplicationActionHash(payload)); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if err := rejectLegacyAIActionWrite(state.legacyAISource, tx, ApplicationActionHash(payload)); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if isTrustAction(tx.Action) {
+		next, source, execution, handled, err := a.applyLegacyTrustSourceAction(state, state.legacyTrustSource, payload, height, blockTime)
+		if handled {
+			if err != nil {
+				return executionState{}, transactionExecution{}, err
+			}
+			next.legacyTrustSource = source
+			return next, execution, nil
+		}
 	}
 	if isPayAction(tx.Action) {
 		return a.applyPayAction(state, payload, tx, height, blockTime, validationOnly)

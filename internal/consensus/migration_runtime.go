@@ -30,9 +30,33 @@ func MigrationExecutionBlockers(m chain.ConsensusMigrationState) []MigrationModu
 			blockers = append(blockers, MigrationModuleBlocker{module, n, reason})
 		}
 	}
-	add("pay", len(r.PayIntents)+len(r.Invoices)+len(r.Refunds)+len(r.PaySettlements)+len(r.Webhooks)+len(r.PayEvents), "source merchant records lack BFT signer/action provenance; refund totals and original webhook identity require a source-compatible execution adapter")
-	add("ai", len(r.AIPerms)+len(r.AIActions), "source permissions have no signed principal or transaction; cannot create BFT signer authority during import")
-	add("trust_governance", len(r.RiskLabels)+len(r.Evidence)+len(r.Governance)+len(r.Appeals)+len(r.Tracking)+len(r.Transp), "source IDs, authority and audit domains differ; original evidence and correction semantics require an adapter")
+	// Exercise the actual source adapters even when missing authority prevents
+	// activation. The offline command must distinguish a corrupt source closure
+	// from records which are preserved correctly but cannot yet grant a signer.
+	addSource := func(module string, n int, reason string, validate func() error) {
+		if n == 0 {
+			return
+		}
+		status := "source preservation validation passed; "
+		if err := validate(); err != nil {
+			status = "source preservation validation failed: " + err.Error() + "; "
+		}
+		add(module, n, status+reason)
+	}
+	projection := CommittedState{Version: CommittedStateVersion, Height: int64(m.Height), ChainID: m.Network.ChainID, MigrationStateHash: m.StateHash}
+	addSource("pay", len(r.PayIntents)+len(r.Invoices)+len(r.Refunds)+len(r.PaySettlements)+len(r.Webhooks)+len(r.PayEvents), "independent source merchant binding and original webhook secret custody have not been established for this migration", func() error {
+		return validateLegacyPaySource(migrationPaySource(m), projection, m)
+	})
+	addSource("ai", len(r.AIPerms)+len(r.AIActions), "source permissions have no signed principal or transaction; cannot create BFT signer authority during import", func() error {
+		return validateLegacyAISource(migrationAISource(m), projection, m)
+	})
+	addSource("trust_governance", len(r.RiskLabels)+len(r.Evidence)+len(r.Governance)+len(r.Appeals)+len(r.Tracking)+len(r.Transp), "independently authenticated source reviewer/role binding is missing; original text identities cannot authorize review or resolution", func() error {
+		source, err := migrationTrustSource(m)
+		if err != nil {
+			return err
+		}
+		return validateLegacyTrustSource(source, projection, m)
+	})
 	if err := validateLegacyResourceMarket(migrationResourceMarket(m), CommittedState{Version: CommittedStateVersion}, m); err != nil {
 		add("resource_market", 1, err.Error())
 	}
