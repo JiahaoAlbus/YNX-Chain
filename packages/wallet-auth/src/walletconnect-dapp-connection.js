@@ -57,12 +57,22 @@ function exclusive(record,flight){
   }catch{return false;}
 }
 const corePairings=client=>client.core.pairing.pairings.getAll();
+// Local observation must not execute error getters or disclose arbitrary codes.
+function observationCode(error){
+  try{
+    const code=error!==null&&(typeof error==='object'||typeof error==='function')?Object.getOwnPropertyDescriptor(error,'code')?.value:undefined;
+    if([4001,5000,5001,5002,5003].includes(code)||code==='USER_REJECTED')return 'USER_REJECTED';
+    if(typeof code==='string'&&(/^(?:YNX_PAIR_(?:INITIALIZATION|RELAY|APPROVAL|REQUEST|CLEANUP)_(?:TIMEOUT|UNAVAILABLE))$/.test(code)||['YNX_PAIR_TIMEOUT','YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_SESSION_SELECTION_REQUIRED','YNX_PAIR_METHOD_NOT_APPROVED','YNX_PAIR_CONTEXT_CHANGED','YNX_PAIR_TRANSPORT_DRAINING','YNX_PAIR_CLEANUP_UNCONFIRMED'].includes(code)))return code;
+  }catch{}
+  return 'UNCLASSIFIED';
+}
+
 
 // Official SignClient owns its encrypted pairing/session persistence. Product
 // consumers receive a selected EIP-1193-shaped transport, never topics or keys
 // copied into another origin and never a product identity/session credential.
 export class WalletConnectDAppConnection{
-  #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;#cancelledAttempt=0;
+  #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;#cancelledAttempt=0;#connectionState='not-started';#initializationState='not-started';#lastStage='idle';#cleanupObservation='unobserved';#firstCauseRecorded=false;#firstCauseCode=null;
   constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now()}={}){
     if(!ORIGIN_METHODS.has(origin)||!Array.isArray(methods)||(!methods.length&&origin!==ADDRESS_ORIGIN)||new Set(methods).size!==methods.length||methods.some(method=>!ORIGIN_METHODS.get(origin).includes(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_CONFIGURATION_INVALID');
     if(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>120000)fail('YNX_PAIR_CONFIGURATION_INVALID');
@@ -71,7 +81,7 @@ export class WalletConnectDAppConnection{
   on(event,listener){if(!this.#listeners.has(event))this.#listeners.set(event,new Set());this.#listeners.get(event).add(listener);}
   removeListener(event,listener){this.#listeners.get(event)?.delete(listener);}
   #emit(event,value){for(const listener of this.#listeners.get(event)??[])listener(value);}
-  #unconfirmed(reason,attempt){this.#emit('cancelUnconfirmed',{reason,attempt,current:attempt===this.#attempt,userCancelled:attempt===this.#cancelledAttempt});}
+  #unconfirmed(reason,attempt){this.#cleanupObservation='unknown';this.#emit('cancelUnconfirmed',{reason,attempt,current:attempt===this.#attempt,userCancelled:attempt===this.#cancelledAttempt});}
   #initializationCleanupDebt(attempt=this.#attempt){
     const record=ownerRecords.get(this);
     if(!record?.constructionStarted||record.state==='ready')return;
@@ -81,13 +91,18 @@ export class WalletConnectDAppConnection{
     try{this.#unconfirmed('initialization-unresolved',attempt);}catch(error){debt.notificationCause=error;}
     return debt;
   }
+  #observeFirstCause(error){if(!this.#firstCauseRecorded){this.#firstCauseRecorded=true;this.#firstCauseCode=observationCode(error);}}
+  /** Local state only. No Core/store reads and no remote cleanup proof. */
+  cleanupSnapshot(){
+    return Object.freeze({scope:'local-only',attempt:this.#attempt,stage:this.#flight?.stage??this.#lastStage,connection:this.#connectionState,initialization:this.#initializationState,inFlight:this.#connectionState==='pending'||!!this.#pending||!!this.#draining||this.#initializationState==='pending'||this.#restoring>0,draining:!!this.#draining,cancelled:this.#attempt>0&&this.#cancelledAttempt===this.#attempt,cleanup:this.#cleanupObservation,firstCause:Object.freeze({present:this.#firstCauseRecorded,code:this.#firstCauseCode}),remoteCleanup:'not-proven',remoteCleanupUnconfirmed:true});
+  }
   async #wait(work,{stage='request',flight,deadline=this.#deadline}={}){let timer;const code=`YNX_PAIR_${stage.toUpperCase()}_TIMEOUT`;try{return await Promise.race([work,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error(code),{code,stage})),deadline);}),...(flight?[flight.cancelled]:[])]);}finally{clearTimeout(timer);}}
   async initialize(flight){
     if(this.#client){if(!flight&&!this.#restoring){const record=records.get(this.#client);if(record)record.externallyExposed=true;}return this.#client;}
     // A caller deadline must not start a second Relay instance while the
     // original factory still owns the same SDK storage. Injected-factory failures
     // remain retryable; default partial construction retains its original latch.
-    if(!this.#initializing){const task=Promise.resolve().then(()=>this.#factory({projectId:YNX_PAIR_PROJECT_ID,metadata:{name:'YNX browser connection',description:'Explicit YNX Wallet connection and separate request approval',url:this.#origin,icons:[]},logger:'silent',storageOptions:{database:`ynx-pair-${new URL(this.#origin).hostname}`}}));this.#initializing=task;task.catch(()=>{if(this.#initializing===task)this.#initializing=null;});}
+    if(!this.#initializing){const task=Promise.resolve().then(()=>this.#factory({projectId:YNX_PAIR_PROJECT_ID,metadata:{name:'YNX browser connection',description:'Explicit YNX Wallet connection and separate request approval',url:this.#origin,icons:[]},logger:'silent',storageOptions:{database:`ynx-pair-${new URL(this.#origin).hostname}`}}));this.#initializing=task;this.#initializationState='pending';task.then(()=>{this.#initializationState='fulfilled';},error=>{this.#initializationState='rejected';this.#observeFirstCause(error);if(this.#initializing===task)this.#initializing=null;});}
     if(flight)this.#initializing.then(client=>{if(flight.terminated&&!this.#flight)void this.#pause(client,flight);},()=>{if(flight.terminated)this.#initializationCleanupDebt(flight.attempt);});
     const client=await this.#wait(this.#initializing,{stage:'initialization',flight});
     if(!flight&&!this.#restoring){const record=records.get(client);if(record)record.externallyExposed=true;}
@@ -127,9 +142,9 @@ export class WalletConnectDAppConnection{
   connect({onURI,restore=false}={}){
     if(this.#pending)return this.#pending;
     if(this.#draining)return Promise.reject(Object.assign(new Error('YNX_PAIR_TRANSPORT_DRAINING'),{code:'YNX_PAIR_TRANSPORT_DRAINING',stage:'relay'}));
-    const epoch=this.#epoch,attempt=++this.#attempt;
+    const epoch=this.#epoch,attempt=++this.#attempt;this.#connectionState='pending';
     const flight={attempt,origin:this.#origin,stage:'initialization',cancelled:null,cancel:null,terminated:false,idle:()=>this.#restoring===0&&(!this.#flight||this.#flight===flight)};flight.cancelled=new Promise((_,reject)=>{flight.cancel=()=>reject(Object.assign(new Error('YNX_PAIR_CANCELLED'),{code:'YNX_PAIR_CANCELLED',stage:flight.stage}));});flight.cancelled.catch(()=>{});this.#flight=flight;
-    const stage=value=>{flight.stage=value;if(epoch===this.#epoch)this.#emit('stage',{stage:value,attempt});};
+    const stage=value=>{flight.stage=value;if(attempt===this.#attempt)this.#lastStage=value;if(epoch===this.#epoch)this.#emit('stage',{stage:value,attempt});};
     const task=(async()=>{stage('initialization');const client=await this.initialize(flight);if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');
       if(restore&&!this.#session){const valid=[];for(const session of client.session.getAll())try{valid.push(this.#validate(session));}catch{}if(valid.length>1)fail('YNX_PAIR_SESSION_SELECTION_REQUIRED');this.#session=valid[0]??null;}
       if(this.#session){this.#validate(this.#session);return this.provider();}
@@ -149,14 +164,14 @@ export class WalletConnectDAppConnection{
       const session=await this.#wait(approving,{stage:'approval',flight});
       if(epoch!==this.#epoch)fail('YNX_PAIR_CANCELLED');try{this.#validate(session);}catch(error){await this.#retire(client,session,attempt);throw error;}this.#session=session;this.#pairing=null;
       this.#emit('connect',{chainId:'0x1917'});return this.provider();
-    })().catch(async error=>{flight.terminated=true;if(epoch===this.#epoch)this.#epoch++;await this.#cancelPairing(epoch);let cleanupError;if(this.#client)await this.#pause(this.#client,flight);else cleanupError=this.#initializationCleanupDebt(attempt);if(!String(error?.code??'').startsWith('YNX_PAIR_')){const code=[4001,5000,5001,5002,5003].includes(Number(error?.code))||error?.code==='USER_REJECTED'?'USER_REJECTED':`YNX_PAIR_${flight.stage.toUpperCase()}_UNAVAILABLE`;throw Object.assign(new Error(code),{code,stage:flight.stage,cause:error,...(cleanupError?{cleanupError}:{})});}throw error;}).finally(()=>{if(this.#pending===task)this.#pending=null;if(this.#flight===flight)this.#flight=null;if(this.#draining?.flight!==flight&&!flight.record?.paused)flight.record?.leases.delete(flight);});
-    this.#pending=task;return task;
+    })().catch(async error=>{this.#observeFirstCause(error);flight.terminated=true;if(epoch===this.#epoch)this.#epoch++;await this.#cancelPairing(epoch);let cleanupError;if(this.#client)await this.#pause(this.#client,flight);else cleanupError=this.#initializationCleanupDebt(attempt);if(!String(error?.code??'').startsWith('YNX_PAIR_')){const code=[4001,5000,5001,5002,5003].includes(Number(error?.code))||error?.code==='USER_REJECTED'?'USER_REJECTED':`YNX_PAIR_${flight.stage.toUpperCase()}_UNAVAILABLE`;throw Object.assign(new Error(code),{code,stage:flight.stage,cause:error,...(cleanupError?{cleanupError}:{})});}throw error;}).finally(()=>{if(this.#pending===task)this.#pending=null;if(this.#flight===flight)this.#flight=null;if(this.#draining?.flight!==flight&&!flight.record?.paused)flight.record?.leases.delete(flight);});
+    task.then(()=>{if(attempt===this.#attempt)this.#connectionState='fulfilled';},()=>{if(attempt===this.#attempt)this.#connectionState='rejected';});this.#pending=task;return task;
   }
   async #pause(client,flight){
     const record=records.get(client);if(record){flight.record??=record;if(!record.leases.size)record.leases.add(flight);}
-    if(!exclusive(record,flight)){if(this.#draining?.flight!==flight)record?.leases.delete(flight);this.#emit('transportCleanup',{attempt:flight.attempt,current:flight.attempt===this.#attempt,status:'shared-preserved',inFlight:this.#draining?.flight===flight});return;}
+    if(!exclusive(record,flight)){if(this.#draining?.flight!==flight)record?.leases.delete(flight);if(this.#cleanupObservation!=='unknown')this.#cleanupObservation='shared-preserved';this.#emit('transportCleanup',{attempt:flight.attempt,current:flight.attempt===this.#attempt,status:'shared-preserved',inFlight:this.#draining?.flight===flight});return;}
     record.paused=true;record.pauseFlight=flight;
-    try{await this.#wait(record.core.relayer.transportClose(),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});this.#emit('transportCleanup',{attempt:flight.attempt,current:flight.attempt===this.#attempt,status:'transport-paused',inFlight:this.#draining?.flight===flight});}
+    try{await this.#wait(record.core.relayer.transportClose(),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});if(this.#cleanupObservation!=='unknown')this.#cleanupObservation='transport-paused';this.#emit('transportCleanup',{attempt:flight.attempt,current:flight.attempt===this.#attempt,status:'transport-paused',inFlight:this.#draining?.flight===flight});}
     catch{this.#unconfirmed('transport-unavailable',flight.attempt);}
   }
   async #cancelPairing(epoch){const pairing=this.#pairing;if(!pairing||epoch!==undefined&&pairing.epoch!==epoch)return;this.#pairing=null;if(this.#client)try{await this.#wait(this.#client.core.pairing.disconnect({topic:pairing.topic}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',pairing.attempt);}}

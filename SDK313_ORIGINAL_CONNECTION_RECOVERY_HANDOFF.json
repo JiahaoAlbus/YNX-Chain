@@ -1,0 +1,80 @@
+{
+  "state": "FORMAL_SDK313_AND_NORMAL_ORIGINAL_RESULT_UI_WITH_RECONNECT_BOUNDARIES_SOURCE_VERIFIED_NOT_BUILT_OR_INSTALLED",
+  "baseCommit": "3a5a92bc4fc6a5a0fdf15bcf26a46d4b828c6de2",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "sdk": {
+    "version": "1.3.0-pq.3.13",
+    "sourceCommit": "a4f96f843c57f3d44d6d0ae6e778f1782cfd5d5c",
+    "sourceTree": "2efd989e69ae70edd526154a3a643e2d34bea50e",
+    "formalHandoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3m-20261018/SDK_PQ_R3M_HANDOFF.json",
+    "handoffBytes": 6496,
+    "handoffSha256": "a67a0ab8fb78dc12af8166c0acca053faa3c6acecc0f89ff801a12d22ba7d95d",
+    "archiveBytes": 934885,
+    "archiveSha256": "e3626b757c876d79d4e0c5b7393ef71367855dd4178b77b6bad5f79f21454c5e",
+    "exactChanges": 7,
+    "beforePins": "All local leaves compared with exact Git base20499 before copying any; new-file absence checked; closed seven-name Git diff compared to supplier H. After blobs match frozena4f and its H, not mutable source.",
+    "directReferencesVerified": 6,
+    "allTarGitAndCurrentLocalPackedLeaves": 243,
+    "CIReused": "39104905164 actual130PASS0fail0skip, three type closures0; not rerun; Windows Native skipped-not-acceptance",
+    "snapshot": "Original connection.cleanupSnapshot only: local-only, remoteCleanup=not-proven/remoteCleanupUnconfirmed=true. No initialize/restore/Core/store/cleanup is started by reading. No old-object retrofit or remote success claim."
+  },
+  "normalWalletChanges": [
+    "Existing original singleton keeps local connect and cleanup promise outcomes and safe first codes separately; cancellation epoch no longer discards original error, cleanup rejection no longer loses its code",
+    "Normal Check original result button displays actual same-object SDK status and pending work; strict descriptor/schema projection rejects extra fields, getters, contradictory pending flags and invented remote success; no URI/topic/raw error/secret output",
+    "First connection is allowed. After an entered attempt, local cancel success, relay drain or transport-paused never reopens reconnect or resets the original result",
+    "Synchronous cancel BEFORE original factory/SDK selection retires the queued token: zero factory/protocol calls. This precise no-effect witness permits a later explicit first connection",
+    "Normal previously approved active session may reconnect only after its own fulfilled disconnect plus exact same-instance/epoch PAIR_EXPLICIT_DISCONNECT notice, unchanged context, no prior cancel/reject/UNKNOWN, valid non-inflight SDK observation and no cleanup unknown",
+    "That normal witness is named approved-session-local-disconnect: local retirement and relay publication accepted, NOT peer ACK or remoteCleanupConfirmed. Context change, unsolicited/no-active-session event or earlier cancellation cannot wash a blocker; original cleanup is not repeated"
+  ],
+  "normalSourceLeaves": [
+    {"path": "apps/wallet-desktop/src/walletconnect-address-consumer.mjs", "bytes": 8538, "sha256": "ceba614a1f8e2db640b9cb1e96487180ee8c955875dd486effdef8c0cd1bee3c"},
+    {"path": "apps/wallet-desktop/src/walletconnect-address-observation.mjs", "bytes": 2356, "sha256": "5565a06774948cdda7715aeb2dec2caaa560d7b42322ce00a25a48b1723b02cf"},
+    {"path": "apps/wallet-desktop/src/walletconnect-address-page.mjs", "bytes": 6057, "sha256": "a6423ae44d1bcc1aad9d3337126d8e4560be8a116fe7c86bc1b3750e0d735a46"},
+    {"path": "apps/wallet-desktop/web-connect/index.html", "bytes": 2479, "sha256": "3c58b50686bef8f3d0d14c7ecf90de1f0f9159475d62cbf64786f0095e78e5ab"}
+  ],
+  "realRedsPreserved": [
+    "walletconnect-original-observation-before-20261018.raw: missing normal original-result read API2RED",
+    "walletconnect-original-causes-before-20261018.raw: exact frozen3a5 controller actual code=null after original cleanup rejection; assertion exits1",
+    "walletconnect-reconnect-barrier-before-20261018.raw: actual second connect2vs1 after cancel and actual SDK selection1vs0 after immediate cancel,2RED",
+    "walletconnect-sdk313-composition-before-20261018.raw: reproduced original supplier exact formal313 plus immutable old App composition RED2vs1; supplier evidence untouched",
+    "walletconnect-approved-disconnect-before-20261018.raw: real same-copy SDK normal disconnect incorrectly permanently blocked,1RED; normal-use fix then actual same-copy controlled reconnect passes",
+    "walletconnect-observation-shape-before-20261018.raw: first parser classification distinguished malformed DTO incorrectly; corrected invalid vs unavailable, original14PASS1FAIL retained"
+  ],
+  "finalRegression": {
+    "raw": "apps/wallet-desktop/test/walletconnect-sdk313-observation-combination-after-20261018.raw",
+    "rawBytes": 1800,
+    "rawSha256": "5c826f045c2451b95e52dee4d27dd9f866da947cbe838e6b4f7847ead3e3d5b3",
+    "pass": 15,
+    "fail": 0,
+    "skip": 0,
+    "durationMs": 72.457333,
+    "actualSDKComposition": "Canonical same-copy packages/wallet-auth source imports, not an absolute evidence-script import. PUBLIC injected SignClient only; real SDK class + App. Cancel fulfilled/connect rejected/late relay rejected/drainingfalse still yields factory1/connect1 after repeated status reads and attempted reconnect; no request/disconnect effects. Separate approved-session normal disconnect/new connection keeps factory1/connect2 without claiming remote proof.",
+    "CI": "All new tests in existing apps/wallet-desktop/test/*.test.mjs wildcard. Core Node tests and actual canonical SDK source, no new pipeline, network or Native access."
+  },
+  "dependencies": {
+    "lock": "packages/wallet-auth/package-lock.json",
+    "lockBytes": 68086,
+    "lockSha256": "b284a5b7da9813ed2653486e83464711be19d4d4ee2288044e1851f18d6ee143",
+    "PQManifest": "apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json",
+    "PQManifestBytes": 52657,
+    "PQManifestSha256": "403467d07349bbaddab122f9e6e5ca600c2df5965ee96013fc5c5ab94d345106",
+    "generatedManifestExactSupplier": true,
+    "fullSDKRoot": "/Users/huangjiahao/.codex/worktrees/wallet-browser-cleanup-recovery/YNX Chain/packages/wallet-auth/node_modules",
+    "require": "Exact original full119 closure with nested Noble1.x and App QR1.5.4 recursive29 closure; PQ316 is not WalletConnect runtime. App/mobile local file locks3.13. No install/fallback performed."
+  },
+  "preservedNativeAndMac": {
+    "R44Module": "1096536/42075be96bf530da10ceb34d7f3e72b056e2abd588518e159bd2a62477a20e8b",
+    "R44ExecutedReceipt": "18945/1fd757d502c0eef116e9b27359be67df6a3b8230d1a1ebe41b411aefe7b0a324",
+    "R42Header": "10788/4636d5db5cc71d488ae63b9ed147d93d76a3fb0a4e2c768b1f74165900c6aaa0",
+    "completeNativeAndMacSource": "Inheritedd9 matching38source/32receipt ande2 no-duplicate-App normal build helper + actual tiny hdiutil create/verify evidence unchanged; no Native recompile or App overlay"
+  },
+  "originalARecipe": {
+    "owner": "Sole original A via Root, fresh immutable stage only; existing3bf/61d/old39 remain unchanged",
+    "browser": "Normal scripts/build-wallet-connection-page.mjs NEW_CANONICAL_OUTPUT. Must include all THREE consumer .mjs leaves (new observation helper), new paired HTML and existing entry/CSS, exact SDK public export/localesbuild0.25.9/Core2.23.10/full119/AppQR29. Never replace JS alone against old HTML.",
+    "publish": "Existing /connect/ same original project, retain V3 explicit trailing-slash CSP/no-store and old40/hosted bytes. New receipt gate then bounded normal GUI; don't repeat old130 or manufacture old39 reconciliation.",
+    "Mac": "Existing scripts/build-mac.mjs arm64 --config.electronDist=/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r65-normal-mac-matching-20261017/electron-dist --config.npmRebuild=false. Include scripts/mac-dmg-source.mjs. Preserve floor/margin and actual bounds; real canonical package/signature/mounted whole-App/download/install/upgrade still required."
+  },
+  "legacyAndAuthority": "Old SDK39 tab694451393 has no public observation API and unresolved remote cleanup; no reload, injection, profile/DB read, new Core, clearing or retroactive success. New source cannot reconstruct that old result. R45/46 positive producer/callee/registration, normal actual Relay and wallet approval, full App user journey and MONSTER remain separate unfinished gates.",
+  "nextIndependentCODE": "After this complete freeze, continue original Protocol supplied PQ first-record preparation/main-preload-renderer-PasswordVault readback, existing exact wire normal transport and strict policyv2/source binding. Protocol new member/migration routes and build pins are not deployed evidence; no signing or broadcast permission inferred.",
+  "notClaimed": ["New browser bundle/publication of this observation UI", "Real new Connect/Cancel/UNKNOWN GUI acceptance", "Remote cleanup/peer ACK", "Legacy39 resolution", "Full Mac/Android/Windows/Linux package or upgrade", "Source grant or qualified reclaim", "MONSTER", "Signature or funds transfer"]
+}

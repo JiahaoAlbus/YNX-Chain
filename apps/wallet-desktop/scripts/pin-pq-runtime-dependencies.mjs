@@ -19,6 +19,6 @@ function visit(relative){
 for(const [name,version] of Object.entries(versions)){const metadata=JSON.parse(readFileSync(path.join(supplier,name,'package.json')));if(metadata.name!==name||metadata.version!==version)throw Error('DEPENDENCY_VERSION');visit(name);}
 if(files.length!==316)throw Error('DEPENDENCY_COUNT_CHANGED');
 files.sort((a,b)=>a.path.localeCompare(b.path,'en'));
-const manifest={schemaVersion:2,sdkCommit:'20499b17f3b0600ec6cf5316fd2a5d6c8e64cdf5',provider:{version:versions['@ynx/batch-v01-candidate'],bytes:archive.length,sha256:sha(archive)},versions,files,profile:'Same 316 IDE/PQ bytes as SDK311 from original reusable clean119 dependency closure; this is not the entire WalletConnect runtime.'};
+const manifest={schemaVersion:2,sdkCommit:'a4f96f843c57f3d44d6d0ae6e778f1782cfd5d5c',provider:{version:versions['@ynx/batch-v01-candidate'],bytes:archive.length,sha256:sha(archive)},versions,files,profile:'Same 316 IDE/PQ dependency file identities as SDK312; dependency versions unchanged. Original clean119 full closure is separately required for WalletConnect browser bundling.'};
 writeFileSync(path.join(root,'apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log(JSON.stringify({runtimeFiles:files.length,providerSHA256:sha(archive),network:false,scriptsExecuted:false}));

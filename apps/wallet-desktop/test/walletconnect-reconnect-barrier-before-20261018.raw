@@ -1,0 +1,61 @@
+✖ cancel with no remote cleanup proof keeps the original attempt and prevents a second dispatch (1.530875ms)
+✖ synchronous cancellation before selecting the SDK performs no effect and permits a later explicit first connection (0.221542ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45.64475
+
+✖ failing tests:
+
+test at apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs:89:1
+✖ cancel with no remote cleanup proof keeps the original attempt and prevents a second dispatch (1.530875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   calls: 2,
+  -   calls: 1,
+      cancels: 1,
+      disconnects: 0,
+      factories: 1
+    }
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs:93:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { factories: 1, calls: 2, cancels: 1, disconnects: 0 },
+    expected: { factories: 1, calls: 1, cancels: 1, disconnects: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs:95:1
+✖ synchronous cancellation before selecting the SDK performs no effect and permits a later explicit first connection (0.221542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   calls: 1,
+  -   calls: 0,
+      cancels: 0,
+      disconnects: 0,
+  +   factories: 1
+  -   factories: 0
+    }
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs:97:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { factories: 1, calls: 1, cancels: 0, disconnects: 0 },
+    expected: { factories: 0, calls: 0, cancels: 0, disconnects: 0 },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

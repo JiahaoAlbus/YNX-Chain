@@ -1,3 +1,18 @@
+/** Immutable local observation only; settlement/absence/pause is not remote cleanup proof. */
+export interface WalletConnectCleanupSnapshot {
+ readonly scope:'local-only';
+ readonly attempt:number;
+ readonly stage:'idle'|'initialization'|'relay'|'approval';
+ readonly connection:'not-started'|'pending'|'fulfilled'|'rejected';
+ readonly initialization:'not-started'|'pending'|'fulfilled'|'rejected';
+ readonly inFlight:boolean;
+ readonly draining:boolean;
+ readonly cancelled:boolean;
+ readonly cleanup:'unobserved'|'unknown'|'transport-paused'|'shared-preserved';
+ readonly firstCause:Readonly<{present:boolean;code:string|null}>;
+ readonly remoteCleanup:'not-proven';
+ readonly remoteCleanupUnconfirmed:true;
+}
 export declare const YNX_PAIR_PROJECT_ID: "41857128a14a593ca4e4a7cb7c838d71";
 export interface WalletConnectProvider {
  readonly isYNXWallet:true;
@@ -27,6 +42,9 @@ export interface WalletAddressConnectionOptions {
 /** Original transport; a connection is not an identity/ProductSession grant. */
 export declare class WalletConnectDAppConnection {
  constructor(options:{origin:string;methods:string[]}&WalletAddressConnectionOptions);
+ /** Does not initialize, restore, inspect remote stores, or perform cleanup.
+  * Re-read this original instance for late promise settlement; UNKNOWN is sticky. */
+ cleanupSnapshot():WalletConnectCleanupSnapshot;
  on(event:string,listener:(value:unknown)=>void):void;
  removeListener(event:string,listener:(value:unknown)=>void):void;
  initialize():Promise<WalletConnectSignClient>;

@@ -1,0 +1,10 @@
+✔ same-copy SDK address factory and normal Wallet controller connect with empty remote permission (2.652667ms)
+✔ same-copy SDK original local cancellation cannot erase the retry barrier after relay drain (4.093541ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 68.769458

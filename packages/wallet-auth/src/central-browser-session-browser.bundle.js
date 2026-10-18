@@ -27070,6 +27070,15 @@ ${item.productId}`));
     }
   }
   var corePairings = (client) => client.core.pairing.pairings.getAll();
+  function observationCode(error) {
+    try {
+      const code2 = error !== null && (typeof error === "object" || typeof error === "function") ? Object.getOwnPropertyDescriptor(error, "code")?.value : void 0;
+      if ([4001, 5e3, 5001, 5002, 5003].includes(code2) || code2 === "USER_REJECTED") return "USER_REJECTED";
+      if (typeof code2 === "string" && (/^(?:YNX_PAIR_(?:INITIALIZATION|RELAY|APPROVAL|REQUEST|CLEANUP)_(?:TIMEOUT|UNAVAILABLE))$/.test(code2) || ["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "YNX_PAIR_TRANSPORT_DRAINING", "YNX_PAIR_CLEANUP_UNCONFIRMED"].includes(code2))) return code2;
+    } catch {
+    }
+    return "UNCLASSIFIED";
+  }
   var WalletConnectDAppConnection = class {
     #origin;
     #methods;
@@ -27088,6 +27097,12 @@ ${item.productId}`));
     #draining = null;
     #restoring = 0;
     #cancelledAttempt = 0;
+    #connectionState = "not-started";
+    #initializationState = "not-started";
+    #lastStage = "idle";
+    #cleanupObservation = "unobserved";
+    #firstCauseRecorded = false;
+    #firstCauseCode = null;
     constructor({ origin, methods, clientFactory, deadlineMs = 3e4, now = () => Date.now() } = {}) {
       if (!ORIGIN_METHODS.has(origin) || !Array.isArray(methods) || !methods.length && origin !== ADDRESS_ORIGIN || new Set(methods).size !== methods.length || methods.some((method) => !ORIGIN_METHODS.get(origin).includes(method) || !WALLETCONNECT_SESSION_METHODS.includes(method))) fail5("YNX_PAIR_CONFIGURATION_INVALID");
       if (!Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > 12e4) fail5("YNX_PAIR_CONFIGURATION_INVALID");
@@ -27108,6 +27123,7 @@ ${item.productId}`));
       for (const listener of this.#listeners.get(event) ?? []) listener(value);
     }
     #unconfirmed(reason2, attempt) {
+      this.#cleanupObservation = "unknown";
       this.#emit("cancelUnconfirmed", { reason: reason2, attempt, current: attempt === this.#attempt, userCancelled: attempt === this.#cancelledAttempt });
     }
     #initializationCleanupDebt(attempt = this.#attempt) {
@@ -27120,6 +27136,16 @@ ${item.productId}`));
         debt.notificationCause = error;
       }
       return debt;
+    }
+    #observeFirstCause(error) {
+      if (!this.#firstCauseRecorded) {
+        this.#firstCauseRecorded = true;
+        this.#firstCauseCode = observationCode(error);
+      }
+    }
+    /** Local state only. No Core/store reads and no remote cleanup proof. */
+    cleanupSnapshot() {
+      return Object.freeze({ scope: "local-only", attempt: this.#attempt, stage: this.#flight?.stage ?? this.#lastStage, connection: this.#connectionState, initialization: this.#initializationState, inFlight: this.#connectionState === "pending" || !!this.#pending || !!this.#draining || this.#initializationState === "pending" || this.#restoring > 0, draining: !!this.#draining, cancelled: this.#attempt > 0 && this.#cancelledAttempt === this.#attempt, cleanup: this.#cleanupObservation, firstCause: Object.freeze({ present: this.#firstCauseRecorded, code: this.#firstCauseCode }), remoteCleanup: "not-proven", remoteCleanupUnconfirmed: true });
     }
     async #wait(work, { stage = "request", flight, deadline = this.#deadline } = {}) {
       let timer;
@@ -27143,7 +27169,12 @@ ${item.productId}`));
       if (!this.#initializing) {
         const task = Promise.resolve().then(() => this.#factory({ projectId: YNX_PAIR_PROJECT_ID, metadata: { name: "YNX browser connection", description: "Explicit YNX Wallet connection and separate request approval", url: this.#origin, icons: [] }, logger: "silent", storageOptions: { database: `ynx-pair-${new URL(this.#origin).hostname}` } }));
         this.#initializing = task;
-        task.catch(() => {
+        this.#initializationState = "pending";
+        task.then(() => {
+          this.#initializationState = "fulfilled";
+        }, (error) => {
+          this.#initializationState = "rejected";
+          this.#observeFirstCause(error);
           if (this.#initializing === task) this.#initializing = null;
         });
       }
@@ -27237,6 +27268,7 @@ ${item.productId}`));
       if (this.#pending) return this.#pending;
       if (this.#draining) return Promise.reject(Object.assign(new Error("YNX_PAIR_TRANSPORT_DRAINING"), { code: "YNX_PAIR_TRANSPORT_DRAINING", stage: "relay" }));
       const epoch = this.#epoch, attempt = ++this.#attempt;
+      this.#connectionState = "pending";
       const flight = { attempt, origin: this.#origin, stage: "initialization", cancelled: null, cancel: null, terminated: false, idle: () => this.#restoring === 0 && (!this.#flight || this.#flight === flight) };
       flight.cancelled = new Promise((_3, reject) => {
         flight.cancel = () => reject(Object.assign(new Error("YNX_PAIR_CANCELLED"), { code: "YNX_PAIR_CANCELLED", stage: flight.stage }));
@@ -27246,6 +27278,7 @@ ${item.productId}`));
       this.#flight = flight;
       const stage = (value) => {
         flight.stage = value;
+        if (attempt === this.#attempt) this.#lastStage = value;
         if (epoch === this.#epoch) this.#emit("stage", { stage: value, attempt });
       };
       const task = (async () => {
@@ -27326,6 +27359,7 @@ ${item.productId}`));
         this.#emit("connect", { chainId: "0x1917" });
         return this.provider();
       })().catch(async (error) => {
+        this.#observeFirstCause(error);
         flight.terminated = true;
         if (epoch === this.#epoch) this.#epoch++;
         await this.#cancelPairing(epoch);
@@ -27342,6 +27376,11 @@ ${item.productId}`));
         if (this.#flight === flight) this.#flight = null;
         if (this.#draining?.flight !== flight && !flight.record?.paused) flight.record?.leases.delete(flight);
       });
+      task.then(() => {
+        if (attempt === this.#attempt) this.#connectionState = "fulfilled";
+      }, () => {
+        if (attempt === this.#attempt) this.#connectionState = "rejected";
+      });
       this.#pending = task;
       return task;
     }
@@ -27353,6 +27392,7 @@ ${item.productId}`));
       }
       if (!exclusive(record2, flight)) {
         if (this.#draining?.flight !== flight) record2?.leases.delete(flight);
+        if (this.#cleanupObservation !== "unknown") this.#cleanupObservation = "shared-preserved";
         this.#emit("transportCleanup", { attempt: flight.attempt, current: flight.attempt === this.#attempt, status: "shared-preserved", inFlight: this.#draining?.flight === flight });
         return;
       }
@@ -27360,6 +27400,7 @@ ${item.productId}`));
       record2.pauseFlight = flight;
       try {
         await this.#wait(record2.core.relayer.transportClose(), { stage: "cleanup", deadline: Math.min(this.#deadline, 1500) });
+        if (this.#cleanupObservation !== "unknown") this.#cleanupObservation = "transport-paused";
         this.#emit("transportCleanup", { attempt: flight.attempt, current: flight.attempt === this.#attempt, status: "transport-paused", inFlight: this.#draining?.flight === flight });
       } catch {
         this.#unconfirmed("transport-unavailable", flight.attempt);

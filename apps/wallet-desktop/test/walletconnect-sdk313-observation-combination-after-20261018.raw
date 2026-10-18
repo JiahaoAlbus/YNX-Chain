@@ -1,0 +1,23 @@
+✔ original result review retains cancellation and cleanup first codes separately without another effect (1.540667ms)
+✔ original result review observes pending and fulfilled local calls but never invents remote cleanup (0.194ms)
+✔ original result review does not relabel a fulfilled SDK result after a local account validation failure (0.220791ms)
+✔ cancel with no remote cleanup proof keeps the original attempt and prevents a second dispatch (0.127041ms)
+✔ synchronous cancellation before selecting the SDK performs no effect and permits a later explicit first connection (0.148584ms)
+✔ unsolicited disconnect notice cannot launder a cancelled attempt or repeat its cleanup (0.132ms)
+✔ context change during original disconnect prevents a normal-session witness (0.294875ms)
+✔ original SDK observation is bounded, frozen and never invokes effect APIs (0.960791ms)
+✔ observation refuses remote-success claims, missing inflight, extra fields and getters without granting retry (1.491167ms)
+✔ normal page buttons require an explicit connection and show only the approved address (2.190292ms)
+✔ late QR encoding after cancellation cannot restore the URI, native link or approval state (0.350459ms)
+✔ normal original-result button only observes original local calls and never constructs or retries a connection (0.372ms)
+✔ normal original-result UI preserves separate cancel and cleanup codes while UNKNOWN keeps retry disabled (0.925083ms)
+✔ same-copy SDK address factory and normal Wallet controller connect with empty remote permission (2.354292ms)
+✔ same-copy SDK original local cancellation cannot erase the retry barrier after relay drain (3.887917ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 72.457333

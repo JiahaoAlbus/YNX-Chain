@@ -1,0 +1,19 @@
+✔ normal address consumer is lazy and reads only the one approved address and chain (1.259583ms)
+✔ cancel hides pending URI and a late provider cannot become a connected approval (0.186042ms)
+✔ uncertain disconnect is retained without repeated cleanup or new connection writes (0.176459ms)
+✔ explicit initialization cleanup UNKNOWN is retained even after an earlier cancel and prevents reinitialization (0.182916ms)
+✔ original result review retains cancellation and cleanup first codes separately without another effect (0.7095ms)
+✔ original result review observes pending and fulfilled local calls but never invents remote cleanup (0.160792ms)
+✔ original result review does not relabel a fulfilled SDK result after a local account validation failure (0.102958ms)
+✔ normal page buttons require an explicit connection and show only the approved address (1.335417ms)
+✔ late QR encoding after cancellation cannot restore the URI, native link or approval state (0.313ms)
+✔ normal original-result button only observes original local calls and never constructs or retries a connection (0.531334ms)
+✔ normal original-result UI preserves separate cancel and cleanup codes while UNKNOWN keeps retry disabled (0.616166ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 47.738

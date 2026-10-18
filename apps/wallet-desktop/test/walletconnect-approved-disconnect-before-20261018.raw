@@ -1,0 +1,28 @@
+✖ same-copy SDK address factory and normal Wallet controller connect with empty remote permission (2.387334ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 64.787375
+
+✖ failing tests:
+
+test at apps/wallet-desktop/test/walletconnect-address-sdk-matching.test.mjs:9:1
+✖ same-copy SDK address factory and normal Wallet controller connect with empty remote permission (2.387334ms)
+  AssertionError [ERR_ASSERTION]: a clean original approved-session disconnect must not permanently deadlock normal use
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/test/walletconnect-address-sdk-matching.test.mjs:19:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

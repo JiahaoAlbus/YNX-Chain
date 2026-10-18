@@ -1,0 +1,48 @@
+✔ original result review retains cancellation and cleanup first codes separately without another effect (2.319542ms)
+✔ original result review observes pending and fulfilled local calls but never invents remote cleanup (0.218458ms)
+✔ original result review does not relabel a fulfilled SDK result after a local account validation failure (0.109458ms)
+✔ cancel with no remote cleanup proof keeps the original attempt and prevents a second dispatch (0.126208ms)
+✔ synchronous cancellation before selecting the SDK performs no effect and permits a later explicit first connection (0.137458ms)
+✔ unsolicited disconnect notice cannot launder a cancelled attempt or repeat its cleanup (0.129167ms)
+✔ context change during original disconnect prevents a normal-session witness (0.285833ms)
+✔ original SDK observation is bounded, frozen and never invokes effect APIs (0.6535ms)
+✖ observation refuses remote-success claims, missing inflight, extra fields and getters without granting retry (0.967833ms)
+✔ normal page buttons require an explicit connection and show only the approved address (2.0725ms)
+✔ late QR encoding after cancellation cannot restore the URI, native link or approval state (0.356959ms)
+✔ normal original-result button only observes original local calls and never constructs or retries a connection (0.342375ms)
+✔ normal original-result UI preserves separate cancel and cleanup codes while UNKNOWN keeps retry disabled (0.812875ms)
+✔ same-copy SDK address factory and normal Wallet controller connect with empty remote permission (2.444292ms)
+✔ same-copy SDK original local cancellation cannot erase the retry barrier after relay drain (4.054917ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 14
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 68.217083
+
+✖ failing tests:
+
+test at apps/wallet-desktop/test/walletconnect-address-observation.test.mjs:11:1
+✖ observation refuses remote-success claims, missing inflight, extra fields and getters without granting retry (0.967833ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'unavailable'
+  - 'invalid'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/test/walletconnect-address-observation.test.mjs:12:190)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'unavailable',
+    expected: 'invalid',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

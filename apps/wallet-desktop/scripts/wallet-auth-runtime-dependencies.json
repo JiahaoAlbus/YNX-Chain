@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "sdkCommit": "20499b17f3b0600ec6cf5316fd2a5d6c8e64cdf5",
+  "sdkCommit": "a4f96f843c57f3d44d6d0ae6e778f1782cfd5d5c",
   "provider": {
     "version": "0.1.0-candidate.2",
     "bytes": 17804,
@@ -1595,5 +1595,5 @@
       "sha256": "93c41d45d78dce23ec449b214e29a6a161d154ed8dd2a40fe79fb0f67c7f647f"
     }
   ],
-  "profile": "Same 316 IDE/PQ bytes as SDK311 from original reusable clean119 dependency closure; this is not the entire WalletConnect runtime."
+  "profile": "Same 316 IDE/PQ dependency file identities as SDK312; dependency versions unchanged. Original clean119 full closure is separately required for WalletConnect browser bundling."
 }

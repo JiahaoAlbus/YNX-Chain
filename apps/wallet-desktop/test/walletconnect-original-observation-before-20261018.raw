@@ -1,0 +1,30 @@
+✖ original result review retains cancellation and cleanup first codes separately without another effect (1.455542ms)
+✖ original result review observes pending and fulfilled local calls but never invents remote cleanup (0.104709ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 47.369125
+
+✖ failing tests:
+
+test at apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs:63:1
+✖ original result review retains cancellation and cleanup first codes separately without another effect (1.455542ms)
+  TypeError: f.ui.checkOriginal is not a function
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs:67:20)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs:74:1
+✖ original result review observes pending and fulfilled local calls but never invents remote cleanup (0.104709ms)
+  TypeError: f.ui.checkOriginal is not a function
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs:76:24)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)

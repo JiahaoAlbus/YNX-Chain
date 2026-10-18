@@ -1,0 +1,28 @@
+✖ formal SDK313 plus original App cannot reconnect after cancellation with remote cleanup unproven (4.0645ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 168.583791
+
+✖ failing tests:
+
+test at ../../ynx-wallet-pq-sdk-r3m-20261018/sdk313-app-composition/original-cancel-reconnect.test.mjs:9:1
+✖ formal SDK313 plus original App cannot reconnect after cancellation with remote cleanup unproven (4.0645ms)
+  AssertionError [ERR_ASSERTION]: unproven remote cleanup must keep reconnect blocked
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/ynx-wallet-pq-sdk-r3m-20261018/sdk313-app-composition/original-cancel-reconnect.test.mjs:22:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
