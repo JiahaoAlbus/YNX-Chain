@@ -54,7 +54,7 @@ class NativeWalletWidget extends BaseWidget {
         const request=new AbortController();identityRequest=request;identityBusy(true);identityStatus.textContent=t('identityWaiting');
         void Promise.resolve().then(()=>{if(!live||request.signal.aborted)throw Object.assign(Error('Cancelled'),{name:'AbortError'});return bridge[kind]({signal:request.signal});}).then(result=>{
           if(live&&identityRequest===request&&!request.signal.aborted)identityStatus.textContent=t(result?.phase==='response-received'&&result.authorized===false&&result.dataOnly===true?'identityReceived':'identityFailed');
-        },error=>{if(live&&identityRequest===request)identityStatus.textContent=t(error?.name==='AbortError'?'identityCancelled':identityFailureKey(error));}).finally(()=>{if(identityRequest===request){identityRequest=undefined;if(live)identityBusy(false);}});
+        },error=>{if(live&&identityRequest===request)identityStatus.textContent=t(request.signal.aborted||error?.name==='AbortError'?'identityCancelled':identityFailureKey(error));}).finally(()=>{if(identityRequest===request){identityRequest=undefined;if(live)identityBusy(false);}});
       });
     }
     this.node.append(identityCancel);

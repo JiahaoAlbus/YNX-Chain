@@ -68,6 +68,22 @@ test('one active request and pre-aborted selection cannot dispatch another Nativ
   const controller=new AbortController();controller.abort();await assert.rejects(f.window.ynxDesktopIdentity.recover({signal:controller.signal}),{name:'AbortError'});
   assert.equal(f.frames.length,1);f.reply(f.frames[0]);await pending;
 });
+test('retired document rejects late receive and recovery without another Native dispatch',async()=>{
+  const f=fixture(),pending=f.window.ynxDesktopIdentity.receive();
+  const body=f.frames[0];f.events.get('pagehide')();await assert.rejects(pending);
+  f.reply(body);const sent=f.frames.length;
+  for(const kind of ['receive','recover']){
+    const late=f.window.ynxDesktopIdentity[kind]();
+    // Collect any leaked pending request so a failing test leaves no rejection.
+    const outcome=late.then(()=>undefined,error=>error);
+    const actual=f.frames.length;
+    if(actual!==sent)f.events.get('pagehide')();
+    const error=await outcome;
+    assert.equal(actual,sent,'retired document must not create another Native request');
+    assert.equal(error?.code,'IDE_IDENTITY_DOCUMENT_RETIRED');
+    assert.equal(f.timers.size,0);
+  }
+});
 async function widgetFixture(){
   const require=createRequire(import.meta.url),locale=require('../runtime/ynx-workbench/lib/native-wallet-localization.js');
   class Element{constructor(){this.children=[];this.events={};}append(...nodes){this.children.push(...nodes);}setAttribute(){}addEventListener(name,fn){this.events[name]=fn;}click(){this.events.click();}}
@@ -104,6 +120,15 @@ test('actual Widget dispose cancels pending identity selection without later UI 
   const f=await widgetFixture();f.find('identityReceive').click();await f.flush();const text=f.widget.node.children.map(n=>n.textContent);
   f.widget.dispose();assert.equal(f.entered[0].signal.aborted,true);f.resolve({phase:'response-received',authorized:false,dataOnly:true});await f.flush();
   assert.deepEqual(f.widget.node.children.map(n=>n.textContent),text);
+});
+test('actual Widget preserves explicit cancellation when the retired operation rejects late',async()=>{
+  const f=await widgetFixture();f.find('identityReceive').click();await f.flush();
+  f.find('identityCancel').click();
+  f.reject(Object.assign(Error('late receiver failure'),{code:'AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED'}));await f.flush();
+  assert.ok(f.find('identityCancelled'));
+  assert.equal(f.find('identityReceiverUnavailable'),undefined);
+  assert.equal(f.find('identityReceive').disabled,false);
+  assert.equal(f.entered.length,1);f.widget.dispose();
 });
 test('actual Widget distinguishes missing parent, protected receiver and recovery supplier without changing session',async()=>{
   for(const [code,key] of [['IDE_NODE_ACTUAL_PARENT_ENTRY_UNAVAILABLE','identityParentUnavailable'],['AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED','identityReceiverUnavailable'],['AUTH_IDENTITY_RECOVERY_CONSUMER_NOT_IMPLEMENTED','identityRecoveryUnavailable'],['AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED','identitySourceUnverified']]){

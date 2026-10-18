@@ -2,6 +2,7 @@
 (()=>{
   if(location.pathname!=='/')return;
   const jobs=new Map(),document=crypto.randomUUID();
+  let retired=false;
   Object.defineProperty(window,'__ynxIdentityDocument',{value:document});
   const send=(action,id)=>window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,document});
   const cancel=id=>{try{send('native-identity-cancel',id);}catch{}};
@@ -26,6 +27,9 @@
     finish(event.id,null,Object.freeze({phase:'response-received',authorized:false,dataOnly:true}));
   }});
   const run=(kind,options={})=>new Promise((resolve,reject)=>{
+    // A retained callback cannot restart work from a document that has left
+    // its original window. Only a fresh document receives a fresh bridge.
+    if(retired){const error=new Error('Native identity document retired');Object.defineProperty(error,'code',{value:'IDE_IDENTITY_DOCUMENT_RETIRED'});reject(error);return;}
     if(options.signal?.aborted){reject(new DOMException('Cancelled','AbortError'));return;}
     if(jobs.size){reject(new Error('A native identity request is already active'));return;}
     const id=crypto.randomUUID(),signal=options.signal;
@@ -35,5 +39,5 @@
     try{send('native-identity-'+kind,id);}catch(error){finish(id,error);}
   });
   Object.defineProperty(window,'ynxDesktopIdentity',{value:Object.freeze({receive:options=>run('receive',options),recover:options=>run('recover',options)})});
-  addEventListener('pagehide',()=>{for(const id of [...jobs.keys()])finish(id,new Error('Native identity document retired'));},{once:true});
+  addEventListener('pagehide',()=>{retired=true;for(const id of [...jobs.keys()])finish(id,new Error('Native identity document retired'));},{once:true});
 })();
