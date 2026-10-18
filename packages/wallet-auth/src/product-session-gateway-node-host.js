@@ -384,8 +384,9 @@ export class ProductSessionGatewayNodeHost {
     if(referenceRoute){
       if(!this.#accountPolicy)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Reference returns require the original normal policy service');
       let input;try{input=JSON.parse(body);}catch{fail('INVALID_BODY','Reference body is invalid');}
-      publication=route===RETURN_BASE?null:this.#handler.returnPublication(input.reference);
-      session=route===RETURN_BASE?null:this.#handler.returnPublicationSession(input.reference);
+      const publisherRead=route===RETURN_BASE+'/outcome'&&input.selector==='YNX-PRODUCT-SESSION-PUBLICATION/v1';
+      publication=route===RETURN_BASE?null:publisherRead?this.#handler.returnPublicationByRequestId(input.publicationRequestId):this.#handler.returnPublication(input.reference);
+      session=route===RETURN_BASE?null:publisherRead?this.#handler.returnPublicationSessionByRequestId(input.publicationRequestId):this.#handler.returnPublicationSession(input.reference);
     }
     return this.#withAccountPolicy({requestId,method:'POST',path:route,body,proofHeader,walletControlProofHeader,session,at:this.#now().toISOString(),...(referenceRoute?{publication}:{})},accountContext=>{
       this.#assertStateIdentity();
@@ -415,6 +416,10 @@ export class ProductSessionGatewayNodeHost {
   async readOriginalProductSessionReturnCompletionOutcome(input){
     this.#referenceInput(input,['requestId','reference','request','completion']);
     return this.#executePolicyRequest({requestId:input.requestId,route:RETURN_BASE+'/outcome',body:canonicalJSON({reference:input.reference,request:input.request,completion:input.completion})});
+  }
+  async readOriginalProductSessionPublicationOutcome(input){
+    this.#referenceInput(input,['requestId','publicationRequestId','request','approval']);
+    return this.#executePolicyRequest({requestId:input.requestId,route:RETURN_BASE+'/outcome',body:canonicalJSON({selector:'YNX-PRODUCT-SESSION-PUBLICATION/v1',publicationRequestId:input.publicationRequestId,request:input.request,approval:input.approval})});
   }
   // Owning caller recovery after publish ACK loss: metadata, never a grant.
   readOriginalProductSessionReturnOutcome(requestId){

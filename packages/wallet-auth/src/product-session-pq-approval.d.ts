@@ -40,6 +40,9 @@ export const PQ_PRODUCT_SESSION_PURPOSE:'PRODUCT-SESSION-APPROVAL';
  * Explicit matching approvedServiceConsent is required for finite service requests. */
 export function preparePQProductSessionApproval(registry:unknown,request:unknown,input:{account:string;expiresAt:string;approvedServiceConsent?:FinanceFiniteServiceConsent},observation:ProductSessionAccountPolicyObservation,at?:Date):PQProductSessionSigningPlan;
 export function verifyPQProductSessionApproval(registry:unknown,request:unknown,approval:unknown,observation:ProductSessionAccountPolicyObservation,at?:Date):Readonly<{approval:PQProductSessionApproval;verifiedApproval:VerifiedPQProductSessionApproval}>;
+/** Read-only full N1 math with fresh Source and original signed time. No live
+ * approval/completion capability is registered or returned; no grant/issuance. */
+export function verifyPQProductSessionPublicationApproval(registry:unknown,request:unknown,approval:unknown,observation:ProductSessionAccountPolicyObservation,at?:Date):Readonly<{approval:PQProductSessionApproval;requestDigest:string}>;
 /** Node-only: signed time is original, Source time is fresh NOW. R1 supplies
  * current active pair only; a different historical revision is refused. The
  * target is not a session grant; consume verification while the owner is live. */

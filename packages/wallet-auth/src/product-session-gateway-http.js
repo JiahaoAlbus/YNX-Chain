@@ -10,6 +10,8 @@ export class ProductSessionGatewayHttpHandler {
   #kernel;
   constructor(registry, tokenFactory, snapshot, capacityPolicy, accountContext = null) { this.#kernel = new ProductSessionGatewayKernel(registry, tokenFactory, snapshot, capacityPolicy, accountContext); }
   returnPublication(reference){return this.#kernel.returnPublication(reference);}
+  returnPublicationByRequestId(requestId){return this.#kernel.returnPublicationByRequestId(requestId);}
+  returnPublicationSessionByRequestId(requestId){return this.#kernel.returnPublicationSessionByRequestId(requestId);}
   returnPublicationSession(reference){return this.#kernel.returnPublicationSession(reference);}
   readOriginalReturnPublicationOutcome(requestId){return this.#kernel.readOriginalReturnPublicationOutcome(requestId);}
 

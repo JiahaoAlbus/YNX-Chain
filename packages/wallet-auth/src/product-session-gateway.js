@@ -8,7 +8,7 @@ import { canonicalJSON, digestHex, exactFields, WalletAuthError } from "./canoni
 import { httpBodyDigest } from "./session-proof.js";
 import { assertProductSessionControlOwnerAdmission, parseProductSessionControlCapacityPolicy } from "./product-session-control-capacity.js";
 import { parseProductSessionRegistry } from "./product-session-registry.js";
-import { deviceBinding, parseProductSession, parseProductSessionApproval, parseProductSessionChallenge, ProductSessionAuthority, parseProductSessionAuthoritySnapshot } from "./product-session-v2.js";
+import { deviceBinding, parseProductSession, parseProductSessionApproval, parseProductSessionChallenge, productSessionApprovalDigest, ProductSessionAuthority, parseProductSessionAuthoritySnapshot } from "./product-session-v2.js";
 import { productSessionProofV2Digest, verifyProductSessionProofV2 } from "./product-session-proof-v2.js";
 import {readAccountPolicyObservation,assertSessionAccountPolicy} from './product-session-account-private.js';
 import { verifyWalletSessionControlProof, walletSessionControlReplayKey, walletSessionControlReplayExpiry, walletSessionControlClockAnchor, walletSessionControlClockAnchorTime, walletSessionControlClockFloor, WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_INTENT_PATHS } from "./wallet-session-control.js";
@@ -50,6 +50,7 @@ export class ProductSessionGatewayKernel {
   }
 
   dispatch(input, at = new Date()) {
+    if(input?.path==='/v2/product-sessions/returns/outcome'&&input?.body?.selector==='YNX-PRODUCT-SESSION-PUBLICATION/v1')return this.#publicationOutcome(input,at);
     const instant = validDate(at);
     const lastSeen = this.#controlIntents === null ? walletSessionControlClockFloor({ consumedProofs: this.#proofs, audit: this.#audit }) : productSessionControlClockFloor(this.snapshot());
     const clockRegressed = instant.getTime() < lastSeen, auditTime = new Date(Math.max(instant.getTime(), lastSeen));
@@ -197,10 +198,37 @@ export class ProductSessionGatewayKernel {
     const row=this.#returns?.records.find(r=>r.reference===reference);if(!row)return null;
     return Object.freeze({requestRaw:row.requestRaw,approvalRaw:row.approvalRaw,completed:row.status==='completed'});
   }
+  returnPublicationByRequestId(requestId){const row=this.#returns?.records.find(r=>r.requestId===requestId);return row?this.returnPublication(row.reference):null;}
+  returnPublicationSessionByRequestId(requestId){const row=this.#returns?.records.find(r=>r.requestId===requestId);return row?this.returnPublicationSession(row.reference):null;}
+  #publicationOutcome(input,at){
+    let requestId='req_invalid_request_000';
+    try{
+      const request=parseInput(input);requestId=request.requestId;const instant=validDate(at);
+      if(!request.networkAvailable)fail('NETWORK_UNAVAILABLE','Publication read requires the normal service');
+      if(request.proof!==null||request.walletControlProof!=null)fail('UNEXPECTED_PROOF','Publication recovery uses the full original Wallet approval');
+      if(this.#accountContext?.required!==true)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Publication recovery requires the original current Source');
+      const floor=this.#controlIntents===null?walletSessionControlClockFloor({consumedProofs:this.#proofs,audit:this.#audit}):productSessionControlClockFloor(this.snapshot());
+      if(instant.getTime()<floor)fail('CLOCK_UNAVAILABLE','Publication recovery is behind durable authority history');
+      const body=request.body;exactFields(body,['selector','publicationRequestId','request','approval'],'Original publication recovery selector');
+      if(body.selector!=='YNX-PRODUCT-SESSION-PUBLICATION/v1'||typeof body.publicationRequestId!=='string'||!/^req_[A-Za-z0-9_-]{12,80}$/.test(body.publicationRequestId)||body.approval?.version!=='3'||new TextEncoder().encode(canonicalJSON({request:body.request,approval:body.approval})).length>196608)fail('INVALID_BODY','Publication recovery requires exact bounded original N1 approval');
+      this.#assertAccountPolicy(body.approval,instant);
+      const row=this.#returns?.records.find(r=>r.requestId===body.publicationRequestId);
+      if(!row)return response(200,requestId,{ok:true,result:Object.freeze({state:'not_found',retryAuthorized:false})});
+      if(canonicalJSON(body.request)!==row.requestRaw||canonicalJSON(body.approval)!==row.approvalRaw)fail('SESSION_BINDING_MISMATCH','Publication recovery differs from the exact saved original');
+      const approval=JSON.parse(row.approvalRaw),state=this.#authority.snapshot(),binding=deviceBinding(approval,approval.account);
+      this.#assertAccountPolicy(approval,instant);
+      if(state.revokedDevices.includes(binding)||state.revokedAccounts.some(r=>r.account===approval.account&&approval.issuedAt<=r.before)||this.#deviceScopes.some(r=>r.account===approval.account&&r.deviceBinding===binding&&approval.issuedAt<=r.before)||row.sessionBinding&&state.revokedSessions.includes(row.sessionBinding))fail('SESSION_REVOKED','Original publication was revoked');
+      if(row.sessionBinding&&this.#controlIntents!==null)assertProductSessionControlSessionAllowed(this.snapshot(),row.sessionBinding,instant);
+      return response(200,requestId,{ok:true,result:this.readOriginalReturnPublicationOutcome(body.publicationRequestId)});
+    }catch(error){const normalized=normalizeError(error);return response(normalized.status,requestId,{ok:false,error:{code:normalized.code,message:normalized.message}});}
+    // Deliberately no audit, nonce, challenge, expiry, cache or state mutation.
+  }
   returnPublicationSession(reference){const row=this.#returns?.records.find(r=>r.reference===reference);return row?.sessionBinding?this.#authority.snapshot().sessions.find(s=>s.sessionBinding===row.sessionBinding)??null:null;}
   readOriginalReturnPublicationOutcome(requestId){
     const row=this.#returns?.records.find(r=>r.requestId===requestId);
-    return Object.freeze(row?{state:row.status,reference:row.reference,expiresAt:row.expiresAt,requestDigest:JSON.parse(row.approvalRaw).requestDigest,retryAuthorized:false}:{state:'not_found',retryAuthorized:false});
+    if(!row)return Object.freeze({state:'not_found',retryAuthorized:false});
+    const approval=JSON.parse(row.approvalRaw);
+    return Object.freeze({state:row.status,reference:row.reference,expiresAt:row.expiresAt,requestDigest:approval.requestDigest,account:approval.account,approvalDigest:productSessionApprovalDigest(approval),retryAuthorized:false});
   }
   #setReturn(row){
     const rows=[...(this.#returns?.records??[])],index=rows.findIndex(r=>r.reference===row.reference);
@@ -249,6 +277,13 @@ export class ProductSessionGatewayKernel {
       if(canonicalJSON(body.completion)!==row.completionRaw)fail('IDEMPOTENCY_CONFLICT','Reference completion differs from its captured original');
       const session=this.#authority.snapshot().sessions.find(s=>s.sessionBinding===row.sessionBinding);if(!session)fail('SESSION_NOT_FOUND','Original completed session is unavailable');
       if(this.#controlIntents!==null)assertProductSessionControlSessionAllowed(this.snapshot(),session.sessionBinding,at);
+      if(outcome&&session.expiresAt<=validDate(at).toISOString()){
+        // Historical target only, after exact device proof, fresh policy and
+        // revocation/control checks. Never an active introspection or grant.
+        if(state.revokedSessions.includes(session.sessionBinding))fail('SESSION_REVOKED','Original completed session was revoked');
+        if(session.issuedAt>at.toISOString())fail('ISSUED_IN_FUTURE','Original session is ahead of authority time');
+        return Object.freeze({state:'expired',session,retryAuthorized:false});
+      }
       const {chainId,productId,clientId,platform,applicationId,bundleId,packageId,origin,callback,account,deviceId,deviceKey}=session;
       const live=this.#authority.introspect(session.sessionBinding,{chainId,productId,clientId,platform,applicationId,bundleId,packageId,origin,callback,account,deviceId,deviceKey,requiredScopes:[]},at).session;
       return outcome?Object.freeze({state:'completed',session:live,retryAuthorized:false}):live;

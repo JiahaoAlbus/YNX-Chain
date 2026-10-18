@@ -300,7 +300,9 @@ export interface ProductSessionGatewayFetchAdapter {
   returnChallenge(input:Readonly<{requestId:string;reference:string;request:unknown}>):Promise<Readonly<Record<string,unknown>>>;
   completeReturn(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<Readonly<Record<string,unknown>>>;
   returnOutcome(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<Readonly<Record<string,unknown>>>;
+  publicationOutcome(input:Readonly<{requestId:string;publicationRequestId:string;request:unknown;approval:unknown}>):Promise<ProductSessionPublicationOutcome>;
 }
+export type ProductSessionPublicationOutcome=Readonly<{state:'not_found';retryAuthorized:false}>|Readonly<{state:'pending'|'completed';reference:string;expiresAt:string;requestDigest:string;account:string;approvalDigest:string;retryAuthorized:false}>;
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
 export type ProductSessionPlatform="android"|"ios"|"linux"|"macos"|"web"|"windows";

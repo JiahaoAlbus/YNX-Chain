@@ -12,6 +12,7 @@ import { canonicalJSON, exactFields } from "../src/canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "../src/gateway-admission.js";
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
+import {buildOriginalHostPublisherOptions,bindOriginalHostReturnPublisher} from '../native/publication-readonly-source-r28-20261018/source/service-publisher.mjs';
 import {createOriginalWalletRuntimeObserverLifetime} from './original-wallet-runtime-observer-launcher.mjs';
 import {createOriginalWalletServicePrivateDispatch,beginOriginalWalletServicePrivateDispatchAcquisition,closeOriginalWalletServicePrivateDispatchAcquisition,originalWalletServicePrivateDispatchAcquisitionStatus} from '../src/original-wallet-service-private-dispatch.js';
 import {ProductSessionControlNodeHost} from '../src/product-session-control-node-host.js';
@@ -69,7 +70,12 @@ if(originalAuthSourceStartup?.partial){
  Object.assign(failure,{partial:originalAuthSourceStartup.partial,cleanupCausePresent,cleanupCause});throw failure;
 }
 const originalAuthSourceCurrent=originalAuthSourceStartup;
-const productHost=new ProductHost(productRegistry,{statePath:productSessionStatePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),...(productSessionStateVersion==='3'?{capacityPolicy}:{authIdentitySourceCurrent:originalAuthSourceCurrent})});
+const originalProductHostOptions={statePath:productSessionStatePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),...(productSessionStateVersion==='3'?{capacityPolicy}:{authIdentitySourceCurrent:originalAuthSourceCurrent})};
+const productHostOptions=productSessionStateVersion==='2'?{
+ ...originalProductHostOptions,
+ ...buildOriginalHostPublisherOptions(productRegistry,{statePath:originalProductHostOptions.statePath,now:originalProductHostOptions.now,tokenFactory:originalProductHostOptions.tokenFactory})
+}:originalProductHostOptions;
+const productHost=new ProductHost(productRegistry,productHostOptions);
 // Separate identity-only history; never migrate/reset either existing product
 // state format or its clock/nonce/control high-water marks to enable SSO.
 if(!centralBrowser&&process.env.YNX_CENTRAL_OIDC_CONFIG_FILE)throw new Error('OIDC requires explicit Central browser adoption');
@@ -91,6 +97,7 @@ const gatewayHandler=async(request,response)=>{
 const server=productSessionStateVersion==='2'
  ?productHost.createOriginalWalletServiceRuntimeDaemonServer({legacyHost:host,central,admission,emitEvent})
  :createServer((request,response)=>{const ticket=admission.enter(forwardedClient(request));if(!ticket.ok){response.writeHead(ticket.status,{"cache-control":"no-store","content-type":"application/json; charset=utf-8","retry-after":"60"});response.end(canonicalJSON({error:{code:ticket.code,message:"Wallet Gateway admission policy rejected the request"},ok:false}));return}response.once("finish",ticket.release);response.once("close",ticket.release);Promise.resolve(gatewayHandler(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{"cache-control":"no-store","content-type":"application/json; charset=utf-8"});response.end(canonicalJSON({error:{code:"INTERNAL_ERROR",message:"Wallet Gateway request failed"},ok:false}))}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:"unknown",event:"handler_error",level:"error",service:"ynx-wallet-gatewayd"})})});
+let originalReturnPublisher=null; // Main-only original Host binding, never a public metadata route.
 const originalRuntimeLifetime=createOriginalWalletRuntimeObserverLifetime(productHost,server);
 // Original recognized Native startup borrow has not been supplied. This is
 // not fd4 discovery, ENV configuration or a public callback installer.
@@ -114,7 +121,10 @@ function drainOriginalOwners(){
  originalOwnerDrain=Promise.resolve().then(async()=>{
   let privateFailure=false,privateCause;
   const cleanup=async action=>{try{await action();}catch(cause){if(!privateFailure){privateFailure=true;privateCause=cause;}}};
+  await cleanup(()=>{if(originalReturnPublisher)originalReturnPublisher.retire();});
   await cleanup(()=>{if(originalPrivateDispatch)originalPrivateDispatch.retire();});
+  await cleanup(async()=>{if(originalReturnPublisher)await originalReturnPublisher.join();});
+  await cleanup(async()=>{if(originalReturnPublisher)await originalReturnPublisher.close();});
   await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.retire();});
   await cleanup(async()=>{if(originalPrivateDispatch)await originalPrivateDispatch.join();});
   await cleanup(()=>closeOriginalWalletServicePrivateDispatchAcquisition(originalPrivateAcquisition));
@@ -129,6 +139,7 @@ function drainOriginalOwners(){
 }
 function stopOriginalDaemon(reason){
  if(originalShutdown)return originalShutdown;
+ if(originalReturnPublisher)originalReturnPublisher.retire();
  originalRuntimeLifetime.retire();retireOriginalHTTP();
  // Reserve both independent completions before any foreign callback.
  originalShutdown=Promise.resolve().then(async()=>{
@@ -144,7 +155,12 @@ function stopOriginalDaemon(reason){
   if(!originalObserverFailure&&!originalHTTPFailure&&!originalPrivateTerminalUnknown)process.exit(originalStartupFailure?1:0);
  });return originalShutdown;
 }
-server.listen(port,address,()=>{
+// Select only the real original v2 instance after its runtime server exists.
+// v3 retains its original control/capacity contract, with no silent publisher.
+try{if(productSessionStateVersion==='2')originalReturnPublisher=bindOriginalHostReturnPublisher(productHost);}
+catch(cause){if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;emitEvent({event:'original_return_publisher_startup_failed',level:'error',service:'ynx-wallet-gatewayd',code:cause?.code??'AUTH_PUBLISHER_ORIGINAL_HOST_REQUIRED'});}
+if(originalStartupFailure)void stopOriginalDaemon('return_publisher_startup_failed');
+else server.listen(port,address,()=>{
  originalListenSucceeded=true;
  try{originalRuntimeLifetime.afterListen();}catch(error){originalRuntimeLifetime.retire(error);void originalRuntimeLifetime.close().catch(()=>{});emitEvent({event:'original_runtime_observer_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_RUNTIME_NOT_CONFIGURED'});}
  if(originalPrivateServiceBorrow!==null){

@@ -28,3 +28,18 @@ test('finite client cannot silently begin, widen product, duration or request ex
 test('logout/cancelled explicit finite request never completes a late approval',async()=>{
  const f=fixture(7200),pending=await f.client.beginExplicit(),url=f.returned(pending.request);await f.client.disconnect();const result=await f.client.handleReturn(url);assert.notEqual(result.status,'connected');assert.equal(f.server.snapshot().sessions.length,0);
 });
+test('account selection cannot discard an already-entered device signer before protected completion exists',async()=>{
+ const f=fixture(7200);let entered,release,calls=0;const ready=new Promise(r=>{entered=r;}),gate=new Promise(r=>{release=r;});
+ const {secret:ignored,...deviceConfig}=f.config.device;
+ const client=new RecoverableProductSessionClient({...f.config,device:{...deviceConfig,async sign(input){if(input.purpose==='challenge'){calls++;entered();await gate;}return Buffer.from(p256.sign(Buffer.from(input.payload,'base64url'),device,{format:'der'})).toString('base64url');}}});
+ const pending=await client.beginExplicit(),operation=client.handleReturn(f.returned(pending.request));
+ try{
+  await ready;assert.equal(f.values.has(client.storageKey+':completion'),false);const before=new Map(f.values),next=await client.beginExplicit();
+  assert.equal(next.status,'retry-required');assert.equal(next.outcomeUnknown,true);assert.deepEqual(f.values,before);assert.equal(calls,1);
+ }finally{release();await operation;}
+ assert.equal(f.server.snapshot().sessions.length,0);assert.equal((await client.beginExplicit()).status,'retry-required');assert.equal(calls,1);
+});
+test('confirmed connection cleanup still permits a new explicit account-selection request',async()=>{
+ const f=fixture(7200),pending=await f.client.beginExplicit();assert.equal((await f.client.handleReturn(f.returned(pending.request))).status,'connected');
+ assert.equal(f.values.has(f.client.storageKey+':completion'),false);const next=await f.client.beginExplicit();assert.equal(next.status,'connecting');assert.notEqual(next.request.state,pending.request.state);assert.equal(f.server.snapshot().sessions.length,1);
+});

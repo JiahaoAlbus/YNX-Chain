@@ -61,9 +61,14 @@ export class RecoverableProductSessionClient {
   async #referenceTarget(raw){
     const record=inspectReferenceCompletion(this.#registry,raw,true);this.#assertReferenceOwner(record);
     const outcome=await this.#gateway.returnOutcome({requestId:gatewayRequestId('o',record.request.state),reference:record.reference,request:record.request,completion:record.completion});
-    exactFields(outcome,outcome?.state==='completed'?['state','session','retryAuthorized']:['state','retryAuthorized'],'Original reference outcome');
-    if(outcome.state!=='completed'||outcome.retryAuthorized!==false)fail('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN','Original completion has no confirmed outcome; it cannot be resubmitted');
-    return assertReferenceSession(record,outcome.session);
+    exactFields(outcome,['completed','expired'].includes(outcome?.state)?['state','session','retryAuthorized']:['state','retryAuthorized'],'Original reference outcome');
+    if(!['completed','expired'].includes(outcome.state)||outcome.retryAuthorized!==false)fail('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN','Original completion has no confirmed outcome; it cannot be resubmitted');
+    const target=assertReferenceSession(record,outcome.session);
+    if(outcome.state==='expired'){
+      const now=await this.#now('restore');
+      if(target.expiresAt>now.toISOString())fail('INVALID_GATEWAY_RESPONSE','Auth expiry does not match fresh authority time');
+    }
+    return target; // Possible revocation/expiry target; current grant still needs introspection.
   }
   async #resumeReferenceCompletion(raw,epoch,networkEpoch){
     const current=()=>this.#attemptCurrent(epoch,networkEpoch);
@@ -339,6 +344,21 @@ export class RecoverableProductSessionClient {
     const mutation = this.#beginMutation.then(async () => {
       if (epoch !== this.#beginEpoch) return this.current;
       if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while preparing the Wallet request; explicit Retry is required");
+      // Account selection is not reconciliation. Preserve the exact original
+      // completion (including a signing-UNKNOWN marker) before any cleanup.
+      // Also cover a signer already entered in this process whose result has
+      // not yet reached protected storage after cancellation/network change.
+      const completion=await this.#storage.get(`${this.storageKey}:completion`);
+      if(epoch!==this.#beginEpoch)return this.current;
+      const pending=await this.#storage.get(`${this.storageKey}:pending`);
+      if(epoch!==this.#beginEpoch)return this.current;
+      if(networkEpoch!==this.#networkEpoch||!this.#networkAvailable)return this.#networkTransition('Network changed while checking the original result; it was retained');
+      let retainedSigning=false;
+      if(pending!==null){try{retainedSigning=this.#returnCompletions.has(canonicalJSON(JSON.parse(pending)));}catch{}}
+      if(completion!==null||retainedSigning){
+        this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,'Recover or revoke the original Wallet result before selecting another account',{actions:['retry','disconnect'],outcomeUnknown:true});
+        return this.current;
+      }
       const key = `${this.storageKey}:pending`, raw = canonicalJSON(request);
       let wrote = false;
       const cancelled = async () => {
@@ -741,6 +761,14 @@ export class RecoverableProductSessionClient {
     const pending = await this.#storage.get(`${this.storageKey}:pending`); if (!current()) return this.current;
     try {
       const session = parseProductSession(JSON.parse(raw));
+      const fields=['chainId','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback'];
+      if(fields.some(key=>session[key]!==this.#binding[key])||session.deviceId!==this.#device.id||session.deviceKey!==this.#device.key||canonicalJSON(session.scopes)!==canonicalJSON(this.#device.scopes)){
+        // A misbound protected-storage port must not authorize a different
+        // DApp/device merely because that other session is still valid at Auth.
+        // Preserve it for owning-bridge repair; do not sign, erase or replace.
+        this.#state=state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED,'The saved session belongs to another product or device; it was retained',{actions:['retry']});
+        return this.current;
+      }
       if (pending !== null) {
         const completed = await this.#storage.get(`${this.storageKey}:completion`); if (!current()) return this.current;
         // A newer account-selection request must not restore an older account.

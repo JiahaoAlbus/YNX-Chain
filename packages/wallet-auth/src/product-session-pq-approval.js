@@ -63,6 +63,16 @@ export function verifyPQProductSessionApproval(registry,request,input,policyRef,
  const approval=verifyApproval(registry,request,input,policyRef,at);
  return Object.freeze({approval,verifiedApproval:registerVerifiedPQSessionApproval(approval,approval.requestDigest,policyRef)});
 }
+// Read-only publication lookup, not a live approval capability. Full N1 math
+// uses the original signed time and current Source uses fresh NOW. No map is
+// registered, so this result cannot issue/complete a session or reset expiry.
+export function verifyPQProductSessionPublicationApproval(registry,request,input,policyRef,at=new Date()){
+ if(Buffer.byteLength(canonicalJSON({request,approval:input}))>196608)fail('INVALID_SESSION_STORE');
+ const proofAt=new Date(input?.issuedAt);
+ if(!(at instanceof Date)||!Number.isFinite(at.getTime())||!Number.isFinite(proofAt.getTime())||proofAt>at)fail('INVALID_APPROVAL_TIME');
+ const approval=verifyApproval(registry,request,input,policyRef,at,proofAt);
+ return Object.freeze({approval,requestDigest:approval.requestDigest});
+}
 export function verifyPQProductSessionCompletionRecord(registry,raw,policyRef,at=new Date()){
  if(typeof raw!=='string'||Buffer.byteLength(raw)>196608)fail('INVALID_SESSION_STORE');
  let input;try{input=JSON.parse(raw);}catch{fail('INVALID_SESSION_STORE');}
