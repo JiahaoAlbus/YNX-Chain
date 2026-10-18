@@ -14,15 +14,15 @@ const requestId='req_PUBLIC_REQUEST_001';
 const input=canonicalJSON({requestId,operation:'restore',phase:'time',body:null,proofHeader:null});
 const responseRaw=canonicalJSON({status:200,headers:{'content-type':'application/json','cache-control':'no-store','x-request-id':requestId},body:canonicalJSON({ok:true,requestId,schemaVersion:2,result:{PUBLIC:true}})});
 const entry='file:///PUBLIC/server.mjs';
-function fixture({readyFailure=false,captureFailure=false,terminalFailure=false,closeFailure=false,readProof=null}={}){
- let live=true,captures=0,terminals=0,reads=0,closed=0,currents=0,failAt=Infinity;
+function fixture({readyFailure=false,captureFailure=false,terminalFailure=false,closeFailure=false,readProof=null,onResult=null}={}){
+ let live=true,captures=0,terminals=0,reads=0,closed=0,currents=0,failAt=Infinity,monotonic=0;
  const parent={},owner={...selection,association:{account:'PUBLIC_ACCOUNT'}},events=[];
- const native={acquireOriginalIDEAdmissionParentDelivery:()=>parent,captureOriginalIDEPrivateClient(p){assert.equal(p,parent);captures++;if(captureFailure)throw undefined;return owner;},assertOriginalIDEPrivateClientReady(p){assert.equal(p,owner);if(readyFailure)throw false;},captureOriginalNativePrivateServiceBorrow:p=>p,assertOriginalNativePrivateServiceCurrent(p){assert.equal(p,owner);if(!live||++currents===failAt)throw false;},assertOriginalNativePrivateServiceAdmission(p){assert.equal(p,owner);events.push('admit');},captureOriginalIDEPrivateClientResult(p,...args){assert.equal(p,owner);assert.equal(args.length,4);assert.equal(args[3],responseRaw);events.push('result');},assertOriginalNativePrivateServiceTerminal(p){assert.equal(p,owner);terminals++;if(terminalFailure)throw undefined;},retireOriginalNativePrivateService(){events.push('retire');},joinOriginalNativePrivateService(){events.push('join');},closeOriginalNativePrivateService(){closed++;events.push('close');if(closeFailure)throw false;}};
+ const native={acquireOriginalIDEAdmissionParentDelivery:()=>parent,captureOriginalIDEPrivateClient(p){assert.equal(p,parent);captures++;if(captureFailure)throw undefined;return owner;},assertOriginalIDEPrivateClientReady(p){assert.equal(p,owner);if(readyFailure)throw false;},captureOriginalNativePrivateServiceBorrow:p=>p,assertOriginalNativePrivateServiceCurrent(p){assert.equal(p,owner);if(!live||++currents===failAt)throw false;},assertOriginalNativePrivateServiceAdmission(p){assert.equal(p,owner);events.push('admit');},captureOriginalIDEPrivateClientResult(p,...args){assert.equal(p,owner);assert.equal(args.length,4);assert.equal(args[3],responseRaw);events.push('result');onResult?.();},assertOriginalNativePrivateServiceTerminal(p){assert.equal(p,owner);terminals++;if(terminalFailure)throw undefined;},retireOriginalNativePrivateService(){events.push('retire');},joinOriginalNativePrivateService(){events.push('join');},closeOriginalNativePrivateService(){closed++;events.push('close');if(closeFailure)throw false;}};
  let source=readFileSync(new URL('../src/original-ide-admission-parent-delivery.js',import.meta.url),'utf8').replace(/^import .*;$/mg,'').replaceAll('export ','').replaceAll('import.meta.url','moduleURL').replaceAll("import('./original-ide-private-payload.js')","Promise.resolve(PUBLIC_PAYLOAD)").replaceAll("import('./canonical.js')","Promise.resolve({canonicalJSON:PUBLIC_CANONICAL})").replaceAll("import('./original-wallet-service-admission.js')","Promise.resolve({prepareOriginalWalletServiceAdmission:PUBLIC_PREPARE})");
  if(readProof)native.readOriginalNativePrivateServiceTerminalResult=(p,...args)=>{assert.equal(p,owner);assert.deepEqual(args,['handleReturn','effect',requestId]);reads++;return readProof();};
- const ctx=vm.createContext({types,URL,fileURLToPath,resolve,dirname,join,process:{argv:['PUBLIC','/PUBLIC/server.mjs']},moduleURL:new URL('../src/original-ide-admission-parent-delivery.js',import.meta.url).href,createRequire:()=>()=>native,originalIDEServiceAdmissionStartupSelection:{PUBLIC:true},PUBLIC_PAYLOAD:payload,PUBLIC_CANONICAL:canonicalJSON,PUBLIC_PREPARE:()=>({assertCurrent(){if(!live)throw false;}}),setTimeout,clearTimeout});
+ const ctx=vm.createContext({types,performance:{now:()=>monotonic},URL,fileURLToPath,resolve,dirname,join,process:{argv:['PUBLIC','/PUBLIC/server.mjs']},moduleURL:new URL('../src/original-ide-admission-parent-delivery.js',import.meta.url).href,createRequire:()=>()=>native,originalIDEServiceAdmissionStartupSelection:{PUBLIC:true},PUBLIC_PAYLOAD:payload,PUBLIC_CANONICAL:canonicalJSON,PUBLIC_PREPARE:()=>({assertCurrent(){if(!live)throw false;}}),setTimeout,clearTimeout});
  vm.runInContext(source+'\nthis.api={parent:acquireOriginalIDEAdmissionParentDelivery,acquire:acquireOriginalIDEPrivateServiceChannel,cleanup:getOriginalIDEPrivateServiceChannelCleanup};',ctx);
- return {api:ctx.api,events,invalidate(){live=false;},failNextCurrent(offset=1){failAt=currents+offset;},captures:()=>captures,terminals:()=>terminals,closed:()=>closed,reads:()=>reads};
+ return {api:ctx.api,events,invalidate(){live=false;},failNextCurrent(offset=1){failAt=currents+offset;},captures:()=>captures,terminals:()=>terminals,closed:()=>closed,reads:()=>reads,advance(ms){monotonic+=ms;}};
 }
 // PUBLIC lexical Native/Source stand-ins only. Actual protocol codec is used.
 test('R33 PUBLIC fixed actual JS channel retains same client, full result and independent ACK',async()=>{
@@ -96,4 +96,23 @@ test('R36 DATA proof rejects account/response mismatch, proxies and hidden/acces
  let touched=false;const accessor=r36Proof();Object.defineProperty(accessor,'responseRaw',{get(){touched=true;throw Error('must not execute');},enumerable:true});assert.throws(()=>check(accessor),{code:'IDE_PRIVATE_TERMINAL_CUSTODY_INVALID'});assert.equal(touched,false);
  const hidden=r36Proof();Object.defineProperty(hidden,'hidden',{value:true});assert.throws(()=>check(hidden),{code:'IDE_PRIVATE_TERMINAL_CUSTODY_INVALID'});
  const proxy=new Proxy(r36Proof(),{get(){touched=true;throw Error('must not execute');},getPrototypeOf(){touched=true;throw Error('must not execute');}});assert.throws(()=>check(proxy),{code:'IDE_PRIVATE_TERMINAL_CUSTODY_INVALID'});assert.equal(touched,false);
+});
+
+test('R36 monotonic response deadline refuses overdue I/O before timer callback runs',async()=>{
+ const f=fixture();await f.api.parent(entry);const c=await f.api.acquire(entry),pending=c.original.dispatch(input),frame=await c.framer.nextOutboundFrame();f.advance(16000);
+ assert.throws(()=>c.framer.acceptInboundFrame(payload.createOriginalIDEPrivateResponseFrame(frame,responseRaw)),{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});await assert.rejects(pending,{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});assert.equal(f.events.includes('result'),false);assert.equal(c.original.status().unknown,true);await c.original.close();
+});
+test('R36 monotonic queued frame cannot enter transport after deadline with timer delayed',async()=>{
+ const f=fixture();await f.api.parent(entry);const c=await f.api.acquire(entry),pending=c.original.dispatch(input);f.advance(16000);
+ await assert.rejects(c.framer.nextOutboundFrame(),{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});await assert.rejects(pending,{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});assert.equal(await c.framer.nextOutboundFrame(),null);await c.original.close();
+});
+test('R36 monotonic Native DATA capture crossing deadline cannot fulfill business result',async()=>{
+ let f;f=fixture({onResult:()=>f.advance(16000)});await f.api.parent(entry);const c=await f.api.acquire(entry),pending=c.original.dispatch(input),frame=await c.framer.nextOutboundFrame();
+ assert.throws(()=>c.framer.acceptInboundFrame(payload.createOriginalIDEPrivateResponseFrame(frame,responseRaw)),{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});await assert.rejects(pending,{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});assert.equal(f.events.filter(e=>e==='result').length,1);assert.equal(c.original.selectCurrentOutcome('restore','time',requestId).unknown,true);await c.original.close();
+});
+test('R36 expired original completion may read DATA while business remains UNKNOWN and unrepeatable',async()=>{
+ const f=fixture({readProof:r36Proof});await f.api.parent(entry);const c=await f.api.acquire(entry),pending=c.original.dispatch(r36Input),frame=await c.framer.nextOutboundFrame();f.advance(16000);
+ assert.throws(()=>c.framer.acceptInboundFrame(payload.createOriginalIDEPrivateResponseFrame(frame,responseRaw)),{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});await assert.rejects(pending,{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});
+ const data=c.original.readTerminalCustody('handleReturn','effect',requestId);assert.equal(data.response.body,JSON.parse(responseRaw).body);assert.equal(f.terminals(),0);assert.equal(f.reads(),1);
+ assert.equal(c.original.selectCurrentOutcome('handleReturn','effect',requestId).unknown,true);await assert.rejects(c.original.dispatch(r36Input),{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});await c.original.close();
 });
