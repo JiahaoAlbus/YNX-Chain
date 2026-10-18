@@ -29,6 +29,20 @@ import {captureProductSessionAccountPolicy} from '@ynx-chain/wallet-auth/product
 import {verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
 import {createProductWalletReturnPublisher} from '@ynx-chain/wallet-auth/product-wallet-connection';
 const SDK=Object.freeze({...keySDK,...backupSDK,...contractSDK}),PASSWORD='isolated-PQ-app-fixture-password',SECRET='1'.padStart(64,'0'),CHAIN='a'.repeat(64);
+test('App production PQ entry composes real SDK and encrypted SAME Vault without replacing classic accounts',async t=>{
+ const {createPQKeyPreparationEntry}=await import('../src/wallet-pq-key-entry.mjs');
+ const f=await fixture(t),before=parsePasswordVault(f.original);
+ const entry=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId:CHAIN,id:()=> 'TEST-production-entry'});
+ assert.equal((await entry.generate()).persisted,true);
+ const after=parsePasswordVault(await fs.readFile(f.filePath,'utf8'));
+ assert.deepEqual(after.records,before.records);assert.deepEqual(after.accounts,before.accounts);
+ assert.equal(after.activeAccount,before.activeAccount);assert.equal(after.pqKeyRecords[0].operationId,'TEST-production-entry');
+ f.lifecycle.lock();assert.equal(entry.status().persisted,true);assert.equal(entry.status().keyRetired,true);
+ await f.lifecycle.unlock({password:PASSWORD});
+ const reopened=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId:CHAIN,id:()=> 'TEST-replacement'});
+ const original=await fs.readFile(f.filePath,'utf8');await assert.rejects(reopened.generate());
+ assert.equal(await fs.readFile(f.filePath,'utf8'),original);
+});
 async function fixture(t,pqSDK=SDK){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');
  const lifecycle=new DesktopKeyLifecycle();lifecycle.setFocused(true);

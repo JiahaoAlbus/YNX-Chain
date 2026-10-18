@@ -29,6 +29,7 @@ import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "./rpc.mjs";
 import { YNX_TESTNET_CHAIN_QUANTITY, WALLET_AUTH_PROTOCOL_SOURCE } from "./wallet-auth-contract.mjs";
 import { DesktopAuthorizationController, parseWalletConnectActivation } from "./callback-policy.mjs";
 import { PasswordWalletVault } from "./password-wallet-vault.mjs";
+import {createPQKeyPreparationEntry} from './wallet-pq-key-entry.mjs';
 import * as pqKeySDK from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
 import * as pqBackupSDK from '@ynx-chain/wallet-auth/pq-wallet-backup';
 import * as pqContractSDK from '@ynx-chain/wallet-auth/pq-wallet-contract';
@@ -102,6 +103,7 @@ let familyTronSubmission;
 let familyBitcoinSubmission;
 let multichainSecurityContext=null;
 let walletConnect;
+let pqKeyPreparation;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
 // No lawful SAME-Vault custodian or inherited IDE control stream is provisioned
 // in R8/R9. Only the original main owner may replace this fixed source binding
@@ -422,6 +424,11 @@ handleWalletIPC("wallet:invoice-reference-qr",(_event,input)=>safeIPC(()=>{
   return decodeInvoiceReferenceQR({bytes:Buffer.from(input.bytes),mimeType:input.mimeType,createImage:bytes=>nativeImage.createFromBuffer(bytes)});
 }));
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
+// The custody controller owns its lifecycle.run; do not nest sensitiveIPC.
+handleWalletIPC('wallet:pq-keys-status',()=>safeIPC(()=>pqKeyPreparation.status()));
+handleWalletIPC('wallet:pq-keys-generate',()=>safeIPC(()=>pqKeyPreparation.generate()));
+handleWalletIPC('wallet:pq-keys-reconcile',()=>safeIPC(()=>pqKeyPreparation.reconcile()));
+handleWalletIPC('wallet:pq-keys-cancel',()=>safeIPC(()=>pqKeyPreparation.cancel()));
 handleWalletIPC('wallet:pq-transaction-status',(_event,hash)=>sensitiveIPC(async()=>{
   const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
   if(guard.account!==status.account)throw Object.assign(Error('Select the original account.'),{data:{code:'ACCOUNT_CHANGED'}});
@@ -739,6 +746,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   familyTronSubmission = new FamilyTronSubmission({networks:familyRead.networks,journal:familyRecovery.journal,getContext:familyContext,gate:familyOperationGate});
   familyBitcoinSubmission = new FamilyBitcoinSubmission({networks:familyRead.networks,journal:familyRecovery.journal,getContext:familyContext,gate:familyOperationGate});
   keyAccess.authorizer = passwordVault.authorizer();
+  pqKeyPreparation = createPQKeyPreparationEntry({lifecycle:keyAccess,vault:passwordVault,sdk:Object.freeze({...pqKeySDK,...pqContractSDK}),networkId:PQ_CANONICAL_NETWORK_ID,id:randomUUID});
   walletAuthority = new DesktopWalletAuthority({
     // The existing SDK owns the fixed normal HTTPS caller. No renderer URL,
     // fake provider, second Host or private Native-op substitute is accepted.

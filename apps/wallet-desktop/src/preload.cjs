@@ -1,6 +1,10 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
+  pqKeyPreparationStatus:()=>ipcRenderer.invoke('wallet:pq-keys-status'),
+  generatePQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-generate'),
+  reconcilePQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-reconcile'),
+  cancelPQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-cancel'),
   preparePQTransfer:input=>ipcRenderer.invoke('wallet:pq-transfer-review',input),
   preparePQMigration:input=>ipcRenderer.invoke('wallet:pq-migration-review',input),
   originalAdmissionStatus:()=>ipcRenderer.invoke('wallet:original-admission-status'),
