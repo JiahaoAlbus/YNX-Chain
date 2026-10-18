@@ -56,6 +56,7 @@ type pqActionDexEffects struct {
 type pqActionStakingEffects struct {
 	Delegation BFTStakeDelegation  `json:"delegation"`
 	Unbondings []BFTUnbondingEntry `json:"unbondings"`
+	LegacyFees []BFTFeeEvent       `json:"legacyFees,omitempty"`
 }
 
 type pqActionEffects struct {
@@ -123,7 +124,11 @@ func pqActionOriginal(entry PQCommittedAuthorization) ([]byte, error) {
 		return r.Transport, err
 	}
 	for _, prefix := range []string{pqNativeActionHistoryMemo, pqResourceHistoryMemo, pqDexHistoryMemo, pqStakingHistoryMemo} {
-		if strings.HasPrefix(tx.Memo, prefix) && len(tx.Memo) <= 4*chain.MaxPQActionMemberBytes+1024 {
+		limit := 4*chain.MaxPQActionMemberBytes + 1024
+		if prefix == pqStakingHistoryMemo {
+			limit = 2*MaxPQContractTransactionBytes + len(prefix)
+		}
+		if strings.HasPrefix(tx.Memo, prefix) && len(tx.Memo) <= limit {
 			raw, err := hex.DecodeString(strings.TrimPrefix(tx.Memo, prefix))
 			if err != nil || tx.Memo != prefix+hex.EncodeToString(raw) {
 				return nil, errors.New("noncanonical action history original")
@@ -235,7 +240,7 @@ func ValidatePQActionHistoryView(v PQActionHistoryView, queryHeight int64) (chai
 		if effects.Staking == nil || effects.Resource != nil || effects.DEX != nil || effects.Contract != nil {
 			return fail(errors.New("staking action lacks exclusive original business effects"))
 		}
-		err = validatePQActionStaking(entry, *effects.Staking, auth)
+		err = validatePQActionStaking(entry, *effects.Staking, auth, effects.FeeRecipient)
 	default:
 		err = errors.New("unsupported PQ action kind")
 	}

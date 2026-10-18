@@ -42,26 +42,33 @@ func EncodePQNativeActionTransaction(wire []byte) ([]byte, error) {
 func DecodePQNativeActionTransaction(raw []byte) ([]byte, ynxauth.Action, error) {
 	var e PQTransaction
 	var action ynxauth.Action
-	if len(raw) == 0 || len(raw) > 2*chain.MaxPQActionMemberBytes+256 {
+	if len(raw) == 0 || len(raw) > MaxPQContractTransactionBytes {
 		return nil, action, errors.New("PQ native action transport size is invalid")
 	}
 	if err := json.Unmarshal(raw, &e); err != nil {
 		return nil, action, err
 	}
 	wire, err := hex.DecodeString(e.WireHex)
-	if err != nil || e.Version != 1 || e.Type != PQActionType || e.WireHex != hex.EncodeToString(wire) {
+	if err != nil || len(wire) > chain.MaxPQActionMemberBytes || e.Version != 1 || e.Type != PQActionType || e.WireHex != hex.EncodeToString(wire) {
 		return nil, action, errors.New("noncanonical PQ native action envelope")
-	}
-	canonical, err := EncodePQNativeActionTransaction(wire)
-	if err != nil || !bytes.Equal(canonical, raw) {
-		return nil, action, errors.New("noncanonical or unsupported PQ native action transport")
 	}
 	member, err := ynxbatch.DecodeMember(wire)
 	if err != nil {
 		return nil, action, err
 	}
 	action, err = ynxauth.DecodeAction(member.Message)
-	return wire, action, err
+	if err != nil {
+		return nil, action, err
+	}
+	if isStakingAction(action.Kind) {
+		wire, action, _, err := DecodePQStakingActionTransaction(raw)
+		return wire, action, err
+	}
+	canonical, err := EncodePQNativeActionTransaction(wire)
+	if err != nil || !bytes.Equal(canonical, raw) {
+		return nil, action, errors.New("noncanonical or unsupported PQ native action transport")
+	}
+	return wire, action, nil
 }
 
 // Both routes verify the original Member themselves against the exact current

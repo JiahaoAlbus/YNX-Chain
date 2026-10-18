@@ -171,7 +171,7 @@ func (a *Application) applyPQStakingAction(state executionState, raw []byte, hei
 	fail := func(err error) (executionState, transactionExecution, error) {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
-	wire, action, err := DecodePQNativeActionTransaction(raw)
+	wire, action, originals, err := DecodePQStakingActionTransaction(raw)
 	if err != nil {
 		return fail(err)
 	}
@@ -199,8 +199,18 @@ func (a *Application) applyPQStakingAction(state executionState, raw []byte, hei
 		return fail(err)
 	}
 	i, existed := stakingDelegationIndex(state.stakeDelegations, id)
-	if existed && state.stakeDelegations[i].AuthorizationHistory == "" {
-		return fail(errors.New("PQ staking needs the missing original delegation transactions; an unsigned checkpoint is not a substitute"))
+	opaque := existed && state.stakeDelegations[i].AuthorizationHistory == ""
+	if opaque {
+		prior := CommittedState{ChainID: a.migration.Network.ChainID, Height: height, Accounts: state.accounts, AccountPolicy: state.accountPolicy, StakeDelegations: state.stakeDelegations, Unbondings: state.unbondings, FeeEvents: state.feeEvents.events()}
+		if err := ValidateLegacyStakingOriginals(prior, a.migration, action.Owner, originals); err != nil {
+			return fail(err)
+		}
+		fees := legacyStakingFees(prior.FeeEvents, action.Owner)
+		if !at.IsZero() && at.Before(fees[len(fees)-1].RecordedAt) {
+			return fail(errors.New("PQ staking execution predates its original successful transactions"))
+		}
+	} else if len(originals) != 0 {
+		return fail(errors.New("staking originals are permitted only for the first PQ mutation of an existing opaque delegation"))
 	}
 	i, ok := accountIndex(state.accounts, action.Owner)
 	if !ok || state.accounts[i].Nonce == math.MaxUint64 || action.Nonce != state.accounts[i].Nonce+1 {
@@ -222,7 +232,7 @@ func (a *Application) applyPQStakingAction(state executionState, raw []byte, hei
 	if err != nil {
 		return fail(err)
 	}
-	if err = appendStakingAuthorization(&next, id, existed, raw, height, at); err != nil {
+	if err = appendStakingAuthorization(&next, id, existed && !opaque, raw, height, at); err != nil {
 		return fail(err)
 	}
 	next.feeEvents = next.feeEvents.append(newCurrentFeeEvent(abciHash, PQActionType, action.Owner, a.feeRecipient, 1, height, at))
@@ -239,14 +249,14 @@ func isPQStakingHistory(tx chain.Transaction) bool {
 func decodePQStakingHistory(e PQCommittedAuthorization) ([]byte, ynxauth.Action, error) {
 	tx := e.Transaction
 	var action ynxauth.Action
-	if !isPQStakingHistory(tx) || len(tx.Memo) > 4*chain.MaxPQActionMemberBytes+1024 {
+	if !isPQStakingHistory(tx) || len(tx.Memo) > 2*MaxPQContractTransactionBytes+len(pqStakingHistoryMemo) {
 		return nil, action, errors.New("missing or oversized staking original")
 	}
 	raw, err := hex.DecodeString(strings.TrimPrefix(tx.Memo, pqStakingHistoryMemo))
 	if err != nil || tx.Memo != pqStakingHistoryMemo+hex.EncodeToString(raw) {
 		return nil, action, errors.New("noncanonical staking original")
 	}
-	wire, action, err := DecodePQNativeActionTransaction(raw)
+	wire, action, _, err := DecodePQStakingActionTransaction(raw)
 	if err != nil {
 		return nil, action, err
 	}
@@ -268,11 +278,12 @@ func pqStakingFeeHash(s CommittedState, hash string) bool {
 	return false
 }
 
-// Replays the original business records from their actual PQ creation. Classic
-// staking effects keep their old hashes and cannot supply an implicit baseline.
+// Replays actual PQ events, optionally preceded by complete original classic
+// transactions carried in the first PQ envelope and matched to existing fees.
+// It never invents a classic signature or rewrites an old checkpoint.
 // The replay account is a local arithmetic accumulator only;
 // it grants no live funds and is never written into the committed ledger.
-func replayStakingAuthorization(record BFTStakeDelegation, policy *ynxauth.State, chainID int64, active func(string) bool) (executionState, []verifiedStakingAuthorization, error) {
+func replayStakingAuthorization(record BFTStakeDelegation, policy *ynxauth.State, chainID int64, active func(string) bool, fees []BFTFeeEvent, feeRecipient string) (executionState, []verifiedStakingAuthorization, error) {
 	events, err := decodeStakingAuthorizations(record.AuthorizationHistory)
 	if err != nil {
 		return executionState{}, nil, err
@@ -291,9 +302,10 @@ func replayStakingAuthorization(record BFTStakeDelegation, policy *ynxauth.State
 		if err != nil {
 			return executionState{}, nil, err
 		}
+		var legacy [][]byte
 		if kind == PQActionType {
 			v.PQ = true
-			v.Wire, v.Action, err = DecodePQNativeActionTransaction(event.Transport)
+			v.Wire, v.Action, legacy, err = DecodePQStakingActionTransaction(event.Transport)
 			if err != nil {
 				return executionState{}, nil, err
 			}
@@ -315,7 +327,34 @@ func replayStakingAuthorization(record BFTStakeDelegation, policy *ynxauth.State
 		} else {
 			return executionState{}, nil, errors.New("PQ staking history cannot invent a classic checkpoint witness")
 		}
-		if v.auth.Signer != record.Delegator || v.Nonce <= previousNonce || i == 0 && v.auth.Action != ActionStakeDelegate {
+		if len(legacy) != 0 {
+			if i != 0 || v.Nonce == 0 {
+				return executionState{}, nil, errors.New("classic originals may occur only in the first PQ staking event")
+			}
+			baseline, err := replayLegacyStakingOriginals(record.Delegator, chainID, policy, fees, legacy, event.Height, v.Nonce-1, feeRecipient, active)
+			if err != nil {
+				return executionState{}, nil, err
+			}
+			index, exists := stakingDelegationIndex(baseline.stakeDelegations, record.ID)
+			if !exists {
+				return executionState{}, nil, errors.New("classic originals do not create this delegation")
+			}
+			replay.stakeDelegations = []BFTStakeDelegation{baseline.stakeDelegations[index]}
+			replay.unbondings = stakingUnbondingsFor(baseline.unbondings, record.ID)
+			queued, err := pendingUnbondingSupply(replay.unbondings)
+			if err != nil || queued > math.MaxInt64-replay.stakeDelegations[0].AmountYNXT {
+				return executionState{}, nil, errors.New("classic staking outstanding funds overflow")
+			}
+			replay.accounts[0].Staked = replay.stakeDelegations[0].AmountYNXT
+			replay.accounts[0].Balance = math.MaxInt64 - replay.accounts[0].Staked - queued
+			last, _ := DecodeSignedApplicationAction(legacy[len(legacy)-1])
+			previousNonce = last.Nonce
+			oldFees := legacyStakingFees(fees, record.Delegator)
+			if event.At.Before(oldFees[len(oldFees)-1].RecordedAt) {
+				return executionState{}, nil, errors.New("PQ staking predates its successful classic originals")
+			}
+		}
+		if v.auth.Signer != record.Delegator || v.Nonce <= previousNonce || i == 0 && len(legacy) == 0 && v.auth.Action != ActionStakeDelegate {
 			return executionState{}, nil, errors.New("staking original owner, creation or nonce mismatch")
 		}
 		id, err := stakingActionDelegation(replay, v.auth)
@@ -374,7 +413,7 @@ func validateConsensusPQStaking(s CommittedState, m chain.ConsensusMigrationStat
 		if s.Version < CommittedStateVersion {
 			return errors.New("historical state cannot acquire PQ staking effects")
 		}
-		replay, originals, err := replayStakingAuthorization(record, s.AccountPolicy, s.ChainID, active)
+		replay, originals, err := replayStakingAuthorization(record, s.AccountPolicy, s.ChainID, active, s.FeeEvents, feeRecipient)
 		if err != nil {
 			return err
 		}
@@ -486,6 +525,13 @@ func pqActionStakingEffectsFor(s CommittedState, hash string) (*pqActionStakingE
 				continue
 			}
 			e := &pqActionStakingEffects{Delegation: record}
+			_, _, legacy, err := DecodePQStakingActionTransaction(originals[0].Transport)
+			if err != nil {
+				return nil, err
+			}
+			if len(legacy) != 0 {
+				e.LegacyFees = legacyStakingFees(s.FeeEvents, record.Delegator)
+			}
 			for _, entry := range s.Unbondings {
 				if entry.DelegationID == record.ID {
 					e.Unbondings = append(e.Unbondings, entry)
@@ -497,11 +543,22 @@ func pqActionStakingEffectsFor(s CommittedState, hash string) (*pqActionStakingE
 	return nil, errors.New("staking original has no committed delegation effects")
 }
 
-func validatePQActionStaking(entry PQCommittedAuthorization, effects pqActionStakingEffects, auth PQWalletAccountView) error {
+func validatePQActionStaking(entry PQCommittedAuthorization, effects pqActionStakingEffects, auth PQWalletAccountView, feeRecipient string) error {
 	// Membership here is an observation from the configured RPC, not a light
 	// proof. The producer first verifies it against its real migration validators;
 	// the consumer still replays every original signature and business effect.
-	replay, originals, err := replayStakingAuthorization(effects.Delegation, auth.Policy, auth.NativeChainID, func(v string) bool { return v == effects.Delegation.Validator })
+	// Other original delegations may use other validators. Their active status
+	// was checked by the producer against its migration; this configured-RPC
+	// observation is not an independently authenticated validator-set proof.
+	events, err := decodeStakingAuthorizations(effects.Delegation.AuthorizationHistory)
+	if err != nil {
+		return err
+	}
+	_, _, carried, err := DecodePQStakingActionTransaction(events[0].Transport)
+	if err != nil || len(carried) == 0 && len(effects.LegacyFees) != 0 || len(legacyStakingFees(effects.LegacyFees, auth.Owner)) != len(effects.LegacyFees) {
+		return errors.New("staking query includes unrelated classic fee evidence")
+	}
+	replay, originals, err := replayStakingAuthorization(effects.Delegation, auth.Policy, auth.NativeChainID, func(v string) bool { return v != "" }, effects.LegacyFees, feeRecipient)
 	if err != nil {
 		return err
 	}

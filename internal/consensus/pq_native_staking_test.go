@@ -41,6 +41,140 @@ func pqValidatorStakeBlock(t *testing.T, a *Application, height int64, at time.T
 	commitSponsorBlock(t, a, height, at, raw...)
 }
 
+func TestABCIPQValidatorStakingImportsSuccessfulClassicOriginals(t *testing.T) {
+	f, originals, oldAt := legacyStakingOriginalFixture(t)
+	oldFees := mustJSON(t, f.a.committed.FeeEvents)
+	oldRecords := mustJSON(t, f.a.committed.StakeDelegations)
+	registration := abciRegistrationWire(t, f.classic, nil, f.key, ynxauth.RegistrationIntent{ChainID: f.network, Owner: f.owner, PKA: f.public.PKA, PKB: f.public.PKB, NewRevision: 1, LedgerNonce: 6, ActivateAt: 7})
+	pqValidatorStakeBlock(t, f.a, 6, oldAt.Add(time.Second), mustPQEnvelope(t, PQMigrationType, registration))
+	if !bytes.Equal(oldRecords, mustJSON(t, f.a.committed.StakeDelegations)) {
+		t.Fatal("account migration rewrote opaque classic staking records")
+	}
+	queuedID := ApplicationActionRecordID("stake-unbonding", ApplicationActionHash(originals[4]))
+	firstWire := pqABCIContractWire(t, f, f.key, f.owner, ynxauth.ActionStakeWithdraw, ynxauth.StakeWithdrawPayload{UnbondingID: queuedID}, 7, 1)
+	without, err := EncodePQStakingActionTransaction(firstWire, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pqABCIContractRejected(t, f.a, without)
+	pqABCIContractRejected(t, f.a, mustStakingAction(t, f.classic, ActionStakeWithdraw, StakeWithdrawPayload{UnbondingID: queuedID}, 7))
+	partial, err := EncodePQStakingActionTransaction(firstWire, originals[:len(originals)-1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	pqABCIContractRejected(t, f.a, partial)
+	first, err := EncodePQStakingActionTransaction(firstWire, originals)
+	if err != nil {
+		t.Fatal(err)
+	}
+	check, err := f.a.CheckTx(context.Background(), &abcitypes.RequestCheckTx{Tx: first})
+	if err != nil || check.Code != 0 {
+		t.Fatalf("PQ_CLASSIC_STAKING_ORIGINAL_WITNESS_MISSING: actual original-backed withdrawal rejected: %+v %v", check, err)
+	}
+	release := oldAt.Add(7 * 24 * time.Hour)
+	pqValidatorStakeBlock(t, f.a, 7, release, first)
+	if !bytes.Equal(oldFees, mustJSON(t, f.a.committed.FeeEvents[:len(originals)])) {
+		t.Fatal("original witness charged or changed an old successful fee")
+	}
+	if err = ValidateLegacyStakingOriginals(f.a.committed, f.m, f.owner, originals); err != nil {
+		t.Fatalf("first imported record lost the other original delegation: %v", err)
+	}
+	secondID := stakingDelegationID(f.owner, f.m.Validators[1].Address)
+	secondWire := pqABCIContractWire(t, f, f.key, f.owner, ynxauth.ActionStakeUnbond, ynxauth.StakeUnbondPayload{DelegationID: secondID, AmountYNXT: 4}, 8, 1)
+	second, err := EncodePQStakingActionTransaction(secondWire, originals)
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondAt := release.Add(time.Second)
+	pqValidatorStakeBlock(t, f.a, 8, secondAt, second)
+	more := pqABCIVValidatorStake(t, f, f.key, f.owner, ynxauth.ActionStakeDelegate, ynxauth.StakeDelegatePayload{Validator: f.m.Validators[0].Address, AmountYNXT: 2}, 9)
+	moreWire, _, err := DecodePQNativeActionTransaction(more)
+	if err != nil {
+		t.Fatal(err)
+	}
+	redundant, err := EncodePQStakingActionTransaction(moreWire, originals)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pqABCIContractRejected(t, f.a, redundant)
+	pqValidatorStakeBlock(t, f.a, 9, secondAt.Add(time.Second), more)
+	withdraw := pqABCIVValidatorStake(t, f, f.key, f.owner, ynxauth.ActionStakeWithdraw, ynxauth.StakeWithdrawPayload{UnbondingID: ApplicationActionRecordID("stake-unbonding", SignedTransactionHash(second))}, 10)
+	secondRelease := secondAt.Add(7 * 24 * time.Hour)
+	before := queryConsensusAccount(t, f.a, f.owner)
+	finalizeStakeBlock(t, context.Background(), f.a, 10, secondRelease.Add(-time.Nanosecond), withdraw, false)
+	if !reflect.DeepEqual(before, queryConsensusAccount(t, f.a, f.owner)) {
+		t.Fatal("original-backed premature withdrawal consumed fee, nonce or funds")
+	}
+	pqValidatorStakeBlock(t, f.a, 11, secondRelease, withdraw)
+	account := queryConsensusAccount(t, f.a, f.owner)
+	if account.Balance != 72 || account.Staked != 18 || account.Nonce != 10 || account.ResourceUsage.BandwidthUsed != 10 {
+		t.Fatalf("classic/PQ staking funds were charged or restored twice: %+v", account)
+	}
+	pqValidatorStakeBlock(t, f.a, 12, secondRelease.Add(time.Second), mustPQEnvelope(t, PQRevocationType, f.revocation(t, 11, 12, 1)))
+	pqABCIContractRejected(t, f.a, pqABCIVValidatorStake(t, f, f.key, f.owner, ynxauth.ActionStakeUnbond, ynxauth.StakeUnbondPayload{DelegationID: secondID, AmountYNXT: 1}, 12))
+	cold, err := NewPersistentApplication(f.m, f.path)
+	if err != nil || !bytes.Equal(mustJSON(t, cold.committed), mustJSON(t, f.a.committed)) {
+		t.Fatalf("original-backed staking cold restore changed checkpoint: %v", err)
+	}
+	for _, entry := range cold.committed.PQHistory {
+		if !isPQStakingHistory(entry.Transaction) {
+			continue
+		}
+		view, err := pqActionHistoryView(cold.committed, f.m, entry.Transaction.Hash)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, _, err = ValidatePQActionHistoryView(view, 12); err != nil {
+			t.Fatalf("mixed original query did not preserve historical authority: %v", err)
+		}
+	}
+	// A self-consistently rehashed optional history is still checked against
+	// exact old successful fees and all original classic signatures.
+	for _, mode := range []string{"drop-classic", "fee-time", "original-bytes", "queued", "erase-original-fee"} {
+		t.Run(mode, func(t *testing.T) {
+			var bad CommittedState
+			if err := json.Unmarshal(mustJSON(t, cold.committed), &bad); err != nil {
+				t.Fatal(err)
+			}
+			i, _ := stakingDelegationIndex(bad.StakeDelegations, stakingDelegationID(f.owner, f.m.Validators[0].Address))
+			switch mode {
+			case "drop-classic", "original-bytes":
+				events, _ := decodeStakingAuthorizations(bad.StakeDelegations[i].AuthorizationHistory)
+				var envelope PQStakingActionTransaction
+				if err := json.Unmarshal(events[0].Transport, &envelope); err != nil {
+					t.Fatal(err)
+				}
+				if mode == "drop-classic" {
+					envelope.Originals = envelope.Originals[:len(envelope.Originals)-1]
+				} else {
+					tx, _ := DecodeSignedApplicationAction(envelope.Originals[0])
+					tx.Signature = "00"
+					envelope.Originals[0], _ = json.Marshal(tx)
+				}
+				events[0].Transport, _ = json.Marshal(envelope)
+				encoded, _ := json.Marshal(events)
+				bad.StakeDelegations[i].AuthorizationHistory = string(encoded)
+				bad.StakeDelegations[i].AuditHash = stakingAuditHash(bad.StakeDelegations[i])
+			case "fee-time":
+				bad.FeeEvents[0].RecordedAt = bad.FeeEvents[0].RecordedAt.Add(time.Second)
+				bad.FeeEvents[0].AuditHash = feeEventAuditHash(bad.FeeEvents[0])
+			case "queued":
+				bad.Unbondings[0].AmountYNXT++
+				bad.Unbondings[0].AuditHash = stakingAuditHash(bad.Unbondings[0])
+			case "erase-original-fee":
+				bad.FeeEvents = bad.FeeEvents[1:]
+			}
+			bad.AppHash, err = bad.calculateHash()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = bad.Validate(f.m); err == nil {
+				t.Fatalf("resealed classic witness %s survived cold validation", mode)
+			}
+		})
+	}
+}
+
 // The original 7c5 applyPQActionTransaction dispatcher may be substituted by CI
 // while retaining current codec definitions. Its actual CheckTx rejects this
 // signed delegation with the marker below; no compilation failure is a RED.

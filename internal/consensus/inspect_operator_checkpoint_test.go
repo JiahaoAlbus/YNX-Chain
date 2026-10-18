@@ -2,14 +2,19 @@ package consensus
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	dbm "github.com/cometbft/cometbft-db"
+	"github.com/cometbft/cometbft/libs/log"
+	"github.com/cometbft/cometbft/mempool"
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sm "github.com/cometbft/cometbft/state"
 	cmttypes "github.com/cometbft/cometbft/types"
 )
@@ -174,12 +179,131 @@ func TestInspectOperatorCheckpointActualStoppedDBAllLayoutsAndNextSchedule(t *te
 			if !reflect.DeepEqual(before, inspectionInventory(t, roots...)) {
 				t.Fatal("read-only checkpoint inspection modified original files, DB, HRS or locks")
 			}
+			if result.StakingInventory != (OperatorCheckpointStakingInventory{}) {
+				t.Fatal("empty actual staking checkpoint acquired invented inventory", result.StakingInventory)
+			}
 			f.options.NextAuthorization = nil
 			if result, err := f.inspect(); err != nil || result.NextScheduleHash != nil {
 				t.Fatal("normal unscheduled current profile was replaced by its candidate", result, err)
 			}
 		})
 	}
+}
+
+func TestInspectOperatorCheckpointStakingInventoryFromActualState(t *testing.T) {
+	// This original funded source has no PQ account policy. Its real classic
+	// staking records must remain explicitly opaque, including after withdrawal.
+	h := newFourMemberInspectionHarness(t)
+	f := newOperatorInspectionFixtureWithHarness(t, "atomic-json", h, 0)
+	key := deterministicPrivateKey(111)
+	t.Cleanup(key.Zero)
+	owner := mustNativeAddress(t, key)
+	i, ok := accountIndex(h.app.committed.Accounts, owner)
+	if !ok {
+		t.Fatal("original funded staking owner missing")
+	}
+	nonce := h.app.committed.Accounts[i].Nonce
+	first, second := h.f.migration.Validators[0].Address, h.f.migration.Validators[1].Address
+	id := stakingDelegationID(owner, first)
+	delegate := mustStakingAction(t, key, ActionStakeDelegate, StakeDelegatePayload{Validator: first, AmountYNXT: 40}, nonce+1)
+	other := mustStakingAction(t, key, ActionStakeDelegate, StakeDelegatePayload{Validator: second, AmountYNXT: 30}, nonce+2)
+	unbond := mustStakingAction(t, key, ActionStakeUnbond, StakeUnbondPayload{DelegationID: id, AmountYNXT: 7}, nonce+3)
+	otherUnbond := mustStakingAction(t, key, ActionStakeUnbond, StakeUnbondPayload{DelegationID: id, AmountYNXT: 5}, nonce+4)
+	database, err := dbm.NewGoLevelDB("state", f.options.CometDataDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	func() {
+		defer database.Close()
+		h.raw = sm.NewStore(database, sm.StoreOptions{})
+		// The synthetic commit clock advances by the actual seven-day waiting
+		// period. Real signed commits, BlockExecutor, Commit and Store.Save still
+		// determine both checkpoints; no balances, records or AppHash are injected.
+		f.actual = applyInspectionStakingBlock(t, h, cmttypes.Txs{delegate, other, unbond, otherUnbond}, time.Duration(StakingUnbondingSeconds)*time.Second)
+		if len(h.app.committed.Unbondings) != 2 || h.app.committed.Unbondings[0].Status != "queued" || h.app.committed.Unbondings[1].Status != "queued" {
+			t.Fatal("real unbonding executions did not create both queued records")
+		}
+		unbondID := ApplicationActionRecordID("stake-unbonding", ApplicationActionHash(unbond))
+		withdraw := mustStakingAction(t, key, ActionStakeWithdraw, StakeWithdrawPayload{UnbondingID: unbondID}, nonce+5)
+		f.actual = applyInspectionStakingBlock(t, h, cmttypes.Txs{withdraw}, 0)
+		withdrawn, found := unbondingIndex(h.app.committed.Unbondings, unbondID)
+		if !found || h.app.committed.Unbondings[withdrawn].Status != "withdrawn" || h.app.committed.Unbondings[withdrawn].WithdrawnAt == nil {
+			t.Fatal("real withdrawal did not consume the original queued entry")
+		}
+	}()
+	// A neighboring JSON file is deliberately not a source for inventory.
+	if err := os.WriteFile(filepath.Join(filepath.Dir(h.path), "staking-observation.json"), []byte(`{"delegationCount":"999","opaqueDelegationCount":"999","unbondingCount":"999","unwithdrawnUnbondingCount":"999"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	roots := []string{filepath.Dir(h.path), filepath.Dir(f.options.SigningStatePath), filepath.Dir(f.options.CometDataDirectory)}
+	before := inspectionInventory(t, roots...)
+	committed := mustJSON(t, h.app.committed)
+	want := OperatorCheckpointStakingInventory{DelegationCount: 2, OpaqueDelegationCount: 2, UnbondingCount: 2, UnwithdrawnUnbondingCount: 1}
+	for read := 0; read < 2; read++ {
+		result, err := f.inspect()
+		if err != nil || result.StakingInventory != want || result.Height != f.actual.LastBlockHeight || result.AppHash != h.app.committed.AppHash || result.StateLayout != "atomic-json" || !result.EngineCheckpointVerified || result.PQActivationVerified {
+			t.Fatal("staking inventory was not bound to the actual cold checkpoint", result, err)
+		}
+		var encoded struct {
+			Inventory map[string]string `json:"stakingInventory"`
+		}
+		if err := json.Unmarshal(mustJSON(t, result), &encoded); err != nil || !reflect.DeepEqual(encoded.Inventory, map[string]string{"delegationCount": "2", "opaqueDelegationCount": "2", "unbondingCount": "2", "unwithdrawnUnbondingCount": "1"}) {
+			t.Fatal("staking inventory must encode exact decimal strings", encoded, err)
+		}
+		if !bytes.Equal(committed, mustJSON(t, h.app.committed)) || !reflect.DeepEqual(before, inspectionInventory(t, roots...)) {
+			t.Fatal("staking observation modified original state, DB, HRS, locks or neighboring material")
+		}
+	}
+}
+
+// Only the synthetic commit timestamp differs from the shared engine harness.
+// This permits a real mature withdrawal without sleeping or signing twice at
+// one H/R. The normal BlockExecutor still verifies every original Ed signature
+// and the preceding commit's median-time rule before applying transactions.
+func applyInspectionStakingBlock(t *testing.T, h *engineWiringHarness, txs cmttypes.Txs, commitDelay time.Duration) sm.State {
+	t.Helper()
+	state, err := h.wrapped().Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, err := state.MakeBlock(state.LastBlockHeight+1, txs, h.blocks.LoadSeenCommit(state.LastBlockHeight), nil, state.Validators.GetProposer().Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts, err := block.MakePartSet(cmttypes.BlockPartSizeBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := cmttypes.BlockID{Hash: block.Hash(), PartSetHeader: parts.Header()}
+	commit := &cmttypes.Commit{Height: block.Height, Round: 0, BlockID: id}
+	for i, member := range state.Validators.Validators {
+		key := h.f.legacy[string(member.Address)]
+		if len(key) != ed25519.PrivateKeySize {
+			t.Fatal("staking observation fixture requires original Ed membership")
+		}
+		vote := &cmttypes.Vote{Type: cmtproto.PrecommitType, Height: block.Height, Round: 0, BlockID: id, Timestamp: block.Time.Add(commitDelay + time.Second), ValidatorAddress: bytes.Clone(member.Address), ValidatorIndex: int32(i)}
+		vote.Signature = ed25519.Sign(key, cmttypes.VoteSignBytes(h.f.doc.ChainID, vote.ToProto()))
+		if err := vote.Verify(h.f.doc.ChainID, member.PubKey); err != nil {
+			t.Fatal(err)
+		}
+		commit.Signatures = append(commit.Signatures, vote.CommitSig())
+	}
+	h.blocks.SaveBlock(block, parts, commit)
+	executor := sm.NewBlockExecutor(h.wrapped(), log.NewNopLogger(), h.proxy.Consensus(), &mempool.NopMempool{}, sm.EmptyEvidencePool{}, h.blocks)
+	next, err := executor.ApplyBlock(state, id, block)
+	if err != nil {
+		t.Fatal("actual staking BlockExecutor", err)
+	}
+	response, err := h.raw.LoadFinalizeBlockResponse(block.Height)
+	if err != nil || len(response.TxResults) != len(txs) {
+		t.Fatal("missing actual staking results", err)
+	}
+	for _, result := range response.TxResults {
+		if result.Code != 0 {
+			t.Fatal("original signed staking execution rejected", result.Code, result.Log)
+		}
+	}
+	return next
 }
 
 func TestInspectOperatorCheckpointRejectsOriginalWriterMissingLocksAndUnknown(t *testing.T) {

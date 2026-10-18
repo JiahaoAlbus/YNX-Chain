@@ -19,6 +19,7 @@ type inspectOperatorCheckpointFlags struct {
 	backupOutput                                           string
 	backupLegacyKey, backupNodeKey, signingLockKind        string
 	proposeActivationHeight                                string
+	legacyStakingOwner                                     string
 }
 
 func newInspectOperatorCheckpointCommand() *cobra.Command {
@@ -81,7 +82,7 @@ func newInspectOperatorCheckpointCommand() *cobra.Command {
 					return err
 				}
 			}
-			result, err := consensus.InspectOperatorCheckpoint(migration, genesis, pins, consensus.OperatorCheckpointOptions{StatePath: options.state, StateLayout: options.layout, CometDataDirectory: options.data, SigningStatePath: options.signing, SigningLockKind: options.signingLockKind, Authorization: authorization, NextAuthorization: next, RuntimeUpgrade: runtime, BackupOutput: options.backupOutput, BackupLegacyKeyPath: options.backupLegacyKey, BackupNodeKeyPath: options.backupNodeKey, ProposePQActivationHeight: proposedHeight})
+			result, err := consensus.InspectOperatorCheckpoint(migration, genesis, pins, consensus.OperatorCheckpointOptions{StatePath: options.state, StateLayout: options.layout, CometDataDirectory: options.data, SigningStatePath: options.signing, SigningLockKind: options.signingLockKind, Authorization: authorization, NextAuthorization: next, RuntimeUpgrade: runtime, BackupOutput: options.backupOutput, BackupLegacyKeyPath: options.backupLegacyKey, BackupNodeKeyPath: options.backupNodeKey, ProposePQActivationHeight: proposedHeight, LegacyStakingOwner: options.legacyStakingOwner})
 			if err != nil {
 				return err
 			}
@@ -113,6 +114,7 @@ func newInspectOperatorCheckpointCommand() *cobra.Command {
 		{"backup-legacy-key", "backup-only exact original legacy key path from the old independent plan; no private body is logged", &options.backupLegacyKey, false},
 		{"backup-node-key", "backup-only exact original P2P key path from the old independent plan; no private body is logged", &options.backupNodeKey, false},
 		{"propose-pq-activation-height", "optional canonical positive activation height for a candidate derived from this actual unscheduled four-member checkpoint; grants no authorization", &options.proposeActivationHeight, false},
+		{"legacy-staking-owner", "optional exact owner whose successful original classic staking transactions are read from the same stopped checkpoint and block store; public evidence only", &options.legacyStakingOwner, false},
 	} {
 		command.Flags().Var(&initializationStringFlag{target: flag.value}, flag.name, flag.help)
 		if flag.required {

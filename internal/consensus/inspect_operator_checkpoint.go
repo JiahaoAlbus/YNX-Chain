@@ -29,6 +29,7 @@ type OperatorCheckpointOptions struct {
 	BackupLegacyKeyPath, BackupNodeKeyPath                       string
 	SigningLockKind                                              string
 	ProposePQActivationHeight                                    int64
+	LegacyStakingOwner                                           string
 	Authorization, NextAuthorization                             *PQEngineAuthorization
 	RuntimeUpgrade                                               *RuntimeUpgradeAuthorization
 }
@@ -47,6 +48,8 @@ type OperatorCheckpointResult struct {
 	StateLayout              string                               `json:"stateLayout"`
 	RegistryRoot             string                               `json:"registryRoot"`
 	RegistryEventCount       uint64                               `json:"registryEventCount,string"`
+	StakingInventory         OperatorCheckpointStakingInventory   `json:"stakingInventory"`
+	LegacyStakingOriginals   *OperatorLegacyStakingOriginals      `json:"legacyStakingOriginals,omitempty"`
 	CommittedScheduleHash    *string                              `json:"committedScheduleHash"`
 	NextScheduleHash         *string                              `json:"nextScheduleHash"`
 	ReadOnly                 bool                                 `json:"readOnly"`
@@ -58,6 +61,18 @@ type OperatorCheckpointResult struct {
 	BackupCreated            bool                                 `json:"backupCreated"`
 	Backup                   *OperatorCheckpointBackup            `json:"backup"`
 	ScheduleCandidate        *OperatorCheckpointScheduleCandidate `json:"scheduleCandidate,omitempty"`
+}
+
+// OperatorCheckpointStakingInventory counts records in the same authenticated
+// application checkpoint as Height/AppHash. Opaque means that the original
+// record has no AuthorizationHistory, not that its authority was reconstructed.
+// Unwithdrawn counts queued entries, including entries whose waiting period has
+// elapsed; it is not an assertion that a withdrawal is currently authorized.
+type OperatorCheckpointStakingInventory struct {
+	DelegationCount           uint64 `json:"delegationCount,string"`
+	OpaqueDelegationCount     uint64 `json:"opaqueDelegationCount,string"`
+	UnbondingCount            uint64 `json:"unbondingCount,string"`
+	UnwithdrawnUnbondingCount uint64 `json:"unwithdrawnUnbondingCount,string"`
 }
 
 // InspectOperatorCheckpoint never calls an application writer constructor,
@@ -181,6 +196,34 @@ func InspectOperatorCheckpoint(migration chain.ConsensusMigrationState, rawGenes
 	}
 	root := snapshot.history.Root()
 	result = OperatorCheckpointResult{Version: OperatorCheckpointVersion, ChainID: actual.ChainID, Height: actual.LastBlockHeight, AppHash: state.AppHash, AppVersion: actual.Version.Consensus.App, ConsensusGenesisSHA256: pins.CometGenesisSHA256, OriginalGenesisHash: pins.OriginalGenesisHash, MigrationStateHash: pins.MigrationStateHash, StateLayout: options.StateLayout, RegistryRoot: hex.EncodeToString(root[:]), RegistryEventCount: uint64(snapshot.history.EventCount()), ReadOnly: true, SourceReadOnly: true, WriterExcluded: true, SigningWriterExcluded: true, EngineCheckpointVerified: true}
+	result.StakingInventory.DelegationCount = uint64(len(state.StakeDelegations))
+	result.StakingInventory.UnbondingCount = uint64(len(state.Unbondings))
+	for _, delegation := range state.StakeDelegations {
+		if delegation.AuthorizationHistory == "" {
+			result.StakingInventory.OpaqueDelegationCount++
+		}
+	}
+	for _, unbonding := range state.Unbondings {
+		if unbonding.Status == "queued" {
+			result.StakingInventory.UnwithdrawnUnbondingCount++
+		}
+	}
+	if options.LegacyStakingOwner != "" {
+		blocksDB, finish, openErr := openOperatorStakingBlockStore(options.CometDataDirectory)
+		if openErr != nil {
+			return OperatorCheckpointResult{}, openErr
+		}
+		defer func() {
+			err = errors.Join(err, finish())
+			if err != nil {
+				result = OperatorCheckpointResult{}
+			}
+		}()
+		result.LegacyStakingOriginals, err = collectOperatorLegacyStakingOriginals(state, migration, options.LegacyStakingOwner, *actual, database, blocksDB)
+		if err != nil {
+			return OperatorCheckpointResult{}, err
+		}
+	}
 	if state.PQEngineSchedule != nil {
 		hash, err := state.PQEngineSchedule.Hash()
 		if err != nil {
