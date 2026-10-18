@@ -215,7 +215,7 @@ test('cache failure waits for the other original scan and cannot invent missing 
 });
 
 test('case16 measured cache allowance consumes the same active deadline without extending Go',async()=>{
- const {cachePhaseLimit,currentCacheOccupancy}=await import('./consensus-light-plan.mjs');
+ const {remainingPhaseBudget,cachePhaseLimit,currentCacheOccupancy}=await import('./consensus-light-plan.mjs');
  assert.equal(cachePhaseLimit('client13-normal-16'),20000);assert.equal(cachePhaseLimit('client13-normal-15'),12000);assert.equal(cachePhaseLimit(),5000);
  const now=Date.now(),calls=[];
  const run=(cmd,args,opts)=>{calls.push(opts);const p=Promise.resolve({stdout:'1\t'+args[1]+'\n',stderr:''});p.child={pid:101+calls.length};return p;};
