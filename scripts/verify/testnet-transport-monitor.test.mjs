@@ -3,15 +3,64 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import {pathToFileURL} from "node:url";
 import {execFileSync} from "node:child_process";
 import {ROUTES, parseArgs, curlArgs, classify, interpret, dnsSnapshot, hostArgs, counterDelta, monitor, runCommand, sourceIdentity} from "./testnet-transport-monitor.mjs";
 const marker = "\n__YNX_CURL_METADATA__";
+const headerMarker = "\n__YNX_CURL_HEADER_JSON__";
 function fixture(route, changes = {}, code = 0) {
   const body = {chainId:6423,height:10,nativeSymbol:"YNXT",build:{commit:"a".repeat(40)},service:"ynx-faucetd",ok:true,upstreamOk:true,fundingReady:true,idempotentRequests:true};
   const meta = {exitcode:code,http_code:200,url_effective:route.url,num_redirects:0,ssl_verify_result:0,
     time_namelookup:.01,time_connect:.02,time_appconnect:.05,time_starttransfer:.08,time_total:.09,remote_ip:"43.153.202.237",...changes};
-  return {exitCode:code,stdout:JSON.stringify(body)+marker+JSON.stringify(meta),stderr:"server: Caddy\r\nset-cookie: secret-token\r\n",killed:false};
+  return {exitCode:code,stdout:JSON.stringify(body)+marker+JSON.stringify(meta),stderr:headerMarker+JSON.stringify({server:["Caddy"],"set-cookie":["secret-token"]})+"\n",killed:false};
 }
+
+test("Linux real curl preserves body and header metadata through Node pipes", {skip:process.platform!=="linux",timeout:15000}, async t=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),"ynx-curl-header-offline-"));
+  t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+  const filename=path.join(directory,"body.json"),body='{"offlineSyntheticInput":true}\n';
+  fs.writeFileSync(filename,body,{flag:"wx",mode:0o600});
+  // Exercise the real argument producer and execFile transport. The test-only
+  // substitution selects a local file protocol: no DNS, listener, HTTP/TLS,
+  // public endpoint, or health/identity success is manufactured.
+  const args=curlArgs(ROUTES[0],"ynx-probe-offline-fd",null,{direct:true});
+  args[args.indexOf("--proto")+1]="=file";
+  args[args.length-1]=pathToFileURL(filename).href;
+  const fixed=await runCommand("curl",args,{timeout:5000});
+  assert.equal(fixed.exitCode,0,"CURL_NODE_PIPE_OUTPUT_REOPEN_FAILED");
+  const cut=fixed.stdout.lastIndexOf(marker);
+  assert(cut>=0,"real curl omitted original transfer metadata");
+  assert.equal(fixed.stdout.slice(0,cut),body);
+  const metadata=JSON.parse(fixed.stdout.slice(cut+marker.length));
+  assert.equal(metadata.exitcode,0);
+  assert.equal(metadata.url_effective,pathToFileURL(filename).href);
+  const headerCut=fixed.stderr.lastIndexOf(headerMarker);
+  assert(headerCut>=0,"real curl omitted native header_json stream");
+  const headers=JSON.parse(fixed.stderr.slice(headerCut+headerMarker.length));
+  assert(headers && typeof headers==="object" && !Array.isArray(headers));
+  assert.equal(interpret(ROUTES[0],fixed,"ynx-probe-offline-fd",new Date().toISOString()).ready,false);
+
+  // Reproduce the exact original failing output destination independently of
+  // endpoint availability. Node's stderr pipe must not be reopened as a file.
+  const legacy=[...args];
+  legacy[legacy.indexOf("--write-out")+1]=marker+"%{json}";
+  legacy.splice(legacy.length-1,0,"--dump-header","/dev/stderr");
+  const rejected=await runCommand("curl",legacy,{timeout:5000});
+  assert.equal(rejected.exitCode,23,"original Linux curl output-open failure was not reproduced");
+  const rejectedCut=rejected.stdout.lastIndexOf(marker);
+  assert(rejectedCut>=0,"original curl failure omitted transfer metadata");
+  assert.equal(rejected.stdout.slice(0,rejectedCut),"");
+  const failure=JSON.parse(rejected.stdout.slice(rejectedCut+marker.length));
+  assert.equal(failure.exitcode,23);
+  assert.equal(failure.time_namelookup,0);
+  assert.equal(failure.time_connect,0);
+  assert.equal(failure.time_appconnect,0);
+  assert.equal(failure.time_total,0);
+  assert.match(failure.errormsg,/Failed to open \/dev\/stderr/i);
+  assert.equal(fs.readFileSync(filename,"utf8"),body);
+  assert.deepEqual(fs.readdirSync(directory),["body.json"]);
+  t.diagnostic("CURL_HEADER_FD_REOPEN_REPRODUCED legacyExit23=true transferNotStarted=true fixedExactBody=true rawHeaderFiles=0 networkRequests=0");
+});
 test("dry default and hard bound options",()=>{
   assert.equal(parseArgs([]).live,false);
   for(const args of [["--rounds","0"],["--rounds","121"],["--rounds","1.5"],["--interval-seconds","1"],["--rounds","120","--interval-seconds","300"],["--host","root@other.invalid"],["--live"],["--live","--live"],["--output-dir","relative"],["--identity","/key"],["--vantage","bad\nlabel"],["--force"]])assert.throws(()=>parseArgs(args));
@@ -44,6 +93,19 @@ for(const [name,code,changes,expected]of[
 });
 test("healthy phases and allowlisted header output exclude cookies/raw bodies",()=>{
   const r=interpret(ROUTES[0],fixture(ROUTES[0]),"ynx-probe-test",new Date().toISOString());assert.equal(r.classification,"healthy");assert.equal(r.headers.server,"Caddy");assert.equal(r.rawBodyRetained,false);assert(!JSON.stringify(r).includes("secret-token"));assert.equal(r.phaseSeconds.tcpAfterDNS,.01);assert.equal(r.phaseSeconds.tlsAfterTCP,.030000000000000002);
+});
+test("header JSON failures stay client failures while original transport errors remain first cause",()=>{
+  for(const value of ["", "null", "[]", '{"server":"wrong-shape"}', '{"server":[3]}']){
+    const raw=fixture(ROUTES[0]);raw.stderr=headerMarker+value;
+    const r=interpret(ROUTES[0],raw,"ynx-probe-test",new Date().toISOString());
+    assert.equal(r.ready,false);assert.equal(r.classification,"client-metadata-unavailable");
+  }
+  const raw=fixture(ROUTES[0],{},23);raw.stderr=headerMarker+"";
+  const failed=interpret(ROUTES[0],raw,"ynx-probe-test",new Date().toISOString());
+  assert.equal(failed.exitCode,23);assert.equal(failed.ready,false);assert.equal(failed.classification,"transport-or-client-error");
+  const historical=fixture(ROUTES[0]);historical.stderr="server: Caddy\r\nset-cookie: secret-token\r\n";
+  const original=interpret(ROUTES[0],historical,"ynx-probe-test",new Date().toISOString());
+  assert.equal(original.ready,true);assert.deepEqual(original.headers,{server:"Caddy"});assert(!JSON.stringify(original).includes("secret-token"));
 });
 test("missing metadata, wrong source and proxy context cannot be health proof",()=>{
   assert.equal(interpret(ROUTES[0],{exitCode:1,stdout:"",stderr:""},"ynx-probe-test","").classification,"client-metadata-unavailable");

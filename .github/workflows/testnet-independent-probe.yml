@@ -1,6 +1,20 @@
 name: Testnet independent read-only probe
 
 on:
+  push:
+    paths:
+      - '.github/workflows/testnet-independent-probe.yml'
+      - 'scripts/verify/testnet-independent-probe.mjs'
+      - 'scripts/verify/testnet-independent-probe.test.mjs'
+      - 'scripts/verify/testnet-transport-monitor.mjs'
+      - 'scripts/verify/testnet-transport-monitor.test.mjs'
+      - 'scripts/verify/testnet-transport-operations.test.mjs'
+      - 'scripts/verify/testnet-transport-job.mjs'
+      - 'scripts/verify/testnet-transport-bundle.mjs'
+      - 'scripts/verify/testnet-transport-client-path.mjs'
+      - 'scripts/verify/testnet-transport-host-snapshot.py'
+      - 'scripts/verify/testnet-alias-preflight.mjs'
+      - 'scripts/verify/testnet-endpoint-migration-check.mjs'
   workflow_dispatch:
 
 permissions:
@@ -11,8 +25,89 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  offline:
+    if: github.repository == 'JiahaoAlbus/YNX-Chain'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ENDPOINT_OFFLINE_EVIDENCE: ${{ runner.temp }}/ynx-endpoint-offline-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Check out current source separately
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: current
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+      - name: Check out the fixed original producer (never run its test suite)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 0345970c7c616c24ebf3e494e9a8d9628ff8ae40
+          path: old-producer
+          persist-credentials: false
+          fetch-depth: 1
+          submodules: false
+          lfs: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+      - name: Prepare fresh offline evidence
+        id: prepare
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -- "$ENDPOINT_OFFLINE_EVIDENCE"
+      - name: Require real original-producer RED (local file, zero target requests)
+        timeout-minutes: 2
+        working-directory: old-producer
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o noclobber
+          test "$(git rev-parse HEAD)" = '0345970c7c616c24ebf3e494e9a8d9628ff8ae40'
+          # Only this test is copied into the independent old checkout. The
+          # current checkout stays intact; no original tests or live batch run.
+          cp -- "$GITHUB_WORKSPACE/current/scripts/verify/testnet-transport-monitor.test.mjs" scripts/verify/testnet-transport-monitor.test.mjs
+          set +e
+          node --test --test-reporter=tap --test-name-pattern='^Linux real curl preserves body and header metadata through Node pipes$' scripts/verify/testnet-transport-monitor.test.mjs > "$ENDPOINT_OFFLINE_EVIDENCE/old-red.log" 2>&1
+          red_status=$?
+          set -e
+          cat -- "$ENDPOINT_OFFLINE_EVIDENCE/old-red.log"
+          test "$red_status" -ne 0
+          grep -Fq 'CURL_NODE_PIPE_OUTPUT_REOPEN_FAILED' "$ENDPOINT_OFFLINE_EVIDENCE/old-red.log"
+          grep -Eq '^not ok [0-9]+ - Linux real curl preserves body and header metadata through Node pipes$' "$ENDPOINT_OFFLINE_EVIDENCE/old-red.log"
+      - name: Current full offline safety tests (zero target requests)
+        if: ${{ !cancelled() && steps.prepare.outcome == 'success' }}
+        timeout-minutes: 2
+        working-directory: current
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o noclobber
+          set +e
+          node --test --test-reporter=tap scripts/verify/testnet-independent-probe.test.mjs scripts/verify/testnet-transport-operations.test.mjs scripts/verify/testnet-transport-monitor.test.mjs > "$ENDPOINT_OFFLINE_EVIDENCE/fixed-controls.log" 2>&1
+          controls_status=$?
+          set -e
+          cat -- "$ENDPOINT_OFFLINE_EVIDENCE/fixed-controls.log"
+          test "$controls_status" -eq 0
+          grep -Fq 'CURL_HEADER_FD_REOPEN_REPRODUCED legacyExit23=true transferNotStarted=true fixedExactBody=true rawHeaderFiles=0 networkRequests=0' "$ENDPOINT_OFFLINE_EVIDENCE/fixed-controls.log"
+      - name: Preserve original RED and current offline logs only
+        if: always()
+        timeout-minutes: 2
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: testnet-independent-probe-offline-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ env.ENDPOINT_OFFLINE_EVIDENCE }}/old-red.log
+            ${{ env.ENDPOINT_OFFLINE_EVIDENCE }}/fixed-controls.log
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 7
   probe:
     if: github.repository == 'JiahaoAlbus/YNX-Chain' && github.event_name == 'workflow_dispatch'
+    needs: offline
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -25,9 +120,6 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24'
-      - name: Offline safety tests (zero target requests)
-        timeout-minutes: 2
-        run: node --test scripts/verify/testnet-independent-probe.test.mjs scripts/verify/testnet-transport-operations.test.mjs scripts/verify/testnet-transport-monitor.test.mjs
       - name: One bounded batch (eight allowlisted GETs)
         timeout-minutes: 5
         run: node scripts/verify/testnet-independent-probe.mjs --live

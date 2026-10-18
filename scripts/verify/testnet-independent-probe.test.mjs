@@ -83,15 +83,59 @@ test('transport is exactly four HTTPS health routes, GET only with TLS and bound
   }
   assert.throws(()=>curlArgs({url:'https://evil.invalid'},'ynx-probe-test'));
 });
-test('workflow is manual-only, SHA-pinned, bounded, read-only and exact-file-upload',()=>{
+test('workflow keeps push offline and manual network dependent on pinned offline RED and PASS',()=>{
   const y=fs.readFileSync(new URL('../../.github/workflows/testnet-independent-probe.yml',import.meta.url),'utf8');
-  assert.match(y,/\non:\n  workflow_dispatch:\n\npermissions:/);assert.match(y,/permissions:\n  contents: read\n/);
-  assert.match(y,/persist-credentials: false/);assert.match(y,/timeout-minutes: 10/);assert.match(y,/timeout-minutes: 5/);assert.match(y,/cancel-in-progress: false/);
-  assert.equal([...y.matchAll(/uses: ([^\n]+)/g)].length,3);for(const m of y.matchAll(/uses: ([^\n]+)/g))assert.match(m[1],/^actions\/[a-z-]+@[a-f0-9]{40}(?: |$)/);
-  for(const forbidden of ['schedule:','push:','pull_request:','workflow_call:','inputs:','secrets.','secrets:','environment:','continue-on-error:','sudo ','npm install','curl '])assert(!y.includes(forbidden));
-  const upload=y.split('          path: |\n')[1].split('          if-no-files-found:')[0].trim().split('\n').map(x=>x.trim());
-  assert.deepEqual(upload,['${{ runner.temp }}/ynx-independent-shareable/receipt.json','${{ runner.temp }}/ynx-independent-shareable/diagnostic-bundle.json']);
-  assert.match(y,/retention-days: 7/);assert.match(y,/if: always\(\)/);assert.match(y,/include-hidden-files: false/);
+  const triggers=y.match(/\non:\n([\s\S]*?)\npermissions:\n/)[1];
+  assert.match(triggers,/^  push:\n    paths:\n(?:      - '[^'\n]+'\n)+  workflow_dispatch:\n$/);
+  assert.deepEqual([...triggers.matchAll(/^      - '([^'\n]+)'$/gm)].map(m=>m[1]),[
+    '.github/workflows/testnet-independent-probe.yml',
+    'scripts/verify/testnet-independent-probe.mjs',
+    'scripts/verify/testnet-independent-probe.test.mjs',
+    'scripts/verify/testnet-transport-monitor.mjs',
+    'scripts/verify/testnet-transport-monitor.test.mjs',
+    'scripts/verify/testnet-transport-operations.test.mjs',
+    'scripts/verify/testnet-transport-job.mjs',
+    'scripts/verify/testnet-transport-bundle.mjs',
+    'scripts/verify/testnet-transport-client-path.mjs',
+    'scripts/verify/testnet-transport-host-snapshot.py',
+    'scripts/verify/testnet-alias-preflight.mjs',
+    'scripts/verify/testnet-endpoint-migration-check.mjs',
+  ]);
+  assert.match(y,/permissions:\n  contents: read\n/);assert.match(y,/cancel-in-progress: false/);
+  for(const forbidden of ['schedule:','pull_request:','workflow_call:','inputs:','secrets.','secrets:','environment:','continue-on-error:','sudo ','npm install'])assert(!y.includes(forbidden));
+  const jobs=y.split('\njobs:\n')[1];
+  const headings=[...jobs.matchAll(/^  ([a-z][a-z-]*):$/gm)];
+  assert.deepEqual(headings.map(m=>m[1]),['offline','probe']);
+  const offline=jobs.slice(headings[0].index,headings[1].index),probe=jobs.slice(headings[1].index);
+  for(const [job,actionCount,checkoutCount] of [[offline,4,2],[probe,3,1]]){
+    assert.match(job,/    runs-on: ubuntu-24\.04\n/);assert.match(job,/    timeout-minutes: 10\n/);
+    assert.match(job,/node-version: '24'/);
+    assert.equal([...job.matchAll(/uses: ([^\n]+)/g)].length,actionCount);
+    for(const m of job.matchAll(/uses: ([^\n]+)/g))assert.match(m[1],/^actions\/[a-z-]+@[a-f0-9]{40}(?: |$)/);
+    for(const setting of ['persist-credentials: false','fetch-depth: 1','submodules: false','lfs: false'])assert.equal(job.split(setting).length-1,checkoutCount);
+    assert.match(job,/retention-days: 7/);assert.match(job,/if: always\(\)/);assert.match(job,/include-hidden-files: false/);assert.match(job,/if-no-files-found: error/);
+  }
+  assert.match(offline,/    if: github\.repository == 'JiahaoAlbus\/YNX-Chain'\n/);
+  assert.match(offline,/ref: 0345970c7c616c24ebf3e494e9a8d9628ff8ae40\n/);
+  assert.match(offline,/path: current\n/);assert.match(offline,/path: old-producer\n/);
+  assert.match(probe,/^  probe:\n    if: github\.repository == 'JiahaoAlbus\/YNX-Chain' && github\.event_name == 'workflow_dispatch'\n    needs: offline\n/);
+  const runScripts=job=>[...job.matchAll(/^        run: (?:\|\n((?:          [^\n]*\n)*)|([^\n]+))/gm)].map(m=>m[1]===undefined?m[2]:m[1].replace(/^          /gm,''));
+  const offlineRuns=runScripts(offline),probeRuns=runScripts(probe);
+  assert.equal(offlineRuns.length,3);
+  assert(!offlineRuns.some(script=>script.includes('--live')));
+  // Names and selectors can say "curl"; actual direct network commands cannot.
+  for(const script of [...offlineRuns,...probeRuns])assert(!/(?:^|[;&|])\s*(?:(?:exec|command)\s+)?(?:[^\s;|&]*\/)?(?:curl|wget|ssh|scp|sftp)(?:\s|$)/m.test(script));
+  assert.deepEqual(probeRuns,['node scripts/verify/testnet-independent-probe.mjs --live']);
+  assert.match(probe,/name: One bounded batch \(eight allowlisted GETs\)\n        timeout-minutes: 5\n/);
+  assert(offlineRuns[1].includes("--test-name-pattern='^Linux real curl preserves body and header metadata through Node pipes$'"));
+  assert(offlineRuns[1].includes('test "$red_status" -ne 0'));
+  assert(offlineRuns[1].includes("grep -Fq 'CURL_NODE_PIPE_OUTPUT_REOPEN_FAILED'"));
+  assert(offlineRuns[2].includes('node --test --test-reporter=tap scripts/verify/testnet-independent-probe.test.mjs scripts/verify/testnet-transport-operations.test.mjs scripts/verify/testnet-transport-monitor.test.mjs'));
+  assert(offlineRuns[2].includes('test "$controls_status" -eq 0'));
+  assert(offlineRuns[2].includes('CURL_HEADER_FD_REOPEN_REPRODUCED legacyExit23=true transferNotStarted=true fixedExactBody=true rawHeaderFiles=0 networkRequests=0'));
+  const upload=job=>job.split('          path: |\n')[1].split('          if-no-files-found:')[0].trim().split('\n').map(x=>x.trim());
+  assert.deepEqual(upload(offline),['${{ env.ENDPOINT_OFFLINE_EVIDENCE }}/old-red.log','${{ env.ENDPOINT_OFFLINE_EVIDENCE }}/fixed-controls.log']);
+  assert.deepEqual(upload(probe),['${{ runner.temp }}/ynx-independent-shareable/receipt.json','${{ runner.temp }}/ynx-independent-shareable/diagnostic-bundle.json']);
   assert.equal(Object.keys(sourceHashes()).length,8);
 });
 test('CLI errors never echo rejected input and dry CLI is portable',()=>{
