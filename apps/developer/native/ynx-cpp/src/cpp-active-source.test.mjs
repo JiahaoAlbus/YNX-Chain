@@ -1,7 +1,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import vm from 'node:vm';import{createRequire}from'node:module';
+import { fileURLToPath } from 'node:url';
 const require=createRequire(import.meta.url);
 const file=new URL('./cpp-run.cjs',import.meta.url);
-const {sourceContext}=require(file.pathname);
+const {sourceContext}=require(fileURLToPath(file));
 async function fixture(){const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'ynx-cpp-active-')));const a=path.join(root,'main.cpp'),b=path.join(root,'other.cpp');await fs.writeFile(a,'int main(){}');await fs.writeFile(b,'int main(){}');const document={uri:{scheme:'file',fsPath:a},languageId:'cpp',version:1,isDirty:false,save:async()=>true};const other={...document,uri:{scheme:'file',fsPath:b}};const folder={uri:{scheme:'file',fsPath:root}};const api={env:{language:'en'},window:{activeTextEditor:{document}},workspace:{isTrusted:true,workspaceFolders:[folder]}};const env={YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'12345678-1234-1234-1234-123456789abc'};return{root,document,other,api,env,dispose:()=>fs.rm(root,{recursive:true,force:true})};}
 test('R100 selecting another file during actual save invalidates captured C++ run',async()=>{const f=await fixture();try{f.document.save=async()=>{f.api.window.activeTextEditor={document:f.other};return true;};await assert.rejects(sourceContext(f.api,f.env),/source.*changed/i);}finally{await f.dispose();}});
 test('R100 non-file welcome focus does not invalidate original saved C++ source',async()=>{const f=await fixture();try{f.document.save=async()=>{f.api.window.activeTextEditor={document:{languageId:'markdown'}};return true;};assert.equal((await sourceContext(f.api,f.env)).document,f.document);}finally{await f.dispose();}});
