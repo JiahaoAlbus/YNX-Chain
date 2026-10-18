@@ -66,7 +66,22 @@ func TestSharedReplayCandidateRealFilesStillHashValidateAndCheckBusiness(t *test
 		t.Fatal(err)
 	}
 	other := filepath.Join(t.TempDir(), "other.blocks")
-	if err := os.WriteFile(other, data, 0600); err != nil {
+	otherApp, err := consensus.NewBlockJournaledApplication(migration, other)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := otherApp.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: height, Time: time.Unix(1802736000, 0), Txs: [][]byte{raw}})
+	if err != nil || response.TxResults[0].Code != 0 {
+		t.Fatal("second actual node store execution failed", err)
+	}
+	if _, err := otherApp.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	otherData, err := os.ReadFile(other)
+	if err != nil || !bytes.Equal(data, otherData) {
+		t.Fatal("independent committed stores differ", err)
+	}
+	if err := os.Chmod(other, 0600); err != nil {
 		t.Fatal(err)
 	}
 	r, err := newDurableReader(migration, []string{path, other})
