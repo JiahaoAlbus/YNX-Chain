@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "status": "native_transport_verified_no_business_measurement",
+  "scope": "Root-authorized one native compilation and two fresh full snapshots; no nodes or transactions",
+  "priorAbort": {
+    "receipt": "artifacts/chain-performance-20261017/persistent-probe-smoke-20261018-01/receipt.json",
+    "sha256": "2ed7c8decd4acf674cad1be4a0474f6a6ae850fbcb55966b4aeb799c32012f8c",
+    "cause": "supervisor incorrectly selected legacy 3025 probe without --owned-full; compile killed; not a C result"
+  },
+  "actualReceipt": "artifacts/chain-performance-20261017/persistent-probe-smoke-20261018-02/receipt.json",
+  "actualReceiptSHA256": "2d9267cc75af60c73c75c43cd6839adfc52818da841d785dfca05679e2867dd4",
+  "sourcePins": {
+    "scripts/loadtest/darwin-process-snapshot.c": "ae3f74c1ebbae0e8fa2413a63957b7042df024ff41df771dce56d96d03f09e97",
+    "scripts/loadtest/owned-process-snapshot.h": "1c74513efbf1d0ad4de2f759de101a40af82cb7e507006e76a51f2aaed991168",
+    "scripts/loadtest/native-resource-probe.mjs": "94f671c0e2efea3989cdff45830c314a3f5258679855b829459cf6044faa311a"
+  },
+  "launcherPID": 9557,
+  "compiler": {
+    "pid": 9565,
+    "stdout": "",
+    "stderr": "",
+    "code": 0,
+    "signal": null,
+    "elapsedMs": 221.591792,
+    "groupGone": true
+  },
+  "nativePID": 9574,
+  "requestElapsedMs": [
+    320.346875,
+    1.382959000000028
+  ],
+  "nativeKernelElapsedMicroseconds": [
+    1852,
+    1264
+  ],
+  "allFreshFullForksAvailable": true,
+  "pressureLevels": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "peakSampledRSSBytes": 112984064,
+  "diskDeltaBytes": 36864,
+  "elapsedMs": 600.635708,
+  "stopAcknowledged": true,
+  "independentCleanup": "artifacts/chain-performance-20261017/persistent-probe-smoke-20261018-02/independent-cleanup.json",
+  "independentAllPIDsAndGroupsGone": true,
+  "lightTests": {
+    "nativeTransport": {
+      "passed": 10,
+      "failed": 0,
+      "elapsedMs": 2733.622834
+    },
+    "explicitPrepareOnly": {
+      "passed": 1,
+      "failed": 0,
+      "elapsedMs": 114.508666
+    }
+  },
+  "businessTPS": null,
+  "inclusionLatency": null,
+  "finalityLatency": null,
+  "limitations": [
+    "Two samples are transport functionality evidence, not a matched performance benchmark.",
+    "RSS is sampled, not a hard OS limit.",
+    "Original frozen a5df recipe and previous EAGAIN window remain untouched.",
+    "New controller mode requires a newly matched before/after network pair; previous baseline cannot be substituted.",
+    "Original fixed-pin light cases retain their existing probes and per-sample mode."
+  ]
+}

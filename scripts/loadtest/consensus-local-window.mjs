@@ -11,6 +11,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 const { values } = parseArgs({ options: {
   execute: { type: 'boolean', default: false },
+  'persistent-native-probe': { type: 'boolean', default: false },
   'bin-dir': { type: 'string' }, 'comet-bin': { type: 'string' },
   'work-parent': { type: 'string', default: 'artifacts/chain-network-performance' },
   count: { type: 'string', default: '32' },
@@ -61,7 +62,7 @@ const commands = {
 for (const command of Object.values(commands)) fs.accessSync(command, fs.constants.X_OK);
 const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 32 * 1024 * 1024, rssBytes: 1024 ** 3, freeDiskFloorBytes: 1024 ** 3, rootDiskReserveBytes: 425 * 1024 ** 2, longLivedChildren: 9, threadsWithControlReserve: 320, fullHostSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, clientObservers: 4, gomaxprocs: 1, gogc: '100', gomemlimit: 'off' };
 if (!values.execute) {
-  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
+  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', nativeProbeMode:values['persistent-native-probe']?'persistent':'per-sample', commands, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
   process.exit(0);
 }
 
@@ -90,7 +91,7 @@ const hostSamples = [];
 const probeFailures = [];
 let lastResourceSample;
 let monitor;
-const resourceProbe = createNativeResourceProbe(commands.host);
+const resourceProbe = createNativeResourceProbe(commands.host,{persistent:values['persistent-native-probe']});
 const fail = reason => { if (!firstCause) firstCause = String(reason); };
 const deadline = setTimeout(() => fail('active window exceeded 45 seconds'), caps.activeMs);
 const onSignal = signal => fail(`launcher received ${signal}`);
@@ -239,7 +240,7 @@ try {
   clearTimeout(deadline);
   clearInterval(monitor);
   const stopStarted = Date.now();
-  const probeStopped = resourceProbe.stop();
+  const probeStopped = resourceProbe.stop().catch(error=>fail(error.message));
   for (const child of children.filter(c => !c.exited)) signalGroup(child, 'SIGINT');
   while (children.some(c => !c.exited) && Date.now() - stopStarted < 12000) await delay(100);
   for (const child of children.filter(c => !c.exited)) signalGroup(child, 'SIGKILL');
@@ -255,7 +256,7 @@ try {
     if (!exited || !groupGone) fail(`${name} process/group did not fully exit`);
     return { name, pid, exitCode, signal, exited, groupGone };
   });
-  const receipt = { schema: 5, sharedParentExcluded: process.ppid, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: owned launcher/live children plus native sampler and conservative fork-child reserve; shared parent excluded', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
+  const receipt = { schema: 5, nativeProbeMode:values['persistent-native-probe']?'persistent':'per-sample', sharedParentExcluded: process.ppid, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: owned launcher/live children plus native sampler and conservative fork-child reserve; shared parent excluded', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
   fs.writeFileSync(path.join(work, 'window-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   console.log(JSON.stringify(receipt, null, 2));
   process.exitCode = firstCause ? 1 : 0;

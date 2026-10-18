@@ -156,7 +156,7 @@ static int ynx_owned_snapshot(pid_t launcher, pid_t job) {
     stage("fork_complete", started);
     printf(",\"forkProbe\":{\"available\":%s,\"forkSucceeded\":%s,\"forkErrno\":%d,\"waitErrno\":%d,\"childExitCode\":%d,\"childSignal\":%d}", available ? "true" : "false", child > 0 ? "true" : "false", child < 0 ? fork_error : 0, wait_error, child_exit, child_signal);
     clock_gettime(CLOCK_MONOTONIC, &finished);
-    printf(",\"elapsedMicroseconds\":%lld}\n", (finished.tv_sec-started.tv_sec)*1000000LL+(finished.tv_nsec-started.tv_nsec)/1000);
+    printf(",\"elapsedMicroseconds\":%lld}%s", (finished.tv_sec-started.tv_sec)*1000000LL+(finished.tv_nsec-started.tv_nsec)/1000, ynx_snapshot_framed ? "" : "\n");
     return 0;
 }
 #endif

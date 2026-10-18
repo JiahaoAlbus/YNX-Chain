@@ -53,9 +53,10 @@ static bool parse_pid(const char *text, pid_t *out) {
     return true;
 }
 
+static bool ynx_snapshot_framed = false;
 #include "owned-process-snapshot.h"
 
-int main(int argc, char **argv) {
+static int sample_once(int argc, char **argv) {
     struct timespec started, finished;
     clock_gettime(CLOCK_MONOTONIC, &started);
     stage("main_entry", started);
@@ -175,6 +176,47 @@ int main(int argc, char **argv) {
     }
     clock_gettime(CLOCK_MONOTONIC, &finished);
     long long elapsed = (finished.tv_sec - started.tv_sec) * 1000000LL + (finished.tv_nsec - started.tv_nsec) / 1000;
-    printf(",\"elapsedMicroseconds\":%lld}\n", elapsed);
+    printf(",\"elapsedMicroseconds\":%lld}%s", elapsed, ynx_snapshot_framed ? "" : "\n");
     return 0;
+}
+
+// Bounded transport; every request still performs fresh kernel reads and fork.
+int main(int argc, char **argv) {
+    if (argc != 2 || strcmp(argv[1], "--serve") != 0) return sample_once(argc, argv);
+    ynx_snapshot_framed = true;
+    char line[512];
+    unsigned int sequence = 0;
+    while (fgets(line, sizeof(line), stdin)) {
+        size_t length = strlen(line);
+        if (!length || line[length - 1] != '\n') return 2;
+        line[length - 1] = 0;
+        char *save = NULL, *token = strtok_r(line, " ", &save);
+        if (!token) return 2;
+        char *end = NULL;
+        if (strcmp(token, "STOP") == 0) {
+            token = strtok_r(NULL, " ", &save);
+            if (!token) return 2;
+            errno = 0;
+            unsigned long last = strtoul(token, &end, 10);
+            if (errno || !*token || *end || last != sequence || strtok_r(NULL, " ", &save)) return 2;
+            printf("{\"stoppedAfter\":%u}\n", sequence);
+            return fflush(stdout) == 0 ? 0 : 3;
+        }
+        errno = 0;
+        unsigned long id = strtoul(token, &end, 10);
+        if (errno || !*token || *end || sequence >= 4096 || id != sequence + 1) return 2;
+        char *args[20] = {argv[0]};
+        int count = 1;
+        while ((token = strtok_r(NULL, " ", &save))) {
+            if (count >= 19) return 2;
+            args[count++] = token;
+        }
+        printf("{\"requestId\":%lu,\"sample\":", id);
+        int status = sample_once(count, args);
+        if (status) return status;
+        printf("}\n");
+        if (fflush(stdout) != 0) return 3;
+        sequence++;
+    }
+    return 3; // Bare EOF cannot certify a complete session.
 }
