@@ -376,3 +376,57 @@ second case still fails the unchanged aggregate stdout/stderr cap. The25-source-
 suite passes locally; the corrected source must pass normal CI and receive a
 fresh single Root grant before any new pair execution. The original consumed
 grant does not authorize a retry.
+
+## Actual same-VM finite pair
+
+After correction50588f3e5 passed normalCI39140684817, Root explicitly granted a
+new single pair. Run39140997118 completed SUCCESS, with both cases actually
+finishing1024 signed/business-qualified final transactions and zero business
+rejection, failed execution, UNKNOWN, timeout or missing submission. Both child
+closures cleaned completely; two empty scans separated the cases. One actual
+VM/bootID/PIDnamespace/launcher and all four exact ELF files/source/compiler/
+environment identities were verified. The post-fsync terminal verdict is
+qualifiedtrue at16.136s; retained bytes42387618, within64MiB. Old failed39140104063
+remains an independent failure, not retroactively passed.
+
+| Actual finite1024 case | Relative | Bounded cadence |
+|---|---:|---:|
+| Workload window seconds |5.618121|4.796818|
+| Effective business inclusion/final transactions per second |182.267339|213.474853|
+| Actual offered interarrival rate |238.274224|311.365611|
+| Inclusion P50/P95/P99 ms |1129.156/1839.594/2022.877|1193.552/1777.388/1857.117|
+| Offer-to-final P50/P95/P99 ms |1293.478/1958.283/2131.142|1415.081/2054.578/2134.344|
+| Supply-channel wait ms |0|527.544|
+| Final-drain-channel wait ms |1322.920|1509.131|
+| Pacing wait ms |3733.734|2377.707|
+| Future-target wake lateness total ms |1777.678|1051.903|
+| Successor signing ms |44.619|47.415|
+| Encoding ms |108.220|96.697|
+| Signed-journal append ms |388.353|218.836|
+| Peak RSS bytes |586174464|587669504|
+| Peak threads |63|64|
+| Peak private data bytes |20726742|20972523|
+
+Finite final rate increased17.1218%, offer rate30.6753%, while offer-to-final P95
+**worsened4.9173%**. Candidate catch-up target decisions70, cadence resets39,
+peak consecutive catch-up targets3 (four-offer bound preserved). The candidate's
+new527.544ms supply wait includes submission/observation dependencies; do not
+equate it with pure nonce or consensus waiting.
+
+Commit subphases are preserved per node in
+`evidence/pacing-pair-ci-39140997118-actual.json`. Relative nodes each committed7
+times, means3.813–17.607ms; one node accumulated99.713ms fileSync while the other
+three accumulated4.363–4.808ms. Candidate nodes each committed6times, means
+3.729–4.388ms, cumulative fileSync2.571–4.693ms. Validation and delta/write timing
+remain recorded separately. This real I/O variation, journal append difference,
+fresh random fixtures and fixed relative→candidate order limit attribution:
+these are single finite paired observations, **not an isolated universal pacer
+speedup**, and not sustained1000TPS/ten-minute capacity. Higher offer rate also
+increased finality P95, so both throughput and queue/latency must remain guards.
+
+The offline readout binds the unique post-fsync terminal frame to pair receipt
+SHA256, both child receipts and both complete raw transaction results, same
+source/ELF/stable CPU identity and complete business qualifications. Only selected
+ZIP members were recovered via exact206 with size/CRC and individual SHA256;
+the entire archive was not downloaded or hash-verified. No second measurement or
+load increase is authorized by this successful pair.
