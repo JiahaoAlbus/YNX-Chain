@@ -60,7 +60,9 @@ function fixture(t,{runtimeMetadata={},includeRegistry=true,extraSDKFiles={},sdk
  const root=mkdtempSync(path.join(tmpdir(),'ynx-canonical-public-')),app=path.join(root,'apps/wallet-desktop'),stage=path.join(root,'raw'),resources=path.join(root,'resources');
  t.after(()=>rmSync(root,{recursive:true,force:true}));
  const files={'apps/wallet-desktop/package.json':JSON.stringify({name:'public-wallet-fixture',version:'0.6.10',type:'module',main:'src/main.mjs',...runtimeMetadata}),'packages/wallet-auth/package.json':JSON.stringify({name:'@ynx-chain/wallet-auth',type:'module',main:'src/index.js',dependencies:dependencyManifest.versions}),'packages/wallet-auth/src/index.js':'export const PUBLIC_ONLY=true;\n','packages/wallet-auth/product-session-registry.json':'{"PUBLIC":true}\n','apps/wallet-desktop/native/original-auth-identity.node':'PUBLIC DATA - NOT A NATIVE MODULE\n','apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json':dependencyManifestBytes};
- files['packages/wallet-auth/package.json']=JSON.stringify({...JSON.parse(files['packages/wallet-auth/package.json']),...sdkMetadata});
+ // The fixed R3d launcher is now a required relocation operand. Declare its
+ // scripts scope in every public archive fixture, just as the actual SDK does.
+ files['packages/wallet-auth/package.json']=JSON.stringify({...JSON.parse(files['packages/wallet-auth/package.json']),...sdkMetadata,files:[...new Set([...(sdkMetadata.files??['src']),'scripts'])]});
  for(const [name,body] of Object.entries(extraSDKFiles))files['packages/wallet-auth/'+name]=body;
  for(const row of dependencyManifest.files)files['packages/wallet-auth/node_modules/'+row.path]=readFileSync(path.join(dependencyRoot,row.path));
  if(!includeRegistry)delete files['packages/wallet-auth/product-session-registry.json'];
@@ -103,6 +105,19 @@ test('nonlisted SDK body and required registry are still source-byte-bound',t=>{
 });
 test('canonical verification rejects changed declared SDK Native runtime source outside src',t=>{
  const name='native/publication-readonly-source-r28-20261018/source/service-publisher.mjs',f=fixture(t,{sdkMetadata:{files:['src','native/publication-readonly-source-r28-20261018/source']},extraSDKFiles:{[name]:'export const PUBLIC_SOURCE=true;\n'}});
+ relocateDesktopPackage(f.resources,f.app);verifyDesktopPackage(f.resources,f.app);
+ writeFileSync(path.join(f.stage,SDK_ALIAS,name),'export const FOREIGN_SOURCE=true;\n');f.rawPack();relocateDesktopPackage(f.resources,f.app);
+ assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/Packaged source differs/);
+});
+test('R3d canonical declared closure binds new custody codec and private service launcher from frozen Git',()=>{
+ const root=path.resolve(project,'../..'),commit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim(),names=declaredSDKRuntimeSources(root,commit);
+ for(const relative of ['native/terminal-custody-recovery-r30a-20261018/source/terminal-response-v3.mjs','scripts/original-wallet-private-service-launcher.mjs']){
+  const name='packages/wallet-auth/'+relative;assert.ok(names.includes(name),name);
+  const bytes=execFileSync('git',['show',`${commit}:${name}`],{cwd:root});assert.deepEqual(relocateDesktopRuntimeSource(name,bytes).bytes,bytes,name);
+ }
+});
+test('R3d canonical archive refuses changed custody codec with a freshly regenerated relocation receipt',t=>{
+ const scope='native/terminal-custody-recovery-r30a-20261018/source',name=scope+'/terminal-response-v3.mjs',f=fixture(t,{sdkMetadata:{files:['src',scope]},extraSDKFiles:{[name]:'export const PUBLIC_SOURCE=true;\n'}});
  relocateDesktopPackage(f.resources,f.app);verifyDesktopPackage(f.resources,f.app);
  writeFileSync(path.join(f.stage,SDK_ALIAS,name),'export const FOREIGN_SOURCE=true;\n');f.rawPack();relocateDesktopPackage(f.resources,f.app);
  assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/Packaged source differs/);

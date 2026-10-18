@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "owner": "original Wallet Native/Desktop owner",
+  "state": "FROZEN_SOURCE_READY_FOR_ORIGINAL_A_MATCHING_APP_BUILD_NOT_INSTALLED",
+  "checkout": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r3d-normal-consumer-20261018",
+  "sourceIntakeCommit": "0ca93b213fe4d2824431a69923f978b0db1e195d",
+  "sourceIntakeTree": "ab7f6d3fc37152f74ab5e6c35eef34276a2f4f22",
+  "finalCommitSelection": "Use the immutable commit supplied with this handoff, including this file and the exact launcher operand correction; never copy a moving checkout.",
+  "inputs": "apps/wallet-desktop/test/r3d-source-inputs-20261018.json",
+  "sdk": {"version": "1.3.0-pq.3.4", "commit": "2e99f861911392f7b6886c31847fa7c17a72a397", "archiveSHA256": "d363f56dbb6e07a488fd30807f56200e6c8a4d6c483d5ba7dda71fc921913b28", "exactArchiveMembers": 224},
+  "native": {"originalBuilder": "A", "component": "R31", "moduleSHA256": "ea20e730de1451b6a07d05fe36e9e82c7c211c212ea953ec6d8fc7b32240717d", "executedReceiptSHA256": "d7f21970f9b34d2ed0f6150c44470d70f010c0e6697c430b0a00246e10a1d797", "compiledInputPins": 30, "receiptRewritten": false, "recompileRequired": false},
+  "normalRecipe": {"cwd": "apps/wallet-desktop", "command": "<original A pinned normal Node runtime> scripts/build-mac.mjs arm64", "npmScript": "dist:mac:arm64", "networkOrInstallRequested": false, "sdkRuntimeDependencyFiles": 316, "builder": "original A only", "preserveRemovePackageScriptsFalse": true, "preserveRemovePackageKeywordsFalse": true},
+  "tests": {
+    "compositionAndNormalMain": {"pass": 5, "runtime": "installed R24 Electron RunAsNode"},
+    "affectedDesktopPublicationRecovery": {"pass": 5, "runtime": "installed R24 Electron RunAsNode"},
+    "affectedMobileProtocol": {"pass": 4, "strictTypecheckExit": 0},
+    "newPackageAssets": {"pass": 2, "fail": 0, "durationMs": 2072.463375, "runtime": "bundled ordinary Node24.19.0", "pattern": "R3d canonical", "initialRed": "Unlisted repository operand for new fixed private-service launcher", "repair": "One exact unchanged Native URL operand, with all unlisted/changed operands still rejected", "tamperControl": "Changed new custody codec refused even after generating a fresh relocation receipt"}
+  },
+  "untouched": ["old 846262 candidate", "apps/wallet/App.tsx", "apps/developer/**", "existing accounts, keys, recovery phrases and backups"],
+  "notEstablished": ["matching full App build", "download", "install or upgrade", "true registered Source and positive Native ACK", "normal end-user business flow", "MONSTER operation", "SDK3.5/R33 successor"],
+  "next": "Original A builds and records exact source, artifact and normal installation readback. Wallet develops R33 single-reader payload successor independently, without changing this frozen candidate."
+}

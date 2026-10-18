@@ -34,6 +34,8 @@ export const PACKAGED_RELOCATION_RULES = Object.freeze([
     {kind:"url",from:"../../../apps/wallet-desktop/native/original-auth-identity.node",to:"../../../apps/wallet-desktop/native/original-auth-identity.node",count:1}]},
   {sourcePath:"packages/wallet-auth/src/original-wallet-service-private-dispatch.js",packedPath:"code/packages/wallet-auth/src/original-wallet-service-private-dispatch.js",operands:[
     {kind:"url",from:"../../../apps/wallet-desktop/native/original-auth-identity.node",to:"../../../apps/wallet-desktop/native/original-auth-identity.node",count:1}]},
+  {sourcePath:"packages/wallet-auth/scripts/original-wallet-private-service-launcher.mjs",packedPath:"code/packages/wallet-auth/scripts/original-wallet-private-service-launcher.mjs",operands:[
+    {kind:"url",from:"../../../apps/wallet-desktop/native/original-auth-identity.node",to:"../../../apps/wallet-desktop/native/original-auth-identity.node",count:1}]},
   ...['original-host-terminal-journal.js','original-ide-admission-parent-delivery.js'].map(file=>({sourcePath:`packages/wallet-auth/src/${file}`,packedPath:`code/packages/wallet-auth/src/${file}`,operands:[
     {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]})),
   // This existing SDK daemon is explicitly unconfigured. Its separate optional
