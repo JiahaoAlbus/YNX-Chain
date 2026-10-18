@@ -1,0 +1,614 @@
+{
+  "schema": "ynx-product-release/v1",
+  "generatedAt": "2026-10-18T04:28:07Z",
+  "product": {
+    "id": "chain-core",
+    "name": "YNX Chain Core",
+    "owner": "01-chain-core",
+    "repository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "canonicalRoute": "/chain"
+  },
+  "source": {
+    "implementationCommit": "24607fdec2175bec29818891d38ed04c6e2f24ff",
+    "internalTree": "028ad93cc55aba21ca0488d141de37ca864fe4a9",
+    "committedStateVersion": 13,
+    "applicationVersion": 19,
+    "contractVersion": "1.13.0-source-candidate.5",
+    "releaseRecordVersion": 1
+  },
+  "network": {
+    "name": "YNX Testnet",
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "evmChainIdHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "nativeAddressPrefix": "ynx1",
+    "evmCompatibilityAddressPrefix": "0x"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "sourceRelease": {
+    "class": "unpublished-fixed-source-integration-candidate",
+    "targetCommit": "24607fdec2175bec29818891d38ed04c6e2f24ff",
+    "tag": null,
+    "url": null,
+    "productionSigned": false
+  },
+  "deployedBaseline": {
+    "release": "ynx-chain-02f4ccd8770c",
+    "commit": "02f4ccd8770c",
+    "topology": "authoritative-producer-with-three-read-only-authenticated-followers",
+    "publicFourValidatorBft": false,
+    "matchesCurrentSource": false,
+    "evidence": "release/recovery-evidence.json"
+  },
+  "currentSourceCapabilities": [
+    "signed-native-transfer",
+    "nonce-and-replay-rejection",
+    "fixed-fee-consensus-ledger",
+    "strategy-mandate",
+    "strategy-vault",
+    "validator-delegation-and-exit",
+    "smart-account",
+    "user-operation",
+    "bundler",
+    "paymaster",
+    "treasury-snapshot",
+    "native-liability-solvency-proof",
+    "abci-state-sync-snapshot",
+    "validator-backup-restore-rollback",
+    "cometbft-candidate-package",
+    "evm-network-and-block-rpc",
+    "evm-block-transaction-count-and-index-lookup",
+    "evm-account-balance-and-nonce-rpc",
+    "evm-signed-ynxt-broadcast",
+    "evm-eip155-legacy-value-transfer-and-dual-hash-identity",
+    "evm-eip2930-empty-access-list-value-transfer-and-dual-hash-identity",
+    "evm-eip1559-zero-base-fee-value-transfer-and-dual-hash-identity",
+    "evm-zero-base-fee-minimum-gas-price-suggestions",
+    "evm-committed-zero-base-fee-history",
+    "bounded-ethereum-signer-cli-and-json-evidence",
+    "configurable-local-consensus-fixture-balance",
+    "local-four-validator-eip1559-commit-and-rollback-proof",
+    "local-four-validator-positive-max-gas-fee-history-proof",
+    "evm-committed-receipt-audit-validation",
+    "evm-committed-transaction-receipt-and-logs",
+    "evm-committed-bounded-contract-code-call-and-resource-estimate",
+    "sponsored-user-operation-bundler-end-to-end",
+    "strategy-vault-lifecycle-and-emergency-exit-guardrails",
+    "indexer-durable-checkpoint-wal-and-tamper-rejection",
+    "streambft-overflow-safe-quorum-resource-and-timeout-accounting",
+    "governance-execution-begin-verify-and-audit"
+  ],
+  "currentSourceBoundaries": [
+    "Current source is not deployed on the authoritative public runtime.",
+    "The public topology is not four-validator CometBFT voting.",
+    "StreamBFT remains a local shadow candidate and is not eligible for cutover.",
+    "Wallet/Auth Product Session integration is not frozen or accepted centrally.",
+    "Ethereum compatibility accepts only chain-bound EIP-155 legacy type-0, EIP-2930 type-0x01 empty-access-list and EIP-1559 type-0x02 zero-base-fee value transfers with exactly 21000 gas; non-empty access lists, contract creation, calldata and a dynamic base-fee market are not supported.",
+    "eth_gasPrice and eth_maxPriorityFeePerGas return the protocol minimum accepted value 0x1; eth_feeHistory returns only retained committed zero-base-fee history when CometBFT exposes a positive committed max_gas, rejects reward-percentile estimates, and returns -32004 rather than fabricating gasUsedRatio when max_gas is non-positive.",
+    "The signer CLI and four-validator EIP-1559 proofs are local tooling and local ephemeral evidence, not public deployment or production signing.",
+    "No owner production signer, public BFT cutover approval, or independent public proof is recorded.",
+    "This independent performance candidate binds schema 13, AppHash V13 and application 19. It is not the Protocol schema 15/registry 16/engine 17 stream.",
+    "Inherited capability test claims are predecessor evidence, not a new Go test or live runtime result for this candidate."
+  ],
+  "evidence": [
+    "source-map.json",
+    "chain-core-contract.json",
+    "cross-product-test-vectors.json",
+    "check.mjs",
+    "check.test.mjs",
+    "README.md"
+  ],
+  "candidateCompatibility": {
+    "sourceStream": "performance",
+    "committedStateVersion": 13,
+    "applicationVersion": 19,
+    "appHashDomain": "YNX_ABCI_STATE_V13",
+    "publishedPredecessor": {
+      "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "contractVersion": "1.12.0",
+      "committedStateVersion": 12,
+      "applicationVersion": 18,
+      "appHashDomain": "YNX_ABCI_STATE_V12"
+    },
+    "protocolStream": {
+      "baseCommittedStateVersion": 15,
+      "applicationVersion": 15,
+      "validatorRegistryStateVersion": 16,
+      "pqEngineScheduleStateVersion": 17,
+      "interchangeable": false
+    },
+    "diskUpgrade": {
+      "fromCommittedStateVersion": 12,
+      "toCommittedStateVersion": 13,
+      "validateOriginalAppHashBeforeUpgrade": true,
+      "originalHashDomain": "YNX_ABCI_STATE_V12",
+      "emptyNewDEXCollections": true,
+      "preserveExistingAccountsAndHistory": true,
+      "trustedMigrationAnchorRequired": true
+    },
+    "stateSync": {
+      "acceptedCommittedStateVersion": 13,
+      "acceptsVersion12Snapshot": false,
+      "trustedAppHashRequired": true
+    },
+    "replay": {
+      "nonceReplayRejected": true,
+      "mixedApplicationVersionConsensusSupported": false,
+      "arbitrarySnapshotRollbackProven": false,
+      "independentTrustedCheckpointRequired": true
+    },
+    "evidence": {
+      "validatorKind": "node-source-contract-check",
+      "goTestsRunByThisCandidate": false,
+      "liveDeployment": false,
+      "inheritedCapabilityEvidenceSource": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+      "historicalCapabilityClaimsAreNewRuntimeTestResults": false
+    }
+  },
+  "candidatePerformance": {
+    "measured": false,
+    "claimedTps": null,
+    "speedupRatio": null,
+    "finalityMeasured": false
+  },
+  "candidateActivation": {
+    "publicHash": "original-borrowed-encoder",
+    "experimentalFeeChunks": "direct-call-and-benchmark-only",
+    "automaticActivation": false
+  },
+  "previousCandidatePerformance": {
+    "sourceCommit": "2dbfc1146a0ca23fdd7ce10dccd4ab80dec5be49",
+    "integrationCommit": "2509fd612f2f602a901c534b544c20a272d72c4e",
+    "internalTree": "f1342d3123f2366797e71c65a4e160cac377c9f2",
+    "measurementRun": 39114847427,
+    "outcome": "regression",
+    "activationWithdrawn": true
+  },
+  "sealWitnessEvidence": {
+    "sourceCommit": "8782774edb3034a316294e844d96e33936908640",
+    "internalTree": "0223c12969236080e86ad7534ec98bd8e43180cb",
+    "runId": 39118758324,
+    "runConclusion": "failure",
+    "failureGate": "old SDK candidate.3 exact internal identity, not source or phase tests",
+    "fullGoSourceGate": "success",
+    "phaseAndMutationTests": "success",
+    "measurement": {
+      "app_hash": "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65",
+      "business_tps": null,
+      "fee_events": 1024,
+      "finality_latency": null,
+      "inclusion_latency": null,
+      "measurement": "retained_real_1024_state_seal_ABBA_and_atomic_persistence",
+      "rows": [
+        {
+          "atomic_commit_elapsed_ns": 14719763,
+          "atomic_commit_stages_ns": {
+            "close_file": 9037,
+            "directory_sync": 183020,
+            "file_sync": 3813715,
+            "json_encode": 6391748,
+            "prepare_file": 40946,
+            "rename": 131475,
+            "validate": 3917147,
+            "write": 214991
+          },
+          "guarded": false,
+          "order": 0,
+          "payload_bytes": 812656,
+          "seal_allocated_bytes": 1159392,
+          "seal_allocations": 11071,
+          "seal_elapsed_ns": 6708558,
+          "seal_stages_ns": {
+            "clone_and_materialize": 637638,
+            "final_hash": 2063373,
+            "initial_hash": 2731068,
+            "semantic_validate": 1275396,
+            "witness_compare": 201,
+            "witness_copy": 220
+          },
+          "second_hash_executed": true
+        },
+        {
+          "atomic_commit_elapsed_ns": 10849964,
+          "atomic_commit_stages_ns": {
+            "close_file": 7945,
+            "directory_sync": 208098,
+            "file_sync": 838222,
+            "json_encode": 6553549,
+            "prepare_file": 40315,
+            "rename": 24816,
+            "validate": 2967548,
+            "write": 199031
+          },
+          "guarded": true,
+          "order": 1,
+          "payload_bytes": 812656,
+          "seal_allocated_bytes": 1249968,
+          "seal_allocations": 8913,
+          "seal_elapsed_ns": 5381936,
+          "seal_stages_ns": {
+            "clone_and_materialize": 475797,
+            "initial_hash": 2573454,
+            "semantic_validate": 1534689,
+            "witness_compare": 176289,
+            "witness_copy": 621107
+          },
+          "second_hash_executed": false
+        },
+        {
+          "atomic_commit_elapsed_ns": 11401812,
+          "atomic_commit_stages_ns": {
+            "close_file": 6532,
+            "directory_sync": 150771,
+            "file_sync": 1001566,
+            "json_encode": 6749444,
+            "prepare_file": 36749,
+            "rename": 24045,
+            "validate": 3200713,
+            "write": 221883
+          },
+          "guarded": true,
+          "order": 2,
+          "payload_bytes": 812656,
+          "seal_allocated_bytes": 1250000,
+          "seal_allocations": 8914,
+          "seal_elapsed_ns": 4817145,
+          "seal_stages_ns": {
+            "clone_and_materialize": 493670,
+            "initial_hash": 3112218,
+            "semantic_validate": 951683,
+            "witness_compare": 172882,
+            "witness_copy": 85960
+          },
+          "second_hash_executed": false
+        },
+        {
+          "atomic_commit_elapsed_ns": 10295721,
+          "atomic_commit_stages_ns": {
+            "close_file": 6983,
+            "directory_sync": 145020,
+            "file_sync": 740690,
+            "json_encode": 6025426,
+            "prepare_file": 91780,
+            "rename": 24756,
+            "validate": 3048790,
+            "write": 202067
+          },
+          "guarded": false,
+          "order": 3,
+          "payload_bytes": 812656,
+          "seal_allocated_bytes": 1159248,
+          "seal_allocations": 11069,
+          "seal_elapsed_ns": 5245453,
+          "seal_stages_ns": {
+            "clone_and_materialize": 148356,
+            "final_hash": 2120441,
+            "initial_hash": 2062082,
+            "semantic_validate": 913522,
+            "witness_compare": 120,
+            "witness_copy": 250
+          },
+          "second_hash_executed": true
+        }
+      ],
+      "runtime_candidate_enabled": false
+    },
+    "means": {
+      "original": {
+        "seal_elapsed_ns": 5977005.5,
+        "seal_allocated_bytes": 1159320,
+        "seal_allocations": 11070,
+        "atomic_commit_elapsed_ns": 12507742,
+        "seal_stages_mean_ns": {
+          "clone_and_materialize": 392997,
+          "final_hash": 2091907,
+          "semantic_validate": 1094459,
+          "initial_hash": 2396575,
+          "witness_copy": 235,
+          "witness_compare": 160.5
+        },
+        "atomic_commit_stages_mean_ns": {
+          "json_encode": 6208587,
+          "write": 208529,
+          "validate": 3482968.5,
+          "prepare_file": 66363,
+          "close_file": 8010,
+          "directory_sync": 164020,
+          "file_sync": 2277202.5,
+          "rename": 78115.5
+        }
+      },
+      "guarded": {
+        "seal_elapsed_ns": 5099540.5,
+        "seal_allocated_bytes": 1249984,
+        "seal_allocations": 8913.5,
+        "atomic_commit_elapsed_ns": 11125888,
+        "seal_stages_mean_ns": {
+          "clone_and_materialize": 484733.5,
+          "semantic_validate": 1243186,
+          "initial_hash": 2842836,
+          "witness_copy": 353533.5,
+          "witness_compare": 174585.5
+        },
+        "atomic_commit_stages_mean_ns": {
+          "json_encode": 6651496.5,
+          "write": 210457,
+          "validate": 3084130.5,
+          "prepare_file": 38532,
+          "close_file": 7238.5,
+          "directory_sync": 179434.5,
+          "file_sync": 919894,
+          "rename": 24430.5
+        }
+      }
+    },
+    "sealElapsedChangePercent": -14.68067914610418,
+    "allocationBytesChangePercent": 7.820446468619546,
+    "rawLogBytes": 378512,
+    "rawLogSHA256": "f3d069bc32f704a0c316cc179b28de2f58cbc67069f0b9aa917b1acc6f71eb2c",
+    "limits": [
+      "Two short samples per mode in ABBA order on retained actual 1024-transfer state; not sustained workload or TPS.",
+      "Atomic snapshot persistence is measured unchanged; guarded seal only targets local Finalize sealing.",
+      "Both modes use identical canonical hash and complete state bytes; original runtime default remains active.",
+      "No network inclusion or BFT finality measurement in this case."
+    ]
+  },
+  "previousRecoveryPerformance": {
+    "sourceCommit": "1db2c267fbc47b48dd514a20f09ad0306bfd8972",
+    "internalTree": "42b2289a323fd487e4d62a76de0845abcb66ec79",
+    "runId": 39116956504,
+    "runConclusion": "success",
+    "scope": "same-process original versus explicitly invoked revised experiment; retained actual1024-transfer snapshot; not business TPS or BFT finality",
+    "activeRuntimeHash": "original borrowed encoder",
+    "experimentalAutomaticallyActive": false,
+    "fixtureSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+    "fixtureBytes": 812656,
+    "gomaxprocs": 1,
+    "gogc": 50,
+    "goMemoryTarget": "160MiB",
+    "benchTimePerSample": "200ms",
+    "samples": {
+      "original_borrowed_encoder": [
+        {
+          "iterations": 136,
+          "nsPerOp": 1718595.0,
+          "bytesPerOp": 76994.0,
+          "allocsPerOp": 2055.0
+        },
+        {
+          "iterations": 138,
+          "nsPerOp": 1718381.0,
+          "bytesPerOp": 76994.0,
+          "allocsPerOp": 2055.0
+        },
+        {
+          "iterations": 138,
+          "nsPerOp": 1720538.0,
+          "bytesPerOp": 76994.0,
+          "allocsPerOp": 2055.0
+        }
+      ],
+      "fee_chunked_encoder": [
+        {
+          "iterations": 100,
+          "nsPerOp": 2137304.0,
+          "bytesPerOp": 77406.0,
+          "allocsPerOp": 2067.0
+        },
+        {
+          "iterations": 100,
+          "nsPerOp": 2143255.0,
+          "bytesPerOp": 77406.0,
+          "allocsPerOp": 2067.0
+        },
+        {
+          "iterations": 100,
+          "nsPerOp": 2125582.0,
+          "bytesPerOp": 77406.0,
+          "allocsPerOp": 2067.0
+        }
+      ]
+    },
+    "medians": {
+      "original_borrowed_encoder": {
+        "nsPerOp": 1718595.0,
+        "bytesPerOp": 76994.0,
+        "allocsPerOp": 2055.0
+      },
+      "fee_chunked_encoder": {
+        "nsPerOp": 2137304.0,
+        "bytesPerOp": 77406.0,
+        "allocsPerOp": 2067.0
+      }
+    },
+    "candidateChangePercent": {
+      "nsPerOp": 24.36344804913315,
+      "bytesPerOp": 0.535106631685589,
+      "allocsPerOp": 0.5839416058394109
+    },
+    "rawLogBytes": 371630,
+    "rawLogSHA256": "b08ffcbc293f6b174a02bc495705daef457712724df2c022d85ae84f00cf5d03",
+    "previousNegativeRunRetained": 39114847427,
+    "limits": [
+      "Three short sequential Go benchmark samples per mode, no sustained throughput or application pipeline result.",
+      "B/op is total Go allocation, not peak RSS.",
+      "Both functions reproduce the original AppHash; experiment is not the runtime default.",
+      "Do not compare absolute cross-run timings as a controlled speedup."
+    ]
+  },
+  "largeHistoryValidation": {
+    "sourceCommit": "24607fdec2175bec29818891d38ed04c6e2f24ff",
+    "testName": "TestSealGuardedActualLargeHistoryPhases",
+    "executed": false,
+    "measured": false,
+    "businessTps": null,
+    "finalityMeasured": false
+  },
+  "compactWitness": {
+    "sourceCommit": "24607fdec2175bec29818891d38ed04c6e2f24ff",
+    "runtimeEnabled": false,
+    "productionMode": "original",
+    "oldBooleanTrueMode": "full_copy",
+    "candidateMode": "compact",
+    "selection": "explicit-measurement-only",
+    "feeComparison": "complete-BFTFeeEvent-value-equality",
+    "mixedMetadataFallback": "full-copy",
+    "futureReferenceSchemaFallback": "full-hash",
+    "performanceMeasured": false,
+    "largeHistoryOrder": "ABCCBA",
+    "largeHistoryModes": [
+      "original",
+      "full_copy",
+      "compact"
+    ],
+    "largeHistorySamplesPerMode": 2
+  },
+  "previousLargeHistoryPerformance": {
+    "sourceCommit": "6bde90f34284a70e8a78b77c677258246d3cbb1c",
+    "internalTree": "1f99b28575b63877470a94ab46fb2671508b4bf1",
+    "runId": 39119368274,
+    "runConclusion": "failure",
+    "failureGate": "old SDK candidate.3 exact internal identity, after all selected measurements passed",
+    "fullGoSourceGate": "success",
+    "realSignedHistoryMacro": "success",
+    "largeSealMeasurement": "success",
+    "measurement": {
+      "app_hash": "c1826010d503909049c960fe9afcf048322bc2abf838ea2ffaa529dbaa8f53ee",
+      "business_tps": null,
+      "fee_events": 31232,
+      "finality_latency": null,
+      "go_version": "go1.25.14",
+      "gomaxprocs": 1,
+      "inclusion_latency": null,
+      "input_bytes": 16827942,
+      "input_store_sha256": "98a5495fb1f45049290e8aef0ce37b6ad495eed723ad5279938aa1f66f0f2b33",
+      "input_unchanged": true,
+      "max_rss_platform": "linux",
+      "max_rss_raw": 154744,
+      "measurement": "same_completed_actual_large_history_seal_ABBA_not_business_or_network_TPS",
+      "replayed_blocks": 10,
+      "replayed_signed_inputs": 2560,
+      "rows": [
+        {
+          "full_state_equal": true,
+          "guarded": false,
+          "order": 0,
+          "public_full_validate_passed": true,
+          "seal_allocated_bytes": 16096496,
+          "seal_allocations": 135109,
+          "seal_elapsed_ns": 89819356,
+          "seal_stages_ns": {
+            "clone_and_materialize": 565400,
+            "final_hash": 34941378,
+            "initial_hash": 35585894,
+            "semantic_validate": 18722737,
+            "witness_compare": 531,
+            "witness_copy": 1292
+          },
+          "second_hash_executed": true
+        },
+        {
+          "full_state_equal": true,
+          "guarded": true,
+          "order": 1,
+          "public_full_validate_passed": true,
+          "seal_allocated_bytes": 20971304,
+          "seal_allocations": 102363,
+          "seal_elapsed_ns": 66413035,
+          "seal_stages_ns": {
+            "clone_and_materialize": 560783,
+            "initial_hash": 35431628,
+            "semantic_validate": 28792114,
+            "witness_compare": 697393,
+            "witness_copy": 929044
+          },
+          "second_hash_executed": false
+        },
+        {
+          "full_state_equal": true,
+          "guarded": true,
+          "order": 2,
+          "public_full_validate_passed": true,
+          "seal_allocated_bytes": 20971304,
+          "seal_allocations": 102363,
+          "seal_elapsed_ns": 66262355,
+          "seal_stages_ns": {
+            "clone_and_materialize": 640981,
+            "initial_hash": 35395555,
+            "semantic_validate": 28898660,
+            "witness_compare": 712867,
+            "witness_copy": 611818
+          },
+          "second_hash_executed": false
+        },
+        {
+          "full_state_equal": true,
+          "guarded": false,
+          "order": 3,
+          "public_full_validate_passed": true,
+          "seal_allocated_bytes": 16096776,
+          "seal_allocations": 135113,
+          "seal_elapsed_ns": 93899343,
+          "seal_stages_ns": {
+            "clone_and_materialize": 576916,
+            "final_hash": 40292822,
+            "initial_hash": 35651922,
+            "semantic_validate": 17371885,
+            "witness_compare": 741,
+            "witness_copy": 2473
+          },
+          "second_hash_executed": true
+        }
+      ],
+      "runtime_candidate_enabled": false
+    },
+    "means": {
+      "original": {
+        "seal_elapsed_ns": 91859349.5,
+        "seal_allocated_bytes": 16096636,
+        "seal_allocations": 135111,
+        "stages_mean_ns": {
+          "semantic_validate": 18047311,
+          "witness_compare": 636,
+          "final_hash": 37617100,
+          "witness_copy": 1882.5,
+          "clone_and_materialize": 571158,
+          "initial_hash": 35618908
+        }
+      },
+      "guarded": {
+        "seal_elapsed_ns": 66337695,
+        "seal_allocated_bytes": 20971304,
+        "seal_allocations": 102363,
+        "stages_mean_ns": {
+          "semantic_validate": 28845387,
+          "witness_compare": 705130,
+          "witness_copy": 770431,
+          "clone_and_materialize": 600882,
+          "initial_hash": 35413591.5
+        }
+      }
+    },
+    "sealElapsedChangePercent": -27.783404344704188,
+    "allocationBytesChangePercent": 30.283768608546534,
+    "rawLogBytes": 424074,
+    "rawLogSHA256": "f734d2fd6ea0628aa232e86cfeb9103bbeee42966ae0473df00d89edf8a4864a",
+    "limits": [
+      "Two short samples per mode in ABBA order on one actual same-run large signed-history state.",
+      "Runtime candidate remains disabled, no network nodes or inclusion/finality measurement.",
+      "Allocations are total Go allocations; maxRSS is whole test process including replay and both modes, not per-mode peak.",
+      "Public Validate and actual macro Commit retain full current-state hash."
+    ]
+  }
+}
