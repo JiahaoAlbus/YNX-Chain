@@ -307,6 +307,14 @@ func TestStreamingWorkloadActualFeeHistoryReadback(t *testing.T) {
 	report["stateSHA256"] = fmt.Sprintf("%x", sha256.Sum256(decoded.SnapshotJSON))
 	report["verifiedFeeEvents"] = len(decoded.State.FeeEvents)
 	report["verifiedSenders"] = len(addresses)
+	if os.Getenv("YNX_CHAIN_VALIDATE_CPU_PROFILE") == "1" {
+		profile, err := captureStateValidationCPU(ctx, filepath.Join(directory, "state-validation.cpu.pprof"), func() error { return decoded.State.Validate(migration) })
+		report["stateValidationCPUProfile"] = profile
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	t.Logf("actual_fee_history_application_only records=%d blocks=%d store_bytes=%d readback_ns=%v; no network TPS", total, blocks, len(store), report["largeReadbackNs"])
 }
 func byteTransactions(txs []cmt.Tx) [][]byte {

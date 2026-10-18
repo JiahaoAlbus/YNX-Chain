@@ -42,6 +42,10 @@ on:
         description: "Measure bounded actual signed application history beyond the default reader limit"
         type: boolean
         default: false
+      profile_state_validation:
+        description: "Sample full state validation CPU: at most 32 calls, stop scheduling after 2s, 1 MiB output cap"
+        type: boolean
+        default: false
       build_darwin_phase_node:
         description: "Build an isolated darwin/arm64 phase-timing node candidate after all normal gates"
         type: boolean
@@ -134,6 +138,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.measure_real_fee_history
         env:
           YNX_CHAIN_REAL_HISTORY: "1"
+          YNX_CHAIN_VALIDATE_CPU_PROFILE: ${{ inputs.profile_state_validation && '1' || '0' }}
           YNX_CHAIN_REAL_HISTORY_DIR: ${{ runner.temp }}/ynx-real-fee-history
           GOMAXPROCS: "1"
           GOGC: "50"

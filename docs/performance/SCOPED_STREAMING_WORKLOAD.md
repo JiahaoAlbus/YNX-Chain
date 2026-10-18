@@ -108,3 +108,20 @@ The warm target observations repeat existing transactions, and do not increase
 the business-transaction count. Cold ordering and individual samples remain in
 the report. The existing 210-second context, 240-second test, transaction cap,
 real-history stop condition and default-disabled macro selection remain intact.
+
+### Remaining full-state validation CPU cost
+
+The existing workflow has a separate default-false `profile_state_validation`
+input. It only acts inside an explicitly selected real-history measurement;
+normal CI does not perform that macro. After the unchanged actual-history and
+state/account/fee assertions, the test can sample calls to the original public
+`CommittedState.Validate` on that exact decoded state. It schedules at most 32
+calls and stops scheduling after two seconds or the parent deadline. A running
+validation finishes before the next deadline check; CPU-profile stop/drain time
+is recorded too. The original 210/240-second enclosing limits remain intact.
+The profile writer rejects output beyond 1 MiB, preserves any partial file and
+propagates original validation/output errors. Output is a CPU stack profile,
+not a heap dump; no temporary keys/seeds or transaction arguments are captured.
+This diagnostic does not replace any validation or alter the internal tree.
+A controlled real-state light test checks original failure propagation, state
+immutability, readable compressed output and exclusive evidence creation.
