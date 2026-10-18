@@ -1,4 +1,5 @@
 import {openSync,closeSync,fstatSync,writeSync,constants} from 'node:fs';
+import {CANONICAL_RPC_URL} from './rpc.mjs';
 
 const own = (value,key) => value && (typeof value === 'object' || typeof value === 'function')
   ? Object.getOwnPropertyDescriptor(value,key)?.value : undefined;
@@ -30,12 +31,16 @@ export function recordRPCMetadataFailure(error,filePath) {
     }
     if(!trace)return false;
     const method=own(trace,'method'),stage=own(trace,'stage'),httpStatus=own(trace,'httpStatus'),elapsedMs=own(trace,'elapsedMs');
+    const requestId=own(trace,'requestId'),endpoint=own(trace,'endpoint');
+    // Legacy observations remain readable, but a supplied correlation must be
+    // complete and fixed-origin; never persist a caller-controlled URL.
+    if((requestId!==undefined||endpoint!==undefined)&&(!Number.isSafeInteger(requestId)||requestId<1||endpoint!==CANONICAL_RPC_URL))return false;
     if(!['ynx_getFeeModel','ynx_getDurabilityModel'].includes(method) || !['fetch','response','decode','envelope'].includes(stage) || !(httpStatus===null || Number.isInteger(httpStatus)&&httpStatus>=100&&httpStatus<=599) || !Number.isSafeInteger(elapsedMs)||elapsedMs<0||elapsedMs>86400000)return false;
     const errorCode=own(own(observed,'data'),'code'),cause=own(observed,'cause');
     // A nested transport code is useful for Node fetch TypeError causes, but
     // never copy free text from platform or remote errors.
     const causeCode=own(cause,'code') ?? own(own(cause,'cause'),'code');
-    const line=Buffer.from(JSON.stringify({version:1,at:new Date().toISOString(),method,stage,httpStatus,elapsedMs,errorCode:codes.has(errorCode)?errorCode:null,causeName:causeName(cause),causeCode:transportCodes.has(causeCode)?causeCode:null})+'\n');
+    const line=Buffer.from(JSON.stringify({version:1,at:new Date().toISOString(),method,requestId:requestId??null,endpoint:endpoint??null,stage,httpStatus,elapsedMs,errorCode:codes.has(errorCode)?errorCode:null,causeName:causeName(cause),causeCode:transportCodes.has(causeCode)?causeCode:null})+'\n');
     if(line.length>1024 || constants.O_NOFOLLOW===undefined || constants.O_NONBLOCK===undefined)return false;
     // Refuse special files without blocking before fstat can inspect the fd.
     fd=openSync(filePath,constants.O_WRONLY|constants.O_CREAT|constants.O_APPEND|constants.O_NOFOLLOW|constants.O_NONBLOCK,0o600);

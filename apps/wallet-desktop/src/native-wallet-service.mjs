@@ -15,10 +15,9 @@ export class CanonicalAccountNetwork {
   #sequence = 0;
   constructor({ fetchImpl = globalThis.fetch } = {}) { this.fetchImpl = fetchImpl; }
   async request(method, params = []) {
-    const started = performance.now();
+    const started = performance.now(), id = ++this.#sequence;
     let stage = "fetch", httpStatus = null;
     try {
-      const id = ++this.#sequence;
       const response = await this.fetchImpl(CANONICAL_RPC_URL, {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
@@ -49,7 +48,7 @@ export class CanonicalAccountNetwork {
       // Original-main diagnostic DATA only; no params/body/account/credential.
       // Non-enumerable so ordinary IPC error serialization is not expanded.
       if (["ynx_getFeeModel", "ynx_getDurabilityModel"].includes(method) && failure && typeof failure === "object" && Object.isExtensible(failure) && !Object.hasOwn(failure, "rpcMetadataObservation")) {
-        Object.defineProperty(failure, "rpcMetadataObservation", { value: Object.freeze({ method, stage, httpStatus, elapsedMs: Math.max(0, Math.round(performance.now() - started)) }), configurable: false, enumerable: false });
+        Object.defineProperty(failure, "rpcMetadataObservation", { value: Object.freeze({ method, requestId: id, endpoint: CANONICAL_RPC_URL, stage, httpStatus, elapsedMs: Math.max(0, Math.round(performance.now() - started)) }), configurable: false, enumerable: false });
       }
       throw failure;
     }

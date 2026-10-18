@@ -4,6 +4,7 @@ import {mkdtempSync,readFileSync,writeFileSync,statSync,symlinkSync,unlinkSync,r
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {recordRPCMetadataFailure} from '../src/rpc-metadata-failure-record.mjs';
+import {CANONICAL_RPC_URL} from '../src/rpc.mjs';
 const fixture=()=>{const dir=mkdtempSync(path.join(tmpdir(),'wallet-metadata-'));return{dir,file:path.join(dir,'trace.jsonl'),close(){for(const name of ['trace.jsonl','target']){try{unlinkSync(path.join(dir,name));}catch{}}rmdirSync(dir);}};};
 const failure=()=>Object.assign(Error('DO_NOT_RECORD_BODY_OR_SECRET'),{data:{code:'RPC_TIMEOUT'},cause:Object.assign(Error('DO_NOT_RECORD_CAUSE_MESSAGE'),{name:'TimeoutError'}),rpcMetadataObservation:Object.freeze({method:'ynx_getDurabilityModel',stage:'fetch',httpStatus:null,elapsedMs:10003})});
 test('main records only bounded allowlisted fields and original cause class',()=>{const f=fixture();try{assert.equal(recordRPCMetadataFailure(failure(),f.file),true);const raw=readFileSync(f.file,'utf8'),r=JSON.parse(raw);assert.equal(r.method,'ynx_getDurabilityModel');assert.equal(r.stage,'fetch');assert.equal(r.errorCode,'RPC_TIMEOUT');assert.equal(r.causeName,'TimeoutError');assert.equal(r.elapsedMs,10003);assert.equal(r.httpStatus,null);assert.doesNotMatch(raw,/DO_NOT_RECORD|stack|params|account/);assert.equal(statSync(f.file).mode&0o777,0o600);}finally{f.close();}});
@@ -14,3 +15,13 @@ test('malformed metadata and foreign method are refused, free text cause codes s
 test('wrapped missing-method keeps inner observation without copying RPC text',()=>{const f=fixture();try{const inner=failure();inner.data.code='RPC_UNAVAILABLE';const e=Object.assign(Error('SECRET'),{data:{code:'RPC_DURABILITY_UNSUPPORTED'},cause:inner});assert.equal(recordRPCMetadataFailure(e,f.file),true);const r=JSON.parse(readFileSync(f.file,'utf8'));assert.equal(r.method,'ynx_getDurabilityModel');assert.equal(r.errorCode,'RPC_UNAVAILABLE');}finally{f.close();}});
 test('native DOMException cause is classified without serializing its message',()=>{const f=fixture();try{const e=failure();e.cause=new DOMException('DO_NOT_RECORD_NATIVE_MESSAGE','TimeoutError');assert.equal(recordRPCMetadataFailure(e,f.file),true);const raw=readFileSync(f.file,'utf8');assert.equal(JSON.parse(raw).causeName,'TimeoutError');assert.doesNotMatch(raw,/DO_NOT_RECORD/);}finally{f.close();}});
 test('preexisting public-permission log is refused without changing permissions or content',()=>{const f=fixture();try{writeFileSync(f.file,'PUBLIC_KEEP',{mode:0o644});assert.equal(recordRPCMetadataFailure(failure(),f.file),false);assert.equal(readFileSync(f.file,'utf8'),'PUBLIC_KEEP');assert.equal(statSync(f.file).mode&0o777,0o644);}finally{f.close();}});
+test('exact request correlation is persisted privately but foreign endpoints and partial pairs are refused',()=>{
+ const f=fixture();try{
+  for(const extra of [{requestId:7},{endpoint:CANONICAL_RPC_URL},{requestId:7,endpoint:'https://private.invalid/SECRET'},{requestId:0,endpoint:CANONICAL_RPC_URL}]){
+   const e=failure();e.rpcMetadataObservation={...e.rpcMetadataObservation,...extra};assert.equal(recordRPCMetadataFailure(e,f.file),false);
+  }
+  const e=failure();e.rpcMetadataObservation={...e.rpcMetadataObservation,requestId:7,endpoint:CANONICAL_RPC_URL};
+  assert.equal(recordRPCMetadataFailure(e,f.file),true);const raw=readFileSync(f.file,'utf8'),record=JSON.parse(raw);
+  assert.equal(record.requestId,7);assert.equal(record.endpoint,CANONICAL_RPC_URL);assert.doesNotMatch(raw,/SECRET|DO_NOT_RECORD/);
+ }finally{f.close();}
+});

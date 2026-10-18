@@ -57,6 +57,10 @@ Read recovery captures the current account, lifecycle context and configuration 
 
 Mount `mountCctpUI({root,api,locale})` in the normal Wallet route. The return value provides `invalidate()` for lock, account change, focus loss and configuration change, and `dispose()` for unmount. The renderer suppresses late responses and consumes the review before confirmation IPC so timeout/error cannot render a second send button. It never signs automatically. Wire the normal history/reopen entry to this same panel and APIs.
 
+The UI-wait successor to `dd83bf893a810ff3ca6c8f58905b4070447d829c` keeps this API unchanged. Each renderer action owns its waiting token. Invalidation retires that token and permits fresh read-only history/check actions even when the old IPC promise never settles; the old callback or `finally` cannot release a newer action or publish stale data. Each IPC has a 120-second renderer-wait deadline, covering the complete response wait. This is distinct from the reader's 12-second per-network-request limits and does not cancel, retry or replace a main-process operation, approval, signature or broadcast.
+
+If start/prepare/confirm/cancel loses its response or is invalidated while in progress, the UI keeps an opaque recovery marker and withholds write actions. Only history and original-transaction checks remain available. A successful `check` for the same original intent clears the marker because original `CctpFlow.check` shares the per-intent `#run` guard with prepare/confirm/cancel. An uncertain start first locates its intent in history by the original `quoteId`, then requires that same check. A completed failed start followed by fresh history with no matching record can clear the start marker; an unresolved start cannot. A restored review still needs the existing explicit discard/fresh-ID/confirmation flow. None of these UI changes weakens persistent UNKNOWN barriers or grants another signing permission.
+
 The app's normal network configuration must supply verified Sepolia and Base Sepolia RPCs. Do not weaken the existing genesis check: the first public-read probes found `rpc.sepolia.org` timeout and genesis block pruned (`4444`) at `sepolia.base.org`, `ethereum-sepolia-rpc.publicnode.com`, and `base-sepolia-rpc.publicnode.com`. A supported route and available Circle fees do not prove a usable configured RPC or target arrival.
 
 ## Verification and CI
@@ -68,6 +72,8 @@ node --test apps/wallet-desktop/src/features/cross-chain/*.test.mjs
 ```
 
 For an owner checkout that already integrated frozen `9f90`, apply `recovery-ci.patch` instead to append only the two new regression imports. Existing UI tests also contain the new recovery cases. For this successor, reuse the original 56-test evidence and run the new recovery/reconciliation tests plus affected flow/UI cases; do not re-run the old suite merely to reproduce its count. The full wildcard command above remains the normal CI entry for future changes.
+
+For an owner checkout that already integrated `dd83`, apply `ui-wait-ci.patch` to append the one new UI-wait regression importer. Reuse the previous source/integration evidence. This delta requires only its new hanging-response tests and affected UI lifecycle/confirmation cases; no flow, reader, custody or network-pin behavior changed.
 
 Controlled tests cover actual baseline adapter signing with public fixture keys (never broadcast), message/receipt binding, atomic-store restart, account switch, duplicate confirm, persistence failure, and unknown outcome. Three concrete RED cases were fixed: old-intent/new-account review race; expired proof blocking original mint lookup; confirmation IPC timeout leaving a reusable send button. Tests are not Circle attestation authenticity, a real Wallet approval, a real transfer, or installed acceptance.
 

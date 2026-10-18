@@ -2,7 +2,7 @@ diff --git a/apps/wallet-desktop/test/cross-chain.test.mjs b/apps/wallet-desktop
 new file mode 100644
 --- /dev/null
 +++ b/apps/wallet-desktop/test/cross-chain.test.mjs
-@@ -0,0 +1,7 @@
+@@ -0,0 +1,8 @@
 +import '../src/features/cross-chain/cctp-wire.test.mjs';
 +import '../src/features/cross-chain/cctp-action.test.mjs';
 +import '../src/features/cross-chain/cctp-reader.test.mjs';
@@ -10,3 +10,4 @@ new file mode 100644
 +import '../src/features/cross-chain/cctp-ui.test.mjs';
 +import '../src/features/cross-chain/cctp-recovery.test.mjs';
 +import '../src/features/cross-chain/cctp-reconcile-delta.test.mjs';
++import '../src/features/cross-chain/cctp-ui-wait.test.mjs';

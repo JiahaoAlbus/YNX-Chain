@@ -48,12 +48,9 @@ function statement(value) {
   return Object.freeze(result);
 }
 
-/** Main-only input DATA. A plain object does not establish host provenance.
- * The original owner must obtain hostExpectedTransaction from its independent
- * pinned context, then invoke the normal pinned CLI with that same context.
- * collectorProof is only its proof DTO, never the raw collector HTTP response.
- * No file/CLI/network effect or approval/finality result is produced here. */
-export function preparePQTransferFinalityInvocation(original, binding, hostExpectedTransaction, collectorProof) {
+/** Exact original/host target DATA shared by stdin and stdout consumers.
+ * A matching object does not authenticate host provenance or grant finality. */
+export function preparePQTransferFinalityTarget(original, binding, hostExpectedTransaction) {
   const {account, networkId} = dataCopy(binding, ['account','networkId']);
   const originalCopy = dataCopy(original, ['version','account','kind','operationId','hash','wire','status']);
   const plan = preparePQTransferOriginal(originalCopy, {account, networkId});
@@ -77,6 +74,16 @@ export function preparePQTransferFinalityInvocation(original, binding, hostExpec
   if (selected.transactionType !== 'pq_transfer' || selected.envelope !== envelope.toString('base64') || selected.nativeWire !== wire.toString('base64') || selected.transactionHash !== transactionHash || selected.nativeWireHash !== nativeHash) fail('PQ_FINALITY_INVOCATION_ORIGINAL_MISMATCH');
   const expected = Object.freeze({...selected, block, successor});
   if (Buffer.byteLength(JSON.stringify(expected), 'utf8') > maxExpectedBytes) fail('PQ_FINALITY_INVOCATION_BYTES_EXCEEDED');
+  return expected;
+}
+
+/** Main-only input DATA. A plain object does not establish host provenance.
+ * The original owner must obtain hostExpectedTransaction from its independent
+ * pinned context, then invoke the normal pinned CLI with that same context.
+ * collectorProof is only its proof DTO, never the raw collector HTTP response.
+ * No file/CLI/network effect or approval/finality result is produced here. */
+export function preparePQTransferFinalityInvocation(original, binding, hostExpectedTransaction, collectorProof) {
+  const expected = preparePQTransferFinalityTarget(original, binding, hostExpectedTransaction);
   const proof = validatePQTransactionProofDTO(collectorProof);
   const stdin = JSON.stringify({version:requestVersion, expected, proof});
   const stdinByteLength = Buffer.byteLength(stdin, 'utf8');
