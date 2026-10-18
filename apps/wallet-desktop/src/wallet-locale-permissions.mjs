@@ -13,4 +13,19 @@ const translations={
   ar:"تعذر التحقق من أذونات حساب Wallet. تم الاحتفاظ بالسجلات الموجودة؛ تم حظر الوصول إلى الحساب والتوقيع.",
   id:"Izin akun Wallet tidak dapat diverifikasi. Catatan yang ada tetap disimpan; akses akun dan penandatanganan diblokir."
 };
-export const PERMISSION_COPY=Object.freeze(Object.fromEntries(Object.entries(translations).map(([locale,text])=>[locale,Object.freeze({[PERMISSION_STORE_NOTICE]:text})])));
+export const ADDRESS_ONLY_CONNECTION_NOTICE='Share only your public address. This session cannot request signatures, transfers or sign-in.';
+const addressOnly={
+ en:ADDRESS_ONLY_CONNECTION_NOTICE,
+ 'zh-Hans':'仅共享你的公开地址。此会话不能请求签名、转账或登录。',
+ 'zh-Hant':'僅分享你的公開地址。此工作階段不能要求簽名、轉帳或登入。',
+ ja:'公開アドレスのみを共有します。このセッションは署名、送金、ログインを要求できません。',
+ ko:'공개 주소만 공유합니다. 이 세션은 서명, 송금 또는 로그인을 요청할 수 없습니다.',
+ es:'Solo se comparte tu dirección pública. Esta sesión no puede solicitar firmas, transferencias ni inicio de sesión.',
+ fr:'Seule votre adresse publique est partagée. Cette session ne peut demander ni signature, ni transfert, ni connexion.',
+ de:'Nur deine öffentliche Adresse wird geteilt. Diese Sitzung kann keine Signaturen, Überweisungen oder Anmeldung anfordern.',
+ pt:'Somente seu endereço público é compartilhado. Esta sessão não pode solicitar assinaturas, transferências ou login.',
+ ru:'Передаётся только ваш публичный адрес. Эта сессия не может запрашивать подписи, переводы или вход.',
+ ar:'تتم مشاركة عنوانك العام فقط. لا يمكن لهذه الجلسة طلب توقيعات أو تحويلات أو تسجيل دخول.',
+ id:'Hanya alamat publik Anda yang dibagikan. Sesi ini tidak dapat meminta tanda tangan, transfer, atau masuk.'
+};
+export const PERMISSION_COPY=Object.freeze(Object.fromEntries(Object.entries(translations).map(([locale,text])=>[locale,Object.freeze({[PERMISSION_STORE_NOTICE]:text,[ADDRESS_ONLY_CONNECTION_NOTICE]:addressOnly[locale]})])));

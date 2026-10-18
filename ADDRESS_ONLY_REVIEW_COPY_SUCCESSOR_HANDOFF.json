@@ -1,0 +1,25 @@
+{
+  "state": "PRESENTATION_VERIFIED_NOT_PACKAGED_OR_DEVICE_TESTED",
+  "baseCommit": "8cf79dd0f81c6a7c431adcb9b567daa0a88dfa91",
+  "scope": "Original Mac and Android WalletConnect approval copy only; no App.tsx or startup assets",
+  "before": "Mac exact renderer branch used generic Share your account on YNX Testnet; Android methods[] rendered no concrete permission row",
+  "after": "Only explicit methods[] shows localized public-address-only/no signatures/transfers/sign-in wording; nonempty or absent permissions do not receive this assurance",
+  "locales": 12,
+  "wireAndAuthorizationChanged": false,
+  "sdk39AndA33Changed": false,
+  "normalBrowserConsumerAssetsChanged": false,
+  "tests": {
+    "file": "apps/wallet-desktop/test/walletconnect-address-permission-copy.test.mjs",
+    "before": "Actual renderer branch controlled test:1 FAIL/1 PASS",
+    "after": "3 PASS/0 FAIL,58.131667ms",
+    "runtime": "Previously installed R24 Electron42.10 RunAsNode",
+    "coverage": "Actual Mac approval branch via VM; nonempty/missing permission negative; native Node type stripping of actual RN copy helper and equality for all12 selected locales, plus RN original review callsite check",
+    "notProven": "Native Android JSX render, APK, emulator/device or actual approval",
+    "beforeRaw": "apps/wallet-desktop/test/walletconnect-address-permission-before-20261018.raw",
+    "afterRaw": "apps/wallet-desktop/test/walletconnect-address-permission-after-20261018.raw",
+    "initialHarnessFailure": "First test invocation refused CreateProcess EAGAIN35 before execution; later exact same test ran, no environment failure counted as product RED",
+    "nativeTypeStripWarningRetained": true
+  },
+  "delivery": "Small owning display delta for original A next matching Mac/Android candidate. Do not rebuild existing SDK39 browser bundle solely for this display change; published route/actual Relay acceptance still separate.",
+  "notClaimed": ["New package or install", "Public route or Relay", "Any session/permission grant, signature or funds", "Full Wallet completion or MONSTER"]
+}

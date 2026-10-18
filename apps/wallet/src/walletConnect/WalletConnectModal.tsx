@@ -18,6 +18,7 @@ import { createPersistAndPublishWalletConnectSession,revokeAndDisconnectWalletCo
 import {WalletConnectViewOperations} from "./viewOperations";
 import type {WalletOperationLease} from "../security/operationLifecycle";
 import {connectionPermissionCopy,walletConnectPermissionLabel} from "./permissionPresentation";
+import {walletConnectAddressOnlyCopy} from './addressOnlyPresentation';
 import {NativeTransferOutbox,type NativeTransferOutboxEntry} from "../chain/nativeTransferOutbox";
 
 let configError: string | null = null;
@@ -139,7 +140,7 @@ function WalletConnectSheet({ account,withAccountSecret,inbound,clearInbound,clo
       <Text style={s.body}>{proposalReview.peer.metadata.name}</Text><Text selectable style={s.body}>{proposalReview.peer.metadata.url}</Text>
       <Text style={s.body}>{translate(locale,"account")}: {account.account}</Text><Text style={s.body}>{translate(locale,"network")}: YNX {c("Testnet","测试网")}</Text>
       <Text style={s.label}>{translate(locale,"permissions")}</Text>
-      {proposalReview.namespaces.eip155.methods.map(method=><Text key={method} style={s.body}>• {permissionLabel(method,locale,true)}</Text>)}
+      {proposalReview.namespaces.eip155.methods.length===0?<Text style={s.body}>{walletConnectAddressOnlyCopy(locale)}</Text>:proposalReview.namespaces.eip155.methods.map(method=><Text key={method} style={s.body}>• {permissionLabel(method,locale,true)}</Text>)}
       <Text style={s.caption}>{connectionPermissionCopy(locale,"connectionOnly")}</Text>
       {proposalReview.verification.validation!=="VALID"?<Text accessibilityRole="alert" style={s.error}>{c("The site has not been verified. Check its address carefully before approving.","此站点尚未通过验证。批准前请仔细核对网址。")}</Text>:null}
       <Text style={s.caption}>{translate(locale,"expires")}: {formatDateTime(locale,new Date(proposalReview.expiryTimestamp*1000))}</Text>

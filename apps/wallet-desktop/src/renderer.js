@@ -20,6 +20,7 @@ import { createRecipientScanUI } from "./recipient-scan-ui.mjs";
 import {createRecipientCameraUI,captureRecipientFrame} from "./recipient-camera-ui.mjs";
 import {createQRFileInput} from "./qr-file-input.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
+import {ADDRESS_ONLY_CONNECTION_NOTICE} from './wallet-locale-permissions.mjs';
 import {createTransferAttemptUI} from "./transfer-attempt-ui.mjs";
 import {renderTransferPreparationError} from './transfer-preparation-error-ui.mjs';
 import {createMnemonicUI,createMnemonicImportUI} from './mnemonic-ui.mjs';
@@ -344,7 +345,9 @@ function presentApproval() {
     document.querySelector("#proposal-name").textContent = `Connect to ${review.name}`;
     document.querySelector("#proposal-origin").textContent = review.url ?? "No verified app address was provided.";
     document.querySelector("#proposal-account").textContent = nativeAccountLabel(review.account ?? activeAccount) ?? "Create an account first";
-    document.querySelector("#proposal-permissions").textContent = (review.methods ?? review.permissions?.methods ?? []).map(methodLabel).join(" · ") || "Share your account on YNX Testnet";
+    const proposalMethods=review.methods??review.permissions?.methods;
+    if(Array.isArray(proposalMethods)&&proposalMethods.length===0)copyUI(document.querySelector('#proposal-permissions'),ADDRESS_ONLY_CONNECTION_NOTICE);
+    else document.querySelector("#proposal-permissions").textContent = (Array.isArray(proposalMethods)?proposalMethods:[]).map(methodLabel).join(" · ") || "Share your account on YNX Testnet";
     for (const button of panel.querySelectorAll("button")) button.disabled = approvalQueue.busy && button.id !== "reject-proposal";
     document.querySelector("#reject-proposal").textContent = approvalQueue.busy ? "Cancel and lock Wallet" : "Reject connection";
     document.querySelector("#approve-proposal").disabled = approvalQueue.busy || !review.account;
