@@ -465,6 +465,27 @@ func TestPQEngineStateReadRejectsCorruptionAndIncompleteTailWithoutRepair(t *tes
 				t.Fatal(err)
 			}
 			hash, _ := hex.DecodeString(r.app.committed.AppHash)
+			if layout == "atomic-json" {
+				t.Run("terminal_whitespace", func(t *testing.T) {
+					// The actual encoder preserves its terminal newline. Removing
+					// that newline (or adding JSON whitespace) is not truncation.
+					trimmed := bytes.TrimSpace(original)
+					for _, raw := range [][]byte{bytes.Clone(trimmed), append(bytes.Clone(trimmed), ' ', '\t', '\r', '\n', '\n')} {
+						if !json.Valid(raw) {
+							t.Fatal("terminal whitespace positive fixture is not valid JSON")
+						}
+						if err := os.WriteFile(r.path, raw, 0600); err != nil {
+							t.Fatal(err)
+						}
+						// Fresh read must bind the original engine H/AppHash and
+						// full state, without changing the accepted source bytes.
+						r.read(t, source)
+					}
+					if err := os.WriteFile(r.path, original, 0600); err != nil {
+						t.Fatal(err)
+					}
+				})
+			}
 			for _, mode := range []string{"partial_header", "partial_payload", "complete_checksum", "empty"} {
 				t.Run(mode, func(t *testing.T) {
 					bad := bytes.Clone(original)
@@ -472,7 +493,16 @@ func TestPQEngineStateReadRejectsCorruptionAndIncompleteTailWithoutRepair(t *tes
 					case "partial_header":
 						bad = append(bad, 0x01)
 					case "partial_payload":
+						if layout == "atomic-json" {
+							bad = bytes.TrimSpace(bad)
+							if len(bad) == 0 || bad[len(bad)-1] != '}' || !json.Valid(bad) {
+								t.Fatal("atomic fixture must start with a complete JSON object")
+							}
+						}
 						bad = bad[:len(bad)-1]
+						if layout == "atomic-json" && json.Valid(bad) {
+							t.Fatal("partial payload did not remove the final JSON closing byte")
+						}
 					case "complete_checksum":
 						bad[len(bad)-2] ^= 1
 					case "empty":
