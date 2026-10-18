@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"errors"
+	"math"
 	"sort"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -138,6 +139,9 @@ func moveNativeLots(sender, receiver *nativeAccountValue, amount int64) error {
 		moved := available
 		if moved > remaining {
 			moved = remaining
+		}
+		if sender != receiver && receiver.lot(id) > math.MaxInt64-moved {
+			return errors.New("native recipient lot would overflow")
 		}
 		sender.setLot(id, available-moved)
 		receiver.setLot(id, receiver.lot(id)+moved)

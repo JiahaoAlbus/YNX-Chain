@@ -233,6 +233,11 @@ func (a *Application) applyPQWhole(state executionState, payload, wire []byte, h
 		state.pqBatches = make(map[string]PQCommittedBatch)
 	}
 	state.pqBatches[hash] = PQCommittedBatch{PQBatchProof: chain.PQBatchProof{Whole: bytes.Clone(wire), Height: uint64(height), Results: append([]chain.PQBatchMemberResult(nil), out.Results...)}, ABCITransactionHash: outerHash}
+	// Whole is an owned multi-member execution boundary. Publish its complete
+	// account projection once, after all isolated member attempts have finished;
+	// callers must not observe the unchanged sparse base as the final result.
+	state.accounts = cloneExecutionAccounts(state)
+	state.nativeAccounts = nil
 	return state, transactionExecution{typeName: PQWholeType, hash: outerHash, resultData: data, event: abcitypes.Event{Type: "ynx.pq_whole", Attributes: []abcitypes.EventAttribute{{Key: "batch_hash", Value: hash, Index: true}, {Key: "admitted", Value: fmt.Sprint(admitted)}, {Key: "members", Value: fmt.Sprint(len(out.Results))}}}}, nil
 }
 

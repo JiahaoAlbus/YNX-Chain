@@ -761,7 +761,7 @@ func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestP
 	if height != a.committed.Height+1 {
 		return nil, errors.New("proposal height must follow committed state")
 	}
-	state := a.cloneExecutionState()
+	state := a.committedExecutionStateView()
 	state, err := preparePQEngineExecution(state, height, a.pqEngineAuthorization)
 	if err != nil {
 		return nil, err
@@ -796,7 +796,7 @@ func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestP
 	if height == 0 {
 		height = a.committed.Height + 1
 	}
-	state := a.cloneExecutionState()
+	state := a.committedExecutionStateView()
 	state, err := preparePQEngineExecution(state, height, a.pqEngineAuthorization)
 	if err != nil {
 		return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
@@ -839,7 +839,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		}
 		req = &owned
 	}
-	state := a.cloneExecutionState()
+	state := a.committedExecutionStateView()
 	state, err := preparePQEngineExecution(state, req.Height, a.pqEngineAuthorization)
 	if err != nil {
 		return nil, err
@@ -1130,7 +1130,7 @@ func (a *Application) applyNativeTransfer(state executionState, tx SignedTransac
 
 	if state.hashVersion == 0 || state.hashVersion >= 14 {
 		receipt := BFTNativeTransfer{TransactionHash: transactionHash, From: tx.From, To: tx.To, Amount: tx.Amount, Fee: tx.Fee, BlockHeight: height, CommittedAt: blockTime.UTC()}
-		state.nativeTransfers = insertPayRecord(state.nativeTransfers, receipt, func(v BFTNativeTransfer) string { return v.TransactionHash })
+		state.nativeTransfers = insertNativeTransferReceipt(state.nativeTransfers, receipt)
 	}
 
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
