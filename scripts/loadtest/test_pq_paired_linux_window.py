@@ -2,6 +2,9 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
+from contextlib import redirect_stdout, redirect_stderr
+import io
 import json
 import os
 
@@ -17,7 +20,7 @@ def stat_line(pid, parent=1, group=1, start=100, threads=2):
 
 
 class LinuxGuardControls(unittest.TestCase):
-    def e2e_recipe(self, temporary):
+    def e2e_recipe(self, temporary, profile="consensus-e2e"):
         # Parser/control fixtures only. This fake ELF is NEVER executed and is
         # not a compiled test, cryptographic result or real network evidence.
         parent = Path(temporary).resolve()
@@ -30,13 +33,15 @@ class LinuxGuardControls(unittest.TestCase):
         binary = build / "consensus.test"
         binary.write_bytes(b"\x7fELFcontrol-only-not-an-executable-test")
         binary.chmod(0o700)
-        plan = dict(profile="consensus-e2e", sourceRoot=str(source), commit="a" * 40,
+        plan = dict(profile=profile, sourceRoot=str(source), commit="a" * 40,
                     executionAuthorized=False, workingDirectory=str(source / "internal/consensus"),
                     sourcePins={guard.E2E_SOURCE: dict(sha256=guard.E2E_SOURCE_SHA256),
                                 guard.E2E_PROGRESS_SOURCE: dict(sha256=guard.E2E_PROGRESS_SOURCE_SHA256)},
                     binaryPin=dict(path=str(binary), sha256=guard.digest(binary)),
                     command=[str(binary), "-test.run=^" + guard.E2E_TEST + "$", "-test.count=1", "-test.timeout=120s", "-test.v"],
                     environment=dict(guard.E2E_ENV))
+        if profile == guard.E2E_RETAINED_HISTORY_PROFILE:
+            plan["caps"] = guard.fixed_caps(profile)
         prepared = case / "prepared.json"
         prepared.write_text(json.dumps(plan)); prepared.chmod(0o600)
         return plan, prepared, source, case, build, binary
@@ -101,6 +106,132 @@ class LinuxGuardControls(unittest.TestCase):
                 plan, prepared, *_ = self.e2e_recipe(tmp)
                 mutate(plan)
                 with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared)
+
+    def test_retained_history_profile_requires_explicit_matching_recipe(self):
+        profile = guard.E2E_RETAINED_HISTORY_PROFILE
+        original = dict(guard.CAPS)
+        expected = dict(original, privateBytes=536870912)
+        self.assertEqual(guard.fixed_caps(profile), expected)
+        self.assertEqual({key for key in expected if expected[key] != original[key]}, {"privateBytes"})
+        # Returned dictionaries cannot mutate the original guard or later runs.
+        changed = guard.fixed_caps(profile)
+        changed["activeMs"] = 1
+        self.assertEqual(guard.CAPS, original)
+        self.assertEqual(guard.fixed_caps(profile), expected)
+        for selected in (None, "consensus-e2e"):
+            self.assertEqual(guard.fixed_caps(selected), original)
+        with self.assertRaises(RuntimeError): guard.fixed_caps("caller-chosen")
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, prepared, source, case, build, _ = self.e2e_recipe(tmp, profile)
+            with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared)
+            self.assertEqual(guard.validate_consensus_e2e_recipe(plan, prepared, profile),
+                             (source, case, plan["command"], guard.E2E_ENV))
+            plan["profile"] = "consensus-e2e"
+            with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared, profile)
+            # An old flag/recipe cannot claim the retained-history cap either.
+            with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared)
+            plan["caps"] = dict(original)
+            guard.validate_consensus_e2e_recipe(plan, prepared)
+            self.assertEqual({p.name for p in case.iterdir()}, {"prepared.json"})
+            self.assertEqual({p.name for p in build.iterdir()}, {"consensus.test"})
+
+    def test_retained_history_rejects_all_cap_overrides_before_case_mutation(self):
+        profile = guard.E2E_RETAINED_HISTORY_PROFILE
+        with tempfile.TemporaryDirectory() as tmp:
+            original, prepared, _, case, build, _ = self.e2e_recipe(tmp, profile)
+            mutations = [lambda p:p.pop("caps"), lambda p:p.update(caps=None),
+                         lambda p:p["caps"].update(extra=1),
+                         lambda p:p["caps"].update(privateBytes=32 << 20),
+                         lambda p:p["caps"].update(privateBytes=float(536870912))]
+            mutations += [lambda p, key=key:p["caps"].__setitem__(key, p["caps"][key] + 1)
+                          for key in guard.CAPS]
+            mutations += [lambda p, key=key:p["caps"].pop(key) for key in guard.CAPS]
+            before = {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()}
+            for index, mutate in enumerate(mutations):
+                changed = json.loads(json.dumps(original)); mutate(changed)
+                with self.subTest(index=index), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_e2e_recipe(changed, prepared, profile)
+            self.assertEqual(before, {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()})
+            self.assertEqual({p.name for p in case.iterdir()}, {"prepared.json"})
+            self.assertEqual({p.name for p in build.iterdir()}, {"consensus.test"})
+
+    def test_retained_history_keeps_exact_environment_command_and_two_pins(self):
+        profile = guard.E2E_RETAINED_HISTORY_PROFILE
+        self.assertEqual(guard.E2E_SOURCE_SHA256, "aa089abf62c1b9e8ba13ede8750afeb767a4dc109d34235a066cd0c95bbd6044")
+        self.assertEqual(guard.E2E_PROGRESS_SOURCE_SHA256, "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044")
+        mutations = [lambda p:p.update(executionAuthorized=True),
+                     lambda p:p["command"].__setitem__(3, "-test.timeout=150s"),
+                     lambda p:p["environment"].pop("YNX_PQ_NETWORK_E2E"),
+                     lambda p:p["environment"].update(GOMAXPROCS="4"),
+                     lambda p:p["sourcePins"].pop(guard.E2E_PROGRESS_SOURCE),
+                     lambda p:p["sourcePins"].update({"extra.go": dict(sha256="0" * 64)}),
+                     lambda p:p["sourcePins"][guard.E2E_SOURCE].update(sha256="0" * 64),
+                     lambda p:p["sourcePins"][guard.E2E_PROGRESS_SOURCE].update(sha256="0" * 64)]
+        with tempfile.TemporaryDirectory() as tmp:
+            original, prepared, *_ = self.e2e_recipe(tmp, profile)
+            for index, mutate in enumerate(mutations):
+                changed = json.loads(json.dumps(original)); mutate(changed)
+                with self.subTest(index=index), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_e2e_recipe(changed, prepared, profile)
+        for kind in ("changed-helper", "symlink-helper", "old-unknown"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, source, case, build, _ = self.e2e_recipe(tmp, profile)
+                helper = source / guard.E2E_PROGRESS_SOURCE
+                if kind == "changed-helper": helper.write_bytes(helper.read_bytes() + b"\n// changed\n")
+                elif kind == "symlink-helper":
+                    target = Path(tmp) / "original-helper"
+                    helper.rename(target); helper.symlink_to(target)
+                else: (case / "UNKNOWN").write_bytes(b"retain original intent")
+                before = {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()}
+                with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared, profile)
+                self.assertEqual(before, {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()})
+
+    def test_retained_history_private_limit_and_disk_reserves_remain_bounded(self):
+        profile = guard.E2E_RETAINED_HISTORY_PROFILE
+        valid = dict(rssBytes=1000000, threads=10, privateBytes=536870912, buildBytes=100,
+                     freeDiskBytes=3129999360, availableMemoryBytes=4 << 30)
+        guard.enforce(valid, True, profile)
+        for selected in (None, "consensus-e2e"):
+            with self.subTest(profile=selected), self.assertRaisesRegex(RuntimeError, "privateBytes"):
+                guard.enforce(dict(valid, privateBytes=(32 << 20) + 1), True, selected)
+        with self.assertRaisesRegex(RuntimeError, "privateBytes"):
+            guard.enforce(dict(valid, privateBytes=536870913), True, profile)
+        with self.assertRaisesRegex(RuntimeError, "disk floor/reserve"):
+            guard.enforce(dict(valid, freeDiskBytes=3129999359), True, profile)
+        # Runtime keeps the original 1 GiB floor + 425 MiB root reserve.
+        guard.enforce(dict(valid, freeDiskBytes=1519386624), False, profile)
+        with self.assertRaisesRegex(RuntimeError, "disk floor/reserve"):
+            guard.enforce(dict(valid, freeDiskBytes=1519386623), False, profile)
+        for key, value in (("rssBytes", (1 << 30) + 1), ("threads", 321),
+                           ("buildBytes", (1 << 30) + 1),
+                           ("availableMemoryBytes", guard.CAPS["availableMemoryFloorBytes"] - 1)):
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                guard.enforce(dict(valid, **{key: value}), True, profile)
+
+    def test_retained_history_cli_flags_are_exclusive_and_never_implicit_execution(self):
+        parser = guard.argument_parser()
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as rejected:
+            parser.parse_args(["--consensus-e2e", "--consensus-e2e-retained-history"])
+        self.assertEqual(rejected.exception.code, 2)
+        with self.assertRaises(RuntimeError): guard.selected_profile(True, True)
+        with self.assertRaises(RuntimeError): guard.selected_profile(False, "true")
+        for flag, profile in (("--consensus-e2e", "consensus-e2e"),
+                              ("--consensus-e2e-retained-history", guard.E2E_RETAINED_HISTORY_PROFILE)):
+            with self.subTest(flag=flag), mock.patch.object(guard, "run") as run:
+                output = io.StringIO()
+                with redirect_stdout(output): self.assertEqual(guard.main([flag]), 0)
+                self.assertEqual(json.loads(output.getvalue())["caps"], guard.fixed_caps(profile))
+                run.assert_not_called()
+                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    guard.main([flag, "--execute"])
+                run.assert_not_called()
+        # Dispatch routing only: no ELF, fork, probe, host proc or Node.Start.
+        with mock.patch.object(guard, "run", return_value=7) as run:
+            code = guard.main(["--consensus-e2e-retained-history", "--execute",
+                               "--prepared", "/unused/prepared.json", "--receipt", "/unused/receipt.json"])
+            self.assertEqual(code, 7)
+            self.assertEqual(run.call_args.kwargs,
+                             dict(case_n=1, consensus_e2e=False, consensus_e2e_retained_history=True))
 
     def test_consensus_e2e_rejects_missing_changed_or_aliased_progress_source(self):
         for kind in ("missing", "changed", "changed-and-repinned", "symlink", "parent-symlink", "directory"):

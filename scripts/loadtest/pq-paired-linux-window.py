@@ -29,6 +29,29 @@ CAPS = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
             compileReserveBytes=1 << 30, availableMemoryFloorBytes=(1 << 30) + (128 << 20),
             sampleMs=200)
 
+E2E_RETAINED_HISTORY_PROFILE = "consensus-e2e-retained-history-v1"
+
+
+def fixed_caps(profile=None):
+    # Profiles select reviewed constants; neither prepared JSON nor a caller
+    # supplied dictionary can increase any limit. Keep the original CAPS intact.
+    if profile not in (None, "consensus-e2e", E2E_RETAINED_HISTORY_PROFILE):
+        raise RuntimeError("unknown fixed resource profile")
+    caps = dict(CAPS)
+    if profile == E2E_RETAINED_HISTORY_PROFILE:
+        caps["privateBytes"] = 536870912
+    return caps
+
+
+def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False):
+    if (type(consensus_e2e) is not bool or type(consensus_e2e_retained_history) is not bool
+            or consensus_e2e and consensus_e2e_retained_history):
+        raise RuntimeError("consensus E2E profile flags are mutually exclusive")
+    if consensus_e2e_retained_history:
+        return E2E_RETAINED_HISTORY_PROFILE
+    return "consensus-e2e" if consensus_e2e else None
+
+
 E2E_TEST = "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart"
 E2E_SOURCE = "internal/consensus/pq_network_e2e_test.go"
 # Updated only with the separately frozen test leaves and normal CI compilation.
@@ -140,17 +163,18 @@ def directory_bytes(root):
     return total
 
 
-def enforce(sample, initial=False):
+def enforce(sample, initial=False, profile=None):
+    caps = fixed_caps(profile)
     for key, cap in (("rssBytes", "ownedRSSBytes"), ("threads", "threads"),
                      ("privateBytes", "privateBytes"), ("buildBytes", "buildBytes")):
-        if not isinstance(sample[key], int) or sample[key] < 0 or sample[key] > CAPS[cap]:
+        if not isinstance(sample[key], int) or sample[key] < 0 or sample[key] > caps[cap]:
             raise RuntimeError(key + " cap exceeded/invalid")
-    floor = CAPS["diskFloorBytes"] + CAPS["rootReserveBytes"]
+    floor = caps["diskFloorBytes"] + caps["rootReserveBytes"]
     if initial:
-        floor += CAPS["compileReserveBytes"] + CAPS["privateBytes"]
+        floor += caps["compileReserveBytes"] + caps["privateBytes"]
     if type(sample["freeDiskBytes"]) is not int or sample["freeDiskBytes"] < floor:
         raise RuntimeError("actual disk floor/reserve failed")
-    if type(sample["availableMemoryBytes"]) is not int or sample["availableMemoryBytes"] < CAPS["availableMemoryFloorBytes"]:
+    if type(sample["availableMemoryBytes"]) is not int or sample["availableMemoryBytes"] < caps["availableMemoryFloorBytes"]:
         raise RuntimeError("Linux MemAvailable floor failed; not a macOS pressure signal")
 
 
@@ -215,7 +239,17 @@ def validate_consensus_e2e_binary(plan, build):
     return binary
 
 
-def validate_consensus_e2e_recipe(plan, prepared):
+def validate_consensus_e2e_recipe(plan, prepared, profile="consensus-e2e"):
+    if profile not in ("consensus-e2e", E2E_RETAINED_HISTORY_PROFILE) or plan.get("profile") != profile:
+        raise RuntimeError("explicit consensus E2E flag and prepared profile must match")
+    caps = fixed_caps(profile)
+    # Old prepared recipes need no new field. A claimed cap is never ignored;
+    # the new profile must explicitly commit all of its unchanged limits too.
+    if profile == E2E_RETAINED_HISTORY_PROFILE or "caps" in plan:
+        claimed = plan.get("caps")
+        if (not isinstance(claimed, dict) or claimed != caps
+                or any(type(value) is not int for value in claimed.values())):
+            raise RuntimeError("prepared caps must exactly match the selected fixed profile")
     source = Path(plan["sourceRoot"]).resolve()
     case = prepared.parent.resolve()
     build = case.with_name(case.name + ".build")
@@ -223,7 +257,7 @@ def validate_consensus_e2e_recipe(plan, prepared):
         raise RuntimeError("private CI case must be outside source checkout")
     if source == build or source in build.parents or build in source.parents:
         raise RuntimeError("private CI build must be outside source checkout")
-    if (plan.get("profile") != "consensus-e2e" or plan.get("executionAuthorized") is not False
+    if (plan.get("executionAuthorized") is not False
             or not re.fullmatch(r"[0-9a-f]{40}", plan.get("commit", ""))
             or any(key in plan for key in ("n", "trial", "overlayPin", "productionMeasurementVersion"))):
         raise RuntimeError("explicit frozen consensus-e2e recipe required")
@@ -449,12 +483,15 @@ def validate_result(report, plan, case):
         raise RuntimeError("paired paths did not share one signing preparation")
 
 
-def run(prepared, receipt, case_n=1, consensus_e2e=False):
+def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained_history=False):
+    profile = selected_profile(consensus_e2e, consensus_e2e_retained_history)
+    caps = fixed_caps(profile)
+    consensus_e2e = profile is not None
     if sys.platform != "linux":
         raise RuntimeError("Linux /proc/smaps_rollup/subreaper required; no macOS substitution")
     started = time.monotonic()
     result = dict(schema=1, kind="single-PQ-paired-Linux-CI-window", launcher=os.getpid(),
-                  startedAtUnix=time.time(), caps=CAPS, firstCause=None, samples=[], known={},
+                  startedAtUnix=time.time(), caps=caps, firstCause=None, samples=[], known={},
                   child=None, cleanupComplete=False, admissionPlatform="Linux, not macOS dispatch1")
     if consensus_e2e:
         result["kind"] = "four-validator-PQ-consensus-E2E-Linux-CI-window"
@@ -509,7 +546,7 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False):
                     freeDiskBytes=free.f_bavail * free.f_frsize, availableMemoryBytes=memory_available(),
                     hostIdentities=len(rows), vanishedHostPIDs=vanished, tasks=tasks)
         result["samples"].append(item)
-        enforce(item, initial)
+        enforce(item, initial, profile=profile)
         return rows, ids
 
     try:
@@ -517,15 +554,17 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False):
         if consensus_e2e:
             if case_n != 1:
                 raise RuntimeError("consensus E2E cannot select a paired benchmark case")
-            source, case, command, pinned_env = validate_consensus_e2e_recipe(plan, prepared)
+            source, case, command, pinned_env = validate_consensus_e2e_recipe(plan, prepared, profile=profile)
         else:
+            if "profile" in plan or "caps" in plan:
+                raise RuntimeError("explicit consensus E2E profile flag required; paired caps are fixed")
             source, case, command, pinned_env = validate_recipe(plan, prepared, case_n=case_n)
         if receipt.exists() or receipt.is_symlink() or case == receipt.parent or case in receipt.parents:
             raise RuntimeError("new guard receipt must be outside private case")
         result["preparedSHA256"] = digest(prepared)
         result["sourceCommit"] = plan["commit"]
         if consensus_e2e:
-            result.update(profile="consensus-e2e", testSourceSHA256=E2E_SOURCE_SHA256,
+            result.update(profile=profile, testSourceSHA256=E2E_SOURCE_SHA256,
                           binaryPin=plan["binaryPin"], command=command,
                           workingDirectory=plan["workingDirectory"], environment=pinned_env)
         else:
@@ -714,18 +753,32 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False):
     return 1 if result["firstCause"] else 0
 
 
-if __name__ == "__main__":
+def argument_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prepared", type=Path)
     parser.add_argument("--case-n", type=int, choices=(1, 16), default=1, help="explicit Root-scheduled case only; does not grant execution or expand budgets")
     parser.add_argument("--receipt", type=Path)
     parser.add_argument("--execute", action="store_true")
-    parser.add_argument("--consensus-e2e", action="store_true", help="explicit separately authorized four-node E2E using only a pinned precompiled consensus.test")
-    args = parser.parse_args()
+    profiles = parser.add_mutually_exclusive_group()
+    profiles.add_argument("--consensus-e2e", action="store_true", help="original 32 MiB separately authorized four-node E2E using only a pinned precompiled consensus.test")
+    profiles.add_argument("--consensus-e2e-retained-history", action="store_true", help="separately authorized retained-history-v1 E2E: fixed 512 MiB private files; every other original limit unchanged")
+    return parser
+
+
+def main(argv=None):
+    parser = argument_parser()
+    args = parser.parse_args(argv)
+    profile = selected_profile(args.consensus_e2e, args.consensus_e2e_retained_history)
     if not args.execute:
-        print(json.dumps(dict(status="prepared_only_no_Go_or_probe_started", supported=sys.platform == "linux", caps=CAPS,
+        print(json.dumps(dict(status="prepared_only_no_Go_or_probe_started", supported=sys.platform == "linux", caps=fixed_caps(profile),
                               requires="Linux readable /proc + smaps_rollup, subreaper, exact prepared source, fresh Root isolated CI grant; not a macOS native-guard replacement")))
+        return 0
     elif not args.prepared or not args.receipt:
         parser.error("--prepared and a new --receipt outside case are required")
     else:
-        sys.exit(run(args.prepared.resolve(), args.receipt.resolve(), case_n=args.case_n, consensus_e2e=args.consensus_e2e))
+        return run(args.prepared.resolve(), args.receipt.resolve(), case_n=args.case_n,
+                   consensus_e2e=args.consensus_e2e, consensus_e2e_retained_history=args.consensus_e2e_retained_history)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

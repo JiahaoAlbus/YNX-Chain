@@ -51,6 +51,11 @@ on:
         required: false
         default: false
         type: boolean
+      consensus_e2e_retained_history:
+        description: Run one separately authorized four-validator transition with a fixed 512 MiB retained-history budget and unchanged other limits
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -141,6 +146,17 @@ jobs:
           test "$(git rev-parse HEAD)" = '${{ github.sha }}'
           go version
           git status --porcelain
+          if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
+            YNX_WINDOW_SELECTIONS=0
+            for YNX_WINDOW_SELECTED in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}'; do
+              case "$YNX_WINDOW_SELECTED" in
+                true) YNX_WINDOW_SELECTIONS=$((YNX_WINDOW_SELECTIONS + 1)) ;;
+                false|'') ;;
+                *) exit 1 ;;
+              esac
+            done
+            test "$YNX_WINDOW_SELECTIONS" -le 1
+          fi
       - name: Verify pure dual-PQ protocol and account authorization
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/ynxbatch ./internal/ynxauth ./internal/ynxconsensusauth ./scripts/fixtures/verify-pq-wallet-restored
@@ -345,12 +361,13 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
       - name: Run the authorized bounded four-validator transition
         id: pqnetwork
-        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_e2e && inputs.candidate_sha == github.sha && !inputs.paired_n1 }}
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 }}
         timeout-minutes: 3
         run: |
           YNX_E2E_CASE="$RUNNER_TEMP/ynx-pq-network-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           YNX_E2E_BUILD="$YNX_E2E_CASE.build"
           export YNX_E2E_CASE YNX_E2E_BUILD
+          export YNX_PQ_RETAINED_HISTORY='${{ inputs.consensus_e2e_retained_history }}'
           umask 077
           mkdir "$YNX_E2E_CASE" "$YNX_E2E_BUILD"
           go test -p 1 -c -o "$YNX_E2E_BUILD/consensus.test" ./internal/consensus
@@ -368,7 +385,9 @@ jobs:
                   for chunk in iter(lambda: f.read(65536), b''):
                       h.update(chunk)
               return h.hexdigest()
-          plan = dict(profile='consensus-e2e', sourceRoot=str(source),
+          profile = ('consensus-e2e-retained-history-v1'
+              if os.environ['YNX_PQ_RETAINED_HISTORY'] == 'true' else 'consensus-e2e')
+          plan = dict(profile=profile, sourceRoot=str(source),
               commit=os.environ['GITHUB_SHA'], executionAuthorized=False,
               workingDirectory=str(source / 'internal/consensus'),
               command=[str(binary), '-test.run=^TestPQNetworkFourValidatorOriginalStateTransitionAndRestart$',
@@ -377,11 +396,22 @@ jobs:
                   YNX_PQ_NETWORK_E2E='authorized-four-node-window'),
               sourcePins={leaf: dict(sha256=digest(source / leaf)) for leaf in leaves},
               binaryPin=dict(path=str(binary), sha256=digest(binary)))
+          if profile == 'consensus-e2e-retained-history-v1':
+              plan['caps'] = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
+                  ownedRSSBytes=1073741824, threads=320, ownedProcesses=16,
+                  privateBytes=536870912, buildBytes=1073741824, logBytes=1048576,
+                  diskFloorBytes=1073741824, rootReserveBytes=445644800,
+                  compileReserveBytes=1073741824, availableMemoryFloorBytes=1207959552,
+                  sampleMs=200)
           with open(case / 'prepared.json', 'x', encoding='utf8') as f:
               json.dump(plan, f, separators=(',', ':'))
               f.write('\n')
           PY
-          python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-e2e --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
+          if [ "$YNX_PQ_RETAINED_HISTORY" = 'true' ]; then
+            python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-e2e-retained-history --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
+          else
+            python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-e2e --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
+          fi
       - name: Record public retained network-file size metadata after owned cleanup
         if: ${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}
         run: |
