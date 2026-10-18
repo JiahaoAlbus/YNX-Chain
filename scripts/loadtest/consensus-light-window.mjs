@@ -182,6 +182,7 @@ try{
  monitor=setInterval(async()=>{if(busy||done)return;busy=true;try{await sample()}catch(e){if(!done){fail(e.message);kill()}}finally{busy=false}},500);
  await closed;
  if(result.go.code!==0)fail(`go test terminal code=${result.go.code} signal=${result.go.signal}`);
+ if(regression&&result.go.code===0)result.observedGoEvidence={passedFunctions:requireClientRegressionPasses(plan,result.go.stdout),supplyPhases:requireReadySupplyPhases(result.go.stdout),qualification:'Observed actual Go output only; post-run cache/resource and source-after gates must still pass before window qualification'};
  if(offlineBaseline){
   result.offlineAfter=await stoppedOriginalInventory(plan.window,started+activeMs);
   requireSameStoppedOriginals(result.offlineBefore,result.offlineAfter);result.originalsUnchanged=true;
@@ -195,7 +196,7 @@ try{
    result.proofArtifacts.push({source,path:destination,sha256:createHash('sha256').update(fs.readFileSync(source)).digest('hex'),bytes:fs.statSync(source).size});
   }
  }
- if(regression){scratchAndDisk();result.cacheAfter=await cacheOccupancy();result.cacheNetGrowthBytes=result.cacheAfter.totalBytes-result.cacheBefore.totalBytes;if(result.cacheNetGrowthBytes<0)throw Error('shared cache decreased; new cache attribution unknown');if(result.peakScratchBytes+result.cacheNetGrowthBytes>plan.caps.scratchBytes)throw Error('512MiB scratch plus attributable cache growth cap');await verifyGoSource();if(result.go.code===0){result.actualPassedFunctions=requireClientRegressionPasses(plan,result.go.stdout);result.actualSupplyPhases=requireReadySupplyPhases(result.go.stdout);}}
+ if(regression){scratchAndDisk();result.cacheAfter=await cacheOccupancy();result.cacheNetGrowthBytes=result.cacheAfter.totalBytes-result.cacheBefore.totalBytes;if(result.cacheNetGrowthBytes<0)throw Error('shared cache decreased; new cache attribution unknown');if(result.peakScratchBytes+result.cacheNetGrowthBytes>plan.caps.scratchBytes)throw Error('512MiB scratch plus attributable cache growth cap');await verifyGoSource();if(result.go.code===0){result.actualPassedFunctions=result.observedGoEvidence.passedFunctions;result.actualSupplyPhases=result.observedGoEvidence.supplyPhases;}}
 }catch(e){fail(e.message);kill()}finally{
  clearTimeout(deadline);clearInterval(monitor);const stop=Date.now();await probe.stop();
  const cleanupMs=regression?Math.max(0,Math.min(plan.caps.cleanupMs,plan.caps.totalMs-(stop-started))):15000;
