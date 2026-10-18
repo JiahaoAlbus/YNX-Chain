@@ -217,8 +217,35 @@ func TestMigrationPaySourceDoesNotInventMerchantAuthority(t *testing.T) {
 			t.Fatal("authority requirement lost original identity or deterministic order")
 		}
 	}
-	if _, err := NewApplication(f.m); err == nil || !strings.Contains(err.Error(), "pay(") {
+	original := sourcePayJSON(t, f.m)
+	blockers := MigrationExecutionBlockers(f.m)
+	payBlocked := false
+	for _, blocker := range blockers {
+		if blocker.Module == "pay" && blocker.Records > 0 {
+			payBlocked = true
+		}
+	}
+	if !payBlocked {
+		t.Fatal("source preservation lost the unresolved Pay authority blocker")
+	}
+	if err := validateMigrationExecutionClosure(f.m); err == nil || !strings.Contains(err.Error(), "pay(") {
 		t.Fatalf("source preservation silently cleared execution blocker: %v", err)
+	}
+	app, err := NewApplication(f.m)
+	if err != nil {
+		t.Fatal("normal factory refused strictly preserved source Pay records", err)
+	}
+	if !reflect.DeepEqual(app.committed.LegacyPaySource, source) || !accountsEqual(app.committed.Accounts, f.m.Accounts) || !bytes.Equal(original, sourcePayJSON(t, f.m)) {
+		t.Fatal("normal factory changed complete original Pay records, accounts or migration")
+	}
+	if len(app.committed.PayIntents)+len(app.committed.PayInvoices)+len(app.committed.PaySettlements)+len(app.committed.PayRefunds)+len(app.committed.PayWebhooks)+len(app.committed.PayEvents)+len(app.committed.PayIdempotency) != 0 || len(app.committed.FeeEvents) != 0 || app.pending != nil {
+		t.Fatal("source preservation invented BFT Pay authority, execution records, fees or pending state")
+	}
+	if !reflect.DeepEqual(MigrationExecutionBlockers(app.migration), blockers) {
+		t.Fatal("normal factory changed unresolved source authority requirements")
+	}
+	if err := validateMigrationExecutionClosure(app.migration); err == nil || !strings.Contains(err.Error(), "pay(") {
+		t.Fatalf("normal factory granted unresolved source Pay execution authority: %v", err)
 	}
 	cloned := cloneLegacyPaySource(source)
 	changed := cloned.Refunds[f.completed.ID]

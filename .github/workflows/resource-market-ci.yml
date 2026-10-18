@@ -342,7 +342,7 @@ jobs:
           cat "$YNX_PRESERVE_CASE/original-red.log"
           test "$YNX_PRESERVE_RED_STATUS" -ne 0
           grep -F 'MIGRATION_PRESERVATION_FACTORY_BLOCKED' "$YNX_PRESERVE_CASE/original-red.log"
-          go test -p 1 -count=1 -timeout=90s -v -run '^TestMigrationPreservation' ./internal/consensus
+          go test -p 1 -count=1 -timeout=90s -v -run '^(TestMigrationPreservation|TestMigrationPaySourceDoesNotInventMerchantAuthority$)' ./internal/consensus
       - name: Reproduce JSON-only signing source and verify real journal recovery
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 4
