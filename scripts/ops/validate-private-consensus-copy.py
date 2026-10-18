@@ -256,12 +256,59 @@ def cleanup_scan(guard, launcher, child, known, kill, send=None, wait=None):
     return not ids
 
 
+def sample_owned_task(guard, before, active_deadline):
+    """Resolve only a bounded procfs exit race; never substitute live RSS.
+
+    Linux can drop a task's mm before /proc/<pid>/stat reports Z. In that
+    interval smaps_rollup may return ESRCH/ENOENT while the same task still
+    reports R. Recheck at most three times, within the original active budget.
+    A live result still needs real RSS; retirement needs a missing stat or the
+    same startTicks in Z. Output text and Popen return codes prove neither.
+    """
+    pid = before["pid"]
+    observed = before
+    for attempt in range(4):
+        if time.monotonic() >= active_deadline:
+            raise RuntimeError("private-copy active deadline")
+        try:
+            raw = guard.bounded(Path("/proc")/str(pid)/"smaps_rollup") if observed["state"] != "Z" else None
+            after = guard.parse_stat(guard.bounded(Path("/proc")/str(pid)/"stat"), pid)
+        except OSError as error:
+            if error.errno not in (errno.ENOENT, errno.ESRCH):
+                raise
+            try:
+                current = guard.parse_stat(guard.bounded(Path("/proc")/str(pid)/"stat"), pid)
+            except OSError as absent:
+                if absent.errno in (errno.ENOENT, errno.ESRCH):
+                    return None  # Stat proves gone, not an unreadable live row.
+                raise
+            if current["startTicks"] != before["startTicks"]:
+                raise RuntimeError("active owned RSS unreadable")
+            if current["state"] == "Z":
+                after, raw = current, None
+            else:
+                if attempt == 3:
+                    raise RuntimeError("active owned RSS unreadable")
+                remaining = active_deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError("private-copy active deadline")
+                # This is at most 30ms of the existing active window, not a
+                # deadline extension or a new grace/cleanup budget.
+                time.sleep(min(0.01, remaining))
+                observed = current
+                continue
+        if after["startTicks"] != before["startTicks"] or raw is None and after["state"] != "Z":
+            raise RuntimeError("owned task identity/telemetry changed")
+        return dict(after, rssBytes=guard.smaps_rss(raw) if raw is not None else 0)
+
+
 class Window:
     def __init__(self, guard, case):
         self.guard, self.case, self.started = guard, case, time.monotonic()
         self.child, self.birth, self.known = None, None, {}
         self.samples, self.next_sample, self.log_bytes = [], 0, 0
         self.subreaper = False
+        self.command_label, self.telemetry_failure = None, None
 
     def tick(self, force=False):
         elapsed = time.monotonic() - self.started
@@ -275,25 +322,16 @@ class Window:
         ids = g.owned_set(rows, os.getpid(), self.child.pid if self.child else None, self.known, running, self.birth)
         tasks = []
         for pid in ids:
-            before = rows[pid]
             try:
-                raw = g.bounded(Path("/proc")/str(pid)/"smaps_rollup") if before["state"] != "Z" else None
-                after = g.parse_stat(g.bounded(Path("/proc")/str(pid)/"stat"), pid)
-            except OSError as error:
-                if error.errno not in (errno.ENOENT, errno.ESRCH):
-                    raise
-                try:
-                    current = g.parse_stat(g.bounded(Path("/proc")/str(pid)/"stat"), pid)
-                except OSError as absent:
-                    if absent.errno in (errno.ENOENT, errno.ESRCH):
-                        continue
-                    raise
-                if current["startTicks"] != before["startTicks"] or current["state"] != "Z":
-                    raise RuntimeError("active owned RSS unreadable")
-                after, raw = current, None
-            if after["startTicks"] != before["startTicks"] or raw is None and after["state"] != "Z":
-                raise RuntimeError("owned task identity/telemetry changed")
-            tasks.append(dict(after, rssBytes=g.smaps_rss(raw) if raw is not None else 0))
+                task = sample_owned_task(g, rows[pid], self.started + LIMITS["activeMs"]/1000)
+            except Exception:
+                if self.telemetry_failure is None:
+                    # Public process identity only; no private paths, command
+                    # arguments, copied state or tool stdout enters the receipt.
+                    self.telemetry_failure = dict(command=self.command_label, pid=pid, startTicks=rows[pid]["startTicks"])
+                raise
+            if task is not None:
+                tasks.append(task)
         self.known = {p["pid"]:p["startTicks"] for p in tasks if p["pid"] != os.getpid()}
         free = os.statvfs(self.case)
         sample = dict(elapsedMs=int(elapsed*1000), rssBytes=sum(p["rssBytes"] for p in tasks),
@@ -342,6 +380,7 @@ class Window:
             self.child = subprocess.Popen(command, cwd=self.case, env=env, stdin=subprocess.DEVNULL,
                                           executable="/proc/self/fd/"+str(executable_fd), pass_fds=(executable_fd,),
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
+            self.command_label = label
             birth = self.guard.parse_stat(self.guard.bounded(Path("/proc")/str(self.child.pid)/"stat"), self.child.pid)
             if birth["parent"] != os.getpid():
                 raise RuntimeError("command root was not born as this wrapper's child")
@@ -475,6 +514,8 @@ def run(args):
         if result["firstCause"] or not result["cleanupComplete"]:
             result["status"] = "unknown"
         result["samples"] = window.samples
+        if window.telemetry_failure is not None:
+            result["telemetryFailure"] = window.telemetry_failure
         result["measurementLimits"] = "Sampled /proc+smaps RSS, not a hard cgroup ceiling; TERM then KILL after 2s is not a 15s graceful-stop guarantee. All private artifacts retained."
         exclusive(receipt, (json.dumps(result, sort_keys=True)+"\n").encode())
         sync_directory(args.case)

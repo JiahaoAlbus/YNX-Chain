@@ -2,6 +2,7 @@
 import builtins
 import contextlib
 import ctypes
+import errno
 import gzip
 import hashlib
 import importlib.util
@@ -13,6 +14,7 @@ import py_compile
 import signal
 import subprocess
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -278,6 +280,135 @@ class PrivateCopyControls(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(RuntimeError):
                 caller.enforce(dict(sample, **{key:0}))
         self.assertEqual(guard.CAPS, before)
+
+    @contextlib.contextmanager
+    def sampled_exit(self, child_reads, now=0.0, terminal=None):
+        """Exercise real Window.tick/owned_set; all kernel inputs are synthetic."""
+        g = self.guard()
+        rows = {p:g.parse_stat(stat_line(p, parent, start, state), p)
+                for p,parent,start,state in ((100,1,1000,"S"),(101,100,1001,"R"))}
+        window = caller.Window(g, self.case)
+        window.started = 0.0
+        window.child = SimpleNamespace(pid=101, poll=lambda:terminal)
+        window.birth = 1001
+        window.command_label = "verify"
+        pending, calls, pauses, clock = list(child_reads), [], [], [now]
+
+        def read(path):
+            if path.parent.name == "100":
+                if path.name == "smaps_rollup":
+                    return b"Rss: 8 kB\n"
+                if path.name == "stat":
+                    return stat_line(100,1,1000)
+            if path.parent.name != "101" or not pending:
+                raise AssertionError("unexpected synthetic telemetry read")
+            name, result = pending.pop(0)
+            self.assertEqual(path.name, name)
+            calls.append(name)
+            if isinstance(result, Exception):
+                raise result
+            return result
+
+        def pause(seconds):
+            self.assertGreater(seconds, 0)
+            self.assertLessEqual(seconds, 0.01)
+            pauses.append(seconds)
+            clock[0] += seconds
+
+        with patch.object(g, "proc_inventory", return_value=(rows, [])), \
+                patch.object(g, "bounded", side_effect=read), \
+                patch.object(g, "directory_bytes", return_value=2048), \
+                patch.object(g, "memory_available", return_value=8 << 30), \
+                patch.object(os, "getpid", return_value=100), \
+                patch.object(os, "statvfs", return_value=SimpleNamespace(f_bavail=10 << 30, f_frsize=1)), \
+                patch.object(caller.time, "monotonic", side_effect=lambda:clock[0]), \
+                patch.object(caller.time, "sleep", side_effect=pause):
+            yield window, pending, calls, pauses
+
+    def test_exit_mm_race_requires_final_same_identity_zombie(self):
+        reads = [("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic exit mm")),
+                 ("stat", stat_line(101,100,1001,"R")),
+                 ("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic exit mm")),
+                 ("stat", stat_line(101,100,1001,"Z"))]
+        with self.sampled_exit(reads) as (window, pending, calls, pauses):
+            try:
+                window.tick(True)
+            except RuntimeError as error:
+                # Original Window.tick rejects the first R observation here.
+                # CI requires this real failure marker before restoring fixed
+                # source; no conditional expectation on implementation version.
+                self.fail("PRIVATE_COPY_EXIT_MM_TRANSITION_REJECTED: " + str(error))
+            self.assertEqual(pending, [])
+            self.assertEqual(calls, ["smaps_rollup", "stat"]*2)
+            self.assertEqual(pauses, [0.01])
+            sample = window.samples[-1]
+            self.assertEqual((sample["processes"], sample["rssBytes"]), (2,8192))
+            self.assertEqual((sample["tasks"][1]["state"], sample["tasks"][1]["startTicks"]), ("Z",1001))
+            self.assertEqual(window.known, {101:1001})  # Cleanup must still reap it.
+
+    def test_exit_mm_race_can_retire_only_after_stat_proves_gone(self):
+        reads = [("smaps_rollup", FileNotFoundError(errno.ENOENT, "synthetic mm gone")),
+                 ("stat", stat_line(101,100,1001,"R")),
+                 ("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic exit mm")),
+                 ("stat", FileNotFoundError(errno.ENOENT, "synthetic stat gone"))]
+        with self.sampled_exit(reads) as (window, pending, _, _):
+            window.tick(True)
+            self.assertEqual(pending, [])
+            self.assertEqual(window.samples[-1]["processes"], 1)
+            self.assertEqual(window.known, {})
+
+    def test_transient_live_row_must_supply_actual_rss_on_recheck(self):
+        reads = [("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic transient")),
+                 ("stat", stat_line(101,100,1001,"R")),
+                 ("smaps_rollup", b"Rss: 2048 kB\n"),
+                 ("stat", stat_line(101,100,1001,"R"))]
+        with self.sampled_exit(reads) as (window, pending, _, _):
+            window.tick(True)
+            self.assertEqual(pending, [])
+            self.assertEqual(window.samples[-1]["rssBytes"], 8192+(2 << 20))
+            self.assertEqual(window.samples[-1]["tasks"][1]["state"], "R")
+
+    def test_still_live_unreadable_rss_fails_closed_even_with_terminal_zero(self):
+        reads = [("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic live unreadable")),
+                 ("stat", stat_line(101,100,1001,"R"))]*4
+        # A terminal result (or printed verifier success) cannot exempt any
+        # identity that is still present in the actual owned-process closure.
+        with self.sampled_exit(reads, terminal=0) as (window, pending, calls, pauses):
+            with self.assertRaisesRegex(RuntimeError, "^active owned RSS unreadable$"):
+                window.tick(True)
+            self.assertEqual(pending, [])
+            self.assertEqual(calls, ["smaps_rollup", "stat"]*4)
+            self.assertEqual(pauses, [0.01]*3)
+            self.assertEqual(window.samples, [])
+            self.assertEqual(window.telemetry_failure, {"command":"verify", "pid":101, "startTicks":1001})
+
+    def test_exit_recheck_never_accepts_recycled_pid_or_permission_error(self):
+        for tail, expected in (([("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic exit")),
+                                ("stat", stat_line(101,100,2001,"Z"))], RuntimeError),
+                               ([("smaps_rollup", PermissionError(errno.EACCES, "synthetic unreadable"))], PermissionError)):
+            with self.subTest(expected=expected.__name__), self.sampled_exit(tail) as (window, pending, _, pauses):
+                with self.assertRaises(expected):
+                    window.tick(True)
+                self.assertEqual(pending, [])
+                self.assertEqual(pauses, [])
+                self.assertEqual(window.samples, [])
+
+    def test_exit_recheck_malformed_rss_is_not_exit_evidence(self):
+        with self.sampled_exit([("smaps_rollup", b""), ("stat", stat_line(101,100,1001,"R"))]) as (window, pending, _, pauses):
+            with self.assertRaisesRegex(RuntimeError, "RSS missing"):
+                window.tick(True)
+            self.assertEqual(pending, [])
+            self.assertEqual(pauses, [])
+
+    def test_exit_recheck_uses_original_active_deadline(self):
+        reads = [("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic exit")),
+                 ("stat", stat_line(101,100,1001,"R"))]
+        with self.sampled_exit(reads, now=119.995) as (window, pending, _, pauses):
+            with self.assertRaisesRegex(RuntimeError, "^private-copy active deadline$"):
+                window.tick(True)
+            self.assertEqual(pending, [])
+            self.assertAlmostEqual(sum(pauses), 0.005)
+            self.assertEqual(window.samples, [])
 
     def test_cleanup_signals_only_fresh_owned_identities_and_reaps_adopted_zombies(self):
         g = self.guard()

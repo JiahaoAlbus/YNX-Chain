@@ -17,6 +17,8 @@ on:
       - 'pkg/**'
       - 'third_party/cometbft/**'
       - 'scripts/loadtest/**'
+      - 'scripts/ops/validate-private-consensus-copy.py'
+      - 'scripts/ops/test_validate_private_consensus_copy.py'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
       - 'scripts/deploy/consensus-candidate-failure-retention.test.mjs'
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
@@ -316,6 +318,25 @@ jobs:
       - name: Verify shared Wallet policy and Chain payment authorization regressions
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestClassicSession.*|TestAccountPolicyConfigRequiresExplicitExactOriginAndNetwork|TestBFTPaySerializesNonceAndReturnsZeroFeeIdempotentReplay|TestBFTPayRejectsInconsistentCommittedResponse|TestMerchantBindingRejectsForeignIntentAndInvoiceWithoutEffects|TestMerchantBindingRejectsMissingUntrustedOrUnavailableOriginal)$' ./internal/appgateway ./internal/paygateway
+      - name: Reproduce private verifier process-exit telemetry counterexample
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: |
+          YNX_EXIT_CASE="$RUNNER_TEMP/ynx-pq-private-exit-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          umask 077
+          mkdir "$YNX_EXIT_CASE"
+          cp scripts/ops/validate-private-consensus-copy.py "$YNX_EXIT_CASE/fixed-wrapper.py"
+          trap 'cp "$YNX_EXIT_CASE/fixed-wrapper.py" scripts/ops/validate-private-consensus-copy.py' EXIT
+          git show 30230a9ab1f691e30fb590d89cb465bf5c1e1a30:scripts/ops/validate-private-consensus-copy.py > "$YNX_EXIT_CASE/original-wrapper.py"
+          cp "$YNX_EXIT_CASE/original-wrapper.py" scripts/ops/validate-private-consensus-copy.py
+          set +e
+          (cd scripts/ops && python3 -B -m unittest test_validate_private_consensus_copy.PrivateCopyControls.test_exit_mm_race_requires_final_same_identity_zombie -v) > "$YNX_EXIT_CASE/original-red.log" 2>&1
+          YNX_EXIT_RED_STATUS=$?
+          set -e
+          cp "$YNX_EXIT_CASE/fixed-wrapper.py" scripts/ops/validate-private-consensus-copy.py
+          trap - EXIT
+          cat "$YNX_EXIT_CASE/original-red.log"
+          test "$YNX_EXIT_RED_STATUS" -ne 0
+          grep -F 'PRIVATE_COPY_EXIT_MM_TRANSITION_REJECTED' "$YNX_EXIT_CASE/original-red.log"
       - name: Verify Linux window controls without starting a node
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
