@@ -254,8 +254,19 @@ jobs:
             test "$YNX_WINDOW_SELECTIONS" -le 1
           fi
       - name: Verify pure dual-PQ protocol and account authorization
+        id: pqprotocol
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        env:
+          YNX_ACTION_INTEROP_OUT: ${{ runner.temp }}/ynx-native-action-public-interop.json
         run: go test -p 1 -count=1 -timeout=180s ./internal/ynxbatch ./internal/ynxauth ./internal/ynxconsensusauth ./scripts/fixtures/verify-pq-wallet-restored
+      - name: Upload public canonical action vectors from the actual Go codec
+        if: ${{ !cancelled() && steps.pqprotocol.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-actions-public-interop-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-native-action-public-interop.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Verify forked engine keys and actual consensus objects
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 4
