@@ -157,10 +157,12 @@ func TestStreamingWorkloadSignatureFactsEvictUnderCountAndByteCaps(t *testing.T)
 // business transactions. Both readers use exactly the same immutable file.
 func TestStreamingWorkloadSignatureFactsMatchedWarmReadCost(t *testing.T) {
 	_, migration, path, raw, height := durableReaderFixture(t)
-	before, err := newDurableReader(migration, []string{path})
+	before, err := newDurableReaderWithLimits(migration, []string{path}, 16<<20, 16<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Test-only baseline; production profile constructors always enable facts.
+	before.signatureFacts = nil
 	after, err := newDurableReaderWithLimits(migration, []string{path}, 16<<20, 16<<20)
 	if err != nil {
 		t.Fatal(err)
@@ -177,7 +179,7 @@ func TestStreamingWorkloadSignatureFactsMatchedWarmReadCost(t *testing.T) {
 	for _, sample := range []struct {
 		name   string
 		reader *durableReader
-	}{{"legacy", before}, {"explicit_cached", after}, {"explicit_cached", after}, {"legacy", before}} {
+	}{{"uncached_profile", before}, {"cached_profile", after}, {"cached_profile", after}, {"uncached_profile", before}} {
 		started := time.Now()
 		for i := 0; i < 64; i++ {
 			got, err := sample.reader.verify(ctx, path, raw, height)
@@ -201,7 +203,7 @@ func TestStreamingWorkloadSignatureFactsMatchedWarmReadCost(t *testing.T) {
 	if facts.Verified != 1 || facts.Hits != 128 {
 		t.Fatal("matched crypto facts differ", facts)
 	}
-	report := map[string]any{"scope": "128 warm observations per mode of one real executed transaction, not business TPS or network finality", "order": "legacy,cached,cached,legacy;64 observations each", "fileBytes": info.Size(), "elapsedNs": times, "cachedFacts": facts, "stateHash": first.AppHash, "sameStoreSHA256": first.StoreSHA256}
+	report := map[string]any{"scope": "128 warm observations per mode of one real executed transaction, not business TPS or network finality", "order": "uncached,cached,cached,uncached;64 observations each", "fileBytes": info.Size(), "elapsedNs": times, "cachedFacts": facts, "stateHash": first.AppHash, "sameStoreSHA256": first.StoreSHA256}
 	encoded, err := json.Marshal(report)
 	if err != nil {
 		t.Fatal(err)

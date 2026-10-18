@@ -96,3 +96,15 @@ A later fee/nonce rejection still contributes, so this counter is not a count
 of business successes.
 The default legacy reader does not enable this cache. This candidate does not
 change the frozen four-node comparison binaries or the internal consensus tree.
+
+The actual-history measurement now compares two independent explicit-profile
+readers on the same store and last signed batch. Each reader has identical
+32 MiB file/cache bounds (64 MiB combined encoded-input cache budget). Only the
+test baseline disables signature-fact reuse; there is no new production CLI
+switch. Both cold observations must agree on store/state/AppHash, then warm
+batches run uncached/cached/cached/uncached. Every mode must perform three fresh
+full-file hashes, one complete state validation and three batch fee/nonce checks.
+The warm target observations repeat existing transactions, and do not increase
+the business-transaction count. Cold ordering and individual samples remain in
+the report. The existing 210-second context, 240-second test, transaction cap,
+real-history stop condition and default-disabled macro selection remain intact.

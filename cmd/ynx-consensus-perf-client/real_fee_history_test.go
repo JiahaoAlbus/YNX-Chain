@@ -208,7 +208,7 @@ func TestStreamingWorkloadActualFeeHistoryReadback(t *testing.T) {
 	if _, err := legacy.verifyBlockBatch(ctx, statePath, last, height); err == nil {
 		t.Fatal("default16MiB reader unexpectedly accepted large actual history")
 	}
-	reader, err := newDurableReaderWithLimits(migration, []string{statePath}, 64<<20, 64<<20)
+	reader, err := newDurableReaderWithLimits(migration, []string{statePath}, 32<<20, 32<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,13 +219,54 @@ func TestStreamingWorkloadActualFeeHistoryReadback(t *testing.T) {
 	}
 	report["largeReadbackNs"] = time.Since(readStart).Nanoseconds()
 	report["coldReadbackStats"] = reader.stats()
-	warmStart := time.Now()
-	warmEvidence, err := reader.verifyBlockBatch(ctx, statePath, last, height)
-	if err != nil || !warmEvidence.Evidence.SnapshotCacheHit || warmEvidence.Evidence.AppHash != evidence.Evidence.AppHash || warmEvidence.Evidence.StoreSHA256 != evidence.Evidence.StoreSHA256 || warmEvidence.Transactions != evidence.Transactions {
-		t.Fatal("fresh-byte warm readback differs from complete cold evidence", err)
+	// Both modes have the same explicit limits, timings and independent caches.
+	// Only the new successful-signature facts are disabled in this test baseline.
+	before, err := newDurableReaderWithLimits(migration, []string{statePath}, 32<<20, 32<<20)
+	if err != nil {
+		t.Fatal(err)
 	}
-	report["warmReadbackNs"] = time.Since(warmStart).Nanoseconds()
-	report["readbackStats"] = reader.stats()
+	before.signatureFacts = nil
+	baselineStart := time.Now()
+	baseline, err := before.verifyBlockBatch(ctx, statePath, last, height)
+	if err != nil || baseline.Evidence.AppHash != evidence.Evidence.AppHash || baseline.Evidence.StoreSHA256 != evidence.Evidence.StoreSHA256 || baseline.Evidence.SnapshotSHA256 != evidence.Evidence.SnapshotSHA256 {
+		t.Fatal("matched cold evidence differs", err)
+	}
+	report["uncachedColdReadbackNs"] = time.Since(baselineStart).Nanoseconds()
+	report["uncachedColdReadbackStats"] = before.stats()
+	warmTotals := map[string]int64{}
+	var warmSamples []map[string]any
+	for _, sample := range []struct {
+		mode   string
+		reader *durableReader
+	}{{"uncached", before}, {"cached", reader}, {"cached", reader}, {"uncached", before}} {
+		started := time.Now()
+		got, err := sample.reader.verifyBlockBatch(ctx, statePath, last, height)
+		elapsed := time.Since(started).Nanoseconds()
+		if err != nil || !got.Evidence.SnapshotCacheHit || got.Evidence.AppHash != evidence.Evidence.AppHash || got.Evidence.StoreSHA256 != evidence.Evidence.StoreSHA256 || got.Evidence.SnapshotSHA256 != evidence.Evidence.SnapshotSHA256 || got.Transactions != len(last) {
+			t.Fatal("matched warm current-file evidence differs", err)
+		}
+		warmTotals[sample.mode] += elapsed
+		warmSamples = append(warmSamples, map[string]any{"mode": sample.mode, "elapsedNs": elapsed})
+		if sample.mode == "cached" {
+			if _, exists := report["warmReadbackNs"]; !exists {
+				report["warmReadbackNs"] = elapsed
+			}
+		}
+	}
+	for _, observed := range []*durableReader{before, reader} {
+		stats := observed.stats()
+		if stats.Attempts != 3 || stats.BytesHashed != uint64(3*report["storeBytes"].(int64)) || stats.SnapshotValidations != 1 || stats.TransactionVerifications != uint64(3*len(last)) {
+			t.Fatal("matched modes skipped freshness or state checks", stats)
+		}
+	}
+	facts := reader.stats().SignatureFacts
+	if facts == nil || facts.Verified != uint64(len(last)) || facts.Hits != uint64(2*len(last)) {
+		t.Fatal("matched crypto reuse differs", facts)
+	}
+	report["matchedWarmTotalsNs"], report["matchedWarmSamples"] = warmTotals, warmSamples
+	report["matchedScope"] = "same exact store and signed batch; independent readers; uncached,cached,cached,uncached;512 warm target observations per mode, not new business transactions"
+	report["combinedEncodedCacheBudgetBytes"] = 64 << 20
+	report["uncachedReadbackStats"], report["readbackStats"] = before.stats(), reader.stats()
 	report["readbackEvidence"] = evidence
 	store, err := os.ReadFile(statePath)
 	if err != nil {

@@ -137,8 +137,10 @@ func (r *durableReader) stats() durableReaderStats {
 	var total durableReaderStats
 	if r.profileMu != nil {
 		total.PhaseTotalsNs = &durableReadbackPhases{}
-		facts := r.signatureFacts.stats()
-		total.SignatureFacts = &facts
+		if r.signatureFacts != nil {
+			facts := r.signatureFacts.stats()
+			total.SignatureFacts = &facts
+		}
 	}
 	for _, slot := range r.slots {
 		slot.mu.Lock()
