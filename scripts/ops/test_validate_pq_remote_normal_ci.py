@@ -454,6 +454,19 @@ def assert_workflow_contract(raw):
         "(github.event_name == 'workflow_dispatch' && (startsWith(github.ref, "
         "'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))")
     need("    if: " + expected_job_if + "\n" in job)
+    heavy_group = "ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade"
+    heavy_modes = ("paired_n1", "consensus_e2e", "consensus_e2e_retained_history",
+                   "consensus_remote_e2e_retained_history", "remote_signer_process")
+    focused_group = ("${{ github.event_name == 'workflow_dispatch' && ("
+                     + " || ".join("inputs." + name for name in heavy_modes)
+                     + ") && '" + heavy_group
+                     + "' || format('ynx-pq-source-{0}-{1}', github.workflow, github.ref) }}")
+    need("      group: " + focused_group + "\n      cancel-in-progress: false\n" in job)
+    paired_job, _ = workflow_steps(raw, "pq-paired-n1")
+    need("    concurrency:\n      group: " + heavy_group + "\n      cancel-in-progress: false\n" in paired_job)
+    need("    needs: focused-go\n" in paired_job)
+    need("    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1\n" in paired_job)
+    need("    timeout-minutes: 5\n" in paired_job)
     need("    timeout-minutes: 12\n" in job)
     need("permissions:\n  contents: read\n  actions: read\n" in raw)
     need("      normal_ci_run_id:\n" in raw)
@@ -568,6 +581,21 @@ def assert_workflow_contract(raw):
     # the original whole selectors. Private Host stores stay on their runner.
     for name in ("Verify complete state bridge and sponsor continuity", "Verify Whole BFT gateway and native container readback"):
         need(by_name(name)[0] in steps)
+    gateway = by_name("Verify Whole BFT gateway and native container readback")[0]
+    need("YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json" in gateway)
+    need("          go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd\n" in gateway
+         and gateway.count("go test ") == 1)
+    need('test -s "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"' in gateway
+         and 'sha256sum "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"' in gateway)
+    deploy_upload = by_name("Upload only public compiled contract deploy and finality interoperability fixture")
+    need(len(deploy_upload) == 1 and deploy_upload[0] in steps)
+    deploy_upload = deploy_upload[0]
+    need(condition(deploy_upload) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqgateway.outcome == 'success') }}")
+    need("uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in deploy_upload)
+    need("          name: ynx-pq-contract-deploy-public-interop-${{ github.sha }}\n" in deploy_upload)
+    need("          path: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json\n" in deploy_upload
+         and "          path: |" not in deploy_upload and "          if-no-files-found: error\n" in deploy_upload)
+    need(steps.index(gateway) < steps.index(deploy_upload))
     for name in ("Verify original Host source, live lifecycle and delivery persistence",
                  "Verify normal Host source producer with original signed transaction fixture",
                  "Verify original public cutover caller preserves independent operator and runtime pins",
@@ -650,6 +678,55 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_source_and_cross_ref_heavy_groups_keep_all_actual_windows_serial(self):
+        # Match the actual closed Actions expression. This is a source check,
+        # not evidence that GitHub scheduled or admitted an execution window.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        job, _ = workflow_steps(raw)
+        paired, _ = workflow_steps(raw, "pq-paired-n1")
+        group_line = next(line for line in job.splitlines() if line.startswith("      group: "))
+        modes = ("paired_n1", "consensus_e2e", "consensus_e2e_retained_history",
+                 "consensus_remote_e2e_retained_history", "remote_signer_process")
+        mutations = []
+        for mode in modes:
+            token = "inputs." + mode
+            # Require each complete identifier, including consensus_e2e which
+            # is also a prefix of two distinct retained-history identifiers.
+            changed = re.sub(re.escape(token) + r"(?![a-z0-9_])", "false", group_line)
+            self.assertNotEqual(changed, group_line)
+            mutations.append(raw.replace(group_line, changed, 1))
+        mutations.extend([
+            raw.replace(group_line, group_line.replace("github.event_name == 'workflow_dispatch'", "true", 1), 1),
+            raw.replace(group_line, group_line.replace("'ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade'", "format('ynx-pq-heavy-{0}', github.ref)", 1), 1),
+            raw.replace(group_line, "      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade", 1),
+            raw.replace(job, job.replace("      cancel-in-progress: false", "      cancel-in-progress: true", 1), 1),
+            raw.replace(paired, paired.replace("    concurrency:\n      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade\n      cancel-in-progress: false\n", "", 1), 1),
+            raw.replace(paired, paired.replace("      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade", "      group: ${{ github.ref }}", 1), 1),
+            raw.replace(paired, paired.replace("      cancel-in-progress: false", "      cancel-in-progress: true", 1), 1),
+            raw.replace(paired, paired.replace(" && inputs.paired_n1\n", "\n", 1), 1)])
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(changed)
+
+    def test_contract_deploy_fixture_reuses_gateway_execution_and_uploads_only_real_public_output(self):
+        # Source controls do not manufacture the fixture or claim Go passed.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        _, steps = workflow_steps(raw)
+        gateway = next(step for step in steps if "        id: pqgateway\n" in step)
+        upload = next(step for step in steps if step.startswith("      - name: Upload only public compiled contract deploy and finality interoperability fixture\n"))
+        mutations = [raw.replace(gateway, gateway.replace("YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT:", "UNUSED_FIXTURE_OUT:", 1), 1),
+            raw.replace(upload, "", 1),
+            raw.replace(upload, upload.replace("steps.pqgateway.outcome == 'success'", "true", 1), 1),
+            raw.replace(upload, upload.replace("/ynx-pq-contract-deploy-public-interop.json", "/ynx-proof-host-source-public/original", 1), 1),
+            raw.replace(upload, upload.replace("if-no-files-found: error", "if-no-files-found: ignore", 1), 1),
+            raw.replace(gateway, gateway.replace("./internal/bftgateway ./cmd/ynx-bft-gatewayd", "-run '^TestMissing$' ./internal/bftgateway", 1), 1),
+            raw.replace(gateway + upload, upload + gateway, 1)]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(changed)
 
     def test_source_contract_rejects_missing_gate_injection_skipped_controls_and_cap_increase(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()

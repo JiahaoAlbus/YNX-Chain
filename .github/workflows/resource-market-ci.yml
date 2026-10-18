@@ -205,7 +205,9 @@ jobs:
       inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
       inputs-manifest-sha256: ${{ steps.stagepack.outputs.manifest-sha256 }}
     concurrency:
-      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade
+      # Ordinary correctness CI does not hold the cross-ref execution lease.
+      # Every actual window keeps the original single heavy group.
+      group: ${{ github.event_name == 'workflow_dispatch' && (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 'ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade' || format('ynx-pq-source-{0}-{1}', github.workflow, github.ref) }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 12
@@ -818,7 +820,19 @@ jobs:
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_PQ_STAKING_ORIGINALS_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-staking-originals-public-interop.json
-        run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
+          YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json
+        run: |
+          go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
+          test -s "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"
+          sha256sum "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"
+      - name: Upload only public compiled contract deploy and finality interoperability fixture
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqgateway.outcome == 'success') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-contract-deploy-public-interop-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload only public classic staking originals and actual HTTP interoperability fixture
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqgateway.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -2253,6 +2267,9 @@ jobs:
   pq-paired-n1:
     needs: focused-go
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1
+    concurrency:
+      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:

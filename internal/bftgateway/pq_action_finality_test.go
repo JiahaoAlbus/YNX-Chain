@@ -247,7 +247,7 @@ func actionFinalityGateway(t *testing.T, f *pqFinalityFixture) *Gateway {
 }
 
 func actionFinalityRoutes(f *pqFinalityFixture) (string, string) {
-	return "/transactions/pq/actions/originals/" + consensus.SignedTransactionHash(f.f.wire) + "/pq-finality-proof", "/transactions/pq/actions/" + consensus.SignedTransactionHash(f.f.payload) + "/pq-finality-proof"
+	return "/transactions/pq/actions/originals/" + consensus.SignedTransactionHash(f.f.wire) + "/pq-finality-proof", "/txs/" + consensus.SignedTransactionHash(f.f.payload) + "/pq-action-finality-proof"
 }
 
 func assertActionFinalityProof(t *testing.T, f *pqFinalityFixture, got PQFinalityView, rejected bool) {
@@ -565,6 +565,7 @@ func TestGatewayPQActionFinalityRetainsCompiledContractTransport(t *testing.T) {
 	if len(migrated.TxResults) != 1 || migrated.TxResults[0].Code != 0 {
 		t.Fatal("actual migration failed")
 	}
+	before := gatewayRevocationPolicy(t, f, f.owner)
 	wire := gatewayActionWire(t, f, ynxauth.ActionContractDeploy, deploy, 2, 1, 2)
 	raw, err := consensus.EncodePQContractTransaction(wire, source, &material)
 	if err != nil {
@@ -578,8 +579,17 @@ func TestGatewayPQActionFinalityRetainsCompiledContractTransport(t *testing.T) {
 	observation := e.observation(t, height, 0)
 	g := actionFinalityGateway(t, observation)
 	native, outer := actionFinalityRoutes(observation)
+	var publicGETs []pqContractDeployPublicHTTP
 	for _, route := range []string{native, outer} {
-		code, got := finalityRouteGET(t, g, route)
+		response := capturePQContractDeployGET(t, g, route)
+		var got PQFinalityView
+		if err := json.Unmarshal(response.Body, &got); err != nil {
+			t.Fatal(err)
+		}
+		code, err := strconv.Atoi(response.StatusCode)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if code != 200 {
 			t.Fatal("compiled action proof unavailable", code, got.Error)
 		}
@@ -588,6 +598,15 @@ func TestGatewayPQActionFinalityRetainsCompiledContractTransport(t *testing.T) {
 		if cmtjson.Unmarshal(got.Proof.TransactionProof, &tx) != nil || !bytes.Equal(tx.Data, raw) || !bytes.Contains(tx.Data, []byte(`"material"`)) {
 			t.Fatal("compiled materials were dropped or reconstructed")
 		}
+		publicGETs = append(publicGETs, response)
+	}
+	for _, route := range []string{"/transactions/pq/actions/originals/" + consensus.SignedTransactionHash(wire), "/transactions/pq/actions/" + consensus.SignedTransactionHash(raw)} {
+		response := capturePQContractDeployGET(t, g, route)
+		var got PQActionView
+		if response.StatusCode != "200" || json.Unmarshal(response.Body, &got) != nil || !got.Committed || got.Source != "comet-rpc" || got.Type != ynxauth.ActionContractDeploy || !bytes.Equal(got.Wire, wire) || !bytes.Equal(got.Transport, raw) || got.NativeTransactionHash != consensus.SignedTransactionHash(wire) || got.ABCITransactionHash != consensus.SignedTransactionHash(raw) || got.CometIndex == nil || *got.CometIndex != 0 || got.ExecutionHeight != uint64(height) {
+			t.Fatal("compiled deployment GET lost its actual original or receipt")
+		}
+		publicGETs = append(publicGETs, response)
 	}
 	observation.mutate = func(path string, data []byte) []byte {
 		if path != "/tx" {
@@ -616,4 +635,5 @@ func TestGatewayPQActionFinalityRetainsCompiledContractTransport(t *testing.T) {
 	if code, got := finalityRouteGET(t, g, outer); code != 502 || got.Proof != nil {
 		t.Fatal("compiled transport silently became a bare Member")
 	}
+	emitPQContractDeployPublicFixture(t, observation, before, source, material, deploy, publicGETs)
 }
