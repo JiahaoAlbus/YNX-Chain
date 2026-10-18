@@ -490,6 +490,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err != nil {
 		return err
 	}
+	if err := validateAccountAbstractionPolicyState(s); err != nil {
+		return err
+	}
 	for _, account := range s.SmartAccounts {
 		if _, exists := accountIndex(s.Accounts, account.Address); !exists {
 			return errors.New("smart account does not have a chain account")

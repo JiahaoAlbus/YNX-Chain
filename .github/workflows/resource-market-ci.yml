@@ -268,6 +268,25 @@ jobs:
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
+      - name: Reproduce historical AA policy counterexamples against the original state validator
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: |
+          YNX_AA_FIXED_STATE="$RUNNER_TEMP/ynx-aa-fixed-state.go"
+          YNX_AA_OLD_LOG="$RUNNER_TEMP/ynx-aa-original-state-red.log"
+          cp internal/consensus/state.go "$YNX_AA_FIXED_STATE"
+          trap 'cp "$YNX_AA_FIXED_STATE" internal/consensus/state.go' EXIT
+          git show af1cbaf94313e628e212aabad60d05d85c2aa3fc:internal/consensus/state.go > internal/consensus/state.go
+          set +e
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestAACommittedHistory' ./internal/consensus > "$YNX_AA_OLD_LOG" 2>&1
+          YNX_AA_OLD_CODE=$?
+          set -e
+          cat "$YNX_AA_OLD_LOG"
+          cp "$YNX_AA_FIXED_STATE" internal/consensus/state.go
+          trap - EXIT
+          test "$YNX_AA_OLD_CODE" -ne 0
+          test "$(grep -c 'rechecksummed AA history bypassed the original-height authority rule' "$YNX_AA_OLD_LOG")" -eq 3
+          grep -F 'AA history accepted an execution beyond the actual committed checkpoint' "$YNX_AA_OLD_LOG"
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestAACommittedHistory' ./internal/consensus
       - name: Verify Whole BFT gateway and native container readback
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
@@ -299,7 +318,10 @@ jobs:
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestClassicSession.*|TestAccountPolicyConfigRequiresExplicitExactOriginAndNetwork|TestBFTPaySerializesNonceAndReturnsZeroFeeIdempotentReplay|TestBFTPayRejectsInconsistentCommittedResponse|TestMerchantBindingRejectsForeignIntentAndInvoiceWithoutEffects|TestMerchantBindingRejectsMissingUntrustedOrUnavailableOriginal)$' ./internal/appgateway ./internal/paygateway
       - name: Verify Linux window controls without starting a node
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: python3 -B scripts/loadtest/test_pq_paired_linux_window.py
+        run: |
+          python3 -B scripts/loadtest/test_pq_paired_linux_window.py
+          python3 -B scripts/loadtest/test_pq_network_file_sizes.py
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
       - name: Run the authorized bounded four-validator transition
         id: pqnetwork
         if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_e2e && inputs.candidate_sha == github.sha && !inputs.paired_n1 }}
@@ -338,6 +360,20 @@ jobs:
               f.write('\n')
           PY
           python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-e2e --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
+      - name: Record public retained network-file size metadata after owned cleanup
+        if: ${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}
+        run: |
+          set -eu
+          umask 077
+          YNX_E2E_CASE="$RUNNER_TEMP/ynx-pq-network-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          jq -e '.cleanupComplete == true' "$YNX_E2E_CASE.receipt.json" >/dev/null
+          set -o noclobber
+          python3 -B scripts/loadtest/pq-network-file-sizes.py \
+            --ephemeral-parent "$RUNNER_TEMP" \
+            --case "$YNX_E2E_CASE" \
+            --run-id "$GITHUB_RUN_ID" \
+            --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            > "$YNX_E2E_CASE.file-sizes.json"
       - name: Preserve only public network-test logs and guard receipt
         if: ${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -348,6 +384,7 @@ jobs:
             ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/prepared.json
             ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/go.stdout.log
             ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/go.stderr.log
+            ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}.file-sizes.json
           if-no-files-found: warn
           retention-days: 7
       # The external client was independently fixed and all 13 functions passed
