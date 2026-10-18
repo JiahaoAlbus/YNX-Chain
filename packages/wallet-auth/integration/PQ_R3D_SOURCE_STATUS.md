@@ -33,8 +33,18 @@ prepare/commit binding and pre-persist refusal, plus both current delivery fence
 IO/kernel/bridge fixtures are explicitly PUBLIC instruments. They do not establish
 qualified Native execution, protected files, real Source approval or a user journey.
 
-Still incomplete: matching R30a Native build and actual custody execution; original listener
-acquisition and daemon business dispatch/ACK pump; IDE's normal success branch;
+The R31 original distinct service owner and nonblocking channel contract is now
+consumed by the fixed daemon launcher. Its normal after-listen entry acquires and
+retains the actual partial owner, verifies ready/current, dispatches one exact raw
+request, ACKs its durable terminal and progresses only that same response write.
+The same-copy original runtime lifetime and actual runtime Source checks are both
+required; neither status metadata nor a caller callback can install a supplier.
+Missing configuration remains an explicit failure. Shutdown retires the pump,
+drains pending work and delegates captured-owner disposal once to the original
+dispatcher; uncaptured partial custody follows the owner's original cleanup path.
+
+Still incomplete: actual qualified service/custody execution with the matching
+Native component; IDE's normal success supplier and derived child-client channel;
 original Host adoption/custody reconciliation after restart; safe client UNKNOWN
 resolution; legal Source/profile/current/release registration and protected install;
 matching build and cross-platform installed login/recovery/revocation/isolation QA.

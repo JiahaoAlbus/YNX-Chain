@@ -14,7 +14,7 @@ import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
 import {buildOriginalHostPublisherOptions,bindOriginalHostReturnPublisher} from '../native/publication-readonly-source-r28-20261018/source/service-publisher.mjs';
 import {createOriginalWalletRuntimeObserverLifetime} from './original-wallet-runtime-observer-launcher.mjs';
-import {createOriginalWalletServicePrivateDispatch,beginOriginalWalletServicePrivateDispatchAcquisition,closeOriginalWalletServicePrivateDispatchAcquisition,originalWalletServicePrivateDispatchAcquisitionStatus} from '../src/original-wallet-service-private-dispatch.js';
+import {openOriginalWalletPrivateServiceAfterListen,beginOriginalWalletPrivateServiceAcquisition as beginOriginalWalletServicePrivateDispatchAcquisition,closeOriginalWalletPrivateServiceAcquisition as closeOriginalWalletServicePrivateDispatchAcquisition,originalWalletPrivateServiceAcquisitionStatus as originalWalletServicePrivateDispatchAcquisitionStatus} from './original-wallet-private-service-launcher.mjs';
 import {ProductSessionControlNodeHost} from '../src/product-session-control-node-host.js';
 import {parseProductSessionControlCapacityPolicy} from '../src/product-session-control-capacity.js';
 import {createCentralBrowserSessionRegistry} from '../src/central-browser-session-registry.js';
@@ -99,9 +99,8 @@ const server=productSessionStateVersion==='2'
  :createServer((request,response)=>{const ticket=admission.enter(forwardedClient(request));if(!ticket.ok){response.writeHead(ticket.status,{"cache-control":"no-store","content-type":"application/json; charset=utf-8","retry-after":"60"});response.end(canonicalJSON({error:{code:ticket.code,message:"Wallet Gateway admission policy rejected the request"},ok:false}));return}response.once("finish",ticket.release);response.once("close",ticket.release);Promise.resolve(gatewayHandler(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{"cache-control":"no-store","content-type":"application/json; charset=utf-8"});response.end(canonicalJSON({error:{code:"INTERNAL_ERROR",message:"Wallet Gateway request failed"},ok:false}))}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:"unknown",event:"handler_error",level:"error",service:"ynx-wallet-gatewayd"})})});
 let originalReturnPublisher=null; // Main-only original Host binding, never a public metadata route.
 const originalRuntimeLifetime=createOriginalWalletRuntimeObserverLifetime(productHost,server);
-// Original recognized Native startup borrow has not been supplied. This is
-// not fd4 discovery, ENV configuration or a public callback installer.
-const originalPrivateServiceBorrow=null;
+// The fixed original Native acquisition owns its actual service-role Source.
+// No borrowed joint, fd4 discovery, ENV/provider selector or caller DTO is used.
 let originalPrivateDispatch=null;
 const originalPrivateAcquisition=beginOriginalWalletServicePrivateDispatchAcquisition();
 let originalOwnerDrain=null,originalServerClosed=false;
@@ -140,6 +139,7 @@ function drainOriginalOwners(){
 function stopOriginalDaemon(reason){
  if(originalShutdown)return originalShutdown;
  if(originalReturnPublisher)originalReturnPublisher.retire();
+ try{if(originalPrivateDispatch)originalPrivateDispatch.retire();}catch(cause){if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;}
  originalRuntimeLifetime.retire();retireOriginalHTTP();
  // Reserve both independent completions before any foreign callback.
  originalShutdown=Promise.resolve().then(async()=>{
@@ -163,8 +163,15 @@ if(originalStartupFailure)void stopOriginalDaemon('return_publisher_startup_fail
 else server.listen(port,address,()=>{
  originalListenSucceeded=true;
  try{originalRuntimeLifetime.afterListen();}catch(error){originalRuntimeLifetime.retire(error);void originalRuntimeLifetime.close().catch(()=>{});emitEvent({event:'original_runtime_observer_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_RUNTIME_NOT_CONFIGURED'});}
- if(originalPrivateServiceBorrow!==null){
-  try{originalPrivateDispatch=createOriginalWalletServicePrivateDispatch(productHost,originalRuntimeLifetime,originalPrivateServiceBorrow,originalPrivateAcquisition);}
+ if(productSessionStateVersion==='2'){
+  try{
+   originalPrivateDispatch=openOriginalWalletPrivateServiceAfterListen(productHost,originalRuntimeLifetime,originalPrivateAcquisition);
+   void originalPrivateDispatch.whenFailed().catch(cause=>{
+    if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;
+    emitEvent({event:'original_private_runtime_failed',level:'error',service:'ynx-wallet-gatewayd',code:cause?.code??'ORIGINAL_PRIVATE_RUNTIME_FAILED'});
+    void stopOriginalDaemon('original_private_runtime_failed');
+   });
+  }
   catch(error){if(!originalStartupFailure){originalStartupCause=error;originalStartupFailure=true;}process.exitCode=1;emitEvent({event:'original_private_service_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_PRIVATE_NOT_SUPPLIED'});}
  }
  emitEvent({at:new Date().toISOString(),build:build??{buildTime:null,release:"local-unbound",sourceCommit:null},event:"listening",level:"info",remoteDeployed,service:"ynx-wallet-gatewayd",url:`http://${address}:${port}`});
