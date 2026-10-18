@@ -18,9 +18,23 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
+func privateOperatorBackupOutput(t *testing.T, name string) string {
+	t.Helper()
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// testing.TempDir does not promise the production owner's exact private
+	// permissions. Establish the real prerequisite, never weaken its check.
+	if err := os.Chmod(parent, 0700); err != nil {
+		t.Fatal(err)
+	}
+	return filepath.Join(parent, name)
+}
+
 func TestOperatorCheckpointBackupSameLockedCheckpointPreservesSourceAndPartial(t *testing.T) {
 	f := newOperatorInspectionFixture(t, "block-journal")
-	f.options.BackupOutput = filepath.Join(t.TempDir(), "committed-source.tar.gz")
+	f.options.BackupOutput = privateOperatorBackupOutput(t, "committed-source.tar.gz")
 	roots := []string{filepath.Dir(f.h.path), filepath.Dir(f.options.SigningStatePath), filepath.Dir(f.options.CometDataDirectory)}
 	before := inspectionInventory(t, roots...)
 	result, err := f.inspect()
@@ -81,7 +95,7 @@ func TestOperatorCheckpointBackupSameLockedCheckpointPreservesSourceAndPartial(t
 
 func TestOperatorCheckpointBackupInterruptionKeepsAllWriterFencesAndFirstCause(t *testing.T) {
 	f := newOperatorInspectionFixture(t, "snapshot-journal")
-	f.options.BackupOutput = filepath.Join(t.TempDir(), "interrupted.tar.gz")
+	f.options.BackupOutput = privateOperatorBackupOutput(t, "interrupted.tar.gz")
 	app, err := existingInspectionWriterLease(f.h.path)
 	if err != nil {
 		t.Fatal(err)
@@ -142,7 +156,7 @@ func TestOperatorCheckpointBackupDoesNotScanPrivateSigningSiblings(t *testing.T)
 	if err := os.WriteFile(privateSibling, []byte("never include unrelated private key"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	f.options.BackupOutput = filepath.Join(t.TempDir(), "exact-source.tar.gz")
+	f.options.BackupOutput = privateOperatorBackupOutput(t, "exact-source.tar.gz")
 	if _, err := f.inspect(); err != nil {
 		t.Fatal(err)
 	}
@@ -168,5 +182,25 @@ func TestOperatorCheckpointBackupDoesNotScanPrivateSigningSiblings(t *testing.T)
 		if strings.Contains(header.Name, "unrelated-paused-product") {
 			t.Fatal("backup scanned unrelated private signing directory")
 		}
+	}
+}
+
+func TestOperatorCheckpointBackupRefusesPublicOutputDirectory(t *testing.T) {
+	f := newOperatorInspectionFixture(t, "atomic-json")
+	f.options.BackupOutput = privateOperatorBackupOutput(t, "must-not-exist.tar.gz")
+	if err := os.Chmod(filepath.Dir(f.options.BackupOutput), 0755); err != nil {
+		t.Fatal(err)
+	}
+	before := inspectionInventory(t, filepath.Dir(f.h.path), filepath.Dir(f.options.SigningStatePath), filepath.Dir(f.options.CometDataDirectory))
+	if _, err := f.inspect(); err == nil || !strings.Contains(err.Error(), "private directory") {
+		t.Fatal("public backup directory accepted", err)
+	}
+	for _, name := range []string{f.options.BackupOutput, f.options.BackupOutput + ".partial"} {
+		if _, err := os.Lstat(name); !errors.Is(err, os.ErrNotExist) {
+			t.Fatal("refused public directory received private backup bytes", err)
+		}
+	}
+	if !reflect.DeepEqual(before, inspectionInventory(t, filepath.Dir(f.h.path), filepath.Dir(f.options.SigningStatePath), filepath.Dir(f.options.CometDataDirectory))) {
+		t.Fatal("refused public output changed original source")
 	}
 }
