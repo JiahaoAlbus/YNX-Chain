@@ -686,14 +686,17 @@ func (s *Service) probeHealth(ctx context.Context) (health Health) {
 	}
 	health.StatusDurationMS = time.Since(started).Milliseconds()
 	statusDone = true
-	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT" && status.ChainID == s.cfg.ChainID
 	health.ChainID = status.ChainID
 	health.Height = status.Height
+	identityOK := status.NativeCurrencySymbol == "YNXT" && status.ChainID == s.cfg.ChainID
 	heightOK := s.cfg.UpstreamMode != UpstreamBFT || status.Height > 0
-	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT" && status.ChainID == s.cfg.ChainID && heightOK
-	if !health.UpstreamOK {
+	health.UpstreamOK = identityOK && heightOK
+	if !identityOK {
 		health.OK = false
 		health.LastError = "RPC network identity does not match the Faucet"
+	} else if !heightOK {
+		health.OK = false
+		health.LastError = "BFT upstream has no committed block"
 	}
 	if health.UpstreamOK {
 		health.OK = true

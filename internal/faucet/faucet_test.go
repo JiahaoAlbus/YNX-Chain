@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -306,10 +307,13 @@ func TestBFTFaucetHealthRejectsWrongChainAndZeroHeight(t *testing.T) {
 	}{
 		{name: "wrong-chain", chainID: 1, height: 50, error: "does not match"},
 		{name: "zero-height", chainID: 6423, height: 0, error: "committed block"},
+		{name: "wrong-chain-zero-height", chainID: 1, height: 0, error: "does not match"},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
+			var downstreamRequests atomic.Uint32
 			gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path != "/status" {
+					downstreamRequests.Add(1)
 					http.NotFound(w, r)
 					return
 				}
@@ -323,6 +327,9 @@ func TestBFTFaucetHealthRejectsWrongChainAndZeroHeight(t *testing.T) {
 			health := service.CheckHealth(context.Background())
 			if health.OK || health.UpstreamOK || !strings.Contains(health.LastError, testCase.error) {
 				t.Fatalf("unsafe upstream passed health gate: %+v", health)
+			}
+			if health.ProbeFailureStage != "status" || health.FundingReady || health.ChainID != testCase.chainID || health.Height != testCase.height || downstreamRequests.Load() != 0 {
+				t.Fatalf("failed status gate lost original evidence or probed funding: health=%+v downstreamRequests=%d", health, downstreamRequests.Load())
 			}
 		})
 	}
