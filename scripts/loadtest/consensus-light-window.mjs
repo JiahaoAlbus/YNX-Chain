@@ -8,10 +8,11 @@ import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
-import {cachePhaseLimit,currentCacheOccupancy,lightCommand,lightScratchBytes,requireClientRegressionPasses,requireReadySupplyPhases,remainingPhaseBudget,clientRegressionArgs,clientOwnedRSSCap,lightProbeInput,stoppedOriginalInventory,requireSameStoppedOriginals,requireStoppedProofPasses} from './consensus-light-plan.mjs';
-const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false},'client13-normal-05':{type:'boolean',default:false},'client13-normal-06':{type:'boolean',default:false},'client13-normal-07':{type:'boolean',default:false},'client13-normal-08':{type:'boolean',default:false},'client13-normal-09':{type:'boolean',default:false},'client13-normal-10':{type:'boolean',default:false},'client13-normal-11':{type:'boolean',default:false},'client13-normal-12':{type:'boolean',default:false},'client13-normal-13':{type:'boolean',default:false},'client13-normal-14':{type:'boolean',default:false},'client13-normal-15':{type:'boolean',default:false},'client13-normal-16':{type:'boolean',default:false},'offline-baseline-stopped-01':{type:'boolean',default:false}}});
-const plan=lightCommand(process.cwd(),values['stopped-window'],values['native-compile'],values['client-regression']);
-const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','offline-baseline-stopped-01'].filter(k=>values[k]);
+import {commitPhaseCommand,requireCommitStoragePhases,cachePhaseLimit,currentCacheOccupancy,lightCommand,lightScratchBytes,requireClientRegressionPasses,requireReadySupplyPhases,remainingPhaseBudget,clientRegressionArgs,clientOwnedRSSCap,lightProbeInput,stoppedOriginalInventory,requireSameStoppedOriginals,requireStoppedProofPasses} from './consensus-light-plan.mjs';
+const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false},'client-regression':{type:'boolean',default:false},'client13-normal-02':{type:'boolean',default:false},'client13-normal-03':{type:'boolean',default:false},'client13-normal-04':{type:'boolean',default:false},'client13-normal-05':{type:'boolean',default:false},'client13-normal-06':{type:'boolean',default:false},'client13-normal-07':{type:'boolean',default:false},'client13-normal-08':{type:'boolean',default:false},'client13-normal-09':{type:'boolean',default:false},'client13-normal-10':{type:'boolean',default:false},'client13-normal-11':{type:'boolean',default:false},'client13-normal-12':{type:'boolean',default:false},'client13-normal-13':{type:'boolean',default:false},'client13-normal-14':{type:'boolean',default:false},'client13-normal-15':{type:'boolean',default:false},'client13-normal-16':{type:'boolean',default:false},'commit-phases-01':{type:'boolean',default:false},'offline-baseline-stopped-01':{type:'boolean',default:false}}});
+if(values['commit-phases-01']&&(values['client-regression']||values['native-compile']||values['stopped-window']))throw Error('Commit phase case cannot combine other modes');
+const plan=values['commit-phases-01']?commitPhaseCommand(process.cwd()):lightCommand(process.cwd(),values['stopped-window'],values['native-compile'],values['client-regression']);
+const explicitCases=['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01','offline-baseline-stopped-01'].filter(k=>values[k]);
 if(explicitCases.length>1)throw Error('only one explicit resource case');
 const admissionCase=explicitCases[0];
 const caseSuffix=admissionCase?.slice(-2);
@@ -19,7 +20,7 @@ const offlineBaseline=admissionCase==='offline-baseline-stopped-01';
 const offlineCaps=offlineBaseline?{activeMs:45000,cleanupMs:15000,totalMs:60000,ownedRSSBytes:419430400,threads:320,freeDiskFloorBytes:1073741824,rootReserveBytes:445644800}:undefined;
 const ownedRSSCapBytes=offlineBaseline?400*1024**2:clientOwnedRSSCap(plan,admissionCase);
 if(offlineBaseline&&(plan.mode!=='stopped_replay'||plan.window!==path.join(process.cwd(),'artifacts/chain-network-performance/window-eEfGE7')||!values.output||path.resolve(values.output)!==path.join(process.cwd(),'artifacts/chain-performance-20261017/offline-baseline-stopped-20261018-01.json')))throw Error('offline case requires original baseline, retained binary and fixed exclusive receipt');
-if(admissionCase&&!offlineBaseline&&(plan.mode!=='client_regression'||!values.output||path.resolve(values.output)!==path.join(process.cwd(),`artifacts/chain-performance-20261017/client13-normal-20261018-${caseSuffix}.json`)))throw Error('explicit case is only the fixed client13 case and original new receipt path');
+if(admissionCase&&!offlineBaseline&&(plan.mode!=='client_regression'||!values.output||path.resolve(values.output)!==path.join(process.cwd(),admissionCase==='commit-phases-01'?'artifacts/chain-performance-20261017/commit-phases-20261018-01.json':`artifacts/chain-performance-20261017/client13-normal-20261018-${caseSuffix}.json`)))throw Error('explicit case is only the fixed client13 case and original new receipt path');
 if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',plan,admissionCase,ownedRSSCapBytes,offlineCaps,caps:plan.caps??{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
 if(process.platform!=='darwin'||!values.output)throw Error('macOS and a new explicit --output required');
 const output=path.resolve(values.output);if(fs.existsSync(output))throw Error('receipt path already exists; preserve original');
@@ -40,7 +41,7 @@ const fail=e=>result.firstCause??=String(e);
 let child,done=false,busy=false,monitor;
 const kill=()=>{if(child?.pid)try{process.kill(-child.pid,'SIGKILL')}catch(e){if(e.code!=='ESRCH')fail(e)}};
 const activeMs=regression?plan.caps.activeMs:45000;
-const deadline=setTimeout(()=>{fail(regression?'30s client active deadline':'45s total deadline');kill()},activeMs);
+const deadline=setTimeout(()=>{fail(regression?`${activeMs}ms client active deadline`:'45s total deadline');kill()},activeMs);
 for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{fail(signal);kill()});
 async function cacheOccupancy(){
  const paths=result.cachePaths;
@@ -182,7 +183,7 @@ try{
  monitor=setInterval(async()=>{if(busy||done)return;busy=true;try{await sample()}catch(e){if(!done){fail(e.message);kill()}}finally{busy=false}},500);
  await closed;
  if(result.go.code!==0)fail(`go test terminal code=${result.go.code} signal=${result.go.signal}`);
- if(regression&&result.go.code===0)result.observedGoEvidence={passedFunctions:requireClientRegressionPasses(plan,result.go.stdout),supplyPhases:requireReadySupplyPhases(result.go.stdout),qualification:'Observed actual Go output only; post-run cache/resource and source-after gates must still pass before window qualification'};
+ if(regression&&result.go.code===0)result.observedGoEvidence={passedFunctions:requireClientRegressionPasses(plan,result.go.stdout),supplyPhases:plan.scope==='commit_storage'?requireCommitStoragePhases(result.go.stdout):requireReadySupplyPhases(result.go.stdout),qualification:'Observed actual Go output only; post-run cache/resource and source-after gates must still pass before window qualification'};
  if(offlineBaseline){
   result.offlineAfter=await stoppedOriginalInventory(plan.window,started+activeMs);
   requireSameStoppedOriginals(result.offlineBefore,result.offlineAfter);result.originalsUnchanged=true;
@@ -207,7 +208,7 @@ try{
  }
  result.elapsedMs=Date.now()-started;
  if(offlineBaseline&&result.elapsedMs>60000)fail('60s offline total deadline');
- if(regression&&result.elapsedMs>plan.caps.totalMs)fail('45s client total deadline');
+ if(regression&&result.elapsedMs>plan.caps.totalMs)fail(`${plan.caps.totalMs}ms client total deadline`);
  if(regression)result.measurementLimits='Sampled native RSS/scratch, not hard OS enforcement; short peaks may occur between samples. Private scratch includes compiler/tests; original shared Go cache occupancy is separately read before/after and positive net growth is conservatively combined with peak scratch; no hard cache peak enforcement, actual free disk is separately checked.';
  fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});
  console.log(JSON.stringify({firstCause:result.firstCause,elapsedMs:result.elapsedMs,peakRSS:result.peakRSS,go:result.go,groupGone:result.groupGone},null,2));process.exitCode=result.firstCause?1:0;

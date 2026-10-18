@@ -224,3 +224,9 @@ test('case16 measured cache allowance consumes the same active deadline without 
  assert.ok(remainingPhaseBudget(now,30000,now+20000)<=10000);
  await assert.rejects(currentCacheOccupancy(['/cache/build','/cache/mod'],run,20000,Date.now()-1));
 });
+
+test('Commit production delta is pinned, exclusive and keeps original default budget',async()=>{
+ const {commitPhaseCommand,cachePhaseLimit,clientOwnedRSSCap,lightProbeInput}=await import('./consensus-light-plan.mjs');const p=commitPhaseCommand('/work');
+ assert.equal(p.requiredPasses.length,4);assert.ok(p.args.includes('./internal/consensus'));assert.equal(p.sourceCommit,'2706dcbd1ea0e85d19b041d5b3fdca25e17388ac');assert.equal(p.caps.activeMs,45000);assert.equal(p.caps.totalMs,60000);assert.equal(cachePhaseLimit('commit-phases-01'),20000);assert.equal(clientOwnedRSSCap(p,'commit-phases-01'),805306368);assert.deepEqual(lightProbeInput('/work','commit-phases-01'),lightProbeInput('/work','client13-normal-16'));
+ assert.equal(lightCommand('/work',undefined,false,true).caps.activeMs,30000);
+});
