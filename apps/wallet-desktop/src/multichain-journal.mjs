@@ -1,5 +1,6 @@
 import {AtomicMultiFile,exactObject,multiError,validateNetwork} from './multichain-config.mjs';
 import {verifySignedRecord} from './multichain-evm.mjs';
+import {validateCctpRecord,verifyCctpSignedRecord} from './features/cross-chain/cctp-action.mjs';
 
 const states=new Set(['prepared','signing-unknown','signed','unknown','submitted','included','reverted','cancelled','local-cancelled-before-broadcast']);
 const unresolved=new Set(['prepared','signing-unknown','signed','unknown','submitted']);
@@ -8,13 +9,17 @@ const quantity=value=>typeof value==='string'&&/^(?:0|[1-9][0-9]*)$/.test(value)
 export function validateJournal(value){
   exactObject(value,['version','records']);if(value.version!==1||!Array.isArray(value.records)||value.records.length>512)throw Error('Invalid journal');
   for(const r of value.records){
-    exactObject(r,['id','network','account','nonce','asset','to','amount','transaction','state','raw','hash','createdAt','updatedAt','receipt']);
+    const cctp=Object.hasOwn(r,'cctp');
+    exactObject(r,['id','network','account','nonce','asset','to','amount','transaction','state','raw','hash','createdAt','updatedAt','receipt',...(cctp?['cctp']:[])]);
     const {id,family,...network}=r.network;const checked=validateNetwork(network);if(checked.id!==id||family!=='evm'||typeof r.id!=='string'||! /^[0-9a-f-]{36}$/.test(r.id)||! /^0x[0-9a-f]{40}$/.test(r.account)||! /^0x[0-9a-f]{40}$/.test(r.to)||!quantity(r.nonce)||!quantity(r.amount)||BigInt(r.amount)===0n||!(r.asset==='native'||/^0x[0-9a-f]{40}$/.test(r.asset))||!states.has(r.state)||!Number.isSafeInteger(r.createdAt)||!Number.isSafeInteger(r.updatedAt)||r.createdAt<0||r.updatedAt<r.createdAt)throw Error('Invalid transaction record');
+    if(cctp)validateCctpRecord(r);
+    else {
     exactObject(r.transaction,['chainId','nonce','to','value','data','gasLimit','gasPrice','type']);
     const tx=r.transaction;if(tx.chainId!==checked.chainId||tx.nonce!==r.nonce||! /^0x[0-9a-f]{40}$/.test(tx.to)||![tx.value,tx.gasLimit,tx.gasPrice].every(quantity)||BigInt(tx.gasLimit)<21000n||BigInt(tx.gasPrice)===0n||tx.type!==0||typeof tx.data!=='string'||! /^0x(?:[0-9a-f]{2})*$/.test(tx.data)||tx.data.length>1000)throw Error('Invalid reviewed transaction');
     if((r.asset==='native'&&(tx.to!==r.to||tx.value!==r.amount||tx.data!=='0x'))||(r.asset!=='native'&&(tx.to!==r.asset||tx.value!=='0')))throw Error('Invalid asset transaction');
+    }
     if(r.raw!==null&&(typeof r.raw!=='string'||! /^0x(?:[0-9a-f]{2})+$/.test(r.raw)||r.raw.length>32768)||r.hash!==null&&!hash(r.hash)||['prepared','signing-unknown','cancelled'].includes(r.state)&&(r.raw!==null||r.hash!==null)||!['prepared','signing-unknown','cancelled'].includes(r.state)&&(r.raw===null||r.hash===null))throw Error('Invalid signed intent');
-    if(r.raw!==null)verifySignedRecord(r.raw,r);
+    if(r.raw!==null)(cctp?verifyCctpSignedRecord:verifySignedRecord)(r.raw,r);
     if(r.receipt!==null){exactObject(r.receipt,['hash','blockHash','blockNumber','status','confirmationScope']);if(r.receipt.hash!==r.hash||!hash(r.receipt.blockHash)||!quantity(r.receipt.blockNumber)||![0,1].includes(r.receipt.status)||r.receipt.confirmationScope!=='rpc-block-inclusion')throw Error('Invalid receipt')}
     if(['included','reverted'].includes(r.state)&&!r.receipt)throw Error('Missing inclusion receipt');
     if(r.state==='local-cancelled-before-broadcast'&&r.receipt!==null)throw Error('Local cancellation is not an inclusion receipt');
@@ -34,14 +39,15 @@ export class MultiJournal{
     // This closure exists only for this new live reservation. It cannot be
     // reconstructed from a reopened record, an IPC boolean or a missing receipt.
     let open=true,submissionStarted=false,cancelling=false;
-    const binding=JSON.stringify([record.network,record.account,record.nonce,record.asset,record.to,record.amount,record.transaction]);
+    const originalBinding=r=>JSON.stringify([r.network,r.account,r.nonce,r.asset,r.to,r.amount,r.transaction,...(Object.hasOwn(r,'cctp')?[r.cctp]:[])]);
+    const binding=originalBinding(record);
     const assert=()=>{if(!open||submissionStarted||cancelling||this.#uncertain.has(record.id))throw multiError('MULTICHAIN_INTENT_CONFLICT','The original pre-submit attempt is no longer available.')};
     return Object.freeze({
       beginSubmit:()=>{assert();submissionStarted=true},
       retire:()=>{open=false},
       cancelSigned:async updatedAt=>{
         assert();cancelling=true;
-        try{return await this.file.mutate(value=>{const r=value.records.find(r=>r.id===record.id);if(!open||submissionStarted||!r||r.state!=='signed'||JSON.stringify([r.network,r.account,r.nonce,r.asset,r.to,r.amount,r.transaction])!==binding||updatedAt<r.updatedAt)throw multiError('MULTICHAIN_INTENT_CONFLICT','Keep the original signed record.');r.state='local-cancelled-before-broadcast';r.updatedAt=updatedAt;return value})}
+        try{return await this.file.mutate(value=>{const r=value.records.find(r=>r.id===record.id);if(!open||submissionStarted||!r||r.state!=='signed'||originalBinding(r)!==binding||updatedAt<r.updatedAt)throw multiError('MULTICHAIN_INTENT_CONFLICT','Keep the original signed record.');r.state='local-cancelled-before-broadcast';r.updatedAt=updatedAt;return value})}
         catch(error){
           // A rejected write is never a successful cancellation receipt. Keep a
           // live hold and attempt a durable UNKNOWN quarantine with the same bytes.

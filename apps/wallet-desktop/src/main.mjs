@@ -21,6 +21,7 @@ import {FamilyBitcoinSubmission} from './multichain-family-bitcoin-submit.mjs';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
 import {configureWalletRuntimeBranding} from "./wallet-runtime-branding.mjs";
 import { createHash, randomUUID } from "node:crypto";
+import {AsyncLocalStorage} from 'node:async_hooks';
 import {createRecipientCameraPermission} from "./recipient-camera-permission.mjs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -49,6 +50,12 @@ import { FilePermissionStore } from "./desktop-permission-store.mjs";
 import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
+import {captureOriginalWalletTransactionApprovalIPC,retireUnusedOriginalWalletTransactionApproval,acquireOriginalWalletTransactionPermission,isOriginalWalletTransactionPermission} from './original-policy-supplier/transaction-permission.mjs';
+import {createPQTransactionSubmission} from './features/pq-transaction/submission.mjs';
+import {createPQTransactionNodeTransport} from './features/pq-transaction/node-transport.mjs';
+import {CctpEVMAdapter} from './features/cross-chain/cctp-action.mjs';
+import {CctpStore,CctpFlow,installCctpIPC} from './features/cross-chain/cctp-flow.mjs';
+import {CctpReader} from './features/cross-chain/cctp-reader.mjs';
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { loadPublicWalletConnectConfig } from "./walletconnect-public-config.mjs";
 import { WalletConnectRequestInbox } from "./walletconnect-request-inbox.mjs";
@@ -97,6 +104,22 @@ let authorizationController;
 let protocolReady = false;
 let lastCallback = null;
 let walletAuthority;
+let pqTransactionSubmission;
+const pqBroadcastApprovalContext=new AsyncLocalStorage();
+async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
+  const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
+  try{result=await pqBroadcastApprovalContext.run(context,()=>pqTransactionSubmission.broadcast(hash,guard));}
+  catch(error){failed=true;cause=error;}
+  finally{
+    context.closed=true;
+    // Factory selection is not proof of borrow adoption: it can fail before
+    // recognition. Our local borrow owns no foreign resources and its cleanup
+    // is idempotent; always retire it after the controller settles. Foreign
+    // owner cleanup debt remains retained by the singleton controller.
+    for(const action of [()=>retireUnusedOriginalWalletTransactionApproval(capsule),()=>borrow.retire(),()=>borrow.join(),()=>borrow.close()])try{await action();}catch(error){if(!failed){failed=true;cause=error;}}
+  }
+  if(failed)throw cause;return result;
+}
 let nativeWallet;
 let multichain;
 let familyAccounts;
@@ -240,7 +263,7 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
   }
   return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{closingWindows.delete(window);});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:()=>walletAuthority?.shutdownPQReviews(),assertCloseSafe:()=>walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose(),lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:()=>walletAuthority?.shutdownPQReviews(),assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -462,6 +485,12 @@ handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(async()
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
   return {requestId:response.request.id,submitted:false};
 }));
+handleWalletIPC('wallet:pq-broadcast-review',(_event,hash)=>sensitiveIPC(async()=>{
+  const response=await walletAuthority.requestPQBroadcast(hash);
+  keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
+  return {requestId:response.request.id,submitted:false};
+}));
+handleWalletIPC('wallet:pq-submission-query',(_event,hash)=>sensitiveIPC(()=>pqTransactionSubmission.reconcile(hash,keyAccess.current())));
 handleWalletIPC('wallet:pq-migration-review',(_event,input)=>sensitiveIPC(async()=>{
   const response=await walletAuthority.requestPQMigration(input);
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
@@ -627,17 +656,20 @@ handleWalletIPC("wallet:walletconnect-proposal-action", (_event, id, action, exp
   } finally { walletConnectProposalActions.delete(key); }
 }));
 
-handleWalletIPC("wallet:provider-action", (_event, id, action) => sensitiveIPC(async () => {
+handleWalletIPC("wallet:provider-action", (event, id, action) => sensitiveIPC(async () => {
   const lease = keyAccess.current();
   const transport = walletConnectRequests.get(id);
   if(transport){const entry=walletConnectInbox.get(transport.entryKey);await walletConnectInbox.markDecided(entry,lease.assert);}
-  let response;
+  let response,capsule;
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account changed"), { code: 4100 });
-    response = action === "approve" ? await walletAuthority.approve(id) : rejectProviderRequest(id);
+    if(action==='approve'&&walletAuthority.isPendingPQTransactionReview(id))capsule=captureOriginalWalletTransactionApprovalIPC(event,id,'sign');
+    else if(action==='approve'&&walletAuthority.isPendingPQBroadcastReview(id))capsule=captureOriginalWalletTransactionApprovalIPC(event,id,'broadcast');
+    response = action === "approve" ? await walletAuthority.approve(id,capsule) : rejectProviderRequest(id);
   } catch (error) {
     response = { status: "error", code: Number.isInteger(error?.code) ? error.code : 4001, message: error?.message ?? "Provider request failed", ...(error?.data ? { data: error.data } : {}) };
   }
+  finally{if(capsule)retireUnusedOriginalWalletTransactionApproval(capsule);}
   if (transport) {
     try {
       const send = () => { walletConnectInbox.finish(transport.entryKey); return walletConnect.respond(transport.topic, transport.jsonRpcId, response); };
@@ -801,6 +833,14 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     acquire:acquireOriginalWalletRegisteredBinding,isOriginal:isOriginalWalletRegisteredBinding,files:new PQBackupFile(),
     chooseFile:async()=>{const selected=await keyAccess.withOwnedDialog(()=>dialog.showOpenDialog(mainWindow,{title:'Restore original registered PQ keys / 恢复已登记的原 PQ 密钥',properties:['openFile'],filters:[{name:'Original encrypted PQ backup',extensions:['ynxpq']}]}));return selected.canceled?null:selected.filePaths?.[0]??null;},
   });
+  const originalTransactionIntentStore=new FileTransactionIntentStore({filePath:path.join(userData,'transaction-intents-v1.json')});
+  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:createPQTransactionNodeTransport(),isOriginalWalletTransactionPermission,
+    acquireOriginalWalletTransactionPermission:request=>{
+      const context=pqBroadcastApprovalContext.getStore();
+      if(!context||context.closed||context.selected||JSON.stringify(request)!==JSON.stringify(context.request))throw Object.assign(Error('Original broadcast approval is required.'),{code:'PQ_BROADCAST_APPROVAL_REQUIRED'});
+      context.guard.assert();context.borrow.assertCurrent();context.selected=true;
+      return acquireOriginalWalletTransactionPermission(request,context.capsule,context.borrow);
+    }});
   walletAuthority = new DesktopWalletAuthority({
     // The existing SDK owns the fixed normal HTTPS caller. No renderer URL,
     // fake provider, second Host or private Native-op substitute is accepted.
@@ -809,16 +849,23 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     // undeployed or unhealthy query is a refusal, never a substitute policy.
     pqPolicySource:acquireOriginalWalletTransactionPolicy,
     pqPolicyRecognized:isOriginalWalletTransactionPolicy,
+    pqTransactionPermissionSource:acquireOriginalWalletTransactionPermission,
+    pqTransactionPermissionRecognized:isOriginalWalletTransactionPermission,
+    pqBroadcastSource:executeOriginalPQBroadcast,
     pqSessionSource:acquireOriginalAccountPolicy,
     pqSessionRecognized:isOriginalAccountPolicyResource,
     pqNetworkId:PQ_CANONICAL_NETWORK_ID,
     vault: passwordVault,
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
-    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadOriginal:readOriginalTransaction, intentStore: new FileTransactionIntentStore({ filePath: path.join(userData, "transaction-intents-v1.json") }) })
+    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadOriginal:readOriginalTransaction, intentStore:originalTransactionIntentStore })
   });
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork, onTransferAttempt: record => { mainWindow?.webContents.send("wallet:transfer-attempt",record); } });
-  multichain=new MultichainService({config:new MultiConfigStore({filePath:path.join(userData,'multichain-config-v1.json')}),journal:new MultiJournal({filePath:path.join(userData,'multichain-transactions-v1.json')}),adapter:new EVMAdapter(),getContext:async()=>({account:(await walletAuthority.accountStatus()).account,...keyAccess.status()}),withSecret:action=>passwordVault.withSecret(action)});
+  const cctpStore=new CctpStore({filePath:path.join(userData,'cross-chain-cctp-v1.json')}),cctpAdapter=new CctpEVMAdapter();
+  multichain=new MultichainService({config:new MultiConfigStore({filePath:path.join(userData,'multichain-config-v1.json')}),journal:new MultiJournal({filePath:path.join(userData,'multichain-transactions-v1.json')}),adapter:cctpAdapter,getContext:async()=>({account:(await walletAuthority.accountStatus()).account,...keyAccess.status()}),withSecret:action=>passwordVault.withSecret(action),pendingRouteNetwork:id=>cctpStore.pendingNetwork(id),onInvalidate:()=>mainWindow?.webContents.send('wallet:cross-chain-context-changed')});
+  const cctpWallet=Object.freeze({context:options=>multichain.context(options),snapshot:()=>multichain.snapshot(),assert:(context,revision)=>multichain.assert(context,revision),prepareCctpStep:input=>multichain.prepareCctpStep(input),send:(id,guard)=>multichain.sendCctpStep(id,guard),cancel:id=>multichain.cancel(id),checkCctpStep:input=>multichain.checkCctpStep(input)});
+  const cctpFlow=new CctpFlow({wallet:cctpWallet,reader:new CctpReader({evm:cctpAdapter}),store:cctpStore});
+  installCctpIPC({handle:handleWalletIPC,safe:safeIPC,sensitive:sensitiveIPC,flow:cctpFlow,getGuard:()=>keyAccess.current()});
   let pairConfig, pairConfigurationError = null;
   try { pairConfig = await loadPublicWalletConnectConfig({ resourcesPath: process.resourcesPath }); }
   catch { pairConfigurationError = "WALLETCONNECT_CONFIG_INVALID"; }

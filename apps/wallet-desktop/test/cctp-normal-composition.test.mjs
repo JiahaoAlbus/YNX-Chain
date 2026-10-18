@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {runInNewContext} from 'node:vm';
+import {readFile,mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {MultiConfigStore} from '../src/multichain-config.mjs';
+import {MultiJournal} from '../src/multichain-journal.mjs';
+import {MultichainService} from '../src/multichain-service.mjs';
+import {CctpStore,CctpFlow,installCctpIPC} from '../src/features/cross-chain/cctp-flow.mjs';
+import {CctpReader} from '../src/features/cross-chain/cctp-reader.mjs';
+import {CctpEVMAdapter} from '../src/features/cross-chain/cctp-action.mjs';
+test('actual Main composition and preload invoke the eight original CCTP handlers without raw signing IPC',async t=>{
+ const userData=await mkdtemp(path.join(tmpdir(),'PUBLIC-cctp-main-'));t.after(()=>rm(userData,{recursive:true,force:true}));
+ const main=await readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),preload=await readFile(new URL('../src/preload.cjs',import.meta.url),'utf8'),handlers=new Map(),events=[];
+ const start=main.indexOf('  const cctpStore=new CctpStore('),end=main.indexOf('  let pairConfig,',start);assert.ok(start>0&&end>start);
+ const context={path,userData,MultiConfigStore,MultiJournal,MultichainService,CctpStore,CctpFlow,installCctpIPC,CctpReader,CctpEVMAdapter,walletAuthority:{accountStatus:async()=>({account:'0x'+'11'.repeat(20)})},keyAccess:{status:()=>({locked:true,revision:1}),current:()=>assert.fail('No signing guard for these reads')},passwordVault:{withSecret:()=>assert.fail('No key access')},mainWindow:{webContents:{send:(...args)=>events.push(args)}},handleWalletIPC:(name,callback)=>handlers.set(name,callback),safeIPC:async action=>({ok:true,value:await action()}),sensitiveIPC:()=>assert.fail('No sensitive operation for these reads')};
+ runInNewContext(main.slice(start,end),context);
+ let api;const electron={contextBridge:{exposeInMainWorld(_name,value){api=value;}},ipcRenderer:{invoke:(name,input)=>handlers.get(name)({},input),on(){},removeListener(){}}};
+ runInNewContext(preload,{require:()=>electron});
+ assert.deepEqual(Object.keys(api.crossChain).sort(),['cancel','check','confirm','history','prepare','quote','routes','start']);
+ assert.equal(handlers.size,8);assert.equal([...handlers.keys()].some(n=>/raw|sign/.test(n)),false);
+ const routes=await api.crossChain.routes();assert.equal(routes.ok,true);assert.equal(routes.value[0].id,'cctp-v2-sepolia-base-sepolia-usdc');
+ assert.equal((await api.crossChain.history()).value.length,0);
+ context.multichain.invalidate();assert.equal(events[0][0],'wallet:cross-chain-context-changed');
+});
+test('unresolved route protects original networks across accounts before configuration writes',async()=>{
+ const input={name:'PUBLIC',rpcUrl:'https://example.com',chainId:'11155111',symbol:'ETH',decimals:18,genesis:'0x'+'aa'.repeat(32)};let writes=0,reads=0;
+ const service=new MultichainService({config:{putNetwork:()=>{writes++;},remove:()=>{writes++;}},journal:{pendingNetwork:async()=>0},adapter:{verify:()=>{reads++;}},pendingRouteNetwork:async()=>true});
+ await assert.rejects(()=>service.putNetwork(input),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});await assert.rejects(()=>service.remove('PUBLIC-original-network'),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+ assert.equal(writes,0);assert.equal(reads,0);
+});

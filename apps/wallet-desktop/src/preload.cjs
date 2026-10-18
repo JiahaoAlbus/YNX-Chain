@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
+  crossChain:Object.freeze({routes:()=>ipcRenderer.invoke('wallet:cross-chain-routes'),quote:input=>ipcRenderer.invoke('wallet:cross-chain-quote',input),start:id=>ipcRenderer.invoke('wallet:cross-chain-start',id),prepare:id=>ipcRenderer.invoke('wallet:cross-chain-prepare',id),confirm:input=>ipcRenderer.invoke('wallet:cross-chain-confirm',input),check:id=>ipcRenderer.invoke('wallet:cross-chain-check',id),cancel:id=>ipcRenderer.invoke('wallet:cross-chain-cancel',id),history:()=>ipcRenderer.invoke('wallet:cross-chain-history')}),
+  onCrossChainContextChanged:callback=>{const listener=()=>callback();ipcRenderer.on('wallet:cross-chain-context-changed',listener);return()=>ipcRenderer.removeListener('wallet:cross-chain-context-changed',listener);},
   pqKeyPreparationStatus:()=>ipcRenderer.invoke('wallet:pq-keys-status'),
   recoverPQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-recover'),
   generatePQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-generate'),
@@ -17,6 +19,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   savePQOriginal:hash=>ipcRenderer.invoke('wallet:pq-original-save',hash),
   reconcilePQOriginal:hash=>ipcRenderer.invoke('wallet:pq-original-reconcile',hash),
   readPQProgress:hash=>ipcRenderer.invoke('wallet:pq-progress-read',hash),
+  preparePQBroadcast:hash=>ipcRenderer.invoke('wallet:pq-broadcast-review',hash),
+  queryPQSubmission:hash=>ipcRenderer.invoke('wallet:pq-submission-query',hash),
   flushPQProgressResult:hash=>ipcRenderer.invoke('wallet:pq-progress-flush',hash),
   originalAdmissionStatus:()=>ipcRenderer.invoke('wallet:original-admission-status'),
   originalAdmissionReview:()=>ipcRenderer.invoke('wallet:original-admission-review'),

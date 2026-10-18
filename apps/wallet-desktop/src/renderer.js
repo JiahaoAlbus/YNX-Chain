@@ -1,5 +1,7 @@
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
 import { formatApprovalReview } from "./approval-review-display.mjs";
+import {appendPQBroadcastActions} from './wallet-pq-broadcast-ui.mjs';
+import {mountCctpUI} from './features/cross-chain/cctp-ui.mjs';
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
@@ -37,6 +39,7 @@ import {createMnemonicUI,createMnemonicImportUI} from './mnemonic-ui.mjs';
 import {createMultichainUI} from './multichain-ui.mjs';
 import {createFamilyUI} from './multichain-family-ui.mjs';
 let multichainUI;
+let cctpUI;
 let familyUI;
 
 // Explicit product copy only; never pass an original request/value container.
@@ -436,6 +439,7 @@ function renderAccount(payload) {
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
   multichainUI?.render();
+  cctpUI?.invalidate();
   if(typeof transferAttemptUI!=="undefined")void transferAttemptUI.refresh();
   if (previousAccount !== activeAccount) {
     document.querySelector("#transfer-to").value = "";
@@ -891,6 +895,7 @@ async function refreshTransactions() {
         row.append(notice);
         appendPQOriginalRecoveryActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
         appendPQProgressActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
+        appendPQBroadcastActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
         if(record.kind==='pq-revocation'&&record.status==='pq-signed-unsubmitted'){
           const unavailable=document.createElement('p');unavailable.textContent='当前可信节点的撤销原件查询格式尚未接通。保留本地原件；不表示已撤销，不重新签名或发送。 / Trusted revocation lookup is not yet supplied. Local original retained; no claim of revocation, no re-sign or send.';row.append(unavailable);
         }
@@ -1229,6 +1234,7 @@ function renderKeyState(state) {
   if(typeof sessionRecoveryUI!=='undefined')sessionRecoveryUI.render();
   updateOriginalAdmissionSecurity(previousKeyState,state);
   if(securityChanged)familyUI?.invalidate();
+  if(securityChanged)cctpUI?.invalidate();
   multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
@@ -1270,4 +1276,10 @@ multichainUI=createMultichainUI({document,api:window.ynxWallet,writeClipboard:wr
 familyUI=createFamilyUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.account??null,revision:keyState.revision,locked:keyState.locked||keyState.authenticating})});
 window.addEventListener('blur',()=>familyUI.invalidate());
 window.addEventListener('blur',()=>multichainUI.invalidate());
+const cctpDialog=document.createElement('dialog'),cctpRoot=document.createElement('section'),cctpClose=document.createElement('button'),cctpOpen=document.createElement('button');
+cctpDialog.setAttribute('aria-label','Cross-chain test transfer / 测试资产跨链');cctpClose.type='button';cctpClose.textContent='Close / 关闭';cctpOpen.type='button';cctpOpen.textContent='Cross-chain test transfer / 测试资产跨链';
+cctpDialog.append(cctpClose,cctpRoot);document.body.append(cctpDialog);document.querySelector('#open-multichain').parentElement.append(cctpOpen);
+cctpUI=mountCctpUI({root:cctpRoot,api:window.ynxWallet.crossChain,locale:document.documentElement.lang||'en'});
+cctpOpen.addEventListener('click',()=>cctpDialog.showModal());cctpClose.addEventListener('click',()=>{cctpUI.invalidate();cctpDialog.close();});cctpDialog.addEventListener('cancel',()=>cctpUI.invalidate());
+window.addEventListener('blur',()=>cctpUI.invalidate());window.ynxWallet.onCrossChainContextChanged?.(()=>cctpUI.invalidate());
 

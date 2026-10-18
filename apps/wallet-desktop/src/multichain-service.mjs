@@ -1,8 +1,10 @@
 import {randomUUID} from 'node:crypto';
 import {multiError,exactObject,validateNetwork} from './multichain-config.mjs';
 import {address,displayUnits} from './multichain-evm.mjs';
+import {describeCctpAction} from './features/cross-chain/cctp-action.mjs';
 
 const publicRecord=record=>{const {raw,...publicValue}=record;return publicValue};
+const originalCctpDispatch=Symbol('original-main-CCTP-dispatch');
 export class MultichainService{
   #attempts=new Map();
   #heldSigned=new Map();
@@ -18,15 +20,15 @@ export class MultichainService{
     await this.journal.transition(record.id,{state:'unknown',updatedAt:Math.max(stored.updatedAt,record.updatedAt)});
     this.#heldSigned.delete(record.id);
   }
-  constructor({config,journal,adapter,getContext,withSecret,now=Date.now,id=randomUUID}){Object.assign(this,{config,journal,adapter,getContext,withSecret,now,id});this.epoch=0;this.reviews=new Map();this.mutating=false;this.sending=false}
-  invalidate(){this.epoch++;this.reviews.clear()}
+  constructor({config,journal,adapter,getContext,withSecret,now=Date.now,id=randomUUID,pendingRouteNetwork=async()=>false,onInvalidate=()=>{}}){Object.assign(this,{config,journal,adapter,getContext,withSecret,now,id,pendingRouteNetwork,onInvalidate});this.epoch=0;this.reviews=new Map();this.mutating=false;this.sending=false}
+  invalidate(){this.epoch++;this.reviews.clear();this.onInvalidate()}
   async context({unlocked=false}={}){const context=await this.getContext();if(!context.account)throw multiError('MULTICHAIN_ACCOUNT_REQUIRED','Select an existing account first.');if(unlocked&&context.locked)throw multiError('MULTICHAIN_LOCKED','Unlock Wallet first.');return {...context,account:address(context.account),epoch:this.epoch}}
   async assert(context,revision){const configuration=revision===undefined?undefined:await this.config.read();const current=await this.context();if(this.mutating||current.account!==context.account||current.revision!==context.revision||current.epoch!==context.epoch||current.locked!==context.locked||revision!==undefined&&configuration.revision!==revision)throw multiError('MULTICHAIN_CONTEXT_CHANGED','Account, network or Wallet protection changed. Review again.')}
   async snapshot(){const context=await this.context(),config=await this.config.read();await this.assert(context,config.revision);return {...config,account:context.account}}
   async mutate(action){if(this.mutating||this.sending)throw multiError('MULTICHAIN_BUSY','Finish the current operation first.');this.mutating=true;this.invalidate();try{return await action()}finally{this.mutating=false;this.invalidate()}}
-  async putNetwork(input){const network=validateNetwork(input);return this.mutate(async()=>{await this.adapter.verify(network);return this.config.putNetwork(input)})}
+  async putNetwork(input){const network=validateNetwork(input);return this.mutate(async()=>{if(await this.pendingRouteNetwork(network.id))throw multiError('MULTICHAIN_RESOLUTION_REQUIRED','Keep the original cross-chain network until resolved.');await this.adapter.verify(network);return this.config.putNetwork(input)})}
   select(id){return this.mutate(()=>this.config.select(id))}
-  remove(id){return this.mutate(async()=>{if([...this.#heldSigned.values()].some(r=>r.network.id===id)||await this.journal.pendingNetwork(id))throw multiError('MULTICHAIN_RESOLUTION_REQUIRED','Keep this network until its recorded transactions are resolved.');return this.config.remove(id)})}
+  remove(id){return this.mutate(async()=>{if([...this.#heldSigned.values()].some(r=>r.network.id===id)||await this.journal.pendingNetwork(id)||await this.pendingRouteNetwork(id))throw multiError('MULTICHAIN_RESOLUTION_REQUIRED','Keep this network until its recorded transactions are resolved.');return this.config.remove(id)})}
   async putToken(input){exactObject(input,['address','decimals','symbol','name']);return this.mutate(async()=>{const config=await this.config.read(),network=config.networks.find(n=>n.id===config.selected);if(!network)throw multiError('MULTICHAIN_NETWORK_REQUIRED','Select a network first.');return this.config.putToken(await this.adapter.token(network,input))})}
   async removeToken(input){exactObject(input,['networkId','address']);return this.mutate(()=>this.config.removeToken(input.networkId,address(input.address)))}
   async selected(unlocked=false){if(this.mutating)throw multiError('MULTICHAIN_BUSY','Network configuration is changing.');const context=await this.context({unlocked}),config=await this.config.read(),network=config.networks.find(n=>n.id===config.selected);if(!network)throw multiError('MULTICHAIN_NETWORK_REQUIRED','Select a saved EVM network.');await this.assert(context,config.revision);return {context,config,network}}
@@ -39,8 +41,27 @@ export class MultichainService{
     attempt.cancelled=true;await attempt.done;
     return attempt.cancellation??{cancelled:false,reason:'record-needs-resolution',hash:attempt.hash??null};
   }
-  async send(id,guard){
+  // Main-only closed CCTP entry. IPC exposes flow/review IDs, never this marker.
+  async prepareCctpStep(input){
+    exactObject(input,['intentId','step','binding','proof']);
+    const cctp=structuredClone({version:1,...input}),action=describeCctpAction(cctp),ticket=++this.#prepareRevision;
+    const context=await this.context({unlocked:true}),config=await this.config.read(),b=cctp.binding;
+    const live=async()=>{
+      await this.assert(context,config.revision);
+      if(ticket!==this.#prepareRevision||this.sending||b.expiresAt<=this.now()||b.account!==context.account||b.configRevision!==config.revision||['account','revision','epoch','locked'].some(k=>b.context[k]!==context[k]))throw multiError('MULTICHAIN_CONTEXT_CHANGED','The original CCTP review changed or expired.');
+      if(!config.networks.some(n=>JSON.stringify(n)===JSON.stringify(action.network)))throw multiError('MULTICHAIN_NETWORK_REQUIRED','Keep the original saved network.');
+    };
+    await live();
+    if([...this.#heldSigned.values()].some(r=>r.network.id===action.network.id&&r.account===context.account)||(await this.journal.blocking(action.network.id,context.account)).length)throw multiError('MULTICHAIN_RESOLUTION_REQUIRED','Check the original transaction before another action.');
+    await live();
+    const prepared=await this.adapter.prepareCctp(action.network,context.account,cctp);await live();
+    const id=this.id(),review={id,intentId:cctp.intentId,step:cctp.step,network:action.network,account:context.account,asset:action.asset,symbol:'USDC',decimals:6,to:action.to,...prepared,cctp,expiresAt:Math.min(b.expiresAt,this.now()+120000)};
+    this.reviews.clear();this.reviews.set(id,{review,context,revision:config.revision});return structuredClone(review);
+  }
+  sendCctpStep(id,guard){return this.send(id,guard,originalCctpDispatch);}
+  async send(id,guard,dispatch){
     const entry=this.reviews.get(id);if(!entry||entry.review.expiresAt<=this.now())throw multiError('MULTICHAIN_REVIEW_EXPIRED','Prepare and review the transfer again.');if(this.sending)throw multiError('MULTICHAIN_BUSY','A send is already being recorded.');
+    if(entry.review.cctp&&dispatch!==originalCctpDispatch)throw multiError('CCTP_ORIGINAL_COORDINATOR_REQUIRED','Confirm the original cross-chain route step.');
     this.sending=true;this.reviews.delete(id);let record,reservationStarted=false,reserved=false,signingStarted=false,signatureCreated=false,signed=false,permit,finish;
     const attempt={cancelled:false,submissionStarted:false,hash:null,done:new Promise(resolve=>{finish=resolve})};this.#attempts.set(id,attempt);
     try{
@@ -48,7 +69,7 @@ export class MultichainService{
       const assertAttempt=()=>{if(attempt.cancelled)throw multiError('MULTICHAIN_CANCELLED','The original transfer was cancelled before submission.');if(review.expiresAt<=this.now())throw multiError('MULTICHAIN_REVIEW_EXPIRED','Prepare and review the transfer again.')};
       const live=async()=>{guard.assert();assertAttempt();await this.assert(context,revision);guard.assert();assertAttempt()};
       await live();if(guard.account?.toLowerCase()!==review.account)throw multiError('MULTICHAIN_ACCOUNT_CHANGED','The authorization account changed.');await this.adapter.verify(review.network);await live();
-      record={id:review.id,network:review.network,account:review.account,nonce:review.transaction.nonce,asset:review.asset,to:review.to,amount:review.amount,transaction:review.transaction,state:'prepared',raw:null,hash:null,receipt:null,createdAt:this.now(),updatedAt:this.now()};
+      record={id:review.id,network:review.network,account:review.account,nonce:review.transaction.nonce,asset:review.asset,to:review.to,amount:review.amount,transaction:review.transaction,...(Object.hasOwn(review,'cctp')?{cctp:structuredClone(review.cctp)}:{}),state:'prepared',raw:null,hash:null,receipt:null,createdAt:this.now(),updatedAt:this.now()};
       await this.adapter.validateSend(record.network,record);await live();
       reservationStarted=true;permit=await this.journal.reserve(record);reserved=true;await live();
       await this.withSecret(async(secret,identity,keyGuard)=>{
@@ -99,6 +120,22 @@ export class MultichainService{
     }finally{permit?.retire();this.sending=false;this.#attempts.delete(id);finish()}
   }
   async history(){const {context,config,network}=await this.selected(),records=await this.journal.list(network.id,context.account);for(const held of this.#heldSigned.values()){if(held.network.id===network.id&&held.account===context.account){const index=records.findIndex(r=>r.id===held.id);if(index<0)records.push(structuredClone(held));else records[index]=structuredClone(held)}}await this.assert(context,config.revision);return {account:context.account,networkId:network.id,configRevision:config.revision,records:records.map(publicRecord).reverse()}}
+  async checkCctpStep(input){
+    exactObject(input,['id','network','account']);
+    if(this.sending)throw multiError('MULTICHAIN_BUSY','Wait until the original send is recorded.');
+    const context=await this.context(),config=await this.config.read();await this.assert(context,config.revision);
+    if(input.account!==context.account)throw multiError('MULTICHAIN_ACCOUNT_CHANGED','Select the original account.');
+    const held=this.#heldSigned.get(input.id);
+    if(held){if(!held.cctp||held.account!==context.account||JSON.stringify(held.network)!==JSON.stringify(input.network))throw multiError('MULTICHAIN_UNKNOWN_INTENT','Original CCTP transaction not found.');await this.#retainUnknown(held);await this.assert(context,config.revision);}
+    const record=(await this.journal.list(input.network.id,context.account)).find(r=>r.id===input.id);
+    if(!record?.cctp||JSON.stringify(record.network)!==JSON.stringify(input.network))throw multiError('MULTICHAIN_UNKNOWN_INTENT','Original CCTP transaction not found.');
+    await this.assert(context,config.revision);
+    if(['cancelled','local-cancelled-before-broadcast','signing-unknown'].includes(record.state))return publicRecord(record);
+    let next;
+    if(record.state==='prepared')next={state:'signing-unknown',receipt:null};
+    else{try{next=await this.adapter.reconcile(record.network,record)}catch{next={state:'unknown',receipt:null};}}
+    await this.assert(context,config.revision);await this.journal.transition(input.id,{...next,updatedAt:this.now()});return publicRecord({...record,...next});
+  }
   async check(id){
     if(this.sending)throw multiError('MULTICHAIN_BUSY','Wait until the send has been recorded.');
     const {context,config,network}=await this.selected(),held=this.#heldSigned.get(id);
