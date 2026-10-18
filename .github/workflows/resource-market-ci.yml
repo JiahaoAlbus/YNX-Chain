@@ -1061,9 +1061,36 @@ jobs:
           path: ${{ env.YNX_REMOTE_CASE }}/remote-process-receipt.json
           if-no-files-found: error
           retention-days: 7
+      - name: Install pinned contract runtime for remote network prerequisites
+        id: pqnetworknode
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Prepare same-source compiled contracts before remote network execution
+        id: pqnetworkcontracts
+        if: ${{ success() && steps.pqnetworknode.outcome == 'success' && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' }}
+        timeout-minutes: 3
+        env:
+          NODE_OPTIONS: --max-old-space-size=1536
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code HEAD -- package.json package-lock.json hardhat.config.ts scripts/contracts contracts
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol
+          npm run contracts:selectors
+          git diff --exit-code -- artifacts
+          test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json
+          test -s artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
+          sha256sum contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json
+          sha256sum contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
+          git diff --exit-code HEAD -- package.json package-lock.json hardhat.config.ts scripts/contracts contracts
+          printf '%s\n' 'YNX_REMOTE_CONTRACT_INPUTS_PREPARED_DATA_ONLY'
       - name: Build exact bounded network binaries and recipe without starting nodes
         id: pqnetworkbuild
-        if: ${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || steps.normalci.outcome == 'success') }}
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success')) }}
         timeout-minutes: 3
         run: |
           YNX_E2E_CASE="$RUNNER_TEMP/ynx-pq-network-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
@@ -1086,7 +1113,7 @@ jobs:
           case = Path(os.environ['YNX_E2E_CASE']).resolve()
           binary = Path(os.environ['YNX_E2E_BUILD']).resolve() / 'consensus.test'
           leaves = {
-              'internal/consensus/pq_network_e2e_test.go': '9d9a0b0135177a8135a713e75799212c0a1bb2e3b9f567d5cf1ef653ca8d026f',
+              'internal/consensus/pq_network_e2e_test.go': '852a239453108fb2307e80a64c9c578c4124a46756e3f961176a8edcd6afe214',
               'internal/consensus/pq_network_progress_test.go': '66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044'}
           def digest(path):
               h = hashlib.sha256()
@@ -1138,7 +1165,7 @@ jobs:
           PY
       - name: Run the authorized bounded four-validator transition
         id: pqnetwork
-        if: ${{ success() && steps.pqnetworkbuild.outcome == 'success' && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || steps.normalci.outcome == 'success') }}
+        if: ${{ success() && steps.pqnetworkbuild.outcome == 'success' && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success')) }}
         timeout-minutes: 3
         run: |
           if [ "$YNX_PQ_REMOTE_RETAINED_HISTORY" = 'true' ]; then

@@ -475,7 +475,34 @@ def assert_workflow_contract(raw):
     need("datetime.datetime.now" not in body and "time.time()" not in body)
     build = by_id("pqnetworkbuild")
     network = by_id("pqnetwork")
-    base_condition = "${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || steps.normalci.outcome == 'success') }}"
+    contract_runtime = by_id("pqnetworknode")
+    contract_inputs = by_id("pqnetworkcontracts")
+    remote_inputs_condition = "${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' }}"
+    need(condition(contract_runtime) == remote_inputs_condition)
+    need(condition(contract_inputs) == remote_inputs_condition.replace("success() && ", "success() && steps.pqnetworknode.outcome == 'success' && ", 1))
+    need("uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020" in contract_runtime)
+    need("          node-version: '24.19.0'\n" in contract_runtime)
+    need("        timeout-minutes: 3\n" in contract_inputs)
+    need("          NODE_OPTIONS: --max-old-space-size=1536\n" in contract_inputs)
+    contract_body = contract_inputs.split("        run: |\n", 1)[1]
+    contract_lines = [line.strip() for line in contract_body.splitlines()]
+    source_check = 'git diff --exit-code HEAD -- package.json package-lock.json hardhat.config.ts scripts/contracts contracts'
+    need('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"' in contract_lines)
+    need(contract_lines.count(source_check) == 2)
+    contract_commands = (
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol",
+        "npm run contracts:selectors", "git diff --exit-code -- artifacts",
+        "test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json",
+        "test -s artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json",
+        "sha256sum contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json",
+        "sha256sum contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json")
+    need(all(command in contract_lines for command in contract_commands))
+    positions = [contract_lines.index(command) for command in contract_commands]
+    need(positions == sorted(positions)
+         and contract_lines.index(source_check) < positions[0]
+         and max(i for i, line in enumerate(contract_lines) if line == source_check) > positions[-1])
+    base_condition = "${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success')) }}"
     need(condition(build) == base_condition)
     need(condition(network) == base_condition.replace("success() && ", "success() && steps.pqnetworkbuild.outcome == 'success' && ", 1))
     need("go test -p 1 -c -o \"$YNX_E2E_BUILD/consensus.test\" ./internal/consensus" in build)
@@ -490,7 +517,8 @@ def assert_workflow_contract(raw):
     need("started = int(os.environ['YNX_REMOTE_WORKFLOW_STARTED_AT'])" in network)
     need("remaining = started + 12*60 - now" in network and budget in network)
     need("YNX_REMOTE_OUTER_BUDGET_REFUSED" in network and network.index(budget) < network.index(guard))
-    need(steps.index(normal) < steps.index(build) < steps.index(network))
+    need(steps.index(normal) < steps.index(contract_runtime) < steps.index(contract_inputs)
+         < steps.index(build) < steps.index(network))
     need("activeMs=105000, cleanupMs=15000, totalMs=120000" in build)
     for cap in ("ownedRSSBytes=1073741824", "threads=320", "ownedProcesses=16", "privateBytes=536870912",
                 "buildBytes=1073741824", "logBytes=1048576", "diskFloorBytes=1073741824",
@@ -602,7 +630,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),
             ("-skip '^TestProofHost'", "-skip '^TestProofHost|TestABCI'"),
             ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
-            (" || steps.normalci.outcome == 'success'", " || true"),
+            ("steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'", "true"),
             ('--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', "--normal-run-id '${{ inputs.normal_ci_run_id }}'"),
             ("    timeout-minutes: 12\n", "    timeout-minutes: 15\n"),
             ("activeMs=105000, cleanupMs=15000, totalMs=120000", "activeMs=120000, cleanupMs=15000, totalMs=135000"),
@@ -619,6 +647,31 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             self.assertIn(before, raw)
             with self.subTest(before=before), self.assertRaises(AssertionError):
                 assert_workflow_contract(raw.replace(before, after, 1))
+
+    def test_remote_contract_prerequisite_is_generated_from_same_source_before_any_network_start(self):
+        # This tests the real workflow source contract, not a GitHub scheduler,
+        # compiler execution, artifact validity or successful Node.Start.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        _, steps = workflow_steps(raw)
+        runtime = next(step for step in steps if "        id: pqnetworknode\n" in step)
+        prepared = next(step for step in steps if "        id: pqnetworkcontracts\n" in step)
+        build = next(step for step in steps if "        id: pqnetworkbuild\n" in step)
+        compile_command = "npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol"
+        mutations = [
+            raw.replace(runtime, "", 1),
+            raw.replace(prepared, "", 1),
+            raw.replace(prepared, prepared.replace("steps.normalci.outcome == 'success'", "true", 1), 1),
+            raw.replace(prepared, prepared.replace('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"', 'test "$(git rev-parse HEAD)" = "old-source"', 1), 1),
+            raw.replace(prepared, prepared.replace(compile_command, "# " + compile_command, 1), 1),
+            raw.replace(prepared, prepared.replace(compile_command, "test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json", 1), 1),
+            raw.replace(prepared, prepared.replace("npm ci --ignore-scripts --no-audit --no-fund", "cp /tmp/old-artifact.json artifacts/old.json", 1), 1),
+            raw.replace(prepared + build, build + prepared, 1),
+            raw.replace(" && steps.pqnetworkcontracts.outcome == 'success'", "", 1),
+        ]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(changed)
 
 
 if __name__ == "__main__":

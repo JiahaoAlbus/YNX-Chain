@@ -9,7 +9,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net"
 	"os"
@@ -93,6 +95,165 @@ func TestPQNetworkBlockBudget(t *testing.T) {
 	}
 }
 
+// These strings own the qualified bytes. The running network never rereads a
+// mutable artifact path after this preflight has succeeded.
+type pqNetworkContractFixture struct {
+	source, bytecode string
+}
+
+func loadPQNetworkContractFixture(sourcePath, artifactPath string) (pqNetworkContractFixture, error) {
+	read := func(path string) ([]byte, error) {
+		file, err := os.Open(path)
+		if err != nil {
+			return nil, err
+		}
+		const maximum = 1 << 20
+		raw, readErr := io.ReadAll(io.LimitReader(file, maximum+1))
+		closeErr := file.Close()
+		if readErr != nil {
+			return nil, readErr
+		}
+		if closeErr != nil {
+			return nil, closeErr
+		}
+		if len(raw) > maximum {
+			return nil, fmt.Errorf("network contract input exceeds %d bytes", maximum)
+		}
+		return raw, nil
+	}
+	source, err := read(sourcePath)
+	if err != nil {
+		return pqNetworkContractFixture{}, fmt.Errorf("read original source: %w", err)
+	}
+	raw, err := read(artifactPath)
+	if err != nil {
+		return pqNetworkContractFixture{}, fmt.Errorf("read compiled artifact: %w", err)
+	}
+	var artifact struct {
+		DeployedBytecode string `json:"deployedBytecode"`
+	}
+	if err := json.Unmarshal(raw, &artifact); err != nil {
+		return pqNetworkContractFixture{}, fmt.Errorf("decode compiled artifact: %w", err)
+	}
+	fixture := pqNetworkContractFixture{source: strings.TrimSpace(string(source)), bytecode: strings.ToLower(strings.TrimSpace(artifact.DeployedBytecode))}
+	if _, _, err := chain.ValidateBoundedPinnedContract("SampleEVMWriteCounter", fixture.source, fixture.bytecode); err != nil {
+		return pqNetworkContractFixture{}, fmt.Errorf("qualify compiled contract: %w", err)
+	}
+	return fixture, nil
+}
+
+// Ordinary CI runs this without an opt-in, a Node constructor or Node.Start.
+// The positive uses the same actual compiler output required by the network;
+// negative copies cannot manufacture an accepting artifact or skip pin checks.
+func TestPQNetworkContractFixturePreflight(t *testing.T) {
+	sourcePath := filepath.Join("..", "..", "contracts", "devtools", "SampleEVMWriteCounter.sol")
+	artifactPath := filepath.Join("..", "..", "artifacts", "contracts", "devtools", "SampleEVMWriteCounter.sol", "SampleEVMWriteCounter.json")
+	source, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	artifact, err := os.ReadFile(artifactPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	qualified, err := loadPQNetworkContractFixture(sourcePath, artifactPath)
+	if err != nil || qualified.source != strings.TrimSpace(string(source)) || qualified.bytecode == "" {
+		t.Fatalf("actual compiled fixture failed preflight: %v", err)
+	}
+	partialArtifact := bytes.TrimSpace(artifact)
+	partialArtifact = partialArtifact[:len(partialArtifact)-1]
+	if json.Valid(partialArtifact) {
+		t.Fatal("truncated artifact counterexample is still valid JSON")
+	}
+	mutateBytecode := func(value string) []byte {
+		t.Helper()
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(artifact, &fields); err != nil {
+			t.Fatal(err)
+		}
+		fields["deployedBytecode"], err = json.Marshal(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, err := json.Marshal(fields)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return raw
+	}
+	for _, test := range []struct {
+		name                string
+		source, artifact    []byte
+		missing, errorMatch string
+	}{
+		{"missing source", source, artifact, "source", "read original source"},
+		{"missing artifact", source, artifact, "artifact", "read compiled artifact"},
+		{"invalid artifact JSON", source, partialArtifact, "", "decode compiled artifact"},
+		{"missing compiled bytecode", source, mutateBytecode(""), "", "qualify compiled contract"},
+		{"noncompiled bytecode", source, mutateBytecode("0x6000"), "", "qualify compiled contract"},
+		{"changed compiled bytecode", source, mutateBytecode(qualified.bytecode + "00"), "", "qualify compiled contract"},
+		{"changed source", append(bytes.Clone(source), []byte("\n// not the pinned source\n")...), artifact, "", "qualify compiled contract"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			root := t.TempDir()
+			paths := map[string]string{"source": filepath.Join(root, "source.sol"), "artifact": filepath.Join(root, "artifact.json")}
+			originals := map[string][]byte{"source": test.source, "artifact": test.artifact}
+			for name, raw := range originals {
+				if name != test.missing {
+					if err := os.WriteFile(paths[name], raw, 0600); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			got, err := loadPQNetworkContractFixture(paths["source"], paths["artifact"])
+			if err == nil || !strings.Contains(err.Error(), test.errorMatch) || got != (pqNetworkContractFixture{}) {
+				t.Fatalf("invalid network input escaped pre-Node preflight: fixture=%#v err=%v", got, err)
+			}
+			if test.missing != "" && !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("missing input did not preserve its actual file error: %v", err)
+			}
+			for name, original := range originals {
+				raw, err := os.ReadFile(paths[name])
+				if name == test.missing {
+					if !os.IsNotExist(err) {
+						t.Fatal("preflight created an absent input", name, err)
+					}
+				} else if err != nil || !bytes.Equal(raw, original) {
+					t.Fatal("preflight changed original input", name, err)
+				}
+			}
+		})
+	}
+	// Replacement after capture cannot silently change the bytes later passed
+	// to the real deploy transaction. A fresh load must still reject it.
+	root := t.TempDir()
+	copiedSource, copiedArtifact := filepath.Join(root, "source.sol"), filepath.Join(root, "artifact.json")
+	for path, raw := range map[string][]byte{copiedSource: source, copiedArtifact: artifact} {
+		if err := os.WriteFile(path, raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	held, err := loadPQNetworkContractFixture(copiedSource, copiedArtifact)
+	if err != nil || held != qualified {
+		t.Fatal("copy of actual compiled input changed qualification", err)
+	}
+	if err := os.WriteFile(copiedArtifact, mutateBytecode("0x6000"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if held != qualified {
+		t.Fatal("captured immutable compiled inputs changed after path replacement")
+	}
+	if _, err := loadPQNetworkContractFixture(copiedSource, copiedArtifact); err == nil {
+		t.Fatal("fresh preflight accepted replaced noncompiled input")
+	}
+	for path, original := range map[string][]byte{sourcePath: source, artifactPath: artifact} {
+		raw, err := os.ReadFile(path)
+		if err != nil || !bytes.Equal(raw, original) {
+			t.Fatal("original compiler materials changed", path, err)
+		}
+	}
+}
+
 // This is a deliberately opt-in, bounded local-network integration test, not a
 // benchmark. Ordinary CI only compiles it. Running it requires a separately
 // authorized four-node window and YNX_PQ_NETWORK_E2E=authorized-four-node-window.
@@ -130,6 +291,15 @@ type pqNetworkE2ECustody interface {
 }
 
 func runPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T, custody pqNetworkE2ECustody) {
+	// Compiling consensus.test does not embed Hardhat's ignored output. Qualify
+	// and retain the exact inputs before creating identities, stores or nodes;
+	// a missing/invalid artifact must never start network/signing activity.
+	contractFixture, fixtureErr := loadPQNetworkContractFixture(
+		filepath.Join("..", "..", "contracts", "devtools", "SampleEVMWriteCounter.sol"),
+		filepath.Join("..", "..", "artifacts", "contracts", "devtools", "SampleEVMWriteCounter.sol", "SampleEVMWriteCounter.json"))
+	if fixtureErr != nil {
+		t.Fatalf("network contract fixture preflight: %v", fixtureErr)
+	}
 	previousProcs := runtime.GOMAXPROCS(2)
 	defer runtime.GOMAXPROCS(previousProcs)
 	// The isolated test process has a 120-second outer timeout. Reserve its
@@ -148,8 +318,7 @@ func runPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T, cu
 	ordinary := network.classicTransfer(network.ownerKey, recipient, 9)
 	ordinaryHeight := network.submit(ordinary, 4)
 	network.verifyNativeReceipt(ordinary, ordinaryHeight, owner, recipient, 9, 1, 4)
-	source, bytecode := boundedContractFixture(t, "SampleEVMWriteCounter")
-	deploy := IDEContractDeployPayload{Name: "SampleEVMWriteCounter", Source: source, DeployedBytecode: bytecode, ConstructorArgs: []string{"7"}, IdempotencyKey: "network-counter-deploy"}
+	deploy := IDEContractDeployPayload{Name: "SampleEVMWriteCounter", Source: contractFixture.source, DeployedBytecode: contractFixture.bytecode, ConstructorArgs: []string{"7"}, IdempotencyKey: "network-counter-deploy"}
 	deploy.RequestHash = IDEDeployRequestHash(deploy.Name, deploy.Source, deploy.DeployedBytecode, deploy.ConstructorArgs, deploy.IdempotencyKey)
 	deployRaw := mustIDEAction(t, network.ownerKey, ActionIDEContractDeploy, deploy, network.account(0, owner).Nonce+1)
 	network.submit(deployRaw, 4)
