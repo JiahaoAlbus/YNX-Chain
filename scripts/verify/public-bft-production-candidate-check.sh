@@ -119,6 +119,15 @@ function run(f,action='prepare',change={},expected=0){
 function originals(f){return [f.planPath,f.validator,path.join(f.transaction,'approval.json'),path.join(f.transaction,'final-snapshot/migration.json'),path.join(f.transaction,'final-snapshot/remote-evidence.json'),path.join(f.env.CONSENSUS_CANDIDATE_RUNTIME_BUNDLE,'original-marker')].map(p=>[p,fs.readFileSync(p)]);}
 const unchanged=before=>before.forEach(([p,b])=>assert.deepEqual(fs.readFileSync(p),b,`original changed: ${p}`));
 try {
+  const scoped=fixture('single-app-custody');
+  scoped.approval.custodyProfile='single-app-gateway/v1';delete scoped.approval.serviceSignerRecoveryVerified;delete scoped.approval.serviceSignerManifestSha256;
+  write(path.join(scoped.transaction,'approval.json'),scoped.approval);const scopedBefore=originals(scoped);run(scoped);
+  const scopedBinding=JSON.parse(fs.readFileSync(path.join(scoped.transaction,'candidate/binding.json')));
+  assert.equal(scopedBinding.custodyProfile,'single-app-gateway/v1');assert.equal(Object.hasOwn(scopedBinding,'serviceSignerManifestSha256'),false);unchanged(scopedBefore);
+  for(const [field,value]of [['custodyProfile','unknown'],['custodyProfile',null],['serviceSignerRecoveryVerified',true],['validatorKeyRecoveryVerified',false],['ownerHandoverVerified',false],['rotationProcedureVerified',false]]){
+    const x=fixture('single-app-negative-'+field+'-'+String(value));x.approval.custodyProfile='single-app-gateway/v1';delete x.approval.serviceSignerRecoveryVerified;delete x.approval.serviceSignerManifestSha256;x.approval[field]=value;
+    write(path.join(x.transaction,'approval.json'),x.approval);const saved=originals(x);run(x,'prepare',{},1);assert.equal(fs.existsSync(x.log),false);assert.equal(fs.existsSync(x.log+'.transport'),false);unchanged(saved);
+  }
   const f=fixture('normal'),before=originals(f);run(f);
   const binding=path.join(f.transaction,'candidate/binding.json'), raw=fs.readFileSync(binding), b=JSON.parse(raw);
   assert.equal(b.schemaVersion,2); assert.equal(b.operatorPlanSha256,f.planPin);assert.equal(b.runtimeCommit,fullCommit);assert.equal(b.runtimeManifestSha256,manifestPin);

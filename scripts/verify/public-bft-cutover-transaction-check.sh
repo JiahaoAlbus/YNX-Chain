@@ -109,6 +109,73 @@ assert.equal(fs.readFileSync(projectedPath,'utf8'),project.stdout,'original appr
 console.log('CUTOVER_APPROVAL_INDEPENDENT_PINS_PRESERVED: raw/projected exact, missing/malformed refused, no environment fallback');
 NODE
 
+# The new scope is bound end-to-end through actual public inventory, receipt,
+# custody review and original protected approval. Old nine-identity originals
+# remain byte-for-byte unchanged; this creates a separate synthetic QA packet.
+node --input-type=module - "$repo" "$tmp" "$commit" "$release" <<'NODE'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {spawnSync} from 'node:child_process';
+const [repo,tmp,commit,release]=process.argv.slice(2),project=process.cwd();
+const {inventoryCore,sha256,validateInventory}=await import(pathToFileURL(path.join(repo,'scripts/verify/lib/owner-handover.mjs')));
+const profile='single-app-gateway/v1',dir=path.join(tmp,'single-app-custody');fs.mkdirSync(dir,{mode:0o700});
+const oldPaths=['owner-handover-inventory.json','owner-handover-receipt.json','custody-review.json','approval.json'].map(n=>path.join(tmp,n));
+const originals=oldPaths.map(p=>fs.readFileSync(p)),[oldInventory,oldReceipt,oldReview,oldApproval]=originals.map(b=>JSON.parse(b));
+const write=(name,value)=>{const p=path.join(dir,name);fs.writeFileSync(p,JSON.stringify(value)+'\n',{mode:0o600});return p;};
+const inventory={...oldInventory,custodyProfile:profile,sources:{validatorManifestSha256:oldApproval.validatorManifestSha256,operatorPlanSha256:oldApproval.operatorPlanSha256,runtimeManifestSha256:oldApproval.runtimeManifestSha256},records:oldInventory.records.filter(r=>r.category==='production-validator'),readiness:{recordCount:4,validatorCount:4,serviceSignerCount:0,handoverRequiredCount:4,unknownOwnershipCount:0,offlineRecoveryVerified:false,ownerHandoverVerified:false,rotationProcedureVerified:false,independentCustodyReviewVerified:false,publicBFTReady:false}};
+inventory.inventoryDigest='sha256:'+sha256(JSON.stringify(inventoryCore(inventory))+'\n');validateInventory(inventory,commit);
+const inventoryPath=write('owner-handover-inventory.json',inventory);
+const receipt={...oldReceipt,custodyProfile:profile,inventoryDigest:inventory.inventoryDigest,inventoryFileSha256:sha256(fs.readFileSync(inventoryPath)),recordCount:4,handoverRequiredIds:inventory.records.map(r=>r.id)};
+delete receipt.serviceSignerOfflineRecoveryVerified;delete receipt.serviceSignerRecoveryEvidence;
+const receiptPath=write('owner-handover-receipt.json',receipt);
+const review={...oldReview,custodyProfile:profile,...inventory.sources,validatorCount:4,records:inventory.records.map(r=>({role:r.role,consensusAddress:r.publicIdentity,nodeId:r.secondaryPublicIdentity})),ownerHandoverInventoryDigest:inventory.inventoryDigest,ownerHandoverInventoryEvidence:'sha256:'+sha256(fs.readFileSync(inventoryPath)),ownerHandoverReceiptEvidence:'sha256:'+sha256(fs.readFileSync(receiptPath))};
+for(const k of ['publicManifestSha256','sourceCeremonyStatusSha256','signerCount','serviceSignerRecoveryVerified','serviceSignerRecoveryEvidence'])delete review[k];
+const reviewPath=write('review.json',review);
+const approval={...oldApproval,custodyProfile:profile,custodyEvidence:'sha256:'+sha256(fs.readFileSync(reviewPath))};
+delete approval.serviceSignerRecoveryVerified;delete approval.serviceSignerManifestSha256;
+const approvalPath=write('approval.json',approval);
+const run=(file,args,ok=true)=>{const p=spawnSync(process.execPath,[path.join(repo,'scripts/verify',file),...args],{encoding:'utf8'});if(ok)assert.equal(p.status,0,p.stderr);else assert.notEqual(p.status,0,'unqualified scoped custody accepted');return p;};
+const projected=run('validate-public-bft-cutover-approval.mjs',[approvalPath,commit,release,reviewPath]);
+const value=JSON.parse(projected.stdout);assert.equal(value.custodyProfile,profile);assert.equal(Object.hasOwn(value,'serviceSignerRecoveryVerified'),false);assert.equal(Object.hasOwn(value,'serviceSignerManifestSha256'),false);
+const projectedPath=path.join(dir,'projected.json');fs.writeFileSync(projectedPath,projected.stdout,{mode:0o600});
+const forwarded=JSON.parse(run('validate-public-bft-cutover-approval-evidence.mjs',[projectedPath,commit,release]).stdout);assert.deepEqual(forwarded,{...value,validated:true});
+for(const [field,bad] of [['custodyProfile',undefined],['custodyProfile','legacy'],['custodyProfile',null],['serviceSignerRecoveryVerified',true],['validatorKeyRecoveryVerified',false],['rotationProcedureVerified',false],['ownerHandoverVerified',false],['operatorPlanSha256','1'.repeat(64)],['runtimeManifestSha256','2'.repeat(64)],['validatorManifestSha256','3'.repeat(64)],['custodyReviewer',approval.approver]]){
+  const a={...approval};if(bad===undefined)delete a[field];else a[field]=bad;const p=write('invalid-approval.json',a);
+  run('validate-public-bft-cutover-approval.mjs',[p,commit,release,reviewPath],false);
+}
+const reviewBytes=fs.readFileSync(reviewPath);
+for(const [field,bad] of [['custodyProfile',undefined],['custodyProfile','other'],['serviceSignerRecoveryVerified',true],['validatorKeyRecoveryVerified',false],['validatorCount',3],['reviewer',receipt.owner],['reviewer',receipt.independentReviewer],['expiresAt','2000-01-01T00:00:00Z'],['validatorRecoveryEvidence','offline:unapproved-restore']]){
+  const r={...review};if(bad===undefined)delete r[field];else r[field]=bad;write('review.json',r);
+  run('validate-production-custody-review.mjs',[reviewPath,commit,inventory.sources.validatorManifestSha256],false);
+}
+write('review.json',{...review,records:review.records.map((r,i)=>i===1?{...r,nodeId:'f'.repeat(40)}:r)});
+run('validate-production-custody-review.mjs',[reviewPath,commit,inventory.sources.validatorManifestSha256],false);fs.writeFileSync(reviewPath,reviewBytes);
+for(const mutate of [i=>{delete i.custodyProfile;},i=>{i.records[1].role=i.records[0].role;},i=>{i.records[1].secondaryPublicIdentity=i.records[0].secondaryPublicIdentity;},i=>{i.records[0].handoverRequired=false;},i=>{i.sources.operatorPlanSha256='0'.repeat(64);},i=>{i.records.push(oldInventory.records.find(r=>r.category==='service-signer'));}]){
+  const i=structuredClone(inventory);mutate(i);i.inventoryDigest='sha256:'+sha256(JSON.stringify(inventoryCore(i))+'\n');
+  const p=write('invalid-inventory.json',i);run('validate-owner-handover-receipt.mjs',[receiptPath,p,commit],false);
+}
+for(const [field,bad]of [['custodyProfile',undefined],['serviceSignerOfflineRecoveryVerified',true],['validatorRecoveryVerified',false],['rotationProcedureVerified',false],['independentReviewer',receipt.owner]]){
+  const r={...receipt};if(bad===undefined)delete r[field];else r[field]=bad;
+  run('validate-owner-handover-receipt.mjs',[write('invalid-receipt.json',r),inventoryPath,commit],false);
+}
+// The production service selector revalidates original custody and compares
+// the exact protected projection. An environment flag cannot choose scope.
+const driver=fs.readFileSync(path.join(project,'scripts/ops/public-bft-production-driver.sh'),'utf8');
+const body=driver.match(/^public_bft_preflight_services\(\) \{\n[\s\S]*?^\}/m)?.[0];assert.ok(body);
+const q=x=>"'"+x.replaceAll("'","'\\''")+"'",shell=path.join(dir,'preflight.sh'),transaction=path.join(dir,'transaction');fs.mkdirSync(transaction);
+fs.writeFileSync(path.join(transaction,'approval.json'),projected.stdout,{mode:0o600});
+fs.writeFileSync(shell,`set -euo pipefail\ncd ${q(project)}\ncommit=${q(commit)}\nynx_ops_services_for_kind(){ printf legacy-full-services; }\n${body}\npublic_bft_preflight_services full\n`,{mode:0o700});
+const env={...process.env,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:transaction,PUBLIC_BFT_CUTOVER_APPROVAL_FILE:approvalPath,PUBLIC_BFT_CUSTODY_REVIEW_FILE:reviewPath};
+let selected=spawnSync('bash',[shell],{env,encoding:'utf8'});assert.equal(selected.status,0,selected.stderr);assert.equal(selected.stdout,'ynx-chaind');
+fs.writeFileSync(path.join(transaction,'approval.json'),JSON.stringify({...value,operatorPlanSha256:'f'.repeat(64)})+'\n');
+selected=spawnSync('bash',[shell],{env,encoding:'utf8'});assert.notEqual(selected.status,0);assert.equal(selected.stdout,'');
+selected=spawnSync('bash',[shell],{env:{...env,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:'',PUBLIC_BFT_CUSTODY_PROFILE:profile},encoding:'utf8'});assert.equal(selected.status,0);assert.equal(selected.stdout,'legacy-full-services');
+oldPaths.forEach((p,i)=>assert.deepEqual(fs.readFileSync(p),originals[i],'original full-profile custody changed'));
+console.log('SINGLE_APP_CUSTODY_CHAIN_VALIDATED: four original identities, exact pins/profile, separate reviewers, no fabricated service recovery, original full profile preserved');
+NODE
+
 cat >"$tmp/driver" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail

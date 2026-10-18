@@ -100,6 +100,27 @@ public_bft_operator_inputs() {
   export CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256="$candidate_operator_pin"
 }
 
+public_bft_preflight_services() {
+  local kind="$1" approved profile
+  if [[ -z "${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}" ]]; then
+    # The original standalone/full rehearsal keeps its existing service set.
+    ynx_ops_services_for_kind "$kind"
+    return
+  fi
+  [[ -n "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" && -n "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" ]] || { echo "original protected approval and custody evidence are required for scoped preflight" >&2; return 1; }
+  approved="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "ynx-bft-gateway-$commit" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")" || return $?
+  printf '%s\n' "$approved" | cmp - "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/approval.json" >/dev/null || { echo "preflight profile differs from the original protected approval projection" >&2; return 1; }
+  profile="$(printf '%s' "$approved" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).custodyProfile || "legacy-full"))')" || return $?
+  if [[ "$profile" == single-app-gateway/v1 ]]; then
+    printf '%s' ynx-chaind
+  elif [[ "$profile" == legacy-full ]]; then
+    ynx_ops_services_for_kind "$kind"
+  else
+    echo "unsupported approved preflight custody profile" >&2
+    return 1
+  fi
+}
+
 final_snapshot_phase() {
   [[ "${PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED:-}" == "yes" ]] || {
     echo "PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED=yes is required" >&2
@@ -977,7 +998,7 @@ collect_role() {
     silicon-valley) validator=ynx_validator_silicon_valley ;;
     seoul) validator=ynx_validator_seoul ;;
   esac
-  services="$(ynx_ops_services_for_kind "$kind")"
+  services="$(public_bft_preflight_services "$kind")"
   candidate_port_pattern=':(27656|27757|27858)$'
   if [[ "$kind" == "full" ]]; then
     candidate_port_pattern=':(27620|27626|27627|27628|27629|27630|27631|27632|27656|27757|27858)$'

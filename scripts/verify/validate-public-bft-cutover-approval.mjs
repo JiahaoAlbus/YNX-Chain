@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
 
 function fail(message) {
   throw new Error("public BFT cutover approval rejected: " + message);
@@ -31,6 +32,8 @@ try {
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true) {
   fail("schema, action, or approved flag is invalid");
 }
+const singleApp = isSingleAppCustody(approval);
+if (singleApp && ["serviceSignerRecoveryVerified", "serviceSignerManifestSha256"].some(key => Object.hasOwn(approval, key))) fail("single-App approval must not assert unrelated service signer recovery or identity");
 if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{7,127}$/.test(approval.approvalId || "")) fail("approvalId is invalid");
 if (typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("approver is required");
 if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.trim().length < 3) fail("independent custody reviewer is required");
@@ -40,17 +43,19 @@ if (approval.commit !== expectedCommit || approval.release !== expectedRelease) 
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) {
   fail("explicit cutover authorization and automatic rollback consent are required");
 }
-if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) {
+if (approval.validatorKeyRecoveryVerified !== true || (!singleApp && approval.serviceSignerRecoveryVerified !== true) || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) {
   fail("validator/service signer recovery, owner handover, and rotation verification are required");
 }
-if (!/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("serviceSignerManifestSha256 is required");
+if (!singleApp && !/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("serviceSignerManifestSha256 is required");
 let custodyReview;
 try {
   const validator = path.join(path.dirname(fileURLToPath(import.meta.url)), "validate-production-custody-review.mjs");
-  custodyReview = JSON.parse(execFileSync(process.execPath, [validator, custodyReviewPath, expectedCommit, approval.serviceSignerManifestSha256], { encoding: "utf8" }));
+  custodyReview = JSON.parse(execFileSync(process.execPath, [validator, custodyReviewPath, expectedCommit, singleApp ? approval.validatorManifestSha256 : approval.serviceSignerManifestSha256], { encoding: "utf8" }));
 } catch (error) {
   fail(`custody review validation failed: ${error.stderr?.toString().trim() || error.message}`);
 }
+if (isSingleAppCustody(custodyReview) !== singleApp) fail("approval custody profile differs from original reviewed records");
+if (singleApp) for (const field of ["validatorManifestSha256", "operatorPlanSha256", "runtimeManifestSha256"]) if (approval[field] !== custodyReview[field]) fail(`${field} differs from original single-App custody evidence`);
 if (custodyReview.reviewer.toLowerCase() !== approval.custodyReviewer.trim().toLowerCase() || custodyReview.custodyEvidence !== approval.custodyEvidence.trim()) fail("custody review attribution or exact file hash differs from approval");
 const participants = [approval.approver, custodyReview.reviewer, custodyReview.owner, custodyReview.ownerHandoverReviewer].map((value) => String(value || "").trim().toLowerCase());
 if (participants.some((value) => value.length < 3) || new Set(participants).size !== participants.length) fail("transaction approver, custody reviewer, owner, and owner handover reviewer must be distinct");
@@ -71,8 +76,10 @@ if (!Number.isFinite(expiresAt) || expiresAt <= Date.now() || expiresAt > Date.n
   fail("expiresAt must be in the future and no more than 24 hours away");
 }
 if (Date.parse(approval.candidateGenesisTime) > expiresAt) fail("candidateGenesisTime must not exceed approval expiry");
+if (singleApp && expiresAt > Date.parse(custodyReview.expiresAt)) fail("single-App approval must not outlive original custody evidence");
 
 process.stdout.write(JSON.stringify({
+  ...(singleApp ? { custodyProfile: singleAppCustodyProfile } : {}),
   schemaVersion: 1,
   action: "ynx-public-bft-cutover",
   approved: true,
@@ -90,10 +97,10 @@ process.stdout.write(JSON.stringify({
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,
   validatorKeyRecoveryVerified: true,
-  serviceSignerRecoveryVerified: true,
+  ...(!singleApp ? { serviceSignerRecoveryVerified: true } : {}),
   ownerHandoverVerified: true,
   rotationProcedureVerified: true,
-  serviceSignerManifestSha256: approval.serviceSignerManifestSha256,
+  ...(!singleApp ? { serviceSignerManifestSha256: approval.serviceSignerManifestSha256 } : {}),
   validatorManifestSha256: approval.validatorManifestSha256,
   operatorPlanSha256: approval.operatorPlanSha256,
   runtimeManifestSha256: approval.runtimeManifestSha256,
