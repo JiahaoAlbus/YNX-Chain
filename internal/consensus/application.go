@@ -366,6 +366,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	response := &abcitypes.ResponseQuery{Code: abcitypes.CodeTypeOK, Height: a.committed.Height}
+	if queryPQWallet(response, req, a.committed, a.migration) {
+		return response, nil
+	}
 	if req.Path == "/validator-registry" {
 		// No pending/candidate state or bootstrap authority is published here.
 		response.Value, _ = json.Marshal(a.committed.ValidatorRegistry)

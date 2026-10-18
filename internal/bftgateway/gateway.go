@@ -314,12 +314,16 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /status", g.handleStatus)
 	g.mux.HandleFunc("GET /blocks/{height}", g.handleBlock)
 	g.mux.HandleFunc("POST /transactions/broadcast", g.handleBroadcastTransaction)
+	g.mux.HandleFunc("POST /transactions/pq/broadcast", g.handlePQMemberBroadcast)
 	g.mux.HandleFunc("POST /transactions/pq/batches/broadcast", g.handlePQWholeBroadcast)
 	g.mux.HandleFunc("GET /transactions/pq/batches/{hash}", g.handlePQBatch)
 	g.mux.HandleFunc("GET /transactions/pq/wholes/{hash}", g.handlePQWhole)
+	g.mux.HandleFunc("GET /transactions/pq/originals/{hash}", g.handlePQOriginal)
 	g.mux.HandleFunc("GET /txs", g.handleTransactions)
 	g.mux.HandleFunc("GET /txs/{hash}", g.handleTransaction)
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
+	g.mux.HandleFunc("GET /accounts/{address}/authorization", g.handlePQAuthorization)
+	g.mux.HandleFunc("POST /accounts/{address}/authorization/migrate", g.handlePQMigrationBroadcast)
 	g.mux.HandleFunc("GET /economics/fees", g.handleEconomicsFees)
 	g.mux.HandleFunc("GET /economics/fees/{id}", g.handleEconomicsFee)
 	g.mux.HandleFunc("POST /quant/mandates", g.handleQuantMutation)
@@ -1033,6 +1037,20 @@ func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		view, err := g.projectPQWhole(r.Context(), upstream.Result)
 		if err != nil || view.ABCITransactionHash != hash {
 			writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Whole lookup evidence mismatch"})
+			return
+		}
+		writeJSON(w, http.StatusOK, view)
+		return
+	}
+	if isPQMemberTransaction(upstream.Result.Tx) {
+		view, err := g.projectPQMember(r.Context(), upstream.Result)
+		if view.ABCITransactionHash != hash {
+			writeJSON(w, http.StatusAccepted, map[string]any{"status": "unknown", "committed": false, "source": "comet-rpc", "abciTransactionHash": hash, "error": "PQ original lookup hash mismatch"})
+			return
+		}
+		if err != nil {
+			view.Status, view.Committed, view.Transaction, view.Error = "unknown", false, nil, err.Error()
+			writeJSON(w, http.StatusAccepted, view)
 			return
 		}
 		writeJSON(w, http.StatusOK, view)
