@@ -7,6 +7,7 @@ import {PQ_POLICY_VERSION, PQ_U64_MAX, pqU64, pqHex, pqCanonicalAddress,
   normalizePQNativeTransfer, normalizePQRegistrationIntent, decodePQMigrationRequest, encodePQRegistrationIntent,
   encodePQMigrationRequest, preparePQMigrationTransport,encodePQClassicMigrationProof} from './pq-wallet-authorization.js';
 export const PQ_MAX_POLICY_RECORDS = 1024;
+export const PQ_POLICY_REVOCATION_VERSION='YNX-ACCOUNT-POLICY/v2';
 const snapshots = new WeakMap();
 const decimal = value => {
   if (typeof value !== 'string') throw pqError('PQ_POLICY_DECIMAL_REQUIRED');
@@ -26,9 +27,11 @@ export function parsePQAccountAuthorization(value, expected) {
   const algorithm = value && Object.getOwnPropertyDescriptor(value, 'algorithmVersion');
   if (!enabled || !Object.hasOwn(enabled, 'value') || !algorithm || !Object.hasOwn(algorithm, 'value') ||
       (enabled.value !== true && enabled.value !== false)) throw pqError('PQ_POLICY_SNAPSHOT_INVALID');
+  const isV2=value&&Object.getOwnPropertyDescriptor(value,'policyVersion')?.value===PQ_POLICY_REVOCATION_VERSION;
   const fields = ['owner', 'executionHeight', 'ledgerNonce', 'algorithmVersion', 'enabled', 'records'];
   if (enabled.value) fields.push('policyVersion', 'networkId', 'enableAt');
   if (algorithm.value === VERSION) fields.push('activeRevision');
+  if(isV2)fields.push('revocations');
   exactPQRecord(value, fields);
   const height = decimal(value.executionHeight), nonce = decimal(value.ledgerNonce);
   if (value.owner !== network.owner || !['legacy', VERSION].includes(value.algorithmVersion) || !Array.isArray(value.records) || value.records.length > PQ_MAX_POLICY_RECORDS) throw pqError('PQ_POLICY_SNAPSHOT_INVALID');
@@ -36,33 +39,58 @@ export function parsePQAccountAuthorization(value, expected) {
   let enableAt = 0n, active = null, revision = 0n;
   if (value.enabled) {
     enableAt = decimal(value.enableAt);
-    if (!enableAt || value.policyVersion !== PQ_POLICY_VERSION || pqHex(value.networkId, 32).toString('hex') !== network.chainId) throw pqError('PQ_POLICY_NETWORK_INVALID');
+    if (!enableAt || ! [PQ_POLICY_VERSION,PQ_POLICY_REVOCATION_VERSION].includes(value.policyVersion) || pqHex(value.networkId, 32).toString('hex') !== network.chainId) throw pqError('PQ_POLICY_NETWORK_INVALID');
   }
+  let priorRecord=null;
   const records = value.records.map(row => {
     exactPQRecord(row, ['algorithmVersion', 'owner', 'pkA', 'pkB', 'revision', 'registeredAt', 'activeFrom', 'ledgerNonce']);
     const current = decimal(row.revision), registered = decimal(row.registeredAt), activeFrom = decimal(row.activeFrom), consumedNonce = decimal(row.ledgerNonce);
     if (row.algorithmVersion !== VERSION || row.owner !== network.owner || current !== revision + 1n || registered < enableAt || registered > height ||
-        activeFrom <= registered || !consumedNonce || consumedNonce > nonce) throw pqError('PQ_POLICY_RECORD_INVALID');
+        activeFrom <= registered || !consumedNonce || consumedNonce > nonce || priorRecord&&(registered<pqU64(priorRecord.activeFrom)||activeFrom<=pqU64(priorRecord.activeFrom)||consumedNonce<=pqU64(priorRecord.ledgerNonce))) throw pqError('PQ_POLICY_RECORD_INVALID');
     revision = current;
     const record = Object.freeze({algorithmVersion: VERSION, owner: row.owner, pkA: pqHex(row.pkA, 2592).toString('hex'), pkB: pqHex(row.pkB, 64).toString('hex'),
       revision: current.toString(), registeredAt: registered.toString(), activeFrom: activeFrom.toString(), ledgerNonce: consumedNonce.toString()});
+    priorRecord=record;
     if (activeFrom <= height) active = record;
     return record;
   });
   if (active) {
     if (height < enableAt || value.algorithmVersion !== VERSION || decimal(value.activeRevision) !== pqU64(active.revision)) throw pqError('PQ_POLICY_ACTIVE_MISMATCH');
   } else if (value.algorithmVersion !== 'legacy' || Object.hasOwn(value, 'activeRevision')) throw pqError('PQ_POLICY_ACTIVE_MISMATCH');
+  let revocation=null;
+  if(isV2){
+    if(!value.enabled||!Array.isArray(value.revocations)||value.revocations.length!==1)throw pqError('PQ_POLICY_REVOCATION_INVALID');
+    const r=value.revocations[0];exactPQRecord(r,['owner','authorizingRevision','throughRevision','registeredAt','revokedFrom','ledgerNonce'],'PQ_POLICY_REVOCATION_INVALID');
+    const number=value=>{try{return decimal(value);}catch{throw pqError('PQ_POLICY_REVOCATION_INVALID');}};
+    const authorizing=number(r.authorizingRevision),through=number(r.throughRevision),registered=number(r.registeredAt),from=number(r.revokedFrom),consumed=number(r.ledgerNonce);
+    let lawful=null;for(const record of records)if(pqU64(record.activeFrom)<=registered)lawful=record;
+    if(r.owner!==network.owner||!authorizing||through<authorizing||registered<enableAt||registered>height||registered===PQ_U64_MAX||from!==registered+1n||!consumed||consumed>nonce||!lawful||pqU64(lawful.revision)!==authorizing||!priorRecord||pqU64(priorRecord.revision)!==through||records.some(record=>pqU64(record.registeredAt)>registered)||pqU64(priorRecord.ledgerNonce)>=consumed)throw pqError('PQ_POLICY_REVOCATION_INVALID');
+    revocation=Object.freeze({owner:network.owner,authorizingRevision:authorizing.toString(),throughRevision:through.toString(),registeredAt:registered.toString(),revokedFrom:from.toString(),ledgerNonce:consumed.toString()});
+  }
   const normalized = {owner: network.owner, executionHeight: height.toString(), ledgerNonce: nonce.toString(), algorithmVersion: value.algorithmVersion, enabled: value.enabled,
     records: Object.freeze(records)};
-  if (value.enabled) Object.assign(normalized, {policyVersion: PQ_POLICY_VERSION, networkId: network.chainId, enableAt: enableAt.toString()});
+  if (value.enabled) Object.assign(normalized, {policyVersion: value.policyVersion, networkId: network.chainId, enableAt: enableAt.toString()});
   if (active) normalized.activeRevision = active.revision;
+  if(revocation)normalized.revocations=Object.freeze([revocation]);
   const snapshot = Object.freeze(normalized);
-  snapshots.set(snapshot, {network, active, height, nonce, enableAt, revision, pending: records.some(r => pqU64(r.activeFrom) > height)});
+  snapshots.set(snapshot, {network, active, height, nonce, enableAt, revision, revocation,revoked:revocation!==null&&height>=pqU64(revocation.revokedFrom),pending: records.some(r => pqU64(r.activeFrom) > height)});
   return snapshot;
+}
+/** Retained complete policy DATA at an observed/past height, never a grant. */
+export function inspectPQAuthorizationView(snapshot,atHeight=undefined){
+  const s=state(snapshot),height=atHeight===undefined?s.height:pqU64(atHeight);
+  if(height>s.height)throw pqError('PQ_POLICY_VIEW_HEIGHT_INVALID');
+  let active=null,registered=false;
+  for(const record of snapshot.records)if(pqU64(record.registeredAt)<=height){registered=true;if(pqU64(record.activeFrom)<=height)active=record;}
+  let authorizationStatus=active?'active':registered?'pending_activation':'legacy',pqSigningEnabled=active!==null;
+  if(s.revocation&&pqU64(s.revocation.registeredAt)<=height){authorizationStatus=height>=pqU64(s.revocation.revokedFrom)?'revoked':'revocation_pending';if(authorizationStatus==='revoked')pqSigningEnabled=false;}
+  return Object.freeze({authorizationStatus,pqSigningEnabled,activeRecord:active,executionHeight:height.toString()});
 }
 export function inspectPQWalletActionPolicy(snapshot, action) {
   const s = state(snapshot);
   if (!allowed.has(action)) throw pqError('PQ_ACTION_UNSUPPORTED');
+  if(s.revoked)throw pqError('PQ_ACCOUNT_REVOKED');
+  if(s.revocation&&action==='pq-account-migration')throw pqError('PQ_TERMINAL_REVOCATION_PENDING');
   if (s.active && !['pq-native-transfer', 'pq-account-migration'].includes(action)) throw pqError('PQ_ACTIVE_ACCOUNT_LEGACY_ENTRY_REFUSED');
   if (action === 'pq-native-transfer' && !s.active) throw pqError('PQ_ACCOUNT_MIGRATION_REQUIRED');
   if (action.startsWith('pq-') && (!snapshot.enabled || s.height < s.enableAt)) throw pqError('PQ_ADMISSION_DISABLED');
@@ -73,7 +101,7 @@ export function inspectPQWalletActionPolicy(snapshot, action) {
 export function assertPQAuthorizationCurrent(original, refreshed) {
   const a = state(original), b = state(refreshed);
   const comparable = snapshot => { const {executionHeight, ...rest} = snapshot; return JSON.stringify(rest); };
-  if (JSON.stringify(a.network) !== JSON.stringify(b.network) || b.height < a.height || comparable(original) !== comparable(refreshed)) throw pqError('PQ_POLICY_CHANGED_REVIEW_REQUIRED');
+  if (JSON.stringify(a.network) !== JSON.stringify(b.network) || b.height < a.height || a.revoked!==b.revoked || comparable(original) !== comparable(refreshed)) throw pqError('PQ_POLICY_CHANGED_REVIEW_REQUIRED');
   return undefined;
 }
 export function planPQNativeTransfer(snapshot, value) {
@@ -114,7 +142,7 @@ export function classifyPQRegistration(snapshot, value) {
   const record = snapshot.records.find(r => r.revision === intent.newRevision);
   if (!record) return Object.freeze({status: 'not_found', executionHeight: snapshot.executionHeight, retryAuthorized: false});
   if (record.pkA !== intent.pkA || record.pkB !== intent.pkB || record.ledgerNonce !== intent.ledgerNonce || record.activeFrom !== intent.activateAt) throw pqError('PQ_REGISTERED_ORIGINAL_MISMATCH');
-  const status = s.active && pqU64(s.active.revision) > pqU64(record.revision) ? 'superseded' : s.active?.revision === record.revision ? 'active' : 'registered_pending_activation';
+  const status = s.revocation?(s.revoked?'revoked':'revocation_pending'):s.active && pqU64(s.active.revision) > pqU64(record.revision) ? 'superseded' : s.active?.revision === record.revision ? 'active' : 'registered_pending_activation';
   return Object.freeze({status, revision: record.revision, activationHeight: record.activeFrom, executionHeight: snapshot.executionHeight, retryAuthorized: false});
 }
 export function preparePQClassicMigrationAuthorization(snapshot, value) {

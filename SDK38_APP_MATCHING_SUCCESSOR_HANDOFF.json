@@ -1,0 +1,66 @@
+{
+  "state": "VERIFIED_SOURCE_COMBINATION_NOT_APP_BUILD_OR_INSTALL",
+  "baseCommit": "dceec367a7c57aa43a421c6f8a219798c395e32f",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "sdk": {
+    "version": "1.3.0-pq.3.8",
+    "sourceCommit": "31bb24a5a315d3ba0b3bcdddf542af0943b0c4ef",
+    "sourceTree": "88abe4e19181f47064fe9634fb74695e1a49fe1c",
+    "handoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3h-20261018/SDK_PQ_R3H_HANDOFF.json",
+    "handoffBytes": 4348,
+    "handoffSha256": "a5cc78a90248ce9f2318af3aba40d5cdaf4095b6d5508afcfd899d6c7400db82",
+    "archive": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3h-20261018/artifacts/ci-39098338377/ynx-chain-wallet-auth-1.3.0-pq.3.8.tgz",
+    "archiveBytes": 928552,
+    "archiveSha256": "15a00574edba1f0b5b8b03def716198f245cc56cdec7a7dff68fd6e95cda0da6",
+    "ciRun": 39098338377,
+    "ciJob": 117589309312,
+    "supplierTestsAndTypesReusedNotRerun": true,
+    "all241PackedLeavesMatchLocalSource": true,
+    "sourceDeltaLeavesCopied": 32,
+    "copyMethod": "Exact mechanical fixed-supplier copy, no native subtree overwrite, no installer or network"
+  },
+  "runtimeDependencies": {
+    "files": 316,
+    "actualBytesUnchanged": true,
+    "generatedManifestSdkCommit": "31bb24a5a315d3ba0b3bcdddf542af0943b0c4ef",
+    "providerSha256": "401eca733083c2ac67998295c54f09f0553760b99eaf0adf9ef1e1a85b4cbd0b"
+  },
+  "native": {
+    "selection": "Existing A33 original module and executed receipt/source closure, independently pinned; no new Native build or grant",
+    "moduleBytes": 1077784,
+    "moduleSha256": "0ebfb6277f5c6bc40609404978624d192defe86fd465003ebfc9baff35b9eef7",
+    "executedReceiptSha256": "445c0b0ab02a9e8321e6406dfab7669d995f4b1522bfc1e1c3e409fae2e4433c",
+    "moduleHandoff": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-derived-client-native-component-20261018/MODULE_HANDOFF.json",
+    "moduleHandoffBytes": 5383,
+    "moduleHandoffSha256": "95e2bf38207dca145650b3c1162093a334f97037b7169477f6397efa9d4dad0b"
+  },
+  "includedWalletRepairs": [
+    "4bc closed Native build-evidence DATA package guard",
+    "acdab receiving PNG Save-panel title without dataURL",
+    "ebae exact uint64 original JSON public Go QA binding; independently named successor receipt",
+    "dceec367 ordinary WC relay status notifications, no retry or permission mutation"
+  ],
+  "sameCopyCombinationTests": {
+    "files": ["apps/wallet-desktop/test/r3e-app-sdk-payload.test.mjs", "apps/wallet-desktop/test/walletconnect-relay-status.test.mjs"],
+    "pass": 5,
+    "fail": 0,
+    "durationMs": 149.29025,
+    "runtime": "Installed R24 Electron RunAsNode heap192MiB, isolation none, concurrency1",
+    "resources": "Actual selected App and SDK JS, explicit PUBLIC Native/Source and synthetic relay instruments; not grant or network acceptance"
+  },
+  "normalBuildRecipe": {
+    "owner": "Sole original A via Root",
+    "candidate": "New immutable matching source stage; do not hot-overlay installed 4bc",
+    "cwd": "apps/wallet-desktop",
+    "argvAfterOriginalPinnedNode": ["scripts/build-mac.mjs", "arm64", "--config.electronDist=/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r65-normal-mac-matching-20261017/electron-dist", "--config.npmRebuild=false"],
+    "preserve": ["Original builder environment and dependency installation", "removePackageScripts=false and removePackageKeywords=false", "A33 module/receipt inputs and all316 SDK dependency pins", "Normal afterPack canonical-source and signature checks"],
+    "acceptance": "Complete App and DMG, exact mounted whole manifest, then normal new matching install and user flow; reuse still-valid old evidence without claiming new installed behavior"
+  },
+  "remainingIndependentGates": [
+    "No full SDK38 matching App or installation built in this source task",
+    "Mac system lock blocked the actual normal4bc WC attempt; no alternate/headless acceptance or manual-unlock engineering prerequisite",
+    "Ordinary WC is independent of IDE-private; real relay/proposal/address permission still unverified",
+    "IDE-private legitimate protected originals and release registration remain unavailable; only grant blocked, no synthetic qualification",
+    "No public release, notarization, signing transaction or funds transfer"
+  ]
+}

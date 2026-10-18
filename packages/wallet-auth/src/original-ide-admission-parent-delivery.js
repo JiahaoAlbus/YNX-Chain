@@ -47,7 +47,7 @@ function currentClient(s,operation){
  if(s.retired)throw clientError('IDE_ORIGINAL_PRIVATE_CLIENT_RETIRED');
 }
 function retireClient(s,...cause){
- s.retired=true;if(cause.length)latchClient(s,cause[0]);
+ s.retired=true;s.transportRetired=true;if(cause.length)latchClient(s,cause[0]);
  else if([...s.rows.values()].some(row=>!row.terminal))latchClient(s,clientError('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'));
  if(s.waiter){s.waiter.resolve(null);s.waiter=null;}
  if(s.retireSelected){if(s.retireFailed)throw s.retireCause;return undefined;}s.retireSelected=true;
@@ -67,7 +67,7 @@ function closeClient(s){
   if(failed){s.cleanupFailurePresent=true;s.cleanupCause=cause;latchClient(s,cause);throw cause;}s.cleanupComplete=true;return undefined;
  });void s.closing.catch(()=>{});return s.closing;
 }
-function statusClient(s){return Object.freeze({ready:s.ready,retired:s.retired,unknown:s.captureEntered&&!s.owner||[...s.rows.values()].some(row=>row.unknown),retained:s.rows.size,firstCausePresent:s.firstCausePresent,cleanupFailurePresent:s.cleanupFailurePresent,cleanupComplete:s.cleanupComplete});}
+function statusClient(s){return Object.freeze({ready:s.ready,retired:s.retired,transportRetired:s.transportRetired,unknown:s.captureEntered&&!s.owner||[...s.rows.values()].some(row=>row.unknown),retained:s.rows.size,firstCausePresent:s.firstCausePresent,cleanupFailurePresent:s.cleanupFailurePresent,cleanupComplete:s.cleanupComplete});}
 function clientResponseDeadline(row){
  if(!row||performance.now()>=row.deadline)throw clientError('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN');
 }
@@ -75,8 +75,19 @@ function queuedClientResponseDeadline(s,raw){
  const frame=s.payload.parseOriginalIDEPrivatePayload(raw);
  clientResponseDeadline(s.rows.get(frame.operation+':'+frame.phase+':'+frame.requestId));
 }
+function stopClientTransport(s,...cause){
+ s.transportRetired=true;
+ if(cause.length)latchClient(s,cause[0]);
+ else if([...s.rows.values()].some(row=>!row.terminal))latchClient(s,clientError('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'));
+ if(s.waiter){s.waiter.resolve(null);s.waiter=null;}
+ return undefined; // Transport only. Entered caller diagnostics drain before Native retirement.
+}
+function assertClientTransportCurrent(s){
+ if(s.transportRetired)throw s.firstCausePresent?s.firstCause:clientError('IDE_PRIVATE_TRANSPORT_RETIRED');
+ return currentClient(s);
+}
 function nextClientFrame(s){
- if(s.retired||s.firstCausePresent)return Promise.resolve(null);
+ if(s.retired||s.transportRetired||s.firstCausePresent)return Promise.resolve(null);
  try{currentClient(s);}catch(cause){latchClient(s,cause);return Promise.reject(cause);}
  if(s.queue.length){const raw=s.queue.shift();try{queuedClientResponseDeadline(s,raw);return Promise.resolve(raw);}catch(cause){latchClient(s,cause);return Promise.reject(cause);}}
  if(s.waiter)throw clientError('IDE_PRIVATE_WRITER_ALREADY_SELECTED');
@@ -88,6 +99,7 @@ function queueClientFrame(s,raw){
 async function dispatchClient(s,raw){
  let row;
  try{
+  if(s.transportRetired)throw s.firstCausePresent?s.firstCause:clientError('IDE_PRIVATE_TRANSPORT_RETIRED');
   currentClient(s);if(s.firstCausePresent)throw s.firstCause;
   const frameRaw=s.payload.createOriginalIDEPrivateRequestFrame(s.bindingDigest,raw),frame=s.payload.parseOriginalIDEPrivatePayload(frameRaw),key=frame.operation+':'+frame.phase+':'+frame.requestId;
   if(s.rows.has(key)||s.rows.size>=64)throw clientError('ORIGINAL_PRIVATE_ALREADY_ENTERED');
@@ -140,10 +152,10 @@ function readClientTerminalCustody(s,operation,phase,requestId){
  }catch(cause){if(row)row.unknown=true;latchClient(s,cause);throw cause;}
 }
 function reserveClient(parent){
- const s={parent,owner:null,methods:null,captureEntered:false,ready:false,retired:false,firstCausePresent:false,firstCause:undefined,rows:new Map(),queue:[],waiter:null,payload:null,canonicalJSON:null,admission:null,bindingDigest:null,retireSelected:false,retireFailed:false,retireCause:undefined,joining:null,closing:null,cleanupComplete:false,cleanupFailurePresent:false,cleanupCause:undefined,promise:null};
+ const s={parent,owner:null,methods:null,captureEntered:false,ready:false,retired:false,transportRetired:false,firstCausePresent:false,firstCause:undefined,rows:new Map(),queue:[],waiter:null,payload:null,canonicalJSON:null,admission:null,bindingDigest:null,retireSelected:false,retireFailed:false,retireCause:undefined,joining:null,closing:null,cleanupComplete:false,cleanupFailurePresent:false,cleanupCause:undefined,promise:null};
  const cleanup=Object.freeze({retire(...cause){return retireClient(s,...cause);},join:()=>joinClient(s),close:()=>closeClient(s),status:()=>statusClient(s)});
  const original=Object.freeze({...cleanup,dispatch:raw=>dispatchClient(s,raw),acknowledge:(...args)=>acknowledgeClient(s,...args),selectCurrentOutcome:(...args)=>selectCurrentClientOutcome(s,...args),readTerminalCustody:(...args)=>readClientTerminalCustody(s,...args)});
- const framer=Object.freeze({nextOutboundFrame:()=>nextClientFrame(s),acceptInboundFrame:raw=>receiveClientFrame(s,raw),assertCurrent(){try{return currentClient(s);}catch(cause){latchClient(s,cause);throw cause;}},retireTransport(...cause){return retireClient(s,...cause);}});
+ const framer=Object.freeze({nextOutboundFrame:()=>nextClientFrame(s),acceptInboundFrame:raw=>receiveClientFrame(s,raw),assertCurrent(){try{return assertClientTransportCurrent(s);}catch(cause){latchClient(s,cause);throw cause;}},retireTransport(...cause){return stopClientTransport(s,...cause);}});
  s.cleanup=cleanup;s.channel=Object.freeze({original,framer});return s;
 }
 /** Normal backend only; uses the SAME already acquired Native delivery. */

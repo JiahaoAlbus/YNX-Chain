@@ -1,7 +1,8 @@
 import type {PQPublicBinding} from './pq-wallet-contract.js';
 import type {PQNativeTransferInput, PQNativeTransfer, PQRegistrationIntentInput, PQRegistrationIntent, PQMigrationProofs, PQTransportRequest,PQClassicSignerPublicResult,PQClassicMigrationProof} from './pq-wallet-authorization.js';
 export interface PQPolicyRecord { readonly algorithmVersion: 'YNX-BATCH/v0.1'; readonly owner: string; readonly pkA: string; readonly pkB: string; readonly revision: string; readonly registeredAt: string; readonly activeFrom: string; readonly ledgerNonce: string }
-export interface PQAuthorizationDTO { readonly owner: string; readonly executionHeight: string; readonly ledgerNonce: string; readonly algorithmVersion: 'legacy' | 'YNX-BATCH/v0.1'; readonly enabled: boolean; readonly records: readonly PQPolicyRecord[]; readonly policyVersion?: 'YNX-ACCOUNT-POLICY/v1'; readonly networkId?: string; readonly enableAt?: string; readonly activeRevision?: string }
+export interface PQRevocationRecord {readonly owner:string;readonly authorizingRevision:string;readonly throughRevision:string;readonly registeredAt:string;readonly revokedFrom:string;readonly ledgerNonce:string}
+export interface PQAuthorizationDTO { readonly owner: string; readonly executionHeight: string; readonly ledgerNonce: string; readonly algorithmVersion: 'legacy' | 'YNX-BATCH/v0.1'; readonly enabled: boolean; readonly records: readonly PQPolicyRecord[]; readonly policyVersion?: 'YNX-ACCOUNT-POLICY/v1'|'YNX-ACCOUNT-POLICY/v2'; readonly revocations?: readonly PQRevocationRecord[]; readonly networkId?: string; readonly enableAt?: string; readonly activeRevision?: string }
 declare const snapshot: unique symbol;
 /** Immutable parsed DTO, retained by protected main. Parsing does not authenticate a node.
  * Renderer copies cannot recreate this local snapshot identity or an approval lease. */
@@ -11,6 +12,9 @@ export interface PQPolicyDispatch { readonly mode: 'legacy' | 'pq'; readonly cha
 export interface PQTransferReviewPlan { readonly kind: 'pq-native-transfer'; readonly transfer: Readonly<PQNativeTransfer>; readonly policy: PQPolicyDispatch }
 export interface PQMigrationReviewPlan { readonly kind: 'pq-account-migration'; readonly intent: Readonly<PQRegistrationIntent>; readonly policy: PQPolicyDispatch }
 export const PQ_MAX_POLICY_RECORDS: 1024;
+export const PQ_POLICY_REVOCATION_VERSION:'YNX-ACCOUNT-POLICY/v2';
+/** Derived complete-history DATA only; never an authenticated checkpoint or grant. */
+export function inspectPQAuthorizationView(snapshot:PQAuthorizationSnapshot,atHeight?:string|bigint):Readonly<{authorizationStatus:'legacy'|'pending_activation'|'active'|'revocation_pending'|'revoked';pqSigningEnabled:boolean;activeRecord:PQPolicyRecord|null;executionHeight:string}>;
 export function parsePQAccountAuthorization(value: unknown, expected: {chainId: string; nativeChainId: string | bigint; owner: string}): PQAuthorizationSnapshot;
 export function inspectPQWalletActionPolicy(snapshot: PQAuthorizationSnapshot, action: PQWalletAction): PQPolicyDispatch;
 /** Height may advance monotonically while policy/nonce/records remain identical.
@@ -24,7 +28,7 @@ export function assertPQMigrationRequestPolicy(snapshot: PQAuthorizationSnapshot
  * by the original protected record, never by an untrusted backup preview. */
 export function pqRegisteredPublicBinding(snapshot: PQAuthorizationSnapshot, revision?: string | bigint): PQPublicBinding;
 /** Read-only status, not consensus finality or permission to retry an UNKNOWN original. */
-export function classifyPQRegistration(snapshot: PQAuthorizationSnapshot, intent: PQRegistrationIntentInput): Readonly<{status: 'not_found' | 'registered_pending_activation' | 'active' | 'superseded'; executionHeight: string; revision?: string; activationHeight?: string; retryAuthorized: false}>;
+export function classifyPQRegistration(snapshot: PQAuthorizationSnapshot, intent: PQRegistrationIntentInput): Readonly<{status: 'not_found' | 'registered_pending_activation' | 'active' | 'superseded'|'revocation_pending'|'revoked'; executionHeight: string; revision?: string; activationHeight?: string; retryAuthorized: false}>;
 /** Pre-activation current-account proof only. The original protected Wallet authority
  * signs digest=SHA256(full canonical intent) as low-S DER using its lawful old key.
  * This helper contains no classic private key or signing callback and refuses active PQ. */

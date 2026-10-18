@@ -12,7 +12,7 @@ import { canonicalJSON, exactFields } from "../src/canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "../src/gateway-admission.js";
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
-import {buildOriginalHostPublisherOptions,bindOriginalHostReturnPublisher} from '../native/publication-readonly-source-r28-20261018/source/service-publisher.mjs';
+import {buildOriginalHostPublisherOptions,bindOriginalHostReturnPublisher} from '../native/policy-revocation-source-r35-20261018/source/service-publisher.mjs';
 import {createOriginalWalletRuntimeObserverLifetime} from './original-wallet-runtime-observer-launcher.mjs';
 import {openOriginalWalletPrivateServiceAfterListen,beginOriginalWalletPrivateServiceAcquisition as beginOriginalWalletServicePrivateDispatchAcquisition,closeOriginalWalletPrivateServiceAcquisition as closeOriginalWalletServicePrivateDispatchAcquisition,originalWalletPrivateServiceAcquisitionStatus as originalWalletServicePrivateDispatchAcquisitionStatus} from './original-wallet-private-service-launcher.mjs';
 import {ProductSessionControlNodeHost} from '../src/product-session-control-node-host.js';
