@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+phase=setup
+trap 'check_status=$?; printf "PRODUCTION_CUSTODY_CHECK_FAILED phase=%s line=%s status=%s\n" "$phase" "$LINENO" "$check_status" >&2; exit "$check_status"' ERR
 
 cd "$(dirname "$0")/../.."
 tmp="$(mktemp -d)"
@@ -7,6 +9,7 @@ custody="$tmp-owner-custody"
 recovery="$tmp-owner-recovery"
 trap 'rm -rf "$tmp" "$custody" "$recovery"' EXIT
 
+phase=legacy_fixture_preparation
 YNX_SERVICE_SIGNER_CEREMONY_MODE=create \
 YNX_SERVICE_SIGNER_CEREMONY_APPROVED=yes \
 YNX_SERVICE_SIGNER_CUSTODY_DIR="$custody" \
@@ -17,6 +20,7 @@ commit="$(git rev-parse --short=12 HEAD)"
 packet_id="custody-review-self-test"
 owner_source="$tmp/owner-source"
 node scripts/verify/write-owner-handover-fixture.mjs "$owner_source" "$commit" "$custody/public/service-signers.json" >/dev/null
+phase=legacy_review_packet_generation
 YNX_PRODUCTION_SERVICE_SIGNER_PUBLIC_MANIFEST="$custody/public/service-signers.json" \
 YNX_PRODUCTION_SERVICE_SIGNER_CEREMONY_STATUS="$custody/public/CEREMONY_STATUS.json" \
 YNX_OWNER_HANDOVER_INVENTORY="$owner_source/owner-handover-inventory.json" \
@@ -30,9 +34,19 @@ request="$tmp/packets/$packet_id/REVIEW_REQUEST.md"
 owner_inventory="$tmp/packets/$packet_id/owner-handover-inventory.json"
 owner_receipt="$tmp/packets/$packet_id/owner-handover-receipt.json"
 manifest_sha="$(shasum -a 256 "$custody/public/service-signers.json" | awk '{print $1}')"
+phase=legacy_review_packet_permissions
+stat_platform="$(uname -s)"
 for file in "$packet" "$request" "$owner_inventory" "$owner_receipt"; do
-  [[ "$(stat -f %Lp "$file" 2>/dev/null || stat -c %a "$file")" == 600 ]]
+  # Never mix GNU filesystem-mode stdout with a BSD-format fallback.
+  case "$stat_platform" in
+    Linux) file_mode="$(stat -c '%a' -- "$file")" ;;
+    Darwin) file_mode="$(stat -f '%Lp' "$file")" ;;
+    *) echo "unsupported stat platform for exact packet permissions" >&2; exit 1 ;;
+  esac
+  [[ "$file_mode" == 600 ]]
 done
+echo "PRODUCTION_CUSTODY_PACKET_MODE_0600_VERIFIED"
+phase=legacy_review_validation
 if node scripts/verify/validate-production-custody-review.mjs "$packet" "$commit" "$manifest_sha" >/dev/null 2>&1; then
   echo "unreviewed custody template unexpectedly passed validation" >&2
   exit 1
@@ -65,6 +79,7 @@ NODE
 result="$(node scripts/verify/validate-production-custody-review.mjs "$packet" "$commit" "$manifest_sha")"
 node -e 'const r=JSON.parse(process.argv[1]); if(r.status!=="passed" || !/^sha256:[0-9a-f]{64}$/.test(r.custodyEvidence) || !/^sha256:[0-9a-f]{64}$/.test(r.ownerHandoverReceiptEvidence) || r.reviewer!=="independent custody fixture" || r.owner!=="owner fixture" || r.ownerHandoverReviewer!=="independent handover fixture") process.exit(1)' "$result"
 
+phase=legacy_rejection_controls
 cp "$packet" "$tmp/incomplete.json"
 node -e 'const fs=require("fs"),p=process.argv[1],r=JSON.parse(fs.readFileSync(p));r.serviceSignerRecoveryVerified=false;fs.writeFileSync(p,JSON.stringify(r)+"\n",{mode:0o600})' "$tmp/incomplete.json"
 if node scripts/verify/validate-production-custody-review.mjs "$tmp/incomplete.json" "$commit" "$manifest_sha" >/dev/null 2>&1; then
@@ -92,6 +107,7 @@ if YNX_PRODUCTION_SERVICE_SIGNER_PUBLIC_MANIFEST="$custody/public/service-signer
   exit 1
 fi
 
+phase=single_app_draft_controls
 node --input-type=module - "$tmp" "$commit" "$owner_source" <<'NODE'
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

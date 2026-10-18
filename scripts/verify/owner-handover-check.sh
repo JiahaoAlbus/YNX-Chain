@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+phase=setup
+trap 'check_status=$?; printf "OWNER_HANDOVER_CHECK_FAILED phase=%s line=%s status=%s\n" "$phase" "$LINENO" "$check_status" >&2; exit "$check_status"' ERR
 
 cd "$(dirname "$0")/../.."
 tmp="$(mktemp -d)"
@@ -34,14 +36,26 @@ write_packet() {
   node scripts/ops/write-owner-handover-packet.mjs
 }
 
+phase=legacy_packet_generation
 write_packet owner-handover-self-test >"$tmp/write.log"
 packet="$tmp/packets/owner-handover-self-test"
 inventory="$packet/inventory.json"
 receipt="$packet/receipt.template.json"
 request="$packet/HANDOVER_REQUEST.md"
+phase=legacy_packet_permissions
+stat_platform="$(uname -s)"
 for file in "$inventory" "$receipt" "$request"; do
-  [[ "$(stat -f %Lp "$file" 2>/dev/null || stat -c %a "$file")" == 600 ]]
+  # GNU stat -f selects filesystem reporting; its stdout can survive a failed
+  # BSD-format attempt. Select one dialect without concatenating fallback output.
+  case "$stat_platform" in
+    Linux) file_mode="$(stat -c '%a' -- "$file")" ;;
+    Darwin) file_mode="$(stat -f '%Lp' "$file")" ;;
+    *) echo "unsupported stat platform for exact packet permissions" >&2; exit 1 ;;
+  esac
+  [[ "$file_mode" == 600 ]]
 done
+echo "OWNER_HANDOVER_PACKET_MODE_0600_VERIFIED"
+phase=legacy_inventory_and_receipt
 node - "$inventory" <<'NODE'
 const fs=require("fs"),v=JSON.parse(fs.readFileSync(process.argv[2]));
 if(v.records.length!==12||v.readiness.validatorCount!==4||v.readiness.serviceSignerCount!==5||v.readiness.handoverRequiredCount!==9||v.readiness.unknownOwnershipCount!==0||v.readiness.publicBFTReady!==false)process.exit(1);
@@ -66,6 +80,7 @@ NODE
 result="$(node scripts/verify/validate-owner-handover-receipt.mjs "$receipt" "$inventory" "$commit")"
 node -e 'const v=JSON.parse(process.argv[1]);if(v.status!=="passed"||v.recordCount!==12||v.handoverRequiredCount!==9||v.publicBFTReady!==false||!/^sha256:[0-9a-f]{64}$/.test(v.handoverEvidence))process.exit(1)' "$result"
 
+phase=legacy_rejection_controls
 cp "$receipt" "$tmp/self-reviewed.json"
 node -e 'const fs=require("fs"),p=process.argv[1],v=JSON.parse(fs.readFileSync(p));v.independentReviewer=v.owner;fs.writeFileSync(p,JSON.stringify(v)+"\n",{mode:0o600})' "$tmp/self-reviewed.json"
 if node scripts/verify/validate-owner-handover-receipt.mjs "$tmp/self-reviewed.json" "$inventory" "$commit" >/dev/null 2>&1; then
@@ -107,6 +122,7 @@ if write_packet unknown-funded-test "$tmp/unknown-funded.json" >/dev/null 2>&1; 
   exit 1
 fi
 
+phase=single_app_draft_controls
 node --input-type=module - "$tmp" "$commit" <<'NODE'
 import assert from 'node:assert/strict';
 import fs from 'node:fs';

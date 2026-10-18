@@ -1535,7 +1535,7 @@ jobs:
           PY
       - name: Verify stopped-source publication and original Host ABI through normal binaries
         id: pqhostsourcecli
-        if: ${{ success() && github.event_name == 'push' }}
+        if: ${{ !cancelled() && github.event_name == 'push' && steps.pqoperatorcli.outcome == 'success' }}
         timeout-minutes: 2
         run: |
           set -euo pipefail
