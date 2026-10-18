@@ -2,7 +2,9 @@ package txindex
 
 import (
 	"context"
+	"sync"
 
+	cmtpubsub "github.com/cometbft/cometbft/libs/pubsub"
 	"github.com/cometbft/cometbft/libs/service"
 	"github.com/cometbft/cometbft/state/indexer"
 	"github.com/cometbft/cometbft/types"
@@ -23,6 +25,8 @@ type IndexerService struct {
 	blockIdxr        indexer.BlockIndexer
 	eventBus         *types.EventBus
 	terminateOnError bool
+	workerMu         sync.Mutex
+	workerDone       chan struct{}
 }
 
 // NewIndexerService returns a new service instance.
@@ -41,6 +45,16 @@ func NewIndexerService(
 // OnStart implements service.Service by subscribing for all transactions
 // and indexing them by events.
 func (is *IndexerService) OnStart() error {
+	done := make(chan struct{})
+	is.workerMu.Lock()
+	is.workerDone = done
+	is.workerMu.Unlock()
+	workerStarted := false
+	defer func() {
+		if !workerStarted {
+			close(done)
+		}
+	}()
 	// Use SubscribeUnbuffered here to ensure both subscriptions does not get
 	// canceled due to not pulling messages fast enough. Cause this might
 	// sometimes happen when there are no other subscribers.
@@ -54,10 +68,13 @@ func (is *IndexerService) OnStart() error {
 
 	txsSub, err := is.eventBus.SubscribeUnbuffered(context.Background(), subscriber, types.EventQueryTx)
 	if err != nil {
+		_ = is.eventBus.UnsubscribeAll(context.Background(), subscriber)
 		return err
 	}
 
+	workerStarted = true
 	go func() {
+		defer close(done)
 		for {
 			select {
 			case <-blockSub.Canceled():
@@ -70,7 +87,14 @@ func (is *IndexerService) OnStart() error {
 				batch := NewBatch(numTxs)
 
 				for i := int64(0); i < numTxs; i++ {
-					msg2 := <-txsSub.Out()
+					var msg2 cmtpubsub.Message
+					select {
+					case <-blockSub.Canceled():
+						return
+					case <-txsSub.Canceled():
+						return
+					case msg2 = <-txsSub.Out():
+					}
 					txResult := msg2.Data().(types.EventDataTx).TxResult
 
 					if err = batch.Add(&txResult); err != nil {
@@ -123,5 +147,17 @@ func (is *IndexerService) OnStart() error {
 func (is *IndexerService) OnStop() {
 	if is.eventBus.IsRunning() {
 		_ = is.eventBus.UnsubscribeAll(context.Background(), subscriber)
+	}
+}
+
+// WaitForIndexing joins the worker after Stop. It is separate from OnStop:
+// terminateOnError may call Stop from that worker and must not join itself.
+// The database owner must join before closing the shared tx/block index DB.
+func (is *IndexerService) WaitForIndexing() {
+	is.workerMu.Lock()
+	done := is.workerDone
+	is.workerMu.Unlock()
+	if done != nil {
+		<-done
 	}
 }

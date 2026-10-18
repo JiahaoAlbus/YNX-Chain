@@ -80,6 +80,7 @@ type Node struct {
 	txIndexer         txindex.TxIndexer
 	blockIndexer      indexer.BlockIndexer
 	indexerService    *txindex.IndexerService
+	ownedDatabases    *nodeOwnedDatabases
 	prometheusSrv     *http.Server
 	pprofSrv          *http.Server
 }
@@ -292,6 +293,21 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 	authoritySource types.ConsensusAuthoritySource,
 	options ...Option,
 ) (*Node, error) {
+	ownedDatabases := &nodeOwnedDatabases{}
+	dbProvider = ownedDatabases.provider(dbProvider)
+	var stopConstructed []func()
+	constructed := false
+	defer func() {
+		if constructed {
+			return
+		}
+		for i := len(stopConstructed) - 1; i >= 0; i-- {
+			stopConstructed[i]()
+		}
+		if err := ownedDatabases.Close(); err != nil {
+			logger.Error("closing databases after failed node construction", "err", err)
+		}
+	}()
 	blockStore, stateDB, err := initDBs(config, dbProvider)
 	if err != nil {
 		return nil, err
@@ -313,6 +329,7 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	stopConstructed = append(stopConstructed, func() { _ = proxyApp.Stop() })
 
 	// EventBus and IndexerService must be started before the handshake because
 	// we might need to index the txs of the replayed block as this might not have happened
@@ -322,11 +339,18 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 	if err != nil {
 		return nil, err
 	}
+	stopConstructed = append(stopConstructed, func() { _ = eventBus.Stop() })
 
 	indexerService, txIndexer, blockIndexer, err := createAndStartIndexerService(config,
 		genDoc.ChainID, dbProvider, eventBus, logger)
 	if err != nil {
 		return nil, err
+	}
+	if indexerService != nil {
+		stopConstructed = append(stopConstructed, func() {
+			_ = indexerService.Stop()
+			indexerService.WaitForIndexing()
+		})
 	}
 
 	// If an address is provided, listen on the socket for a connection from an
@@ -336,6 +360,9 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 		privValidator, err = createAndStartPrivValidatorSocketClient(config.PrivValidatorListenAddr, genDoc.ChainID, logger)
 		if err != nil {
 			return nil, fmt.Errorf("error with private validator socket client: %w", err)
+		}
+		if remote, ok := privValidator.(service.Service); ok {
+			stopConstructed = append(stopConstructed, func() { _ = remote.Stop() })
 		}
 	}
 
@@ -520,6 +547,7 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 		proxyApp:         proxyApp,
 		txIndexer:        txIndexer,
 		indexerService:   indexerService,
+		ownedDatabases:   ownedDatabases,
 		blockIndexer:     blockIndexer,
 		eventBus:         eventBus,
 	}
@@ -529,6 +557,7 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 		option(node)
 	}
 
+	constructed = true
 	return node, nil
 }
 
@@ -614,6 +643,7 @@ func (n *Node) OnStop() {
 		if err := n.indexerService.Stop(); err != nil {
 			n.Logger.Error("Error closing indexerService", "err", err)
 		}
+		n.indexerService.WaitForIndexing()
 	}
 	// now stop the reactors
 	if err := n.sw.Stop(); err != nil {
@@ -667,6 +697,16 @@ func (n *Node) OnStop() {
 		n.Logger.Info("Closing evidencestore")
 		if err := n.EvidencePool().Close(); err != nil {
 			n.Logger.Error("problem closing evidencestore", "err", err)
+		}
+	}
+	if n.proxyApp != nil {
+		if err := n.proxyApp.Stop(); err != nil {
+			n.Logger.Error("Error closing proxyApp", "err", err)
+		}
+	}
+	if n.ownedDatabases != nil {
+		if err := n.ownedDatabases.Close(); err != nil {
+			n.Logger.Error("Error closing node databases", "err", err)
 		}
 	}
 }

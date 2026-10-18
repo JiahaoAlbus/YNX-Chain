@@ -150,6 +150,27 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3
         run: go test -p 1 -count=1 -timeout=90s -run '^$' github.com/cometbft/cometbft/state github.com/cometbft/cometbft/consensus
+      - name: Reproduce and repair same-directory database ownership without starting nodes
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 3
+        run: |
+          YNX_DB_CASE="$RUNNER_TEMP/ynx-pq-db-lifecycle-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          umask 077
+          mkdir "$YNX_DB_CASE"
+          cp third_party/cometbft/node/node.go "$YNX_DB_CASE/fixed-node.go"
+          trap 'cp "$YNX_DB_CASE/fixed-node.go" third_party/cometbft/node/node.go' EXIT
+          git show 359766879bdb1fa10114394c58ab287c5b8996ae:third_party/cometbft/node/node.go > "$YNX_DB_CASE/original-node.go"
+          cp "$YNX_DB_CASE/original-node.go" third_party/cometbft/node/node.go
+          set +e
+          go test -p 1 -count=1 -timeout=60s -run '^TestNodeOwnedDatabaseSameDirectoryReopen$' github.com/cometbft/cometbft/node > "$YNX_DB_CASE/original-red.log" 2>&1
+          YNX_DB_RED_STATUS=$?
+          set -e
+          cp "$YNX_DB_CASE/fixed-node.go" third_party/cometbft/node/node.go
+          trap - EXIT
+          cat "$YNX_DB_CASE/original-red.log"
+          test "$YNX_DB_RED_STATUS" -ne 0
+          grep -F 'tx_index underlying Close calls = 0, want exactly one' "$YNX_DB_CASE/original-red.log"
+          go test -p 1 -count=1 -timeout=60s -run '^(TestNodeOwnedDatabase|TestIndexerOwnedDatabase)' github.com/cometbft/cometbft/node github.com/cometbft/cometbft/state/txindex
       - name: Verify real profile state transition and historical store without starting nodes
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXProfileActualStateUpdateHeaderAndHistoricalStore$' github.com/cometbft/cometbft/state
