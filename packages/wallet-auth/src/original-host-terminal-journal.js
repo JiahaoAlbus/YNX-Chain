@@ -128,7 +128,15 @@ export class OriginalHostTerminalJournal {
    s.client=firstEnterClient(s);this.#firstEnters.set(key,s); // Reserve before partial Native capture.
    if(Object.values(firstEnterNames).some(name=>typeof this.#native[name]!=='function'))fail('FIRST_ENTER_IMPLEMENTATION_NOT_SUPPLIED');
    s.methods=Object.freeze(Object.fromEntries(Object.entries(firstEnterNames).map(([k,name])=>[k,this.#native[name]])));
-   s.captureEntered=true;s.owner=s.methods.capture(this.#loan,raw);currentFirstEnter(s);return s.client;
+   s.captureEntered=true;
+   try{s.owner=s.methods.capture(this.#loan,raw);}catch(cause){
+    // R51 fixed capture alone guarantees this exact Native error precedes any
+    // NEW child allocation. It says nothing about business UNKNOWN or effects.
+    const code=cause&&!types.isProxy(cause)&&types.isNativeError(cause)?Object.getOwnPropertyDescriptor(cause,'code'):null;
+    if(!s.owner&&code&&Object.hasOwn(code,'value')&&code.value==='HOST_TERMINAL_PREVIOUS_UNKNOWN')s.captureEntered=false;
+    throw cause;
+   }
+   currentFirstEnter(s);return s.client;
   }catch(cause){if(s)rememberFirstEnter(s,cause);this.#remember(cause);throw cause;}finally{if(s)s.active=0;this.#entered--;}
  }
  getPersistentFirstEnterCleanup(raw){

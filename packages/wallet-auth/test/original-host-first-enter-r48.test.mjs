@@ -89,3 +89,24 @@ test('R48 preflight allows next capture after actual first terminal commit and r
  f.journal.commit(claim,response,'c'.repeat(64));f.journal.assertTerminal(claim,response);assert.equal(f.journal.status().unknown,false);
  const secondRaw=canonical({...input,requestId:'req_PUBLIC_REQUEST_002'});control.expectedRaw=secondRaw;assert(f.journal.capturePersistentFirstEnter(secondRaw));assert.equal(f.events.filter(e=>e==='child.capture').length,2);f.journal.close();
 });
+
+const r51PreviousUnknown=()=>Object.assign(new Error('PUBLIC fixed Native capture refusal'),{code:'HOST_TERMINAL_PREVIOUS_UNKNOWN'});
+test('R51 disposition exact Native capture preallocation refusal permits parent cleanup while business stays UNKNOWN',()=>{
+ const original=r51PreviousUnknown(),f=fixture({captureThrow:true,cause:original});assert.throws(()=>f.journal.capturePersistentFirstEnter(raw),cause=>cause===original);const child=f.journal.getPersistentFirstEnterCleanup(raw);assert(child);f.journal.close();
+ const status=f.journal.status();assert.equal(status.firstCause,original);assert.equal(status.unknown,true);assert.equal(child.status().firstCause,original);assert.equal(child.status().unknown,true);assert.equal(status.cleanupComplete,true);assert.deepEqual(f.events,['child.capture','journal.retire','journal.join','journal.close']);f.journal.close();assert.throws(()=>f.journal.capturePersistentFirstEnter(raw),cause=>cause===original);assert.equal(f.events.filter(e=>e==='child.capture').length,1);
+});
+test('R51 disposition ambiguous Native wrap refusal remains child custody UNKNOWN',()=>{
+ const original=Object.assign(new Error('PUBLIC wrap uncertainty'),{code:'FIRST_ENTER_WRAP_UNKNOWN'}),f=fixture({captureThrow:true,cause:original});assert.throws(()=>f.journal.capturePersistentFirstEnter(raw),cause=>cause===original);assert.throws(()=>f.journal.close(),{code:'FIRST_ENTER_CAPTURE_UNKNOWN'});assert.equal(f.journal.status().firstCause,original);assert.equal(f.journal.status().cleanupComplete,false);assert.deepEqual(f.events,['child.capture']);
+});
+test('R51 disposition same Native code from accept never discharges already captured child',()=>{
+ const original=r51PreviousUnknown(),f=fixture({acceptThrow:true,cause:original}),child=f.journal.capturePersistentFirstEnter(raw);child.copyChallenge();assert.throws(()=>child.acceptWitness(canonical({PUBLIC:'signed-but-not-real'})),cause=>cause===original);f.journal.close();assert.deepEqual(f.events,['child.capture','child.challenge','child.accept','child.retire','child.join','child.close','journal.retire','journal.join','journal.close']);assert.equal(f.journal.status().firstCause,original);assert.equal(f.journal.status().unknown,true);
+});
+test('R51 disposition rejects forged DTO, Proxy, accessor and inherited code without executing getter',()=>{
+ let touched=false;const getterError=new Error('PUBLIC accessor');Object.defineProperty(getterError,'code',{get(){touched=true;return 'HOST_TERMINAL_PREVIOUS_UNKNOWN';}});const inherited=new Error('PUBLIC inherited');Object.setPrototypeOf(inherited,{code:'HOST_TERMINAL_PREVIOUS_UNKNOWN'});
+ for(const original of [{code:'HOST_TERMINAL_PREVIOUS_UNKNOWN'},getterError,inherited,new Proxy(r51PreviousUnknown(),{get(){touched=true;throw Error('PUBLIC trap');}})]){
+  const f=fixture({captureThrow:true,cause:original});assert.throws(()=>f.journal.capturePersistentFirstEnter(raw),cause=>cause===original);assert.throws(()=>f.journal.close(),{code:'FIRST_ENTER_CAPTURE_UNKNOWN'});assert.equal(f.journal.status().firstCause,original);assert.equal(f.journal.status().cleanupComplete,false);assert.deepEqual(f.events,['child.capture']);
+ }assert.equal(touched,false);
+});
+test('R51 disposition same code from readiness retains returned partial opaque child',()=>{
+ const original=r51PreviousUnknown(),f=fixture({readyThrow:true,cause:original});assert.throws(()=>f.journal.capturePersistentFirstEnter(raw),cause=>cause===original);f.journal.close();assert.deepEqual(f.events,['child.capture','child.retire','child.join','child.close','journal.retire','journal.join','journal.close']);assert.equal(f.journal.status().firstCause,original);assert.equal(f.journal.status().unknown,true);
+});
