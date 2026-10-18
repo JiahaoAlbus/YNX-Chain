@@ -83,6 +83,7 @@ function stopClientTransport(s,...cause){
  return undefined; // Transport only. Entered caller diagnostics drain before Native retirement.
 }
 function assertClientTransportCurrent(s){
+ if(s.firstCausePresent)throw s.firstCause;
  if(s.transportRetired)throw s.firstCausePresent?s.firstCause:clientError('IDE_PRIVATE_TRANSPORT_RETIRED');
  return currentClient(s);
 }
@@ -100,7 +101,7 @@ async function dispatchClient(s,raw){
  let row;
  try{
   if(s.transportRetired)throw s.firstCausePresent?s.firstCause:clientError('IDE_PRIVATE_TRANSPORT_RETIRED');
-  currentClient(s);if(s.firstCausePresent)throw s.firstCause;
+  if(s.firstCausePresent)throw s.firstCause;currentClient(s);
   const frameRaw=s.payload.createOriginalIDEPrivateRequestFrame(s.bindingDigest,raw),frame=s.payload.parseOriginalIDEPrivatePayload(frameRaw),key=frame.operation+':'+frame.phase+':'+frame.requestId;
   if(s.rows.has(key)||s.rows.size>=64)throw clientError('ORIGINAL_PRIVATE_ALREADY_ENTERED');
   let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});void promise.catch(()=>{});

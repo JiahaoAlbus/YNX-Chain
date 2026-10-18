@@ -4,6 +4,7 @@ import { parseDurabilityModel, parseDurabilityProof, validateDurableReceipt } fr
 import { CANONICAL_RPC_URL } from "./rpc.mjs";
 import {originalRetention} from "./transaction-intent-store.mjs";
 import {parsePQReadResponse} from './wallet-pq-submission-evidence.mjs';
+import {PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/;
 const failure = (code, message, data = {}) => Object.assign(capabilityError(code, message), { data: { code, ...data } });
@@ -41,7 +42,7 @@ export class TransactionSubmissions {
   }
   async list(account) {
     const local=this.intentStore?.localOriginal(account);
-    if(['pq-transfer','pq-migration'].includes(local?.kind)&&local.pq)return [{hash:local.pq.hash,account,kind:local.kind,operationId:local.pq.operationId,status:'pq-save-unconfirmed',canRetryExact:false}];
+    if(PQ_ORIGINAL_KINDS.includes(local?.kind)&&local.pq)return [{hash:local.pq.hash,account,kind:local.kind,operationId:local.pq.operationId,status:'pq-save-unconfirmed',canRetryExact:false}];
     if(local?.kind==="native"&&local.native){const record=local.native;return [{hash:record.hash,account,status:"signed_unpersisted",canRetryExact:false,to:record.transaction.to,amount:formatEther(record.transaction.value),localRetention:originalRetention(local)}]}
     if(local?.kind==="native"||await this.intentStore?.unresolvedPreparation?.(account))return [{hash:null,account,status:"signing_unknown",canRetryExact:false,to:null,amount:null,signingUnknown:true}];
     const pq=typeof account==='string'&&/^0x[0-9a-f]{40}$/.test(account)?await this.intentStore?.pqSummaries?.(account):null;if(pq?.length)return pq;
@@ -61,6 +62,17 @@ export class TransactionSubmissions {
       if(local&&local.kind!=="native")throw failure("ORIGINAL_SAVE_BINDING_MISMATCH","Save this original through its original Pay owner.");
       // A save request never supplies a same-process retry capability.
       const saved=await this.intentStore.saveOriginal(account,hash,()=>guard.assert());this.#savedOnly.set(account,hash);guard.assert();return saved;
+    });
+  }
+  async recoverPQOriginal(hash,account,guard,{readOnly=false}={}){
+    if(!HASH.test(hash??'')||guard?.account!==account||typeof guard?.assert!=='function'||typeof readOnly!=='boolean')throw failure('PQ_ORIGINAL_RECOVERY_BINDING','Unlock the original account before recovering this PQ original.');
+    guard.assert();
+    return this.#exclusive(account,async()=>{
+      guard.assert();const local=this.intentStore?.localOriginal(account);
+      if(local&&(!PQ_ORIGINAL_KINDS.includes(local.kind)||local.pq?.account!==account||local.pq?.hash!==hash))throw failure('PQ_ORIGINAL_RECOVERY_BINDING','Only the retained original PQ result can be recovered.');
+      if(!local){const originals=await this.intentStore.readPQOriginals(account,()=>guard.assert());guard.assert();if(!originals.some(row=>row.hash===hash))throw failure('PQ_ORIGINAL_RECOVERY_BINDING','The original PQ result is unavailable; preserve UNKNOWN without another signature.');}
+      const result=readOnly?await this.intentStore.reconcilePQOriginal(account,hash,()=>guard.assert()):await this.intentStore.saveOriginal(account,hash,()=>guard.assert());
+      guard.assert();return result;
     });
   }
   async history(account, cursor = null, limit = 20) {

@@ -8,6 +8,10 @@ const labels = Object.freeze({
   actualFee: "Native transfer fee (YNXT)", feeExplanation: "Fee and budget", modelVersion: "Network fee model", fullEVM: "General EVM execution available",
   amount: "Amount (YNXT)", nonce: "Transaction nonce", type: "Transaction type",
   permissions: "Permissions", accessList: "Access list", warning: "Please review",
+  authorizingRevision: "签名的当前密钥版本 / Current signing key revision",
+  throughRevision: "包含待生效密钥的撤销范围 / Revoke through pending revision",
+  executionHeight: "审查执行高度 / Reviewed execution height",
+  revokeAt: "撤销生效高度 / Revocation effective height",
 });
 
 // Directional and invisible characters must not visually rewrite a signature request.

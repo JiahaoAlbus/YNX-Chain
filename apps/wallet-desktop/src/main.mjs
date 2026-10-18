@@ -440,6 +440,7 @@ handleWalletIPC('wallet:pq-backup-export',()=>safeIPC(()=>pqBackupActions.export
 handleWalletIPC('wallet:pq-backup-verify',()=>safeIPC(()=>pqBackupActions.verify()));
 handleWalletIPC('wallet:pq-restore',(_event,input)=>safeIPC(()=>pqRegisteredRestore.restore(input)));
 handleWalletIPC('wallet:pq-restore-recover',()=>safeIPC(()=>pqRegisteredRestore.recover()));
+handleWalletIPC('wallet:pq-restore-resume',()=>safeIPC(()=>pqRegisteredRestore.resume()));
 handleWalletIPC('wallet:pq-transaction-status',(_event,hash)=>sensitiveIPC(async()=>{
   const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
   if(guard.account!==status.account)throw Object.assign(Error('Select the original account.'),{data:{code:'ACCOUNT_CHANGED'}});
@@ -454,6 +455,19 @@ handleWalletIPC('wallet:pq-migration-review',(_event,input)=>sensitiveIPC(async(
   const response=await walletAuthority.requestPQMigration(input);
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
   return {requestId:response.request.id,submitted:false};
+}));
+handleWalletIPC('wallet:pq-revocation-review',(_event,input)=>sensitiveIPC(async()=>{
+  const response=await walletAuthority.requestPQRevocation(input);
+  keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
+  return {requestId:response.request.id,submitted:false};
+}));
+handleWalletIPC('wallet:pq-original-save',(_event,hash)=>sensitiveIPC(async()=>{
+  const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
+  return walletAuthority.transactionSender.submissions.recoverPQOriginal(hash,status.account,guard);
+}));
+handleWalletIPC('wallet:pq-original-reconcile',(_event,hash)=>sensitiveIPC(async()=>{
+  const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
+  return walletAuthority.transactionSender.submissions.recoverPQOriginal(hash,status.account,guard,{readOnly:true});
 }));
 handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async () => {
   const account = (await walletAuthority.accountStatus()).account;

@@ -9,6 +9,9 @@ import {createPQTransferReviewUI} from './wallet-pq-transfer-ui.mjs';
 const pqTransferReviewUI=createPQTransferReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQMigrationReviewUI} from './wallet-pq-migration-ui.mjs';
 const pqMigrationReviewUI=createPQMigrationReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
+import {createPQRevocationReviewUI} from './wallet-pq-revocation-ui.mjs';
+import {appendPQOriginalRecoveryActions} from './wallet-pq-original-recovery-ui.mjs';
+const pqRevocationReviewUI=createPQRevocationReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQKeyPreparationUI} from './wallet-pq-key-ui.mjs';
 const pqKeyPreparationUI=createPQKeyPreparationUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQBackupUI} from './pq-backup-ui.mjs';
@@ -880,12 +883,16 @@ async function refreshTransactions() {
     for (const record of records) {
       const row = document.createElement("div"), description = document.createElement("p");
       if(record.signingUnknown){description.textContent="An interrupted signing operation has an unknown result. No complete original is available to this view. New signatures and retries remain blocked; preserve the journal.";row.append(description);list.append(row);continue}
-      if(['pq-transfer','pq-migration'].includes(record.kind)){
-        const kind=record.kind==='pq-transfer'?'PQ 转账 / PQ transfer':'PQ 账户迁移 / PQ account migration';
+      if(['pq-transfer','pq-migration','pq-revocation'].includes(record.kind)){
+        const kind=record.kind==='pq-transfer'?'PQ 转账 / PQ transfer':record.kind==='pq-migration'?'PQ 账户迁移 / PQ account migration':'PQ 终止授权 / Terminal PQ revocation';
         description.textContent=kind+' · '+record.hash;row.append(description);
-        const notice=document.createElement('p');notice.textContent=record.status==='pq-save-unconfirmed'?'签名结果已保留，持久化保存尚未确认。请保持钱包运行；不会重新签名或发送。 / Signed result retained; durable saving is unconfirmed. Keep Wallet running; no replacement signature or send.':'签名结果已本地保存，尚未提交。不是链上确认或迁移成功，不允许直接重试。 / Signed result saved locally, not submitted. Not chain confirmation or migration success; no direct retry.';
+        const notice=document.createElement('p');notice.textContent=record.status==='pq-save-unconfirmed'?'签名结果已保留，持久化保存尚未确认。请保持钱包运行；不会重新签名或发送。 / Signed result retained; durable saving is unconfirmed. Keep Wallet running; no replacement signature or send.':'签名结果已本地保存，尚未提交。不代表链上确认、迁移或撤销成功，不允许直接重试。 / Signed result saved locally, not submitted. Not chain confirmation, migration or revocation success; no direct retry.';
         row.append(notice);
-        if(record.status==='pq-signed-unsubmitted'){
+        appendPQOriginalRecoveryActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
+        if(record.kind==='pq-revocation'&&record.status==='pq-signed-unsubmitted'){
+          const unavailable=document.createElement('p');unavailable.textContent='当前可信节点的撤销原件查询格式尚未接通。保留本地原件；不表示已撤销，不重新签名或发送。 / Trusted revocation lookup is not yet supplied. Local original retained; no claim of revocation, no re-sign or send.';row.append(unavailable);
+        }
+        if(record.status==='pq-signed-unsubmitted'&&record.kind!=='pq-revocation'){
           const check=document.createElement('button');check.type='button';check.textContent='只读核对原件 / Check original (read only)';check.disabled=keyState.locked;let busy=false;
           check.addEventListener('click',async()=>{
             if(busy||!current()||keyState.locked)return;busy=true;check.disabled=true;
@@ -1213,6 +1220,7 @@ function renderKeyState(state) {
   keyState = state;
   if(typeof pqTransferReviewUI!=='undefined')pqTransferReviewUI.render();
   if(typeof pqMigrationReviewUI!=='undefined')pqMigrationReviewUI.render();
+  if(typeof pqRevocationReviewUI!=='undefined'){if(securityChanged)pqRevocationReviewUI.invalidate();else pqRevocationReviewUI.render();}
   if(typeof pqKeyPreparationUI!=='undefined'){if(securityChanged)pqKeyPreparationUI.invalidate();else pqKeyPreparationUI.render();}
   if(typeof pqBackupUI!=='undefined'){if(securityChanged)pqBackupUI.invalidate();else pqBackupUI.render();}
   if(typeof pqRegisteredRestoreUI!=='undefined'){if(securityChanged)pqRegisteredRestoreUI.invalidate();else pqRegisteredRestoreUI.render();}

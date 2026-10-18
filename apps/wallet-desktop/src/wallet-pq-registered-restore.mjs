@@ -6,6 +6,7 @@ const fail=(code,data)=>{throw Object.assign(Error(code),{code,...(data?{data:{.
  * All providers/paths/original bindings are fixed by main, not IPC or backup.
  * Existing records and UNKNOWN reservations are never overwritten or cleared. */
 export function createRegisteredPQRestore({lifecycle,vault,sdk,networkId,id,clock=()=>new Date(),acquire,isOriginal,files,chooseFile}){
+ for(const name of ['preparePQRestoreResult','capturePQRestoreResult','pqRestoreResultStatus','commitPQRestoreResult','reconcilePQRestoreResult','selectPQRestoreResultOutcome'])if(typeof vault?.[name]!=='function')fail('PQ_RESTORE_ORIGINAL_RESULT_CUSTODY_REQUIRED');
  const records=new Map(),history=[];let busy=false;
  const remember=(r,cause)=>{if(!r.firstCausePresent){r.firstCausePresent=true;r.firstCause=cause;}};
  const cleanup=(r,cause)=>{if(!r.cleanupCausePresent){r.cleanupCausePresent=true;r.cleanupCause=cause;}};
@@ -25,7 +26,7 @@ export function createRegisteredPQRestore({lifecycle,vault,sdk,networkId,id,cloc
   if(r.expected)sdk.assertPQPublicBindingMatches(binding,r.expected);else r.expected=binding;
   return binding;
  }
- function publicState(r){const s=r?.failed&&!r.reservationEntered?null:r?.controller?.status();return Object.freeze({phase:s?.phase??(r?.failed?'failed':r?'reading-original':'idle'),busy,hasOriginal:s?.hasOriginal??false,persisted:s?.persisted??false,persistenceAttempted:s?.persistenceAttempted??false,preparationUnknown:s?.preparationUnknown??false,cleanupDebt:r?.cleanupCausePresent===true||s?.cleanupDebt===true,sourceClosed:r?.closed??true,registrationPerformed:false,signingAuthorized:false,transactionAuthorized:false,retryAuthorized:false});}
+ function publicState(r){const s=r?.failed&&!r.reservationEntered?null:r?.controller?.status(),result=r?.restoreResult?vault.pqRestoreResultStatus(r.restoreResult):null,cleanupDebt=r?.cleanupCausePresent===true||s?.cleanupDebt===true,sourceClosed=r?r.closed===true&&(r.resumeReads??[]).every(read=>read.closed===true):true;return Object.freeze({phase:result?.persisted?'saved':result?.resumeAvailable?'restore-retained':s?.phase??(r?.failed?'failed':r?'reading-original':'idle'),busy,hasOriginal:s?.hasOriginal??false,persisted:result?.persisted??s?.persisted??false,persistenceAttempted:result?.persistenceAttempted??s?.persistenceAttempted??false,preparationUnknown:s?.preparationUnknown??false,cleanupDebt,sourceClosed,resumeAvailable:result?.resumeAvailable===true&&sourceClosed&&!cleanupDebt,registrationPerformed:false,signingAuthorized:false,transactionAuthorized:false,retryAuthorized:false});}
  function incomplete(r){
   const state=publicState(r),cause=r.firstCause,code=cause?.data?.code??cause?.code;let safe='PQ_REGISTERED_RESTORE_INCOMPLETE';
   if(state.cleanupDebt)safe='PQ_RESTORE_CLEANUP_UNCONFIRMED';
@@ -67,13 +68,21 @@ export function createRegisteredPQRestore({lifecycle,vault,sdk,networkId,id,cloc
      finally{material?.pkcs8A.fill(0);material?.pkcs8B.fill(0);}
     });
     if(!wire)return Object.freeze({cancelled:true,persisted:false});current(r);
-    const source=createPQKeyPreparationSource({sdk,
+    const originalSource=createPQKeyPreparationSource({sdk,
      getOriginalNetwork:()=>Object.freeze({chainId:networkId,owner:originalScope.account}),
      getRegisteredBinding:({guard})=>observation(r,guard),readRestoreInput:()=>({wire,credential}),
-     repository:{assertCanPrepare:value=>{r.reservationEntered=true;return vault.reservePQPreparation(value);},
-      saveKeys:async value=>{value.guard.assert();if(await r.resource.recheck()!==undefined)fail('PQ_RESTORE_RECHECK_UNCONFIRMED');observation(r,value.guard);return vault.savePQKeys({...value,restoration:{wire,credential}});},
-      readKeys:value=>vault.readPQKeys(value),verifySavedKeys:value=>vault.verifySavedPQKeys(value),
+     repository:{assertCanPrepare:async value=>{r.reservationEntered=true;await vault.reservePQPreparation(value);value.guard.assert();r.restoreResult=await vault.preparePQRestoreResult({wire,credential,publicBinding:r.expected,operationId:value.operationId});},
+      saveKeys:async value=>{value.guard.assert();if(r.captureCausePresent)throw r.captureCause;if(await r.resource.recheck()!==undefined)fail('PQ_RESTORE_RECHECK_UNCONFIRMED');observation(r,value.guard);return vault.commitPQRestoreResult(r.restoreResult);},
+      readKeys:()=>vault.reconcilePQRestoreResult(r.restoreResult),verifySavedKeys:async value=>{const actual=await vault.reconcilePQRestoreResult(r.restoreResult);return value.receipt?.recordDigest===actual.recordDigest&&value.receipt?.operationId===actual.operationId&&value.receipt?.account===actual.account;},
      }});
+    const source=Object.freeze({...originalSource,async prepare(...args){
+     const material=await originalSource.prepare(...args);
+     // Keep the exact returned material even if public-result proof capture
+     // fails. The controller must still retire this original handle once.
+     try{originalSource.selectOriginal(material,value=>{if(vault.capturePQRestoreResult(r.restoreResult,value.handle)!==true)vault.selectPQRestoreResultOutcome(r.restoreResult,outcome=>{throw outcome.firstCausePresent?outcome.firstCause:Error('PQ_RESTORE_RESULT_UNVERIFIED');});});}
+     catch(cause){r.captureCausePresent=true;r.captureCause=cause;}
+     return material;
+    }});
     r.controller=createDualPQKeyPreparation({lifecycle,source,getBinding:()=>({account:originalScope.account,network:networkId}),id});
     await r.controller.restore();r.controller.cancel();current(r);
    }catch(cause){r.failed=true;remember(r,cause);if(!r.reservationEntered)try{r.controller?.dispose();}catch(error){cleanup(r,error);}}
@@ -90,11 +99,34 @@ export function createRegisteredPQRestore({lifecycle,vault,sdk,networkId,id,cloc
    current({invalidated:false,scope:originalScope});
    let value;busy=true;
    try{
-    if(!r?.controller||!r.reservationEntered){const state=await lifecycle.run(()=>vault.readPQPreparationStatus({networkId}));value={...state,cleanupDebt:state.cleanupDebt||r?.cleanupCausePresent===true,sourceClosed:r?.closed??true,registrationPerformed:false,signingAuthorized:false,transactionAuthorized:false,retryAuthorized:false};}
+    if(r?.restoreResult){const result=vault.pqRestoreResultStatus(r.restoreResult);if(result.persistenceAttempted)await lifecycle.run(()=>vault.reconcilePQRestoreResult(r.restoreResult));value=publicState(r);}
+    else if(!r?.controller||!r.reservationEntered){const state=await lifecycle.run(()=>vault.readPQPreparationStatus({networkId}));value={...state,cleanupDebt:state.cleanupDebt||r?.cleanupCausePresent===true,sourceClosed:r?.closed??true,registrationPerformed:false,signingAuthorized:false,transactionAuthorized:false,retryAuthorized:false};}
     else{const s=r.controller.status();if(s.persistenceAttempted&&!s.persisted&&!s.preparationUnknown)await r.controller.reconcile();value=publicState(r);}
     current({invalidated:false,scope:originalScope});
    }finally{busy=false;}
    return Object.freeze({...value,busy:false});
+  },
+  async resume(){
+   if(busy||history.length>=64)fail('PQ_RESTORE_ORIGINAL_UNRESOLVED');const selected=scope(),r=records.get(selected.account);
+   current({invalidated:false,scope:selected});
+   if(!r?.restoreResult||!publicState(r).resumeAvailable)fail('PQ_RESTORE_ORIGINAL_UNRESOLVED');
+   const read={scope:selected,expected:r.expected,resource:null,closed:false,invalidated:false,firstCausePresent:false,cleanupCausePresent:false};
+   history.push(read);(r.resumeReads??=[]).push(read);busy=true;let failed=false,unsubscribe;
+   try{
+    await lifecycle.run(async guard=>{
+     current(read);unsubscribe=lifecycle.subscribe(s=>{if(s.locked||s.account!==selected.account||s.revision!==selected.revision)retire(read);});
+     try{read.resource=await acquire({networkId,nativeChainId:'6423',owner:selected.account,operation:'read-registered-binding',at:clock().toISOString()});}
+     catch(cause){const d=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'partial'):null;if(d&&Object.hasOwn(d,'value'))read.resource=d.value;const first=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'cause'):null;remember(read,first&&Object.hasOwn(first,'value')?first.value:cause);throw cause;}
+     if(read.invalidated)retire(read);observation(read,guard);
+     if(await read.resource.recheck()!==undefined)fail('PQ_RESTORE_RECHECK_UNCONFIRMED');observation(read,guard);
+     // Fresh original registered binding is data, not a new import/sign grant.
+     // The Vault can save only this same encrypted, verified original result.
+     await vault.commitPQRestoreResult(r.restoreResult,{resume:true});current(read);
+    });
+   }catch(cause){failed=true;remember(read,cause);remember(r,cause);}
+   finally{unsubscribe?.();try{await close(read);}catch(cause){cleanup(r,cause);failed=true;}if(read.cleanupCausePresent)cleanup(r,read.cleanupCause);busy=false;}
+   if(failed||read.cleanupCausePresent||publicState(r).cleanupDebt)incomplete(r);
+   current({invalidated:false,scope:selected});return publicState(r);
   },
   // Original main custody only. Never expose raw sources/causes through IPC.
   selectOriginalOutcome(observer){if(typeof observer!=='function')fail('PQ_RESTORE_OBSERVER_REQUIRED');const r=records.get(lifecycle.status().account);return observer(r?Object.freeze({...r}):null);},

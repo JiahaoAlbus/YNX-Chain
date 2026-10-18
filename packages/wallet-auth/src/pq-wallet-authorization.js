@@ -9,6 +9,8 @@ import {exactPQRecord, pqError, validatePQPublicBinding, pqDecodeBase64url} from
 export const PQ_TRANSFER_DOMAIN = 'YNX-NATIVE-TRANSFER/v2';
 export const PQ_REGISTRATION_DOMAIN = 'YNX-ACCOUNT-REGISTRATION/v1';
 export const PQ_MIGRATION_DOMAIN = 'YNX-ACCOUNT-MIGRATION/v1';
+export const PQ_REVOCATION_INTENT_DOMAIN = 'YNX-ACCOUNT-REVOCATION/v1';
+export const PQ_REVOCATION_DOMAIN = 'YNX-ACCOUNT-REVOCATION-ENVELOPE/v1';
 export const PQ_POLICY_VERSION = 'YNX-ACCOUNT-POLICY/v1';
 export const PQ_U64_MAX = (1n << 64n) - 1n;
 const I64_MAX = (1n << 63n) - 1n;
@@ -190,4 +192,45 @@ export function decodePQTransferRequest(memberWire) {
 export function preparePQTransferTransport(memberWire) {
   const body = copyWire(memberWire, 262144), decoded = decodePQTransferRequest(body);
   return Object.freeze({method: 'POST', path: '/transactions/pq/broadcast', contentType: 'application/octet-stream', get body() { return Buffer.from(body); }, transportHash: decoded.transportHash, admissionIsFinality: false});
+}
+
+// Existing ynxauth revocation grammar. Only the CURRENT full pair may sign;
+// framing is not signature verification, user approval, admission or finality.
+const revocationFields=['chainId','owner','algorithmVersion','pkA','pkB','authorizingRevision','throughRevision','ledgerNonce','executeAt','revokeAt'];
+export function normalizePQRevocationIntent(value){
+  exactPQRecord(value,revocationFields);
+  const chainId=pqHex(value.chainId,32).toString('hex'),owner=pqCanonicalAddress(value.owner);
+  if(value.algorithmVersion!==VERSION)throw pqError('PQ_AUTH_VERSION_INVALID');
+  const pkA=pqHex(value.pkA,2592).toString('hex'),pkB=pqHex(value.pkB,64).toString('hex');
+  const authorizingRevision=pqU64(value.authorizingRevision),throughRevision=pqU64(value.throughRevision),ledgerNonce=pqU64(value.ledgerNonce),executeAt=pqU64(value.executeAt),revokeAt=pqU64(value.revokeAt);
+  if(!authorizingRevision||throughRevision<authorizingRevision||!ledgerNonce||!executeAt||executeAt===PQ_U64_MAX||revokeAt!==executeAt+1n)throw pqError('PQ_REVOCATION_SEQUENCE_INVALID');
+  return Object.freeze({chainId,owner,algorithmVersion:VERSION,pkA,pkB,authorizingRevision:authorizingRevision.toString(),throughRevision:throughRevision.toString(),ledgerNonce:ledgerNonce.toString(),executeAt:executeAt.toString(),revokeAt:revokeAt.toString()});
+}
+export function encodePQRevocationIntent(value){
+  const r=normalizePQRevocationIntent(value);
+  return encodeFields([PQ_REVOCATION_INTENT_DOMAIN,u32(1),pqHex(r.chainId,32),r.owner,VERSION,pqHex(r.pkA,2592),pqHex(r.pkB,64),
+    ...pair(pqU64(r.authorizingRevision)),...pair(pqU64(r.throughRevision)),...pair(pqU64(r.ledgerNonce)),...pair(pqU64(r.executeAt)),...pair(pqU64(r.revokeAt))]);
+}
+export function decodePQRevocationIntent(wire){
+  const f=fields(wire,17,4096);tag(f[0],PQ_REVOCATION_INTENT_DOMAIN);tag(f[4],VERSION);
+  if(!f[1].equals(u32(1)))throw pqError('PQ_AUTH_VERSION_INVALID');
+  return normalizePQRevocationIntent({chainId:hexBytes(f[2],32),owner:addressBytes(f[3]),algorithmVersion:VERSION,pkA:hexBytes(f[5],2592),pkB:hexBytes(f[6],64),
+    authorizingRevision:readPair(f[7],f[8]),throughRevision:readPair(f[9],f[10]),ledgerNonce:readPair(f[11],f[12]),executeAt:readPair(f[13],f[14]),revokeAt:readPair(f[15],f[16])});
+}
+export function decodePQRevocationRequest(wire){
+  const original=copyWire(wire,131072),f=fields(original,3,131072);tag(f[0],PQ_REVOCATION_DOMAIN);
+  const intent=decodePQRevocationIntent(f[1]),member=decodeMember(f[2]);
+  certificateMatches(member.certificate,intent,'ACCOUNT-REVOCATION');
+  if(member.certificate.N!==1||member.index!==0||member.pathA.length!==0||member.pathB.length!==0)throw pqError('PQ_STANDALONE_N1_REQUIRED');
+  if(!member.message.equals(f[1])||!member.certificate.pkA.equals(pqHex(intent.pkA,2592))||!member.certificate.pkB.equals(pqHex(intent.pkB,64)))throw pqError('PQ_CURRENT_PROOF_MISMATCH');
+  return Object.freeze({intent,intentBytes:Buffer.from(f[1]),currentPQMember:Buffer.from(f[2]),pkA:member.certificate.pkA.toString('hex'),pkB:member.certificate.pkB.toString('hex'),purpose:'ACCOUNT-REVOCATION',N:1,index:0,transportHash:pqWireHash(original)});
+}
+export function encodePQRevocationRequest(value){
+  exactPQRecord(value,['intent','currentPQMember']);
+  const wire=encodeFields([PQ_REVOCATION_DOMAIN,encodePQRevocationIntent(value.intent),copyWire(value.currentPQMember,131072)]);
+  decodePQRevocationRequest(wire);return wire;
+}
+export function preparePQRevocationTransport(wire){
+  const original=copyWire(wire,131072),decoded=decodePQRevocationRequest(original);
+  return Object.freeze({method:'POST',path:'/accounts/'+decoded.intent.owner+'/authorization/revoke',contentType:'application/octet-stream',get body(){return Buffer.from(original);},transportHash:decoded.transportHash,admissionIsFinality:false});
 }

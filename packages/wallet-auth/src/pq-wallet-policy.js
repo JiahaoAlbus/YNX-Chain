@@ -5,7 +5,8 @@ import {sha256} from '@noble/hashes/sha2.js';
 import {exactPQRecord, pqError, validatePQPublicBinding, pqBase64url, PQ_SUITE} from './pq-wallet-contract.js';
 import {PQ_POLICY_VERSION, PQ_U64_MAX, pqU64, pqHex, pqCanonicalAddress,
   normalizePQNativeTransfer, normalizePQRegistrationIntent, decodePQMigrationRequest, encodePQRegistrationIntent,
-  encodePQMigrationRequest, preparePQMigrationTransport,encodePQClassicMigrationProof} from './pq-wallet-authorization.js';
+  encodePQMigrationRequest, preparePQMigrationTransport,encodePQClassicMigrationProof,
+  normalizePQRevocationIntent, encodePQRevocationRequest, decodePQRevocationRequest, preparePQRevocationTransport} from './pq-wallet-authorization.js';
 export const PQ_MAX_POLICY_RECORDS = 1024;
 export const PQ_POLICY_REVOCATION_VERSION='YNX-ACCOUNT-POLICY/v2';
 const snapshots = new WeakMap();
@@ -13,7 +14,7 @@ const decimal = value => {
   if (typeof value !== 'string') throw pqError('PQ_POLICY_DECIMAL_REQUIRED');
   return pqU64(value);
 };
-const allowed = new Set(['pq-native-transfer', 'pq-account-migration', 'legacy-native-transfer', 'ethereum', 'dex', 'resource', 'delegation', 'recovery-authorization']);
+const allowed = new Set(['pq-native-transfer', 'pq-account-migration', 'pq-account-revocation', 'legacy-native-transfer', 'ethereum', 'dex', 'resource', 'delegation', 'recovery-authorization']);
 function state(snapshot) {
   const s = snapshots.get(snapshot);
   if (!s) throw pqError('PQ_POLICY_SNAPSHOT_REQUIRED');
@@ -90,9 +91,9 @@ export function inspectPQWalletActionPolicy(snapshot, action) {
   const s = state(snapshot);
   if (!allowed.has(action)) throw pqError('PQ_ACTION_UNSUPPORTED');
   if(s.revoked)throw pqError('PQ_ACCOUNT_REVOKED');
-  if(s.revocation&&action==='pq-account-migration')throw pqError('PQ_TERMINAL_REVOCATION_PENDING');
-  if (s.active && !['pq-native-transfer', 'pq-account-migration'].includes(action)) throw pqError('PQ_ACTIVE_ACCOUNT_LEGACY_ENTRY_REFUSED');
-  if (action === 'pq-native-transfer' && !s.active) throw pqError('PQ_ACCOUNT_MIGRATION_REQUIRED');
+  if(s.revocation&&['pq-account-migration','pq-account-revocation'].includes(action))throw pqError('PQ_TERMINAL_REVOCATION_PENDING');
+  if (s.active && !['pq-native-transfer', 'pq-account-migration', 'pq-account-revocation'].includes(action)) throw pqError('PQ_ACTIVE_ACCOUNT_LEGACY_ENTRY_REFUSED');
+  if (['pq-native-transfer','pq-account-revocation'].includes(action) && !s.active) throw pqError('PQ_ACCOUNT_MIGRATION_REQUIRED');
   if (action.startsWith('pq-') && (!snapshot.enabled || s.height < s.enableAt)) throw pqError('PQ_ADMISSION_DISABLED');
   if (s.nonce === PQ_U64_MAX) throw pqError('PQ_LEDGER_NONCE_EXHAUSTED');
   return Object.freeze({mode: s.active ? 'pq' : 'legacy', chainId: s.network.chainId, nativeChainId: s.network.nativeChainId, owner: s.network.owner,
@@ -163,4 +164,30 @@ export function preparePQReviewedMigrationTransport(snapshot, proofs) {
 export function preparePQClassicMigrationProof(snapshot,value,signature){
   const {plan}=preparePQClassicMigrationAuthorization(snapshot,value);
   return encodePQClassicMigrationProof(plan.intent,signature);
+}
+
+/** Terminal current-pair review. Pending rotations remain in the complete
+ * schedule without becoming signing authority or blocking revocation. */
+export function planPQAccountRevocation(snapshot, value) {
+  const policy = inspectPQWalletActionPolicy(snapshot, 'pq-account-revocation');
+  const s = state(snapshot), intent = normalizePQRevocationIntent(value), active = policy.activeRecord;
+  if (intent.chainId !== policy.chainId || intent.owner !== policy.owner ||
+      intent.authorizingRevision !== active.revision || intent.throughRevision !== s.revision.toString() ||
+      intent.pkA !== active.pkA || intent.pkB !== active.pkB || intent.ledgerNonce !== policy.nextNonce ||
+      intent.executeAt !== policy.executionHeight || s.height === PQ_U64_MAX || intent.revokeAt !== (s.height + 1n).toString()) {
+    throw pqError('PQ_REVOCATION_REVIEW_MISMATCH');
+  }
+  return Object.freeze({kind: 'pq-account-revocation', intent, policy});
+}
+export function assertPQRevocationRequestPolicy(snapshot, wire) {
+  const decoded = decodePQRevocationRequest(wire), plan = planPQAccountRevocation(snapshot, decoded.intent);
+  const member = decodeMember(decoded.currentPQMember), active = plan.policy.activeRecord;
+  if (member.certificate.pkA.toString('hex') !== active.pkA || member.certificate.pkB.toString('hex') !== active.pkB) {
+    throw pqError('PQ_CURRENT_REGISTERED_KEY_MISMATCH');
+  }
+  return plan;
+}
+export function preparePQReviewedRevocationTransport(snapshot, proofs) {
+  const wire = encodePQRevocationRequest(proofs), plan = assertPQRevocationRequestPolicy(snapshot, wire);
+  return Object.freeze({plan, request: preparePQRevocationTransport(wire)});
 }

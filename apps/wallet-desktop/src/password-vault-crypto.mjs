@@ -428,6 +428,26 @@ export async function decryptPasswordVaultPQRecord(value,account,session,options
   }finally{plaintext.fill(0);wire?.fill(0);}
 }
 
+/** Reopen ONLY the exact encrypted one-record PQ successor staged earlier by
+ * this Vault. No backup import or private-key operation occurs here. The old
+ * live session authenticates both catalogs; no closed-session key is retained. */
+export async function reopenPreparedPasswordVaultPQRecord(value,session,prepared,input,options={}){
+  exact(input,['account','operationId','binding']);checkpoint(options,'pq-resume:start');
+  const old=requiredVault(value),next=requiredVault(prepared),key=sessionKey(old,session),scoped=guardedSession(old,session,options),binding=pqBinding(input.binding);
+  if(next.vaultId!==old.vaultId||next.revision!==old.revision+1||next.activeAccount!==input.account||binding.owner!==input.account)fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
+  for(const name of new Set([...Object.keys(old),...Object.keys(next)])){
+    if(['revision','catalogCipher','pqKeyRecords'].includes(name))continue;
+    if(canonical(old[name]??null)!==canonical(next[name]??null))fail('PASSWORD_VAULT_ORIGINAL_RETENTION');
+  }
+  const previous=old.pqKeyRecords??[],records=next.pqKeyRecords??[];
+  if(records.length!==previous.length+1||previous.some((r,i)=>canonical(r)!==canonical(records[i])))fail('PASSWORD_VAULT_ORIGINAL_RETENTION');
+  const added=records.at(-1),reservation=old.pqPreparationReservations?.find(r=>r.account===input.account);
+  if(!reservation||reservation.kind!=='restore'||reservation.operationId!==input.operationId||reservation.networkId!==binding.chainId||added.account!==input.account||added.operationId!==input.operationId||canonical(added.binding)!==canonical(binding))fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
+  const before=await verifyCatalog(old,key,scoped),after=await verifyCatalog(next,key,scoped);
+  if(canonical(before)!==canonical(after))fail('PASSWORD_VAULT_ORIGINAL_RETENTION');
+  checkpoint(scoped,'pq-resume:ready');return Object.freeze({vault:next,session:handle(next,key)});
+}
+
 /** Returns a staged next revision. Old session stays valid until the owner commits and closes it. */
 export async function rewritePasswordVault(value, changes, session, options = {}) {
   inputObject(changes, ["accounts", "activeAccount", "revision",'originalAdmissionCatalog','approveOriginalAdmissionCatalogUpgrade']); checkpoint(options, "rewrite:start");

@@ -13,8 +13,16 @@ async function fixture(){
   openPQWalletBackup:async()=>{counts.open++;if(options.badCredential)throw Error('PQ_BACKUP_AUTHENTICATION_FAILED');return {...material,binding};},
   restorePQWalletKeyHandle:async(wire,key,expected)=>{assert.equal(wire[0],7);assert.equal(key,credential);assert.deepEqual(expected,binding);counts.restore++;imported.resolve();if(options.restoreGate)await options.restoreGate;return handle;},
  };
- let stored=false;
+ let stored=false,verified=false,persistenceAttempted=false,persisted=false,restoreToken;
  const vault={assertPQPreparationAvailable:async()=>{},reservePQPreparation:async value=>{counts.reserve++;assert.equal(value.kind,'restore');assert.equal(value.operationId,'TEST-original-restore');},savePQKeys:async value=>{counts.save++;assert.equal(value.handle,handle);assert.equal(value.restoration.wire[0],7);assert.equal(value.restoration.credential,credential);stored=true;return receipt;},readPQKeys:async()=>{counts.read++;if(!stored)throw Error('ABSENT');return receipt;},verifySavedPQKeys:async value=>stored&&value.receipt===receipt};
+ // PUBLIC repository stand-in for the new main-only original-result contract;
+ // real encrypted Vault, SDK, candidate-session and CAS tests are separate.
+ vault.preparePQRestoreResult=async value=>{assert.equal(value.wire[0],7);assert.equal(value.credential,credential);restoreToken={};return restoreToken;};
+ vault.capturePQRestoreResult=(token,original)=>{assert.equal(token,restoreToken);assert.equal(original,handle);verified=true;return true;};
+ vault.pqRestoreResultStatus=token=>{assert.equal(token,restoreToken);return {verified,persistenceAttempted,persisted,cleanupComplete:keyRetired,resumeAvailable:verified&&keyRetired&&!persistenceAttempted&&!persisted};};
+ vault.selectPQRestoreResultOutcome=(_token,observer)=>observer({firstCausePresent:false});
+ vault.commitPQRestoreResult=async token=>{assert.equal(token,restoreToken);assert.equal(verified,true);persistenceAttempted=true;const value=await vault.savePQKeys({handle,restoration:{wire:Uint8Array.of(7),credential}});persisted=true;return value;};
+ vault.reconcilePQRestoreResult=async token=>{assert.equal(token,restoreToken);assert.equal(persistenceAttempted,true);const value=await vault.readPQKeys();persisted=true;return value;};
  const acquire=async request=>{assert.deepEqual(Object.keys(request).sort(),['at','nativeChainId','networkId','operation','owner'].sort());assert.equal(request.operation,'read-registered-binding');assert.equal(request.owner,account);counts.acquire++;let retired=false;
   const resource={assertCurrent(){if(retired||options.expired)throw Error('RETIRED');},readOriginal:()=>Object.freeze({version:'YNX-WALLET-REGISTERED-BINDING/v1',publicBinding:binding,dataOnly:true,restorationAuthorized:false,adoptionAuthorized:false,signingAuthorized:false,transactionAuthorized:false,retryAuthorized:false}),recheck:async()=>{counts.recheck++;},retire(){retired=true;},join:async()=>{},close:async()=>{counts.close++;retired=true;if(options.closeFailure)throw false;}};
   started.resolve();if(options.acquireGate)await options.acquireGate;if(options.partialFailure)throw Object.assign(Error('TEST-partial'),{partial:resource,cause:false});return resource;

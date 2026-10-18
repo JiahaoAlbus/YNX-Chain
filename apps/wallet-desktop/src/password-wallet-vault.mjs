@@ -15,7 +15,7 @@ import { keyAccessError } from "./key-lifecycle.mjs";
 import {bindPermissionGuard} from "./permission-lease.mjs";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PasswordVaultFile, vaultStorageError } from "./password-vault-file.mjs";
-import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog,preparePasswordVaultPQRecord,decryptPasswordVaultPQRecord,preparePasswordVaultPQReservation } from "./password-vault-crypto.mjs";
+import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog,preparePasswordVaultPQRecord,decryptPasswordVaultPQRecord,preparePasswordVaultPQReservation,reopenPreparedPasswordVaultPQRecord } from "./password-vault-crypto.mjs";
 
 const fail = (code, message) => { throw providerError(4100, code, message); };
 const cancelled = () => keyAccessError("WALLET_OPERATION_CANCELLED");
@@ -68,6 +68,7 @@ export class PasswordWalletVault {
   #mnemonicDraft = null; #mnemonicEpoch = 0;
   #pqSDK = null;
   #pqRecoveryDebt = new Set();
+  #pqRestoreResults = new WeakMap();
   constructor({ filePath, legacyFilePaths = [], safeStorage, authorization, fileStore = new PasswordVaultFile(filePath), randomSecret = () => randomBytes(32).toString("hex"), now = Date.now, pqSDK = null } = {}) {
     if (!filePath || !authorization) throw new Error("Password Wallet requires storage and authorization");
     this.filePath = filePath; this.files = fileStore; this.legacyFilePaths = [...new Set(legacyFilePaths)]; this.safeStorage = safeStorage; this.authorization = authorization; this.randomSecret = randomSecret; this.now = now;
@@ -133,6 +134,79 @@ export class PasswordWalletVault {
         await this.#publish(candidate,current.snapshot.digest,guard,true);candidate=null;
         return this.#pqPublicReceipt(await this.#readUnlocked(guard),guard.account,operationId,publicBinding);
       }finally{wire?.fill(0);credential=null;closePasswordVaultSession(candidate?.session);}
+    });
+  }
+  /** Main-only opaque original-result custody. Prepare the exact encrypted
+   * successor while unlocked BEFORE SDK import, then immediately close its
+   * session. The retained result contains no credential, plaintext or DEK. */
+  async preparePQRestoreResult({wire,credential,publicBinding,operationId}={}){
+    const guard=this.authorization.current(),sdk=this.#pqRequired();
+    return this.#serialize(async()=>{
+      const current=await this.#readUnlocked(guard),account=guard.account;
+      if(!account||current.vault.activeAccount!==account||publicBinding?.owner!==account||this.pqCleanupUnresolved())throw cancelled();
+      const binding=sdk.validatePQPublicBinding(publicBinding),reservation=current.vault.pqPreparationReservations?.find(r=>r.account===account);
+      if(!reservation||reservation.kind!=='restore'||reservation.operationId!==operationId||reservation.networkId!==binding.chainId)fail('PQ_RESTORE_ORIGINAL_RESERVATION_REQUIRED','Preserve the same original restore reservation.');
+      let candidate;
+      try{
+        candidate=await preparePasswordVaultPQRecord(current.vault,current.session,{account,operationId,binding,wire,credential},options(guard));
+        await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
+        const text=JSON.stringify(candidate.vault)+'\n',token=Object.freeze(Object.create(null));
+        this.#pqRestoreResults.set(token,{account,operationId,binding,preparedRevision:this.authorization.status().revision,parentDigest:current.snapshot.digest,text,digest:createHash('sha256').update(text).digest('hex'),verified:false,handle:null,cleanupComplete:false,persistenceAttempted:false,persisted:false,firstCausePresent:false});
+        return token;
+      }finally{closePasswordVaultSession(candidate?.session);}
+    });
+  }
+  #restoreResult(token){const result=this.#pqRestoreResults.get(token);if(!result)fail('PQ_RESTORE_ORIGINAL_RESULT_REQUIRED','An opaque original restore result from this Vault is required.');return result;}
+  #restoreCause(result,cause){if(!result.firstCausePresent){result.firstCausePresent=true;result.firstCause=cause;}}
+  /** Capture a returned SDK handle BEFORE any post-import lock fence. This
+   * reads public identity only; it cannot unlock, persist, sign or reimport. */
+  capturePQRestoreResult(token,handle){
+    const result=this.#restoreResult(token),sdk=this.#pqRequired();
+    if(result.handle||result.verified||result.persistenceAttempted)fail('PQ_RESTORE_RESULT_ALREADY_CAPTURED','Keep the original returned result.');
+    result.handle=handle;
+    try{sdk.assertPQPublicBindingMatches(sdk.readPQWalletKeyPublic(handle),result.binding);result.verified=true;return true;}
+    catch(cause){this.#restoreCause(result,cause);return false;}
+  }
+  pqRestoreResultStatus(token){
+    const result=this.#restoreResult(token),sdk=this.#pqRequired();
+    if(result.handle&&!result.cleanupComplete){
+      try{const cleanup=sdk.readPQWalletKeyCleanupOutcome(result.handle);if(cleanup.retired===true&&cleanup.cleanupComplete===true&&cleanup.cleanupUnknown===false){result.cleanupComplete=true;result.handle=null;}}
+      catch(cause){this.#restoreCause(result,cause);}
+    }
+    return Object.freeze({verified:result.verified,persistenceAttempted:result.persistenceAttempted,persisted:result.persisted,cleanupComplete:result.cleanupComplete,resumeAvailable:result.verified&&result.cleanupComplete&&!result.persistenceAttempted&&!result.persisted});
+  }
+  selectPQRestoreResultOutcome(token,observer){
+    if(typeof observer!=='function')fail('PQ_RESTORE_OBSERVER_REQUIRED','Original main observer required.');const result=this.#restoreResult(token);
+    return observer(Object.freeze({account:result.account,operationId:result.operationId,publicBinding:result.binding,verified:result.verified,firstCausePresent:result.firstCausePresent,firstCause:result.firstCause,hasEncryptedCandidate:typeof result.text==='string',retainsCredential:false,retainsDEK:false}));
+  }
+  async commitPQRestoreResult(token,{resume=false}={}){
+    const result=this.#restoreResult(token),guard=this.authorization.current();
+    return this.#serialize(async()=>{
+      guard.assert();
+      if(guard.account!==result.account||!result.verified||result.persistenceAttempted||result.persisted||this.pqCleanupUnresolved())fail('PQ_RESTORE_RESULT_NOT_RESUMABLE','Preserve the original restore result; do not import or save a replacement.');
+      const security=this.authorization.status(),state=this.pqRestoreResultStatus(token);
+      if(resume?state.cleanupComplete!==true:security.revision!==result.preparedRevision)fail('PQ_RESTORE_RESULT_NOT_RESUMABLE','Original cleanup and the selected unlocked generation are required.');
+      const current=await this.#readUnlocked(guard);guard.assert();
+      if(current.snapshot.digest!==result.parentDigest||current.vault.activeAccount!==result.account)fail('PQ_RESTORE_PARENT_CHANGED','The original encrypted Vault generation changed. Nothing was replaced.');
+      let candidate;
+      try{
+        candidate=await reopenPreparedPasswordVaultPQRecord(current.vault,current.session,JSON.parse(result.text),{account:result.account,operationId:result.operationId,binding:result.binding},options(guard));
+        if(JSON.stringify(candidate.vault)+'\n'!==result.text)fail('PQ_RESTORE_CANDIDATE_CHANGED','Preserve the exact encrypted original.');
+        guard.assert();result.persistenceAttempted=true;
+        await this.#publish(candidate,result.parentDigest,guard,true);candidate=null;
+        const stored=await this.#readUnlocked(guard);guard.assert();if(stored.snapshot.digest!==result.digest)fail('PQ_RESTORE_RESULT_UNCONFIRMED','The original local result remains unconfirmed.');
+        const receipt=this.#pqPublicReceipt(stored,result.account,result.operationId,result.binding);result.persisted=true;return receipt;
+      }catch(cause){this.#restoreCause(result,cause);throw cause;}
+      finally{closePasswordVaultSession(candidate?.session);}
+    });
+  }
+  async reconcilePQRestoreResult(token){
+    const result=this.#restoreResult(token),guard=this.authorization.current();
+    return this.#serialize(async()=>{
+      if(guard.account!==result.account||!result.verified||!result.persistenceAttempted)fail('PQ_RESTORE_ORIGINAL_RESULT_REQUIRED','Only an entered original save can be reconciled.');
+      const current=await this.#readUnlocked(guard);guard.assert();
+      if(current.snapshot.digest!==result.digest)fail('PQ_RESTORE_RESULT_UNCONFIRMED','The original local result remains unconfirmed. Nothing was imported, written or cleared.');
+      const receipt=this.#pqPublicReceipt(current,result.account,result.operationId,result.binding);result.persisted=true;return receipt;
     });
   }
   #pqPublicReceipt(current,account,operationId,expected){

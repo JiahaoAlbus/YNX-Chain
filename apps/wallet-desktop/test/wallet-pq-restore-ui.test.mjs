@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {runInNewContext} from 'node:vm';
 import {createRegisteredPQRestoreUI} from '../src/wallet-pq-restore-ui.mjs';
 class Element{children=[];listeners={};open=false;value='';disabled=false;append(...v){this.children.push(...v);}setAttribute(){}addEventListener(k,fn){this.listeners[k]=fn;}showModal(){this.open=true;}close(){this.open=false;this.listeners.close?.();}click(){return this.listeners.click?.();}}
 function fixture(){
  const root=new Element(),document={querySelector:()=>root,createElement:()=>new Element()};let state={account:'0x'+'1'.repeat(40),revision:1,locked:false,authenticating:false},imports=0,reads=0;
  const api={restoreRegisteredPQ:async input=>{assert.deepEqual(input,{credential:'A'.repeat(43)});imports++;return {ok:true,value:{phase:'saved',persisted:true,sourceClosed:true,cleanupDebt:false}};},recoverRegisteredPQ:async()=>{reads++;return {ok:true,value:{phase:'prepare-unknown',persisted:false,preparationUnknown:true,cleanupDebt:false}};}};
- const ui=createRegisteredPQRestoreUI({api,getKeyState:()=>state,document});ui.render();const [title,help,open,check,result,dialog]=root.children[0].children,[notice,credential,show,confirm,cancel]=dialog.children;
- return {ui,api,open,check,result,dialog,credential,show,confirm,cancel,lock(){state={...state,revision:2,locked:true};ui.invalidate();},counts:()=>({imports,reads})};
+ const ui=createRegisteredPQRestoreUI({api,getKeyState:()=>state,document});ui.render();const [title,help,open,check,resume,result,dialog]=root.children[0].children,[notice,credential,show,confirm,cancel]=dialog.children;
+ return {ui,api,open,check,resume,result,dialog,credential,show,confirm,cancel,lock(){state={...state,revision:2,locked:true};ui.invalidate();},counts:()=>({imports,reads})};
 }
 const settled=()=>new Promise(resolve=>setImmediate(resolve));
 test('registered restore requires explicit secret entry and confirmation, clears input before IPC and never sends a path or expected keys',async()=>{
@@ -25,4 +26,19 @@ test('registered restore local-result check is readonly and never repeats an unr
 test('registered restore normal main uses frozen original factory and only protected local methods',async()=>{
  const main=await readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),preload=await readFile(new URL('../src/preload.cjs',import.meta.url),'utf8');
  assert.ok(main.includes('pqRegisteredRestore=createRegisteredPQRestore('));assert.ok(main.includes('acquire:acquireOriginalWalletRegisteredBinding,isOriginal:isOriginalWalletRegisteredBinding'));assert.ok(main.includes("handleWalletIPC('wallet:pq-restore',(_event,input)=>safeIPC(()=>pqRegisteredRestore.restore(input)))"));assert.ok(preload.includes("restoreRegisteredPQ:input=>ipcRenderer.invoke('wallet:pq-restore',input)"));assert.equal(preload.includes('RegisteredBindingResourceKernel'),false);assert.equal(preload.includes('withPQBackup'),false);
+});
+test('registered restore resume is explicit, needs verified original availability and sends no credential or file',async()=>{
+ const f=fixture();let resumes=0;f.api.recoverRegisteredPQ=async()=>({ok:true,value:{phase:'restore-retained',persisted:false,resumeAvailable:true,cleanupDebt:false}});f.api.resumeRegisteredPQ=async(...args)=>{assert.equal(args.length,0);resumes++;return {ok:true,value:{phase:'saved',persisted:true,resumeAvailable:false,cleanupDebt:false}};};
+ assert.equal(f.resume.disabled,true);f.resume.click();assert.equal(resumes,0);f.check.click();await settled();assert.equal(f.resume.disabled,false);assert.equal(resumes,0);assert.match(f.result.textContent,/临时私钥已销毁/);
+ f.resume.click();await settled();assert.equal(resumes,1);assert.equal(f.counts().imports,0);assert.equal(f.credential.value,'');assert.equal(f.resume.disabled,true);assert.equal(f.open.disabled,true);
+});
+test('locked or unknown restore cannot use retained-result resume and does not auto retry',async()=>{
+ const f=fixture();let resumes=0;f.api.resumeRegisteredPQ=async()=>{resumes++;};f.check.click();await settled();assert.equal(f.resume.disabled,true);f.resume.click();f.lock();f.resume.click();await settled();assert.equal(resumes,0);assert.equal(f.counts().imports,0);
+});
+test('actual restore resume main/preload route carries no credential, backup, token or provider input',async()=>{
+ const main=await readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf("handleWalletIPC('wallet:pq-restore-resume'"),end=main.indexOf('\n',start),handlers=new Map();let resumes=0,api;
+ assert.ok(start>=0&&end>start);runInNewContext(main.slice(start,end),{handleWalletIPC:(name,fn)=>handlers.set(name,fn),safeIPC:fn=>fn(),pqRegisteredRestore:{resume(...args){assert.equal(args.length,0);resumes++;return 'same-original';}}});
+ assert.equal(await handlers.get('wallet:pq-restore-resume')({},'ignored-untrusted-input'),'same-original');assert.equal(resumes,1);
+ const invoked=[];runInNewContext(await readFile(new URL('../src/preload.cjs',import.meta.url),'utf8'),{require:()=>({contextBridge:{exposeInMainWorld:(_name,value)=>{api=value;}},ipcRenderer:{invoke:(...args)=>invoked.push(args)}})});
+ api.resumeRegisteredPQ('ignored-untrusted-input');assert.deepEqual(invoked[0],['wallet:pq-restore-resume']);
 });
