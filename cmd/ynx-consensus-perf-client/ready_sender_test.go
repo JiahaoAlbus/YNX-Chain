@@ -65,6 +65,9 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if err != nil {
 		t.Fatal(err)
 	}
+	var finalizeNs, commitNs int64
+	var finalizeCalls, commitCalls int
+	controllerStarted := time.Now()
 	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append, reuseResultSlots: reuseSlots, segmentedIntents: segmented}, p, txs, results,
 		func(index int) (time.Time, bool) {
 			var data []byte
@@ -111,11 +114,18 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 					}
 					execution.Lock()
 					height++
+					phaseStarted := time.Now()
 					finalized, execErr := app.FinalizeBlock(ctx, &abci.RequestFinalizeBlock{Height: height, Time: time.Unix(1802736000+height, 0), Txs: [][]byte{txs[job.index]}})
+					finalizeNs += time.Since(phaseStarted).Nanoseconds()
+					finalizeCalls++
 					if execErr != nil || len(finalized.TxResults) != 1 || finalized.TxResults[0].Code != 0 {
 						t.Errorf("actual ready execution failed: %v", execErr)
 					}
-					if _, execErr = app.Commit(ctx, &abci.RequestCommit{}); execErr != nil {
+					phaseStarted = time.Now()
+					_, execErr = app.Commit(ctx, &abci.RequestCommit{})
+					commitNs += time.Since(phaseStarted).Nanoseconds()
+					commitCalls++
+					if execErr != nil {
 						t.Error(execErr)
 					}
 					gate := gateResult(txs[job.index], height)
@@ -132,6 +142,7 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 				return keep
 			})
 		})
+	controllerNs := time.Since(controllerStarted).Nanoseconds()
 	if err != nil || !fastOffered.Load() || stats.Completed != 6 || stats.Offered != 6 || stats.Prepared != 6 || stats.RoundsCompleted != 2 || stats.Quarantined != 0 || stats.PeakInFlight > 3 || !p.stopped {
 		t.Fatalf("continuous ready run failed: %+v %v", stats, err)
 	}
@@ -152,9 +163,13 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 			}
 		}
 	}
-	if err = stream.close(); err != nil || stream.report.DurableRecords != 6 {
+	terminalCloseStarted := time.Now()
+	err = stream.close()
+	terminalCloseNs := time.Since(terminalCloseStarted).Nanoseconds()
+	if err != nil || stream.report.DurableRecords != 6 {
 		t.Fatal("actual executed terminal evidence was not sealed", stream.report, err)
 	}
+	restartStarted := time.Now()
 	restarted, err := consensus.NewPersistentApplication(migration, statePath)
 	if err != nil {
 		t.Fatal(err)
@@ -167,6 +182,7 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if err = json.Unmarshal(query.Value, &state); err != nil {
 		t.Fatal(err)
 	}
+	restartReadNs := time.Since(restartStarted).Nanoseconds()
 	for _, template := range p.templates {
 		found := false
 		for _, account := range state.Accounts {
@@ -197,6 +213,34 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if err = claimSenderPool(path); err == nil {
 		t.Fatal("fixture claim reused")
 	}
+	if finalizeCalls != 6 || commitCalls != 6 || finalizeNs <= 0 || commitNs <= 0 || terminalCloseNs <= 0 || restartReadNs <= 0 {
+		t.Fatal("actual execution/persistence phase measurements missing")
+	}
+	mode := "flat-full-history"
+	if reuseSlots {
+		mode = "flat-reused-slots"
+	}
+	if segmented {
+		mode = "segmented-reused-slots"
+	}
+	phase, err := json.Marshal(struct {
+		Schema               string           `json:"schema"`
+		Mode                 string           `json:"mode"`
+		BusinessTransactions int              `json:"businessTransactions"`
+		ControllerNs         int64            `json:"controllerNs"`
+		Supply               readySupplyStats `json:"supply"`
+		FinalizeCalls        int              `json:"finalizeCalls"`
+		FinalizeNs           int64            `json:"finalizeNs"`
+		CommitCalls          int              `json:"commitCalls"`
+		CommitNs             int64            `json:"commitNs"`
+		TerminalCloseNs      int64            `json:"terminalCloseNs"`
+		RestartReadNs        int64            `json:"restartReadNs"`
+		Scope                string           `json:"scope"`
+	}{"ynx-ready-supply-phase-sample-v1", mode, 6, controllerNs, stats.Supply, finalizeCalls, finalizeNs, commitCalls, commitNs, terminalCloseNs, restartReadNs, "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("YNX_READY_SUPPLY_PHASE_V1 %s", phase)
 }
 
 func TestReadySenderQuarantinesOnlyUncertainOrUnverifiedAccount(t *testing.T) {
