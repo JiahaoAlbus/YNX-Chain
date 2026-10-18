@@ -1398,6 +1398,87 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  proof-verifier-macos:
+    needs: focused-go
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+      GOTOOLCHAIN: local
+    steps:
+      - name: Checkout the same verified protocol source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install the original pinned Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+      - name: Build only the existing offline verifier for macOS callers
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          umask 077
+          YNX_MAC_VERIFIER="$RUNNER_TEMP/ynx-pq-macos-proof-verifier"
+          export YNX_MAC_VERIFIER
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mkdir -m 0700 "$YNX_MAC_VERIFIER"
+          df -Pk "$RUNNER_TEMP"
+          awk '/MemAvailable:/ {print}' /proc/meminfo
+          test "$(df -Pk "$RUNNER_TEMP" | awk 'NR==2 {print $4}')" -gt 2097152
+          for YNX_MAC_ARCH in arm64 amd64; do
+            GOOS=darwin GOARCH="$YNX_MAC_ARCH" go build -p 1 -trimpath -o "$YNX_MAC_VERIFIER/ynx-consensus-proof-verify-darwin-$YNX_MAC_ARCH" ./cmd/ynx-consensus-proof-verify
+          done
+          python3 -B - <<'PY'
+          import hashlib, json, os, struct, subprocess
+          from pathlib import Path
+          root = Path(os.environ['YNX_MAC_VERIFIER'])
+          def pin(path):
+              with path.open('rb') as source:
+                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
+              return dict(bytes=path.stat().st_size, sha256=digest)
+          binaries = {}
+          for arch, cpu in (('arm64', 0x0100000c), ('amd64', 0x01000007)):
+              name = 'ynx-consensus-proof-verify-darwin-' + arch
+              path = root / name
+              with path.open('rb') as source:
+                  head = source.read(32)
+              if len(head) != 32 or head[:4] != b'\xcf\xfa\xed\xfe' or struct.unpack('<I', head[4:8])[0] != cpu or struct.unpack('<I', head[12:16])[0] != 2:
+                  raise RuntimeError('normal verifier is not the selected macOS Mach-O executable')
+              binaries[name] = pin(path)
+              if not 1 << 20 < binaries[name]['bytes'] <= 128 << 20:
+                  raise RuntimeError('macOS verifier exceeds the original per-binary bound')
+          names = ('internal/consensus/pq_light_proof.go', 'internal/consensus/pq_transaction_proof.go',
+              'cmd/ynx-consensus-proof-verify/main.go', 'cmd/ynx-consensus-proof-verify/trust.go', 'cmd/ynx-consensus-proof-verify/transaction.go')
+          record = dict(version='YNX-PQ-MACOS-PROOF-VERIFIER-CANDIDATE/v1', commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'],
+              platforms=['darwin/arm64', 'darwin/amd64'], goVersion=subprocess.check_output(['go', 'version'], text=True).strip(),
+              goMod=pin(Path('go.mod')), goSum=pin(Path('go.sum')), cometForkTree=subprocess.check_output(['git','rev-parse','HEAD:third_party/cometbft'], text=True).strip(),
+              sources={name:pin(Path(name)) for name in names}, binaries=binaries,
+              lightRequestContract='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1', transactionRequestContract='YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1',
+              transactionResultContract='YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1', crossCompiled=True,
+              executedOnMacOS=False, productInstalled=False, nativeRootAuthorized=False, publicDeployment=False, pqActivation=False,
+              purpose='existing offline DATA verifier for the original Wallet builder; no keys, signing, trust context or service')
+          with (root / 'SOURCE.json').open('x') as target:
+              target.write(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n')
+          print('YNX_MACOS_PROOF_VERIFIER ' + json.dumps(record, sort_keys=True, separators=(',', ':')))
+          PY
+          test -z "$(git status --porcelain --untracked-files=normal)"
+      - name: Upload only public macOS verifier executables and exact source pins
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-macos-proof-verifier-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-pq-macos-proof-verifier
+          if-no-files-found: error
+          retention-days: 7
+
   pq-paired-n1:
     needs: focused-go
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1
