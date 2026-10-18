@@ -64,6 +64,10 @@ type consensusBatchAdmission struct {
 }
 
 func authenticateConsensusBatch(wire []byte, policy *ynxauth.State, height uint64, chainID int64) (*consensusBatchAdmission, error) {
+	return authenticateConsensusBatchCached(wire, policy, height, chainID, nil)
+}
+
+func authenticateConsensusBatchCached(wire []byte, policy *ynxauth.State, height uint64, chainID int64, cache *chain.PQCertificateCache) (*consensusBatchAdmission, error) {
 	if len(wire) == 0 || len(wire) > chain.MaxPQBatchBytes || policy == nil || height < policy.EnableAt {
 		return nil, errors.New("invalid ABCI Whole size, policy or execution height")
 	}
@@ -78,7 +82,11 @@ func authenticateConsensusBatch(wire []byte, policy *ynxauth.State, height uint6
 	if err != nil {
 		return nil, err
 	}
-	verifier, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: policy.NetworkID, Purpose: ynxauth.TransactionPurpose, CacheEntries: 1, Optimized: true, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
+	certificates, scope, err := cache.VerifierCache(policy)
+	if err != nil {
+		return nil, err
+	}
+	verifier, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: policy.NetworkID, Purpose: ynxauth.TransactionPurpose, CacheEntries: 1, Optimized: true, CertificateCache: certificates, CacheScope: scope, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
 		return policy.TrustedRegistration(req.Owner, ynxauth.TransactionPurpose, req.Height)
 	}})
 	if err != nil {
@@ -164,7 +172,7 @@ func (a *Application) applyPQWhole(state executionState, payload, wire []byte, h
 			return fail(errors.New("Whole already executed in source history"))
 		}
 	}
-	admission, err := authenticateConsensusBatch(wire, state.accountPolicy, uint64(height), a.migration.Network.ChainID)
+	admission, err := authenticateConsensusBatchCached(wire, state.accountPolicy, uint64(height), a.migration.Network.ChainID, a.pqCertificateCache)
 	if err != nil {
 		return fail(err)
 	}
@@ -232,6 +240,10 @@ func (a *Application) applyPQWhole(state executionState, payload, wire []byte, h
 // Historical proofs use full policy, including future tombstones; current
 // eligibility is rechecked independently when admitting a new transaction.
 func validateConsensusPQBatches(state CommittedState, migration chain.ConsensusMigrationState) error {
+	return validateConsensusPQBatchesCached(state, migration, chain.NewPQCertificateCache())
+}
+
+func validateConsensusPQBatchesCached(state CommittedState, migration chain.ConsensusMigrationState, cache *chain.PQCertificateCache) error {
 	refs := make(map[string]map[uint32]PQCommittedAuthorization)
 	closed := make(map[string]bool)
 	active := ""
@@ -287,7 +299,7 @@ func validateConsensusPQBatches(state CommittedState, migration chain.ConsensusM
 		if err != nil || SignedTransactionHash(payload) != proof.ABCITransactionHash {
 			return errors.New("ABCI Whole outer transport hash mismatch")
 		}
-		admission, err := authenticateConsensusBatch(proof.Whole, state.AccountPolicy, proof.Height, state.ChainID)
+		admission, err := authenticateConsensusBatchCached(proof.Whole, state.AccountPolicy, proof.Height, state.ChainID, cache)
 		if err != nil {
 			return err
 		}

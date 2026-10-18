@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cometbft/cometbft/crypto/ed25519"
+	"github.com/cometbft/cometbft/crypto/ynxpq"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	cmttypes "github.com/cometbft/cometbft/types"
 )
@@ -338,9 +340,70 @@ func TestStockCometRejectsCandidateEnvelope(t *testing.T) {
 		t.Fatal(err)
 	}
 	vote.Signature = fixtureEnvelope(t)
-	if err := vote.ValidateBasic(); err == nil || !strings.Contains(err.Error(), "signature is too big") {
-		t.Fatalf("stock Comet compatibility changed: %v", err)
+	// Stock v0.38.23 rejected this original fixture structurally at 64 bytes.
+	// The owned fork admits only the strict envelope shape; authorization and
+	// actual cryptography must still reject these original all-zero signatures.
+	if err := vote.ValidateBasic(); err != nil {
+		t.Fatal(err)
 	}
+	key, registry, policy := realKeyFixture(t)
+	public := forkFixturePublicKey(t, policy, registry.record)
+	if err := vote.Verify(policy.ChainID, public); err == nil {
+		t.Fatal("structural envelope acceptance authorized zero signatures")
+	}
+	legacy := ed25519.GenPrivKeyFromSecret([]byte("public-old-height-qa-fixture"))
+	legacyVote := copyEvidenceVote(vote)
+	legacyVote.ValidatorAddress = legacy.PubKey().Address()
+	if err := legacyVote.Verify(policy.ChainID, legacy.PubKey()); err == nil {
+		t.Fatal("original PQ envelope accepted by actual legacy Ed key")
+	}
+	legacyVote.Height = 99
+	legacyVote.Signature, err = legacy.Sign(cmttypes.VoteSignBytes(policy.ChainID, legacyVote.ToProto()))
+	if err != nil || legacyVote.Verify(policy.ChainID, legacy.PubKey()) != nil {
+		t.Fatal("real preactivation Ed signature no longer verifies:", err)
+	}
+	vote.Signature, err = key.signRequest(fixtureRequest(t, 100), registry.record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = vote.Verify(policy.ChainID, public); err != nil {
+		t.Fatal("authorized genuine dual signature failed:", err)
+	}
+	decoded, err := ynxpq.DecodePubKey(public.Bytes())
+	if err != nil || vote.Verify(policy.ChainID, decoded) == nil {
+		t.Fatal("serialized full key self-authorized without trusted policy:", err)
+	}
+	beforeActivation := policy
+	beforeActivation.ActivationHeight = 101
+	if err = vote.Verify(policy.ChainID, forkFixturePublicKey(t, beforeActivation, registry.record)); err == nil {
+		t.Fatal("genuine dual signature authorized before configured activation")
+	}
+}
+
+// This is an explicit immutable QA policy source, not a production registry.
+// It pins every byte of one fixture binding and its historical interval; the
+// actual engine verifier still performs BOTH real primitive verifications.
+func forkFixturePublicKey(t testing.TB, policy Policy, record KeyRecord) ynxpq.PubKey {
+	t.Helper()
+	wire, err := (LogicalPublicKey{GenesisID: policy.GenesisID, ChainID: policy.ChainID,
+		ValidatorAddress: record.ValidatorAddress, Epoch: record.Epoch, ValidFromHeight: record.ValidFromHeight,
+		RegistrationHash: bytes.Repeat([]byte{0x9a}, 32), MLDSA87PublicKey: record.MLDSA87PublicKey,
+		SLHDSASHA2256fPublicKey: record.SLHDSASHA2256fPublicKey}).MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	public, err := ynxpq.DecodePubKey(wire)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return public.WithAuthorizer(ynxpq.AuthorizerFunc(func(binding []byte, height int64, round int32, kind ynxpq.Kind) error {
+		if !bytes.Equal(binding, wire) || height < policy.ActivationHeight || height < record.ValidFromHeight ||
+			(record.ValidUntilHeight != 0 && height >= record.ValidUntilHeight) || round < 0 ||
+			(kind != ynxpq.Prevote && kind != ynxpq.Precommit) {
+			return errors.New("outside pinned QA consensus authority")
+		}
+		return nil
+	}))
 }
 
 func FuzzEnvelopeRoundTrip(f *testing.F) {

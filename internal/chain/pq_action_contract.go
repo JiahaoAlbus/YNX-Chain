@@ -213,6 +213,9 @@ func validatePQContractArtifact(r pqContractReceipt) error {
 }
 
 func pqContractFreshMaterial(a ContractArtifact) (string, string, []byte, error) {
+	if err := ValidatePQContractPinnedArtifact(a); err != nil {
+		return "", "", nil, err
+	}
 	root, ok := repoRoot()
 	if !ok {
 		return "", "", nil, errors.New("fixed compiler material root is unavailable")

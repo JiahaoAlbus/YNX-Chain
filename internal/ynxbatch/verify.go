@@ -39,6 +39,9 @@ type VerifierOptions struct {
 	// The complete registration is additionally bound and refreshed on every use.
 	CertificateCache *CertificateCache
 	CacheScope       []byte
+	// ParallelProvider optionally shares a fixed budget for real independent
+	// signature branches. Nil preserves sequential verification.
+	ParallelProvider *ParallelProvider
 }
 type authenticatedState struct {
 	c     Certificate
@@ -74,6 +77,7 @@ type Verifier struct {
 	checks, hits     uint64
 	certificateCache *CertificateCache
 	cacheScope       []byte
+	parallelProvider *ParallelProvider
 }
 
 func NewVerifier(o VerifierOptions) (*Verifier, error) {
@@ -83,8 +87,11 @@ func NewVerifier(o VerifierOptions) (*Verifier, error) {
 	if o.CertificateCache != nil && (!o.CertificateCache.enabled() || len(o.CacheScope) != 32) || o.CertificateCache == nil && len(o.CacheScope) != 0 {
 		return nil, invalid("certificate cache scope")
 	}
+	if o.ParallelProvider != nil && !o.ParallelProvider.enabled() {
+		return nil, invalid("parallel provider configuration")
+	}
 	return &Verifier{chainID: clone(o.ChainID), purpose: o.Purpose, resolve: o.ResolveTrustedOwner, cacheEntries: o.CacheEntries, optimized: o.Optimized,
-		cache: make(map[string]*list.Element), lru: list.New(), epoch: 1, certificateCache: o.CertificateCache, cacheScope: clone(o.CacheScope)}, nil
+		cache: make(map[string]*list.Element), lru: list.New(), epoch: 1, certificateCache: o.CertificateCache, cacheScope: clone(o.CacheScope), parallelProvider: o.ParallelProvider}, nil
 }
 func (v *Verifier) current(c Certificate, height uint64) ([]byte, error) {
 	if !bytes.Equal(c.ChainID, v.chainID) || c.Purpose != v.purpose {
@@ -157,7 +164,7 @@ func (v *Verifier) AuthenticateCertificate(wire []byte, height uint64) (*Authent
 				return nil, err
 			}
 			v.checks += 2
-			if err = verifySignatures(c, keys); err != nil {
+			if err = verifySignaturesWithProvider(c, keys, v.parallelProvider); err != nil {
 				return nil, err
 			}
 		}

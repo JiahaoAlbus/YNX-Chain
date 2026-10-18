@@ -388,7 +388,7 @@ func DecodeSignedApplicationAction(payload []byte) (SignedApplicationAction, err
 }
 
 func TransactionEnvelopeType(payload []byte) (string, error) {
-	if len(payload) == 0 || len(payload) > MaxPQWholeTransactionBytes {
+	if len(payload) == 0 || len(payload) > MaxPQWholeTransactionBytes && len(payload) > MaxPQContractTransactionBytes {
 		return "", errors.New("transaction envelope size is invalid")
 	}
 	var envelope struct {
@@ -396,6 +396,12 @@ func TransactionEnvelopeType(payload []byte) (string, error) {
 	}
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		return "", errors.New("transaction envelope is not JSON")
+	}
+	if envelope.Type == PQActionType {
+		if len(payload) > MaxPQContractTransactionBytes {
+			return "", errors.New("PQ contract envelope size is invalid")
+		}
+		return envelope.Type, nil
 	}
 	if envelope.Type == ValidatorRegistryTransactionType {
 		if len(payload) > MaxValidatorRegistryTransactionBytes {

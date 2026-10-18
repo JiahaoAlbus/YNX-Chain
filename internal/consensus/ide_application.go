@@ -212,10 +212,11 @@ func validateIDECommittedState(state CommittedState) error {
 		}
 		if contract.SourceAnchor == "" {
 			bytecodeHash, err := chain.ValidateBoundedPinnedIdentity(contract.Name, contract.SourceHash, contract.DeployedBytecode)
-			if err != nil || contract.DeployedBytecodeHash != bytecodeHash || contract.BlockHeight <= 0 || !validResourceTxHash(contract.TxHash) || contract.LastUpdatedHeight < contract.BlockHeight || contract.Address != ideContractAddress(contract.Deployer, contract.TxHash) {
+			pqDeployment := pqContractDeploymentMatches(state, contract)
+			if err != nil || contract.DeployedBytecodeHash != bytecodeHash || contract.BlockHeight <= 0 || !validResourceTxHash(contract.TxHash) || contract.LastUpdatedHeight < contract.BlockHeight || (contract.Address != ideContractAddress(contract.Deployer, contract.TxHash) && !pqDeployment) {
 				return errors.New("native IDE deployment identity is invalid")
 			}
-			if contract.LastUpdatedHeight == contract.BlockHeight && contract.LastCallTxHash != "" || contract.LastUpdatedHeight > contract.BlockHeight && !validResourceTxHash(contract.LastCallTxHash) {
+			if (contract.LastUpdatedHeight == contract.BlockHeight && contract.LastCallTxHash != "" && !pqDeployment) || (contract.LastUpdatedHeight > contract.BlockHeight && !validResourceTxHash(contract.LastCallTxHash)) {
 				return errors.New("committed IDE contract update anchor is invalid")
 			}
 		} else if contract.LastCallTxHash != "" && !validResourceTxHash(contract.LastCallTxHash) {

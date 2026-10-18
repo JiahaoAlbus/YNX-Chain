@@ -85,10 +85,12 @@ func (d *Devnet) EnableAccountPQ(height uint64) error {
 		return err
 	}
 	d.accountPolicy = &s
+	d.pqCertificateCache.Invalidate()
 	err = d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	if err != nil && !errors.Is(err, ErrSnapshotDurabilityUncertain) {
 		d.accountPolicy = nil
+		d.pqCertificateCache.Invalidate()
 	}
 	return err
 }
@@ -196,7 +198,7 @@ func (d *Devnet) verifyPQTransferLocked(input SignedTransferInput) error {
 	if input.Hash != "0x"+hex.EncodeToString(digest[:]) {
 		return errors.New("PQ transfer hash differs from submitted bytes")
 	}
-	return d.accountPolicy.VerifyMember(input.From, ynxauth.TransactionPurpose, m.Message, input.PQMember, d.accountExecutionHeightLocked())
+	return d.verifyPQMemberLocked(input.From, ynxauth.TransactionPurpose, m.Message, m, d.accountExecutionHeightLocked())
 }
 
 // SubmitPQTransfer accepts the complete protocol MemberWire. The ordinary
@@ -271,15 +273,20 @@ func (d *Devnet) SubmitAccountMigration(wire []byte) (Transaction, bool, error) 
 	sender.ResourceUsage.BandwidthUsed++
 	feeRecipient.Balance++
 	d.accountPolicy = &next
+	d.pqCertificateCache.Invalidate()
 	tx := Transaction{Hash: txHash, Type: "account_migration", From: m.Intent.Owner, To: m.Intent.Owner, Fee: 1, Nonce: m.Intent.LedgerNonce, Timestamp: time.Now().UTC(), LotFlows: flows, Memo: pqMigrationMemo + hex.EncodeToString(wire)}
 	d.pending = append(d.pending, tx)
-	tx, err = d.persistMutationLocked(tx, func() { d.rollbackTransferLocked(undo); d.accountPolicy = oldPolicy })
+	tx, err = d.persistMutationLocked(tx, func() { d.rollbackTransferLocked(undo); d.accountPolicy = oldPolicy; d.pqCertificateCache.Invalidate() })
 	return tx, false, err
 }
 
 // Historical PQ envelopes retain their complete signed bytes. This is separate
 // from current account policy; a key rotation cannot invalidate old history.
 func validateHistoricalPQTransaction(tx Transaction, state *ynxauth.State, height uint64, chainID int64) error {
+	return validateHistoricalPQTransactionWithCache(tx, state, height, chainID, nil)
+}
+
+func validateHistoricalPQTransactionWithCache(tx Transaction, state *ynxauth.State, height uint64, chainID int64, cache *PQCertificateCache) error {
 	if isPQSourceHistory(tx) {
 		if err := validatePQUnsignedExecutionMetadata(tx); err != nil {
 			return err
@@ -289,7 +296,7 @@ func validateHistoricalPQTransaction(tx Transaction, state *ynxauth.State, heigh
 		return validateHistoricalPQRevocation(tx, state, height)
 	}
 	if strings.HasPrefix(tx.Memo, pqActionMemo) {
-		return validateHistoricalPQAction(tx, state, height, chainID)
+		return validateHistoricalPQActionWithCache(tx, state, height, chainID, cache)
 	}
 	if strings.HasPrefix(tx.Memo, pqTransferMemo) {
 		if state == nil {
@@ -311,7 +318,7 @@ func validateHistoricalPQTransaction(tx Transaction, state *ynxauth.State, heigh
 		if tx.Type != "transfer" || tx.Hash != "0x"+hex.EncodeToString(h[:]) || t.NativeChainID != uint64(chainID) || t.From != tx.From || t.To != tx.To || t.Amount != uint64(tx.Amount) || t.Fee != uint64(tx.Fee) || t.Nonce != tx.Nonce {
 			return errors.New("PQ historical execution mismatch")
 		}
-		return state.VerifyMember(tx.From, ynxauth.TransactionPurpose, m.Message, wire, height)
+		return cache.VerifyDecodedMember(state, tx.From, ynxauth.TransactionPurpose, m.Message, m, height)
 	}
 	if strings.HasPrefix(tx.Memo, pqMigrationMemo) {
 		if state == nil {

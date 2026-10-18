@@ -28,14 +28,16 @@ const (
 
 type Application struct {
 	abcitypes.BaseApplication
-	mu               sync.RWMutex
-	bootstrap        *ConsensusBootstrap
-	persistenceHooks *committedPersistenceHooks
-	migration        chain.ConsensusMigrationState
-	committed        CommittedState
-	pending          *CommittedState
-	statePath        string
-	feeRecipient     string
+	mu                    sync.RWMutex
+	bootstrap             *ConsensusBootstrap
+	persistenceHooks      *committedPersistenceHooks
+	migration             chain.ConsensusMigrationState
+	committed             CommittedState
+	pending               *CommittedState
+	statePath             string
+	feeRecipient          string
+	pqCertificateCache    *chain.PQCertificateCache
+	pqEngineAuthorization *PQEngineAuthorization
 }
 
 type transactionError struct {
@@ -46,6 +48,7 @@ type transactionError struct {
 type executionState struct {
 	bootstrap                  *ConsensusBootstrap
 	validatorRegistry          *ValidatorRegistryState
+	pqEngineSchedule           *PQEngineSchedule
 	legacyContracts            *LegacyContracts
 	legacyResourceMarket       *LegacyResourceMarket
 	legacyResourceSponsor      *LegacyResourceSponsor
@@ -137,6 +140,19 @@ func NewPersistentApplicationWithBootstrap(state chain.ConsensusMigrationState, 
 }
 
 func newPersistentApplication(state chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, hooks *committedPersistenceHooks) (*Application, error) {
+	return newPersistentApplicationWithAuthorization(state, statePath, bootstrap, hooks, nil)
+}
+
+// Authorization is independent startup configuration, never restored from the
+// same ledger or accepted through a transaction/API request.
+func NewPersistentApplicationWithEngineAuthorization(state chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization) (*Application, error) {
+	if bootstrap == nil || authorization == nil {
+		return nil, errors.New("engine schedule requires explicit bootstrap and independent operator authorization")
+	}
+	return newPersistentApplicationWithAuthorization(state, statePath, bootstrap, nil, authorization)
+}
+
+func newPersistentApplicationWithAuthorization(state chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, hooks *committedPersistenceHooks, authorization *PQEngineAuthorization) (*Application, error) {
 	if err := state.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid YNX consensus migration state: %w", err)
 	}
@@ -163,6 +179,17 @@ func newPersistentApplication(state chain.ConsensusMigrationState, statePath str
 	if err := committed.Validate(migration); err != nil {
 		return nil, fmt.Errorf("validate imported or restored application state: %w", err)
 	}
+	if err := authorization.ValidateCommittedSchedule(committed.PQEngineSchedule, committed.Height); err != nil {
+		return nil, err
+	}
+	if authorization != nil && committed.PQEngineSchedule == nil {
+		if authorization.schedule.RegistryHeight != committed.Height {
+			return nil, errors.New("operator schedule must bind the actual committed registry height")
+		}
+		if _, err := newPQEngineSnapshot(bootstrap, committed.ValidatorRegistry, authorization.schedule, authorization.schedule.AuthorizedAt); err != nil {
+			return nil, fmt.Errorf("validate independently authorized engine candidate: %w", err)
+		}
+	}
 	if err := confirmLoadedCommittedState(strings.TrimSpace(statePath), hooks); err != nil {
 		return nil, err
 	}
@@ -177,12 +204,14 @@ func newPersistentApplication(state chain.ConsensusMigrationState, statePath str
 		return nil, errors.New("YNX migration has no active fee recipient")
 	}
 	return &Application{
-		bootstrap:        bootstrap,
-		persistenceHooks: hooks,
-		migration:        migration,
-		committed:        committed,
-		statePath:        strings.TrimSpace(statePath),
-		feeRecipient:     feeRecipient,
+		pqCertificateCache:    chain.NewPQCertificateCache(),
+		pqEngineAuthorization: authorization,
+		bootstrap:             bootstrap,
+		persistenceHooks:      hooks,
+		migration:             migration,
+		committed:             committed,
+		statePath:             strings.TrimSpace(statePath),
+		feeRecipient:          feeRecipient,
 	}, nil
 }
 
@@ -533,10 +562,36 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	}
 }
 
+// Caller holds a.mu. Constructing a detached snapshot here avoids recursively
+// acquiring that lock through the public committed-snapshot accessor.
+func (a *Application) validateEngineNextValidatorsHash(height int64, hash []byte) error {
+	if a.bootstrap == nil {
+		return nil
+	}
+	if a.committed.PQEngineSchedule == nil {
+		return a.bootstrap.validateFixedMembership(hash)
+	}
+	if height == 0 {
+		height = a.committed.Height + 1
+	}
+	if err := a.pqEngineAuthorization.ValidateCommittedSchedule(a.committed.PQEngineSchedule, a.committed.Height); err != nil {
+		return err
+	}
+	snapshot, err := newPQEngineSnapshot(a.bootstrap, a.committed.ValidatorRegistry, a.committed.PQEngineSchedule, a.committed.Height)
+	if err != nil {
+		return err
+	}
+	return snapshot.ValidateNextValidatorsHash(height, hash)
+}
+
 func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) (*abcitypes.ResponseCheckTx, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	state := a.cloneExecutionState()
+	state, err := preparePQEngineExecution(state, a.committed.Height+1, a.pqEngineAuthorization)
+	if err != nil {
+		return &abcitypes.ResponseCheckTx{Code: CodeInvalidTx, Log: err.Error()}, nil
+	}
 	_, tx, err := a.applyTransaction(state, req.Tx, a.committed.Height+1, time.Time{})
 	if err != nil {
 		return &abcitypes.ResponseCheckTx{Code: transactionCode(err), Log: err.Error(), Data: tx.resultData}, nil
@@ -547,10 +602,8 @@ func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) 
 func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	if a.bootstrap != nil {
-		if err := a.bootstrap.validateFixedMembership(req.NextValidatorsHash); err != nil {
-			return nil, err
-		}
+	if err := a.validateEngineNextValidatorsHash(req.Height, req.NextValidatorsHash); err != nil {
+		return nil, err
 	}
 	height := req.Height
 	if height == 0 {
@@ -560,6 +613,10 @@ func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestP
 		return nil, errors.New("proposal height must follow committed state")
 	}
 	state := a.cloneExecutionState()
+	state, err := preparePQEngineExecution(state, height, a.pqEngineAuthorization)
+	if err != nil {
+		return nil, err
+	}
 	selected := make([][]byte, 0, len(req.Txs))
 	var selectedBytes int64
 	for _, payload := range req.Txs {
@@ -580,10 +637,8 @@ func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestP
 func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestProcessProposal) (*abcitypes.ResponseProcessProposal, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	if a.bootstrap != nil {
-		if err := a.bootstrap.validateFixedMembership(req.NextValidatorsHash); err != nil {
-			return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
-		}
+	if err := a.validateEngineNextValidatorsHash(req.Height, req.NextValidatorsHash); err != nil {
+		return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
 	}
 	if req.Height != 0 && req.Height != a.committed.Height+1 {
 		return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
@@ -593,6 +648,10 @@ func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestP
 		height = a.committed.Height + 1
 	}
 	state := a.cloneExecutionState()
+	state, err := preparePQEngineExecution(state, height, a.pqEngineAuthorization)
+	if err != nil {
+		return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
+	}
 	for i, payload := range req.Txs {
 		next, _, err := a.applyTransactionAt(state, payload, height, req.Time, uint32(i))
 		if err != nil {
@@ -609,15 +668,17 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if a.pending != nil {
 		return nil, errors.New("cannot finalize another block before committing pending state")
 	}
-	if a.bootstrap != nil {
-		if err := a.bootstrap.validateFixedMembership(req.NextValidatorsHash); err != nil {
-			return nil, err
-		}
+	if err := a.validateEngineNextValidatorsHash(req.Height, req.NextValidatorsHash); err != nil {
+		return nil, err
 	}
 	if req.Height != a.committed.Height+1 {
 		return nil, fmt.Errorf("finalize height %d must immediately follow committed height %d", req.Height, a.committed.Height)
 	}
 	state := a.cloneExecutionState()
+	state, err := preparePQEngineExecution(state, req.Height, a.pqEngineAuthorization)
+	if err != nil {
+		return nil, err
+	}
 	results := make([]*abcitypes.ExecTxResult, len(req.Txs))
 	for i, payload := range req.Txs {
 		next, tx, err := a.applyTransactionAt(state, payload, req.Height, req.Time, uint32(i))
@@ -648,12 +709,27 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if err := validateValidatorRegistryContinuation(a.committed, pending); err != nil {
 		return nil, err
 	}
-	a.pending = &pending
+	if err := validatePQEngineScheduleContinuation(a.committed.PQEngineSchedule, pending.PQEngineSchedule); err != nil {
+		return nil, err
+	}
 	appHash, err := hex.DecodeString(pending.AppHash)
 	if err != nil {
 		return nil, err
 	}
-	return &abcitypes.ResponseFinalizeBlock{TxResults: results, AppHash: appHash}, nil
+	response := &abcitypes.ResponseFinalizeBlock{TxResults: results, AppHash: appHash}
+	if a.bootstrap != nil {
+		snapshot, err := newPQEngineSnapshot(a.bootstrap, pending.ValidatorRegistry, pending.PQEngineSchedule, req.Height)
+		if err != nil {
+			return nil, err
+		}
+		params, updates, err := snapshot.UpdatesAt(req.Height)
+		if err != nil {
+			return nil, err
+		}
+		response.ConsensusParamUpdates, response.ValidatorUpdates = params, updates
+	}
+	a.pending = &pending
+	return response, nil
 }
 
 func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcitypes.ResponseCommit, error) {
@@ -668,6 +744,12 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	if err := validateValidatorRegistryContinuation(a.committed, *a.pending); err != nil {
 		return nil, err
 	}
+	if err := validatePQEngineScheduleContinuation(a.committed.PQEngineSchedule, a.pending.PQEngineSchedule); err != nil {
+		return nil, err
+	}
+	if err := a.pqEngineAuthorization.ValidateCommittedSchedule(a.pending.PQEngineSchedule, a.pending.Height); err != nil {
+		return nil, err
+	}
 	if err := saveCommittedStateWithHooks(a.statePath, *a.pending, a.migration, a.persistenceHooks); err != nil {
 		return nil, fmt.Errorf("persist finalized YNX state: %w", err)
 	}
@@ -680,11 +762,12 @@ func (a *Application) cloneExecutionState() executionState {
 	return executionState{
 		bootstrap:             a.bootstrap,
 		validatorRegistry:     cloneValidatorRegistry(a.committed.ValidatorRegistry),
+		pqEngineSchedule:      clonePQEngineSchedule(a.committed.PQEngineSchedule),
 		legacyContracts:       cloneLegacyContracts(a.committed.LegacyContracts),
 		legacyResourceMarket:  cloneLegacyResourceMarket(a.committed.LegacyResourceMarket),
 		legacyResourceSponsor: cloneLegacyResourceSponsor(a.committed.LegacyResourceSponsor),
 		traceLots:             cloneTraceLots(a.committed.TraceLots),
-		accountPolicy:         cloneConsensusAccountPolicy(a.committed.AccountPolicy),
+		accountPolicy:         a.pqCertificateCache.ClonePolicy(a.committed.AccountPolicy),
 		pqHistory:             clonePQHistory(a.committed.PQHistory),
 		pqBatches:             cloneConsensusPQBatches(a.committed.PQBatches),
 		accounts:              cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), nativeTransfers: append([]BFTNativeTransfer(nil), a.committed.NativeTransfers...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
@@ -709,6 +792,9 @@ func (a *Application) applyTransactionAt(state executionState, payload []byte, h
 	}
 	if kind == ValidatorRegistryTransactionType {
 		return a.applyValidatorRegistryTransaction(state, payload, height, transactionIndex)
+	}
+	if kind == PQActionType {
+		return a.applyPQActionTransaction(state, payload, height, blockTime)
 	}
 	if kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType || kind == PQWholeType {
 		return a.applyPQTransaction(state, payload, height, blockTime)

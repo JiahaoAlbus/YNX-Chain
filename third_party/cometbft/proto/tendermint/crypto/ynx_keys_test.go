@@ -21,13 +21,29 @@ func TestYNXFullKeyOneofWireDescriptorAndReflection(t *testing.T) {
 	if !bytes.Equal(wire, []byte{0x1a, 3, 1, 2, 3}) || key.Size() != 5 {
 		t.Fatalf("unexpected oneof wire %x", wire)
 	}
-	buffer := proto.NewBuffer(nil)
-	buffer.SetDeterministic(true)
-	if err = buffer.Marshal(key); err != nil {
-		t.Fatal(err)
+	// gogo Buffer.SetDeterministic rejects every generated Marshaler before
+	// dispatch. Exercise the supported generated deterministic entry directly,
+	// then independently check the normal proto and sized-buffer entry points.
+	for i := 0; i < 3; i++ {
+		deterministic, err := key.XXX_Marshal(nil, true)
+		if err != nil || !bytes.Equal(deterministic, wire) {
+			t.Fatalf("generated deterministic marshal differs: %x, %v", deterministic, err)
+		}
 	}
-	if !bytes.Equal(buffer.Bytes(), wire) {
-		t.Fatal("deterministic reflection differs from generated marshal")
+	encoded, err := proto.Marshal(key)
+	if err != nil || !bytes.Equal(encoded, wire) {
+		t.Fatalf("normal proto marshal differs: %x, %v", encoded, err)
+	}
+	sized := make([]byte, key.Size())
+	n, err := key.MarshalToSizedBuffer(sized)
+	if err != nil || n != len(wire) || !bytes.Equal(sized, wire) {
+		t.Fatalf("sized buffer marshal differs: %x, %v", sized, err)
+	}
+	for _, malformed := range [][]byte{{0x1a, 3, 1, 2}, {0x18, 1}, {0x1a, 0xff}} {
+		var invalid PublicKey
+		if err := proto.Unmarshal(malformed, &invalid); err == nil {
+			t.Fatalf("malformed new oneof wire accepted: %x", malformed)
+		}
 	}
 	var decoded PublicKey
 	if err = proto.Unmarshal(wire, &decoded); err != nil {

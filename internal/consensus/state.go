@@ -36,6 +36,7 @@ type BFTNativeTransfer struct {
 type CommittedState struct {
 	bootstrap                  *ConsensusBootstrap
 	ValidatorRegistry          *ValidatorRegistryState         `json:"validatorRegistry,omitempty"`
+	PQEngineSchedule           *PQEngineSchedule               `json:"pqEngineSchedule,omitempty"`
 	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
 	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
 	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
@@ -94,6 +95,7 @@ type CommittedState struct {
 
 type committedStateHashDocument struct {
 	ValidatorRegistry          *ValidatorRegistryState         `json:"validatorRegistry,omitempty"`
+	PQEngineSchedule           *PQEngineSchedule               `json:"pqEngineSchedule,omitempty"`
 	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
 	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
 	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
@@ -214,6 +216,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 	state := CommittedState{
 		bootstrap:                  execution.bootstrap,
 		ValidatorRegistry:          cloneValidatorRegistry(execution.validatorRegistry),
+		PQEngineSchedule:           clonePQEngineSchedule(execution.pqEngineSchedule),
 		LegacyContracts:            cloneLegacyContracts(execution.legacyContracts),
 		LegacyResourceMarket:       cloneLegacyResourceMarket(execution.legacyResourceMarket),
 		LegacyResourceSponsor:      cloneLegacyResourceSponsor(execution.legacyResourceSponsor),
@@ -271,6 +274,9 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 	if state.ValidatorRegistry != nil {
 		state.Version = ValidatorRegistryStateVersion
 	}
+	if state.PQEngineSchedule != nil {
+		state.Version = PQEngineScheduleStateVersion
+	}
 	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() && sameConsensusPolicy(state.AccountPolicy, migration.AccountPolicy) {
 		state.AppHash = migration.StateHash
 	} else {
@@ -290,11 +296,22 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := migration.Validate(); err != nil {
 		return fmt.Errorf("invalid migration anchor: %w", err)
 	}
-	if s.Version != CommittedStateVersion && s.Version != 14 && s.Version != ValidatorRegistryStateVersion {
+	if s.Version != CommittedStateVersion && s.Version != 14 && s.Version != ValidatorRegistryStateVersion && s.Version != PQEngineScheduleStateVersion {
 		return fmt.Errorf("unsupported committed state version %d", s.Version)
+	}
+	if (s.PQEngineSchedule != nil) != (s.Version == PQEngineScheduleStateVersion) {
+		return errors.New("committed engine schedule requires its explicit state version")
 	}
 	if err := validateValidatorRegistryState(s, migration); err != nil {
 		return err
+	}
+	if err := validatePQEngineSchedule(s.PQEngineSchedule, s.bootstrap, s.ValidatorRegistry, s.Height); err != nil {
+		return err
+	}
+	if s.PQEngineSchedule != nil {
+		if _, err := newPQEngineSnapshot(s.bootstrap, s.ValidatorRegistry, s.PQEngineSchedule, s.Height); err != nil {
+			return err
+		}
 	}
 	if err := validateConsensusPQState(s, migration); err != nil {
 		return err
@@ -393,6 +410,12 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateIDECommittedState(s); err != nil {
 		return err
 	}
+	if err := validateConsensusPQContracts(s, migration); err != nil {
+		return err
+	}
+	if err := validateConsensusPQNativeActions(s, migration); err != nil {
+		return err
+	}
 	if err := validateFeeEvents(s.FeeEvents); err != nil {
 		return err
 	}
@@ -424,6 +447,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 }
 
 func (s CommittedState) calculateHash() (string, error) {
+	if s.Version == PQEngineScheduleStateVersion {
+		return s.calculateHashFor("YNX_ABCI_STATE_V17", PQEngineScheduleStateVersion)
+	}
 	if s.Version == ValidatorRegistryStateVersion {
 		return s.calculateHashFor("YNX_ABCI_STATE_V16", ValidatorRegistryStateVersion)
 	}
@@ -436,6 +462,7 @@ func (s CommittedState) calculateHash() (string, error) {
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
 	doc := committedStateHashDocument{
 		ValidatorRegistry:          s.ValidatorRegistry,
+		PQEngineSchedule:           s.PQEngineSchedule,
 		LegacyContracts:            s.LegacyContracts,
 		LegacyResourceMarket:       s.LegacyResourceMarket,
 		LegacyResourceSponsor:      s.LegacyResourceSponsor,
@@ -504,7 +531,7 @@ func (s CommittedState) hasApplicationRecords() bool {
 			resourcePools++
 		}
 	}
-	if s.ValidatorRegistry != nil || len(s.PQHistory) != 0 || len(s.PQBatches) != 0 {
+	if s.ValidatorRegistry != nil || s.PQEngineSchedule != nil || len(s.PQHistory) != 0 || len(s.PQBatches) != 0 {
 		return true
 	}
 	return len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+resourcePools+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0

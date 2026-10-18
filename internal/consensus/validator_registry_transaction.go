@@ -86,6 +86,9 @@ func (a *Application) applyValidatorRegistryTransaction(state executionState, pa
 			return fail(errors.New("validator registry transaction index did not advance"))
 		}
 	}
+	if err := validatePQEngineRegistryTransition(state, next, height); err != nil {
+		return fail(err)
+	}
 	state.validatorRegistry = next
 	return state, transactionExecution{typeName: ValidatorRegistryTransactionType, hash: abciHash, event: abci.Event{Type: "ynx.validator_registry", Attributes: []abci.EventAttribute{{Key: "operation_hash", Value: "0x" + hex.EncodeToString(operationHash[:]), Index: true}, {Key: "registry_root", Value: next.Root, Index: true}}}}, nil
 }

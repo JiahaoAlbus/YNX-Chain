@@ -131,7 +131,7 @@ func (a *Application) applyPQTransaction(state executionState, payload []byte, h
 		if transfer.NativeChainID != uint64(a.migration.Network.ChainID) || !bytes.Equal(transfer.ChainID, state.accountPolicy.NetworkID) || transfer.Fee != uint64(SignedTransactionFeeYNXT) {
 			return fail(errors.New("PQ transfer network or fee mismatch"))
 		}
-		if err := state.accountPolicy.VerifyMember(transfer.From, ynxauth.TransactionPurpose, member.Message, wire, uint64(height)); err != nil {
+		if err := a.pqCertificateCache.VerifyDecodedMember(state.accountPolicy, transfer.From, ynxauth.TransactionPurpose, member.Message, member, uint64(height)); err != nil {
 			return fail(err)
 		}
 		native := SignedTransaction{Version: SignedTransactionVersion, ChainID: a.migration.Network.ChainID, Type: SignedTransactionType, From: transfer.From, To: transfer.To, Amount: int64(transfer.Amount), Fee: int64(transfer.Fee), Nonce: transfer.Nonce}
@@ -174,6 +174,7 @@ func (a *Application) applyPQTransaction(state executionState, payload []byte, h
 }
 
 func validateConsensusPQState(state CommittedState, migration chain.ConsensusMigrationState) error {
+	cache := chain.NewPQCertificateCache()
 	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || len(state.PQBatches) != 0 || migration.AccountPolicy != nil) {
 		return errors.New("legacy ABCI state cannot carry or erase account policy")
 	}
@@ -223,17 +224,23 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 		// These fields are never produced by the ABCI PQ executors. A valid
 		// signature over a migration/transfer/revocation cannot grant sponsorship,
 		// mint resource usage or manufacture source-chain receipts on restore.
-		if tx.BlockHash != "" || len(tx.Logs) != 0 || tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" || tx.Type != PQRevocationType && len(tx.LotFlows) != 0 {
+		if tx.BlockHash != "" || len(tx.Logs) != 0 || tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" || tx.Type != PQRevocationType && !isPQContractHistory(tx) && len(tx.LotFlows) != 0 {
 			return errors.New("ABCI PQ history contains unexecuted receipt or resource metadata")
 		}
 		if tx.BlockNum <= migration.Height || tx.BlockNum < previousHeight || tx.BlockNum > uint64(state.Height) || seen[tx.Hash] {
 			return errors.New("invalid ABCI PQ history height or replay")
 		}
 		previousHeight, seen[tx.Hash] = tx.BlockNum, true
+		// Contract history has its own complete signed intent, code/prestate,
+		// execution and trace-lot validator in CommittedState.Validate. Keep the
+		// common metadata, height and replay gates above for every contract too.
+		if isPQContractHistory(tx) || isPQNativeActionHistory(tx) {
+			continue
+		}
 		if strings.HasPrefix(tx.Memo, pqBatchMemberMemoPrefix) {
 			continue
 		}
-		if err := chain.ValidateConsensusHistoricalPQTransaction(tx, state.AccountPolicy, tx.BlockNum, state.ChainID); err != nil {
+		if err := chain.ValidateConsensusHistoricalPQTransactionWithCache(tx, state.AccountPolicy, tx.BlockNum, state.ChainID, cache); err != nil {
 			return err
 		}
 		kind, memo := PQTransferType, pqTransferMemo
@@ -284,7 +291,7 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 			return errors.New("ABCI revocation lacks its committed original proof")
 		}
 	}
-	if err := validateConsensusPQBatches(state, migration); err != nil {
+	if err := validateConsensusPQBatchesCached(state, migration, cache); err != nil {
 		return err
 	}
 	for _, event := range state.FeeEvents {

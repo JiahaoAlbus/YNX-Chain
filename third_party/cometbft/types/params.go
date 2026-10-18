@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -36,11 +37,12 @@ var ABCIPubKeyTypesToNames = map[string]string{
 // ConsensusParams contains consensus critical parameters that determine the
 // validity of blocks.
 type ConsensusParams struct {
-	Block     BlockParams     `json:"block"`
-	Evidence  EvidenceParams  `json:"evidence"`
-	Validator ValidatorParams `json:"validator"`
-	Version   VersionParams   `json:"version"`
-	ABCI      ABCIParams      `json:"abci"`
+	Block      BlockParams     `json:"block"`
+	Evidence   EvidenceParams  `json:"evidence"`
+	Validator  ValidatorParams `json:"validator"`
+	Version    VersionParams   `json:"version"`
+	ABCI       ABCIParams      `json:"abci"`
+	YNXProfile []byte          `json:"ynx_profile,omitempty"`
 }
 
 // BlockParams define limits on the block size and gas plus minimum time
@@ -205,6 +207,16 @@ func (params ConsensusParams) ValidateBasic() error {
 		}
 	}
 
+	if len(params.YNXProfile) > 0 {
+		if _, err := ynxpq.DecodeConsensusProfile(params.YNXProfile); err != nil {
+			return err
+		}
+		if len(params.Validator.PubKeyTypes) != 2 || params.Validator.PubKeyTypes[0] != ed25519.KeyType || params.Validator.PubKeyTypes[1] != ynxpq.KeyType {
+			return errors.New("YNX profile requires exact historical Ed and dual PQ allowlist")
+		}
+	} else if IsValidPubkeyType(params.Validator, ynxpq.KeyType) {
+		return errors.New("PQ validator allowlist requires a committed YNX engine profile")
+	}
 	return nil
 }
 
@@ -221,6 +233,19 @@ func (params ConsensusParams) ValidateBasic() error {
 // |  9 | (> 0) <=height       | > height (*)           | vote extensions cannot be modified once enabled
 // | 10 | (> 0) > height       | > height (*)           | nil
 func (params ConsensusParams) ValidateUpdate(updated *cmtproto.ConsensusParams, h int64) error {
+	if updated != nil && len(updated.YnxProfile) > 0 {
+		profile, err := ynxpq.DecodeConsensusProfile(updated.YnxProfile)
+		if err != nil {
+			return err
+		}
+		if len(params.YNXProfile) > 0 {
+			if !bytes.Equal(params.YNXProfile, updated.YnxProfile) {
+				return errors.New("committed YNX consensus profile is immutable")
+			}
+		} else if profile.ParamsUpdateHeight != h {
+			return errors.New("YNX profile must be admitted at its exact declared params update height")
+		}
+	}
 	// 1
 	if updated == nil || updated.Abci == nil {
 		return nil
@@ -268,11 +293,21 @@ func (params ConsensusParams) ValidateUpdate(updated *cmtproto.ConsensusParams, 
 	return nil
 }
 
-// Hash returns a hash of a subset of the parameters to store in the block header.
-// Only the Block.MaxBytes and Block.MaxGas are included in the hash.
-// This allows the ConsensusParams to evolve more without breaking the block
-// protocol. No need for a Merkle tree here, just a small struct to hash.
+// Hash preserves the historical Block.MaxBytes/Block.MaxGas-only hash while
+// YNXProfile is absent. A committed YNX profile explicitly switches to a new
+// domain committing every actual parameter and the complete schedule binding.
 func (params ConsensusParams) Hash() []byte {
+	if len(params.YNXProfile) > 0 {
+		// The legacy branch below remains byte-for-byte unchanged. Once the
+		// profile is present, commit ALL actual parameters, including the
+		// strict profile bytes, key allowlist and extension activation height.
+		pb := params.ToProto()
+		wire, err := pb.Marshal()
+		if err != nil {
+			panic(err)
+		}
+		return tmhash.Sum(append([]byte("YNX-CONSENSUS-PARAMS/v1\x00"), wire...))
+	}
 	hasher := tmhash.New()
 
 	hp := cmtproto.HashedParams{
@@ -296,6 +331,7 @@ func (params ConsensusParams) Hash() []byte {
 // NOTE: note: must not modify the original
 func (params ConsensusParams) Update(params2 *cmtproto.ConsensusParams) ConsensusParams {
 	res := params // explicit copy
+	res.YNXProfile = bytes.Clone(params.YNXProfile)
 
 	if params2 == nil {
 		return res
@@ -322,11 +358,15 @@ func (params ConsensusParams) Update(params2 *cmtproto.ConsensusParams) Consensu
 	if params2.Abci != nil {
 		res.ABCI.VoteExtensionsEnableHeight = params2.Abci.GetVoteExtensionsEnableHeight()
 	}
+	if len(params2.YnxProfile) > 0 {
+		res.YNXProfile = bytes.Clone(params2.YnxProfile)
+	}
 	return res
 }
 
 func (params *ConsensusParams) ToProto() cmtproto.ConsensusParams {
 	return cmtproto.ConsensusParams{
+		YnxProfile: bytes.Clone(params.YNXProfile),
 		Block: &cmtproto.BlockParams{
 			MaxBytes: params.Block.MaxBytes,
 			MaxGas:   params.Block.MaxGas,
@@ -350,6 +390,7 @@ func (params *ConsensusParams) ToProto() cmtproto.ConsensusParams {
 
 func ConsensusParamsFromProto(pbParams cmtproto.ConsensusParams) ConsensusParams {
 	c := ConsensusParams{
+		YNXProfile: bytes.Clone(pbParams.YnxProfile),
 		Block: BlockParams{
 			MaxBytes: pbParams.Block.MaxBytes,
 			MaxGas:   pbParams.Block.MaxGas,

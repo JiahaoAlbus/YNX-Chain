@@ -8,6 +8,7 @@ import (
 
 	abci "github.com/cometbft/cometbft/abci/types"
 	cryptoenc "github.com/cometbft/cometbft/crypto/encoding"
+	"github.com/cometbft/cometbft/crypto/ynxpq"
 	"github.com/cometbft/cometbft/libs/fail"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/mempool"
@@ -656,6 +657,15 @@ func updateState(
 	if abciResponse.ConsensusParamUpdates != nil {
 		// NOTE: must not mutate state.ConsensusParams
 		nextParams = state.ConsensusParams.Update(abciResponse.ConsensusParamUpdates)
+		if len(nextParams.YNXProfile) > 0 {
+			profile, err := ynxpq.DecodeConsensusProfile(nextParams.YNXProfile)
+			if err != nil {
+				return state, fmt.Errorf("invalid YNX engine profile: %w", err)
+			}
+			if profile.ChainID != state.ChainID {
+				return state, fmt.Errorf("YNX engine profile names another actual chain")
+			}
+		}
 		err := nextParams.ValidateBasic()
 		if err != nil {
 			return state, fmt.Errorf("validating new consensus params: %w", err)

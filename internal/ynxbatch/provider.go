@@ -3,6 +3,7 @@ package ynxbatch
 import (
 	"crypto/rand"
 	"errors"
+	"io"
 	"sync"
 
 	"github.com/cloudflare/circl/sign/mldsa/mldsa87"
@@ -103,11 +104,93 @@ func verifySignatures(c Certificate, p *publicPair) error {
 	if err != nil {
 		return err
 	}
-	// Evaluate both branches. A failure can never be rescued by the other branch.
 	okA := mldsa87.Verify(p.a, a, nil, c.SigmaA)
 	okB := slhdsa.Verify(p.b, slhdsa.NewMessage(b), c.SigmaB, nil)
 	if !okA || !okB {
 		return ErrInvalidSignature
 	}
 	return nil
+}
+
+func verifySignaturesWithProvider(c Certificate, p *publicPair, parallel *ParallelProvider) error {
+	if parallel == nil {
+		return verifySignatures(c, p)
+	}
+	if !parallel.enabled() {
+		return invalid("parallel provider configuration")
+	}
+	a, b, err := certificateMessages(c)
+	if err != nil {
+		return err
+	}
+	// Evaluate both branches. A failure can never be rescued by the other branch.
+	var okA, okB bool
+	parallel.runPair(func() { okA = mldsa87.Verify(p.a, a, nil, c.SigmaA) }, func() {
+		okB = slhdsa.Verify(p.b, slhdsa.NewMessage(b), c.SigmaB, nil)
+	})
+	if !okA || !okB {
+		return ErrInvalidSignature
+	}
+	return nil
+}
+
+// The caller holds s.mu until both branches have returned, including panic
+// propagation. Destroy and concurrent signing through aliases keep that lock.
+func signSignatures(s *privateKeyState, ma, mb []byte, parallel *ParallelProvider) (a, b []byte, err error) {
+	return signSignaturesWithEntropy(s, ma, mb, parallel, rand.Reader)
+}
+
+// Entropy is private to the provider, never an exported signing option. The
+// production call always supplies crypto/rand.Reader. Tests can exercise an
+// actual upstream SLH entropy error without replacing process-global randomness.
+func signSignaturesWithEntropy(s *privateKeyState, ma, mb []byte, parallel *ParallelProvider, entropy io.Reader) (a, b []byte, err error) {
+	if parallel == nil {
+		return signSignaturesSequential(s, ma, mb, entropy)
+	}
+	a = make([]byte, SignatureASize)
+	// A failed operation exposes neither partial signature nor partial Batch.
+	// Clearing these detached buffers is not a secure-memory-erasure guarantee.
+	completed := false
+	defer func() {
+		if !completed {
+			clear(a)
+			clear(b)
+			a, b = nil, nil
+		}
+	}()
+	var errA, errB error
+	parallel.runPair(func() { errA = mldsa87.SignTo(s.a, ma, nil, true, a) }, func() {
+		b, errB = slhdsa.SignRandomized(s.b, entropy, slhdsa.NewMessage(mb), nil)
+	})
+	if errA != nil {
+		return a, b, errA
+	}
+	if errB != nil {
+		return a, b, errB
+	}
+	completed = true
+	return a, b, nil
+}
+
+// Keep the default branch free of worker/closure allocations, with the original
+// sequential first-error behavior. Both success signatures remain mandatory.
+func signSignaturesSequential(s *privateKeyState, ma, mb []byte, entropy io.Reader) (a, b []byte, err error) {
+	a = make([]byte, SignatureASize)
+	completed := false
+	defer func() {
+		if !completed {
+			clear(a)
+			clear(b)
+			a, b = nil, nil
+		}
+	}()
+	if err = mldsa87.SignTo(s.a, ma, nil, true, a); err != nil {
+		return a, b, err
+	}
+	b, err = slhdsa.SignRandomized(s.b, entropy, slhdsa.NewMessage(mb), nil)
+	if err != nil {
+		return a, b, err
+	}
+	completed = true
+	return a, b, nil
 }

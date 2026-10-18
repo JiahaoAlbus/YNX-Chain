@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 )
 
 func pqContractPostState(tx Transaction, a ynxauth.Action, payload any, r *pqContractReceipt) (ContractArtifact, error) {
@@ -66,6 +67,14 @@ func pqContractPostState(tx Transaction, a ynxauth.Action, payload any, r *pqCon
 }
 
 func validateHistoricalPQContractAction(tx Transaction, h pqActionHistory, payload any, state *ynxauth.State, height uint64) error {
+	member, err := ynxbatch.DecodeMember(h.Wire)
+	if err != nil {
+		return err
+	}
+	return validateHistoricalPQContractActionWithCache(tx, h, member, payload, state, height, nil)
+}
+
+func validateHistoricalPQContractActionWithCache(tx Transaction, h pqActionHistory, member ynxbatch.Member, payload any, state *ynxauth.State, height uint64, cache *PQCertificateCache) error {
 	if _, err := pqContractPostState(tx, h.Action, payload, h.Contract); err != nil {
 		return err
 	}
@@ -94,7 +103,7 @@ func validateHistoricalPQContractAction(tx Transaction, h pqActionHistory, paylo
 	if err := validatePQContractLogs(tx, h.Contract, index, first); err != nil {
 		return err
 	}
-	return state.VerifyMember(h.Action.Owner, ynxauth.TransactionPurpose, h.Message, h.Wire, height)
+	return cache.VerifyDecodedMember(state, h.Action.Owner, ynxauth.TransactionPurpose, h.Message, member, height)
 }
 
 // Derive logs from the verified transition, never from the log being checked.

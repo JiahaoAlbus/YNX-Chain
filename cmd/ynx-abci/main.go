@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -24,6 +25,8 @@ func main() {
 	consensusGenesisHash := flag.String("consensus-genesis-sha256", "", "independent operator SHA256 pin for exact raw Comet genesis bytes")
 	nativeGenesisHash := flag.String("original-genesis-hash", "", "independent operator pin for original native genesis hash")
 	migrationHash := flag.String("bound-migration-state-hash", "", "independent operator pin for validated key-bound migration StateHash")
+	engineSchedule := flag.String("pq-engine-schedule", "", "canonical operator-authorized PQ engine schedule JSON")
+	engineScheduleHash := flag.String("pq-engine-schedule-hash", "", "independent operator hash pin for the exact PQ engine schedule")
 	flag.Parse()
 	if *migrationPath == "" {
 		log.Fatal("-migration-state is required")
@@ -32,7 +35,7 @@ func main() {
 		*statePath = *migrationPath + ".abci-state.json"
 	}
 	pins := consensus.ConsensusBootstrapPins{CometGenesisSHA256: *consensusGenesisHash, OriginalGenesisHash: *nativeGenesisHash, MigrationStateHash: *migrationHash}
-	if err := runWithBootstrap(*listen, *transport, *migrationPath, *statePath, *consensusGenesis, pins); err != nil {
+	if err := runWithEngineAuthorization(*listen, *transport, *migrationPath, *statePath, *consensusGenesis, pins, *engineSchedule, *engineScheduleHash); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -42,6 +45,33 @@ func run(listen, transport, migrationPath, statePath string) error {
 }
 
 func runWithBootstrap(listen, transport, migrationPath, statePath, genesisPath string, pins consensus.ConsensusBootstrapPins) error {
+	return runWithEngineAuthorization(listen, transport, migrationPath, statePath, genesisPath, pins, "", "")
+}
+
+func readEngineAuthorization(path, pin, genesisPath string) (*consensus.PQEngineAuthorization, error) {
+	if path == "" && pin == "" {
+		return nil, nil
+	}
+	if path == "" || pin == "" || genesisPath == "" {
+		return nil, fmt.Errorf("PQ engine schedule requires both -pq-engine-schedule and -pq-engine-schedule-hash with -consensus-genesis")
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("read independent PQ engine schedule: %w", err)
+	}
+	defer f.Close()
+	raw, err := io.ReadAll(io.LimitReader(f, 32*1024+1))
+	if err != nil || len(raw) > 32*1024 {
+		return nil, fmt.Errorf("PQ engine schedule must be readable and at most 32 KiB")
+	}
+	return consensus.NewPQEngineAuthorization(raw, pin)
+}
+
+func runWithEngineAuthorization(listen, transport, migrationPath, statePath, genesisPath string, pins consensus.ConsensusBootstrapPins, schedulePath, scheduleHash string) error {
+	authorization, err := readEngineAuthorization(schedulePath, scheduleHash, genesisPath)
+	if err != nil {
+		return err
+	}
 	payload, err := os.ReadFile(migrationPath)
 	if err != nil {
 		return fmt.Errorf("read migration state: %w", err)
@@ -65,7 +95,11 @@ func runWithBootstrap(listen, transport, migrationPath, statePath, genesisPath s
 		if bootstrapErr != nil {
 			return fmt.Errorf("validate operator-pinned consensus bootstrap: %w", bootstrapErr)
 		}
-		app, err = consensus.NewPersistentApplicationWithBootstrap(state, statePath, bootstrap)
+		if authorization == nil {
+			app, err = consensus.NewPersistentApplicationWithBootstrap(state, statePath, bootstrap)
+		} else {
+			app, err = consensus.NewPersistentApplicationWithEngineAuthorization(state, statePath, bootstrap, authorization)
+		}
 	}
 	if err != nil {
 		return err

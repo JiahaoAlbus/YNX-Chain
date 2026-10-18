@@ -64,3 +64,54 @@ func TestMemberCertificateCachePreservesLivePolicyAndRevocation(t *testing.T) {
 		t.Fatalf("changed root/history did not get independent success: %+v", stats)
 	}
 }
+
+func TestDecodedMemberCertificateCacheMatchesWireAndRejectsTampering(t *testing.T) {
+	f := newAuthFixture(t)
+	state, _ := authInitial(t, f)
+	message := authTransaction(t, f)
+	_, wire := authProof(t, f.first, state.NetworkID, f.owner, TransactionPurpose, [][]byte{message, []byte("second complete message")})
+	cache, err := ynxbatch.NewCertificateCache(2)
+	authOK(t, err)
+	scope := authCacheScope(t, state)
+	member, err := ynxbatch.DecodeMember(wire)
+	authOK(t, err)
+	authOK(t, state.VerifyMember(f.owner, TransactionPurpose, message, wire, 20))
+	authOK(t, state.VerifyDecodedMemberWithCache(f.owner, TransactionPurpose, message, member, 20, cache, scope))
+	authOK(t, state.VerifyDecodedMemberWithCache(f.owner, TransactionPurpose, message, member, 20, cache, scope))
+	if stats := cache.Stats(); stats.Misses != 1 || stats.Hits != 1 {
+		t.Fatalf("parsed member lost certificate reuse: %+v", stats)
+	}
+	for _, tc := range []struct {
+		name   string
+		mutate func(*ynxbatch.Member)
+	}{
+		{"signature-a", func(m *ynxbatch.Member) { m.Certificate.SigmaA[0] ^= 1 }},
+		{"signature-b", func(m *ynxbatch.Member) { m.Certificate.SigmaB[0] ^= 1 }},
+		{"key-a", func(m *ynxbatch.Member) { m.Certificate.PKA[0] ^= 1 }},
+		{"key-b", func(m *ynxbatch.Member) { m.Certificate.PKB[0] ^= 1 }},
+		{"root-a", func(m *ynxbatch.Member) { m.Certificate.RootA[0] ^= 1 }},
+		{"root-b", func(m *ynxbatch.Member) { m.Certificate.RootB[0] ^= 1 }},
+		{"message", func(m *ynxbatch.Member) { m.Message[0] ^= 1 }},
+		{"path-a", func(m *ynxbatch.Member) { m.PathA[0][0] ^= 1 }},
+		{"path-b", func(m *ynxbatch.Member) { m.PathB[0][0] ^= 1 }},
+		{"index", func(m *ynxbatch.Member) { m.Index = m.Certificate.N }},
+		{"oversize-message", func(m *ynxbatch.Member) { m.Message = make([]byte, ynxbatch.MaxMessageBytes+1) }},
+		{"extra-path", func(m *ynxbatch.Member) { m.PathB = append(m.PathB, make([]byte, 64)) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bad, err := ynxbatch.DecodeMember(wire)
+			authOK(t, err)
+			tc.mutate(&bad)
+			authReject(t, state.VerifyDecodedMemberWithCache(f.owner, TransactionPurpose, message, bad, 20, cache, scope))
+			encoded, err := ynxbatch.EncodeMember(bad)
+			if err == nil {
+				authReject(t, state.VerifyMember(f.owner, TransactionPurpose, message, encoded, 20))
+			}
+		})
+	}
+	authReject(t, state.VerifyDecodedMemberWithCache(f.owner, TransactionPurpose, message, member, 19, cache, scope))
+	authReject(t, state.VerifyDecodedMemberWithCache(f.owner, MigrationPurpose, message, member, 20, cache, scope))
+	revoked, err := state.AdmitRevocation(signRevocation(t, revokeIntent(f, 1, 1, 42, 20), f.first), 20, 41)
+	authOK(t, err)
+	authReject(t, revoked.VerifyDecodedMemberWithCache(f.owner, TransactionPurpose, message, member, 21, cache, scope))
+}

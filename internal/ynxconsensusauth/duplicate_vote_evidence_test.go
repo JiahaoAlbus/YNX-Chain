@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cometbft/cometbft/crypto/ed25519"
+	"github.com/cometbft/cometbft/crypto/ynxpq"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	cmttypes "github.com/cometbft/cometbft/types"
 )
@@ -160,8 +161,31 @@ func TestRealPQDuplicateEvidenceUsesBothVotesAndHistoricalKeys(t *testing.T) {
 	if f.source.calls != 1 || f.source.chain != f.policy.ChainID || f.source.at != 100 || len(f.registry.heights) != 2 || f.registry.heights[0] != 100 || f.registry.heights[1] != 100 {
 		t.Fatal("did not resolve exact historical block, validator set and both key records")
 	}
-	if err := f.evidence.ValidateBasic(); err == nil || !strings.Contains(err.Error(), "signature is too big") {
-		t.Fatalf("stock Comet unexpectedly accepts this candidate wire: %v", err)
+	// Stock rejected these same real signatures at the structural 64-byte cap.
+	// Fork shape admission must not bypass historical authority or verification.
+	if err := f.evidence.ValidateBasic(); err != nil {
+		t.Fatal(err)
+	}
+	public := forkFixturePublicKey(t, f.policy, f.record)
+	bare, err := ynxpq.DecodePubKey(public.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	preactivation := f.policy
+	preactivation.ActivationHeight = f.evidence.Height() + 1
+	legacy := ed25519.GenPrivKeyFromSecret([]byte("public-evidence-old-key-qa"))
+	for _, vote := range []*cmttypes.Vote{f.evidence.VoteA, f.evidence.VoteB} {
+		if err := vote.Verify(f.policy.ChainID, public); err != nil {
+			t.Fatal("actual fork failed genuine historical evidence signature:", err)
+		}
+		if vote.Verify(f.policy.ChainID, bare) == nil || vote.Verify(f.policy.ChainID, forkFixturePublicKey(t, preactivation, f.record)) == nil {
+			t.Fatal("evidence key self-authorized or bypassed activation")
+		}
+		oldKeyVote := copyEvidenceVote(vote)
+		oldKeyVote.ValidatorAddress = legacy.PubKey().Address()
+		if err := oldKeyVote.Verify(f.policy.ChainID, legacy.PubKey()); err == nil {
+			t.Fatal("PQ evidence signature accepted under actual old Ed key")
+		}
 	}
 	// A later rotation/removal must not erase the record lawful at height 100.
 	newKey, publicA, publicB, err := GenerateCandidateKey()

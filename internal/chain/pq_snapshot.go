@@ -39,6 +39,10 @@ func validateAccountPolicyShape(state *ynxauth.State, network []byte) error {
 // Complete snapshots also recheck preserved PQ envelopes at their execution
 // heights through the authorization layer; that layer owns proof semantics.
 func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
+	return validateAccountPolicySnapshotWithCache(snapshot, NewPQCertificateCache())
+}
+
+func validateAccountPolicySnapshotWithCache(snapshot devnetSnapshot, cache *PQCertificateCache) error {
 	switch snapshot.Version {
 	case legacyDevnetSnapshotVersion, devnetSnapshotVersion:
 		if snapshot.AccountPolicy != nil || len(snapshot.PQBatches) != 0 {
@@ -70,7 +74,7 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 			// Complete shared batch coverage is checked once below.
 			return nil
 		}
-		if err := validateHistoricalPQTransaction(tx, snapshot.AccountPolicy, height, snapshot.Config.ChainID); err != nil {
+		if err := validateHistoricalPQTransactionWithCache(tx, snapshot.AccountPolicy, height, snapshot.Config.ChainID, cache); err != nil {
 			return err
 		}
 		if strings.HasPrefix(tx.Memo, pqMigrationMemo) {
@@ -136,7 +140,7 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 			}
 		}
 	}
-	if err := validatePQBatchSnapshot(snapshot); err != nil {
+	if err := validatePQBatchSnapshotWithCache(snapshot, cache); err != nil {
 		return err
 	}
 	if err := validatePQSourceHistoryMetadata(snapshot); err != nil {

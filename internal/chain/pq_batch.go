@@ -104,6 +104,10 @@ func authenticatePQBatch(wire []byte, state *ynxauth.State, height uint64, chain
 }
 
 func authenticatePQBatchMeasured(wire []byte, state *ynxauth.State, height uint64, chainID int64, measurement *PQBatchMeasurement) (_ *pqBatchAdmission, err error) {
+	return authenticatePQBatchCached(wire, state, height, chainID, measurement, nil)
+}
+
+func authenticatePQBatchCached(wire []byte, state *ynxauth.State, height uint64, chainID int64, measurement *PQBatchMeasurement, cache *PQCertificateCache) (_ *pqBatchAdmission, err error) {
 	enabled := measurement != nil
 	var ignored PQBatchMeasurement
 	if measurement == nil {
@@ -135,7 +139,17 @@ func authenticatePQBatchMeasured(wire []byte, state *ynxauth.State, height uint6
 	}
 	start = measurement.WholeAuthentication.begin(enabled)
 	defer func() { measurement.WholeAuthentication.finish(enabled, start, err) }()
-	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: state.NetworkID, Purpose: ynxauth.TransactionPurpose, CacheEntries: 1, Optimized: true, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
+	// The source ledger verifies a fresh N=1 Whole once and reconciles durable
+	// replays before this point. It has no proposal stages to amortize a miss.
+	// ABCI has a separate Whole consumer that deliberately shares across stages.
+	if w.Certificate.N == 1 {
+		cache = nil
+	}
+	certificates, scope, err := cache.VerifierCache(state)
+	if err != nil {
+		return nil, err
+	}
+	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: state.NetworkID, Purpose: ynxauth.TransactionPurpose, CacheEntries: 1, Optimized: true, CertificateCache: certificates, CacheScope: scope, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
 		return state.TrustedRegistration(req.Owner, ynxauth.TransactionPurpose, req.Height)
 	}})
 	if err != nil {
@@ -269,7 +283,10 @@ func (d *Devnet) submitPQBatch(wire []byte, measurement *PQBatchMeasurement) (PQ
 		measurement.ExecutionHeight = height
 		selected = measurement
 	}
-	a, err := authenticatePQBatchMeasured(wire, d.accountPolicy, height, d.cfg.ChainID, selected)
+	if d.pqCertificateCache == nil {
+		d.pqCertificateCache = NewPQCertificateCache()
+	}
+	a, err := authenticatePQBatchCached(wire, d.accountPolicy, height, d.cfg.ChainID, selected, d.pqCertificateCache)
 	if err != nil {
 		return PQBatchResult{}, err
 	}

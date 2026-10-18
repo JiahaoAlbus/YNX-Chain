@@ -67,6 +67,7 @@ var requestValidityRules = []RequestValidityRule{
 type Devnet struct {
 	pqBatches                map[string]PQBatchProof
 	accountPolicy            *ynxauth.State
+	pqCertificateCache       *PQCertificateCache
 	mu                       sync.RWMutex
 	persistenceMu            sync.Mutex
 	durableCheckpoint        atomic.Pointer[transactionCheckpoint]
@@ -435,6 +436,7 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 		normalizedPeers = nil
 	}
 	d := &Devnet{
+		pqCertificateCache:   NewPQCertificateCache(),
 		cfg:                  cfg,
 		accounts:             map[string]*Account{},
 		validatorPeers:       peersFromValidators(normalized),
@@ -4347,96 +4349,8 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 }
 
 func buildContractArtifactWithArgs(address, deployer, name, source string, verified bool, verifiedAt *time.Time, constructorArgs []string) ContractArtifact {
-	sourceHash := hashParts("source", source)
-	compiler := SolidityCompilerConfig()
 	compilerArtifact, hasCompilerArtifact := resolvePinnedCompilerArtifact(name, source)
-	events := extractContractEvents(source)
-	functions := extractContractFunctions(source)
-	runtimeStorageSlots := extractRuntimeStorageSlots(source)
-	runtimeStorage := extractRuntimeStorage(source, deployer, constructorArgs)
-	if hasCompilerArtifact {
-		events = mergeCompilerArtifactEvents(compilerArtifact.ABIEvents, events)
-		functions = mergeCompilerArtifactFunctions(compilerArtifact.ABIFunctions, functions, source)
-	}
-	abi := make([]ContractABIEntry, 0, len(events)+len(functions))
-	for _, event := range events {
-		abi = append(abi, ContractABIEntry{Type: "event", Name: event.Name, Signature: event.Signature, Topic: event.Topic, Inputs: event.Inputs})
-	}
-	for _, function := range functions {
-		abi = append(abi, ContractABIEntry{Type: "function", Name: function.Name, Signature: function.Signature, Selector: function.Selector, Inputs: function.Inputs, Outputs: function.Outputs, StateMutability: function.StateMutability})
-	}
-	status := "unverified"
-	reproducibilityStatus := "unverified; pinned compiler config recorded but source match has not been checked"
-	artifactKind := contractArtifactKind
-	compilerMode := compiler.CompilerMode
-	compilerExecutionStatus := "hardhat_artifact_not_found_for_submitted_source"
-	bytecodeHash := hashParts("bytecode", compiler.ConfigHash, contractArtifactKind, sourceHash, strings.Join(contractFunctionSignatures(functions), "|"))
-	deployedBytecodeHash := hashParts("deployed-bytecode", compiler.ConfigHash, contractArtifactKind, sourceHash, strings.Join(contractFunctionSignatures(functions), "|"))
-	deployedComparisonStatus := "not_checked_no_pinned_solc_artifact"
-	if hasCompilerArtifact {
-		artifactKind = contractPinnedArtifactKind
-		compilerMode = contractPinnedCompilerMode
-		compilerExecutionStatus = "matched_existing_hardhat_solc_0_8_24_artifact"
-		bytecodeHash = compilerArtifact.BytecodeHash
-		deployedBytecodeHash = compilerArtifact.DeployedBytecodeHash
-		deployedComparisonStatus = "not_checked_until_verify"
-		reproducibilityStatus = "pinned Hardhat artifact matched submitted source; deployed bytecode comparison not checked until verification"
-	}
-	if verified {
-		status = "source_hash_and_pinned_compiler_config_matched_local_artifact"
-		reproducibilityStatus = "source hash and pinned compiler config matched local deterministic artifact"
-		if hasCompilerArtifact {
-			status = "source_hash_compiler_config_and_deployed_bytecode_matched_local_artifact"
-			reproducibilityStatus = "source hash, pinned compiler config, artifact bytecode, and local deployed bytecode hash matched"
-			deployedComparisonStatus = "matched_local_deployed_bytecode_hash"
-		}
-	}
-	limitations := append([]string{
-		"compiler version/settings are pinned and hashed; arbitrary IDE snippets remain analyzer artifacts unless they match a Hardhat artifact",
-		"runtime supports simple pure/view return literals for devnet verification",
-	}, compiler.Limitations...)
-	if hasCompilerArtifact {
-		limitations = append([]string{
-			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
-			"artifact-backed local staticcall subset requires the ABI selector to appear in solc deployed bytecode",
-			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls, simple constructor-seeded storage, and mapping/SHA3-backed reads; it also supports a generic pinned-artifact write-call subset for supported nonpayable/payable calldata through the local EVM subset with CALLER, SLOAD, SSTORE, LOG, and RETURN coverage, but it does not support full EVM bytecode state transitions, arbitrary opcode coverage, complex dynamic storage layouts, or remote public proof",
-		}, compiler.Limitations...)
-	}
-	runtimeMode := "deterministic-devnet-pure-view-runtime"
-	if hasCompilerArtifact {
-		runtimeMode = "hardhat-artifact-local-evm-opcode-staticcall-subset"
-	}
-	return ContractArtifact{
-		Address:                          address,
-		Name:                             name,
-		Deployer:                         deployer,
-		SourceHash:                       sourceHash,
-		BytecodeHash:                     bytecodeHash,
-		DeployedBytecodeHash:             deployedBytecodeHash,
-		ArtifactHash:                     hashParts("artifact", compiler.ConfigHash, artifactKind, name, sourceHash, bytecodeHash, deployedBytecodeHash, fmt.Sprint(len(abi))),
-		ArtifactKind:                     artifactKind,
-		CompilerMode:                     compilerMode,
-		CompilerConfigHash:               compiler.ConfigHash,
-		Compiler:                         compiler,
-		CompilerArtifact:                 compilerArtifact,
-		CompilerExecutionStatus:          compilerExecutionStatus,
-		RuntimeMode:                      runtimeMode,
-		VerifierMode:                     compiler.VerifierMode,
-		ReproducibleBuild:                verified,
-		ReproducibilityStatus:            reproducibilityStatus,
-		DeployedBytecodeComparisonStatus: deployedComparisonStatus,
-		ConstructorArgs:                  cleanConstructorArgs(constructorArgs),
-		RuntimeStorage:                   runtimeStorage,
-		RuntimeStorageSlots:              runtimeStorageSlots,
-		ABI:                              abi,
-		Events:                           events,
-		Functions:                        functions,
-		Limitations:                      limitations,
-		Verified:                         verified,
-		VerifierStatus:                   status,
-		DeployedAt:                       time.Now().UTC(),
-		VerifiedAt:                       verifiedAt,
-	}
+	return buildContractArtifactFromCompiler(address, deployer, name, source, verified, verifiedAt, constructorArgs, compilerArtifact, hasCompilerArtifact, time.Now().UTC())
 }
 
 func mergeCompilerArtifactEvents(abiEvents, sourceEvents []ContractEventABI) []ContractEventABI {

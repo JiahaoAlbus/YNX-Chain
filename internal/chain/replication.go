@@ -757,6 +757,7 @@ func (d *Devnet) snapshotLocked() devnetSnapshot {
 }
 
 func (d *Devnet) applySnapshotLocked(snapshot devnetSnapshot) {
+	d.pqCertificateCache.Invalidate()
 	d.pqBatches = clonePQBatches(snapshot.PQBatches)
 	d.accountPolicy = cloneAccountPolicy(snapshot.AccountPolicy)
 	d.blocks, d.pending, d.accounts, d.validators, d.validatorPeers, d.validatorPeerSyncs, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Peers, snapshot.PeerSyncs, snapshot.Lots, snapshot.PayIntents

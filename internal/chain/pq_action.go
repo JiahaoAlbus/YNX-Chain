@@ -56,7 +56,7 @@ func (d *Devnet) SubmitPQAction(wire []byte) (Transaction, bool, error) {
 	if d.accountPolicy == nil || a.NativeChainID != uint64(d.cfg.ChainID) || !bytes.Equal(a.ChainID, d.accountPolicy.NetworkID) {
 		return Transaction{}, false, ynxauth.ErrPolicy
 	}
-	if err := d.accountPolicy.VerifyMember(a.Owner, ynxauth.TransactionPurpose, m.Message, wire, d.accountExecutionHeightLocked()); err != nil {
+	if err := d.verifyPQMemberLocked(a.Owner, ynxauth.TransactionPurpose, m.Message, m, d.accountExecutionHeightLocked()); err != nil {
 		return Transaction{}, false, err
 	}
 	sender := d.accounts[a.Owner]
@@ -161,58 +161,68 @@ func encodePQActionMemo(a ynxauth.Action, wire []byte, policy ResourceMarketPoli
 }
 
 func decodePQActionMemo(memo string) (pqActionHistory, error) {
+	h, _, err := decodePQActionMemoMember(memo)
+	return h, err
+}
+
+func decodePQActionMemoMember(memo string) (pqActionHistory, ynxbatch.Member, error) {
 	var h pqActionHistory
+	var m ynxbatch.Member
 	if !strings.HasPrefix(memo, pqActionMemo) || len(memo) > len(pqActionMemo)+2*maxPQActionHistoryBytes {
-		return h, ynxauth.ErrAction
+		return h, m, ynxauth.ErrAction
 	}
 	encoded := strings.TrimPrefix(memo, pqActionMemo)
 	raw, err := hex.DecodeString(encoded)
 	if err != nil || hex.EncodeToString(raw) != encoded {
-		return h, ynxauth.ErrAction
+		return h, m, ynxauth.ErrAction
 	}
 	fields, err := ynxbatch.DecodeFields(raw, 2, maxPQActionHistoryBytes)
 	if err != nil || len(fields[0]) > MaxPQActionMemberBytes || len(fields[1]) > maxPQContractReceiptBytes {
-		return h, ynxauth.ErrAction
+		return h, m, ynxauth.ErrAction
 	}
 	h.Wire = fields[0]
-	m, err := ynxbatch.DecodeMember(h.Wire)
+	m, err = ynxbatch.DecodeMember(h.Wire)
 	if err != nil {
-		return h, err
+		return h, m, err
 	}
 	h.Action, err = ynxauth.DecodeAction(m.Message)
 	if err != nil {
-		return h, err
+		return h, m, err
 	}
 	h.Message = m.Message
 	if pqContractKind(h.Action.Kind) {
 		h.Contract, err = decodePQContractReceipt(fields[1])
-		return h, err
+		return h, m, err
 	}
 	if len(fields[1]) > maxPQActionPolicyBytes {
-		return h, errors.New("PQ historical resource policy exceeds its original bound")
+		return h, m, errors.New("PQ historical resource policy exceeds its original bound")
 	}
 	resource := h.Action.Kind == ynxauth.ActionResourceDelegate || h.Action.Kind == ynxauth.ActionResourceRent
 	if resource {
 		var policy ResourceMarketPolicy
 		if err := json.Unmarshal(fields[1], &policy); err != nil {
-			return h, err
+			return h, m, err
 		}
 		canonical, err := json.Marshal(policy)
 		if err != nil || !bytes.Equal(canonical, fields[1]) || policy.PolicyHash == "" {
-			return h, errors.New("noncanonical PQ historical resource policy")
+			return h, m, errors.New("noncanonical PQ historical resource policy")
 		}
 		if err := policy.Validate(); err != nil {
-			return h, err
+			return h, m, err
 		}
 		h.Policy = &policy
 	} else if len(fields[1]) != 0 {
-		return h, errors.New("non-resource PQ history contains a resource policy")
+		return h, m, errors.New("non-resource PQ history contains a resource policy")
 	}
-	return h, nil
+	return h, m, nil
 }
 
 func validateHistoricalPQAction(tx Transaction, state *ynxauth.State, height uint64, chainID int64) error {
-	h, err := decodePQActionMemo(tx.Memo)
+	return validateHistoricalPQActionWithCache(tx, state, height, chainID, nil)
+}
+
+func validateHistoricalPQActionWithCache(tx Transaction, state *ynxauth.State, height uint64, chainID int64, cache *PQCertificateCache) error {
+	h, member, err := decodePQActionMemoMember(tx.Memo)
 	if err != nil {
 		return err
 	}
@@ -225,7 +235,7 @@ func validateHistoricalPQAction(tx Transaction, state *ynxauth.State, height uin
 		return err
 	}
 	if pqContractKind(a.Kind) {
-		return validateHistoricalPQContractAction(tx, h, p, state, height)
+		return validateHistoricalPQContractActionWithCache(tx, h, member, p, state, height, cache)
 	}
 	typeName, to, amount := a.Kind, "", int64(0)
 	switch v := p.(type) {
@@ -297,7 +307,7 @@ func validateHistoricalPQAction(tx Transaction, state *ynxauth.State, height uin
 	if feeLots != wantFee {
 		return errors.New("PQ action fee lacks exact provenance")
 	}
-	return state.VerifyMember(a.Owner, ynxauth.TransactionPurpose, h.Message, h.Wire, height)
+	return cache.VerifyDecodedMember(state, a.Owner, ynxauth.TransactionPurpose, h.Message, member, height)
 }
 
 func validatePQActionLogs(tx Transaction, txIndex, firstLogIndex uint64) error {

@@ -137,15 +137,22 @@ jobs:
       - name: Verify forked engine keys and actual consensus objects
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 4
-        run: go test -p 1 -count=1 -timeout=180s github.com/cometbft/cometbft/crypto/ynxpq github.com/cometbft/cometbft/crypto/encoding github.com/cometbft/cometbft/proto/tendermint/crypto github.com/cometbft/cometbft/types
+        run: go test -p 1 -count=1 -timeout=180s github.com/cometbft/cometbft/crypto/ynxpq github.com/cometbft/cometbft/crypto/encoding github.com/cometbft/cometbft/proto/tendermint/crypto github.com/cometbft/cometbft/proto/tendermint/types github.com/cometbft/cometbft/types
       - name: Compile forked state and consensus engine without starting nodes
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 3
         run: go test -p 1 -count=1 -timeout=90s -run '^$' github.com/cometbft/cometbft/state github.com/cometbft/cometbft/consensus
-      - name: Measure bounded certificate cache cold and warm paths
+      - name: Verify real profile state transition and historical store without starting nodes
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXProfileActualStateUpdateHeaderAndHistoricalStore$' github.com/cometbft/cometbft/state
+      - name: Measure fresh single and bounded concurrent dual signature paths
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 2
-        run: go test -p 1 ./internal/ynxbatch -run '^$' -bench '^BenchmarkCertificateCache$' -benchtime=10x -count=1 -timeout=90s
+        run: go test -p 1 ./internal/ynxbatch -run '^$' -bench '^BenchmarkParallelProvider(FreshN1Sign|FreshN1Verify|Concurrent)$' -benchtime=10x -count=1 -timeout=90s
+      - name: Measure actual policy certificate cache consumer cold and warm paths
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 2
+        run: go test -p 1 ./internal/chain -run '^$' -bench '^BenchmarkPQCertificateConsumer$' -benchtime=10x -count=1 -timeout=90s
       - name: Install pinned contract build runtime
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -182,7 +189,9 @@ jobs:
         run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
       - name: Compile production entry points
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./cmd/ynx-abci ./internal/consensus
+        run: |
+          go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
+          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
@@ -191,9 +200,33 @@ jobs:
       - name: Verify Whole BFT gateway and native container readback
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
+      - name: Verify shared Wallet policy and Chain payment authorization regressions
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: go test -p 1 -count=1 -timeout=90s -run '^(TestClassicSession.*|TestAccountPolicyConfigRequiresExplicitExactOriginAndNetwork|TestBFTPaySerializesNonceAndReturnsZeroFeeIdempotentReplay|TestBFTPayRejectsInconsistentCommittedResponse|TestMerchantBindingRejectsForeignIntentAndInvoiceWithoutEffects|TestMerchantBindingRejectsMissingUntrustedOrUnavailableOriginal)$' ./internal/appgateway ./internal/paygateway
       # The external client was independently fixed and all 13 functions passed
       # at aa25500; see PERF_SEGMENTED_CLIENT_AA255_NORMAL09_ACTUAL_R1.json.
-      # Its frozen correctness evidence is reused; production tests above remain.
+      # The repaired source is also pinned below for the integration run.
+      - name: Checkout fixed repaired performance client
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: aa25500bdb13c52e56133ec0876651257cf31a1a
+          path: qa-owned-performance-client
+          persist-credentials: false
+      - name: Verify fixed segmented client integration with original assertions
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        working-directory: qa-owned-performance-client
+        timeout-minutes: 3
+        env:
+          GOMAXPROCS: '1'
+          GOGC: '50'
+          GOMEMLIMIT: '384MiB'
+        run: |
+          test "$(git rev-parse HEAD)" = 'aa25500bdb13c52e56133ec0876651257cf31a1a'
+          test "$(git rev-parse HEAD:cmd/ynx-consensus-perf-client)" = '1614f4ad2bc419612f3aba5bde492ad24a9920b6'
+          test "$(git rev-parse HEAD:go.mod)" = 'b9d7b1000986dad89c87ca0a1e1758636b5f6cdc'
+          test "$(git rev-parse HEAD:go.sum)" = '4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2'
+          go test -p 1 -count=1 -timeout=90s -v -run '^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$' ./cmd/ynx-consensus-perf-client
       - name: Emit public inverse interop fixture
         id: interop
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}

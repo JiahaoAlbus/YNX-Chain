@@ -146,8 +146,33 @@ func (s State) VerifyMemberWithCache(owner, purpose string, message, wire []byte
 	if err != nil {
 		return err
 	}
+	return s.verifyDecodedMember(owner, purpose, message, m, height, cache, scope)
+}
+
+// VerifyDecodedMemberWithCache consumes an already parsed member without decoding
+// the same wire again. It still validates the policy, complete certificate and
+// both membership paths; a typed Member is never an authentication capability.
+// Callers must not mutate its slices concurrently with verification.
+func (s State) VerifyDecodedMemberWithCache(owner, purpose string, message []byte, m ynxbatch.Member, height uint64, cache *ynxbatch.CertificateCache, scope []byte) error {
+	if err := s.Validate(s.NetworkID); err != nil {
+		return err
+	}
+	if !supportedPolicyVersion(s.Version) || height < s.EnableAt {
+		return ErrPolicy
+	}
+	return s.verifyDecodedMember(owner, purpose, message, m, height, cache, scope)
+}
+
+func (s State) verifyDecodedMember(owner, purpose string, message []byte, m ynxbatch.Member, height uint64, cache *ynxbatch.CertificateCache, scope []byte) error {
+	if len(m.Message) > ynxbatch.MaxMessageBytes {
+		return errors.New("authorization message exceeds protocol bound")
+	}
 	if m.Certificate.Owner != owner || !bytes.Equal(m.Message, message) {
 		return errors.New("authorization message or sender mismatch")
+	}
+	certificate, err := ynxbatch.EncodeCertificate(m.Certificate)
+	if err != nil {
+		return err
 	}
 	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: s.NetworkID, Purpose: purpose, CertificateCache: cache, CacheScope: scope, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
 		return s.TrustedRegistration(req.Owner, purpose, req.Height)
@@ -155,7 +180,11 @@ func (s State) VerifyMemberWithCache(owner, purpose string, message, wire []byte
 	if err != nil {
 		return err
 	}
-	return v.VerifyOne(wire, height)
+	handle, err := v.AuthenticateCertificate(certificate, height)
+	if err != nil {
+		return err
+	}
+	return v.VerifyMember(handle, m.Message, m.Proof, height)
 }
 
 // Migration contains raw bytes only. NewKeyProof is a one-message WholeWire

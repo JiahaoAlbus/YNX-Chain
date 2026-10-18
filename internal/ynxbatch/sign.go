@@ -3,16 +3,18 @@ package ynxbatch
 import (
 	"crypto/rand"
 	"sync"
-
-	"github.com/cloudflare/circl/sign/mldsa/mldsa87"
-	"github.com/cloudflare/circl/sign/slhdsa"
 )
 
 type Metadata struct {
 	ChainID        []byte
 	Owner, Purpose string
 }
-type SignOptions struct{ Optimized bool }
+type SignOptions struct {
+	Optimized bool
+	// ParallelProvider is explicit and nil by default. Sharing one bounded
+	// instance limits extra branch goroutines across concurrent signers.
+	ParallelProvider *ParallelProvider
+}
 
 // Batch stores a detached, privately constructed snapshot. Its zero value is
 // invalid; callers cannot turn a supplied Certificate into a signed Batch.
@@ -28,6 +30,9 @@ type Batch struct {
 // authorization engine. It generates its own fresh batch ID and returns nothing
 // usable until both signatures have completed.
 func BatchSign(k *PrivateKey, metadata Metadata, messages [][]byte, opts SignOptions) (*Batch, error) {
+	if opts.ParallelProvider != nil && !opts.ParallelProvider.enabled() {
+		return nil, invalid("parallel provider configuration")
+	}
 	if k == nil || k.state == nil {
 		return nil, invalid("unknown private key handle")
 	}
@@ -64,16 +69,14 @@ func BatchSign(k *PrivateKey, metadata Metadata, messages [][]byte, opts SignOpt
 	if err != nil {
 		return nil, err
 	}
-	c.SigmaA = make([]byte, SignatureASize)
-	if err = mldsa87.SignTo(s.a, ma, nil, true, c.SigmaA); err != nil {
-		return nil, err
-	}
-	c.SigmaB, err = slhdsa.SignRandomized(s.b, rand.Reader, slhdsa.NewMessage(mb), nil)
+	c.SigmaA, c.SigmaB, err = signSignatures(s, ma, mb, opts.ParallelProvider)
 	if err != nil {
 		return nil, err
 	}
 	wire, err := EncodeCertificate(c)
 	if err != nil {
+		clear(c.SigmaA)
+		clear(c.SigmaB)
 		return nil, err
 	}
 	return &Batch{certificate: wire, messages: input, a: ta, b: tb}, nil

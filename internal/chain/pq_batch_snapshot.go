@@ -38,6 +38,10 @@ func parsePQBatchMemo(memo string) (string, uint32, error) {
 // Partial replication State documents defer transaction coverage to the complete
 // candidate assembled with its history before persistence.
 func validatePQBatchSnapshot(snapshot devnetSnapshot) error {
+	return validatePQBatchSnapshotWithCache(snapshot, NewPQCertificateCache())
+}
+
+func validatePQBatchSnapshotWithCache(snapshot devnetSnapshot, cache *PQCertificateCache) error {
 	for _, p := range snapshot.PQBatches {
 		if len(p.Whole) == 0 || len(p.Whole) > MaxPQBatchBytes || len(p.Results) == 0 || len(p.Results) > ynxbatch.MaxN || p.Height == 0 {
 			return errors.New("snapshot PQ shared proof exceeds bound")
@@ -92,7 +96,7 @@ func validatePQBatchSnapshot(snapshot devnetSnapshot) error {
 		if hash != pqBatchHash(proof.Whole) || (complete && proof.Height > height) {
 			return errors.New("PQ shared proof hash or execution height mismatch")
 		}
-		a, err := authenticatePQBatch(proof.Whole, snapshot.AccountPolicy, proof.Height, snapshot.Config.ChainID)
+		a, err := authenticatePQBatchCached(proof.Whole, snapshot.AccountPolicy, proof.Height, snapshot.Config.ChainID, nil, cache)
 		if err != nil {
 			return fmt.Errorf("authenticate shared PQ history: %w", err)
 		}

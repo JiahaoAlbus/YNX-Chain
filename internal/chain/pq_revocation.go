@@ -77,9 +77,10 @@ func (d *Devnet) SubmitAccountRevocation(wire []byte) (Transaction, bool, error)
 	sender.ResourceUsage.BandwidthUsed++
 	feeRecipient.Balance++
 	d.accountPolicy = &next
+	d.pqCertificateCache.Invalidate()
 	tx := Transaction{Hash: hash, Type: "account_revocation", From: revocation.Intent.Owner, To: revocation.Intent.Owner, Fee: 1, Nonce: revocation.Intent.LedgerNonce, Timestamp: time.Now().UTC(), LotFlows: flows, Memo: memo}
 	d.pending = append(d.pending, tx)
-	tx, err = d.persistMutationLocked(tx, func() { d.rollbackTransferLocked(undo); d.accountPolicy = oldPolicy })
+	tx, err = d.persistMutationLocked(tx, func() { d.rollbackTransferLocked(undo); d.accountPolicy = oldPolicy; d.pqCertificateCache.Invalidate() })
 	return tx, false, err
 }
 

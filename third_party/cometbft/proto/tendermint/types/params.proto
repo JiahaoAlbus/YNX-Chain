@@ -16,6 +16,8 @@ message ConsensusParams {
   ValidatorParams validator = 3;
   VersionParams   version   = 4;
   ABCIParams      abci      = 5;
+  // Strict YNX engine profile; absent preserves every pre-profile hash.
+  bytes ynx_profile = 6;
 }
 
 // BlockParams contains limits on the block size.
