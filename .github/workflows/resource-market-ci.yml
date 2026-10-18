@@ -427,7 +427,8 @@ jobs:
           cat "$YNX_COMET_LAYOUT_CASE/original-red.log"
           test "$YNX_COMET_LAYOUT_RED_STATUS" -ne 0
           test "$(grep -c 'normal helper silently used another storage layout' "$YNX_COMET_LAYOUT_CASE/original-red.log")" -eq 2
-          grep -F -- '--- PASS: TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation/atomic-json' "$YNX_COMET_LAYOUT_CASE/original-red.log"
+          test "$(grep -c 'wrong layout silently selected another decoder' "$YNX_COMET_LAYOUT_CASE/original-red.log")" -eq 1
+          grep -F 'normalOperatorLayout=atomic-json actualCommitAndColdRecovery=true' "$YNX_COMET_LAYOUT_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=90s -v -run '^TestCometJournal' ./cmd/ynx-comet
       - name: Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}

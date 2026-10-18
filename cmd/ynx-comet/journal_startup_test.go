@@ -275,6 +275,7 @@ func TestCometJournalOperatorApplicationRealRegistryScheduleColdContinuation(t *
 			if account.Nonce != 1 || account.Balance != 992 {
 				t.Fatal("cold helper changed original value/fee/nonce", account.Balance, account.Nonce)
 			}
+			t.Logf("normalOperatorLayout=%s actualCommitAndColdRecovery=true", layout)
 			original, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatal(err)

@@ -3,13 +3,13 @@ package consensus
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	abci "github.com/cometbft/cometbft/abci/types"
 )
@@ -262,13 +262,33 @@ func TestRuntimeJournalRehashedCheckpointCannotReplaceIndependentPin(t *testing.
 	for _, block := range []bool{false, true} {
 		t.Run(fmt.Sprintf("block=%t", block), func(t *testing.T) {
 			path := writeRuntimeJournalFixture(t, f, f.old[2], block)
-			// Change actual executed metadata, then recalculate both state and
-			// frame hashes. Independent original checkpoint binding must remain.
-			var changed CommittedState
-			if err := json.Unmarshal(mustJSON(t, f.old[2]), &changed); err != nil {
-				t.Fatal(err)
+			// Produce a different, fully valid historical execution with real
+			// signed transfers. Changing one fee field alone could fail its
+			// internal audit before exercising the independent checkpoint pin.
+			alternative, _ := openRuntimeConsumerFixture(t, f, f.old[0])
+			confirmRuntimeConsumer(t, alternative, f.plan, alternative.committed)
+			for nonce := uint64(2); nonce <= 3; nonce++ {
+				request := runtimeConsumerRequest(t, f, nonce)
+				if nonce == 2 {
+					request.Time = request.Time.Add(time.Millisecond)
+				}
+				if _, err := alternative.FinalizeBlock(context.Background(), request); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := alternative.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+					t.Fatal(err)
+				}
+				if nonce < 3 {
+					confirmRuntimeConsumer(t, alternative, f.plan, alternative.committed)
+				}
 			}
-			changed.FeeEvents[0].CommittedAt = changed.FeeEvents[0].CommittedAt.Add(1)
+			changed := alternative.committed
+			if err := changed.Validate(f.migration); err != nil {
+				t.Fatal("checkpoint negative must contain fully valid executed history", err)
+			}
+			if changed.Height != f.plan.CheckpointHeight || changed.AppHash == f.plan.CheckpointAppHash {
+				t.Fatal("alternative execution did not differ at the independently pinned height")
+			}
 			var err error
 			changed.AppHash, err = changed.calculateHash()
 			if err != nil {
