@@ -1,6 +1,6 @@
 # Original Auth caller contract and version boundary
 
-This document maps implemented calls and type-only contracts in `1.3.0-pq.3.21-auth.1`. It does not
+This document maps implemented calls and type-only contracts in `1.3.0-pq.3.22-auth.1`. It does not
 register a credential or approve a Source release. Auth's R82 request schema is
 consumed unchanged; its three Native implementations remain incomplete.
 
@@ -87,11 +87,11 @@ cannot be passed as receive/recover/key-call purpose. Real Native partial owner
 and UNKNOWN cleanup remains the existing original lifecycle, not these DATA
 results.
 
-## Auth R84 Source verification DATA
+## Auth R86 Source verification DATA
 
 `@ynx-chain/wallet-auth/auth-source-verification` directly exports Auth's original
-`native/original-auth-identity-source-v2-verifier.mjs` unchanged (SHA256
-`00b0a5e6047f8337dafcf53261d977ef55da89320fc089c0074a9d6a110b5661`).
+`native/original-auth-identity-source-v2-verifier.mjs` unchanged from R86 (SHA256
+`9c6b11fc7c0af2e1a9fa047d04d2cd907087eba2af71ca09274dda980587fbe4`).
 The sibling `.d.mts` supplies `OriginalAuthSourceV2Policy`,
 `OriginalAuthSourceV2Registrations`, profile/current DATA and gate types.
 This Node-only entry uses the same shared registered verifier and policy brands;
@@ -106,6 +106,21 @@ it creates no second crypto engine or product-specific identity system.
 - `selectOriginalAuthSourceAlgorithm` supplies the explicit legacy/v2 policy
   decision. Migrated active accounts reject v1; revoked accounts reject both.
   The installed Native entry must actually enforce it on every relevant path.
+
+Enrollment/profile `envelope.executionHeight` is immutable signed issuance H.
+It may precede current observed H if the signer was active at issuance and its
+current full registered pair/revision remains valid. All four authenticated
+role/subject snapshots must share the actual current observation H. A current
+statement must be newly signed at that observation H; old current cannot be
+relabeled. Profile DATA exposes `credentialIssuedHeights` separately from its
+current observed `executionHeight`.
+
+Breaking candidate-only change: current verification's `previous` now requires
+canonical U64 string `executionHeight` as well as sequence/floor/head/timeFloor.
+Native initializes it to `'0'` and retains the last genuine observation H; lower
+observations and old four-field inputs are refused without a silent default.
+Do not mix SDK320/321 callers or installed Native components with this changed
+input. The two-phase ABI types and R82 wire/purpose are unchanged.
 
 All results remain immutable `dataOnly:true / nativeAdmission:false`. Native
 must acquire authenticated role/subject snapshots and independently check

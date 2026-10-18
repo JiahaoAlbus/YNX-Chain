@@ -53,9 +53,18 @@ function envelope(raw,role,frame,snapshot,networkId,expectedOwner){
  const e=parse(raw);exact(e,['version','algorithmVersion','role','networkId','owner','keyVersion','executionHeight','body','member']);
  if(e.version!==2||e.algorithmVersion!==suite||e.role!==role||e.networkId!==networkId||e.owner!==expectedOwner)fail('AUTH_SOURCE_V2_SIGNER_BINDING');
  const binding=context({networkId:e.networkId,owner:e.owner,keyVersion:e.keyVersion,executionHeight:e.executionHeight});
+ // e.executionHeight is SIGNED issuance context. A pinned enrollment/profile
+ // is not reissued for every block. Registration authority, however, must be
+ // current at the independently observed snapshot height and current revision.
+ inspectPQAuthorizationView(snapshot); // refuse unbranded/getter objects first
+ const observed=decimal(snapshot.executionHeight),issued=decimal(e.executionHeight);
+ if(issued>observed)fail('AUTH_SOURCE_V2_STATEMENT_HEIGHT');
+ if(role==='current'&&issued!==observed)fail('AUTH_SOURCE_V2_CURRENT_HEIGHT');
+ const historic=inspectPQAuthorizationView(snapshot,e.executionHeight);
+ if(!historic.activeRecord||historic.activeRecord.revision!==e.keyVersion||historic.authorizationStatus==='revoked')fail('AUTH_SOURCE_V2_ISSUANCE_KEY_REQUIRED');
  let bytes,wire,bodyRaw;try{bytes=pqDecodeBase64url(e.body,{max:65536});wire=pqDecodeBase64url(e.member,{max:262144});bodyRaw=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail('AUTH_SOURCE_V2_ENCODING');}
  const body=parse(bodyRaw,65536);
- const math=verifyPQRegisteredMemberData(snapshot,wire,{chainId:networkId,owner:expectedOwner,keyVersion:e.keyVersion,executionHeight:e.executionHeight,purpose:purposes[role],message:encodeOriginalAuthSourceStatementV2(role,frame,binding,bodyRaw)});
+ const math=verifyPQRegisteredMemberData(snapshot,wire,{chainId:networkId,owner:expectedOwner,keyVersion:e.keyVersion,executionHeight:snapshot.executionHeight,purpose:purposes[role],message:encodeOriginalAuthSourceStatementV2(role,frame,binding,bodyRaw)});
  if(math.memberCount!==1||math.memberIndex!==0)fail('AUTH_SOURCE_V2_N1_REQUIRED');
  return Object.freeze({body,binding:seal({...binding}),dataOnly:true,nativeAdmission:false});
 }
@@ -104,8 +113,7 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  const r=s.expectedRequest;
  if(!r||r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(ops)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');
  window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
- const height=enrollment.binding.executionHeight;
- if(profile.binding.executionHeight!==height)fail('AUTH_SOURCE_V2_HEIGHT');
+ const height=registrations.root.executionHeight;decimal(height);
  const roleKeys=[active(registrations.root,root.networkId,root.rootOwner,height),
   active(registrations.profile,root.networkId,e.profileOwner,height),
   active(registrations.current,root.networkId,e.currentOwner,height)];
@@ -113,11 +121,12 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
   if(roleKeys[i].pkA===roleKeys[j].pkA||roleKeys[i].pkB===roleKeys[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
  active(registrations.subject,root.networkId,p.subjectOwner,height);
  const selected=selectOriginalAuthSourceAlgorithm(registrations.subject,2);
- return Object.freeze({root,enrollment:e,profile:p,executionHeight:height,subjectKeyVersion:selected.keyVersion,dataOnly:true,nativeAdmission:false});
+ return Object.freeze({root,enrollment:e,profile:p,executionHeight:height,credentialIssuedHeights:Object.freeze({enrollment:enrollment.binding.executionHeight,profile:profile.binding.executionHeight}),subjectKeyVersion:selected.keyVersion,dataOnly:true,nativeAdmission:false});
 }
 export function verifyOriginalAuthSourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,expectedNonce,previous,atMs){
  const verified=verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs),contract=sourcePolicy(policy);
- exact(previous,['sequence','floor','head','timeFloor']);
+ exact(previous,['sequence','floor','head','timeFloor','executionHeight']);
+ if(decimal(previous.executionHeight)>decimal(verified.executionHeight))fail('AUTH_SOURCE_V2_OBSERVATION_ROLLBACK');
  if(!integer(previous.sequence)||!integer(previous.floor)||!integer(previous.timeFloor)||!(previous.head===''||hex(previous.head))||atMs<previous.timeFloor)fail('AUTH_SOURCE_V2_ROLLBACK');
  const current=envelope(currentRaw,'current',contract.currentFrame,registrations.current,verified.root.networkId,verified.enrollment.currentOwner),c=current.body,p=verified.profile;
  exact(c,['version','purpose','sourceId','enrollmentDigest','profileDigest','instanceId','generation','subjectOwner','subjectKeyVersion','sequence','floor','head','status','nonce','issuedAtMs','expiresAtMs']);

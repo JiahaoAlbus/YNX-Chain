@@ -27,7 +27,7 @@ test('new Source v2 graph uses real three-role registered dual signatures; PUBLI
   p.selection.originalBusinessPermissions={projects:['PUBLIC-existing-project'],role:'PUBLIC-existing-role-no-new-grant'};
   const profileRaw=sign('profile',p),nonce=Buffer.alloc(32,4).toString('base64url');
   const c={version:2,purpose:contract.purpose,sourceId:enrollment.sourceId,enrollmentDigest:policy.enrollmentDigest,profileDigest:sha(profileRaw),instanceId:p.instanceId,generation:1,subjectOwner:owners[3],subjectKeyVersion:'1',sequence:1,floor:0,head:'cd'.repeat(32),status:'active',nonce,issuedAtMs:100,expiresAtMs:30100};
-  const currentRaw=sign('current',c),previous={sequence:0,floor:0,head:'',timeFloor:0};
+  const currentRaw=sign('current',c),previous={sequence:0,floor:0,head:'',timeFloor:0,executionHeight:'0'};
   const verified=current(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,nonce,previous,200);
   assert.equal(verified.principalId,association.account);assert.equal(verified.subjectOwner,owners[3]);assert.equal(verified.executionHeight,H);assert.equal(verified.subjectKeyVersion,'1');assert.equal(verified.nativeAdmission,false);assert(Object.isFrozen(verified.selection.association));
   assert.deepEqual(verified.selection.originalBusinessPermissions,p.selection.originalBusinessPermissions);assert(Object.isFrozen(verified.selection.originalBusinessPermissions.projects));

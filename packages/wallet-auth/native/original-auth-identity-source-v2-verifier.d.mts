@@ -6,7 +6,8 @@ export type OriginalAuthSourceV2Role='enrollment'|'profile'|'current';
 export type OriginalAuthSourceJSON=null|boolean|number|string|readonly OriginalAuthSourceJSON[]|{readonly [key:string]:OriginalAuthSourceJSON};
 export interface OriginalAuthSourceV2Context {
  readonly networkId:string;readonly owner:string;
- /** Original signer owner Record.Revision and actual H, canonical U64 strings. */
+ /** Original signer owner Record.Revision and signed issuance H, canonical U64
+  * strings. Current issuance H must equal the actual observed H. */
  readonly keyVersion:string;readonly executionHeight:string;
 }
 export interface OriginalAuthSourceV2Policy {
@@ -46,10 +47,16 @@ export interface OriginalAuthSourceV2Profile {
 }
 export interface OriginalAuthSourceV2ProfileData {
  readonly root:OriginalAuthSourceV2Root;readonly enrollment:OriginalAuthSourceV2Enrollment;readonly profile:OriginalAuthSourceV2Profile;
- readonly executionHeight:string;readonly subjectKeyVersion:string;readonly dataOnly:true;readonly nativeAdmission:false;
+ /** Current observed H, distinct from immutable credential signing heights. */
+ readonly executionHeight:string;
+ readonly credentialIssuedHeights:Readonly<{enrollment:string;profile:string}>;
+ readonly subjectKeyVersion:string;readonly dataOnly:true;readonly nativeAdmission:false;
 }
 export interface OriginalAuthSourceV2Previous {
  readonly sequence:number;readonly floor:number;readonly head:string;readonly timeFloor:number;
+ /** Required retained last observed H; Native initializes to '0', never default
+  * a missing field or accept a renderer replacement. Reject observation rollback. */
+ readonly executionHeight:string;
 }
 export interface OriginalAuthSourceV2CurrentData extends OriginalAuthSourceV2Previous {
  readonly selection:OriginalAuthSourceV2Selection;readonly principalId:string;readonly subjectOwner:string;readonly subjectKeyVersion:string;
