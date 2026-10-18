@@ -76,6 +76,7 @@ on:
           - bounded-cadence
           - grouped-cadence4
           - paired-relative-bounded
+          - paired-bounded-grouped
         default: relative
       measure_anchor_validation:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
@@ -313,6 +314,8 @@ jobs:
           mkdir "$RUNNER_TEMP/ynx-linux-supply-build" "$RUNNER_TEMP/ynx-linux-supply-evidence"
           if [ "$YNX_SUPPLY_PACING" = paired-relative-bounded ]; then
             python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-bounded-grouped ]; then
+            python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind bounded-grouped --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           else
             python3 -B scripts/loadtest/supply-linux-window.py --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           fi
@@ -323,6 +326,8 @@ jobs:
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-consensus-perf-client" ./cmd/ynx-consensus-perf-client
           if [ "$YNX_SUPPLY_PACING" = paired-relative-bounded ]; then
             python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-bounded-grouped ]; then
+            python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind bounded-grouped --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           else
             python3 -B scripts/loadtest/supply-linux-window.py --execute --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           fi

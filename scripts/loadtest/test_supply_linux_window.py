@@ -29,6 +29,7 @@ def report(profile="supply-256x4", pacing="relative"):
                            "effectiveBusinessIncluded", "quorumConfirmed", "finalSubmitted"), 1024)
     counts.update(dict.fromkeys(("checkTxRejected", "checkTxUnverifiedResponses", "executionFailed", "submissionUnknown",
                                 "timedOut", "observationFailed", "notSubmitted"), 0))
+    counts["finalSubmittedPerMeasurementSecond"]=100
     phases = {}
     for name in ("completionWait", "offerDecode", "pacingWait", "dispatch", "sign", "encode", "journalAppend"):
         phases[name+"Attempts"], phases[name+"Ns"] = 1, 100
@@ -48,9 +49,11 @@ def report(profile="supply-256x4", pacing="relative"):
     tx = dict(status="confirmed", checkTxCode=0, executionCode=0, checkTxIdentityVerified=True,
               quorumVerified=True, transactionProofVerified=True, durableStateVerified=True,
               durableInfoVerified=True, height=2, durableStateHeight=2, durableInfoHeight=2,
-              durableSnapshotSha256="a"*64, confirmedObservedAt="2026-10-18T00:00:00Z")
+              durableSnapshotSha256="a"*64, confirmedObservedAt="2026-10-18T00:00:00Z",
+              queueDelayMs=10,inclusionMs=1000,confirmationMs=1500)
     return dict(roundsRequested=rounds, roundsCompleted=rounds, pacingMode=pacing, senderMode="ready-pool", inclusionMode="block-scan", configuredOfferedRate=512,
                 setupErrors=[], summary=counts, readySenders=dict(supply=phases),
+                loadQueues=dict(peakOfferedAwaitingSubmission=4,peakAcceptedAwaitingObservationCompletion=512),
                 transactions=[dict(tx, index=i) for i in range(1024)])
 
 
@@ -327,7 +330,7 @@ class SupplySourceTests(unittest.TestCase):
                     profile=supply.recipe("grpc","supply-512x2",mode)["profile"],
                     measurement=dict(summary=report("supply-512x2",mode)["summary"]),nodePhases=[{} for _ in range(4)])
 
-    def mock_pair(self, first_failure=None, mutate_binary=False, fail_after_fsync=False):
+    def mock_pair(self, first_failure=None, mutate_binary=False, fail_after_fsync=False,comparison="relative-bounded",corrupt_result=False):
         # Synthetic orchestration only: no compiler, fixture, socket or node.
         import hashlib
         with tempfile.TemporaryDirectory() as temp:
@@ -346,6 +349,11 @@ class SupplySourceTests(unittest.TestCase):
                 if first_failure=="error":row["firstCause"]="synthetic deadline";code=1
                 if first_failure=="cleanup":row["cleanupComplete"]=False
                 if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=4
+                if comparison=="bounded-grouped":
+                    client=report("supply-512x2",mode)
+                    network=case/"network";network.mkdir()
+                    encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
+                    row["resultSHA256"]=hashlib.sha256(encoded).hexdigest() if not corrupt_result else "0"*64
                 out.write_text(json.dumps(row))
                 if mutate_binary:(build/supply.BINARIES[0]).write_bytes(b"changed")
                 return code
@@ -362,7 +370,7 @@ class SupplySourceTests(unittest.TestCase):
                     patch.object(supply.PairBudget,"observe",side_effect=observe),patch.object(supply,"empty_pair_closure",side_effect=empty), \
                     patch.object(supply,"run",side_effect=fake_run),patch.object(supply.signal,"signal"),patch.object(supply.signal,"setitimer"), \
                     contextlib.redirect_stdout(output):
-                code=supply.run_pair(source,build,parent/"pair",evidence/"actual.json")
+                code=supply.run_pair(source,build,parent/"pair",evidence/"actual.json",comparison)
             row=json.loads((evidence/"actual.json").read_text())
             row["_terminal"]=json.loads(output.getvalue().split("YNX_SUPPLY_PAIR_TERMINAL ")[-1])
             return code,order,row
@@ -388,6 +396,61 @@ class SupplySourceTests(unittest.TestCase):
         self.assertTrue(row["casesQualified"])
         self.assertFalse(row["_terminal"]["qualified"])
         self.assertIn("after receipt fsync",row["_terminal"]["firstCause"])
+
+    def test_grouping_pair_explicit_order_and_original_recipe_unchanged(self):
+        import hashlib
+        raw=(json.dumps(supply.pair_recipe(),indent=2)+"\n").encode()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),"d13f9f6bcbc2051cef78b9b46041bde79d713de810bad98efdedc0287c4f7dc7")
+        grouped=supply.pair_recipe("bounded-grouped")
+        self.assertEqual(grouped["input"]["linux_supply_pacing"],"paired-bounded-grouped")
+        self.assertEqual([c["pacingMode"] for c in grouped["cases"]],["bounded-cadence","grouped-cadence4"])
+        self.assertEqual(grouped["pairCaps"],supply.pair_recipe()["pairCaps"])
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();data=root/"pair";evidence=root/"evidence";build=root/"build"
+            for d in (data,evidence,build):d.mkdir()
+            case=data/"after-grouped-cadence4";case.mkdir()
+            (case/"client.log").write_bytes(b"x"*((2 << 20)+1))
+            budget=supply.PairBudget(data,evidence,0,build,"bounded-grouped")
+            sample=dict(rssBytes=1,threads=1,privateBytes=1,buildBytes=1,freeDiskBytes=10 << 30,availableMemoryBytes=2 << 30)
+            with patch.object(supply.time,"monotonic",return_value=1):
+                with self.assertRaisesRegex(RuntimeError,"stdout/stderr log2MiB"):budget.observe(sample)
+        with self.assertRaises(RuntimeError):supply.pair_recipe("grouped-bounded")
+        code,order,row=self.mock_pair(comparison="bounded-grouped")
+        self.assertEqual(code,0);self.assertEqual(order,["bounded-cadence","empty","grouped-cadence4","empty"])
+        self.assertIn("jointObservation",row)
+        self.assertFalse(row["jointObservation"]["finiteJointImprovementObserved"])
+        self.assertEqual(row["cases"][0]["offerLatency"]["offerToQualifiedFinalLatencyMs"]["p95"],1510)
+
+    def test_grouping_pair_unknown_or_changed_raw_never_starts_second_case(self):
+        for kwargs in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True)):
+            with self.subTest(kwargs=kwargs):
+                code,order,row=self.mock_pair(comparison="bounded-grouped",**kwargs)
+                self.assertEqual(code,1);self.assertEqual(order,["bounded-cadence"])
+                self.assertFalse(row["_terminal"]["qualified"])
+
+    def test_offer_latency_includes_queue_and_invalid_or_missing_values_fail(self):
+        row=report("supply-512x2")
+        row["transactions"][0].update(queueDelayMs=5000,confirmationMs=1)
+        readout=supply.offer_latency_readout(row)
+        self.assertEqual(readout["offerToEffectiveInclusionLatencyMs"]["p95"],1010)
+        self.assertEqual(readout["offerToQualifiedFinalLatencyMs"]["p95"],1510)
+        for value in (-1,float("inf"),float("nan"),None):
+            row=report("supply-512x2");row["transactions"][0]["queueDelayMs"]=value
+            with self.subTest(value=value),self.assertRaises(RuntimeError):supply.offer_latency_readout(row)
+        row=report("supply-512x2");row["loadQueues"]["peakAcceptedAwaitingObservationCompletion"]=1025
+        with self.assertRaises(RuntimeError):supply.offer_latency_readout(row)
+
+    def test_more_tps_with_worse_final_p95_is_not_joint_acceptance(self):
+        before=dict(summary=dict(finalSubmittedPerMeasurementSecond=200),offerLatency=supply.offer_latency_readout(report("supply-512x2")))
+        after=dict(summary=dict(finalSubmittedPerMeasurementSecond=300),offerLatency=supply.offer_latency_readout(report("supply-512x2","grouped-cadence4")))
+        after["offerLatency"]["offerToQualifiedFinalLatencyMs"]["p95"]=1600
+        guard=supply.joint_observation(before,after)
+        self.assertTrue(guard["finiteFinalRateIncreased"])
+        self.assertFalse(guard["offerToFinalP95NotWorse"])
+        self.assertFalse(guard["finiteJointImprovementObserved"])
+        self.assertFalse(guard["sustainedTPSQualified"])
+        after["summary"]["finalSubmittedPerMeasurementSecond"]=float("nan")
+        with self.assertRaises(RuntimeError):supply.joint_observation(before,after)
 
 
 if __name__ == "__main__":

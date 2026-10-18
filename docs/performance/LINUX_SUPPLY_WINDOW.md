@@ -478,3 +478,55 @@ supply waiting, drain and bounded decision counters. The prior pair's P95
 regression remains a guard: a higher finite offer/TPS number alone cannot satisfy
 the overall performance objective. No grouping network run has been authorized
 or executed by this source change.
+
+## Explicit bounded→grouped pair preparation
+
+Root selected the next fixed same-VM comparison for source/normalCI preparation,
+not network execution. The new explicit workflow choice is
+`linux_supply_pacing=paired-bounded-grouped`, using the original pair wrapper
+with `--pair-kind bounded-grouped`. It selects bounded-cadence first, then
+grouped-cadence4, with two fresh fixtures and the same four binaries built once.
+Original `paired-relative-bounded` and the default recipe remain byte-identical:
+4214bytes/SHA256d13f9f6bcbc2051cef78b9b46041bde79d713de810bad98efdedc0287c4f7dc7.
+Neither side of the historical50588 pair is replaced or reinterpreted.
+
+```sh
+python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind bounded-grouped --transport grpc --profile supply-512x2
+```
+
+The fixed order, wrong-mode rejection, original first-failure/UNKNOWN stop,
+actual cleanup plus two empty closure scans, native owned-resource sampling,
+source/binary/host bindings and post-fsync terminal verdict remain mandatory.
+Case roots are `before-bounded-cadence` and `after-grouped-cadence4`; only their
+direct process output is charged as stdout/stderr, and all DB/WAL files remain
+charged as private data. Each case retains1024total/512x2/gRPC/config512/4workers/
+10s and45+15s; the aggregate120s/64MiB/log2MiB/sharedbuild1GiB, per-case32MiB/
+RSS1GiB/320threads/9children+wrapper and Linux memory/disk floors do not increase.
+
+After each already-qualified case, the new pair checks the raw client SHA256
+against its original receipt and runs the same business validator before reading
+latencies. It saves nearest-rank P50/P95/P99 of per-row queueDelay+inclusion and
+queueDelay+confirmation, actual atomic submission/observation queue peaks, Supply
+timing and full node phases including fileSync. Raw-result read/hash/quantile work
+is inside the original120s budget; no timestamp-derived backlog or excluded queue
+time is substituted. Missing/nonfinite/negative timing or missing queue facts
+rejects the new pair instead of silently withholding a bad latency.
+
+`jointObservation` separates successful business measurement from performance
+acceptance. It reports finite final-rate increase, offer→inclusion/final P95
+not worse and candidate final P95<=3s. Joint improvement requires all those
+conditions; higher TPS with worse P95 yields false even if both safe finite cases
+are qualified. SustainedTPSQualified remains false in all finite comparisons.
+As a read-only check against the actual50588 raw pair, this guard correctly
+reports faster=true/finalP95NotWorse=false/jointImprovement=false. Its actual
+readout is retained under the original pair artifact directory; it is not a new
+performance sample.
+
+Source-only tests cover the new order, original recipe SHA unchanged, correct
+new-root stdout accounting, unknown pair rejection, first-case UNKNOWN/unclean/raw
+hash mismatch stopping before the second case, queue-inclusive quantiles and the
+higher-TPS/worse-P95 rejection. Synthetic orchestration tests are not business or
+capacity evidence. The grouped production client source is unchanged from
+fa596b5fc, whose actual signed/persistent/nonce/slow-peer regression passed
+CI39141981675; the new pair source must also pass its own normal CI before a
+separate Root grant can authorize one actual bounded→grouped network window.
