@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' wss://relay.walletconnect.org wss://relay.walletconnect.com https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; frame-src https://verify.walletconnect.org https://verify.walletconnect.com; base-uri 'none'; form-action 'none'">
+<title>YNX Wallet · Address connection</title>
+<link rel="stylesheet" href="./walletconnect-consumer.css">
+<main>
+ <a href="https://wallet.ynxweb4.com">YNX Wallet</a>
+ <h1>Connect YNX Wallet / 连接钱包</h1>
+ <p>YNX Testnet · eip155:6423</p>
+ <p>This page requests one public address only. It cannot request signatures, sign-in permissions, tokens or transfers. / 此页面仅请求一个公开地址，不能请求签名、登录权限、代币或转账。</p>
+ <p id="status" role="status" aria-live="polite">Not connected. / 未连接。</p>
+ <p id="address" aria-label="Approved public address"></p>
+ <p><code id="diagnostic"></code></p>
+ <div class="actions">
+  <button id="connect" type="button" disabled>Connect / 连接</button>
+  <button id="cancel" type="button" disabled>Cancel / 取消</button>
+  <button id="disconnect" type="button" disabled>Disconnect / 断开</button>
+ </div>
+ <section id="pairing" hidden>
+  <p>Scan in YNX Wallet or open Wallet, then review the connection. / 请在钱包扫码或打开钱包，然后审核连接。</p>
+  <img id="pairing-qr" width="280" height="280" alt="Temporary WalletConnect connection code / 临时钱包连接码">
+  <p><a id="open-wallet">Open YNX Wallet / 打开钱包</a></p>
+ </section>
+ <p class="foot">Closing this page does not prove remote disconnection. Use Disconnect before leaving; unknown cleanup is retained. / 关闭页面不代表远端已断开，请先点击断开；未知清理结果会保留。</p>
+ <p class="foot">Portions © 2025 Reown, Inc. WalletConnect uses the official Reown network.</p>
+</main>
+<script src="./walletconnect-consumer.js" defer></script>
+</html>

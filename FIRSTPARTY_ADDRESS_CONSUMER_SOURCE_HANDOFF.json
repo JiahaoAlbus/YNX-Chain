@@ -1,0 +1,51 @@
+{
+  "state": "CONTROLLED_UI_VERIFIED_REAL_SDK_MATCHING_AND_PUBLICATION_PENDING",
+  "baseCommit": "db67867978ad5460088468a20cf8a8c6abd61e8a",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "scope": "Existing Wallet first-party address connection only, owned apps/wallet-desktop files",
+  "normalRoute": "https://wallet.ynxweb4.com/connect/",
+  "entry": "apps/wallet-desktop/web-connect/entry.mjs",
+  "html": "apps/wallet-desktop/web-connect/index.html",
+  "controller": "apps/wallet-desktop/src/walletconnect-address-consumer.mjs",
+  "view": "apps/wallet-desktop/src/walletconnect-address-page.mjs",
+  "normalBuild": {
+    "owner": "Sole original A via Root",
+    "script": "apps/wallet-desktop/scripts/build-wallet-connection-page.mjs",
+    "argument": "Absolute canonical new output directory; existing output refused",
+    "tool": "Original SDK local declared esbuild 0.25.9 only",
+    "publication": "Three built static assets on existing Wallet origin /connect/; no new product or service",
+    "executed": false
+  },
+  "sdkDependency": {
+    "owner": "Original sole SDK owner",
+    "publicSubpath": "@ynx-chain/wallet-auth/walletconnect-dapp-connection",
+    "factory": "createWalletAddressConnection()",
+    "contract": "Fixed Wallet origin, chain6423, required methods[]; original real SignClient creates URI and owns session storage/cancellation",
+    "supplierStatus": "New strict profile and seven controlled tests implemented by supplier, not formal package consumed",
+    "realRed": "Supplier found SDK38 clean dynamic SignClient import ERR_PACKAGE_PATH_NOT_EXPORTED @noble/hashes/sha3 due to global 2.2 overrides conflicting with WC1.x",
+    "next": "Consume formal SDK39 fixed source and exact dependency closure before normal bundle or new matching App",
+    "sdk38AndA33FrozenInputsUnchanged": true
+  },
+  "controlledValidation": {
+    "runtime": "Installed R24 Electron RunAsNode, heap192MiB, isolation none, concurrency1",
+    "pass": 11,
+    "fail": 0,
+    "durationMs": 11.492916,
+    "afterRaw": "apps/wallet-desktop/test/walletconnect-address-consumer-after-20261018.raw",
+    "afterSha256": "67ae93ae98e7b1783dc4ea6e0a7577c123b0cc1c21e819a09bd57c62e675dfb5",
+    "additionalRealRed": "Cancel originally re-enabled Connect before the original approval drained; one focused test failed and pendingOriginal now keeps it disabled until settlement",
+    "beforeRaw": "apps/wallet-desktop/test/walletconnect-address-consumer-cancel-before-20261018.raw",
+    "beforeSha256": "2b8acc3fe60ccdd38b447678afef1cf16682f8bf75046462f0bdab8bbe0680cb",
+    "testEntry": "Existing Desktop npm test node --test test/*.test.mjs",
+    "coverage": ["Explicit lazy one-original connect", "Exact first-party origin", "Only chain and approved address read", "No escaping provider request API", "Cancel/late QR/provider fencing", "Malformed selection rejection", "Account/chain/permission invalidation", "UNKNOWN cleanup prevents repeat connect/disconnect", "Bounded error classifications without secrets", "Normal button and static page entry wiring"]
+  },
+  "actualGuiAndPackageBoundary": {
+    "db678CompletePackage": "Existing immutable complete SDK38 App/DMG is separate from this new consumer source",
+    "db678InstallAttempt": "Normal Finder getApp returned Mac locked before any installation action",
+    "guiSlot": 0,
+    "noRepeatedManualUnlockRequirement": true,
+    "ordinary4bcReadback": "Normal UI Relay unconfirmed/no active sessions, not proven transport failure",
+    "MONSTER": "Not executed"
+  },
+  "notClaimed": ["Browser asset build or visual rendering", "Deployed route", "Actual Relay/proposal/permission connection", "New matching installed App", "Legal IDE-private Source grant", "Any sign-in signature, transfer or funds operation", "Full Wallet goal completion"]
+}

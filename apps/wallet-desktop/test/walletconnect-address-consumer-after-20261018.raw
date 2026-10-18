@@ -1,0 +1,19 @@
+✔ normal address consumer is lazy and reads only the one approved address and chain (0.741292ms)
+✔ wrong or local origin is rejected before a protocol client is constructed (0.161167ms)
+✔ reentry shares the same original connection and protocol-generated URI stays out of state (0.555666ms)
+✔ cancel hides pending URI and a late provider cannot become a connected approval (0.262417ms)
+✔ wrong chain or malformed account never claims connected (0.223458ms)
+✔ uncertain disconnect is retained without repeated cleanup or new connection writes (0.258834ms)
+✔ account and chain events invalidate display instead of silently adopting changed permission (0.168166ms)
+✔ transport errors expose bounded codes, never original error messages or pairing material (0.106708ms)
+✔ normal page buttons require an explicit connection and show only the approved address (0.351ms)
+✔ late QR encoding after cancellation cannot restore the URI, native link or approval state (0.287291ms)
+✔ normal consumer entry imports only the public original SDK and has no sign-in or transaction action (0.668084ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11.492916
