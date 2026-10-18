@@ -30,6 +30,7 @@ type blockJournalPrefix struct {
 type BlockJournalPrefixReadback struct {
 	BlockJournalReadback
 	ReusedPrefixBytes int
+	WorkPhases        *BlockJournalPrefixWorkPhases `json:"workPhases,omitempty"`
 }
 
 func NewBlockJournalPrefixDecoder(migration chain.ConsensusMigrationState) (*BlockJournalPrefixDecoder, error) {
@@ -42,6 +43,20 @@ func NewBlockJournalPrefixDecoder(migration chain.ConsensusMigrationState) (*Blo
 	return d, nil
 }
 func (d *BlockJournalPrefixDecoder) Decode(ctx context.Context, data []byte) (BlockJournalPrefixReadback, error) {
+	return d.decode(ctx, data, nil)
+}
+
+// DecodeWithPhaseTiming measures this call only. The untimed API retains its
+// original validation/error behavior and performs no phase clock reads.
+// Even failed/cancelled calls return their private attempted-phase counters.
+func (d *BlockJournalPrefixDecoder) DecodeWithPhaseTiming(ctx context.Context, data []byte) (BlockJournalPrefixReadback, error) {
+	phases := new(BlockJournalPrefixWorkPhases)
+	out, err := d.decode(ctx, data, phases)
+	out.WorkPhases = phases
+	return out, err
+}
+
+func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, phases *BlockJournalPrefixWorkPhases) (BlockJournalPrefixReadback, error) {
 	var out BlockJournalPrefixReadback
 	if err := ctx.Err(); err != nil {
 		return out, err
@@ -52,25 +67,34 @@ func (d *BlockJournalPrefixDecoder) Decode(ctx context.Context, data []byte) (Bl
 	if len(data) > blockJournalPrefixLimit {
 		return out, errors.New("prefix decoder input exceeds explicit16MiB bound")
 	}
-	select {
-	case <-ctx.Done():
-		return out, ctx.Err()
-	case <-d.gate:
+	if err := phases.measure("gateWait", func() error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-d.gate:
+			return nil
+		}
+	}); err != nil {
+		return out, err
 	}
 	defer func() { d.gate <- struct{}{} }()
 	if err := ctx.Err(); err != nil {
 		return out, err
 	}
 	p := d.prefix
-	reused := p != nil && p.end > 0 && p.end <= len(data) && sha256.Sum256(data[:p.end]) == p.digest
+	reused := false
+	_ = phases.measure("prefixCheck", func() error {
+		reused = p != nil && p.end > 0 && p.end <= len(data) && sha256.Sum256(data[:p.end]) == p.digest
+		return nil
+	})
 	logicalBlocks := 0
 	if reused {
 		// Always reconstruct private state and fully validate its current AppHash.
 		var state CommittedState
-		if err := decodeStrictJSON(p.payload, &state); err != nil {
+		if err := phases.measure("privateJSON", func() error { return decodeStrictJSON(p.payload, &state) }); err != nil {
 			return out, err
 		}
-		if err := state.Validate(d.full.migration); err != nil {
+		if err := phases.measure("privateValidate", func() error { return state.Validate(d.full.migration) }); err != nil {
 			return out, err
 		}
 		if p.end == len(data) {
@@ -79,24 +103,32 @@ func (d *BlockJournalPrefixDecoder) Decode(ctx context.Context, data []byte) (Bl
 			if err := ctx.Err(); err != nil {
 				return out, err
 			}
-			payload := append([]byte(nil), p.payload...)
+			var payload []byte
+			_ = phases.measure("canonicalCopy", func() error { payload = append([]byte(nil), p.payload...); return nil })
 			if err := ctx.Err(); err != nil {
 				return out, err
 			}
 			return BlockJournalPrefixReadback{BlockJournalReadback: BlockJournalReadback{State: state, SnapshotJSON: payload, CompleteBytes: p.end}, ReusedPrefixBytes: p.end}, nil
 		}
-		replay, err := NewApplication(d.full.migration)
+		var replay *Application
+		err := phases.measure("suffixSetup", func() error { var e error; replay, e = NewApplication(d.full.migration); return e })
 		if err != nil {
 			return out, err
 		}
 		replay.committed = state
 		replay.replayVerificationFacts = &d.full.native
 		j := &blockJournal{io: &snapshotJournal{end: int64(p.end), records: p.blocks + 1}, blocks: p.blocks}
-		next, err := replayBlockJournalFrames(ctx, bytes.NewReader(data[p.end:]), d.full.migration, j, replay)
+		var next CommittedState
+		err = phases.measure("suffixReplay", func() error {
+			var e error
+			next, e = replayBlockJournalFrames(ctx, bytes.NewReader(data[p.end:]), d.full.migration, j, replay)
+			return e
+		})
 		if err != nil {
 			return out, err
 		}
-		payload, err := encodeCommittedStateJSON(next)
+		var payload []byte
+		err = phases.measure("suffixEncode", func() error { var e error; payload, e = encodeCommittedStateJSON(next); return e })
 		if err != nil {
 			return out, err
 		}
@@ -104,7 +136,8 @@ func (d *BlockJournalPrefixDecoder) Decode(ctx context.Context, data []byte) (Bl
 		out.ReusedPrefixBytes = p.end
 		logicalBlocks = j.blocks
 	} else {
-		full, err := d.full.Decode(ctx, data)
+		var full BlockJournalReadback
+		err := phases.measure("fullReplay", func() error { var e error; full, e = d.full.Decode(ctx, data); return e })
 		if err != nil {
 			return out, err
 		}
@@ -117,7 +150,10 @@ func (d *BlockJournalPrefixDecoder) Decode(ctx context.Context, data []byte) (Bl
 	// Never cache failures or caller-owned objects. Older captures cannot displace
 	// a newer validated state. Rotation at equal/newer height can replace it.
 	if len(out.SnapshotJSON) <= blockJournalPrefixLimit && (p == nil || out.State.Height >= p.height) {
-		d.prefix = &blockJournalPrefix{payload: append([]byte(nil), out.SnapshotJSON...), digest: sha256.Sum256(data[:out.CompleteBytes]), end: out.CompleteBytes, blocks: logicalBlocks, height: out.State.Height}
+		_ = phases.measure("certificatePublish", func() error {
+			d.prefix = &blockJournalPrefix{payload: append([]byte(nil), out.SnapshotJSON...), digest: sha256.Sum256(data[:out.CompleteBytes]), end: out.CompleteBytes, blocks: logicalBlocks, height: out.State.Height}
+			return nil
+		})
 	}
 	return out, nil
 }

@@ -10,14 +10,15 @@ import (
 // Successful output work only. Failed attempts retain their separate count and
 // duration; partial failed replay work is not reported as completed blocks.
 type durablePrefixReplayStats struct {
-	Calls                     uint64 `json:"calls"`
-	FullReplays               uint64 `json:"successfulFullReplays"`
-	PrefixReuses              uint64 `json:"successfulPrefixReuses"`
-	Failures                  uint64 `json:"failures"`
-	DurationNs                int64  `json:"durationNs"`
-	ReplayedBlocks            uint64 `json:"replayedBlocks"`
-	ReplayedTransactionInputs uint64 `json:"replayedTransactionInputs"`
-	CanonicalByteLimit        int    `json:"canonicalByteLimit"`
+	Calls                     uint64                                 `json:"calls"`
+	FullReplays               uint64                                 `json:"successfulFullReplays"`
+	PrefixReuses              uint64                                 `json:"successfulPrefixReuses"`
+	Failures                  uint64                                 `json:"failures"`
+	DurationNs                int64                                  `json:"durationNs"`
+	ReplayedBlocks            uint64                                 `json:"replayedBlocks"`
+	ReplayedTransactionInputs uint64                                 `json:"replayedTransactionInputs"`
+	CanonicalByteLimit        int                                    `json:"canonicalByteLimit"`
+	WorkPhases                consensus.BlockJournalPrefixWorkPhases `json:"workPhases"`
 }
 
 func (r *durableReader) decodePrefixSnapshot(ctx context.Context, data []byte) (decodedDurableSnapshot, error) {
@@ -27,12 +28,15 @@ func (r *durableReader) decodePrefixSnapshot(ctx context.Context, data []byte) (
 	if !consensus.IsBlockJournal(data) {
 		err = errors.New("prefix replay requires original block-journal input")
 	} else {
-		result, err = r.prefixDecoder.Decode(ctx, data)
+		result, err = r.prefixDecoder.DecodeWithPhaseTiming(ctx, data)
 	}
 	elapsed := time.Since(started)
 	r.prefixMu.Lock()
 	r.prefixStats.Calls++
 	r.prefixStats.DurationNs += elapsed.Nanoseconds()
+	if result.WorkPhases != nil {
+		r.prefixStats.WorkPhases.Add(*result.WorkPhases)
+	}
 	if err != nil {
 		r.prefixStats.Failures++
 	} else {

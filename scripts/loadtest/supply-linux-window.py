@@ -445,7 +445,7 @@ def validate_shared_replay(report, expected, require_work_phases=False):
                 interpretation="Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance.")
 
 
-def validate_prefix_replay(report,expected):
+def validate_prefix_replay(report,expected,require_work_phases=False):
     if type(expected) is not bool or report.get("prefixDurableReplay",False) is not expected:
         raise RuntimeError("actual prefix replay selection differs")
     reader=report.get("durableReadback",{});stats=reader.get("prefixReplay")
@@ -454,13 +454,29 @@ def validate_prefix_replay(report,expected):
         return dict(prefixDurableReplay=False,stats=None)
     names={"calls","successfulFullReplays","successfulPrefixReuses","failures","durationNs","replayedBlocks","replayedTransactionInputs","canonicalByteLimit"}
     if (report.get("sharedDurableReplay") is not False or report.get("observerPhaseTiming") is not True or reader.get("sharedReplay") is not None
-            or not isinstance(stats,dict) or set(stats)!=names or any(type(v) is not int or v<0 for v in stats.values())
+            or not isinstance(stats,dict) or set(stats) not in (names,names|{"workPhases"}) or any(type(stats[k]) is not int or stats[k]<0 for k in names)
             or stats["calls"]!=reader.get("snapshotValidations") or stats["calls"]<1 or stats["durationNs"]<=0
             or stats["calls"]!=stats["successfulFullReplays"]+stats["successfulPrefixReuses"]+stats["failures"]
             or stats["successfulFullReplays"]<1 or stats["successfulPrefixReuses"]<1 or stats["canonicalByteLimit"]!=16<<20
             or stats["replayedBlocks"]!=reader.get("blockJournalReplayedBlocks")
             or stats["replayedTransactionInputs"]!=reader.get("blockJournalReplayedTransactionInputs")):
         raise RuntimeError("prefix replay successful work counters/bounds missing or inconsistent")
+    phases=stats.get("workPhases")
+    if require_work_phases and phases is None:raise RuntimeError("actual prefix child phases required")
+    if phases is not None:
+        phase_names={"gateWait","prefixCheck","privateJSON","privateValidate","fullReplay","suffixSetup","suffixReplay","suffixEncode","canonicalCopy","certificatePublish"}
+        if not isinstance(phases,dict) or set(phases)!=phase_names:raise RuntimeError("prefix phase inventory differs")
+        for phase in phases.values():
+            if (not isinstance(phase,dict) or set(phase)!={"calls","errors","durationNs"}
+                    or any(type(v) is not int or v<0 for v in phase.values()) or phase["errors"]>phase["calls"] or phase["calls"]>stats["calls"]
+                    or phase["calls"]==0 and (phase["errors"]!=0 or phase["durationNs"]!=0) or phase["calls"]>0 and phase["durationNs"]<=0):raise RuntimeError("invalid actual prefix phase counts/time")
+        def calls(name):return phases[name]["calls"]
+        def success(name):return calls(name)-phases[name]["errors"]
+        if (calls("prefixCheck")>success("gateWait") or calls("privateJSON")+calls("fullReplay")!=calls("prefixCheck")
+                or calls("privateValidate")!=success("privateJSON") or calls("suffixSetup")+calls("canonicalCopy")>success("privateValidate")
+                or calls("suffixReplay")!=success("suffixSetup") or calls("suffixEncode")!=success("suffixReplay")
+                or calls("certificatePublish")>success("fullReplay")+success("suffixEncode")
+                or sum(p["durationNs"] for p in phases.values())>stats["durationNs"]):raise RuntimeError("prefix child phases differ from actual sequential branches/parent time")
     facts=reader.get("blockJournalNativeVerificationFacts",{})
     if (facts.get("capacity")!=4096 or facts.get("string_byte_limit")!=4<<20
             or type(facts.get("entries")) is not int or not 1<=facts["entries"]<=4096
@@ -472,6 +488,33 @@ def validate_prefix_replay(report,expected):
     if any(t.get("durableStoreFormat")!="block-journal" for t in report.get("transactions",[])):
         raise RuntimeError("prefix replay requires original block-journal business readback")
     return dict(prefixDurableReplay=True,stats=stats,interpretation="Successful full and reused-prefix outputs are separate; failed partial work is not included in completed block/input counts. Counters are not physical RSS or finality.")
+
+
+def validate_runtime_measurements(report,total=2048,require=False):
+    cpu=report.get("processCPU");occupancy=report.get("submissionOccupancy")
+    if cpu is None and occupancy is None and not require:return None
+    if not isinstance(cpu,dict) or not isinstance(occupancy,dict):raise RuntimeError("actual CPU and submission occupancy required")
+    cpu_names={"available","samples","userNs","systemNs","totalNs","measurementWallNs","sampleBracketWallNs","sampleBracketOverheadNs","cpuPercentOfOneCore","scope"}
+    cpu_ints=cpu_names-{"available","cpuPercentOfOneCore","scope"}
+    window=report.get("summary",{}).get("measurementWindowSeconds")
+    if (set(cpu)!=cpu_names or cpu.get("available") is not True or cpu.get("samples")!=2 or type(cpu.get("scope")) is not str or not cpu.get("scope")
+            or any(type(cpu.get(k)) is not int or cpu[k]<0 for k in cpu_ints)
+            or type(window) not in (int,float) or not math.isfinite(window) or window<=0 or abs(cpu["measurementWallNs"]-window*1e9)>1
+            or cpu["measurementWallNs"]<=0 or cpu["sampleBracketWallNs"]<cpu["measurementWallNs"] or cpu["sampleBracketOverheadNs"]!=cpu["sampleBracketWallNs"]-cpu["measurementWallNs"]
+            or cpu["totalNs"]<=0 or cpu["totalNs"]!=cpu["userNs"]+cpu["systemNs"] or type(cpu.get("cpuPercentOfOneCore")) not in (int,float)
+            or not math.isfinite(cpu["cpuPercentOfOneCore"]) or abs(cpu["cpuPercentOfOneCore"]-100*cpu["totalNs"]/cpu["sampleBracketWallNs"])>1e-9):raise RuntimeError("invalid actual process CPU counter/bracket facts")
+    names={"callbackStarted","callbackReturned","activeCallbacksAtEnd","peakActiveCallbacks","callbackBusyNs","queueWaitSamples","queueWaitNs","peakQueueWaitNs","measurementWallNs","scope"}
+    rows=report.get("transactions",[])
+    if (set(occupancy)!=names or type(occupancy.get("scope")) is not str or not occupancy.get("scope") or any(type(occupancy.get(k)) is not int or occupancy[k]<0 for k in names-{"scope"})
+            or occupancy["measurementWallNs"]!=cpu["measurementWallNs"] or occupancy["callbackStarted"]!=total or occupancy["callbackReturned"]!=total
+            or occupancy["queueWaitSamples"]!=total or occupancy["activeCallbacksAtEnd"]!=0 or not 1<=occupancy["peakActiveCallbacks"]<=report.get("concurrency",0)
+            or len(rows)!=total or not 0<occupancy["callbackBusyNs"]<=report["concurrency"]*occupancy["measurementWallNs"]):raise RuntimeError("invalid actual submission callback occupancy")
+    queue=[r.get("queueDelayMs") for r in rows]
+    callbacks=[r.get("submissionPhases",{}).get("callbackReturnNs") for r in rows]
+    if (any(type(v) not in (int,float) or not math.isfinite(v) or v<0 for v in queue) or any(type(v) is not int or v<0 for v in callbacks)
+            or abs(occupancy["queueWaitNs"]-sum(queue)*1e6)>total or abs(occupancy["peakQueueWaitNs"]-max(queue)*1e6)>1
+            or occupancy["callbackBusyNs"]<sum(callbacks)):raise RuntimeError("runtime occupancy differs from original per-row intervals")
+    return dict(processCPU=cpu,submissionOccupancy=occupancy,interpretation="Process CPU includes all client/runtime work; callback wall busy times overlap. Neither isolates pure server/network cost or BFT finality. Queue intervals bind all original rows.")
 
 
 def original_endpoint_binding(report,total):
@@ -666,14 +709,15 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                 measured=validate_report(client,"supply-2048x1-data64",pace,fixture_transactions=fixture,prefix_replay=index==1)
                 phases=validate_observer_phases(client)
                 shared=validate_shared_replay(client,index==0,require_work_phases=index==0)
-                prefix=validate_prefix_replay(client,index==1)
+                prefix=validate_prefix_replay(client,index==1,require_work_phases=index==1)
+                runtime=validate_runtime_measurements(client,2048,require=True)
                 if (measured!=row.get("measurement") or phases!=row.get("observerPhases")
                         or shared!=row.get("sharedReplayVerification") or row.get("sharedDurableReplay") is not (index==0)
-                        or prefix!=row.get("prefixReplayVerification",dict(prefixDurableReplay=False,stats=None)) or row.get("prefixDurableReplay",False) is not (index==1)):
+                        or runtime!=row.get("runtimeMeasurements") or prefix!=row.get("prefixReplayVerification",dict(prefixDurableReplay=False,stats=None)) or row.get("prefixDurableReplay",False) is not (index==1)):
                     raise RuntimeError("prefix pair receipt differs from original business/backend/timing facts")
                 result["cases"][-1].update(offerLatency=offer_latency_readout(client,2048),nodePhases=row["nodePhases"],
                     observerPhases=phases,sharedReplayVerification=shared,prefixReplayVerification=prefix,
-                    durableReadback=client["durableReadback"],submissionPhaseVerification=validate_submission_phases(client,2048))
+                    durableReadback=client["durableReadback"],submissionPhaseVerification=validate_submission_phases(client,2048),runtimeMeasurements=runtime)
             if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic"):
                 # Read only the already qualified original client result. This
                 # I/O and its hash/quantiles remain inside the same pair budget.
@@ -848,11 +892,14 @@ def validate_oneshot_report(report,fixture_transactions,prefix_replay=False):
     validate_prefix_replay(report,prefix_replay)
     validate_shared_replay(report,not prefix_replay)
     validate_observer_phases(report)
-    return dict(summary=summary,oneShot=dict(independentSenders=total,nonce=1,configuredOfferedRate=1000,
+    measured=dict(summary=summary,oneShot=dict(independentSenders=total,nonce=1,configuredOfferedRate=1000,
                 originalFixtureBytesBound=True,sustainedTPSQualified=False,
                 interpretation="Finite signed business probe. Fixture generation/signing precedes client measurement; no successor signing/journaling or ready-pool wait is inferred. Python verifies identity/shape, original Go path verifies signatures/business/quorum/durability. Not sustained1000TPS or independent cryptographic replay."),
                 offerLatency=offer_latency_readout(report,total),originalSubmissionTails=original_submission_tails(report,total),
                 submissionPhaseVerification=validate_submission_phases(report,total))
+    runtime=validate_runtime_measurements(report,total)
+    if runtime is not None:measured["runtimeMeasurements"]=runtime
+    return measured
 
 
 def qualify_business_rows(report,total):
@@ -1224,7 +1271,8 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
                 result["endpointDispatchVerification"]=validate_endpoint_dispatch(client_report,endpoint_fair,elastic=endpoint_elastic is True)
             if endpoint_elastic is not None:
                 result["submissionPhaseVerification"]=validate_submission_phases(client_report)
-            if prefix_replay is True:result["prefixReplayVerification"]=validate_prefix_replay(client_report,True)
+            if prefix_replay is True:result["prefixReplayVerification"]=validate_prefix_replay(client_report,True,require_work_phases=True)
+            if one_shot:result["runtimeMeasurements"]=validate_runtime_measurements(client_report,2048,require=True)
             mark("client_complete")
             result["resultSHA256"] = native.digest(output)
     except Exception as error:

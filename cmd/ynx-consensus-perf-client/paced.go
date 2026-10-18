@@ -80,7 +80,14 @@ func runPacedWorkers(ctx context.Context, o options, started time.Time, results 
 			defer submitters.Done()
 			for job := range jobs {
 				pendingSubmit.Add(-1)
+				var busyStarted time.Time
+				if o.submissionOccupancy != nil {
+					busyStarted = o.submissionOccupancy.begin()
+				}
 				start, ok := submit(job.index)
+				if o.submissionOccupancy != nil {
+					o.submissionOccupancy.end(busyStarted, start, job.offered)
+				}
 				if !start.IsZero() {
 					delay := start.Sub(job.offered).Seconds() * 1000
 					results[job.index].QueueDelayMs = &delay

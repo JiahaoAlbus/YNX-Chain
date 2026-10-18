@@ -103,6 +103,13 @@ func TestPrefixReplayRealStoresPreserveCaptureBusinessAndWorkCounts(t *testing.T
 	if a.AppHash != c.AppHash || a.StoreSHA256 != c.StoreSHA256 || p == nil || p.Calls != 2 || p.FullReplays != 1 || p.PrefixReuses != 1 || p.Failures != 0 || p.DurationNs <= 0 || p.ReplayedBlocks != 1 || p.ReplayedTransactionInputs != 1 || stats.BytesHashed != uint64(2*len(data)) || stats.SnapshotValidations != 2 || stats.TransactionVerifications != 2 || stats.SharedReplay != nil || stats.ReplayNativeFacts.SuccessfulVerifications != 1 {
 		t.Fatal("real capture/fee/nonce/crypto/work counters differ", stats)
 	}
+	if p.WorkPhases.GateWait.Calls != 2 || p.WorkPhases.GateWait.Errors != 0 || p.WorkPhases.FullReplay.Calls != 1 || p.WorkPhases.PrivateJSON.Calls != 1 || p.WorkPhases.PrivateValidate.Calls != 1 || p.WorkPhases.CanonicalCopy.Calls != 1 {
+		t.Fatalf("actual prefix child phases missing: %+v", p.WorkPhases)
+	}
+	p.WorkPhases.GateWait.Calls = 999
+	if r.stats().PrefixReplay.WorkPhases.GateWait.Calls != 2 {
+		t.Fatal("prefix child phase stats alias retained counters")
+	}
 	p.FullReplays = 999
 	if r.stats().PrefixReplay.FullReplays != 1 {
 		t.Fatal("prefix stats snapshot aliases retained counters")

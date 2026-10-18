@@ -58,6 +58,7 @@ type options struct {
 	evidenceBudget                 *readyEvidenceBudgetReport
 	intentPersistence              func(string, []byte) error
 	observerPhaseTiming            bool
+	submissionOccupancy            *submissionOccupancyRecorder
 	sharedDurableReplay            bool
 	prefixDurableReplay            bool
 	endpointFair                   bool
@@ -172,44 +173,46 @@ type summary struct {
 }
 
 type report struct {
-	SchemaVersion        int                      `json:"schemaVersion"`
-	RoundsRequested      int                      `json:"roundsRequested"`
-	RoundsCompleted      int                      `json:"roundsCompleted"`
-	Kind                 string                   `json:"kind"`
-	ChainID              string                   `json:"chainId"`
-	GenesisSHA256        string                   `json:"genesisSha256"`
-	Endpoints            []string                 `json:"endpoints"`
-	Concurrency          int                      `json:"concurrency"`
-	OfferedRate          float64                  `json:"configuredOfferedRate"`
-	ObserverConcurrency  int                      `json:"observerConcurrency"`
-	LoadMode             string                   `json:"loadMode"`
-	LoadQueues           pacedStatistics          `json:"loadQueues"`
-	DurableReadback      durableReaderStats       `json:"durableReadback"`
-	GroupedObservation   groupedObservationStats  `json:"groupedObservation"`
-	ObserverPhaseTiming  bool                     `json:"observerPhaseTiming"`
-	PrefixDurableReplay  bool                     `json:"prefixDurableReplay,omitempty"`
-	SharedDurableReplay  bool                     `json:"sharedDurableReplay"`
-	EndpointFair         bool                     `json:"endpointFairSubmission"`
-	EndpointElastic      bool                     `json:"endpointElasticSubmission,omitempty"`
-	SenderMode           string                   `json:"senderMode"`
-	PacingMode           string                   `json:"pacingMode"`
-	InclusionMode        string                   `json:"inclusionMode"`
-	ReadySenders         readySenderStats         `json:"readySenders"`
-	RetentionMode        string                   `json:"retentionMode,omitempty"`
-	StreamingWorkload    *streamingWorkloadReport `json:"streamingWorkload,omitempty"`
-	TerminalStream       *terminalStreamReport    `json:"terminalStream,omitempty"`
-	TimeoutMs            int64                    `json:"timeoutMs"`
-	PollMs               int64                    `json:"pollMs"`
-	StartedAt            time.Time                `json:"startedAt"`
-	MeasurementStartedAt *time.Time               `json:"measurementStartedAt,omitempty"`
-	FinishedAt           time.Time                `json:"finishedAt"`
-	GoVersion            string                   `json:"goVersion"`
-	Platform             string                   `json:"platform"`
-	GOMAXPROCS           int                      `json:"gomaxprocs"`
-	Summary              summary                  `json:"summary"`
-	Transactions         []transactionResult      `json:"transactions"`
-	SetupErrors          []errorObservation       `json:"setupErrors"`
-	Interpretation       []string                 `json:"interpretation"`
+	SchemaVersion        int                       `json:"schemaVersion"`
+	RoundsRequested      int                       `json:"roundsRequested"`
+	RoundsCompleted      int                       `json:"roundsCompleted"`
+	Kind                 string                    `json:"kind"`
+	ChainID              string                    `json:"chainId"`
+	GenesisSHA256        string                    `json:"genesisSha256"`
+	Endpoints            []string                  `json:"endpoints"`
+	Concurrency          int                       `json:"concurrency"`
+	OfferedRate          float64                   `json:"configuredOfferedRate"`
+	ObserverConcurrency  int                       `json:"observerConcurrency"`
+	LoadMode             string                    `json:"loadMode"`
+	LoadQueues           pacedStatistics           `json:"loadQueues"`
+	DurableReadback      durableReaderStats        `json:"durableReadback"`
+	GroupedObservation   groupedObservationStats   `json:"groupedObservation"`
+	ObserverPhaseTiming  bool                      `json:"observerPhaseTiming"`
+	ProcessCPU           *processCPUReport         `json:"processCPU,omitempty"`
+	SubmissionOccupancy  *submissionOccupancyStats `json:"submissionOccupancy,omitempty"`
+	PrefixDurableReplay  bool                      `json:"prefixDurableReplay,omitempty"`
+	SharedDurableReplay  bool                      `json:"sharedDurableReplay"`
+	EndpointFair         bool                      `json:"endpointFairSubmission"`
+	EndpointElastic      bool                      `json:"endpointElasticSubmission,omitempty"`
+	SenderMode           string                    `json:"senderMode"`
+	PacingMode           string                    `json:"pacingMode"`
+	InclusionMode        string                    `json:"inclusionMode"`
+	ReadySenders         readySenderStats          `json:"readySenders"`
+	RetentionMode        string                    `json:"retentionMode,omitempty"`
+	StreamingWorkload    *streamingWorkloadReport  `json:"streamingWorkload,omitempty"`
+	TerminalStream       *terminalStreamReport     `json:"terminalStream,omitempty"`
+	TimeoutMs            int64                     `json:"timeoutMs"`
+	PollMs               int64                     `json:"pollMs"`
+	StartedAt            time.Time                 `json:"startedAt"`
+	MeasurementStartedAt *time.Time                `json:"measurementStartedAt,omitempty"`
+	FinishedAt           time.Time                 `json:"finishedAt"`
+	GoVersion            string                    `json:"goVersion"`
+	Platform             string                    `json:"platform"`
+	GOMAXPROCS           int                       `json:"gomaxprocs"`
+	Summary              summary                   `json:"summary"`
+	Transactions         []transactionResult       `json:"transactions"`
+	SetupErrors          []errorObservation        `json:"setupErrors"`
+	Interpretation       []string                  `json:"interpretation"`
 }
 
 func main() {
@@ -1066,6 +1069,11 @@ func execute(o options) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		measuredPacedRound := o.observerPhaseTiming && o.offeredRate > 0 && o.senderMode == "rounds"
+		cpuProbe := startProcessCPUProbe(measuredPacedRound, readProcessCPUUsage)
+		if measuredPacedRound {
+			o.submissionOccupancy = new(submissionOccupancyRecorder)
+		}
 		started := time.Now()
 		at := started.UTC()
 		r.MeasurementStartedAt = &at
@@ -1203,15 +1211,18 @@ func execute(o options) error {
 			r.RoundsCompleted, roundErr = runSenderRounds(ctx, o.rounds, txs, pool, r.Transactions, runRound)
 		}
 
+		measurementWall := time.Since(started)
+		r.ProcessCPU = cpuProbe.finish(measurementWall)
+		r.SubmissionOccupancy = o.submissionOccupancy.snapshot(measurementWall)
 		if o.reuseResultSlots {
 			if r.ReadySenders.BoundedSummary == nil {
 				return errors.Join(roundErr, errors.New("missing cumulative slot summary"))
 			}
 			r.Summary = r.ReadySenders.BoundedSummary.Counts
-			readySummaryRates(&r.Summary, time.Since(started).Seconds())
+			readySummaryRates(&r.Summary, measurementWall.Seconds())
 			r.ReadySenders.BoundedSummary.Counts = r.Summary
 		} else {
-			r.Summary = summarize(r.Transactions, time.Since(started).Seconds())
+			r.Summary = summarize(r.Transactions, measurementWall.Seconds())
 		}
 		if o.senderMode == "ready-pool" && !o.reuseResultSlots {
 			r.Summary.InclusionBlocks.Interpretation = "Finite per-account ready pool without whole-round barriers. Full block observations retained; interior/steady TPS withheld until continuous-load coverage is qualified. Full workload rate includes signing, journal Sync, waits and drain."

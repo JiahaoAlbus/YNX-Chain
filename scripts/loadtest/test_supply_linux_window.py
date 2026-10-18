@@ -96,6 +96,50 @@ class SupplySourceTests(unittest.TestCase):
             blockJournalNativeVerificationFacts=dict(capacity=4096,string_byte_limit=4<<20,entries=2048,retained_string_bytes=1460288,lookups=2048,hits=0,successful_verifications=2048))
         return row,fixture
 
+    def runtime_fixture(self,client):
+        # Structural telemetry counterexamples only, never actual CPU evidence.
+        total=len(client["transactions"]);wall=20_000_000_000;bracket=wall+100
+        client["summary"]["measurementWindowSeconds"]=wall/1e9
+        for key in client["summary"]:
+            if key.endswith("PerMeasurementSecond"):client["summary"][key]=total/(wall/1e9)
+        client["processCPU"]=dict(available=True,samples=2,userNs=1_000_000_000,systemNs=100_000_000,totalNs=1_100_000_000,measurementWallNs=wall,sampleBracketWallNs=bracket,sampleBracketOverheadNs=100,cpuPercentOfOneCore=100*1_100_000_000/bracket,scope="synthetic-unit")
+        queue=[r["queueDelayMs"] for r in client["transactions"]]
+        client["submissionOccupancy"]=dict(callbackStarted=total,callbackReturned=total,activeCallbacksAtEnd=0,peakActiveCallbacks=4,callbackBusyNs=sum(r["submissionPhases"]["callbackReturnNs"] for r in client["transactions"])+total,queueWaitSamples=total,queueWaitNs=round(sum(queue)*1e6),peakQueueWaitNs=round(max(queue)*1e6),measurementWallNs=wall,scope="synthetic-unit")
+        if client.get("prefixDurableReplay"):
+            names=("gateWait","prefixCheck","privateJSON","privateValidate","fullReplay","suffixSetup","suffixReplay","suffixEncode","canonicalCopy","certificatePublish")
+            phases={n:dict(calls=0,errors=0,durationNs=0) for n in names}
+            for n in ("privateJSON","privateValidate","fullReplay","canonicalCopy","certificatePublish"):phases[n]=dict(calls=1,errors=0,durationNs=1)
+            for n in ("gateWait","prefixCheck"):phases[n]=dict(calls=2,errors=0,durationNs=2)
+            client["durableReadback"]["prefixReplay"]["workPhases"]=phases
+        return client
+
+    def test_runtime_measurements_bind_original_rows_and_refuse_fabricated_cpu_or_occupancy(self):
+        import copy
+        client,fixture=self.oneshot_report_fixture()
+        self.assertIsNone(supply.validate_runtime_measurements(client))
+        with self.assertRaisesRegex(RuntimeError,"required"):supply.validate_runtime_measurements(client,require=True)
+        self.runtime_fixture(client)
+        actual=supply.validate_runtime_measurements(client,require=True)
+        self.assertEqual(actual,supply.validate_oneshot_report(client,fixture)["runtimeMeasurements"])
+        for field,key,value in (("processCPU","available",False),("processCPU","samples",True),("processCPU","totalNs",1),("processCPU","sampleBracketWallNs",0),("processCPU","sampleBracketOverheadNs",0),("processCPU","cpuPercentOfOneCore",float('nan')),("submissionOccupancy","callbackReturned",2047),("submissionOccupancy","activeCallbacksAtEnd",1),("submissionOccupancy","peakActiveCallbacks",5),("submissionOccupancy","queueWaitNs",0),("submissionOccupancy","peakQueueWaitNs",0),("submissionOccupancy","callbackBusyNs",1)):
+            changed=copy.deepcopy(client);changed[field][key]=value
+            with self.subTest(field=field,key=key),self.assertRaises(RuntimeError):supply.validate_runtime_measurements(changed,require=True)
+        zero=copy.deepcopy(client)
+        for key in ("userNs","systemNs","totalNs","cpuPercentOfOneCore"):zero["processCPU"][key]=0
+        with self.assertRaises(RuntimeError):supply.validate_runtime_measurements(zero,require=True)
+        changed=copy.deepcopy(client);changed["transactions"][-1]["queueDelayMs"]+=1
+        with self.assertRaisesRegex(RuntimeError,"original per-row"):supply.validate_runtime_measurements(changed,require=True)
+
+    def test_prefix_child_phases_are_optional_historically_but_required_for_fresh_runtime(self):
+        import copy
+        client,_=self.prefix_report_fixture()
+        supply.validate_prefix_replay(client,True)
+        with self.assertRaisesRegex(RuntimeError,"child phases required"):supply.validate_prefix_replay(client,True,require_work_phases=True)
+        self.runtime_fixture(client);supply.validate_prefix_replay(client,True,require_work_phases=True)
+        for phase,key,value in (("gateWait","calls",3),("gateWait","errors",True),("privateJSON","durationNs",101),("privateValidate","calls",0),("suffixReplay","calls",1),("certificatePublish","calls",2)):
+            changed=copy.deepcopy(client);changed["durableReadback"]["prefixReplay"]["workPhases"][phase][key]=value
+            with self.subTest(phase=phase,key=key),self.assertRaises(RuntimeError):supply.validate_prefix_replay(changed,True,require_work_phases=True)
+
     def test_prefix_data64_recipe_command_and_cli_are_explicit_read_only(self):
         legacy=supply.recipe("grpc","supply-2048x1-data64","relative",True)
         plan=supply.recipe("grpc","supply-2048x1-data64","relative",True,prefix_replay=True)
@@ -627,12 +671,13 @@ class SupplySourceTests(unittest.TestCase):
                 if comparison=="shared-prefix-data64":
                     prefix=kwargs["prefix_replay"]
                     client,fixture=self.prefix_report_fixture() if prefix else self.oneshot_report_fixture()
+                    self.runtime_fixture(client)
                     self.assertEqual(profile,"supply-2048x1-data64");self.assertEqual(mode,"relative")
                     if not prefix:
                         client["durableReadback"]["sharedReplay"]["workPhases"]=dict(produce=dict(calls=1,errors=0,durationNs=100),canonicalCopy=dict(calls=1,errors=0,durationNs=10),privateJSON=dict(calls=0,errors=0,durationNs=0),privateValidate=dict(calls=0,errors=0,durationNs=0),canonicalCopyBytes=100)
                     row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix)["profile"],
                         measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix),
-                        observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
+                        runtimeMeasurements=supply.validate_runtime_measurements(client,require=True),observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
                         sharedReplayVerification=supply.validate_shared_replay(client,not prefix,require_work_phases=not prefix))
                     if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True))
                     if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=1
