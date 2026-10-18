@@ -1,6 +1,6 @@
 # Original Auth caller contract and version boundary
 
-This document maps implemented calls in `1.3.0-pq.3.19-auth.1`. It does not
+This document maps implemented calls in `1.3.0-pq.3.20-auth.1`. It does not
 register a credential or approve a Source release. Auth's R82 request schema is
 consumed unchanged; its three Native implementations remain incomplete.
 
@@ -39,8 +39,9 @@ The original Auth owner defines canonical dual-PQ credentials/trust and the
 Native wire contract. IDE and Wallet consume the shared contract without
 separate identity systems. Existing
 `pq-wallet-contract` validates chain-account public-pair DATA, not Auth trust.
-The current Auth Source verifier uses its existing Ed25519 v1 contract and must
-not be described as the new dual-PQ root/profile verifier.
+The legacy Auth Source verifier retains its Ed25519 v1 contract. The new R84
+dual-PQ verifier is separate and does not silently replace an installed Native
+entry or upgrade its Source provenance.
 
 ## Shared canonical request and verification DATA
 
@@ -85,6 +86,34 @@ products must not replace that with a caller-created parsed DTO. Ordinary login
 cannot be passed as receive/recover/key-call purpose. Real Native partial owner
 and UNKNOWN cleanup remains the existing original lifecycle, not these DATA
 results.
+
+## Auth R84 Source verification DATA
+
+`@ynx-chain/wallet-auth/auth-source-verification` directly exports Auth's original
+`native/original-auth-identity-source-v2-verifier.mjs` unchanged (SHA256
+`00b0a5e6047f8337dafcf53261d977ef55da89320fc089c0074a9d6a110b5661`).
+The sibling `.d.mts` supplies `OriginalAuthSourceV2Policy`,
+`OriginalAuthSourceV2Registrations`, profile/current DATA and gate types.
+This Node-only entry uses the same shared registered verifier and policy brands;
+it creates no second crypto engine or product-specific identity system.
+
+- `verifyOriginalAuthSourceProfileV2` binds the independently pinned Root,
+  enrollment/profile originals and three distinct registered role owners with
+  distinct full key components, exact network/revision/height and Auth purposes.
+- `verifyOriginalAuthSourceCurrentV2` additionally binds original nonce,
+  profile digest, sequence/floor/head, status, fixed window and subject revision;
+  it preserves the original opaque principal and signed permission metadata.
+- `selectOriginalAuthSourceAlgorithm` supplies the explicit legacy/v2 policy
+  decision. Migrated active accounts reject v1; revoked accounts reject both.
+  The installed Native entry must actually enforce it on every relevant path.
+
+All results remain immutable `dataOnly:true / nativeAdmission:false`. Native
+must acquire authenticated role/subject snapshots and independently check
+protected registry/current before and after use. The public verifier cannot
+supply those resources or infer authority from RPC, a Member's own public keys,
+a receipt or a caller-created snapshot. Role enrollment is not a user recovery
+or generic transaction-signing permission. Source CLI dispatch, large-PQ Native
+capacity and the three real callee implementations remain with original Auth.
 
 ## Product and package ownership
 
