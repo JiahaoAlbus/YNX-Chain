@@ -1,0 +1,17 @@
+{
+  "state": "CONTROLLER_UNKNOWN_FENCE_VERIFIED_FORMAL_SDK310_COMBINATION_PENDING",
+  "baseCommit": "60620642ee93057b0596471a595b3025efdf8d99",
+  "scope": "Wallet original address-connection controller only; no SDK class, provider, lock or published artifact edits",
+  "supplierContract": "Original SDK owner is implementing explicit YNX_PAIR_CLEANUP_UNCONFIRMED when partial Core initialization cannot be confirmed cleaned; pending connect cancellation remains original CANCELLED",
+  "realControlledRed": "Without a callback, explicit cleanup UNKNOWN became ordinary failed with cleanupUnconfirmed=false; prior cancel also discarded the late explicit unknown",
+  "repair": "Retain exact explicit cleanup UNKNOWN for the one still-pending original even after cancel; remove address/URI and block connect retries, without redispatch, cleanup retry or invented revocation",
+  "test": {"file": "apps/wallet-desktop/test/walletconnect-address-consumer.test.mjs", "pattern": "explicit initialization cleanup|uncertain disconnect|late stage", "pass": 3, "fail": 0, "durationMs": 7.038667, "runtime": "Previously installed R24 RunAsNode, controlled public callee errors only", "beforeRaw": "apps/wallet-desktop/test/walletconnect-address-init-unknown-before-20261018.raw", "afterRaw": "apps/wallet-desktop/test/walletconnect-address-init-unknown-after-20261018.raw"},
+  "independentRealPublicFailure": {
+    "evidence": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-sdk39-public-readback-20261018/FIRST_CSP_FAILURE.json",
+    "raw": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-sdk39-public-readback-20261018/FIRST_CSP_FAILURE.raw",
+    "actual": "Public /connect/ exactR3 HTML200, but HTTP CSP/no-store absent because generated header regex misses trailing-slash document",
+    "owner": "Original website configuration owner and sole A normal successor publication; not this SDK/controller defect"
+  },
+  "next": "Consume formal original SDK3.10 handoff and only necessary same-copy UNKNOWN combination; original A builds/publishes new exact browser assets. Existing fixed3.9/R3 receipts remain immutable.",
+  "notClaimed": ["SDK3.10 code consumed", "Actual partial Core cleanup test", "HTTP header repaired", "New browser build/publication", "Actual Relay/address approval", "Mac install, funds, signature, Native grant or MONSTER"]
+}

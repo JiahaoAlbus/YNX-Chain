@@ -52,3 +52,11 @@ test('late stage notifications cannot revive a cancelled original or erase clean
   pending.resolve(f.provider);await work;assert.notEqual(f.ui.snapshot().phase,'connected');
  }
 });
+test('explicit initialization cleanup UNKNOWN is retained even after an earlier cancel and prevents reinitialization',async()=>{
+ for(const cancelled of [false,true]){
+  const pending=defer(),f=fixture({connect:()=>pending.promise});const work=f.ui.connect();await Promise.resolve();if(cancelled)await f.ui.cancel();
+  pending.reject(Object.assign(Error('PUBLIC_INITIALIZATION_FAILURE'),{code:'YNX_PAIR_CLEANUP_UNCONFIRMED'}));await work;
+  assert.equal(f.ui.snapshot().phase,'cleanup-unconfirmed');assert.equal(f.ui.snapshot().cleanupUnconfirmed,true);assert.equal(f.ui.snapshot().account,null);
+  await f.ui.connect();assert.equal(f.counts().calls,1);
+ }
+});

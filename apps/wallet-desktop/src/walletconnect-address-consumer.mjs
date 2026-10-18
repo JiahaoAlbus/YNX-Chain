@@ -3,7 +3,7 @@
 // No provider/request/signing surface escapes this controller.
 export const ADDRESS_CONNECTION_ORIGIN='https://wallet.ynxweb4.com';
 const phases=new Set(['initialization','relay','approval']);
-const knownCodes=new Set(['YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_CONTEXT_CHANGED','YNX_PAIR_TRANSPORT_DRAINING','USER_REJECTED']);
+const knownCodes=new Set(['YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_CONTEXT_CHANGED','YNX_PAIR_TRANSPORT_DRAINING','YNX_PAIR_CLEANUP_UNCONFIRMED','USER_REJECTED']);
 for(const phase of ['INITIALIZATION','RELAY','APPROVAL','REQUEST','CLEANUP'])for(const suffix of ['TIMEOUT','UNAVAILABLE'])knownCodes.add(`YNX_PAIR_${phase}_${suffix}`);
 const safeCode=error=>knownCodes.has(error?.code)?error.code:'WALLET_CONNECTION_UNAVAILABLE';
 
@@ -34,7 +34,14 @@ export function createAddressConnectionConsumer({origin,createConnection,onState
    const accounts=await selected.request({method:'eth_accounts'});if(token!==epoch||uncertain)return state;
    if(chainId!=='0x1917'||!Array.isArray(accounts)||accounts.length!==1||typeof accounts[0]!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0]))throw Error('WALLET_CONNECTION_SELECTION_INVALID');
    provider=selected;clearURI();return publish('connected',{account:accounts[0].toLowerCase(),chainId});
-  }).catch(error=>{if(token===epoch){provider=null;clearURI();publish(uncertain?'cleanup-unconfirmed':'failed',{code:safeCode(error)});}return state;}).finally(()=>{if(pending===task){pending=null;publish(state.phase,{...state,pendingOriginal:false});}});
+  }).catch(error=>{
+   // This is the same still-pending original: another connect cannot enter
+   // until it settles. Explicit cleanup UNKNOWN survives an earlier cancel;
+   // cancellation is not evidence that a partially initialized Core closed.
+   if(error?.code==='YNX_PAIR_CLEANUP_UNCONFIRMED'){uncertain=true;provider=null;clearURI();publish('cleanup-unconfirmed',{code:safeCode(error)});}
+   else if(token===epoch){provider=null;clearURI();publish(uncertain?'cleanup-unconfirmed':'failed',{code:safeCode(error)});}
+   return state;
+  }).finally(()=>{if(pending===task){pending=null;publish(state.phase,{...state,pendingOriginal:false});}});
   pending=task;return task;
  }
  function end(disconnect){
