@@ -44,5 +44,13 @@ test('synchronous close reentry during active reserve never closes live Native d
  assert.throws(()=>f.journal.reserve(input,association,'a'.repeat(64)),{code:'HOST_TERMINAL_UNRESOLVED'});
  assert.equal(f.journal.status().firstCause,cleanupError);assert.equal(f.journal.status().cleanupCause,cleanupError);assert.equal(f.journal.status().unknown,true);assert.equal(f.journal.status().cleanupComplete,false);
  assert.throws(()=>f.journal.reserve(input,association,'a'.repeat(64)),{code:'HOST_TERMINAL_UNRESOLVED'});assert.equal(writes,1);
- assert.throws(()=>f.journal.close(),error=>error===cleanupError);assert.throws(()=>f.journal.join(),error=>error===cleanupError);f.journal.retire();assert.deepEqual(f.events,['retire']);
+ assert.throws(()=>f.journal.close(),error=>error===cleanupError);f.journal.join();f.journal.retire();assert.deepEqual(f.events,['retire','join','close']);assert.throws(()=>f.journal.close(),error=>error===cleanupError);assert.deepEqual(f.events,['retire','join','close']);assert.equal(f.journal.status().cleanupComplete,false);assert.equal(f.journal.status().unknown,true);
+});
+for(const failAt of ['join','close'])test('drained previously unentered '+failAt+' may enter once; Native failure is never retried',()=>{
+ let f,writes=0,first;
+ f=fixture({failAt,cleanupCause:undefined,onWrite(){writes++;for(let i=0;i<2;i++)assert.throws(()=>f.journal.close(),error=>{if(!first)first=error;return error.code==='HOST_TERMINAL_JOIN_PENDING';});assert.deepEqual(f.events,['retire']);}});
+ f.journal.open();const input={requestId:'req_PUBLIC_REQUEST_001',operation:'restore',phase:'time',body:null,proofHeader:null},association={account:'PUBLIC',clientId:'PUBLIC',productId:'developer',platform:'macos',applicationId:'PUBLIC',deviceId:'PUBLIC'};
+ assert.throws(()=>f.journal.reserve(input,association,'a'.repeat(64)),{code:'HOST_TERMINAL_UNRESOLVED'});
+ assert.throws(()=>f.journal.close(),error=>error===first);assert.deepEqual(f.events,['retire','join','close']);assert.equal(f.journal.status().firstCause,first);assert.equal(f.journal.status().cleanupCause,first);assert.equal(f.journal.status().cleanupComplete,false);assert.equal(f.journal.status().unknown,true);
+ assert.throws(()=>f.journal.close(),error=>error===first);assert.deepEqual(f.events,['retire','join','close']);assert.equal(writes,1);
 });
