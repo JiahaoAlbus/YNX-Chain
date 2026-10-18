@@ -2,18 +2,15 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
-	cmt "github.com/cometbft/cometbft/types"
 )
 
 // This bounded completed-window reader recovers observations, never sends or
@@ -22,79 +19,10 @@ func readCompletedTerminalResults(directory string, expected terminalStreamRepor
 	if senders < 1 || total < senders || total > maxTransactions || total%senders != 0 || expected.Poisoned || expected.Records != total || expected.DurableRecords != total || expected.Segments < 1 || expected.Segments > (total+terminalSegmentRecords-1)/terminalSegmentRecords || expected.Bytes < 1 || expected.Bytes > 16<<20 {
 		return nil, errors.New("incomplete or unbounded terminal stream receipt")
 	}
-	absolute, err := filepath.Abs(directory)
-	if err != nil {
-		return nil, err
-	}
-	reported, err := filepath.Abs(expected.Directory)
-	if err != nil || reported != absolute {
-		return nil, errors.New("terminal evidence directory escaped expected output")
-	}
-	info, err := os.Lstat(absolute)
-	if err != nil {
-		return nil, err
-	}
-	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-		return nil, errors.New("terminal evidence must be an owned directory, not a symlink")
-	}
-	directoryFile, err := os.Open(absolute)
-	if err != nil {
-		return nil, err
-	}
-	entries, readErr := directoryFile.ReadDir(expected.Segments + 1)
-	closeErr := directoryFile.Close()
-	if readErr != nil && !errors.Is(readErr, io.EOF) {
-		return nil, readErr
-	}
-	if closeErr != nil {
-		return nil, closeErr
-	}
-	if len(entries) != expected.Segments {
-		return nil, errors.New("terminal segment inventory differs from receipt")
-	}
-	decoder, err := newTerminalStreamDecoder(binding, senders)
-	if err != nil {
-		return nil, err
-	}
 	results := make([]transactionResult, total)
-	seen := make([]bool, total)
-	capturedBytes := 0
-	for segment := 0; segment < expected.Segments; segment++ {
-		name := filepath.Join(absolute, fmt.Sprintf("terminal-%06d.jsonl", segment))
-		raw, err := captureTerminalSegment(name, int64((16<<20)-capturedBytes))
-		if err != nil {
-			return nil, err
-		}
-		capturedBytes += len(raw)
-		if capturedBytes > 16<<20 {
-			return nil, errors.New("terminal readback total byte bound")
-		}
-		rows, err := decoder.decode(raw)
-		if err != nil {
-			return nil, err
-		}
-		for _, r := range rows {
-			if r.Index < 0 || r.Index >= total || seen[r.Index] {
-				return nil, errors.New("terminal result duplicate/outside bounded workload")
-			}
-			raw, err := base64.StdEncoding.DecodeString(r.SignedTransaction)
-			if err != nil || len(raw) == 0 {
-				return nil, errors.New("terminal signed identity missing or invalid")
-			}
-			if err = verifySenderRound([]cmt.Tx{raw}, []transactionResult{r}); err != nil {
-				return nil, fmt.Errorf("terminal row is not a reported complete final observation: %w", err)
-			}
-			seen[r.Index] = true
-			results[r.Index] = r
-		}
-	}
-	if decoder.sequence != total || capturedBytes != expected.Bytes || hex.EncodeToString(decoder.chain[:]) != expected.ChainSHA256 {
-		return nil, errors.New("terminal stream count/bytes/final chain mismatch")
-	}
-	for _, present := range seen {
-		if !present {
-			return nil, errors.New("terminal result missing")
-		}
+	_, err := scanCompletedTerminalResults(context.Background(), directory, expected, binding, senders, total, 16<<20, func(r transactionResult) error { results[r.Index] = r; return nil })
+	if err != nil {
+		return nil, err
 	}
 	return results, nil
 }
