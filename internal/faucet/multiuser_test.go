@@ -3,6 +3,7 @@ package faucet
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -15,32 +16,140 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+type faucetTimeoutRoundTripper func(*http.Request) (*http.Response, error)
+
+func (f faucetTimeoutRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
+	return f(r)
+}
+
 func TestCorePostTimeoutRecoversDurableReceiptWithoutResend(t *testing.T) {
 	core, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
 	handler := api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
-	var posts atomic.Int32
+	var posts, deadlineErrors atomic.Int32
+	committed := make(chan struct{})
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost && r.URL.Path == "/faucet/requests" {
 			posts.Add(1)
-			handler.ServeHTTP(httptest.NewRecorder(), r)
-			time.Sleep(250 * time.Millisecond)
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, r)
+			if recorder.Code != http.StatusCreated {
+				t.Errorf("Core did not commit before ACK loss: %d", recorder.Code)
+			}
+			close(committed)
+			<-r.Context().Done() // The real POST response is lost after durable completion.
 			return
 		}
 		handler.ServeHTTP(w, r)
 	}))
 	defer upstream.Close()
 	s := openTestFaucet(t, admissionTestConfig(t, upstream.URL))
-	s.httpClient.Timeout = 100 * time.Millisecond
+	transport := s.httpClient.Transport
+	s.httpClient.Transport = faucetTimeoutRoundTripper(func(r *http.Request) (*http.Response, error) {
+		if r.Method != http.MethodPost || r.URL.Path != "/faucet/requests" {
+			return transport.RoundTrip(r)
+		}
+		// Inject the deadline error at a known causal boundary, rather than assuming
+		// real fsync and the batch scheduler finish within a global100ms timer.
+		// GET recovery retains the original production client/context bounds.
+		ctx, cancel := context.WithCancelCause(r.Context())
+		defer cancel(nil)
+		done := make(chan struct{})
+		defer close(done)
+		go func() {
+			select {
+			case <-committed:
+				cancel(context.DeadlineExceeded)
+			case <-done:
+			}
+		}()
+		response, err := transport.RoundTrip(r.WithContext(ctx))
+		if errors.Is(err, context.DeadlineExceeded) {
+			deadlineErrors.Add(1)
+		}
+		return response, err
+	})
 	address := "0x0000000000000000000000000000000000000043"
 	receipt, status, err := s.Request(context.Background(), Request{Address: address, RequestID: admissionTestID}, "192.0.2.50:1000")
 	if err != nil || status != 201 || receipt.Status != "accepted" {
 		t.Fatalf("timeout recovery: %+v %d %v", receipt, status, err)
 	}
+	if deadlineErrors.Load() != 1 {
+		t.Fatalf("POST did not actually fail with deadline exceeded: %d", deadlineErrors.Load())
+	}
+	persisted, found, err := s.admissions.lookup(admissionTestID)
+	if err != nil || !found || persisted.Transaction == nil || persisted.Transaction.Hash != receipt.Transaction.Hash {
+		t.Fatalf("recovered receipt not persisted: %+v %v %v", persisted, found, err)
+	}
 	if posts.Load() != 1 {
 		t.Fatalf("funding POST repeated %d times", posts.Load())
+	}
+	if account, _ := core.Account(address); account.Balance != 100 {
+		t.Fatalf("balance %d", account.Balance)
+	}
+}
+
+func TestCorePostTimeoutBeforeDurabilityStaysUnknownThenStatusRecoversWithoutResend(t *testing.T) {
+	core, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := api.NewServerWithConfig(core, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
+	var posts atomic.Int32
+	allowCommit := make(chan struct{})
+	committed := make(chan int, 1)
+	var releaseOnce sync.Once
+	release := func() { releaseOnce.Do(func() { close(allowCommit) }) }
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/faucet/requests" {
+			posts.Add(1)
+			<-allowCommit
+			recorder := httptest.NewRecorder()
+			handler.ServeHTTP(recorder, r)
+			committed <- recorder.Code
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}))
+	defer upstream.Close()
+	defer release()
+	s := openTestFaucet(t, admissionTestConfig(t, upstream.URL))
+	transport := s.httpClient.Transport
+	s.httpClient.Transport = faucetTimeoutRoundTripper(func(r *http.Request) (*http.Response, error) {
+		if r.Method != http.MethodPost || r.URL.Path != "/faucet/requests" {
+			return transport.RoundTrip(r)
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 100*time.Millisecond)
+		defer cancel()
+		return transport.RoundTrip(r.WithContext(ctx))
+	})
+	address := "0x0000000000000000000000000000000000000043"
+	receipt, status, err := s.Request(context.Background(), Request{Address: address, RequestID: admissionTestID}, "192.0.2.50:1000")
+	if err == nil || status != 503 || receipt.Status != "transaction_result_uncertain" || !receipt.RetrySameRequest {
+		t.Fatalf("uncommitted result was not UNKNOWN: %+v %d %v", receipt, status, err)
+	}
+	if posts.Load() != 1 {
+		t.Fatalf("funding POST repeated before durability: %d", posts.Load())
+	}
+	if account, _ := core.Account(address); account.Balance != 0 {
+		t.Fatalf("committed before gate release: %d", account.Balance)
+	}
+	stored, found, err := s.admissions.lookup(admissionTestID)
+	if err != nil || !found || stored.Transaction != nil {
+		t.Fatalf("UNKNOWN intent/receipt changed: %+v %v %v", stored, found, err)
+	}
+	release()
+	if code := <-committed; code != http.StatusCreated {
+		t.Fatalf("original POST did not commit: %d", code)
+	}
+	recovered, status, err := s.RequestStatus(context.Background(), admissionTestID)
+	if err != nil || status != 200 || recovered.Status != "accepted" || recovered.RetrySameRequest || recovered.Transaction.Hash != receipt.TransactionHash {
+		t.Fatalf("status did not recover original receipt: %+v %d %v", recovered, status, err)
+	}
+	if posts.Load() != 1 {
+		t.Fatalf("status recovery resent funding POST: %d", posts.Load())
 	}
 	if account, _ := core.Account(address); account.Balance != 100 {
 		t.Fatalf("balance %d", account.Balance)
