@@ -4,15 +4,25 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {spawnSync} from 'node:child_process';
+import {spawnSync,execFileSync} from 'node:child_process';
 const root=fileURLToPath(new URL('../../',import.meta.url));
+const bundle='release/integration/candidates/perf-state-v13';
+const map=JSON.parse(fs.readFileSync(path.join(root,bundle,'source-map.json'),'utf8'));
+function copyFixedInputs(destination){
+ const mapped=new Set(Object.keys(map.files));
+ const files=[...mapped,...fs.readdirSync(path.join(root,bundle)).map(n=>path.join(bundle,n)),'scripts/verify/perf-v13-integration-check.mjs'];
+ for(const f of files){
+  const out=path.join(destination,f);fs.mkdirSync(path.dirname(out),{recursive:true});
+  // Negative controls must begin with the fixed candidate's source, even
+  // while the owning runtime is developing a separately pinned derivative.
+  if(mapped.has(f))fs.writeFileSync(out,execFileSync('git',['-C',root,'show',`${map.sourceCommit}:${f}`]));
+  else fs.copyFileSync(path.join(root,f),out);
+ }
+}
 for(const kind of ['current-runtime','bundle-manifest'])test('fixed V13 consumer rejects '+kind+' substitution before immutable-source acceptance',()=>{
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-perf-v13-input-'));
  try{
-  const bundle='release/integration/candidates/perf-state-v13';
-  const map=JSON.parse(fs.readFileSync(path.join(root,bundle,'source-map.json'),'utf8'));
-  const files=[...Object.keys(map.files),...fs.readdirSync(path.join(root,bundle)).map(n=>path.join(bundle,n)),'scripts/verify/perf-v13-integration-check.mjs'];
-  for(const f of files){const out=path.join(tmp,f);fs.mkdirSync(path.dirname(out),{recursive:true});fs.copyFileSync(path.join(root,f),out);}
+  copyFixedInputs(tmp);
   const target=kind==='current-runtime'?'internal/consensus/state.go':path.join(bundle,'SHA256SUMS');
   fs.appendFileSync(path.join(tmp,target),'\nsubstituted input\n');
   const r=spawnSync(process.execPath,[path.join(tmp,'scripts/verify/perf-v13-integration-check.mjs')],{encoding:'utf8',timeout:5000});
@@ -22,10 +32,19 @@ for(const kind of ['current-runtime','bundle-manifest'])test('fixed V13 consumer
 });
 
 test('fixed V13 consumer refuses additional internal input outside the23 mapped files',()=>{
- const own=fs.mkdtempSync(path.join(root,'internal/consensus/.perf-v13-input-'));
+ const parent=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-perf-v13-untracked-'));
+ const fixture=path.join(parent,'fixed-source');
  try{
+  // A temporary shared clone reads immutable objects without altering the
+  // original checkout. Only the fixed internal tree/mapped inputs are checked
+  // out; this is a source rejection fixture, never a substitute runtime.
+  execFileSync('git',['clone','--shared','--no-checkout','--quiet',root,fixture],{stdio:'pipe'});
+  execFileSync('git',['-C',fixture,'update-ref','HEAD',map.sourceCommit],{stdio:'pipe'});
+  execFileSync('git',['-C',fixture,'checkout',map.sourceCommit,'--','internal',...Object.keys(map.files)],{stdio:'pipe'});
+  copyFixedInputs(fixture);
+  const own=fs.mkdtempSync(path.join(fixture,'internal/consensus/.perf-v13-input-'));
   fs.writeFileSync(path.join(own,'unmeasured.txt'),'untracked source fixture');
-  const r=spawnSync(process.execPath,[path.join(root,'scripts/verify/perf-v13-integration-check.mjs')],{encoding:'utf8',timeout:5000});
+  const r=spawnSync(process.execPath,[path.join(fixture,'scripts/verify/perf-v13-integration-check.mjs')],{encoding:'utf8',timeout:5000});
   assert.equal(r.status,1,r.stderr);assert.match(r.stderr,/untracked fixed internal inputs cannot qualify V13 candidate/);
- }finally{fs.rmSync(own,{recursive:true,force:true});}
+ }finally{fs.rmSync(parent,{recursive:true,force:true});}
 });
