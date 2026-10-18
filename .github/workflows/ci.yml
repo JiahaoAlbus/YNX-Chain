@@ -57,4 +57,7 @@ jobs:
             ${{ runner.temp }}/social-linux-crypto-r1-result/*.raw
             ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/BUILD.log
             ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/OUTPUT_SHA256SUMS
+            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/oqs-install
+            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/sodium-install
+            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/vendor/liboqs-5a1a854b0dc9f2141bdc771c555ee60c37950183/src/sig/ml_dsa/mldsa-native_ml-dsa-87_ref
           if-no-files-found: error

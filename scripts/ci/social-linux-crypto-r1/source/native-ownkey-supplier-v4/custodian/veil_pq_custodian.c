@@ -34,7 +34,8 @@ static int binding_valid(const veil_own_binding *b){
  return b->alias[prefix+32]==0;
 }
 veil_own_result veil_own_aad(const veil_own_binding *b,const uint8_t pk[2592],uint8_t out[VEIL_OWN_AAD_MAX],size_t *written){
- if(written)*written=0;if(!out||!written||!pk||!binding_valid(b))return VEIL_OWN_INVALID;
+ if(written)*written=0;
+ if(!out||!written||!pk||!binding_valid(b))return VEIL_OWN_INVALID;
  size_t n=0,alias_n=(sizeof(alias_prefix)-1)+32;
  memcpy(out,domain,sizeof(domain)-1);n+=sizeof(domain)-1;
  b32(out+n,1);n+=4;b32(out+n,87);n+=4;b64(out+n,b->generation);n+=8;
@@ -44,13 +45,15 @@ veil_own_result veil_own_aad(const veil_own_binding *b,const uint8_t pk[2592],ui
  if(n>VEIL_OWN_AAD_MAX){sodium_memzero(out,VEIL_OWN_AAD_MAX);return VEIL_OWN_INVALID;}*written=n;return VEIL_OWN_OK;
 }
 veil_own_result veil_own_record_encode(const veil_own_record *r,uint8_t *out,size_t cap,size_t *written){
- if(written)*written=0;if(!r||!out||!written||r->version!=1||!r->aad_size||r->aad_size>VEIL_OWN_AAD_MAX)return VEIL_OWN_INVALID;
+ if(written)*written=0;
+ if(!r||!out||!written||r->version!=1||!r->aad_size||r->aad_size>VEIL_OWN_AAD_MAX)return VEIL_OWN_INVALID;
  size_t n=16+r->aad_size+12+4912;if(cap<n)return VEIL_OWN_INVALID;
  memcpy(out,magic,8);b32(out+8,1);b32(out+12,r->aad_size);memcpy(out+16,r->aad,r->aad_size);
  memcpy(out+16+r->aad_size,r->nonce,12);memcpy(out+28+r->aad_size,r->ciphertext,4912);*written=n;return VEIL_OWN_OK;
 }
 veil_own_result veil_own_record_decode(const uint8_t *in,size_t n,veil_own_record *r){
- if(!r)return VEIL_OWN_INVALID;memset(r,0,sizeof(*r));
+ if(!r)return VEIL_OWN_INVALID;
+ memset(r,0,sizeof(*r));
  if(!in||n<16||memcmp(in,magic,8)||u32(in+8)!=1)return VEIL_OWN_INVALID;
  uint32_t a=u32(in+12);if(!a||a>VEIL_OWN_AAD_MAX||n!=16+(size_t)a+12+4912)return VEIL_OWN_INVALID;
  r->version=1;r->aad_size=a;memcpy(r->aad,in+16,a);memcpy(r->nonce,in+16+a,12);memcpy(r->ciphertext,in+28+a,4912);return VEIL_OWN_OK;
@@ -70,7 +73,8 @@ static veil_pq_key *blank(void){
  sodium_memzero(k->secret,VEIL_OWN_SECRET);return k;
 }
 veil_own_result veil_own_create_sealed(const veil_own_binding *b,const veil_own_protector *p,veil_pq_custodian **out,veil_own_record *r){
- if(!out||*out||!r||!p||!p->seal||!binding_valid(b))return VEIL_OWN_INVALID;memset(r,0,sizeof(*r));
+ if(!out||*out||!r||!p||!p->seal||!binding_valid(b))return VEIL_OWN_INVALID;
+ memset(r,0,sizeof(*r));
  veil_pq_custodian *c=reserve();if(!c)return VEIL_OWN_MEMORY;c->key=own_selected_generate();
  if(!c->key){dispose(c);return VEIL_OWN_UNAVAILABLE;}*out=c;
  size_t a=0;veil_own_result v=veil_own_aad(b,c->key->public_key,r->aad,&a);
@@ -89,15 +93,19 @@ veil_own_result veil_own_reload(const veil_own_binding *b,const uint8_t expected
  if(v!=VEIL_OWN_OK||written!=VEIL_OWN_SECRET){dispose(c);return v==VEIL_OWN_OK?VEIL_OWN_UNKNOWN:v;}
  uint8_t derived[VEIL_OWN_PUBLIC];memset(derived,0,sizeof(derived));
  int valid=mld_sign_pk_from_sk(derived,c->key->secret,NULL)==0&&sodium_memcmp(derived,expected,VEIL_OWN_PUBLIC)==0;
- if(valid)memcpy(c->key->public_key,expected,VEIL_OWN_PUBLIC);sodium_memzero(derived,sizeof(derived));
+ if(valid)memcpy(c->key->public_key,expected,VEIL_OWN_PUBLIC);
+ sodium_memzero(derived,sizeof(derived));
  if(!valid){dispose(c);return VEIL_OWN_CONSISTENCY_FAILED;}c->sealed=1;*out=c;return VEIL_OWN_OK;
 }
 veil_own_result veil_own_public(const veil_pq_custodian *c,uint8_t out[2592]){
- if(!owner(c))return c?VEIL_OWN_WRONG_THREAD:VEIL_OWN_INVALID;if(c->sealed!=1)return VEIL_OWN_NO_RETRY;
+ if(!owner(c))return c?VEIL_OWN_WRONG_THREAD:VEIL_OWN_INVALID;
+ if(c->sealed!=1)return VEIL_OWN_NO_RETRY;
  return own_selected_public(c->key,out,2592)?VEIL_OWN_OK:VEIL_OWN_INVALID;
 }
 veil_own_result veil_own_sign_public_proof(const veil_pq_custodian *c,const uint8_t *m,size_t n,uint8_t sig[4627],size_t *written){
- if(written)*written=0;if(!owner(c))return c?VEIL_OWN_WRONG_THREAD:VEIL_OWN_INVALID;if(c->sealed!=1)return VEIL_OWN_NO_RETRY;
+ if(written)*written=0;
+ if(!owner(c))return c?VEIL_OWN_WRONG_THREAD:VEIL_OWN_INVALID;
+ if(c->sealed!=1)return VEIL_OWN_NO_RETRY;
  return own_selected_sign(c->key,m,n,sig,4627,written)?VEIL_OWN_OK:VEIL_OWN_INVALID;
 }
 veil_own_result veil_own_close(veil_pq_custodian **c){if(!c||!*c)return VEIL_OWN_INVALID;if(!owner(*c))return VEIL_OWN_WRONG_THREAD;dispose(*c);*c=NULL;return VEIL_OWN_OK;}

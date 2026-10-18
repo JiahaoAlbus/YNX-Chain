@@ -1,9 +1,9 @@
 {
   "kind": "INDEPENDENT_FIXED_OFFICIAL_LINUX_CRYPTO_SUCCESSOR_NOT_ORIGINAL_BINARY_REPRODUCTION",
   "supplier": {
-    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/linux-crypto-source-r1/HANDOFF.json",
-    "bytes": 5740,
-    "sha256": "4eccd84e7b86c881cade0ac1f2ae51d315603d0312cc0c13cd90d9321a14b2bd"
+    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/linux-crypto-source-r2/HANDOFF.json",
+    "bytes": 7228,
+    "sha256": "c0c0c5dc29f119215c68a3d51e58fa7ced5350f1f2ada097c3fe03084fbf33b0"
   },
   "files": [
     {
@@ -18,8 +18,8 @@
     },
     {
       "path": "source/native-ownkey-supplier-v4/custodian/veil_pq_custodian.c",
-      "bytes": 7856,
-      "sha256": "efd6b267f46a4b5d7024c159696cde180baca65449a5eaf76f4b556e52c04564"
+      "bytes": 7872,
+      "sha256": "c35cd542bd9bfcb9693d333e5f320d248763a7062bde8f4c60a2e66425577099"
     },
     {
       "path": "source/native-ownkey-supplier-v4/custodian/veil_pq_custodian.h",
@@ -49,7 +49,7 @@
     {
       "path": "INPUT_SHA256SUMS",
       "bytes": 853,
-      "sha256": "94a51decdec5123dd57c4bef68cd176709d96488fa340c87a66d1c3d711728f1"
+      "sha256": "eafdcba674759fbfec2841e30dcf880fafcedc092adacccd42cfa42f4b802aab"
     }
   ],
   "officialSources": [
@@ -71,5 +71,14 @@
     }
   ],
   "normalEntry": "bash -x build-linux-crypto.sh NEW_ISOLATED_LINUX_DIRECTORY FROZEN_INPUT_DIRECTORY",
-  "sourceControlScope": "PUBLIC ephemeral real sign/verify/reject/pk_from_sk; no key output or persistence; no Source/device grant"
+  "sourceControlScope": "PUBLIC ephemeral real sign/verify/reject/pk_from_sk; no key output or persistence; no Source/device grant",
+  "priorRunRecovery": {
+    "run": 39107238322,
+    "state": "completed/failure",
+    "originalRawRetained": true,
+    "actualUpstreamBuildsSucceeded": true,
+    "librariesRecoverableFromArtifact": false,
+    "necessaryNewRunnerUpstreamRebuild": true,
+    "noDestructiveExistingOutputEntry": true
+  }
 }
