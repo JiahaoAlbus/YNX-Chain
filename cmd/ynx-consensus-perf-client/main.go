@@ -59,6 +59,7 @@ type options struct {
 	intentPersistence              func(string, []byte) error
 	observerPhaseTiming            bool
 	sharedDurableReplay            bool
+	prefixDurableReplay            bool
 	endpointFair                   bool
 	endpointElastic                bool
 	terminalGzip                   bool
@@ -186,6 +187,7 @@ type report struct {
 	DurableReadback      durableReaderStats       `json:"durableReadback"`
 	GroupedObservation   groupedObservationStats  `json:"groupedObservation"`
 	ObserverPhaseTiming  bool                     `json:"observerPhaseTiming"`
+	PrefixDurableReplay  bool                     `json:"prefixDurableReplay,omitempty"`
 	SharedDurableReplay  bool                     `json:"sharedDurableReplay"`
 	EndpointFair         bool                     `json:"endpointFairSubmission"`
 	EndpointElastic      bool                     `json:"endpointElasticSubmission,omitempty"`
@@ -225,6 +227,7 @@ func main() {
 	flag.StringVar(&o.pacingMode, "pacing-mode", "relative", "ready-pool pacing: relative, bounded-cadence or grouped-cadence4 (at most four offers, expired groups discarded)")
 	flag.BoolVar(&o.endpointFair, "endpoint-fair-submission", false, "candidate: original four submit workers, one per original index%4 endpoint, bounded total queue, no retry")
 	flag.BoolVar(&o.endpointElastic, "endpoint-elastic-submission", false, "candidate: requires endpoint fairness; reuse original four workers across unchanged endpoints, maximum two in flight per endpoint")
+	flag.BoolVar(&o.prefixDurableReplay, "prefix-durable-replay", false, "candidate: reuse exact previously validated journal prefixes, private state and complete new-block validation; exclusive with shared replay")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
@@ -256,6 +259,9 @@ func validateOptions(o options) error {
 	}
 	if o.endpointFair && (o.senderMode != "ready-pool" || o.concurrency != 4 || o.observers != 4 || o.offeredRate <= 0) {
 		return errors.New("endpoint fairness requires paced ready-pool and exactly four submitters/observers")
+	}
+	if o.prefixDurableReplay && (o.sharedDurableReplay || !o.observerPhaseTiming || o.offeredRate <= 0 || o.inclusionMode != "block-scan" || o.durableStoreByteLimit < 0 || o.durableStoreByteLimit > durableSnapshotLimit || o.durableCacheByteBudget != 0 || o.rounds > 1 || o.senderMode != "" && o.senderMode != "rounds" || o.streamingWorkload || o.terminalStream || o.reuseResultSlots || o.segmentedIntents) {
+		return errors.New("prefix replay requires explicit paced single-round block-scan observer timing, original16MiB reader and no shared replay")
 	}
 	if o.sharedDurableReplay && (!o.observerPhaseTiming || o.offeredRate <= 0 || o.durableStoreByteLimit > durableSnapshotLimit || o.durableCacheByteBudget > 0) {
 		return errors.New("shared replay candidate requires explicit paced observer timing and original16MiB unprofiled reader bounds")
@@ -915,6 +921,10 @@ func execute(o options) error {
 	} else if o.endpointFair {
 		r.Interpretation = append(r.Interpretation, "Explicit endpoint fairness candidate: four original submit goroutines each consume a bounded queue for the unchanged index%4 endpoint. Total queue capacity is unchanged. Callback counts are not extra RPC or business successes; cancellation, UNKNOWN quarantine, durable-before-dispatch, signature/fee/nonce and consensus gates are unchanged. Per-endpoint concurrency1 can trade concentrated load throughput for isolation; no network latency improvement is inferred from source tests.")
 	}
+	r.PrefixDurableReplay = o.prefixDurableReplay
+	if o.prefixDurableReplay {
+		r.Interpretation = append(r.Interpretation, "Explicit prefix replay candidate: exact freshly captured prefix SHA binding, private state plus full Validate, original suffix frame/signature/execution/response/Commit verification. One bounded16MiB canonical cache, no new authority, RPC or retry. Successful full replays and prefix-state outputs are counted separately; failed partial work is not counted as completed replay. No network gain or memory admission inferred from offline results.")
+	}
 	r.SharedDurableReplay = o.sharedDurableReplay
 	if o.sharedDurableReplay {
 		r.Interpretation = append(r.Interpretation, "Explicit shared replay candidate: one <=16MiB canonical replay result and <=4 in-flight digests, bound to this reader's migration. Each node freshly captures/hashes its current file, reconstructs private state and validates it, verifies transaction signatures/fee/nonce, and corroborates published Info. Cache hits are not new replay work. Additional canonical/clone memory has no measured peak until a separately scheduled case; original resource caps remain unchanged.")
@@ -966,6 +976,12 @@ func execute(o options) error {
 			return err
 		}
 		reader.measurePhases = o.observerPhaseTiming
+		if o.prefixDurableReplay {
+			reader.prefixDecoder, err = consensus.NewBlockJournalPrefixDecoder(migration)
+			if err != nil {
+				return err
+			}
+		}
 		if o.sharedDurableReplay {
 			reader.sharedReplay = &sharedReplayCache{}
 		}

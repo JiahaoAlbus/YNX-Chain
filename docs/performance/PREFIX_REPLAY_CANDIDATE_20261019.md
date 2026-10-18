@@ -23,7 +23,7 @@ The original frame loop is moved verbatim into a shared helper; the full path
 still enters immediately after its original header and NewApplication checks.
 Logical original block counts are retained for the16-block checkpoint limit.
 
-Changed/shorter prefixes and rotation use the original complete Decode. Older
+Changed prefixes, input shorter than the cached complete prefix, and rotation use the original complete Decode. Older
 captures cannot replace a newer cache entry. Incomplete tails do not advance
 complete bytes or state prematurely. Errors/cancellation publish no new cache
 success. Returned JSON/accounts are independent from both cache and other callers.

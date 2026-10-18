@@ -91,6 +91,10 @@ on:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
         type: boolean
         default: false
+      prefix_durable_replay:
+        description: "Explicit data64 single-round prefix replay candidate; exclusive backend, separate Root grant required"
+        type: boolean
+        default: false
       measure_observer_phases:
         description: "Opt-in original RPC/quorum/durable timing on a separately scheduled single Supply case; no extra calls"
         type: boolean
@@ -233,7 +237,7 @@ jobs:
       - name: Verify ready-sender Commit phases and bounded event timeline
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
-          -run '^(TestEndpointFair.*|TestSharedReplay.*|TestDurableReaderSharesOnlyReplayCryptoFactsAcrossIndependentStores|TestObserverPhaseTiming.*|TestReadyPacing.*|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
+          -run '^(TestEndpointFair.*|TestSharedReplay.*|TestPrefixReplay.*|TestDurableReaderSharesOnlyReplayCryptoFactsAcrossIndependentStores|TestObserverPhaseTiming.*|TestReadyPacing.*|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
           -count=1 -timeout=45s -v
       - name: Verify opt-in node phase timings against real durable execution
         run: go test -p 1 ./cmd/ynx-abci -run '^TestPhaseTiming' -count=1 -timeout=45s -v
@@ -355,12 +359,20 @@ jobs:
           YNX_SUPPLY_PROFILE: ${{ inputs.linux_supply_profile }}
           YNX_SUPPLY_PACING: ${{ inputs.linux_supply_pacing }}
           YNX_OBSERVER_PHASE_TIMING: ${{ inputs.measure_observer_phases && '1' || '0' }}
+          YNX_PREFIX_REPLAY: ${{ inputs.prefix_durable_replay && '1' || '0' }}
         run: |
           set -o pipefail
           mkdir "$RUNNER_TEMP/ynx-linux-supply-build" "$RUNNER_TEMP/ynx-linux-supply-evidence"
           observer_args=()
           if [ "$YNX_OBSERVER_PHASE_TIMING" = 1 ]; then
             observer_args+=(--observer-phases)
+          fi
+          if [ "$YNX_PREFIX_REPLAY" = 1 ]; then
+            test "$YNX_SUPPLY_PROFILE" = supply-2048x1-data64
+            test "$YNX_SUPPLY_TRANSPORT" = grpc
+            test "$YNX_SUPPLY_PACING" = relative
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            observer_args+=(--prefix-replay)
           fi
           if [ "$YNX_SUPPLY_PACING" = paired-relative-bounded ]; then
             test "$YNX_OBSERVER_PHASE_TIMING" = 0

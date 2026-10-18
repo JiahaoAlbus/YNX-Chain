@@ -40,6 +40,7 @@ type durableReadbackPhases struct {
 }
 
 type durableReaderStats struct {
+	PrefixReplay             *durablePrefixReplayStats               `json:"prefixReplay,omitempty"`
 	SharedReplay             *sharedReplayStats                      `json:"sharedReplay,omitempty"`
 	SignatureFacts           *durableSignatureStats                  `json:"signatureFacts,omitempty"`
 	PhaseTotalsNs            *durableReadbackPhases                  `json:"phaseTotalsNs,omitempty"`
@@ -82,6 +83,9 @@ type durableReader struct {
 	migration       chain.ConsensusMigrationState
 	slots           map[string]*durableSnapshotSlot
 	blockDecoder    *consensus.BlockJournalDecoder
+	prefixDecoder   *consensus.BlockJournalPrefixDecoder
+	prefixMu        sync.Mutex
+	prefixStats     durablePrefixReplayStats
 	storeByteLimit  int64
 	cacheByteBudget int64
 	profileMu       *sync.Mutex
@@ -138,6 +142,13 @@ func (r *durableReader) stats() durableReaderStats {
 		defer r.profileMu.Unlock()
 	}
 	var total durableReaderStats
+	if r.prefixDecoder != nil {
+		r.prefixMu.Lock()
+		v := r.prefixStats
+		v.CanonicalByteLimit = durableSnapshotLimit
+		r.prefixMu.Unlock()
+		total.PrefixReplay = &v
+	}
 	if r.sharedReplay != nil {
 		s := r.sharedReplay.snapshot()
 		total.SharedReplay = &s
@@ -172,7 +183,11 @@ func (r *durableReader) stats() durableReaderStats {
 	if r.profileMu != nil {
 		total.ReaderBudget = &durableReaderBudgetStats{StoreByteLimit: r.storeByteLimit, CacheInputByteBudget: r.cacheByteBudget, CachedInputBytes: r.cachedStoreInputBytes(), Evictions: r.cacheEvictions}
 	}
-	total.ReplayNativeFacts = r.blockDecoder.VerificationStats()
+	if r.prefixDecoder != nil {
+		total.ReplayNativeFacts = r.prefixDecoder.VerificationStats()
+	} else {
+		total.ReplayNativeFacts = r.blockDecoder.VerificationStats()
+	}
 	return total
 }
 
@@ -413,6 +428,12 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 // runs full state validation and still undergoes original per-transaction and
 // published-Info verification. No path, height or mtime substitutes for bytes.
 func (r *durableReader) decodeCurrentSnapshot(ctx context.Context, data []byte, digest [sha256.Size]byte) (decodedDurableSnapshot, error) {
+	if r.prefixDecoder != nil {
+		if r.sharedReplay != nil {
+			return decodedDurableSnapshot{}, errors.New("prefix and shared replay cannot be combined")
+		}
+		return r.decodePrefixSnapshot(ctx, data)
+	}
 	if r.sharedReplay == nil || !consensus.IsBlockJournal(data) {
 		return decodeDurableSnapshotWithFacts(ctx, data, r.migration, r.blockDecoder)
 	}

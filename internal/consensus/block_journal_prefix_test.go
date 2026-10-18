@@ -299,3 +299,45 @@ func TestBlockJournalPrefixRevalidatesPrivateCachedState(t *testing.T) {
 		t.Fatal("restart failed original full recovery", err)
 	}
 }
+
+func TestBlockJournalPrefixIdenticalInputRetainsCertificate(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewBlockJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: int64(migration.Height) + 1, Time: time.Unix(1802736001, 0), Txs: [][]byte{journalTransfer(t, 1)}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = app.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d, err := NewBlockJournalPrefixDecoder(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := d.Decode(context.Background(), data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	certificate := d.prefix
+	second, err := d.Decode(context.Background(), data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d.prefix != certificate {
+		t.Fatal("identical validated bytes rebuilt and replaced the immutable prefix certificate")
+	}
+	if second.ReplayedBlocks != 0 || second.ReplayedTransactionInputs != 0 || !bytes.Equal(first.SnapshotJSON, second.SnapshotJSON) {
+		t.Fatal("unchanged input result/work differs")
+	}
+	second.State.Accounts[0].Balance++
+	second.SnapshotJSON[0] ^= 1
+	if !bytes.Equal(d.prefix.payload, first.SnapshotJSON) {
+		t.Fatal("returned data aliases retained certificate")
+	}
+}

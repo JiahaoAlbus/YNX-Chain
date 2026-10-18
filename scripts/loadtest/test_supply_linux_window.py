@@ -88,6 +88,57 @@ class SupplySourceTests(unittest.TestCase):
         for args in (("socket","supply-2048x1","relative",True),("grpc","supply-2048x1"),("grpc","supply-2048x1","bounded-cadence",True),("grpc","supply-2048x1","relative",True,False),("grpc","supply-2048x1","relative",True,True,True)):
             with self.subTest(args=args),self.assertRaises(RuntimeError):supply.recipe(*args)
 
+    def prefix_report_fixture(self):
+        row,fixture=self.oneshot_report_fixture();row.update(prefixDurableReplay=True,sharedDurableReplay=False)
+        reader=row["durableReadback"];reader.pop("sharedReplay")
+        reader.update(snapshotValidations=2,blockJournalReplayedBlocks=2,blockJournalReplayedTransactionInputs=2048,
+            prefixReplay=dict(calls=2,successfulFullReplays=1,successfulPrefixReuses=1,failures=0,durationNs=100,replayedBlocks=2,replayedTransactionInputs=2048,canonicalByteLimit=16<<20),
+            blockJournalNativeVerificationFacts=dict(capacity=4096,string_byte_limit=4<<20,entries=2048,retained_string_bytes=1460288,lookups=2048,hits=0,successful_verifications=2048))
+        return row,fixture
+
+    def test_prefix_data64_recipe_command_and_cli_are_explicit_read_only(self):
+        legacy=supply.recipe("grpc","supply-2048x1-data64","relative",True)
+        plan=supply.recipe("grpc","supply-2048x1-data64","relative",True,prefix_replay=True)
+        self.assertFalse(plan["execute"]);self.assertFalse(plan["nodesStarted"]);self.assertTrue(plan["requiresSeparateRootGrant"])
+        self.assertTrue(plan["prefixDurableReplay"]);self.assertFalse(plan["sharedDurableReplay"])
+        omit={"prefixDurableReplay","sharedDurableReplay"}
+        self.assertEqual({k:v for k,v in plan.items() if k not in omit},{k:v for k,v in legacy.items() if k not in omit})
+        command=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("output"),plan["profile"],"relative",True,False,prefix_replay=True)
+        self.assertIn("-prefix-durable-replay",command);self.assertNotIn("-shared-durable-replay",command)
+        self.assertEqual(supply.native.CAPS["privateBytes"],32<<20)
+        for kwargs in (dict(profile_name="supply-2048x1"),dict(shared_replay=True),dict(observer_phases=False),dict(transport="socket"),dict(prefix_replay=1)):
+            values=dict(transport="grpc",profile_name="supply-2048x1-data64",observer_phases=True,prefix_replay=True);values.update(kwargs)
+            with self.subTest(kwargs=kwargs),self.assertRaises(RuntimeError):supply.recipe(**values)
+        args=[sys.executable,"-B",str(FILE),"--prefix-replay","--profile","supply-2048x1-data64","--transport","grpc","--observer-phases"]
+        result=subprocess.run(args,capture_output=True,text=True,timeout=5)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertFalse(json.loads(result.stdout)["execute"])
+        refused=subprocess.run(args+["--prepare-pair"],capture_output=True,text=True,timeout=5);self.assertNotEqual(refused.returncode,0)
+
+    def test_prefix_original_rows_and_actual_work_forgery_refused(self):
+        import copy
+        row,fixture=self.prefix_report_fixture()
+        result=supply.validate_report(row,"supply-2048x1-data64",fixture_transactions=fixture,prefix_replay=True)
+        self.assertEqual(result["summary"]["finalSubmitted"],2048)
+        with self.assertRaises(RuntimeError):supply.validate_report(row,"supply-2048x1-data64",fixture_transactions=fixture)
+        for kind in ("selection","both","missing","calls","full","reuse","failures","cap","blocks","inputs","facts","math","boolean","proof","fixture"):
+            changed=copy.deepcopy(row);inputs=list(fixture);reader=changed["durableReadback"];stats=reader["prefixReplay"]
+            if kind=="selection":changed["prefixDurableReplay"]=False
+            if kind=="both":changed["sharedDurableReplay"]=True
+            if kind=="missing":reader.pop("prefixReplay")
+            if kind=="calls":stats["calls"]=3
+            if kind=="full":stats["successfulFullReplays"]=0
+            if kind=="reuse":stats["successfulPrefixReuses"]=0
+            if kind=="failures":stats["failures"]=1
+            if kind=="cap":stats["canonicalByteLimit"]=32<<20
+            if kind=="blocks":stats["replayedBlocks"]=0
+            if kind=="inputs":stats["replayedTransactionInputs"]=1
+            if kind=="facts":reader["blockJournalNativeVerificationFacts"]["capacity"]=8192
+            if kind=="math":reader["blockJournalNativeVerificationFacts"]["successful_verifications"]=1
+            if kind=="boolean":stats["failures"]=False
+            if kind=="proof":changed["transactions"][0]["quorumVerified"]=False
+            if kind=="fixture":inputs[0]=inputs[1]
+            with self.subTest(kind=kind),self.assertRaises(RuntimeError):supply.validate_report(changed,"supply-2048x1-data64",fixture_transactions=inputs,prefix_replay=True)
+
     def test_data64_profile_is_explicit_and_preserves_original_workload_and_defaults(self):
         legacy=supply.recipe("grpc","supply-2048x1","relative",True)
         scoped=supply.recipe("grpc","supply-2048x1-data64","relative",True)

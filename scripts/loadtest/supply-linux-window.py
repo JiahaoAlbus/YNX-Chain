@@ -43,11 +43,13 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
                  buildBytes=1 << 30, metadataReserveMs=500)
 
 
-def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None):
     one_shot=profile_name in ONESHOT_PROFILES
-    if one_shot and (transport!="grpc" or pacing!="relative" or observer_phases is not True or shared_replay is not None and shared_replay is not True or endpoint_fair is not None or endpoint_elastic is not None):
-        raise RuntimeError("2048x1 requires explicit grpc/relative/observer phases/shared replay without endpoint candidates")
-    if one_shot:shared_replay=True
+    if prefix_replay is not None and (type(prefix_replay) is not bool or prefix_replay and profile_name!="supply-2048x1-data64"):
+        raise RuntimeError("prefix replay requires the explicit data64 profile")
+    if one_shot and (transport!="grpc" or pacing!="relative" or observer_phases is not True or shared_replay is not None and shared_replay is not (prefix_replay is not True) or endpoint_fair is not None or endpoint_elastic is not None):
+        raise RuntimeError("2048x1 requires explicit grpc/relative/observer phases/exclusive replay without endpoint candidates")
+    if one_shot:shared_replay=prefix_replay is not True
     if transport not in ("socket", "grpc"):
         raise RuntimeError("only existing socket/grpc ABCI transports allowed")
     if profile_name not in PROFILES:
@@ -69,6 +71,7 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
         result["capacityScope"] = dict(explicitProfileOnly=True, automaticRetry=False,
             priorFailedRun=39161413763, priorFinalPrivateBytes=40191359,
             priorProfile="supply-2048x1", noPerformanceQualification=True)
+    if prefix_replay is True:result["prefixDurableReplay"]=True
     if observer_phases:
         result["observerPhaseTiming"]=True
         result["observerTraceLimits"]=dict(perWorker=256,aggregate=1024,totalsCompleteDespiteTraceCap=True)
@@ -426,6 +429,35 @@ def validate_shared_replay(report, expected, require_work_phases=False):
                 interpretation="Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance.")
 
 
+def validate_prefix_replay(report,expected):
+    if type(expected) is not bool or report.get("prefixDurableReplay",False) is not expected:
+        raise RuntimeError("actual prefix replay selection differs")
+    reader=report.get("durableReadback",{});stats=reader.get("prefixReplay")
+    if not expected:
+        if stats is not None:raise RuntimeError("unselected prefix replay counters present")
+        return dict(prefixDurableReplay=False,stats=None)
+    names={"calls","successfulFullReplays","successfulPrefixReuses","failures","durationNs","replayedBlocks","replayedTransactionInputs","canonicalByteLimit"}
+    if (report.get("sharedDurableReplay") is not False or report.get("observerPhaseTiming") is not True or reader.get("sharedReplay") is not None
+            or not isinstance(stats,dict) or set(stats)!=names or any(type(v) is not int or v<0 for v in stats.values())
+            or stats["calls"]!=reader.get("snapshotValidations") or stats["calls"]<1 or stats["durationNs"]<=0
+            or stats["calls"]!=stats["successfulFullReplays"]+stats["successfulPrefixReuses"]+stats["failures"]
+            or stats["successfulFullReplays"]<1 or stats["successfulPrefixReuses"]<1 or stats["canonicalByteLimit"]!=16<<20
+            or stats["replayedBlocks"]!=reader.get("blockJournalReplayedBlocks")
+            or stats["replayedTransactionInputs"]!=reader.get("blockJournalReplayedTransactionInputs")):
+        raise RuntimeError("prefix replay successful work counters/bounds missing or inconsistent")
+    facts=reader.get("blockJournalNativeVerificationFacts",{})
+    if (facts.get("capacity")!=4096 or facts.get("string_byte_limit")!=4<<20
+            or type(facts.get("entries")) is not int or not 1<=facts["entries"]<=4096
+            or type(facts.get("retained_string_bytes")) is not int or not 0<=facts["retained_string_bytes"]<=4<<20
+            or type(facts.get("successful_verifications")) is not int or facts.get("successful_verifications")!=report.get("summary",{}).get("input")
+            or type(facts.get("lookups")) is not int or type(facts.get("hits")) is not int or facts["hits"]<0
+            or facts["lookups"]!=facts["hits"]+facts["successful_verifications"]):
+        raise RuntimeError("prefix replay original native verification facts differ")
+    if any(t.get("durableStoreFormat")!="block-journal" for t in report.get("transactions",[])):
+        raise RuntimeError("prefix replay requires original block-journal business readback")
+    return dict(prefixDurableReplay=True,stats=stats,interpretation="Successful full and reused-prefix outputs are separate; failed partial work is not included in completed block/input counts. Counters are not physical RSS or finality.")
+
+
 def original_endpoint_binding(report,total):
     endpoints=report.get("endpoints",[])
     if len(endpoints)!=4 or len(set(endpoints))!=4:
@@ -745,7 +777,7 @@ def validate_manifest(m, root):
     return m
 
 
-def validate_oneshot_report(report,fixture_transactions):
+def validate_oneshot_report(report,fixture_transactions,prefix_replay=False):
     total=2048
     if (report.get("roundsRequested")!=1 or report.get("roundsCompleted")!=1 or report.get("senderMode")!="rounds"
             or report.get("configuredOfferedRate")!=1000 or report.get("concurrency")!=4 or report.get("observerConcurrency")!=4
@@ -778,7 +810,8 @@ def validate_oneshot_report(report,fixture_transactions):
         senders.add(tx["from"]);recipients.add(tx["to"])
     if len(senders)!=total or len(recipients)!=1:
         raise RuntimeError("fixed2048 independent sender/one recipient shape differs")
-    validate_shared_replay(report,True)
+    validate_prefix_replay(report,prefix_replay)
+    validate_shared_replay(report,not prefix_replay)
     validate_observer_phases(report)
     return dict(summary=summary,oneShot=dict(independentSenders=total,nonce=1,configuredOfferedRate=1000,
                 originalFixtureBytesBound=True,sustainedTPSQualified=False,
@@ -810,11 +843,13 @@ def qualify_business_rows(report,total):
     return s
 
 
-def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False,fixture_transactions=None):
+def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False,fixture_transactions=None,prefix_replay=False):
+    if prefix_replay and profile_name!="supply-2048x1-data64":raise RuntimeError("prefix readout requires explicit data64 profile")
+    if profile_name not in ONESHOT_PROFILES:validate_prefix_replay(report,False)
     if profile_name in ONESHOT_PROFILES:
         if pacing!="relative" or endpoint_fair or endpoint_elastic:
             raise RuntimeError("2048x1 cannot select pair endpoint or pacing candidates")
-        return validate_oneshot_report(report,fixture_transactions)
+        return validate_oneshot_report(report,fixture_transactions,prefix_replay)
     profile = recipe("grpc", profile_name, pacing)["profile"]
     if report.get("endpointElasticSubmission",False) is not endpoint_elastic:
         raise RuntimeError("actual elastic endpoint selection differs from selected profile")
@@ -953,17 +988,17 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases=False,shared_replay=None,endpoint_fair=None,endpoint_elastic=None):
-    return [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", str(profile["offeredRate"]), "-rounds", str(profile["rounds"]), "-sender-mode", profile.get("senderMode","ready-pool"), "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])
+def supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases=False,shared_replay=None,endpoint_fair=None,endpoint_elastic=None,prefix_replay=None):
+    return [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", str(profile["offeredRate"]), "-rounds", str(profile["rounds"]), "-sender-mode", profile.get("senderMode","ready-pool"), "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])+(["-prefix-durable-replay"] if prefix_replay else [])
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None):
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None,prefix_replay=None):
     one_shot=not fixture_only and profile_name in ONESHOT_PROFILES
     if one_shot:
-        if shared_replay is not None and shared_replay is not True:
-            raise RuntimeError("2048x1 requires explicit shared replay selection")
-        shared_replay=True
-    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic)
+        if shared_replay is not None and shared_replay is not (prefix_replay is not True):
+            raise RuntimeError("2048x1 requires exclusive shared replay or prefix selection")
+        shared_replay=prefix_replay is not True
+    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic,prefix_replay)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -1137,9 +1172,9 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             mark("all_nodes_height2")
             output = network / "transactions-result.json"
             mark("client_start")
-            wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic)))
+            wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay)))
             client_report=json.loads(native.bounded(output,16 << 20))
-            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True,fixture_transactions=json.loads(native.bounded(network/"transactions.json",16 << 20))["transactions"] if one_shot else None)
+            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True,fixture_transactions=json.loads(native.bounded(network/"transactions.json",16 << 20))["transactions"] if one_shot else None,prefix_replay=prefix_replay is True)
             if observer_phases:
                 result["observerPhases"]=validate_observer_phases(client_report)
             if shared_replay is not None:
@@ -1148,6 +1183,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
                 result["endpointDispatchVerification"]=validate_endpoint_dispatch(client_report,endpoint_fair,elastic=endpoint_elastic is True)
             if endpoint_elastic is not None:
                 result["submissionPhaseVerification"]=validate_submission_phases(client_report)
+            if prefix_replay is True:result["prefixReplayVerification"]=validate_prefix_replay(client_report,True)
             mark("client_complete")
             result["resultSHA256"] = native.digest(output)
     except Exception as error:
@@ -1246,11 +1282,14 @@ if __name__ == "__main__":
     parser.add_argument("--pacing", choices=("relative", "bounded-cadence", "grouped-cadence4"), default="relative")
     parser.add_argument("--check-runner", action="store_true")
     parser.add_argument("--observer-phases", action="store_true")
+    parser.add_argument("--prefix-replay", action="store_true")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--build", type=Path)
     parser.add_argument("--case", type=Path)
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
+    if args.prefix_replay and (args.prepare_pair or args.execute_pair or args.check_runner or args.prepare_1000_fixture or args.measure_1000_fixture or args.prepare_1000_tier or args.prepare_shared_replay_pair):
+        parser.error("prefix replay is only an explicit individual data64 case")
     if args.prepare_1000_fixture or args.measure_1000_fixture:
         if (args.prepare_1000_fixture and args.measure_1000_fixture or args.execute or args.execute_pair or args.prepare_pair
                 or args.check_runner or args.prepare_1000_tier or args.prepare_shared_replay_pair or args.observer_phases
@@ -1291,8 +1330,8 @@ if __name__ == "__main__":
             parser.error("check-runner requires build/new case and excludes execute")
         print(json.dumps(preflight(args.build, args.case), indent=2))
     elif not args.execute:
-        print(json.dumps(recipe(args.transport, args.profile, args.pacing,args.observer_phases), indent=2))
+        print(json.dumps(recipe(args.transport, args.profile, args.pacing,args.observer_phases,prefix_replay=True if args.prefix_replay else None), indent=2))
     else:
         if not all((args.source, args.build, args.case, args.receipt)):
             parser.error("execute requires exact source/build/new case/new receipt")
-        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing, observer_phases=args.observer_phases))
+        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing, observer_phases=args.observer_phases,prefix_replay=True if args.prefix_replay else None))

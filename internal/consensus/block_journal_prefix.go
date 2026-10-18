@@ -73,6 +73,18 @@ func (d *BlockJournalPrefixDecoder) Decode(ctx context.Context, data []byte) (Bl
 		if err := state.Validate(d.full.migration); err != nil {
 			return out, err
 		}
+		if p.end == len(data) {
+			// Exact complete input already certified: private decode + full
+			// Validate above still ran. No suffix exists to execute or encode.
+			if err := ctx.Err(); err != nil {
+				return out, err
+			}
+			payload := append([]byte(nil), p.payload...)
+			if err := ctx.Err(); err != nil {
+				return out, err
+			}
+			return BlockJournalPrefixReadback{BlockJournalReadback: BlockJournalReadback{State: state, SnapshotJSON: payload, CompleteBytes: p.end}, ReusedPrefixBytes: p.end}, nil
+		}
 		replay, err := NewApplication(d.full.migration)
 		if err != nil {
 			return out, err
@@ -108,4 +120,13 @@ func (d *BlockJournalPrefixDecoder) Decode(ctx context.Context, data []byte) (Bl
 		d.prefix = &blockJournalPrefix{payload: append([]byte(nil), out.SnapshotJSON...), digest: sha256.Sum256(data[:out.CompleteBytes]), end: out.CompleteBytes, blocks: logicalBlocks, height: out.State.Height}
 	}
 	return out, nil
+}
+
+// VerificationStats reports only the original bounded native mathematical facts;
+// prefix reuse does not manufacture new signature verifications.
+func (d *BlockJournalPrefixDecoder) VerificationStats() BlockJournalVerificationStats {
+	if d == nil || d.full == nil {
+		return BlockJournalVerificationStats{}
+	}
+	return d.full.VerificationStats()
 }

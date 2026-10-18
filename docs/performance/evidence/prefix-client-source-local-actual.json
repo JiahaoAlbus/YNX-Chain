@@ -1,0 +1,1059 @@
+{
+  "schema": 1,
+  "kind": "prefix-client-integration-and-negative-to-fixed-offline-evidence",
+  "baseSourceCommit": "01dda464c6f40dddb50bebea7cda9806d3c92589",
+  "clientIntegrated": true,
+  "defaultEnabled": false,
+  "newFourNodeRun": false,
+  "networkImprovementMeasured": false,
+  "normalCIConclusion": null,
+  "sourcePins": {
+    "cmd/ynx-consensus-perf-client/main.go": {
+      "bytes": 62761,
+      "sha256": "a4d54d90d40699a85a7cb1d9752c3efa77a63cd9a60df673204a629d7a9fc871"
+    },
+    "cmd/ynx-consensus-perf-client/durable_reader.go": {
+      "bytes": 20381,
+      "sha256": "6cc6fda3bb2f99e67a767f5bf1a304728997d777b917ca8b529ac6b9160caa01"
+    },
+    "cmd/ynx-consensus-perf-client/prefix_replay.go": {
+      "bytes": 1966,
+      "sha256": "1315ea4cb9c554b8c8b60e45f3ff8109da34934e1480e51c6774f7fdb2fb476b"
+    },
+    "cmd/ynx-consensus-perf-client/prefix_replay_test.go": {
+      "bytes": 6814,
+      "sha256": "5b595ac4609f127425cf7819e389d723cf55af0c7dc91c89a6b16a5d027a608b"
+    },
+    "internal/consensus/block_journal_prefix.go": {
+      "bytes": 4620,
+      "sha256": "54a63e4930512b248231cc807eae421ac09ba71870a088b9815a6142fe2aaf7e"
+    },
+    "internal/consensus/block_journal_prefix_test.go": {
+      "bytes": 10929,
+      "sha256": "5834ebb33b580376f1db4e24bd6e0c655b5eff4dee5f9efb5ef31de839c47e45"
+    },
+    "scripts/loadtest/supply-linux-window.py": {
+      "bytes": 98020,
+      "sha256": "b16e16571ed00d98cdcaf2e2d2441c1167992023477ab1b1680662334eee8158"
+    },
+    "scripts/loadtest/test_supply_linux_window.py": {
+      "bytes": 84901,
+      "sha256": "791720a8fa7b86459cc417f35d96fba4f35dfaf9ceff27f77c05a0006c29fb15"
+    },
+    ".github/workflows/chain-core.yml": {
+      "bytes": 28116,
+      "sha256": "725c3f7194345cbefe0e4138ebd46d8a5e2388920d3f0d1a31cbdaca78e51734"
+    }
+  },
+  "rawPins": {
+    "artifacts/chain-performance-20261017/prefix-client-source/first-client-tests.raw": {
+      "bytes": 1078,
+      "sha256": "483e8794f83430f3d3b921e249157a15bb195d3bb1a82ddbd5ef6d2c39d0e07e"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/client-relevant-final.raw": {
+      "bytes": 4116,
+      "sha256": "9bae6edba1a15f66241f6eaf7418abb0a359cf291c35b959d5afb03f83244174"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/controller-prefix-pass.raw": {
+      "bytes": 161,
+      "sha256": "2e865c7629f5048113e0d4dec02ed19f2b5374763bf9093172bd1af9ac91402c"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/options-bounds-final.raw": {
+      "bytes": 216,
+      "sha256": "68a55b8e745372adae277847fe77aea6f12cb295beb6b4fdea01d3538165b50b"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/identical-certificate-red.raw": {
+      "bytes": 330,
+      "sha256": "c75d4efb3ebca968bb3baa8bf681d37d414e98ab2f77dd5dea01f3269e66947c"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/identical-certificate-and-prefix-pass.raw": {
+      "bytes": 1010,
+      "sha256": "36af47046c0bae0d3cf29a72735abe5de12aa4eef8fc5e1d8dd616602208af61"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/matched-reader-first.raw": {
+      "bytes": 4521,
+      "sha256": "d2f9e83bee8e1051c048a6096ff31180844e7a28ee6e85c0376620803b00dbd0"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/matched-reader-after.raw": {
+      "bytes": 4527,
+      "sha256": "70971a859996b6edeb5fd2bb98d020a86e8e5b16bdae11bf8a7d47a565f969d3"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/matched-reader-before-fix-cpu.raw": {
+      "bytes": 4709,
+      "sha256": "640ed47da778a0a5c3eeee9223b2425105a8ab842c2eee87a952df3f2a4661ee"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/matched-reader-cpu.raw": {
+      "bytes": 4694,
+      "sha256": "1009feb9da349ee161025341a54ee595953905d005e5c95be615a71738922622"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/matched_reader_cost_test.go": {
+      "bytes": 4747,
+      "sha256": "d3f3ce98b4ed8f0943d06dea6fa28cbb0238121cca427b1ed7d5b80cc6d134c8"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/reader-cost-overlay.json": {
+      "bytes": 316,
+      "sha256": "84c6b3658b19ba87d6b13e973f24a338e581ddf84d27b219b6e79fac04c1660e"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/reader-cost-before-fix-overlay.json": {
+      "bytes": 604,
+      "sha256": "884a8e00a87964ee9c6f27d53ebe3231d5f6579ca239becd5f98690374b73d48"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/prefix_api_before_identical_fix.go": {
+      "bytes": 4108,
+      "sha256": "5851d1ebe37721875947270fcd6efd6a37370e90fa6fe48e5d17e2cd122e8b04"
+    },
+    "artifacts/chain-performance-20261017/prefix-client-source/previous-data64-verified-after.json": {
+      "bytes": 439927,
+      "sha256": "dd9499b3b04f99726a51d0b7136d868a493c14332a2d291bfeda2da7ac0415b6"
+    }
+  },
+  "matchedFourStoreOfflineGroups": {
+    "matched-reader-first.raw": {
+      "arch": "arm64",
+      "goVersion": "go1.25.7",
+      "gomaxprocs": 1,
+      "kind": "offline_original_four_store_shared_prefix_reader_ABBA_not_network_tps",
+      "limits": "Four sequential private store captures per original prefix; same raw transaction observed24 times, never counted as new business. Includes controlled fixture writes/read-lock/hash/index/fee/nonce checks. No RPC/quorum/publishedInfo/new blocks or network qualification; two local samples per mode.",
+      "originalRun": 39164390241,
+      "os": "darwin",
+      "samples": [
+        {
+          "mode": "shared",
+          "elapsedNs": 1010121292,
+          "allocatedBytes": 822259040,
+          "stats": {
+            "sharedReplay": {
+              "workPhases": {
+                "produce": {
+                  "calls": 8,
+                  "errors": 0,
+                  "durationNs": 612415127
+                },
+                "canonicalCopy": {
+                  "calls": 32,
+                  "errors": 0,
+                  "durationNs": 6773417
+                },
+                "privateJSON": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 228481958
+                },
+                "privateValidate": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 82797210
+                },
+                "canonicalCopyBytes": 52825564
+              },
+              "lookups": 32,
+              "hits": 24,
+              "joins": 0,
+              "fullReplays": 8,
+              "failures": 0,
+              "bypasses": 0,
+              "waitNs": 0,
+              "cachedCanonicalBytes": 2610833,
+              "canonicalByteLimit": 16777216,
+              "peakFlights": 1
+            },
+            "phaseTotalsNs": {
+              "loadNs": 996165083,
+              "hashNs": 13077580,
+              "captureNs": 30416415,
+              "decodeNs": 930632709,
+              "indexPublishNs": 19198081,
+              "transactionVerifyNs": 2420247
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 28,
+            "blockJournalReplayedTransactionInputs": 7475,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 7475,
+              "hits": 5427,
+              "successful_verifications": 2048
+            }
+          }
+        },
+        {
+          "mode": "prefix",
+          "elapsedNs": 1347509250,
+          "allocatedBytes": 915525936,
+          "stats": {
+            "prefixReplay": {
+              "calls": 32,
+              "successfulFullReplays": 1,
+              "successfulPrefixReuses": 31,
+              "failures": 0,
+              "durationNs": 1258758626,
+              "replayedBlocks": 7,
+              "replayedTransactionInputs": 2048,
+              "canonicalByteLimit": 16777216
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1332032666,
+              "hashNs": 13059622,
+              "captureNs": 36869288,
+              "decodeNs": 1258807580,
+              "indexPublishNs": 19614380,
+              "transactionVerifyNs": 2542959
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 7,
+            "blockJournalReplayedTransactionInputs": 2048,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 2048,
+              "hits": 0,
+              "successful_verifications": 2048
+            }
+          }
+        },
+        {
+          "mode": "prefix",
+          "elapsedNs": 1347724875,
+          "allocatedBytes": 915526248,
+          "stats": {
+            "prefixReplay": {
+              "calls": 32,
+              "successfulFullReplays": 1,
+              "successfulPrefixReuses": 31,
+              "failures": 0,
+              "durationNs": 1257182921,
+              "replayedBlocks": 7,
+              "replayedTransactionInputs": 2048,
+              "canonicalByteLimit": 16777216
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1330129168,
+              "hashNs": 15227290,
+              "captureNs": 35386875,
+              "decodeNs": 1257214413,
+              "indexPublishNs": 19173876,
+              "transactionVerifyNs": 2474292
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 7,
+            "blockJournalReplayedTransactionInputs": 2048,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 2048,
+              "hits": 0,
+              "successful_verifications": 2048
+            }
+          }
+        },
+        {
+          "mode": "shared",
+          "elapsedNs": 1020742750,
+          "allocatedBytes": 822253176,
+          "stats": {
+            "sharedReplay": {
+              "workPhases": {
+                "produce": {
+                  "calls": 8,
+                  "errors": 0,
+                  "durationNs": 619205751
+                },
+                "canonicalCopy": {
+                  "calls": 32,
+                  "errors": 0,
+                  "durationNs": 3868665
+                },
+                "privateJSON": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 227988165
+                },
+                "privateValidate": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 89769665
+                },
+                "canonicalCopyBytes": 52825564
+              },
+              "lookups": 32,
+              "hits": 24,
+              "joins": 0,
+              "fullReplays": 8,
+              "failures": 0,
+              "bypasses": 0,
+              "waitNs": 0,
+              "cachedCanonicalBytes": 2610833,
+              "canonicalByteLimit": 16777216,
+              "peakFlights": 1
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1003066917,
+              "hashNs": 12637003,
+              "captureNs": 26911333,
+              "decodeNs": 941048457,
+              "indexPublishNs": 18658707,
+              "transactionVerifyNs": 2448208
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 28,
+            "blockJournalReplayedTransactionInputs": 7475,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 7475,
+              "hits": 5427,
+              "successful_verifications": 2048
+            }
+          }
+        }
+      ]
+    },
+    "matched-reader-after.raw": {
+      "arch": "arm64",
+      "goVersion": "go1.25.7",
+      "gomaxprocs": 1,
+      "kind": "offline_original_four_store_shared_prefix_reader_ABBA_not_network_tps",
+      "limits": "Four sequential private store captures per original prefix; same raw transaction observed24 times, never counted as new business. Includes controlled fixture writes/read-lock/hash/index/fee/nonce checks. No RPC/quorum/publishedInfo/new blocks or network qualification; two local samples per mode.",
+      "originalRun": 39164390241,
+      "os": "darwin",
+      "samples": [
+        {
+          "mode": "shared",
+          "elapsedNs": 1059219791,
+          "allocatedBytes": 822251312,
+          "stats": {
+            "sharedReplay": {
+              "workPhases": {
+                "produce": {
+                  "calls": 8,
+                  "errors": 0,
+                  "durationNs": 656427501
+                },
+                "canonicalCopy": {
+                  "calls": 32,
+                  "errors": 0,
+                  "durationNs": 4865498
+                },
+                "privateJSON": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 227537002
+                },
+                "privateValidate": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 91218125
+                },
+                "canonicalCopyBytes": 52825564
+              },
+              "lookups": 32,
+              "hits": 24,
+              "joins": 0,
+              "fullReplays": 8,
+              "failures": 0,
+              "bypasses": 0,
+              "waitNs": 0,
+              "cachedCanonicalBytes": 2610833,
+              "canonicalByteLimit": 16777216,
+              "peakFlights": 1
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1050125705,
+              "hashNs": 13269624,
+              "captureNs": 33322542,
+              "decodeNs": 980309668,
+              "indexPublishNs": 19538543,
+              "transactionVerifyNs": 2503918
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 28,
+            "blockJournalReplayedTransactionInputs": 7475,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 7475,
+              "hits": 5427,
+              "successful_verifications": 2048
+            }
+          }
+        },
+        {
+          "mode": "prefix",
+          "elapsedNs": 6022331292,
+          "allocatedBytes": 671188504,
+          "stats": {
+            "prefixReplay": {
+              "calls": 32,
+              "successfulFullReplays": 1,
+              "successfulPrefixReuses": 31,
+              "failures": 0,
+              "durationNs": 5629654745,
+              "replayedBlocks": 7,
+              "replayedTransactionInputs": 2048,
+              "canonicalByteLimit": 16777216
+            },
+            "phaseTotalsNs": {
+              "loadNs": 5982410540,
+              "hashNs": 74714711,
+              "captureNs": 156537087,
+              "decodeNs": 5629725167,
+              "indexPublishNs": 112749166,
+              "transactionVerifyNs": 21112793
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 7,
+            "blockJournalReplayedTransactionInputs": 2048,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 2048,
+              "hits": 0,
+              "successful_verifications": 2048
+            }
+          }
+        },
+        {
+          "mode": "prefix",
+          "elapsedNs": 1987001709,
+          "allocatedBytes": 671182808,
+          "stats": {
+            "prefixReplay": {
+              "calls": 32,
+              "successfulFullReplays": 1,
+              "successfulPrefixReuses": 31,
+              "failures": 0,
+              "durationNs": 1820630543,
+              "replayedBlocks": 7,
+              "replayedTransactionInputs": 2048,
+              "canonicalByteLimit": 16777216
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1972923335,
+              "hashNs": 26183751,
+              "captureNs": 70667290,
+              "decodeNs": 1820686289,
+              "indexPublishNs": 49642420,
+              "transactionVerifyNs": 5336791
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 7,
+            "blockJournalReplayedTransactionInputs": 2048,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 2048,
+              "hits": 0,
+              "successful_verifications": 2048
+            }
+          }
+        },
+        {
+          "mode": "shared",
+          "elapsedNs": 1078258458,
+          "allocatedBytes": 822250448,
+          "stats": {
+            "sharedReplay": {
+              "workPhases": {
+                "produce": {
+                  "calls": 8,
+                  "errors": 0,
+                  "durationNs": 661983167
+                },
+                "canonicalCopy": {
+                  "calls": 32,
+                  "errors": 0,
+                  "durationNs": 6408714
+                },
+                "privateJSON": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 229304333
+                },
+                "privateValidate": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 90098458
+                },
+                "canonicalCopyBytes": 52825564
+              },
+              "lookups": 32,
+              "hits": 24,
+              "joins": 0,
+              "fullReplays": 8,
+              "failures": 0,
+              "bypasses": 0,
+              "waitNs": 0,
+              "cachedCanonicalBytes": 2610833,
+              "canonicalByteLimit": 16777216,
+              "peakFlights": 1
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1058469919,
+              "hashNs": 13424712,
+              "captureNs": 32868250,
+              "decodeNs": 988018500,
+              "indexPublishNs": 19017458,
+              "transactionVerifyNs": 2591455
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 28,
+            "blockJournalReplayedTransactionInputs": 7475,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 7475,
+              "hits": 5427,
+              "successful_verifications": 2048
+            }
+          }
+        }
+      ]
+    },
+    "matched-reader-before-fix-cpu.raw": {
+      "arch": "arm64",
+      "goVersion": "go1.25.7",
+      "gomaxprocs": 1,
+      "kind": "offline_original_four_store_shared_prefix_reader_ABBA_not_network_tps",
+      "limits": "Four sequential private store captures per original prefix; same raw transaction observed24 times, never counted as new business. Includes controlled fixture writes/read-lock/hash/index/fee/nonce checks. No RPC/quorum/publishedInfo/new blocks or network qualification; two local samples per mode.",
+      "originalRun": 39164390241,
+      "os": "darwin",
+      "samples": [
+        {
+          "mode": "shared",
+          "elapsedNs": 1144729541,
+          "allocatedBytes": 822251856,
+          "stats": {
+            "sharedReplay": {
+              "workPhases": {
+                "produce": {
+                  "calls": 8,
+                  "errors": 0,
+                  "durationNs": 697255625
+                },
+                "canonicalCopy": {
+                  "calls": 32,
+                  "errors": 0,
+                  "durationNs": 6456415
+                },
+                "privateJSON": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 260013708
+                },
+                "privateValidate": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 97555962
+                },
+                "canonicalCopyBytes": 52825564
+              },
+              "lookups": 32,
+              "hits": 24,
+              "joins": 0,
+              "fullReplays": 8,
+              "failures": 0,
+              "bypasses": 0,
+              "waitNs": 0,
+              "cachedCanonicalBytes": 2610833,
+              "canonicalByteLimit": 16777216,
+              "peakFlights": 1
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1131442288,
+              "hashNs": 14388831,
+              "captureNs": 31536627,
+              "decodeNs": 1061644917,
+              "indexPublishNs": 20225123,
+              "transactionVerifyNs": 3310412
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 28,
+            "blockJournalReplayedTransactionInputs": 7475,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 7475,
+              "hits": 5427,
+              "successful_verifications": 2048
+            }
+          },
+          "cpuUserNs": 1076610000,
+          "cpuSystemNs": 39304000
+        },
+        {
+          "mode": "prefix",
+          "elapsedNs": 2469156542,
+          "allocatedBytes": 915524760,
+          "stats": {
+            "prefixReplay": {
+              "calls": 32,
+              "successfulFullReplays": 1,
+              "successfulPrefixReuses": 31,
+              "failures": 0,
+              "durationNs": 2321930172,
+              "replayedBlocks": 7,
+              "replayedTransactionInputs": 2048,
+              "canonicalByteLimit": 16777216
+            },
+            "phaseTotalsNs": {
+              "loadNs": 2456238664,
+              "hashNs": 22758084,
+              "captureNs": 47723043,
+              "decodeNs": 2321992043,
+              "indexPublishNs": 54963668,
+              "transactionVerifyNs": 3829374
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 7,
+            "blockJournalReplayedTransactionInputs": 2048,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 2048,
+              "hits": 0,
+              "successful_verifications": 2048
+            }
+          },
+          "cpuUserNs": 1560790000,
+          "cpuSystemNs": 58936000
+        },
+        {
+          "mode": "prefix",
+          "elapsedNs": 1742946417,
+          "allocatedBytes": 915584760,
+          "stats": {
+            "prefixReplay": {
+              "calls": 32,
+              "successfulFullReplays": 1,
+              "successfulPrefixReuses": 31,
+              "failures": 0,
+              "durationNs": 1613367122,
+              "replayedBlocks": 7,
+              "replayedTransactionInputs": 2048,
+              "canonicalByteLimit": 16777216
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1718824706,
+              "hashNs": 17216666,
+              "captureNs": 54649870,
+              "decodeNs": 1613416670,
+              "indexPublishNs": 28546378,
+              "transactionVerifyNs": 3738000
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 7,
+            "blockJournalReplayedTransactionInputs": 2048,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 2048,
+              "hits": 0,
+              "successful_verifications": 2048
+            }
+          },
+          "cpuUserNs": 1524935000,
+          "cpuSystemNs": 51581000
+        },
+        {
+          "mode": "shared",
+          "elapsedNs": 1199615291,
+          "allocatedBytes": 822251656,
+          "stats": {
+            "sharedReplay": {
+              "workPhases": {
+                "produce": {
+                  "calls": 8,
+                  "errors": 0,
+                  "durationNs": 730198958
+                },
+                "canonicalCopy": {
+                  "calls": 32,
+                  "errors": 0,
+                  "durationNs": 5160085
+                },
+                "privateJSON": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 265347626
+                },
+                "privateValidate": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 105817540
+                },
+                "canonicalCopyBytes": 52825564
+              },
+              "lookups": 32,
+              "hits": 24,
+              "joins": 0,
+              "fullReplays": 8,
+              "failures": 0,
+              "bypasses": 0,
+              "waitNs": 0,
+              "cachedCanonicalBytes": 2610833,
+              "canonicalByteLimit": 16777216,
+              "peakFlights": 1
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1182467535,
+              "hashNs": 14713708,
+              "captureNs": 34863248,
+              "decodeNs": 1106764420,
+              "indexPublishNs": 21765791,
+              "transactionVerifyNs": 3440581
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 28,
+            "blockJournalReplayedTransactionInputs": 7475,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 7475,
+              "hits": 5427,
+              "successful_verifications": 2048
+            }
+          },
+          "cpuUserNs": 1129403000,
+          "cpuSystemNs": 41636000
+        }
+      ]
+    },
+    "matched-reader-cpu.raw": {
+      "arch": "arm64",
+      "goVersion": "go1.25.7",
+      "gomaxprocs": 1,
+      "kind": "offline_original_four_store_shared_prefix_reader_ABBA_not_network_tps",
+      "limits": "Four sequential private store captures per original prefix; same raw transaction observed24 times, never counted as new business. Includes controlled fixture writes/read-lock/hash/index/fee/nonce checks. No RPC/quorum/publishedInfo/new blocks or network qualification; two local samples per mode.",
+      "originalRun": 39164390241,
+      "os": "darwin",
+      "samples": [
+        {
+          "mode": "shared",
+          "elapsedNs": 1027549708,
+          "allocatedBytes": 822254104,
+          "stats": {
+            "sharedReplay": {
+              "workPhases": {
+                "produce": {
+                  "calls": 8,
+                  "errors": 0,
+                  "durationNs": 630626751
+                },
+                "canonicalCopy": {
+                  "calls": 32,
+                  "errors": 0,
+                  "durationNs": 5333955
+                },
+                "privateJSON": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 223815793
+                },
+                "privateValidate": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 88626584
+                },
+                "canonicalCopyBytes": 52825564
+              },
+              "lookups": 32,
+              "hits": 24,
+              "joins": 0,
+              "fullReplays": 8,
+              "failures": 0,
+              "bypasses": 0,
+              "waitNs": 0,
+              "cachedCanonicalBytes": 2610833,
+              "canonicalByteLimit": 16777216,
+              "peakFlights": 1
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1016221038,
+              "hashNs": 13260378,
+              "captureNs": 30858996,
+              "decodeNs": 948613125,
+              "indexPublishNs": 20254042,
+              "transactionVerifyNs": 2566252
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 28,
+            "blockJournalReplayedTransactionInputs": 7475,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 7475,
+              "hits": 5427,
+              "successful_verifications": 2048
+            }
+          },
+          "cpuUserNs": 990130000,
+          "cpuSystemNs": 27855000
+        },
+        {
+          "mode": "prefix",
+          "elapsedNs": 910589416,
+          "allocatedBytes": 671183984,
+          "stats": {
+            "prefixReplay": {
+              "calls": 32,
+              "successfulFullReplays": 1,
+              "successfulPrefixReuses": 31,
+              "failures": 0,
+              "durationNs": 826494920,
+              "replayedBlocks": 7,
+              "replayedTransactionInputs": 2048,
+              "canonicalByteLimit": 16777216
+            },
+            "phaseTotalsNs": {
+              "loadNs": 890699378,
+              "hashNs": 13289788,
+              "captureNs": 28328458,
+              "decodeNs": 826542000,
+              "indexPublishNs": 18859582,
+              "transactionVerifyNs": 2421838
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 7,
+            "blockJournalReplayedTransactionInputs": 2048,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 2048,
+              "hits": 0,
+              "successful_verifications": 2048
+            }
+          },
+          "cpuUserNs": 870556000,
+          "cpuSystemNs": 23957000
+        },
+        {
+          "mode": "prefix",
+          "elapsedNs": 901348458,
+          "allocatedBytes": 671184408,
+          "stats": {
+            "prefixReplay": {
+              "calls": 32,
+              "successfulFullReplays": 1,
+              "successfulPrefixReuses": 31,
+              "failures": 0,
+              "durationNs": 821006588,
+              "replayedBlocks": 7,
+              "replayedTransactionInputs": 2048,
+              "canonicalByteLimit": 16777216
+            },
+            "phaseTotalsNs": {
+              "loadNs": 885725583,
+              "hashNs": 12984294,
+              "captureNs": 30323419,
+              "decodeNs": 821035079,
+              "indexPublishNs": 18540874,
+              "transactionVerifyNs": 2379207
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 7,
+            "blockJournalReplayedTransactionInputs": 2048,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 2048,
+              "hits": 0,
+              "successful_verifications": 2048
+            }
+          },
+          "cpuUserNs": 865835000,
+          "cpuSystemNs": 22612000
+        },
+        {
+          "mode": "shared",
+          "elapsedNs": 1034105208,
+          "allocatedBytes": 822253424,
+          "stats": {
+            "sharedReplay": {
+              "workPhases": {
+                "produce": {
+                  "calls": 8,
+                  "errors": 0,
+                  "durationNs": 627196334
+                },
+                "canonicalCopy": {
+                  "calls": 32,
+                  "errors": 0,
+                  "durationNs": 7572874
+                },
+                "privateJSON": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 232837166
+                },
+                "privateValidate": {
+                  "calls": 24,
+                  "errors": 0,
+                  "durationNs": 87641832
+                },
+                "canonicalCopyBytes": 52825564
+              },
+              "lookups": 32,
+              "hits": 24,
+              "joins": 0,
+              "fullReplays": 8,
+              "failures": 0,
+              "bypasses": 0,
+              "waitNs": 0,
+              "cachedCanonicalBytes": 2610833,
+              "canonicalByteLimit": 16777216,
+              "peakFlights": 1
+            },
+            "phaseTotalsNs": {
+              "loadNs": 1017692459,
+              "hashNs": 13281663,
+              "captureNs": 26612582,
+              "decodeNs": 955419378,
+              "indexPublishNs": 19062206,
+              "transactionVerifyNs": 2653833
+            },
+            "attempts": 32,
+            "bytesHashed": 35059168,
+            "snapshotValidations": 32,
+            "snapshotCacheHits": 0,
+            "transactionVerifications": 24,
+            "blockJournalReplayedBlocks": 28,
+            "blockJournalReplayedTransactionInputs": 7475,
+            "blockJournalNativeVerificationFacts": {
+              "capacity": 4096,
+              "string_byte_limit": 4194304,
+              "entries": 2048,
+              "retained_string_bytes": 1460288,
+              "lookups": 7475,
+              "hits": 5427,
+              "successful_verifications": 2048
+            }
+          },
+          "cpuUserNs": 991942000,
+          "cpuSystemNs": 28906000
+        }
+      ]
+    }
+  },
+  "lastCPUInstrumentedGroupMeans": {
+    "elapsedNs": {
+      "shared": 1030827458.0,
+      "prefix": 905968937.0,
+      "reductionPercent": 12.11245587522951
+    },
+    "cpuUserNs": {
+      "shared": 991036000.0,
+      "prefix": 868195500.0,
+      "reductionPercent": 12.395160216177814
+    },
+    "cpuSystemNs": {
+      "shared": 28380500.0,
+      "prefix": 23284500.0,
+      "reductionPercent": 17.955990909251074
+    },
+    "allocatedBytes": {
+      "shared": 822253764.0,
+      "prefix": 671184196.0,
+      "reductionPercent": 18.372621034301517
+    }
+  },
+  "previous2048ReadoutIdentical": true,
+  "limits": [
+    "All timing groups including negative and highly variable wall samples retained. No stable wallclock/network improvement claim.",
+    "Last CPU-instrumented ABBA has only two local samples per backend, darwin/arm64 Go1.25.7 GOMAXPROCS1. Process CPU includes Go/runtime work; allocated bytes are cumulative, not peak RSS.",
+    "Four sequential private store captures per original prefix; one original transaction observed24 times is not24 new business transactions. No new RPC, quorum, publication or consensus event measured.",
+    "The first prefix client path regressed. Exact-input fix retains the same immutable certificate, independently decodes/full-validates state, and returns private original canonical bytes without redundant re-encoding/second validation.",
+    "Success full replay/prefix outputs/failures are counted separately. Failed partial work is not included in completed block/input counters.",
+    "Original file capture/hash,signature,fee,nonce,publishedInfo,quorum,16MiB reader and64MiB selected-case guards retained. New mode denies combined shared/streaming/large-reader configurations."
+  ]
+}
