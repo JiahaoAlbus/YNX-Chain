@@ -181,7 +181,14 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if len(state.FeeEvents) != 6 {
 		t.Fatal("wrong fee count")
 	}
-	if _, err = newReadySenderJournal(p); err == nil {
+	if segmented {
+		if _, err = os.Lstat(filepath.Join(p.root, readySenderJournalName)); !os.IsNotExist(err) {
+			t.Fatal("segmented controller created or obscured a flat journal", err)
+		}
+		if _, err = newReadyIntentSegments(stats.IntentSegments.Directory, p, 6, 8<<20); err == nil {
+			t.Fatal("existing segmented ready journal reused")
+		}
+	} else if _, err = newReadySenderJournal(p); err == nil {
 		t.Fatal("existing ready journal reused")
 	}
 	if err = claimSenderPool(path); err == nil {
