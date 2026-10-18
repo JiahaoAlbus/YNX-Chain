@@ -99,3 +99,13 @@ Source and all raw groups/pins:
 `evidence/prefix-client-source-local-actual.json`.
 Raw probe/source overlays and original compatibility readout:
 `artifacts/chain-performance-20261017/prefix-client-source/`.
+
+Exact current source qualification binds df556b61b7748254e364a9f193c4f599db9ecb71 / internal tree
+08fd523362c16a578ae43655c30fce050671103a; internal delta from9cdaeb0a6 is 22597B,
+SHA256 8956aa4a464c76f853a70f64206a8e006f8bb79708e9d6016b5108126299b89d. Original frozen diagnostic/anchor
+source files and tests stay unchanged and continue running at their fixed sources.
+
+Current source-qualification Make entry passed. Five source checks, including all
+original frozen diagnostic/anchor suites, passed9.518s. Original assertions and
+fixed-source contracts remain unchanged. No new network window is authorized by
+this source-only validation.
