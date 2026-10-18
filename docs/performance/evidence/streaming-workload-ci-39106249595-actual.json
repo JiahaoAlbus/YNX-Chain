@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "head": "b04c4990866ad136bc032c76219680c36bbc7546",
+  "runID": 39106249595,
+  "conclusion": "success",
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39106249595",
+  "actualPassedFunctions": [
+    "TestStreamingWorkloadScopeAndLegacyLimits",
+    "TestStreamingWorkloadFundingAndNonceAreInstanceBound",
+    "TestStreamingWorkloadEvidenceBudgetPreservesFailedWrite",
+    "TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary",
+    "TestStreamingWorkloadReadbackBindsBothStreamsAndLatestSlots",
+    "TestStreamingWorkloadReadbackRejectsUnmatchedButValidSignedBytes"
+  ],
+  "applicationOnlySamples": [
+    {
+      "realSignedExecutedPersisted": 102,
+      "slots": 3,
+      "nonceCycles": 34,
+      "evidenceBytes": 271309,
+      "quorumObservationFlags": "synthetic"
+    }
+  ],
+  "rawLog": "artifacts/chain-performance-20261017/ci-39106249595-full.log",
+  "rawLogSHA256": "ea4a397421d28d1d23249119b7f137233af6b5696576c1911ba05614dbca3072",
+  "businessTPS": null,
+  "inclusionLatency": null,
+  "finalityLatency": null,
+  "interpretation": "Explicit streaming issuance source and application-level controls. No four-node run and no ten-minute qualification."
+}

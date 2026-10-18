@@ -59,6 +59,8 @@ type streamingWorkloadReport struct {
 	Rounds             int     `json:"rounds"`
 	MaxRuntimeMs       int64   `json:"maxRuntimeMs"`
 	EvidenceByteBudget int64   `json:"evidenceByteBudget"`
+	PlanPath           string  `json:"planPath"`
+	PlanSHA256         string  `json:"planSha256"`
 	EvidenceVerified   bool    `json:"evidenceVerified"`
 	EvidenceReadbackMs float64 `json:"evidenceReadbackMs"`
 }

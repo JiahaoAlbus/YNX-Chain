@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -142,6 +143,17 @@ func TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	planPath, planHash, err := persistStreamingWorkloadPlan(o, manifest, m, initial)
+	if err != nil {
+		t.Fatal(err)
+	}
+	planBytes, err := os.ReadFile(planPath)
+	if err != nil || fmt.Sprintf("%x", sha256.Sum256(planBytes)) != planHash {
+		t.Fatal("durable public plan differs", err)
+	}
+	if err := claimSenderPool(path); err != nil {
+		t.Fatal(err)
+	}
 	statePath := filepath.Join(t.TempDir(), "state.journal")
 	app, err := consensus.NewBlockJournaledApplication(migration, statePath)
 	if err != nil {
@@ -234,6 +246,9 @@ func TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
 	if runErr != nil || stats.Completed != len(initial)*34 || stats.Quarantined != 0 || stats.RoundsCompleted != 34 || stats.PeakInFlight > len(initial) || len(results) != len(initial) || signed != 102 {
 		t.Fatal("scoped controller differs", stats, runErr)
 	}
+	if o.evidenceBudget.Poisoned || o.evidenceBudget.AttemptedBytes != stats.IntentSegments.Bytes+int64(stream.report.Bytes) {
+		t.Fatal("encoded budget differs from exact complete inventories")
+	}
 	if err := verifyStreamingWorkloadEvidence(ctx, manifest, m, initial, 34, stats.IntentSegments, &stream.report, results, o.output, o.evidenceByteBudget); err != nil {
 		t.Fatal(err)
 	}
@@ -251,6 +266,9 @@ func TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
 		if err != nil || response.Code == 0 {
 			t.Fatal("executed nonce replay accepted", err)
 		}
+	}
+	if err := claimSenderPool(path); err == nil {
+		t.Fatal("completed fixture claim was silently reusable")
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)
 }
@@ -345,5 +363,34 @@ func TestStreamingWorkloadReadbackRejectsUnmatchedButValidSignedBytes(t *testing
 	err := verifyStreamingWorkloadEvidence(ctx, manifest, m, initial, 2, intents, terminal, latest, output, 16<<20)
 	if err == nil || !strings.Contains(err.Error(), "differs from verified intent") {
 		t.Fatal("valid signature under wrong workload identity accepted", err)
+	}
+}
+
+func TestStreamingWorkloadDurablePlanNeverOverwritesPriorScope(t *testing.T) {
+	_, manifest, m, _, initial := senderFixture(t)
+	o := streamingOptions()
+	o.output = filepath.Join(t.TempDir(), "new-output")
+	path, hash, err := persistStreamingWorkloadPlan(o, manifest, m, initial)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var plan streamingWorkloadPlan
+	if err := json.Unmarshal(raw, &plan); err != nil {
+		t.Fatal(err)
+	}
+	if plan.PlannedRecords != 102 || plan.RequiredBalancePerSender != 68 || len(plan.InitialSignedHashes) != 3 || fmt.Sprintf("%x", sha256.Sum256(raw)) != hash {
+		t.Fatal("plan scope/identity differs", plan)
+	}
+	o.rounds = 35
+	if _, _, err := persistStreamingWorkloadPlan(o, manifest, m, initial); err == nil {
+		t.Fatal("prior durable plan overwritten")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || string(after) != string(raw) {
+		t.Fatal("old scope changed", err)
 	}
 }

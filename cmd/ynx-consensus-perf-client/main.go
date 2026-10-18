@@ -204,9 +204,9 @@ func main() {
 	flag.IntVar(&o.concurrency, "concurrency", 2, "maximum concurrent submit-and-observe workers (1..4)")
 	flag.IntVar(&o.observers, "observers", 4, "confirmation workers for paced mode (1..4)")
 	flag.Float64Var(&o.offeredRate, "offered-rate", 0, fmt.Sprintf("paced offers per second (0=legacy closed loop; positive at most %d)", maxTransactions))
-	flag.DurationVar(&o.timeout, "timeout", 20*time.Second, "overall setup and workload timeout (positive, at most 30s)")
+	flag.DurationVar(&o.timeout, "timeout", 20*time.Second, "overall setup/workload timeout (default mode <=30s; explicit streaming mode <=15m)")
 	flag.DurationVar(&o.poll, "poll", 100*time.Millisecond, "transaction observation interval (50ms..1s)")
-	flag.IntVar(&o.rounds, "rounds", 1, "bounded rounds using retained fixture senders (1..32; total transactions at most 2048); each round waits for durable finality")
+	flag.IntVar(&o.rounds, "rounds", 1, "retained fixture nonce cycles (default 1..32 and <=2048 transactions; explicit streaming scope has separate limits)")
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
@@ -933,6 +933,14 @@ func execute(o options) error {
 				return err
 			}
 		}
+		if o.streamingWorkload {
+			path, digest, err := persistStreamingWorkloadPlan(o, manifestRaw, m, txs)
+			if err != nil {
+				return err
+			}
+			r.StreamingWorkload.PlanPath = path
+			r.StreamingWorkload.PlanSHA256 = digest
+		}
 		storageCount := len(txs) * o.rounds
 		if o.reuseResultSlots {
 			storageCount = len(txs)
@@ -1102,6 +1110,13 @@ func execute(o options) error {
 			return errors.New("bounded run incomplete: inspect per-transaction outcomes; no submission will be retried")
 		}
 		if o.streamingWorkload {
+			if r.ReadySenders.IntentSegments == nil || r.TerminalStream == nil || o.evidenceBudget == nil || o.evidenceBudget.Poisoned || o.evidenceBudget.AttemptedBytes != r.ReadySenders.IntentSegments.Bytes+int64(r.TerminalStream.Bytes) {
+				return errors.New("streaming shared budget differs from complete evidence inventory")
+			}
+			plan, err := readBounded(r.StreamingWorkload.PlanPath, 1<<20)
+			if err != nil || fmt.Sprintf("%x", sha256.Sum256(plan)) != r.StreamingWorkload.PlanSHA256 {
+				return errors.New("streaming workload plan changed or unavailable")
+			}
 			began := time.Now()
 			err := verifyStreamingWorkloadEvidence(ctx, manifestRaw, m, txs, o.rounds, r.ReadySenders.IntentSegments, r.TerminalStream, r.Transactions, o.output, o.evidenceByteBudget)
 			r.StreamingWorkload.EvidenceReadbackMs = float64(time.Since(began).Nanoseconds()) / 1e6
