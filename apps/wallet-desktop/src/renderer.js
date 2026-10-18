@@ -9,6 +9,8 @@ import {createPQTransferReviewUI} from './wallet-pq-transfer-ui.mjs';
 const pqTransferReviewUI=createPQTransferReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQMigrationReviewUI} from './wallet-pq-migration-ui.mjs';
 const pqMigrationReviewUI=createPQMigrationReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
+import {createSessionRecoveryUI} from './wallet-session-recovery-ui.mjs';
+const sessionRecoveryUI=createSessionRecoveryUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import { createReceiveShareUI } from "./receive-share-ui.mjs";
 import { createNativeContractUI } from "./native-contract-ui.mjs";
 import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
@@ -1200,6 +1202,7 @@ function renderKeyState(state) {
   keyState = state;
   if(typeof pqTransferReviewUI!=='undefined')pqTransferReviewUI.render();
   if(typeof pqMigrationReviewUI!=='undefined')pqMigrationReviewUI.render();
+  if(typeof sessionRecoveryUI!=='undefined')sessionRecoveryUI.render();
   updateOriginalAdmissionSecurity(previousKeyState,state);
   if(securityChanged)familyUI?.invalidate();
   multichainUI?.render();

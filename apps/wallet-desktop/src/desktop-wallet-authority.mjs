@@ -13,7 +13,7 @@ import {pqPublicBindingToRegistrationKeys} from '@ynx-chain/wallet-auth/pq-walle
 import {createPQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {retainPQPolicyResource} from './wallet-pq-policy-owner.mjs';
 import {assertSessionReturnTransport} from './wallet-session-return-boundary.mjs';
-import {prepareSessionPublicationReturn} from './wallet-session-publication.mjs';
+import {prepareSessionPublicationReturn,sessionPublicationOutcome} from './wallet-session-publication.mjs';
 
 export const YNX_EIP155_CHAIN = "eip155:6423";
 export const YNX_EVM_CHAIN_ID = YNX_TESTNET_CHAIN_QUANTITY;
@@ -138,6 +138,24 @@ export class DesktopWalletAuthority {
     const digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,new Date(request.issuedAt));
     return store.sessionOriginalStatus(account,digest);
   }
+  async canonicalPublicationRecords(){
+    const guard=this.vault.authorization.current();guard.assert();
+    return this.transactionSender.submissions.intentStore.sessionRecoverySummaries(guard.account,()=>guard.assert());
+  }
+  readCanonicalPublicationOutcome(digest){return this.#trackPQ(async()=>{
+    if(typeof digest!=='string'||digest.length>128)throw providerError(-32602,'SESSION_ORIGINAL_REQUIRED','Select an original retained request.');
+    const guard=this.vault.authorization.current();guard.assert();const account=guard.account,store=this.transactionSender.submissions.intentStore;
+    if(typeof this.#sessionReturnClient?.publicationOutcome!=='function')throw providerError(4100,'SESSION_REFERENCE_RETURN_REQUIRED','The original fixed publisher is required for outcome reads.');
+    const original=await store.readSessionOriginal(account,digest,()=>guard.assert());guard.assert();
+    const publication=await store.readSessionPublication(account,digest,()=>guard.assert());guard.assert();
+    if(!original?.approval||!publication)throw providerError(4100,'SESSION_PUBLICATION_REQUIRED','No original publication marker is available. Nothing will be published.');
+    const outcome=await this.#sessionReturnClient.publicationOutcome({requestId:'req_'+randomUUID().replaceAll('-',''),publicationRequestId:publication.publicationRequestId,request:original.request,approval:original.approval});
+    const result=sessionPublicationOutcome(outcome,original);
+    // Same storage-only custody rule as publication: retain an actual result
+    // even on a late lock, without generating any callback or authority.
+    if(result)await store.saveSessionPublicationResult(account,digest,result);
+    guard.assert();return Object.freeze({requestId:original.requestId,state:outcome.state,expiresAt:result?.expiresAt??null,expired:Date.parse(original.request.expiresAt)<=this.clock().getTime(),retryAuthorized:false,callbackEmitted:false,productSessionCreated:false});
+  });}
   async beginCanonicalAuthorizationDelivery(request,account){
     if(!this.#pqSessionSource)throw providerError(4100,'SESSION_ORIGINAL_REQUIRED','Original pending custody is required.');
     const guard=this.vault.authorization.current();guard.assert();if(guard.account!==account)throw providerError(4100,'ACCOUNT_CHANGED','Select the original account.');

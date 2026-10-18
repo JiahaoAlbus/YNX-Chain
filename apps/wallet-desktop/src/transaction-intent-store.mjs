@@ -123,6 +123,11 @@ export class FileTransactionIntentStore {
     if(!actual&&!slot)return null;
     return Object.freeze({status:actual?.approval?'signed-retained':slot?.captured?'signed-save-unknown':'signing-unknown',signed:Boolean(actual?.approval||slot?.captured),storageConfirmed:Boolean(actual?.approval&&(!slot?.record.approval||canonicalJSON(slot.record.approval)===canonicalJSON(actual.approval))),cleanupComplete:actual?.cleanupComplete===true,deliveryAttempted:actual?.deliveryAttempted??false,requestId:actual?.requestId??slot.record.requestId});
   }
+  async sessionRecoverySummaries(account,guard){
+    if(!ACCOUNT.test(account??'')||typeof guard!=='function')throw invalid();
+    guard();const state=await this.#read();guard();
+    return Object.freeze((state.sessionOriginals??[]).filter(row=>row.account===account).map(row=>Object.freeze({requestDigest:row.requestDigest,requestId:row.requestId,productId:row.request.productId,createdAt:row.createdAt,expiresAt:row.request.expiresAt,signed:row.approval!==null,deliveryAttempted:row.deliveryAttempted,publicationStatus:state.sessionPublications?.find(p=>p.account===account&&p.requestDigest===row.requestDigest)?.status??'not-published'})));
+  }
   async readSessionOriginal(account,digest,guard){
     if(!ACCOUNT.test(account??'')||typeof digest!=='string'||typeof guard!=='function')throw invalid();guard();
     const state=await this.#read();guard();const actual=state.sessionOriginals?.find(row=>row.account===account&&row.requestDigest===digest),slot=sessions(this).get(account+':'+digest);

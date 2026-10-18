@@ -56,6 +56,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   onAuthorizationRequest: callback => ipcRenderer.on("wallet:authorization-request", (_event, value) => callback(value)),
   onAuthorizationError: callback => ipcRenderer.on("wallet:authorization-error", (_event, value) => callback(value)),
   authorizationAction: action => ipcRenderer.invoke("wallet:authorization-action", action),
+  sessionPublicationRecords: () => ipcRenderer.invoke('wallet:session-publication-records'),
+  sessionPublicationOutcome: digest => ipcRenderer.invoke('wallet:session-publication-outcome',digest),
   accountStatus: () => ipcRenderer.invoke("wallet:account-status"),
   receiveCode: account => ipcRenderer.invoke("wallet:receive-code", account),
   paymentRecipient: input => ipcRenderer.invoke("wallet:payment-recipient", input),

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "a70dd1428bd331cc47f173d526ffb86903ab96c2",
+  "scope": "Normal Accounts and backup UI to actual preload/main handler bodies, original authority and same journal; explicit local summaries and read-only outcome",
+  "runtime": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r24-normal-install-qa-20261018/installed-r24/YNX Wallet.app/Contents/MacOS/YNX Wallet",
+  "runtimeMode": "ELECTRON_RUN_AS_NODE=1 --max-old-space-size=192 --test --test-isolation=none --test-concurrency=1",
+  "actualTests": [
+    {"files": ["test/password-wallet-pq.test.mjs", "test/callback-policy.test.mjs", "test/wallet-session-return-boundary.test.mjs", "test/wallet-session-recovery-ui.test.mjs"], "exitCode": 0, "tests": 81, "pass": 81, "fail": 0, "durationMs": 28592.885833},
+    {"files": ["test/wallet-pay-journal.test.mjs", "test/transaction-pq-original.test.mjs"], "exitCode": 0, "tests": 32, "pass": 32, "fail": 0, "durationMs": 1906.519167}
+  ],
+  "controls": ["No automatic reads, publication, signing or callbacks from UI", "Summary and query use selected account and original journal only, no approval/proof in public summaries", "Actual preload and sensitive main handler bodies are exercised in mounted tests", "Expired original outcome returns bounded metadata only, no keys/callback/grant/retry", "Lock or account switch clears rows and suppresses late UI responses", "Malformed apparent success flags are rejected", "Retention parsing does not generate callbacks using historical clocks; actual callback uses fresh SDK time", "App.tsx remains ce53b7ddd99b187caf96b596cdb99cc2501ff3cc"],
+  "limits": ["Publisher/network and DOM are controlled fixtures; no native GUI acceptance", "Formal matching SDK R3c fixed main factory activation is still pending", "No full App build/install/upgrade, external business flow, or MONSTER execution is claimed"]
+}

@@ -367,6 +367,8 @@ handleWalletIPC("wallet:unlock", (_event, input) => safeIPC(() => {
   return keyAccess.unlock(input);
 }));
 handleWalletIPC("wallet:lock", () => { keyAccess.lock(); return keyAccess.status(); });
+handleWalletIPC('wallet:session-publication-records',()=>sensitiveIPC(()=>walletAuthority.canonicalPublicationRecords()));
+handleWalletIPC('wallet:session-publication-outcome',(_event,digest)=>sensitiveIPC(()=>walletAuthority.readCanonicalPublicationOutcome(digest)));
 handleWalletIPC("wallet:password-setup", (_event, input) => safeIPC(() => custodyChange((guard, beforePublish) => walletAuthority.vault.setup(input, guard, { beforePublish }))));
 handleWalletIPC("wallet:recovery-history", () => safeIPC(() => walletAuthority.vault.recoveryHistory()));
 handleWalletIPC("wallet:recovery-preview", (_event, input) => safeIPC(() => {

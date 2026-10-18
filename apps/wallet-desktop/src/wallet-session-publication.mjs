@@ -19,10 +19,10 @@ export function parseSessionPublication(input,original){
  if(input.status==='publish-unknown'){if(input.result!==null)fail();}
  else{
   exact(input.result,['reference','nonce','state','expiresAt']);
-  // Retention parsing uses original signed time, not current wall clock. A
-  // fresh SDK request/source validation is still required for actual delivery.
-  createProductSessionReferenceReturnURL(PRODUCT_SESSION_REGISTRY,original.request,input.result,new Date(original.createdAt));
-  if(input.result.expiresAt>original.approval.expiresAt)fail();
+  // Structural retention only: never manufacture an expired callback using a
+  // historical clock. Actual delivery below always uses the SDK at fresh NOW.
+  const r=input.result;
+  if(typeof r.reference!=='string'||!/^ynxpsr1_[A-Za-z0-9_-]{43}$/.test(r.reference)||r.nonce!==original.request.nonce||r.state!==original.request.state||typeof r.expiresAt!=='string'||!Number.isFinite(Date.parse(r.expiresAt))||new Date(r.expiresAt).toISOString()!==r.expiresAt||r.expiresAt<=original.createdAt||r.expiresAt>original.request.expiresAt||r.expiresAt>original.approval.expiresAt)fail();
  }
  return Object.freeze({...input,result:input.result?Object.freeze({...input.result}):null});
 }

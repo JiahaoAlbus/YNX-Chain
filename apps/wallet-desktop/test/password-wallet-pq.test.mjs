@@ -377,6 +377,18 @@ test('adding another original session never downgrades schema8 or drops the exis
  const state=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8'));
  assert.equal(state.schemaVersion,8);assert.equal(state.sessionOriginals.length,2);assert.equal(state.sessionPublications.length,1);assert.equal(state.sessionPublications[0].result.reference,'ynxpsr1_'+'r'.repeat(43));
 });
+test('normal read-only recovery exposes bounded local summaries and reads expired original outcome without keys, URL or grant',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f);let original,publications=0,reads=0;
+ const client={async publishReturn(input){publications++;original=input;throw Error('QA_PUBLICATION_ACK_LOST');},async publicationOutcome(input){reads++;assert.deepEqual(input.approval,original.approval);assert.deepEqual(input.request,original.request);assert.equal(input.publicationRequestId,original.requestId);return {state:'pending',reference:'ynxpsr1_'+'r'.repeat(43),expiresAt:input.request.expiresAt,account:input.approval.account,requestDigest:input.approval.requestDigest,approvalDigest:productSessionApprovalDigest(input.approval),retryAuthorized:false};}};
+ await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)));
+ const digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,s.request,s.at),fresh=sessionQA(f),cold=new DesktopWalletAuthority({...fresh.options,sessionReturnClient:client,clock:()=>new Date(Date.parse(s.request.expiresAt)+1000)});
+ f.vault.withPQKeys=()=>assert.fail('expired metadata read cannot acquire signing keys');f.vault.withSecret=()=>assert.fail('no classic fallback');
+ const records=await f.lifecycle.run(()=>cold.canonicalPublicationRecords());assert.equal(records.length,1);assert.equal(records[0].publicationStatus,'publish-unknown');assert.equal(JSON.stringify(records).includes(original.approval.walletProof),false);
+ const metadata=await f.lifecycle.run(()=>cold.readCanonicalPublicationOutcome(digest));assert.equal(metadata.state,'pending');assert.equal(metadata.expired,true);assert.equal(metadata.retryAuthorized,false);assert.equal(metadata.callbackEmitted,false);assert.equal(metadata.productSessionCreated,false);assert.equal('callbackUrl' in metadata,false);assert.equal('approval' in metadata,false);assert.equal(publications,1);assert.equal(reads,1);
+ const store=fresh.options.transactionSender.submissions.intentStore;assert.equal((await store.sessionRecoverySummaries('0x'+'2'.repeat(40),()=>{})).length,0);
+ f.lifecycle.lock();await assert.rejects(cold.canonicalPublicationRecords());await assert.rejects(cold.readCanonicalPublicationOutcome(digest));assert.equal(reads,1);
+});
 test('normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing',async t=>{
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);
  let classic=0;f.vault.withSecret=()=>{classic++;assert.fail('active PQ cannot use classic approval');};
