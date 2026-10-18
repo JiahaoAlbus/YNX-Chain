@@ -102,6 +102,8 @@ jobs:
           retention-days: 90
       - run: npm ci
       - run: npm run hardhat:build
+      - name: Verify compiler output preserves controlled evidence and scanner failures
+        run: node --test scripts/contracts/hardhat-output.test.mjs
       - run: make static-check
       - run: make streambft-candidate-check
       - run: make consensus-abci-check
