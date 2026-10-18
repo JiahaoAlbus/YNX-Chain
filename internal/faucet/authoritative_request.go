@@ -30,7 +30,10 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 	s.mu.Lock()
 	s.requests++
 	s.mu.Unlock()
-	address, err := s.normalizeRecipient(req.Address)
+	// Both upstream modes use the same strict alias resolver. Durable request
+	// identity and quota bind its canonical ledger address, never display text.
+	recipient, err := s.resolveRecipient(req.Address)
+	address := recipient.Chain
 	if err != nil || address == chain.FaucetAddress {
 		s.recordDenied("invalid address")
 		return Response{}, 400, errors.New("invalid faucet recipient")

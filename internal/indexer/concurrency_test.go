@@ -15,7 +15,9 @@ func TestConcurrentLatestBlockReadersDoNotStarveSyncWrites(t *testing.T) {
 	const retainedBlocks = 200_000
 	blocks := make(map[string]chain.Block, retainedBlocks)
 	for height := 1; height <= retainedBlocks; height++ {
-		blocks[strconv.Itoa(height)] = chain.Block{Height: uint64(height), Hash: blockHash(uint64(height))}
+		// Readers and the writer must share a valid original checkpoint. The
+		// persistence validator must still reject a disconnected parent chain.
+		blocks[strconv.Itoa(height)] = chain.Block{Height: uint64(height), Hash: blockHash(uint64(height)), ParentHash: blockHash(uint64(height - 1))}
 	}
 	store := &Store{
 		loaded: true,

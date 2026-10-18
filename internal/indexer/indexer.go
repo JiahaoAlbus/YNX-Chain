@@ -157,14 +157,21 @@ func (s *Store) View(fn func(Database) error) error {
 // the store is warming or momentarily busy; callers must not present it as
 // healthy.
 func (s *Store) TryView(fn func(Database) error) (bool, error) {
+	ready, _, err := s.tryViewStatus(fn)
+	return ready, err
+}
+
+// An idle, not-yet-loaded store is distinct from a busy initial load. Health
+// must report both as unready without doing disk I/O or masking a sync failure.
+func (s *Store) tryViewStatus(fn func(Database) error) (ready, busy bool, err error) {
 	if !s.mu.TryRLock() {
-		return false, nil
+		return false, true, nil
 	}
 	defer s.mu.RUnlock()
 	if !s.loaded {
-		return false, nil
+		return false, false, nil
 	}
-	return true, fn(s.db)
+	return true, false, fn(s.db)
 }
 
 func (s *Store) Save(db Database) error {

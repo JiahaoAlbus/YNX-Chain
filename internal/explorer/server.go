@@ -85,14 +85,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/search", s.handleSearch)
 }
 
-func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"service":   "ynx-explorerd",
-		"build":     s.build,
-		"startedAt": s.startedAt,
-	})
-}
-
 func (s *Server) handleLogo(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "public, max-age=86400, immutable")
