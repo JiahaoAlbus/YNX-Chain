@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {pqBatchMemberHash,classifyPQBatchReceipt} from './pq-batch-receipt.mjs';
+import {pqBatchMemberHash,classifyPQBatchReceipt,createPQReceiptCounter} from './pq-batch-receipt.mjs';
 
 // Parser fixtures only: no valid PQ signature or business acceptance is implied.
 function fixture(){
@@ -35,4 +35,47 @@ test('decimal values stay exact strings beyond JS safe integer range',()=>{
 test('N=1024 with repeated business nonce is one server admission, not 1024',()=>{
   const f=fixture();f.expected=Array.from({length:1024},()=>({amount:'1',fee:'1',nonce:'2'}));f.response.results=f.expected.map((e,index)=>({index,batchHash:f.response.batchHash,wireHash:f.response.batchHash,outcome:index===0?'admitted':'rejected',transactionHash:index===0?pqBatchMemberHash(f.response.batchHash,index):'',error:index===0?'':'nonce',decimalFields:{...e,executionHeight:'2'}}));
   const r=classifyPQBatchReceipt(f.wire,f.response,f.expected);assert.equal(r.serverReportedAdmitted,1);assert.equal(r.serverReportedRejected,1023);assert.equal(r.newServerReportedDurableMembers,1);
+});
+
+test('run-scoped counter deduplicates repeated original responses and durable replay', ()=>{
+  const counter=createPQReceiptCounter(8), f=fixture();
+  assert.equal(counter.observe(f.wire,f.response,f.expected).newUniqueServerReportedDurableMembers,2);
+  assert.equal(counter.observe(f.wire,f.response,f.expected).newUniqueServerReportedDurableMembers,0);
+  f.response.replayed=true;
+  const out=counter.observe(f.wire,f.response,f.expected);
+  assert.equal(out.uniqueServerReportedDurableMembers,2);
+  assert.equal(out.verifiedFinalCommits,null);
+});
+test('uncertain admission does not consume a later durable identity; replay-first is not new execution',()=>{
+  const f=fixture(), counter=createPQReceiptCounter(8);f.response.status='uncertain';
+  assert.equal(counter.observe(f.wire,f.response,f.expected).newUniqueServerReportedDurableMembers,0);
+  f.response.status='durable';f.response.replayed=true;
+  const replay=counter.observe(f.wire,f.response,f.expected);
+  assert.equal(replay.newUniqueServerReportedDurableMembers,0);
+  assert.equal(replay.uniqueServerReportedDurableMembers,2);
+  f.response.replayed=false;
+  assert.equal(counter.observe(f.wire,f.response,f.expected).newUniqueServerReportedDurableMembers,0);
+});
+test('identity cap or malformed receipt fails atomically and never evicts old identities',()=>{
+  for(const cap of [0,1.5,1000001,Infinity])assert.throws(()=>createPQReceiptCounter(cap));
+  const f=fixture(), counter=createPQReceiptCounter(1);
+  assert.throws(()=>counter.observe(f.wire,f.response,f.expected),/bound/);
+  f.response.results[3].outcome='rejected';f.response.results[3].transactionHash='';f.response.results[3].error='rejected';
+  assert.equal(counter.observe(f.wire,f.response,f.expected).newUniqueServerReportedDurableMembers,1);
+  assert.equal(counter.observe(f.wire,f.response,f.expected).newUniqueServerReportedDurableMembers,0);
+  f.response.results[0].transactionHash='malformed';
+  assert.throws(()=>counter.observe(f.wire,f.response,f.expected));
+});
+
+test('capacity exhaustion retains old hashes and cannot reset a previous count',()=>{
+ const first=fixture(), second=fixture(), counter=createPQReceiptCounter(2);
+ counter.observe(first.wire,first.response,first.expected);
+ second.wire=Buffer.from('different unsigned parser-only fixture');
+ const h='0x'+createHash('sha256').update(second.wire).digest('hex');
+ second.response.batchHash=second.response.wireHash=h;
+ for(const row of second.response.results){row.batchHash=row.wireHash=h;if(row.outcome==='admitted')row.transactionHash=pqBatchMemberHash(h,row.index);}
+ assert.throws(()=>counter.observe(second.wire,second.response,second.expected),/bound/);
+ const after=counter.observe(first.wire,first.response,first.expected);
+ assert.equal(after.uniqueServerReportedDurableMembers,2);
+ assert.equal(after.newUniqueServerReportedDurableMembers,0);
 });

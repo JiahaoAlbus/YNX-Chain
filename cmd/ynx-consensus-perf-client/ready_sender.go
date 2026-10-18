@@ -115,6 +115,10 @@ func (j *readySenderJournal) append(envelopes []readySenderEnvelope) error {
 }
 
 func (p *ephemeralSenderPool) nextForSender(sender int, prior transactionResult) (cmttypes.Tx, error) {
+	return p.nextForSenderMeasured(sender, prior, nil)
+}
+
+func (p *ephemeralSenderPool) nextForSenderMeasured(sender int, prior transactionResult, supply *readySupplyStats) (cmttypes.Tx, error) {
 	if p.stopped || sender < 0 || sender >= len(p.pending) {
 		return nil, errors.New("sender pool stopped or sender outside pool")
 	}
@@ -125,14 +129,45 @@ func (p *ephemeralSenderPool) nextForSender(sender int, prior transactionResult)
 	if template.Nonce >= 32 {
 		return nil, errors.New("ready sender nonce bound")
 	}
+	started := time.Now()
 	tx, err := consensus.NewSignedTransfer(p.keys[sender], template.ChainID, template.To, template.Amount, template.Nonce+1)
+	if supply != nil {
+		supply.SignAttempts++
+		supply.SignNs += time.Since(started).Nanoseconds()
+	}
 	if err != nil {
 		return nil, err
 	}
-	return consensus.EncodeSignedTransaction(tx)
+	started = time.Now()
+	raw, err := consensus.EncodeSignedTransaction(tx)
+	if supply != nil {
+		supply.EncodeAttempts++
+		supply.EncodeNs += time.Since(started).Nanoseconds()
+		if err == nil {
+			supply.SignedSuccessors++
+		}
+	}
+	return raw, err
+}
+
+// Controller-owned sums of actual calls, including failed attempts. Initial
+// fixture signatures precede the run and are not included as successor signing.
+// Journal append includes JSON encoding, write and Sync; it is not pure disk I/O.
+type readySupplyStats struct {
+	SignAttempts            int   `json:"signAttempts"`
+	SignNs                  int64 `json:"signNs"`
+	EncodeAttempts          int   `json:"encodeAttempts"`
+	EncodeNs                int64 `json:"encodeNs"`
+	SignedSuccessors        int   `json:"signedSuccessors"`
+	JournalSetupNs          int64 `json:"journalSetupNs"`
+	JournalAppendAttempts   int   `json:"journalAppendAttempts"`
+	JournalAppendNs         int64 `json:"journalAppendNs"`
+	JournalDurableEnvelopes int   `json:"journalDurableEnvelopes"`
+	JournalDurableBytes     int   `json:"journalDurableBytes"`
 }
 
 type readySenderStats struct {
+	Supply          readySupplyStats       `json:"supply"`
 	Prepared        int                    `json:"prepared"`
 	Offered         int                    `json:"offered"`
 	Completed       int                    `json:"completed"`
@@ -190,7 +225,9 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		defer func() { stats.BoundedSummary = cumulative.snapshot(time.Since(started).Seconds()) }()
 	}
 	defer func() { p.stopped = true }()
+	journalStarted := time.Now()
 	journal, err := newReadySenderJournal(p)
+	stats.Supply.JournalSetupNs = time.Since(journalStarted).Nanoseconds()
 	if err != nil {
 		return stats, err
 	}
@@ -333,7 +370,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			raw := p.pending[sender]
 			if last[sender] >= 0 {
 				index = last[sender] + senders
-				raw, err = p.nextForSender(sender, results[storageIndex(last[sender])])
+				raw, err = p.nextForSenderMeasured(sender, results[storageIndex(last[sender])], &stats.Supply)
 			}
 			if err != nil {
 				runErr = err
@@ -343,7 +380,15 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		}
 		ready = ready[waveCount:]
 		if runErr == nil {
+			started := time.Now()
+			beforeBytes := journal.bytes
 			runErr = journal.append(wave)
+			stats.Supply.JournalAppendAttempts++
+			stats.Supply.JournalAppendNs += time.Since(started).Nanoseconds()
+			if runErr == nil {
+				stats.Supply.JournalDurableEnvelopes += len(wave)
+				stats.Supply.JournalDurableBytes += journal.bytes - beforeBytes
+			}
 		}
 		if runErr != nil {
 			ready = nil

@@ -38,3 +38,22 @@ export function classifyPQBatchReceipt(wire,response,expectedMembers){
   if((response.status==='rejected'&&(admitted!==0||response.replayed))||(response.status!=='rejected'&&admitted===0))throw Error('PQ batch status inconsistent with member outcomes');
   return {batchHash,status:response.status,replayed:response.replayed,members,serverReportedAdmitted:admitted,serverReportedRejected:rejected,newServerReportedDurableMembers:response.status==='durable'&&!response.replayed?admitted:0,verifiedEffectiveInclusions:null,verifiedFinalCommits:null,interpretation:'Server claims only. Replayed identities are not new business. Independent execution/readback, actual block inclusion and applicable consensus finality are separate evidence.'};
 }
+
+// One counter per run. Retain exact hashes up to the caller's explicit bound;
+// never evict identities, which would turn a late duplicate into new business.
+// This aggregates server claims only and cannot promote them to BFT evidence.
+export function createPQReceiptCounter(maxMembers){
+  if(!Number.isSafeInteger(maxMembers)||maxMembers<1||maxMembers>1000000)throw Error('PQ counter identity bound');
+  const admitted=new Set(),durable=new Set();
+  return Object.freeze({observe(wire,response,expectedMembers){
+    const receipt=classifyPQBatchReceipt(wire,response,expectedMembers);
+    const hashes=receipt.members.filter(m=>m.outcome==='admitted').map(m=>m.transactionHash);
+    const unseen=hashes.filter(h=>!admitted.has(h));
+    if(admitted.size+unseen.length>maxMembers)throw Error('PQ counter identity bound exceeded; stop run without eviction');
+    const newDurable=receipt.status==='durable'?hashes.filter(h=>!durable.has(h)):[];
+    // Validation and capacity admission finish before any cumulative mutation.
+    for(const h of unseen)admitted.add(h);
+    for(const h of newDurable)durable.add(h);
+    return {...receipt,newUniqueServerReportedDurableMembers:receipt.replayed?0:newDurable.length,uniqueServerReportedAdmittedMembers:admitted.size,uniqueServerReportedDurableMembers:durable.size,interpretation:'Run-scoped exact hash deduplication of server claims. First-seen durable replays are observed durable identities, never new execution. Inclusion, execution readback and weighted consensus commit verification remain separate.'};
+  }});
+}

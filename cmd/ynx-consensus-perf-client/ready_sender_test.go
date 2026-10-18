@@ -119,6 +119,9 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool) {
 	if err != nil || !fastOffered.Load() || stats.Completed != 6 || stats.Offered != 6 || stats.Prepared != 6 || stats.RoundsCompleted != 2 || stats.Quarantined != 0 || stats.PeakInFlight > 3 || !p.stopped {
 		t.Fatalf("continuous ready run failed: %+v %v", stats, err)
 	}
+	if stats.Supply.SignAttempts != 3 || stats.Supply.EncodeAttempts != 3 || stats.Supply.SignedSuccessors != 3 || stats.Supply.JournalDurableEnvelopes != 6 || stats.Supply.JournalAppendAttempts < 2 || stats.Supply.JournalDurableBytes <= 0 || stats.Supply.SignNs <= 0 || stats.Supply.EncodeNs <= 0 || stats.Supply.JournalAppendNs <= 0 || stats.Supply.JournalSetupNs <= 0 {
+		t.Fatalf("supply stages do not match actual signed/durable workload: %+v", stats.Supply)
+	}
 	if err = stream.close(); err != nil || stream.report.DurableRecords != 6 {
 		t.Fatal("actual executed terminal evidence was not sealed", stream.report, err)
 	}
@@ -388,4 +391,17 @@ func TestReadySenderAbruptJournalHelper(t *testing.T) {
 		}
 	})
 	t.Fatalf("abrupt helper returned: %v", err)
+}
+
+// A prior UNKNOWN result must not create a signing sample or another nonce.
+func TestReadySupplyRejectsUnknownBeforeSigning(t *testing.T) {
+	p := terminalFixture(t)
+	before := append([]byte(nil), p.pending[0]...)
+	var supply readySupplyStats
+	if _, err := p.nextForSenderMeasured(0, transactionResult{Status: "submission_unknown"}, &supply); err == nil {
+		t.Fatal("unknown predecessor signed")
+	}
+	if supply != (readySupplyStats{}) || !bytes.Equal(before, p.pending[0]) {
+		t.Fatal("rejected predecessor mutated signing supply or pending identity", supply)
+	}
 }
