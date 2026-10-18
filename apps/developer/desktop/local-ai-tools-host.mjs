@@ -65,7 +65,7 @@ export function createLocalAIToolsHost(context,{client=null,assertPathCurrent=as
    }
    if(result.model!==proposal.model||typeof result.text!=='string'||Buffer.byteLength(result.text)>65536||typeof result.conversationId!=='string'||!/^[a-f0-9-]{36}$/.test(result.conversationId)||result.applied!==false||result.signed!==false)throw channel.failure('AI_UNKNOWN');
    return {...binding,text:result.text,model:result.model,conversationId:result.conversationId,saved:result.saved===true,applied:false,signed:false,...(result.operation?{operation:publicReceipt(result.operation)}:{}),...(result.edit?{edit:result.edit}:{})};
-  }catch(e){if(e.code==='AI_NOT_SUPPLIED'||e.code==='AI_RETIRED'||e.code==='AI_UNKNOWN')throw e;throw channel.failure(action==='approve'?'AI_UNKNOWN':'AI_UNAVAILABLE');}
+  }catch(e){if(e?.code==='AI_NOT_SUPPLIED'||e?.code==='AI_RETIRED'||e?.code==='AI_UNKNOWN')throw e;throw channel.failure(action==='approve'?'AI_UNKNOWN':'AI_UNAVAILABLE');}
   finally{clearTimeout(timer);pending.delete(controller);signal?.removeEventListener('abort',abort);}
  },close(){if(retired)return;retired=true;proposals.clear();for(const c of pending)c.abort();pending.clear();client?.close?.();}};
 }

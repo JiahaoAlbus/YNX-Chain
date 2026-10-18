@@ -25,7 +25,7 @@ function serve(stream,host){
   if(Object.keys(m).sort().join()!=='action,body,id'||!valid(m.action,m.body)||seen.has(m.id)||seen.size>=1024)throw failure('AI_INVALID');
   seen.add(m.id);if(active.size>=4){channel.send({id:m.id,ok:false,code:'AI_UNAVAILABLE'});return;}
   const controller=new AbortController();active.set(m.id,controller);
-  Promise.resolve().then(()=>host.call(m.action,m.body,controller.signal)).then(result=>{if(!retired)channel.send({id:m.id,ok:true,result});}).catch(e=>{if(!retired)try{channel.send({id:m.id,ok:false,code:CODES.has(e.code)?e.code:'AI_UNAVAILABLE'});}catch{channel.close();}}).finally(()=>active.delete(m.id));
+  Promise.resolve().then(()=>host.call(m.action,m.body,controller.signal)).then(result=>{if(!retired)channel.send({id:m.id,ok:true,result});}).catch(e=>{if(!retired)try{channel.send({id:m.id,ok:false,code:CODES.has(e?.code)?e.code:'AI_UNAVAILABLE'});}catch{channel.close();}}).finally(()=>active.delete(m.id));
  },()=>{retired=true;for(const c of active.values())c.abort();active.clear();host.close();});
  return channel;
 }
