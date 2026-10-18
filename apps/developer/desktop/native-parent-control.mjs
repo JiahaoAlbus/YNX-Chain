@@ -6,6 +6,7 @@ import path from 'node:path';
 
 const owners = new WeakMap();
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
+export const NATIVE_ORIGINAL_SERVICE_FRAME_LIMIT = 576 * 1024;
 
 /** One source-owned reader per native parent pipe. A subscription owns neither
  * the pipe nor another subscription's tasks. This transport grants no service. */
@@ -14,8 +15,8 @@ export function createNativeParentControl({ input, onError = () => {} }) {
   if (previous) return previous;
   let buffer = Buffer.alloc(0), closed = false, listening = false, finishing;
   const routes = new Map(), subscriptions = new Set(), pending = new Set();
-  let firstFailure;
-  const report = error => { firstFailure ??= error; try { onError(error); } catch { /* retain original */ } };
+  let firstFailurePresent = false, firstFailure;
+  const report = error => { if (!firstFailurePresent) { firstFailurePresent = true; firstFailure = error; } try { onError(error); } catch { /* retain original */ } };
   const track = promise => {
     const task = Promise.resolve(promise); pending.add(task);
     void task.then(() => pending.delete(task), error => { pending.delete(task); report(error); });
@@ -49,7 +50,10 @@ export function createNativeParentControl({ input, onError = () => {} }) {
     let offset = 0;
     while (offset < chunk.length && !closed) {
       const newline = chunk.indexOf(10, offset), end = newline < 0 ? chunk.length : newline;
-      if (buffer.length + end - offset > 262144) { failed(Error('Native parent frame exceeded its bound.')); return; }
+      // A larger original-service wrapper does not enlarge Go/other consumer
+      // budgets: each selected subscription still checks its own exact bound.
+      const frameLimit = Math.max(262144, ...[...subscriptions].map(subscription => subscription.maxFrameBytes));
+      if (buffer.length + end - offset > frameLimit) { failed(Error('Native parent frame exceeded its bound.')); return; }
       buffer = Buffer.concat([buffer, chunk.subarray(offset, end)]);
       offset = newline < 0 ? chunk.length : newline + 1;
       if (newline < 0) continue;
@@ -73,7 +77,7 @@ export function createNativeParentControl({ input, onError = () => {} }) {
     subscribe({ actions, receive, onClose = () => {}, maxFrameBytes = 262144 }) {
       if (closed || !Array.isArray(actions) || !actions.length || new Set(actions).size !== actions.length
         || actions.some(action => typeof action !== 'string' || routes.has(action)) || typeof receive !== 'function'
-        || !Number.isSafeInteger(maxFrameBytes) || maxFrameBytes < 1 || maxFrameBytes > 262144) throw Error('Native parent subscription is unavailable.');
+        || !Number.isSafeInteger(maxFrameBytes) || maxFrameBytes < 1 || maxFrameBytes > NATIVE_ORIGINAL_SERVICE_FRAME_LIMIT) throw Error('Native parent subscription is unavailable.');
       const subscription = { actions: [...actions], receive, onClose, maxFrameBytes, retired: false };
       subscriptions.add(subscription); for (const action of actions) routes.set(action, subscription);
       // Registration can follow an awaited private-directory setup. Keep stdin
@@ -84,10 +88,10 @@ export function createNativeParentControl({ input, onError = () => {} }) {
     close,
     finishCleanup() {
       close();
-      finishing ??= (async () => { while (pending.size) await Promise.allSettled([...pending]); return Object.freeze({ complete: !firstFailure, firstFailure }); })();
+      finishing ??= (async () => { while (pending.size) await Promise.allSettled([...pending]); return Object.freeze({ complete: !firstFailurePresent, firstFailurePresent, firstFailure }); })();
       return finishing;
     },
-    status: () => Object.freeze({ closed, subscriptions: subscriptions.size, pending: pending.size, firstFailure }),
+    status: () => Object.freeze({ closed, subscriptions: subscriptions.size, pending: pending.size, firstFailurePresent, firstFailure }),
   });
   owners.set(input, owner);
   input.once('end', ended); input.once('close', ended); input.once('error', failed);
@@ -103,7 +107,7 @@ export function createNativeRequestCustody({ instance, context }) {
     reserve(body) {
       if (retired || requests.size >= 32 || !body || !UUID.test(body.id || '') || !UUID.test(body.document || '')
         || body.instance !== instance || body.projectId !== context.id || body.workspace !== context.workspace
-        || typeof body.canonicalInput !== 'string' || Buffer.byteLength(body.canonicalInput) > 65536
+        || typeof body.canonicalInput !== 'string' || Buffer.byteLength(body.canonicalInput) > 262144
         || requests.has(body.id)) throw Error('Native request is stale, duplicate or invalid.');
       const row = { id: body.id, document: body.document, canonicalInput: body.canonicalInput, entered: false, unknown: false, cancelled: false, result: undefined, completed: false };
       requests.set(body.id, row); return row;
@@ -160,6 +164,7 @@ export function attachUnavailableOriginalServiceChannel({ control, instance, con
   };
   const finishCleanup = async () => { while (owned.size) await Promise.allSettled([...owned]); return Object.freeze({ complete: !firstFailure, firstFailure }); };
   const subscription = control.subscribe({ actions: ['original-service-dispatch', 'original-service-cancel'],
+    maxFrameBytes: NATIVE_ORIGINAL_SERVICE_FRAME_LIMIT,
     receive(body) {
       if (closed || !nativeOriginalServiceEnvelope(body) || body.instance !== instance || body.projectId !== context.id || body.workspace !== context.workspace) return;
       if (body.action === 'original-service-cancel') { custody.cancel(body.id, body.document); return; }

@@ -15,6 +15,7 @@
 #import "ynx-startup-failure.h"
 #import "ynx-native-file-picker.h"
 #import "ynx-project-focus.h"
+#import "ynx-original-service-pipe.h"
 #import <CommonCrypto/CommonDigest.h>
 
 static NSString *YNXTrashExpectedProfile(NSString *support,NSString *workspace) {
@@ -741,7 +742,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
     _localWalletBridge=[[YNXWalletDeviceBridge alloc]initWithTag:@"com.ynxweb4.developer.native-device-p256-v2" storageService:YNXWalletStorageService lockDirectory:_localSupportRoot];
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWallet"];
-    NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const serviceJobs=new Map(),serviceDocument=crypto.randomUUID();Object.defineProperty(window,'__ynxOriginalServiceDocument',{value:serviceDocument});Object.defineProperty(window,'__ynxOriginalServiceReply',{value:e=>{if(e.document!==serviceDocument)return;const job=serviceJobs.get(e.id);if(!job)return;serviceJobs.delete(e.id);job.cleanup();e.error?job.reject(new Error(e.error)):job.resolve(e.value);}});const service=(canonicalInput,options={})=>new Promise((resolve,reject)=>{const signal=options.signal;if(signal?.aborted){reject(new DOMException('Cancelled','AbortError'));return;}if(typeof canonicalInput!=='string'||new TextEncoder().encode(canonicalInput).length>65536||serviceJobs.size>=32){reject(new Error('Invalid or excessive original service request'));return;}const id=crypto.randomUUID(),cancel=()=>{try{window.webkit.messageHandlers.ynxLocalWallet.postMessage({action:'original-service-cancel',id,document:serviceDocument});}catch{}};let timer;const cleanup=()=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);};const abort=()=>{if(!serviceJobs.delete(id))return;cancel();cleanup();reject(new DOMException('Cancelled','AbortError'));};timer=setTimeout(()=>{if(!serviceJobs.delete(id))return;cancel();cleanup();reject(new Error('Original service request timed out; no automatic retry'));},60000);serviceJobs.set(id,{resolve,reject,cleanup,cancel});signal?.addEventListener('abort',abort,{once:true});try{window.webkit.messageHandlers.ynxLocalWallet.postMessage({action:'original-service-dispatch',id,document:serviceDocument,canonicalInput});}catch(error){serviceJobs.delete(id);cleanup();reject(error);}});addEventListener('pagehide',()=>{for(const job of serviceJobs.values()){job.cancel();job.cleanup();job.reject(new Error('Original service document retired'));}serviceJobs.clear();},{once:true});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({originalServiceDispatch:service,beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key}),saveRevocationIntent:(key,rawIntent)=>call('storage-save-intent',{key,rawIntent}),finishRevocationIntentWithCompletion:(key,expectedRawIntent,receiptRaw)=>call('storage-finish-intent',{key,expectedRawIntent,receiptRaw}),getRevocationCompletions:key=>call('storage-get-completions',{key}),getRevocationCompletion:(key,intentId)=>call('storage-get-completion',{key,intentId}),acknowledgeRevocationCompletion:(key,expectedReceiptRaw)=>call('storage-ack-completion',{key,expectedReceiptRaw}),consumerJournalPersist:receiptRaw=>call('consumer-journal-persist',{receiptRaw}),consumerJournalRead:intentId=>call('consumer-journal-read',{intentId})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
+    NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const serviceJobs=new Map(),serviceDocument=crypto.randomUUID();Object.defineProperty(window,'__ynxOriginalServiceDocument',{value:serviceDocument});Object.defineProperty(window,'__ynxOriginalServiceReply',{value:e=>{if(e.document!==serviceDocument)return;const job=serviceJobs.get(e.id);if(!job)return;serviceJobs.delete(e.id);job.cleanup();e.error?job.reject(new Error(e.error)):job.resolve(e.value);}});const service=(canonicalInput,options={})=>new Promise((resolve,reject)=>{const signal=options.signal;if(signal?.aborted){reject(new DOMException('Cancelled','AbortError'));return;}if(typeof canonicalInput!=='string'||new TextEncoder().encode(canonicalInput).length>262144||serviceJobs.size>=32){reject(new Error('Invalid or excessive original service request'));return;}const id=crypto.randomUUID(),cancel=()=>{try{window.webkit.messageHandlers.ynxLocalWallet.postMessage({action:'original-service-cancel',id,document:serviceDocument});}catch{}};let timer;const cleanup=()=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);};const abort=()=>{if(!serviceJobs.delete(id))return;cancel();cleanup();reject(new DOMException('Cancelled','AbortError'));};timer=setTimeout(()=>{if(!serviceJobs.delete(id))return;cancel();cleanup();reject(new Error('Original service request timed out; no automatic retry'));},60000);serviceJobs.set(id,{resolve,reject,cleanup,cancel});signal?.addEventListener('abort',abort,{once:true});try{window.webkit.messageHandlers.ynxLocalWallet.postMessage({action:'original-service-dispatch',id,document:serviceDocument,canonicalInput});}catch(error){serviceJobs.delete(id);cleanup();reject(error);}});addEventListener('pagehide',()=>{for(const job of serviceJobs.values()){job.cancel();job.cleanup();job.reject(new Error('Original service document retired'));}serviceJobs.clear();},{once:true});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({originalServiceDispatch:service,beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key}),saveRevocationIntent:(key,rawIntent)=>call('storage-save-intent',{key,rawIntent}),finishRevocationIntentWithCompletion:(key,expectedRawIntent,receiptRaw)=>call('storage-finish-intent',{key,expectedRawIntent,receiptRaw}),getRevocationCompletions:key=>call('storage-get-completions',{key}),getRevocationCompletion:(key,intentId)=>call('storage-get-completion',{key,intentId}),acknowledgeRevocationCompletion:(key,expectedReceiptRaw)=>call('storage-ack-completion',{key,expectedReceiptRaw}),consumerJournalPersist:receiptRaw=>call('consumer-journal-persist',{receiptRaw}),consumerJournalRead:intentId=>call('consumer-journal-read',{intentId})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(walletScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *goScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeGoReply',{value:r=>{const j=jobs.get(r.id);if(!j)return;jobs.delete(r.id);r.status==='selected'?j.resolve({effective:'after-reopen',version:r.version}):j.reject(Object.assign(new Error(r.error||'Go toolchain selection cancelled.'),{cancelled:r.status==='cancelled'}));}});Object.defineProperty(window,'ynxDesktopGo',{value:Object.freeze({selectToolchain(){if(jobs.size)return Promise.reject(new Error('Go selection is already pending.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'select-go-toolchain',requestId});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Go selection document closed.'));jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(goScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
@@ -1364,11 +1365,39 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSString *script=[NSString stringWithFormat:@"if(location.pathname==='/'&&window.__ynxOriginalServiceDocument===%@)window.__ynxOriginalServiceReply?.(%@);",YNXJSON(document),YNXJSON(reply)];
     YNXEvaluateTrustedScript(_webView,_port,script);
 }
+- (void)localOriginalServiceValue:(NSString *)raw row:(NSDictionary *)row {
+    NSDictionary *reply=@{@"id":row[@"id"],@"document":row[@"document"],@"value":raw};
+    NSString *script=[NSString stringWithFormat:@"if(location.pathname==='/'&&window.__ynxOriginalServiceDocument===%@)window.__ynxOriginalServiceReply?.(%@);",YNXJSON(row[@"document"]),YNXJSON(reply)];
+    YNXEvaluateTrustedScript(_webView,_port,script);
+}
+- (BOOL)localOriginalServiceRowCurrent:(NSDictionary *)row {
+    return ![row[@"cancelled"]boolValue]&&_server.running&&!_localCloseRequest&&_localCommandDocumentReady
+        &&_localWalletGeneration==[row[@"generation"]unsignedIntegerValue]&&[_localGoInstance isEqual:row[@"instance"]]
+        &&[row[@"documentURL"]isEqual:_webView.URL.absoluteString]&&[row[@"projectId"]isEqual:[self localTrashAdmittedBinding][@"projectId"]];
+}
+- (void)receiveLocalOriginalServiceRow:(NSMutableDictionary *)row {
+    if([row[@"receiptSelected"]boolValue]||![self localOriginalServiceRowCurrent:row])return;
+    row[@"receiptSelected"]=@YES;
+    YNXWalletAdmissionBackendTask *server=_server;NSUInteger generation=_localWalletGeneration;
+    NSString *check=[NSString stringWithFormat:@"window.__ynxOriginalServiceDocument===%@",YNXJSON(row[@"document"])];
+    [_webView evaluateJavaScript:YNXOriginBoundScript(check,_port) completionHandler:^(id matches,NSError *error){
+        if(error||![matches isEqual:@YES]||self.server!=server||self.localWalletGeneration!=generation||![self localOriginalServiceRowCurrent:row]){
+            row[@"cancelled"]=@YES;[self sendLocalOriginalService:@"original-service-cancel" row:row];return;
+        }
+        // This acknowledges receipt of private transport bytes only. The
+        // owning SDK must still prove its durable original and Native terminal.
+        if(![self sendLocalOriginalService:@"original-service-received" row:row]){
+            row[@"transportUncertain"]=@YES;row[@"cancelled"]=@YES;
+            [self localOriginalServiceReply:row[@"id"] document:row[@"document"] error:@"Original service receipt delivery is uncertain; do not automatically retry."];
+        }
+    }];
+}
 - (BOOL)sendLocalOriginalService:(NSString *)action row:(NSDictionary *)row {
     if(!_server.running||!_localGoInput||![row[@"instance"] isEqual:_localGoInstance])return NO;
     NSMutableDictionary *frame=[@{@"action":action,@"id":row[@"id"],@"document":row[@"document"],@"instance":row[@"instance"],@"projectId":row[@"projectId"],@"workspace":row[@"workspace"]}mutableCopy];
     if([action isEqual:@"original-service-dispatch"])frame[@"canonicalInput"]=row[@"canonicalInput"];
-    NSData *json=[NSJSONSerialization dataWithJSONObject:frame options:0 error:nil];if(!json||json.length>262144)return NO;
+    if([action isEqual:@"original-service-received"]){if(!row[@"resultDigest"])return NO;frame[@"resultDigest"]=row[@"resultDigest"];}
+    NSData *json=[NSJSONSerialization dataWithJSONObject:frame options:0 error:nil];if(!json||json.length>YNXOriginalServiceFrameLimit)return NO;
     NSMutableData *line=[json mutableCopy];[line appendData:[@"\n" dataUsingEncoding:NSUTF8StringEncoding]];
     return [_localGoInput.fileHandleForWriting writeData:line error:nil];
 }
@@ -1389,7 +1418,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(cancel){if(row&&[row[@"document"] isEqual:document]&&![row[@"completed"] boolValue]&&![row[@"cancelled"] boolValue]){row[@"cancelled"]=@YES;if([row[@"sent"] boolValue])[self sendLocalOriginalService:action row:row];else row[@"completed"]=@YES;}return;}
     NSString *raw=body[@"canonicalInput"],*workspace=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
     NSDictionary *binding=[self localTrashAdmittedBinding];
-    if(![raw isKindOfClass:NSString.class]||[raw lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>65536||row||_localOriginalServiceRequests.count>=32||!_localCommandDocumentReady||!_server.running||_localCloseRequest||!binding||!YNXLocalGoPrivateControl([self localGoControlDirectory],workspace)){
+    if(![raw isKindOfClass:NSString.class]||[raw lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>YNXOriginalServiceInputLimit||row||_localOriginalServiceRequests.count>=32||!_localCommandDocumentReady||!_server.running||_localCloseRequest||!binding||!YNXLocalGoPrivateControl([self localGoControlDirectory],workspace)){
         [self localOriginalServiceReply:identifier document:document error:@"Original service request is unavailable or stale."];return;
     }
     if(!_localOriginalServiceRequests)_localOriginalServiceRequests=[NSMutableDictionary new];
@@ -1415,8 +1444,25 @@ static NSString *YNXDesktopTitle(NSString *label) {
         pending=YES;
         if(![_localGoInstance isEqual:row[@"instance"]]||!_server.running)continue;
         if(!YNXLocalGoPrivateControl([self localGoControlDirectory],row[@"workspace"]))continue;
+        if(row[@"resultDigest"]){
+            NSString *terminalFile=[[self localGoControlDirectory]stringByAppendingPathComponent:[NSString stringWithFormat:@"wallet-%@-terminal.json",row[@"id"]]];
+            NSDictionary *terminal=YNXOriginalServiceReadRecord(terminalFile);
+            if(!YNXOriginalServiceTerminal(terminal,row))continue;
+            row[@"completed"]=@YES;row[@"retainedTerminal"]=terminal;
+            if([self localOriginalServiceRowCurrent:row])[self localOriginalServiceValue:row[@"resultRaw"] row:row];
+            continue;
+        }
         NSString *file=[[self localGoControlDirectory]stringByAppendingPathComponent:[NSString stringWithFormat:@"wallet-%@.json",row[@"id"]]];
-        NSDictionary *result=YNXPrivateLocalJSON(file);
+        NSDictionary *result=YNXOriginalServiceReadRecord(file);
+        if(YNXOriginalServiceProvisional(result,row)){
+            row[@"retainedResponse"]=result;row[@"resultRaw"]=result[@"resultRaw"];row[@"resultDigest"]=result[@"resultDigest"];
+            [self receiveLocalOriginalServiceRow:row];continue;
+        }
+        if(YNXOriginalServiceFailure(result,row)){
+            row[@"completed"]=@YES;row[@"retainedResult"]=result;
+            if([self localOriginalServiceRowCurrent:row])[self localOriginalServiceReply:row[@"id"] document:row[@"document"] error:result[@"error"]];
+            continue;
+        }
         if(result.count!=8||![result[@"id"] isEqual:row[@"id"]]||![result[@"document"] isEqual:row[@"document"]]||![result[@"instance"] isEqual:row[@"instance"]]||![result[@"projectId"] isEqual:row[@"projectId"]]||![result[@"status"] isEqual:@"unavailable"]||![result[@"error"] isEqual:@"ORIGINAL_PRIVATE_SERVICE_NOT_SUPPLIED"]||![result[@"entered"] isKindOfClass:NSNumber.class]||![result[@"unknown"] isKindOfClass:NSNumber.class]||CFGetTypeID((__bridge CFTypeRef)result[@"entered"])!=CFBooleanGetTypeID()||CFGetTypeID((__bridge CFTypeRef)result[@"unknown"])!=CFBooleanGetTypeID()||[result[@"entered"] boolValue]||[result[@"unknown"] boolValue])continue;
         row[@"completed"]=@YES;row[@"retainedResult"]=result;
         // Pre-entry unavailability is not successful original-service execution.
