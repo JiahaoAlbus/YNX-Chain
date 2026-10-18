@@ -1,6 +1,7 @@
 import { Socket } from 'node:net';
 import { isAbsolute, normalize, join } from 'node:path';
 import { TextDecoder } from 'node:util';
+import { createPrivatePayloadPump } from './private-payload-pump.mjs';
 
 // PUBLIC framing, not another authorization/signing protocol. Only the fixed
 // original supplier may authenticate the native-parent binding. fd4 alone
@@ -73,7 +74,7 @@ function operation(value) {
 // entered call, including a late rejection. No raced promise proves drainage.
 function retainedOwner(binding, { schedule = setTimeout, unschedule = clearTimeout } = {}) {
   let owner = binding, retired = false, firstCause, closeSelected = false;
-  let cleanupState = 'not-selected', cleanupError, completion, bounded;
+  let cleanupState = 'not-selected', cleanupError, completion, bounded, childDebtPresent = false, childDebt;
   const pending = new Set(), hooks = new Set();
   let rejectRetirement;
   const retirement = new Promise((_, reject) => { rejectRetirement = reject; });
@@ -102,6 +103,7 @@ function retainedOwner(binding, { schedule = setTimeout, unschedule = clearTimeo
       await Promise.all([...pending]);
       closeSelected = true; cleanupState = 'closing';
       try {
+        if (childDebtPresent) throw childDebt;
         if (typeof owner?.close !== 'function') throw missing();
         const result = await owner.close();
         if (result !== undefined) throw Object.assign(denied(), { cleanupResult: result });
@@ -121,6 +123,7 @@ function retainedOwner(binding, { schedule = setTimeout, unschedule = clearTimeo
     return completion;
   };
   return Object.freeze({ enter, close,
+    retainChildCleanupDebt(error) { if (!childDebtPresent) { childDebtPresent = true; childDebt = error; } },
     onRetire(hook) { if (retired) hook(); else hooks.add(hook); },
     assertLive() { if (retired) throw refusal(); },
     async finishCleanup() { if (!retired) close(); return bounded; },
@@ -136,11 +139,14 @@ function cleanupOnly(lifecycle) {
 // Standalone PUBLIC controls supply explicit stand-ins; production uses only
 // the fixed original acquisition below. retained is internal same-owner state.
 export function createInstalledAdmissionReceiver({ stream, parentBinding, validateInstalled,
-  runningBackendModuleURL, now = Date.now, schedule = setTimeout, unschedule = clearTimeout, retained }) {
+  runningBackendModuleURL, now = Date.now, schedule = setTimeout, unschedule = clearTimeout, retained, acquirePrivateChannel }) {
   if (!stream || !parentBinding || typeof parentBinding.assertCurrent !== 'function'
     || typeof parentBinding.close !== 'function' || typeof validateInstalled !== 'function') throw missing();
   const lifecycle = retained || retainedOwner(parentBinding, { schedule, unschedule });
   let received = false, active = false, ready = false, epoch, validator;
+  let payload, privateChannel, privateSelected = false;
+  let releasePrivate;
+  const retirement = new Promise(resolve => { releasePrivate = resolve; });
   let bytes = Buffer.alloc(0), timer, floor = -1;
   const current = async () => {
     lifecycle.assertLive();
@@ -154,6 +160,44 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
   };
   const close = (...causes) => lifecycle.close(...causes);
   const ended = () => { close(unavailable()); }, errored = error => { close(error); };
+  function startPrivatePayload() {
+    if (privateSelected || typeof acquirePrivateChannel !== 'function') return;
+    privateSelected = true;
+    // The exact acquisition and all child cleanup remain one entered borrow.
+    // Retirement cannot abandon a late partial or close its parent first.
+    void lifecycle.enter(async () => {
+      try {
+        privateChannel = await acquirePrivateChannel();
+        if (privateChannel === null) return; // no fixed SDK successor supplied
+        if (!privateChannel?.original || !privateChannel.framer) throw missing();
+        lifecycle.assertLive();
+        payload = createPrivatePayloadPump({ stream, framer: privateChannel.framer,
+          assertCurrent: current, onFailure: error => { void close(error)?.catch(() => {}); } });
+        payload.start();
+        await retirement;
+      } catch (error) {
+        // A rejected fixed acquisition can still retain a Native partial in
+        // its SDK owner. Without an actual returned child cleanup result we
+        // cannot assume no child exists and attempt parent close first.
+        if (privateChannel === undefined) lifecycle.retainChildCleanupDebt(error);
+        void close(error)?.catch(() => {});
+      }
+      finally {
+        if (privateChannel !== null && privateChannel !== undefined) {
+          try {
+            const original = privateChannel.original;
+            if (typeof original?.retire !== 'function' || typeof original.join !== 'function' || typeof original.close !== 'function') throw missing();
+            if (original.retire(lifecycle.status().firstCause) !== undefined) throw denied();
+            payload?.retire(lifecycle.status().firstCause);
+            if (payload && (await payload.finishCleanup()).complete !== true) throw unavailable();
+            if (await original.join() !== undefined) throw denied();
+            if (await original.close() !== undefined) throw denied();
+            privateChannel = undefined;
+          } catch (error) { lifecycle.retainChildCleanupDebt(error); }
+        }
+      }
+    }).catch(() => {});
+  }
   const install = async value => {
     epoch = value;
     unschedule(timer);
@@ -174,10 +218,15 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
       stream.write(ack, error => error ? reject(error) : resolve());
     }));
     await current(); ready = true;
+    startPrivatePayload();
   };
   const data = chunk => {
     try {
-      lifecycle.assertLive(); if (received) throw denied();
+      lifecycle.assertLive();
+      if (received) {
+        if (!ready || !payload) throw denied();
+        payload.accept(chunk); return;
+      }
       bytes = Buffer.concat([bytes, Buffer.from(chunk)]);
       if (bytes.length > 65536) throw denied();
       const end = bytes.indexOf(10); if (end < 0) return;
@@ -194,6 +243,7 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
   };
   stream.on('data', data); stream.on('end', ended); stream.on('close', ended); stream.on('error', errored);
   lifecycle.onRetire(() => {
+    releasePrivate(); payload?.retire(lifecycle.status().firstCause);
     ready = false; validator = undefined; unschedule(timer);
     stream.off('data', data); stream.off('end', ended); stream.off('close', ended); stream.off('error', errored);
     stream.on('error', () => {}); stream.destroy();
@@ -230,7 +280,15 @@ export async function openOriginalParentDelivery({ supplier, runningBackendModul
     lifecycle.assertLive();
     const stream = new Socket({ fd: 4, readable: true, writable: true });
     const receiver = createInstalledAdmissionReceiver({ stream, parentBinding: binding, validateInstalled,
-      runningBackendModuleURL, retained: lifecycle });
+      runningBackendModuleURL, retained: lifecycle,
+      async acquirePrivateChannel() {
+        // One fixed SDK module retains the original Native binding privately.
+        // Never pass a descriptor/provider/parent projection into its factory.
+        const sdk = await import('../../../packages/wallet-auth/src/original-ide-admission-parent-delivery.js');
+        if (typeof sdk.acquireOriginalIDEPrivateServiceChannel !== 'function') return null;
+        return sdk.acquireOriginalIDEPrivateServiceChannel(runningBackendModuleURL);
+      },
+    });
     clearTimeout(timer); return receiver;
   } catch (error) { lifecycle.close(error); return cleanupOnly(lifecycle); }
 }

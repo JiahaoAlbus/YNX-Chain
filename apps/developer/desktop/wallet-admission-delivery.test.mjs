@@ -44,11 +44,12 @@ test('R89 omitted close differs from explicit undefined failure', async () => {
   assert.equal(explicit.receiver.cleanupStatus().firstCause, undefined);
   await explicit.receiver.finishCleanup();
 });
-function fixture({ validate, parentCurrent, parentClose } = {}) {
+function fixture({ validate, parentCurrent, parentClose, privateAcquire } = {}) {
   let clock = at, closes = 0, calls = 0;
   const timers = new Set(), stream = new PublicStream();
   const parent = { async assertCurrent(r) { if (parentCurrent) return parentCurrent(r); }, async close() { closes++; if (parentClose) return parentClose(); } };
   const receiver = createInstalledAdmissionReceiver({ stream, parentBinding: parent, runningBackendModuleURL: 'file:///PUBLIC/App/Contents/Resources/server.mjs',
+    acquirePrivateChannel: privateAcquire,
     now: () => clock, schedule: (fn, delay) => { const token = { fn, deadline: clock + delay }; timers.add(token); return token; }, unschedule: token => timers.delete(token),
     validateInstalled: validate || ((selection, entry) => {
       assert.equal(entry, 'file:///PUBLIC/App/Contents/Resources/server.mjs'); assert.ok(Object.isFrozen(selection.expectedRequest));
@@ -57,6 +58,53 @@ function fixture({ validate, parentCurrent, parentClose } = {}) {
   return { stream, receiver, timers, clocks(value) { clock = value; }, closes: () => closes, calls: () => calls,
     send(value = installed()) { stream.emit('data', Buffer.from(canonical(value) + '\n')); } };
 }
+// PUBLIC same-reader transport instruments only, not a Native client/grant.
+function privateFixture({ closeFailure } = {}) {
+  let stop;
+  const received=[],events=[],outbound=new Promise(resolve=>{stop=resolve;});
+  const original={retire(cause){events.push(['retire',cause]);stop(null);},async join(){events.push(['join']);},async close(){events.push(['close']);if(closeFailure)throw closeFailure;}};
+  const framer={assertCurrent(){},nextOutboundFrame(){return outbound;},acceptInboundFrame(raw){received.push(raw);},retireTransport(cause){events.push(['transport-retire',cause]);stop(null);}};
+  return {channel:{original,framer},received,events};
+}
+test('R90 installed ACK transitions the same sole reader to SDK payload; child closes before parent',async()=>{
+  const child=privateFixture();let acquisitions=0;
+  const f=fixture({privateAcquire(){acquisitions++;assert.equal(f.stream.writes.length,1);return child.channel;},parentClose(){child.events.push(['parent-close']);}});
+  assert.equal(acquisitions,0);f.send();await flush();
+  f.stream.emit('data',Buffer.from('{"PUBLIC":'));f.stream.emit('data',Buffer.from('1}\n'));await flush();
+  assert.equal(f.stream.listenerCount('data'),1);assert.deepEqual(child.received,['{"PUBLIC":1}']);
+  assert.equal(acquisitions,1);f.receiver.close();assert.deepEqual(await f.receiver.finishCleanup(),{complete:true});
+  assert.deepEqual(child.events.filter(e=>['join','close','parent-close'].includes(e[0])).map(e=>e[0]),['join','close','parent-close']);
+  assert.equal(f.stream.listenerCount('data'),0);assert.equal(f.closes(),1);
+});
+test('R90 retirement joins late acquired actual partial before disposing original parent',async()=>{
+  let release;const acquired=new Promise(resolve=>{release=resolve;}),child=privateFixture();
+  const f=fixture({privateAcquire:()=>acquired,parentClose(){child.events.push(['parent-close']);}});f.send();await flush();
+  f.receiver.close(false);let drained=false;const cleanup=f.receiver.finishCleanup().then(value=>{drained=true;return value;});
+  await flush();assert.equal(drained,false);assert.equal(f.closes(),0);release(child.channel);
+  assert.deepEqual(await cleanup,{complete:true});assert.equal(child.received.length,0);
+  assert.deepEqual(child.events.filter(e=>['retire','join','close','parent-close'].includes(e[0])).map(e=>e[0]),['retire','join','close','parent-close']);
+  assert.equal(child.events[0][1],false);
+});
+test('R90 uncertain child close retains child debt and never calls parent close',async()=>{
+  const failure=Error('PUBLIC_CHILD_CLOSE'),child=privateFixture({closeFailure:failure});
+  const f=fixture({privateAcquire:()=>child.channel});f.send();await flush();f.receiver.close();
+  await assert.rejects(f.receiver.finishCleanup(),error=>error.cleanupError===failure);
+  assert.equal(f.closes(),0);assert.equal(f.receiver.cleanupStatus().ownerRetained,true);
+  f.receiver.close();await assert.rejects(f.receiver.finishCleanup());assert.equal(child.events.filter(e=>e[0]==='close').length,1);
+});
+test('R90 rejected SDK acquisition retains unknown partial debt without attempting parent close',async()=>{
+  const first=Error('PUBLIC_PARTIAL_READY_REFUSED');let acquisitions=0;
+  const f=fixture({privateAcquire(){acquisitions++;throw first;}});f.send();await flush();
+  await assert.rejects(f.receiver.finishCleanup(),error=>error.cause===first&&error.cleanupError===first);
+  assert.equal(f.closes(),0);assert.equal(f.receiver.cleanupStatus().ownerRetained,true);
+  f.receiver.close();await assert.rejects(f.receiver.finishCleanup());assert.equal(acquisitions,1);
+});
+test('R90 payload before installed ACK completion cannot acquire child or reach SDK',async()=>{
+  const child=privateFixture();let acquired=0;const f=fixture({privateAcquire(){acquired++;return child.channel;}});
+  f.stream.holdWrite=true;f.send();await flush();f.stream.emit('data',Buffer.from('{}\n'));
+  f.stream.callbacks[0]();await flush();assert.equal(acquired,0);assert.equal(child.received.length,0);
+  await f.receiver.finishCleanup();assert.equal(f.closes(),1);
+});
 test('PUBLIC normal installed epoch validates in actual-entry boundary and ACKs exact Native R9 tuple', async () => {
   const f = fixture(); await assert.rejects(f.receiver.assertCurrent(tuple), { code: 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED' });
   f.send(); await flush();
