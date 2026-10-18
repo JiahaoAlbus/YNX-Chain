@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {validateCandidate} from '../../release/integration/candidates/perf-state-v13/check.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -19,4 +20,8 @@ for(const [relative,pin] of Object.entries(map.files)){
  const raw=fs.readFileSync(path.join(root,relative));
  if(raw.length!==pin.bytes||sha(raw)!==pin.sha256)throw Error('current runtime/source differs from fixed V13 candidate: '+relative);
 }
+const git=(...args)=>execFileSync('git',['-C',root,...args],{encoding:'utf8',env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},stdio:['ignore','pipe','pipe']});
+if(git('rev-parse','HEAD:internal').trim()!==map.internalTree)throw Error('current complete internal tree differs from fixed V13 candidate');
+git('diff','--quiet',map.sourceCommit,'--','internal');
+if(git('ls-files','--others','--exclude-standard','--','internal').trim())throw Error('untracked fixed internal inputs cannot qualify V13 candidate');
 console.log(JSON.stringify({...validateCandidate({repository:root}),currentSourceFilesMatched:Object.keys(map.files).length,profile:'unpublished-perf-v13'},null,2));

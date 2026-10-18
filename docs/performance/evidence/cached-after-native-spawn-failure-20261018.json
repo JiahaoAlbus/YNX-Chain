@@ -1,0 +1,415 @@
+{
+  "case": "original-cached-after-admitted-pressure1-refused-native-spawn",
+  "window": "artifacts/chain-network-performance/window-l4VfJc",
+  "controllerSession": 15087,
+  "launcher": 54842,
+  "originalRecipeSHA256": "a5df41dc3d029c1574c2348f46ee2064d9be785a9c22aed812e8c0196e680881",
+  "rawPath": "artifacts/chain-network-performance/window-l4VfJc/window-receipt.json",
+  "rawSHA256": "1aa4d9069ca20aa8caa27cdb5026f4080a94fd945e725228ffd2877dd1f2b6f5",
+  "rawBytes": 28511,
+  "startedAt": "2026-10-18T04:54:54.031Z",
+  "elapsedMs": 5225,
+  "cleanupMs": 103,
+  "firstCause": "native resource probe failed: spawn /Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-host EAGAIN",
+  "peakRSSBytes": 288309248,
+  "peakDataBytes": 1830912,
+  "peakThreadsWithControlReserve": 53,
+  "peakLongLivedChildren": 8,
+  "processes": [
+    {
+      "name": "fixture",
+      "pid": 55219,
+      "exitCode": 0,
+      "signal": null,
+      "exited": true,
+      "groupGone": true
+    },
+    {
+      "name": "abci-0",
+      "pid": 56643,
+      "exitCode": 0,
+      "signal": null,
+      "exited": true,
+      "groupGone": true
+    },
+    {
+      "name": "abci-1",
+      "pid": 56760,
+      "exitCode": 0,
+      "signal": null,
+      "exited": true,
+      "groupGone": true
+    },
+    {
+      "name": "abci-2",
+      "pid": 56821,
+      "exitCode": 0,
+      "signal": null,
+      "exited": true,
+      "groupGone": true
+    },
+    {
+      "name": "abci-3",
+      "pid": 56863,
+      "exitCode": 0,
+      "signal": null,
+      "exited": true,
+      "groupGone": true
+    },
+    {
+      "name": "comet-0",
+      "pid": 57112,
+      "exitCode": null,
+      "signal": "SIGINT",
+      "exited": true,
+      "groupGone": true
+    },
+    {
+      "name": "comet-1",
+      "pid": 57189,
+      "exitCode": 0,
+      "signal": null,
+      "exited": true,
+      "groupGone": true
+    },
+    {
+      "name": "comet-2",
+      "pid": 57241,
+      "exitCode": 0,
+      "signal": null,
+      "exited": true,
+      "groupGone": true
+    },
+    {
+      "name": "comet-3",
+      "pid": 57316,
+      "exitCode": 0,
+      "signal": null,
+      "exited": true,
+      "groupGone": true
+    }
+  ],
+  "allGroupsGone": true,
+  "resultProduced": false,
+  "businessMeasurement": null,
+  "independentCleanup": {
+    "controllerSession": 15087,
+    "window": "artifacts/chain-network-performance/window-l4VfJc",
+    "originalReceiptSHA256": "1aa4d9069ca20aa8caa27cdb5026f4080a94fd945e725228ffd2877dd1f2b6f5",
+    "checks": [
+      {
+        "at": 1792299366.7000818,
+        "identities": [
+          {
+            "identity": 54842,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -54842,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 55219,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -55219,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 56643,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -56643,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 56760,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -56760,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 56821,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -56821,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 56863,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -56863,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 57112,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -57112,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 57189,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -57189,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 57241,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -57241,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 57316,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -57316,
+            "absent": true,
+            "errno": "ESRCH"
+          }
+        ],
+        "ports": [
+          {
+            "port": 31656,
+            "bindFree": true
+          },
+          {
+            "port": 31657,
+            "bindFree": true
+          },
+          {
+            "port": 31658,
+            "bindFree": true
+          },
+          {
+            "port": 31659,
+            "bindFree": true
+          },
+          {
+            "port": 31757,
+            "bindFree": true
+          },
+          {
+            "port": 31758,
+            "bindFree": true
+          },
+          {
+            "port": 31759,
+            "bindFree": true
+          },
+          {
+            "port": 31760,
+            "bindFree": true
+          },
+          {
+            "port": 31858,
+            "bindFree": true
+          },
+          {
+            "port": 31859,
+            "bindFree": true
+          },
+          {
+            "port": 31860,
+            "bindFree": true
+          },
+          {
+            "port": 31861,
+            "bindFree": true
+          }
+        ]
+      },
+      {
+        "at": 1792299366.855521,
+        "identities": [
+          {
+            "identity": 54842,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -54842,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 55219,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -55219,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 56643,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -56643,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 56760,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -56760,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 56821,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -56821,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 56863,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -56863,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 57112,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -57112,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 57189,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -57189,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 57241,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -57241,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": 57316,
+            "absent": true,
+            "errno": "ESRCH"
+          },
+          {
+            "identity": -57316,
+            "absent": true,
+            "errno": "ESRCH"
+          }
+        ],
+        "ports": [
+          {
+            "port": 31656,
+            "bindFree": true
+          },
+          {
+            "port": 31657,
+            "bindFree": true
+          },
+          {
+            "port": 31658,
+            "bindFree": true
+          },
+          {
+            "port": 31659,
+            "bindFree": true
+          },
+          {
+            "port": 31757,
+            "bindFree": true
+          },
+          {
+            "port": 31758,
+            "bindFree": true
+          },
+          {
+            "port": 31759,
+            "bindFree": true
+          },
+          {
+            "port": 31760,
+            "bindFree": true
+          },
+          {
+            "port": 31858,
+            "bindFree": true
+          },
+          {
+            "port": 31859,
+            "bindFree": true
+          },
+          {
+            "port": 31860,
+            "bindFree": true
+          },
+          {
+            "port": 31861,
+            "bindFree": true
+          }
+        ]
+      }
+    ],
+    "allOriginalPIDsAndGroupsAbsent": true,
+    "allTwelvePortsFreeTwice": true
+  },
+  "interpretation": "Frozen after-only recipe admitted at pressure1 with free ports/no foreign heavy. Native probe spawn EAGAIN stopped original controller after starting8nodes but before client launch. No signed business submits, no inclusion/finality samples or cache-speedup claim. No retry, guard/budget/format change, public network action or original baseline modification."
+}

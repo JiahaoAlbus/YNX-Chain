@@ -20,3 +20,12 @@ for(const kind of ['current-runtime','bundle-manifest'])test('fixed V13 consumer
   assert.match(r.stderr,kind==='current-runtime'?/current runtime\/source differs from fixed V13 candidate: internal\/consensus\/state.go/:/fixed original V13 bundle manifest differs/);
  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
 });
+
+test('fixed V13 consumer refuses additional internal input outside the23 mapped files',()=>{
+ const own=fs.mkdtempSync(path.join(root,'internal/consensus/.perf-v13-input-'));
+ try{
+  fs.writeFileSync(path.join(own,'unmeasured.txt'),'untracked source fixture');
+  const r=spawnSync(process.execPath,[path.join(root,'scripts/verify/perf-v13-integration-check.mjs')],{encoding:'utf8',timeout:5000});
+  assert.equal(r.status,1,r.stderr);assert.match(r.stderr,/untracked fixed internal inputs cannot qualify V13 candidate/);
+ }finally{fs.rmSync(own,{recursive:true,force:true});}
+});

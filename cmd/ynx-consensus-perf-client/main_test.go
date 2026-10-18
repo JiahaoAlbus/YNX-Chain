@@ -27,7 +27,7 @@ import (
 )
 
 func TestEndpointAndWorkloadBounds(t *testing.T) {
-	for _, endpoint := range []string{"http://example.com:1", "http://localhost:1234", "https://127.0.0.1:1234", "http://127.0.0.1", "http://127.0.0.1:1234/path", "http://user@127.0.0.1:1234", "http://127.0.0.1:01234"} {
+	for _, endpoint := range []string{"http://not-loopback.invalid:1", "http://localhost:1234", "https://127.0.0.1:1234", "http://127.0.0.1", "http://127.0.0.1:1234/path", "http://user@127.0.0.1:1234", "http://127.0.0.1:01234"} {
 		if validateEndpoint(endpoint) == nil {
 			t.Fatalf("unsafe endpoint accepted: %s", endpoint)
 		}
