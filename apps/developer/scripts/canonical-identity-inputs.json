@@ -1,24 +1,179 @@
 {
   "schemaVersion": 1,
-  "sdkCommit": "55cca483cf8cacba83bbcb778e8970516e57703d",
-  "sdkTree": "5fa118a11635b1b8921d7d24929336573e4a8167",
-  "nativeSourceManifestSha256": "1893a2b45a510fac95b81d8e45c83aa3457b3ed104af91958a26fccb3e69e4b9",
+  "sdkCommit": "cbf12aaaeae9ce3c93ceaed8f597b3c3e0c25c66",
+  "sdkTree": "9f495298c028750e8c54f97b73ae615cd324f93b",
+  "nativeSourceManifestSha256": "b8e6f5236b0dfefe669ebd900690fbae42ebf7ba742ba722929f8286846d997d",
   "sourceOnly": true,
   "files": [
+    {
+      "path": "CENTRAL_INTEGRATION.md",
+      "bytes": 9657,
+      "sha256": "b1164824abe7c3565523953072302e80ce8abf6c5e97a92112cbad69042d20fb"
+    },
     {
       "path": "central-registry.json",
       "bytes": 13319,
       "sha256": "294119abb2f3e31dd6e1834440e2d0c7cd20dd11a2ba2a3849cee4b30ca7301c"
     },
     {
-      "path": "native/original-auth-identity-joint-owner.test.mjs",
-      "bytes": 1838,
-      "sha256": "370effa29fff4cdd69947d8abc51b05fc0aa75c18a7a4b37c41a6fea2a55504e"
+      "path": "EVM_PRODUCT_SESSION_V1.md",
+      "bytes": 6740,
+      "sha256": "b8177796a31e9f766b8553fb706b1f6efc48a51c721f8c200c638f70cc78f22b"
     },
     {
-      "path": "native/original-auth-identity-source-authority.test.mjs",
-      "bytes": 8851,
-      "sha256": "682cece63881c53efc358fd1698d59c97ab27ecd5c29f8485d42a62c82e5c21e"
+      "path": "FINANCE_EVM_PRIVATE_ORDER_V1.md",
+      "bytes": 5911,
+      "sha256": "31affe898a510177d4f33b39590a84664cf4e71f2ffa45d7b62f655b4ecd41e6"
+    },
+    {
+      "path": "FINANCE_ORDER_OPAQUE_V2.md",
+      "bytes": 6019,
+      "sha256": "c0053189b6fcb496e8877a752a36918d625487c637b316a5c5d4c3e5b53c1b20"
+    },
+    {
+      "path": "integration/CHAIN_ERC4337_HANDOFF.md",
+      "bytes": 1745,
+      "sha256": "753e9270a6be9a537d6dd627369907716ab017421e46d8c628bfe5bf59a934a5"
+    },
+    {
+      "path": "integration/chain-erc4337-requirements.json",
+      "bytes": 1920,
+      "sha256": "033f012265d39a9039b959713d4fe0edf9ddfd6586b6483d5108ecb3000fe4dd"
+    },
+    {
+      "path": "integration/finance-order-approval-v1.md",
+      "bytes": 3063,
+      "sha256": "ad0533ecd00a4e2e55ba4ea99220bb6898ecd0cd09746670bf2151d17e7e60ee"
+    },
+    {
+      "path": "integration/GATEWAY_PATCH.md",
+      "bytes": 4976,
+      "sha256": "bd8619e2bd10ff305e887110735c73fa1ee61688e915fad2dbcde58fef2358ef"
+    },
+    {
+      "path": "integration/gateway-integration.manifest.json",
+      "bytes": 6514,
+      "sha256": "df5bc8deab743f909bf555b0eb3d3897e5d9ed92fd1b0133f6759e6888804495"
+    },
+    {
+      "path": "integration/gateway-state.schema.json",
+      "bytes": 1117,
+      "sha256": "ce49620c44b079a0ea08c61af477c18d5f87e08d3dffd171223a5d8b737805f6"
+    },
+    {
+      "path": "integration/IDE_PRIVATE_PAYLOAD_R33_DEV_R1.md",
+      "bytes": 5714,
+      "sha256": "83df3338ba18d46ce40bac261a82b9ce238d26f23c8e535fd5a275b4d6ae0ee6"
+    },
+    {
+      "path": "integration/IDE_PRIVATE_SERVICE_PIPE_DEV_R1.md",
+      "bytes": 6827,
+      "sha256": "d68676442cc6ca99218e00b60fb8c769766627179cff87896b6e0a88abfa00a7"
+    },
+    {
+      "path": "integration/IDE_R37_TRANSPORT_RECOVERY_LIFETIME.md",
+      "bytes": 1112,
+      "sha256": "28d89da8ecc7e1108c2c2f7e61bee3ce05a7365cee21ea58a38c8d753d4e26c3"
+    },
+    {
+      "path": "integration/PQ_ACCOUNT_POLICY_RESOURCE_R1.md",
+      "bytes": 5804,
+      "sha256": "e77d00e4f44f7504013e503361e74b5207949e29af4a0e1bfaf2bede06334b94"
+    },
+    {
+      "path": "integration/PQ_ACCOUNT_POLICY_V2_DEV_R1.md",
+      "bytes": 3406,
+      "sha256": "59535d183298915924db1176eeefe77d789820b38418a0b93cc0ee0bb3cebce2"
+    },
+    {
+      "path": "integration/PQ_NODE_HOST_CONTEXT_R1.md",
+      "bytes": 9096,
+      "sha256": "b0a8fef864bd7f068cdf52f4ec706fed4ded71670bc9bbaedac164779dc6231a"
+    },
+    {
+      "path": "integration/PQ_NORMAL_PUBLISHER_R3C.md",
+      "bytes": 5961,
+      "sha256": "5dbded8f1c132183228d27dcba9062468812132ee51cdd9c5c3c718017b9dec6"
+    },
+    {
+      "path": "integration/PQ_PRIVATE_CARRIER_V3.md",
+      "bytes": 4644,
+      "sha256": "61e3504bf1279d2fa45b073aca9f3b776f21db73e491c742bccba9d19763aa5f"
+    },
+    {
+      "path": "integration/PQ_PRODUCT_SESSION_V3.md",
+      "bytes": 6989,
+      "sha256": "459d65b88de9ab1b312edecf387d30e1e9435e2f57a5e65f7aab64983e5a2ada"
+    },
+    {
+      "path": "integration/PQ_R35_VENDOR_CLOSURE.json",
+      "bytes": 2696,
+      "sha256": "793d0b44b29148957f3a8b1228d87e3b2b7e4ce9e1bcc6a0002947db001afdc6"
+    },
+    {
+      "path": "integration/PQ_R3D_SOURCE_STATUS.md",
+      "bytes": 3541,
+      "sha256": "a265fbc6a67339e20c072ac59250549adc0bfcfc30a59eb8744c5e7a442ed728"
+    },
+    {
+      "path": "integration/PQ_R3E_SOURCE_STATUS.md",
+      "bytes": 2132,
+      "sha256": "74fba8722e01dd6b4819bef87a33abe6e2ae532818f1a6141153c5173de8f6bd"
+    },
+    {
+      "path": "integration/PQ_R3F_RECOVERY_DATA_STATUS.md",
+      "bytes": 2615,
+      "sha256": "2ce872841cf5c89d30af374980b989b9187458cf54bcf3e88d6865436edf7813"
+    },
+    {
+      "path": "integration/PQ_REFERENCE_RETURN_R3B.md",
+      "bytes": 5819,
+      "sha256": "f6a1cb5c9e734c6eaf887757e3208e744cb43b555266d300e06bcd5f93cc88d7"
+    },
+    {
+      "path": "integration/PQ_WALLET_AUTHORIZATION_R1.md",
+      "bytes": 8300,
+      "sha256": "b484ae56d2fb8c931561d6ea2e910d3120a9c3bdfe344d1c6bf5b02dbceba5f7"
+    },
+    {
+      "path": "integration/PQ_WALLET_BACKUP.md",
+      "bytes": 5545,
+      "sha256": "a8c1ccf15fed8219f4a7e76257c4fc858b2cda346c993cc97ae29c9804a5f1e5"
+    },
+    {
+      "path": "integration/PRIVATE_REFERENCE_TRANSPORT_CONTRACT_R29A.json",
+      "bytes": 2787,
+      "sha256": "ab90fbcd71e6386e763ee7a3c4abd2eab8806eb06c5418c7cd5a5bb649e83566"
+    },
+    {
+      "path": "integration/PRIVATE_SERVICE_RUNTIME_R31.md",
+      "bytes": 2687,
+      "sha256": "89d786d170661969f84ce723f7f2e20dee42e54c581fb48fbeb553acb50ab2a8"
+    },
+    {
+      "path": "integration/PRIVATE_TERMINAL_RECOVERY_CONTRACT_R30.json",
+      "bytes": 3140,
+      "sha256": "9df1185925845916de4d6a9b2e73bd03c4087aed624f73ea4e1857bc53c53fb0"
+    },
+    {
+      "path": "integration/PRIVATE_TERMINAL_RECOVERY_CONTRACT_R30A.json",
+      "bytes": 1357,
+      "sha256": "c33235dd5bc86950af188792aa8169700b2723eb76341f0b06ecc2c6f799f6ad"
+    },
+    {
+      "path": "integration/SDK_NODE_TYPE_CLOSURE_R1.md",
+      "bytes": 1396,
+      "sha256": "4bd59cb8949656b5c53cdd4fefbdf80c3a5248fb2c8b7316997fe0d01680a9ac"
+    },
+    {
+      "path": "integration/smart-account-testnet.manifest.json",
+      "bytes": 1227,
+      "sha256": "29386dd31ebbd8b74d3be89b808f7d6dc363e15153854657268e79412775b332"
+    },
+    {
+      "path": "integration/WALLET_ADDRESS_CONNECTION.md",
+      "bytes": 2771,
+      "sha256": "b71bdcd8680ee0f9537f256bdff025058aeac1c8eb4a727c8fa48001cad04bf2"
     },
     {
       "path": "native/original-auth-identity-source-verifier.mjs",
@@ -26,14 +181,79 @@
       "sha256": "c2ea179983d082ad362017a9c15036ef23cb9ac3e8eac70dc7836cc06846ddf3"
     },
     {
-      "path": "package-lock.json",
-      "bytes": 64919,
-      "sha256": "2677b67db220fac235a0d62ddf6ef360f7e31ffa3ceccbe93a6b675498402308"
+      "path": "native/policy-revocation-source-r35-20261018/source/account-context-source.mjs",
+      "bytes": 17756,
+      "sha256": "ddc75e0e8f15107f4992d8d7cd0ea939738b700234301404bc22995c8b4f9eb7"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/operator-projection.mjs",
+      "bytes": 5472,
+      "sha256": "af063717898f9c3591982c009934f16cb0c555e816b90e9cac8fc940e17b1363"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/operator-query.mjs",
+      "bytes": 7592,
+      "sha256": "f39f487e49d6cf51b46dec008384e4a3d4988c7c7b51f92b54f912fd59ea561c"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/session-lifecycle.mjs",
+      "bytes": 9038,
+      "sha256": "91e777149abc41b08f1781e477908c100afa3427cf9cf5a3b891918fdcd7fb93"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/session-resource.mjs",
+      "bytes": 989,
+      "sha256": "53a57f0564e4972d897bba89858f7dcf95a0c711557117993665562581b6644b"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/policy-supplier/transaction-resource.mjs",
+      "bytes": 6881,
+      "sha256": "ebdd9cec1a148e0f39c39d09a7cad7daa4b8a778fd2c10c3148a4f1fc84a331e"
+    },
+    {
+      "path": "native/policy-revocation-source-r35-20261018/source/service-publisher.mjs",
+      "bytes": 3950,
+      "sha256": "14d2ea870d6b5e221b84d572da5d77b6efa202b9a1a5ca0fc6e8220a912b3fbf"
+    },
+    {
+      "path": "native/publication-readonly-source-r28-20261018/source/account-context-source.mjs",
+      "bytes": 17756,
+      "sha256": "ddc75e0e8f15107f4992d8d7cd0ea939738b700234301404bc22995c8b4f9eb7"
+    },
+    {
+      "path": "native/publication-readonly-source-r28-20261018/source/policy-supplier/operator-query.mjs",
+      "bytes": 10259,
+      "sha256": "b7b67868ccc4a8628810a473b1aeb3f79fceff958601a3088779f1bf0d836379"
+    },
+    {
+      "path": "native/publication-readonly-source-r28-20261018/source/policy-supplier/session-lifecycle.mjs",
+      "bytes": 9038,
+      "sha256": "91e777149abc41b08f1781e477908c100afa3427cf9cf5a3b891918fdcd7fb93"
+    },
+    {
+      "path": "native/publication-readonly-source-r28-20261018/source/policy-supplier/session-resource.mjs",
+      "bytes": 989,
+      "sha256": "53a57f0564e4972d897bba89858f7dcf95a0c711557117993665562581b6644b"
+    },
+    {
+      "path": "native/publication-readonly-source-r28-20261018/source/policy-supplier/transaction-resource.mjs",
+      "bytes": 6881,
+      "sha256": "ebdd9cec1a148e0f39c39d09a7cad7daa4b8a778fd2c10c3148a4f1fc84a331e"
+    },
+    {
+      "path": "native/publication-readonly-source-r28-20261018/source/service-publisher.mjs",
+      "bytes": 3950,
+      "sha256": "14d2ea870d6b5e221b84d572da5d77b6efa202b9a1a5ca0fc6e8220a912b3fbf"
+    },
+    {
+      "path": "native/terminal-custody-recovery-r30a-20261018/source/terminal-response-v3.mjs",
+      "bytes": 4402,
+      "sha256": "59601f2d3bd9865cca55305c0495317fcd6c1d1b2eae92fac70e02ab8f04980c"
     },
     {
       "path": "package.json",
-      "bytes": 5804,
-      "sha256": "c3da462fbb878c7973437a4de327226f3f843790f2d6a51bf90bf8fadf089932"
+      "bytes": 8957,
+      "sha256": "f71a17a1ff809f959dc2a3aedf3bf1d78b8629149651df11b64b36e1d88c75d5"
     },
     {
       "path": "product-session-registry.json",
@@ -44,6 +264,11 @@
       "path": "registry-conflict-evidence.json",
       "bytes": 1689,
       "sha256": "6554f99268eca863be46d7de7efd6bcd710f41fdaf78ba5a0b08b4347ccb2a7b"
+    },
+    {
+      "path": "scripts/assert-pq-test-provider.mjs",
+      "bytes": 1196,
+      "sha256": "cc1072fce5cfc1315b3dccb39dfbce6b8b599cbd81ee9cc00b48a49c32241638"
     },
     {
       "path": "scripts/benchmark-gateway.mjs",
@@ -66,14 +291,24 @@
       "sha256": "1a280d685a92a894648daf3db2c7021bbdbd1279b79e383dd84c7e2fc00f1dc7"
     },
     {
+      "path": "scripts/original-wallet-private-service-launcher.mjs",
+      "bytes": 8396,
+      "sha256": "485c53c770ecdfa3b8425b877f1f2b4b5572bd0b6a1a036a4bb2b12f9e6b49ae"
+    },
+    {
       "path": "scripts/original-wallet-runtime-observer-launcher.mjs",
-      "bytes": 4221,
-      "sha256": "b09c6562eb52133fadf9ece9e68f1bf9d76858a19971db49b40a89de8b333fd0"
+      "bytes": 5150,
+      "sha256": "91cbdadf55d545a239d9a0a57359deb3501b05113a658ee7a1ce35ebd262a607"
     },
     {
       "path": "scripts/original-wallet-runtime-observer-native-selection.mjs",
       "bytes": 303,
       "sha256": "5b3edefc17352d7aca85a120ce9a1045e3d4b7c204fda124d402384ced94c684"
+    },
+    {
+      "path": "scripts/qa-pq-wallet-recovery.mjs",
+      "bytes": 5783,
+      "sha256": "c634152398a561f46d0174e096f1054a8fdde13f2bdf78c7df2dfa9f55f2126c"
     },
     {
       "path": "scripts/run-gateway-backup-drill.mjs",
@@ -97,8 +332,8 @@
     },
     {
       "path": "scripts/ynx-wallet-gatewayd.mjs",
-      "bytes": 19170,
-      "sha256": "766781b743e9516f04ef610e8e18daf794b03dc37cf3d53d46539bf31cd16900"
+      "bytes": 21442,
+      "sha256": "20e7710c8bfddcc228fc03eda4bf888077ae0181c99430097cc1ec7145d4da75"
     },
     {
       "path": "src/application-action-launcher.d.ts",
@@ -322,8 +557,8 @@
     },
     {
       "path": "src/index.d.ts",
-      "bytes": 105051,
-      "sha256": "7def33c6fc0c01a61c33d869fe5d53f2ba4ac976de5599c715db00def7ae846f"
+      "bytes": 108539,
+      "sha256": "7fab8fe1005e3b6bda1f93583c10ab50962f8de560dc4509555b663241488023"
     },
     {
       "path": "src/index.js",
@@ -367,8 +602,8 @@
     },
     {
       "path": "src/original-auth-identity-private-joint-registration.js",
-      "bytes": 17298,
-      "sha256": "a5ab63669bf6e08ee091ca9261d0d879ee434a2b65a97d431b7ec0e7eec4da55"
+      "bytes": 20122,
+      "sha256": "f770875d9e5a05009af665a31ecd8dd8ba7d099697138320846ddb3f0d6aadeb"
     },
     {
       "path": "src/original-auth-identity-source-current.js",
@@ -422,28 +657,33 @@
     },
     {
       "path": "src/original-host-terminal-journal.js",
-      "bytes": 8967,
-      "sha256": "7a7601ca674f1cf47d597c1f61683c6b8f02c5dd0442ce35e40f7d53f24365d5"
+      "bytes": 11977,
+      "sha256": "6b8349f39b0147f6eb99f9e1b8310b5cd10c024ad1ee99744aeae2a0be5da3d3"
     },
     {
       "path": "src/original-ide-admission-parent-delivery.d.ts",
-      "bytes": 547,
-      "sha256": "2e6e35aa0febc21819866a9660b86a1d96ed3a0a8c1579bafe96851eb93c0ae9"
+      "bytes": 2975,
+      "sha256": "1629efe672cfcb58ae00dad5dcea813375920290583c83085a14c8d54c3da8b1"
     },
     {
       "path": "src/original-ide-admission-parent-delivery.js",
-      "bytes": 2276,
-      "sha256": "85dd0e6c89caa5e6bd222e4d7609500261384160575cb4bb5f12f82942b72a58"
+      "bytes": 16147,
+      "sha256": "b3f719f782f47560b61ac89bc2b748059d20448ad2af94639f8ecb5be6aa59ba"
     },
     {
       "path": "src/original-ide-parent-host.d.ts",
-      "bytes": 3843,
-      "sha256": "825ea56d56aefe9200b850edee1bce17f265d7945a423126e3ae99b8c59b52a7"
+      "bytes": 4035,
+      "sha256": "f9db592fcfcfcd0fb92d666131ad89a8581dee90414736364952ccdabd481aed"
     },
     {
       "path": "src/original-ide-parent-host.js",
       "bytes": 406,
       "sha256": "8fc0c8146fee9c1f4d75cc8cf2e24983a26be47e232f3417d93de9395743bc44"
+    },
+    {
+      "path": "src/original-ide-private-payload.js",
+      "bytes": 7146,
+      "sha256": "e3bda43b61bdb17e75f59aed5526ad95490b9e79c9e228d47901a3c2e7fe3db2"
     },
     {
       "path": "src/original-ide-running-entry-adoption.mjs",
@@ -496,19 +736,34 @@
       "sha256": "438b355451ad96345f9fc9864dae413997a8f4fea0a4b1faf8c7368bf3e559b9"
     },
     {
+      "path": "src/original-wallet-service-private-carrier.js",
+      "bytes": 2028,
+      "sha256": "db75a4ad8155a7d31ea22fc88c210b13cc407794be2ac981bd228da12a28f26b"
+    },
+    {
       "path": "src/original-wallet-service-private-client.d.ts",
-      "bytes": 1004,
-      "sha256": "73f1678c20ab318a985ce9e9b26234b8ffde84c76894efc253834d3a2cbaec2a"
+      "bytes": 1317,
+      "sha256": "69f68820e88bd27bedfd427e8b341872cbe42f2bb6544dacb41e363faf78b0fe"
     },
     {
       "path": "src/original-wallet-service-private-client.js",
-      "bytes": 8403,
-      "sha256": "d98817b00f85cb1aa149a4896814d7dbf39da96143df02b6f053be738e65827d"
+      "bytes": 9869,
+      "sha256": "385c2c543176896776ae285254f7c4439035616a64dca0e3430402bc3b272a45"
     },
     {
       "path": "src/original-wallet-service-private-dispatch.js",
-      "bytes": 12646,
-      "sha256": "59220fad74124a2cb463bec04a65c73972c8664e4dee9c48dca5dd720ae117b6"
+      "bytes": 17191,
+      "sha256": "00b4b3c62c7ee1852a6b60a57324667ddc05c0b0842503e3105b83e1b6b2df2e"
+    },
+    {
+      "path": "src/original-wallet-service-private-pq-budget.js",
+      "bytes": 1664,
+      "sha256": "2a96181ca37066ac211e2b7eec28541f8f80f0438ad15638dfaa8310fdc2bf83"
+    },
+    {
+      "path": "src/original-wallet-service-private-reference.js",
+      "bytes": 3430,
+      "sha256": "841116e192441e22f70e457701de63a7e5c4b817e573ab649e254be4eafaa860"
     },
     {
       "path": "src/original-wallet-service-role-enrollment-state.d.ts",
@@ -551,9 +806,74 @@
       "sha256": "6f4767511a7ea5eda443d8702665ed4c7de50518652a8ec3a77075ce89083d64"
     },
     {
+      "path": "src/pq-wallet-authorization.d.ts",
+      "bytes": 4656,
+      "sha256": "df57db88c61d5e369a5bdc72d97d8297d1d506cab35640e95992a194595c9675"
+    },
+    {
+      "path": "src/pq-wallet-authorization.js",
+      "bytes": 13172,
+      "sha256": "a7cb2e7c5abc941397b9f5832b2b7833a277ee0d6112d479e95cb8b0209e1253"
+    },
+    {
+      "path": "src/pq-wallet-backup.d.ts",
+      "bytes": 1685,
+      "sha256": "046d6fa6f89f73133b689554e8c196bb6ef0a894bcddffbecf88105925ea0b74"
+    },
+    {
+      "path": "src/pq-wallet-backup.js",
+      "bytes": 6577,
+      "sha256": "7e4b18b0c662d3fe666831845cb8f9bcdebce53ce631320192b15aa68f7f30ef"
+    },
+    {
+      "path": "src/pq-wallet-contract.d.ts",
+      "bytes": 1457,
+      "sha256": "544f950ff265296c370b0bf108bd4f3dc67e4e46bab4d36a4c4c163ffde2b06c"
+    },
+    {
+      "path": "src/pq-wallet-contract.js",
+      "bytes": 3192,
+      "sha256": "920937679af1a7b5b7d5e0b47a5b8faccf4eb4de965258f0107f8b7604065d57"
+    },
+    {
+      "path": "src/pq-wallet-key-backup.d.ts",
+      "bytes": 2762,
+      "sha256": "bcbf712c2baca803acdc54de6c8ddfdbe56e8456525c3210993e21ea954484cd"
+    },
+    {
+      "path": "src/pq-wallet-key-backup.js",
+      "bytes": 8939,
+      "sha256": "33a46539c0ae7f8a66875d0483082ad69206e9c96cdab5acd2fd862216e44202"
+    },
+    {
+      "path": "src/pq-wallet-policy.d.ts",
+      "bytes": 5634,
+      "sha256": "793509c9461d145f759746ed7327336fa9c6e1bf55d9cbc13617aa65334a5adb"
+    },
+    {
+      "path": "src/pq-wallet-policy.js",
+      "bytes": 14450,
+      "sha256": "25dbe9181582720037a4f696c2493bf927ef57dc809ae20127bde488b7ce1262"
+    },
+    {
       "path": "src/product-migration.js",
       "bytes": 9307,
       "sha256": "27054bf82f5aebd1d588b0d472b761d18c03dc157644321495abf37dde153bb5"
+    },
+    {
+      "path": "src/product-session-account-policy.d.ts",
+      "bytes": 2090,
+      "sha256": "5636b140dd072abb471cde21768d821a131a9cb0925a1dee1a42d189e031c3c7"
+    },
+    {
+      "path": "src/product-session-account-policy.js",
+      "bytes": 4962,
+      "sha256": "ddae12041a61bcfa349d06c37e7f9f7b13ea1e826fae037b72836d572b021d78"
+    },
+    {
+      "path": "src/product-session-account-private.js",
+      "bytes": 4729,
+      "sha256": "405141d2936e6c57fdd310bcb2f9056d9771bdc661e10935c204931963c2fcf1"
     },
     {
       "path": "src/product-session-authority-projection.js",
@@ -562,13 +882,18 @@
     },
     {
       "path": "src/product-session-browser.js",
-      "bytes": 29348,
-      "sha256": "fac8d88534b428f2381167cef04f09f1f462f0f026144a762eced86e3d4ecc8f"
+      "bytes": 29334,
+      "sha256": "28aef5a7557d5a703df0411da8ddc80388f0b45d83a707af26076acfe8e193e5"
+    },
+    {
+      "path": "src/product-session-completion-record.d.ts",
+      "bytes": 1708,
+      "sha256": "b679f2e6a6d36078e835b415de362bbcba9b13f6f4150691d63d84b0183d5014"
     },
     {
       "path": "src/product-session-completion-record.js",
-      "bytes": 2837,
-      "sha256": "852f16daa2d01e24299fabde9542a2f87c9bce66cf8369540ce9c19daab41655"
+      "bytes": 5284,
+      "sha256": "1f015091c56cfb8ab4671974b0fc94a0ab7c1b134edb16b9fd2ed45a6cb8b096"
     },
     {
       "path": "src/product-session-control-capacity.js",
@@ -577,8 +902,8 @@
     },
     {
       "path": "src/product-session-control-intent.js",
-      "bytes": 20511,
-      "sha256": "60d5e41a962fdf9de167dad4106c2eff59e39ce69df986b6129ee6bda1879b37"
+      "bytes": 20640,
+      "sha256": "7b55eb384c17b9449e140ab1ef378b3dcdc23902eef72060db009edb7f4351c7"
     },
     {
       "path": "src/product-session-control-node-host.d.ts",
@@ -602,43 +927,53 @@
     },
     {
       "path": "src/product-session-gateway-client.js",
-      "bytes": 13101,
-      "sha256": "55255433c19160d15ea08c53a341fa5b3cd518bd0b618bb4ec9be49ab2b7833c"
+      "bytes": 17532,
+      "sha256": "e8780aa290728fdd34966b9b022743f76ea68bc44c64957bb9fe2d973fd81480"
     },
     {
       "path": "src/product-session-gateway-http.js",
-      "bytes": 4396,
-      "sha256": "b9d8921d53671032367d1f7c2a016e41c7724def9b0c4056c3a0f1e8bd6575a4"
+      "bytes": 5226,
+      "sha256": "45dfc49b66bb72d68eb2e531345b7c23ba5202392c4aa80fbedf4411635011aa"
     },
     {
       "path": "src/product-session-gateway-node-host.d.ts",
-      "bytes": 1175,
-      "sha256": "205080b168913b30e91d92bf17c8280fe6344a46c55dbcfc431c197ec7656bee"
+      "bytes": 4382,
+      "sha256": "3d2c55b600cbaaff5430dd157fc2a0b8adbfad22c35ef980112ca5c112c071fd"
     },
     {
       "path": "src/product-session-gateway-node-host.js",
-      "bytes": 38731,
-      "sha256": "29caeda869ac163baedff46552d72dbcb7682d6d4350c34164b79a44cb96c02f"
+      "bytes": 49848,
+      "sha256": "c1b0a2be39a228acc2eaa730f9773176e640334ae4ec83ac036c848b3f1b0a6d"
     },
     {
       "path": "src/product-session-gateway-snapshot-v2.js",
-      "bytes": 5490,
-      "sha256": "279e4e22974ae9da272b2db055c3eb80b8a4b5a0b81289c53e380bd94995187a"
+      "bytes": 5775,
+      "sha256": "af75c30095ae4dc5b068f69ac3adaa6e3236a37cabe14a841ea5f034693aa227"
     },
     {
       "path": "src/product-session-gateway.js",
-      "bytes": 26088,
-      "sha256": "320589e845a200f954528b78b453f8019f0e13da3b825333533d46cdd77dedea"
+      "bytes": 40669,
+      "sha256": "1c48a5bbb6bb6b5dcfdbd906951bc27cab0512e0f19eaf8d5c7162548f3028fb"
     },
     {
       "path": "src/product-session-native.d.ts",
-      "bytes": 4296,
-      "sha256": "93be9f73430cc1781fdfb222cef4b0fd2930df92fcb2900ee0096a00b095dd54"
+      "bytes": 4420,
+      "sha256": "1650aef8f14763675492ecd42f72e40805af5f9edd190880c22b1ff568753d9f"
     },
     {
       "path": "src/product-session-native.js",
-      "bytes": 14097,
-      "sha256": "78e6cb0bb90d931611b19a92f9400ebab17962825991f6d77911420b2439e451"
+      "bytes": 14413,
+      "sha256": "edbf81f4f08dde71d8c035f6af267d485ed366febfc61bafe9b3ec0fe2e250b2"
+    },
+    {
+      "path": "src/product-session-pq-approval.d.ts",
+      "bytes": 4633,
+      "sha256": "e93b11922635e0286ec3c828c283c01677c93133cebd531d932b673ad322e998"
+    },
+    {
+      "path": "src/product-session-pq-approval.js",
+      "bytes": 7690,
+      "sha256": "7740fddfab54d9bea36c8db319562e08ba670c968becc66dbeb3a80f16c5ed58"
     },
     {
       "path": "src/product-session-proof-v2.js",
@@ -646,14 +981,29 @@
       "sha256": "a9eea429f4dc69bbf84053f1a6fa24d48c3bf39b6c23dad3bd9abe82336e8818"
     },
     {
+      "path": "src/product-session-record-budget.js",
+      "bytes": 1630,
+      "sha256": "528ab4af98194cc4a65435301c3370cff365dca6cbe92a7de7db56d7be56360e"
+    },
+    {
       "path": "src/product-session-recovery.js",
-      "bytes": 59279,
-      "sha256": "e80eeb44d78d0b91f67c18c8593bea4be89235eef20b3e7b66c664d2b4555b8b"
+      "bytes": 77842,
+      "sha256": "eb5971d3b0f0cdc78c2179b7388070975cdaf38872ff5d8b08fc10f7d1396970"
+    },
+    {
+      "path": "src/product-session-reference-completion.js",
+      "bytes": 4258,
+      "sha256": "b893321fbb93fc1625e3257d1d9d4e9f010765feb385e6d0ff5a730723d61676"
     },
     {
       "path": "src/product-session-registry.js",
       "bytes": 14744,
       "sha256": "18655744b80de8fdf4713977ef6d4303e1d7daa9562b003e62db9c3b331aa3ef"
+    },
+    {
+      "path": "src/product-session-return-record.js",
+      "bytes": 3259,
+      "sha256": "92b5893aa5f92c31ff6a5e1517773eb3b4a18da66be5f0b21334976ebfb23b8d"
     },
     {
       "path": "src/product-session-revocation-intent.js",
@@ -662,8 +1012,8 @@
     },
     {
       "path": "src/product-session-router.js",
-      "bytes": 10041,
-      "sha256": "c3b12e89d1e63706116a4221ef3a13fbc27005ba187ee59dce764a3e0c9cfe41"
+      "bytes": 12699,
+      "sha256": "8a7c879662046f13f6c12b9969417ecd7b79f4b16905de21833d098527d418cc"
     },
     {
       "path": "src/product-session-server.js",
@@ -672,18 +1022,18 @@
     },
     {
       "path": "src/product-session-v2.js",
-      "bytes": 40361,
-      "sha256": "96d27a2a18c538725278db45675cf96a1ccc3f3d0f5af14b9950dd6334594a41"
+      "bytes": 44273,
+      "sha256": "460b4e514ae748de5d73defa932c3aa840cb4cd50b5525a6eda1e8461e423544"
     },
     {
       "path": "src/product-wallet-connection.d.ts",
-      "bytes": 2142,
-      "sha256": "7a4e16b883073915665becf75239ec591ef4fb164ad00d45f95ff2d01058ae87"
+      "bytes": 2838,
+      "sha256": "b97b8c6293c675ac74a1deaf7c9eaa88882d16c227bf06b120be9c0ff69b0e2a"
     },
     {
       "path": "src/product-wallet-connection.js",
-      "bytes": 3579,
-      "sha256": "f80c0d62770e8bebd8498ac51d74f11dd0572cde7399f2f145534c134a38edec"
+      "bytes": 4711,
+      "sha256": "1fad9ea9276af2ceee11fd15e5dcc405d7e9f5fe6b0cf340a56998edf986f987"
     },
     {
       "path": "src/protocol.js",
@@ -766,9 +1116,14 @@
       "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d"
     },
     {
+      "path": "src/walletconnect-dapp-connection.d.ts",
+      "bytes": 2576,
+      "sha256": "aa671bef1a294ab3a1a585c725b431580922fdd58430d45eefa8454e6e40da3e"
+    },
+    {
       "path": "src/walletconnect-dapp-connection.js",
-      "bytes": 17896,
-      "sha256": "03984541e4298d51cc862d9b9669595b6f0a6df4d862dc78729a9582a64c9465"
+      "bytes": 18650,
+      "sha256": "28fac08a7cf2ff5a4654137f2521660a1393395e062b93a5cd941c9f0c843f87"
     },
     {
       "path": "src/walletconnect-protocol.js",
@@ -816,6 +1171,26 @@
       "sha256": "cdc38504312073221e5e2eae645025e574c67e7bef6ad135e68a39f812198992"
     },
     {
+      "path": "testdata/pq-wallet-wire-r1.json",
+      "bytes": 12845,
+      "sha256": "77ab4704ba3abb1333d86d9d649561bc69284ba3630b7e342cc52c2b463604d8"
+    },
+    {
+      "path": "testdata/private-reference-carrier-r29a.json",
+      "bytes": 6225,
+      "sha256": "daccbc640b667709f39f9effc6d88b578a13f9f29bdfbff0ed3ea27f57f98a63"
+    },
+    {
+      "path": "testdata/private-terminal-custody-r30.json",
+      "bytes": 128630,
+      "sha256": "da121033626db9ae14cf3435f20cd6e17ffd00929eabdced44ccd97e048015b0"
+    },
+    {
+      "path": "testdata/private-terminal-custody-r30a-normal-id.json",
+      "bytes": 119260,
+      "sha256": "2c23d0351d457b626d2520e538c4582e7091cd701526e38a78f401662d2a9020"
+    },
+    {
       "path": "testdata/product-session-http-proof-v1.json",
       "bytes": 2850,
       "sha256": "63e8f1d22a97d774591071a5481f3fbfc7d05ae768d975e300d669c83e00a75b"
@@ -841,21 +1216,276 @@
       "sha256": "5ef293c8467ae57c7efabd3b89ef1b483607467a46db35dd0f9c049302ee3996"
     },
     {
-      "path": "tsconfig.types.json",
-      "bytes": 250,
-      "sha256": "4b97e535a0a2eb5990383b904140305d2429417f4a43eddd98083a9f12e20f10"
+      "path": "testdata/ynx-batch-v01-candidate-0.1.0-candidate.2.tgz",
+      "bytes": 17804,
+      "sha256": "401eca733083c2ac67998295c54f09f0553760b99eaf0adf9ef1e1a85b4cbd0b"
     }
   ],
   "dependencies": [
     {
-      "path": "@noble/curves/LICENSE",
-      "bytes": 1109,
-      "sha256": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec"
+      "path": "@noble/ciphers/_arx.d.ts",
+      "bytes": 6513,
+      "sha256": "29b8c817d7bdb02be2b6d73fb07476cb16e1f9ad448fd9e1fe3281eab040195c"
     },
     {
-      "path": "@noble/curves/README.md",
-      "bytes": 46558,
-      "sha256": "9854e5789a03b893bc3768cd669f25db0b4f3df403fa7aed5df367e4352a5646"
+      "path": "@noble/ciphers/_arx.d.ts.map",
+      "bytes": 2099,
+      "sha256": "71fc6c627cb9b711e65135746077705c5d35f3b09235bb9db28a2213520ecdf0"
+    },
+    {
+      "path": "@noble/ciphers/_arx.js",
+      "bytes": 16542,
+      "sha256": "716513b7eaa43115c3371420094eaa7dfb6d9d28d928e4237e705df1e9e2e2e1"
+    },
+    {
+      "path": "@noble/ciphers/_arx.js.map",
+      "bytes": 11180,
+      "sha256": "4df8a2223ea4319d1baba2e2e50683d2e07fcebf17f380adcc18b9ac05183534"
+    },
+    {
+      "path": "@noble/ciphers/_poly1305.d.ts",
+      "bytes": 2743,
+      "sha256": "c7e8f05eb9807296b2accf15999435d992dff30ba4bd03fa15685585d43937d8"
+    },
+    {
+      "path": "@noble/ciphers/_poly1305.d.ts.map",
+      "bytes": 912,
+      "sha256": "784c4427bccbf007c7497a64cd1e166b4edfe0d9830138ed1997df76d50d225b"
+    },
+    {
+      "path": "@noble/ciphers/_poly1305.js",
+      "bytes": 14291,
+      "sha256": "add658c1b6aaf894c023083ed14bd1d1126e15baa9e63ba97664c28e68a01703"
+    },
+    {
+      "path": "@noble/ciphers/_poly1305.js.map",
+      "bytes": 17728,
+      "sha256": "d8ae2ed855ab6fa72ca1fa8bfc777c80f0c3b71fe31f91aa963804e7f6ef2c3c"
+    },
+    {
+      "path": "@noble/ciphers/_polyval.d.ts",
+      "bytes": 4091,
+      "sha256": "4cefc8f8e6b657d66a729d109de17b044459a372898a99f2e59f72566e970be6"
+    },
+    {
+      "path": "@noble/ciphers/_polyval.d.ts.map",
+      "bytes": 1654,
+      "sha256": "6a9bcccaa33b2ebfc5390f4d9f8f99bfcac3cb807b1c718ffacb784d19731da1"
+    },
+    {
+      "path": "@noble/ciphers/_polyval.js",
+      "bytes": 12947,
+      "sha256": "87a6cdf9cad2cec61229404cc7f8da1214952a76114b8a6342a3e771f1127cd1"
+    },
+    {
+      "path": "@noble/ciphers/_polyval.js.map",
+      "bytes": 10836,
+      "sha256": "8709860198689b5bdcefa3f2d32f039ec53879e6d7f0318bc71a2887fcb83930"
+    },
+    {
+      "path": "@noble/ciphers/aes.d.ts",
+      "bytes": 17864,
+      "sha256": "0c78747da9a236a01ac8f48aceab3c5f71d34a4acb5a4ad443763ad8799ef324"
+    },
+    {
+      "path": "@noble/ciphers/aes.d.ts.map",
+      "bytes": 6486,
+      "sha256": "9862cfc5579a5d42ada510d115ccb78292355b648dc2ea50b5ad621eaa04f949"
+    },
+    {
+      "path": "@noble/ciphers/aes.js",
+      "bytes": 76796,
+      "sha256": "d079978bb7dac51e88586dd881ea3d7be010624b876d332f395f4a2b934f5fbc"
+    },
+    {
+      "path": "@noble/ciphers/aes.js.map",
+      "bytes": 60465,
+      "sha256": "00f2621b1e5335dfea4fcd6d5f4d855a911ddb538d7443157bb1df41baf46ccb"
+    },
+    {
+      "path": "@noble/ciphers/chacha.d.ts",
+      "bytes": 10109,
+      "sha256": "2447df8b537a868fc56324c9cc19629a6b0717f7807f577e2594c224515de550"
+    },
+    {
+      "path": "@noble/ciphers/chacha.d.ts.map",
+      "bytes": 1774,
+      "sha256": "3c969f28e13bb78e62f3544724f87a0cf18dd2727341367d4ee03aa48d0781d8"
+    },
+    {
+      "path": "@noble/ciphers/chacha.js",
+      "bytes": 22648,
+      "sha256": "78a9d8f9e4061212370dd216debe1e8a0cc52b7f2f94325fe278af039f033e80"
+    },
+    {
+      "path": "@noble/ciphers/chacha.js.map",
+      "bytes": 19333,
+      "sha256": "3353e2036ba72ff19948135864ea894f95188b2c0b154b48da086400c13548d4"
+    },
+    {
+      "path": "@noble/ciphers/ff1.d.ts",
+      "bytes": 1408,
+      "sha256": "af5ca149d51d88ae0c48a0da9245a48f78f9d2d85ee49e6ed3368a0d5635b349"
+    },
+    {
+      "path": "@noble/ciphers/ff1.d.ts.map",
+      "bytes": 581,
+      "sha256": "10c08b2771cc47b2d58fc63433b357884c750759c8bb79484a53144a6508910b"
+    },
+    {
+      "path": "@noble/ciphers/ff1.js",
+      "bytes": 8117,
+      "sha256": "c13c255ba20d60a3f19ff6446e72ecc623420c6952f56c1b9c31dca49b0cd25a"
+    },
+    {
+      "path": "@noble/ciphers/ff1.js.map",
+      "bytes": 8193,
+      "sha256": "cc2f0014503939186294bb4842cd469faccdf2927481b8fee8e6b62d482b8c96"
+    },
+    {
+      "path": "@noble/ciphers/index.d.ts",
+      "bytes": 46,
+      "sha256": "f667f6b1d66ba55f0dcd27f5ff050063fecfe289bad00e8c5d48344a775c1439"
+    },
+    {
+      "path": "@noble/ciphers/index.d.ts.map",
+      "bytes": 101,
+      "sha256": "7755bad6a1fd1a6a721ae0bbaac3da2d95847c72f2dff7bdaf44d56cd82ac9d9"
+    },
+    {
+      "path": "@noble/ciphers/index.js",
+      "bytes": 1102,
+      "sha256": "38cb06129f98972c1ee031afc63e10c285d66384da60299e32d8cabd4b5625c9"
+    },
+    {
+      "path": "@noble/ciphers/index.js.map",
+      "bytes": 173,
+      "sha256": "be8c13ac53d042e7925eb2b352d2e8b97a204aec67af9a0843286a80e3f2b7a1"
+    },
+    {
+      "path": "@noble/ciphers/LICENSE",
+      "bytes": 1161,
+      "sha256": "f36671a5487c9c5050efacb58011c37c24c55a889803cb036cf9d9a6347c1e2d"
+    },
+    {
+      "path": "@noble/ciphers/package.json",
+      "bytes": 2449,
+      "sha256": "4038bb147bd3e6e862fcf93c2cb119007a6474038421f29a6a7d32967c6a1a1c"
+    },
+    {
+      "path": "@noble/ciphers/README.md",
+      "bytes": 26915,
+      "sha256": "e8b7fa9b8536b67d1bf535b219c095e22fd1a011abf7970b3d268abd6771f4da"
+    },
+    {
+      "path": "@noble/ciphers/salsa.d.ts",
+      "bytes": 4596,
+      "sha256": "db90972f907f1f67301e37caeb9568837dd6d3a2e377b07f729eb220e6836cc9"
+    },
+    {
+      "path": "@noble/ciphers/salsa.d.ts.map",
+      "bytes": 1036,
+      "sha256": "6e306cf5a5540f7274f91e5b5a3794ac8b666fad7407ed95a6c5e2b60c8ad30f"
+    },
+    {
+      "path": "@noble/ciphers/salsa.js",
+      "bytes": 15730,
+      "sha256": "624617b6135a84e68e4eafcd80b45d7c0406330641cfc18b978b3918b35838d3"
+    },
+    {
+      "path": "@noble/ciphers/salsa.js.map",
+      "bytes": 14265,
+      "sha256": "8378a1248e6302b206935fd886aa2f20b0c57deae770e758c8aa003e866bd778"
+    },
+    {
+      "path": "@noble/ciphers/src/_arx.ts",
+      "bytes": 19135,
+      "sha256": "7e7be397dd11e6a4238e13a80e4abd5111704938dfbac4fe003569746907699b"
+    },
+    {
+      "path": "@noble/ciphers/src/_poly1305.ts",
+      "bytes": 13754,
+      "sha256": "bf95715705fe8ab30d310e111056fac19aea68c0098fdf64d75a84cbdf46ce60"
+    },
+    {
+      "path": "@noble/ciphers/src/_polyval.ts",
+      "bytes": 13143,
+      "sha256": "6ea7d020e8771661fd5ae50a81b55628a4776dd908f3ede1148206b84d5ad995"
+    },
+    {
+      "path": "@noble/ciphers/src/aes.ts",
+      "bytes": 80492,
+      "sha256": "984c3b2fc5107e697cd62718e650e68842e0c1c498cee72011458377f0951056"
+    },
+    {
+      "path": "@noble/ciphers/src/chacha.ts",
+      "bytes": 22998,
+      "sha256": "d8463828c79b1e805300a4fe06367bd8cebc2d1599c3e6748c3041d263f27e99"
+    },
+    {
+      "path": "@noble/ciphers/src/ff1.ts",
+      "bytes": 8336,
+      "sha256": "9bba08d42f4de59651902c8fc08f8058e7b3d919eb51e6880bf90c11c4d0b273"
+    },
+    {
+      "path": "@noble/ciphers/src/index.ts",
+      "bytes": 1058,
+      "sha256": "7f0a1638598b9bff44aa83009a01fcf6a077c8406c6b0afbf80444d49edb66e9"
+    },
+    {
+      "path": "@noble/ciphers/src/salsa.ts",
+      "bytes": 16167,
+      "sha256": "fc12f296418e950532a4e3c2972e79b03ac40f49f84e086bb52c94e769a8ac59"
+    },
+    {
+      "path": "@noble/ciphers/src/utils.ts",
+      "bytes": 42089,
+      "sha256": "bad057c5237a5bdd174deac7cf978fb1d92b27f512b324fe22dcf01278f1bee2"
+    },
+    {
+      "path": "@noble/ciphers/src/webcrypto.ts",
+      "bytes": 8005,
+      "sha256": "7539db1a8ad166b4a7856caa5a1302843293d8611622727804ff9e644fdbda5c"
+    },
+    {
+      "path": "@noble/ciphers/utils.d.ts",
+      "bytes": 28684,
+      "sha256": "f4c8dae46451e66bed3175f66473a706b4bb7de6dd15fa2f39b842b21650d773"
+    },
+    {
+      "path": "@noble/ciphers/utils.d.ts.map",
+      "bytes": 11198,
+      "sha256": "ca05e2be91fb6ecb05d70d078d71299856f172c1e6e119bfe97766cd22963dfd"
+    },
+    {
+      "path": "@noble/ciphers/utils.js",
+      "bytes": 29143,
+      "sha256": "cfb9806b3339c79544a48a7026ee3c868cd1f0a1555c5eef4854b7eec43ccb63"
+    },
+    {
+      "path": "@noble/ciphers/utils.js.map",
+      "bytes": 14788,
+      "sha256": "c0d2c28ac175cb3951cbfb2624145ba86124779cf57cf85ef5a0d25660b0d820"
+    },
+    {
+      "path": "@noble/ciphers/webcrypto.d.ts",
+      "bytes": 3393,
+      "sha256": "e72b64b58620292fcd60eb0bb613af36099d97ce57ff57a77322dcf9755fe8b1"
+    },
+    {
+      "path": "@noble/ciphers/webcrypto.d.ts.map",
+      "bytes": 1363,
+      "sha256": "7045846ca65a4127aa8a33f295bc628b2a1a3a71a12f2799eeb82bd4ca8a6c25"
+    },
+    {
+      "path": "@noble/ciphers/webcrypto.js",
+      "bytes": 6616,
+      "sha256": "eb4786239603cf1cd0dc21ee34faad0062e9a8b7c6d597f74ec09d84d02354f6"
+    },
+    {
+      "path": "@noble/ciphers/webcrypto.js.map",
+      "bytes": 3588,
+      "sha256": "7a7d59ea115050824161155079075979f3ee97330b8d7a1b1965039d2bdea07e"
     },
     {
       "path": "@noble/curves/abstract/bls.d.ts",
@@ -1198,6 +1828,11 @@
       "sha256": "23763a52c1553280801725720cba994ea6dd7a1fcc585d9cab990260ad635dd2"
     },
     {
+      "path": "@noble/curves/LICENSE",
+      "bytes": 1109,
+      "sha256": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec"
+    },
+    {
       "path": "@noble/curves/misc.d.ts",
       "bytes": 4444,
       "sha256": "59484352c10a7d07d38553f28debf2c5d9ad9d03fc9943bd8b361877e64291d1"
@@ -1241,6 +1876,11 @@
       "path": "@noble/curves/package.json",
       "bytes": 3243,
       "sha256": "b305a9a8e20df7767458bff98aafb7423cb39e00f543fffea5a9e0b88e0ada9e"
+    },
+    {
+      "path": "@noble/curves/README.md",
+      "bytes": 46558,
+      "sha256": "9854e5789a03b893bc3768cd669f25db0b4f3df403fa7aed5df367e4352a5646"
     },
     {
       "path": "@noble/curves/secp256k1.d.ts",
@@ -1411,16 +2051,6 @@
       "path": "@noble/curves/webcrypto.js.map",
       "bytes": 10657,
       "sha256": "3f2fd0b99e004236e85a5ca566b6965ecb782f7808b8b1be1ae5a87e4b4c3f71"
-    },
-    {
-      "path": "@noble/hashes/LICENSE",
-      "bytes": 1109,
-      "sha256": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec"
-    },
-    {
-      "path": "@noble/hashes/README.md",
-      "bytes": 23426,
-      "sha256": "e87dfafe55390e65273e1e7dfe10abf166909aa5f87a8f431521ea43a66ea97c"
     },
     {
       "path": "@noble/hashes/_blake.d.ts",
@@ -1663,6 +2293,11 @@
       "sha256": "75bdccc13ec3c786fb7477b621eb5e71928b7b6a2633e1d4e00445e9bbc2b3ce"
     },
     {
+      "path": "@noble/hashes/LICENSE",
+      "bytes": 1109,
+      "sha256": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec"
+    },
+    {
       "path": "@noble/hashes/package.json",
       "bytes": 2971,
       "sha256": "df2580ed1896b0deffc07437c6a8d83fcf233e4c4c1e77c12e491563222c4719"
@@ -1686,6 +2321,11 @@
       "path": "@noble/hashes/pbkdf2.js.map",
       "bytes": 4421,
       "sha256": "0d087596faad30cbd7c4ba8b8ea9a5901f972b27f0980a4b81e0a4c8c1651366"
+    },
+    {
+      "path": "@noble/hashes/README.md",
+      "bytes": 23426,
+      "sha256": "e87dfafe55390e65273e1e7dfe10abf166909aa5f87a8f431521ea43a66ea97c"
     },
     {
       "path": "@noble/hashes/scrypt.d.ts",
@@ -1901,9 +2541,369 @@
       "path": "@noble/hashes/webcrypto.js.map",
       "bytes": 4171,
       "sha256": "10f0a20bbf420597a7413cdfd156d3a5b301e80ffd1b4bc5d5fd7e198ad97d2b"
+    },
+    {
+      "path": "@noble/post-quantum/_crystals.d.ts",
+      "bytes": 4739,
+      "sha256": "1d71b431c2614b4ce9517ad68b9476da5e81ad220c5bc20f7830d9b67ef3aec4"
+    },
+    {
+      "path": "@noble/post-quantum/_crystals.d.ts.map",
+      "bytes": 1812,
+      "sha256": "5056022fa2c824a31da2ea7c41af5a0a1b1f9d8970c31746936f0d3f3bbfcf26"
+    },
+    {
+      "path": "@noble/post-quantum/_crystals.js",
+      "bytes": 7752,
+      "sha256": "7ff49f3f09213990027d5f307df5c84b36c9a47313a7d1069acd581b3e30eada"
+    },
+    {
+      "path": "@noble/post-quantum/_crystals.js.map",
+      "bytes": 5742,
+      "sha256": "16e0b26d864ce22cbeb3700c619b8be2a6a7bff82f065014ab951688f6fe072d"
+    },
+    {
+      "path": "@noble/post-quantum/falcon.d.ts",
+      "bytes": 3303,
+      "sha256": "bf760b050175cb182a3eb177a8f8408fb74fd3841e6fa46b2e8653fac5c2e379"
+    },
+    {
+      "path": "@noble/post-quantum/falcon.d.ts.map",
+      "bytes": 1141,
+      "sha256": "54823d1a84402fef124e5f64755f423e115338e710a2865311313b4452d06c17"
+    },
+    {
+      "path": "@noble/post-quantum/falcon.js",
+      "bytes": 126747,
+      "sha256": "19ccfacfdf97eb9330cde5628133b6ccb7e425ac9af3a48ad9c4d7fff90c0f56"
+    },
+    {
+      "path": "@noble/post-quantum/falcon.js.map",
+      "bytes": 80917,
+      "sha256": "39213391a8508117449a1b1f2ff85444ce4661456006f990030d22108015ca84"
+    },
+    {
+      "path": "@noble/post-quantum/hybrid.d.ts",
+      "bytes": 13002,
+      "sha256": "2fdbbae1b1ceaf5479fd4187de4ec98ab73c20be05add4d7b7c910c830875a49"
+    },
+    {
+      "path": "@noble/post-quantum/hybrid.d.ts.map",
+      "bytes": 3107,
+      "sha256": "160e60f1d3b5f3300a40f57421cc72a4c81a3307bf9680277ff4c6fd367047a7"
+    },
+    {
+      "path": "@noble/post-quantum/hybrid.js",
+      "bytes": 32893,
+      "sha256": "d34a54df90fe07baf2af075aab4c046ac5f06caf3af1998f82a9b711c727a140"
+    },
+    {
+      "path": "@noble/post-quantum/hybrid.js.map",
+      "bytes": 17378,
+      "sha256": "03cccb54eff40250593e75c01a75fc29396d9af9f7ce11dbfbc9ae355d4833a4"
+    },
+    {
+      "path": "@noble/post-quantum/index.d.ts",
+      "bytes": 46,
+      "sha256": "f667f6b1d66ba55f0dcd27f5ff050063fecfe289bad00e8c5d48344a775c1439"
+    },
+    {
+      "path": "@noble/post-quantum/index.d.ts.map",
+      "bytes": 101,
+      "sha256": "7755bad6a1fd1a6a721ae0bbaac3da2d95847c72f2dff7bdaf44d56cd82ac9d9"
+    },
+    {
+      "path": "@noble/post-quantum/index.js",
+      "bytes": 1045,
+      "sha256": "4c196731af6be58a3d86c7a79ab12778cd925c05526a927a279595600a3a3ee7"
+    },
+    {
+      "path": "@noble/post-quantum/index.js.map",
+      "bytes": 175,
+      "sha256": "adf11de105e2c75c8938b8c172d107bbd7a78ac9edc82abfe878ee89825c4c8e"
+    },
+    {
+      "path": "@noble/post-quantum/LICENSE",
+      "bytes": 1109,
+      "sha256": "0dea4b70b40ca57e3cfe30186e3dbd245147fe4d83ac566e92e70203aac59034"
+    },
+    {
+      "path": "@noble/post-quantum/ml-dsa.d.ts",
+      "bytes": 2463,
+      "sha256": "e8da43348d681ab4c6abd39821f36a402678aa4e41cf47a564c3a5b2e482cb76"
+    },
+    {
+      "path": "@noble/post-quantum/ml-dsa.d.ts.map",
+      "bytes": 1522,
+      "sha256": "a992f25dc6d7d0ec2b5432954e61f101fbb0ff1df7b3a7d2608e96760089a59d"
+    },
+    {
+      "path": "@noble/post-quantum/ml-dsa.js",
+      "bytes": 29265,
+      "sha256": "210a020b4933275edf89201e2a5168ee404190f2d5cfa676d0cb13b7a1072276"
+    },
+    {
+      "path": "@noble/post-quantum/ml-dsa.js.map",
+      "bytes": 28353,
+      "sha256": "d8af1dd41ef9ebe92096f5f111a89039a264ab9ab6293f615ca2be395d6a3d7e"
+    },
+    {
+      "path": "@noble/post-quantum/ml-kem.d.ts",
+      "bytes": 1742,
+      "sha256": "56057458ad260f938d32b6dc330c6bb1b4d62f0bc9f8fb99a015282b3270ac1a"
+    },
+    {
+      "path": "@noble/post-quantum/ml-kem.d.ts.map",
+      "bytes": 849,
+      "sha256": "36cb3632572993f04adfa8f92cf48c6e6403c84ac545c77ac5561caf9649ea52"
+    },
+    {
+      "path": "@noble/post-quantum/ml-kem.js",
+      "bytes": 20106,
+      "sha256": "c008845afa0118b39f2e37c5a4dc83cecac5bb7fef261d68fb4ca9561c58a326"
+    },
+    {
+      "path": "@noble/post-quantum/ml-kem.js.map",
+      "bytes": 18217,
+      "sha256": "490a36e9a385b5ad2e4ac3fb7ea058a652c96b81edb523dd91774a02b5828f1c"
+    },
+    {
+      "path": "@noble/post-quantum/package.json",
+      "bytes": 2426,
+      "sha256": "40963a943deda8d07352543d7263316b7bac48b04bab121d3cf4d6fcce5a47f9"
+    },
+    {
+      "path": "@noble/post-quantum/README.md",
+      "bytes": 16076,
+      "sha256": "4aca7ed35f4fabfbbf2261e37cc69209562bc74acec47d701312678169a78bcb"
+    },
+    {
+      "path": "@noble/post-quantum/slh-dsa.d.ts",
+      "bytes": 6986,
+      "sha256": "fbaf0095184750f1a8cfea5cd4597271da3f3c474ec8c4946c9338dde5f117c9"
+    },
+    {
+      "path": "@noble/post-quantum/slh-dsa.d.ts.map",
+      "bytes": 2816,
+      "sha256": "7d7af614fd9e5b6ae77766e35ac4bf4ad84aa930b6d15ad7afd0cd8e6553f63e"
+    },
+    {
+      "path": "@noble/post-quantum/slh-dsa.js",
+      "bytes": 34525,
+      "sha256": "8f51711a4fbd32bc25efcd73f6fda77a2971af279f8d5f165fa93881cab2c1a7"
+    },
+    {
+      "path": "@noble/post-quantum/slh-dsa.js.map",
+      "bytes": 30909,
+      "sha256": "59fed62ee6e256c258ff5f1c0165b8d53da2a860dde0b75c24bec86fac921a35"
+    },
+    {
+      "path": "@noble/post-quantum/src/_crystals.ts",
+      "bytes": 10251,
+      "sha256": "76fdb675a894346b958dded69b6a6f5bf9b3c33ecb5107ebca3e0517f8365b90"
+    },
+    {
+      "path": "@noble/post-quantum/src/falcon.ts",
+      "bytes": 124994,
+      "sha256": "94ac99ecbe45aba87bbcb2d08ad6259237072701a22cd9ab1fe3d155e9752617"
+    },
+    {
+      "path": "@noble/post-quantum/src/hybrid.ts",
+      "bytes": 34607,
+      "sha256": "c360ae418ee83a34d6c1c8efe06e61649e16d8e2decbd87540a28f924eb0bd00"
+    },
+    {
+      "path": "@noble/post-quantum/src/index.ts",
+      "bytes": 1001,
+      "sha256": "993eca395ca0f11dec4ec6ba3ec38f57897ded5e351d0d3cbcf477774757a4ca"
+    },
+    {
+      "path": "@noble/post-quantum/src/ml-dsa.ts",
+      "bytes": 29963,
+      "sha256": "c54a117fc2fbc86ae39e8680372c8decc525d937243dfcfe3c571439a56b9075"
+    },
+    {
+      "path": "@noble/post-quantum/src/ml-kem.ts",
+      "bytes": 21187,
+      "sha256": "c743a50e82e63c90fa8d393e604e6090685d5b149fa678a53bf62536c75dd258"
+    },
+    {
+      "path": "@noble/post-quantum/src/slh-dsa.ts",
+      "bytes": 38799,
+      "sha256": "2f0b781e3c2dea213697434bd5e3501db7981f0b58b5bacd51a25fd52c616021"
+    },
+    {
+      "path": "@noble/post-quantum/src/utils.ts",
+      "bytes": 24567,
+      "sha256": "7d47e7bed8f02457c3ad22ee2910e38a3e35f1c354af97e06d959ebc8f151b87"
+    },
+    {
+      "path": "@noble/post-quantum/utils.d.ts",
+      "bytes": 18568,
+      "sha256": "54ce17d409dd1aad56b8242f0ac97a5b87ae0d96378c79fa412ef8ce1ea56622"
+    },
+    {
+      "path": "@noble/post-quantum/utils.d.ts.map",
+      "bytes": 8395,
+      "sha256": "6ee022cafbdaea3eaac8c228e11d9f9787ecad51d277b5914483fa072ed23b87"
+    },
+    {
+      "path": "@noble/post-quantum/utils.js",
+      "bytes": 15333,
+      "sha256": "b3d97248f0a16ea60119de0585def637a8aa3f27c4124d8825e1709588de53f8"
+    },
+    {
+      "path": "@noble/post-quantum/utils.js.map",
+      "bytes": 7466,
+      "sha256": "a451cd17484eb641d734efef4c5ab43be51000bd241c4329aeea23c35a3b2bf5"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/docs/KEY_MATERIAL_ABI.md",
+      "bytes": 8611,
+      "sha256": "15a48046aef36045a62384404dfdd76eb07e3979ff26f48720f750406a39510c"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/package.json",
+      "bytes": 789,
+      "sha256": "931ef94fbfb3801373319a2c1e2293a701e08c95441f21dbbf80a753393ab256"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/PROVENANCE.json",
+      "bytes": 1718,
+      "sha256": "85de95fe6b5019624cc8155f687361795d69906ddd0f61a74ddb41df15be2a7f"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/README.md",
+      "bytes": 11689,
+      "sha256": "0fefa513f3d6028d1196caa8b8e99bb592047992c74918bfbd55abf615e1d256"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/src/codec.mjs",
+      "bytes": 7367,
+      "sha256": "8d09c7fc5322dc9807a7f291d796e103f80868683d73a517b6807c18e6861bdb"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/src/index.mjs",
+      "bytes": 10443,
+      "sha256": "7c08731cce2a5c0b264f6d83119c8b1792adda6a22492867d50dcafdec0ce9a3"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/src/native.mjs",
+      "bytes": 6214,
+      "sha256": "8c2d22a1d25bad1d090a12a3779074b881f8b549cede8a58beb384af6252c4af"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/src/portable.mjs",
+      "bytes": 4264,
+      "sha256": "29cd8bcab5c1cf03ea5c7f9cc739989191617ef393f720c45e108471487cade4"
+    },
+    {
+      "path": "@ynx/batch-v01-candidate/src/tree.mjs",
+      "bytes": 2472,
+      "sha256": "93c41d45d78dce23ec449b214e29a6a161d154ed8dd2a40fe79fb0f67c7f647f"
     }
   ],
   "nativeSources": [
+    {
+      "path": "apps/developer/desktop/macos/original-ide-parent-supplier.h",
+      "bytes": 1066,
+      "sha256": "3576c252d2f5f554a6f511c21a91bcf3c29082c9d65e4da74e3a39730ce0507d"
+    },
+    {
+      "path": "apps/developer/desktop/macos/original-ide-parent-supplier.mm",
+      "bytes": 12009,
+      "sha256": "813c0951fe600c26bf91b49b819a32106eab2f4b7e2443334219278292c9c42d"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 53959,
+      "sha256": "b5bdb6990156906a20e3fce237cb0cab5681f776f7be7970c64ecf4a1d6b5e93"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-private-client.inc.mm",
+      "bytes": 5405,
+      "sha256": "590d22d8585ab9ed609ca47a1f6c4d6ecda0f2ef6fab5e5971c3ed7b38193075"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-reference-carrier.h",
+      "bytes": 5074,
+      "sha256": "fc6d1b37f5e9882d0126c250aaffc693a10a3cc1831546dbbff08e7acd5a404c"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-channel.h",
+      "bytes": 940,
+      "sha256": "c00964dfb0b1f3e0229ed909989fdebb0249b8740cc4dcafcfc6b9c4cbe30cb7"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-channel.mm",
+      "bytes": 15272,
+      "sha256": "f0d3a1568987a3ee18e0e59de40e05f40a0d4b6fc60a2b3422871bb9818cf814"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-owner.inc.mm",
+      "bytes": 5967,
+      "sha256": "97a4f366d50d1fb803551190cbc2e843f38f11832dee79e875f5cdc9689bfaa5"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-session-carrier.h",
+      "bytes": 3258,
+      "sha256": "67431e27735a035b63141d95522678dc9fb5807730ae915a70df4f9985d89e00"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-terminal-recovery.h",
+      "bytes": 11712,
+      "sha256": "10a79bb608e2ddbfe99ac1ee48fd6fe3d966e9254a3caa169ddc1ee2b3a1fb84"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
+      "bytes": 980,
+      "sha256": "a29c61d6345a78bb7807d369ba3e8fa8d2e5c999c5ee57d4d8e24f2faa40bcd9"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+      "bytes": 10675,
+      "sha256": "1c1d1119ae1c80688d23ae87c14603282b82fc36a571369ea0278047e59b1124"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs",
+      "bytes": 1838,
+      "sha256": "370effa29fff4cdd69947d8abc51b05fc0aa75c18a7a4b37c41a6fea2a55504e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
+      "bytes": 847,
+      "sha256": "c890ef905a583ab4f019abc1316cb0620d3b25f8aa5fb552513743a2bce7593e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+      "bytes": 2716,
+      "sha256": "f783162a41a8d827b3cd235e365047c123011f9bd4e800f1bcc5bea2e09e8014"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+      "bytes": 17320,
+      "sha256": "c7225b0b94bb03e9384fb081a1b330382eee7649b288c1c43510fbf596e64763"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs",
+      "bytes": 8851,
+      "sha256": "682cece63881c53efc358fd1698d59c97ab27ecd5c29f8485d42a62c82e5c21e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "bytes": 14212,
+      "sha256": "c2ea179983d082ad362017a9c15036ef23cb9ac3e8eac70dc7836cc06846ddf3"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+      "bytes": 8863,
+      "sha256": "7a30fb0c7d13a316b4946424a62eb8fbb3055e7356ac9bc8feabd8dac8bbc857"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-joint.inc.mm",
+      "bytes": 34236,
+      "sha256": "ff9ae699eb8e5b71bd511bf790a2673f82527930be628f9ed901d6d01cab45b8"
+    },
     {
       "path": "packages/wallet-auth/native/original-ide-parent-kernel.h",
       "bytes": 1183,
@@ -1926,13 +2926,13 @@
     },
     {
       "path": "packages/wallet-auth/native/original-ide-parent-node.h",
-      "bytes": 550,
-      "sha256": "acb96a6f5d6c7046b9724ad8ea7afb8758671050dd014d32a7f3890cad191156"
+      "bytes": 832,
+      "sha256": "f5f8fd8e992cfe78b2403394037148035a468805d02af277c9406a01864f3e83"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-parent-node.mm",
-      "bytes": 9245,
-      "sha256": "46745a8bdb25ad419ed9f08a1b00d6d045943b223c6d9fcde9d3bfae2468456a"
+      "bytes": 9832,
+      "sha256": "7f7c6df5aeada06b243d325027ddffd9ba8afad610954a4139f2aef1e364de39"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-parent-observation.h",
@@ -1965,16 +2965,6 @@
       "sha256": "f36716748efe6e84f65c20c740d6bd3a5e666ebc921c8b29bed27f6458c39e65"
     },
     {
-      "path": "apps/developer/desktop/macos/original-ide-parent-supplier.h",
-      "bytes": 1066,
-      "sha256": "3576c252d2f5f554a6f511c21a91bcf3c29082c9d65e4da74e3a39730ce0507d"
-    },
-    {
-      "path": "apps/developer/desktop/macos/original-ide-parent-supplier.mm",
-      "bytes": 12009,
-      "sha256": "813c0951fe600c26bf91b49b819a32106eab2f4b7e2443334219278292c9c42d"
-    },
-    {
       "path": "packages/wallet-auth/native/original-ide-parent-transport.h",
       "bytes": 2582,
       "sha256": "61e09fa9532328e5d654dac18f335304103a87ac05abe98a1c9aea831057753c"
@@ -1985,6 +2975,11 @@
       "sha256": "e2bce88c62f3196fd01f5a4867e4881cadf2988cf5fc2766b2c96adc08e8420c"
     },
     {
+      "path": "packages/wallet-auth/native/original-ide-private-client-custody.h",
+      "bytes": 558,
+      "sha256": "c9286eea1f650501576b3d40b1d7d695b9c09c95e2886f03c706c85d925bf63c"
+    },
+    {
       "path": "packages/wallet-auth/native/original-ide-public-originals.h",
       "bytes": 736,
       "sha256": "9bbc4e7630e59d71bc038b3924f0ed0810e2433ec86bad854d671ec2a7d9edb9"
@@ -1993,61 +2988,6 @@
       "path": "packages/wallet-auth/native/original-ide-public-originals.test.cc",
       "bytes": 1572,
       "sha256": "9851a3079007d185a43987d04fd881ba00575c200528b1795936ca35219f07c9"
-    },
-    {
-      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
-      "bytes": 42981,
-      "sha256": "6ddf21be464f24c3decb9208b5a9cab0b3a6daed941ca701bd80e9e73fba4741"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
-      "bytes": 980,
-      "sha256": "a29c61d6345a78bb7807d369ba3e8fa8d2e5c999c5ee57d4d8e24f2faa40bcd9"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
-      "bytes": 10675,
-      "sha256": "1c1d1119ae1c80688d23ae87c14603282b82fc36a571369ea0278047e59b1124"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 2716,
-      "sha256": "f783162a41a8d827b3cd235e365047c123011f9bd4e800f1bcc5bea2e09e8014"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 17320,
-      "sha256": "c7225b0b94bb03e9384fb081a1b330382eee7649b288c1c43510fbf596e64763"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-ide-parent-joint.inc.mm",
-      "bytes": 34023,
-      "sha256": "fb4e5de63dac3e1d87db7a4a50d6403f53b4dac92a3accf759ed0fb4f93ad54b"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
-      "bytes": 847,
-      "sha256": "c890ef905a583ab4f019abc1316cb0620d3b25f8aa5fb552513743a2bce7593e"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
-      "bytes": 14212,
-      "sha256": "c2ea179983d082ad362017a9c15036ef23cb9ac3e8eac70dc7836cc06846ddf3"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
-      "bytes": 8863,
-      "sha256": "7a30fb0c7d13a316b4946424a62eb8fbb3055e7356ac9bc8feabd8dac8bbc857"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs",
-      "bytes": 1838,
-      "sha256": "370effa29fff4cdd69947d8abc51b05fc0aa75c18a7a4b37c41a6fea2a55504e"
-    },
-    {
-      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs",
-      "bytes": 8851,
-      "sha256": "682cece63881c53efc358fd1698d59c97ab27ecd5c29f8485d42a62c82e5c21e"
     },
     {
       "path": "packages/wallet-auth/native/original-source-verifier-io.h",
@@ -13945,6 +14885,282 @@
       "bytes": 17320,
       "sha256": "c7225b0b94bb03e9384fb081a1b330382eee7649b288c1c43510fbf596e64763",
       "change": "One explicit pair of parentheses; exact behavior unchanged."
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "packages/wallet-auth/native/original-ide-parent-node.h",
+      "parentSha256": "acb96a6f5d6c7046b9724ad8ea7afb8758671050dd014d32a7f3890cad191156",
+      "bytes": 832,
+      "sha256": "f5f8fd8e992cfe78b2403394037148035a468805d02af277c9406a01864f3e83"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "packages/wallet-auth/native/original-ide-parent-node.mm",
+      "parentSha256": "46745a8bdb25ad419ed9f08a1b00d6d045943b223c6d9fcde9d3bfae2468456a",
+      "bytes": 9832,
+      "sha256": "7f7c6df5aeada06b243d325027ddffd9ba8afad610954a4139f2aef1e364de39"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "parentSha256": "6ddf21be464f24c3decb9208b5a9cab0b3a6daed941ca701bd80e9e73fba4741",
+      "bytes": 53959,
+      "sha256": "b5bdb6990156906a20e3fce237cb0cab5681f776f7be7970c64ecf4a1d6b5e93"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "packages/wallet-auth/native/original-ide-parent-joint.inc.mm",
+      "parentSha256": "fb4e5de63dac3e1d87db7a4a50d6403f53b4dac92a3accf759ed0fb4f93ad54b",
+      "bytes": 34236,
+      "sha256": "ff9ae699eb8e5b71bd511bf790a2673f82527930be628f9ed901d6d01cab45b8"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "apps/wallet-desktop/native/original-private-session-carrier.h",
+      "parentSha256": null,
+      "bytes": 3258,
+      "sha256": "67431e27735a035b63141d95522678dc9fb5807730ae915a70df4f9985d89e00"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "apps/wallet-desktop/native/original-private-reference-carrier.h",
+      "parentSha256": null,
+      "bytes": 5074,
+      "sha256": "fc6d1b37f5e9882d0126c250aaffc693a10a3cc1831546dbbff08e7acd5a404c"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "apps/wallet-desktop/native/original-private-terminal-recovery.h",
+      "parentSha256": null,
+      "bytes": 11712,
+      "sha256": "10a79bb608e2ddbfe99ac1ee48fd6fe3d966e9254a3caa169ddc1ee2b3a1fb84"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "apps/wallet-desktop/native/original-private-service-channel.h",
+      "parentSha256": null,
+      "bytes": 940,
+      "sha256": "c00964dfb0b1f3e0229ed909989fdebb0249b8740cc4dcafcfc6b9c4cbe30cb7"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "apps/wallet-desktop/native/original-private-service-channel.mm",
+      "parentSha256": null,
+      "bytes": 15272,
+      "sha256": "f0d3a1568987a3ee18e0e59de40e05f40a0d4b6fc60a2b3422871bb9818cf814"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "apps/wallet-desktop/native/original-private-service-owner.inc.mm",
+      "parentSha256": null,
+      "bytes": 5967,
+      "sha256": "97a4f366d50d1fb803551190cbc2e843f38f11832dee79e875f5cdc9689bfaa5"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "apps/wallet-desktop/native/original-ide-private-client.inc.mm",
+      "parentSha256": null,
+      "bytes": 5405,
+      "sha256": "590d22d8585ab9ed609ca47a1f6c4d6ecda0f2ef6fab5e5971c3ed7b38193075"
+    },
+    {
+      "handoff": "A33 SOURCE_INTAKE.json",
+      "handoffSha256": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+      "path": "packages/wallet-auth/native/original-ide-private-client-custody.h",
+      "parentSha256": null,
+      "bytes": 558,
+      "sha256": "c9286eea1f650501576b3d40b1d7d695b9c09c95e2886f03c706c85d925bf63c"
     }
-  ]
+  ],
+  "predecessorManifestSha256": "99f9cdc00fd75c9900a454ca92839f6edf486177314abdc780873b7e086480d8",
+  "supplierPins": {
+    "sdkReadback": "539b4ecf135a7b45962a1c07e7e1fd39a23f27938a8ecbf972b4e79be9fede52",
+    "nativeIntake": "0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf",
+    "runtimeManifest": "9f00e7b716b7f923ddad6c0e1c662cdf7558792c312632ba3b8f6a12800ca305"
+  },
+  "nativeBuildInputs": [
+    {
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 53959,
+      "sha256": "b5bdb6990156906a20e3fce237cb0cab5681f776f7be7970c64ecf4a1d6b5e93"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-private-client.inc.mm",
+      "bytes": 5405,
+      "sha256": "590d22d8585ab9ed609ca47a1f6c4d6ecda0f2ef6fab5e5971c3ed7b38193075"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-reference-carrier.h",
+      "bytes": 5074,
+      "sha256": "fc6d1b37f5e9882d0126c250aaffc693a10a3cc1831546dbbff08e7acd5a404c"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-channel.h",
+      "bytes": 940,
+      "sha256": "c00964dfb0b1f3e0229ed909989fdebb0249b8740cc4dcafcfc6b9c4cbe30cb7"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-channel.mm",
+      "bytes": 15272,
+      "sha256": "f0d3a1568987a3ee18e0e59de40e05f40a0d4b6fc60a2b3422871bb9818cf814"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-owner.inc.mm",
+      "bytes": 5967,
+      "sha256": "97a4f366d50d1fb803551190cbc2e843f38f11832dee79e875f5cdc9689bfaa5"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-session-carrier.h",
+      "bytes": 3258,
+      "sha256": "67431e27735a035b63141d95522678dc9fb5807730ae915a70df4f9985d89e00"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-terminal-recovery.h",
+      "bytes": 11712,
+      "sha256": "10a79bb608e2ddbfe99ac1ee48fd6fe3d966e9254a3caa169ddc1ee2b3a1fb84"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
+      "bytes": 980,
+      "sha256": "a29c61d6345a78bb7807d369ba3e8fa8d2e5c999c5ee57d4d8e24f2faa40bcd9"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+      "bytes": 10675,
+      "sha256": "1c1d1119ae1c80688d23ae87c14603282b82fc36a571369ea0278047e59b1124"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs",
+      "bytes": 1838,
+      "sha256": "370effa29fff4cdd69947d8abc51b05fc0aa75c18a7a4b37c41a6fea2a55504e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
+      "bytes": 847,
+      "sha256": "c890ef905a583ab4f019abc1316cb0620d3b25f8aa5fb552513743a2bce7593e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+      "bytes": 2716,
+      "sha256": "f783162a41a8d827b3cd235e365047c123011f9bd4e800f1bcc5bea2e09e8014"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+      "bytes": 17320,
+      "sha256": "c7225b0b94bb03e9384fb081a1b330382eee7649b288c1c43510fbf596e64763"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs",
+      "bytes": 8851,
+      "sha256": "682cece63881c53efc358fd1698d59c97ab27ecd5c29f8485d42a62c82e5c21e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "bytes": 14212,
+      "sha256": "c2ea179983d082ad362017a9c15036ef23cb9ac3e8eac70dc7836cc06846ddf3"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+      "bytes": 8863,
+      "sha256": "7a30fb0c7d13a316b4946424a62eb8fbb3055e7356ac9bc8feabd8dac8bbc857"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-joint.inc.mm",
+      "bytes": 34236,
+      "sha256": "ff9ae699eb8e5b71bd511bf790a2673f82527930be628f9ed901d6d01cab45b8"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-kernel.h",
+      "bytes": 1183,
+      "sha256": "e040bb3f95cc0ee21432243bd6acc155b291bfb8804f1928fb929f8605eab6e2"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-kernel.mm",
+      "bytes": 8223,
+      "sha256": "6937d0e337632778f2a3d4712bb8e7e5f865c9858ffea3317eeb9f17fc6d74ce"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-lifetime.h",
+      "bytes": 3841,
+      "sha256": "893e9a1e55306589357f61d8a52f97e410464bb5b12b2cc30a18c99127ec7fa3"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-node.h",
+      "bytes": 832,
+      "sha256": "f5f8fd8e992cfe78b2403394037148035a468805d02af277c9406a01864f3e83"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-node.mm",
+      "bytes": 9832,
+      "sha256": "7f7c6df5aeada06b243d325027ddffd9ba8afad610954a4139f2aef1e364de39"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-observation.h",
+      "bytes": 1321,
+      "sha256": "9ec1cf58d69f5bdff5448619f2b6e663ce0f0717060c36b14195a76eb13fd264"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-observation.mm",
+      "bytes": 11812,
+      "sha256": "c6ec72a4e2f30f04750185c5d451ba9ec2ed23f555bbd351c37d2d6df062b109"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-prelude.h",
+      "bytes": 4851,
+      "sha256": "f8a3fd797c6ec21b80c4d44986ded1974396a193385e137af515b5998674f83f"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-source-binding.h",
+      "bytes": 1001,
+      "sha256": "61fc21b1e49f2f36647b4622b67aa84e2047335b2bdff81386c0a8cbe6cc2127"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+      "bytes": 6825,
+      "sha256": "f36716748efe6e84f65c20c740d6bd3a5e666ebc921c8b29bed27f6458c39e65"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-transport.h",
+      "bytes": 2582,
+      "sha256": "61e09fa9532328e5d654dac18f335304103a87ac05abe98a1c9aea831057753c"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-private-client-custody.h",
+      "bytes": 558,
+      "sha256": "c9286eea1f650501576b3d40b1d7d695b9c09c95e2886f03c706c85d925bf63c"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-public-originals.h",
+      "bytes": 736,
+      "sha256": "9bbc4e7630e59d71bc038b3924f0ed0810e2433ec86bad854d671ec2a7d9edb9"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-source-verifier-io.h",
+      "bytes": 2993,
+      "sha256": "5f9865eb1b5e9dc3621bf9a0622dab6d121d74778844943117d2472e8083ed8b"
+    }
+  ],
+  "nativeComponent": {
+    "module": {
+      "path": "apps/wallet-desktop/native/original-auth-identity.node",
+      "bytes": 1077784,
+      "sha256": "0ebfb6277f5c6bc40609404978624d192defe86fd465003ebfc9baff35b9eef7"
+    },
+    "receipt": {
+      "path": "apps/wallet-desktop/native/original-auth-identity-build.json",
+      "bytes": 18962,
+      "sha256": "445c0b0ab02a9e8321e6406dfab7669d995f4b1522bfc1e1c3e409fae2e4433c"
+    }
+  }
 }
