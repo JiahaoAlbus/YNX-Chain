@@ -269,6 +269,28 @@ class SupplySourceTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,"buildBytes"):
                     budget.observe(dict(sample,buildBytes=(1 << 30)+1))
 
+    def test_pair_leveldb_wal_is_data_not_process_stdout(self):
+        # Actual39140104063 falsely counted nested blockstore/state/tx_index
+        # *.log WAL as child stdout, refusing a5.75MiB case at the2MiB log cap.
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve(); data=root/"pair"; evidence=root/"evidence"; build=root/"build"
+            for d in (data,evidence,build):d.mkdir()
+            case=data/"before-relative"; database=case/"network/validator-1/data/state.db"
+            database.mkdir(parents=True)
+            (database/"000001.log").write_bytes(b"w"*(3 << 20))
+            (case/"comet-0.log").write_bytes(b"s"*1024)
+            sample=dict(rssBytes=1,threads=1,privateBytes=(3 << 20)+1024,buildBytes=1,
+                        freeDiskBytes=10 << 30,availableMemoryBytes=2 << 30)
+            budget=supply.PairBudget(data,evidence,0,build)
+            with patch.object(supply.time,"monotonic",return_value=1):
+                budget.observe(sample)
+                self.assertEqual(budget.samples[-1]["logBytes"],1024)
+                self.assertGreaterEqual(budget.samples[-1]["retainedBytes"],3 << 20)
+                after=data/"after-bounded-cadence";after.mkdir()
+                (after/"comet-0.log").write_bytes(b"s"*(2 << 20))
+                with self.assertRaisesRegex(RuntimeError,"stdout/stderr log2MiB"):
+                    budget.observe(sample)
+
     def test_pair_rejects_incomplete_or_unclean_case(self):
         for change in (dict(firstCause="deadline"),dict(cleanupComplete=False),dict(nodesStarted=False)):
             row = self.pair_row("relative");row.update(change)

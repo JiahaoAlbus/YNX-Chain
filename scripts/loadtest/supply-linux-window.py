@@ -91,9 +91,15 @@ class PairBudget:
         native.enforce(sample)
         roots = (self.root, self.evidence)
         retained = sum(native.directory_bytes(p) for p in roots)
-        logs = sum(p.stat().st_size for r in roots for p in r.rglob("*.log"))
-        if retained > PAIR_CAPS["retainedBytes"] or logs > PAIR_CAPS["logBytes"]:
-            raise RuntimeError("combined pair retained64MiB/log2MiB cap exceeded")
+        # The original per-case log cap covers child stdout/stderr directly in
+        # its case root. LevelDB *.log files below network/ are durable DB/WAL
+        # data, already charged to each32MiB and the aggregate64MiB data caps.
+        logs = sum(p.stat().st_size for case_name in ("before-relative", "after-bounded-cadence")
+                   for p in (self.root/case_name).glob("*.log"))
+        if retained > PAIR_CAPS["retainedBytes"]:
+            raise RuntimeError("combined pair retained64MiB cap exceeded")
+        if logs > PAIR_CAPS["logBytes"]:
+            raise RuntimeError("combined pair child stdout/stderr log2MiB cap exceeded")
         row = dict(elapsedMs=int((time.monotonic()-self.started)*1000), retainedBytes=retained, logBytes=logs)
         row.update({k:sample[k] for k in ("rssBytes", "threads", "availableMemoryBytes", "freeDiskBytes", "buildBytes")})
         self.samples.append(row)

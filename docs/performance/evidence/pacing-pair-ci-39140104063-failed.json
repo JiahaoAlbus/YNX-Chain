@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "runId": 39140104063,
+  "sourceCommit": "ca4b5d75edb719ae3298062b3a99918cf717a105",
+  "workflowConclusion": "failure",
+  "networkStarted": true,
+  "firstCaseFirstCause": "combined pair retained64MiB/log2MiB cap exceeded",
+  "firstCaseCleanupComplete": true,
+  "firstCaseElapsedMs": 3855,
+  "secondCaseStarted": false,
+  "pairFirstCause": "pair case failed or invocation/fsync exceeded60s: combined pair retained64MiB/log2MiB cap exceeded",
+  "pairCasesQualified": false,
+  "actualPostFsyncVerdict": {
+    "elapsedMs": 3893,
+    "qualified": false,
+    "pairReceiptSHA256": "b18c3b4c350ad9f5947d574d92a96954103566f0fbde87d26b411e8bcab1b300"
+  },
+  "peakPrivateBytes": 7314430,
+  "archiveInventory": {
+    "childStdoutStderrBytes": 109719,
+    "nestedDatabaseWALBytes": 2865404,
+    "source": "recovered ZIP central directory; member content not downloaded for DB files"
+  },
+  "diagnosis": "Pair rglob(*.log) wrongly counted nested LevelDB persistent WAL as process stdout/stderr. Corrected accounting uses only fixed case-root process logs, matching original single-case policy. All DB bytes remain under each32MiB/combined64MiB data caps; no budget raised or data removed.",
+  "regression": {
+    "originalExactSourceExpectedRED": true,
+    "correctedSourceTestsPassed": 25,
+    "originalREDPath": "artifacts/chain-performance-20261017/pacing-pair-source/wal-classification-before-red.raw"
+  },
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/pacing-pair-39140104063/remote-actual.json",
+      "bytes": 18729,
+      "sha256": "b18c3b4c350ad9f5947d574d92a96954103566f0fbde87d26b411e8bcab1b300"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/pacing-pair-39140104063/remote-relative-actual.json",
+      "bytes": 163835,
+      "sha256": "5f5435eb6e9c7dbb5cbc8a4ac4955535f89ab975a51f7c8bc856586a952cf3ad"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/pacing-pair-39140104063/remote-preflight.json",
+      "bytes": 411,
+      "sha256": "18780c39cbe948449d7ae1052f74f81a27d253c912041ad61e6b907ddb5c3021"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/pacing-pair-39140104063/zip-index.json",
+      "bytes": 28564,
+      "sha256": "a0276cba743ed520f469404fbc33e2d24e64174273f415015b7d4b81a18df899"
+    }
+  ]
+}

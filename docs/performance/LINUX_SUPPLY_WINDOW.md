@@ -349,3 +349,30 @@ or node and provide no capacity evidence. Actual paired network execution still
 requires a new Root grant after this exact source's normal CI succeeds. Record
 startup order and random fixture/cold-start differences; report finite paired
 observations, not sustained1000TPS or a generalized speedup.
+
+## First pair guard RED and correction
+
+Root granted ca4b5d75e once. Actual run39140104063 failed in its first relative
+case after node startup: the pair resource guard recursively counted every
+`*.log` below the private fixture, including Comet LevelDB blockstore/state/tx_index
+WAL, against the2MiB **process stdout/stderr** cap. The recovered ZIP inventory
+shows109719bytes of direct child stdout/stderr and2865404bytes of database WAL;
+the first case's sampled private data peaked7314430bytes, below its32MiB cap.
+The first case cleanup completed (elapsed3855ms), the second was never started,
+and the post-fsync terminal verdict was qualifiedfalse at3893ms. No throughput
+comparison or candidate effect was established. Full original failure is preserved
+in `evidence/pacing-pair-ci-39140104063-failed.json` and its raw member hashes.
+
+Correction: aggregate **process output logs** use only `*.log` directly under
+the two fixed case roots, matching the original per-case log guard. Every nested
+database/WAL byte still counts in per-case32MiB and aggregate64MiB retained-data
+limits; no cleanup, cap increase, logging suppression or data deletion is involved.
+Separate failure messages identify data versus process-log cap failures.
+
+A counterexample places3MiB of nested database WAL beside1KiB of process output:
+the exact ca4b old code gives the preserved expected RED, the corrected code
+charges the WAL to data and passes. Adding2MiB of real process output in the
+second case still fails the unchanged aggregate stdout/stderr cap. The25-source-test
+suite passes locally; the corrected source must pass normal CI and receive a
+fresh single Root grant before any new pair execution. The original consumed
+grant does not authorize a retry.
