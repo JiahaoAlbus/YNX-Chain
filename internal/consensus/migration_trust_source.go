@@ -316,9 +316,36 @@ func validateLegacyTrustSource(source *LegacyTrustSource, state CommittedState, 
 			return errors.New("BFT appeal shadows original source record")
 		}
 	}
+	originalLabels := make(map[string]chain.RiskLabel)
+	for _, labels := range source.Records.RiskLabels {
+		for _, label := range labels {
+			originalLabels[label.ID] = label
+		}
+	}
 	for _, v := range state.TrustEvidence {
 		if _, ok := view.Evidence[v.ID]; ok {
 			return errors.New("BFT evidence shadows original source record")
+		}
+		// Source labels are immutable and current source updates only add
+		// appeals. Every newly generated packet must retain each original
+		// subject label exactly once, independent of its self-reported hashes.
+		// Do not compare newer BFT labels to this historical packet snapshot.
+		counts := make(map[string]int)
+		for _, label := range v.Labels {
+			if original, ok := originalLabels[label.ID]; ok {
+				if original.Subject != v.Subject || !reflect.DeepEqual(label, original) {
+					return errors.New("BFT evidence changed an immutable source Trust label")
+				}
+				counts[label.ID]++
+			}
+		}
+		for _, original := range source.Records.RiskLabels[v.Subject] {
+			if counts[original.ID] != 1 {
+				return errors.New("BFT evidence must contain each original source Trust label exactly once")
+			}
+		}
+		if !reflect.DeepEqual(v.RiskSummary, chain.TrustRiskSummaryForLabels(v.Subject, v.Labels, v.GeneratedAt)) {
+			return errors.New("BFT evidence risk summary differs from its original packet labels and time")
 		}
 	}
 	for _, v := range state.TrackingReviews {

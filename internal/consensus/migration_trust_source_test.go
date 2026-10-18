@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -261,6 +262,13 @@ func TestLegacyTrustSourceRefusesReviewerTakeoverAndInvalidCandidates(t *testing
 	a := legacyTrustHarness(t, f)
 	state := a.committedExecutionStateView()
 	h := int64(f.m.Height) + 1
+	// The borrowed initial view has a non-nil empty slice; the execution clone
+	// normalizes it to nil. The original asymmetric comparison already failed
+	// before any transaction. Keep this fixture proof and compare symmetrically.
+	baseline := cloneExecutionStateValue(state)
+	if state.nativeTransfers == nil || len(state.nativeTransfers) != 0 || baseline.nativeTransfers != nil {
+		t.Fatal("fixture must exercise the original nil/empty clone comparison mismatch")
+	}
 	cases := map[string][]byte{
 		"review_same_historical_requester": mustTrustAction(t, f.key, ActionGovernanceReview, GovernanceDecisionPayload{RequestID: f.request.ID, Reviewer: f.owner}, 1),
 		"reject_same_historical_requester": mustTrustAction(t, f.key, ActionGovernanceReject, GovernanceDecisionPayload{RequestID: f.request.ID, Reviewer: f.owner, Reason: "self claimed role"}, 1),
@@ -278,14 +286,71 @@ func TestLegacyTrustSourceRefusesReviewerTakeoverAndInvalidCandidates(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
+	wantErrors := map[string]string{
+		"review_same_historical_requester": "requires independently authenticated reviewer authority",
+		"reject_same_historical_requester": "requires independently authenticated reviewer authority",
+		"resolve_same_historical_reviewer": "requires independently authenticated reviewer authority",
+		"wrong_nonce":                      "application action nonce 2 must equal next account nonce 1",
+		"subject_substitution":             "source appeal requires actual signer-bound claimant and exact original subject/appeal permission",
+		"wrong_signed_network":             fmt.Sprintf("application action chain ID %d does not match %d", tx.ChainID, f.m.Network.ChainID),
+	}
 	for name, raw := range cases {
 		t.Run(name, func(t *testing.T) {
 			before := cloneExecutionStateValue(state)
+			if !reflect.DeepEqual(before, cloneExecutionStateValue(state)) {
+				t.Fatal("symmetric baseline differs before candidate execution")
+			}
+			committedBefore, err := encodeCommittedStateJSON(a.committed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			// Preserve original nil/empty values as well as every account field.
+			accountsBefore := cloneLegacyTrustValue(reflect.ValueOf(state.accounts)).Interface().([]chain.ConsensusAccount)
+			committedAccountsBefore := cloneLegacyTrustValue(reflect.ValueOf(a.committed.Accounts)).Interface().([]chain.ConsensusAccount)
+			sourceBefore := cloneLegacyTrustSource(state.legacyTrustSource)
+			committedSourceBefore := cloneLegacyTrustSource(a.committed.LegacyTrustSource)
+			assertAccounts := func(label string, want, got []chain.ConsensusAccount) {
+				t.Helper()
+				if len(want) != len(got) {
+					t.Fatalf("%s account count changed", label)
+				}
+				for i, account := range want {
+					actual := got[i]
+					if account.Address != actual.Address || account.Balance != actual.Balance || account.Staked != actual.Staked || account.Nonce != actual.Nonce {
+						t.Fatalf("%s account %s identity/balance/stake/nonce changed", label, account.Address)
+					}
+					if !reflect.DeepEqual(account.Lots, actual.Lots) || !reflect.DeepEqual(account.ResourceUsage, actual.ResourceUsage) {
+						t.Fatalf("%s account %s lots/resources changed", label, account.Address)
+					}
+				}
+				if !reflect.DeepEqual(want, got) {
+					t.Fatalf("%s complete accounts changed", label)
+				}
+			}
+			assertAccounts("candidate baseline", accountsBefore, state.accounts)
+			assertAccounts("committed baseline", committedAccountsBefore, a.committed.Accounts)
+			if !reflect.DeepEqual(sourceBefore, state.legacyTrustSource) || !reflect.DeepEqual(committedSourceBefore, a.committed.LegacyTrustSource) || a.pending != nil {
+				t.Fatal("source/pending baseline differs before candidate execution")
+			}
 			if _, _, err := a.applyTransactionAt(state, raw, h, time.Unix(100, 0).UTC(), 0); err == nil {
 				t.Fatal("unauthorized original mutation admitted")
+			} else if want := wantErrors[name]; want == "" || !strings.Contains(err.Error(), want) {
+				t.Fatalf("candidate rejected for a different reason: got %v, want %q", err, want)
 			}
-			if !reflect.DeepEqual(before, state) || len(a.committed.LegacyTrustSource.Updates) != 0 {
-				t.Fatal("failed candidate leaked balance/nonce/lot/source changes")
+			if !reflect.DeepEqual(before, cloneExecutionStateValue(state)) {
+				t.Fatal("failed candidate changed the execution state")
+			}
+			committedAfter, err := encodeCommittedStateJSON(a.committed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(committedBefore, committedAfter) {
+				t.Fatal("failed candidate changed complete committed serialization")
+			}
+			assertAccounts("candidate", accountsBefore, state.accounts)
+			assertAccounts("committed", committedAccountsBefore, a.committed.Accounts)
+			if !reflect.DeepEqual(sourceBefore, state.legacyTrustSource) || !reflect.DeepEqual(committedSourceBefore, a.committed.LegacyTrustSource) || len(a.committed.LegacyTrustSource.Updates) != 0 || a.pending != nil {
+				t.Fatal("failed candidate changed original source/history or created pending state")
 			}
 		})
 	}
@@ -489,5 +554,94 @@ func TestLegacyTrustSourceNewEvidenceUsesOriginalAndBFTLabels(t *testing.T) {
 	queryJSON(t, a, "/trust/evidence/"+packet.ID, &readback)
 	if !reflect.DeepEqual(readback.Labels, want) || readback.JSONHash != packet.JSONHash || readback.TxHash != packet.TxHash {
 		t.Fatal("shared committed query did not return the persisted combined evidence")
+	}
+}
+
+func TestLegacyTrustSourceEvidenceCannotDropOriginalLabelAfterRehash(t *testing.T) {
+	f := newLegacyTrustFixture(t)
+	a := legacyTrustHarness(t, f)
+	h := int64(f.m.Height) + 1
+	at := f.evidence.GeneratedAt.Add(time.Minute).UTC()
+	raw := mustTrustAction(t, f.key, ActionTrustEvidenceCreate, TrustEvidencePayload{Requester: f.owner, Subject: f.owner}, 1)
+	state, _, err := a.applyTransactionAt(a.committedExecutionStateView(), raw, h, at, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(state.trustEvidence) != 1 || !reflect.DeepEqual(state.trustEvidence[0].Labels, f.m.Runtime.RiskLabels[f.owner]) {
+		t.Fatal("real dispatcher fixture did not include all original source labels")
+	}
+	// A later BFT label is not part of this historical packet. Validation must
+	// preserve the packet snapshot, rather than require all current BFT labels.
+	later := mustTrustAction(t, f.key, ActionTrustLabelCreate, TrustLabelPayload{Issuer: f.owner, Subject: f.owner, SubjectType: "address", Address: f.owner, Label: "later-bft-label", RiskWeightBps: 1500, ConfidenceBps: 8000, Source: "case:later", EvidenceHash: strings.Repeat("ef", 32), AppealAvailable: true}, 2)
+	state, _, err = a.applyTransactionAt(state, later, h+1, at.Add(time.Second), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sealed, err := sealCommittedState(f.m, h+1, state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "positive.json")
+	if err = saveCommittedState(path, sealed, f.m); err != nil {
+		t.Fatal(err)
+	}
+	cold, err := loadCommittedState(path, f.m)
+	if err != nil || len(cold.TrustLabels) != 1 || !reflect.DeepEqual(cold.TrustEvidence[0].Labels, f.m.Runtime.RiskLabels[f.owner]) {
+		t.Fatalf("unchanged historical evidence failed cold validation after a later BFT label: %v", err)
+	}
+	original := cloneLegacyTrustSource(sealed.LegacyTrustSource)
+	for _, mutation := range []string{"remove", "alter", "duplicate", "risk_summary_only"} {
+		t.Run(mutation, func(t *testing.T) {
+			bad := sealed
+			bad.TrustEvidence = cloneTrustEvidence(sealed.TrustEvidence)
+			packet := &bad.TrustEvidence[0]
+			index := -1
+			for i, label := range packet.Labels {
+				if label.ID == f.label.ID {
+					index = i
+					break
+				}
+			}
+			if index < 0 {
+				t.Fatal("fixture lacks the original source label to mutate")
+			}
+			switch mutation {
+			case "remove":
+				packet.Labels = append(packet.Labels[:index], packet.Labels[index+1:]...)
+			case "alter":
+				packet.Labels[index].RiskWeightBps++
+			case "duplicate":
+				packet.Labels = append(packet.Labels, packet.Labels[index])
+			}
+			packet.RiskSummary = chain.TrustRiskSummaryForLabels(packet.Subject, packet.Labels, packet.GeneratedAt)
+			if mutation == "risk_summary_only" {
+				packet.RiskSummary.EffectiveRiskWeightBps++
+			}
+			packet.JSONHash = trustPacketJSONHash(packet.EvidencePacket)
+			packet.AuditHash = trustEvidenceAuditHash(*packet)
+			bad.AppHash, err = bad.calculateHash()
+			if err != nil {
+				t.Fatal(err)
+			}
+			// These are coherent existing-format checksums and valid ordinary
+			// Trust shapes. The old validator cannot reject them on that basis.
+			if err = validateTrustCommittedState(bad); err != nil {
+				t.Fatalf("attack fixture failed ordinary checksum/shape validation: %v", err)
+			}
+			if !reflect.DeepEqual(original, bad.LegacyTrustSource) {
+				t.Fatal("attack changed the immutable source instead of only the derived packet")
+			}
+			wire, err := encodeCommittedStateJSON(bad)
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(t.TempDir(), "rehashed.json")
+			if err = os.WriteFile(path, wire, 0600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = loadCommittedState(path, f.m); err == nil {
+				t.Fatal("cold loader accepted a rehashed packet that changed immutable source label coverage or its deterministic risk summary")
+			}
+		})
 	}
 }

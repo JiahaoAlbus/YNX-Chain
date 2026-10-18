@@ -326,6 +326,24 @@ jobs:
           test "$(grep -c 'rechecksummed AA history bypassed the original-height authority rule' "$YNX_AA_OLD_LOG")" -eq 3
           grep -F 'AA history accepted an execution beyond the actual committed checkpoint' "$YNX_AA_OLD_LOG"
           go test -p 1 -count=1 -timeout=90s -v -run '^TestAACommittedHistory' ./internal/consensus
+      - name: Reproduce source evidence rehash counterexamples and verify original-label coverage
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: |
+          YNX_TRUST_FIXED="$RUNNER_TEMP/ynx-source-trust-fixed.go"
+          YNX_TRUST_RED_LOG="$RUNNER_TEMP/ynx-source-trust-rehash-red.log"
+          cp internal/consensus/migration_trust_source.go "$YNX_TRUST_FIXED"
+          trap 'cp "$YNX_TRUST_FIXED" internal/consensus/migration_trust_source.go' EXIT
+          git show 676fbace1620ebb277dca3eee5080377791f40c3:internal/consensus/migration_trust_source.go > internal/consensus/migration_trust_source.go
+          set +e
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestLegacyTrustSourceEvidenceCannotDropOriginalLabelAfterRehash$' ./internal/consensus > "$YNX_TRUST_RED_LOG" 2>&1
+          YNX_TRUST_RED_STATUS=$?
+          set -e
+          cp "$YNX_TRUST_FIXED" internal/consensus/migration_trust_source.go
+          trap - EXIT
+          cat "$YNX_TRUST_RED_LOG"
+          test "$YNX_TRUST_RED_STATUS" -ne 0
+          test "$(grep -c 'cold loader accepted a rehashed packet that changed immutable source label coverage or its deterministic risk summary' "$YNX_TRUST_RED_LOG")" -eq 4
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestLegacyTrustSourceEvidenceCannotDropOriginalLabelAfterRehash$' ./internal/consensus
       - name: Verify Whole BFT gateway and native container readback
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
