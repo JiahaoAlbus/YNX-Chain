@@ -5,6 +5,7 @@ Linux evidence is a separate environment, never a matched Darwin comparison.
 Reuse the original native resource monitor without changing its global caps.
 """
 import argparse
+import base64
 import ctypes
 import errno
 import hashlib
@@ -124,6 +125,58 @@ def prepare_1000_tier():
                                   "RSS cannot be assumed linear: fixed4node/worker cost and retained histories differ. Existing1GiB guard remains mandatory; no verified fit.",
                                   "Owned-process/thread, disk reserve, logs,45+15 window and actual MemAvailable guards remain unchanged. No workload starts from this plan."],
                 interpretation="Finite2048 signed business inputs, each with a distinct sender/nonce1. Configured1000offers/s is not accepted/included/final TPS and does not establish ten-minute capacity. Prepared through original fixture/client commands, intentionally not registered as an executable window until budget admissibility is established.")
+
+
+def fixture_resource_recipe():
+    return dict(schema=1,kind="2048-independent-sender-fixture-resources-only",execute=False,
+                nodesStarted=False,networkExecutionAdmitted=False,fixtureOnly=True,
+                profile=dict(PROFILE,name="fixture-2048x1-only",senders=2048,rounds=1),
+                resourceCaps=native.CAPS,environment=ENV,
+                workload=dict(independentSenders=2048,totalTransactions=2048,transactionsPerSender=1,
+                              futureConfiguredOfferRate=1000),
+                generatedBy="original cmd/ynx-consensus-perf-fixture -ephemeral -count2048; no retained sender keys",
+                measurements="Original guard samples owned build/generator process RSS/threads, all private data/evidence and build/tmp plus incremental shared Go cache bytes. Preexisting shared cache is recorded separately; filesystem free/reserve includes its whole footprint.",
+                interpretation="Fixture generation/structural readback only, no application/node/server/client workload starts. No business inclusion/finality or sustained TPS. Actual node/reader growth and2048 network peak remain unmeasured even if this fixture fits.")
+
+
+def fixture_resource_readout(network):
+    manifest=validate_manifest(json.loads(native.bounded(network/"network-manifest.json",1 << 20)),network)
+    payload=native.bounded(network/"transactions.json",8 << 20)
+    rows=json.loads(payload).get("transactions",[])
+    if len(rows)!=2048 or (network/"ephemeral-sender-secrets.json").exists():
+        raise RuntimeError("exact2048 fixture without retained sender keys required")
+    senders=set();recipients=set()
+    for item in rows:
+        if not isinstance(item,str):raise RuntimeError("fixture transaction encoding missing")
+        wire=base64.b64decode(item,validate=True)
+        if base64.b64encode(wire).decode()!=item or not 1<=len(wire)<=65536:
+            raise RuntimeError("fixture canonical bounded envelope missing")
+        tx=json.loads(wire)
+        if (tx.get("chainId")!=6423 or tx.get("nonce")!=1 or tx.get("type")!="transfer"
+                or tx.get("amount")!=1 or tx.get("fee")!=1 or not tx.get("signature") or not tx.get("publicKey")
+                or not tx.get("from") or not tx.get("to") or tx["from"] in senders):
+            raise RuntimeError("independent nonce1 signed fixture shape differs")
+        senders.add(tx["from"]);recipients.add(tx["to"])
+    if len(senders)!=2048 or len(recipients)!=1 or any(Path(n["abciStatePath"]).exists() for n in manifest["nodes"]):
+        raise RuntimeError("fixture sender/recipient shape differs or node state unexpectedly exists")
+    migration_path=Path(manifest["migrationPath"])
+    migration=json.loads(native.bounded(migration_path,16 << 20))
+    accounts={a["address"]:a for a in migration.get("accounts",[])}
+    if any(addr not in accounts or accounts[addr].get("nonce")!=0 or accounts[addr].get("balance",0)<2 for addr in senders):
+        raise RuntimeError("fixture migration sender balance/nonce coverage differs")
+    files=[];categories={}
+    for f in sorted(network.rglob("*")):
+        if f.is_symlink():raise RuntimeError("fixture artifact symlink refused")
+        if not f.is_file():continue
+        name=str(f.relative_to(network))
+        category=("migration-account-data" if f==migration_path else "signed-transactions" if f.name=="transactions.json" else "genesis-copies" if f.name=="genesis.json" else "node-config-and-key-scaffolding")
+        size=f.stat().st_size;categories[category]=categories.get(category,0)+size
+        files.append(dict(path=name,bytes=size,sha256=native.digest(f),category=category))
+    return dict(independentSenders=len(senders),recipients=len(recipients),transactions=2048,nonce=1,
+                migrationAccounts=len(migration.get("accounts",[])),categories=categories,files=files,
+                totalFixtureBytes=sum(categories.values()),nodesStarted=False,
+                signatureScope="Original generator signs actual envelopes. This Python readback checks canonical identity/count/nonce and file hashes, not an independent cryptographic signature verifier. No execution success is asserted.",
+                scalingScope="Migration/account data and signed envelopes are actual account-dependent bytes; fixed four-node scaffolding and genesis copies are classified by path, not assumed constant per-account. Node runtime/reader/history growth is unmeasured.")
 
 
 def pair_recipe(comparison="relative-bounded"):
@@ -550,7 +603,7 @@ def validate_report(report, profile_name="supply-256x4", pacing="relative"):
     return dict(summary=s, supply=supply)
 
 
-def native_sample(case, build, known, started, initial=False):
+def native_sample(case, build, known, started, initial=False, enforce_limits=True):
     rows, vanished = native.proc_inventory()
     ids = native.owned_set(rows, os.getpid(), known=known)
     if len(ids) > PROFILE["ownedProcesses"]:
@@ -583,9 +636,13 @@ def native_sample(case, build, known, started, initial=False):
                privateBytes=native.directory_bytes(case), buildBytes=native.directory_bytes(build),
                freeDiskBytes=disk.f_bavail*disk.f_frsize, availableMemoryBytes=native.memory_available(),
                hostIdentities=len(rows), vanishedHostPIDs=vanished)
-    native.enforce(row, initial)
-    if sum(p.stat().st_size for p in case.glob("*.log")) > native.CAPS["logBytes"]:
-        raise RuntimeError("combined process log cap exceeded")
+    logs=sum(p.stat().st_size for p in case.glob("*.log"))
+    if enforce_limits:
+        native.enforce(row, initial)
+        if logs > native.CAPS["logBytes"]:
+            raise RuntimeError("combined process log cap exceeded")
+    else:
+        row["processLogBytes"]=logs
     return row
 
 
@@ -606,8 +663,8 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None):
-    selected = recipe(transport, profile_name, pacing, observer_phases, shared_replay)
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False):
+    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -625,6 +682,9 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
                   firstCause=None, cleanupComplete=False)
     children, handles, known = [], [], {}
     started = time.monotonic()
+    go_cache = None
+    cache_baseline = 0
+    fixture_qualified = False
 
     def mark(phase):
         result["timeline"].append(dict(phase=phase, elapsedNs=int((time.monotonic()-started)*1e9), unixNs=time.time_ns()))
@@ -632,23 +692,39 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
     def command(args):
         return subprocess.check_output(args, cwd=source, timeout=pair_budget.io_timeout() if pair_budget else 5, stderr=subprocess.STDOUT).decode().strip()
 
+    def capture_sample(initial=False):
+        sampled=native_sample(case,build,known,started,initial,enforce_limits=not fixture_only)
+        if fixture_only:
+            sampled["privateBytes"]+=native.directory_bytes(receipt.parent)
+            sampled["preexistingGoCacheBytes"]=cache_baseline
+            sampled["sharedGoCacheBytes"]=native.directory_bytes(go_cache) if go_cache is not None else 0
+            sampled["incrementalGoCacheBytes"]=max(0,sampled["sharedGoCacheBytes"]-cache_baseline)
+            sampled["buildBytes"]+=sampled["incrementalGoCacheBytes"]
+            try:
+                native.enforce(sampled,initial)
+                if sampled.get("processLogBytes",0)>native.CAPS["logBytes"]:raise RuntimeError("combined process log cap exceeded")
+            except Exception:
+                result.setdefault("refusedSamples",[]).append(sampled)
+                raise
+        return sampled
+
     def tick(initial=False):
         if time.monotonic()-started >= 45:
             raise RuntimeError("active45s deadline exceeded")
         if pair_budget and pair_budget.remaining() <= 15.5:
             raise RuntimeError("pair active reserve exhausted; begin cleanup")
-        sampled = native_sample(case, build, known, started, initial)
+        sampled = capture_sample(initial)
         result["samples"].append(sampled)
         if pair_budget: pair_budget.observe(sampled)
         if any(p.poll() is not None for p in children if getattr(p, "server", False)):
             raise RuntimeError("node exited during active window")
 
-    def spawn(name, args, server=False):
+    def spawn(name, args, server=False, cwd=None):
         if len([p for p in children if p.poll() is None]) >= 9:
             raise RuntimeError("nine-child role cap exceeded")
         handle = open(case / (name + ".log"), "xb", buffering=0)
         handles.append(handle)
-        p = subprocess.Popen(args, cwd=case, env={**os.environ, **ENV}, stdin=subprocess.DEVNULL,
+        p = subprocess.Popen(args, cwd=cwd or case, env={**os.environ, **ENV, **({"GOTMPDIR":str(build/"tmp")} if fixture_only else {})}, stdin=subprocess.DEVNULL,
                              stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
         p.server = server
         children.append(p)
@@ -678,8 +754,23 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         result["internalTree"] = command(["git", "rev-parse", "HEAD:internal"])
         if len({p.stat().st_dev for p in (source, case, build)}) != 1:
             raise RuntimeError("source/build/private data must share monitored filesystem")
+        if fixture_only:
+            libc=ctypes.CDLL(None,use_errno=True)
+            libc.prctl.argtypes=[ctypes.c_int,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_ulong,ctypes.c_ulong]
+            value=ctypes.c_int()
+            if libc.prctl(36,1,0,0,0) or libc.prctl(37,ctypes.cast(ctypes.pointer(value),ctypes.c_void_p).value,0,0,0) or value.value!=1:
+                raise RuntimeError("subreaper unavailable before fixture build")
+            go_cache=Path(command(["go","env","GOCACHE"]))
+            if not go_cache.is_absolute() or go_cache.resolve()!=go_cache or go_cache.stat().st_dev!=case.stat().st_dev:
+                raise RuntimeError("actual shared Go cache identity/filesystem differs")
+            cache_baseline=native.directory_bytes(go_cache)
+            result["goCacheAccounting"]=dict(path=str(go_cache),preexistingBytes=cache_baseline,charge="Original owned build/tmp plus actual incremental shared-cache bytes; preexisting cache remains visible and charged to filesystem free/reserve, never deleted.")
+            (build/"tmp").mkdir(mode=0o700)
+            tick(True);mark("fixture_build_start")
+            wait(spawn("fixture-build",["go","build","-p","1","-trimpath","-o",str(build/"ynx-consensus-perf-fixture"),"./cmd/ynx-consensus-perf-fixture"],cwd=source))
+            mark("fixture_build_complete")
         result["binaries"] = {}
-        for name in BINARIES:
+        for name in (("ynx-consensus-perf-fixture",) if fixture_only else BINARIES):
             binary = build / name
             if binary.is_symlink() or not binary.is_file() or binary.stat().st_size > 64 << 20:
                 raise RuntimeError("binary type/size bound")
@@ -711,44 +802,48 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
                                cpuinfo=native.bounded(Path("/proc/cpuinfo"), 1 << 20).decode())
         network = case / "network"
         mark("fixture_start")
-        wait(spawn("fixture", [str(build / BINARIES[2]), "-ephemeral", "-output", str(network), "-count", str(profile["senders"]), "-retain-ephemeral-senders"]))
+        wait(spawn("fixture", [str(build / BINARIES[2]), "-ephemeral", "-output", str(network), "-count", str(profile["senders"])]+([] if fixture_only else ["-retain-ephemeral-senders"])))
         mark("fixture_complete")
         manifest_path = network / "network-manifest.json"
         manifest = validate_manifest(json.loads(native.bounded(manifest_path, 1 << 20)), network)
-        for i, node in enumerate(manifest["nodes"]):
-            app, _ = server_commands(build, node, manifest["migrationPath"], transport)
-            spawn("abci-"+str(i), app, True)
-        for i, node in enumerate(manifest["nodes"]):
-            _, comet = server_commands(build, node, manifest["migrationPath"], transport)
-            spawn("comet-"+str(i), comet, True)
-        result["nodesStarted"] = True
-        mark("nodes_spawned")
-        opener = build_opener(ProxyHandler({}), NoRedirect())
-        for node in manifest["nodes"]:
-            while True:
-                tick()
-                try:
-                    with opener.open(node["rpcUrl"]+"/status", timeout=.05) as response:
-                        raw = response.read((1 << 20)+1)
-                    if len(raw) > 1 << 20:
-                        raise RuntimeError("RPC status bound")
-                    if int(json.loads(raw)["result"]["sync_info"]["latest_block_height"]) >= 2:
-                        break
-                except (OSError, ValueError, KeyError):
-                    result["readinessWaitErrors"] += 1
-                time.sleep(.05)
-        mark("all_nodes_height2")
-        output = network / "transactions-result.json"
-        mark("client_start")
-        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])))
-        client_report=json.loads(native.bounded(output,16 << 20))
-        result["measurement"] = validate_report(client_report, profile_name, pacing)
-        if observer_phases:
-            result["observerPhases"]=validate_observer_phases(client_report)
-        if shared_replay is not None:
-            result["sharedReplayVerification"]=validate_shared_replay(client_report,shared_replay)
-        mark("client_complete")
-        result["resultSHA256"] = native.digest(output)
+        if fixture_only:
+            result["fixtureResources"]=fixture_resource_readout(network)
+            tick();mark("fixture_resource_readback_complete")
+        else:
+            for i, node in enumerate(manifest["nodes"]):
+                app, _ = server_commands(build, node, manifest["migrationPath"], transport)
+                spawn("abci-"+str(i), app, True)
+            for i, node in enumerate(manifest["nodes"]):
+                _, comet = server_commands(build, node, manifest["migrationPath"], transport)
+                spawn("comet-"+str(i), comet, True)
+            result["nodesStarted"] = True
+            mark("nodes_spawned")
+            opener = build_opener(ProxyHandler({}), NoRedirect())
+            for node in manifest["nodes"]:
+                while True:
+                    tick()
+                    try:
+                        with opener.open(node["rpcUrl"]+"/status", timeout=.05) as response:
+                            raw = response.read((1 << 20)+1)
+                        if len(raw) > 1 << 20:
+                            raise RuntimeError("RPC status bound")
+                        if int(json.loads(raw)["result"]["sync_info"]["latest_block_height"]) >= 2:
+                            break
+                    except (OSError, ValueError, KeyError):
+                        result["readinessWaitErrors"] += 1
+                    time.sleep(.05)
+            mark("all_nodes_height2")
+            output = network / "transactions-result.json"
+            mark("client_start")
+            wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])))
+            client_report=json.loads(native.bounded(output,16 << 20))
+            result["measurement"] = validate_report(client_report, profile_name, pacing)
+            if observer_phases:
+                result["observerPhases"]=validate_observer_phases(client_report)
+            if shared_replay is not None:
+                result["sharedReplayVerification"]=validate_shared_replay(client_report,shared_replay)
+            mark("client_complete")
+            result["resultSHA256"] = native.digest(output)
     except Exception as error:
         result["firstCause"] = str(error)
         try:
@@ -796,24 +891,39 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         if not result["cleanupComplete"]:
             result["firstCause"] = result["firstCause"] or "owned closure cleanup incomplete"
         try:
-            native.enforce(native_sample(case, build, known, started))
-            code = "import{readNodePhaseTiming as r}from './scripts/loadtest/node-phase-timing.mjs';import fs from'node:fs';console.log(JSON.stringify(process.argv.slice(1).map(p=>r(fs.readFileSync(p,'utf8')))));"
-            result["nodePhases"] = json.loads(command(["node", "--input-type=module", "-e", code] + [str(case / ("abci-"+str(i)+".log")) for i in range(4)]))
+            final_sample=capture_sample()
+            if fixture_only:result["samples"].append(final_sample)
+            else:
+                code = "import{readNodePhaseTiming as r}from './scripts/loadtest/node-phase-timing.mjs';import fs from'node:fs';console.log(JSON.stringify(process.argv.slice(1).map(p=>r(fs.readFileSync(p,'utf8')))));"
+                result["nodePhases"] = json.loads(command(["node", "--input-type=module", "-e", code] + [str(case / ("abci-"+str(i)+".log")) for i in range(4)]))
         except Exception as error:
             result["firstCause"] = result["firstCause"] or str(error)
         result["elapsedMs"] = int((time.monotonic()-started)*1000)
         if result["elapsedMs"] > 60000:
             result["firstCause"] = result["firstCause"] or "total60s deadline exceeded"
         result["measurementLimits"] = "Sampled RSS, not a hard cgroup ceiling; non-atomic proc scans. Build occurs before the bounded runtime window in the existing CI job. Finite 1024 business transactions, not sustained TPS. Terminal sink disabled in this finite profile; zero is not a missing measurement. No Darwin matched comparison."
+        if fixture_only:
+            result["measurementLimits"]="Fixture-only resource sampling including build/generation and structural file readback within45+15s. Preexisting shared Go cache is inventoried separately; build/tmp+incremental cache and all private data/evidence are charged. Non-atomic sampled RSS/process observations are not instantaneous upper bounds. No nodes/reader/network/business finality or1000TPS admission. Post-fsync terminal+exit0 required."
         with receipt.open("x") as handle:
             json.dump(result, handle, indent=2); handle.write("\n"); handle.flush(); os.fsync(handle.fileno())
-        print(json.dumps({k: result.get(k) for k in ("firstCause", "nodesStarted", "cleanupComplete", "elapsedMs", "partialMeasurement")}), flush=True)
-    return 1 if result["firstCause"] else 0
+        if fixture_only:
+            post_sample=None
+            try:
+                post_sample=capture_sample()
+                if (time.monotonic()-started)*1000>60000:raise RuntimeError("fixture total including receipt fsync exceeded60s")
+            except Exception as error:result["firstCause"]=result["firstCause"] or str(error)
+            fixture_qualified=result["firstCause"] is None and result["cleanupComplete"] and "fixtureResources" in result
+            print("YNX_FIXTURE_RESOURCE_TERMINAL "+json.dumps(dict(qualified=fixture_qualified,nodesStarted=False,firstCause=result["firstCause"],receiptSHA256=native.digest(receipt),elapsedMs=int((time.monotonic()-started)*1000),postFsyncSample=post_sample,refusedSamples=result.get("refusedSamples",[]))),flush=True)
+        else:
+            print(json.dumps({k: result.get(k) for k in ("firstCause", "nodesStarted", "cleanupComplete", "elapsedMs", "partialMeasurement")}), flush=True)
+    return (0 if fixture_qualified else 1) if fixture_only else (1 if result["firstCause"] else 0)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--prepare-1000-fixture", action="store_true")
+    parser.add_argument("--measure-1000-fixture", action="store_true")
     parser.add_argument("--prepare-1000-tier", action="store_true")
     parser.add_argument("--prepare-shared-replay-pair", action="store_true")
     parser.add_argument("--prepare-pair", action="store_true")
@@ -829,6 +939,18 @@ if __name__ == "__main__":
     parser.add_argument("--case", type=Path)
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
+    if args.prepare_1000_fixture or args.measure_1000_fixture:
+        if (args.prepare_1000_fixture and args.measure_1000_fixture or args.execute or args.execute_pair or args.prepare_pair
+                or args.check_runner or args.prepare_1000_tier or args.prepare_shared_replay_pair or args.observer_phases
+                or args.pair_kind!="relative-bounded" or args.pacing!="relative"):
+            parser.error("fixture-only measurement cannot combine with network/other measurement actions")
+        if args.prepare_1000_fixture:
+            print(json.dumps(fixture_resource_recipe(),indent=2))
+        else:
+            if not all((args.source,args.build,args.case,args.receipt)):
+                parser.error("fixture resource measurement requires exact source/build/new case/new receipt")
+            sys.exit(run(args.source,args.build,args.case,args.receipt,fixture_only=True))
+        sys.exit(0)
     if args.prepare_shared_replay_pair:
         if args.execute or args.execute_pair or args.prepare_pair or args.check_runner or args.prepare_1000_tier:
             parser.error("shared replay preparation cannot execute any workload")

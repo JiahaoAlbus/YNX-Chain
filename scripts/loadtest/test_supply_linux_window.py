@@ -586,6 +586,116 @@ class SupplySourceTests(unittest.TestCase):
         self.assertEqual(denied.returncode,2)
         self.assertIn("cannot execute any workload",denied.stderr)
 
+    @staticmethod
+    def synthetic_2048_fixture(root):
+        import base64
+        root.mkdir()
+        m=manifest(root)
+        (root/"network-manifest.json").write_text(json.dumps(m))
+        accounts=[];rows=[]
+        for i in range(2048):
+            sender="synthetic-sender-"+str(i)
+            accounts.append(dict(address=sender,balance=10000,nonce=0))
+            tx=dict(chainId=6423,nonce=1,type="transfer",amount=1,fee=1,signature="synthetic-not-a-crypto-proof",publicKey="synthetic",**{"from":sender,"to":"synthetic-recipient"})
+            rows.append(base64.b64encode(json.dumps(tx).encode()).decode())
+        (root/"migration.json").write_text(json.dumps(dict(accounts=accounts)))
+        (root/"transactions.json").write_text(json.dumps(dict(transactions=rows)))
+        for i in range(4):
+            d=root/str(i)/"config";d.mkdir(parents=True);(d/"genesis.json").write_text('{}')
+        return rows
+
+    def test_2048_fixture_resource_recipe_is_not_a_network_profile(self):
+        plan=supply.fixture_resource_recipe()
+        self.assertFalse(plan["nodesStarted"])
+        self.assertFalse(plan["networkExecutionAdmitted"])
+        self.assertFalse(plan["execute"])
+        self.assertEqual(plan["profile"]["senders"],2048)
+        self.assertNotIn(plan["profile"]["name"],supply.PROFILES)
+        self.assertEqual(plan["resourceCaps"],supply.native.CAPS)
+        for action in ("--execute","--execute-pair","--prepare-pair","--observer-phases","--prepare-1000-tier"):
+            refused=subprocess.run([sys.executable,"-B",str(FILE),"--measure-1000-fixture",action],capture_output=True,text=True,timeout=5)
+            self.assertEqual(refused.returncode,2)
+            self.assertIn("cannot combine",refused.stderr)
+
+    def test_2048_fixture_readback_binds_every_sender_nonce_and_all_file_bytes(self):
+        import base64
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp)/"network";rows=self.synthetic_2048_fixture(root)
+            result=supply.fixture_resource_readout(root)
+            self.assertEqual(result["independentSenders"],2048)
+            self.assertEqual(result["migrationAccounts"],2048)
+            self.assertEqual(result["totalFixtureBytes"],sum(p.stat().st_size for p in root.rglob('*') if p.is_file()))
+            for mode in ("duplicate","nonce","sender-secrets","node-state"):
+                modified=list(rows)
+                if mode=="duplicate":modified[-1]=modified[0]
+                if mode=="nonce":
+                    tx=json.loads(base64.b64decode(modified[-1]));tx["nonce"]=2;modified[-1]=base64.b64encode(json.dumps(tx).encode()).decode()
+                (root/"transactions.json").write_text(json.dumps(dict(transactions=modified)))
+                extra=root/"ephemeral-sender-secrets.json" if mode=="sender-secrets" else root/"0"/"state.json"
+                if mode in ("sender-secrets","node-state"):extra.write_text('{}')
+                with self.subTest(mode=mode),self.assertRaises(RuntimeError):supply.fixture_resource_readout(root)
+                if extra.exists():extra.unlink()
+
+    def test_fixture_resource_controller_cannot_start_nodes_or_client(self):
+        # Synthetic control-path counterexample only. No Go or fixture binary
+        # executes; actual resource peaks require the separate opt-in CI run.
+        import ctypes
+        with tempfile.TemporaryDirectory() as temp:
+            parent=Path(temp).resolve();source=parent/"source";build=parent/"build";evidence=parent/"evidence";cache=parent/"cache"
+            for d in (source,build,evidence,cache):d.mkdir()
+            (cache/"existing").write_bytes(b'x'*100)
+            head='a'*40;commands=[]
+            def command(args,**kwargs):
+                if args==["git","rev-parse","HEAD"]:return head.encode()
+                if args==["git","status","--porcelain"]:return b''
+                if args[0]=="git":return b'b'*40
+                if args==["go","env","GOCACHE"]:return str(cache).encode()
+                if args==["go","version"]:return b'go version synthetic-unit'
+                if args[:3]==["go","version","-m"]:return ("GOOS=linux GOARCH=amd64 CGO_ENABLED=0 vcs.revision="+head+" vcs.modified=false").encode()
+                raise AssertionError(args)
+            test=self
+            class Child:
+                pid=91001;returncode=0
+                def poll(self):return 0
+                def kill(self):pass
+            def popen(args,**kwargs):
+                commands.append(args)
+                if args[:2]==["go","build"]:
+                    wire=bytearray(20);wire[:6]=b'\x7fELF\x02\x01';wire[18:20]=b'\x3e\x00';(build/"ynx-consensus-perf-fixture").write_bytes(wire)
+                elif args[0]==str(build/"ynx-consensus-perf-fixture"):
+                    test.assertNotIn("-retain-ephemeral-senders",args);test.assertEqual(args[-2:],["-count","2048"]);test.synthetic_2048_fixture(Path(args[args.index("-output")+1]))
+                else:raise AssertionError("unexpected node/client/compiler command: "+str(args))
+                return Child()
+            class Prctl:
+                def __call__(self,option,arg,third,*rest):
+                    if option==37:ctypes.cast(arg,ctypes.POINTER(ctypes.c_int))[0]=1
+                    return 0
+            class Libc:prctl=Prctl()
+            real_bounded=supply.native.bounded
+            def bounded(path,limit=65536):
+                if str(path)=="/proc/mounts":return b'proc /proc proc rw 0 0\n'
+                if str(path) in ("/proc/meminfo","/proc/cpuinfo"):return b'synthetic-unit'
+                return real_bounded(path,limit)
+            def sample(case,build,known,started,initial=False,enforce_limits=True):
+                return dict(rssBytes=100,threads=1,privateBytes=supply.native.directory_bytes(case),buildBytes=supply.native.directory_bytes(build),freeDiskBytes=10 << 30,availableMemoryBytes=2 << 30,tasks=[])
+            rows={supply.os.getpid():dict(pid=supply.os.getpid(),parent=0,startTicks=1,threads=1,state='R')}
+            stdout=io.StringIO()
+            with patch.object(supply.sys,"platform","linux"),patch.object(supply.platform,"machine",return_value="x86_64"),patch.object(supply.platform,"uname",return_value=("Linux","synthetic","unit","unit","x86_64","synthetic")), \
+                    patch.object(supply.subprocess,"check_output",side_effect=command),patch.object(supply.subprocess,"Popen",side_effect=popen), \
+                    patch.object(supply.ctypes,"CDLL",return_value=Libc()),patch.object(supply,"native_sample",side_effect=sample), \
+                    patch.object(supply.native,"bounded",side_effect=bounded),patch.object(supply.native,"proc_inventory",return_value=(rows,[])), \
+                    patch.object(supply.signal,"signal"),contextlib.redirect_stdout(stdout):
+                code=supply.run(source,build,parent/"case",evidence/"actual.json",fixture_only=True)
+            actual=json.loads((evidence/"actual.json").read_text())
+            terminal=json.loads(stdout.getvalue().split('YNX_FIXTURE_RESOURCE_TERMINAL ')[1])
+            self.assertEqual(code,0,actual["firstCause"])
+            self.assertFalse(actual["nodesStarted"])
+            self.assertTrue(actual["cleanupComplete"])
+            self.assertTrue(terminal["qualified"])
+            self.assertFalse(terminal["nodesStarted"])
+            self.assertEqual(len(commands),2)
+            self.assertIn("postFsyncSample",terminal)
+
 
 if __name__ == "__main__":
     unittest.main()

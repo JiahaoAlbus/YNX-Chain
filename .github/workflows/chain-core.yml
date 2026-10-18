@@ -87,6 +87,10 @@ on:
         description: "Opt-in original RPC/quorum/durable timing on a separately scheduled single Supply case; no extra calls"
         type: boolean
         default: false
+      measure_supply_1000_fixture:
+        description: "Explicit2048 sender fixture-only resource measurement; original45+15/1GiB32MiB guards, no nodes or network workload"
+        type: boolean
+        default: false
       measure_state_hash_encoding:
         description: "Compare original and chunked canonical encoders on the retained real 1024-transfer state"
         type: boolean
@@ -300,6 +304,34 @@ jobs:
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan
+      - name: Measure explicitly selected2048 fixture resources without nodes
+        if: github.event_name == 'workflow_dispatch' && inputs.measure_supply_1000_fixture
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: "0"
+          GOMAXPROCS: "1"
+          GOPROXY: "off"
+          GOTOOLCHAIN: local
+          GOFLAGS: -mod=readonly
+          GOWORK: "off"
+          YNX_NETWORK_REQUESTED: ${{ inputs.run_linux_supply && '1' || '0' }}
+        run: |
+          set -o pipefail
+          test "$YNX_NETWORK_REQUESTED" = 0
+          mkdir "$RUNNER_TEMP/ynx-fixture-resource-build" "$RUNNER_TEMP/ynx-fixture-resource-evidence"
+          python3 -B scripts/loadtest/supply-linux-window.py --prepare-1000-fixture > "$RUNNER_TEMP/ynx-fixture-resource-evidence/recipe.json"
+          python3 -B scripts/loadtest/supply-linux-window.py --measure-1000-fixture --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-fixture-resource-build" --case "$RUNNER_TEMP/ynx-fixture-resource-case" --receipt "$RUNNER_TEMP/ynx-fixture-resource-evidence/actual.json"
+      - name: Preserve fixture-only raw resources including refusal
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.measure_supply_1000_fixture
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fixture-resources-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-fixture-resource-evidence/
+            ${{ runner.temp }}/ynx-fixture-resource-case/
+          if-no-files-found: error
+          retention-days: 90
       - name: Build and run explicitly scheduled isolated Linux Supply case
         if: github.event_name == 'workflow_dispatch' && inputs.run_linux_supply
         env:
