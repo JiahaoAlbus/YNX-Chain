@@ -77,7 +77,14 @@ func proofSourceJSON(t *testing.T, v any) []byte {
 // real daemon/HRS or a claim of deployed custody. No private key is exported.
 func newProofHostSourceFixture(t *testing.T, layout, root string) *proofHostSourceFixture {
 	t.Helper()
-	f := newPQTransactionProofFixture(t)
+	return newProofHostSourceFixtureFromTransaction(t, newPQTransactionProofFixture(t), layout, root)
+}
+
+// A caller may reuse one already signed transaction fixture across read-only
+// policy cases. Each invocation still writes independent original files and
+// databases; no Application, Node, controller or mutable store is shared.
+func newProofHostSourceFixtureFromTransaction(t *testing.T, f *pqTransactionProofFixture, layout, root string) *proofHostSourceFixture {
+	t.Helper()
 	h := f.light.harness
 	if root == "" {
 		root = t.TempDir()

@@ -310,8 +310,22 @@ class LinuxGuardControls(unittest.TestCase):
         declaration = workflow.split("      " + name + ":\n", 1)[1].split("      remote_signer_process:", 1)[0]
         self.assertIn("default: false", declaration)
         self.assertIn("type: boolean", declaration)
+        identity = workflow.split("      - name: Record exact candidate identity\n", 1)[1].split("      - name:", 1)[0]
         selections = next(line for line in workflow.splitlines() if "for YNX_WINDOW_SELECTED in" in line)
-        self.assertIn("inputs." + name, selections)
+        # Inputs cross the YAML/shell boundary through the explicit env map.
+        # Check every original mode binding and its quoted loop argument; a
+        # renamed or omitted mode must still fail this source contract.
+        for input_name, env_name in (
+            ("paired_n1", "YNX_ENTRY_PAIRED"),
+            ("consensus_e2e", "YNX_ENTRY_LOCAL"),
+            ("consensus_e2e_retained_history", "YNX_ENTRY_LOCAL_RETAINED"),
+            (name, "YNX_ENTRY_REMOTE_RETAINED"),
+            ("remote_signer_process", "YNX_ENTRY_REMOTE_PROCESS"),
+        ):
+            with self.subTest(input_name=input_name):
+                self.assertIn(env_name + ": ${{ inputs." + input_name + " }}", identity)
+                self.assertEqual(selections.count('"$' + env_name + '"'), 1)
+        self.assertNotIn("${{ inputs.", selections)
         process = workflow.split("      - name: Run the separately authorized normal remote signer process\n", 1)[1].split("      - name:", 1)[0]
         self.assertIn("!inputs." + name, process)
         network = workflow.split("      - name: Run the authorized bounded four-validator transition\n", 1)[1].split("      - name:", 1)[0]

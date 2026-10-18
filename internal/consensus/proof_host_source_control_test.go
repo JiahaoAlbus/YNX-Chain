@@ -38,7 +38,25 @@ type proofHostLiveFixture struct {
 // no Node.Start, network listener, daemon or source-selected signer capability.
 func newProofHostLiveFixture(t *testing.T) *proofHostLiveFixture {
 	t.Helper()
-	f := newProofHostSourceFixture(t, "atomic-json", "")
+	return newProofHostLiveFixtureFromTransaction(t, newPQTransactionProofFixture(t))
+}
+
+func newProofHostLiveFixtureFromTransaction(t *testing.T, signed *pqTransactionProofFixture) *proofHostLiveFixture {
+	t.Helper()
+	// testing.TempDir's final child inherits the process umask; it is not an
+	// operator-provisioned 0700 delivery parent. Create our own private child
+	// through the original fixture's exclusive Mkdir, never chmod real inputs.
+	root := filepath.Join(t.TempDir(), "private-live-source")
+	f := newProofHostSourceFixtureFromTransaction(t, signed, "atomic-json", root)
+	checkParents := func() {
+		t.Helper()
+		for _, parent := range []string{f.root, filepath.Dir(f.plan.StateFile)} {
+			if err := proofHostLivePrivateDirectory(parent); err != nil {
+				t.Fatalf("normal live fixture parent %q: %v", parent, err)
+			}
+		}
+	}
+	checkParents()
 	h := f.f.light.harness
 	app, err := NewPersistentApplicationWithEngineAuthorization(h.f.migration, f.plan.StateFile, h.f.bootstrap, f.f.light.authorization)
 	if err != nil {
@@ -70,6 +88,7 @@ func newProofHostLiveFixture(t *testing.T) *proofHostLiveFixture {
 	var stopOnce sync.Once
 	stop := func() { stopOnce.Do(func() { n.OnStop(); _ = n.ProxyApp().Stop() }) }
 	t.Cleanup(stop)
+	checkParents() // The normal constructor must preserve both private parents.
 	pv.blocked = true
 	return &proofHostLiveFixture{f, app, n, pv, dbs, stop}
 }
@@ -157,9 +176,13 @@ func TestProofHostLiveNormalPrivateRequestActualNodeDelivery(t *testing.T) {
 }
 
 func TestProofHostLiveWrongCheckpointKeepsUnknownAndNeverRetargets(t *testing.T) {
+	// Both independent stores retain the same real signed history; only the
+	// separately pinned request coordinate differs. Re-signing cannot affect
+	// this rejection and would needlessly repeat all four validator fixtures.
+	signed := newPQTransactionProofFixture(t)
 	for _, kind := range []string{"wrong-hash", "wrong-height"} {
 		t.Run(kind, func(t *testing.T) {
-			f := newProofHostLiveFixture(t)
+			f := newProofHostLiveFixtureFromTransaction(t, signed)
 			p, path, pin := f.policy(t, 'b', func(plan *ProofHostSourcePlan) {
 				if kind == "wrong-hash" {
 					plan.EngineAppHash = strings.Repeat("c", 64)
@@ -203,9 +226,12 @@ func TestProofHostLiveWrongCheckpointKeepsUnknownAndNeverRetargets(t *testing.T)
 }
 
 func TestProofHostLiveRefusesChangedPolicyTargetAndResidualRequest(t *testing.T) {
+	// Keep each case's paths, stores, Node and one-use consumer independent.
+	// These input-boundary cases only reuse the already verified signed seed.
+	signed := newPQTransactionProofFixture(t)
 	for i, name := range []string{"wrong-pin", "request-retarget", "policy-replaced", "residual-partial", "residual-attempt", "wrong-mode"} {
 		t.Run(name, func(t *testing.T) {
-			f := newProofHostLiveFixture(t)
+			f := newProofHostLiveFixtureFromTransaction(t, signed)
 			p, path, pin := f.policy(t, byte('a'+i), nil)
 			switch name {
 			case "wrong-pin":
