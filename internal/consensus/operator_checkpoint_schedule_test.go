@@ -11,8 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
+	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	dbm "github.com/cometbft/cometbft-db"
 	cmtconsensus "github.com/cometbft/cometbft/consensus"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
@@ -26,15 +29,71 @@ import (
 // commit the registry; no test-supplied registry root becomes a checkpoint.
 func newFourMemberInspectionHarness(t *testing.T) *engineWiringHarness {
 	t.Helper()
-	source := newApplicationInitializationFixture(t)
-	f := &validatorRegistryFixture{migration: source.migration, raw: source.raw, pins: source.pins, bootstrap: source.bootstrap, legacy: make(map[string]ed25519.PrivateKey)}
-	if err := cmtjson.Unmarshal(f.raw, &f.doc); err != nil {
+	// The ordinary initialization fixture deliberately uses the native default
+	// single validator. A four-member proposal must originate from an actual
+	// four-member source, before its history, migration hash and genesis exist.
+	d, err := chain.NewPersistentDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), t.TempDir(), []chain.Validator{
+		{Address: "ynx_validator_primary", Moniker: "ynx-primary", VotingPower: 1, Active: true},
+		{Address: "ynx_validator_singapore", Moniker: "ynx-singapore", VotingPower: 1, Active: true},
+		{Address: "ynx_validator_silicon_valley", Moniker: "ynx-silicon-valley", VotingPower: 1, Active: true},
+		{Address: "ynx_validator_seoul", Moniker: "ynx-seoul", VotingPower: 1, Active: true},
+	})
+	if err != nil {
 		t.Fatal(err)
 	}
-	for i := range f.migration.Validators {
+	owner := mustNativeAddress(t, deterministicPrivateKey(111))
+	recipient := mustNativeAddress(t, deterministicPrivateKey(112))
+	if _, err := d.Faucet(owner, 1000); err != nil {
+		t.Fatal(err)
+	}
+	d.ProduceBlock()
+	if _, err := d.Transfer(owner, recipient, 7); err != nil {
+		t.Fatal(err)
+	}
+	contractSource, _ := boundedContractFixture(t, "SampleEVMWriteCounter")
+	contract, _, err := d.DeployContractWithArgs(owner, "SampleEVMWriteCounter", contractSource, []string{"7"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := d.ExecuteContract(owner, contract.Address, "0x7cf5dab0"+strings.Repeat("0", 63)+"5"); err != nil {
+		t.Fatal(err)
+	}
+	d.ProduceBlock()
+	migration, err := d.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract, _ = d.Contract(contract.Address)
+	position := accountPosition(t, migration.Accounts, owner)
+	if position < 0 || migration.Accounts[position].Nonce == 0 || migration.Runtime == nil || len(migration.Runtime.Blocks) < 2 || len(contract.RuntimeStorage) == 0 {
+		t.Fatal("four-member source must retain funded accounts, actual nonce, executed contract storage and history")
+	}
+	f := &validatorRegistryFixture{legacy: make(map[string]ed25519.PrivateKey)}
+	var bindings []chain.ConsensusValidatorKeyBinding
+	for i, member := range migration.Validators {
 		key := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{byte(i + 91)}, ed25519.SeedSize))
-		address := sha256.Sum256(key.Public().(ed25519.PublicKey))
+		public := key.Public().(ed25519.PublicKey)
+		address := sha256.Sum256(public)
 		f.legacy[string(address[:20])] = key
+		bindings = append(bindings, chain.ConsensusValidatorKeyBinding{ValidatorAddress: member.Address, KeyType: chain.ConsensusPubKeyTypeEd25519, PublicKey: base64.StdEncoding.EncodeToString(public), ConsensusAddress: strings.ToUpper(hex.EncodeToString(address[:20]))})
+	}
+	f.migration, err = migration.BindConsensusValidatorKeys(bindings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.doc, err = BuildCometGenesis(f.migration, time.Date(2026, 10, 18, 1, 2, 3, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.raw, err = cmtjson.Marshal(f.doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(f.raw)
+	f.pins = ConsensusBootstrapPins{CometGenesisSHA256: hex.EncodeToString(digest[:]), OriginalGenesisHash: f.migration.OriginalGenesisHash, MigrationStateHash: f.migration.StateHash}
+	f.bootstrap, err = NewConsensusBootstrap(f.raw, f.pins, f.migration)
+	if err != nil {
+		t.Fatal(err)
 	}
 	t.Cleanup(func() {
 		for _, key := range f.legacy {

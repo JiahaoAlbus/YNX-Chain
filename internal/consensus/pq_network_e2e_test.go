@@ -10,11 +10,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -23,6 +25,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxconsensusauth"
+	dbm "github.com/cometbft/cometbft-db"
 	abci "github.com/cometbft/cometbft/abci/types"
 	cfg "github.com/cometbft/cometbft/config"
 	cmted "github.com/cometbft/cometbft/crypto/ed25519"
@@ -35,8 +38,10 @@ import (
 	"github.com/cometbft/cometbft/privval"
 	"github.com/cometbft/cometbft/proxy"
 	sm "github.com/cometbft/cometbft/state"
+	blockstore "github.com/cometbft/cometbft/store"
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 const (
@@ -197,11 +202,13 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	if registry == nil || len(registry.Events) != 4 {
 		t.Fatal("normal ingress did not commit all four dual possession proofs")
 	}
-	preserved := network.business()
-	if bytes.Equal(beforeMigration, preserved) {
+	if bytes.Equal(beforeMigration, network.business()) {
 		t.Fatal("fixture never committed real migration/history changes")
 	}
-	network.stopAll()
+	// Do not use submit for the final halt-driving transaction: its successor
+	// proof-block wait must never ask an exactly halted node to advance again.
+	h, registry = network.haltOriginalAtCommonHeight(h, registry)
+	preserved := network.business()
 	// The schedule's pin is external startup input derived once from the
 	// independently compared original network checkpoint, not read back from
 	// each state file as self-authority. No registry or checkpoint is invented.
@@ -235,6 +242,16 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	}
 	network.startConstructed(4)
 	network.driveThrough(schedule.ActivationHeight+1, 4)
+	for _, item := range network.nodes {
+		first := item.node.BlockStore().LoadBlock(h + 1)
+		prior := item.node.BlockStore().LoadBlockMeta(h)
+		if first == nil || prior == nil || !first.LastBlockID.Equals(prior.BlockID) {
+			t.Fatal("new profile did not continue at H+1 from the original halted block")
+		}
+		if !bytes.Equal(item.haltRequest, pqNetworkE2ERead(t, item.haltControl.Path)) {
+			t.Fatal("new profile removed or rewrote the original halt request")
+		}
+	}
 	network.verifyTransition()
 	network.verifyCommit(ordinaryHeight, false, 4, false)
 	network.verifyCommit(schedule.ActivationHeight, true, 4, false)
@@ -312,6 +329,9 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 		if height != finalHeight || appHash == "" || meta == nil || item.node.BlockStore().Height() != finalHeight {
 			t.Fatal("final restarted node lost the actual common checkpoint")
 		}
+		if !bytes.Equal(item.haltRequest, pqNetworkE2ERead(t, item.haltControl.Path)) {
+			t.Fatal("final cold restart removed or rewrote the original halt request")
+		}
 		blockHash := hex.EncodeToString(meta.BlockID.Hash)
 		if index == 0 {
 			finalAppHash, finalBlockHash = appHash, blockHash
@@ -367,6 +387,10 @@ type pqNetworkE2ENode struct {
 	lastPQHRS           pqNetworkE2EHRS
 	legacySignedHeight  int64
 	pqSignedHeight      int64
+	appLease            *ApplicationStateWriterLease
+	legacyLease         *ApplicationStateWriterLease
+	haltControl         node.HeightHaltControl
+	haltRequest         []byte
 }
 
 type pqNetworkE2EHRS struct {
@@ -514,6 +538,21 @@ func pqNetworkE2ENew(t *testing.T, ctx context.Context) *pqNetworkE2E {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Fixed before Node.Start, independently of future request/RPC responses.
+	// This public synthetic QA plan is not a production deployment approval.
+	session := sha256.Sum256([]byte("YNX-SYNTHETIC-FOUR-NODE-HEIGHT-HALT-SESSION/v1"))
+	publicPlan, err := json.Marshal(struct {
+		Version, ChainID, GenesisSHA256, SessionID string
+		SyntheticOnly                              bool
+	}{"YNX-SYNTHETIC-FOUR-NODE-HEIGHT-HALT-PLAN/v1", n.doc.ChainID, hex.EncodeToString(sum[:]), hex.EncodeToString(session[:]), true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	planPin := sha256.Sum256(publicPlan)
+	for _, item := range n.nodes {
+		item.haltControl = node.HeightHaltControl{ChainID: n.doc.ChainID, GenesisSHA256: hex.EncodeToString(sum[:]), OperatorPlanSHA256: hex.EncodeToString(planPin[:]), SessionID: hex.EncodeToString(session[:])}
+		item.haltControl.Path = filepath.Join(filepath.Dir(item.appPath), "operator-height-halt-"+item.haltControl.SessionID+".json")
+	}
 	for i, item := range n.nodes {
 		if err := os.WriteFile(item.config.GenesisFile(), n.rawGenesis, 0600); err != nil {
 			t.Fatal(err)
@@ -535,6 +574,7 @@ func pqNetworkE2ENew(t *testing.T, ctx context.Context) *pqNetworkE2E {
 func (n *pqNetworkE2E) startLegacy() {
 	n.t.Helper()
 	for _, item := range n.nodes {
+		n.acquireWriterLeases(item)
 		app, err := NewPersistentApplicationWithBootstrap(n.migration, item.appPath, n.bootstrap)
 		if err != nil {
 			n.t.Fatal(err)
@@ -553,6 +593,9 @@ func (n *pqNetworkE2E) startLegacy() {
 			n.t.Fatal("fresh node invented pre-existing Comet blocks")
 		}
 		n.configureStore(item)
+		if err := item.node.ConfigureHeightHalt(item.haltControl); err != nil {
+			n.t.Fatalf("normal pre-Start height halt configuration: %v", err)
+		}
 	}
 	n.startConstructed(4)
 }
@@ -578,6 +621,7 @@ func (n *pqNetworkE2E) constructPQ(item *pqNetworkE2ENode, initial bool) {
 	if item.node != nil {
 		n.t.Fatal("PQ construction would replace a live original node")
 	}
+	n.acquireWriterLeases(item)
 	app, err := NewPersistentApplicationWithEngineAuthorization(n.migration, item.appPath, n.bootstrap, n.authorization)
 	if err != nil {
 		n.t.Fatalf("normal pinned application restart: %v", err)
@@ -685,9 +729,209 @@ func (n *pqNetworkE2E) stop(index int) {
 		}
 		item.host = nil
 	}
+	for _, lease := range []*ApplicationStateWriterLease{item.legacyLease, item.appLease} {
+		if err := lease.Close(); err != nil {
+			n.t.Errorf("close original normal writer lease: %v", err)
+		}
+	}
+	item.legacyLease, item.appLease = nil, nil
 	if historyErr != nil {
 		n.t.Errorf("validator %d original signing history: %v", index, historyErr)
 	}
+}
+
+func (n *pqNetworkE2E) acquireWriterLeases(item *pqNetworkE2ENode) {
+	n.t.Helper()
+	if item.appLease != nil || item.legacyLease != nil {
+		n.t.Fatal("normal restart attempted to replace a live writer lease")
+	}
+	var err error
+	item.appLease, err = AcquireApplicationStateWriterLease(item.appPath)
+	if err != nil {
+		n.t.Fatal(err)
+	}
+	item.legacyLease, err = AcquireApplicationStateWriterLease(item.config.PrivValidatorStateFile())
+	if err != nil {
+		n.t.Fatal(err)
+	}
+}
+
+func (n *pqNetworkE2E) haltOriginalAtCommonHeight(height int64, originalRegistry *ValidatorRegistryState) (int64, *ValidatorRegistryState) {
+	n.t.Helper()
+	if originalRegistry == nil || len(originalRegistry.Events) != 4 || height > math.MaxInt64-6 {
+		n.t.Fatal("common height halt requires the original complete committed registry and bounded target")
+	}
+	if err := pqNetworkE2EBlockBudget(n.doc.InitialHeight, height, pqNetworkE2ESubmissionBlocks); err != nil {
+		n.t.Fatal(err)
+	}
+	// This bounded fixture disables empty blocks, unlike the production default.
+	// Its actual transfer requires its own block and the following AppHash proof
+	// block; this does not require unfreezing writes in a production cutover.
+	// No fixed sleep claims that a watcher has armed the request.
+	target := height + pqNetworkE2ESubmissionBlocks
+	beforeSender, beforeRecipient := n.account(0, n.recipient), n.account(0, n.owner)
+	payload := n.classicTransfer(n.recipientKey, n.owner, 1)
+	request := node.HeightHaltRequest{Version: "YNX-OPERATOR-HEIGHT-HALT/v1", TargetHeight: strconv.FormatInt(target, 10), ChainID: n.doc.ChainID,
+		GenesisSHA256: n.nodes[0].haltControl.GenesisSHA256, OperatorPlanSHA256: n.nodes[0].haltControl.OperatorPlanSHA256, SessionID: n.nodes[0].haltControl.SessionID}
+	raw, err := json.Marshal(request)
+	if err != nil {
+		n.t.Fatal(err)
+	}
+	digest := sha256.Sum256(raw)
+	requestPin := hex.EncodeToString(digest[:])
+	for index, item := range n.nodes {
+		item.haltRequest = bytes.Clone(raw)
+		publication, err := PublishHeightHaltRequest(raw, requestPin, HeightHaltPublicationOptions{ApplicationStatePath: item.appPath, Control: item.haltControl})
+		if err != nil || publication.Version != "YNX-OPERATOR-HEIGHT-HALT-PUBLISHED/v1" || !publication.Published || publication.NodeStopped || publication.Activation || publication.TargetHeight != request.TargetHeight || publication.RequestSHA256 != requestPin || publication.ControlPath != item.haltControl.Path || publication.ChainID != request.ChainID || publication.GenesisSHA256 != request.GenesisSHA256 || publication.OperatorPlanSHA256 != request.OperatorPlanSHA256 || publication.SessionID != request.SessionID {
+			n.t.Fatalf("validator %d normal single height-halt publication: %v %+v", index, err, publication)
+		}
+	}
+	if response := n.check(payload); response.Code != 0 {
+		n.t.Fatalf("real halt-driving mempool transaction rejected: code=%d log=%s", response.Code, response.Log)
+	}
+	results := make([]node.HeightHaltResult, len(n.nodes))
+	n.wait("common future-height halt checkpoint", func() bool {
+		ready := true
+		for index, item := range n.nodes {
+			if item.node.BlockStore().Height() > target {
+				n.t.Fatal("original node saved a block above the approved halt target")
+			}
+			select {
+			case <-item.node.HeightHaltDone():
+				result, err := item.node.HeightHaltResult()
+				if err != nil || result.Version != "YNX-OPERATOR-HEIGHT-HALT-RESULT/v1" || !result.CheckpointSaved || result.Stopped || result.TargetHeight != request.TargetHeight || result.ControlRequestSHA256 != requestPin || result.ChainID != request.ChainID || result.GenesisSHA256 != request.GenesisSHA256 || result.OperatorPlanSHA256 != request.OperatorPlanSHA256 || result.SessionID != request.SessionID {
+					n.t.Fatalf("validator %d did not reach its actual durable approved halt: %v %+v", index, err, result)
+				}
+				results[index] = result
+			default:
+				ready = false
+			}
+		}
+		return ready
+	})
+	// All four complete the actual target Commit before stopping any transport.
+	// This avoids removing the remaining quorum while another node saves R.
+	n.verifyCommit(target, false, 4, false)
+	n.verifyNativeReceipt(payload, height+1, n.recipient, n.owner, 1, 1, 4)
+	afterSender, afterRecipient := n.account(0, n.recipient), n.account(0, n.owner)
+	if afterSender.Balance != beforeSender.Balance-2 || afterSender.Nonce != beforeSender.Nonce+1 || afterRecipient.Balance != beforeRecipient.Balance+1 || afterRecipient.Nonce != beforeRecipient.Nonce {
+		n.t.Fatal("halt-driving real transaction changed unexpected balances/nonce")
+	}
+	beforeStop := n.business()
+	history := n.blockHashes(4)
+	appBytes, legacyBytes := make([][]byte, len(n.nodes)), make([][]byte, len(n.nodes))
+	finalizeBytes := make([][2][]byte, len(n.nodes))
+	for index, item := range n.nodes {
+		item.app.mu.RLock()
+		appHeight, appHash := item.app.committed.Height, item.app.committed.AppHash
+		item.app.mu.RUnlock()
+		actual, err := item.store.Load()
+		if err != nil || actual.LastBlockHeight != target || appHeight != target || appHash != results[index].AppHash || item.node.BlockStore().Height() != target || item.node.BlockStore().LoadBlockMeta(target+1) != nil || hex.EncodeToString(actual.LastBlockID.Hash) != results[index].BlockHash || hex.EncodeToString(actual.AppHash) != results[index].AppHash {
+			n.t.Fatalf("validator %d halt result differs from actual committed stores: %v", index, err)
+		}
+		transactionBlock := item.node.BlockStore().LoadBlock(height + 1)
+		proofBlock := item.node.BlockStore().LoadBlock(target)
+		response, err := item.store.LoadFinalizeBlockResponse(height + 1)
+		if err != nil || transactionBlock == nil || proofBlock == nil || response == nil || len(transactionBlock.Data.Txs) != 1 || !bytes.Equal(transactionBlock.Data.Txs[0], payload) || len(response.TxResults) != 1 || response.TxResults[0] == nil || response.TxResults[0].Code != 0 || len(proofBlock.Data.Txs) != 0 || !bytes.Equal(proofBlock.LastBlockID.Hash, transactionBlock.Hash()) || !bytes.Equal(proofBlock.AppHash, response.AppHash) {
+			n.t.Fatalf("validator %d halt-driving bytes/result and successor AppHash proof differ: %v", index, err)
+		}
+		result := response.TxResults[0]
+		if result.GasWanted != 0 || result.GasUsed != 1 || result.Log != SignedTransactionType || string(result.Data) != SignedTransactionHash(payload) || !bytes.Equal(proofBlock.LastResultsHash, cmttypes.NewResults(response.TxResults).Hash()) {
+			n.t.Fatal("halt-driving original execution code/data/gas lost its genuine successor result commitment")
+		}
+		for offset := range finalizeBytes[index] {
+			persisted, err := item.store.LoadFinalizeBlockResponse(height + 1 + int64(offset))
+			if err != nil || persisted == nil || offset == 1 && len(persisted.TxResults) != 0 {
+				n.t.Fatalf("halt transaction/proof Finalize result missing: %v", err)
+			}
+			finalizeBytes[index][offset], err = persisted.Marshal()
+			if err != nil {
+				n.t.Fatal(err)
+			}
+		}
+		appBytes[index] = pqNetworkE2ERead(n.t, item.appPath)
+		legacyBytes[index] = pqNetworkE2ERead(n.t, item.config.PrivValidatorStateFile())
+		var signed privval.FilePVLastSignState
+		if err := cmtjson.Unmarshal(legacyBytes[index], &signed); err != nil || signed.Height > target {
+			n.t.Fatalf("validator %d signed beyond the halt target: %v", index, err)
+		}
+		if index > 0 && (results[index].BlockHash != results[0].BlockHash || results[index].AppHash != results[0].AppHash || results[index].AppVersion != results[0].AppVersion) {
+			n.t.Fatal("four durable halt checkpoints differ")
+		}
+	}
+	n.stopAll()
+	if n.t.Failed() {
+		n.t.Fatal("normal halted Node/Host/writer-lease shutdown did not complete")
+	}
+	pins := ConsensusBootstrapPins{CometGenesisSHA256: request.GenesisSHA256, OriginalGenesisHash: n.migration.OriginalGenesisHash, MigrationStateHash: n.migration.StateHash}
+	var coldRegistry *ValidatorRegistryState
+	for index, item := range n.nodes {
+		// This is the normal read-only stopped-source callee. It opens the real
+		// original Comet DB and authenticates the complete App/history under the
+		// existing writer locks; no test-provided checkpoint is substituted.
+		checkpoint, err := InspectOperatorCheckpoint(n.migration, n.rawGenesis, pins, OperatorCheckpointOptions{
+			StatePath: item.appPath, StateLayout: "atomic-json", CometDataDirectory: item.config.DBDir(), SigningStatePath: item.config.PrivValidatorStateFile()})
+		if err != nil || checkpoint.Height != target || checkpoint.AppHash != results[index].AppHash || strconv.FormatUint(checkpoint.AppVersion, 10) != results[index].AppVersion || checkpoint.RegistryRoot != originalRegistry.Root || checkpoint.RegistryEventCount != 4 || !checkpoint.ReadOnly || !checkpoint.SourceReadOnly || !checkpoint.WriterExcluded || !checkpoint.SigningWriterExcluded || !checkpoint.EngineCheckpointVerified || checkpoint.PQActivationVerified || checkpoint.CommittedScheduleHash != nil {
+			n.t.Fatalf("validator %d stopped-source normal inspection: %v %+v", index, err, checkpoint)
+		}
+		coldRaw := pqNetworkE2ERead(n.t, item.appPath)
+		if !bytes.Equal(appBytes[index], coldRaw) || !bytes.Equal(legacyBytes[index], pqNetworkE2ERead(n.t, item.config.PrivValidatorStateFile())) || !bytes.Equal(item.keyBytes, pqNetworkE2ERead(n.t, item.config.PrivValidatorKeyFile())) || !bytes.Equal(item.nodeBytes, pqNetworkE2ERead(n.t, item.config.NodeKeyFile())) || !bytes.Equal(raw, pqNetworkE2ERead(n.t, item.haltControl.Path)) || item.lastLegacyHRS.height > target {
+			n.t.Fatal("normal halt/shutdown/inspection rewrote original App, keys, HRS or request")
+		}
+		var cold CommittedState
+		if err := decodeStrictJSON(coldRaw, &cold); err != nil || cold.Height != target || !reflect.DeepEqual(cold.ValidatorRegistry, originalRegistry) {
+			n.t.Fatalf("cold original registry/history differs: %v", err)
+		}
+		coldRegistry = cold.ValidatorRegistry
+		cold.Height = 0
+		business, err := json.Marshal(cold)
+		if err != nil || !bytes.Equal(business, beforeStop) {
+			n.t.Fatal("stopped cold read lost complete original business state", err)
+		}
+		func() {
+			stateDatabase, err := dbm.NewGoLevelDBWithOpts("state", item.config.DBDir(), &opt.Options{ReadOnly: true, ErrorIfMissing: true, Strict: opt.StrictAll})
+			if err != nil {
+				n.t.Fatal(err)
+			}
+			defer func() {
+				if err := stateDatabase.Close(); err != nil {
+					n.t.Error(err)
+				}
+			}()
+			coldStore := sm.NewStore(stateDatabase, sm.StoreOptions{DiscardABCIResponses: false})
+			for offset, expected := range finalizeBytes[index] {
+				persisted, err := coldStore.LoadFinalizeBlockResponse(height + 1 + int64(offset))
+				if err != nil || persisted == nil {
+					n.t.Fatalf("cold original Finalize response missing: %v", err)
+				}
+				actual, err := persisted.Marshal()
+				if err != nil || !bytes.Equal(actual, expected) {
+					n.t.Fatalf("cold original complete Finalize response changed: %v", err)
+				}
+			}
+			database, err := dbm.NewGoLevelDBWithOpts("blockstore", item.config.DBDir(), &opt.Options{ReadOnly: true, ErrorIfMissing: true, Strict: opt.StrictAll})
+			if err != nil {
+				n.t.Fatal(err)
+			}
+			blocks := blockstore.NewBlockStore(database)
+			defer func() {
+				if err := blocks.Close(); err != nil {
+					n.t.Error(err)
+				}
+			}()
+			if blocks.Height() != target || blocks.LoadBlockMeta(target+1) != nil {
+				n.t.Fatal("cold BlockStore crossed the approved halt boundary")
+			}
+			for h, hash := range history {
+				meta := blocks.LoadBlockMeta(h)
+				if meta == nil || !bytes.Equal(meta.BlockID.Hash, hash) {
+					n.t.Fatalf("cold halt lost original block %d", h)
+				}
+			}
+		}()
+	}
+	n.t.Logf("actual common height halt: target=%d requestSHA256=%s blockHash=%s appHash=%s registryRoot=%s stoppedNodes=4 originalHistoryPreserved=true", target, requestPin, results[0].BlockHash, results[0].AppHash, originalRegistry.Root)
+	return target, coldRegistry
 }
 
 // Read only this isolated fixture's original anti-equivocation files after

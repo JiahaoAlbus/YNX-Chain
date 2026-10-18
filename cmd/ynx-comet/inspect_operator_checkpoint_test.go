@@ -11,11 +11,15 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxconsensusauth"
 	cfg "github.com/cometbft/cometbft/config"
+	cmtjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/mempool"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -47,7 +51,104 @@ type stoppedOperatorInspectionCommandFixture struct {
 
 func newStoppedOperatorInspectionCommandFixture(t *testing.T, register bool) stoppedOperatorInspectionCommandFixture {
 	t.Helper()
+	var f *cometJournalFixture
+	if register {
+		f = newCometInspectionSourceWithMembers(t, 4)
+	} else {
+		f = newCometJournalFixture(t)
+	}
+	return newStoppedOperatorInspectionCommandFixtureWithSource(t, f, register)
+}
+
+// The shared journal fixture intentionally uses the native default membership
+// (one member). A public activation proposal needs a real four-member export,
+// new genesis identity, original-key bindings and proofs for that same source.
+func newCometInspectionSourceWithMembers(t *testing.T, count int) *cometJournalFixture {
+	t.Helper()
+	if count != 3 && count != 4 {
+		t.Fatal("inspection source requires its explicit three- or four-member control")
+	}
 	f := newCometJournalFixture(t)
+	validators := []chain.Validator{
+		{Address: "ynx_validator_primary", Moniker: "ynx-primary", VotingPower: 1, Active: true},
+		{Address: "ynx_validator_seoul", Moniker: "ynx-seoul", VotingPower: 1, Active: true},
+		{Address: "ynx_validator_silicon_valley", Moniker: "ynx-silicon-valley", VotingPower: 1, Active: true},
+		{Address: "ynx_validator_singapore", Moniker: "ynx-singapore", VotingPower: 1, Active: true},
+	}
+	d := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), validators[:count])
+	if _, err := d.Faucet(f.owner, 1000); err != nil {
+		t.Fatal(err)
+	}
+	d.ProduceBlock()
+	migration, err := d.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := make(map[string]ed25519.PrivateKey)
+	defer func() {
+		for _, key := range legacy {
+			clear(key)
+		}
+	}()
+	var bindings []chain.ConsensusValidatorKeyBinding
+	for i, member := range migration.Validators {
+		key := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{byte(i + 81)}, ed25519.SeedSize))
+		public := key.Public().(ed25519.PublicKey)
+		address := sha256.Sum256(public)
+		legacy[string(address[:20])] = key
+		bindings = append(bindings, chain.ConsensusValidatorKeyBinding{ValidatorAddress: member.Address, KeyType: chain.ConsensusPubKeyTypeEd25519, PublicKey: base64.StdEncoding.EncodeToString(public), ConsensusAddress: strings.ToUpper(hex.EncodeToString(address[:20]))})
+	}
+	f.migration, err = migration.BindConsensusValidatorKeys(bindings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.doc, err = consensus.BuildCometGenesis(f.migration, f.doc.GenesisTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := cmtjson.Marshal(f.doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	genesis := sha256.Sum256(raw)
+	f.bootstrap, err = consensus.NewConsensusBootstrap(raw, consensus.ConsensusBootstrapPins{CometGenesisSHA256: hex.EncodeToString(genesis[:]), OriginalGenesisHash: f.migration.OriginalGenesisHash, MigrationStateHash: f.migration.StateHash}, f.migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.migration.Validators) != count || len(f.doc.Validators) != count {
+		t.Fatal("explicit native membership did not survive the original export and key binding")
+	}
+	f.wires = nil
+	for _, member := range f.doc.Validators {
+		candidate, pka, pkb, err := ynxconsensusauth.GenerateCandidateKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+		intent := ynxconsensusauth.RegistrationIntent{Kind: ynxconsensusauth.RegisterValidator, GenesisID: bytes.Clone(genesis[:]), ChainID: f.doc.ChainID, ValidatorAddress: bytes.Clone(member.Address), Sequence: 1, Epoch: 1, ApprovedAt: f.doc.InitialHeight, EffectiveAt: f.doc.InitialHeight + 2, PreviousEventHash: make([]byte, 32), LegacyEd25519PublicKey: bytes.Clone(member.PubKey.Bytes()), MLDSA87PublicKey: pka, SLHDSASHA2256fPublicKey: pkb}
+		a, b, err := candidate.RegistrationPossession(intent)
+		candidate.Destroy()
+		if err != nil {
+			t.Fatal(err)
+		}
+		message, err := intent.AuthoritySigningBytes()
+		if err != nil {
+			t.Fatal(err)
+		}
+		wire, err := (ynxconsensusauth.Registration{Intent: intent, LegacyApproval: ed25519.Sign(legacy[string(member.Address)], message), PossessionMLDSA87: a, PossessionSLHDSASHA2256f: b}).MarshalBinary()
+		if err != nil {
+			t.Fatal(err)
+		}
+		tx, err := consensus.EncodeValidatorRegistryTransaction(wire)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.wires = append(f.wires, tx)
+	}
+	return f
+}
+
+func newStoppedOperatorInspectionCommandFixtureWithSource(t *testing.T, f *cometJournalFixture, register bool) stoppedOperatorInspectionCommandFixture {
+	t.Helper()
 	config, options := bootstrapStartupFixture(t, f, "atomic-json")
 	originals := bootstrapOriginalBytes(t, config, options)
 	appLease, err := consensus.AcquireApplicationStateWriterLease(options.state)
@@ -242,6 +343,31 @@ func TestInspectOperatorCheckpointNormalCommandProposesCanonicalSchedule(t *test
 	stateAfter, err := os.ReadFile(f.options.state)
 	if err != nil || !bytes.Equal(stateBefore, stateAfter) {
 		t.Fatal("normal proposal wrote original state", err)
+	}
+	assertBootstrapOriginalBytes(t, f.originals)
+}
+
+func TestInspectOperatorCheckpointNormalCommandRejectsThreeOriginalMembers(t *testing.T) {
+	f := newStoppedOperatorInspectionCommandFixtureWithSource(t, newCometInspectionSourceWithMembers(t, 3), true)
+	plain, err := executeOperatorInspection(f.args)
+	if err != nil {
+		t.Fatal("actual three-member source inspection failed before proposal control", string(plain), err)
+	}
+	var result consensus.OperatorCheckpointResult
+	if err := json.Unmarshal(plain, &result); err != nil || result.RegistryEventCount != 3 || !result.EngineCheckpointVerified {
+		t.Fatal("negative control did not commit three actual registrations", result, err)
+	}
+	stateBefore, err := os.ReadFile(f.options.state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	args := append(append([]string(nil), f.args...), "--propose-pq-activation-height", strconv.FormatInt(f.actual.LastBlockHeight+4, 10))
+	if output, err := executeOperatorInspection(args); err == nil || len(output) != 0 {
+		t.Fatal("three original members were accepted as a four-member public activation source", string(output), err)
+	}
+	stateAfter, err := os.ReadFile(f.options.state)
+	if err != nil || !bytes.Equal(stateBefore, stateAfter) {
+		t.Fatal("rejected three-member proposal changed original state", err)
 	}
 	assertBootstrapOriginalBytes(t, f.originals)
 }
