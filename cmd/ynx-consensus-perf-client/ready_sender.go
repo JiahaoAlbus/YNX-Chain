@@ -206,18 +206,27 @@ type readySupplyStats struct {
 	JournalDurableBytes           int   `json:"journalDurableBytes"`
 }
 
+type endpointDispatchStats struct {
+	Workers                  int       `json:"workers"`
+	PerEndpointInFlightLimit int       `json:"perEndpointInFlightLimit"`
+	QueueCapacityTotal       int       `json:"queueCapacityTotal"`
+	CallbackAttempts         [4]uint64 `json:"callbackAttempts"`
+	CallbackReturns          [4]uint64 `json:"callbackReturns"`
+}
+
 type readySenderStats struct {
-	EvidenceBudget  *readyEvidenceBudgetReport `json:"evidenceBudget,omitempty"`
-	IntentSegments  *readyIntentSegmentReport  `json:"intentSegments,omitempty"`
-	Supply          readySupplyStats           `json:"supply"`
-	Prepared        int                        `json:"prepared"`
-	Offered         int                        `json:"offered"`
-	Completed       int                        `json:"completed"`
-	Quarantined     int                        `json:"quarantinedAccounts"`
-	PeakInFlight    int                        `json:"peakInFlightAccounts"`
-	RoundsCompleted int                        `json:"roundsCompleted"`
-	Queues          pacedStatistics            `json:"queues"`
-	BoundedSummary  *readyCumulativeReport     `json:"boundedSummary,omitempty"`
+	EndpointDispatch *endpointDispatchStats     `json:"endpointDispatch,omitempty"`
+	EvidenceBudget   *readyEvidenceBudgetReport `json:"evidenceBudget,omitempty"`
+	IntentSegments   *readyIntentSegmentReport  `json:"intentSegments,omitempty"`
+	Supply           readySupplyStats           `json:"supply"`
+	Prepared         int                        `json:"prepared"`
+	Offered          int                        `json:"offered"`
+	Completed        int                        `json:"completed"`
+	Quarantined      int                        `json:"quarantinedAccounts"`
+	PeakInFlight     int                        `json:"peakInFlightAccounts"`
+	RoundsCompleted  int                        `json:"roundsCompleted"`
+	Queues           pacedStatistics            `json:"queues"`
+	BoundedSummary   *readyCumulativeReport     `json:"boundedSummary,omitempty"`
 }
 
 // This controller alone signs/advances account state. Submitters and observers
@@ -225,6 +234,9 @@ type readySenderStats struct {
 // There is one reserved/in-flight nonce per sender, with no whole-round barrier.
 // Unknown/rejected/failed/timed-out senders are quarantined while peers continue.
 func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, txs []cmttypes.Tx, results []transactionResult, submit func(int) (time.Time, bool), observe func(int, <-chan acceptedObservation, func(int))) (stats readySenderStats, runErr error) {
+	if o.endpointFair && (o.concurrency != 4 || o.observers != 4) {
+		return stats, errors.New("endpoint fairness requires exactly the original four submitters and observers")
+	}
 	if _, err := normalizeReadyPacingMode(o.pacingMode); err != nil {
 		return stats, err
 	}
@@ -317,7 +329,18 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		return stats, err
 	}
 	defer func() { runErr = errors.Join(runErr, journal.close()) }()
-	jobs := make(chan int, len(results))
+	var jobs chan int
+	var endpointJobs [4]chan int
+	if o.endpointFair {
+		stats.EndpointDispatch = &endpointDispatchStats{Workers: 4, PerEndpointInFlightLimit: 1, QueueCapacityTotal: len(results)}
+		for endpoint := range endpointJobs {
+			// Sum of capacities equals the old shared queue. No extra pool,
+			// authority substitution, retry or per-sender nonce advancement.
+			endpointJobs[endpoint] = make(chan int, (len(results)+3-endpoint)/4)
+		}
+	} else {
+		jobs = make(chan int, len(results))
+	}
 	type completion struct{ index, generation int }
 	terminal := make(chan completion, len(results))
 	accepted := make([]chan acceptedObservation, o.observers)
@@ -335,13 +358,23 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		}(worker)
 	}
 	for worker := 0; worker < o.concurrency; worker++ {
+		queue := jobs
+		if o.endpointFair {
+			queue = endpointJobs[worker]
+		}
 		submitters.Add(1)
-		go func() {
+		go func(worker int, queue <-chan int) {
 			defer submitters.Done()
-			for index := range jobs {
+			for index := range queue {
 				generation := resultGeneration(index)
 				pendingSubmit.Add(-1)
+				if o.endpointFair {
+					stats.EndpointDispatch.CallbackAttempts[worker]++
+				}
 				started, ok := submit(index)
+				if o.endpointFair {
+					stats.EndpointDispatch.CallbackReturns[worker]++
+				}
 				if !started.IsZero() {
 					delay := started.Sub(results[index].offerMonotonic).Seconds() * 1000
 					results[index].QueueDelayMs = &delay
@@ -353,7 +386,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 					terminal <- completion{index, generation}
 				}
 			}
-		}()
+		}(worker, queue)
 	}
 	closed := false
 	stopSubmitting := func() {
@@ -361,7 +394,13 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			return
 		}
 		closed = true
-		close(jobs)
+		if o.endpointFair {
+			for _, queue := range endpointJobs {
+				close(queue)
+			}
+		} else {
+			close(jobs)
+		}
 		submitters.Wait()
 		for _, queue := range accepted {
 			close(queue)
@@ -565,7 +604,11 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			}
 			atomicMaximum(&peakSubmit, pendingSubmit.Add(1))
 			dispatchStarted := time.Now()
-			jobs <- index
+			if o.endpointFair {
+				endpointJobs[index%4] <- index
+			} else {
+				jobs <- index
+			}
 			stats.Supply.DispatchAttempts++
 			stats.Supply.DispatchNs += time.Since(dispatchStarted).Nanoseconds()
 			catchup, reset := pacer.advance(now)

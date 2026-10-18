@@ -35,6 +35,7 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 	t.Run("reused_slots", func(t *testing.T) { testReadySenderFastAccount(t, true) })
 	t.Run("bounded_cadence", func(t *testing.T) { testReadySenderPacing(t, false, "bounded-cadence") })
 	t.Run("grouped_cadence4", func(t *testing.T) { testReadySenderPacing(t, false, "grouped-cadence4") })
+	t.Run("endpoint_fair_reused_slots", func(t *testing.T) { testReadySenderPacing(t, true, "relative", false, true) })
 }
 
 func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...bool) {
@@ -43,6 +44,7 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 
 func testReadySenderPacing(t *testing.T, reuseSlots bool, pacingMode string, segmentOption ...bool) {
 	segmented := len(segmentOption) > 0 && segmentOption[0]
+	endpointFair := len(segmentOption) > 1 && segmentOption[1]
 	path, manifest, m, migration, initial := senderFixture(t)
 	p, err := loadSenderPool(path, manifest, m, migration, initial, 2)
 	if err != nil {
@@ -76,7 +78,7 @@ func testReadySenderPacing(t *testing.T, reuseSlots bool, pacingMode string, seg
 	var finalizeNs, commitNs int64
 	var finalizeCalls, commitCalls int
 	controllerStarted := time.Now()
-	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, pacingMode: pacingMode, terminalSink: stream.append, reuseResultSlots: reuseSlots, segmentedIntents: segmented}, p, txs, results,
+	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, pacingMode: pacingMode, endpointFair: endpointFair, terminalSink: stream.append, reuseResultSlots: reuseSlots, segmentedIntents: segmented}, p, txs, results,
 		func(index int) (time.Time, bool) {
 			var data []byte
 			var readErr error
@@ -165,6 +167,9 @@ func testReadySenderPacing(t *testing.T, reuseSlots bool, pacingMode string, seg
 			})
 		})
 	controllerNs := time.Since(controllerStarted).Nanoseconds()
+	if endpointFair != (stats.EndpointDispatch != nil) {
+		t.Fatal("candidate dispatch leaked into legacy default", stats.EndpointDispatch)
+	}
 	if err != nil || !fastOffered.Load() || stats.Completed != 6 || stats.Offered != 6 || stats.Prepared != 6 || stats.RoundsCompleted != 2 || stats.Quarantined != 0 || stats.PeakInFlight > 3 || !p.stopped {
 		t.Fatalf("continuous ready run failed: %+v %v", stats, err)
 	}

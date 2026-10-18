@@ -25,6 +25,42 @@ import (
 // are real local application work. Quorum/Merkle flags are explicit unit gate
 // inputs, never CometBFT network finality or a four-node performance result.
 func TestEndpointFairSignedRequestsProgressPastOneDelayedEndpoint(t *testing.T) {
+	testEndpointFairRPC(t, "slow")
+}
+func TestEndpointFairUnknownIdentityIsNeverRetried(t *testing.T) { testEndpointFairRPC(t, "unknown") }
+func TestEndpointFairCancellationKeepsLateReplyUnknown(t *testing.T) {
+	testEndpointFairRPC(t, "cancel_late")
+}
+
+func TestEndpointFairOptionGuardPreservesLegacyDefault(t *testing.T) {
+	o := options{manifest: "manifest", transactions: "transactions", output: "new-result.json", timeout: 10 * time.Second, poll: 100 * time.Millisecond, rounds: 2, senderMode: "ready-pool", offeredRate: 512, concurrency: 4, observers: 4, endpointFair: true}
+	if err := validateOptions(o); err != nil {
+		t.Fatal(err)
+	}
+	for _, mode := range []string{"workers", "observers", "sender_mode", "unpaced"} {
+		changed := o
+		switch mode {
+		case "workers":
+			changed.concurrency = 3
+		case "observers":
+			changed.observers = 3
+		case "sender_mode":
+			changed.senderMode = "rounds"
+		case "unpaced":
+			changed.offeredRate = 0
+		}
+		if validateOptions(changed) == nil {
+			t.Fatal("candidate widened original worker/endpoint scope", mode)
+		}
+	}
+	o.endpointFair = false
+	o.concurrency = 3
+	if err := validateOptions(o); err != nil {
+		t.Fatal("default legacy selection changed", err)
+	}
+}
+
+func testEndpointFairRPC(t *testing.T, mode string) {
 	path, manifest, m, migration, initial := senderFixture(t, 16)
 	pool, err := loadSenderPool(path, manifest, m, migration, initial, 2)
 	if err != nil {
@@ -53,6 +89,9 @@ func TestEndpointFairSignedRequestsProgressPastOneDelayedEndpoint(t *testing.T) 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	release, saturated, fast := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	normalDone, lateDone := make(chan struct{}), make(chan struct{})
+	var normalOnce sync.Once
+	var completed atomic.Int64
 	var releaseOnce, saturatedOnce, fastOnce sync.Once
 	releaseSlow := func() { releaseOnce.Do(func() { close(release) }) }
 	defer releaseSlow()
@@ -95,7 +134,7 @@ func TestEndpointFairSignedRequestsProgressPastOneDelayedEndpoint(t *testing.T) 
 			n := active[endpoint].Add(1)
 			atomicMaximum(&peaks[endpoint], n)
 			defer active[endpoint].Add(-1)
-			if endpoint == 0 {
+			if endpoint == 0 && mode == "slow" {
 				if n == 4 {
 					saturatedOnce.Do(func() { close(saturated) })
 				}
@@ -114,8 +153,18 @@ func TestEndpointFairSignedRequestsProgressPastOneDelayedEndpoint(t *testing.T) 
 				http.Error(w, "check failed", 500)
 				return
 			}
+			if mode == "cancel_late" && index == 0 {
+				<-release
+			}
+			responseHash := cmttypes.Tx(request.Params.Tx).Hash()
+			if mode == "unknown" && index == 0 {
+				responseHash = make([]byte, 32)
+			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": coretypes.ResultBroadcastTx{Code: checked.Code, Log: checked.Log, Hash: cmttypes.Tx(request.Params.Tx).Hash()}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc": "2.0", "id": request.ID, "result": coretypes.ResultBroadcastTx{Code: checked.Code, Log: checked.Log, Hash: responseHash}})
+			if mode == "cancel_late" && index == 0 {
+				close(lateDone)
+			}
 		}))
 		defer server.Close()
 		urls[endpoint] = server.URL
@@ -169,46 +218,98 @@ func TestEndpointFairSignedRequestsProgressPastOneDelayedEndpoint(t *testing.T) 
 					r.DurableStoreFormat = evidence.StoreFormat
 					results[job.index] = r
 					execution.Unlock()
+					if completed.Add(1) == 24 && mode == "cancel_late" {
+						normalOnce.Do(func() { close(normalDone) })
+					}
 					terminal(job.index)
 				}
 			})
 		done <- outcome{stats, err}
 	}()
-	progressed := false
-	select {
-	case <-fast:
-		progressed = true
-	case <-saturated:
-	case <-ctx.Done():
-		t.Error("controlled completion deadline", ctx.Err())
+	progressed := mode != "slow"
+	if mode == "slow" {
+		select {
+		case <-fast:
+			progressed = true
+		case <-saturated:
+		case <-ctx.Done():
+			t.Error("controlled completion deadline", ctx.Err())
+		}
+		releaseSlow()
+	} else if mode == "cancel_late" {
+		select {
+		case <-normalDone:
+		case <-ctx.Done():
+			t.Error("healthy endpoint completion deadline", ctx.Err())
+		}
+		cancel()
 	}
-	releaseSlow()
 	result := <-done
-	if result.err != nil || result.stats.Completed != 32 || result.stats.Offered != 32 || result.stats.RoundsCompleted != 2 || result.stats.Quarantined != 0 {
-		t.Fatal("original business counts changed", result.stats, result.err)
+	if mode == "cancel_late" {
+		beforeLate := results[0].Status
+		releaseSlow()
+		select {
+		case <-lateDone:
+		case <-time.After(time.Second):
+			t.Fatal("late server reply did not complete")
+		}
+		if beforeLate != "submission_unknown" || results[0].Status != "submission_unknown" || results[0].CheckTxObservedAt != nil || qualifiedBusinessFinal(results[0]) {
+			t.Fatal("late reply replayed or promoted UNKNOWN")
+		}
 	}
+	final, offered, submitted, unknown, quarantined := 32, 32, 32, 0, 0
+	if mode == "unknown" {
+		final, offered, submitted, unknown, quarantined = 30, 31, 31, 1, 1
+	}
+	if mode == "cancel_late" {
+		final, offered, submitted, unknown, quarantined = 24, 28, 25, 1, 4
+	}
+	if (mode == "slow" && result.err != nil) || (mode != "slow" && result.err == nil) || result.stats.Completed != final || result.stats.Offered != offered || result.stats.Quarantined != quarantined {
+		t.Fatal("original business/quarantine counts changed", mode, result.stats, result.err)
+	}
+	suppressed := func(i int) bool { return mode == "unknown" && i%16 == 0 || mode == "cancel_late" && i%4 == 0 }
 	mu.Lock()
 	for i := 0; i < 32; i++ {
-		if requests[i] != 1 || results[i].Endpoint != urls[i%4] || !qualifiedBusinessFinal(results[i]) {
-			t.Fatal("request replay/authority/business drift", i, requests[i], results[i].Status)
+		want := 1
+		if mode == "unknown" && i == 16 || mode == "cancel_late" && i%4 == 0 && i != 0 {
+			want = 0
+		}
+		if requests[i] != want || results[i].Endpoint != urls[i%4] || (!suppressed(i) && !qualifiedBusinessFinal(results[i])) {
+			t.Fatal("request replay/authority/business drift", mode, i, requests[i], results[i].Status)
 		}
 	}
 	mu.Unlock()
 	counts := summarize(results, 0)
-	if counts.Offered != 32 || counts.Submitted != 32 || counts.CheckTxAccepted != 32 || counts.EffectiveBusinessIncluded != 32 || counts.FinalSubmitted != 32 || counts.SubmissionUnknown != 0 {
-		t.Fatal("original submission/inclusion/final counters drifted", counts)
+	if counts.Offered != offered || counts.Submitted != submitted || counts.EffectiveBusinessIncluded != final || counts.FinalSubmitted != final || counts.SubmissionUnknown != unknown || counts.NotSubmitted != 32-submitted {
+		t.Fatal("original submission/inclusion/final counters drifted", mode, counts)
+	}
+	if result.stats.EndpointDispatch == nil || result.stats.EndpointDispatch.Workers != 4 || result.stats.EndpointDispatch.PerEndpointInFlightLimit != 1 || result.stats.EndpointDispatch.QueueCapacityTotal != 32 {
+		t.Fatal("candidate changed original worker/queue bound", result.stats.EndpointDispatch)
+	}
+	callbacks, returns := uint64(0), uint64(0)
+	for i := range result.stats.EndpointDispatch.CallbackAttempts {
+		callbacks += result.stats.EndpointDispatch.CallbackAttempts[i]
+		returns += result.stats.EndpointDispatch.CallbackReturns[i]
+	}
+	if callbacks != uint64(offered) || returns != callbacks {
+		t.Fatal("callback effect count changed", result.stats.EndpointDispatch)
 	}
 	reopened, err := consensus.NewPersistentApplication(migration, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	query, err := reopened.Query(ctx, &abci.RequestQuery{Path: "/state"})
+	query, err := reopened.Query(context.Background(), &abci.RequestQuery{Path: "/state"})
 	var state consensus.CommittedState
-	if err != nil || json.Unmarshal(query.Value, &state) != nil || len(state.FeeEvents) != 32 {
+	if err != nil || json.Unmarshal(query.Value, &state) != nil || len(state.FeeEvents) != final {
 		t.Fatal("durable restart/fee count changed", err)
 	}
 	for _, account := range state.Accounts {
-		if _, ok := senders[account.Address]; ok && (account.Nonce != 2 || account.Balance != 9996) {
+		sender, ok := senders[account.Address]
+		nonce, balance := uint64(2), int64(9996)
+		if suppressed(sender) {
+			nonce, balance = 0, 10000
+		}
+		if ok && (account.Nonce != nonce || account.Balance != balance) {
 			t.Fatal("durable sender nonce/balance changed", account)
 		}
 	}
