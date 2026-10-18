@@ -61,7 +61,7 @@ async function requestFixture() {
  const originalFS=require('node:fs/promises'),observedFS={...originalFS,async open(...args){const handle=await originalFS.open(...args);const read=handle.read.bind(handle);handle.read=async(...values)=>{await hooks.headerRead?.();return read(...values);};return handle;}};
  vm.runInNewContext(await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='node:fs/promises'?observedFS:name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async saved=>{if(hooks.verify)return hooks.verify(saved,toolchain);if(saved?.root!==toolchain.root)return helpers.verifyToolchain(saved,{YNX_IDE_GO_ROOT:toolchain.root});return toolchain;}}:require(name)});
  const file=join(root,'hello.go');await writeFile(file,'package main; func main() {}');
- const document={uri:{scheme:'file',fsPath:file},version:1,isDirty:false,isClosed:false,save:async()=>true},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),editorListeners=new Set();
+ const document={uri:{scheme:'file',fsPath:file},version:1,isDirty:false,isClosed:false,save:async()=>true},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),startListeners=new Set(),editorListeners=new Set();
  let saved,picks=0,notices=0,workflow;
  const executions=[],submitted=[];
  class Task {constructor(definition,scope,name,source,execution,matchers){Object.assign(this,{definition,scope,name,source,execution,matchers});}}
@@ -69,8 +69,9 @@ async function requestFixture() {
  const api={workspace:{isTrusted:true,workspaceFolders:[folder],textDocuments:[],getConfiguration:()=>({inspect:()=>({workspaceFolderValue:saved}),update:async(key,value)=>{saved=value;await hooks.update?.();}})},
   window:{activeTextEditor:{document},onDidChangeActiveTextEditor:fn=>{editorListeners.add(fn);return{dispose:()=>editorListeners.delete(fn)};},showQuickPick:async items=>{picks++;return hooks.pick?hooks.pick(items):items[0];},showInformationMessage:()=>{notices++;hooks.notice?.();return new Promise(()=>{});}},
   CancellationTokenSource:class {token={};cancel(){}dispose(){}},ConfigurationTarget:{WorkspaceFolder:3},Task,ProcessExecution,TaskGroup:{Build:'build',Test:'test'},TaskRevealKind:{Always:1},TaskPanelKind:{Shared:1},
-  tasks:{registerTaskProvider:()=>({dispose(){}}),onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async task=>{
+  tasks:{registerTaskProvider:()=>({dispose(){}}),onDidStartTask:fn=>{startListeners.add(fn);return{dispose:()=>startListeners.delete(fn)};},onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async task=>{
    executions.push(task.definition.stage);submitted.push(task);const execution={task,terminate(){}};
+   if(hooks.signalStart)for(const fn of startListeners)fn({execution});
    if(hooks.execute)return hooks.execute(task,execution,listeners);
    if(task.definition.stage==='build' && hooks.buildExit===0){const output=task.execution.args[task.execution.args.indexOf('-o')+1];await writeFile(output,Buffer.from('cffaedfe','hex'));await chmod(output,0o700);}
    setImmediate(()=>{for(const fn of listeners)fn({execution,exitCode:task.definition.stage==='build'?hooks.buildExit:task.definition.stage==='test'?(hooks.testExit??0):0});});return execution;
@@ -449,4 +450,31 @@ test('persisted Go choice without current runtime admission uses native selectio
   const workflow=createGoTasks(api,{subscriptions:[]},{YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'});
   await workflow.run();assert.equal(selections,1);assert.equal(launches,0);assert.equal(writes,0);assert.equal(workflow.status().running,false);workflow.dispose();
  }finally{await rm(root,{recursive:true,force:true});}
+});
+
+test('a started Go task with a lost reply keeps ownership, terminates once and releases only on its own end',{timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  let end,foreignEnd,terminations=0;const failure=Error('accepted task reply lost');f.hooks.signalStart=true;
+  f.hooks.execute=async(task,execution,listeners)=>{execution.terminate=()=>{terminations++;};end=()=>{for(const fn of listeners)fn({execution,exitCode:143});};foreignEnd=()=>{for(const fn of listeners)fn({execution:{task:{definition:{...task.definition,runId:'foreign'}}},exitCode:0});};throw failure;};
+  await assert.rejects(f.workflow.run(),error=>error===failure);assert.equal(terminations,1);assert.equal(f.workflow.status().running,true);
+  await assert.rejects(f.workflow.run(),/already running/);foreignEnd();assert.equal(f.workflow.status().running,true);
+  assert.equal(f.workflow.cancel(),true);assert.equal(terminations,1);end();assert.equal(f.workflow.status().running,false);
+  delete f.hooks.execute;await f.workflow.run();assert.deepEqual(f.executions,['build','build','run']);assert.equal(terminations,1);
+ }finally{await f.close();}
+});
+test('cancellation after observed start stops once before a late reply and never revives the old request',{timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  let reply,terminations=0;f.hooks.signalStart=true;
+  f.hooks.execute=(task,execution,listeners)=>new Promise(resolve=>{reply=()=>resolve(execution);execution.terminate=()=>{terminations++;for(const fn of listeners)fn({execution,exitCode:143});};});
+  const pending=f.workflow.run();while(!reply)await new Promise(resolve=>setImmediate(resolve));assert.equal(f.workflow.cancel(),true);
+  assert.equal((await pending).cancelled,true);assert.equal(terminations,1);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.execute;await f.workflow.run();reply();await new Promise(resolve=>setImmediate(resolve));assert.equal(terminations,1);assert.deepEqual(f.executions,['build','build','run']);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}
+});
+test('a started task missing its reply handle retains first failure when owned termination also fails',async()=>{
+ const task={definition:{runId:'owned',stage:'build'}},operation={cancelled:false},ends=new Set();let start,terminated=0;
+ const api={tasks:{onDidStartTask:fn=>{start=fn;return{dispose(){}};},onDidEndTaskProcess:fn=>{ends.add(fn);return{dispose:()=>ends.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async()=>{start({execution:{task,terminate(){terminated++;throw Error('cleanup refused');}}});return undefined;}}};
+ await assert.rejects(executeGoTask(api,task,operation),/did not return a live execution/);
+ assert.match(operation.failure.message,/did not return/);assert.equal(operation.cleanupFailure.message,'cleanup refused');assert.equal(operation.cleanupPending,true);assert.equal(terminated,1);
+ operation.execution.terminate();assert.equal(terminated,1);for(const fn of ends)fn({execution:{task},exitCode:143});assert.equal(operation.cleanupPending,false);assert.equal(ends.size,0);
 });

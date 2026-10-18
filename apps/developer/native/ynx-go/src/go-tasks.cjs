@@ -184,21 +184,42 @@ function waitForSignal(start,signal) {
 }
 function executeGoTask(api,task,operation) {
   return new Promise((resolve,reject)=>{
-   let done=false,execution;const matches=event=>event?.execution?.task?.definition?.runId===task.definition.runId && event.execution.task.definition.stage===task.definition.stage;
-   const cleanup=()=>{processEnd.dispose();taskEnd.dispose();if(operation.execution===execution)operation.execution=undefined;};
+   let done=false,execution,terminationRequested=false,startListener;
+   const matches=event=>event?.execution?.task?.definition?.runId===task.definition.runId && event.execution.task.definition.stage===task.definition.stage;
+   const ownedExecution={task,terminate:()=>terminateOwned()};
+   const cleanup=()=>{processEnd.dispose();taskEnd.dispose();startListener?.dispose();if(operation.execution===ownedExecution)operation.execution=undefined;};
    const finish=(error,code)=>{
-    if(done){if(!error && operation.cleanupPending){operation.cleanupPending=false;cleanup();operation.onCleanup?.();}return;}
+    if(error && !operation.failure)operation.failure=error;
+    if(done){
+     if(error){operation.cleanupFailure ||= error;return;}
+     if(operation.cleanupPending){operation.cleanupPending=false;cleanup();operation.onCleanup?.();}
+     return;
+    }
     done=true;
-    if(error && execution){operation.cleanupPending=true;reject(error);return;}
+    if(error && execution){operation.cleanupPending=true;reject(error);terminateOwned();return;}
     cleanup();error?reject(error):resolve(code);
    };
+   function terminateOwned(){
+    if(!execution || terminationRequested)return;
+    terminationRequested=true;
+    try {Promise.resolve(execution.terminate()).catch(error=>finish(error));}
+    catch(error){finish(error);}
+   }
    const processEnd=api.tasks.onDidEndTaskProcess(event=>{if(matches(event))finish(undefined,event.exitCode);});
    const taskEnd=api.tasks.onDidEndTask(event=>{if(matches(event))finish(undefined,undefined);});
+   // The framework start event can precede the executeTask RPC reply. Retain
+   // this exact handle even if that reply fails; it is not proof of no process.
+   startListener=api.tasks.onDidStartTask?.(event=>{
+    if(done || !matches(event) || typeof event.execution.terminate!=='function')return;
+    execution ||= event.execution;operation.execution=ownedExecution;
+    if(operation.cancelled)terminateOwned();
+   });
    Promise.resolve().then(()=>{if(operation.cancelled){finish(undefined,undefined);return;}return api.tasks.executeTask(task);}).then(value=>{
-    execution=value;if(done)return;
-    if(!value || typeof value.terminate!=='function'){execution=undefined;finish(Error('Go task did not return a live execution. Check its task terminal before retrying.'));return;}
-    operation.execution=value;if(operation.cancelled)value.terminate();
+    if(done)return;
+    if(!value || typeof value.terminate!=='function'){finish(Error('Go task did not return a live execution. Check its task terminal before retrying.'));return;}
+    execution ||= value;operation.execution=ownedExecution;if(operation.cancelled)terminateOwned();
    }).catch(error=>finish(error));
   });
  }
+
 module.exports={createGoTasks,validTarget,executeGoTask};
