@@ -68,6 +68,37 @@ jobs:
           scripts/loadtest/native-resource-probe.test.mjs
           scripts/loadtest/owned-process-race.test.mjs
           scripts/loadtest/same-control-readback.test.mjs
+      - name: Prepare matched Commit probe dependencies
+        env:
+          GOMAXPROCS: "1"
+          GOGC: "50"
+          GOMEMLIMIT: "160MiB"
+        run: |
+          mkdir -p "$RUNNER_TEMP/ynx-commit-storage-pair"
+          git rev-parse HEAD HEAD:internal HEAD:cmd/ynx-consensus-perf-client > "$RUNNER_TEMP/ynx-commit-storage-pair/source-pins.txt"
+          go version > "$RUNNER_TEMP/ynx-commit-storage-pair/go-version.txt"
+          go mod download 2>&1 | tee "$RUNNER_TEMP/ynx-commit-storage-pair/dependencies.log"
+      - name: Measure matched Commit storage and crash recovery
+        env:
+          GOMAXPROCS: "1"
+          GOGC: "50"
+          GOMEMLIMIT: "160MiB"
+          GOPROXY: "off"
+          GOTOOLCHAIN: "local"
+          GOFLAGS: "-mod=readonly"
+          GOWORK: "off"
+          YNX_CHAIN_PERF: "1"
+          YNX_CHAIN_PERF_DIR: ${{ runner.temp }}/ynx-commit-storage-pair
+        run: |
+          go test -p 1 ./internal/consensus -run '^(TestCommitStorageMatchedPerformance|TestBlockJournalAbruptExit|TestBlockJournalFailedWriterRetiresWithoutPublishing)$' -count=1 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-commit-storage-pair/go-test.log"
+      - name: Retain actual matched Commit evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: commit-storage-pair-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-commit-storage-pair
+          if-no-files-found: error
+          retention-days: 90
       - run: npm ci
       - run: npm run hardhat:build
       - run: make static-check

@@ -1,0 +1,335 @@
+{
+  "case": "commit-pair-01",
+  "rawPath": "artifacts/chain-performance-20261017/commit-pair-20261018-01.json",
+  "rawSHA256": "96ab2a629e07d00d8e436039be323ca18d51e72d28ad9b509fdd14a600b10cbd",
+  "rawBytes": 101761,
+  "controllerSession": 72565,
+  "launcher": 53371,
+  "elapsedMs": 24479,
+  "peakRSS": 306003968,
+  "peakThreads": 17,
+  "firstCause": "current owned process remains unmeasured",
+  "sourceChecks": [
+    {
+      "head": "e83665ba0a7f5ddbe5106b1c99754dcc8536cf96",
+      "sourceCommit": "d47b0fb8bf817093d1da0cd0dc8b08725bfae0f7",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "fc5ccab4e9aa6923bc61a2dc7ac518343ac56703",
+        "cmd/ynx-consensus-perf-client": "dac5d95e9327908eb0dfbd802e1bff7924bc48b8"
+      }
+    },
+    {
+      "head": "e83665ba0a7f5ddbe5106b1c99754dcc8536cf96",
+      "sourceCommit": "d47b0fb8bf817093d1da0cd0dc8b08725bfae0f7",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "fc5ccab4e9aa6923bc61a2dc7ac518343ac56703",
+        "cmd/ynx-consensus-perf-client": "dac5d95e9327908eb0dfbd802e1bff7924bc48b8"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "57134365956bc409835108c43600042dfc02c110900a8c17f2ff2ac43438a511",
+    "consensus-light-plan.mjs": "7ce3e198b2ce0a36a5726d930a870b852d5f6a4d89b251bae819459702ba06ab",
+    "native-resource-sample.mjs": "d5a7c62952637f32d39e3678ba163a695aee271b5f625f8e50e43869ea993ad9",
+    "owned-process-race.mjs": "9cd25ffdcf0f1fa522a757e681998e682cae069a4eee3289c98a8536ddce23a7",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "raceObservations": [
+    {
+      "at": "2026-10-18T04:29:34.335Z",
+      "rejectedSample": {
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 53371,
+            "readable": true,
+            "rssBytes": 80723968,
+            "virtualBytes": 501385478144,
+            "threads": 7
+          },
+          {
+            "pid": 56297,
+            "readable": true,
+            "rssBytes": 40140800,
+            "virtualBytes": 475989590016,
+            "threads": 5
+          },
+          {
+            "pid": 56349,
+            "readable": false,
+            "errno": 3
+          }
+        ],
+        "watchedRssBytes": 120864768,
+        "watchedThreads": 12,
+        "samplerRssBytes": 1785856,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 124436480,
+        "threadsWithControlReserve": 14,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 2,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 1080,
+          "uid": 501,
+          "uidProcessCount": 900,
+          "unreadableBsdInfo": 180,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 4400,
+          "capacityBytes": 8496,
+          "returnedBytes": 4324,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 1081,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 1080,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 900,
+          "esrch": 0,
+          "eperm": 180,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1341
+      },
+      "before": [
+        {
+          "pid": 53371,
+          "parent": 1093,
+          "group": 53371,
+          "birth": "Sun Oct 18 12:29:11 2026",
+          "comm": "/opt/homebrew/bin/node"
+        },
+        {
+          "pid": 56297,
+          "parent": 53371,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:28 2026",
+          "comm": "/opt/homebrew/bin/go"
+        },
+        {
+          "pid": 56349,
+          "parent": 56297,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:34 2026",
+          "comm": "(compile)"
+        }
+      ],
+      "after": [
+        {
+          "pid": 53371,
+          "parent": 1093,
+          "group": 53371,
+          "birth": "Sun Oct 18 12:29:11 2026",
+          "comm": "/opt/homebrew/bin/node"
+        },
+        {
+          "pid": 56297,
+          "parent": 53371,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:28 2026",
+          "comm": "/opt/homebrew/bin/go"
+        },
+        {
+          "pid": 56351,
+          "parent": 56297,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:34 2026",
+          "comm": "(link)"
+        }
+      ],
+      "kernelAbsenceQueries": [
+        {
+          "pid": 56349,
+          "absent": true,
+          "code": "ESRCH"
+        }
+      ],
+      "replacementPIDs": [
+        53371,
+        56297,
+        56351
+      ],
+      "exited": [
+        {
+          "pid": 56349,
+          "parent": 56297,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:34 2026",
+          "comm": "(compile)",
+          "errno": 3,
+          "exitedDuringSample": true
+        }
+      ]
+    }
+  ],
+  "replacementExitClosures": [
+    {
+      "at": "2026-10-18T04:29:34.385Z",
+      "rawNativeSample": {
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 53371,
+            "readable": true,
+            "rssBytes": 81608704,
+            "virtualBytes": 501386412032,
+            "threads": 7
+          },
+          {
+            "pid": 56297,
+            "readable": true,
+            "rssBytes": 40140800,
+            "virtualBytes": 475989590016,
+            "threads": 5
+          },
+          {
+            "pid": 56351,
+            "readable": false,
+            "errno": 3
+          }
+        ],
+        "watchedRssBytes": 121749504,
+        "watchedThreads": 12,
+        "samplerRssBytes": 1785856,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 125321216,
+        "threadsWithControlReserve": 14,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 2,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 1080,
+          "uid": 501,
+          "uidProcessCount": 900,
+          "unreadableBsdInfo": 180,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 4400,
+          "capacityBytes": 8496,
+          "returnedBytes": 4324,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 1081,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 1080,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 900,
+          "esrch": 0,
+          "eperm": 180,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1290
+      },
+      "before": [
+        {
+          "pid": 53371,
+          "parent": 1093,
+          "group": 53371,
+          "birth": "Sun Oct 18 12:29:11 2026",
+          "comm": "/opt/homebrew/bin/node"
+        },
+        {
+          "pid": 56297,
+          "parent": 53371,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:28 2026",
+          "comm": "/opt/homebrew/bin/go"
+        },
+        {
+          "pid": 56351,
+          "parent": 56297,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:34 2026",
+          "comm": "(link)"
+        }
+      ],
+      "after": [
+        {
+          "pid": 53371,
+          "parent": 1093,
+          "group": 53371,
+          "birth": "Sun Oct 18 12:29:11 2026",
+          "comm": "/opt/homebrew/bin/node"
+        },
+        {
+          "pid": 56297,
+          "parent": 53371,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:28 2026",
+          "comm": "/opt/homebrew/bin/go"
+        },
+        {
+          "pid": 56355,
+          "parent": 56297,
+          "group": 56297,
+          "birth": "Sun Oct 18 12:29:34 2026",
+          "comm": "/opt/homebrew/Cellar/go/1.25.7_1/libexec/pkg/tool/darwin_arm64/link"
+        }
+      ],
+      "kernelAbsenceQueries": [
+        {
+          "pid": 56351,
+          "absent": true,
+          "code": "ESRCH"
+        }
+      ],
+      "kernelReplacementCount": 1,
+      "failure": "current owned process remains unmeasured"
+    }
+  ],
+  "peakScratchBytes": 11186176,
+  "cacheNetGrowthBytes": 11083776,
+  "groupGone": true,
+  "go": {
+    "pid": 56297,
+    "code": null,
+    "signal": "SIGKILL",
+    "stdout": "",
+    "stderr": "",
+    "exited": true
+  },
+  "pairObserved": false,
+  "windowPassed": false,
+  "interpretation": "No test stdout or local pair values. Compile56349 and replacement link56351 exited with actual ESRCH; another current link56355 had not been measured, so original one-replacement conservative guard correctly rejected. No unknown accepted, RSS subtracted, signature/Sync/replay gate skipped or performance claim inferred."
+}
