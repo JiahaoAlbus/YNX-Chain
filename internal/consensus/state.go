@@ -29,6 +29,14 @@ type BFTNativeTransfer struct {
 	CommittedAt     time.Time `json:"committedAt"`
 }
 
+// Native transfer execution borrows committed records. Inserting into a slice
+// with spare capacity must not shift that committed backing array during
+// CheckTx, proposal execution, or an unacknowledged Commit.
+func insertNativeTransferReceipt(records []BFTNativeTransfer, receipt BFTNativeTransfer) []BFTNativeTransfer {
+	owned := append([]BFTNativeTransfer(nil), records...)
+	return insertPayRecord(owned, receipt, func(v BFTNativeTransfer) string { return v.TransactionHash })
+}
+
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
 // change application state.
@@ -374,7 +382,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if s.Height < int64(migration.Height) {
 		return fmt.Errorf("committed height %d precedes migrated height %d", s.Height, migration.Height)
 	}
-	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || (s.Version >= 15 && !reflect.DeepEqual(s.TraceLots, migrationTraceLots(migration))) || s.hasNonMigrationApplicationRecords() || !committedDexMatchesMigration(s, migration) || !strings.EqualFold(s.AppHash, migration.StateHash)) {
+	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || (s.Version >= 15 && !sameInitialTraceLots(s.TraceLots, migrationTraceLots(migration))) || s.hasNonMigrationApplicationRecords() || !committedDexMatchesMigration(s, migration) || !strings.EqualFold(s.AppHash, migration.StateHash)) {
 		return errors.New("uninitialized committed state must exactly match the migration anchor")
 	}
 	if len(s.Accounts) == 0 {
@@ -524,6 +532,16 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 		return fmt.Errorf("committed app hash mismatch: expected %s", expected)
 	}
 	return nil
+}
+
+// TraceLots is omitempty: an empty source inventory serializes identically to
+// nil and decodes as nil. This equivalence is limited to zero entries; a
+// nonempty initial inventory must preserve every source field exactly.
+func sameInitialTraceLots(left, right map[string]chain.TrustTraceLot) bool {
+	if len(left) == 0 && len(right) == 0 {
+		return true
+	}
+	return reflect.DeepEqual(left, right)
 }
 
 func (s CommittedState) calculateHash() (string, error) {

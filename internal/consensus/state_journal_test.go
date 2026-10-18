@@ -50,15 +50,28 @@ func journalTransfer(t *testing.T, nonce uint64) []byte {
 func commitJournalBlock(t *testing.T, app *Application, nonce uint64) []byte {
 	t.Helper()
 	raw := journalTransfer(t, nonce)
+	before, err := json.Marshal(app.committed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertCommittedUnchanged := func(stage string) {
+		t.Helper()
+		after, err := json.Marshal(app.committed)
+		if err != nil || !bytes.Equal(before, after) {
+			t.Fatal(stage+" changed the preceding committed checkpoint", err)
+		}
+	}
 	check, err := app.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: raw})
 	if err != nil || check.Code != 0 {
 		t.Fatal("valid signed next nonce refused", err)
 	}
+	assertCommittedUnchanged("CheckTx")
 	height := int64(app.migration.Height) + int64(nonce)
 	r, err := app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: height, Time: time.Unix(1802736000+int64(nonce), 0), Txs: [][]byte{raw, raw}})
 	if err != nil || len(r.TxResults) != 2 || r.TxResults[0].Code != 0 || r.TxResults[1].Code != CodeInvalidNonce {
 		t.Fatal("execution/rollback behavior changed", err)
 	}
+	assertCommittedUnchanged("FinalizeBlock")
 	if _, err := app.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
 		t.Fatal(err)
 	}
@@ -83,6 +96,9 @@ func TestSnapshotJournalActualTransactionsMatchAtomicAcrossCompactions(t *testin
 		commitJournalBlock(t, atomic, nonce)
 		if !journalStateEqual(t, journal.committed, atomic.committed) {
 			t.Fatal("full committed state differs", nonce)
+		}
+		if len(journal.committed.NativeTransfers) != int(nonce) {
+			t.Fatal("compaction input lost or duplicated actual native receipts", nonce)
 		}
 		loaded, err := NewJournaledApplication(migration, path)
 		if err != nil {

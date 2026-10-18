@@ -31,6 +31,10 @@ func TestBlockJournalOwnsRequestsAndMatchesAtomicAcrossCheckpoints(t *testing.T)
 	}
 	checkpoints := 0
 	for nonce := uint64(1); nonce <= 36; nonce++ {
+		beforeState, err := json.Marshal(app.committed)
+		if err != nil {
+			t.Fatal(err)
+		}
 		raw := journalTransfer(t, nonce)
 		original := append([]byte(nil), raw...)
 		req := &abci.RequestFinalizeBlock{Height: int64(migration.Height) + int64(nonce), Time: time.Unix(1802736000+int64(nonce), 123).In(time.FixedZone("caller", 8*3600)), Txs: [][]byte{raw, raw, []byte("invalid-envelope")}, Hash: bytes.Repeat([]byte{11}, 32), NextValidatorsHash: bytes.Repeat([]byte{12}, 32), ProposerAddress: bytes.Repeat([]byte{13}, 20)}
@@ -45,6 +49,10 @@ func TestBlockJournalOwnsRequestsAndMatchesAtomicAcrossCheckpoints(t *testing.T)
 		response, err := app.FinalizeBlock(context.Background(), req)
 		if err != nil {
 			t.Fatal(err)
+		}
+		afterFinalize, err := json.Marshal(app.committed)
+		if err != nil || !bytes.Equal(beforeState, afterFinalize) {
+			t.Fatal("FinalizeBlock changed the preceding journal checkpoint", nonce, err)
 		}
 		a, _ := old.Marshal()
 		b, _ := response.Marshal()
@@ -71,6 +79,9 @@ func TestBlockJournalOwnsRequestsAndMatchesAtomicAcrossCheckpoints(t *testing.T)
 		}
 		if !journalStateEqual(t, app.committed, atomic.committed) {
 			t.Fatal("committed full state changed", nonce)
+		}
+		if len(app.committed.NativeTransfers) != int(nonce) {
+			t.Fatal("checkpoint/delta history lost or duplicated actual native receipts", nonce)
 		}
 		loaded, err := NewBlockJournaledApplication(migration, path)
 		if err != nil || !journalStateEqual(t, loaded.committed, atomic.committed) {
