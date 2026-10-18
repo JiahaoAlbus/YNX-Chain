@@ -1,4 +1,4 @@
-// Mechanical custody update for the already-reviewed SDK39/A33 inputs.
+// Mechanical custody update for the already-reviewed SDK312/R44 inputs.
 // This inventories public source/build bytes; it never executes Native or grants rights.
 import {readFile,writeFile,lstat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
@@ -7,10 +7,10 @@ import {join,resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const here=dirname(fileURLToPath(import.meta.url));
 const digest=b=>createHash('sha256').update(b).digest('hex');
-const SDK='cbf12aaaeae9ce3c93ceaed8f597b3c3e0c25c66';
-const TREE='9f495298c028750e8c54f97b73ae615cd324f93b';
-const BEFORE='99f9cdc00fd75c9900a454ca92839f6edf486177314abdc780873b7e086480d8';
-const pins={sdkReadback:'539b4ecf135a7b45962a1c07e7e1fd39a23f27938a8ecbf972b4e79be9fede52',nativeIntake:'0b9f7640def9cd632830f352ccd8e707f2adaa7c0a34ce0779ec527b964bfbbf',runtimeManifest:'9f00e7b716b7f923ddad6c0e1c662cdf7558792c312632ba3b8f6a12800ca305'};
+const SDK='20499b17f3b0600ec6cf5316fd2a5d6c8e64cdf5';
+const TREE='1c1e8e82576e6f73e954898106273a01fa0099e0';
+const BEFORE='229c540471209feb7f60c8734f5dd25fee36202a620c424fad6aedcc018dd188';
+const pins={sdkReadback:'fb8db16f7af9a7e04cb84c8760f3aa50418f43588d8864e94c3317f3b130415e',nativeIntake:'690c607b1ab960947ef8565b8e623d653501065830e945e7a8dc24aa08110f8e',runtimeManifest:'1a44ec7173e884254c9789f88acf372ef4dff1401eb7a12a4eecf6f123240915'};
 async function fixed(path,hash){const b=await readFile(path);if(digest(b)!==hash)throw Error('Fixed supplier input differs: '+path);return JSON.parse(b);}
 async function leaf(root,row){
  if(!/^[A-Za-z0-9_@./-]+$/.test(row.path)||row.path.startsWith('/')||row.path.split('/').some(x=>!x||x==='.'||x==='..'))throw Error('Unsafe supplier leaf');
@@ -20,20 +20,20 @@ async function leaf(root,row){
 }
 export async function updateCanonicalIdentityInputs(options){
  for(const name of ['sdkRoot','nativeRoot','dependencyRoot'])if(typeof options[name]!=='string'||resolve(options[name])!==options[name]||(await lstat(options[name])).isSymbolicLink())throw Error('Exact regular supplier root required');
- const oldRaw=execFileSync('git',['show','d129394b2b75b199a7eef523b22da8e2e5b27462:apps/developer/scripts/canonical-identity-inputs.json'],{cwd:here});
+ const oldRaw=execFileSync('git',['show','aadb99587dc411e0c4a29cfa3ec6c4a8e0b4dcf7:apps/developer/scripts/canonical-identity-inputs.json'],{cwd:here});
  if(digest(oldRaw)!==BEFORE)throw Error('Reviewed predecessor differs');
  const old=JSON.parse(oldRaw),sdk=await fixed(options.sdkReadback,pins.sdkReadback),native=await fixed(options.nativeIntake,pins.nativeIntake),runtime=await fixed(options.runtimeManifest,pins.runtimeManifest);
- if(sdk.sourceCommit!==SDK||sdk.files.length!==243||sdk.sha256!=='615373667052430fcb5ea4b837321d57bb3733efc7c7bec724a0604d55bbd26e'||native.actual38.length!==38||runtime.sdkCommit!==SDK||runtime.files.length!==316)throw Error('Fixed supplier selection differs');
+ if(sdk.sourceCommit!==SDK||sdk.files.length!==243||sdk.sha256!=='ea3ce76882a7785183c685fd625a9a5b0809e6ad51da5a6bd94714f1eb979e6f'||native.actual38.length!==38||runtime.sdkCommit!==SDK||runtime.files.length!==316)throw Error('Fixed supplier selection differs');
  const files=await Promise.all(sdk.files.map(row=>leaf(options.sdkRoot,row)));
  const nativeSources=await Promise.all(native.actual38.map(row=>leaf(options.nativeRoot,{...row,path:row.relative})));
  const dependencies=await Promise.all(runtime.files.map(row=>leaf(options.dependencyRoot,row)));
  const receiptPath='apps/wallet-desktop/native/original-auth-identity-build.json';
  const receiptBytes=await readFile(join(options.nativeRoot,receiptPath));
- if(digest(receiptBytes)!=='445c0b0ab02a9e8321e6406dfab7669d995f4b1522bfc1e1c3e409fae2e4433c')throw Error('A33 executed receipt differs');
- const receipt=JSON.parse(receiptBytes);if(receipt.inputFiles.length!==32||receipt.readbackOnly!==false||receipt.nativeQualified!==false||receipt.registrationAccepted!==false)throw Error('A33 receipt selection differs');
+ if(digest(receiptBytes)!=='1fd757d502c0eef116e9b27359be67df6a3b8230d1a1ebe41b411aefe7b0a324')throw Error('R44 executed receipt differs');
+ const receipt=JSON.parse(receiptBytes);if(receipt.inputFiles.length!==32||receipt.readbackOnly!==false||receipt.nativeQualified!==false||receipt.registrationAccepted!==false)throw Error('R44 receipt selection differs');
  await leaf(options.nativeRoot,{...receipt.output,path:receipt.output.relative});
  const before=new Map(old.nativeSources.map(x=>[x.path,x]));
- const nativeSourceUpdates=[...old.nativeSourceUpdates,...nativeSources.filter(x=>before.get(x.path)?.sha256!==x.sha256).map(x=>({handoff:'A33 SOURCE_INTAKE.json',handoffSha256:pins.nativeIntake,path:x.path,parentSha256:before.get(x.path)?.sha256??null,bytes:x.bytes,sha256:x.sha256}))];
+ const nativeSourceUpdates=[...old.nativeSourceUpdates,...nativeSources.filter(x=>before.get(x.path)?.sha256!==x.sha256).map(x=>({handoff:'R44-r2 SOURCE_INTAKE.json',handoffSha256:pins.nativeIntake,path:x.path,parentSha256:before.get(x.path)?.sha256??null,bytes:x.bytes,sha256:x.sha256}))];
  const record={...old,sdkCommit:SDK,sdkTree:TREE,predecessorManifestSha256:BEFORE,nativeSourceManifestSha256:native.selection.sha256,
   supplierPins:pins,files:files.sort((a,b)=>a.path.localeCompare(b.path)),dependencies:dependencies.sort((a,b)=>a.path.localeCompare(b.path)),nativeSources:nativeSources.sort((a,b)=>a.path.localeCompare(b.path)),
   nativeBuildInputs:receipt.inputFiles.map(x=>({path:x.relative,bytes:x.bytes,sha256:x.sha256})),
