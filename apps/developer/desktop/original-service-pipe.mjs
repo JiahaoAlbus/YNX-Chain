@@ -101,6 +101,14 @@ async function attachAcquiredOriginalServicePipe({ control, instance, context, d
     const promise = Promise.resolve(task); pending.add(promise);
     void promise.then(() => pending.delete(promise), () => pending.delete(promise)); return promise;
   };
+  const enter = (row, task) => track(Promise.resolve().then(() => runEntered(task)).catch(error => {
+    // Acquisition/retirement can refuse the loan before task() enters. Keep
+    // that exact failure visible, but never select terminal DATA outside the
+    // actual entered caller. dispatch/receipt handle their own in-loan errors.
+    if (!row.firstFailurePresent) { row.firstFailurePresent = true; row.firstFailure = error; }
+    if (row.entered) { row.unknown = true; poisoned = true; }
+    report(error);
+  }));
   const finishCleanup = async () => { while (pending.size) await Promise.allSettled([...pending]); return { complete: !firstFailurePresent && ![...rows.values()].some(row => row.unknown), firstFailurePresent, firstFailure }; };
   const rejectBeforeEntry = async row => {
     if (closed || row.cancelled) return;
@@ -177,7 +185,7 @@ async function attachAcquiredOriginalServicePipe({ control, instance, context, d
       if (body.action === 'original-service-received' && exact(body, [...common, 'resultDigest'])) {
         const row = rows.get(body.id);
         if (!row || row.document !== body.document || row.receiptSelected || !row.publication || !HEX.test(body.resultDigest || '')) return;
-        row.receiptSelected = true; return track(runEntered(() => receipt(row, body.resultDigest)));
+        row.receiptSelected = true; return enter(row, () => receipt(row, body.resultDigest));
       }
       if (body.action !== 'original-service-dispatch' || !exact(body, [...common, 'canonicalInput']) || rows.has(body.id)
         || rows.size >= 32 || typeof body.canonicalInput !== 'string' || Buffer.byteLength(body.canonicalInput) > 262144) return;
@@ -185,7 +193,7 @@ async function attachAcquiredOriginalServicePipe({ control, instance, context, d
         cancelled: false, receiptSelected: false, firstFailurePresent: false, terminalPublished: false };
       rows.set(row.id, row);
       if (poisoned) return track(rejectBeforeEntry(row).catch(error => failRow(row, error)));
-      return track(Promise.resolve().then(() => runEntered(() => dispatch(row))));
+      return enter(row, () => dispatch(row));
     },
     async onClose() {
       closed = true; for (const row of rows.values()) if (row.entered && !row.terminalPublished) { row.cancelled = true; row.unknown = true; }

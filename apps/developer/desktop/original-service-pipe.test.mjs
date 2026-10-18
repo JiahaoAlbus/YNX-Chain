@@ -283,3 +283,19 @@ test('PUBLIC exact 64KiB response uses only the private service wrapper; 64KiB+1
     } finally { await f.dispose(); }
   }
 });
+
+test('R99 initial entered-loan refusal reports exact failure without entering SDK or diagnostic',async()=>{
+ const f=await fixture({enteredRunner:async()=>{throw false;}});try{
+ f.send(f.body);await tick();await f.channel.finishCleanup();
+ assert.equal(f.channel.status().firstFailurePresent,true);assert.equal(f.channel.status().firstFailure,false);
+ assert.equal(f.state.dispatches.length,0);assert.equal(f.state.diagnosticCalls,undefined);assert.equal(f.channel.status().unknown,false);
+ }finally{await f.dispose();}
+});
+test('R99 receipt entered-loan refusal retains UNKNOWN and never reads DATA outside a loan',async()=>{
+ let count=0;const f=await fixture({enteredRunner:async task=>{if(++count>1)throw undefined;return task();}});try{
+ f.body.canonicalInput=completeRequest();f.send(f.body);const p=await waitFor(()=>f.read(''));f.send(f.received(p.resultDigest));await tick();await f.channel.finishCleanup();
+ assert.equal(f.channel.status().firstFailurePresent,true);assert.equal(f.channel.status().firstFailure,undefined);
+ assert.equal(f.channel.status().unknown,true);assert.equal(f.state.acks.length,0);assert.equal(f.state.diagnosticCalls,undefined);
+ await assert.rejects(f.read('-terminal'),{code:'ENOENT'});
+ }finally{await f.dispose();}
+});
