@@ -2,11 +2,17 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
@@ -14,13 +20,16 @@ import (
 // Real signatures and files, synthetic final-observation flags. Never TPS,
 // inclusion or finality evidence. No server, public account or socket is used.
 func largeTerminalScanFixture(t *testing.T) (*terminalStream, int) {
+	return terminalScanFixtureRounds(t, 704)
+}
+
+func terminalScanFixtureRounds(t *testing.T, rounds int) (*terminalStream, int) {
 	t.Helper()
 	p := terminalFixture(t)
 	stream, err := newTerminalStream(filepath.Join(t.TempDir(), "terminal"), p)
 	if err != nil {
 		t.Fatal(err)
 	}
-	const rounds = 704
 	for round := 1; round <= rounds; round++ {
 		for sender, template := range p.templates {
 			tx, err := consensus.NewSignedTransfer(p.keys[sender], template.ChainID, template.To, template.Amount, uint64(round))
@@ -158,4 +167,76 @@ func TestTerminalStreamReadbackStreamingInventoryMutationWithholdsCompletion(t *
 	if _, err := os.Stat(filepath.Join(stream.report.Directory, "unexpected-file")); err != nil {
 		t.Fatal("reader removed unexpected evidence", err)
 	}
+}
+
+// Matched read-only evidence processing, not business throughput. The old entry
+// retains every exact row; the streaming consumer retains only its count/digest.
+func TestTerminalStreamReadbackStreamingAllocationComparison(t *testing.T) {
+	stream, total := terminalScanFixtureRounds(t, 682)
+	if _, err := readCompletedTerminalResults(stream.report.Directory, stream.report, stream.binding, stream.senders, total); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := scanCompletedTerminalResults(context.Background(), stream.report.Directory, stream.report, stream.binding, stream.senders, total, 16<<20, func(transactionResult) error { return nil }); err != nil || !result.Complete {
+		t.Fatal(result, err)
+	}
+	type sample struct {
+		Mode                   string `json:"mode"`
+		Records                int    `json:"records"`
+		Digest                 string `json:"digest"`
+		ElapsedNs              int64  `json:"elapsedNs"`
+		AllocatedBytes         uint64 `json:"allocatedBytes"`
+		RetainedHeapDeltaBytes int64  `json:"retainedHeapDeltaBytes"`
+	}
+	measure := func(streaming bool) sample {
+		runtime.GC()
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		started := time.Now()
+		hash := sha256.New()
+		count := 0
+		consume := func(row transactionResult) error {
+			var index [8]byte
+			binary.LittleEndian.PutUint64(index[:], uint64(row.Index))
+			hash.Write(index[:])
+			hash.Write([]byte(row.Hash))
+			hash.Write([]byte(row.SignedTransaction))
+			count++
+			return nil
+		}
+		var held any
+		mode := "legacy_full_retention"
+		if streaming {
+			mode = "streaming_count_and_digest"
+			result, err := scanCompletedTerminalResults(context.Background(), stream.report.Directory, stream.report, stream.binding, stream.senders, total, 16<<20, consume)
+			if err != nil || !result.Complete {
+				t.Fatal(result, err)
+			}
+			held = result
+		} else {
+			rows, err := readCompletedTerminalResults(stream.report.Directory, stream.report, stream.binding, stream.senders, total)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, row := range rows {
+				if err := consume(row); err != nil {
+					t.Fatal(err)
+				}
+			}
+			held = rows
+		}
+		elapsed := time.Since(started).Nanoseconds()
+		runtime.GC()
+		runtime.ReadMemStats(&after)
+		runtime.KeepAlive(held)
+		return sample{mode, count, fmt.Sprintf("%x", hash.Sum(nil)), elapsed, after.TotalAlloc - before.TotalAlloc, int64(after.HeapAlloc) - int64(before.HeapAlloc)}
+	}
+	before, after := measure(false), measure(true)
+	if before.Records != total || after.Records != total || before.Digest != after.Digest {
+		t.Fatal("matched scanner observations differ", before, after)
+	}
+	raw, err := json.Marshal(struct{ Before, After sample }{before, after})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("matched_terminal_evidence_processing_not_business_tps=%s; one elapsed/heap sample, runtime noise included, not peak RSS", raw)
 }
