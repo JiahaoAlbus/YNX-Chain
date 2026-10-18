@@ -443,6 +443,18 @@ jobs:
           cat "$YNX_EXIT_CASE/original-red.log"
           test "$YNX_EXIT_RED_STATUS" -ne 0
           grep -F 'PRIVATE_COPY_EXIT_MM_TRANSITION_REJECTED' "$YNX_EXIT_CASE/original-red.log"
+          trap 'cp "$YNX_EXIT_CASE/fixed-wrapper.py" scripts/ops/validate-private-consensus-copy.py' EXIT
+          git show 1ace731419fbe9f8af57dee3335cf660409f9ca3:scripts/ops/validate-private-consensus-copy.py > "$YNX_EXIT_CASE/original-diagnostic-wrapper.py"
+          cp "$YNX_EXIT_CASE/original-diagnostic-wrapper.py" scripts/ops/validate-private-consensus-copy.py
+          set +e
+          (cd scripts/ops && python3 -B -m unittest test_validate_private_consensus_copy.PrivateCopyControls.test_live_rss_failure_retains_errno_flags_without_retiring_task -v) > "$YNX_EXIT_CASE/original-diagnostic-red.log" 2>&1
+          YNX_DIAGNOSTIC_RED_STATUS=$?
+          set -e
+          cp "$YNX_EXIT_CASE/fixed-wrapper.py" scripts/ops/validate-private-consensus-copy.py
+          trap - EXIT
+          cat "$YNX_EXIT_CASE/original-diagnostic-red.log"
+          test "$YNX_DIAGNOSTIC_RED_STATUS" -ne 0
+          grep -F 'PRIVATE_COPY_RSS_DIAGNOSTIC_MISSING' "$YNX_EXIT_CASE/original-diagnostic-red.log"
       - name: Verify Linux window controls without starting a node
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |

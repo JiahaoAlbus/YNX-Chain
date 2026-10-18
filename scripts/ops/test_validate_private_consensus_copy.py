@@ -55,9 +55,10 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def stat_line(pid, parent, start, state="S"):
+def stat_line(pid, parent, start, state="S", flags=0):
     fields = [state]+["0"]*45
     fields[1], fields[2], fields[17], fields[19] = str(parent), "100", "1", str(start)
+    fields[6] = str(flags)
     return (str(pid)+" (synthetic control) "+" ".join(fields)).encode()
 
 
@@ -315,7 +316,7 @@ class PrivateCopyControls(unittest.TestCase):
                 for p,parent,start,state in ((100,1,1000,"S"),(101,100,1001,"R"))}
         window = caller.Window(g, self.case)
         window.started = 0.0
-        window.child = SimpleNamespace(pid=101, poll=lambda:terminal)
+        window.child = SimpleNamespace(pid=101, poll=lambda:terminal, returncode=terminal)
         window.birth = 1001
         window.command_label = "verify"
         pending, calls, pauses, clock = list(child_reads), [], [], [now]
@@ -408,6 +409,93 @@ class PrivateCopyControls(unittest.TestCase):
             self.assertEqual(window.samples, [])
             self.assertEqual(window.telemetry_failure, {"command":"verify", "pid":101, "startTicks":1001})
 
+    def test_live_rss_failure_retains_errno_flags_without_retiring_task(self):
+        # A present R task carrying an exit-related flag is NOT proof of Z or
+        # gone. Keep the same four attempts and fail closed, now with evidence.
+        reads = [("smaps_rollup", ProcessLookupError(errno.ESRCH, "/PRIVATE-NOT-FOR-RECEIPT")),
+                 ("stat", stat_line(101,100,1001,"R",flags=4))]*4
+        with self.sampled_exit(reads) as (window, pending, calls, pauses):
+            with self.assertRaisesRegex(RuntimeError, "^active owned RSS unreadable$"):
+                window.tick(True)
+            self.assertEqual(pending, [])
+            self.assertEqual(calls, ["smaps_rollup", "stat"]*4)
+            self.assertEqual(pauses, [0.01]*3)
+            self.assertEqual(window.samples, [])
+            diagnostic = getattr(window,"telemetry_diagnostic",None)
+            if not diagnostic or not diagnostic.get("attempts"):
+                self.fail("PRIVATE_COPY_RSS_DIAGNOSTIC_MISSING")
+            self.assertEqual(diagnostic["classification"],"unresolved")
+            self.assertIsNone(diagnostic["commandReturnCodeAtInventory"])
+            self.assertEqual(diagnostic["initialObservation"]["startTicks"],1001)
+            self.assertEqual(diagnostic["initialObservation"]["state"],"R")
+            for index, attempt in enumerate(diagnostic["attempts"]):
+                self.assertEqual(attempt["attempt"],index+1)
+                self.assertEqual(attempt["readErrors"],[dict(operation="smaps_rollup",errno=errno.ESRCH,errorType="ProcessLookupError")])
+                self.assertEqual(attempt["observations"],[dict(pid=101,parent=100,group=100,startTicks=1001,threads=1,state="R",flags=4)])
+                self.assertEqual(attempt["outcome"],"still-live-unreadable" if index==3 else "retry-live")
+            encoded = json.dumps(diagnostic)
+            self.assertNotIn("PRIVATE-NOT-FOR-RECEIPT",encoded)
+            self.assertNotIn("synthetic control",encoded)
+
+    def test_rss_failure_distinguishes_post_read_stat_error_without_extra_reads(self):
+        reads = [("smaps_rollup", b"Rss: 2048 kB\n"),
+                 ("stat", FileNotFoundError(errno.ENOENT, "private stat read")),
+                 ("stat", stat_line(101,100,1001,"R",flags=0))]*4
+        with self.sampled_exit(reads) as (window,pending,calls,pauses):
+            with self.assertRaisesRegex(RuntimeError,"^active owned RSS unreadable$"):
+                window.tick(True)
+            self.assertEqual(pending,[])
+            self.assertEqual(calls,["smaps_rollup","stat","stat"]*4)
+            self.assertEqual(pauses,[0.01]*3)
+            self.assertEqual(window.samples,[])
+            for attempt in window.telemetry_diagnostic["attempts"]:
+                self.assertEqual(attempt["readErrors"],[dict(operation="stat",errno=errno.ENOENT,errorType="FileNotFoundError")])
+                self.assertEqual(attempt["smapsReadBytes"],len(b"Rss: 2048 kB\n"))
+                self.assertEqual(attempt["observations"][0]["state"],"R")
+
+    def test_failure_poll_observation_is_not_replaced_by_cleanup_terminal(self):
+        reads = [("smaps_rollup",ProcessLookupError(errno.ESRCH,"private transient")),
+                 ("stat",stat_line(101,100,1001,"R"))]*4
+        with self.sampled_exit(reads) as (window,pending,calls,pauses):
+            with self.assertRaisesRegex(RuntimeError,"^active owned RSS unreadable$"):
+                window.tick(True)
+            self.assertEqual(pending,[])
+            self.assertIsNone(window.telemetry_receipt()["lastObservedPopenReturnCodeAfterCleanup"])
+            # Simulate the value the existing cleanup poll later observed;
+            # this never invokes a real process, signal or /proc read.
+            window.child.returncode = -signal.SIGTERM
+            receipt = window.telemetry_receipt()
+            self.assertIsNone(receipt["commandReturnCodeAtInventory"])
+            self.assertEqual(receipt["lastObservedPopenReturnCodeAfterCleanup"],-signal.SIGTERM)
+            self.assertEqual(receipt["classification"],"unresolved")
+            self.assertNotIn("lastObservedPopenReturnCodeAfterCleanup",window.telemetry_diagnostic)
+            self.assertEqual(calls,["smaps_rollup","stat"]*4)
+            self.assertEqual(pauses,[0.01]*3)
+
+    def test_rss_failure_retains_recycled_identity_and_permission_first_cause(self):
+        reads = [("smaps_rollup", ProcessLookupError(errno.ESRCH,"private exit")),
+                 ("stat",stat_line(101,100,2001,"Z",flags=4))]
+        with self.sampled_exit(reads) as (window,pending,calls,pauses):
+            with self.assertRaisesRegex(RuntimeError,"^active owned RSS unreadable$"):
+                window.tick(True)
+            self.assertEqual(pending,[])
+            self.assertEqual(pauses,[])
+            self.assertEqual(window.samples,[])
+            attempt=window.telemetry_diagnostic["attempts"][0]
+            self.assertEqual(attempt["outcome"],"identity-changed")
+            self.assertEqual(attempt["observations"][0]["startTicks"],2001)
+            self.assertEqual(window.telemetry_failure["startTicks"],1001)
+        with self.sampled_exit([("smaps_rollup",PermissionError(errno.EACCES,"private restricted read"))]) as (window,pending,calls,pauses):
+            with self.assertRaises(PermissionError):
+                window.tick(True)
+            self.assertEqual(pending,[])
+            self.assertEqual(calls,["smaps_rollup"])
+            self.assertEqual(pauses,[])
+            self.assertEqual(window.samples,[])
+            attempt=window.telemetry_diagnostic["attempts"][0]
+            self.assertEqual(attempt["readErrors"],[dict(operation="smaps_rollup",errno=errno.EACCES,errorType="PermissionError")])
+            self.assertEqual(attempt["observations"],[])
+
     def test_exit_recheck_never_accepts_recycled_pid_or_permission_error(self):
         for tail, expected in (([("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic exit")),
                                 ("stat", stat_line(101,100,2001,"Z"))], RuntimeError),
@@ -425,6 +513,12 @@ class PrivateCopyControls(unittest.TestCase):
                 window.tick(True)
             self.assertEqual(pending, [])
             self.assertEqual(pauses, [])
+            attempt = window.telemetry_diagnostic["attempts"][0]
+            self.assertEqual(attempt["operation"],"parse_smaps_rollup")
+            self.assertEqual(attempt["outcome"],"rss-parse-failed")
+            self.assertEqual(attempt["smapsReadBytes"],0)
+            self.assertEqual(attempt["readErrors"],[])
+            self.assertEqual(attempt["observations"][0]["state"],"R")
 
     def test_exit_recheck_uses_original_active_deadline(self):
         reads = [("smaps_rollup", ProcessLookupError(errno.ESRCH, "synthetic exit")),
