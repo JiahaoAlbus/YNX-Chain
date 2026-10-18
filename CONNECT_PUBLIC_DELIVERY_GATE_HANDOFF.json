@@ -1,0 +1,13 @@
+{
+  "state": "READONLY_POSTPUBLICATION_GATE_IMPLEMENTED_AND_CONTROLLED_VERIFIED_NOT_RUN_LIVE",
+  "baseCommit": "05b283e08ee45ec86b3e63b4dfb289ff5039834d",
+  "normalCommand": "Pinned Node apps/wallet-desktop/scripts/verify-wallet-connection-page.mjs ABSOLUTE_BUILD_RECEIPT",
+  "expectedReceipt": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-sdk39-firstparty-browser-20261018/connect-r3/BUILD_RECEIPT.json",
+  "target": "Only https://wallet.ynxweb4.com/connect/; no configurable origin, credentials or arbitrary receipt paths",
+  "purpose": "Existing publisher's normal post-deploy byte/CSP readback, not a new audit cycle or prerequisite to the already authorized publication",
+  "coverage": ["Exact three bytes/length/SHA from immutable build receipt", "HTML/CSS/JS MIME", "Bounded same-route redirects and actual document-relative asset base", "HTTP200 homepage fallback refuses", "Every returned HTTP CSP policy must permit exact Relay/verification/QR inputs, with no broader scripts", "Read-only public GET, credentials omitted, bounded body and timeout, no retry"],
+  "controlledValidation": {"file": "apps/wallet-desktop/test/walletconnect-address-delivery.test.mjs", "pass": 5, "fail": 0, "durationMs": 34.056834, "runtime": "Previously installed R24 RunAsNode", "raw": "apps/wallet-desktop/test/walletconnect-address-delivery-controls-20261018.raw", "CI": "Existing Desktop npm test wildcard"},
+  "next": "Run once after original A reports an actual deployment terminal, preserve first real failure if any, then normal browser/installed Wallet flow in an authorized GUI window",
+  "preserved": "No built R3 assets, SDK39, A33, App startup or user data changed",
+  "notClaimed": ["Any live HTTP result", "Website published", "Actual browser/Relay/QR or permission acceptance", "Native grant, signature, payment or transfer", "New matching App install or MONSTER", "Full Wallet goal achieved"]
+}

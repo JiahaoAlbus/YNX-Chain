@@ -1,0 +1,13 @@
+✔ read-only delivery gate checks exact three bytes and CSP without claiming session or GUI (16.464125ms)
+✔ HTTP200 homepage fallback or wrong MIME is not a working deployed connection page (0.409541ms)
+✔ another policy cannot silently deny the verification frame or expand scripts (0.279333ms)
+✔ canonical index redirect is accepted but foreign or no-slash document bases are rejected (0.737792ms)
+✔ receipt cannot redirect the verifier to an arbitrary path or duplicate a leaf (0.094334ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 34.056834
