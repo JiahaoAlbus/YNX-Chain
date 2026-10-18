@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "state": "ACTUAL_PORTABLE_DUAL_KEY_WALLET_ENCRYPTED_VAULT_FRESH_PROCESS_RESTORE_AND_JS_SIGNATURE_NOT_GO_OR_GUI_ACCEPTANCE",
+  "baseProductionCommit": "38fcfc5a7d5b0854289ad623e33813c7dbd9f2b3",
+  "changes": ["apps/wallet-desktop/test/pq-fresh-process-vault-worker.mjs", "apps/wallet-desktop/test/pq-fresh-process-vault.test.mjs"],
+  "noProductionSDKNativeOrBuildRecipeChanges": true,
+  "actualPath": ["First R24 process: actual normal createDualPQKeyPreparation and createPQKeyPreparationSource", "Actual existing SDK sole portable keyGen, both algorithms and full keys", "Same PasswordWalletVault existing encrypted PQ record and verified save, no alternate key store", "First process locks/retires original handle and exits", "Trusted parent freezes original full-key policy and typed message before recovery", "Second R24 process: same isolated private directory, normal unlock and withPQKeys restore", "Both complete public keys match original: 2592 and 64 bytes", "Second process signs one synthetic-policy typed QA transfer, retires handle, and leaves encrypted Vault byte-identical", "Parent verifies exact original message and actual SDK signature; zero network/broadcast"],
+  "execution": {"runtime": "actual installed R24 Electron42.10.0 Node24.18.1 darwin-arm64 RunAsNode", "childHeapMiB": 192, "childTimeoutMs": 45000, "workers": 1, "passwordTransport": "fresh random QA password via child stdin only, not argv/env/log", "privateDirectoryMode": "0700", "temporaryPrivateVaultCleanup": "only test-created temporary QA directory removed after test; no user data touched"},
+  "tests": {"finalCodePass": 1, "fail": 0, "durationMs": 1316.244584, "separatePublicEvidenceRunPass": 1, "separateRunDurationMs": 1987.51275, "notCombinedIntoTwoIndependentCases": true, "harnessCorrections": ["Provider entry is src/index.mjs, not index.mjs", "Policy records require their exact fields; avoid spreading chainId from registration-key helper"]},
+  "publicGoInputs": {
+    "directory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-pq-fresh-process-proof-20261018.d6did0",
+    "evidence": {"name": "PUBLIC_EVIDENCE.json", "bytes": 1201, "sha256": "8ba2b0f63ef1c69db564b9004d013f8366392633e6d15ed0498cf22f5d915c29"},
+    "createPID": 77090,
+    "restorePID": 77105,
+    "files": [
+      {"name": "state.json", "bytes": 3836, "sha256": "1676d4db31c308c708d093cdd94cf024b943ae7746805a2db9905b69fd8d97c3"},
+      {"name": "message.bin", "bytes": 230, "sha256": "ec0e34acf10e102337d441c507abeced867ef928e2d0a9e345c73a4d580225a4"},
+      {"name": "member.bin", "bytes": 57839, "sha256": "6f09d79a1fa6e04cd986ec9425f1fdf71a2df445379f07d5b0d1ddd1fea2753f"}
+    ],
+    "height": "30",
+    "purpose": "TX-BATCH",
+    "owner": "0x9806d232e350aa8b93fc14c13f95dd0fbb96253e",
+    "sharedWithOriginalProtocolOwner": true,
+    "privateMaterialNotCopiedOrCommitted": true
+  },
+  "reproduce": {"command": "ELECTRON_RUN_AS_NODE=1 <original R24 executable> --max-old-space-size=192 --test --test-isolation=none --test-concurrency=1 apps/wallet-desktop/test/pq-fresh-process-vault.test.mjs", "optionalPublicArtifacts": "YNX_PQ_QA_PUBLIC_OUTPUT_DIR must identify an existing private fresh wallet-pq-fresh-process-proof-* directory; only public State, original message and MemberWire are written, with wx to avoid overwrite"},
+  "goDependency": "Protocol owner confirmed no existing exact Go consumer for this fresh output and is supplying a bounded offline State.VerifyMember/typed-Action consumer. The three public inputs above are ready. Go verification is not claimed.",
+  "notEstablished": ["actual GUI human approval", "protected Native/non-exportable hardware key export or restore", "actual chain registration or live policy authority", "Go verification of this signature", "public transfer/migration/revocation submission", "full App installation or cross-platform acceptance"],
+  "next": "Original Protocol owner verifies exact public State/message/MemberWire with Go at a new fixed tested consumer. Original A continues build38fc independently; these test-only changes do not request another build window."
+}
