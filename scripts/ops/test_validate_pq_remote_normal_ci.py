@@ -610,6 +610,39 @@ def assert_workflow_contract(raw):
                     "npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol",
                     "npm run contracts:selectors", "git diff --exit-code -- artifacts"):
         need(command in compiled[0])
+    target_test = [step for step in delivery_steps if "        id: pqprooftargetcmd\n" in step]
+    need(len(target_test) == 1)
+    target_test = target_test[0]
+    need(condition(target_test) == "${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}")
+    need("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public" in target_test)
+    need("go test -p 1 -count=1 -timeout=90s -v -run '^TestInspectProofHostTarget' ./cmd/ynx-comet" in target_test)
+    need("grep -F -- '--- PASS: TestInspectProofHostTargetNormalCommandRetainedFixture ('" in target_test)
+    publisher = by_name("Verify stopped-source publication and original Host ABI through normal binaries")[0]
+    need(delivery_steps.index(host) < delivery_steps.index(target_test) < delivery_steps.index(publisher))
+    inspect_call = "inspected = invoke('inspect-stopped-original-target', inspect, b'', 48 << 20)"
+    export_call = "delivery = invoke('export-stopped-original-source', publish, b'', 16384)"
+    need("inspect = [str(candidate / 'ynx-comet'), 'inspect-proof-host-target'," in publisher)
+    need(inspect_call in publisher and export_call in publisher and publisher.index(inspect_call) < publisher.index(export_call))
+    for original in ("'--engine-height', plan['engineHeight']", "'--engine-app-hash', plan['engineAppHash']",
+                     "'--trusted-height', plan['trustedHeight']", "'--trusted-block-hash', plan['trustedBlockHash']",
+                     "'--trusting-period-nanoseconds', plan['trustingPeriodNanoseconds']",
+                     "'--trust-level-numerator', plan['trustLevelNumerator']", "'--trust-level-denominator', plan['trustLevelDenominator']",
+                     "'--transaction-hash', expected_target['transactionHash']", "'--native-wire-hash', expected_target['nativeWireHash']"):
+        need(original in publisher)
+    need("expected_target = plan['expectedTransaction']" in publisher)
+    need("base64.b64decode(expected_target[field], validate=True)" in publisher)
+    need("('envelope', 'target-original-envelope', 'transactionHash')" in publisher
+         and "('nativeWire', 'target-original-native-wire', 'nativeWireHash')" in publisher)
+    need("os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600" in publisher)
+    need("inspected['expectedTransaction'] != expected_target" in publisher)
+    need("inspected['classification'] != 'data'" in publisher
+         and "('sourceReadOnly', 'writerExcluded', 'signingWriterExcluded', 'ledgerProofVerified')" in publisher)
+    need("inspected['nativeRootAuthorized'] is not False or inspected['deploymentVerified'] is not False" in publisher)
+    need("target_verification['nativeGrant'] is not False" in publisher)
+    need("('included', 'finalized', 'executionSuccessful')" in publisher
+         and "target_verification['executionCode'] != '0'" in publisher)
+    host_upload = by_name("Upload only public Host delivery and normal CLI receipt")[0]
+    need("target-original" not in host_upload and "source-plan.json" not in host_upload and "/original" not in host_upload)
     need("test_pq_ci_stage_inputs.py" in controls[0])
 
 
@@ -668,6 +701,29 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(prepared + build, build + prepared, 1),
             raw.replace(" && steps.pqnetworkcontracts.outcome == 'success'", "", 1),
         ]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(changed)
+
+    def test_retained_target_cmd_and_actual_pinned_elf_cannot_be_skipped_or_adopt_trust(self):
+        # Source mutation controls only. Actual CLI execution is the separate
+        # normal delivery job, using its original retained stores and clock.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        _, steps = workflow_steps(raw, "protocol-delivery")
+        command = next(step for step in steps if "        id: pqprooftargetcmd\n" in step)
+        publisher = next(step for step in steps if "        id: pqhostsourcecli\n" in step)
+        inspect_call = "          inspected = invoke('inspect-stopped-original-target', inspect, b'', 48 << 20)\n"
+        export_call = "          delivery = invoke('export-stopped-original-source', publish, b'', 16384)\n"
+        mutations = [raw.replace(command, "", 1),
+            raw.replace(command, command.replace("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT:", "UNUSED_FIXTURE_PATH:", 1), 1),
+            raw.replace(command, command.replace("grep -F -- '--- PASS:", "echo '--- PASS:", 1), 1),
+            raw.replace(publisher, publisher.replace("'inspect-proof-host-target'", "'export-proof-host-source'", 1), 1),
+            raw.replace(publisher, publisher.replace("'--engine-app-hash', plan['engineAppHash']", "'--engine-app-hash', 'adopted-observation'", 1), 1),
+            raw.replace(publisher, publisher.replace("'--trusting-period-nanoseconds', plan['trustingPeriodNanoseconds']", "'--trusting-period-nanoseconds', '7200000000000'", 1), 1),
+            raw.replace(publisher, publisher.replace("inspected['expectedTransaction'] != expected_target", "False", 1), 1),
+            raw.replace(publisher, publisher.replace("target_verification['nativeGrant'] is not False", "False", 1), 1),
+            raw.replace(publisher, publisher.replace(inspect_call, "", 1).replace(export_call, export_call + inspect_call, 1), 1)]
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):

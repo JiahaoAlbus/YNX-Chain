@@ -260,21 +260,62 @@ func (g *Gateway) collectPQOriginalFinality(ctx context.Context, view PQFinality
 	if original.ExecutionHeight == 0 || original.ExecutionHeight >= math.MaxInt64 || original.CometIndex == nil || (!rejected && (original.Status != "committed" || !original.Committed || original.Transaction == nil)) || (rejected && (original.Committed || original.Transaction != nil)) {
 		return view, errors.New("terminal indexed PQ execution unavailable")
 	}
-	if consensus.SignedTransactionHash(original.Wire) != original.NativeTransactionHash {
-		return view, errors.New("indexed native identity differs from exact original wire")
-	}
-	view.NativeTransactionHash, view.ObservedExecutionStatus = original.NativeTransactionHash, original.Status
-	view.ABCITransactionHash, view.ExecutionHeight, view.CometIndex = original.ABCITransactionHash, original.ExecutionHeight, original.CometIndex
-	h := int64(original.ExecutionHeight)
-	var tx coretypes.ResultTx
-	if _, err := g.finalityRPC(ctx, "/tx", url.Values{"hash": {original.ABCITransactionHash}, "prove": {"true"}}, maxPQFinalityRPCBytes, &tx); err != nil {
+	_, payload, err := decodeIngressPQMember(original.Type, original.Wire)
+	if err != nil {
 		return view, err
 	}
-	_, payload, err := decodeIngressPQMember(original.Type, original.Wire)
-	if err != nil || tx.Height != h || tx.Index != *original.CometIndex || !bytes.Equal(tx.Tx, payload) || consensus.SignedTransactionHash(tx.Tx) != original.ABCITransactionHash || !bytes.Equal(tx.Hash, tx.Tx.Hash()) {
+	return g.collectPQExecutionFinality(ctx, view, original.Status, original.Wire, payload, original.NativeTransactionHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex)
+}
+
+// Typed actions retain their complete executor transport. Re-encoding a bare
+// Member would discard contract material or original staking authorizations
+// and change the ABCI identity. No single-transaction codec is used here.
+func (g *Gateway) collectPQActionFinality(ctx context.Context, hash string, abciHash bool) (PQFinalityView, error) {
+	view := PQFinalityView{Version: "YNX-PQ-RPC-TRANSACTION-PROOF/v1", Source: "configured-comet-rpc", Status: "unavailable", ProofVerification: "not-performed"}
+	var original PQActionView
+	var err error
+	lookup := g.finalityLookupGateway()
+	if abciHash {
+		view.ABCITransactionHash = hash
+		original, err = lookup.lookupPQActionABCI(ctx, hash)
+	} else {
+		view.NativeTransactionHash = hash
+		original, err = lookup.lookupPQActionOriginal(ctx, hash)
+	}
+	if err != nil {
+		return view, err
+	}
+	rejected := original.Status == "rejected"
+	if original.Source != "comet-rpc" || original.ExecutionHeight == 0 || original.ExecutionHeight >= math.MaxInt64 || original.CometIndex == nil || (!rejected && (original.Status != "committed" || !original.Committed || len(original.Effects) == 0)) || (rejected && (!abciHash || original.Committed || len(original.Effects) != 0)) {
+		return view, errors.New("terminal indexed PQ action execution unavailable")
+	}
+	wire, action, err := consensus.DecodePQActionTransport(original.Transport)
+	if err != nil || !bytes.Equal(wire, original.Wire) || action.Kind != original.Type || action.Owner != original.From || action.Nonce != original.Nonce || action.Fee != original.Fee {
+		return view, errors.New("indexed action differs from complete original transport")
+	}
+	return g.collectPQExecutionFinality(ctx, view, original.Status, wire, original.Transport, original.NativeTransactionHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex)
+}
+
+// This read-only collector checks exact original bytes against actual Comet
+// index/result proofs. It neither builds an expected transaction/trust context
+// nor verifies consensus signatures: those remain independently pinned inputs
+// to the normal VerifyPQTransactionProof/CLI, including rejected outcomes.
+func (g *Gateway) collectPQExecutionFinality(ctx context.Context, view PQFinalityView, outcome string, wire, payload []byte, nativeHash, abciHash string, height uint64, index uint32) (PQFinalityView, error) {
+	if consensus.SignedTransactionHash(wire) != nativeHash || consensus.SignedTransactionHash(payload) != abciHash {
+		return view, errors.New("indexed native identity differs from exact original wire")
+	}
+	rejected := outcome == "rejected"
+	view.NativeTransactionHash, view.ObservedExecutionStatus = nativeHash, outcome
+	view.ABCITransactionHash, view.ExecutionHeight, view.CometIndex = abciHash, height, &index
+	h := int64(height)
+	var tx coretypes.ResultTx
+	if _, err := g.finalityRPC(ctx, "/tx", url.Values{"hash": {abciHash}, "prove": {"true"}}, maxPQFinalityRPCBytes, &tx); err != nil {
+		return view, err
+	}
+	if tx.Height != h || tx.Index != index || !bytes.Equal(tx.Tx, payload) || consensus.SignedTransactionHash(tx.Tx) != abciHash || !bytes.Equal(tx.Hash, tx.Tx.Hash()) {
 		return view, errors.New("finality indexed transaction differs from exact original")
 	}
-	if rejected && (tx.TxResult.Code == 0 || len(tx.TxResult.Data) != 0) || !rejected && (tx.TxResult.Code != 0 || !bytes.Equal(tx.TxResult.Data, []byte(original.ABCITransactionHash))) {
+	if rejected && (tx.TxResult.Code == 0 || len(tx.TxResult.Data) != 0) || !rejected && (tx.TxResult.Code != 0 || !bytes.Equal(tx.TxResult.Data, []byte(abciHash))) {
 		return view, errors.New("finality execution outcome or data differs from indexed original")
 	}
 	block, first, err := g.finalityBlock(ctx, h)
@@ -345,7 +386,27 @@ func (g *Gateway) handlePQABCIFinality(w http.ResponseWriter, r *http.Request) {
 	g.handlePQFinalityLookup(w, r, true)
 }
 
+func (g *Gateway) handlePQActionFinality(w http.ResponseWriter, r *http.Request) {
+	g.handlePQFinalityRead(w, r, func(ctx context.Context, hash string) (PQFinalityView, error) {
+		return g.collectPQActionFinality(ctx, hash, false)
+	})
+}
+
+func (g *Gateway) handlePQActionABCIFinality(w http.ResponseWriter, r *http.Request) {
+	g.handlePQFinalityRead(w, r, func(ctx context.Context, hash string) (PQFinalityView, error) {
+		return g.collectPQActionFinality(ctx, hash, true)
+	})
+}
+
 func (g *Gateway) handlePQFinalityLookup(w http.ResponseWriter, r *http.Request, abciHash bool) {
+	collect := g.collectPQFinality
+	if abciHash {
+		collect = g.collectPQABCIFinality
+	}
+	g.handlePQFinalityRead(w, r, collect)
+}
+
+func (g *Gateway) handlePQFinalityRead(w http.ResponseWriter, r *http.Request, collect func(context.Context, string) (PQFinalityView, error)) {
 	w.Header().Set("Cache-Control", "no-store")
 	hash := r.PathValue("hash")
 	b, err := hex.DecodeString(strings.TrimPrefix(hash, "0x"))
@@ -353,12 +414,7 @@ func (g *Gateway) handlePQFinalityLookup(w http.ResponseWriter, r *http.Request,
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical SHA256 hash and no query parameters are required"})
 		return
 	}
-	var view PQFinalityView
-	if abciHash {
-		view, err = g.collectPQABCIFinality(r.Context(), hash)
-	} else {
-		view, err = g.collectPQFinality(r.Context(), hash)
-	}
+	view, err := collect(r.Context(), hash)
 	if err != nil {
 		view.Error = err.Error()
 		writeJSON(w, http.StatusBadGateway, view)
