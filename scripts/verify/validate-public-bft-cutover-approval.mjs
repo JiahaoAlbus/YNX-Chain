@@ -57,7 +57,7 @@ if (participants.some((value) => value.length < 3) || new Set(participants).size
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) {
   fail("validatorManifestSha256 is required");
 }
-for (const field of ["operatorPlanSha256", "runtimeManifestSha256"]) {
+for (const field of ["operatorPlanSha256", "runtimeManifestSha256", "snapshotSourceSha256", "exporterManifestSha256"]) {
   const value = approval[field];
   if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
     fail(`${field} must be an independent nonzero lowercase SHA256 in the original approval`);
@@ -97,6 +97,8 @@ process.stdout.write(JSON.stringify({
   validatorManifestSha256: approval.validatorManifestSha256,
   operatorPlanSha256: approval.operatorPlanSha256,
   runtimeManifestSha256: approval.runtimeManifestSha256,
+  snapshotSourceSha256: approval.snapshotSourceSha256,
+  exporterManifestSha256: approval.exporterManifestSha256,
   candidateGenesisTime: approval.candidateGenesisTime,
   expiresAt: new Date(expiresAt).toISOString().replace(".000Z", "Z"),
 }) + "\n");

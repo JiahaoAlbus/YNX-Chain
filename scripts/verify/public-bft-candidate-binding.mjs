@@ -269,6 +269,9 @@ if (approval.candidateGenesisTime !== genesisTime) fail("candidate genesis time 
 const validatorManifestSha256 = sha256(validatorManifestPath);
 if (approval.validatorManifestSha256 !== validatorManifestSha256) fail("validator manifest checksum differs from approval");
 if (approval.operatorPlanSha256 !== operatorPlanSha256 || approval.runtimeManifestSha256 !== runtimeManifestSha256) fail("operator/runtime independent pins differ from transaction approval");
+for (const field of ["snapshotSourceSha256", "exporterManifestSha256"]) {
+  if (typeof approval[field] !== "string" || !hash(approval[field])) fail(`${field} must be an independent nonzero SHA256 in the original transaction approval`);
+}
 
 const snapshot = readJSON(snapshotPath, "final snapshot");
 const snapshotEvidence = readJSON(snapshotEvidencePath, "final snapshot evidence");
@@ -276,6 +279,10 @@ const finalSnapshotSha256 = sha256(snapshotPath);
 if (snapshotEvidence.transactionId !== transactionId || snapshotEvidence.commit !== expectedCommit || snapshotEvidence.bftRelease !== expectedRelease) fail("final snapshot evidence identity mismatch");
 if (snapshotEvidence.authoritativeRelease !== `ynx-chain-${expectedCommit}`) fail("final snapshot authoritative release mismatch");
 if (snapshotEvidence.validated !== true || snapshotEvidence.pauseVerified !== true || snapshotEvidence.mutationFreezeVerified !== true) fail("final snapshot evidence is not fully validated");
+if (snapshotEvidence.sourceUnchanged !== true || snapshotEvidence.exporterCommit !== runtimeCommit) fail("final snapshot must preserve the original source and use the independently pinned current exporter commit");
+for (const field of ["snapshotSourceSha256", "exporterManifestSha256"]) {
+  if (snapshotEvidence[field] !== approval[field]) fail(`final snapshot ${field} differs from the original transaction approval`);
+}
 if (snapshotEvidence.sha256 !== finalSnapshotSha256) fail("final snapshot checksum mismatch");
 if (!Number.isSafeInteger(snapshot.height) || snapshot.height < 1 || snapshotEvidence.height !== snapshot.height) fail("final snapshot height mismatch");
 if (!/^(0x)?[0-9a-fA-F]{64}$/.test(snapshot.lastBlockHash || "") || snapshotEvidence.lastBlockHash !== snapshot.lastBlockHash) fail("final snapshot block hash mismatch");

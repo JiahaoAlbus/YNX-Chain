@@ -28,7 +28,7 @@ if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequi
 if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("approval evidence custody recovery is incomplete");
 if (!/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("approval evidence service signer manifest checksum is invalid");
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) fail("validator manifest checksum is invalid");
-for (const field of ["operatorPlanSha256", "runtimeManifestSha256"]) {
+for (const field of ["operatorPlanSha256", "runtimeManifestSha256", "snapshotSourceSha256", "exporterManifestSha256"]) {
   const value = approval[field];
   if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
     fail(`${field} must preserve an independent nonzero lowercase SHA256 from the original approval`);
@@ -61,6 +61,8 @@ process.stdout.write(`${JSON.stringify({
   validatorManifestSha256: approval.validatorManifestSha256,
   operatorPlanSha256: approval.operatorPlanSha256,
   runtimeManifestSha256: approval.runtimeManifestSha256,
+  snapshotSourceSha256: approval.snapshotSourceSha256,
+  exporterManifestSha256: approval.exporterManifestSha256,
   candidateGenesisTime: approval.candidateGenesisTime,
   expiresAt: approval.expiresAt,
   validated: true,

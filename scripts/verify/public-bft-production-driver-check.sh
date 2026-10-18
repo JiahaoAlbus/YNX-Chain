@@ -3,6 +3,168 @@ set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
 
+[[ "$#" == 0 || ( "$#" == 1 && "$1" == --snapshot-only ) ]] || { echo 'usage: public-bft-production-driver-check.sh [--snapshot-only]' >&2; exit 1; }
+# Real helper/caller controls with isolated public files and an offline tool
+# double. These exercise orchestration, not a claim of real ledger validity.
+# The normal Go exporter has its own persisted-checkpoint regression suite.
+node --input-type=module <<'NODE'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import http from 'node:http';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+const execute=promisify(execFile),repo=process.cwd(),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-readonly-export-'));
+const helper=process.env.PUBLIC_BFT_SNAPSHOT_HELPER || path.join(repo,'scripts/ops/remote/public-bft-final-snapshot.sh');
+const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
+const write=(p,x,mode=0o600)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,typeof x==='string'?x:JSON.stringify(x)+'\n',{flag:'wx',mode});};
+const full='abcdef012345'+'a'.repeat(28),commit=full.slice(0,12),release='ynx-bft-gateway-'+commit;
+const blockHash='a'.repeat(64),stateHash='b'.repeat(64),q=x=>"'"+x.replaceAll("'","'\\''")+"'";
+const server=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({height:100,latestBlockHash:blockHash}));});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const url='http://127.0.0.1:'+server.address().port;
+function fixture(name){
+  const root=path.join(tmp,name),tx='snapshot-control-'+name,tools=path.join(root,'tools'),evidence=path.join(root,'evidence');
+  fs.mkdirSync(evidence,{recursive:true});
+  const state=path.join(root,'original/devnet-state.json'),integrity=path.join(root,'original/devnet-state.integrity-version');
+  const pause=path.join(root,'pause.json'),freeze=path.join(root,'freeze.json');
+  write(state,'original synthetic checkpoint bytes\n');write(integrity,'2\n');
+  const marker={transactionId:tx,commit,bftRelease:release};write(pause,marker);write(freeze,marker);
+  write(path.join(evidence,'primary-pause-authoritative.json'),{...marker,productionStateVerified:true});
+  // This old environment is deliberately executable. The fixed caller must
+  // never source it, even if an exporter later fails.
+  write(path.join(root,'etc/ynx/ynx-chaind.env'),'printf drift > '+q(path.join(root,'env-was-sourced'))+'\n');
+  const snapshot=JSON.stringify({version:2,height:100,lastBlockHash:blockHash,stateHash})+'\n';
+  write(path.join(tools,'ynx-chaind'),`#!/bin/bash
+set -euo pipefail
+[[ "$#" == 4 && "$1" == --data-dir && "$2" == ${q(path.dirname(state))} && "$3" == --export-consensus-state ]]
+[[ -z "\${YNX_DATA_DIR:-}" && -z "\${YNX_LOCAL_VALIDATOR:-}" ]]
+set -C
+printf '%s' ${q(snapshot)} > "$4"
+if [[ -f ${q(path.join(root,'export-fail'))} ]]; then echo 'fixture first cause 73' >&2; exit 73; fi
+if [[ -f ${q(path.join(root,'mutate-after'))} ]]; then printf changed >> ${q(state)}; fi
+printf 'fixture exporter completed\n'
+`,0o700);
+  write(path.join(tools,'ynx-consensus-package'),`#!/bin/bash
+set -euo pipefail
+[[ "$#" == 2 && "$1" == -verify-migration-state && -s "$2" ]]
+printf 'consensus migration state passed: height=100 lastBlockHash=${blockHash} stateHash=${stateHash} accounts=1 validators=4\n'
+`,0o700);
+  const binaries={};for(const n of ['ynx-chaind','ynx-consensus-package']){const b=fs.readFileSync(path.join(tools,n));binaries[n]={bytes:b.length,sha256:hash(b)};}
+  write(path.join(tools,'SOURCE.json'),{binaries,commit:full,platform:'linux/amd64',purpose:'offline copied-state validation; not installed or activated',runId:'123',version:'YNX-PQ-OFFLINE-MIGRATION-TOOLS/v1'});
+  const source={version:'YNX-PUBLIC-BFT-SNAPSHOT-SOURCE/v1',transactionId:tx,commit,authoritativeRelease:'ynx-chain-'+commit,bftRelease:release,
+    statePath:state,stateBytes:String(fs.statSync(state).size),stateSHA256:hash(fs.readFileSync(state)),
+    integrityMarkerPath:integrity,integrityMarkerBytes:'2',integrityMarkerSHA256:hash(fs.readFileSync(integrity)),
+    pauseMarkerPath:pause,pauseMarkerSHA256:hash(fs.readFileSync(pause)),mutationMarkerPath:freeze,mutationMarkerSHA256:hash(fs.readFileSync(freeze)),height:'100',blockHash};
+  const input=path.join(root,'source.json');write(input,source);
+  const args=[tx,commit,'ynx-chain-'+commit,release,pause,freeze,evidence,url,root,tools,'1',input,hash(fs.readFileSync(input)),hash(fs.readFileSync(path.join(tools,'SOURCE.json'))),full];
+  return {root,tx,tools,evidence,state,integrity,pause,freeze,input,source,args};
+}
+async function invoke(f){
+  try{return {...await execute('bash',[helper,...f.args],{env:{...process.env,YNX_DATA_DIR:'/unapproved/old/env',YNX_LOCAL_VALIDATOR:'unapproved-override'},maxBuffer:1<<20,timeout:15000}),code:0};}
+  catch(e){return {code:e.code,stdout:e.stdout||'',stderr:e.stderr||''};}
+}
+const unchanged=(files,before)=>files.forEach((p,i)=>assert.deepEqual(fs.readFileSync(p),before[i],`original changed: ${p}`));
+try{
+  // With the old real helper this exact retained partial is removed by its
+  // EXIT trap (and its old service environment is sourced). Keep this first:
+  // CI can run this selector against the fixed old source and require RED.
+  const partial=fixture('retained-partial'),p=path.join(partial.evidence,'final-migration-state.json.partial-'+partial.tx);
+  write(p,'UNKNOWN previous exporter output\n');const saved=fs.readFileSync(p);
+  const refused=await invoke(partial);assert.notEqual(refused.code,0,'existing partial unexpectedly accepted');
+  assert.ok(fs.existsSync(p),'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED');
+  assert.deepEqual(fs.readFileSync(p),saved,'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED');
+  assert.equal(fs.existsSync(path.join(partial.root,'env-was-sourced')),false,'PUBLIC_BFT_FINAL_SNAPSHOT_SERVICE_ENV_EXECUTED');
+  const good=fixture('positive'),files=[good.state,good.integrity,good.pause,good.freeze,good.input],before=files.map(p=>fs.readFileSync(p));
+  const prepared=path.join(good.root,'prepared');
+  await execute('bash',[helper,'--prepare',good.input,good.tools,full,good.args[12],good.args[13],good.tx,commit,'ynx-chain-'+commit,release,prepared]);
+  for(const name of ['SOURCE.json','ynx-chaind','ynx-consensus-package'])assert.deepEqual(fs.readFileSync(path.join(prepared,'tools',name)),fs.readFileSync(path.join(good.tools,name)));
+  await assert.rejects(execute('bash',[helper,'--prepare',good.input,good.tools,full,good.args[12],good.args[13],good.tx,commit,'ynx-chain-'+commit,release,prepared]));
+  good.args[9]=path.join(prepared,'tools');good.args[11]=path.join(prepared,'snapshot-source.json');
+  const passed=await invoke(good);assert.equal(passed.code,0,passed.stderr);assert.match(passed.stdout,/validated=true/);assert.match(passed.stdout,/sourceUnchanged=true/);
+  unchanged(files,before);assert.equal(fs.existsSync(path.join(good.root,'env-was-sourced')),false);
+  const output=path.join(good.evidence,'final-migration-state.json'),meta=path.join(good.evidence,'final-migration-state.evidence.json');
+  const outputs=[output,meta],outputBytes=outputs.map(p=>fs.readFileSync(p));
+  assert.notEqual((await invoke(good)).code,0,'completed export must not redispatch');unchanged(outputs,outputBytes);
+  fs.appendFileSync(output,'tampered prior output');const tampered=fs.readFileSync(output);
+  assert.notEqual((await invoke(good)).code,0,'checksum-mismatched prior export accepted');assert.deepEqual(fs.readFileSync(output),tampered,'tampered UNKNOWN was overwritten');
+  for(const kind of ['snapshotSourcePin','exporterPin','toolHash','sourceHash','missingState','missingIntegrity','wrongIntegrity','missingPause','wrongFreeze','wrongMarkerPath','oldInstalledBinary','unexpectedTools','sourceSymlink','sourceUnknownField','sourceDuplicateField','checkpointDrift']){
+    const f=fixture(kind);
+    if(kind==='snapshotSourcePin')f.args[12]='c'.repeat(64);
+    if(kind==='exporterPin')f.args[13]='c'.repeat(64);
+    if(kind==='toolHash')fs.appendFileSync(path.join(f.tools,'ynx-chaind'),'# changed\n');
+    if(kind==='sourceHash')fs.appendFileSync(f.state,'changed');
+    if(kind==='missingState')fs.renameSync(f.state,f.state+'.preserved');
+    if(kind==='missingIntegrity')fs.renameSync(f.integrity,f.integrity+'.preserved');
+    if(kind==='wrongIntegrity')fs.writeFileSync(f.integrity,'3\n');
+    if(kind==='missingPause')fs.renameSync(f.pause,f.pause+'.preserved');
+    if(kind==='wrongFreeze')fs.writeFileSync(f.freeze,'{}\n');
+    if(kind==='wrongMarkerPath')f.args[4]=f.freeze;
+    if(kind==='oldInstalledBinary')f.args[9]=path.join(f.tools,'ynx-chaind');
+    if(kind==='unexpectedTools')write(path.join(f.tools,'old.env'),'must be preserved');
+    if(kind==='sourceSymlink'){fs.renameSync(f.state,f.state+'.preserved');fs.symlinkSync(f.state+'.preserved',f.state);}
+    if(kind==='sourceUnknownField'||kind==='checkpointDrift'){
+      const s={...f.source};if(kind==='sourceUnknownField')s.validatorOverride='fake';else s.height='101';
+      fs.writeFileSync(f.input,JSON.stringify(s)+'\n');f.args[12]=hash(fs.readFileSync(f.input));
+    }
+    if(kind==='sourceDuplicateField'){fs.writeFileSync(f.input,JSON.stringify(f.source).slice(0,-1)+',"height":"100"}\n');f.args[12]=hash(fs.readFileSync(f.input));}
+    const result=await invoke(f);assert.notEqual(result.code,0,`accepted ${kind}`);
+    assert.equal(fs.existsSync(path.join(f.evidence,'snapshot-attempt')),false,`invalid ${kind} reached exporter`);
+    assert.equal(fs.existsSync(path.join(f.root,'env-was-sourced')),false);
+    assert.equal(fs.existsSync(path.join(f.evidence,'final-migration-state.json')),false);
+  }
+  for(const name of ['final-migration-state.json','final-migration-state.evidence.json','snapshot-attempt','final-migration-state.json.tmp','final-migration-state.json.UNKNOWN','final-migration-state.evidence.json.partial']){
+    const f=fixture('exists-'+name.replaceAll('.','-')),file=path.join(f.evidence,name);write(file,'ORIGINAL UNKNOWN\n');
+    assert.notEqual((await invoke(f)).code,0,`accepted old ${name}`);assert.equal(fs.readFileSync(file,'utf8'),'ORIGINAL UNKNOWN\n');
+  }
+  const failed=fixture('export-failure');write(path.join(failed.root,'export-fail'),'yes');
+  const error=await invoke(failed);assert.notEqual(error.code,0);assert.match(error.stderr,/73/);
+  assert.ok(fs.existsSync(path.join(failed.evidence,'final-migration-state.json')),'uncertain exporter output erased');
+  assert.match(fs.readFileSync(path.join(failed.evidence,'snapshot-attempt/export.stderr'),'utf8'),/fixture first cause 73/);
+  assert.equal(fs.existsSync(path.join(failed.evidence,'final-migration-state.evidence.json')),false);
+  assert.notEqual((await invoke(failed)).code,0,'UNKNOWN must not redispatch');
+  const mutated=fixture('source-changed-during-export');write(path.join(mutated.root,'mutate-after'),'yes');
+  assert.notEqual((await invoke(mutated)).code,0);assert.ok(fs.existsSync(path.join(mutated.evidence,'final-migration-state.json')));
+  assert.equal(fs.existsSync(path.join(mutated.evidence,'final-migration-state.evidence.json')),false);
+  // Exercise the actual production phase with only its external SSH transport
+  // stubbed. The normal approval reader and offline preparation remain real.
+  const body=fs.readFileSync(path.join(repo,'scripts/ops/public-bft-production-driver.sh'),'utf8').match(/^final_snapshot_phase\(\) \{\n[\s\S]*?^\}/m)?.[0];
+  assert.ok(body,'normal final snapshot caller missing');
+  async function caller(name,change){
+    const f=fixture('caller-'+name),dir=path.join(f.root,f.tx),log=path.join(f.root,'transport.log');
+    const approval={schemaVersion:1,action:'ynx-public-bft-cutover',approved:true,approvalId:'fixture-approval',approver:'approver',custodyReviewer:'custodian',custodyEvidence:'sha256:'+'1'.repeat(64),owner:'source owner',ownerHandoverReviewer:'handover reviewer',ownerHandoverInventoryDigest:'sha256:'+'2'.repeat(64),ownerHandoverInventoryEvidence:'sha256:'+'3'.repeat(64),ownerHandoverReceiptEvidence:'sha256:'+'4'.repeat(64),commit,release,publicCutoverAuthorized:true,automaticRollbackRequired:true,validatorKeyRecoveryVerified:true,serviceSignerRecoveryVerified:true,ownerHandoverVerified:true,rotationProcedureVerified:true,serviceSignerManifestSha256:'5'.repeat(64),validatorManifestSha256:'6'.repeat(64),operatorPlanSha256:'7'.repeat(64),runtimeManifestSha256:'8'.repeat(64),snapshotSourceSha256:f.args[12],exporterManifestSha256:f.args[13],candidateGenesisTime:'2026-10-18T00:00:00Z',expiresAt:'2026-10-19T00:00:00Z'};
+    if(change)change(approval);
+    write(path.join(dir,'approval.json'),approval);
+    write(path.join(dir,'roles/primary-pause-authoritative.txt'),`transactionId=${f.tx}\ncommit=${commit}\nbftRelease=${release}\nproductionStateVerified=true\n`);
+    const script=path.join(f.root,'caller.sh');
+    write(script,`#!/bin/bash\nset -Eeuo pipefail\ncd ${q(repo)}\ngit(){ printf '%s\\n' ${q(full)}; }\nynx_ops_ssh(){ printf '%s\\n' "$*" >> ${q(log)}; printf 'DRY RUN %s\\n' "$*"; }\ncommit=${q(commit)}\nrelease=${q('ynx-chain-'+commit)}\n${body}\nfinal_snapshot_phase\n`,0o700);
+    const env={...process.env,DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED:'yes',PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:dir,PUBLIC_BFT_PRODUCTION_SNAPSHOT_SOURCE:f.input,PUBLIC_BFT_PRODUCTION_EXPORTER_BUNDLE:f.tools,PUBLIC_BFT_PRODUCTION_SNAPSHOT_OBSERVATION_SECONDS:'1',PRIMARY_NODE_USER:'test',PRIMARY_NODE_HOST:'not-a-real-host',PRIMARY_NODE_SSH_KEY:'/unused/test-key'};
+    return {f,dir,log,script,env};
+  }
+  const c=await caller('approved');await execute('bash',[c.script],{env:c.env});
+  const transport=fs.readFileSync(c.log,'utf8');
+  assert.ok(fs.existsSync(path.join(c.dir,'final-snapshot/dry-run.txt')));
+  assert.match(transport,/snapshot-source\.json/);assert.match(transport,/tools\/ynx-chaind/);
+  assert.equal(transport.includes('/usr/local/bin/ynx-chaind'),false,'installed exporter drift');
+  assert.equal(transport.includes('rm -f'),false,'remote cleanup would erase UNKNOWN');
+  assert.equal(transport.includes('source '),false,'service env must not be loaded');
+  await assert.rejects(execute('bash',[c.script],{env:c.env}));assert.equal(fs.readFileSync(c.log,'utf8'),transport,'existing attempt redispatched transport');
+  const noGrant=await caller('missing-explicit-approval');
+  await assert.rejects(execute('bash',[noGrant.script],{env:{...noGrant.env,PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED:'no'}}));
+  assert.equal(fs.existsSync(noGrant.log),false,'missing explicit approval reached transport');
+  for(const field of ['snapshotSourceSha256','exporterManifestSha256']){
+    for(const missing of [true,false]){
+      const c=await caller(field+(missing?'missing':'wrong'),a=>{if(missing)delete a[field];else a[field]='9'.repeat(64);});
+      await assert.rejects(execute('bash',[c.script],{env:c.env}));assert.equal(fs.existsSync(c.log),false,'approval mismatch reached transport');
+    }
+  }
+  console.log('PUBLIC_BFT_FINAL_SNAPSHOT_READONLY_PASS: independent inputs, original bytes, no service env, exclusive output and UNKNOWN preserved');
+}finally{await new Promise(resolve=>server.close(resolve));fs.rmSync(tmp,{recursive:true,force:true});}
+NODE
+[[ "${1:-}" != --snapshot-only ]] || exit 0
+
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 repo="$tmp/repo"
@@ -12,7 +174,7 @@ cp scripts/ops/remote/public-bft-scoped-backup.sh "$repo/scripts/ops/remote/"
 cp scripts/ops/remote/public-bft-mutation-freeze.sh "$repo/scripts/ops/remote/"
 cp scripts/ops/remote/public-bft-authoritative-pause.sh "$repo/scripts/ops/remote/"
 cp scripts/ops/remote/public-bft-final-snapshot.sh "$repo/scripts/ops/remote/"
-cp scripts/deploy/lib.sh "$repo/scripts/deploy/"
+cp scripts/deploy/lib.sh scripts/deploy/deploy-consensus-candidate.sh "$repo/scripts/deploy/"
 git -C "$repo" init -q -b main
 git -C "$repo" add scripts
 git -C "$repo" -c user.name='YNX self test' -c user.email='self-test@localhost' commit -q -m 'production driver fixture'
@@ -187,24 +349,8 @@ commit=$commit
 bftRelease=$release
 productionStateVerified=true
 EOF
-run_snapshot_dry_run() {
-  local approval="${1:-yes}"
-  (cd "$repo" && ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 \
-    PUBLIC_BFT_PRODUCTION_SNAPSHOT_APPROVED="$approval" \
-    PUBLIC_BFT_PRODUCTION_SNAPSHOT_OBSERVATION_SECONDS=1 \
-    PUBLIC_BFT_CUTOVER_COMMIT="$commit" \
-    PUBLIC_BFT_CUTOVER_RELEASE="$release" \
-    PUBLIC_BFT_CUTOVER_TRANSACTION_DIR="$transaction" \
-    bash scripts/ops/public-bft-production-driver.sh export_final_snapshot)
-}
-run_snapshot_dry_run >/dev/null
-test -s "$transaction/final-snapshot/dry-run.txt"
-grep -Fq 'public-bft-final-snapshot' "$transaction/roles/primary-export-final-snapshot.txt"
-grep -Fq '/usr/local/bin/ynx-chaind' "$transaction/roles/primary-export-final-snapshot.txt"
-if run_snapshot_dry_run no >/dev/null 2>&1; then
-  echo "final snapshot unexpectedly passed without explicit approval" >&2
-  exit 1
-fi
+# Snapshot approval, exact caller argv and exclusion/replay controls execute
+# above through the real final_snapshot_phase, without the old installed tool.
 
 marker="$tmp/mutation-freeze.json"
 block_pause_marker="$tmp/block-production-pause.json"
@@ -287,33 +433,9 @@ test -s "$block_pause_marker"
 test -s "$freeze_evidence/primary-pause-authoritative.json"
 pause_second="$($pause_helper pause "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" 1)"
 grep -Fq 'reused=true' <<<"$pause_second"
-fake_chaind="$tmp/fake-ynx-chaind"
-cat >"$fake_chaind" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-[[ "${1:-}" == "--export-consensus-state" && -n "${2:-}" ]]
-status="$(curl -fsS "${FIXTURE_CHAIN_URL:?}/status")"
-height="$(printf '%s' "$status" | sed -n 's/.*"height":\([0-9][0-9]*\).*/\1/p')"
-hash="$(printf '%s' "$status" | sed -n 's/.*"latestBlockHash":"\([^"]*\)".*/\1/p')"
-printf '{"version":1,"sourceFormat":"ynx-devnet-state-v1","network":{"name":"YNX Testnet","slug":"testnet","chainId":6423,"nativeCoinName":"YNXT","nativeCurrencySymbol":"YNXT","decimals":18},"height":%s,"lastBlockHash":"%s","accounts":[],"validators":[],"resourcePolicy":{},"liquidSupplyYnxt":0,"stakedSupplyYnxt":0,"stateHash":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}\n' "$height" "$hash" >"$2"
-EOF
-chmod 0700 "$fake_chaind"
-printf 'FIXTURE_CHAIN_URL=%s\n' "$probe_url" >>"$freeze_config/etc/ynx/ynx-chaind.env"
-snapshot_helper="$repo/scripts/ops/remote/public-bft-final-snapshot.sh"
-snapshot_first="$($snapshot_helper "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" "$fake_chaind" 1)"
-grep -Fq 'validated=true' <<<"$snapshot_first"
-grep -Fq 'reused=false' <<<"$snapshot_first"
-test -s "$freeze_evidence/final-migration-state.json"
-test -s "$freeze_evidence/final-migration-state.evidence.json"
-snapshot_second="$($snapshot_helper "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" "$fake_chaind" 1)"
-grep -Fq 'reused=true' <<<"$snapshot_second"
-cp "$freeze_evidence/final-migration-state.json" "$freeze_evidence/final-migration-state.json.valid"
-printf 'tamper' >>"$freeze_evidence/final-migration-state.json"
-if "$snapshot_helper" "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" "$fake_chaind" 1 >/dev/null 2>&1; then
-  echo "final snapshot unexpectedly accepted checksum-mismatched reuse" >&2
-  exit 1
-fi
-mv "$freeze_evidence/final-migration-state.json.valid" "$freeze_evidence/final-migration-state.json"
+# Final snapshot no longer reuses or overwrites a prior output. The controls at
+# the top retain the original checksum/approval assertions and additionally
+# preserve all files after a rejected duplicate or a failed exporter.
 cp "$block_pause_marker" "$block_pause_marker.valid"
 printf '{"transactionId":"another-transaction","commit":"%s","bftRelease":"%s"}\n' "$commit" "$release" >"$block_pause_marker"
 if "$pause_helper" resume "$(basename "$transaction")" "$commit" "ynx-chain-${commit}" "$release" "$block_pause_marker" "$marker" "$freeze_evidence" "$probe_url" "$freeze_config" 1 >/dev/null 2>&1; then
@@ -364,4 +486,4 @@ if (cd "$repo" && ENV_FILE="$tmp/deploy.env" DEPLOY_DRY_RUN=1 \
   exit 1
 fi
 
-echo "public-bft-production-driver-check passed: scoped backup, mutation freeze/unfreeze, read-preserving authoritative pause/resume, and final snapshot export are transaction-bound, separately approved, fixture-tested, idempotent, and reject mismatched evidence"
+echo "public-bft-production-driver-check passed: original backup/freeze/pause controls retained; final snapshot uses approved readonly tools, rejects replay and preserves partial/UNKNOWN"

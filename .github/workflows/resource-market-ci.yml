@@ -31,11 +31,13 @@ on:
       - 'scripts/ops/public-bft-cutover-transaction.sh'
       - 'scripts/ops/public-bft-operator-transition.sh'
       - 'scripts/ops/remote/public-bft-operator-transition.sh'
+      - 'scripts/ops/remote/public-bft-final-snapshot.sh'
       - 'scripts/ops/public-bft-validator-registration.sh'
       - 'scripts/ops/remote/public-bft-dependencies.sh'
       - 'scripts/ops/remote/public-bft-ingress.sh'
       - 'scripts/verify/public-bft-candidate-binding.mjs'
       - 'scripts/verify/public-bft-production-candidate-check.sh'
+      - 'scripts/verify/public-bft-production-driver-check.sh'
       - 'scripts/verify/public-bft-cutover-transaction-check.sh'
       - 'scripts/verify/public-bft-operator-transition-check.sh'
       - 'scripts/verify/public-bft-validator-registration-check.sh'
@@ -1292,6 +1294,19 @@ jobs:
         if: ${{ success() && github.event_name == 'push' }}
         timeout-minutes: 3
         run: |
+          # Execute the real frozen old helper against the retained-partial
+          # counterexample; only the original failure marker qualifies as RED.
+          YNX_OLD_SNAPSHOT_HELPER="$RUNNER_TEMP/ynx-old-final-snapshot-59185090a.sh"
+          YNX_OLD_SNAPSHOT_LOG="$RUNNER_TEMP/ynx-old-final-snapshot-59185090a.log"
+          git show 59185090aab3e4eaa6f8c9a0b29e975a2917e8b1:scripts/ops/remote/public-bft-final-snapshot.sh > "$YNX_OLD_SNAPSHOT_HELPER"
+          if PUBLIC_BFT_SNAPSHOT_HELPER="$YNX_OLD_SNAPSHOT_HELPER" bash scripts/verify/public-bft-production-driver-check.sh --snapshot-only > "$YNX_OLD_SNAPSHOT_LOG" 2>&1; then
+            cat "$YNX_OLD_SNAPSHOT_LOG"
+            echo 'old snapshot helper unexpectedly preserved the retained partial' >&2
+            exit 1
+          fi
+          cat "$YNX_OLD_SNAPSHOT_LOG"
+          test "$(grep -c 'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED' "$YNX_OLD_SNAPSHOT_LOG")" -eq 1
+          bash scripts/verify/public-bft-production-driver-check.sh --snapshot-only
           bash scripts/verify/public-bft-production-candidate-check.sh
           # Original transaction-order fixtures replace the external driver;
           # no service, remote transport or paused product is started.

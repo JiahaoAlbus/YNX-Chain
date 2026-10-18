@@ -50,13 +50,22 @@ cat >"$tmp/approval.json" <<EOF
 EOF
 chmod 600 "$tmp/approval.json"
 
+node - "$tmp/approval.json" <<'NODE'
+const fs=require('node:fs'),file=process.argv[2],approval=JSON.parse(fs.readFileSync(file));
+// Independent synthetic public inputs; never derive these from a package or
+// environment in the validator. Actual cutover requires the original approval.
+approval.snapshotSourceSha256='6'.repeat(64);
+approval.exporterManifestSha256='7'.repeat(64);
+fs.writeFileSync(file,JSON.stringify(approval)+'\n',{mode:0o600});
+NODE
+
 # Exercise both actual validators on the original mode-0600 approval and its
 # projection. These public fixture pins are inputs, never package/env defaults.
 node - "$repo" "$tmp" "$commit" "$release" "$custody_review" <<'NODE'
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
 const [repo,tmp,commit,release,custody]=process.argv.slice(2);
 const rawPath=path.join(tmp,'approval.json'),original=fs.readFileSync(rawPath),raw=JSON.parse(original);
-const fields=['operatorPlanSha256','runtimeManifestSha256'];
+const fields=['operatorPlanSha256','runtimeManifestSha256','snapshotSourceSha256','exporterManifestSha256'];
 const first=path.join(repo,'scripts/verify/validate-public-bft-cutover-approval.mjs');
 const second=path.join(repo,'scripts/verify/validate-public-bft-cutover-approval-evidence.mjs');
 const call=(script,file,extra)=>spawnSync(process.execPath,[script,file,commit,release,...extra],{

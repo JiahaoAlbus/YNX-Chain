@@ -62,8 +62,10 @@ function fixture(name) {
   const planPin = digest(fs.readFileSync(planPath));
   const snapshot = {height:41,lastBlockHash:'b'.repeat(64),stateHash:'c'.repeat(64),accounts:[{address:'0x'+'1'.repeat(40),balance:100,nonce:0}]};
   write(path.join(transaction,'final-snapshot/migration.json'),snapshot);
-  write(path.join(transaction,'final-snapshot/remote-evidence.json'),{transactionId:path.basename(transaction),commit,authoritativeRelease:`ynx-chain-${commit}`,bftRelease:release,...snapshot,sha256:digest(fs.readFileSync(path.join(transaction,'final-snapshot/migration.json'))),pauseVerified:true,mutationFreezeVerified:true,validated:true,recordedAt});
+  const snapshotPins={snapshotSourceSha256:'9'.repeat(64),exporterManifestSha256:'d'.repeat(64)};
+  write(path.join(transaction,'final-snapshot/remote-evidence.json'),{transactionId:path.basename(transaction),commit,authoritativeRelease:`ynx-chain-${commit}`,bftRelease:release,...snapshot,sha256:digest(fs.readFileSync(path.join(transaction,'final-snapshot/migration.json'))),pauseVerified:true,mutationFreezeVerified:true,validated:true,sourceUnchanged:true,exporterCommit:fullCommit,...snapshotPins,recordedAt});
   const approval={schemaVersion:1,action:'ynx-public-bft-cutover',approved:true,approvalId:'fixture-approval',approver:'approver',custodyReviewer:'custodian',custodyEvidence:'sha256:'+'1'.repeat(64),owner:'original owner',ownerHandoverReviewer:'separate reviewer',ownerHandoverInventoryDigest:'sha256:'+'2'.repeat(64),ownerHandoverInventoryEvidence:'sha256:'+'3'.repeat(64),ownerHandoverReceiptEvidence:'sha256:'+'4'.repeat(64),commit,release,publicCutoverAuthorized:true,automaticRollbackRequired:true,validatorKeyRecoveryVerified:true,serviceSignerRecoveryVerified:true,ownerHandoverVerified:true,rotationProcedureVerified:true,serviceSignerManifestSha256:'5'.repeat(64),candidateGenesisTime:genesis,validatorManifestSha256:digest(fs.readFileSync(validator)),operatorPlanSha256:planPin,runtimeManifestSha256:manifestPin,expiresAt:expires};
+  Object.assign(approval,snapshotPins);
   write(path.join(transaction,'approval.json'),approval);
   const log=path.join(dir,'calls.jsonl'), tool=path.join(dir,'package-boundary');
   write(tool,`#!${process.execPath}\n`+String.raw`
@@ -130,6 +132,23 @@ try {
     const x=fixture(name),saved=originals(x);run(x,'prepare',changes,1);assert.equal(fs.existsSync(x.log),false,'verifier ran before admission');assert.equal(fs.existsSync(path.join(x.transaction,'candidate')),false);unchanged(saved);
   }
   const noApproval=fixture('approvalMissingPin');delete noApproval.approval.operatorPlanSha256;write(path.join(noApproval.transaction,'approval.json'),noApproval.approval);run(noApproval,'prepare',{},1);assert.equal(fs.existsSync(noApproval.log),false);
+  for(const field of ['snapshotSourceSha256','exporterManifestSha256']){
+    for(const [label,value] of [['missing',undefined],['zero','0'.repeat(64)],['different','f'.repeat(64)],['array',['9'.repeat(64)]]]){
+      const x=fixture(`snapshot-approval-${field}-${label}`);
+      if(value===undefined)delete x.approval[field];else x.approval[field]=value;
+      write(path.join(x.transaction,'approval.json'),x.approval);const saved=originals(x);
+      run(x,'prepare',{},1);assert.equal(fs.existsSync(x.log),false,'snapshot approval mismatch reached verifier');
+      assert.equal(fs.existsSync(x.log+'.transport'),false);unchanged(saved);
+    }
+  }
+  for(const [field,value] of [['sourceUnchanged',false],['sourceUnchanged','true'],['sourceUnchanged',undefined],['exporterCommit',fullCommit.slice(0,12)+'e'.repeat(28)],['exporterCommit',undefined],['snapshotSourceSha256','f'.repeat(64)],['exporterManifestSha256','f'.repeat(64)],['snapshotSourceSha256',undefined],['exporterManifestSha256',undefined]]){
+    const x=fixture(`snapshot-evidence-${field}-${value===undefined?'missing':String(value)}`);
+    const file=path.join(x.transaction,'final-snapshot/remote-evidence.json'),evidence=JSON.parse(fs.readFileSync(file));
+    if(value===undefined)delete evidence[field];else evidence[field]=value;
+    write(file,evidence);const saved=originals(x);run(x,'prepare',{},1);
+    assert.equal(fs.existsSync(x.log),false,'unqualified snapshot evidence reached verifier');
+    assert.equal(fs.existsSync(x.log+'.transport'),false);unchanged(saved);
+  }
   for(const [name,field,value]of [
     ['wrongOperatorApproval','operatorPlanSha256','7'.repeat(64)],['wrongRuntimeApproval','runtimeManifestSha256','6'.repeat(64)],
     ['notApproved','approved',false],['noRollbackConsent','automaticRollbackRequired',false],

@@ -120,6 +120,7 @@ final_snapshot_phase() {
     exit 1
   }
   local transaction_id evidence_dir pause_evidence observation remote_root remote_helper
+  local source_input exporter_bundle full_commit source_pin exporter_pin pins local_root remote_stage helper_sha name
   transaction_id="$(basename "$transaction_dir")"
   [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || { echo "invalid final snapshot transaction id" >&2; exit 1; }
   evidence_dir="$transaction_dir/roles"
@@ -135,25 +136,48 @@ final_snapshot_phase() {
     exit 1
   }
   remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${transaction_id}"
-  remote_helper="/tmp/ynx-public-bft-final-snapshot-${transaction_id}.sh"
-  public_bft_runtime_prepare "$transaction_dir"
-  mkdir -p "$transaction_dir/final-snapshot"
-  chmod 0700 "$transaction_dir/final-snapshot"
-  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-final-snapshot.sh "$remote_helper"
-  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$transaction_id' '$commit' '$release' '$bft_release' /var/lib/ynx-chain/block-production-pause.json /var/lib/ynx-chain/mutation-freeze.json '$remote_root' http://127.0.0.1:6420 / /usr/local/bin/ynx-chaind '$observation'" >"$evidence_dir/primary-export-final-snapshot.txt"
+  source_input="${PUBLIC_BFT_PRODUCTION_SNAPSHOT_SOURCE:-}"
+  exporter_bundle="${PUBLIC_BFT_PRODUCTION_EXPORTER_BUNDLE:-}"
+  full_commit="$(git rev-parse HEAD)"
+  # Validate the original protected approval projection. Environment variables
+  # select input locations only; neither the input nor SOURCE can authorize its
+  # own hash, and the operator 8-ELF runtime does not contain this exporter.
+  pins="$(node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/approval.json" "$commit" "$bft_release")"
+  source_pin="$(printf '%s' "$pins" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).snapshotSourceSha256))')"
+  exporter_pin="$(printf '%s' "$pins" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).exporterManifestSha256))')"
+  [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { echo "final export requires the approved Linux amd64 offline tools; no installed-binary fallback" >&2; exit 1; }
+  for name in "$transaction_dir" "$remote_root"; do
+    [[ "$name" =~ ^/[A-Za-z0-9._/-]+$ && "$name" != *..* ]] || { echo "invalid final snapshot staging path" >&2; exit 1; }
+  done
+  local_root="$transaction_dir/final-snapshot"
+  # An existing local attempt, even an empty/partial one, prevents redispatch.
+  # Preparation reserves this directory exclusively and preserves every error.
+  bash scripts/ops/remote/public-bft-final-snapshot.sh --prepare "$source_input" "$exporter_bundle" "$full_commit" "$source_pin" "$exporter_pin" "$transaction_id" "$commit" "$release" "$bft_release" "$local_root"
+  remote_stage="/tmp/ynx-public-bft-final-snapshot-${transaction_id}"
+  remote_helper="$remote_stage/export.sh"
+  helper_sha="$(sha256sum scripts/ops/remote/public-bft-final-snapshot.sh | awk '{print $1}')"
+  # Atomic fresh directory + noclobber copies: no scp/cat overwrite of an old
+  # request or executable, and no EXIT cleanup of uncertain remote effects.
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "umask 077; mkdir -m 0700 '$remote_stage' && mkdir -m 0700 '$remote_stage/tools'"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -C; umask 077; cat > '$remote_helper'" <scripts/ops/remote/public-bft-final-snapshot.sh
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -C; umask 077; cat > '$remote_stage/snapshot-source.json'" <"$local_root/snapshot-source.json"
+  for name in SOURCE.json ynx-chaind ynx-consensus-package; do
+    ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -C; umask 077; cat > '$remote_stage/tools/$name'" <"$local_root/tools/$name"
+  done
+  (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; test \"\$(sha256sum '$remote_helper' | cut -d' ' -f1)\" = '$helper_sha'; chmod 0700 '$remote_stage/tools/ynx-chaind' '$remote_stage/tools/ynx-consensus-package'; sudo bash '$remote_helper' '$transaction_id' '$commit' '$release' '$bft_release' /var/lib/ynx-chain/block-production-pause.json /var/lib/ynx-chain/mutation-freeze.json '$remote_root' http://127.0.0.1:6420 / '$remote_stage/tools' '$observation' '$remote_stage/snapshot-source.json' '$source_pin' '$exporter_pin' '$full_commit'" >"$evidence_dir/primary-export-final-snapshot.txt")
   if [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]]; then
-    printf 'transactionId=%s\ncommit=%s\nrelease=%s\ndryRun=true\n' "$transaction_id" "$commit" "$release" >"$transaction_dir/final-snapshot/dry-run.txt"
+    (set -C; printf 'transactionId=%s\ncommit=%s\nrelease=%s\ndryRun=true\n' "$transaction_id" "$commit" "$release" >"$local_root/dry-run.txt")
     echo "production BFT final snapshot dry-run passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
     return
   fi
-  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.json'" >"$transaction_dir/final-snapshot/migration.json"
-  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.evidence.json'" >"$transaction_dir/final-snapshot/remote-evidence.json"
+  (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.json'" >"$local_root/migration.json")
+  (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$remote_root/final-migration-state.evidence.json'" >"$local_root/remote-evidence.json")
   chmod 0600 "$transaction_dir/final-snapshot/migration.json" "$transaction_dir/final-snapshot/remote-evidence.json"
   local expected_sha actual_sha
   expected_sha="$(sed -n 's/^sha256=\([0-9a-f]\{64\}\)$/\1/p' "$evidence_dir/primary-export-final-snapshot.txt")"
   actual_sha="$(shasum -a 256 "$transaction_dir/final-snapshot/migration.json" | awk '{print $1}')"
   [[ -n "$expected_sha" && "$actual_sha" == "$expected_sha" ]] || { echo "downloaded final snapshot checksum mismatch" >&2; exit 1; }
-  "$public_package_verifier" -verify-migration-state "$transaction_dir/final-snapshot/migration.json" >"$transaction_dir/final-snapshot/local-validation.txt"
+  (set -C; env -i PATH=/usr/bin:/bin "$local_root/tools/ynx-consensus-package" -verify-migration-state "$local_root/migration.json" >"$local_root/local-validation.txt")
   echo "production BFT final snapshot passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
 }
 
