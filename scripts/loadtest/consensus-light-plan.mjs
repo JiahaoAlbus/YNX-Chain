@@ -54,6 +54,7 @@ export function lightScratchBytes(root,maxEntries=8192,onVanish=()=>{}){
 }
 
 export function requireClientRegressionPasses(plan,stdout){
+ if(plan.scope==='commit_pair'){if(typeof stdout!=='string'||/^\s*--- (?:SKIP|FAIL):/m.test(stdout))throw Error('paired storage test skipped or failed');const passed=[...stdout.matchAll(/^--- PASS: (Test[^ /]+) \(/gm)].map(m=>m[1]);if(passed.length!==plan.requiredPasses.length||new Set(passed).size!==passed.length||plan.requiredPasses.some(n=>!passed.includes(n))||!/^ok\s+github\.com\/JiahaoAlbus\/YNX-Chain\/internal\/consensus\s/m.test(stdout))throw Error('actual paired storage and crash gate passes required');return passed;}
  if(typeof stdout!=='string'||/^\s*--- (?:SKIP|FAIL):/m.test(stdout))throw Error('required Go regression skipped or failed');
  const passed=[...stdout.matchAll(/^--- PASS: (Test[^ /]+) \(/gm)].map(m=>m[1]);
  if(passed.length!==plan.requiredPasses.length||new Set(passed).size!==passed.length||plan.requiredPasses.some(n=>!passed.includes(n))||!/^ok\s+github\.com\/JiahaoAlbus\/YNX-Chain\/cmd\/ynx-consensus-perf-client\s/m.test(stdout))throw Error('all thirteen actual Go passes and package terminal required');
@@ -72,14 +73,14 @@ export function clientRegressionArgs(plan,remainingMs){
 }
 
 export function clientOwnedRSSCap(plan,rootCase){
- if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01'].includes(rootCase))throw Error('unsupported explicit client resource case');
+ if(rootCase!==undefined&&!['client13-normal-02','client13-normal-03','client13-normal-04','client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01','commit-pair-01'].includes(rootCase))throw Error('unsupported explicit client resource case');
  if(rootCase!==undefined&&plan.mode!=='client_regression')throw Error('explicit RSS case requires fixed client regression');
- if(['client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01'].includes(rootCase))return 768*1024**2;
- return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01'].includes(rootCase)?512*1024**2:400*1024**2;
+ if(['client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01','commit-pair-01'].includes(rootCase))return 768*1024**2;
+ return ['client13-normal-05','client13-normal-06','client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01','commit-pair-01'].includes(rootCase)?512*1024**2:400*1024**2;
 }
 
 export function lightProbeInput(root,rootCase){
- return ['client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
+ return ['client13-normal-07','client13-normal-08','client13-normal-09','client13-normal-10','client13-normal-11','client13-normal-12','client13-normal-13','client13-normal-14','client13-normal-15','client13-normal-16','commit-phases-01','commit-pair-01'].includes(rootCase)?{path:path.join(root,'artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages'),sha256:'bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d'}:{path:path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure'),sha256:'3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6'};
 }
 
 // Inventory original stopped data; the proof outputs live outside this set.
@@ -164,7 +165,7 @@ export async function currentCacheOccupancy(paths,run,timeoutMs,activeDeadlineAt
 }
 
 export function cachePhaseLimit(rootCase){
- if(rootCase==='client13-normal-16'||rootCase==='commit-phases-01')return 20000;
+ if(rootCase==='client13-normal-16'||rootCase==='commit-phases-01'||rootCase==='commit-pair-01')return 20000;
  return /^client13-normal-(0[3-9]|1[0-5])$/.test(rootCase??'')?12000:5000;
 }
 
@@ -181,4 +182,17 @@ export function requireCommitStoragePhases(stdout){
   if(!r.commitStagesNs||Object.keys(r.commitStagesNs).length!==stages.length||stages.some(s=>!Number.isSafeInteger(r.commitStagesNs[s])||r.commitStagesNs[s]<=0)||Object.values(r.commitStagesNs).reduce((a,b)=>a+b,0)>r.commitNs)throw Error('actual complete Commit storage intervals required');
  }
  return rows;
+}
+
+export function commitPairCommand(root){
+ const p=commitPhaseCommand(root),requiredPasses=['TestCommitStorageMatchedPerformance','TestBlockJournalAbruptExit','TestBlockJournalFailedWriterRetiresWithoutPublishing'];
+ return {...p,scope:'commit_pair',requiredPasses,args:['-n','10','/opt/homebrew/bin/go','test','-p','1','./internal/consensus','-run','^('+requiredPasses.join('|')+')$','-count=1','-timeout=45s','-v'],env:{...p.env,YNX_CHAIN_PERF:'1'},sourceCommit:'d47b0fb8bf817093d1da0cd0dc8b08725bfae0f7',sourceTree:'a1465afa2b958fdca37027740089bf04fd754b5b',sourcePins:{...p.sourcePins,internal:'fc5ccab4e9aa6923bc61a2dc7ac518343ac56703'},interpretation:'One local storage pair of36x32 actual business inputs per layout, two checkpoints and four-block live tail, plus actual crash/fault recovery gates. No network/finality or sustained TPS claim. Original explicit45+15 resource caps retained.'};
+}
+export function requireCommitStoragePair(stdout){
+ const found=[...stdout.matchAll(/YNX_COMMIT_STORAGE_PAIR_V1 (\{[^\n]+\})/g)];if(found.length!==1)throw Error('one actual local storage pair required');
+ const r=JSON.parse(found[0][1]);
+ if(r.schema!=='ynx-commit-storage-pair-v1'||r.sameMigrationAndAllBlockHashes!==true||r.canonicalStatesEqual!==true||!Array.isArray(r.reports)||r.reports.length!==2||!/^[0-9a-f]{64}$/.test(r.canonicalStateSHA256))throw Error('actual pair identity missing');
+ for(const [i,p] of r.reports.entries())if(p.storage_layout!==['atomic-json','block-journal'][i]||p.blocks!==36||p.executed_code_zero!==1152||p.accepted!==1152||p.persisted_fee_events!==1152||p.failed!==0||p.restart_full_state_equal!==true||p.replay_rejected_after_restart!==true||!Number.isFinite(p.application_pipeline_seconds)||p.application_pipeline_seconds<=0)throw Error('actual paired business/recovery counts unavailable');
+ if(r.reports[1].journal_compactions!==2||r.reports[1].recovery_replayed_blocks!==4||r.reports[0].migration_hash!==r.reports[1].migration_hash||JSON.stringify(r.reports[0].block_app_hashes)!==JSON.stringify(r.reports[1].block_app_hashes))throw Error('paired checkpoint/tail/hash gates missing');
+ return r;
 }

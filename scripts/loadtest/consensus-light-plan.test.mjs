@@ -242,3 +242,9 @@ test('Commit phase reader rejects incomplete unknown and impossible real observe
  const impossible=structuredClone(rows);impossible[0].commitStagesNs.file_sync=impossible[0].commitNs+1;assert.throws(()=>requireCommitStoragePhases(output(impossible)));
  assert.throws(()=>requireCommitStoragePhases(output(rows).replace('ok  github','not_run  github')));
 });
+
+test('paired storage recipe preserves safety gates and limits the actual new test selector',async()=>{
+ const {commitPairCommand,clientOwnedRSSCap,cachePhaseLimit,requireClientRegressionPasses}=await import('./consensus-light-plan.mjs');const p=commitPairCommand('/work');
+ assert.equal(p.sourceCommit,'d47b0fb8bf817093d1da0cd0dc8b08725bfae0f7');assert.equal(p.requiredPasses.length,3);assert.equal(p.caps.activeMs,45000);assert.equal(p.caps.totalMs,60000);assert.equal(clientOwnedRSSCap(p,'commit-pair-01'),805306368);assert.equal(cachePhaseLimit('commit-pair-01'),20000);assert.equal(p.env.YNX_CHAIN_PERF,'1');
+ const stdout=p.requiredPasses.map(n=>'--- PASS: '+n+' (0.10s)').join('\n')+'\nok  github.com/JiahaoAlbus/YNX-Chain/internal/consensus 1.0s\n';assert.equal(requireClientRegressionPasses(p,stdout).length,3);assert.throws(()=>requireClientRegressionPasses(p,stdout.replace('--- PASS:','--- SKIP:')));assert.throws(()=>requireClientRegressionPasses(p,stdout.replace('ok  github','not_run  github')));
+});
