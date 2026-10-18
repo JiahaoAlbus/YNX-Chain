@@ -12,6 +12,11 @@ fi
 source_commit=$(/usr/bin/git -C "$repo_root" rev-parse HEAD)
 source_tree=$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{tree}')
 source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
+# Fail before allocating a build candidate if either separately pinned input is
+# absent or changed. These are source roots, never runtime qualification flags.
+node --input-type=module -e "import('./scripts/package-identity-admission-source.mjs').then(m=>m.verifyCanonicalIdentityAdmissionSource())"
+canonical_native_root=$(node scripts/package-identity-admission-source.mjs --native-source-root)
+node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs
 runtime_checkpoint="$source_commit"
 # One deployment target for the native shell, bundle declaration and all bundled
 # Mach-O dependencies. The portable Node runtime establishes the 13.5 floor.
@@ -91,7 +96,7 @@ branding_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/branding-manifest
 # Keep the mature shell in Objective-C; the original parent supplier is ObjC++.
 # The old refusal implementation defines the same ABI and must not be linked.
 /usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" -c desktop/macos/main.m -o "$root/main.o"
-/usr/bin/clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$repo_root/packages/wallet-auth/native" -Idesktop/macos "$root/main.o" desktop/macos/original-ide-parent-supplier.mm "$repo_root/packages/wallet-auth/native/original-auth-identity-source-authority.mm" "$repo_root/packages/wallet-auth/native/original-auth-identity-joint-owner.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-source-binding.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-kernel.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-observation.mm" -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit -lbsm
+/usr/bin/clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$canonical_native_root/packages/wallet-auth/native" -Idesktop/macos "$root/main.o" "$canonical_native_root/apps/developer/desktop/macos/original-ide-parent-supplier.mm" "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-source-authority.mm" "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-joint-owner.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-source-binding.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-kernel.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-observation.mm" -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit -lbsm
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
 if [[ -n "$local_node_runtime" ]]; then
   /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $macos_min_version" "$app/Contents/Info.plist"
