@@ -14,7 +14,7 @@ func realKeyFixture(t *testing.T) (*CandidateKey, *registryFixture, Policy) {
 	t.Cleanup(k.Destroy)
 	r := fixtureRegistry()
 	r.record.MLDSA87PublicKey, r.record.SLHDSASHA2256fPublicKey = a, b
-	return k, r, Policy{Version: Version, ChainID: "ynx-research-only", ActivationHeight: 100}
+	return k, r, Policy{Version: ConsensusGenesisVersion, GenesisID: fixtureGenesis(), ChainID: "ynx-research-only", ActivationHeight: 100}
 }
 
 func TestCIRCLConsensusRealANDAndContext(t *testing.T) {

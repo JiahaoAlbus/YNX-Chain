@@ -10,7 +10,9 @@ import (
 
 // VerifyCommit verifies every present signature and strictly more than two
 // thirds of the trusted validator power for the expected block. The validator
-// set, expected height/block and registry must come from authenticated state.
+// set, expected height/block and registry must come from authenticated state
+// anchored to this verifier's genesis. The caller supplies a detached immutable
+// snapshot; a Comet ValidatorSet alone has no network or height identity.
 // This adapter uses actual Comet Commit objects; upstream wire size limits,
 // validator-key encoding, state transitions and light-client trust remain
 // separate integration gates. It does not replace those gates by itself.
@@ -49,7 +51,7 @@ func (v *Verifier) VerifyCommit(vals *cmttypes.ValidatorSet, blockID cmttypes.Bl
 		if !bytes.Equal(signature.ValidatorAddress, validator.Address) {
 			return errors.New("commit signature does not match trusted validator index")
 		}
-		request, err := NewVoteRequest(v.policy.ChainID, commit.GetVote(int32(i)).ToProto())
+		request, err := NewVoteRequestV2(v.policy.GenesisID, v.policy.ChainID, commit.GetVote(int32(i)).ToProto())
 		if err != nil {
 			return err
 		}

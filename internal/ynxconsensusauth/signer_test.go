@@ -56,6 +56,11 @@ func TestSignerDurableReplayConflictsAndRestart(t *testing.T) {
 	if _, err := s.Sign(conflict); err == nil {
 		t.Fatal("restart forgot reserved bytes")
 	}
+	r.anchor.GenesisID[0] ^= 1
+	if _, err := s.Sign(request); err == nil {
+		t.Fatal("cached signature bypassed changed registry genesis")
+	}
+	r.anchor.GenesisID[0] ^= 1
 	r.record.ValidUntilHeight = 100
 	if _, err := s.Sign(request); err == nil {
 		t.Fatal("cached signature bypassed current registry")
@@ -128,14 +133,14 @@ func TestSignerExtensionBindsPrecommitAndRetry(t *testing.T) {
 	defer s.Close()
 	vote := fixtureVote(100)
 	vote.Extension = []byte("extension")
-	ext, err := NewVoteExtensionRequest(policy.ChainID, vote)
+	ext, err := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, vote)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.Sign(ext); err == nil {
 		t.Fatal("extension before ordinary precommit accepted")
 	}
-	base, err := NewVoteRequest(policy.ChainID, vote)
+	base, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, vote)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +151,7 @@ func TestSignerExtensionBindsPrecommitAndRetry(t *testing.T) {
 	other := fixtureVote(100)
 	other.BlockID.Hash[0] ^= 1
 	other.Extension = vote.Extension
-	wrong, _ := NewVoteExtensionRequest(policy.ChainID, other)
+	wrong, _ := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, other)
 	if _, err := s.Sign(wrong); err == nil {
 		t.Fatal("extension authorized a different base vote")
 	}
@@ -165,12 +170,12 @@ func TestSignerExtensionBindsPrecommitAndRetry(t *testing.T) {
 		t.Fatal("whole vote retry lost extension signature")
 	}
 	vote.Extension[0] ^= 1
-	changed, _ := NewVoteExtensionRequest(policy.ChainID, vote)
+	changed, _ := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, vote)
 	if _, err := s.Sign(changed); err == nil {
 		t.Fatal("extension equivocation accepted")
 	}
 	vote.Type = cmtproto.PrevoteType
-	if _, err := NewVoteExtensionRequest(policy.ChainID, vote); err == nil {
+	if _, err := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, vote); err == nil {
 		t.Fatal("prevote accepted an extension")
 	}
 }

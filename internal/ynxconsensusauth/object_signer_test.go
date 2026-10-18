@@ -21,12 +21,16 @@ type objectStateFixture struct {
 	calls int
 }
 
-func (s *objectStateFixture) ConsensusSigningStateAt(chainID string, local []byte, height int64, round int32) (ObjectSigningState, error) {
+func (s *objectStateFixture) ConsensusSigningStateAt(genesisID []byte, chainID string, local []byte, height int64, round int32) (ObjectSigningState, error) {
 	s.calls++
 	state := s.state
+	state.GenesisID = bytes.Clone(state.GenesisID)
 	state.ValidatorAddress, state.ProposerAddress = bytes.Clone(state.ValidatorAddress), bytes.Clone(state.ProposerAddress)
 	state.Params.Validator.PubKeyTypes = append([]string(nil), state.Params.Validator.PubKeyTypes...)
 	// The query input is also detached from the adapter's immutable identity.
+	if len(genesisID) != 0 {
+		genesisID[0] ^= 1
+	}
 	if len(local) != 0 {
 		local[0] ^= 1
 	}
@@ -36,7 +40,7 @@ func (s *objectStateFixture) ConsensusSigningStateAt(chainID string, local []byt
 func objectStateFor(policy Policy, record KeyRecord, enableHeight int64) *objectStateFixture {
 	params := *cmttypes.DefaultConsensusParams()
 	params.ABCI.VoteExtensionsEnableHeight = enableHeight
-	return &objectStateFixture{state: ObjectSigningState{ChainID: policy.ChainID, Height: 100, Round: 0, ValidatorAddress: bytes.Clone(record.ValidatorAddress), ValidatorIndex: 0, ProposerAddress: bytes.Clone(record.ValidatorAddress), Params: params}}
+	return &objectStateFixture{state: ObjectSigningState{GenesisID: bytes.Clone(policy.GenesisID), ChainID: policy.ChainID, Height: 100, Round: 0, ValidatorAddress: bytes.Clone(record.ValidatorAddress), ValidatorIndex: 0, ProposerAddress: bytes.Clone(record.ValidatorAddress), Params: params}}
 }
 
 func objectProposalFixture() *cmtproto.Proposal {
@@ -85,7 +89,7 @@ func TestObjectSignerRealProposalVotesExtensionsAndRestart(t *testing.T) {
 	if err := a.SignProposal(policy.ChainID, p); err != nil {
 		t.Fatal(err)
 	}
-	proposalRequest, err := NewProposalRequest(policy.ChainID, registry.record.ValidatorAddress, p)
+	proposalRequest, err := NewProposalRequestV2(policy.GenesisID, policy.ChainID, registry.record.ValidatorAddress, p)
 	if err != nil || verify.Verify(proposalRequest, p.Signature) != nil {
 		t.Fatal("actual proposal did not receive a valid dual signature")
 	}
@@ -112,7 +116,7 @@ func TestObjectSignerRealProposalVotesExtensionsAndRestart(t *testing.T) {
 	if err := a.SignVote(policy.ChainID, prevote); err != nil {
 		t.Fatal(err)
 	}
-	prevoteRequest, err := NewVoteRequest(policy.ChainID, prevote)
+	prevoteRequest, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, prevote)
 	if err != nil || verify.Verify(prevoteRequest, prevote.Signature) != nil || len(prevote.ExtensionSignature) != 0 {
 		t.Fatal("prevote signature or extension rules differ from its actual object")
 	}
@@ -121,11 +125,11 @@ func TestObjectSignerRealProposalVotesExtensionsAndRestart(t *testing.T) {
 	if err := a.SignVote(policy.ChainID, vote); err != nil {
 		t.Fatal(err)
 	}
-	ordinary, err := NewVoteRequest(policy.ChainID, vote)
+	ordinary, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, vote)
 	if err != nil {
 		t.Fatal(err)
 	}
-	extension, err := NewVoteExtensionRequest(policy.ChainID, vote)
+	extension, err := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, vote)
 	if err != nil || verify.Verify(ordinary, vote.Signature) != nil || verify.Verify(extension, vote.ExtensionSignature) != nil {
 		t.Fatal("actual precommit and complete extension did not both verify")
 	}
@@ -182,18 +186,18 @@ func TestObjectSignerRealProposalVotesExtensionsAndRestart(t *testing.T) {
 	} {
 		bad := cloneObjectVoteForTest(vote)
 		mutate(bad)
-		q, err := NewVoteRequest(policy.ChainID, bad)
+		q, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, bad)
 		if err != nil || verify.Verify(q, vote.Signature) == nil {
 			t.Fatal("ordinary signature accepted changed full vote")
 		}
-		e, err := NewVoteExtensionRequest(policy.ChainID, bad)
+		e, err := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, bad)
 		if err != nil || verify.Verify(e, vote.ExtensionSignature) == nil {
 			t.Fatal("extension signature did not bind the complete ordinary vote")
 		}
 	}
 	changedExtension := cloneObjectVoteForTest(vote)
 	changedExtension.Extension[0] ^= 1
-	q, err := NewVoteExtensionRequest(policy.ChainID, changedExtension)
+	q, err := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, changedExtension)
 	if err != nil || verify.Verify(q, vote.ExtensionSignature) == nil {
 		t.Fatal("changed full extension accepted")
 	}
@@ -259,6 +263,7 @@ func TestObjectSignerTrustedStateAndExtensionRulesBeforeReservation(t *testing.T
 		change func(*objectStateFixture, *cmtproto.Vote)
 	}{
 		{"source unavailable", func(s *objectStateFixture, _ *cmtproto.Vote) { s.err = errors.New("trusted state unavailable") }},
+		{"wrong source genesis", func(s *objectStateFixture, _ *cmtproto.Vote) { s.state.GenesisID[0] ^= 1 }},
 		{"wrong source chain", func(s *objectStateFixture, _ *cmtproto.Vote) { s.state.ChainID = "other-chain" }},
 		{"wrong source height", func(s *objectStateFixture, _ *cmtproto.Vote) { s.state.Height++ }},
 		{"wrong source round", func(s *objectStateFixture, _ *cmtproto.Vote) { s.state.Round++ }},
@@ -344,12 +349,12 @@ func TestObjectSignerEmptyEnabledExtensionAndNilVote(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			base, err := NewVoteRequest(policy.ChainID, vote)
+			base, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, vote)
 			if err != nil || verify.Verify(base, vote.Signature) != nil {
 				t.Fatal("ordinary vote did not verify")
 			}
 			if scenario == "empty-enabled" {
-				ext, err := NewVoteExtensionRequest(policy.ChainID, vote)
+				ext, err := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, vote)
 				if err != nil || verify.Verify(ext, vote.ExtensionSignature) != nil {
 					t.Fatal("enabled empty extension was not signed")
 				}
@@ -428,10 +433,10 @@ func TestObjectSignerDurabilityFailuresNeverMutateObjects(t *testing.T) {
 				var request Request
 				var signature []byte
 				if proposal {
-					request, err = NewProposalRequest(policy.ChainID, registry.record.ValidatorAddress, p)
+					request, err = NewProposalRequestV2(policy.GenesisID, policy.ChainID, registry.record.ValidatorAddress, p)
 					signature = p.Signature
 				} else {
-					request, err = NewVoteRequest(policy.ChainID, v)
+					request, err = NewVoteRequestV2(policy.GenesisID, policy.ChainID, v)
 					signature = v.Signature
 				}
 				if err != nil {
@@ -528,11 +533,11 @@ func TestObjectSignerExtensionSecondPhaseFailureNeverLeaksPartialVote(t *testing
 			if err != nil {
 				t.Fatal(err)
 			}
-			base, err := NewVoteRequest(policy.ChainID, vote)
+			base, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, vote)
 			if err != nil || verify.Verify(base, vote.Signature) != nil {
 				t.Fatal("recovered ordinary vote does not verify")
 			}
-			ext, err := NewVoteExtensionRequest(policy.ChainID, vote)
+			ext, err := NewVoteExtensionRequestV2(policy.GenesisID, policy.ChainID, vote)
 			if err != nil || verify.Verify(ext, vote.ExtensionSignature) != nil {
 				t.Fatal("recovered extension does not bind original full vote")
 			}

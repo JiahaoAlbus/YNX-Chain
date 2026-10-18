@@ -49,11 +49,11 @@ func TestSignerStateSymlinkCannotForkLiveHistory(t *testing.T) {
 	// at the fact that a second handle opened successfully.
 	voteA, voteB := fixtureVote(100), fixtureVote(100)
 	voteB.BlockID.Hash[0] ^= 1
-	requestA, err := NewVoteRequest(policy.ChainID, voteA)
+	requestA, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, voteA)
 	if err != nil {
 		t.Fatal(err)
 	}
-	requestB, err := NewVoteRequest(policy.ChainID, voteB)
+	requestB, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, voteB)
 	if err != nil {
 		t.Fatal(err)
 	}

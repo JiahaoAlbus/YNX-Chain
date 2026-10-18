@@ -23,6 +23,8 @@ func fixtureEnvelope(t *testing.T) []byte {
 	return wire
 }
 
+func fixtureGenesis() []byte { return bytes.Repeat([]byte{0x71}, 32) }
+
 func fixtureVote(height int64) *cmtproto.Vote {
 	return &cmtproto.Vote{Type: cmtproto.PrecommitType, Height: height, Round: 0, ValidatorAddress: bytes.Repeat([]byte{0x31}, 20), ValidatorIndex: 0,
 		BlockID: cmtproto.BlockID{Hash: bytes.Repeat([]byte{0x32}, 32), PartSetHeader: cmtproto.PartSetHeader{Total: 1, Hash: bytes.Repeat([]byte{0x33}, 32)}}, Timestamp: time.Unix(1700000000, 123).UTC()}
@@ -30,7 +32,7 @@ func fixtureVote(height int64) *cmtproto.Vote {
 
 func fixtureRequest(t *testing.T, height int64) Request {
 	t.Helper()
-	r, err := NewVoteRequest("ynx-research-only", fixtureVote(height))
+	r, err := NewVoteRequestV2(fixtureGenesis(), "ynx-research-only", fixtureVote(height))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,9 +40,14 @@ func fixtureRequest(t *testing.T, height int64) Request {
 }
 
 type registryFixture struct {
+	anchor RegistryAnchor
 	record KeyRecord
 	err    error
 	calls  int
+}
+
+func (r *registryFixture) Anchor() RegistryAnchor {
+	return RegistryAnchor{GenesisID: bytes.Clone(r.anchor.GenesisID), ChainID: r.anchor.ChainID}
 }
 
 func (r *registryFixture) ConsensusKeysAt(chainID string, address []byte, height int64) (KeyRecord, error) {
@@ -76,19 +83,23 @@ type historicalSpy struct {
 	err       error
 }
 
-func (h *historicalSpy) VerifyHistorical(chainID string, address []byte, height int64, kind Kind, canonical, signature []byte) error {
+func (h *historicalSpy) Anchor() RegistryAnchor {
+	return RegistryAnchor{GenesisID: fixtureGenesis(), ChainID: "ynx-research-only"}
+}
+
+func (h *historicalSpy) VerifyHistorical(genesisID []byte, chainID string, address []byte, height int64, kind Kind, canonical, signature []byte) error {
 	h.calls++
 	h.canonical = bytes.Clone(canonical)
 	return h.err
 }
 
 func fixtureRegistry() *registryFixture {
-	return &registryFixture{record: KeyRecord{Version: Version, ChainID: "ynx-research-only", ValidatorAddress: bytes.Repeat([]byte{0x31}, 20), Epoch: 7, ValidFromHeight: 100, MLDSA87PublicKey: make([]byte, MLDSA87PublicKeySize), SLHDSASHA2256fPublicKey: make([]byte, SLHDSASHA2256fPublicKeySize)}}
+	return &registryFixture{anchor: RegistryAnchor{GenesisID: fixtureGenesis(), ChainID: "ynx-research-only"}, record: KeyRecord{Version: Version, ChainID: "ynx-research-only", ValidatorAddress: bytes.Repeat([]byte{0x31}, 20), Epoch: 7, ValidFromHeight: 100, MLDSA87PublicKey: make([]byte, MLDSA87PublicKeySize), SLHDSASHA2256fPublicKey: make([]byte, SLHDSASHA2256fPublicKeySize)}}
 }
 
 func fixtureVerifier(t *testing.T, r Registry, p Provider, h HistoricalVerifier) *Verifier {
 	t.Helper()
-	v, err := NewVerifier(Policy{Version: Version, ChainID: "ynx-research-only", ActivationHeight: 100}, r, p, h)
+	v, err := NewVerifier(Policy{Version: ConsensusGenesisVersion, GenesisID: fixtureGenesis(), ChainID: "ynx-research-only", ActivationHeight: 100}, r, p, h)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +123,7 @@ func TestEnvelopeStrictParsing(t *testing.T) {
 		"truncated":   func(b []byte) []byte { return b[:len(b)-1] },
 		"trailing":    func(b []byte) []byte { return append(b, 0) },
 		"tag":         func(b []byte) []byte { b[0] ^= 1; return b },
-		"version":     func(b []byte) []byte { binary.BigEndian.PutUint32(b[len(envelopeTag):], 2); return b },
+		"version":     func(b []byte) []byte { binary.BigEndian.PutUint32(b[len(envelopeTag):], 1); return b },
 		"zero epoch":  func(b []byte) []byte { clear(b[len(envelopeTag)+4 : len(envelopeTag)+12]); return b },
 		"algorithm A": func(b []byte) []byte { binary.BigEndian.PutUint32(b[len(envelopeTag)+12:], 2); return b },
 		"length A": func(b []byte) []byte {
@@ -259,7 +270,7 @@ func TestFullCanonicalDomainSeparation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			vote := fixtureVote(100)
 			mutate(vote)
-			req, err := NewVoteRequest(base.chainID, vote)
+			req, err := NewVoteRequestV2(fixtureGenesis(), base.chainID, vote)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -269,7 +280,7 @@ func TestFullCanonicalDomainSeparation(t *testing.T) {
 			}
 		})
 	}
-	other, _ := NewVoteRequest("ynx-other-research", fixtureVote(100))
+	other, _ := NewVoteRequestV2(fixtureGenesis(), "ynx-other-research", fixtureVote(100))
 	otherBytes, _ := other.SigningBytes(7)
 	epochBytes, _ := base.SigningBytes(8)
 	if bytes.Equal(expected, otherBytes) || bytes.Equal(expected, epochBytes) || bytes.HasPrefix(expected, []byte("YNX-BATCH")) {
@@ -277,7 +288,7 @@ func TestFullCanonicalDomainSeparation(t *testing.T) {
 	}
 	vote := fixtureVote(100)
 	vote.Extension = []byte("complete-extension")
-	ext, err := NewVoteExtensionRequest(base.chainID, vote)
+	ext, err := NewVoteExtensionRequestV2(fixtureGenesis(), base.chainID, vote)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -286,7 +297,7 @@ func TestFullCanonicalDomainSeparation(t *testing.T) {
 		t.Fatal("extension not bound to full vote")
 	}
 	vote.Type = cmtproto.PrevoteType
-	if _, err := NewVoteExtensionRequest(base.chainID, vote); err == nil {
+	if _, err := NewVoteExtensionRequestV2(fixtureGenesis(), base.chainID, vote); err == nil {
 		t.Fatal("accepted prevote extension")
 	}
 }
@@ -294,7 +305,7 @@ func TestFullCanonicalDomainSeparation(t *testing.T) {
 func TestProposalAndMalformedCoordinates(t *testing.T) {
 	vote := fixtureVote(100)
 	p := &cmtproto.Proposal{Type: cmtproto.ProposalType, Height: 100, Round: 0, PolRound: -1, BlockID: vote.BlockID, Timestamp: vote.Timestamp}
-	r, err := NewProposalRequest("ynx-research-only", vote.ValidatorAddress, p)
+	r, err := NewProposalRequestV2(fixtureGenesis(), "ynx-research-only", vote.ValidatorAddress, p)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,21 +313,21 @@ func TestProposalAndMalformedCoordinates(t *testing.T) {
 		t.Fatal("legacy proposal bytes differ")
 	}
 	p.PolRound = 0
-	if _, err := NewProposalRequest(r.chainID, vote.ValidatorAddress, p); err == nil {
+	if _, err := NewProposalRequestV2(fixtureGenesis(), r.chainID, vote.ValidatorAddress, p); err == nil {
 		t.Fatal("accepted future POL")
 	}
 	for _, chainID := range []string{"", strings.Repeat("x", 51), string([]byte{0xff})} {
-		if _, err := NewVoteRequest(chainID, vote); err == nil {
+		if _, err := NewVoteRequestV2(fixtureGenesis(), chainID, vote); err == nil {
 			t.Fatal("accepted invalid chain ID")
 		}
 	}
 	vote.Height = 0
-	if _, err := NewVoteRequest(r.chainID, vote); err == nil {
+	if _, err := NewVoteRequestV2(fixtureGenesis(), r.chainID, vote); err == nil {
 		t.Fatal("accepted zero height")
 	}
 	vote = fixtureVote(100)
 	vote.BlockID.Hash = []byte{1}
-	if _, err := NewVoteRequest(r.chainID, vote); err == nil {
+	if _, err := NewVoteRequestV2(fixtureGenesis(), r.chainID, vote); err == nil {
 		t.Fatal("accepted malformed block ID")
 	}
 }

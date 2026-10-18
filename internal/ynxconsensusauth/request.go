@@ -19,7 +19,7 @@ const (
 	Prevote              Kind = 2
 	Precommit            Kind = 3
 	VoteExtension        Kind = 4
-	messageTag                = "YNX-CONSENSUS-MESSAGE/v0.1\x00"
+	messageTag                = "YNX-CONSENSUS-MESSAGE/v0.2\x00"
 	validatorAddressSize      = 20
 	maxChainIDBytes           = 50
 	MaxCanonicalBytes         = (1 << 20) + 4096
@@ -29,6 +29,8 @@ const (
 // Fields and canonical bytes are private to prevent substituting a height or
 // message kind after the height-specific policy was chosen.
 type Request struct {
+	version   uint32
+	genesisID []byte
 	chainID   string
 	address   []byte
 	height    int64
@@ -45,9 +47,9 @@ func validateCoordinates(chainID string, address []byte, height int64, round int
 	return nil
 }
 
-// NewProposalRequest requires the proposer address chosen by the trusted
+// NewProposalRequestV2 requires the proposer address chosen by the trusted
 // validator set for this height and round, not an address supplied by a peer.
-func NewProposalRequest(chainID string, proposer []byte, p *cmtproto.Proposal) (Request, error) {
+func NewProposalRequestV2(genesisID []byte, chainID string, proposer []byte, p *cmtproto.Proposal) (Request, error) {
 	if p == nil {
 		return Request{}, errors.New("nil proposal")
 	}
@@ -66,10 +68,10 @@ func NewProposalRequest(chainID string, proposer []byte, p *cmtproto.Proposal) (
 	if err != nil {
 		return Request{}, fmt.Errorf("encode proposal: %w", err)
 	}
-	return newRequest(chainID, proposer, p.Height, p.Round, Proposal, body, body)
+	return newRequest(genesisID, chainID, proposer, p.Height, p.Round, Proposal, body, body)
 }
 
-func NewVoteRequest(chainID string, v *cmtproto.Vote) (Request, error) {
+func NewVoteRequestV2(genesisID []byte, chainID string, v *cmtproto.Vote) (Request, error) {
 	if err := validateVote(chainID, v); err != nil {
 		return Request{}, err
 	}
@@ -82,14 +84,14 @@ func NewVoteRequest(chainID string, v *cmtproto.Vote) (Request, error) {
 	if err != nil {
 		return Request{}, fmt.Errorf("encode vote: %w", err)
 	}
-	return newRequest(chainID, v.ValidatorAddress, v.Height, v.Round, kind, body, body)
+	return newRequest(genesisID, chainID, v.ValidatorAddress, v.Height, v.Round, kind, body, body)
 }
 
-// NewVoteExtensionRequest binds the extension to the complete ordinary vote
+// NewVoteExtensionRequestV2 binds the extension to the complete ordinary vote
 // as well as Comet's canonical extension. It cannot authorize a commit vote.
 // Whether extensions are enabled is still decided by trusted consensus params.
-func NewVoteExtensionRequest(chainID string, v *cmtproto.Vote) (Request, error) {
-	base, err := NewVoteRequest(chainID, v)
+func NewVoteExtensionRequestV2(genesisID []byte, chainID string, v *cmtproto.Vote) (Request, error) {
+	base, err := NewVoteRequestV2(genesisID, chainID, v)
 	if err != nil {
 		return Request{}, err
 	}
@@ -103,7 +105,7 @@ func NewVoteExtensionRequest(chainID string, v *cmtproto.Vote) (Request, error) 
 	}
 	body := appendField(nil, base.canonical)
 	body = appendField(body, ext)
-	return newRequest(chainID, v.ValidatorAddress, v.Height, v.Round, VoteExtension, body, ext)
+	return newRequest(genesisID, chainID, v.ValidatorAddress, v.Height, v.Round, VoteExtension, body, ext)
 }
 
 func validateVote(chainID string, v *cmtproto.Vote) error {
@@ -129,14 +131,23 @@ func validateVote(chainID string, v *cmtproto.Vote) error {
 	return nil
 }
 
-func newRequest(chainID string, address []byte, height int64, round int32, kind Kind, canonical, legacy []byte) (Request, error) {
+func newRequest(genesisID []byte, chainID string, address []byte, height int64, round int32, kind Kind, canonical, legacy []byte) (Request, error) {
+	if err := (RegistryAnchor{GenesisID: genesisID, ChainID: chainID}).validate(); err != nil {
+		return Request{}, err
+	}
 	if len(canonical) == 0 || len(canonical) > MaxCanonicalBytes {
 		return Request{}, errors.New("invalid canonical message size")
 	}
-	return Request{chainID: chainID, address: bytes.Clone(address), height: height, round: round, kind: kind, canonical: bytes.Clone(canonical), legacy: bytes.Clone(legacy)}, nil
+	return Request{version: ConsensusGenesisVersion, genesisID: bytes.Clone(genesisID), chainID: chainID, address: bytes.Clone(address), height: height, round: round, kind: kind, canonical: bytes.Clone(canonical), legacy: bytes.Clone(legacy)}, nil
 }
 
 func (r Request) validate() error {
+	if r.version != ConsensusGenesisVersion {
+		return errors.New("unsupported or unbound consensus request version")
+	}
+	if err := (RegistryAnchor{GenesisID: r.genesisID, ChainID: r.chainID}).validate(); err != nil {
+		return err
+	}
 	if err := validateCoordinates(r.chainID, r.address, r.height, r.round); err != nil {
 		return err
 	}
@@ -156,9 +167,10 @@ func (r Request) SigningBytes(keyEpoch uint64) ([]byte, error) {
 		return nil, errors.New("zero key epoch")
 	}
 	out := append([]byte(nil), messageTag...)
-	out = binary.BigEndian.AppendUint32(out, Version)
+	out = binary.BigEndian.AppendUint32(out, ConsensusGenesisVersion)
 	out = binary.BigEndian.AppendUint32(out, uint32(r.kind))
 	out = binary.BigEndian.AppendUint64(out, keyEpoch)
+	out = appendField(out, r.genesisID)
 	out = appendField(out, []byte(r.chainID))
 	out = appendField(out, r.address)
 	// Comet heights are int64. Consensus uses u64 BE here, not the separate
@@ -167,4 +179,20 @@ func (r Request) SigningBytes(keyEpoch uint64) ([]byte, error) {
 	out = binary.BigEndian.AppendUint32(out, uint32(r.round))
 	out = appendField(out, r.canonical)
 	return out, nil
+}
+
+// Deprecated: unbound candidate requests cannot authorize signatures or resume
+// old signer history. Supply the authenticated genesis explicitly through V2.
+func NewProposalRequest(chainID string, proposer []byte, p *cmtproto.Proposal) (Request, error) {
+	return Request{}, errors.New("unbound consensus v1 request disabled; genesis-bound v2 required")
+}
+
+// Deprecated: use NewVoteRequestV2 with an authenticated genesis.
+func NewVoteRequest(chainID string, v *cmtproto.Vote) (Request, error) {
+	return Request{}, errors.New("unbound consensus v1 request disabled; genesis-bound v2 required")
+}
+
+// Deprecated: use NewVoteExtensionRequestV2 with an authenticated genesis.
+func NewVoteExtensionRequest(chainID string, v *cmtproto.Vote) (Request, error) {
+	return Request{}, errors.New("unbound consensus v1 request disabled; genesis-bound v2 required")
 }

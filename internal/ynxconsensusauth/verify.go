@@ -16,9 +16,13 @@ type Provider interface {
 }
 
 // HistoricalVerifier resolves the exact historical key and rules from trusted
-// state. canonical is the unchanged upstream Comet sign bytes at that height.
+// state. Anchor must be authenticated independently of peers and fixed for the
+// source lifetime. VerifyHistorical must resolve keys and the permitted block
+// identity at the requested genesis and historical height. canonical remains
+// the unchanged upstream Comet bytes; old signatures do NOT contain genesis.
 type HistoricalVerifier interface {
-	VerifyHistorical(chainID string, address []byte, height int64, kind Kind, canonical, signature []byte) error
+	Anchor() RegistryAnchor
+	VerifyHistorical(genesisID []byte, chainID string, address []byte, height int64, kind Kind, canonical, signature []byte) error
 }
 
 // KeyRecord must originate from a committed, authenticated validator-key
@@ -36,13 +40,17 @@ type KeyRecord struct {
 	SLHDSASHA2256fPublicKey []byte
 }
 
+// Registry returns an immutable anchor and detached or immutable key records.
+// A candidate KeyHistory is trusted only after its owner commits it.
 type Registry interface {
+	Anchor() RegistryAnchor
 	ConsensusKeysAt(chainID string, address []byte, height int64) (KeyRecord, error)
 }
 
 // Policy is supplied from authenticated consensus state/checkpoints, never from
 // the peer's envelope or local wall clock. Zero is unconfigured and fails shut.
 type Policy struct {
+	GenesisID        []byte
 	Version          uint32
 	ChainID          string
 	ActivationHeight int64
@@ -56,13 +64,18 @@ type Verifier struct {
 }
 
 func NewVerifier(policy Policy, registry Registry, provider Provider, historical HistoricalVerifier) (*Verifier, error) {
-	if policy.Version != Version || policy.ActivationHeight <= 0 {
+	if policy.Version != ConsensusGenesisVersion || policy.ActivationHeight <= 0 {
 		return nil, errors.New("missing or unsupported authenticated activation policy")
 	}
-	if err := validateCoordinates(policy.ChainID, make([]byte, validatorAddressSize), 1, 0); err != nil {
+	if err := (RegistryAnchor{GenesisID: policy.GenesisID, ChainID: policy.ChainID}).validate(); err != nil {
 		return nil, err
 	}
-	return &Verifier{policy: policy, registry: registry, provider: provider, historical: historical}, nil
+	policy.GenesisID = bytes.Clone(policy.GenesisID)
+	v := &Verifier{policy: policy, registry: registry, provider: provider, historical: historical}
+	if err := v.validateAnchors(); err != nil {
+		return nil, err
+	}
+	return v, nil
 }
 
 // Verify authenticates one request. Commit quorum, validator power/index,
@@ -75,14 +88,17 @@ func (v *Verifier) Verify(request Request, signature []byte) error {
 	if err := request.validate(); err != nil {
 		return err
 	}
-	if request.chainID != v.policy.ChainID {
-		return errors.New("wrong consensus chain")
+	if request.chainID != v.policy.ChainID || !bytes.Equal(request.genesisID, v.policy.GenesisID) {
+		return errors.New("wrong consensus genesis or chain")
+	}
+	if err := v.validateAnchors(); err != nil {
+		return err
 	}
 	if request.height < v.policy.ActivationHeight {
 		if v.historical == nil || len(signature) == 0 || len(signature) > 64 {
 			return errors.New("missing historical verifier or invalid historical signature size")
 		}
-		return v.historical.VerifyHistorical(request.chainID, bytes.Clone(request.address), request.height, request.kind, bytes.Clone(request.legacy), bytes.Clone(signature))
+		return v.historical.VerifyHistorical(bytes.Clone(request.genesisID), request.chainID, bytes.Clone(request.address), request.height, request.kind, bytes.Clone(request.legacy), bytes.Clone(signature))
 	}
 	if v.registry == nil || v.provider == nil {
 		return errors.New("dual PQ registry and provider are required")
@@ -110,6 +126,29 @@ func (v *Verifier) Verify(request Request, signature []byte) error {
 	errB := v.provider.VerifySLHDSASHA2256f(pkB, messageB, envelope.SLHDSASHA2256f)
 	if errA != nil || errB != nil {
 		return fmt.Errorf("dual PQ consensus authentication failed: %w", errors.Join(errA, errB))
+	}
+	return nil
+}
+
+func validatePolicyAnchor(policy Policy, anchor RegistryAnchor) error {
+	if err := anchor.validate(); err != nil {
+		return err
+	}
+	if policy.ChainID != anchor.ChainID || !bytes.Equal(policy.GenesisID, anchor.GenesisID) {
+		return errors.New("consensus policy and trusted source genesis/chain differ")
+	}
+	return nil
+}
+func (v *Verifier) validateAnchors() error {
+	if v.registry != nil {
+		if err := validatePolicyAnchor(v.policy, v.registry.Anchor()); err != nil {
+			return err
+		}
+	}
+	if v.historical != nil {
+		if err := validatePolicyAnchor(v.policy, v.historical.Anchor()); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -15,6 +15,10 @@ import (
 
 type commitRegistry map[string]KeyRecord
 
+func (r commitRegistry) Anchor() RegistryAnchor {
+	return RegistryAnchor{GenesisID: fixtureGenesis(), ChainID: "ynx-research-only"}
+}
+
 func (r commitRegistry) ConsensusKeysAt(chainID string, address []byte, height int64) (KeyRecord, error) {
 	record, ok := r[string(address)]
 	if !ok || record.ChainID != chainID {
@@ -28,16 +32,20 @@ type historicalCommitKeys struct {
 	keys    map[string]ed25519.PubKey
 }
 
-func (h historicalCommitKeys) VerifyHistorical(chainID string, address []byte, height int64, kind Kind, message, signature []byte) error {
+func (h historicalCommitKeys) Anchor() RegistryAnchor {
+	return RegistryAnchor{GenesisID: fixtureGenesis(), ChainID: h.chainID}
+}
+
+func (h historicalCommitKeys) VerifyHistorical(genesisID []byte, chainID string, address []byte, height int64, kind Kind, message, signature []byte) error {
 	key, ok := h.keys[string(address)]
-	if !ok || chainID != h.chainID || height != 99 || kind != Precommit || !key.VerifySignature(message, signature) {
+	if !bytes.Equal(genesisID, fixtureGenesis()) || !ok || chainID != h.chainID || height != 99 || kind != Precommit || !key.VerifySignature(message, signature) {
 		return errors.New("historical signature rejected")
 	}
 	return nil
 }
 
 func TestCommitHistoricalSignaturesDoNotAuthorizeActivePQHeight(t *testing.T) {
-	policy := Policy{Version: Version, ChainID: "ynx-research-only", ActivationHeight: 100}
+	policy := Policy{Version: ConsensusGenesisVersion, GenesisID: fixtureGenesis(), ChainID: "ynx-research-only", ActivationHeight: 100}
 	history := historicalCommitKeys{chainID: policy.ChainID, keys: map[string]ed25519.PubKey{}}
 	blockID, err := cmttypes.BlockIDFromProto(&fixtureVote(99).BlockID)
 	if err != nil {
@@ -71,7 +79,9 @@ func TestCommitHistoricalSignaturesDoNotAuthorizeActivePQHeight(t *testing.T) {
 	commit.Signatures[0].Signature[0] ^= 1
 	wrongChain := policy
 	wrongChain.ChainID = "another-chain"
-	other, err := NewCIRCLVerifier(wrongChain, nil, history)
+	otherHistory := history
+	otherHistory.chainID = wrongChain.ChainID
+	other, err := NewCIRCLVerifier(wrongChain, nil, otherHistory)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +95,7 @@ func TestCommitHistoricalSignaturesDoNotAuthorizeActivePQHeight(t *testing.T) {
 }
 
 func TestRealPQCommitChecksAllSignaturesAndStrictWeightedQuorum(t *testing.T) {
-	policy := Policy{Version: Version, ChainID: "ynx-research-only", ActivationHeight: 100}
+	policy := Policy{Version: ConsensusGenesisVersion, GenesisID: fixtureGenesis(), ChainID: "ynx-research-only", ActivationHeight: 100}
 	registry := commitRegistry{}
 	vals := &cmttypes.ValidatorSet{}
 	blockID, err := cmttypes.BlockIDFromProto(&fixtureVote(100).BlockID)
@@ -110,7 +120,7 @@ func TestRealPQCommitChecksAllSignaturesAndStrictWeightedQuorum(t *testing.T) {
 		if i == 3 {
 			vote.BlockID, flag = cmtproto.BlockID{}, cmttypes.BlockIDFlagNil
 		}
-		request, err := NewVoteRequest(policy.ChainID, vote)
+		request, err := NewVoteRequestV2(policy.GenesisID, policy.ChainID, vote)
 		if err != nil {
 			t.Fatal(err)
 		}

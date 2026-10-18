@@ -17,8 +17,13 @@ import (
 // select actual fresh keys at the requested height; no accepting crypto spy,
 // zero signature or caller-provided certificate key is used in these tests.
 type evidenceTestRegistry struct {
+	anchor  RegistryAnchor
 	records []KeyRecord
 	heights []int64
+}
+
+func (r *evidenceTestRegistry) Anchor() RegistryAnchor {
+	return RegistryAnchor{GenesisID: bytes.Clone(r.anchor.GenesisID), ChainID: r.anchor.ChainID}
 }
 
 func (r *evidenceTestRegistry) ConsensusKeysAt(chainID string, address []byte, height int64) (KeyRecord, error) {
@@ -39,7 +44,7 @@ type evidenceTestSource struct {
 	at    int64
 }
 
-func (s *evidenceTestSource) ConsensusEvidenceStateAt(chainID string, height int64) (EvidenceState, error) {
+func (s *evidenceTestSource) ConsensusEvidenceStateAt(genesisID []byte, chainID string, height int64) (EvidenceState, error) {
 	s.calls++
 	s.chain, s.at = chainID, height
 	return s.state, s.err
@@ -73,6 +78,7 @@ func copyDuplicateEvidence(evidence *cmttypes.DuplicateVoteEvidence) *cmttypes.D
 }
 
 func copyEvidenceState(state EvidenceState) EvidenceState {
+	state.GenesisID = bytes.Clone(state.GenesisID)
 	if state.Validators == nil {
 		return state
 	}
@@ -88,7 +94,7 @@ func copyEvidenceState(state EvidenceState) EvidenceState {
 
 func signMaliciousEvidenceVote(t testing.TB, key *CandidateKey, record KeyRecord, vote *cmttypes.Vote) {
 	t.Helper()
-	request, err := NewVoteRequest(record.ChainID, vote.ToProto())
+	request, err := NewVoteRequestV2(fixtureGenesis(), record.ChainID, vote.ToProto())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +109,7 @@ func signMaliciousEvidenceVote(t testing.TB, key *CandidateKey, record KeyRecord
 
 func newEvidenceFixture(t testing.TB, kind cmtproto.SignedMsgType, nilBlock bool) evidenceFixture {
 	t.Helper()
-	policy := Policy{Version: Version, ChainID: "ynx-evidence-qa-only", ActivationHeight: 100}
+	policy := Policy{Version: ConsensusGenesisVersion, GenesisID: fixtureGenesis(), ChainID: "ynx-evidence-qa-only", ActivationHeight: 100}
 	key, publicA, publicB, err := GenerateCandidateKey()
 	if err != nil {
 		t.Fatal(err)
@@ -111,7 +117,7 @@ func newEvidenceFixture(t testing.TB, kind cmtproto.SignedMsgType, nilBlock bool
 	t.Cleanup(key.Destroy)
 	address := bytes.Repeat([]byte{0x31}, validatorAddressSize)
 	record := KeyRecord{Version: Version, ChainID: policy.ChainID, ValidatorAddress: address, Epoch: 7, ValidFromHeight: 100, ValidUntilHeight: 150, MLDSA87PublicKey: publicA, SLHDSASHA2256fPublicKey: publicB}
-	registry := &evidenceTestRegistry{records: []KeyRecord{record}}
+	registry := &evidenceTestRegistry{anchor: RegistryAnchor{GenesisID: bytes.Clone(policy.GenesisID), ChainID: policy.ChainID}, records: []KeyRecord{record}}
 	verifier, err := NewCIRCLVerifier(policy, registry, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -142,7 +148,7 @@ func newEvidenceFixture(t testing.TB, kind cmtproto.SignedMsgType, nilBlock bool
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := &evidenceTestSource{state: EvidenceState{ChainID: policy.ChainID, Height: 100, BlockTime: blockTime, Validators: vals}}
+	source := &evidenceTestSource{state: EvidenceState{GenesisID: bytes.Clone(policy.GenesisID), ChainID: policy.ChainID, Height: 100, BlockTime: blockTime, Validators: vals}}
 	return evidenceFixture{policy: policy, key: key, record: record, registry: registry, source: source, evidence: evidence, verifier: verifier}
 }
 
@@ -374,7 +380,7 @@ func TestDuplicateEvidenceBoundsExtensionsWithoutClaimingTheirAuthentication(t *
 	ordinaryOnly := copyDuplicateEvidence(f.evidence)
 	vote := ordinaryOnly.VoteA
 	vote.Extension = []byte("QA extension is a separate authorization scope")
-	extension, err := NewVoteExtensionRequest(f.policy.ChainID, vote.ToProto())
+	extension, err := NewVoteExtensionRequestV2(f.policy.GenesisID, f.policy.ChainID, vote.ToProto())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -397,8 +403,12 @@ type evidenceHistoricalKeys struct {
 	key     ed25519.PubKey
 }
 
-func (h evidenceHistoricalKeys) VerifyHistorical(chainID string, address []byte, height int64, kind Kind, canonical, signature []byte) error {
-	if chainID != h.chainID || height != h.height || (kind != Prevote && kind != Precommit) || !bytes.Equal(address, h.key.Address()) || !h.key.VerifySignature(canonical, signature) {
+func (h evidenceHistoricalKeys) Anchor() RegistryAnchor {
+	return RegistryAnchor{GenesisID: fixtureGenesis(), ChainID: h.chainID}
+}
+
+func (h evidenceHistoricalKeys) VerifyHistorical(genesisID []byte, chainID string, address []byte, height int64, kind Kind, canonical, signature []byte) error {
+	if !bytes.Equal(genesisID, fixtureGenesis()) || chainID != h.chainID || height != h.height || (kind != Prevote && kind != Precommit) || !bytes.Equal(address, h.key.Address()) || !h.key.VerifySignature(canonical, signature) {
 		return errors.New("historical evidence signature rejected")
 	}
 	return nil
@@ -407,7 +417,7 @@ func (h evidenceHistoricalKeys) VerifyHistorical(chainID string, address []byte,
 func TestDuplicateEvidenceHistoricalProfileDoesNotAuthorizeActivationHeight(t *testing.T) {
 	key := ed25519.GenPrivKey()
 	public := key.PubKey().(ed25519.PubKey)
-	policy := Policy{Version: Version, ChainID: "ynx-historical-evidence-qa", ActivationHeight: 100}
+	policy := Policy{Version: ConsensusGenesisVersion, GenesisID: fixtureGenesis(), ChainID: "ynx-historical-evidence-qa", ActivationHeight: 100}
 	proto := fixtureVote(99)
 	blockID, err := cmttypes.BlockIDFromProto(&proto.BlockID)
 	if err != nil {
@@ -435,7 +445,7 @@ func TestDuplicateEvidenceHistoricalProfileDoesNotAuthorizeActivationHeight(t *t
 	if err != nil {
 		t.Fatal(err)
 	}
-	source := &evidenceTestSource{state: EvidenceState{ChainID: policy.ChainID, Height: 99, BlockTime: proto.Timestamp, Validators: vals}}
+	source := &evidenceTestSource{state: EvidenceState{GenesisID: bytes.Clone(policy.GenesisID), ChainID: policy.ChainID, Height: 99, BlockTime: proto.Timestamp, Validators: vals}}
 	if err := verifier.VerifyDuplicateVoteEvidence(evidence, source); err != nil {
 		t.Fatal("real historical evidence lost its original signature rules:", err)
 	}

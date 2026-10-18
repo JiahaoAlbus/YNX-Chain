@@ -16,6 +16,7 @@ import (
 // ValidatorSet has no intrinsic height, so the adapter cannot prove this binding
 // from that object alone. ChainID/Height/BlockTime name the same historical block.
 type EvidenceState struct {
+	GenesisID  []byte
 	ChainID    string
 	Height     int64
 	BlockTime  time.Time
@@ -28,7 +29,7 @@ type EvidenceState struct {
 // a fallback. Returned objects and the registry must remain immutable (or locked)
 // throughout verification. This interface is not a peer-supplied proof format.
 type EvidenceStateSource interface {
-	ConsensusEvidenceStateAt(chainID string, height int64) (EvidenceState, error)
+	ConsensusEvidenceStateAt(genesisID []byte, chainID string, height int64) (EvidenceState, error)
 }
 
 // VerifyDuplicateVoteEvidence checks actual Comet duplicate-vote objects using
@@ -64,11 +65,11 @@ func (v *Verifier) VerifyDuplicateVoteEvidence(evidence *cmttypes.DuplicateVoteE
 	// canonical vote format; its ValidateBasic rule is nonnegative only. Unlike a
 	// Commit's positional signatures, evidence must not count an unsigned index
 	// as identity or voting power. NewVoteRequest enforces the nonnegative rule.
-	state, err := source.ConsensusEvidenceStateAt(v.policy.ChainID, a.Height)
+	state, err := source.ConsensusEvidenceStateAt(bytes.Clone(v.policy.GenesisID), v.policy.ChainID, a.Height)
 	if err != nil {
 		return fmt.Errorf("resolve evidence-height validator set and block: %w", err)
 	}
-	if state.ChainID != v.policy.ChainID || state.Height != a.Height || state.BlockTime.IsZero() || !evidence.Timestamp.Equal(state.BlockTime) {
+	if state.ChainID != v.policy.ChainID || !bytes.Equal(state.GenesisID, v.policy.GenesisID) || state.Height != a.Height || state.BlockTime.IsZero() || !evidence.Timestamp.Equal(state.BlockTime) {
 		return errors.New("evidence metadata differs from its trusted historical block")
 	}
 	validatorPower, totalPower, err := evidencePowerAt(state.Validators, a.ValidatorAddress)
@@ -111,7 +112,7 @@ func (v *Verifier) evidenceVoteRequest(vote *cmttypes.Vote) (Request, error) {
 			}
 		}
 	}
-	return NewVoteRequest(v.policy.ChainID, vote.ToProto())
+	return NewVoteRequestV2(v.policy.GenesisID, v.policy.ChainID, vote.ToProto())
 }
 
 func evidencePowerAt(validators *cmttypes.ValidatorSet, address []byte) (int64, int64, error) {

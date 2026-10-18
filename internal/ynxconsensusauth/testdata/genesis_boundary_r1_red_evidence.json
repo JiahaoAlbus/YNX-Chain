@@ -1,0 +1,20 @@
+{
+  "source": "genesis_boundary_r1_red.go.txt",
+  "sourceSHA256": "b242b74491e1298df4f7559858a11a8d52957a8b9e19a7244c53acf6d2d3e10f",
+  "run": 39086730691,
+  "head": "e9081b3a6a45217571a10935960c4ffc9e85d197",
+  "conclusion": "failure",
+  "logPath": "docs/protocol/evidence/CI_RUN12_39086730691_LOG.json",
+  "logSHA256": "537ace2a9709c1cb36f9af65feba1cba80058f11711c082009bf1158e8d853c9",
+  "failures": [
+    {
+      "line": 113,
+      "message": "genesis A vote signature replayed on genesis B with the same chain ID, logical address, H/R/step, epoch and complete key pair"
+    },
+    {
+      "line": 133,
+      "message": "genesis A durable HRS state resumed against genesis B registry"
+    }
+  ],
+  "migration": "Only explicit v2 genesis setup/API is migrated; both original rejection assertions and same-genesis/cold exact retry/HRS controls are retained."
+}

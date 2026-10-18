@@ -8,12 +8,14 @@ import (
 )
 
 const (
+	// Version remains the v1 key-record version; it is not the signing profile.
 	Version                     uint32 = 1
+	ConsensusGenesisVersion     uint32 = 2
 	MLDSA87PublicKeySize               = 2592
 	SLHDSASHA2256fPublicKeySize        = 64
 	MLDSA87SignatureSize               = 4627
 	SLHDSASHA2256fSignatureSize        = 49856
-	envelopeTag                        = "YNX-CONSENSUS-SIG/v0.1\x00"
+	envelopeTag                        = "YNX-CONSENSUS-SIG/v0.2\x00"
 	// These identifiers belong only to this candidate consensus codec.
 	algorithmMLDSA87        uint32 = 1
 	algorithmSLHDSASHA2256f uint32 = 2
@@ -34,7 +36,7 @@ func (e Envelope) MarshalBinary() ([]byte, error) {
 	}
 	out := make([]byte, 0, EnvelopeSize)
 	out = append(out, envelopeTag...)
-	out = binary.BigEndian.AppendUint32(out, Version)
+	out = binary.BigEndian.AppendUint32(out, ConsensusGenesisVersion)
 	out = binary.BigEndian.AppendUint64(out, e.KeyEpoch)
 	out = binary.BigEndian.AppendUint32(out, algorithmMLDSA87)
 	out = appendField(out, e.MLDSA87)
@@ -52,7 +54,7 @@ func ParseEnvelope(wire []byte) (Envelope, error) {
 	}
 	p := len(envelopeTag)
 	read32 := func() uint32 { n := binary.BigEndian.Uint32(wire[p : p+4]); p += 4; return n }
-	if read32() != Version {
+	if read32() != ConsensusGenesisVersion {
 		return e, errors.New("unsupported consensus signature version")
 	}
 	e.KeyEpoch = binary.BigEndian.Uint64(wire[p : p+8])

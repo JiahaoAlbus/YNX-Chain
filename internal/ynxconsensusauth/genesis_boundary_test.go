@@ -9,10 +9,10 @@ import (
 	"testing"
 )
 
-// This regression uses existing constructors and real independently authorized
-// registrations on two genesis anchors. It is intentionally expected to expose
-// the v1 candidate's missing ordinary-message/persisted-state network binding.
-// Its positive controls must pass before either rejection assertion is reached.
+// The original v1 source and actual Run12 RED evidence are preserved in testdata.
+// V2 requires explicit genesis in setup; both original rejection assertions and
+// same-genesis/cold exact retry/HRS controls remain. Both registries deliberately
+// authorize the identical complete pair, logical address and epoch.
 func TestConsensusGenesisBoundaryReplayRejected(t *testing.T) {
 	f := newRegistrationFixture(t)
 	anchorA := f.anchor
@@ -54,10 +54,10 @@ func TestConsensusGenesisBoundaryReplayRejected(t *testing.T) {
 	if _, err := historyB.AuthenticatePublicKeyBinding(bindingA, 12); err == nil {
 		t.Fatal("registration identity boundary must reject before testing ordinary consensus messages")
 	}
-	policy := Policy{Version: Version, ChainID: anchorA.ChainID, ActivationHeight: 12}
+	policy := Policy{Version: ConsensusGenesisVersion, GenesisID: bytes.Clone(anchorA.GenesisID), ChainID: anchorA.ChainID, ActivationHeight: 12}
 	vote := fixtureVote(12)
 	vote.ValidatorAddress = bytes.Clone(f.address)
-	request, err := NewVoteRequest(anchorA.ChainID, vote)
+	request, err := NewVoteRequestV2(anchorA.GenesisID, anchorA.ChainID, vote)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -93,7 +93,7 @@ func TestConsensusGenesisBoundaryReplayRejected(t *testing.T) {
 	conflictingVote := fixtureVote(12)
 	conflictingVote.ValidatorAddress = bytes.Clone(f.address)
 	conflictingVote.BlockID.Hash[0] ^= 1
-	conflict, err := NewVoteRequest(anchorA.ChainID, conflictingVote)
+	conflict, err := NewVoteRequestV2(anchorA.GenesisID, anchorA.ChainID, conflictingVote)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,12 +105,21 @@ func TestConsensusGenesisBoundaryReplayRejected(t *testing.T) {
 	}
 
 	t.Run("ordinary_vote_signature_is_bound_to_genesis", func(t *testing.T) {
-		verifierB, err := NewCIRCLVerifier(policy, historyB, nil)
+		policyB := policy
+		policyB.GenesisID = bytes.Clone(anchorB.GenesisID)
+		verifierB, err := NewCIRCLVerifier(policyB, historyB, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if err := verifierB.Verify(request, signature); err == nil {
 			t.Fatal("genesis A vote signature replayed on genesis B with the same chain ID, logical address, H/R/step, epoch and complete key pair")
+		}
+		requestB, err := NewVoteRequestV2(anchorB.GenesisID, anchorB.ChainID, vote)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := verifierB.Verify(requestB, signature); err == nil {
+			t.Fatal("genesis A signature verified over reconstructed genesis B full message")
 		}
 	})
 	t.Run("cold_signer_state_cannot_be_rebound_to_genesis", func(t *testing.T) {

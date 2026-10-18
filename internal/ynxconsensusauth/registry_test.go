@@ -229,7 +229,7 @@ func TestKeyHistoryRealRotationRevocationSnapshotAndBindings(t *testing.T) {
 	t.Run("uses existing consensus verifier without fallback", func(t *testing.T) {
 		vote := fixtureVote(12)
 		vote.ValidatorAddress = bytes.Clone(f.address)
-		request, err := NewVoteRequest(f.anchor.ChainID, vote)
+		request, err := NewVoteRequestV2(f.anchor.GenesisID, f.anchor.ChainID, vote)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -238,7 +238,7 @@ func TestKeyHistoryRealRotationRevocationSnapshotAndBindings(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		verifier, err := NewCIRCLVerifier(Policy{Version: Version, ChainID: f.anchor.ChainID, ActivationHeight: 12}, revoked, nil)
+		verifier, err := NewCIRCLVerifier(Policy{Version: ConsensusGenesisVersion, GenesisID: f.anchor.GenesisID, ChainID: f.anchor.ChainID, ActivationHeight: 12}, revoked, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -246,7 +246,7 @@ func TestKeyHistoryRealRotationRevocationSnapshotAndBindings(t *testing.T) {
 			t.Fatal(err)
 		}
 		vote.Height = 18
-		request, err = NewVoteRequest(f.anchor.ChainID, vote)
+		request, err = NewVoteRequestV2(f.anchor.GenesisID, f.anchor.ChainID, vote)
 		if err != nil {
 			t.Fatal(err)
 		}

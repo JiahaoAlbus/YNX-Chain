@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-const signerStateVersion = "YNX-CONSENSUS-SIGNER/v1"
+const signerStateVersion = "YNX-CONSENSUS-SIGNER/v2"
 const maxSignerStateBytes = 2 << 20
 
 // ErrSignerDurabilityUncertain means a replacement may be visible but was not
@@ -76,6 +76,7 @@ func CreateSigner(path string, key *CandidateKey, policy Policy, registry Regist
 		err = errors.New("signer requires trusted registry and positive epoch")
 	}
 	if err == nil {
+		policy.GenesisID = bytes.Clone(policy.GenesisID)
 		s.state = signerState{Version: signerStateVersion, Policy: policy, Address: bytes.Clone(address), PublicA: pa, PublicB: pb, Epoch: epoch}
 		err = s.write(s.path, s.state, true)
 	}
@@ -86,6 +87,8 @@ func CreateSigner(path string, key *CandidateKey, policy Policy, registry Regist
 	return s, nil
 }
 
+// ResumeSigner rejects v1/unbound files before reconfirming their durability.
+// It never upgrades, resets or replaces incompatible anti-equivocation history.
 func ResumeSigner(path string, key *CandidateKey, registry Registry) (*Signer, error) {
 	s, err := openSigner(path, key, registry)
 	if err != nil {
@@ -187,7 +190,7 @@ func (s *Signer) validateState() error {
 		return errors.New("invalid reserved signer coordinates or message")
 	}
 	request, err := decodeSignerMessage(st.Message, st.Epoch)
-	if err != nil || request.chainID != st.Policy.ChainID || !bytes.Equal(request.address, st.Address) || request.height != st.Height || request.round != st.Round || request.kind != st.Kind {
+	if err != nil || request.chainID != st.Policy.ChainID || !bytes.Equal(request.genesisID, st.Policy.GenesisID) || !bytes.Equal(request.address, st.Address) || request.height != st.Height || request.round != st.Round || request.kind != st.Kind {
 		return errors.New("persisted signer coordinates differ from reserved full message")
 	}
 	if st.Kind == VoteExtension {
@@ -216,7 +219,7 @@ func decodeSignerMessage(message []byte, epoch uint64) (Request, error) {
 		return fail()
 	}
 	p := len(messageTag)
-	if binary.BigEndian.Uint32(message[p:]) != Version {
+	if binary.BigEndian.Uint32(message[p:]) != ConsensusGenesisVersion {
 		return fail()
 	}
 	p += 4
@@ -239,6 +242,10 @@ func decodeSignerMessage(message []byte, epoch uint64) (Request, error) {
 		p += int(n)
 		return v, true
 	}
+	genesis, ok := field()
+	if !ok || len(genesis) != 32 {
+		return fail()
+	}
 	chain, ok := field()
 	if !ok {
 		return fail()
@@ -255,7 +262,7 @@ func decodeSignerMessage(message []byte, epoch uint64) (Request, error) {
 	if !ok || p != len(message) {
 		return fail()
 	}
-	r, err := newRequest(string(chain), address, height, round, kind, canonical, canonical)
+	r, err := newRequest(genesis, string(chain), address, height, round, kind, canonical, canonical)
 	if err != nil {
 		return Request{}, err
 	}
@@ -301,8 +308,11 @@ func (s *Signer) Sign(request Request) ([]byte, error) {
 		return nil, err
 	}
 	st := s.state
-	if request.chainID != st.Policy.ChainID || !bytes.Equal(request.address, st.Address) || request.height < st.Policy.ActivationHeight {
+	if request.chainID != st.Policy.ChainID || !bytes.Equal(request.genesisID, st.Policy.GenesisID) || !bytes.Equal(request.address, st.Address) || request.height < st.Policy.ActivationHeight {
 		return nil, errors.New("request outside consensus signer authority")
+	}
+	if err := validatePolicyAnchor(st.Policy, s.registry.Anchor()); err != nil {
+		return nil, err
 	}
 	record, err := s.registry.ConsensusKeysAt(request.chainID, bytes.Clone(request.address), request.height)
 	if err != nil {

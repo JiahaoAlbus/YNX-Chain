@@ -15,6 +15,7 @@ import (
 // in that validator set; ProposerAddress is the actual selected proposer. The
 // PQ Registry still independently resolves this address's complete key pair.
 type ObjectSigningState struct {
+	GenesisID        []byte
 	ChainID          string
 	Height           int64
 	Round            int32
@@ -29,7 +30,7 @@ type ObjectSigningState struct {
 // must return an immutable/detached snapshot made under its own state lock.
 // Implementations must not mutate returned slices concurrently with this call.
 type ObjectSigningStateSource interface {
-	ConsensusSigningStateAt(chainID string, localAddress []byte, height int64, round int32) (ObjectSigningState, error)
+	ConsensusSigningStateAt(genesisID []byte, chainID string, localAddress []byte, height int64, round int32) (ObjectSigningState, error)
 }
 
 // ObjectSigner is a candidate adapter for actual Comet protobuf objects. It is
@@ -40,11 +41,12 @@ type ObjectSigningStateSource interface {
 type ObjectSigner struct{ core *objectSignerCore }
 
 type objectSignerCore struct {
-	mu      sync.Mutex
-	signer  *Signer
-	source  ObjectSigningStateSource
-	chainID string
-	address []byte
+	mu        sync.Mutex
+	signer    *Signer
+	source    ObjectSigningStateSource
+	chainID   string
+	genesisID []byte
+	address   []byte
 }
 
 func NewObjectSigner(signer *Signer, source ObjectSigningStateSource) (*ObjectSigner, error) {
@@ -58,23 +60,24 @@ func NewObjectSigner(signer *Signer, source ObjectSigningStateSource) (*ObjectSi
 	if signer.closed || signer.lock == nil {
 		return nil, errors.New("object signer requires an open durable signer")
 	}
-	return &ObjectSigner{core: &objectSignerCore{signer: signer, source: source, chainID: signer.state.Policy.ChainID, address: bytes.Clone(signer.state.Address)}}, nil
+	return &ObjectSigner{core: &objectSignerCore{signer: signer, source: source, chainID: signer.state.Policy.ChainID, genesisID: bytes.Clone(signer.state.Policy.GenesisID), address: bytes.Clone(signer.state.Address)}}, nil
 }
 
 func (s *objectSignerCore) stateAt(chainID string, height int64, round int32) (ObjectSigningState, error) {
 	if chainID != s.chainID {
 		return ObjectSigningState{}, errors.New("wrong object signing chain")
 	}
-	state, err := s.source.ConsensusSigningStateAt(chainID, bytes.Clone(s.address), height, round)
+	state, err := s.source.ConsensusSigningStateAt(bytes.Clone(s.genesisID), chainID, bytes.Clone(s.address), height, round)
 	if err != nil {
 		return state, fmt.Errorf("resolve trusted object signing state: %w", err)
 	}
 	// Do not retain the source's mutable byte/slice storage between either
 	// signing phase. The source contract protects the snapshot during this copy.
+	state.GenesisID = bytes.Clone(state.GenesisID)
 	state.ValidatorAddress = bytes.Clone(state.ValidatorAddress)
 	state.ProposerAddress = bytes.Clone(state.ProposerAddress)
 	state.Params.Validator.PubKeyTypes = append([]string(nil), state.Params.Validator.PubKeyTypes...)
-	if state.ChainID != chainID || state.Height != height || state.Round != round ||
+	if state.ChainID != chainID || !bytes.Equal(state.GenesisID, s.genesisID) || state.Height != height || state.Round != round ||
 		!bytes.Equal(state.ValidatorAddress, s.address) || state.ValidatorIndex < 0 ||
 		len(state.ProposerAddress) != validatorAddressSize || state.Params.ABCI.VoteExtensionsEnableHeight < 0 {
 		return ObjectSigningState{}, errors.New("trusted object signing view does not match requested coordinates or membership")
@@ -101,7 +104,7 @@ func (s *ObjectSigner) SignProposal(chainID string, proposal *cmtproto.Proposal)
 	p := *proposal
 	p.BlockID = cloneObjectBlockID(p.BlockID)
 	p.Signature = bytes.Clone(p.Signature)
-	request, err := NewProposalRequest(chainID, c.address, &p)
+	request, err := NewProposalRequestV2(c.genesisID, chainID, c.address, &p)
 	if err != nil {
 		return err
 	}
@@ -145,7 +148,7 @@ func (s *ObjectSigner) SignVote(chainID string, vote *cmtproto.Vote) error {
 	v.ValidatorAddress = bytes.Clone(v.ValidatorAddress)
 	v.Extension = bytes.Clone(v.Extension)
 	v.Signature, v.ExtensionSignature = bytes.Clone(v.Signature), bytes.Clone(v.ExtensionSignature)
-	ordinary, err := NewVoteRequest(chainID, &v)
+	ordinary, err := NewVoteRequestV2(c.genesisID, chainID, &v)
 	if err != nil {
 		return err
 	}
@@ -159,7 +162,7 @@ func (s *ObjectSigner) SignVote(chainID string, vote *cmtproto.Vote) error {
 	extended := state.Params.ABCI.VoteExtensionsEnabled(v.Height) && v.Type == cmtproto.PrecommitType && !cmttypes.ProtoBlockIDIsNil(&v.BlockID)
 	var extension Request
 	if extended {
-		extension, err = NewVoteExtensionRequest(chainID, &v)
+		extension, err = NewVoteExtensionRequestV2(c.genesisID, chainID, &v)
 		if err != nil {
 			return err
 		}
