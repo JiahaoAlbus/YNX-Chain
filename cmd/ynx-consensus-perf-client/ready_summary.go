@@ -9,6 +9,7 @@ import (
 )
 
 type readyCumulativeReport struct {
+	TimeSeries            *readyTimelineReport                `json:"timeSeries,omitempty"`
 	TerminalRecords       int                                 `json:"terminalRecords"`
 	InvalidLatencyRecords int                                 `json:"invalidLatencyRecords"`
 	Counts                summary                             `json:"counts"`
@@ -50,6 +51,7 @@ func (s readyEventSpan) rate() (float64, *float64) {
 // Single controller owner; no raw result, signed payload or lifetime-sized list
 // is retained. Exact per-transaction evidence belongs to the terminal stream.
 type readyCumulativeSummary struct {
+	timeline              *readyTimeSeries
 	planned, records      int
 	invalidLatencyRecords int
 	counts                summary
@@ -166,6 +168,9 @@ func (s *readyCumulativeSummary) add(r transactionResult, identityBound bool) er
 	for _, e := range r.Errors {
 		c.ErrorOccurrences += e.Count
 	}
+	if s.timeline != nil {
+		s.timeline.add(r, identityBound, time.Now())
+	}
 	return latencyErr
 }
 
@@ -203,5 +208,5 @@ func (s *readyCumulativeSummary) snapshot(seconds float64) *readyCumulativeRepor
 	c.InclusionLatency.Samples = int(distributions["authenticatedInclusion"].Samples)
 	c.EffectiveInclusionLatency.Samples = int(distributions["effectiveBusinessInclusion"].Samples)
 	c.ConfirmationLatency.Samples = int(distributions["final"].Samples)
-	return &readyCumulativeReport{TerminalRecords: s.records, InvalidLatencyRecords: s.invalidLatencyRecords, Counts: c, LatencyIntervalsNs: distributions, Interpretation: "Counts cover every handed-back terminal result plus explicit unsubmitted inputs. Final business counts require code-zero authenticated inclusion, fee/nonce durable state and publication gates; raw quorum/ACK counts are separate. Invalid latency records retain stage counts, omit the entire row from histograms and stop the run. Durations are bounded histogram intervals in ns, not exact point percentiles. Per-transaction queue+final spans are added before quantiles. Missing monotonic event times withhold interarrival rates. No sustained-capacity inference."}
+	return &readyCumulativeReport{TimeSeries: s.timeline.snapshot(seconds), TerminalRecords: s.records, InvalidLatencyRecords: s.invalidLatencyRecords, Counts: c, LatencyIntervalsNs: distributions, Interpretation: "Counts cover every handed-back terminal result plus explicit unsubmitted inputs. Final business counts require code-zero authenticated inclusion, fee/nonce durable state and publication gates; raw quorum/ACK counts are separate. Invalid latency records retain stage counts, omit the entire row from histograms and stop the run. Durations are bounded histogram intervals in ns, not exact point percentiles. Per-transaction queue+final spans are added before quantiles. Missing monotonic event times withhold interarrival rates. No sustained-capacity inference."}
 }

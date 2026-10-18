@@ -162,3 +162,21 @@ func TestTerminalStreamReadbackRelativeOutputSurvivesWorkingDirectoryChange(t *t
 		t.Fatal("offline reader cannot resolve original evidence", err)
 	}
 }
+
+func TestTerminalStreamReadbackKeepsSchema13TimingQualificationAndRejectsUnknownSchema(t *testing.T) {
+	work, stream, rows, manifest, m := terminalReadbackFixture(t)
+	makeReport := func(version int) report {
+		return report{SchemaVersion: version, RetentionMode: "latest_per_account_slots", SenderMode: "ready-pool", RoundsRequested: 2, RoundsCompleted: 2, Transactions: append([]transactionResult(nil), rows[3:]...), TerminalStream: &stream.report, Summary: summary{Input: 6, FinalSubmitted: 6}, ReadySenders: readySenderStats{Completed: 6, BoundedSummary: &readyCumulativeReport{TerminalRecords: 6, Counts: summary{Input: 6, FinalSubmitted: 6}, TimeSeries: &readyTimelineReport{Valid: false, InvalidRows: 1}}}}
+	}
+	r := makeReport(13)
+	if err := restoreCompletedSlotReport(work, manifest, m, &r, 3); err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Transactions) != 6 || r.ReadySenders.BoundedSummary.TimeSeries.Valid || r.ReadySenders.BoundedSummary.TimeSeries.InvalidRows != 1 {
+		t.Fatal("readback invented a timing qualification")
+	}
+	unknown := makeReport(14)
+	if restoreCompletedSlotReport(work, manifest, m, &unknown, 3) == nil {
+		t.Fatal("unknown future schema accepted")
+	}
+}

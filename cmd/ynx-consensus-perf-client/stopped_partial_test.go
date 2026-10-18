@@ -88,7 +88,7 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	var terminalEvidenceError string
 	var reportedRows []terminalReportedObservation
 	if !observationPresent || observed.RetentionMode != "" {
-		if observationPresent && (observed.SchemaVersion != 12 || observed.RetentionMode != "latest_per_account_slots" || len(observed.Transactions) != len(initial)) {
+		if observationPresent && ((observed.SchemaVersion != 12 && observed.SchemaVersion != 13) || observed.RetentionMode != "latest_per_account_slots" || len(observed.Transactions) != len(initial)) {
 			t.Fatal("invalid partial slot report")
 		}
 		sum := sha256.Sum256(manifestRaw)

@@ -840,9 +840,9 @@ func execute(o options) error {
 		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
 	}}
 	if o.reuseResultSlots {
-		r.SchemaVersion = 12
+		r.SchemaVersion = 13
 		r.RetentionMode = "latest_per_account_slots"
-		r.Interpretation = append(r.Interpretation, "Schema12 slot retention: transactions contains only the latest per-account slot. Every handed-back terminal result is in the segmented terminal stream. Summary stage counts are cumulative; exact point percentiles are withheld and bounded intervals are in readySenders.boundedSummary.latencyIntervalsNs. No lifetime block list or sustained TPS is inferred.")
+		r.Interpretation = append(r.Interpretation, "Schema13 slot retention with bounded monotonic second buckets: transactions contains only the latest per-account slot. Every handed-back terminal result is in the segmented terminal stream. Summary stage counts are cumulative; exact point percentiles are withheld and bounded intervals are in readySenders.boundedSummary.latencyIntervalsNs. No lifetime block list or sustained TPS is inferred.")
 	}
 	if o.segmentedIntents {
 		r.Interpretation = append(r.Interpretation, "Signed-input waves use private hash-chained segments persisted before dispatch. readySenders.intentSegments binds their completed inventory. Failed or missing receipt evidence is never a resubmission authorization. Workload and byte caps are unchanged.")

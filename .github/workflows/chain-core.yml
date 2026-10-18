@@ -104,10 +104,10 @@ jobs:
       - run: make static-check
       - run: make streambft-candidate-check
       - run: make consensus-abci-check
-      - name: Verify actual ready-sender Commit phase observations
+      - name: Verify ready-sender Commit phases and bounded event timeline
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
-          -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery)$'
+          -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*)$'
           -count=1 -timeout=45s -v
       - run: make integration-contract-check
       - run: make chain-core-release-check

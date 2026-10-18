@@ -99,13 +99,13 @@ func readCompletedTerminalResults(directory string, expected terminalStreamRepor
 	return results, nil
 }
 
-// Only complete schema12 slot reports use this path. It does not relax old
+// Only complete schema12/13 slot reports use this path. It does not relax old
 // complete-window gates or promote partial/UNKNOWN outcomes after recovery.
 func restoreCompletedSlotReport(work string, manifestRaw []byte, m consensus.EphemeralNetworkManifest, r *report, senders int) error {
 	if r.RetentionMode == "" {
 		return nil
 	}
-	if r.SchemaVersion != 12 || r.RetentionMode != "latest_per_account_slots" || r.SenderMode != "ready-pool" || r.RoundsRequested < 2 || r.RoundsRequested > 32 || senders < 1 || senders > maxTransactions/r.RoundsRequested || r.RoundsCompleted != r.RoundsRequested || r.ReadySenders.Quarantined != 0 || len(r.Transactions) != senders || r.TerminalStream == nil || r.ReadySenders.BoundedSummary == nil {
+	if (r.SchemaVersion != 12 && r.SchemaVersion != 13) || r.RetentionMode != "latest_per_account_slots" || r.SenderMode != "ready-pool" || r.RoundsRequested < 2 || r.RoundsRequested > 32 || senders < 1 || senders > maxTransactions/r.RoundsRequested || r.RoundsCompleted != r.RoundsRequested || r.ReadySenders.Quarantined != 0 || len(r.Transactions) != senders || r.TerminalStream == nil || r.ReadySenders.BoundedSummary == nil {
 		return errors.New("not a complete bounded slot report")
 	}
 	total := senders * r.RoundsRequested
