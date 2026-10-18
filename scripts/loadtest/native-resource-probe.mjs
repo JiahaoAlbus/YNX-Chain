@@ -11,13 +11,14 @@ export function createNativeResourceProbe(command, { timeoutMs = 1500, maxBytes 
     if (stopped) return Promise.reject(Error('native resource probe stopped'));
     if (pending) return Promise.reject(Error('native resource probe overlap'));
     const started = performance.now();
-    const record = { startedAt: new Date().toISOString(), pid: null, status: null, signal: null, error: null, stdout: '', stderr: '', exited: false, groupGone: false };
+    const record = { command, args:[...args], launcherPID:process.pid, launcherParentPID:process.ppid, runtime:{platform:process.platform,arch:process.arch,node:process.version}, spawnRequestedAt:new Date().toISOString(), spawnedAt:null, spawnElapsedMs:null, startedAt: new Date().toISOString(), pid: null, status: null, signal: null, error: null, stdout: '', stderr: '', exited: false, groupGone: false };
     records.push(record);
     const operation = new Promise((resolve, reject) => {
       let bytes = 0;
       const output = { stdout: [], stderr: [] };
       const child = spawn(command, args, { detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
       record.pid = child.pid ?? null;
+      child.once('spawn',()=>{record.spawnedAt=new Date().toISOString();record.spawnElapsedMs=performance.now()-started;});
       const kill = () => {
         if (!child.pid) return;
         try { process.kill(-child.pid, 'SIGKILL'); }
