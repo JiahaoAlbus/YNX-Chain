@@ -46,9 +46,16 @@ def recipe(transport="socket"):
 
 def server_commands(build, node, migration, transport):
     recipe(transport)  # Reject unknown transports before any process is spawned.
+    comet = [str(build / "cometbft"), "start", "--home", node["home"], "--abci", transport]
+    if transport == "grpc":
+        endpoint(node["abciListen"])
+        target = urlparse(node["abciListen"])
+        # grpc.NewClient defaults to the DNS resolver: tcp:// is a server
+        # listen URI, not a gRPC client target. Numeric loopback avoids DNS.
+        comet += ["--proxy_app", "127.0.0.1:" + str(target.port)]
     return ([str(build / "ynx-abci"), "-listen", node["abciListen"], "-transport", transport,
              "-migration-state", migration, "-state", node["abciStatePath"], "-state-layout", "block-journal", "-phase-timing"],
-            [str(build / "cometbft"), "start", "--home", node["home"], "--abci", transport])
+            comet)
 
 
 def partial_measurement(output):

@@ -121,8 +121,22 @@ hide the initial diagnosis.
 
 New source tests cover paired transport selection and preserving failed partial
 results without qualifying them. The normal original Go phase-test gate also
-covers real socket/gRPC wire admission with16 concurrent valid/invalid calls,
+covers `TestABCITransportConcurrentAdmissionAndDurability`: real socket/gRPC
+wire admission with16 concurrent valid/invalid calls,
 unchanged committed state, signed execution, durable Commit/reopen, nonce replay
 rejection and exact journal bytes across transports. Until that test executes in
 CI, its result is unverified. A second four-node gRPC case still needs a fresh
 Root grant at its exact source SHA; do not auto-dispatch or extend deadlines.
+
+CI39133355591 at6a8221aa9 exposed a real startup RED before any second network
+case: the gRPC subtest blocked in `grpcClient.OnStart`/initial Echo and the package
+hit its10minute default timeout. Original failed stack is retained under
+`artifacts/chain-performance-20261017/linux-supply-source-20261018/transport-ci39133355591-failed.raw`.
+The supplied `tcp://127.0.0.1:port` is a server listen URI, whereas the pinned
+gRPC `NewClient` uses DNS target resolution. The minimal correction preserves
+the server listen URI and supplies numeric `127.0.0.1:port` to the gRPC client;
+the four-node Comet command selects this via `--proxy_app` only for gRPC.
+The corrected wire test has a5s startup context bound, retains the real signature,
+commit and recovery assertions, and executes once in the original full ABCI
+package gate. The later original phase-test selector is unchanged. This fix is
+not verified until the new CI actually executes it; no second network START.

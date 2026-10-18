@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -21,7 +22,7 @@ import (
 
 // Real wire calls, concurrent admission and exact persistent results. This is
 // transport correctness coverage, not a throughput or latency benchmark.
-func TestPhaseTimingTransportConcurrentAdmissionAndDurability(t *testing.T) {
+func TestABCITransportConcurrentAdmissionAndDurability(t *testing.T) {
 	key := secp256k1.PrivKeyFromBytes([]byte{31})
 	sender, err := consensus.NativeAddress(key.PubKey().SerializeCompressed())
 	if err != nil {
@@ -82,14 +83,27 @@ func TestPhaseTimingTransportConcurrentAdmissionAndDurability(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Cleanup(func() { _ = server.Stop() })
-			client, err := abciclient.NewClient(address, transport, true)
+			clientAddress := address
+			if transport == "grpc" {
+				// A gRPC target is numeric host:port; tcp:// is the server's
+				// listening URI and grpc.NewClient treats it as a DNS target.
+				clientAddress = strings.TrimPrefix(address, "tcp://")
+			}
+			client, err := abciclient.NewClient(clientAddress, transport, true)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := client.Start(); err != nil {
-				t.Fatal(err)
-			}
 			t.Cleanup(func() { _ = client.Stop() })
+			started := make(chan error, 1)
+			go func() { started <- client.Start() }()
+			select {
+			case err := <-started:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-ctx.Done():
+				t.Fatal("ABCI client startup exceeded bounded context", ctx.Err())
+			}
 			before, err := client.Info(ctx, &abci.RequestInfo{})
 			if err != nil {
 				t.Fatal(err)

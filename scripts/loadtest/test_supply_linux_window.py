@@ -149,6 +149,9 @@ class SupplySourceTests(unittest.TestCase):
         app, comet = supply.server_commands(Path("/build"), node, "/private/migration.json", "grpc")
         self.assertEqual(app[app.index("-transport")+1], "grpc")
         self.assertEqual(comet[comet.index("--abci")+1], "grpc")
+        self.assertEqual(comet[comet.index("--proxy_app")+1], "127.0.0.1:31900")
+        _, original_comet = supply.server_commands(Path("/build"), node, "/private/migration.json", "socket")
+        self.assertNotIn("--proxy_app", original_comet)
         self.assertIn("-phase-timing", app)
         self.assertIn("block-journal", app)
         with self.assertRaises(RuntimeError):
