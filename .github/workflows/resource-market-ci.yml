@@ -461,10 +461,16 @@ jobs:
         env:
           YNX_PQ_LIGHT_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-light-proof-public.json
           YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
-          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
-          YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
+          # The complementary Host group below runs every excluded test with
+          # the same timeout; this group still covers every non-Host test.
+          YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -skip '^TestProofHost' ./internal/consensus
+      - name: Verify original Host source, live lifecycle and delivery persistence
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        env:
+          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
+        run: YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost' ./internal/consensus
       - name: Verify normal Host source producer with original signed transaction fixture
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         timeout-minutes: 2

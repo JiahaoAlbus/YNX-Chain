@@ -380,7 +380,55 @@ func TestABCIPQValidatorStakingAllPersistenceLayouts(t *testing.T) {
 			if err != nil || !bytes.Equal(actual, mustJSON(t, cold.committed)) {
 				t.Fatalf("withdrawn staking restore: %v", err)
 			}
-			pqABCIContractRejected(t, cold, delegate)
+			if layout.name == "atomic" {
+				pqABCIContractRejected(t, cold, delegate)
+				return
+			}
+			// Journal files are framed snapshots/requests, not an atomic JSON
+			// checkpoint. Compare their actual bytes and file inventory rather
+			// than decoding the base file as the already-replayed tip state.
+			root := filepath.Dir(path)
+			readFiles := func() (map[string][]byte, map[string]os.FileInfo) {
+				t.Helper()
+				entries, err := os.ReadDir(root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				data, info := map[string][]byte{}, map[string]os.FileInfo{}
+				for _, entry := range entries {
+					name := filepath.Join(root, entry.Name())
+					meta, err := os.Lstat(name)
+					if err != nil || !meta.Mode().IsRegular() {
+						t.Fatalf("unexpected journal persistence object %q: %v", entry.Name(), err)
+					}
+					data[entry.Name()], err = os.ReadFile(name)
+					if err != nil {
+						t.Fatal(err)
+					}
+					info[entry.Name()] = meta
+				}
+				return data, info
+			}
+			beforeFiles, beforeInfo := readFiles()
+			beforeState, beforePending := mustJSON(t, cold.committed), mustJSON(t, cold.pending)
+			result, err := cold.CheckTx(context.Background(), &abcitypes.RequestCheckTx{Tx: delegate})
+			if err != nil || result.Code == 0 || !bytes.Equal(beforeState, mustJSON(t, cold.committed)) || !bytes.Equal(beforePending, mustJSON(t, cold.pending)) {
+				t.Fatalf("replayed staking changed complete committed/pending state: %+v %v", result, err)
+			}
+			afterFiles, afterInfo := readFiles()
+			if !reflect.DeepEqual(beforeFiles, afterFiles) {
+				t.Fatal("rejected staking changed journal bytes or persistence file inventory")
+			}
+			for name, before := range beforeInfo {
+				after := afterInfo[name]
+				if !os.SameFile(before, after) || before.Size() != after.Size() || before.Mode() != after.Mode() || !before.ModTime().Equal(after.ModTime()) {
+					t.Fatalf("rejected staking replaced or rewrote journal object %q", name)
+				}
+			}
+			reopened, err := layout.open(f.m, path)
+			if err != nil || !bytes.Equal(actual, mustJSON(t, reopened.committed)) {
+				t.Fatalf("post-rejection journal cold replay lost exact tip, accounts, nonce or original history: %v", err)
+			}
 		})
 	}
 }

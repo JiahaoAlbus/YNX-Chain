@@ -146,6 +146,23 @@ type pqMockComet struct {
 	block          [][]byte
 	blockResults   []cometTxResult
 	height         uint64
+	// Optional test clock. Nil timedBlocks retains the original fixture exactly;
+	// enabled clocks retain committed timestamps and bytes by actual height.
+	blockTime   time.Time
+	timedBlocks map[uint64]pqMockTimedBlock
+}
+
+type pqMockTimedBlock struct {
+	at      time.Time
+	txs     [][]byte
+	results []cometTxResult
+}
+
+func (m *pqMockComet) blockTimeLocked() time.Time {
+	if m.timedBlocks != nil && !m.blockTime.IsZero() {
+		return m.blockTime.UTC()
+	}
+	return time.Unix(int64(m.height), 0).UTC()
 }
 
 func newPQMock(t *testing.T, f *pqGatewayFixture) *pqMockComet {
@@ -198,7 +215,8 @@ func (m *pqMockComet) serve(w http.ResponseWriter, r *http.Request) {
 		response.Result.Hash = strings.ToUpper(strings.TrimPrefix(consensus.SignedTransactionHash(request.Params.Tx), "0x"))
 		response.Result.CheckTx = cometTxResult{Code: check.Code, Log: check.Log, Data: check.Data, GasUsed: strconv.FormatInt(check.GasUsed, 10)}
 		if check.Code == 0 {
-			out, err := m.f.a.FinalizeBlock(r.Context(), &abcitypes.RequestFinalizeBlock{Height: int64(m.height), Time: time.Unix(int64(m.height), 0).UTC(), Txs: [][]byte{request.Params.Tx}})
+			at := m.blockTimeLocked()
+			out, err := m.f.a.FinalizeBlock(r.Context(), &abcitypes.RequestFinalizeBlock{Height: int64(m.height), Time: at, Txs: [][]byte{request.Params.Tx}})
 			if err != nil || len(out.TxResults) != 1 {
 				m.t.Errorf("Finalize: %v", err)
 				return
@@ -214,6 +232,13 @@ func (m *pqMockComet) serve(w http.ResponseWriter, r *http.Request) {
 			m.indexed[hash] = cometTx{Hash: response.Result.Hash, Height: response.Result.Height, Tx: bytes.Clone(request.Params.Tx), TxResult: response.Result.TxResult}
 			m.block = [][]byte{bytes.Clone(request.Params.Tx)}
 			m.blockResults = []cometTxResult{response.Result.TxResult}
+			if m.timedBlocks != nil {
+				if _, exists := m.timedBlocks[m.height]; exists {
+					m.t.Error("test transport attempted to overwrite a committed block")
+					return
+				}
+				m.timedBlocks[m.height] = pqMockTimedBlock{at: at, txs: m.block, results: m.blockResults}
+			}
 		}
 		switch m.mode {
 		case "connection-loss":
@@ -268,11 +293,33 @@ func (m *pqMockComet) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		_ = json.NewEncoder(w).Encode(cometTxLookup{Result: tx})
 	case "/block":
+		if m.timedBlocks != nil {
+			height, err := strconv.ParseUint(r.URL.Query().Get("height"), 10, 64)
+			block, exists := m.timedBlocks[height]
+			if err != nil || !exists {
+				m.t.Error("no captured timed block at requested height")
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"block_id": map[string]any{"hash": strings.Repeat("B", 64)}, "block": map[string]any{"header": map[string]any{"height": strconv.FormatUint(height, 10), "time": block.at, "proposer_address": strings.Repeat("C", 40), "last_block_id": map[string]any{"hash": strings.Repeat("A", 64)}}, "data": map[string]any{"txs": block.txs}}}})
+			return
+		}
 		_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"block_id": map[string]any{"hash": strings.Repeat("B", 64)}, "block": map[string]any{"header": map[string]any{"height": strconv.FormatUint(m.height, 10), "time": time.Unix(int64(m.height), 0).UTC(), "proposer_address": strings.Repeat("C", 40), "last_block_id": map[string]any{"hash": strings.Repeat("A", 64)}}, "data": map[string]any{"txs": m.block}}}})
 	case "/block_results":
 		var result cometBlockResults
 		result.Result.Height = strconv.FormatUint(m.height, 10)
 		result.Result.TxsResults = m.blockResults
+		if m.timedBlocks != nil {
+			height, err := strconv.ParseUint(r.URL.Query().Get("height"), 10, 64)
+			block, exists := m.timedBlocks[height]
+			if err != nil || !exists {
+				m.t.Error("no captured timed results at requested height")
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
+			result.Result.Height = strconv.FormatUint(height, 10)
+			result.Result.TxsResults = block.results
+		}
 		_ = json.NewEncoder(w).Encode(result)
 	case "/tx_search":
 		var result cometTxSearch

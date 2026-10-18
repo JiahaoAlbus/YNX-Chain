@@ -335,9 +335,13 @@ func TestProofHostSourceFromOriginalLedger(t *testing.T) {
 }
 
 func TestProofHostSourceThreeLayoutsAndOriginalFailures(t *testing.T) {
+	// Layout and read-lock checks consume the same original signed blocks.
+	// Persist separate complete stores per case so corruption and held locks
+	// remain isolated without repeating the four-validator signing ceremony.
+	signed := newPQTransactionProofFixture(t)
 	for _, layout := range []string{"atomic-json", "snapshot-journal", "block-journal"} {
 		t.Run(layout, func(t *testing.T) {
-			f := newProofHostSourceFixture(t, layout, "")
+			f := newProofHostSourceFixtureFromTransaction(t, signed, layout, "")
 			before := proofSourceTree(t, filepath.Join(f.root, "original"))
 			if _, err := f.export(t, filepath.Join(f.root, "output")); err != nil {
 				t.Fatal(err)
