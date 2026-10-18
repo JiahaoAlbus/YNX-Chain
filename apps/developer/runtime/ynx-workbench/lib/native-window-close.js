@@ -87,6 +87,7 @@ class NativeWindowClose {
         this.pendingClose = (async () => {
         let committed = false;
         let editors;
+        let stage = 'initial-persistence';
         try {
           if (this.initialized) this.layout?.storeLayout(application); await this.storage?.flush?.();
           if (!current()) return false;
@@ -123,19 +124,28 @@ class NativeWindowClose {
               return Reflect.get(target, key, receiver);
             }
           });
+          stage = 'shutdown-vetoes';
           const safe = await guardedWindows.isSafeToShutDown(StopReason.Close);
           if (!safe || actionFailed || !current()) return false;
           if (!editors.unchanged()) return false;
+          stage = 'debug-state-persistence';
           await this.persistDebugState?.();
           if (!current() || !editors.unchanged()) return false;
+          stage = 'final-persistence';
           if (this.initialized) this.layout?.storeLayout(application);
           await this.storage?.flush?.();
           if (!current() || !editors.unchanged()) return false;
+          stage = 'debug-session-shutdown';
           await this.stopDebugSessions();
           if (!current() || !editors.unchanged()) return false;
           committed = true;
           return true;
-        } catch { return false; }
+        } catch (error) {
+          // Keep the original failure observable without allowing a logger
+          // failure to bypass the existing shutdown veto or strand a retry.
+          try { this.windows.logger?.error?.('Native window close failed', { stage }, error); } catch { /* preserve close veto */ }
+          return false;
+        }
         finally {
           let cleanupFailed = false;
           try { editors?.dispose(); } catch (error) {

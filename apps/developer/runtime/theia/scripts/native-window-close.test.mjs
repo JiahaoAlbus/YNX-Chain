@@ -50,9 +50,10 @@ function debugFixture({request='launch',reply=async()=>{},save=async()=>{},safe=
  const target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:m=>messages.push(m)}}}};
  const session={id:'owned',configuration:{request},isStopping:false,sendRequest:async(command,args)=>{events.push([command,args]);await reply();}};
  const manager={sessions:[session],onDidDestroyDebugSession:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},debug:{terminateDebugSession:async()=>{events.push('adapter-stop');manager.sessions=[];for(const fn of listeners)fn(session);}}};
- const windows={allowVetoes:true,isSafeToShutDown:async()=>{windows.allowVetoes=false;return safe;}};
+ const errors=[];
+ const windows={allowVetoes:true,logger:{error:(...values)=>errors.push(values)},isSafeToShutDown:async()=>{windows.allowVetoes=false;return safe;}};
  const close=new NativeWindowClose(windows,target,undefined,{flush:save},undefined,()=>manager,20);close.onStart();
- return {messages,events,session,manager,windows,run:()=>target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')};
+ return {messages,events,session,manager,windows,errors,run:()=>target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')};
 }
 test('cancel and save failure never stop a debug session',async()=>{
  for(const options of [{safe:false},{save:async()=>{throw Error('save failed')}}]){const f=debugFixture(options);await f.run();assert.equal(f.messages[0].accepted,false);assert.equal(f.events.length,0);assert.equal(f.windows.allowVetoes,true);}
@@ -70,4 +71,21 @@ test('debug rejection or timeout keeps window open and allows retry without forc
 });
 test('adapter acknowledgement alone does not claim a remaining session was removed',async()=>{
  const f=debugFixture();f.manager.debug.terminateDebugSession=async()=>{};await f.run();assert.equal(f.messages[0].accepted,false);assert.equal(f.manager.sessions.length,1);
+});
+test('disconnect failure preserves exact cause and stage, remains vetoed and permits retry',async()=>{
+ for(const cause of [Error('TEST_ONLY_DISCONNECT_FAILED'),undefined,null,false,0,'']){
+  const f=debugFixture({reply:async()=>{throw cause}});await f.run();
+  assert.equal(f.messages[0].accepted,false);assert.equal(f.manager.sessions.length,1);
+  assert.equal(f.events.length,1);assert.equal(f.session.isStopping,false);assert.equal(f.windows.allowVetoes,true);
+  assert.equal(f.errors.length,1);assert.equal(f.errors[0][0],'Native window close failed');
+  assert.equal(f.errors[0][1].stage,'debug-session-shutdown');assert.equal(f.errors[0][2],cause);
+  f.session.sendRequest=async()=>{};await f.run();assert.equal(f.messages[1].accepted,true);
+ }
+});
+test('failed diagnostic logging cannot accept shutdown or prevent an explicit retry',async()=>{
+ const cause=Error('TEST_ONLY_DISCONNECT_FAILED'),f=debugFixture({reply:async()=>{throw cause}});
+ f.windows.logger.error=()=>{throw Error('TEST_ONLY_LOGGER_FAILED')};
+ await assert.doesNotReject(f.run());assert.equal(f.messages[0].accepted,false);
+ assert.equal(f.manager.sessions.length,1);assert.equal(f.session.isStopping,false);assert.equal(f.windows.allowVetoes,true);
+ f.session.sendRequest=async()=>{};await f.run();assert.equal(f.messages[1].accepted,true);
 });
