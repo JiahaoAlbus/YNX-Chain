@@ -135,7 +135,11 @@ func (p *ephemeralSenderPool) nextForSenderMeasured(sender int, prior transactio
 		return nil, err
 	}
 	template := p.templates[sender]
-	if template.Nonce >= 32 {
+	limit := p.nonceLimit
+	if limit == 0 {
+		limit = 32
+	}
+	if template.Nonce >= limit {
 		return nil, errors.New("ready sender nonce bound")
 	}
 	started := time.Now()
@@ -189,16 +193,17 @@ type readySupplyStats struct {
 }
 
 type readySenderStats struct {
-	IntentSegments  *readyIntentSegmentReport `json:"intentSegments,omitempty"`
-	Supply          readySupplyStats          `json:"supply"`
-	Prepared        int                       `json:"prepared"`
-	Offered         int                       `json:"offered"`
-	Completed       int                       `json:"completed"`
-	Quarantined     int                       `json:"quarantinedAccounts"`
-	PeakInFlight    int                       `json:"peakInFlightAccounts"`
-	RoundsCompleted int                       `json:"roundsCompleted"`
-	Queues          pacedStatistics           `json:"queues"`
-	BoundedSummary  *readyCumulativeReport    `json:"boundedSummary,omitempty"`
+	EvidenceBudget  *readyEvidenceBudgetReport `json:"evidenceBudget,omitempty"`
+	IntentSegments  *readyIntentSegmentReport  `json:"intentSegments,omitempty"`
+	Supply          readySupplyStats           `json:"supply"`
+	Prepared        int                        `json:"prepared"`
+	Offered         int                        `json:"offered"`
+	Completed       int                        `json:"completed"`
+	Quarantined     int                        `json:"quarantinedAccounts"`
+	PeakInFlight    int                        `json:"peakInFlightAccounts"`
+	RoundsCompleted int                        `json:"roundsCompleted"`
+	Queues          pacedStatistics            `json:"queues"`
+	BoundedSummary  *readyCumulativeReport     `json:"boundedSummary,omitempty"`
 }
 
 // This controller alone signs/advances account state. Submitters and observers
@@ -206,9 +211,24 @@ type readySenderStats struct {
 // There is one reserved/in-flight nonce per sender, with no whole-round barrier.
 // Unknown/rejected/failed/timed-out senders are quarantined while peers continue.
 func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, txs []cmttypes.Tx, results []transactionResult, submit func(int) (time.Time, bool), observe func(int, <-chan acceptedObservation, func(int))) (stats readySenderStats, runErr error) {
-	if p == nil || p.stopped || o.rounds < 2 || o.rounds > 32 || o.offeredRate <= 0 || o.observers < 1 || o.observers > 4 || o.concurrency < 1 || o.concurrency > 4 || len(p.pending) == 0 || len(txs) != len(results) || len(p.pending)*o.rounds > maxTransactions {
+	limits, limitErr := workloadLimits(o)
+	if limitErr != nil {
+		return stats, limitErr
+	}
+	if p == nil || p.stopped || o.rounds < 2 || o.rounds > limits.rounds || o.offeredRate <= 0 || o.observers < 1 || o.observers > 4 || o.concurrency < 1 || o.concurrency > 4 || len(p.pending) == 0 || len(p.pending) > maxTransactions || len(txs) != len(results) || o.rounds > limits.records/len(p.pending) {
 		return stats, errors.New("invalid bounded ready sender plan")
 	}
+	if o.streamingWorkload && (o.evidenceBudget == nil || o.evidenceBudget.LimitBytes != o.evidenceByteBudget || o.evidenceBudget.Poisoned) {
+		return stats, errors.New("streaming workload lacks shared evidence budget")
+	}
+	nonceLimit := p.nonceLimit
+	if nonceLimit == 0 {
+		nonceLimit = 32
+	}
+	if uint64(o.rounds) > nonceLimit {
+		return stats, errors.New("sender pool nonce scope differs from workload")
+	}
+	stats.EvidenceBudget = o.evidenceBudget
 	senders := len(p.pending)
 	expectedStorage := senders * o.rounds
 	if o.reuseResultSlots {
@@ -257,10 +277,13 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 	var err error
 	if o.segmentedIntents {
 		var segmented *readyIntentSegments
-		segmented, err = newReadyIntentSegments(filepath.Join(p.root, readyIntentSegmentsName), p, senders*o.rounds, 8<<20)
+		segmented, err = newReadyIntentSegments(filepath.Join(p.root, readyIntentSegmentsName), p, senders*o.rounds, limits.intentBytes)
 		if err == nil {
 			if o.intentPersistence != nil {
 				segmented.persist = o.intentPersistence
+			}
+			if o.evidenceBudget != nil {
+				segmented.persist = o.evidenceBudget.persist(segmented.persist)
 			}
 			journal = segmented
 			stats.IntentSegments = &segmented.report

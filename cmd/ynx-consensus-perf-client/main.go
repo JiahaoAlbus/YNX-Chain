@@ -50,6 +50,9 @@ type options struct {
 	terminalSink                   func(transactionResult) error
 	reuseResultSlots               bool
 	segmentedIntents               bool
+	streamingWorkload              bool
+	evidenceByteBudget             int64
+	evidenceBudget                 *readyEvidenceBudgetReport
 	intentPersistence              func(string, []byte) error
 }
 
@@ -159,37 +162,38 @@ type summary struct {
 }
 
 type report struct {
-	SchemaVersion        int                     `json:"schemaVersion"`
-	RoundsRequested      int                     `json:"roundsRequested"`
-	RoundsCompleted      int                     `json:"roundsCompleted"`
-	Kind                 string                  `json:"kind"`
-	ChainID              string                  `json:"chainId"`
-	GenesisSHA256        string                  `json:"genesisSha256"`
-	Endpoints            []string                `json:"endpoints"`
-	Concurrency          int                     `json:"concurrency"`
-	OfferedRate          float64                 `json:"configuredOfferedRate"`
-	ObserverConcurrency  int                     `json:"observerConcurrency"`
-	LoadMode             string                  `json:"loadMode"`
-	LoadQueues           pacedStatistics         `json:"loadQueues"`
-	DurableReadback      durableReaderStats      `json:"durableReadback"`
-	GroupedObservation   groupedObservationStats `json:"groupedObservation"`
-	SenderMode           string                  `json:"senderMode"`
-	InclusionMode        string                  `json:"inclusionMode"`
-	ReadySenders         readySenderStats        `json:"readySenders"`
-	RetentionMode        string                  `json:"retentionMode,omitempty"`
-	TerminalStream       *terminalStreamReport   `json:"terminalStream,omitempty"`
-	TimeoutMs            int64                   `json:"timeoutMs"`
-	PollMs               int64                   `json:"pollMs"`
-	StartedAt            time.Time               `json:"startedAt"`
-	MeasurementStartedAt *time.Time              `json:"measurementStartedAt,omitempty"`
-	FinishedAt           time.Time               `json:"finishedAt"`
-	GoVersion            string                  `json:"goVersion"`
-	Platform             string                  `json:"platform"`
-	GOMAXPROCS           int                     `json:"gomaxprocs"`
-	Summary              summary                 `json:"summary"`
-	Transactions         []transactionResult     `json:"transactions"`
-	SetupErrors          []errorObservation      `json:"setupErrors"`
-	Interpretation       []string                `json:"interpretation"`
+	SchemaVersion        int                      `json:"schemaVersion"`
+	RoundsRequested      int                      `json:"roundsRequested"`
+	RoundsCompleted      int                      `json:"roundsCompleted"`
+	Kind                 string                   `json:"kind"`
+	ChainID              string                   `json:"chainId"`
+	GenesisSHA256        string                   `json:"genesisSha256"`
+	Endpoints            []string                 `json:"endpoints"`
+	Concurrency          int                      `json:"concurrency"`
+	OfferedRate          float64                  `json:"configuredOfferedRate"`
+	ObserverConcurrency  int                      `json:"observerConcurrency"`
+	LoadMode             string                   `json:"loadMode"`
+	LoadQueues           pacedStatistics          `json:"loadQueues"`
+	DurableReadback      durableReaderStats       `json:"durableReadback"`
+	GroupedObservation   groupedObservationStats  `json:"groupedObservation"`
+	SenderMode           string                   `json:"senderMode"`
+	InclusionMode        string                   `json:"inclusionMode"`
+	ReadySenders         readySenderStats         `json:"readySenders"`
+	RetentionMode        string                   `json:"retentionMode,omitempty"`
+	StreamingWorkload    *streamingWorkloadReport `json:"streamingWorkload,omitempty"`
+	TerminalStream       *terminalStreamReport    `json:"terminalStream,omitempty"`
+	TimeoutMs            int64                    `json:"timeoutMs"`
+	PollMs               int64                    `json:"pollMs"`
+	StartedAt            time.Time                `json:"startedAt"`
+	MeasurementStartedAt *time.Time               `json:"measurementStartedAt,omitempty"`
+	FinishedAt           time.Time                `json:"finishedAt"`
+	GoVersion            string                   `json:"goVersion"`
+	Platform             string                   `json:"platform"`
+	GOMAXPROCS           int                      `json:"gomaxprocs"`
+	Summary              summary                  `json:"summary"`
+	Transactions         []transactionResult      `json:"transactions"`
+	SetupErrors          []errorObservation       `json:"setupErrors"`
+	Interpretation       []string                 `json:"interpretation"`
 }
 
 func main() {
@@ -208,6 +212,8 @@ func main() {
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
 	flag.BoolVar(&o.segmentedIntents, "segmented-intents", false, "durable signed-input segments; requires ready-pool, terminal-stream and slot reuse; finite caps unchanged")
 	flag.BoolVar(&o.reuseResultSlots, "reuse-result-slots", false, "one result slot per sender with cumulative interval statistics; requires terminal-stream; finite caps unchanged")
+	flag.BoolVar(&o.streamingWorkload, "streaming-workload", false, "explicit bounded streaming workload; requires slot retention, signed/terminal streams and an evidence budget")
+	flag.Int64Var(&o.evidenceByteBudget, "evidence-byte-budget", 0, "positive combined encoded signed/terminal evidence bytes, streaming workload only (at most 2GiB; allocated-disk window remains separate)")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -220,6 +226,10 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	limits, err := workloadLimits(o)
+	if err != nil {
+		return err
+	}
 	if o.inclusionMode != "" && o.inclusionMode != "tx-query" && o.inclusionMode != "block-scan" {
 		return errors.New("unsupported inclusion mode")
 	}
@@ -230,7 +240,7 @@ func validateOptions(o options) error {
 		return errors.New("unsupported sender mode")
 	}
 	if o.senderMode == "ready-pool" && (o.rounds < 2 || o.offeredRate <= 0 || o.output == "") {
-		return errors.New("ready-pool requires paced submission, 2..32 nonce cycles and a new durable output")
+		return fmt.Errorf("ready-pool requires paced submission, 2..%d nonce cycles and a new durable output", limits.rounds)
 	}
 	if o.terminalStream && (o.senderMode != "ready-pool" || o.output == "") {
 		return errors.New("terminal stream requires ready-pool and a new output")
@@ -241,8 +251,8 @@ func validateOptions(o options) error {
 	if o.segmentedIntents && !o.reuseResultSlots {
 		return errors.New("segmented intents require ready-pool, terminal-stream and result slot reuse")
 	}
-	if o.rounds < 0 || o.rounds > 32 || (o.rounds > 1 && o.output == "") {
-		return errors.New("rounds must be 1..32 and repeated runs require a new output file")
+	if o.rounds < 0 || o.rounds > limits.rounds || (o.rounds > 1 && o.output == "") {
+		return fmt.Errorf("rounds must be 1..%d and repeated runs require a new output file", limits.rounds)
 	}
 	if o.manifest == "" || o.transactions == "" {
 		return errors.New("-manifest and -transactions are required")
@@ -256,8 +266,8 @@ func validateOptions(o options) error {
 	if o.offeredRate > 0 && (o.observers < 1 || o.observers > 4) {
 		return errors.New("paced observer count must be in 1..4")
 	}
-	if o.timeout <= 0 || o.timeout > 30*time.Second {
-		return errors.New("overall timeout must be positive and at most 30s")
+	if o.timeout <= 0 || o.timeout > limits.timeout {
+		return fmt.Errorf("overall timeout must be positive and at most %s", limits.timeout)
 	}
 	if o.poll < 50*time.Millisecond || o.poll > time.Second {
 		return errors.New("poll must be in 50ms..1s")
@@ -847,6 +857,11 @@ func execute(o options) error {
 	if o.segmentedIntents {
 		r.Interpretation = append(r.Interpretation, "Signed-input waves use private hash-chained segments persisted before dispatch. readySenders.intentSegments binds their completed inventory. Failed or missing receipt evidence is never a resubmission authorization. Workload and byte caps are unchanged.")
 	}
+	if o.streamingWorkload {
+		r.SchemaVersion = 14
+		r.StreamingWorkload = &streamingWorkloadReport{Name: "scoped_streaming_v1", Rounds: o.rounds, MaxRuntimeMs: o.timeout.Milliseconds(), EvidenceByteBudget: o.evidenceByteBudget}
+		r.Interpretation = append(r.Interpretation, "Streaming issuance does not raise durable-reader store-size limits. Reaching a store, evidence, duration or resource bound fails closed. Ten-minute capacity requires separately qualified history/readback and resource coverage.")
+	}
 	runErr := func() error {
 		data, err := readBounded(o.manifest, 1024*1024)
 		if err != nil {
@@ -888,15 +903,29 @@ func execute(o options) error {
 		if err != nil {
 			return err
 		}
-		if o.offeredRate > 0 && float64(o.rounds*(len(txs)-1))/o.offeredRate >= o.timeout.Seconds() {
+		planned, limits, err := plannedWorkload(o, len(txs))
+		if err != nil {
+			return err
+		}
+		offerIntervals := o.rounds * (len(txs) - 1)
+		if o.senderMode == "ready-pool" {
+			offerIntervals = planned - 1
+		}
+		if o.offeredRate > 0 && float64(offerIntervals)/o.offeredRate >= o.timeout.Seconds() {
 			return errors.New("planned offering span cannot fit the complete configured timeout")
 		}
-		if len(txs)*o.rounds > maxTransactions {
+		if planned > limits.records {
 			return errors.New("total round transactions exceed bounded input limit")
+		}
+		if o.streamingWorkload {
+			r.SchemaVersion = 14
+			r.StreamingWorkload = &streamingWorkloadReport{Name: "scoped_streaming_v1", PlannedRecords: planned, Rounds: o.rounds, MaxRuntimeMs: o.timeout.Milliseconds(), EvidenceByteBudget: o.evidenceByteBudget}
+			o.evidenceBudget = &readyEvidenceBudgetReport{LimitBytes: o.evidenceByteBudget}
+			r.Interpretation = append(r.Interpretation, "Explicit bounded streaming issuance, not a sustained-throughput qualification. Fixed slots and second bins; encoded evidence byte budget is shared, allocated disk requires a separately scheduled resource window. Legacy complete-array/schema12/13 recovery cannot accept schema14.")
 		}
 		var pool *ephemeralSenderPool
 		if o.rounds > 1 {
-			pool, err = loadSenderPool(o.manifest, manifestRaw, m, migration, txs, o.rounds)
+			pool, err = loadSenderPoolWithLimits(o.manifest, manifestRaw, m, migration, txs, o.rounds, limits)
 			if err != nil {
 				return err
 			}
@@ -999,6 +1028,10 @@ func execute(o options) error {
 				if err != nil {
 					return err
 				}
+				stream.maxBytes = limits.terminalBytes
+				if o.evidenceBudget != nil {
+					stream.persist = o.evidenceBudget.persist(stream.persist)
+				}
 				o.terminalSink = stream.append
 			}
 			for i, text := range r.Interpretation {
@@ -1067,6 +1100,15 @@ func execute(o options) error {
 		}
 		if r.Summary.FinalSubmitted != len(txs)*o.rounds {
 			return errors.New("bounded run incomplete: inspect per-transaction outcomes; no submission will be retried")
+		}
+		if o.streamingWorkload {
+			began := time.Now()
+			err := verifyStreamingWorkloadEvidence(ctx, manifestRaw, m, txs, o.rounds, r.ReadySenders.IntentSegments, r.TerminalStream, r.Transactions, o.output, o.evidenceByteBudget)
+			r.StreamingWorkload.EvidenceReadbackMs = float64(time.Since(began).Nanoseconds()) / 1e6
+			if err != nil {
+				return err
+			}
+			r.StreamingWorkload.EvidenceVerified = true
 		}
 		return nil
 	}()

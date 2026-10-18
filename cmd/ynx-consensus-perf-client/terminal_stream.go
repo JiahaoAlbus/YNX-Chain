@@ -44,6 +44,7 @@ type terminalStreamHeader struct {
 // Memory is bounded by one 64-row segment plus one nonce per sender. This is a
 // terminal evidence sink, not a signed-intent queue or an automatic resume log.
 type terminalStream struct {
+	maxBytes        int64
 	report          terminalStreamReport
 	binding         readySenderJournalHeader
 	senders         int
@@ -101,7 +102,7 @@ func newTerminalStream(directory string, p *ephemeralSenderPool) (*terminalStrea
 	if err := syncTerminalDirectory(filepath.Dir(directory)); err != nil {
 		return nil, err
 	}
-	return &terminalStream{report: terminalStreamReport{Directory: directory}, binding: readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", p.manifestSHA256, p.migrationHash, p.genesisHash}, senders: len(p.pending), lastRound: make([]int, len(p.pending)), segmentPrevious: hex.EncodeToString(make([]byte, 32)), persist: persistTerminalSegment}, nil
+	return &terminalStream{maxBytes: 16 << 20, report: terminalStreamReport{Directory: directory}, binding: readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", p.manifestSHA256, p.migrationHash, p.genesisHash}, senders: len(p.pending), lastRound: make([]int, len(p.pending)), segmentPrevious: hex.EncodeToString(make([]byte, 32)), persist: persistTerminalSegment}, nil
 }
 
 func (s *terminalStream) poison(err error) error { s.report.Poisoned = true; return err }
@@ -165,6 +166,9 @@ func (s *terminalStream) flush() error {
 	raw.Write(footer)
 	raw.WriteByte('\n')
 	name := filepath.Join(s.report.Directory, fmt.Sprintf("terminal-%06d.jsonl", s.report.Segments))
+	if int64(s.report.Bytes)+int64(raw.Len()) > s.maxBytes {
+		return s.poison(errors.New("terminal stream byte budget"))
+	}
 	if err = s.persist(name, raw.Bytes()); err != nil {
 		return s.poison(err)
 	}

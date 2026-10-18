@@ -81,13 +81,18 @@ type ephemeralSenderPool struct {
 	templates                                  []consensus.SignedTransaction
 	pending                                    []cmttypes.Tx
 	stopped                                    bool
+	nonceLimit                                 uint64
 	manifestSHA256, migrationHash, genesisHash string
 }
 
 // loadSenderPool accepts only fixture-local, manifest-bound, newly funded keys.
 // No key path or wallet can be selected through this interface.
 func loadSenderPool(manifestPath string, manifestRaw []byte, m consensus.EphemeralNetworkManifest, migration chain.ConsensusMigrationState, txs []cmttypes.Tx, rounds int) (*ephemeralSenderPool, error) {
-	if rounds < 2 || rounds > 32 || len(txs) == 0 || len(txs)*rounds > maxTransactions {
+	limits, _ := workloadLimits(options{})
+	return loadSenderPoolWithLimits(manifestPath, manifestRaw, m, migration, txs, rounds, limits)
+}
+func loadSenderPoolWithLimits(manifestPath string, manifestRaw []byte, m consensus.EphemeralNetworkManifest, migration chain.ConsensusMigrationState, txs []cmttypes.Tx, rounds int, limits readyWorkloadLimits) (*ephemeralSenderPool, error) {
+	if rounds < 2 || rounds > limits.rounds || len(txs) < 1 || len(txs) > maxTransactions || rounds > limits.records/len(txs) {
 		return nil, errors.New("invalid repeated sender plan")
 	}
 	path := filepath.Join(filepath.Dir(manifestPath), consensus.EphemeralSenderFile)
@@ -129,7 +134,11 @@ func loadSenderPool(manifestPath string, manifestRaw []byte, m consensus.Ephemer
 	for _, account := range migration.Accounts {
 		accounts[account.Address] = account
 	}
-	p := &ephemeralSenderPool{root: filepath.Dir(manifestPath), pending: make([]cmttypes.Tx, len(txs)), manifestSHA256: bundle.ManifestSHA256, migrationHash: bundle.MigrationStateHash, genesisHash: bundle.GenesisHash}
+	nonceLimit := uint64(limits.rounds)
+	if limits.rounds > 32 {
+		nonceLimit = uint64(rounds)
+	}
+	p := &ephemeralSenderPool{nonceLimit: nonceLimit, root: filepath.Dir(manifestPath), pending: make([]cmttypes.Tx, len(txs)), manifestSHA256: bundle.ManifestSHA256, migrationHash: bundle.MigrationStateHash, genesisHash: bundle.GenesisHash}
 	seen := map[string]bool{}
 	for i, secret := range bundle.Senders {
 		keyRaw, err := hex.DecodeString(secret.PrivateKey)
