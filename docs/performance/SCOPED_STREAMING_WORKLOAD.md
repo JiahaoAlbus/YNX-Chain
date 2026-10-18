@@ -91,6 +91,8 @@ contain immutable strings. Invalid signatures are never retained. Cache hits
 reuse cryptographic facts only: every observation still hashes the current file,
 validates a changed generation, and checks current fee membership and nonce.
 `signatureFacts` reports actual crypto checks and reuse independently from
-`transactionVerifications`, which counts successful current-state checks.
+`transactionVerifications`, which counts cryptographically valid target checks.
+A later fee/nonce rejection still contributes, so this counter is not a count
+of business successes.
 The default legacy reader does not enable this cache. This candidate does not
 change the frozen four-node comparison binaries or the internal consensus tree.

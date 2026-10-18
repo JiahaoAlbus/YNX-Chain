@@ -412,14 +412,17 @@ func (r *durableReader) verifyTransactionLocked(ctx context.Context, slot *durab
 	var err error
 	if r.signatureFacts != nil {
 		tx, err = r.signatureFacts.decode(raw, r.migration.Network.ChainID)
+		if err != nil {
+			return fmt.Errorf("bounded fixture native signature: %w", err)
+		}
 	} else {
 		tx, err = consensus.DecodeSignedTransaction(raw)
-		if err == nil {
-			err = tx.Verify(r.migration.Network.ChainID)
+		if err != nil {
+			return fmt.Errorf("bounded fixture must use native signed transfers: %w", err)
 		}
-	}
-	if err != nil {
-		return fmt.Errorf("bounded fixture native signature: %w", err)
+		if err := tx.Verify(r.migration.Network.ChainID); err != nil {
+			return err
+		}
 	}
 	slot.stats.TransactionVerifications++
 	key := durableFeeKey{hash: consensus.SignedTransactionHash(raw), payer: tx.From, kind: consensus.SignedTransactionType, height: height, fee: tx.Fee}

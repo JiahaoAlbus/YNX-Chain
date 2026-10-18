@@ -6,7 +6,9 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
@@ -149,4 +151,60 @@ func TestStreamingWorkloadSignatureFactsEvictUnderCountAndByteCaps(t *testing.T)
 	if after := facts.stats(); after.Verified != before.Verified+1 {
 		t.Fatal("evicted fact was not reverified", before, after)
 	}
+}
+
+// Repeated observations of one genuinely executed transaction, never 256 new
+// business transactions. Both readers use exactly the same immutable file.
+func TestStreamingWorkloadSignatureFactsMatchedWarmReadCost(t *testing.T) {
+	_, migration, path, raw, height := durableReaderFixture(t)
+	before, err := newDurableReader(migration, []string{path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := newDurableReaderWithLimits(migration, []string{path}, 16<<20, 16<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	first, err := before.verify(ctx, path, raw, height)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := after.verify(ctx, path, raw, height); err != nil {
+		t.Fatal(err)
+	}
+	times := map[string]int64{}
+	for _, sample := range []struct {
+		name   string
+		reader *durableReader
+	}{{"legacy", before}, {"explicit_cached", after}, {"explicit_cached", after}, {"legacy", before}} {
+		started := time.Now()
+		for i := 0; i < 64; i++ {
+			got, err := sample.reader.verify(ctx, path, raw, height)
+			if err != nil || !got.SnapshotCacheHit || got.AppHash != first.AppHash || got.StoreSHA256 != first.StoreSHA256 {
+				t.Fatal("matched current-file evidence differs", err)
+			}
+		}
+		times[sample.name] += time.Since(started).Nanoseconds()
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, reader := range []*durableReader{before, after} {
+		stats := reader.stats()
+		if stats.Attempts != 129 || stats.TransactionVerifications != 129 || stats.BytesHashed != 129*uint64(info.Size()) || stats.SnapshotValidations != 1 {
+			t.Fatal("matched observations skipped original gates", stats)
+		}
+	}
+	facts := after.stats().SignatureFacts
+	if facts.Verified != 1 || facts.Hits != 128 {
+		t.Fatal("matched crypto facts differ", facts)
+	}
+	report := map[string]any{"scope": "128 warm observations per mode of one real executed transaction, not business TPS or network finality", "order": "legacy,cached,cached,legacy;64 observations each", "fileBytes": info.Size(), "elapsedNs": times, "cachedFacts": facts, "stateHash": first.AppHash, "sameStoreSHA256": first.StoreSHA256}
+	encoded, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("matched_warm_readback_cost %s", encoded)
 }
