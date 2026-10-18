@@ -212,7 +212,7 @@ func main() {
 	flag.DurationVar(&o.poll, "poll", 100*time.Millisecond, "transaction observation interval (50ms..1s)")
 	flag.IntVar(&o.rounds, "rounds", 1, "retained fixture nonce cycles (default 1..32 and <=2048 transactions; explicit streaming scope has separate limits)")
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
-	flag.StringVar(&o.pacingMode, "pacing-mode", "relative", "ready-pool pacing: relative or explicit bounded-cadence (at most four-offer catch-up)")
+	flag.StringVar(&o.pacingMode, "pacing-mode", "relative", "ready-pool pacing: relative, bounded-cadence or grouped-cadence4 (at most four offers, expired groups discarded)")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
 	flag.BoolVar(&o.segmentedIntents, "segmented-intents", false, "durable signed-input segments; requires ready-pool, terminal-stream and slot reuse; finite caps unchanged")
@@ -237,7 +237,7 @@ func validateOptions(o options) error {
 	if modeErr != nil {
 		return modeErr
 	}
-	if mode == "bounded-cadence" && o.senderMode != "ready-pool" {
+	if mode != "relative" && o.senderMode != "ready-pool" {
 		return errors.New("bounded cadence requires ready-pool")
 	}
 	limits, err := workloadLimits(o)
@@ -1047,6 +1047,9 @@ func execute(o options) error {
 		r.PacingMode = o.pacingMode
 		if o.pacingMode == "bounded-cadence" {
 			r.Interpretation = append(r.Interpretation, "Explicit bounded-cadence ready-pool offers compensate short wake jitter with at most four-offer catch-up. Long stalls drop missed cadence slots. Decision counters describe scheduled targets; effective TPS still requires the original signed business and finality gates.")
+		}
+		if o.pacingMode == "grouped-cadence4" {
+			r.Interpretation = append(r.Interpretation, "Explicit grouped-cadence4 issues at most four offers per four-interval group, expires unissued slots at its deadline and resets after long stalls. No expired or failed business input is retried. Latencies retain actual offer timestamps including submission queues; grouping is not a finality or throughput qualification.")
 		}
 		r.InclusionMode = o.inclusionMode
 		if o.senderMode == "ready-pool" {

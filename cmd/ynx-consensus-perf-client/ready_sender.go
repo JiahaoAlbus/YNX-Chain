@@ -411,6 +411,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		}
 	}
 	pacer.target = time.Now()
+	pacer.groupStart = pacer.target
 	for len(ready) > 0 || active > 0 {
 		// Recycle completed senders promptly, even while other initial accounts
 		// are still being offered. No first-round/global readiness barrier.

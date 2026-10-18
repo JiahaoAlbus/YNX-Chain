@@ -242,6 +242,21 @@ class SupplySourceTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             supply.validate_report(row, "supply-512x2", "bounded-cadence")
 
+    def test_grouped_four_preserves_caps_and_cannot_replace_frozen_pair_mode(self):
+        old=supply.recipe("grpc","supply-512x2","bounded-cadence")
+        grouped=supply.recipe("grpc","supply-512x2","grouped-cadence4")
+        self.assertEqual(grouped["pacingCatchupOfferLimit"],4)
+        self.assertEqual(old["environment"],grouped["environment"])
+        for key in old["profile"]:
+            if key!="name":self.assertEqual(old["profile"][key],grouped["profile"][key])
+        with self.assertRaises(RuntimeError):supply.recipe("grpc","supply-256x4","grouped-cadence4")
+        row=report("supply-512x2","grouped-cadence4")
+        row["readySenders"]["supply"].update(pacingCatchupTargets=768,pacingPeakCatchupTargets=3)
+        supply.validate_report(row,"supply-512x2","grouped-cadence4")
+        with self.assertRaises(RuntimeError):supply.validate_report(row,"supply-512x2","bounded-cadence")
+        self.assertEqual([r["pacingMode"] for r in supply.pair_recipe()["cases"]],["relative","bounded-cadence"])
+        with self.assertRaises(RuntimeError):supply.pair_case_qualified(self.pair_row("grouped-cadence4"),"bounded-cadence")
+
     def test_pair_prepare_is_fixed_and_never_starts(self):
         row = json.loads(subprocess.check_output([sys.executable, "-B", str(FILE), "--prepare-pair", "--transport", "grpc", "--profile", "supply-512x2"], timeout=5))
         self.assertFalse(row["execute"])

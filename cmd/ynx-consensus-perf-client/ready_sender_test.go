@@ -34,6 +34,7 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 	t.Run("full_history", func(t *testing.T) { testReadySenderFastAccount(t, false) })
 	t.Run("reused_slots", func(t *testing.T) { testReadySenderFastAccount(t, true) })
 	t.Run("bounded_cadence", func(t *testing.T) { testReadySenderPacing(t, false, "bounded-cadence") })
+	t.Run("grouped_cadence4", func(t *testing.T) { testReadySenderPacing(t, false, "grouped-cadence4") })
 }
 
 func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...bool) {
@@ -266,6 +267,9 @@ func testReadySenderPacing(t *testing.T, reuseSlots bool, pacingMode string, seg
 	}
 	if pacingMode == "bounded-cadence" {
 		mode += "-bounded-cadence"
+	}
+	if pacingMode == "grouped-cadence4" {
+		mode += "-grouped-cadence4"
 	}
 	phase, err := json.Marshal(struct {
 		Schema               string           `json:"schema"`

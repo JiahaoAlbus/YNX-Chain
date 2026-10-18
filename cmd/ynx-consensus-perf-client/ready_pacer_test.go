@@ -79,6 +79,7 @@ func TestReadyPacingRejectsUnknownOrOverflowingPlans(t *testing.T) {
 	}{
 		{"unknown", time.Millisecond}, {"bounded-cadence", 0}, {"relative", -1},
 		{"bounded-cadence", time.Duration(1<<63 - 1)},
+		{"grouped-cadence4", time.Duration(1<<63 - 1)},
 	} {
 		if _, err := newReadyOfferPacer(row.mode, time.Time{}, row.interval); err == nil {
 			t.Fatal("invalid cadence accepted", row)
@@ -94,6 +95,15 @@ func TestReadyPacingRejectsUnknownOrOverflowingPlans(t *testing.T) {
 	if err := validateOptions(o); err != nil {
 		t.Fatal(err)
 	}
+	o.pacingMode = "grouped-cadence4"
+	if err := validateOptions(o); err != nil {
+		t.Fatal(err)
+	}
+	o.senderMode = "rounds"
+	if validateOptions(o) == nil {
+		t.Fatal("grouped cadence accepted outside ready-pool")
+	}
+	o.senderMode = "ready-pool"
 	o.pacingMode = "unknown"
 	if validateOptions(o) == nil {
 		t.Fatal("unknown pacing accepted")

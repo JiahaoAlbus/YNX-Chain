@@ -430,3 +430,51 @@ source/ELF/stable CPU identity and complete business qualifications. Only select
 ZIP members were recovered via exact206 with size/CRC and individual SHA256;
 the entire archive was not downloaded or hash-verified. No second measurement or
 load increase is authorized by this successful pair.
+
+## Explicit grouped-cadence4 source successor
+
+The matched50588 pair remains frozen. Root authorized source/tests/normalCI only
+for `grouped-cadence4`, targeting timer-wake overhead while keeping at most four
+consecutive offers. This is a separate opt-in client mode; relative and bounded
+cadence implementations/defaults, original pair order and four-binary measurement
+identities are not rewritten.
+
+A group spans four configured intervals (7.8125ms at512/s). The controller may
+issue at most four offers at a group boundary, through the same per-input
+signature/publication/journal-before-dispatch and worker paths. It then waits
+until the next boundary. If a group deadline passes, its unissued **schedule
+slots** expire: the next target is reset one full group period beyond the current
+offer. A long pause never earns a queued replay, a fifth immediate offer, or
+permission to retry an UNKNOWN transaction. Unissued business workload remains
+subject to the original deadline/quarantine rules; it is not silently dropped
+from the input denominator or counted successful.
+
+The new CLI/normal workflow choice is `grouped-cadence4`. Only the fixed512x2/gRPC
+wrapper profile accepts it, all resource/total/time/worker limits unchanged;
+`run_linux_supply` remains defaultfalse and `linux_supply_pacing` defaults to
+relative. The old same-VM pair choice still selects relative→bounded-cadence;
+grouping cannot silently replace either side. Prepare-only, not a network grant:
+
+```sh
+python3 -B scripts/loadtest/supply-linux-window.py --transport grpc --profile supply-512x2 --pacing grouped-cadence4
+```
+
+The new scheduling tests first ran RED against the pre-implementation pacer, then
+PASS after implementation using only the existing Go standard-library scheduler
+files: four-offer limit, a controlled1024-offer schedule with255 future targets,
+group expiry and long-stall reset. Virtual times are **not throughput evidence**.
+Original relative/bounded schedule tests remain selected. The existing actual
+six-signed-transfer slow-peer/persistent-restart regression adds a grouped branch,
+with original fast-account-before-slow, separate supply/drain, signature/nonce,
+durable-before-dispatch, byte/readback and catch-up-bound assertions retained.
+Its Go result must come from the new normal CI; it is not inferred from the
+standalone scheduling test. Python guards reject wrong mode, excessive consecutive
+catch-up targets, unsupported profile and substitution into the frozen pair.
+
+Actual per-input offer timestamps, queue delay, submission latency, effective
+inclusion and qualified final latency are still retained. Any new measurement
+must report offer→included and offer→final P50/P95/P99, as well as the queue,
+supply waiting, drain and bounded decision counters. The prior pair's P95
+regression remains a guard: a higher finite offer/TPS number alone cannot satisfy
+the overall performance objective. No grouping network run has been authorized
+or executed by this source change.

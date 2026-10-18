@@ -74,6 +74,7 @@ on:
         options:
           - relative
           - bounded-cadence
+          - grouped-cadence4
           - paired-relative-bounded
         default: relative
       measure_anchor_validation:

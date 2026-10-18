@@ -43,11 +43,11 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative"):
         raise RuntimeError("only fixed 256x4 or 512x2 Supply profiles allowed")
     if profile_name == "supply-512x2" and transport != "grpc":
         raise RuntimeError("the new 512x2 profile is explicitly gRPC only")
-    if pacing not in ("relative", "bounded-cadence") or pacing == "bounded-cadence" and profile_name != "supply-512x2":
+    if pacing not in ("relative", "bounded-cadence", "grouped-cadence4") or pacing != "relative" and profile_name != "supply-512x2":
         raise RuntimeError("bounded cadence is explicit fixed512x2/gRPC only")
-    profile = dict(PROFILES[profile_name], name=profile_name + ("-grpc" if transport == "grpc" else "") + ("-bounded-cadence" if pacing == "bounded-cadence" else ""))
+    profile = dict(PROFILES[profile_name], name=profile_name + ("-grpc" if transport == "grpc" else "") + ("-"+pacing if pacing != "relative" else ""))
     return dict(schema=1, profile=profile, abciTransport=transport, pacingMode=pacing,
-                pacingCatchupOfferLimit=4 if pacing == "bounded-cadence" else 1, environment=ENV, execute=False,
+                pacingCatchupOfferLimit=4 if pacing != "relative" else 1, environment=ENV, execute=False,
                 requiresSeparateRootGrant=True, nodesStarted=False,
                 platform="Linux native /proc; not macOS pressure1",
                 comparison="Independent private CI case; no Darwin before/after multiplier",
@@ -605,7 +605,7 @@ if __name__ == "__main__":
     parser.add_argument("--execute-pair", action="store_true")
     parser.add_argument("--transport", choices=("socket", "grpc"), default="socket")
     parser.add_argument("--profile", choices=tuple(PROFILES), default="supply-256x4")
-    parser.add_argument("--pacing", choices=("relative", "bounded-cadence"), default="relative")
+    parser.add_argument("--pacing", choices=("relative", "bounded-cadence", "grouped-cadence4"), default="relative")
     parser.add_argument("--check-runner", action="store_true")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--build", type=Path)
