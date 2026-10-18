@@ -15,7 +15,7 @@ import { keyAccessError } from "./key-lifecycle.mjs";
 import {bindPermissionGuard} from "./permission-lease.mjs";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PasswordVaultFile, vaultStorageError } from "./password-vault-file.mjs";
-import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog,preparePasswordVaultPQRecord,decryptPasswordVaultPQRecord } from "./password-vault-crypto.mjs";
+import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog,preparePasswordVaultPQRecord,decryptPasswordVaultPQRecord,preparePasswordVaultPQReservation } from "./password-vault-crypto.mjs";
 
 const fail = (code, message) => { throw providerError(4100, code, message); };
 const cancelled = () => keyAccessError("WALLET_OPERATION_CANCELLED");
@@ -86,8 +86,30 @@ export class PasswordWalletVault {
     if(failed)throw cause;if(cleanupFailed)throw cleanupCause;
   }
   pqCleanupUnresolved(){return this.#pqRecoveryDebt.size!==0||this.#pqSDK?.pqWalletKeyCleanupUnresolved?.()===true;}
+  async reservePQPreparation({operationId,network,kind}={}){
+    const guard=this.authorization.current();
+    if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Resolve the original cleanup before preparing another key pair.');
+    return this.#serialize(async()=>{
+      const current=await this.#readUnlocked(guard);if(!guard.account||guard.account!==current.vault.activeAccount)throw cancelled();
+      const candidate=await preparePasswordVaultPQReservation(current.vault,current.session,{account:guard.account,operationId,networkId:network.chainId,kind},options(guard));
+      await this.#publish(candidate,current.snapshot.digest,guard,true);
+      // Durable reservation is mandatory BEFORE entering SDK generation.
+      const stored=await this.#readUnlocked(guard),original=stored.vault.pqPreparationReservations?.find(r=>r.account===guard.account);
+      if(original?.operationId!==operationId||original.networkId!==network.chainId)fail('PASSWORD_VAULT_PQ_ORIGINAL_REQUIRED','Keep the original preparation record.');
+    });
+  }
+  async readPQPreparationStatus({networkId}={}){
+    const guard=this.authorization.current();return this.#serialize(async()=>{
+      const current=await this.#readUnlocked(guard),account=guard.account;if(!account||account!==current.vault.activeAccount)throw cancelled();
+      const reserved=current.vault.pqPreparationReservations?.find(r=>r.account===account),record=current.vault.pqKeyRecords?.find(r=>r.account===account);
+      if(reserved&&reserved.networkId!==networkId||record&&record.binding.chainId!==networkId)fail('PQ_KEY_BINDING_CHANGED','The original pair belongs to another network.');
+      if(record){const payload=await decryptPasswordVaultPQRecord(current.vault,account,current.session,options(guard));try{await this.#verifyPQRecovery(payload,record.binding,guard);}finally{payload.wire.fill(0);payload.credential=null;}}
+      await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
+      return Object.freeze({phase:record?'saved':reserved?'prepare-unknown':'idle',busy:false,hasOriginal:false,persisted:!!record,persistenceAttempted:!!record,preparationUnknown:!!reserved&&!record,keyRetired:!!record,cleanupDebt:this.pqCleanupUnresolved(),recoveryRequired:!!reserved&&!record,error:reserved&&!record?'PQ_KEY_PREPARATION_INCOMPLETE':null,recoveryOrigin:'protected-vault'});
+    });
+  }
   async assertPQPreparationAvailable(){
-    const guard=this.authorization.current();return this.#serialize(async()=>{const current=await this.#readUnlocked(guard);if(!guard.account||guard.account!==current.vault.activeAccount)throw cancelled();if(current.vault.pqKeyRecords?.some(r=>r.account===guard.account))fail('PASSWORD_VAULT_PQ_ORIGINAL_EXISTS','Use the original dual-key record or explicit recovery; do not generate replacement keys.');return undefined;});
+    const guard=this.authorization.current();return this.#serialize(async()=>{const current=await this.#readUnlocked(guard);if(!guard.account||guard.account!==current.vault.activeAccount)throw cancelled();if(current.vault.pqKeyRecords?.some(r=>r.account===guard.account)||current.vault.pqPreparationReservations?.some(r=>r.account===guard.account))fail('PASSWORD_VAULT_PQ_ORIGINAL_EXISTS','Use the original dual-key record or explicit recovery; do not generate replacement keys.');return undefined;});
   }
   async savePQKeys({handle,publicBinding,operationId}={}){
     const guard=this.authorization.current(),sdk=this.#pqRequired();
@@ -597,7 +619,7 @@ export class PasswordWalletVault {
       } else {material=await importSecret({ kind: input.kind, value: input.value, password: input.backupPassword ?? "",passphrase:input.passphrase??"" }, guard,true);secret=material.secretHex;}
       if (identityFor(secret).account !== record.account) fail("PASSWORD_VAULT_IDENTITY_MISMATCH", "This backup belongs to a different account. Existing accounts were kept.");
       if (input.resetPassword === true) {
-        if(snapshot&&parsePasswordVault(snapshot.text).pqKeyRecords?.length)fail('PQ_INDEPENDENT_BACKUP_REQUIRED','The old mnemonic cannot restore the new dual keys. Preserve this encrypted Wallet and use its independent dual-key backup and credential; password reset cannot discard those records.');
+        if(snapshot&&(parsePasswordVault(snapshot.text).pqKeyRecords?.length||parsePasswordVault(snapshot.text).pqPreparationReservations?.length))fail('PQ_INDEPENDENT_BACKUP_REQUIRED','The old mnemonic cannot restore the new dual keys or resolve an uncertain preparation. Preserve this encrypted Wallet and its original recovery records; password reset cannot discard them.');
         if(snapshot&&parsePasswordVault(snapshot.text).records.find(item=>item.account===record.account)?.mnemonic&&!material?.entropyHex)fail("MNEMONIC_BACKUP_REQUIRED","This account has a recovery phrase. Use that phrase or its mnemonic-preserving encrypted backup to reset the password without losing it.");
         passwordPair(input.newPassword, input.confirmation);
         candidate = await createPasswordVault({ password: input.newPassword, revision: (catalog.revision ?? 0) + 1, activeAccount: record.account, accounts: catalog.accounts.map(item => item.account === record.account ? { ...item, state: "protected", secretHex: secret,...(material?.entropyHex?{mnemonicEntropyHex:material.entropyHex}:{}) } : { ...item, state: "recovery-required" }) }, options(guard));

@@ -93,6 +93,13 @@ function pqRecords(value,accounts){
     return {version:1,account:record.account,operationId:record.operationId,binding,bytes:record.bytes,cipher:cipher(record.cipher,record.bytes)};
   });
 }
+function pqReservations(value,accounts){
+  list(value);const seen=new Set();return value.map(record=>{
+    exact(record,['version','account','operationId','networkId','kind']);
+    if(record.version!==1||!accounts.some(a=>a.account===record.account&&a.state==='protected')||seen.has(record.account)||typeof record.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(record.operationId)||typeof record.networkId!=='string'||! /^[a-f0-9]{64}$/.test(record.networkId)||record.kind!=='generate')fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
+    seen.add(record.account);return {...record};
+  });
+}
 
 /** Public-only read: absent vault returns null; this performs no KDF/decryption. */
 export function parsePasswordVault(value) {
@@ -103,7 +110,8 @@ export function parsePasswordVault(value) {
   }
   const catalogBytes=Object.hasOwn(value,'originalAdmissionCatalogBytes')?value.originalAdmissionCatalogBytes:0;
   const hasPQ=Object.hasOwn(value,'pqKeyRecords');
-  exact(value,[...VAULT_KEYS,...(catalogBytes===0?[]:['originalAdmissionCatalogBytes']),...(hasPQ?['pqKeyRecords']:[])]);
+  const hasPQReservations=Object.hasOwn(value,'pqPreparationReservations');
+  exact(value,[...VAULT_KEYS,...(catalogBytes===0?[]:['originalAdmissionCatalogBytes']),...(hasPQ?['pqKeyRecords']:[]),...(hasPQReservations?['pqPreparationReservations']:[])]);
   if(!Number.isSafeInteger(catalogBytes)||catalogBytes<0||catalogBytes>MAX_BYTES||Object.hasOwn(value,'originalAdmissionCatalogBytes')&&catalogBytes<2)fail('PASSWORD_VAULT_INVALID');
   if (value.schemaVersion !== 3 || value.cryptoSuite !== PASSWORD_VAULT_CRYPTO_SUITE) fail("PASSWORD_VAULT_UNSUPPORTED_SUITE");
   if (typeof value.vaultId !== "string" || !/^[0-9a-f]{32}$/.test(value.vaultId)) fail("PASSWORD_VAULT_INVALID");
@@ -129,10 +137,14 @@ export function parsePasswordVault(value) {
   });
   const pqKeyRecords=hasPQ?pqRecords(value.pqKeyRecords,accounts):null;
   if(hasPQ&&pqKeyRecords.length===0)fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
+  const reservations=hasPQReservations?pqReservations(value.pqPreparationReservations,accounts):null;
+  if(hasPQReservations&&reservations.length===0)fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
+  for(const reservation of reservations??[]){const stored=pqKeyRecords?.find(r=>r.account===reservation.account);if(stored&&(stored.operationId!==reservation.operationId||stored.binding.chainId!==reservation.networkId))fail('PASSWORD_VAULT_PQ_BINDING_INVALID');}
   const catalogCipher = cipher(value.catalogCipher, catalogBytes), ivs = [catalogCipher.iv, ...records.flatMap(record => [record.cipher.iv,...(record.mnemonic?[record.mnemonic.cipher.iv]:[])]),...(pqKeyRecords??[]).map(r=>r.cipher.iv)];
   if (new Set(ivs).size !== ivs.length) fail("PASSWORD_VAULT_INVALID");
   const result = { schemaVersion: 3, ...(catalogBytes?{originalAdmissionCatalogBytes:catalogBytes}:{}), cryptoSuite: PASSWORD_VAULT_CRYPTO_SUITE, vaultId: value.vaultId, revision: value.revision, activeAccount: value.activeAccount, accounts, passwordWrap: { kdf: { name: kdf.name, hash: kdf.hash, iterations: kdf.iterations, salt: kdf.salt }, cipher: cipher(value.passwordWrap.cipher, 32) }, catalogCipher, records };
   if(hasPQ)result.pqKeyRecords=pqKeyRecords;
+  if(hasPQReservations)result.pqPreparationReservations=reservations;
   if (Buffer.byteLength(canonical(result)) > (hasPQ?PQ_VAULT_MAX_BYTES:MAX_BYTES)) fail("PASSWORD_VAULT_INVALID");
   return freeze(result);
 }
@@ -143,7 +155,7 @@ export function readPasswordVaultPublicMetadata(value) {
     if (Buffer.byteLength(value) > PQ_VAULT_MAX_BYTES) fail("PASSWORD_VAULT_INVALID");
     try { value = JSON.parse(value); } catch { fail("PASSWORD_VAULT_INVALID"); }
   }
-  inputObject(value, [...VAULT_KEYS,'originalAdmissionCatalogBytes','pqKeyRecords']);
+  inputObject(value, [...VAULT_KEYS,'originalAdmissionCatalogBytes','pqKeyRecords','pqPreparationReservations']);
   if (value.schemaVersion !== 3) fail("PASSWORD_VAULT_UNSUPPORTED_SUITE");
   if (typeof value.vaultId !== "string" || !/^[0-9a-f]{32}$/.test(value.vaultId)) fail("PASSWORD_VAULT_INVALID");
   revision(value.revision); list(value.accounts);
@@ -364,12 +376,23 @@ export async function decryptPasswordVaultMnemonic(value,account,session,options
 /** Main-only local custody. The payload is the SDK's encrypted two-key backup
  * and its independent recovery credential, wrapped by this SAME Vault DEK.
  * No plaintext PKCS8 or new encryption/key derivation implementation here. */
+export async function preparePasswordVaultPQReservation(value,session,input,options={}){
+  exact(input,['account','operationId','networkId','kind']);checkpoint(options,'pq-reserve:start');
+  const old=requiredVault(value),key=sessionKey(old,session),scoped=guardedSession(old,session,options);
+  const record=pqReservations([{version:1,...input}],old.accounts)[0];
+  if(old.pqKeyRecords?.some(r=>r.account===input.account)||old.pqPreparationReservations?.some(r=>r.account===input.account))fail('PASSWORD_VAULT_PQ_ORIGINAL_EXISTS');
+  const originalCatalog=await verifyCatalog(old,key,scoped);
+  const next=await assemble({...old,revision:old.revision+1,pqPreparationReservations:[...(old.pqPreparationReservations??[]),record]},accountInputs(old.accounts,old),key,scoped,old,originalCatalog);
+  checkpoint(scoped,'pq-reserve:ready');return Object.freeze({vault:next,session:handle(next,key)});
+}
 export async function preparePasswordVaultPQRecord(value,session,input,options={}){
   exact(input,['account','operationId','binding','wire','credential']);checkpoint(options,'pq-write:start');
   const old=requiredVault(value),key=sessionKey(old,session),scoped=guardedSession(old,session,options),binding=pqBinding(input.binding);
   const meta=old.accounts.find(a=>a.account===input.account);
   if(!meta||meta.state!=='protected'||binding.owner!==meta.account||typeof input.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(input.operationId))fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
   if(old.pqKeyRecords?.some(r=>r.account===input.account))fail('PASSWORD_VAULT_PQ_ORIGINAL_EXISTS');
+  const reserved=old.pqPreparationReservations?.find(r=>r.account===input.account);
+  if(reserved&&(reserved.operationId!==input.operationId||reserved.networkId!==binding.chainId))fail('PASSWORD_VAULT_PQ_BINDING_INVALID');
   if(!(input.wire instanceof Uint8Array)||input.wire.buffer instanceof SharedArrayBuffer||input.wire.length===0||input.wire.length>PQ_PAYLOAD_MAX_BYTES)fail('PASSWORD_VAULT_INVALID');
   decode(input.credential,32);
   const copiedWire=new Uint8Array(input.wire),plaintext=encoder.encode(canonical({format:'YNX_DESKTOP_PQ_PAYLOAD_V1',wire:b64(copiedWire),credential:input.credential}));

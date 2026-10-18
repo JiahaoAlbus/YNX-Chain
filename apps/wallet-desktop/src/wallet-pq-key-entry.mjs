@@ -6,13 +6,13 @@ const fail=code=>{throw Object.assign(Error(code),{code});};
  * registration, backup export, approval, signing or broadcast authority. */
 export function createPQKeyPreparationEntry({lifecycle,vault,sdk,networkId,id,onState=()=>{}}){
  if(typeof networkId!=='string'||! /^[a-f0-9]{64}$/.test(networkId))fail('PQ_KEY_BINDING_REQUIRED');
- const originals=new Map();
+ const originals=new Map(),recoveredStates=new Map();
  const binding=()=>{const state=lifecycle.status();if(!state.account||! /^0x[0-9a-f]{40}$/.test(state.account))fail('PQ_KEY_BINDING_REQUIRED');return {account:state.account,network:networkId};};
  function selected(){
   const account=binding().account;
   if(!originals.has(account)){
    const source=createPQKeyPreparationSource({sdk,repository:{
-    assertCanPrepare:()=>vault.assertPQPreparationAvailable(),
+    assertCanPrepare:input=>vault.reservePQPreparation(input),
     saveKeys:input=>vault.savePQKeys(input),readKeys:input=>vault.readPQKeys(input),verifySavedKeys:input=>vault.verifySavedPQKeys(input),
    },getOriginalNetwork:({account:owner})=>Object.freeze({chainId:networkId,owner}),
    // Portable restore needs the trusted original registered public binding,
@@ -22,5 +22,18 @@ export function createPQKeyPreparationEntry({lifecycle,vault,sdk,networkId,id,on
   }
   return originals.get(account);
  }
- return Object.freeze({status:()=>selected().status(),generate:()=>selected().generate(),reconcile:()=>selected().reconcile(),cancel:()=>selected().cancel()});
+ function status(){const state=selected().status(),recovered=recoveredStates.get(binding().account);return recovered&&(state.phase==='idle'||recovered.persisted&&!state.persisted)?Object.freeze({...state,...recovered,busy:state.busy,cleanupDebt:state.cleanupDebt||recovered.cleanupDebt}):state;}
+ return Object.freeze({status,generate:()=>{const recovered=recoveredStates.get(binding().account);if(recovered?.persisted||recovered?.preparationUnknown)return Promise.reject(Object.assign(Error('PQ_KEY_ORIGINAL_REQUIRES_RECOVERY'),{code:'PQ_KEY_ORIGINAL_REQUIRES_RECOVERY'}));return selected().generate();},reconcile:()=>selected().reconcile(),cancel:()=>selected().cancel(),
+  async recover(){
+   const original=originals.get(binding().account),state=original?.status();
+   if(state?.busy)fail('PQ_KEY_ORIGINAL_REQUIRES_RECOVERY');
+   if(state?.persistenceAttempted&&!state.persisted&&!state.preparationUnknown)return original.reconcile();
+   const recovered=await lifecycle.run(()=>vault.readPQPreparationStatus({networkId}));
+   // A missing disk result cannot erase an already entered live UNKNOWN or
+   // cleanup debt. A verified stored result may advance, never replace it.
+   if(state?.preparationUnknown&&!recovered.persisted)return Object.freeze({...recovered,...state});
+   const value=Object.freeze({...recovered,...(state?.hasOriginal?{hasOriginal:true,keyRetired:state.keyRetired}:{}),cleanupDebt:recovered.cleanupDebt||state?.cleanupDebt===true});
+   recoveredStates.set(binding().account,value);return value;
+  }
+ });
 }

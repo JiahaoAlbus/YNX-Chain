@@ -15,6 +15,6 @@ export function createPQKeyPreparationUI({api,getKeyState,document:doc=document}
  prepare.addEventListener('click',()=>{if(prepare.disabled)return;review={...getKeyState()};dialog.showModal();render();});
  cancel.addEventListener('click',()=>{review=null;dialog.close();render();});dialog.addEventListener('cancel',()=>{review=null;});
  confirm.addEventListener('click',()=>{if(!review||!same(review)||busy)return;review=null;dialog.close();void perform(()=>api.generatePQKeys());});
- check.addEventListener('click',()=>void perform(async()=>{const state=await api.pqKeyPreparationStatus();if(state?.ok===true&&state.value?.persistenceAttempted&&!state.value.persisted)return api.reconcilePQKeys();return state;}));
+ check.addEventListener('click',()=>void perform(()=>api.recoverPQKeys()));
  return Object.freeze({render,invalidate(){generation++;review=null;original=null;dialog.close();result.textContent='';render();}});
 }

@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
   pqKeyPreparationStatus:()=>ipcRenderer.invoke('wallet:pq-keys-status'),
+  recoverPQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-recover'),
   generatePQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-generate'),
   reconcilePQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-reconcile'),
   cancelPQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-cancel'),

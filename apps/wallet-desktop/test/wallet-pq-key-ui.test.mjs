@@ -11,7 +11,7 @@ class Element{
 function fixture(){
  const panel=new Element(),doc={querySelector:()=>panel,createElement:()=>new Element()};
  let state={account:'TEST-A',revision:1,locked:false,authenticating:false},generates=0,reads=0,reconciles=0;
- const api={generatePQKeys:async()=>{generates++;return {ok:true,value:{persisted:true,phase:'saved'}};},pqKeyPreparationStatus:async()=>{reads++;return {ok:true,value:{phase:'save-unknown',persistenceAttempted:true,persisted:false}};},reconcilePQKeys:async()=>{reconciles++;return {ok:true,value:{persisted:true,phase:'saved'}};}};
+ const api={generatePQKeys:async()=>{generates++;return {ok:true,value:{persisted:true,phase:'saved'}};},recoverPQKeys:async()=>{reads++;reconciles++;return {ok:true,value:{persisted:true,phase:'saved'}};}};
  const ui=createPQKeyPreparationUI({api,getKeyState:()=>state,document:doc});ui.render();
  const [title,help,prepare,check,result,dialog]=panel.children[0].children,[notice,confirm,cancel]=dialog.children;
  return {ui,prepare,check,result,dialog,confirm,cancel,lock:()=>state={...state,revision:2,locked:true},counts:()=>({generates,reads,reconciles})};

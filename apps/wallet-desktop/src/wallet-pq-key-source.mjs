@@ -23,9 +23,9 @@ export function createPQKeyPreparationSource({sdk,repository,getOriginalNetwork,
     if(!value.retired){const original=sdk.readPQWalletKeyPublic(value.handle);sdk.assertPQPublicBindingMatches(original,value.binding);}guard.assert();return value;
   }
   return Object.freeze({
-    async prepare(kind,{binding,guard}){
+    async prepare(kind,{binding,guard,operationId}){
       const network=await networkFor(binding,guard);let handle;
-      await repository.assertCanPrepare({kind,account:binding.account,network,guard});guard.assert();
+      await repository.assertCanPrepare({kind,account:binding.account,network,guard,operationId});guard.assert();
       if(kind==='generate')handle=await sdk.createPQWalletKeyHandle(network);
       else if(kind==='restore'){
         const expected=await getRegisteredBinding({network,account:binding.account,guard});guard.assert();

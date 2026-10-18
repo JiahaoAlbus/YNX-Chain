@@ -22,6 +22,8 @@ import {sessionOriginalCause} from '../src/wallet-session-original.mjs';
 import {createPQTransferReviewUI} from '../src/wallet-pq-transfer-ui.mjs';
 import {createPQMigrationReviewUI} from '../src/wallet-pq-migration-ui.mjs';
 import {runInNewContext} from 'node:vm';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {createProductSessionRequest,encodeProductSessionWalletURL,ynxAddressFromEVM,productSessionRequestDigest,productSessionApprovalDigest} from '@ynx-chain/wallet-auth';
 import {DesktopAuthorizationController} from '../src/callback-policy.mjs';
 import {PRODUCT_SESSION_REGISTRY} from '../src/wallet-auth-contract.mjs';
@@ -42,6 +44,65 @@ test('App production PQ entry composes real SDK and encrypted SAME Vault without
  const reopened=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId:CHAIN,id:()=> 'TEST-replacement'});
  const original=await fs.readFile(f.filePath,'utf8');await assert.rejects(reopened.generate());
  assert.equal(await fs.readFile(f.filePath,'utf8'),original);
+});
+test('App production PQ entry reads saved original after a new controller, without generation or a write',async t=>{
+ const {createPQKeyPreparationEntry}=await import('../src/wallet-pq-key-entry.mjs'),f=await fixture(t);
+ const entry=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId:CHAIN,id:()=> 'TEST-reopen-original'});
+ await entry.generate();f.lifecycle.lock();await f.lifecycle.unlock({password:PASSWORD});
+ const original=await fs.readFile(f.filePath,'utf8'),reopened=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId:CHAIN,id:()=> 'TEST-never-enter'});
+ assert.equal((await reopened.recover()).persisted,true);
+ assert.equal(reopened.status().persisted,true);await assert.rejects(reopened.generate());assert.equal(reopened.status().persisted,true);
+ assert.equal(await fs.readFile(f.filePath,'utf8'),original);
+});
+test('App production PQ entered failure survives controller restart and cannot regenerate',async t=>{
+ const {createPQKeyPreparationEntry}=await import('../src/wallet-pq-key-entry.mjs'),f=await fixture(t);
+ let generations=0;
+ const failingSDK={...SDK,createPQWalletKeyHandle:async()=>{generations++;throw false;}};
+ const entry=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:failingSDK,networkId:CHAIN,id:()=> 'TEST-uncertain-original'});
+ await assert.rejects(entry.generate());f.lifecycle.lock();await f.lifecycle.unlock({password:PASSWORD});
+ const reopened=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:failingSDK,networkId:CHAIN,id:()=> 'TEST-forbidden-replacement'});
+ assert.equal((await reopened.recover()).preparationUnknown,true);
+ assert.equal(reopened.status().preparationUnknown,true);
+ await assert.rejects(reopened.generate());assert.equal(generations,1);
+});
+test('App PQ reservation and saved results survive actual fresh processes without replacement generation',async t=>{
+ const {createPQKeyPreparationEntry}=await import('../src/wallet-pq-key-entry.mjs');
+ for(const uncertain of [true,false]){
+  const f=await fixture(t),sdk=uncertain?{...SDK,createPQWalletKeyHandle:async()=>{throw false;}}:SDK;
+  const entry=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk,networkId:CHAIN,id:()=> uncertain?'TEST-cold-unknown':'TEST-cold-saved'});
+  if(uncertain)await assert.rejects(entry.generate());else await entry.generate();
+  f.lifecycle.lock();const before=await fs.readFile(f.filePath,'utf8');
+  const result=spawnSync(process.execPath,[fileURLToPath(new URL('./pq-preparation-reopen-worker.mjs',import.meta.url))],{input:JSON.stringify({filePath:f.filePath,password:PASSWORD,networkId:CHAIN,attemptGeneration:true}),encoding:'utf8',timeout:15000,maxBuffer:16384});
+  assert.equal(result.error,undefined);assert.equal(result.status,0,result.stdout+result.stderr);const output=JSON.parse(result.stdout);
+  assert.notEqual(output.pid,process.pid);assert.equal(output.state.preparationUnknown,uncertain);assert.equal(output.state.persisted,!uncertain);
+  assert.equal(output.generations,0);assert.equal(output.refused,true);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+ }
+});
+test('App PQ durable preparation metadata is authenticated and cannot be substituted or removed',async t=>{
+ const {createPQKeyPreparationEntry}=await import('../src/wallet-pq-key-entry.mjs'),f=await fixture(t);
+ const entry=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:{...SDK,createPQWalletKeyHandle:async()=>{throw false;}},networkId:CHAIN,id:()=> 'TEST-bound-original'});
+ await assert.rejects(entry.generate());const original=JSON.parse(await fs.readFile(f.filePath,'utf8'));
+ for(const alter of [v=>delete v.pqPreparationReservations,v=>v.pqPreparationReservations[0].networkId='b'.repeat(64),v=>v.pqPreparationReservations[0].operationId='TEST-substitute']){
+  const changed=structuredClone(original);alter(changed);await assert.rejects(unlockPasswordVault(changed,PASSWORD));
+ }
+ assert.equal(await fs.readFile(f.filePath,'utf8'),JSON.stringify(original)+'\n');
+});
+test('App PQ reservation lost acknowledgement prevents SDK entry and preserves durable UNKNOWN',async t=>{
+ const {createPQKeyPreparationEntry}=await import('../src/wallet-pq-key-entry.mjs'),f=await fixture(t);
+ let generations=0;const publish=f.vault.files.publish.bind(f.vault.files);
+ f.vault.files.publish=async(...args)=>{await publish(...args);throw Error('TEST_ONLY_LOST_RESERVATION_ACK');};
+ const entry=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:{...SDK,createPQWalletKeyHandle:async()=>{generations++;throw Error('MUST_NOT_ENTER');}},networkId:CHAIN,id:()=> 'TEST-reserve-ack-unknown'});
+ await assert.rejects(entry.generate());assert.equal(generations,0);
+ const preserved=await fs.readFile(f.filePath,'utf8');assert.equal(parsePasswordVault(preserved).pqKeyRecords,undefined);
+ f.vault.files.publish=publish;await f.lifecycle.unlock({password:PASSWORD});assert.equal((await entry.recover()).preparationUnknown,true);
+ await assert.rejects(entry.generate());assert.equal(generations,0);assert.equal(await fs.readFile(f.filePath,'utf8'),preserved);
+});
+test('App PQ uncertain preparation cannot be discarded by classic password reset',async t=>{
+ const {createPQKeyPreparationEntry}=await import('../src/wallet-pq-key-entry.mjs'),f=await fixture(t);
+ const entry=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:{...SDK,createPQWalletKeyHandle:async()=>{throw false;}},networkId:CHAIN,id:()=> 'TEST-reset-unknown'});
+ await assert.rejects(entry.generate());f.lifecycle.lock();const before=await fs.readFile(f.filePath,'utf8');
+ await assert.rejects(f.lifecycle.custody(guard=>f.vault.prepareRecovery({account:f.account,kind:'private-key',value:SECRET,resetPassword:true,newPassword:'new isolated PQ password',confirmation:'new isolated PQ password'},guard)),e=>e?.data?.code==='PQ_INDEPENDENT_BACKUP_REQUIRED');
+ assert.equal(await fs.readFile(f.filePath,'utf8'),before);
 });
 async function fixture(t,pqSDK=SDK){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');

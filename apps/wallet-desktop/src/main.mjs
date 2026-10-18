@@ -426,6 +426,7 @@ handleWalletIPC("wallet:invoice-reference-qr",(_event,input)=>safeIPC(()=>{
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
 // The custody controller owns its lifecycle.run; do not nest sensitiveIPC.
 handleWalletIPC('wallet:pq-keys-status',()=>safeIPC(()=>pqKeyPreparation.status()));
+handleWalletIPC('wallet:pq-keys-recover',()=>safeIPC(()=>pqKeyPreparation.recover()));
 handleWalletIPC('wallet:pq-keys-generate',()=>safeIPC(()=>pqKeyPreparation.generate()));
 handleWalletIPC('wallet:pq-keys-reconcile',()=>safeIPC(()=>pqKeyPreparation.reconcile()));
 handleWalletIPC('wallet:pq-keys-cancel',()=>safeIPC(()=>pqKeyPreparation.cancel()));
