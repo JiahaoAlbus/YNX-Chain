@@ -17,6 +17,7 @@ source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 node --input-type=module -e "import('./scripts/package-identity-admission-source.mjs').then(m=>m.verifyCanonicalIdentityAdmissionSource())"
 canonical_native_root=$(node scripts/package-identity-admission-source.mjs --native-source-root)
 node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs
+node --test scripts/admit-derived-native.test.mjs
 node --test scripts/bundle-composed-core.test.mjs
 runtime_checkpoint="$source_commit"
 # One deployment target for the native shell, bundle declaration and all bundled
