@@ -52,6 +52,12 @@ static bool NodeSameFile(struct stat a,struct stat b){return a.st_dev==b.st_dev&
   _ready=YES;return YES;
  }catch(const std::exception&e){return [self fail:error code:[NSString stringWithUTF8String:e.what()]];}}@catch(id exception){if(!_originalCause)_originalCause=exception;return [self fail:error code:@"IDE_NODE_ACQUIRE_EXCEPTION"];} }
 }
+- (YNXAuthIdentitySourceAuthority *)borrowOriginalPrivateClientSource:(NSError **)error {
+ @synchronized(self){if(![self assertCurrentExpected:nil error:error]||![_source assertAuthenticatedNativePurpose:error])return nil;return _source;}
+}
+- (NSDictionary *)copyOriginalPrivateClientSelection:(NSError **)error {
+ @synchronized(self){if(![self assertCurrentExpected:nil error:error]||![_source assertAuthenticatedNativePurpose:error])return nil;NSDictionary *original=[_source copyOriginalSelection:error];if(![self assertCurrentExpected:nil error:error])return nil;return original;}
+}
 - (int)descriptor {@synchronized(self){return _ready&&!_retired?4:-1;}}
 - (id)firstCause {return _originalCause?:_first;}
 - (BOOL)assertCurrentExpected:(NSDictionary *)expected error:(NSError **)error {

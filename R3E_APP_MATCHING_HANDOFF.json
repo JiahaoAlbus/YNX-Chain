@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "state": "EXACT_SDK35_A33_AND_APP_PAYLOAD_COMPOSITION_NOT_BUILT_OR_ADMITTED",
+  "baseAppPayloadCommit": "ad4dd52ceba4c76911ba70af2eeaa567c9612b53",
+  "sdkHandoff": {"path": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3e-20261018/SDK_PQ_R3E_HANDOFF.json", "bytes": 8840, "sha256": "f6ac80d328e03801b57d5fa0f0081d146ac0bbff0a3c484c1f87f03e7379d0f8"},
+  "sdkCommit": "c2a2fd132bee164710186fdfa744be21d35c257f",
+  "sdkTree": "225672d5b11e08d3aee087c24f4cfd68ee0e2d97",
+  "archive": {"bytes": 897631, "sha256": "50334e2cc6ee23246b7cbea8c858047d62cb8c4a4538381fa448e436d4124bf8", "all227FilesMatchedFrozenGit": true, "changedSdkLeaves": 12},
+  "native": {"originalBuilder": "A", "component": "R33", "moduleBytes": 1077784, "moduleSHA256": "0ebfb6277f5c6bc40609404978624d192defe86fd465003ebfc9baff35b9eef7", "rawExecutedReceiptBytes": 18962, "rawExecutedReceiptSHA256": "445c0b0ab02a9e8321e6406dfab7669d995f4b1522bfc1e1c3e409fae2e4433c", "sourceClosurePins": 33, "allActualCompileInputsMatched": 32, "exportsPassivelyLoaded": 53, "receiptRewritten": false, "compiledByWallet": false},
+  "dependencies": {"regularPinnedFiles": 316, "generatedManifestSdkCommit": "c2a2fd132bee164710186fdfa744be21d35c257f", "network": false, "installScripts": false},
+  "offlineBuildEntry": {"exactTwoLeavesFrom": "eef7cddb0a95d6e65ec08913fee88d0455cb6a23", "cwd": "apps/wallet-desktop", "argvAfterOriginalPinnedNode": ["scripts/build-mac.mjs", "arm64", "--config.electronDist=/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r65-normal-mac-matching-20261017/electron-dist", "--config.npmRebuild=false"], "builder": "original A only; do not interrupt its R3d candidate build"},
+  "newTests": {
+    "appSDKAndNativeComposition": {"pass": 5, "fail": 0, "durationMs": 181.535625, "runtime": "actual installed R24 Electron RunAsNode", "layers": ["Three actual same-copy App reader/parent plus frozen SDK handler/codec controls, PUBLIC Native and Source stand-ins", "One actual A33 passive-load/executed-receipt/thirty-two-input check", "One actual unmodified SDK null-startup refusal; no Native selection manufactured"]},
+    "exactOfflineEntry": {"pass": 4, "fail": 0, "durationMs": 62.528833, "runtime": "ordinary bundled Node24.19.0, controlled spawn interception; no builder or DMG"},
+    "harnessCorrections": ["SDK fixture requires its top-level text binding; provided exact same-copy source", "Do not rewrite import.meta inside supplier string match patterns", "Normal frozen SDK startup is null: correct actual refusal is IDE_ORIGINAL_PRIVATE_PARENT_NOT_SUPPLIED, not the supplier's separately configured PUBLIC partial fixture"]
+  },
+  "supplierEvidenceNotRerun": "SDK H carries its separate configured PUBLIC JS+actual Native partial-refusal and child-before-parent cleanup controls. These are not normal admitted Source and are not counted as our actual normal-startup Native acquisition.",
+  "untouched": ["frozen d075 R3d", "frozen eef offline-build-only candidate", "apps/developer/**", "apps/wallet/App.tsx", "all real user accounts, keys, recovery phrases, backups and UNKNOWN records"],
+  "notEstablished": ["approved Source/profile/head/current", "positive Native parent or child service ACK", "same public HTTPS and local Host state", "cold and global UNKNOWN resolution", "matching full App build", "download/install/upgrade", "real business flow", "MONSTER operation"],
+  "next": "Original owners integrate this exact successor after their current bounded build. Missing approved Source is a real admission limitation, not permission to substitute providers or stop independent source work."
+}

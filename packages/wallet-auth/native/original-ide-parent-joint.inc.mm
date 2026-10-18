@@ -278,11 +278,12 @@ static napi_value IDEIntentLifecycle(napi_env env,napi_callback_info info){
  if(op==ideIntentClose)return IDEIntentCloseAsync(h);
  return IDEIntentCurrent(h)?Undefined(env):Error(env,(h->first.localizedDescription?:@"IDE_INTENT_CURRENT_FAILED").UTF8String);
 }
-struct OriginalIDENodeHandle {napi_env env;YNXOriginalIDENodeDelivery *__strong owner;bool closeSelected=false,closeComplete=false;napi_ref closeErrorRef=nullptr;};
+#include "original-ide-private-client-custody.h"
+struct OriginalIDENodeHandle {napi_env env;YNXOriginalIDENodeDelivery *__strong owner;bool closeSelected=false,closeComplete=false;ynx_auth_ide_private::PrivateClientCustody privateClients;napi_ref closeErrorRef=nullptr;};
 static std::unordered_set<OriginalIDENodeHandle*> ideNodeOwners,ideNodeDebt;
 static bool ideNodeAcquisitionSelected=false;
 static void IDENodeFinalize(napi_env,void *raw,void*){
- auto*h=static_cast<OriginalIDENodeHandle*>(raw);if(!ideNodeOwners.count(h))return;
+ auto*h=static_cast<OriginalIDENodeHandle*>(raw);if(!ideNodeOwners.count(h))return;if(!h->privateClients.parentCanClose()){ideNodeDebt.insert(h);return;}
  NSError *e=nil;if(![h->owner closeOriginal:&e]){ideNodeDebt.insert(h);return;}if(h->closeErrorRef)napi_delete_reference(h->env,h->closeErrorRef);ideNodeOwners.erase(h);ideNodeDebt.erase(h);delete h;
 }
 static napi_value IDENodeCurrent(napi_env env,napi_callback_info info){
@@ -295,7 +296,7 @@ static napi_value IDENodeClose(napi_env env,napi_callback_info info){
  napi_value unused[1];void *raw=nullptr;if(!Args(env,info,0,unused,&raw))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
  auto*h=static_cast<OriginalIDENodeHandle*>(raw);if(!ideNodeOwners.count(h)||h->env!=env)return Error(env,"IDE_ORIGINAL_NODE_OWNER_REQUIRED");
  if(h->closeSelected){if(h->closeComplete)return Undefined(env);napi_value original;if(h->closeErrorRef&&napi_get_reference_value(env,h->closeErrorRef,&original)==napi_ok){napi_throw(env,original);return nullptr;}return Error(env,"IDE_NODE_CLOSE_UNKNOWN");}
- h->closeSelected=true;NSError *e=nil;h->closeComplete=[h->owner closeOriginal:&e];
+ h->closeSelected=true;NSError *e=nil;h->closeComplete=h->privateClients.parentCanClose()&&[h->owner closeOriginal:&e];
  if(!h->closeComplete){ideNodeDebt.insert(h);napi_value original=IDEErrorValue(env,e.localizedDescription?:@"IDE_NODE_CLOSE_UNKNOWN");napi_create_reference(env,original,1,&h->closeErrorRef);napi_throw(env,original);return nullptr;}ideNodeDebt.erase(h);return Undefined(env);
 }
 static napi_value IDENodeDescriptor(napi_env env,napi_callback_info info){
