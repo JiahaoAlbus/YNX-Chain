@@ -17,7 +17,11 @@ const manifest = await verifyComposedRuntime(source, pin);
 if (pin.architecture.startsWith('darwin-') && !reviewedMacNodeVersion(manifest.nodeVersion)) throw Error('Composed macOS payload has no exact reviewed Node version.');
 await mkdir(output, { mode: 0o755 }); // Never replace an existing payload.
 const archive = join(output, 'workbench.tar');
-execFileSync('/usr/bin/tar', ['-cf', archive, '-C', source, '.'], { env: { ...process.env, COPYFILE_DISABLE: '1' }, stdio: 'pipe' });
+// Compress before App/image staging rather than carrying the full uncompressed
+// core through each image phase. Keep the established archive path: the normal
+// macOS tar reader detects gzip for listing and extraction. The original pin,
+// archive hash and full round-trip tree verification remain mandatory.
+execFileSync('/usr/bin/tar', ['-czf', archive, '-C', source, '.'], { env: { ...process.env, COPYFILE_DISABLE: '1' }, stdio: 'pipe' });
 const temporary = await mkdtemp(join(tmpdir(), 'ynx-composed-package-verify-'));
 try {
   execFileSync('/usr/bin/tar', ['-xpf', archive, '-C', temporary], { env: { ...process.env, COPYFILE_DISABLE: '1' }, stdio: 'pipe' });
@@ -27,7 +31,7 @@ await writeFile(join(output, 'workbench.pin.json'), pinBytes, { flag: 'wx' });
 const receipt = {
   schemaVersion: 1, runtimeArtifact: pin, requiredNodeVersion: manifest.nodeVersion,
   ...manifest.macosCompatibility ? { macosCompatibility: manifest.macosCompatibility } : {},
-  archive: 'workbench.tar', archiveSha256: createHash('sha256').update(await readFile(archive)).digest('hex'),
+  archive: 'workbench.tar', archiveCompression: 'gzip', archiveSha256: createHash('sha256').update(await readFile(archive)).digest('hex'),
   roundTripTreeVerified: true, upstreamNotices: 'component-notices/index.json inside archive',
   ...(process.env.YNX_DEVELOPER_LOCAL_WORKBENCH_PAYLOAD === '1' ? {
     localWorkspace: { enabled: true, identity: 'OS-user local project only', canonicalAdmission: false },
