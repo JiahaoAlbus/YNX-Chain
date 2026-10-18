@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "scope": "actual new Mac binary CLI help only; no state/listener/node/network",
+  "binarySHA256": "adf90fc263fbadc6efc445cf6abd893cda34c1bcad9aa8fbf49fbc3819e01b73",
+  "actualArgv": [
+    "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ci-39104088387-darwin-phase-node/ynx-abci",
+    "--help"
+  ],
+  "exitCode": 0,
+  "phaseFlagReadback": true,
+  "commandElapsedMs": 532.301167,
+  "wholeWindowMs": 579.765709,
+  "maximumCommandRSSBytes": 21102592,
+  "conservativeObservedCombinedRSSBytes": 106168320,
+  "diskDeltaBytes": 4096,
+  "pressure": [
+    1,
+    1,
+    1
+  ],
+  "groupGone": true,
+  "rawReceipt": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/darwin-phase-node-help-20261018-01/receipt.json",
+  "rawReceiptSHA256": "c9300742f942d33f0812a8221c8f19e0695efa147c1b081de0f9bb32cdbdf371",
+  "independentCleanup": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/darwin-phase-node-help-20261018-01/independent-cleanup.json",
+  "allPIDsAndGroupsGone": true,
+  "businessMeasurement": null
+}

@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "runID": 39104700582,
+  "head": "20cff7837abb9f294111de0b73ac56e8eb29b6ef",
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39104700582",
+  "conclusion": "success",
+  "scope": "One matched Linux CI evidence-retention comparison; real signatures/synthetic observation flags, no business/network TPS. Both paths warmed, same files/validation, count and identity digest equal.",
+  "actualMeasurement": {
+    "Before": {
+      "mode": "legacy_full_retention",
+      "records": 2046,
+      "digest": "93b5a10a3601de5e349e4e427d7e55336824902a87dcd52981fb9b90cd71adeb",
+      "elapsedNs": 66065547,
+      "allocatedBytes": 32930288,
+      "retainedHeapDeltaBytes": 2472544
+    },
+    "After": {
+      "mode": "streaming_count_and_digest",
+      "records": 2046,
+      "digest": "93b5a10a3601de5e349e4e427d7e55336824902a87dcd52981fb9b90cd71adeb",
+      "elapsedNs": 65085071,
+      "allocatedBytes": 31934024,
+      "retainedHeapDeltaBytes": -408
+    }
+  },
+  "rawLog": "artifacts/chain-performance-20261017/ci-39104700582-full.log",
+  "rawLogSHA256": "175b220147def41371fbc5a94a742bfd29c32d36fa4a5b93a24079277fc3859c",
+  "measurementLimits": [
+    "One paired elapsed sample, not statistical throughput evidence.",
+    "Retained heap delta is after GC while retained output is kept alive; runtime noise included; not peak RSS.",
+    "Both modes use shared current scanner; comparison isolates complete result retention versus count/digest consumption, not an old source-vs-new source network comparison."
+  ],
+  "businessTPS": null,
+  "inclusionLatency": null,
+  "finalityLatency": null
+}

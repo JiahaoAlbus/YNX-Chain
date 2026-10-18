@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/final-chain-core
+      - codex/chain-performance-20261017
     paths:
       - ".github/workflows/chain-core.yml"
       - "Makefile"

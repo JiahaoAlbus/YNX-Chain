@@ -81,3 +81,9 @@ test('offline baseline case alone admits pressure2 and still rejects4 or unknown
  assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase:'offline-baseline-stopped-01'}));
  for(const level of [4,0,undefined]){s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'offline-baseline-stopped-01'}));}
 });
+
+test('explicit phase node help case admits pressure1 or2 and never relaxes network default',()=>{
+ for(const level of [1,2]){const s=sample();s.memoryPressure.dispatchLevel=level;assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{rootCase:'phase-node-help-01'}));if(level===2)assert.throws(()=>validateNativeResourceSample(s,76461));}
+ for(const level of [0,3,4,8,undefined]){const s=sample();s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'phase-node-help-01'}));}
+ for(const key of ['host','forkProbe','memoryPressure']){const s=sample();delete s[key];assert.throws(()=>validateNativeResourceSample(s,76461,{rootCase:'phase-node-help-01'}));}
+});

@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "preparedReceipt": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/phase-node-matched-20261018-01/prepared.json",
+  "sha256": "9539961e5f69a091fe55c042b2ab8ef68108c0da0391c056a98dcc7d8a711f2b",
+  "status": "both_plans_prepared_only_no_nodes_or_transactions",
+  "controllerSource": "259a4a9785b88641d3575bde9171c847b24eecb2",
+  "nodeImage": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ci-39104088387-darwin-phase-node/ynx-abci",
+    "realpath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ci-39104088387-darwin-phase-node/ynx-abci",
+    "kind": "regular",
+    "symlinkTarget": null,
+    "bytes": 25921650,
+    "sha256": "adf90fc263fbadc6efc445cf6abd893cda34c1bcad9aa8fbf49fbc3819e01b73"
+  },
+  "admission": {
+    "requiresFreshRootSlot": true,
+    "mustWaitForWalletActualHeavyReturn": true,
+    "nativePressureLevel": 1,
+    "freeDiskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "eachWindowDataBytesCap": 33554432,
+    "ports": {
+      "p2p": 31656,
+      "rpc": 31757,
+      "abci": 31858
+    },
+    "fourNodeNetworkStarted": false,
+    "freshPressureLevel": 1,
+    "networkGrantConsumed": false,
+    "currentFreeBytes": 933937152
+  },
+  "measurement": null,
+  "limitations": [
+    "Mac --help is verified; ABCI listener/node startup and real four-node business flow are not yet verified.",
+    "Both sides use the same new app/Go compiler and controller. Existing client images differ only as stated; different freshly generated fixture identities mean identical policy, not byte-identical inputs.",
+    "Only a bounded 1024-transaction comparison; no 10-minute or stable 1000 TPS claim.",
+    "Symlink type/target/realpath/hash must remain exact at START; no fallback or mutation of old frozen inputs."
+  ]
+}

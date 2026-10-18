@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "runID": 39104088387,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39104088387",
+  "conclusion": "success",
+  "artifactID": 12127760920,
+  "archiveSHA256": "27e3785b8d1acebad75f80a4bfb77dca90b21339d20a67de26d8a401e1b99464",
+  "archiveBytes": 13028932,
+  "archiveMembers": [
+    "build-receipt.json",
+    "ynx-abci"
+  ],
+  "buildReceipt": {
+    "schema": 1,
+    "status": "cross_built_candidate_not_executed_on_target",
+    "sourceCommit": "259a4a9785b88641d3575bde9171c847b24eecb2",
+    "sourceTree": "a13438131bf6fddb2ef2a574b98bdd160dec5fec",
+    "sourcePins": {
+      "internal": "fc5ccab4e9aa6923bc61a2dc7ac518343ac56703",
+      "cmd/ynx-abci": "b03434a1ff83705277dbb54c252230fde98a8ca7",
+      "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+      "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2"
+    },
+    "sourceDirty": false,
+    "compiler": "go version go1.25.14 linux/amd64",
+    "buildInfo": "/home/runner/work/_temp/ynx-darwin-phase-node/ynx-abci: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-abci\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261018062624-259a4a9785b8\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=259a4a9785b88641d3575bde9171c847b24eecb2\n\tbuild\tvcs.time=2026-10-18T06:26:24Z\n\tbuild\tvcs.modified=false",
+    "target": {
+      "goos": "darwin",
+      "goarch": "arm64",
+      "cgoEnabled": false
+    },
+    "binary": {
+      "name": "ynx-abci",
+      "bytes": 25921650,
+      "sha256": "adf90fc263fbadc6efc445cf6abd893cda34c1bcad9aa8fbf49fbc3819e01b73"
+    },
+    "buildCommand": [
+      "go",
+      "build",
+      "-p",
+      "1",
+      "-trimpath",
+      "-o",
+      "<exclusive-candidate-directory>/ynx-abci",
+      "./cmd/ynx-abci"
+    ],
+    "targetRuntimeSmoke": null,
+    "nodesStarted": false,
+    "businessMeasurement": null,
+    "interpretation": "Only a cross-compiled isolated candidate. Normal source gates ran before build. Native macOS execution/resource controls and a newly scheduled matched network window remain required. No deployment, public release, node activation or performance qualification."
+  },
+  "localBinary": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ci-39104088387-darwin-phase-node/ynx-abci",
+  "localFreeBytesAfter": 957034496,
+  "nativeExecutionPerformed": false,
+  "nodesStarted": false,
+  "businessMeasurement": null,
+  "sourceAndBytesVerified": true,
+  "productionSigned": false,
+  "priorTransferFailure": "artifacts/chain-performance-20261017/ci-39104088387-darwin-phase-node/transfer-attempt01.json",
+  "rawCILog": "artifacts/chain-performance-20261017/ci-39104088387-full.log",
+  "rawCILogSHA256": "5ae9d0272287b721f18d374540723987af50b25e43f3765e8f0aad81ef59f412",
+  "nextGate": "Root scheduled real Mac CLI smoke and new same-instrumentation four-node pair; pressure1, >=1GiB free, A actual slot return required"
+}
