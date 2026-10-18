@@ -121,6 +121,7 @@ export class FileTransactionIntentStore {
   #mutations = Promise.resolve();
   #sessionPublicationResults = new Map();
   #pqProgressResults = new Map();
+  #pqClosing = false;
   constructor({ filePath, io = filesystem, filePolicy = new PrivateFilePolicy({ io }) }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; this.filePolicy = filePolicy; }
   async sessionOriginalStatus(account,digest){
     if(!ACCOUNT.test(account??'')||typeof digest!=='string')throw invalid();
@@ -373,8 +374,10 @@ export class FileTransactionIntentStore {
   /** Durable uncertainty marker BEFORE one separately approved outward call.
    * created=true is storage acknowledgement, never permission to broadcast. */
   async beginPQSubmission(account,hash,guard){
+    if(this.#pqClosing)throw capabilityError('PQ_SUBMISSION_SHUTDOWN_ENTERED','Wallet is closing. No new submission may start.');
     if(typeof guard!=='function')throw invalid();const slot=this.#pqProgressSlot(account,hash);
     return this.#mutate(async()=>{
+      if(this.#pqClosing)throw capabilityError('PQ_SUBMISSION_SHUTDOWN_ENTERED','Wallet is closing. No new submission may start.');
       guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
       if(owner(this).has(account)||state.preparations?.some(r=>r.account===account))throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Reconcile the original signing/save result before entering submission.');
       const prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(prior)return Object.freeze({created:false,status:prior.status});
@@ -384,14 +387,14 @@ export class FileTransactionIntentStore {
       // any POST can start; never truncate another original to make it fit.
       if(Buffer.byteLength(JSON.stringify(next))+PQ_PROGRESS_RESPONSE_BYTES+4096>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; there is insufficient private journal capacity for its response.');
       guard();slot.beginAttempted=true;slot.best=progress;
-      try{await this.#write(next);guard();const readback=await this.#read();guard();if(!readback.pqProgress?.some(r=>canonicalJSON(r)===canonicalJSON(progress)))throw invalid();return Object.freeze({created:true,status:'submission-unknown'});}
+      try{await this.#write(next);guard();const readback=await this.#read();guard();if(!readback.pqProgress?.some(r=>canonicalJSON(r)===canonicalJSON(progress)))throw invalid();if(this.#pqClosing)throw capabilityError('PQ_SUBMISSION_SHUTDOWN_ENTERED','Wallet is closing. No new submission may start.');slot.awaitingResult=true;return Object.freeze({created:true,status:'submission-unknown'});}
       catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
     });
   }
   /** Capture before parsing/queued IO/post-response lock checks. Storage only;
    * fixed main supplies these bytes, never a renderer DTO or callback grant. */
   async savePQSubmissionResult(account,hash,input){
-    const slot=this.#pqProgressSlot(account,hash),raw=capturePQProgressResult(input);if(!slot.firstResult)slot.firstResult=raw;slot.latestResult=raw;slot.unparsedResult=raw;
+    const slot=this.#pqProgressSlot(account,hash),raw=capturePQProgressResult(input);slot.awaitingResult=false;if(!slot.firstResult)slot.firstResult=raw;slot.latestResult=raw;slot.unparsedResult=raw;
     return this.#mutate(async()=>{
       let state;try{state=await this.#read();}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
       let next;
@@ -403,7 +406,7 @@ export class FileTransactionIntentStore {
     });
   }
   async savePQSubmissionFailure(account,hash,cause){
-    const slot=this.#pqProgressSlot(account,hash);if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}
+    const slot=this.#pqProgressSlot(account,hash);slot.awaitingResult=false;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}
     return this.#mutate(async()=>{
       let state;try{state=await this.#read();}catch(error){this.#pqProgressStorageFailure(slot,error);throw error;}const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
       let best=slot.best??prior;if(prior.result)best=mergePQProgressResult(best,prior.result,original);slot.best=parsePQProgress({...best,firstCause:prior.firstCause??best.firstCause??pqProgressCause(slot.firstRaw)},original);
@@ -429,6 +432,21 @@ export class FileTransactionIntentStore {
     });
   }
   selectPQProgressOutcome(account,hash,observer){if(typeof observer!=='function')throw invalid();const slot=this.#pqProgressResults.get(account+':'+hash);return observer(slot?Object.freeze({...slot}):null);}
+  /** Main-only shutdown barrier. Read-only: never signs, submits, flushes or
+   * turns an UNKNOWN original into a retry. Late results may still be saved. */
+  assertPQProgressSafeToClose(){
+    this.#pqClosing=true;
+    return this.#mutate(async()=>{
+      const state=await this.#read();
+      for(const [key,slot] of this.#pqProgressResults){
+        const split=key.indexOf(':'),account=key.slice(0,split),hash=key.slice(split+1),original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
+        if(!slot.beginAttempted&&!slot.latestResult&&!slot.firstRawPresent)continue;
+        const best=original?this.#pqEffectiveProgress(actual,slot,original):null;
+        if(slot.awaitingResult||slot.unparsedResult||!original||!actual||!best||canonicalJSON(actual)!==canonicalJSON(best))throw capabilityError('PQ_PROGRESS_CLOSE_UNCONFIRMED','Keep Wallet open. An original result or its storage record is not yet confirmed; save locally without resubmitting.');
+      }
+      return Object.freeze({safe:true,retryAuthorized:false,clearsOriginal:false});
+    });
+  }
   async snapshot() { return (await this.#read()).records; }
   async resolutions() { return (await this.#read()).resolutions; }
   async assertNoSignedPayment(account){

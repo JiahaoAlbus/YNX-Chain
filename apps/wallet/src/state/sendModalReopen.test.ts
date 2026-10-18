@@ -9,6 +9,7 @@ import {NativeTransferOutbox,NATIVE_OUTBOX_PREFIX,NativeOutboxBlocked} from '../
 import {NativeChainClient} from '../chain/nativeTransfer';
 import {NATIVE_DURABILITY_MODEL} from '../chain/nativeDurability';
 import {ModalActionGate} from './modalActionGate';
+import {nativePreparationPresentation} from './nativePreparationPresentation';
 
 const app=readFileSync(new URL('../../App.tsx',import.meta.url),'utf8');
 const viewStart=app.indexOf('  const draftRevision=useRef(0)',app.indexOf('function SendModal(')),viewEnd=app.indexOf('  const [pasting,',viewStart);
@@ -22,10 +23,10 @@ function viewCaller(){
   const operations=new WalletOperationLifecycle();operations.setAccount('PUBLIC A');const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();
   const scope=operations.scope(),actionGate=new ModalActionGate(),refs:Array<{current:any}>=[],pending:Array<{resolve:(v:any)=>void;reject:(e:Error)=>void}>=[],events:string[]=[];
   let cursor=0;const ui:any={busy:false,error:null,stored:'PUBLIC original',loaded:true,closes:0,pasteClears:0};
-  const context:any={scope,actionGate,useRef:(initial:any)=>{const index=cursor++;return refs[index]??(refs[index]={current:initial})},recipientInput:{cancel(){ui.pasteClears++}},
-    setBusy:(v:boolean)=>{ui.busy=v},setPasting(){ui.pasteClears++},setRecipientAdded(){ui.pasteClears++},setError:(v:any)=>{ui.error=v},setStored:(v:any)=>{ui.stored=v},setLoaded:(v:any)=>{ui.loaded=v},close(){ui.closes++},message:(e:Error)=>e.message,
+  const context:any={scope,actionGate,preparation:null,locale:'en',nativePreparationPresentation,useRef:(initial:any)=>{const index=cursor++;return refs[index]??(refs[index]={current:initial})},recipientInput:{cancel(){ui.pasteClears++}},
+    setBusy:(v:boolean)=>{ui.busy=v},setPasting(){ui.pasteClears++},setRecipientAdded(){ui.pasteClears++},setError:(v:any)=>{ui.error=v},setStored:(v:any)=>{ui.stored=v},setPreparation:(v:any)=>{ui.preparation=v},setLoaded:(v:any)=>{ui.loaded=v},close(){ui.closes++},message:(e:Error)=>e.message,
     storedChainClient:(origin:string)=>({origin}),chainClient:()=>({origin:'PUBLIC original'}),onSent(){events.push('onSent')},
-    nativeOutbox:{read:async()=>{events.push('fallback');return null},checkStatus:(_account:any,_hash:any,_client:any,guard:()=>void)=>{guard();events.push('check');return new Promise((resolve,reject)=>pending.push({resolve,reject}))},sendNew:()=>assert.fail('No sign or broadcast in view-owner controls'),retry:()=>assert.fail('No resend'),acknowledge:()=>assert.fail('No acknowledgement')},
+    nativeOutbox:{read:async()=>{events.push('fallback');return null},preparationReview:async(account:string,hash:string,guard:()=>void)=>{guard();return {account,hash,bindingFailed:false,storageConfirmed:true,retryAuthorized:false,newSignatureAuthorized:false}},checkStatus:(_account:any,_hash:any,_client:any,guard:()=>void)=>{guard();events.push('check');return new Promise((resolve,reject)=>pending.push({resolve,reject}))},sendNew:()=>assert.fail('No sign or broadcast in view-owner controls'),retry:()=>assert.fail('No resend'),acknowledge:()=>assert.fail('No acknowledgement')},
     walletPayFlow:{hasRetainedPayment:()=>assert.fail('No payment/sign preparation')}};
   const invoke=new Function(...Object.keys(context),'visible','account','scannedRecipient','reload','loaded','busy','stored','review','valid','to','amount',viewProgram);
   const render=(visible=true,owner='PUBLIC A')=>{cursor=0;return invoke(...Object.values(context),visible,{account:owner,accountPublicKey:'PUBLIC key'},'',0,true,false,{hash:'PUBLIC original',origin:'PUBLIC original'},true,true,'PUBLIC recipient','1')};
@@ -55,13 +56,13 @@ const effect=app.slice(start,app.indexOf('  const pasteRecipient=',start));
 const source=ts.transpileModule(effect,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
 const defer=()=>{let resolve!:(value:any)=>void;const promise=new Promise<any>(r=>resolve=r);return {promise,resolve}};
 async function flush(){for(let i=0;i<20;i++)await Promise.resolve()}
-function mount({locked=false,owner='original',outbox,chain,onSent}: {locked?:boolean;owner?:string;outbox?:Pick<NativeTransferOutbox,'read'|'recover'>;chain?:(origin:string)=>NativeChainClient;onSent?:()=>void}={}){
+function mount({locked=false,owner='original',outbox,chain,onSent}: {locked?:boolean;owner?:string;outbox?:Pick<NativeTransferOutbox,'read'|'recover'|'preparationReview'>;chain?:(origin:string)=>NativeChainClient;onSent?:()=>void}={}){
   let now=1,cleanup:(()=>void)|undefined;
   const operations=new WalletOperationLifecycle(()=>now);operations.setAccount(owner);
   if(!locked){const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish()}
   const scope=operations.scope(),read=defer(),recover=defer(),calls:string[]=[],ui:Record<string,any>={};
-  const context:any={useEffect:(fn:()=>void|(()=>void))=>{cleanup=fn()??undefined},recipientInput:{cancel(){}},scope,visible:true,account:{account:owner},scannedRecipient:'reviewed-recipient',reload:0,operations,onSentRef:{current:()=>{calls.push('sent');onSent?.()}},message:(e:Error)=>e.message,nativeOutbox:outbox??{read:()=>{calls.push('read');return read.promise},recover:(account:string,client:any,guard:()=>void)=>{guard();assert.equal(account,owner);assert.equal(client.origin,'https://original.example');calls.push('recover');return recover.promise}},storedChainClient:chain??((origin:string)=>({origin}))};
-  for(const key of ['To','Amount','Review','Busy','Pasting','RecipientAdded','Error','Stored','Loaded'])context['set'+key]=(value:any)=>{ui[key]=value};
+  const context:any={useEffect:(fn:()=>void|(()=>void))=>{cleanup=fn()??undefined},ownsView:()=>true,recipientInput:{cancel(){}},scope,visible:true,account:{account:owner},scannedRecipient:'reviewed-recipient',reload:0,operations,onSentRef:{current:()=>{calls.push('sent');onSent?.()}},message:(e:Error)=>e.message,nativeOutbox:outbox??{read:()=>{calls.push('read');return read.promise},preparationReview:async(account:string,hash:string,guard:()=>void)=>{guard();return {account,hash,bindingFailed:false,storageConfirmed:true,retryAuthorized:false,newSignatureAuthorized:false}},recover:(account:string,client:any,guard:()=>void)=>{guard();assert.equal(account,owner);assert.equal(client.origin,'https://original.example');calls.push('recover');return recover.promise}},storedChainClient:chain??((origin:string)=>({origin}))};
+  for(const key of ['To','Amount','Review','Busy','Pasting','RecipientAdded','Error','Stored','Preparation','Loaded'])context['set'+key]=(value:any)=>{ui[key]=value};
   vm.runInNewContext(source,context);
   return {operations,scope,read,recover,calls,ui,close:()=>cleanup?.(),expire:()=>{now+=120_000}};
 }

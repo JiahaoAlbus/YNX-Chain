@@ -22,11 +22,14 @@ for(const arm of ["normal","typed"] as const)for(const fault of ["before-write",
  const retained=(await new NativeTransferOutbox(storage).read(account))!;assert.equal(retained.payload,original.payload);assert.equal(retained.hash,original.hash);assert.equal(retained.localRetention?.durable,false);
  if(arm==='typed')assert.equal(retained.localRetention?.originalCause?.message,'QA_ORIGINAL_CAUSE');
  assert.ok(retained.localRetention?.storageCause);assert.equal(operations.isUnlocked(),false);assert.equal(prepares,1);assert.equal(posts,0);
- assert.equal((await owner.recover(account,remote,noGuard))?.payload,original.payload);
- await assert.rejects(owner.retry(account,original.hash,remote,noGuard,async()=>{throw Error('must not prompt')}),NativeOutboxBlocked);
+ const recovered=await owner.recover(account,remote,noGuard);assert.equal(recovered?.payload,original.payload);
+ if(recovered?.localRetention||arm==='typed')await assert.rejects(owner.retry(account,original.hash,remote,noGuard,async()=>{throw Error('must not prompt')}),NativeOutboxBlocked);
+ else{const stop=Error('Fresh explicit authorization still required');await assert.rejects(owner.retry(account,original.hash,remote,noGuard,async()=>{throw stop}),e=>e===stop);}
  await assert.rejects(owner.sendNew(account,remote,noGuard,async()=>{prepares++;return original}),NativeOutboxBlocked);assert.equal(prepares,1);
- const cold=new MemoryStorage();cold.values=new Map(storage.values);await assert.rejects(new NativeTransferOutbox(cold).read(account),NativeSigningResultUnknown);
- await assert.rejects(new NativeTransferOutbox(cold).sendNew(account,remote,noGuard,async()=>{prepares++;return original}),NativeSigningResultUnknown);assert.equal(prepares,1);assert.equal(posts,0);
+ const cold=new MemoryStorage();cold.values=new Map(storage.values);
+ if(recovered?.localRetention){await assert.rejects(new NativeTransferOutbox(cold).read(account),NativeSigningResultUnknown);await assert.rejects(new NativeTransferOutbox(cold).sendNew(account,remote,noGuard,async()=>{prepares++;return original}),NativeSigningResultUnknown);}
+ else{assert.equal((await new NativeTransferOutbox(cold).read(account))?.payload,original.payload);await assert.rejects(new NativeTransferOutbox(cold).sendNew(account,remote,noGuard,async()=>{prepares++;return original}),NativeOutboxBlocked);}
+ assert.equal(prepares,1);assert.equal(posts,0);
 });
 test("r2 unresolved public-owner capacity is checked before signing and never evicts originals",async()=>{
  const storage=new MemoryStorage();const set=storage.setItem.bind(storage);storage.setItem=async(k,v)=>{if(k.startsWith(NATIVE_PREPARATION_PREFIX)&&JSON.parse(v).phase!=='preparing')throw Error('QA_FAIL_AFTER_SIGN');await set(k,v)};let signs=0;
@@ -77,8 +80,10 @@ test("durable preparation late lock and producer error retain public original wi
 test("durable preparation signed-record write rejection preserves UNKNOWN barrier after restart",async()=>{
  const storage=new MemoryStorage();storage.failWrite=1;let signs=0;
  await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeOutboxStorageError);
- await assert.rejects(new NativeTransferOutbox(storage).read(account),NativeSigningResultUnknown);
- await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeSigningResultUnknown);assert.equal(signs,1);
+ const warm=await new NativeTransferOutbox(storage).read(account);assert.equal(warm?.hash,signed.hash);assert.equal(warm?.localRetention?.durable,false);
+ const cold=new MemoryStorage();cold.values=new Map(storage.values);
+ await assert.rejects(new NativeTransferOutbox(cold).read(account),NativeSigningResultUnknown);
+ await assert.rejects(new NativeTransferOutbox(cold).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeSigningResultUnknown);assert.equal(signs,1);
 });
 class MemoryStorage implements SecureStorageAdapter {
   values=new Map<string,string>();events:string[]=[];writes=0;failWrite=0;failRead=0;reads=0;afterRead:(key:string)=>void=()=>{};
@@ -380,13 +385,18 @@ test("persisted accepted/done bits without a presently verified proof never rele
 for(const fail of ["prepared write","prepared readback","dispatch write","dispatch readback"] as const)test(`${fail} failure stops network dispatch and does not remove a stored original`,async()=>{
   const storage=new MemoryStorage();if(fail==="prepared write")storage.failWrite=1;if(fail==="dispatch write")storage.failWrite=2;if(fail==="prepared readback")storage.failRead=2;if(fail==="dispatch readback")storage.failRead=3;
   let broadcasts=0;await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,client(async()=>{broadcasts++;return response(success())}),noGuard,async()=>signed),NativeOutboxStorageError);assert.equal(broadcasts,0);
-  if(fail==="prepared write")await assert.rejects(fixtureOutbox(storage).read(account),NativeSigningResultUnknown);
+  if(fail==="prepared write"){
+    const held=await fixtureOutbox(storage).read(account);assert.equal(held?.hash,signed.hash);assert.equal(held?.localRetention?.durable,false);
+    const cold=new MemoryStorage();cold.values=new Map(storage.values);await assert.rejects(fixtureOutbox(cold).read(account),NativeSigningResultUnknown);
+  }
   else{const record=await fixtureOutbox(storage).read(account);assert.equal(record?.hash,signed.hash);assert.equal(record?.payload,signed.payload)}
 });
 
 test("observed ACK storage failure leaves the durable unknown marker and blocks new signing",async()=>{
   const storage=new MemoryStorage();storage.failWrite=3;const outbox=fixtureOutbox(storage),remote=client(async()=>response({...success(),fixtureDurabilityProof:"verified-test-checkpoint"}),true);
-  await assert.rejects(()=>outbox.sendNew(account,remote,noGuard,async()=>signed),NativeOutboxStorageError);assert.equal((await fixtureOutbox(storage).read(account))?.phase,"unknown");
+  await assert.rejects(()=>outbox.sendNew(account,remote,noGuard,async()=>signed),NativeOutboxStorageError);
+  const held=await fixtureOutbox(storage).read(account);assert.equal(held?.phase,"observed");assert.equal(held?.localRetention?.durable,false);
+  const cold=new MemoryStorage();cold.values=new Map(storage.values);assert.equal((await fixtureOutbox(cold).read(account))?.phase,"unknown");
   await assert.rejects(()=>outbox.sendNew(account,remote,noGuard,async()=>signed),NativeOutboxBlocked);
 });
 
@@ -395,7 +405,9 @@ test("readback mismatch stops dispatch, and corrupted signed bytes cannot become
   let calls=0;const outbox=fixtureOutbox(storage),remote=client(async()=>{calls++;return response(success())});
   await assert.rejects(()=>outbox.sendNew(account,remote,noGuard,async()=>signed),NativeOutboxStorageError);assert.equal(calls,0);
   const raw=JSON.parse(storage.values.get(storageKey)!);raw.payload=raw.payload.replace('"amount":25','"amount":26');storage.values.set(storageKey,JSON.stringify(raw));
-  await assert.rejects(()=>outbox.read(account),NativeOutboxStorageError);await assert.rejects(()=>outbox.retry(account,signed.hash,remote,noGuard,async()=>{}),NativeOutboxStorageError);assert.equal(calls,0);
+  const held=await outbox.read(account);assert.equal(held?.payload,signed.payload);assert.equal(held?.localRetention?.durable,false);
+  await assert.rejects(()=>outbox.retry(account,signed.hash,remote,noGuard,async()=>{}),NativeOutboxBlocked);
+  const cold=new MemoryStorage();cold.values=new Map(storage.values);await assert.rejects(()=>fixtureOutbox(cold).read(account),NativeOutboxStorageError);await assert.rejects(()=>fixtureOutbox(cold).retry(account,signed.hash,remote,noGuard,async()=>{}),NativeOutboxStorageError);assert.equal(calls,0);
 });
 
 test("cancel during OS authorization leaves original untouched and never calls network",async()=>{
@@ -558,7 +570,8 @@ test("proof write/readback and Done failures never lose original bytes or permit
     const storage=new MemoryStorage();await unknown(storage);
     if(failure==="write")storage.failWrite=storage.writes+1;else storage.failRead=storage.reads+2;
     await assert.rejects(()=>fixtureOutbox(storage).checkStatus(account,signed.hash,rpcClient(),noGuard),NativeOutboxStorageError);
-    const loaded=await fixtureOutbox(storage).read(account);assert.equal(loaded?.payload,signed.payload);assert.equal(loaded?.phase,failure==="write"?"unknown":"accepted");
+    const loaded=await fixtureOutbox(storage).read(account);assert.equal(loaded?.payload,signed.payload);assert.equal(loaded?.phase,"accepted");assert.equal(loaded?.localRetention?.durable,false);
+    const cold=new MemoryStorage();cold.values=new Map(storage.values);assert.equal((await fixtureOutbox(cold).read(account))?.phase,failure==="write"?"unknown":"accepted");
     await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,rpcClient(),noGuard,async()=>signed),NativeOutboxBlocked);
   }
   const storage=new MemoryStorage();await unknown(storage);await fixtureOutbox(storage).checkStatus(account,signed.hash,rpcClient(),noGuard);

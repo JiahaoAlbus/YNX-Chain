@@ -216,20 +216,30 @@ handleWalletIPC('wallet:original-admission-status',()=>safeIPC(()=>originalAdmis
 handleWalletIPC('wallet:original-admission-review',()=>safeIPC(()=>originalAdmissionEntry.review()));
 handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC(()=>originalAdmissionEntry.confirm(reviewId)));
 handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmissionEntry.cancel()));
-function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=async()=>{}}){
-  let pass=null,allowed=false,quitEntered=false;const closingWindows=new WeakSet();
+function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=async()=>{},assertCloseSafe=async()=>{}}){
+  let pass=null,cleanup=null,allowed=false,quitEntered=false;const closingWindows=new WeakSet();
   const quitOnce=()=>{if(!quitEntered){quitEntered=true;setImmediate(quit);}};
   function request(){
     if(pass)return pass;
-    let resolve,reject;pass=new Promise((yes,no)=>{resolve=yes;reject=no;});
+    let resolve,reject;pass=new Promise((yes,no)=>{resolve=yes;reject=no;});const current=pass;
     const failed=()=>{try{report();}catch{}reject(Object.assign(new Error('Original admission cleanup is incomplete'),{code:'ADMISSION_SHUTDOWN_INCOMPLETE'}));};
     // Lock/cancel synchronously in the original close event, after reserving.
-    try{lock();void Promise.all([entry.shutdown(),shutdownWallet()]).then(()=>{allowed=true;resolve();},failed);}catch{failed();}
-    void pass.catch(()=>{});return pass;
+    try{
+      lock();
+      if(!cleanup)cleanup=Promise.all([entry.shutdown(),shutdownWallet()]);
+      void cleanup.then(()=>Promise.resolve().then(assertCloseSafe).then(()=>{allowed=true;resolve();},()=>{
+        // Only this read-only storage check can run again after an explicit
+        // local save. Original cleanup failures remain sticky and unreplayed.
+        if(pass===current)pass=null;
+        try{report();}catch{}
+        reject(Object.assign(new Error('Keep Wallet open; original result storage is unconfirmed'),{code:'PQ_PROGRESS_CLOSE_UNCONFIRMED'}));
+      }),failed);
+    }catch{failed();}
+    void current.catch(()=>{});return current;
   }
-  return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
+  return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{closingWindows.delete(window);});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:()=>walletAuthority?.shutdownPQReviews(),lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup incomplete','The original operation has not finished cleanup. Wallet remains open; no operation will be retried. 原操作尚未完成清理，钱包保持打开，不会重试。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:()=>walletAuthority?.shutdownPQReviews(),assertCloseSafe:()=>walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose(),lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),

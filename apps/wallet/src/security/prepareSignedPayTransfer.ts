@@ -1,6 +1,6 @@
 import {
   canonicalJSON,createSignedPayPaymentResult,parseProductSession,verifyPayPaymentResult,
-  type ProductSessionV2,type PayPaymentIntent,type PayPaymentResult,type createPayInvoiceSignerPolicy,
+  type ProductSession,type ProductSessionV2,type PayPaymentIntent,type PayPaymentResult,type createPayInvoiceSignerPolicy,
 } from "@ynx-chain/wallet-auth";
 import type {WalletOperationLease} from "./operationLifecycle";
 import {prepareNativeTransferWithBinding,type NativeTransferReview} from "./prepareNativeTransfer";
@@ -18,9 +18,9 @@ import {bytesToHex} from "@noble/hashes/utils.js";
  * Parsing a session, a bearer token, QR or identity-only connection is NOT an
  * implementation of this port. There is intentionally no default adapter. */
 export type WalletPayAuthorityLease=Readonly<{
-  session:ProductSessionV2;
+  session:ProductSession;
   assertCurrent:()=>void;
-  refresh:()=>Promise<ProductSessionV2>;
+  refresh:()=>Promise<ProductSession>;
   /** Canonical business read/reservation for THIS actor, original intent digest
    * and request ID. Must reject paid/cancelled/expired invoices and conflicting
    * requests. Unsigned invoice status or session introspection alone is NOT
@@ -34,14 +34,17 @@ const approvedScopes=["account:read","pay:case:create","pay:settlement:submit"];
 
 /** Structural narrowing of an ALREADY authority-verified full session. This
  * cannot authenticate a session or grant registration from persisted fields. */
-export function assertSignedPaySessionBinding(captured:ProductSessionV2,intent:PayPaymentIntent,account:string){
+export function assertSignedPaySessionBinding(captured:ProductSession,intent:PayPaymentIntent,account:string):asserts captured is ProductSessionV2{
   assertSignedPayProductSession(captured,account);
   if(captured.clientId!==intent.productClientId||captured.applicationId!==intent.bundleId||captured.sessionBinding!==intent.sessionBinding)
     return fail("PAY_CURRENT_SESSION_BINDING_MISMATCH");
   if(Date.parse(intent.quoteIssuedAt)<Date.parse(captured.issuedAt)||Date.parse(intent.quoteExpiresAt)>Date.parse(captured.expiresAt))
     return fail("PAY_QUOTE_EXCEEDS_SESSION_LIFETIME");
 }
-export function assertSignedPayProductSession(captured:ProductSessionV2,account:string){
+export function assertSignedPayProductSession(captured:ProductSession,account:string):asserts captured is ProductSessionV2{
+  // The legacy Pay invoice/result contract is V2 only. Parsing a PQ V3 session
+  // does not adapt its signing domain or grant this classical payment path.
+  if(captured.version!=="2")return fail("PAY_SESSION_VERSION_UNSUPPORTED");
   if(captured.account!==account||captured.productId!=="pay"||captured.clientId!=="ynx-pay-v1"||captured.applicationId!=="com.ynxweb4.pay"||
     captured.origin!=="https://pay.ynxweb4.com"||captured.callback!=="ynxpay://wallet-auth/callback"||captured.serviceConsent||
     canonicalJSON([...captured.scopes].sort())!==canonicalJSON([...approvedScopes].sort())||
