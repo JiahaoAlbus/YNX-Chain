@@ -328,6 +328,7 @@ class LinuxGuardControls(unittest.TestCase):
         self.assertNotIn("${{ inputs.", selections)
         process = workflow.split("      - name: Run the separately authorized normal remote signer process\n", 1)[1].split("      - name:", 1)[0]
         self.assertIn("!inputs." + name, process)
+        build = workflow.split("      - name: Build exact bounded network binaries and recipe without starting nodes\n", 1)[1].split("      - name:", 1)[0]
         network = workflow.split("      - name: Run the authorized bounded four-validator transition\n", 1)[1].split("      - name:", 1)[0]
         condition = next(line for line in network.splitlines() if line.strip().startswith("if:"))
         self.assertIn("github.event_name == 'workflow_dispatch'", condition)
@@ -335,17 +336,28 @@ class LinuxGuardControls(unittest.TestCase):
         self.assertIn("!inputs.remote_signer_process", condition)
         self.assertIn("!inputs.paired_n1", condition)
         self.assertIn("inputs." + name, condition)
+        self.assertIn("steps.normalci.outcome == 'success'", condition)
+        self.assertIn("steps.pqnetworkbuild.outcome == 'success'", condition)
         self.assertIn("--consensus-remote-e2e-retained-history", network)
-        self.assertIn("go build -p 1 -trimpath", network)
-        self.assertIn("./cmd/ynx-consensus-pq-remote-signer", network)
-        self.assertIn("'remoteSignerPin'", network)
-        self.assertIn(guard.REMOTE_E2E_TEST, network)
+        self.assertIn("go build -p 1 -trimpath", build)
+        self.assertIn("go test -p 1 -c", build)
+        self.assertNotIn("--execute", build)
+        self.assertNotIn("go test -p 1 -c", network)
+        self.assertIn("./cmd/ynx-consensus-pq-remote-signer", build)
+        self.assertIn("'remoteSignerPin'", build)
+        self.assertIn(guard.REMOTE_E2E_TEST, build)
         for leaf, pin in guard.consensus_remote_source_pins().items():
             with self.subTest(leaf=leaf):
-                self.assertIn("'" + leaf + "': '" + pin["sha256"] + "'", network)
-        self.assertIn("if digest(source / leaf) != pin:", network)
-        self.assertIn("sourcePins={leaf: dict(sha256=pin)", network)
-        self.assertNotIn("sourcePins={leaf: dict(sha256=digest", network)
+                self.assertIn("'" + leaf + "': '" + pin["sha256"] + "'", build)
+        self.assertIn("if digest(source / leaf) != pin:", build)
+        self.assertIn("sourcePins={leaf: dict(sha256=pin)", build)
+        self.assertNotIn("sourcePins={leaf: dict(sha256=digest", build)
+        # The outer job must not preempt the complete original guard after a
+        # slow checkout or compilation. Admission uses the server run start.
+        self.assertIn("started = int(os.environ['YNX_REMOTE_WORKFLOW_STARTED_AT'])", network)
+        self.assertIn("remaining = started + 12*60 - now", network)
+        self.assertIn("remaining < 150", network)
+        self.assertLess(network.index("YNX_REMOTE_OUTER_BUDGET_REFUSED"), network.index("--execute"))
 
     def test_consensus_e2e_accepts_only_sole_precompiled_pinned_recipe(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,0 +1,481 @@
+"""Pure synthetic GitHub metadata/transport controls; no live API or runtime.
+
+These fixtures exercise the production validator and mocked opener only. They
+neither execute a node nor prove that any real GitHub run has completed.
+"""
+import contextlib
+import copy
+import importlib.util
+import io
+import json
+from pathlib import Path
+import re
+import unittest
+from unittest.mock import Mock, patch
+
+
+SPEC = importlib.util.spec_from_file_location(
+    "normal_ci_gate", Path(__file__).with_name("validate-pq-remote-normal-ci.py"))
+gate = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(gate)
+
+SHA = "a" * 40
+PRIOR, CURRENT, ATTEMPT = "39160050001", "39160050002", 2
+RUN_PATH = "/repos/" + gate.REPOSITORY + "/actions/runs/" + PRIOR
+CURRENT_PATH = "/repos/" + gate.REPOSITORY + "/actions/runs/" + CURRENT
+WORKFLOW = "/repos/" + gate.REPOSITORY + "/actions/workflows/" + gate.WORKFLOW_FILE
+JOBS = RUN_PATH + "/attempts/2/jobs?per_page=100&page=1"
+
+
+def run_metadata():
+    repository = dict(id=42, full_name=gate.REPOSITORY, fork=False)
+    return dict(id=int(PRIOR), head_sha=SHA, event="push",
+                head_branch="codex/ynx-pq-perf-integration", status="completed",
+                conclusion="success", path=gate.WORKFLOW_PATH, workflow_id=73,
+                run_attempt=ATTEMPT, repository=repository,
+                head_repository=copy.deepcopy(repository))
+
+
+def job_metadata(name, identifier):
+    return dict(id=identifier, name=name, run_id=int(PRIOR), run_attempt=ATTEMPT,
+                head_sha=SHA, run_url=gate.API + RUN_PATH,
+                status="completed", conclusion="success")
+
+
+def api_fixture():
+    current = run_metadata()
+    current.update(id=int(CURRENT), event="workflow_dispatch", status="in_progress", conclusion=None,
+                   run_started_at="2026-10-19T02:03:04Z")
+    return {RUN_PATH: run_metadata(), WORKFLOW: dict(id=73, path=gate.WORKFLOW_PATH),
+            CURRENT_PATH: current,
+            JOBS: dict(total_count=3, jobs=[job_metadata("focused-go", 100),
+                                         job_metadata("proof-verifier-macos", 101),
+                                         dict(id=102, name="verify", status="completed", conclusion="skipped")])}
+
+
+class NormalCIMetadataControls(unittest.TestCase):
+    def validate(self, fixture=None, **inputs):
+        fixture = api_fixture() if fixture is None else fixture
+        calls = []
+
+        def fetch(path):
+            calls.append(path)
+            if path not in fixture:
+                self.fail("validator requested an unexpected endpoint")
+            return copy.deepcopy(fixture[path])
+
+        result = gate.validate_normal_ci(inputs.get("repo", gate.REPOSITORY),
+                                         inputs.get("candidate", SHA),
+                                         inputs.get("normal", PRIOR), inputs.get("current", CURRENT), fetch)
+        return result, calls
+
+    def test_exact_completed_normal_push_and_latest_attempt_are_data_only(self):
+        result, calls = self.validate()
+        self.assertEqual(calls, [RUN_PATH, WORKFLOW, CURRENT_PATH, JOBS, RUN_PATH, CURRENT_PATH])
+        self.assertEqual(set(result), {"version", "classification", "source", "repo", "candidateSha",
+                         "normalRunId", "currentRunId", "currentRunStartedAt", "normalRunAttempt", "workflowPath", "normalBranch",
+                         "jobs", "normalCIReusable", "nodeStartAuthorized", "publicDeployment"})
+        self.assertEqual(result["version"], "YNX-PQ-REMOTE-NORMAL-CI/v1")
+        self.assertEqual(result["jobs"], {"focused-go": "100", "proof-verifier-macos": "101"})
+        self.assertEqual(result["normalRunAttempt"], "2")
+        self.assertEqual(result["currentRunStartedAt"], "2026-10-19T02:03:04Z")
+        self.assertTrue(result["normalCIReusable"])
+        self.assertFalse(result["nodeStartAuthorized"])
+        self.assertFalse(result["publicDeployment"])
+
+    def test_input_identity_rejects_before_any_fetch(self):
+        for inputs in [dict(repo="other/YNX-Chain"), dict(repo="jiahaoalbus/YNX-Chain"),
+                       dict(candidate="0" * 40), dict(candidate="A" * 40), dict(candidate="a" * 39),
+                       dict(candidate="a" * 40 + "\n"), dict(candidate=None),
+                       dict(normal=CURRENT), dict(normal=""), dict(normal="01"), dict(normal="1e3"),
+                       dict(normal="+1"), dict(normal="1/attempts/2"), dict(normal=1),
+                       dict(current="0"), dict(current=" 7"), dict(current="7\n"),
+                       dict(current="1" * 21)]:
+            with self.subTest(inputs=inputs), self.assertRaises(gate.NormalCIError):
+                gate.validate_normal_ci(inputs.get("repo", gate.REPOSITORY), inputs.get("candidate", SHA),
+                                        inputs.get("normal", PRIOR), inputs.get("current", CURRENT),
+                                        lambda _path: self.fail("invalid input reached fetch"))
+
+    def test_run_source_workflow_branch_fork_status_and_field_types_fail_closed(self):
+        mutations = [("id", int(CURRENT)), ("id", PRIOR), ("id", True),
+                     ("head_sha", "b" * 40), ("event", "workflow_dispatch"), ("event", "pull_request"),
+                     ("head_branch", "codex/ynx-pq-remote-" + SHA[:9]), ("head_branch", "main"),
+                     ("head_branch", "refs/heads/codex/ynx-pq-perf-integration"), ("head_branch", []),
+                     ("path", ".github/workflows/other.yml"), ("workflow_id", True),
+                     ("run_attempt", 0), ("run_attempt", "2"), ("run_attempt", True),
+                     ("status", "in_progress"), ("status", "queued"),
+                     ("conclusion", "failure"), ("conclusion", "cancelled"),
+                     ("conclusion", "skipped"), ("conclusion", None)]
+        for key, value in mutations:
+            with self.subTest(key=key, value=value):
+                fixture = api_fixture()
+                fixture[RUN_PATH][key] = value
+                with self.assertRaises(gate.NormalCIError):
+                    self.validate(fixture)
+        for key in run_metadata():
+            with self.subTest(missing=key):
+                fixture = api_fixture()
+                del fixture[RUN_PATH][key]
+                with self.assertRaises(gate.NormalCIError):
+                    self.validate(fixture)
+        for field in ("repository", "head_repository"):
+            for key, value in (("full_name", "attacker/YNX-Chain"), ("fork", True), ("fork", "false"), ("id", 999)):
+                with self.subTest(field=field, key=key):
+                    fixture = api_fixture()
+                    fixture[RUN_PATH][field][key] = value
+                    with self.assertRaises(gate.NormalCIError):
+                        self.validate(fixture)
+
+    def test_workflow_metadata_is_independently_matched(self):
+        for metadata in ({}, {"id": 74, "path": gate.WORKFLOW_PATH},
+                         {"id": 73, "path": ".github/workflows/other.yml"},
+                         {"id": "73", "path": gate.WORKFLOW_PATH}, []):
+            fixture = api_fixture()
+            fixture[WORKFLOW] = metadata
+            with self.subTest(metadata=metadata), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture)
+
+    def test_current_run_requires_actual_active_same_source_dispatch_and_canonical_server_start(self):
+        for key, value in (("id", int(PRIOR)), ("id", CURRENT), ("id", True),
+                           ("head_sha", "b" * 40), ("event", "push"), ("status", "queued"),
+                           ("status", "completed"), ("conclusion", "success"),
+                           ("workflow_id", 74), ("workflow_id", "73"), ("run_attempt", 0),
+                           ("path", ".github/workflows/other.yml"),
+                           ("run_started_at", ""), ("run_started_at", None),
+                           ("run_started_at", "2026-10-19T02:03:04+00:00"),
+                           ("run_started_at", "2026-10-19T02:03:04.000Z"),
+                           ("run_started_at", "2026-02-30T02:03:04Z"),
+                           ("run_started_at", "2026-10-19T24:03:04Z"),
+                           ("run_started_at", "2026-10-19T02:03:04Z\n")):
+            fixture = api_fixture()
+            fixture[CURRENT_PATH][key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture)
+        for key in ("id", "head_sha", "event", "status", "conclusion", "workflow_id", "path",
+                    "run_attempt", "repository", "head_repository", "run_started_at"):
+            fixture = api_fixture()
+            del fixture[CURRENT_PATH][key]
+            with self.subTest(missing=key), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture)
+        fixture = api_fixture()
+        fixture[CURRENT_PATH]["head_repository"]["fork"] = True
+        with self.assertRaises(gate.NormalCIError):
+            self.validate(fixture)
+
+    def test_required_jobs_reject_missing_duplicate_failed_skipped_pending_and_mixed_identity(self):
+        for index in (0, 1):
+            for key, value in (("run_id", int(CURRENT)), ("run_id", PRIOR), ("run_id", True),
+                               ("head_sha", "b" * 40), ("run_attempt", 1), ("run_attempt", "2"),
+                               ("run_url", "https://evil.invalid/token"),
+                               ("status", "in_progress"), ("status", "queued"),
+                               ("conclusion", "failure"), ("conclusion", "cancelled"),
+                               ("conclusion", "skipped"), ("conclusion", None),
+                               ("name", "focused-go / synthetic")):
+                fixture = api_fixture()
+                fixture[JOBS]["jobs"][index][key] = value
+                with self.subTest(index=index, key=key, value=value), self.assertRaises(gate.NormalCIError):
+                    self.validate(fixture)
+            for key in job_metadata("focused-go", 100):
+                fixture = api_fixture()
+                del fixture[JOBS]["jobs"][index][key]
+                with self.subTest(index=index, missing=key), self.assertRaises(gate.NormalCIError):
+                    self.validate(fixture)
+            fixture = api_fixture()
+            del fixture[JOBS]["jobs"][index]
+            fixture[JOBS]["total_count"] -= 1
+            with self.subTest(missing_job=index), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture)
+            fixture = api_fixture()
+            extra = copy.deepcopy(fixture[JOBS]["jobs"][index])
+            extra["id"] = 200
+            fixture[JOBS]["jobs"].append(extra)
+            fixture[JOBS]["total_count"] += 1
+            with self.subTest(duplicate_job=index), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture)
+        fixture = api_fixture()
+        fixture[JOBS]["jobs"][1]["id"] = 100
+        with self.assertRaises(gate.NormalCIError):
+            self.validate(fixture)
+
+    def test_pagination_is_complete_bounded_and_fixed_to_original_attempt(self):
+        fixture = api_fixture()
+        rows = fixture[JOBS]["jobs"]
+        rows.extend(dict(id=1000+i, name="unrelated-"+str(i)) for i in range(98))
+        fixture[JOBS] = dict(total_count=101, jobs=rows[:100])
+        next_page = JOBS[:-1] + "2"
+        fixture[next_page] = dict(total_count=101, jobs=rows[100:])
+        _, calls = self.validate(fixture)
+        self.assertEqual(calls, [RUN_PATH, WORKFLOW, CURRENT_PATH, JOBS, next_page, RUN_PATH, CURRENT_PATH])
+        for response in ({"total_count": 301, "jobs": []}, {"total_count": True, "jobs": []},
+                         {"total_count": 0, "jobs": []}, {"total_count": 3, "jobs": []},
+                         {"jobs": []}, {"total_count": 3, "jobs": None}):
+            broken = api_fixture()
+            broken[JOBS] = response
+            with self.subTest(response=response), self.assertRaises(gate.NormalCIError):
+                self.validate(broken)
+        fixture[next_page]["total_count"] = 102
+        with self.assertRaises(gate.NormalCIError):
+            self.validate(fixture)
+
+    def test_rerun_or_status_change_during_read_is_refused(self):
+        for key, value in (("run_attempt", 3), ("status", "in_progress"),
+                           ("conclusion", "cancelled"), ("head_sha", "b" * 40)):
+            fixture = api_fixture()
+            reads = 0
+
+            def fetch(path):
+                nonlocal reads
+                result = copy.deepcopy(fixture[path])
+                if path == RUN_PATH:
+                    reads += 1
+                    if reads == 2:
+                        result[key] = value
+                return result
+
+            with self.subTest(key=key), self.assertRaises(gate.NormalCIError):
+                gate.validate_normal_ci(gate.REPOSITORY, SHA, PRIOR, CURRENT, fetch)
+
+    def test_current_attempt_start_or_status_race_does_not_replace_the_server_deadline(self):
+        for key, value in (("run_attempt", 3), ("run_started_at", "2026-10-19T02:03:05Z"),
+                           ("status", "completed")):
+            fixture = api_fixture()
+            reads = 0
+
+            def fetch(path):
+                nonlocal reads
+                result = copy.deepcopy(fixture[path])
+                if path == CURRENT_PATH:
+                    reads += 1
+                    if reads == 2:
+                        result[key] = value
+                return result
+
+            with self.subTest(key=key), self.assertRaises(gate.NormalCIError):
+                gate.validate_normal_ci(gate.REPOSITORY, SHA, PRIOR, CURRENT, fetch)
+
+
+class Response:
+    def __init__(self, raw=b"{}", status=200, url=None, headers=None):
+        self.raw, self.status = raw, status
+        self.url = url or gate.API + RUN_PATH
+        self.headers = {} if headers is None else headers
+        self.amount = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        return False
+
+    def geturl(self):
+        return self.url
+
+    def read(self, amount):
+        self.amount = amount
+        return self.raw[:amount]
+
+
+class NormalCITransportControls(unittest.TestCase):
+    def fetch_with(self, response):
+        opener = Mock()
+        opener.open.return_value = response
+        with patch.object(gate.urllib.request, "build_opener", return_value=opener):
+            fetch = gate.github_fetcher("synthetic-token-not-a-credential")
+        return fetch, opener
+
+    def test_fixed_https_get_and_bounded_read_only_token_header(self):
+        response = Response()
+        fetch, opener = self.fetch_with(response)
+        self.assertEqual(fetch(RUN_PATH), {})
+        request = opener.open.call_args.args[0]
+        self.assertEqual(request.full_url, gate.API + RUN_PATH)
+        self.assertEqual(request.get_method(), "GET")
+        self.assertEqual(request.get_header("Authorization"), "Bearer synthetic-token-not-a-credential")
+        self.assertIsNone(request.data)
+        self.assertEqual(opener.open.call_args.kwargs["timeout"], gate.REQUEST_TIMEOUT_SECONDS)
+        self.assertEqual(response.amount, gate.MAX_RESPONSE_BYTES + 1)
+
+    def test_untrusted_paths_urls_redirects_oversize_and_invalid_json_fail_closed(self):
+        fetch, opener = self.fetch_with(Response())
+        for path in ("https://evil.invalid/", "//evil.invalid/", RUN_PATH+"/logs", RUN_PATH+"?token=x",
+                     RUN_PATH+"/attempts/2/jobs?per_page=100&page=4", RUN_PATH+"#fragment",
+                     "/repos/attacker/YNX-Chain/actions/runs/1"):
+            with self.subTest(path=path), self.assertRaises(gate.NormalCIError):
+                fetch(path)
+        opener.open.assert_not_called()
+        for response in (Response(status=302), Response(url="https://evil.invalid/"),
+                         Response(headers={"Content-Length": str(gate.MAX_RESPONSE_BYTES+1)}),
+                         Response(headers={"Content-Length": "invalid"}),
+                         Response(raw=b"x"*(gate.MAX_RESPONSE_BYTES+1)), Response(raw=b"not json"),
+                         Response(raw=b'{"id":1,"id":1}'), Response(raw=b'{"id":NaN}'),
+                         Response(raw=b"\xff")):
+            fetch, _ = self.fetch_with(response)
+            with self.subTest(response=response), self.assertRaises(gate.NormalCIError):
+                fetch(RUN_PATH)
+        with self.assertRaises(gate.NormalCIError):
+            gate.NoRedirect().redirect_request(None, None, 302, "", {}, "https://evil.invalid/")
+
+    def test_missing_token_deadline_and_transport_error_are_inert_and_do_not_leak(self):
+        for token in (None, "", "contains\nnewline", "contains space"):
+            with self.subTest(token=token), self.assertRaises(gate.NormalCIError):
+                gate.github_fetcher(token)
+        fetch, opener = self.fetch_with(Response())
+        with patch.object(gate.time, "monotonic", return_value=float("inf")), self.assertRaises(gate.NormalCIError):
+            fetch(RUN_PATH)
+        opener.open.assert_not_called()
+        fetch, opener = self.fetch_with(Response())
+        opener.open.side_effect = OSError("synthetic-token-not-a-credential PRIVATE diagnostic")
+        with self.assertRaisesRegex(gate.NormalCIError, "^api_read_failed$"):
+            fetch(RUN_PATH)
+
+    def test_cli_success_and_failure_use_production_validator_without_token_output(self):
+        fixture = api_fixture()
+        args = ["--repo", gate.REPOSITORY, "--candidate", SHA,
+                "--normal-run-id", PRIOR, "--current-run-id", CURRENT]
+        with patch.object(gate, "github_fetcher", return_value=lambda path: copy.deepcopy(fixture[path])), \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(gate.main(args), 0)
+        self.assertTrue(json.loads(output.getvalue())["normalCIReusable"])
+        with patch.object(gate, "github_fetcher", side_effect=gate.NormalCIError("github_token_unavailable")), \
+                contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(io.StringIO()) as errors:
+            self.assertEqual(gate.main(args), 1)
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(errors.getvalue(), "YNX_REMOTE_NORMAL_CI_REJECTED: github_token_unavailable\n")
+
+    def test_cli_requires_exact_flags_and_does_not_accept_shell_style_or_abbreviations(self):
+        args = ["--repo", gate.REPOSITORY, "--candidate", SHA,
+                "--normal-run-id", PRIOR, "--current-run-id", CURRENT]
+        for invalid in ([], args[:-2], args + ["--execute"], args + ["extra"],
+                        ["--rep", gate.REPOSITORY] + args[2:]):
+            with self.subTest(args=invalid), patch.object(gate, "github_fetcher") as fetcher, \
+                    contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as failure:
+                gate.main(invalid)
+            self.assertEqual(failure.exception.code, 2)
+            fetcher.assert_not_called()
+
+
+def workflow_steps(raw):
+    """Exact indentation/source contract only; not a YAML/GitHub scheduler."""
+    matches = re.findall(r"(?ms)^  focused-go:\n(.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)", raw)
+    if len(matches) != 1:
+        raise AssertionError("one actual focused-go job required")
+    job = matches[0]
+    chunks = re.split(r"(?m)(?=^      - (?:name:|uses:))", job)
+    return job, chunks[1:]
+
+
+def assert_workflow_contract(raw):
+    job, steps = workflow_steps(raw)
+
+    def need(condition):
+        if not condition:
+            raise AssertionError("normal-CI workflow source contract changed; no scheduler claim")
+
+    def by_id(identifier):
+        matches = [step for step in steps if "        id: " + identifier + "\n" in step]
+        need(len(matches) == 1)
+        return matches[0]
+
+    def condition(step):
+        matches = re.findall(r"(?m)^        if: (.+)$", step)
+        need(len(matches) == 1)
+        return matches[0]
+
+    expected_job_if = ("((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
+        "github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || "
+        "(github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || "
+        "(github.event_name == 'workflow_dispatch' && (startsWith(github.ref, "
+        "'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))")
+    need("    if: " + expected_job_if + "\n" in job)
+    need("    timeout-minutes: 12\n" in job)
+    need("permissions:\n  contents: read\n  actions: read\n" in raw)
+    need("      normal_ci_run_id:\n" in raw)
+    for leaf in ("scripts/ops/validate-pq-remote-normal-ci.py", "scripts/ops/test_validate_pq_remote_normal_ci.py"):
+        need("      - '" + leaf + "'\n" in raw)
+    normal = by_id("normalci")
+    need(condition(normal) == "${{ !cancelled() && steps.identity.outcome == 'success' && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history }}")
+    need("          GH_TOKEN: ${{ github.token }}\n" in normal)
+    need("          YNX_NORMAL_CI_RUN_ID: ${{ inputs.normal_ci_run_id }}\n" in normal)
+    need(normal.count("${{ inputs.normal_ci_run_id }}") == 1)
+    need("        run: |\n" in normal)
+    body = normal.split("        run: |\n", 1)[1]
+    need("${{" not in body and "python3 -B scripts/ops/validate-pq-remote-normal-ci.py" in body)
+    for argument in ('--repo "$GITHUB_REPOSITORY"', '--candidate "$GITHUB_SHA"',
+                     '--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', '--current-run-id "$GITHUB_RUN_ID"'):
+        need(argument in body)
+    need("receipt['currentRunStartedAt']" in body and "datetime.timezone.utc" in body)
+    need("output.write('YNX_REMOTE_WORKFLOW_STARTED_AT=' + str(int(started.timestamp()))" in body)
+    need("datetime.datetime.now" not in body and "time.time()" not in body)
+    build = by_id("pqnetworkbuild")
+    network = by_id("pqnetwork")
+    base_condition = "${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || steps.normalci.outcome == 'success') }}"
+    need(condition(build) == base_condition)
+    need(condition(network) == base_condition.replace("success() && ", "success() && steps.pqnetworkbuild.outcome == 'success' && ", 1))
+    need("go test -p 1 -c -o \"$YNX_E2E_BUILD/consensus.test\" ./internal/consensus" in build)
+    need("go build -p 1 -trimpath -o \"$YNX_E2E_BUILD/ynx-consensus-pq-remote-signer\" ./cmd/ynx-consensus-pq-remote-signer" in build)
+    need("go test " not in network and "go build " not in network)
+    for variable in ("YNX_E2E_CASE", "YNX_E2E_BUILD", "YNX_PQ_RETAINED_HISTORY", "YNX_PQ_REMOTE_RETAINED_HISTORY"):
+        need('"' + variable + '=$' + variable + '"' in build)
+    need('>> "$GITHUB_ENV"' in build)
+    guard = "scripts/loadtest/pq-paired-linux-window.py --consensus-remote-e2e-retained-history"
+    need(guard in network and guard not in build)
+    budget = "if started > now or remaining < 150:"
+    need("started = int(os.environ['YNX_REMOTE_WORKFLOW_STARTED_AT'])" in network)
+    need("remaining = started + 12*60 - now" in network and budget in network)
+    need("YNX_REMOTE_OUTER_BUDGET_REFUSED" in network and network.index(budget) < network.index(guard))
+    need(steps.index(normal) < steps.index(build) < steps.index(network))
+    need("activeMs=105000, cleanupMs=15000, totalMs=120000" in build)
+    for cap in ("ownedRSSBytes=1073741824", "threads=320", "ownedProcesses=16", "privateBytes=536870912",
+                "buildBytes=1073741824", "logBytes=1048576", "diskFloorBytes=1073741824",
+                "availableMemoryFloorBytes=1207959552"):
+        need(cap in build)
+    controls = [step for step in steps if step.startswith("      - name: Verify Linux window controls without starting a node\n")]
+    need(len(controls) == 1)
+    need(condition(controls[0]) == "${{ !cancelled() && steps.identity.outcome == 'success' }}")
+    need("test_validate_pq_remote_normal_ci.py" in controls[0]
+         and "scripts/loadtest/test_pq_paired_linux_window.py" in controls[0])
+    receipts = [step for step in steps if step.startswith((
+        "      - name: Record public retained network-file size metadata after owned cleanup\n",
+        "      - name: Preserve only public network-test logs and guard receipt\n"))]
+    need(len(receipts) == 2)
+    need(all(condition(step) == "${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}" for step in receipts))
+    need(".cleanupComplete == true" in receipts[0])
+    required = {id(step) for step in [by_id("identity"), normal, build, network, controls[0], *receipts]}
+    ordinary = [step for step in steps if id(step) not in required and not step.startswith("      - uses:")]
+    # Every old normal step keeps its original condition as the right operand.
+    # A missing dispatch input is false, so !false && (old) preserves push.
+    need(len(steps) == 69 and len(ordinary) == 60)
+    need(all(condition(step).startswith("${{ !inputs.consensus_remote_e2e_retained_history && (")
+             and condition(step).endswith(") }}") for step in ordinary))
+    need("  proof-verifier-macos:\n    needs: focused-go\n    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n" in raw)
+
+
+class NormalCIWorkflowSourceControls(unittest.TestCase):
+    def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_workflow_contract(raw)
+
+    def test_source_contract_rejects_missing_gate_injection_skipped_controls_and_cap_increase(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        changes = [
+            (" || steps.normalci.outcome == 'success'", " || true"),
+            ('--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', "--normal-run-id '${{ inputs.normal_ci_run_id }}'"),
+            ("    timeout-minutes: 12\n", "    timeout-minutes: 15\n"),
+            ("activeMs=105000, cleanupMs=15000, totalMs=120000", "activeMs=120000, cleanupMs=15000, totalMs=135000"),
+            ("if started > now or remaining < 150:", "if remaining < 120:"),
+            ("remaining = started + 12*60 - now", "remaining = started + 15*60 - now"),
+            ("receipt['currentRunStartedAt']", "datetime.datetime.now()"),
+            ("steps.pqnetworkbuild.outcome == 'success'", "true"),
+            ("scripts/loadtest/pq-paired-linux-window.py --consensus-remote-e2e-retained-history", "scripts/loadtest/pq-paired-linux-window.py --consensus-e2e"),
+            ("      - name: Verify Linux window controls without starting a node\n", "      - name: Silently omitted controls\n"),
+            (".cleanupComplete == true", ".cleanupComplete != false"),
+            ("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n", "    if: false\n"),
+        ]
+        for before, after in changes:
+            self.assertIn(before, raw)
+            with self.subTest(before=before), self.assertRaises(AssertionError):
+                assert_workflow_contract(raw.replace(before, after, 1))
+
+
+if __name__ == "__main__":
+    unittest.main()

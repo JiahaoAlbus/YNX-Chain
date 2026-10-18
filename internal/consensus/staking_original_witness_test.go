@@ -2,15 +2,73 @@ package consensus
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 )
+
+func newABCIStakingWitnessFixture(t *testing.T) *abciRevocationFixture {
+	t.Helper()
+	f := &abciRevocationFixture{classic: deterministicPrivateKey(193), otherClassic: deterministicPrivateKey(194)}
+	f.owner, f.other = mustNativeAddress(t, f.classic), mustNativeAddress(t, f.otherClassic)
+	var err error
+	// The default revocation fixture has one validator. This source must have
+	// two before genesis/history and the migration hash are created; changing
+	// an exported checkpoint's validator array would not be a valid fixture.
+	f.d, err = chain.NewPersistentDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), t.TempDir(), []chain.Validator{
+		{Address: "ynx_validator_0", Moniker: "ynx-staking-witness-0", VotingPower: 1, Active: true},
+		{Address: "ynx_validator_1", Moniker: "ynx-staking-witness-1", VotingPower: 1, Active: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, owner := range []string{f.owner, f.other} {
+		if _, err = f.d.Faucet(owner, 100); err != nil {
+			t.Fatal(err)
+		}
+	}
+	f.d.ProduceBlock()
+	if err = f.d.EnableAccountPQ(2); err != nil {
+		t.Fatal(err)
+	}
+	f.m, err = f.d.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(f.m.Validators) != 2 || !f.m.Validators[0].Active || !f.m.Validators[1].Active || f.m.Validators[0].Address == f.m.Validators[1].Address {
+		t.Fatal("original staking witness source did not export two distinct active validators")
+	}
+	f.network, err = hex.DecodeString(f.m.OriginalGenesisHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.key, f.public, err = ynxbatch.KeyGen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(f.key.Destroy)
+	f.otherKey, f.otherPublic, err = ynxbatch.KeyGen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(f.otherKey.Destroy)
+	f.path = filepath.Join(t.TempDir(), "staking-witness-state.json")
+	f.a, err = NewPersistentApplication(f.m, f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
 
 func legacyStakingOriginalFixture(t *testing.T) (*abciRevocationFixture, [][]byte, time.Time) {
 	t.Helper()
-	f := newABCIRevocationFixture(t)
+	f := newABCIStakingWitnessFixture(t)
 	v0, v1 := f.m.Validators[0].Address, f.m.Validators[1].Address
 	id := stakingDelegationID(f.owner, v0)
 	first := mustStakingAction(t, f.classic, ActionStakeDelegate, StakeDelegatePayload{Validator: v0, AmountYNXT: 20}, 1)
