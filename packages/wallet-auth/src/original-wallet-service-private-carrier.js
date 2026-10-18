@@ -1,8 +1,10 @@
 // Transport budget only. This marker does not grant Source/Native/account authority.
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
+import {ORIGINAL_PRIVATE_REFERENCE_CARRIER,originalPrivateReferenceBudget} from './original-wallet-service-private-reference.js';
 export const ORIGINAL_PRIVATE_PQ_CARRIER='YNX-PRODUCT-SESSION-PRIVATE/v3';
 const fail=()=>{throw new WalletAuthError('ORIGINAL_PRIVATE_REQUEST_INVALID','Original private carrier is invalid')};
 export function originalPrivateCarrierBudget(input){
+  if(input?.carrierVersion===ORIGINAL_PRIVATE_REFERENCE_CARRIER)return originalPrivateReferenceBudget(input);
   const pq=Object.hasOwn(input,'carrierVersion');
   exactFields(input,['requestId','operation','phase','body','proofHeader',...(pq?['carrierVersion']:[])],'Original private carrier');
   if(!pq)return Object.freeze({body:49152,envelope:65536,pq:false});

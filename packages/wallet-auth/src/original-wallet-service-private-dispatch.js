@@ -1,4 +1,5 @@
 import {assertOriginalPrivatePQCarrier} from './original-wallet-service-private-pq-budget.js';
+import {sameOriginalReferenceCompletion} from './original-wallet-service-private-reference.js';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
@@ -33,6 +34,7 @@ export function decodeOriginalWalletServicePrivateRequest(raw){
  else{
   if(typeof value.body!=='string'||Buffer.byteLength(value.body)>budget.body||!(value.proofHeader===null||typeof value.proofHeader==='string'&&Buffer.byteLength(value.proofHeader)<=16384))fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
   let body;try{body=JSON.parse(value.body);}catch{fail('ORIGINAL_PRIVATE_REQUEST_INVALID');}if(canonicalJSON(body)!==value.body)fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
+  if(budget.reference)return Object.freeze(value); // Framing only; fixed Native assertAdmission remains before Host reservation.
   const fields={beginYNX:['request','approval'],handleReturn:['request','approval','completion'],restore:['requiredScopes'],disconnect:[]};exactFields(body,fields[value.operation],'Original four-op body');
   if(['beginYNX','handleReturn'].includes(value.operation)?value.proofHeader!==null:value.proofHeader===null)fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
  }
@@ -86,10 +88,12 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
  };
  acquired.close=close;
  try{current(null);state.hostSource=ProductSessionGatewayNodeHost.prototype.captureOriginalWalletServiceRuntimeSource.call(host);admission=prepareOriginalWalletServiceAdmission(original.sourceSelection,original.receiptSelection,original.expectedRequest,()=>new Date());current(null);ProductSessionGatewayNodeHost.prototype.bindOriginalWalletServicePrivateTerminal.call(host,original);current(null);}catch(cause){remember(cause);retired=true;void close().catch(()=>{});throw cause;}
+ const originalReadonly=input=>[...records.values()].some(row=>row.unknown&&row.localFailurePresent&&sameOriginalReferenceCompletion(JSON.parse(row.originalRaw),input));
  return Object.freeze({
   dispatch(raw){
    const input=decodeOriginalWalletServicePrivateRequest(raw);current(input.operation);
-   if([...records.values()].some(row=>row.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
+   const readonly=()=>originalReadonly(input);
+   if([...records.values()].some(row=>row.localFailurePresent)&&!readonly())fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
    const key=input.operation+':'+input.phase+':'+input.requestId;if(records.has(key))fail('ORIGINAL_PRIVATE_ALREADY_ENTERED');if(records.size>=64)fail('ORIGINAL_PRIVATE_CAPACITY');
    const row={inputDigest:hash(raw),originalRaw:raw,result:null,hostOwner:null,unknown:false,terminal:false,fulfilled:false,localFailurePresent:false,localCause:undefined};records.set(key,row);
    const promise=Promise.resolve().then(async()=>{
@@ -97,7 +101,7 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
     current(input.operation);
     // Recheck at execution, not just reservation. The synchronous catch below
     // latches a failed transaction before the next already queued callback runs.
-    if([...records.values()].some(other=>other!==row&&other.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
+    if([...records.values()].some(other=>other!==row&&other.localFailurePresent)&&!readonly())fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
     // Selected Native source enforces account/run/executor/workspace association
     // and the original service admission; no service proof from self DTO fields.
     if(originalNativeServiceBinding.assertAdmission(original,input)!==undefined)fail('ORIGINAL_PRIVATE_ADMISSION_INVALID');
@@ -105,7 +109,7 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
     const observation=runtime.capture(records.size);
     runtime.assertObservationCurrent(observation);current(input.operation);
     row.unknown=true;
-    if([...records.values()].some(other=>other!==row&&other.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
+    if([...records.values()].some(other=>other!==row&&other.localFailurePresent)&&!readonly())fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
     const result=await ProductSessionGatewayNodeHost.prototype.executeOriginalWalletServicePrivateTransactionWithPolicy.call(host,row.hostOwner);
     row.result=result;current(input.operation);runtime.assertObservationCurrent(observation);current(input.operation);
     ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTransactionReadback.call(host,row.hostOwner,input,result);
@@ -127,6 +131,20 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    }catch(cause){remember(cause);if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}throw cause;}
   },
   selectOutcome(operation,phase,requestId){const row=records.get(operation+':'+phase+':'+requestId);if(!row)fail('ORIGINAL_PRIVATE_OUTCOME_REQUIRED');return Object.freeze({result:row.result,unknown:row.unknown,terminal:row.terminal});},
+  // Normal delivery must recheck the actual original owner after asynchronous
+  // transport work. The historical reader above remains cleanup/forensics only.
+  selectCurrentOutcome(operation,phase,requestId){
+   const row=records.get(operation+':'+phase+':'+requestId);
+   try{
+    current(operation);if(!row)fail('ORIGINAL_PRIVATE_OUTCOME_REQUIRED');
+    const outcome=Object.freeze({result:row.result,unknown:row.unknown,terminal:row.terminal});
+    current(operation);return outcome;
+   }catch(cause){
+    remember(cause);
+    if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}
+    throw cause;
+   }
+  },
   retire(){retired=true;return undefined;},
   join:async()=>{while(entered.size)await Promise.allSettled([...entered]);return undefined;},close,
   status:()=>Object.freeze({retired,firstCausePresent:firstPresent,cleanupFailurePresent:cleanupFailed,unknown:[...records.values()].some(row=>row.unknown)})

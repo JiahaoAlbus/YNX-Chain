@@ -60,7 +60,7 @@ export class RecoverableProductSessionClient {
   }
   async #referenceTarget(raw){
     const record=inspectReferenceCompletion(this.#registry,raw,true);this.#assertReferenceOwner(record);
-    const outcome=await this.#gateway.returnOutcome({requestId:gatewayRequestId('o',record.request.state),reference:record.reference,request:record.request,completion:record.completion});
+    const outcome=await this.#gateway.returnOutcome({requestId:gatewayRequestId('o',this.#tokens()),reference:record.reference,request:record.request,completion:record.completion});
     exactFields(outcome,['completed','expired'].includes(outcome?.state)?['state','session','retryAuthorized']:['state','retryAuthorized'],'Original reference outcome');
     if(!['completed','expired'].includes(outcome.state)||outcome.retryAuthorized!==false)fail('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN','Original completion has no confirmed outcome; it cannot be resubmitted');
     const target=assertReferenceSession(record,outcome.session);

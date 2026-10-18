@@ -72,15 +72,30 @@ export class OriginalHostTerminalJournal {
    row.claim=Object.freeze({key});return row.claim;
   }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered--;}
  }
+ prepare(claim,response,stateAfterDigest){
+  this.#entered++;
+  try{
+   this.#current();const row=this.#records.get(claim?.key);
+   if(!row||row.claim!==claim||row.claimed||row.terminal||row.prepared||!digest(stateAfterDigest))fail('HOST_TERMINAL_ORIGINAL_CLAIM_REQUIRED');
+   const original=this.#read(row.key+'.entered');if(!original.raw.equals(row.original.raw))fail('HOST_TERMINAL_ENTERED_CHANGED');
+   const responseDigest=sha(canonicalJSON(response));
+   const body=Object.freeze({version:1,kind:'terminal',enteredDigest:sha(row.original.raw),requestDigest:row.requestDigest,associationDigest:row.associationDigest,operation:row.operation,phase:row.phase,requestId:row.requestId,responseDigest,stateBeforeDigest:row.stateBeforeDigest,stateAfterDigest});
+   if(Buffer.byteLength(canonicalJSON(body))>8192)fail('HOST_TERMINAL_CAPACITY');
+   row.prepared=Object.freeze({body,responseDigest,stateAfterDigest});return undefined;
+  }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered--;}
+ }
  commit(claim,response,stateAfterDigest){
   this.#entered++;
   try{
    this.#current();const row=this.#records.get(claim?.key);if(!row||row.claimed||row.terminal||!digest(stateAfterDigest))fail('HOST_TERMINAL_ORIGINAL_CLAIM_REQUIRED');
    // Only identical private claim object may complete this original reservation.
    if(row.claim!==claim)fail('HOST_TERMINAL_ORIGINAL_CLAIM_REQUIRED');
-   row.claimed=true;const responseDigest=sha(canonicalJSON(response));
+   if(!row.prepared)this.prepare(claim,response,stateAfterDigest);
+   const responseDigest=sha(canonicalJSON(response));
+   if(row.prepared.responseDigest!==responseDigest||row.prepared.stateAfterDigest!==stateAfterDigest)fail('HOST_TERMINAL_PREPARED_MISMATCH');
+   row.claimed=true;
    const original=this.#read(row.key+'.entered');if(!original.raw.equals(row.original.raw))fail('HOST_TERMINAL_ENTERED_CHANGED');
-   row.result=this.#write(row.key+'.terminal',{version:1,kind:'terminal',enteredDigest:sha(row.original.raw),requestDigest:row.requestDigest,associationDigest:row.associationDigest,operation:row.operation,phase:row.phase,requestId:row.requestId,responseDigest,stateBeforeDigest:row.stateBeforeDigest,stateAfterDigest});
+   row.result=this.#write(row.key+'.terminal',row.prepared.body);
    row.terminal=true;return Object.freeze({key:row.key,responseDigest});
   }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered--;}
  }

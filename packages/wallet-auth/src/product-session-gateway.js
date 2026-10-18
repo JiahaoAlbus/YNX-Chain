@@ -117,6 +117,21 @@ export class ProductSessionGatewayKernel {
     }
   }
 
+  // Owning Native dispatcher only. Same original route/Authority checks,
+  // without audit/pruning so reconciliation cannot change the old terminal's
+  // stateAfterDigest. The response is not a resolution of the old UNKNOWN.
+  dispatchOriginalReferenceOutcome(input,at=new Date()){
+    let requestId='req_invalid_request_000';
+    try{
+      const request=parseInput(input);requestId=request.requestId;const instant=validDate(at);
+      if(request.path!=='/v2/product-sessions/returns/outcome'||request.proof!==null||request.walletControlProof!=null)fail('ORIGINAL_PRIVATE_REQUEST_INVALID','Native readonly lookup requires the original reference outcome');
+      const floor=this.#controlIntents===null?walletSessionControlClockFloor({consumedProofs:this.#proofs,audit:this.#audit}):productSessionControlClockFloor(this.snapshot());
+      if(instant.getTime()<floor)fail('CLOCK_UNAVAILABLE','Native lookup is behind durable history');
+      if(!request.networkAvailable)fail('NETWORK_UNAVAILABLE','Native lookup requires the original service');
+      return response(200,requestId,{ok:true,result:this.#returnRoute(request,instant)});
+    }catch(error){const normalized=normalizeError(error);return response(normalized.status,requestId,{ok:false,error:{code:normalized.code,message:normalized.message}});}
+  }
+
   snapshot() {
     const base = { ...(this.#returns?{returnPublications:this.#returns}:{}),schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, authority: this.#authority.snapshot(), consumedProofs: Object.freeze([...this.#proofs]), idempotency: Object.freeze([...this.#idempotency]), audit: Object.freeze([...this.#audit]) };
     return this.#controlIntents === null ? Object.freeze(base) : Object.freeze({ ...base, schemaVersion: 3, authority: Object.freeze({ ...base.authority, schemaVersion: 3, revokedDeviceScopes: Object.freeze([...this.#deviceScopes]) }), controlIntents: Object.freeze([...this.#controlIntents]) });

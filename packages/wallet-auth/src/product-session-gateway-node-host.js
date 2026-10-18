@@ -1,4 +1,5 @@
 import {assertOriginalPrivatePQCarrier} from './original-wallet-service-private-pq-budget.js';
+import {originalPrivateReferenceRoute,sameOriginalReferenceCompletion} from './original-wallet-service-private-reference.js';
 import { createHash, randomUUID } from "node:crypto";
 import {types} from 'node:util';
 import {createServer} from 'node:http';
@@ -36,7 +37,7 @@ function privateData(value,fields,strict=true){
 }
 function privateInput(value){
   if(!value||typeof value!=='object'||types.isProxy(value))fail('ORIGINAL_PRIVATE_CUSTODY_INVALID','Original data is unavailable');
-  const v=privateData(value,['requestId','operation','phase','body','proofHeader',...(Object.hasOwn(value??{},'carrierVersion')?['carrierVersion']:[])]);
+  const v=privateData(value,['requestId','operation','phase','body','proofHeader',...(Object.hasOwn(value??{},'carrierVersion')?['carrierVersion']:[]),...(Object.hasOwn(value??{},'referenceAction')?['referenceAction']:[])]);
   const budget=assertOriginalPrivatePQCarrier(v);
   if(!validRequestId(v.requestId)||!['beginYNX','handleReturn','restore','disconnect'].includes(v.operation)||!['time','effect'].includes(v.phase)
     ||!(v.body===null||typeof v.body==='string')||!(v.proofHeader===null||typeof v.proofHeader==='string')||Buffer.byteLength(canonicalJSON(v))>budget.envelope)fail('ORIGINAL_PRIVATE_REQUEST_INVALID','Invalid original input');
@@ -119,10 +120,17 @@ export class ProductSessionGatewayNodeHost {
     return result;
   }
 
+  #sameUnknownReferenceRead(input,association){
+    for(const owner of this.#privateTransactions.values()){
+      const old=originalPrivateTransactions.get(owner);
+      if(old?.unknown&&old.entered&&!old.closed&&old.associationRaw===canonicalJSON(association)&&sameOriginalReferenceCompletion(old.input,input))return true;
+    }
+    return false;
+  }
   reserveOriginalWalletServicePrivateTransaction(input,retained,association){
-    if(this.#privateFailurePresent)throw this.#privateFirstCause;
     if(this.#privateActive!==null)fail('ORIGINAL_PRIVATE_REENTRY','Original transaction is active');
     const captured=privateInput(input),bound=privateAssociation(association);
+    if(this.#privateFailurePresent&&!this.#sameUnknownReferenceRead(captured,bound))throw this.#privateFirstCause;
     if(!retained||types.isProxy(retained))fail('ORIGINAL_PRIVATE_CUSTODY_INVALID','Original retained slot unavailable');
     const slot=Object.getOwnPropertyDescriptor(retained,'result');if(!slot||!Object.hasOwn(slot,'value')||slot.writable!==true||slot.value!==null)fail('ORIGINAL_PRIVATE_CUSTODY_INVALID','Result slot already used');
     if(this.#privateRetainedOwners.has(retained))fail('ORIGINAL_PRIVATE_CUSTODY_INVALID','Original retained slot already selected');
@@ -144,7 +152,7 @@ export class ProductSessionGatewayNodeHost {
   executeOriginalWalletServicePrivateTransaction(owner,accountContext=null){
     const r=this.#privateOwned(owner);if(r.closed||r.entered)fail('ORIGINAL_PRIVATE_ALREADY_ENTERED','Original transaction cannot replay');
     const context=r.input.phase==='time'?null:this.#requiredAccountContext(accountContext);
-    if(this.#privateFailurePresent)throw this.#privateFirstCause;
+    if(this.#privateFailurePresent&&!this.#sameUnknownReferenceRead(r.input,r.association))throw this.#privateFirstCause;
     if(this.#privateActive!==null)fail('ORIGINAL_PRIVATE_REENTRY','Original transaction active');
     r.entered=true;r.unknown=true;this.#privateActive=owner;
     try{
@@ -165,9 +173,14 @@ export class ProductSessionGatewayNodeHost {
     const r=this.#privateOwned(owner);
     if(r.input.phase==='time')return this.executeOriginalWalletServicePrivateTransaction(owner);
     const paths={beginYNX:'/v2/product-sessions/challenge',handleReturn:'/v2/product-sessions/complete',restore:'/v2/product-sessions/introspect',disconnect:'/v2/product-sessions/revoke'};
+    const reference=assertOriginalPrivatePQCarrier(r.input).reference===true,path=reference?originalPrivateReferenceRoute(r.input):paths[r.input.operation],before=snapshotDigest(this.#handler.snapshot());
     const proof=r.input.proofHeader===null?null:decodeProductSessionGatewayProofHeaderV2(r.input.proofHeader);
-    const session=proof===null?null:this.#handler.snapshot().authority.sessions.find(value=>value.sessionBinding===proof.sessionBinding)??null;
-    return this.#withAccountPolicy({requestId:r.input.requestId,method:'POST',path:paths[r.input.operation],body:r.input.body,proofHeader:r.input.proofHeader,walletControlProofHeader:null,session,at:this.#now().toISOString()},context=>this.executeOriginalWalletServicePrivateTransaction(owner,context));
+    const parsed=reference?JSON.parse(r.input.body):null,publication=reference?this.#handler.returnPublication(parsed.reference):null;
+    const session=reference?this.#handler.returnPublicationSession(parsed.reference):proof===null?null:this.#handler.snapshot().authority.sessions.find(value=>value.sessionBinding===proof.sessionBinding)??null;
+    return this.#withAccountPolicy({requestId:r.input.requestId,method:'POST',path,body:r.input.body,proofHeader:r.input.proofHeader,walletControlProofHeader:null,session,at:this.#now().toISOString(),...(reference?{publication}:{})},context=>{
+      if(reference&&snapshotDigest(this.#handler.snapshot())!==before)fail('ACCOUNT_POLICY_OPERATION_CHANGED','Original reference changed while acquiring Source');
+      return this.executeOriginalWalletServicePrivateTransaction(owner,context);
+    });
   }
   assertOriginalWalletServicePrivateTransactionReadback(owner,input,result){
     const r=this.#privateOwned(owner);
@@ -241,7 +254,7 @@ export class ProductSessionGatewayNodeHost {
     return this.executeOriginalWalletServicePrivateTransaction(owner,accountContext);
   }
   #executeOriginalWalletServicePrivateRequest(input,retained,association,record,accountContext){
-    assertOriginalPrivatePQCarrier(input);
+    const budget=assertOriginalPrivatePQCarrier(input),reference=budget.reference===true;
     const paths={beginYNX:'/v2/product-sessions/challenge',handleReturn:'/v2/product-sessions/complete',restore:'/v2/product-sessions/introspect',disconnect:'/v2/product-sessions/revoke'};
     if(!Object.hasOwn(paths,input.operation)||!['time','effect'].includes(input.phase)||!validRequestId(input.requestId))fail('ORIGINAL_PRIVATE_REQUEST_INVALID','Original private operation is invalid');
     const descriptor=Object.getOwnPropertyDescriptor(retained??{},'result');
@@ -263,12 +276,19 @@ export class ProductSessionGatewayNodeHost {
       this.#newHandler(this.#handler.snapshot(),accountContext).revalidate(session,[],session.productId,this.#now(),true);
     }else{
       let body;try{body=JSON.parse(input.body);}catch{fail('INVALID_BODY','Original private body is invalid');}
-      if(body.approval?.account!==association.account||boundFields.filter(field=>field!=='account').some(field=>body.request?.[field]!==association[field]))fail('CROSS_PRODUCT_SESSION','Original private approval differs from Native association');
+      const publication=reference?this.#handler.returnPublication(body.reference):null;
+      const approval=reference?(publication?JSON.parse(publication.approvalRaw):null):body.approval;
+      if(reference&&(!publication||canonicalJSON(body.request)!==publication.requestRaw))fail('CROSS_PRODUCT_SESSION','Original reference does not match its stored request');
+      if(approval?.account!==association.account||boundFields.filter(field=>field!=='account').some(field=>body.request?.[field]!==association[field]))fail('CROSS_PRODUCT_SESSION','Original private approval differs from Native association');
     }
     const candidate=this.#newHandler(this.#handler.snapshot(),accountContext);
-    const result=candidate.handle({requestId:input.requestId,method:'POST',path:paths[input.operation],contentType:'application/json',body:input.body,proofHeader:input.proofHeader,networkAvailable:true},this.#now());
+    const request={requestId:input.requestId,method:'POST',path:reference?originalPrivateReferenceRoute(input):paths[input.operation],contentType:'application/json',body:input.body,proofHeader:input.proofHeader,networkAvailable:true};
+    const result=reference&&input.referenceAction==='outcome'?candidate.handleOriginalReferenceOutcome(request,this.#now()):candidate.handle(request,this.#now());
     this.#privateCaptureResult(record,result); // Original before late persistence.
     const before=snapshotDigest(this.#handler.snapshot()),after=snapshotDigest(candidate.snapshot());
+    // Freeze and capacity-check the exact terminal before the candidate state
+    // becomes durable. A later commit must consume these same response bytes.
+    this.#privateTerminalJournal.prepare(record.terminalClaim,result,after);
     if(after!==before)this.#persist(candidate.snapshot());
     this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();return result;
   }

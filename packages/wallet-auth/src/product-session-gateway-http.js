@@ -15,7 +15,9 @@ export class ProductSessionGatewayHttpHandler {
   returnPublicationSession(reference){return this.#kernel.returnPublicationSession(reference);}
   readOriginalReturnPublicationOutcome(requestId){return this.#kernel.readOriginalReturnPublicationOutcome(requestId);}
 
-  handle(input, at = new Date()) {
+  handle(input, at = new Date()) {return this.#handle(input,at,false);}
+  handleOriginalReferenceOutcome(input,at=new Date()){return this.#handle(input,at,true);}
+  #handle(input, at,originalReadonly) {
     let requestId = validRequestId(input?.requestId) ? input.requestId : "req_invalid_request_000";
     try {
       exactFields(input, input && Object.hasOwn(input, "walletControlProofHeader") ? [...INPUT_FIELDS, "walletControlProofHeader"] : INPUT_FIELDS, "Product Session Gateway HTTP request");
@@ -30,7 +32,8 @@ export class ProductSessionGatewayHttpHandler {
       if (input.proofHeader !== null && input.walletControlProofHeader != null) fail("UNEXPECTED_PROOF", "Wallet owner and product device proof headers cannot be combined");
       const proof = input.proofHeader === null ? null : decodeProductSessionGatewayProofHeaderV2(input.proofHeader);
       const walletControlProof = input.walletControlProofHeader == null ? null : decodeWalletSessionControlProofHeader(input.walletControlProofHeader);
-      return this.#kernel.dispatch({ requestId, method: input.method, path: input.path, body, proof, walletControlProof, networkAvailable: input.networkAvailable }, at);
+      const request={ requestId, method: input.method, path: input.path, body, proof, walletControlProof, networkAvailable: input.networkAvailable };
+      return originalReadonly?this.#kernel.dispatchOriginalReferenceOutcome(request,at):this.#kernel.dispatch(request,at);
     } catch (error) {
       const normalized = normalize(error);
       return response(normalized.status, requestId, { ok: false, error: { code: normalized.code, message: normalized.message } });

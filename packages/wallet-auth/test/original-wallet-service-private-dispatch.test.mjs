@@ -28,7 +28,7 @@ test('R14 actual sole fixed loader decodes file URLs and retains seven-method nu
 });
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const clean=s=>s.replace(/^import .*;$/mg,'').replace(/^import \{[\s\S]*?\} from .*;$/mg,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify('file:///PUBLIC/original-module.js'));
-function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=false,unselected=false,localTerminal=false}={}){
+function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=false,unselected=false,localTerminal=false,prepareFail=false}={}){
  const events=[],writes=new Map(),fds=new Map();let next=1,live=true,kernelCalls=0,closed=0;
  const hash=s=>String(s).includes('"revision":1')?'b'.repeat(64):'a'.repeat(64);
  const association={account:'PUBLIC_ACCOUNT',clientId:'public-client',productId:'developer',platform:'macos',applicationId:'PUBLIC_APPLICATION',deviceId:'PUBLIC_DEVICE'};
@@ -37,7 +37,7 @@ function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=fa
  const context={URL,Buffer,Date,types,
   // New Host journal boundary is a lexical PUBLIC standin; real IO is covered
   // by the separate combined caller integration controls, not these fixtures.
-  OriginalHostTerminalJournal:class {open(){}reserve(){return Object.freeze({PUBLIC:true});}commit(){}assertTerminal(){}retire(){}join(){}close(){}},
+  OriginalHostTerminalJournal:class {open(){}reserve(){return Object.freeze({PUBLIC:true});}prepare(){events.push('prepare');if(prepareFail)throw Error('PUBLIC_TERMINAL_PREPARE_REFUSED');}commit(){}assertTerminal(){}retire(){}join(){}close(){}},
   process:{pid:1,getuid:()=>1},isAbsolute:p=>p.startsWith('/'),dirname:()=>'/PUBLIC',constants:{O_RDONLY:1,O_NOFOLLOW:2,O_WRONLY:4,O_CREAT:8,O_EXCL:16},
   canonicalJSON:JSON.stringify,exactFields:(v,keys)=>{assert.deepEqual(Object.keys(v).sort(),[...keys].sort());},WalletAuthError:class extends Error{constructor(code,message){super(message);this.code=code;}},
   createHash:()=>({value:'',update(v){this.value+=v;return this;},digest(){return hash(this.value);}}),randomUUID:()=> 'PUBLIC_TEMP',parseProductSessionRegistry:v=>v,
@@ -51,6 +51,7 @@ function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=fa
  vm.createContext(context);
  // Exact browser-safe carrier parser in this PUBLIC VM realm. The Node PQ
  // decoder is exercised with actual provider signatures by its dedicated test.
+ vm.runInContext(clean(read('../src/original-wallet-service-private-reference.js')),context);
  vm.runInContext('this.PUBLICCarrier=(()=>{'+clean(read('../src/original-wallet-service-private-carrier.js'))+';return {budget:originalPrivateCarrierBudget};})();',context);
  context.assertOriginalPrivatePQCarrier=value=>context.PUBLICCarrier.budget(value);
  vm.runInContext('this.hostAPI=(()=>{'+clean(read('../src/product-session-gateway-node-host.js'))+'\nreturn {Host:ProductSessionGatewayNodeHost,capture:captureOriginalWalletServiceRuntimeHostSource};})();',context);context.Host=context.hostAPI.Host;context.ProductSessionGatewayNodeHost=context.Host;context.captureOriginalWalletServiceRuntimeHostSource=context.hostAPI.capture;
@@ -230,4 +231,26 @@ test('R8 PUBLIC actual daemon fixed listen caller selects dispatcher and indepen
  const text=read('../scripts/ynx-wallet-gatewayd.mjs'),start=text.indexOf('const originalRuntimeLifetime='),end=text.indexOf('\nfunction integer(',start);
  vm.runInContext(text.slice(start,end).replace('const originalPrivateServiceBorrow=null;','const originalPrivateServiceBorrow=PUBLIC_BORROW;')+'\nthis.selectedPrivate=()=>originalPrivateDispatch;',f.context);
  onListen();const selected=f.context.selectedPrivate();assert(selected);await selected.dispatch(f.packet());assert.equal(f.kernelCalls(),1);signals.get('SIGTERM')();signals.get('SIGINT')();await new Promise(resolve=>setImmediate(resolve));assert.equal(stops,1);assert.equal(f.closed(),1);assert.equal(f.context.process.exitCode,1);assert.equal(exits,0);assert.equal(f.events.some(event=>event.privateTerminalUnknown===true),true);
+});
+
+test('candidate terminal preparation refusal preserves old durable state and the uncertain original result',()=>{
+ const f=fixture({unselected:true,localTerminal:true,prepareFail:true}),input=f.context.decode(f.packet()),row={result:null},before=f.writes.get('/PUBLIC/state'),owner=f.host.reserveOriginalWalletServicePrivateTransaction(input,row,f.original.association);
+ assert.throws(()=>f.host.executeOriginalWalletServicePrivateTransaction(owner),/PUBLIC_TERMINAL_PREPARE_REFUSED/);assert.equal(f.writes.get('/PUBLIC/state'),before);assert.equal(f.events.includes('persist'),false);assert.equal(f.kernelCalls(),1);assert.equal(row.result.status,200);
+ const outcome=f.host.originalWalletServicePrivateTransactionOutcome(owner);assert.equal(outcome.unknown,true);assert.equal(outcome.completed,false);assert.equal(outcome.firstCausePresent,true);assert.equal(outcome.result,row.result);
+ const g=fixture({unselected:true,localTerminal:true}),gi=g.context.decode(g.packet()),gr={result:null},go=g.host.reserveOriginalWalletServicePrivateTransaction(gi,gr,g.original.association);g.host.executeOriginalWalletServicePrivateTransaction(go);assert(g.events.indexOf('prepare')<g.events.indexOf('persist'));
+});
+
+test('normal delivery outcome rechecks current and retains forensic result after a late Source failure',async()=>{
+ const f=fixture(),result=await f.dispatcher.dispatch(f.packet()),digest=f.context.createHash().update(JSON.stringify(result)).digest('hex');
+ f.dispatcher.acknowledge('beginYNX','effect','req_PUBLIC_REQUEST_001',digest);
+ const current=f.dispatcher.selectCurrentOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001');assert.equal(current.result,result);assert.equal(current.terminal,true);assert.equal(current.unknown,false);
+ f.invalidate();let thrown=false;try{f.dispatcher.selectCurrentOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001');}catch(cause){thrown=true;assert.equal(cause,false);}assert.equal(thrown,true);
+ const retained=f.dispatcher.selectOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001');assert.equal(retained.result,result);assert.equal(retained.unknown,true);assert.equal(f.dispatcher.status().firstCausePresent,true);
+ await f.dispatcher.close();assert.equal(f.dispatcher.selectOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001').result,result);
+});
+
+test('normal delivery cannot publish when the second current fence fails with an undefined cause',async()=>{
+ const f=fixture(),result=await f.dispatcher.dispatch(f.packet()),digest=f.context.createHash().update(JSON.stringify(result)).digest('hex');f.dispatcher.acknowledge('beginYNX','effect','req_PUBLIC_REQUEST_001',digest);
+ let checks=0;f.context.PUBLIC_NATIVE.assertCurrent=()=>{if(++checks===2)throw undefined;};let threw=false;try{f.dispatcher.selectCurrentOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001');}catch(cause){threw=true;assert.equal(cause,undefined);}assert.equal(threw,true);assert.equal(checks,2);
+ const out=f.dispatcher.selectOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001');assert.equal(out.result,result);assert.equal(out.unknown,true);assert.equal(f.dispatcher.status().firstCausePresent,true);await f.dispatcher.close();
 });
