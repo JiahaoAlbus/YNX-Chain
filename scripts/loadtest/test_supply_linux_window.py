@@ -341,8 +341,9 @@ class SupplySourceTests(unittest.TestCase):
                 raw=name.encode();(build/name).write_bytes(raw);binaries[name]=dict(sha256=hashlib.sha256(raw).hexdigest())
             order=[]
             def fake_run(source,build,case,out,transport,profile,mode,**kwargs):
-                order.append(("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode);case.mkdir()
-                if replay_fault=="rss" and kwargs.get("shared_replay"):
+                label=("shared-endpoint-fair" if kwargs.get("endpoint_fair") else "shared-baseline") if comparison=="shared-fair" else ("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode
+                order.append(label);case.mkdir()
+                if replay_fault=="rss" and (kwargs.get("endpoint_fair") if comparison=="shared-fair" else kwargs.get("shared_replay")):
                     raise RuntimeError("synthetic candidate owned RSS cap exceeded")
                 row=self.pair_row(mode)
                 row.update(sourceCommit="a"*40,sourceTree="b"*40,internalTree="c"*40,compiler="synthetic-unit",
@@ -351,9 +352,9 @@ class SupplySourceTests(unittest.TestCase):
                 if first_failure=="error":row["firstCause"]="synthetic deadline";code=1
                 if first_failure=="cleanup":row["cleanupComplete"]=False
                 if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=4
-                if comparison in ("bounded-grouped","independent-shared"):
+                if comparison in ("bounded-grouped","independent-shared","shared-fair"):
                     client=report("supply-512x2",mode)
-                    if comparison=="independent-shared":
+                    if comparison in ("independent-shared","shared-fair"):
                         self.assertTrue(kwargs["observer_phases"])
                         self.assertIsInstance(kwargs["shared_replay"],bool)
                         timed=self.observer_report()
@@ -364,6 +365,18 @@ class SupplySourceTests(unittest.TestCase):
                             client["durableReadback"]["sharedReplay"]=dict(lookups=1,hits=0,joins=0,fullReplays=1,failures=0,bypasses=0,waitNs=0,cachedCanonicalBytes=100,canonicalByteLimit=16 << 20,peakFlights=1)
                         row.update(observerPhaseTiming=True,sharedDurableReplay=kwargs["shared_replay"],observerPhases=supply.validate_observer_phases(client),sharedReplayVerification=supply.validate_shared_replay(client,kwargs["shared_replay"]))
                         if replay_fault=="selection":row["sharedDurableReplay"]=not kwargs["shared_replay"]
+                    if comparison=="shared-fair":
+                        self.assertTrue(kwargs["shared_replay"])
+                        flag=kwargs["endpoint_fair"]
+                        client.update(endpointFairSubmission=flag,endpoints=["http://127.0.0.1:"+str(31757+i) for i in range(4)])
+                        for tx in client["transactions"]:tx["endpoint"]=client["endpoints"][tx["index"]%4]
+                        if flag:client["readySenders"]["endpointDispatch"]=dict(workers=4,perEndpointInFlightLimit=1,queueCapacityTotal=1024,callbackAttempts=[256]*4,callbackReturns=[256]*4)
+                        for name in ("submissionQueueDelayMs","checkTxLatencyMs"):client["summary"][name]=dict(samples=1024,p50=10,p95=20,p99=30)
+                        row["measurement"]["summary"]=client["summary"]
+                        if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=4
+                        row.update(endpointFairSubmission=flag,endpointDispatchVerification=supply.validate_endpoint_dispatch(client,flag))
+                        if replay_fault=="endpoint-selection":row["endpointFairSubmission"]=not flag
+                        if replay_fault=="authority":client["transactions"][0]["endpoint"]=client["endpoints"][1]
                     network=case/"network";network.mkdir()
                     encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
                     row["resultSHA256"]=hashlib.sha256(encoded).hexdigest() if not corrupt_result else "0"*64
@@ -581,6 +594,10 @@ class SupplySourceTests(unittest.TestCase):
         self.assertEqual(tier["resourceCaps"]["privateBytes"],32 << 20)
         self.assertEqual(tier["resourceCaps"]["ownedRSSBytes"],1 << 30)
         self.assertTrue(tier["conservativeScenarios"]["dataScenarioExceedsExisting32MiB"])
+        self.assertEqual(tier["actualFixtureResources"]["runId"],39151370359)
+        self.assertLess(tier["actualFixtureResources"]["fixtureBytes"],tier["resourceCaps"]["privateBytes"])
+        self.assertFalse(tier["actualFixtureResources"]["nodesStarted"])
+        self.assertTrue(tier["actualFixtureResources"]["nodeReaderRuntimePeakStillUnknown"])
         self.assertNotIn(tier["name"],supply.PROFILES)
         denied=subprocess.run([sys.executable,"-B",str(FILE),"--prepare-1000-tier","--execute"],capture_output=True,text=True,timeout=5)
         self.assertEqual(denied.returncode,2)
@@ -616,6 +633,70 @@ class SupplySourceTests(unittest.TestCase):
             refused=subprocess.run([sys.executable,"-B",str(FILE),"--measure-1000-fixture",action],capture_output=True,text=True,timeout=5)
             self.assertEqual(refused.returncode,2)
             self.assertIn("cannot combine",refused.stderr)
+
+    def test_fair_pair_changes_only_dispatch_and_keeps_existing_recipes_pinned(self):
+        import hashlib
+        pins={"relative-bounded":"d13f9f6bcbc2051cef78b9b46041bde79d713de810bad98efdedc0287c4f7dc7",
+              "bounded-grouped":"f474659891e8d4ac20d5cdf023cb8a3f31f7e55f151689c8dc125369fe72b874",
+              "independent-shared":"c504a71a2d7860693d78d67888ba2d245f3e7071e894c06a15684b770c9ce8c2"}
+        for kind,pin in pins.items():self.assertEqual(hashlib.sha256((json.dumps(supply.pair_recipe(kind),indent=2)+"\n").encode()).hexdigest(),pin)
+        plan=supply.pair_recipe("shared-fair");a,b=plan["cases"]
+        self.assertFalse(plan["execute"])
+        self.assertEqual(plan["pairCaps"],supply.PAIR_CAPS)
+        self.assertTrue(a["sharedDurableReplay"] and b["sharedDurableReplay"])
+        self.assertTrue(a["observerPhaseTiming"] and b["observerPhaseTiming"])
+        self.assertFalse(a["endpointFairSubmission"]);self.assertTrue(b["endpointFairSubmission"])
+        self.assertEqual({k:v for k,v in a.items() if k!="endpointFairSubmission"},{k:v for k,v in b.items() if k!="endpointFairSubmission"})
+        with self.assertRaises(RuntimeError):supply.recipe("grpc","supply-512x2","bounded-cadence",True,False,True)
+        refused=subprocess.run([sys.executable,"-B",str(FILE),"--prepare-pair","--pair-kind","shared-fair","--transport","grpc","--profile","supply-512x2"],capture_output=True,text=True,timeout=5)
+        self.assertEqual(refused.returncode,2)
+
+    def test_fair_pair_raw_identity_authority_caps_and_failure_stop_second_case(self):
+        code,order,row=self.mock_pair(comparison="shared-fair")
+        self.assertEqual(code,0)
+        self.assertEqual(order,["shared-baseline","empty","shared-endpoint-fair","empty"])
+        self.assertTrue(all(c["sharedReplayVerification"]["sharedDurableReplay"] for c in row["cases"]))
+        self.assertTrue(row["cases"][1]["endpointDispatchVerification"]["stats"]["workers"]==4)
+        self.assertIn("dispatchTailObservation",row)
+        self.assertFalse(row["dispatchTailObservation"]["sustainedTPSQualified"])
+        for kwargs in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(replay_fault="authority"),dict(replay_fault="endpoint-selection")):
+            with self.subTest(kwargs=kwargs):
+                code,order,row=self.mock_pair(comparison="shared-fair",**kwargs)
+                self.assertEqual(code,1);self.assertEqual(order,["shared-baseline"])
+                self.assertFalse(row["_terminal"]["qualified"])
+        for kwargs in (dict(mutate_binary=True),dict(replay_fault="rss"),dict(fail_after_fsync=True)):
+            with self.subTest(kwargs=kwargs):
+                code,order,row=self.mock_pair(comparison="shared-fair",**kwargs)
+                self.assertEqual(code,1);self.assertFalse(row["_terminal"]["qualified"])
+
+    def test_fair_dispatch_rejects_worker_request_count_or_authority_forgery(self):
+        import copy
+        row=report("supply-512x2","bounded-cadence")
+        row.update(endpointFairSubmission=True,endpoints=["http://127.0.0.1:"+str(31757+i) for i in range(4)])
+        for tx in row["transactions"]:tx["endpoint"]=row["endpoints"][tx["index"]%4]
+        row["readySenders"]["endpointDispatch"]=dict(workers=4,perEndpointInFlightLimit=1,queueCapacityTotal=1024,callbackAttempts=[256]*4,callbackReturns=[256]*4)
+        supply.validate_endpoint_dispatch(row,True)
+        for key,value in (("workers",5),("perEndpointInFlightLimit",2),("queueCapacityTotal",2048),("callbackAttempts",[257,256,256,256]),("callbackReturns",[255,256,256,256])):
+            changed=copy.deepcopy(row);changed["readySenders"]["endpointDispatch"][key]=value
+            with self.subTest(key=key),self.assertRaises(RuntimeError):supply.validate_endpoint_dispatch(changed,True)
+        changed=copy.deepcopy(row);changed["transactions"][0]["endpoint"]=row["endpoints"][1]
+        with self.assertRaises(RuntimeError):supply.validate_endpoint_dispatch(changed,True)
+        with self.assertRaises(RuntimeError):supply.validate_report(row,"supply-512x2","bounded-cadence")
+
+    def test_faster_fair_dispatch_cannot_hide_worse_queue_checktx_or_final_p99(self):
+        import copy
+        before=dict(summary=report("supply-512x2")["summary"],offerLatency=supply.offer_latency_readout(report("supply-512x2")))
+        for key in ("submissionQueueDelayMs","checkTxLatencyMs"):before["summary"][key]=dict(samples=1024,p50=10,p95=20,p99=30)
+        after=copy.deepcopy(before);after["summary"]["finalSubmittedPerMeasurementSecond"]=200
+        joint=supply.joint_observation(before,after)
+        self.assertTrue(joint["finiteJointImprovementObserved"])
+        self.assertTrue(supply.dispatch_tail_observation(before,after,joint)["finiteJointAndTailImprovement"])
+        for key in ("submissionQueueDelayMs","checkTxLatencyMs"):
+            for quantile in ("p95","p99"):
+                changed=copy.deepcopy(after);changed["summary"][key][quantile]=100
+                self.assertFalse(supply.dispatch_tail_observation(before,changed,joint)["finiteJointAndTailImprovement"])
+        after["offerLatency"]["offerToQualifiedFinalLatencyMs"]["p99"]+=1
+        self.assertFalse(supply.dispatch_tail_observation(before,after,joint)["finiteJointAndTailImprovement"])
 
     def test_2048_fixture_readback_binds_every_sender_nonce_and_all_file_bytes(self):
         import base64

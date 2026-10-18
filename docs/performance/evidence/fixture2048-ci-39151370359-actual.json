@@ -1,0 +1,349 @@
+{
+  "schema": 1,
+  "runId": 39151370359,
+  "workflowConclusion": "success",
+  "sourceCommit": "44195c070f8e454dfc7bb3ea3e2e6361057a0018",
+  "internalTree": "cfbd76d52a6e22ebfae809699a37b6c039cb20f5",
+  "compiler": "go version go1.25.14 linux/amd64",
+  "terminal": {
+    "qualified": true,
+    "nodesStarted": false,
+    "firstCause": null,
+    "receiptSHA256": "771fafb2e64d006c6c2a2ceec17c64609467a03473418bcff2610a8834f6fe2e",
+    "elapsedMs": 21696,
+    "postFsyncSample": {
+      "elapsedMs": 21657,
+      "tasks": [
+        {
+          "pid": 23223,
+          "parent": 23220,
+          "group": 2066,
+          "startTicks": 30483,
+          "threads": 1,
+          "state": "R",
+          "rssBytes": 31633408
+        }
+      ],
+      "rssBytes": 31633408,
+      "threads": 1,
+      "privateBytes": 5921679,
+      "buildBytes": 96613395,
+      "freeDiskBytes": 89358032896,
+      "availableMemoryBytes": 15619563520,
+      "hostIdentities": 169,
+      "vanishedHostPIDs": [],
+      "processLogBytes": 0,
+      "preexistingGoCacheBytes": 426663698,
+      "sharedGoCacheBytes": 498325522,
+      "incrementalGoCacheBytes": 71661824
+    },
+    "refusedSamples": []
+  },
+  "firstCause": null,
+  "cleanupComplete": true,
+  "nodesStarted": false,
+  "transactionClientStarted": false,
+  "networkExecutionAdmitted": false,
+  "stages": {
+    "build": {
+      "wallMs": 19919.690052,
+      "sampleCount": 133,
+      "peaks": {
+        "rssBytes": 409247744,
+        "threads": 8,
+        "privateBytes": 1906,
+        "buildBytes": 166417236
+      }
+    },
+    "generator": {
+      "wallMs": 830.925371,
+      "sampleCount": 7,
+      "peaks": {
+        "rssBytes": 57307136,
+        "threads": 4,
+        "privateBytes": 5748652,
+        "buildBytes": 96613395
+      }
+    },
+    "structuralReadback": {
+      "wallMs": 81.198278,
+      "sampleCount": 1,
+      "peaks": {
+        "rssBytes": 31625216,
+        "threads": 1,
+        "privateBytes": 5748652,
+        "buildBytes": 96613395
+      }
+    }
+  },
+  "fixtureResources": {
+    "independentSenders": 2048,
+    "recipients": 1,
+    "transactions": 2048,
+    "nonce": 1,
+    "migrationAccounts": 2055,
+    "categories": {
+      "migration-account-data": 847001,
+      "node-config-and-key-scaffolding": 89978,
+      "signed-transactions": 1151099,
+      "genesis-copies": 3658668
+    },
+    "files": [
+      {
+        "path": "bound-migration.json",
+        "bytes": 847001,
+        "sha256": "32f16d027faab2d553e996ea286d67fb272bddc4feb94b0518c607ea80479975",
+        "category": "migration-account-data"
+      },
+      {
+        "path": "network-manifest.json",
+        "bytes": 4234,
+        "sha256": "eef5f3d775a24f4e66c1e493c61ac0883c90a280b8e33fec95a01056b13c4fe1",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "transactions.json",
+        "bytes": 1151099,
+        "sha256": "d432c174eae024b892b52257f468f7961182b7a2fa1968169aaa312eda6a56a9",
+        "category": "signed-transactions"
+      },
+      {
+        "path": "validator-1/config/config.toml",
+        "bytes": 20897,
+        "sha256": "8adabb61a3455dc3205f2f4afb5f48d0c2f1e886ee1e9fdda3f35bd5806358e4",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-1/config/genesis.json",
+        "bytes": 914667,
+        "sha256": "b44cf9c33a5b2cfe8595ebb340a59f5955ae811237e3ac58aa32f5820c93ace0",
+        "category": "genesis-copies"
+      },
+      {
+        "path": "validator-1/config/node_key.json",
+        "bytes": 148,
+        "sha256": "e8a786d13246d2206cad35a5e6e5229f594e8b8690cacb961a77508dafd0a98d",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-1/config/priv_validator_key.json",
+        "bytes": 345,
+        "sha256": "7e05a8a1620b11dcce41b7dd42d770702b02c37288653904d4be674e2925b6b3",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-1/data/priv_validator_state.json",
+        "bytes": 46,
+        "sha256": "2b1da002d8717cb909a2af354caf9ddf2b3e125ada6531858cdcb90adec83f6b",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-2/config/config.toml",
+        "bytes": 20897,
+        "sha256": "7579ba1fb3ff088d5e570bd45097963655b6dea47eac9fb18049e851e703ccb7",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-2/config/genesis.json",
+        "bytes": 914667,
+        "sha256": "b44cf9c33a5b2cfe8595ebb340a59f5955ae811237e3ac58aa32f5820c93ace0",
+        "category": "genesis-copies"
+      },
+      {
+        "path": "validator-2/config/node_key.json",
+        "bytes": 148,
+        "sha256": "44f157ae94c1155285d76de2334bfbd6cb2a772e99c2a56b5461726ce3f4367a",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-2/config/priv_validator_key.json",
+        "bytes": 345,
+        "sha256": "63626098296f780ec3ea9f27834572ff55ca895f55436d17e102ffd0d10491b0",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-2/data/priv_validator_state.json",
+        "bytes": 46,
+        "sha256": "2b1da002d8717cb909a2af354caf9ddf2b3e125ada6531858cdcb90adec83f6b",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-3/config/config.toml",
+        "bytes": 20897,
+        "sha256": "6060e8ca40379da6a25a498d92f397d78b8d3d776e6b55619f5fd5a9126bda15",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-3/config/genesis.json",
+        "bytes": 914667,
+        "sha256": "b44cf9c33a5b2cfe8595ebb340a59f5955ae811237e3ac58aa32f5820c93ace0",
+        "category": "genesis-copies"
+      },
+      {
+        "path": "validator-3/config/node_key.json",
+        "bytes": 148,
+        "sha256": "2175dcc6b6e052fc64b69ca1f6f2c72882b8b5d0a2d2806862cc62f93d32441b",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-3/config/priv_validator_key.json",
+        "bytes": 345,
+        "sha256": "8e4657982ac1b307e83f8a314cecc36ba868448cbee01daf0b8632be040a5237",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-3/data/priv_validator_state.json",
+        "bytes": 46,
+        "sha256": "2b1da002d8717cb909a2af354caf9ddf2b3e125ada6531858cdcb90adec83f6b",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-4/config/config.toml",
+        "bytes": 20897,
+        "sha256": "7eab8be68a0286de206afc1720cc79e05111269cff2697036d97e2832bb54da0",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-4/config/genesis.json",
+        "bytes": 914667,
+        "sha256": "b44cf9c33a5b2cfe8595ebb340a59f5955ae811237e3ac58aa32f5820c93ace0",
+        "category": "genesis-copies"
+      },
+      {
+        "path": "validator-4/config/node_key.json",
+        "bytes": 148,
+        "sha256": "707a206c2ead01db360de2c11132443d37d23f9187ce5d1801d876f952869ecd",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-4/config/priv_validator_key.json",
+        "bytes": 345,
+        "sha256": "e78d1af78a597f8245bc00edca33f088805b4b6b6f1110f73ed9b16ce7437590",
+        "category": "node-config-and-key-scaffolding"
+      },
+      {
+        "path": "validator-4/data/priv_validator_state.json",
+        "bytes": 46,
+        "sha256": "2b1da002d8717cb909a2af354caf9ddf2b3e125ada6531858cdcb90adec83f6b",
+        "category": "node-config-and-key-scaffolding"
+      }
+    ],
+    "totalFixtureBytes": 5746746,
+    "nodesStarted": false,
+    "signatureScope": "Original generator signs actual envelopes. This Python readback checks canonical identity/count/nonce and file hashes, not an independent cryptographic signature verifier. No execution success is asserted.",
+    "scalingScope": "Migration/account data and signed envelopes are actual account-dependent bytes; fixed four-node scaffolding and genesis copies are classified by path, not assumed constant per-account. Node runtime/reader/history growth is unmeasured."
+  },
+  "sampledPeaks": {
+    "rssBytes": 409247744,
+    "threads": 8,
+    "privateBytes": 5921679,
+    "buildBytes": 166417236,
+    "sharedGoCacheBytes": 498325522,
+    "incrementalGoCacheBytes": 71661824
+  },
+  "ownedProcessPeak": 3,
+  "goCacheAccounting": {
+    "path": "/home/runner/.cache/go-build",
+    "preexistingBytes": 426663698,
+    "charge": "Original owned build/tmp plus actual incremental shared-cache bytes; preexisting cache remains visible and charged to filesystem free/reserve, never deleted."
+  },
+  "profile": {
+    "name": "fixture-2048x1-only",
+    "senders": 2048,
+    "rounds": 1,
+    "offeredRate": 512,
+    "concurrency": 4,
+    "observers": 4,
+    "activeMs": 45000,
+    "cleanupMs": 15000,
+    "totalMs": 60000,
+    "ownedProcesses": 10,
+    "longLivedChildren": 9,
+    "ownedRSSBytes": 1073741824,
+    "privateBytes": 33554432,
+    "threads": 320,
+    "availableMemoryFloorBytes": 1207959552
+  },
+  "resourceCaps": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 33554432,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200
+  },
+  "binaries": {
+    "ynx-consensus-perf-fixture": {
+      "sha256": "a460f0ae62bdbfbb518501f069755ffa3b50ba720c1313eed8f18a36e656f021",
+      "bytes": 24951571,
+      "buildInfo": "/home/runner/work/_temp/ynx-fixture-resource-build/ynx-consensus-perf-fixture: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-fixture\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261018174102-44195c070f8e\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=44195c070f8e454dfc7bb3ea3e2e6361057a0018\n\tbuild\tvcs.time=2026-10-18T17:41:02Z\n\tbuild\tvcs.modified=false"
+    }
+  },
+  "priorFailure": {
+    "runId": 39149169439,
+    "firstCause": "active45s deadline exceeded",
+    "stage": "trimpath build; generator never started",
+    "retainedUnchanged": true
+  },
+  "prior512CommonFileComparison": {
+    "runId": 39147446019,
+    "artifactId": 12144082129,
+    "indexSHA256": "25ff038858ab19bb9d82322f6bcc7b20e0b2b65073f98f7f099b9569e2cfeaa9",
+    "categories": {
+      "migration-account-data": 215705,
+      "node-config-and-key-scaffolding": 89938,
+      "signed-transactions": 287731,
+      "genesis-copies": 936876,
+      "mutable-validator-state-at-observation": 1580
+    },
+    "totalCommonFixtureBytes": 1531830,
+    "scope": "Metadata-only uncompressed ZIP directory sizes for identical relative paths in prior512-sender final-case archive. Excludes prior retained sender bundle and extra runtime DB/history/result files. Common validator-state files were runtime-updated and are listed separately; serialized root paths also differ. Old file bodies were not individually hash-verified. This is not a matched initial-fixture or memory experiment."
+  },
+  "limits": [
+    "Actual2048 fixture build/generation and structural readback fit original sampled resource guards; no node/reader/network workload was launched.",
+    "Build and generator wall are separate actual source timestamps; per-stage peaks use integer-ms native samples and are not instantaneous upper bounds.",
+    "Build cost is independent of runtime sender count for this fixed source; generated migration/TX/genesis data grows with accounts. Four-node scaffolding follows fixed template but path/state bytes may vary. Do not assume genesis copies are fixed bytes or infer affine runtime memory growth.",
+    "Original generator produces signed envelopes; Python structural readback is not a new independent cryptographic verifier. Node execution/signature/nonce/fee/consensus gates remain unmeasured in this fixture-only run.",
+    "No inference of2048 four-node/reader peak RSS, history/drain growth, sustained1000TPS or a larger budget admission."
+  ],
+  "artifact": {
+    "id": 12145656279,
+    "zipBytes": 1072950,
+    "verification": "Selected JSON members recovered by exact HTTP206 and verified by uncompressed size/CRC plus individual SHA256. Whole ZIP not downloaded/hash-verified."
+  },
+  "raw": {
+    "artifacts/chain-performance-20261017/fixture-2048-resources-39151370359/remote-actual.json": {
+      "bytes": 173027,
+      "sha256": "771fafb2e64d006c6c2a2ceec17c64609467a03473418bcff2610a8834f6fe2e"
+    },
+    "artifacts/chain-performance-20261017/fixture-2048-resources-39151370359/remote-recipe.json": {
+      "bytes": 1906,
+      "sha256": "ca07ec4a265c7e1e79244cb642c52b23ddd40f35771a6f810f440eaf7cc95c81"
+    },
+    "artifacts/chain-performance-20261017/fixture-2048-resources-39151370359/recovery.raw": {
+      "bytes": 651,
+      "sha256": "b1f39a5a67a557de9624511ea6b41c34a327e3352fe6678bf52ed0a6563009c4"
+    },
+    "artifacts/chain-performance-20261017/fixture-2048-resources-441-source/run39151370359-full.raw": {
+      "bytes": 532295,
+      "sha256": "b217f688740f00051ef6aa6ce7566968bfe3d126472f2078cb0a10c03a3c42ac"
+    },
+    "artifacts/chain-performance-20261017/fixture-2048-resources-441-source/source-contract.json": {
+      "bytes": 2128,
+      "sha256": "57d51c68ed87d3d52719d13b360547dde0e462af7b131f5e60a3db71d27b0f92"
+    }
+  },
+  "fixtureResourceScope": {
+    "senderAccounts": 2048,
+    "otherMigrationAccounts": 7,
+    "nodesOrReaderMeasured": false
+  }
+}

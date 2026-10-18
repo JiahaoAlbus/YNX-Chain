@@ -39,7 +39,7 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
                  buildBytes=1 << 30, metadataReserveMs=500)
 
 
-def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None):
     if transport not in ("socket", "grpc"):
         raise RuntimeError("only existing socket/grpc ABCI transports allowed")
     if profile_name not in PROFILES:
@@ -63,6 +63,10 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
         if type(shared_replay) is not bool or not observer_phases or (transport,profile_name,pacing)!=("grpc","supply-512x2","bounded-cadence"):
             raise RuntimeError("shared replay selection requires fixed512x2/grpc/bounded-cadence and observer timing")
         result["sharedDurableReplay"]=shared_replay
+    if endpoint_fair is not None:
+        if type(endpoint_fair) is not bool or shared_replay is not True:
+            raise RuntimeError("fairness comparison requires explicit shared replay and its fixed timed profile")
+        result["endpointFairSubmission"]=endpoint_fair
     return result
 
 
@@ -86,7 +90,8 @@ def prepare_shared_replay_pair():
 
 PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
               "bounded-grouped": ("bounded-cadence", "grouped-cadence4"),
-              "independent-shared": ("independent-replay", "shared-replay")}
+              "independent-shared": ("independent-replay", "shared-replay"),
+              "shared-fair": ("shared-baseline", "shared-endpoint-fair")}
 
 
 def pair_modes(comparison):
@@ -102,6 +107,10 @@ def prepare_1000_tier():
     evidence=json.loads(native.bounded(evidence_path,1 << 20))
     peak_data=max(c["peaks"]["privateBytes"] for c in evidence["cases"])
     peak_rss=max(c["peaks"]["rssBytes"] for c in evidence["cases"])
+    fixture_path=HERE.parents[1]/"docs/performance/evidence/fixture2048-ci-39151370359-actual.json"
+    if native.digest(fixture_path)!="fbfc6e702e541fa41c0631d741e4521fc7762c52f7bb8653bc9c2961f0ce0c13":
+        raise RuntimeError("actual2048 fixture resource evidence pin differs")
+    fixture=json.loads(native.bounded(fixture_path,1 << 20))
     return dict(schema=1,name="one-shot-2048-independent-senders-offer1000",execute=False,
                 executionAuthorized=False,executionAdmitted=False,nodesStarted=False,
                 workload=dict(independentSenders=2048,totalTransactions=2048,transactionsPerSender=1,
@@ -117,12 +126,17 @@ def prepare_1000_tier():
                 priorActual=dict(runId=39142884319,sourceCommit=evidence["sourceCommit"],
                                  evidenceSHA256=native.digest(evidence_path),totalTransactions=1024,
                                  independentSenders=512,peakPrivateBytes=peak_data,peakRSSBytes=peak_rss),
+                actualFixtureResources=dict(runId=39151370359,sourceCommit=fixture["sourceCommit"],evidenceSHA256=native.digest(fixture_path),
+                    fixtureBytes=fixture["fixtureResources"]["totalFixtureBytes"],privateIncludingEvidenceBytes=fixture["sampledPeaks"]["privateBytes"],
+                    fixtureGeneratorRSSBytes=fixture["stages"]["generator"]["peaks"]["rssBytes"],buildRSSBytes=fixture["stages"]["build"]["peaks"]["rssBytes"],
+                    nodesStarted=False,nodeReaderRuntimePeakStillUnknown=True,
+                    scope="Actual2048 fixture build/generation fit original sampled caps. This is not four-node/reader/history/measurement-driver admission."),
                 conservativeScenarios=dict(twicePriorPrivateBytes=2*peak_data,twicePriorRSSBytes=2*peak_rss,
                     dataScenarioExceedsExisting32MiB=2*peak_data>PROFILE["privateBytes"],
                     rssScenarioExceedsExisting1GiB=2*peak_rss>PROFILE["ownedRSSBytes"]),
-                admissionReasons=["No actual2048/1000tier resource measurement exists. Twice prior peak is a conservative scenario, not a measured projection or proven upper bound.",
-                                  "Data scenario exceeds original32MiB; quadrupling independent-account fixture identity versus prior512 also needs charging. No cap increase or data deletion is authorized.",
-                                  "RSS cannot be assumed linear: fixed4node/worker cost and retained histories differ. Existing1GiB guard remains mandatory; no verified fit.",
+                admissionReasons=["Actual2048 fixture resources are measured above. No actual2048 four-node/reader/runtime peak exists. Historical twice-prior scenarios are not upper bounds or permanent vetoes on a separately granted bounded measurement.",
+                                  "Historical2x data scenario exceeds original32MiB; measured2048 fixture is smaller than32MiB. Runtime DB, signed execution/history, reader, reports and cleanup growth still need actual charging. No cap increase or data deletion is authorized.",
+                                  "Fixture generator/build RSS are actual measured phases, not a4node RSS estimate. Fixed4node/worker and variable account/history costs are not assumed linear. Existing1GiB guard remains mandatory; runtime fit remains unproven.",
                                   "Owned-process/thread, disk reserve, logs,45+15 window and actual MemAvailable guards remain unchanged. No workload starts from this plan."],
                 interpretation="Finite2048 signed business inputs, each with a distinct sender/nonce1. Configured1000offers/s is not accepted/included/final TPS and does not establish ten-minute capacity. Prepared through original fixture/client commands, intentionally not registered as an executable window until budget admissibility is established.")
 
@@ -181,6 +195,14 @@ def fixture_resource_readout(network):
 
 def pair_recipe(comparison="relative-bounded"):
     before, after = pair_modes(comparison)
+    if comparison == "shared-fair":
+        selected=pair_recipe("independent-shared")
+        selected.update(kind="fixed-same-VM-endpoint-fairness-pair",
+                        cases=[recipe("grpc","supply-512x2","bounded-cadence",True,True,flag) for flag in (False,True)],
+                        order="shared-baseline then shared-endpoint-fair; never concurrent; stop after failed or unclean first case",
+                        input=dict(run_linux_supply=True,linux_supply_transport="grpc",linux_supply_profile="supply-512x2",linux_supply_pacing="paired-shared-fair",measure_observer_phases=True),
+                        interpretation="Shared replay and observer timing on both sides, same current source/VM/ELFs and fixed512x2 profile. Only endpoint-fair-submission changes; original clients[index%4], four submitters, queue capacity and safety gates remain. Compare original submission queue/CheckTx P95/P99 as well as inclusion/final quantiles and rates. Fixed order/fresh fixture variation applies; no sustained1000TPS inference.")
+        return selected
     if comparison == "independent-shared":
         return dict(schema=1,kind="fixed-same-VM-shared-replay-pair",execute=False,
                     requiresSeparateRootGrant=True,nodesStarted=False,pairCaps=PAIR_CAPS,
@@ -356,6 +378,50 @@ def validate_shared_replay(report, expected):
                 interpretation="Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance.")
 
 
+def validate_endpoint_dispatch(report, expected):
+    if type(expected) is not bool or report.get("endpointFairSubmission") is not expected:
+        raise RuntimeError("actual endpoint fairness selection absent/different")
+    endpoints=report.get("endpoints",[])
+    if len(endpoints)!=4 or len(set(endpoints))!=4:
+        raise RuntimeError("four distinct original endpoint identities required")
+    for value in endpoints:
+        endpoint(value)
+        if urlparse(value).scheme!="http":raise RuntimeError("original RPC HTTP endpoint required")
+    rows=report.get("transactions",[])
+    if len(rows)!=1024 or any(row.get("index")!=i or row.get("endpoint")!=endpoints[i%4] for i,row in enumerate(rows)):
+        raise RuntimeError("original per-index endpoint binding differs")
+    stats=report.get("readySenders",{}).get("endpointDispatch")
+    if not expected:
+        if stats is not None:raise RuntimeError("baseline unexpectedly enabled endpoint dispatch")
+    else:
+        names={"workers","perEndpointInFlightLimit","queueCapacityTotal","callbackAttempts","callbackReturns"}
+        if (not isinstance(stats,dict) or set(stats)!=names
+                or any(type(stats.get(k)) is not int or stats[k]!=v for k,v in (("workers",4),("perEndpointInFlightLimit",1),("queueCapacityTotal",1024)))
+                or any(not isinstance(stats.get(k),list) or stats[k]!=[256]*4 or any(type(v) is not int for v in stats[k]) for k in ("callbackAttempts","callbackReturns"))):
+            raise RuntimeError("actual original worker/queue/callback bounds differ")
+    return dict(endpointFairSubmission=expected,originalEndpointBindingVerified=True,stats=stats,
+                interpretation="Actual callback counts are not extra RPC or business successes; original1024-result business qualification is required separately. No request authority replacement or automatic UNKNOWN retry.")
+
+
+def dispatch_tail_observation(before, after, joint):
+    metrics={}
+    for key in ("submissionQueueDelayMs","checkTxLatencyMs"):
+        rows=[]
+        for case in (before,after):
+            row=case.get("summary",{}).get(key,{})
+            if row.get("samples")!=1024 or any(type(row.get(q)) not in (int,float) or not math.isfinite(row[q]) or row[q]<0 for q in ("p50","p95","p99")):
+                raise RuntimeError("complete actual queue/CheckTx percentile facts required")
+            rows.append(row)
+        metrics[key]=dict(before=rows[0],after=rows[1],p95NotWorse=rows[1]["p95"]<=rows[0]["p95"],p99NotWorse=rows[1]["p99"]<=rows[0]["p99"])
+    inclusion=after["offerLatency"]["offerToEffectiveInclusionLatencyMs"]["p99"]<=before["offerLatency"]["offerToEffectiveInclusionLatencyMs"]["p99"]
+    final=after["offerLatency"]["offerToQualifiedFinalLatencyMs"]["p99"]<=before["offerLatency"]["offerToQualifiedFinalLatencyMs"]["p99"]
+    tails=all(row["p95NotWorse"] and row["p99NotWorse"] for row in metrics.values())
+    return dict(metrics=metrics,offerToInclusionP99NotWorse=inclusion,offerToFinalP99NotWorse=final,
+                finiteJointAndTailImprovement=joint["finiteJointImprovementObserved"] and tails and inclusion and final,
+                sustainedTPSQualified=False,
+                interpretation="Finite actual same-VM comparison only. Keep adverse submission/CheckTx tails and original inclusion/final quantiles visible. Source tests or lower queue tails alone do not qualify TPS, sustained capacity or default promotion.")
+
+
 def joint_observation(before, after):
     rates=[row["summary"].get("finalSubmittedPerMeasurementSecond") for row in (before,after)]
     if any(type(v) not in (int,float) or not math.isfinite(v) or v <= 0 for v in rates):
@@ -412,8 +478,10 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
             out = root / (mode+"-actual.json")
             budget.active_case = case
             invoked = time.monotonic()
-            pace = "bounded-cadence" if comparison == "independent-shared" else mode
-            if comparison == "independent-shared":
+            pace = "bounded-cadence" if comparison in ("independent-shared","shared-fair") else mode
+            if comparison == "shared-fair":
+                code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=True,endpoint_fair=index==1)
+            elif comparison == "independent-shared":
                 code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=index==1)
             else:
                 code = run(source, build, case, out, "grpc", "supply-512x2", mode, pair_budget=budget)
@@ -426,22 +494,28 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
             if code != 0 or duration > 60:
                 raise RuntimeError("pair case failed or invocation/fsync exceeded60s: "+str(row.get("firstCause")))
             pair_case_qualified(row, pace)
-            if comparison in ("bounded-grouped","independent-shared"):
+            if comparison in ("bounded-grouped","independent-shared","shared-fair"):
                 # Read only the already qualified original client result. This
                 # I/O and its hash/quantiles remain inside the same pair budget.
                 client_raw=native.bounded(case/"network/transactions-result.json",16 << 20)
                 if hashlib.sha256(client_raw).hexdigest() != row.get("resultSHA256"):
                     raise RuntimeError("grouping pair raw client result hash differs")
                 client=json.loads(client_raw)
-                validate_report(client,"supply-512x2",pace)
+                validate_report(client,"supply-512x2",pace,endpoint_fair=comparison=="shared-fair" and index==1)
                 result["cases"][-1]["offerLatency"]=offer_latency_readout(client)
                 result["cases"][-1]["nodePhases"]=row["nodePhases"]
-                if comparison == "independent-shared":
+                if comparison in ("independent-shared","shared-fair"):
                     phases=validate_observer_phases(client)
-                    shared=validate_shared_replay(client,index==1)
-                    if row.get("observerPhases") != phases or row.get("sharedReplayVerification") != shared or row.get("sharedDurableReplay") is not (index==1):
+                    shared_expected=comparison=="shared-fair" or index==1
+                    shared=validate_shared_replay(client,shared_expected)
+                    if row.get("observerPhases") != phases or row.get("sharedReplayVerification") != shared or row.get("sharedDurableReplay") is not shared_expected:
                         raise RuntimeError("shared replay receipt differs from actual client timing/selection")
                     result["cases"][-1].update(observerPhases=phases,sharedReplayVerification=shared,durableReadback=client["durableReadback"])
+                if comparison == "shared-fair":
+                    dispatch=validate_endpoint_dispatch(client,index==1)
+                    if row.get("endpointDispatchVerification")!=dispatch or row.get("endpointFairSubmission") is not (index==1):
+                        raise RuntimeError("endpoint dispatch receipt differs from actual original client counters/selection")
+                    result["cases"][-1]["endpointDispatchVerification"]=dispatch
             result["closureScans"].append(empty_pair_closure(budget))
             if baseline is None:
                 baseline = row
@@ -455,8 +529,10 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                     raise RuntimeError("pair VM identity differs")
             budget.observe()
         result["casesQualified"] = True
-        if comparison in ("bounded-grouped","independent-shared"):
+        if comparison in ("bounded-grouped","independent-shared","shared-fair"):
             result["jointObservation"]=joint_observation(*result["cases"])
+        if comparison=="shared-fair":
+            result["dispatchTailObservation"]=dispatch_tail_observation(*result["cases"],result["jointObservation"])
     except Exception as error:
         result["firstCause"] = str(error)
     finally:
@@ -548,8 +624,10 @@ def validate_manifest(m, root):
     return m
 
 
-def validate_report(report, profile_name="supply-256x4", pacing="relative"):
+def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False):
     profile = recipe("grpc", profile_name, pacing)["profile"]
+    if report.get("endpointFairSubmission",False) is not endpoint_fair:
+        raise RuntimeError("actual endpoint fairness differs from selected profile")
     if (report.get("roundsCompleted") != profile["rounds"] or report.get("roundsRequested") != profile["rounds"] or report.get("senderMode") != "ready-pool"
             or report.get("inclusionMode") != "block-scan" or report.get("configuredOfferedRate") != 512
             or report.get("pacingMode") != pacing or report.get("setupErrors")):
@@ -663,8 +741,8 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False):
-    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay)
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None):
+    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -835,13 +913,15 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             mark("all_nodes_height2")
             output = network / "transactions-result.json"
             mark("client_start")
-            wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])))
+            wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])))
             client_report=json.loads(native.bounded(output,16 << 20))
-            result["measurement"] = validate_report(client_report, profile_name, pacing)
+            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True)
             if observer_phases:
                 result["observerPhases"]=validate_observer_phases(client_report)
             if shared_replay is not None:
                 result["sharedReplayVerification"]=validate_shared_replay(client_report,shared_replay)
+            if endpoint_fair is not None:
+                result["endpointDispatchVerification"]=validate_endpoint_dispatch(client_report,endpoint_fair)
             mark("client_complete")
             result["resultSHA256"] = native.digest(output)
     except Exception as error:
@@ -966,7 +1046,7 @@ if __name__ == "__main__":
     if args.prepare_pair or args.execute_pair:
         if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
                 or args.transport != "grpc" or args.profile != "supply-512x2" or args.pacing != "relative"
-                or args.observer_phases != (args.pair_kind=="independent-shared")):
+                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair"))):
             parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
         if args.prepare_pair:
             print(json.dumps(pair_recipe(args.pair_kind), indent=2))
