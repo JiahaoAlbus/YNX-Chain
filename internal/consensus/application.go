@@ -372,6 +372,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	if queryPQWallet(response, req, a.committed, a.migration) {
 		return response, nil
 	}
+	if queryPQIdentity(response, req, a.committed, a.migration, a.bootstrap) {
+		return response, nil
+	}
 	if queryPQEthereumValue(response, req, a.committed, a.migration) {
 		return response, nil
 	}

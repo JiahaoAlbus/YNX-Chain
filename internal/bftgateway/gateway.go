@@ -312,6 +312,7 @@ func (g *Gateway) Handler() http.Handler { return g.mux }
 func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /health", g.handleHealth)
 	g.mux.HandleFunc("GET /status", g.handleStatus)
+	g.mux.HandleFunc("GET /node/pq-identity", g.handlePQIdentity)
 	g.mux.HandleFunc("GET /blocks/{height}", g.handleBlock)
 	g.mux.HandleFunc("POST /transactions/broadcast", g.handleBroadcastTransaction)
 	g.mux.HandleFunc("POST /transactions/pq/broadcast", g.handlePQMemberBroadcast)
