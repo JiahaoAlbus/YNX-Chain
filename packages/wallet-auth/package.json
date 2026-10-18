@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.3.0-pq.3.6",
+  "version": "1.3.0-pq.3.7",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -169,7 +169,8 @@
     "FINANCE_ORDER_OPAQUE_V2.md",
     "native/original-auth-identity-source-verifier.mjs",
     "native/publication-readonly-source-r28-20261018/source",
-    "native/terminal-custody-recovery-r30a-20261018/source"
+    "native/terminal-custody-recovery-r30a-20261018/source",
+    "native/policy-revocation-source-r35-20261018/source"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -185,7 +186,8 @@
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
     "proof:product-session": "node test/generate-product-session-visible-proof.mjs",
     "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs",
-    "qa:pq-recovery": "node scripts/qa-pq-wallet-recovery.mjs"
+    "qa:pq-recovery": "node scripts/qa-pq-wallet-recovery.mjs",
+    "test:owned-interfaces": "node scripts/assert-pq-test-provider.mjs && node --test --test-concurrency=1 test/original-ide-private-client-r33.test.mjs test/original-auth-identity-private-joint-registration.test.mjs test/pq-wallet-policy.test.mjs test/pq-wallet-policy-v2.test.mjs test/auth-policy-r35-projection.test.mjs test/auth-policy-r35-normal-source-transaction.test.mjs && npm run test:types"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
@@ -195,7 +197,8 @@
   },
   "devDependencies": {
     "esbuild": "0.25.9",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@ynx/batch-v01-candidate": "file:testdata/ynx-batch-v01-candidate-0.1.0-candidate.2.tgz"
   },
   "engines": {
     "node": ">=22"
@@ -208,5 +211,10 @@
     "@ynx/batch-v01-candidate": {
       "optional": true
     }
+  },
+  "overrides": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
+    "@noble/ciphers": "2.2.0"
   }
 }

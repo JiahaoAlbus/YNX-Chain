@@ -13,7 +13,7 @@ export interface OriginalIDEPrivateClientCleanup {
   retire(...cause: [] | [unknown]): void;
   join(): Promise<void>;
   close(): Promise<void>;
-  status(): Readonly<{ready: boolean; retired: boolean; unknown: boolean; retained: number; firstCausePresent: boolean; cleanupFailurePresent: boolean; cleanupComplete: boolean}>;
+  status(): Readonly<{ready: boolean; retired: boolean; transportRetired: boolean; unknown: boolean; retained: number; firstCausePresent: boolean; cleanupFailurePresent: boolean; cleanupComplete: boolean}>;
 }
 export interface OriginalIDEPrivateServiceResponse {
   readonly status: number;
@@ -35,6 +35,8 @@ export interface OriginalIDEPrivateServiceChannel {
     nextOutboundFrame(): Promise<string | null>;
     acceptInboundFrame(rawFrameWithoutLF: string): void;
     assertCurrent(): void;
+    /** Stop and poison transport only. The caller drains entered work/diagnostics
+     * before original.retire/join/close performs actual Native cleanup. */
     retireTransport(...cause: [] | [unknown]): void;
   };
 }

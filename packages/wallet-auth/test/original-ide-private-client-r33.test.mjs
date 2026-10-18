@@ -116,3 +116,21 @@ test('R36 expired original completion may read DATA while business remains UNKNO
  const data=c.original.readTerminalCustody('handleReturn','effect',requestId);assert.equal(data.response.body,JSON.parse(responseRaw).body);assert.equal(f.terminals(),0);assert.equal(f.reads(),1);
  assert.equal(c.original.selectCurrentOutcome('handleReturn','effect',requestId).unknown,true);await assert.rejects(c.original.dispatch(r36Input),{code:'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN'});await c.original.close();
 });
+
+test('R37 transport stop preserves actual current for one original completion DATA read until explicit Native retirement',async()=>{
+ const f=fixture({readProof:r36Proof});await f.api.parent(entry);const c=await f.api.acquire(entry),pending=c.original.dispatch(r36Input);void pending.catch(()=>{});await c.framer.nextOutboundFrame();
+ try{
+  assert.equal(c.framer.retireTransport(false),undefined);await assert.rejects(pending,e=>e===false);
+  assert.equal(f.events.includes('retire'),false);assert.equal(c.original.status().transportRetired,true);assert.equal(c.original.status().retired,false);
+  assert.throws(()=>c.framer.assertCurrent(),e=>e===false);await assert.rejects(c.original.dispatch(r36Input),e=>e===false);
+  const data=c.original.readTerminalCustody('handleReturn','effect',requestId);assert.equal(data.proof.recordVersion,3);assert.equal(f.reads(),1);assert.equal(f.terminals(),0);assert.equal(c.original.selectCurrentOutcome('handleReturn','effect',requestId).unknown,true);
+  c.original.retire(false);assert.equal(f.events.filter(e=>e==='retire').length,1);assert.throws(()=>c.original.readTerminalCustody('handleReturn','effect',requestId),e=>e===false);
+ }finally{await c.original.close();}
+});
+test('R37 transport stop cannot turn missing current into a diagnostic grant or replace a falsy first cause',async()=>{
+ const f=fixture({readProof:r36Proof});await f.api.parent(entry);const c=await f.api.acquire(entry),pending=c.original.dispatch(r36Input);void pending.catch(()=>{});await c.framer.nextOutboundFrame();
+ try{
+  c.framer.retireTransport(undefined);await assert.rejects(pending,e=>e===undefined);assert.equal(f.events.includes('retire'),false);f.invalidate();
+  assert.throws(()=>c.original.readTerminalCustody('handleReturn','effect',requestId),e=>e===false);assert.equal(f.reads(),0);await assert.rejects(c.original.dispatch(r36Input),e=>e===undefined);assert.equal(c.original.status().unknown,true);
+ }finally{await c.original.close();}
+});
