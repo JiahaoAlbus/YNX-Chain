@@ -65,3 +65,10 @@ test('same captured proof survives post-action Host change; no replacement proce
  assert.equal(proofCalls,1);assert.equal(h.spawns(),3);assert.equal(h.holder.status().state,'revoked');const refs=await h.records();assert.equal(refs.candidates.length,17);const ref=refs.candidates.find(r=>r.kind==='verifier-result'),cold=await readPQFinalityVerifierEvidence(original,binding,new PQFinalityEvidence({directory:h.directory}),ref);
  assert.equal(cold.status,'verifier-result-data');assert.equal(cold.independentFinality,false);assert.equal(cold.canRetry,false);assert.equal(cold.clearsOriginal,false);h.holder.assertSafeToClose();capture.assertSafeToClose();
 });
+test('bounded producer timeout retains cleanup debt and late final bytes without another acquisition',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const h=await fixture(t),entered=gate(),release=gate();
+ h.response(async child=>{const out=h.f.encode().stdout,middle=Math.floor(out.length/2);child.stdout.emit('data',out.subarray(0,middle));entered.resolve();await release.promise;child.stdout.emit('data',out.subarray(middle));child.stderr.emit('data',Buffer.from('PUBLIC late diagnostic'));child.emit('close',0,null);});
+ const work=h.holder.acquire(h.guard),rejected=assert.rejects(work,{code:'PQ_HOST_PROCESS_INCOMPLETE'});await entered.promise;t.mock.timers.tick(30000);t.mock.timers.tick(1000);t.mock.timers.tick(1000);await rejected;
+ assert.equal(h.holder.status().pendingSave,true);assert.throws(()=>h.holder.assertSafeToClose());assert.equal((await h.records()).candidates.length,4);await assert.rejects(h.holder.saveHeld(h.guard),{code:'PQ_FINALITY_VERIFIER_CLEANUP_PENDING'});
+ release.resolve();await h.holder.join();const saved=await h.holder.saveHeld(h.guard);assert.equal(saved.saved,true);assert.equal(saved.held,false);assert.equal(saved.state,'revoked');assert.equal(h.spawns(),1);const found=await h.records();assert.equal(found.candidates.length,7);for(const ref of found.candidates)await h.evidence.read(original,binding,ref);h.holder.assertSafeToClose();
+});
