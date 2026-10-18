@@ -223,7 +223,7 @@ func TestConsensusPackageVerificationModesRejectMixedOrExtraArguments(t *testing
 				})
 			}
 		}
-		for _, generation := range []string{"-migration-state", "-validator-manifest", "-genesis-time", "-output"} {
+		for _, generation := range []string{"-migration-state", "-validator-manifest", "-genesis-time", "-output", "-operator-plan"} {
 			t.Run(mode+"+"+generation, func(t *testing.T) {
 				var out, diagnostic bytes.Buffer
 				if err := runCommand([]string{mode, "existing", generation, ""}, &out, &diagnostic); err == nil || !strings.Contains(err.Error(), "cannot be combined") || out.Len() != 0 {

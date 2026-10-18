@@ -2,17 +2,21 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"golang.org/x/sys/unix"
 )
 
 func main() {
@@ -22,24 +26,84 @@ func main() {
 	}
 }
 
+// Read only the exact public operator document selected by an independent pin.
+// No source rewrite, symlink traversal, pipe read, or unbounded allocation.
+func readPinnedOperatorPlan(path, expected string, maximum int64) ([]byte, error) {
+	pin, err := hex.DecodeString(expected)
+	if err != nil || len(pin) != sha256.Size || hex.EncodeToString(pin) != expected || bytes.Equal(pin, make([]byte, sha256.Size)) {
+		return nil, errors.New("operator plan requires an independent nonzero lowercase SHA256 pin")
+	}
+	if maximum <= 0 {
+		return nil, errors.New("invalid operator plan size bound")
+	}
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("operator plan path: %w", err)
+	}
+	resolved, err := filepath.EvalSymlinks(absolute)
+	if err != nil || resolved != absolute {
+		return nil, errors.New("operator plan must be an existing original file without symlink traversal")
+	}
+	fd, err := unix.Open(absolute, unix.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
+	if err != nil {
+		return nil, fmt.Errorf("open operator plan: %w", err)
+	}
+	file := os.NewFile(uintptr(fd), "public-operator-plan")
+	defer file.Close()
+	before, err := file.Stat()
+	if err != nil || !before.Mode().IsRegular() || before.Size() <= 0 || before.Size() > maximum {
+		return nil, errors.New("operator plan must be a nonempty bounded regular file")
+	}
+	raw, err := io.ReadAll(io.LimitReader(file, maximum+1))
+	if err != nil || int64(len(raw)) != before.Size() || int64(len(raw)) > maximum {
+		return nil, errors.New("operator plan changed or exceeded its bound during read")
+	}
+	after, statErr := file.Stat()
+	current, pathErr := os.Lstat(absolute)
+	same := func(info os.FileInfo) bool {
+		return info != nil && os.SameFile(before, info) && before.Mode() == info.Mode() && before.Size() == info.Size() && before.ModTime().Equal(info.ModTime())
+	}
+	if statErr != nil || pathErr != nil || !same(after) || !same(current) {
+		return nil, errors.New("operator plan original changed during read")
+	}
+	digest := sha256.Sum256(raw)
+	if !bytes.Equal(digest[:], pin) {
+		return nil, errors.New("operator plan differs from its independent SHA256 pin")
+	}
+	return raw, nil
+}
+
 func runCommand(args []string, stdout, stderr io.Writer) error {
 	flags := flag.NewFlagSet("ynx-consensus-package", flag.ContinueOnError)
 	flags.SetOutput(stderr)
-	verifyPackage := flags.String("verify-package", "", "verify an existing production candidate package and exit")
-	verifyMigration := flags.String("verify-migration-state", "", "verify one unbound YNX migration state and exit")
-	verifyExecution := flags.String("verify-migration-execution", "", "read-only migration executor compatibility check; no validator binding, application restore, deployment, InitChain or PQ activation")
-	migrationPath := flags.String("migration-state", "", "validated unbound YNX migration state")
-	validatorManifestPath := flags.String("validator-manifest", "", "public-key-only production validator manifest")
-	genesisTime := flags.String("genesis-time", "", "explicit whole-second UTC genesis time in RFC3339 format")
-	output := flags.String("output", "", "new output directory for the production candidate package")
+	supplied := make(map[string]bool)
+	stringFlag := func(name, usage string) *string {
+		value := new(string)
+		flags.Func(name, usage, func(input string) error {
+			if supplied[name] {
+				return fmt.Errorf("duplicate -%s", name)
+			}
+			supplied[name] = true
+			*value = input
+			return nil
+		})
+		return value
+	}
+	verifyPackage := stringFlag("verify-package", "verify an existing production candidate package and exit")
+	verifyMigration := stringFlag("verify-migration-state", "verify one unbound YNX migration state and exit")
+	verifyExecution := stringFlag("verify-migration-execution", "read-only migration executor compatibility check; no validator binding, application restore, deployment, InitChain or PQ activation")
+	migrationPath := stringFlag("migration-state", "validated unbound YNX migration state")
+	validatorManifestPath := stringFlag("validator-manifest", "public-key-only production validator manifest")
+	genesisTime := stringFlag("genesis-time", "explicit whole-second UTC genesis time in RFC3339 format")
+	output := stringFlag("output", "new output directory for the production candidate package")
+	operatorPlan := stringFlag("operator-plan", "existing public operator plan for the single-Application package; requires -operator-plan-hash")
+	operatorPlanHash := stringFlag("operator-plan-hash", "independent lowercase SHA256 pin of the exact operator plan bytes")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
 		return errors.New("unexpected positional arguments")
 	}
-	supplied := make(map[string]bool)
-	flags.Visit(func(f *flag.Flag) { supplied[f.Name] = true })
 	mode := ""
 	for _, name := range []string{"verify-package", "verify-migration-state", "verify-migration-execution"} {
 		if supplied[name] {
@@ -50,14 +114,21 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		}
 	}
 	if mode != "" {
-		for _, name := range []string{"migration-state", "validator-manifest", "genesis-time", "output"} {
+		for _, name := range []string{"migration-state", "validator-manifest", "genesis-time", "output", "operator-plan"} {
 			if supplied[name] {
 				return fmt.Errorf("-%s cannot be combined with package generation flags", mode)
 			}
 		}
-		if strings.TrimSpace(flags.Lookup(mode).Value.String()) == "" {
+		if supplied["operator-plan-hash"] && (mode != "verify-package" || strings.TrimSpace(*operatorPlanHash) == "") {
+			return errors.New("-operator-plan-hash is allowed only for pinned package generation or -verify-package with a nonempty independent pin")
+		}
+		modeInput := map[string]string{"verify-package": *verifyPackage, "verify-migration-state": *verifyMigration, "verify-migration-execution": *verifyExecution}
+		if strings.TrimSpace(modeInput[mode]) == "" {
 			return fmt.Errorf("-%s requires an existing input path", mode)
 		}
+	}
+	if mode == "" && (supplied["operator-plan"] != supplied["operator-plan-hash"] || (supplied["operator-plan"] && (strings.TrimSpace(*operatorPlan) == "" || strings.TrimSpace(*operatorPlanHash) == ""))) {
+		return errors.New("-operator-plan and -operator-plan-hash must be supplied together and nonempty")
 	}
 	switch mode {
 	case "verify-migration-state":
@@ -75,13 +146,28 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		_, err = fmt.Fprintf(stdout, "consensus migration execution passed: height=%d lastBlockHash=%s stateHash=%s blockers=0 scope=executor-compatibility-only validatorBinding=unchecked applicationRestore=unchecked deployment=not-performed initChain=not-performed pqActivation=not-performed\n", migration.Height, migration.LastBlockHash, migration.StateHash)
 		return err
 	case "verify-package":
+		if supplied["operator-plan-hash"] {
+			if err := consensus.VerifyProductionOperatorCandidatePackage(*verifyPackage, *operatorPlanHash); err != nil {
+				return err
+			}
+			_, err := fmt.Fprintf(stdout, "production BFT candidate package hashes and file boundaries passed: mode=single-app-operator source=independently-pinned-public-operator-plan operatorPlanHash=%s runtimeStarted=false deployment=not-performed pqActivation=not-performed\n", *operatorPlanHash)
+			return err
+		}
 		if err := consensus.VerifyProductionCandidatePackage(*verifyPackage); err != nil {
 			return err
 		}
-		_, err := fmt.Fprintln(stdout, "production BFT candidate package hashes and file boundaries passed")
+		_, err := fmt.Fprintln(stdout, "production BFT candidate package hashes and file boundaries passed: mode=legacy-external-abci runtimeStarted=false deployment=not-performed pqActivation=not-performed")
 		return err
 	default:
-		return run(*migrationPath, *validatorManifestPath, *genesisTime, *output)
+		var rawPlan []byte
+		if supplied["operator-plan"] {
+			var err error
+			rawPlan, err = readPinnedOperatorPlan(*operatorPlan, *operatorPlanHash, consensus.MaxProductionOperatorPlanBytes)
+			if err != nil {
+				return err
+			}
+		}
+		return runGeneration(*migrationPath, *validatorManifestPath, *genesisTime, *output, rawPlan, *operatorPlanHash, stdout)
 	}
 }
 
@@ -125,6 +211,10 @@ func verifyMigrationExecution(path string) (chain.ConsensusMigrationState, error
 }
 
 func run(migrationPath, validatorManifestPath, genesisTimeValue, output string) error {
+	return runGeneration(migrationPath, validatorManifestPath, genesisTimeValue, output, nil, "", os.Stdout)
+}
+
+func runGeneration(migrationPath, validatorManifestPath, genesisTimeValue, output string, rawPlan []byte, planHash string, stdout io.Writer) error {
 	for label, value := range map[string]string{"-migration-state": migrationPath, "-validator-manifest": validatorManifestPath, "-genesis-time": genesisTimeValue, "-output": output} {
 		if strings.TrimSpace(value) == "" {
 			return fmt.Errorf("%s is required", label)
@@ -153,10 +243,17 @@ func run(migrationPath, validatorManifestPath, genesisTimeValue, output string) 
 	if err != nil {
 		return fmt.Errorf("parse genesis time: %w", err)
 	}
-	result, err := consensus.GenerateProductionCandidatePackage(migration, validatorManifest, output, parsedGenesisTime)
+	var result consensus.ProductionCandidatePackageManifest
+	mode, source := "legacy-external-abci", "original-migration-and-validator-manifest"
+	if rawPlan != nil {
+		result, err = consensus.GenerateProductionCandidatePackageWithOperator(migration, validatorManifest, output, parsedGenesisTime, rawPlan, planHash)
+		mode, source = "single-app-operator", "independently-pinned-public-operator-plan"
+	} else {
+		result, err = consensus.GenerateProductionCandidatePackage(migration, validatorManifest, output, parsedGenesisTime)
+	}
 	if err != nil {
 		return err
 	}
-	fmt.Printf("production BFT candidate package ready: chain=%s roles=%d genesisHash=%s migrationStateHash=%s output=%s\n", result.ChainID, len(result.Roles), result.GenesisHash, result.MigrationStateHash, output)
-	return nil
+	_, err = fmt.Fprintf(stdout, "production BFT candidate package ready: chain=%s roles=%d genesisHash=%s migrationStateHash=%s output=%s mode=%s source=%s operatorPlanHash=%s runtimeStarted=false deployment=not-performed pqActivation=not-performed\n", result.ChainID, len(result.Roles), result.GenesisHash, result.MigrationStateHash, output, mode, source, planHash)
+	return err
 }

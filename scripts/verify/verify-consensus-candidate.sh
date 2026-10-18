@@ -31,7 +31,7 @@ consensus_candidate_verify() {
   # exclusive retained copy before setting only its executable bits. A failure
   # leaves the evidence root and any partial copy untouched for reconciliation.
   prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$evidence_root/runtime" || return $?
-  "$evidence_root/runtime/ynx-consensus-package" -verify-package "$package_root" || return $?
+  verify_candidate_package "$evidence_root/runtime/ynx-consensus-package" "$package_root" || return $?
 
   # No environment initialization or remote operation occurs until both the
   # independent runtime pins and the actual public package have been verified.

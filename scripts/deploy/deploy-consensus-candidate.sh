@@ -151,6 +151,20 @@ prepare_runtime_bundle() {
   done
 }
 
+# The operator plan is authority input, so its expected hash must come from the
+# operator's independent environment. Never infer it from the candidate itself.
+# The normal verifier rejects an operator package when this pin is absent.
+verify_candidate_package() {
+  local binary="$1" package_root="$2"
+  local operator_pin="${CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256:-}"
+  if [[ -n "$operator_pin" ]]; then
+    [[ "$operator_pin" =~ ^[0-9a-f]{64}$ ]] || { echo "CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256 must be an independent lowercase SHA256 pin" >&2; return 1; }
+    "$binary" -verify-package "$package_root" -operator-plan-hash "$operator_pin"
+  else
+    "$binary" -verify-package "$package_root"
+  fi
+}
+
 # Original verification callers may reuse this exact parser without invoking
 # deployment initialization, work-directory creation or any remote command.
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
@@ -186,14 +200,20 @@ mkdir -p "$work/bin" "$work/roles"
 
 echo "verifying pinned production candidate runtime for linux/amd64"
 prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$(cd "$work" && pwd -P)/runtime"
-for binary in ynx-abci ynx-bft-gatewayd ynx-consensus-keycheck; do
-  cp "$work/runtime/$binary" "$work/bin/$binary"
-done
 cp "$work/runtime/SOURCE.json" "$work/runtime-SOURCE.json"
-# The generated role keeps its established on-disk cometbft name. Its bytes
-# are exactly the independently pinned normal ynx-comet entrypoint.
-cp "$work/runtime/ynx-comet" "$work/bin/cometbft"
-"$work/runtime/ynx-consensus-package" -verify-package "$package_root"
+verify_candidate_package "$work/runtime/ynx-consensus-package" "$package_root"
+operator_package=0
+if [[ -n "${CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256:-}" ]]; then
+  # The normal verifier above has authenticated this precise operator mode.
+  operator_package=1
+  cp "$work/runtime/ynx-comet" "$work/runtime/ynx-consensus-keycheck" "$work/bin/"
+else
+  for binary in ynx-abci ynx-bft-gatewayd ynx-consensus-keycheck; do
+    cp "$work/runtime/$binary" "$work/bin/$binary"
+  done
+  # Preserve the explicitly selected legacy external-ABCI package profile.
+  cp "$work/runtime/ynx-comet" "$work/bin/cometbft"
+fi
 
 if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
   CONSENSUS_CANDIDATE_RUNTIME_BUNDLE="$(cd "$work/runtime" && pwd -P)" \
@@ -218,6 +238,7 @@ trap cleanup_failed_candidate_deploy EXIT
 
 deploy_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
+  local operator_package="${operator_package:-0}"
   local role_source="$package_root/roles/$role"
   [[ -d "$role_source" ]] || { echo "candidate package is missing role $role" >&2; return 1; }
   local stage="$work/roles/$role" archive="$work/${release}-${role}.tar.gz"
@@ -228,9 +249,13 @@ deploy_candidate_role() {
   mkdir -m 0700 "$stage"
   (umask 077; set -o noclobber; : > "$archive")
   mkdir -p "$stage/bin" "$stage/role"
-  cp "$work/bin/ynx-abci" "$work/bin/ynx-consensus-keycheck" "$work/bin/cometbft" "$stage/bin/"
+  if [[ "$operator_package" == 1 ]]; then
+    cp "$work/bin/ynx-comet" "$work/bin/ynx-consensus-keycheck" "$stage/bin/"
+  else
+    cp "$work/bin/ynx-abci" "$work/bin/ynx-consensus-keycheck" "$work/bin/cometbft" "$stage/bin/"
+  fi
   cp "$work/runtime-SOURCE.json" "$stage/runtime-SOURCE.json"
-  if [[ "$role" == "primary" ]]; then
+  if [[ "$role" == "primary" && "$operator_package" == 0 ]]; then
     cp "$work/bin/ynx-bft-gatewayd" "$stage/bin/"
   fi
   cp -R "$role_source/." "$stage/role/"
@@ -253,10 +278,12 @@ sudo mkdir -m 0700 '$remote_dir'
 (umask 077; set -o noclobber; : > '$remote_archive')"
   ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; test -f '$remote_archive'; test ! -L '$remote_archive'; test \"\$(stat -c %a '$remote_archive')\" = 600; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; sudo test -d '$remote_dir'; if sudo test -L '$remote_dir'; then exit 1; fi; sudo tar -xzf '$remote_archive' -C '$remote_dir'"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo '$remote_dir/bin/ynx-consensus-keycheck' -role-manifest '$remote_dir/role/role-manifest.json' -private-validator-key '/etc/ynx/consensus-candidate/$role/priv_validator_key.json' -node-key '/etc/ynx/consensus-candidate/$role/node_key.json'"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "if sudo test -d /var/lib/ynx-chain/consensus-candidate; then sudo bash '$remote_dir/role/scripts/backup-candidate.sh' '/var/backups/ynx-chain/consensus-candidate-before-${release}-${role}.tar.gz'; fi"
+  if [[ "$operator_package" == 0 ]]; then
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo '$remote_dir/bin/ynx-consensus-keycheck' -role-manifest '$remote_dir/role/role-manifest.json' -private-validator-key '/etc/ynx/consensus-candidate/$role/priv_validator_key.json' -node-key '/etc/ynx/consensus-candidate/$role/node_key.json'"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "if sudo test -d /var/lib/ynx-chain/consensus-candidate; then sudo bash '$remote_dir/role/scripts/backup-candidate.sh' '/var/backups/ynx-chain/consensus-candidate-before-${release}-${role}.tar.gz'; fi"
+  fi
   ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/install-candidate.sh'"
-  if [[ "$role" == "primary" ]]; then
+  if [[ "$role" == "primary" && "$operator_package" == 0 ]]; then
     ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo install -m 0755 -o root -g root '$remote_dir/bin/ynx-bft-gatewayd' '/var/lib/ynx-chain/consensus-candidate/bin/ynx-bft-gatewayd'"
   fi
 }
@@ -266,8 +293,24 @@ ynx_ops_each_node deploy_candidate_role
 
 verify_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
+  local operator_package="${operator_package:-0}"
   local remote_dir="/opt/ynx-chain/consensus-candidates/${release}/${role}" remote_archive="/tmp/${release}-${role}.tar.gz" archive_hash
   archive_hash="$(shasum -a 256 "$work/${release}-${role}.tar.gz" | awk '{print $1}')"
+  if [[ "$operator_package" == 1 ]]; then
+    # Installation deliberately does not start the single writer. Compare the
+    # installed files to this independently verified, hash-pinned release; a
+    # service-active check here would falsely conflate staging with activation.
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail
+sudo cmp '$remote_dir/bin/ynx-comet' '/var/lib/ynx-chain/consensus-candidate/bin/ynx-comet'
+sudo cmp '$remote_dir/bin/ynx-consensus-keycheck' '/var/lib/ynx-chain/consensus-candidate/bin/ynx-consensus-keycheck'
+sudo cmp '$remote_dir/role/role-manifest.json' '/var/lib/ynx-chain/consensus-candidate/role-manifest.json'
+sudo cmp '$remote_dir/role/scripts/start-operator.sh' '/var/lib/ynx-chain/consensus-candidate/scripts/start-operator.sh'
+for input in '$remote_dir/role/config/'*; do sudo cmp \"\$input\" \"/var/lib/ynx-chain/consensus-candidate/config/\$(basename -- \"\$input\")\"; done
+test -f '$remote_archive'
+test ! -L '$remote_archive'
+printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -"
+    return
+  fi
   # A later role or verification may fail. Keep every original package even
   # after this role succeeds, and verify its exact bytes instead of deleting it.
   ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/verify-candidate.sh' && systemctl is-active ynx-chaind >/dev/null && test -f '$remote_archive' && test ! -L '$remote_archive' && printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -"
@@ -275,4 +318,8 @@ verify_candidate_role() {
 
 ynx_ops_each_node verify_candidate_role
 deployment_complete=1
+if [[ "$operator_package" == 1 ]]; then
+  echo "single-App operator package installation path completed for $release; runtimeStarted=false publicDeployment=false pqActivation=false; original home, signing custody and public ingress retained"
+  exit 0
+fi
 echo "candidate deployment path completed for $release; public ingress and authoritative ynx-chaind remain unchanged"

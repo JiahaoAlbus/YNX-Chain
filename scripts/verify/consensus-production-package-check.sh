@@ -51,7 +51,7 @@ node scripts/verify/build-consensus-production-fixture.mjs "$tmp/lab/network-man
   -validator-manifest "$tmp/validator-manifest.json" \
   -genesis-time 2026-08-01T00:00:00Z \
   -output "$tmp/package" >/dev/null
-"$package_verifier" -verify-package "$tmp/package" >/dev/null
+verify_candidate_package "$package_verifier" "$tmp/package" >/dev/null
 bash -n "$tmp"/package/roles/*/scripts/*.sh
 for role in primary singapore silicon-valley seoul; do
   grep -Fq '/var/lib/ynx-chain/consensus-candidate/bin/ynx-abci' "$tmp/package/roles/$role/systemd/ynx-consensus-abci-candidate.service"

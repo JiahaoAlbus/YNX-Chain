@@ -39,7 +39,7 @@ type pqOptions struct {
 }
 
 func (p pqOptions) enabled() bool {
-	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD >= 0 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json"
+	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json"
 }
 
 func (p pqOptions) remote() bool {
@@ -69,6 +69,9 @@ func (p pqOptions) validate() error {
 				return errors.New("runtime upgrade requires original state and every independent genesis/migration pin")
 			}
 		}
+		return nil
+	}
+	if p.bootstrapOnly() {
 		return nil
 	}
 	for _, value := range []string{p.migration, p.state, p.genesisHash, p.originalGenesisHash, p.migrationHash, p.schedule, p.scheduleHash, p.binding} {
@@ -308,6 +311,8 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		defer func() { result = errors.Join(result, legacyLease.Close()) }()
 		if options.runtimeOnly() {
 			node, custody, err = constructRuntimeNode(config, logger, options)
+		} else if options.bootstrapOnly() {
+			node, custody, err = constructBootstrapNode(config, logger, options)
 		} else {
 			node, custody, err = constructPQNode(config, logger, options)
 		}

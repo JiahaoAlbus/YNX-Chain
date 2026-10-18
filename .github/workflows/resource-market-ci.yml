@@ -320,6 +320,8 @@ jobs:
         run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
       - name: Compile production entry points
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        env:
+          YNX_CONSENSUS_OPERATOR_FIXTURE_OUT: ${{ runner.temp }}/ynx-consensus-operator-public-inputs
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-proof-verify
@@ -343,7 +345,25 @@ jobs:
           cp internal/consensus/production.go "$YNX_HISTORY_SCRIPT_CASE/fixed-production.go"
           cp scripts/ops/rollback-consensus-candidate.sh "$YNX_HISTORY_SCRIPT_CASE/fixed-rollback.sh"
           trap 'cp "$YNX_HISTORY_SCRIPT_CASE/fixed-production.go" internal/consensus/production.go; cp "$YNX_HISTORY_SCRIPT_CASE/fixed-rollback.sh" scripts/ops/rollback-consensus-candidate.sh' EXIT
-          git show 3a72627aae36a94b61d3c771ad14e313f3510361:internal/consensus/production.go > internal/consensus/production.go
+          # Restore only the original real script generator. Replacing the
+          # entire old file would remove newer operator APIs and manufacture a
+          # compile error instead of reproducing the history overwrite.
+          python3 -B - <<'PY'
+          import re, subprocess
+          from pathlib import Path
+          path = Path('internal/consensus/production.go')
+          fixed = path.read_text()
+          old = subprocess.check_output(['git', 'show', '3a72627aae36a94b61d3c771ad14e313f3510361:internal/consensus/production.go'], text=True)
+          def span(text):
+              start = re.search(r'^func writeProductionRoleScripts\(', text, re.M)
+              if start is None:
+                  raise RuntimeError('original script generator missing')
+              following = re.search(r'^func ', text[start.end():], re.M)
+              return start.start(), len(text) if following is None else start.end() + following.start()
+          a, b = span(fixed)
+          c, d = span(old)
+          path.write_text(fixed[:a] + old[c:d] + fixed[b:])
+          PY
           set +e
           go test -p 1 -count=1 -timeout=60s -v -run '^TestProductionRoleScriptsPreserveSignedStateAndUnknownResults$/^existing-signed-install$' ./internal/consensus > "$YNX_HISTORY_SCRIPT_CASE/original-install-red.log" 2>&1
           YNX_HISTORY_INSTALL_RED=$?
@@ -1024,6 +1044,143 @@ jobs:
             test "$(stat -c %a "$YNX_DELIVERY_ARCHIVE/$YNX_DELIVERY_BINARY")" = 644
             cmp "$YNX_DELIVERY_ORIGINAL/$YNX_DELIVERY_BINARY" "$YNX_DELIVERY_ARCHIVE/$YNX_DELIVERY_BINARY"
           done
+      - name: Verify normal single-App operator package and original deployment caller
+        id: pqoperatorcli
+        if: ${{ success() && github.event_name == 'push' }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PY'
+          import hashlib, json, os, re, shutil, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          fixture = root / 'ynx-consensus-operator-public-inputs'
+          def unique(pairs):
+              out = {}
+              for key, value in pairs:
+                  if key in out:
+                      raise RuntimeError('duplicate public fixture field')
+                  out[key] = value
+              return out
+          def decode(raw):
+              return json.loads(raw, object_pairs_hook=unique)
+          def sha(raw):
+              return hashlib.sha256(raw).hexdigest()
+          manifest_raw = (fixture / 'manifest.json').read_bytes()
+          manifest = decode(manifest_raw)
+          if (manifest['version'] != 'YNX-CONSENSUS-OPERATOR-PUBLIC-FIXTURE/v1'
+                  or manifest['syntheticOnly'] is not True or manifest['publicOnly'] is not True
+                  or any(manifest[name] is not False for name in
+                      ('runtimeStarted', 'publicDeployment', 'pqActivation', 'authorityGranted'))):
+              raise RuntimeError('public operator fixture must not grant production authority')
+          layouts = ('atomic-json', 'snapshot-journal', 'block-journal')
+          names = {'migration.json', 'validator-manifest.json', 'genesis.json'} | {'operator-' + name + '.json' for name in layouts}
+          if set(manifest['files']) != names or {p.name for p in fixture.iterdir()} != names | {'manifest.json'}:
+              raise RuntimeError('unexpected public operator input allowlist')
+          materials = {}
+          for name in names:
+              raw = (fixture / name).read_bytes()
+              if not 0 < len(raw) <= 16 << 20 or manifest['files'][name] != dict(bytes=len(raw), sha256=sha(raw)):
+                  raise RuntimeError('public operator input pin differs')
+              materials[name] = raw
+          if len(manifest['layouts']) != 3 or tuple(item['stateLayout'] for item in manifest['layouts']) != layouts:
+              raise RuntimeError('public operator layouts differ')
+          candidate = root / 'ynx-pq-linux-runtime-candidate'
+          source_raw = (candidate / 'SOURCE.json').read_bytes()
+          source = decode(source_raw)
+          binary = candidate / 'ynx-consensus-package'
+          binary_pin = source['binaries'][binary.name]
+          if source['commit'] != os.environ['GITHUB_SHA'] or binary_pin != dict(bytes=binary.stat().st_size, sha256=sha(binary.read_bytes())):
+              raise RuntimeError('normal operator CLI differs from fixed source binary')
+          required_kb = 16 * sum(p['bytes'] for p in source['binaries'].values()) // 1024 + 1048576
+          if shutil.disk_usage(root).free // 1024 <= required_kb:
+              raise RuntimeError('insufficient free disk for retained operator delivery copies')
+          case = root / ('ynx-operator-cli-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          case.mkdir(mode=0o700)
+          for name, raw in materials.items():
+              with (case / name).open('xb') as target:
+                  target.write(raw)
+          environment = dict(PATH='/usr/bin:/bin', GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB')
+          workspace = Path(os.environ['GITHUB_WORKSPACE'])
+          deploy_source = workspace / 'scripts/deploy/deploy-consensus-candidate.sh'
+          cases = []
+          def execute(name, command, expected_exit, env):
+              result = subprocess.run(command, capture_output=True, timeout=30, cwd=case, env=env, check=False)
+              if result.returncode != expected_exit or len(result.stdout) + len(result.stderr) > 65536:
+                  raise RuntimeError(name + ' failed: ' + str(result.returncode) + ' ' + result.stderr[:4096].decode(errors='replace'))
+              cases.append(dict(name=name, exitCode=result.returncode, stdoutSHA256=sha(result.stdout), stderrSHA256=sha(result.stderr)))
+              return result
+          for item in manifest['layouts']:
+              layout = item['stateLayout']
+              plan_name = 'operator-' + layout + '.json'
+              pin = item['operatorPlanHash']
+              expected_generation = ['-migration-state', 'migration.json', '-validator-manifest', 'validator-manifest.json', '-genesis-time', manifest['genesisTime'], '-output', 'candidate-' + layout]
+              if (item['operatorPlan'] != plan_name or not re.fullmatch('[0-9a-f]{64}', pin)
+                      or sha(materials[plan_name]) != pin or item['generationArgs'] != expected_generation
+                      or item['operatorArgs'] != ['-operator-plan', plan_name, '-operator-plan-hash', pin]):
+                  raise RuntimeError('operator fixture command or external pin differs')
+              output = case / ('candidate-' + layout)
+              generated = execute(layout + '-normal-generation', [str(binary)] + expected_generation + item['operatorArgs'], 0, environment)
+              if generated.stderr or b'mode=single-app-operator' not in generated.stdout:
+                  raise RuntimeError('normal generation did not select single App')
+              if (output / 'common/genesis.json').read_bytes() != materials['genesis.json']:
+                  raise RuntimeError('normal generator changed original raw genesis')
+              command = ['bash', '-c', 'source "$1"; verify_candidate_package "$2" "$3"', 'bash', str(deploy_source), str(binary), str(output)]
+              for mode in ('pinned', 'missing-pin', 'wrong-pin'):
+                  env = dict(environment)
+                  if mode != 'missing-pin':
+                      env['CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256'] = pin if mode == 'pinned' else ('a' if pin[0] != 'a' else 'b') + pin[1:]
+                  result = execute(layout + '-' + mode, command, 0 if mode == 'pinned' else 1, env)
+                  if mode == 'pinned' and (result.stderr or b'mode=single-app-operator' not in result.stdout):
+                      raise RuntimeError('shared production caller lost operator verification')
+                  if mode != 'pinned' and result.stdout:
+                      raise RuntimeError('rejected plan produced success output')
+          # Exercise the real deployment script in its original transport-free
+          # dry-run. No signer process, node, SSH, service, or activation runs.
+          env_file = case / 'deploy.env'
+          key_file = case / 'synthetic-ssh-reference'
+          key_file.write_bytes(b'')
+          key_file.chmod(0o600)
+          with env_file.open('x') as target:
+              for prefix, host in (('PRIMARY_NODE', '127.0.0.1'), ('SG_NODE', '127.0.0.2'), ('SILICON_VALLEY_NODE', '127.0.0.3'), ('SEOUL_NODE', '127.0.0.4')):
+                  target.write(prefix + '_HOST=' + host + '\n' + prefix + '_USER=ynx\n' + prefix + '_SSH_KEY=' + str(key_file) + '\n')
+          env = dict(environment, DEPLOY_DRY_RUN='1', ENV_FILE=str(env_file), CONSENSUS_CANDIDATE_PACKAGE=str(case / 'candidate-block-journal'),
+              CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256=manifest['layouts'][2]['operatorPlanHash'], CONSENSUS_CANDIDATE_RUNTIME_BUNDLE=str(candidate),
+              CONSENSUS_CANDIDATE_RUNTIME_COMMIT=os.environ['GITHUB_SHA'], CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256=sha(source_raw),
+              CONSENSUS_CANDIDATE_WORK_ROOT=str(case / 'deploy-work'))
+          result = subprocess.run(['bash', str(deploy_source)], cwd=workspace, env=env, capture_output=True, timeout=90, check=False)
+          if result.returncode != 0 or b'runtimeStarted=false publicDeployment=false pqActivation=false' not in result.stdout:
+              raise RuntimeError('normal operator deployment dry-run failed: ' + result.stderr[:4096].decode(errors='replace'))
+          forbidden = (b'-private-validator-key', b'backup-candidate.sh', b'bin/ynx-abci', b'bin/cometbft', b'ynx-bft-gatewayd', b'systemctl start', b'systemctl stop')
+          if any(item in result.stdout for item in forbidden):
+              raise RuntimeError('operator delivery escaped the single-App/custody boundary')
+          for role in ('primary', 'singapore', 'silicon-valley', 'seoul'):
+              staged = case / 'deploy-work' / ('ynx-consensus-candidate-' + os.environ['GITHUB_SHA'][:12]) / 'roles' / role
+              if {p.name for p in (staged / 'bin').iterdir()} != {'ynx-comet', 'ynx-consensus-keycheck'}:
+                  raise RuntimeError('operator stage contains an independent writer or product')
+              for name in ('ynx-comet', 'ynx-consensus-keycheck'):
+                  if sha((staged / 'bin' / name).read_bytes()) != source['binaries'][name]['sha256']:
+                      raise RuntimeError('operator stage replaced pinned binary')
+          if any((fixture / name).read_bytes() != raw or (case / name).read_bytes() != raw for name, raw in materials.items()):
+              raise RuntimeError('operator verification changed original public inputs')
+          receipt = dict(version='YNX-CONSENSUS-OPERATOR-CLI-RECEIPT/v1', commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'],
+              manifestSHA256=sha(manifest_raw), binaryPin=binary_pin, layouts=3, cases=cases, originalDeploymentDryRun=True,
+              originalInputsUnchanged=True, syntheticOnly=True, normalCLIExecuted=True, runtimeStarted=False, publicDeployment=False, pqActivation=False)
+          with (root / 'ynx-consensus-operator-cli-public-receipt.json').open('x') as target:
+              target.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
+          print('YNX_CONSENSUS_OPERATOR_CLI ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
+          PY
+      - name: Upload only public operator inputs and normal CLI receipt
+        if: ${{ !cancelled() && steps.pqoperatorcli.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-consensus-operator-public-interop-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-consensus-operator-public-inputs
+            ${{ runner.temp }}/ynx-consensus-operator-cli-public-receipt.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Verify normal proof CLI with exact public interoperability fixture
         id: pqproofcli
         if: ${{ success() && github.event_name == 'push' }}

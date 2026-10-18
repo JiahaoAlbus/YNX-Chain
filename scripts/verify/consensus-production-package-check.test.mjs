@@ -36,6 +36,7 @@ function invoke(options = {}) {
     CONSENSUS_CANDIDATE_RUNTIME_BUNDLE: bundle,
     CONSENSUS_CANDIDATE_RUNTIME_COMMIT: commit,
     CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256: manifestSHA,
+    CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256: '',
     YNX_TEST_COMMIT: commit,
     YNX_TEST_VALIDATION: validation,
     YNX_TEST_PREPARATION: preparation,
@@ -164,6 +165,7 @@ test('sourcing shared runtime helpers and the verifier has no initialization or 
       'source "$YNX_SOURCE_VERIFY"',
       'declare -F validate_runtime_bundle >/dev/null',
       'declare -F prepare_runtime_bundle >/dev/null',
+      'declare -F verify_candidate_package >/dev/null',
       'declare -F consensus_candidate_verify >/dev/null',
     ].join('\n');
     const result = spawnSync('bash', ['-c', script], {
@@ -204,6 +206,7 @@ function evidenceFixture(callback) {
         CONSENSUS_CANDIDATE_RUNTIME_BUNDLE: bundle,
         CONSENSUS_CANDIDATE_RUNTIME_COMMIT: commit,
         CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256: manifestSHA,
+        CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256: '',
         DEPLOY_DRY_RUN: options.dryRun === false ? '0' : '1',
         YNX_TEST_COMMIT: commit,
         YNX_TEST_VALIDATION: validation,
@@ -216,11 +219,13 @@ function evidenceFixture(callback) {
         YNX_TEST_TRANSPORT: transport,
         YNX_TEST_FORBIDDEN: forbidden,
         YNX_TEST_VERIFY: join(root, 'scripts/verify/verify-consensus-candidate.sh'),
+        YNX_TEST_DEPLOY: join(root, 'scripts/deploy/deploy-consensus-candidate.sh'),
         YNX_TEST_OPS: join(root, 'scripts/ops/lib.sh'),
         ...(options.env ?? {}),
       };
       const script = [
         'set -Eeuo pipefail',
+        'source "$YNX_TEST_DEPLOY"',
         'source "$YNX_TEST_VERIFY"',
         'source "$YNX_TEST_OPS"',
         'git() { [[ "$*" == "rev-parse HEAD" ]] || return 98; printf "%s\\n" "$YNX_TEST_COMMIT"; }',
@@ -259,6 +264,42 @@ test('actual evidence dry-run uses a retained copy, no remote transport and no c
       assert.equal(existsSync(join(f.evidence, role, 'status.json')), false);
     }
     assert.ok(result.stdout.includes('no remote or public proof was generated'));
+  });
+});
+
+test('actual shared package verifier forwards only the independent operator pin as one exact argument', () => {
+  evidenceFixture(f => {
+    const pin = 'e'.repeat(64);
+    const result = f.invoke({ env: { CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256: pin } });
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(values(f.packageCalls), ['-verify-package', f.packageRoot, '-operator-plan-hash', pin]);
+    assert.equal(existsSync(f.transport), false);
+  });
+});
+
+test('malformed independent operator pins fail before calling the binary or initializing transport', () => {
+  for (const pin of ['e'.repeat(63), 'E'.repeat(64), 'e'.repeat(64) + '\n', '$(touch forbidden)', 'e'.repeat(64) + ' -verify-package other']) {
+    evidenceFixture(f => {
+      const result = f.invoke({ env: { CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256: pin } });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /independent lowercase SHA256 pin/);
+      for (const path of [f.packageCalls, f.initialized, f.transport]) assert.equal(existsSync(path), false);
+      assert.equal(existsSync(join(f.evidence, 'runtime')), true, 'retained verified copy must survive a pin failure');
+    });
+  }
+});
+
+test('an operator package rejection without an external pin preserves the first failure and reserved evidence', () => {
+  evidenceFixture(f => {
+    const first = f.invoke({ packageExit: 76 });
+    assert.equal(first.status, 76, first.stderr);
+    assert.deepEqual(values(f.packageCalls), ['-verify-package', f.packageRoot]);
+    const originalCalls = readFileSync(f.packageCalls);
+    const second = f.invoke({ env: { CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256: 'e'.repeat(64) } });
+    assert.notEqual(second.status, 0);
+    assert.match(second.stderr, /retain and reconcile/);
+    assert.deepEqual(readFileSync(f.packageCalls), originalCalls, 'no retry through the existing UNKNOWN attempt');
+    for (const path of [f.initialized, f.transport]) assert.equal(existsSync(path), false);
   });
 });
 

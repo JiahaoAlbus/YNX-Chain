@@ -22,7 +22,7 @@ if [[ ! -x "$verifier_bundle/ynx-consensus-package" ]]; then
   [[ -n "$verifier_bundle" ]] || { echo "artifact mode requires an explicit fresh retained CONSENSUS_CANDIDATE_GATE_RUNTIME_DESTINATION; source mode is never changed" >&2; exit 1; }
   prepare_runtime_bundle "$runtime_bundle" "$runtime_commit" "$runtime_manifest_sha" "$verifier_bundle"
 fi
-"$verifier_bundle/ynx-consensus-package" -verify-package "$package_root" >/dev/null
+verify_candidate_package "$verifier_bundle/ynx-consensus-package" "$package_root" >/dev/null
 [[ "$(git branch --show-current)" == "main" ]] || { echo "candidate deploy gate requires main branch" >&2; exit 1; }
 [[ -z "$(git status --short --untracked-files=no)" ]] || { echo "candidate deploy gate requires no tracked worktree changes" >&2; exit 1; }
 
@@ -30,6 +30,13 @@ preflight_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
   local key_dir="/etc/ynx/consensus-candidate/$role"
   echo "candidate deploy gate checking $role"
+  if [[ -n "${CONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256:-}" ]]; then
+    # Original key/HRS paths and remote custody are independently pinned in the
+    # operator plan and checked by its actual installer/normal startup. Do not
+    # require a remote signer's private key to be copied to this client host.
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "systemctl is-active ynx-chaind >/dev/null && systemctl is-active ynx-consensus-overlay.service >/dev/null && sudo test ! -e /var/lib/ynx-chain/consensus-candidate && sudo test ! -L /var/lib/ynx-chain/consensus-candidate && sudo test ! -e /etc/systemd/system/ynx-consensus-operator-candidate.service && sudo test ! -L /etc/systemd/system/ynx-consensus-operator-candidate.service && ! systemctl is-active --quiet ynx-consensus-operator-candidate.service && ! systemctl is-active --quiet ynx-consensus-comet-candidate.service && ! systemctl is-active --quiet ynx-consensus-abci-candidate.service && ! ss -ltn | awk '{print \$4}' | grep -Eq ':(27656|27757|27858)$' && test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152"
+    return
+  fi
   ynx_ops_ssh "$role" "$user" "$host" "$key" "systemctl is-active ynx-chaind >/dev/null && systemctl is-active ynx-consensus-overlay.service >/dev/null && sudo test \"\$(sudo stat -c %a /etc/ynx/consensus-candidate)\" = 750 && sudo test \"\$(sudo stat -c %a '$key_dir/priv_validator_key.json')\" = 600 && sudo test \"\$(sudo stat -c %a '$key_dir/priv_validator_state.json')\" = 600 && sudo test \"\$(sudo stat -c %a '$key_dir/node_key.json')\" = 600 && sudo test ! -e /var/lib/ynx-chain/consensus-candidate && ! systemctl is-active --quiet ynx-consensus-comet-candidate.service && ! systemctl is-active --quiet ynx-consensus-abci-candidate.service && ! ss -ltn | awk '{print \$4}' | grep -Eq ':(27656|27757|27858)$' && test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152"
 }
 ynx_ops_each_node preflight_candidate_role
