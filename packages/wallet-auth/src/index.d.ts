@@ -1,5 +1,5 @@
-import type {ProductSessionAccountAuthorization,ProductSessionAccountContext,VerifiedPQProductSessionApproval} from "./product-session-pq-approval.js";
-export type {ProductSessionAccountAuthorization,ProductSessionAccountContext,VerifiedPQProductSessionApproval} from "./product-session-pq-approval.js";
+import type {ProductSessionAccountAuthorization,ProductSessionAccountContext,VerifiedPQProductSessionApproval,VerifiedPQProductSessionCompletion} from "./product-session-pq-approval.js";
+export type {ProductSessionAccountAuthorization,ProductSessionAccountContext,VerifiedPQProductSessionApproval,VerifiedPQProductSessionCompletion} from "./product-session-pq-approval.js";
 export type ProductBinding = Readonly<{requestingProduct:string;bundleId:string;origins:readonly string[];callbacks:readonly string[];scopes:readonly string[];maxScopes?:number}>;
 export type ProductDeviceAlgorithm = "p256-sha256";
 export type AuthorizationRequest = Readonly<{version:"2";nonce:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;origin:string;callback:string;scopes:readonly string[];purpose:string;issuedAt:string;expiresAt:string}>;
@@ -295,6 +295,12 @@ export declare function finalizeWalletConnectRequestReview(review:WalletConnectR
 export declare class WalletConnectRequestReplayStore {constructor(snapshot?:readonly Readonly<{key:string;requestDigest:string;expiresAt:string;status:"reserved"|"consumed"}>[]);reserve(review:WalletConnectRequestReview,at?:Date):void;consume(review:WalletConnectRequestReview,at?:Date):void;prune(at?:Date):void;snapshot():readonly Readonly<{key:string;requestDigest:string;expiresAt:string;status:"reserved"|"consumed"}>[];}
 export declare function walletConnectRejection(error:unknown):Readonly<{code:number;message:string}>;
 export declare function decodeProductSessionGatewayProofHeaderV2(value:unknown):Readonly<Record<string,unknown>>;
+export interface ProductSessionGatewayFetchAdapter {
+  publishReturn(input:Readonly<{requestId:string;request:unknown;approval:unknown}>):Promise<Readonly<{reference:string;nonce:string;state:string;expiresAt:string}>>;
+  returnChallenge(input:Readonly<{requestId:string;reference:string;request:unknown}>):Promise<Readonly<Record<string,unknown>>>;
+  completeReturn(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<Readonly<Record<string,unknown>>>;
+  returnOutcome(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<Readonly<Record<string,unknown>>>;
+}
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
 export type ProductSessionPlatform="android"|"ios"|"linux"|"macos"|"web"|"windows";
@@ -321,7 +327,7 @@ export declare function parseProductSessionRequest(registry:unknown,input:unknow
 export declare function productSessionRequestDigest(registry:unknown,request:unknown,at?:Date):string;
 export declare function signProductSessionApproval(registry:unknown,request:unknown,input:{accountSecret:string;scopes:readonly string[];expiresAt:string;approvedServiceConsent?:FinanceFiniteServiceConsent},at?:Date):Readonly<Record<string,unknown>>;
 export declare function parseProductSessionApproval(registry:unknown,request:unknown,input:unknown,at?:Date,verifiedPQApproval?:VerifiedPQProductSessionApproval|null):Readonly<Record<string,unknown>>;
-export declare function createProductSessionChallenge(registry:unknown,request:unknown,approval:unknown,input:{challenge:string},at?:Date,verifiedPQApproval?:VerifiedPQProductSessionApproval|null):Readonly<Record<string,unknown>>;
+export declare function createProductSessionChallenge(registry:unknown,request:unknown,approval:unknown,input:{challenge:string},at?:Date,verifiedPQApproval?:VerifiedPQProductSessionApproval|null,verificationAt?:Date):Readonly<Record<string,unknown>>;
 export declare function parseProductSessionChallenge(input:unknown):Readonly<Record<string,unknown>>;
 export declare function signProductSessionChallenge(challenge:unknown,deviceSecret:string):Readonly<Record<string,unknown>>;
 export type ProductSessionPlatformSigner=(input:Readonly<{purpose:"challenge"|"http-proof";algorithm:"p256-sha256";deviceKey:string;payload:string}>)=>string|Promise<string>;
@@ -364,6 +370,8 @@ export declare class ProductSessionServerAuthorizer {
   authorize(input:Readonly<{proofHeader:string;origin:string|null;method:"GET"|"POST"|"PUT"|"PATCH"|"DELETE";path:string;requiredScopes:readonly string[]}>):Promise<ProductSession>;
 }
 export declare function createProductSessionReturnURL(registry:unknown,request:unknown,result:Readonly<Record<string,unknown>>,at?:Date,verifiedPQApproval?:VerifiedPQProductSessionApproval|null):string;
+/** Small locator only. Full approval remains in the original Auth snapshot. */
+export declare function createProductSessionReferenceReturnURL(registry:unknown,request:unknown,publication:Readonly<{reference:string;nonce:string;state:string;expiresAt:string}>,at?:Date):string;
 export declare function parseProductSessionReturnURL(registry:unknown,request:unknown,url:string,at?:Date,verifiedPQApproval?:VerifiedPQProductSessionApproval|null):Readonly<Record<string,unknown>>;
 export declare function canonicalReturnTarget(registry:unknown,productId:string,platform:ProductSessionPlatform):Readonly<Record<string,unknown>>;
 export declare class RecoverableProductSessionClient{constructor(config:Readonly<Record<string,unknown>>);readonly current:Readonly<Record<string,unknown>>;readonly storageKey:string;readonly connectionBinding:Readonly<{productId:string;platform:ProductSessionPlatform;applicationId:string}>;detectWalletEnvironment():Promise<Readonly<{walletInstalled:boolean;schemeRegistered:boolean}>>;beginDetected(automatic?:boolean):Promise<Readonly<Record<string,unknown>>>;retryDetected():Promise<Readonly<Record<string,unknown>>>;restore(networkAvailable?:boolean):Promise<Readonly<Record<string,unknown>>>;begin(environment:{walletInstalled:boolean;schemeRegistered:boolean},automatic?:boolean):Promise<Readonly<Record<string,unknown>>>;handleReturn(url:string):Promise<Readonly<Record<string,unknown>>>;retry(environment:{walletInstalled:boolean;schemeRegistered:boolean}):Promise<Readonly<Record<string,unknown>>>;connectionChoices(availability:{ynxWalletInstalled:boolean;metaMaskAvailable:boolean}):readonly Readonly<Record<string,unknown>>[];setNetworkAvailable(available:boolean):Readonly<Record<string,unknown>>;enterGuest():Readonly<Record<string,unknown>>;disconnect():Promise<Readonly<Record<string,unknown>>>;}
@@ -631,3 +639,8 @@ export interface WalletConnectionCoordinator {
 export type { ProductWalletConnectionConfiguration, ProductWalletProtectedStorage } from './product-wallet-connection.js';
 
 export type { OriginalWalletServiceResponse, OriginalWalletServiceOperation } from './original-wallet-service-private-client.js';
+
+/** Completion-only helpers never issue a session or consume a nonce. */
+export declare function createProductSessionCompletionChallenge(registry:unknown,raw:string,verification:VerifiedPQProductSessionCompletion,at?:Date):Readonly<Record<string,unknown>>;
+export declare function deriveProductSessionCompletionTarget(registry:unknown,raw:string,verification:VerifiedPQProductSessionCompletion,at?:Date):ProductSession;
+export declare function inspectProductSessionReturnEnvelope(registry:unknown,request:unknown,url:string,at?:Date):Readonly<Record<string,unknown>>;

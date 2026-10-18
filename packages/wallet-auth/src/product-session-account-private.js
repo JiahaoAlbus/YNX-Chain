@@ -4,7 +4,7 @@
 // without importing a Node crypto provider into every legacy SDK entry point.
 import {canonicalJSON, exactFields, WalletAuthError} from './canonical.js';
 import {evmAddressFromYNX} from './crypto.js';
-const policies=new WeakMap(),approvals=new WeakMap(),plans=new WeakMap();
+const policies=new WeakMap(),approvals=new WeakMap(),plans=new WeakMap(),completions=new WeakMap();
 const fail=code=>{throw new WalletAuthError(code,code)};
 export function registerAccountPolicyObservation(view,assertCurrent){const ref=Object.freeze({});policies.set(ref,{view,assertCurrent});return ref;}
 export function readAccountPolicyObservation(ref,account,at){
@@ -46,6 +46,14 @@ export function parseSessionAccountAuthorization(value,account){
   return Object.freeze({...value});
 }
 export function registerPQSessionSigningPlan(data){const ref=Object.freeze({});plans.set(ref,data);return ref;}
+// Separate purpose: a historical completion can identify an original possible
+// target for read-only reconciliation/revocation, never issue a new session.
+export function registerVerifiedPQCompletion(raw,approval,requestDigest,policyRef){const ref=Object.freeze({});completions.set(ref,{raw,approval,requestDigest,policyRef,ready:false});return ref;}
+export function finalizeVerifiedPQCompletion(ref){const s=completions.get(ref);if(!s)fail('PQ_COMPLETION_VERIFICATION_REQUIRED');s.ready=true;}
+export function captureVerifiedPQCompletion(ref,raw,at,requireReady=false){
+ const s=completions.get(ref);if(!s||s.raw!==raw||requireReady&&!s.ready)fail('PQ_COMPLETION_VERIFICATION_REQUIRED');
+ const view=readAccountPolicyObservation(s.policyRef,s.approval.account,at);assertSessionAccountPolicy(s.approval,view);return s;
+}
 export function capturePQSessionSigningPlan(ref,at){
   const s=plans.get(ref);if(!s)fail('PQ_SESSION_REVIEW_PLAN_REQUIRED');
   readAccountPolicyObservation(s.policyRef,s.unsigned.account,at);

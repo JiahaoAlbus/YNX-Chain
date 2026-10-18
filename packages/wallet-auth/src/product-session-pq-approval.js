@@ -1,15 +1,17 @@
+import {RecoverableProductSessionClient} from './product-session-recovery.js';
 // Protected Node main only. Uses the unique PQ provider; never a new login engine.
 import {Buffer} from 'node:buffer';
 import {encodeFields,u32,decodeMember,createVerifier} from '@ynx/batch-v01-candidate';
 import {canonicalJSON,WalletAuthError} from './canonical.js';
 import {exactPQRecord,pqDecodeBase64url} from './pq-wallet-contract.js';
-import {parseProductSessionRequest,productSessionRequestDigest} from './product-session-v2.js';
-import {readAccountPolicyObservation,accountAuthorizationFromView,registerPQSessionSigningPlan,registerVerifiedPQSessionApproval} from './product-session-account-private.js';
+import {parseProductSessionRequest,productSessionRequestDigest,deriveProductSessionCompletionTarget} from './product-session-v2.js';
+import {readAccountPolicyObservation,accountAuthorizationFromView,registerPQSessionSigningPlan,registerVerifiedPQSessionApproval,registerVerifiedPQCompletion,finalizeVerifiedPQCompletion} from './product-session-account-private.js';
+import {parseCompletionRecord} from './product-session-completion-record.js';
 export const PQ_PRODUCT_SESSION_PURPOSE='PRODUCT-SESSION-APPROVAL';
 const fail=code=>{throw new WalletAuthError(code,code)};
-function unsigned(registry,request,input,policyRef,at){
+function unsigned(registry,request,input,policyRef,at,sourceAt=at){
   const r=parseProductSessionRequest(registry,request,at);
-  const view=readAccountPolicyObservation(policyRef,input.account,at);
+  const view=readAccountPolicyObservation(policyRef,input.account,sourceAt);
   const authorization=accountAuthorizationFromView(view);
   const issuedAt=input.issuedAt,expiresAt=input.expiresAt;
   if(typeof issuedAt!=='string'||typeof expiresAt!=='string'||!Number.isFinite(Date.parse(issuedAt))||!Number.isFinite(Date.parse(expiresAt))||
@@ -29,11 +31,11 @@ export function preparePQProductSessionApproval(registry,request,input,policyRef
   const value=unsigned(registry,r,{...input,issuedAt:at.toISOString()},policyRef,at);
   return registerPQSessionSigningPlan({policyRef,unsigned:value,message:signingBytes(r,value),purpose:PQ_PRODUCT_SESSION_PURPOSE});
 }
-export function verifyPQProductSessionApproval(registry,request,input,policyRef,at=new Date()){
+function verifyApproval(registry,request,input,policyRef,at,proofAt=at){
   // Derive every approved field from the original request and current source.
   // Compare the complete object, rejecting extras and classic signature fields.
-  const r=parseProductSessionRequest(registry,request,at);
-  const value=unsigned(registry,r,input,policyRef,at);
+  const r=parseProductSessionRequest(registry,request,proofAt);
+  const value=unsigned(registry,r,input,policyRef,proofAt,at);
   const {walletProof,...provided}=input;
   if(canonicalJSON(value)!==canonicalJSON(provided))fail('SESSION_BINDING_MISMATCH');
   const wire=Buffer.from(pqDecodeBase64url(walletProof,{max:262144})),member=decodeMember(wire),a=value.accountAuthorization,c=member.certificate;
@@ -54,5 +56,34 @@ export function verifyPQProductSessionApproval(registry,request,input,policyRef,
   const verifier=createVerifier({provider:'portable',chainId:Buffer.from(a.networkId,'hex'),purpose:PQ_PRODUCT_SESSION_PURPOSE,resolveTrustedOwner:current,cacheEntries:0});
   current();if(!verifier.verifyOne(wire,{height:0}))fail('INVALID_SIGNATURE');current();
   const approval=Object.freeze({...value,walletProof});
-  return Object.freeze({approval,verifiedApproval:registerVerifiedPQSessionApproval(approval,value.requestDigest,policyRef)});
+  return approval;
+}
+
+export function verifyPQProductSessionApproval(registry,request,input,policyRef,at=new Date()){
+ const approval=verifyApproval(registry,request,input,policyRef,at);
+ return Object.freeze({approval,verifiedApproval:registerVerifiedPQSessionApproval(approval,approval.requestDigest,policyRef)});
+}
+export function verifyPQProductSessionCompletionRecord(registry,raw,policyRef,at=new Date()){
+ if(typeof raw!=='string'||Buffer.byteLength(raw)>196608)fail('INVALID_SESSION_STORE');
+ let input;try{input=JSON.parse(raw);}catch{fail('INVALID_SESSION_STORE');}
+ exactPQRecord(input,['request','approval','completion']);
+ if(input.approval?.version!=='3')fail('PQ_COMPLETION_V3_REQUIRED');
+ const proofAt=new Date(input.completion?.challenge?.issuedAt);
+ if(!Number.isFinite(proofAt.getTime())||proofAt>at)fail('INVALID_APPROVAL_TIME');
+ // Signed-time shape/math is historical; Source is read at fresh NOW. The R1
+ // resource has only the current pair, so a changed historical revision refuses.
+ const approval=verifyApproval(registry,input.request,input.approval,policyRef,at,proofAt);
+ const verification=registerVerifiedPQCompletion(raw,approval,approval.requestDigest,policyRef);
+ const record=parseCompletionRecord(registry,raw,at,null,verification);
+ finalizeVerifiedPQCompletion(verification);
+ const target=deriveProductSessionCompletionTarget(registry,raw,verification,at);
+ return Object.freeze({record,target,verification});
+}
+
+/** Protected Main convenience only. Uses the existing client and original Auth
+ * source; never exports its key/capability or injects this Node module in Web. */
+export function createPQRecoverableProductSessionClient(config){
+ const {accountPolicySource,...original}=config;
+ if(Object.hasOwn(original,'accountPolicy')||!accountPolicySource||typeof accountPolicySource.acquire!=='function')fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED');
+ return new RecoverableProductSessionClient({...original,accountPolicy:{acquire:input=>accountPolicySource.acquire(input),verifyCompletion:verifyPQProductSessionCompletionRecord}});
 }

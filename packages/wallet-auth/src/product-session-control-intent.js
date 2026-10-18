@@ -53,7 +53,7 @@ export function migrateProductSessionControlSnapshotV2(input) {
 }
 
 export function parseProductSessionControlSnapshot(input) {
-  exactFields(input, GATEWAY_FIELDS, "Control intent candidate snapshot");
+  exactFields(input, [...GATEWAY_FIELDS,...(Object.hasOwn(input??{},"returnPublications")?["returnPublications"]:[])], "Control intent candidate snapshot");
   exactFields(input.authority, AUTHORITY_FIELDS, "Control intent candidate authority");
   if (input.schemaVersion !== 3 || input.authority.schemaVersion !== 3) fail("INVALID_CONTROL_STORE", "Control intent candidate requires explicit snapshot version three");
   const { controlIntents, ...gateway } = input;

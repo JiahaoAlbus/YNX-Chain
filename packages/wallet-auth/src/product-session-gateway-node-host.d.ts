@@ -1,5 +1,6 @@
 import type {PrivateBusinessRegistration,ProductSession,ProductSessionAccountContext} from './index.js';
-export type OriginalAccountPolicyOperation=Readonly<{requestId:string;method:string;path:string;body:string;proofHeader:string|null;walletControlProofHeader:string|null;session:ProductSession|null;at:string}>;
+export type OriginalAccountPolicyOperation=Readonly<{requestId:string;method:string;path:string;body:string;proofHeader:string|null;walletControlProofHeader:string|null;session:ProductSession|null;at:string;publication?:Readonly<{requestRaw:string;approvalRaw:string;completed:boolean}>|null}>;
+export type OriginalReturnHostResponse=Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>;
 /** Fixed normal-service source wrapper, never selected by an HTTP caller.
  * Acquire/retain/recheck the original source, execute synchronously exactly once,
  * post-recheck and retain original cleanup/UNKNOWN. Cannot return a response.
@@ -19,6 +20,12 @@ export declare class ProductSessionGatewayNodeHost {
   constructor(registry:unknown,options:ProductSessionGatewayNodeHostOptions);
   handler():(request:unknown,response:unknown)=>Promise<void>;
   snapshot():Readonly<Record<string,unknown>>;
+  publishOriginalProductSessionReturn(input:Readonly<{requestId:string;request:unknown;approval:unknown}>):Promise<OriginalReturnHostResponse>;
+  readOriginalProductSessionReturnChallenge(input:Readonly<{requestId:string;reference:string;request:unknown}>):Promise<OriginalReturnHostResponse>;
+  completeOriginalProductSessionReturn(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<OriginalReturnHostResponse>;
+  readOriginalProductSessionReturnCompletionOutcome(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<OriginalReturnHostResponse>;
+  /** Metadata only; never permission to issue/retry an UNKNOWN publication. */
+  readOriginalProductSessionReturnOutcome(requestId:string):Readonly<Record<string,unknown>>;
   revalidate(session:ProductSession,scopes:readonly string[],productId:string,at:Date,businessRevalidation?:boolean,accountContext?:ProductSessionAccountContext|null):Readonly<{active:true;session:ProductSession}>;
   /** Existing Native-owned transaction interface remains synchronous; no new
    * Native permission, terminal authority or larger body allowance is granted. */

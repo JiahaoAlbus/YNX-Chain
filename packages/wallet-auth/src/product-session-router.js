@@ -96,24 +96,49 @@ export function createProductSessionReturnURL(registryInput, requestInput, resul
   return url;
 }
 
-export function parseProductSessionReturnURL(registryInput, pendingRequest, url, at = new Date(),verifiedPQApproval=null) {
+// Publication metadata is a locator only. Auth retains and verifies the full
+// original approval; this URL never represents an approval capability.
+export function createProductSessionReferenceReturnURL(registryInput,requestInput,publication,at=new Date()){
+  const request=parseProductSessionRequest(registryInput,requestInput,at);
+  exactFields(publication,['reference','nonce','state','expiresAt'],'Original publication metadata');
+  if(!/^ynxpsr1_[A-Za-z0-9_-]{43}$/.test(publication.reference)||publication.nonce!==request.nonce||publication.state!==request.state||typeof publication.expiresAt!=='string'||!Number.isFinite(Date.parse(publication.expiresAt))||new Date(publication.expiresAt).toISOString()!==publication.expiresAt||publication.expiresAt<=at.toISOString()||publication.expiresAt>request.expiresAt)fail('CALLBACK_MISMATCH','Original publication does not match this request');
+  const target=new URL(request.callback);for(const [key,value]of Object.entries({result:'reference',reference:publication.reference,nonce:request.nonce,state:request.state}))target.searchParams.set(key,value);
+  const url=target.toString();if(url.length>4096)fail('CALLBACK_MISMATCH','Original reference return exceeds its bound');return url;
+}
+
+export function inspectProductSessionReturnEnvelope(registryInput,pendingRequest,url,at=new Date()) {
   let request;
   try { request = parseProductSessionRequest(registryInput, pendingRequest, at); } catch (error) {
     if (error instanceof WalletAuthError && error.code === "SESSION_EXPIRED") return routeState(WALLET_ROUTE_STATUS.SESSION_EXPIRED, "The Wallet approval request expired", ["retry", "return-to-product"]);
     throw error;
   }
-  const parsed = safeURL(url, "CALLBACK_MISMATCH", "Wallet callback is invalid",verifiedPQApproval===null?4096:262144);
+  const parsed = safeURL(url, "CALLBACK_MISMATCH", "Wallet callback is invalid",262144);
   const expected = new URL(request.callback);
   const result = parsed.searchParams.get("result");
-  const allowed = result === "approved" ? ["approval", "nonce", "result", "state"] : ["nonce", "reason", "result", "state"];
+  const allowed = result === "reference" ? ['nonce','reference','result','state'] : result === "approved" ? ["approval", "nonce", "result", "state"] : ["nonce", "reason", "result", "state"];
   const keys = [...parsed.searchParams.keys()].sort();
   parsed.search = "";
   if (parsed.toString() !== expected.toString() || parsed.hash || parsed.username || parsed.password || keys.join("\n") !== allowed.join("\n") || parsed.protocol === "http:" || parsed.protocol === "file:" || parsed.protocol === "javascript:") return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Return to the product and start a new Wallet request", ["retry", "return-to-product"]);
   if (new URL(url).searchParams.get("nonce") !== request.nonce || new URL(url).searchParams.get("state") !== request.state) return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Wallet callback nonce or state did not match", ["retry", "return-to-product"]);
+  if(result==='reference'){
+    const reference=new URL(url).searchParams.get('reference');
+    if(url.length>4096||!/^ynxpsr1_[A-Za-z0-9_-]{43}$/.test(reference))return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH,'Original return reference is invalid',['retry']);
+    return Object.freeze({status:'reference-unverified',request,reference,actions:Object.freeze([])});
+  }
   if (result === "rejected" && new URL(url).searchParams.get("reason") === "user_rejected") return routeState(WALLET_ROUTE_STATUS.USER_REJECTED, "No Product Session was created", ["guest", "retry", "return-to-product"]);
   if (result !== "approved") return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Wallet callback result was not recognized", ["retry", "return-to-product"]);
+  const approval=decodeJSON(new URL(url).searchParams.get("approval"),"Wallet approval");
+  if(approval?.version!=="3"&&url.length>4096)fail("CALLBACK_MISMATCH","Legacy callback exceeds its original budget");
+  return Object.freeze({status:"approval-unverified",request,approval,actions:Object.freeze([])});
+}
+
+export function parseProductSessionReturnURL(registryInput, pendingRequest, url, at = new Date(),verifiedPQApproval=null) {
+  if(verifiedPQApproval===null&&typeof url==='string'&&url.length>4096)fail('CALLBACK_MISMATCH','Wallet callback exceeds its original bound');
+  const envelope=inspectProductSessionReturnEnvelope(registryInput,pendingRequest,url,at);
+  if(envelope.status!=="approval-unverified")return envelope;
+  const request=envelope.request;
   try {
-    const approval = parseProductSessionApproval(registryInput, request, decodeJSON(new URL(url).searchParams.get("approval"), "Wallet approval"), at,verifiedPQApproval);
+    const approval = parseProductSessionApproval(registryInput, request, envelope.approval, at,verifiedPQApproval);
     return Object.freeze({ status: WALLET_ROUTE_STATUS.READY, request, approval, actions: Object.freeze([]) });
   } catch (error) {
     if (error instanceof WalletAuthError) return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Wallet approval did not match the pending product request", ["retry", "return-to-product"]);
