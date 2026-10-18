@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "runID": 39105274604,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39105274604",
+  "event": "push",
+  "head": "0ec4da92512c65932031c8f9977659205cdc430e",
+  "status": "completed",
+  "conclusion": "success",
+  "normalSourceGatesPassed": true,
+  "optionalDarwinBuild": "skipped_default_false_no_duplicate_candidate_build",
+  "rawLog": "artifacts/chain-performance-20261017/ci-39105274604-full.log",
+  "rawLogBytes": 328186,
+  "rawLogSHA256": "11a5b41a2d7703a331533fb36e8c01e66bb6d9244a5682c91f1923118fa74cd4",
+  "businessMeasurement": null
+}
