@@ -19,7 +19,11 @@ commit="$(git rev-parse --short=12 HEAD)"
 release="ynx-consensus-candidate-${commit}"
 work_root="${CONSENSUS_CANDIDATE_WORK_ROOT:-tmp/consensus-candidate-deploy}"
 work="$work_root/${release}"
-rm -rf "$work"
+mkdir -p "$work_root"
+if ! mkdir -m 0700 "$work"; then
+  echo "candidate work already exists or cannot be reserved: $work; retain and reconcile the original attempt" >&2
+  exit 1
+fi
 mkdir -p "$work/bin" "$work/roles"
 
 echo "building production candidate binaries for linux/amd64"
@@ -55,7 +59,12 @@ deploy_candidate_role() {
   local role_source="$package_root/roles/$role"
   [[ -d "$role_source" ]] || { echo "candidate package is missing role $role" >&2; return 1; }
   local stage="$work/roles/$role" archive="$work/${release}-${role}.tar.gz"
-  rm -rf "$stage"
+  if [[ -e "$stage" || -L "$stage" || -e "$archive" || -L "$archive" ]]; then
+    echo "candidate role artifacts already exist for $role; retain and reconcile the original attempt" >&2
+    return 1
+  fi
+  mkdir -m 0700 "$stage"
+  (umask 077; set -o noclobber; : > "$archive")
   mkdir -p "$stage/bin" "$stage/role"
   cp "$work/bin/ynx-abci" "$work/bin/ynx-consensus-keycheck" "$work/bin/cometbft" "$stage/bin/"
   if [[ "$role" == "primary" ]]; then
@@ -67,8 +76,20 @@ deploy_candidate_role() {
   local archive_hash
   archive_hash="$(shasum -a 256 "$archive" | awk '{print $1}')"
   local remote_archive="/tmp/${release}-${role}.tar.gz" remote_dir="/opt/ynx-chain/consensus-candidates/${release}/${role}"
+  # Reserve before ynx_ops_copy (whose normal transport uses cat > destination).
+  # Atomic mkdir/noclobber also reject competing attempts after the existence
+  # checks. Any failed reservation/copy leaves its evidence in place; a retry
+  # must reconcile it, never truncate an earlier UNKNOWN package or release.
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail
+if sudo test -e '$remote_dir' || sudo test -L '$remote_dir' || test -e '$remote_archive' || test -L '$remote_archive'; then
+  echo 'candidate release or archive already exists; retain and reconcile the original attempt' >&2
+  exit 1
+fi
+sudo install -d -m 0700 '/opt/ynx-chain/consensus-candidates/${release}'
+sudo mkdir -m 0700 '$remote_dir'
+(umask 077; set -o noclobber; : > '$remote_archive')"
   ynx_ops_copy "$role" "$user" "$host" "$key" "$archive" "$remote_archive"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_archive\"' EXIT; test \"\$(stat -c %a '$remote_archive')\" = 600; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; sudo rm -rf '$remote_dir'; sudo install -d -m 0700 '$remote_dir'; sudo tar -xzf '$remote_archive' -C '$remote_dir'"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; test -f '$remote_archive'; test ! -L '$remote_archive'; test \"\$(stat -c %a '$remote_archive')\" = 600; printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -; sudo test -d '$remote_dir'; if sudo test -L '$remote_dir'; then exit 1; fi; sudo tar -xzf '$remote_archive' -C '$remote_dir'"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo '$remote_dir/bin/ynx-consensus-keycheck' -role-manifest '$remote_dir/role/role-manifest.json' -private-validator-key '/etc/ynx/consensus-candidate/$role/priv_validator_key.json' -node-key '/etc/ynx/consensus-candidate/$role/node_key.json'"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "if sudo test -d /var/lib/ynx-chain/consensus-candidate; then sudo bash '$remote_dir/role/scripts/backup-candidate.sh' '/var/backups/ynx-chain/consensus-candidate-before-${release}-${role}.tar.gz'; fi"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/install-candidate.sh'"
@@ -82,8 +103,11 @@ ynx_ops_each_node deploy_candidate_role
 
 verify_candidate_role() {
   local role="$1" user="$2" host="$3" key="$4" _kind="$5"
-  local remote_dir="/opt/ynx-chain/consensus-candidates/${release}/${role}"
-  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/verify-candidate.sh' && systemctl is-active ynx-chaind >/dev/null && test ! -e '/tmp/${release}-${role}.tar.gz'"
+  local remote_dir="/opt/ynx-chain/consensus-candidates/${release}/${role}" remote_archive="/tmp/${release}-${role}.tar.gz" archive_hash
+  archive_hash="$(shasum -a 256 "$work/${release}-${role}.tar.gz" | awk '{print $1}')"
+  # A later role or verification may fail. Keep every original package even
+  # after this role succeeds, and verify its exact bytes instead of deleting it.
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo bash '$remote_dir/role/scripts/verify-candidate.sh' && systemctl is-active ynx-chaind >/dev/null && test -f '$remote_archive' && test ! -L '$remote_archive' && printf '%s  %s\\n' '$archive_hash' '$remote_archive' | sha256sum -c -"
 }
 
 ynx_ops_each_node verify_candidate_role

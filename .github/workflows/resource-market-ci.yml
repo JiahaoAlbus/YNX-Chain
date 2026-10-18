@@ -262,6 +262,7 @@ jobs:
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
+          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
@@ -276,6 +277,23 @@ jobs:
       - name: Verify existing Chain SDK after protocol integration
         if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration' }}
         run: node --test sdk/js/index.test.mjs
+      - name: Emit application-backed public Wallet HTTP fixture
+        id: walletfixture
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        env:
+          YNX_PQ_WALLET_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-wallet-public-http-fixture.json
+        run: |
+          go test -p 1 -count=1 -timeout=90s -run '^TestGatewayPQWalletPublicHTTPFixture$' ./internal/bftgateway
+          test -s "$YNX_PQ_WALLET_FIXTURE_OUT"
+          sha256sum "$YNX_PQ_WALLET_FIXTURE_OUT"
+      - name: Upload only public Wallet HTTP fixture
+        if: ${{ !cancelled() && steps.walletfixture.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-wallet-public-http-fixture-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-pq-wallet-public-http-fixture.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Verify shared Wallet policy and Chain payment authorization regressions
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestClassicSession.*|TestAccountPolicyConfigRequiresExplicitExactOriginAndNetwork|TestBFTPaySerializesNonceAndReturnsZeroFeeIdempotentReplay|TestBFTPayRejectsInconsistentCommittedResponse|TestMerchantBindingRejectsForeignIntentAndInvoiceWithoutEffects|TestMerchantBindingRejectsMissingUntrustedOrUnavailableOriginal)$' ./internal/appgateway ./internal/paygateway
@@ -371,6 +389,38 @@ jobs:
         with:
           name: ynx-pq-public-go-interop-${{ github.sha }}
           path: /tmp/ynx-go-public-interop.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Build fixed-source offline migration validation tools
+        if: ${{ success() && github.event_name == 'push' }}
+        run: |
+          YNX_OFFLINE_TOOLS="$RUNNER_TEMP/ynx-pq-offline-migration-tools"
+          export YNX_OFFLINE_TOOLS
+          umask 077
+          mkdir "$YNX_OFFLINE_TOOLS"
+          go build -p 1 -trimpath -ldflags "-s -w -X main.buildCommit=$GITHUB_SHA -X main.buildRelease=pq-offline-validation" -o "$YNX_OFFLINE_TOOLS/ynx-chaind" ./cmd/ynx-chaind
+          go build -p 1 -trimpath -ldflags '-s -w' -o "$YNX_OFFLINE_TOOLS/ynx-consensus-package" ./cmd/ynx-consensus-package
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ['YNX_OFFLINE_TOOLS'])
+          binaries = {}
+          for name in ('ynx-chaind', 'ynx-consensus-package'):
+              path = root / name
+              with path.open('rb') as source:
+                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
+              binaries[name] = dict(bytes=path.stat().st_size, sha256=digest)
+          record = dict(version='YNX-PQ-OFFLINE-MIGRATION-TOOLS/v1', commit=os.environ['GITHUB_SHA'],
+              runId=os.environ['GITHUB_RUN_ID'], platform='linux/amd64', binaries=binaries,
+              purpose='offline copied-state validation; not installed or activated')
+          (root / 'SOURCE.json').write_text(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf8')
+          PY
+      - name: Upload public offline migration validation tools
+        if: ${{ success() && github.event_name == 'push' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-offline-migration-tools-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-pq-offline-migration-tools
           if-no-files-found: error
           retention-days: 7
 

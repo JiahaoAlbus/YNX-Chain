@@ -180,6 +180,124 @@ func TestPQWalletQueryRejectsHeightOwnerAndHistoryTampering(t *testing.T) {
 	}
 }
 
+func TestPQWalletRevocationQueryVerifiesActualFeeRecipientAndSourceLineage(t *testing.T) {
+	f := newABCIRevocationFixture(t)
+	registration := f.registration(t, false, 3)
+	commitSponsorBlock(t, f.a, 2, time.Unix(2, 0).UTC(), mustPQEnvelope(t, PQMigrationType, registration))
+	previous := walletHistoryQuery(t, f.a, SignedTransactionHash(registration))
+	previousJSON, err := json.Marshal(previous)
+	if err != nil || previous.RevocationEffects != nil || bytes.Contains(previousJSON, []byte("revocationEffects")) {
+		t.Fatal("migration response gained revocation-only fields")
+	}
+	wire := f.revocation(t, 2, 3, 1)
+	commitSponsorBlock(t, f.a, 3, time.Unix(3, 0).UTC(), mustPQEnvelope(t, PQRevocationType, wire))
+	hash := SignedTransactionHash(wire)
+	original := walletHistoryQuery(t, f.a, hash)
+	if err := ValidatePQWalletRevocationEffects(original); err != nil {
+		t.Fatal(err)
+	}
+	effects := original.RevocationEffects
+	if effects == nil || effects.FeeRecipient != "ynx_validator_0" || original.Transaction.LotFlows[0].To != effects.FeeRecipient || effects.FeeLot.Origin != f.m.Runtime.Lots[effects.FeeLot.LotID].Origin || effects.SourceLot.Origin != effects.FeeLot.Origin {
+		t.Fatal("actual legacy validator fee identity or original source lineage was replaced")
+	}
+	encoded, err := json.Marshal(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var shape struct {
+		Effects struct {
+			FeeLot    map[string]json.RawMessage `json:"feeLot"`
+			SourceLot map[string]json.RawMessage `json:"sourceLot"`
+			FeeEvent  map[string]json.RawMessage `json:"feeEvent"`
+		} `json:"revocationEffects"`
+	}
+	if err := json.Unmarshal(encoded, &shape); err != nil {
+		t.Fatal(err)
+	}
+	for _, lot := range []map[string]json.RawMessage{shape.Effects.FeeLot, shape.Effects.SourceLot} {
+		for _, key := range []string{"amount", "riskWeightBps"} {
+			if !bytes.HasPrefix(lot[key], []byte(`"`)) {
+				t.Fatalf("new lot integer %s is not a decimal string", key)
+			}
+		}
+	}
+	for _, key := range []string{"policyVersion", "grossFeeYnxt", "burnYnxt", "validatorYnxt", "providerYnxt", "protocolYnxt", "treasuryYnxt", "blockHeight"} {
+		if !bytes.HasPrefix(shape.Effects.FeeEvent[key], []byte(`"`)) {
+			t.Fatalf("new fee integer %s is not a decimal string", key)
+		}
+	}
+	// Codec-only range checks do not install invented amounts into the ledger.
+	large := *effects
+	large.FeeLot.Amount, large.SourceLot.Amount, large.FeeEvent.BlockHeight = math.MaxInt64, math.MaxInt64, math.MaxInt64
+	largeJSON, err := json.Marshal(large)
+	if err != nil || !bytes.Contains(largeJSON, []byte(`"9223372036854775807"`)) {
+		t.Fatal("exact int64 effects could not be encoded")
+	}
+	var decoded PQWalletRevocationEffects
+	if err := json.Unmarshal(largeJSON, &decoded); err != nil || !reflect.DeepEqual(decoded, large) {
+		t.Fatal("lossy revocation effects round trip")
+	}
+	for _, invalid := range [][]byte{
+		bytes.Replace(largeJSON, []byte(`"9223372036854775807"`), []byte(`9223372036854775807`), 1),
+		bytes.Replace(largeJSON, []byte(`"9223372036854775807"`), []byte(`"9223372036854775808"`), 1),
+		bytes.Replace(largeJSON, []byte(`"9223372036854775807"`), []byte(`"09223372036854775807"`), 1),
+		bytes.Replace(largeJSON, []byte(`"burnYnxt":"0",`), nil, 1),
+	} {
+		if json.Unmarshal(invalid, &decoded) == nil {
+			t.Fatal("numeric, overflowing, noncanonical or incomplete fee effects accepted")
+		}
+	}
+	// Exercise query-time checks after a real successful execution. These are
+	// intentionally corrupt in-memory candidates, never accepted test authority.
+	baseline := f.a.committed
+	defer func() { f.a.committed = baseline }()
+	for name, mutate := range map[string]func(*CommittedState){
+		"wrong-canonical-recipient": func(s *CommittedState) { s.PQHistory[len(s.PQHistory)-1].Transaction.LotFlows[0].To = f.other },
+		"self-consistent-wrong-recipient": func(s *CommittedState) {
+			entry := &s.PQHistory[len(s.PQHistory)-1]
+			entry.Transaction.LotFlows[0].To = f.other
+			for i := range s.FeeEvents {
+				if s.FeeEvents[i].TxHash == entry.ABCITransactionHash {
+					s.FeeEvents[i] = newCurrentFeeEvent(entry.ABCITransactionHash, PQRevocationType, f.owner, f.other, 1, 3, entry.Transaction.Timestamp)
+				}
+			}
+		},
+		"missing-trace-lot": func(s *CommittedState) { delete(s.TraceLots, effects.FeeLot.LotID) },
+		"rewritten-source-lineage": func(s *CommittedState) {
+			lot := s.TraceLots[effects.FeeLot.LotID]
+			lot.Origin = "forged source"
+			s.TraceLots[lot.LotID] = lot
+		},
+		"fee-event-audit": func(s *CommittedState) {
+			for i := range s.FeeEvents {
+				if s.FeeEvents[i].TxHash == original.ABCITransactionHash {
+					s.FeeEvents[i].AuditHash = strings.Repeat("0", 64)
+				}
+			}
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			candidate := baseline
+			candidate.PQHistory = clonePQHistory(baseline.PQHistory)
+			candidate.TraceLots = cloneTraceLots(baseline.TraceLots)
+			candidate.FeeEvents = append([]BFTFeeEvent(nil), baseline.FeeEvents...)
+			mutate(&candidate)
+			f.a.mu.Lock()
+			f.a.committed = candidate
+			f.a.mu.Unlock()
+			response, err := f.a.Query(context.Background(), &abcitypes.RequestQuery{Path: PQWalletHistoryPath + hash})
+			if err != nil || response.Code == 0 || len(response.Value) != 0 {
+				t.Fatalf("query exported invalid fee/lineage despite real core signature: %+v %v", response, err)
+			}
+		})
+	}
+	f.a.committed = baseline
+	restored, err := NewPersistentApplication(f.m, f.path)
+	if err != nil || !reflect.DeepEqual(walletHistoryQuery(t, restored, hash), original) {
+		t.Fatalf("cold revocation fee evidence changed: %v", err)
+	}
+}
+
 func TestPQWalletAccountJSONPreservesExactUint64Projection(t *testing.T) {
 	f := newABCIRevocationFixture(t)
 	commitSponsorBlock(t, f.a, 2, time.Unix(2, 0).UTC(), mustPQEnvelope(t, PQMigrationType, f.registration(t, false, 3)))

@@ -324,6 +324,7 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /accounts/{address}", g.handleAccount)
 	g.mux.HandleFunc("GET /accounts/{address}/authorization", g.handlePQAuthorization)
 	g.mux.HandleFunc("POST /accounts/{address}/authorization/migrate", g.handlePQMigrationBroadcast)
+	g.mux.HandleFunc("POST /accounts/{address}/authorization/revoke", g.handlePQRevocationBroadcast)
 	g.mux.HandleFunc("GET /economics/fees", g.handleEconomicsFees)
 	g.mux.HandleFunc("GET /economics/fees/{id}", g.handleEconomicsFee)
 	g.mux.HandleFunc("POST /quant/mandates", g.handleQuantMutation)

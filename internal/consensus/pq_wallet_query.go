@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -51,11 +52,137 @@ type PQWalletAccountView struct {
 // Comet envelope identity. Source-import entries have no invented ABCI hash or
 // index. The gateway obtains a real index from Comet /tx for ABCI entries.
 type PQWalletHistoryView struct {
-	Source              string              `json:"source"`
-	Authorization       PQWalletAccountView `json:"authorization"`
-	ABCITransactionHash string              `json:"abciTransactionHash,omitempty"`
-	ExecutionHeight     uint64              `json:"executionHeight,string"`
-	Transaction         chain.Transaction   `json:"transaction"`
+	Source              string                     `json:"source"`
+	Authorization       PQWalletAccountView        `json:"authorization"`
+	ABCITransactionHash string                     `json:"abciTransactionHash,omitempty"`
+	ExecutionHeight     uint64                     `json:"executionHeight,string"`
+	Transaction         chain.Transaction          `json:"transaction"`
+	RevocationEffects   *PQWalletRevocationEffects `json:"revocationEffects,omitempty"`
+}
+
+// These are bounded, same-committed-state RPC observations, not independently
+// authenticated proofs. Ledger validator identities need not be 0x accounts.
+// All added integers use decimal strings, including the preserved fee event.
+type PQWalletRevocationEffects struct {
+	FeeRecipient string                     `json:"feeRecipient"`
+	FeeLot       PQWalletRevocationLot      `json:"feeLot"`
+	SourceLot    PQWalletRevocationLot      `json:"sourceLot"`
+	FeeEvent     PQWalletRevocationFeeEvent `json:"feeEvent"`
+}
+
+type PQWalletRevocationLot struct {
+	LotID       string `json:"lotId"`
+	Amount      int64  `json:"amount,string"`
+	Origin      string `json:"origin"`
+	RiskWeight  int64  `json:"riskWeightBps,string"`
+	LastInbound string `json:"lastInboundTx,omitempty"`
+}
+
+type PQWalletRevocationFeeEvent struct {
+	ID              string    `json:"id"`
+	PolicyVersion   int       `json:"policyVersion,string"`
+	TxHash          string    `json:"txHash"`
+	TransactionType string    `json:"transactionType"`
+	Payer           string    `json:"payer"`
+	Recipient       string    `json:"recipient"`
+	GrossFeeYNXT    int64     `json:"grossFeeYnxt,string"`
+	BurnYNXT        int64     `json:"burnYnxt,string"`
+	ValidatorYNXT   int64     `json:"validatorYnxt,string"`
+	ProviderYNXT    int64     `json:"providerYnxt,string"`
+	ProtocolYNXT    int64     `json:"protocolYnxt,string"`
+	TreasuryYNXT    int64     `json:"treasuryYnxt,string"`
+	Sponsored       bool      `json:"sponsored"`
+	Source          string    `json:"source"`
+	BlockHeight     int64     `json:"blockHeight,string"`
+	RecordedAt      time.Time `json:"recordedAt"`
+	AuditHash       string    `json:"auditHash"`
+}
+
+func (v *PQWalletRevocationEffects) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || len(data) > MaxPQWalletQueryBytes {
+		return errors.New("invalid bounded revocation effects JSON")
+	}
+	type alias PQWalletRevocationEffects
+	var value alias
+	d := json.NewDecoder(bytes.NewReader(data))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&value); err != nil {
+		return err
+	}
+	if d.Decode(&struct{}{}) != io.EOF {
+		return errors.New("trailing revocation effects JSON")
+	}
+	canonical, err := json.Marshal(value)
+	if err != nil || !bytes.Equal(canonical, data) {
+		return errors.New("noncanonical or incomplete revocation effects JSON")
+	}
+	*v = PQWalletRevocationEffects(value)
+	return nil
+}
+
+func walletRevocationFeeEvent(e BFTFeeEvent) PQWalletRevocationFeeEvent {
+	return PQWalletRevocationFeeEvent{ID: e.ID, PolicyVersion: e.PolicyVersion, TxHash: e.TxHash, TransactionType: e.TransactionType, Payer: e.Payer, Recipient: e.Recipient, GrossFeeYNXT: e.GrossFeeYNXT, BurnYNXT: e.BurnYNXT, ValidatorYNXT: e.ValidatorYNXT, ProviderYNXT: e.ProviderYNXT, ProtocolYNXT: e.ProtocolYNXT, TreasuryYNXT: e.TreasuryYNXT, Sponsored: e.Sponsored, Source: e.Source, BlockHeight: e.BlockHeight, RecordedAt: e.RecordedAt, AuditHash: e.AuditHash}
+}
+
+// ValidatePQWalletRevocationEffects binds every exported fee-event field and the
+// executed flow to the same history response. The producer additionally checks
+// the fee recipient against its immutable migration and the complete trace lot
+// against original source lineage before exporting it. A configured RPC can
+// still fabricate a consistent response; this does not verify a light-client root.
+func ValidatePQWalletRevocationEffects(v PQWalletHistoryView) error {
+	tx, effects := v.Transaction, v.RevocationEffects
+	if v.Source != "comet-rpc" || tx.Type != PQRevocationType || effects == nil || len(tx.LotFlows) != 1 || tx.BlockNum == 0 || tx.BlockNum > math.MaxInt64 || tx.Fee != 1 || strings.TrimSpace(effects.FeeRecipient) == "" {
+		return errors.New("revocation history lacks committed fee effects")
+	}
+	flow, lot, source := tx.LotFlows[0], effects.FeeLot, effects.SourceLot
+	if flow.LotID == "" || flow.Amount != 1 || flow.From != tx.From || flow.To != effects.FeeRecipient || lot.LotID != flow.LotID || lot.Amount < 1 || strings.TrimSpace(lot.Origin) == "" {
+		return errors.New("revocation fee flow differs from committed recipient or source lot")
+	}
+	// LastInbound is mutable as later lawful transactions move the same lot;
+	// the source identity, amount, origin and risk remain immutable.
+	if lot.LotID != source.LotID || lot.Amount != source.Amount || lot.Origin != source.Origin || lot.RiskWeight != source.RiskWeight {
+		return errors.New("revocation fee lot differs from original source lineage")
+	}
+	expected := walletRevocationFeeEvent(newCurrentFeeEvent(v.ABCITransactionHash, PQRevocationType, tx.From, effects.FeeRecipient, 1, int64(tx.BlockNum), tx.Timestamp))
+	if effects.FeeEvent != expected {
+		return errors.New("revocation fee event differs from original execution")
+	}
+	return nil
+}
+
+func walletRevocationEffects(s CommittedState, migration chain.ConsensusMigrationState, v PQWalletHistoryView) (*PQWalletRevocationEffects, error) {
+	entry := PQCommittedAuthorization{ABCITransactionHash: v.ABCITransactionHash, Transaction: v.Transaction}
+	if err := validateConsensusRevocationEffects(s, migration, entry); err != nil {
+		return nil, err
+	}
+	if err := validateMigrationTraceLots(s, migration); err != nil {
+		return nil, err
+	}
+	effects := &PQWalletRevocationEffects{}
+	for _, validator := range migration.Validators {
+		if validator.Active {
+			effects.FeeRecipient = validator.Address
+			break
+		}
+	}
+	lot := s.TraceLots[v.Transaction.LotFlows[0].LotID]
+	effects.FeeLot = PQWalletRevocationLot{LotID: lot.LotID, Amount: lot.Amount, Origin: lot.Origin, RiskWeight: lot.RiskWeight, LastInbound: lot.LastInbound}
+	if migration.Runtime == nil {
+		return nil, errors.New("revocation fee lot lacks original migration lineage")
+	}
+	source, exists := migration.Runtime.Lots[lot.LotID]
+	if !exists {
+		return nil, errors.New("revocation fee lot is absent from original migration")
+	}
+	effects.SourceLot = PQWalletRevocationLot{LotID: source.LotID, Amount: source.Amount, Origin: source.Origin, RiskWeight: source.RiskWeight, LastInbound: source.LastInbound}
+	for _, event := range s.FeeEvents {
+		if event.TxHash == v.ABCITransactionHash {
+			effects.FeeEvent = walletRevocationFeeEvent(event)
+			break
+		}
+	}
+	v.RevocationEffects = effects
+	return effects, ValidatePQWalletRevocationEffects(v)
 }
 
 // JSON is a Wallet projection, not State's persistence encoding. All policy
@@ -309,6 +436,12 @@ func pqWalletHistoryView(s CommittedState, migration chain.ConsensusMigrationSta
 	}
 	if err := chain.ValidateConsensusHistoricalPQTransaction(tx, s.AccountPolicy, tx.BlockNum, s.ChainID); err != nil {
 		return v, err
+	}
+	if v.Source == "comet-rpc" && tx.Type == PQRevocationType {
+		v.RevocationEffects, err = walletRevocationEffects(s, migration, v)
+		if err != nil {
+			return v, err
+		}
 	}
 	v.ExecutionHeight = tx.BlockNum
 	v.Authorization, err = pqWalletAccountView(s, migration, tx.From)

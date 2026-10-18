@@ -20,8 +20,9 @@ import (
 )
 
 // The N1 transfer profile is smaller than 64 KiB. Migration retains its existing
-// 256 KiB protocol bound; both canonical JSON envelopes fit the existing Comet
-// and postBroadcast limits. No mempool, block, or RPC cap is changed here.
+// 256 KiB protocol bound; revocation retains its 128 KiB protocol bound. Their
+// canonical JSON envelopes fit the existing Comet and postBroadcast limits.
+// No mempool, block, or RPC cap is changed here.
 const MaxPQMemberIngressBytes = 64 << 10
 
 // PQMemberView describes configured Comet RPC evidence, not native producer
@@ -59,7 +60,7 @@ func pqMemberIdentity(kind string, wire, payload []byte) PQMemberView {
 // is never treated as permission to reinterpret an ABCI hash as a native hash.
 func isPQMemberTransaction(payload []byte) bool {
 	envelope, _, err := consensus.DecodePQTransaction(payload)
-	return err == nil && (envelope.Type == consensus.PQTransferType || envelope.Type == consensus.PQMigrationType)
+	return err == nil && isPQSingleIngressKind(envelope.Type)
 }
 
 func decodeIngressPQMember(kind string, wire []byte) (owner string, payload []byte, err error) {
@@ -93,11 +94,16 @@ func decodeIngressPQMember(kind string, wire []byte) (owner string, payload []by
 			return "", nil, errors.New("noncanonical migration original")
 		}
 		owner = migration.Intent.Owner
+	case consensus.PQRevocationType:
+		owner, err = decodeIngressPQRevocation(wire)
+		if err != nil {
+			return "", nil, err
+		}
 	default:
 		return "", nil, errors.New("unsupported single PQ ingress kind")
 	}
 	// Parsing grants no authority. The real Application checks the registered
-	// current authorization and both proposed-key PoPs, fees and ledger nonce.
+	// current authorization, applicable dual proofs, fees and ledger nonce.
 	payload, err = consensus.EncodePQTransaction(kind, wire)
 	return owner, payload, err
 }
@@ -108,8 +114,10 @@ func pqMemberHistoryWire(history consensus.PQWalletHistoryView) (kind string, wi
 	case "transfer":
 	case consensus.PQMigrationType:
 		kind, prefix = consensus.PQMigrationType, "ynx-pq-migration-v1:"
+	case consensus.PQRevocationType:
+		kind, prefix = consensus.PQRevocationType, "ynx-pq-revocation-v1:"
 	default:
-		return "", nil, nil, errors.New("history is not a standalone Member transfer or migration")
+		return "", nil, nil, errors.New("history is not a supported standalone PQ original")
 	}
 	memo := history.Transaction.Memo
 	if !strings.HasPrefix(memo, prefix) || len(memo) > len(prefix)+2*ynxauth.MaxMigrationBytes {
@@ -134,9 +142,16 @@ func validatePQMemberHistory(history consensus.PQWalletHistoryView, queryHeight 
 	if auth.Policy == nil || tx.Nonce == 0 || tx.Nonce > auth.LedgerNonce || tx.Timestamp.IsZero() || tx.Timestamp.Location().String() != "UTC" {
 		return errors.New("original PQ history lacks committed policy, nonce or timestamp")
 	}
-	// Neither executor produces these unsigned metadata fields for a standalone
-	// transfer/migration. Do not turn a valid signature into fabricated receipts.
-	if tx.BlockHash != "" || len(tx.Logs) != 0 || len(tx.LotFlows) != 0 || tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" {
+	// These executors do not produce the following unsigned metadata. Revocation
+	// alone records an actual fee lot flow, checked separately below.
+	if tx.BlockHash != "" || len(tx.Logs) != 0 || tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" {
+		return errors.New("original PQ history contains unexecuted metadata")
+	}
+	if kind == consensus.PQRevocationType {
+		if err := consensus.ValidatePQWalletRevocationEffects(history); err != nil {
+			return err
+		}
+	} else if len(tx.LotFlows) != 0 {
 		return errors.New("original PQ history contains unexecuted metadata")
 	}
 	historyKind, historyWire, historyPayload, err := pqMemberHistoryWire(history)
@@ -160,7 +175,7 @@ func (g *Gateway) queryPQMemberHistory(ctx context.Context, hash string) (consen
 // through to legacy/native transaction interpretation.
 func (g *Gateway) projectPQMember(ctx context.Context, tx cometTx) (PQMemberView, error) {
 	envelope, wire, err := consensus.DecodePQTransaction(tx.Tx)
-	if err != nil || envelope.Type != consensus.PQTransferType && envelope.Type != consensus.PQMigrationType {
+	if err != nil || !isPQSingleIngressKind(envelope.Type) {
 		return PQMemberView{}, errors.New("not a canonical single PQ envelope")
 	}
 	view := pqMemberIdentity(envelope.Type, wire, tx.Tx)
@@ -223,7 +238,7 @@ func (g *Gateway) readPQMemberIndex(ctx context.Context, hash string) (cometTx, 
 
 func (g *Gateway) projectPQMemberWithHistory(ctx context.Context, tx cometTx, known *consensus.PQWalletHistoryView, queryHeight int64) (PQMemberView, error) {
 	envelope, wire, err := consensus.DecodePQTransaction(tx.Tx)
-	if err != nil || envelope.Type != consensus.PQTransferType && envelope.Type != consensus.PQMigrationType {
+	if err != nil || !isPQSingleIngressKind(envelope.Type) {
 		return PQMemberView{}, errors.New("not a canonical single PQ envelope")
 	}
 	view := pqMemberIdentity(envelope.Type, wire, tx.Tx)
@@ -322,8 +337,9 @@ func (g *Gateway) handlePQMigrationBroadcast(w http.ResponseWriter, r *http.Requ
 
 func (g *Gateway) handlePQSingleBroadcast(w http.ResponseWriter, r *http.Request, kind string) {
 	w.Header().Set("Cache-Control", "no-store")
-	if r.URL.RawQuery != "" || kind == consensus.PQMigrationType && !accountaddress.IsCanonical(r.PathValue("address")) {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical migration owner and no query parameters are required"})
+	accountRoute := kind == consensus.PQMigrationType || kind == consensus.PQRevocationType
+	if r.URL.RawQuery != "" || accountRoute && !accountaddress.IsCanonical(r.PathValue("address")) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical authorization owner and no query parameters are required"})
 		return
 	}
 	if strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])) != "application/octet-stream" {
@@ -333,6 +349,8 @@ func (g *Gateway) handlePQSingleBroadcast(w http.ResponseWriter, r *http.Request
 	limit := int64(MaxPQMemberIngressBytes)
 	if kind == consensus.PQMigrationType {
 		limit = ynxauth.MaxMigrationBytes
+	} else if kind == consensus.PQRevocationType {
+		limit = ynxauth.MaxRevocationBytes
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	wire, err := io.ReadAll(r.Body)
@@ -341,9 +359,9 @@ func (g *Gateway) handlePQSingleBroadcast(w http.ResponseWriter, r *http.Request
 		return
 	}
 	owner, payload, err := decodeIngressPQMember(kind, wire)
-	if err != nil || kind == consensus.PQMigrationType && owner != r.PathValue("address") {
+	if err != nil || accountRoute && owner != r.PathValue("address") {
 		if err == nil {
-			err = errors.New("migration route owner differs from signed intent")
+			err = errors.New("authorization route owner differs from signed intent")
 		}
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 		return
