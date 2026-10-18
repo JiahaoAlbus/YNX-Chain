@@ -155,6 +155,25 @@ export class PasswordWalletVault {
     if(record.binding.chainId!==networkId||record.binding.owner!==account)fail('PQ_KEY_BINDING_CHANGED','The proposed pair belongs to another original network or account.');
     await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();return Object.freeze({...record.binding});
   }
+  /** Explicit original-main backup callback only; never expose through preload.
+   * Existing SDK envelope/credential are kept separate at the normal file/UI
+   * boundary. Reading a backup does not change custody or create authority. */
+  async withPQBackup(networkId,action){
+    if(typeof action!=='function')fail('PQ_KEY_CALLBACK_REQUIRED','Original main backup action required.');
+    const guard=this.authorization.current();return this.#serialize(async()=>{
+      const current=await this.#readUnlocked(guard),account=guard.account;
+      if(!account||account!==current.vault.activeAccount)throw cancelled();
+      const record=current.vault.pqKeyRecords?.find(r=>r.account===account);
+      if(!record||record.binding.chainId!==networkId)fail('PASSWORD_VAULT_PQ_ORIGINAL_REQUIRED','The original protected pair is required.');
+      let payload;
+      try{
+        payload=await decryptPasswordVaultPQRecord(current.vault,account,current.session,options(guard));
+        await this.#verifyPQRecovery(payload,record.binding,guard);
+        await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
+        const result=await action(payload,guard);guard.assert();return result;
+      }finally{payload?.wire.fill(0);if(payload)payload.credential=null;}
+    });
+  }
   /** Original-main callback only. Expected keys must come from the trusted
    * reviewed registration or original protected proposal, not a renderer or
    * backup preview. Custody is not account authorization. Never expose via IPC. */

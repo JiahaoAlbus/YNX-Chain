@@ -104,6 +104,22 @@ test('App PQ uncertain preparation cannot be discarded by classic password reset
  await assert.rejects(f.lifecycle.custody(guard=>f.vault.prepareRecovery({account:f.account,kind:'private-key',value:SECRET,resetPassword:true,newPassword:'new isolated PQ password',confirmation:'new isolated PQ password'},guard)),e=>e?.data?.code==='PQ_INDEPENDENT_BACKUP_REQUIRED');
  assert.equal(await fs.readFile(f.filePath,'utf8'),before);
 });
+test('App normal PQ export is a standalone SDK backup restored in a fresh process without the original Vault',async t=>{
+ const {createPQKeyPreparationEntry}=await import('../src/wallet-pq-key-entry.mjs'),{createPQBackupActions}=await import('../src/pq-backup-actions.mjs'),{PQBackupFile}=await import('../src/pq-backup-file.mjs'),f=await fixture(t);
+ const preparation=createPQKeyPreparationEntry({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId:CHAIN,id:()=> 'TEST-portable-original'});await preparation.generate();
+ const expectedBinding=await f.lifecycle.run(()=>f.vault.readPQProposalBinding(CHAIN)),filePath=path.join(f.directory,'portable.ynxpq'),before=await fs.readFile(f.filePath,'utf8');
+ const backup=createPQBackupActions({lifecycle:f.lifecycle,vault:f.vault,sdk:SDK,networkId:CHAIN,files:new PQBackupFile(),chooseExportFile:async()=>filePath,chooseVerifyFile:async()=>filePath});
+ const exported=await backup.export();assert.equal(exported.verified,true);assert.equal(exported.walletChanged,false);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+ const file=await fs.readFile(filePath);assert.equal(file.includes(exported.credential),false);assert.equal(JSON.parse(file).format,'YNX-PQ-WALLET-BACKUP/v1');
+ const child=spawnSync(process.execPath,[fileURLToPath(new URL('./pq-portable-backup-worker.mjs',import.meta.url))],{input:JSON.stringify({filePath,credential:exported.credential,expectedBinding}),encoding:'utf8',timeout:15000,maxBuffer:16384});
+ assert.equal(child.error,undefined);assert.equal(child.status,0,child.stdout+child.stderr);const recovered=JSON.parse(child.stdout);
+ assert.notEqual(recovered.pid,process.pid);assert.deepEqual(recovered.binding,expectedBinding);assert.equal(recovered.walletAdopted,false);assert.equal(recovered.signed,false);assert.equal(recovered.broadcast,false);
+ await assert.rejects(SDK.restorePQWalletKeyHandle(new Uint8Array(file),SDK.createPQRecoveryCredential(),expectedBinding));
+ await assert.rejects(SDK.restorePQWalletKeyHandle(new Uint8Array(file),exported.credential,{...expectedBinding,owner:'0x'+'f'.repeat(40)}));
+ const verified=await backup.verify();assert.equal(verified.verified,true);assert.equal(verified.credential,exported.credential);assert.deepEqual(await fs.readFile(filePath),file);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+ // Export cannot clobber this existing file or replace the independent pair.
+ await assert.rejects(backup.export());assert.deepEqual(await fs.readFile(filePath),file);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+});
 async function fixture(t,pqSDK=SDK){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');
  const lifecycle=new DesktopKeyLifecycle();lifecycle.setFocused(true);

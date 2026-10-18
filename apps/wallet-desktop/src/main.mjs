@@ -30,6 +30,8 @@ import { YNX_TESTNET_CHAIN_QUANTITY, WALLET_AUTH_PROTOCOL_SOURCE } from "./walle
 import { DesktopAuthorizationController, parseWalletConnectActivation } from "./callback-policy.mjs";
 import { PasswordWalletVault } from "./password-wallet-vault.mjs";
 import {createPQKeyPreparationEntry} from './wallet-pq-key-entry.mjs';
+import {createPQBackupActions} from './pq-backup-actions.mjs';
+import {PQBackupFile} from './pq-backup-file.mjs';
 import * as pqKeySDK from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
 import * as pqBackupSDK from '@ynx-chain/wallet-auth/pq-wallet-backup';
 import * as pqContractSDK from '@ynx-chain/wallet-auth/pq-wallet-contract';
@@ -104,6 +106,7 @@ let familyBitcoinSubmission;
 let multichainSecurityContext=null;
 let walletConnect;
 let pqKeyPreparation;
+let pqBackupActions;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
 // No lawful SAME-Vault custodian or inherited IDE control stream is provisioned
 // in R8/R9. Only the original main owner may replace this fixed source binding
@@ -430,6 +433,8 @@ handleWalletIPC('wallet:pq-keys-recover',()=>safeIPC(()=>pqKeyPreparation.recove
 handleWalletIPC('wallet:pq-keys-generate',()=>safeIPC(()=>pqKeyPreparation.generate()));
 handleWalletIPC('wallet:pq-keys-reconcile',()=>safeIPC(()=>pqKeyPreparation.reconcile()));
 handleWalletIPC('wallet:pq-keys-cancel',()=>safeIPC(()=>pqKeyPreparation.cancel()));
+handleWalletIPC('wallet:pq-backup-export',()=>safeIPC(()=>pqBackupActions.export()));
+handleWalletIPC('wallet:pq-backup-verify',()=>safeIPC(()=>pqBackupActions.verify()));
 handleWalletIPC('wallet:pq-transaction-status',(_event,hash)=>sensitiveIPC(async()=>{
   const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
   if(guard.account!==status.account)throw Object.assign(Error('Select the original account.'),{data:{code:'ACCOUNT_CHANGED'}});
@@ -748,6 +753,10 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   familyBitcoinSubmission = new FamilyBitcoinSubmission({networks:familyRead.networks,journal:familyRecovery.journal,getContext:familyContext,gate:familyOperationGate});
   keyAccess.authorizer = passwordVault.authorizer();
   pqKeyPreparation = createPQKeyPreparationEntry({lifecycle:keyAccess,vault:passwordVault,sdk:Object.freeze({...pqKeySDK,...pqContractSDK}),networkId:PQ_CANONICAL_NETWORK_ID,id:randomUUID});
+  pqBackupActions=createPQBackupActions({lifecycle:keyAccess,vault:passwordVault,sdk:Object.freeze({...pqKeySDK,...pqContractSDK}),networkId:PQ_CANONICAL_NETWORK_ID,files:new PQBackupFile(),
+    chooseExportFile:async account=>{const selected=await keyAccess.withOwnedDialog(()=>dialog.showSaveDialog(mainWindow,{title:'Save independent encrypted PQ backup / 保存独立 PQ 加密备份',defaultPath:`ynx-pq-${account.slice(2,10)}.ynxpq`,filters:[{name:'Encrypted PQ backup (credential stored separately)',extensions:['ynxpq']}]}));return selected.canceled?null:selected.filePath??null;},
+    chooseVerifyFile:async()=>{const selected=await keyAccess.withOwnedDialog(()=>dialog.showOpenDialog(mainWindow,{title:'Verify original PQ backup / 核对原 PQ 备份',properties:['openFile'],filters:[{name:'Encrypted PQ backup',extensions:['ynxpq']}]}));return selected.canceled?null:selected.filePaths?.[0]??null;},
+  });
   walletAuthority = new DesktopWalletAuthority({
     // The existing SDK owns the fixed normal HTTPS caller. No renderer URL,
     // fake provider, second Host or private Native-op substitute is accepted.
