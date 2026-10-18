@@ -30,7 +30,7 @@ async function waitFor(read) {
   throw last;
 }
 const request = serial => codec.canonicalJSON({ requestId: 'req_PUBLIC_PIPE_' + String(serial).padStart(6, '0'), operation: 'restore', phase: 'time', body: null, proofHeader: null });
-async function fixture({ earlyDispatch = false } = {}) {
+async function fixture({ earlyDispatch = false, heldOriginal = false } = {}) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ynx-ide-pipe-public-')); await fs.chmod(directory, 0o700);
   const input = new PassThrough(), control = createNativeParentControl({ input }), instance = randomUUID(), context = { id: randomUUID(), workspace: '/public/transport-only' };
   const state = { dispatches: [], acks: [], currentReads: 0, terminal: false, response: { status: 200, headers: { 'x-request-id': 'req_PUBLIC_PIPE_000001' }, body: '{ "exact": "PUBLIC" }' } };
@@ -43,15 +43,30 @@ async function fixture({ earlyDispatch = false } = {}) {
   const body = { action: 'original-service-dispatch', id: randomUUID(), document: randomUUID(), instance, projectId: context.id, workspace: context.workspace, canonicalInput: request(1) };
   const send = value => input.write(Buffer.from(JSON.stringify(value) + '\n'));
   if (earlyDispatch) { control.subscribe({ actions: ['prepare-go'], receive() {} }); await tick(); }
-  const errors = [], attaching = attachAcquired({ control, instance, context, directory, onError: e => errors.push(e) }, original);
+  const ownerGate = heldOriginal ? deferred() : undefined;
+  const errors = [], attaching = attachAcquired({ control, instance, context, directory, onError: e => errors.push(e) }, ownerGate?.promise || original);
   if (earlyDispatch) send(body);
   const channel = await attaching;
   const read = suffix => fs.readFile(path.join(directory, 'wallet-' + body.id + suffix + '.json'), 'utf8').then(JSON.parse);
   const received = digest => ({ action: 'original-service-received', id: body.id, document: body.document, instance, projectId: context.id, workspace: context.workspace, resultDigest: digest });
   const cancel = () => { const { canonicalInput, ...value } = body; send({ ...value, action: 'original-service-cancel' }); };
   return { directory, input, control, context, instance, body, state, errors, channel, send, read, received, cancel,
+    originalReady() { ownerGate?.resolve(original); },
     async dispose() { channel.close(); await channel.finishCleanup(); await control.finishCleanup(); input.destroy(); await fs.rm(directory, { recursive: true, force: true }); } };
 }
+test('R91 first renderer request waits for the same selected SDK original before entering',async()=>{
+  const f=await fixture({heldOriginal:true});try{
+    f.send(f.body);await tick();assert.equal(f.state.dispatches.length,0);
+    f.originalReady();const provisional=await waitFor(()=>f.read(''));
+    assert.equal(f.state.dispatches.length,1);f.send(f.received(provisional.resultDigest));await waitFor(()=>f.read('-terminal'));
+  }finally{await f.dispose();}
+});
+test('R91 cancelled renderer request cannot enter when selected original becomes ready late',async()=>{
+  const f=await fixture({heldOriginal:true});try{
+    f.send(f.body);await tick();f.cancel();f.originalReady();await tick();await f.channel.finishCleanup();
+    assert.equal(f.state.dispatches.length,0);await assert.rejects(f.read(''),{code:'ENOENT'});
+  }finally{await f.dispose();}
+});
 test('normal entry refuses caller-supplied providers and preserves the original unavailable response', async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ynx-ide-pipe-null-')); await fs.chmod(directory, 0o700);
   const input = new PassThrough(), control = createNativeParentControl({ input }), instance = randomUUID(), context = { id: randomUUID(), workspace: '/public/no-supplier' };

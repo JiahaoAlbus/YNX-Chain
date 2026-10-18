@@ -10,6 +10,12 @@ const fail = code => Object.assign(Error(code), { code });
 const denied = () => fail('WALLET_SERVICE_ADMISSION_DENIED');
 const unavailable = () => fail('WALLET_SERVICE_ADMISSION_UNAVAILABLE');
 const missing = () => fail('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');
+// Backend-private readiness lookup, populated only by the normal fixed parent
+// acquisition below. Entry coordinates select no authority or replacement SDK.
+const originalServiceReadiness = new Map();
+export function originalServiceForRunningEntry(actualEntryURL) {
+  return originalServiceReadiness.get(actualEntryURL) || null;
+}
 const hex = v => typeof v === 'string' && /^[a-f0-9]{64}$/.test(v);
 export function admissionDeliveryCanonical(value) {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return JSON.stringify(value);
@@ -139,7 +145,7 @@ function cleanupOnly(lifecycle) {
 // Standalone PUBLIC controls supply explicit stand-ins; production uses only
 // the fixed original acquisition below. retained is internal same-owner state.
 export function createInstalledAdmissionReceiver({ stream, parentBinding, validateInstalled,
-  runningBackendModuleURL, now = Date.now, schedule = setTimeout, unschedule = clearTimeout, retained, acquirePrivateChannel }) {
+  runningBackendModuleURL, now = Date.now, schedule = setTimeout, unschedule = clearTimeout, retained, acquirePrivateChannel, getPrivateChannelCleanup }) {
   if (!stream || !parentBinding || typeof parentBinding.assertCurrent !== 'function'
     || typeof parentBinding.close !== 'function' || typeof validateInstalled !== 'function') throw missing();
   const lifecycle = retained || retainedOwner(parentBinding, { schedule, unschedule });
@@ -147,6 +153,9 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
   let payload, privateChannel, privateSelected = false;
   let releasePrivate;
   const retirement = new Promise(resolve => { releasePrivate = resolve; });
+  let resolveOriginal, rejectOriginal;
+  const originalReady = new Promise((resolve, reject) => { resolveOriginal = resolve; rejectOriginal = reject; });
+  void originalReady.catch(() => {});
   let bytes = Buffer.alloc(0), timer, floor = -1;
   const current = async () => {
     lifecycle.assertLive();
@@ -168,18 +177,28 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
     void lifecycle.enter(async () => {
       try {
         privateChannel = await acquirePrivateChannel();
-        if (privateChannel === null) return; // no fixed SDK successor supplied
+        if (privateChannel === null) { rejectOriginal(missing()); return; }
         if (!privateChannel?.original || !privateChannel.framer) throw missing();
         lifecycle.assertLive();
         payload = createPrivatePayloadPump({ stream, framer: privateChannel.framer,
           assertCurrent: current, onFailure: error => { void close(error)?.catch(() => {}); } });
+        resolveOriginal(privateChannel.original);
         payload.start();
         await retirement;
       } catch (error) {
-        // A rejected fixed acquisition can still retain a Native partial in
-        // its SDK owner. Without an actual returned child cleanup result we
-        // cannot assume no child exists and attempt parent close first.
-        if (privateChannel === undefined) lifecycle.retainChildCleanupDebt(error);
+        rejectOriginal(error);
+        // Only the same fixed SDK's chosen-client cleanup accessor can prove
+        // that a failed acquisition selected no client (null), or return the
+        // exact retained partial. Never reacquire to fill a missing reference.
+        if (privateChannel === undefined) {
+          try {
+            if (typeof getPrivateChannelCleanup !== 'function') throw error;
+            const partial = await getPrivateChannelCleanup();
+            if (partial === null) privateChannel = null;
+            else if (partial && typeof partial === 'object') privateChannel = { original: partial };
+            else throw missing();
+          } catch (cleanupError) { lifecycle.retainChildCleanupDebt(cleanupError); }
+        }
         void close(error)?.catch(() => {});
       }
       finally {
@@ -243,6 +262,7 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
   };
   stream.on('data', data); stream.on('end', ended); stream.on('close', ended); stream.on('error', errored);
   lifecycle.onRetire(() => {
+    rejectOriginal(lifecycle.status().firstCause);
     releasePrivate(); payload?.retire(lifecycle.status().firstCause);
     ready = false; validator = undefined; unschedule(timer);
     stream.off('data', data); stream.off('end', ended); stream.off('close', ended); stream.off('error', errored);
@@ -250,6 +270,9 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
   });
   timer = schedule(() => close(unavailable()), 30000); timer?.unref?.();
   return Object.freeze({
+    // This returns only the SDK facade from the already selected actual child;
+    // there is no setter, provider argument, new capture or raw Native handle.
+    whenOriginalServiceReady() { return originalReady; },
     async assertCurrent(input) {
       lifecycle.assertLive();
       if (active) { close(denied()); lifecycle.assertLive(); }
@@ -267,7 +290,19 @@ export function createInstalledAdmissionReceiver({ stream, parentBinding, valida
 
 // Partial acquisition stays reachable as a cleanup-only facade. Its original
 // close is selected once, never retried by startup or normal shutdown.
-export async function openOriginalParentDelivery({ supplier, runningBackendModuleURL, validateInstalled }) {
+const parentDeliverySelections = new WeakMap();
+export async function openOriginalParentDelivery(options) {
+  const { supplier, runningBackendModuleURL } = options;
+  let selections = parentDeliverySelections.get(supplier);
+  if (!selections) { selections = new Map(); parentDeliverySelections.set(supplier, selections); }
+  if (!selections.has(runningBackendModuleURL)) {
+    // Select before any supplier await. Reentrant startup shares the exact
+    // owner/reader, including a failed selection; it cannot adopt fd4 twice.
+    selections.set(runningBackendModuleURL, Promise.resolve().then(() => openSelectedOriginalParentDelivery(options)));
+  }
+  return selections.get(runningBackendModuleURL);
+}
+async function openSelectedOriginalParentDelivery({ supplier, runningBackendModuleURL, validateInstalled }) {
   if (typeof supplier.acquireOriginalIDEAdmissionParentDelivery !== 'function') return null;
   const binding = await supplier.acquireOriginalIDEAdmissionParentDelivery(runningBackendModuleURL);
   if (!binding) return null;
@@ -288,7 +323,16 @@ export async function openOriginalParentDelivery({ supplier, runningBackendModul
         if (typeof sdk.acquireOriginalIDEPrivateServiceChannel !== 'function') return null;
         return sdk.acquireOriginalIDEPrivateServiceChannel(runningBackendModuleURL);
       },
+      async getPrivateChannelCleanup() {
+        const sdk = await import('../../../packages/wallet-auth/src/original-ide-admission-parent-delivery.js');
+        if (typeof sdk.getOriginalIDEPrivateServiceChannelCleanup !== 'function') throw missing();
+        return sdk.getOriginalIDEPrivateServiceChannelCleanup(runningBackendModuleURL);
+      },
     });
+    if (originalServiceReadiness.has(runningBackendModuleURL)) {
+      lifecycle.close(denied()); return cleanupOnly(lifecycle);
+    }
+    originalServiceReadiness.set(runningBackendModuleURL, receiver.whenOriginalServiceReady());
     clearTimeout(timer); return receiver;
   } catch (error) { lifecycle.close(error); return cleanupOnly(lifecycle); }
 }

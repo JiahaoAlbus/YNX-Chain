@@ -102,9 +102,10 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   if(goStore&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
     try{const instance=process.env.YNX_NATIVE_GO_INSTANCE;const directory=await goStore.controlDirectory(instance);
       goChannel=attachNativeGoSelectionChannel({control:parentControl,store:goStore,context,directory,onError:error=>console.error('YNX_GO_SELECTION_CONTROL '+String(error.message).slice(0,240))});
-      // The fixed original service producer is still absent. This channel only
-      // reports pre-entry unavailability, without blocking local coding/Go.
-      originalServiceChannel=await attachOriginalServicePipe({control:parentControl,instance,context,directory,onError:error=>console.error('YNX_ORIGINAL_SERVICE_CONTROL '+String(error?.message??error).slice(0,240))});
+      // Register the route immediately; the same fixed admitted child becomes
+      // usable only after installed/ACK and SDK readiness. Missing supply keeps
+      // the existing unavailable response and never blocks local coding/Go.
+      originalServiceChannel=await attachOriginalServicePipe({control:parentControl,instance,context,directory,runningBackendModuleURL:import.meta.url,onError:error=>console.error('YNX_ORIGINAL_SERVICE_CONTROL '+String(error?.message??error).slice(0,240))});
     }
     catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
   }

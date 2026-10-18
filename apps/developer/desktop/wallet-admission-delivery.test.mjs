@@ -44,12 +44,13 @@ test('R89 omitted close differs from explicit undefined failure', async () => {
   assert.equal(explicit.receiver.cleanupStatus().firstCause, undefined);
   await explicit.receiver.finishCleanup();
 });
-function fixture({ validate, parentCurrent, parentClose, privateAcquire } = {}) {
+function fixture({ validate, parentCurrent, parentClose, privateAcquire, privateCleanup } = {}) {
   let clock = at, closes = 0, calls = 0;
   const timers = new Set(), stream = new PublicStream();
   const parent = { async assertCurrent(r) { if (parentCurrent) return parentCurrent(r); }, async close() { closes++; if (parentClose) return parentClose(); } };
   const receiver = createInstalledAdmissionReceiver({ stream, parentBinding: parent, runningBackendModuleURL: 'file:///PUBLIC/App/Contents/Resources/server.mjs',
     acquirePrivateChannel: privateAcquire,
+    getPrivateChannelCleanup: privateCleanup,
     now: () => clock, schedule: (fn, delay) => { const token = { fn, deadline: clock + delay }; timers.add(token); return token; }, unschedule: token => timers.delete(token),
     validateInstalled: validate || ((selection, entry) => {
       assert.equal(entry, 'file:///PUBLIC/App/Contents/Resources/server.mjs'); assert.ok(Object.isFrozen(selection.expectedRequest));
@@ -98,6 +99,32 @@ test('R90 rejected SDK acquisition retains unknown partial debt without attempti
   await assert.rejects(f.receiver.finishCleanup(),error=>error.cause===first&&error.cleanupError===first);
   assert.equal(f.closes(),0);assert.equal(f.receiver.cleanupStatus().ownerRetained,true);
   f.receiver.close();await assert.rejects(f.receiver.finishCleanup());assert.equal(acquisitions,1);
+});
+test('R91 fixed SDK cleanup getter joins same partial after falsy acquisition refusal',async()=>{
+  const child=privateFixture();let acquire=0,get=0;
+  const f=fixture({privateAcquire(){acquire++;throw undefined;},privateCleanup(){get++;return child.channel.original;},parentClose(){child.events.push(['parent-close']);}});
+  f.send();await flush();assert.deepEqual(await f.receiver.finishCleanup(),{complete:true});
+  assert.equal(f.receiver.cleanupStatus().firstCause,undefined);assert.equal(acquire,1);assert.equal(get,1);
+  assert.deepEqual(child.events.map(e=>e[0]),['retire','join','close','parent-close']);assert.equal(child.events[0][1],undefined);
+});
+test('R91 only fixed SDK null confirms no child; original factory failure is retained',async()=>{
+  const first=Error('PUBLIC_NO_CHILD');const f=fixture({privateAcquire(){throw first;},privateCleanup(){return null;}});
+  f.send();await flush();assert.deepEqual(await f.receiver.finishCleanup(),{complete:true});
+  assert.equal(f.receiver.cleanupStatus().firstCause,first);assert.equal(f.closes(),1);
+});
+test('R91 failed fixed cleanup lookup retains both first cause and cleanup debt',async()=>{
+  const first=Error('PUBLIC_CAPTURE'),lookup=Error('PUBLIC_LOOKUP');
+  const f=fixture({privateAcquire(){throw first;},privateCleanup(){throw lookup;}});f.send();await flush();
+  await assert.rejects(f.receiver.finishCleanup(),error=>error.cause===first&&error.cleanupError===lookup);
+  assert.equal(f.closes(),0);assert.equal(f.receiver.cleanupStatus().ownerRetained,true);
+});
+test('R91 reentrant startup shares one failed original selection without another fd adoption',async()=>{
+  let acquisitions=0,closes=0;const first=Error('PUBLIC_BEFORE_FD');
+  const supplier={async acquireOriginalIDEAdmissionParentDelivery(){acquisitions++;return{descriptor:4,assertCurrent(){throw first;},close(){closes++;}};}};
+  const options={supplier,runningBackendModuleURL:'file:///PUBLIC/R91/server.mjs',validateInstalled(){throw Error('must not run');}};
+  const [a,b]=await Promise.all([openOriginalParentDelivery(options),openOriginalParentDelivery(options)]);
+  assert.equal(a,b);assert.equal(acquisitions,1);await a.finishCleanup();assert.equal(closes,1);
+  assert.equal(await openOriginalParentDelivery(options),a);assert.equal(acquisitions,1);
 });
 test('R90 payload before installed ACK completion cannot acquire child or reach SDK',async()=>{
   const child=privateFixture();let acquired=0;const f=fixture({privateAcquire(){acquired++;return child.channel;}});

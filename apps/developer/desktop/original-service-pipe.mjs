@@ -3,6 +3,7 @@ import { constants, linkSync, unlinkSync, lstatSync } from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { attachUnavailableOriginalServiceChannel, NATIVE_ORIGINAL_SERVICE_FRAME_LIMIT } from './native-parent-control.mjs';
+import { originalServiceForRunningEntry } from './wallet-admission-delivery.mjs';
 
 // Transport only. The original SDK owns parsing, admission, journal, execution
 // and terminal proof. This is not an acquisition/provider registration API.
@@ -15,24 +16,26 @@ const exact = (value, keys) => value && Object.getPrototypeOf(value) === Object.
   && Object.keys(value).sort().join(',') === [...keys].sort().join(',');
 const failure = () => Error('Original service transport is unavailable; preserve its original outcome.');
 
-// Normal entry accepts transport coordinates only. The fixed SDK acquisition
-// is not supplied yet: do not substitute an injected object, generic Node
-// delivery, descriptor, project/ENV option or a public provider setter.
+// Normal entry accepts transport coordinates only, including this backend's
+// actual entry URL. Only the existing fixed parent acquisition can populate
+// its readiness lookup; no caller object/descriptor/provider supplies a client.
 export async function attachOriginalServicePipe(options) {
-  const allowed = ['control', 'instance', 'context', 'directory', 'onError'];
+  const allowed = ['control', 'instance', 'context', 'directory', 'onError', 'runningBackendModuleURL'];
   if (!options || Object.getPrototypeOf(options) !== Object.prototype || Object.keys(options).some(key => !allowed.includes(key))) throw failure();
-  return attachUnavailableOriginalServiceChannel(options);
+  const acquired = originalServiceForRunningEntry(options.runningBackendModuleURL);
+  return acquired === null ? attachUnavailableOriginalServiceChannel(options) : attachAcquiredOriginalServicePipe(options, acquired);
 }
 
-// Success implementation remains module-private until the sole SDK's fixed
-// acquisition is delivered and matched. Only that acquisition may invoke it.
+// Success implementation remains module-private. Normal startup can reach it
+// only through readiness of the same fixed SDK acquisition above.
 // PUBLIC controls expose this unchanged body with an external test-only loader;
 // the production module never exports an object-injection/provider hook.
-async function attachAcquiredOriginalServicePipe({ control, instance, context, directory, onError = () => {} }, original) {
+async function attachAcquiredOriginalServicePipe({ control, instance, context, directory, onError = () => {} }, acquired) {
+  let original;
   if (!UUID.test(instance || '') || !UUID.test(context?.id || '') || !path.isAbsolute(context.workspace)
-    || path.normalize(context.workspace) !== context.workspace
-    || ['dispatch', 'acknowledge', 'selectCurrentOutcome'].some(key => typeof original[key] !== 'function')) throw failure();
-  // Fixed SDK CODE, loaded only after the original owner has been acquired.
+    || path.normalize(context.workspace) !== context.workspace) throw failure();
+  // CODE and actual-owner readiness are separate. Register the route now, but
+  // wait for both before entering a business request; cancellation stays live.
   // No secondary parser, dynamic module path or authorization callback.
   const rows = new Map(), business = new Set(), pending = new Set();
   let closed = false, poisoned = false, firstFailurePresent = false, firstFailure;
@@ -41,8 +44,10 @@ async function attachAcquiredOriginalServicePipe({ control, instance, context, d
   const sdkReady = Promise.all([
     import('../../../packages/wallet-auth/src/original-wallet-service-private-dispatch.js'),
     import('../../../packages/wallet-auth/src/canonical.js'),
-  ]).then(([codec, canonical]) => {
+  ]).then(async ([codec, canonical]) => {
     if (typeof codec.decodeOriginalWalletServicePrivateRequest !== 'function' || typeof canonical.canonicalJSON !== 'function') throw failure();
+    original = await acquired;
+    if (['dispatch', 'acknowledge', 'selectCurrentOutcome'].some(key => typeof original?.[key] !== 'function')) throw failure();
     decodeOriginalWalletServicePrivateRequest = codec.decodeOriginalWalletServicePrivateRequest; canonicalJSON = canonical.canonicalJSON;
   });
   pending.add(sdkReady);
