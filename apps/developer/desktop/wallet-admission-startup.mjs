@@ -32,6 +32,13 @@ export async function openBundledWalletIdentityCaller(runningBackendModuleURL) {
   return new OriginalIDEIdentityCall({ binding, actualEntryURL: runningBackendModuleURL, contract });
 }
 
+// The original SDK kernel owns send/return/proof ordering. Creating this facade
+// does not begin a request or allocate a peer; explicit begin remains required.
+export async function openBundledWalletIdentityPeerCall(runningBackendModuleURL) {
+  const caller=await openBundledWalletIdentityCaller(runningBackendModuleURL);
+  return caller.openPeerCall();
+}
+
 export async function openBundledWalletAdmission(runningBackendModuleURL) {
   let delivery;
   try { delivery = await openOriginalParentDelivery({ supplier, runningBackendModuleURL,

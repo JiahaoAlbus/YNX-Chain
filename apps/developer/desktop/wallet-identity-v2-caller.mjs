@@ -27,6 +27,10 @@ export class OriginalIDEIdentityCall {
   /** @type {unknown} */ #closeFailure;
   #constructing = false; #ownerRetireSelected = false; #ownerRetireFailed = false;
   #nativeDepth = 0;
+  #peer; #peerLoading; #peerKernel; #peerConstructing = false;
+  #peerRetired = false; #peerRetireSelected = false; #peerRetireFailed = false; #peerRetireFailure;
+  #peerJoined = false; #peerClosed = false; #peerCloseSelected = false; #peerCloseFailed = false; #peerCloseFailure;
+  #peerSent = false; #peerReceived = false; #peerReturned;
   /** @type {unknown} */ #ownerRetireFailure;
   /** @param {{binding:NativeBinding | null, actualEntryURL:string,
    * contract:typeof import('@ynx-chain/wallet-auth/auth-identity-contract')}} input */
@@ -54,6 +58,102 @@ export class OriginalIDEIdentityCall {
   #native(action) {
     this.#nativeDepth++;
     try { return action(); } finally { this.#nativeDepth--; }
+  }
+  current() {
+    return this.#enter(() => {
+      if(!this.#owner)throw failure('IDE_IDENTITY_REQUEST_UNAVAILABLE');
+      successful(this.#native(()=>this.#owner.current()));
+      this.#assertLive();
+    });
+  }
+  // Fixed original package only. No factory, module, provider or raw Native
+  // owner is accepted through the product API or exposed to the renderer.
+  openPeerCall() {
+    this.#assertLive();
+    this.#peerKernel??=import('../../../packages/wallet-auth/src/original-identity-peer-runtime.js').then(({OriginalIdentityPeerCall})=>{
+      this.#assertLive();
+      const view=Object.freeze({
+        current:()=>this.#peerCurrent(),
+        sendRequest:(kind,raw,invocation)=>this.#peerOperation('sendRequest',[kind,raw,invocation]),
+        receiveReturn:()=>this.#peerOperation('receiveReturn',[]),
+        retire:()=>this.#retirePeer(),join:()=>this.#joinPeer(),close:()=>this.#closePeer(),
+      });
+      return new OriginalIdentityPeerCall(this,view);
+    });
+    return this.#peerKernel;
+  }
+  #loadPeer() {
+    this.#assertLive();
+    if(!this.#owner||!this.#started)throw failure('IDE_IDENTITY_REQUEST_UNAVAILABLE');
+    this.#peerLoading??=(async()=>{
+      const original=await import('../../../packages/wallet-auth/src/original-ide-admission-parent-delivery.js');
+      this.#assertLive();
+      const acquire=original.acquireOriginalIDEIdentityPeerBinding;
+      if(typeof acquire!=='function')throw failure('IDE_IDENTITY_PEER_UNAVAILABLE');
+      const binding=this.#native(()=>acquire(this.#actualEntryURL));
+      this.#assertLive();
+      const construct=this.#native(()=>binding?.acquireOriginalIDEIdentityPeerChannel);
+      this.#assertLive();
+      if(typeof construct!=='function')throw failure('IDE_IDENTITY_PEER_UNAVAILABLE');
+      this.#peerConstructing=true;
+      try {
+        // Preserve the returned SAME owning partial before any live/current
+        // check or reentrant cancellation can fail. This is the sole factory.
+        this.#peer=this.#native(()=>construct.call(binding,this.#actualEntryURL,this.#owner));
+      }finally{this.#peerConstructing=false;}
+      if(this.#peerRetired||this.#retired)this.#retirePeer();
+      this.#assertLive();
+      if(!this.#peer)throw failure('IDE_IDENTITY_PEER_UNAVAILABLE');
+      successful(this.#native(()=>this.#peer.current()));
+      this.#assertLive();return this.#peer;
+    })().catch(error=>this.#fail(error));
+    return this.#peerLoading;
+  }
+  async #peerCurrent() {
+    try {const peer=await this.#loadPeer();this.#assertLive();successful(this.#native(()=>peer.current()));this.#assertLive();}
+    catch(error){this.#fail(error);}
+  }
+  async #peerOperation(method,args) {
+    try {
+      const peer=await this.#loadPeer();this.#assertLive();
+      const operation=this.#native(()=>peer[method]);this.#assertLive();
+      if(typeof operation!=='function')throw failure('IDE_IDENTITY_PEER_UNAVAILABLE');
+      if(method==='sendRequest'){
+        if(this.#peerSent)throw failure('IDE_IDENTITY_PEER_SEND_ALREADY_SELECTED');this.#peerSent=true;
+      }else{if(this.#peerReceived)throw failure('IDE_IDENTITY_PEER_RETURN_ALREADY_SELECTED');this.#peerReceived=true;}
+      const value=await this.#native(()=>operation.apply(peer,args));
+      // Keep a received frame even if cancellation/current invalidates its
+      // consumer immediately afterwards. EOF/UNKNOWN is never an approval.
+      if(method==='receiveReturn')this.#peerReturned=value;
+      this.#assertLive();
+      if(method==='sendRequest')successful(value);
+      return value;
+    }catch(error){this.#fail(error);}
+  }
+  #retirePeer() {
+    this.#peerRetired=true;
+    if(!this.#peer)return;
+    if(this.#peerRetireSelected){if(this.#peerRetireFailed)throw this.#peerRetireFailure;return;}
+    this.#peerRetireSelected=true;
+    try{successful(this.#native(()=>this.#peer.retire()));}
+    catch(error){this.#peerRetireFailed=true;this.#peerRetireFailure=error;throw error;}
+  }
+  async #joinPeer() {
+    if(!this.#peerRetired)throw failure('IDE_IDENTITY_RETIRE_REQUIRED');
+    if(this.#peerConstructing||this.#nativeDepth)throw failure('IDE_IDENTITY_JOIN_PENDING');
+    // Wait only for our entered getter/factory, never create/replay an owner.
+    if(this.#peerLoading)await this.#peerLoading.catch(()=>{});
+    if(this.#peerJoined)return;
+    if(this.#peer)successful(this.#native(()=>this.#peer.join()));
+    this.#peerJoined=true;
+  }
+  #closePeer() {
+    if(!this.#peerRetired||!this.#peerJoined)throw failure('IDE_IDENTITY_JOIN_REQUIRED');
+    if(this.#nativeDepth)throw failure('IDE_IDENTITY_CLOSE_PENDING');
+    if(this.#peerCloseSelected){if(this.#peerCloseFailed)throw this.#peerCloseFailure;return;}
+    this.#peerCloseSelected=true;
+    try{if(this.#peer)successful(this.#native(()=>this.#peer.close()));this.#peerClosed=true;}
+    catch(error){this.#peerCloseFailed=true;this.#peerCloseFailure=error;throw error;}
   }
   /** @param {keyof typeof operations} kind @param {string} [invocationOriginal] */
   begin(kind, invocationOriginal) {
@@ -157,20 +257,25 @@ export class OriginalIDEIdentityCall {
   }
   retire() {
     this.#retired = true; // Immediately refuse late UI/proof callbacks.
-    if (this.#ownerRetireSelected) { if (this.#ownerRetireFailed) throw this.#ownerRetireFailure; return; }
-    if (!this.#owner) return; // An entered constructor may still return a partial.
+    let peerFailed=false,peerFailure;
+    try{this.#retirePeer();}catch(error){peerFailed=true;peerFailure=error;if(!this.#failed){this.#failed=true;this.#firstCause=error;}}
+    if (this.#ownerRetireSelected) { if(peerFailed)throw peerFailure;if (this.#ownerRetireFailed) throw this.#ownerRetireFailure; return; }
+    if (!this.#owner) {if(peerFailed)throw peerFailure;return;} // An entered constructor may still return a partial.
     this.#ownerRetireSelected = true;
     const owner = this.#owner;
     try { successful(this.#native(() => owner.retire())); }
     catch (error) {
       this.#ownerRetireFailed = true; this.#ownerRetireFailure = error;
       if (!this.#failed) { this.#failed = true; this.#firstCause = error; }
+      if(peerFailed)throw peerFailure;
       throw error;
     }
+    if(peerFailed)throw peerFailure;
   }
   join() {
     if (!this.#retired) throw failure('IDE_IDENTITY_RETIRE_REQUIRED');
     if (this.#constructing || this.#nativeDepth) throw failure('IDE_IDENTITY_JOIN_PENDING');
+    if(this.#peerLoading&&!this.#peerClosed)throw failure('IDE_IDENTITY_PEER_CLOSE_REQUIRED');
     if (this.#joined) return;
     const owner = this.#owner;
     if (owner) successful(this.#native(() => owner.join())); // pending is retryable join, never business replay

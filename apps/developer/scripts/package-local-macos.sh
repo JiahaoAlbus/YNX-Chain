@@ -20,6 +20,7 @@ node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs s
 node --test scripts/admit-derived-native.test.mjs
 node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
 node --test desktop/wallet-identity-v2-caller.test.mjs desktop/wallet-identity-v2-startup.test.mjs
+YNX_IDE_PEER_KERNEL_SOURCE="${YNX_DEVELOPER_CANONICAL_SDK_ROOT:-$repo_root/packages/wallet-auth}/src/original-identity-peer-runtime.js" node --test desktop/wallet-identity-peer-bridge.test.mjs
 # Test the normal App consumer against the same selected holder header. The
 # holder is App-only; it is not another Node NAPI translation unit.
 YNX_IDE_IDENTITY_NATIVE_INCLUDE="$canonical_native_root/packages/wallet-auth/native" node --test runtime/theia/scripts/identity-launch-consumer.test.mjs scripts/package-native-parent-link.test.mjs scripts/identity-app-selection.test.mjs
