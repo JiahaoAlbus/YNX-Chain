@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
 import { spawn } from 'node:child_process';
+import { readNodePhaseTiming } from './node-phase-timing.mjs';
 import { createNativeResourceProbe } from './native-resource-probe.mjs';
 import { validateNativeResourceSample } from './native-resource-sample.mjs';
 import { parseArgs } from 'node:util';
@@ -12,6 +13,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 const { values } = parseArgs({ options: {
   execute: { type: 'boolean', default: false },
   'persistent-native-probe': { type: 'boolean', default: false },
+  'node-phase-timing': { type: 'boolean', default: false },
   'bin-dir': { type: 'string' }, 'comet-bin': { type: 'string' },
   'work-parent': { type: 'string', default: 'artifacts/chain-network-performance' },
   count: { type: 'string', default: '32' },
@@ -62,7 +64,7 @@ const commands = {
 for (const command of Object.values(commands)) fs.accessSync(command, fs.constants.X_OK);
 const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 32 * 1024 * 1024, rssBytes: 1024 ** 3, freeDiskFloorBytes: 1024 ** 3, rootDiskReserveBytes: 425 * 1024 ** 2, longLivedChildren: 9, threadsWithControlReserve: 320, fullHostSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, clientObservers: 4, gomaxprocs: 1, gogc: '100', gomemlimit: 'off' };
 if (!values.execute) {
-  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', nativeProbeMode:values['persistent-native-probe']?'persistent':'per-sample', commands, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
+  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', nativeProbeMode:values['persistent-native-probe']?'persistent':'per-sample', nodePhaseTiming:values['node-phase-timing'], commands, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
   process.exit(0);
 }
 
@@ -218,7 +220,7 @@ try {
   for (const node of manifest.nodes) {
     if (!node.home.startsWith(network + path.sep) || !node.abciStatePath.startsWith(network + path.sep) || !/^tcp:\/\/127\.0\.0\.1:\d+$/.test(node.abciListen) || !/^http:\/\/127\.0\.0\.1:\d+$/.test(node.rpcUrl)) throw Error('fixture escaped local scope');
   }
-  for (const [index, node] of manifest.nodes.entries()) launch(`abci-${index}`, commands.app, ['-listen', node.abciListen, '-migration-state', manifest.migrationPath, '-state', node.abciStatePath, ...(stateLayout!=='atomic-json'?['-state-layout',stateLayout]:[])], true);
+  for (const [index, node] of manifest.nodes.entries()) launch(`abci-${index}`, commands.app, ['-listen', node.abciListen, '-migration-state', manifest.migrationPath, '-state', node.abciStatePath, ...(stateLayout!=='atomic-json'?['-state-layout',stateLayout]:[]),...(values['node-phase-timing']?['-phase-timing']:[])], true);
   await delay(300);
   for (const [index, node] of manifest.nodes.entries()) launch(`comet-${index}`, commands.comet, ['start', '--home', node.home], true);
   for (const node of manifest.nodes) {
@@ -256,7 +258,13 @@ try {
     if (!exited || !groupGone) fail(`${name} process/group did not fully exit`);
     return { name, pid, exitCode, signal, exited, groupGone };
   });
-  const receipt = { schema: 5, nativeProbeMode:values['persistent-native-probe']?'persistent':'per-sample', sharedParentExcluded: process.ppid, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: owned launcher/live children plus native sampler and conservative fork-child reserve; shared parent excluded', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
+  const nodePhaseTimings=[];
+  if(values['node-phase-timing'])for(let node=0;node<4;node++){
+    const logPath=path.join(work,`abci-${node}.log`);
+    try{nodePhaseTimings.push({node,logPath,...readNodePhaseTiming(fs.readFileSync(logPath,'utf8'))});}
+    catch(error){fail(`abci-${node} phase timing: ${error.message}`);nodePhaseTimings.push({node,logPath,error:error.message});}
+  }
+  const receipt = { schema: 5, nodePhaseTimings, nativeProbeMode:values['persistent-native-probe']?'persistent':'per-sample', nodePhaseTiming:values['node-phase-timing'], sharedParentExcluded: process.ppid, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, segmentedIntents, clientModeArguments, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: owned launcher/live children plus native sampler and conservative fork-child reserve; shared parent excluded', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
   fs.writeFileSync(path.join(work, 'window-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   console.log(JSON.stringify(receipt, null, 2));
   process.exitCode = firstCause ? 1 : 0;

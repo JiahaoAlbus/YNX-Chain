@@ -93,11 +93,11 @@ test('persistent sampling is explicit and preparation launches no process', {ski
  try{
   for(const name of ['ynx-consensus-perf-fixture','ynx-abci','ynx-consensus-perf-client','ynx-consensus-perf-host','cometbft'])fs.writeFileSync(path.join(root,name),'',{mode:0o700});
   const work=path.join(root,'must-not-exist');
-  const args=[runner,'--bin-dir',root,'--comet-bin',path.join(root,'cometbft'),'--work-parent',work];
+  const args=[runner,'--bin-dir',root,'--comet-bin',path.join(root,'cometbft'),'--work-parent',work,'--node-phase-timing'];
   for(const persistent of [false,true]){
    const r=spawnSync(process.execPath,[...args,...(persistent?['--persistent-native-probe']:[])],{encoding:'utf8',timeout:5000});
    assert.equal(r.status,0,r.stderr);const plan=JSON.parse(r.stdout);
-   assert.equal(plan.status,'prepared_only_no_processes_started');assert.equal(plan.nativeProbeMode,persistent?'persistent':'per-sample');assert.equal(fs.existsSync(work),false);
+   assert.equal(plan.nodePhaseTiming,true);assert.equal(plan.status,'prepared_only_no_processes_started');assert.equal(plan.nativeProbeMode,persistent?'persistent':'per-sample');assert.equal(fs.existsSync(work),false);
    assert.equal(plan.caps.activeMs,45000);assert.equal(plan.caps.rssBytes,1024**3);
   }
  }finally{fs.rmSync(root,{recursive:true,force:true})}

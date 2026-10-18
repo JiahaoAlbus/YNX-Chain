@@ -13,6 +13,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	abciserver "github.com/cometbft/cometbft/abci/server"
+	abcitypes "github.com/cometbft/cometbft/abci/types"
 )
 
 func main() {
@@ -21,6 +22,7 @@ func main() {
 	migrationPath := flag.String("migration-state", "", "validated YNX consensus migration JSON path")
 	statePath := flag.String("state", "", "durable ABCI committed state path (default: <migration-state>.abci-state.json)")
 	layout := flag.String("state-layout", "atomic-json", "persistent layout: atomic-json, snapshot-journal or block-journal (explicit incompatible formats)")
+	phaseTiming := flag.Bool("phase-timing", false, "emit bounded cumulative ABCI handler and Commit storage timings to stderr (diagnostics only)")
 	flag.Parse()
 	if *migrationPath == "" {
 		log.Fatal("-migration-state is required")
@@ -28,7 +30,7 @@ func main() {
 	if *statePath == "" {
 		*statePath = *migrationPath + ".abci-state.json"
 	}
-	if err := runWithLayout(*listen, *transport, *migrationPath, *statePath, *layout); err != nil {
+	if err := runWithDiagnostics(*listen, *transport, *migrationPath, *statePath, *layout, *phaseTiming); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -38,6 +40,10 @@ func run(listen, transport, migrationPath, statePath string) error {
 }
 
 func runWithLayout(listen, transport, migrationPath, statePath, layout string) error {
+	return runWithDiagnostics(listen, transport, migrationPath, statePath, layout, false)
+}
+
+func runWithDiagnostics(listen, transport, migrationPath, statePath, layout string, phaseTiming bool) error {
 	if layout != "atomic-json" && layout != "snapshot-journal" && layout != "block-journal" {
 		return fmt.Errorf("unsupported state layout %q", layout)
 	}
@@ -60,7 +66,13 @@ func runWithLayout(listen, transport, migrationPath, statePath, layout string) e
 	if err != nil {
 		return err
 	}
-	server, err := abciserver.NewServer(listen, transport, app)
+	var application abcitypes.Application = app
+	if phaseTiming {
+		timed := withPhaseTiming(app, os.Stderr)
+		application = timed
+		defer timed.recorder.emit("shutdown", nil)
+	}
+	server, err := abciserver.NewServer(listen, transport, application)
 	if err != nil {
 		return fmt.Errorf("create ABCI server: %w", err)
 	}

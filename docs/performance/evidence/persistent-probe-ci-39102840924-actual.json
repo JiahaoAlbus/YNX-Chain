@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "head": "e022485205460889b4cbabc9d21ad3faed6292fb",
+  "runID": 39102840924,
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39102840924",
+  "status": "completed",
+  "conclusion": "success",
+  "allOriginalGatesSucceeded": true,
+  "rawLog": "artifacts/chain-performance-20261017/ci-39102840924-full.log",
+  "rawLogBytes": 320085,
+  "rawLogSHA256": "da6900c3c437933211bae5ac0f100bdf0885e8f13c21bbef5f3ea9d9b85e6b53",
+  "interpretation": "Source/CI and bounded sampler correctness; no new four-node business TPS/inclusion/finality measurement."
+}

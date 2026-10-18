@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "status": "prepared_only_no_nodes_or_business_transactions_started",
+  "preparedReceipt": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/e022-matched-four-node-20261018-01/prepared.json",
+  "sha256": "68abca14604006fa913beff57500dc850e00be71184a544760fe878261202494",
+  "controllerCommit": "e022485205460889b4cbabc9d21ad3faed6292fb",
+  "singleChangedVariable": "client persisted journal readback verification facts cache: fff2ff67 -> a8bf5177. App, fixture, Comet, native probe, controller and all configuration identical. This does not compare Commit storage layouts.",
+  "networkStarted": false,
+  "businessMeasurement": null,
+  "admission": {
+    "requiresFreshRootSlot": true,
+    "mustWaitForWalletActualHeavyReturn": true,
+    "nativePressureLevel": 1,
+    "freeDiskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "eachWindowDataBytesCap": 33554432,
+    "ports": {
+      "p2p": 31656,
+      "rpc": 31757,
+      "abci": 31858
+    },
+    "fourNodeNetworkStarted": false
+  },
+  "statistics": {
+    "offered": "exact signed input identities; signing, journal Sync and nonce eligibility waits included in complete workload window",
+    "submitted": "actual RPC submission starts; unknown outcomes never retried",
+    "checkTx": "responses and identity-bound accepted counts separately; not business throughput",
+    "inclusion": "code-zero execution plus exact signed Merkle inclusion, verified weighted commit and actual fee/nonce durable state/publication qualification",
+    "qualifiedFinal": "only identity-bound rows satisfying inclusion, weighted quorum, persisted application state and matching publication; no ACK-only promotion",
+    "latencies": "client monotonic queue, CheckTx, inclusion and qualified final intervals separately; P50/P95/P99 and actual sample counts; polling/RPC overhead included",
+    "rates": "all offered/submitted/accepted/effective included/qualified final counts divided by actual complete workload window; configured rate distinct from observed interarrival rate",
+    "errors": "rejected/executionFailed/unknown/timedOut/observationFailed/notSubmitted explicit; never erase failure rows",
+    "nodeInternalCommitPhases": "not available in these pinned node binaries; existing separate local Commit timing evidence remains separate; no invented network phase times",
+    "sustainedTPS": null
+  },
+  "limitations": [
+    "This matched pair tests client readback caching only.",
+    "New 1000 TPS / 10-minute qualification still requires bounded streaming workload integration and a separate scheduled profile.",
+    "No new inclusion/finality result until both actual runs and readback complete."
+  ]
+}

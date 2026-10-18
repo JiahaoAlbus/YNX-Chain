@@ -66,6 +66,7 @@ jobs:
           scripts/loadtest/consensus-light-plan.test.mjs
           scripts/loadtest/native-resource-sample.test.mjs
           scripts/loadtest/native-resource-probe.test.mjs
+          scripts/loadtest/node-phase-timing.test.mjs
           scripts/loadtest/owned-process-race.test.mjs
           scripts/loadtest/same-control-readback.test.mjs
           scripts/verify/perf-v13-integration-check.test.mjs
@@ -112,6 +113,8 @@ jobs:
           go test -p 1 ./cmd/ynx-consensus-perf-client
           -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds)$'
           -count=1 -timeout=45s -v
+      - name: Verify opt-in node phase timings against real durable execution
+        run: go test -p 1 ./cmd/ynx-abci -run '^TestPhaseTiming' -count=1 -timeout=45s -v
       - name: Verify fixed unpublished performance V13 integration contract
         run: make integration-contract-perf-v13-check
       - run: make chain-core-release-check
