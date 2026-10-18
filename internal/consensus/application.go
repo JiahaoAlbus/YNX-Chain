@@ -29,28 +29,30 @@ const (
 
 type Application struct {
 	abcitypes.BaseApplication
-	mu                       sync.RWMutex
-	migration                chain.ConsensusMigrationState
-	committed                CommittedState
-	pending                  *CommittedState
-	statePath                string
-	journal                  *snapshotJournal // explicit opt-in; default atomic JSON remains unchanged
-	blockJournal             *blockJournal
-	pendingBlockRequest      []byte
-	pendingBlockResponseHash string
-	feeRecipient             string
-	snapshotExports          map[uint64]stateSyncSnapshotExport
-	snapshotRestore          *stateSyncSnapshotRestore
-	commitTimings            *commitTimings // nil outside opt-in diagnostics
-	commitTimingEnabled      bool
-	commitTimingLatest       *CommitTimingSample
-	nativeVerification       nativeVerificationCache
-	replayStateVersion       int                      // decoder-owned historical journal replay only; zero for normal execution
-	replayVerificationFacts  *nativeVerificationCache // decoder-owned crypto facts only; never mutable execution state
-	bootstrap                *ConsensusBootstrap
-	persistenceHooks         *committedPersistenceHooks
-	pqCertificateCache       *chain.PQCertificateCache
-	pqEngineAuthorization    *PQEngineAuthorization
+	mu                          sync.RWMutex
+	migration                   chain.ConsensusMigrationState
+	committed                   CommittedState
+	pending                     *CommittedState
+	statePath                   string
+	journal                     *snapshotJournal // explicit opt-in; default atomic JSON remains unchanged
+	blockJournal                *blockJournal
+	pendingBlockRequest         []byte
+	pendingBlockResponseHash    string
+	feeRecipient                string
+	snapshotExports             map[uint64]stateSyncSnapshotExport
+	snapshotRestore             *stateSyncSnapshotRestore
+	commitTimings               *commitTimings // nil outside opt-in diagnostics
+	commitTimingEnabled         bool
+	commitTimingLatest          *CommitTimingSample
+	nativeVerification          nativeVerificationCache
+	replayStateVersion          int                      // decoder-owned historical journal replay only; zero for normal execution
+	replayVerificationFacts     *nativeVerificationCache // decoder-owned crypto facts only; never mutable execution state
+	bootstrap                   *ConsensusBootstrap
+	persistenceHooks            *committedPersistenceHooks
+	pqCertificateCache          *chain.PQCertificateCache
+	pqEngineAuthorization       *PQEngineAuthorization
+	runtimeUpgradeAuthorization *RuntimeUpgradeAuthorization
+	runtimeUpgradeCursor        *runtimeUpgradeCursor
 }
 
 type transactionError struct {
@@ -302,11 +304,15 @@ func NewBlockJournaledApplication(state chain.ConsensusMigrationState, path stri
 func (a *Application) Info(context.Context, *abcitypes.RequestInfo) (*abcitypes.ResponseInfo, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
+	version, err := a.runtimeApplicationVersionLocked()
+	if err != nil {
+		return nil, err
+	}
 	if !a.committed.Initialized {
 		return &abcitypes.ResponseInfo{
 			Data:       ApplicationName,
 			Version:    "cometbft-v0.38",
-			AppVersion: ApplicationVersion,
+			AppVersion: version,
 		}, nil
 	}
 	appHash, err := hex.DecodeString(a.committed.AppHash)
@@ -316,7 +322,7 @@ func (a *Application) Info(context.Context, *abcitypes.RequestInfo) (*abcitypes.
 	return &abcitypes.ResponseInfo{
 		Data:             ApplicationName,
 		Version:          "cometbft-v0.38",
-		AppVersion:       ApplicationVersion,
+		AppVersion:       version,
 		LastBlockHeight:  a.committed.Height,
 		LastBlockAppHash: appHash,
 	}, nil
@@ -737,7 +743,7 @@ func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) 
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	state := a.committedExecutionStateView()
-	state, err := preparePQEngineExecution(state, a.committed.Height+1, a.pqEngineAuthorization)
+	state, err := a.prepareConsensusExecution(state, a.committed.Height+1)
 	if err != nil {
 		return &abcitypes.ResponseCheckTx{Code: CodeInvalidTx, Log: err.Error()}, nil
 	}
@@ -762,7 +768,7 @@ func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestP
 		return nil, errors.New("proposal height must follow committed state")
 	}
 	state := a.committedExecutionStateView()
-	state, err := preparePQEngineExecution(state, height, a.pqEngineAuthorization)
+	state, err := a.prepareConsensusExecution(state, height)
 	if err != nil {
 		return nil, err
 	}
@@ -797,7 +803,7 @@ func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestP
 		height = a.committed.Height + 1
 	}
 	state := a.committedExecutionStateView()
-	state, err := preparePQEngineExecution(state, height, a.pqEngineAuthorization)
+	state, err := a.prepareConsensusExecution(state, height)
 	if err != nil {
 		return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
 	}
@@ -840,7 +846,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		req = &owned
 	}
 	state := a.committedExecutionStateView()
-	state, err := preparePQEngineExecution(state, req.Height, a.pqEngineAuthorization)
+	state, err := a.prepareConsensusExecution(state, req.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -893,6 +899,9 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		}
 		response.ConsensusParamUpdates, response.ValidatorUpdates = params, updates
 	}
+	if err := a.applyRuntimeUpgradeResponse(req.Height, response); err != nil {
+		return nil, err
+	}
 	if a.blockJournal != nil {
 		hash, err := finalizeResponseHash(response)
 		if err != nil {
@@ -913,6 +922,11 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 	if a.pending == nil {
 		return nil, errors.New("cannot commit without finalized state")
+	}
+	if a.runtimeUpgradeAuthorization != nil {
+		if _, err := a.runtimeUpgradeCursor.modeForNext(a.committed, a.pending.Height); err != nil {
+			return nil, err
+		}
 	}
 	if err := validateConsensusPQContinuation(a.committed, *a.pending); err != nil {
 		return nil, err
@@ -1006,6 +1020,9 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 func (a *Application) applyTransactionAt(state executionState, payload []byte, height int64, blockTime time.Time, transactionIndex uint32) (executionState, transactionExecution, error) {
 	kind, err := TransactionEnvelopeType(payload)
 	if err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if err := validateHistoricalRuntimeEnvelope(state, kind); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
 	if kind == ValidatorRegistryTransactionType || kind == PQActionType || kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType || kind == PQWholeType || kind == SignedActionType {

@@ -32,9 +32,11 @@ func (a *Application) ConsensusAuthorityForState(chainID string, height int64, a
 	registry := cloneValidatorRegistry(a.committed.ValidatorRegistry)
 	schedule := clonePQEngineSchedule(a.committed.PQEngineSchedule)
 	authorization := a.pqEngineAuthorization
+	runtimeAuthorization := a.runtimeUpgradeAuthorization
 	a.mu.RUnlock()
 	if err := authorization.ValidateCommittedSchedule(schedule, height); err != nil {
 		return nil, err
 	}
-	return newPQEngineSnapshot(bootstrap, registry, schedule, height)
+	snapshot, err := newPQEngineSnapshot(bootstrap, registry, schedule, height)
+	return withRuntimeUpgradeSnapshot(snapshot, err, runtimeAuthorization)
 }

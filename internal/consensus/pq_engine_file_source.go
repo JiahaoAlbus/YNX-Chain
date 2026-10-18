@@ -18,12 +18,13 @@ import (
 // checkpoints, so a concurrent Commit cannot erase authority already bound to
 // the engine's previous state. No cache entry is derived from a peer's height.
 type PQEngineFileSource struct {
-	mu            sync.Mutex
-	migration     chain.ConsensusMigrationState
-	path          string
-	bootstrap     *ConsensusBootstrap
-	authorization *PQEngineAuthorization
-	checkpoints   [2]pqEngineCheckpoint
+	mu                   sync.Mutex
+	migration            chain.ConsensusMigrationState
+	path                 string
+	bootstrap            *ConsensusBootstrap
+	authorization        *PQEngineAuthorization
+	runtimeAuthorization *RuntimeUpgradeAuthorization
+	checkpoints          [2]pqEngineCheckpoint
 	// Signing observations cannot be evicted by historical engine reads.
 	// Protected by mu; durable anti-equivocation still belongs to Signer H/R/S.
 	signingSeen   bool
@@ -77,7 +78,7 @@ func (s *PQEngineFileSource) ConsensusAuthorityForState(chainID string, committe
 			return checkpoint.snapshot, nil
 		}
 	}
-	snapshot, err := LoadPQEngineSnapshot(s.migration, s.path, s.bootstrap, s.authorization, committedHeight, hash[:])
+	snapshot, err := loadPQEngineSnapshotWithRuntime(s.migration, s.path, s.bootstrap, s.authorization, s.runtimeAuthorization, committedHeight, hash[:])
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +114,10 @@ func (s *PQEngineFileSource) CommittedPQEngineSnapshot() (*PQEngineSnapshot, err
 // The caller must obtain height/AppHash from the trusted engine state after
 // handshake, not from an incoming block, validator object or RPC response.
 func LoadPQEngineSnapshot(migration chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, committedHeight int64, committedAppHash []byte) (*PQEngineSnapshot, error) {
+	return loadPQEngineSnapshotWithRuntime(migration, statePath, bootstrap, authorization, nil, committedHeight, committedAppHash)
+}
+
+func loadPQEngineSnapshotWithRuntime(migration chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, committedHeight int64, committedAppHash []byte) (*PQEngineSnapshot, error) {
 	if bootstrap == nil || strings.TrimSpace(statePath) == "" || len(committedAppHash) != 32 {
 		return nil, errors.New("engine file source requires pinned bootstrap, committed path and full trusted AppHash")
 	}
@@ -133,6 +138,9 @@ func LoadPQEngineSnapshot(migration chain.ConsensusMigrationState, statePath str
 	if err := state.Validate(migration); err != nil {
 		return nil, err
 	}
+	if _, err := runtimeStateApplicationVersion(state, runtime); err != nil {
+		return nil, err
+	}
 	if err := authorization.ValidateCommittedSchedule(state.PQEngineSchedule, state.Height); err != nil {
 		return nil, err
 	}
@@ -144,5 +152,6 @@ func LoadPQEngineSnapshot(migration chain.ConsensusMigrationState, statePath str
 			return nil, err
 		}
 	}
-	return newPQEngineSnapshot(bootstrap, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
+	snapshot, err := newPQEngineSnapshot(bootstrap, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
+	return withRuntimeUpgradeSnapshot(snapshot, err, runtime)
 }

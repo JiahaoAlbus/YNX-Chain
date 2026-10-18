@@ -34,10 +34,11 @@ type pqOptions struct {
 	recoveryFD                                                        int
 	remoteAddress, transportKey, peerPin                              string
 	remoteTimeout                                                     time.Duration
+	runtimePlan, runtimePlanHash                                      string
 }
 
 func (p pqOptions) enabled() bool {
-	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD >= 0 || p.remote()
+	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD >= 0 || p.remote() || p.runtimeConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -55,6 +56,17 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if (p.runtimePlan == "") != (p.runtimePlanHash == "") {
+		return errors.New("runtime upgrade requires both independent plan and hash pin")
+	}
+	if p.runtimeOnly() {
+		for _, value := range []string{p.migration, p.state, p.genesisHash, p.originalGenesisHash, p.migrationHash} {
+			if value == "" {
+				return errors.New("runtime upgrade requires original state and every independent genesis/migration pin")
+			}
+		}
+		return nil
+	}
 	for _, value := range []string{p.migration, p.state, p.genesisHash, p.originalGenesisHash, p.migrationHash, p.schedule, p.scheduleHash, p.binding} {
 		if value == "" {
 			return errors.New("PQ mode requires migration/state, all independent genesis/migration/schedule pins and public key binding")
@@ -196,7 +208,7 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	if err := existingPrivateFile(binding.SignerStatePath); err != nil {
 		return nil, nil, err
 	}
-	app, err := consensus.NewPersistentApplicationWithEngineAuthorization(migration, options.state, bootstrap, authorization)
+	app, err := newOperatorApplication(migration, options.state, bootstrap, authorization, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -242,7 +254,7 @@ func constructRemotePQNode(ctx context.Context, config *cfg.Config, logger log.L
 	if err != nil {
 		return nil, nil, err
 	}
-	app, err := consensus.NewPersistentApplicationWithEngineAuthorization(inputs.Migration, options.state, inputs.Bootstrap, inputs.Authorization)
+	app, err := newOperatorApplication(inputs.Migration, options.state, inputs.Bootstrap, inputs.Authorization, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -290,7 +302,11 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 			return e
 		}
 		defer func() { result = errors.Join(result, legacyLease.Close()) }()
-		node, custody, err = constructPQNode(config, logger, options)
+		if options.runtimeOnly() {
+			node, custody, err = constructRuntimeNode(config, logger, options)
+		} else {
+			node, custody, err = constructPQNode(config, logger, options)
+		}
 	}
 	if err != nil {
 		return err
@@ -338,6 +354,8 @@ func main() {
 	legacyRun := start.RunE
 	options := pqOptions{recoveryFD: -1}
 	f := start.Flags()
+	f.StringVar(&options.runtimePlan, "runtime-upgrade-plan", "", "canonical independently pinned old-runtime upgrade plan")
+	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")
 	f.StringVar(&options.migration, "migration-state", "", "original validated key-bound migration JSON")
 	f.StringVar(&options.state, "abci-state", "", "existing durable application state for the in-process PQ node")
 	f.StringVar(&options.genesisHash, "consensus-genesis-sha256", "", "independent hash of the exact original Comet genesis")

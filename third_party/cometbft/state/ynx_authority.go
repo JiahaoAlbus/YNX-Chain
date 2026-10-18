@@ -141,7 +141,10 @@ func (s *consensusAuthorityStore) Save(state State) error {
 	if err != nil {
 		return err
 	}
-	return s.Store.Save(bound)
+	if err := s.Store.Save(bound); err != nil {
+		return err
+	}
+	return ConfirmRuntimeCheckpoint(s.source, bound)
 }
 func (s *consensusAuthorityStore) currentAuthority() (types.ConsensusAuthority, error) {
 	if s.handshakeAuthority != nil {

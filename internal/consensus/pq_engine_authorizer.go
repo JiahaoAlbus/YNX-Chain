@@ -16,11 +16,12 @@ import (
 // locks, mutable singleton, peer resolver or pending Finalize pointer. Its
 // history is the existing cryptographically replayed ynxconsensusauth registry.
 type PQEngineSnapshot struct {
-	bootstrap *ConsensusBootstrap
-	registry  *ValidatorRegistryState
-	history   *ynxconsensusauth.KeyHistory
-	schedule  *PQEngineSchedule
-	through   int64
+	bootstrap          *ConsensusBootstrap
+	registry           *ValidatorRegistryState
+	history            *ynxconsensusauth.KeyHistory
+	schedule           *PQEngineSchedule
+	through            int64
+	runtimeUpgradePlan *RuntimeUpgradePlan // independent local pin, never decoded authority
 }
 
 var _ ynxpq.Authorizer = (*PQEngineSnapshot)(nil)
@@ -37,12 +38,14 @@ func (a *Application) CommittedPQEngineSnapshot() (*PQEngineSnapshot, error) {
 	registry := cloneValidatorRegistry(a.committed.ValidatorRegistry)
 	schedule := clonePQEngineSchedule(a.committed.PQEngineSchedule)
 	authorization := a.pqEngineAuthorization
+	runtimeAuthorization := a.runtimeUpgradeAuthorization
 	through := a.committed.Height
 	a.mu.RUnlock()
 	if err := authorization.ValidateCommittedSchedule(schedule, through); err != nil {
 		return nil, err
 	}
-	return newPQEngineSnapshot(b, registry, schedule, through)
+	snapshot, err := newPQEngineSnapshot(b, registry, schedule, through)
+	return withRuntimeUpgradeSnapshot(snapshot, err, runtimeAuthorization)
 }
 
 func newPQEngineSnapshot(b *ConsensusBootstrap, registry *ValidatorRegistryState, schedule *PQEngineSchedule, through int64) (*PQEngineSnapshot, error) {
@@ -135,6 +138,9 @@ func (s *PQEngineSnapshot) ParamsAt(height int64) (cmttypes.ConsensusParams, err
 		return cmttypes.ConsensusParams{}, errors.New("consensus params outside known bootstrap history")
 	}
 	params := cmttypes.ConsensusParamsFromProto(s.bootstrap.record.Params)
+	if s.runtimeUpgradePlan != nil && height > s.runtimeUpgradePlan.UpgradeHeight {
+		params.Version.App = s.runtimeUpgradePlan.NewApplicationVersion
+	}
 	params.Validator.PubKeyTypes = append([]string(nil), params.Validator.PubKeyTypes...)
 	if s.schedule != nil && height > s.schedule.ParamsUpdateHeight {
 		params.Validator.PubKeyTypes = []string{ed25519.KeyType, ynxpq.KeyType}

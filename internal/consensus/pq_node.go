@@ -52,6 +52,9 @@ func newPQNodeWithValidator(config *cmtconfig.Config, app *Application, validato
 // The same constructor accepts an explicit database provider for isolated
 // constructor/recovery tests. Production always supplies DefaultDBProvider.
 func newPQNodeWithDatabase(config *cmtconfig.Config, app *Application, validator cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger, database cmtconfig.DBProvider) (*node.Node, error) {
+	if err := app.ValidateNormalRuntime(); err != nil {
+		return nil, err
+	}
 	app.mu.RLock()
 	bootstrap := app.bootstrap
 	app.mu.RUnlock()

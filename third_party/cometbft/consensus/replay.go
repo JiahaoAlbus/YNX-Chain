@@ -412,6 +412,9 @@ func (h *Handshaker) ReplayBlocksWithContext(
 		panic(fmt.Sprintf("StoreBlockHeight (%d) > StateBlockHeight + 1 (%d)", storeBlockHeight, stateBlockHeight+1))
 	}
 
+	if err := h.confirmRuntimeReplayCheckpoint(state, appBlockHeight, appHash); err != nil {
+		return nil, err
+	}
 	var err error
 	// Now either store is equal to state, or one ahead.
 	// For each, consider all cases of where the app could be, given app <= store
@@ -515,6 +518,9 @@ func (h *Handshaker) replayBlocks(
 
 		appHash, err = sm.ExecCommitBlock(proxyApp.Consensus(), block, h.logger, h.stateStore, h.genDoc.InitialHeight)
 		if err != nil {
+			return nil, err
+		}
+		if err := h.confirmRuntimeReplayCheckpoint(state, i, appHash); err != nil {
 			return nil, err
 		}
 

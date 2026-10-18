@@ -19,7 +19,7 @@ func (s *PQEngineFileSource) ConsensusAuthorityForSigning(chainID string, height
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	snapshot, err := LoadPQEngineSnapshot(s.migration, s.path, s.bootstrap, s.authorization, height, appHash)
+	snapshot, err := loadPQEngineSnapshotWithRuntime(s.migration, s.path, s.bootstrap, s.authorization, s.runtimeAuthorization, height, appHash)
 	if err != nil {
 		return nil, err
 	}

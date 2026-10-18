@@ -29,7 +29,12 @@ func main() {
 	migrationHash := flag.String("bound-migration-state-hash", "", "independent operator pin for validated key-bound migration StateHash")
 	engineSchedule := flag.String("pq-engine-schedule", "", "canonical operator-authorized PQ engine schedule JSON")
 	engineScheduleHash := flag.String("pq-engine-schedule-hash", "", "independent operator hash pin for the exact PQ engine schedule")
+	runtimePlan := flag.String("runtime-upgrade-plan", "", "runtime upgrades require the in-process ynx-comet checkpoint channel")
+	runtimePin := flag.String("runtime-upgrade-plan-hash", "", "independent runtime upgrade pin (not supported by external ABCI transport)")
 	flag.Parse()
+	if err := rejectExternalRuntimeUpgrade(*runtimePlan, *runtimePin); err != nil {
+		log.Fatal(err)
+	}
 	if *migrationPath == "" {
 		log.Fatal("-migration-state is required")
 	}
@@ -148,6 +153,9 @@ func prepareApplication(migrationPath, statePath, layout, genesisPath string, pi
 		}
 	}
 	if err != nil {
+		return nil, lease, 0, err
+	}
+	if err := app.ValidateNormalRuntime(); err != nil {
 		return nil, lease, 0, err
 	}
 	return app, lease, state.Height, nil

@@ -23,12 +23,15 @@ type options struct {
 	transport                     consensus.PQRemoteTransport
 	legacyKey, legacyState, vault string
 	recoveryFD                    int
+	runtimePlan, runtimePlanHash  string
 }
 
 func parseOptions(args []string, diagnostics io.Writer) (options, error) {
 	var o options
 	f := flag.NewFlagSet("ynx-consensus-pq-remote-signer", flag.ContinueOnError)
 	f.SetOutput(diagnostics)
+	f.StringVar(&o.runtimePlan, "runtime-upgrade-plan", "", "independently pinned runtime plan matching the actual engine")
+	f.StringVar(&o.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent canonical runtime plan hash")
 	f.BoolVar(&o.serve, "serve", false, "explicitly serve one pinned remote signing session using original keys and HRS")
 	f.StringVar(&o.files.Migration, "migration-state", "", "original bound complete migration JSON")
 	f.StringVar(&o.files.Genesis, "genesis", "", "exact original Comet genesis")
@@ -58,6 +61,9 @@ func parseOptions(args []string, diagnostics io.Writer) (options, error) {
 			return o, errors.New("remote signer requires every original file and independent genesis/migration/schedule/key binding pin")
 		}
 	}
+	if (o.runtimePlan == "") != (o.runtimePlanHash == "") {
+		return o, errors.New("runtime upgrade requires both plan and independent hash")
+	}
 	if o.recoveryFD < 3 {
 		return o, errors.New("remote signer credential requires private inherited descriptor >=3")
 	}
@@ -71,7 +77,11 @@ func serve(ctx context.Context, o options) (result error) {
 	}
 	// Do not create an Application or acquire its writer lease on this host.
 	// Only the original legacy HRS and durable PQ signer are writable here.
-	source, err := consensus.NewPQEngineFileSource(inputs.Migration, o.files.State, inputs.Bootstrap, inputs.Authorization)
+	runtime, err := consensus.LoadRuntimeUpgradeAuthorization(o.runtimePlan, o.runtimePlanHash, inputs.Bootstrap, inputs.Migration)
+	if err != nil {
+		return err
+	}
+	source, err := consensus.NewPQEngineFileSourceWithRuntimeUpgrade(inputs.Migration, o.files.State, inputs.Bootstrap, inputs.Authorization, runtime)
 	if err != nil {
 		return err
 	}
