@@ -8,6 +8,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createVerifier,decodeMember} from '../../../packages/wallet-auth/node_modules/@ynx/batch-v01-candidate/src/index.mjs';
 import {pqPublicBindingToRegistrationKeys,encodePQNativeTransfer} from '../../../packages/wallet-auth/src/pq-wallet-authorization.js';
+import {encodePublicGoRestoreBinding} from './pq-public-go-binding.mjs';
 const worker=fileURLToPath(new URL('./pq-fresh-process-vault-worker.mjs',import.meta.url));
 function run(input){const result=spawnSync(process.execPath,['--max-old-space-size=192',worker],{env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},input:JSON.stringify(input),encoding:'utf8',timeout:45000,maxBuffer:1048576});assert.equal(result.error,undefined);assert.equal(result.status,0,result.stderr);return JSON.parse(result.stdout);}
 test('actual Wallet creates encrypted dual keys and a completely new process restores both full public keys and signs',async t=>{
@@ -19,6 +20,7 @@ test('actual Wallet creates encrypted dual keys and a completely new process res
  const originalTransfer=Object.freeze({chainId,nativeChainId:'6423',from:created.binding.owner,to:'0x'+'22'.repeat(20),amount:'3',fee:'1',nonce:'9007199254740994'});
  const originalMessage=Buffer.from(encodePQNativeTransfer(originalTransfer));
  const originalState=Buffer.from(JSON.stringify({version:'YNX-ACCOUNT-POLICY/v1',networkId:Buffer.from(chainId,'hex').toString('base64'),enableAt:10,records:[{algorithmVersion:'YNX-BATCH/v0.1',owner:created.binding.owner,pkA:Buffer.from(created.binding.pkA,'base64url').toString('base64'),pkB:Buffer.from(created.binding.pkB,'base64url').toString('base64'),revision:1,registeredAt:10,activeFrom:20,ledgerNonce:1}]}));
+ const originalGoBinding=encodePublicGoRestoreBinding({state:originalState,owner:created.binding.owner,executionHeight:'30',nativeChainId:originalTransfer.nativeChainId});
  const restored=run({operation:'restore',directory,password,chainId,binding:created.binding});assert.notEqual(created.pid,restored.pid);assert.deepEqual(restored.binding,created.binding);
  assert.deepEqual(restored.transfer,originalTransfer);
  assert.equal(Buffer.from(restored.binding.pkA,'base64url').length,2592);assert.equal(Buffer.from(restored.binding.pkB,'base64url').length,64);assert.equal(restored.broadcast,false);assert.equal(restored.vaultUnchanged,true);assert.equal(restored.keyRetired,true);
@@ -30,7 +32,7 @@ test('actual Wallet creates encrypted dual keys and a completely new process res
  const publicOutput=process.env.YNX_PQ_QA_PUBLIC_OUTPUT_DIR;
  if(publicOutput){
   assert(path.isAbsolute(publicOutput));assert(path.basename(publicOutput).startsWith('wallet-pq-fresh-process-proof-'));const stat=await fs.lstat(publicOutput);assert(stat.isDirectory()&&!stat.isSymbolicLink());
-  const publicFiles=[];for(const [name,bytes] of [['state.json',originalState],['message.bin',originalMessage],['member.bin',wire]]){const target=path.join(publicOutput,name);await fs.writeFile(target,bytes,{flag:'wx',mode:0o600});publicFiles.push({path:target,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
+  const publicFiles=[];for(const [name,bytes] of [['state.json',originalState],['binding.json',originalGoBinding],['message.bin',originalMessage],['member.bin',wire]]){const target=path.join(publicOutput,name);await fs.writeFile(target,bytes,{flag:'wx',mode:0o600});publicFiles.push({path:target,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
   await fs.writeFile(path.join(publicOutput,'PUBLIC_EVIDENCE.json'),JSON.stringify({state:'FRESH_PROCESS_WALLET_ENCRYPTED_RECOVERY_PUBLIC_GO_INPUTS_NOT_GO_ACCEPTANCE',createPID:created.pid,restorePID:restored.pid,fullPublicKeyBytes:[2592,64],height:'30',owner:created.binding.owner,purpose:'TX-BATCH',files:publicFiles,originalMessageFrozenBeforeRestore:true,privateVaultAndPasswordNotCopied:true,JSVerified:true,GoVerified:false,GUIApproval:false,broadcast:false},null,2)+'\n',{flag:'wx',mode:0o600});
  }
 });

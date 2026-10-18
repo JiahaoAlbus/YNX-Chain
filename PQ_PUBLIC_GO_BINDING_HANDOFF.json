@@ -1,0 +1,24 @@
+{
+  "state": "VERIFIED_NOT_PACKAGED",
+  "baseCommit": "acdab2e15a5ea9c914c1b79f61f07784eb11148d",
+  "scope": "Original Wallet fresh-process QA public evidence transport only",
+  "implementation": "Freeze binding.json from original parent-retained policy before starting restored child; export alongside unchanged state.json/message.bin/member.bin using exclusive mode-0600 writes.",
+  "entry": "apps/wallet-desktop/test/pq-fresh-process-vault.test.mjs",
+  "consumer": "go run -p 1 ./scripts/fixtures/verify-pq-wallet-restored -binding binding.json -message message.bin -member member.bin",
+  "validation": {
+    "test": "apps/wallet-desktop/test/pq-public-go-binding.test.mjs",
+    "runtime": "Previously installed R24 Electron RunAsNode",
+    "passed": 3,
+    "failed": 0,
+    "durationMs": 27.61775,
+    "diffCheck": "PASS",
+    "existingTestEntry": "npm test: node --test test/*.test.mjs"
+  },
+  "limitations": [
+    "Focused serialization and caller checks, not another key-generation or fresh-process recovery run",
+    "No new Go verification or GUI test claimed",
+    "Existing immutable public evidence remains unchanged",
+    "No app build, installation, public deployment, signing authority or broadcast",
+    "SDK3.6/A33 unchanged; no informal SDK3.7/3.8 intake"
+  ]
+}
