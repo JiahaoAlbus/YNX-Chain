@@ -113,7 +113,7 @@ func TestNodeOwnedDatabaseSameDirectoryReopen(t *testing.T) {
 	if err != nil {
 		t.Fatalf("same original directory reopen: %v", err)
 	}
-	got, err := n.txIndexer.Get(tx.Tx.Hash())
+	got, err := n.txIndexer.Get(types.Tx(tx.Tx).Hash())
 	if err != nil || got == nil || !bytes.Equal(got.Tx, tx.Tx) || got.Height != tx.Height {
 		t.Fatalf("original transaction index was lost: %v %+v", err, got)
 	}
