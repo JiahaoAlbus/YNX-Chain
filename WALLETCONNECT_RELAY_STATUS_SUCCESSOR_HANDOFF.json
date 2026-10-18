@@ -1,0 +1,24 @@
+{
+  "state": "VERIFIED_NOT_PACKAGED",
+  "baseCommit": "0c454d49",
+  "scope": "Ordinary WalletConnect relay status notification only, independent of IDE private admission",
+  "source": "apps/wallet-desktop/src/walletconnect-transport.mjs",
+  "normalCaller": "main.mjs WalletConnectTransport.start onPairState -> wallet:walletconnect-status-result -> renderer renderWalletConnect",
+  "existingProjectId": "Existing owner-authorized packaged public configuration unchanged",
+  "red": "Two new controlled tests failed before repair: late connect had no UI notification and repeated start had zero relay listeners",
+  "repair": "Use pinned SDK RELAYER_EVENTS; observe connect/disconnect/error/stalled/closed and publish fresh actual transport status without any retry, pairing, permission or session mutation",
+  "focusedValidation": {"test": "test/walletconnect-relay-status.test.mjs", "passed": 2, "failed": 0, "durationMs": 145.579375},
+  "affectedRegression": {"test": "test/walletconnect-session-binding.test.mjs", "pattern": "disconnect|session_delete|failed persistence", "passed": 4, "failed": 0, "durationMs": 129.929917},
+  "runtime": "Previously installed R24 Electron RunAsNode, explicit synthetic public transport; no network or keys",
+  "gui": {
+    "candidate": "Existing installed 4bc, not SDK3.8",
+    "normalAttempt": "cua.getApp exact installed app path",
+    "actualResult": "Mac locked; automatic unlock could not unlock it",
+    "enteredWalletUI": false,
+    "relayProved": false,
+    "sessionOrPairingCreated": false,
+    "guiSlotReleased": true,
+    "manualUnlockNotEngineeringPrerequisite": true
+  },
+  "limitations": ["No actual relay/session acceptance, app build, new install or release", "No signing, funds, credential request, protected resource change or lock bypass", "Existing UNKNOWN, session, permission, pairing and replay records unchanged"]
+}

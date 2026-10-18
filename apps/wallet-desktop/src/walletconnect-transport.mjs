@@ -9,7 +9,7 @@ import { createPrivateWalletConnectStorage } from "./walletconnect-private-stora
 // This desktop main process is Node. The pinned SDK's Node/CJS exports avoid
 // its ESM default-import mismatch with keyvaluestorage; mobile uses Metro.
 const require = createRequire(import.meta.url);
-const { Core } = require("@walletconnect/core");
+const { Core, RELAYER_EVENTS } = require("@walletconnect/core");
 const { WalletKit } = require("@reown/walletkit");
 export function createWalletConnectCore(options) { return new Core(options); }
 
@@ -113,6 +113,12 @@ export class WalletConnectTransport {
     for (const request of requests) {
       if (this.disconnectedTopics.has(request.topic)) continue;
       handlers.onSessionRequest?.({ ...request, restored: true });
+    }
+    // Relay connection can change after init resolves. Publish only a fresh
+    // observation; never pair, reconnect, approve or replay from these events.
+    const kit=this.walletKit,relayer=kit.core?.relayer;
+    if(typeof relayer?.on==="function")for(const name of ["connect","disconnect","error","connection_stalled","transport_closed"]){
+      relayer.on(RELAYER_EVENTS[name],()=>{if(this.walletKit===kit)this.#notifyPair();});
     }
     return this.status();
   }
