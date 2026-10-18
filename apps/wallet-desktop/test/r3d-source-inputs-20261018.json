@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "state": "EXACT_R3D_AND_ORIGINAL_A31_INDEPENDENT_SOURCE_COMPOSITION_NOT_APP_BUILD",
+  "baseAppCommit": "846262521e9684caf53a6440bd2dc607fb46a820",
+  "sdkCommit": "2e99f861911392f7b6886c31847fa7c17a72a397",
+  "sdkTree": "8780fff40883b0238181bba5c064e3f7e5031e77",
+  "handoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3d-20261018/SDK_PQ_R3D_HANDOFF.json",
+  "handoffBytes": 18191,
+  "handoffSHA256": "7d511cf36ed143a6d88d7dd3919938fd2e78d783d18f1c8965a130568c1afb72",
+  "archiveBytes": 889518,
+  "archiveSHA256": "d363f56dbb6e07a488fd30807f56200e6c8a4d6c483d5ba7dda71fc921913b28",
+  "exactArchiveFilesVersusFrozenGit": 224,
+  "exactChangedSdkLeaves": 35,
+  "exactSdkGitModes": 233,
+  "nativeSourceClosureVerified": 31,
+  "compiledSourceInputsCopiedAndVerified": 30,
+  "foreignIDEReferencesVerifiedButNotWritten": ["apps/developer/desktop/macos/original-ide-parent-supplier.h", "apps/developer/desktop/macos/original-ide-parent-supplier.mm"],
+  "module": {"bytes": 1056248, "sha256": "ea20e730de1451b6a07d05fe36e9e82c7c211c212ea953ec6d8fc7b32240717d"},
+  "executedReceipt": {"bytes": 18568, "sha256": "d7f21970f9b34d2ed0f6150c44470d70f010c0e6697c430b0a00246e10a1d797", "sourceRootPreserved": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r31-private-service-native-component-20261018/source", "readbackOnly": false, "nativeQualified": false},
+  "regularExistingRuntimeDependencies": 316,
+  "noNewBuildOrInstall": true,
+  "oldCandidateFilesUnmodified": true,
+  "actualTests": [
+    {"files": ["test/r3d-native-composition.test.mjs", "test/wallet-session-publisher-main.test.mjs"], "runtime": "installed R24 Electron RunAsNode", "tests": 5, "fail": 0, "durationMs": 83.247},
+    {"file": "test/password-wallet-pq.test.mjs", "pattern": "R3c normal fixed|normal read-only recovery exposes|lost publication ACK|publication first failure|normal lawful legacy", "runtime": "installed R24 Electron RunAsNode", "tests": 5, "fail": 0, "durationMs": 3584.4485},
+    {"file": "apps/wallet/src/protocol/productSessionController.test.ts", "pattern": "android explicit approval|mobile Wallet accepts web|signed mobile original|secure original save lost ACK", "runtime": "installed R24 Electron RunAsNode and pinned TSX4.23.1", "tests": 4, "fail": 0, "durationMs": 327.349583},
+    {"typecheck": "apps/wallet/tsconfig.protocol-typecheck.json", "exitCode": 0}
+  ],
+  "harnessCorrection": "Native N-API default methods are non-enumerable. Passive-load test initially used Object.keys and counted zero; corrected to Object.getOwnPropertyNames and verified fifty functions without invoking any Native method. No production guard changed.",
+  "limits": ["Producer/HTTPS/Source inputs remain explicit QA instruments", "No true Source registration, Native positive ACK, IDE child supplier, client UNKNOWN clear or cold Host adoption is established", "No matching full App build, install, public download, user flow or MONSTER execution is claimed"]
+}

@@ -1,7 +1,9 @@
 import {assertOriginalPrivatePQCarrier} from './original-wallet-service-private-pq-budget.js';
+import {sameOriginalReferenceCompletion} from './original-wallet-service-private-reference.js';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
+import {types} from 'node:util';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
 import {ProductSessionGatewayNodeHost,captureOriginalWalletServiceRuntimeHostSource} from './product-session-gateway-node-host.js';
 import {prepareOriginalWalletServiceAdmission} from './original-wallet-service-admission.js';
@@ -14,7 +16,7 @@ function loadFixedOriginalNativeServiceBinding(){
   const native=createRequire(new URL('.',import.meta.url))(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
   const names={capture:'captureOriginalNativePrivateServiceBorrow',assertCurrent:'assertOriginalNativePrivateServiceCurrent',assertAdmission:'assertOriginalNativePrivateServiceAdmission',assertTerminal:'assertOriginalNativePrivateServiceTerminal',retire:'retireOriginalNativePrivateService',join:'joinOriginalNativePrivateService',close:'closeOriginalNativePrivateService'};
   if(Object.values(names).some(name=>typeof native[name]!=='function'))return null;
-  return Object.freeze(Object.fromEntries(Object.entries(names).map(([name,method])=>[name,native[method]])));
+  return Object.freeze({...Object.fromEntries(Object.entries(names).map(([name,method])=>[name,native[method]])),readTerminal:typeof native.readOriginalNativePrivateServiceTerminalResult==='function'?native.readOriginalNativePrivateServiceTerminalResult:null});
  }catch{return null;}
 }
 const originalNativeServiceBinding=loadFixedOriginalNativeServiceBinding();
@@ -33,6 +35,7 @@ export function decodeOriginalWalletServicePrivateRequest(raw){
  else{
   if(typeof value.body!=='string'||Buffer.byteLength(value.body)>budget.body||!(value.proofHeader===null||typeof value.proofHeader==='string'&&Buffer.byteLength(value.proofHeader)<=16384))fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
   let body;try{body=JSON.parse(value.body);}catch{fail('ORIGINAL_PRIVATE_REQUEST_INVALID');}if(canonicalJSON(body)!==value.body)fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
+  if(budget.reference)return Object.freeze(value); // Framing only; fixed Native assertAdmission remains before Host reservation.
   const fields={beginYNX:['request','approval'],handleReturn:['request','approval','completion'],restore:['requiredScopes'],disconnect:[]};exactFields(body,fields[value.operation],'Original four-op body');
   if(['beginYNX','handleReturn'].includes(value.operation)?value.proofHeader!==null:value.proofHeader===null)fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
  }
@@ -86,10 +89,12 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
  };
  acquired.close=close;
  try{current(null);state.hostSource=ProductSessionGatewayNodeHost.prototype.captureOriginalWalletServiceRuntimeSource.call(host);admission=prepareOriginalWalletServiceAdmission(original.sourceSelection,original.receiptSelection,original.expectedRequest,()=>new Date());current(null);ProductSessionGatewayNodeHost.prototype.bindOriginalWalletServicePrivateTerminal.call(host,original);current(null);}catch(cause){remember(cause);retired=true;void close().catch(()=>{});throw cause;}
+ const originalReadonly=input=>[...records.values()].some(row=>row.unknown&&row.localFailurePresent&&sameOriginalReferenceCompletion(JSON.parse(row.originalRaw),input));
  return Object.freeze({
   dispatch(raw){
    const input=decodeOriginalWalletServicePrivateRequest(raw);current(input.operation);
-   if([...records.values()].some(row=>row.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
+   const readonly=()=>originalReadonly(input);
+   if([...records.values()].some(row=>row.localFailurePresent)&&!readonly())fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
    const key=input.operation+':'+input.phase+':'+input.requestId;if(records.has(key))fail('ORIGINAL_PRIVATE_ALREADY_ENTERED');if(records.size>=64)fail('ORIGINAL_PRIVATE_CAPACITY');
    const row={inputDigest:hash(raw),originalRaw:raw,result:null,hostOwner:null,unknown:false,terminal:false,fulfilled:false,localFailurePresent:false,localCause:undefined};records.set(key,row);
    const promise=Promise.resolve().then(async()=>{
@@ -97,7 +102,7 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
     current(input.operation);
     // Recheck at execution, not just reservation. The synchronous catch below
     // latches a failed transaction before the next already queued callback runs.
-    if([...records.values()].some(other=>other!==row&&other.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
+    if([...records.values()].some(other=>other!==row&&other.localFailurePresent)&&!readonly())fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
     // Selected Native source enforces account/run/executor/workspace association
     // and the original service admission; no service proof from self DTO fields.
     if(originalNativeServiceBinding.assertAdmission(original,input)!==undefined)fail('ORIGINAL_PRIVATE_ADMISSION_INVALID');
@@ -105,7 +110,7 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
     const observation=runtime.capture(records.size);
     runtime.assertObservationCurrent(observation);current(input.operation);
     row.unknown=true;
-    if([...records.values()].some(other=>other!==row&&other.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
+    if([...records.values()].some(other=>other!==row&&other.localFailurePresent)&&!readonly())fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
     const result=await ProductSessionGatewayNodeHost.prototype.executeOriginalWalletServicePrivateTransactionWithPolicy.call(host,row.hostOwner);
     row.result=result;current(input.operation);runtime.assertObservationCurrent(observation);current(input.operation);
     ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTransactionReadback.call(host,row.hostOwner,input,result);
@@ -127,6 +132,43 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    }catch(cause){remember(cause);if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}throw cause;}
   },
   selectOutcome(operation,phase,requestId){const row=records.get(operation+':'+phase+':'+requestId);if(!row)fail('ORIGINAL_PRIVATE_OUTCOME_REQUIRED');return Object.freeze({result:row.result,unknown:row.unknown,terminal:row.terminal});},
+  readTerminalCustody(operation,phase,requestId){
+   const row=records.get(operation+':'+phase+':'+requestId);
+   try{
+    current(operation);
+    if(!row?.unknown||row.terminal||row.terminalReadSelected||typeof originalNativeServiceBinding.readTerminal!=='function')fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_UNAVAILABLE');
+    const input=decodeOriginalWalletServicePrivateRequest(row.originalRaw);
+    if(input.carrierVersion!=='YNX-PRODUCT-SESSION-PRIVATE/v4'||input.referenceAction!=='complete')fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_UNAVAILABLE');
+    row.terminalReadSelected=true;
+    const proof=originalNativeServiceBinding.readTerminal(original,operation,phase,requestId);
+    row.originalTerminalCustodyProof=proof; // Retain before validation/late current.
+    if(!proof||types.isProxy(proof)||Object.getPrototypeOf(proof)!==Object.prototype||Object.values(Object.getOwnPropertyDescriptors(proof)).some(d=>!Object.hasOwn(d,'value')))fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_INVALID');
+    exactFields(proof,['responseRaw','responseDigest','requestDigest','associationDigest','stateBeforeDigest','stateAfterDigest','stateFileDigest','enteredDigest','recordVersion','success'],'Original Native terminal custody');
+    if(['responseDigest','requestDigest','associationDigest','stateBeforeDigest','stateAfterDigest','stateFileDigest','enteredDigest'].some(k=>typeof proof[k]!=='string'||!/^[a-f0-9]{64}$/.test(proof[k]))||![1,2,3].includes(proof.recordVersion)||typeof proof.success!=='boolean'||typeof proof.responseRaw!=='string'||Buffer.byteLength(proof.responseRaw)>65536||hash(proof.responseRaw)!==proof.responseDigest||proof.requestDigest!==row.inputDigest||proof.associationDigest!==hash(canonicalJSON(original.association)))fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_INVALID');
+    let response;try{response=JSON.parse(proof.responseRaw);}catch{fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_INVALID');}
+    exactFields(response,['status','headers','body'],'Original recovered response');
+    if(canonicalJSON(response)!==proof.responseRaw||!Number.isInteger(response.status)||response.status<200||response.status>599||proof.success!==(response.status<300)||response.headers?.['x-request-id']!==requestId||typeof response.body!=='string'||row.result&&canonicalJSON(row.result)!==proof.responseRaw)fail('ORIGINAL_PRIVATE_TERMINAL_CUSTODY_INVALID');
+    current(operation);
+    row.terminalCustody=Object.freeze({proof:Object.freeze({...proof}),response:Object.freeze({...response,headers:Object.freeze({...response.headers})})});
+    return row.terminalCustody; // DATA only: no ACK, Host adoption or UNKNOWN clear.
+   }catch(cause){
+    remember(cause);if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}throw cause;
+   }
+  },
+  // Normal delivery must recheck the actual original owner after asynchronous
+  // transport work. The historical reader above remains cleanup/forensics only.
+  selectCurrentOutcome(operation,phase,requestId){
+   const row=records.get(operation+':'+phase+':'+requestId);
+   try{
+    current(operation);if(!row)fail('ORIGINAL_PRIVATE_OUTCOME_REQUIRED');
+    const outcome=Object.freeze({result:row.result,unknown:row.unknown,terminal:row.terminal});
+    current(operation);return outcome;
+   }catch(cause){
+    remember(cause);
+    if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}
+    throw cause;
+   }
+  },
   retire(){retired=true;return undefined;},
   join:async()=>{while(entered.size)await Promise.allSettled([...entered]);return undefined;},close,
   status:()=>Object.freeze({retired,firstCausePresent:firstPresent,cleanupFailurePresent:cleanupFailed,unknown:[...records.values()].some(row=>row.unknown)})

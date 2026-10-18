@@ -171,9 +171,22 @@ async function readGatewayResponse(response, requestId) {
 export class ProductSessionGatewayPrivateAdapter extends ProductSessionGatewayFetchAdapter {
   #client;
   async publishReturn(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference publication requires the fixed normal HTTP adapter');}
-  async returnChallenge(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference challenge requires the fixed normal HTTP adapter');}
-  async completeReturn(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference completion requires the fixed normal HTTP adapter');}
-  async returnOutcome(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Reference outcome requires the fixed normal HTTP adapter');}
+  async returnChallenge(input){
+    exactFields(input,['requestId','reference','request'],'Original Native reference challenge');
+    return this.#reference('challenge',input.requestId,{reference:input.reference,request:input.request});
+  }
+  async completeReturn(input){
+    exactFields(input,['requestId','reference','request','completion'],'Original Native reference complete');
+    return this.#reference('complete',input.requestId,{reference:input.reference,request:input.request,completion:input.completion});
+  }
+  async returnOutcome(input){
+    exactFields(input,['requestId','reference','request','completion'],'Original Native reference outcome');
+    return this.#reference('outcome',input.requestId,{reference:input.reference,request:input.request,completion:input.completion});
+  }
+  async #reference(action,requestId,body){
+    const response=await this.#client.requestReference(action,requestId,canonicalJSON(body));
+    return readGatewayResponse(responseView(response),requestId);
+  }
   async publicationOutcome(){fail('ORIGINAL_PRIVATE_OPERATION_UNSUPPORTED','Publication recovery requires the fixed normal HTTP adapter');}
   constructor(config) {
     exactFields(config, ['walletInstalled', 'schemeRegistered', 'timeoutMs'], 'Original Wallet Gateway configuration');

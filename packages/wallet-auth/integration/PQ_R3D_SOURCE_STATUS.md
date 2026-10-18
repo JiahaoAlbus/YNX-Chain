@@ -1,0 +1,51 @@
+# R3d source candidate: 1.3.0-pq.3.4
+
+Source phase only. No R3d tarball, matching Native candidate, installation or
+release is established by this revision. The frozen 1.3.0-pq.3.3 artifact remains
+unchanged and separately identified. Do not select this source as a qualified
+private Native supplier merely because the draft PR or source tests pass.
+
+This source consumes the original R29a v4 framing contract and adds the three
+explicit reference actions to the existing private client/adapter/dispatcher/Host.
+Actual Native admission remains mandatory. The narrowly matching readonly outcome
+uses a distinct request ID and the exact original complete body; it does not clear
+the old write/global UNKNOWN or authorize any other effect. Its owning kernel path
+retains current/proof checks without changing the snapshot or auditing a new effect.
+
+The original journal now prepares the terminal before candidate state persistence
+and binds commit to the same response/state digest. Reference complete uses Auth's
+exact frozen R30a v3 codec; legacy actions keep v1. The earlier R30 v2 codec failed
+with the normal 52-byte request ID, despite its short-ID fixture passing. That
+actual Host/PQ/P256 counterexample is retained. R30a preserves the same complete
+response in 7836 bytes; actual normal Host and private Host/journal controls pass.
+These controls use explicit PUBLIC Native IO instruments, not a qualified owner.
+The fixed Native custody reader is wired as a once-only DATA read; it does not
+adopt a Host, acknowledge a terminal, clear UNKNOWN or establish connected status.
+
+Normal delivery uses the same dispatcher's selectCurrentOutcome, which checks the
+actual original owner before and after reading its result. selectOutcome remains
+historical custody inspection, including after retirement, and cannot authorize
+publication. First causes, falsy failures and the original UNKNOWN row are retained.
+
+New actual R24 controls cover framing/client UNKNOWN, normal private adapter
+transport, readonly kernel snapshot stability, repeated fresh read IDs, terminal
+prepare/commit binding and pre-persist refusal, plus both current delivery fences.
+IO/kernel/bridge fixtures are explicitly PUBLIC instruments. They do not establish
+qualified Native execution, protected files, real Source approval or a user journey.
+
+The R31 original distinct service owner and nonblocking channel contract is now
+consumed by the fixed daemon launcher. Its normal after-listen entry acquires and
+retains the actual partial owner, verifies ready/current, dispatches one exact raw
+request, ACKs its durable terminal and progresses only that same response write.
+The same-copy original runtime lifetime and actual runtime Source checks are both
+required; neither status metadata nor a caller callback can install a supplier.
+Missing configuration remains an explicit failure. Shutdown retires the pump,
+drains pending work and delegates captured-owner disposal once to the original
+dispatcher; uncaptured partial custody follows the owner's original cleanup path.
+
+Still incomplete: actual qualified service/custody execution with the matching
+Native component; IDE's normal success supplier and derived child-client channel;
+original Host adoption/custody reconciliation after restart; safe client UNKNOWN
+resolution; legal Source/profile/current/release registration and protected install;
+matching build and cross-platform installed login/recovery/revocation/isolation QA.
+Use IDE_PRIVATE_SERVICE_PIPE_DEV_R1.md for the coordinated development contract.
