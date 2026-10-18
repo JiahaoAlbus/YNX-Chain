@@ -23,15 +23,17 @@ class LinuxGuardControls(unittest.TestCase):
         parent = Path(temporary).resolve()
         source, case, build = parent / "source", parent / "case", parent / "case.build"
         (source / "internal/consensus").mkdir(parents=True)
-        original = Path(__file__).resolve().parents[2] / guard.E2E_SOURCE
-        (source / guard.E2E_SOURCE).write_bytes(original.read_bytes())
+        for relative in (guard.E2E_SOURCE, guard.E2E_PROGRESS_SOURCE):
+            original = Path(__file__).resolve().parents[2] / relative
+            (source / relative).write_bytes(original.read_bytes())
         case.mkdir(mode=0o700); build.mkdir(mode=0o700)
         binary = build / "consensus.test"
         binary.write_bytes(b"\x7fELFcontrol-only-not-an-executable-test")
         binary.chmod(0o700)
         plan = dict(profile="consensus-e2e", sourceRoot=str(source), commit="a" * 40,
                     executionAuthorized=False, workingDirectory=str(source / "internal/consensus"),
-                    sourcePins={guard.E2E_SOURCE: dict(sha256=guard.E2E_SOURCE_SHA256)},
+                    sourcePins={guard.E2E_SOURCE: dict(sha256=guard.E2E_SOURCE_SHA256),
+                                guard.E2E_PROGRESS_SOURCE: dict(sha256=guard.E2E_PROGRESS_SOURCE_SHA256)},
                     binaryPin=dict(path=str(binary), sha256=guard.digest(binary)),
                     command=[str(binary), "-test.run=^" + guard.E2E_TEST + "$", "-test.count=1", "-test.timeout=120s", "-test.v"],
                     environment=dict(guard.E2E_ENV))
@@ -88,6 +90,10 @@ class LinuxGuardControls(unittest.TestCase):
                      lambda p:p["environment"].update(GOFLAGS="-race"),
                      lambda p:p["sourcePins"].clear(),
                      lambda p:p["sourcePins"][guard.E2E_SOURCE].update(sha256="0" * 64),
+                     lambda p:p["sourcePins"].pop(guard.E2E_PROGRESS_SOURCE),
+                     lambda p:p["sourcePins"].update({"internal/consensus/extra_test.go": dict(sha256="0" * 64)}),
+                     lambda p:p["sourcePins"][guard.E2E_PROGRESS_SOURCE].update(sha256="0" * 64),
+                     lambda p:p["sourcePins"][guard.E2E_PROGRESS_SOURCE].update(extra="not-frozen"),
                      lambda p:p["binaryPin"].update(sha256="0" * 64),
                      lambda p:p["binaryPin"].update(path="/tmp/unowned-consensus.test")]
         for number, mutate in enumerate(mutations):
@@ -95,6 +101,28 @@ class LinuxGuardControls(unittest.TestCase):
                 plan, prepared, *_ = self.e2e_recipe(tmp)
                 mutate(plan)
                 with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared)
+
+    def test_consensus_e2e_rejects_missing_changed_or_aliased_progress_source(self):
+        for kind in ("missing", "changed", "changed-and-repinned", "symlink", "parent-symlink", "directory"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, source, case, build, _ = self.e2e_recipe(tmp)
+                helper = source / guard.E2E_PROGRESS_SOURCE
+                if kind == "missing": helper.unlink()
+                elif kind in ("changed", "changed-and-repinned"):
+                    helper.write_bytes(helper.read_bytes() + b"\n// different source\n")
+                    if kind == "changed-and-repinned":
+                        plan["sourcePins"][guard.E2E_PROGRESS_SOURCE]["sha256"] = guard.digest(helper)
+                elif kind == "symlink":
+                    target = Path(tmp) / "other-helper"
+                    helper.rename(target); helper.symlink_to(target)
+                elif kind == "parent-symlink":
+                    target = Path(tmp) / "other-consensus"
+                    helper.parent.rename(target); helper.parent.symlink_to(target, target_is_directory=True)
+                elif kind == "directory":
+                    helper.unlink(); helper.mkdir()
+                before = {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()}
+                with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared)
+                self.assertEqual(before, {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()})
 
     def test_consensus_e2e_preserves_old_artifacts_and_refuses_unsafe_binary(self):
         for kind in ("old-log", "old-unknown", "old-case-tmp", "old-build-tmp", "old-build-log",

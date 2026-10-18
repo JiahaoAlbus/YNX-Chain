@@ -112,6 +112,7 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	defer cancel()
 	network := pqNetworkE2ENew(t, ctx)
 	defer network.stopAll()
+	network.phase = pqNetworkPhaseLegacy
 	network.startLegacy()
 	network.quiet(4)
 	owner, recipient := network.owner, network.recipient
@@ -140,6 +141,7 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	network.verifyCommit(ordinaryHeight, false, 4, false)
 	t.Logf("actual Ed25519 network: initial Comet height=%d, ordinary transaction height=%d, Counter storage=12", network.doc.InitialHeight, ordinaryHeight)
 
+	network.phase = pqNetworkPhaseAccountMigration
 	walletKey, walletPublic, err := ynxbatch.KeyGen()
 	if err != nil {
 		t.Fatal(err)
@@ -164,6 +166,7 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	// Each approval binds its exact, currently quiet next execution height.
 	// Only one validator transaction is injected at a time; no race-dependent
 	// batch or fabricated ApprovedAt is used to evade the real ingress rule.
+	network.phase = pqNetworkPhaseValidatorRegistration
 	for i, member := range network.bootstrap.record.Members {
 		h = network.quiet(4)
 		n := network.nodeForAddress(member.Address)
@@ -222,6 +225,7 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 		t.Fatal(err)
 	}
 	network.schedule = schedule
+	network.phase = pqNetworkPhaseActivation
 	t.Logf("independent schedule pin=%s registryHeight=%d P=%d U=%d A=%d", scheduleHash, h, schedule.ParamsUpdateHeight, schedule.ValidatorUpdateHeight, schedule.ActivationHeight)
 	for _, n := range network.nodes {
 		network.constructPQ(n, true)
@@ -241,6 +245,7 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 
 	// Three original validators must actually finalize the Wallet-format
 	// Member. A fourth running validator cannot conceal a 2/3 threshold bug.
+	network.phase = pqNetworkPhaseThreeOfFour
 	network.quiet(4)
 	network.stop(3)
 	beforePQ, beforeRecipient := network.account(0, owner), network.account(0, recipient)
@@ -261,6 +266,7 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	}
 	network.verifyTransferTrace(beforeTrace, beforePQ, afterPQ, SignedTransactionHash(pqPayload), 3)
 	network.rejectOldConsensusCommit(pqHeight)
+	network.phase = pqNetworkPhaseCatchUp
 	network.constructPQ(network.nodes[3], false)
 	network.startConstructed(4)
 	network.quiet(4)
@@ -269,6 +275,7 @@ func TestPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T) {
 	network.verifyNativeReceipt(pqPayload, pqHeight, owner, recipient, 3, 1, 4)
 	beforeRestart := network.business()
 	history := network.blockHashes(4)
+	network.phase = pqNetworkPhaseColdRestart
 	network.stopAll()
 	for _, n := range network.nodes {
 		network.constructPQ(n, false)
@@ -345,6 +352,7 @@ type pqNetworkE2ENode struct {
 	node                *node.Node
 	app                 *Application
 	store               sm.Store
+	consensus           pqNetworkRoundStateReader
 	legacy              ed25519.PrivateKey
 	address             []byte
 	nodeKey             *p2p.NodeKey
@@ -385,6 +393,8 @@ type pqNetworkE2E struct {
 	authorization          *PQEngineAuthorization
 	schedule               *PQEngineSchedule
 	seen                   map[int64][]byte
+	phase                  pqNetworkProgressPhase
+	progress               pqNetworkProgressLimiter
 }
 
 func pqNetworkE2ENew(t *testing.T, ctx context.Context) *pqNetworkE2E {
@@ -553,6 +563,14 @@ func (n *pqNetworkE2E) configureStore(item *pqNetworkE2ENode) {
 		n.t.Fatal(err)
 	}
 	item.store = env.StateStore
+	// ConfigureRPC exposes the same actual State used by this Node. Its public
+	// RPC interface omits GetRoundState; retain only that read-only capability,
+	// never the JSON state serializer (which includes private test material).
+	var ok bool
+	item.consensus, ok = env.ConsensusState.(pqNetworkRoundStateReader)
+	if !ok {
+		n.t.Fatal("actual node consensus does not expose its round-state reader")
+	}
 }
 
 func (n *pqNetworkE2E) constructPQ(item *pqNetworkE2ENode, initial bool) {
@@ -658,6 +676,7 @@ func (n *pqNetworkE2E) stop(index int) {
 		_ = item.node.ProxyApp().Stop()
 		item.node = nil
 		item.store = nil
+		item.consensus = nil
 		historyErr = n.verifyStoppedSigningHistory(item)
 	}
 	if item.host != nil {
@@ -744,6 +763,7 @@ func (n *pqNetworkE2E) wait(stage string, ready func() bool) {
 	ticker := time.NewTicker(25 * time.Millisecond)
 	defer ticker.Stop()
 	for {
+		n.observeProgress(stage)
 		if ready() {
 			return
 		}

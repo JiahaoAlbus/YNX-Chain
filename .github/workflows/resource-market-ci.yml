@@ -360,7 +360,8 @@ jobs:
           source = Path(os.environ['GITHUB_WORKSPACE']).resolve()
           case = Path(os.environ['YNX_E2E_CASE']).resolve()
           binary = Path(os.environ['YNX_E2E_BUILD']).resolve() / 'consensus.test'
-          leaf = 'internal/consensus/pq_network_e2e_test.go'
+          leaves = ('internal/consensus/pq_network_e2e_test.go',
+              'internal/consensus/pq_network_progress_test.go')
           def digest(path):
               h = hashlib.sha256()
               with open(path, 'rb') as f:
@@ -374,7 +375,7 @@ jobs:
                   '-test.count=1', '-test.timeout=120s', '-test.v'],
               environment=dict(GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB',
                   YNX_PQ_NETWORK_E2E='authorized-four-node-window'),
-              sourcePins={leaf: dict(sha256=digest(source / leaf))},
+              sourcePins={leaf: dict(sha256=digest(source / leaf)) for leaf in leaves},
               binaryPin=dict(path=str(binary), sha256=digest(binary)))
           with open(case / 'prepared.json', 'x', encoding='utf8') as f:
               json.dump(plan, f, separators=(',', ':'))

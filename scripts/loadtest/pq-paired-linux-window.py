@@ -31,8 +31,10 @@ CAPS = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
 
 E2E_TEST = "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart"
 E2E_SOURCE = "internal/consensus/pq_network_e2e_test.go"
-# Updated only with the separately frozen test leaf and normal CI compilation.
-E2E_SOURCE_SHA256 = "39a137c07c29197775913e364b8d4e020f69ab38cd7a0c9779ba0a5fe1161df9"
+# Updated only with the separately frozen test leaves and normal CI compilation.
+E2E_SOURCE_SHA256 = "aa089abf62c1b9e8ba13ede8750afeb767a4dc109d34235a066cd0c95bbd6044"
+E2E_PROGRESS_SOURCE = "internal/consensus/pq_network_progress_test.go"
+E2E_PROGRESS_SOURCE_SHA256 = "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044"
 E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
                YNX_PQ_NETWORK_E2E="authorized-four-node-window")
 
@@ -231,11 +233,20 @@ def validate_consensus_e2e_recipe(plan, prepared):
             or plan.get("workingDirectory") != str(source / "internal/consensus")):
         raise RuntimeError("consensus E2E command/cwd/environment mismatch")
     pins = plan.get("sourcePins")
-    if not isinstance(pins, dict) or pins.get(E2E_SOURCE) != {"sha256": E2E_SOURCE_SHA256}:
-        raise RuntimeError("frozen consensus E2E source pin required")
-    test = source / E2E_SOURCE
-    if test.is_symlink() or digest(test) != E2E_SOURCE_SHA256:
-        raise RuntimeError("frozen consensus E2E test source mismatch")
+    required_pins = {E2E_SOURCE: {"sha256": E2E_SOURCE_SHA256},
+                     E2E_PROGRESS_SOURCE: {"sha256": E2E_PROGRESS_SOURCE_SHA256}}
+    if not isinstance(pins, dict) or pins != required_pins:
+        raise RuntimeError("exact two frozen consensus E2E source pins required")
+    for relative, pin in required_pins.items():
+        test = source / relative
+        try:
+            # Both the leaf and its parents must be real checkout paths. A
+            # matching digest reached through a symlink is still not this leaf.
+            if (not stat.S_ISREG(test.lstat().st_mode) or test.resolve(strict=True) != test
+                    or digest(test) != pin["sha256"]):
+                raise RuntimeError("frozen consensus E2E test source mismatch")
+        except OSError as exc:
+            raise RuntimeError("frozen consensus E2E test source unavailable") from exc
     for directory in (case, build):
         info = directory.lstat()
         if not stat.S_ISDIR(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o700 or info.st_uid != os.getuid():
