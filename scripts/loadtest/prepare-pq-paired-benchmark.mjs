@@ -13,13 +13,14 @@ const git=args=>execFileSync('/usr/bin/git',['-C',sourceRoot,...args],{encoding:
 const head=git(['rev-parse','HEAD']),dirty=git(['status','--porcelain','--untracked-files=normal']);
 let baseAncestor=false;try{git(['merge-base','--is-ancestor','aa97f102fc72ee89ef3c61b6125256b288694b39',values.commit]);baseAncestor=true}catch{throw Error('candidate is not the frozen production baseline or its descendant')}
 let successFixture='';try{successFixture=git(['show',values.commit+':internal/chain/pq_batch_success_test.go'])}catch{/* recipe rejects missing frozen fixture, not the working-tree substitute */}
+let measurementSource='';try{measurementSource=git(['show',values.commit+':internal/chain/pq_batch_measurement.go'])}catch{/* reject missing committed production API */}
 const overlaySource=fileURLToPath(new URL('./overlays/pq_paired_performance_test.go.in',import.meta.url));
 const target=path.join(sourceRoot,'internal/chain/pq_paired_performance_test.go');
-const recipe=pqPairedRecipe({sourceRoot,commit:values.commit,head,dirty,baseAncestor,successFixture,overlaySource,outputDir,n:Number(values.n),trial:Number(values.trial),targetExists:fs.existsSync(target)});
+const recipe=pqPairedRecipe({sourceRoot,commit:values.commit,head,dirty,baseAncestor,successFixture,measurementSource,overlaySource,outputDir,n:Number(values.n),trial:Number(values.trial),targetExists:fs.existsSync(target)});
 if(fs.realpathSync(sourceRoot)!==sourceRoot||fs.realpathSync(overlaySource)!==overlaySource)throw Error('source and overlay must not be symlink aliases');
 if(fs.existsSync(outputDir))throw Error('preserve existing case output directory');
 recipe.sourcePins={};
-for(const relative of ['go.mod','go.sum','internal/chain/pq_batch.go','internal/chain/pq_authorization_test.go','internal/chain/pq_batch_success_test.go']){
+for(const relative of ['go.mod','go.sum','internal/chain/pq_batch.go','internal/chain/pq_batch_measurement.go','internal/chain/devnet.go','internal/chain/replication.go','internal/chain/transaction_durability.go','internal/chain/pq_authorization_test.go','internal/chain/pq_batch_success_test.go']){
   const raw=execFileSync('/usr/bin/git',['-C',sourceRoot,'show',values.commit+':'+relative],{timeout:1500,maxBuffer:4*1024*1024});
   recipe.sourcePins[relative]={bytes:raw.length,sha256:createHash('sha256').update(raw).digest('hex')};
 }

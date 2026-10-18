@@ -1,0 +1,64 @@
+{
+  "kind": "production-measured-pair-source-and-proposed-N16",
+  "productionAPICommit": "6a3b8f813bcc5a2ee8ab0280783b6ebddf3d9c71",
+  "sourceParent": "420f65a0659485ff820910f37d782a9e4c754b38",
+  "pins": [
+    {
+      "path": "scripts/loadtest/overlays/pq_paired_performance_test.go.in",
+      "bytes": 21453,
+      "sha256": "d07ea5853752b987dd94a741e58807d36583126c752a5900747ad89002830da8"
+    },
+    {
+      "path": "scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "bytes": 3558,
+      "sha256": "6d4b36d283cfb3371a6cb6a0019ec885bf082d858c0e0046a5ef637d17ae33bb"
+    },
+    {
+      "path": "scripts/loadtest/pq-paired-recipe.mjs",
+      "bytes": 2359,
+      "sha256": "673eb8965329025e7a516a67e8e04f6a54c3a102b00aafa72f78e86c8748c3eb"
+    },
+    {
+      "path": "scripts/loadtest/pq-paired-recipe.test.mjs",
+      "bytes": 2062,
+      "sha256": "3c71d622cababc330c51e5464f82eace8ef442717ac41ba7c419c00c34176b05"
+    },
+    {
+      "path": "scripts/loadtest/pq-paired-linux-window.py",
+      "bytes": 30839,
+      "sha256": "560131f7e8f31affef37a47d3305248cdbd2376e4c8b38f008e8deaed10e38ed"
+    },
+    {
+      "path": "scripts/loadtest/test_pq_paired_linux_window.py",
+      "bytes": 12596,
+      "sha256": "d8903a4df38e819976d1aa34ef6d14fd64d6cf848358cc378ee95568fee364d9"
+    }
+  ],
+  "actualLightControls": {
+    "recipe": {
+      "passed": 4,
+      "red": "missing committed measurement API accepted"
+    },
+    "guard": {
+      "passed": 13,
+      "reds": [
+        "explicit case_n argument absent",
+        "production phase qualifier absent"
+      ]
+    },
+    "goOverlayCompiled": false,
+    "pairExecuted": false
+  },
+  "proposedCase": {
+    "n": 16,
+    "trial": 1,
+    "explicitGuardArguments": [
+      "--case-n",
+      "16"
+    ],
+    "resourceCapsChanged": false,
+    "requiresFreshRootGrant": true,
+    "sourceCommitChosenByOriginalCIOwner": true
+  },
+  "interpretation": "Existing production API only. Whole includes instrumentation; standalone members do not. Inclusive phases must not be summed. No new N1, network run, sustained TPS or BFT finality evidence."
+}
