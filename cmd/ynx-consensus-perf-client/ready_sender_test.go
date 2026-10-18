@@ -114,6 +114,12 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 						terminal(job.index)
 						continue
 					}
+					// Hold an initial fast-account completion and the final
+					// generation independently. The controller must report both
+					// supply waiting and final drain, without a global round barrier.
+					if generation := results[job.index].Index; generation == 1 || generation == 5 {
+						time.Sleep(20 * time.Millisecond)
+					}
 					execution.Lock()
 					height++
 					phaseStarted := time.Now()
@@ -161,6 +167,17 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	}
 	if stats.Supply.OfferDecodeAttempts != 6 || stats.Supply.PacingWaitAttempts != 6 || stats.Supply.DispatchAttempts != 6 || stats.Supply.TerminalSinkAttempts != 6 || stats.Supply.OfferDecodeNs <= 0 || stats.Supply.PacingWaitNs <= 0 || stats.Supply.DispatchNs <= 0 || stats.Supply.TerminalSinkNs <= 0 || stats.Supply.CompletionWaitNs < 0 {
 		t.Fatalf("controller phase counts differ from the actual six business inputs: %+v", stats.Supply)
+	}
+	if stats.Supply.CompletionSupplyWaitAttempts+stats.Supply.CompletionDrainWaitAttempts+stats.Supply.CompletionFailureWaitAttempts != stats.Supply.CompletionWaitAttempts ||
+		stats.Supply.CompletionSupplyWaitNs+stats.Supply.CompletionDrainWaitNs+stats.Supply.CompletionFailureWaitNs != stats.Supply.CompletionWaitNs ||
+		stats.Supply.CompletionFailureWaitAttempts != 0 || stats.Supply.CompletionFailureWaitNs != 0 {
+		t.Fatalf("successful real execution lost supply/drain partition: %+v", stats.Supply)
+	}
+	if stats.Supply.CompletionSupplyWaitAttempts == 0 || stats.Supply.CompletionDrainWaitAttempts == 0 {
+		t.Fatalf("controlled initial/final waits were not measured separately: %+v", stats.Supply)
+	}
+	if stats.Supply.PacingFutureTargetAttempts+stats.Supply.PacingAlreadyDueAttempts != 6 || stats.Supply.PacingPositiveRemainingNs < 0 || stats.Supply.PacingWakeLatenessNs < stats.Supply.PacingMaxWakeLatenessNs || stats.Supply.PacingMaxWakeLatenessNs < 0 {
+		t.Fatalf("actual pacing timing partition invalid: %+v", stats.Supply)
 	}
 	if segmented {
 		recovered, readErr := readReadySenderIntents(context.Background(), p.root, manifest, m, initial, 2, stats.IntentSegments)

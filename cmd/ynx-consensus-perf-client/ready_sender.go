@@ -170,26 +170,37 @@ func (p *ephemeralSenderPool) nextForSenderMeasured(sender int, prior transactio
 // consume/verification/terminalSink. It is not an internal consensus timer.
 // TerminalSink measures the complete evidence callback, not pure file Sync.
 type readySupplyStats struct {
-	CompletionWaitAttempts  int   `json:"completionWaitAttempts"`
-	CompletionWaitNs        int64 `json:"completionWaitNs"`
-	TerminalSinkAttempts    int   `json:"terminalSinkAttempts"`
-	TerminalSinkNs          int64 `json:"terminalSinkNs"`
-	OfferDecodeAttempts     int   `json:"offerDecodeAttempts"`
-	OfferDecodeNs           int64 `json:"offerDecodeNs"`
-	PacingWaitAttempts      int   `json:"pacingWaitAttempts"`
-	PacingWaitNs            int64 `json:"pacingWaitNs"`
-	DispatchAttempts        int   `json:"dispatchAttempts"`
-	DispatchNs              int64 `json:"dispatchNs"`
-	SignAttempts            int   `json:"signAttempts"`
-	SignNs                  int64 `json:"signNs"`
-	EncodeAttempts          int   `json:"encodeAttempts"`
-	EncodeNs                int64 `json:"encodeNs"`
-	SignedSuccessors        int   `json:"signedSuccessors"`
-	JournalSetupNs          int64 `json:"journalSetupNs"`
-	JournalAppendAttempts   int   `json:"journalAppendAttempts"`
-	JournalAppendNs         int64 `json:"journalAppendNs"`
-	JournalDurableEnvelopes int   `json:"journalDurableEnvelopes"`
-	JournalDurableBytes     int   `json:"journalDurableBytes"`
+	CompletionWaitAttempts        int   `json:"completionWaitAttempts"`
+	CompletionWaitNs              int64 `json:"completionWaitNs"`
+	CompletionSupplyWaitAttempts  int   `json:"completionSupplyWaitAttempts"`
+	CompletionSupplyWaitNs        int64 `json:"completionSupplyWaitNs"`
+	CompletionDrainWaitAttempts   int   `json:"completionDrainWaitAttempts"`
+	CompletionDrainWaitNs         int64 `json:"completionDrainWaitNs"`
+	CompletionFailureWaitAttempts int   `json:"completionFailureWaitAttempts"`
+	CompletionFailureWaitNs       int64 `json:"completionFailureWaitNs"`
+	TerminalSinkAttempts          int   `json:"terminalSinkAttempts"`
+	TerminalSinkNs                int64 `json:"terminalSinkNs"`
+	OfferDecodeAttempts           int   `json:"offerDecodeAttempts"`
+	OfferDecodeNs                 int64 `json:"offerDecodeNs"`
+	PacingWaitAttempts            int   `json:"pacingWaitAttempts"`
+	PacingWaitNs                  int64 `json:"pacingWaitNs"`
+	PacingFutureTargetAttempts    int   `json:"pacingFutureTargetAttempts"`
+	PacingAlreadyDueAttempts      int   `json:"pacingAlreadyDueAttempts"`
+	PacingPositiveRemainingNs     int64 `json:"pacingPositiveRemainingNs"`
+	PacingWakeLatenessNs          int64 `json:"pacingWakeLatenessNs"`
+	PacingMaxWakeLatenessNs       int64 `json:"pacingMaxWakeLatenessNs"`
+	DispatchAttempts              int   `json:"dispatchAttempts"`
+	DispatchNs                    int64 `json:"dispatchNs"`
+	SignAttempts                  int   `json:"signAttempts"`
+	SignNs                        int64 `json:"signNs"`
+	EncodeAttempts                int   `json:"encodeAttempts"`
+	EncodeNs                      int64 `json:"encodeNs"`
+	SignedSuccessors              int   `json:"signedSuccessors"`
+	JournalSetupNs                int64 `json:"journalSetupNs"`
+	JournalAppendAttempts         int   `json:"journalAppendAttempts"`
+	JournalAppendNs               int64 `json:"journalAppendNs"`
+	JournalDurableEnvelopes       int   `json:"journalDurableEnvelopes"`
+	JournalDurableBytes           int   `json:"journalDurableBytes"`
 }
 
 type readySenderStats struct {
@@ -417,6 +428,11 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			}
 			started := time.Now()
 			var event completion
+			// Classify at entry: final drain is not a supply stall, and closed
+			// error cleanup has its own bucket. A deadline during the wait does
+			// not retrospectively change which phase was actually entered.
+			failureWait := closed || runErr != nil
+			drainWait := !failureWait && stats.Offered == senders*o.rounds
 			received := false
 			if closed {
 				event, received = <-terminal, true
@@ -428,7 +444,19 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 				}
 			}
 			stats.Supply.CompletionWaitAttempts++
-			stats.Supply.CompletionWaitNs += time.Since(started).Nanoseconds()
+			elapsed := time.Since(started).Nanoseconds()
+			stats.Supply.CompletionWaitNs += elapsed
+			switch {
+			case failureWait:
+				stats.Supply.CompletionFailureWaitAttempts++
+				stats.Supply.CompletionFailureWaitNs += elapsed
+			case drainWait:
+				stats.Supply.CompletionDrainWaitAttempts++
+				stats.Supply.CompletionDrainWaitNs += elapsed
+			default:
+				stats.Supply.CompletionSupplyWaitAttempts++
+				stats.Supply.CompletionSupplyWaitNs += elapsed
+			}
 			if received {
 				consume(event)
 			} else {
@@ -491,9 +519,25 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			}
 			p.pending[e.Sender], p.templates[e.Sender] = e.Transaction, template
 			paceStarted := time.Now()
+			futureTarget := nextOffer.After(paceStarted)
+			if remaining := nextOffer.Sub(paceStarted).Nanoseconds(); remaining > 0 {
+				stats.Supply.PacingFutureTargetAttempts++
+				stats.Supply.PacingPositiveRemainingNs += remaining
+			} else {
+				stats.Supply.PacingAlreadyDueAttempts++
+			}
 			paceReady := waitUntil(ctx, nextOffer)
+			paceFinished := time.Now()
 			stats.Supply.PacingWaitAttempts++
-			stats.Supply.PacingWaitNs += time.Since(paceStarted).Nanoseconds()
+			stats.Supply.PacingWaitNs += paceFinished.Sub(paceStarted).Nanoseconds()
+			// Only future targets measure wake lateness. Already-overdue targets
+			// include prior signing/journal work and must not inflate this scope.
+			if late := paceFinished.Sub(nextOffer).Nanoseconds(); paceReady && futureTarget && late > 0 {
+				stats.Supply.PacingWakeLatenessNs += late
+				if late > stats.Supply.PacingMaxWakeLatenessNs {
+					stats.Supply.PacingMaxWakeLatenessNs = late
+				}
+			}
 			if !paceReady {
 				runErr = ctx.Err()
 				break

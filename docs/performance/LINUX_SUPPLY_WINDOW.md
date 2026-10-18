@@ -185,7 +185,52 @@ verification and its own SHA256.
 The next useful workload change is to test the ready-account supply limit with
 the already planned512accounts×2rounds, keeping1024total/512configured rate and
 all existing caps. It requires its own fixed-profile guards and Root schedule;
-it has not been implemented or launched in this revision. For a strict transport
+it was not implemented or launched at receipt commit101b83fe7. For a strict transport
 comparison, both transports must execute on the same actual runner with otherwise
 matched settings; the two completed runs do not provide that evidence. Preserve
 both existing cases rather than silently substituting them as matched results.
+
+## Fixed512x2 source preparation
+
+The next source revision adds only the fixed `supply-512x2` profile, explicitly
+gRPC only. It keeps1024 total, configured512/s,4submit/4observe,10s client,
+45+15s and all existing resource, signature, nonce, fee, proof and persistence
+checks. Unknown names,512x4,1024x2 or512x2/socket are rejected; there is no arbitrary
+account/round/cap input. Expected successor signatures are512, while all1024
+envelopes must still be durably journaled. The workflow choice
+`linux_supply_profile` defaults to the original256x4; execution remains
+`run_linux_supply=false` unless Root schedules the exact new source revision.
+
+Source-only preparation:
+
+```sh
+python3 -B scripts/loadtest/supply-linux-window.py --transport grpc --profile supply-512x2
+python3 -B scripts/loadtest/test_supply_linux_window.py -v
+```
+
+The client now preserves its original `completionWaitAttempts/Ns` and partitions
+those exact same measured samples by the controller state at entry:
+
+- `completionSupplyWait*`: no ready account, with unoffered workload remaining.
+- `completionDrainWait*`: all workload already offered, waiting for terminal events.
+- `completionFailureWait*`: closed/error cleanup waits, distinct from either above.
+
+Counts and nanoseconds must sum exactly to the original completion totals; failure
+wait must be zero for a qualified case. Supply wait still includes submission and
+observation completion dependencies; it is not a pure nonce or BFT timer. A deadline
+that occurs during a wait does not change its original entry classification.
+
+Pacing adds future-target vs already-due counts, the cumulative positive remaining
+time immediately before `waitUntil`, and cumulative/maximum lateness upon successful
+wakes for future targets only. Already-due targets are excluded from wake lateness
+because signing/journal work may have made them late before waiting. These scopes
+include wrapper and scheduler overhead and do not isolate kernel timer overhead.
+They overlap the existing pacing duration and must not be added to it.
+
+The existing six-real-signed-transfer controller regression independently holds
+an initial completion and the last generation, checks separate supply/drain coverage,
+all timing partitions, zero failure wait, original fast-before-slow behavior and
+unchanged persistent restart/nonce checks. No signature, execution, finality gate,
+durable-before-dispatch barrier, pacing interval, catch-up-burst restriction or
+worker/queue budget is changed. Until the new CI executes this revision, new Go
+partition assertions are unverified. This section authorizes no new network case.

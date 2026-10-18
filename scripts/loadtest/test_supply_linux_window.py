@@ -22,7 +22,7 @@ def manifest(root):
                          rpcUrl=f"http://127.0.0.1:{31800+i}", abciListen=f"tcp://127.0.0.1:{31900+i}") for i in range(4)])
 
 
-def report():
+def report(profile="supply-256x4"):
     counts = dict.fromkeys(("input", "offered", "submitted", "checkTxAccepted", "includedCodeZero",
                            "effectiveBusinessIncluded", "quorumConfirmed", "finalSubmitted"), 1024)
     counts.update(dict.fromkeys(("checkTxRejected", "checkTxUnverifiedResponses", "executionFailed", "submissionUnknown",
@@ -33,11 +33,20 @@ def report():
     phases.update(signAttempts=768, encodeAttempts=768, signedSuccessors=768,
                   terminalSinkAttempts=0, terminalSinkNs=0, journalSetupNs=100,
                   journalDurableEnvelopes=1024, journalDurableBytes=100)
+    phases.update(completionSupplyWaitAttempts=1, completionSupplyWaitNs=100,
+                  completionDrainWaitAttempts=0, completionDrainWaitNs=0,
+                  completionFailureWaitAttempts=0, completionFailureWaitNs=0,
+                  pacingFutureTargetAttempts=1, pacingAlreadyDueAttempts=0,
+                  pacingPositiveRemainingNs=50, pacingWakeLatenessNs=50, pacingMaxWakeLatenessNs=50)
+    rounds = 4
+    if profile == "supply-512x2":
+        rounds = 2
+        phases.update(signAttempts=512, encodeAttempts=512, signedSuccessors=512)
     tx = dict(status="confirmed", checkTxCode=0, executionCode=0, checkTxIdentityVerified=True,
               quorumVerified=True, transactionProofVerified=True, durableStateVerified=True,
               durableInfoVerified=True, height=2, durableStateHeight=2, durableInfoHeight=2,
               durableSnapshotSha256="a"*64, confirmedObservedAt="2026-10-18T00:00:00Z")
-    return dict(roundsCompleted=4, senderMode="ready-pool", inclusionMode="block-scan", configuredOfferedRate=512,
+    return dict(roundsRequested=rounds, roundsCompleted=rounds, senderMode="ready-pool", inclusionMode="block-scan", configuredOfferedRate=512,
                 setupErrors=[], summary=counts, readySenders=dict(supply=phases),
                 transactions=[dict(tx, index=i) for i in range(1024)])
 
@@ -172,6 +181,41 @@ class SupplySourceTests(unittest.TestCase):
             self.assertEqual(partial["supply"], row["readySenders"]["supply"])
             with self.assertRaises(RuntimeError):
                 supply.validate_report(row)
+
+    def test_fixed_512_profile_does_not_raise_resource_or_transaction_caps(self):
+        old = supply.recipe("grpc")["profile"]
+        new = supply.recipe("grpc", "supply-512x2")["profile"]
+        self.assertEqual(new["senders"]*new["rounds"], 1024)
+        for key in old:
+            if key not in ("name", "senders", "rounds"):
+                self.assertEqual(old[key], new[key])
+        for name in ("custom", "supply-1024x2", "supply-512x4"):
+            with self.assertRaises(RuntimeError):
+                supply.recipe("grpc", name)
+        with self.assertRaises(RuntimeError):
+            supply.recipe("socket", "supply-512x2")
+
+    def test_512_profile_requires_its_actual_round_and_successor_counts(self):
+        supply.validate_report(report("supply-512x2"), "supply-512x2")
+        for row in (report(), dict(report("supply-512x2"), roundsCompleted=4)):
+            with self.assertRaises(RuntimeError):
+                supply.validate_report(row, "supply-512x2")
+        row = report("supply-512x2")
+        row["readySenders"]["supply"]["signedSuccessors"] = 768
+        with self.assertRaises(RuntimeError):
+            supply.validate_report(row, "supply-512x2")
+
+    def test_wait_scope_mismatch_or_failure_cannot_qualify(self):
+        for key, value in (("completionSupplyWaitNs", 101), ("completionDrainWaitAttempts", 1),
+                           ("completionFailureWaitNs", 1), ("pacingFutureTargetAttempts", 0),
+                           ("pacingMaxWakeLatenessNs", 51)):
+            row = report("supply-512x2"); row["readySenders"]["supply"][key] = value
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                supply.validate_report(row, "supply-512x2")
+        row = report("supply-512x2")
+        del row["readySenders"]["supply"]["completionDrainWaitNs"]
+        with self.assertRaises(RuntimeError):
+            supply.validate_report(row, "supply-512x2")
 
 
 if __name__ == "__main__":

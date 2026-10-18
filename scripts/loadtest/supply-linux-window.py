@@ -28,14 +28,20 @@ PROFILE = dict(name="supply-256x4", senders=256, rounds=4, offeredRate=512,
                totalMs=60000, ownedProcesses=10, longLivedChildren=9,
                ownedRSSBytes=1 << 30, privateBytes=32 << 20, threads=320,
                availableMemoryFloorBytes=native.CAPS["availableMemoryFloorBytes"])
+PROFILES = {"supply-256x4": PROFILE,
+            "supply-512x2": dict(PROFILE, name="supply-512x2", senders=512, rounds=2)}
 ENV = dict(GOMAXPROCS="1", GOGC="100", GOMEMLIMIT="off")
 BINARIES = ("ynx-abci", "cometbft", "ynx-consensus-perf-fixture", "ynx-consensus-perf-client")
 
 
-def recipe(transport="socket"):
+def recipe(transport="socket", profile_name="supply-256x4"):
     if transport not in ("socket", "grpc"):
         raise RuntimeError("only existing socket/grpc ABCI transports allowed")
-    profile = dict(PROFILE, name=PROFILE["name"] + ("-grpc" if transport == "grpc" else ""))
+    if profile_name not in PROFILES:
+        raise RuntimeError("only fixed 256x4 or 512x2 Supply profiles allowed")
+    if profile_name == "supply-512x2" and transport != "grpc":
+        raise RuntimeError("the new 512x2 profile is explicitly gRPC only")
+    profile = dict(PROFILES[profile_name], name=profile_name + ("-grpc" if transport == "grpc" else ""))
     return dict(schema=1, profile=profile, abciTransport=transport, environment=ENV, execute=False,
                 requiresSeparateRootGrant=True, nodesStarted=False,
                 platform="Linux native /proc; not macOS pressure1",
@@ -102,8 +108,9 @@ def validate_manifest(m, root):
     return m
 
 
-def validate_report(report):
-    if (report.get("roundsCompleted") != 4 or report.get("senderMode") != "ready-pool"
+def validate_report(report, profile_name="supply-256x4"):
+    profile = recipe("grpc", profile_name)["profile"]
+    if (report.get("roundsCompleted") != profile["rounds"] or report.get("roundsRequested") != profile["rounds"] or report.get("senderMode") != "ready-pool"
             or report.get("inclusionMode") != "block-scan" or report.get("configuredOfferedRate") != 512
             or report.get("setupErrors")):
         raise RuntimeError("fixed Supply workload incomplete")
@@ -121,7 +128,7 @@ def validate_report(report):
         if type(value) is not int or value < 0:
             raise RuntimeError("invalid measured Supply counter: " + key)
     for key in ("signAttempts", "encodeAttempts", "signedSuccessors"):
-        if supply.get(key) != 768:
+        if supply.get(key) != 1024-profile["senders"]:
             raise RuntimeError("successor timing coverage missing: " + key)
     if supply.get("journalDurableEnvelopes") != 1024 or supply.get("terminalSinkAttempts") != 0 or supply.get("terminalSinkNs") != 0:
         raise RuntimeError("finite journal/sink mode differs from fixed profile")
@@ -130,6 +137,14 @@ def validate_report(report):
             raise RuntimeError("Supply phase timing missing: " + prefix)
     if supply.get("journalSetupNs", 0) <= 0 or supply.get("journalDurableBytes", 0) <= 0:
         raise RuntimeError("durable Supply setup missing")
+    for suffix in ("Attempts", "Ns"):
+        parts = [supply.get("completion"+name+"Wait"+suffix) for name in ("Supply", "Drain", "Failure")]
+        if any(type(v) is not int or v < 0 for v in parts) or sum(parts) != supply["completionWait"+suffix] or parts[2] != 0:
+            raise RuntimeError("Supply/final-drain/failure wait partition incomplete")
+    if (supply.get("pacingFutureTargetAttempts", -1)+supply.get("pacingAlreadyDueAttempts", -1) != supply["pacingWaitAttempts"]
+            or any(type(supply.get(k)) is not int or supply[k] < 0 for k in ("pacingPositiveRemainingNs", "pacingWakeLatenessNs", "pacingMaxWakeLatenessNs"))
+            or supply["pacingMaxWakeLatenessNs"] > supply["pacingWakeLatenessNs"]):
+        raise RuntimeError("pacing scheduled/wake timing coverage missing")
     transactions = report.get("transactions", [])
     if len(transactions) != 1024 or {t.get("index") for t in transactions} != set(range(1024)):
         raise RuntimeError("complete per-transaction evidence required")
@@ -199,8 +214,9 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt, transport="socket"):
-    selected = recipe(transport)
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4"):
+    selected = recipe(transport, profile_name)
+    profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
     source, build, case, receipt = map(lambda p: p.absolute(), (source, build, case, receipt))
@@ -299,7 +315,7 @@ def run(source, build, case, receipt, transport="socket"):
                                cpuinfo=native.bounded(Path("/proc/cpuinfo"), 1 << 20).decode())
         network = case / "network"
         mark("fixture_start")
-        wait(spawn("fixture", [str(build / BINARIES[2]), "-ephemeral", "-output", str(network), "-count", "256", "-retain-ephemeral-senders"]))
+        wait(spawn("fixture", [str(build / BINARIES[2]), "-ephemeral", "-output", str(network), "-count", str(profile["senders"]), "-retain-ephemeral-senders"]))
         mark("fixture_complete")
         manifest_path = network / "network-manifest.json"
         manifest = validate_manifest(json.loads(native.bounded(manifest_path, 1 << 20)), network)
@@ -328,8 +344,8 @@ def run(source, build, case, receipt, transport="socket"):
         mark("all_nodes_height2")
         output = network / "transactions-result.json"
         mark("client_start")
-        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", "4", "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan"]))
-        result["measurement"] = validate_report(json.loads(native.bounded(output, 16 << 20)))
+        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan"]))
+        result["measurement"] = validate_report(json.loads(native.bounded(output, 16 << 20)), profile_name)
         mark("client_complete")
         result["resultSHA256"] = native.digest(output)
     except Exception as error:
@@ -396,6 +412,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--transport", choices=("socket", "grpc"), default="socket")
+    parser.add_argument("--profile", choices=tuple(PROFILES), default="supply-256x4")
     parser.add_argument("--check-runner", action="store_true")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--build", type=Path)
@@ -407,8 +424,8 @@ if __name__ == "__main__":
             parser.error("check-runner requires build/new case and excludes execute")
         print(json.dumps(preflight(args.build, args.case), indent=2))
     elif not args.execute:
-        print(json.dumps(recipe(args.transport), indent=2))
+        print(json.dumps(recipe(args.transport, args.profile), indent=2))
     else:
         if not all((args.source, args.build, args.case, args.receipt)):
             parser.error("execute requires exact source/build/new case/new receipt")
-        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport))
+        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile))
