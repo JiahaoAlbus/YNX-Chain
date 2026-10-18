@@ -215,11 +215,12 @@ jobs:
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer
+          go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
-          go test -p 1 -count=1 -timeout=180s ./internal/consensus
+          YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
       - name: Verify Whole BFT gateway and native container readback
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/bftgateway ./cmd/ynx-bft-gatewayd
