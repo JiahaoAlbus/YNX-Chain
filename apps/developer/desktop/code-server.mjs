@@ -97,11 +97,16 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
     });
   const { createNativeParentControl } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-parent-control.mjs')));
   const { attachOriginalServicePipe } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'original-service-pipe.mjs')));
+  const { attachNativeIdentityChannel } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-identity-channel.mjs')));
   const parentControl = createNativeParentControl({input:process.stdin,onError:error=>console.error('YNX_NATIVE_PARENT_CONTROL '+String(error?.message??error).slice(0,240))});
-  let goChannel, originalServiceChannel;
+  let goChannel, originalServiceChannel, identityChannel;
   if(goStore&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
     try{const instance=process.env.YNX_NATIVE_GO_INSTANCE;const directory=await goStore.controlDirectory(instance);
       goChannel=attachNativeGoSelectionChannel({control:parentControl,store:goStore,context,directory,onError:error=>console.error('YNX_GO_SELECTION_CONTROL '+String(error.message).slice(0,240))});
+      // Bootstrap identity is independent of an admitted legacy four-op parent.
+      // Only an explicit normal native action can start its lazy request.
+      try{identityChannel=await attachNativeIdentityChannel({control:parentControl,instance,context,directory,runningBackendModuleURL:import.meta.url,onError:()=>console.error('YNX_NATIVE_IDENTITY_REQUEST_UNAVAILABLE')});}
+      catch{console.error('YNX_NATIVE_IDENTITY_TRANSPORT_UNAVAILABLE');}
       // Register the route immediately; the same fixed admitted child becomes
       // usable only after installed/ACK and SDK readiness. Missing supply keeps
       // the existing unavailable response and never blocks local coding/Go.
@@ -114,12 +119,15 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   let stopping;
   const stop = () => {
     if (stopping) return stopping;
-    parentControl.close(); goChannel?.close(); originalServiceChannel?.close(); retireWallet(); retireTools();
+    parentControl.close(); goChannel?.close(); originalServiceChannel?.close(); identityChannel?.close(); retireWallet(); retireTools();
     stopping = (async () => {
       try { await workbench.stop(); }
       finally {
         const parentCleanup = await parentControl.finishCleanup();
         if (parentCleanup.complete !== true) process.exitCode = 1;
+        // A channel's DATA cleanup result is not a rejected parent task. Keep
+        // its retained failure (including falsy causes) in the process result.
+        if (identityChannel && (await identityChannel.finishCleanup()).complete !== true) process.exitCode = 1;
         if (!await finishWalletCleanup()) process.exitCode = 1;
         if (!await finishToolsCleanup()) process.exitCode = 1;
       }
