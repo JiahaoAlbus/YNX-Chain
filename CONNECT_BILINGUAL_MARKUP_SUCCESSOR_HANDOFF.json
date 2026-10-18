@@ -1,0 +1,19 @@
+{
+  "state": "BILINGUAL_TRANSLATION_HINT_SOURCE_FIXED_NOT_DEPLOYED_OR_GUI_RETESTED",
+  "baseCommit": "c432e9165421c26494f7eefe612a983324d74cd0",
+  "realObservation": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r3e-4bc-normal-install-qa-20261018/NORMAL_PUBLIC_CONNECT_CANCEL_STAGE_20261018.json",
+  "observation": "Actual Chrome on the original public R3 page retranslated already bilingual review/button text, duplicating Chinese, and translated Approved public address into an incorrect speech-related accessibility label. The actual after-cancel screenshot was emitted by CUA. This is not a Relay or SDK defect.",
+  "repair": "Explicit standard translate=no at document root preserves the reviewed bilingual text for translation-aware browsers, including dynamic status and future address nodes. Add reviewed English/Chinese address accessible label. No browser preference, extension, permission, authority or protocol settings changed.",
+  "source": {"path": "apps/wallet-desktop/web-connect/index.html", "bytes": 2261, "sha256": "1a234701d1fbaf9b6327daca8285fbe72f8f5eca3e68e51dc2c8be2073336933"},
+  "test": {
+    "file": "apps/wallet-desktop/test/walletconnect-address-page.test.mjs",
+    "pattern": "reviewed bilingual|normal consumer entry",
+    "red": {"file": "apps/wallet-desktop/test/walletconnect-bilingual-translation-before-20261018.raw", "bytes": 5951, "sha256": "4a3da3bb670ad4b50173f194f456b720a3560ad27189dd2e236defb0ffd25348", "newTestFail": 1},
+    "green": {"file": "apps/wallet-desktop/test/walletconnect-bilingual-translation-after-20261018.raw", "bytes": 329, "sha256": "76fc1b595d4a8ac3fb43f820cca589f0c9e98d0944a48df633fd9657b67b0592", "pass": 2, "fail": 0, "skip": 0, "durationMs": 37.401875},
+    "scope": "Static source-contract regression plus existing public-only entry boundary. Not proof every browser or translation extension honors the standard hint; actual successor browser display remains unverified.",
+    "CI": "Existing Desktop npm test wildcard already includes this file; no new pipeline"
+  },
+  "delivery": "Independent successor only. Original A can retain c432 frozen candidate unchanged; include this exact source HTML in the next new normal consumer build/receipt when selected. Do not hot-edit public V3, SDK39 assets, its hashes, or c432 handoff. Do not duplicate V3 static checks. Existing build recipe and strict CSP/no-store routing remain unchanged.",
+  "preserved": "No App.tsx, startup asset, shared protocol, SDK source, Wallet native module, account, secret, history, UNKNOWN, existing H or frozen artifact changed",
+  "notClaimed": ["New consumer browser build", "Publication", "Successor GUI acceptance", "Relay or wallet approval", "Any signing or transfer"]
+}

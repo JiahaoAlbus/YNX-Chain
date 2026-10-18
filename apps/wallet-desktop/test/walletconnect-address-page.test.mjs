@@ -29,3 +29,10 @@ test('normal consumer entry imports only the public original SDK and has no sign
  for(const id of ['connect','cancel','disconnect','status','address','pairing','pairing-qr','open-wallet'])assert.ok(html.includes(`id="${id}"`));
  assert.ok(html.includes("script-src 'self'"));assert.ok(html.includes('no-referrer'));
 });
+test('reviewed bilingual permission text and public address are not machine-translated',()=>{
+ const html=readFileSync(new URL('../web-connect/index.html',import.meta.url),'utf8');
+ assert.match(html,/<html\b[^>]*\blang="en"[^>]*\btranslate="no"/);
+ assert.match(html,/<p id="address" aria-label="Approved public address \/ 已批准的公开地址"/);
+ assert.ok(html.includes('Connect / 连接'));
+ assert.ok(html.includes('It cannot request signatures, sign-in permissions, tokens or transfers.'));
+});

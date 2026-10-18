@@ -1,0 +1,10 @@
+✔ normal consumer entry imports only the public original SDK and has no sign-in or transaction action (0.698417ms)
+✔ reviewed bilingual permission text and public address are not machine-translated (0.539125ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37.401875

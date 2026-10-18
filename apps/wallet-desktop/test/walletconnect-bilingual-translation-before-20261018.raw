@@ -1,0 +1,60 @@
+✖ reviewed bilingual permission text and public address are not machine-translated (2.332334ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 40.579916
+
+✖ failing tests:
+
+test at apps/wallet-desktop/test/walletconnect-address-page.test.mjs:32:1
+✖ reviewed bilingual permission text and public address are not machine-translated (2.332334ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /<html\b[^>]*\blang="en"[^>]*\btranslate="no"/. Input:
+  
+  '<!doctype html>\n' +
+    '<html lang="en">\n' +
+    '<meta charset="utf-8">\n' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">\n' +
+    '<meta name="referrer" content="no-referrer">\n' +
+    `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; frame-src https://verify.walletconnect.org https://verify.walletconnect.com; base-uri 'none'; form-action 'none'">\n` +
+    '<title>YNX Wallet · Address connection</title>\n' +
+    '<link rel="stylesheet" href="./walletconnect-consumer.css">\n' +
+    '<main>\n' +
+    ' <a href="https://wallet.ynxweb4.com">YNX Wallet</a>\n' +
+    ' <h1>Connect YNX Wallet / 连接钱包</h1>\n' +
+    ' <p>YNX Testnet · eip155:6423</p>\n' +
+    ' <p>This page requests one public address only. It cannot request signatures, sign-in permissions, tokens or transfers. / 此页面仅请求一个公开地址，不能请求签名、登录权限、代币或转账。</p>\n' +
+    ' <p id="status" role="status" aria-live="polite">Not connected. / 未连接。</p>\n' +
+    ' <p id="address" aria-label="Approved public address"></p>\n' +
+    ' <p><code id="diagnostic"></code></p>\n' +
+    ' <div class="actions">\n' +
+    '  <button id="connect" type="button" disabled>Connect / 连接</button>\n' +
+    '  <button id="cancel" type="button" disabled>Cancel / 取消</button>\n' +
+    '  <button id="disconnect" type="button" disabled>Disconnect / 断开</button>\n' +
+    ' </div>\n' +
+    ' <section id="pairing" hidden>\n' +
+    '  <p>Scan in YNX Wallet or open Wallet, then review the connection. / 请在钱包扫码或打开钱包，然后审核连接。</p>\n' +
+    '  <img id="pairing-qr" width="280" height="280" alt="Temporary WalletConnect connection code / 临时钱包连接码">\n' +
+    '  <p><a id="open-wallet">Open YNX Wallet / 打开钱包</a></p>\n' +
+    ' </section>\n' +
+    ' <p class="foot">Closing this page does not prove remote disconnection. Use Disconnect before leaving; unknown cleanup is retained. / 关闭页面不代表远端已断开，请先点击断开；未知清理结果会保留。</p>\n' +
+    ' <p class="foot">Portions © 2025 Reown, Inc. WalletConnect uses the official Reown network.</p>\n' +
+    '</main>\n' +
+    '<script src="./walletconnect-consumer.js" defer></script>\n' +
+    '</html>\n'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018/apps/wallet-desktop/test/walletconnect-address-page.test.mjs:34:9)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<meta name="referrer" content="no-referrer">\n<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' wss://relay.walletconnect.org https://pulse.walletconnect.org https://verify.walletconnect.org https://verify.walletconnect.com; frame-src https://verify.walletconnect.org https://verify.walletconnect.com; base-uri 'none'; form-action 'none'">\n<title>YNX Wallet · Address connection</title>\n<link rel="stylesheet" href="./walletconnect-consumer.css">\n<main>\n <a href="https://wallet.ynxweb4.com">YNX Wallet</a>\n <h1>Connect YNX Wallet / 连接钱包</h1>\n <p>YNX Testnet · eip155:6423</p>\n <p>This page requests one public address only. It cannot request signatures, sign-in permissions, tokens or transfers. / 此页面仅请求一个公开地址，不能请求签名、登录权限、代币或转账。</p>\n <p id="status" role="status" aria-live="polite">Not connected. / 未连接。</p>\n <p id="address" aria-label="Approved public address"></p>\n <p><code id="diagnostic"></code></p>\n <div class="actions">\n  <button id="connect" type="button" disabled>Connect / 连接</button>\n  <button id="cancel" type="button" disabled>Cancel / 取消</button>\n  <button id="disconnect" type="button" disabled>Disconnect / 断开</button>\n </div>\n <section id="pairing" hidden>\n  <p>Scan in YNX Wallet or open Wallet, then review the connection. / 请在钱包扫码或打开钱包，然后审核连接。</p>\n  <img id="pairing-qr" width="280" height="280" alt="Temporary WalletConnect connection code / 临时钱包连接码">\n  <p><a id="open-wallet">Open YNX Wallet / 打开钱包</a></p>\n </section>\n <p class="foot">Closing this page does not prove remote disconnection. Use Disconnect before leaving; unknown cleanup is retained. / 关闭页面不代表远端已断开，请先点击断开；未知清理结果会保留。</p>\n <p class="foot">Portions © 2025 Reown, Inc. WalletConnect uses the official Reown network.</p>\n</main>\n<script src="./walletconnect-consumer.js" defer></script>\n</html>\n`,
+    expected: /<html\b[^>]*\blang="en"[^>]*\btranslate="no"/,
+    operator: 'match',
+    diff: 'simple'
+  }
