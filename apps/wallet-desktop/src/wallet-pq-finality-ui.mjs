@@ -22,8 +22,8 @@ export function appendPQFinalityActions({row,record,api,getKeyState,isCurrent,on
      if(!base(v)||v.hash!==record.hash||!Array.isArray(v.records)||!Number.isSafeInteger(v.unreadable)||v.unreadable<0||typeof v.heldLocally!=='boolean'){onResult('本地资料尚未核实；原交易保留。 / Local evidence unverified; original retained.');return;}
      held=v.heldLocally;uncertain=held;onResult(notice+(v.unreadable?' 部分本地记录不可读，请保留。 / Some local records are unreadable; preserve them.':''));
     }else if(action==='verify'||action==='save'&&v?.saved===true){
-     if(!base(v)||v.hash!==record.hash||action==='verify'&&(v.rawStored!==true||v.status!=='verifier-result-data')){onResult('资料回执未绑定原交易；原记录保留。 / Evidence acknowledgement unbound; original retained.');return;}
-     held=false;uncertain=false;onResult(notice);
+     if(!base(v)||v.hash!==record.hash||action==='verify'&&(v.rawStored!==true||!['verifier-result-data','verifier-error-data'].includes(v.status))){onResult('资料回执未绑定原交易；原记录保留。 / Evidence acknowledgement unbound; original retained.');return;}
+     held=false;uncertain=false;onResult(action==='verify'&&v.status==='verifier-error-data'?'证明校验返回错误，已保留原始结果；这不证明交易失败，未授予重试、重签或发送权限。 / Proof verification returned an error; original evidence retained. This does not establish transaction failure or authorize retry, signing or sending.':notice);
     }else{
      if(!base(v)||v.hash!==record.hash||v.nativeTransactionHash!==record.hash&&!(v.status==='unavailable'&&v.executionHeight==='0'&&v.nativeTransactionHash==='')||v.rawStored!==true||!['collected','pending','unavailable'].includes(v.status)){onResult('资料回执未绑定原交易；原记录保留。 / Evidence acknowledgement unbound; original retained.');return;}
      held=false;uncertain=false;onResult(notice);

@@ -36,3 +36,6 @@ test('normal Host action reports missing source without presenting a verified re
 test('same-original verification DATA is never painted as finality or a send',async()=>{
  const f=fixture(true);f.reply(async()=>({ok:true,value:{account,hash,status:'verifier-result-data',rawStored:true,consensusFinality:false,independentFinality:false,canRetry:false,clearsOriginal:false}}));await f.buttons[3].click();assert.match(f.messages.at(-1),/not independently verified/);assert.deepEqual(f.calls,[['verify',hash]]);
 });
+test('explicit verifier error is displayed distinctly without declaring transaction failure or authorizing retry',async()=>{
+ const f=fixture(true);f.reply(async()=>({ok:true,value:{account,hash,status:'verifier-error-data',rawStored:true,consensusFinality:false,independentFinality:false,canRetry:false,clearsOriginal:false}}));await f.buttons[3].click();assert.match(f.messages.at(-1),/Proof verification returned an error/);assert.match(f.messages.at(-1),/does not establish transaction failure/);assert.deepEqual(f.calls,[['verify',hash]]);
+});

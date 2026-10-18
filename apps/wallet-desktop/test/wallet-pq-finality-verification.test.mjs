@@ -13,15 +13,15 @@ import {readPQFinalityVerifierEvidence} from '../src/wallet-pq-verifier-restore.
 import {runInNewContext} from 'node:vm';
 async function fixture(t){
  const root=await fs.mkdtemp(path.join(tmpdir(),'wallet-host-main-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const f=exportFixture();f.encode();
- let writes=0,fault=0,hostCalls=0,proofCalls=0,selectCalls=0,locked=false,missing=false,afterProof=()=>{};
+ let writes=0,fault=0,hostCalls=0,proofCalls=0,selectCalls=0,locked=false,missing=false,rejected=false,afterProof=()=>{};
  const io={...fs,open:async(...args)=>{if(typeof args[1]==='number'&&(args[1]&constants.O_CREAT)&&++writes===fault)throw Error('PUBLIC storage refusal');return fs.open(...args);}},evidence=new PQFinalityEvidence({directory:path.join(root,'evidence'),io});
  const guard={account:binding.account,assert(){if(locked)throw Object.assign(Error('PUBLIC locked'),{code:'PUBLIC_LOCKED'});}};
  function kernel(mode){return new PQFinalityVerifierProcessKernel({mode,prepare:async input=>({executable:'/PUBLIC/not-a-real-binary',contextPath:mode==='proof'?input.contextPath:input.sourcePath,contextSha256:mode==='proof'?input.contextSha256:input.sourceSha256,stdin:input.stdin}),spawn:()=>{
   mode==='proof'?proofCalls++:hostCalls++;const child=new EventEmitter();for(const name of ['stdin','stdout','stderr']){child[name]=new EventEmitter();child[name].destroy=()=>{};}child.kill=()=>true;
-  child.stdin.end=()=>queueMicrotask(()=>{child.stdout.emit('data',mode==='proof'?Buffer.from(JSON.stringify(row.expectedResponse)):f.encode().stdout);if(mode==='proof')afterProof();child.emit('close',0,null);});return child;
+  child.stdin.end=()=>queueMicrotask(()=>{child.stdout.emit('data',mode==='proof'?Buffer.from(JSON.stringify(rejected?{version:'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1',code:'PROOF_REJECTED',error:'PUBLIC rejection; not a transaction failure claim'}:row.expectedResponse)):f.encode().stdout);if(mode==='proof')afterProof();child.emit('close',mode==='proof'&&rejected?1:0,null);});return child;
  }});}
  const service=createPQFinalityVerification({evidence,selectSource:async()=>{selectCalls++;if(missing)throw Object.assign(Error('PUBLIC no genuine source'),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});return f.selection;},createProducer:()=>kernel('host-producer'),createVerifier:()=>kernel('proof')});
- return {root,f,service,evidence,guard,counts:()=>({hostCalls,proofCalls,selectCalls}),fault:n=>{fault=n;},lock:v=>{locked=v;},missing:()=>{missing=true;},afterProof:fn=>{afterProof=fn;}};
+ return {root,f,service,evidence,guard,counts:()=>({hostCalls,proofCalls,selectCalls}),fault:n=>{fault=n;},lock:v=>{locked=v;},missing:()=>{missing=true;},rejectProof:()=>{rejected=true;},afterProof:fn=>{afterProof=fn;}};
 }
 test('Main verification orchestrates acquire/current, same original proof capture and final current without granting finality',async t=>{
  const f=await fixture(t),result=await f.service.verify(original,binding,row.request.proof,f.guard);
@@ -33,6 +33,12 @@ test('Main verification orchestrates acquire/current, same original proof captur
 test('missing original source refuses before producer or verifier construction, without an alternate supplier',async t=>{
  const f=await fixture(t);f.missing();await assert.rejects(f.service.verify(original,binding,row.request.proof,f.guard),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});
  assert.deepEqual(f.counts(),{selectCalls:1,hostCalls:0,proofCalls:0});assert.equal(f.service.pending(),false);f.service.assertSafeToClose();
+});
+test('explicit verifier rejection remains error DATA in the Main envelope and cold record, never success or retry',async t=>{
+ const f=await fixture(t);f.rejectProof();const result=await f.service.verify(original,binding,row.request.proof,f.guard);
+ assert.equal(result.status,'verifier-error-data');assert.equal(result.observation.status,'verifier-error-data');assert.equal(result.observation.verifierCode,'PROOF_REJECTED');assert.equal(result.observation.reportedOutcome,null);
+ for(const key of ['independentFinality','consensusFinality','nativeGrant','canRetry','clearsOriginal'])assert.equal(result[key],false);
+ const found=await f.evidence.candidates(original,binding),ref=found.candidates.find(x=>x.kind==='verifier-result'),cold=await readPQFinalityVerifierEvidence(original,binding,f.evidence,ref);assert.equal(cold.status,'verifier-error-data');assert.equal(cold.verifierCode,'PROOF_REJECTED');assert.deepEqual(f.counts(),{selectCalls:1,hostCalls:3,proofCalls:1});f.service.assertSafeToClose();
 });
 test('proof-result storage refusal retains same operation; explicit local save constructs no second process or source',async t=>{
  const f=await fixture(t);f.fault(11);await assert.rejects(f.service.verify(original,binding,row.request.proof,f.guard),{code:'PQ_FINALITY_EVIDENCE_UNCONFIRMED'});

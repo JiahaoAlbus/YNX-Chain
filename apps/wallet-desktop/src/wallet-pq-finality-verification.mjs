@@ -27,7 +27,7 @@ export function createPQFinalityVerification({evidence,selectSource,createProduc
      return own.capture.run(original,binding,{...context,proof},current);
     });
    })();own.work=work;
-   try{const result=await work;return Object.freeze({account:original.account,hash:original.hash,status:'verifier-result-data',rawStored:true,observation:result.observation,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});}
+   try{const result=await work;return Object.freeze({account:original.account,hash:original.hash,status:result.observation.status,rawStored:true,observation:result.observation,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});}
    finally{active=false;retire();if(safe(own.host)&&safe(own.capture)&&safe(evidence))operation=null;}
   },
   // Explicit saving never selects a new source, runs current(), or constructs
