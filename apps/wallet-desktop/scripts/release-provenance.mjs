@@ -74,8 +74,13 @@ export function declaredSDKRuntimeSources(root,sourceCommit){
  for(const name of scopes)if(path.posix.normalize(name)!==name||name.includes('\\')||name.split('/').includes('..')||/[\0*?\[\]{}!]/.test(name))throw Error('SDK declared runtime scope is invalid');
  const names=new Set();
  for(const scope of scopes){
-  const prefix='packages/wallet-auth/'+scope,found=git(root,'ls-tree','-r','--name-only',sourceCommit,'--',prefix).split('\n').filter(name=>/\.(?:mjs|js|cjs|json)$/.test(name)&&!name.endsWith('.test.mjs'));
-  if(!found.length)throw Error(`SDK declared runtime source is missing: ${scope}`);
+  const prefix='packages/wallet-auth/'+scope,declared=git(root,'ls-tree','-r','--name-only',sourceCommit,'--',prefix).split('\n').filter(Boolean);
+  // A declaration must exist in the selected commit even when it is solely a
+  // type or native source. Zero JS matches alone is not proof of a missing file.
+  if(!declared.length)throw Error(`SDK declared runtime source is missing: ${scope}`);
+  const found=declared.filter(name=>/\.(?:mjs|js|cjs|json)$/.test(name)&&!name.endsWith('.test.mjs'));
+  const nonRuntime=name=>/\.d\.(?:ts|mts|cts)$/.test(name)||/\.(?:h|hpp|c|cc|cpp|mm|m)$/.test(name);
+  if(!found.length&&!declared.every(nonRuntime))throw Error(`SDK declared runtime source is missing: ${scope}`);
   for(const name of found)names.add(name);
  }
  return [...names].sort();
