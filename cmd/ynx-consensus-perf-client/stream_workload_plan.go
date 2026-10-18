@@ -12,16 +12,18 @@ import (
 )
 
 type streamingWorkloadPlan struct {
-	Kind                     string                   `json:"kind"`
-	Profile                  string                   `json:"profile"`
-	Fixture                  readySenderJournalHeader `json:"fixture"`
-	InitialSignedHashes      []string                 `json:"initialSignedHashes"`
-	Senders                  int                      `json:"senders"`
-	Rounds                   int                      `json:"rounds"`
-	PlannedRecords           int                      `json:"plannedRecords"`
-	RequiredBalancePerSender int64                    `json:"requiredBalancePerSender"`
-	EncodedEvidenceBudget    int64                    `json:"encodedEvidenceBudget"`
-	TimeoutMs                int64                    `json:"timeoutMs"`
+	Kind                        string                   `json:"kind"`
+	Profile                     string                   `json:"profile"`
+	Fixture                     readySenderJournalHeader `json:"fixture"`
+	InitialSignedHashes         []string                 `json:"initialSignedHashes"`
+	Senders                     int                      `json:"senders"`
+	Rounds                      int                      `json:"rounds"`
+	PlannedRecords              int                      `json:"plannedRecords"`
+	RequiredBalancePerSender    int64                    `json:"requiredBalancePerSender"`
+	EncodedEvidenceBudget       int64                    `json:"encodedEvidenceBudget"`
+	DurableStoreByteLimit       int64                    `json:"durableStoreByteLimit"`
+	DurableCacheInputByteBudget int64                    `json:"durableCacheInputByteBudget"`
+	TimeoutMs                   int64                    `json:"timeoutMs"`
 }
 
 // Exclusive durable plan precedes dispatch. It contains public identities only;
@@ -34,7 +36,11 @@ func persistStreamingWorkloadPlan(o options, manifest []byte, m consensus.Epheme
 	if err != nil {
 		return "", "", err
 	}
-	plan := streamingWorkloadPlan{Kind: "YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1", Profile: "scoped_streaming_v1", Fixture: readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", fmt.Sprintf("%x", sha256.Sum256(manifest)), m.MigrationStateHash, m.GenesisHash}, Senders: len(initial), Rounds: o.rounds, PlannedRecords: total, RequiredBalancePerSender: int64(o.rounds) * 2, EncodedEvidenceBudget: o.evidenceByteBudget, TimeoutMs: o.timeout.Milliseconds()}
+	storeLimit, cacheBudget, err := durableReadLimits(o)
+	if err != nil {
+		return "", "", err
+	}
+	plan := streamingWorkloadPlan{DurableStoreByteLimit: storeLimit, DurableCacheInputByteBudget: cacheBudget, Kind: "YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1", Profile: "scoped_streaming_v1", Fixture: readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", fmt.Sprintf("%x", sha256.Sum256(manifest)), m.MigrationStateHash, m.GenesisHash}, Senders: len(initial), Rounds: o.rounds, PlannedRecords: total, RequiredBalancePerSender: int64(o.rounds) * 2, EncodedEvidenceBudget: o.evidenceByteBudget, TimeoutMs: o.timeout.Milliseconds()}
 	for _, raw := range initial {
 		plan.InitialSignedHashes = append(plan.InitialSignedHashes, fmt.Sprintf("%X", raw.Hash()))
 	}

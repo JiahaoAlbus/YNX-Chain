@@ -38,6 +38,7 @@ type durableReaderStats struct {
 	TransactionVerifications uint64                                  `json:"transactionVerifications"`
 	BlockReplayBlocks        uint64                                  `json:"blockJournalReplayedBlocks"`
 	BlockReplayTxInputs      uint64                                  `json:"blockJournalReplayedTransactionInputs"`
+	ReaderBudget             *durableReaderBudgetStats               `json:"readerBudget,omitempty"`
 	ReplayNativeFacts        consensus.BlockJournalVerificationStats `json:"blockJournalNativeVerificationFacts"`
 }
 
@@ -48,6 +49,8 @@ type durableFeeKey struct {
 
 type durableSnapshotSlot struct {
 	mu                    sync.Mutex
+	storeInputBytes       int64
+	lastUse               uint64
 	buffer                [32 << 10]byte
 	digest                [sha256.Size]byte
 	snapshotDigest        [sha256.Size]byte
@@ -63,12 +66,24 @@ type durableSnapshotSlot struct {
 // Slots are bound to at most four manifest paths and a privately cloned
 // migration. No parsed state, index or mutable slice escapes to an observer.
 type durableReader struct {
-	migration    chain.ConsensusMigrationState
-	slots        map[string]*durableSnapshotSlot
-	blockDecoder *consensus.BlockJournalDecoder
+	migration       chain.ConsensusMigrationState
+	slots           map[string]*durableSnapshotSlot
+	blockDecoder    *consensus.BlockJournalDecoder
+	storeByteLimit  int64
+	cacheByteBudget int64
+	profileMu       *sync.Mutex
+	cacheTick       uint64
+	cacheEvictions  uint64
 }
 
 func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (*durableReader, error) {
+	return newDurableReaderWithLimits(migration, paths, durableSnapshotLimit, 0)
+}
+
+func newDurableReaderWithLimits(migration chain.ConsensusMigrationState, paths []string, storeLimit, cacheBudget int64) (*durableReader, error) {
+	if storeLimit < durableSnapshotLimit || storeLimit > 512<<20 || cacheBudget < 0 || cacheBudget > 2<<30 || (storeLimit > durableSnapshotLimit && cacheBudget == 0) || (cacheBudget > 0 && cacheBudget < storeLimit) {
+		return nil, errors.New("durable reader explicit store/cache bounds")
+	}
 	if len(paths) < 1 || len(paths) > 4 {
 		return nil, errors.New("durable reader requires 1..4 isolated node paths")
 	}
@@ -79,7 +94,10 @@ func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (
 	if err != nil {
 		return nil, err
 	}
-	r := &durableReader{slots: make(map[string]*durableSnapshotSlot)}
+	r := &durableReader{slots: make(map[string]*durableSnapshotSlot), storeByteLimit: storeLimit, cacheByteBudget: cacheBudget}
+	if cacheBudget > 0 {
+		r.profileMu = &sync.Mutex{}
+	}
 	if err := json.Unmarshal(data, &r.migration); err != nil {
 		return nil, err
 	}
@@ -98,6 +116,10 @@ func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (
 }
 
 func (r *durableReader) stats() durableReaderStats {
+	if r.profileMu != nil {
+		r.profileMu.Lock()
+		defer r.profileMu.Unlock()
+	}
 	var total durableReaderStats
 	for _, slot := range r.slots {
 		slot.mu.Lock()
@@ -110,6 +132,9 @@ func (r *durableReader) stats() durableReaderStats {
 		total.TransactionVerifications += s.TransactionVerifications
 		total.BlockReplayBlocks += s.BlockReplayBlocks
 		total.BlockReplayTxInputs += s.BlockReplayTxInputs
+	}
+	if r.profileMu != nil {
+		total.ReaderBudget = &durableReaderBudgetStats{StoreByteLimit: r.storeByteLimit, CacheInputByteBudget: r.cacheByteBudget, CachedInputBytes: r.cachedStoreInputBytes(), Evictions: r.cacheEvictions}
 	}
 	total.ReplayNativeFacts = r.blockDecoder.VerificationStats()
 	return total
@@ -155,6 +180,13 @@ func (r *durableReader) verifyBlockBatch(ctx context.Context, path string, raws 
 	slot := r.slots[path]
 	if slot == nil {
 		return batch, errors.New("durable path outside the fixed manifest set")
+	}
+	if r.profileMu != nil {
+		r.profileMu.Lock()
+		defer r.profileMu.Unlock()
+		if err := ctx.Err(); err != nil {
+			return batch, err
+		}
 	}
 	slot.mu.Lock()
 	defer slot.mu.Unlock()
@@ -229,7 +261,7 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 			return evidence, errors.New("journal path must be a regular 0600 file")
 		}
 	}
-	if !info.Mode().IsRegular() || info.Size() > durableSnapshotLimit {
+	if !info.Mode().IsRegular() || info.Size() > r.storeByteLimit {
 		return evidence, errors.New("durable input must be a regular file within the size limit")
 	}
 	hasher := sha256.New()
@@ -241,7 +273,7 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 		n, readErr := f.Read(slot.buffer[:])
 		size += int64(n)
 		slot.stats.BytesHashed += uint64(n)
-		if size > durableSnapshotLimit {
+		if size > r.storeByteLimit {
 			return evidence, errors.New("durable input exceeds size limit")
 		}
 		if n > 0 {
@@ -258,14 +290,19 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 	copy(digest[:], hasher.Sum(nil))
 	hit := slot.state != nil && slot.digest == digest
 	if !hit {
+		if r.profileMu != nil {
+			if err := r.reserveStoreCache(slot, size); err != nil {
+				return evidence, err
+			}
+		}
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return evidence, err
 		}
-		data, err := io.ReadAll(io.LimitReader(f, durableSnapshotLimit+1))
+		data, err := io.ReadAll(io.LimitReader(f, r.storeByteLimit+1))
 		if err != nil {
 			return evidence, err
 		}
-		if len(data) > durableSnapshotLimit || sha256.Sum256(data) != digest {
+		if int64(len(data)) > r.storeByteLimit || int64(len(data)) != size || sha256.Sum256(data) != digest {
 			return evidence, errors.New("durable state changed during readback")
 		}
 		if journal && !(consensus.IsSnapshotJournal(data) || consensus.IsBlockJournal(data)) {
@@ -305,12 +342,17 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 		slot.format = decoded.format
 		slot.journalCompleteBytes, slot.journalIncompleteTail = decoded.completeBytes, decoded.incompleteTail
 		slot.state, slot.digest, slot.fees, slot.nonces = &state, digest, fees, nonces
+		slot.storeInputBytes = size
 	} else {
 		slot.stats.SnapshotCacheHits++
 	}
 	if release != nil {
 		release()
 		release = nil
+	}
+	if r.profileMu != nil {
+		r.cacheTick++
+		slot.lastUse = r.cacheTick
 	}
 	state := slot.state
 	if !state.Initialized {

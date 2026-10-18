@@ -52,6 +52,8 @@ type options struct {
 	segmentedIntents               bool
 	streamingWorkload              bool
 	evidenceByteBudget             int64
+	durableStoreByteLimit          int64
+	durableCacheByteBudget         int64
 	evidenceBudget                 *readyEvidenceBudgetReport
 	intentPersistence              func(string, []byte) error
 }
@@ -214,6 +216,8 @@ func main() {
 	flag.BoolVar(&o.reuseResultSlots, "reuse-result-slots", false, "one result slot per sender with cumulative interval statistics; requires terminal-stream; finite caps unchanged")
 	flag.BoolVar(&o.streamingWorkload, "streaming-workload", false, "explicit bounded streaming workload; requires slot retention, signed/terminal streams and an evidence budget")
 	flag.Int64Var(&o.evidenceByteBudget, "evidence-byte-budget", 0, "positive combined encoded signed/terminal evidence bytes, streaming workload only (at most 2GiB; allocated-disk window remains separate)")
+	flag.Int64Var(&o.durableStoreByteLimit, "durable-store-byte-limit", durableSnapshotLimit, "per-store input bytes (default16MiB; streaming profile may explicitly select <=512MiB with cache budget)")
+	flag.Int64Var(&o.durableCacheByteBudget, "durable-cache-byte-budget", 0, "explicit cache bound charged by retained store-input bytes, streaming only; not a physical RSS limit")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -886,7 +890,7 @@ func execute(o options) error {
 		for _, node := range m.Nodes {
 			paths = append(paths, node.ABCIStatePath)
 		}
-		reader, err := newDurableReader(migration, paths)
+		reader, err := newWorkloadDurableReader(migration, paths, o)
 		if err != nil {
 			return err
 		}

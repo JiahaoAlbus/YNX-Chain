@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "head": "fd66746cf29b8e57b28434749ac7fa7dc814dfcc",
+  "runID": 39107155320,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39107155320",
+  "status": "completed",
+  "conclusion": "success",
+  "actualPassedFunctions": [
+    "TestStreamingWorkloadScopeAndLegacyLimits",
+    "TestStreamingWorkloadFundingAndNonceAreInstanceBound",
+    "TestStreamingWorkloadEvidenceBudgetPreservesFailedWrite",
+    "TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary",
+    "TestStreamingWorkloadReadbackBindsBothStreamsAndLatestSlots",
+    "TestStreamingWorkloadReadbackRejectsUnmatchedButValidSignedBytes",
+    "TestStreamingWorkloadDurablePlanNeverOverwritesPriorScope"
+  ],
+  "applicationOnlySamples": [
+    [
+      "102",
+      "3",
+      "34",
+      "272428"
+    ]
+  ],
+  "rawLog": "artifacts/chain-performance-20261017/ci-39107155320-full.log",
+  "rawLogSHA256": "387237d06d12c69680a211721c8355c3ea1d82831862bcfd5076da1e5055fcf6",
+  "preservedFailure": {
+    "runID": 39106882112,
+    "cause": "go vet main.go:1121:8 no new variables on left side of :=",
+    "rawLog": "artifacts/chain-performance-20261017/ci-39106882112-failed.log",
+    "sha256": "275740c562e2e95f559de8a0d46c478113ed6088939bc84dd5e10ef6ca72a141",
+    "fix": "Only err := verify... changed to err = verify...; original vet/tests retained."
+  },
+  "scope": "Application execution/durability and retained evidence controls; quorum flags synthetic in controller fixture. No network or long run.",
+  "businessTPS": null,
+  "inclusionLatency": null,
+  "finalityLatency": null
+}

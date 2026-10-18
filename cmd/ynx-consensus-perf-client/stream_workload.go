@@ -13,6 +13,9 @@ type readyWorkloadLimits struct {
 }
 
 func workloadLimits(o options) (readyWorkloadLimits, error) {
+	if _, _, err := durableReadLimits(o); err != nil {
+		return readyWorkloadLimits{}, err
+	}
 	limits := readyWorkloadLimits{32, maxTransactions, 30 * time.Second, 8 << 20, 16 << 20}
 	if !o.streamingWorkload {
 		if o.evidenceByteBudget != 0 {
