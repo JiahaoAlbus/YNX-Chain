@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "kind": "READ3_RESOURCE_TU_R2_EXACT_MAIN9_AUTH120_FORMAT_AND_LINUX_FEATURE_VISIBLE",
+  "productionTU": "protected-source/linux/ynx_source_original_resource_owner.c",
+  "privateIncludes": [
+    "vendor/sqlite3500400",
+    "protected-source/linux",
+    "protected-source",
+    "c/src",
+    "c/include",
+    "protected-source/include"
+  ],
+  "files": [
+    {
+      "path": "c/include/veil_checked_store.h",
+      "bytes": 12373,
+      "sha256": "2bf311e05acaa079787ed1a976b24bee6ca2150d1860c7bf5a5ac140682c1b8a",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/c/include/veil_checked_store.h"
+    },
+    {
+      "path": "c/src/veil_producer_private.h",
+      "bytes": 6912,
+      "sha256": "04d4f4961749cb51c082ced66545d496f30be1dd1c11786fdb2f9dd324ef04db",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/c/src/veil_producer_private.h"
+    },
+    {
+      "path": "c/src/veil_source_private.h",
+      "bytes": 7021,
+      "sha256": "2dbc8b368a1737bb268376e72cf8b527c9fa2da00be64926a293ae21103754e9",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/c/src/veil_source_private.h"
+    },
+    {
+      "path": "c/src/veil_store_custody.h",
+      "bytes": 2533,
+      "sha256": "91be9d757fe948ad0a39b7ea1420774e1a316c74710182f41e7075e3ccb41961",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/c/src/veil_store_custody.h"
+    },
+    {
+      "path": "c/src/veil_supplier_owner_private.h",
+      "bytes": 6186,
+      "sha256": "1c5d5ef281866bab8e95810c44f6731e70142e44dcb7ea22c96278fdc8b49254",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/c/src/veil_supplier_owner_private.h"
+    },
+    {
+      "path": "protected-source/android/ynx_native_core_binding.h",
+      "bytes": 596,
+      "sha256": "47717543e72b08a0d4edb01ccfab64972174ee8c019157069cb1ec0436049902",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/android/ynx_native_core_binding.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_initialization_entry_cleanup.inc",
+      "bytes": 593,
+      "sha256": "3b277f9f90d5330f61eaf566d5625f6c52f7268ad6feed7d45fd1df90c4f713c",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_initialization_entry_cleanup.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_initialization_final_private.h",
+      "bytes": 828,
+      "sha256": "0ac2b12b7c4ff68ec3250b836e6e80804320af35d7643cf68998a58ab6b2010e",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_initialization_final_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_initialization_finish_private.h",
+      "bytes": 2886,
+      "sha256": "603a4265fc956a21b2f6b4f460df8da366d95ba04f58363774d727705ec65b05",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_initialization_finish_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_initialization_finish_resource.inc",
+      "bytes": 11885,
+      "sha256": "efbc0cb4a4e83dc459d1d951994ac1ab200460a08cf2732b92ddb4817e0da8b7",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_initialization_finish_resource.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_checkpoint_original.inc",
+      "bytes": 2932,
+      "sha256": "4be1b4d63ec4c84b11fa395d5bcb1b61310c75abb1648310d62df5d46be0d60a",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_checkpoint_original.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_checkpoint_original_private.h",
+      "bytes": 1641,
+      "sha256": "c209df9ce0a405a59422dc9d5d7f6d14e2a39024988481db6a95163bf97bbc2f",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_core_checkpoint_original_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_domain_driver.inc",
+      "bytes": 25187,
+      "sha256": "2bca6ae2583b7830a65298b2c9500c26ed07990ee49e1fdee0a35d7613f6816c",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_domain_driver.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_engine_binding.inc",
+      "bytes": 16573,
+      "sha256": "02ac495ecedb62000fb59a1ef97c7467156e5ce679842e6daab2bd42d7ed22f0",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_engine_binding.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_engine_binding_private.h",
+      "bytes": 1564,
+      "sha256": "6b5fa06b8dcfb67c613f6a524d970a8e660ddc3fafbb6e1fc849da89baf583c9",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_core_engine_binding_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_engine_context.inc",
+      "bytes": 5920,
+      "sha256": "21db78167b0ad69a57725875a008b65f44473bc461851bd0ab2cf33e48e5dd67",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_engine_context.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_engine_context_private.h",
+      "bytes": 983,
+      "sha256": "d53b82dde9a43f93d9d1a7b3bb0f5fa920c95aa4a2a35fe30a14ff4fe92ec684",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_core_engine_context_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_final_custody.inc",
+      "bytes": 2814,
+      "sha256": "bb027fa2a37e8241f89feed75949bcf03beffb4049212ef3216cf6eda0a6e403",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_final_custody.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_initialization_descriptor.inc",
+      "bytes": 12277,
+      "sha256": "24eb4cfff397d316794f127075fec767938d0f421af63016988beeda56924675",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_initialization_descriptor.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_initialization_journal_private.h",
+      "bytes": 1209,
+      "sha256": "1bdcc0f851e2f0c881eed815a8b491caa24797c0b0fdd55cef81e9b315a050b5",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_core_initialization_journal_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_initialization_record_private.h",
+      "bytes": 2152,
+      "sha256": "214fd202de9c7ab4d725e98b2001e8cd2d874f8abe4b0417db3f954d843f582a",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_core_initialization_record_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_initialization_write.inc",
+      "bytes": 12137,
+      "sha256": "1060540244ee956f1ccd69a97e1e9d1f6ff2cf690b39d9ccb99c95a9e36be9f6",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_initialization_write.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_initialization_write_private.h",
+      "bytes": 3102,
+      "sha256": "ea7a7de4756f78132047ea8d47e9e75c861e5612841e3be2167cc597fa634ff9",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_core_initialization_write_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_message3_driver.inc",
+      "bytes": 24784,
+      "sha256": "ea1a83c1ffd87c2bd1b671eac458c93f3d309bee77eacfc39eb071459c956004",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_message3_driver.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_message3_parts.inc",
+      "bytes": 10641,
+      "sha256": "f101e145a9683b07856d0eeb2129bc3f8e18ef23e17b24546463de1ff64d09dc",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_message3_parts.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_message3_private.h",
+      "bytes": 7111,
+      "sha256": "39de4e2bf414ac7c5f4e4830a45b550e89ea91b4553ec6432fae73cfaddaa117",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_core_message3_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_pending.inc",
+      "bytes": 12812,
+      "sha256": "bc107ca10eb46fe5a1c9c25735b281cbe84860716c01805f2e3213ae54b4718f",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_pending.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_preguard_originals.inc",
+      "bytes": 3258,
+      "sha256": "35b979b333e2187b29416799ab04090890c509a80a704be3d803b2f3da99fb28",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_preguard_originals.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_protected_store.inc",
+      "bytes": 40122,
+      "sha256": "d39babbc4869ac4d832fe6c5fb1f40972a1e67af6606ee1d1df7cc5047dc55b5",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_core_protected_store.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_store_readonly.inc",
+      "bytes": 20688,
+      "sha256": "ab7c9633e97f63a2e0c9b60b218513e3522653acd13eb4a0c0d4bcb23673c276",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-social-main-r58-origin-20261018-0402ac7b/messagecore-presession-read/linux-format-successor/source/native-source/protected-source/linux/ynx_native_core_store_readonly.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_store_readonly_private.h",
+      "bytes": 3922,
+      "sha256": "0469b6efb42c1dffacd889d563fe1f30754a24161265dea6420414eb5f672439",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-social-main-r58-origin-20261018-0402ac7b/messagecore-presession-read/source/native-source/protected-source/linux/ynx_native_core_store_readonly_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_catalog.inc",
+      "bytes": 4759,
+      "sha256": "260a0262cbc10e398c415978d2d864e75fc2b94f3fe485a9b07eede4b500d46f",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_product_catalog.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_cipher_private.h",
+      "bytes": 1010,
+      "sha256": "a874d16803b9b88be1c1546e3b337678c07fac47c42ed727b9c66e79e1fe8978",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_product_cipher_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_originals_private.h",
+      "bytes": 4477,
+      "sha256": "eb56b98311701104fcc8d49f4c6a5f3b3585070a9c0328b962f2485326a54235",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-social-main-r58-origin-20261018-0402ac7b/material-writeback-successor/source/native-source/protected-source/linux/ynx_native_product_originals_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_record_limits.h",
+      "bytes": 681,
+      "sha256": "ff8f49b90e67cff780e577e947dc9dd59edfecc4b9489ce449f1ff556b67b5d5",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_product_record_limits.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_source_private.h",
+      "bytes": 2576,
+      "sha256": "ea217ffbeeef59e6fa9d35ece49aa777da1a1c4a3b8b917cd81a26143e7bd071",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_product_source_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_sql_transaction.inc",
+      "bytes": 42253,
+      "sha256": "f9c2375ca9754494e086f7c157d72841f51ac2564b4c13b62d7abc4babf21707",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_product_sql_transaction.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_sql_transaction_private.h",
+      "bytes": 5394,
+      "sha256": "5402f47b7e58974fe9577d98e00c5a30f63ed48bdf34e6fee8b3ace456cf9532",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_native_product_sql_transaction_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_native_product_terminal.inc",
+      "bytes": 7049,
+      "sha256": "80e49ec72a33ca8e46c04f8e0439b50964502e5f5738336aada3582b5933cb29",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_native_product_terminal.inc"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_administration_owner.h",
+      "bytes": 2748,
+      "sha256": "0bda08e797c8802bf61375afbea67b6ac23f40e9ff2fbb408c1be5774682e70a",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_source_administration_owner.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_final_owner.h",
+      "bytes": 2685,
+      "sha256": "e52b4f0546a49490e180fbfcc301d4134eee443c1cb91d0e15752221cb2c2b69",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_source_final_owner.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_independent_reservation.h",
+      "bytes": 3872,
+      "sha256": "aa763ed3af29b2b4890c63973af21993d2cf6b9c7abae85e92d55dffb6bce2a2",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_source_independent_reservation.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_original_resource_owner.c",
+      "bytes": 28135,
+      "sha256": "6dfe490b7fd85565208a8738bab538d058440e0b3e48a3acc347867e1774ca37",
+      "originalPath": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/source/native-source/protected-source/linux/ynx_source_original_resource_owner.c"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_original_resource_owner.h",
+      "bytes": 12669,
+      "sha256": "ac14a9fb52adb318c64eda750156fe05ac25be5629b4541f2892f957c7a309a6",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_source_original_resource_owner.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_platform_qualified.h",
+      "bytes": 7031,
+      "sha256": "86820b66d9b624ddb288098cd8b925775493c0bde0480293af90ed9ec0ed36c6",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_source_platform_qualified.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_storage_initialization_aad_private.h",
+      "bytes": 2020,
+      "sha256": "7aa5b362595a47ada940b35fc7a67172730a4fdffa6aeefbad85089a1482129f",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/linux/ynx_storage_initialization_aad_private.h"
+    },
+    {
+      "path": "protected-source/linux/ynx_tpm2_esys_owner.h",
+      "bytes": 7314,
+      "sha256": "d9d147b5e23d8c0b16463b76d626be61421728bb9e6c7a66bd869e5bf8756c0d",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-r37-linux-tpm-ci-successor-20261018/checkout/scripts/ci/social-tpm-r62/source/protected-source/linux/ynx_tpm2_esys_owner.h"
+    },
+    {
+      "path": "protected-source/ynx_source_platform_private.h",
+      "bytes": 33528,
+      "sha256": "126cb01edfe47120d0641980d059c11bc4bf5831b55fcf1e7956a84acf6678ac",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source14/native-source/protected-source/ynx_source_platform_private.h"
+    },
+    {
+      "path": "vendor/sqlite3500400/official-sqlite-symbols.h",
+      "bytes": 1528,
+      "sha256": "9feac88ea0f5d6596a7c22977fce26d2a50b36e917a0442b61637cceef6a1eb1",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-r37-linux-tpm-ci-successor-20261018/checkout/scripts/ci/social-tpm-r64/source/vendor/sqlite3500400/official-sqlite-symbols.h"
+    },
+    {
+      "path": "vendor/sqlite3500400/sqlite3.h",
+      "bytes": 661968,
+      "sha256": "abd1514e0351f79393d1be882830afdb40a8099e8257f311f0bfdf8486f11bea",
+      "originalPath": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-r37-linux-tpm-ci-successor-20261018/checkout/scripts/ci/social-tpm-r64/source/vendor/sqlite3500400/sqlite3.h"
+    }
+  ],
+  "explicitTwoLeafLineage": [
+    {
+      "path": "protected-source/linux/ynx_native_core_store_readonly.inc",
+      "before": {
+        "bytes": 8661,
+        "sha256": "7eb39e898c953d504283bc9667eb135bdb4c4b304b66a7e2e7a27140ffe9f5df"
+      },
+      "after": {
+        "bytes": 20669,
+        "sha256": "858f69c5455c30ba69f12e898077efe623e5e6aad9b2c7273609f137d9e888f0"
+      }
+    },
+    {
+      "path": "protected-source/linux/ynx_native_core_store_readonly_private.h",
+      "before": {
+        "bytes": 2665,
+        "sha256": "d978fe51c2224c61608324185353c82fd7748b544a3b2bcde578581a235991e2"
+      },
+      "after": {
+        "bytes": 3922,
+        "sha256": "0469b6efb42c1dffacd889d563fe1f30754a24161265dea6420414eb5f672439"
+      }
+    }
+  ],
+  "mainHandoff": {
+    "path": "/Volumes/Data/Users/huangjiahao/ynx-social-main-r58-origin-20261018-0402ac7b/messagecore-presession-read/HANDOFF.json",
+    "bytes": 5535,
+    "sha256": "3459e91fc98800b70c608b96df5beb481e79a15e88271dc38ec1a528fa6508b5"
+  },
+  "effectiveAncestry": {
+    "resourceTU": "unchanged Source14 complete TU includes existing driver and readonly inc",
+    "TPMHeader": "explicit Source14 -> R37a -> R60 exactheader; wholeR60 object previously compiled",
+    "codec": "R62 actualwholecodec + R60 realstorageopen graph link existingrun39115561460; not rebuilt here",
+    "administration": "R64 wholeadmin compile existingrun39115805968; not linked or rebuilt here"
+  },
+  "hardwareExecuted": false,
+  "linked": false,
+  "pendingAuthAncestor17LeafRepair": false,
+  "mainFormatHandoff": {
+    "path": "/Volumes/Data/Users/huangjiahao/ynx-social-main-r58-origin-20261018-0402ac7b/messagecore-presession-read/linux-format-successor/HANDOFF.json",
+    "bytes": 3125,
+    "sha256": "f4375ef6b98d315b0a906d4e864ab2133a45fd4ab1e59e3a018d6b45880c9b54"
+  },
+  "authAncestorRepairHandoff": {
+    "path": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/linux-resource-compile-r67/HANDOFF.json",
+    "bytes": 17837,
+    "sha256": "67a685af76b9e63df2a533ee8b54e908edcf769dd47aaba9eb2925ce2a54bec8"
+  }
+}

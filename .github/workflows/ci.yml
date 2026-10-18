@@ -46,17 +46,17 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@v4
-      - name: Compile exact MessageCore READ3 complete resource TU with R60 header and SQLite 3.50.4
-        run: python3 scripts/ci/social-read3-resource/compile.py "$RUNNER_TEMP/social-read3-resource-result"
+      - name: Compile repaired READ3 complete resource TU with exact Main9 Auth120 source leaves
+        run: python3 scripts/ci/social-read3-resource-r2/compile.py "$RUNNER_TEMP/social-read3-resource-r2-result"
       - name: Preserve READ3 first cause and exact dependency/compiler/header inputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: social-read3-resource-${{ github.run_id }}-${{ github.run_attempt }}
+          name: social-read3-resource-r2-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/social-read3-resource-result/*.json
-            ${{ runner.temp }}/social-read3-resource-result/*.raw
-            ${{ runner.temp }}/social-read3-resource-result/*.o
-            ${{ runner.temp }}/social-read3-resource-result/*.d
+            ${{ runner.temp }}/social-read3-resource-r2-result/*.json
+            ${{ runner.temp }}/social-read3-resource-r2-result/*.raw
+            ${{ runner.temp }}/social-read3-resource-r2-result/*.o
+            ${{ runner.temp }}/social-read3-resource-r2-result/*.d
           if-no-files-found: error
           retention-days: 1
