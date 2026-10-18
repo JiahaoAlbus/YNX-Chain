@@ -114,3 +114,10 @@ test('an undefined close failure stays a failure on every later observation with
   }
   assert.equal(calls, 1);
 });
+test('unrecognized and prototype action names cannot select the receive operation', () => {
+  for (const action of ['toString', 'constructor', '__proto__', 'login', 'export']) {
+    const f = fixture();
+    assert.throws(() => f.caller.begin(action), { code: 'IDE_IDENTITY_CALL_INVALID' });
+    assert.equal(f.calls.length, 0);
+  }
+});
