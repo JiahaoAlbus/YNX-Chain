@@ -7,6 +7,7 @@
 #import <errno.h>
 #import "ynx-wallet-admission-parent.h"
 #import "original-ide-parent-supplier.h"
+#import "original-ide-identity-launch-holder.h"
 
 // This is a fixed ORIGINAL protected supplier link, never a renderer factory,
 // ENV-selected module, command-line flag or selected public key. The original
@@ -44,6 +45,8 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
 @property(nonatomic,readonly) NSTaskTerminationReason terminationReason;
 - (instancetype)initWithParent:(id<YNXWalletAdmissionParentGuard>)parent resources:(NSURL *)resources;
 - (instancetype)initWithAcquireOutcome:(YNXIDEAdmissionAcquireOutcome *)outcome resources:(NSURL *)resources;
+- (instancetype)initWithAcquireOutcome:(YNXIDEAdmissionAcquireOutcome *)outcome resources:(NSURL *)resources identityHolder:(YNXOriginalIdentityPeerLaunchHolder *)holder captureError:(NSError *)captureError;
+- (BOOL)finishIdentityCleanupForQuit:(NSError **)error;
 - (BOOL)launchAndReturnError:(NSError **)error;
 - (void)terminate;
 - (void)waitUntilExit;
@@ -65,6 +68,9 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
     int _status;
     NSTaskTerminationReason _reason;
     dispatch_source_t _monitor;
+    YNXOriginalIdentityPeerLaunchHolder *_identityHolder;
+    NSError *_identityCaptureError,*_identityFailure;
+    dispatch_source_t _identityMonitor;
 }
 - (instancetype)initWithParent:(id<YNXWalletAdmissionParentGuard>)parent resources:(NSURL *)resources {
     if((self=[super init])){_channelDescriptor=-1;_parent=parent;_resources=resources;_condition=[NSCondition new];
@@ -81,6 +87,26 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
         }
     }
     return self;
+}
+- (instancetype)initWithAcquireOutcome:(YNXIDEAdmissionAcquireOutcome *)outcome resources:(NSURL *)resources identityHolder:(YNXOriginalIdentityPeerLaunchHolder *)holder captureError:(NSError *)captureError {
+    if((self=[self initWithAcquireOutcome:outcome resources:resources])){_identityHolder=holder;_identityCaptureError=captureError;}
+    return self;
+}
+// This capability has a separate main-thread owner. The old four-operation
+// admission monitor and backend reaper must never call its APIs on utility queues.
+- (void)retireIdentity {
+    if(!NSThread.isMainThread){dispatch_async(dispatch_get_main_queue(),^{[self retireIdentity];});return;}
+    if(_identityMonitor){dispatch_source_cancel(_identityMonitor);_identityMonitor=nil;}
+    [_identityHolder retire];
+}
+- (BOOL)finishIdentityCleanupForQuit:(NSError **)error {
+    if(!NSThread.isMainThread){if(error)*error=YNXAdmissionLaunchError();return NO;}
+    if(!_identityHolder)return _identityCaptureError==nil;
+    [self retireIdentity];
+    // Called only after the editor's normal save/close approval. Wait/reap stays
+    // with this exact task; identity failure alone never kills a coding session.
+    if(self.running){[self terminate];[self waitUntilExit];}
+    return [_identityHolder join:error]&&[_identityHolder close:error];
 }
 - (BOOL)isRunning {if(_ordinary)return _ordinary.running;[_condition lock];BOOL v=_running;[_condition unlock];return v;}
 - (int)terminationStatus {if(_retired&&!self.finishAdmissionCleanup)return 1;if(_ordinary)return _ordinary.terminationStatus;[_condition lock];int v=_status;[_condition unlock];return v;}
@@ -108,32 +134,38 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
 }
 - (BOOL)launchAndReturnError:(NSError **)error {
     if(_started){if(error)*error=YNXAdmissionLaunchError();return NO;}_started=YES;
-    if(!_parent||_retired){
+    if(!NSThread.isMainThread||_identityCaptureError||(_identityHolder&&![_identityHolder assertCurrent:error])){
+        if(error&&!*error)*error=_identityCaptureError?:_identityHolder.firstCause?:YNXAdmissionLaunchError();
+        [self retireIdentity];return NO;
+    }
+    if((!_parent||_retired)&&!_identityHolder){
         _ordinary=[NSTask new];_ordinary.executableURL=self.executableURL;_ordinary.arguments=self.arguments;
         _ordinary.environment=self.environment;if(self.standardInput)_ordinary.standardInput=self.standardInput;
         _ordinary.standardOutput=self.standardOutput;_ordinary.standardError=self.standardError;
         __weak typeof(self) weakSelf=self;_ordinary.terminationHandler=^(NSTask *task){typeof(self) owner=weakSelf;if(owner.terminationHandler)owner.terminationHandler(owner);};
         return [_ordinary launchAndReturnError:error];
     }
-    if(![self current:error]){[self retireAdmission];return NO;}
+    if(_parent&&!_retired&&![self current:error]){[self retireAdmission];[self retireIdentity];return NO;}
     // Original guard independently approves executable/entry/provenance. These
     // structural checks only ensure this caller cannot switch the approved pair.
     NSString *entry=[_resources URLByAppendingPathComponent:@"server.mjs"].path;
     if(![self.executableURL isEqual:[_resources URLByAppendingPathComponent:@"runtime/node"]]
        ||self.arguments.count!=1||![self.arguments.firstObject isEqual:entry]){[self retireAdmission];if(error)*error=YNXAdmissionLaunchError();return NO;}
     NSFileHandle *input=[self.standardInput isKindOfClass:NSPipe.class]?[self.standardInput fileHandleForReading]:self.standardInput;
-    int sources[4]={input.fileDescriptor,self.standardOutput.fileDescriptor,self.standardError.fileDescriptor,_channelDescriptor};
-    int targets[4]={0,1,2,4},held[4]={-1,-1,-1,-1};
+    int sources[5]={input.fileDescriptor,self.standardOutput.fileDescriptor,self.standardError.fileDescriptor,-1,-1};
+    int targets[5]={0,1,2,4,5},held[5]={-1,-1,-1,-1,-1};
+    if(_parent&&!_retired)sources[3]=_channelDescriptor;
     posix_spawn_file_actions_t actions;posix_spawnattr_t attributes;
     int result=posix_spawn_file_actions_init(&actions);if(result){[self retireAdmission];if(error)*error=[NSError errorWithDomain:NSPOSIXErrorDomain code:result userInfo:nil];return NO;}
     result=posix_spawnattr_init(&attributes);
     if(result){posix_spawn_file_actions_destroy(&actions);[self retireAdmission];if(error)*error=[NSError errorWithDomain:NSPOSIXErrorDomain code:result userInfo:nil];return NO;}
-    char **argv=NULL,**envp=NULL;
+    char **argv=NULL,**envp=NULL;BOOL spawnAttempted=NO;
     @try {
         if(!input||!self.standardOutput||!self.standardError)@throw YNXAdmissionLaunchError();
         // Stage every source above reserved descriptors to prevent dup2 actions
         // from clobbering a subsequent source. Darwin closes all other handles.
-        for(int i=0;i<4;i++){held[i]=fcntl(sources[i],F_DUPFD_CLOEXEC,10);if(held[i]<0)@throw YNXAdmissionLaunchError();
+        if(_identityHolder){sources[4]=[_identityHolder duplicateForBackendSpawn:error];if(sources[4]<0)@throw YNXAdmissionLaunchError();}
+        for(int i=0;i<5;i++){if(i>=3&&sources[i]<0)continue;held[i]=fcntl(sources[i],F_DUPFD_CLOEXEC,10);if(held[i]<0)@throw YNXAdmissionLaunchError();
             result=posix_spawn_file_actions_adddup2(&actions,held[i],targets[i]);if(result)@throw YNXAdmissionLaunchError();}
         result=posix_spawnattr_setflags(&attributes,POSIX_SPAWN_CLOEXEC_DEFAULT);if(result)@throw YNXAdmissionLaunchError();
         argv=calloc(3,sizeof(char *));envp=calloc(self.environment.count+1,sizeof(char *));if(!argv||!envp)@throw YNXAdmissionLaunchError();
@@ -143,25 +175,32 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
             NSCharacterSet *nul=[NSCharacterSet characterSetWithRange:NSMakeRange(0,1)];
             if(![key isKindOfClass:NSString.class]||![v isKindOfClass:NSString.class]||[key containsString:@"="]||[key rangeOfCharacterFromSet:nul].location!=NSNotFound||[v rangeOfCharacterFromSet:nul].location!=NSNotFound)@throw YNXAdmissionLaunchError();
             envp[n]=strdup([[NSString stringWithFormat:@"%@=%@",key,v] UTF8String]);if(!envp[n++])@throw YNXAdmissionLaunchError();}
-        if(![self current:error])@throw YNXAdmissionLaunchError();
+        if(_parent&&!_retired&&![self current:error])@throw YNXAdmissionLaunchError();
+        if(_identityHolder&&![_identityHolder assertCurrent:error])@throw YNXAdmissionLaunchError();
+        spawnAttempted=YES;
         result=posix_spawn(&_pid,argv[0],&actions,&attributes,argv,envp);
     } @catch(id failure) {if(!result)result=EINVAL;}
-    for(int i=0;i<4;i++)if(held[i]>=0)close(held[i]);
+    // The Auth holder owns sources[4]; close only our additional staging copies.
+    for(int i=0;i<5;i++)if(held[i]>=0)close(held[i]);
     if(argv){for(int i=0;i<2;i++)free(argv[i]);free(argv);}if(envp){for(NSUInteger i=0;i<self.environment.count;i++)free(envp[i]);free(envp);}
     posix_spawnattr_destroy(&attributes);posix_spawn_file_actions_destroy(&actions);
-    if(result){[self retireAdmission];if(error&&!*error)*error=[NSError errorWithDomain:NSPOSIXErrorDomain code:result userInfo:nil];return NO;}
+    if(spawnAttempted&&_identityHolder){NSError *identityError=nil;
+        if(![_identityHolder finishBackendSpawn:_pid spawnStatus:result error:&identityError]){
+            _identityFailure=identityError?:_identityHolder.firstCause?:YNXAdmissionLaunchError();[self retireIdentity];
+        }}
+    if(result){[self retireAdmission];[self retireIdentity];if(error&&!*error)*error=[NSError errorWithDomain:NSPOSIXErrorDomain code:result userInfo:nil];return NO;}
     [_condition lock];_running=YES;[_condition unlock];
     if([self.standardInput isKindOfClass:NSPipe.class])[[self.standardInput fileHandleForReading] closeFile];
     // Failed post-launch authority retires ONLY the capability. The owned local
     // backend still runs local coding; no unrelated window/process is killed.
     NSError *adoptionFailure=nil;
     BOOL adopted=NO;
-    @try{adopted=YNXOriginalAdoptIDEAdmissionChild(_parent,_pid,&adoptionFailure);}
+    @try{if(_parent&&!_retired)adopted=YNXOriginalAdoptIDEAdmissionChild(_parent,_pid,&adoptionFailure);}
     @catch(id failure){if(!_admissionFirstFailure)_admissionFirstFailure=failure;}
-    if(!adopted){
+    if(_parent&&!adopted){
         if(!_admissionFirstFailure)_admissionFirstFailure=adoptionFailure?:YNXAdmissionLaunchError();
         [self retireAdmission];
-    }else if(![self current:nil])[self retireAdmission];
+    }else if(_parent&&![self current:nil])[self retireAdmission];
     __weak typeof(self) weakSelf=self;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY,0),^{typeof(self) owner=weakSelf;if(!owner)return;int status=0;pid_t waited;siginfo_t info;int observed;
         // Keep the exited owned child unreaped until signalling is fenced under
@@ -171,11 +210,20 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
         do{waited=waitpid(owner->_pid,&status,0);}while(waited<0&&errno==EINTR);
         owner->_status=waited<0?1:WIFEXITED(status)?WEXITSTATUS(status):WIFSIGNALED(status)?WTERMSIG(status):1;
         owner->_reason=waited>=0&&WIFSIGNALED(status)?NSTaskTerminationReasonUncaughtSignal:NSTaskTerminationReasonExit;
-        [owner->_condition broadcast];[owner->_condition unlock];[owner retireAdmission];if(owner.terminationHandler)owner.terminationHandler(owner);
+        [owner->_condition broadcast];[owner->_condition unlock];[owner retireAdmission];
+        dispatch_async(dispatch_get_main_queue(),^{[owner retireIdentity];NSError *cleanupError=nil;
+            if(owner->_identityHolder&&![owner finishIdentityCleanupForQuit:&cleanupError]&&!owner->_identityFailure)owner->_identityFailure=cleanupError;
+        });
+        if(owner.terminationHandler)owner.terminationHandler(owner);
     });
-    @synchronized(self){if(!_retired){_monitor=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0,0,dispatch_get_global_queue(QOS_CLASS_UTILITY,0));
+    @synchronized(self){if(_parent&&!_retired){_monitor=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0,0,dispatch_get_global_queue(QOS_CLASS_UTILITY,0));
         dispatch_source_set_timer(_monitor,dispatch_time(DISPATCH_TIME_NOW,250*NSEC_PER_MSEC),250*NSEC_PER_MSEC,10*NSEC_PER_MSEC);
         dispatch_source_set_event_handler(_monitor,^{typeof(self) owner=weakSelf;if(owner&&![owner current:nil])[owner retireAdmission];});dispatch_resume(_monitor);}}
+    if(_identityHolder&&!_identityFailure){_identityMonitor=dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER,0,0,dispatch_get_main_queue());
+        dispatch_source_set_timer(_identityMonitor,dispatch_time(DISPATCH_TIME_NOW,250*NSEC_PER_MSEC),250*NSEC_PER_MSEC,10*NSEC_PER_MSEC);
+        dispatch_source_set_event_handler(_identityMonitor,^{typeof(self) owner=weakSelf;if(!owner)return;NSError *identityError=nil;
+            if(![owner->_identityHolder assertCurrent:&identityError]){if(!owner->_identityFailure)owner->_identityFailure=identityError?:owner->_identityHolder.firstCause;[owner retireIdentity];}
+        });dispatch_resume(_identityMonitor);}
     return YES;
 }
 - (void)terminate { [self retireAdmission];if(_ordinary){[_ordinary terminate];return;}[_condition lock];if(_running)kill(_pid,SIGTERM);[_condition unlock]; }
