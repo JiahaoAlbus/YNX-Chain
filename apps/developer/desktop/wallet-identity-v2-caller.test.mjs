@@ -80,7 +80,7 @@ test('key call captures invocation once; invokes same owner with zero selectors 
 test('preserves first close failure consistently even after an independent business failure', () => {
   const business = Error('business'), closing = Error('cleanup'); let closeCount = 0;
   const f = fixture({ overrides: { completeProof() { throw business; }, close() { closeCount++; throw closing; } } });
-  f.caller.begin('receive'); assert.throws(() => f.caller.completeProof(new Uint8Array([1])), e => e === business);
+  f.caller.begin('receive'); f.caller.request(); assert.throws(() => f.caller.completeProof(new Uint8Array([1])), e => e === business);
   f.caller.retire(); f.caller.join();
   assert.throws(() => f.caller.close(), e => e === closing);
   assert.throws(() => f.caller.close(), e => e === closing);
@@ -120,4 +120,18 @@ test('unrecognized and prototype action names cannot select the receive operatio
     assert.throws(() => f.caller.begin(action), { code: 'IDE_IDENTITY_CALL_INVALID' });
     assert.equal(f.calls.length, 0);
   }
+});
+test('proof cannot enter Native before the original request has been prepared for review', () => {
+  const f = fixture(); f.caller.begin('receive');
+  assert.throws(() => f.caller.completeProof(new Uint8Array([1])), { code: 'IDE_IDENTITY_REQUEST_UNAVAILABLE' });
+  assert.equal(f.calls.filter(c => c[0] === 'proof').length, 0);
+});
+test('repeated UI reads keep the same original challenge and isolate mutable message bytes', () => {
+  const f = fixture(); f.caller.begin('receive'); const one = f.caller.request();
+  one.message[0] = 99; const two = f.caller.request();
+  assert.equal(two.original, one.original); assert.deepEqual([...two.message], [69, 1, 2]);
+  // Native holds the challenge. Reading it may copy again but must neither
+  // reacquire an owner nor submit a proof or manufacture a current window.
+  assert.equal(f.calls.filter(c => c[0] === 'construct').length, 1);
+  assert.equal(f.calls.filter(c => c[0] === 'proof').length, 0);
 });

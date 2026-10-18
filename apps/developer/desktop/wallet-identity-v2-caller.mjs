@@ -20,7 +20,7 @@ const successful = value => {
 export class OriginalIDEIdentityCall {
   #binding; #actualEntryURL; #contract; #started;
   /** @type {NativeOwner | undefined} */ #owner;
-  #proofSelected; #invokeSelected; #retired; #joined; #closeSelected; #closed; #failed;
+  #proofSelected; #requestPrepared = false; #invokeSelected; #retired; #joined; #closeSelected; #closed; #failed;
   /** @type {unknown} */ #firstCause;
   /** @type {keyof typeof operations | undefined} */ #kind;
   #closeFailurePresent = false;
@@ -81,6 +81,7 @@ export class OriginalIDEIdentityCall {
         throw failure('IDE_IDENTITY_PURPOSE_MISMATCH');
       const message = this.#contract.encodeOriginalAuthIdentityRequest(body);
       successful(this.#owner.current());
+      this.#requestPrepared = true;
       return Object.freeze({ original, message: new Uint8Array(message), dataOnly: true, authorized: false });
     });
   }
@@ -88,6 +89,7 @@ export class OriginalIDEIdentityCall {
   completeProof(memberWire) {
     return this.#enter(() => {
       if (!this.#owner || this.#proofSelected) throw failure('IDE_IDENTITY_PROOF_ALREADY_SELECTED');
+      if (!this.#requestPrepared) throw failure('IDE_IDENTITY_REQUEST_UNAVAILABLE');
       if (!(memberWire instanceof Uint8Array) || !(memberWire.buffer instanceof ArrayBuffer))
         throw failure('IDE_IDENTITY_PROOF_BYTES_REQUIRED');
       successful(this.#owner.current());
