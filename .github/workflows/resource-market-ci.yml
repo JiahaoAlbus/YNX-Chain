@@ -19,6 +19,8 @@ on:
       - 'scripts/loadtest/**'
       - 'scripts/ops/validate-private-consensus-copy.py'
       - 'scripts/ops/test_validate_private_consensus_copy.py'
+      - 'scripts/ops/validate-pq-remote-signer-process.py'
+      - 'scripts/ops/test_validate_pq_remote_signer_process.py'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
       - 'scripts/deploy/consensus-candidate-failure-retention.test.mjs'
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
@@ -56,6 +58,28 @@ on:
         required: false
         default: false
         type: boolean
+      remote_signer_process:
+        description: Run one separately authorized normal signer process window without starting a node
+        required: false
+        default: false
+        type: boolean
+      remote_process_authorization:
+        description: Exact external authorization reference for the selected normal signer process window
+        required: false
+        default: ''
+        type: string
+      remote_manifest_sha256:
+        description: Independent manifest SHA256 from the successful source-only build
+        required: false
+        type: string
+      remote_test_sha256:
+        description: Independent consensus.test SHA256 from the successful source-only build
+        required: false
+        type: string
+      remote_daemon_sha256:
+        description: Independent normal signer binary SHA256 from the successful source-only build
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -148,7 +172,7 @@ jobs:
           git status --porcelain
           if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
             YNX_WINDOW_SELECTIONS=0
-            for YNX_WINDOW_SELECTED in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}'; do
+            for YNX_WINDOW_SELECTED in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}' '${{ inputs.remote_signer_process }}'; do
               case "$YNX_WINDOW_SELECTED" in
                 true) YNX_WINDOW_SELECTIONS=$((YNX_WINDOW_SELECTIONS + 1)) ;;
                 false|'') ;;
@@ -425,6 +449,76 @@ jobs:
           python3 -B scripts/loadtest/test_pq_paired_linux_window.py
           python3 -B scripts/loadtest/test_pq_network_file_sizes.py
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
+      - name: Build and pin normal signer process binaries without running them
+        id: pqremotebuild
+        if: ${{ success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha)) }}
+        timeout-minutes: 3
+        run: |
+          YNX_REMOTE_CASE="$RUNNER_TEMP/ynx-pq-remote-process-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          YNX_REMOTE_BUILD="$YNX_REMOTE_CASE.build"
+          export YNX_REMOTE_CASE YNX_REMOTE_BUILD
+          umask 077
+          mkdir "$YNX_REMOTE_BUILD"
+          printf '%s\n' "YNX_REMOTE_CASE=$YNX_REMOTE_CASE" "YNX_REMOTE_BUILD=$YNX_REMOTE_BUILD" >> "$GITHUB_ENV"
+          # Compilation is outside the fixed 75s + 15s process window.
+          go build -p 1 -trimpath -o "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer" ./cmd/ynx-consensus-pq-remote-signer
+          go test -p 1 -trimpath -c -o "$YNX_REMOTE_BUILD/consensus.test" ./internal/consensus
+          cp internal/consensus/pq_remote_process_test.go "$YNX_REMOTE_BUILD/pq_remote_process_test.go"
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ['YNX_REMOTE_BUILD']).resolve()
+          def pin(path):
+              with path.open('rb') as source:
+                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
+              return dict(bytes=path.stat().st_size, sha256=digest)
+          binaries = {name: pin(root / name) for name in
+              ('consensus.test', 'ynx-consensus-pq-remote-signer')}
+          source = dict(version='YNX-PQ-REMOTE-SIGNER-PROCESS-BUILD/v1',
+              commit=os.environ['GITHUB_SHA'], platform='linux/amd64',
+              sourceLeaves={'internal/consensus/pq_remote_process_test.go':
+                  pin(root / 'pq_remote_process_test.go')['sha256']}, binaries=binaries)
+          with (root / 'SOURCE.json').open('x') as target:
+              target.write(json.dumps(source, sort_keys=True, separators=(',', ':')) + '\n')
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              for name, value in (('YNX_REMOTE_MANIFEST_SHA', pin(root / 'SOURCE.json')['sha256']),
+                      ('YNX_REMOTE_TEST_SHA', binaries['consensus.test']['sha256']),
+                      ('YNX_REMOTE_DAEMON_SHA', binaries['ynx-consensus-pq-remote-signer']['sha256'])):
+                  target.write(name + '=' + value + '\n')
+          print('YNX_REMOTE_PROCESS_BUILD_PINS ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'],
+              manifestSHA256=pin(root / 'SOURCE.json')['sha256'], binaries=binaries,
+              sourceLeaves=source['sourceLeaves']), sort_keys=True, separators=(',', ':')))
+          PY
+      - name: Run the separately authorized normal remote signer process
+        id: pqremoteprocess
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history }}
+        timeout-minutes: 2
+        env:
+          YNX_REMOTE_AUTHORIZATION: ${{ inputs.remote_process_authorization }}
+          YNX_REMOTE_PIN_MANIFEST: ${{ inputs.remote_manifest_sha256 }}
+          YNX_REMOTE_PIN_TEST: ${{ inputs.remote_test_sha256 }}
+          YNX_REMOTE_PIN_DAEMON: ${{ inputs.remote_daemon_sha256 }}
+        run: |
+          test "$YNX_REMOTE_MANIFEST_SHA" = "$YNX_REMOTE_PIN_MANIFEST"
+          test "$YNX_REMOTE_TEST_SHA" = "$YNX_REMOTE_PIN_TEST"
+          test "$YNX_REMOTE_DAEMON_SHA" = "$YNX_REMOTE_PIN_DAEMON"
+          umask 077
+          mkdir "$YNX_REMOTE_CASE"
+          python3 -B scripts/ops/validate-pq-remote-signer-process.py --execute \
+            --case "$YNX_REMOTE_CASE" --build "$YNX_REMOTE_BUILD" \
+            --guard "$GITHUB_WORKSPACE/scripts/loadtest/pq-paired-linux-window.py" \
+            --expected-commit "$GITHUB_SHA" --expected-manifest-sha256 "$YNX_REMOTE_PIN_MANIFEST" \
+            --expected-test-sha256 "$YNX_REMOTE_PIN_TEST" --expected-daemon-sha256 "$YNX_REMOTE_PIN_DAEMON" \
+            --authorization-id "$YNX_REMOTE_AUTHORIZATION"
+      - name: Preserve only public remote process receipt
+        if: ${{ always() && (steps.pqremoteprocess.outcome == 'success' || steps.pqremoteprocess.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-remote-process-public-receipt-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ env.YNX_REMOTE_CASE }}/remote-process-receipt.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Run the authorized bounded four-validator transition
         id: pqnetwork
         if: ${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 }}
