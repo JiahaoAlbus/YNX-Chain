@@ -78,7 +78,7 @@ export async function copyIdentityAdmissionSource(destination) {
 }
 // Canonical source custody is independent of runtime service admission. Keep the
 // original SDK loader relative to its unique apps/wallet-desktop Native module.
-export const CANONICAL_IDENTITY_INPUTS_SHA256 = '7d432d27539a5bd511acc4006420281ab76544bcac44d0e5b7d3bb313a195d4d';
+export const CANONICAL_IDENTITY_INPUTS_SHA256 = 'c1b7ba5b460fb6243ee2366bcbc2599659a0917b850c91816905abfd73992249';
 // These select source custody, never runtime authority. Every selected byte is
 // still checked against the immutable manifest; there is no fallback on error.
 const canonicalOwned = resolve(process.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT || resolve(developer, '../../packages/wallet-auth'));
@@ -95,7 +95,7 @@ async function canonicalInputs() {
   const bytes = await readFile(new URL('./canonical-identity-inputs.json', import.meta.url));
   if (sha256(bytes) !== CANONICAL_IDENTITY_INPUTS_SHA256) throw Error('Canonical identity source manifest differs.');
   const record = JSON.parse(bytes);
-  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== '0ac968398a3ededeab11f78f5f41715788c74c38' || record.sdkTree !== 'e6c54fc67e2cc668ba01a2e6d05018bd9acb5b7b') throw Error('Canonical identity source selection differs.');
+  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== '01d34dec80db7cf3b512e2aa9f70d7dd63575b86' || record.sdkTree !== '29dae52112f59f3b5f1d5be673ee8063b1608225') throw Error('Canonical identity source selection differs.');
   for (const rows of [record.files, record.dependencies, record.nativeSources, record.nativeBuildInputs]) {
     if (!Array.isArray(rows) || !rows.length || new Set(rows.map(x => x.path)).size !== rows.length) throw Error('Canonical identity source inventory differs.');
     for (const row of rows) if (!/^[A-Za-z0-9_@./-]+$/.test(row.path) || row.path.startsWith('/') || row.path.split('/').some(p => !p || p === '.' || p === '..') || !Number.isSafeInteger(row.bytes) || !/^[a-f0-9]{64}$/.test(row.sha256)) throw Error('Canonical identity source pin differs.');

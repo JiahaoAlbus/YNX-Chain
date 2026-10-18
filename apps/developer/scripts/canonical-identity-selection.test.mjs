@@ -5,13 +5,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates independent exact SDK and complete R48, without loading Native',async()=>{
+test('normal selection validates independent exact SDK and complete R51, without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
  assert.equal(sdk.sdkCommit,inputs.sdkCommit);assert.equal(sdk.files.length,243);
  assert.equal(sdk.dependencies.length,316);assert.equal(native.sourceLeaves,41);assert.equal(native.buildInputLeaves,35);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'c06d5497b9317a943b2f4a48bc1706c3b5a0640080161042f2c249f8e48e55bd');
+ assert.equal(inputs.predecessorManifestSha256,'7d432d27539a5bd511acc4006420281ab76544bcac44d0e5b7d3bb313a195d4d');
  assert.ok(inputs.nativeSourceUpdates.every(x=>Object.hasOwn(x,'parentSha256')));
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
@@ -31,7 +31,7 @@ test('wrong SDK bytes, missing source and a symlink are refused on the selected 
   await assert.rejects(verifyCanonicalIdentityAdmissionSource(root,deps),/source leaf differs/);
  }finally{await rm(root,{recursive:true,force:true});}
 });
-test('missing or changed R48 source and receipt mutation cannot substitute SDK Native fragments',async()=>{
+test('missing or changed R51 source and receipt mutation cannot substitute SDK Native fragments',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ynx-native-selection-'));
  const source=process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT;
  assert.ok(source,'Run Native source-selection controls with the original fixed supplier root.');
@@ -42,6 +42,10 @@ test('missing or changed R48 source and receipt mutation cannot substitute SDK N
   const firstEnterHeader=join(root,'packages/wallet-auth/native/original-first-enter-selection.h'),firstEnterBytes=await readFile(firstEnterHeader);
   await rm(firstEnterHeader);await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/ENOENT/);
   await writeFile(firstEnterHeader,firstEnterBytes);
+  const journalHeader=join(root,'packages/wallet-auth/native/original-host-dirfd-journal.h'),journalBytes=await readFile(journalHeader);
+  await writeFile(journalHeader,Buffer.concat([journalBytes,Buffer.from('\n// changed terminal-write boundary\n')]));
+  await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/source leaf differs/);
+  await writeFile(journalHeader,journalBytes);
   const ownSupplier=join(root,'apps/developer/desktop/macos/original-ide-parent-supplier.mm'),ownBytes=await readFile(ownSupplier);
   await writeFile(ownSupplier,Buffer.concat([ownBytes,Buffer.from('\n// current IDE body changed\n')]));
   await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/source leaf differs/);
