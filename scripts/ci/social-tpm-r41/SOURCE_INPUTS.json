@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "kind": "YNX_SOCIAL_R41_LINUX_CURRENT_FULL_PRODUCTION_TU_COMPILE_INPUTS",
   "supplier": {
-    "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-window-r41-20261018/MATCHING_SOURCE_DELTA.json",
-    "bytes": 3798,
-    "sha256": "edf7926c37205d0f275dafb023f180474995850c6748d54c32a4c83b2c99b206"
+    "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-window-r41a-20261018/GCC32_REPAIR_HANDOFF.json",
+    "bytes": 3278,
+    "sha256": "39d57d3234f58db62ae74c30937a280da1a6aeb5359d2fded8c1e57fd275dc6d"
   },
   "directParent": {
     "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/source12/native-source/protected-source/linux/ynx_source_server_resource_owner.c",
@@ -108,8 +108,8 @@
     },
     {
       "path": "protected-source/linux/ynx_source_server_resource_owner.c",
-      "bytes": 57917,
-      "sha256": "c9415812728e3371388c2c124aa58166f85c51ed61669ccaa82967814ee54086"
+      "bytes": 58000,
+      "sha256": "175f590eb14cc8f6f65eb70e7a427b715f44882693e9b79bbe8eba3f03b591eb"
     },
     {
       "path": "protected-source/linux/ynx_source_server_resource_owner.h",
@@ -146,12 +146,17 @@
     {
       "relative": "protected-source/linux/ynx_source_server_resource_owner.c",
       "source": {
-        "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-window-r41-20261018/source/protected-source/linux/ynx_source_server_resource_owner.c",
-        "bytes": 57917,
-        "sha256": "c9415812728e3371388c2c124aa58166f85c51ed61669ccaa82967814ee54086"
+        "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-window-r41a-20261018/source/protected-source/linux/ynx_source_server_resource_owner.c",
+        "bytes": 58000,
+        "sha256": "175f590eb14cc8f6f65eb70e7a427b715f44882693e9b79bbe8eba3f03b591eb"
       },
       "staged": {
         "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-r37-linux-tpm-ci-successor-20261018/checkout/scripts/ci/social-tpm-r41/source/protected-source/linux/ynx_source_server_resource_owner.c",
+        "bytes": 58000,
+        "sha256": "175f590eb14cc8f6f65eb70e7a427b715f44882693e9b79bbe8eba3f03b591eb"
+      },
+      "before": {
+        "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-window-r41-20261018/source/protected-source/linux/ynx_source_server_resource_owner.c",
         "bytes": 57917,
         "sha256": "c9415812728e3371388c2c124aa58166f85c51ed61669ccaa82967814ee54086"
       }
@@ -446,5 +451,11 @@
   "originalR37aPreserved": "Distinct Source12 R41 private-header closure; no forced replacement of R37 supplied completed-current header",
   "oldTPMNotRecompiled": true,
   "fixtureCompiled": false,
-  "sourceLogicChangedByBuilder": false
+  "sourceLogicChangedByBuilder": false,
+  "previousSupplier": {
+    "path": "/Users/huangjiahao/ynx-social-qa-authority/social-server-physical-current-window-r41-20261018/MATCHING_SOURCE_DELTA.json",
+    "bytes": 3798,
+    "sha256": "edf7926c37205d0f275dafb023f180474995850c6748d54c32a4c83b2c99b206"
+  },
+  "repairOfActualFailedCI": 39103822342
 }

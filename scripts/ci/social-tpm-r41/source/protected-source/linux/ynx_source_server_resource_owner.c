@@ -21,7 +21,8 @@ static uint32_t be32(const unsigned char *p){return (uint32_t)p[0]<<24|(uint32_t
 static void put16(unsigned char*p,uint16_t n){p[0]=(unsigned char)(n>>8);p[1]=(unsigned char)n;}
 static void put32(unsigned char*p,uint32_t n){p[0]=(unsigned char)(n>>24);p[1]=(unsigned char)(n>>16);p[2]=(unsigned char)(n>>8);p[3]=(unsigned char)n;}
 veil_store_status ynx_server_attestation_decode(ynx_original_bytes raw,uint32_t kind,ynx_private_attestation_parts *out){
- if(!out)return VEIL_STORE_BOUND;memset(out,0,sizeof(*out));
+ if(!out)return VEIL_STORE_BOUND;
+ memset(out,0,sizeof(*out));
  if((kind!=1&&kind!=2)||!raw.data||raw.size<24||raw.size>YNX_PRIVATE_ATTEST_MAX)return VEIL_STORE_BOUND;
  const unsigned char*p=raw.data;if(memcmp(p,"YNXATP1\0",8)||be16(p+8)!=1||be16(p+10)!=kind)return VEIL_STORE_MISMATCH;
  size_t an=be32(p+12),sn=be32(p+16);if(an<2||an>8192||sn<2||sn>8192||an+sn!=raw.size-20)return VEIL_STORE_BOUND;
@@ -32,7 +33,8 @@ veil_store_status ynx_server_attestation_decode(ynx_original_bytes raw,uint32_t 
  out->attestation=(ynx_message_bytes){p+20,an};out->signature=(ynx_message_bytes){p+20+an,sn};return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_execution_challenge(ynx_original_bytes raw,uint32_t role,unsigned char out[32]){
- if(!out)return VEIL_STORE_BOUND;memset(out,0,32);
+ if(!out)return VEIL_STORE_BOUND;
+ memset(out,0,32);
  if((role!=1&&role!=2)||!raw.data||raw.size<80||raw.size>4194304u+80u||memcmp(raw.data,"YNXEXE1\0",8)||be16(raw.data+8)!=1||be16(raw.data+10)<1||be16(raw.data+10)>7||be32(raw.data+12)!=raw.size-80)return VEIL_STORE_BOUND;
  unsigned char id=0;for(size_t n=16;n<48;n++)id|=raw.data[n];if(!id)return VEIL_STORE_BOUND;
  int32_t canonical=ynx_sdk_execution_original_validate_v1(raw.data,raw.size);if(canonical)return (veil_store_status)canonical;
@@ -42,7 +44,8 @@ veil_store_status ynx_server_execution_challenge(ynx_original_bytes raw,uint32_t
  OPENSSL_cleanse(preimage,sizeof(preimage));return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_attestation_encode(uint32_t kind,const TPM2B_ATTEST *a,const TPMT_SIGNATURE *s,unsigned char *sink,size_t cap,size_t *written){
- if(written)*written=0;if(!written||!sink||!a||!s||(kind!=1&&kind!=2)||cap>YNX_PRIVATE_ATTEST_MAX||cap<24)return VEIL_STORE_BOUND;
+ if(written)*written=0;
+ if(!written||!sink||!a||!s||(kind!=1&&kind!=2)||cap>YNX_PRIVATE_ATTEST_MAX||cap<24)return VEIL_STORE_BOUND;
  size_t an=0,sn=0;TSS2_RC rc=Tss2_MU_TPM2B_ATTEST_Marshal(a,sink+20,cap-20,&an);
  if(!rc&&an<=8192)rc=Tss2_MU_TPMT_SIGNATURE_Marshal(s,sink+20+an,cap-20-an,&sn);
  if(rc||an<2||an>8192||sn<2||sn>8192){OPENSSL_cleanse(sink,cap);return VEIL_STORE_BOUND;}
@@ -67,12 +70,15 @@ static ynx_server_independent_state_borrow *state_recognize(const ynx_server_ind
  pthread_mutex_lock(&state_lock);ynx_server_independent_state_borrow *held=state_inventory;while(held&&held!=p)held=held->next;pthread_mutex_unlock(&state_lock);return held;
 }
 static veil_store_status state_uncertain(ynx_server_independent_state_borrow *held,veil_store_status cause){
- if(!held->first)held->first=cause;held->unknown=1;return VEIL_STORE_UNKNOWN;
+ if(!held->first)held->first=cause;
+ held->unknown=1;
+ return VEIL_STORE_UNKNOWN;
 }
 static veil_store_status state_current(const ynx_server_independent_state_borrow *p,ynx_original_bytes request,uint32_t role,uint64_t *counter){
  if(!p||!counter)return VEIL_STORE_REQUIRED;
  *counter=0;ynx_server_independent_state_borrow *held=state_recognize(p);
- if(!held)return VEIL_STORE_REQUIRED;if(!pthread_equal(held->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(!held)return VEIL_STORE_REQUIRED;
+ if(!pthread_equal(held->thread,pthread_self()))return VEIL_STORE_THREAD;
  if(held->unknown)return VEIL_STORE_UNKNOWN;
  struct timespec now;if(!held->deadline_ns||clock_gettime(CLOCK_MONOTONIC,&now))return VEIL_STORE_LIFETIME;
  uint64_t ns=(uint64_t)now.tv_sec*1000000000u+(uint64_t)now.tv_nsec;if(ns>=held->deadline_ns)return VEIL_STORE_LIFETIME;
@@ -90,7 +96,8 @@ static veil_store_status state_current(const ynx_server_independent_state_borrow
  *counter=held->counter;return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_independent_state_release(ynx_server_independent_state_borrow **p){
- if(!p)return VEIL_STORE_BOUND;if(!*p)return VEIL_STORE_OK;
+ if(!p)return VEIL_STORE_BOUND;
+ if(!*p)return VEIL_STORE_OK;
  ynx_server_independent_state_borrow *held=state_recognize(*p);if(!held)return VEIL_STORE_REQUIRED;
  if(!pthread_equal(held->thread,pthread_self()))return VEIL_STORE_THREAD;
  /* Release only this exclusive borrow. The original execution attempt still
@@ -112,7 +119,9 @@ veil_store_status ynx_server_original_attestations_verify(const ynx_message_enro
  return st; /* math only; no floor/resource/terminal owner is published */
 }
 veil_store_status ynx_server_execution_original_attestations(ynx_server_independent_state_borrow *p,const ynx_message_enrollment_public_input *enrollment,ynx_original_bytes request,uint32_t role,ynx_original_bytes *quote,ynx_original_bytes *certify){
- if(!quote||!certify||quote==certify)return VEIL_STORE_BOUND;*quote=(ynx_original_bytes){0};*certify=(ynx_original_bytes){0};
+ if(!quote||!certify||quote==certify)return VEIL_STORE_BOUND;
+ *quote=(ynx_original_bytes){0};
+ *certify=(ynx_original_bytes){0};
  uint64_t expected=0;veil_store_status st=state_current(p,request,role,&expected);if(st)return st;
  ynx_server_independent_state_borrow *held=state_recognize(p);if(!held||!held->attestation_owner||!held->enrollment)return VEIL_STORE_REQUIRED;
  if(enrollment!=held->enrollment)return VEIL_STORE_MISMATCH;
@@ -190,13 +199,17 @@ struct ynx_server_execution_attempt {
 static ynx_server_execution_attempt *execution_inventory;
 static ynx_server_execution_attempt *execution_recognize(ynx_server_execution_attempt *p){
  pthread_mutex_lock(&backend_lock);ynx_server_execution_attempt *h=execution_inventory;
- while(h&&h!=p)h=h->next;pthread_mutex_unlock(&backend_lock);return h;
+ while(h&&h!=p)h=h->next;
+ pthread_mutex_unlock(&backend_lock);
+ return h;
 }
 static veil_store_status execution_uncertain(ynx_server_execution_attempt *h,veil_store_status cause){
- if(!h->first)h->first=cause;h->unknown=1;
+ if(!h->first)h->first=cause;
+ h->unknown=1;
  /* This attempt borrowed the same backend; another child must not observe a
   * green backend after this original current/fence has become uncertain. */
- if(!h->backend->first)h->backend->first=cause;h->backend->unknown=1;
+ if(!h->backend->first)h->backend->first=cause;
+ h->backend->unknown=1;
  return VEIL_STORE_UNKNOWN;
 }
 static int execution_time(uint64_t *mono,uint64_t *wall){
@@ -219,7 +232,8 @@ veil_store_status ynx_server_transport_open(ynx_selected_server_backend *p,const
  ynx_selected_server_backend *b=backend_recognize(p);if(!b)return VEIL_STORE_REQUIRED;
  if(!pthread_equal(b->thread,pthread_self()))return VEIL_STORE_THREAD;
  if(!selected||!certificate.data||!certificate.size||certificate.size>65536||!expected)return VEIL_STORE_BOUND;
- if(b->unknown)return VEIL_STORE_UNKNOWN;if(b->transport_started)return VEIL_STORE_DUPLICATE;
+ if(b->unknown)return VEIL_STORE_UNKNOWN;
+ if(b->transport_started)return VEIL_STORE_DUPLICATE;
  uint64_t mono=0,wall=0;
  if(selected->not_before_ms<0||selected->expires_ms<=selected->not_before_ms||!selected->monotonic_deadline_ns||!execution_time(&mono,&wall)||wall<(uint64_t)selected->not_before_ms||wall>=(uint64_t)selected->expires_ms||mono>=selected->monotonic_deadline_ns)return VEIL_STORE_LIFETIME;
  veil_store_status s=ynx_server_selected_backend_original_current(b);if(s)return s;
@@ -260,7 +274,8 @@ static ynx_registered_native_connection *connection_recognize(ynx_registered_nat
 static veil_store_status connection_uncertain(ynx_registered_native_connection *c,veil_store_status cause){if(!c->first)c->first=cause;c->unknown=1;return backend_transport_uncertain(c->backend,cause);}
 veil_store_status ynx_server_connection_current(ynx_registered_native_connection *p){
  ynx_registered_native_connection *c=connection_recognize(p);if(!c)return VEIL_STORE_REQUIRED;
- if(!pthread_equal(c->thread,pthread_self()))return VEIL_STORE_THREAD;if(c->unknown)return VEIL_STORE_UNKNOWN;
+ if(!pthread_equal(c->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(c->unknown)return VEIL_STORE_UNKNOWN;
  uint64_t mono=0,wall=0;if(!execution_time(&mono,&wall)||!c->deadline_ns||mono>=c->deadline_ns)return connection_uncertain(c,VEIL_STORE_LIFETIME);
  veil_store_status s=backend_transport_current(c->backend);return s?connection_uncertain(c,s):VEIL_STORE_OK;
 }
@@ -281,7 +296,8 @@ veil_store_status ynx_server_connection_open(ynx_selected_server_backend *p,int 
  SSL_set_accept_state(c->tls);return ynx_server_connection_current(c);
 }
 veil_store_status ynx_server_connection_accept_step(ynx_registered_native_connection *p,int *want){
- if(!want)return VEIL_STORE_BOUND;*want=0;
+ if(!want)return VEIL_STORE_BOUND;
+ *want=0;
  veil_store_status s=ynx_server_connection_current(p);if(s)return s;
  ynx_registered_native_connection *c=connection_recognize(p);
  if(c->handshake)return VEIL_STORE_DUPLICATE;
@@ -297,9 +313,11 @@ veil_store_status ynx_server_connection_accept_step(ynx_registered_native_connec
  s=ynx_server_connection_current(c);if(s)return s;c->handshake=1;return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_connection_close(ynx_registered_native_connection **p){
- if(!p)return VEIL_STORE_BOUND;if(!*p)return VEIL_STORE_OK;
+ if(!p)return VEIL_STORE_BOUND;
+ if(!*p)return VEIL_STORE_OK;
  ynx_registered_native_connection *c=connection_recognize(*p);if(!c)return VEIL_STORE_REQUIRED;
- if(!pthread_equal(c->thread,pthread_self()))return VEIL_STORE_THREAD;if(c->attempts)return VEIL_STORE_FROZEN;
+ if(!pthread_equal(c->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(c->attempts)return VEIL_STORE_FROZEN;
  /* Dispose SSL before dropping backend custody; no shutdown/network, replay,
   * retirement or cleanup-current that could revive this failed connection. */
  SSL_free(c->tls);c->tls=NULL;
@@ -311,7 +329,9 @@ veil_store_status ynx_server_connection_close(ynx_registered_native_connection *
  OPENSSL_cleanse(c,sizeof(*c));free(c);*p=NULL;return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_connection_read_request(ynx_registered_native_connection *p,ynx_original_bytes *out,int *want){
- if(!out||!want)return VEIL_STORE_BOUND;*out=(ynx_original_bytes){0};*want=0;
+ if(!out||!want)return VEIL_STORE_BOUND;
+ *out=(ynx_original_bytes){0};
+ *want=0;
  veil_store_status s=ynx_server_connection_current(p);if(s)return s;
  ynx_registered_native_connection *c=connection_recognize(p);if(!c->handshake)return VEIL_STORE_REQUIRED;
  if(c->request_ready){*out=(ynx_original_bytes){c->incoming+c->header_size,c->body_size};return VEIL_STORE_OK;}
@@ -329,7 +349,8 @@ veil_store_status ynx_server_connection_read_request(ynx_registered_native_conne
   size_t end=0;for(size_t i=3;i<c->incoming_size;i++)if(!memcmp(c->incoming+i-3,"\r\n\r\n",4)){end=i+1;break;}
   if(!end){if(c->incoming_size==16384u)return connection_uncertain(c,VEIL_STORE_BOUND);*want=1;return VEIL_STORE_OK;}
   size_t body=0;s=(veil_store_status)ynx_sdk_server_request_header_validate_v1(c->backend->startup,c->backend->role,(ynx_original_bytes){c->incoming,end},&body);
-  if(s)return connection_uncertain(c,s);if(body<516||body>4194384u)return connection_uncertain(c,VEIL_STORE_BOUND);
+  if(s)return connection_uncertain(c,s);
+  if(body<516||body>4194384u)return connection_uncertain(c,VEIL_STORE_BOUND);
   c->header_size=end;c->body_size=body;
  }
  if(c->incoming_size>c->header_size+c->body_size)return connection_uncertain(c,VEIL_STORE_MISMATCH); /* no pipelining */
@@ -344,7 +365,8 @@ static ynx_native_server_listener *listener_recognize(ynx_native_server_listener
 static veil_store_status listener_uncertain(ynx_native_server_listener *l,veil_store_status cause){if(!l->first)l->first=cause;l->unknown=1;return backend_transport_uncertain(l->backend,cause);}
 veil_store_status ynx_server_listener_current(ynx_native_server_listener *p){
  ynx_native_server_listener *l=listener_recognize(p);if(!l)return VEIL_STORE_REQUIRED;
- if(!pthread_equal(l->thread,pthread_self()))return VEIL_STORE_THREAD;if(l->unknown)return VEIL_STORE_UNKNOWN;
+ if(!pthread_equal(l->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(l->unknown)return VEIL_STORE_UNKNOWN;
  veil_store_status s=backend_transport_current(l->backend);return s?listener_uncertain(l,s):VEIL_STORE_OK;
 }
 veil_store_status ynx_server_listener_open(ynx_selected_server_backend *p,ynx_native_server_listener **out){
@@ -366,7 +388,8 @@ veil_store_status ynx_server_listener_open(ynx_selected_server_backend *p,ynx_na
  return ynx_server_listener_current(l);
 }
 veil_store_status ynx_server_listener_accept(ynx_native_server_listener *p,uint64_t deadline,ynx_registered_native_connection **out,int *would_block){
- if(!out||*out||!would_block)return VEIL_STORE_BOUND;*would_block=0;
+ if(!out||*out||!would_block)return VEIL_STORE_BOUND;
+ *would_block=0;
  veil_store_status s=ynx_server_listener_current(p);if(s)return s;
  ynx_native_server_listener *l=listener_recognize(p);uint64_t mono=0,wall=0;
  if(!deadline||!execution_time(&mono,&wall)||mono>=deadline)return VEIL_STORE_LIFETIME;
@@ -385,9 +408,11 @@ veil_store_status ynx_server_listener_accept(ynx_native_server_listener *p,uint6
  s=ynx_server_listener_current(l);if(s){connection_uncertain(*out,s);return s;}return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_listener_close(ynx_native_server_listener **p){
- if(!p)return VEIL_STORE_BOUND;if(!*p)return VEIL_STORE_OK;
+ if(!p)return VEIL_STORE_BOUND;
+ if(!*p)return VEIL_STORE_OK;
  ynx_native_server_listener *l=listener_recognize(*p);if(!l)return VEIL_STORE_REQUIRED;
- if(!pthread_equal(l->thread,pthread_self()))return VEIL_STORE_THREAD;if(l->children)return VEIL_STORE_FROZEN;
+ if(!pthread_equal(l->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(l->children)return VEIL_STORE_FROZEN;
  if(l->fd>=0){int fd=l->fd;l->fd=-1;if(close(fd))return listener_uncertain(l,VEIL_STORE_UNKNOWN);}
  pthread_mutex_lock(&backend_lock);ynx_native_server_listener **link=&listener_inventory;while(*link&&*link!=l)link=&(*link)->next;
  if(*link!=l||!l->backend->listeners){pthread_mutex_unlock(&backend_lock);abort();}*link=l->next;l->backend->listeners--;pthread_mutex_unlock(&backend_lock);
@@ -433,7 +458,8 @@ veil_store_status ynx_server_execution_acquire(ynx_selected_server_backend *p,yn
 }
 veil_store_status ynx_server_execution_current(ynx_server_execution_attempt *p){
  ynx_server_execution_attempt *h=execution_recognize(p);if(!h)return VEIL_STORE_REQUIRED;
- if(!pthread_equal(h->thread,pthread_self()))return VEIL_STORE_THREAD;if(h->unknown)return VEIL_STORE_UNKNOWN;
+ if(!pthread_equal(h->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(h->unknown)return VEIL_STORE_UNKNOWN;
  if(h->backend->unknown)return execution_uncertain(h,h->backend->first?h->backend->first:VEIL_STORE_UNKNOWN);
  uint64_t mono=0,wall=0;if(!execution_time(&mono,&wall)||mono>=h->deadline_ns||wall<execution_be64(h->request+452)||wall>=execution_be64(h->request+460))return execution_uncertain(h,VEIL_STORE_LIFETIME);
  veil_store_status st=(veil_store_status)ynx_sdk_server_startup_current_v1(h->backend->startup,h->backend->role);if(st)return execution_uncertain(h,st);
@@ -445,7 +471,8 @@ veil_store_status ynx_server_execution_current(ynx_server_execution_attempt *p){
  return h->first?h->first:(!h->connection?VEIL_STORE_REQUIRED:VEIL_STORE_OK);
 }
 veil_store_status ynx_server_execution_original(ynx_server_execution_attempt *p,ynx_original_bytes *out){
- if(!out)return VEIL_STORE_BOUND;*out=(ynx_original_bytes){0};
+ if(!out)return VEIL_STORE_BOUND;
+ *out=(ynx_original_bytes){0};
  ynx_server_execution_attempt *h=execution_recognize(p);if(!h)return VEIL_STORE_REQUIRED;
  if(!pthread_equal(h->thread,pthread_self()))return VEIL_STORE_THREAD;
  /* Readback of a failed original is permitted for exact-intent recovery only,
@@ -453,9 +480,11 @@ veil_store_status ynx_server_execution_original(ynx_server_execution_attempt *p,
  *out=(ynx_original_bytes){h->request,h->request_size};return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_execution_close(ynx_server_execution_attempt **p){
- if(!p)return VEIL_STORE_BOUND;if(!*p)return VEIL_STORE_OK;
+ if(!p)return VEIL_STORE_BOUND;
+ if(!*p)return VEIL_STORE_OK;
  ynx_server_execution_attempt *h=execution_recognize(*p);if(!h)return VEIL_STORE_REQUIRED;
- if(!pthread_equal(h->thread,pthread_self()))return VEIL_STORE_THREAD;if(h->borrows)return VEIL_STORE_FROZEN;
+ if(!pthread_equal(h->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(h->borrows)return VEIL_STORE_FROZEN;
  /* An exchange child only borrows the backend-owned exact operation. Closing
   * this child does not retire the remote reservation or forget partial debt. */
  veil_store_status st=(veil_store_status)ynx_sdk_server_startup_current_v1(h->backend->startup,h->backend->role);
@@ -496,7 +525,8 @@ veil_store_status ynx_server_selected_backend_acquire(uint32_t role,ynx_selected
  st=ynx_administration_register_original(held->administration);
  if(st){if(!held->first)held->first=st;if(st!=VEIL_STORE_REQUIRED)held->unknown=1;return held->unknown?VEIL_STORE_UNKNOWN:st;}
  /* Resource custody alone is not atomic admitted registration readback. */
- if(!held->first)held->first=VEIL_STORE_REQUIRED;return VEIL_STORE_REQUIRED;
+ if(!held->first)held->first=VEIL_STORE_REQUIRED;
+ return VEIL_STORE_REQUIRED;
 }
 static int original_matches(ynx_original_bytes a,ynx_original_bytes b){return a.data&&b.data&&a.size==b.size&&!memcmp(a.data,b.data,a.size);}
 veil_store_status ynx_server_selected_backend_transfer(uint32_t role,void **startup,ynx_original_bytes row,ynx_original_bytes association,ynx_original_bytes registration,ynx_selected_server_backend **out){
@@ -522,11 +552,13 @@ veil_store_status ynx_server_selected_backend_transfer(uint32_t role,void **star
  if(st){if(!held->first)held->first=st;if(st!=VEIL_STORE_REQUIRED)held->unknown=1;return held->unknown?VEIL_STORE_UNKNOWN:st;}
  st=ynx_administration_register_original(held->administration);
  if(st){if(!held->first)held->first=st;if(st!=VEIL_STORE_REQUIRED)held->unknown=1;return held->unknown?VEIL_STORE_UNKNOWN:st;}
- if(!held->first)held->first=VEIL_STORE_REQUIRED;return VEIL_STORE_REQUIRED;
+ if(!held->first)held->first=VEIL_STORE_REQUIRED;
+ return VEIL_STORE_REQUIRED;
 }
 veil_store_status ynx_server_selected_backend_original_current(ynx_selected_server_backend *p){
  ynx_selected_server_backend *held=backend_recognize(p);if(!held)return VEIL_STORE_REQUIRED;
- if(!pthread_equal(held->thread,pthread_self()))return VEIL_STORE_THREAD;if(held->unknown)return VEIL_STORE_UNKNOWN;
+ if(!pthread_equal(held->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(held->unknown)return VEIL_STORE_UNKNOWN;
  veil_store_status st=(veil_store_status)ynx_sdk_server_startup_current_v1(held->startup,held->role);
  if(st){if(!held->first)held->first=st;held->unknown=1;return VEIL_STORE_UNKNOWN;}
  if(held->administration){
@@ -538,14 +570,16 @@ veil_store_status ynx_server_selected_backend_original_current(ynx_selected_serv
  return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_selected_backend_originals(ynx_selected_server_backend *p,ynx_server_registered_original_borrow *out){
- if(!out)return VEIL_STORE_BOUND;memset(out,0,sizeof(*out));
+ if(!out)return VEIL_STORE_BOUND;
+ memset(out,0,sizeof(*out));
  veil_store_status st=ynx_server_selected_backend_original_current(p);if(st)return st;
  ynx_selected_server_backend *held=backend_recognize(p);if(!held||!held->registered_bytes)return VEIL_STORE_REQUIRED;
  ynx_server_registered_original_borrow original={0};original.association=(ynx_original_bytes){held->registered_bytes,held->association_size};original.registration=(ynx_original_bytes){held->registered_bytes+held->association_size,held->registration_size};original.certificate=(ynx_original_bytes){held->registered_bytes+held->association_size+held->registration_size,held->certificate_size};original.row=(ynx_original_bytes){held->registered_bytes+held->association_size+held->registration_size+held->certificate_size,held->row_size};memcpy(original.names,held->resource_names,sizeof(original.names));memcpy(original.kinds,held->resource_kinds,sizeof(original.kinds));
  st=ynx_server_selected_backend_original_current(p);if(st)return st;*out=original;return VEIL_STORE_OK;
 }
 veil_store_status ynx_server_selected_backend_close(ynx_selected_server_backend **p){
- if(!p)return VEIL_STORE_BOUND;if(!*p)return VEIL_STORE_OK;
+ if(!p)return VEIL_STORE_BOUND;
+ if(!*p)return VEIL_STORE_OK;
  ynx_selected_server_backend *held=backend_recognize(*p);if(!held)return VEIL_STORE_REQUIRED;
  if(!pthread_equal(held->thread,pthread_self()))return VEIL_STORE_THREAD;
  if(held->listeners||held->connections||held->attempts)return VEIL_STORE_FROZEN;
@@ -625,7 +659,8 @@ veil_store_status ynx_server_execution_execute(ynx_server_execution_attempt*p){
     if(!s)s=VEIL_STORE_REQUIRED;
    }
    else s=VEIL_STORE_REQUIRED;/* same owning effect/terminal consumption next */
-   if(s&&!op->first)op->first=s;if(s&&s!=VEIL_STORE_REQUIRED)op->unknown=1;
+   if(s&&!op->first)op->first=s;
+   if(s&&s!=VEIL_STORE_REQUIRED)op->unknown=1;
   }
  }
  if(s&&s!=VEIL_STORE_REQUIRED)execution_uncertain(h,s);
@@ -637,6 +672,11 @@ veil_store_status ynx_server_execution_execute(ynx_server_execution_attempt*p){
  return h->unknown?VEIL_STORE_UNKNOWN:s;
 }
 veil_store_status ynx_server_execution_response(ynx_server_execution_attempt*p,ynx_original_bytes*out){
- if(!out)return VEIL_STORE_BOUND;*out=(ynx_original_bytes){0};ynx_server_execution_attempt*h=execution_recognize(p);if(!h)return VEIL_STORE_REQUIRED;if(!pthread_equal(h->thread,pthread_self()))return VEIL_STORE_THREAD;if(!h->response_ready)return VEIL_STORE_REQUIRED;
+ if(!out)return VEIL_STORE_BOUND;
+ *out=(ynx_original_bytes){0};
+ ynx_server_execution_attempt*h=execution_recognize(p);
+ if(!h)return VEIL_STORE_REQUIRED;
+ if(!pthread_equal(h->thread,pthread_self()))return VEIL_STORE_THREAD;
+ if(!h->response_ready)return VEIL_STORE_REQUIRED;
  *out=(ynx_original_bytes){h->response,sizeof(h->response)};return VEIL_STORE_OK;/* same failure original, no plaintext/capability */
 }
