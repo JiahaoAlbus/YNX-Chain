@@ -64,6 +64,15 @@ on:
         required: false
         default: false
         type: boolean
+      remote_checkpoint_layout:
+        description: One actual checkpoint layout for this separately authorized signer window
+        required: false
+        default: atomic-json
+        type: choice
+        options:
+          - atomic-json
+          - snapshot-journal
+          - block-journal
       remote_process_authorization:
         description: Exact external authorization reference for the selected normal signer process window
         required: false
@@ -158,7 +167,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 64
+          # Fixed historical counterexamples and production-baseline ancestry
+          # must remain available as the candidate branch grows. Fetch the
+          # full commit graph without downloading all historical file bodies.
+          fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
@@ -169,6 +182,8 @@ jobs:
         run: |
           git rev-parse HEAD
           test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          test "$(git rev-parse --is-shallow-repository)" = false
+          git merge-base --is-ancestor aa97f102fc72ee89ef3c61b6125256b288694b39 HEAD
           go version
           git status --porcelain
           if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
@@ -667,6 +682,7 @@ jobs:
           YNX_REMOTE_PIN_MANIFEST: ${{ inputs.remote_manifest_sha256 }}
           YNX_REMOTE_PIN_TEST: ${{ inputs.remote_test_sha256 }}
           YNX_REMOTE_PIN_DAEMON: ${{ inputs.remote_daemon_sha256 }}
+          YNX_REMOTE_CHECKPOINT_LAYOUT: ${{ inputs.remote_checkpoint_layout || 'atomic-json' }}
         run: |
           test "$YNX_REMOTE_MANIFEST_SHA" = "$YNX_REMOTE_PIN_MANIFEST"
           test "$YNX_REMOTE_TEST_SHA" = "$YNX_REMOTE_PIN_TEST"
@@ -678,6 +694,7 @@ jobs:
             --guard "$GITHUB_WORKSPACE/scripts/loadtest/pq-paired-linux-window.py" \
             --expected-commit "$GITHUB_SHA" --expected-manifest-sha256 "$YNX_REMOTE_PIN_MANIFEST" \
             --expected-test-sha256 "$YNX_REMOTE_PIN_TEST" --expected-daemon-sha256 "$YNX_REMOTE_PIN_DAEMON" \
+            --checkpoint-layout "$YNX_REMOTE_CHECKPOINT_LAYOUT" \
             --authorization-id "$YNX_REMOTE_AUTHORIZATION"
       - name: Preserve only public remote process receipt
         if: ${{ always() && (steps.pqremoteprocess.outcome == 'success' || steps.pqremoteprocess.outcome == 'failure') }}

@@ -43,6 +43,8 @@ import (
 // tree (512 MiB RSS), private temp files (32 MiB), and wall time (90 seconds).
 // Build both binaries before that window. No test helper executable impersonates
 // the daemon: only the independently SHA256-pinned normal command is executed.
+// One layout per independently authorized window. An absent layout preserves
+// the original atomic scenario; journal cases use the same binary and protocol.
 func TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown(t *testing.T) {
 	if os.Getenv("YNX_PQ_REMOTE_PROCESS") == "" {
 		t.Skip("requires the separately authorized normal remote-signer process window")
@@ -50,12 +52,21 @@ func TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown(t *testing.T) {
 	if os.Getenv("YNX_PQ_REMOTE_PROCESS") != "authorized-signer-process-window" {
 		t.Fatal("invalid remote signer process authorization")
 	}
+	layout := os.Getenv("YNX_PQ_REMOTE_PROCESS_LAYOUT")
+	if layout == "" {
+		layout = "atomic-json"
+	}
+	switch layout {
+	case "atomic-json", "snapshot-journal", "block-journal":
+	default:
+		t.Fatal("unsupported normal remote signer process checkpoint layout")
+	}
 	binary := os.Getenv("YNX_PQ_REMOTE_SIGNER_BINARY")
 	pin := os.Getenv("YNX_PQ_REMOTE_SIGNER_SHA256")
 	checkRemoteProcessBinary(t, binary, pin)
 	ctx, cancel := context.WithTimeout(context.Background(), 75*time.Second)
 	defer cancel()
-	f := newRemoteProcessFixture(t)
+	f := newRemoteProcessFixture(t, layout)
 	immutable := f.immutableBytes(t)
 	t.Log("phase=normal-cli actualEngineCheckpoint=ready")
 
@@ -190,11 +201,13 @@ func TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown(t *testing.T) {
 	}
 	f.assertImmutable(t, immutable)
 	f.assertPrivateBound(t)
+	t.Logf("checkpointLayout=%s normalCLI=true originalSourceUnchanged=true coldOriginalHRS=true unknownNoRetry=true", f.layout)
 	t.Logf("normalRemoteProcess=true proposal=true prevote=true precommit=true extension=true coldOriginalHRS=true unknownNoRetry=true freshCheckpoint=true fullPeerPin=true nodeStarted=false publicDeployment=false binarySHA256=%s", pin)
 }
 
 type remoteProcessFixture struct {
 	dir, vault, legacyKey, legacyState, staleState string
+	layout                                         string
 	h                                              *engineWiringHarness
 	state                                          sm.State
 	files                                          PQOperatorFiles
@@ -219,7 +232,7 @@ func (f *remoteProcessFixture) write(t *testing.T, name string, data []byte) str
 	return path
 }
 
-func newRemoteProcessFixture(t *testing.T) *remoteProcessFixture {
+func newRemoteProcessFixture(t *testing.T, layout string) *remoteProcessFixture {
 	t.Helper()
 	// The controlled runner supplies a fresh private TMPDIR. Preserve original
 	// vault/HRS files on both success and failure; t.TempDir would delete an
@@ -228,7 +241,7 @@ func newRemoteProcessFixture(t *testing.T) *remoteProcessFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f := &remoteProcessFixture{dir: dir}
+	f := &remoteProcessFixture{dir: dir, layout: layout}
 	if err := os.Chmod(f.dir, 0700); err != nil {
 		t.Fatal(err)
 	}
@@ -245,7 +258,20 @@ func newRemoteProcessFixture(t *testing.T) *remoteProcessFixture {
 		t.Fatal(err)
 	}
 	path := filepath.Join(f.dir, "committed.json")
-	app, err := NewPersistentApplicationWithBootstrap(original.migration, path, original.bootstrap)
+	if layout != "atomic-json" {
+		path = filepath.Join(f.dir, "committed."+layout)
+	}
+	var app *Application
+	switch layout {
+	case "atomic-json":
+		app, err = NewPersistentApplicationWithBootstrap(original.migration, path, original.bootstrap)
+	case "snapshot-journal":
+		app, err = NewJournaledApplicationWithBootstrap(original.migration, path, original.bootstrap)
+	case "block-journal":
+		app, err = NewBlockJournaledApplicationWithBootstrap(original.migration, path, original.bootstrap)
+	default:
+		t.Fatal("unsupported process fixture layout")
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,21 +339,52 @@ func newRemoteProcessFixture(t *testing.T) *remoteProcessFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app, err = NewPersistentApplicationWithEngineAuthorization(original.migration, path, original.bootstrap, authorization)
+	switch layout {
+	case "atomic-json":
+		app, err = NewPersistentApplicationWithEngineAuthorization(original.migration, path, original.bootstrap, authorization)
+	case "snapshot-journal":
+		app, err = NewJournaledApplicationWithEngineAuthorization(original.migration, path, original.bootstrap, authorization)
+	case "block-journal":
+		app, err = NewBlockJournaledApplicationWithEngineAuthorization(original.migration, path, original.bootstrap, authorization)
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
 	h.app, h.source.app = app, app
 	h.proxy = startEngineTestProxy(t, app)
+	var staleHeight int64
+	var staleHash []byte
 	for h.app.committed.Height < schedule.ActivationHeight-1 {
-		h.apply(t, nil) // Actual BlockExecutor, Commit and Store.Save; no node loop.
+		next := h.apply(t, nil) // Actual BlockExecutor, Commit and Store.Save; no node loop.
 		if h.app.committed.Height == schedule.ActivationHeight-2 {
-			f.staleState = f.write(t, "prior-committed.json", remoteProcessRead(t, path))
+			name := "prior-committed.json"
+			if layout != "atomic-json" {
+				name = "prior-committed." + layout
+			}
+			// Preserve an earlier actual writer output only for the stale-source
+			// negative control. Never replace the current source with an export.
+			f.staleState = f.write(t, name, remoteProcessRead(t, path))
+			if layout != "atomic-json" {
+				f.write(t, name+".read.lock", remoteProcessRead(t, path+".read.lock"))
+			}
+			staleHeight, staleHash = next.LastBlockHeight, bytes.Clone(next.AppHash)
 		}
 	}
 	f.state, err = h.wrapped().Load()
 	if err != nil || f.state.LastBlockHeight != schedule.ActivationHeight-1 || f.staleState == "" {
 		t.Fatal("missing actual engine activation checkpoint:", err)
+	}
+	f.assertCheckpointLayout(t, path)
+	f.assertCheckpointLayout(t, f.staleState)
+	// Establish that the negative control really is a complete older checkpoint
+	// with its original read-lock bytes, not a malformed/missing-lock fixture.
+	staleSource, err := NewPQEngineFileSource(original.migration, f.staleState, original.bootstrap, authorization)
+	if err != nil {
+		t.Fatal(err)
+	}
+	priorBytes := remoteProcessRead(t, f.staleState)
+	if _, err = staleSource.ConsensusAuthorityForSigning(original.doc.ChainID, staleHeight, staleHash); err != nil || !bytes.Equal(priorBytes, remoteProcessRead(t, f.staleState)) {
+		t.Fatal("preserved prior layout does not validate at its actual original engine checkpoint:", err)
 	}
 	owner := -1
 	for i, member := range original.bootstrap.record.Members {
@@ -399,6 +456,38 @@ func remoteProcessRead(t *testing.T, path string) []byte {
 	return raw
 }
 
+func (f *remoteProcessFixture) assertCheckpointLayout(t *testing.T, path string) {
+	t.Helper()
+	raw := remoteProcessRead(t, path)
+	switch f.layout {
+	case "atomic-json":
+		if !json.Valid(raw) || IsSnapshotJournal(raw) || IsBlockJournal(raw) {
+			t.Fatal("normal atomic writer did not produce complete JSON")
+		}
+	case "snapshot-journal":
+		if !IsSnapshotJournal(raw) {
+			t.Fatal("normal snapshot writer did not produce the original journal format")
+		}
+	case "block-journal":
+		if !IsBlockJournal(raw) {
+			t.Fatal("normal block writer did not produce the original journal format")
+		}
+	default:
+		t.Fatal("unknown actual checkpoint layout")
+	}
+	if f.layout != "atomic-json" {
+		// Do not create a reader lock. This must be the existing writer's
+		// regular private lock (or its explicitly preserved stale-control copy).
+		lock, err := journalRegularFile(path+".read.lock", os.O_RDONLY)
+		if err != nil {
+			t.Fatal("normal journal has no readable original read lock:", err)
+		}
+		if err = lock.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func (f *remoteProcessFixture) readHRS(t *testing.T) []byte {
 	t.Helper()
 	return remoteProcessRead(t, f.binding.SignerStatePath)
@@ -409,6 +498,11 @@ func (f *remoteProcessFixture) immutableBytes(t *testing.T) map[string][]byte {
 	out := make(map[string][]byte)
 	for _, path := range []string{f.files.Migration, f.files.Genesis, f.files.State, f.files.Schedule, f.files.Binding, f.vault, f.legacyKey, f.legacyState, f.staleState, f.engine.TransportKey, f.engine.PeerPin, f.daemon.TransportKey, f.daemon.PeerPin} {
 		out[path] = remoteProcessRead(t, path)
+	}
+	if f.layout != "atomic-json" {
+		for _, path := range []string{f.files.State + ".read.lock", f.staleState + ".read.lock"} {
+			out[path] = remoteProcessRead(t, path)
+		}
 	}
 	return out
 }

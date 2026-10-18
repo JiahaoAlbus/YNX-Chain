@@ -25,7 +25,7 @@ PROFILE = "remote-signer-process-v1"
 GUARD_SHA256 = "aa41d4a0f00ab13891eaa70f9d08e8940a881f3bc0d5047d69ae53600655f4f5"
 TEST = "TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown"
 SOURCE_LEAF = "internal/consensus/pq_remote_process_test.go"
-SOURCE_SHA256 = "e77620baa4d9df537b6a66a936a08c9408026891ca18a7b7efff1a8f987c44f7"
+SOURCE_SHA256 = "01663b399daf0c7c70faab41e629a85d2538ea4bb9bb395fe724ec2ccf06948d"
 TEST_BINARY = "consensus.test"
 DAEMON_BINARY = "ynx-consensus-pq-remote-signer"
 BUILD_FILES = {"SOURCE.json", "pq_remote_process_test.go", TEST_BINARY, DAEMON_BINARY}
@@ -36,6 +36,25 @@ LIMITS = dict(activeMs=75000, cleanupMs=15000, totalMs=90000,
 ENVIRONMENT = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="256MiB",
                    GOTOOLCHAIN="local", GOWORK="off", LANG="C", TZ="UTC",
                    YNX_PQ_REMOTE_PROCESS="authorized-signer-process-window")
+CHECKPOINT_LAYOUTS = ("atomic-json", "snapshot-journal", "block-journal")
+
+
+def checkpoint_layout(value):
+    if type(value) is not str or value not in CHECKPOINT_LAYOUTS:
+        raise RuntimeError("explicit supported remote checkpoint layout required")
+    return value
+
+
+def checkpoint_layout_marker(layout):
+    return ("checkpointLayout="+checkpoint_layout(layout)+
+            " normalCLI=true originalSourceUnchanged=true coldOriginalHRS=true unknownNoRetry=true")
+
+
+def process_environment(case, build, pins, layout):
+    return dict(ENVIRONMENT, HOME=str(case/"tmp"), TMPDIR=str(case/"tmp"),
+                YNX_PQ_REMOTE_SIGNER_BINARY=str(build/DAEMON_BINARY),
+                YNX_PQ_REMOTE_SIGNER_SHA256=pins[DAEMON_BINARY]["sha256"],
+                YNX_PQ_REMOTE_PROCESS_LAYOUT=checkpoint_layout(layout))
 
 
 def unique_object(pairs):
@@ -110,6 +129,7 @@ def load_guard(path):
 
 
 def validate_inputs(args, progress=lambda: None):
+    checkpoint_layout(args.checkpoint_layout)
     private_directory(args.case)
     private_directory(args.build)
     if args.case == args.build or args.case in args.build.parents or args.build in args.case.parents:
@@ -253,8 +273,9 @@ def cleanup_scan(guard, launcher, child, known, kill, send=None, wait=None):
 
 
 class Window:
-    def __init__(self, guard, case, build):
+    def __init__(self, guard, case, build, layout="atomic-json"):
         self.guard, self.case, self.build = guard, case, build
+        self.checkpoint_layout = checkpoint_layout(layout)
         self.started, self.next_sample = time.monotonic(), 0
         self.child, self.birth, self.known = None, None, {}
         self.samples, self.empty_scans = [], []
@@ -322,9 +343,7 @@ class Window:
             for name in ("stdout", "stderr"):
                 fd = os.open(self.case/(name+".log"), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
                 streams[name] = os.fdopen(fd, "wb", buffering=0)
-            env = dict(ENVIRONMENT, HOME=str(self.case/"tmp"), TMPDIR=str(self.case/"tmp"),
-                       YNX_PQ_REMOTE_SIGNER_BINARY=str(self.build/DAEMON_BINARY),
-                       YNX_PQ_REMOTE_SIGNER_SHA256=pins[DAEMON_BINARY]["sha256"])
+            env = process_environment(self.case, self.build, pins, self.checkpoint_layout)
             command = [str(self.build/TEST_BINARY), "-test.run=^"+TEST+"$", "-test.count=1", "-test.timeout=90s", "-test.v"]
             self.tick(True)
             executable_fd = os.open(self.build/TEST_BINARY, os.O_RDONLY | os.O_NOFOLLOW)
@@ -433,7 +452,8 @@ class Window:
         self.total_deadline()
 
 
-def qualify(stdout, stderr, terminal, daemon_sha):
+def qualify(stdout, stderr, terminal, daemon_sha, layout="atomic-json"):
+    layout = checkpoint_layout(layout)
     if type(terminal) is not int or terminal != 0 or stderr or len(stdout)+len(stderr) > LIMITS["logBytes"]:
         raise RuntimeError("normal process test has nonzero terminal or unexpected stderr/output bound")
     text = stdout.decode("utf-8", "strict")
@@ -452,10 +472,16 @@ def qualify(stdout, stderr, terminal, daemon_sha):
             or lines[0] != "=== RUN   "+TEST or lines[-1] != "PASS"
             or lines.index(matches[0]) >= len(lines)-2):
         raise RuntimeError("unique complete normal-process result marker or daemon pin missing")
+    layout_marker = checkpoint_layout_marker(layout)
+    layout_matches = [v for v in lines if re.fullmatch(r"\s+pq_remote_process_test\.go:[0-9]+: "+re.escape(layout_marker), v)]
+    if (len(layout_matches) != 1 or len([v for v in lines if "checkpointLayout=" in v]) != 1
+            or lines.index(layout_matches[0]) >= lines.index(matches[0])):
+        raise RuntimeError("actual checkpoint layout marker differs from explicit selected layout")
     return hashlib.sha256(marker.encode()).hexdigest()
 
 
 def run(args):
+    layout = checkpoint_layout(args.checkpoint_layout)
     if sys.platform != "linux" or os.uname().machine != "x86_64":
         raise RuntimeError("remote process profile requires Linux amd64")
     if args.profile != PROFILE or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{7,127}", args.authorization_id or "") is None:
@@ -464,10 +490,11 @@ def run(args):
     private_directory(args.case)
     if any(args.case.iterdir()):
         raise RuntimeError("fresh empty case required; preserve prior result or UNKNOWN")
-    window = Window(guard, args.case, args.build)
+    window = Window(guard, args.case, args.build, layout)
     result = dict(version="YNX-PQ-REMOTE-SIGNER-PROCESS-RESULT/v1", profile=PROFILE,
                   authorization=args.authorization_id, sourceCommit=args.expected_commit,
                   sourceManifestSHA256=args.expected_manifest_sha256, sourceLeafSHA256=SOURCE_SHA256,
+                  checkpointLayout=layout,
                   guardSHA256=GUARD_SHA256, limits=dict(LIMITS), status="unknown", firstCause=None,
                   cleanupComplete=False, terminalCode=None, processAssertionsVerified=False,
                   publicDeployment=False, nodeStarted=False, privateArtifactsRetained=True,
@@ -485,7 +512,7 @@ def run(args):
         window.start()
         pins = validate_inputs(args, window.tick)
         result["binaryPins"] = {name: {k: pins[name][k] for k in ("sha256", "bytes")} for name in (TEST_BINARY, DAEMON_BINARY)}
-        exclusive(args.case/"invocation.json", (json.dumps(dict(profile=PROFILE, authorization=args.authorization_id, sourceCommit=args.expected_commit), sort_keys=True)+"\n").encode())
+        exclusive(args.case/"invocation.json", (json.dumps(dict(profile=PROFILE, authorization=args.authorization_id, sourceCommit=args.expected_commit, checkpointLayout=layout), sort_keys=True)+"\n").encode())
         (args.case/"tmp").mkdir(mode=0o700)
         sync_directory(args.case)
         unchanged(args.build, pins, window.tick)
@@ -493,7 +520,8 @@ def run(args):
         unchanged(args.build, pins, window.tick)
         stdout = guard.bounded(args.case/"stdout.log", LIMITS["logBytes"])
         stderr = guard.bounded(args.case/"stderr.log", LIMITS["logBytes"])
-        result["resultMarkerSHA256"] = qualify(stdout, stderr, result["terminalCode"], args.expected_daemon_sha256)
+        result["resultMarkerSHA256"] = qualify(stdout, stderr, result["terminalCode"], args.expected_daemon_sha256, layout)
+        result["checkpointLayoutMarkerSHA256"] = hashlib.sha256(checkpoint_layout_marker(layout).encode()).hexdigest()
         result["processAssertionsVerified"] = True
     except Exception as error:
         result["firstCause"] = public_cause(error)
@@ -556,6 +584,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--profile", default=PROFILE, choices=(PROFILE,))
+    parser.add_argument("--checkpoint-layout", default="atomic-json", choices=CHECKPOINT_LAYOUTS)
     parser.add_argument("--case", type=Path)
     parser.add_argument("--build", type=Path)
     parser.add_argument("--guard", type=Path)
@@ -567,6 +596,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if not args.execute:
         print(json.dumps(dict(status="prepared_only_no_process_started", profile=PROFILE, limits=LIMITS,
+                              checkpointLayout=args.checkpoint_layout,
                               guardSHA256=GUARD_SHA256, sourceLeaf=SOURCE_LEAF, sourceLeafSHA256=SOURCE_SHA256,
                               requires="independent full commit/build-manifest/dual-binary pins and fresh authorized Linux case",
                               scope="normal command process validation only; no deployment or Node.Start")))

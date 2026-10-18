@@ -72,11 +72,14 @@ def resource_sample(**overrides):
     return sample
 
 
-def process_output(pin):
+def process_output(pin, layout="atomic-json"):
     marker = ("normalRemoteProcess=true proposal=true prevote=true precommit=true extension=true "
               "coldOriginalHRS=true unknownNoRetry=true freshCheckpoint=true fullPeerPin=true "
               "nodeStarted=false publicDeployment=false binarySHA256="+pin)
-    return ("=== RUN   "+caller.TEST+"\n    pq_remote_process_test.go:193: "+marker+
+    layout_marker = ("checkpointLayout="+layout+
+                     " normalCLI=true originalSourceUnchanged=true coldOriginalHRS=true unknownNoRetry=true")
+    return ("=== RUN   "+caller.TEST+"\n    pq_remote_process_test.go:192: "+layout_marker+
+            "\n    pq_remote_process_test.go:193: "+marker+
             "\n--- PASS: "+caller.TEST+" (1.25s)\nPASS\n").encode()
 
 
@@ -104,6 +107,7 @@ class RemoteProcessControls(unittest.TestCase):
         self.args = SimpleNamespace(case=self.case, build=self.build,
                                     guard=ROOT/"scripts/loadtest/pq-paired-linux-window.py",
                                     profile=caller.PROFILE, authorization_id="synthetic-control-only",
+                                    checkpoint_layout="atomic-json",
                                     expected_commit="a"*40, expected_manifest_sha256="",
                                     expected_test_sha256=sha(self.binaries[caller.TEST_BINARY]),
                                     expected_daemon_sha256=sha(self.binaries[caller.DAEMON_BINARY]))
@@ -130,6 +134,7 @@ class RemoteProcessControls(unittest.TestCase):
         prepared = json.loads(output.getvalue())
         self.assertEqual(prepared["status"], "prepared_only_no_process_started")
         self.assertEqual(prepared["profile"], "remote-signer-process-v1")
+        self.assertEqual(prepared["checkpointLayout"], "atomic-json")
         self.assertEqual(list(self.case.iterdir()), [])
 
     def test_host_operations_and_proc_access_are_forbidden_in_controls(self):
@@ -167,6 +172,28 @@ class RemoteProcessControls(unittest.TestCase):
         self.assertEqual(sha(self.args.guard.read_bytes()), caller.GUARD_SHA256)
         with patch.object(caller, "GUARD_SHA256", "0"*64), self.assertRaisesRegex(RuntimeError, "SHA mismatch"):
             caller.load_guard(self.args.guard)
+
+    def test_selected_checkpoint_layout_is_explicit_and_never_inherited(self):
+        pins = caller.validate_inputs(self.args)
+        original = dict(caller.ENVIRONMENT)
+        with patch.dict(os.environ, {"YNX_PQ_REMOTE_PROCESS_LAYOUT": "foreign-layout", "SECRET_CONTROL": "must-not-inherit"}):
+            for layout in ("atomic-json", "snapshot-journal", "block-journal"):
+                self.args.checkpoint_layout = layout
+                caller.validate_inputs(self.args)
+                env = caller.process_environment(self.case, self.build, pins, layout)
+                self.assertEqual(env, dict(original, HOME=str(self.case/"tmp"), TMPDIR=str(self.case/"tmp"),
+                    YNX_PQ_REMOTE_SIGNER_BINARY=str(self.build/caller.DAEMON_BINARY),
+                    YNX_PQ_REMOTE_SIGNER_SHA256=self.args.expected_daemon_sha256,
+                    YNX_PQ_REMOTE_PROCESS_LAYOUT=layout))
+                self.assertEqual(caller.ENVIRONMENT, original)
+        for bad in ("", "auto", "snapshot-journal ", "ATOMIC-JSON", None, True, 1):
+            self.args.checkpoint_layout = bad
+            with patch.object(caller, "private_directory", side_effect=AssertionError("layout must fail before any inputs")):
+                with self.subTest(bad=bad), self.assertRaisesRegex(RuntimeError, "checkpoint layout"):
+                    caller.validate_inputs(self.args)
+                with self.assertRaisesRegex(RuntimeError, "checkpoint layout"):
+                    caller.run(self.args)
+        self.assertEqual(list(self.case.iterdir()), [])
 
     def test_independent_pins_cannot_be_replaced_by_manifest_self_report(self):
         for field, bad in (("expected_commit", "b"*40), ("expected_manifest_sha256", "b"*64),
@@ -293,6 +320,22 @@ class RemoteProcessControls(unittest.TestCase):
         for terminal, stderr in ((1, b""), (-15, b""), (None, b""), (False, b""), (0, b"synthetic stderr")):
             with self.assertRaises(RuntimeError):
                 caller.qualify(original, stderr, terminal, pin)
+
+    def test_actual_layout_completion_must_match_the_requested_window(self):
+        pin = self.args.expected_daemon_sha256
+        for layout in ("atomic-json", "snapshot-journal", "block-journal"):
+            raw = process_output(pin, layout)
+            self.assertRegex(caller.qualify(raw, b"", 0, pin, layout), r"^[0-9a-f]{64}$")
+            other = "block-journal" if layout != "block-journal" else "snapshot-journal"
+            with self.subTest(layout=layout), self.assertRaisesRegex(RuntimeError, "layout marker"):
+                caller.qualify(raw, b"", 0, pin, other)
+            line = next(v for v in raw.splitlines(keepends=True) if b"checkpointLayout=" in v)
+            for bad in (raw.replace(line, b""), raw.replace(line, line+line),
+                        raw.replace(b"normalCLI=true", b"normalCLI=false"),
+                        raw.replace(b"originalSourceUnchanged=true", b"originalSourceUnchanged=false"),
+                        raw.replace(b"pq_remote_process_test.go:192:", b"other.go:192:")):
+                with self.assertRaises(RuntimeError):
+                    caller.qualify(bad, b"", 0, pin, layout)
 
     def sample(self, responses, deadline=1):
         guard = self.guard()
@@ -432,7 +475,8 @@ class RemoteProcessControls(unittest.TestCase):
                                   "-test.count=1", "-test.timeout=90s", "-test.v"])
         self.assertEqual(kwargs["env"], dict(caller.ENVIRONMENT, HOME=str(self.case/"tmp"), TMPDIR=str(self.case/"tmp"),
             YNX_PQ_REMOTE_SIGNER_BINARY=str(self.build/caller.DAEMON_BINARY),
-            YNX_PQ_REMOTE_SIGNER_SHA256=self.args.expected_daemon_sha256))
+            YNX_PQ_REMOTE_SIGNER_SHA256=self.args.expected_daemon_sha256,
+            YNX_PQ_REMOTE_PROCESS_LAYOUT="atomic-json"))
         self.assertEqual(kwargs["executable"], "/proc/self/fd/"+str(kwargs["pass_fds"][0]))
         self.assertEqual(kwargs["cwd"], self.case)
         self.assertTrue(kwargs["start_new_session"])
@@ -464,7 +508,9 @@ class RemoteProcessControls(unittest.TestCase):
         captured = {}
         outer = self
         class ControlWindow:
-            def __init__(self, *_args):
+            def __init__(self, _guard, _case, _build, layout):
+                outer.assertEqual(layout, outer.args.checkpoint_layout)
+                self.checkpoint_layout = layout
                 self.started, self.child, self.birth = 0, None, None
                 self.subreaper, self.telemetry_failure = True, None
                 self.samples, self.empty_scans = [resource_sample()], []
@@ -478,7 +524,7 @@ class RemoteProcessControls(unittest.TestCase):
             def command(self, _pins):
                 self.child = SimpleNamespace(pid=101, poll=lambda:0)
                 self.birth = 55
-                outer.write(outer.case/"stdout.log", process_output(outer.args.expected_daemon_sha256))
+                outer.write(outer.case/"stdout.log", process_output(outer.args.expected_daemon_sha256, self.checkpoint_layout))
                 outer.write(outer.case/"stderr.log", b"")
                 outer.write(outer.case/"tmp"/"original.hrs", b"synthetic-private-original-not-a-real-key")
                 if mutate:
@@ -538,10 +584,28 @@ class RemoteProcessControls(unittest.TestCase):
         self.assertTrue(receipt["outputComplete"])
         self.assertFalse(receipt["publicDeployment"])
         self.assertFalse(receipt["nodeStarted"])
+        self.assertEqual(receipt["checkpointLayout"], self.args.checkpoint_layout)
+        self.assertEqual(receipt["checkpointLayoutMarkerSHA256"], sha(
+            ("checkpointLayout="+self.args.checkpoint_layout+
+             " normalCLI=true originalSourceUnchanged=true coldOriginalHRS=true unknownNoRetry=true").encode()))
         self.assertIn("Ephemeral host retirement is not a durable backup", receipt["privateRetentionScope"])
         self.assertEqual(set(receipt["binaryPins"]), {caller.TEST_BINARY, caller.DAEMON_BINARY})
         self.assertEqual(receipt["output"]["stdout"]["sha256"], sha((self.case/"stdout.log").read_bytes()))
         self.assertTrue((self.case/"tmp"/"original.hrs").is_file())
+
+    def test_selected_journal_is_bound_to_invocation_and_qualified_receipt(self):
+        self.args.checkpoint_layout = "block-journal"
+        code, captured = self.simulated_run()
+        self.assertEqual(code, 0)
+        receipt = captured["receipt"]
+        self.assertEqual(receipt["checkpointLayout"], "block-journal")
+        invocation = json.loads((self.case/"invocation.json").read_bytes())
+        self.assertEqual(invocation["checkpointLayout"], "block-journal")
+        self.assertEqual(receipt["checkpointLayoutMarkerSHA256"], sha(
+            b"checkpointLayout=block-journal normalCLI=true originalSourceUnchanged=true coldOriginalHRS=true unknownNoRetry=true"))
+        self.assertEqual(receipt["limits"], caller.LIMITS)
+        self.assertFalse(receipt["nodeStarted"])
+        self.assertFalse(receipt["publicDeployment"])
 
 
 if __name__ == "__main__":
