@@ -1,0 +1,73 @@
+# Candidate only. Render every @...@ from independent operator configuration.
+# Install as exactly ynx-consensus-pq-remote-signer.service; do not enable/start
+# until the target's original custody, checkpoint publisher and peer are ready.
+# Requires systemd >= 250 with working LoadCredentialEncrypted. No plaintext
+# EnvironmentFile, synthetic key initialization, automatic reconnect or retry.
+#
+# The checkpoint directory must expose the actual publisher's atomic committed
+# JSON replacements at the SAME path. Bind the directory, never an individual
+# snapshot inode. The daemon reopens and authenticates exact engine H/AppHash
+# on every request. This unit DOES NOT provide cross-host replication and does
+# not support the optional snapshot-journal backend. A frozen file is not a
+# live source. CHECKPOINT_PROVIDER_UNIT must name the real local source/mount
+# owner, not a dummy readiness unit. Its being active does not prove freshness.
+#
+# ORIGINAL_PQ_HRS_DIRECTORY must preserve HostKeyBinding.SignerStatePath.
+# Never rewrite that binding or move/reset either original history to fit this
+# template. Existing private files must be single-link 0600 and owned by the
+# dedicated service UID; original history directories must be 0700. Original
+# keys/vault are read-only here; only history directories are writable.
+[Unit]
+Description=YNX original PQ consensus remote signer
+Requires=@CHECKPOINT_PROVIDER_UNIT@
+After=network-online.target @CHECKPOINT_PROVIDER_UNIT@
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=ynx-pq-signer
+Group=ynx-pq-signer
+UMask=0077
+# This is service bookkeeping, not an instruction to relocate custody/HRS.
+StateDirectory=ynx-consensus-pq-remote-signer
+StateDirectoryMode=0700
+LoadCredentialEncrypted=ynx-pq-recovery:/etc/credstore.encrypted/ynx-pq-recovery
+ExecStart=/usr/local/libexec/ynx-consensus-pq-remote-signer-launch /etc/ynx/consensus-pq-remote-signer.conf
+Restart=no
+KillMode=control-group
+KillSignal=SIGTERM
+TimeoutStopSec=15s
+SendSIGKILL=yes
+LimitCORE=0
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+BindReadOnlyPaths=@CHECKPOINT_DIRECTORY@
+ReadOnlyPaths=@OPERATOR_INPUTS_DIRECTORY@ @ORIGINAL_VAULT@ @ORIGINAL_LEGACY_KEY@ @ORIGINAL_TRANSPORT_KEY@
+ReadWritePaths=@ORIGINAL_PQ_HRS_DIRECTORY@ @ORIGINAL_LEGACY_HRS_DIRECTORY@
+UnsetEnvironment=BASH_ENV ENV SHELLOPTS BASHOPTS CDPATH LD_PRELOAD LD_LIBRARY_PATH GODEBUG GOTRACEBACK
+# REQUIRED: decimal byte budget from measurements of these exact target inputs.
+# Do not reuse the small synthetic process-window cap for production migration.
+# The launcher compares the loaded unit's MemoryMax to the pinned configuration
+# and verifies its supplied measurement artifact; no default budget is provided.
+MemoryMax=@MEASURED_TARGET_MEMORY_MAX_BYTES@
+TasksMax=160
+StandardOutput=null
+StandardError=journal
+SyslogIdentifier=ynx-consensus-pq-remote-signer
+
+[Install]
+WantedBy=multi-user.target

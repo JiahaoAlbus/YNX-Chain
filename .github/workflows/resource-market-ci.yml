@@ -21,6 +21,7 @@ on:
       - 'scripts/ops/test_validate_private_consensus_copy.py'
       - 'scripts/ops/validate-pq-remote-signer-process.py'
       - 'scripts/ops/test_validate_pq_remote_signer_process.py'
+      - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
       - 'scripts/deploy/consensus-candidate-failure-retention.test.mjs'
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
@@ -682,6 +683,63 @@ jobs:
         with:
           name: ynx-pq-offline-migration-tools-${{ github.sha }}
           path: ${{ runner.temp }}/ynx-pq-offline-migration-tools
+          if-no-files-found: error
+          retention-days: 7
+      - name: Build public Linux runtime candidate without starting services
+        if: ${{ success() && github.event_name == 'push' }}
+        timeout-minutes: 3
+        run: |
+          YNX_RUNTIME_CANDIDATE="$RUNNER_TEMP/ynx-pq-linux-runtime-candidate"
+          export YNX_RUNTIME_CANDIDATE
+          umask 077
+          mkdir "$YNX_RUNTIME_CANDIDATE" "$YNX_RUNTIME_CANDIDATE/operator"
+          for YNX_RUNTIME_COMMAND in ynx-abci ynx-comet ynx-consensus-pq-key-init; do
+            go build -p 1 -trimpath -o "$YNX_RUNTIME_CANDIDATE/$YNX_RUNTIME_COMMAND" "./cmd/$YNX_RUNTIME_COMMAND"
+          done
+          cp "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer" "$YNX_RUNTIME_CANDIDATE/ynx-consensus-pq-remote-signer"
+          YNX_RUNTIME_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          go build -p 1 -trimpath -ldflags "-X main.buildCommit=$GITHUB_SHA -X main.buildRelease=pq-source-candidate-$GITHUB_SHA -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd
+          for YNX_RUNTIME_OPERATOR in ynx-consensus-pq-remote-signer.service.in ynx-consensus-pq-remote-signer-launch.sh ynx-consensus-pq-remote-signer.conf.in; do
+            cp "scripts/ops/$YNX_RUNTIME_OPERATOR" "$YNX_RUNTIME_CANDIDATE/operator/$YNX_RUNTIME_OPERATOR"
+          done
+          bash -n "$YNX_RUNTIME_CANDIDATE/operator/ynx-consensus-pq-remote-signer-launch.sh"
+          python3 -B - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['YNX_RUNTIME_CANDIDATE'])
+          names = ('ynx-abci', 'ynx-comet', 'ynx-bft-gatewayd',
+              'ynx-consensus-pq-remote-signer', 'ynx-consensus-pq-key-init')
+          def pin(path):
+              with path.open('rb') as source:
+                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
+              return dict(bytes=path.stat().st_size, sha256=digest)
+          binaries = {}
+          for name in names:
+              path = root / name
+              with path.open('rb') as source:
+                  header = source.read(20)
+              if header[:6] != b'\x7fELF\x02\x01' or header[18:20] != b'\x3e\x00':
+                  raise RuntimeError('candidate requires actual Linux amd64 ELF')
+              binaries[name] = pin(path)
+          if not all(1 << 20 < p['bytes'] <= 128 << 20 for p in binaries.values()) or sum(p['bytes'] for p in binaries.values()) > 512 << 20:
+              raise RuntimeError('candidate binary artifact size bound exceeded')
+          operator = {p.name:pin(p) for p in (root / 'operator').iterdir()}
+          record = dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v1',
+              commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], platform='linux/amd64',
+              cometForkTree=subprocess.check_output(['git','rev-parse','HEAD:third_party/cometbft'],text=True).strip(),
+              goMod=pin(Path('go.mod')), goSum=pin(Path('go.sum')),
+              binaries=binaries, operator=operator, runtimeStarted=False,
+              publicDeployment=False, pqActivation=False,
+              purpose='normal entrypoint binaries and operator configuration only; no keys, credentials, ledger or signing history')
+          (root / 'SOURCE.json').write_text(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf8')
+          print('YNX_LINUX_RUNTIME_CANDIDATE ' + json.dumps(record, sort_keys=True, separators=(',', ':')))
+          PY
+      - name: Upload only public Linux runtime candidate
+        if: ${{ success() && github.event_name == 'push' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-linux-runtime-candidate-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-pq-linux-runtime-candidate
           if-no-files-found: error
           retention-days: 7
 
