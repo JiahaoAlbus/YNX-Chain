@@ -452,6 +452,57 @@ class SupplySourceTests(unittest.TestCase):
         after["summary"]["finalSubmittedPerMeasurementSecond"]=float("nan")
         with self.assertRaises(RuntimeError):supply.joint_observation(before,after)
 
+    def test_observer_timing_opt_in_does_not_change_old_pair_recipe(self):
+        original=supply.recipe("grpc","supply-512x2","bounded-cadence")
+        timed=supply.recipe("grpc","supply-512x2","bounded-cadence",True)
+        self.assertNotIn("observerPhaseTiming",original)
+        self.assertTrue(timed["observerPhaseTiming"])
+        self.assertEqual(original["profile"],timed["profile"])
+        self.assertEqual(timed["observerTraceLimits"]["aggregate"],1024)
+
+    @staticmethod
+    def observer_report():
+        row=report("supply-512x2")
+        mapping={"block_query":"blockQueries","block_results_query":"blockResultsQueries","commit_query":"commitQueries",
+                 "validators_query":"validatorQueries","quorum_verification":"quorumVerifications",
+                 "durable_business_batch":"durableBatches","published_info_query":"publishedInfoQueries"}
+        totals={p:dict(attempts=1,errors=0,durationNs=100) for p in mapping}
+        totals["transaction_inclusion_proof"]=dict(attempts=1024,errors=0,durationNs=100)
+        stats={c:1 for c in mapping.values()};stats["transactionQueries"]=0
+        stats["phases"]=dict(schema=1,totals=totals,traceCapped=True,trace=[dict(sequence=1,worker=0,phase="block_query",node=0,height=2,members=0,startOffsetNs=1,durationNs=100,failed=False)])
+        row.update(observerPhaseTiming=True,groupedObservation=stats,
+                   durableReadback=dict(phaseTotalsNs={k:100 for k in ("loadNs","hashNs","captureNs","decodeNs","indexPublishNs","transactionVerifyNs")}))
+        return row
+
+    def test_observer_timing_requires_original_call_counts_and_bounded_monotonic_facts(self):
+        supply.validate_observer_phases(self.observer_report())
+        for change in ("call_count","missing_reader","fake_error","negative_trace","oversize_trace","missing_opt_in"):
+            row=self.observer_report()
+            if change=="call_count":row["groupedObservation"]["blockQueries"]=2
+            if change=="missing_reader":del row["durableReadback"]["phaseTotalsNs"]["decodeNs"]
+            if change=="fake_error":row["groupedObservation"]["phases"]["totals"]["commit_query"]["errors"]=2
+            if change=="negative_trace":row["groupedObservation"]["phases"]["trace"][0]["durationNs"]=-1
+            if change=="oversize_trace":row["groupedObservation"]["phases"]["trace"]*=1025
+            if change=="missing_opt_in":row["observerPhaseTiming"]=False
+            with self.subTest(change=change),self.assertRaises(RuntimeError):supply.validate_observer_phases(row)
+
+    def test_1000_tier_is_budget_only_and_never_admitted_by_extrapolation(self):
+        tier=supply.prepare_1000_tier()
+        self.assertFalse(tier["execute"])
+        self.assertFalse(tier["executionAuthorized"])
+        self.assertFalse(tier["executionAdmitted"])
+        self.assertEqual(tier["workload"]["independentSenders"],2048)
+        self.assertEqual(tier["workload"]["totalTransactions"],2048)
+        self.assertEqual(tier["workload"]["offeredRate"],1000)
+        self.assertEqual(tier["workload"]["transactionsPerSender"],1)
+        self.assertEqual(tier["resourceCaps"]["privateBytes"],32 << 20)
+        self.assertEqual(tier["resourceCaps"]["ownedRSSBytes"],1 << 30)
+        self.assertTrue(tier["conservativeScenarios"]["dataScenarioExceedsExisting32MiB"])
+        self.assertNotIn(tier["name"],supply.PROFILES)
+        denied=subprocess.run([sys.executable,"-B",str(FILE),"--prepare-1000-tier","--execute"],capture_output=True,text=True,timeout=5)
+        self.assertEqual(denied.returncode,2)
+        self.assertIn("cannot execute any workload",denied.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

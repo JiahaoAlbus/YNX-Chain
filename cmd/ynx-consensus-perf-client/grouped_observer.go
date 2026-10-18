@@ -21,21 +21,23 @@ type observationClient interface {
 }
 
 type groupedObservationStats struct {
-	TransactionQueries     uint64 `json:"transactionQueries"`
-	CommitQueries          uint64 `json:"commitQueries"`
-	ValidatorQueries       uint64 `json:"validatorQueries"`
-	QuorumVerifications    uint64 `json:"quorumVerifications"`
-	DurableBatches         uint64 `json:"durableBatches"`
-	LargestDurableBatch    uint64 `json:"largestDurableBatch"`
-	PublishedInfoQueries   uint64 `json:"publishedInfoQueries"`
-	BlockQueries           uint64 `json:"blockQueries"`
-	BlockResultsQueries    uint64 `json:"blockResultsQueries"`
-	ScannedBlocks          uint64 `json:"scannedBlocks"`
-	CachedConfirmationHits uint64 `json:"cachedConfirmationHits"`
-	PeakCachedBlockBytes   uint64 `json:"peakCachedBlockBytesPerScanner"`
+	Phases                 *observerPhaseTiming `json:"phases,omitempty"`
+	TransactionQueries     uint64               `json:"transactionQueries"`
+	CommitQueries          uint64               `json:"commitQueries"`
+	ValidatorQueries       uint64               `json:"validatorQueries"`
+	QuorumVerifications    uint64               `json:"quorumVerifications"`
+	DurableBatches         uint64               `json:"durableBatches"`
+	LargestDurableBatch    uint64               `json:"largestDurableBatch"`
+	PublishedInfoQueries   uint64               `json:"publishedInfoQueries"`
+	BlockQueries           uint64               `json:"blockQueries"`
+	BlockResultsQueries    uint64               `json:"blockResultsQueries"`
+	ScannedBlocks          uint64               `json:"scannedBlocks"`
+	CachedConfirmationHits uint64               `json:"cachedConfirmationHits"`
+	PeakCachedBlockBytes   uint64               `json:"peakCachedBlockBytesPerScanner"`
 }
 
 func (s *groupedObservationStats) add(other groupedObservationStats) {
+	s.addPhaseTiming(other.Phases)
 	s.TransactionQueries += other.TransactionQueries
 	s.CommitQueries += other.CommitQueries
 	s.ValidatorQueries += other.ValidatorQueries
@@ -130,7 +132,7 @@ func (g *groupedObserver) refreshBlockScans(ctx context.Context, pending []accep
 				continue
 			}
 			start := int64(g.reader.migration.Height) + 1
-			scanner = &blockInclusionScanner{manifest: g.manifest, trusted: g.trusted, client: client, stats: &g.stats, start: start, next: start}
+			scanner = &blockInclusionScanner{manifest: g.manifest, trusted: g.trusted, client: client, stats: &g.stats, node: node, start: start, next: start}
 			g.scanners[node] = scanner
 		}
 		errorsByNode[node] = scanner.refresh(ctx)
@@ -193,7 +195,7 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 				}
 			} else {
 				g.stats.TransactionQueries++
-				queried, err = g.clients[i%4].Tx(ctx, raw.Hash(), true)
+				queried, err = observedCall(&g.stats, "tx_query", i%4, 0, 1, r.Hash, func() (*coretypes.ResultTx, error) { return g.clients[i%4].Tx(ctx, raw.Hash(), true) })
 			}
 			if err != nil {
 				if g.inclusionMode == "block-scan" && !errors.Is(err, errBlockScanNotReady) {
@@ -264,14 +266,14 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 			g.stats.CachedConfirmationHits++
 		} else {
 			g.stats.CommitQueries++
-			commit, err = client.Commit(ctx, &height)
+			commit, err = observedCall(&g.stats, "commit_query", key.node, height, len(jobs), "", func() (*coretypes.ResultCommit, error) { return client.Commit(ctx, &height) })
 		}
 		stage := "commit_query"
 		var validators *coretypes.ResultValidators
 		if err == nil && !cached {
 			g.stats.ValidatorQueries++
 			page, perPage := 1, 100
-			validators, err = client.Validators(ctx, &height, &page, &perPage)
+			validators, err = observedCall(&g.stats, "validators_query", key.node, height, len(jobs), "", func() (*coretypes.ResultValidators, error) { return client.Validators(ctx, &height, &page, &perPage) })
 			stage = "validators_query"
 		}
 		if err != nil {
@@ -283,7 +285,7 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 		}
 		if !cached {
 			g.stats.QuorumVerifications++
-			err = verifyBlockConfirmation(g.manifest, g.trusted, validators, commit, height)
+			err = observedCheck(&g.stats, "quorum_verification", key.node, height, len(jobs), "", func() error { return verifyBlockConfirmation(g.manifest, g.trusted, validators, commit, height) })
 		}
 		if err != nil {
 			for _, job := range jobs {
@@ -295,7 +297,7 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 		raws := make([]cmttypes.Tx, 0, len(jobs))
 		for _, job := range jobs {
 			i := job.index
-			if err := verifyTransactionInclusion(commit, g.included[i], g.txs[i]); err != nil {
+			if err := observedCheck(&g.stats, "transaction_inclusion_proof", key.node, height, 1, g.results[i].Hash, func() error { return verifyTransactionInclusion(commit, g.included[i], g.txs[i]) }); err != nil {
 				g.fail(job, "confirmation_verification", err)
 				continue
 			}
@@ -313,16 +315,18 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 		if uint64(len(raws)) > g.stats.LargestDurableBatch {
 			g.stats.LargestDurableBatch = uint64(len(raws))
 		}
-		batch, err := g.reader.verifyBlockBatch(ctx, g.manifest.Nodes[key.node].ABCIStatePath, raws, height)
+		batch, err := observedCall(&g.stats, "durable_business_batch", key.node, height, len(raws), "", func() (durableBatchEvidence, error) {
+			return g.reader.verifyBlockBatch(ctx, g.manifest.Nodes[key.node].ABCIStatePath, raws, height)
+		})
 		state := batch.Evidence
 		var info *coretypes.ResultABCIInfo
 		if err == nil && isJournalLayout(state.StoreFormat) {
 			g.stats.PublishedInfoQueries++
-			info, err = client.ABCIInfo(ctx)
+			info, err = observedCall(&g.stats, "published_info_query", key.node, height, len(raws), "", func() (*coretypes.ResultABCIInfo, error) { return client.ABCIInfo(ctx) })
 			if err != nil {
 				err = fmt.Errorf("%w: journal published-state query: %v", errDurableNotReady, err)
 			} else {
-				err = verifyJournalPublishedState(state, info)
+				err = observedCheck(&g.stats, "published_state_verification", key.node, height, len(raws), "", func() error { return verifyJournalPublishedState(state, info) })
 			}
 		}
 		if err == nil {

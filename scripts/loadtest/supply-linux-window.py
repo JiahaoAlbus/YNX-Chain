@@ -38,7 +38,7 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
                  buildBytes=1 << 30, metadataReserveMs=500)
 
 
-def recipe(transport="socket", profile_name="supply-256x4", pacing="relative"):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False):
     if transport not in ("socket", "grpc"):
         raise RuntimeError("only existing socket/grpc ABCI transports allowed")
     if profile_name not in PROFILES:
@@ -48,13 +48,17 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative"):
     if pacing not in ("relative", "bounded-cadence", "grouped-cadence4") or pacing != "relative" and profile_name != "supply-512x2":
         raise RuntimeError("bounded cadence is explicit fixed512x2/gRPC only")
     profile = dict(PROFILES[profile_name], name=profile_name + ("-grpc" if transport == "grpc" else "") + ("-"+pacing if pacing != "relative" else ""))
-    return dict(schema=1, profile=profile, abciTransport=transport, pacingMode=pacing,
+    result = dict(schema=1, profile=profile, abciTransport=transport, pacingMode=pacing,
                 pacingCatchupOfferLimit=4 if pacing != "relative" else 1, environment=ENV, execute=False,
                 requiresSeparateRootGrant=True, nodesStarted=False,
                 platform="Linux native /proc; not macOS pressure1",
                 comparison="Independent private CI case; no Darwin before/after multiplier",
                 resourceCaps=native.CAPS,
                 input="workflow_dispatch.run_linux_supply (default false)")
+    if observer_phases:
+        result["observerPhaseTiming"]=True
+        result["observerTraceLimits"]=dict(perWorker=256,aggregate=1024,totalsCompleteDespiteTraceCap=True)
+    return result
 
 
 PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
@@ -65,6 +69,38 @@ def pair_modes(comparison):
     if comparison not in PAIR_MODES:
         raise RuntimeError("only fixed relative-bounded or bounded-grouped pairs allowed")
     return PAIR_MODES[comparison]
+
+
+def prepare_1000_tier():
+    evidence_path=HERE.parents[1]/"docs/performance/evidence/bounded-grouped-pair-ci-39142884319-actual.json"
+    if native.digest(evidence_path)!="41d69a66a36db3270d91ca7267e1e0e9e3ff3da3e5b3dd92c67e43c4c909b004":
+        raise RuntimeError("tier budget actual prior evidence pin differs")
+    evidence=json.loads(native.bounded(evidence_path,1 << 20))
+    peak_data=max(c["peaks"]["privateBytes"] for c in evidence["cases"])
+    peak_rss=max(c["peaks"]["rssBytes"] for c in evidence["cases"])
+    return dict(schema=1,name="one-shot-2048-independent-senders-offer1000",execute=False,
+                executionAuthorized=False,executionAdmitted=False,nodesStarted=False,
+                workload=dict(independentSenders=2048,totalTransactions=2048,transactionsPerSender=1,
+                              rounds=1,senderMode="rounds",offeredRate=1000,concurrency=4,observers=4,
+                              clientTimeoutMs=10000,inclusionMode="block-scan",observerPhaseTiming=True),
+                resourceCaps={k:PROFILE[k] for k in ("activeMs","cleanupMs","totalMs","ownedProcesses","longLivedChildren","ownedRSSBytes","privateBytes","threads","availableMemoryFloorBytes")},
+                nativeAdmissionCaps={k:native.CAPS[k] for k in ("diskFloorBytes","rootReserveBytes","compileReserveBytes","buildBytes","logBytes","sampleMs")},
+                fixtureCommand=["<exact-built-fixture>","-ephemeral","-count","2048","-output","<new-private-network>"],
+                clientCommand=["<exact-built-client>","-manifest","<new-private-network>/network-manifest.json",
+                               "-transactions","<new-private-network>/transactions.json","-output","<new-private-network>/transactions-result.json",
+                               "-rounds","1","-sender-mode","rounds","-offered-rate","1000","-concurrency","4","-observers","4",
+                               "-timeout","10s","-inclusion-mode","block-scan","-observer-phase-timing"],
+                priorActual=dict(runId=39142884319,sourceCommit=evidence["sourceCommit"],
+                                 evidenceSHA256=native.digest(evidence_path),totalTransactions=1024,
+                                 independentSenders=512,peakPrivateBytes=peak_data,peakRSSBytes=peak_rss),
+                conservativeScenarios=dict(twicePriorPrivateBytes=2*peak_data,twicePriorRSSBytes=2*peak_rss,
+                    dataScenarioExceedsExisting32MiB=2*peak_data>PROFILE["privateBytes"],
+                    rssScenarioExceedsExisting1GiB=2*peak_rss>PROFILE["ownedRSSBytes"]),
+                admissionReasons=["No actual2048/1000tier resource measurement exists. Twice prior peak is a conservative scenario, not a measured projection or proven upper bound.",
+                                  "Data scenario exceeds original32MiB; quadrupling independent-account fixture identity versus prior512 also needs charging. No cap increase or data deletion is authorized.",
+                                  "RSS cannot be assumed linear: fixed4node/worker cost and retained histories differ. Existing1GiB guard remains mandatory; no verified fit.",
+                                  "Owned-process/thread, disk reserve, logs,45+15 window and actual MemAvailable guards remain unchanged. No workload starts from this plan."],
+                interpretation="Finite2048 signed business inputs, each with a distinct sender/nonce1. Configured1000offers/s is not accepted/included/final TPS and does not establish ten-minute capacity. Prepared through original fixture/client commands, intentionally not registered as an executable window until budget admissibility is established.")
 
 
 def pair_recipe(comparison="relative-bounded"):
@@ -171,6 +207,43 @@ def offer_latency_readout(report):
                 offerToQualifiedFinalLatencyMs=quantiles("confirmationMs"), actualQueuePeaks=peaks,
                 supply=report["readySenders"]["supply"],
                 scope="Actual per-row measured queueDelayMs+stageMs, nearest-rank over all1024 qualified business finals. Queue peaks are original atomic counters, not reconstructed from UTC.")
+
+
+def validate_observer_phases(report):
+    if report.get("observerPhaseTiming") is not True:
+        raise RuntimeError("explicit observer timing absent")
+    stats=report.get("groupedObservation",{}); phases=stats.get("phases",{})
+    totals=phases.get("totals",{})
+    allowed={"tx_query","block_query","commit_query","validators_query","quorum_verification",
+             "block_results_query","block_capture_and_merkle","block_envelope_verification",
+             "transaction_inclusion_proof","durable_business_batch","published_info_query","published_state_verification"}
+    if phases.get("schema")!=1 or not totals or set(totals)-allowed or type(phases.get("traceCapped")) is not bool:
+        raise RuntimeError("observer timing schema/phase inventory missing")
+    for row in totals.values():
+        if (set(row)!={"attempts","errors","durationNs"} or any(type(v) is not int or v<0 for v in row.values())
+                or row["errors"]>row["attempts"] or row["attempts"]>0 and row["durationNs"]<=0):
+            raise RuntimeError("invalid original observer phase attempts/time")
+    for phase,counter in (("tx_query","transactionQueries"),("block_query","blockQueries"),
+                          ("commit_query","commitQueries"),("validators_query","validatorQueries"),
+                          ("quorum_verification","quorumVerifications"),("block_results_query","blockResultsQueries"),
+                          ("durable_business_batch","durableBatches"),("published_info_query","publishedInfoQueries")):
+        if type(stats.get(counter)) is not int or totals.get(phase,{}).get("attempts",0)!=stats[counter]:
+            raise RuntimeError("observer phase count differs from existing call counter: "+phase)
+    if totals.get("transaction_inclusion_proof",{}).get("attempts",0)<report["summary"]["finalSubmitted"]:
+        raise RuntimeError("per-transaction proof timing coverage missing")
+    trace=phases.get("trace")
+    if not isinstance(trace,list) or not 0<len(trace)<=1024:
+        raise RuntimeError("bounded observer call trace missing")
+    for row in trace:
+        if (row.get("phase") not in allowed or any(type(row.get(k)) is not int or row[k]<0 for k in ("sequence","worker","node","height","members","startOffsetNs","durationNs"))
+                or row["worker"]>3 or row["node"]>3 or row["sequence"]<1 or type(row.get("failed")) is not bool):
+            raise RuntimeError("invalid monotonic original observer call trace")
+    reader=report.get("durableReadback",{}).get("phaseTotalsNs")
+    names={"loadNs","hashNs","captureNs","decodeNs","indexPublishNs","transactionVerifyNs"}
+    if not isinstance(reader,dict) or set(reader)!=names or any(type(v) is not int or v<=0 for v in reader.values()):
+        raise RuntimeError("actual durable readback child phases missing")
+    return dict(observer=phases,durableReader=reader,
+                interpretation="Original call wall times include server/transport/lock waits; trace may be explicitly capped while totals remain complete. Reader load includes children. Parallel workers and nested scopes are not additive BFT latency.")
 
 
 def joint_observation(before, after):
@@ -466,8 +539,8 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None):
-    selected = recipe(transport, profile_name, pacing)
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False):
+    selected = recipe(transport, profile_name, pacing, observer_phases)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -600,8 +673,11 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         mark("all_nodes_height2")
         output = network / "transactions-result.json"
         mark("client_start")
-        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]))
-        result["measurement"] = validate_report(json.loads(native.bounded(output, 16 << 20)), profile_name, pacing)
+        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])))
+        client_report=json.loads(native.bounded(output,16 << 20))
+        result["measurement"] = validate_report(client_report, profile_name, pacing)
+        if observer_phases:
+            result["observerPhases"]=validate_observer_phases(client_report)
         mark("client_complete")
         result["resultSHA256"] = native.digest(output)
     except Exception as error:
@@ -669,6 +745,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--prepare-1000-tier", action="store_true")
     parser.add_argument("--prepare-pair", action="store_true")
     parser.add_argument("--execute-pair", action="store_true")
     parser.add_argument("--pair-kind", choices=tuple(PAIR_MODES), default="relative-bounded")
@@ -676,16 +753,22 @@ if __name__ == "__main__":
     parser.add_argument("--profile", choices=tuple(PROFILES), default="supply-256x4")
     parser.add_argument("--pacing", choices=("relative", "bounded-cadence", "grouped-cadence4"), default="relative")
     parser.add_argument("--check-runner", action="store_true")
+    parser.add_argument("--observer-phases", action="store_true")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--build", type=Path)
     parser.add_argument("--case", type=Path)
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
+    if args.prepare_1000_tier:
+        if args.execute or args.execute_pair or args.prepare_pair or args.check_runner:
+            parser.error("1000tier budget preparation cannot execute any workload")
+        print(json.dumps(prepare_1000_tier(),indent=2))
+        sys.exit(0)
     if args.pair_kind != "relative-bounded" and not (args.prepare_pair or args.execute_pair):
         parser.error("nondefault pair-kind requires an explicit pair action")
     if args.prepare_pair or args.execute_pair:
         if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
-                or args.transport != "grpc" or args.profile != "supply-512x2" or args.pacing != "relative"):
+                or args.transport != "grpc" or args.profile != "supply-512x2" or args.pacing != "relative" or args.observer_phases):
             parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
         if args.prepare_pair:
             print(json.dumps(pair_recipe(args.pair_kind), indent=2))
@@ -698,8 +781,8 @@ if __name__ == "__main__":
             parser.error("check-runner requires build/new case and excludes execute")
         print(json.dumps(preflight(args.build, args.case), indent=2))
     elif not args.execute:
-        print(json.dumps(recipe(args.transport, args.profile, args.pacing), indent=2))
+        print(json.dumps(recipe(args.transport, args.profile, args.pacing,args.observer_phases), indent=2))
     else:
         if not all((args.source, args.build, args.case, args.receipt)):
             parser.error("execute requires exact source/build/new case/new receipt")
-        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing))
+        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing, observer_phases=args.observer_phases))

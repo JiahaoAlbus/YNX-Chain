@@ -82,6 +82,10 @@ on:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
         type: boolean
         default: false
+      measure_observer_phases:
+        description: "Opt-in original RPC/quorum/durable timing on a separately scheduled single Supply case; no extra calls"
+        type: boolean
+        default: false
       measure_state_hash_encoding:
         description: "Compare original and chunked canonical encoders on the retained real 1024-transfer state"
         type: boolean
@@ -216,7 +220,7 @@ jobs:
       - name: Verify ready-sender Commit phases and bounded event timeline
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
-          -run '^(TestReadyPacing.*|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
+          -run '^(TestObserverPhaseTiming.*|TestReadyPacing.*|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
           -count=1 -timeout=45s -v
       - name: Verify opt-in node phase timings against real durable execution
         run: go test -p 1 ./cmd/ynx-abci -run '^TestPhaseTiming' -count=1 -timeout=45s -v
@@ -309,15 +313,22 @@ jobs:
           YNX_SUPPLY_TRANSPORT: ${{ inputs.linux_supply_transport }}
           YNX_SUPPLY_PROFILE: ${{ inputs.linux_supply_profile }}
           YNX_SUPPLY_PACING: ${{ inputs.linux_supply_pacing }}
+          YNX_OBSERVER_PHASE_TIMING: ${{ inputs.measure_observer_phases && '1' || '0' }}
         run: |
           set -o pipefail
           mkdir "$RUNNER_TEMP/ynx-linux-supply-build" "$RUNNER_TEMP/ynx-linux-supply-evidence"
+          observer_args=()
+          if [ "$YNX_OBSERVER_PHASE_TIMING" = 1 ]; then
+            observer_args+=(--observer-phases)
+          fi
           if [ "$YNX_SUPPLY_PACING" = paired-relative-bounded ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 0
             python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           elif [ "$YNX_SUPPLY_PACING" = paired-bounded-grouped ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 0
             python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind bounded-grouped --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           else
-            python3 -B scripts/loadtest/supply-linux-window.py --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+            python3 -B scripts/loadtest/supply-linux-window.py --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" "${observer_args[@]}" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           fi
           python3 -B scripts/loadtest/supply-linux-window.py --check-runner --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-preflight" > "$RUNNER_TEMP/ynx-linux-supply-evidence/preflight.json"
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-abci" ./cmd/ynx-abci
@@ -329,7 +340,7 @@ jobs:
           elif [ "$YNX_SUPPLY_PACING" = paired-bounded-grouped ]; then
             python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind bounded-grouped --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           else
-            python3 -B scripts/loadtest/supply-linux-window.py --execute --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+            python3 -B scripts/loadtest/supply-linux-window.py --execute --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" "${observer_args[@]}" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           fi
       - name: Preserve isolated Linux Supply raw evidence including failure
         if: always() && github.event_name == 'workflow_dispatch' && inputs.run_linux_supply

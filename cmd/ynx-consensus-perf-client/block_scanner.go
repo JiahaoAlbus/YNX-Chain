@@ -47,6 +47,7 @@ type blockInclusionScanner struct {
 	blocks      []*scannedBlock
 	bytes       int
 	poisoned    error
+	node        int
 }
 
 func (s *blockInclusionScanner) fatal(err error) error { s.poisoned = err; return err }
@@ -62,11 +63,11 @@ func (s *blockInclusionScanner) refresh(ctx context.Context) error {
 		return s.fatal(errors.New("invalid block scanner start"))
 	}
 	s.stats.BlockQueries++
-	latest, err := s.client.Block(ctx, nil)
+	latest, err := observedCall(s.stats, "block_query", s.node, 0, 0, "", func() (*coretypes.ResultBlock, error) { return s.client.Block(ctx, nil) })
 	if err != nil {
 		return fmt.Errorf("%w: latest block query: %v", errBlockScanNotReady, err)
 	}
-	if err := s.validateEnvelope(latest, 0); err != nil {
+	if err := observedCheck(s.stats, "block_envelope_verification", s.node, 0, 0, "", func() error { return s.validateEnvelope(latest, 0) }); err != nil {
 		return s.fatal(err)
 	}
 	tip := latest.Block.Height
@@ -87,38 +88,38 @@ func (s *blockInclusionScanner) refresh(ctx context.Context) error {
 		block := latest
 		if height != tip {
 			s.stats.BlockQueries++
-			block, err = s.client.Block(ctx, &height)
+			block, err = observedCall(s.stats, "block_query", s.node, height, 0, "", func() (*coretypes.ResultBlock, error) { return s.client.Block(ctx, &height) })
 			if err != nil {
 				return fmt.Errorf("%w: block query: %v", errBlockScanNotReady, err)
 			}
 		}
-		if err := s.validateEnvelope(block, height); err != nil {
+		if err := observedCheck(s.stats, "block_envelope_verification", s.node, height, 0, "", func() error { return s.validateEnvelope(block, height) }); err != nil {
 			return s.fatal(err)
 		}
 		s.stats.CommitQueries++
-		commit, err := s.client.Commit(ctx, &height)
+		commit, err := observedCall(s.stats, "commit_query", s.node, height, 0, "", func() (*coretypes.ResultCommit, error) { return s.client.Commit(ctx, &height) })
 		if err != nil {
 			return fmt.Errorf("%w: commit query: %v", errBlockScanNotReady, err)
 		}
 		page, perPage := 1, 100
 		s.stats.ValidatorQueries++
-		validators, err := s.client.Validators(ctx, &height, &page, &perPage)
+		validators, err := observedCall(s.stats, "validators_query", s.node, height, 0, "", func() (*coretypes.ResultValidators, error) { return s.client.Validators(ctx, &height, &page, &perPage) })
 		if err != nil {
 			return fmt.Errorf("%w: validators query: %v", errBlockScanNotReady, err)
 		}
 		s.stats.QuorumVerifications++
-		if err := verifyBlockConfirmation(s.manifest, s.trusted, validators, commit, height); err != nil {
+		if err := observedCheck(s.stats, "quorum_verification", s.node, height, 0, "", func() error { return verifyBlockConfirmation(s.manifest, s.trusted, validators, commit, height) }); err != nil {
 			return s.fatal(err)
 		}
 		if !bytes.Equal(block.Block.Header.Hash(), commit.Header.Hash()) || !block.BlockID.Equals(commit.Commit.BlockID) {
 			return s.fatal(errors.New("scanned block differs from authenticated commit"))
 		}
 		s.stats.BlockResultsQueries++
-		results, err := s.client.BlockResults(ctx, &height)
+		results, err := observedCall(s.stats, "block_results_query", s.node, height, 0, "", func() (*coretypes.ResultBlockResults, error) { return s.client.BlockResults(ctx, &height) })
 		if err != nil {
 			return fmt.Errorf("%w: block results query: %v", errBlockScanNotReady, err)
 		}
-		entry, err := captureScannedBlock(block, commit, results)
+		entry, err := observedCall(s.stats, "block_capture_and_merkle", s.node, height, len(block.Block.Data.Txs), "", func() (*scannedBlock, error) { return captureScannedBlock(block, commit, results) })
 		if err != nil {
 			return s.fatal(err)
 		}

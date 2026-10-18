@@ -87,6 +87,7 @@ type durableReader struct {
 	cacheTick       uint64
 	cacheEvictions  uint64
 	signatureFacts  *durableSignatureFacts
+	measurePhases   bool // Set only during construction, before any observer starts.
 }
 
 func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (*durableReader, error) {
@@ -135,7 +136,7 @@ func (r *durableReader) stats() durableReaderStats {
 		defer r.profileMu.Unlock()
 	}
 	var total durableReaderStats
-	if r.profileMu != nil {
+	if r.profileMu != nil || r.measurePhases {
 		total.PhaseTotalsNs = &durableReadbackPhases{}
 		if r.signatureFacts != nil {
 			facts := r.signatureFacts.stats()
@@ -241,10 +242,10 @@ func (r *durableReader) verifyBlockBatch(ctx context.Context, path string, raws 
 
 func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slot *durableSnapshotSlot) (durableEvidence, error) {
 	var evidence durableEvidence
-	loadTimer := readbackPhaseTimer{enabled: r.profileMu != nil}
+	loadTimer := readbackPhaseTimer{enabled: r.profileMu != nil || r.measurePhases}
 	loadTimer.begin(&slot.phases.LoadNs)
 	defer loadTimer.end()
-	phaseTimer := readbackPhaseTimer{enabled: r.profileMu != nil}
+	phaseTimer := readbackPhaseTimer{enabled: r.profileMu != nil || r.measurePhases}
 	defer phaseTimer.end()
 	if err := ctx.Err(); err != nil {
 		return evidence, err
@@ -402,7 +403,7 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 }
 
 func (r *durableReader) verifyTransactionLocked(ctx context.Context, slot *durableSnapshotSlot, raw cmttypes.Tx, height int64) error {
-	phaseTimer := readbackPhaseTimer{enabled: r.profileMu != nil}
+	phaseTimer := readbackPhaseTimer{enabled: r.profileMu != nil || r.measurePhases}
 	phaseTimer.begin(&slot.phases.TransactionVerifyNs)
 	defer phaseTimer.end()
 	state := slot.state
@@ -489,7 +490,9 @@ func decodeDurableSnapshotWithFacts(ctx context.Context, data []byte, migration 
 	return decoded, nil
 }
 
-// Timings are opt-in with the bounded reader profile. Load includes file/lease
+// Timings are opt-in with the bounded reader profile or explicit observer flag.
+// The observer-only flag does not add a global reader lock or change caching.
+// Load includes file/lease
 // checks and its child phases; children are disjoint. Failed attempts retain
 // time spent in their active phase and never produce successful evidence.
 type readbackPhaseTimer struct {

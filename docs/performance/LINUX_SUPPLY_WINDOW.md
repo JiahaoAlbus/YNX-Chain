@@ -581,3 +581,78 @@ observation errors are in
 were recovered by exact206 and checked with ZIP size/CRC plus individual SHA256;
 the entire ZIP was not downloaded or hash-verified. No automatic retry, higher
 cap, default promotion or further network run is authorized by this result.
+
+## Observer phase source and the1000-offer tier budget
+
+Root directed the next source work toward observer attribution and explicit tier
+budgeting, not further timer tuning or a new network run. Existing06c raw data
+already proves the submitted/included/final outcomes, queue peaks and Supply
+wait/drain scopes, but has no RPC/quorum/durable phase durations. Those missing
+durations cannot be reconstructed from counters or subtracted from BFT latency.
+
+The explicit `-observer-phase-timing` flag defaults false. It surrounds the
+existing original calls exactly once: Tx/block/Commit/validators/block-results
+RPC, block-envelope checks, weighted quorum verification, block capture/Merkle
+construction, each transaction inclusion proof, durable-business batch, published
+Info RPC and published-state comparison. No extra RPC, retry, changed polling
+interval, worker/queue limit, transaction selection, persistence or safety gate is
+added. Each worker records all attempts/errors/wall-duration totals plus a bounded
+256-row trace containing worker-local sequence, phase, node/height, members,
+existing transaction hash where applicable, monotonic start offset/duration and
+returned failure status. Aggregate trace cap1024 is explicit; `traceCapped=true`
+does not mean all trace rows survived. All attempt totals still remain complete.
+
+The same opt-in enables original durable-reader load/hash/capture/decode-replay/
+index-publish/transaction-verify timers without enabling its bounded-cache profile
+or adding a global reader serialization lock. Default legacy timing/caching
+behavior remains unchanged. Readback load includes child phases; child totals
+and parent wall time must not be added, and concurrent worker totals may overlap.
+RPC wall time includes client transport/response decode, server and scheduling
+waits, not isolated wire latency. Durable batches include original slot/lease
+waits and business checks; this is not a replacement consensus clock.
+
+`measure_observer_phases=false` is a new normal workflow input, only applied to an
+explicit single Supply case. Pair execution with this flag is rejected, preserving
+the existing frozen pair recipes and identities. The wrapper verifies schema,
+bounded trace fields, per-stage attempts against the original RPC/verification
+counters, per-transaction proof coverage and actual reader subphase presence.
+Missing/invalid timing fails the explicitly timed case rather than manufacturing
+zero or inferring a duration from an attempt count. Prepare-only example:
+
+```sh
+python3 -B scripts/loadtest/supply-linux-window.py --transport grpc --profile supply-512x2 --pacing bounded-cadence --observer-phases
+```
+
+Focused source tests cover opt-in/default call behavior, original returned errors,
+bounded/monotonic trace identity and merge ownership, actual signed-block Tx-query
+and block-scan paths with exact original RPC counts, reader timing without global
+serialization, and bad-quorum rejection with its failed duration retained. The
+original signed/persistent/nonce regressions and legacy timing-off assertion stay
+in place. These Go results require the new normal CI to execute; source formatting
+and Python refusal checks alone are not a Go or network PASS.
+
+The next finite tier plan uses the original fixture/client commands for2048
+independent ephemeral senders, one signed nonce1transaction each, total2048,
+configured1000offers/s,4submission/4observers, block-scan,10s client and explicit
+observer timings. It uses `sender-mode=rounds,rounds=1`; there is no retained
+successor key pool or per-account nonce dependency in this finite tier. Signing
+the fixture precedes the measured window, while actual node verification,
+business execution, BFT proofs and durable readback remain mandatory.
+
+```sh
+python3 -B scripts/loadtest/supply-linux-window.py --prepare-1000-tier
+```
+
+**This is budget preparation only, not an admitted executable profile.** It pins
+the actual06c evidence SHA41d69a66a36db3270d91ca7267e1e0e9e3ff3da3e5b3dd92c67e43c4c909b004.
+The prior1024/512-account cases peaked20440541private bytes and583417856RSS bytes.
+Doubling those peaks as conservative scenarios gives40881082private bytes and
+1166835712RSS bytes, exceeding the original32MiB/1GiB caps. These are scenarios,
+not measured projections or proven upper bounds: fixed node costs do not scale
+linearly, while the new fixture also quadruples independent account identities.
+The source refuses to infer resource fit, raise caps or delete evidence. Original
+disk reserve, memory floor, thread/process/log and45+15s budgets remain in the
+plan. The tier is intentionally absent from the executable profile registry until
+actual budget admissibility is established; combining preparation with execute
+is rejected before any workload. A configured1000offer rate or finite2048success
+would still not prove1000effective final TPS sustained for ten minutes.

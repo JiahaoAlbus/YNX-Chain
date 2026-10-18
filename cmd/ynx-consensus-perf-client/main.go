@@ -57,6 +57,7 @@ type options struct {
 	durableCacheByteBudget         int64
 	evidenceBudget                 *readyEvidenceBudgetReport
 	intentPersistence              func(string, []byte) error
+	observerPhaseTiming            bool
 }
 
 type transactionInput struct {
@@ -179,6 +180,7 @@ type report struct {
 	LoadQueues           pacedStatistics          `json:"loadQueues"`
 	DurableReadback      durableReaderStats       `json:"durableReadback"`
 	GroupedObservation   groupedObservationStats  `json:"groupedObservation"`
+	ObserverPhaseTiming  bool                     `json:"observerPhaseTiming"`
 	SenderMode           string                   `json:"senderMode"`
 	PacingMode           string                   `json:"pacingMode"`
 	InclusionMode        string                   `json:"inclusionMode"`
@@ -213,6 +215,7 @@ func main() {
 	flag.IntVar(&o.rounds, "rounds", 1, "retained fixture nonce cycles (default 1..32 and <=2048 transactions; explicit streaming scope has separate limits)")
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
 	flag.StringVar(&o.pacingMode, "pacing-mode", "relative", "ready-pool pacing: relative, bounded-cadence or grouped-cadence4 (at most four offers, expired groups discarded)")
+	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
 	flag.BoolVar(&o.segmentedIntents, "segmented-intents", false, "durable signed-input segments; requires ready-pool, terminal-stream and slot reuse; finite caps unchanged")
@@ -233,6 +236,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.observerPhaseTiming && o.offeredRate <= 0 {
+		return errors.New("observer phase timing requires paced grouped observation")
+	}
 	mode, modeErr := normalizeReadyPacingMode(o.pacingMode)
 	if modeErr != nil {
 		return modeErr
@@ -866,6 +872,10 @@ func execute(o options) error {
 		"Submission transport errors retain unknown outcome and are never automatically retried. Repeated identical observation errors retain counts and first/last timestamps.",
 		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
 	}}
+	r.ObserverPhaseTiming = o.observerPhaseTiming
+	if o.observerPhaseTiming {
+		r.Interpretation = append(r.Interpretation, "Explicit observer phase timings surround existing calls without extra RPC. Totals include failed attempts; bounded per-worker traces mark truncation. RPC wall durations include transport and server waits, not pure network latency. Durable load includes its disjoint child phases. Worker and parent/child sums overlap; never sum them as BFT latency.")
+	}
 	if o.reuseResultSlots {
 		r.SchemaVersion = 13
 		r.RetentionMode = "latest_per_account_slots"
@@ -907,6 +917,7 @@ func execute(o options) error {
 		if err != nil {
 			return err
 		}
+		reader.measurePhases = o.observerPhaseTiming
 		defer func() { r.DurableReadback = reader.stats() }()
 		r.ChainID, r.GenesisSHA256 = m.ChainID, m.GenesisHash
 		for _, n := range m.Nodes {
@@ -1008,6 +1019,9 @@ func execute(o options) error {
 							observationClients[i] = client
 						}
 						observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: txs, results: results, included: map[int]*coretypes.ResultTx{}, inclusionMode: o.inclusionMode}
+						if o.observerPhaseTiming {
+							observer.stats.enablePhaseTiming(worker, started)
+						}
 						runGroupedObservationLoop(ctx, o.poll, queue, completed, func(pending []acceptedObservation) []acceptedObservation { return observer.step(ctx, pending) })
 						workerStats[worker] = observer.stats
 					})
@@ -1086,6 +1100,9 @@ func execute(o options) error {
 						observationClients[i] = client
 					}
 					observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: allTxs, results: r.Transactions, included: map[int]*coretypes.ResultTx{}, inclusionMode: o.inclusionMode}
+					if o.observerPhaseTiming {
+						observer.stats.enablePhaseTiming(worker, started)
+					}
 					runGroupedObservationLoop(ctx, o.poll, queue, func(int) {}, func(pending []acceptedObservation) []acceptedObservation {
 						remaining := observer.step(ctx, pending)
 						keep := make(map[int]bool, len(remaining))
