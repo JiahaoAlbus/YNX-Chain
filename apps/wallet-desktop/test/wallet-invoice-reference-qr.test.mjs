@@ -18,6 +18,9 @@ test("foreign origins, actions, encoded paths, pairing and arbitrary signed-look
   assert.throws(()=>decodeInvoiceReferenceQR({...fixture(reference),mimeType:"image/svg+xml"}));
   assert.throws(()=>decodeInvoiceReferenceQR({...fixture(reference),bytes:Buffer.alloc(10*1024*1024+1)}));
 });
+test('secret-like bare QR input and receiving addresses cannot be misclassified as invoice IDs',()=>{
+ for(const text of ['ab'.repeat(32),'0x'+'ab'.repeat(32),'cd'.repeat(64),'xprv'+'2'.repeat(107),'K'+'2'.repeat(51),'ynx1'+'q'.repeat(38),'0x'+'12'.repeat(20)])assert.throws(()=>decodeInvoiceReferenceQR(fixture(text)));
+});
 function harness(){
   const context={open:true,account,keyRevision:1},references=[],views=[],decoded=deferred();let decodes=0,queries=0;
   const ui=createInvoiceReferenceUI({getContext:()=>({...context}),request:async()=>{queries++;throw Error("must not query")},requestQR:()=>{decodes++;return decoded.promise},applyReference:value=>references.push(value),render:view=>views.push(view)});

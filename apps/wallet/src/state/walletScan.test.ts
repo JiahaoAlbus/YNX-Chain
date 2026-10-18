@@ -22,3 +22,9 @@ test('invoice scan extracts only an original reference and cannot supply amount,
 test('wrong network, asset, unknown callback and arbitrary URL never reach either route',()=>{
  for(const value of [createPaymentURI(address).replace('6423','1'),createPaymentURI(address).replace('YNXT','ETH'),createPaymentURI(address)+'&callback=https://example.com','https://example.com',`wc:${'a'.repeat(64)}@1?relay-protocol=irn&symKey=${'b'.repeat(64)}`,null,'x'.repeat(2049)])assert.throws(()=>parseWalletScan(value));
 });
+test('secret-like bare input and damaged native addresses cannot be misclassified as public invoice IDs',()=>{
+ for(const value of ['ab'.repeat(32),'0x'+'ab'.repeat(32),'cd'.repeat(64),'xprv'+'2'.repeat(107),'K'+'2'.repeat(51),address.slice(0,-1)+(address.endsWith('q')?'p':'q'),'0x'+'12'.repeat(20)])assert.throws(()=>parseWalletScan(value));
+});
+test('unsupported receiving-network errors survive invoice fallback without changing their meaning',()=>{
+ assert.throws(()=>parseWalletScan(createPaymentURI(address).replace('6423','1')),error=>(error as {code?:string}).code==='UNSUPPORTED_PAYMENT_NETWORK');
+});
