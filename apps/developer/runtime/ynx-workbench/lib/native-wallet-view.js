@@ -45,14 +45,14 @@ class NativeWalletWidget extends BaseWidget {
     this.renderState(service.controller.state); void service.controller.inspect();
   }
   renderState(state) {
-    this.status.textContent = t(state.phase === 'guest' ? 'guestState' : state.phase);
+    this.status.textContent = t(state.cleanupStatus === 'unknown' ? 'cleanupUnknown' : state.phase === 'guest' ? 'guestState' : state.phase);
     this.session.textContent = `${t(state.sessionCurrent ? 'session' : 'historical')}: ${t(EN['sdk-' + state.session.status] ? 'sdk-' + state.session.status : 'sdk-unknown')}${state.session.account ? ' · ' + state.session.account : ''}`;
-    this.detail.textContent = state.phase === 'error' ? t('operationFailed') : state.bridgeContract === 'check-failed' ? t('bridgeCheckFailed') : state.available === false ? t('bridgeMissing') : ['dependency-missing', 'paused'].includes(state.phase) ? t('retryAction') : state.available === true ? t('bridgePresent') : '';
+    this.detail.textContent = state.cleanupStatus === 'unknown' ? t('cleanupUnknownDetail') : state.phase === 'error' ? t('operationFailed') : state.bridgeContract === 'check-failed' ? t('bridgeCheckFailed') : state.available === false ? t('bridgeMissing') : ['dependency-missing', 'paused'].includes(state.phase) ? t('retryAction') : state.available === true ? t('bridgePresent') : '';
     const configuration = { 'not-supplied': 'serviceMissing', paused: 'servicePaused', unverified: 'serviceUnverified', verified: 'serviceVerified' };
     this.source.textContent = t(configuration[state.serviceConfiguration] || 'serviceUnverified') + (state.source ? ` · ${state.source.gatewayOrigin}` : '');
     for (const key of ['connect', 'restore', 'disconnect']) this.buttons[key].disabled = state.busy || state.awaitingCallback;
     this.buttons.returned.disabled = state.busy || state.awaitingCallback || !state.hasPendingReturn;
-    this.buttons.cancel.disabled = !state.busy && !state.awaitingCallback;
+    this.buttons.cancel.disabled = state.cleanupStatus === 'unknown' || (!state.busy && !state.awaitingCallback);
     this.buttons.guest.disabled = state.busy;
   }
   onActivateRequest(message) { super.onActivateRequest(message); this.buttons.connect.focus(); }

@@ -81,11 +81,20 @@ class NativeWalletController {
       if (action === 'return') { this.callbackQueue = this.callbackQueue.filter(url => url !== returnURL); this.callback = this.callbackQueue[0]; this.publish({ hasPendingReturn: Boolean(this.callback) }); }
       if (!awaitingCallback) { await runtime.endNativeOperation(); if (this.runtime === runtime) this.runtime = undefined; }
     }).catch(async error => {
-      if (runtime) await runtime.endNativeOperation().catch(() => {});
+      if (runtime) {
+        try { await runtime.endNativeOperation(); }
+        catch {
+          // Ending the SDK call is not proof that its native capability was
+          // released. Keep the exact runtime owned just as explicit Cancel
+          // does; an error notification or late factory must not admit retry.
+          this.cancelling ||= { runtime, operation };
+          if (this.cancelling.runtime === runtime) this.publish({ cleanupStatus: 'unknown', busy: true });
+        }
+      }
       if (this.runtime === runtime) this.runtime = undefined;
       if (epoch === this.epoch) {
         const missing = error?.code === 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED', paused = error?.code === 'WALLET_ONLINE_ADMISSION_PAUSED';
-        this.publish({ phase: missing ? 'dependency-missing' : paused ? 'paused' : 'error', serviceConfiguration: missing ? 'not-supplied' : paused ? 'paused' : 'unverified', busy: false, awaitingCallback: false, sessionCurrent: false, failureCode: typeof error?.code === 'string' ? error.code : undefined, message: error?.message || 'Wallet operation failed.' });
+        this.publish({ phase: missing ? 'dependency-missing' : paused ? 'paused' : 'error', serviceConfiguration: missing ? 'not-supplied' : paused ? 'paused' : 'unverified', busy: Boolean(this.cancelling), awaitingCallback: false, sessionCurrent: false, failureCode: typeof error?.code === 'string' ? error.code : undefined, message: error?.message || 'Wallet operation failed.' });
       }
     }).finally(() => {
       if (this.inFlight !== operation) return;
@@ -157,12 +166,13 @@ class NativeWalletController {
     this.publish({ phase: 'cancelled', hasPendingReturn: false, busy: Boolean(this.inFlight || this.cancelling), awaitingCallback: false, sessionCurrent: false, message: 'Cancelled locally. Protected pending/session records were preserved; restore is explicit.' });
     if (runtime) {
       let released = false;
-      try { await runtime.endNativeOperation(); released = true; } catch { /* Unknown cleanup keeps the pending slot owned. */ }
+      try { await runtime.endNativeOperation(); released = true; }
+      catch { if (this.cancelling === cleanup) this.publish({ cleanupStatus: 'unknown', busy: true }); }
       if (released && this.cancelling === cleanup && (!this.inFlight || this.inFlight === operation) && !this.runtime) {
         // Only confirmed retirement of this exact native capability permits a
         // retry while its old SDK response drains. Protected records stay SDK-owned.
         this.cancelling = undefined; this.inFlight = undefined; this.returningCallback = undefined;
-        this.publish({ busy: false });
+        this.publish({ busy: false, cleanupStatus: undefined });
         if (!this.disposed && epoch === this.epoch && !this.inFlight) this.selectCurrentCallback();
       }
     }
