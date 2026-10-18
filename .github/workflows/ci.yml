@@ -43,21 +43,20 @@ jobs:
     timeout-minutes: 12
     permissions:
       contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
-      - name: Build fixed Linux crypto source and run public mathematical controls
-        run: python3 scripts/ci/social-linux-crypto-r1/execute.py "$RUNNER_TEMP/social-linux-crypto-r1-result"
+      - name: Continue fixed Linux crypto source using exact prior upstream inputs
+        run: python3 scripts/ci/social-linux-crypto-r1/continue.py "$RUNNER_TEMP/social-linux-crypto-r3-result"
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Preserve first cause and exact compiler/dependency/header manifests
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: social-linux-crypto-r1-${{ github.run_id }}-${{ github.run_attempt }}
+          name: social-linux-crypto-r3-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/social-linux-crypto-r1-result/*.json
-            ${{ runner.temp }}/social-linux-crypto-r1-result/*.raw
-            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/BUILD.log
-            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/OUTPUT_SHA256SUMS
-            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/oqs-install
-            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/sodium-install
-            ${{ runner.temp }}/social-linux-crypto-r1-result/crypto-build/vendor/liboqs-5a1a854b0dc9f2141bdc771c555ee60c37950183/src/sig/ml_dsa/mldsa-native_ml-dsa-87_ref
+            ${{ runner.temp }}/social-linux-crypto-r3-result/*.json
+            ${{ runner.temp }}/social-linux-crypto-r3-result/*.raw
+            ${{ runner.temp }}/social-linux-crypto-r3-result/new-output
           if-no-files-found: error

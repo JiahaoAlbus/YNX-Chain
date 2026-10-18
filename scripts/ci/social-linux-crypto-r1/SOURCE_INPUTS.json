@@ -1,9 +1,9 @@
 {
   "kind": "INDEPENDENT_FIXED_OFFICIAL_LINUX_CRYPTO_SUCCESSOR_NOT_ORIGINAL_BINARY_REPRODUCTION",
   "supplier": {
-    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/linux-crypto-source-r2/HANDOFF.json",
-    "bytes": 7228,
-    "sha256": "c0c0c5dc29f119215c68a3d51e58fa7ced5350f1f2ada097c3fe03084fbf33b0"
+    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/social-r58-normal-product-integration-20261018/linux-crypto-source-r3/HANDOFF.json",
+    "bytes": 8320,
+    "sha256": "7e0c018d043779bde2df6040404b936b61c3d68dc3be712dd7bc88dcdd5afe15"
   },
   "files": [
     {
@@ -28,8 +28,8 @@
     },
     {
       "path": "source/native-ownkey-supplier-v4/custodian/veil_classic_protection.c",
-      "bytes": 2676,
-      "sha256": "057918cb83b8e69ba2b6fdd93ae0e21de671a2f73bd9f2a9ea5752ae019ab0dc"
+      "bytes": 2686,
+      "sha256": "46c1a0c5312a70ebdf335e933b3ad023b8a54294f62629791f31a22e2fb8d8d6"
     },
     {
       "path": "source/native-ownkey-supplier-v4/custodian/veil_classic_protection.h",
@@ -47,9 +47,19 @@
       "sha256": "2b6303549c6b252243bb93f3ca9c550b584451f53e3bf79fa6f0c26e62cc240c"
     },
     {
+      "path": "continue-linux-crypto.sh",
+      "bytes": 2986,
+      "sha256": "f002a7ed35541b9d1667c51f623291e657a6c98dfd21f6a91d7b4d0eb6eb38bd"
+    },
+    {
+      "path": "RETAINED_UPSTREAM_INPUTS.json",
+      "bytes": 26323,
+      "sha256": "5d9c29ca7b6c35a13c80de3e1b700a668eaf60bd9f71a6749b5f893aa372e618"
+    },
+    {
       "path": "INPUT_SHA256SUMS",
-      "bytes": 853,
-      "sha256": "eafdcba674759fbfec2841e30dcf880fafcedc092adacccd42cfa42f4b802aab"
+      "bytes": 1128,
+      "sha256": "7c06ac7a402e31c9bc015f7492c7b0ac45a99ece5f5c16c7e904e536c4bbccc1"
     }
   ],
   "officialSources": [
@@ -73,12 +83,11 @@
   "normalEntry": "bash -x build-linux-crypto.sh NEW_ISOLATED_LINUX_DIRECTORY FROZEN_INPUT_DIRECTORY",
   "sourceControlScope": "PUBLIC ephemeral real sign/verify/reject/pk_from_sk; no key output or persistence; no Source/device grant",
   "priorRunRecovery": {
-    "run": 39107238322,
-    "state": "completed/failure",
-    "originalRawRetained": true,
-    "actualUpstreamBuildsSucceeded": true,
-    "librariesRecoverableFromArtifact": false,
-    "necessaryNewRunnerUpstreamRebuild": true,
-    "noDestructiveExistingOutputEntry": true
+    "run": 39107580077,
+    "artifactId": 12128618204,
+    "artifactName": "social-linux-crypto-r1-39107580077-1",
+    "artifactDigest": "sha256:e9c9e0e4a443b84b2a1c7023ec7b8b5e40e0df41f509027c87d74b050dc25364",
+    "expectedInputCount": 126,
+    "upstreamRebuilt": false
   }
 }
