@@ -25,6 +25,7 @@ on:
       - "scripts/verify/perf-v13-seal-compact-default-integration-check*.mjs"
       - "scripts/verify/perf-v13-anchor-order-integration-check*.mjs"
       - "scripts/verify/perf-commit-validation-timing-check*.mjs"
+      - "scripts/verify/perf-prefix-replay-candidate-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   pull_request:
     branches:
@@ -49,6 +50,7 @@ on:
       - "scripts/verify/perf-v13-seal-compact-default-integration-check*.mjs"
       - "scripts/verify/perf-v13-anchor-order-integration-check*.mjs"
       - "scripts/verify/perf-commit-validation-timing-check*.mjs"
+      - "scripts/verify/perf-prefix-replay-candidate-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
     inputs:
@@ -225,7 +227,7 @@ jobs:
           scripts/verify/perf-v13-seal-compact-default-integration-check.test.mjs
           release/integration/candidates/perf-state-v13-seal-compact-default/check.test.mjs
           scripts/verify/perf-v13-anchor-order-integration-check.test.mjs
-          scripts/verify/perf-commit-validation-timing-check.test.mjs
+          scripts/verify/perf-prefix-replay-candidate-check.test.mjs
       - name: Verify Linux Supply isolation and refusal counterexamples (no nodes)
         run: python3 -B scripts/loadtest/test_supply_linux_window.py -v
       - name: Verify ready-sender Commit phases and bounded event timeline
@@ -305,8 +307,8 @@ jobs:
             ${{ runner.temp }}/ynx-real-fee-history/result.json
           if-no-files-found: error
           retention-days: 90
-      - name: Verify exact diagnostic derivation and original frozen anchor contract
-        run: make integration-contract-perf-commit-validation-timing-check
+      - name: Verify prefix candidate and original frozen source contracts
+        run: make integration-contract-perf-prefix-replay-candidate-check
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan

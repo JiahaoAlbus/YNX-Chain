@@ -82,3 +82,20 @@ queue-inclusive finalP95≤3s remain unachieved.
 
 Source/raw pins and all four samples:
 `evidence/prefix-replay-source-local-actual.json`.
+
+## Source qualification and original CI
+
+Prototype source989ac55529fb1443a1b6d79bac6c152ef1cc0888, complete internal tree
+94c281bf73e146396c5bffb0e11b28901c8cc820. Exact internal delta from9cdaeb0a6 is
+19795 bytes, SHA256
+ccae26147247c0d3f9a5e548914b0c4bef72fa25939ed350f8b0308b14808efd.
+A separate source-only candidate guard binds that full tree/delta and refuses
+modified, missing or untracked internal inputs. It makes no release/network claim.
+
+Original diagnostic and anchor guard files, bundles and assertions stay unchanged.
+Their positive guards and all original tests execute at their original frozen
+sources; current candidate checks run separately. Five new source-qualification
+tests passed locally8.488s, including all original diagnostic/anchor tests; the
+normal Make entry also passed. These checks are integrated in the original
+chain-core CI. The optional offline ABBA test is explicitly selected by
+YNX_PREFIX_REPLAY_FIXTURE_DIR and is not claimed to run in ordinary CI.

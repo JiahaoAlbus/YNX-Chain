@@ -517,3 +517,7 @@ privacy-safety-check:
 .PHONY: integration-contract-perf-commit-validation-timing-check
 integration-contract-perf-commit-validation-timing-check:
 	node ./scripts/verify/perf-commit-validation-timing-check.mjs
+
+.PHONY: integration-contract-perf-prefix-replay-candidate-check
+integration-contract-perf-prefix-replay-candidate-check:
+	node ./scripts/verify/perf-prefix-replay-candidate-check.mjs
