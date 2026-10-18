@@ -9,9 +9,11 @@ export function authorizationReviewReady(before) {
 
 export function authorizationResultMatches(before, after, action) {
   if (!authorizationReviewReady(before) || !after || !["approve", "reject"].includes(action)) return false;
+  const reference=after.returnKind==='reference';
+  if(after.returnKind!==undefined&&!['reference','approval','rejection'].includes(after.returnKind)||reference&&action!=='approve'||after.returnKind==='approval'&&action!=='approve'||after.returnKind==='rejection'&&action!=='reject')return false;
   return after.reviewId === before.reviewId && after.requestId === before.reviewId
     && after.resultCode === (action === "approve" ? "CANONICAL_AUTHORIZATION_APPROVED" : "USER_REJECTED")
-    && after.callbackEmitted === "true" && after.authorityGranted === String(action === "approve")
+    && after.callbackEmitted === "true" && after.authorityGranted === String(action === "approve"&&!reference)
     && after.productSessionCreated === "false";
 }
 
@@ -74,7 +76,6 @@ if (action === "invalid") {
 await evaluate(`document.querySelector("#${action}-auth").click(); true`);
 const expected = action === "reject" ? "USER_REJECTED" : "CANONICAL_AUTHORIZATION_APPROVED";
 const expectedCallback = true;
-const expectedAuthority = action === "approve";
 let after;
 for (let attempt = 0; attempt < 30; attempt += 1) {
   after = JSON.parse(await evaluate(`JSON.stringify({ ...document.querySelector("#authorization").dataset })`));
@@ -85,5 +86,5 @@ if (!authorizationResultMatches(before, after, action)) {
   throw new Error(`fail-closed action result mismatch: ${JSON.stringify(after)}`);
 }
 socket.close();
-console.log(JSON.stringify({ action, before, after, callbackEmitted: expectedCallback, callbackReceivedProved: false, authorityGranted: expectedAuthority, productSessionCreated: false }, null, 2));
+console.log(JSON.stringify({ action, before, after, callbackEmitted: expectedCallback, callbackReceivedProved: false, authorityGranted: after.authorityGranted==='true', productSessionCreated: false }, null, 2));
 }

@@ -322,7 +322,7 @@ test('original Controller turns an admitted publication into a small reference a
   const state=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8'));assert.equal(state.sessionPublications[0].status,'reference-ready');assert.equal(state.sessionOriginals[0].deliveryAttempted,true);
  }});
  await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));const result=await f.lifecycle.run(()=>controller.act('approve'));
- assert.equal(result.callbackEmitted,true);assert.equal(result.productSessionCreated,false);assert.equal(result.callbackReceivedProved,false);assert.equal(publications,1);assert.equal(reads,0);assert.equal(launches,1);
+ assert.equal(result.callbackEmitted,true);assert.equal(result.authorityGranted,false);assert.equal(result.productSessionCreated,false);assert.equal(result.callbackReceivedProved,false);assert.equal(publications,1);assert.equal(reads,0);assert.equal(launches,1);
 });
 test('lost publication ACK recovers exact full originals by outcome read without another publication or signature',async t=>{
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));

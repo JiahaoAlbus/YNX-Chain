@@ -281,6 +281,7 @@ async function act(action) {
     authorization.dataset.resultCode = result.code ?? "UNKNOWN";
     authorization.dataset.callbackEmitted = String(result.callbackEmitted === true);
     authorization.dataset.authorityGranted = String(result.authorityGranted === true);
+    authorization.dataset.returnKind = result.returnKind??'unknown';
     authorization.dataset.productSessionCreated = String(result.productSessionCreated === true);
     authorization.dataset.requestId = result.requestId ?? item.review.id;
     if (result.callbackEmitted) {
@@ -320,6 +321,7 @@ function presentApproval() {
       authorization.dataset.resultCode = "AWAITING_APPROVAL";
       authorization.dataset.callbackEmitted = "false";
       authorization.dataset.authorityGranted = "false";
+      authorization.dataset.returnKind = 'none';
       authorization.dataset.productSessionCreated = "false";
       authorization.dataset.requestId = String(review.id);
     }

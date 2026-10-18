@@ -15,3 +15,10 @@ test("stale completed state, missing response and unchanged pending state never 
   assert.equal(authorizationResultMatches(before,before,"approve"),false);
   assert.equal(authorizationResultMatches(before,result("approve"),"unknown"),false);
 });
+test('reference return is only locator delivery, never authority or product-session completion',()=>{
+ const reference={...result('approve'),returnKind:'reference',authorityGranted:'false'};
+ assert.equal(authorizationResultMatches(before,reference,'approve'),true);
+ for(const wrong of [{authorityGranted:'true'},{productSessionCreated:'true'},{returnKind:'unknown'},{requestId:'other'},{callbackEmitted:'false'}])assert.equal(authorizationResultMatches(before,{...reference,...wrong},'approve'),false);
+ assert.equal(authorizationResultMatches(before,reference,'reject'),false);
+ assert.equal(authorizationResultMatches(before,{...result('reject'),returnKind:'reference'},'reject'),false);
+});

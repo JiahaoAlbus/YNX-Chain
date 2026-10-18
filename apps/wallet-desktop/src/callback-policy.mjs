@@ -111,6 +111,7 @@ export class DesktopAuthorizationController {
       if(action==='approve'&&this.prepared.requiresRecheck){deliverySelected=true;await this.authority.beginCanonicalAuthorizationDelivery(review.request,review.account);}
       assertCurrent();
       const originalRequestId=this.prepared.originalRequestId??review.id;
+      const referenceReturn=new URL(this.prepared.callbackUrl).searchParams.get('result')==='reference';
       await this.openExternal(this.prepared.callbackUrl);
       // Opening the destination normally blurs and locks Wallet. A completed
       // external launch remains a launch, even when that invalidated the review.
@@ -119,7 +120,8 @@ export class DesktopAuthorizationController {
         acceptedForReview: true, requestId: originalRequestId, action,
         code: action === "approve" ? CANONICAL_AUTHORIZATION_APPROVED : "USER_REJECTED",
         callbackEmitted: true, callbackReceivedProved: false,
-        authorityGranted: action === "approve", productSessionCreated: false
+        returnKind:referenceReturn?'reference':action==='approve'?'approval':'rejection',
+        authorityGranted: action === "approve"&&!referenceReturn, productSessionCreated: false
       });
     } catch (error) {
       if (error?.code === "SESSION_EXPIRED") { this.pending = null; this.prepared = null; }

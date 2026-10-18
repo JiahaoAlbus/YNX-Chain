@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "48f27f40693f2b9a48aa98aeacfad8d70e910b68",
+  "scope": "Original Controller, renderer and callback QA gate distinguish reference-locator delivery from approval authority",
+  "red": {"test": "original Controller turns an admitted publication into a small reference and emits only after durable save", "exitCode": 1, "failure": "authorityGranted true !== false", "tests": 1, "fail": 1},
+  "green": [
+    {"testNamePattern": "original Controller turns|reference return is only|approval binds|rejection returns", "files": ["test/password-wallet-pq.test.mjs", "test/callback-ui-gate.test.mjs", "test/callback-policy.test.mjs"], "exitCode": 0, "tests": 4, "fail": 0, "durationMs": 953.732708},
+    {"files": ["test/callback-policy.test.mjs", "test/callback-ui-gate.test.mjs"], "exitCode": 0, "tests": 24, "fail": 0, "durationMs": 99.46925}
+  ],
+  "runtime": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r24-normal-install-qa-20261018/installed-r24/YNX Wallet.app/Contents/MacOS/YNX Wallet",
+  "runtimeMode": "ELECTRON_RUN_AS_NODE=1 --max-old-space-size=192 --test --test-isolation=none --test-concurrency=1",
+  "invariants": ["Reference return has authorityGranted false, callbackReceivedProved false and productSessionCreated false", "Renderer records explicit reference/approval/rejection return kind", "QA gate rejects reference plus authority true, wrong decision, unknown kind, mismatched request and claimed session creation", "Legacy lawful approval/rejection controls remain unchanged and pass"],
+  "limits": ["Controlled publisher and actual isolated QA cryptography, not public Auth or native GUI", "Formal SDK R3c activation and original A build/install still pending", "No external business input or MONSTER execution"]
+}
