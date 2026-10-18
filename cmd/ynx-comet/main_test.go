@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"syscall"
 	"testing"
+	"time"
 )
 
 func TestPQNodeOptionsNeverSilentlyDowngradePartialConfiguration(t *testing.T) {
@@ -17,6 +18,25 @@ func TestPQNodeOptionsNeverSilentlyDowngradePartialConfiguration(t *testing.T) {
 	for _, options := range []pqOptions{{migration: "original.json", recoveryFD: -1}, {recoveryFD: 0}, {vault: "existing.enc", recoveryFD: 3}} {
 		if !options.enabled() || options.validate() == nil {
 			t.Fatal("partial PQ configuration silently downgraded")
+		}
+	}
+}
+
+func TestPQNodeRemoteOptionsRequireIndependentPinsAndExcludeLocalCustody(t *testing.T) {
+	valid := pqOptions{migration: "migration.json", state: "committed.json", genesisHash: "genesis-pin", originalGenesisHash: "native-pin", migrationHash: "migration-pin", schedule: "schedule.json", scheduleHash: "schedule-pin", binding: "public-binding.json", recoveryFD: -1, remoteAddress: "tcp://127.0.0.1:27701", transportKey: "existing.transport", peerPin: "full-signer.pub"}
+	if !valid.enabled() || !valid.remote() || valid.validate() != nil || valid.transport().Timeout != 5*time.Second {
+		t.Fatal("explicit remote mode rejected")
+	}
+	for _, mutate := range []func(*pqOptions){func(p *pqOptions) { p.peerPin = "" }, func(p *pqOptions) { p.transportKey = "" }, func(p *pqOptions) { p.originalGenesisHash = "" }, func(p *pqOptions) { p.remoteAddress = "" }, func(p *pqOptions) { p.vault = "local.vault" }, func(p *pqOptions) { p.recoveryFD = 3 }, func(p *pqOptions) { p.remoteTimeout = -time.Second }, func(p *pqOptions) { p.remoteAddress = "http://signer" }} {
+		bad := valid
+		mutate(&bad)
+		if bad.validate() == nil {
+			t.Fatal("partial/dual-mode remote configuration accepted")
+		}
+	}
+	for _, partial := range []pqOptions{{peerPin: "full-signer.pub", recoveryFD: -1}, {transportKey: "existing.transport", recoveryFD: -1}, {remoteTimeout: time.Second, recoveryFD: -1}} {
+		if !partial.enabled() || partial.validate() == nil {
+			t.Fatal("partial remote flags fell through to legacy command")
 		}
 	}
 }

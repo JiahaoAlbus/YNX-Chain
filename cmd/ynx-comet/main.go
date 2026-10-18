@@ -7,10 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -23,7 +25,6 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	nm "github.com/cometbft/cometbft/node"
 	"github.com/cometbft/cometbft/p2p"
-	"github.com/cometbft/cometbft/privval"
 	"github.com/spf13/cobra"
 )
 
@@ -31,17 +32,42 @@ type pqOptions struct {
 	migration, state, genesisHash, originalGenesisHash, migrationHash string
 	schedule, scheduleHash, binding, vault                            string
 	recoveryFD                                                        int
+	remoteAddress, transportKey, peerPin                              string
+	remoteTimeout                                                     time.Duration
 }
 
 func (p pqOptions) enabled() bool {
-	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD >= 0
+	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD >= 0 || p.remote()
+}
+
+func (p pqOptions) remote() bool {
+	return p.remoteAddress != "" || p.transportKey != "" || p.peerPin != "" || p.remoteTimeout != 0
+}
+func (p pqOptions) transport() consensus.PQRemoteTransport {
+	timeout := p.remoteTimeout
+	if timeout == 0 {
+		timeout = 5 * time.Second
+	}
+	return consensus.PQRemoteTransport{Address: p.remoteAddress, TransportKey: p.transportKey, PeerPin: p.peerPin, Timeout: timeout}
+}
+func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
+	return consensus.PQOperatorFiles{Migration: p.migration, Genesis: config.GenesisFile(), State: p.state, Schedule: p.schedule, ScheduleHash: p.scheduleHash, Binding: p.binding, Pins: consensus.ConsensusBootstrapPins{CometGenesisSHA256: p.genesisHash, OriginalGenesisHash: p.originalGenesisHash, MigrationStateHash: p.migrationHash}}
 }
 
 func (p pqOptions) validate() error {
-	for _, value := range []string{p.migration, p.state, p.genesisHash, p.originalGenesisHash, p.migrationHash, p.schedule, p.scheduleHash, p.binding, p.vault} {
+	for _, value := range []string{p.migration, p.state, p.genesisHash, p.originalGenesisHash, p.migrationHash, p.schedule, p.scheduleHash, p.binding} {
 		if value == "" {
-			return errors.New("PQ mode requires migration/state, all independent genesis/migration/schedule pins, public key binding and encrypted host key vault")
+			return errors.New("PQ mode requires migration/state, all independent genesis/migration/schedule pins and public key binding")
 		}
+	}
+	if p.remote() {
+		if p.vault != "" || p.recoveryFD != -1 {
+			return errors.New("remote node must not load a local PQ vault or recovery credential")
+		}
+		return p.transport().Validate()
+	}
+	if p.vault == "" {
+		return errors.New("local PQ mode requires the existing encrypted key vault")
 	}
 	if p.recoveryFD < 3 {
 		return errors.New("PQ recovery credential requires an inherited private file descriptor >= 3")
@@ -112,6 +138,9 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	if err := options.validate(); err != nil {
 		return nil, nil, err
 	}
+	if options.remote() {
+		return nil, nil, errors.New("remote options cannot enter local private custody")
+	}
 	if config.PrivValidatorListenAddr != "" {
 		return nil, nil, errors.New("explicit local PQ custody cannot be replaced with a socket signer")
 	}
@@ -121,7 +150,6 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 			return nil, nil, err
 		}
 	}
-	legacy := privval.LoadFilePV(config.PrivValidatorKeyFile(), config.PrivValidatorStateFile())
 	nodeKey, err := p2p.LoadNodeKey(config.NodeKeyFile())
 	if err != nil {
 		return nil, nil, errors.New("cannot load original P2P node identity")
@@ -139,6 +167,10 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 		return nil, nil, err
 	}
 	bootstrap, err := consensus.NewConsensusBootstrap(rawGenesis, consensus.ConsensusBootstrapPins{CometGenesisSHA256: options.genesisHash, OriginalGenesisHash: options.originalGenesisHash, MigrationStateHash: options.migrationHash}, migration)
+	if err != nil {
+		return nil, nil, err
+	}
+	legacy, err := consensus.LoadPQOriginalLegacyValidator(config.PrivValidatorKeyFile(), config.PrivValidatorStateFile(), fmt.Sprintf("ynx_%d-1", migration.Network.ChainID))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -192,6 +224,39 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	return node, host, nil
 }
 
+func constructRemotePQNode(ctx context.Context, config *cfg.Config, logger log.Logger, options pqOptions) (*nm.Node, io.Closer, error) {
+	if config == nil || logger == nil || !options.remote() {
+		return nil, nil, errors.New("explicit remote node configuration is required")
+	}
+	if err := options.validate(); err != nil {
+		return nil, nil, err
+	}
+	if config.PrivValidatorListenAddr != "" {
+		return nil, nil, errors.New("stock remote socket setting cannot select the private PQ context ABI")
+	}
+	inputs, err := consensus.LoadPQOperatorInputs(options.operatorFiles(config))
+	if err != nil {
+		return nil, nil, err
+	}
+	nodeKey, err := consensus.LoadPQExistingNodeKey(config.NodeKeyFile())
+	if err != nil {
+		return nil, nil, err
+	}
+	app, err := consensus.NewPersistentApplicationWithEngineAuthorization(inputs.Migration, options.state, inputs.Bootstrap, inputs.Authorization)
+	if err != nil {
+		return nil, nil, err
+	}
+	conn, pin, err := consensus.DialPQRemoteConnection(ctx, options.transport())
+	if err != nil {
+		return nil, nil, err
+	}
+	n, session, err := consensus.NewPQRemoteConsensusNodeSession(config, app, conn, pin, options.transport().Timeout, inputs.Binding, nodeKey, logger)
+	if err != nil {
+		return nil, nil, errors.Join(err, conn.Close())
+	}
+	return n, session, nil
+}
+
 func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if err := options.validate(); err != nil {
 		return err
@@ -213,24 +278,57 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if err != nil {
 		return err
 	}
-	node, host, err := constructPQNode(config, logger, options)
+	ctx, stop := signal.NotifyContext(command.Context(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	var node *nm.Node
+	var custody io.Closer
+	if options.remote() {
+		node, custody, err = constructRemotePQNode(ctx, config, logger, options)
+	} else {
+		legacyLease, e := consensus.AcquireApplicationStateWriterLease(config.PrivValidatorStateFile())
+		if e != nil {
+			return e
+		}
+		defer func() { result = errors.Join(result, legacyLease.Close()) }()
+		node, custody, err = constructPQNode(config, logger, options)
+	}
 	if err != nil {
 		return err
 	}
-	defer func() { result = errors.Join(result, host.Close()) }()
+	defer func() { result = errors.Join(result, closePQCustody(custody)) }()
 	if err := node.Start(); err != nil {
+		_ = closePQCustody(custody)
+		node.OnStop()
+		_ = node.ProxyApp().Stop()
 		return err
 	}
-	ctx, stop := signal.NotifyContext(command.Context(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	defer func() { result = errors.Join(result, node.ProxyApp().Stop()) }()
+	var remoteDone <-chan struct{}
+	remote, isRemote := custody.(*consensus.PQRemotePrivValidator)
+	if isRemote {
+		remoteDone = remote.Done()
+	}
 	select {
 	case <-ctx.Done():
 	case <-node.Quit():
+	case <-remoteDone:
+		result = remote.Err()
 	}
+	if options.remote() {
+		_ = custody.Close()
+	} // unblock any pending remote call before node shutdown
 	if node.IsRunning() {
-		return node.Stop()
+		return errors.Join(result, node.Stop())
 	}
-	return nil
+	return result
+}
+
+func closePQCustody(custody io.Closer) error {
+	err := custody.Close()
+	if errors.Is(err, net.ErrClosed) {
+		return nil
+	}
+	return err
 }
 
 func main() {
@@ -250,6 +348,10 @@ func main() {
 	f.StringVar(&options.binding, "pq-host-key-binding", "", "canonical public expected validator key and existing HRS binding")
 	f.StringVar(&options.vault, "pq-host-key-vault", "", "existing encrypted validator-specific key envelope")
 	f.IntVar(&options.recoveryFD, "pq-recovery-fd", -1, "inherited private descriptor containing exactly 32 raw credential bytes")
+	f.StringVar(&options.remoteAddress, "pq-remote-signer", "", "explicit tcp:// endpoint for pinned private PQ signer ABI")
+	f.StringVar(&options.transportKey, "pq-transport-key", "", "existing private operator SecretConnection identity file")
+	f.StringVar(&options.peerPin, "pq-signer-peer-pin", "", "file containing independently pinned full signer transport public key")
+	f.DurationVar(&options.remoteTimeout, "pq-remote-timeout", 0, "remote connect/handshake/request timeout; default 5s, maximum 1m")
 	start.RunE = func(command *cobra.Command, args []string) error {
 		if !options.enabled() {
 			return legacyRun(command, args)

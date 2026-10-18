@@ -212,7 +212,7 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
           go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./internal/consensus
-          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-pq-key-init
+          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-consensus-pq-key-init ./cmd/ynx-consensus-pq-remote-signer
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
