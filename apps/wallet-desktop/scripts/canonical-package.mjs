@@ -97,8 +97,15 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  const arches=receipt.architectures;if(arches.length<1||arches.length>2||new Set(arches).size!==arches.length||arches.some(a=>!['arm64','x86_64'].includes(a)))bad();
  const compilers=receipt.commands.filter(c=>c.tool==='/usr/bin/clang++');if(compilers.length!==arches.length||receipt.commands.length!==(arches.length===2?3:1))bad();
  const sourceRel=['apps/wallet-desktop/native/original-auth-identity-node.mm',...['original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-source-binding.mm','original-ide-parent-kernel.mm','original-ide-parent-node.mm'].map(n=>'packages/wallet-auth/native/'+n)];
+ // Select from the independent frozen source inventory, never receipt flags or
+ // the argv being validated. Match the normal build hook's complete R114 set.
+ const transport=['apps/wallet-desktop/native/original-ide-wallet-identity-source-owner.inc.mm',...['original-ide-wallet-identity-source.h','original-ide-wallet-identity-source.mm','original-ide-wallet-peer-launch.h','original-ide-wallet-peer-launch.mm'].map(n=>'packages/wallet-auth/native/'+n)];
+ const selected=transport.map(name=>expectedInputs.includes(name)),withTransport=selected.some(Boolean);
+ if(withTransport&&!selected.every(Boolean))bad();
+ if(withTransport)sourceRel.push('packages/wallet-auth/native/original-ide-wallet-identity-source.mm','packages/wallet-auth/native/original-ide-wallet-peer-launch.mm');
+ if(sourceRel.some(name=>!expectedInputs.includes(name)))bad();
  for(let i=0;i<compilers.length;i++){
-  const expected=['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=original_auth_identity','-mmacosx-version-min=13.0','-I'+receipt.headerRoot,'-I'+path.join(receipt.sourceRoot,'packages/wallet-auth/native'),'-framework','Foundation','-framework','Security','-lbsm','-arch',arches[i],...sourceRel.map(p=>path.join(receipt.sourceRoot,p)),'-o',path.join(receipt.sourceRoot,receipt.output.relative)+(arches.length===2?'.'+(arches[i]==='x86_64'?'x64':arches[i]):'')];
+  const expected=['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=original_auth_identity','-mmacosx-version-min=13.0','-I'+receipt.headerRoot,'-I'+path.join(receipt.sourceRoot,'packages/wallet-auth/native'),'-framework','Foundation','-framework','Security',...(withTransport?['-framework','AppKit']:[]),'-lbsm','-arch',arches[i],...sourceRel.map(p=>path.join(receipt.sourceRoot,p)),'-o',path.join(receipt.sourceRoot,receipt.output.relative)+(arches.length===2?'.'+(arches[i]==='x86_64'?'x64':arches[i]):'')];
   if(JSON.stringify(compilers[i].argv)!==JSON.stringify(expected))bad();
  }
  if(arches.length===2){const output=path.join(receipt.sourceRoot,receipt.output.relative),last=receipt.commands[2];if(last.tool!=='/usr/bin/lipo'||JSON.stringify(last.argv)!==JSON.stringify(['-create',output+'.arm64',output+'.x64','-output',output]))bad();}
