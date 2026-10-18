@@ -1,6 +1,7 @@
 // Original offline recipe contract. Input collection/ZIP admission belongs to A.
-import { cp, lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { constants } from 'node:fs';
+import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { join, resolve, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 export const NORMAL_ROLES = Object.freeze({
@@ -22,13 +23,15 @@ const relative = p => typeof p === 'string' && p && !p.includes('\\') && !p.star
   p.split('/').every(x => x && x !== '.' && x !== '..');
 
 export function normalNpmAlias(row, inventory) {
-  if (!relative(row.path) || row.type !== 'symlink' || typeof row.target !== 'string' ||
-      row.target.startsWith('/') || row.target.includes('\\') || !row.path.includes('/.bin/')) throw Error('Normal npm alias differs');
+  if (!relative(row.path) || row.kind !== 'npm-bin-alias' || typeof row.target !== 'string' ||
+      row.target.startsWith('/') || row.target.includes('\\') || !row.path.includes('/.bin/') ||
+      row.bytes !== Buffer.byteLength(row.target) || row.sha256 !== createHash('sha256').update(row.target).digest('hex')) throw Error('Normal npm alias differs');
   const role = Object.entries(NORMAL_ROLES).find(([name, root]) => name.endsWith('dependencies') && row.path.startsWith(root + '/'));
   if (!role) throw Error('Normal npm alias role differs');
   const target = posix.normalize(posix.join(posix.dirname(row.path), row.target));
   const pin = inventory.find(p => p.path === target);
-  if (!target.startsWith(role[1] + '/') || !pin || pin.type === 'symlink' || !/^[a-f0-9]{64}$/.test(pin.sha256) ||
+  if (!target.startsWith(role[1] + '/') || !pin || ![undefined, 'file'].includes(pin.kind) || pin.type === 'symlink' ||
+      !Number.isSafeInteger(pin.bytes) || pin.bytes < 0 || !/^[a-f0-9]{64}$/.test(pin.sha256) ||
       inventory.some(p => p.path.startsWith(row.path + '/'))) throw Error('Normal npm alias escapes or becomes a parent');
   return { path: row.path, target: row.target, resolved: target, targetSha256: pin.sha256 };
 }
@@ -38,16 +41,18 @@ export function normalMacLayout(inventory, electronRelative) {
       inventory.some(p => !relative(p.path))) throw Error('Complete normal build inventory required');
   const roles = {};
   for (const [name, root] of Object.entries(NORMAL_ROLES)) {
-    if (!inventory.some(p => p.path.startsWith(root + '/') && p.type !== 'symlink' && Number.isSafeInteger(p.bytes) &&
+    if (!inventory.some(p => p.path.startsWith(root + '/') && [undefined, 'file'].includes(p.kind) && p.type !== 'symlink' && Number.isSafeInteger(p.bytes) &&
       p.bytes > 0 && /^[a-f0-9]{64}$/.test(p.sha256))) throw Error('Missing complete normal role: ' + name);
     roles[name] = { root, completeInventory: true };
   }
   const electron = inventory.find(p => p.path === electronRelative);
-  if (!electron?.path.startsWith(roles.electron42.root + '/') || electron.type === 'symlink' || electron.mode !== 0o755 ||
+  if (!electron?.path.startsWith(roles.electron42.root + '/') || ![undefined, 'file'].includes(electron.kind) || electron.type === 'symlink' || electron.mode !== 0o755 ||
       !Number.isSafeInteger(electron.bytes) || electron.bytes <= 0 || !/^[a-f0-9]{64}$/.test(electron.sha256))
     throw Error('Exact executable Electron inventory pin required');
   roles['portable-node'].version = 'v24.19.0'; roles['jsonc-parser'].version = '3.3.1'; roles.electron42.version = '42.10.0';
-  const npmBinAliases = inventory.filter(p => p.type === 'symlink' && p.path.includes('/.bin/')).map(p => normalNpmAlias(p, inventory));
+  if (inventory.some(p => p.path.includes('/.bin/') && (p.type === 'symlink' || p.kind === 'symlink') && p.kind !== 'npm-bin-alias'))
+    throw Error('Undeclared normal npm alias');
+  const npmBinAliases = inventory.filter(p => p.kind === 'npm-bin-alias').map(p => normalNpmAlias(p, inventory));
   return { schemaVersion: 1, roles, electronBinary: { relative: electron.path, bytes: electron.bytes, sha256: electron.sha256, mode: electron.mode },
     npmBinAliases, inputStatus: 'Inventory declaration only; A must verify every real input byte/mode/link before use.',
     networkOrInstall: false, packageLifecycle: false };
@@ -94,7 +99,7 @@ export function normalMacPlan({ source, inputs, work }) {
     checkpoints: ['Original A binds fresh component under work/component and calls strict derived admission before relocation.',
       'Owned workbench build regenerates its consumer; original A commits only admitted component2pins/normal consumer3paths before final App package.',
       'Provide private PATH node/npm and npm_config_prefix whose global npm tree is this exact retained npm-cli role; no ambient npm/toolchain fallback.',
-      'Stage input roles, source checkout and output on the same admitted APFS build volume. Materialization requires COW; no unbudgeted physical-copy fallback.',
+      'Stage inputs/source/output on the same admitted APFS volume. Use original Mac cp -cR; no alternate copy path. Account actual physical delta in A capacity guard.',
       'Original normal build gates run once in the actual new build. Do not separately repeat old source suites.',
       'A must validate complete input inventory, exact npm alias endpoints, Mac framework links and file modes before materialization.'],
     readback: { script: 'apps/developer/scripts/verify-normal-macos-release.mjs', args: ['APP', 'DMG', core, core + '.pin.json', source, 'FRESH_READBACK_OUTPUT'] } };
@@ -105,8 +110,9 @@ export async function materializeNormalMacInputs(plan) {
     try { await lstat(row.to); throw Error('Refusing to merge a normal input target: ' + row.to); }
     catch (e) { if (e.code !== 'ENOENT') throw e; }
     await mkdir(resolve(row.to, '..'), { recursive: true });
-    await cp(row.from, row.to, { recursive: true, errorOnExist: true, force: false, verbatimSymlinks: true,
-      mode: constants.COPYFILE_EXCL | constants.COPYFILE_FICLONE_FORCE });
+    const from = await lstat(row.from), parent = await lstat(resolve(row.to, '..'));
+    if (!from.isDirectory() || from.isSymbolicLink() || from.dev !== parent.dev) throw Error('Normal source/destination must share the admitted build volume');
+    execFileSync('/bin/cp', ['-cR', row.from, row.to], { env: { ...process.env, COPYFILE_DISABLE: '1' }, stdio: 'pipe' });
   }
   if (plan.toolBindings) {
     await mkdir(plan.privateBin, { mode: 0o700 });

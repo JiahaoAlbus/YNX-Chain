@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile, readlink, chmod, stat, symlink, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
 import { NORMAL_ROLES, normalMacLayout, normalMacPlan, normalNpmAlias, materializeNormalMacInputs } from './normal-macos-build-layout.mjs';
 const inventory = () => Object.values(NORMAL_ROLES).map(root => ({ path: root + '/example', type: 'file', bytes: 1, sha256: 'a'.repeat(64), mode: 0o755 }));
 test('finite layout includes every original builder role; 316 runtime profile is separate from full builder dependencies', () => {
@@ -23,10 +24,13 @@ test('empty/missing role, escaped inventory and nonexecutable Electron are refus
 });
 test('exact npm bin alias may refer only to pinned regular file in same role, never a parent link', () => {
   const file = { path: 'build/developer-node-modules/typescript/bin/tsc', bytes: 1, sha256: 'a'.repeat(64) };
-  const alias = { path: 'build/developer-node-modules/.bin/tsc', type: 'symlink', target: '../typescript/bin/tsc' };
+  const make = target => ({ path: 'build/developer-node-modules/.bin/tsc', kind: 'npm-bin-alias', target,
+    bytes: Buffer.byteLength(target), sha256: createHash('sha256').update(target).digest('hex') });
+  const alias = make('../typescript/bin/tsc');
   assert.equal(normalNpmAlias(alias, [alias, file]).targetSha256, file.sha256);
   for (const target of ['/etc/passwd', '../../../other', '../missing'])
-    assert.throws(() => normalNpmAlias({ ...alias, target }, [alias, file]), /alias/);
+    assert.throws(() => normalNpmAlias(make(target), [alias, file]), /alias/);
+  assert.throws(() => normalNpmAlias({ ...alias, sha256: '0'.repeat(64) }, [alias, file]), /alias/);
   assert.throws(() => normalNpmAlias(alias, [alias, file, { path: alias.path + '/child' }]), /parent/);
 });
 test('normal plan preserves existing commands, relative plugin/C++ inputs and exact canonical roots', () => {
