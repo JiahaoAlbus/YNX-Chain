@@ -122,4 +122,25 @@ class NativeStreamEvidenceTests(unittest.TestCase):
         for raw in (b'{"index":0,"index":1}',b'{"duration":NaN}'):
             with self.subTest(raw=raw),self.assertRaises(RuntimeError):evidence.strict_json(raw)
 
+class ReaderGateMeasurementTests(unittest.TestCase):
+    def test_original_gate_coverage_maxima_and_copy(self):
+        gate=dict(acquisitions=3,waitNs=100,maxWaitNs=70,holdNs=200,maxHoldNs=90)
+        reader=dict(attempts=2,readerGate=gate)
+        actual=evidence.reader_gate_measurements(reader,required=True)
+        self.assertEqual(actual,gate);actual['acquisitions']=99
+        self.assertEqual(gate['acquisitions'],3)
+        self.assertIsNone(evidence.reader_gate_measurements(dict(attempts=1)))
+        with self.assertRaises(RuntimeError):evidence.reader_gate_measurements(dict(attempts=1),required=True)
+        empty=dict(acquisitions=0,waitNs=0,maxWaitNs=0,holdNs=0,maxHoldNs=0)
+        self.assertEqual(evidence.reader_gate_measurements(dict(attempts=0,readerGate=empty),True),empty)
+
+    def test_missing_fabricated_or_mistyped_gate_totals_rejected(self):
+        gate=dict(acquisitions=3,waitNs=100,maxWaitNs=70,holdNs=200,maxHoldNs=90)
+        changes=[dict(acquisitions=1),dict(acquisitions=True),dict(waitNs=-1),dict(holdNs=0),dict(maxWaitNs=101),dict(maxHoldNs=201),dict(maxHoldNs=1.0),dict(acquisitions=0)]
+        for changed in changes:
+            with self.subTest(changed=changed),self.assertRaises(RuntimeError):
+                evidence.reader_gate_measurements(dict(attempts=2,readerGate=dict(gate,**changed)),True)
+        with self.assertRaises(RuntimeError):evidence.reader_gate_measurements(dict(attempts=2,readerGate=dict(gate,unknown=1)),True)
+        with self.assertRaises(RuntimeError):evidence.reader_gate_measurements(dict(attempts=2,readerGate=gate),required='true')
+
 if __name__=='__main__':unittest.main()

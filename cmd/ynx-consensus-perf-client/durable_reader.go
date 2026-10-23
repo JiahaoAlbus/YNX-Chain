@@ -40,6 +40,7 @@ type durableReadbackPhases struct {
 }
 
 type durableReaderStats struct {
+	ReaderGate               *durableReaderGateStats                 `json:"readerGate,omitempty"`
 	ObserverNativeFacts      *observerNativeFactStats                `json:"observerNativeFacts,omitempty"`
 	PrefixReplay             *durablePrefixReplayStats               `json:"prefixReplay,omitempty"`
 	SharedReplay             *sharedReplayStats                      `json:"sharedReplay,omitempty"`
@@ -92,6 +93,7 @@ type durableReader struct {
 	prefixStats         durablePrefixReplayStats
 	storeByteLimit      int64
 	cacheByteBudget     int64
+	readerGate          *durableReaderGateStats // Construction-only opt-in; protected by profileMu.
 	profileMu           *sync.Mutex
 	cacheTick           uint64
 	cacheEvictions      uint64
@@ -146,6 +148,10 @@ func (r *durableReader) stats() durableReaderStats {
 		defer r.profileMu.Unlock()
 	}
 	var total durableReaderStats
+	if r.readerGate != nil {
+		gate := *r.readerGate
+		total.ReaderGate = &gate
+	}
 	if r.observerNativeFacts {
 		total.ObserverNativeFacts = &observerNativeFactStats{Enabled: true}
 	}
@@ -255,8 +261,8 @@ func (r *durableReader) verifyBlockBatch(ctx context.Context, path string, raws 
 		return batch, errors.New("durable path outside the fixed manifest set")
 	}
 	if r.profileMu != nil {
-		r.profileMu.Lock()
-		defer r.profileMu.Unlock()
+		unlock := r.lockProfileReadback()
+		defer unlock()
 		if err := ctx.Err(); err != nil {
 			return batch, err
 		}

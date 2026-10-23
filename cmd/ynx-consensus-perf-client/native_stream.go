@@ -59,12 +59,16 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	r.signatureFacts = nil
 	r.observerNativeFacts = true
 	r.measurePhases = true
+	if r.profileMu != nil {
+		r.readerGate = &durableReaderGateStats{}
+	}
 	return nil
 }
 
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
+	ReaderGateTiming       bool    `json:"readerGateTiming"`
 	OfferedRate            float64 `json:"offeredRate"`
 	PacingMode             string  `json:"pacingMode"`
 	Submitters             int     `json:"submitters"`

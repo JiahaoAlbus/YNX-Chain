@@ -1325,6 +1325,8 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     need(report["terminalStream"].get("encoding")=="gzip","stream encoding differs")
     reader=report.get("durableReadback",{});rb=reader.get("readerBudget",{})
     need(rb.get("storeByteLimit")==32<<20 and rb.get("cacheInputByteBudget")==64<<20 and type(rb.get("cachedInputBytes")) is int and 0<=rb["cachedInputBytes"]<=64<<20,"stream reader retained input budget differs")
+    gate_timing=plan.get("nativePrefix",{}).get("readerGateTiming",False)
+    gate=stream_evidence.reader_gate_measurements(reader,required=gate_timing)
     prefix=validate_prefix_replay(report,True,True,True,False,native_stream8=True)
     facts=validate_observer_native_facts(report,True,native_stream8=True,total=total)
     workers=validate_submitter_selection(report,False,True,total=2048,native_stream8=True)
@@ -1345,7 +1347,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     need(type(window) in (int,float) and math.isfinite(window) and window>0,"stream ready measurement window absent")
     for key in ("rpcSubmissionsPerMeasurementSecond","checkTxAcceptedPerMeasurementSecond","codeZeroIncludedPerMeasurementSecond","effectiveBusinessIncludedPerMeasurementSecond","quorumConfirmedPerMeasurementSecond","finalSubmittedPerMeasurementSecond"):
         need(type(summary.get(key)) in (int,float) and math.isfinite(summary[key]) and abs(summary[key]-total/window)<=1e-8,"stream actual full-window rate differs")
-    return dict(summary=summary,streamEvidence=proof,prefixReplayVerification=prefix,observerNativeFactVerification=facts,workers=workers,runtimeMeasurements=runtime,
+    return dict(**({"readerGate":gate} if gate is not None else {}),summary=summary,streamEvidence=proof,prefixReplayVerification=prefix,observerNativeFactVerification=facts,workers=workers,runtimeMeasurements=runtime,
         latencyIntervalsNs=metrics["latencyIntervalsNs"],stageGapIntervalsNs=metrics["stageGapIntervalsNs"],offerLatencyIntervalsNs=metrics["offerLatencyIntervalsNs"],supplyPhases=supply,timeSeries=timeline,sustainedTPSQualified=False,
         interpretation="Complete8192 signed/terminal identities and raw latency intervals, actual runtime and original native readback. This small finite case does not qualify sustained1000TPS or independently redo BFT cryptography.")
 

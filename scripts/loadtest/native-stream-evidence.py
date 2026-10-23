@@ -206,3 +206,21 @@ def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial
 
     if fold is not None:result['rowMetrics']=fold.result()
     return result
+
+
+def reader_gate_measurements(reader,required=False):
+    """Actual outer reader lock wall totals, not additive decoder/RPC stages."""
+    need(type(required) is bool,'reader gate timing selection must be boolean')
+    gate=reader.get('readerGate')
+    if gate is None:
+        need(not required,'selected original outer reader gate timing absent')
+        return None
+    fields=('acquisitions','waitNs','maxWaitNs','holdNs','maxHoldNs')
+    need(type(gate) is dict and set(gate)==set(fields),'outer reader gate measurement schema differs')
+    need(all(integer(gate[k],0,2**63-1) for k in fields),'outer reader gate counters invalid')
+    attempts=reader.get('attempts')
+    need(integer(attempts,0,2**63-1) and gate['acquisitions']>=attempts,'outer reader gate acquisition coverage differs')
+    need(gate['maxWaitNs']<=gate['waitNs'] and gate['maxHoldNs']<=gate['holdNs'],'outer reader gate maxima exceed totals')
+    if gate['acquisitions']==0:need(all(gate[k]==0 for k in fields),'unused outer reader gate has timings')
+    else:need(gate['holdNs']>0 and gate['maxHoldNs']>0,'acquired outer reader gate hold absent')
+    return dict(gate)
