@@ -28,6 +28,9 @@ test('replacement inode, symlink and hardlink do not inherit a prior file review
 test('project generation change and outside-project selection never produce a manifest',async t=>{
  const f=await fixture(t),draft=await capturePublicationArtifact(f.options);f.state.generation++;await assert.rejects(draft.assertCurrent(),{code:'IDE_ARTIFACT_PROJECT_RETIRED'});await assert.rejects(capturePublicationArtifact({...f.options,artifactPath:join(f.workspace,'..','outside.mjs')}),{code:'IDE_ARTIFACT_OUTSIDE_PROJECT'});
 });
+test('noncanonical workspace is rejected before walking parents',async t=>{
+ const f=await fixture(t);await assert.rejects(capturePublicationArtifact({...f.options,context:{workspace:f.workspace+'/'}}),{code:'IDE_ARTIFACT_SELECTION_INVALID'});
+});
 test('manifest codec cannot substitute project, digest, purpose or extra trusted-key fields',async t=>{
  const f=await fixture(t),draft=await capturePublicationArtifact(f.options);for(const change of [{projectId:'PUBLIC-other'},{contentDigest:'0'.repeat(64)},{publishPurpose:'PUBLIC-other'},{trustedKey:'PUBLIC-not-trust'}])await assert.rejects(draft.encodeManifest(binding=>JSON.stringify({...binding,...change})),{code:'IDE_ARTIFACT_ORIGINAL_CODEC_INVALID'});
 });

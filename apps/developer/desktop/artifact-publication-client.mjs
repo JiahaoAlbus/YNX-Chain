@@ -15,7 +15,7 @@ const text = value => typeof value === 'string' && Buffer.byteLength(value) > 0 
 // reopened as different bytes after approval. Auth/SDK own encoding, current
 // permission, purpose key selection, approval, signing and independent verify.
 export async function capturePublicationArtifact({context, admittedProject, artifactPath, version, publishPurpose, targetEnvironment, signal, now = Date.now}) {
-  if (!context?.workspace || !path.isAbsolute(context.workspace) || !path.isAbsolute(artifactPath) || typeof admittedProject?.assertCurrent !== 'function' || ![version,publishPurpose,targetEnvironment].every(text)) throw reject('IDE_ARTIFACT_SELECTION_INVALID');
+  if (!context?.workspace || !path.isAbsolute(context.workspace) || path.resolve(context.workspace) !== context.workspace || typeof artifactPath !== 'string' || !path.isAbsolute(artifactPath) || typeof admittedProject?.assertCurrent !== 'function' || ![version,publishPurpose,targetEnvironment].every(text)) throw reject('IDE_ARTIFACT_SELECTION_INVALID');
   const workspace = context.workspace;
   const selected = path.resolve(artifactPath);
   const relative = path.relative(workspace, selected);
