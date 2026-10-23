@@ -1119,6 +1119,12 @@ func (g *Gateway) parseCommittedLogFilter(ctx context.Context, params []json.Raw
 		return committedEVMLogFilter{}, err
 	}
 	filter := committedEVMLogFilter{from: status.Height, to: status.Height}
+	earliest := status.EarliestBlockHeight
+	if g.migrationHeight != 0 {
+		// Only logs have an explicit immutable source-history reader. Other
+		// state/block tag methods must retain their existing Comet boundary.
+		earliest = 0
+	}
 	if len(params) == 1 && string(params[0]) != "null" {
 		var rawFilter map[string]json.RawMessage
 		if err := json.Unmarshal(params[0], &rawFilter); err != nil {
@@ -1132,13 +1138,13 @@ func (g *Gateway) parseCommittedLogFilter(ctx context.Context, params []json.Raw
 			}
 		}
 		if raw, ok := rawFilter["fromBlock"]; ok {
-			filter.from, err = parseCommittedBlockTag(raw, status.EarliestBlockHeight, status.Height)
+			filter.from, err = parseCommittedBlockTag(raw, earliest, status.Height)
 			if err != nil {
 				return committedEVMLogFilter{}, err
 			}
 		}
 		if raw, ok := rawFilter["toBlock"]; ok {
-			filter.to, err = parseCommittedBlockTag(raw, status.EarliestBlockHeight, status.Height)
+			filter.to, err = parseCommittedBlockTag(raw, earliest, status.Height)
 			if err != nil {
 				return committedEVMLogFilter{}, err
 			}
@@ -1182,6 +1188,9 @@ func (g *Gateway) parseCommittedLogFilter(ctx context.Context, params []json.Raw
 	if err := validateCommittedLogRange(filter.from, filter.to); err != nil {
 		return committedEVMLogFilter{}, err
 	}
+	if g.migrationHeight != 0 && status.EarliestBlockHeight > g.migrationHeight && status.EarliestBlockHeight-g.migrationHeight > 1 && filter.to > g.migrationHeight && filter.from < status.EarliestBlockHeight {
+		return committedEVMLogFilter{}, errors.New("requested logs include unavailable postmigration Comet history")
+	}
 	return filter, nil
 }
 
@@ -1190,11 +1199,27 @@ func (g *Gateway) committedLogFilter(ctx context.Context, params []json.RawMessa
 }
 
 func (g *Gateway) evmCommittedLogs(ctx context.Context, filter committedEVMLogFilter) ([]map[string]any, error) {
+	result := make([]map[string]any, 0)
+	if g.migrationHeight != 0 && filter.from <= g.migrationHeight {
+		originalFilter := filter
+		if originalFilter.to > g.migrationHeight {
+			originalFilter.to = g.migrationHeight
+		}
+		original, err := g.importedEVMLogs(ctx, originalFilter)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, original...)
+		if filter.to <= g.migrationHeight {
+			return result, nil
+		}
+		// filter.to > migrationHeight above proves this addition cannot wrap.
+		filter.from = g.migrationHeight + 1
+	}
 	var records []consensus.BFTEVMLog
 	if err := g.queryABCIJSON(ctx, "/evm/logs", &records); err != nil {
 		return nil, err
 	}
-	result := make([]map[string]any, 0)
 	ordinals := make(map[string]uint64, len(records))
 	perBlock := map[int64]uint64{}
 	for _, record := range records {

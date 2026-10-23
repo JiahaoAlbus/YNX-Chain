@@ -17,6 +17,7 @@ const (
 	MigrationHistoryBlockPath       = "/migration/source-history/blocks/"
 	MigrationHistoryTransactionPath = "/migration/source-history/transactions/"
 	MigrationHistoryPagePath        = "/migration/source-history/page/"
+	MigrationHistoryLogsPath        = "/migration/source-history/logs/"
 	// A bounded read response, not a change to native or Comet consensus caps.
 	MaxMigrationHistoryQueryBytes = 32 << 20
 )
@@ -58,13 +59,21 @@ type MigrationHistoryPageView struct {
 	Records []MigrationHistoryPageEntry `json:"records"`
 }
 
+type MigrationHistoryLogsView struct {
+	MigrationHistoryAnchor
+	From uint64         `json:"from,string"`
+	To   uint64         `json:"to,string"`
+	Logs []chain.EVMLog `json:"logs"`
+}
+
 // Called under Application.Query's read lock. The constructor has already
 // validated and deeply copied migration.Runtime, including its original block
 // hashes and historical account policy. Never replay or relabel those records.
 func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery, state CommittedState, migration chain.ConsensusMigrationState) bool {
 	blockQuery := strings.HasPrefix(req.Path, MigrationHistoryBlockPath)
 	pageQuery := strings.HasPrefix(req.Path, MigrationHistoryPagePath)
-	if !blockQuery && !pageQuery && !strings.HasPrefix(req.Path, MigrationHistoryTransactionPath) {
+	logsQuery := strings.HasPrefix(req.Path, MigrationHistoryLogsPath)
+	if !blockQuery && !pageQuery && !logsQuery && !strings.HasPrefix(req.Path, MigrationHistoryTransactionPath) {
 		return false
 	}
 	fail := func(err error) { response.Code, response.Log, response.Value = 1, err.Error(), nil }
@@ -78,7 +87,40 @@ func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery,
 	}
 	anchor := MigrationHistoryAnchor{Version: MigrationHistoryVersion, Source: "source_import", SourceAnchor: migration.StateHash, OriginalGenesisHash: migration.OriginalGenesisHash, MigrationBlockHash: migration.LastBlockHash, NativeChainID: migration.Network.ChainID, MigrationHeight: migration.Height}
 	var view any
-	if pageQuery {
+	if logsQuery {
+		from, to, err := migrationHistoryLogsRange(strings.TrimPrefix(req.Path, MigrationHistoryLogsPath), migration.Height)
+		if err != nil {
+			fail(err)
+			return true
+		}
+		value := MigrationHistoryLogsView{MigrationHistoryAnchor: anchor, From: from, To: to, Logs: make([]chain.EVMLog, 0)}
+		for height := from; height <= to; height++ {
+			if height >= uint64(len(migration.Runtime.Blocks)) || migration.Runtime.Blocks[height].Height != height {
+				fail(errors.New("source log block sequence differs from validated original history"))
+				return true
+			}
+			block := migration.Runtime.Blocks[height]
+			var logIndex uint64
+			for txIndex, tx := range block.Transactions {
+				if tx.BlockNum != height || tx.BlockHash != block.Hash {
+					fail(errors.New("source log transaction differs from its original containing block"))
+					return true
+				}
+				for _, log := range tx.Logs {
+					// The source stores native block hashes without 0x and log block
+					// hashes as Ethereum data. Compare that existing representation;
+					// never regenerate logs, topics, hashes or execution coordinates.
+					if log.BlockNumber != height || log.BlockHash != "0x"+strings.ToLower(block.Hash) || log.TransactionHash != tx.Hash || log.TransactionIndex != uint64(txIndex) || log.LogIndex != logIndex || log.Removed || logIndex == math.MaxUint64 {
+						fail(errors.New("source log coordinates differ from original transaction and block order"))
+						return true
+					}
+					value.Logs = append(value.Logs, log)
+					logIndex++
+				}
+			}
+		}
+		view = value
+	} else if pageQuery {
 		parts := strings.Split(strings.TrimPrefix(req.Path, MigrationHistoryPagePath), "/")
 		if len(parts) != 2 {
 			fail(errors.New("source history page requires one canonical offset and limit"))
@@ -156,4 +198,17 @@ func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery,
 	}
 	response.Value = payload
 	return true
+}
+
+func migrationHistoryLogsRange(raw string, migrationHeight uint64) (uint64, uint64, error) {
+	parts := strings.Split(raw, "/")
+	if len(parts) != 2 {
+		return 0, 0, errors.New("source logs require one canonical inclusive from/to range")
+	}
+	from, fromErr := strconv.ParseUint(parts[0], 10, 64)
+	to, toErr := strconv.ParseUint(parts[1], 10, 64)
+	if fromErr != nil || toErr != nil || strconv.FormatUint(from, 10) != parts[0] || strconv.FormatUint(to, 10) != parts[1] || from > to || to > migrationHeight || to-from >= 1000 {
+		return 0, 0, errors.New("source logs require a canonical range of at most 1000 original blocks")
+	}
+	return from, to, nil
 }
