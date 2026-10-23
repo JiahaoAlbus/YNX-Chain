@@ -131,9 +131,23 @@ class Archive:
 
 class Selection:
     def __init__(self,mode):
-        need(mode in ('unit','network'),'explicit public artifact selection required');self.mode=mode;self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
+        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network"),Selection("network")] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
     def select(self,name):
         if name.endswith('/'):return None
+        if self.mode=='network-pair':
+            labels=('native-stream-relative','native-stream-bounded')
+            if name=='ynx-linux-supply-evidence/actual.json':
+                need(name not in self.seen,'duplicate pair receipt');self.seen.add(name);return 'evidence/actual.json'
+            for i,label in enumerate(labels):
+                case=('before-' if i==0 else 'after-')+label
+                prefix='ynx-linux-supply-pair/'+case+'/'
+                if name.startswith(prefix):
+                    selected=self.children[i].select('ynx-linux-supply-case/'+name[len(prefix):])
+                    return case+'/'+selected if selected else None
+                if name=='ynx-linux-supply-evidence/'+label+'-actual.json':
+                    selected=self.children[i].select('ynx-linux-supply-evidence/actual.json')
+                    return case+'/'+selected
+            return None
         if self.mode=='network':
             if name.startswith('ynx-linux-supply-evidence/'):
                 name='evidence/'+name[len('ynx-linux-supply-evidence/'):]
@@ -249,7 +263,7 @@ def original_artifact(artifact_id,run_id,head,mode):
     from urllib.request import Request,build_opener,HTTPRedirectHandler
     from urllib.error import HTTPError
     need(integer(artifact_id,1,2**63-1) and integer(run_id,1,2**63-1) and re.fullmatch('[0-9a-f]{40}',head) is not None,'exact artifact/run/source identity required')
-    need(mode in ('unit','network'),'explicit artifact mode required')
+    need(mode in ('unit','network','network-pair'),'explicit artifact mode required')
     repo='repos/JiahaoAlbus/YNX-Chain/actions/artifacts/'+str(artifact_id)
     meta=json.loads(subprocess.check_output(['gh','api',repo],timeout=15));workflow=meta.get('workflow_run',{})
     expected=('native-stream-public-unit-' if mode=='unit' else 'linux-supply-')+head
@@ -265,7 +279,36 @@ def original_artifact(artifact_id,run_id,head,mode):
         need(error.code==302,'original artifact redirect refused');url=error.headers.get('Location','')
     return meta,url
 
-def verify_capture(destination,mode,head):
+def verify_network_pair(root,head,evidence,controller):
+    pair=evidence.strict_json(evidence.capture(root/'evidence/actual.json',16<<20))
+    need(pair.get('kind')==controller.pair_recipe(controller.STREAM_PAIR)['kind'] and pair.get('sourceCommit')==head,'original paired source/kind differs')
+    need(pair.get('casesQualified') is True and pair.get('firstCause') is None and len(pair.get('cases',[]))==2,'original paired cases incomplete')
+    need(pair.get('pairCaps')==controller.pair_recipe(controller.STREAM_PAIR)['pairCaps'],'original paired caps differ')
+    measured=[];baseline=None
+    for index,mode_name in enumerate(controller.STREAM_PACING_MODES):
+        label=controller.pair_modes(controller.STREAM_PAIR)[index];case=('before-' if index==0 else 'after-')+label
+        selected=pair['cases'][index]
+        raw=evidence.capture(root/case/'evidence/actual.json',16<<20);receipt=evidence.strict_json(raw)
+        need(selected.get('order')==index+1 and selected.get('mode')==mode_name and selected.get('label')==label and selected.get('code')==0 and selected.get('firstCause') is None,'original pair order/mode/status differs')
+        need(selected.get('sha256')==hashlib.sha256(raw).hexdigest(),'original pair case receipt SHA differs')
+        need(selected.get('hostIdentity')==pair.get('hostIdentity') and bool(pair.get('hostIdentity')),'original pair VM identity differs')
+        need(receipt.get('pacingMode')==mode_name and receipt.get('binaries')==pair.get('compiledBinaries'),'original pair mode/ELF differs')
+        if baseline is not None:
+            need(all(receipt.get(k)==baseline.get(k) for k in ('sourceCommit','sourceTree','internalTree','compiler','binaries','environment')),'paired original source/build/host differs')
+        if baseline is not None:
+            need(all(receipt.get('host',{}).get(k)==baseline.get('host',{}).get(k) for k in ('uname','cpuCount')),'paired original host differs')
+        runtime=Path(receipt.get('case',''))
+        need(runtime==Path(pair.get('case',''))/case and runtime.is_absolute(),'original pair runtime path differs')
+        need(selected.get('receipt')==str(Path(pair.get('cases',[{}])[0].get('receipt','')).parent/(label+'-actual.json')),'original pair receipt path differs')
+        baseline=receipt
+        proof=verify_capture(root/case,'network',head,expected_case=case)
+        need(proof['measurement']==selected.get('measurement'),'original pair full readback differs')
+        measured.append(dict(measurement=proof['measurement']))
+    observation=controller.native_stream_pair_observation(measured)
+    need(observation==pair.get('jointObservation'),'original pair observation differs')
+    return dict(cases=measured,jointObservation=observation,streamReadbackVerified=True,postFsyncTerminalStillRequiresOriginalCILog=True,independentNativeResourceAdmission=False,networkQualified=False,sustainedTPSQualified=False)
+
+def verify_capture(destination,mode,head,*,expected_case="ynx-linux-supply-case"):
     import importlib.util
     def load(name):
         path=Path(__file__).with_name(name+'.py');spec=importlib.util.spec_from_file_location(name,path);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
@@ -277,13 +320,16 @@ def verify_capture(destination,mode,head):
         proof=evidence.verify_streams(root,meta['runtimeNetworkRoot'],meta['runtimeOutput'],evidence.capture(root/'network-manifest.json',1<<20),initial,meta['intents'],meta['terminalStream'],meta['latest'],meta['rounds'],4<<20,measure_latency=True)
         evidence.verify_bounded_latency(proof['rowMetrics'],meta['boundedSummary'])
         return dict(publicStream=proof,originalUnitOnly=True,streamReadbackVerified=True,networkQualified=False)
+    if mode=='network-pair':return verify_network_pair(root,head,evidence,load('supply-linux-window'))
     need(mode=='network','explicit capture scope required')
     receipt=evidence.strict_json(evidence.capture(root/'evidence/actual.json',16<<20))
     controller=load('supply-linux-window');pacing=receipt.get('pacingMode')
     need(receipt.get('sourceCommit')==head and receipt.get('profile')==controller.native_stream_profile(pacing),'original source/profile receipt differs')
     need(receipt.get('nodesStarted') is True and receipt.get('cleanupComplete') is True and receipt.get('firstCause') is None,'original receipt is failed/incomplete; retained raw is not qualification')
-    case=Path(receipt.get('case',''));need(case.is_absolute() and case.name=='ynx-linux-supply-case','original runtime case scope differs')
-    report=evidence.strict_json(evidence.capture(root/'network/transactions-result.json',16<<20))
+    case=Path(receipt.get('case',''));need(case.is_absolute() and case.name==expected_case,'original runtime case scope differs')
+    report_raw=evidence.capture(root/'network/transactions-result.json',16<<20)
+    need(hashlib.sha256(report_raw).hexdigest()==receipt.get('resultSHA256'),'original client result hash differs')
+    report=evidence.strict_json(report_raw)
     measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing)
     need(canonical(measured)==canonical(receipt.get('measurement')),'recovered complete stream differs from original controller measurement')
     return dict(measurement=measured,streamReadbackVerified=True,postFsyncTerminalStillRequiresOriginalCILog=True,independentNativeResourceAdmission=False,networkQualified=False,sustainedTPSQualified=False)
@@ -295,7 +341,7 @@ if __name__=='__main__':
     import argparse,sys,signal
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-id',type=int,required=True);parser.add_argument('--run-id',type=int,required=True)
-    parser.add_argument('--head',required=True);parser.add_argument('--mode',choices=('unit','network'),required=True)
+    parser.add_argument('--head',required=True);parser.add_argument('--mode',choices=('unit','network','network-pair'),required=True)
     parser.add_argument('--destination',type=Path,required=True);parser.add_argument('--cache',type=Path,required=True)
     args=parser.parse_args()
     signal.signal(signal.SIGALRM,recovery_timeout);signal.setitimer(signal.ITIMER_REAL,60)

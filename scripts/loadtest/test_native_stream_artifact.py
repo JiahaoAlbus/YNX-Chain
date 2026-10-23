@@ -39,6 +39,22 @@ class NativeStreamArtifactTests(unittest.TestCase):
         self.assertEqual(recovered['members'],4+after['publicStream']['originalPublicMemberManifest']['members'])
         self.assertFalse(after['networkQualified'])
 
+    def test_pair_selection_keeps_independent_segments_and_excludes_secrets(self):
+        files=[]
+        for case in ('before-native-stream-relative','after-native-stream-bounded'):
+            base='ynx-linux-supply-pair/'+case+'/'
+            files.extend([(base+'network/sender-ready-intents/intent-000000.jsonl',case.encode()),(base+'network/ephemeral-sender-secrets.json',b'PRIVATE')])
+        files.extend([('ynx-linux-supply-evidence/actual.json',b'pair'),('ynx-linux-supply-evidence/native-stream-relative-actual.json',b'before'),('ynx-linux-supply-evidence/native-stream-bounded-actual.json',b'after')])
+        result=zip_reader.recover(source(build(files)),self.root,'network-pair')
+        self.assertEqual(result['members'],5)
+        for case in ('before-native-stream-relative','after-native-stream-bounded'):
+            self.assertEqual((self.root/case/'network/sender-ready-intents/intent-000000.jsonl').read_bytes(),case.encode())
+            self.assertFalse((self.root/case/'network/ephemeral-sender-secrets.json').exists())
+        selection=zip_reader.Selection('network-pair')
+        name=files[0][0];selection.select(name)
+        with self.assertRaises(RuntimeError):selection.select(name)
+        self.assertFalse(result['networkQualified'])
+
     def test_large_central_directory_streams_all_public_segments_and_resumes_exact_bytes(self):
         files=[('sender-ready-intents/intent-%06d.jsonl'%i,b'row'+str(i).encode()) for i in range(1800)]
         files+=[('ephemeral-sender-secrets.json',b'PRIVATE MUST NOT BE COPIED')]

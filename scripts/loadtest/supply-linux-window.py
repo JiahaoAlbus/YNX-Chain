@@ -159,6 +159,8 @@ PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
               "native-observer-facts-data64": ("native-observer-control", "native-observer-facts"),
               "native-client-procs2-data64": ("native-client-procs1", "native-client-procs2")}
 DATA64_PAIRS=("shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64")
+STREAM_PAIR="native-stream-cadence"
+PAIR_MODES[STREAM_PAIR]=("native-stream-relative","native-stream-bounded")
 
 
 def pair_modes(comparison):
@@ -262,6 +264,14 @@ def fixture_resource_readout(network):
 
 
 def pair_recipe(comparison="relative-bounded"):
+    if comparison==STREAM_PAIR:
+        return dict(schema=1,kind="fixed-same-VM-native-stream-cadence-pair",execute=False,requiresSeparateRootGrant=True,nodesStarted=False,
+            pairCaps=dict(PAIR_CAPS,retainedBytes=512<<20),
+            cases=[recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True) for mode in STREAM_PACING_MODES],
+            order="native-stream-relative then native-stream-bounded; no second activation after any first failure/UNKNOWN/incomplete raw/unclean closure",
+            input=dict(run_linux_supply=True,linux_supply_transport="grpc",linux_supply_profile=STREAM_PROFILE,linux_supply_pacing="paired-native-stream-cadence",measure_observer_phases=True,prefix_durable_replay=False),
+            binaries="one original four-ELF build; SHA/buildInfo/source unchanged across both original cases",
+            interpretation="Explicit pair only: each8192 signed business inputs, original45+15/60s and RSS/thread/process/log guards, private256MiB each; aggregate retained512MiB including receipts, total120s/log2MiB/build1GiB. Same boot/PID namespace/host/launcher/source/ELFs, separate fresh ephemeral fixtures. Only original relative versus bounded-cadence changes. No network or sustained TPS qualification from a recipe.")
     if comparison == "native-client-procs2-data64":
         selected=pair_recipe("native-observer-facts-data64")
         selected.update(kind="fixed-same-VM-native-client-procs2-data64-pair",
@@ -357,6 +367,7 @@ class PairBudget:
         self.build, self.active_case = build, root
         self.caps = pair_recipe(comparison)["pairCaps"]
         self.data64 = comparison in DATA64_PAIRS
+        self.stream = comparison==STREAM_PAIR
         before, after = pair_modes(comparison)
         self.case_names = ("before-"+before, "after-"+after)
         self.deadline = started + self.caps["totalMs"]/1000
@@ -375,10 +386,10 @@ class PairBudget:
         if self.remaining() <= 0:
             raise RuntimeError("pair120s total deadline exceeded")
         if sample is None:
-            sample = native_sample(self.active_case, self.build, {}, self.started,enforce_limits=not self.data64)
-        native.enforce(sample,private_bytes_cap=64 << 20 if self.data64 else None)
-        if self.data64 and not self.samples and sample["freeDiskBytes"] < (native.CAPS["diskFloorBytes"]+native.CAPS["rootReserveBytes"]+native.CAPS["compileReserveBytes"]+self.caps["retainedBytes"]):
-            raise RuntimeError("pair128MiB initial disk reserve failed")
+            sample = native_sample(self.active_case, self.build, {}, self.started,enforce_limits=not (self.data64 or self.stream))
+        native.enforce(sample,private_bytes_cap=256<<20 if self.stream else 64<<20 if self.data64 else None,**(dict(private_profile=STREAM_PROFILE) if self.stream else {}))
+        if (self.data64 or self.stream) and not self.samples and sample["freeDiskBytes"] < (native.CAPS["diskFloorBytes"]+native.CAPS["rootReserveBytes"]+native.CAPS["compileReserveBytes"]+self.caps["retainedBytes"]):
+            raise RuntimeError("pair%dMiB initial disk reserve failed"%(self.caps["retainedBytes"]>>20))
         roots = (self.root, self.evidence)
         retained = sum(native.directory_bytes(p) for p in roots)
         # The original per-case log cap covers child stdout/stderr directly in
@@ -397,10 +408,10 @@ class PairBudget:
             raise RuntimeError("pair120s exceeded during guard I/O")
 
 
-def empty_pair_closure(budget):
+def empty_pair_closure(budget, *, enforce_budget=True):
     scans = []
     for _ in range(2):
-        budget.observe()
+        if enforce_budget:budget.observe()
         rows, _ = native.proc_inventory()
         ids = native.owned_set(rows, os.getpid())
         if ids != [os.getpid()]:
@@ -834,7 +845,121 @@ def joint_observation(before, after):
                 interpretation="This comparison does not change case safety qualification. A higher finite TPS alone is not joint performance acceptance; no ten-minute or sustained1000TPS claim.")
 
 
+def native_pair_host_identity():
+    boot=native.bounded(Path("/proc/sys/kernel/random/boot_id"),128).decode().strip()
+    if not re_full_uuid(boot):raise RuntimeError("native pair boot identity absent")
+    namespace=Path("/proc/self/ns/pid").stat()
+    return dict(bootID=boot,pidNamespaceDevice=namespace.st_dev,pidNamespaceInode=namespace.st_ino,
+        uname=list(platform.uname()),logicalCPUs=os.cpu_count())
+
+
+def re_full_uuid(value):
+    import re
+    return re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",value) is not None
+
+
+def native_stream_pair_case(row,case,mode):
+    expected=recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
+    for key in ("profile","abciTransport","pacingMode","environment","nativeStream8","observerPhaseTiming","prefixDurableReplay","prefixNativeClone","observerNativeFacts","streamBudget","resourceCaps"):
+        if row.get(key)!=expected[key]:raise RuntimeError("native stream pair case selection differs: "+key)
+    if row.get("firstCause") is not None or row.get("cleanupComplete") is not True or row.get("nodesStarted") is not True:
+        raise RuntimeError("native stream pair original business/cleanup incomplete")
+    raw=native.bounded(case/"network/transactions-result.json",16<<20)
+    if hashlib.sha256(raw).hexdigest()!=row.get("resultSHA256"):raise RuntimeError("native pair original client hash differs")
+    client=stream_evidence.strict_json(raw)
+    measured=validate_native_stream_report(client,case/"network",pacing=mode)
+    phases=validate_observer_phases(client)
+    if measured!=row.get("measurement") or phases!=row.get("observerPhases"):
+        raise RuntimeError("native pair complete original stream/phase readback differs from receipt")
+    return measured
+
+
+def native_stream_pair_observation(cases):
+    if len(cases)!=2:raise RuntimeError("two actual stream cases required")
+    rates=[c["measurement"]["summary"]["finalSubmittedPerMeasurementSecond"] for c in cases]
+    tails=[c["measurement"]["offerLatencyIntervalsNs"] for c in cases]
+    for rate,latency in zip(rates,tails):
+        if type(rate) not in (int,float) or not math.isfinite(rate) or rate<=0:raise RuntimeError("native pair actual rate invalid")
+        for name in ("offerToEffectiveBusinessInclusion","offerToFinal"):
+            d=latency[name]
+            if d.get("samples")!=8192 or any(d[q].get("valid") is not True or type(d[q].get("upperNs")) is not int for q in ("p50","p95","p99")):
+                raise RuntimeError("native pair complete interval latency missing")
+    improvements={name:all(tails[1][name][q]["upperNs"]<=tails[0][name][q]["upperNs"] for q in ("p95","p99")) for name in ("offerToEffectiveBusinessInclusion","offerToFinal")}
+    target=tails[1]["offerToFinal"]["p95"]["upperNs"]<=3000000000
+    return dict(finiteFinalRateIncreased=rates[1]>rates[0],offerInclusionTailNotWorse=improvements["offerToEffectiveBusinessInclusion"],offerFinalTailNotWorse=improvements["offerToFinal"],finiteFinalP95UpperBoundWithin3s=target,
+        finiteJointImprovementObserved=rates[1]>rates[0] and all(improvements.values()) and target,sustainedTPSQualified=False,
+        interpretation="Same-VM finite pair only; compare original complete-window rates and bounded per-row offer latency intervals, preserve worse results, drops/catchups/errors/backlogs. No default or sustained1000 promotion.")
+
+
+def run_native_stream_pair(source,build,root,receipt):
+    if sys.platform!="linux" or platform.machine()!="x86_64":raise RuntimeError("same native Linux amd64 VM required")
+    source,build,root,receipt=map(lambda p:p.absolute(),(source,build,root,receipt))
+    if root.exists() or root.is_symlink() or receipt.exists() or receipt.is_symlink() or root.is_relative_to(source) or source.is_relative_to(root) or build.is_relative_to(root) or receipt.is_relative_to(root):
+        raise RuntimeError("exclusive external native pair root/receipt required")
+    if any(p.resolve()!=p for p in (source,build,root.parent,receipt.parent)):raise RuntimeError("symlinked pair roots refused")
+    root.mkdir(mode=0o700);started=time.monotonic();budget=PairBudget(root,receipt.parent,started,build,STREAM_PAIR)
+    result=dict(pair_recipe(STREAM_PAIR),execute=True,source=str(source),build=str(build),case=str(root),launcher=os.getpid(),cases=[],closureScans=[],firstCause=None,casesQualified=False)
+    host=native_pair_host_identity();result["hostIdentity"]=host
+    binary_pins={name:dict(sha256=native.digest(build/name),bytes=(build/name).stat().st_size) for name in BINARIES}
+    old={sig:signal.getsignal(sig) for sig in (signal.SIGINT,signal.SIGTERM,signal.SIGALRM)}
+    def interrupted(signum,frame):raise RuntimeError("native pair signal "+str(signum))
+    for sig in old:signal.signal(sig,interrupted)
+    signal.setitimer(signal.ITIMER_REAL,max(.001,budget.remaining()))
+    baseline=None
+    try:
+        budget.observe()
+        for index,(label,pace) in enumerate(zip(pair_modes(STREAM_PAIR),STREAM_PACING_MODES)):
+            if budget.remaining()<=60.5:raise RuntimeError("native pair reserve insufficient before activation")
+            if native_pair_host_identity()!=host:raise RuntimeError("native pair VM/boot/PID namespace changed")
+            if {name:dict(sha256=native.digest(build/name),bytes=(build/name).stat().st_size) for name in BINARIES}!=binary_pins:
+                raise RuntimeError("native pair binary SHA/bytes changed before activation")
+            case=root/(("before-" if index==0 else "after-")+label);out=receipt.parent/(label+"-actual.json");budget.active_case=case
+            invoked=time.monotonic()
+            code=run(source,build,case,out,"grpc",STREAM_PROFILE,pace,pair_budget=budget,observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
+            elapsed=(time.monotonic()-invoked)*1000;row=stream_evidence.strict_json(native.bounded(out,16<<20))
+            result["cases"].append(dict(order=index+1,mode=pace,label=label,receipt=str(out),sha256=native.digest(out),code=code,invocationElapsedMs=int(elapsed),firstCause=row.get("firstCause")))
+            if code!=0 or elapsed>60000:raise RuntimeError("native pair firstcause/UNKNOWN/case deadline: "+str(row.get("firstCause")))
+            measured=native_stream_pair_case(row,case,pace)
+            if native_pair_host_identity()!=host:raise RuntimeError("native pair VM identity changed during case")
+            for name in BINARIES:
+                if row.get("binaries",{}).get(name,{}).get("sha256")!=binary_pins[name]["sha256"] or row["binaries"][name].get("bytes")!=binary_pins[name]["bytes"]:raise RuntimeError("original case ELF differs from pair build")
+            if baseline is None:
+                baseline=row;result.update(sourceCommit=row["sourceCommit"],compiledBinaries=row["binaries"])
+            else:
+                for key in ("sourceCommit","sourceTree","internalTree","compiler","binaries","environment"):
+                    if row.get(key)!=baseline.get(key):raise RuntimeError("native pair identity differs: "+key)
+                if row["host"]["uname"]!=baseline["host"]["uname"] or row["host"]["cpuCount"]!=baseline["host"]["cpuCount"]:raise RuntimeError("native case host differs")
+            result["cases"][-1].update(measurement=measured,summary=measured["summary"],nodePhases=row["nodePhases"],hostIdentity=host)
+            result["closureScans"].append(empty_pair_closure(budget))
+            budget.observe()
+        result["casesQualified"]=True;result["jointObservation"]=native_stream_pair_observation(result["cases"])
+    except Exception as error:result["firstCause"]=str(error)
+    finally:
+        try:budget.observe()
+        except Exception as error:result["firstCause"]=result["firstCause"] or str(error)
+        result["samples"]=budget.samples;result["elapsedBeforePairReceiptFsyncMs"]=int((time.monotonic()-started)*1000)
+        post=None;scans=[]
+        try:
+            with receipt.open("x") as f:json.dump(result,f,indent=2);f.write("\n");f.flush();os.fsync(f.fileno())
+            post=budget.observe()
+        except Exception as error:result["firstCause"]=result["firstCause"] or str(error)
+        # Process closure is independent of budget/readback success.
+        try:
+            scans=empty_pair_closure(budget,enforce_budget=False)
+            if native_pair_host_identity()!=host:raise RuntimeError("native pair final VM identity differs")
+        except Exception as error:result["firstCause"]=result["firstCause"] or str(error)
+        digest=native.digest(receipt) if receipt.is_file() else None
+        elapsed=(time.monotonic()-started)*1000
+        if elapsed>120000:result["firstCause"]=result["firstCause"] or "native pair total including fsync/closure exceeded120s"
+        qualified=result["firstCause"] is None and result["casesQualified"] is True and len(scans)==2
+        print("YNX_NATIVE_STREAM_PAIR_TERMINAL "+json.dumps(dict(schema=1,qualified=qualified,firstCause=result["firstCause"],pairReceiptSHA256=digest,elapsedMs=int(elapsed),postFsyncSample=post,postFsyncClosureScans=scans,sustainedTPSQualified=False)),flush=True)
+        signal.setitimer(signal.ITIMER_REAL,0)
+        for sig,handler in old.items():signal.signal(sig,handler)
+    return 0 if qualified else 1
+
+
 def run_pair(source, build, root, receipt, comparison="relative-bounded"):
+    if comparison==STREAM_PAIR:return run_native_stream_pair(source,build,root,receipt)
     modes = pair_modes(comparison)
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("same native Linux amd64 VM required")
@@ -1783,8 +1908,8 @@ if __name__ == "__main__":
         parser.error("nondefault pair-kind requires an explicit pair action")
     if args.prepare_pair or args.execute_pair:
         if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
-                or args.transport != "grpc" or args.profile != ("supply-2048x1-data64" if args.pair_kind in DATA64_PAIRS else "supply-512x2") or args.pacing != "relative"
-                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair","shared-elastic","shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64"))):
+                or args.transport != "grpc" or args.profile != (STREAM_PROFILE if args.pair_kind==STREAM_PAIR else "supply-2048x1-data64" if args.pair_kind in DATA64_PAIRS else "supply-512x2") or args.pacing != "relative"
+                or args.observer_phases != (args.pair_kind==STREAM_PAIR or args.pair_kind in ("independent-shared","shared-fair","shared-elastic","shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64"))):
             parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
         if args.prepare_pair:
             print(json.dumps(pair_recipe(args.pair_kind), indent=2))
