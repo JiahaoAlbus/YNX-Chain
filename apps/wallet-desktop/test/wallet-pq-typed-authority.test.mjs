@@ -21,6 +21,7 @@ import {AsyncLocalStorage} from 'node:async_hooks';
 import {gunzipSync} from 'node:zlib';
 import {captureWalletPQConnection} from '../src/wallet-pq-connection-contract.mjs';
 import {PQ_DEPLOYMENT_MATERIAL_PINS} from '../src/features/pq-transaction/contract-deployment-material-pins.mjs';
+import {WalletConnectRequestInbox} from '../src/walletconnect-request-inbox.mjs';
 import {runInNewContext} from 'node:vm';
 import {createPQTransactionSubmission} from '../src/features/pq-transaction/submission.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from '../src/features/pq-transaction/typed-action-reviewed-transport.mjs';
@@ -189,6 +190,30 @@ test('qualified deployment reaches distinct original broadcast review, while unk
  const broadcast=await f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractBroadcast',params:[{version:1,account:f.account,operationId:signed.result.operationId}]},connect('qualified-deploy-broadcast')));
  assert.equal(broadcast.request.method,'ynx_broadcastPQNativeAction');assert.equal(broadcast.request.review.typedAction.kind,'contract_deploy');assert.notEqual(broadcast.request.id,pending.request.id);assert.equal(broadcast.request.review.hash,signed.result.transportHash);
  assert.throws(()=>f.authority.reject(broadcast.request.id));assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);
+});
+test('both exact inbox-sized Go materials traverse normal64KiB inbox and Main independent sign/broadcast reviews',async t=>{
+ const rows=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/deployment-material-wallet-inbox.json.gz',import.meta.url)),{maxOutputLength:1<<20})).rows;
+ for(const row of rows){
+  const f=await fixture(t,{actualFactory:true,broadcast:true}),origin='https://ide.example',inbox=new WalletConnectRequestInbox({schedule:()=>({unref(){}}),unschedule(){}}),data=new Map();
+  await inbox.start({getItem:async key=>data.get(key)??null,setItem:async(key,value)=>{data.set(key,structuredClone(value))}});
+  await f.lifecycle.run(()=>f.authority.approveOrigin(origin,f.account));
+  const p=row.pin,action={kind:'contract_deploy',fee:'10',payload:{name:p.name,sourceHash:p.sourceHash,deployedBytecodeHash:p.deployedBytecodeHash,compilerConfigHash:p.compilerConfigHash,constructorArgs:['1'],value:'0'},deployment:{source:Buffer.from(row.files['request-source.txt'].base64,'base64').toString('utf8'),material:{artifactFile:row.files['artifact.json'].base64,buildInfoFile:row.files['build-info.json'].base64}}};
+  const queued=(method,params,id)=>{const event={topic:'PUBLIC-inbox-topic',id,params:{chainId:'eip155:6423',request:{method,params}}},authorized={origin,method,params,sessionBinding:'PUBLIC original namespace'};assert(Buffer.byteLength(JSON.stringify(event))<65536);const {entry}=inbox.accept(event,authorized,f.account);assert.ok(entry);const token=captureWalletPQConnection({origin,account:f.account,sessionBinding:entry.sessionBinding,requestKey:entry.key,assertCurrent:()=>inbox.assertLive(entry)});return{entry,token,input:{origin,method,params}}};
+  const sign=queued('ynx_preparePQContractAction',[{version:1,account:f.account,action}],1);await inbox.persist();
+  const review=await f.lifecycle.run(()=>f.authority.request(sign.input,sign.token));inbox.stage(sign.entry,review.request.id);assert.equal(f.counts.sign,0);
+  await f.lifecycle.run(()=>inbox.markDecided(sign.entry,()=>f.lifecycle.current().assert()));
+  const signed=await f.lifecycle.run(()=>f.authority.approve(review.request.id,f.capsuleFor(review.request.id)));inbox.finish(sign.entry.key);
+  const original=(await new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')}).readPQOriginals(f.account,()=>{}))[0];assert.equal(original.hash,signed.result.transportHash);assert.equal(original.typed.review.action.payload.name,row.name);
+  const send=queued('ynx_preparePQContractBroadcast',[{version:1,account:f.account,operationId:signed.result.operationId}],2);
+  const broadcast=await f.lifecycle.run(()=>f.authority.request(send.input,send.token));assert.notEqual(broadcast.request.id,review.request.id);assert.equal(broadcast.request.review.hash,original.hash);assert.equal(broadcast.request.review.typedAction.kind,'contract_deploy');
+  assert.throws(()=>f.authority.reject(broadcast.request.id));inbox.finish(send.entry.key);assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);
+ }
+});
+test('old large ERC20 compiler output remains rejected by unchanged normal inbox before any Main approval',()=>{
+ const old=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/deployment-material-generations.json.gz',import.meta.url)),{maxOutputLength:1<<20})).rows[2].contracts.find(x=>x.name==='SampleYNXTCompatibleERC20'),pin=PQ_DEPLOYMENT_MATERIAL_PINS.find(x=>x.name===old.name),account='0x'+'aa'.repeat(20);
+ const params=[{version:1,account,action:{kind:'contract_deploy',fee:'10',payload:{name:pin.name,sourceHash:pin.sourceHash,deployedBytecodeHash:pin.deployedBytecodeHash,compilerConfigHash:pin.compilerConfigHash,constructorArgs:['1'],value:'0'},deployment:{source:Buffer.from(old.files['request-source.txt'].base64,'base64').toString('utf8'),material:{artifactFile:old.files['artifact.json'].base64,buildInfoFile:old.files['build-info.json'].base64}}}}];
+ assert.equal(Buffer.byteLength(JSON.stringify(params)),75135);
+ const inbox=new WalletConnectRequestInbox();assert.throws(()=>inbox.accept({topic:'PUBLIC-old-topic',id:1,params:{chainId:'eip155:6423',request:{method:'ynx_preparePQContractAction',params}}},{origin:'https://ide.example',sessionBinding:'PUBLIC'},account),e=>e.data?.code==='WALLETCONNECT_REQUEST_TOO_LARGE');assert.equal(inbox.pending().length,0);
 });
 test('connection ending after synthetic sign preserves the v3 original and never repeats the signature',async t=>{
  let live=true;const f=await fixture(t,{afterComplete:()=>{live=false}}),origin='https://ide.example';
