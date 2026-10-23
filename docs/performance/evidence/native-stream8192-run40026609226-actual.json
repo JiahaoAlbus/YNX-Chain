@@ -1,0 +1,1419 @@
+{
+  "schema": 1,
+  "kind": "actual-finite-four-node-native-stream8192",
+  "runId": 40026609226,
+  "attempt": 1,
+  "sourceCommit": "c06b56ccf371a096614238e78439ac7b06c8cfff",
+  "sourceRef": "codex/chain-native-stream-small-c06b56ccf",
+  "normalCI": 40024869115,
+  "nativeCaseQualified": true,
+  "matchedBeforeAfter": false,
+  "sustained1000Qualified": false,
+  "originalGrant": {
+    "path": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/CHAIN_NATIVE_STREAM_8192_ONCE_GRANT_20261023T212315Z.json",
+    "bytes": 3307,
+    "sha256": "109626dd4aca0226d4eecaf331aa33976d6037620aa0ef9cbfc2934e3a0f7e25"
+  },
+  "hardware": {
+    "logicalCPUs": 4,
+    "cpuModel": "AMD EPYC 9V45 96-Core Processor",
+    "uname": [
+      "Linux",
+      "runnervm8k3b6",
+      "6.17.0-1022-azure",
+      "#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+      "x86_64",
+      "x86_64"
+    ]
+  },
+  "environment": {
+    "GOMAXPROCS": "1",
+    "GOGC": "100",
+    "GOMEMLIMIT": "off"
+  },
+  "profile": {
+    "name": "supply-native-stream-2048x4-grpc",
+    "senders": 2048,
+    "rounds": 4,
+    "offeredRate": 1000,
+    "concurrency": 8,
+    "observers": 4,
+    "activeMs": 45000,
+    "cleanupMs": 15000,
+    "totalMs": 60000,
+    "ownedProcesses": 10,
+    "longLivedChildren": 9,
+    "ownedRSSBytes": 1073741824,
+    "privateBytes": 268435456,
+    "threads": 320,
+    "availableMemoryFloorBytes": 1207959552,
+    "senderMode": "ready-pool"
+  },
+  "binaries": {
+    "ynx-abci": {
+      "sha256": "35584ba54f8623330aaa1b86f9c92435ef4cf64e1614c0abfe5d0c63653cb8b3",
+      "bytes": 26645719,
+      "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-abci: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-abci\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261023211057-c06b56ccf371\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=c06b56ccf371a096614238e78439ac7b06c8cfff\n\tbuild\tvcs.time=2026-10-23T21:10:57Z\n\tbuild\tvcs.modified=false"
+    },
+    "cometbft": {
+      "sha256": "dbc49af9e123b17b06002ade4a783100843c0b718cf80c7f8167de125b2eb184",
+      "bytes": 37928076,
+      "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/cometbft: go1.25.14\n\tpath\tgithub.com/cometbft/cometbft/cmd/cometbft\n\tmod\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/fsnotify/fsnotify\tv1.7.0\th1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/google/orderedcode\tv0.0.1\th1:UzfcAexk9Vhv8+9pNOgRu41f16lHq725vPwnSeiG/Us=\n\tdep\tgithub.com/gorilla/websocket\tv1.5.3\th1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=\n\tdep\tgithub.com/hashicorp/golang-lru/v2\tv2.0.7\th1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=\n\tdep\tgithub.com/hashicorp/hcl\tv1.0.0\th1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=\n\tdep\tgithub.com/klauspost/compress\tv1.17.11\th1:In6xLpyWOi1+C7tXUUWv2ot1QvBjxevKAaI6IXrJmUc=\n\tdep\tgithub.com/lib/pq\tv1.12.0\th1:mC1zeiNamwKBecjHarAr26c/+d8V5w/u4J0I/yASbJo=\n\tdep\tgithub.com/magiconair/properties\tv1.8.7\th1:IeQXZAiQcpL9mgcAe1Nu6cX9LLw6ExEHKjN0VQdvPDY=\n\tdep\tgithub.com/minio/highwayhash\tv1.0.4\th1:asJizugGgchQod2ja9NJlGOWq4s7KsAWr5XUc9Clgl4=\n\tdep\tgithub.com/mitchellh/mapstructure\tv1.5.0\th1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pelletier/go-toml/v2\tv2.2.2\th1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/rcrowley/go-metrics\tv0.0.0-20201227073835-cf1acfcdf475\th1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=\n\tdep\tgithub.com/rs/cors\tv1.11.1\th1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=\n\tdep\tgithub.com/sagikazarmark/slog-shim\tv0.1.0\th1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=\n\tdep\tgithub.com/spf13/afero\tv1.11.0\th1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=\n\tdep\tgithub.com/spf13/cast\tv1.6.0\th1:GEiTHELF+vaR5dhz3VqZfFSzZjYbgeKDpBxQVS4GYJ0=\n\tdep\tgithub.com/spf13/cobra\tv1.9.1\th1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=\n\tdep\tgithub.com/spf13/pflag\tv1.0.6\th1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=\n\tdep\tgithub.com/spf13/viper\tv1.19.0\th1:RWq5SEjt8o25SROyN3z2OrDB9l7RPd3lwTWU8EcEdcI=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/subosito/gotenv\tv1.6.0\th1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sync\tv0.20.0\th1:e0PTpb7pjO8GAtTs2dQ6jYa5BWYlMuX047Dco/pItO4=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/ini.v1\tv1.67.0\th1:Dgnx+6+nfE+IfzjUEISNeydPJh9AXNNsWbGP9KzCsOA=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1"
+    },
+    "ynx-consensus-perf-fixture": {
+      "sha256": "4a01c7676ee02dac5c3163ca983a628dc56c728a52f509066f19903c510330e8",
+      "bytes": 24894497,
+      "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-consensus-perf-fixture: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-fixture\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261023211057-c06b56ccf371\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=c06b56ccf371a096614238e78439ac7b06c8cfff\n\tbuild\tvcs.time=2026-10-23T21:10:57Z\n\tbuild\tvcs.modified=false"
+    },
+    "ynx-consensus-perf-client": {
+      "sha256": "70c8a085f5c54ee37d905f38b181b6e68bdd1049435365e80112474175944a5e",
+      "bytes": 29600632,
+      "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-consensus-perf-client: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261023211057-c06b56ccf371\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/gorilla/websocket\tv1.5.3\th1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/rcrowley/go-metrics\tv0.0.0-20201227073835-cf1acfcdf475\th1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=c06b56ccf371a096614238e78439ac7b06c8cfff\n\tbuild\tvcs.time=2026-10-23T21:10:57Z\n\tbuild\tvcs.modified=false"
+    }
+  },
+  "summary": {
+    "input": 8192,
+    "offered": 8192,
+    "submitted": 8192,
+    "checkTxResponses": 8192,
+    "checkTxAccepted": 8192,
+    "checkTxRejected": 0,
+    "checkTxUnverifiedResponses": 0,
+    "includedCodeZero": 8192,
+    "effectiveBusinessIncluded": 8192,
+    "executionFailed": 0,
+    "quorumConfirmed": 8192,
+    "finalSubmitted": 8192,
+    "submissionUnknown": 0,
+    "timedOut": 0,
+    "observationFailed": 0,
+    "notSubmitted": 0,
+    "errorOccurrences": 57174,
+    "measurementWindowSeconds": 27.61662171,
+    "rpcSubmissionsPerMeasurementSecond": 296.63295119959116,
+    "checkTxAcceptedPerMeasurementSecond": 296.63295119959116,
+    "codeZeroIncludedPerMeasurementSecond": 296.63295119959116,
+    "effectiveBusinessIncludedPerMeasurementSecond": 296.63295119959116,
+    "quorumConfirmedPerMeasurementSecond": 296.63295119959116,
+    "finalSubmittedPerMeasurementSecond": 296.63295119959116,
+    "offeredEventSpanSeconds": 26.393452294,
+    "offeredInterarrivalRate": 310.3421223097083,
+    "submissionEventSpanSeconds": 26.484148713,
+    "submissionInterarrivalRate": 309.2793387004117,
+    "steadyStateEffectiveTPS": null,
+    "validInclusionBlocks": {
+      "blocks": null,
+      "completeObservedBlockCoverage": false,
+      "activeOfferInteriorIntervals": 0,
+      "activeOfferInteriorTransactions": 0,
+      "activeOfferInteriorSeconds": 0,
+      "activeOfferInteriorEffectiveTPS": null,
+      "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+    },
+    "submissionQueueDelayMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "checkTxLatencyMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "inclusionLatencyMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "effectiveBusinessInclusionLatencyMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "confirmationLatencyMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    }
+  },
+  "offerLatencyIntervalsNs": {
+    "offerToEffectiveBusinessInclusion": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "minNs": 258370746,
+      "maxNs": 1935182000,
+      "p50": {
+        "valid": true,
+        "lowerNs": 1089000000,
+        "upperNs": 1089999999,
+        "overflow": false
+      },
+      "p95": {
+        "valid": true,
+        "lowerNs": 1447000000,
+        "upperNs": 1447999999,
+        "overflow": false
+      },
+      "p99": {
+        "valid": true,
+        "lowerNs": 1660000000,
+        "upperNs": 1660999999,
+        "overflow": false
+      }
+    },
+    "offerToFinal": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "minNs": 587840402,
+      "maxNs": 2098322414,
+      "p50": {
+        "valid": true,
+        "lowerNs": 1283000000,
+        "upperNs": 1283999999,
+        "overflow": false
+      },
+      "p95": {
+        "valid": true,
+        "lowerNs": 1624000000,
+        "upperNs": 1624999999,
+        "overflow": false
+      },
+      "p99": {
+        "valid": true,
+        "lowerNs": 1887000000,
+        "upperNs": 1887999999,
+        "overflow": false
+      }
+    }
+  },
+  "stageGapIntervalsNs": {
+    "queue": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "minNs": 5378,
+      "maxNs": 410424020,
+      "p50": {
+        "valid": true,
+        "lowerNs": 5378,
+        "upperNs": 999999,
+        "overflow": false
+      },
+      "p95": {
+        "valid": true,
+        "lowerNs": 143000000,
+        "upperNs": 143999999,
+        "overflow": false
+      },
+      "p99": {
+        "valid": true,
+        "lowerNs": 307000000,
+        "upperNs": 307999999,
+        "overflow": false
+      }
+    },
+    "checkTx": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "minNs": 304060,
+      "maxNs": 189735423,
+      "p50": {
+        "valid": true,
+        "lowerNs": 304060,
+        "upperNs": 999999,
+        "overflow": false
+      },
+      "p95": {
+        "valid": true,
+        "lowerNs": 79000000,
+        "upperNs": 79999999,
+        "overflow": false
+      },
+      "p99": {
+        "valid": true,
+        "lowerNs": 121000000,
+        "upperNs": 121999999,
+        "overflow": false
+      }
+    },
+    "checkToObservedInclusion": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "minNs": 258016651,
+      "maxNs": 1890831338,
+      "p50": {
+        "valid": true,
+        "lowerNs": 1074000000,
+        "upperNs": 1074999999,
+        "overflow": false
+      },
+      "p95": {
+        "valid": true,
+        "lowerNs": 1424000000,
+        "upperNs": 1424999999,
+        "overflow": false
+      },
+      "p99": {
+        "valid": true,
+        "lowerNs": 1634000000,
+        "upperNs": 1634999999,
+        "overflow": false
+      }
+    },
+    "observedInclusionToFinal": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "minNs": 23538153,
+      "maxNs": 490548542,
+      "p50": {
+        "valid": true,
+        "lowerNs": 189000000,
+        "upperNs": 189999999,
+        "overflow": false
+      },
+      "p95": {
+        "valid": true,
+        "lowerNs": 324000000,
+        "upperNs": 324999999,
+        "overflow": false
+      },
+      "p99": {
+        "valid": true,
+        "lowerNs": 368000000,
+        "upperNs": 368999999,
+        "overflow": false
+      }
+    }
+  },
+  "meanPerTransactionStageMs": {
+    "queue": 17.911657850830082,
+    "checkTx": 12.532791615966811,
+    "checkToObservedInclusion": 1028.6527384802257,
+    "observedInclusionToFinal": 189.80544111694275,
+    "offerToIncluded": 1059.097187947023,
+    "offerToFinal": 1248.902629063965
+  },
+  "runtime": {
+    "processCPU": {
+      "available": true,
+      "samples": 2,
+      "userNs": 16647056000,
+      "systemNs": 791146000,
+      "totalNs": 17438202000,
+      "measurementWallNs": 27616621710,
+      "sampleBracketWallNs": 27616631134,
+      "sampleBracketOverheadNs": 9424,
+      "cpuPercentOfOneCore": 63.1438422571792,
+      "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+    },
+    "submissionOccupancy": {
+      "callbackStarted": 8192,
+      "callbackReturned": 8192,
+      "activeCallbacksAtEnd": 0,
+      "peakActiveCallbacks": 8,
+      "callbackBusyNs": 102681497645,
+      "queueWaitSamples": 8192,
+      "queueWaitNs": 146732301114,
+      "peakQueueWaitNs": 410424020,
+      "measurementWallNs": 27616621710,
+      "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+    },
+    "innerReadyWindowNs": 27616013501,
+    "outerClientWindowNs": 27616621710,
+    "interpretation": "CPU/occupancy include stream setup and close; cumulative ready window is nested inside it. Resource case also charges full evidence readback and cleanup. No pure node/GC cost or sustained capacity inference."
+  },
+  "queues": {
+    "peakOfferedAwaitingSubmission": 42,
+    "peakAcceptedAwaitingObservationCompletion": 741
+  },
+  "peakInFlightAccounts": 768,
+  "sampledPeaks": {
+    "rssBytes": 1028100096,
+    "threads": 67,
+    "privateBytes": 127758578,
+    "buildBytes": 119068924
+  },
+  "peakSample": {
+    "elapsedMs": 31671,
+    "tasks": [
+      {
+        "pid": 38721,
+        "role": "launcher",
+        "rssBytes": 35344384,
+        "threads": 1
+      },
+      {
+        "pid": 38751,
+        "role": "abci-0",
+        "rssBytes": 80916480,
+        "threads": 7
+      },
+      {
+        "pid": 38754,
+        "role": "abci-1",
+        "rssBytes": 78864384,
+        "threads": 7
+      },
+      {
+        "pid": 38757,
+        "role": "abci-2",
+        "rssBytes": 74022912,
+        "threads": 7
+      },
+      {
+        "pid": 38760,
+        "role": "abci-3",
+        "rssBytes": 80216064,
+        "threads": 7
+      },
+      {
+        "pid": 38764,
+        "role": "comet-0",
+        "rssBytes": 95121408,
+        "threads": 8
+      },
+      {
+        "pid": 38767,
+        "role": "comet-1",
+        "rssBytes": 92520448,
+        "threads": 7
+      },
+      {
+        "pid": 38770,
+        "role": "comet-2",
+        "rssBytes": 90517504,
+        "threads": 8
+      },
+      {
+        "pid": 38775,
+        "role": "comet-3",
+        "rssBytes": 92454912,
+        "threads": 8
+      },
+      {
+        "pid": 38797,
+        "role": "client",
+        "rssBytes": 308121600,
+        "threads": 7
+      }
+    ],
+    "rssBytes": 1028100096
+  },
+  "logicalPrivateByteAccounting": "Logical retained file stat.st_size plus original receipts; free filesystem blocks independently sampled by statvfs and reserve floors. Not an allocated-block or cgroup hard ceiling.",
+  "supplyPhases": {
+    "completionWaitAttempts": 8,
+    "completionWaitNs": 1204883242,
+    "completionSupplyWaitAttempts": 0,
+    "completionSupplyWaitNs": 0,
+    "completionDrainWaitAttempts": 8,
+    "completionDrainWaitNs": 1204883242,
+    "completionFailureWaitAttempts": 0,
+    "completionFailureWaitNs": 0,
+    "terminalSinkAttempts": 8192,
+    "terminalSinkNs": 747721393,
+    "offerDecodeAttempts": 8192,
+    "offerDecodeNs": 95255691,
+    "pacingWaitAttempts": 8192,
+    "pacingWaitNs": 23475727597,
+    "pacingFutureTargetAttempts": 8080,
+    "pacingAlreadyDueAttempts": 112,
+    "pacingPositiveRemainingNs": 7948455673,
+    "pacingWakeLatenessNs": 15527179353,
+    "pacingMaxWakeLatenessNs": 60806116,
+    "pacingCatchupTargets": 0,
+    "pacingCadenceResets": 0,
+    "pacingPeakCatchupTargets": 0,
+    "dispatchAttempts": 8192,
+    "dispatchNs": 4186382,
+    "signAttempts": 6144,
+    "signNs": 519950093,
+    "encodeAttempts": 6144,
+    "encodeNs": 953886797,
+    "signedSuccessors": 6144,
+    "journalSetupNs": 222242,
+    "journalAppendAttempts": 128,
+    "journalAppendNs": 566601073,
+    "journalDurableEnvelopes": 8192,
+    "journalDurableBytes": 5668569
+  },
+  "readerBudget": {
+    "storeByteLimit": 33554432,
+    "cacheInputByteBudget": 67108864,
+    "cachedInputBytes": 21777128,
+    "evictions": 0
+  },
+  "readerPhaseTotalsNs": {
+    "loadNs": 9654906200,
+    "hashNs": 304146989,
+    "captureNs": 850097762,
+    "decodeNs": 8119812479,
+    "indexPublishNs": 370063444,
+    "transactionVerifyNs": 17383141
+  },
+  "prefixReplay": {
+    "calls": 119,
+    "successfulFullReplays": 3,
+    "successfulPrefixReuses": 116,
+    "failures": 0,
+    "durationNs": 8118687574,
+    "replayedBlocks": 35,
+    "replayedTransactionInputs": 8192,
+    "canonicalByteLimit": 33554432,
+    "workPhases": {
+      "gateWait": {
+        "calls": 119,
+        "errors": 0,
+        "durationNs": 166698
+      },
+      "prefixCheck": {
+        "calls": 119,
+        "errors": 0,
+        "durationNs": 195561765
+      },
+      "privateJSON": {
+        "calls": 0,
+        "errors": 0,
+        "durationNs": 0
+      },
+      "privateValidate": {
+        "calls": 116,
+        "errors": 0,
+        "durationNs": 1737064304
+      },
+      "fullReplay": {
+        "calls": 3,
+        "errors": 0,
+        "durationNs": 588764227
+      },
+      "suffixSetup": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 631319709
+      },
+      "suffixReplay": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 2115132064
+      },
+      "suffixEncode": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 658378277
+      },
+      "canonicalCopy": {
+        "calls": 86,
+        "errors": 0,
+        "durationNs": 72820495
+      },
+      "certificatePublish": {
+        "calls": 33,
+        "errors": 0,
+        "durationNs": 1674893428
+      },
+      "privateNativeClone": {
+        "calls": 116,
+        "errors": 0,
+        "durationNs": 442294029
+      }
+    },
+    "nativeCloneCache": {
+      "snapshotPresent": true,
+      "canonicalBytes": 6953646,
+      "height": 36,
+      "accounts": 2056,
+      "feeEvents": 8192,
+      "lotEntries": 6144
+    }
+  },
+  "nodeCommitBusinessBlockDistributions": {
+    "commit": {
+      "samples": 132,
+      "meanMs": 23.79334284090909,
+      "p50Ms": 20.166213,
+      "p95Ms": 46.347951,
+      "p99Ms": 122.015274
+    },
+    "close_file": {
+      "samples": 132,
+      "meanMs": 0.010333507575757576,
+      "p50Ms": 0.009925,
+      "p95Ms": 0.016956,
+      "p99Ms": 0.022404
+    },
+    "delta_encode": {
+      "samples": 132,
+      "meanMs": 0.1405156590909091,
+      "p50Ms": 0.105019,
+      "p95Ms": 0.249057,
+      "p99Ms": 1.262538
+    },
+    "file_sync": {
+      "samples": 132,
+      "meanMs": 0.8529514166666666,
+      "p50Ms": 0.503996,
+      "p95Ms": 2.688925,
+      "p99Ms": 4.81639
+    },
+    "journal_maintenance": {
+      "samples": 132,
+      "meanMs": 3.0320325454545456,
+      "p50Ms": 0.08552,
+      "p95Ms": 25.908167,
+      "p99Ms": 87.835159
+    },
+    "prepare_file": {
+      "samples": 132,
+      "meanMs": 0.04860777272727273,
+      "p50Ms": 0.040812,
+      "p95Ms": 0.061383,
+      "p99Ms": 0.160964
+    },
+    "validate": {
+      "samples": 132,
+      "meanMs": 19.515868136363636,
+      "p50Ms": 18.210427,
+      "p95Ms": 32.227181,
+      "p99Ms": 41.332064
+    },
+    "write": {
+      "samples": 132,
+      "meanMs": 0.18149422727272727,
+      "p50Ms": 0.141234,
+      "p95Ms": 0.23145,
+      "p99Ms": 1.985061
+    },
+    "validate.app_hash": {
+      "samples": 132,
+      "meanMs": 12.362803363636363,
+      "p50Ms": 11.321724,
+      "p95Ms": 21.638319,
+      "p99Ms": 31.601916
+    },
+    "validate.semantics": {
+      "samples": 132,
+      "meanMs": 7.084488181818181,
+      "p50Ms": 6.897406,
+      "p95Ms": 11.588647,
+      "p99Ms": 14.686373
+    }
+  },
+  "nodeCommitAllBlockDistributions": {
+    "commit": {
+      "samples": 152,
+      "meanMs": 23.300451881578947,
+      "p50Ms": 20.916858,
+      "p95Ms": 46.347951,
+      "p99Ms": 122.015274
+    },
+    "close_file": {
+      "samples": 152,
+      "meanMs": 0.010068506578947369,
+      "p50Ms": 0.009384,
+      "p95Ms": 0.016956,
+      "p99Ms": 0.023155
+    },
+    "delta_encode": {
+      "samples": 152,
+      "meanMs": 0.12350899342105262,
+      "p50Ms": 0.098909,
+      "p95Ms": 0.241435,
+      "p99Ms": 1.262538
+    },
+    "file_sync": {
+      "samples": 152,
+      "meanMs": 0.7915243289473685,
+      "p50Ms": 0.488764,
+      "p95Ms": 2.395971,
+      "p99Ms": 4.81639
+    },
+    "journal_maintenance": {
+      "samples": 152,
+      "meanMs": 2.6423487434210524,
+      "p50Ms": 0.081293,
+      "p95Ms": 23.737343,
+      "p99Ms": 87.835159
+    },
+    "prepare_file": {
+      "samples": 152,
+      "meanMs": 0.04935838815789474,
+      "p50Ms": 0.040692,
+      "p95Ms": 0.080051,
+      "p99Ms": 0.23847
+    },
+    "validate": {
+      "samples": 152,
+      "meanMs": 19.513537407894738,
+      "p50Ms": 19.157068,
+      "p95Ms": 32.595768,
+      "p99Ms": 46.396859
+    },
+    "write": {
+      "samples": 152,
+      "meanMs": 0.15888388157894737,
+      "p50Ms": 0.135845,
+      "p95Ms": 0.228065,
+      "p99Ms": 1.985061
+    },
+    "validate.app_hash": {
+      "samples": 152,
+      "meanMs": 12.267855947368421,
+      "p50Ms": 11.66303,
+      "p95Ms": 21.638319,
+      "p99Ms": 31.601916
+    },
+    "validate.semantics": {
+      "samples": 152,
+      "meanMs": 7.184180453947368,
+      "p50Ms": 6.941874,
+      "p95Ms": 12.156067,
+      "p99Ms": 15.65703
+    }
+  },
+  "cometLogAgreement": [
+    {
+      "node": 0,
+      "businessHeights": 33,
+      "businessTransactionInputs": 8192,
+      "allOriginalFinalizedAndNextHeaderCommittedHashesMatch": true,
+      "lastCommittedHeight": 39
+    },
+    {
+      "node": 1,
+      "businessHeights": 33,
+      "businessTransactionInputs": 8192,
+      "allOriginalFinalizedAndNextHeaderCommittedHashesMatch": true,
+      "lastCommittedHeight": 39
+    },
+    {
+      "node": 2,
+      "businessHeights": 33,
+      "businessTransactionInputs": 8192,
+      "allOriginalFinalizedAndNextHeaderCommittedHashesMatch": true,
+      "lastCommittedHeight": 39
+    },
+    {
+      "node": 3,
+      "businessHeights": 33,
+      "businessTransactionInputs": 8192,
+      "allOriginalFinalizedAndNextHeaderCommittedHashesMatch": true,
+      "lastCommittedHeight": 39
+    }
+  ],
+  "businessBlockTransactions": {
+    "4": 472,
+    "5": 284,
+    "6": 265,
+    "7": 322,
+    "8": 268,
+    "9": 268,
+    "10": 265,
+    "11": 240,
+    "12": 237,
+    "13": 201,
+    "14": 318,
+    "15": 251,
+    "16": 256,
+    "17": 246,
+    "18": 253,
+    "19": 200,
+    "20": 264,
+    "21": 240,
+    "22": 240,
+    "23": 258,
+    "24": 200,
+    "25": 254,
+    "26": 223,
+    "27": 249,
+    "28": 244,
+    "29": 182,
+    "30": 249,
+    "31": 238,
+    "32": 236,
+    "33": 154,
+    "34": 306,
+    "35": 172,
+    "36": 137
+  },
+  "transientObservationOccurrencesByStage": {
+    "block_scan_wait": 57121,
+    "local_durable_readback": 53
+  },
+  "timeSeries": {
+    "valid": true,
+    "invalidRows": 0,
+    "bucketNs": 1000000000,
+    "windowNs": 27616013501,
+    "buckets": [
+      {
+        "second": 0,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 640,
+        "submitted": 640,
+        "checkTxAccepted": 640,
+        "effectiveBusinessIncluded": 0,
+        "finalSubmitted": 0,
+        "terminalHandedBack": 0,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 640,
+        "offeredNotYetFinal": 640
+      },
+      {
+        "second": 1,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 288,
+        "submitted": 288,
+        "checkTxAccepted": 281,
+        "effectiveBusinessIncluded": 615,
+        "finalSubmitted": 472,
+        "terminalHandedBack": 472,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 456,
+        "offeredNotYetFinal": 456
+      },
+      {
+        "second": 2,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 346,
+        "submitted": 346,
+        "checkTxAccepted": 353,
+        "effectiveBusinessIncluded": 406,
+        "finalSubmitted": 549,
+        "terminalHandedBack": 284,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 518,
+        "offeredNotYetFinal": 253
+      },
+      {
+        "second": 3,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 384,
+        "submitted": 384,
+        "checkTxAccepted": 383,
+        "effectiveBusinessIncluded": 322,
+        "finalSubmitted": 322,
+        "terminalHandedBack": 587,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 315,
+        "offeredNotYetFinal": 315
+      },
+      {
+        "second": 4,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 390,
+        "submitted": 389,
+        "checkTxAccepted": 387,
+        "effectiveBusinessIncluded": 268,
+        "finalSubmitted": 268,
+        "terminalHandedBack": 268,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 437,
+        "offeredNotYetFinal": 437
+      },
+      {
+        "second": 5,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 258,
+        "submitted": 259,
+        "checkTxAccepted": 255,
+        "effectiveBusinessIncluded": 345,
+        "finalSubmitted": 268,
+        "terminalHandedBack": 268,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 427,
+        "offeredNotYetFinal": 427
+      },
+      {
+        "second": 6,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 275,
+        "submitted": 275,
+        "checkTxAccepted": 276,
+        "effectiveBusinessIncluded": 428,
+        "finalSubmitted": 265,
+        "terminalHandedBack": 265,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 437,
+        "offeredNotYetFinal": 437
+      },
+      {
+        "second": 7,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 343,
+        "submitted": 343,
+        "checkTxAccepted": 346,
+        "effectiveBusinessIncluded": 237,
+        "finalSubmitted": 477,
+        "terminalHandedBack": 477,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 303,
+        "offeredNotYetFinal": 303
+      },
+      {
+        "second": 8,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 380,
+        "submitted": 380,
+        "checkTxAccepted": 382,
+        "effectiveBusinessIncluded": 201,
+        "finalSubmitted": 201,
+        "terminalHandedBack": 201,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 482,
+        "offeredNotYetFinal": 482
+      },
+      {
+        "second": 9,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 306,
+        "submitted": 306,
+        "checkTxAccepted": 303,
+        "effectiveBusinessIncluded": 410,
+        "finalSubmitted": 318,
+        "terminalHandedBack": 318,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 470,
+        "offeredNotYetFinal": 470
+      },
+      {
+        "second": 10,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 256,
+        "submitted": 242,
+        "checkTxAccepted": 238,
+        "effectiveBusinessIncluded": 210,
+        "finalSubmitted": 251,
+        "terminalHandedBack": 251,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 475,
+        "offeredNotYetFinal": 475
+      },
+      {
+        "second": 11,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 288,
+        "submitted": 302,
+        "checkTxAccepted": 305,
+        "effectiveBusinessIncluded": 451,
+        "finalSubmitted": 502,
+        "terminalHandedBack": 387,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 376,
+        "offeredNotYetFinal": 261
+      },
+      {
+        "second": 12,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 262,
+        "submitted": 261,
+        "checkTxAccepted": 266,
+        "effectiveBusinessIncluded": 253,
+        "finalSubmitted": 253,
+        "terminalHandedBack": 163,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 475,
+        "offeredNotYetFinal": 270
+      },
+      {
+        "second": 13,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 354,
+        "submitted": 355,
+        "checkTxAccepted": 354,
+        "effectiveBusinessIncluded": 200,
+        "finalSubmitted": 200,
+        "terminalHandedBack": 405,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 424,
+        "offeredNotYetFinal": 424
+      },
+      {
+        "second": 14,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 300,
+        "submitted": 278,
+        "checkTxAccepted": 271,
+        "effectiveBusinessIncluded": 306,
+        "finalSubmitted": 264,
+        "terminalHandedBack": 264,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 460,
+        "offeredNotYetFinal": 460
+      },
+      {
+        "second": 15,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 249,
+        "submitted": 270,
+        "checkTxAccepted": 270,
+        "effectiveBusinessIncluded": 384,
+        "finalSubmitted": 240,
+        "terminalHandedBack": 240,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 469,
+        "offeredNotYetFinal": 469
+      },
+      {
+        "second": 16,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 308,
+        "submitted": 309,
+        "checkTxAccepted": 316,
+        "effectiveBusinessIncluded": 312,
+        "finalSubmitted": 498,
+        "terminalHandedBack": 498,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 279,
+        "offeredNotYetFinal": 279
+      },
+      {
+        "second": 17,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 280,
+        "submitted": 280,
+        "checkTxAccepted": 281,
+        "effectiveBusinessIncluded": 200,
+        "finalSubmitted": 200,
+        "terminalHandedBack": 200,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 359,
+        "offeredNotYetFinal": 359
+      },
+      {
+        "second": 18,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 336,
+        "submitted": 336,
+        "checkTxAccepted": 335,
+        "effectiveBusinessIncluded": 254,
+        "finalSubmitted": 254,
+        "terminalHandedBack": 254,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 441,
+        "offeredNotYetFinal": 441
+      },
+      {
+        "second": 19,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 252,
+        "submitted": 239,
+        "checkTxAccepted": 232,
+        "effectiveBusinessIncluded": 404,
+        "finalSubmitted": 223,
+        "terminalHandedBack": 223,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 470,
+        "offeredNotYetFinal": 470
+      },
+      {
+        "second": 20,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 225,
+        "submitted": 237,
+        "checkTxAccepted": 244,
+        "effectiveBusinessIncluded": 312,
+        "finalSubmitted": 493,
+        "terminalHandedBack": 295,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 400,
+        "offeredNotYetFinal": 202
+      },
+      {
+        "second": 21,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 349,
+        "submitted": 350,
+        "checkTxAccepted": 351,
+        "effectiveBusinessIncluded": 182,
+        "finalSubmitted": 182,
+        "terminalHandedBack": 380,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 369,
+        "offeredNotYetFinal": 369
+      },
+      {
+        "second": 22,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 284,
+        "submitted": 284,
+        "checkTxAccepted": 277,
+        "effectiveBusinessIncluded": 411,
+        "finalSubmitted": 249,
+        "terminalHandedBack": 249,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 404,
+        "offeredNotYetFinal": 404
+      },
+      {
+        "second": 23,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 182,
+        "submitted": 182,
+        "checkTxAccepted": 188,
+        "effectiveBusinessIncluded": 76,
+        "finalSubmitted": 238,
+        "terminalHandedBack": 238,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 348,
+        "offeredNotYetFinal": 348
+      },
+      {
+        "second": 24,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 303,
+        "submitted": 280,
+        "checkTxAccepted": 273,
+        "effectiveBusinessIncluded": 294,
+        "finalSubmitted": 236,
+        "terminalHandedBack": 236,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 415,
+        "offeredNotYetFinal": 415
+      },
+      {
+        "second": 25,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 245,
+        "submitted": 241,
+        "checkTxAccepted": 241,
+        "effectiveBusinessIncluded": 344,
+        "finalSubmitted": 154,
+        "terminalHandedBack": 154,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 506,
+        "offeredNotYetFinal": 506
+      },
+      {
+        "second": 26,
+        "spanNs": 1000000000,
+        "completeSecond": true,
+        "offered": 109,
+        "submitted": 136,
+        "checkTxAccepted": 144,
+        "effectiveBusinessIncluded": 230,
+        "finalSubmitted": 478,
+        "terminalHandedBack": 478,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 137,
+        "offeredNotYetFinal": 137
+      },
+      {
+        "second": 27,
+        "spanNs": 616013501,
+        "completeSecond": false,
+        "offered": 0,
+        "submitted": 0,
+        "checkTxAccepted": 0,
+        "effectiveBusinessIncluded": 137,
+        "finalSubmitted": 137,
+        "terminalHandedBack": 137,
+        "rejected": 0,
+        "executionFailed": 0,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "awaitingTerminal": 0,
+        "offeredNotYetFinal": 0
+      }
+    ],
+    "interpretation": "Process-local monotonic one-second event counts, reconstructed from submission plus actual measured latency. Inclusion/final require the existing business gates. Terminal time is controller hand-back after the evidence sink. AwaitingTerminal is offered minus hand-backs; OfferedNotYetFinal includes failed outcomes and is not a mempool size. Idle gaps and partial trailing seconds remain explicit. Any unavailable/invalid event withholds the entire series. This is client observation timing, not an internal consensus timer or proof of sustained capacity."
+  },
+  "allEightNodesSpawnedMarker": {
+    "phase": "nodes_spawned",
+    "elapsedNs": 751306782,
+    "unixNs": 1792791013305680086
+  },
+  "firstNodeStartIndividuallyInstrumented": false,
+  "firstNodeBeforeDeadlineProvenByAllEightSpawnedUpperBound": true,
+  "terminal": {
+    "schema": 1,
+    "kind": "native-stream2048x4-post-fsync-verdict",
+    "qualified": true,
+    "nodesStarted": true,
+    "firstCause": null,
+    "receiptSHA256": "b13bee278f39e5a50ea6df40dcaee4b05ba4f8d25e4f7660731ca701c00a6637",
+    "elapsedMs": 34077,
+    "postFsyncSample": {
+      "elapsedMs": 34069,
+      "tasks": [
+        {
+          "pid": 38721,
+          "parent": 36421,
+          "group": 1868,
+          "startTicks": 50653,
+          "threads": 1,
+          "state": "R",
+          "rssBytes": 60612608
+        }
+      ],
+      "rssBytes": 60612608,
+      "threads": 1,
+      "privateBytes": 122918358,
+      "buildBytes": 119068924,
+      "freeDiskBytes": 88689950720,
+      "availableMemoryBytes": 15578238976,
+      "hostIdentities": 157,
+      "vanishedHostPIDs": [],
+      "processLogBytes": 547001
+    },
+    "postFsyncClosureScans": [
+      {
+        "owned": [
+          38721
+        ],
+        "launcherStartTicks": 50653
+      },
+      {
+        "owned": [
+          38721
+        ],
+        "launcherStartTicks": 50653
+      }
+    ],
+    "refusedSamples": []
+  },
+  "slotReturned": true,
+  "launcherExitObservedByProcScan": false,
+  "originalArtifact": {
+    "artifactId": 12533112601,
+    "bytes": 49331677,
+    "digestReportedButNotRecomputed": "sha256:c3c3d97db5c3446c3864b1185529d76baa69c919764104f616e55950b09c17dc",
+    "head": "c06b56ccf371a096614238e78439ac7b06c8cfff",
+    "name": "linux-supply-c06b56ccf371a096614238e78439ac7b06c8cfff",
+    "runId": 40026609226
+  },
+  "selectedRecoveredMembers": 274,
+  "selectedDecodedBytes": 21124097,
+  "originalStreamMemberManifest": {
+    "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest",
+    "members": 256,
+    "sha256": "9f2b6492f55e7042c374b2a947afa017cf0a8b3d83dcf52ddc7a710579e5973f"
+  },
+  "selectedZIPMemberManifestSHA256": "5d08a08069918043e2919eac269d76b5c4a831cc8422920ec107de95a5fb6f9c",
+  "wholeZipDigestComputed": false,
+  "readOnlyRecovery": {
+    "firstThreeAttemptsStoppedAtOriginal60s": true,
+    "originalCacheRetained": true,
+    "sameArtifactAndETag": true,
+    "remainingOnlyContinuationAuthorizedByRoot": true,
+    "finalAttemptNewRangeBytes": 720896,
+    "finalCompleteReadback": true
+  },
+  "artifacts": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/terminal-run.json",
+      "bytes": 9413,
+      "sha256": "981f13966887549094797776bb303a90bdd0d91df8d042731728fa0dba45e1cb"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/full-original.raw",
+      "bytes": 652890,
+      "sha256": "dbaadea1b809b4b7f6e90c229d7aac27bbaced9d38339e69fd2a53952098f2be"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/capture/evidence/actual.json",
+      "bytes": 1220628,
+      "sha256": "b13bee278f39e5a50ea6df40dcaee4b05ba4f8d25e4f7660731ca701c00a6637"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/capture/network/transactions-result.json",
+      "bytes": 7037349,
+      "sha256": "bae8c73b8efe3c5907e94c7726e70fc3b307cdfe2b51ec88712a93a251f92c0c"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-native-terminal.json",
+      "bytes": 1003,
+      "sha256": "4fc04aa57ed25be5bdc56cf503e7a69ff784e1f711310eb00e513c10f8f594dd"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-case-qualified.json",
+      "bytes": 75423,
+      "sha256": "82a254c6368495966f7b8404c6116ed1080f7ea5967633ea88df2340870f8143"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-phase-block-metrics.json",
+      "bytes": 36424,
+      "sha256": "919485c4ce715bb38c7f8ff300d3788761d0b8f1a504ee1ff9892366e2d18af2"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-artifact-recovery.raw",
+      "bytes": 127,
+      "sha256": "6ba09453329ed595a011c6b6243b01850e0d0c9d8ea92426e7544c6ed41797b3"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-artifact-resume-remaining-1.raw",
+      "bytes": 127,
+      "sha256": "6ba09453329ed595a011c6b6243b01850e0d0c9d8ea92426e7544c6ed41797b3"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-artifact-resume-remaining-2.raw",
+      "bytes": 127,
+      "sha256": "6ba09453329ed595a011c6b6243b01850e0d0c9d8ea92426e7544c6ed41797b3"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-artifact-resume-remaining-3.raw",
+      "bytes": 28771,
+      "sha256": "daf731eaf8230479d2a3bae504f5da295b42d63d37c40b833c20ae419b17b2e2"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-phase-block-metrics.raw",
+      "bytes": 473,
+      "sha256": "c6257b3222c6362261158899bf2b3aab2f7b842ab2adcb9843a3187107fe9e3e"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-phase-block-metrics-final.raw",
+      "bytes": 449,
+      "sha256": "a268ceef915f1a21db5c4f9cfe7ca9d11dae07d707198192014491ccab4a1e28"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-run-40026609226/original-phase-block-metrics-source-aligned.raw",
+      "bytes": 666,
+      "sha256": "dc5a1d7a636163705bc8b54fc6990ea468822d176840cfe3b05fe5f693d5c038"
+    }
+  ],
+  "nextAction": "Explicit original bounded-cadence stream CODE and focused tests based on measured timer drift. Same-VM relative/bounded pair wiring and a new exact Root grant remain necessary; no candidate performance inference.",
+  "interpretation": "Original complete8192 records plus four original Comet block tx counts/post-execution app hashes and next-header committed-state hashes all agree. Comet0.38.23 committed-state log atH prints block.AppHash, the H-1 post-state; this is not a same-height post-state hash. Node distributions separate business-bearing blocks from empty warmup/drain blocks; validation child times are nested in Commit. Means/gaps use each original transaction before aggregation; interval quantiles are original bounded1ms histograms. Phase wall totals/CPU/node totals overlap and must not be summed as critical-path finality. First-node deadline follows from the all-eight-spawned upper bound, not an invented direct timestamp. One finite low actual offer window, no matched improvement or sustained TPS claim."
+}

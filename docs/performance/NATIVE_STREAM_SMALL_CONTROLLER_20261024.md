@@ -11,7 +11,7 @@ Code: `dfd4569d4cc633538f5f82cff6794637b680df1e`, journal-byte binding follow-up
 | Active/cleanup/total |45s/15s/60s|
 | Owned processes/children |10/9|
 | Owned RSS/threads |1GiB/320|
-| Private allocated evidence/data |256MiB|
+| Private retained logical evidence/data |256MiB|
 | Encoded signed+terminal evidence |64MiB|
 | Per-store input/canonical limit |32MiB|
 | Retained input cache budget |64MiB|
