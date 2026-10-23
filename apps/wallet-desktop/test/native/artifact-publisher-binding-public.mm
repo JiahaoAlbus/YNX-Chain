@@ -24,6 +24,9 @@ static bool IDEWalletCurrent(IDEWalletSourceOwner*p,bool bound){return p&&!p->cl
 -(BOOL)approveOriginalReview:(NSString*)review error:(NSError**)error {(void)error;if(approved||retired||![review isEqual:@"PUBLIC-review"])return NO;approved=YES;return YES;}
 -(BOOL)assertOriginalApprovalCurrent:(NSString*)ref error:(NSError**)error {(void)error;return approved&&!retired&&[ref isEqual:@"PUBLIC-ref"];}
 -(NSDictionary*)selectOriginalSigning:(NSString*)ref error:(NSError**)error {(void)ref;(void)error;return nil;}
+-(NSDictionary*)signOriginalRelease:(NSString*)ref error:(NSError**)error {(void)ref;(void)error;return nil;}
+-(NSDictionary*)copyOriginalSigningOutcome:(NSError**)error {(void)error;return @{};}
+-(BOOL)saveOriginalSigningOutcome:(NSError**)error {(void)error;return NO;}
 -(void)retire {retired=YES;}
 -(BOOL)close:(NSError**)error {(void)error;retired=YES;return YES;}
 @end

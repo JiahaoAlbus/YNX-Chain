@@ -17,6 +17,15 @@
 #pragma clang diagnostic ignored "-Wunused-function"
 #import "../../../packages/wallet-auth/native/original-ide-project-authority-data.h"
 #pragma clang diagnostic pop
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+#if YNX_ORIGINAL_WALLET_ARTIFACT_CABI != 1
+#error "YNX_ORIGINAL_WALLET_ARTIFACT_CABI_REQUIRES_ONE"
+#endif
+#import "original-artifact-publisher-cabi.h"
+#endif
+
+static NSError*ReleaseEffectError(NSString*code){return [NSError errorWithDomain:@"YNXArtifactReleaseEffect" code:1 userInfo:@{NSLocalizedDescriptionKey:code}];}
+static id ReleaseEffectCause(NSError*cause){return cause?@{@"domain":cause.domain,@"code":@(cause.code)}:(id)NSNull.null;}
 
 @implementation YNXOriginalArtifactPublisherCurrent {
  YNXAuthIdentitySourceAuthority *_source;
@@ -109,6 +118,8 @@ static BOOL PublisherApprovalFocused(){
  NSDictionary *_packet,*_request,*_manifest,*_binding;
  NSString *_reviewId,*_approvalRef;NSData *_rawRequest,*_rawManifest;
  NSError *_first;BOOL _checking,_decisionSelected,_approved,_signSelected,_retired,_closed;
+ NSDictionary *_signingIntent,*_signingOutcome;NSData *_generatedMember;NSError *_signingCause,*_signingStorageCause;
+ BOOL _effectEntered,_signingActive,_outcomeStored,_outcomeRequiresRetention;
  uint64_t _floor,_expires;std::chrono::steady_clock::time_point _deadline;
 }
 - (instancetype)initPrivate {return [super init];}
@@ -176,13 +187,71 @@ static BOOL PublisherApprovalFocused(){
  // could read private custody. A duplicate/uncertain write cannot rearm this
  // owner, and a fresh owner meets the same create-only request fence.
  NSDictionary*intent=@{@"version":@"YNX-WALLET-ARTIFACT-RELEASE-JOURNAL/v1",@"requestOriginal":_packet[@"requestRaw"],@"manifestOriginal":_packet[@"invocationRaw"],@"reviewId":_reviewId,@"actualApprovalRef":_approvalRef,@"publisherOriginal":[[[[snapshot[@"publisherOriginal"]base64EncodedStringWithOptions:0]stringByReplacingOccurrencesOfString:@"+" withString:@"-"]stringByReplacingOccurrencesOfString:@"/" withString:@"_"]stringByReplacingOccurrencesOfString:@"=" withString:@""],@"publisherRegistrationRef":snapshot[@"publisher"][@"registrationRef"],@"publisherRevision":snapshot[@"publisher"][@"revision"],@"publisherKeyVersion":_binding[@"publisherKeyVersion"],@"phase":@"signing-selected"};
+ _signingIntent=[intent copy];
  NSError*storedError=nil;auto journal=[YNXOriginalArtifactReleaseJournal new];
  if(![journal createOriginalIntent:intent error:&storedError]||storedError)return [self refuse:@"PUBLISHER_SIGNING_INTENT_UNCONFIRMED" cause:storedError error:error],nil;
  if(!PublisherApprovalFocused())return [self refuse:@"PUBLISHER_SIGNING_INTENT_POST_CURRENT" cause:nil error:error],nil;
  return [self current:error];
 }}
+- (NSDictionary*)copyOriginalSigningOutcome:(NSError**)error {@synchronized(self){if(error)*error=nil;
+ if(!pthread_main_np()||getuid()==0||getuid()!=geteuid()){if(error)*error=ReleaseEffectError(@"PUBLISHER_OUTCOME_ORIGINAL_ACTOR_REQUIRED");return nil;}
+ return @{@"record":_signingOutcome?:(id)NSNull.null,@"stored":@(_outcomeStored),@"hasSignedResult":@(_generatedMember!=nil),@"phase":_signingOutcome?_signingOutcome[@"phase"]:_generatedMember?@"signed-outcome-unknown":_effectEntered?@"signing-outcome-unknown":@"not-entered",@"effectEntered":@(_effectEntered),@"active":@(_signingActive),@"firstCause":ReleaseEffectCause(_signingCause),@"storageCause":ReleaseEffectCause(_signingStorageCause),@"dataOnly":@YES,@"handoffAuthorized":@NO,@"retryAuthorized":@NO};
+}}
+- (BOOL)saveOriginalSigningOutcome:(NSError**)error {@synchronized(self){if(error)*error=nil;
+ if(!pthread_main_np()||getuid()==0||getuid()!=geteuid()){if(error)*error=ReleaseEffectError(@"PUBLISHER_OUTCOME_ORIGINAL_ACTOR_REQUIRED");return NO;}
+ if(_signingActive||!_signingOutcome){if(error)*error=ReleaseEffectError(@"PUBLISHER_OUTCOME_NOT_READY");return NO;}
+ if(_outcomeStored)return YES;
+ @try{NSError*e=nil;auto journal=[YNXOriginalArtifactReleaseJournal new];
+  if(![journal createOriginalResult:_signingOutcome error:&e]||e){if(!_signingStorageCause)_signingStorageCause=e?:ReleaseEffectError(@"PUBLISHER_OUTCOME_SAVE_UNKNOWN");if(error)*error=_signingStorageCause;return NO;}
+  _outcomeStored=YES;return YES;
+ }@catch(NSException*){if(!_signingStorageCause)_signingStorageCause=ReleaseEffectError(@"PUBLISHER_OUTCOME_SAVE_EXCEPTION");if(error)*error=_signingStorageCause;return NO;}
+}}
+- (NSDictionary*)signOriginalRelease:(NSString*)ref error:(NSError**)error {@synchronized(self){if(error)*error=nil;
+#if !defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+ (void)ref;if(error)*error=ReleaseEffectError(@"PUBLISHER_FIXED_CABI_NOT_SUPPLIED");return nil;
+#else
+ if(_effectEntered||_signingActive){if(error)*error=ReleaseEffectError(@"PUBLISHER_SIGNING_EFFECT_ONCE");return nil;}
+ _effectEntered=YES;_signingActive=YES;
+ NSData*member=nil;NSString*status=@"1",*cleanup=@"0",*phase=@"failed",*errorCode=@"PUBLISHER_CUSTODY_UNAVAILABLE";BOOL invoked=NO;
+ NSMutableData*privateRecord=nil;
+ @try{
+  NSError*e=nil;NSDictionary*snapshot=[self selectOriginalSigning:ref error:&e];
+  if(!snapshot||e){_signingCause=e?:ReleaseEffectError(@"PUBLISHER_SIGNING_CONTEXT_REFUSED");errorCode=@"PUBLISHER_SIGNING_CONTEXT_REFUSED";}
+  else {
+   auto store=[YNXOriginalArtifactPublisherStore new];privateRecord=[store copyOriginalRecordForCurrentPublisher:_publisher error:&e];
+   if(!privateRecord||e)_signingCause=e?:ReleaseEffectError(@"PUBLISHER_CUSTODY_UNAVAILABLE");
+   else if(![self assertOriginalApprovalCurrent:ref error:&e]){_signingCause=e?:ReleaseEffectError(@"PUBLISHER_SIGNING_PRE_CURRENT_REFUSED");errorCode=@"PUBLISHER_SIGNING_PRE_CURRENT_REFUSED";}
+   else {
+    _outcomeRequiresRetention=YES;invoked=YES;status=@"unknown";phase=@"unknown";errorCode=@"PUBLISHER_CABI_EXCEPTION";
+    auto outcome=ynx_wallet_private::invokeOriginalPublisherCABI(privateRecord,snapshot[@"publisherOriginal"],_binding,_rawManifest);
+    // Own public original BEFORE any post-current/focus/storage callback. The
+    // fixed body has already wiped the original private copy in its finally.
+    _generatedMember=outcome.member;member=_generatedMember;invoked=outcome.invoked;status=[NSString stringWithFormat:@"%d",outcome.status];cleanup=[NSString stringWithFormat:@"%u",outcome.cleanup];
+    if(member){phase=@"signed-unhanded";errorCode=nil;}
+    else {_signingCause=ReleaseEffectError(@"PUBLISHER_CABI_OUTCOME_REFUSED");phase=(!outcome.invoked||(outcome.status>0&&outcome.cleanup!=0&&outcome.cleanup!=3))?@"failed":@"unknown";errorCode=@"PUBLISHER_CABI_OUTCOME_REFUSED";}
+    if(member&&![self assertOriginalApprovalCurrent:ref error:&e]){_signingCause=e?:ReleaseEffectError(@"PUBLISHER_SIGNING_POST_CURRENT_REFUSED");phase=@"unknown";errorCode=@"PUBLISHER_SIGNING_POST_CURRENT_REFUSED";}
+   }
+  }
+ }@catch(NSException*){if(!_signingCause)_signingCause=ReleaseEffectError(@"PUBLISHER_SIGNING_NATIVE_EXCEPTION");phase=@"unknown";errorCode=@"PUBLISHER_SIGNING_NATIVE_EXCEPTION";}
+ @finally{
+  [privateRecord resetBytesInRange:NSMakeRange(0,privateRecord.length)];
+#if defined(YNX_PUBLISHER_STORE_PUBLIC_TEST)
+  extern void YNXPublisherStoreObserveEffectWipe(NSData*);if(privateRecord)YNXPublisherStoreObserveEffectWipe(privateRecord);
+#endif
+  if(_signingIntent){NSMutableDictionary*record=[_signingIntent mutableCopy];[record addEntriesFromDictionary:@{@"phase":phase,@"memberOriginal":member?[[[[member base64EncodedStringWithOptions:0]stringByReplacingOccurrencesOfString:@"+" withString:@"-"]stringByReplacingOccurrencesOfString:@"/" withString:@"_"]stringByReplacingOccurrencesOfString:@"=" withString:@""]:(id)NSNull.null,@"status":status,@"cleanup":cleanup,@"invoked":@(invoked),@"errorCode":errorCode?:(id)NSNull.null}];_signingOutcome=[record copy];}
+  _signingActive=NO;
+ }
+ // Saving the already held public result does not require renewed signing
+ // authority and is attempted even when original focus/current was lost.
+ NSError*saveError=nil;if(_signingOutcome&&![self saveOriginalSigningOutcome:&saveError]&&!_signingCause)_signingCause=saveError;
+ NSError*late=nil;if(!_signingCause&&![self assertOriginalApprovalCurrent:ref error:&late])_signingCause=late?:ReleaseEffectError(@"PUBLISHER_SIGNING_POST_SAVE_CURRENT_REFUSED");
+ if(_signingCause){if(error)*error=_signingCause;return nil;}
+ return [self copyOriginalSigningOutcome:error];
+#endif
+}}
 - (void)retire {@synchronized(self){_retired=YES;_approved=NO;[_publisher retire];}}
 - (BOOL)close:(NSError**)error {@synchronized(self){if(error)*error=nil;if(_checking)return [self refuse:@"PUBLISHER_APPROVAL_CALL_PENDING" cause:nil error:error];if(_closed)return YES;
+ if(_signingActive||(_outcomeRequiresRetention&&!_outcomeStored)){if(error)*error=ReleaseEffectError(@"PUBLISHER_ORIGINAL_OUTCOME_SAVE_REQUIRED");return NO;}
  [self retire];if(_publisher&&![_publisher close:error])return NO;_closed=YES;_wallet=nil;_transport=nil;return YES;
 }}
 @end
@@ -260,7 +329,9 @@ static NSData*ReleaseJournalCapture(NSDictionary*record,BOOL result){
  else {
   NSString*phase=record[@"phase"];uint64_t status=0,cleanup=0;id member=record[@"memberOriginal"];
   BOOL invoked=SourceProofBoolean(record[@"invoked"],true),notInvoked=SourceProofBoolean(record[@"invoked"],false),hasMember=member!=NSNull.null;
-  if(![@[@"signed-unhanded",@"failed",@"unknown",@"cancelled"]containsObject:phase]||(!invoked&&!notInvoked)||!SourceProofU64(record[@"status"],status)||status>10||!SourceProofU64(record[@"cleanup"],cleanup)||cleanup>3||!ReleaseJournalErrorCode(record[@"errorCode"])||(hasMember&&!ReleaseJournalMember(member)))return nil;
+  BOOL knownStatus=SourceProofU64(record[@"status"],status),unknownStatus=[phase isEqual:@"unknown"]&&[record[@"status"]isEqual:@"unknown"];
+  if(![@[@"signed-unhanded",@"failed",@"unknown",@"cancelled"]containsObject:phase]||(!invoked&&!notInvoked)||(!knownStatus&&!unknownStatus)||status>10||!SourceProofU64(record[@"cleanup"],cleanup)||cleanup>3||!ReleaseJournalErrorCode(record[@"errorCode"])||(hasMember&&!ReleaseJournalMember(member)))return nil;
+  if(unknownStatus&&(hasMember||record[@"errorCode"]==NSNull.null))return nil;
   if(hasMember&&(!invoked||status!=0||cleanup!=2))return nil;
   if([phase isEqual:@"signed-unhanded"]&&(!hasMember||record[@"errorCode"]!=NSNull.null))return nil;
   if([phase isEqual:@"failed"]&&(hasMember||status==0||record[@"errorCode"]==NSNull.null))return nil;

@@ -19,6 +19,22 @@ static NSUInteger sourceAcquires,sourceViews,sourcePublishes,sourceRetires,sourc
 static BOOL sourceJoinPending,sourceSnapshotMismatch;
 static void (^selectionHook)(void),(^joinHook)(void),(^recordHook)(void);
 static NSDictionary *walletPacket;static NSData *walletRequest;static BOOL walletLive=YES;
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+#include "../../native/original-artifact-publisher-cabi.h"
+static unsigned effectMode,effectCryptoCalls,effectWipes;static BOOL effectResultWriteFails;static void(^effectPrivateReadHook)(void),(^effectResultAddHook)(void);
+#if !defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
+extern "C" int32_t YNXArtifactPublicationSignV1(YNXArtifactPublicationRequestV1*,uint8_t*out,size_t capacity,size_t*length,uint32_t*cleanup){
+ effectCryptoCalls++;assert(capacity==98304&&*length==0&&*cleanup==0);
+ if(effectMode==3)@throw [NSException exceptionWithName:@"PUBLIC controlled crypto exception" reason:@"no real crypto" userInfo:nil];
+ out[0]=1;out[1]=2;out[2]=3;*length=3;*cleanup=2;
+ if(effectMode==1)walletLive=NO;if(effectMode==2)effectResultWriteFails=YES;return 0;
+}
+#endif
+void YNXPublisherStoreObserveEffectWipe(NSData*b){effectWipes++;for(NSUInteger i=0;i<b.length;i++)assert(((const uint8_t*)b.bytes)[i]==0);}
+#endif
+#if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
+static NSData*actualFixtureR,*actualFixtureManifest;static NSDictionary*actualFixtureBinding;
+#endif
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wincomplete-implementation"
 @implementation YNXAuthIdentitySourceAuthority
@@ -76,9 +92,15 @@ extern "C" OSStatus YNXPublisherStoreTestAdd(CFDictionaryRef raw,CFTypeRef *){
  NSDictionary *q=(__bridge NSDictionary *)raw;NSString *a=address(q);if([q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-publisher.v1"])adds++;else journalAdds++;
  assert([q[(__bridge id)kSecAttrAccessible]isEqual:(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly]);
  if(items[a])return errSecDuplicateItem;
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+ if(effectResultWriteFails&&[q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-release-result.v1"])return errSecInteractionNotAllowed;
+#endif
  if(addStatus==errSecSuccess||commitDespiteError)items[a]=[q[(__bridge id)kSecValueData]copy];
  if(journalAfterAddHook&&[q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-release-intent.v1"]){void(^hook)(void)=journalAfterAddHook;journalAfterAddHook=nil;hook();}
  if(mutateCaller)[mutateCaller resetBytesInRange:NSMakeRange(0,mutateCaller.length)];
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+ if(effectResultAddHook&&[q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-release-result.v1"]){void(^hook)(void)=effectResultAddHook;effectResultAddHook=nil;hook();}
+#endif
  return addStatus;
 }
 extern "C" OSStatus YNXPublisherStoreTestCopy(CFDictionaryRef raw,CFTypeRef *result){
@@ -90,6 +112,9 @@ extern "C" OSStatus YNXPublisherStoreTestCopy(CFDictionaryRef raw,CFTypeRef *res
  NSMutableData *returned=[item mutableCopy];
  if(corruptReadback)((uint8_t *)returned.mutableBytes)[returned.length-1]^=1;
  if(wrongR)((uint8_t *)returned.mutableBytes)[[@"YNX-PUBLISHER-CUSTODY/v1\n" lengthOfBytesUsingEncoding:NSUTF8StringEncoding]+4]^=1;
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+ if(effectPrivateReadHook&&[q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-publisher.v1"]){void(^hook)(void)=effectPrivateReadHook;effectPrivateReadHook=nil;hook();}
+#endif
  *result=CFBridgingRetain(@{(__bridge id)kSecAttrService:q[(__bridge id)kSecAttrService],(__bridge id)kSecAttrAccount:q[(__bridge id)kSecAttrAccount],(__bridge id)kSecAttrSynchronizable:@NO,(__bridge id)kSecAttrAccessible:weakerProtection?(__bridge id)kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly:(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly,(__bridge id)kSecValueData:returned});return errSecSuccess;
 }
 static NSData *R(NSString *label){return [label dataUsingEncoding:NSUTF8StringEncoding];}
@@ -99,11 +124,19 @@ static NSMutableData *record(NSData *r){
  append(r);const size_t sizes[]={54,150,2592,64};for(size_t n:sizes)append([NSMutableData dataWithLength:n]);return out;
 }
 static NSDictionary *publisherView(NSData*r,NSString*project= @"PUBLIC-project",id publisher= @"PUBLIC-publisher",BOOL publish=YES,NSString*revision= @"7"){
- NSDictionary*principal=@{@"account":@"PUBLIC-original-account"},*p=@{@"projectId":project,@"publish":@(publish)};
- NSDictionary*key=@{@"account":@"PUBLIC-original-account",@"projectId":project,@"publisherId":publisher,@"registrationRef":@"PUBLIC-original-registration-not-R-hash",@"revision":revision};
+ NSString*account=@"PUBLIC-original-account";
+#if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
+ if(actualFixtureBinding){project=actualFixtureBinding[@"projectId"];publisher=actualFixtureBinding[@"publisherId"];account=actualFixtureBinding[@"account"];}
+#endif
+ NSDictionary*principal=@{@"account":account},*p=@{@"projectId":project,@"publish":@(publish)};
+ NSDictionary*key=@{@"account":account,@"projectId":project,@"publisherId":publisher,@"registrationRef":@"PUBLIC-original-registration-not-R-hash",@"revision":revision};
  return @{@"authority":@{@"principal":principal,@"project":p,@"publisher":key,@"publisherOriginal":r,@"expiresMS":@900719925000},@"selection":@{@"projectId":project,@"publisherId":publisher,@"projectRevision":@"3",@"catalogRevision":@"4",@"workspace":@"PUBLIC-signed-path-is-not-FD-owner"}};
 }
-static NSData *manifest(){NSDictionary*d=@{@"byteSize":@1,@"contentDigest":[@"a" stringByPaddingToLength:64 withString:@"a" startingAtIndex:0],@"projectId":@"PUBLIC-project",@"publishPurpose":@"release",@"targetEnvironment":@"testnet",@"version":@"PUBLIC-v1"};return [NSJSONSerialization dataWithJSONObject:d options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];}
+static NSData *manifest(){
+#if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
+ if(actualFixtureManifest)return actualFixtureManifest;
+#endif
+ NSDictionary*d=@{@"byteSize":@1,@"contentDigest":[@"a" stringByPaddingToLength:64 withString:@"a" startingAtIndex:0],@"projectId":@"PUBLIC-project",@"publishPurpose":@"release",@"targetEnvironment":@"testnet",@"version":@"PUBLIC-v1"};return [NSJSONSerialization dataWithJSONObject:d options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];}
 static void resetSource(NSData*r){sourceView=publisherView(r);sourceAcquireError=sourcePublishError=sourceCloseError=nil;sourceAcquires=sourceViews=sourcePublishes=sourceRetires=sourceJoins=sourceCloses=0;sourceJoinPending=sourceSnapshotMismatch=NO;selectionHook=joinHook=recordHook=nil;observedRecord=nil;}
 static void currentCases(YNXOriginalArtifactPublisherStore*store,NSData*r,NSData*wire){
  NSError *e=nil;resetSource(r);auto c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];assert(c&&!e);
@@ -129,6 +162,9 @@ static void currentCases(YNXOriginalArtifactPublisherStore*store,NSData*r,NSData
  std::puts("PASS cleanup reentry and worker current access cannot duplicate cleanup or lend authority");
 }
 static NSData *approvalPublicR(){
+#if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
+ if(actualFixtureR)return actualFixtureR;
+#endif
  // PUBLIC structural R13 bytes only. Native Source double admits no Root,
  // and this zero-key fixture is never imported or used by a crypto signer.
  NSArray*parts=@[R(@"YNX-IDE-ARTIFACT-PUBLISHER/v1"),R(@"YNX-BATCH/v0.1"),R(@"ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512"),R(@"ARTIFACT-RELEASE"),R(@"ide-artifact-publisher"),[NSMutableData dataWithLength:32],R(@"0x1111111111111111111111111111111111111111"),R(@"PUBLIC-original-account"),R(@"PUBLIC-project"),R(@"PUBLIC-publisher"),R(@"5"),[NSMutableData dataWithLength:2592],[NSMutableData dataWithLength:64]];
@@ -138,6 +174,9 @@ static void setupApproval(NSDictionary*patch=nil){
  resetSource(approvalPublicR());walletLive=YES;
  uint64_t now=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);
  NSMutableDictionary*body=[@{@"purpose":@"AUTH-PROTECTED-KEY-CALL",@"requestId":@"PUBLIC-original-native-request",@"owner":@"0x1111111111111111111111111111111111111111",@"networkId":[@"0" stringByPaddingToLength:64 withString:@"0" startingAtIndex:0],@"issuedAtMs":[NSString stringWithFormat:@"%llu",(unsigned long long)now],@"expiresAtMs":[NSString stringWithFormat:@"%llu",(unsigned long long)(now+30000)]}mutableCopy];if(patch)[body addEntriesFromDictionary:patch];
+#if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
+ if(actualFixtureBinding){body[@"owner"]=actualFixtureBinding[@"subjectOwner"];body[@"networkId"]=actualFixtureBinding[@"networkId"];}
+#endif
  walletRequest=[NSJSONSerialization dataWithJSONObject:body options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
  walletPacket=@{@"requestRaw":[[NSString alloc]initWithData:walletRequest encoding:NSUTF8StringEncoding],@"invocationRaw":[[NSString alloc]initWithData:manifest()encoding:NSUTF8StringEncoding]};
 }
@@ -201,8 +240,46 @@ static void journalCases(){
  std::puts("PASS maximum bounded public member survives cold storage while oversized output cannot write");
 }
 #endif
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+static YNXOriginalArtifactReleaseApproval*effectApproval(NSString**ref){NSError*e=nil;setupApproval(@{@"requestId":NSUUID.UUID.UUIDString.lowercaseString});auto a=captureApproval(&e);assert(a&&!e);NSDictionary*v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);*ref=[a copyOriginalReview:&e][@"actualApprovalRef"];return a;}
+static void effectCases(){
+ NSError*e=nil;auto store=[YNXOriginalArtifactPublisherStore new];NSData*r=approvalPublicR();assert([store createOriginalRecord:record(r)forPublicOriginal:r error:&e]);
+ NSString*ref=nil;effectMode=0;auto a=effectApproval(&ref);unsigned before=effectCryptoCalls,wipes=effectWipes;NSDictionary*v=[a signOriginalRelease:ref error:&e];assert(v&&!e&&[v[@"stored"]boolValue]&&[v[@"hasSignedResult"]boolValue]&&[v[@"record"][@"memberOriginal"]isEqual:@"AQID"]&&effectCryptoCalls==before+1&&effectWipes==wipes+1);assert(![a signOriginalRelease:ref error:&e]&&effectCryptoCalls==before+1);NSData*request=journalRequest(v[@"record"]);assert([a close:&e]);NSDictionary*cold=[[YNXOriginalArtifactReleaseJournal new]copyOriginalResultForRequest:request error:&e];assert([cold[@"phase"]isEqual:@"signed-unhanded"]&&[cold[@"memberOriginal"]isEqual:@"AQID"]&&![cold[@"retryAuthorized"]boolValue]);
+ std::puts("PASS connected effect signs once, wipes original copy and durably retains public result before returning");
+ effectMode=1;a=effectApproval(&ref);before=effectCryptoCalls;assert(![a signOriginalRelease:ref error:&e]&&e);v=[a copyOriginalSigningOutcome:&e];assert([v[@"stored"]boolValue]&&[v[@"hasSignedResult"]boolValue]&&[v[@"record"][@"phase"]isEqual:@"unknown"]&&[v[@"record"][@"memberOriginal"]isEqual:@"AQID"]&&effectCryptoCalls==before+1);assert(![a signOriginalRelease:ref error:&e]&&effectCryptoCalls==before+1);walletLive=YES;assert([a close:&e]);
+ std::puts("PASS original channel lost immediately after signature cannot erase public member or cause replacement signing");
+ effectMode=2;a=effectApproval(&ref);before=effectCryptoCalls;assert(![a signOriginalRelease:ref error:&e]&&e);v=[a copyOriginalSigningOutcome:&e];assert(![v[@"stored"]boolValue]&&[v[@"hasSignedResult"]boolValue]&&[v[@"record"][@"memberOriginal"]isEqual:@"AQID"]);assert(![a close:&e]&&[e.localizedDescription isEqual:@"PUBLISHER_ORIGINAL_OUTCOME_SAVE_REQUIRED"]);[a retire];walletLive=NO;effectResultWriteFails=NO;assert([a saveOriginalSigningOutcome:&e]&&!e&&effectCryptoCalls==before+1);v=[a copyOriginalSigningOutcome:&e];assert([v[@"stored"]boolValue]&&v[@"storageCause"]!=NSNull.null&&v[@"firstCause"]!=NSNull.null);assert(![a signOriginalRelease:ref error:&e]&&effectCryptoCalls==before+1);assert([a close:&e]);walletLive=YES;
+ std::puts("PASS failed result save fences cleanup and explicit retired-owner save persists the same result without signing again");
+ effectMode=0;a=effectApproval(&ref);before=effectCryptoCalls;wipes=effectWipes;effectPrivateReadHook=^{walletLive=NO;};assert(![a signOriginalRelease:ref error:&e]);v=[a copyOriginalSigningOutcome:&e];assert(![v[@"hasSignedResult"]boolValue]&&[v[@"record"][@"phase"]isEqual:@"failed"]&&[v[@"stored"]boolValue]&&effectCryptoCalls==before&&effectWipes==wipes+1);walletLive=YES;assert([a close:&e]);
+ std::puts("PASS channel loss after custody read refuses crypto, wipes copy and records definite no-member failure");
+ a=effectApproval(&ref);before=effectCryptoCalls;effectResultAddHook=^{walletLive=NO;};assert(![a signOriginalRelease:ref error:&e]);v=[a copyOriginalSigningOutcome:&e];assert([v[@"stored"]boolValue]&&[v[@"hasSignedResult"]boolValue]&&v[@"firstCause"]!=NSNull.null&&[v[@"record"][@"phase"]isEqual:@"signed-unhanded"]&&effectCryptoCalls==before+1);walletLive=YES;assert([a close:&e]);
+ std::puts("PASS post-save retirement reports original failure while immutable signed-unhanded bytes remain recoverable");
+ effectMode=3;a=effectApproval(&ref);before=effectCryptoCalls;wipes=effectWipes;assert(![a signOriginalRelease:ref error:&e]&&e);v=[a copyOriginalSigningOutcome:&e];assert([v[@"stored"]boolValue]&&![v[@"hasSignedResult"]boolValue]&&[v[@"record"][@"phase"]isEqual:@"unknown"]&&[v[@"record"][@"status"]isEqual:@"unknown"]&&effectCryptoCalls==before+1&&effectWipes==wipes+1);assert(![a signOriginalRelease:ref error:&e]&&effectCryptoCalls==before+1);assert([a close:&e]);effectMode=0;
+ std::puts("PASS crypto boundary exception persists explicit unknown-return state, wipes copy and never re-enters");
+ std::puts("PUBLIC_EFFECT_CONTROL_SEAMS_ONLY actualCrypto=0 Source=0 userApproval=0");
+}
+#endif
+#if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
+static int actualEffect(NSString*input,NSString*output){
+ auto read=[&](NSString*name){NSData*b=[NSData dataWithContentsOfFile:[input stringByAppendingPathComponent:name]];assert(b.length);return b;};
+ actualFixtureR=read(@"registration.bin");actualFixtureManifest=read(@"manifest.json");actualFixtureBinding=SourceProjectR13(actualFixtureR);assert(actualFixtureBinding);
+ NSMutableData*provision=[NSMutableData dataWithBytes:"YNX-PUBLISHER-CUSTODY/v1\n" length:sizeof("YNX-PUBLISHER-CUSTODY/v1\n")-1];for(NSData*b in @[actualFixtureR,read(@"SYNTHETIC-ONLY-a.der"),read(@"SYNTHETIC-ONLY-b.der"),read(@"pk-a.bin"),read(@"pk-b.bin")]){uint32_t n=CFSwapInt32HostToBig((uint32_t)b.length);[provision appendBytes:&n length:4];[provision appendData:b];}
+ NSError*e=nil;assert([[YNXOriginalArtifactPublisherStore new]createOriginalRecord:provision forPublicOriginal:actualFixtureR error:&e]);[provision resetBytesInRange:NSMakeRange(0,provision.length)];
+ for(NSString*filename in @[@"memberOriginal-native-effect.bin",@"memberOriginal-native-effect-second.bin"]){
+  NSString*ref=nil;auto a=effectApproval(&ref);NSUInteger before=reads;unsigned wipes=effectWipes;NSDictionary*v=[a signOriginalRelease:ref error:&e];assert(v&&!e&&[v[@"stored"]boolValue]&&[v[@"hasSignedResult"]boolValue]&&reads==before+1&&effectWipes==wipes+1);NSDictionary*record=v[@"record"];
+  auto cold=[YNXOriginalArtifactReleaseJournal new];NSDictionary*saved=[cold copyOriginalResultForRequest:journalRequest(record)error:&e];assert(saved&&!e&&[saved[@"memberOriginal"]isEqual:record[@"memberOriginal"]]&&[saved[@"phase"]isEqual:@"signed-unhanded"]&&![saved[@"retryAuthorized"]boolValue]&&![saved[@"handoffAuthorized"]boolValue]);
+  NSString*encoded=[[saved[@"memberOriginal"]stringByReplacingOccurrencesOfString:@"-" withString:@"+"]stringByReplacingOccurrencesOfString:@"_" withString:@"/"];while(encoded.length%4)encoded=[encoded stringByAppendingString:@"="];NSData*member=[[NSData alloc]initWithBase64EncodedString:encoded options:0];assert(member.length>3&&member.length<=98304&&[member writeToFile:[output stringByAppendingPathComponent:filename]options:NSDataWritingWithoutOverwriting error:&e]);
+  assert(![a signOriginalRelease:ref error:&e]&&reads==before+1&&effectWipes==wipes+1);assert([a close:&e]);
+  std::puts("PASS actual Native owner + original intent + real fixed CABI + protected outcome + cold recovery + once fence");
+ }
+ std::puts("PUBLIC_NATIVE_EFFECT_REAL_CABI syntheticOnly=1 systemKeychain=0 Source=0 userApproval=0 bothResultsPersisted=1");return 0;
+}
+#endif
 int main(int argc,char **argv){@autoreleasepool{
  items=[NSMutableDictionary new];auto store=[YNXOriginalArtifactPublisherStore new];NSError *e=nil;
+#if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
+ assert(argc==3);return actualEffect([NSString stringWithUTF8String:argv[1]],[NSString stringWithUTF8String:argv[2]]);
+#endif
 #if defined(YNX_PUBLISHER_APPROVAL_DURABILITY_RED_ONLY)
  setupApproval(@{@"requestId":NSUUID.UUID.UUIDString.lowercaseString});auto original=captureApproval(&e);NSDictionary*review=[original copyOriginalReview:&e];assert([original approveOriginalReview:review[@"reviewId"]error:&e]);NSString*ref=[original copyOriginalReview:&e][@"actualApprovalRef"];assert([original selectOriginalSigning:ref error:&e]);assert([original close:&e]);auto recreated=captureApproval(&e);review=[recreated copyOriginalReview:&e];assert([recreated approveOriginalReview:review[@"reviewId"]error:&e]);ref=[recreated copyOriginalReview:&e][@"actualApprovalRef"];
  if([recreated selectOriginalSigning:ref error:&e]){std::puts("RED_ORIGINAL_NATIVE_RECREATED_OWNER_REENTERED_SAME_REQUEST privateReads=0 cryptoCalls=0");return 23;}
@@ -273,6 +350,9 @@ int main(int argc,char **argv){@autoreleasepool{
  approvalCases();
 #if !defined(YNX_PUBLISHER_APPROVAL_DURABILITY_RED_ONLY)
  journalCases();
+#endif
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+ effectCases();
 #endif
  std::puts("PUBLIC_KEYCHAIN_SOURCE_SEAMS_ONLY systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0 workspaceFDQualified=0");
  }}

@@ -15,7 +15,7 @@ test('native purpose Keychain store compiles normally and passes explicit PUBLIC
  const supplier=process.env.WALLET_PUBLISHER_SDK19_SOURCE??path.resolve(root,'../..'),inventory=JSON.parse(fs.readFileSync(new URL('./fixtures/auth19-native-inventory.json',import.meta.url)));
  const supplierFiles=['original-auth-identity-source-authority.h','original-ide-publication-artifact.h','original-ide-publication-artifact.mm','original-ide-wallet-identity-source.h','original-ide-wallet-peer-launch.h','original-ide-identity-peer-endpoint.h','original-ide-identity-peer-wire.h','original-ide-project-authority-data.h','original-ide-auth-proof-data.h'].map(n=>'packages/wallet-auth/native/'+n);
  for(const relative of supplierFiles){const p=inventory.NativeInputs.find(p=>p.path===relative);assert(p);const bytes=fs.readFileSync(path.join(supplier,relative));assert.equal(bytes.length,p.bytes);assert.equal(createHash('sha256').update(bytes).digest('hex'),p.sha256);const out=path.join(temp,relative);fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,bytes);}
- for(const relative of ['native/original-artifact-publisher-store.h','native/original-artifact-publisher-store.mm','test/native/artifact-publisher-store-public.mm']){const out=path.join(temp,'apps/wallet-desktop',relative);fs.mkdirSync(path.dirname(out),{recursive:true});fs.copyFileSync(path.join(root,relative),out);}
+ for(const relative of ['native/original-artifact-publisher-store.h','native/original-artifact-publisher-store.mm','native/original-artifact-publisher-cabi.h','test/native/artifact-publisher-store-public.mm']){const out=path.join(temp,'apps/wallet-desktop',relative);fs.mkdirSync(path.dirname(out),{recursive:true});fs.copyFileSync(path.join(root,relative),out);}
  const source=path.join(temp,'apps/wallet-desktop/native/original-artifact-publisher-store.mm'),fixture=path.join(temp,'apps/wallet-desktop/test/native/artifact-publisher-store-public.mm');
  const common=['clang++','-std=c++17','-fobjc-arc','-mmacosx-version-min=13.0','-Wall','-Wextra','-Werror'];
  // The real pre-journal Native body accepted a second once-selection after
@@ -37,4 +37,11 @@ test('native purpose Keychain store compiles normally and passes explicit PUBLIC
  const publicRecord=path.join(temp,'PUBLIC-fake-record.bin');
  fs.writeFileSync(publicRecord,encodePublisherCustodyRecordData(Buffer.from('PUBLIC-JS-to-Native'),{format:'YNX-BATCH/KEY-MATERIAL/v1',algorithmVersion:'YNX-BATCH/v0.1',suite:'ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512',pkcs8A:Buffer.alloc(54),pkcs8B:Buffer.alloc(150),pkA:Buffer.alloc(2592),pkB:Buffer.alloc(64)}),{mode:0o600});
  const run=spawnSync(binary,[publicRecord],{encoding:'utf8',timeout:10000});assert.equal(run.status,0,run.stderr);assert.equal(run.stdout.match(/^PASS /gm)?.length,43);assert.match(run.stdout,/systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0/);
+ const delivery=process.env.WALLET_ARTIFACT_CABI_DELIVERY;
+ if(delivery){
+  const header=fs.readFileSync(path.join(delivery,'ynx_artifact_release.h'));assert.equal(header.length,5089);assert.equal(createHash('sha256').update(header).digest('hex'),'1da905e0b38581ad34a9cf995c36f8d368425df9242a35f4e49d7b41c8100616');
+  const effectBinary=path.join(temp,'PUBLIC-connected-effect');
+  const effectCompile=spawnSync('/usr/bin/xcrun',[...common,'-DYNX_PUBLISHER_STORE_PUBLIC_TEST=1','-DYNX_ORIGINAL_WALLET_ARTIFACT_CABI=1','-I'+delivery,source,path.join(temp,'packages/wallet-auth/native/original-ide-publication-artifact.mm'),fixture,'-framework','Foundation','-framework','Security','-framework','LocalAuthentication','-framework','AppKit','-o',effectBinary],{encoding:'utf8',timeout:30000});assert.equal(effectCompile.status,0,effectCompile.stderr);
+  const effectRun=spawnSync(effectBinary,[publicRecord],{encoding:'utf8',timeout:10000});assert.equal(effectRun.status,0,effectRun.stderr);assert.equal(effectRun.stdout.match(/^PASS /gm)?.length,49,effectRun.stdout);assert.match(effectRun.stdout,/PUBLIC_EFFECT_CONTROL_SEAMS_ONLY actualCrypto=0 Source=0 userApproval=0/);
+ }
 });

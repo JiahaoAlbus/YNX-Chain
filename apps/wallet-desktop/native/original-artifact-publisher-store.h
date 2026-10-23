@@ -73,6 +73,13 @@ inline bool borrowPublisherRecord(const void *record,size_t length,const void *e
 // Once-selection before custody/crypto. A failure after this selection is not
 // permission to enter again, including when no memberOriginal was returned.
 - (NSDictionary *)selectOriginalSigning:(NSString *)approvalRef error:(NSError **)error;
+// Fixed Native-only effect; unavailable without the explicit matched CABI
+// build role. Neither the private record nor a signer/provider crosses NAPI.
+- (NSDictionary *)signOriginalRelease:(NSString *)approvalRef error:(NSError **)error;
+// Read/save an already held public outcome even after retirement. Storage
+// confirmation is never a new signing, send, callback or approval permission.
+- (NSDictionary *)copyOriginalSigningOutcome:(NSError **)error;
+- (BOOL)saveOriginalSigningOutcome:(NSError **)error;
 - (void)retire;
 - (BOOL)close:(NSError **)error;
 - (instancetype)init NS_UNAVAILABLE;
