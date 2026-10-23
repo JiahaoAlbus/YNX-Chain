@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -43,7 +45,7 @@ func runWithLayout(listen, transport, migrationPath, statePath, layout string) e
 	return runWithDiagnostics(listen, transport, migrationPath, statePath, layout, false)
 }
 
-func runWithDiagnostics(listen, transport, migrationPath, statePath, layout string, phaseTiming bool) error {
+func runWithDiagnostics(listen, transport, migrationPath, statePath, layout string, phaseTiming bool) (runErr error) {
 	if layout != "atomic-json" && layout != "snapshot-journal" && layout != "block-journal" {
 		return fmt.Errorf("unsupported state layout %q", layout)
 	}
@@ -67,10 +69,10 @@ func runWithDiagnostics(listen, transport, migrationPath, statePath, layout stri
 		return err
 	}
 	var application abcitypes.Application = app
+	var timed *phaseTimedApplication
 	if phaseTiming {
-		timed := withPhaseTiming(app, os.Stderr)
+		timed = withPhaseTiming(app, os.Stderr)
 		application = timed
-		defer timed.recorder.emit("shutdown", nil)
 	}
 	server, err := abciserver.NewServer(listen, transport, application)
 	if err != nil {
@@ -79,7 +81,15 @@ func runWithDiagnostics(listen, transport, migrationPath, statePath, layout stri
 	if err := server.Start(); err != nil {
 		return fmt.Errorf("start ABCI server: %w", err)
 	}
-	defer server.Stop()
+	if timed != nil {
+		defer func() {
+			drainCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			runErr = errors.Join(runErr, stopPhaseDiagnostics(drainCtx, server.Stop, timed.recorder))
+		}()
+	} else {
+		defer server.Stop()
+	}
 	log.Printf("YNX ABCI application listening on %s over %s at migrated height %d with durable state %s", listen, transport, state.Height, statePath)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

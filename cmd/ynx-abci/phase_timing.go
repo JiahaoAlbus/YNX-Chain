@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"math/bits"
 	"sync"
@@ -41,6 +42,8 @@ type phaseRecorder struct {
 	inFlight                uint64
 	reports                 int
 	invalid, capped, closed bool
+	draining                bool
+	drained                 chan struct{}
 }
 
 func newPhaseRecorder(writer io.Writer) *phaseRecorder {
@@ -50,15 +53,24 @@ func newPhaseRecorder(writer io.Writer) *phaseRecorder {
 	}
 	return &phaseRecorder{started: time.Now(), stages: stages, writer: writer}
 }
-func (r *phaseRecorder) begin() time.Time {
+func (r *phaseRecorder) begin() (time.Time, error) {
 	r.mu.Lock()
+	if r.draining || r.closed {
+		r.mu.Unlock()
+		return time.Time{}, errors.New("ABCI diagnostic application is shutting down")
+	}
 	r.inFlight++
 	r.mu.Unlock()
-	return time.Now()
+	return time.Now(), nil
 }
 
 func (r *phaseRecorder) observe(stage string, started time.Time, failed bool) {
-	ns := uint64(time.Since(started).Nanoseconds())
+	r.complete(stage, uint64(time.Since(started).Nanoseconds()), failed, nil, false)
+}
+
+// Commit completion and its sample are one recorder transition, so a terminal
+// frame cannot appear between the completed counter and its Commit sample.
+func (r *phaseRecorder) complete(stage string, ns uint64, failed bool, sample *consensus.CommitTimingSample, emitCommit bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.inFlight == 0 {
@@ -83,6 +95,13 @@ func (r *phaseRecorder) observe(stage string, started time.Time, failed bool) {
 	}
 	value.DurationBuckets[bucket]++
 	r.stages[stage] = value
+	if emitCommit {
+		r.emitLocked("commit", sample)
+	}
+	if r.draining && r.inFlight == 0 && r.drained != nil {
+		close(r.drained)
+		r.drained = nil
+	}
 }
 
 // Cumulative completion counters are not assigned to a block height. Concurrent
@@ -90,6 +109,9 @@ func (r *phaseRecorder) observe(stage string, started time.Time, failed bool) {
 func (r *phaseRecorder) emit(reason string, sample *consensus.CommitTimingSample) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.emitLocked(reason, sample)
+}
+func (r *phaseRecorder) emitLocked(reason string, sample *consensus.CommitTimingSample) {
 	if r.closed {
 		return
 	}
@@ -129,39 +151,54 @@ func withPhaseTiming(app *consensus.Application, writer io.Writer) *phaseTimedAp
 	return &phaseTimedApplication{Application: app, recorder: newPhaseRecorder(writer), commitTiming: app.LastCommitTiming}
 }
 func (a *phaseTimedApplication) CheckTx(ctx context.Context, req *abci.RequestCheckTx) (*abci.ResponseCheckTx, error) {
-	started := a.recorder.begin()
+	started, beginErr := a.recorder.begin()
+	if beginErr != nil {
+		return nil, beginErr
+	}
 	response, err := a.Application.CheckTx(ctx, req)
 	a.recorder.observe("check_tx", started, err != nil || response == nil || response.Code != 0)
 	return response, err
 }
 func (a *phaseTimedApplication) PrepareProposal(ctx context.Context, req *abci.RequestPrepareProposal) (*abci.ResponsePrepareProposal, error) {
-	started := a.recorder.begin()
+	started, beginErr := a.recorder.begin()
+	if beginErr != nil {
+		return nil, beginErr
+	}
 	response, err := a.Application.PrepareProposal(ctx, req)
 	a.recorder.observe("prepare_proposal", started, err != nil || response == nil)
 	return response, err
 }
 func (a *phaseTimedApplication) ProcessProposal(ctx context.Context, req *abci.RequestProcessProposal) (*abci.ResponseProcessProposal, error) {
-	started := a.recorder.begin()
+	started, beginErr := a.recorder.begin()
+	if beginErr != nil {
+		return nil, beginErr
+	}
 	response, err := a.Application.ProcessProposal(ctx, req)
 	a.recorder.observe("process_proposal", started, err != nil || response == nil || response.Status != abci.ResponseProcessProposal_ACCEPT)
 	return response, err
 }
 func (a *phaseTimedApplication) FinalizeBlock(ctx context.Context, req *abci.RequestFinalizeBlock) (*abci.ResponseFinalizeBlock, error) {
-	started := a.recorder.begin()
+	started, beginErr := a.recorder.begin()
+	if beginErr != nil {
+		return nil, beginErr
+	}
 	response, err := a.Application.FinalizeBlock(ctx, req)
 	a.recorder.observe("finalize_block", started, err != nil || response == nil)
 	return response, err
 }
 func (a *phaseTimedApplication) Commit(ctx context.Context, req *abci.RequestCommit) (*abci.ResponseCommit, error) {
-	started := a.recorder.begin()
+	started, beginErr := a.recorder.begin()
+	if beginErr != nil {
+		return nil, beginErr
+	}
 	a.commitMu.Lock()
 	defer a.commitMu.Unlock()
 	response, err := a.Application.Commit(ctx, req)
-	a.recorder.observe("commit", started, err != nil || response == nil)
+	elapsed := uint64(time.Since(started).Nanoseconds())
 	var sample *consensus.CommitTimingSample
 	if value, ok := a.commitTiming(); ok {
 		sample = &value
 	}
-	a.recorder.emit("commit", sample)
+	a.recorder.complete("commit", elapsed, err != nil || response == nil, sample, true)
 	return response, err
 }
