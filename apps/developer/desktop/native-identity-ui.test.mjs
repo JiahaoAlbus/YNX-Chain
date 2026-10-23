@@ -90,7 +90,10 @@ async function widgetFixture(){
   const document={createElement:()=>new Element()};
   class BaseWidget{constructor(){this.node=new Element();this.node.ownerDocument=document;this.title={};this.toDispose=[];}dispose(){for(const item of this.toDispose)item.dispose();}onActivateRequest(){}}
   const loaded={exports:{}};
-  vm.runInNewContext(await fs.readFile(new URL('../runtime/ynx-workbench/lib/native-wallet-view.js',import.meta.url),'utf8'),{module:loaded,AbortController,Promise,Error,require:name=>{
+  // The actual browser supplies timers for the current-project section too.
+  // Keep that section present and unavailable in this identity-only fixture;
+  // do not stub it into a connected Wallet or hide its constructor work.
+  vm.runInNewContext(await fs.readFile(new URL('../runtime/ynx-workbench/lib/native-wallet-view.js',import.meta.url),'utf8'),{module:loaded,AbortController,Promise,Error,setTimeout,clearTimeout,require:name=>{
     if(name==='@theia/core/lib/browser/widgets')return {BaseWidget};
     if(name==='@theia/core/lib/browser/common-menus')return {CommonMenus:{VIEW_VIEWS:[]}};
     if(name==='@theia/core/lib/common/nls')return {nls:{localize:(_key,text)=>text}};
@@ -106,6 +109,9 @@ async function widgetFixture(){
 }
 test('actual Wallet Widget buttons dispatch Native identity once without promoting Product Session',async()=>{
   const f=await widgetFixture(),before=f.service.controller.state;
+  assert.ok(f.find('projectContractUnavailable'));
+  assert.equal(f.find('projectContractConnect').disabled,true);
+  assert.equal(f.service.projectContracts,undefined);
   f.find('identityReceive').click();f.find('identityRecover').click();await f.flush();assert.equal(f.entered.length,1);
   f.resolve({phase:'response-received',authorized:false,dataOnly:true});await f.flush();
   assert.ok(f.find('identityReceived'));assert.equal(f.service.controller.state,before);f.widget.dispose();
