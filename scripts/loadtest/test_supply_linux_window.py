@@ -942,6 +942,8 @@ class SupplySourceTests(unittest.TestCase):
         self.assertEqual(plan["pairCaps"],supply.pair_recipe("native-suffix-data64")["pairCaps"])
         workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
         for marker in ("paired-native-observer-facts-data64","--prepare-pair --pair-kind native-observer-facts-data64","--execute-pair --pair-kind native-observer-facts-data64"):self.assertIn(marker,workflow)
+        self.assertIn("Verify explicit observer native facts and current-state negatives",workflow)
+        self.assertIn("-race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^TestObserverNative'",workflow)
 
     def test_observer_native_work_counters_are_typed_bound_and_not_default(self):
         client,fixture=self.submit8_report_fixture(True)
