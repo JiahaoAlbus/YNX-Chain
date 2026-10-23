@@ -442,6 +442,7 @@ func main() {
 	root.AddCommand(newExportProofHostSourceCommand())
 	root.AddCommand(newInspectProofHostTargetCommand())
 	root.AddCommand(newRequestProofHostSourceCommand())
+	root.AddCommand(newRegisterProofHostSourceCommand())
 	root.AddCommand(commands.GenValidatorCmd, commands.InitFilesCmd, commands.LightCmd, commands.ReplayCmd, commands.ReplayConsoleCmd, commands.ResetAllCmd, commands.ResetPrivValidatorCmd, commands.ResetStateCmd, commands.ShowValidatorCmd, commands.TestnetFilesCmd, commands.ShowNodeIDCmd, commands.ReIndexEventCmd, commands.GenNodeKeyCmd, commands.VersionCmd, commands.RollbackStateCmd, commands.CompactGoLevelDBCmd, commands.InspectCmd, debug.DebugCmd, cli.NewCompletionCmd(root, true))
 	start := commands.NewRunNodeCmd(nm.DefaultNewNode)
 	// These protected maintenance controls are part of the independently pinned

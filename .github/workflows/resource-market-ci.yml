@@ -1401,6 +1401,27 @@ jobs:
         env:
           YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
         run: YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost' ./internal/consensus
+      - name: Verify normal registration of the retained original Host delivery
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        env:
+          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
+        run: |
+          set -euo pipefail
+          test -s "$YNX_PROOF_HOST_SOURCE_FIXTURE_OUT/metadata.json"
+          go test -p 1 -count=1 -timeout=120s -v -run '^TestRegisterProofHostSourceNormalCommandRetainedFixture$' ./cmd/ynx-comet | tee "$RUNNER_TEMP/ynx-proof-host-source-register.log"
+          grep -F -- '--- PASS: TestRegisterProofHostSourceNormalCommandRetainedFixture (' "$RUNNER_TEMP/ynx-proof-host-source-register.log"
+          grep -F -- 'PROOF_HOST_SOURCE_REGISTERED_DATA_ONLY normalCLI=true RootGrant=false HostQualification=false' "$RUNNER_TEMP/ynx-proof-host-source-register.log"
+      - name: Verify exact transaction Host selection and original acquire-current
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 2
+        env:
+          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
+        run: |
+          set -euo pipefail
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestProofHostSelectionNormalCommandRetainedFixture$' ./cmd/ynx-consensus-proof-verify | tee "$RUNNER_TEMP/ynx-proof-host-source-select.log"
+          grep -F -- '--- PASS: TestProofHostSelectionNormalCommandRetainedFixture (' "$RUNNER_TEMP/ynx-proof-host-source-select.log"
+          grep -F -- 'PROOF_HOST_SOURCE_SELECTED_DATA_ONLY exact4=true normalAcquireCurrent=true revocationUnchanged=true RootGrant=false' "$RUNNER_TEMP/ynx-proof-host-source-select.log"
       - name: Verify stopped proof target command with the retained original Host fixture
         id: pqprooftargetcmd
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
@@ -2344,6 +2365,24 @@ jobs:
           with (root / 'SOURCE.json').open('x') as target:
               target.write(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n')
           print('YNX_MACOS_PROOF_VERIFIER ' + json.dumps(record, sort_keys=True, separators=(',', ':')))
+          # Keep the existing five-source ABI unchanged. Independently supply
+          # new selection leaves with the same complete Git tree and binaries.
+          selection_names = ('internal/consensus/proof_host_selection.go',
+              'cmd/ynx-consensus-proof-verify/host_selection_command.go',
+              'cmd/ynx-consensus-proof-verify/host_context_command.go',
+              'cmd/ynx-consensus-proof-verify/main.go',
+              'cmd/ynx-comet/register_proof_host_source.go', 'cmd/ynx-comet/main.go')
+          selection = dict(version='YNX-PQ-HOST-SELECTION-SOURCE-GIT-PINS/v1',
+              commit=os.environ['GITHUB_SHA'], sourceTree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'], text=True).strip(),
+              runId=os.environ['GITHUB_RUN_ID'], verifierSource=pin(root / 'SOURCE.json'),
+              sources={name:dict(**pin(Path(name)), gitBlob=subprocess.check_output(['git','rev-parse','HEAD:'+name], text=True).strip()) for name in selection_names},
+              binaries=binaries, selectionRequestContract='YNX-CONSENSUS-PROOF-HOST-SELECTION-REQUEST/v1',
+              catalogContract='YNX-CONSENSUS-PROOF-HOST-SOURCE-CATALOG/v1',
+              selectionResultFields=['sourcePath','sourceSha256','sourceId','epoch'],
+              crossCompiled=True, executedOnMacOS=False, nativeRootAuthorized=False, sourceDeploymentQualified=False)
+          with (root / 'HOST_SELECTION_SOURCE_GIT_PINS.json').open('x') as target:
+              target.write(json.dumps(selection, sort_keys=True, separators=(',', ':')) + '\n')
+          print('YNX_MACOS_HOST_SELECTION_SOURCE_GIT_PINS ' + json.dumps(selection, sort_keys=True, separators=(',', ':')))
           PY
           test -z "$(git status --porcelain --untracked-files=normal)"
       - name: Upload only public macOS verifier executables and exact source pins

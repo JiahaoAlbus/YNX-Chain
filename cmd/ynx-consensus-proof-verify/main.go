@@ -81,6 +81,9 @@ func parseOptions(args []string) (options, error) {
 }
 
 func run(args []string, input io.Reader, output io.Writer, localClock func() time.Time) int {
+	if isHostSourceSelectionInvocation(args) {
+		return runHostSourceSelection(args, input, output)
+	}
 	if isHostContextInvocation(args) {
 		return runHostContext(args, input, output, localClock)
 	}
