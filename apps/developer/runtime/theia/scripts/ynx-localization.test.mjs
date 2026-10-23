@@ -44,3 +44,14 @@ test('host language-pack registration merges alongside YNX keys and disposing YN
   assert.equal(remaining.translations['vscode/fileActions.contribution/filesCategory'], '文件');
   host.dispose(); assert.deepEqual(provider.getAvailableLanguages(), []);
 });
+
+test('actual project toolbar command IDs and accessibility label resolve through the host language pack',async t=>{
+ const {PROJECT_ACTIONS}=require('../../ynx-workbench/lib/workbench-controls.js');
+ const provider=new LocalizationProvider(),registration=registerYnxLocalizations(provider),previous=nls.localization;
+ t.after(()=>{nls.localization=previous;registration.dispose();});
+ nls.localization=await provider.loadLocalization('zh-cn');
+ const expected={'core.save':'保存','task:run:build':'构建','testing.runAll':'测试','ynx.workbench.ecosystem':'YNX 生态','ynx.contracts.focus':'合约','ynx.network.focus':'链与结果'};
+ for(const action of PROJECT_ACTIONS)assert.equal(nls.localize('ynx/workbench/'+action.id,action.label),expected[action.id]);
+ assert.equal(nls.localize('ynx/workbench/projectActions','Project actions'),'项目操作');
+ nls.localization=undefined;for(const action of PROJECT_ACTIONS)assert.equal(nls.localize('ynx/workbench/'+action.id,action.label),action.label);
+});

@@ -4,6 +4,12 @@
 // pack supplies the host/editor translations; this contribution never claims
 // to be a complete display language on its own.
 const entries = [
+  ['projectActions', 'Project actions', '项目操作'],
+  ['core.save', 'Save', '保存'],
+  ['task:run:build', 'Build', '构建'],
+  ['testing.runAll', 'Test', '测试'],
+  ['ynx.contracts.focus', 'Contracts', '合约'],
+  ['ynx.network.focus', 'Chain and Results', '链与结果'],
   ['extensionInstallFailed','Extension installation failed. Check the IDE connection diagnostics and extension compatibility, then retry.','扩展安装失败。请查看 IDE 连接诊断和扩展兼容情况后重试。'],
   ['configureDisplayLanguage','Configure Display Language','配置显示语言'],
   ['languagePackInstalled','Language pack installed. Choose a display language to apply its available translations. The IDE will ask before reloading.','语言包已安装。请选择显示语言以应用其中可用的翻译；IDE 会在重新加载前请求确认。'],
