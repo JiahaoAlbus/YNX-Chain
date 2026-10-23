@@ -77,3 +77,31 @@ and perform CurrentProject/CurrentPublisher/RecheckPermit, not trust signed
 metadata or this private dictionary as an HTTP bearer. Main still owns explicit
 review, its protected store and once-only effect. Matching A builds, independent
 Root/platform/FD admission and actual installed workflows remain separate gates.
+
+## Auth19 workspace-bound canonical selection
+
+Auth19 adds the R177 original workspace selector to the same fixed Node-only
+`@ynx-chain/wallet-auth/original-ide-admission` entry. It retains Auth18's four
+project reader callbacks and the independent publication artifact callbacks.
+
+- `acquireOriginalIDEWorkspaceProjectSelection(workspaceCanonicalAbsolutePath, profileCanonicalAbsolutePath, localProjectID)` takes exactly three primitive strings and returns the same opaque Native owner or partial. Unavailable module/callee returns null; actual exceptions are preserved.
+- `readOriginalIDEWorkspaceProjectSelection(ref)` returns the original frozen `{projectId, publisherId, projectRevision, catalogRevision, expiresMS}`. `publisherId` may be null; revisions are canonical unsigned decimal strings.
+- `closeOriginalIDEWorkspaceProjectSelection(ref)` returns the actual cleanup result, undefined on success. Each owner has independent cleanup custody; a failed/UNKNOWN cleanup is not retried automatically.
+
+The normal IDE server supplies its actual canonical workspace/profile paths and
+local project ID from its launch context, never a caller-chosen canonical ID.
+Native holds the actual directory FDs and checks the original signed mapping,
+kernel process tuple, path identity and current Source. Ordinary child-file
+writes do not invalidate a directory. A profile must be private and owned by the
+actual UID. The selector remains separate from the project authority reference.
+Read its original canonical IDs, then use the same-package project/publisher
+readers with those IDs. Retain and reread the selector before and after sensitive
+preparation and at the actual effect; compare the fixed mapping without silent
+reacquisition, renewal or publication retry. A null publisher creates no key.
+
+This mapping is independently signed `selection.projectSelection` in the original
+project-authority purpose. Legacy R171 query-only profiles remain readable but
+cannot supply the new selector. No Root, release row, registry entry or mapping
+was registered by this code delivery. A selector is DATA, not HTTP proof, an
+OriginalSource server factory, signing approval or KEY7 access. Real login,
+restore, revocation and matching App acceptance remain separate gates.

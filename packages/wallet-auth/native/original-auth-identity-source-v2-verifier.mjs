@@ -133,8 +133,8 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
   for(const k of ['pid','parent','uid','gid','startSeconds','startMicros'])decimal(launch.node[k],['pid','parent','startSeconds'].includes(k));
   if(BigInt(launch.node.startMicros)>999999n)fail('AUTH_SOURCE_V2_RELAY_LAUNCH');
  }else if(Object.hasOwn(s,'contractRelay')||Object.hasOwn(s,'projectCurrent'))fail('AUTH_SOURCE_V2_RELAY_DEDICATED_PURPOSE_REQUIRED');
- if(projectAuthority)verifyProjectAuthority(s,p,e,root,registrations,atMs);
- else if(Object.hasOwn(s,'projectAuthority'))fail('AUTH_SOURCE_V2_PROJECT_DEDICATED_PURPOSE_REQUIRED');
+ if(projectAuthority){verifyProjectAuthority(s,p,e,root,registrations,atMs);if(Object.hasOwn(s,'projectSelection'))verifyProjectSelection(s,p,atMs);}
+ else if(Object.hasOwn(s,'projectAuthority')||Object.hasOwn(s,'projectSelection'))fail('AUTH_SOURCE_V2_PROJECT_DEDICATED_PURPOSE_REQUIRED');
  window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
  const height=registrations.root.executionHeight;decimal(height);
  const roleKeys=[active(registrations.root,root.networkId,root.rootOwner,height),
@@ -145,6 +145,17 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  active(registrations.subject,root.networkId,p.subjectOwner,height);
  const selected=selectOriginalAuthSourceAlgorithm(registrations.subject,2);
  return Object.freeze({root,enrollment:e,profile:p,executionHeight:height,credentialIssuedHeights:Object.freeze({enrollment:enrollment.binding.executionHeight,profile:profile.binding.executionHeight}),subjectKeyVersion:selected.keyVersion,dataOnly:true,nativeAdmission:false});
+}
+function verifyProjectSelection(s,profile,at){
+ const d=s.projectSelection,a=s.projectAuthority;
+ exact(d,['version','projectId','publisherId','projectRevision','catalogRevision','localProjectId','workspace','profile','node','expiresMS']);
+ if(d.version!=='YNX-IDE-WORKSPACE-PROJECT-SELECTION/v1'||d.projectId!==a.project.projectId||d.projectRevision!==a.project.projectRevision||d.catalogRevision!==a.project.catalogRevision||d.publisherId!==(a.publisher===null?null:a.publisher.publisherId)||typeof d.localProjectId!=='string'||!/^[A-Za-z0-9_-]{1,128}$/.test(d.localProjectId))fail('AUTH_SOURCE_V2_PROJECT_SELECTION_BINDING');
+ if(!integer(d.expiresMS)||d.expiresMS<=at||d.expiresMS>profile.expiresAtMs||d.expiresMS>a.principal.expiresMS||d.expiresMS>a.project.expiresMS||(a.publisher!==null&&d.expiresMS>a.publisher.expiresMS))fail('AUTH_SOURCE_V2_PROJECT_SELECTION_EXPIRED');
+ for(const k of ['workspace','profile']){const p=d[k];exact(p,['path','device','inode']);
+  if(!absolute(p.path)||p.path==='/'||!p.path.isWellFormed()||p.path.endsWith('/')||p.path.includes('//')||p.path.includes('\\')||/[\x00-\x1f\x7f]/.test(p.path)||Buffer.byteLength(p.path)>4096)fail('AUTH_SOURCE_V2_PROJECT_SELECTION_DIRECTORY');decimal(p.device);decimal(p.inode,true);
+ }
+ exact(d.node,['pid','parent','uid','gid','startSeconds','startMicros']);for(const k of ['pid','parent','uid','gid','startSeconds','startMicros'])decimal(d.node[k],['pid','parent','startSeconds'].includes(k));
+ if(BigInt(d.node.pid)<=1n||BigInt(d.node.parent)<=1n||BigInt(d.node.startMicros)>999999n)fail('AUTH_SOURCE_V2_PROJECT_SELECTION_PROCESS');
 }
 function verifyProjectAuthority(s,profile,enrollment,root,registrations,at){
  const a=s.projectAuthority;exact(a,['principal','project','publisher','endpoint','spki']);const p=a.principal,j=a.project,k=a.publisher;

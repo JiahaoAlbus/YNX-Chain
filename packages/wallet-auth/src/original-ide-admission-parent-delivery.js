@@ -337,6 +337,26 @@ export function closeOriginalIDEProjectAuthority(originalAuthority){
  if(typeof native?.closeOriginalIDEProjectAuthority!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
  return native.closeOriginalIDEProjectAuthority(originalAuthority);
 }
+/** Original same-env selector custody, including partials, is returned before
+ * any caller read. Paths/local ID are DATA validated by the actual Native. */
+export function acquireOriginalIDEWorkspaceProjectSelection(workspaceCanonicalAbsolutePath,profileCanonicalAbsolutePath,localProjectID){
+ if(arguments.length!==3)fail('IDE_WORKSPACE_PROJECT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.acquireOriginalIDEWorkspaceProjectSelection!=='function')return null;
+ return native.acquireOriginalIDEWorkspaceProjectSelection(workspaceCanonicalAbsolutePath,profileCanonicalAbsolutePath,localProjectID);
+}
+export function readOriginalIDEWorkspaceProjectSelection(originalSelection){
+ if(arguments.length!==1)fail('IDE_WORKSPACE_PROJECT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDEWorkspaceProjectSelection!=='function')fail('IDE_WORKSPACE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDEWorkspaceProjectSelection(originalSelection);
+}
+export function closeOriginalIDEWorkspaceProjectSelection(originalSelection){
+ if(arguments.length!==1)fail('IDE_WORKSPACE_PROJECT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.closeOriginalIDEWorkspaceProjectSelection!=='function')fail('IDE_WORKSPACE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.closeOriginalIDEWorkspaceProjectSelection(originalSelection);
+}
 /** Fixed Native cold reader only. Null startup selection is never a grant and
  * does not disable Native's independently qualified original Source acquisition. */
 export async function acquireOriginalIDEColdTerminalCustody(actualEntryURL){

@@ -83,6 +83,21 @@ export interface OriginalIDECurrentPublisherData extends OriginalIDECurrentProje
  /** Independent ordinary public-original copy; never a key or authority ref. */
  readonly publisherOriginal:Uint8Array<ArrayBuffer>;
 }
+declare const originalWorkspaceProjectSelection:unique symbol;
+/** Original same-env selector custody, distinct from a project-authority owner
+ * and publication artifact. Partial acquisitions must remain closable. */
+export interface OriginalIDEWorkspaceProjectSelectionRef {
+ readonly [originalWorkspaceProjectSelection]:true;
+}
+/** Exact frozen Native selection DATA; revisions retain U64 decimal strings.
+ * A missing original publisher stays null; no key or grant is created. */
+export interface OriginalIDEWorkspaceProjectSelectionData {
+ readonly projectId:string;
+ readonly publisherId:string|null;
+ readonly projectRevision:string;
+ readonly catalogRevision:string;
+ readonly expiresMS:number;
+}
 /** Describe only the genuine, fixed, original Native binding. Acquiring and
  * validating that binding belongs to original Auth, not to a caller adapter.
  * Constructors return the SAME owning/partial object before late checks; they
