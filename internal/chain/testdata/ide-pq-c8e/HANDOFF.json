@@ -1,0 +1,167 @@
+{
+  "schema": "ynx.ide.actual-pinned-solc-material-handoff/v1",
+  "ideSource": {
+    "commit": "c8e853687ac324208eee7d4464aac0f93ea033d3",
+    "notIncludedInCurrentApp": true
+  },
+  "producerSource": {
+    "root": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain",
+    "observedCommit": "0bd91ed72336445b27cec8863a92f4d08c3bf66f",
+    "capturedFilesOnly": true
+  },
+  "compiler": {
+    "actualVersion": "0.8.24+commit.e11b9ed9.Emscripten.clang",
+    "input": "/Applications/YNX Developer Testnet Preview.app/Contents/Resources/code/apps/developer/compiler-runtime/node_modules/solc",
+    "pins": {
+      "available": true,
+      "pinned": true,
+      "expectedVersion": "0.8.24",
+      "expectedArtifactSha256": "fb59b825b7d57f9de89cd9de2415b12aab1fcc7eb2573fd2bf5c9b969eacf4d9",
+      "inputKind": "reviewed-offline-package",
+      "packageSha256": "5a07c7be20943396b173c50e7fda861fcced70dfcad8f817585eb013378bf363",
+      "expectedPackageSha256": "5a07c7be20943396b173c50e7fda861fcced70dfcad8f817585eb013378bf363",
+      "closureSha256": "223fc0fd21323bcec16e861b7472da7b9c5aec15f044beb3674e455ab5996e8f",
+      "expectedClosureSha256": "223fc0fd21323bcec16e861b7472da7b9c5aec15f044beb3674e455ab5996e8f",
+      "installedVersion": "0.8.24",
+      "artifactSha256": "fb59b825b7d57f9de89cd9de2415b12aab1fcc7eb2573fd2bf5c9b969eacf4d9"
+    },
+    "driver": "Actual solc npm WASM standard-JSON execution; no Hardhat command executed",
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "noNetwork": true
+  },
+  "contracts": [
+    {
+      "contractName": "SampleEVMWriteCounter",
+      "sourceName": "contracts/devtools/SampleEVMWriteCounter.sol",
+      "producerSource": {
+        "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/contracts/devtools/SampleEVMWriteCounter.sol",
+        "bytes": 420,
+        "sha256": "067db2f95bd14939e511435b4b86bb786b53c72ff53004eaedd812a215998f8d"
+      },
+      "buildInfoId": "ynx_solc_0_8_24_b86bafe2133ea70c26e289f50bead6e23de45e2f",
+      "files": [
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleEVMWriteCounter/source.sol",
+          "bytes": 420,
+          "sha256": "067db2f95bd14939e511435b4b86bb786b53c72ff53004eaedd812a215998f8d"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleEVMWriteCounter/request-source.txt",
+          "bytes": 419,
+          "sha256": "fea1e9e1cd9f75088c97fc7c12d794cf6ac3ff124c0130e094d97dbf0d782f8f"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleEVMWriteCounter/compiler-input.json",
+          "bytes": 747,
+          "sha256": "ae18994448a5510eb2a4360dac429cfc00d8f4a36730aace12715fceed910bf8"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleEVMWriteCounter/compiler-output.json",
+          "bytes": 4682,
+          "sha256": "c9ff6a194ed82a30f884320b0116f880bb8cd8e9034ed4312afd98d0995f03a3"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleEVMWriteCounter/artifact.json",
+          "bytes": 4586,
+          "sha256": "5516862e0823c37f36eace5afd9b000cc3e22cede2164d4683732590571b5683"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleEVMWriteCounter/build-info.json",
+          "bytes": 7211,
+          "sha256": "9c90901739d4acc67767a3635e51f7420db6de35d0e191451185915ebffa514e"
+        }
+      ],
+      "constructorArgsExample": {
+        "type": "one uint64",
+        "values": [
+          "1"
+        ],
+        "signed": false,
+        "submitted": false
+      },
+      "creationBytes": 371,
+      "runtimeBytes": 282,
+      "diagnostics": []
+    },
+    {
+      "contractName": "SampleYNXTCompatibleERC20",
+      "sourceName": "contracts/tokens/SampleYNXTCompatibleERC20.sol",
+      "producerSource": {
+        "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/contracts/tokens/SampleYNXTCompatibleERC20.sol",
+        "bytes": 853,
+        "sha256": "3389f7cd74006105e68b445768f59fb169bd9fc939d864e320e15b472d061c40"
+      },
+      "buildInfoId": "ynx_solc_0_8_24_1e7e5bf3589d52d0fe98a99c198bdd24f999a010",
+      "files": [
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleYNXTCompatibleERC20/source.sol",
+          "bytes": 853,
+          "sha256": "3389f7cd74006105e68b445768f59fb169bd9fc939d864e320e15b472d061c40"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleYNXTCompatibleERC20/request-source.txt",
+          "bytes": 852,
+          "sha256": "d14208fc8056140c05393f1142604ccb78d888d506fd44d8e62a06884b12a525"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleYNXTCompatibleERC20/compiler-input.json",
+          "bytes": 1193,
+          "sha256": "a27e72ce33549bbda11a419896022080fd1fb4d94943548a721b92ef356ddb87"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleYNXTCompatibleERC20/compiler-output.json",
+          "bytes": 13679,
+          "sha256": "11d7cf94c7df5588114f4a97de853e969221276ce567703c151d5fbfa08b115c"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleYNXTCompatibleERC20/artifact.json",
+          "bytes": 10705,
+          "sha256": "829ddc93fb8e59748184bb3f4fe4ab8a86dc1f78ec593db440f8f68d49ccbc8a"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-c8e-20261023/SampleYNXTCompatibleERC20/build-info.json",
+          "bytes": 17831,
+          "sha256": "d689ec2eb41a306a59c1ea26fd14b0db550ab111755800446b0705ff5c1292bb"
+        }
+      ],
+      "constructorArgsExample": {
+        "type": "one uint64",
+        "values": [
+          "1"
+        ],
+        "signed": false,
+        "submitted": false
+      },
+      "creationBytes": 1594,
+      "runtimeBytes": 995,
+      "diagnostics": []
+    }
+  ],
+  "typedSDKInput": {
+    "shape": "exact {source:string, material:{artifactFile:Uint8Array,buildInfoFile:Uint8Array}}",
+    "source": "request-source.txt is original captured source.trim() because Go deploy requires trimmed request; source.sol/compiler-input preserve exact original bytes",
+    "material": "artifact.json/build-info.json full raw bytes, not hashes substituted for files",
+    "schemaOwner": "Original SDK dedicated pq-contract-deployment-transport; use canonical auth4 successor, do not hotmix SDK333"
+  },
+  "truth": {
+    "actuallyCompiled": true,
+    "artifactsReadBack": true,
+    "GoMaterialValidated": false,
+    "chainCommitmentsAuthenticated": false,
+    "actionOwnerOrNonceSelected": false,
+    "signed": false,
+    "posted": false,
+    "deployed": false,
+    "cloudPublished": false
+  },
+  "requiredNext": "Original Go/Main validate material and compute source/deployed/compiler commitments through original contract; preserve errors. Original SDK consume raw files. Normal IDE UI/Wallet approval and original request UNKNOWN persistence remain to wire.",
+  "restrictions": [
+    "Only the two named bounded contracts; no arbitrary EVM claim",
+    "Constructor example 1 is unsigned local DATA, not an authorized transaction",
+    "No key or token read; no real funds or network POST",
+    "Current c8 App freeze unchanged"
+  ]
+}
