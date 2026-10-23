@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {FIXED_SDK_RUNTIME_IDENTITIES,relocateDesktopRuntimeSource} from '../scripts/release-provenance.mjs';
+import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {FIXED_SDK_RUNTIME_IDENTITIES,relocateDesktopRuntimeSource,fixedSDKRuntimeManifestSources} from '../scripts/release-provenance.mjs';
 
 test('SDK332 packaging selects only its fixed independent runtime manifest',()=>{
  const pin=FIXED_SDK_RUNTIME_IDENTITIES['1.3.0-pq.3.32-auth.1'];
@@ -24,4 +28,15 @@ test('SDK332 R140 successor selects its own runtime and retains exact three-load
  const file='packages/wallet-auth/src/original-ide-admission-parent-delivery.js',load="new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)";
  assert.equal(relocateDesktopRuntimeSource(file,Buffer.from(Array(3).fill(load).join(';')),version).operands[0].count,3);
  assert.throws(()=>relocateDesktopRuntimeSource(file,Buffer.from(Array(2).fill(load).join(';')),version),/count differs/);
+});
+test('unknown SDK cannot evade independent runtime pinning by omitting the manifest',t=>{
+ const root=mkdtempSync(path.join(tmpdir(),'wallet-sdk-manifest-selection-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
+ mkdirSync(path.join(root,'packages/wallet-auth'),{recursive:true});
+ const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8',stdio:['ignore','pipe','ignore']}).trim();
+ git('init','--quiet');
+ const select=version=>{writeFileSync(path.join(root,'packages/wallet-auth/package.json'),JSON.stringify({name:'@ynx-chain/wallet-auth',version}));git('add','packages/wallet-auth/package.json');git('-c','user.name=PUBLIC test','-c','user.email=public-test@example.invalid','commit','--quiet','-m','bounded SDK selection fixture');return git('rev-parse','HEAD')};
+ const unknown=select('1.3.0-pq.3.999-auth.1');
+ assert.throws(()=>fixedSDKRuntimeManifestSources(root,unknown),/Unsupported SDK runtime manifest selection/);
+ const legacy=select('1.3.0-pq.3.18');assert.deepEqual(fixedSDKRuntimeManifestSources(root,legacy),[]);
+ const supported=select('1.3.0-pq.3.32-auth.2');assert.throws(()=>fixedSDKRuntimeManifestSources(root,supported),/Required SDK runtime manifest is missing/);
 });

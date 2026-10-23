@@ -62,7 +62,9 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
  const present=git(root,'ls-tree','-r','--name-only',sourceCommit,'--',FIXED_SDK_RUNTIME_MANIFEST)===FIXED_SDK_RUNTIME_MANIFEST;
  const identity=Object.hasOwn(FIXED_SDK_RUNTIME_IDENTITIES,sdk.version)?FIXED_SDK_RUNTIME_IDENTITIES[sdk.version]:null;
  if(!identity){
-  if(present)throw Error('Unsupported SDK runtime manifest selection');
+  // Only the explicit historical318 layout predates this independent file.
+  // Unknown successors must not turn a missing manifest into an exemption.
+  if(sdk.version!=='1.3.0-pq.3.18'||present)throw Error('Unsupported SDK runtime manifest selection');
   return [];
  }
  if(!present)throw Error('Required SDK runtime manifest is missing');
