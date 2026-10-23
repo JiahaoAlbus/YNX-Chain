@@ -14,7 +14,7 @@ test('SDK19 is selected by its exact original inventory/tool pins, not by a vers
  assert.deepEqual(profile.tool,{bytes:12230,sha256:'06b86ae2cb60cd750623e790214a2698671315987c67ce4603871b413d5debdc'});
  assert.deepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],{bytes:67464,sha256:'b968e5fee531b65449234d833a2aec91dd38b701257f167c7c7a7dfb544f934f'});
  assert.notDeepEqual(profile.inventory,walletNativeSourceProfile('1.3.0-pq.3.32-auth.14').inventory);
- for(const unselected of ['1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.20'])assert.throws(()=>walletNativeSourceProfile(unselected));
+ for(const unselected of ['1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.21'])assert.throws(()=>walletNativeSourceProfile(unselected));
 });
 test('SDK19 requires76 original Node inputs plus2 Wallet inputs and the unchanged closed evidence pair',()=>{
  const rows=[...inventory.NativeInputs,...WALLET_PUBLISHER_NATIVE_INPUTS],helper=inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path);
@@ -33,7 +33,7 @@ test('SDK19 runtime union has an independent fixed identity and cannot borrow th
  assert.throws(()=>sdkRuntimeUnionProfile('1.3.0-pq.3.32-auth.17'));
  assert.throws(()=>verifySDKRuntimeUnion(version,'/PUBLIC/not-a-runtime',Buffer.from('{}')));
 });
-test('normal lock selects exact SDK19 while application dependency declarations remain unchanged',()=>{
+test('normal lock selects a fixed supported SDK while SDK19 inventory remains independently frozen',()=>{
  const lock=JSON.parse(readFileSync(new URL('../package-lock.json',import.meta.url))),app=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
- assert.equal(lock.packages['../../packages/wallet-auth'].version,version);assert.deepEqual(lock.packages[''].dependencies,app.dependencies);
+ assert.equal(walletNativeSourceProfile(lock.packages['../../packages/wallet-auth'].version).version,lock.packages['../../packages/wallet-auth'].version);assert.deepEqual(lock.packages[''].dependencies,app.dependencies);
 });

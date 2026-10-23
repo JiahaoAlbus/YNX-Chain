@@ -7,12 +7,12 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {runInNewContext} from 'node:vm';
 import {createHash} from 'node:crypto';
 import {SDK13_HELPER_TRANSLATION_UNITS,SDK13_HELPER_SOURCE_OUTPUT,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST,SDK13_INVENTORY_PIN,sdk13HelperBuildCommands,verifySDK13NativeComponent,stageSDK13HelperBundle,verifySDK13HelperBundle} from '../scripts/sdk13-native-component.mjs';
-import {SDK13_NODE_TRANSLATION_UNITS,WALLET_PUBLISHER_NATIVE_INPUTS,composeWalletPublisherNativeBuildPlan,walletNativeSourceProfile} from '../scripts/wallet-publisher-native-build.mjs';
+import {SDK13_NODE_TRANSLATION_UNITS,WALLET_PUBLISHER_NATIVE_INPUTS,walletPublisherNativeInputs,composeWalletPublisherNativeBuildPlan,walletNativeSourceProfile} from '../scripts/wallet-publisher-native-build.mjs';
 import {PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
 import {SDK_RUNTIME_UNIONS,sdkRuntimeUnionProfile,SDK14_RUNTIME_UNION_SOURCE} from '../scripts/sdk14-runtime-union.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),pin=(relative,b)=>({relative,bytes:b.length,sha256:sha(b)});
 const originalRoot=process.env.WALLET_SDK13_SOURCE_ROOT??fileURLToPath(new URL('../../..',import.meta.url));
-let available=false;try{available=['1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18','1.3.0-pq.3.32-auth.19'].includes(JSON.parse(fs.readFileSync(path.join(originalRoot,'packages/wallet-auth/package.json'))).version);}catch{}
+let available=false;try{available=['1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18','1.3.0-pq.3.32-auth.19','1.3.0-pq.3.32-auth.20'].includes(JSON.parse(fs.readFileSync(path.join(originalRoot,'packages/wallet-auth/package.json'))).version);}catch{}
 const needSource={skip:!available&&'requires matching original SDK13 native source, not a substituted source fixture'};
 test('original helper recipe is11 exact TUs, never Wallet store or LocalAuthentication',()=>{
  assert.equal(SDK13_HELPER_TRANSLATION_UNITS.length,11);
@@ -31,7 +31,7 @@ function fixture(t){
  // independently pinned Main store is from THIS Main source, not an older
  // assembled candidate whose private store may intentionally differ.
  const mainRoot=fileURLToPath(new URL('../../..',import.meta.url));
- for(const p of WALLET_PUBLISHER_NATIVE_INPUTS)put(p.path,fs.readFileSync(path.join(mainRoot,p.path)));
+ for(const p of walletPublisherNativeInputs(profile.supplierNodeInputs))put(p.path,fs.readFileSync(path.join(mainRoot,p.path)));
  put(inventoryName,inventoryBytes);
  if(Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version))put(SDK14_RUNTIME_UNION_SOURCE,fs.readFileSync(path.join(originalRoot,SDK14_RUNTIME_UNION_SOURCE)));
  // Deliberate PUBLIC non-executable output stand-ins. This tests record,
@@ -41,7 +41,7 @@ function fixture(t){
  const sources=SDK13_NODE_TRANSLATION_UNITS.map(n=>path.join(sourceRoot,n));
  const plan=composeWalletPublisherNativeBuildPlan({minimumSystemVersion:'13.0',sources,output:path.join(sourceRoot,output),outputs:[path.join(sourceRoot,output)],commands:[{tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=original_auth_identity','-mmacosx-version-min=13.0','-I'+headerRoot,'-I'+path.join(sourceRoot,'packages/wallet-auth/native'),'-framework','Foundation','-framework','Security','-framework','AppKit','-framework','ServiceManagement','-lbsm','-arch','arm64',...sources,'-o',path.join(sourceRoot,output)]}]},sourceRoot,profile.supplierNodeInputs);
  const scan=relative=>({tool:'/usr/bin/nm',argv:['-u',path.join(sourceRoot,relative)],exit:0,stdoutSHA256:sha(Buffer.from('PUBLIC controlled nm DATA')),ownedUndefined:[]});
- const record={schemaVersion:1,kind:'YNX_WALLET_ORIGINAL_NATIVE_BUILD',napiVersion:8,headerVersion:'22.13.1',minimumSystemVersion:'13.0',readbackOnly:false,commandsKind:'executed-normal-build',appSigned:false,nativeQualified:false,registrationAccepted:false,relativeBases:{inputFiles:'repository-root',output:'repository-root',headers:'pinned-header-root'},sourceRoot,headerRoot,sourceInventory:{relative:inventoryName,...profile.inventory},inputFiles:[...inventory.NativeInputs,...WALLET_PUBLISHER_NATIVE_INPUTS].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})),headers:PINNED_NODE_HEADER_PINS,architectures:['arm64'],commands:plan.commands,exitCodes:[0],ownedUndefinedScan:scan(output),output:pin(output,moduleBytes),helperBuild:{kind:'YNX_WALLET_ORIGINAL_HELPER_BUILD/v1',sourceRoot,architectures:['arm64'],readbackOnly:false,commandsKind:'executed-normal-build',executed:true,serviceRegistered:false,installed:false,nativeQualified:false,appSigned:false,inputFiles:supplier.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.relative.localeCompare(b.relative,'en')),commands:sdk13HelperBuildCommands(sourceRoot,['arm64']),exitCodes:[0],ownedUndefinedScan:scan(SDK13_HELPER_SOURCE_OUTPUT),output:pin(SDK13_HELPER_SOURCE_OUTPUT,helperBytes),packagedOutput:SDK13_HELPER_ASSET,plist:pin(SDK13_HELPER_PLIST,fs.readFileSync(path.join(root,SDK13_HELPER_PLIST)))}};
+ const record={schemaVersion:1,kind:'YNX_WALLET_ORIGINAL_NATIVE_BUILD',napiVersion:8,headerVersion:'22.13.1',minimumSystemVersion:'13.0',readbackOnly:false,commandsKind:'executed-normal-build',appSigned:false,nativeQualified:false,registrationAccepted:false,relativeBases:{inputFiles:'repository-root',output:'repository-root',headers:'pinned-header-root'},sourceRoot,headerRoot,sourceInventory:{relative:inventoryName,...profile.inventory},inputFiles:[...inventory.NativeInputs,...walletPublisherNativeInputs(profile.supplierNodeInputs)].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})),headers:PINNED_NODE_HEADER_PINS,architectures:['arm64'],commands:plan.commands,exitCodes:[0],ownedUndefinedScan:scan(output),output:pin(output,moduleBytes),helperBuild:{kind:'YNX_WALLET_ORIGINAL_HELPER_BUILD/v1',sourceRoot,architectures:['arm64'],readbackOnly:false,commandsKind:'executed-normal-build',executed:true,serviceRegistered:false,installed:false,nativeQualified:false,appSigned:false,inputFiles:supplier.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.relative.localeCompare(b.relative,'en')),commands:sdk13HelperBuildCommands(sourceRoot,['arm64']),exitCodes:[0],ownedUndefinedScan:scan(SDK13_HELPER_SOURCE_OUTPUT),output:pin(SDK13_HELPER_SOURCE_OUTPUT,helperBytes),packagedOutput:SDK13_HELPER_ASSET,plist:pin(SDK13_HELPER_PLIST,fs.readFileSync(path.join(root,SDK13_HELPER_PLIST)))}};
  if(Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version))record.runtimeUnion={...sdkRuntimeUnionProfile(profile.version),filesVerified:9335,sourceRoot:path.join(sourceRoot,'packages/wallet-auth'),NativeAdmission:false,installedImageQualified:false,platformQualified:false,networkActivated:false};
  put(output,moduleBytes);put(SDK13_HELPER_ASSET,helperBytes,0o755);
  const recordName='apps/wallet-desktop/native/original-auth-identity-build.json',save=()=>put(recordName,Buffer.from(JSON.stringify(record)));
@@ -55,15 +55,19 @@ test('PUBLIC record/output seam binds actual original supplier sources without c
  assert.equal(verifySDK13HelperBundle(f.contents,f.helperBytes,fs.readFileSync(path.join(f.root,SDK13_HELPER_PLIST))).bytesVerified,true);
 });
 test('old/plan-only/failed/helper-store/missing-source records refuse candidate staging',needSource,t=>{
- for(const mode of ['plan','exit','store','missing','source','output']){
+ for(const mode of ['plan','exit','store','missing','source','output','main-flag','helper-flag','binding']){
   const f=fixture(t);
+  if(['main-flag','helper-flag','binding'].includes(mode)&&!f.record.inputFiles.some(p=>p.relative.endsWith('/original-artifact-publisher-binding.inc.mm')))continue;
   if(mode==='plan')f.record.readbackOnly=true;
   if(mode==='exit')f.record.helperBuild.exitCodes[0]=1;
   if(mode==='store')f.record.helperBuild.commands[0].argv.splice(-2,0,path.join(f.record.sourceRoot,WALLET_PUBLISHER_NATIVE_INPUTS[1].path));
   if(mode==='missing')f.record.helperBuild.inputFiles.pop();
   if(mode==='source')f.put(WALLET_PUBLISHER_NATIVE_INPUTS[0].path,Buffer.from('changed PUBLIC source'));
   if(mode==='output')f.put(SDK13_HELPER_ASSET,Buffer.from('changed PUBLIC output'));
-  f.save();assert.throws(f.stage,/component differs|receipt or input pins differ/);
+  if(mode==='main-flag')f.record.commands[0].argv=f.record.commands[0].argv.filter(p=>!p.includes('YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING'));
+  if(mode==='helper-flag')f.record.helperBuild.commands[0].argv.unshift('-DYNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING=1');
+  if(mode==='binding')f.record.inputFiles=f.record.inputFiles.filter(p=>!p.relative.endsWith('/original-artifact-publisher-binding.inc.mm'));
+  f.save();assert.throws(f.stage,/component differs|receipt or input pins differ|Canonical Native source inventory differs/);
   assert.equal(fs.existsSync(path.join(f.contents,'Library')),false);
  }
 });
@@ -81,7 +85,7 @@ test('PUBLIC normal builder compiler refusal never emits an executed success rec
  const compilerRefusal=Object.assign(Error('PUBLIC compiler boundary refusal; no compiler executed'),{code:'PUBLIC_COMPILER_REFUSAL'});
  const execFileSync=()=>{calls++;throw compilerRefusal;};
  const originalBuild=evaluate(fs.readFileSync(path.join(originalRoot,app+'scripts/build-original-auth-identity-native.mjs'),'utf8'),pathToFileURL(path.join(f.root,app+'scripts/build-original-auth-identity-native.mjs')).href,{execFileSync},['originalAuthNativeBuildPlan','originalIDEHelperBuildPlan','originalAuthSourceCurrentIOBuildPlan','assertOriginalAuthOwnedSymbols']);
- const bindings={execFileSync,originalBuild,composeWalletPublisherNativeBuildPlan,WALLET_PUBLISHER_NATIVE_INPUTS,walletNativeSourceProfile,PINNED_NODE_HEADER_PINS,SDK13_INVENTORY_PIN,SDK13_HELPER_SOURCE_OUTPUT,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST,sdk13HelperBuildCommands,verifySDK13NativeComponent,SDK14_RUNTIME_UNION_SOURCE,SDK_RUNTIME_UNIONS,verifySDKRuntimeUnion:version=>({...sdkRuntimeUnionProfile(version),filesVerified:9335,NativeAdmission:false})};
+ const bindings={execFileSync,originalBuild,composeWalletPublisherNativeBuildPlan,WALLET_PUBLISHER_NATIVE_INPUTS,walletPublisherNativeInputs,walletNativeSourceProfile,PINNED_NODE_HEADER_PINS,SDK13_INVENTORY_PIN,SDK13_HELPER_SOURCE_OUTPUT,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST,sdk13HelperBuildCommands,verifySDK13NativeComponent,SDK14_RUNTIME_UNION_SOURCE,SDK_RUNTIME_UNIONS,verifySDKRuntimeUnion:version=>({...sdkRuntimeUnionProfile(version),filesVerified:9335,NativeAdmission:false})};
  const builder=evaluate(fs.readFileSync(new URL('../scripts/build-wallet-native-component.mjs',import.meta.url),'utf8'),pathToFileURL(path.join(f.root,app+'scripts/build-wallet-native-component.mjs')).href,bindings,['buildWalletNativeComponent']);
  assert.throws(()=>builder.buildWalletNativeComponent('arm64',headers),e=>e===compilerRefusal);assert.equal(calls,1);
  assert.equal(fs.existsSync(path.join(f.root,app+'native/original-auth-identity-build.json')),false);
