@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { authoritativeIdentity, validateAuthoritativeObservation } from "./lib/public-bft-native-source.mjs";
+import { authoritativeIdentity, roleAuthoritativeIdentity, validateAuthoritativeObservation } from "./lib/public-bft-native-source.mjs";
 
 const roles = ["primary", "singapore", "silicon-valley", "seoul"];
 const validators = {
@@ -34,6 +34,8 @@ function validate(root, commit, release, approvalPath = "", transactionId = "") 
   const beforeHeights = {};
   const afterHeights = {};
   for (const role of roles) {
+    const original = native.authoritativeCommit ? roleAuthoritativeIdentity(approval, role) : {};
+    const roleCommit = original.authoritativeCommit?.slice(0, 12) || commit, roleRelease = original.authoritativeRelease || release;
     const before = readJSON(path.join(root, "roles", `${role}-before-status.json`));
     const after = readJSON(path.join(root, "roles", `${role}-after-status.json`));
     const block = readJSON(path.join(root, "roles", `${role}-block.json`));
@@ -43,7 +45,7 @@ function validate(root, commit, release, approvalPath = "", transactionId = "") 
     for (const [stage, status] of [["before", before], ["after", after]]) {
       if (native.authoritativeCommit) validateAuthoritativeObservation(readJSON(path.join(root, "roles", `${role}-${stage}-native-identity.json`)), approval, role, transactionId);
       if (Number(status.chainId) !== 6423 || status.nativeCurrencySymbol !== "YNXT") fail(`${role} ${stage} chain identity mismatch`);
-      if (status.build?.commit !== commit || status.build?.release !== release) fail(`${role} ${stage} release mismatch`);
+      if (status.build?.commit !== roleCommit || status.build?.release !== roleRelease) fail(`${role} ${stage} release mismatch`);
       if (status.nodeIdentity?.validatorAddress !== validators[role]) fail(`${role} ${stage} validator mismatch`);
       if (status.nodeIdentity?.replicationMode !== expectedMode || status.nodeIdentity?.blockProductionEnabled !== expectedProduction) fail(`${role} ${stage} authoritative mode mismatch`);
       if (!Number.isSafeInteger(Number(status.height))) fail(`${role} ${stage} height invalid`);

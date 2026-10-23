@@ -74,15 +74,20 @@ rows.forEach((row,index)=>{assert.deepEqual(Object.keys(row).sort(),['at','phase
 NODE
   approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")"
   # Revalidate the original preparation projection and compare every stable
-  # approved field, including original expiry. Only the independently granted
-  # final source hash may be added, never inferred from the new source itself.
+  # approved stable field, including original expiry. The final source, plan
+  # and genesis time require the full independent authorization; original
+  # custody/layout are compared with the retained preparation, not self-pinned.
   node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/preparation-approval.json" "$commit" "$release" --prepare-native >/dev/null
   # stdin is used for JSON, so keep the program in -e rather than a here-doc.
   printf '%s\n' "$approval_evidence" | node --input-type=module -e '
-import fs from "node:fs";import assert from "node:assert/strict";
+import fs from "node:fs";import assert from "node:assert/strict";import {execFileSync} from "node:child_process";import path from "node:path";
 const before=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),after=JSON.parse(fs.readFileSync(0,"utf8"));
 assert.equal(before.preparationOnly,true);assert.ok(after.authoritativeCommit);assert.ok(!Object.hasOwn(after,"preparationOnly"));
-assert.match(after.snapshotSourceSha256,/^[0-9a-f]{64}$/);delete before.preparationOnly;delete after.snapshotSourceSha256;
+assert.match(after.snapshotSourceSha256,/^[0-9a-f]{64}$/);
+assert.equal(after.operatorPreparationPlanSha256,before.operatorPreparationPlanSha256);
+assert.equal(process.env.PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256,after.operatorPlanSha256,"final operator plan must match the complete independent approval");
+execFileSync(process.execPath,["scripts/verify/public-bft-candidate-binding.mjs","--operator-continuation",path.join(path.dirname(process.argv[1]),"preparation-operator-plan.json"),before.operatorPreparationPlanSha256,process.env.PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN||"",after.operatorPlanSha256],{stdio:["ignore","ignore","pipe"]});
+delete before.preparationOnly;delete after.snapshotSourceSha256;delete after.operatorPlanSha256;delete after.candidateGenesisTime;
 assert.deepEqual(after,before,"continuation changed original stable authorization or expiry");' "$transaction_dir/preparation-approval.json"
   mkdir -- "$transaction_dir/continuation-attempt"
   (set -C; printf '{"status":"unknown","automaticRetry":false}\n' >"$transaction_dir/continuation-attempt/intent.json")
@@ -110,6 +115,10 @@ else
   approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$approval_input" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" "${approval_mode[@]}")"
   if [[ "$mode" == prepare-native ]]; then
     (set -C; printf '%s\n' "$approval_evidence" >"${transaction_dir}/preparation-approval.json")
+    preparation_plan_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).operatorPreparationPlanSha256)' "$transaction_dir/preparation-approval.json")"
+    validator_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).validatorManifestSha256)' "$transaction_dir/preparation-approval.json")"
+    [[ "${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:-}" == "$preparation_plan_pin" ]] || { echo "native preparation operator pin differs from original approval" >&2; exit 1; }
+    node scripts/verify/public-bft-candidate-binding.mjs --retain-operator-preparation "${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:-}" "$preparation_plan_pin" "$validator_pin" "$transaction_dir/preparation-operator-plan.json"
     node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/preparation-approval.original.json" "$transaction_dir/preparation-approval.json" "$transaction_dir"
   else
     printf '%s\n' "$approval_evidence" | node -e 'const fs=require("fs"),a=JSON.parse(fs.readFileSync(0,"utf8"));if(Object.hasOwn(a,"authoritativeCommit"))throw Error("independent native source requires prepare-native then continue-native")'

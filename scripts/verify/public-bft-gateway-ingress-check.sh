@@ -52,6 +52,7 @@ new_fixture() {
   mkdir -m 0700 "$root"
   export FIX_ROOT="$root" FIX_LOG="$root/commands.log"
   unset FIX_DROPIN FIX_FOREIGN_EXEC FIX_PROC_DENIED FIX_PID_RACE FIX_RESTART_TIMEOUT FIX_RESTART_WRONG_ARGV FIX_RELOAD_FAILURE FIX_HEALTH_WRONG FIX_CADDY_INVALID
+  unset FIX_CADDY_DROPIN FIX_CADDY_START FIX_CADDY_RELOAD FIX_CADDY_PID_RACE FIX_CADDY_ADMIN_FAILURE FIX_CADDY_ADAPT_INVALID FIX_CADDY_SECOND_READ
   tx=protocol-gateway-ingress-fixture
   runtime_commit=0123456789abcdef0123456789abcdef01234567
   commit="${runtime_commit:0:12}"; release="ynx-bft-gateway-$commit"
@@ -67,7 +68,7 @@ new_fixture() {
   launcher="$dependency/start-gateway.sh"
   candidate_env="$env_root/candidate.env"
   config="$root/etc/caddy/ynx-chain.caddy"; master="$root/etc/caddy/Caddyfile"
-  mkdir -p "$root/test-bin" "$evidence" "$env_root" "$attempt" "$(dirname "$gateway")" "$(dirname "$unit")" "$root/etc/caddy" "$root/proc/4242" "$root/paused"
+  mkdir -p "$root/test-bin" "$evidence" "$env_root" "$attempt" "$(dirname "$gateway")" "$(dirname "$unit")" "$root/etc/caddy" "$root/proc/4242" "$root/proc/6000" "$root/paused" "$root/usr/bin" "$root/usr/lib/systemd/system"
   chmod 0700 "$env_root" "$attempt"
   : >"$FIX_LOG"
   printf '4242\n' >"$root/pid"
@@ -89,10 +90,14 @@ new_fixture() {
   write_config 6420 "$config"; write_config 27620 "$root/expected.caddy"
   printf '# original master, preserved exactly\nimport %s\n' "$config" >"$master"
   cp "$config" "$root/original.caddy"; cp "$master" "$root/original.master"; cp "$candidate_env" "$root/original.env"
+  printf 'synthetic Caddy binary, never executed\n' >"$root/usr/bin/caddy"
+  printf '[Service]\nUser=caddy\nGroup=caddy\nExecStart=%s run --environ --config %s\nExecReload=%s reload --config %s --force\n' "$root/usr/bin/caddy" "$master" "$root/usr/bin/caddy" "$master" >"$root/usr/lib/systemd/system/caddy.service"
+  ln -s "$root/usr/bin/caddy" "$root/proc/6000/exe"
+  printf '%s\0' "$root/usr/bin/caddy" run --environ --config "$master" >"$root/proc/6000/cmdline"
   for name in ai pay trust resource faucet indexer explorer HRS ledger UNKNOWN; do printf 'retained-%s-original\n' "$name" >"$root/paused/$name"; done
   printf 'original mutation freeze\n' >"$root/var/lib/ynx-chain/mutation-freeze.json"
   printf 'original writer pause\n' >"$root/var/lib/ynx-chain/block-production-pause.json"
-  sha256sum "$root/paused/"* "$root/var/lib/ynx-chain/"*.json "$evidence/primary-dependencies-start.json" "$env_root/ownership.json" "$attempt/"* >"$root/preserved.sha256"
+  sha256sum "$root/paused/"* "$root/var/lib/ynx-chain/"*.json "$evidence/primary-dependencies-start.json" "$env_root/ownership.json" "$attempt/"* "$root/usr/lib/systemd/system/caddy.service" "$root/usr/bin/caddy" >"$root/preserved.sha256"
   cat >"$root/test-bin/systemctl" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -103,7 +108,21 @@ unit=ynx-bft-gateway-candidate.service
 case "$1" in
   is-active) [[ "${*: -1}" == caddy || "${*: -1}" == "$unit" ]] ;;
   show)
-    [[ "$#" == 5 && "$2" == -p && "$4" == --value && "$5" == "$unit" ]]
+    [[ "$#" == 5 && "$2" == -p && "$4" == --value ]]
+    if [[ "$5" == caddy.service ]]; then
+      binary="$FIX_ROOT/usr/bin/caddy"; master="$FIX_ROOT/etc/caddy/Caddyfile"
+      case "$3" in
+        FragmentPath) printf '%s\n' "$FIX_ROOT/usr/lib/systemd/system/caddy.service" ;;
+        DropInPaths) [[ "${FIX_CADDY_DROPIN:-}" != yes ]] || echo /unapproved/caddy-dropin.conf ;;
+        User|Group) echo caddy ;;
+        ExecStart) if [[ "${FIX_CADDY_START:-}" == yes ]]; then printf '{ path=%s ; argv[]=%s run --resume ; ignore_errors=no ; }\n' "$binary" "$binary"; else printf '{ path=%s ; argv[]=%s run --environ --config %s ; ignore_errors=no ; }\n' "$binary" "$binary" "$master"; fi ;;
+        ExecReload) if [[ "${FIX_CADDY_RELOAD:-}" == yes ]]; then master="$FIX_ROOT/etc/caddy/foreign-master"; fi; printf '{ path=%s ; argv[]=%s reload --config %s --force ; ignore_errors=no ; }\n' "$binary" "$binary" "$master" ;;
+        MainPID) if [[ "${FIX_CADDY_PID_RACE:-}" == yes && -f "$FIX_ROOT/caddy-pid-read" ]]; then echo 6001; else echo 6000; : >"$FIX_ROOT/caddy-pid-read"; fi ;;
+        *) exit 91 ;;
+      esac
+      exit 0
+    fi
+    [[ "$5" == "$unit" ]]
     case "$3" in
       FragmentPath) printf '%s\n' "$FIX_ROOT/etc/systemd/system/$unit" ;;
       DropInPaths) [[ "${FIX_DROPIN:-}" != yes ]] || echo /unapproved/dropin.conf ;;
@@ -122,7 +141,10 @@ case "$1" in
     printf '%s\0' "$binary" --http 127.0.0.1:27620 --comet-rpc http://127.0.0.1:27757 --migration-height 17 --migration-block-hash "$(printf 'c%.0s' {1..64})" "--public-cutover-authorized=$auth" >"$FIX_ROOT/proc/$pid/cmdline"
     cp "$FIX_ROOT/proc/4242/environ" "$FIX_ROOT/proc/$pid/environ"
     [[ "${FIX_RESTART_TIMEOUT:-}" != yes ]] || exit 124 ;;
-  reload) [[ "$#" == 2 && "$2" == caddy ]]; [[ "${FIX_RELOAD_FAILURE:-}" != yes ]] || exit 77 ;;
+  reload)
+    [[ "$#" == 2 && "$2" == caddy ]]; [[ "${FIX_RELOAD_FAILURE:-}" != yes ]] || exit 77
+    "$FIX_ROOT/test-bin/fixture-caddy-adapt" >"$FIX_ROOT/caddy-loaded.json.new"
+    mv "$FIX_ROOT/caddy-loaded.json.new" "$FIX_ROOT/caddy-loaded.json" ;;
   *) exit 92 ;;
 esac
 SH
@@ -130,6 +152,11 @@ SH
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'curl-stub %s\n' "$*" >>"$FIX_LOG"
+if [[ "$*" == '--disable --request GET --noproxy * --max-redirs 0 --connect-timeout 5 --max-time 10 --max-filesize 16777216 -fsS http://127.0.0.1:2019/config/' ]]; then
+  [[ "${FIX_CADDY_ADMIN_FAILURE:-}" != yes ]] || exit 22
+  cat "$FIX_ROOT/caddy-loaded.json"
+  exit 0
+fi
 [[ "$*" == '--noproxy * --max-time 5 -fsS http://127.0.0.1:27620/health' ]]
 auth="$(sed -n 's/^YNX_BFT_GATEWAY_PUBLIC_CUTOVER_AUTHORIZED=//p' "$FIX_ROOT/etc/ynx/public-bft-cutover/protocol-gateway-ingress-fixture/candidate.env")"
 commit=0123456789ab
@@ -140,8 +167,55 @@ SH
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'caddy-stub %s\n' "$*" >>"$FIX_LOG"
-[[ "$#" == 5 && "$1" == validate && "$2" == --config && "$3" == "$FIX_ROOT/"* && "$4" == --adapter && "$5" == caddyfile ]]
-[[ "${FIX_CADDY_INVALID:-}" != yes ]] || exit 76
+[[ "$#" == 5 && "$2" == --config && "$3" == "$FIX_ROOT/"* && "$4" == --adapter && "$5" == caddyfile ]]
+case "$1" in
+  adapt)
+    [[ "$3" == "$FIX_ROOT/etc/caddy/Caddyfile" ]]
+    count=0; [[ ! -f "$FIX_ROOT/caddy-adapt-count" ]] || read -r count <"$FIX_ROOT/caddy-adapt-count"
+    count=$((count+1)); printf '%s\n' "$count" >"$FIX_ROOT/caddy-adapt-count"
+    if [[ "$count" == 2 ]]; then
+      case "${FIX_CADDY_SECOND_READ:-}" in
+        loaded) printf '{"apps":{"http":{"servers":{"unrelated":{"listen":[":443"],"routes":[]}}}}}\n' >"$FIX_ROOT/caddy-loaded.json" ;;
+        managed) printf '# external writer preserved\n' >>"$FIX_ROOT/etc/caddy/ynx-chain.caddy" ;;
+        unit) printf '# external unit writer preserved\n' >>"$FIX_ROOT/usr/lib/systemd/system/caddy.service" ;;
+      esac
+    fi
+    if [[ "${FIX_CADDY_ADAPT_INVALID:-}" == yes ]]; then printf '{"apps":'; else "$FIX_ROOT/test-bin/fixture-caddy-adapt"; fi ;;
+  validate) [[ "${FIX_CADDY_INVALID:-}" != yes ]] || exit 76 ;;
+  *) exit 94 ;;
+esac
+SH
+  # This fixture adapter derives a JSON route graph from the actual independent
+  # disk inputs. The loaded admin body is a separate snapshot, never an equality
+  # flag. It implements only the public fixture grammar, not Caddy validation.
+  cat >"$root/test-bin/fixture-caddy-adapt" <<'SH'
+#!/usr/bin/env python3
+import json,os,re
+root=os.environ['FIX_ROOT']
+config=root+'/etc/caddy/ynx-chain.caddy'
+with open(root+'/etc/caddy/Caddyfile') as f: master=f.read()
+imports=[line.split('#',1)[0].split() for line in master.splitlines()]
+if ['import',config] not in imports:
+    servers={'stub':{'listen':[':80'],'routes':[{'handle':[{'handler':'file_server'}]}]}}
+else:
+    routes=[]; current=None
+    with open(config) as f:
+        for line in f:
+            line=line.split('#',1)[0].strip()
+            match=re.fullmatch(r'([A-Za-z0-9., -]+)\s+\{',line)
+            if match:
+                current={'match':[{'host':[x.strip() for x in match[1].split(',')]}],'handle':[]}
+                routes.append(current)
+            elif line=='}': current=None
+            elif current is not None:
+                upstreams=re.findall(r'127\.0\.0\.1:[0-9]+',line)
+                if upstreams:
+                    handler={'handler':'reverse_proxy','upstreams':[{'dial':x} for x in upstreams]}
+                    prefix=re.search(r'handle_path\s+(\S+)',line)
+                    if prefix: current['handle'].append({'handler':'subroute','routes':[{'match':[{'path':[prefix[1]]}],'handle':[handler]}]})
+                    else: current['handle'].append(handler)
+    servers={'srv0':{'listen':[':443'],'routes':routes}}
+print(json.dumps({'apps':{'http':{'servers':servers}}},sort_keys=True))
 SH
   cat >"$root/test-bin/timeout" <<'SH'
 #!/usr/bin/env bash
@@ -169,6 +243,7 @@ SH
   printf '#!/usr/bin/env bash\nexit 93 # no chown is expected\n' >"$root/test-bin/chown"
   chmod 0755 "$root/test-bin/"*
   export PATH="$root/test-bin:$base_path"
+  "$root/test-bin/fixture-caddy-adapt" >"$root/caddy-loaded.json"
 }
 
 run_helper() {
@@ -181,13 +256,25 @@ run_helper() {
 preserved() { sha256sum --strict -c "$root/preserved.sha256" >/dev/null || fail 'original source/paused data/freeze/HRS changed'; }
 no_mutations() { ! grep -Eq '^systemctl (restart|reload)|^install-stub ' "$FIX_LOG" || fail 'preflight failure performed a mutation'; }
 must_fail() { [[ "$status" != 0 ]] || fail "expected refusal: $1"; grep -Fq "$1" "$root/result.err" || { cat "$root/result.err" >&2; fail "missing first-cause: $1"; }; preserved; }
+refresh_loaded() { "$root/test-bin/fixture-caddy-adapt" >"$root/caddy-loaded.json"; }
+private_guard_output() { ! grep -Fq 'PRIVATE_LOADED_BODY_CANARY' "$root/result.out" "$root/result.err" || fail 'guard exposed loaded configuration body'; }
 
 # Actual helper: switch changes only two exact RPC lines, and only this gateway
 # restarts. Alias/comment/64201/product blocks and original receipts stay exact.
 new_fixture
+# Whitespace/key ordering of an independently loaded object is not a route
+# change. Only the original Caddy adapter output supplies the disk graph.
+python3 - "$root/caddy-loaded.json" <<'PY'
+import json,sys
+p=sys.argv[1]
+with open(p) as f: v=json.load(f)
+with open(p,'w') as f: json.dump(v,f,indent=3,sort_keys=False)
+PY
 run_helper switch
 [[ "$status" == 0 ]] || { cat "$root/result.err" >&2; fail 'normal source-only switch'; }
 cmp "$config" "$root/expected.caddy" && cmp "$master" "$root/original.master" || fail 'non-RPC Caddy bytes changed'
+"$root/test-bin/fixture-caddy-adapt" >"$root/expected-loaded.json"
+cmp "$root/caddy-loaded.json" "$root/expected-loaded.json" || fail 'reload did not retain the complete disk route graph'
 cmp "$ingress/backups/ynx-chain.caddy" "$root/original.caddy" && cmp "$ingress/backups/candidate.env" "$root/original.env" || fail 'original backups changed'
 grep -Fxq 'YNX_BFT_GATEWAY_PUBLIC_CUTOVER_AUTHORIZED=true' "$candidate_env" || fail 'gateway was not explicitly authorized'
 python3 - "$ingress/switch.json" "$root/original.env" "$candidate_env" <<'PY'
@@ -212,6 +299,79 @@ count="$(grep -Ec '^systemctl (restart|reload)' "$FIX_LOG")"
 run_helper rollback
 [[ "$status" != 0 && "$(grep -Ec '^systemctl (restart|reload)' "$FIX_LOG")" == "$count" ]] || fail 'rollback was silently resent'
 
+# The observed production hazard: a normal active multi-site admin config and
+# a default on-disk master with no managed import. Refuse the actual semantic
+# mismatch before the old missing-import check, without a reload or restart.
+new_fixture
+printf '# independently retained default master\n:80 {\n file_server\n}\n' >"$master"
+cp "$master" "$root/default-master"
+cp "$root/caddy-loaded.json" "$root/retained-loaded.json"
+run_helper switch; must_fail CADDY_LOADED_DISK_CONFIG_MISMATCH; no_mutations
+! grep -Fq 'does not import' "$root/result.err" || fail 'old import refusal masked the loaded/disk regression'
+[[ ! -e "$ingress" ]] || fail 'loaded/disk preflight mismatch created an attempt'
+cmp "$master" "$root/default-master" && cmp "$config" "$root/original.caddy" && cmp "$root/caddy-loaded.json" "$root/retained-loaded.json" || fail 'mismatch refusal changed loaded/disk originals'
+[[ "$(grep -Ec '^curl-stub .*http://127.0.0.1:2019/config/$' "$FIX_LOG")" == 1 ]] || fail 'mismatch did not read the actual admin interface'
+
+for scenario in other-route empty-object duplicate partial shape nonfinite overbound admin-failure disk-invalid caddy-dropin caddy-resume caddy-reload-master caddy-unit-source caddy-argv caddy-executable caddy-pid; do
+  new_fixture
+  case "$scenario" in
+    other-route)
+      python3 - "$root/caddy-loaded.json" <<'PY'
+import json,sys
+p=sys.argv[1]
+with open(p) as f: v=json.load(f)
+v['apps']['http']['servers']['srv0']['routes'][-1]['handle'][0]['upstreams'][0]['dial']='127.0.0.1:29999'
+v['apps']['private_app']={'retained':'PRIVATE_LOADED_BODY_CANARY'}
+with open(p,'w') as f: json.dump(v,f)
+PY
+      expected=CADDY_LOADED_DISK_CONFIG_MISMATCH ;;
+    empty-object) printf '{}\n' >"$root/caddy-loaded.json"; expected=CADDY_LOADED_DISK_CONFIG_MISMATCH ;;
+    duplicate) printf '{"apps":{},"apps":{"private":"PRIVATE_LOADED_BODY_CANARY"}}\n' >"$root/caddy-loaded.json"; expected=CADDY_LOADED_CONFIG_UNAVAILABLE_OR_INVALID ;;
+    partial) printf '{"apps":{"private":"PRIVATE_LOADED_BODY_CANARY"' >"$root/caddy-loaded.json"; expected=CADDY_LOADED_CONFIG_UNAVAILABLE_OR_INVALID ;;
+    shape) printf '{"apps":{"http":{"servers":[]}},"private":"PRIVATE_LOADED_BODY_CANARY"}\n' >"$root/caddy-loaded.json"; expected=CADDY_LOADED_CONFIG_UNAVAILABLE_OR_INVALID ;;
+    nonfinite) printf '{"apps":{},"private":NaN}\n' >"$root/caddy-loaded.json"; expected=CADDY_LOADED_CONFIG_UNAVAILABLE_OR_INVALID ;;
+    overbound) python3 - "$root/caddy-loaded.json" <<'PY'
+import sys
+with open(sys.argv[1],'wb') as f: f.write(b'{"private":"'+b'x'*(16<<20)+b'"}')
+PY
+      expected=CADDY_LOADED_CONFIG_UNAVAILABLE_OR_INVALID ;;
+    admin-failure) export FIX_CADDY_ADMIN_FAILURE=yes; expected=CADDY_LOADED_CONFIG_UNAVAILABLE_OR_INVALID ;;
+    disk-invalid) export FIX_CADDY_ADAPT_INVALID=yes; expected=CADDY_DISK_CONFIG_INVALID ;;
+    caddy-dropin) export FIX_CADDY_DROPIN=yes; expected=CADDY_ORIGINAL_UNIT_MISMATCH ;;
+    caddy-resume) export FIX_CADDY_START=yes; expected=CADDY_ORIGINAL_START_MISMATCH ;;
+    caddy-reload-master) export FIX_CADDY_RELOAD=yes; expected=CADDY_ORIGINAL_RELOAD_MISMATCH ;;
+    caddy-unit-source)
+      # systemd's cached properties stay original, but its on-disk unit points
+      # at another master. The helper must inspect both, retain the foreign
+      # source and refuse, rather than trusting the cached show values alone.
+      sed -i 's/ reload --config / reload --config=foreign /' "$root/usr/lib/systemd/system/caddy.service"
+      sha256sum "$root/paused/"* "$root/var/lib/ynx-chain/"*.json "$evidence/primary-dependencies-start.json" "$env_root/ownership.json" "$attempt/"* "$root/usr/lib/systemd/system/caddy.service" "$root/usr/bin/caddy" >"$root/preserved.sha256"
+      expected=CADDY_ORIGINAL_UNIT_CONTENT_MISMATCH ;;
+    caddy-argv) printf '%s\0' "$root/usr/bin/caddy" run --resume >"$root/proc/6000/cmdline"; expected=CADDY_ORIGINAL_ARGV_MISMATCH ;;
+    caddy-executable) printf 'foreign Caddy executable\n' >"$root/foreign-caddy"; rm "$root/proc/6000/exe"; ln -s "$root/foreign-caddy" "$root/proc/6000/exe"; expected=CADDY_ORIGINAL_EXECUTABLE_MISMATCH ;;
+    caddy-pid) export FIX_CADDY_PID_RACE=yes; expected=CADDY_ORIGINAL_RUNNING_IDENTITY_CHANGED ;;
+  esac
+  cp "$root/caddy-loaded.json" "$root/retained-loaded.json"
+  run_helper switch; must_fail "$expected"; no_mutations; private_guard_output
+  [[ ! -e "$ingress" ]] || fail 'Caddy preflight refusal created an ingress attempt'
+  cmp "$config" "$root/original.caddy" && cmp "$master" "$root/original.master" && cmp "$candidate_env" "$root/original.env" && cmp "$root/caddy-loaded.json" "$root/retained-loaded.json" || fail 'Caddy preflight refusal changed original bytes'
+done
+
+# A previously consistent first read is insufficient: the real caller repeats
+# the body and raw-file checks immediately before authorizing gateway restart.
+for scenario in loaded managed; do
+  new_fixture
+  export FIX_CADDY_SECOND_READ="$scenario"
+  if [[ "$scenario" == loaded ]]; then expected=CADDY_LOADED_DISK_CONFIG_MISMATCH; else expected=CADDY_ORIGINAL_CONFIG_CHANGED_DURING_READBACK; fi
+  run_helper switch; must_fail "$expected"; no_mutations
+  [[ -f "$ingress/intent.json" && ! -e "$ingress/switch.json" ]] || fail 'readback race lost the staged UNKNOWN'
+  cmp "$candidate_env" "$root/original.env" || fail 'readback race authorized/restarted the gateway'
+  if [[ "$scenario" == managed ]]; then grep -Fxq '# external writer preserved' "$config" || fail 'external original edit was restored'; fi
+  count="$(wc -l <"$FIX_LOG")"
+  run_helper switch; must_fail 'original ingress attempt exists'; no_mutations
+  [[ "$(wc -l <"$FIX_LOG")" == "$count" ]] || fail 'UNKNOWN repeated admin requests or service work'
+done
+
 for scenario in pin snapshot dropin exec proc binary argv env pid receipt health; do
   new_fixture
   case "$scenario" in
@@ -219,7 +379,7 @@ for scenario in pin snapshot dropin exec proc binary argv env pid receipt health
     snapshot) printf 'changed original unit\n' >>"$attempt/gateway.service"; expected='snapshot differs'; sha256sum "$root/paused/"* "$root/var/lib/ynx-chain/"*.json >"$root/preserved.sha256" ;;
     dropin) export FIX_DROPIN=yes; expected='unit source/drop-ins differ' ;;
     exec) export FIX_FOREIGN_EXEC=yes; expected='loaded ExecStart differs' ;;
-    proc) export FIX_PROC_DENIED=yes; expected='fixture /proc identity permission denied' ;;
+    proc) export FIX_PROC_DENIED=yes; expected=CADDY_ORIGINAL_EXECUTABLE_UNAVAILABLE ;;
     binary) printf 'wrong running binary, same inode\n' >>"$gateway"; expected='running gateway executable differs' ;;
     argv) printf 'unapproved\0' >>"$root/proc/4242/cmdline"; expected='running gateway argv differs' ;;
     env) printf 'UNAPPROVED=1\0' >>"$root/proc/4242/environ"; expected='running gateway environment differs' ;;
@@ -247,6 +407,9 @@ for scenario in pre-switched unsupported no-rpc invalid-caddy; do
     no-rpc) printf 'other.test.invalid {\n reverse_proxy 127.0.0.1:64201\n}\n' >"$config"; expected='no exact original native RPC directive' ;;
     invalid-caddy) export FIX_CADDY_INVALID=yes; expected='SINGLE_APP_GATEWAY_INGRESS_UNKNOWN' ;;
   esac
+  # These original negative controls start from a deliberately changed but
+  # consistently loaded graph, so they still reach their original first cause.
+  refresh_loaded
   cp "$config" "$root/before-config"
   run_helper switch; must_fail "$expected"; no_mutations
   [[ -f "$ingress/intent.json" && ! -e "$ingress/switch.json" ]] || fail 'staged UNKNOWN was not preserved'

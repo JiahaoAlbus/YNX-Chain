@@ -23,6 +23,11 @@ type proofSelectionFixture struct {
 func newProofSelectionFixture(t *testing.T) proofSelectionFixture {
 	t.Helper()
 	f := newProofHostSourceFixture(t, "atomic-json", "")
+	// The normal publisher requires an existing private parent. testing.TempDir
+	// supplies a temporary directory, not that explicit operator permission.
+	if err := os.Chmod(f.root, 0700); err != nil {
+		t.Fatal(err)
+	}
 	output := filepath.Join(f.root, "selection-delivery")
 	captured, err := f.export(t, output)
 	if err != nil {

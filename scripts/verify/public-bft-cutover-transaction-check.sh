@@ -10,6 +10,7 @@ mkdir -p "$repo/scripts/ops" "$repo/scripts/verify/lib"
 cp scripts/ops/public-bft-cutover-transaction.sh "$repo/scripts/ops/"
 cp scripts/verify/validate-public-bft-cutover-approval.mjs "$repo/scripts/verify/"
 cp scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$repo/scripts/verify/"
+cp scripts/verify/public-bft-candidate-binding.mjs "$repo/scripts/verify/"
 cp scripts/verify/validate-production-custody-review.mjs "$repo/scripts/verify/"
 cp scripts/verify/validate-owner-handover-receipt.mjs "$repo/scripts/verify/"
 cp scripts/verify/lib/owner-handover.mjs "$repo/scripts/verify/lib/"
@@ -540,22 +541,48 @@ cmp "$state" "$baseline" >/dev/null
 # driver is the isolated state-machine fixture above, not a node or approval
 # oracle. These cases cannot establish deployed consensus or a public root.
 node --input-type=module - "$repo" "$tmp" "$custody_review" "$state" "$baseline" <<'NODE'
-import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {spawnSync} from 'node:child_process';
-const [repo,tmp,custody,state,baseline]=process.argv.slice(2),raw=JSON.parse(fs.readFileSync(path.join(tmp,'approval.json')));
-const full='65efa82e06158f9616172144c3c9efdd8088f227',stable={authoritativeCommit:full,authoritativeRelease:'ynx-network-surgical-'+full.slice(0,12),authoritativeBinarySha256:'b'.repeat(64),authoritativeSource:{statePath:'/var/lib/ynx-chain/testnet/devnet-state.json',integrityMarkerPath:'/var/lib/ynx-chain/testnet/devnet-state.integrity-version',pauseMarkerPath:'/var/lib/ynx-chain/block-production-pause.json',mutationMarkerPath:'/var/lib/ynx-chain/mutation-freeze.json'}};
-const prep={...raw,...stable,preparationOnly:true};delete prep.snapshotSourceSha256;
-const final={...prep,snapshotSourceSha256:raw.snapshotSourceSha256};delete final.preparationOnly;
+import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {spawnSync} from 'node:child_process';import {pathToFileURL} from 'node:url';
+const [repo,tmp,oldCustody,state,baseline]=process.argv.slice(2);
+const {inventoryCore,sha256,validateInventory}=await import(pathToFileURL(path.join(repo,'scripts/verify/lib/owner-handover.mjs')));
+const packet=path.join(tmp,'native-preparation-custody');fs.mkdirSync(packet,{mode:0o700});
+const single=path.join(tmp,'single-app-custody'),original=name=>JSON.parse(fs.readFileSync(path.join(single,name)));
 const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v)+'\n',{flag:'wx',mode:0o600});
-const prepPath=path.join(tmp,'native-preparation.json'),finalPath=path.join(tmp,'native-final.json');write(prepPath,prep);write(finalPath,final);
+const raw=original('approval.json');
+const roles=['primary','singapore','silicon-valley','seoul'];
+const preparationPlan={version:'YNX-PRODUCTION-OPERATOR/v1',chainId:'ynx_6423-1',validatorManifestSHA256:raw.validatorManifestSha256,originalGenesisHash:'a'.repeat(64),stateLayout:'atomic-json',runtimePlan:null,runtimePlanHash:'',pqSchedule:null,pqScheduleHash:'',roles:roles.map(role=>({role,home:'/original/'+role+'/comet',abciState:'/original/'+role+'/new-app/state.json',legacyKeyPath:'/original/'+role+'/original-ed.json',legacyStatePath:'/original/'+role+'/original-hrs.json',nodeKeyPath:'/original/'+role+'/original-node.json'})),preparationOnly:true};
+const preparationPlanPath=path.join(tmp,'native-preparation-plan.json');write(preparationPlanPath,preparationPlan);
+const preparationPin=sha256(fs.readFileSync(preparationPlanPath));
+const inventory=original('owner-handover-inventory.json');inventory.sources.operatorPlanSha256=preparationPin;inventory.inventoryDigest='sha256:'+sha256(JSON.stringify(inventoryCore(inventory))+'\n');validateInventory(inventory,raw.commit);
+const inventoryPath=path.join(packet,'owner-handover-inventory.json');write(inventoryPath,inventory);
+const receipt=original('owner-handover-receipt.json');receipt.inventoryDigest=inventory.inventoryDigest;receipt.inventoryFileSha256=sha256(fs.readFileSync(inventoryPath));
+const receiptPath=path.join(packet,'owner-handover-receipt.json');write(receiptPath,receipt);
+const review=original('review.json');Object.assign(review,{operatorPlanSha256:preparationPin,ownerHandoverInventoryDigest:inventory.inventoryDigest,ownerHandoverInventoryEvidence:'sha256:'+sha256(fs.readFileSync(inventoryPath)),ownerHandoverReceiptEvidence:'sha256:'+sha256(fs.readFileSync(receiptPath))});
+const custody=path.join(packet,'review.json');write(custody,review);raw.custodyEvidence='sha256:'+sha256(fs.readFileSync(custody));
+const full='65efa82e06158f9616172144c3c9efdd8088f227',stable={authoritativeCommit:full,authoritativeRelease:'ynx-network-surgical-'+full.slice(0,12),authoritativeBinarySha256:'b'.repeat(64),authoritativeSource:{statePath:'/var/lib/ynx-chain/testnet/devnet-state.json',integrityMarkerPath:'/var/lib/ynx-chain/testnet/devnet-state.integrity-version',pauseMarkerPath:'/var/lib/ynx-chain/block-production-pause.json',mutationMarkerPath:'/var/lib/ynx-chain/mutation-freeze.json'}};
+const primaryIdentity=JSON.parse(JSON.stringify(stable));
+stable.authoritativeRoles=Object.fromEntries(roles.map((role,index)=>[role,index===0?primaryIdentity:{...primaryIdentity,authoritativeCommit:String(index).repeat(40),authoritativeRelease:'ynx-chain-'+String(index).repeat(12),authoritativeBinarySha256:String(index).repeat(64)}]));
+const prep={...raw,...stable,preparationOnly:true,operatorPreparationPlanSha256:preparationPin};for(const field of ['snapshotSourceSha256','operatorPlanSha256','candidateGenesisTime'])delete prep[field];
+const prepPath=path.join(tmp,'native-preparation.json'),finalPath=path.join(tmp,'native-final.json'),finalPlanPath=path.join(tmp,'native-final-plan.json');write(prepPath,prep);
+let final,finalPlanPin;
 const tx=id=>path.join(tmp,'evidence',id);
 function call(id,mode,approval,extra={}){
-  return spawnSync('bash',['scripts/ops/public-bft-cutover-transaction.sh'],{cwd:repo,encoding:'utf8',maxBuffer:1<<20,env:{...process.env,PUBLIC_BFT_CUTOVER_MODE:mode,PUBLIC_BFT_CUTOVER_APPROVED:'yes',PUBLIC_BFT_CUTOVER_APPROVAL_FILE:approval,PUBLIC_BFT_CUSTODY_REVIEW_FILE:custody,PUBLIC_BFT_PRODUCTION_INITIALIZATION_APPROVED:'yes',PUBLIC_BFT_CUTOVER_DRIVER:path.join(tmp,'driver'),PUBLIC_BFT_CUTOVER_EVIDENCE_DIR:path.join(tmp,'evidence'),PUBLIC_BFT_CUTOVER_TRANSACTION_ID:id,CUTOVER_TEST_STATE:state,CUTOVER_TEST_BASELINE:baseline,...extra}});
+  return spawnSync('bash',['scripts/ops/public-bft-cutover-transaction.sh'],{cwd:repo,encoding:'utf8',maxBuffer:1<<20,env:{...process.env,PUBLIC_BFT_CUTOVER_MODE:mode,PUBLIC_BFT_CUTOVER_APPROVED:'yes',PUBLIC_BFT_CUTOVER_APPROVAL_FILE:approval,PUBLIC_BFT_CUSTODY_REVIEW_FILE:custody,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:mode==='prepare-native'?preparationPlanPath:finalPlanPath,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:mode==='prepare-native'?preparationPin:finalPlanPin,PUBLIC_BFT_PRODUCTION_INITIALIZATION_APPROVED:'yes',PUBLIC_BFT_CUTOVER_DRIVER:path.join(tmp,'driver'),PUBLIC_BFT_CUTOVER_EVIDENCE_DIR:path.join(tmp,'evidence'),PUBLIC_BFT_CUTOVER_TRANSACTION_ID:id,CUTOVER_TEST_STATE:state,CUTOVER_TEST_BASELINE:baseline,...extra}});
 }
 const phases=['preflight','backup','freeze_mutations','pause_authoritative'];
 function prepare(id){fs.copyFileSync(baseline,state);const p=call(id,'prepare-native',prepPath);assert.equal(p.status,0,p.stderr);assert.match(p.stdout,/awaiting_final_snapshot_authorization/);assert.ok(!p.stdout.includes('transaction passed'));assert.deepEqual(fs.readFileSync(path.join(tx(id),'driver-calls.txt'),'utf8').trim().split('\n'),phases);assert.ok(fs.readFileSync(state,'utf8').includes('authoritative=paused\n'));assert.ok(fs.readFileSync(state,'utf8').includes('frozen=true\n'));assert.equal(fs.existsSync(path.join(tx(id),'approval.json')),false);assert.equal(fs.existsSync(path.join(tx(id),'candidate')),false);assert.deepEqual(fs.readFileSync(path.join(tx(id),'preparation-approval.original.json')),fs.readFileSync(prepPath));return tx(id);}
-function snapshot(dir){return ['preparation-approval.json','preparation-approval.original.json','journal.jsonl','driver-calls.txt'].map(name=>[path.join(dir,name),fs.readFileSync(path.join(dir,name))]);}
+function snapshot(dir){return ['preparation-approval.json','preparation-approval.original.json','preparation-operator-plan.json','journal.jsonl','driver-calls.txt'].map(name=>[path.join(dir,name),fs.readFileSync(path.join(dir,name))]);}
 const unchanged=items=>items.forEach(([file,bytes])=>assert.deepEqual(fs.readFileSync(file),bytes));
 const good=prepare('native-two-phase-positive'),before=snapshot(good),prefix=fs.readFileSync(path.join(good,'journal.jsonl'));
+// No final snapshot, genesis, full operator plan or final authorization exists
+// while the actual preparation caller runs. Only stable custody was reviewed.
+assert.equal(fs.existsSync(finalPath),false);assert.equal(fs.existsSync(finalPlanPath),false);
+assert.deepEqual(fs.readFileSync(path.join(good,'preparation-operator-plan.json')),fs.readFileSync(preparationPlanPath));
+const bindingArgs=['scripts/verify/public-bft-candidate-binding.mjs','--operator-preflight',preparationPlanPath,preparationPin,'primary'];
+const preflight=spawnSync(process.execPath,[...bindingArgs,'prepare-native'],{cwd:repo,encoding:'utf8'});assert.equal(preflight.status,0,preflight.stderr);assert.ok(!preflight.stdout.includes('config/genesis.json'));assert.ok(preflight.stdout.includes('original-ed.json'));assert.ok(preflight.stdout.includes('new-app'));assert.notEqual(spawnSync(process.execPath,[...bindingArgs,'fresh'],{cwd:repo}).status,0);
+const finalGenesis=Buffer.from('{"syntheticOnly":true,"purpose":"transaction caller DATA only"}\n');
+const finalPlan={...preparationPlan,consensusGenesis:finalGenesis.toString('base64'),consensusGenesisSHA256:sha256(finalGenesis),migrationStateHash:'d'.repeat(64)};delete finalPlan.preparationOnly;
+write(finalPlanPath,finalPlan);finalPlanPin=sha256(fs.readFileSync(finalPlanPath));
+final={...prep,snapshotSourceSha256:raw.snapshotSourceSha256,operatorPlanSha256:finalPlanPin,candidateGenesisTime:raw.candidateGenesisTime};delete final.preparationOnly;write(finalPath,final);
 // The real native context must qualify stable paths before a final source file
 // or hash exists, and must forbid candidate/export/ingress under preparation.
 const sourceDriver=fs.readFileSync(path.join(process.cwd(),'scripts/ops/public-bft-production-driver.sh'),'utf8');
@@ -566,6 +593,16 @@ for(const action of ['preflight','backup','freeze_mutations','pause_authoritativ
   if(['preflight','backup','freeze_mutations','pause_authoritative'].includes(action)){assert.equal(p.status,0,p.stderr);assert.deepEqual(p.stdout.trim().split('\n'),[full,stable.authoritativeRelease,stable.authoritativeSource.statePath]);}
   else{assert.notEqual(p.status,0);assert.equal(p.stdout,'');}
 }
+// Exercise the real role-selection and qualification functions with a
+// transport recorder, not a process observation. Distinct follower binaries
+// must never be silently qualified under the primary snapshot authority.
+const roleContext=sourceDriver.match(/^public_bft_native_role_context\(\) \{\n[\s\S]*?^\}/m)?.[0],qualify=sourceDriver.match(/^public_bft_native_qualify\(\) \{\n[\s\S]*?^\}/m)?.[0];assert.ok(roleContext&&qualify);
+const roleScript=path.join(tmp,'native-role-context.sh');fs.writeFileSync(roleScript,`set -Eeuo pipefail\ncd "$NATIVE_CONTEXT_REPO"\ncommit=${raw.commit}\nrelease=ynx-chain-${raw.commit}\naction=preflight\n${context}\n${roleContext}\n${qualify}\nynx_ops_ssh(){ printf '%s\\n' "$5"; cat >/dev/null; }\npublic_bft_native_context\npublic_bft_native_qualify "$TEST_NATIVE_ROLE" user host unused-key "$TEST_NATIVE_OUTPUT"\n`,{mode:0o700});
+for(const role of roles){
+  const output=path.join(tmp,'recorded-'+role+'.txt'),p=spawnSync('bash',[roleScript],{encoding:'utf8',env:{...process.env,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:good,NATIVE_CONTEXT_REPO:process.cwd(),TEST_NATIVE_ROLE:role,TEST_NATIVE_OUTPUT:output}});assert.equal(p.status,0,p.stderr);
+  const command=fs.readFileSync(output,'utf8'),expected=stable.authoritativeRoles[role];for(const value of [expected.authoritativeCommit,expected.authoritativeRelease,expected.authoritativeBinarySha256,role])assert.ok(command.includes("'"+value+"'"));
+  if(role!=='primary')assert.ok(!command.includes("'"+full+"'"));
+}
 const result=call('native-two-phase-positive','continue-native',finalPath);assert.equal(result.status,0,result.stderr);
 for(const [file,bytes]of before.filter(([file])=>file.includes('preparation-approval')))assert.deepEqual(fs.readFileSync(file),bytes);
 assert.deepEqual(fs.readFileSync(path.join(good,'journal.jsonl')).subarray(0,prefix.length),prefix);
@@ -573,19 +610,44 @@ const actual=fs.readFileSync(path.join(good,'driver-calls.txt'),'utf8').trim().s
 assert.equal(JSON.parse(fs.readFileSync(path.join(good,'continuation-attempt/result.json'))).status,'passed');
 const completeCalls=fs.readFileSync(path.join(good,'driver-calls.txt')),completeJournal=fs.readFileSync(path.join(good,'journal.jsonl'));
 assert.notEqual(call('native-two-phase-positive','continue-native',finalPath).status,0);assert.deepEqual(fs.readFileSync(path.join(good,'driver-calls.txt')),completeCalls);assert.deepEqual(fs.readFileSync(path.join(good,'journal.jsonl')),completeJournal);
-for(const name of ['changed-source','changed-expiry','changed-approver','missing-final-pin','unknown','partial','journal','attempt','initialization','wrong-transaction']){
+// A separately approved final SHA cannot alter reviewed stable custody. These
+// use the real continuation comparator, before any driver side effect.
+for(const [name,mutate]of [
+  ['key-path',p=>{p.roles[0].legacyKeyPath='/other/key.json';}],
+  ['hrs-path',p=>{p.roles[1].legacyStatePath='/other/hrs.json';}],
+  ['node-path',p=>{p.roles[2].nodeKeyPath='/other/node.json';}],
+  ['home',p=>{p.roles[0].home='/other/home';}],
+  ['state-path',p=>{p.roles[0].abciState='/other/state.json';}],
+  ['layout',p=>{p.stateLayout='snapshot-journal';}],
+  ['original-genesis',p=>{p.originalGenesisHash='e'.repeat(64);}],
+  ['validator-manifest',p=>{p.validatorManifestSHA256='f'.repeat(64);}],
+  ['remote-custody',p=>{p.roles[0].remoteSigner='tcp://127.0.0.1:1';}],
+  ['runtime',p=>{p.runtimePlan=Buffer.from('{}').toString('base64');p.runtimePlanHash='f'.repeat(64);}],
+  ['pq-schedule',p=>{p.pqSchedule=Buffer.from('{}').toString('base64');p.pqScheduleHash='f'.repeat(64);}],
+  ['genesis-bytes',p=>{p.consensusGenesis=Buffer.from('changed').toString('base64');}],
+  ['unknown-field',p=>{p.unreviewed=true;}],
+]){
+  const id='native-plan-negative-'+name,dir=prepare(id),changed=JSON.parse(JSON.stringify(finalPlan));mutate(changed);
+  const planFile=path.join(tmp,id+'-plan.json');write(planFile,changed);const pin=sha256(fs.readFileSync(planFile));
+  const file=path.join(tmp,id+'-approval.json');write(file,{...final,operatorPlanSha256:pin});
+  const saved=snapshot(dir),stateBefore=fs.readFileSync(state),p=call(id,'continue-native',file,{PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:planFile,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:pin});
+  assert.notEqual(p.status,0,name+' stable operator change accepted');unchanged(saved);assert.deepEqual(fs.readFileSync(state),stateBefore);assert.equal(fs.existsSync(path.join(dir,'continuation-attempt')),false);
+}
+for(const name of ['changed-source','changed-follower','changed-expiry','changed-approver','missing-final-pin','missing-operator-pin','missing-genesis-time','wrong-external-plan-pin','preserved-plan-change','unknown','partial','journal','attempt','initialization','wrong-transaction']){
   const id='native-negative-'+name,dir=prepare(id);let file=finalPath;
-  if(name.startsWith('changed-')||name==='missing-final-pin'){
-    const v=JSON.parse(JSON.stringify(final));if(name==='changed-source')v.authoritativeSource.pauseMarkerPath='/other/pause.json';if(name==='changed-expiry')v.expiresAt=new Date(Date.parse(v.expiresAt)-1000).toISOString().replace('.000Z','Z');if(name==='changed-approver')v.approver='another authorized approver';if(name==='missing-final-pin')delete v.snapshotSourceSha256;
+  if(name.startsWith('changed-')||name.startsWith('missing-')){
+    const v=JSON.parse(JSON.stringify(final));if(name==='changed-source')v.authoritativeSource.pauseMarkerPath='/other/pause.json';if(name==='changed-expiry')v.expiresAt=new Date(Date.parse(v.expiresAt)-1000).toISOString().replace('.000Z','Z');if(name==='changed-approver')v.approver='another authorized approver';if(name==='missing-final-pin')delete v.snapshotSourceSha256;if(name==='missing-operator-pin')delete v.operatorPlanSha256;if(name==='missing-genesis-time')delete v.candidateGenesisTime;
+    if(name==='changed-follower')v.authoritativeRoles.singapore.authoritativeBinarySha256='f'.repeat(64);
     file=path.join(tmp,id+'.json');write(file,v);
   }
+  if(name==='preserved-plan-change')fs.appendFileSync(path.join(dir,'preparation-operator-plan.json'),' ');
   if(name==='unknown')fs.writeFileSync(path.join(dir,'original.UNKNOWN'),'ORIGINAL UNKNOWN\n',{flag:'wx'});
   if(name==='partial')fs.writeFileSync(path.join(dir,'source.partial'),'ORIGINAL PARTIAL\n',{flag:'wx'});
   if(name==='journal')fs.appendFileSync(path.join(dir,'journal.jsonl'),'{"phase":"transaction","status":"unknown","at":"2026-10-23T00:00:00Z"}\n');
   if(name==='attempt')fs.mkdirSync(path.join(dir,'continuation-attempt'));
   if(name==='initialization'){fs.mkdirSync(path.join(dir,'candidate'));fs.symlinkSync('missing-original',path.join(dir,'candidate/initialize-attempt'));}
   const saved=snapshot(dir),stateBefore=fs.readFileSync(state);
-  const p=call(name==='wrong-transaction'?id+'-different':id,'continue-native',file);assert.notEqual(p.status,0,name+' accepted');unchanged(saved);assert.deepEqual(fs.readFileSync(state),stateBefore);
+  const p=call(name==='wrong-transaction'?id+'-different':id,'continue-native',file,name==='wrong-external-plan-pin'?{PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:preparationPin}:{});assert.notEqual(p.status,0,name+' accepted');unchanged(saved);assert.deepEqual(fs.readFileSync(state),stateBefore);
 }
 for(const name of ['prepare-failure','continue-failure']){
   const id='native-'+name;let dir;
@@ -595,11 +657,11 @@ for(const name of ['prepare-failure','continue-failure']){
   const calls=fs.readFileSync(path.join(dir,'driver-calls.txt'),'utf8');assert.ok(!/rollback_|resume_authoritative|unfreeze_mutations/.test(calls));assert.ok(fs.readFileSync(state,'utf8').includes('authoritative=paused\n'));assert.ok(fs.readFileSync(state,'utf8').includes('frozen=true\n'));assert.match(fs.readFileSync(path.join(dir,'journal.jsonl'),'utf8'),/"phase":"transaction","status":"unknown"/);
   const saved=snapshot(dir);assert.notEqual(call(id,'continue-native',finalPath).status,0);unchanged(saved);
 }
-for(const [name,value,mode]of [['prepare-with-future-pin',{...prep,snapshotSourceSha256:final.snapshotSourceSha256},'prepare-native'],['prepare-without-only',final,'prepare-native'],['direct-independent-execute',final,'execute']]){
+for(const [name,value,mode]of [['prepare-with-future-pin',{...prep,snapshotSourceSha256:final.snapshotSourceSha256},'prepare-native'],['prepare-with-future-operator',{...prep,operatorPlanSha256:final.operatorPlanSha256},'prepare-native'],['prepare-with-future-genesis-time',{...prep,candidateGenesisTime:final.candidateGenesisTime},'prepare-native'],['prepare-without-only',final,'prepare-native'],['prepare-missing-plan-pin',Object.fromEntries(Object.entries(prep).filter(([k])=>k!=='operatorPreparationPlanSha256')),'prepare-native'],['direct-independent-execute',final,'execute']]){
   fs.copyFileSync(baseline,state);const file=path.join(tmp,name+'.json');write(file,value);const p=call('native-'+name,mode,file);assert.notEqual(p.status,0);assert.equal(fs.existsSync(path.join(tx('native-'+name),'driver-calls.txt')),false);assert.deepEqual(fs.readFileSync(state),fs.readFileSync(baseline));
 }
 fs.copyFileSync(baseline,state);
-console.log('PUBLIC_BFT_NATIVE_TWO_PHASE_DATA_ONLY: real transaction caller, no future pin before pause, exact original authorization/expiry, no re-freeze/retry/UNKNOWN cleanup; synthetic driver only');
+console.log('PUBLIC_BFT_NATIVE_TWO_PHASE_DATA_ONLY: real transaction caller, final plan/genesis absent before pause, reviewed stable custody/layout retained and compared, independent final pins, exact original authorization/expiry, no re-freeze/retry/UNKNOWN cleanup; synthetic driver only');
 NODE
 
 cp "$tmp/approval.json" "$tmp/insecure-approval.json"

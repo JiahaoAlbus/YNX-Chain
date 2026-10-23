@@ -5,7 +5,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
-import { authoritativeIdentity } from "./lib/public-bft-native-source.mjs";
+import { authoritativeIdentity, authoritativeRoleIdentities, operatorPreparationPin } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error("public BFT cutover approval rejected: " + message);
@@ -44,6 +44,8 @@ if (approval.custodyReviewer.trim().toLowerCase() === approval.approver.trim().t
 if (typeof approval.custodyEvidence !== "string" || !/^sha256:[0-9a-f]{64}$/.test(approval.custodyEvidence.trim())) fail("an exact sha256 custody review evidence reference is required");
 if (approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval is bound to a different commit or release");
 const nativeIdentity = authoritativeIdentity(approval);
+const nativeRoles = authoritativeRoleIdentities(approval);
+const preparationPlanPin = operatorPreparationPin(approval, preparation);
 if (preparation) {
   if (!nativeIdentity.authoritativeCommit || approval.preparationOnly !== true || Object.hasOwn(approval, "snapshotSourceSha256")) fail("native preparation requires explicit preparationOnly and no future snapshot source pin");
 } else if (Object.hasOwn(approval, "preparationOnly")) fail("preparation approval cannot authorize export, initialization or cutover");
@@ -62,27 +64,27 @@ try {
   fail(`custody review validation failed: ${error.stderr?.toString().trim() || error.message}`);
 }
 if (isSingleAppCustody(custodyReview) !== singleApp) fail("approval custody profile differs from original reviewed records");
-if (singleApp) for (const field of ["validatorManifestSha256", "operatorPlanSha256", "runtimeManifestSha256"]) if (approval[field] !== custodyReview[field]) fail(`${field} differs from original single-App custody evidence`);
+if (singleApp) for (const field of ["validatorManifestSha256", "operatorPlanSha256", "runtimeManifestSha256"]) if ((field === "operatorPlanSha256" && preparationPlanPin ? preparationPlanPin : approval[field]) !== custodyReview[field]) fail(`${field} differs from original single-App custody evidence`);
 if (custodyReview.reviewer.toLowerCase() !== approval.custodyReviewer.trim().toLowerCase() || custodyReview.custodyEvidence !== approval.custodyEvidence.trim()) fail("custody review attribution or exact file hash differs from approval");
 const participants = [approval.approver, custodyReview.reviewer, custodyReview.owner, custodyReview.ownerHandoverReviewer].map((value) => String(value || "").trim().toLowerCase());
 if (participants.some((value) => value.length < 3) || new Set(participants).size !== participants.length) fail("transaction approver, custody reviewer, owner, and owner handover reviewer must be distinct");
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) {
   fail("validatorManifestSha256 is required");
 }
-for (const field of ["operatorPlanSha256", "runtimeManifestSha256", "exporterManifestSha256", ...(!preparation ? ["snapshotSourceSha256"] : [])]) {
+for (const field of ["runtimeManifestSha256", "exporterManifestSha256", ...(!preparation ? ["operatorPlanSha256", "snapshotSourceSha256"] : [])]) {
   const value = approval[field];
   if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
     fail(`${field} must be an independent nonzero lowercase SHA256 in the original approval`);
   }
 }
-if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "") || !Number.isFinite(Date.parse(approval.candidateGenesisTime))) {
+if (!preparation && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "") || !Number.isFinite(Date.parse(approval.candidateGenesisTime)))) {
   fail("candidateGenesisTime must be whole-second UTC RFC3339");
 }
 const expiresAt = Date.parse(approval.expiresAt || "");
 if (!Number.isFinite(expiresAt) || expiresAt <= Date.now() || expiresAt > Date.now() + 24 * 60 * 60 * 1000) {
   fail("expiresAt must be in the future and no more than 24 hours away");
 }
-if (Date.parse(approval.candidateGenesisTime) > expiresAt) fail("candidateGenesisTime must not exceed approval expiry");
+if (!preparation && Date.parse(approval.candidateGenesisTime) > expiresAt) fail("candidateGenesisTime must not exceed approval expiry");
 if (singleApp && expiresAt > Date.parse(custodyReview.expiresAt)) fail("single-App approval must not outlive original custody evidence");
 
 process.stdout.write(JSON.stringify({
@@ -102,6 +104,7 @@ process.stdout.write(JSON.stringify({
   commit: expectedCommit,
   release: expectedRelease,
   ...nativeIdentity,
+  ...nativeRoles,
   ...(preparation ? {preparationOnly: true} : {}),
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,
@@ -111,10 +114,11 @@ process.stdout.write(JSON.stringify({
   rotationProcedureVerified: true,
   ...(!singleApp ? { serviceSignerManifestSha256: approval.serviceSignerManifestSha256 } : {}),
   validatorManifestSha256: approval.validatorManifestSha256,
-  operatorPlanSha256: approval.operatorPlanSha256,
+  ...(preparationPlanPin ? {operatorPreparationPlanSha256: preparationPlanPin} : {}),
+  ...(!preparation ? {operatorPlanSha256: approval.operatorPlanSha256} : {}),
   runtimeManifestSha256: approval.runtimeManifestSha256,
   ...(!preparation ? {snapshotSourceSha256: approval.snapshotSourceSha256} : {}),
   exporterManifestSha256: approval.exporterManifestSha256,
-  candidateGenesisTime: approval.candidateGenesisTime,
+  ...(!preparation ? {candidateGenesisTime: approval.candidateGenesisTime} : {}),
   expiresAt: new Date(expiresAt).toISOString().replace(".000Z", "Z"),
 }) + "\n");

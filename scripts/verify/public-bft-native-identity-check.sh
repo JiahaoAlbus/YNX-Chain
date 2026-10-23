@@ -147,7 +147,7 @@ PY
 node --input-type=module <<'NODE'
 import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';import http from 'node:http';
 import {execFile} from 'node:child_process';import {promisify} from 'node:util';
-import {validateAuthoritativeObservation} from './scripts/verify/lib/public-bft-native-source.mjs';
+import {authoritativeRoleIdentities,roleAuthoritativeIdentity,validateAuthoritativeObservation} from './scripts/verify/lib/public-bft-native-source.mjs';
 const run=promisify(execFile),repo=process.cwd(),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-native-helper-controls-'));
 const commit='abcdef012345',full='65efa82e06158f9616172144c3c9efdd8088f227',native='ynx-network-surgical-'+full.slice(0,12),bft='ynx-bft-gateway-'+commit,tx='native-helper-controls';
 const source=path.join(tmp,'source'),evidence=path.join(tmp,'evidence'),freeze=path.join(tmp,'freeze.json'),pause=path.join(tmp,'pause.json');
@@ -156,6 +156,20 @@ const observed={version:'YNX-PUBLIC-BFT-NATIVE-IDENTITY/v1',transactionId:tx,com
 validateAuthoritativeObservation(observed,approved,'primary',tx);
 for(const [name,value]of [['transactionId','another-transaction'],['commit','0'.repeat(12)],['role','seoul'],['authoritativeBinarySha256','f'.repeat(64)],['dataPath','/different-db'],['readOnly',false]])assert.throws(()=>validateAuthoritativeObservation({...observed,[name]:value},approved,'primary',tx));
 assert.throws(()=>validateAuthoritativeObservation(observed,approved,'primary','another-transaction'));
+const primary=JSON.parse(JSON.stringify(approved));delete primary.commit;
+const roleNames=['primary','singapore','silicon-valley','seoul'];
+const mixed={...approved,authoritativeRoles:Object.fromEntries(roleNames.map((role,index)=>[role,index===0?primary:{...primary,authoritativeCommit:String(index).repeat(40),authoritativeRelease:'ynx-chain-'+String(index).repeat(12),authoritativeBinarySha256:String(index).repeat(64)}]))};
+assert.equal(authoritativeRoleIdentities(mixed).authoritativeRoles.primary.authoritativeCommit,full);
+for(const role of roleNames){
+  const own=roleAuthoritativeIdentity(mixed,role),actual={...observed,role,...own};delete actual.authoritativeSource;
+  validateAuthoritativeObservation(actual,mixed,role,tx);
+  if(role!=='primary')assert.throws(()=>validateAuthoritativeObservation({...observed,role},mixed,role,tx));
+}
+for(const mutate of [x=>{delete x.authoritativeRoles.seoul;},x=>{x.authoritativeRoles.extra=primary;},x=>{x.authoritativeRoles.primary=x.authoritativeRoles.singapore;},x=>{x.authoritativeRoles.singapore.authoritativeCommit='0'.repeat(40);},x=>{x.authoritativeRoles.singapore.authoritativeBinarySha256='0'.repeat(64);},x=>{x.authoritativeRoles.singapore.height='42';},x=>{x.authoritativeRoles.singapore.authoritativeSource={...x.authoritativeSource,pauseMarkerPath:'/other/pause.json'};}]){
+  const bad=JSON.parse(JSON.stringify(mixed));mutate(bad);
+  if(bad.authoritativeRoles.singapore?.authoritativeSource?.pauseMarkerPath==='/other/pause.json')assert.throws(()=>validateAuthoritativeObservation({...observed,role:'singapore',...bad.authoritativeRoles.singapore},bad,'singapore',tx));
+  else assert.throws(()=>authoritativeRoleIdentities(bad));
+}
 const write=(p,raw)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,raw,{flag:'wx',mode:0o600});};
 write(path.join(source,'var/lib/ynx-chain/testnet/devnet-state.json'),'ORIGINAL DATA FIXTURE\n');
 write(path.join(source,'etc/ynx/ynx-chaind.env'),`YNX_MUTATION_FREEZE_FILE=${freeze}\nYNX_BLOCK_PRODUCTION_PAUSE_FILE=${pause}\n`);
@@ -171,11 +185,38 @@ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const url='http
 const helper=name=>path.join(repo,'scripts/ops/remote/public-bft-'+name+'.sh');
 async function call(name,args,ok=true){let result;try{result=await run('bash',[helper(name),...args],{timeout:15000,maxBuffer:1<<20});}catch(error){if(ok)throw error;assert.notEqual(error.code,0);return error;}assert.equal(ok,true,'invalid native helper input accepted');return result;}
 try{
+  // Normal rehearsal/recovery validators consume mixed, explicitly pinned
+  // role observations. These are serializer/transport DATA doubles, never a
+  // deployed process or an authorization packet.
+  const observations=path.join(tmp,'mixed-role-observations'),approvalFile=path.join(tmp,'mixed-role-approval.json');
+  write(approvalFile,JSON.stringify(mixed)+'\n');
+  const addresses={primary:'ynx_validator_primary',singapore:'ynx_validator_singapore','silicon-valley':'ynx_validator_silicon_valley',seoul:'ynx_validator_seoul'};
+  write(path.join(observations,'prebuilt.sha256'),['a','b','c','d'].map(x=>'1'.repeat(64)+'  '+x).join('\n')+'\n');
+  for(const [index,role]of roleNames.entries()){
+    const own=roleAuthoritativeIdentity(mixed,role),roleDir=path.join(observations,'roles',role);
+    const status={chainId:6423,nativeCurrencySymbol:'YNXT',build:{commit:own.authoritativeCommit.slice(0,12),release:own.authoritativeRelease},nodeIdentity:{validatorAddress:addresses[role],replicationMode:role==='primary'?'authoritative_producer':'authoritative_follower',blockProductionEnabled:role==='primary'},height:40+index};
+    const observation={...observed,role,authoritativeCommit:own.authoritativeCommit,authoritativeRelease:own.authoritativeRelease,authoritativeBinarySha256:own.authoritativeBinarySha256};
+    const block={height:40,hash:'2'.repeat(64)};
+    write(path.join(roleDir,'status.json'),JSON.stringify(status)+'\n');write(path.join(roleDir,'block.json'),JSON.stringify(block)+'\n');write(path.join(roleDir,'native-identity.json'),JSON.stringify(observation)+'\n');
+    write(path.join(roleDir,'preflight.txt'),[`role=${role}`,`validator=${addresses[role]}`,`release=${own.authoritativeRelease}`,'services=active','overlay=active','keys=restricted','candidate=absent','freeze=absent','ports=free','disk=ready','backup=present',`native_running_sha256=${own.authoritativeBinarySha256}`].join('\n')+'\n');
+    write(path.join(observations,'roles',role+'-before-status.json'),JSON.stringify(status)+'\n');write(path.join(observations,'roles',role+'-after-status.json'),JSON.stringify({...status,height:status.height+1})+'\n');
+    for(const stage of ['before','after'])write(path.join(observations,'roles',role+'-'+stage+'-native-identity.json'),JSON.stringify(observation)+'\n');
+    write(path.join(observations,'roles',role+'-block.json'),JSON.stringify(block)+'\n');write(path.join(observations,'roles',role+'-recovery.txt'),[`role=${role}`,'freeze=absent','services=active','status_read=200','evm_read=200','mutations=unfrozen'].join('\n')+'\n');
+  }
+  for(const name of ['rehearsal','recovery']){
+    const args=[path.join(repo,'scripts/verify/validate-public-bft-production-'+name+'.mjs'),observations,full.slice(0,12),native,approvalFile,tx];
+    const result=await run(process.execPath,args,{timeout:10000,maxBuffer:1<<20});assert.equal(JSON.parse(result.stdout).status,'passed');
+    const file=name==='rehearsal'?path.join(observations,'roles/singapore/status.json'):path.join(observations,'roles/singapore-before-status.json'),originalStatus=fs.readFileSync(file),bad=JSON.parse(originalStatus);bad.build={commit:full.slice(0,12),release:native};fs.writeFileSync(file,JSON.stringify(bad)+'\n');
+    await assert.rejects(run(process.execPath,args,{timeout:10000,maxBuffer:1<<20}),/release mismatch/);assert.deepEqual(fs.readFileSync(file),Buffer.from(JSON.stringify(bad)+'\n'));fs.writeFileSync(file,originalStatus);
+  }
   const backup=[tx,'primary',commit,native,bft,evidence,'false',source,full];
   const retainedRoot=path.join(tmp,'retained-backup'),retainedPartial=path.join(retainedRoot,'.primary.tar.gz.partial');write(retainedPartial,'ORIGINAL UNKNOWN BACKUP\n');
   const blocked=await call('scoped-backup',[...backup.slice(0,5),retainedRoot,...backup.slice(6)],false);assert.match(blocked.stderr,/existing native backup\/partial\/UNKNOWN/);assert.equal(fs.readFileSync(retainedPartial,'utf8'),'ORIGINAL UNKNOWN BACKUP\n');assert.equal(fs.existsSync(path.join(retainedRoot,'primary.tar.gz')),false);
   await call('scoped-backup',backup);
   const savedBackup=JSON.parse(fs.readFileSync(path.join(evidence,'primary.json')));assert.equal(savedBackup.commit,commit);assert.equal(savedBackup.authoritativeCommit,full);assert.equal(savedBackup.authoritativeRelease,native);assert.equal(savedBackup.validated,true);
+  const sg=roleAuthoritativeIdentity(mixed,'singapore'),sgBackupRoot=path.join(tmp,'singapore-backup');
+  await call('scoped-backup',[tx,'singapore',commit,sg.authoritativeRelease,bft,sgBackupRoot,'false',source,sg.authoritativeCommit]);
+  const sgBackup=JSON.parse(fs.readFileSync(path.join(sgBackupRoot,'singapore.json')));assert.equal(sgBackup.authoritativeCommit,sg.authoritativeCommit);assert.equal(sgBackup.authoritativeRelease,sg.authoritativeRelease);assert.notEqual(sgBackup.authoritativeCommit,savedBackup.authoritativeCommit);
   const frozen=['freeze',tx,'primary',commit,native,bft,freeze,evidence,url,url,source,full];
   await call('mutation-freeze',frozen);
   const originalFreeze=fs.readFileSync(freeze),record=JSON.parse(originalFreeze);assert.equal(record.commit,commit);assert.equal(record.authoritativeCommit,full);assert.equal(record.authoritativeRelease,native);

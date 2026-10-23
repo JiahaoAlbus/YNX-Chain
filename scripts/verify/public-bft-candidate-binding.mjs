@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
-import { authoritativeIdentity } from "./lib/public-bft-native-source.mjs";
+import { authoritativeIdentity, authoritativeRoleIdentities, roleAuthoritativeIdentity } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error(`public BFT candidate binding rejected: ${message}`);
@@ -189,6 +189,61 @@ function pinnedOperator(file, pin) {
   if (plan.version !== operatorVersion || plan.chainId !== "ynx_6423-1" || !Array.isArray(plan.roles) || plan.roles.length !== 4 || new Set(plan.roles.map((r) => r.role)).size !== 4 || plan.roles.some((r) => !roles.includes(r.role))) fail("operator plan identity or roles are invalid");
   return plan;
 }
+function operatorPreparationProjection(plan, preparation) {
+  const future = ["consensusGenesis", "consensusGenesisSHA256", "migrationStateHash"];
+  const required = ["version", "chainId", "validatorManifestSHA256", "originalGenesisHash", "stateLayout", "runtimePlan", "runtimePlanHash", "pqSchedule", "pqScheduleHash", "roles"];
+  const allowed = [...required, "heightHaltSessionId", ...(preparation ? ["preparationOnly"] : future)];
+  if (Object.keys(plan).some(key => !allowed.includes(key)) || required.some(key => !Object.hasOwn(plan, key))) fail("native operator preparation has unexpected or missing stable fields");
+  if (preparation && (plan.preparationOnly !== true || future.some(key => Object.hasOwn(plan, key)))) fail("native preparation cannot pin a future genesis or migration result");
+  if (!hash(plan.validatorManifestSHA256) || !hash(plan.originalGenesisHash) || !["atomic-json", "snapshot-journal", "block-journal"].includes(plan.stateLayout)) fail("native operator preparation stable pins/layout are incomplete");
+  if (![null, ""].includes(plan.runtimePlan) || plan.runtimePlanHash !== "" || ![null, ""].includes(plan.pqSchedule) || plan.pqScheduleHash !== "") fail("native preparation cannot authorize a runtime or PQ schedule");
+  if (!preparation) {
+    if (!hash(plan.consensusGenesisSHA256) || !hash(plan.migrationStateHash) || typeof plan.consensusGenesis !== "string" || !plan.consensusGenesis) fail("final native operator plan requires its independently approved genesis and migration");
+    const genesis = Buffer.from(plan.consensusGenesis, "base64");
+    if (genesis.toString("base64") !== plan.consensusGenesis || crypto.createHash("sha256").update(genesis).digest("hex") !== plan.consensusGenesisSHA256) fail("final operator genesis bytes differ from its independent pin");
+  }
+  const roleRequired = ["role", "home", "abciState", "legacyKeyPath", "legacyStatePath", "nodeKeyPath"];
+  const roleOptional = ["hostBinding", "remoteSigner", "transportKeyPath", "signerPeerPublicKey", "remoteTimeout", "heightHaltControlPath"];
+  const projectedRoles = plan.roles.map(role => {
+    if (!role || typeof role !== "object" || Array.isArray(role) || roleRequired.some(key => !Object.hasOwn(role, key)) || Object.keys(role).some(key => ![...roleRequired, ...roleOptional].includes(key))) fail("native preparation role fields are incomplete or unknown");
+    for (const key of roleRequired.filter(key => key !== "role")) safeOperatorPath(role[key]);
+    for (const key of roleOptional.filter(key => key !== "heightHaltControlPath")) if (role[key] !== undefined && role[key] !== (key === "hostBinding" ? null : "")) fail("native preparation must preserve original local bootstrap custody");
+    if (role.heightHaltControlPath !== undefined && role.heightHaltControlPath !== "") safeOperatorPath(role.heightHaltControlPath);
+    return {...Object.fromEntries(roleRequired.map(key => [key, role[key]])), ...Object.fromEntries(roleOptional.map(key => [key, role[key] ?? (key === "hostBinding" ? null : "")]))};
+  });
+  const session = plan.heightHaltSessionId ?? "";
+  if (session !== "" && !hash(session)) fail("native preparation height halt session is invalid");
+  return {...Object.fromEntries(required.filter(key => !["roles", "runtimePlan", "pqSchedule"].includes(key)).map(key => [key, plan[key]])), runtimePlan: null, pqSchedule: null, heightHaltSessionId: session, roles: projectedRoles};
+}
+function canonicalProjection(value) {
+  if (Array.isArray(value)) return value.map(canonicalProjection);
+  if (value && typeof value === "object") return Object.fromEntries(Object.keys(value).sort().map(key => [key, canonicalProjection(value[key])]));
+  return value;
+}
+if (rawArgs[0] === "--retain-operator-preparation") {
+  if (rawArgs.length !== 5) fail("preparation retention requires original plan, independent pin, validator pin and exclusive destination");
+  const [, file, pin, validatorPin, destination] = rawArgs, plan = pinnedOperator(file, pin);
+  operatorPreparationProjection(plan, true);
+  if (!hash(validatorPin) || plan.validatorManifestSHA256 !== validatorPin) fail("preparation plan differs from independently approved validator manifest");
+  safeOperatorPath(destination);
+  const parent = path.dirname(destination), info = fs.lstatSync(parent);
+  if (!info.isDirectory() || info.isSymbolicLink() || fs.realpathSync(parent) !== parent || (info.mode & 0o7777) !== 0o700) fail("preparation retention requires the original private transaction directory");
+  const raw = fs.readFileSync(file);
+  if (crypto.createHash("sha256").update(raw).digest("hex") !== pin) fail("preparation source changed before retention");
+  const fd = fs.openSync(destination, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
+  try { fs.writeFileSync(fd, raw); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+  const directory = fs.openSync(parent, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
+  try { fs.fsyncSync(directory); } finally { fs.closeSync(directory); }
+  if (sha256(destination) !== pin || sha256(file) !== pin) fail("preparation retention changed; retain partial/UNKNOWN");
+  process.exit(0);
+}
+if (rawArgs[0] === "--operator-continuation") {
+  if (rawArgs.length !== 5) fail("operator continuation requires preserved preparation and independent final plan pins");
+  const before = operatorPreparationProjection(pinnedOperator(rawArgs[1], rawArgs[2]), true);
+  const after = operatorPreparationProjection(pinnedOperator(rawArgs[3], rawArgs[4]), false);
+  if (JSON.stringify(canonicalProjection(before)) !== JSON.stringify(canonicalProjection(after))) fail("final operator plan changed the original approved custody/layout/runtime boundary");
+  process.exit(0);
+}
 function safeOperatorPath(value) {
   if (typeof value !== "string" || value.length > 4096 || value === "/" || !/^\/[A-Za-z0-9_./-]+$/.test(value) || path.posix.normalize(value) !== value) fail("unsafe operator custody path");
   return `'${value}'`;
@@ -202,7 +257,7 @@ function freshDestination(plan, name) {
   const d = safeOperatorPath(directory), p = safeOperatorPath(parent);
   return `sudo test ! -e ${d}; sudo test ! -L ${d}; sudo test -d ${p}; sudo test ! -L ${p}; test "$(sudo realpath -e ${p})" = ${p};`;
 }
-function operatorRoleCommand(plan, name, fresh = false) {
+function operatorRoleCommand(plan, name, fresh = false, preparation = false) {
   const role = plan.roles.find((r) => r.role === name);
   if (!role) fail("operator role is missing");
   const safePath = safeOperatorPath;
@@ -220,13 +275,18 @@ function operatorRoleCommand(plan, name, fresh = false) {
     const lock = safePath(`${role.abciState}.read.lock`);
     commands.push(`sudo test -f ${lock}; sudo test ! -L ${lock}; test "$(sudo stat -c %a ${lock})" = 600;`);
   } else if (!["atomic-json", "snapshot-journal", "block-journal"].includes(plan.stateLayout)) fail("unsupported operator state layout");
-  if (!hash(plan.consensusGenesisSHA256)) fail("missing original consensus genesis pin");
-  commands.push(`printf '%s  %s\\n' '${plan.consensusGenesisSHA256}' ${safePath(`${role.home}/config/genesis.json`)} | sudo sha256sum --strict -c - >/dev/null;`);
+  if (!preparation) {
+    if (!hash(plan.consensusGenesisSHA256)) fail("missing original consensus genesis pin");
+    commands.push(`printf '%s  %s\\n' '${plan.consensusGenesisSHA256}' ${safePath(`${role.home}/config/genesis.json`)} | sudo sha256sum --strict -c - >/dev/null;`);
+  }
   return commands.join("\n");
 }
 if (rawArgs[0] === "--operator-preflight") {
-  if (rawArgs.length !== 4 && !(rawArgs.length === 5 && rawArgs[4] === "fresh")) fail("operator preflight requires plan, external pin, role and optional explicit fresh mode");
-  process.stdout.write(`${operatorRoleCommand(pinnedOperator(rawArgs[1], rawArgs[2]), rawArgs[3], rawArgs[4] === "fresh")}\n`);
+  if (rawArgs.length !== 4 && !(rawArgs.length === 5 && ["fresh", "prepare-native"].includes(rawArgs[4]))) fail("operator preflight requires plan, external pin, role and optional explicit fresh/preparation mode");
+  const plan = pinnedOperator(rawArgs[1], rawArgs[2]), preparation = rawArgs[4] === "prepare-native";
+  if (preparation) operatorPreparationProjection(plan, true);
+  else if (Object.hasOwn(plan, "preparationOnly")) fail("preparation plan cannot authorize a final operator command");
+  process.stdout.write(`${operatorRoleCommand(plan, rawArgs[3], ["fresh", "prepare-native"].includes(rawArgs[4]), preparation)}\n`);
   process.exit(0);
 }
 if (rawArgs[0] === "--initialization-command" || rawArgs[0] === "--initialization-destination") {
@@ -257,7 +317,8 @@ if (rawArgs[0] === "--activation-evidence") {
   requireRestrictedFile(bindingPath, "candidate binding");
   const binding = readJSON(bindingPath, "candidate binding");
   if (binding.schemaVersion !== 2 || binding.transactionId !== path.basename(path.resolve(tx)) || binding.operatorProfile !== operatorVersion || !hash(binding.operatorPlanSha256)) fail("activation binding identity/version mismatch");
-  const identity = (v, withRole = true) => v.transactionId === binding.transactionId && v.commit === binding.commit && v.authoritativeRelease === binding.authoritativeRelease && (!binding.authoritativeCommit || v.authoritativeCommit === binding.authoritativeCommit) && v.bftRelease === binding.bftRelease && (!withRole || v.role === role);
+  const original = binding.authoritativeCommit ? roleAuthoritativeIdentity(binding, role) : {};
+  const identity = (v, withRole = true) => v.transactionId === binding.transactionId && v.commit === binding.commit && v.authoritativeRelease === (original.authoritativeRelease || binding.authoritativeRelease) && (!original.authoritativeCommit || v.authoritativeCommit === original.authoritativeCommit) && v.bftRelease === binding.bftRelease && (!withRole || v.role === role);
   function evidence(name) {
     const file = path.join(directory, name);
     requireRestrictedFile(file, name);
@@ -318,6 +379,7 @@ if (!inputsOnly) {
 
 const approval = readJSON(approvalPath, "transaction approval");
 const nativeIdentity = authoritativeIdentity(approval);
+const nativeRoles = authoritativeRoleIdentities(approval);
 const singleApp = isSingleAppCustody(approval);
 if (singleApp && ["serviceSignerRecoveryVerified", "serviceSignerManifestSha256"].some(key => Object.hasOwn(approval, key))) fail("single-App approval cannot assert unrelated service custody");
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("transaction approval identity mismatch");
@@ -396,6 +458,7 @@ process.stdout.write(`${JSON.stringify({
   commit: expectedCommit,
   authoritativeRelease: nativeIdentity.authoritativeRelease || `ynx-chain-${expectedCommit}`,
   ...nativeIdentity,
+  ...nativeRoles,
   bftRelease: expectedRelease,
   finalSnapshotSha256,
   finalSnapshotHeight: snapshot.height,

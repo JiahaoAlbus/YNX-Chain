@@ -56,14 +56,39 @@ public_bft_native_context() {
   [[ "$native_pause" == /var/lib/ynx-chain/block-production-pause.json && "$native_mutation" == /var/lib/ynx-chain/mutation-freeze.json ]] || { echo "approved marker paths are outside the original shared native/gateway marker contract" >&2; return 1; }
 }
 
+public_bft_native_role_context() {
+  local role="$1" values
+  role_native_full="${native_full_commit:-}"
+  role_native_release="$release"
+  role_native_binary="${native_binary_pin:-}"
+  role_native_state="${native_state:-/var/lib/ynx-chain/testnet/devnet-state.json}"
+  role_native_integrity="${native_integrity:-/var/lib/ynx-chain/testnet/devnet-state.integrity-version}"
+  role_native_pause="${native_pause:-/var/lib/ynx-chain/block-production-pause.json}"
+  role_native_mutation="${native_mutation:-/var/lib/ynx-chain/mutation-freeze.json}"
+  [[ -n "$role_native_full" ]] || return 0
+  values="$(node --input-type=module - "$native_approval_path" "$role" <<'NODE'
+import fs from 'node:fs';import {roleAuthoritativeIdentity} from './scripts/verify/lib/public-bft-native-source.mjs';
+const a=roleAuthoritativeIdentity(JSON.parse(fs.readFileSync(process.argv[2])),process.argv[3]);
+console.log([a.authoritativeCommit,a.authoritativeRelease,a.authoritativeBinarySha256,...Object.values(a.authoritativeSource)].join('\n'));
+NODE
+)" || return $?
+  local -a identity
+  mapfile -t identity <<<"$values"
+  (( ${#identity[@]} == 7 )) || { echo "incomplete approved original role identity" >&2; return 1; }
+  role_native_full="${identity[0]}"; role_native_release="${identity[1]}"; role_native_binary="${identity[2]}"
+  role_native_state="${identity[3]}"; role_native_integrity="${identity[4]}"; role_native_pause="${identity[5]}"; role_native_mutation="${identity[6]}"
+  [[ "$role_native_state" == /var/lib/ynx-chain/testnet/devnet-state.json && "$role_native_pause" == /var/lib/ynx-chain/block-production-pause.json && "$role_native_mutation" == /var/lib/ynx-chain/mutation-freeze.json ]] || { echo "approved role paths are outside original scoped preservation layout" >&2; return 1; }
+}
+
 public_bft_native_qualify() {
-  [[ -n "${native_full_commit:-}" ]] || return 0
   local role="$1" user="$2" host="$3" key="$4" output="$5" tx
+  public_bft_native_role_context "$role" || return $?
+  [[ -n "${native_full_commit:-}" ]] || return 0
   tx="$(basename "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR")"
   # The script is streamed through the existing transport; there is no native
   # install/start/restart or path inferred from the release's build label.
   # Keep any partial observation on error; it cannot authorize a later phase.
-  (set -C; ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo env -i PATH=/usr/bin:/bin python3 -B - '$native_full_commit' '$release' '$native_binary_pin' '$tx' '$commit' '$role' '$native_state' '$native_integrity' '$native_pause' '$native_mutation'" <scripts/ops/remote/public-bft-native-identity.py >"$output")
+  (set -C; ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo env -i PATH=/usr/bin:/bin python3 -B - '$role_native_full' '$role_native_release' '$role_native_binary' '$tx' '$commit' '$role' '$role_native_state' '$role_native_integrity' '$role_native_pause' '$role_native_mutation'" <scripts/ops/remote/public-bft-native-identity.py >"$output")
 }
 
 authoritative_production_phase() {
@@ -146,6 +171,10 @@ public_bft_runtime_prepare() {
 public_bft_operator_inputs() {
   candidate_operator_plan="${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:-}"
   candidate_operator_pin="${PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:-}"
+  if [[ -n "${native_approval_path:-}" && "$native_approval_path" == "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-approval.json" ]]; then
+    candidate_operator_plan="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-operator-plan.json"
+    candidate_operator_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).operatorPreparationPlanSha256)' "$native_approval_path")" || return $?
+  fi
   [[ "$candidate_operator_plan" == /* && -f "$candidate_operator_plan" && ! -L "$candidate_operator_plan" && "$candidate_operator_pin" =~ ^[0-9a-f]{64}$ && "$candidate_operator_pin" != "$(printf '0%.0s' {1..64})" ]] || { echo "public candidate requires an existing absolute public operator plan and independent nonzero SHA256 pin" >&2; return 1; }
   # Pass the identical external pins into the normal deployment and readback
   # callers. A package's own operatorPlanHash can never select this value.
@@ -831,9 +860,9 @@ backup_phase() {
     local remote_helper="/tmp/ynx-public-bft-scoped-backup-${transaction_id}-${role}.sh"
     local indexer_required=false
     [[ "$kind" == "full" ]] && indexer_required=true
-    if [[ -n "${native_full_commit:-}" ]]; then public_bft_native_qualify "$role" "$user" "$host" "$key" "$evidence_dir/${role}-backup-native-identity.json"; fi
+    public_bft_native_qualify "$role" "$user" "$host" "$key" "$evidence_dir/${role}-backup-native-identity.json"
     ynx_ops_copy "$role" "$user" "$host" "$key" scripts/ops/remote/public-bft-scoped-backup.sh "$remote_helper"
-    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$transaction_id' '$role' '$commit' '$release' '$bft_release' '$remote_root' '$indexer_required' / '${native_full_commit:-}'" >"$evidence_dir/${role}-backup.txt"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$transaction_id' '$role' '$commit' '$role_native_release' '$bft_release' '$remote_root' '$indexer_required' / '$role_native_full'" >"$evidence_dir/${role}-backup.txt"
   }
   ynx_ops_each_node backup_role
   echo "production BFT scoped backups passed: transaction=$transaction_id evidence=$evidence_dir"
@@ -894,12 +923,12 @@ mutation_freeze_phase() {
     local remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/${transaction_id}"
     local remote_helper="/tmp/ynx-public-bft-mutation-freeze-${transaction_id}-${role}.sh"
     local mutation_urls="http://127.0.0.1:6420"
-    if [[ -n "${native_full_commit:-}" ]]; then public_bft_native_qualify "$role" "$user" "$host" "$key" "$evidence_dir/${role}-${operation}-native-identity.json"; fi
+    public_bft_native_qualify "$role" "$user" "$host" "$key" "$evidence_dir/${role}-${operation}-native-identity.json"
     # Shared marker semantics are preserved. Only the authorized chain RPC and
     # its new gateway are probed; paused products keep their original services.
     if [[ "$role" == primary && "$operation" == unfreeze && -s "$transaction_dir/ingress/public-result.json" ]]; then mutation_urls+=",http://127.0.0.1:27620"; fi
     ynx_ops_copy "$role" "$user" "$host" "$key" scripts/ops/remote/public-bft-mutation-freeze.sh "$remote_helper"
-    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$operation' '$transaction_id' '$role' '$commit' '$release' '$bft_release' '${native_mutation:-/var/lib/ynx-chain/mutation-freeze.json}' '$remote_root' http://127.0.0.1:6420 '$mutation_urls' / '${native_full_commit:-}'" >"$evidence_dir/${role}-${operation}.txt"
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "set -euo pipefail; trap 'rm -f \"$remote_helper\"' EXIT; chmod 0700 '$remote_helper'; sudo bash '$remote_helper' '$operation' '$transaction_id' '$role' '$commit' '$role_native_release' '$bft_release' '$role_native_mutation' '$remote_root' http://127.0.0.1:6420 '$mutation_urls' / '$role_native_full'" >"$evidence_dir/${role}-${operation}.txt"
   }
   ynx_ops_each_node mutate_role
   echo "production BFT mutation $operation passed: transaction=$transaction_id evidence=$evidence_dir"
@@ -1061,7 +1090,7 @@ shasum -a 256 "$runtime_bin/ynx-abci" "$runtime_bin/ynx-comet" "$runtime_bin/ynx
 
 collect_role() {
   local role="$1" user="$2" host="$3" key="$4" kind="$5"
-  local role_dir="$root/roles/$role" validator services candidate_port_pattern custody_command manifest_check
+  local role_dir="$root/roles/$role" validator services candidate_port_pattern custody_command manifest_check preflight_mode=fresh
   mkdir -p "$role_dir"
   case "$role" in
     primary) validator=ynx_validator_primary ;;
@@ -1080,17 +1109,18 @@ collect_role() {
       candidate_port_pattern=':(27620|27626|27627|27628|27629|27630|27631|27632|27656|27757|27858)$'
     fi
   fi
-  custody_command="$(node scripts/verify/public-bft-candidate-binding.mjs --operator-preflight "$candidate_operator_plan" "$candidate_operator_pin" "$role" fresh)"
-  if [[ -n "${native_full_commit:-}" ]]; then public_bft_native_qualify "$role" "$user" "$host" "$key" "$role_dir/native-identity.json"; fi
+  [[ -z "${native_approval_path:-}" || "$native_approval_path" != "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-approval.json" ]] || preflight_mode=prepare-native
+  custody_command="$(node scripts/verify/public-bft-candidate-binding.mjs --operator-preflight "$candidate_operator_plan" "$candidate_operator_pin" "$role" "$preflight_mode")"
+  public_bft_native_qualify "$role" "$user" "$host" "$key" "$role_dir/native-identity.json"
   if [[ -n "${native_full_commit:-}" ]]; then
-    manifest_check="printf 'native_running_sha256=%s\\n' '$native_binary_pin'"
+    manifest_check="printf 'native_running_sha256=%s\\n' '$role_native_binary'"
   else
     manifest_check="manifest=/opt/ynx-chain/releases/$release/config/release-manifest.json; test -f \"\$manifest\"; printf 'manifest_sha256='; sha256sum \"\$manifest\" | awk '{print \$1}'"
   fi
   ynx_ops_ssh "$role" "$user" "$host" "$key" "curl -fsS http://127.0.0.1:6420/status" >"$role_dir/status.json"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "set -eu
 $custody_command
-for service in $services; do systemctl is-active \"\$service\" >/dev/null; done; systemctl is-active ynx-consensus-overlay.service >/dev/null; ip link show ynxwg0 >/dev/null; sudo test ! -e /var/lib/ynx-chain/consensus-candidate; ! systemctl is-active --quiet ynx-consensus-comet-candidate.service; ! systemctl is-active --quiet ynx-consensus-abci-candidate.service; ! systemctl is-active --quiet ynx-consensus-operator-candidate.service; ! ss -ltn | awk '{print \$4}' | grep -Eq '$candidate_port_pattern'; sudo test ! -e /var/lib/ynx-chain/mutation-freeze.json; sudo test -d '${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}'; test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152; printf 'role=%s\\nvalidator=%s\\nrelease=%s\\nservices=active\\noverlay=active\\nkeys=restricted\\ncandidate=absent\\nfreeze=absent\\nports=free\\ndisk=ready\\nbackup=present\\n' '$role' '$validator' '$release'; $manifest_check" >"$role_dir/preflight.txt"
+for service in $services; do systemctl is-active \"\$service\" >/dev/null; done; systemctl is-active ynx-consensus-overlay.service >/dev/null; ip link show ynxwg0 >/dev/null; sudo test ! -e /var/lib/ynx-chain/consensus-candidate; ! systemctl is-active --quiet ynx-consensus-comet-candidate.service; ! systemctl is-active --quiet ynx-consensus-abci-candidate.service; ! systemctl is-active --quiet ynx-consensus-operator-candidate.service; ! ss -ltn | awk '{print \$4}' | grep -Eq '$candidate_port_pattern'; sudo test ! -e /var/lib/ynx-chain/mutation-freeze.json; sudo test -d '${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}'; test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152; printf 'role=%s\\nvalidator=%s\\nrelease=%s\\nservices=active\\noverlay=active\\nkeys=restricted\\ncandidate=absent\\nfreeze=absent\\nports=free\\ndisk=ready\\nbackup=present\\n' '$role' '$validator' '$role_native_release'; $manifest_check" >"$role_dir/preflight.txt"
 }
 ynx_ops_each_node collect_role
 

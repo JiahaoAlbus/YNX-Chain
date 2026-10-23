@@ -91,8 +91,107 @@ PY
   done
   cmp "$source_attempt/gateway.service" "$unit" >/dev/null || fail "gateway unit differs from its original activation"
   cmp "$source_attempt/start-gateway.sh" "$launcher" >/dev/null || fail "gateway launcher differs from its original activation"
-  awk -v p="$config" '$1 == "import" && $2 == p && NF == 2 { found++ } END { exit found != 1 }' "$master" || fail "original Caddyfile does not import the managed RPC config exactly once"
+  if [[ "$operation" == switch ]]; then
+    [[ ! -e "$ingress" && ! -L "$ingress" ]] || fail "original ingress attempt exists; retain UNKNOWN/completion without resending switch"
+  else
+    [[ -d "$ingress" && ! -L "$ingress" && -s "$ingress/switch.json" ]] || fail "completed original RPC switch is required; partial UNKNOWN is not automatic rollback authority"
+  fi
   systemctl is-active --quiet caddy || fail "single-App RPC ingress requires active original Caddy; no alternate ingress fallback"
+
+  # A running admin config can differ from the on-disk Caddyfile. Reloading a
+  # default/stale disk file would erase unrelated loaded routes. Never derive
+  # the current whole-site config from a managed file that is not imported.
+  # Compare every JSON value (including other apps/routes), without logging it.
+  caddy_config_semantic_hash() {
+    python3 -c '
+import hashlib,json,sys
+def unique(pairs):
+    out={}
+    for k,v in pairs:
+        if k in out: raise ValueError("duplicate")
+        out[k]=v
+    return out
+def constant(_): raise ValueError("nonfinite")
+try:
+    raw=sys.stdin.buffer.read((16<<20)+1)
+    if not raw or len(raw)>16<<20 or b"\0" in raw: raise ValueError("bound")
+    v=json.loads(raw.decode("utf-8"),object_pairs_hook=unique,parse_constant=constant)
+    if type(v) is not dict: raise ValueError("shape")
+    apps=v.get("apps",{})
+    if type(apps) is not dict: raise ValueError("shape")
+    http=apps.get("http",{})
+    if type(http) is not dict: raise ValueError("shape")
+    servers=http.get("servers",{})
+    if type(servers) is not dict or any(type(s) is not dict or ("routes" in s and type(s["routes"]) is not list) for s in servers.values()): raise ValueError("shape")
+    encoded=json.dumps(v,sort_keys=True,separators=(",",":"),ensure_ascii=True,allow_nan=False).encode()
+    print(hashlib.sha256(encoded).hexdigest())
+except Exception:
+    sys.exit(1)
+'
+  }
+  local caddy_original_semantic caddy_original_master caddy_original_managed caddy_original_unit
+  local caddy_current_semantic caddy_current_master caddy_current_managed caddy_current_unit
+  caddy_live_disk_guard() {
+    local expected="${1:-}" expected_managed="${2:-}" pid before after loaded disk start reload prefix master_sha managed_sha unit_sha caddy_program="$root/usr/bin/caddy" caddy_unit="$root/usr/lib/systemd/system/caddy.service"
+    [[ -f "$caddy_unit" && ! -L "$caddy_unit" && "$(realpath -e "$caddy_unit")" == "$caddy_unit" && "$(stat -c %h "$caddy_unit")" == 1 ]] || fail "CADDY_ORIGINAL_UNIT_UNAVAILABLE"
+    [[ "$(systemctl show -p FragmentPath --value caddy.service)" == "$caddy_unit" && -z "$(systemctl show -p DropInPaths --value caddy.service)" && "$(systemctl show -p User --value caddy.service)" == caddy && "$(systemctl show -p Group --value caddy.service)" == caddy ]] || fail "CADDY_ORIGINAL_UNIT_MISMATCH"
+    start="$(systemctl show -p ExecStart --value caddy.service)"
+    prefix="{ path=$caddy_program ; argv[]=$caddy_program run --environ --config $master ; ignore_errors=no ; "
+    [[ "$start" == "$prefix"* && "${start#"$prefix"}" != *'argv[]='* ]] || fail "CADDY_ORIGINAL_START_MISMATCH"
+    reload="$(systemctl show -p ExecReload --value caddy.service)"
+    prefix="{ path=$caddy_program ; argv[]=$caddy_program reload --config $master --force ; ignore_errors=no ; "
+    [[ "$reload" == "$prefix"* && "${reload#"$prefix"}" != *'argv[]='* ]] || fail "CADDY_ORIGINAL_RELOAD_MISMATCH"
+    pid="$(systemctl show -p MainPID --value caddy.service)"
+    [[ "$pid" =~ ^[1-9][0-9]*$ && "$pid" != 1 ]] || fail "CADDY_ORIGINAL_PID_UNAVAILABLE"
+    before="$(stat -Lc '%d:%i' "$root/proc/$pid/exe" 2>/dev/null)" || fail "CADDY_ORIGINAL_EXECUTABLE_UNAVAILABLE"
+    [[ "$before" == "$(stat -Lc '%d:%i' "$caddy_program" 2>/dev/null)" ]] || fail "CADDY_ORIGINAL_EXECUTABLE_MISMATCH"
+    python3 - "$root/proc/$pid/cmdline" "$caddy_program" "$master" <<'PY' >/dev/null 2>&1 || fail "CADDY_ORIGINAL_ARGV_MISMATCH"
+import sys
+p,binary,master=sys.argv[1:]
+with open(p,'rb') as f: raw=f.read(65537)
+if raw!=b'\0'.join(x.encode() for x in [binary,'run','--environ','--config',master])+b'\0': raise ValueError('original argv')
+PY
+    master_sha="$(sha256sum "$master" | awk '{print $1}')"
+    managed_sha="$(sha256sum "$config" | awk '{print $1}')"
+    unit_sha="$(sha256sum "$caddy_unit" | awk '{print $1}')"
+    python3 - "$caddy_unit" "$caddy_program" "$master" <<'PY' >/dev/null 2>&1 || fail "CADDY_ORIGINAL_UNIT_CONTENT_MISMATCH"
+import sys
+p,binary,master=sys.argv[1:]
+with open(p,'rb') as f: raw=f.read(65537)
+if len(raw)>65536 or b'\0' in raw: raise ValueError('unit bound')
+expected={'User':'caddy','Group':'caddy','ExecStart':binary+' run --environ --config '+master,'ExecReload':binary+' reload --config '+master+' --force'}
+actual={k:[] for k in expected}; section=''
+for line in raw.decode('utf-8').splitlines():
+    line=line.strip()
+    if not line or line.startswith(('#',';')): continue
+    if line.startswith('[') and line.endswith(']'): section=line; continue
+    key,sep,value=line.partition('=')
+    if section=='[Service]' and sep and key.strip() in expected: actual[key.strip()].append(value.strip())
+if any(actual[k]!=[v] for k,v in expected.items()): raise ValueError('unit source')
+PY
+    disk="$(caddy adapt --config "$master" --adapter caddyfile 2>/dev/null | caddy_config_semantic_hash)" || fail "CADDY_DISK_CONFIG_INVALID"
+    loaded="$(curl --disable --request GET --noproxy '*' --max-redirs 0 --connect-timeout 5 --max-time 10 --max-filesize 16777216 -fsS http://127.0.0.1:2019/config/ 2>/dev/null | caddy_config_semantic_hash)" || fail "CADDY_LOADED_CONFIG_UNAVAILABLE_OR_INVALID"
+    [[ "$disk" == "$loaded" ]] || fail "CADDY_LOADED_DISK_CONFIG_MISMATCH"
+    after="$(stat -Lc '%d:%i' "$root/proc/$pid/exe" 2>/dev/null)" || fail "CADDY_ORIGINAL_EXECUTABLE_UNAVAILABLE"
+    [[ "$before" == "$after" && "$(systemctl show -p MainPID --value caddy.service)" == "$pid" ]] || fail "CADDY_ORIGINAL_RUNNING_IDENTITY_CHANGED"
+    [[ "$(sha256sum "$master" | awk '{print $1}')" == "$master_sha" && "$(sha256sum "$config" | awk '{print $1}')" == "$managed_sha" && "$(sha256sum "$caddy_unit" | awk '{print $1}')" == "$unit_sha" ]] || fail "CADDY_ORIGINAL_CONFIG_CHANGED_DURING_READBACK"
+    if [[ -n "$expected" ]]; then
+      [[ "$loaded" == "$expected" ]] || fail "CADDY_ORIGINAL_CONFIG_CHANGED_BEFORE_MUTATION"
+    fi
+    if [[ -n "$expected" || -n "$expected_managed" ]]; then
+      [[ "$master_sha" == "$caddy_original_master" && "$managed_sha" == "${expected_managed:-$caddy_original_managed}" && "$unit_sha" == "$caddy_original_unit" ]] || fail "CADDY_ORIGINAL_CONFIG_CHANGED_BEFORE_MUTATION"
+    fi
+    caddy_current_semantic="$loaded"
+    caddy_current_master="$master_sha"; caddy_current_managed="$managed_sha"; caddy_current_unit="$unit_sha"
+  }
+  # This readonly guard intentionally precedes the old import check. A default
+  # master plus a live multi-site config must fail for the real reload hazard.
+  caddy_live_disk_guard
+  caddy_original_semantic="$caddy_current_semantic"
+  caddy_original_master="$caddy_current_master"
+  caddy_original_managed="$caddy_current_managed"
+  caddy_original_unit="$caddy_current_unit"
+  awk -v p="$config" '$1 == "import" && $2 == p && NF == 2 { found++ } END { exit found != 1 }' "$master" || fail "original Caddyfile does not import the managed RPC config exactly once"
 
   gateway_running_source() {
     local authorization="$1" expected_env="$2" original="${3:-false}" pid before after loaded prefix
@@ -139,7 +238,6 @@ PY
   }
 
   if [[ "$operation" == switch ]]; then
-    [[ ! -e "$ingress" && ! -L "$ingress" ]] || fail "original ingress attempt exists; retain UNKNOWN/completion without resending switch"
     gateway_running_source false "$source_attempt/candidate.env" true
     gateway_ready false
     umask 077
@@ -169,18 +267,20 @@ PY
     cmp "$config" "$ingress/backups/ynx-chain.caddy" >/dev/null && cmp "$master" "$ingress/backups/Caddyfile" >/dev/null || fail "original ingress changed during preparation"
     caddy validate --config "$ingress/candidates/ynx-chain.caddy" --adapter caddyfile >/dev/null
     gateway_running_source false "$ingress/backups/candidate.env" true
+    caddy_live_disk_guard "$caddy_original_semantic"
     install -m 0640 -o root -g ynx "$ingress/candidates/candidate.env" "$candidate_env"
     timeout 30s systemctl restart "$gateway_unit"
     gateway_ready true
     gateway_running_source true "$ingress/candidates/candidate.env"
     cmp "$master" "$ingress/backups/Caddyfile" >/dev/null && cmp "$config" "$ingress/backups/ynx-chain.caddy" >/dev/null || fail "original ingress changed before switch"
+    caddy_live_disk_guard "$caddy_original_semantic"
     install -m 0644 -o root -g root "$ingress/candidates/ynx-chain.caddy" "$config"
     caddy validate --config "$master" --adapter caddyfile >/dev/null
     timeout 30s systemctl reload caddy
+    caddy_live_disk_guard "" "$(sha256sum "$ingress/candidates/ynx-chain.caddy" | awk '{print $1}')"
     cmp "$config" "$ingress/candidates/ynx-chain.caddy" >/dev/null || fail "installed RPC config differs from exact projection"
     gateway_running_source true "$ingress/candidates/candidate.env"
   else
-    [[ -d "$ingress" && ! -L "$ingress" && -s "$ingress/switch.json" ]] || fail "completed original RPC switch is required; partial UNKNOWN is not automatic rollback authority"
     python3 - "$ingress" "$transaction_id" "$commit" "$bft_release" "$operator_pin" "$runtime_commit" "$runtime_pin" "$gateway_pin" "$source_test" <<'PY'
 import hashlib, json, os, stat, sys
 base, tx, commit, release, operator, runtime, source, gateway, test = sys.argv[1:]
@@ -211,9 +311,11 @@ PY
     gateway_running_source true "$ingress/candidates/candidate.env"
     mkdir -m 0700 "$ingress/rollback-attempt" || fail "original rollback attempt exists; retain UNKNOWN without retry"
     trap gateway_ingress_unknown EXIT
+    caddy_live_disk_guard "$caddy_original_semantic"
     install -m 0644 -o root -g root "$ingress/backups/ynx-chain.caddy" "$config"
     caddy validate --config "$master" --adapter caddyfile >/dev/null
     timeout 30s systemctl reload caddy
+    caddy_live_disk_guard "" "$(sha256sum "$ingress/backups/ynx-chain.caddy" | awk '{print $1}')"
     install -m 0640 -o root -g ynx "$ingress/backups/candidate.env" "$candidate_env"
     timeout 30s systemctl restart "$gateway_unit"
     gateway_ready false

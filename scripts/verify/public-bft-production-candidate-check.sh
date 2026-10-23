@@ -86,7 +86,7 @@ for(const role of ['primary','singapore','silicon-valley','seoul'])for(const fil
 }
 const harness=path.join(tmp,'caller.sh');
 write(harness,`#!/usr/bin/env bash\nset -Eeuo pipefail\ncommit=${q(commit)}\nrelease=ynx-chain-${commit}\n` +
-  ['public_bft_runtime_prepare','public_bft_operator_inputs','candidate_context','prepare_candidate_package','validated_candidate_initialization','deploy_candidate_phase','collect_candidate_original_guard','candidate_original_guard_command','initialize_candidate_phase','start_candidate_phase','verify_candidate_phase','rollback_candidate_phase','dependency_context','validated_candidate_result','gateway_runtime_pins','gateway_helper_command','gateway_dry_receipt','validated_gateway_start','start_dependencies_phase','verify_continuity_phase','rollback_dependencies_phase','ingress_context','validated_continuity_result','gateway_ingress_phase','switch_ingress_phase','rollback_ingress_phase','verify_public_phase','gateway_recovery_phase','recovery_phase','authoritative_production_phase','mutation_freeze_phase'].map(extract).join('\n')+String.raw`
+  ['public_bft_native_role_context','public_bft_native_qualify','public_bft_runtime_prepare','public_bft_operator_inputs','candidate_context','prepare_candidate_package','validated_candidate_initialization','deploy_candidate_phase','collect_candidate_original_guard','candidate_original_guard_command','initialize_candidate_phase','start_candidate_phase','verify_candidate_phase','rollback_candidate_phase','dependency_context','validated_candidate_result','gateway_runtime_pins','gateway_helper_command','gateway_dry_receipt','validated_gateway_start','start_dependencies_phase','verify_continuity_phase','rollback_dependencies_phase','ingress_context','validated_continuity_result','gateway_ingress_phase','switch_ingress_phase','rollback_ingress_phase','verify_public_phase','gateway_recovery_phase','recovery_phase','authoritative_production_phase','mutation_freeze_phase'].map(extract).join('\n')+String.raw`
 PRIMARY_NODE_USER=u
 PRIMARY_NODE_HOST=host
 PRIMARY_NODE_SSH_KEY=key
@@ -128,6 +128,19 @@ try {
   const nativeBinding=JSON.parse(fs.readFileSync(path.join(oldNative.transaction,'candidate/binding.json')));
   for(const key of Object.keys(nativeIdentity))assert.deepEqual(nativeBinding[key],nativeIdentity[key]);
   assert.equal(nativeBinding.commit,commit);assert.equal(nativeBinding.runtimeCommit,fullCommit);unchanged(nativeBefore);
+  const mixedNative=nativeFixture('mixed-original-native-roles');
+  mixedNative.approval.authoritativeRoles=Object.fromEntries(['primary','singapore','silicon-valley','seoul'].map((role,index)=>[role,index===0?nativeIdentity:{...nativeIdentity,authoritativeCommit:String(index).repeat(40),authoritativeRelease:'ynx-chain-'+String(index).repeat(12),authoritativeBinarySha256:String(index).repeat(64)}]));
+  write(path.join(mixedNative.transaction,'approval.json'),mixedNative.approval);const mixedBefore=originals(mixedNative);run(mixedNative);
+  const mixedBindingFile=path.join(mixedNative.transaction,'candidate/binding.json'),mixedBinding=JSON.parse(fs.readFileSync(mixedBindingFile));
+  assert.deepEqual(mixedBinding.authoritativeRoles,mixedNative.approval.authoritativeRoles);assert.equal(mixedBinding.authoritativeCommit,nativeIdentity.authoritativeCommit);unchanged(mixedBefore);
+  const sgEvidence=path.join(mixedNative.dir,'singapore-original-evidence'),sgOriginal=mixedBinding.authoritativeRoles.singapore;
+  const sgIdentity={transactionId:path.basename(mixedNative.transaction),commit,authoritativeRelease:sgOriginal.authoritativeRelease,authoritativeCommit:sgOriginal.authoritativeCommit,bftRelease:release,role:'singapore'};
+  write(path.join(sgEvidence,'marker.json'),{...sgIdentity,frozenAt:new Date(Math.floor(Date.now()/1000)*1000).toISOString().replace('.000Z','Z')});
+  write(path.join(sgEvidence,'backup.json'),{...sgIdentity,validated:true,sha256:'a'.repeat(64)});
+  write(path.join(sgEvidence,'freeze.json'),{...sgIdentity,operation:'freeze',readStatus:200,readEvm:200,mutationStateVerified:true,markerPath:'/var/lib/ynx-chain/mutation-freeze.json',markerSha256:digest(fs.readFileSync(path.join(sgEvidence,'marker.json')))});
+  const sgArgs=[bindingCLI,'--activation-evidence',mixedNative.transaction,mixedBindingFile,'singapore',sgEvidence];node(sgArgs);
+  const sgBackup=path.join(sgEvidence,'backup.json'),sgBackupRaw=fs.readFileSync(sgBackup);
+  write(sgBackup,{...JSON.parse(sgBackupRaw),authoritativeCommit:nativeIdentity.authoritativeCommit,authoritativeRelease:nativeIdentity.authoritativeRelease});node(sgArgs,1);fs.writeFileSync(sgBackup,sgBackupRaw);
   for(const [name,change]of [
     ['native-commit',x=>x.authoritativeCommit='f'.repeat(40)],['native-binary',x=>x.authoritativeBinarySha256='f'.repeat(64)],
     ['native-release',x=>x.authoritativeRelease='ynx-chain-'+commit],['native-path',x=>x.authoritativeSource={...x.authoritativeSource,pauseMarkerPath:'/other/pause.json'}],

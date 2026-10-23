@@ -2,7 +2,7 @@
 // the original protected approval may opt into an independently pinned source.
 export function authoritativeIdentity(approval) {
   const names = ["authoritativeCommit", "authoritativeRelease", "authoritativeBinarySha256", "authoritativeSource"];
-  if (!names.some(name => Object.hasOwn(approval, name))) return {};
+  if (!names.some(name => Object.hasOwn(approval, name)) && !Object.hasOwn(approval, "authoritativeRoles")) return {};
   const commit = approval.authoritativeCommit;
   if (typeof commit !== "string" || !/^[0-9a-f]{40}$/.test(commit) || /^0{40}$/.test(commit)) throw new Error("independent authoritative full commit is required");
   const release = approval.authoritativeRelease;
@@ -19,8 +19,41 @@ export function authoritativeIdentity(approval) {
     authoritativeSource: Object.fromEntries(paths.map(name => [name, source[name]]))};
 }
 
+export function authoritativeRoleIdentities(approval) {
+  const primary = authoritativeIdentity(approval);
+  if (!Object.hasOwn(approval, "authoritativeRoles")) return {};
+  const roles = ["primary", "singapore", "silicon-valley", "seoul"], records = approval.authoritativeRoles;
+  if (!primary.authoritativeCommit || !records || typeof records !== "object" || Array.isArray(records) || Object.keys(records).sort().join() !== [...roles].sort().join()) throw new Error("independent native role identities require all four original roles");
+  const names = ["authoritativeCommit", "authoritativeRelease", "authoritativeBinarySha256", "authoritativeSource"];
+  const result = {};
+  for (const role of roles) {
+    const record = records[role];
+    if (!record || typeof record !== "object" || Array.isArray(record) || Object.keys(record).sort().join() !== [...names].sort().join()) throw new Error("closed original native role identity is required");
+    result[role] = authoritativeIdentity(record);
+  }
+  if (JSON.stringify(result.primary) !== JSON.stringify(primary)) throw new Error("primary role must equal the independently approved snapshot authority");
+  return {authoritativeRoles: result};
+}
+
+export function roleAuthoritativeIdentity(approval, role) {
+  if (!["primary", "singapore", "silicon-valley", "seoul"].includes(role)) throw new Error("unknown original native role");
+  return authoritativeRoleIdentities(approval).authoritativeRoles?.[role] ?? authoritativeIdentity(approval);
+}
+
+// Only the explicit native two-phase caller may late-bind a final operator
+// genesis. The reviewed preparation pin covers the original custody/layout;
+// it is never a substitute for the independently approved final plan pin.
+export function operatorPreparationPin(approval, preparation = false) {
+  const present = Object.hasOwn(approval, "operatorPreparationPlanSha256");
+  if (!preparation && !present) return "";
+  const pin = approval.operatorPreparationPlanSha256;
+  if (!authoritativeIdentity(approval).authoritativeCommit || approval.custodyProfile !== "single-app-gateway/v1" || typeof pin !== "string" || !/^[0-9a-f]{64}$/.test(pin) || /^0{64}$/.test(pin)) throw new Error("explicit native single-App preparation requires an independent preparation operator plan SHA256");
+  if (preparation && ["snapshotSourceSha256", "operatorPlanSha256", "candidateGenesisTime"].some(name => Object.hasOwn(approval, name))) throw new Error("preparation cannot contain future snapshot, final operator plan or genesis time authority");
+  return pin;
+}
+
 export function validateAuthoritativeObservation(value, approval, role, transactionId) {
-  const identity = authoritativeIdentity(approval);
+  const identity = roleAuthoritativeIdentity(approval, role);
   if (!identity.authoritativeCommit) throw new Error("independent native approval is required for process observations");
   const source = identity.authoritativeSource;
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(transactionId || "") || value.transactionId !== transactionId || value.version !== "YNX-PUBLIC-BFT-NATIVE-IDENTITY/v1" || value.role !== role || value.commit !== approval.commit || value.authoritativeCommit !== identity.authoritativeCommit || value.authoritativeRelease !== identity.authoritativeRelease || value.authoritativeBinarySha256 !== identity.authoritativeBinarySha256 || value.dataPath !== source.statePath.slice(0, source.statePath.lastIndexOf("/")) || value.pauseMarkerPath !== source.pauseMarkerPath || value.mutationMarkerPath !== source.mutationMarkerPath || value.readOnly !== true || value.deployment !== false || value.nativeRootAuthorized !== false || !/^[1-9][0-9]*$/.test(value.mainPid || "") || !/^[0-9]+:[1-9][0-9]*$/.test(value.runningExecutableDeviceInode || "") || !/^[0-9a-f]{64}$/.test(value.unitSHA256 || "") || typeof value.runningExecutablePath !== "string" || !/^\/[A-Za-z0-9._/-]+$/.test(value.runningExecutablePath)) throw new Error("original native process observation differs from independent approval");

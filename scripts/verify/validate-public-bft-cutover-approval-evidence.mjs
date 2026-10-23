@@ -2,7 +2,7 @@
 
 import fs from "node:fs";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
-import { authoritativeIdentity } from "./lib/public-bft-native-source.mjs";
+import { authoritativeIdentity, authoritativeRoleIdentities, operatorPreparationPin } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error(`public BFT cutover approval evidence rejected: ${message}`);
@@ -23,6 +23,8 @@ try {
 }
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval evidence identity mismatch");
 const nativeIdentity = authoritativeIdentity(approval);
+const nativeRoles = authoritativeRoleIdentities(approval);
+const preparationPlanPin = operatorPreparationPin(approval, preparation);
 if (preparation) {
   if (!nativeIdentity.authoritativeCommit || approval.preparationOnly !== true || Object.hasOwn(approval, "snapshotSourceSha256")) fail("native preparation requires explicit preparationOnly and no future snapshot source pin");
 } else if (Object.hasOwn(approval, "preparationOnly")) fail("preparation approval cannot authorize export, initialization or cutover");
@@ -38,13 +40,13 @@ if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequi
 if (approval.validatorKeyRecoveryVerified !== true || (!singleApp && approval.serviceSignerRecoveryVerified !== true) || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("approval evidence custody recovery is incomplete");
 if (!singleApp && !/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("approval evidence service signer manifest checksum is invalid");
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) fail("validator manifest checksum is invalid");
-for (const field of ["operatorPlanSha256", "runtimeManifestSha256", "exporterManifestSha256", ...(!preparation ? ["snapshotSourceSha256"] : [])]) {
+for (const field of ["runtimeManifestSha256", "exporterManifestSha256", ...(!preparation ? ["operatorPlanSha256", "snapshotSourceSha256"] : [])]) {
   const value = approval[field];
   if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
     fail(`${field} must preserve an independent nonzero lowercase SHA256 from the original approval`);
   }
 }
-if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "")) fail("candidate genesis time is invalid");
+if (!preparation && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "")) fail("candidate genesis time is invalid");
 if (!Number.isFinite(Date.parse(approval.expiresAt || ""))) fail("approval expiry is invalid");
 process.stdout.write(`${JSON.stringify({
   ...(singleApp ? { custodyProfile: singleAppCustodyProfile } : {}),
@@ -63,6 +65,7 @@ process.stdout.write(`${JSON.stringify({
   commit: expectedCommit,
   release: expectedRelease,
   ...nativeIdentity,
+  ...nativeRoles,
   ...(preparation ? {preparationOnly: true} : {}),
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,
@@ -72,11 +75,12 @@ process.stdout.write(`${JSON.stringify({
   rotationProcedureVerified: true,
   ...(!singleApp ? { serviceSignerManifestSha256: approval.serviceSignerManifestSha256 } : {}),
   validatorManifestSha256: approval.validatorManifestSha256,
-  operatorPlanSha256: approval.operatorPlanSha256,
+  ...(preparationPlanPin ? {operatorPreparationPlanSha256: preparationPlanPin} : {}),
+  ...(!preparation ? {operatorPlanSha256: approval.operatorPlanSha256} : {}),
   runtimeManifestSha256: approval.runtimeManifestSha256,
   ...(!preparation ? {snapshotSourceSha256: approval.snapshotSourceSha256} : {}),
   exporterManifestSha256: approval.exporterManifestSha256,
-  candidateGenesisTime: approval.candidateGenesisTime,
+  ...(!preparation ? {candidateGenesisTime: approval.candidateGenesisTime} : {}),
   expiresAt: approval.expiresAt,
   validated: true,
 })}\n`);
