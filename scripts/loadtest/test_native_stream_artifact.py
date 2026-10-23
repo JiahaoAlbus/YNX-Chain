@@ -168,7 +168,7 @@ finally:
         self.assertEqual(out.strip(),b'DEADLINE_INTERRUPTED')
 
     def test_redirect_host_and_aligned_range_are_explicit(self):
-        for url in ('http://unit.blob.core.windows.net/unit','https://example.com/unit','https:///unit','https://u:p@unit.blob.core.windows.net/unit'):
+        for url in ('http://unit.blob.core.windows.net/unit','https://foreign.invalid/unit','https:///unit','https://u:p@unit.blob.core.windows.net/unit'):
             with self.subTest(url=url),self.assertRaises(RuntimeError):zip_reader.ExactHTTPRanges(url,120000,self.cache,self.identity)
         ranges,_=self.backend()
         with self.assertRaisesRegex(RuntimeError,'aligned'):ranges.fetch(1,65536)
