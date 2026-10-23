@@ -32,7 +32,9 @@ class NativeStreamPairTests(unittest.TestCase):
             with patch.object(supply.time,'monotonic',return_value=1):
                 floor=sum(supply.native.CAPS[k] for k in ('diskFloorBytes','rootReserveBytes','compileReserveBytes'))
                 with self.assertRaisesRegex(RuntimeError,'initial disk reserve'):budget.observe(dict(sample,freeDiskBytes=floor+(512<<20)-1))
-                budget.observe(sample)
+                observed=budget.observe(sample)
+                self.assertIsInstance(observed,dict,"real enforced post-fsync sample was discarded")
+                self.assertEqual(observed,budget.samples[-1])
                 with self.assertRaisesRegex(RuntimeError,'privateBytes'):budget.observe(dict(sample,privateBytes=(256<<20)+1))
                 with patch.object(supply.native,'directory_bytes',return_value=(256<<20)+1):
                     with self.assertRaisesRegex(RuntimeError,'retained512MiB'):budget.observe(sample)
@@ -96,6 +98,7 @@ class NativeStreamPairTests(unittest.TestCase):
             output=io.StringIO()
             def observe(*args):
                 if fault=='post-fsync' and (evidence/'actual.json').exists():raise RuntimeError('post fsync resource violation')
+                return dict(elapsedMs=1,retainedBytes=1,logBytes=0,rssBytes=1,threads=1,availableMemoryBytes=2<<30,freeDiskBytes=10<<30,buildBytes=1) if fault!='missing-sample' else None
             with patch.object(supply.sys,'platform','linux'),patch.object(supply.platform,'machine',return_value='x86_64'),patch.object(supply,'native_pair_host_identity',side_effect=host_identity),patch.object(supply.PairBudget,'observe',side_effect=observe),patch.object(supply,'empty_pair_closure',side_effect=closure),patch.object(supply,'run',side_effect=run),patch.object(supply,'native_stream_pair_case',side_effect=lambda row,case,mode:measurement(300 if mode=='relative' else 400)),patch.object(supply.signal,'signal'),patch.object(supply.signal,'setitimer'),contextlib.redirect_stdout(output):
                 code=supply.run_native_stream_pair(source,build,parent/'pair',evidence/'actual.json')
             terminal=json.loads(output.getvalue().split('YNX_NATIVE_STREAM_PAIR_TERMINAL ')[-1])
@@ -103,7 +106,7 @@ class NativeStreamPairTests(unittest.TestCase):
 
     def test_serial_pair_success_has_post_fsync_two_scans(self):
         code,calls,terminal=self.run_pair()
-        self.assertEqual(code,0,terminal);self.assertEqual(calls,['relative','bounded-cadence']);self.assertTrue(terminal['qualified']);self.assertEqual(len(terminal['postFsyncClosureScans']),2)
+        self.assertEqual(code,0,terminal);self.assertEqual(calls,['relative','bounded-cadence']);self.assertTrue(terminal['qualified']);self.assertEqual(len(terminal['postFsyncClosureScans']),2);self.assertIsInstance(terminal['postFsyncSample'],dict)
 
     def test_unknown_changed_binary_or_unclean_closure_never_starts_second(self):
         for fault in ('unknown','binary','closure','host'):
@@ -112,7 +115,9 @@ class NativeStreamPairTests(unittest.TestCase):
                 self.assertEqual(code,1);self.assertEqual(calls,['relative']);self.assertFalse(terminal['qualified']);self.assertTrue(terminal['firstCause'])
 
     def test_post_fsync_failure_cannot_be_qualified(self):
-        code,calls,terminal=self.run_pair('post-fsync')
-        self.assertEqual(code,1);self.assertEqual(len(calls),2);self.assertFalse(terminal['qualified']);self.assertIn('post fsync',terminal['firstCause'])
+        for fault in ('post-fsync','missing-sample'):
+            with self.subTest(fault=fault):
+                code,calls,terminal=self.run_pair(fault)
+                self.assertEqual(code,1);self.assertEqual(len(calls),2);self.assertFalse(terminal['qualified']);self.assertTrue(terminal['firstCause'])
 
 if __name__=='__main__':unittest.main()

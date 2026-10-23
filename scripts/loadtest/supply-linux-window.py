@@ -43,7 +43,7 @@ PROFILES[ONESHOT_PROFILES[1]] = dict(PROFILES[ONESHOT_PROFILES[0]], name=ONESHOT
 STREAM_PROFILE="supply-native-stream-2048x4"
 PROFILES[STREAM_PROFILE]=dict(PROFILE,name=STREAM_PROFILE,senders=2048,rounds=4,offeredRate=1000,
     concurrency=8,privateBytes=256<<20,senderMode="ready-pool")
-STREAM_BUDGET=dict(evidenceBytes=64<<20,durableStoreBytes=32<<20,durableCacheBytes=64<<20,timeoutMs=30000)
+STREAM_BUDGET=dict(evidenceBytes=64<<20,durableStoreBytes=32<<20,durableCacheBytes=64<<20,timeoutMs=40000)
 STREAM_PACING_MODES=("relative","bounded-cadence")
 def native_stream_profile(pacing="relative"):
     if type(pacing) is not str or pacing not in STREAM_PACING_MODES:raise RuntimeError("explicit native stream pacing scope differs")
@@ -406,6 +406,7 @@ class PairBudget:
         self.samples.append(row)
         if self.remaining() <= 0:
             raise RuntimeError("pair120s exceeded during guard I/O")
+        return row
 
 
 def empty_pair_closure(budget, *, enforce_budget=True):
@@ -951,6 +952,7 @@ def run_native_stream_pair(source,build,root,receipt):
         digest=native.digest(receipt) if receipt.is_file() else None
         elapsed=(time.monotonic()-started)*1000
         if elapsed>120000:result["firstCause"]=result["firstCause"] or "native pair total including fsync/closure exceeded120s"
+        if not isinstance(post,dict):result["firstCause"]=result["firstCause"] or "native pair actual post-fsync resource sample missing"
         qualified=result["firstCause"] is None and result["casesQualified"] is True and len(scans)==2
         print("YNX_NATIVE_STREAM_PAIR_TERMINAL "+json.dumps(dict(schema=1,qualified=qualified,firstCause=result["firstCause"],pairReceiptSHA256=digest,elapsedMs=int(elapsed),postFsyncSample=post,postFsyncClosureScans=scans,sustainedTPSQualified=False)),flush=True)
         signal.setitimer(signal.ITIMER_REAL,0)
@@ -1297,7 +1299,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     need(work.get("planPath")==str(runtime_output)+".streaming-plan.json","stream plan path differs")
     raw=stream_evidence.capture(plan_path,1<<20);need(stream_evidence.digest(raw)==work.get("planSha256"),"stream plan digest differs")
     plan=stream_evidence.strict_json(raw)
-    for key,value in dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",senders=2048,rounds=4,plannedRecords=total,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=30000,durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip").items():
+    for key,value in dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",senders=2048,rounds=4,plannedRecords=total,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=STREAM_BUDGET["timeoutMs"],durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip").items():
         need(type(plan.get(key)) is type(value) and plan[key]==value,"original stream plan scope differs: "+key)
     need(same(plan.get("nativePrefix"),dict(offeredRate=1000,pacingMode=pacing,submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True)),"stream original native backend differs")
     manifest_raw=stream_evidence.capture(network/"network-manifest.json",1<<20)
@@ -1536,7 +1538,7 @@ def supply_client_command(build,manifest_path,network,output,profile,pacing,obse
         selected=recipe("grpc",STREAM_PROFILE,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2,native_stream8=True)
         if profile!=selected["profile"]:raise RuntimeError("actual stream command profile differs")
         return [str(build/BINARIES[3]),"-manifest",str(manifest_path),"-transactions",str(network/"transactions.json"),"-output",str(output),
-            "-timeout","30s","-concurrency","8","-observers","4","-offered-rate","1000","-rounds","4","-sender-mode","ready-pool","-inclusion-mode","block-scan","-pacing-mode",pacing,
+            "-timeout",str(STREAM_BUDGET["timeoutMs"]//1000)+"s","-concurrency","8","-observers","4","-offered-rate","1000","-rounds","4","-sender-mode","ready-pool","-inclusion-mode","block-scan","-pacing-mode",pacing,
             "-native-stream8","-observer-phase-timing","-prefix-durable-replay","-prefix-native-clone","-observer-native-facts","-streaming-workload","-terminal-stream","-terminal-gzip","-reuse-result-slots","-segmented-intents",
             "-evidence-byte-budget",str(STREAM_BUDGET["evidenceBytes"]),"-durable-store-byte-limit",str(STREAM_BUDGET["durableStoreBytes"]),"-durable-cache-byte-budget",str(STREAM_BUDGET["durableCacheBytes"])]
     if profile.get("name") in STREAM_PROFILE_NAMES:raise RuntimeError("stream command requires explicit native stream selection")

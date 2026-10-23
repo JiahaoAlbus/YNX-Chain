@@ -39,6 +39,23 @@ class NativeStreamArtifactTests(unittest.TestCase):
         self.assertEqual(recovered['members'],4+after['publicStream']['originalPublicMemberManifest']['members'])
         self.assertFalse(after['networkQualified'])
 
+    def test_interrupted_member_resumes_original_prefix_without_discarding_it(self):
+        raw=b'original-public-row'*20000
+        self.root.mkdir();partial=self.root/'PUBLIC_FIXTURE_SCOPE.json.recover-partial';partial.write_bytes(raw[:65539])
+        result=zip_reader.recover(source(build([('PUBLIC_FIXTURE_SCOPE.json',raw)])),self.root,'unit')
+        self.assertEqual((self.root/'PUBLIC_FIXTURE_SCOPE.json').read_bytes(),raw)
+        self.assertEqual(result['members'],1);self.assertFalse(partial.exists())
+
+    def test_partial_mismatch_or_symlink_is_preserved_and_never_promoted(self):
+        self.root.mkdir();partial=self.root/'PUBLIC_FIXTURE_SCOPE.json.recover-partial';partial.write_bytes(b'wrong-prefix')
+        raw=build([('PUBLIC_FIXTURE_SCOPE.json',b'original-public')])
+        with self.assertRaises(RuntimeError):zip_reader.recover(source(raw),self.root,'unit')
+        self.assertEqual(partial.read_bytes(),b'wrong-prefix');self.assertFalse((self.root/'PUBLIC_FIXTURE_SCOPE.json').exists())
+        other=self.root/'outside';other.write_bytes(b'original')
+        linked=self.root/'network-manifest.json.recover-partial';linked.symlink_to(other)
+        with self.assertRaises(RuntimeError):zip_reader.recover(source(build([('network-manifest.json',b'original-public')])),self.root,'unit')
+        self.assertTrue(linked.is_symlink());self.assertEqual(other.read_bytes(),b'original')
+
     def test_pair_selection_keeps_independent_segments_and_excludes_secrets(self):
         files=[]
         for case in ('before-native-stream-relative','after-native-stream-bounded'):

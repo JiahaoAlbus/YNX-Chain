@@ -182,6 +182,43 @@ def file_identity(path):
 class VerifyOnly:
     def write(self,raw):return len(raw)
 
+class ResumePartial:
+    """Compare the retained prefix to original decompressed bytes before appending."""
+    def __init__(self,handle,prefix_bytes):self.handle=handle;self.remaining=prefix_bytes
+    def write(self,raw):
+        take=min(self.remaining,len(raw))
+        if take:
+            need(self.handle.read(take)==raw[:take],'retained partial prefix differs from original member; preserve it')
+            self.remaining-=take
+        if take<len(raw):
+            need(self.remaining==0,'partial prefix verification incomplete')
+            self.handle.write(raw[take:])
+        return len(raw)
+
+def recover_partial_member(archive,entry,partial,begin):
+    import fcntl
+    before=None
+    if partial.exists() or partial.is_symlink():
+        before=partial.lstat()
+        need(stat.S_ISREG(before.st_mode) and before.st_nlink==1 and 0<=before.st_size<=entry['size'],'retained partial type/size/link bound; preserve it')
+        fd=os.open(partial,os.O_RDWR|os.O_NOFOLLOW)
+    else:fd=os.open(partial,os.O_RDWR|os.O_CREAT|os.O_EXCL,0o600)
+    with os.fdopen(fd,'r+b') as handle:
+        try:fcntl.flock(handle.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BlockingIOError:raise RuntimeError('original partial recovery already active; preserve it')
+        opened=os.fstat(handle.fileno())
+        if before is not None:
+            fields=lambda x:(x.st_dev,x.st_ino,x.st_size,x.st_mtime_ns,x.st_ctime_ns)
+            need(fields(opened)==fields(before),'retained partial changed before open')
+        writer=ResumePartial(handle,opened.st_size)
+        identity=archive.member(entry,writer,begin)
+        need(writer.remaining==0,'original member shorter than retained partial')
+        handle.flush();os.fsync(handle.fileno())
+        need(file_identity(partial)==identity,'completed partial differs from original member SHA256')
+        current=partial.lstat()
+        need((current.st_dev,current.st_ino)==(opened.st_dev,opened.st_ino),'completed partial replaced before publication')
+        return identity
+
 def recover(source,destination,mode):
     destination=Path(destination).absolute();need(destination.resolve()==destination,'symlinked capture root refused');destination.mkdir(exist_ok=True)
     archive=Archive(source);selection=Selection(mode);manifest=hashlib.sha256();count=0;total=0
@@ -198,8 +235,7 @@ def recover(source,destination,mode):
             need(identity==original,'existing recovered member SHA256 differs from original range bytes')
         else:
             partial=target.with_name(target.name+'.recover-partial')
-            with partial.open('xb') as handle:
-                identity=archive.member(entry,handle,begin);handle.flush();os.fsync(handle.fileno())
+            identity=recover_partial_member(archive,entry,partial,begin)
             os.link(partial,target);partial.unlink()
             fd=os.open(target.parent,os.O_RDONLY|getattr(os,'O_DIRECTORY',0))
             try:os.fsync(fd)
