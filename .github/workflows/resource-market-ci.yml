@@ -444,6 +444,14 @@ jobs:
           test -s artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
           sha256sum contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json
           sha256sum contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
+      - name: Verify actual IDE compiler materials with original Go deployment callees
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 2
+        run: |
+          # Emit the actual callee commitments for the producer/Main handoff.
+          # Both retained raw-ABI refusal and compatible full-material calls use
+          # the original Go registry; no account or signer is started.
+          go test -v -p 1 -count=1 -timeout=90s -run '^TestIDECanonicalCompilerMaterial' ./internal/chain
       - name: Verify native ledger and HTTP PQ integration
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
