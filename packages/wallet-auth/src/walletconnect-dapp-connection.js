@@ -90,7 +90,7 @@ export class WalletConnectDAppConnection{
   }
   #assertRelay(){
     if(!this.#contractProfile)return;
-    assertOriginalContractRelayGuard(this.#relayGuard,this.#relayContext);
+    let scope=assertOriginalContractRelayGuard(this.#relayGuard,this.#relayContext);
     if(!this.#guardObserver){
       const off=observeOriginalContractRelayGuard(this.#relayGuard,()=>{
         this.#epoch++;this.#session=null;this.#flight?.cancel();
@@ -99,8 +99,9 @@ export class WalletConnectDAppConnection{
       });
       if(typeof off!=='function')fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');this.#guardObserver=off;
       // Covers a producer revoking synchronously during subscription.
-      assertOriginalContractRelayGuard(this.#relayGuard,this.#relayContext);
+      scope=assertOriginalContractRelayGuard(this.#relayGuard,this.#relayContext);
     }
+    return scope;
   }
   on(event,listener){if(!this.#listeners.has(event))this.#listeners.set(event,new Set());this.#listeners.get(event).add(listener);}
   removeListener(event,listener){this.#listeners.get(event)?.delete(listener);}
@@ -128,7 +129,7 @@ export class WalletConnectDAppConnection{
     // A caller deadline must not start a second Relay instance while the
     // original factory still owns the same SDK storage. Injected-factory failures
     // remain retryable; default partial construction retains its original latch.
-    if(!this.#initializing){const task=Promise.resolve().then(()=>{this.#assertRelay();const partition=this.#contractProfile?`ynx-contract-${bytesToHex(sha256(utf8ToBytes(JSON.stringify([this.#relayContext.projectId,this.#relayContext.callerIdentity]))))}`:`ynx-pair-${new URL(this.#origin).hostname}`;return this.#factory({projectId:YNX_PAIR_PROJECT_ID,metadata:{name:'YNX browser connection',description:'Explicit YNX Wallet connection and separate request approval',url:this.#origin,icons:[]},logger:'silent',storageOptions:{database:partition},...(this.#contractProfile?{relayUrl:CONTRACT_RELAY_URL,telemetryEnabled:false}:{})});});this.#initializing=task;this.#initializationState='pending';task.then(()=>{this.#initializationState='fulfilled';},error=>{this.#initializationState='rejected';this.#observeFirstCause(error);if(this.#initializing===task)this.#initializing=null;});}
+    if(!this.#initializing){const task=Promise.resolve().then(()=>{const actualScope=this.#assertRelay();const partition=this.#contractProfile?`ynx-contract-${bytesToHex(sha256(utf8ToBytes(JSON.stringify([actualScope.projectId,actualScope.callerIdentity]))))}`:`ynx-pair-${new URL(this.#origin).hostname}`;return this.#factory({projectId:YNX_PAIR_PROJECT_ID,metadata:{name:'YNX browser connection',description:'Explicit YNX Wallet connection and separate request approval',url:this.#origin,icons:[]},logger:'silent',storageOptions:{database:partition},...(this.#contractProfile?{relayUrl:CONTRACT_RELAY_URL,telemetryEnabled:false}:{})});});this.#initializing=task;this.#initializationState='pending';task.then(()=>{this.#initializationState='fulfilled';},error=>{this.#initializationState='rejected';this.#observeFirstCause(error);if(this.#initializing===task)this.#initializing=null;});}
     if(flight)this.#initializing.then(client=>{if(flight.terminated&&!this.#flight)void this.#pause(client,flight);},()=>{if(flight.terminated)this.#initializationCleanupDebt(flight.attempt);});
     const client=await this.#wait(this.#initializing,{stage:'initialization',flight});
     try{this.#assertRelay();}catch(error){

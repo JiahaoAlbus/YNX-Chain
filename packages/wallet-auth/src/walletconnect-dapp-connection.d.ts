@@ -99,7 +99,8 @@ export interface DeveloperContractRelayContext {
  readonly projectId:string;
  /** Positive safe integer, read from original admitted-project generation. */
  readonly projectGeneration:number;
- readonly callerIdentity:string;
+ /** Optional expected identity. Actual identity comes only from Native scope. */
+ readonly callerIdentity?:string;
 }
 export interface DeveloperContractConnectionOptions extends WalletAddressConnectionOptions {
  /** Original fixed-Node acquirer result; structural objects are rejected. */

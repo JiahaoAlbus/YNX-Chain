@@ -4,7 +4,8 @@ import {registerOriginalContractRelayGuard,CONTRACT_RELAY_METHODS} from '../src/
 const sdk=await import(process.env.CONTRACT_RELAY_TEST_SOURCE??'../src/walletconnect-dapp-connection.js');
 // PUBLIC DATA/native seam only: no Native issuer, Root, live Relay or approval.
 const context=Object.freeze({projectId:'project-public',projectGeneration:1,callerIdentity:'public-original-peer'});
-const scope=()=>({...context,kind:'ide-contract-relay-v1',origin:'https://developer.ynxweb4.com',expiresMS:Date.now()+60000,chainId:'eip155:6423',methods:[...CONTRACT_RELAY_METHODS],relayURL:'wss://relay.walletconnect.org'});
+const scopeExpiresMS=Date.now()+60000;
+const scope=()=>({...context,kind:'ide-contract-relay-v1',origin:'https://developer.ynxweb4.com',expiresMS:scopeExpiresMS,chainId:'eip155:6423',methods:[...CONTRACT_RELAY_METHODS],relayURL:'wss://relay.walletconnect.org'});
 const account='0x'+'1'.repeat(40),topic='a'.repeat(64);
 const session=()=>({topic,expiry:Math.floor(Date.now()/1000)+300,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{chains:['eip155:6423'],methods:[...CONTRACT_RELAY_METHODS],accounts:[`eip155:6423:${account}`],events:[]}}});
 const query=()=>({method:CONTRACT_RELAY_METHODS[2],params:[{version:1,account,operationId:'public-op',refresh:false}]});

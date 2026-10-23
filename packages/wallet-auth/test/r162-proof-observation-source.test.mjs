@@ -9,6 +9,8 @@ import {tmpdir} from 'node:os';
 import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-desktop/scripts/sdk332-r140-native-plan.mjs';
 
 const root=resolve(fileURLToPath(new URL('../../..',import.meta.url)));
+const selectedVersion=JSON.parse(readFileSync(resolve(root,'packages/wallet-auth/package.json'))).version;
+assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11'].includes(selectedVersion));
 const read=path=>readFileSync(resolve(root,path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // Independent supplier R162 H6843/67c056ae...; source selection only. These
@@ -20,7 +22,7 @@ const leaves=[
 ];
 test('R162 normal source selector pins all three supplier leaves in matching 64+5 input set',()=>{
  const {contract}=verifySDK332R140Source(root);
- assert.equal(contract.version,'1.3.0-pq.3.32-auth.10');
+ assert.equal(contract.version,selectedVersion);
  assert.equal(contract.NativeInputs.length,64);assert.equal(contract.HelperInputs.length,5);
  for(const [name,bytes,hash]of leaves){
   const path='packages/wallet-auth/native/'+name,actual=read(path),pin=contract.NativeInputs.find(p=>p.path===path);
@@ -49,7 +51,7 @@ test('R162 original normal verifier rejects one actual Git085 old Native leaf be
   const paths=new Set(['packages/wallet-auth/package.json','packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',...[...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool].map(pin=>pin.path)]);
   for(const path of paths){const destination=resolve(temporary,path);mkdirSync(dirname(destination),{recursive:true});copyFileSync(resolve(root,path),destination);}
   // First prove this is a complete valid normal intake, not a missing-file case.
-  assert.equal(verifySDK332R140Source(temporary).contract.version,'1.3.0-pq.3.32-auth.10');
+  assert.equal(verifySDK332R140Source(temporary).contract.version,selectedVersion);
   const relative='packages/wallet-auth/native/original-auth-identity-source-authority.h';
   const old=execFileSync('git',['show','085cf7d91f6c5f82e521732f7b1435c0f1fe7be0:'+relative],{cwd:root});
   assert.equal(sha(old),'5a89e986237eb563e09fa41ce05ea5f844d8f1a918c99db0cc989a5de1550b8f');

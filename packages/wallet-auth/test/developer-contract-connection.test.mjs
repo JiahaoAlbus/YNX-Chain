@@ -9,7 +9,8 @@ const session=(approved=methods)=>({topic,expiry:Math.floor(Date.now()/1000)+300
 function fixture(approved=methods,deadlineMs=30){
  // Explicit PUBLIC native/current seam: not a production guard or approval.
  const relayContext={projectId:'public-project',projectGeneration:1,callerIdentity:'public-peer'},relayGuard={};
- registerOriginalContractRelayGuard(relayGuard,{scope:()=>({...relayContext,kind:'ide-contract-relay-v1',origin:'https://developer.ynxweb4.com',expiresMS:Date.now()+60000,chainId:'eip155:6423',methods:[...methods],relayURL:'wss://relay.walletconnect.org'}),current:()=>true,observe:()=>()=>{},cancel:async()=>true});
+ const expiresMS=Date.now()+60000;
+ registerOriginalContractRelayGuard(relayGuard,{scope:()=>({...relayContext,kind:'ide-contract-relay-v1',origin:'https://developer.ynxweb4.com',expiresMS,chainId:'eip155:6423',methods:[...methods],relayURL:'wss://relay.walletconnect.org'}),current:()=>true,observe:()=>()=>{},cancel:async()=>true});
  const events=new Map(),calls=[];
  const client={on:(e,f)=>events.set(e,f),session:{getAll:()=>[session(approved)]},request:input=>{calls.push(input);return new Promise((resolve,reject)=>Object.assign(input,{resolve,reject}));},disconnect:async()=>{},core:{pairing:{disconnect:async()=>{}}}};
  const connection=sdk.createDeveloperContractConnection({clientFactory:async()=>client,deadlineMs,relayGuard,relayContext});
