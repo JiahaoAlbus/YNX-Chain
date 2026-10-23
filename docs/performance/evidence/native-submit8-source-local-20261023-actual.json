@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "kind": "native-submit8-source-and-local-worker-execution-not-network",
+  "sourceCommit": "edfb053c86b96e6c45b716fe6593872b8f88b958",
+  "runtimeClientTree": "9c98da02430eed5d542b9630f877fd5c169a1c79",
+  "internalTree": "af2931e0c9109da5ef37d947894bfbe92aa1418b",
+  "diagnosticNodeTree": "8206358b1f284904285e9f5f78f7fd96eee40818",
+  "samples": [
+    {
+      "callbacks": 16,
+      "inventory": {
+        "submitters": 4,
+        "observers": 4,
+        "submissionQueueCapacity": 16,
+        "observationQueueCapacities": [
+          16,
+          16,
+          16,
+          16
+        ]
+      },
+      "kind": "local_paced_worker_capacity_no_unknown_retry_not_network",
+      "peak": 4,
+      "returned": 16,
+      "unacceptedObserved": 0
+    },
+    {
+      "callbacks": 16,
+      "inventory": {
+        "submitters": 8,
+        "observers": 4,
+        "submissionQueueCapacity": 16,
+        "observationQueueCapacities": [
+          16,
+          16,
+          16,
+          16
+        ]
+      },
+      "kind": "local_paced_worker_capacity_no_unknown_retry_not_network",
+      "peak": 8,
+      "returned": 16,
+      "unacceptedObserved": 0
+    }
+  ],
+  "sourcePins": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/.github/workflows/chain-core.yml",
+      "bytes": 31347,
+      "sha256": "10fba331f19fb0869b051822d5b3541726cd1eb6536217f17a56638fdf28178b"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/main.go",
+      "bytes": 65846,
+      "sha256": "a0e610dda51c7b961284a821062acb91516e5553eeacae2514bd853560d969a1"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/paced.go",
+      "bytes": 4974,
+      "sha256": "fe2758573c337e6ee612641cc97941068ca455d8bd7d8623a6e4dbd158170ac2"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/native_submit8_test.go",
+      "bytes": 4443,
+      "sha256": "c7ee5bf8376356b80cb67a294d7ce1ac083754bf0f21476b219688afb267e0f3"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/grouped_observer_test.go",
+      "bytes": 10864,
+      "sha256": "fb43b3182fef9931dee18440b156c40189eb921d67633bf0a12da3cc3ad54480"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/block_scanner_test.go",
+      "bytes": 13368,
+      "sha256": "ccfb19b888095aa25a7653567f3a4e83106f19b3c88067a40b897ff4672660b3"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/observer_phase_timing_test.go",
+      "bytes": 4887,
+      "sha256": "be7e91672ccfb726cdee66fc149fb155961feefa78fab6ebf31f9f00fbe9830e"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/supply-linux-window.py",
+      "bytes": 118339,
+      "sha256": "b6dc845d7434f92917a882384ff698a302f33721957699366f96152017e467e0"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_supply_linux_window.py",
+      "bytes": 109597,
+      "sha256": "2bfe7650ee1fc34d9d8c3b70b23af6dff17c3a053f1a843330d51c7d2bf9718f"
+    }
+  ],
+  "logs": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-submit8-source/selection-red.raw",
+      "bytes": 841,
+      "sha256": "8d51686456e44c48f823177806a8e7336eb57f410ac54b8e5a76d543dce63af8"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-submit8-source/controller-pair-first.raw",
+      "bytes": 172,
+      "sha256": "1a15036fe7d384e8aff8462965fbc96f09c403b28ba83655ae972f3c11c59117"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-submit8-source/client-worker-race-pass.raw",
+      "bytes": 1242,
+      "sha256": "7872606697db0bcf01c72449fd7caba04c359b95af79fabff85f02b7892cd094"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-submit8-source/client-regression-pass.raw",
+      "bytes": 356,
+      "sha256": "1f0c3d17d430034fb0c5a2ed5b1feceee0272dfd064cb90975858321fe085e33"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-submit8-source/clock-fixture-count20-pass.raw",
+      "bytes": 75,
+      "sha256": "9f78c2933c4df8eaa0e137e1c7cf6e1838a8ccbd691f56e8cf541c7a86bf406d"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-submit8-source/client-regression-after-clock-fixture.raw",
+      "bytes": 76,
+      "sha256": "573b64f9c011a04d2f18ba05798ce3b54d5c3477bff04f03777a69fa5eebcc0a"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-submit8-source/historical-f59-readout-actual.json",
+      "bytes": 542,
+      "sha256": "d472abffaa0c9b75b64b26668be561f83aace53822a90f6c9d4292f6c92e7ac0"
+    }
+  ],
+  "historicalReadout": {
+    "originalRun": 39973570392,
+    "cases": [
+      {
+        "mode": "prefix-control",
+        "originalTransactions": 2048,
+        "measurementExactlyEqual": true,
+        "runtimeExactlyEqual": true
+      },
+      {
+        "mode": "prefix-native-clone",
+        "originalTransactions": 2048,
+        "measurementExactlyEqual": true,
+        "runtimeExactlyEqual": true
+      }
+    ],
+    "nodesStarted": false,
+    "newWorkload": false,
+    "scope": "Necessary compatibility check after validator mode/worker changes; same original4096 inputs, not repeated pressure."
+  },
+  "productionObserverTimerUnchanged": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/observer_phase_timing.go",
+    "bytes": 3433,
+    "sha256": "efdf367aa8c081a28894149d7aa86e6c920ec110eb2c59209d77de5a34c37896"
+  },
+  "firstRegressionFailure": "Actual one-count validators_query duration0ns in a pure memory RPC fixture; first full regression FAIL preserved, not labeled PASS despite its original filename.",
+  "repair": "Only test fixture opt-in crosses an actual monotonic tick inside the original call. Original positive duration, request count, error, business and crypto assertions remain; production clock and validators unchanged. Count20 targeted PASS and full package PASS12.506s.",
+  "controllerTests": {
+    "passed": 73,
+    "elapsedSeconds": 7.645
+  },
+  "raceTests": {
+    "passed": true,
+    "elapsedSeconds": 1.629
+  },
+  "executionAuthorized": false,
+  "nodesStarted": false,
+  "networkImprovementMeasured": false,
+  "limits": "Two controlled local16-input worker pools at GOMAXPROCS1 with real gated callbacks. These are not signed business throughput or BFT results. Controller pair fault tests use synthetic fixtures and start no nodes. Fresh exact-source CI and separate Root grant still required."
+}
