@@ -74,14 +74,14 @@ async function deploymentPayload(manifestInput, artifactInput, approvalInput) {
     if (typeof binding[key] !== "string" || !binding[key] || binding[key].trim() !== binding[key] || new TextEncoder().encode(binding[key]).length > 256 || /[\u0000-\u001f\u007f-\u009f]/.test(binding[key])) throw new TypeError(`invalid deployment ${key}`);
   }
   if (!Number.isSafeInteger(binding.byteSize) || binding.byteSize !== artifact.length || !/^[0-9a-f]{64}$/.test(binding.contentDigest)) throw new TypeError("deployment size/digest selection is invalid");
-  const digest = new Uint8Array(await cryptoProvider().subtle.digest("SHA-256", artifact));
-  const hex = Array.from(digest, value => value.toString(16).padStart(2, "0")).join("");
-  if (hex !== binding.contentDigest) throw new TypeError("deployment artifact does not match the approved manifest digest");
+  const [digest, manifestDigest, approvalDigest] = await Promise.all([artifact, manifest, approval].map(value => cryptoProvider().subtle.digest("SHA-256", value)));
+  const hex = value => Array.from(new Uint8Array(value), byte => byte.toString(16).padStart(2, "0")).join("");
+  if (hex(digest) !== binding.contentDigest) throw new TypeError("deployment artifact does not match the approved manifest digest");
   const form = new FormData();
   form.append("manifest", new Blob([manifest], { type: "application/json" }));
   form.append("approval", new Blob([approval], { type: "application/octet-stream" }));
   form.append("artifact", new Blob([artifact], { type: "application/octet-stream" }));
-  return { form, binding };
+  return { form, binding, manifestSHA256: hex(manifestDigest), approvalSHA256: hex(approvalDigest) };
 }
 
 function endpointURL(endpoint, path) {
@@ -482,6 +482,9 @@ export class YNXCloudClient {
     try {
       const result = await deploymentAwait(signal, () => this.request("/ide/deployments", { method: "POST", body: payload.form, headers: originalHeaders, originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" }));
       if (result?.requestId !== id || !["unknown", "running", "completed", "failed"].includes(result?.state) || !payload.binding || Object.keys(payload.binding).some(key => result?.binding?.[key] !== payload.binding[key])) throw new YNXCloudDeploymentUnknownError(id);
+      // Bind the receipt to the exact original bytes sent, not just a parsed
+      // six-field selection. A different approval cannot become this result.
+      if (result.manifestSHA256 !== payload.manifestSHA256 || result.approvalSHA256 !== payload.approvalSHA256) throw new YNXCloudDeploymentUnknownError(id);
       if (result.state === "completed" && result.exitCode !== 0) throw new YNXCloudDeploymentUnknownError(id);
       if (result.state === "running" || result.state === "completed") {
         const runtime = new URL(result.runtimeUrl);

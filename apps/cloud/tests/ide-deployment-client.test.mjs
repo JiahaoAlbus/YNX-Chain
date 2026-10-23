@@ -10,12 +10,13 @@ function input() {
   return {requestId:'request_original_123456',artifact,manifest:JSON.stringify(binding),approval:'PUBLIC_NOT_A_SIGNATURE',binding};
 }
 function client(fetch) { return new YNXCloudClient({endpoint:'https://public-test.invalid',product:'cloud',getDeploymentRequestHeaders:async()=> ({'X-Public-Deployment-Source':'PUBLIC_NOT_AUTHORITY'}),fetch,maxRetries:5}); }
+function receipt(i, fields = {}) { return {requestId:i.requestId,state:'unknown',binding:i.binding,manifestSHA256:createHash('sha256').update(i.manifest).digest('hex'),approvalSHA256:createHash('sha256').update(i.approval).digest('hex'),...fields}; }
 test('normal SDK preserves approved bytes and ordered multipart without JSON conversion',async()=>{
   const i=input();let calls=0;
   const c=client(async(url,options)=>{
     calls++;assert.equal(url,'https://public-test.invalid/api/v1/ide/deployments');assert.equal(options.method,'POST');assert.equal(options.redirect,'error');assert.equal(options.headers.get('Idempotency-Key'),i.requestId);assert.equal(options.headers.has('Content-Type'),false);
     assert.ok(options.body instanceof FormData);assert.deepEqual([...options.body.keys()],['manifest','approval','artifact']);assert.equal(await options.body.get('manifest').text(),i.manifest);assert.equal(await options.body.get('approval').text(),i.approval);assert.deepEqual(new Uint8Array(await options.body.get('artifact').arrayBuffer()),i.artifact);
-    return Response.json({requestId:i.requestId,state:'unknown',binding:i.binding});
+    return Response.json(receipt(i));
   });
   assert.equal((await c.submitIDEDeployment(i)).state,'unknown');assert.equal(calls,1);
 });
@@ -43,7 +44,7 @@ test('tampered artifact and header overrides never reach the transport',async()=
   assert.equal(calls,0);
 });
 test('concurrent duplicate original ID causes exactly one submission',async()=>{
-  const i=input();let calls=0;const c=client(async()=>{calls++;return Response.json({requestId:i.requestId,state:'unknown',binding:i.binding});});
+  const i=input();let calls=0;const c=client(async()=>{calls++;return Response.json(receipt(i));});
   const results=await Promise.allSettled([c.submitIDEDeployment(i),c.submitIDEDeployment(i)]);assert.equal(calls,1);assert.equal(results.filter(x=>x.status==='fulfilled').length,1);assert.ok(results.some(x=>x.status==='rejected'&&x.reason instanceof YNXCloudDeploymentUnknownError));
 });
 test('a 403 preserves operation ID and never retries',async()=>{
@@ -57,7 +58,7 @@ test('status and logs refuse another request or a non-runtime log source',async(
   await assert.rejects(source.getIDEDeploymentLogs(i.requestId),YNXCloudDeploymentUnknownError);
 });
 test('a completed bounded job requires a verified zero exit and retains the original request',async()=>{
-  const i=input();const valid=client(async()=>Response.json({requestId:i.requestId,state:'completed',exitCode:0,binding:i.binding,deploymentId:'PUBLIC_JOB',runtimeUrl:'https://public-test.invalid/api/v1/ide/deployments/'+i.requestId+'/runtime'}));
+  const i=input();const valid=client(async()=>Response.json(receipt(i,{state:'completed',exitCode:0,deploymentId:'PUBLIC_JOB',runtimeUrl:'https://public-test.invalid/api/v1/ide/deployments/'+i.requestId+'/runtime'})));
   assert.equal((await valid.submitIDEDeployment(i)).state,'completed');
   const invalid=client(async()=>Response.json({requestId:i.requestId,state:'completed',exitCode:7}));
   await assert.rejects(invalid.getIDEDeploymentStatus(i.requestId),YNXCloudDeploymentUnknownError);
@@ -67,6 +68,6 @@ test('deployment never falls back to ordinary Wallet login or overwrites origina
   const legacy=new YNXCloudClient({endpoint:'https://public-test.invalid',product:'cloud',getAccessToken:async()=>{tokens++;return 'PUBLIC_LEGACY_NOT_PUBLISH_AUTHORITY';},fetch:async()=>{calls++;throw Error('must not fetch');}});
   await assert.rejects(legacy.submitIDEDeployment(input()),/ordinary Wallet login is not a deployment grant/);assert.equal(calls,0);assert.equal(tokens,0);
   const i=input();const contexts=[];
-  const original=new YNXCloudClient({endpoint:'https://public-test.invalid',product:'cloud',getDeploymentRequestHeaders:async context=>{contexts.push(context);return {'Authorization':'PUBLIC_ORIGINAL_NOT_REAL_PROOF'};},fetch:async(url,options)=>{assert.equal(options.headers.get('Authorization'),'PUBLIC_ORIGINAL_NOT_REAL_PROOF');return Response.json({requestId:i.requestId,state:'unknown',binding:i.binding});}});
+  const original=new YNXCloudClient({endpoint:'https://public-test.invalid',product:'cloud',getDeploymentRequestHeaders:async context=>{contexts.push(context);return {'Authorization':'PUBLIC_ORIGINAL_NOT_REAL_PROOF'};},fetch:async(url,options)=>{assert.equal(options.headers.get('Authorization'),'PUBLIC_ORIGINAL_NOT_REAL_PROOF');return Response.json(receipt(i));}});
   await original.submitIDEDeployment(i);assert.deepEqual(contexts,[{method:'POST',path:'/api/v1/ide/deployments',url:'https://public-test.invalid/api/v1/ide/deployments',operationRequestId:i.requestId}]);
 });
