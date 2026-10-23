@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "original-failed-native-pair-source-fixes",
+  "sourceCommit": "88b34c5ceedb8c750eac66b6e08fecba62624a3e",
+  "originalNativeRun": 40034580462,
+  "originalNativeSource": "6d653b63835e56fecb9d6bf07cc9a661e880e4cf",
+  "originalNativePairQualified": false,
+  "originalSlotReturned": true,
+  "originalPairVerdictSHA256": "3c9284f2760f44a70fbdcc9516439cba81814e4cfc3d9aa0b6ecb6abdaba1492",
+  "sourceFixes": [
+    "return original enforced post-fsync resource sample and reject missing sample",
+    "verify retained decompressed prefix before resume and original complete member SHA/CRC before promotion",
+    "bind native client40s deadline to explicit recipe/plan within original45+15/60 and pair120s caps"
+  ],
+  "readerGateNormalCI": {
+    "run": 40034982817,
+    "head": "228f580e4a2ba53565e5dcc41cc5efe13ed955db",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "newNativeDispatched": false,
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-post-sample-red.raw",
+      "bytes": 3080,
+      "sha256": "1f85ebac898a14b74f748575d94c8354fb69610443b7466cb7d7314359ccedf0",
+      "role": "preserved-negative"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-post-sample-green.raw",
+      "bytes": 1156,
+      "sha256": "1a66580be05c354f6650d19e8ea28f42728a358c9307e644b9d0173847a8d529",
+      "role": "final-light-test"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-partial-resume-red.raw",
+      "bytes": 1724,
+      "sha256": "d124892d6509213ccd78599725d1c9c6c3fa5cd2d74c574d02458aea040e5c54",
+      "role": "preserved-negative"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-partial-resume-green.raw",
+      "bytes": 3646,
+      "sha256": "1ac70408eea10910d67cb556fc422f603095c7c48196f511e22b06638a39c49f",
+      "role": "final-light-test"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-client-active-budget-red.raw",
+      "bytes": 1000,
+      "sha256": "c1dd4cdef7db56979a2d2d4b094c259014100a5b95017e8975690b06cd6166dc",
+      "role": "preserved-negative"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-client-active-budget-green.raw",
+      "bytes": 14452,
+      "sha256": "0c5796b08cfa213d1f290f68c04bc1cd3ce6f86c1aca24b70bfb137848f5cec6",
+      "role": "final-light-test"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-failed-pair-fixes-tests.raw",
+      "bytes": 1156,
+      "sha256": "1a66580be05c354f6650d19e8ea28f42728a358c9307e644b9d0173847a8d529",
+      "role": "final-light-test"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-failed-pair-fixes-source-gate.raw",
+      "bytes": 3985,
+      "sha256": "6c335ecd0af2827942bf7132621c41605bae51bd18f5d703ae74cd80405c793f",
+      "role": "final-light-test"
+    }
+  ]
+}
