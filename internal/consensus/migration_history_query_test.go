@@ -215,9 +215,13 @@ func TestMigrationHistoryQueryRejectsRelabelingNoncanonicalPathsAndForeignState(
 }
 
 func TestMigrationHistoryLogsPreserveExecutedContractEventsAndColdBytes(t *testing.T) {
-	migration, contract, _ := sourceCounterMigration(t, false)
-	path := filepath.Join(t.TempDir(), "state.json")
-	app, err := NewPersistentApplication(migration, path)
+	f := newApplicationInitializationFixture(t)
+	migration, contract := f.migration, f.contract
+	path := filepath.Join(t.TempDir(), "application", "state.json")
+	if _, err := InitializeApplication(migration, f.raw, f.pins, ApplicationInitializationOptions{StatePath: path, StateLayout: "atomic-json"}); err != nil {
+		t.Fatal("normal source initialization did not persist the cold-read fixture", err)
+	}
+	app, err := NewPersistentApplicationWithBootstrap(migration, path, f.bootstrap)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -270,7 +274,7 @@ func TestMigrationHistoryLogsPreserveExecutedContractEventsAndColdBytes(t *testi
 	if err != nil || exactHeight.Code != 0 || !bytes.Equal(exactHeight.Value, originals[MigrationHistoryLogsPath+"0/"+strconv.FormatUint(migration.Height, 10)]) {
 		t.Fatal("exact committed query height changed original source logs", err)
 	}
-	cold, err := NewPersistentApplication(migration, path)
+	cold, err := NewPersistentApplicationWithBootstrap(migration, path, f.bootstrap)
 	if err != nil {
 		t.Fatal(err)
 	}
