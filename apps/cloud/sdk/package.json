@@ -6,8 +6,12 @@
     ".": {
       "types": "./index.d.ts",
       "default": "./index.js"
+    },
+    "./observe-ide-deployment": {
+      "types": "./observe-ide-deployment.d.ts",
+      "default": "./observe-ide-deployment.mjs"
     }
   },
-  "files": ["index.js", "index.d.ts", "README.md"],
+  "files": ["index.js", "index.d.ts", "README.md", "observe-ide-deployment.mjs", "observe-ide-deployment.d.ts"],
   "sideEffects": false
 }

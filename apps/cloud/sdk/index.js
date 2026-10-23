@@ -17,6 +17,58 @@ export class YNXCloudError extends Error {
   }
 }
 
+// This is an observation of a submitted operation, not proof that it failed.
+// Keep operationRequestId separate from the HTTP request/trace identifier.
+export class YNXCloudDeploymentUnknownError extends YNXCloudError {
+  constructor(operationRequestId, cause) {
+    super("Deployment outcome is unknown; query the original request, do not resubmit", { cause });
+    this.name = "YNXCloudDeploymentUnknownError";
+    this.operationRequestId = operationRequestId;
+    this.state = "unknown";
+  }
+}
+
+function deploymentRequestId(value) {
+  if (typeof value !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(value)) throw new TypeError("original deployment request ID is required");
+  return value;
+}
+
+function deploymentBytes(value, field, maximum) {
+  if ((typeof value === "string" && value.length > maximum) || (value instanceof ArrayBuffer && value.byteLength > maximum) || (ArrayBuffer.isView(value) && value.byteLength > maximum)) throw new TypeError(`${field} exceeds its byte bound`);
+  const result = bytes(value, field);
+  if (result.length > maximum) throw new TypeError(`${field} exceeds its byte bound`);
+  return result;
+}
+
+async function deploymentPayload(manifestInput, artifactInput, approvalInput) {
+  const manifest = deploymentBytes(manifestInput, "original manifest", 16384);
+  const approval = deploymentBytes(approvalInput, "original approval", 1048576);
+  if (!manifest.length || manifest.length > 16384 || !approval.length || approval.length > 1048576) throw new TypeError("deployment manifest/approval exceeds its byte bound");
+  let artifact;
+  if (artifactInput instanceof Blob) {
+    if (artifactInput.size < 1 || artifactInput.size > 67108864) throw new TypeError("deployment artifact must contain 1 to 64 MiB bytes");
+    artifact = new Uint8Array(await artifactInput.arrayBuffer());
+  } else {
+    artifact = deploymentBytes(artifactInput, "artifact", 67108864);
+  }
+  if (!artifact.length || artifact.length > 67108864) throw new TypeError("deployment artifact must contain 1 to 64 MiB bytes");
+  const binding = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(manifest));
+  const fields = ["projectId", "version", "contentDigest", "publishPurpose", "targetEnvironment", "byteSize"];
+  if (!binding || Array.isArray(binding) || Object.keys(binding).length !== fields.length || !fields.every(key => Object.hasOwn(binding, key))) throw new TypeError("deployment selection fields are invalid");
+  for (const key of ["projectId", "version", "publishPurpose", "targetEnvironment"]) {
+    if (typeof binding[key] !== "string" || !binding[key] || binding[key].trim() !== binding[key] || new TextEncoder().encode(binding[key]).length > 256 || /[\u0000-\u001f\u007f-\u009f]/.test(binding[key])) throw new TypeError(`invalid deployment ${key}`);
+  }
+  if (!Number.isSafeInteger(binding.byteSize) || binding.byteSize !== artifact.length || !/^[0-9a-f]{64}$/.test(binding.contentDigest)) throw new TypeError("deployment size/digest selection is invalid");
+  const digest = new Uint8Array(await cryptoProvider().subtle.digest("SHA-256", artifact));
+  const hex = Array.from(digest, value => value.toString(16).padStart(2, "0")).join("");
+  if (hex !== binding.contentDigest) throw new TypeError("deployment artifact does not match the approved manifest digest");
+  const form = new FormData();
+  form.append("manifest", new Blob([manifest], { type: "application/json" }));
+  form.append("approval", new Blob([approval], { type: "application/octet-stream" }));
+  form.append("artifact", new Blob([artifact], { type: "application/octet-stream" }));
+  return { form, binding };
+}
+
 function endpointURL(endpoint, path) {
   const base = endpoint.replace(/\/+$/, "");
   const prefix = base.endsWith("/api/v1") ? base : `${base}/api/v1`;
@@ -332,35 +384,41 @@ export async function rotateClientSideEncryptedContent({ content, currentKey, ne
 }
 
 export class YNXCloudClient {
-  constructor({ endpoint, product, getAccessToken, fetch: fetchImpl = globalThis.fetch, maxRetries = 2 }) {
+  constructor({ endpoint, product, getAccessToken, getDeploymentRequestHeaders, fetch: fetchImpl = globalThis.fetch, maxRetries = 2 }) {
     if (!/^https?:\/\//.test(endpoint || "")) throw new TypeError("endpoint must be an absolute HTTP(S) URL");
     if (product !== "cloud" && product !== "docs") throw new TypeError("product must be cloud or docs");
-    if (typeof getAccessToken !== "function") throw new TypeError("getAccessToken must be a function");
+    if (typeof getAccessToken !== "function" && typeof getDeploymentRequestHeaders !== "function") throw new TypeError("an original authentication provider is required");
     if (typeof fetchImpl !== "function") throw new TypeError("fetch is unavailable");
     this.endpoint = endpoint;
     this.product = product;
     this.getAccessToken = getAccessToken;
+    this.getDeploymentRequestHeaders = getDeploymentRequestHeaders;
     this.fetch = fetchImpl;
     this.maxRetries = Math.max(0, Math.min(5, Number(maxRetries) || 0));
+    this.deploymentRequests = new Set();
   }
 
-  async request(path, { method = "GET", body, headers = {}, signal, response = "json", retry } = {}) {
+  async request(path, { method = "GET", body, headers = {}, signal, response = "json", retry, redirect, originalAuthorizationHeaders } = {}) {
     method = method.toUpperCase();
     const attempts = retry ?? (IDEMPOTENT.has(method) ? this.maxRetries + 1 : 1);
     for (let attempt = 0; attempt < attempts; attempt++) {
-      const token = await this.getAccessToken();
-      if (!token || typeof token !== "string") throw new YNXCloudError("Wallet product session is unavailable");
       const requestHeaders = new Headers(headers);
-      requestHeaders.set("Authorization", `Bearer ${token}`);
+      if (originalAuthorizationHeaders === undefined) {
+        const token = await this.getAccessToken?.();
+        if (!token || typeof token !== "string") throw new YNXCloudError("Wallet product session is unavailable");
+        requestHeaders.set("Authorization", `Bearer ${token}`);
+      } else {
+        new Headers(originalAuthorizationHeaders).forEach((value, name) => requestHeaders.set(name, value));
+      }
       requestHeaders.set("Accept", response === "json" ? "application/json" : "application/octet-stream");
       let payload = body;
-      if (body !== undefined && !(body instanceof ArrayBuffer) && !ArrayBuffer.isView(body) && typeof body !== "string" && !(body instanceof Blob)) {
+      if (body !== undefined && !(body instanceof ArrayBuffer) && !ArrayBuffer.isView(body) && typeof body !== "string" && !(body instanceof Blob) && !(body instanceof FormData)) {
         requestHeaders.set("Content-Type", "application/json");
         payload = JSON.stringify(body);
       }
       let result;
       try {
-        result = await this.fetch(endpointURL(this.endpoint, path), { method, headers: requestHeaders, body: payload, signal });
+        result = await this.fetch(endpointURL(this.endpoint, path), { method, headers: requestHeaders, body: payload, signal, ...(redirect ? { redirect } : {}) });
       } catch (cause) {
         throw new YNXCloudError("YNX Cloud request failed before a response was received", { cause });
       }
@@ -392,6 +450,67 @@ export class YNXCloudClient {
     const query = new URLSearchParams();
     for (const [key, value] of Object.entries(options)) if (value !== undefined && value !== "") query.set(key, String(value));
     return this.request(`/objects?${query}`);
+  }
+
+  async submitIDEDeployment({ requestId, manifest, artifact, approval, headers = {}, signal } = {}) {
+    if (this.product !== "cloud") throw new TypeError("IDE deployments require the Cloud product");
+    const id = deploymentRequestId(requestId);
+    if (this.deploymentRequests.has(id)) throw new YNXCloudDeploymentUnknownError(id);
+    const originalHeaders = await this.deploymentHeaders("POST", "/ide/deployments", id, headers);
+    if (originalHeaders.has("Content-Type") || originalHeaders.has("Idempotency-Key")) throw new TypeError("deployment content type and original request ID cannot be overridden");
+    originalHeaders.set("Idempotency-Key", id);
+    const payload = await deploymentPayload(manifest, artifact, approval);
+    if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
+    // Recheck after async hashing: concurrent callers cannot submit this ID twice.
+    if (this.deploymentRequests.has(id)) throw new YNXCloudDeploymentUnknownError(id);
+    this.deploymentRequests.add(id);
+    try {
+      const result = await this.request("/ide/deployments", { method: "POST", body: payload.form, headers: originalHeaders, originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" });
+      if (result?.requestId !== id || !["unknown", "running", "completed", "failed"].includes(result?.state) || !payload.binding || Object.keys(payload.binding).some(key => result?.binding?.[key] !== payload.binding[key])) throw new YNXCloudDeploymentUnknownError(id);
+      if (result.state === "completed" && result.exitCode !== 0) throw new YNXCloudDeploymentUnknownError(id);
+      if (result.state === "running" || result.state === "completed") {
+        const runtime = new URL(result.runtimeUrl);
+        if (!result.deploymentId || !["https:", "http:"].includes(runtime.protocol) || !runtime.host || runtime.username || runtime.password || runtime.search || runtime.hash) throw new YNXCloudDeploymentUnknownError(id);
+      }
+      return result;
+    } catch (cause) {
+      if (cause instanceof YNXCloudDeploymentUnknownError) throw cause;
+      if (cause instanceof YNXCloudError && cause.status >= 400 && cause.status < 500) {
+        cause.operationRequestId = id;
+        throw cause;
+      }
+      throw new YNXCloudDeploymentUnknownError(id, cause);
+    }
+  }
+
+  async getIDEDeploymentStatus(requestId, { headers = {}, signal } = {}) {
+    const id = deploymentRequestId(requestId);
+    const path=`/ide/deployments/${id}`;
+    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers);
+    const result = await this.request(path, { headers:originalHeaders,originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" });
+    if (result?.requestId !== id || !["unknown", "running", "completed", "failed"].includes(result?.state) || (result.state === "completed" && result.exitCode !== 0)) throw new YNXCloudDeploymentUnknownError(id);
+    return result;
+  }
+
+  async getIDEDeploymentLogs(requestId, { headers = {}, signal } = {}) {
+    const id = deploymentRequestId(requestId);
+    const path=`/ide/deployments/${id}/logs`;
+    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers);
+    const result = await this.request(path, { headers:originalHeaders,originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" });
+    if (result?.requestId !== id || result.runtimeLogSource !== "original-resource" || typeof result.runtimeLogs !== "string" || new TextEncoder().encode(result.runtimeLogs).length > 65536 || !Array.isArray(result.operationLogs)) throw new YNXCloudDeploymentUnknownError(id);
+    return result;
+  }
+
+  async deploymentHeaders(method, path, operationRequestId, extra) {
+    if (typeof this.getDeploymentRequestHeaders !== "function") throw new YNXCloudError("Original IDE deployment authentication provider is unavailable; ordinary Wallet login is not a deployment grant");
+    const url = endpointURL(this.endpoint, path);
+    const target = new URL(url);
+    if (target.username || target.password || target.hash) throw new TypeError("deployment endpoint must not contain credentials or a fragment");
+    const original = await this.getDeploymentRequestHeaders(Object.freeze({ method, path:target.pathname+target.search, url, operationRequestId }));
+    if (!original) throw new YNXCloudError("Original IDE deployment authentication headers are unavailable");
+    const result = new Headers(extra);
+    new Headers(original).forEach((value, name) => result.set(name, value));
+    return result;
   }
   getObject(id) { return this.request(`/objects/${safeSegment(id)}`); }
   createObject(input) { return this.request("/objects", { method: "POST", body: input }); }

@@ -176,7 +176,24 @@ func main() {
 			}
 		}
 	}()
-	api := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute}).Handler()
+	apiServer := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute})
+	ideRuntime, err := attachOriginalIDEDeploymentRuntime(workerCtx, apiServer, originalIDEDeploymentStartup)
+	closeIDE := func() {
+		if ideRuntime != nil {
+			if err := ideRuntime.Close(); err != nil {
+				log.Print(errIDEClose)
+			}
+		}
+	}
+	defer closeIDE()
+	if err != nil {
+		closeIDE()
+		log.Fatal(errIDEStartup)
+	}
+	if ideRuntime == nil {
+		log.Print("IDE deployment runtime unavailable: original Auth/config producer not supplied")
+	}
+	api := apiServer.Handler()
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api)
 	mux.Handle("/health", api)
@@ -186,7 +203,7 @@ func main() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/cloud/", http.StatusTemporaryRedirect)
 	})
-	server := &http.Server{Addr: *addr, Handler: cloud.SecureHandlerWithDirectUploadOrigin(mux, os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN")), ReadHeaderTimeout: 5e9, ReadTimeout: 15e9, WriteTimeout: 30e9, IdleTimeout: 60e9}
+	server := &http.Server{Addr: *addr, Handler: apiServer.WrapIDEProjectRuntime(cloud.SecureHandlerWithDirectUploadOrigin(mux, os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN"))), ReadHeaderTimeout: 5e9, ReadTimeout: 15e9, WriteTimeout: 30e9, IdleTimeout: 60e9}
 	serverErrors := make(chan error, 1)
 	go func() {
 		serverErrors <- server.ListenAndServe()
@@ -195,6 +212,7 @@ func main() {
 	select {
 	case err := <-serverErrors:
 		if err != nil && err != http.ErrServerClosed {
+			closeIDE()
 			log.Fatal(err)
 		}
 	case <-workerCtx.Done():

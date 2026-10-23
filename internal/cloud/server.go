@@ -16,18 +16,19 @@ import (
 )
 
 type Server struct {
-	service       *Service
-	mu            sync.Mutex
-	startedAt     time.Time
-	requests      map[string]int64
-	latencyMillis map[string]int64
-	limits        ServerLimits
-	inflight      chan struct{}
-	clients       map[string]clientWindow
-	rejections    map[string]int64
-	telemetry     telemetryState
-	telemetryOK   bool
-	telemetryErr  string
+	ideDeployments *ideDeploymentService
+	service        *Service
+	mu             sync.Mutex
+	startedAt      time.Time
+	requests       map[string]int64
+	latencyMillis  map[string]int64
+	limits         ServerLimits
+	inflight       chan struct{}
+	clients        map[string]clientWindow
+	rejections     map[string]int64
+	telemetry      telemetryState
+	telemetryOK    bool
+	telemetryErr   string
 }
 
 type ServerLimits struct {
@@ -207,6 +208,7 @@ func directClient(remote, forwarded string) string {
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	s.mountIDEDeployments(mux)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
 	mux.HandleFunc("GET /api/v1/health", s.auth(s.detailedHealth))

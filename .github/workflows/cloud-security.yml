@@ -7,6 +7,7 @@ on:
       - 'apps/cloud/**'
       - 'apps/docs/**'
       - 'internal/cloud/**'
+      - 'internal/developerauthority/**'
       - 'infra/docker/cloud-compose.yml'
       - 'infra/docker/ynx-cloudd.Dockerfile'
       - 'infra/docker/ynx-cloudd.Dockerfile.dockerignore'
@@ -18,6 +19,7 @@ on:
       - 'apps/cloud/**'
       - 'apps/docs/**'
       - 'internal/cloud/**'
+      - 'internal/developerauthority/**'
       - 'infra/docker/cloud-compose.yml'
       - 'infra/docker/ynx-cloudd.Dockerfile'
       - 'infra/docker/ynx-cloudd.Dockerfile.dockerignore'
@@ -48,7 +50,7 @@ jobs:
       - name: Static security, dependency, SBOM, script, and artifact gate
         run: node apps/cloud/scripts/security-gate.mjs
       - name: Cloud control-plane tests
-        run: go test ./internal/cloud ./apps/cloud/cmd/ynx-cloudd
+        run: go test ./internal/cloud ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd
       - name: Cloud Web, SDK, accessibility, and product-boundary gates
         run: |
           npm --prefix apps/cloud test
