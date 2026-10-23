@@ -1,5 +1,6 @@
 import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
 import {decodePQTypedActionBroadcastResponse} from './typed-action-query.mjs';
+import {inspectPQGoValidatedContractMaterial} from './contract-deployment-material.mjs';
 
 export const PQ_TYPED_ACTION_BROADCAST_PATH='/transactions/pq/actions/broadcast';
 export const PQ_TYPED_ACTION_BROADCAST_RPC_BYTES=792658;
@@ -7,11 +8,11 @@ const fail=code=>{throw Object.assign(Error(code),{code})};
 
 /** Original raw transport only. This plan grants no authority and makes no I/O.
  * Protocol3163 profile includes JSON-RPC base64 framing; never strip material.
- * SDK332 lacks complete deploy material; Main fences it before keys, and this
- * retained-original plan also refuses it before any network I/O. */
+ * Deployment requires exact original Go-validated compiler bytes and signed
+ * commitments. This DATA plan never acquires permission or enters transport. */
 export function preparePQReviewedTypedActionBroadcast(review,raw,original){
  const local=inspectPQReviewedTypedTransportOriginal(review,raw,original);
- if(local.action.kind==='contract_deploy')fail('PQ_TYPED_CONTRACT_MATERIAL_UNAVAILABLE');
+ if(local.action.kind==='contract_deploy')inspectPQGoValidatedContractMaterial(local.action,{source:local.source,material:local.material});
  if(4*Math.ceil(local.body.byteLength/3)+74>PQ_TYPED_ACTION_BROADCAST_RPC_BYTES)fail('PQ_TYPED_ACTION_RPC_PROFILE_EXCEEDED');
  const request={method:'POST',path:PQ_TYPED_ACTION_BROADCAST_PATH,contentType:'application/json',memberHash:local.memberHash,transportHash:local.transportHash,admissionIsFinality:false};
  Object.defineProperty(request,'body',{enumerable:true,get:()=>local.body});

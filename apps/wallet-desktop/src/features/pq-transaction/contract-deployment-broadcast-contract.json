@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "parent": "1434b23d793a64bfe19e9bfe67d279c347fe0cf9",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "change": "Replace unconditional deploy refusal with exact matching of original Go-validated compiler raw bytes and signed commitments, retaining all original reviewed/raw/fullAND/N1 policy checks, complete body, RPC size fence, separate broadcast approval binding and no-retry semantics.",
+  "API": {
+    "module": "contract-deployment-material.mjs",
+    "name": "inspectPQGoValidatedContractMaterial",
+    "signature": "(action: normalized PQNativeAction, input: exact{source:string,material:{artifactFile:Uint8Array,buildInfoFile:Uint8Array}})",
+    "result": "exact{contractName,sourceSha256,artifactSha256,buildInfoSha256,goSourceCommit,materialHandoffSha256,goMaterialPinsMatched:true,dataOnly:true,nativeAdmission:false,permissionGranted:false,submitted:false,canRetry:false,consensusFinality:false}",
+    "authority": "DATA only. A pinned compiler match is not a branded Source, permission/capsule, account/session grant, NativeRoot, installed verifier or blockchain finality.",
+    "reuse": "Main can call this pure match before entering keys or its separate broadcast approval; uses same expected signed action commitments. Caller assertions/attestation booleans and supplied H paths cannot extend the compiled list.",
+    "existingBroadcastAPI": "Unchanged preparePQReviewedTypedActionBroadcast(review,raw,original) request shape. It verifies reviewed original, matches exact material, then original4*ceil(body.length/3)+74<=792658 and returns immutable DATA with independently copied complete body; no I/O.",
+    "error": "Unknown/old/mutated material or wrong signed source/deployed/compiler commitment => PQ_TYPED_CONTRACT_MATERIAL_UNAVAILABLE; original SDK/schema/fullMember/hash/review and RPC errors propagate."
+  },
+  "materialH": {
+    "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-canonical-abi-20261023/HANDOFF.json",
+    "bytes": 9966,
+    "sha256": "2f9a0fa4fc9a579cd60d26ab213ab3abe286e004ae2d3252e6ef020e3eeba372"
+  },
+  "pinsSource": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-broadcast-20261023/source/apps/wallet-desktop/src/features/pq-transaction/contract-deployment-material-pins.mjs",
+    "bytes": 1594,
+    "sha256": "a9336a7f2f467d1a2e231c7065a6be4521db0a4a140f8463ab557fd69422f985"
+  },
+  "GoEvidence": {
+    "owner": "01a14abb-5066-7db0-8814-e08c0d4b35a8 original Protocol supplied success message",
+    "source": "4c14331f90d5359868c0ba66d55b0847f0409edc",
+    "tree": "58bbaf51637e5e7ccc70efbb28e0a2e7f2a1cb80",
+    "run": "39979011515",
+    "job": "120501051452",
+    "step": "23 Verify actual IDE compiler materials with original Go deployment callees",
+    "stepSuccess": true,
+    "wholeJobClaim": false,
+    "flow": "Both contracts actual ValidateBoundedPinnedContract -> BuildConsensusPQContractDeployment -> ValidateConsensusContractMaterial -> readonly count()/totalSupply() constructor7; assertions before result JSON. Original artifact/storage/raw files unchanged.",
+    "thisLeafExecutedGo": false,
+    "syntheticOnly": true
+  },
+  "compilerPins": "Only exact latest canonical-abi2f9a material generation for two bounded contracts is released here. c8e and canonical-input fb4d generations retained as negative fixtures; arbitrary or reformatted compiler outputs remain unavailable even if a caller recomputes outer hash. A new compiler output requires original owner Go validation and an explicit release pin update.",
+  "SDK": {
+    "handoff": {
+      "path": "/Users/huangjiahao/.codex/worktrees/wallet-auth-wallet-source/YNX Chain/.wallet-source-evidence/SDK332_AUTH4_DEPLOYMENT_CANONICAL_HANDOFF.json",
+      "bytes": 10134,
+      "sha256": "3853eaba8e8ff675e07d829dd838a9d325ccaa3bb5d79a8ed9714b8202fb994e"
+    },
+    "runtime": "/Users/huangjiahao/.codex/worktrees/wallet-auth-wallet-source/YNX Chain/.wallet-source-evidence/auth4-5e0ec769-local-runtime/package",
+    "version": "1.3.0-pq.3.32-auth.4",
+    "testResolution": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-reader-20261023/evidence/auth4-test-import.mjs",
+      "bytes": 1104,
+      "sha256": "85e603c32fc33e2f438aa0ded3b5a7dad35932590b1fba4a0e7b7958afa63d6b"
+    },
+    "noHotSDKChange": true
+  },
+  "validation": {
+    "red": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-broadcast-20261023/evidence/deploy-broadcast-red.tap",
+      "bytes": 1803,
+      "sha256": "62f501284427cbfb3957d7e1d70099b9746245110e5269a1b19ddbbaa34dad16"
+    },
+    "redPass": 0,
+    "redFail": 1,
+    "redReason": "Old plan rejects the actual Go-validated exact material after full original review with PQ_TYPED_CONTRACT_MATERIAL_UNAVAILABLE.",
+    "pass": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-broadcast-20261023/evidence/deploy-broadcast-pass.tap",
+      "bytes": 1206,
+      "sha256": "944d5335ad99f669b0f27e094c65193b9e555c818998eed02ac5ecacf03c5143"
+    },
+    "passCount": 4,
+    "fail": 0,
+    "skip": 0,
+    "types": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-broadcast-20261023/evidence/deploy-material-types.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "typesExit": 0,
+    "cases": [
+      "Both Counter/ERC20 normal full-byte plans with detached body, dual hashes and original RPC budget.",
+      "Both earlier rejected material generations remain refused even with correct newly computed transport hashes.",
+      "Unknown artifact/build-info, source change and newly valid dual-signed wrong compiler commitment rejected.",
+      "Actual original bindPQTypedBroadcastRequest accepts exact separate frozen18-field broadcast DATA, missing request and wrong Member hash rejected. No resource acquired."
+    ],
+    "truth": "Temporary synthetic localN1 SDK auth4 signatures, actual original IDE raw material files and original binder. No genuine user approval, protected native grant, original controller network run, actual Go run in this leaf or execution/finality.",
+    "oldGreensNotRerun": true
+  },
+  "mainNext": [
+    "Consume exact owned delta and new existing normalCI test entry in same independent auth4-compatible successor.",
+    "Use material matcher to remove only the matching-material rejection in Main broadcast builder; preserve real Source/current policy/private approval/capsule/sole sender/UNKNOWN marker and original request expiry.",
+    "Keep external connection/session approval independent of login/transfer; query by same original operation/request key after lost response.",
+    "Do not hot change old310/6e/SDK332 or use a prepared POST as execution authority. Actual deployment activation remains original Root/Main/A and concrete user flow gates."
+  ],
+  "CI": {
+    "proposal": "contract-deployment-broadcast-ci.patch",
+    "entry": "apps/wallet-desktop/test/pq-contract-deployment-broadcast.test.mjs",
+    "integratedByLeaf": false
+  },
+  "effects": {
+    "MainMutation": false,
+    "SDKMutation": false,
+    "AuthMutation": false,
+    "ProtocolMutation": false,
+    "SourceRootReplacement": false,
+    "newPermission": false,
+    "network": false,
+    "POST": false,
+    "userKeys": false,
+    "build": false,
+    "GUI": false
+  },
+  "status": "已验证未部署: complete material-specific broadcast plan CODE and focused auth4 checks only; original Main consumption/approval/IDE client joint flow and complete package/install/actual network/finality remain separate."
+}

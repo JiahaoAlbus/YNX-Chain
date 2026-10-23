@@ -1,0 +1,7 @@
+diff --git a/apps/wallet-desktop/test/pq-contract-deployment-broadcast.test.mjs b/apps/wallet-desktop/test/pq-contract-deployment-broadcast.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-contract-deployment-broadcast.test.mjs
+@@ -0,0 +1,2 @@
++// Original normal CI: fixed Go material pins and existing broadcast DATA plan.
++import '../src/features/pq-transaction/contract-deployment-broadcast.test.mjs';
