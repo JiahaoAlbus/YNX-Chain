@@ -1,18 +1,18 @@
 const URI = require('@theia/core/lib/common/uri').default;
 // A URL fragment is navigation, not a newly opened native project.
 class LocalWorkspaceContext {
-  constructor(workspace, context, commands, messages, target = window, translate = (key, text) => text) { Object.assign(this, { workspace, context, commands, messages, target, translate }); this.stopped = false; }
+  constructor(workspace, context, commands, messages, target = window, translate = (key, text) => text) { Object.assign(this, { workspace, context, commands, messages, target, translate }); this.stopped = false; this.rootReadEpoch = 0; }
   registerCommands(registry) {
     registry.registerCommand({ id: 'ynx.workbench.newProject', label: this.translate('newProject', 'New Project…'), category: 'YNX' }, {
       isEnabled: () => !this.stopped && !!this.target.webkit?.messageHandlers?.ynxLocalWorkbench,
       execute: () => this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'new-project' }),
     });
     registry.registerCommand({ id: 'ynx.workbench.openFolder', label: this.translate('openFolder', 'Open Folder…'), category: 'YNX' }, {
-      isEnabled: () => !!this.target.webkit?.messageHandlers?.ynxLocalWorkbench,
+      isEnabled: () => !this.stopped && !!this.target.webkit?.messageHandlers?.ynxLocalWorkbench,
       execute: () => this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'open-folder' }),
     });
     registry.registerCommand({ id: 'ynx.workbench.returnToProject', label: this.translate('returnToProject', 'Return to Open Project'), category: 'YNX' }, {
-      isEnabled: () => !!this.boundRoot,
+      isEnabled: () => !this.stopped && !!this.boundRoot,
       execute: () => this.workspace.open(this.boundRoot, { preserveWindow: true }),
     });
   }
@@ -23,8 +23,11 @@ class LocalWorkspaceContext {
     if (context?.mode !== 'local' || typeof context.workspace !== 'string' || !context.workspace.startsWith('/')) return;
     this.boundRoot = URI.fromComponents({ scheme: 'file', path: context.workspace });
     const check = async () => {
+      const epoch = ++this.rootReadEpoch;
       const roots = await this.workspace.roots;
-      if (this.stopped) return;
+      // Workspace events may finish their root lookup out of order. An older
+      // snapshot must not replace the latest warning/recovery state.
+      if (this.stopped || epoch !== this.rootReadEpoch) return;
       const signature = roots.map(root => root.resource.toString()).join('|');
       const mismatched = roots.some(root => root.resource.toString() !== this.boundRoot.toString());
       if (!mismatched) { this.lastWarning = undefined; return; }

@@ -124,6 +124,30 @@ test('R35 New Project remains unavailable without native route and after owning 
   assert.equal(native.commands.isEnabled('ynx.workbench.newProject'), false);
   await assert.rejects(native.commands.executeCommand('ynx.workbench.newProject')); assert.deepEqual(native.posted, []);
 });
+test('stopped workspace contribution cannot reopen native chooser or previously bound project',async t=>{
+  const f=fixture(t);await f.contribution.onStart();f.contribution.onStop();
+  for(const command of ['ynx.workbench.openFolder','ynx.workbench.returnToProject']){
+    assert.equal(f.commands.isEnabled(command),false,command);
+    await assert.rejects(f.commands.executeCommand(command));
+  }
+  assert.deepEqual(f.posted,[]);assert.deepEqual(f.opened,[]);
+});
+test('older pending root snapshot cannot warn after a newer bound project snapshot',async t=>{
+  const f=fixture(t);let releaseOld,reads=0;
+  const old=new Promise(resolve=>{releaseOld=resolve;});
+  Object.defineProperty(f.contribution.workspace,'roots',{get(){return ++reads===1?old:Promise.resolve([{resource:bound}]);}});
+  await f.contribution.onStart();assert.equal(reads,1);
+  f.change([bound]);await settle();assert.equal(reads,2);
+  releaseOld([{resource:wrong}]);await settle();
+  assert.deepEqual(f.warnings,[]);assert.deepEqual(f.opened,[]);assert.deepEqual(f.posted,[]);
+});
+test('repeated identical mismatch keeps the original recovery choice usable',async t=>{
+  const f=fixture(t);await f.contribution.onStart();let choose;
+  f.messages.warn=async(...args)=>{f.warnings.push(args);return new Promise(resolve=>{choose=resolve;});};
+  f.change([wrong]);await settle();f.change([wrong]);await settle();
+  assert.equal(f.warnings.length,1);choose('Return to Open Project');await settle();
+  assert.equal(f.opened.length,1);assert.equal(f.opened[0].uri.toString(),bound.toString());
+});
 test('R35 OS-created project directory obtains persistent actual root and original first-terminal cwd source binding', async t => {
   const { mkdtemp, mkdir, realpath, rm } = await import('node:fs/promises');
   const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
