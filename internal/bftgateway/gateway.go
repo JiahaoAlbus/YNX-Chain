@@ -269,15 +269,18 @@ type BroadcastResponse struct {
 }
 
 type TransactionList struct {
-	UnmappedTransactions []CometTransactionReference `json:"unmappedTransactions,omitempty"`
-	PQBatches            []PQWholeView               `json:"pqBatches,omitempty"`
-	TransactionOrder     []CometTransactionReference `json:"transactionOrder,omitempty"`
-	Transactions         []chain.Transaction         `json:"transactions"`
-	Page                 int                         `json:"page"`
-	Limit                int                         `json:"limit"`
-	Total                uint64                      `json:"total"`
-	NextPage             *int                        `json:"nextPage"`
-	TruthfulStatus       string                      `json:"truthfulStatus"`
+	ImportedTransactionOrder []ImportedTransactionReference    `json:"importedTransactionOrder,omitempty"`
+	ImportedHistory          *consensus.MigrationHistoryAnchor `json:"importedHistory,omitempty"`
+	CometHistoryUpperHeight  int64                             `json:"cometHistoryUpperHeight,string,omitempty"`
+	UnmappedTransactions     []CometTransactionReference       `json:"unmappedTransactions,omitempty"`
+	PQBatches                []PQWholeView                     `json:"pqBatches,omitempty"`
+	TransactionOrder         []CometTransactionReference       `json:"transactionOrder,omitempty"`
+	Transactions             []chain.Transaction               `json:"transactions"`
+	Page                     int                               `json:"page"`
+	Limit                    int                               `json:"limit"`
+	Total                    uint64                            `json:"total"`
+	NextPage                 *int                              `json:"nextPage"`
+	TruthfulStatus           string                            `json:"truthfulStatus"`
 }
 
 func New(cfg Config) (*Gateway, error) {
@@ -1152,6 +1155,15 @@ func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "limit must be between 1 and 100"})
 		return
 	}
+	if g.migrationHeight > 0 {
+		result, err := g.transactionHistoryPage(r.Context(), page, limit)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusOK, result)
+		return
+	}
 	var upstream cometTxSearch
 	query := url.Values{"query": {`"tx.height > 0"`}, "prove": {"true"}, "page": {strconv.Itoa(page)}, "per_page": {strconv.Itoa(limit)}, "order_by": {`"desc"`}}
 	// Each requested row has at most a 1 MiB mempool envelope (base64 on RPC),
@@ -1179,45 +1191,18 @@ func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "Comet search exceeded requested page size"})
 		return
 	}
-	var batches []PQWholeView
-	var unmapped []CometTransactionReference
-	order := make([]CometTransactionReference, 0, len(upstream.Result.Txs))
-	transactions := make([]chain.Transaction, 0, len(upstream.Result.Txs))
-	for _, upstreamTx := range upstream.Result.Txs {
-		if isWholeEnvelope(upstreamTx.Tx) {
-			view, err := g.projectPQWhole(r.Context(), upstreamTx)
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-				return
-			}
-			batches = append(batches, compactWhole(view))
-			order = append(order, CometTransactionReference{Hash: view.ABCITransactionHash, Type: consensus.PQWholeType, CometIndex: upstreamTx.Index, Height: view.ExecutionHeight})
-			continue
-		}
-		ref, unsupported, err := unmappedPQTransaction(upstreamTx)
-		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-			return
-		}
-		if unsupported {
-			unmapped = append(unmapped, ref)
-			order = append(order, ref)
-			continue
-		}
-		mapped, err := g.mapCometTransaction(r.Context(), upstreamTx)
-		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
-			return
-		}
-		transactions = append(transactions, mapped)
-		order = append(order, CometTransactionReference{Hash: mapped.Hash, Type: mapped.Type, CometIndex: upstreamTx.Index, Height: mapped.BlockNum})
+	result, err := g.projectTransactionRows(r.Context(), upstream.Result.Txs)
+	if err != nil {
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+		return
 	}
 	var nextPage *int
 	if uint64(page*limit) < total {
 		next := page + 1
 		nextPage = &next
 	}
-	writeJSON(w, http.StatusOK, TransactionList{UnmappedTransactions: unmapped, PQBatches: batches, TransactionOrder: order, Transactions: transactions, Page: page, Limit: limit, Total: total, NextPage: nextPage, TruthfulStatus: "cometbft-tx-search-backed"})
+	result.Page, result.Limit, result.Total, result.NextPage, result.TruthfulStatus = page, limit, total, nextPage, "cometbft-tx-search-backed"
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (g *Gateway) mapCometTransaction(ctx context.Context, upstream cometTx) (chain.Transaction, error) {

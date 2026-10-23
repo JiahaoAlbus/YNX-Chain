@@ -101,8 +101,14 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 			}})
 		case "/abci_query":
 			path, _ := strconv.Unquote(r.URL.Query().Get("path"))
-			if strings.HasPrefix(path, consensus.MigrationHistoryTransactionPath) || path == consensus.PQWalletIdentityPath {
+			if strings.HasPrefix(path, consensus.MigrationHistoryTransactionPath) || strings.HasPrefix(path, consensus.MigrationHistoryPagePath) || path == consensus.PQWalletIdentityPath {
 				var value any = consensus.MigrationHistoryTransactionView{MigrationHistoryAnchor: consensus.MigrationHistoryAnchor{Version: consensus.MigrationHistoryVersion, Source: "source_import", SourceAnchor: strings.Repeat("1", 64), OriginalGenesisHash: strings.Repeat("2", 64), NativeChainID: 6423, MigrationHeight: 16, MigrationBlockHash: strings.Repeat("f", 64)}}
+				if strings.HasPrefix(path, consensus.MigrationHistoryPagePath) {
+					if path != consensus.MigrationHistoryPagePath+"0/0" {
+						t.Errorf("unexpected empty source history window: %s", path)
+					}
+					value = consensus.MigrationHistoryPageView{MigrationHistoryAnchor: value.(consensus.MigrationHistoryTransactionView).MigrationHistoryAnchor, Records: []consensus.MigrationHistoryPageEntry{}}
+				}
 				if path == consensus.PQWalletIdentityPath {
 					value = consensus.PQWalletIdentityView{Version: consensus.PQWalletIdentityVersion, Source: "configured-abci-bootstrap", RecordsView: "committed", HashAlgorithm: "sha256", NativeChainID: 6423, NativeGenesisHash: strings.Repeat("2", 64), CometChainID: "ynx_6423-1", CometGenesisSHA256: strings.Repeat("3", 64), MigrationStateHash: strings.Repeat("1", 64), MigrationHeight: 16, InitialHeight: 17, CurrentStateHeight: 17, CurrentStateAppHash: strings.Repeat("4", 64)}
 				}
@@ -149,7 +155,7 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				"tx": base64.StdEncoding.EncodeToString(txPayload),
 			}})
 		case "/tx_search":
-			if r.URL.Query().Get("query") != `"tx.height > 0"` || r.URL.Query().Get("page") != "1" || r.URL.Query().Get("per_page") != "2" || r.URL.Query().Get("order_by") != `"desc"` {
+			if r.URL.Query().Get("query") != `"tx.height > 16 AND tx.height <= 17"` || r.URL.Query().Get("page") != "1" || r.URL.Query().Get("per_page") != "2" || r.URL.Query().Get("order_by") != `"desc"` {
 				t.Errorf("unexpected tx search query: %s", r.URL.RawQuery)
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{
