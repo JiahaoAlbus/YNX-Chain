@@ -20,6 +20,8 @@ type ImportedTransactionReference struct {
 	NativeIndex uint32 `json:"nativeIndex,string"`
 }
 
+var errTransactionHistoryHeight = errors.New("history upper height is above the current committed height")
+
 // Preserve the existing Whole, unsupported-envelope and ordinary projection
 // rules for both list readers. Imported rows never enter this Comet projector.
 func (g *Gateway) projectTransactionRows(ctx context.Context, rows []cometTx) (TransactionList, error) {
@@ -96,7 +98,7 @@ func (g *Gateway) historicalCometRows(ctx context.Context, upper int64, page, li
 	return upstream.Result.Txs, total, nil
 }
 
-func (g *Gateway) transactionHistoryPage(ctx context.Context, page, limit int) (TransactionList, error) {
+func (g *Gateway) transactionHistoryPage(ctx context.Context, page, limit int, requestedUpper int64) (TransactionList, error) {
 	var metadata consensus.MigrationHistoryPageView
 	upper, err := g.queryMigrationHistory(ctx, consensus.MigrationHistoryPagePath+"0/0", &metadata)
 	if err != nil {
@@ -107,6 +109,13 @@ func (g *Gateway) transactionHistoryPage(ctx context.Context, page, limit int) (
 	}
 	if metadata.Offset != 0 || metadata.Limit != 0 || metadata.Records == nil || len(metadata.Records) != 0 {
 		return TransactionList{}, errors.New("source history metadata contains an unexpected window or records")
+	}
+	metadataHeight := upper
+	if requestedUpper > 0 {
+		if requestedUpper > upper {
+			return TransactionList{}, errTransactionHistoryHeight
+		}
+		upper = requestedUpper
 	}
 	offset := uint64(page-1) * uint64(limit)
 	searchPage, searchLimit := page, limit
@@ -167,7 +176,7 @@ func (g *Gateway) transactionHistoryPage(ctx context.Context, page, limit int) (
 		if err != nil {
 			return TransactionList{}, err
 		}
-		if height < upper || source.MigrationHistoryAnchor != metadata.MigrationHistoryAnchor || source.Offset != sourceOffset || uint64(source.Limit) != sourceCount || source.Total != metadata.Total || source.Records == nil || uint64(len(source.Records)) != sourceCount {
+		if height < metadataHeight || source.MigrationHistoryAnchor != metadata.MigrationHistoryAnchor || source.Offset != sourceOffset || uint64(source.Limit) != sourceCount || source.Total != metadata.Total || source.Records == nil || uint64(len(source.Records)) != sourceCount {
 			return TransactionList{}, errors.New("source history changed its anchor, total, coordinates or row count")
 		}
 		var prior consensus.MigrationHistoryPageEntry
@@ -187,6 +196,7 @@ func (g *Gateway) transactionHistoryPage(ctx context.Context, page, limit int) (
 	if offset+uint64(limit) < total {
 		next := page + 1
 		result.NextPage = &next
+		result.NextPageURL = "/txs?" + url.Values{"page": {strconv.Itoa(next)}, "limit": {strconv.Itoa(limit)}, "cometHistoryUpperHeight": {strconv.FormatInt(upper, 10)}}.Encode()
 	}
 	return result, nil
 }

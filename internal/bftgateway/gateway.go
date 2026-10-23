@@ -280,6 +280,7 @@ type TransactionList struct {
 	Limit                    int                               `json:"limit"`
 	Total                    uint64                            `json:"total"`
 	NextPage                 *int                              `json:"nextPage"`
+	NextPageURL              string                            `json:"nextPageURL,omitempty"`
 	TruthfulStatus           string                            `json:"truthfulStatus"`
 }
 
@@ -1155,10 +1156,25 @@ func (g *Gateway) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "limit must be between 1 and 100"})
 		return
 	}
+	var historyUpper int64
+	if values, specified := r.URL.Query()["cometHistoryUpperHeight"]; specified {
+		var err error
+		if len(values) == 1 {
+			historyUpper, err = strconv.ParseInt(values[0], 10, 64)
+		}
+		if len(values) != 1 || err != nil || historyUpper <= 0 || strconv.FormatInt(historyUpper, 10) != values[0] || g.migrationHeight == 0 || uint64(historyUpper) < g.migrationHeight {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "cometHistoryUpperHeight must be one canonical committed migration-history height"})
+			return
+		}
+	}
 	if g.migrationHeight > 0 {
-		result, err := g.transactionHistoryPage(r.Context(), page, limit)
+		result, err := g.transactionHistoryPage(r.Context(), page, limit, historyUpper)
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			status := http.StatusBadGateway
+			if errors.Is(err, errTransactionHistoryHeight) {
+				status = http.StatusBadRequest
+			}
+			writeJSON(w, status, map[string]string{"error": err.Error()})
 			return
 		}
 		writeJSON(w, http.StatusOK, result)

@@ -836,6 +836,32 @@ jobs:
           test "$YNX_TRUST_RED_STATUS" -ne 0
           test "$(grep -c 'cold loader accepted a rehashed packet that changed immutable source label coverage or its deterministic risk summary' "$YNX_TRUST_RED_LOG")" -eq 4
           go test -p 1 -count=1 -timeout=90s -v -run '^TestLegacyTrustSourceEvidenceCannotDropOriginalLabelAfterRehash$' ./internal/consensus
+      - name: Reproduce history pagination movement across real application commits
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          umask 077
+          YNX_HISTORY_CONTINUATION_CASE="$RUNNER_TEMP/ynx-history-continuation-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$YNX_HISTORY_CONTINUATION_CASE"
+          cp internal/bftgateway/gateway.go "$YNX_HISTORY_CONTINUATION_CASE/fixed-gateway.go"
+          cp internal/bftgateway/transaction_history_page.go "$YNX_HISTORY_CONTINUATION_CASE/fixed-history.go"
+          trap 'cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-gateway.go" internal/bftgateway/gateway.go; cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go' EXIT
+          # Restore the exact original two production leaves; retain the real
+          # application commit and all current tests, codecs and authorization.
+          git show 1d2463ce6e4001f80ef7e8d05c50fdd51439a2e3:internal/bftgateway/gateway.go > internal/bftgateway/gateway.go
+          git show 1d2463ce6e4001f80ef7e8d05c50fdd51439a2e3:internal/bftgateway/transaction_history_page.go > internal/bftgateway/transaction_history_page.go
+          if go test -p 1 -count=1 -timeout=90s -run '^TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead$' ./internal/bftgateway > "$YNX_HISTORY_CONTINUATION_CASE/original.log" 2>&1; then
+            cat "$YNX_HISTORY_CONTINUATION_CASE/original.log"
+            echo 'original history pagination unexpectedly retained the requested snapshot' >&2
+            exit 1
+          fi
+          cat "$YNX_HISTORY_CONTINUATION_CASE/original.log"
+          grep -Fq HISTORY_PAGE_MOVED_AFTER_COMMIT "$YNX_HISTORY_CONTINUATION_CASE/original.log"
+          cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-gateway.go" internal/bftgateway/gateway.go
+          cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go
+          trap - EXIT
+          go test -p 1 -count=1 -timeout=90s -run '^TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead$' ./internal/bftgateway
       - name: Verify Whole BFT gateway and native container readback
         id: pqgateway
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}

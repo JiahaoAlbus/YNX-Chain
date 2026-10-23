@@ -187,7 +187,10 @@ func newTransactionHistoryPageFixture(t *testing.T) *transactionHistoryPageFixtu
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": response.Code, "height": strconv.FormatInt(response.Height, 10), "value": base64.StdEncoding.EncodeToString(response.Value)}}})
 		case "/tx_search":
 			m.searches = append(m.searches, r.URL.Query())
-			if r.URL.Query().Get("query") != fmt.Sprintf(`"tx.height > %d AND tx.height <= %d"`, f.migration.Height, m.metadataHeight) || r.URL.Query().Get("prove") != "true" || r.URL.Query().Get("order_by") != `"desc"` {
+			query := r.URL.Query().Get("query")
+			var lower, upper int64
+			count, scanErr := fmt.Sscanf(query, `"tx.height > %d AND tx.height <= %d"`, &lower, &upper)
+			if scanErr != nil || count != 2 || lower != int64(f.migration.Height) || upper < lower || upper > m.metadataHeight || query != fmt.Sprintf(`"tx.height > %d AND tx.height <= %d"`, lower, upper) || r.URL.Query().Get("prove") != "true" || r.URL.Query().Get("order_by") != `"desc"` {
 				t.Error("history search escaped its exact migration/current-height range", r.URL.RawQuery)
 				w.WriteHeader(500)
 				return
@@ -198,16 +201,26 @@ func newTransactionHistoryPageFixture(t *testing.T) *transactionHistoryPageFixtu
 			}
 			page, _ := strconv.Atoi(r.URL.Query().Get("page"))
 			limit, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
+			var eligible []cometTx
+			for _, row := range m.rows {
+				height, err := strconv.ParseInt(row.Height, 10, 64)
+				if err != nil {
+					t.Error(err)
+				}
+				if height <= upper {
+					eligible = append(eligible, row)
+				}
+			}
 			start := (page - 1) * limit
-			if start > len(m.rows) {
-				start = len(m.rows)
+			if start > len(eligible) {
+				start = len(eligible)
 			}
 			end := start + limit
-			if end > len(m.rows) {
-				end = len(m.rows)
+			if end > len(eligible) {
+				end = len(eligible)
 			}
-			rows := append([]cometTx{}, m.rows[start:end]...)
-			total := len(m.rows)
+			rows := append([]cometTx{}, eligible[start:end]...)
+			total := len(eligible)
 			if m.mode == "comet-total-changed" && page > 1 {
 				total++
 			}
@@ -380,5 +393,112 @@ func TestGatewayTransactionHistoryPagePinsUpperHeightDuringNewCommit(t *testing.
 		if search.Get("query") != fmt.Sprintf(`"tx.height > %d AND tx.height <= %d"`, m.f.migration.Height, upper) {
 			t.Fatal("search moved to latest state instead of the original captured height")
 		}
+	}
+}
+
+func TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead(t *testing.T) {
+	m := newTransactionHistoryPageFixture(t)
+	upper := m.f.stateHeight
+	var original []string
+	for _, row := range m.rows {
+		original = append(original, consensus.SignedTransactionHash(row.Tx))
+	}
+	for _, row := range m.source {
+		original = append(original, row.Transaction.Hash)
+	}
+	var first TransactionList
+	firstResponse := m.read(1, 2)
+	if firstResponse.Code != 200 || json.Unmarshal(firstResponse.Body.Bytes(), &first) != nil || first.CometHistoryUpperHeight != upper {
+		t.Fatal("initial history snapshot failed", firstResponse.Code)
+	}
+	// A genuine new application commit changes the live Comet search total.
+	// Continuing the original snapshot must exclude this new transaction and
+	// retain the old Comet/source boundary across separate HTTP requests.
+	key := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 41))
+	signed, err := consensus.NewSignedTransfer(key, 6423, "0x"+strings.Repeat("2", 40), 1, 6)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := consensus.EncodeSignedTransaction(signed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	next := upper + 1
+	finalized, err := m.f.app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: next, Time: time.Date(2026, 10, 18, 1, 2, 21, 0, time.UTC), Txs: [][]byte{payload}, NextValidatorsHash: bytes.Clone(m.f.set.Hash())})
+	if err != nil || len(finalized.TxResults) != 1 || finalized.TxResults[0].Code != 0 {
+		t.Fatal("new application transfer did not execute", err, finalized)
+	}
+	if _, err := m.f.app.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	info, err := m.f.app.Info(context.Background(), &abci.RequestInfo{})
+	if err != nil || info.LastBlockHeight != next {
+		t.Fatal("new committed height unavailable", err)
+	}
+	m.f.stateHeight, m.f.stateHash = next, hex.EncodeToString(info.LastBlockAppHash)
+	result := finalized.TxResults[0]
+	m.rows = append([]cometTx{{Hash: strings.ToUpper(strings.TrimPrefix(consensus.SignedTransactionHash(payload), "0x")), Height: strconv.FormatInt(next, 10), Index: 0, Tx: payload, TxResult: cometTxResult{Code: result.Code, Data: bytes.Clone(result.Data), Log: result.Log, GasUsed: strconv.FormatInt(result.GasUsed, 10)}}}, m.rows...)
+	stateBefore, err := os.ReadFile(m.f.statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	read := func(target string) *httptest.ResponseRecorder {
+		t.Helper()
+		response := httptest.NewRecorder()
+		m.gateway.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, target, nil))
+		return response
+	}
+	var gotHashes []string
+	for _, tx := range first.Transactions {
+		gotHashes = append(gotHashes, tx.Hash)
+	}
+	var secondRaw []byte
+	for page := 2; page <= (len(original)+1)/2; page++ {
+		target := fmt.Sprintf("/txs?page=%d&limit=2&cometHistoryUpperHeight=%d", page, upper)
+		response := read(target)
+		var got TransactionList
+		if response.Code != 200 || json.Unmarshal(response.Body.Bytes(), &got) != nil || got.Total != uint64(len(original)) || got.CometHistoryUpperHeight != upper {
+			t.Fatal("HISTORY_PAGE_MOVED_AFTER_COMMIT", page, response.Code, response.Body.String())
+		}
+		for _, tx := range got.Transactions {
+			gotHashes = append(gotHashes, tx.Hash)
+		}
+		if page == 2 {
+			secondRaw = bytes.Clone(response.Body.Bytes())
+		}
+	}
+	if !reflect.DeepEqual(gotHashes, original) {
+		t.Fatal("HISTORY_PAGE_MOVED_AFTER_COMMIT: repeated, skipped, reordered or new transaction", gotHashes, original)
+	}
+	// Read the added continuation field as JSON so the exact old production
+	// leaves still compile for the CI RED reproduction above.
+	var firstFields map[string]json.RawMessage
+	var nextURL string
+	if json.Unmarshal(firstResponse.Body.Bytes(), &firstFields) != nil || json.Unmarshal(firstFields["nextPageURL"], &nextURL) != nil || nextURL == "" {
+		t.Fatal("history continuation lacks an explicit fixed-height URL")
+	}
+	parsed, err := url.Parse(nextURL)
+	if err != nil || parsed.Path != "/txs" || parsed.Query().Get("page") != "2" || parsed.Query().Get("limit") != "2" || parsed.Query().Get("cometHistoryUpperHeight") != strconv.FormatInt(upper, 10) {
+		t.Fatal("next-page URL lost the original snapshot coordinates", nextURL)
+	}
+	cold, err := consensus.NewPersistentApplicationWithBootstrap(m.f.migration, m.f.statePath, m.f.bootstrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m.f.app = cold
+	if restored := read(nextURL); restored.Code != 200 || !bytes.Equal(secondRaw, restored.Body.Bytes()) {
+		t.Fatal("cold continuation changed the original page", restored.Code, restored.Body.String())
+	}
+	for _, value := range []string{"", "0", "-1", "+1", "01", "1.0", "9223372036854775808", strconv.FormatUint(m.f.migration.Height-1, 10), strconv.FormatInt(next+1, 10)} {
+		if failed := read("/txs?cometHistoryUpperHeight=" + url.QueryEscape(value)); failed.Code != 400 {
+			t.Fatal("invalid or future continuation height accepted", value, failed.Code)
+		}
+	}
+	if failed := read(fmt.Sprintf("/txs?cometHistoryUpperHeight=%d&cometHistoryUpperHeight=%d", upper, upper)); failed.Code != 400 {
+		t.Fatal("ambiguous continuation height accepted", failed.Code)
+	}
+	stateAfter, err := os.ReadFile(m.f.statePath)
+	if err != nil || !bytes.Equal(stateBefore, stateAfter) {
+		t.Fatal("history continuation rewrote durable state", err)
 	}
 }
