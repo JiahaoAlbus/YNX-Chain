@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "codeCommit": "b0617596aa7d1cef9c34fa3499fb1b2388d01f38",
+  "profile": "supply-native-stream-2048x4",
+  "plan": {
+    "senders": 2048,
+    "rounds": 4,
+    "plannedRecords": 8192,
+    "offeredRate": 1000,
+    "submitters": 8,
+    "observers": 4,
+    "activeMs": 45000,
+    "cleanupMs": 15000,
+    "totalMs": 60000,
+    "ownedRSSBytes": 1073741824,
+    "privateBytes": 268435456,
+    "evidenceBytes": 67108864,
+    "durableStoreBytes": 33554432,
+    "durableCacheBytes": 67108864
+  },
+  "actualUnitRecords": 102,
+  "unitQuorumSynthetic": true,
+  "independentBFTProof": false,
+  "unitMatchesGoSixLatencyHistograms": true,
+  "fixedLatencyHistogramBuckets": 540009,
+  "fixedLatencyHistogramStorageBytes": 4320072,
+  "completeStreamReaderTests": 17,
+  "controllerTestsBeforeFinalWindowCorrection": 87,
+  "finalDeltaControllerTests": 5,
+  "knownSourceDiscrepancyResolved": "main replaces summary/counts rates using outer client wall; timeSeries.windowNs remains inner ready wall. CPU binds outer summary wall; inner timeline is separately bounded within outer. No timestamps rewritten.",
+  "originalClosureCI": {
+    "runId": 40018205634,
+    "head": "345d91fdd8ee1fa069882f39d01971273e7f7c3d",
+    "conclusion": "success",
+    "attempt": 1
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/public-go-small-controller-producer.raw",
+      "bytes": 75,
+      "sha256": "8a7f8cf2c073fcc94916300a7a6da6bb857f548df4ccb7eb407439bd806619ad"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/small-controller-final-reader.raw",
+      "bytes": 1085,
+      "sha256": "d437677ceb11045267f0644b39b777e0912ce41830f840e95943c991626bfbe7"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/small-controller-original-go-metrics.json",
+      "bytes": 8481,
+      "sha256": "068bfbd22f2c5fb01ef8ee9cd8d1cc62b8df8839e3c6ede474bda93b3303c53d"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/small-stream-controller-final.raw",
+      "bytes": 187,
+      "sha256": "048f938986219541a7729f4313d714f8cc678734a619b90bec72d3134fe494dc"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/small-stream-controller-final-targeted.raw",
+      "bytes": 103,
+      "sha256": "dbf765775f6f779970a4468dce9a7d5cad6d8470ec25eea522233db15c3bef8b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40018205634-run.json",
+      "bytes": 12400,
+      "sha256": "7b78fec7f6498abfdac2e49b24e3f238641790c100147881adf7ff44dd46341f"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40018205634-full.raw",
+      "bytes": 603760,
+      "sha256": "cc2457b535d80adbeb6b7c26a69c7458a0c08761ee7af73d0002b911129979b1"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/small-stream-final-phase-bind.raw",
+      "bytes": 98,
+      "sha256": "e0cc905b30a5389534a42c76d311b82d631733e17a1af39ce943f7857a4c3036"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/small-stream-source-gate-final.raw",
+      "bytes": 3642,
+      "sha256": "ff9e35f93e7c560090fd68803917d0ac2ecf2cf386fe0f2cf7d67c36211fa45d"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/small-stream-final-phase-counter.raw",
+      "bytes": 98,
+      "sha256": "353239c6a391a5fe2e900b988e30c68aa3a27170e16d3a962ba3592c634b44fa"
+    }
+  ],
+  "nodesStarted": false,
+  "networkPerformanceQualified": false,
+  "sustained1000Qualified": false,
+  "normalCIPending": true,
+  "nextRequired": "Normal source CI, bounded complete segmented artifact recovery and fresh exact Root grant before first native Linux four-node small-tier run. No old once grant reused.",
+  "initialControllerCodeCommit": "dfd4569d4cc633538f5f82cff6794637b680df1e",
+  "sourceGateTests": 17,
+  "sourceGateFailures": 0,
+  "sourceGateSkipped": 0
+}
