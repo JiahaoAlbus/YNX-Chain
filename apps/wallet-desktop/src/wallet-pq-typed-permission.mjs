@@ -2,6 +2,8 @@ import {recheckPQTypedActionReview} from './features/pq-transaction/typed-action
 import {planPQNativeAction} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {exactPQRecord} from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
+import {decodePQContractDeploymentTransportData} from '@ynx-chain/wallet-auth/pq-contract-deployment-transport';
+import {inspectPQGoValidatedContractMaterial} from './features/pq-transaction/contract-deployment-material.mjs';
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}return value};
 /** Main builds DATA only from its original live typed review and the current
  * original policy snapshot. Auth must still recognize the actual IPC capsule
@@ -21,7 +23,11 @@ export function pqTypedBroadcastPermissionRequest(value,snapshot,options){
  const invalid=()=>{throw Object.assign(Error('Review the same original before broadcast.'),{code:'PQ_TYPED_BROADCAST_BINDING_INVALID'})};
  if(!Number.isSafeInteger(at)||typeof expiresAt!=='string'||!Number.isFinite(Date.parse(expiresAt))||new Date(expiresAt).toISOString()!==expiresAt||Date.parse(expiresAt)<=at||Date.parse(expiresAt)>at+30000)invalid();
  const saved=parsePQTypedOriginalRecord(value),review=saved.typed.review;
- if(['contract_deploy','stake_delegate','stake_unbond','stake_withdraw'].includes(review.action.kind))invalid();
+ if(['stake_delegate','stake_unbond','stake_withdraw'].includes(review.action.kind))invalid();
+ if(review.action.kind==='contract_deploy'){
+  const captured=decodePQContractDeploymentTransportData(Buffer.from(saved.wire,'base64url'));
+  inspectPQGoValidatedContractMaterial(review.action,{source:captured.source,material:captured.material});
+ }
  const plan=planPQNativeAction(snapshot,review.action),active=plan.policy.activeRecord;
  if(plan.policy.policyRevision!==review.policyRevision||active.pkA!==review.pair.pkA||active.pkB!==review.pair.pkB||BigInt(plan.policy.executionHeight)<BigInt(saved.typed.signingSnapshot.executionHeight))invalid();
  return freeze({action:'broadcast',purpose:'TX-BATCH',memberCount:1,memberIndex:0,networkId:review.networkId,nativeChainId:'6423',account:review.account,operationId:review.operationId,origin:'ynx-wallet:local-pq',typedAction:plan.action,requestDigest:review.requestDigest,policyRevision:review.policyRevision,pair:review.pair,reviewExecutionHeight:review.executionHeight,executionHeight:plan.policy.executionHeight,expiresAt,transportHash:saved.hash,memberHash:saved.typed.memberHash});

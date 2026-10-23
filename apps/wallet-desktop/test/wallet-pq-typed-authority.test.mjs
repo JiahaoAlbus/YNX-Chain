@@ -20,6 +20,7 @@ import {createPUBLICPeer} from './wallet-pq-typed-auth-peer.fixture.mjs';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {gunzipSync} from 'node:zlib';
 import {captureWalletPQConnection} from '../src/wallet-pq-connection-contract.mjs';
+import {PQ_DEPLOYMENT_MATERIAL_PINS} from '../src/features/pq-transaction/contract-deployment-material-pins.mjs';
 import {runInNewContext} from 'node:vm';
 import {createPQTransactionSubmission} from '../src/features/pq-transaction/submission.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from '../src/features/pq-transaction/typed-action-reviewed-transport.mjs';
@@ -96,8 +97,12 @@ test('typed cancel and absent classic witness never enter keys or accept rendere
  await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTypedAction({...f.action,kind:'contract_deploy'})),e=>e.data?.code==='PQ_TYPED_DEPLOYMENT_MATERIAL_NOT_SUPPLIED');
  assert.equal(f.counts.source,0);const response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));assert.throws(()=>f.authority.reject(response.request.id));await f.authority.shutdownPQReviews();assert.equal(f.counts.sign,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
 });
+function goDeploymentFixture(){
+ const generations=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/deployment-material-generations.json.gz',import.meta.url)),{maxOutputLength:1<<20})),pin=PQ_DEPLOYMENT_MATERIAL_PINS[0],row=generations.rows[2].contracts.find(c=>c.name===pin.name),files=row.files;
+ return {source:Buffer.from(files['request-source.txt'].base64,'base64').toString('utf8'),payload:{name:pin.name,sourceHash:pin.sourceHash,deployedBytecodeHash:pin.deployedBytecodeHash,compilerConfigHash:pin.compilerConfigHash,constructorArgs:['7'],value:'0'},files:[{role:'artifactFile',bytes:files['artifact.json'].base64},{role:'buildInfoFile',bytes:files['build-info.json'].base64}]};
+}
 test('Main deployment review captures compiler materials before custody and retains complete signed original',async t=>{
- const f=await fixture(t),publicData=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/contract-deployment-fbec-original.json.gz',import.meta.url)),{maxOutputLength:4<<20}));
+ const f=await fixture(t),publicData=goDeploymentFixture();
  const material=Object.fromEntries(publicData.files.filter(x=>x.role!=='source').map(x=>[x.role,Buffer.from(x.bytes,'base64')]));
  const action={kind:'contract_deploy',fee:'10',payload:publicData.payload,deployment:{source:publicData.source,material}};
  const response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(action));
@@ -112,7 +117,7 @@ test('Main deployment review captures compiler materials before custody and reta
  await assert.rejects(f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule)));assert.equal(f.counts.sign,1);
 });
 test('deployment material capacity and focus-loss refuse before synthetic signing or reservation',async t=>{
- const f=await fixture(t),data=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/contract-deployment-fbec-original.json.gz',import.meta.url)),{maxOutputLength:4<<20}));
+ const f=await fixture(t),data=goDeploymentFixture();
  const material=Object.fromEntries(data.files.filter(x=>x.role!=='source').map(x=>[x.role,Buffer.from(x.bytes,'base64')]));
  const action={kind:'contract_deploy',fee:'10',payload:data.payload,deployment:{source:data.source,material}};
  await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTypedAction({...action,deployment:{source:data.source,material:{...material,buildInfoFile:Buffer.alloc(200000,65)}}})),e=>e.data?.code==='PQ_TYPED_ORIGINAL_CAPACITY');
@@ -123,7 +128,7 @@ test('deployment material capacity and focus-loss refuse before synthetic signin
  assert.equal(f.counts.sign,0);assert.equal(f.counts.posts,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
 });
 function connectedDeployment(f){
- const data=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/contract-deployment-fbec-original.json.gz',import.meta.url)),{maxOutputLength:4<<20}));
+ const data=goDeploymentFixture();
  return {version:1,account:f.account,action:{kind:'contract_deploy',fee:'10',payload:data.payload,deployment:{source:data.source,material:Object.fromEntries(data.files.filter(x=>x.role!=='source').map(x=>[x.role,x.bytes]))}}};
 }
 test('connected contract pending requires explicit Wallet approval; cold original query is origin scoped and UNKNOWN read only',async t=>{
@@ -170,6 +175,19 @@ test('connected contract call uses a separate original broadcast review and canc
  const signed=await f.lifecycle.run(()=>f.authority.approve(sign.request.id,f.capsuleFor(sign.request.id)));
  const broadcast=await f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractBroadcast',params:[{version:1,account:f.account,operationId:signed.result.operationId}]},connect('original-call-broadcast')));
  assert.notEqual(broadcast.request.id,sign.request.id);assert.equal(broadcast.request.origin,origin);assert.equal(broadcast.request.method,'ynx_broadcastPQNativeAction');assert.equal(broadcast.request.review.hash,signed.result.transportHash);
+ assert.throws(()=>f.authority.reject(broadcast.request.id));assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);
+});
+test('qualified deployment reaches distinct original broadcast review, while unknown materials refuse before keys',async t=>{
+ const f=await fixture(t,{actualFactory:true,broadcast:true}),origin='https://ide.example';
+ await f.lifecycle.run(()=>f.authority.approveOrigin(origin,f.account));
+ const connect=key=>captureWalletPQConnection({origin,account:f.account,sessionBinding:'PUBLIC exact deployment session',requestKey:key,assertCurrent(){}});
+ const changed=connectedDeployment(f);changed.action.deployment.material.buildInfoFile=Buffer.from('{}').toString('base64');
+ await assert.rejects(f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractAction',params:[changed]},connect('wrong-compiler'))),e=>e.code==='PQ_TYPED_CONTRACT_MATERIAL_UNAVAILABLE');
+ assert.equal(f.counts.sign,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
+ const pending=await f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractAction',params:[connectedDeployment(f)]},connect('qualified-deploy')));
+ const signed=await f.lifecycle.run(()=>f.authority.approve(pending.request.id,f.capsuleFor(pending.request.id)));
+ const broadcast=await f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractBroadcast',params:[{version:1,account:f.account,operationId:signed.result.operationId}]},connect('qualified-deploy-broadcast')));
+ assert.equal(broadcast.request.method,'ynx_broadcastPQNativeAction');assert.equal(broadcast.request.review.typedAction.kind,'contract_deploy');assert.notEqual(broadcast.request.id,pending.request.id);assert.equal(broadcast.request.review.hash,signed.result.transportHash);
  assert.throws(()=>f.authority.reject(broadcast.request.id));assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);
 });
 test('connection ending after synthetic sign preserves the v3 original and never repeats the signature',async t=>{

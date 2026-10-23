@@ -15,6 +15,7 @@ import {pqBroadcastPermissionRequest} from './features/pq-transaction/submission
 import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
 import {preparePQTypedActionReview,signPQReviewedTypedAction} from './features/pq-transaction/typed-action-caller.mjs';
 import {capturePQContractDeploymentMaterialData} from '@ynx-chain/wallet-auth/pq-contract-deployment-transport';
+import {inspectPQGoValidatedContractMaterial} from './features/pq-transaction/contract-deployment-material.mjs';
 import {pqTypedSignPermissionRequest,pqTypedBroadcastPermissionRequest} from './wallet-pq-typed-permission.mjs';
 import {PRIVATE_FILE_MAX_BYTES} from './bounded-private-file-read.mjs';
 import {createPQOriginalRecord} from './wallet-pq-intent-record.mjs';
@@ -170,6 +171,7 @@ export class DesktopWalletAuthority {
       const memberBound=encodePQNativeAction(typedReview.action).length+65536;
       const reserveBytes=Math.max(350000,Buffer.byteLength(JSON.stringify(archive))+Math.ceil((memberBound*2+512)/3)*4+8192);
       if(!Number.isSafeInteger(reserveBytes)||reserveBytes>PRIVATE_FILE_MAX_BYTES-65536)throw providerError(4100,'PQ_TYPED_ORIGINAL_CAPACITY','There is insufficient protected journal capacity for this exact operation. Nothing was signed.');
+      if(deployment)inspectPQGoValidatedContractMaterial(typedReview.action,deployment);
       this.#pruneExpired();if(this.pending.size>=MAX_PENDING_REQUESTS||connected&&[...this.pending.values()].filter(p=>p.origin===connected.origin).length>=MAX_PENDING_REQUESTS_PER_ORIGIN)throw providerError(4200,'PENDING_REQUEST_LIMIT','Finish pending reviews first.');
       const pending=deepFreeze({id,origin:connected?.origin??'ynx-wallet:local-pq',method:'ynx_signPQNativeAction',params:[],createdAt:typedReview.createdAt,review:{title:'Sign PQ action locally',account:status.account,...(connected?{initiatorOrigin:connected.origin}:{}),typedReview,...(deploymentReview?{deployment:deploymentReview}:{}),expiresAt:typedReview.expiresAt,warning:'Sign and retain this exact typed action only. Broadcast requires a separate original approval. Compiler material must still pass original Go authentication. No submission, contract execution or finality is claimed.'}});
       // The preparation operation's key guard ends when preparation returns.
