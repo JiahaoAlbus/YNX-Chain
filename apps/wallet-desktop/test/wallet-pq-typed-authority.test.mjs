@@ -19,6 +19,7 @@ import {registerHooks} from 'node:module';
 import {createPUBLICPeer} from './wallet-pq-typed-auth-peer.fixture.mjs';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {gunzipSync} from 'node:zlib';
+import {captureWalletPQConnection} from '../src/wallet-pq-connection-contract.mjs';
 import {runInNewContext} from 'node:vm';
 import {createPQTransactionSubmission} from '../src/features/pq-transaction/submission.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from '../src/features/pq-transaction/typed-action-reviewed-transport.mjs';
@@ -120,6 +121,67 @@ test('deployment material capacity and focus-loss refuse before synthetic signin
  await f.lifecycle.unlock({password:PASSWORD});
  await assert.rejects(f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule)));
  assert.equal(f.counts.sign,0);assert.equal(f.counts.posts,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
+});
+function connectedDeployment(f){
+ const data=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/contract-deployment-fbec-original.json.gz',import.meta.url)),{maxOutputLength:4<<20}));
+ return {version:1,account:f.account,action:{kind:'contract_deploy',fee:'10',payload:data.payload,deployment:{source:data.source,material:Object.fromEntries(data.files.filter(x=>x.role!=='source').map(x=>[x.role,x.bytes]))}}};
+}
+test('connected contract pending requires explicit Wallet approval; cold original query is origin scoped and UNKNOWN read only',async t=>{
+ const f=await fixture(t,{broadcast:true}),origin='https://ide.example';let live=true;
+ await f.lifecycle.run(()=>f.authority.approveOrigin(origin,f.account));
+ const connect=(requestKey,from=origin)=>captureWalletPQConnection({origin:from,account:f.account,sessionBinding:'PUBLIC approved original namespace',requestKey,assertCurrent(){if(!live)throw Error('SESSION_ENDED')}});
+ const connection=connect('same-original-request'),input={origin,method:'ynx_preparePQContractAction',params:[connectedDeployment(f)]};
+ await assert.rejects(f.lifecycle.run(()=>f.authority.request(input)),e=>e.data?.code==='PQ_CONNECTION_SOURCE_REQUIRED');
+ const response=await f.lifecycle.run(()=>f.authority.request(input,connection));assert.equal(response.request.origin,origin);assert.equal(response.request.review.initiatorOrigin,origin);assert.equal(f.counts.sign,0);
+ const signed=await f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule));assert.equal(f.counts.sign,1);assert.equal(signed.result.operationId,response.request.id);assert.match(signed.result.memberHash,/^0x[a-f0-9]{64}$/);assert.equal(signed.result.hash,signed.result.transportHash);
+ const [saved]=await new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')}).readPQOriginals(f.account,()=>{});assert.equal(saved.version,3);assert.equal(saved.typed.initiator.origin,origin);
+ await assert.rejects(f.lifecycle.run(()=>f.authority.request(input,connection)),e=>e.data?.code==='PQ_CONNECTION_ORIGINAL_RECONCILE_REQUIRED');
+ await f.store.beginPQSubmission(f.account,saved.hash,()=>{}); // Fault boundary only: no POST is performed.
+ const query={origin,method:'ynx_getPQContractOriginal',params:[{version:1,account:f.account,operationId:saved.operationId,refresh:false}]};
+ const result=await f.lifecycle.run(()=>f.authority.request(query,connect('new-read-request')));
+ assert.equal(result.result.status,'submission-unknown');assert.equal(result.result.queryOnly,true);assert.equal(result.result.canRetry,false);assert.equal(result.result.transportHash,saved.hash);assert.equal(result.result.memberHash,saved.typed.memberHash);assert.equal(Object.hasOwn(result.result,'wire'),false);
+ const recovery=await f.lifecycle.run(()=>f.authority.request({...query,params:[{version:1,account:f.account,originalRequestKeyHash:saved.typed.initiator.requestKeyHash,refresh:false}]},connect('reopen-after-lost-response')));
+ assert.equal(recovery.result.operationId,saved.operationId);assert.equal(recovery.result.status,'submission-unknown');
+ f.authority.transactionSender.submissions.checkPQ=async()=>{throw Error('PUBLIC_OFFLINE')};
+ await assert.rejects(f.lifecycle.run(()=>f.authority.request({...query,params:[{...query.params[0],refresh:true}]},connect('offline-read-request'))),/PUBLIC_OFFLINE/);
+ assert.equal((await f.store.readPQProgress(f.account,saved.hash,()=>{})).status,'submission-unknown');
+ const other='https://other.example';await f.lifecycle.run(()=>f.authority.approveOrigin(other,f.account));
+ await assert.rejects(f.lifecycle.run(()=>f.authority.request({...query,origin:other},connect('other-read-request',other))),e=>e.data?.code==='PQ_CONNECTION_ORIGINAL_REQUIRED');
+ await assert.rejects(f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractBroadcast',params:[{version:1,account:f.account,operationId:saved.operationId}]},connect('new-broadcast-request'))),e=>e.data?.code==='PQ_TRANSACTION_ALREADY_ENTERED');
+ assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);
+});
+test('connected contract disconnect and account permission revocation invalidate pending before key entry',async t=>{
+ for(const cause of ['disconnect','revoke']){
+  const f=await fixture(t),origin='https://ide.example';let live=true;
+  await f.lifecycle.run(()=>f.authority.approveOrigin(origin,f.account));
+  const connection=captureWalletPQConnection({origin,account:f.account,sessionBinding:'PUBLIC original namespace',requestKey:cause,assertCurrent(){if(!live)throw Error('SESSION_ENDED')}});
+  const response=await f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractAction',params:[connectedDeployment(f)]},connection));
+  if(cause==='disconnect')live=false;else await f.authority.revokeOrigin(origin);
+  await assert.rejects(f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule)));
+  assert.equal(f.counts.sign,0);assert.equal(f.counts.posts,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
+ }
+});
+test('connected contract call uses a separate original broadcast review and cancellation never posts',async t=>{
+ const f=await fixture(t,{actualFactory:true,broadcast:true}),origin='https://ide.example';
+ await f.lifecycle.run(()=>f.authority.approveOrigin(origin,f.account));
+ const connect=key=>captureWalletPQConnection({origin,account:f.account,sessionBinding:'PUBLIC exact contract-call session',requestKey:key,assertCurrent(){}});
+ const action=JSON.parse(readFileSync(new URL('../src/features/pq-transaction/fixtures/typed-action-public-inputs.json',import.meta.url))).rows.find(x=>x.kind==='contract_execute');
+ const sign=await f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractAction',params:[{version:1,account:f.account,action:{kind:action.kind,fee:action.fee,payload:action.payload}}]},connect('original-call')));
+ const signed=await f.lifecycle.run(()=>f.authority.approve(sign.request.id,f.capsuleFor(sign.request.id)));
+ const broadcast=await f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractBroadcast',params:[{version:1,account:f.account,operationId:signed.result.operationId}]},connect('original-call-broadcast')));
+ assert.notEqual(broadcast.request.id,sign.request.id);assert.equal(broadcast.request.origin,origin);assert.equal(broadcast.request.method,'ynx_broadcastPQNativeAction');assert.equal(broadcast.request.review.hash,signed.result.transportHash);
+ assert.throws(()=>f.authority.reject(broadcast.request.id));assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);
+});
+test('connection ending after synthetic sign preserves the v3 original and never repeats the signature',async t=>{
+ let live=true;const f=await fixture(t,{afterComplete:()=>{live=false}}),origin='https://ide.example';
+ await f.lifecycle.run(()=>f.authority.approveOrigin(origin,f.account));
+ const token=captureWalletPQConnection({origin,account:f.account,sessionBinding:'PUBLIC exact original session',requestKey:'late-disconnect',assertCurrent(){if(!live)throw Error('PUBLIC_LATE_DISCONNECT')}});
+ const response=await f.lifecycle.run(()=>f.authority.request({origin,method:'ynx_preparePQContractAction',params:[connectedDeployment(f)]},token));
+ await assert.rejects(f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule)),/PUBLIC_LATE_DISCONNECT/);
+ const held=f.store.localOriginal(f.account);assert.equal(held.pq.version,3);assert.equal(held.pq.typed.initiator.origin,origin);assert.ok(held.pqMemberData.length>0);assert.equal(f.counts.sign,1);
+ await f.lifecycle.run(()=>f.store.saveOriginal(f.account,held.pq.hash,()=>f.lifecycle.current().assert()));
+ await assert.rejects(f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule)));assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);
+ assert.equal((await new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')}).readPQOriginals(f.account,()=>{}))[0].hash,held.pq.hash);
 });
 test('actual Auth factory and typed kernel consume actual Main private borrow and SDK sign once (PUBLIC Electron only)',async t=>{
  const f=await fixture(t,{actualFactory:true}),response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action)),capsule=f.capsuleFor(response.request.id);

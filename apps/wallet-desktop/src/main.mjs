@@ -1,4 +1,5 @@
 import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
+import {PQ_CONNECTION_METHODS,captureWalletPQConnection} from './wallet-pq-connection-contract.mjs';
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import {recordRPCMetadataFailure} from './rpc-metadata-failure-record.mjs';
 import {createPackagedPQFinalityVerifier,createPackagedPQHostProducer} from './wallet-pq-verifier-assets.mjs';
@@ -421,7 +422,7 @@ async function recordEvidence(status, window, { launch = false } = {}) {
       approvedAccount: authority.account,
       custody: authority.custody,
       externalAccountExposureRequiresOriginApproval: true,
-      supportedMethods: ["eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_getPermissions", "wallet_requestPermissions", "wallet_revokePermissions", "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"]
+      supportedMethods: ["eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_getPermissions", "wallet_requestPermissions", "wallet_revokePermissions", "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction",...PQ_CONNECTION_METHODS]
     },
     accountCreated: false,
     balanceClaimed: false,
@@ -1012,7 +1013,7 @@ async function handleWalletConnectRequest(event) {
     await walletConnectInbox.persist();
     if (!accepted.duplicate) await drainWalletConnectInbox();
   } catch (error) {
-    await walletConnect.respond(topic, id, { status: "error", code: Number.isInteger(error?.code) ? error.code : 4200, message: error?.message ?? "Provider request failed" }).catch(() => { mainWindow?.webContents.send("wallet:walletconnect-status-result", { ...walletConnect.status(), code: "WALLETCONNECT_RESPONSE_UNCONFIRMED" }); });
+    await walletConnect.respond(topic, id, { status: "error", code: Number.isInteger(error?.code) ? error.code : 4200, message: error?.message ?? "Provider request failed",data:{code:safeCode(error)} }).catch(() => { mainWindow?.webContents.send("wallet:walletconnect-status-result", { ...walletConnect.status(), code: "WALLETCONNECT_RESPONSE_UNCONFIRMED" }); });
   }
 }
 async function drainWalletConnectInbox() {
@@ -1027,7 +1028,12 @@ async function drainWalletConnectInbox() {
       if (selected.account !== entry.account || accountChangeInProgress) throw Object.assign(new Error("The selected account changed"), { code: 4100 });
       const authorized = walletConnect.authorizeRequest(entry.event, selected.account);
       if (authorized.origin !== entry.origin||authorized.sessionBinding!==entry.sessionBinding) throw Object.assign(new Error("WalletConnect session changed"), { code: 4100 });
-      const response = await walletAuthority.request({ origin: authorized.origin, method: authorized.method, params: authorized.params });
+      const connection=PQ_CONNECTION_METHODS.includes(authorized.method)?captureWalletPQConnection({origin:authorized.origin,account:selected.account,sessionBinding:authorized.sessionBinding,requestKey:entry.key,assertCurrent:()=>{
+        walletConnectInbox.assertLive(entry);
+        const current=walletConnect.authorizeRequest(entry.event,entry.account);
+        if(accountChangeInProgress||keyAccess.status().account!==entry.account||current.origin!==entry.origin||current.sessionBinding!==entry.sessionBinding)throw Object.assign(Error('WalletConnect session changed'),{code:4100});
+      }}):null;
+      const response = await walletAuthority.request({ origin: authorized.origin, method: authorized.method, params: authorized.params },connection);
       if (response.status === "success") { await walletConnectInbox.markDecided(entry,lease.assert);await lease.deliver(() => { walletConnectInbox.finish(entry.key); return walletConnect.respond(authorized.topic, authorized.jsonRpcId, response); }); return; }
       try { walletConnectInbox.stage(entry, response.request.id); } catch (error) { walletAuthority.expire(response.request.id); throw error; }
       walletConnectRequests.set(response.request.id, { topic: authorized.topic, jsonRpcId: authorized.jsonRpcId, entryKey: entry.key });
@@ -1044,7 +1050,7 @@ async function terminateWalletConnectReview(entry, code, respond = true) {
   try{await walletConnectInbox.persist();}catch{mainWindow?.webContents.send("wallet:walletconnect-status-result",{...walletConnect.status(),code:"WALLETCONNECT_REVIEW_WRITE_UNCONFIRMED"});return false;}
   if (entry.requestId) { walletConnectRequests.delete(entry.requestId); walletAuthority?.expire(entry.requestId); mainWindow?.webContents.send("wallet:provider-request-expired", { id: entry.requestId, code }); }
   if (!respond) return false;
-  try { await walletConnect.respond(entry.event.topic, entry.event.id, { status: "error", code: 4100, message: "Wallet request ended before approval. Check the app and any existing submission before requesting again." }); return true; }
+  try { await walletConnect.respond(entry.event.topic, entry.event.id, { status: "error", code: 4100,data:{code}, message: "Wallet request ended before approval. Check the app and any existing submission before requesting again." }); return true; }
   catch { mainWindow?.webContents.send("wallet:walletconnect-status-result", { ...walletConnect.status(), code: "WALLETCONNECT_RESPONSE_UNCONFIRMED" }); return false; }
 }
 function expireWalletConnectRequest(jsonRpcId, window = mainWindow, topic) {

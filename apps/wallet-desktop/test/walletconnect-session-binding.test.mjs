@@ -53,6 +53,24 @@ test("all signing methods require the requested account in this topic and select
     assert.throws(() => transport.authorizeRequest(request("topic-a", method, ACCOUNT_A)), code("INVALID_WALLETCONNECT_ACCOUNT"));
   }
 });
+test('contract methods require explicit namespace method, selected account and original live session',async()=>{
+ const {transport,active}=await fixture();
+ for(const method of ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']){
+  const payload=method==='ynx_preparePQContractAction'?{version:1,account:ACCOUNT_A,action:{kind:'contract_execute',fee:'2',payload:{name:'SampleEVMWriteCounter'}}}:{version:1,account:ACCOUNT_A,operationId:'original_1',...(method==='ynx_getPQContractOriginal'?{refresh:false}:{})};
+  const event={topic:'topic-a',id:1,params:{chainId:WALLETCONNECT_CHAIN,request:{method,params:[payload]}}};
+  assert.equal(transport.authorizeRequest(event,ACCOUNT_A).method,method);
+  assert.throws(()=>transport.authorizeRequest(event,ACCOUNT_B),code('UNAUTHORIZED_WALLETCONNECT_ACCOUNT'));
+  active['topic-a'].namespaces.eip155.methods=active['topic-a'].namespaces.eip155.methods.filter(x=>x!==method);
+  assert.throws(()=>transport.authorizeRequest(event,ACCOUNT_A),code('UNAUTHORIZED_WALLETCONNECT_METHOD'));
+ }
+});
+test('remote errors retain only the bounded machine code, never arbitrary original diagnostic data',async()=>{
+ const {transport,responses}=await fixture();
+ await transport.respond('topic-a',1,{status:'error',code:4100,message:'Keep original',data:{code:'PQ_CONNECTION_ORIGINAL_RECONCILE_REQUIRED',wire:'DO_NOT_RETURN',cause:{private:true}}});
+ assert.deepEqual(responses[0].response.error.data,{code:'PQ_CONNECTION_ORIGINAL_RECONCILE_REQUIRED'});
+ await transport.respond('topic-a',2,{status:'error',code:4100,message:'Keep original',data:{code:'unsafe\ncode'}});
+ assert.equal(Object.hasOwn(responses[1].response.error,'data'),false);
+});
 
 test("even a multi-account namespace cannot sign as an account other than the selected one", async () => {
   const value = session("multi-account-topic");

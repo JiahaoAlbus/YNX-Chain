@@ -5,6 +5,7 @@ import { parseProductSessionWalletURL, parseWalletConnectPairingUri } from "@ynx
 import { PRODUCT_SESSION_REGISTRY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn } from "./central-browser-sign-in.mjs";
 import { createPrivateWalletConnectStorage } from "./walletconnect-private-storage.mjs";
+import {PQ_CONNECTION_METHODS,parsePQConnectionRequest} from './wallet-pq-connection-contract.mjs';
 
 // This desktop main process is Node. The pinned SDK's Node/CJS exports avoid
 // its ESM default-import mismatch with keyvaluestorage; mobile uses Metro.
@@ -14,7 +15,7 @@ const { WalletKit } = require("@reown/walletkit");
 export function createWalletConnectCore(options) { return new Core(options); }
 
 export const WALLETCONNECT_CHAIN = "eip155:6423";
-export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", CENTRAL_BROWSER_METHOD]);
+export const WALLETCONNECT_METHODS = Object.freeze(["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", CENTRAL_BROWSER_METHOD,...PQ_CONNECTION_METHODS]);
 export const WALLETCONNECT_EVENTS = Object.freeze(["accountsChanged", "chainChanged"]);
 const TOMBSTONE_STORAGE_KEY = "ynx-wallet:walletconnect-disconnected-topics:v1";
 const PAIRING_STORAGE_KEY = "ynx-wallet:walletconnect-pairing-quarantine:v1";
@@ -215,9 +216,11 @@ export class WalletConnectTransport {
   async respond(topic, id, response) {
     if (!this.walletKit) throw transportError("WALLETCONNECT_NOT_STARTED", "WalletConnect transport is not started");
     if (response.status === "success") this.#sessionNamespace(topic);
+    const machine=response.data&&Object.getOwnPropertyDescriptor(response.data,'code')?.value;
+    const data=typeof machine==='string'&&/^[A-Z][A-Z0-9_]{0,127}$/.test(machine)?{code:machine}:null;
     return this.walletKit.respondSessionRequest({ topic, response: response.status === "success"
       ? { id, jsonrpc: "2.0", result: response.result }
-      : { id, jsonrpc: "2.0", error: { code: response.code, message: response.message } }
+      : { id, jsonrpc: "2.0", error: { code: response.code, message: response.message,...(data?{data}:{}) } }
     });
   }
   authorizeRequest(event, selectedAccount) {
@@ -239,7 +242,8 @@ export class WalletConnectTransport {
       const productRequest = parseProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,request.params[0],new Date(this.clock()));
       if(productRequest.origin !== this.sessionOrigin(topic)) throw transportError("PRODUCT_SESSION_ORIGIN_MISMATCH","The sign-in origin does not match this session");
       requestedAccount = normalizeAccount(selectedAccount);
-    } else requestedAccount = requestAccount(request);
+    } else if(PQ_CONNECTION_METHODS.includes(request.method))requestedAccount=parsePQConnectionRequest(request.method,request.params).account;
+    else requestedAccount = requestAccount(request);
     if (requestedAccount !== normalizeAccount(selectedAccount) || !namespace.accounts.some(account => account.toLowerCase() === `${WALLETCONNECT_CHAIN}:${requestedAccount}`)) {
       throw transportError("UNAUTHORIZED_WALLETCONNECT_ACCOUNT", "WalletConnect request account must match this session and the selected Wallet account");
     }

@@ -254,7 +254,7 @@ test("WalletConnect remains fail closed without a real project ID", async () => 
   assert.deepEqual(transport.status(), { configured: false, started: false, relayConnected: false, pairing:false, pair:{phase:"idle",cleanup:"none"}, activeSessionCount: 0, code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" });
   await assert.rejects(transport.start({}), error => error.code === "WALLETCONNECT_PROJECT_ID_UNAVAILABLE");
   assert.equal(WALLETCONNECT_CHAIN, "eip155:6423");
-  assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn"]);
+  assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4", "ynx_requestProductSessionV2", "ynx_requestCentralBrowserSignIn", "ynx_preparePQContractAction", "ynx_preparePQContractBroadcast", "ynx_getPQContractOriginal"]);
 });
 
 test("desktop QR import is local-only, bounded and accepts only WalletConnect v2", async () => {
