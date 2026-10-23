@@ -22,6 +22,8 @@ export const PQ_FINALITY_EVIDENCE_LIMITS=Object.freeze({
  'verifier-stdout':8<<20,'verifier-stderr':64<<10,'verifier-result':64<<10,
  'host-producer-stdin':4096,'host-producer-stdout':104521276,
  'host-producer-stderr':65536,'host-producer-result':64<<10,
+ 'host-selection-stdin':4096,'host-selection-stdout':16384,
+ 'host-selection-stderr':65536,'host-selection-result':64<<10,
 });
 const limits=PQ_FINALITY_EVIDENCE_LIMITS;
 const fail=code=>{throw Object.assign(Error(code),{code});};
