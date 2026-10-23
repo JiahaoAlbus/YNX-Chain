@@ -1,3 +1,8 @@
+#if defined(__APPLE__)
+/* _POSIX_C_SOURCE alone hides Darwin's O_NOFOLLOW declaration. Keep the
+ * actual no-symlink flag; never replace it with a permissive fallback. */
+#define _DARWIN_C_SOURCE 1
+#endif
 #define _POSIX_C_SOURCE 200809L
 #include "ynx_artifact_release.h"
 #include <errno.h>
