@@ -17,9 +17,10 @@ async function fixture(t) {
   const packageRoot = path.join(dir, "node_modules", spec.package);
   const source = path.join(packageRoot, spec.file), helper = path.join(packageRoot, spec.helper.destination);
   await mkdir(path.dirname(source), { recursive: true });
-  let upstream = await readFile(path.join(root, "node_modules", spec.package, spec.file), "utf8");
-  if (sha256(upstream) === spec.patchedSha256) {
-    for (const { before, after } of [...spec.edits].reverse()) {
+  let upstream = await readFile(process.env.WALLET_SECURESTORE_SOURCE ?? path.join(root, "node_modules", spec.package, spec.file), "utf8");
+  if ([spec.patchedSha256, spec.previousPatchedSha256].includes(sha256(upstream))) {
+    const edits = sha256(upstream) === spec.previousPatchedSha256 ? spec.edits.slice(0, spec.previousPatchEditCount) : spec.edits;
+    for (const { before, after } of [...edits].reverse()) {
       assert.equal(upstream.split(after).length, 2);
       upstream = upstream.replace(after, before);
     }
@@ -49,6 +50,19 @@ test("unreviewed Kotlin is refused before installing a helper or overwriting sou
   await assert.rejects(ensureSecureStorePatch({ root: f.dir }), /Unreviewed SecureStore Kotlin/);
   assert.equal(await readFile(f.source, "utf8"), changed);
   await assert.rejects(readFile(f.helper), { code: "ENOENT" });
+});
+
+test("prior exact reviewed patch upgrades without changing helper or accepting old source at build check", async t => {
+  const f = await fixture(t);
+  let prior = f.upstream;
+  for (const { before, after } of spec.edits.slice(0, spec.previousPatchEditCount)) prior = prior.replace(before, after);
+  assert.equal(sha256(prior), spec.previousPatchedSha256);
+  await writeFile(f.source, prior);
+  await assert.rejects(ensureSecureStorePatch({ root: f.dir, check: true }), /patch missing/);
+  assert.equal(await readFile(f.source, 'utf8'), prior);
+  await ensureSecureStorePatch({ root: f.dir });
+  assert.equal(sha256(await readFile(f.source)), spec.patchedSha256);
+  await ensureSecureStorePatch({ root: f.dir, check: true });
 });
 
 test("helper tampering is refused before patching pristine module", async t => {

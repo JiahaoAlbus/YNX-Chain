@@ -8,6 +8,30 @@ const walletRoot = fileURLToPath(new URL("..", import.meta.url));
 const specPath = path.join(walletRoot, "native-patches/expo-secure-store-57.0.3.json");
 export const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");
 
+/** Only exact published, prior reviewed, or current reviewed bytes. Prior
+ * reviewed source is first reconstructed and hash-checked against upstream;
+ * no fuzzy incremental patching and no mutation of unrecognized source. */
+export function patchSecureStoreSource(bytes, spec) {
+  const digest = sha256(bytes);
+  assert.ok([spec.upstreamSha256, spec.previousPatchedSha256, spec.patchedSha256].includes(digest), "Unreviewed SecureStore Kotlin source; refusing to overwrite it");
+  if (digest === spec.patchedSha256) return bytes.toString("utf8");
+  let source = bytes.toString("utf8");
+  if (digest === spec.previousPatchedSha256) {
+    assert.equal(spec.previousPatchEditCount, 11);
+    for (const { before, after } of spec.edits.slice(0, spec.previousPatchEditCount).reverse()) {
+      assert.equal(source.split(after).length, 2, "Prior patch anchor must occur exactly once");
+      source = source.replace(after, before);
+    }
+    assert.equal(sha256(source), spec.upstreamSha256, "Prior patch must reconstruct exact upstream source");
+  }
+  for (const { before, after } of spec.edits) {
+    assert.equal(source.split(before).length, 2, "Patch anchor must occur exactly once");
+    source = source.replace(before, after);
+  }
+  assert.equal(sha256(source), spec.patchedSha256, "Patched SecureStore hash mismatch");
+  return source;
+}
+
 export async function readPatchSpecification() {
   return JSON.parse(await readFile(specPath, "utf8"));
 }
@@ -45,14 +69,7 @@ export async function ensureSecureStorePatch({ check = false, root = walletRoot 
   const sourcePath = path.join(packageRoot, spec.file);
   const bytes = await regularFile(sourcePath);
   const digest = sha256(bytes);
-  assert.ok([spec.upstreamSha256, spec.patchedSha256].includes(digest), "Unreviewed SecureStore Kotlin source; refusing to overwrite it");
-  let patched = bytes.toString("utf8");
-  if (digest === spec.upstreamSha256) {
-    for (const { before, after } of spec.edits) {
-      assert.equal(patched.split(before).length, 2, "Patch anchor must occur exactly once");
-      patched = patched.replace(before, after);
-    }
-  }
+  const patched = patchSecureStoreSource(bytes, spec);
   assert.equal(sha256(patched), spec.patchedSha256, "Patched SecureStore hash mismatch");
   const helper = await regularFile(path.join(walletRoot, "native-patches", spec.helper.source));
   assert.equal(sha256(helper), spec.helper.sha256);

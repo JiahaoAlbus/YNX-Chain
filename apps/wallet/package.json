@@ -23,7 +23,7 @@
     "postinstall": "node scripts/secure-store-native-patch.mjs",
     "native-patch:apply": "node scripts/secure-store-native-patch.mjs",
     "native-patch:check": "node scripts/secure-store-native-patch.mjs --check",
-    "native-patch:test": "node --test scripts/secure-store-native-patch.test.mjs"
+    "native-patch:test": "node --test scripts/secure-store-native-patch.test.mjs scripts/secure-store-read-preservation.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

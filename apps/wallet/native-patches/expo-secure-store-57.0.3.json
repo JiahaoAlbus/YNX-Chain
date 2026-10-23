@@ -4,7 +4,7 @@
   "version": "57.0.3",
   "file": "android/src/main/java/expo/modules/securestore/SecureStoreModule.kt",
   "upstreamSha256": "72c670b538732977ef132759ce810c5719943ce6082195a58ad5a432d4ac1075",
-  "patchedSha256": "9d5ba89067e9c72f2c9607c73d5747e1a10a81918ddd04ac4fb2023123955524",
+  "patchedSha256": "d08061ab58adb4aed8d195b4d645f7555c686afa9e0b83cd359dceda44e06e9b",
   "helper": {
     "source": "YNXSecureStoreWriteBarrier.kt",
     "destination": "android/src/main/java/expo/modules/securestore/YNXSecureStoreWriteBarrier.kt",
@@ -54,7 +54,25 @@
     {
       "before": "  val removedFromPrefs = prefs.edit().remove(keychainAwareKey).remove(key).commit()\n  val removedFromLegacyPrefs = legacyPrefs.edit().remove(key).commit()\n",
       "after": "  val removedFromPrefs = YNXSecureStoreWriteBarrier.commit { prefs.edit().remove(keychainAwareKey).remove(key).commit() }\n  // A failed first write quarantines the cache; do not issue a second write.\n  if (!removedFromPrefs) return false\n  val removedFromLegacyPrefs = YNXSecureStoreWriteBarrier.commit { legacyPrefs.edit().remove(key).commit() }\n"
+    },
+    {
+      "before": "          val secretKeyEntry = getKeyEntryCompat(SecretKeyEntry::class.java, mAESEncryptor, options, requireAuthentication, usesKeystoreSuffix) ?: run {\n            Log.w(\n              TAG,\n              \"An entry was found for key $key under keychain ${options.keychainService}, but there is no corresponding KeyStore key. \" +\n                \"This situation occurs when the app is reinstalled. The value will be removed to avoid future errors. Returning null\"\n            )\n            deleteItemImpl(key, options)\n            return null\n          }",
+      "after": "          val secretKeyEntry = getKeyEntryCompat(SecretKeyEntry::class.java, mAESEncryptor, options, requireAuthentication, usesKeystoreSuffix)\n            ?: throw DecryptException(\"Existing encrypted record has no available AES key. Original ciphertext was retained; recovery is required.\", key, options.keychainService)"
+    },
+    {
+      "before": "          val privateKeyEntry = getKeyEntryCompat(PrivateKeyEntry::class.java, hybridAESEncryptor, options, requireAuthentication, usesKeystoreSuffix)\n            ?: return null",
+      "after": "          val privateKeyEntry = getKeyEntryCompat(PrivateKeyEntry::class.java, hybridAESEncryptor, options, requireAuthentication, usesKeystoreSuffix)\n            ?: throw DecryptException(\"Existing encrypted record has no available private key. Original ciphertext was retained; recovery is required.\", key, options.keychainService)"
+    },
+    {
+      "before": "    } catch (e: KeyPermanentlyInvalidatedException) {\n      Log.w(TAG, \"The requested key has been permanently invalidated. Returning null\")\n      return null",
+      "after": "    } catch (e: KeyPermanentlyInvalidatedException) {\n      throw DecryptException(\"Existing encrypted record uses an invalidated key. Original ciphertext was retained; recovery is required.\", key, options.keychainService, e)"
+    },
+    {
+      "before": "    } catch (e: BadPaddingException) {\n      // The key from the KeyStore is unable to decode the entry. This is because a new key was generated, but the entries are encrypted using the old one.\n      // This usually means that the user has reinstalled the app. We can safely remove the old value and return null as it's impossible to decrypt it.\n      Log.w(\n        TAG,\n        \"Failed to decrypt the entry for $key under keychain ${options.keychainService}. \" +\n          \"The entry in shared preferences is out of sync with the keystore. It will be removed, returning null.\"\n      )\n      deleteItemImpl(key, options)\n      return null",
+      "after": "    } catch (e: BadPaddingException) {\n      // A read must never delete, regenerate keys or turn retained ciphertext\n      // into a successful empty-wallet result. Preserve the original cause.\n      throw DecryptException(\"Existing encrypted record could not be decrypted. Original ciphertext was retained; recovery is required.\", key, options.keychainService, e)"
     }
   ],
-  "integrity": "sha512-w7XkSQeUiYXPoKXo1jSrQqql7pyCSyIzOp2k0apsZZBE+RkoLTQIMjcbqc181y6KgupfNnYxkaKe+4MEg94+SA=="
+  "integrity": "sha512-w7XkSQeUiYXPoKXo1jSrQqql7pyCSyIzOp2k0apsZZBE+RkoLTQIMjcbqc181y6KgupfNnYxkaKe+4MEg94+SA==",
+  "previousPatchedSha256": "9d5ba89067e9c72f2c9607c73d5747e1a10a81918ddd04ac4fb2023123955524",
+  "previousPatchEditCount": 11
 }
