@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
@@ -21,6 +22,7 @@ type BlockJournalPrefixDecoder struct {
 	prefix            *blockJournalPrefix
 	nativeClone       bool
 	nativeSuffixSetup bool
+	byteLimit         int // Immutable; zero preserves the original16MiB limit.
 }
 type blockJournalPrefix struct {
 	payload           []byte
@@ -92,8 +94,11 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 	if d == nil || d.full == nil || d.gate == nil {
 		return out, errors.New("prefix decoder not initialized")
 	}
-	if len(data) > blockJournalPrefixLimit {
-		return out, errors.New("prefix decoder input exceeds explicit16MiB bound")
+	if len(data) > d.ByteLimit() {
+		if d.ByteLimit() == blockJournalPrefixLimit {
+			return out, errors.New("prefix decoder input exceeds explicit16MiB bound")
+		}
+		return out, fmt.Errorf("prefix decoder input exceeds explicit%d-byte bound", d.ByteLimit())
 	}
 	if err := phases.measure("gateWait", func() error {
 		select {
@@ -204,7 +209,7 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 	}
 	// Never cache failures or caller-owned objects. Older captures cannot displace
 	// a newer validated state. Rotation at equal/newer height can replace it.
-	if len(out.SnapshotJSON) <= blockJournalPrefixLimit && (p == nil || out.State.Height >= p.height) {
+	if len(out.SnapshotJSON) <= d.ByteLimit() && (p == nil || out.State.Height >= p.height) {
 		err := phases.measure("certificatePublish", func() error {
 			certificate := &blockJournalPrefix{payload: append([]byte(nil), out.SnapshotJSON...), digest: sha256.Sum256(data[:out.CompleteBytes]), end: out.CompleteBytes, blocks: logicalBlocks, height: out.State.Height}
 			if d.nativeClone {

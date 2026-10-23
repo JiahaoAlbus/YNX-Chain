@@ -135,16 +135,20 @@ func TestStreamingWorkloadEvidenceBudgetPreservesFailedWrite(t *testing.T) {
 // Real signed CheckTx/Finalize/Commit/reopen, synthetic quorum observations for
 // the controller interface only. This is not network finality or business TPS.
 func TestStreamingWorkloadRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
-	testStreamingWorkloadRealExecution(t, false)
+	testStreamingWorkloadRealExecution(t, false, false)
 }
 
 func TestStreamingWorkloadGzipRealExecutionAcrossLegacyNonceBoundary(t *testing.T) {
-	testStreamingWorkloadRealExecution(t, true)
+	testStreamingWorkloadRealExecution(t, true, false)
 }
 
-func testStreamingWorkloadRealExecution(t *testing.T, compressed bool) {
+func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool) {
 	path, manifest, m, migration, initial := senderFixture(t)
 	o := streamingOptions()
+	if native {
+		o = nativeStreamingOptions()
+		o.pacedWorkerInventory = new(pacedWorkerInventory)
+	}
 	o.terminalGzip = compressed
 	o.output = filepath.Join(t.TempDir(), "transactions-result.json")
 	limits, _ := workloadLimits(o)
@@ -171,6 +175,16 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed bool) {
 	app, err := consensus.NewBlockJournaledApplication(migration, statePath)
 	if err != nil {
 		t.Fatal(err)
+	}
+	var nativeReader *durableReader
+	if native {
+		nativeReader, err = newWorkloadDurableReader(migration, []string{statePath}, o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = nativeReader.configureNativeStreamingReplay(o); err != nil {
+			t.Fatal(err)
+		}
 	}
 	stream, err := newTerminalStream(o.output+".terminal-stream", p)
 	if err != nil {
@@ -235,6 +249,13 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed bool) {
 			if err != nil || info.LastBlockHeight != h {
 				t.Errorf("publication differs %v", err)
 			}
+			var nativeEvidence durableEvidence
+			if native {
+				nativeEvidence, err = nativeReader.verify(ctx, statePath, txs[index], h)
+				if err != nil || nativeEvidence.Height != h || nativeEvidence.AppHash != fmt.Sprintf("%x", info.LastBlockAppHash) {
+					t.Errorf("native stream current state/publication proof differs: %v", err)
+				}
+			}
 			previous := results[index]
 			row := gateResult(txs[index], h)
 			row.Index, row.Round = previous.Index, previous.Round
@@ -250,6 +271,13 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed bool) {
 			row.DurableStoreFormat = "block-journal-v2"
 			row.DurableInfoVerified = true
 			row.DurableInfoHeight = h
+			if native {
+				row.DurableSnapshotSHA256 = nativeEvidence.SnapshotSHA256
+				row.DurableStoreSHA256 = nativeEvidence.StoreSHA256
+				row.DurableStateAppHash = nativeEvidence.AppHash
+				row.DurableStateHeight = nativeEvidence.Height
+				row.DurableStoreFormat = nativeEvidence.StoreFormat
+			}
 			results[index] = row
 			signed++
 			execute.Unlock()
@@ -261,6 +289,17 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed bool) {
 	}
 	if runErr != nil || stats.Completed != len(initial)*34 || stats.Quarantined != 0 || stats.RoundsCompleted != 34 || stats.PeakInFlight > len(initial) || len(results) != len(initial) || signed != 102 {
 		t.Fatal("scoped controller differs", stats, runErr)
+	}
+	if native {
+		actual := nativeReader.stats()
+		if actual.ObserverNativeFacts == nil || actual.ObserverNativeFacts.Lookups != 102 || actual.ObserverNativeFacts.Hits != 102 || actual.ObserverNativeFacts.FallbackFailures != 0 || actual.PrefixReplay.CanonicalByteLimit != 32<<20 || actual.TransactionVerifications != 102 {
+			t.Fatal("actual native stream current-state/signature work differs", actual)
+		}
+		inventory := o.pacedWorkerInventory
+		if inventory.Submitters != 8 || inventory.Observers != 4 || inventory.SubmissionQueueCapacity != len(initial) || len(inventory.ObservationQueueCapacities) != 4 {
+			t.Fatal("native stream actual workers/queues differ", inventory)
+		}
+		t.Logf("original signed execution+Commit+native readback+nonce34+stream recovery102 inputs; quorum remains unit gates, no network business TPS")
 	}
 	if o.evidenceBudget.Poisoned || o.evidenceBudget.AttemptedBytes != stats.IntentSegments.Bytes+int64(stream.report.Bytes) {
 		t.Fatal("encoded budget differs from exact complete inventories")

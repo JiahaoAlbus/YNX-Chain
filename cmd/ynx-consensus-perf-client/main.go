@@ -62,6 +62,7 @@ type options struct {
 	sharedDurableReplay            bool
 	prefixDurableReplay            bool
 	prefixNativeClone              bool
+	nativeStream8                  bool
 	nativeSubmit8                  bool
 	nativeSuffixSetup              bool
 	observerNativeFacts            bool
@@ -198,6 +199,7 @@ type report struct {
 	SubmissionOccupancy  *submissionOccupancyStats `json:"submissionOccupancy,omitempty"`
 	PrefixDurableReplay  bool                      `json:"prefixDurableReplay,omitempty"`
 	PrefixNativeClone    bool                      `json:"prefixNativeClone,omitempty"`
+	NativeStream8        bool                      `json:"nativeStream8,omitempty"`
 	NativeSubmit8        bool                      `json:"nativeSubmit8,omitempty"`
 	NativeSuffixSetup    bool                      `json:"nativeSuffixSetup,omitempty"`
 	ObserverNativeFacts  bool                      `json:"observerNativeFacts,omitempty"`
@@ -245,8 +247,9 @@ func main() {
 	flag.BoolVar(&o.prefixDurableReplay, "prefix-durable-replay", false, "candidate: reuse exact previously validated journal prefixes, private state and complete new-block validation; exclusive with shared replay")
 	flag.BoolVar(&o.prefixNativeClone, "prefix-native-clone", false, "candidate: private native account/fee-history copies; requires explicit prefix replay and its original bounds")
 	flag.BoolVar(&o.clientProcs2, "client-procs2", false, "candidate: client-local GOMAXPROCS2 with original native8 observer facts; node environment and resource caps unchanged")
-	flag.BoolVar(&o.observerNativeFacts, "observer-native-facts", false, "candidate: reuse exact bytes+expected-chain signature facts from verified replay; original native8 setup only")
+	flag.BoolVar(&o.observerNativeFacts, "observer-native-facts", false, "candidate: reuse exact bytes+expected-chain signature facts from verified replay; native8 or native-stream8 with original suffix setup")
 	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: private suffix initialization; explicit native8 data64 mode only")
+	flag.BoolVar(&o.nativeStream8, "native-stream8", false, "explicit history-growing native prefix stream: original ready sender/nonce/evidence rules, exactly8submitters/4observers; separate resource grant required")
 	flag.BoolVar(&o.nativeSubmit8, "native-submit8", false, "candidate: exactly8 submitters, original four observers/queues and native-copy single-round supply")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
@@ -271,11 +274,14 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if err := validateNativeStreamingOptions(o); err != nil {
+		return err
+	}
 	if o.clientProcs2 && !o.observerNativeFacts {
 		return errors.New("client procs2 requires explicit original native8 observer facts")
 	}
-	if o.observerNativeFacts && (!o.nativeSubmit8 || o.nativeSuffixSetup) {
-		return errors.New("observer native facts require original native8 setup; suffix candidate cannot combine")
+	if o.observerNativeFacts && (!o.nativeSubmit8 && !o.nativeStream8 || o.nativeSuffixSetup) {
+		return errors.New("observer native facts require explicit native8 or native stream8 with original suffix setup")
 	}
 	if o.nativeSuffixSetup && !o.nativeSubmit8 {
 		return errors.New("native suffix setup requires explicit native8 mode")
@@ -295,7 +301,7 @@ func validateOptions(o options) error {
 	if o.endpointFair && (o.senderMode != "ready-pool" || o.concurrency != 4 || o.observers != 4 || o.offeredRate <= 0) {
 		return errors.New("endpoint fairness requires paced ready-pool and exactly four submitters/observers")
 	}
-	if o.prefixDurableReplay && (o.sharedDurableReplay || !o.observerPhaseTiming || o.offeredRate <= 0 || o.inclusionMode != "block-scan" || o.durableStoreByteLimit < 0 || o.durableStoreByteLimit > durableSnapshotLimit || o.durableCacheByteBudget != 0 || o.rounds > 1 || o.senderMode != "" && o.senderMode != "rounds" || o.streamingWorkload || o.terminalStream || o.reuseResultSlots || o.segmentedIntents) {
+	if o.prefixDurableReplay && !o.nativeStream8 && (o.sharedDurableReplay || !o.observerPhaseTiming || o.offeredRate <= 0 || o.inclusionMode != "block-scan" || o.durableStoreByteLimit < 0 || o.durableStoreByteLimit > durableSnapshotLimit || o.durableCacheByteBudget != 0 || o.rounds > 1 || o.senderMode != "" && o.senderMode != "rounds" || o.streamingWorkload || o.terminalStream || o.reuseResultSlots || o.segmentedIntents) {
 		return errors.New("prefix replay requires explicit paced single-round block-scan observer timing, original16MiB reader and no shared replay")
 	}
 	if o.sharedDurableReplay && (!o.observerPhaseTiming || o.offeredRate <= 0 || o.durableStoreByteLimit > durableSnapshotLimit || o.durableCacheByteBudget > 0) {
@@ -342,7 +348,7 @@ func validateOptions(o options) error {
 	if o.manifest == "" || o.transactions == "" {
 		return errors.New("-manifest and -transactions are required")
 	}
-	if o.concurrency < 1 || o.concurrency > 4 && !o.nativeSubmit8 {
+	if o.concurrency < 1 || o.concurrency > 4 && !o.nativeSubmit8 && !o.nativeStream8 {
 		return errors.New("concurrency must be in 1..4")
 	}
 	if math.IsNaN(o.offeredRate) || math.IsInf(o.offeredRate, 0) || o.offeredRate < 0 || o.offeredRate > maxTransactions {
@@ -960,6 +966,7 @@ func execute(o options) error {
 	}
 	r.PrefixDurableReplay = o.prefixDurableReplay
 	r.PrefixNativeClone = o.prefixNativeClone
+	r.NativeStream8 = o.nativeStream8
 	r.NativeSubmit8 = o.nativeSubmit8
 	r.NativeSuffixSetup = o.nativeSuffixSetup
 	r.ObserverNativeFacts = o.observerNativeFacts
@@ -983,7 +990,10 @@ func execute(o options) error {
 	if o.prefixNativeClone {
 		r.Interpretation = append(r.Interpretation, "Explicit native private copy candidate: one canonical JSON reconstruction per new prefix certificate, independent account lots and fee history on repeated reads, complete Validate retained. Populated other domains retain strict JSON. Additional decoded snapshot memory is included in process RSS guards; cache inventory counts objects and canonical bytes, not decoded heap bytes. No network improvement inferred from local probes.")
 	}
-	if o.prefixDurableReplay {
+	if o.nativeStream8 {
+		r.Interpretation = append(r.Interpretation, "Explicit native-prefix streaming workload: bounded instance-specific input/canonical bytes, existing profile observation mutex/cache-input accounting and external RSS/resource admission remain. Original ready nonce/signing/UNKNOWN, segmented evidence budgets, current-file capture, complete state/fee/nonce/quorum validation retained. No old single-round budget or acceptance is expanded; no sustained business TPS follows from the mode flag.")
+	}
+	if o.prefixDurableReplay && !o.nativeStream8 {
 		r.Interpretation = append(r.Interpretation, "Explicit prefix replay candidate: exact freshly captured prefix SHA binding, private state plus full Validate, original suffix frame/signature/execution/response/Commit verification. One bounded16MiB canonical cache, no new authority, RPC or retry. Successful full replays and prefix-state outputs are counted separately; failed partial work is not counted as completed replay. No network gain or memory admission inferred from offline results.")
 	}
 	r.SharedDurableReplay = o.sharedDurableReplay
@@ -1005,7 +1015,7 @@ func execute(o options) error {
 	}
 	if o.streamingWorkload {
 		r.SchemaVersion = 14
-		r.StreamingWorkload = &streamingWorkloadReport{Name: "scoped_streaming_v1", Rounds: o.rounds, MaxRuntimeMs: o.timeout.Milliseconds(), EvidenceByteBudget: o.evidenceByteBudget}
+		r.StreamingWorkload = &streamingWorkloadReport{Name: streamingProfileName(o), Rounds: o.rounds, MaxRuntimeMs: o.timeout.Milliseconds(), EvidenceByteBudget: o.evidenceByteBudget}
 		r.Interpretation = append(r.Interpretation, "Streaming issuance does not raise durable-reader store-size limits. Reaching a store, evidence, duration or resource bound fails closed. Ten-minute capacity requires separately qualified history/readback and resource coverage.")
 	}
 	runErr := func() error {
@@ -1037,15 +1047,21 @@ func execute(o options) error {
 			return err
 		}
 		reader.measurePhases = o.observerPhaseTiming
-		if o.prefixDurableReplay {
-			err = reader.configurePrefixReplayMode(migration, o.prefixNativeClone, o.nativeSuffixSetup)
-			if err != nil {
+		if o.nativeStream8 {
+			if err := reader.configureNativeStreamingReplay(o); err != nil {
 				return err
 			}
-		}
-		if o.observerNativeFacts {
-			if err := reader.configureObserverNativeFacts(); err != nil {
-				return err
+		} else {
+			if o.prefixDurableReplay {
+				err = reader.configurePrefixReplayMode(migration, o.prefixNativeClone, o.nativeSuffixSetup)
+				if err != nil {
+					return err
+				}
+			}
+			if o.observerNativeFacts {
+				if err := reader.configureObserverNativeFacts(); err != nil {
+					return err
+				}
 			}
 		}
 		if o.sharedDurableReplay {
@@ -1080,7 +1096,7 @@ func execute(o options) error {
 		}
 		if o.streamingWorkload {
 			r.SchemaVersion = 14
-			r.StreamingWorkload = &streamingWorkloadReport{Name: "scoped_streaming_v1", PlannedRecords: planned, Rounds: o.rounds, MaxRuntimeMs: o.timeout.Milliseconds(), EvidenceByteBudget: o.evidenceByteBudget}
+			r.StreamingWorkload = &streamingWorkloadReport{Name: streamingProfileName(o), PlannedRecords: planned, Rounds: o.rounds, MaxRuntimeMs: o.timeout.Milliseconds(), EvidenceByteBudget: o.evidenceByteBudget}
 			o.evidenceBudget = &readyEvidenceBudgetReport{LimitBytes: o.evidenceByteBudget}
 			r.Interpretation = append(r.Interpretation, "Explicit bounded streaming issuance, not a sustained-throughput qualification. Fixed slots and second bins; encoded evidence byte budget is shared, allocated disk requires a separately scheduled resource window. Legacy complete-array/schema12/13 recovery cannot accept schema14.")
 		}
@@ -1132,7 +1148,7 @@ func execute(o options) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		measuredPacedRound := o.observerPhaseTiming && o.offeredRate > 0 && o.senderMode == "rounds"
+		measuredPacedRound := o.observerPhaseTiming && o.offeredRate > 0 && (o.senderMode == "rounds" || o.nativeStream8)
 		cpuProbe := startProcessCPUProbe(measuredPacedRound, readProcessCPUUsage)
 		if measuredPacedRound {
 			o.submissionOccupancy = new(submissionOccupancyRecorder)

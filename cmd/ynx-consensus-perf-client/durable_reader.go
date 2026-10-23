@@ -156,7 +156,7 @@ func (r *durableReader) stats() durableReaderStats {
 			private := *v.WorkPhases.PrivateNativeClone
 			v.WorkPhases.PrivateNativeClone = &private
 		}
-		v.CanonicalByteLimit = durableSnapshotLimit
+		v.CanonicalByteLimit = r.prefixDecoder.ByteLimit()
 		r.prefixMu.Unlock()
 		if r.prefixNativeClone {
 			// Reporting happens after the observer work completes. Inventory

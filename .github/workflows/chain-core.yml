@@ -246,9 +246,9 @@ jobs:
           -run '^(TestEndpointFair.*|TestSharedReplay.*|TestPrefixReplay.*|TestNativeSubmit8.*|TestNativeSuffixSetup.*|TestRuntimeMeasurement.*|TestDurableReaderSharesOnlyReplayCryptoFactsAcrossIndependentStores|TestObserverPhaseTiming.*|TestReadyPacing.*|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
           -count=1 -timeout=45s -v
       - name: Verify explicit observer native facts and current-state negatives
-        run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(ObserverNative|ClientProcs2)' -count=1 -timeout=30s -v
+        run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(ObserverNative|ClientProcs2|NativeStreaming)' -count=1 -timeout=30s -v
       - name: Verify actual prefix decoder phases and held-gate cancellation
-        run: go test -p 1 ./internal/consensus -run '^TestBlockJournalPrefix' -count=1 -timeout=30s -v
+        run: go test -p 1 ./internal/consensus -run '^TestBlockJournal(Prefix|BoundedPrefix)' -count=1 -timeout=30s -v
       - name: Verify opt-in node phase timings against real durable execution
         run: go test -p 1 ./cmd/ynx-abci -run '^TestPhaseTiming' -count=1 -timeout=45s -v
       - name: Measure bounded real signed fee history

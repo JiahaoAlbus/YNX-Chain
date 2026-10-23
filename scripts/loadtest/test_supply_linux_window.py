@@ -956,7 +956,7 @@ class SupplySourceTests(unittest.TestCase):
         workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
         for marker in ("paired-native-observer-facts-data64","--prepare-pair --pair-kind native-observer-facts-data64","--execute-pair --pair-kind native-observer-facts-data64"):self.assertIn(marker,workflow)
         self.assertIn("Verify explicit observer native facts and current-state negatives",workflow)
-        self.assertIn("-race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(ObserverNative|ClientProcs2)'",workflow)
+        self.assertIn("-race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(ObserverNative|ClientProcs2|NativeStreaming)'",workflow)
 
     def test_client_procs_pair_binds_actual_runtime_and_refuses_first_case_drift(self):
         code,order,row=self.mock_pair(comparison="native-client-procs2-data64")
@@ -979,9 +979,17 @@ class SupplySourceTests(unittest.TestCase):
         self.assertEqual(before["environment"]["GOMAXPROCS"],"1")
         self.assertEqual(plan["pairCaps"],supply.pair_recipe("native-observer-facts-data64")["pairCaps"])
         workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
-        for marker in ("paired-native-client-procs2-data64","--prepare-pair --pair-kind native-client-procs2-data64","--execute-pair --pair-kind native-client-procs2-data64","-run '^Test(ObserverNative|ClientProcs2)'"):self.assertIn(marker,workflow)
+        for marker in ("paired-native-client-procs2-data64","--prepare-pair --pair-kind native-client-procs2-data64","--execute-pair --pair-kind native-client-procs2-data64","-run '^Test(ObserverNative|ClientProcs2|NativeStreaming)'"):self.assertIn(marker,workflow)
         self.assertFalse(supply.recipe()["execute"])
         self.assertEqual(supply.recipe()["profile"]["concurrency"],4)
+
+    def test_finite_controller_rejects_native_stream_marker_without_new_profile(self):
+        client,fixture=self.submit8_report_fixture(True)
+        config=dict(fixture_transactions=fixture,prefix_replay=True,prefix_native_clone=True,native_submit8=True,require_inventory=True)
+        supply.validate_report(client,"supply-2048x1-data64",**config)
+        for marker in (True,None,0,1,"true"):
+            bad=dict(client,nativeStream8=marker)
+            with self.subTest(marker=marker),self.assertRaises(RuntimeError):supply.validate_report(bad,"supply-2048x1-data64",**config)
 
     def test_client_runtime_requires_actual_typed_values_and_explicit_original_backend(self):
         client,fixture=self.submit8_report_fixture(True)

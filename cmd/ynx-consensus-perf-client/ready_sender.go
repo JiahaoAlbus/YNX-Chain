@@ -236,6 +236,12 @@ type readySenderStats struct {
 // There is one reserved/in-flight nonce per sender, with no whole-round barrier.
 // Unknown/rejected/failed/timed-out senders are quarantined while peers continue.
 func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, txs []cmttypes.Tx, results []transactionResult, submit func(int) (time.Time, bool), observe func(int, <-chan acceptedObservation, func(int))) (stats readySenderStats, runErr error) {
+	if err := validateNativeStreamingOptions(o); err != nil {
+		return stats, err
+	}
+	if o.nativeStream8 && o.pacedWorkerInventory == nil {
+		return stats, errors.New("native streaming lacks actual worker inventory")
+	}
 	if o.endpointElastic && !o.endpointFair {
 		return stats, errors.New("elastic endpoint submission requires explicit endpoint fairness")
 	}
@@ -249,7 +255,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 	if limitErr != nil {
 		return stats, limitErr
 	}
-	if p == nil || p.stopped || o.rounds < 2 || o.rounds > limits.rounds || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || o.observers < 1 || o.observers > 4 || o.concurrency < 1 || o.concurrency > 4 || len(p.pending) == 0 || len(p.pending) > maxTransactions || len(txs) != len(results) || o.rounds > limits.records/len(p.pending) {
+	if p == nil || p.stopped || o.rounds < 2 || o.rounds > limits.rounds || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || o.observers < 1 || o.observers > 4 || o.concurrency < 1 || o.concurrency > 4 && !o.nativeStream8 || len(p.pending) == 0 || len(p.pending) > maxTransactions || len(txs) != len(results) || o.rounds > limits.records/len(p.pending) {
 		return stats, errors.New("invalid bounded ready sender plan")
 	}
 	pacer, pacingErr := newReadyOfferPacer(o.pacingMode, time.Time{}, time.Duration(float64(time.Second)/o.offeredRate))
@@ -367,6 +373,15 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			})
 		}(worker)
 	}
+	if o.nativeStream8 {
+		inventory := o.pacedWorkerInventory
+		inventory.Submitters, inventory.Observers = o.concurrency, len(accepted)
+		inventory.SubmissionQueueCapacity = cap(jobs)
+		inventory.ObservationQueueCapacities = make([]int, len(accepted))
+		for i := range accepted {
+			inventory.ObservationQueueCapacities[i] = cap(accepted[i])
+		}
+	}
 	for worker := 0; worker < o.concurrency; worker++ {
 		queue := jobs
 		if o.endpointFair && elastic == nil {
@@ -391,7 +406,14 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 				if o.endpointFair && elastic == nil {
 					stats.EndpointDispatch.CallbackAttempts[worker]++
 				}
+				var busyStarted time.Time
+				if o.submissionOccupancy != nil {
+					busyStarted = o.submissionOccupancy.begin()
+				}
 				started, ok := submit(index)
+				if o.submissionOccupancy != nil {
+					o.submissionOccupancy.end(busyStarted, started, results[index].offerMonotonic)
+				}
 				if elastic != nil {
 					elastic.complete(index)
 				} else if o.endpointFair {

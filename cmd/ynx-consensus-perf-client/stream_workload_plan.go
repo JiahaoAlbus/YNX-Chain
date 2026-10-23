@@ -12,6 +12,7 @@ import (
 )
 
 type streamingWorkloadPlan struct {
+	NativePrefix                *nativeStreamingPlan     `json:"nativePrefix,omitempty"`
 	TerminalEncoding            string                   `json:"terminalEncoding,omitempty"`
 	Kind                        string                   `json:"kind"`
 	Profile                     string                   `json:"profile"`
@@ -30,6 +31,9 @@ type streamingWorkloadPlan struct {
 // Exclusive durable plan precedes dispatch. It contains public identities only;
 // losing observations never permits reopening this fixture for submission.
 func persistStreamingWorkloadPlan(o options, manifest []byte, m consensus.EphemeralNetworkManifest, initial []cmt.Tx) (string, string, error) {
+	if err := validateNativeStreamingOptions(o); err != nil {
+		return "", "", err
+	}
 	if !o.streamingWorkload {
 		return "", "", errors.New("streaming plan requires explicit profile")
 	}
@@ -41,7 +45,10 @@ func persistStreamingWorkloadPlan(o options, manifest []byte, m consensus.Epheme
 	if err != nil {
 		return "", "", err
 	}
-	plan := streamingWorkloadPlan{DurableStoreByteLimit: storeLimit, DurableCacheInputByteBudget: cacheBudget, Kind: "YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1", Profile: "scoped_streaming_v1", Fixture: readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", fmt.Sprintf("%x", sha256.Sum256(manifest)), m.MigrationStateHash, m.GenesisHash}, Senders: len(initial), Rounds: o.rounds, PlannedRecords: total, RequiredBalancePerSender: int64(o.rounds) * 2, EncodedEvidenceBudget: o.evidenceByteBudget, TimeoutMs: o.timeout.Milliseconds()}
+	plan := streamingWorkloadPlan{DurableStoreByteLimit: storeLimit, DurableCacheInputByteBudget: cacheBudget, Kind: "YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1", Profile: streamingProfileName(o), Fixture: readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", fmt.Sprintf("%x", sha256.Sum256(manifest)), m.MigrationStateHash, m.GenesisHash}, Senders: len(initial), Rounds: o.rounds, PlannedRecords: total, RequiredBalancePerSender: int64(o.rounds) * 2, EncodedEvidenceBudget: o.evidenceByteBudget, TimeoutMs: o.timeout.Milliseconds()}
+	if o.nativeStream8 {
+		plan.NativePrefix = &nativeStreamingPlan{Submitters: o.concurrency, Observers: o.observers, CanonicalByteLimit: storeLimit, ObserverNativeFacts: true, OriginalSuffixSetup: true, SerializedReaderBudget: cacheBudget > 0}
+	}
 	for _, raw := range initial {
 		plan.InitialSignedHashes = append(plan.InitialSignedHashes, fmt.Sprintf("%X", raw.Hash()))
 	}

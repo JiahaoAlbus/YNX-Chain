@@ -580,6 +580,8 @@ def validate_prefix_replay(report,expected,require_work_phases=False,expected_na
 
 
 def validate_client_runtime(report,expected=False,require=False):
+    if report.get("nativeStream8",False) is not False:
+        raise RuntimeError("finite Supply controller cannot qualify the separate native streaming workload")
     if type(expected) is not bool or type(require) is not bool or report.get("clientProcs2",False) is not expected:
         raise RuntimeError("actual client scheduler selection differs")
     if expected and (report.get("observerNativeFacts") is not True or report.get("nativeSubmit8") is not True
