@@ -130,7 +130,7 @@ try {
   }
   const f=fixture('normal'),before=originals(f);run(f);
   const binding=path.join(f.transaction,'candidate/binding.json'), raw=fs.readFileSync(binding), b=JSON.parse(raw);
-  assert.equal(b.schemaVersion,2); assert.equal(b.operatorPlanSha256,f.planPin);assert.equal(b.runtimeCommit,fullCommit);assert.equal(b.runtimeManifestSha256,manifestPin);
+  assert.equal(b.schemaVersion,2); assert.equal(b.operatorPlanSha256,f.planPin);assert.equal(b.runtimeCommit,fullCommit);assert.equal(b.runtimeManifestSha256,manifestPin);assert.equal(b.originalGenesisHash,f.plan.originalGenesisHash);
   const calls=fs.readFileSync(f.log,'utf8').trim().split('\n').map(JSON.parse);
   assert.deepEqual(calls[0],['-migration-state',path.join(f.transaction,'final-snapshot/migration.json'),'-validator-manifest',f.validator,'-genesis-time',f.genesis,'-operator-plan',f.planPath,'-operator-plan-hash',f.planPin,'-output',path.join(f.transaction,'candidate/package')]);
   assert.deepEqual(calls[1],['-verify-package',path.join(f.transaction,'candidate/package'),'-operator-plan-hash',f.planPin]);
@@ -228,13 +228,13 @@ try {
   assert.ok(gatewayCommand.includes("'single-app-gateway'"));assert.ok(gatewayCommand.includes(fullCommit));assert.ok(gatewayCommand.includes(f.planPin));assert.ok(gatewayCommand.includes(manifestPin));assert.ok(!/AI_SIGNER|PAY_SIGNER|TRUST_SIGNER|faucet\.key|ynx-ai-gatewayd|2762[6-9]|2763[0-2]/.test(gatewayCommand));
   assert.equal(fs.statSync(path.join(f.transaction,'dependencies/start-attempt/gateway-runtime.tar.gz')).mode&0o077,0);
   for(const [field,value]of [['migrationBlockHash','f'.repeat(64)],['operatorPlanSHA256','9'.repeat(64)],['runtimeSOURCEsha256','8'.repeat(64)],['mode','legacy']]){write(gatewayPath,{...gateway,[field]:value});run(f,'continuity',phaseEnv,1);assert.equal(fs.existsSync(path.join(f.transaction,'dependencies/continuity')),false);fs.writeFileSync(gatewayPath,gatewayRaw);}
-  run(f,'continuity',phaseEnv);const continuityPath=path.join(f.transaction,'dependencies/continuity-result.json'),continuityRaw=fs.readFileSync(continuityPath),continuity=JSON.parse(continuityRaw);assert.equal(continuity.verified,false);assert.equal(continuity.ecosystemContinuityVerified,false);
+  run(f,'continuity',phaseEnv);const continuityPath=path.join(f.transaction,'dependencies/continuity-result.json'),continuityRaw=fs.readFileSync(continuityPath),continuity=JSON.parse(continuityRaw);assert.equal(continuity.verified,false);assert.equal(continuity.ecosystemContinuityVerified,false);assert.equal(continuity.pqIdentityObserved,false);assert.equal(continuity.pqIdentitySHA256,null);
   const observed=fs.readFileSync(path.join(f.transaction,'dependencies/continuity/gateway-before-health.json'));run(f,'continuity',phaseEnv,1);assert.deepEqual(fs.readFileSync(path.join(f.transaction,'dependencies/continuity/gateway-before-health.json')),observed);assert.deepEqual(fs.readFileSync(continuityPath),continuityRaw);
   run(f,'ingress',{...phaseEnv,PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED:'no'},1);assert.equal(fs.existsSync(path.join(f.transaction,'ingress/switch-attempt')),false);
   write(continuityPath,{...continuity,runtimeSOURCEsha256:'9'.repeat(64)});run(f,'ingress',phaseEnv,1);fs.writeFileSync(continuityPath,continuityRaw);assert.equal(fs.existsSync(path.join(f.transaction,'ingress/switch-attempt')),false);
   run(f,'ingress',phaseEnv);const ingressPath=path.join(f.transaction,'ingress/switch-result.json'),ingressRaw=fs.readFileSync(ingressPath),ingress=JSON.parse(ingressRaw);assert.equal(ingress.rpcOnly,true);assert.equal(ingress.publicIngressChanged,false);assert.equal(ingress.ecosystemContinuityVerified,false);
   const ingressTransport=fs.readFileSync(f.log+'.transport');run(f,'ingress',phaseEnv,1);assert.deepEqual(fs.readFileSync(f.log+'.transport'),ingressTransport);assert.deepEqual(fs.readFileSync(ingressPath),ingressRaw);
-  run(f,'public',phaseEnv);const publicResult=JSON.parse(fs.readFileSync(path.join(f.transaction,'ingress/public-result.json')));assert.equal(publicResult.verified,false);assert.equal(publicResult.publicIngressChanged,false);assert.equal(publicResult.ecosystemContinuityVerified,false);const endpoints=fs.readFileSync(path.join(f.transaction,'ingress/public-continuity/endpoints.txt'),'utf8');assert.ok(endpoints.includes('rpc.ynxweb4.com'));assert.ok(!/ai\.ynx|pay\.ynx|trust\.ynx|explorer\.ynx/.test(endpoints));
+  run(f,'public',phaseEnv);const publicResult=JSON.parse(fs.readFileSync(path.join(f.transaction,'ingress/public-result.json')));assert.equal(publicResult.verified,false);assert.equal(publicResult.publicIngressChanged,false);assert.equal(publicResult.ecosystemContinuityVerified,false);assert.equal(publicResult.pqIdentityObserved,false);assert.equal(publicResult.pqIdentitySHA256,null);const endpoints=fs.readFileSync(path.join(f.transaction,'ingress/public-continuity/endpoints.txt'),'utf8');assert.ok(endpoints.includes('rpc.ynxweb4.com'));assert.ok(!/ai\.ynx|pay\.ynx|trust\.ynx|explorer\.ynx/.test(endpoints));
   run(f,'recovery',phaseEnv);const recovery=JSON.parse(fs.readFileSync(path.join(f.transaction,'recovery-gateway/result.json')));assert.equal(recovery.nativeProducerResumed,false);assert.equal(recovery.verified,false);run(f,'resume',phaseEnv,1);
   run(f,'unfreeze',phaseEnv);const unfreezeTransport=fs.readFileSync(f.log+'.transport','utf8');assert.ok(unfreezeTransport.includes('http://127.0.0.1:6420,http://127.0.0.1:27620'));assert.ok(!/:642[89]|:643[0-2]/.test(unfreezeTransport));
   run(f,'rollback-ingress',phaseEnv);assert.equal(JSON.parse(fs.readFileSync(path.join(f.transaction,'ingress/rollback-result.json'))).ingress,'authoritative');run(f,'rollback-ingress',phaseEnv,1);
@@ -245,14 +245,78 @@ try {
   const health=h=>({ok:true,service:'ynx-bft-gatewayd',mode:'cometbft-backed',truthfulStatus:'cometbft-rpc-and-abci-backed',chainId:6423,nativeSymbol:'YNXT',cometChainId:'ynx_6423-1',validatorCount:4,publicCutoverReady:false,build:{commit,release},migrationHeight:41,migrationBlockHash:'b'.repeat(64),height:h});
   const status={chainId:6423,nativeCurrencySymbol:'YNXT',consensusEngine:'cometbft',cometChainId:'ynx_6423-1',truthfulStatus:'cometbft-rpc-and-abci-backed',validatorCount:4,publicCutoverReady:false,migrationHeight:41,migrationBlockHash:'b'.repeat(64),earliestBlockHeight:42,earliestBlockHash:'d'.repeat(64),height:44};
   write(path.join(proofDir,'start.json'),realStart);write(path.join(proofDir,'before.json'),health(43));write(path.join(proofDir,'after.json'),health(44));write(path.join(proofDir,'gateway-status.json'),status);
-  const observeArgs=[bindingCLI,'--gateway-observe',binding,...['start.json','before.json','after.json','gateway-status.json'].map(n=>path.join(proofDir,n))];const observedJSON=node(observeArgs).stdout;assert.equal(JSON.parse(observedJSON).source,'configured-comet-rpc');assert.equal(JSON.parse(observedJSON).independentFinalityVerified,false);
+  const pqIdentity={version:'ynx-pq-rpc-identity-v1',source:'configured-comet-rpc',buildSource:'gateway-buildinfo',build:{commit,release},independentFinality:false,identity:{version:'ynx-pq-wallet-identity-v1',source:'configured-abci-bootstrap',recordsView:'committed',hashAlgorithm:'sha256',nativeChainId:'6423',nativeGenesisHash:b.originalGenesisHash,cometChainId:'ynx_6423-1',cometGenesisSHA256:b.packageGenesisHash,migrationStateHash:b.packageMigrationStateHash,migrationHeight:'41',initialHeight:'42',currentStateHeight:'44',currentStateAppHash:'e'.repeat(64)},anchor:{status:'rpc-observed',stateHeight:'44',stateAppHash:'e'.repeat(64),headerHeight:'45',headerAppHashStateHeight:'44',observedLatestBlockHeight:'45',blockHash:'f'.repeat(64),blockHashAlgorithm:'cometbft-header-merkle-sha256',validatorsHash:'1'.repeat(64),signatureVerification:'not-performed',commitResult:Buffer.from('synthetic original commit observation').toString('base64'),validatorsResult:Buffer.from('synthetic original validators observation').toString('base64')}};
+  const identityPath=path.join(proofDir,'gateway-pq-identity.json');write(identityPath,pqIdentity);const identityRaw=fs.readFileSync(identityPath);
+  const observeArgs=[bindingCLI,'--gateway-observe',binding,...['start.json','before.json','after.json','gateway-status.json','gateway-pq-identity.json'].map(n=>path.join(proofDir,n))];const observedJSON=node(observeArgs).stdout;assert.equal(JSON.parse(observedJSON).source,'configured-comet-rpc');assert.equal(JSON.parse(observedJSON).independentFinalityVerified,false);assert.equal(JSON.parse(observedJSON).pqIdentityObserved,true);assert.equal(JSON.parse(observedJSON).pqIdentitySHA256,digest(identityRaw));
+  node(observeArgs.slice(0,-1),1);fs.renameSync(identityPath,identityPath+'.retained');node(observeArgs,1);fs.renameSync(identityPath+'.retained',identityPath);
+  for(const rawIdentity of ['Method Not Allowed\n','{invalid','null','[]',JSON.stringify(pqIdentity).replace('"nativeChainId":"6423"','"nativeChainId":"1","nativeChainId":"6423"'),JSON.stringify(pqIdentity).replace('"nativeChainId":"6423"','"native\\u0043hainId":"1","nativeChainId":"6423"')]){write(identityPath,rawIdentity);const retained=fs.readFileSync(identityPath);node(observeArgs,1);assert.deepEqual(fs.readFileSync(identityPath),retained);fs.writeFileSync(identityPath,identityRaw);}
+  for(const [trail,value]of [
+    [['version'],'legacy'],[['source'],'fallback-native'],[['buildSource'],'rpc-self-pin'],[['build','commit'],'0'.repeat(12)],[['build','release'],'old-release'],[['independentFinality'],true],
+    [['identity','version'],'legacy'],[['identity','source'],'pending'],[['identity','recordsView'],'pending'],[['identity','hashAlgorithm'],'sha512'],[['identity','nativeChainId'],'1'],[['identity','cometChainId'],'ynx_1-1'],[['identity','nativeGenesisHash'],'2'.repeat(64)],[['identity','cometGenesisSHA256'],'2'.repeat(64)],[['identity','migrationStateHash'],'2'.repeat(64)],[['identity','migrationHeight'],'40'],[['identity','initialHeight'],'41'],
+    [['identity','currentStateHeight'],'044'],[['identity','currentStateHeight'],'9223372036854775807'],[['anchor','stateHeight'],'43'],[['anchor','stateAppHash'],'2'.repeat(64)],[['anchor','headerHeight'],'44'],[['anchor','headerAppHashStateHeight'],'43'],[['anchor','observedLatestBlockHeight'],'044'],[['anchor','signatureVerification'],'verified'],[['anchor','status'],'final'],[['anchor','commitResult'],'not-base64']
+  ]){const changed=JSON.parse(identityRaw);let parent=changed;for(const key of trail.slice(0,-1))parent=parent[key];parent[trail.at(-1)]=value;write(identityPath,changed);const retained=fs.readFileSync(identityPath);node(observeArgs,1);assert.deepEqual(fs.readFileSync(identityPath),retained);fs.writeFileSync(identityPath,identityRaw);}
+  for(const field of ['packageGenesisHash','packageMigrationStateHash','originalGenesisHash']){const original=fs.readFileSync(binding);const changed=JSON.parse(original);delete changed[field];write(binding,changed);node(observeArgs,1);changed[field]=['1'.repeat(64)];write(binding,changed);node(observeArgs,1);fs.writeFileSync(binding,original);}
+  write(identityPath,' '.repeat((16<<20)+1));node(observeArgs,1);fs.writeFileSync(identityPath,identityRaw);
+  const pending=JSON.parse(identityRaw);pending.anchor.status='pending';pending.anchor.observedLatestBlockHeight='44';for(const key of ['blockHash','validatorsHash','commitResult','validatorsResult'])delete pending.anchor[key];write(identityPath,pending);const pendingObservation=JSON.parse(node(observeArgs).stdout);assert.equal(pendingObservation.pqIdentityObserved,true);assert.equal(pendingObservation.independentFinalityVerified,false);assert.equal(pendingObservation.pqIdentitySHA256,digest(fs.readFileSync(identityPath)));fs.writeFileSync(identityPath,identityRaw);
+  // Sequential GETs may advance: the identity's own coordinates, rather than
+  // equality with the earlier status height, determine a valid observation.
+  const advanced=JSON.parse(identityRaw);advanced.identity.currentStateHeight='46';Object.assign(advanced.anchor,{stateHeight:'46',headerHeight:'47',headerAppHashStateHeight:'46',observedLatestBlockHeight:'47'});write(identityPath,advanced);node(observeArgs);fs.writeFileSync(identityPath,identityRaw);
+  const observedPath=path.join(proofDir,'continuity.json');write(observedPath,observedJSON);const continuityArgs=[bindingCLI,'--continuity-check',binding,observedPath,'0'];node(continuityArgs);
+  for(const [field,value]of [['pqIdentityObserved',false],['pqIdentitySHA256',null],['independentFinalityVerified',true]]){write(observedPath,{...JSON.parse(observedJSON),[field]:value});node(continuityArgs,1);}write(observedPath,observedJSON);
   for(const [file,field,value]of [['start.json','runningExecutableSHA256','f'.repeat(64)],['after.json','height',43],['after.json','migrationBlockHash','f'.repeat(64)],['after.json','chainId',1],['gateway-status.json','earliestBlockHeight',41]]){const p=path.join(proofDir,file),old=fs.readFileSync(p);write(p,{...JSON.parse(old),[field]:value});const bad=fs.readFileSync(p);node(observeArgs,1);assert.deepEqual(fs.readFileSync(p),bad);fs.writeFileSync(p,old);}
   const publicTargets=node([bindingCLI,'--public-read-targets',binding,path.join(f.transaction,'final-snapshot/migration.json'),path.join(proofDir,'gateway-status.json')]).stdout;
   node([...observeArgs,'public'],1);for(const file of ['before.json','after.json','gateway-status.json']){const p=path.join(proofDir,file);write(p,{...JSON.parse(fs.readFileSync(p)),publicCutoverReady:true});}node(observeArgs,1);const publicObservation=node([...observeArgs,'public']).stdout;
   write(path.join(proofDir,'read-targets.txt'),publicTargets);write(path.join(proofDir,'observation.json'),publicObservation);write(path.join(proofDir,'account.json'),{address:'0x'+'1'.repeat(40),balance:100,nonce:0});write(path.join(proofDir,'block.json'),{height:42,hash:'d'.repeat(64)});write(path.join(proofDir,'evm-chain-id.json'),{jsonrpc:'2.0',id:1,result:'0x1917'});
   write(path.join(proofDir,'mutation-freeze.json'),{httpStatus:503});
   const publicArgs=[bindingCLI,'--public-readback',binding,proofDir],publicSource=JSON.parse(node(publicArgs).stdout);assert.equal(publicSource.accountBalanceVerified,false);assert.equal(publicSource.allNativeHistoryVerified,false);assert.equal(publicSource.ecosystemContinuityVerified,false);
+  assert.equal(publicSource.pqIdentityObserved,true);assert.equal(publicSource.pqIdentitySHA256,digest(identityRaw));
+  // Even harmless reformatting must not replace the original observed bytes.
+  fs.appendFileSync(identityPath,'\n');node(publicArgs,1);fs.writeFileSync(identityPath,identityRaw);
+  const publicSourcePath=path.join(proofDir,'public-result.json');write(publicSourcePath,publicSource);const publicCheck=[bindingCLI,'--public-result-check',binding,publicSourcePath,'0'];node(publicCheck);
+  for(const [field,value]of [['pqIdentityObserved',false],['pqIdentitySHA256',null],['independentFinalityVerified',true]]){write(publicSourcePath,{...publicSource,[field]:value});node(publicCheck,1);}write(publicSourcePath,publicSource);
   for(const [file,field,value]of [['account.json','address','0x'+'2'.repeat(40)],['block.json','hash','f'.repeat(64)],['evm-chain-id.json','result','0x1'],['mutation-freeze.json','httpStatus',404]]){const p=path.join(proofDir,file),old=fs.readFileSync(p);write(p,{...JSON.parse(old),[field]:value});node(publicArgs,1);fs.writeFileSync(p,old);}
+  // Exercise the original public caller, with admission isolated as a stub.
+  // Health/status succeed; only the real protocol GET returns curl's HTTP
+  // error status. This does not confer real ingress or candidate authority.
+  const failedPublic=path.join(f.dir,'public-identity-405'),failedLog=path.join(failedPublic,'calls.log'),failedHarness=path.join(failedPublic,'caller.sh');
+  fs.mkdirSync(path.join(failedPublic,'ingress'),{recursive:true,mode:0o700});
+  for(const name of ['HRS','ledger','UNKNOWN','mutation-freeze.json'])write(path.join(failedPublic,name),'retained original '+name+'\n');
+  const retainedPublic=['HRS','ledger','UNKNOWN','mutation-freeze.json'].map(name=>[path.join(failedPublic,name),fs.readFileSync(path.join(failedPublic,name))]);
+  write(failedHarness,'#!/usr/bin/env bash\nset -Eeuo pipefail\n'+extract('verify_public_phase')+String.raw`
+prepare_candidate_package(){ :; }
+ingress_context(){ ingress_root="$CASE_ROOT/ingress"; dependency_root="$CASE_ROOT/dependencies"; candidate_binding="$CASE_ROOT/binding.json"; gateway_binary_sha=unobserved; }
+validated_candidate_result(){ :; }
+validated_gateway_start(){ :; }
+validated_continuity_result(){ :; }
+node(){ printf 'node %s\n' "$*" >>"$CASE_LOG"; [[ "$2" == --ingress-check ]] || return 91; }
+sleep(){ :; }
+systemctl(){ printf 'forbidden systemctl %s\n' "$*" >>"$CASE_LOG"; return 93; }
+ynx_ops_ssh(){ printf 'forbidden SSH %s\n' "$*" >>"$CASE_LOG"; return 94; }
+curl(){
+  printf 'curl %s\n' "$*" >>"$CASE_LOG"
+  case "${*: -1}" in
+    https://rpc.test.invalid/health|https://rpc.test.invalid/status) printf '{"sourceFixtureOnly":true}\n' ;;
+    https://rpc.test.invalid/node/pq-identity) printf 'Method Not Allowed\n'; echo 'fixture: HTTP 405' >&2; return 22 ;;
+    *) echo 'unexpected request or mutation' >&2; return 92 ;;
+  esac
+}
+verify_public_phase
+`,0o700);
+  const failedEnv={...process.env,CASE_ROOT:failedPublic,CASE_LOG:failedLog,PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED:'yes',PUBLIC_BFT_PUBLIC_OBSERVATION_SECONDS:'2',DEPLOY_DRY_RUN:'0',PUBLIC_RPC_URL:'https://rpc.test.invalid',PUBLIC_EVM_RPC_URL:'https://evm.test.invalid'};
+  const failedRun=()=>spawnSync('bash',[failedHarness],{cwd:root,env:failedEnv,encoding:'utf8',maxBuffer:4<<20});
+  const firstFailed=failedRun();assert.equal(firstFailed.status,22,firstFailed.stderr);assert.ok(firstFailed.stderr.includes('HTTP 405'));
+  const failedEvidence=path.join(failedPublic,'ingress/public-continuity');
+  assert.equal(fs.existsSync(failedEvidence),true);assert.equal(fs.readFileSync(path.join(failedEvidence,'gateway-pq-identity.json'),'utf8'),'Method Not Allowed\n');
+  for(const name of ['result.json','observation.json'])assert.equal(fs.existsSync(path.join(failedEvidence,name)),false);
+  assert.equal(fs.existsSync(path.join(failedPublic,'ingress/public-result.json')),false);
+  const failedPublicCalls=fs.readFileSync(failedLog,'utf8'),requestLines=failedPublicCalls.split('\n').filter(line=>line.startsWith('curl '));
+  assert.equal(requestLines.length,4);assert.equal(requestLines.filter(line=>line.endsWith('/node/pq-identity')).length,1);assert.ok(requestLines.at(-1).includes('--max-redirs 0 --max-filesize 16777216 -fsS'));
+  assert.ok(requestLines.at(-1).includes('--request GET'));assert.ok(requestLines.at(-1).startsWith('curl --disable '));
+  assert.ok(!/\bPOST\b|(?:^|\s)-d(?:\s|$)|--data|systemctl|install-stub/m.test(failedPublicCalls));
+  const failedBytes=fs.readdirSync(failedEvidence).map(name=>[path.join(failedEvidence,name),fs.readFileSync(path.join(failedEvidence,name))]);
+  const repeatedFailed=failedRun();assert.notEqual(repeatedFailed.status,0);assert.ok(repeatedFailed.stderr.includes('retain UNKNOWN'));
+  assert.equal(fs.readFileSync(failedLog,'utf8').split('\n').filter(line=>line.startsWith('curl ')).length,requestLines.length,'UNKNOWN public observation resent a request');
+  unchanged(failedBytes);unchanged(retainedPublic);
   const unknown=fixture('unknown');run(unknown);const ub=fs.readFileSync(path.join(unknown.transaction,'candidate/binding.json'));write(path.join(unknown.transaction,'candidate/deploy-result.json'),{...deploy,transactionId:path.basename(unknown.transaction),bindingSha256:digest(ub)});write(path.join(unknown.transaction,'candidate/initialize-attempt/result.json'),{...JSON.parse(initRaw),bindingSha256:digest(ub)});
   run(unknown,'start',{DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED:'yes',FAIL_TRANSPORT:'partial'},1);const intent=path.join(unknown.transaction,'candidate/start-attempt/intent.json');assert.equal(JSON.parse(fs.readFileSync(intent)).status,'unknown');assert.equal(fs.existsSync(path.join(unknown.transaction,'candidate/start-attempt/result.json')),false);const failedCalls=fs.readFileSync(unknown.log+'.transport');assert.equal((failedCalls.toString().match(/timeout 30s systemctl start/g)||[]).length,2);run(unknown,'start',{DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED:'yes'},1);assert.deepEqual(fs.readFileSync(unknown.log+'.transport'),failedCalls);
   const rollback=fixture('rollback'),rollbackBefore=originals(rollback);run(rollback,'rollback',{DEPLOY_DRY_RUN:'0'},1);assert.equal(fs.existsSync(rollback.log+'.transport'),false);assert.equal(fs.existsSync(path.join(rollback.transaction,'candidate/rollback-result.json')),false);

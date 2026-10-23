@@ -40,15 +40,68 @@ function canonicalSecond(value, label) {
 const rawArgs = process.argv.slice(2);
 const operatorVersion = "YNX-PRODUCTION-OPERATOR/v1";
 const roles = ["primary", "singapore", "silicon-valley", "seoul"];
-const hash = (value) => /^[0-9a-f]{64}$/.test(value || "") && value !== "0".repeat(64);
+const hash = (value) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value) && value !== "0".repeat(64);
 const gatewayMode = "single-app-gateway";
 const gatewayContinuityVersion = "YNX-SINGLE-APP-GATEWAY-CONTINUITY/v1";
 function gatewayBinding(file) {
   requireRestrictedFile(file, "candidate binding");
   const b = readJSON(file, "candidate binding");
   isSingleAppCustody(b);
-  if (b.schemaVersion !== 2 || b.operatorProfile !== operatorVersion || !hash(b.operatorPlanSha256) || !hash(b.runtimeManifestSha256) || !/^[0-9a-f]{40}$/.test(b.runtimeCommit || "") || b.runtimeCommit.slice(0, 12) !== b.commit || b.bftRelease !== `ynx-bft-gateway-${b.commit}` || !Number.isSafeInteger(b.finalSnapshotHeight) || b.finalSnapshotHeight < 1) fail("gateway binding is invalid");
+  if (b.schemaVersion !== 2 || b.operatorProfile !== operatorVersion || !hash(b.operatorPlanSha256) || !hash(b.runtimeManifestSha256) || ![b.packageGenesisHash,b.packageMigrationStateHash,b.originalGenesisHash].every(hash) || !/^[0-9a-f]{40}$/.test(b.runtimeCommit || "") || b.runtimeCommit.slice(0, 12) !== b.commit || b.bftRelease !== `ynx-bft-gateway-${b.commit}` || !Number.isSafeInteger(b.finalSnapshotHeight) || b.finalSnapshotHeight < 1 || b.finalSnapshotHeight >= Number.MAX_SAFE_INTEGER) fail("gateway binding is invalid");
   return b;
+}
+// This only qualifies the public protocol route and its configured-source
+// observation. The RPC anchor is never a trusted checkpoint or signature proof.
+function gatewayPQIdentity(file, b) {
+  requireRestrictedFile(file, "gateway PQ identity");
+  const before = fs.lstatSync(file), limit = 16 * 1024 * 1024;
+  if (before.nlink !== 1 || before.size < 1 || before.size > limit) fail("gateway PQ identity exceeds its original bounded file");
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  let raw;
+  try {
+    const opened = fs.fstatSync(fd), buffer = Buffer.alloc(limit + 1);
+    if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino) fail("gateway PQ identity changed before read");
+    let size = 0, count;
+    while (size <= limit && (count = fs.readSync(fd, buffer, size, buffer.length - size, null)) > 0) size += count;
+    const after = fs.fstatSync(fd);
+    if (size > limit || size !== before.size || after.size !== before.size || after.mtimeMs !== before.mtimeMs || after.ctimeMs !== before.ctimeMs) fail("gateway PQ identity changed or exceeded its bound during read");
+    raw = buffer.subarray(0, size);
+  } finally { fs.closeSync(fd); }
+  let v;
+  try {
+    const text = raw.toString("utf8");
+    if (!Buffer.from(text, "utf8").equals(raw)) throw new Error("invalid UTF-8");
+    v = JSON.parse(text);
+    // JSON.parse accepts duplicate object keys. Walk the already valid grammar
+    // to reject them, including escaped spellings, before using source pins.
+    let at = 0;
+    const space = () => { while (/\s/.test(text[at] || "")) at++; };
+    const string = () => { const start = at++; while (text[at] !== '"') { if (text[at] === "\\") at++; at++; } at++; return JSON.parse(text.slice(start, at)); };
+    const value = depth => {
+      if (depth > 32) throw new Error("JSON nesting exceeds bound");
+      space();
+      if (text[at] === "{") {
+        at++; space(); const keys = new Set();
+        if (text[at] !== "}") for (;;) { space(); const key = string(); if (keys.has(key)) throw new Error("duplicate object key"); keys.add(key); space(); at++; value(depth + 1); space(); if (text[at] !== ",") break; at++; }
+        at++;
+      } else if (text[at] === "[") {
+        at++; space(); if (text[at] !== "]") for (;;) { value(depth + 1); space(); if (text[at] !== ",") break; at++; } at++;
+      } else if (text[at] === '"') string();
+      else { while (at < text.length && !/[\s,}\]]/.test(text[at])) at++; }
+    };
+    value(0); space(); if (at !== text.length) throw new Error("trailing JSON");
+  } catch (error) { fail(`gateway PQ identity is not strict JSON: ${error.message}`); }
+  const i = v?.identity, a = v?.anchor;
+  if (v?.version !== "ynx-pq-rpc-identity-v1" || v.source !== "configured-comet-rpc" || v.buildSource !== "gateway-buildinfo" || v.build?.commit !== b.commit || v.build?.release !== b.bftRelease || v.independentFinality !== false || i?.version !== "ynx-pq-wallet-identity-v1" || i.source !== "configured-abci-bootstrap" || i.recordsView !== "committed" || i.hashAlgorithm !== "sha256" || i.nativeChainId !== "6423" || i.cometChainId !== "ynx_6423-1" || i.nativeGenesisHash !== b.originalGenesisHash || i.cometGenesisSHA256 !== b.packageGenesisHash || i.migrationStateHash !== b.packageMigrationStateHash || i.migrationHeight !== String(b.finalSnapshotHeight) || i.initialHeight !== String(b.finalSnapshotHeight + 1)) fail("gateway PQ identity source/build/chain/genesis/migration mismatch");
+  const height = (value, zero = false) => typeof value === "string" && /^(0|[1-9][0-9]*)$/.test(value) && value.length <= 19 && BigInt(value) <= 9223372036854775807n && (zero || value !== "0");
+  if (!height(i.currentStateHeight) || BigInt(i.currentStateHeight) < BigInt(i.migrationHeight) || BigInt(i.currentStateHeight) === 9223372036854775807n || !hash(i.currentStateAppHash) || a?.stateHeight !== i.currentStateHeight || a.stateAppHash !== i.currentStateAppHash || a.headerHeight !== String(BigInt(i.currentStateHeight) + 1n) || a.headerAppHashStateHeight !== i.currentStateHeight || !height(a.observedLatestBlockHeight, true) || a.blockHashAlgorithm !== "cometbft-header-merkle-sha256" || a.signatureVerification !== "not-performed") fail("gateway PQ identity current state and anchor coordinates mismatch");
+  const observed = a.status === "rpc-observed";
+  const originalBase64 = (value, max) => typeof value === "string" && value.length > 0 && value.length <= 4 * Math.ceil(max / 3) && Buffer.from(value, "base64").length <= max && Buffer.from(value, "base64").toString("base64") === value;
+  if (observed ? (BigInt(a.observedLatestBlockHeight) < BigInt(a.headerHeight) || !hash(a.blockHash) || !hash(a.validatorsHash) || !originalBase64(a.commitResult, 8 << 20) || !originalBase64(a.validatorsResult, 2 << 20)) : (a.status !== "pending" || BigInt(a.observedLatestBlockHeight) >= BigInt(a.headerHeight) || ["blockHash","validatorsHash","commitResult","validatorsResult"].some(key => Object.hasOwn(a, key)))) fail("gateway PQ identity anchor is not an honest pending or RPC observation");
+  return crypto.createHash("sha256").update(raw).digest("hex");
+}
+function identityObservation(v, dry) {
+  if (v.pqIdentityObserved !== !dry || (dry ? v.pqIdentitySHA256 !== null : !hash(v.pqIdentitySHA256))) fail("gateway result lacks its original PQ identity observation");
 }
 function gatewayIdentity(v, b) {
   return v.mode === gatewayMode && v.transactionId === b.transactionId && v.commit === b.commit && v.bftRelease === b.bftRelease && v.operatorPlanSHA256 === b.operatorPlanSha256 && v.runtimeCommit === b.runtimeCommit && v.runtimeSOURCEsha256 === b.runtimeManifestSha256 && v.migrationHeight === b.finalSnapshotHeight && v.migrationBlockHash === b.finalSnapshotBlockHash.replace(/^0x/, "").toLowerCase();
@@ -69,21 +122,23 @@ if (rawArgs[0] === "--gateway-receipt") {
   process.exit(0);
 }
 if (rawArgs[0] === "--gateway-observe") {
-  if (rawArgs.length !== 6 && !(rawArgs.length === 7 && rawArgs[6] === "public")) fail("exact gateway observation arguments required");
-  const publicReady=rawArgs.length === 7;
+  if (rawArgs.length !== 7 && !(rawArgs.length === 8 && rawArgs[7] === "public")) fail("exact gateway observation and original PQ identity arguments required");
+  const publicReady=rawArgs.length === 8;
   const b = gatewayBinding(rawArgs[1]), start = readJSON(rawArgs[2], "gateway start");
   gatewayReceipt(start, b, "start", false, [start.gatewaySHA256, start.packageVerifierSHA256, start.backupSHA256]);
+  const pqIdentitySHA256 = gatewayPQIdentity(rawArgs[6], b);
   const before = readJSON(rawArgs[3], "gateway before"), after = readJSON(rawArgs[4], "gateway after"), status = readJSON(rawArgs[5], "gateway status");
   for (const v of [before, after]) {
     if (v.ok !== true || v.service !== "ynx-bft-gatewayd" || v.mode !== "cometbft-backed" || v.truthfulStatus !== "cometbft-rpc-and-abci-backed" || v.chainId !== 6423 || v.nativeSymbol !== "YNXT" || v.cometChainId !== "ynx_6423-1" || v.validatorCount !== 4 || v.publicCutoverReady !== publicReady || v.build?.commit !== b.commit || v.build?.release !== b.bftRelease || v.migrationHeight !== b.finalSnapshotHeight || v.migrationBlockHash !== start.migrationBlockHash || !Number.isSafeInteger(v.height) || v.height <= b.finalSnapshotHeight) fail("gateway health source/chain/build/retained history mismatch");
   }
   if (after.height <= before.height || status.chainId !== 6423 || status.nativeCurrencySymbol !== "YNXT" || status.consensusEngine !== "cometbft" || status.cometChainId !== "ynx_6423-1" || status.truthfulStatus !== "cometbft-rpc-and-abci-backed" || status.validatorCount !== 4 || status.publicCutoverReady !== publicReady || status.migrationHeight !== b.finalSnapshotHeight || status.migrationBlockHash !== start.migrationBlockHash || status.earliestBlockHeight !== b.finalSnapshotHeight + 1 || !Number.isSafeInteger(status.height) || status.height < after.height) fail("gateway did not advance or changed its original history boundary");
-  process.stdout.write(`${JSON.stringify({version:gatewayContinuityVersion, mode:gatewayMode, transactionId:b.transactionId, commit:b.commit, bftRelease:b.bftRelease, operatorPlanSHA256:b.operatorPlanSha256, runtimeCommit:b.runtimeCommit, runtimeSOURCEsha256:b.runtimeManifestSha256, bindingSHA256:sha256(rawArgs[1]), migrationHeight:b.finalSnapshotHeight, migrationBlockHash:start.migrationBlockHash, source:"configured-comet-rpc", chainId:6423, cometChainId:"ynx_6423-1", heightBefore:before.height, heightAfter:after.height, observedHeight:status.height, gatewaySHA256:start.gatewaySHA256, verified:true, dryRun:false, parallelCandidateOnly:true, publicCutoverReady:publicReady, publicIngressChanged:publicReady, independentFinalityVerified:false, ecosystemContinuityVerified:false})}\n`);
+  process.stdout.write(`${JSON.stringify({version:gatewayContinuityVersion, mode:gatewayMode, transactionId:b.transactionId, commit:b.commit, bftRelease:b.bftRelease, operatorPlanSHA256:b.operatorPlanSha256, runtimeCommit:b.runtimeCommit, runtimeSOURCEsha256:b.runtimeManifestSha256, bindingSHA256:sha256(rawArgs[1]), migrationHeight:b.finalSnapshotHeight, migrationBlockHash:start.migrationBlockHash, source:"configured-comet-rpc", chainId:6423, cometChainId:"ynx_6423-1", heightBefore:before.height, heightAfter:after.height, observedHeight:status.height, gatewaySHA256:start.gatewaySHA256, pqIdentityObserved:true, pqIdentitySHA256, verified:true, dryRun:false, parallelCandidateOnly:true, publicCutoverReady:publicReady, publicIngressChanged:publicReady, independentFinalityVerified:false, ecosystemContinuityVerified:false})}\n`);
   process.exit(0);
 }
 if (rawArgs[0] === "--continuity-check") {
   if (rawArgs.length !== 4 || !["0", "1"].includes(rawArgs[3])) fail("exact continuity arguments required");
   const b=gatewayBinding(rawArgs[1]), v=readJSON(rawArgs[2], "gateway continuity"), dry=rawArgs[3] === "1";
+  identityObservation(v, dry);
   if (!gatewayIdentity(v,b) || v.version !== gatewayContinuityVersion || v.bindingSHA256 !== sha256(rawArgs[1]) || v.verified !== !dry || v.dryRun !== dry || v.parallelCandidateOnly !== true || v.publicIngressChanged !== false || v.independentFinalityVerified !== false || v.ecosystemContinuityVerified !== false) fail("gateway continuity is not bound to this original operator/runtime transaction");
   if (!dry && (v.source !== "configured-comet-rpc" || v.chainId !== 6423 || v.cometChainId !== "ynx_6423-1" || !Number.isSafeInteger(v.heightBefore) || !Number.isSafeInteger(v.heightAfter) || v.heightBefore <= b.finalSnapshotHeight || v.heightAfter <= v.heightBefore || !Number.isSafeInteger(v.observedHeight) || v.observedHeight < v.heightAfter || !hash(v.gatewaySHA256))) fail("gateway continuity lacks real advancing configured-RPC evidence");
   process.exit(0);
@@ -98,6 +153,7 @@ if (rawArgs[0] === "--ingress-check") {
 if (rawArgs[0] === "--public-result-check") {
   if (rawArgs.length !== 4 || !["0","1"].includes(rawArgs[3])) fail("exact public result arguments required");
   const b=gatewayBinding(rawArgs[1]),v=readJSON(rawArgs[2],"public result"),dry=rawArgs[3]==="1";
+  identityObservation(v, dry);
   if (!gatewayIdentity(v,b) || v.version!=="YNX-SINGLE-APP-GATEWAY-PUBLIC/v1" || v.bindingSHA256!==sha256(rawArgs[1]) || v.verified!==!dry || v.dryRun!==dry || v.publicIngressChanged!==!dry || v.RPCOnly!==true || v.ecosystemContinuityVerified!==false || v.independentFinalityVerified!==false) fail("public result is not an original qualified RPC-only observation");
   if(!dry && (v.source!=="configured-comet-rpc" || !/^0x[0-9a-f]{40}$/.test(v.accountIdentityRead||"") || v.historyBlockHeight!==b.finalSnapshotHeight+1 || !hash(String(v.historyBlockHash||"").replace(/^0x/,"").toLowerCase()))) fail("public result lacks account/history readback");
   process.exit(0);
@@ -113,6 +169,8 @@ if (rawArgs[0] === "--public-read-targets") {
 if (rawArgs[0] === "--public-readback") {
   if (rawArgs.length !== 3) fail("exact public readback arguments required");
   const b=gatewayBinding(rawArgs[1]),root=rawArgs[2],o=readJSON(path.join(root,"observation.json"),"public observation"),s=readJSON(path.join(root,"gateway-status.json"),"public status"),a=readJSON(path.join(root,"account.json"),"public account"),block=readJSON(path.join(root,"block.json"),"public block"),evm=readJSON(path.join(root,"evm-chain-id.json"),"public EVM chain");
+  identityObservation(o, false);
+  if (gatewayPQIdentity(path.join(root,"gateway-pq-identity.json"), b) !== o.pqIdentitySHA256) fail("public PQ identity raw bytes changed after the original observation");
   const targets=fs.readFileSync(path.join(root,"read-targets.txt"),"utf8").trim().split(" ");
   if (readJSON(path.join(root,"mutation-freeze.json"),"shared mutation freeze").httpStatus !== 503) fail("shared mutation freeze was removed before the qualified public readback");
   if (!gatewayIdentity(o,b) || o.verified !== true || o.dryRun !== false || o.publicCutoverReady !== true || o.publicIngressChanged !== true || o.source !== "configured-comet-rpc" || o.bindingSHA256 !== sha256(rawArgs[1]) || o.ecosystemContinuityVerified !== false || o.independentFinalityVerified !== false || targets.length !== 2 || a.address !== targets[0] || block.height !== Number(targets[1]) || block.height !== b.finalSnapshotHeight+1 || !hash(String(block.hash).replace(/^0x/,"").toLowerCase()) || String(block.hash).replace(/^0x/,"").toLowerCase() !== String(s.earliestBlockHash).replace(/^0x/,"").toLowerCase() || evm.jsonrpc !== "2.0" || evm.id !== 1 || evm.error !== undefined || evm.result !== "0x1917") fail("public account/history/EVM readback does not match the original observed source");
@@ -234,6 +292,7 @@ if (!/^[0-9a-f]{12}$/.test(expectedCommit)) fail("expected commit is invalid");
 if (expectedRelease !== `ynx-bft-gateway-${expectedCommit}`) fail("expected release is not commit-bound");
 if (!/^[0-9a-f]{40}$/.test(runtimeCommit) || !runtimeCommit.startsWith(expectedCommit) || !hash(runtimeManifestSha256)) fail("independent full runtime commit/SOURCE pin mismatch");
 const operatorPlan = pinnedOperator(operatorPlanPath, operatorPlanSha256);
+if (![operatorPlan.consensusGenesisSHA256,operatorPlan.originalGenesisHash,operatorPlan.migrationStateHash].every(hash)) fail("independent operator genesis/migration pins are incomplete");
 
 const transactionDir = path.resolve(transactionDirValue);
 const transactionId = path.basename(transactionDir);
@@ -345,6 +404,7 @@ process.stdout.write(`${JSON.stringify({
   packageManifestSha256: sha256(packageManifestPath),
   packageGenesisHash: packageManifest.genesisHash,
   packageMigrationStateHash: packageManifest.migrationStateHash,
+  originalGenesisHash: operatorPlan.originalGenesisHash,
   automaticRollbackRequired: true,
   ...(!singleApp ? { serviceSignerManifestSha256: approval.serviceSignerManifestSha256 } : {}),
   validated: true,

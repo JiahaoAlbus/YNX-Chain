@@ -607,13 +607,17 @@ verify_continuity_phase() {
   if [[ "${DEPLOY_DRY_RUN:-0}" == 1 ]]; then
     node - "$candidate_binding" >"$evidence/result.json" <<'NODE'
 const fs=require("fs"),crypto=require("crypto"),p=process.argv[2],raw=fs.readFileSync(p),b=JSON.parse(raw);
-console.log(JSON.stringify({version:"YNX-SINGLE-APP-GATEWAY-CONTINUITY/v1",mode:"single-app-gateway",transactionId:b.transactionId,commit:b.commit,bftRelease:b.bftRelease,operatorPlanSHA256:b.operatorPlanSha256,runtimeCommit:b.runtimeCommit,runtimeSOURCEsha256:b.runtimeManifestSha256,bindingSHA256:crypto.createHash("sha256").update(raw).digest("hex"),migrationHeight:b.finalSnapshotHeight,migrationBlockHash:b.finalSnapshotBlockHash.replace(/^0x/,""),verified:false,dryRun:true,parallelCandidateOnly:true,publicIngressChanged:false,independentFinalityVerified:false,ecosystemContinuityVerified:false}));
+console.log(JSON.stringify({version:"YNX-SINGLE-APP-GATEWAY-CONTINUITY/v1",mode:"single-app-gateway",transactionId:b.transactionId,commit:b.commit,bftRelease:b.bftRelease,operatorPlanSHA256:b.operatorPlanSha256,runtimeCommit:b.runtimeCommit,runtimeSOURCEsha256:b.runtimeManifestSha256,bindingSHA256:crypto.createHash("sha256").update(raw).digest("hex"),migrationHeight:b.finalSnapshotHeight,migrationBlockHash:b.finalSnapshotBlockHash.replace(/^0x/,""),verified:false,dryRun:true,parallelCandidateOnly:true,publicIngressChanged:false,pqIdentityObserved:false,pqIdentitySHA256:null,independentFinalityVerified:false,ecosystemContinuityVerified:false}));
 NODE
   else
     sleep "$observation"
     ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl --noproxy '*' --max-time 10 -fsS http://127.0.0.1:27620/health" >"$evidence/gateway-after-health.json"
     ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl --noproxy '*' --max-time 10 -fsS http://127.0.0.1:27620/status" >"$evidence/gateway-status.json"
-    node scripts/verify/public-bft-candidate-binding.mjs --gateway-observe "$candidate_binding" "$dependency_root/start-result.json" "$evidence/gateway-before-health.json" "$evidence/gateway-after-health.json" "$evidence/gateway-status.json" >"$evidence/result.json"
+    # Read the protocol entry point through this exact gateway as well. A
+    # healthy legacy service or an HTTP 405 cannot qualify the new protocol.
+    # Keep a failed/partial observation and never retry this evidence directory.
+    ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl --disable --noproxy '*' --request GET --connect-timeout 5 --max-time 10 --max-redirs 0 --max-filesize 16777216 -fsS http://127.0.0.1:27620/node/pq-identity" >"$evidence/gateway-pq-identity.json"
+    node scripts/verify/public-bft-candidate-binding.mjs --gateway-observe "$candidate_binding" "$dependency_root/start-result.json" "$evidence/gateway-before-health.json" "$evidence/gateway-after-health.json" "$evidence/gateway-status.json" "$evidence/gateway-pq-identity.json" >"$evidence/result.json"
   fi
   node scripts/verify/public-bft-candidate-binding.mjs --continuity-check "$candidate_binding" "$evidence/result.json" "${DEPLOY_DRY_RUN:-0}"
   ln "$evidence/result.json" "$dependency_root/continuity-result.json"
@@ -699,7 +703,7 @@ verify_public_phase() {
   if [[ "${DEPLOY_DRY_RUN:-0}" == 1 ]]; then
     node - "$candidate_binding" >"$evidence/result.json" <<'NODE'
 const fs=require("fs"),crypto=require("crypto"),p=process.argv[2],raw=fs.readFileSync(p),b=JSON.parse(raw);
-console.log(JSON.stringify({version:"YNX-SINGLE-APP-GATEWAY-PUBLIC/v1",mode:"single-app-gateway",transactionId:b.transactionId,commit:b.commit,bftRelease:b.bftRelease,operatorPlanSHA256:b.operatorPlanSha256,runtimeCommit:b.runtimeCommit,runtimeSOURCEsha256:b.runtimeManifestSha256,bindingSHA256:crypto.createHash("sha256").update(raw).digest("hex"),migrationHeight:b.finalSnapshotHeight,migrationBlockHash:b.finalSnapshotBlockHash.replace(/^0x/,""),verified:false,dryRun:true,RPCOnly:true,publicIngressChanged:false,independentFinalityVerified:false,ecosystemContinuityVerified:false}));
+console.log(JSON.stringify({version:"YNX-SINGLE-APP-GATEWAY-PUBLIC/v1",mode:"single-app-gateway",transactionId:b.transactionId,commit:b.commit,bftRelease:b.bftRelease,operatorPlanSHA256:b.operatorPlanSha256,runtimeCommit:b.runtimeCommit,runtimeSOURCEsha256:b.runtimeManifestSha256,bindingSHA256:crypto.createHash("sha256").update(raw).digest("hex"),migrationHeight:b.finalSnapshotHeight,migrationBlockHash:b.finalSnapshotBlockHash.replace(/^0x/,""),verified:false,dryRun:true,RPCOnly:true,publicIngressChanged:false,pqIdentityObserved:false,pqIdentitySHA256:null,independentFinalityVerified:false,ecosystemContinuityVerified:false}));
 NODE
     printf 'DRY RUN RPC-only public observation: %s %s\n' "$rpc" "$evm" >"$evidence/endpoints.txt"
   else
@@ -707,7 +711,8 @@ NODE
     sleep "$observation"
     curl --noproxy '*' --max-time 10 -fsS "$rpc/health" >"$evidence/gateway-after-health.json"
     curl --noproxy '*' --max-time 10 -fsS "$rpc/status" >"$evidence/gateway-status.json"
-    node scripts/verify/public-bft-candidate-binding.mjs --gateway-observe "$candidate_binding" "$dependency_root/start-result.json" "$evidence/gateway-before-health.json" "$evidence/gateway-after-health.json" "$evidence/gateway-status.json" public >"$evidence/observation.json"
+    curl --disable --noproxy '*' --request GET --connect-timeout 5 --max-time 10 --max-redirs 0 --max-filesize 16777216 -fsS "$rpc/node/pq-identity" >"$evidence/gateway-pq-identity.json"
+    node scripts/verify/public-bft-candidate-binding.mjs --gateway-observe "$candidate_binding" "$dependency_root/start-result.json" "$evidence/gateway-before-health.json" "$evidence/gateway-after-health.json" "$evidence/gateway-status.json" "$evidence/gateway-pq-identity.json" public >"$evidence/observation.json"
     curl --noproxy '*' --max-time 10 -fsS -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' "$evm" >"$evidence/evm-chain-id.json"
     node scripts/verify/public-bft-candidate-binding.mjs --public-read-targets "$candidate_binding" "$candidate_transaction_dir/final-snapshot/migration.json" "$evidence/gateway-status.json" >"$evidence/read-targets.txt"
     local account height
@@ -858,7 +863,8 @@ gateway_recovery_phase() {
   ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; printf '%s  %s\\n' '$marker_sha' /var/lib/ynx-chain/block-production-pause.json | sudo sha256sum --strict -c - >/dev/null; curl --noproxy '*' --max-time 10 -fsS http://127.0.0.1:6420/status" >"$evidence/native-after.json"
   ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl --noproxy '*' --max-time 10 -fsS http://127.0.0.1:27620/health" >"$evidence/gateway-after-health.json"
   ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl --noproxy '*' --max-time 10 -fsS http://127.0.0.1:27620/status" >"$evidence/gateway-status.json"
-  node scripts/verify/public-bft-candidate-binding.mjs --gateway-observe "$candidate_binding" "$dependency_root/start-result.json" "$evidence/gateway-before-health.json" "$evidence/gateway-after-health.json" "$evidence/gateway-status.json" public >"$evidence/observation.json"
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "curl --disable --noproxy '*' --request GET --connect-timeout 5 --max-time 10 --max-redirs 0 --max-filesize 16777216 -fsS http://127.0.0.1:27620/node/pq-identity" >"$evidence/gateway-pq-identity.json"
+  node scripts/verify/public-bft-candidate-binding.mjs --gateway-observe "$candidate_binding" "$dependency_root/start-result.json" "$evidence/gateway-before-health.json" "$evidence/gateway-after-health.json" "$evidence/gateway-status.json" "$evidence/gateway-pq-identity.json" public >"$evidence/observation.json"
   node - "$candidate_binding" "$evidence" >"$evidence/result.json" <<'NODE'
 const fs=require("fs"),[p,d]=process.argv.slice(2),b=JSON.parse(fs.readFileSync(p)),o=JSON.parse(fs.readFileSync(d+"/observation.json"));
 for(const name of ["native-before","native-after"]){const s=JSON.parse(fs.readFileSync(d+"/"+name+".json"));if(s.chainId!==6423||s.nativeCurrencySymbol!=="YNXT"||s.height!==b.finalSnapshotHeight||s.latestBlockHash!==b.finalSnapshotBlockHash||s.build?.commit!==b.commit||s.build?.release!==b.authoritativeRelease||s.nodeIdentity?.replicationMode!=="authoritative_producer")process.exit(1)}
