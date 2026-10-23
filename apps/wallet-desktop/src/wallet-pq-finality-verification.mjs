@@ -1,13 +1,19 @@
 import {createPQHostContextReference} from './wallet-pq-host-reference.mjs';
 import {createPQFinalityVerifierCapture} from './wallet-pq-verifier-capture.mjs';
+import {supportsPackagedPQTypedFinality} from './wallet-pq-verifier-assets.mjs';
+import {originalPQVerifierReceipt} from './wallet-pq-verifier-receipt.mjs';
+import {preparePQFinalityOriginal} from './wallet-pq-finality-original.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const safe=owner=>{try{owner?.assertSafeToClose();return true;}catch{return false;}};
 /** Main-only orchestration of the original Host and proof callers. Source
  * selection is a private original-producer dependency, never IPC or ENV.
  * A result is retained DATA, not authority or a journal status transition.
  */
-export function createPQFinalityVerification({evidence,selectSource,createProducer,createVerifier,persistObservation,flushObservation}){
+export function createPQFinalityVerification({evidence,selectSource,createProducer,createVerifier,persistObservation,flushObservation,verifierReceipt=originalPQVerifierReceipt}){
  if(typeof persistObservation!=='function'||typeof flushObservation!=='function')fail('PQ_FINALITY_PRIVATE_JOURNAL_REQUIRED');
+ // Capture this private original-Main component choice before any async work.
+ // No mutable flag/renderer capability can turn a legacy component into fbec.
+ const typedComponentAvailable=supportsPackagedPQTypedFinality(verifierReceipt);
  let operation=null,active=false;
  const safeOperation=own=>safe(own.host)&&safe(own.capture)&&safe(evidence)&&(!own.result||own.journalStored);
  const assertOwner=(original,binding,guard)=>{guard.assert();if(guard.account!==original.account||binding.account!==original.account)fail('PQ_HOST_CONTEXT_MISMATCH');};
@@ -19,10 +25,13 @@ export function createPQFinalityVerification({evidence,selectSource,createProduc
   async join(){await operation?.work?.catch(()=>{});await operation?.host?.join();await operation?.capture?.join();},
   async verify(original,binding,proof,guard){
    if(active||operation)fail('PQ_FINALITY_VERIFICATION_UNCONFIRMED');assertOwner(original,binding,guard);
-   // Current independently signed packaged receipt591 has no typed CLI
-   // capability evidence. PUBLIC/Linux producer success cannot replace it.
-   // Keep DATA capture/restore usable; no source/process is selected here.
-   if(original.kind==='pq-typed-action')fail('PQ_TYPED_VERIFIER_ASSET_NOT_SUPPLIED');
+   // A source-owned independent closed component receipt is not Host trust.
+   // Legacy591 remains denied for typed requests. Validate the complete saved
+   // original/review/snapshots before even selecting a prospective Host source.
+   if(original.kind==='pq-typed-action'){
+    preparePQFinalityOriginal(original,binding);
+    if(!typedComponentAvailable)fail('PQ_TYPED_VERIFIER_ASSET_NOT_SUPPLIED');
+   }
    active=true;const own={original,binding,host:null,capture:null,work:null,result:null,journalStored:false};operation=own;
    const work=(async()=>{
     const selection=await selectSource(original,binding);assertOwner(original,binding,guard);

@@ -5,7 +5,7 @@ import {constants} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {runInNewContext} from 'node:vm';
-import {originalPQVerifierReceipt} from '../src/wallet-pq-verifier-receipt.mjs';
+import {originalPQVerifierReceipt,legacyPQVerifierReceipt591} from '../src/wallet-pq-verifier-receipt.mjs';
 const helper=new URL('../scripts/packaged-proof-verifier.mjs',import.meta.url);
 async function fixture(t){
  const root=await fs.realpath(await fs.mkdtemp(path.join(tmpdir(),'wallet-proof-package-')));t.after(()=>fs.rm(root,{recursive:true,force:true}));
@@ -18,7 +18,8 @@ async function fixture(t){
  return {root,stage,resources,files,checked,install:context.install};
 }
 test('source-owned independent receipt retains original signed identity, not the CI raw signature',()=>{
- assert.equal(originalPQVerifierReceipt.sourceCommit,'59185090aab3e4eaa6f8c9a0b29e975a2917e8b1');assert.equal(originalPQVerifierReceipt.bundled.bytes,34310208);assert.equal(originalPQVerifierReceipt.bundled.sha256,'a7e47ea79b3e4bdd40014c8c02aafbad7b37a69c9c15c7f45a9fd0c51d44479d');assert.equal(originalPQVerifierReceipt.manifest.sha256,'b574373a4304c682b73442c1cd8087562ff04be515a0fb4deba88f50104d098e');assert.equal(Object.isFrozen(originalPQVerifierReceipt),true);assert.equal(Object.isFrozen(originalPQVerifierReceipt.manifest),true);
+ assert.equal(originalPQVerifierReceipt.sourceCommit,'fbecfbefff09d1f20b059fc859cfcdd6affcabde');assert.equal(originalPQVerifierReceipt.bundled.bytes,34461888);assert.equal(originalPQVerifierReceipt.bundled.sha256,'65b6b4375aafefbd0b08700495583dcea783d26b914d4843cb13d07b2167fca3');assert.equal(originalPQVerifierReceipt.manifest.sha256,'7ea67728d2d49e760962ed74471fb9aab4f6ef29dacccbc25828ba8721d4ef1f');assert.equal(Object.isFrozen(originalPQVerifierReceipt),true);assert.equal(Object.isFrozen(originalPQVerifierReceipt.manifest),true);
+ assert.equal(legacyPQVerifierReceipt591.sourceCommit,'59185090aab3e4eaa6f8c9a0b29e975a2917e8b1');assert.equal(legacyPQVerifierReceipt591.bundled.sha256,'a7e47ea79b3e4bdd40014c8c02aafbad7b37a69c9c15c7f45a9fd0c51d44479d');
 });
 test('PUBLIC copy-policy seam copies three fixed paths exclusively and verifies both sides after copy, without signing',async t=>{
  const f=await fixture(t),result=await f.install(f.resources,f.stage);assert.deepEqual(f.checked,[f.stage,f.stage,f.resources]);assert.equal(result.bundledSha256,originalPQVerifierReceipt.bundled.sha256);assert.equal(result.outerSealed,false);

@@ -21,6 +21,7 @@ import {createPQFinalityVerifierCapture} from './wallet-pq-verifier-capture.mjs'
 import {readPQFinalityVerifierEvidence} from './wallet-pq-verifier-restore.mjs';
 import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
 import {createPQFinalityVerification} from './wallet-pq-finality-verification.mjs';
+import {legacyPQVerifierReceipt591,originalPQVerifierReceipt} from './wallet-pq-verifier-receipt.mjs';
 import {parsePQTransferHostContext} from './wallet-pq-host-context.mjs';
 import {installOriginalProofHostDelivery,readInstalledOriginalProofHostDelivery} from './original-proof-host-delivery.mjs';
 import {fixture as publicHostFixture} from '../test/helpers/pq-host-export.mjs';
@@ -142,8 +143,29 @@ test('actual Main typed collector persists actual HTTP response before late lock
 });
 test('normal typed verification refuses unqualified packaged capability before selecting any Host or process',async t=>{
  const f=await typedCaptureFixture(t);let effects=0;const fail=()=>{effects++;throw Error('no Host or process permitted')};
- const normal=createPQFinalityVerification({evidence:f.evidence,selectSource:fail,createProducer:fail,createVerifier:fail,persistObservation:fail,flushObservation:fail});
+ const normal=createPQFinalityVerification({evidence:f.evidence,selectSource:fail,createProducer:fail,createVerifier:fail,persistObservation:fail,flushObservation:fail,verifierReceipt:legacyPQVerifierReceipt591});
  await assert.rejects(normal.verify(record,f.binding,f.input.proof,f.guard),{code:'PQ_TYPED_VERIFIER_ASSET_NOT_SUPPLIED'});assert.equal(effects,0);assert.equal(normal.pending(),false);normal.assertSafeToClose();
+});
+test('closed fbec typed component still requires the genuine original Host and cannot treat signed assets as authority',async t=>{
+ const f=await typedCaptureFixture(t);let sources=0,effects=0;
+ const fail=()=>{effects++;throw Error('no producer/process/persist permitted')};
+ const normal=createPQFinalityVerification({evidence:f.evidence,selectSource:()=>{sources++;throw Object.assign(Error('actual Host absent'),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'})},createProducer:fail,createVerifier:fail,persistObservation:fail,flushObservation:fail,verifierReceipt:originalPQVerifierReceipt});
+ await assert.rejects(normal.verify(record,f.binding,f.input.proof,f.guard),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});
+ assert.equal(sources,1);assert.equal(effects,0);assert.equal(normal.pending(),false);normal.assertSafeToClose();
+});
+test('mutating a private legacy receipt after controller construction cannot promote its typed capability',async t=>{
+ const f=await typedCaptureFixture(t);let effects=0;const fail=()=>{effects++;throw Error('no effect')},receipt=structuredClone(legacyPQVerifierReceipt591);
+ const normal=createPQFinalityVerification({evidence:f.evidence,selectSource:fail,createProducer:fail,createVerifier:fail,persistObservation:fail,flushObservation:fail,verifierReceipt:receipt});
+ Object.assign(receipt,structuredClone(originalPQVerifierReceipt));
+ await assert.rejects(normal.verify(record,f.binding,f.input.proof,f.guard),{code:'PQ_TYPED_VERIFIER_ASSET_NOT_SUPPLIED'});
+ assert.equal(effects,0);assert.equal(normal.pending(),false);normal.assertSafeToClose();
+});
+test('typed original with a stripped review is rejected before selecting a Host even with fixed fbec assets',async t=>{
+ const f=await typedCaptureFixture(t);let effects=0;const fail=()=>{effects++;throw Error('no effect')};
+ const normal=createPQFinalityVerification({evidence:f.evidence,selectSource:fail,createProducer:fail,createVerifier:fail,persistObservation:fail,flushObservation:fail});
+ const bad=structuredClone(record);delete bad.typed.review;
+ await assert.rejects(normal.verify(bad,f.binding,f.input.proof,f.guard));
+ assert.equal(effects,0);assert.equal(normal.pending(),false);normal.assertSafeToClose();
 });
 test('actual typed Host delivery preserves Protocol Member originalHash separately from Wallet transport journal key',async t=>{
  const f=await typedCaptureFixture(t),root=await fs.realpath(path.dirname(f.filePath)),incoming=path.join(root,'incoming'),destination=path.join(root,'installed');await fs.mkdir(incoming,{mode:0o700});

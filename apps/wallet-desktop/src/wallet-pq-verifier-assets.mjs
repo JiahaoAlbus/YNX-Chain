@@ -16,6 +16,14 @@ const hostProfile=Object.freeze({sourceCommit:'59185090aab3e4eaa6f8c9a0b29e975a2
  sourceFile:{bytes:1938,sha256:'8775709d35a0f2734c09a51bd4db7f446922faa34b9ca37924335dadddef61ce'},
  manifest:{bytes:729,sha256:'b574373a4304c682b73442c1cd8087562ff04be515a0fb4deba88f50104d098e'},
  bundled:{bytes:34310208,sha256:'a7e47ea79b3e4bdd40014c8c02aafbad7b37a69c9c15c7f45a9fd0c51d44479d'}});
+// Source-owned closed fbec profile: original CI bytes and independently
+// post-inner-sign bytes are different facts. Whole source/tree and twenty
+// Host/typed leaves were independently bound in original A's frozen handoff.
+const typedHostProfile=Object.freeze({sourceCommit:'fbecfbefff09d1f20b059fc859cfcdd6affcabde',forkTree:'fa760970088d4f1a275d4cab254d63a014db9c74',
+ ciOriginal:{bytes:34663250,sha256:'e9bd43f234b8e1639de82414d2a71cc07147fba99d7fda0a6f3389270146535a'},
+ sourceFile:{bytes:1938,sha256:'ea662a43b51f6b1f648f4cfc7311f6c8fec61a19f18f5dc30df1ea29a546cab5'},
+ manifest:{bytes:729,sha256:'7ea67728d2d49e760962ed74471fb9aab4f6ef29dacccbc25828ba8721d4ef1f'},
+ bundled:{bytes:34461888,sha256:'65b6b4375aafefbd0b08700495583dcea783d26b914d4843cb13d07b2167fca3'}});
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 function exact(value,fields){if(types.isProxy(value))fail('PQ_FINALITY_ASSET_INVALID');exactData(value,fields,'PQ_FINALITY_ASSET_INVALID');}
@@ -24,12 +32,19 @@ function canonical(file){if(typeof file!=='string'||!path.isAbsolute(file)||path
 function component(receipt){
  exact(receipt,['sourceCommit','forkTree','manifest','bundled','sourceFile']);
  if(receipt.sourceCommit===sourceCommit&&receipt.forkTree===forkTree)return {sourceCommit,forkTree,ciOriginal,sourceFile};
- if(receipt.sourceCommit===hostProfile.sourceCommit&&receipt.forkTree===hostProfile.forkTree){
-  for(const key of ['manifest','bundled','sourceFile']){const p=pin(receipt[key],64<<20);if(p.bytes!==hostProfile[key].bytes||p.sha256!==hostProfile[key].sha256)fail('PQ_FINALITY_ASSET_INVALID');}
-  return hostProfile;
+ const selected=[hostProfile,typedHostProfile].find(p=>receipt.sourceCommit===p.sourceCommit&&receipt.forkTree===p.forkTree);
+ if(selected){
+  for(const key of ['manifest','bundled','sourceFile']){const p=pin(receipt[key],64<<20);if(p.bytes!==selected[key].bytes||p.sha256!==selected[key].sha256)fail('PQ_FINALITY_ASSET_INVALID');}
+  return selected;
  }
  fail('PQ_FINALITY_ASSET_INVALID');
 }
+export function supportsPackagedPQTypedFinality(receipt){
+ if(receipt===null||receipt===undefined)return false;
+ exact(receipt,['sourceCommit','forkTree','manifest','bundled','sourceFile']);
+ return component(receipt)===typedHostProfile;
+}
+const hostCapable=receipt=>[hostProfile,typedHostProfile].includes(component(receipt));
 async function readPinned(file,expected,maximum,{executable=false}={}){
  canonical(file);let handle;
  try{
@@ -78,7 +93,7 @@ export async function preparePackagedPQVerifierInvocation(resourcesPath,independ
 }
 export async function preparePackagedPQHostInvocation(resourcesPath,independentReceipt,input){
  canonical(resourcesPath);if(independentReceipt===null||independentReceipt===undefined)fail('PQ_FINALITY_ASSET_RECEIPT_NOT_SUPPLIED');
- if(component(independentReceipt)!==hostProfile)fail('PQ_HOST_COMPONENT_UNAVAILABLE');
+ if(!hostCapable(independentReceipt))fail('PQ_HOST_COMPONENT_UNAVAILABLE');
  exact(input,['sourcePath','sourceSha256','stdin']);canonical(input.sourcePath);
  const captured={sourcePath:input.sourcePath,sourceSha256:input.sourceSha256,stdin:input.stdin};
  if(Buffer.byteLength(captured.sourcePath)>4096||typeof captured.sourceSha256!=='string'||!/^[a-f0-9]{64}$/.test(captured.sourceSha256)||typeof captured.stdin!=='string'||Buffer.byteLength(captured.stdin)>4096||Buffer.from(captured.stdin).toString('utf8')!==captured.stdin)fail('PQ_HOST_INVOCATION_INVALID');
@@ -96,7 +111,7 @@ function packagedCaller({app,independentReceipt=null},mode){
  if(independentReceipt!==null){
   exact(independentReceipt,['sourceCommit','forkTree','manifest','bundled','sourceFile']);
   const {sourceCommit,forkTree}=component(independentReceipt);
-  if(mode==='host-producer'&&component(independentReceipt)!==hostProfile)fail('PQ_HOST_COMPONENT_UNAVAILABLE');
+  if(mode==='host-producer'&&!hostCapable(independentReceipt))fail('PQ_HOST_COMPONENT_UNAVAILABLE');
   receipt=Object.freeze({sourceCommit,forkTree,manifest:pin(independentReceipt.manifest,16384),bundled:pin(independentReceipt.bundled,64<<20),sourceFile:pin(independentReceipt.sourceFile,65536)});
  }
  const kernel=new PQFinalityVerifierProcessKernel({mode,prepare:async input=>{
