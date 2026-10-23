@@ -150,7 +150,7 @@ for (const cleanup of ['false-rejection','incomplete-result','clean']) test('P2 
     const desktop=join(root,'code/apps/developer/desktop'), vendor=join(root,'code/packages/wallet-auth/scripts');
     await mkdir(desktop,{recursive:true});await mkdir(vendor,{recursive:true});
     await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'server.mjs'));
-    for(const file of ['wallet-admission-startup.mjs','wallet-admission-delivery.mjs','private-payload-pump.mjs','native-tools-client.mjs','admitted-local-project.mjs'])await copyFile(new URL('./'+file,import.meta.url),join(desktop,file));
+    for(const file of ['wallet-admission-startup.mjs','wallet-admission-delivery.mjs','private-payload-pump.mjs','native-tools-client.mjs','admitted-local-project.mjs','project-contract-runtime.mjs','wallet-contract-client.mjs','wallet-contract-reference-journal.mjs','contract-relay-scope.mjs','project-contract-deployment.mjs'])await copyFile(new URL('./'+file,import.meta.url),join(desktop,file));
     await copyParentControl(desktop);
     await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
     await writeFile(join(desktop,'local-go-selection.mjs'),"export async function createLocalGoSelectionStore(){throw Error('PUBLIC no Go');}export function attachNativeGoSelectionChannel(){}");

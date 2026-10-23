@@ -2,7 +2,42 @@ const unavailable = () => Object.assign(Error('Project Wallet service is unavail
 
 // This host belongs to exactly one local-workbench process/project. Neither a
 // WebSocket client nor a plugin can select its SDK, account, project or origin.
-export function createProjectContractsHost({context, openClient, openPublication, openDeployment, assertPathCurrent, assertNetworkApproved}) {
+export function createProjectContractsHost(options){
+  let retired=false,attempt=createProjectContractsAttempt({...options,openPublication:undefined}),cancelling,cleanup;
+  // Cancelling Wallet must not retire an independent publication observer.
+  const publication=createProjectContractsAttempt({context:options.context,assertPathCurrent:options.assertPathCurrent,openPublication:options.openPublication});
+  function close(){
+    retired=true;
+    return cleanup ||= (async()=>{
+      const results=await Promise.allSettled([attempt.close(),publication.close(),cancelling]);
+      if(typeof options.closeContractAuthority==='function')try{await options.closeContractAuthority();}catch(reason){results.push({status:'rejected',reason});}
+      const errors=results.filter(result=>result.status==='rejected').map(result=>result.reason);
+      if(errors.length===1)throw errors[0];if(errors.length>1)throw new AggregateError(errors,'Project contract cleanup remains uncertain.');
+    })();
+  }
+  return Object.freeze({async call(action,body={}){
+    if(retired)throw unavailable();
+    if(action==='publication-preview'||action==='publication-observe')return publication.call(action,body);
+    if(action==='cancel'){
+      if(cancelling)return cancelling;
+      const selected=attempt;
+      cancelling=(async()=>{
+        await selected.close();
+        if(typeof options.resetContractAuthority==='function')await options.resetContractAuthority();
+        if(retired)return{state:'retired',queryOnly:true};
+        await options.assertPathCurrent();if(retired)return{state:'retired',queryOnly:true};
+        // Constructing a new local attempt does not acquire Source or Relay.
+        // The next explicit action still passes the real original guard.
+        attempt=createProjectContractsAttempt({...options,openPublication:undefined});
+        return{state:'cancelled',queryOnly:true};
+      })();
+      try{return await cancelling;}finally{cancelling=null;}
+    }
+    if(cancelling){await options.assertPathCurrent();if(action==='inspect')return{state:'cancelling',projectId:options.context.id,onlineConfigured:false,pairingURI:null};throw Object.assign(unavailable(),{code:'IDE_CONTRACT_BUSY'});}
+    return attempt.call(action,body);
+  },close});
+}
+function createProjectContractsAttempt({context, openClient, openPublication, openDeployment, assertPathCurrent, assertNetworkApproved}) {
   let retired = false, client, acquiring, publication, acquiringPublication, deployment, acquiringDeployment, busy = false, uri = null, cleanup;
   async function current() { if(retired)throw unavailable(); await assertPathCurrent(); if(retired)throw unavailable(); }
   async function acquire() {

@@ -41,8 +41,9 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   let goStore,goToolchain;
   try{goStore=await createLocalGoSelectionStore({supportRoot,context,pathIdentityHelper:join(resources,'runtime','workspace-path-identity')});goToolchain=await goStore.load();}
   catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
-  const { openBundledWalletAdmission, openBundledProjectContractClient,loadBundledContractMaterialBuilder } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
+  const { openBundledWalletAdmission, createBundledProjectContractRuntime } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
   const walletAdmission = await openBundledWalletAdmission(import.meta.url);
+  const contractRuntime=typeof createBundledProjectContractRuntime==='function'?await createBundledProjectContractRuntime({context,serverModuleURL:import.meta.url}):null;
   // Retire service capability before child shutdown; late four-op results may
   // not reopen a cancelled native parent epoch. This is separate from Tools.
   const retireWallet = () => { walletAdmission.close?.(); };
@@ -79,16 +80,20 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
     walletAdmission, aiTools, goToolchain,
-    // The contract-specific Source selector is supplied independently of AI.
-    // Until its fixed producer is connected, this remains locally unavailable.
-    openProjectContracts:projectContext=>openBundledProjectContractClient({context:projectContext}),
+    // Native independently matches signed Source to this launch/workspace.
+    // Missing SDK exports, projectLaunch or activation retain explicit denial.
+    openProjectContracts:contractRuntime?projectContext=>contractRuntime.openClient(projectContext):undefined,
+    assertContractNetworkApproved:contractRuntime?()=>contractRuntime.assertNetworkApproved():undefined,
+    resetContractAuthority:contractRuntime?()=>contractRuntime.reset():undefined,
+    closeContractAuthority:contractRuntime?()=>contractRuntime.close():undefined,
     openPublication:async projectContext=>{const {createArtifactPublicationHost}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-host.mjs')));return createArtifactPublicationHost({context:projectContext,admittedProject:walletAdmission?.admittedProject});},
-    openDeployment:async projectContext=>{const {createProjectContractDeployment}=await import(pathToFileURL(join(applicationRoot,'desktop','project-contract-deployment.mjs')));return createProjectContractDeployment({context:projectContext,loadMaterialBuilder:()=>loadBundledContractMaterialBuilder()});},
+    openDeployment:contractRuntime?projectContext=>contractRuntime.openDeployment(projectContext):undefined,
     node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
       retireWallet();
       await finishWalletCleanup();
       retireTools();
       await finishToolsCleanup();
+      try{await contractRuntime?.close();}catch(cleanupError){throw new AggregateError([error,cleanupError],'Project contract startup cleanup remains uncertain.',{cause:error});}
       // startLocalWorkbench has already stopped its own child before rejecting.
       // Preserve the lock refusal across the launcher/native-host boundary.
       if (error.code === 'YNX_LOCAL_PROJECT_ALREADY_OPEN') {
@@ -129,6 +134,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
     stopping = (async () => {
       try { await workbench.stop(); }
       finally {
+        try{await contractRuntime?.close();}catch{console.error('YNX_CONTRACT_CLEANUP_INCOMPLETE');process.exitCode=1;}
         const parentCleanup = await parentControl.finishCleanup();
         if (parentCleanup.complete !== true) process.exitCode = 1;
         // A channel's DATA cleanup result is not a rejected parent task. Keep

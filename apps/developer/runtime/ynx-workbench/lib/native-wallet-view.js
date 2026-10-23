@@ -59,14 +59,14 @@ class NativeWalletWidget extends BaseWidget {
     };
     const projectCall=async(action,body={})=>{
       if(action==='inspect'&&projectConnecting){try{await refreshProjectConnection(projectEpoch,true);}catch{}return;}
-      const epoch=++projectEpoch;
+      const epoch=++projectEpoch;let cancellationConfirmed=false;
       clearTimeout(projectTimer);projectTimer=undefined;
       try{
         if(!service.projectContracts)throw Error('Project service unavailable');
         if(action==='connect'){
           projectConnecting=true;projectButtons.connect.disabled=true;projectButtons.query.disabled=true;projectButtons.read.disabled=true;
           projectStatus.textContent=t('projectContractPairing');
-        }else if(action==='cancel')projectConnecting=false;
+        }else if(action==='cancel'){projectConnecting=false;for(const key of ['connect','query','read','inspect','cancel'])projectButtons[key].disabled=true;}
         const operation=service.projectContracts.call(action,body);
         if(action==='connect'){
           let observations=0;
@@ -81,6 +81,8 @@ class NativeWalletWidget extends BaseWidget {
         }
         const value=await operation;
         if(!live||epoch!==projectEpoch)return;
+        cancellationConfirmed=action==='cancel'&&value?.state==='cancelled';
+        if(action==='cancel'&&!cancellationConfirmed)throw Error('Project cancellation was not confirmed');
         if(action==='inspect'){
           showProjectConnection(value);
         }else if(action==='read'||action==='query'){
@@ -88,7 +90,7 @@ class NativeWalletWidget extends BaseWidget {
           projectStatus.textContent=t('projectQueryOnly');
         }else{projectStatus.textContent=t(action==='cancel'?'projectContractCancelled':'projectContractConnected');pairing.value='';pairing.hidden=true;}
       }catch{if(live&&epoch===projectEpoch)projectStatus.textContent=t('projectContractUnavailable');}
-      finally{if(epoch===projectEpoch){clearTimeout(projectTimer);projectTimer=undefined;if(action==='connect'||action==='cancel'){projectConnecting=false;projectButtons.read.disabled=action==='cancel';projectButtons.connect.disabled=action==='cancel'||!projectConfigured;projectButtons.query.disabled=action==='cancel'||!projectConfigured;pairing.value='';pairing.hidden=true;}}}
+      finally{if(epoch===projectEpoch){clearTimeout(projectTimer);projectTimer=undefined;if(action==='connect'||action==='cancel'){projectConnecting=false;projectButtons.read.disabled=action==='cancel'&&!cancellationConfirmed;projectButtons.connect.disabled=action==='cancel'&&!cancellationConfirmed||!projectConfigured;projectButtons.query.disabled=action==='cancel'&&!cancellationConfirmed||!projectConfigured;if(action==='cancel'){projectButtons.inspect.disabled=false;projectButtons.cancel.disabled=false;}pairing.value='';pairing.hidden=true;}}}
     };
     for(const [action,key] of [['connect','projectContractConnect'],['inspect','projectContractRefresh'],['read','projectReferenceRead'],['query','projectReferenceQuery'],['cancel','projectContractCancel']]){
       const button=element(document,'button',t(key));button.type='button';button.className='theia-button secondary';if(action==='connect'||action==='query')button.disabled=true;
