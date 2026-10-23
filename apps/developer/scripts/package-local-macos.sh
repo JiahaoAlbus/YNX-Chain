@@ -19,6 +19,7 @@ canonical_native_root=$(node scripts/package-identity-admission-source.mjs --nat
 canonical_app_native_root=$(node scripts/identity-app-custody-source.mjs)
 node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs
 node --test scripts/native-wallet-transport-recipe.test.mjs
+node --test scripts/native-source-ownership.test.mjs
 node --test scripts/admit-derived-native.test.mjs
 node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
 node --test desktop/wallet-identity-v2-caller.test.mjs desktop/wallet-identity-v2-startup.test.mjs
@@ -129,8 +130,11 @@ cp "$branding_root/YNXDeveloper.icns" "$branding_root/installer-background.png" 
 branding_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/branding-manifest.json" | awk '{print $1}')
 # Keep the mature shell in Objective-C; the original parent supplier is ObjC++.
 # The old refusal implementation defines the same ABI and must not be linked.
+# The current Source authority uses the original helper client/XPC/service and
+# publication codec. Keep those implementation units in the App link too;
+# copying a newly pinned header alone cannot supply their Objective-C symbols.
 /usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$canonical_app_native_root/packages/wallet-auth/native" -I"$canonical_native_root/packages/wallet-auth/native" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" -c desktop/macos/main.m -o "$root/main.o"
-/usr/bin/clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$canonical_app_native_root/packages/wallet-auth/native" -I"$canonical_native_root/packages/wallet-auth/native" -Idesktop/macos "$root/main.o" desktop/macos/original-ide-parent-supplier.mm "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-source-authority.mm" "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-joint-owner.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-source-binding.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-kernel.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-observation.mm" "$canonical_app_native_root/packages/wallet-auth/native/original-ide-identity-launch-holder.mm" -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit -lbsm
+/usr/bin/clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$canonical_app_native_root/packages/wallet-auth/native" -I"$canonical_native_root/packages/wallet-auth/native" -Idesktop/macos "$root/main.o" desktop/macos/original-ide-parent-supplier.mm "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-source-authority.mm" "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-joint-owner.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-source-binding.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-kernel.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-observation.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-client.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-service-install.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-publication-artifact.mm" "$canonical_app_native_root/packages/wallet-auth/native/original-ide-identity-launch-holder.mm" -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit -framework ServiceManagement -lbsm
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
 if [[ -n "$local_node_runtime" ]]; then
   /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $macos_min_version" "$app/Contents/Info.plist"

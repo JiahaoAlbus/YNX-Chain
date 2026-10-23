@@ -191,6 +191,17 @@ const nativeEvidenceRelative = 'apps/wallet-desktop/native/original-auth-identit
 const repository = resolve(developer, '../..');
 const canonicalNativeRoot = resolve(process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT || repository);
 const safeRelative = value => typeof value === 'string' && /^[A-Za-z0-9_@./-]+$/.test(value) && !value.startsWith('/') && !value.split('/').some(p => !p || p === '.' || p === '..');
+export function canonicalNativeSourcesForOwner(inputs,owner){
+  if(!['ide','sdk'].includes(owner)||!Array.isArray(inputs?.nativeSources))throw Error('Canonical Native source owner differs.');
+  return inputs.nativeSources.filter(row=>{
+    if(!safeRelative(row.path))throw Error('Canonical Native source owner path differs.');
+    // The original SDK supplies helper inputs under apps/developer too.
+    // Their directory name must not redirect them into the IDE worktree.
+    const selected=Object.hasOwn(row,'sourceOwner')?row.sourceOwner:row.path.startsWith('apps/developer/')?'ide':'sdk';
+    if(!['ide','sdk'].includes(selected))throw Error('Canonical Native source owner differs.');
+    return selected===owner;
+  });
+}
 
 // The App holder is an exact original Auth input, not a Node NAPI TU. A former
 // SDK/Native selection cannot silently compile the new caller with a loose or
@@ -307,8 +318,8 @@ export async function verifyCanonicalNativeSourceSelection(root = canonicalNativ
   if (resolve(root)!==root || !stat.isDirectory() || stat.isSymbolicLink()) throw Error('Regular canonical Native source root required.');
   const inputs=await canonicalInputs();
   validateOriginalIdentityAppSources(inputs);
-  await verifyRows(ideRoot,inputs.nativeSources.filter(row=>row.path.startsWith('apps/developer/')));
-  await verifyRows(root,inputs.nativeSources.filter(row=>!row.path.startsWith('apps/developer/')));
+  await verifyRows(ideRoot,canonicalNativeSourcesForOwner(inputs,'ide'));
+  await verifyRows(root,canonicalNativeSourcesForOwner(inputs,'sdk'));
   const receiptBytes=await readFile(join(root,nativeReceiptRelative));
   if(receiptBytes.length!==inputs.nativeComponent.receipt.bytes || sha256(receiptBytes)!==inputs.nativeComponent.receipt.sha256) throw Error('Canonical Native receipt bytes differ.');
   const record=validateCanonicalNativeBuildReceipt(JSON.parse(receiptBytes),inputs);
@@ -326,7 +337,7 @@ export async function copyCanonicalNativeModule(codeRoot) {
   if (receiptBytes.length!==inputs.nativeComponent.receipt.bytes || sha256(receiptBytes)!==inputs.nativeComponent.receipt.sha256) throw Error('Canonical Native receipt bytes differ.');
   const record = validateCanonicalNativeBuildReceipt(JSON.parse(receiptBytes), inputs);
   const evidenceBytes = await verifyComponentEvidence(record);
-  await verifyRows(canonicalNativeRoot, inputs.nativeSources.filter(row=>!row.path.startsWith('apps/developer/')));
+  await verifyRows(canonicalNativeRoot, canonicalNativeSourcesForOwner(inputs,'sdk'));
   const headerRows = record.headers.map(row => ({...row, path:row.relative}));
   if (new Set(headerRows.map(row => row.path)).size !== headerRows.length || headerRows.some(row => !safeRelative(row.path) || !Number.isSafeInteger(row.bytes) || !/^[a-f0-9]{64}$/.test(row.sha256))) throw Error('Canonical Native header pin differs.');
   await verifyRows(record.headerRoot, headerRows);
