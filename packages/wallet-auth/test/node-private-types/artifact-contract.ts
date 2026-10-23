@@ -25,3 +25,7 @@ function protectedConsumer(raw:Uint8Array){
  destroyIDEArtifactPublisherKeyData(handle);destroyIDEArtifactPublisherKeyData(restored);
 }
 void protectedConsumer;
+import {preparePQContractDeploymentMaterialData,type PQContractDeploymentMaterialInput} from '@ynx-chain/wallet-auth/pq-contract-deployment-material';
+declare const input:PQContractDeploymentMaterialInput;
+const prepared=preparePQContractDeploymentMaterialData(input);
+const unapproved:false=prepared.authorized;void unapproved;

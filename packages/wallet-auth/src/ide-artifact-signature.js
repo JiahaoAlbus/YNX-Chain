@@ -25,7 +25,9 @@ function record(value,fields){
  const out=Object.create(null);for(const k of fields){const d=ds[k];if(!d||!Object.hasOwn(d,'value')||!d.enumerable)invalid();out[k]=d.value;}return out;
 }
 const textEdge=/^[\u0009-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]|[\u0009-\u000d\u0020\u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]$/u;
-function text(value){if(typeof value!=='string'||!value.length||value.length>256||/[\ud800-\udfff\p{Cc}\p{Cf}]/u.test(value)||textEdge.test(value)||Buffer.byteLength(value)>256)invalid();return value;}
+// Original Protocol artifactCatalogText / Auth R161 catalog rule. Manifest
+// strings use a different rule; do not apply its Unicode Cf ban to publisher R.
+function text(value){if(typeof value!=='string'||!value.length||value.length>256||/[\ud800-\udfff\u0000-\u0020\u007f]/u.test(value)||textEdge.test(value)||Buffer.byteLength(value)>256)invalid();return value;}
 function binding(value){
  const b=record(value,bindingFields);
  if(typeof b.networkId!=='string'||! /^[a-f0-9]{64}$/.test(b.networkId)||typeof b.subjectOwner!=='string'||! /^0x[a-f0-9]{40}$/.test(b.subjectOwner)||typeof b.publisherKeyVersion!=='string'||! /^[1-9][0-9]{0,19}$/.test(b.publisherKeyVersion)||BigInt(b.publisherKeyVersion)>18446744073709551615n)invalid();

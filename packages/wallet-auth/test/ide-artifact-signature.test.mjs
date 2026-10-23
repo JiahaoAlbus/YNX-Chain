@@ -62,3 +62,8 @@ test('actual ephemeral independent publisher pair, exact R13 and M3 dual signatu
   assert.equal(destroy(h),true);assert.equal(destroy(h),false);assert.deepEqual(cleanup(h),{retired:true,cleanupComplete:true,cleanupUnknown:false,firstCause:undefined,globalCleanupDebt:false});bad(()=>sign(h,m,r));bad(()=>exportMaterial(h));bad(()=>readPublic(h));
  }finally{destroy(h);if(restored)destroy(restored);material?.pkcs8A.fill(0);material?.pkcs8B.fill(0);}
 });
+test('original Go catalog text rule rejects interior ASCII space but preserves valid Unicode format in publisher R',()=>{
+ for(const field of ['account','projectId','publisherId'])for(const value of ['inside space','inside\u001fcontrol','inside\u007fcontrol','\u0085edge','edge\u3000'])assert.throws(()=>create({...binding(),[field]:value}),{code:'IDE_ARTIFACT_SIGNATURE_DATA_INVALID'});
+ const h=create({...binding(),publisherId:'publisher\u200cjoin'});
+ try{const r=readPublic(h),p=inspectPublic(r);assert.equal(p.publisherId,'publisher\u200cjoin');const sig=sign(h,manifest(),r);assert.equal(verify(sig,manifest(),r).publisherId,p.publisherId);}finally{destroy(h);}
+});
