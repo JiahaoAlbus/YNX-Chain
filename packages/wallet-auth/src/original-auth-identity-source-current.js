@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {dirname,basename} from 'node:path';
 import {readFileSync,lstatSync,openSync,constants,closeSync,fstatSync,realpathSync} from 'node:fs';
 import {canonical,sha,originalSignatureContract,verifySourceEnrollment,verifySourceProfile,verifySourceTransitionOriginal} from '../native/original-auth-identity-source-verifier.mjs';
+import {loadReleaseSelectedOriginalSourceV2} from './original-auth-source-current-v2.js';
 
 // PRIVATE Auth-current producer; a signature from this domain is NOT a Social
 // floor/NativeCore domain, ordinary QA, SSO or a four-op account permission.
@@ -14,9 +15,9 @@ const fail=code=>{throw Object.assign(new Error(code),{code});};
 const admittedSourceServices=Object.freeze([]);
 const nonce=()=>randomBytes(32).toString('base64url');
 function sameKey(privateKey,expected){return privateKey instanceof KeyObject&&privateKey.type==='private'&&privateKey.asymmetricKeyType==='ed25519'&&createPublicKey(privateKey).equals(expected);}
-function publicFile(path,digest){
+function publicFile(path,digest,maximum=32768){
  const fd=openSync(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);try{
-  const before=fstatSync(fd),named=lstatSync(path);if(!before.isFile()||before.nlink!==1||(before.mode&0o022)||before.dev!==named.dev||before.ino!==named.ino||before.size<1||before.size>32768)fail('AUTH_SOURCE_PUBLIC_ORIGINAL_INVALID');
+  const before=fstatSync(fd),named=lstatSync(path);if(!before.isFile()||before.nlink!==1||(before.mode&0o022)||before.dev!==named.dev||before.ino!==named.ino||before.size<1||before.size>maximum)fail('AUTH_SOURCE_PUBLIC_ORIGINAL_INVALID');
   const raw=readFileSync(fd,'utf8'),after=fstatSync(fd),end=lstatSync(path);if(sha(raw)!==digest||before.dev!==end.dev||before.ino!==end.ino||before.size!==after.size||before.mtimeMs!==after.mtimeMs||before.ctimeMs!==after.ctimeMs)fail('AUTH_SOURCE_PUBLIC_ORIGINAL_CHANGED');return raw;
  }finally{closeSync(fd);}
 }
@@ -111,9 +112,13 @@ export function acquireOriginalAuthSourceCurrentService(sourceId,protectedSignin
 }
 // Normal daemon startup only. No ENV/key generator/default identity. With no
 // independently admitted release row it returns null BEFORE any key read.
-export function loadOriginalAuthSourceCurrentService(){
+export async function loadOriginalAuthSourceCurrentService(){
  if(admittedSourceServices.length===0)return null;if(admittedSourceServices.length!==1)fail('AUTH_SOURCE_CURRENT_RELEASE_AMBIGUOUS');
  const entry=admittedSourceServices[0],now=Date.now();
+ if(entry.version===2){
+  const result=await loadReleaseSelectedOriginalSourceV2(entry,(path,digest)=>publicFile(path,digest,393216));
+  const service=result?.partial??result;services.add(service);sourceServiceDebt.add(service);return result;
+ }
  const rootRaw=publicFile(entry.rootPath,entry.policy.rootDigest),enrollmentRaw=publicFile(entry.enrollmentPath,entry.policy.enrollmentDigest),role=verifySourceEnrollment(rootRaw,enrollmentRaw,entry.policy,now);
  if(typeof entry.keyPath!=='string'||realpathSync(entry.keyPath)!==entry.keyPath)fail('AUTH_SOURCE_CURRENT_KEY_NOT_SUPPLIED');
  const parent=lstatSync(dirname(entry.keyPath));if(!parent.isDirectory()||parent.isSymbolicLink()||parent.uid!==process.getuid()||(parent.mode&0o077))fail('AUTH_SOURCE_CURRENT_KEY_NOT_SUPPLIED');
@@ -126,8 +131,8 @@ export function loadOriginalAuthSourceCurrentService(){
   return Object.freeze({partial:service,error:cause});
  }
 }
-export function handleOriginalAuthSourceCurrent(service,method,url,now=Date.now()){
+export async function handleOriginalAuthSourceCurrent(service,method,url,now=Date.now()){
  if(!services.has(service))fail('AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED');
  const parsed=new URL(url,'https://wallet-auth.ynxweb4.com');if(method!=='GET'||parsed.origin!=='https://wallet-auth.ynxweb4.com'||parsed.pathname!=='/v1/auth-identity/source-current'||parsed.hash||[...parsed.searchParams.keys()].sort().join('|')!=='nonce|profile')fail('AUTH_SOURCE_CURRENT_REQUEST_INVALID');
- return {status:200,headers:{'content-type':'application/json','cache-control':'no-store'},body:service.current(parsed.searchParams.get('profile'),parsed.searchParams.get('nonce'),now)};
+ return {status:200,headers:{'content-type':'application/json','cache-control':'no-store'},body:await service.current(parsed.searchParams.get('profile'),parsed.searchParams.get('nonce'),now)};
 }

@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.20",
+  "version": "1.3.0-pq.3.32-auth.21",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -374,8 +374,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
-      "bytes": 11647,
-      "sha256": "7b5958e1695a0ff79061c1067c4cdd6561eb4d9262dd9c836e33fec41332ace0"
+      "bytes": 12057,
+      "sha256": "c2484cbb941ad9d43423701c50226f05eecb6cab52e8fe568f7c8ea5225cc44e"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-auth-proof-data.h",
@@ -630,8 +630,8 @@
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 12387,
-    "sha256": "882c936591a31fed919cadb063a5d496182d82175cc80a80dbaaaf6d109e179e"
+    "bytes": 12727,
+    "sha256": "7893621afaeb63b0a6dd6b1b5f54f95aa0c643b3495da264861ac9ecaadd7222"
   },
   "require": {
     "translationUnits": 13,
@@ -720,7 +720,7 @@
       "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
     }
   ],
-  "profile": "R181-normal-kind6-artifact-result-data-transport-source",
+  "profile": "R185-source-v2-producer-and-independent-current-journal-source",
   "HelperInputs": [
     {
       "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
@@ -1326,5 +1326,78 @@
     "installed": false,
     "service": false,
     "signatureOrTransactionAction": false
+  },
+  "sourceCurrentIOInputs": [
+    {
+      "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+      "bytes": 5009,
+      "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+    }
+  ],
+  "supplierR185": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r185/HANDOFF.json",
+      "bytes": 10050,
+      "sha256": "e7f1a39e0f1ea09e6c70145cce69e09cadfcb771fd76d13451e5f8d28aefb30a"
+    },
+    "parentSDK": "b330fffdfe5ceda04ff665f396e46c6c85e8bb74",
+    "NativeSourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+        "bytes": 12057,
+        "sha256": "c2484cbb941ad9d43423701c50226f05eecb6cab52e8fe568f7c8ea5225cc44e"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+        "bytes": 5009,
+        "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+      }
+    ],
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
+        "bytes": 19561,
+        "sha256": "aff368bcc6d7ef3f6b0ebbabe2f3a47a4cd73dec931566dc949f2ed05c7b3d3f"
+      },
+      {
+        "path": "packages/wallet-auth/src/original-auth-identity-source-current.js",
+        "bytes": 15627,
+        "sha256": "ce74e79f1327b3fa50dac26fc88894e4b4a1668c6890b83dec20688b2954394e"
+      },
+      {
+        "path": "packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs",
+        "bytes": 21454,
+        "sha256": "078c970fb2725752e4ed5cbd6366344a5a114750db649c469e4be2b1a0894b05"
+      },
+      {
+        "path": "packages/wallet-auth/src/product-session-gateway-node-host.js",
+        "bytes": 49854,
+        "sha256": "5ef9df4bdbd1c877ecd279bc676e824ff7be94ec038498c8f815d29e48765b91"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+        "bytes": 12057,
+        "sha256": "c2484cbb941ad9d43423701c50226f05eecb6cab52e8fe568f7c8ea5225cc44e"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+        "bytes": 5009,
+        "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+      }
+    ],
+    "originalReferencesVerified": 14,
+    "normalCanonicalInputs": 87,
+    "independentSourceCurrentIOInputs": 1,
+    "extendedSourceClosure": 88,
+    "sourceEvidenceReused": true,
+    "actualDarwinJournal3Reused": true,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "normalAddonCoversSeparateIO": false,
+    "nativeProductionSigningExecuted": false,
+    "normalAdmittedServiceActivated": false,
+    "HTTPSource13FactoryComplete": false,
+    "AppOrInstalled": false
   }
 }

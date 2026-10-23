@@ -60,7 +60,7 @@ const deployment=build?{build,remoteDeployed}:{remoteDeployed};
 const host=new CanonicalWalletGatewayNodeHost(registry,{emitEvent,statePath,now:()=>new Date()},deployment);
 const productRegistry=JSON.parse(readFileSync(productSessionRegistryPath,'utf8'));
 const ProductHost=productSessionStateVersion==='3'?ProductSessionControlNodeHost:ProductSessionGatewayNodeHost;
-const originalAuthSourceStartup=loadOriginalAuthSourceCurrentService();
+const originalAuthSourceStartup=await loadOriginalAuthSourceCurrentService();
 if(originalAuthSourceStartup?.partial){
  let cleanupCause,cleanupCausePresent=false;
  try{originalAuthSourceStartup.partial.retire();originalAuthSourceStartup.partial.join();originalAuthSourceStartup.partial.close();}catch(cause){cleanupCause=cause;cleanupCausePresent=true;}
@@ -86,7 +86,7 @@ const gatewayHandler=async(request,response)=>{
   const path=new URL(request.url,'http://127.0.0.1').pathname;
   if(path==='/v1/auth-identity/source-current'){
     if(!originalAuthSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
-    const result=handleOriginalAuthSourceCurrent(originalAuthSourceCurrent,request.method,request.url);response.writeHead(result.status,result.headers);response.end(result.body);return;
+    const result=await handleOriginalAuthSourceCurrent(originalAuthSourceCurrent,request.method,request.url);response.writeHead(result.status,result.headers);response.end(result.body);return;
   }
   if(central?.handles(path)){
     let body='';if(request.method==='POST'){let size=0;const chunks=[];for await(const chunk of request){size+=chunk.length;if(size>16384)throw new Error('Central browser body exceeds policy');chunks.push(chunk)}body=Buffer.concat(chunks).toString('utf8');}

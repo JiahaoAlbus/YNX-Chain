@@ -143,3 +143,13 @@ Main approval holder/current/revoke checks remain required. Packet-carried R13
 or a reference is not its own trust source. No Linux HTTP OriginalSource or
 server approval is minted by a macOS peer return. Installed Source, matching
 products, real login/recovery/revocation and publication acceptance are unverified.
+
+### Auth21 R185 original Source-current v2 producer
+
+The normal Source-current loader and fixed GET handler are asynchronous. Both gatewayd startup/routing and ProductSessionGatewayNodeHost await their original result and retain the original partial cleanup owner on failure. The release selector remains empty until independently commissioned; this package does not create a Source, Principal, Root, signer or permission.
+
+The private v2 producer requires the exact server Node 26.7.0 / OpenSSL 3.6.4 native signing runtime before protected private reads. Existing client Node24/Electron42 evidence is independent and does not establish server signing qualification. There is no portable production fallback. PUBLIC mathematical fixtures do not qualify production custody.
+
+The explicit Source-current IO component has a separate input selection and one translation unit. Its new fixed openV2 mode bounds records to 393216 bytes; legacy open remains bounded to 8192. The normal addon retains 13 translation units and the helper 11. The normal 87 source inputs and the extended Source-current IO input closure are reported separately. Original A retains matching component/App build ownership.
+
+R185 does not issue R176 HTTP-read proofs or complete the Source13 factory. The R183 Go Principal DATA codec is not yet required by a production HTTP scope caller in this package and is not used as a fabricated authority. Real login, persisted recovery, revocation, independent enrollment and actual service activation remain separate acceptance gates.

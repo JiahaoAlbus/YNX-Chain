@@ -113,15 +113,21 @@ public:
   if(fstat(fd,&after)||fstatat(parent,stateLeaf.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!fileIdentity(before,after)||!fileIdentity(before,named))fail("HOST_DIRFD_RECLAIM_STATE_CHANGED");
   if(!closeOnce(fd))fail("HOST_DIRFD_CLOSE_UNKNOWN");assertCurrent();return raw;
  }
- void writeExclusive(const std::string&name,const std::string&raw){
-  assertCurrent();if(readOnly)fail("HOST_DIRFD_RECLAIM_READ_ONLY");if(!recordName(name)||raw.empty()||raw.size()>8192)fail("HOST_DIRFD_RECORD_INVALID");
+private:
+ void writeBounded(const std::string&name,const std::string&raw,size_t maximum){
+  assertCurrent();if(readOnly)fail("HOST_DIRFD_RECLAIM_READ_ONLY");if(!recordName(name)||raw.empty()||raw.size()>maximum)fail("HOST_DIRFD_RECORD_INVALID");
   int fd=own(openat(directory,name.c_str(),O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600));struct stat before{};
   if(fstat(fd,&before)||!S_ISREG(before.st_mode)||before.st_uid!=getuid()||(before.st_mode&0777)!=0600||before.st_nlink!=1||before.st_size!=0)fail("HOST_DIRFD_RECORD_CHANGED");size_t offset=0;
   while(offset<raw.size()){ssize_t n=::write(fd,raw.data()+offset,raw.size()-offset);if(n<0&&errno==EINTR)continue;if(n<=0)fail("HOST_DIRFD_WRITE_UNKNOWN");offset+=(size_t)n;}
   if(fsync(fd)||fsync(directory))fail("HOST_DIRFD_SYNC_UNKNOWN");struct stat after{},named{};
-  if(fstat(fd,&after)||!safeFile(after,8192)||!identity(before,after)||fstatat(directory,name.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!fileIdentity(after,named))fail("HOST_DIRFD_RECORD_CHANGED");
-  recordIdentities.emplace(name,after);if(!closeOnce(fd))fail("HOST_DIRFD_CLOSE_UNKNOWN");assertCurrent();if(read(name)!=raw)fail("HOST_DIRFD_READBACK_UNKNOWN");
+  if(fstat(fd,&after)||!safeFile(after,maximum)||!identity(before,after)||fstatat(directory,name.c_str(),&named,AT_SYMLINK_NOFOLLOW)||!fileIdentity(after,named))fail("HOST_DIRFD_RECORD_CHANGED");
+  recordIdentities.emplace(name,after);if(!closeOnce(fd))fail("HOST_DIRFD_CLOSE_UNKNOWN");assertCurrent();if(read(name,maximum)!=raw)fail("HOST_DIRFD_READBACK_UNKNOWN");
  }
+public:
+ // Legacy callers remain 8KiB; only the fixed Source-v2 binding selects this
+ // distinct bounded writer. No NAPI max-size/path/provider argument exists.
+ void writeExclusive(const std::string&name,const std::string&raw){writeBounded(name,raw,8192);}
+ void writeSourceCurrentV2Exclusive(const std::string&name,const std::string&raw){writeBounded(name,raw,393216);}
  void retire(){retired=true;}
  bool close(){if(closeSelected)return closeResult;closeSelected=true;retired=true;bool ok=true;for(auto it=fds.rbegin();it!=fds.rend();++it)if(!it->complete&&!closeOnce(it->number))ok=false;closeResult=ok;return ok;}
  bool unresolved()const{return unknown;}
