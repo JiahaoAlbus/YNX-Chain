@@ -74,13 +74,14 @@ async function openJournal({profile,projectId,binding,directoryName}){
  // them only to prevent re-sending the same uncertain Wallet operation across
  // a format/caller upgrade. No returned payload can authorize a new request.
  async function acrossNamespaces(){
-  current();const rows=[];let legacyPresent=false;
+  current();const rows=[];let legacyPresent=false,uncertainWriter=false,danglingWriter=false;
   for(const name of ['wallet-contract-query-references','wallet-contract-query-references-v2']){
    const folder=path.join(profile,name);let parent;try{parent=await fs.lstat(folder);}catch(error){if(error.code==='ENOENT')continue;throw error;}
    if(!parent.isDirectory()||parent.isSymbolicLink()||parent.uid!==uid()||(parent.mode&0o777)!==0o700)throw fail('CONTRACT_REFERENCE_UNKNOWN');
-   let seen=0;
+   let seen=0;const writers=new Set(),folderRows=[];
    for await(const entry of await fs.opendir(folder)){
     if(++seen>256)throw fail('CONTRACT_REFERENCE_CAPACITY');
+    const writer=/^([a-f0-9-]{36})\.jsonl\.lock$/.exec(entry.name);if(writer){if(!UUID.test(writer[1]))throw fail('CONTRACT_REFERENCE_UNKNOWN');writers.add(writer[1]);continue;}
     const match=/^([a-f0-9-]{36})\.jsonl$/.exec(entry.name);if(!match)continue;
     if(name==='wallet-contract-query-references')legacyPresent=true;
     const referenceId=match[1],target=path.join(folder,entry.name);if(!UUID.test(referenceId))throw fail('CONTRACT_REFERENCE_UNKNOWN');
@@ -90,17 +91,19 @@ async function openJournal({profile,projectId,binding,directoryName}){
      const raw=await fd.readFile('utf8'),after=await fd.stat();current();if(!same(parent,await fs.lstat(folder))||!same(before,after)||!same(lstatSync(target),after)||before.size!==after.size||before.mtimeMs!==after.mtimeMs||before.ctimeMs!==after.ctimeMs||after.nlink!==1||(after.mode&0o777)!==0o600||!raw||!raw.endsWith('\n'))throw fail('CONTRACT_REFERENCE_UNKNOWN');
      let previous=null,revision=0,bindingHash;
      for(const line of raw.trimEnd().split('\n')){const row=JSON.parse(line);if(!row||Object.keys(row).sort().join()!=='bindingHash,referenceId,revision,value'||!HASH.test(row.bindingHash||'')||row.referenceId!==referenceId||row.revision!==revision++||bindingHash!==undefined&&row.bindingHash!==bindingHash)throw fail('CONTRACT_REFERENCE_UNKNOWN');bindingHash=row.bindingHash;const next=validate(row.value);if(previous)compatible(previous,next);previous=next;}
-     rows.push({referenceId,bindingHash,...previous});
+     folderRows.push({referenceId,bindingHash,...previous});
     }finally{await fd.close();}
    }
+   for(const row of folderRows){row.uncertainWriter=writers.has(row.referenceId);rows.push(row);}
+   uncertainWriter ||= writers.size>0;danglingWriter ||= [...writers].some(id=>!folderRows.some(row=>row.referenceId===id));
    current();if(!same(parent,await fs.lstat(folder)))throw fail('CONTRACT_REFERENCE_UNKNOWN');
   }
-  return{rows,legacyPresent};
+  return{rows,legacyPresent,uncertainWriter,danglingWriter};
  }
- async function unresolved(request){const {rows}=await acrossNamespaces();for(const original of rows.filter(row=>row.account===request.account&&row.method===request.method&&row.requestPayloadSHA256===request.requestPayloadSHA256)){
-  if(original.state!=='saved')return original.referenceId;
-  const id=contractBroadcastReferenceId(original.referenceId),pending=rows.find(row=>row.referenceId===id&&row.account===request.account&&row.method==='ynx_preparePQContractBroadcast'&&row.state!=='saved');if(pending)return pending.referenceId;
+ async function unresolved(request){const {rows,danglingWriter}=await acrossNamespaces();if(danglingWriter)throw fail('CONTRACT_REFERENCE_BUSY');for(const original of rows.filter(row=>row.account===request.account&&row.method===request.method&&row.requestPayloadSHA256===request.requestPayloadSHA256)){
+  if(original.state!=='saved'||original.uncertainWriter)return original.referenceId;
+  const id=contractBroadcastReferenceId(original.referenceId),pending=rows.find(row=>row.referenceId===id&&row.account===request.account&&row.method==='ynx_preparePQContractBroadcast'&&(row.state!=='saved'||row.uncertainWriter));if(pending)return pending.referenceId;
  }return null;}
- async function history(){const references=await list();let retained;try{const {rows,legacyPresent}=await acrossNamespaces();retained=legacyPresent||rows.some(row=>row.bindingHash!==digest);}catch{current();retained=true;}return Object.freeze({version:2,references,legacy:Object.freeze({state:retained?'retained-scope-unavailable':'none',queryOnly:true,readable:false,replayAllowed:false})});}
+ async function history(){const references=await list();let retained,uncertainWriter=false;try{const scan=await acrossNamespaces();retained=scan.legacyPresent||scan.rows.some(row=>row.bindingHash!==digest);uncertainWriter=scan.uncertainWriter;}catch{current();retained=true;uncertainWriter=true;}return Object.freeze({version:2,references,uncertainWriter,legacy:Object.freeze({state:retained?'retained-scope-unavailable':'none',queryOnly:true,readable:false,replayAllowed:false})});}
  return Object.freeze({read,append,list,history,unresolved});
 }

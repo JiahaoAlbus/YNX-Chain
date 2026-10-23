@@ -50,7 +50,8 @@ export async function openProjectContractClient({context, relayAuthority, create
     if (!request || Object.keys(request).sort().join() !== 'method,params' || !methods.has(request.method) || !Array.isArray(request.params) || request.params.length !== 1 || request.params[0]?.version !== 1 || request.params[0]?.account !== account) throw failure('IDE_CONTRACT_REQUEST_INVALID');
     if (await journal.read(referenceId)) throw failure('IDE_CONTRACT_REFERENCE_EXISTS');
     if(request.method==='ynx_preparePQContractAction'){
-      const unresolved=await journal.unresolved({method:request.method,account,requestPayloadSHA256:hash(request)});
+      let unresolved;
+      try{unresolved=await journal.unresolved({method:request.method,account,requestPayloadSHA256:hash(request)});}catch(error){throw failure('IDE_CONTRACT_REFERENCE_NOT_DURABLE',error);}
       if(unresolved)throw Object.assign(failure('IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED'),{referenceId:unresolved});
     }
     let row = {account, method:request.method, requestPayloadSHA256:hash(request), originalRequestKeyHash:null, operationId:null, transportHash:null, memberHash:null, state:'pending'};
