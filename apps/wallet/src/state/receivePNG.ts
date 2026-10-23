@@ -14,8 +14,17 @@ export function receivePNGBase64(value:unknown):string{
 export async function exportReceivePNG(account:string,render:(callback:(base64:string)=>void)=>void,save:ReceivePNGWriter,assertCurrent:()=>void,timeoutMs=5000):Promise<ReceivePNGResult>{
  const filename=receivePNGFilename(account);assertCurrent();
  const base64=await new Promise<string>((resolve,reject)=>{
-  let done=false;const timer=setTimeout(()=>{if(!done){done=true;reject(Error('PNG_RENDER_TIMEOUT'))}},timeoutMs);
-  try{render(value=>{if(done)return;done=true;clearTimeout(timer);try{resolve(receivePNGBase64(value))}catch(error){reject(error)}})}catch(error){if(!done){done=true;clearTimeout(timer);reject(error)}}
+  let done=false,rendering=true;let complete:(()=>void)|undefined;
+  const timer=setTimeout(()=>{if(!done){done=true;reject(Error('PNG_RENDER_TIMEOUT'))}},timeoutMs);
+  try{
+   render(value=>{
+    if(done)return;done=true;clearTimeout(timer);
+    try{const bytes=receivePNGBase64(value);complete=()=>resolve(bytes)}catch(error){complete=()=>reject(error)}
+    if(!rendering)complete();
+   });
+  }catch(error){done=true;clearTimeout(timer);reject(error);return}
+  // A callback alone is not successful rendering if the renderer then throws.
+  rendering=false;complete?.();
  });
  assertCurrent();const result=await save(base64,filename);
  if(result?.status!=='saved'&&result?.status!=='cancelled')throw Error('RECEIVE_PNG_RESULT_UNKNOWN');
