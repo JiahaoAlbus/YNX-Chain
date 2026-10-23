@@ -22,6 +22,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  fixed['1.3.0-pq.3.32-auth.13']={bytes:30418,sha256:'3d256c3c4581748448026d53bfd8160be1e00b80733b3d4c03af5ad30fb68a3c'};
  fixed['1.3.0-pq.3.32-auth.14']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.14'].inventory;
  fixed['1.3.0-pq.3.32-auth.18']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.18'].inventory;
+ fixed['1.3.0-pq.3.32-auth.19']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.19'].inventory;
  if(!Object.hasOwn(fixed,sdkVersion))return {inputs:names,evidenceAssets};
  const pin=fixed[sdkVersion];
  const bad=()=>{throw Error('Canonical Native source inventory differs');};

@@ -12,7 +12,7 @@ import {PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
 import {SDK_RUNTIME_UNIONS,sdkRuntimeUnionProfile,SDK14_RUNTIME_UNION_SOURCE} from '../scripts/sdk14-runtime-union.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex'),pin=(relative,b)=>({relative,bytes:b.length,sha256:sha(b)});
 const originalRoot=process.env.WALLET_SDK13_SOURCE_ROOT??fileURLToPath(new URL('../../..',import.meta.url));
-let available=false;try{available=['1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18'].includes(JSON.parse(fs.readFileSync(path.join(originalRoot,'packages/wallet-auth/package.json'))).version);}catch{}
+let available=false;try{available=['1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18','1.3.0-pq.3.32-auth.19'].includes(JSON.parse(fs.readFileSync(path.join(originalRoot,'packages/wallet-auth/package.json'))).version);}catch{}
 const needSource={skip:!available&&'requires matching original SDK13 native source, not a substituted source fixture'};
 test('original helper recipe is11 exact TUs, never Wallet store or LocalAuthentication',()=>{
  assert.equal(SDK13_HELPER_TRANSLATION_UNITS.length,11);

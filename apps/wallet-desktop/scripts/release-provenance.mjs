@@ -62,6 +62,7 @@ const SDK_CONTRACT_CLIENT_VERSION='1.3.0-pq.3.32-auth.6';
 const SDK_CONTRACT_CURRENT_VERSION='1.3.0-pq.3.32-auth.13';
 const SDK_AUTONOMOUS_SCOPE_VERSION='1.3.0-pq.3.32-auth.14';
 const SDK_PROJECT_READER_VERSION='1.3.0-pq.3.32-auth.18';
+const SDK_WORKSPACE_SELECTION_VERSION='1.3.0-pq.3.32-auth.19';
 export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
  [SDK330_VERSION]:Object.freeze({bytes:64574,sha256:'3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693'}),
  [SDK332_VERSION]:Object.freeze({bytes:65346,sha256:'0abdc434eb6e7aacc4708127e413c686e10963f4744b730c74f3d4300f522d07'}),
@@ -72,7 +73,8 @@ export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
  [SDK_CONTRACT_CLIENT_VERSION]:Object.freeze({bytes:65919,sha256:'c501bb7184460131b796850e2ad5f4ac1aa9b63e11fc89431e0ad375f6721c22'}),
  [SDK_CONTRACT_CURRENT_VERSION]:Object.freeze({bytes:67464,sha256:'0984d592faf25df7cf63fcc5188bd4eee4796db62c73d7040e9494edda71fb2c'}),
  [SDK_AUTONOMOUS_SCOPE_VERSION]:Object.freeze({bytes:67464,sha256:'82d3ad0b1d8538d5f75fe62b21a8589344c2e3c3e88f0de1988c173159e050b7'}),
- [SDK_PROJECT_READER_VERSION]:Object.freeze({bytes:67464,sha256:'2294be8c02b5470ce6d4ac0bcf1e71f29790043ed266d5dc3e4cdac08353678b'})
+ [SDK_PROJECT_READER_VERSION]:Object.freeze({bytes:67464,sha256:'2294be8c02b5470ce6d4ac0bcf1e71f29790043ed266d5dc3e4cdac08353678b'}),
+ [SDK_WORKSPACE_SELECTION_VERSION]:Object.freeze({bytes:67464,sha256:'b968e5fee531b65449234d833a2aec91dd38b701257f167c7c7a7dfb544f934f'})
 });
 const FIXED_SDK_RUNTIME_MANIFEST='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
 export function fixedSDKRuntimeManifestSources(root,sourceCommit){
@@ -102,7 +104,7 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
 function selectedRelocationRules(sdkVersion){
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
-  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION&&sdkVersion!==SDK_CONTRACT_CURRENT_VERSION&&sdkVersion!==SDK_AUTONOMOUS_SCOPE_VERSION&&sdkVersion!==SDK_PROJECT_READER_VERSION)return PACKAGED_RELOCATION_RULES;
+  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION&&sdkVersion!==SDK_CONTRACT_CURRENT_VERSION&&sdkVersion!==SDK_AUTONOMOUS_SCOPE_VERSION&&sdkVersion!==SDK_PROJECT_READER_VERSION&&sdkVersion!==SDK_WORKSPACE_SELECTION_VERSION)return PACKAGED_RELOCATION_RULES;
   return PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
     ?{...rule,operands:rule.operands.map(operand=>({...operand,count:3}))}:rule);
 }
@@ -318,7 +320,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native').split('\n').filter(name=>/\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name));
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
   const sourceBytes=name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024});
-  const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
+  const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
   if(!lstatSync(localNative).isFile()||!lstatSync(localReceipt).isFile()||!nativeBytes.equals(readFileSync(localNative))||!nativeReceiptBytes.equals(readFileSync(localReceipt)))throw Error('Packaged native module or receipt differs from frozen build input');
   let originalR155=null,originalSDK13=null;
@@ -328,7 +330,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     if(!macAsarIntegrityVerified)throw Error('Original R155 component requires its matched Mac bundle');
     originalR155.helperBundle=verifyOriginalR155HelperBundle(path.dirname(resources));
   }
-  if([SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION].includes(sdkMetadata.version)){
+  if([SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION].includes(sdkMetadata.version)){
     const helperBytes=asar.extractFile(archive,canonicalSourcePath(SDK13_HELPER_ASSET)),localHelper=path.join(root,SDK13_HELPER_ASSET);
     if(!lstatSync(localHelper).isFile()||lstatSync(localHelper).isSymbolicLink()||!helperBytes.equals(readFileSync(localHelper)))throw Error('SDK13 packaged helper differs from matching build');
     originalSDK13=verifySDK13NativeComponent({record:nativeReceipt,inventoryBytes,moduleBytes:nativeBytes,helperBytes},sourceBytes);

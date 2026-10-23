@@ -66,7 +66,7 @@ for(const variant of ['missing','duplicate','foreign','mismatch'])test(`real ASA
  assert.deepEqual(readFileSync(f.archive),before);assert.equal(existsSync(f.output),false);
 });
 
-for(const sdkVersion of ['1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18'])test(`normal relocation ${sdkVersion} parent and data child restore excluded evidence from immutable Git and bind the receipt`,t=>{
+for(const sdkVersion of ['1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18','1.3.0-pq.3.32-auth.19'])test(`normal relocation ${sdkVersion} parent and data child restore excluded evidence from immutable Git and bind the receipt`,t=>{
  const root=mkdtempSync(path.join(tmpdir(),'PUBLIC-normal-evidence-')),app=path.join(root,'apps/wallet-desktop'),raw=path.join(root,'raw'),resources=path.join(root,'resources'),archive=path.join(resources,'app.asar');
  t.after(()=>rmSync(root,{recursive:true,force:true}));
  const manifestBytes=readFileSync(new URL('../scripts/wallet-auth-runtime-dependencies.json',import.meta.url)),manifest=JSON.parse(manifestBytes);

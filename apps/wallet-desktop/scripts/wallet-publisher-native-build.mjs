@@ -2,7 +2,8 @@ import path from 'node:path';
 export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
  '1.3.0-pq.3.32-auth.13':Object.freeze({version:'1.3.0-pq.3.32-auth.13',supplierNodeInputs:69,inventory:Object.freeze({bytes:30418,sha256:'3d256c3c4581748448026d53bfd8160be1e00b80733b3d4c03af5ad30fb68a3c'}),tool:Object.freeze({bytes:10764,sha256:'ae074c5d82d29c2b10a5ef0a55947ccc8a4a127745308a464c8c465035e0ee81'})}),
  '1.3.0-pq.3.32-auth.14':Object.freeze({version:'1.3.0-pq.3.32-auth.14',supplierNodeInputs:71,inventory:Object.freeze({bytes:34752,sha256:'feafd827a9d42cea65af17b94944e6c565b8ef4b1e6eb56c938709811cc1eadf'}),tool:Object.freeze({bytes:10932,sha256:'c532946f53a6314d9c0ecb2ffb3afd2044f9ffb1961afbfe0b8ec32444f71461'})}),
- '1.3.0-pq.3.32-auth.18':Object.freeze({version:'1.3.0-pq.3.32-auth.18',supplierNodeInputs:75,inventory:Object.freeze({bytes:45891,sha256:'de4028e5ef58287c954c31c46b4e944828ae3e42712892eda3be6d659c44fbad'}),tool:Object.freeze({bytes:11989,sha256:'218c73f9883ef9263181453a7e12049009ccc400ec313e85c29ece3848ebc4dc'})})
+ '1.3.0-pq.3.32-auth.18':Object.freeze({version:'1.3.0-pq.3.32-auth.18',supplierNodeInputs:75,inventory:Object.freeze({bytes:45891,sha256:'de4028e5ef58287c954c31c46b4e944828ae3e42712892eda3be6d659c44fbad'}),tool:Object.freeze({bytes:11989,sha256:'218c73f9883ef9263181453a7e12049009ccc400ec313e85c29ece3848ebc4dc'})}),
+ '1.3.0-pq.3.32-auth.19':Object.freeze({version:'1.3.0-pq.3.32-auth.19',supplierNodeInputs:76,inventory:Object.freeze({bytes:48913,sha256:'faf4ab0694a4ecdf1b1e31ad69239ac038a02c2abf165e5e940da6222334e01d'}),tool:Object.freeze({bytes:12230,sha256:'06b86ae2cb60cd750623e790214a2698671315987c67ce4603871b413d5debdc'})})
 });
 export function walletNativeSourceProfile(version){if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');return WALLET_NATIVE_SOURCE_PROFILES[version];}
 export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
@@ -19,7 +20,7 @@ const fail=()=>{throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');};
  */
 export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInputCount=69){
  if(typeof repo!=='string'||!path.isAbsolute(repo)||path.normalize(repo)!==repo)fail();
- if(![69,71,75].includes(supplierNodeInputCount))fail();
+ if(![69,71,75,76].includes(supplierNodeInputCount))fail();
  const sources=SDK13_NODE_TRANSLATION_UNITS.map(n=>path.join(repo,n));
  if(plan.minimumSystemVersion!=='13.0'||JSON.stringify(plan.sources)!==JSON.stringify(sources)||!Array.isArray(plan.commands))fail();
  const store=path.join(repo,WALLET_PUBLISHER_NATIVE_INPUTS[1].path),output=path.join(repo,'apps/wallet-desktop/native/original-auth-identity.node');

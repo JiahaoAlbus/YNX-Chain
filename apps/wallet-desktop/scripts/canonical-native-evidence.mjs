@@ -7,7 +7,7 @@ import {CANONICAL_NATIVE_EVIDENCE_TESTS,canonicalSourcePath} from './canonical-p
  * Never use a directory scan, a receipt-selected name, or a mutable SDK copy. */
 export function canonicalNativeEvidencePlan(sdkVersion,readSource){
  const contents=new Map(),rows=[],publicRows=[];
- if(!['1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18'].includes(sdkVersion))return {contents,rows,public:publicRows};
+ if(!['1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18','1.3.0-pq.3.32-auth.19'].includes(sdkVersion))return {contents,rows,public:publicRows};
  if(typeof readSource!=='function')throw Error('Native evidence source reader required');
  for(const sourcePath of CANONICAL_NATIVE_EVIDENCE_TESTS){
   const source=readSource(sourcePath);

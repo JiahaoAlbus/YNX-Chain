@@ -14,7 +14,7 @@ test('SDK18 is selected by its exact original inventory/tool pins, not by a vers
  assert.deepEqual(profile.tool,{bytes:11989,sha256:'218c73f9883ef9263181453a7e12049009ccc400ec313e85c29ece3848ebc4dc'});
  assert.deepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],{bytes:67464,sha256:'2294be8c02b5470ce6d4ac0bcf1e71f29790043ed266d5dc3e4cdac08353678b'});
  assert.notDeepEqual(profile.inventory,walletNativeSourceProfile('1.3.0-pq.3.32-auth.14').inventory);
- for(const unselected of ['1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.19'])assert.throws(()=>walletNativeSourceProfile(unselected));
+ for(const unselected of ['1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.20'])assert.throws(()=>walletNativeSourceProfile(unselected));
 });
 test('SDK18 requires75 original Node inputs plus2 Wallet inputs and the unchanged closed evidence pair',()=>{
  const rows=[...inventory.NativeInputs,...WALLET_PUBLISHER_NATIVE_INPUTS],helper=inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path);
@@ -32,7 +32,7 @@ test('SDK18 runtime union has an independent fixed identity and cannot borrow th
  assert.throws(()=>sdkRuntimeUnionProfile('1.3.0-pq.3.32-auth.17'));
  assert.throws(()=>verifySDKRuntimeUnion(version,'/PUBLIC/not-a-runtime',Buffer.from('{}')));
 });
-test('normal lock selects exact SDK18 while application dependency declarations remain unchanged',()=>{
+test('normal lock selects an explicitly matched profile while application dependency declarations remain unchanged',()=>{
  const lock=JSON.parse(readFileSync(new URL('../package-lock.json',import.meta.url))),app=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
- assert.equal(lock.packages['../../packages/wallet-auth'].version,version);assert.deepEqual(lock.packages[''].dependencies,app.dependencies);
+ assert.equal(walletNativeSourceProfile(lock.packages['../../packages/wallet-auth'].version).version,lock.packages['../../packages/wallet-auth'].version);assert.deepEqual(lock.packages[''].dependencies,app.dependencies);
 });

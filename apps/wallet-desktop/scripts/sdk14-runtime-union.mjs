@@ -3,7 +3,8 @@ import {openSync,readSync,fstatSync,closeSync,lstatSync,realpathSync,constants} 
 import path from 'node:path';
 export const SDK14_RUNTIME_UNION=Object.freeze({bytes:1453193,sha256:'bf1826a33910b8c2879316a64f5b8c84f5280d26dbdc3b5ee23157b8a2736b5d',files:9335,totalBytes:77245456});
 export const SDK18_RUNTIME_UNION=Object.freeze({bytes:1453193,sha256:'774c520036f356e93e7f58333a8f64f98cf71c7b439b1d550f06a4b69a589f85',files:9335,totalBytes:77260211});
-export const SDK_RUNTIME_UNIONS=Object.freeze({'1.3.0-pq.3.32-auth.14':SDK14_RUNTIME_UNION,'1.3.0-pq.3.32-auth.18':SDK18_RUNTIME_UNION});
+export const SDK19_RUNTIME_UNION=Object.freeze({bytes:1453193,sha256:'a208e293f36e624cd52bb9f8328c4c92d715e1f72c63ad1c07d18c5031edcdbc',files:9335,totalBytes:77265325});
+export const SDK_RUNTIME_UNIONS=Object.freeze({'1.3.0-pq.3.32-auth.14':SDK14_RUNTIME_UNION,'1.3.0-pq.3.32-auth.18':SDK18_RUNTIME_UNION,'1.3.0-pq.3.32-auth.19':SDK19_RUNTIME_UNION});
 export function sdkRuntimeUnionProfile(version){if(typeof version!=='string'||!Object.hasOwn(SDK_RUNTIME_UNIONS,version))throw Error('WALLET_RUNTIME_UNION_VERSION_UNSUPPORTED');return SDK_RUNTIME_UNIONS[version];}
 export const SDK14_RUNTIME_UNION_SOURCE='packages/wallet-auth/native/original-ide-contract-relay-runtime-manifest.json';
 const sha=b=>createHash('sha256').update(b).digest('hex');
@@ -16,7 +17,7 @@ export function verifySDK14RuntimeUnion(root,manifestBytes){
 }
 /** Same strict bounded reader, explicit frozen version selection only. */
 export function verifySDKRuntimeUnion(version,root,manifestBytes){
- const pin=sdkRuntimeUnionProfile(version),tag=version==='1.3.0-pq.3.32-auth.14'?'SDK14':'SDK18',fail=()=>{throw Error(`WALLET_${tag}_RUNTIME_UNION_DIFFERS`)};
+ const pin=sdkRuntimeUnionProfile(version),tag='SDK'+version.split('.').at(-1),fail=()=>{throw Error(`WALLET_${tag}_RUNTIME_UNION_DIFFERS`)};
  if(typeof root!=='string'||!path.isAbsolute(root)||path.normalize(root)!==root||realpathSync(root)!==root||!Buffer.isBuffer(manifestBytes)||manifestBytes.length!==pin.bytes||sha(manifestBytes)!==pin.sha256)fail();
  const body=JSON.parse(manifestBytes),files=body.files;
  if(body.version!=='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'||Object.keys(body).join(',')!=='files,version'||!Array.isArray(files)||files.length!==pin.files||!Buffer.from(JSON.stringify(body)).equals(manifestBytes))fail();
