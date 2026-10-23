@@ -1,5 +1,15 @@
 // The native producer and the new Comet candidate are separate releases. Only
 // the original protected approval may opt into an independently pinned source.
+export function caddySourceIdentity(approval) {
+  if (!Object.hasOwn(approval, "caddySource")) return {};
+  const source = approval.caddySource;
+  if (approval.custodyProfile !== "single-app-gateway/v1" || !source || typeof source !== "object" || Array.isArray(source) || Object.keys(source).sort().join() !== "manifestPath,manifestSha256") throw new Error("closed single-App Caddy source identity is required");
+  const file = source.manifestPath;
+  if (typeof file !== "string" || file.length > 4096 || !/^\/[A-Za-z0-9._/-]+$/.test(file) || file.includes("//") || file.endsWith("/") || file.split("/").some(part => part === "." || part === "..")) throw new Error("canonical absolute Caddy source manifest path is required");
+  if (typeof source.manifestSha256 !== "string" || !/^[0-9a-f]{64}$/.test(source.manifestSha256) || /^0{64}$/.test(source.manifestSha256)) throw new Error("independent nonzero Caddy source manifest SHA256 is required");
+  return {caddySource: {manifestPath: file, manifestSha256: source.manifestSha256}};
+}
+
 export function authoritativeIdentity(approval) {
   const names = ["authoritativeCommit", "authoritativeRelease", "authoritativeBinarySha256", "authoritativeSource"];
   if (!names.some(name => Object.hasOwn(approval, name)) && !Object.hasOwn(approval, "authoritativeRoles")) return {};

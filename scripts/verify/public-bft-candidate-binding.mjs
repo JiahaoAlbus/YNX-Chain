@@ -4,7 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
-import { authoritativeIdentity, authoritativeRoleIdentities, roleAuthoritativeIdentity } from "./lib/public-bft-native-source.mjs";
+import { caddySourceIdentity, authoritativeIdentity, authoritativeRoleIdentities, roleAuthoritativeIdentity } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error(`public BFT candidate binding rejected: ${message}`);
@@ -48,8 +48,70 @@ function gatewayBinding(file) {
   requireRestrictedFile(file, "candidate binding");
   const b = readJSON(file, "candidate binding");
   isSingleAppCustody(b);
+  caddySourceIdentity(b);
   if (b.schemaVersion !== 2 || b.operatorProfile !== operatorVersion || !hash(b.operatorPlanSha256) || !hash(b.runtimeManifestSha256) || ![b.packageGenesisHash,b.packageMigrationStateHash,b.originalGenesisHash].every(hash) || !/^[0-9a-f]{40}$/.test(b.runtimeCommit || "") || b.runtimeCommit.slice(0, 12) !== b.commit || b.bftRelease !== `ynx-bft-gateway-${b.commit}` || !Number.isSafeInteger(b.finalSnapshotHeight) || b.finalSnapshotHeight < 1 || b.finalSnapshotHeight >= Number.MAX_SAFE_INTEGER) fail("gateway binding is invalid");
   return b;
+}
+
+// Only this small, independently pinned metadata object leaves the server.
+// Complete Caddy configuration bodies stay in the original owner's custody;
+// the remote helper verifies their bytes and the two approved projections.
+function caddyManifest(file, b, gatewaySHA256) {
+  const identity = caddySourceIdentity(b).caddySource;
+  if (!identity) fail("JSON ingress requires an independently approved Caddy source");
+  requireRestrictedFile(file, "Caddy source manifest");
+  const before = fs.lstatSync(file, {bigint:true});
+  if (before.nlink !== 1n || before.size < 1n || before.size > 65536n) fail("Caddy source manifest size/link bound");
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  let raw;
+  try {
+    const opened = fs.fstatSync(fd, {bigint:true});
+    if (opened.dev !== before.dev || opened.ino !== before.ino) fail("Caddy source manifest replaced before open");
+    const buffer = Buffer.alloc(65537); let size = 0, count;
+    while (size < buffer.length && (count = fs.readSync(fd, buffer, size, buffer.length-size, null)) > 0) size += count;
+    const after = fs.fstatSync(fd, {bigint:true}), current = fs.lstatSync(file, {bigint:true});
+    for (const field of ["dev","ino","size","mode","uid","gid","nlink","mtimeNs","ctimeNs"]) if (opened[field] !== before[field] || after[field] !== before[field] || current[field] !== before[field]) fail("Caddy source manifest changed during read");
+    if (BigInt(size) !== before.size) fail("Caddy source manifest read exceeds bound");
+    raw = buffer.subarray(0,size);
+  } finally { fs.closeSync(fd); }
+  if (crypto.createHash("sha256").update(raw).digest("hex") !== identity.manifestSha256) fail("Caddy source manifest differs from independent approval");
+  let m;
+  try {
+    const text=raw.toString("utf8");
+    if (!Buffer.from(text,"utf8").equals(raw)) throw new Error();
+    m=JSON.parse(text);
+    let at=0;
+    const space=()=>{while (/\s/.test(text[at]||"")) at++;};
+    const string=()=>{const start=at++;while(text[at]!== '"'){if(text[at]==="\\") at++;at++;}at++;return JSON.parse(text.slice(start,at));};
+    const value=depth=>{if(depth>32)throw new Error();space();if(text[at]==="{"){at++;space();const keys=new Set();if(text[at]!=="}")for(;;){space();const key=string();if(keys.has(key))throw new Error();keys.add(key);space();at++;value(depth+1);space();if(text[at]!==",")break;at++;}at++;}else if(text[at]==="["){at++;space();if(text[at]!=="]")for(;;){value(depth+1);space();if(text[at]!==",")break;at++;}at++;}else if(text[at]==='"')string();else{while(at<text.length&&!/[\s,}\]]/.test(text[at]))at++;}};
+    value(0);space();if(at!==text.length)throw new Error();
+  } catch { fail("Caddy source manifest must be bounded strict JSON"); }
+  const closed=(v,keys)=>{if(!v||typeof v!=="object"||Array.isArray(v)||Object.keys(v).sort().join()!==[...keys].sort().join())fail("closed Caddy source metadata fields differ");};
+  const decimal=(v,positive=false)=>typeof v==="string"&&/^(0|[1-9][0-9]*)$/.test(v)&&v.length<=20&&BigInt(v)<=18446744073709551615n&&(!positive||v!=="0");
+  const safePath=v=>typeof v==="string"&&v.length<=4096&&/^\/[A-Za-z0-9._/-]+$/.test(v)&&!v.includes("//")&&!v.endsWith("/")&&!v.split("/").some(p=>p==="."||p==="..");
+  closed(m,["version","transactionId","commit","operatorPlanSHA256","runtimeCommit","runtimeSOURCEsha256","gatewaySHA256","source","secondRead","originalProcess","originalUnit","baseline","rpcUpstreams"]);
+  if(m.version!=="YNX-CADDY-JSON-INGRESS-SOURCE/v1"||m.transactionId!==b.transactionId||m.commit!==b.commit||m.operatorPlanSHA256!==b.operatorPlanSha256||m.runtimeCommit!==b.runtimeCommit||m.runtimeSOURCEsha256!==b.runtimeManifestSha256||!hash(gatewaySHA256)||m.gatewaySHA256!==gatewaySHA256)fail("Caddy source metadata differs from original candidate/runtime pins");
+  for(const s of [m.source,m.secondRead]){
+    closed(s,["path","bytes","sha256","witness"]);closed(s.witness,["uid","gid","mode","nlink","device","inode","mtimeNs","ctimeNs"]);
+    if(!safePath(s.path)||!hash(s.sha256)||!decimal(s.bytes,true)||BigInt(s.bytes)>16777216n||s.witness.mode!=="600"||s.witness.nlink!=="1"||Object.entries(s.witness).some(([k,v])=>!decimal(v,k==="inode")))fail("private Caddy original source witness differs");
+  }
+  if(m.source.path===m.secondRead.path||path.posix.dirname(m.source.path)!==path.posix.dirname(m.secondRead.path)||m.source.bytes!==m.secondRead.bytes||m.source.sha256!==m.secondRead.sha256||m.source.witness.uid!==m.secondRead.witness.uid||m.source.witness.gid!==m.secondRead.witness.gid||(m.source.witness.device===m.secondRead.witness.device&&m.source.witness.inode===m.secondRead.witness.inode))fail("two equal independently retained Caddy source reads required");
+  closed(m.originalProcess,["pid","startTicks","argv"]);closed(m.originalUnit,["path","sha256"]);
+  if(!decimal(m.originalProcess.pid,true)||BigInt(m.originalProcess.pid)<2n||!decimal(m.originalProcess.startTicks,true)||JSON.stringify(m.originalProcess.argv)!==JSON.stringify(["/usr/bin/caddy","run","--environ","--config","/etc/caddy/Caddyfile"])||m.originalUnit.path!=="/usr/lib/systemd/system/caddy.service"||!hash(m.originalUnit.sha256))fail("original Caddy process/unit metadata differs");
+  const base=m.baseline;
+  closed(base,["configPath","configSHA256","semanticSHA256","candidateSemanticSHA256","dropInPath","dropInSHA256"]);
+  const dropin="[Service]\nExecStart=\nExecStart=/usr/bin/caddy run --environ --config /etc/caddy/ynx-chain.json\nExecReload=\nExecReload=/usr/bin/caddy reload --config /etc/caddy/ynx-chain.json --force\n";
+  if(base.configPath!=="/etc/caddy/ynx-chain.json"||base.configSHA256!==m.source.sha256||![base.semanticSHA256,base.candidateSemanticSHA256,base.dropInSHA256].every(hash)||base.semanticSHA256===base.candidateSemanticSHA256||base.dropInPath!=="/etc/systemd/system/caddy.service.d/ynx-chain-json.conf"||base.dropInSHA256!==crypto.createHash("sha256").update(dropin).digest("hex"))fail("Caddy persistent baseline/projection metadata differs");
+  if(!Array.isArray(m.rpcUpstreams)||m.rpcUpstreams.length!==2)fail("exact two approved RPC projections required");
+  const hosts=new Set(), pointers=new Set();
+  for(const r of m.rpcUpstreams){closed(r,["pointer","host","from","to"]);if(!["rpc.ynxweb4.com","rpc-testnet.ynxweb4.com"].includes(r.host)||hosts.has(r.host)||typeof r.pointer!=="string"||r.pointer.length>4096||!/^\/apps\/http\/servers\/[A-Za-z0-9_-]+\/routes\/(0|[1-9][0-9]*)(?:\/[A-Za-z0-9_-]+|\/(?:0|[1-9][0-9]*))*\/dial$/.test(r.pointer)||pointers.has(r.pointer)||r.from!=="127.0.0.1:6420"||r.to!=="127.0.0.1:27620")fail("Caddy RPC source projections differ");hosts.add(r.host);pointers.add(r.pointer);}
+  return m;
+}
+
+if (rawArgs[0] === "--caddy-source-check") {
+  if(rawArgs.length!==4)fail("Caddy source requires original binding, local metadata and gateway pin");
+  caddyManifest(rawArgs[2],gatewayBinding(rawArgs[1]),rawArgs[3]);
+  process.exit(0);
 }
 // This only qualifies the public protocol route and its configured-source
 // observation. The RPC anchor is never a trusted checkpoint or signature proof.
@@ -145,9 +207,13 @@ if (rawArgs[0] === "--continuity-check") {
   process.exit(0);
 }
 if (rawArgs[0] === "--ingress-check") {
-  if (rawArgs.length !== 6 || !["switch", "rollback"].includes(rawArgs[3]) || !["0", "1"].includes(rawArgs[4]) || !hash(rawArgs[5])) fail("exact ingress receipt arguments required");
+  if (![6,7].includes(rawArgs.length) || !["switch", "rollback"].includes(rawArgs[3]) || !["0", "1"].includes(rawArgs[4]) || !hash(rawArgs[5])) fail("exact ingress receipt arguments required");
   const b=gatewayBinding(rawArgs[1]),v=readJSON(rawArgs[2],"RPC ingress"),dry=rawArgs[4] === "1", forward=rawArgs[3] === "switch";
-  if (v.version !== "YNX-SINGLE-APP-GATEWAY-INGRESS/v1" || v.mode !== gatewayMode || v.transactionId !== b.transactionId || v.commit !== b.commit || v.bftRelease !== b.bftRelease || v.operatorPlanSHA256 !== b.operatorPlanSha256 || v.runtimeCommit !== b.runtimeCommit || v.runtimeSOURCEsha256 !== b.runtimeManifestSha256 || v.rpcOnly !== true || v.ecosystemContinuityVerified !== false || Boolean(v.dryRun) !== dry || v.ingress !== (forward?"bft":"authoritative") || v.publicIngressChanged !== (forward && !dry) || (!dry && v.sourceTestOnly === true)) fail("RPC-only ingress receipt identity/pin/result mismatch");
+  const json=Object.hasOwn(b,"caddySource");
+  if(rawArgs.length!==(json?7:6))fail("JSON ingress requires its original independently pinned metadata; legacy ingress has no JSON authority");
+  if(json){const m=caddyManifest(rawArgs[6],b,rawArgs[5]);if(v.caddySourceManifestSHA256!==b.caddySource.manifestSha256||v.sourceSHA256!==m.source.sha256||v.baselineSemanticSHA256!==m.baseline.semanticSHA256||v.candidateSemanticSHA256!==m.baseline.candidateSemanticSHA256||v.dropInSHA256!==m.baseline.dropInSHA256)fail("JSON ingress receipt differs from independently approved original source/projection");}
+  else if(["caddySourceManifestSHA256","sourceSHA256","baselineSemanticSHA256","candidateSemanticSHA256","dropInSHA256"].some(k=>Object.hasOwn(v,k)))fail("unapproved JSON ingress metadata");
+  if (v.version !== "YNX-SINGLE-APP-GATEWAY-INGRESS/v1" || v.mode !== (json?"single-app-gateway-json":gatewayMode) || v.transactionId !== b.transactionId || v.commit !== b.commit || v.bftRelease !== b.bftRelease || v.operatorPlanSHA256 !== b.operatorPlanSha256 || v.runtimeCommit !== b.runtimeCommit || v.runtimeSOURCEsha256 !== b.runtimeManifestSha256 || v.rpcOnly !== true || v.ecosystemContinuityVerified !== false || Boolean(v.dryRun) !== dry || v.ingress !== (forward?"bft":"authoritative") || v.publicIngressChanged !== (forward && !dry) || (!dry && v.sourceTestOnly === true)) fail("RPC-only ingress receipt identity/pin/result mismatch");
   if (v.gatewaySHA256 !== rawArgs[5] || v.publicCutoverReady !== (forward && !dry) || (!dry && (!hash(v.authoritativeChecksumsSha256) || !hash(v.candidateChecksumsSha256)))) fail("RPC ingress lacks original runtime/config byte identities");
   process.exit(0);
 }
@@ -380,6 +446,7 @@ if (!inputsOnly) {
 const approval = readJSON(approvalPath, "transaction approval");
 const nativeIdentity = authoritativeIdentity(approval);
 const nativeRoles = authoritativeRoleIdentities(approval);
+const caddySource = caddySourceIdentity(approval);
 const singleApp = isSingleAppCustody(approval);
 if (singleApp && ["serviceSignerRecoveryVerified", "serviceSignerManifestSha256"].some(key => Object.hasOwn(approval, key))) fail("single-App approval cannot assert unrelated service custody");
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("transaction approval identity mismatch");
@@ -459,6 +526,7 @@ process.stdout.write(`${JSON.stringify({
   authoritativeRelease: nativeIdentity.authoritativeRelease || `ynx-chain-${expectedCommit}`,
   ...nativeIdentity,
   ...nativeRoles,
+  ...caddySource,
   bftRelease: expectedRelease,
   finalSnapshotSha256,
   finalSnapshotHeight: snapshot.height,

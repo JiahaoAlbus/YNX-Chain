@@ -2,7 +2,7 @@
 
 import fs from "node:fs";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
-import { authoritativeIdentity, authoritativeRoleIdentities, operatorPreparationPin } from "./lib/public-bft-native-source.mjs";
+import { caddySourceIdentity, authoritativeIdentity, authoritativeRoleIdentities, operatorPreparationPin } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error(`public BFT cutover approval evidence rejected: ${message}`);
@@ -24,8 +24,10 @@ try {
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval evidence identity mismatch");
 const nativeIdentity = authoritativeIdentity(approval);
 const nativeRoles = authoritativeRoleIdentities(approval);
+const caddySource = caddySourceIdentity(approval);
 const preparationPlanPin = operatorPreparationPin(approval, preparation);
 if (preparation) {
+  if (Object.hasOwn(approval, "caddySource")) fail("preparation cannot authorize a future final-plan Caddy source manifest");
   if (!nativeIdentity.authoritativeCommit || approval.preparationOnly !== true || Object.hasOwn(approval, "snapshotSourceSha256")) fail("native preparation requires explicit preparationOnly and no future snapshot source pin");
 } else if (Object.hasOwn(approval, "preparationOnly")) fail("preparation approval cannot authorize export, initialization or cutover");
 const singleApp = isSingleAppCustody(approval);
@@ -66,6 +68,7 @@ process.stdout.write(`${JSON.stringify({
   release: expectedRelease,
   ...nativeIdentity,
   ...nativeRoles,
+  ...caddySource,
   ...(preparation ? {preparationOnly: true} : {}),
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,

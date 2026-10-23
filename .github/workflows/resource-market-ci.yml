@@ -57,6 +57,11 @@ on:
       - 'scripts/ops/public-bft-validator-registration.sh'
       - 'scripts/ops/remote/public-bft-dependencies.sh'
       - 'scripts/ops/remote/public-bft-ingress.sh'
+      - 'scripts/ops/remote/public-bft-caddy-json.py'
+      - 'scripts/ops/prepare-public-bft-caddy-json-source.py'
+      - 'scripts/verify/test_public_bft_caddy_json.py'
+      - 'scripts/verify/test_prepare_public_bft_caddy_json_source.py'
+      - 'scripts/verify/public-bft-caddy-json-source-check.mjs'
       - 'scripts/verify/public-bft-candidate-binding.mjs'
       - 'scripts/verify/public-bft-production-candidate-check.sh'
       - 'scripts/verify/public-bft-production-driver-check.sh'
@@ -441,6 +446,13 @@ jobs:
         with:
           node-version: '24.19.0'
           cache: npm
+      - name: Verify exact full-JSON Caddy source preparation and original cutover inputs
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          timeout 90s python3 -B scripts/verify/test_public_bft_caddy_json.py -v
+          timeout 90s python3 -B scripts/verify/test_prepare_public_bft_caddy_json_source.py -v
+          node scripts/verify/public-bft-caddy-json-source-check.mjs
       - name: Verify failed candidate deployment preserves services and signing history
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         run: node --test scripts/deploy/consensus-candidate-failure-retention.test.mjs scripts/verify/consensus-production-package-check.test.mjs

@@ -732,6 +732,16 @@ ingress_context() {
   dependency_context
   ingress_root="$candidate_transaction_dir/ingress"
   ingress_remote_root="$dependency_remote_root"
+  local source_values
+  source_values="$(node --input-type=module -e 'import fs from "node:fs";import {caddySourceIdentity} from "./scripts/verify/lib/public-bft-native-source.mjs";const a=caddySourceIdentity(JSON.parse(fs.readFileSync(process.argv[1]))).caddySource;console.log(a?`single-app-gateway-json ${a.manifestPath} ${a.manifestSha256}`:"single-app-gateway - -")' "$candidate_binding")" || return $?
+  read -r ingress_mode ingress_manifest_remote ingress_manifest_sha <<<"$source_values"
+}
+
+validated_ingress_result() {
+  local operation="$1" result="$2"
+  local -a source_args=()
+  if [[ "$ingress_mode" == single-app-gateway-json ]]; then source_args+=("$ingress_root/$operation-attempt/caddy-source-manifest.json"); fi
+  node scripts/verify/public-bft-candidate-binding.mjs --ingress-check "$candidate_binding" "$result" "$operation" "${DEPLOY_DRY_RUN:-0}" "$gateway_binary_sha" "${source_args[@]}"
 }
 
 validated_continuity_result() {
@@ -748,23 +758,38 @@ gateway_ingress_phase() {
   if [[ "$operation" == switch ]]; then validated_candidate_result; validated_continuity_result; fi
   umask 077
   mkdir -p "$ingress_root"
-  local attempt="$ingress_root/$operation-attempt" remote="/tmp/ynx-ingress-${candidate_transaction_id}-$operation" helper hash
+  local attempt="$ingress_root/$operation-attempt" remote="/tmp/ynx-ingress-${candidate_transaction_id}-$operation" helper hash json_hash command
   mkdir -m 0700 "$attempt" || { echo "original RPC ingress attempt exists; retain UNKNOWN, no automatic retry" >&2; exit 1; }
-  printf '{"mode":"single-app-gateway","status":"unknown","automaticRetry":false}\n' >"$attempt/intent.json"
+  printf '{"mode":"%s","status":"unknown","automaticRetry":false}\n' "$ingress_mode" >"$attempt/intent.json"
+  if [[ "$ingress_mode" == single-app-gateway-json ]]; then
+    # This is metadata only. Verify the independently approved bytes before
+    # reading them, keep them private, and qualify them before remote staging.
+    ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; sudo test -f '$ingress_manifest_remote'; sudo test ! -L '$ingress_manifest_remote'; test \"\$(sudo realpath -e '$ingress_manifest_remote')\" = '$ingress_manifest_remote'; test \"\$(sudo stat -c %a '$ingress_manifest_remote')\" = 600; test \"\$(sudo stat -c %h '$ingress_manifest_remote')\" = 1; test \"\$(sudo stat -c %s '$ingress_manifest_remote')\" -le 65536; printf '%s  %s\n' '$ingress_manifest_sha' '$ingress_manifest_remote' | sudo sha256sum --strict -c - >/dev/null; sudo head -c 65537 '$ingress_manifest_remote'" >"$attempt/caddy-source-manifest.json" 2>"$attempt/source-error.txt"
+    node scripts/verify/public-bft-candidate-binding.mjs --caddy-source-check "$candidate_binding" "$attempt/caddy-source-manifest.json" "$gateway_binary_sha"
+  fi
   helper="$remote/helper.sh"
   hash="$(shasum -a 256 scripts/ops/remote/public-bft-ingress.sh | awk '{print $1}')"
   ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "umask 077; mkdir -m 0700 '$remote'" >"$attempt/reserve.txt"
   ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-ingress.sh "$helper"
-  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -euo pipefail; printf '%s  %s\n' '$hash' '$helper' | sha256sum --strict -c - >/dev/null; sudo bash '$helper' '$operation' '$candidate_transaction_id' '$commit' '$candidate_bft_release' '$ingress_remote_root' single-app-gateway '$candidate_operator_pin' '$CONSENSUS_CANDIDATE_RUNTIME_COMMIT' '$CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256' '$gateway_binary_sha'" >"$attempt/output.txt" 2>"$attempt/error.txt"
+  command="set -euo pipefail; printf '%s  %s\n' '$hash' '$helper' | sha256sum --strict -c - >/dev/null; "
+  if [[ "$ingress_mode" == single-app-gateway-json ]]; then
+    json_hash="$(shasum -a 256 scripts/ops/remote/public-bft-caddy-json.py | awk '{print $1}')"
+    ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" scripts/ops/remote/public-bft-caddy-json.py "$remote/public-bft-caddy-json.py"
+    command+="printf '%s  %s\n' '$json_hash' '$remote/public-bft-caddy-json.py' | sha256sum --strict -c - >/dev/null; "
+  fi
+  command+="sudo bash '$helper' '$operation' '$candidate_transaction_id' '$commit' '$candidate_bft_release' '$ingress_remote_root' '$ingress_mode' '$candidate_operator_pin' '$CONSENSUS_CANDIDATE_RUNTIME_COMMIT' '$CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256' '$gateway_binary_sha'"
+  if [[ "$ingress_mode" == single-app-gateway-json ]]; then command+=" '$ingress_manifest_remote' '$ingress_manifest_sha'"; fi
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$command" >"$attempt/output.txt" 2>"$attempt/error.txt"
   if [[ "${DEPLOY_DRY_RUN:-0}" == 1 ]]; then
-    node - "$candidate_binding" "$operation" "$gateway_binary_sha" >"$attempt/result.json" <<'NODE'
+    node - "$candidate_binding" "$operation" "$gateway_binary_sha" "$attempt/caddy-source-manifest.json" >"$attempt/result.json" <<'NODE'
 const fs=require("fs"),[p,op,gatewaySHA256]=process.argv.slice(2),b=JSON.parse(fs.readFileSync(p));
-console.log(JSON.stringify({version:"YNX-SINGLE-APP-GATEWAY-INGRESS/v1",mode:"single-app-gateway",transactionId:b.transactionId,commit:b.commit,bftRelease:b.bftRelease,operatorPlanSHA256:b.operatorPlanSha256,runtimeCommit:b.runtimeCommit,runtimeSOURCEsha256:b.runtimeManifestSha256,gatewaySHA256,rpcOnly:true,ecosystemContinuityVerified:false,ingress:op==="switch"?"bft":"authoritative",publicCutoverReady:false,publicIngressChanged:false,dryRun:true}));
+const m=b.caddySource?JSON.parse(fs.readFileSync(process.argv[5])):null;
+console.log(JSON.stringify({version:"YNX-SINGLE-APP-GATEWAY-INGRESS/v1",mode:m?"single-app-gateway-json":"single-app-gateway",transactionId:b.transactionId,commit:b.commit,bftRelease:b.bftRelease,operatorPlanSHA256:b.operatorPlanSha256,runtimeCommit:b.runtimeCommit,runtimeSOURCEsha256:b.runtimeManifestSha256,gatewaySHA256,...(m?{caddySourceManifestSHA256:b.caddySource.manifestSha256,sourceSHA256:m.source.sha256,baselineSemanticSHA256:m.baseline.semanticSHA256,candidateSemanticSHA256:m.baseline.candidateSemanticSHA256,dropInSHA256:m.baseline.dropInSHA256}:{}),rpcOnly:true,ecosystemContinuityVerified:false,ingress:op==="switch"?"bft":"authoritative",publicCutoverReady:false,publicIngressChanged:false,dryRun:true}));
 NODE
   else
     ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo cat '$ingress_remote_root/ingress/$operation.json'" >"$attempt/result.json"
   fi
-  node scripts/verify/public-bft-candidate-binding.mjs --ingress-check "$candidate_binding" "$attempt/result.json" "$operation" "${DEPLOY_DRY_RUN:-0}" "$gateway_binary_sha"
+  validated_ingress_result "$operation" "$attempt/result.json"
   ln "$attempt/result.json" "$ingress_root/$operation-result.json"
 }
 
@@ -783,7 +808,7 @@ verify_public_phase() {
   validated_candidate_result
   validated_gateway_start
   validated_continuity_result
-  node scripts/verify/public-bft-candidate-binding.mjs --ingress-check "$candidate_binding" "$ingress_root/switch-result.json" switch "${DEPLOY_DRY_RUN:-0}" "$gateway_binary_sha"
+  validated_ingress_result switch "$ingress_root/switch-result.json"
   local observation="${PUBLIC_BFT_PUBLIC_OBSERVATION_SECONDS:-4}" evidence="$ingress_root/public-continuity"
   [[ "$observation" =~ ^[0-9]+$ ]] && ((observation >= 2 && observation <= 15)) || exit 1
   local rpc="${PUBLIC_RPC_URL:-https://rpc.ynxweb4.com}" evm="${PUBLIC_EVM_RPC_URL:-https://evm.ynxweb4.com}"
@@ -940,7 +965,7 @@ gateway_recovery_phase() {
   validated_candidate_result
   validated_gateway_start
   validated_continuity_result
-  node scripts/verify/public-bft-candidate-binding.mjs --ingress-check "$candidate_binding" "$ingress_root/switch-result.json" switch "${DEPLOY_DRY_RUN:-0}" "$gateway_binary_sha"
+  validated_ingress_result switch "$ingress_root/switch-result.json"
   local evidence="$candidate_transaction_dir/recovery-gateway" observation="${PUBLIC_BFT_RECOVERY_OBSERVATION_SECONDS:-4}"
   [[ "$observation" =~ ^[0-9]+$ ]] && ((observation >= 2 && observation <= 15)) || exit 1
   (umask 077; mkdir -m 0700 "$evidence") || { echo "original gateway recovery observation exists; retain it" >&2; exit 1; }

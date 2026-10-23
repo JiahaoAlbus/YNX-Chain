@@ -53,6 +53,7 @@ new_fixture() {
   export FIX_ROOT="$root" FIX_LOG="$root/commands.log"
   unset FIX_DROPIN FIX_FOREIGN_EXEC FIX_PROC_DENIED FIX_PID_RACE FIX_RESTART_TIMEOUT FIX_RESTART_WRONG_ARGV FIX_RELOAD_FAILURE FIX_HEALTH_WRONG FIX_CADDY_INVALID
   unset FIX_CADDY_DROPIN FIX_CADDY_START FIX_CADDY_RELOAD FIX_CADDY_PID_RACE FIX_CADDY_ADMIN_FAILURE FIX_CADDY_ADAPT_INVALID FIX_CADDY_SECOND_READ
+  unset FIX_CADDY_JSON FIX_JSON_SECOND_READ
   tx=protocol-gateway-ingress-fixture
   runtime_commit=0123456789abcdef0123456789abcdef01234567
   commit="${runtime_commit:0:12}"; release="ynx-bft-gateway-$commit"
@@ -111,9 +112,10 @@ case "$1" in
     [[ "$#" == 5 && "$2" == -p && "$4" == --value ]]
     if [[ "$5" == caddy.service ]]; then
       binary="$FIX_ROOT/usr/bin/caddy"; master="$FIX_ROOT/etc/caddy/Caddyfile"
+      [[ "${FIX_CADDY_JSON:-}" != yes ]] || master="$FIX_ROOT/etc/caddy/ynx-chain.json"
       case "$3" in
         FragmentPath) printf '%s\n' "$FIX_ROOT/usr/lib/systemd/system/caddy.service" ;;
-        DropInPaths) [[ "${FIX_CADDY_DROPIN:-}" != yes ]] || echo /unapproved/caddy-dropin.conf ;;
+        DropInPaths) if [[ "${FIX_CADDY_DROPIN:-}" == yes ]]; then echo /unapproved/caddy-dropin.conf; elif [[ "${FIX_CADDY_JSON:-}" == yes ]]; then echo "$FIX_ROOT/etc/systemd/system/caddy.service.d/ynx-chain-json.conf"; fi ;;
         User|Group) echo caddy ;;
         ExecStart) if [[ "${FIX_CADDY_START:-}" == yes ]]; then printf '{ path=%s ; argv[]=%s run --resume ; ignore_errors=no ; }\n' "$binary" "$binary"; else printf '{ path=%s ; argv[]=%s run --environ --config %s ; ignore_errors=no ; }\n' "$binary" "$binary" "$master"; fi ;;
         ExecReload) if [[ "${FIX_CADDY_RELOAD:-}" == yes ]]; then master="$FIX_ROOT/etc/caddy/foreign-master"; fi; printf '{ path=%s ; argv[]=%s reload --config %s --force ; ignore_errors=no ; }\n' "$binary" "$binary" "$master" ;;
@@ -143,7 +145,7 @@ case "$1" in
     [[ "${FIX_RESTART_TIMEOUT:-}" != yes ]] || exit 124 ;;
   reload)
     [[ "$#" == 2 && "$2" == caddy ]]; [[ "${FIX_RELOAD_FAILURE:-}" != yes ]] || exit 77
-    "$FIX_ROOT/test-bin/fixture-caddy-adapt" >"$FIX_ROOT/caddy-loaded.json.new"
+    if [[ "${FIX_CADDY_JSON:-}" == yes ]]; then cp "$FIX_ROOT/etc/caddy/ynx-chain.json" "$FIX_ROOT/caddy-loaded.json.new"; else "$FIX_ROOT/test-bin/fixture-caddy-adapt" >"$FIX_ROOT/caddy-loaded.json.new"; fi
     mv "$FIX_ROOT/caddy-loaded.json.new" "$FIX_ROOT/caddy-loaded.json" ;;
   *) exit 92 ;;
 esac
@@ -154,6 +156,17 @@ set -euo pipefail
 printf 'curl-stub %s\n' "$*" >>"$FIX_LOG"
 if [[ "$*" == '--disable --request GET --noproxy * --max-redirs 0 --connect-timeout 5 --max-time 10 --max-filesize 16777216 -fsS http://127.0.0.1:2019/config/' ]]; then
   [[ "${FIX_CADDY_ADMIN_FAILURE:-}" != yes ]] || exit 22
+  if [[ "${FIX_CADDY_JSON:-}" == yes ]]; then
+    count=0; [[ ! -f "$FIX_ROOT/json-admin-count" ]] || read -r count <"$FIX_ROOT/json-admin-count"
+    count=$((count+1)); printf '%s\n' "$count" >"$FIX_ROOT/json-admin-count"
+    if [[ "$count" == 2 ]]; then
+      case "${FIX_JSON_SECOND_READ:-}" in
+        loaded) printf '{"apps":{"http":{"servers":{"foreign":{"routes":[]}}}}}\n' >"$FIX_ROOT/caddy-loaded.json" ;;
+        config) printf '\n ' >>"$FIX_ROOT/etc/caddy/ynx-chain.json" ;;
+        dropin) printf '# foreign retained\n' >>"$FIX_ROOT/etc/systemd/system/caddy.service.d/ynx-chain-json.conf" ;;
+      esac
+    fi
+  fi
   cat "$FIX_ROOT/caddy-loaded.json"
   exit 0
 fi
@@ -167,6 +180,11 @@ SH
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'caddy-stub %s\n' "$*" >>"$FIX_LOG"
+if [[ "${FIX_CADDY_JSON:-}" == yes ]]; then
+  [[ "$#" == 3 && "$1" == validate && "$2" == --config && "$3" == "$FIX_ROOT/"*.json ]]
+  [[ "${FIX_CADDY_INVALID:-}" != yes ]] || exit 76
+  exit 0
+fi
 [[ "$#" == 5 && "$2" == --config && "$3" == "$FIX_ROOT/"* && "$4" == --adapter && "$5" == caddyfile ]]
 case "$1" in
   adapt)
@@ -453,4 +471,116 @@ count="$(grep -Ec '^systemctl (restart|reload)' "$FIX_LOG")"
 run_helper rollback; must_fail 'original checksum manifest changed'
 [[ "$(grep -Ec '^systemctl (restart|reload)' "$FIX_LOG")" == "$count" ]] || fail 'tampered rollback touched a service'
 
-printf 'SINGLE_APP_GATEWAY_RPC_INGRESS_SOURCE_CONTROLS_PASS networkRequests=0 servicesStarted=0 publicIngressChanged=false\n'
+# New explicit JSON mode runs the real ingress caller and shared helper. Only
+# systemd/Caddy/HTTP transports are synthetic; no real service is exercised.
+new_json_fixture() {
+  new_fixture
+  export FIX_CADDY_JSON=yes
+  json_manifest="$root/caddy-source.json"
+  python3 - "$repo" "$root" "$tx" "$commit" "$operator_pin" "$runtime_commit" "$runtime_pin" "$gateway_pin" <<'PY'
+import hashlib,importlib.util,json,os,sys
+from pathlib import Path
+repo,root,tx,commit,operator,runtime,source,gateway=sys.argv[1:]
+spec=importlib.util.spec_from_file_location('public_json_fixture',repo+'/scripts/verify/test_public_bft_caddy_json.py')
+fixture=importlib.util.module_from_spec(spec); spec.loader.exec_module(fixture)
+h=fixture.module
+def write(path,body,mode):
+    p=Path(path); p.parent.mkdir(parents=True,exist_ok=True); p.write_bytes(body); p.chmod(mode)
+raw=json.dumps(fixture.fixture_config(),indent=2).encode()+b'\n'
+folder=root+'/retained-json'; os.mkdir(folder,0o700)
+reads=[]
+for name in ['read1.json','read2.json']:
+    path=folder+'/'+name; write(path,raw,0o600)
+    reads.append(dict(path=path,bytes=str(len(raw)),sha256=hashlib.sha256(raw).hexdigest(),witness=h.file_witness(os.stat(path))))
+candidate=h.project_rpc_config(h.parse_config(raw),fixture.rpc_records())
+unit=root+h.UNIT_PATH
+manifest=dict(version=h.VERSION,transactionId=tx,commit=commit,operatorPlanSHA256=operator,runtimeCommit=runtime,runtimeSOURCEsha256=source,gatewaySHA256=gateway,source=reads[0],secondRead=reads[1],originalProcess=dict(pid='6000',startTicks='123456',argv=h.OLD_ARGV),originalUnit=dict(path=h.UNIT_PATH,sha256=hashlib.sha256(Path(unit).read_bytes()).hexdigest()),baseline=dict(configPath=h.CONFIG_PATH,configSHA256=hashlib.sha256(raw).hexdigest(),semanticSHA256=h.semantic_hash(h.parse_config(raw)),candidateSemanticSHA256=h.semantic_hash(candidate),dropInPath=h.DROP_IN_PATH,dropInSHA256=hashlib.sha256(h.render_dropin()).hexdigest()),rpcUpstreams=fixture.rpc_records())
+write(root+'/caddy-source.json',h.canonical_config(manifest),0o600)
+write(root+h.CONFIG_PATH,raw,0o600)
+write(root+h.DROP_IN_PATH,h.render_dropin(),0o644)
+write(root+'/caddy-loaded.json',raw,0o600)
+write(root+'/original.json',raw,0o600)
+write(root+'/expected.json',h.canonical_config(candidate),0o600)
+write(root+'/proc/6000/stat',('6000 (caddy) S '+' '.join(['0']*18+['123456','0'])+'\n').encode(),0o600)
+PY
+  json_pin="$(hash "$json_manifest")"
+  sha256sum "$root/retained-json/"* "$json_manifest" >"$root/json-retained.sha256"
+}
+run_json_helper() {
+  set +e
+  PUBLIC_BFT_INGRESS_SOURCE_TEST_ONLY=yes bash "$repo/scripts/ops/remote/public-bft-ingress.sh" "$1" "$tx" "$commit" "$release" "$evidence" single-app-gateway-json "$operator_pin" "$runtime_commit" "$runtime_pin" "$gateway_pin" "$json_manifest" "$json_pin" "$root" >"$root/result.json" 2>"$root/result.err"
+  status=$?
+  set -e
+  if grep -Eq 'SYNTHETIC-PRIVATE-CANARY|NOT-A-REAL-KEY' "$root/result.json" "$root/result.err"; then fail 'JSON body leaked into public diagnostic'; fi
+}
+
+# The original Caddyfile caller cannot consume a persistent JSON baseline.
+# Its actual rejection is retained; the new mode never feeds JSON to adapt.
+new_json_fixture
+run_helper switch; must_fail CADDY_ORIGINAL_UNIT_MISMATCH; no_mutations
+[[ ! -e "$ingress" ]] || fail 'old JSON-incompatible caller created attempt'
+run_json_helper switch
+[[ "$status" == 0 ]] || fail 'normal explicit JSON switch failed'
+cmp "$root/etc/caddy/ynx-chain.json" "$root/expected.json" || fail 'JSON switch is not exact two-leaf projection'
+cmp "$master" "$root/original.master" && cmp "$config" "$root/original.caddy" || fail 'JSON switch touched Caddyfile/stub'
+preserved
+sha256sum --strict -c "$root/json-retained.sha256" >/dev/null || fail 'JSON switch changed pinned original retained sources'
+python3 - "$root/result.json" "$json_manifest" "$json_pin" <<'PY'
+import json,sys
+v=json.load(open(sys.argv[1])); m=json.load(open(sys.argv[2]))
+assert v['mode']=='single-app-gateway-json' and v['caddySourceManifestSHA256']==sys.argv[3]
+assert v['sourceSHA256']==m['source']['sha256'] and v['baselineSemanticSHA256']==m['baseline']['semanticSHA256']
+assert v['candidateSemanticSHA256']==m['baseline']['candidateSemanticSHA256'] and v['dropInSHA256']==m['baseline']['dropInSHA256']
+assert v['publicIngressChanged'] is False and v['sourceTestOnly'] is True and v['rpcOnly'] is True
+assert v['caddyRestartVerified'] is False and v['ecosystemContinuityVerified'] is False
+PY
+[[ "$(grep -c '^systemctl restart ynx-bft-gateway-candidate.service$' "$FIX_LOG")" == 1 && "$(grep -c '^systemctl reload caddy$' "$FIX_LOG")" == 1 ]] || fail 'JSON switch operated wrong services'
+! grep -q -- '--adapter\|systemctl restart caddy' "$FIX_LOG" || fail 'JSON switch used Caddyfile adapter or restart'
+run_json_helper rollback
+[[ "$status" == 0 ]] || fail 'normal JSON rollback failed'
+cmp "$root/etc/caddy/ynx-chain.json" "$root/original.json" && cmp "$candidate_env" "$root/original.env" || fail 'JSON rollback did not restore complete original bytes'
+preserved
+sha256sum --strict -c "$root/json-retained.sha256" >/dev/null || fail 'JSON rollback changed pinned original retained sources'
+run_json_helper rollback; must_fail 'original rollback attempt exists'
+
+for scenario in missing-baseline missing-dropin wrong-pin loaded foreign-dropin old-start old-reload wrong-startticks wrong-source; do
+  new_json_fixture
+  case "$scenario" in
+    missing-baseline) rm "$root/etc/caddy/ynx-chain.json" ;;
+    missing-dropin) rm "$root/etc/systemd/system/caddy.service.d/ynx-chain-json.conf" ;;
+    wrong-pin) json_pin="$(printf 'd%.0s' {1..64})" ;;
+    loaded) cp "$root/expected.json" "$root/caddy-loaded.json" ;;
+    foreign-dropin) export FIX_CADDY_DROPIN=yes ;;
+    old-start) export FIX_CADDY_START=yes ;;
+    old-reload) export FIX_CADDY_RELOAD=yes ;;
+    wrong-startticks) sed -i 's/123456/123457/' "$root/proc/6000/stat" ;;
+    wrong-source) printf ' ' >>"$root/retained-json/read1.json" ;;
+  esac
+  run_json_helper switch
+  [[ "$status" != 0 && ! -e "$ingress" ]] || fail "JSON preflight $scenario accepted or staged"
+  no_mutations
+  cmp "$candidate_env" "$root/original.env" || fail 'JSON refusal changed gateway authorization'
+done
+
+for scenario in loaded config dropin; do
+  new_json_fixture
+  export FIX_JSON_SECOND_READ="$scenario"
+  run_json_helper switch; must_fail CADDY_JSON_PERSISTENT_SOURCE_OR_LOADED_CONFIG_MISMATCH; no_mutations
+  [[ -f "$ingress/intent.json" && ! -e "$ingress/switch.json" ]] || fail 'JSON race did not retain UNKNOWN'
+  cmp "$candidate_env" "$root/original.env" || fail 'JSON race restarted gateway'
+  count="$(wc -l <"$FIX_LOG")"
+  run_json_helper switch; must_fail 'original ingress attempt exists'
+  [[ "$(wc -l <"$FIX_LOG")" == "$count" ]] || fail 'JSON UNKNOWN resent service/admin action'
+done
+
+new_json_fixture
+run_json_helper switch
+[[ "$status" == 0 ]] || fail 'JSON foreign rollback fixture switch failed'
+printf ' ' >>"$root/etc/caddy/ynx-chain.json"
+cp "$root/etc/caddy/ynx-chain.json" "$root/foreign-json"
+count="$(grep -Ec '^systemctl (restart|reload)' "$FIX_LOG")"
+run_json_helper rollback; must_fail CADDY_JSON_PERSISTENT_SOURCE_OR_LOADED_CONFIG_MISMATCH
+cmp "$root/etc/caddy/ynx-chain.json" "$root/foreign-json" || fail 'JSON rollback overwrote foreign config'
+[[ "$(grep -Ec '^systemctl (restart|reload)' "$FIX_LOG")" == "$count" ]] || fail 'JSON foreign rollback operated service'
+
+printf 'SINGLE_APP_GATEWAY_RPC_INGRESS_SOURCE_CONTROLS_PASS networkRequests=0 servicesStarted=0 publicIngressChanged=false jsonProfile=true\n'

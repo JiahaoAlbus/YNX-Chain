@@ -87,6 +87,7 @@ assert.match(after.snapshotSourceSha256,/^[0-9a-f]{64}$/);
 assert.equal(after.operatorPreparationPlanSha256,before.operatorPreparationPlanSha256);
 assert.equal(process.env.PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256,after.operatorPlanSha256,"final operator plan must match the complete independent approval");
 execFileSync(process.execPath,["scripts/verify/public-bft-candidate-binding.mjs","--operator-continuation",path.join(path.dirname(process.argv[1]),"preparation-operator-plan.json"),before.operatorPreparationPlanSha256,process.env.PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN||"",after.operatorPlanSha256],{stdio:["ignore","ignore","pipe"]});
+assert.ok(!Object.hasOwn(before,"caddySource"),"preparation cannot contain future final-plan Caddy authority");delete after.caddySource;
 delete before.preparationOnly;delete after.snapshotSourceSha256;delete after.operatorPlanSha256;delete after.candidateGenesisTime;
 assert.deepEqual(after,before,"continuation changed original stable authorization or expiry");' "$transaction_dir/preparation-approval.json"
   mkdir -- "$transaction_dir/continuation-attempt"

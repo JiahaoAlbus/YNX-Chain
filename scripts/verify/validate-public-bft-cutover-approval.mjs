@@ -5,7 +5,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
-import { authoritativeIdentity, authoritativeRoleIdentities, operatorPreparationPin } from "./lib/public-bft-native-source.mjs";
+import { caddySourceIdentity, authoritativeIdentity, authoritativeRoleIdentities, operatorPreparationPin } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error("public BFT cutover approval rejected: " + message);
@@ -45,8 +45,10 @@ if (typeof approval.custodyEvidence !== "string" || !/^sha256:[0-9a-f]{64}$/.tes
 if (approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval is bound to a different commit or release");
 const nativeIdentity = authoritativeIdentity(approval);
 const nativeRoles = authoritativeRoleIdentities(approval);
+const caddySource = caddySourceIdentity(approval);
 const preparationPlanPin = operatorPreparationPin(approval, preparation);
 if (preparation) {
+  if (Object.hasOwn(approval, "caddySource")) fail("preparation cannot authorize a future final-plan Caddy source manifest");
   if (!nativeIdentity.authoritativeCommit || approval.preparationOnly !== true || Object.hasOwn(approval, "snapshotSourceSha256")) fail("native preparation requires explicit preparationOnly and no future snapshot source pin");
 } else if (Object.hasOwn(approval, "preparationOnly")) fail("preparation approval cannot authorize export, initialization or cutover");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) {
@@ -105,6 +107,7 @@ process.stdout.write(JSON.stringify({
   release: expectedRelease,
   ...nativeIdentity,
   ...nativeRoles,
+  ...caddySource,
   ...(preparation ? {preparationOnly: true} : {}),
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,
