@@ -1,4 +1,4 @@
-import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef,OriginalIDEProjectAuthorityRef,OriginalIDECurrentProjectData,OriginalIDECurrentPublisherData} from './auth-native-contract.js';
+import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef,OriginalIDEProjectAuthorityRef,OriginalIDECurrentProjectData,OriginalIDECurrentPublisherData,OriginalIDEWorkspaceProjectSelectionRef,OriginalIDEWorkspaceProjectSelectionData} from './auth-native-contract.js';
 /** Private original backend only. Native returns the exact recognized owner.
  * A partial acquisition has descriptor -1 and is cleanup custody, not a guard.
  * The consumer retains it and selects its original close once. */
@@ -108,3 +108,13 @@ export declare function readOriginalIDECurrentPublisher(originalAuthority:Origin
 /** Undefined only after the actual original cleanup; original failures,
  * including UNKNOWN and falsy throws, are propagated without retry. */
 export declare function closeOriginalIDEProjectAuthority(originalAuthority:OriginalIDEProjectAuthorityRef):undefined;
+
+/** Three exact original launch-context strings; no Source/provider or canonical
+ * project-ID override. Return the same partial before reads, never auto-close.
+ * Null means the fixed original callee is unavailable. */
+export declare function acquireOriginalIDEWorkspaceProjectSelection(workspaceCanonicalAbsolutePath:string,profileCanonicalAbsolutePath:string,localProjectID:string):OriginalIDEWorkspaceProjectSelectionRef|null;
+/** Exact frozen original DATA, without projection or authority promotion. */
+export declare function readOriginalIDEWorkspaceProjectSelection(originalSelection:OriginalIDEWorkspaceProjectSelectionRef):OriginalIDEWorkspaceProjectSelectionData;
+/** Actual original independent cleanup returns undefined. First failures and
+ * UNKNOWN propagate unchanged; no automatic retry or replacement selector. */
+export declare function closeOriginalIDEWorkspaceProjectSelection(originalSelection:OriginalIDEWorkspaceProjectSelectionRef):undefined;

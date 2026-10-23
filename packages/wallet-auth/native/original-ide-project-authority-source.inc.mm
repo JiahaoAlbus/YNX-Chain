@@ -36,6 +36,21 @@
   }@catch(id){[self fail:@"IDE_PROJECT_CURRENT_UNKNOWN" error:error];return nil;}@finally{_projectLocalEntered=NO;}
  }
 }
+- (NSDictionary*)copyOriginalIDEProjectSelectionLocal:(NSError**)error {
+ @synchronized(self){
+ @try{
+  NSDictionary*first=[self copyOriginalIDEProjectAuthorityLocal:error];if(!first)return nil;
+  NSDictionary*mapping=_selection[@"projectSelection"];
+  if(![mapping isKindOfClass:NSDictionary.class]){[self fail:@"IDE_PROJECT_WORKSPACE_SELECTION_NOT_SUPPLIED" error:error];return nil;}
+  NSData*raw=[NSJSONSerialization dataWithJSONObject:mapping options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
+  if(!raw||raw.length>16384){[self fail:@"IDE_PROJECT_WORKSPACE_SELECTION_CAPACITY" error:error];return nil;}
+  NSDictionary*copy=[NSJSONSerialization JSONObjectWithData:raw options:0 error:nil];
+  NSDictionary*last=[self copyOriginalIDEProjectAuthorityLocal:error];NSData*post=[NSJSONSerialization dataWithJSONObject:_selection[@"projectSelection"] options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
+  if(!last||![first isEqual:last]||![raw isEqual:post]){[self fail:@"IDE_PROJECT_WORKSPACE_SELECTION_POST_CURRENT_CHANGED" error:error];return nil;}
+  return @{@"authority":first,@"selection":copy};
+ }@catch(id){[self fail:@"IDE_PROJECT_WORKSPACE_SELECTION_UNKNOWN" error:error];return nil;}
+ }
+}
 - (NSDictionary*)copyOriginalIDECurrentProject:(NSString*)projectID error:(NSError**)error {
  @synchronized(self){NSDictionary*first=[self copyOriginalIDEProjectAuthorityLocal:error];if(!first)return nil;if(!SourceProjectText(projectID)||![first[@"project"][@"projectId"]isEqual:projectID]){[self fail:@"IDE_PROJECT_REQUEST_MISMATCH" error:error];return nil;}
   NSDictionary*last=[self copyOriginalIDEProjectAuthorityLocal:error];if(!last||![first isEqual:last]){[self fail:@"IDE_PROJECT_REQUEST_POST_CURRENT_REFUSED" error:error];return nil;}return @{@"principal":first[@"principal"],@"project":first[@"project"],@"expiresMS":first[@"expiresMS"]};}

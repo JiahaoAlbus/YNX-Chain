@@ -52,6 +52,7 @@ static NSString* ProjectText(napi_env env,napi_value value){
 // Public originals are independent Uint8Array copies, never an authority handle.
 static napi_value ProjectData(napi_env env,id value,unsigned depth=0){
  if(depth>6)return nullptr;napi_value out=nullptr;
+ if(value==NSNull.null)return napi_get_null(env,&out)==napi_ok?out:nullptr;
  if([value isKindOfClass:NSData.class]){void*p=nullptr;napi_value array;
   if([value length]>8192||napi_create_arraybuffer(env,[value length],&p,&array)!=napi_ok)return nullptr;
   memcpy(p,[value bytes],[value length]);return napi_create_typedarray(env,napi_uint8_array,[value length],array,0,&out)==napi_ok?out:nullptr;}

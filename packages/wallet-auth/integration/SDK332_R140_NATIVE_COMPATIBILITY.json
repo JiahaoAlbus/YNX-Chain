@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.18",
+  "version": "1.3.0-pq.3.32-auth.19",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -244,8 +244,8 @@
   "NativeInputs": [
     {
       "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
-      "bytes": 81397,
-      "sha256": "4e95b6e194be68140c172ecce961579395bb18c77c2e32548ec8e1a368de219b"
+      "bytes": 81516,
+      "sha256": "0630bf72c5c09fd6155c3d0c293e56f80db5310c9b0c95daeda4cb2d656e4122"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-auth-identity-binding.inc.mm",
@@ -334,8 +334,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 6781,
-      "sha256": "b34ef92dc10e44b360190c27dd7b2775efd621b3bb977140a1ee36a60b2ebdc7"
+      "bytes": 6855,
+      "sha256": "ccf8162de16fcb552f138500c162a8dfb9462887301425f9ea7df5873c334478"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
@@ -344,8 +344,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 23223,
-      "sha256": "a73f04a1bdcf6f4bc55b36d3af886a5ddc27de2cfea099ecc7c57405078403ec"
+      "bytes": 24944,
+      "sha256": "c5fc04c171de4f472fc3b20e752fd2e3388ae6809e56b675f3b4b76d133c1f8d"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -609,19 +609,24 @@
     },
     {
       "path": "packages/wallet-auth/native/original-ide-project-authority-source.inc.mm",
-      "bytes": 9316,
-      "sha256": "b3a69cf9725d3d523b24c047ec840865d240804239524617cc215984b852eff5"
+      "bytes": 10570,
+      "sha256": "f6ba57e086dd19875d63c7c81c75f4f48647f37e0d13cd9e932b2a44afe57b70"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-project-authority-binding.inc.mm",
-      "bytes": 9156,
-      "sha256": "bcba19edf40a0f908fafa2bc91cf71d8800781f5f5313f46a3cef543d0786504"
+      "bytes": 9232,
+      "sha256": "b79c0875677ce4230ed8c95974757eb5983d7bc88cd19077014d53193d646d11"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-workspace-project-selection.inc.mm",
+      "bytes": 12315,
+      "sha256": "0def43170e440c2e7d8ad252868eae0d5177cce9fa771950fa9b1a5b060167fb"
     }
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 11989,
-    "sha256": "218c73f9883ef9263181453a7e12049009ccc400ec313e85c29ece3848ebc4dc"
+    "bytes": 12230,
+    "sha256": "06b86ae2cb60cd750623e790214a2698671315987c67ce4603871b413d5debdc"
   },
   "require": {
     "translationUnits": 13,
@@ -710,7 +715,7 @@
       "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
     }
   ],
-  "profile": "R174-normal-private-project-authority-reader-source",
+  "profile": "R177-normal-workspace-bound-project-selector-source",
   "HelperInputs": [
     {
       "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
@@ -1186,5 +1191,75 @@
     "serverOriginalSource": false,
     "deploymentHeadersIssuer": false,
     "production": false
+  },
+  "supplierR177": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r177/HANDOFF.json",
+      "bytes": 12287,
+      "sha256": "1521af764bc459400ef3f2a2b4e0973b6012739fd43ab36b17b6b7dce6c1110e"
+    },
+    "parents": {
+      "source18": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r174-project-reader-source-61786642-20261024/SOURCE_HANDOFF.json",
+        "bytes": 17643,
+        "sha256": "1feb33423bfb4e10229004c57e77693f1d4188fbea0e4ed449eca3d48a947e85"
+      },
+      "r171": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r171/HANDOFF.json",
+        "bytes": 10648,
+        "sha256": "0f36ef3ce8751bf70f87289b789430e4276512a2a9b1dfdf270e7b8efd339c85"
+      },
+      "r174": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r174/HANDOFF.json",
+        "bytes": 7025,
+        "sha256": "60ede70c1213f8d0a11136f9b9e2a1f6cbba56de98fe6045d2a51804ddcfba63"
+      }
+    },
+    "sourceLeaves": [
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 81516,
+        "sha256": "0630bf72c5c09fd6155c3d0c293e56f80db5310c9b0c95daeda4cb2d656e4122"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-project-authority-binding.inc.mm",
+        "bytes": 9232,
+        "sha256": "b79c0875677ce4230ed8c95974757eb5983d7bc88cd19077014d53193d646d11"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-workspace-project-selection.inc.mm",
+        "bytes": 12315,
+        "sha256": "0def43170e440c2e7d8ad252868eae0d5177cce9fa771950fa9b1a5b060167fb"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+        "bytes": 6855,
+        "sha256": "ccf8162de16fcb552f138500c162a8dfb9462887301425f9ea7df5873c334478"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+        "bytes": 24944,
+        "sha256": "c5fc04c171de4f472fc3b20e752fd2e3388ae6809e56b675f3b4b76d133c1f8d"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-authority-source.inc.mm",
+        "bytes": 10570,
+        "sha256": "f6ba57e086dd19875d63c7c81c75f4f48647f37e0d13cd9e932b2a44afe57b70"
+      }
+    ],
+    "originalReferencesVerified": 16,
+    "sourceEvidenceReused": true,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "matchingApp": false,
+    "actualCanonicalSourceMapping": false,
+    "actualRootOrRegistryOrEnrollment": false,
+    "realAccountOrApproval": false,
+    "MainKEY7Effect": false,
+    "HTTPHeaderIssuer": false,
+    "backendOriginalSource13Methods": false,
+    "durableNonce": false,
+    "installedOrDeployed": false
   }
 }

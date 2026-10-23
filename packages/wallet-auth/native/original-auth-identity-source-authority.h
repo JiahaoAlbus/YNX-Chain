@@ -51,6 +51,7 @@ struct JointLifecycle {
 // Dedicated original Source purpose only, never Relay/old login/key-call ACL.
 // Read-only Native snapshots; caller project/publisher IDs restrict selection.
 - (NSDictionary *)copyOriginalIDECurrentProject:(NSString *)projectID error:(NSError **)error;
+- (NSDictionary *)copyOriginalIDEProjectSelectionLocal:(NSError **)error;
 - (NSDictionary *)copyOriginalIDECurrentPublisher:(NSString *)publisherID forProject:(NSString *)projectID error:(NSError **)error;
 + (instancetype)acquireOriginalIDEParentSource:(NSError **)error;
 // Dedicated identity-purpose Wallet owner; never old four-operation admission.

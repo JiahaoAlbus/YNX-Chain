@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-const nodeUnits=JSON.parse(readFileSync(new URL('../package.json',import.meta.url))).version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16|17|18)$/)!==null?13:12;
+const nodeUnits=JSON.parse(readFileSync(new URL('../package.json',import.meta.url))).version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16|17|18|19)$/)!==null?13:12;
 import * as builder from '../../../apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs';
 test('normal Node and helper each compile the actual typed publication implementation exactly once',()=>{
  const node=builder.originalAuthNativeBuildPlan('arm64','/original/pinned/headers'),helper=builder.originalIDEHelperBuildPlan('arm64');
