@@ -12,8 +12,11 @@ func validateNativeStreamingOptions(o options) error {
 	if !o.nativeStream8 {
 		return nil
 	}
-	if !o.streamingWorkload || o.senderMode != "ready-pool" || o.rounds < 2 || o.rounds > 4096 || o.concurrency != 8 || o.observers != 4 || o.offeredRate != 1000 || !o.prefixDurableReplay || !o.prefixNativeClone || !o.observerNativeFacts || !o.observerPhaseTiming || o.nativeSubmit8 || o.nativeSuffixSetup || o.clientProcs2 || o.sharedDurableReplay || o.endpointFair || o.endpointElastic || o.inclusionMode != "block-scan" || !o.terminalStream || !o.reuseResultSlots || !o.segmentedIntents || o.output == "" || o.evidenceByteBudget < 1 || o.evidenceByteBudget > 2<<30 {
-		return errors.New("native stream8 requires explicit native-prefix/facts/phase ready streaming,8submitters/4observers/offer1000,original suffix and no other candidates")
+	if !o.streamingWorkload || o.senderMode != "ready-pool" || o.rounds < 2 || o.rounds > 4096 || o.concurrency != 8 || o.observers != 4 || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || !o.prefixDurableReplay || !o.prefixNativeClone || !o.observerNativeFacts || !o.observerPhaseTiming || o.nativeSubmit8 || o.nativeSuffixSetup || o.clientProcs2 || o.sharedDurableReplay || o.endpointFair || o.endpointElastic || o.inclusionMode != "block-scan" || !o.terminalStream || !o.reuseResultSlots || !o.segmentedIntents || o.output == "" || o.evidenceByteBudget < 1 || o.evidenceByteBudget > 2<<30 {
+		return errors.New("native stream8 requires explicit native-prefix/facts/phase ready streaming,8submitters/4observers/original bounded positive pace,original suffix and no other candidates")
+	}
+	if _, err := normalizeReadyPacingMode(o.pacingMode); err != nil {
+		return err
 	}
 	_, _, err := durableReadLimits(o)
 	return err
@@ -62,12 +65,14 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
-	Submitters             int   `json:"submitters"`
-	Observers              int   `json:"observers"`
-	CanonicalByteLimit     int64 `json:"canonicalByteLimit"`
-	ObserverNativeFacts    bool  `json:"observerNativeFacts"`
-	OriginalSuffixSetup    bool  `json:"originalSuffixSetup"`
-	SerializedReaderBudget bool  `json:"serializedReaderBudget"`
+	OfferedRate            float64 `json:"offeredRate"`
+	PacingMode             string  `json:"pacingMode"`
+	Submitters             int     `json:"submitters"`
+	Observers              int     `json:"observers"`
+	CanonicalByteLimit     int64   `json:"canonicalByteLimit"`
+	ObserverNativeFacts    bool    `json:"observerNativeFacts"`
+	OriginalSuffixSetup    bool    `json:"originalSuffixSetup"`
+	SerializedReaderBudget bool    `json:"serializedReaderBudget"`
 }
 
 func streamingProfileName(o options) string {

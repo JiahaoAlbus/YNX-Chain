@@ -47,7 +47,11 @@ func persistStreamingWorkloadPlan(o options, manifest []byte, m consensus.Epheme
 	}
 	plan := streamingWorkloadPlan{DurableStoreByteLimit: storeLimit, DurableCacheInputByteBudget: cacheBudget, Kind: "YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1", Profile: streamingProfileName(o), Fixture: readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", fmt.Sprintf("%x", sha256.Sum256(manifest)), m.MigrationStateHash, m.GenesisHash}, Senders: len(initial), Rounds: o.rounds, PlannedRecords: total, RequiredBalancePerSender: int64(o.rounds) * 2, EncodedEvidenceBudget: o.evidenceByteBudget, TimeoutMs: o.timeout.Milliseconds()}
 	if o.nativeStream8 {
-		plan.NativePrefix = &nativeStreamingPlan{Submitters: o.concurrency, Observers: o.observers, CanonicalByteLimit: storeLimit, ObserverNativeFacts: true, OriginalSuffixSetup: true, SerializedReaderBudget: cacheBudget > 0}
+		mode, err := normalizeReadyPacingMode(o.pacingMode)
+		if err != nil {
+			return "", "", err
+		}
+		plan.NativePrefix = &nativeStreamingPlan{OfferedRate: o.offeredRate, PacingMode: mode, Submitters: o.concurrency, Observers: o.observers, CanonicalByteLimit: storeLimit, ObserverNativeFacts: true, OriginalSuffixSetup: true, SerializedReaderBudget: cacheBudget > 0}
 	}
 	for _, raw := range initial {
 		plan.InitialSignedHashes = append(plan.InitialSignedHashes, fmt.Sprintf("%X", raw.Hash()))

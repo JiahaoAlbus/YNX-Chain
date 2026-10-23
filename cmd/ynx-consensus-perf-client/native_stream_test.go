@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	cmt "github.com/cometbft/cometbft/types"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,12 +26,19 @@ func TestNativeStreamingScopeAndOriginalLimits(t *testing.T) {
 	if err := validateOptions(o); err != nil {
 		t.Fatal(err)
 	}
+	for _, rate := range []float64{512, 1000, 1050, 2048} {
+		selected := o
+		selected.offeredRate = rate
+		if err := validateOptions(selected); err != nil {
+			t.Fatal("existing bounded ready pace unavailable to explicit stream", rate, err)
+		}
+	}
 	o.rounds = 293
 	if planned, _, err := plannedWorkload(o, 2048); err != nil || planned != 600064 {
 		t.Fatal("original planned-record bound differs", planned, err)
 	}
 	for _, mutate := range []func(*options){
-		func(o *options) { o.nativeStream8 = false }, func(o *options) { o.streamingWorkload = false }, func(o *options) { o.concurrency = 4 }, func(o *options) { o.concurrency = 9 }, func(o *options) { o.observers = 2 }, func(o *options) { o.offeredRate = 1001 }, func(o *options) { o.rounds = 1 }, func(o *options) { o.senderMode = "rounds" }, func(o *options) { o.prefixNativeClone = false }, func(o *options) { o.prefixDurableReplay = false }, func(o *options) { o.observerNativeFacts = false }, func(o *options) { o.observerPhaseTiming = false }, func(o *options) { o.sharedDurableReplay = true }, func(o *options) { o.nativeSubmit8 = true }, func(o *options) { o.nativeSuffixSetup = true }, func(o *options) { o.clientProcs2 = true }, func(o *options) { o.endpointFair = true }, func(o *options) { o.segmentedIntents = false }, func(o *options) { o.durableCacheByteBudget = 0 },
+		func(o *options) { o.nativeStream8 = false }, func(o *options) { o.streamingWorkload = false }, func(o *options) { o.concurrency = 4 }, func(o *options) { o.concurrency = 9 }, func(o *options) { o.observers = 2 }, func(o *options) { o.offeredRate = 2049 }, func(o *options) { o.offeredRate = 0 }, func(o *options) { o.offeredRate = math.NaN() }, func(o *options) { o.offeredRate = math.Inf(1) }, func(o *options) { o.rounds = 1 }, func(o *options) { o.senderMode = "rounds" }, func(o *options) { o.prefixNativeClone = false }, func(o *options) { o.prefixDurableReplay = false }, func(o *options) { o.observerNativeFacts = false }, func(o *options) { o.observerPhaseTiming = false }, func(o *options) { o.sharedDurableReplay = true }, func(o *options) { o.nativeSubmit8 = true }, func(o *options) { o.nativeSuffixSetup = true }, func(o *options) { o.clientProcs2 = true }, func(o *options) { o.endpointFair = true }, func(o *options) { o.segmentedIntents = false }, func(o *options) { o.durableCacheByteBudget = 0 },
 	} {
 		bad := nativeStreamingOptions()
 		mutate(&bad)
@@ -303,7 +311,7 @@ func TestNativeStreamingDurablePlanBindsActualModeAndPreservesLegacy(t *testing.
 	if err = json.Unmarshal(raw, &plan); err != nil {
 		t.Fatal(err)
 	}
-	if plan.Profile != "scoped_native_prefix_stream8_v1" || plan.NativePrefix == nil || plan.NativePrefix.Submitters != 8 || plan.NativePrefix.Observers != 4 || plan.NativePrefix.CanonicalByteLimit != 32<<20 || !plan.NativePrefix.ObserverNativeFacts || !plan.NativePrefix.OriginalSuffixSetup || !plan.NativePrefix.SerializedReaderBudget {
+	if plan.Profile != "scoped_native_prefix_stream8_v1" || plan.NativePrefix == nil || plan.NativePrefix.OfferedRate != 1000 || plan.NativePrefix.PacingMode != "relative" || plan.NativePrefix.Submitters != 8 || plan.NativePrefix.Observers != 4 || plan.NativePrefix.CanonicalByteLimit != 32<<20 || !plan.NativePrefix.ObserverNativeFacts || !plan.NativePrefix.OriginalSuffixSetup || !plan.NativePrefix.SerializedReaderBudget {
 		t.Fatal("native mode/resource scope not durably bound", plan)
 	}
 	if _, _, err = persistStreamingWorkloadPlan(o, manifest, m, initial); err == nil {
