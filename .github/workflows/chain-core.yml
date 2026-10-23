@@ -398,7 +398,7 @@ jobs:
           fi
           if [ "$YNX_SUPPLY_PROFILE" = supply-native-stream-2048x4 ]; then
             test "$YNX_SUPPLY_TRANSPORT" = grpc
-            test "$YNX_SUPPLY_PACING" = relative
+            test "$YNX_SUPPLY_PACING" = relative || test "$YNX_SUPPLY_PACING" = bounded-cadence
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             observer_args+=(--native-stream8 --prefix-replay --prefix-native-clone --observer-native-facts)

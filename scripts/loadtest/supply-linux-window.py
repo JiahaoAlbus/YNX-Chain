@@ -44,6 +44,11 @@ STREAM_PROFILE="supply-native-stream-2048x4"
 PROFILES[STREAM_PROFILE]=dict(PROFILE,name=STREAM_PROFILE,senders=2048,rounds=4,offeredRate=1000,
     concurrency=8,privateBytes=256<<20,senderMode="ready-pool")
 STREAM_BUDGET=dict(evidenceBytes=64<<20,durableStoreBytes=32<<20,durableCacheBytes=64<<20,timeoutMs=30000)
+STREAM_PACING_MODES=("relative","bounded-cadence")
+def native_stream_profile(pacing="relative"):
+    if type(pacing) is not str or pacing not in STREAM_PACING_MODES:raise RuntimeError("explicit native stream pacing scope differs")
+    return dict(PROFILES[STREAM_PROFILE],name=STREAM_PROFILE+"-grpc"+("-bounded-cadence" if pacing=="bounded-cadence" else ""))
+STREAM_PROFILE_NAMES=tuple(native_stream_profile(pacing)["name"] for pacing in STREAM_PACING_MODES)
 ENV = dict(GOMAXPROCS="1", GOGC="100", GOMEMLIMIT="off")
 BINARIES = ("ynx-abci", "cometbft", "ynx-consensus-perf-fixture", "ynx-consensus-perf-client")
 PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
@@ -52,13 +57,13 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
 
 def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None, prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False,native_stream8=False):
     if native_stream8 or profile_name==STREAM_PROFILE:
-        if (native_stream8 is not True or profile_name!=STREAM_PROFILE or transport!="grpc" or pacing!="relative" or observer_phases is not True
+        if (native_stream8 is not True or profile_name!=STREAM_PROFILE or transport!="grpc" or pacing not in STREAM_PACING_MODES or observer_phases is not True
                 or prefix_replay is not True or prefix_native_clone is not True or observer_native_facts is not True
                 or native_submit8 is not False or native_suffix_setup is not False or client_procs2 is not False
                 or shared_replay is not None or endpoint_fair is not None or endpoint_elastic is not None):
-            raise RuntimeError("native stream profile requires explicit grpc/relative/phase/native-prefix/facts and no finite candidates")
-        profile=dict(PROFILES[STREAM_PROFILE],name=STREAM_PROFILE+"-grpc")
-        return dict(schema=1,profile=profile,abciTransport="grpc",pacingMode="relative",environment=ENV,execute=False,
+            raise RuntimeError("native stream profile requires explicit grpc/bounded ready pacing/phase/native-prefix/facts and no finite candidates")
+        profile=native_stream_profile(pacing)
+        return dict(schema=1,profile=profile,abciTransport="grpc",pacingMode=pacing,environment=ENV,execute=False,
             nativeStream8=True,observerPhaseTiming=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
             streamBudget=dict(STREAM_BUDGET),resourceCaps=dict(native.CAPS,privateBytes=profile["privateBytes"],activeMs=45000,totalMs=60000,ownedProcesses=10,longLivedChildren=9),
             requiresSeparateRootGrant=True,nodesStarted=False,platform="Linux native /proc; not macOS pressure1",
@@ -1137,15 +1142,16 @@ def qualify_business_rows(report,total):
     return s
 
 
-def validate_native_stream_report(report,network,*,runtime_network=None):
+def validate_native_stream_report(report,network,*,runtime_network=None,pacing="relative"):
     """Complete small-history route; never reuse the finite latest-slot validator."""
     need=stream_evidence.need;network=Path(network).absolute();total=8192
+    native_stream_profile(pacing)  # Validate the selected mode, never infer it from untrusted rows.
     runtime=network if runtime_network is None else Path(runtime_network)
     need(runtime.is_absolute(),"original stream runtime root must be absolute")
     def same(a,b):return json.dumps(a,sort_keys=True,separators=(',',':'))==json.dumps(b,sort_keys=True,separators=(',',':'))
     expected=dict(schemaVersion=14,nativeStream8=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
         observerPhaseTiming=True,sharedDurableReplay=False,endpointFairSubmission=False,roundsRequested=4,roundsCompleted=4,
-        concurrency=8,observerConcurrency=4,configuredOfferedRate=1000,senderMode="ready-pool",pacingMode="relative",inclusionMode="block-scan",retentionMode="latest_per_account_slots",gomaxprocs=1)
+        concurrency=8,observerConcurrency=4,configuredOfferedRate=1000,senderMode="ready-pool",pacingMode=pacing,inclusionMode="block-scan",retentionMode="latest_per_account_slots",gomaxprocs=1)
     for key,value in expected.items():
         need(type(report.get(key)) is type(value) and report[key]==value,"actual native stream scope differs: "+key)
     need(not report.get("setupErrors") and all(report.get(k,False) is False for k in ("nativeSubmit8","nativeSuffixSetup","clientProcs2","endpointElasticSubmission")),"mixed native stream candidates/setup errors")
@@ -1168,7 +1174,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None):
     plan=stream_evidence.strict_json(raw)
     for key,value in dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",senders=2048,rounds=4,plannedRecords=total,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=30000,durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip").items():
         need(type(plan.get(key)) is type(value) and plan[key]==value,"original stream plan scope differs: "+key)
-    need(same(plan.get("nativePrefix"),dict(offeredRate=1000,pacingMode="relative",submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True)),"stream original native backend differs")
+    need(same(plan.get("nativePrefix"),dict(offeredRate=1000,pacingMode=pacing,submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True)),"stream original native backend differs")
     manifest_raw=stream_evidence.capture(network/"network-manifest.json",1<<20)
     initial=stream_evidence.strict_json(stream_evidence.capture(network/"transactions.json",16<<20))["transactions"]
     need(len(initial)==2048 and plan.get("initialSignedHashes")==[hashlib.sha256(base64.b64decode(t,validate=True)).hexdigest().upper() for t in initial],"stream plan initial identity differs")
@@ -1181,6 +1187,13 @@ def validate_native_stream_report(report,network,*,runtime_network=None):
         need(type(supply.get(key)) is int and supply[key]==value,"stream signing/evidence phase coverage differs: "+key)
     for key in ("signNs","encodeNs","journalAppendNs","terminalSinkNs","journalSetupNs","journalDurableBytes"):
         need(type(supply.get(key)) is int and supply[key]>0,"stream original phase timing absent: "+key)
+    for key in ("pacingWaitAttempts","offerDecodeAttempts","dispatchAttempts"):
+        need(type(supply.get(key)) is int and supply[key]==total,"stream offer/pacing coverage differs: "+key)
+    for key in ("pacingFutureTargetAttempts","pacingAlreadyDueAttempts","pacingPositiveRemainingNs","pacingWakeLatenessNs","pacingMaxWakeLatenessNs","pacingCatchupTargets","pacingCadenceResets","pacingPeakCatchupTargets"):
+        need(type(supply.get(key)) is int and supply[key]>=0,"stream pacing counter invalid: "+key)
+    need(supply["pacingFutureTargetAttempts"]+supply["pacingAlreadyDueAttempts"]==total and supply["pacingMaxWakeLatenessNs"]<=supply["pacingWakeLatenessNs"],"stream pacing scheduled/wake coverage differs")
+    need(supply["pacingCatchupTargets"]+supply["pacingCadenceResets"]<=total and supply["pacingPeakCatchupTargets"]<=3,"stream four-offer catchup bound differs")
+    if pacing=="relative":need(supply["pacingCatchupTargets"]==supply["pacingCadenceResets"]==supply["pacingPeakCatchupTargets"]==0,"relative stream unexpectedly selected catchup")
     need(supply["journalDurableBytes"]==proof["intents"]["bytes"],"stream journal phase bytes differ from original inventory")
     budget=ready.get("evidenceBudget",{})
     need(same(budget,dict(limitBytes=64<<20,attemptedBytes=proof["intents"]["bytes"]+proof["terminal"]["bytes"],poisoned=False)),"stream encoded budget differs from full original inventories")
@@ -1309,9 +1322,9 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
 
 def enforce_captured_sample(sampled,result,initial=False):
     try:
-        scoped_caps={"supply-2048x1-data64-grpc":64<<20,STREAM_PROFILE+"-grpc":256<<20}
-        native.enforce(sampled,initial,private_bytes_cap=scoped_caps.get(result.get("profile",{}).get("name")),**(dict(private_profile=STREAM_PROFILE) if result.get("profile",{}).get("name")==STREAM_PROFILE+"-grpc" else {}))
-        if result.get("profile",{}).get("name")==STREAM_PROFILE+"-grpc" and len(sampled.get("tasks",[]))>10:
+        scoped_caps={"supply-2048x1-data64-grpc":64<<20,**{name:256<<20 for name in STREAM_PROFILE_NAMES}}
+        native.enforce(sampled,initial,private_bytes_cap=scoped_caps.get(result.get("profile",{}).get("name")),**(dict(private_profile=STREAM_PROFILE) if result.get("profile",{}).get("name") in STREAM_PROFILE_NAMES else {}))
+        if result.get("profile",{}).get("name") in STREAM_PROFILE_NAMES and len(sampled.get("tasks",[]))>10:
             raise RuntimeError("stream ten owned process cap exceeded")
         if sampled.get("processLogBytes",0)>native.CAPS["logBytes"]:
             raise RuntimeError("combined process log cap exceeded")
@@ -1336,7 +1349,7 @@ def post_fsync_owned_closure(result):
 
 def oneshot_post_fsync(result,receipt,capture_sample,started,*,native_stream8=False):
     expected=8192 if native_stream8 else 2048
-    if native_stream8 and result.get("profile")!=dict(PROFILES[STREAM_PROFILE],name=STREAM_PROFILE+"-grpc"):
+    if native_stream8 and result.get("profile")!=native_stream_profile(result.get("pacingMode","relative")):
         raise RuntimeError("post-fsync stream scope differs")
     sampled=None
     try:
@@ -1396,10 +1409,10 @@ def supply_client_command(build,manifest_path,network,output,profile,pacing,obse
         selected=recipe("grpc",STREAM_PROFILE,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2,native_stream8=True)
         if profile!=selected["profile"]:raise RuntimeError("actual stream command profile differs")
         return [str(build/BINARIES[3]),"-manifest",str(manifest_path),"-transactions",str(network/"transactions.json"),"-output",str(output),
-            "-timeout","30s","-concurrency","8","-observers","4","-offered-rate","1000","-rounds","4","-sender-mode","ready-pool","-inclusion-mode","block-scan","-pacing-mode","relative",
+            "-timeout","30s","-concurrency","8","-observers","4","-offered-rate","1000","-rounds","4","-sender-mode","ready-pool","-inclusion-mode","block-scan","-pacing-mode",pacing,
             "-native-stream8","-observer-phase-timing","-prefix-durable-replay","-prefix-native-clone","-observer-native-facts","-streaming-workload","-terminal-stream","-terminal-gzip","-reuse-result-slots","-segmented-intents",
             "-evidence-byte-budget",str(STREAM_BUDGET["evidenceBytes"]),"-durable-store-byte-limit",str(STREAM_BUDGET["durableStoreBytes"]),"-durable-cache-byte-budget",str(STREAM_BUDGET["durableCacheBytes"])]
-    if profile.get("name")==STREAM_PROFILE+"-grpc":raise RuntimeError("stream command requires explicit native stream selection")
+    if profile.get("name") in STREAM_PROFILE_NAMES:raise RuntimeError("stream command requires explicit native stream selection")
     if prefix_native_clone and (prefix_replay is not True or shared_replay):raise RuntimeError("native clone client requires exclusive prefix replay")
     if type(native_submit8) is not bool or profile["concurrency"]!=(8 if native_submit8 else 4) or native_submit8 and (prefix_native_clone is not True or prefix_replay is not True):raise RuntimeError("submit8 client mode/worker selection differs")
     if type(native_suffix_setup) is not bool or native_suffix_setup and not native_submit8:raise RuntimeError("native suffix client mode differs")
@@ -1600,7 +1613,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             client_report=json.loads(native.bounded(output,16 << 20))
             if native_stream8:
                 mark("stream_readback_start")
-                result["measurement"]=validate_native_stream_report(client_report,network)
+                result["measurement"]=validate_native_stream_report(client_report,network,pacing=pacing)
                 result["observerPhases"]=validate_observer_phases(client_report)
                 tick();mark("stream_readback_complete")
             else:

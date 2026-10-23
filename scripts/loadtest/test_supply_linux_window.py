@@ -1032,6 +1032,18 @@ class SupplySourceTests(unittest.TestCase):
         args=[sys.executable,"-B",str(FILE),"--native-stream8","--profile",supply.STREAM_PROFILE,"--transport","grpc","--observer-phases","--prefix-replay","--prefix-native-clone","--observer-native-facts"]
         self.assertEqual(json.loads(subprocess.check_output(args,timeout=5))["profile"],plan["profile"])
 
+    def test_native_stream_bounded_cadence_is_explicit_and_preserves_original_resources(self):
+        config=self.stream_config();before=supply.recipe(**config);after=supply.recipe(**dict(config,pacing="bounded-cadence"))
+        self.assertEqual(after["profile"]["name"],supply.STREAM_PROFILE+"-grpc-bounded-cadence")
+        expected=copy.deepcopy(before);expected["pacingMode"]="bounded-cadence";expected["profile"]["name"]=after["profile"]["name"]
+        self.assertEqual(after,expected)
+        cmd=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("out"),after["profile"],"bounded-cadence",True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
+        self.assertEqual(cmd[cmd.index("-pacing-mode")+1],"bounded-cadence")
+        self.assertNotIn("-client-procs2",cmd);self.assertEqual(cmd[cmd.index("-concurrency")+1],"8")
+        for delta in (dict(pacing="grouped-cadence4"),dict(native_stream8=False,pacing="bounded-cadence"),dict(pacing=True)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**dict(config,**delta))
+        self.assertEqual(supply.recipe(**config),before)
+
     def test_native_stream_private_cap_is_separate_and_preserves_default(self):
         cap=supply.native.CAPS;floor=sum(cap[k] for k in ("diskFloorBytes","rootReserveBytes","compileReserveBytes"))
         sample=dict(rssBytes=1,threads=1,privateBytes=100<<20,buildBytes=1,freeDiskBytes=floor+(256<<20),availableMemoryBytes=cap["availableMemoryFloorBytes"],tasks=[])
@@ -1083,7 +1095,8 @@ class SupplySourceTests(unittest.TestCase):
         timeline=dict(valid=True,invalidRows=0,bucketNs=10**9,windowNs=19*10**9,buckets=bins)
         ready=client["readySenders"];ready.update(prepared=8192,offered=8192,completed=8192,quarantinedAccounts=0,roundsCompleted=4,peakInFlightAccounts=2048,
             boundedSummary=dict(counts=summary,terminalRecords=8192,invalidLatencyRecords=0,latencyIntervalsNs={},timeSeries=timeline),evidenceBudget=dict(limitBytes=64<<20,attemptedBytes=579,poisoned=False),intentSegments={})
-        ready["supply"].update(signAttempts=6144,encodeAttempts=6144,signedSuccessors=6144,journalDurableEnvelopes=8192,terminalSinkAttempts=8192,signNs=1,encodeNs=1,journalAppendNs=1,terminalSinkNs=1,journalSetupNs=1,journalDurableBytes=123)
+        ready["supply"].update(signAttempts=6144,encodeAttempts=6144,signedSuccessors=6144,journalDurableEnvelopes=8192,terminalSinkAttempts=8192,signNs=1,encodeNs=1,journalAppendNs=1,terminalSinkNs=1,journalSetupNs=1,journalDurableBytes=123,
+            pacingWaitAttempts=8192,offerDecodeAttempts=8192,dispatchAttempts=8192,pacingFutureTargetAttempts=8191,pacingAlreadyDueAttempts=1,pacingPositiveRemainingNs=1,pacingWakeLatenessNs=1,pacingMaxWakeLatenessNs=1,pacingCatchupTargets=0,pacingCadenceResets=0,pacingPeakCatchupTargets=0)
         reader=client["durableReadback"];reader["prefixReplay"]["canonicalByteLimit"]=32<<20
         reader["prefixReplay"]["nativeCloneCache"].update(accounts=2048,feeEvents=8192)
         reader["blockJournalNativeVerificationFacts"].update(successful_verifications=8192,lookups=8192)
@@ -1112,9 +1125,21 @@ class SupplySourceTests(unittest.TestCase):
             recovered=supply.validate_native_stream_report(remote,network,runtime_network=remote_root)
             self.assertEqual(readback.call_args.args[1:3],(str(remote_root),str(remote_root/"transactions-result.json")))
             self.assertEqual(recovered["summary"],summary)
-        for kind in ("scope","counts","latency","budget","phase","reader","facts","runtime","timeline","backlog","rate","plan"):
+        bounded=copy.deepcopy(client);bounded["pacingMode"]="bounded-cadence"
+        bounded["readySenders"]["supply"].update(pacingFutureTargetAttempts=8188,pacingAlreadyDueAttempts=4,pacingCatchupTargets=3,pacingCadenceResets=1,pacingPeakCatchupTargets=3)
+        plan["nativePrefix"]["pacingMode"]="bounded-cadence";bounded_plan=json.dumps(plan).encode()
+        bounded["streamingWorkload"]["planSha256"]=hashlib.sha256(bounded_plan).hexdigest()
+        def bounded_capture(path,limit):return bounded_plan if str(path).endswith("streaming-plan.json") else capture(path,limit)
+        with patch.object(supply.stream_evidence,"capture",side_effect=bounded_capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof):
+            self.assertFalse(supply.validate_native_stream_report(bounded,network,pacing="bounded-cadence")["sustainedTPSQualified"])
+            invalid=copy.deepcopy(bounded);invalid["readySenders"]["supply"]["pacingPeakCatchupTargets"]=4
+            with self.assertRaisesRegex(RuntimeError,"four-offer"):supply.validate_native_stream_report(invalid,network,pacing="bounded-cadence")
+        plan["nativePrefix"]["pacingMode"]="relative"
+        for kind in ("scope","counts","latency","budget","phase","reader","facts","runtime","timeline","backlog","rate","plan","pacing","catchup"):
             bad=copy.deepcopy(client)
             if kind=="scope":bad["nativeStream8"]=1
+            if kind=="pacing":bad["pacingMode"]="bounded-cadence"
+            if kind=="catchup":bad["readySenders"]["supply"]["pacingCatchupTargets"]=1
             if kind=="counts":bad["summary"]["finalSubmitted"]=8191
             if kind=="latency":bad["readySenders"]["boundedSummary"]["terminalRecords"]=2048
             if kind=="budget":bad["readySenders"]["evidenceBudget"]["attemptedBytes"]+=1

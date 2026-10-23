@@ -317,6 +317,23 @@ func TestNativeStreamingDurablePlanBindsActualModeAndPreservesLegacy(t *testing.
 	if _, _, err = persistStreamingWorkloadPlan(o, manifest, m, initial); err == nil {
 		t.Fatal("existing durable plan overwritten")
 	}
+	// The existing bounded pacer is opt-in and bound to the actual native
+	// stream plan; this is configuration proof, never a throughput result.
+	bounded := o
+	bounded.pacingMode = "bounded-cadence"
+	bounded.output = filepath.Join(t.TempDir(), "bounded-native-plan")
+	boundPath, _, boundErr := persistStreamingWorkloadPlan(bounded, manifest, m, initial)
+	if boundErr != nil {
+		t.Fatal(boundErr)
+	}
+	boundRaw, boundErr := os.ReadFile(boundPath)
+	if boundErr != nil {
+		t.Fatal(boundErr)
+	}
+	var boundPlan streamingWorkloadPlan
+	if err := json.Unmarshal(boundRaw, &boundPlan); err != nil || boundPlan.NativePrefix == nil || boundPlan.NativePrefix.PacingMode != "bounded-cadence" || boundPlan.NativePrefix.Submitters != 8 || boundPlan.NativePrefix.OfferedRate != 1000 || !boundPlan.NativePrefix.OriginalSuffixSetup {
+		t.Fatal("bounded native plan/mode differs", boundPlan, err)
+	}
 	legacy := streamingOptions()
 	legacy.output = filepath.Join(t.TempDir(), "legacy-stream-plan")
 	path, _, err = persistStreamingWorkloadPlan(legacy, manifest, m, initial)
