@@ -11,16 +11,17 @@ type BlockJournalPrefixPhase struct {
 	DurationNs int64  `json:"durationNs"`
 }
 type BlockJournalPrefixWorkPhases struct {
-	GateWait           BlockJournalPrefixPhase `json:"gateWait"`
-	PrefixCheck        BlockJournalPrefixPhase `json:"prefixCheck"`
-	PrivateJSON        BlockJournalPrefixPhase `json:"privateJSON"`
-	PrivateValidate    BlockJournalPrefixPhase `json:"privateValidate"`
-	FullReplay         BlockJournalPrefixPhase `json:"fullReplay"`
-	SuffixSetup        BlockJournalPrefixPhase `json:"suffixSetup"`
-	SuffixReplay       BlockJournalPrefixPhase `json:"suffixReplay"`
-	SuffixEncode       BlockJournalPrefixPhase `json:"suffixEncode"`
-	CanonicalCopy      BlockJournalPrefixPhase `json:"canonicalCopy"`
-	CertificatePublish BlockJournalPrefixPhase `json:"certificatePublish"`
+	GateWait           BlockJournalPrefixPhase  `json:"gateWait"`
+	PrefixCheck        BlockJournalPrefixPhase  `json:"prefixCheck"`
+	PrivateJSON        BlockJournalPrefixPhase  `json:"privateJSON"`
+	PrivateValidate    BlockJournalPrefixPhase  `json:"privateValidate"`
+	FullReplay         BlockJournalPrefixPhase  `json:"fullReplay"`
+	SuffixSetup        BlockJournalPrefixPhase  `json:"suffixSetup"`
+	SuffixReplay       BlockJournalPrefixPhase  `json:"suffixReplay"`
+	SuffixEncode       BlockJournalPrefixPhase  `json:"suffixEncode"`
+	CanonicalCopy      BlockJournalPrefixPhase  `json:"canonicalCopy"`
+	CertificatePublish BlockJournalPrefixPhase  `json:"certificatePublish"`
+	PrivateNativeClone *BlockJournalPrefixPhase `json:"privateNativeClone,omitempty"`
 }
 
 func (p *BlockJournalPrefixWorkPhases) measure(name string, action func() error) error {
@@ -35,6 +36,11 @@ func (p *BlockJournalPrefixWorkPhases) measure(name string, action func() error)
 		phase = &p.PrefixCheck
 	case "privateJSON":
 		phase = &p.PrivateJSON
+	case "privateNativeClone":
+		if p.PrivateNativeClone == nil {
+			p.PrivateNativeClone = new(BlockJournalPrefixPhase)
+		}
+		phase = p.PrivateNativeClone
 	case "privateValidate":
 		phase = &p.PrivateValidate
 	case "fullReplay":
@@ -64,6 +70,14 @@ func (p *BlockJournalPrefixWorkPhases) measure(name string, action func() error)
 
 // Add copies counters from a completed call, including failed phase attempts.
 func (p *BlockJournalPrefixWorkPhases) Add(other BlockJournalPrefixWorkPhases) {
+	if other.PrivateNativeClone != nil {
+		if p.PrivateNativeClone == nil {
+			p.PrivateNativeClone = new(BlockJournalPrefixPhase)
+		}
+		p.PrivateNativeClone.Calls += other.PrivateNativeClone.Calls
+		p.PrivateNativeClone.Errors += other.PrivateNativeClone.Errors
+		p.PrivateNativeClone.DurationNs += other.PrivateNativeClone.DurationNs
+	}
 	targets := []*BlockJournalPrefixPhase{&p.GateWait, &p.PrefixCheck, &p.PrivateJSON, &p.PrivateValidate, &p.FullReplay, &p.SuffixSetup, &p.SuffixReplay, &p.SuffixEncode, &p.CanonicalCopy, &p.CertificatePublish}
 	values := []BlockJournalPrefixPhase{other.GateWait, other.PrefixCheck, other.PrivateJSON, other.PrivateValidate, other.FullReplay, other.SuffixSetup, other.SuffixReplay, other.SuffixEncode, other.CanonicalCopy, other.CertificatePublish}
 	for i, v := range values {
