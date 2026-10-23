@@ -3,11 +3,13 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -146,7 +148,31 @@ func TestPhaseTimingRealSignedExecutionPreservesDurableState(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		var points map[string]json.RawMessage
+		if err := json.Unmarshal(measured, &points); err != nil {
+			t.Fatal(err)
+		}
+		if points["blockExecution"] == nil || points["clock"] == nil {
+			t.Fatal("actual Finalize/Commit completion points absent")
+		}
 		t.Logf("actual_single_signed_transfer_timing_smoke_not_network_performance=%s", measured)
+		point := rows[0].BlockExecution
+		if point == nil || point.Height != height || point.AppHash != hex.EncodeToString(before.LastBlockAppHash) || point.Transactions != 1 || point.CodeZeroTransactions != 1 || point.FinalizeReturned.ElapsedNs <= 0 || point.CommitReturned.ElapsedNs < point.FinalizeReturned.ElapsedNs || point.CommitReturned.ElapsedNs > rows[0].WindowElapsedNs {
+			t.Fatal("actual durable block completion identity/order differs", point)
+		}
+		origin, err := strconv.ParseInt(rows[0].Clock.OriginUnixNs, 10, 64)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, at := range []phaseNodePoint{point.FinalizeReturned, point.CommitReturned} {
+			unix, err := strconv.ParseInt(at.UnixNs, 10, 64)
+			if err != nil || unix-origin-at.ElapsedNs != at.WallDriftNs {
+				t.Fatal("clock lost nanosecond precision/calibration", at, err)
+			}
+		}
+		if rows[1].BlockExecution != nil || rows[2].BlockExecution != nil {
+			t.Fatal("failed Commit/shutdown reused successful completion point")
+		}
 		if rows[1].Commit != nil || rows[1].Stages["commit"].FailedResponses != 1 {
 			t.Fatal("failed commit reused success timing", rows[1])
 		}

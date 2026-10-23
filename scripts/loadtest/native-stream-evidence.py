@@ -224,3 +224,20 @@ def reader_gate_measurements(reader,required=False):
     if gate['acquisitions']==0:need(all(gate[k]==0 for k in fields),'unused outer reader gate has timings')
     else:need(gate['holdNs']>0 and gate['maxHoldNs']>0,'acquired outer reader gate hold absent')
     return dict(gate)
+
+
+def client_clock_measurements(timeline,records,required=False):
+    need(type(required) is bool and integer(records,1,MAX_RECORDS),'client clock selection/record bound differs')
+    clock=timeline.get('clock')
+    if clock is None:
+        need(not required,'selected original client clock measurements absent')
+        return None
+    keys={'originUnixNs','samples','invalidSamples','maximumAbsWallDriftNs','valid','driftWithin1ms'}
+    need(type(clock) is dict and set(clock)==keys,'client clock measurement schema differs')
+    origin=clock['originUnixNs']
+    need(type(origin) is str and re.fullmatch('[1-9][0-9]{0,18}',origin) is not None and int(origin)<=2**63-1,'client origin must preserve exact Unix nanoseconds')
+    need(all(integer(clock[k],0,2**63-1) for k in ('samples','invalidSamples','maximumAbsWallDriftNs')),'client clock counter invalid')
+    need(clock['samples']+clock['invalidSamples']==3*records,'client offered/submitted/hand-back clock coverage differs')
+    valid=clock['invalidSamples']==0 and clock['samples']>0
+    need(type(clock['valid']) is bool and clock['valid']==valid and type(clock['driftWithin1ms']) is bool and clock['driftWithin1ms']==(valid and clock['maximumAbsWallDriftNs']<=1000000),'client clock validity/drift claim differs')
+    return dict(clock)

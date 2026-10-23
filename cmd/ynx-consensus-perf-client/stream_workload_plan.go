@@ -51,7 +51,7 @@ func persistStreamingWorkloadPlan(o options, manifest []byte, m consensus.Epheme
 		if err != nil {
 			return "", "", err
 		}
-		plan.NativePrefix = &nativeStreamingPlan{OfferedRate: o.offeredRate, PacingMode: mode, Submitters: o.concurrency, Observers: o.observers, CanonicalByteLimit: storeLimit, ObserverNativeFacts: true, OriginalSuffixSetup: true, SerializedReaderBudget: cacheBudget > 0, ReaderGateTiming: cacheBudget > 0}
+		plan.NativePrefix = &nativeStreamingPlan{OfferedRate: o.offeredRate, PacingMode: mode, Submitters: o.concurrency, Observers: o.observers, CanonicalByteLimit: storeLimit, ObserverNativeFacts: true, OriginalSuffixSetup: true, SerializedReaderBudget: cacheBudget > 0, ReaderGateTiming: cacheBudget > 0, ClientClockTiming: true}
 	}
 	for _, raw := range initial {
 		plan.InitialSignedHashes = append(plan.InitialSignedHashes, fmt.Sprintf("%X", raw.Hash()))

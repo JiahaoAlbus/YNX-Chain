@@ -302,7 +302,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			return stats, err
 		}
 		started := time.Now()
-		cumulative.timeline = &readyTimeSeries{start: started}
+		cumulative.timeline = &readyTimeSeries{start: started, clockEnabled: o.nativeStream8}
 		originalSink := o.terminalSink
 		o.terminalSink = func(r transactionResult) error {
 			// Preserve observed counts even if evidence output fails; that error

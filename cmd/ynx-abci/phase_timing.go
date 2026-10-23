@@ -24,6 +24,8 @@ type phaseTotals struct {
 	DurationBuckets [64]uint64 `json:"durationBuckets"`
 }
 type phaseTimingReport struct {
+	Clock           *phaseNodeClock               `json:"clock,omitempty"`
+	BlockExecution  *phaseBlockExecution          `json:"blockExecution,omitempty"`
 	Schema          int                           `json:"schema"`
 	Sequence        int                           `json:"sequence"`
 	Reason          string                        `json:"reason"`
@@ -70,7 +72,7 @@ func (r *phaseRecorder) observe(stage string, started time.Time, failed bool) {
 
 // Commit completion and its sample are one recorder transition, so a terminal
 // frame cannot appear between the completed counter and its Commit sample.
-func (r *phaseRecorder) complete(stage string, ns uint64, failed bool, sample *consensus.CommitTimingSample, emitCommit bool) {
+func (r *phaseRecorder) complete(stage string, ns uint64, failed bool, sample *consensus.CommitTimingSample, emitCommit bool, points ...*phaseBlockExecution) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.inFlight == 0 {
@@ -96,7 +98,7 @@ func (r *phaseRecorder) complete(stage string, ns uint64, failed bool, sample *c
 	value.DurationBuckets[bucket]++
 	r.stages[stage] = value
 	if emitCommit {
-		r.emitLocked("commit", sample)
+		r.emitLocked("commit", sample, points...)
 	}
 	if r.draining && r.inFlight == 0 && r.drained != nil {
 		close(r.drained)
@@ -111,7 +113,7 @@ func (r *phaseRecorder) emit(reason string, sample *consensus.CommitTimingSample
 	defer r.mu.Unlock()
 	r.emitLocked(reason, sample)
 }
-func (r *phaseRecorder) emitLocked(reason string, sample *consensus.CommitTimingSample) {
+func (r *phaseRecorder) emitLocked(reason string, sample *consensus.CommitTimingSample, points ...*phaseBlockExecution) {
 	if r.closed {
 		return
 	}
@@ -123,7 +125,13 @@ func (r *phaseRecorder) emitLocked(reason string, sample *consensus.CommitTiming
 		return
 	}
 	r.reports++
-	report := phaseTimingReport{Schema: 1, Sequence: r.reports, Reason: reason, WindowElapsedNs: time.Since(r.started).Nanoseconds(), InFlight: r.inFlight, Valid: !r.invalid && !r.capped && (reason != "shutdown" || r.inFlight == 0), Capped: r.capped, Stages: r.stages, Commit: sample}
+	now := time.Now()
+	elapsed := now.Sub(r.started).Nanoseconds()
+	var point *phaseBlockExecution
+	if len(points) == 1 {
+		point = points[0]
+	}
+	report := phaseTimingReport{Schema: 1, Sequence: r.reports, Reason: reason, WindowElapsedNs: elapsed, Clock: r.nodeClock(now), BlockExecution: point, InFlight: r.inFlight, Valid: !r.invalid && !r.capped && (reason != "shutdown" || r.inFlight == 0), Capped: r.capped, Stages: r.stages, Commit: sample}
 	raw, err := json.Marshal(report)
 	if err == nil {
 		raw = append(append([]byte(phaseTimingPrefix), raw...), '\n')
@@ -141,9 +149,11 @@ func (r *phaseRecorder) emitLocked(reason string, sample *consensus.CommitTiming
 
 type phaseTimedApplication struct {
 	abci.Application
-	recorder     *phaseRecorder
-	commitMu     sync.Mutex
-	commitTiming func() (consensus.CommitTimingSample, bool)
+	recorder       *phaseRecorder
+	blockPointMu   sync.Mutex
+	lastBlockPoint *phaseBlockExecution
+	commitMu       sync.Mutex
+	commitTiming   func() (consensus.CommitTimingSample, bool)
 }
 
 func withPhaseTiming(app *consensus.Application, writer io.Writer) *phaseTimedApplication {
@@ -183,7 +193,9 @@ func (a *phaseTimedApplication) FinalizeBlock(ctx context.Context, req *abci.Req
 		return nil, beginErr
 	}
 	response, err := a.Application.FinalizeBlock(ctx, req)
-	a.recorder.observe("finalize_block", started, err != nil || response == nil)
+	returned := time.Now()
+	a.recordFinalizedPoint(req, response, err, returned)
+	a.recorder.complete("finalize_block", uint64(returned.Sub(started).Nanoseconds()), err != nil || response == nil, nil, false)
 	return response, err
 }
 func (a *phaseTimedApplication) Commit(ctx context.Context, req *abci.RequestCommit) (*abci.ResponseCommit, error) {
@@ -194,11 +206,13 @@ func (a *phaseTimedApplication) Commit(ctx context.Context, req *abci.RequestCom
 	a.commitMu.Lock()
 	defer a.commitMu.Unlock()
 	response, err := a.Application.Commit(ctx, req)
-	elapsed := uint64(time.Since(started).Nanoseconds())
+	returned := time.Now()
+	elapsed := uint64(returned.Sub(started).Nanoseconds())
 	var sample *consensus.CommitTimingSample
 	if value, ok := a.commitTiming(); ok {
 		sample = &value
 	}
-	a.recorder.complete("commit", elapsed, err != nil || response == nil, sample, true)
+	point := a.committedPoint(sample, err != nil || response == nil, returned)
+	a.recorder.complete("commit", elapsed, err != nil || response == nil, sample, true, point)
 	return response, err
 }

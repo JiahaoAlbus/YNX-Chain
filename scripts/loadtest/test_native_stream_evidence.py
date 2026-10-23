@@ -16,6 +16,11 @@ class NativeStreamEvidenceTests(unittest.TestCase):
     def verify(self,budget=4<<20):
         d=self.meta
         return evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],budget)
+    def test_original_go_client_clock_has_exact_full_coverage(self):
+        d=self.meta;timeline=d['boundedSummary']['timeSeries']
+        clock=evidence.client_clock_measurements(timeline,d['terminalStream']['records'],True)
+        self.assertTrue(clock['valid']);self.assertEqual(clock['samples'],3*d['terminalStream']['records'])
+        self.assertEqual(clock,timeline['clock'])
     def test_complete_original_latencies_match_go_bounded_summary(self):
         d=self.meta
         proof=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20,measure_latency=True)
@@ -142,5 +147,18 @@ class ReaderGateMeasurementTests(unittest.TestCase):
                 evidence.reader_gate_measurements(dict(attempts=2,readerGate=dict(gate,**changed)),True)
         with self.assertRaises(RuntimeError):evidence.reader_gate_measurements(dict(attempts=2,readerGate=dict(gate,unknown=1)),True)
         with self.assertRaises(RuntimeError):evidence.reader_gate_measurements(dict(attempts=2,readerGate=gate),required='true')
+
+class ClientClockMeasurementTests(unittest.TestCase):
+    def test_exact_clock_coverage_and_drift_are_retained(self):
+        clock=dict(originUnixNs='1800000000000000001',samples=6,invalidSamples=0,maximumAbsWallDriftNs=100,valid=True,driftWithin1ms=True)
+        self.assertEqual(evidence.client_clock_measurements(dict(clock=clock),2,True),clock)
+        jumped=dict(clock,maximumAbsWallDriftNs=2000000,driftWithin1ms=False)
+        self.assertFalse(evidence.client_clock_measurements(dict(clock=jumped),2,True)['driftWithin1ms'])
+        self.assertIsNone(evidence.client_clock_measurements({},2))
+        with self.assertRaises(RuntimeError):evidence.client_clock_measurements({},2,True)
+    def test_precision_loss_false_coverage_and_false_drift_claims_are_rejected(self):
+        clock=dict(originUnixNs='1800000000000000001',samples=6,invalidSamples=0,maximumAbsWallDriftNs=100,valid=True,driftWithin1ms=True)
+        for changes in (dict(originUnixNs=1800000000000000001),dict(samples=5),dict(samples=True),dict(valid=False),dict(maximumAbsWallDriftNs=2000000),dict(invalidSamples=1)):
+            with self.subTest(changes=changes),self.assertRaises(RuntimeError):evidence.client_clock_measurements(dict(clock=dict(clock,**changes)),2,True)
 
 if __name__=='__main__':unittest.main()

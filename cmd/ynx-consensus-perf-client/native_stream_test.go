@@ -311,7 +311,7 @@ func TestNativeStreamingDurablePlanBindsActualModeAndPreservesLegacy(t *testing.
 	if err = json.Unmarshal(raw, &plan); err != nil {
 		t.Fatal(err)
 	}
-	if plan.Profile != "scoped_native_prefix_stream8_v1" || plan.NativePrefix == nil || plan.NativePrefix.OfferedRate != 1000 || plan.NativePrefix.PacingMode != "relative" || plan.NativePrefix.Submitters != 8 || plan.NativePrefix.Observers != 4 || plan.NativePrefix.CanonicalByteLimit != 32<<20 || !plan.NativePrefix.ObserverNativeFacts || !plan.NativePrefix.OriginalSuffixSetup || !plan.NativePrefix.SerializedReaderBudget || !plan.NativePrefix.ReaderGateTiming {
+	if plan.Profile != "scoped_native_prefix_stream8_v1" || plan.NativePrefix == nil || plan.NativePrefix.OfferedRate != 1000 || plan.NativePrefix.PacingMode != "relative" || plan.NativePrefix.Submitters != 8 || plan.NativePrefix.Observers != 4 || plan.NativePrefix.CanonicalByteLimit != 32<<20 || !plan.NativePrefix.ObserverNativeFacts || !plan.NativePrefix.OriginalSuffixSetup || !plan.NativePrefix.SerializedReaderBudget || !plan.NativePrefix.ReaderGateTiming || !plan.NativePrefix.ClientClockTiming {
 		t.Fatal("native mode/resource scope not durably bound", plan)
 	}
 	if _, _, err = persistStreamingWorkloadPlan(o, manifest, m, initial); err == nil {

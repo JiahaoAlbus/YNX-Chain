@@ -29,19 +29,24 @@ type readySecondCounts struct {
 }
 
 type readyTimelineReport struct {
-	Valid          bool                `json:"valid"`
-	InvalidRows    int                 `json:"invalidRows"`
-	BucketNs       int64               `json:"bucketNs"`
-	WindowNs       int64               `json:"windowNs"`
-	Buckets        []readySecondCounts `json:"buckets,omitempty"`
-	Interpretation string              `json:"interpretation"`
+	Clock          *readyClientClockReport `json:"clock,omitempty"`
+	Valid          bool                    `json:"valid"`
+	InvalidRows    int                     `json:"invalidRows"`
+	BucketNs       int64                   `json:"bucketNs"`
+	WindowNs       int64                   `json:"windowNs"`
+	Buckets        []readySecondCounts     `json:"buckets,omitempty"`
+	Interpretation string                  `json:"interpretation"`
 }
 
 type readyTimeSeries struct {
-	start   time.Time
-	bins    [readyTimelineSeconds]readySecondCounts
-	invalid int
-	latest  int
+	clockEnabled         bool
+	clockSamples         uint64
+	clockInvalid         uint64
+	clockMaximumAbsDrift int64
+	start                time.Time
+	bins                 [readyTimelineSeconds]readySecondCounts
+	invalid              int
+	latest               int
 }
 
 func timelineDuration(ms *float64) (time.Duration, bool) {
@@ -76,6 +81,13 @@ func (s *readyTimeSeries) add(r transactionResult, bound bool, handedBack time.T
 			invalid()
 		}
 		return // Unoffered future inputs are not an in-flight backlog.
+	}
+	if s.clockEnabled {
+		s.sampleClientClock(handedBack, handedBack)
+		s.sampleClientClock(*r.OfferedAt, r.offerMonotonic)
+		if r.SubmittedAt != nil {
+			s.sampleClientClock(*r.SubmittedAt, r.submitMonotonic)
+		}
 	}
 	add(r.offerMonotonic, 0)
 	if r.SubmittedAt != nil {
@@ -179,6 +191,9 @@ func (s *readyTimeSeries) snapshot(seconds float64) *readyTimelineReport {
 	}
 	elapsed := time.Duration(seconds * float64(time.Second))
 	out.WindowNs = int64(elapsed)
+	if s.clockEnabled {
+		out.Clock = s.clientClockReport()
+	}
 	last := int(elapsed / time.Second)
 	if elapsed%time.Second == 0 && last > 0 {
 		last--

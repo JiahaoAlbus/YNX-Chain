@@ -1334,6 +1334,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     workers=validate_submitter_selection(report,False,True,total=2048,native_stream8=True)
     runtime=validate_runtime_measurements(report,total,True,stream_metrics=metrics)
     timeline=bounded.get("timeSeries",{});bins=timeline.get("buckets",[])
+    client_clock=stream_evidence.client_clock_measurements(timeline,total,required=plan.get("nativePrefix",{}).get("clientClockTiming",False))
     need(timeline.get("valid") is True and type(timeline.get("invalidRows")) is int and timeline["invalidRows"]==0 and timeline.get("bucketNs")==1000000000 and 1<=len(bins)<=1024,"stream monotonic timeline incomplete")
     need(type(timeline.get("windowNs")) is int and 0<timeline["windowNs"]<=runtime["outerClientWindowNs"],"stream ready timeline/window differs")
     totals={k:0 for k in ("offered","submitted","checkTxAccepted","effectiveBusinessIncluded","finalSubmitted","terminalHandedBack")}
@@ -1349,7 +1350,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     need(type(window) in (int,float) and math.isfinite(window) and window>0,"stream ready measurement window absent")
     for key in ("rpcSubmissionsPerMeasurementSecond","checkTxAcceptedPerMeasurementSecond","codeZeroIncludedPerMeasurementSecond","effectiveBusinessIncludedPerMeasurementSecond","quorumConfirmedPerMeasurementSecond","finalSubmittedPerMeasurementSecond"):
         need(type(summary.get(key)) in (int,float) and math.isfinite(summary[key]) and abs(summary[key]-total/window)<=1e-8,"stream actual full-window rate differs")
-    return dict(**({"readerGate":gate} if gate is not None else {}),summary=summary,streamEvidence=proof,prefixReplayVerification=prefix,observerNativeFactVerification=facts,workers=workers,runtimeMeasurements=runtime,
+    return dict(**({"readerGate":gate} if gate is not None else {}),**({"clientClock":client_clock} if client_clock is not None else {}),summary=summary,streamEvidence=proof,prefixReplayVerification=prefix,observerNativeFactVerification=facts,workers=workers,runtimeMeasurements=runtime,
         latencyIntervalsNs=metrics["latencyIntervalsNs"],stageGapIntervalsNs=metrics["stageGapIntervalsNs"],offerLatencyIntervalsNs=metrics["offerLatencyIntervalsNs"],supplyPhases=supply,timeSeries=timeline,sustainedTPSQualified=False,
         interpretation="Complete8192 signed/terminal identities and raw latency intervals, actual runtime and original native readback. This small finite case does not qualify sustained1000TPS or independently redo BFT cryptography.")
 

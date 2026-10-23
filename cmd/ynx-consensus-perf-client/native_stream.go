@@ -68,6 +68,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
+	ClientClockTiming      bool    `json:"clientClockTiming"`
 	ReaderGateTiming       bool    `json:"readerGateTiming"`
 	OfferedRate            float64 `json:"offeredRate"`
 	PacingMode             string  `json:"pacingMode"`

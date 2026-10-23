@@ -33,3 +33,26 @@ test('validation child decoder refuses malformed partial mixed or double-counted
  rows.splice(1,0,second);rows[2].sequence=3;rows[2].stages=structuredClone(second.stages);
  assert.throws(()=>readNodePhaseTiming(log(rows)),/validation/);
 });
+
+function clockFixture(){
+ const rows=fixture(),origin=1800000000000000000n;
+ for(const row of rows)row.clock={originUnixNs:String(origin),emittedUnixNs:String(origin+BigInt(row.windowElapsedNs)),wallDriftNs:0};
+ const at=elapsedNs=>({unixNs:String(origin+BigInt(elapsedNs)),elapsedNs,wallDriftNs:0});
+ rows[0].blockExecution={height:2,appHash:'a'.repeat(64),blockHash:'b'.repeat(64),transactions:1,codeZeroTransactions:1,finalizeReturned:at(2),commitReturned:at(4)};
+ return rows;
+}
+test('exact native completion points keep Unix nanoseconds and require independent clock and BFT evidence',()=>{
+ const value=readNodePhaseTiming(log(clockFixture())).blockExecutionClock;
+ assert.equal(value.blocks[0].commitReturned.unixNs,'1800000000000000004');assert.equal(value.completeCommitCoverage,true);assert.equal(value.completeBlockHashCoverage,true);assert.equal(value.driftWithin1ms,true);assert.equal(value.bftFinalityProven,false);assert.equal(value.requiresSameVMAndClientClockEvidence,true);
+ const rows=clockFixture();delete rows[0].blockExecution;
+ assert.equal(readNodePhaseTiming(log(rows)).blockExecutionClock.completeCommitCoverage,false);
+});
+test('node completion parser refuses precision loss stale points mismatched height and clock origins',()=>{
+ for(const mutate of [r=>r[0].clock.emittedUnixNs=1800000000000000000,r=>r[0].clock.wallDriftNs=1,r=>r[0].blockExecution.height++,r=>r[0].blockExecution.blockHash='wrong',r=>r[0].blockExecution.commitReturned.elapsedNs=1,r=>r[0].blockExecution.appHash='wrong',r=>r[0].blockExecution.codeZeroTransactions=2,r=>r[1].blockExecution=r[0].blockExecution,r=>delete r[1].clock,r=>delete r[0].clock,r=>r[0].blockExecution.finalizeReturned.unixNs='1800000000000000003']){
+  const rows=clockFixture();mutate(rows);assert.throws(()=>readNodePhaseTiming(log(rows)));
+ }
+});
+test('actual wall clock drift is retained and disqualifies precise correlation without changing stage totals',()=>{
+ const rows=clockFixture();rows[1].clock.emittedUnixNs=String(1800000000000000006n+2000000n);rows[1].clock.wallDriftNs=2000000;
+ const value=readNodePhaseTiming(log(rows));assert.equal(value.blockExecutionClock.driftWithin1ms,false);assert.equal(value.blockExecutionClock.maximumAbsWallDriftNs,2000000);assert.equal(value.commitTotalsNs.file_sync,1);
+});
