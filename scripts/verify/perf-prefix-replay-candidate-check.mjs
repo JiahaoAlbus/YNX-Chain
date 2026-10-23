@@ -7,11 +7,11 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {withFrozenAnchor} from './perf-commit-validation-timing-check.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
-export const source='a2a0fbc084598fed891f6e60d897386f426856e3';
-export const pairControllerSource='a2a0fbc084598fed891f6e60d897386f426856e3';
+export const source='43b769ca36960d764d95b74bb25f6b7eba9cd097';
+export const pairControllerSource='43b769ca36960d764d95b74bb25f6b7eba9cd097';
 export const pairControllerFiles=['scripts/loadtest/supply-linux-window.py','scripts/loadtest/test_supply_linux_window.py','.github/workflows/chain-core.yml'];
 const parent='9cdaeb0a64bff4d26b2e4b1558c96863d2791640';
-const tree='77b2d8c96939078be83327ab533c34e9c10d4395';
+const tree='5ce0d984ba9bdad226e10dc598747db0befe68b1';
 export const diagnosticNodeTree='8206358b1f284904285e9f5f78f7fd96eee40818';
 export const runtimeClientTree='3c331b40c978f49fc16133309bdd9c7c49983071';
 const diagnosticGuard='scripts/verify/perf-commit-validation-timing-check.mjs';
@@ -20,7 +20,7 @@ const git=(repo,...args)=>execFileSync('git',['-C',repo,...args],{env:{...proces
 const requireValue=(v,m)=>{if(!v)throw Error(m)};
 export function validatePrefixSource(repo=root){
  const delta=git(repo,'diff','--binary',parent,source,'--','internal');
- requireValue(createHash('sha256').update(delta).digest('hex')==='aaa02a659e557448d20cee3cbed443b819ff2a7211694d9eac0bd6beac53de00','prefix source derivation differs');
+ requireValue(createHash('sha256').update(delta).digest('hex')==='9a5a8243bebd1b2fa520a12d06f752151038632f40486b33c74ea44a4f0d4256','prefix source derivation differs');
  requireValue(git(repo,'rev-parse','HEAD:internal').toString().trim()===tree,'current prefix internal tree differs');
  try{git(repo,'diff','--quiet',source,'--','internal')}catch{throw Error('current prefix source differs')}
  requireValue(!git(repo,'ls-files','--others','--exclude-standard','--','internal').toString().trim(),'untracked prefix internal input refused');
@@ -32,7 +32,7 @@ export function validatePrefixSource(repo=root){
  requireValue(!git(repo,'ls-files','--others','--exclude-standard','--','cmd/ynx-abci').toString().trim(),'untracked diagnostic node input refused');
  for(const file of pairControllerFiles)requireValue(fs.readFileSync(path.join(repo,file)).equals(git(repo,'show',pairControllerSource+':'+file)),'prefix pair controller source differs: '+file);
  for(const file of [diagnosticGuard,diagnosticTests])requireValue(fs.readFileSync(path.join(repo,file)).equals(git(repo,'show',parent+':'+file)),'original diagnostic guard changed');
- return {sourceCommit:source,pairControllerSource,pairControllerFiles,runtimeClientTree,diagnosticNodeTree,internalTree:tree,qualification:'source-candidate-with-diagnostic-drain',defaultFullDecodeRetained:true,goRuntimeTestsRun:false,networkImprovementMeasured:false,releaseQualified:false};
+ return {sourceCommit:source,pairControllerSource,pairControllerFiles,runtimeClientTree,diagnosticNodeTree,internalTree:tree,qualification:'source-candidate-with-native-private-clone-and-diagnostic-drain',defaultFullDecodeRetained:true,goRuntimeTestsRun:false,networkImprovementMeasured:false,releaseQualified:false};
 }
 export function withFixedDiagnosticSource(repo,action){
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-fixed-diagnostic-'));const fixture=path.join(temp,'source');

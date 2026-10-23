@@ -1,0 +1,516 @@
+{
+  "arch": "arm64",
+  "goVersion": "go1.25.7",
+  "gomaxprocs": 1,
+  "kind": "offline_original_four_store_prefix_native_clone_ABBA_not_network_tps",
+  "limits": "Four sequential private store captures per original prefix; same raw transaction observed24 times, never counted as new business. Includes controlled fixture writes/read-lock/hash/index/fee/nonce checks. No RPC/quorum/publishedInfo/new blocks or network qualification; two local samples per mode.",
+  "originalRun": 39164390241,
+  "os": "darwin",
+  "samples": [
+    {
+      "mode": "prefix-control",
+      "elapsedNs": 937770458,
+      "allocatedBytes": 671193376,
+      "stats": {
+        "prefixReplay": {
+          "calls": 32,
+          "successfulFullReplays": 1,
+          "successfulPrefixReuses": 31,
+          "failures": 0,
+          "durationNs": 851225499,
+          "replayedBlocks": 7,
+          "replayedTransactionInputs": 2048,
+          "canonicalByteLimit": 16777216,
+          "workPhases": {
+            "gateWait": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 17956
+            },
+            "prefixCheck": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 10068289
+            },
+            "privateJSON": {
+              "calls": 31,
+              "errors": 0,
+              "durationNs": 292611082
+            },
+            "privateValidate": {
+              "calls": 31,
+              "errors": 0,
+              "durationNs": 116900416
+            },
+            "fullReplay": {
+              "calls": 1,
+              "errors": 0,
+              "durationNs": 26386083
+            },
+            "suffixSetup": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 69021500
+            },
+            "suffixReplay": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 276546249
+            },
+            "suffixEncode": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 52240209
+            },
+            "canonicalCopy": {
+              "calls": 24,
+              "errors": 0,
+              "durationNs": 2932834
+            },
+            "certificatePublish": {
+              "calls": 8,
+              "errors": 0,
+              "durationNs": 4305166
+            }
+          }
+        },
+        "phaseTotalsNs": {
+          "loadNs": 925227829,
+          "hashNs": 14664083,
+          "captureNs": 36303495,
+          "decodeNs": 851268250,
+          "indexPublishNs": 19132374,
+          "transactionVerifyNs": 2424997
+        },
+        "attempts": 32,
+        "bytesHashed": 35059168,
+        "snapshotValidations": 32,
+        "snapshotCacheHits": 0,
+        "transactionVerifications": 24,
+        "blockJournalReplayedBlocks": 7,
+        "blockJournalReplayedTransactionInputs": 2048,
+        "blockJournalNativeVerificationFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      "cpuUserNs": 893520000,
+      "cpuSystemNs": 29735000
+    },
+    {
+      "mode": "native-clone",
+      "elapsedNs": 774707459,
+      "allocatedBytes": 549725264,
+      "stats": {
+        "prefixReplay": {
+          "calls": 32,
+          "successfulFullReplays": 1,
+          "successfulPrefixReuses": 31,
+          "failures": 0,
+          "durationNs": 693963709,
+          "replayedBlocks": 7,
+          "replayedTransactionInputs": 2048,
+          "canonicalByteLimit": 16777216,
+          "workPhases": {
+            "gateWait": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 14332
+            },
+            "prefixCheck": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 10291499
+            },
+            "privateJSON": {
+              "calls": 0,
+              "errors": 0,
+              "durationNs": 0
+            },
+            "privateValidate": {
+              "calls": 31,
+              "errors": 0,
+              "durationNs": 117263167
+            },
+            "fullReplay": {
+              "calls": 1,
+              "errors": 0,
+              "durationNs": 26870000
+            },
+            "suffixSetup": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 70011126
+            },
+            "suffixReplay": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 287667999
+            },
+            "suffixEncode": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 49239959
+            },
+            "canonicalCopy": {
+              "calls": 24,
+              "errors": 0,
+              "durationNs": 3047290
+            },
+            "certificatePublish": {
+              "calls": 8,
+              "errors": 0,
+              "durationNs": 102308916
+            },
+            "privateNativeClone": {
+              "calls": 31,
+              "errors": 0,
+              "durationNs": 27034583
+            }
+          }
+        },
+        "phaseTotalsNs": {
+          "loadNs": 763840042,
+          "hashNs": 14294919,
+          "captureNs": 31178419,
+          "decodeNs": 693993163,
+          "indexPublishNs": 20835832,
+          "transactionVerifyNs": 2565087
+        },
+        "attempts": 32,
+        "bytesHashed": 35059168,
+        "snapshotValidations": 32,
+        "snapshotCacheHits": 0,
+        "transactionVerifications": 24,
+        "blockJournalReplayedBlocks": 7,
+        "blockJournalReplayedTransactionInputs": 2048,
+        "blockJournalNativeVerificationFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      "cpuUserNs": 736147000,
+      "cpuSystemNs": 28241000
+    },
+    {
+      "mode": "native-clone",
+      "elapsedNs": 771421792,
+      "allocatedBytes": 549725704,
+      "stats": {
+        "prefixReplay": {
+          "calls": 32,
+          "successfulFullReplays": 1,
+          "successfulPrefixReuses": 31,
+          "failures": 0,
+          "durationNs": 691626294,
+          "replayedBlocks": 7,
+          "replayedTransactionInputs": 2048,
+          "canonicalByteLimit": 16777216,
+          "workPhases": {
+            "gateWait": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 12961
+            },
+            "prefixCheck": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 10179461
+            },
+            "privateJSON": {
+              "calls": 0,
+              "errors": 0,
+              "durationNs": 0
+            },
+            "privateValidate": {
+              "calls": 31,
+              "errors": 0,
+              "durationNs": 115756914
+            },
+            "fullReplay": {
+              "calls": 1,
+              "errors": 0,
+              "durationNs": 43900750
+            },
+            "suffixSetup": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 68508374
+            },
+            "suffixReplay": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 277774208
+            },
+            "suffixEncode": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 49313667
+            },
+            "canonicalCopy": {
+              "calls": 24,
+              "errors": 0,
+              "durationNs": 3374624
+            },
+            "certificatePublish": {
+              "calls": 8,
+              "errors": 0,
+              "durationNs": 94727667
+            },
+            "privateNativeClone": {
+              "calls": 31,
+              "errors": 0,
+              "durationNs": 27914503
+            }
+          }
+        },
+        "phaseTotalsNs": {
+          "loadNs": 758842251,
+          "hashNs": 13401207,
+          "captureNs": 30116418,
+          "decodeNs": 691660333,
+          "indexPublishNs": 19651712,
+          "transactionVerifyNs": 2398251
+        },
+        "attempts": 32,
+        "bytesHashed": 35059168,
+        "snapshotValidations": 32,
+        "snapshotCacheHits": 0,
+        "transactionVerifications": 24,
+        "blockJournalReplayedBlocks": 7,
+        "blockJournalReplayedTransactionInputs": 2048,
+        "blockJournalNativeVerificationFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      "cpuUserNs": 726985000,
+      "cpuSystemNs": 26703000
+    },
+    {
+      "mode": "prefix-control",
+      "elapsedNs": 936093125,
+      "allocatedBytes": 671192808,
+      "stats": {
+        "prefixReplay": {
+          "calls": 32,
+          "successfulFullReplays": 1,
+          "successfulPrefixReuses": 31,
+          "failures": 0,
+          "durationNs": 850530291,
+          "replayedBlocks": 7,
+          "replayedTransactionInputs": 2048,
+          "canonicalByteLimit": 16777216,
+          "workPhases": {
+            "gateWait": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 12374
+            },
+            "prefixCheck": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 11199083
+            },
+            "privateJSON": {
+              "calls": 31,
+              "errors": 0,
+              "durationNs": 297117334
+            },
+            "privateValidate": {
+              "calls": 31,
+              "errors": 0,
+              "durationNs": 113831457
+            },
+            "fullReplay": {
+              "calls": 1,
+              "errors": 0,
+              "durationNs": 26407416
+            },
+            "suffixSetup": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 70999583
+            },
+            "suffixReplay": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 277303416
+            },
+            "suffixEncode": {
+              "calls": 7,
+              "errors": 0,
+              "durationNs": 44809416
+            },
+            "canonicalCopy": {
+              "calls": 24,
+              "errors": 0,
+              "durationNs": 3863580
+            },
+            "certificatePublish": {
+              "calls": 8,
+              "errors": 0,
+              "durationNs": 4813460
+            }
+          }
+        },
+        "phaseTotalsNs": {
+          "loadNs": 918330001,
+          "hashNs": 13953170,
+          "captureNs": 29724587,
+          "decodeNs": 850561415,
+          "indexPublishNs": 19834543,
+          "transactionVerifyNs": 2407501
+        },
+        "attempts": 32,
+        "bytesHashed": 35059168,
+        "snapshotValidations": 32,
+        "snapshotCacheHits": 0,
+        "transactionVerifications": 24,
+        "blockJournalReplayedBlocks": 7,
+        "blockJournalReplayedTransactionInputs": 2048,
+        "blockJournalNativeVerificationFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      "cpuUserNs": 889044000,
+      "cpuSystemNs": 30220000
+    }
+  ],
+  "localHardware": {
+    "cpu": "Apple M4",
+    "logicalCPUs": 10
+  },
+  "explicitEnvironment": {
+    "GOMAXPROCS": "1",
+    "GOGC": "100",
+    "GOMEMLIMIT": "160MiB",
+    "timeoutSeconds": 20
+  },
+  "meanChangesPercent": {
+    "elapsedNs": -17.489764728513858,
+    "cpuUserNs": -17.919805403901346,
+    "allocatedBytes": -18.09726730620166
+  },
+  "sourceInputs": [
+    {
+      "path": "internal/consensus/block_journal_prefix.go",
+      "bytes": 8445,
+      "sha256": "048b98451f2d31d8c294c660e9e7753b6011f73e2398aac896cd677a142fc0b3"
+    },
+    {
+      "path": "internal/consensus/block_journal_prefix_timing.go",
+      "bytes": 3337,
+      "sha256": "5ba05bd037fba20ec01b5ff3505f2efb446577c2a06c657a6f7c1aea000f0abc"
+    },
+    {
+      "path": "internal/consensus/block_journal_native_clone.go",
+      "bytes": 2231,
+      "sha256": "c9797adbc124634f37734d75fe6dfbdcc4b753e54d49d42de750f722dd1abac6"
+    },
+    {
+      "path": "internal/consensus/block_journal_native_clone_test.go",
+      "bytes": 6871,
+      "sha256": "494f4b9eac6bb7937b67ed3e11e1e14af73c24f67e97a519c99370401f66694f"
+    }
+  ],
+  "rawInputs": [
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-original2048-abba.raw",
+      "bytes": 6770,
+      "sha256": "2d8994c84ce77fd9aedde7a8200f56c38c3ec174033a825cd84dd5172da11894"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-matched-reader-cost-test.go",
+      "bytes": 4825,
+      "sha256": "64c1c0465f198ea0227e8bc76b4d32ab6dd840145af0d9072066ce55f7175f2e"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-reader-overlay.json",
+      "bytes": 332,
+      "sha256": "7ef3a258599c7113f88f2bb1a074b4498b80f6b24a98ea2f89baa865c83a83b3"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-control-red.raw",
+      "bytes": 244,
+      "sha256": "92a702be26715af5f8de81dc72de70016d07c88e9f47070366963e2aa0bb0080"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-control-red-test.go",
+      "bytes": 6794,
+      "sha256": "3cd0589fb2595770b7a807978aa57759e153852d77d6ef31add62e8167971828"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-control-red-overlay.json",
+      "bytes": 314,
+      "sha256": "fc075368ce0124d3b128a41639ff5adb06a8066ec3dc5d6ddf2f5d70d064e56b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-prefix-pass.raw",
+      "bytes": 64,
+      "sha256": "c99df3691adb0f7724b5fe90c491beb02e873c6361c59fa374279af94ec28337"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-final-pass.raw",
+      "bytes": 64,
+      "sha256": "4ba7841a2132812b13c0c4fd0bfd5c1338f61526d27aae64d4e3f2564cef82e4"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-race-pass.raw",
+      "bytes": 64,
+      "sha256": "1e966fb4b8a58234e9b547c75dd4fdc0899d50e1081e0f0c51423a58de09720f"
+    }
+  ],
+  "controls": "The RED overlay changes only candidate constructor calls in the retained test to the original control constructor; same signed input, hot JSON counter assertion fails. Production/default constructors remain unchanged. Local ABBA includes publication JSON cost and full validation; no remote/RPC/quorum or new business TPS claim; two samples/mode, allocation total is not peak RSS.",
+  "sourceCommit": "43b769ca36960d764d95b74bb25f6b7eba9cd097",
+  "internalTree": "5ce0d984ba9bdad226e10dc598747db0befe68b1",
+  "derivation": {
+    "parent": "9cdaeb0a64bff4d26b2e4b1558c96863d2791640",
+    "bytes": 46101,
+    "sha256": "9a5a8243bebd1b2fa520a12d06f752151038632f40486b33c74ea44a4f0d4256"
+  },
+  "committedSourceInputs": [
+    {
+      "path": "internal/consensus/block_journal_prefix.go",
+      "bytes": 8445,
+      "sha256": "048b98451f2d31d8c294c660e9e7753b6011f73e2398aac896cd677a142fc0b3"
+    },
+    {
+      "path": "internal/consensus/block_journal_prefix_timing.go",
+      "bytes": 3337,
+      "sha256": "5ba05bd037fba20ec01b5ff3505f2efb446577c2a06c657a6f7c1aea000f0abc"
+    },
+    {
+      "path": "internal/consensus/block_journal_native_clone.go",
+      "bytes": 2231,
+      "sha256": "c9797adbc124634f37734d75fe6dfbdcc4b753e54d49d42de750f722dd1abac6"
+    },
+    {
+      "path": "internal/consensus/block_journal_native_clone_test.go",
+      "bytes": 7739,
+      "sha256": "c5f8c856591c486097d8e6f3b53e4052c8c2b1c3141e103f515a2c000cb9dcbd"
+    }
+  ],
+  "finalTestChangesAfterProbe": "Only test names aligned with existing CI regex, plus future-schema and concurrent mutation assertions. Three production source file hashes are unchanged from original ABBA probe."
+}
