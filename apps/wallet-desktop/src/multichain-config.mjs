@@ -1,5 +1,5 @@
 import {createHash,randomUUID} from 'node:crypto';
-import {open,readFile,rename,unlink,mkdir} from 'node:fs/promises';
+import {open,readFile,rename,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {isIP} from 'node:net';
 
@@ -40,7 +40,30 @@ export class AtomicMultiFile{
   constructor({filePath,initial,validate,maxBytes=2_000_000}){this.filePath=filePath;this.initial=initial;this.validate=validate;this.maxBytes=maxBytes}
   async read(){let text;try{text=await readFile(this.filePath,'utf8')}catch(e){if(e.code==='ENOENT')return this.validate(structuredClone(this.initial));throw e}if(Buffer.byteLength(text)>this.maxBytes)throw multiError('MULTICHAIN_STORE_INVALID','The network data file is too large. Keep the original file.');try{return this.validate(JSON.parse(text))}catch{throw multiError('MULTICHAIN_STORE_INVALID','The network data could not be verified. Keep the original file.')}}
   mutate(fn){const task=this.#tail.then(async()=>{const before=await this.read(),next=await fn(structuredClone(before));const checked=this.validate(next);await this.write(checked);return structuredClone(checked)});this.#tail=task.catch(()=>{});return task}
-  async write(value){const text=JSON.stringify(value);if(Buffer.byteLength(text)>this.maxBytes)throw multiError('MULTICHAIN_STORE_FULL','The network data file is full.');const dir=path.dirname(this.filePath);await mkdir(dir,{recursive:true,mode:0o700});const temp=this.filePath+'.'+randomUUID()+'.tmp';let file,created=false;try{file=await open(temp,'wx',0o600);created=true;await file.writeFile(text);await file.sync();await file.close();file=null;await rename(temp,this.filePath);const directory=await open(dir,'r');try{await directory.sync()}finally{await directory.close()}}finally{await file?.close();if(created)await unlink(temp).catch(e=>{if(e.code!=='ENOENT')throw e})}}
+  async write(value){
+    const text=JSON.stringify(value);if(Buffer.byteLength(text)>this.maxBytes)throw multiError('MULTICHAIN_STORE_FULL','The network data file is full.');
+    const dir=path.dirname(this.filePath),temp=this.filePath+'.'+randomUUID()+'.tmp';
+    let file,directory,created=false,renamed=false,failed=false,cause,cleanupCausePresent=false,cleanupCause,writePhase='directory-create';
+    try{
+      await mkdir(dir,{recursive:true,mode:0o700});writePhase='file-create';file=await open(temp,'wx',0o600);created=true;
+      writePhase='file-write';await file.writeFile(text);writePhase='file-sync';await file.sync();
+      // Retire each descriptor before its first close. A rejected close may
+      // already have released it; never retry it from finally.
+      writePhase='file-close';const owned=file;file=null;await owned.close();
+      writePhase='rename';await rename(temp,this.filePath);renamed=true;
+      writePhase='directory-open';directory=await open(dir,'r');writePhase='directory-sync';await directory.sync();
+      writePhase='directory-close';const parent=directory;directory=null;await parent.close();
+    }catch(error){failed=true;cause=error;}
+    finally{
+      for(const owned of [file,directory])if(owned){
+        try{await owned.close();}catch(error){if(!failed){failed=true;cause=error;}else if(!cleanupCausePresent){cleanupCausePresent=true;cleanupCause=error;}}
+      }
+    }
+    // A failed temporary may contain the only original signed-result bytes.
+    // Leave it private and intact. After rename, retain the actual target and
+    // report uncertainty rather than deleting it or claiming durable success.
+    if(failed)throw Object.assign(multiError('MULTICHAIN_STORE_WRITE_UNCONFIRMED','The data save is unconfirmed. Keep the original records and check the existing operation.'),{cause,cleanupCausePresent,cleanupCause,writePhase,renamed,temporaryFile:created&&!renamed?temp:null});
+  }
 }
 export function validateConfig(value){
   exactObject(value,['version','revision','selected','networks','tokens']);
