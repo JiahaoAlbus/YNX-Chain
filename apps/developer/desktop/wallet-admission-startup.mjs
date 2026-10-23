@@ -5,10 +5,15 @@
 import * as supplier from '../../../packages/wallet-auth/scripts/ynx-ide-service-admission-supplier.mjs';
 import { openOriginalParentDelivery } from './wallet-admission-delivery.mjs';
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL,fileURLToPath } from 'node:url';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 export async function loadBundledContractMaterialBuilder(){
-  const originalSDK=createRequire(new URL('../../../packages/wallet-auth/package.json',import.meta.url));
-  const original=await import(pathToFileURL(originalSDK.resolve('@ynx-chain/wallet-auth/pq-contract-deployment-material')).href);
+  const metadataURL=new URL('../../../packages/wallet-auth/package.json',import.meta.url),metadata=JSON.parse(await fs.readFile(metadataURL,'utf8'));
+  if(metadata.name!=='@ynx-chain/wallet-auth')throw Object.assign(Error('Original bounded contract material builder is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
+  const root=await fs.realpath(path.dirname(fileURLToPath(metadataURL))),originalSDK=createRequire(metadataURL),entry=await fs.realpath(originalSDK.resolve('@ynx-chain/wallet-auth/pq-contract-deployment-material'));
+  if(!entry.startsWith(root+path.sep))throw Object.assign(Error('Original bounded contract material builder is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
+  const original=await import(pathToFileURL(entry).href);
   if(typeof original.preparePQContractDeploymentMaterialData!=='function')throw Object.assign(Error('Original bounded contract material builder is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
   return original.preparePQContractDeploymentMaterialData;
 }
