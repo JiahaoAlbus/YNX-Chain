@@ -1,0 +1,28 @@
+# Explicit observer native signature facts source, 2026-10-24
+
+Runtime code8cace92fb6ad55daa5efb4314347eed5b378c438; CI selector closure a41e7c31dccb629f4fdc847641136e010dd1203a. Following the negative real suffix pair, both control/candidate retain the original suffix initializer. New candidate CLI -observer-native-facts requires explicit native8/4observers/relative/one-shot DATA64/phase timing; it cannot combine with the suffix initializer, alternate signature cache or enlarged reader-budget modes. Default report fields are omitted and default verification remains original.
+
+LookupVerifiedNativeForObserver requires the observer's expectedChainID equal to the decoder-private migration chain, then SHA256 and exact canonical bytes match. Returns immutable signed-envelope values only from previously successful original mathematical verification. It does not insert entries, grow the cache, change original replay counters or authorize execution. A miss performs original DecodeSignedTransaction+Verify; successful math and failures are counted separately. Every observation retains current initialized state/height, exact hash+payer+fee+kind+execution-height membership, nonce and context checks, plus original fresh file capture, full state validation, publishedInfo/quorum/transaction inclusion proof.
+
+Top observerNativeFacts flag and reader's actual enabled/lookups/hits/misses/fallbackMathVerifications/fallbackFailures must agree. Strict controller accepts only typed exact-schema counters: lookups=hits+misses=current2048transaction checks, misses=successful fallback math, no failed fallback, actual hits>0. Unselected/absent/mistyped/mismatched counters, raw/receipt/configuration/worker/queue/source/binary drift refuse qualification. The paired-native-observer-facts-data64 workflow route is explicit/default false. Both cases share8submitters/4observers/2048queues/same source4ELFs/assigned VM; only after observerNativeFacts=true. All old time/RSS/thread/process/data/log/build/fresh-capacity limits remain. No new network run or grant is claimed.
+
+## Validation and original phase cost
+
+Original prototype's actual cross-reader chain RED remains preserved, and its repaired expected-chain guard is now production code. Final consensus API race PASS1.559s covers cold/nil/changed bytes/cross-chain/exact-byte collision/ownership/concurrent lookup/4096entry4MiB eviction. Final client new-mode/recovery race PASS1.826s covers original signed durable state, separate current reader chain mismatch, absent fee/nonce/wrong height/context, valid uncached signature absent execution, malformed miss, independent stats snapshots/default omission/options, corrupt/truncated/deleted current store, restored bytes and fresh restart replay. Full client regression PASS11.449s;77controller PASS9.907s; final source gate14PASS11.845s. The original CI now has an explicit targeted race step for TestObserverNative, plus native8/initializer option selection in its existing client step;2new CI-route counterexamples PASS1.424s. No separate manual release gate.
+
+Original2048 unique signed input journal is fully replayed and original fee/nonce index built before each measured phase. Replay mathematics count2048 and existing cache bounds/bytes remain exactly unchanged after the2048 observation checks. AppleM4/darwin-arm64/go1.25.7/GOMAXPROCS1/GOGC100/GOMEMLIMIT160MiB, actual production methods/counters with only a test-file overlay. Both use original native suffix setup. Actual owner race/client tests completed before the measurement.
+
+| Order | Mode | Phase ms | Allocated bytes | Actual observer lookups/hits | Original transaction checks |
+|---|---|---:|---:|---:|---:|
+| 1 | control | 198.681042 | 7964120 | 0/0 | 2048 |
+| 2 | observer-fact-reuse | 1.059334 | 425984 | 2048/2048 | 2048 |
+| 3 | observer-fact-reuse | 1.037542 | 425984 | 2048/2048 | 2048 |
+| 4 | control | 189.727625 | 7964088 | 0/0 | 2048 |
+
+Mean phase wall change-99.460%, allocation-94.651%. Each candidate2048lookups/2048hits/0miss/0fallback math/0failure, enabled=true. These are saved duplicate signature-mathematics costs only, not complete reader/RPC/BFT/TPS improvement or10-minute qualification.
+
+Initial controller failures were missing transactionVerifications in the new synthetic positive fixture, not a reason to relax guards; original raw retained and real emitted2048counter supplied. Initial phase probe recorded per-slot enabled=false while aggregated configuration and actual hits were true; branch now records enabled on actual use, original samples kept and final source remeasured. No failed assertions were deleted.
+
+[Actual machine evidence](evidence/observer-native-facts-source-local-20261024-actual.json), [exact production phase probe](evidence/observer-native-production-phase-20261024.go.txt). Overlay that text at cmd/ynx-consensus-perf-client/observer_native_phase_offline_test.go, set YNX_PREFIX_CLIENT_FIXTURE_DIR to retained original shared-work-phases-source directory, then run go test -p=1 with overlay/-run '^TestObserverNativeFactsOriginal2048ProductionPhaseABBA$'/-count=1/-timeout=20s/-v and the environment above.
+
+Next normal exact-head CI, immutable source/strict recovery+readout contract, fresh Root pressure1 once-only same-VM comparison. Previous once grant is consumed; no dispatch until a new exact window. Include all4096original rows/2fixtures/8logs and negative tails/queues/CPU/RSS; report offer/accept/inclusion/final rates and P50/P95/P99 separately. First target remains sustained1000 qualified final business TPS for at least10minutes with finalP95≤3s, still unachieved.

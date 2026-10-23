@@ -1,0 +1,267 @@
+{
+  "schema": 1,
+  "kind": "explicit-observer-native-signature-facts-production-source-local-actual",
+  "sourceCommit": "a41e7c31dccb629f4fdc847641136e010dd1203a",
+  "sourceTrees": {
+    "internal": "90cd94a2dfe08f6ad3e3767d82709feb25b49c3d",
+    "client": "cd7acd71874aca802d86960c067414fdbe98bd2e",
+    "node": "8206358b1f284904285e9f5f78f7fd96eee40818"
+  },
+  "sourcePins": [
+    {
+      "path": ".github/workflows/chain-core.yml",
+      "bytes": 33662,
+      "sha256": "f6d848f01735553a539d7cb80c0a02713a01b94093aa58a1ec018f530113e8dc"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/durable_reader.go",
+      "bytes": 21918,
+      "sha256": "4aebe49adc60d9f1da400965c1fbca113125554ffcaf4017467fdb4744068676"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/main.go",
+      "bytes": 67955,
+      "sha256": "1bf8be3763117b74f4ed2f8a68c86503fc853853d87c35b074d2d91a99cad944"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/observer_native_facts.go",
+      "bytes": 1258,
+      "sha256": "de9d3352af0ae121f4f2e440142f75a43c207d5caba6f7b689059fd581724648"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/observer_native_facts_test.go",
+      "bytes": 7438,
+      "sha256": "df974f772013e3b10d0cd70b5a8b1ebf5eeff679498d52a708360b57d1e995b2"
+    },
+    {
+      "path": "internal/consensus/observer_native_facts.go",
+      "bytes": 971,
+      "sha256": "0ac9d2ad8b3b53f938bebbedc02c9beaa9c94e2214dff4352524673667f7c43b"
+    },
+    {
+      "path": "internal/consensus/observer_native_facts_test.go",
+      "bytes": 3574,
+      "sha256": "7a8b18cc0b5a314ecdd90ce4a22bd3dc335f5f7efeb1890cc35f10bfabe6b3eb"
+    },
+    {
+      "path": "scripts/loadtest/supply-linux-window.py",
+      "bytes": 127659,
+      "sha256": "0265b2b07331f537a76a1e889ae0f108a56c48a9ac408f72cb1de024dd1a8f0f"
+    },
+    {
+      "path": "scripts/loadtest/test_supply_linux_window.py",
+      "bytes": 119897,
+      "sha256": "256b7ef43d816bcde3a3bba779110a27d936d6fc3e8c4a7d037a29ced0e9703b"
+    },
+    {
+      "path": "scripts/verify/perf-prefix-replay-candidate-check.mjs",
+      "bytes": 5342,
+      "sha256": "9404abd71ea4783c3a67f3b0884700aedc91d0441dcfec7f2aa4082af83e4c37"
+    }
+  ],
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/focused-race.raw",
+      "bytes": 139,
+      "sha256": "df82adc6fb3cd67d55722b6c5880a4b61e4acf1b7dfa91d932f446f32baa7836"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/controller.raw",
+      "bytes": 2592,
+      "sha256": "dc0d6c2c4620cde2ba6a7c8b80f6adc97590c0e72384684ce1c5072ba6094e84"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/controller-after-fixture-counter.raw",
+      "bytes": 176,
+      "sha256": "fc302d6d16b47cdae253bc379f60a48965a5b0358a6414bcbe987a8f2f417f1e"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/client-full.raw",
+      "bytes": 76,
+      "sha256": "b162e9eeee2606292fe4ec626773c2fb9f0a2c899ccd19007dd6414cec6ff15b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/current-store-recovery-race.raw",
+      "bytes": 75,
+      "sha256": "caf4811f90839f95385f488b3103074dede6ee7cf44bccdb11f2798597af79b4"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/final-focused-race.raw",
+      "bytes": 139,
+      "sha256": "101c074f6ab9655bf88403a481bfbcd6a5a1bf1969214ac95cdbbb32070368d4"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/production-phase-abba.raw",
+      "bytes": 2529,
+      "sha256": "a9c9aca863e97a725d3d3fb33c4e109132138f5ef3415e2ca5add93f036cd1bf"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/production-phase-final-abba.raw",
+      "bytes": 2561,
+      "sha256": "2905d6d921b0255e7aaa453b69cccf8b9b1a77e5a79c171d7918d832e9748efd"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/source-gate.raw",
+      "bytes": 3298,
+      "sha256": "972b75e0a67bb62c6c543548010b2b11a301cf1e754f69a988fa80292a11ec27"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-source/final-source-gate.raw",
+      "bytes": 3290,
+      "sha256": "61554ff2221451e88d1a8b25bb538cef5314fb0df68b8862ff376b7ff0f5285b"
+    }
+  ],
+  "preparedPair": {
+    "path": "artifacts/chain-performance-20261017/observer-native-facts-source/prepared-pair.json",
+    "bytes": 6045,
+    "sha256": "d308e48aff069ae9d8f880353c67aeb83a106db5bb4ee42669f98b89e85c03be"
+  },
+  "probe": {
+    "path": "docs/performance/evidence/observer-native-production-phase-20261024.go.txt",
+    "bytes": 7170,
+    "sha256": "94ddcdae57d437e3923211835a157caba62a76e1ed45390b33df75c281b79cae"
+  },
+  "actualOriginal2048Phase": {
+    "arch": "arm64",
+    "goVersion": "go1.25.7",
+    "gomaxprocs": 1,
+    "kind": "offline_original2048_production_observer_signature_phase_ABBA_not_network_tps",
+    "limits": "Only original verifyTransactionLocked phase after full2048 original signed replay and index construction. Excludes file freshness/capture/state validation/RPC/quorum/finality. Each raw input unique; cache peek only decoder-owned successful exact bytes+chain facts, misses keep original full verification; fees/nonce/height/context checked per call. Actual owning production candidate and real per-slot counters; no new network qualification.",
+    "originalStateAppHash": "a79b383f356a7791382fd483d0d5bb83f707ea73107375cc030ab10fda7628f2",
+    "os": "darwin",
+    "samples": [
+      {
+        "Mode": "control",
+        "ElapsedNs": 198681042,
+        "AllocatedBytes": 7964120,
+        "ObserverHits": 0,
+        "TransactionChecks": 2048,
+        "ReplayFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        },
+        "ObserverStats": {
+          "enabled": false,
+          "lookups": 0,
+          "hits": 0,
+          "misses": 0,
+          "fallbackMathVerifications": 0,
+          "fallbackFailures": 0
+        }
+      },
+      {
+        "Mode": "observer-fact-reuse",
+        "ElapsedNs": 1059334,
+        "AllocatedBytes": 425984,
+        "ObserverHits": 2048,
+        "TransactionChecks": 2048,
+        "ReplayFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        },
+        "ObserverStats": {
+          "enabled": true,
+          "lookups": 2048,
+          "hits": 2048,
+          "misses": 0,
+          "fallbackMathVerifications": 0,
+          "fallbackFailures": 0
+        }
+      },
+      {
+        "Mode": "observer-fact-reuse",
+        "ElapsedNs": 1037542,
+        "AllocatedBytes": 425984,
+        "ObserverHits": 2048,
+        "TransactionChecks": 2048,
+        "ReplayFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        },
+        "ObserverStats": {
+          "enabled": true,
+          "lookups": 2048,
+          "hits": 2048,
+          "misses": 0,
+          "fallbackMathVerifications": 0,
+          "fallbackFailures": 0
+        }
+      },
+      {
+        "Mode": "control",
+        "ElapsedNs": 189727625,
+        "AllocatedBytes": 7964088,
+        "ObserverHits": 0,
+        "TransactionChecks": 2048,
+        "ReplayFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        },
+        "ObserverStats": {
+          "enabled": false,
+          "lookups": 0,
+          "hits": 0,
+          "misses": 0,
+          "fallbackMathVerifications": 0,
+          "fallbackFailures": 0
+        }
+      }
+    ]
+  },
+  "phaseMeanChangePercent": {
+    "ElapsedNs": -99.46013666064769,
+    "AllocatedBytes": -94.65119993410433
+  },
+  "checks": {
+    "finalConsensusNativeAPIRace": "PASS1.559s",
+    "finalClientNewModeAndRecoveryRace": "PASS1.826s",
+    "currentStoreRecoveryRace": "PASS1.752s",
+    "controller": "77PASS9.907s",
+    "clientRegression": "PASS11.449s",
+    "sourceGate": "14PASS12.040s",
+    "finalSourceGate": "14PASS11.845s"
+  },
+  "preservedIssues": [
+    "Initial77-controller run rejected two new synthetic positive cases because their legacy mock omitted Go-emitted transactionVerifications; original failure preserved, fixture supplied actual2048counter, strict production binder unchanged.",
+    "Initial production-phase samples exposed per-slot enabled=false although aggregate actual configuration was true and2048hits occurred. Per-slot branch now explicitly records enabled=true; initial samples retained and final actual production probe rerun after final race tests."
+  ],
+  "safety": "Explicit original native8/suffixfalse only. Expected observer chain must equal private decoder migration chain plus SHA and complete original bytes; lookup-only immutable value returns, no new cache/insertion/authority. Miss runs original Decode+Verify. Every current-state fee/nonce/height/context gate remains. Original replay4096entry4MiB budget/counters unchanged; separate actual observer enabled/lookups/hits/misses/fallback math/failure counters under slot locks, report snapshots independent.",
+  "priorRealRED": {
+    "path": "docs/performance/evidence/observer-native-facts-prototype-20261024-actual.json",
+    "bytes": 7667,
+    "sha256": "d5f346b6b91d7ce5e829a6c401f72d691bf53633f0de76aa1032c2a5079eedb5"
+  },
+  "networkImprovementMeasured": false,
+  "newNetworkDispatched": false,
+  "sustainedTPSQualified": false,
+  "limits": "Local original2048 signature verification phase only after complete signed replay and state indexing, excludes RPC/fresh file capture/full state validation/quorum/finality. Both modes original initializer. Two finite samples per mode, no statistical confidence or TPS projection. Normal exact-head CI pending; no new Root window consumed.",
+  "runtimeCodeCommit": "8cace92fb6ad55daa5efb4314347eed5b378c438",
+  "ciRouteChecks": {
+    "path": "artifacts/chain-performance-20261017/observer-native-facts-source/ci-route-focused.raw",
+    "tests": 2,
+    "seconds": 1.424,
+    "passed": true,
+    "bytes": 100,
+    "sha256": "988adfffc71a53702805c0506a0e6562ca5899847a88c79105e54c3993af924f"
+  }
+}
