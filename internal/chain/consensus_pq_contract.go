@@ -121,7 +121,7 @@ func BuildConsensusPQContractDeployment(a ynxauth.Action, hash string, at time.T
 	if err := json.Unmarshal(material.ArtifactFile, &actual); err != nil {
 		return ConsensusPQContractReceipt{}, err
 	}
-	if _, _, err := ValidateBoundedPinnedContract(p.Name, source, actual.DeployedBytecode); err != nil {
+	if _, err := ValidatePQContractDeploymentIdentity(p.Name, source, actual.DeployedBytecode); err != nil {
 		return ConsensusPQContractReceipt{}, err
 	}
 	var entries []hardhatABIEntry

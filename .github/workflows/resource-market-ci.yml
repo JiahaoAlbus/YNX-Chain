@@ -19,6 +19,8 @@ on:
       - 'scripts/loadtest/**'
       - 'scripts/ops/validate-private-consensus-copy.py'
       - 'scripts/ops/test_validate_private_consensus_copy.py'
+      - 'scripts/ops/verify-original-native-copy.py'
+      - 'scripts/verify/test_original_native_copy_guard.py'
       - 'scripts/ops/validate-pq-remote-signer-process.py'
       - 'scripts/ops/validate-pq-remote-window-entry.sh'
       - 'scripts/ops/test_validate_pq_remote_signer_process.py'
@@ -471,13 +473,24 @@ jobs:
           # the original Go registry; no account or signer is started.
           go test -v -p 1 -count=1 -timeout=90s -run '^TestIDECanonicalCompilerMaterial' ./internal/chain
       - name: Verify existing Wallet inbox materials with original Go deployment callees
+        id: pqcontractregistry
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
+        env:
+          YNX_PQ_CONTRACT_DEPLOYMENT_REGISTRY_OUT: ${{ runner.temp }}/ynx-pq-contract-deployment-registry.json
         run: |
           # The input-only build-info is a different exact file and requires its
           # own Go result. Preserve the prior oversized ERC20 params countercase
           # and the unchanged normal Wallet inbox limit.
-          go test -v -p 1 -count=1 -timeout=90s -run '^TestIDEWalletInboxMaterialActualGoCalleesAndExactParamsSizes$' ./internal/chain
+          go test -v -p 1 -count=1 -timeout=90s -run '^(TestIDEWalletInboxMaterialActualGoCalleesAndExactParamsSizes$|TestPQContractDeploymentRegistry)' ./internal/chain
+      - name: Upload only public contract deployment registry from the actual Go caller
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqcontractregistry.outcome == 'success') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-contract-deployment-registry-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-pq-contract-deployment-registry.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Verify native ledger and HTTP PQ integration
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
@@ -989,6 +1002,7 @@ jobs:
           python3 -B scripts/loadtest/test_pq_paired_linux_window.py
           python3 -B scripts/loadtest/test_pq_network_file_sizes.py
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
+          python3 -B -m unittest discover -s scripts/verify -p 'test_original_native_copy_guard.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
