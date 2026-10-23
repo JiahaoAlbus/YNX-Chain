@@ -8,6 +8,8 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { captureArtifactSelection, resolveSelectedArtifact } from './marketplace-artifact-policy.mjs';
 import { createArtifactDownloader, officialArtifactRedirect } from './marketplace-artifact-transport.mjs';
+import {duplexPair} from 'node:stream';
+import artifactChannel from '../runtime/ynx-workbench/lib/marketplace-artifact-channel.js';
 const selection = { namespace: 'example', name: 'language', version: '1.2.3', targetPlatform: 'darwin-arm64' };
 const url = 'https://open-vsx.org/api/example/language/1.2.3/file/example.language-1.2.3.vsix';
 const metadata = value => ({ extensions: [{ namespace: 'example', name: 'language', version: '1.2.3', targetPlatform: 'universal', files: { download: value } }] });
@@ -79,6 +81,15 @@ test('exact selected VSIX is privately staged with digest and file identity, the
   assert.equal(f.calls[0].operation, 'query'); assert.equal(f.calls[0].options.extensionVersion, '1.2.3');
   assert.ok(result.path.startsWith(f.staging + '/extension-')); assert.ok(result.ino > 0);
   await f.downloader.cleanup(); assert.deepEqual(await readdir(f.staging), []);
+});
+test('actual downloader HTTP rejection reaches the installation caller with its exact safe stage',async t=>{
+  const f=await fixture(t,403),[parent,child]=duplexPair();
+  const server=artifactChannel.serveArtifacts(parent,f.downloader),client=artifactChannel.artifactClient(child);
+  try{await assert.rejects(client.request(selection),error=>{
+    assert.equal(error.artifactStage,'HTTP_RESPONSE');assert.equal(error.catalogCategory,'HTTP_4XX');
+    assert.equal(error.message.includes('https:'),false);return true;
+  });assert.deepEqual(await readdir(f.staging),[]);}
+  finally{client.close();await server.close();}
 });
 test('unapproved redirect cleans its partial and retired or cancelled session cannot download', async t => {
   const f = await fixture(t, 302);
