@@ -3,7 +3,7 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-ide-native-close-r140-20261019, codex/wallet-sdk332-r140-compat-20261019, codex/wallet-joint-child-cleanup-debt-20261023, codex/wallet-auth4-deploy-material-20261023, codex/wallet-r154-paired-source-20261023]
+    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-ide-native-close-r140-20261019, codex/wallet-sdk332-r140-compat-20261019, codex/wallet-joint-child-cleanup-debt-20261023, codex/wallet-auth4-deploy-material-20261023, codex/wallet-r154-paired-source-20261023, codex/wallet-developer-contract-client-20261023]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
