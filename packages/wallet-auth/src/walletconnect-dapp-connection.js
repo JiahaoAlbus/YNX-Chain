@@ -120,8 +120,9 @@ export class WalletConnectDAppConnection{
       // Locked SignClient emits the identical request object and its own ID.
       // Main's original inbox key is JSON([topic,id]), not topic:id.
       const hash=bytesToHex(sha256(utf8ToBytes(JSON.stringify([event.topic,event.id]))));
-      if(state.hash!==null&&state.hash!==hash)state.conflict=true;
+      if(state.hash!==null){if(state.hash===hash||state.conflict)return;state.conflict=true;}
       else state.hash=hash;
+      state.notify();
     });
     const ended=({topic})=>{if(this.#session?.topic!==topic)return;this.#session=null;this.#epoch++;this.#emit('disconnect',{code:4900,message:'PAIR_SESSION_ENDED',reason:'permission-revoked'});};
     client.on('session_delete',ended);client.on('session_expire',ended);
@@ -227,6 +228,17 @@ export class WalletConnectDAppConnection{
     if(requestBytes.length>61440)fail('YNX_PAIR_REQUEST_TOO_LARGE');
     const requestPayloadSHA256=bytesToHex(sha256(requestBytes));
     const state={topic:session.topic,hash:null,conflict:false,state:'pending'};
+    const snapshot=()=>Object.freeze({scope:'local-only',origin:this.#origin,method:request.method,account,chainId:WALLETCONNECT_CHAIN,requestPayloadSHA256,state:state.conflict?'unknown':state.state,originalRequestKeyHash:state.hash,correlation:state.conflict?'conflict':state.hash?'observed':'missing',remoteOutcome:'not-proven',replayAllowed:false});
+    const listeners=new Set();
+    // Notification is not a journal-write receipt. The owning consumer must
+    // await its durable write. Listener failures never replace an RPC cause.
+    const deliver=listener=>{try{Promise.resolve(listener(snapshot())).catch(()=>{});}catch{}};
+    state.notify=()=>{for(const listener of [...listeners])deliver(listener);};
+    const onCorrelation=listener=>{
+      if(typeof listener!=='function')fail('YNX_PAIR_REQUEST_SCHEMA');
+      listeners.add(listener);if(state.hash)deliver(listener);
+      return ()=>listeners.delete(listener);
+    };
     this.#correlations.set(request,state);
     let work;try{work=this.#client.request({topic:session.topic,chainId:WALLETCONNECT_CHAIN,request,expiry:300});}catch(error){work=Promise.reject(error);}
     const outcome=(async()=>{
@@ -238,7 +250,7 @@ export class WalletConnectDAppConnection{
       }catch(error){state.state='unknown';throw error;}
     })();
     outcome.catch(()=>{});
-    return Object.freeze({outcome,snapshot:()=>Object.freeze({scope:'local-only',origin:this.#origin,method:request.method,account,chainId:WALLETCONNECT_CHAIN,requestPayloadSHA256,state:state.conflict?'unknown':state.state,originalRequestKeyHash:state.hash,correlation:state.conflict?'conflict':state.hash?'observed':'missing',remoteOutcome:'not-proven',replayAllowed:false})});
+    return Object.freeze({outcome,snapshot,onCorrelation});
   }
 }
 

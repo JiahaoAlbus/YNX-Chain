@@ -34,6 +34,9 @@ export interface DeveloperContractRequestHandle {
  /** Late original sent events remain observable after a timeout. Persist the
   * observed hash in the owning consumer journal; never recreate or retry a write. */
  snapshot():DeveloperContractRequestSnapshot;
+ /** Original sent-event observation; already observed correlation is delivered
+  * immediately. This does not certify the consumer's durable journal write. */
+ onCorrelation(listener:(snapshot:DeveloperContractRequestSnapshot)=>unknown):()=>void;
 }
 export interface DeveloperContractRequest {
  method:DeveloperContractMethod;

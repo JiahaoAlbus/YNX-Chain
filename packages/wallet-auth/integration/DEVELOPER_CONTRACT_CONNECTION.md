@@ -12,7 +12,14 @@ namespaces and never deletes other profiles' stored sessions.
 
 After explicit connect or restore, call
 `connection.beginContractRequest({method, params:[body]})`. It returns an
-immutable handle with `outcome` and `snapshot()`. Persist the snapshot's
+immutable handle with `outcome`, `snapshot()` and `onCorrelation(listener)`.
+Register the journal observer immediately, before waiting for the outcome.
+An already observed correlation is delivered immediately on subscription;
+otherwise the original sent event delivers it, including after a local timeout.
+The returned function unsubscribes. Consumer callback failures cannot trigger a
+retry or replace the original RPC cause. Notifications do not certify journal
+persistence: await the owning journal's actual durable-write confirmation.
+Persist the snapshot's
 `originalRequestKeyHash` in the consumer's existing journal once observed.
 The source is locked SignClient 2.23.10's `session_request_sent` event: the exact
 same request object, original topic, chain, and generated safe positive RPC ID.

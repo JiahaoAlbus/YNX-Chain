@@ -66,3 +66,14 @@ test('fresh proposal is exactly contract-only and cold restore preserves unrelat
  cold.client.session.getAll=()=>[identity,valid];assert.ok(await cold.connection.restore());assert.equal(identity.namespaces.eip155.methods[0],'ynx_requestProductSessionV2');
  const expired=fixture();expired.client.session.getAll=()=>[{...session(),expiry:1}];assert.equal(await expired.connection.restore(),null);
 });
+test('original correlation notifies the owning journal before outcome and late subscribers read it immediately',async()=>{
+ const f=fixture();await f.connection.restore();const handle=f.connection.beginContractRequest(query()),seen=[];
+ assert.equal(typeof handle.onCorrelation,'function');
+ const unsubscribe=handle.onCorrelation(value=>seen.push(value));assert.equal(seen.length,0);
+ f.sent(0,110);assert.equal(seen.length,1);assert.equal(seen[0].state,'pending');
+ f.sent(0,110);assert.equal(seen.length,1);
+ const late=[];handle.onCorrelation(value=>late.push(value));assert.equal(late.length,1);assert.equal(late[0].originalRequestKeyHash,seen[0].originalRequestKeyHash);
+ handle.onCorrelation(()=>{throw Error('journal failed');});
+ unsubscribe();f.sent(0,111);assert.equal(seen.length,1);assert.equal(late.at(-1).correlation,'conflict');
+ f.calls[0].resolve({});await assert.rejects(handle.outcome,/CORRELATION/);assert.equal(f.calls.length,1);
+});
