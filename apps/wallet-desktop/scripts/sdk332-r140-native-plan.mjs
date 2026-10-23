@@ -12,7 +12,7 @@ export function verifySDK332R140Source(sourceRoot){
   const root=realpathSync(sourceRoot);
   const contract=JSON.parse(readFileSync(join(root,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')));
   const pkg=JSON.parse(readFileSync(join(root,'packages/wallet-auth/package.json')));
-  if(contract.version!=='1.3.0-pq.3.32-auth.10'||pkg.version!==contract.version||!isDeepStrictEqual(pkg.exports,contract.publicExports))fail('SDK332_R140_PACKAGE_SELECTION_INVALID');
+  if(contract.version!=='1.3.0-pq.3.32-auth.11'||pkg.version!==contract.version||!isDeepStrictEqual(pkg.exports,contract.publicExports))fail('SDK332_R140_PACKAGE_SELECTION_INVALID');
   // Pure deployment codecs join this canonical Auth line; independent file pins
   // bind the supplier bytes while Native selection remains the matching64 Node/69 paired inputs.
   const pure=['pq-contract-deployment-transport.js','pq-contract-deployment-transport.d.ts','pq-contract-deployment-transport-node.js','pq-contract-deployment-transport-node.d.ts'].map(n=>'packages/wallet-auth/src/'+n);
