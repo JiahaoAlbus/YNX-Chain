@@ -6,11 +6,11 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-desktop/scripts/sdk332-r140-native-plan.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
-test('combined SDK332 auth4 retains original APIs, adds pure deployment exports and selects exact R140 source through the normal eight-TU recipe',async()=>{
+test('canonical SDK R154 retains original APIs, adds pure deployment exports and selects exact R140 source through the normal eleven-TU recipe',async()=>{
   const selected=verifySDK332R140Source(root);
-  assert.equal(selected.contract.NativeInputs.length,55);
+  assert.equal(selected.contract.NativeInputs.length,62);
   const plan=await sdk332R140NativePlan(root,'/original-a-pinned-node-headers','arm64');
-  assert.equal(plan.plan.sources.length,8);assert.equal(plan.rebuildRequired,true);
+  assert.equal(plan.plan.sources.length,11);assert.equal(plan.rebuildRequired,true);
   assert.equal(plan.prebuiltSDK330ModuleAllowed,false);assert.equal(plan.NativeBuild,false);assert.equal(plan.grant,false);
   assert(plan.plan.sources.every(p=>p.startsWith(selected.root+'/')));
   const r140=selected.contract.NativeInputs.filter(p=>['original-ide-auth-identity-owners.inc.mm','original-ide-parent-node.mm'].some(n=>p.path.endsWith('/'+n)));
@@ -19,7 +19,7 @@ test('combined SDK332 auth4 retains original APIs, adds pure deployment exports 
 test('composition rejects mixed Native source and an old SDK version before any build',()=>{
   const {contract}=verifySDK332R140Source(root),temp=mkdtempSync(join(tmpdir(),'ynx-sdk332-r140-selection-'));
   try{
-    for(const relative of ['packages/wallet-auth/package.json','packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',contract.normalBuildTool.path,...contract.pureDeploymentInputs.map(p=>p.path),...contract.NativeInputs.map(p=>p.path)]){
+    for(const relative of ['packages/wallet-auth/package.json','packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',contract.normalBuildTool.path,...contract.pureDeploymentInputs.map(p=>p.path),...contract.NativeInputs.map(p=>p.path),...contract.HelperInputs.map(p=>p.path)]){
       const target=join(temp,relative);mkdirSync(dirname(target),{recursive:true});copyFileSync(join(root,relative),target);
     }
     verifySDK332R140Source(temp);

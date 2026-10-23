@@ -1,4 +1,6 @@
 #import "original-auth-identity-source-authority.h"
+#import "original-ide-helper-xpc-peer.h"
+#import "original-ide-helper-client.h"
 #include "original-source-verifier-io.h"
 #include "original-source-provisioning-fence.h"
 #include "original-auth-identity-public-limits.h"
@@ -22,6 +24,9 @@ static bool SourceSame(struct stat a,struct stat b){return a.st_dev==b.st_dev&&a
 struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;bool selected=false,complete=false;};
 @implementation YNXAuthIdentitySourceAuthority {
  YNXAuthIdentityCurrentOwner *_custody;
+ YNXIDEHelperMessagePeer *_helperPeer;
+ YNXIDEHelperClient *_helperClient;
+ NSData *_receiveRequestOriginal,*_receiveProofOriginal;NSDictionary*_remoteReceiveActual;
  NSData *_profileOriginal,*_headOriginal,*_rootOriginal,*_enrollmentOriginal;
  NSData *_currentOriginal;NSString *_currentNonce;BOOL _firstEnterPinned;
  NSDictionary *_selection;
@@ -71,6 +76,19 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   }
  }
  [s retire];if(![s close:nil])return s;return nil;
+}
++ (instancetype)acquireOriginalHelperSourceForMessagePeer:(YNXIDEHelperMessagePeer*)peer error:(NSError**)error {
+ if(!peer||![peer assertCurrentMessage:error]){if(error&&!*error)*error=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_MESSAGE_REQUIRED"}];return nil;}
+ // Do NOT bootstrap Source from the target user's not-yet-installed registry.
+ // This is the original independent helper/admin Source acquisition, with its
+ // unchanged signed Root/enrollment/purpose/verifier/current requirements.
+ YNXAuthIdentitySourceAuthority*s=[self acquireOriginalSource:error];if(!s)return nil;
+ s->_helperPeer=peer;
+ if(![peer assertCurrentMessage:error]||![s heldCurrent:error]){
+  [s fail:@"AUTH_IDENTITY_HELPER_SOURCE_MESSAGE_CHANGED" error:error];
+  [s retire];if(![s close:nil])return s;return nil;
+ }
+ return s;
 }
 + (instancetype)acquireOriginalIDEConsumerSource:(NSError **)error {
  YNXAuthIdentitySourceAuthority *s=[self new];s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
@@ -126,8 +144,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  [s retire];if(![s close:nil])return s;return nil;
 }
 - (BOOL)heldCurrent:(NSError **)error {
+ if(_helperClient&&![_helperClient assertTransportCurrent:error])return [self fail:@"AUTH_IDENTITY_HELPER_CLIENT_NOT_CURRENT" error:error];
+ if(_helperPeer&&![_helperPeer assertCurrentMessage:error])return [self fail:@"AUTH_IDENTITY_HELPER_SOURCE_MESSAGE_CHANGED" error:error];
  if(_invalid||_retired||!_policy||![_custody assertOriginalCurrent:error])return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CURRENT_UNAVAILABLE" error:error];
- for(const auto &file:_files){struct stat held{},named{};if(file.selected||fstat(file.fd,&held)||lstat(file.path.fileSystemRepresentation,&named)||!SourceSame(file.identity,held)||!SourceSame(file.identity,named))return [self fail:@"AUTH_IDENTITY_NATIVE_RELEASE_CHANGED" error:error];}return YES;
+ for(const auto &file:_files){struct stat held{},named{};if(file.selected||fstat(file.fd,&held)||lstat(file.path.fileSystemRepresentation,&named)||!SourceSame(file.identity,held)||!SourceSame(file.identity,named))return [self fail:@"AUTH_IDENTITY_NATIVE_RELEASE_CHANGED" error:error];}
+ if(_helperPeer&&![_helperPeer assertCurrentMessage:error])return [self fail:@"AUTH_IDENTITY_HELPER_SOURCE_MESSAGE_CHANGED" error:error];return YES;
 }
 - (NSData *)runOriginalVerifierData:(NSData *)raw error:(NSError **)error {
  if(!_entered||!_policy||!raw.length||raw.length>ynx_auth_private::OriginalAuthVerifierInputMax){[self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_INPUT_INVALID" error:error];return nil;}
@@ -251,9 +272,12 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   NSDictionary *association=_selection[@"association"],*request=_selection[@"expectedRequest"];
   if(![association[@"productId"] isEqual:@"developer"]||![request[@"productId"] isEqual:@"developer"]){[self fail:@"AUTH_IDENTITY_RECEIVER_PRODUCT_MISMATCH" error:error];return nil;}
   if(install&&geteuid()!=0){[self fail:@"AUTH_IDENTITY_RECEIVER_PRIVILEGE_REQUIRED" error:error];return nil;}
+  if(install&&!_helperPeer){[self fail:@"AUTH_IDENTITY_RECEIVER_OS_MESSAGE_REQUIRED" error:error];return nil;}
   // No sudo/privilege escalation is performed here. A real privileged normal
   // owner must already exist. UID is kernel-derived, never a renderer option.
-  const std::string target=ynx_auth_ide_private::originalIDERegistryBase(getuid());
+  NSString*messageTarget=_helperPeer?[_helperPeer copyOriginalUserRegistryBase:error]:nil;
+  if(_helperPeer&&!messageTarget)return nil;
+  const std::string target=_helperPeer?std::string(messageTarget.UTF8String):ynx_auth_ide_private::originalIDERegistryBase(getuid());
   if(!ynx_auth_private::SourcePublicInstallation::protectedRootAncestors(target)){[self fail:@"AUTH_IDENTITY_RECEIVER_REGISTRY_NOT_PROTECTED" error:error];return nil;}
   NSDictionary *snapshot=[self copyOriginalProvisioningPublicOriginals:error];if(!snapshot)return nil;
   NSData *baseline=[_headOriginal copy];
@@ -278,7 +302,13 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   // this exact partial for close; no re-acquire/replace/automatic retry.
   _publicInstallation=std::make_unique<ynx_auth_private::SourcePublicInstallation>();
   auto &receiver=*_publicInstallation;
-  if(!receiver.captureParent(target,0)||(install?(!receiver.stage(bundle)||!receiver.publish()):!receiver.captureExisting(bundle))){[self fail:@"AUTH_IDENTITY_RECEIVER_INSTALL_UNKNOWN" error:error];return nil;}
+  if(![self heldCurrent:error])return nil;
+  if(!receiver.captureParent(target,0)){[self fail:@"AUTH_IDENTITY_RECEIVER_INSTALL_UNKNOWN" error:error];return nil;}
+  if(install){
+   if(!receiver.stage(bundle)){[self fail:@"AUTH_IDENTITY_RECEIVER_INSTALL_UNKNOWN" error:error];return nil;}
+   if(![self heldCurrent:error])return nil;
+   if(!receiver.publish()){[self fail:@"AUTH_IDENTITY_RECEIVER_INSTALL_UNKNOWN" error:error];return nil;}
+  }else if(!receiver.captureExisting(bundle)){[self fail:@"AUTH_IDENTITY_RECEIVER_INSTALL_UNKNOWN" error:error];return nil;}
   std::array<ynx_auth_private::SourcePublicInstallation::Receipt,4> receipts;
   if(!receiver.readBack(receipts)){[self fail:@"AUTH_IDENTITY_RECEIVER_READBACK_UNKNOWN" error:error];return nil;}
   NSDictionary *late=[self copyOriginalProvisioningPublicOriginals:error];if(!late)return nil;
@@ -288,7 +318,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   if(!receiver.readBack(receipts)){[self fail:@"AUTH_IDENTITY_RECEIVER_LATE_READBACK_UNKNOWN" error:error];return nil;}
   NSMutableArray *files=[NSMutableArray array];
   for(const auto &r:receipts)[files addObject:@{@"name":[NSString stringWithUTF8String:r.name.c_str()],@"sha256":[NSString stringWithUTF8String:r.sha256.c_str()],@"device":@((uint64_t)r.identity.st_dev),@"inode":@((uint64_t)r.identity.st_ino),@"uid":@((uint64_t)r.identity.st_uid),@"gid":@((uint64_t)r.identity.st_gid),@"mode":@((uint64_t)r.identity.st_mode),@"nlink":@((uint64_t)r.identity.st_nlink),@"bytes":@((uint64_t)r.identity.st_size)}];
-  NSDictionary *result=@{@"files":[files copy],@"kernelUID":@((uint64_t)getuid()),@"installed":@(install),@"coldReadback":@(!install),@"dataOnly":@YES,@"nativeAdmission":@NO,@"identityRestored":@NO,@"keyBorrowed":@NO};
+  if(![self heldCurrent:error])return nil;
+  // Receipt target is the kernel-bound registry, NOT the root helper's UID0.
+  // Original normal-user readback retains its existing kernelUID field.
+  NSNumber*kernelUID=_helperPeer?[_helperPeer copyOriginalUserIdentifier:error]:@((uint64_t)getuid());if(!kernelUID)return nil;
+  NSDictionary *result=@{@"files":[files copy],@"kernelUID":kernelUID,@"installed":@(install),@"coldReadback":@(!install),@"dataOnly":@YES,@"nativeAdmission":@NO,@"identityRestored":@NO,@"keyBorrowed":@NO};
   const uint64_t terminalWall=wall(),terminalMono=mono();
   if(terminalWall<originalWall||terminalWall>=expires||terminalMono<originalMono||terminalMono>=originalMono+(expires-originalWall)){[self fail:@"AUTH_IDENTITY_RECEIVER_TERMINAL_WINDOW_EXPIRED" error:error];return nil;}
   if(install&&!receiver.retainPublishedData()){[self fail:@"AUTH_IDENTITY_RECEIVER_RETAIN_UNKNOWN" error:error];return nil;}
@@ -296,7 +330,25 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }@catch(NSException *){[self fail:@"AUTH_IDENTITY_RECEIVER_EXCEPTION_UNKNOWN" error:error];return nil;}
  }
 }
-- (NSDictionary *)installOriginalIDEIdentityPublicOriginals:(NSError **)error {return [self originalIDEPublicReceiver:YES error:error];}
+- (NSDictionary *)installOriginalIDEIdentityPublicOriginals:(NSError **)error {
+ @synchronized(self){
+  if(!_helperClient)return [self originalIDEPublicReceiver:YES error:error];
+  if(geteuid()==0||!_ideProofVerified||!_receiveRequestOriginal||!_receiveProofOriginal){[self fail:@"AUTH_IDENTITY_RECEIVE_ORIGINAL_PROOF_REQUIRED" error:error];return nil;}
+  if(![self assertOriginalIDEIdentityRequestCurrent:_receiveRequestOriginal invocation:[NSData data] error:error])return nil;
+  NSError*actualError=nil;
+  _remoteReceiveActual=[_helperClient receiveOriginalRequest:_receiveRequestOriginal proof:_receiveProofOriginal error:&actualError]; // adopt actual partial BEFORE error/current
+  if(actualError||!_remoteReceiveActual){_invalid=YES;if(!_firstCause)_firstCause=actualError?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_RECEIVE_UNKNOWN"}];if(error)*error=_firstCause;return _remoteReceiveActual;}
+  // Root transport success is not installed-original success. Independently
+  // reopen the expected USER registry through the original cold reader and
+  // match every real file hash/inode/metadata against actual remote receipts.
+  NSDictionary*local=[self copyOriginalIDEInstalledPublicOriginals:&actualError];
+  if(actualError||!local||![_remoteReceiveActual[@"files"]isEqual:local[@"files"]]||![_remoteReceiveActual[@"kernelUID"]isEqual:local[@"kernelUID"]]||![_remoteReceiveActual[@"dataOnly"]isEqual:@YES]||![_remoteReceiveActual[@"nativeAdmission"]isEqual:@NO]||![_remoteReceiveActual[@"identityRestored"]isEqual:@NO]||![_remoteReceiveActual[@"keyBorrowed"]isEqual:@NO]||![_remoteReceiveActual[@"installed"]isEqual:@YES]){
+   [self fail:actualError.localizedDescription?:@"AUTH_IDENTITY_HELPER_INDEPENDENT_READBACK_MISMATCH" error:error];return _remoteReceiveActual;
+  }
+  if(![self assertOriginalIDEIdentityRequestCurrent:_receiveRequestOriginal invocation:[NSData data] error:error])return _remoteReceiveActual;
+  return _remoteReceiveActual;
+ }
+}
 - (NSDictionary *)copyOriginalIDEInstalledPublicOriginals:(NSError **)error {return [self originalIDEPublicReceiver:NO error:error];}
 - (NSDictionary *)verifyOriginalFirstEnterWitness:(NSData *)witness binding:(NSDictionary *)binding requestId:(NSString *)requestId nonce:(NSString *)nonce error:(NSError **)error {
  @synchronized(self){
@@ -345,11 +397,12 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   @finally{_entered=NO;}
  }
 }
-- (void)retire {@synchronized(self){_retired=YES;[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];return [_custody join:error];}}
+- (void)retire {@synchronized(self){_retired=YES;[_helperClient retire];[_custody retire];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return [_custody join:error];}}
 - (BOOL)close:(NSError **)error {
  @synchronized(self){[self retire];if(_closeSelected){if(error)*error=_cleanupCause;return _cleanupComplete;}
   if(![self join:error])return NO;_closeSelected=YES;BOOL filesClosed=YES;
+  if(_helperClient){NSError*clientError=nil;if(![_helperClient close:&clientError]||clientError){_cleanupCause=clientError?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_CLIENT_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;}_helperClient=nil;}
   if(_publicInstallation&&!_publicInstallation->close()){
    _cleanupComplete=NO;_cleanupCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_RECEIVER_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;
   }

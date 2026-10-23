@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.3.0-pq.3.32-auth.4",
+  "version": "1.3.0-pq.3.32-auth.5",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -274,7 +274,8 @@
     "test:pq-action-transport": "node --test --test-concurrency=1 test/pq-action-transport.test.mjs && tsc -p test/tsconfig.pq-action-transport-browser.json && tsc -p test/tsconfig.pq-action-transport-node.json",
     "test:pq-native-r140-compatibility": "node --test test/pq-native-r140-compatibility.test.mjs",
     "test:joint-child-cleanup": "node --test --test-name-pattern=\"joint cleanup (retains|drains|waits)|R11 PUBLIC joint|R11 PUBLIC failed commit|R20 PUBLIC typed (partial|IDE selects)|R33 PUBLIC parent retire drains\" test/original-auth-identity-private-joint-registration.test.mjs && node --test test/pq-native-r140-compatibility.test.mjs",
-    "test:auth4-deploy-composition": "node --test test/auth4-deploy-composition.test.mjs test/pq-native-r140-compatibility.test.mjs && tsc -p test/tsconfig.pq-contract-deployment-transport-browser.json && tsc -p test/tsconfig.pq-contract-deployment-transport-node.json"
+    "test:auth4-deploy-composition": "node --test test/auth4-deploy-composition.test.mjs test/pq-native-r140-compatibility.test.mjs && tsc -p test/tsconfig.pq-contract-deployment-transport-browser.json && tsc -p test/tsconfig.pq-contract-deployment-transport-node.json",
+    "test:r154-normal-paired": "node --test test/r154-normal-paired-build.test.mjs test/pq-native-r140-compatibility.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
