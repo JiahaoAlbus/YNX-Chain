@@ -41,3 +41,28 @@ import {preparePQContractDeploymentMaterialData,type PQContractDeploymentMateria
 declare const input:PQContractDeploymentMaterialInput;
 const prepared=preparePQContractDeploymentMaterialData(input);
 const unapproved:false=prepared.authorized;void unapproved;
+import {captureOriginalIDEPublicationArtifact,readOriginalIDEPublicationArtifactManifest,closeOriginalIDEPublicationArtifact,acquireOriginalIDEProtectedPublicationKeyCall} from '@ynx-chain/wallet-auth/original-ide-admission';
+import type {OriginalIDEPublicationArtifactRef,OriginalIDEProtectedKeyCallOwner} from '@ynx-chain/wallet-auth/auth-native-contract';
+function originalPublicationConsumer(manifest:string,bytes:Uint8Array){
+ const ref:OriginalIDEPublicationArtifactRef|null=captureOriginalIDEPublicationArtifact(manifest,bytes);
+ if(ref===null)return;
+ const original:string=readOriginalIDEPublicationArtifactManifest(ref);
+ const partial:OriginalIDEProtectedKeyCallOwner|null=acquireOriginalIDEProtectedPublicationKeyCall('file:///normal/server.mjs',original,ref);
+ const closed:true=closeOriginalIDEPublicationArtifact(ref);
+ void partial;void closed;
+ // @ts-expect-error opaque DATA does not expose artifact bytes
+ ref.bytes;
+ // @ts-expect-error opaque DATA is not a protected effect owner
+ ref.invoke();
+}
+void originalPublicationConsumer;
+// @ts-expect-error structural DATA cannot forge the private unique-symbol brand
+const forgedPublication:OriginalIDEPublicationArtifactRef={};
+// @ts-expect-error arrays are not Native ordinary Uint8Array operands
+captureOriginalIDEPublicationArtifact('{}',[1,2,3]);
+// @ts-expect-error constructors require the exact original tagged ref
+acquireOriginalIDEProtectedPublicationKeyCall('file:///normal/server.mjs','{}',{});
+// @ts-expect-error no provider/path override or fourth argument
+acquireOriginalIDEProtectedPublicationKeyCall('file:///normal/server.mjs','{}',forgedPublication,'/other/addon.node');
+// @ts-expect-error no mutable manifest object instead of original canonical string
+captureOriginalIDEPublicationArtifact({projectId:'p'},new Uint8Array(1));

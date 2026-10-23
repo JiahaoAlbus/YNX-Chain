@@ -281,6 +281,35 @@ export function isOriginalIDEWalletIdentitySource(value){
  if(typeof recognized!=='boolean')fail('IDE_IDENTITY_WALLET_SOURCE_RECOGNITION_INVALID');
  return recognized;
 }
+/** Original tagged immutable DATA, never Source, publisher or approval. Native
+ * alone validates/captures the original manifest and ordinary artifact bytes. */
+export function captureOriginalIDEPublicationArtifact(canonicalManifest,artifact){
+ if(arguments.length!==2)fail('IDE_PUBLICATION_ARTIFACT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.captureOriginalIDEPublicationArtifact!=='function')return null;
+ return native.captureOriginalIDEPublicationArtifact(canonicalManifest,artifact);
+}
+export function readOriginalIDEPublicationArtifactManifest(originalArtifact){
+ if(arguments.length!==1)fail('IDE_PUBLICATION_ARTIFACT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDEPublicationArtifactManifest!=='function')fail('IDE_PUBLICATION_ARTIFACT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDEPublicationArtifactManifest(originalArtifact);
+}
+export function closeOriginalIDEPublicationArtifact(originalArtifact){
+ if(arguments.length!==1)fail('IDE_PUBLICATION_ARTIFACT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.closeOriginalIDEPublicationArtifact!=='function')fail('IDE_PUBLICATION_ARTIFACT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.closeOriginalIDEPublicationArtifact(originalArtifact);
+}
+/** Return the SAME original request owner, including a partial. Do not inspect
+ * readiness, reconstruct manifest DATA, invoke, close, or retry it here. */
+export function acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL,canonicalManifest,originalArtifact){
+ if(arguments.length!==3)fail('IDE_PUBLICATION_ARTIFACT_ARGUMENTS');
+ assertColdEntry(actualEntryURL);
+ const native=originalIdentityNativeModule();
+ if(typeof native?.acquireOriginalIDEProtectedPublicationKeyCall!=='function')return null;
+ return native.acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL,canonicalManifest,originalArtifact);
+}
 /** Fixed Native cold reader only. Null startup selection is never a grant and
  * does not disable Native's independently qualified original Source acquisition. */
 export async function acquireOriginalIDEColdTerminalCustody(actualEntryURL){

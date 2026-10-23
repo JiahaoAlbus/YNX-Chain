@@ -1,4 +1,4 @@
-import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner} from './auth-native-contract.js';
+import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef} from './auth-native-contract.js';
 /** Private original backend only. Native returns the exact recognized owner.
  * A partial acquisition has descriptor -1 and is cleanup custody, not a guard.
  * The consumer retains it and selects its original close once. */
@@ -80,3 +80,18 @@ export declare function acquireOriginalIDEIdentityPeerBinding(actualEntryURL:str
 export declare function acquireOriginalIDEWalletIdentitySource():OriginalIDEWalletIdentitySourceOwner|null;
 /** Native tag/inventory/env/thread recognition only, not Source or UI approval. */
 export declare function isOriginalIDEWalletIdentitySource(value:unknown):value is OriginalIDEWalletIdentitySourceOwner;
+
+/** Captures only original immutable DATA through the fixed Native module.
+ * Native validates canonical bytes, ordinary/nonshared/nondetached Uint8Array,
+ * size/hash and same-env tag. Null means the original callee is unavailable. */
+export declare function captureOriginalIDEPublicationArtifact(canonicalManifest:string,artifact:Uint8Array):OriginalIDEPublicationArtifactRef|null;
+/** Returns the exact captured canonical manifest; never raw artifact bytes.
+ * Missing callee, closed/forged/cross-env references and Native failures throw. */
+export declare function readOriginalIDEPublicationArtifactManifest(originalArtifact:OriginalIDEPublicationArtifactRef):string;
+/** Original close only. No implicit cleanup/retry or Native status promotion. */
+export declare function closeOriginalIDEPublicationArtifact(originalArtifact:OriginalIDEPublicationArtifactRef):true;
+/** Same original protected-key-call owner, including cleanup partials, before
+ * any readiness/current/proof/invoke. The constructor captures its own Native
+ * artifact custody; caller still closes its original DATA reference.
+ * Null means unavailable, never successful completion or approval. */
+export declare function acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL:string,canonicalManifest:string,originalArtifact:OriginalIDEPublicationArtifactRef):OriginalIDEProtectedKeyCallOwner|null;
