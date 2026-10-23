@@ -1,0 +1,262 @@
+{
+  "schema": 1,
+  "runId": 39996035179,
+  "sourceCommit": "73b4abc00503a59128e312bb2ee27e9999c61f1f",
+  "originalFullQualifiedReadout": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/observer-native-facts-pair-ci-39996035179-actual.json",
+    "bytes": 1016461,
+    "sha256": "cceb6602272a1b39a458a4736215cb94f4abfa8f6ae05d1edff8ed86ce35f852"
+  },
+  "derivation": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/client-procs2-source/read-client-stage-gaps.py",
+    "bytes": 5713,
+    "sha256": "fb9b99c015c8e12dc664b97c6a26aaf5917fd56144983b1242c771e3c6e4d3c9"
+  },
+  "cases": [
+    {
+      "side": "before",
+      "raw": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/observer-native-facts-pair-39996035179/before-transactions-result.json",
+        "bytes": 6829555,
+        "sha256": "823562fa19d4a4747dc2418176cd8849420609a3c022d9e4613ec93d02360ab3"
+      },
+      "rows": 2048,
+      "allPerRowCriticalPathSumsExact": true,
+      "stageGaps": {
+        "offeredToSubmission": {
+          "samples": 2048,
+          "meanMs": 824.8203054472656,
+          "p50Ms": 397.161029,
+          "p95Ms": 2079.004213,
+          "p99Ms": 2135.423055,
+          "maxMs": 2145.212253,
+          "shareOfTotalMean": 0.32810487710142106
+        },
+        "submissionToCheckTxObserved": {
+          "samples": 2048,
+          "meanMs": 14.420765125,
+          "p50Ms": 3.248844,
+          "p95Ms": 66.638933,
+          "p99Ms": 142.688588,
+          "maxMs": 312.882088,
+          "shareOfTotalMean": 0.005736429301993088
+        },
+        "checkTxObservedToInclusionObserved": {
+          "samples": 2048,
+          "meanMs": 1324.7841420185546,
+          "p50Ms": 1414.212768,
+          "p95Ms": 1714.042624,
+          "p99Ms": 1776.4529,
+          "maxMs": 1856.317475,
+          "shareOfTotalMean": 0.5269852539180725
+        },
+        "inclusionObservedToQualifiedFinalObserved": {
+          "samples": 2048,
+          "meanMs": 349.8670304443359,
+          "p50Ms": 386.898812,
+          "p95Ms": 543.8441,
+          "p99Ms": 543.95691,
+          "maxMs": 543.989039,
+          "shareOfTotalMean": 0.13917343967851334
+        },
+        "offeredToQualifiedFinalObserved": {
+          "samples": 2048,
+          "meanMs": 2513.8922430351563,
+          "p50Ms": 2400.643484,
+          "p95Ms": 3936.826651,
+          "p99Ms": 4045.248824,
+          "maxMs": 4069.116011
+        }
+      },
+      "httpPhases": {
+        "callbackWall": {
+          "samples": 2048,
+          "meanMs": 14.42239821533203,
+          "p50Ms": 3.250146,
+          "p95Ms": 66.640277,
+          "p99Ms": 142.690291,
+          "maxMs": 312.883491
+        },
+        "writeToFirstByte": {
+          "samples": 2048,
+          "meanMs": 10.37386516455078,
+          "p50Ms": 2.947613,
+          "p95Ms": 41.142417,
+          "p99Ms": 97.37562,
+          "maxMs": 273.285653
+        },
+        "firstByteToCallbackReturn": {
+          "samples": 2048,
+          "meanMs": 3.8127194877929687,
+          "p50Ms": 0.156873,
+          "p95Ms": 23.127986,
+          "p99Ms": 49.750044,
+          "maxMs": 60.486613
+        },
+        "optimisticEightWorkerServiceRate": 554.6927688832939,
+        "interpretation": "8 divided by observed mean callback wall is an optimistic finite-client service-capacity diagnostic excluding pacing/idle/other work, not chain TPS, a sustained rate or a promise under a different load. Small per-input CheckTx latency can still limit throughput with a fixed worker pool."
+      },
+      "businessBlocks": [
+        {
+          "height": 3,
+          "transactions": 205,
+          "observedInclusionSpreadMs": 256.29738,
+          "qualifiedFinalObservationSpreadMs": 18.570864
+        },
+        {
+          "height": 4,
+          "transactions": 442,
+          "observedInclusionSpreadMs": 124.158646,
+          "qualifiedFinalObservationSpreadMs": 47.911321
+        },
+        {
+          "height": 5,
+          "transactions": 597,
+          "observedInclusionSpreadMs": 72.13815,
+          "qualifiedFinalObservationSpreadMs": 69.64547
+        },
+        {
+          "height": 6,
+          "transactions": 183,
+          "observedInclusionSpreadMs": 463.803582,
+          "qualifiedFinalObservationSpreadMs": 197.528556
+        },
+        {
+          "height": 7,
+          "transactions": 176,
+          "observedInclusionSpreadMs": 263.611656,
+          "qualifiedFinalObservationSpreadMs": 1.156195
+        },
+        {
+          "height": 8,
+          "transactions": 445,
+          "observedInclusionSpreadMs": 344.165685,
+          "qualifiedFinalObservationSpreadMs": 44.430842
+        }
+      ]
+    },
+    {
+      "side": "after",
+      "raw": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/observer-native-facts-pair-39996035179/after-transactions-result.json",
+        "bytes": 6998164,
+        "sha256": "26de5653767a21ab1e09512f5d371a10c7e5e40fba1015950a4ce8164ee4b05f"
+      },
+      "rows": 2048,
+      "allPerRowCriticalPathSumsExact": true,
+      "stageGaps": {
+        "offeredToSubmission": {
+          "samples": 2048,
+          "meanMs": 842.4337218110352,
+          "p50Ms": 413.583196,
+          "p95Ms": 1992.181265,
+          "p99Ms": 2015.703025,
+          "maxMs": 2022.631957,
+          "shareOfTotalMean": 0.35548735139712606
+        },
+        "submissionToCheckTxObserved": {
+          "samples": 2048,
+          "meanMs": 13.753040386230468,
+          "p50Ms": 3.206746,
+          "p95Ms": 59.291916,
+          "p99Ms": 123.784247,
+          "maxMs": 238.85562,
+          "shareOfTotalMean": 0.005803461772694122
+        },
+        "checkTxObservedToInclusionObserved": {
+          "samples": 2048,
+          "meanMs": 1231.620109182129,
+          "p50Ms": 1271.632581,
+          "p95Ms": 1641.871579,
+          "p99Ms": 1745.530356,
+          "maxMs": 1807.175957,
+          "shareOfTotalMean": 0.5197149154943278
+        },
+        "inclusionObservedToQualifiedFinalObserved": {
+          "samples": 2048,
+          "meanMs": 281.9925560830078,
+          "p50Ms": 277.5781,
+          "p95Ms": 412.184241,
+          "p99Ms": 412.248431,
+          "maxMs": 412.272496,
+          "shareOfTotalMean": 0.118994271335852
+        },
+        "offeredToQualifiedFinalObserved": {
+          "samples": 2048,
+          "meanMs": 2369.7994274624025,
+          "p50Ms": 2112.545493,
+          "p95Ms": 3676.219693,
+          "p99Ms": 3792.059029,
+          "maxMs": 3831.067553
+        }
+      },
+      "httpPhases": {
+        "callbackWall": {
+          "samples": 2048,
+          "meanMs": 13.754621879882812,
+          "p50Ms": 3.208089,
+          "p95Ms": 59.293519,
+          "p99Ms": 123.78558,
+          "maxMs": 238.857113
+        },
+        "writeToFirstByte": {
+          "samples": 2048,
+          "meanMs": 10.005972639648437,
+          "p50Ms": 2.890847,
+          "p95Ms": 39.927284,
+          "p99Ms": 85.925261,
+          "maxMs": 197.789509
+        },
+        "firstByteToCallbackReturn": {
+          "samples": 2048,
+          "meanMs": 3.439390634277344,
+          "p50Ms": 0.169275,
+          "p95Ms": 20.815069,
+          "p99Ms": 45.29152,
+          "maxMs": 70.778671
+        },
+        "optimisticEightWorkerServiceRate": 581.6226770799576,
+        "interpretation": "8 divided by observed mean callback wall is an optimistic finite-client service-capacity diagnostic excluding pacing/idle/other work, not chain TPS, a sustained rate or a promise under a different load. Small per-input CheckTx latency can still limit throughput with a fixed worker pool."
+      },
+      "businessBlocks": [
+        {
+          "height": 3,
+          "transactions": 208,
+          "observedInclusionSpreadMs": 115.981561,
+          "qualifiedFinalObservationSpreadMs": 22.655811
+        },
+        {
+          "height": 4,
+          "transactions": 515,
+          "observedInclusionSpreadMs": 116.328931,
+          "qualifiedFinalObservationSpreadMs": 1.877859
+        },
+        {
+          "height": 5,
+          "transactions": 470,
+          "observedInclusionSpreadMs": 526.336092,
+          "qualifiedFinalObservationSpreadMs": 286.5298
+        },
+        {
+          "height": 6,
+          "transactions": 135,
+          "observedInclusionSpreadMs": 98.362878,
+          "qualifiedFinalObservationSpreadMs": 19.282012
+        },
+        {
+          "height": 7,
+          "transactions": 245,
+          "observedInclusionSpreadMs": 83.916927,
+          "qualifiedFinalObservationSpreadMs": 45.290729
+        },
+        {
+          "height": 8,
+          "transactions": 475,
+          "observedInclusionSpreadMs": 242.735615,
+          "qualifiedFinalObservationSpreadMs": 22.973241
+        }
+      ]
+    }
+  ],
+  "interpretation": "All4096 original qualified rows. Ordered observed wall intervals reconcile per input. CheckTx\u2192inclusion includes actual chain waiting, polling and client scheduling; inclusion\u2192qualified final includes quorum/durable proof work and client scheduling. These are not pure node stages or BFT vote instants. P95 values must not be added. Mean shares refer to the same2048 rows; no new network measurement or sustained qualification."
+}
