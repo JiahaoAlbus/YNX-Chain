@@ -31,6 +31,7 @@ const entries = [
   ['deployReviewed','Materials reviewed locally. Nothing has been signed or broadcast.','已在本地审阅材料，尚未签名或广播。'],
   ['deployPrepared','Wallet preparation returned. Broadcast requires another explicit Wallet review.','钱包准备请求已返回，广播仍须另一次明确的钱包审阅。'],
   ['deployQueryOnly','Inspect the original result. This view does not infer chain confirmation or retry an UNKNOWN operation.','请核对原结果；本视图不会推定链上确认，也不会重发结果不明的操作。'],
+  ['deployLegacyUnavailable','Earlier request records are retained but unavailable under this project scope. Do not recreate an UNKNOWN request; check the original Wallet result.','旧请求记录仍保留，但当前项目权限无法查看。请核对钱包中的原结果，不要重新创建结果不明的请求。'],
   ['deployUnavailable','Deployment service or materials are unavailable. Existing requests were preserved.','部署服务或材料尚不可用，已有请求均保留。'],
   ['publicationTitle','Publish project','发布项目'],
   ['publicationNote','Review a built project file before requesting publication. Nothing is uploaded by this view.','先审阅构建产物，再请求发布；打开本视图不会上传文件。'],

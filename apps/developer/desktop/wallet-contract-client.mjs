@@ -1,5 +1,6 @@
 import {createHash, randomUUID} from 'node:crypto';
-import {openRelayContractReferenceJournal} from './wallet-contract-reference-journal.mjs';
+import {openRelayContractReferenceJournal,contractBroadcastReferenceId} from './wallet-contract-reference-journal.mjs';
+export {contractBroadcastReferenceId} from './wallet-contract-reference-journal.mjs';
 import {createContractScopeFence} from './contract-relay-scope.mjs';
 
 const methods = new Set(['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']);
@@ -9,13 +10,6 @@ const validOperationId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1
 function signedReference(value,account){
   if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join()!=='account,confirmed,hash,memberHash,operationId,savedLocally,submitted,transportHash,version'||value.version!==1||value.account!==account||value.hash!==value.transportHash||!/^0x[a-f0-9]{64}$/.test(value.transportHash)||!/^0x[a-f0-9]{64}$/.test(value.memberHash)||!validOperationId(value.operationId)||value.savedLocally!==true||value.submitted!==false||value.confirmed!==false)throw failure('IDE_CONTRACT_SIGNED_REFERENCE_INVALID');
   return{operationId:value.operationId,transportHash:value.transportHash,memberHash:value.memberHash};
-}
-export function contractBroadcastReferenceId(referenceId){
-  if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(referenceId||''))throw failure('IDE_CONTRACT_REQUEST_INVALID');
-  // Stable LOCAL journal intent, never a Wallet JSON-RPC ID or a signature.
-  // Reopening an UNKNOWN broadcast cannot create a second submit intent.
-  const hex=createHash('sha256').update('ynx-ide-local-broadcast-reference-v1\0'+referenceId).digest('hex').slice(0,32);
-  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 
 // Backend-only consumer. The production caller supplies the SDK's fixed
@@ -56,12 +50,8 @@ export async function openProjectContractClient({context, relayAuthority, create
     if (!request || Object.keys(request).sort().join() !== 'method,params' || !methods.has(request.method) || !Array.isArray(request.params) || request.params.length !== 1 || request.params[0]?.version !== 1 || request.params[0]?.account !== account) throw failure('IDE_CONTRACT_REQUEST_INVALID');
     if (await journal.read(referenceId)) throw failure('IDE_CONTRACT_REFERENCE_EXISTS');
     if(request.method==='ynx_preparePQContractAction'){
-      const rows=await journal.list(true),digest=hash(request);
-      for(const original of rows.filter(row=>row.method===request.method&&row.requestPayloadSHA256===digest)){
-        const broadcast=rows.find(row=>row.referenceId===contractBroadcastReferenceId(original.referenceId));
-        const unresolved=original.state!=='saved'?original:broadcast&&broadcast.state!=='saved'?broadcast:null;
-        if(unresolved)throw Object.assign(failure('IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED'),{referenceId:unresolved.referenceId});
-      }
+      const unresolved=await journal.unresolved({method:request.method,account,requestPayloadSHA256:hash(request)});
+      if(unresolved)throw Object.assign(failure('IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED'),{referenceId:unresolved});
     }
     let row = {account, method:request.method, requestPayloadSHA256:hash(request), originalRequestKeyHash:null, operationId:null, transportHash:null, memberHash:null, state:'pending'};
     // An original pending record is durable before the one and only send. An
@@ -134,7 +124,7 @@ export async function openProjectContractClient({context, relayAuthority, create
       return execute(contractBroadcastReferenceId(referenceId),{method:'ynx_preparePQContractBroadcast',params:[{version:1,account,operationId:original.operationId}]});
     });},
     read(referenceId) { return exclusive(() => journal.read(referenceId)); },
-    listReferences(){return exclusive(()=>journal.list());},
+    listReferences(){return exclusive(()=>journal.history());},
     query(referenceId, {refresh = false} = {}) { return exclusive(async () => {
       const original = await journal.read(referenceId);
       if (!original?.originalRequestKeyHash || typeof refresh !== 'boolean') throw failure('IDE_CONTRACT_QUERY_UNAVAILABLE');

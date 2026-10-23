@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {openProjectContractClient} from './wallet-contract-client.mjs';
+import {openContractReferenceJournal,openRelayContractReferenceJournal,contractBroadcastReferenceId} from './wallet-contract-reference-journal.mjs';
 const id='11111111-2222-3333-4444-555555555555', account='0x'+'a'.repeat(40), key='b'.repeat(64);
 const input=()=>({method:'ynx_preparePQContractAction',params:[{version:1,account,action:{kind:'contract_deploy'}}]});
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
@@ -19,6 +20,13 @@ async function fixture(t) {
  return {profile,state,client,options,result,connection,get calls(){return calls;},get connects(){return connects;},get cancels(){return cancels;},get handle(){return handle;},file:join(profile,'wallet-contract-query-references-v2',id+'.jsonl')};
 }
 async function started(f) {for(let i=0;i<100&&!f.handle;i++)await new Promise(resolve=>setTimeout(resolve,2));assert.ok(f.handle);}
+test('empty legacy directory does not invent unavailable request history',async t=>{const f=await fixture(t);await openContractReferenceJournal({profile:f.profile,projectId:id,owner:'PUBLIC-old-owner',account:'PUBLIC-old-principal'});const history=await f.client.listReferences();assert.equal(history.legacy.state,'none');assert.deepEqual(history.references,[]);await f.client.close();});
+test('legacy UNKNOWN history is visibly retained without adopting its principal or returning empty history',async t=>{
+ const f=await fixture(t),legacy=await openContractReferenceJournal({profile:f.profile,projectId:id,owner:'PUBLIC-old-owner',account:'PUBLIC-old-account'});
+ await legacy.append(id,{account,method:'ynx_preparePQContractAction',requestPayloadSHA256:'d'.repeat(64),originalRequestKeyHash:key,operationId:null,transportHash:null,memberHash:null,state:'unknown'});
+ const originalFile=join(f.profile,'wallet-contract-query-references',id+'.jsonl'),before=await fs.readFile(originalFile),history=await f.client.listReferences();
+ assert.equal(history.legacy?.state,'retained-scope-unavailable');assert.deepEqual(history.references,[]);assert.equal(history.legacy.queryOnly,true);assert.equal(history.legacy.readable,false);assert.equal(JSON.stringify(history).includes(key),false);assert.deepEqual(await fs.readFile(originalFile),before);assert.equal(f.connects,0);assert.equal(f.calls,0);await f.client.close();
+});
 test('construction is offline; a single request returns only after actual durable correlation and survives reopen',async t=>{
  const f=await fixture(t);assert.equal(f.connects,0);assert.equal(f.calls,0);await f.client.connect();const pending=f.client.request({referenceId:id,input:input()});await started(f);
  const first=JSON.parse((await fs.readFile(f.file,'utf8')).trim());assert.equal(first.value.state,'pending');assert.equal(first.value.originalRequestKeyHash,null);
@@ -40,4 +48,24 @@ test('a conflicting original callback never overwrites the first hash or returns
 });
 test('a failed durable write after send does not become an RPC replay or a success',async t=>{
  const f=await fixture(t);await f.client.connect();const pending=f.client.request({referenceId:id,input:input()});await started(f);await f.handle.event();await fs.writeFile(f.file+'.lock','PUBLIC original writer',{mode:0o600,flag:'wx'});f.result.resolve({PUBLIC:'not durable'});await assert.rejects(pending,{code:'IDE_CONTRACT_REFERENCE_NOT_DURABLE'});assert.equal(await fs.readFile(f.file+'.lock','utf8'),'PUBLIC original writer');assert.equal(f.calls,1);
+});
+
+for(const namespace of ['legacy','previous-caller'])test('same unresolved action cannot cross '+namespace+' with a new UUID',async t=>{
+ const f=await fixture(t),oldId='22222222-2222-3333-4444-555555555555';
+ const journal=namespace==='legacy'?await openContractReferenceJournal({profile:f.profile,projectId:id,owner:'PUBLIC-old-owner',account:'PUBLIC-old-principal'}):await openRelayContractReferenceJournal({profile:f.profile,projectId:id,scope:{...f.state,callerIdentity:'PUBLIC-old-signed-caller'}});
+ const row={account,method:input().method,requestPayloadSHA256:createHash('sha256').update(JSON.stringify(input())).digest('hex'),originalRequestKeyHash:key,operationId:null,transportHash:null,memberHash:null,state:'unknown'};await journal.append(oldId,row);
+ const file=join(f.profile,namespace==='legacy'?'wallet-contract-query-references':'wallet-contract-query-references-v2',oldId+'.jsonl'),before=await fs.readFile(file);
+ await f.client.connect();await assert.rejects(f.client.request({referenceId:id,input:input()}),e=>e.code==='IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED'&&e.referenceId===oldId);assert.equal(f.calls,0);assert.deepEqual(await fs.readFile(file),before);await f.client.close();
+});
+test('an unresolved broadcast fences a new preparation across caller upgrade',async t=>{
+ const f=await fixture(t),oldId='22222222-2222-3333-4444-555555555555',journal=await openRelayContractReferenceJournal({profile:f.profile,projectId:id,scope:{...f.state,callerIdentity:'PUBLIC-old-signed-caller'}}),broadcastId=contractBroadcastReferenceId(oldId);
+ await journal.append(oldId,{account,method:input().method,requestPayloadSHA256:createHash('sha256').update(JSON.stringify(input())).digest('hex'),originalRequestKeyHash:key,operationId:'PUBLIC-operation',transportHash:'0x'+'1'.repeat(64),memberHash:'0x'+'2'.repeat(64),state:'saved'});
+ await journal.append(broadcastId,{account,method:'ynx_preparePQContractBroadcast',requestPayloadSHA256:'d'.repeat(64),originalRequestKeyHash:'e'.repeat(64),operationId:null,transportHash:null,memberHash:null,state:'unknown'});
+ await f.client.connect();await assert.rejects(f.client.request({referenceId:id,input:input()}),e=>e.code==='IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED'&&e.referenceId===broadcastId);assert.equal(f.calls,0);await f.client.close();
+});
+test('damaged legacy data remains visible and blocks sensitive preparation without hiding the original',async t=>{
+ const f=await fixture(t),journal=await openContractReferenceJournal({profile:f.profile,projectId:id,owner:'PUBLIC-old-owner',account:'PUBLIC-old-principal'});await journal.append(id,{account,method:input().method,requestPayloadSHA256:'d'.repeat(64),originalRequestKeyHash:key,operationId:null,transportHash:null,memberHash:null,state:'unknown'});const file=join(f.profile,'wallet-contract-query-references',id+'.jsonl');await fs.appendFile(file,'{');const before=await fs.readFile(file);assert.equal((await f.client.listReferences()).legacy.state,'retained-scope-unavailable');await f.client.connect();await assert.rejects(f.client.request({referenceId:id,input:input()}));assert.equal(f.calls,0);assert.deepEqual(await fs.readFile(file),before);await f.client.close();
+});
+test('another payload is not stopped merely because the profile retains old UNKNOWN data',async t=>{
+ const f=await fixture(t),journal=await openContractReferenceJournal({profile:f.profile,projectId:id,owner:'PUBLIC-old-owner',account:'PUBLIC-old-principal'}),oldId='22222222-2222-3333-4444-555555555555';await journal.append(oldId,{account,method:input().method,requestPayloadSHA256:'d'.repeat(64),originalRequestKeyHash:key,operationId:null,transportHash:null,memberHash:null,state:'unknown'});await f.client.connect();const pending=f.client.request({referenceId:id,input:input()});await started(f);await f.handle.event();f.result.resolve({PUBLIC:'different approved operation'});await pending;assert.equal(f.calls,1);await f.client.close();
 });
