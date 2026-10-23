@@ -122,6 +122,14 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
   if(scope.kind!==relayPurpose||scope.origin!=='https://developer.ynxweb4.com'||scope.chainId!=='eip155:6423'||scope.relayURL!=='wss://relay.walletconnect.org'||canonical(scope.methods)!==canonical(relayOps)||!token(scope.projectId)||!integer(scope.projectGeneration)||scope.projectGeneration<1||!integer(scope.expiresMS)||scope.expiresMS<=atMs||scope.expiresMS>p.expiresAtMs||scope.projectId!==project.projectId||scope.projectGeneration!==project.projectGeneration||scope.callerIdentity!==project.callerIdentity||scope.callerIdentity!==peer.nodeCodeIdentity||project.account!==a.account||!token(project.sessionId)||!integer(project.expiresMS)||scope.expiresMS>project.expiresMS||project.expiresMS>p.expiresAtMs)fail('AUTH_SOURCE_V2_RELAY_PROJECT_CURRENT');
   for(const k of ['walletCodeIdentity','ideCodeIdentity','nodeCodeIdentity'])if(typeof peer[k]!=='string'||!peer[k]||peer[k].length>1024||/[\x00-\x1f\x7f]/.test(peer[k]))fail('AUTH_SOURCE_V2_RELAY_PEER');
   for(const k of ['nodeSHA256','entrySHA256','provenanceSHA256'])if(!hex(peer[k]))fail('AUTH_SOURCE_V2_RELAY_PEER');
+  const launch=s.projectLaunch;
+  if(!hex(s.contractRelayRuntimeSHA256))fail('AUTH_SOURCE_V2_RELAY_RUNTIME_BINDING');
+  exact(launch,['projectId','projectGeneration','localProjectId','workspace','profile','node']);
+  if(launch.projectId!==scope.projectId||launch.projectGeneration!==scope.projectGeneration||typeof launch.localProjectId!=='string'||!/^[A-Za-z0-9_-]{1,128}$/.test(launch.localProjectId))fail('AUTH_SOURCE_V2_RELAY_LAUNCH');
+  for(const k of ['workspace','profile']){exact(launch[k],['path','device','inode']);if(!absolute(launch[k].path)||launch[k].path==='/'||/[\x00-\x1f\x7f]/.test(launch[k].path)||Buffer.byteLength(launch[k].path)>4096)fail('AUTH_SOURCE_V2_RELAY_LAUNCH');decimal(launch[k].device);decimal(launch[k].inode,true);}
+  exact(launch.node,['pid','parent','uid','gid','startSeconds','startMicros']);
+  for(const k of ['pid','parent','uid','gid','startSeconds','startMicros'])decimal(launch.node[k],['pid','parent','startSeconds'].includes(k));
+  if(BigInt(launch.node.startMicros)>999999n)fail('AUTH_SOURCE_V2_RELAY_LAUNCH');
  }else if(Object.hasOwn(s,'contractRelay')||Object.hasOwn(s,'projectCurrent'))fail('AUTH_SOURCE_V2_RELAY_DEDICATED_PURPOSE_REQUIRED');
  window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
  const height=registrations.root.executionHeight;decimal(height);

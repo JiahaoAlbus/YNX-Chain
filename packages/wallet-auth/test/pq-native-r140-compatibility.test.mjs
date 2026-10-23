@@ -8,9 +8,9 @@ import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 test('canonical SDK R159 retains original APIs, adds pure deployment exports and selects exact R140 source through the exact successor normal recipe',async()=>{
   const selected=verifySDK332R140Source(root);
-  assert.equal(selected.contract.NativeInputs.length,selected.contract.version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13)$/)!==null?69:64);
+  assert.equal(selected.contract.NativeInputs.length,selected.contract.version==='1.3.0-pq.3.32-auth.14'?71:selected.contract.version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13)$/)!==null?69:64);
   const plan=await sdk332R140NativePlan(root,'/original-a-pinned-node-headers','arm64');
-  assert.equal(plan.plan.sources.length,selected.contract.version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13)$/)!==null?13:12);assert.equal(plan.rebuildRequired,true);
+  assert.equal(plan.plan.sources.length,selected.contract.version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14)$/)!==null?13:12);assert.equal(plan.rebuildRequired,true);
   assert.equal(plan.prebuiltSDK330ModuleAllowed,false);assert.equal(plan.NativeBuild,false);assert.equal(plan.grant,false);
   assert(plan.plan.sources.every(p=>p.startsWith(selected.root+'/')));
   const r140=selected.contract.NativeInputs.filter(p=>['original-ide-auth-identity-owners.inc.mm','original-ide-parent-node.mm'].some(n=>p.path.endsWith('/'+n)));

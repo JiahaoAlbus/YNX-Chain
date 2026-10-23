@@ -23,6 +23,15 @@ export interface OriginalIDEContractRelayExpectedScope {
  readonly methods?:readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal'];
  readonly relayURL?:'wss://relay.walletconnect.org';
 }
+export interface OriginalIDEContractRelayLocalContext {
+ /** Actual absolute normalized non-root paths, at most 4096 UTF-8 bytes and
+  * without controls. Native additionally verifies realpath/held directory FDs. */
+ readonly workspace:string;
+ readonly profile:string;
+ /** ASCII [A-Za-z0-9_-]{1,128}, compared with signed projectLaunch.localProjectId.
+  * It is never the canonical projectId or an authority. */
+ readonly id:string;
+}
 export interface OriginalIDEContractRelayScopeData extends OriginalIDEContractRelayScope {
  readonly dataOnly:true;readonly authorized:false;readonly nativeAdmission:false;
 }
@@ -39,7 +48,7 @@ export interface OriginalIDEContractRelayGuard {
 }
 /** No provider/module path override; original Native authenticates peer, running
  * server, project, scope and actual confirmation. No network initialization. */
-export declare function acquireOriginalIDEContractRelayGuard(input:{serverModuleURL:string;expectedScope:OriginalIDEContractRelayExpectedScope}):Promise<OriginalIDEContractRelayGuard>;
+export declare function acquireOriginalIDEContractRelayGuard(input:{serverModuleURL:string;localContext:OriginalIDEContractRelayLocalContext;expectedScope?:OriginalIDEContractRelayExpectedScope}):Promise<OriginalIDEContractRelayGuard>;
 /** Synchronously checks the original ready owner's Native current and unchanged
  * nine-field scope before returning frozen scope DATA. Rejects partial, forged,
  * expired, revoked or closed owners; does not renew expiry or initialize Relay.

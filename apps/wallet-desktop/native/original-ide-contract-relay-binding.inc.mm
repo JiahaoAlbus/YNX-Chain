@@ -1,5 +1,6 @@
 // SAME original addon. Actual tagged Native custody; no JS provider/fd/Source.
 #import "../../../packages/wallet-auth/native/original-ide-contract-relay-owner.h"
+#include "../../../packages/wallet-auth/native/original-ide-contract-relay-launch.h"
 #include <uv.h>
 struct NativeRelayRef {
  napi_env env=nullptr;YNXOriginalIDEContractRelayOwner *__strong owner=nil;
@@ -61,7 +62,9 @@ static napi_value RelayScopeValue(napi_env env,NSDictionary*scope){
 }
 static napi_value RelayAcquire(napi_env env,napi_callback_info info){
  napi_value a[1];if(!Args(env,info,1,a)||!pthread_main_np()||nativeRelayRefs.size()>=64)return Error(env,"YNX_CONTRACT_RELAY_ARGUMENTS_INVALID");
- NSDictionary *input=Dictionary(env,a[0]);if(!input||![[NSSet setWithArray:input.allKeys]isEqual:[NSSet setWithArray:@[@"serverModuleURL",@"expectedScope"]]]||![input[@"serverModuleURL"]isKindOfClass:NSString.class]||![input[@"expectedScope"]isKindOfClass:NSDictionary.class])return Error(env,"YNX_CONTRACT_RELAY_ARGUMENTS_INVALID");
+ NSDictionary *input=Dictionary(env,a[0]);NSSet*keys=input?[NSSet setWithArray:input.allKeys]:nil;
+ BOOL exactInput=[keys isEqual:[NSSet setWithArray:@[@"serverModuleURL",@"localContext"]]]||[keys isEqual:[NSSet setWithArray:@[@"serverModuleURL",@"localContext",@"expectedScope"]]];
+ if(!input||!exactInput||![input[@"serverModuleURL"]isKindOfClass:NSString.class]||!ynx_auth_ide_relay_private::localContext(input[@"localContext"])||(input[@"expectedScope"]&&![input[@"expectedScope"]isKindOfClass:NSDictionary.class]))return Error(env,"YNX_CONTRACT_RELAY_ARGUMENTS_INVALID");
  auto*h=new(std::nothrow)NativeRelayRef;if(!h)return Error(env,"YNX_CONTRACT_RELAY_CAPACITY");h->env=env;
  napi_value object,promise;napi_deferred deferred;
  if(napi_create_object(env,&object)!=napi_ok||napi_type_tag_object(env,object,&nativeRelayTag)!=napi_ok||napi_create_promise(env,&deferred,&promise)!=napi_ok){delete h;return nullptr;}
@@ -71,11 +74,11 @@ static napi_value RelayAcquire(napi_env env,napi_callback_info info){
  if(napi_object_freeze(env,object)!=napi_ok)return Error(env,"YNX_CONTRACT_RELAY_CAPTURE_UNKNOWN");
  // Actual partial is retained before error/status. expectedScope never selects
  // Source/Root/peer/project. Independent Source lease is NOT AI Tools custody.
- NSError*e=nil;h->owner=[YNXOriginalIDEContractRelayOwner captureForActualRunningEntry:input[@"serverModuleURL"] error:&e];RelayRemember(h,e);
+ NSError*e=nil;h->owner=[YNXOriginalIDEContractRelayOwner captureForActualRunningEntry:input[@"serverModuleURL"] localContext:input[@"localContext"] error:&e];RelayRemember(h,e);
  NSDictionary *scope=h->originalError?nil:[h->owner copyScopeLocal:&e];RelayRemember(h,e);
  NSDictionary *expected=input[@"expectedScope"];
  BOOL mismatch=NO;
- if(scope){
+ if(scope&&expected){
   NSNumber *limit=expected[@"expiresMS"];
   mismatch=![scope[@"projectId"]isEqual:expected[@"projectId"]]||![scope[@"projectGeneration"]isEqual:expected[@"projectGeneration"]]||![limit isKindOfClass:NSNumber.class]||CFGetTypeID((__bridge CFTypeRef)limit)==CFBooleanGetTypeID()||limit.doubleValue<1||limit.doubleValue>9007199254740991.0||limit.doubleValue!=(double)limit.unsignedLongLongValue||[scope[@"expiresMS"]unsignedLongLongValue]>limit.unsignedLongLongValue;
   for(NSString*k in expected)if(![@[@"kind",@"projectId",@"projectGeneration",@"callerIdentity",@"origin",@"expiresMS",@"chainId",@"methods",@"relayURL"]containsObject:k]||(![k isEqual:@"expiresMS"]&&![scope[k]isEqual:expected[k]]))mismatch=YES;

@@ -17,7 +17,7 @@ function fixture(){
  };
  for(const action of ['cancel','revoke','retire','join','close'])native[`${action}OriginalIDEContractRelayGuard`]=async ref=>{assert.equal(ref,s.ref);s.calls.push(action);return s.cleanup;};
  Module._load=function(name,...args){if(name==='../../../apps/wallet-desktop/native/original-auth-identity.node')return native;return original.call(this,name,...args);};
- s.acquire=()=>api.acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///PUBLIC/server.mjs',expectedScope:{projectId:s.scope.projectId,projectGeneration:7,expiresMS:s.scope.expiresMS+10000}});
+ s.acquire=()=>api.acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///PUBLIC/server.mjs',localContext:{workspace:'/PUBLIC/workspace',profile:'/PUBLIC/profile',id:'PUBLIC-project'},expectedScope:{projectId:s.scope.projectId,projectGeneration:7,expiresMS:s.scope.expiresMS+10000}});
  s.restore=()=>{Module._load=original;};return s;
 }
 const current=owner=>api.assertOriginalIDEContractRelayGuardCurrent(owner);

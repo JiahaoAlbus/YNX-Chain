@@ -30,10 +30,11 @@ export function captureContractRelayExpectedScope(input,requireExpiry=false){
  }catch{invalid();}
 }
 export function assertContractRelayScope(scope,expected,now=Date.now()){
- try{const s=record(scope,true),e=captureContractRelayExpectedScope(expected);
+ try{const s=record(scope,true),e=expected===undefined?null:captureContractRelayExpectedScope(expected);
   for(const k of Object.keys(fixed))if(s[k]!==fixed[k])invalid();
   text(s.projectId);text(s.callerIdentity);positive(s.projectGeneration);positive(s.expiresMS);s.methods=methods(s.methods);
-  if(!Number.isSafeInteger(now)||s.expiresMS<=now||s.projectId!==e.projectId||s.projectGeneration!==e.projectGeneration||own(e,'callerIdentity')&&s.callerIdentity!==e.callerIdentity||own(e,'expiresMS')&&s.expiresMS>e.expiresMS)invalid();
+  if(!Number.isSafeInteger(now)||s.expiresMS<=now)invalid();
+  if(e&&(s.projectId!==e.projectId||s.projectGeneration!==e.projectGeneration||own(e,'callerIdentity')&&s.callerIdentity!==e.callerIdentity||own(e,'expiresMS')&&s.expiresMS>e.expiresMS))invalid();
   return Object.freeze({...s});
  }catch{invalid();}
 }

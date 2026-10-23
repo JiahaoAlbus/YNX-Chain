@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.13",
+  "version": "1.3.0-pq.3.32-auth.14",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -314,18 +314,18 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
-      "bytes": 980,
-      "sha256": "a29c61d6345a78bb7807d369ba3e8fa8d2e5c999c5ee57d4d8e24f2faa40bcd9"
+      "bytes": 1054,
+      "sha256": "dfcd81d7f9fb09c1b43f78e2b8f00fb935442aa5016aa7ff69ab672767cc8fda"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
-      "bytes": 10774,
-      "sha256": "588e064b59e60b88950da07540658d15c13160576a3c6b256ccf9f557476c177"
+      "bytes": 11357,
+      "sha256": "b0d83d3be525d2944925f308e69b941b2696f14a5f6ab9330084e0fbe5a6aa25"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
-      "bytes": 1446,
-      "sha256": "5c9e3bb758f5490ef0f2252379a36472ed38a51dc3435229c0de1717687c499e"
+      "bytes": 2333,
+      "sha256": "4c4a14c71173aa25faa7e80db7675dfe40a79b26d7081397b2944898a9df9eb6"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-public-limits.h",
@@ -334,18 +334,18 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 6035,
-      "sha256": "ce8645d7bffd55bc74b9eabd16d3b49b01f5be763e3084055eb63ac47570fa16"
+      "bytes": 6319,
+      "sha256": "1139a49d836fc3d41b7d737c0bd3a9e6e4397917b4803921c2289fae49441544"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 45318,
-      "sha256": "0a4384cd537a56ff0cfcf067a013deef6bcef671c9092e67e272c65547dd468f"
+      "bytes": 45981,
+      "sha256": "1793d8399fdd8e6f7cc941b459321c9be2e9b3a3be6a2383b8d8a11f48ece978"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 17635,
-      "sha256": "a79c8c36f2b876c989865969f216afc87a7ff0dac527ca6f3b1b2be156c66c03"
+      "bytes": 18691,
+      "sha256": "c811ec9ed87aca54ff6d54c339adbd5f2cbf7b90704ea0db9fa596d052acd250"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -564,13 +564,13 @@
     },
     {
       "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.h",
-      "bytes": 877,
-      "sha256": "a76d20b0b3085c8046161351b24f4316fb0bcd7447757e449e3ad1dbe728a9bf"
+      "bytes": 999,
+      "sha256": "1183251898b1934a9c39e380553ad4f71fedb12c859e9b82607b64a93bdcf4f8"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.mm",
-      "bytes": 8020,
-      "sha256": "bab0cc73cc6d75930b53258767fc06f84f4c963c12e8ff342286be474b8cb392"
+      "bytes": 11263,
+      "sha256": "d4d8afaf85fae14201de2ee051b48f0ce1db8c246c192ebe9fee3916ffee1a29"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-contract-relay-peer.h",
@@ -579,19 +579,29 @@
     },
     {
       "path": "packages/wallet-auth/native/original-ide-contract-relay-source.inc.mm",
-      "bytes": 7659,
-      "sha256": "9c73962a5c532c866dee7bc4e2c9d26b9361a360c3c3edf328f5500685e90678"
+      "bytes": 9070,
+      "sha256": "8f8d4f7e0e3df9dfa04e4d5ee724f2de079760b3d993fe056a473f05dace78b3"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-contract-relay-binding.inc.mm",
-      "bytes": 14543,
-      "sha256": "aaaa51ef521e924ee931ed6057100093ebacdb6894f135beb200c6acf4a82a2d"
+      "bytes": 14917,
+      "sha256": "7b32fd4eec1a7e73ebfbe2644ce1894b278e72cadaec8d70ceb2e9fa3174c9e7"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-contract-relay-launch.h",
+      "bytes": 3097,
+      "sha256": "a33a170977d1781f57d63c10c7b841d73e9962f158257e18396dca75bd923720"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-contract-relay-runtime.inc.mm",
+      "bytes": 9676,
+      "sha256": "b4a53966bdce69526980e78cf4996fcf0e945d10aaee57119df202b826eb6a16"
     }
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 10764,
-    "sha256": "ae074c5d82d29c2b10a5ef0a55947ccc8a4a127745308a464c8c465035e0ee81"
+    "bytes": 10932,
+    "sha256": "c532946f53a6314d9c0ecb2ffb3afd2044f9ffb1961afbfe0b8ec32444f71461"
   },
   "require": {
     "translationUnits": 13,
@@ -680,7 +690,7 @@
       "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
     }
   ],
-  "profile": "R164-contract-relay-native-source-client-helper",
+  "profile": "R166-autonomous-purpose-launch-runtime-client-helper",
   "HelperInputs": [
     {
       "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
@@ -805,5 +815,101 @@
     "platformVerifyEgressQualified": false,
     "networkActivated": false,
     "activationFence": "YNX_CONTRACT_RELAY_INITIATOR_ROLE_BOUNDARY_UNQUALIFIED"
+  },
+  "supplierR166": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r166/HANDOFF.json",
+      "bytes": 11222,
+      "sha256": "54609d7d3035c8445adf3460c021d121caa6b0be8fd51952c77d80de66974241"
+    },
+    "parent": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r164/HANDOFF.json",
+      "bytes": 9576,
+      "sha256": "476902f30d86ebd5b9df9904983fd38879f1fcc4b1f7714a4a1ecb5e3880de24"
+    },
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
+        "bytes": 1054,
+        "sha256": "dfcd81d7f9fb09c1b43f78e2b8f00fb935442aa5016aa7ff69ab672767cc8fda"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "bytes": 11357,
+        "sha256": "b0d83d3be525d2944925f308e69b941b2696f14a5f6ab9330084e0fbe5a6aa25"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
+        "bytes": 2333,
+        "sha256": "4c4a14c71173aa25faa7e80db7675dfe40a79b26d7081397b2944898a9df9eb6"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+        "bytes": 6319,
+        "sha256": "1139a49d836fc3d41b7d737c0bd3a9e6e4397917b4803921c2289fae49441544"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "bytes": 45981,
+        "sha256": "1793d8399fdd8e6f7cc941b459321c9be2e9b3a3be6a2383b8d8a11f48ece978"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+        "bytes": 18691,
+        "sha256": "c811ec9ed87aca54ff6d54c339adbd5f2cbf7b90704ea0db9fa596d052acd250"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-launch.h",
+        "bytes": 3097,
+        "sha256": "a33a170977d1781f57d63c10c7b841d73e9962f158257e18396dca75bd923720"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.h",
+        "bytes": 999,
+        "sha256": "1183251898b1934a9c39e380553ad4f71fedb12c859e9b82607b64a93bdcf4f8"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.mm",
+        "bytes": 11263,
+        "sha256": "d4d8afaf85fae14201de2ee051b48f0ce1db8c246c192ebe9fee3916ffee1a29"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-peer.h",
+        "bytes": 1388,
+        "sha256": "2daeacd6f51cf7a40c3a2f8f726cdc1a01d7f5480440a70fc4a8e99d99a50a6e"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-runtime.inc.mm",
+        "bytes": 9676,
+        "sha256": "b4a53966bdce69526980e78cf4996fcf0e945d10aaee57119df202b826eb6a16"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-source.inc.mm",
+        "bytes": 9070,
+        "sha256": "8f8d4f7e0e3df9dfa04e4d5ee724f2de079760b3d993fe056a473f05dace78b3"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 80613,
+        "sha256": "208f88b06818eb60b3d856c8a83d2da23ec1e6f557f2656d8f8ee3f129173b8d"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-contract-relay-binding.inc.mm",
+        "bytes": 14917,
+        "sha256": "7b32fd4eec1a7e73ebfbe2644ce1894b278e72cadaec8d70ceb2e9fa3174c9e7"
+      }
+    ],
+    "originalReferencesVerified": 21,
+    "sourceLeavesCount": 14,
+    "sourceTestEvidenceReused": true,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "installedProtectedClosure": false,
+    "actualSourceRoot": false,
+    "platformQualified": false,
+    "networkActivated": false,
+    "activationFence": "YNX_CONTRACT_RELAY_INITIATOR_ROLE_BOUNDARY_UNQUALIFIED",
+    "runtimeManifestRequiresFinalSamePackage": true,
+    "privateReleaseRowsDefaultEmpty": true
   }
 }

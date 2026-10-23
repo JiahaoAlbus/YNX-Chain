@@ -66,3 +66,16 @@
   return copy;
  }
 }
+- (NSDictionary *)copyOriginalIDEContractRelayLaunchLocal:(NSError **)error {
+ @synchronized(self){
+  NSDictionary *before=[self copyOriginalIDEContractRelayScopeLocal:error];if(!before)return nil;
+  NSDictionary *launch=_selection[@"projectLaunch"];
+  NSSet *fields=[NSSet setWithArray:@[@"projectId",@"projectGeneration",@"localProjectId",@"workspace",@"profile",@"node"]];
+  if(![launch isKindOfClass:NSDictionary.class]||![[NSSet setWithArray:launch.allKeys]isEqual:fields]||![launch[@"projectId"]isEqual:before[@"projectId"]]||![launch[@"projectGeneration"]isEqual:before[@"projectGeneration"]]){[self fail:@"IDE_CONTRACT_RELAY_SIGNED_LAUNCH_REQUIRED" error:error];return nil;}
+  NSData *raw=[NSJSONSerialization dataWithJSONObject:launch options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
+  if(!raw||raw.length>16384){[self fail:@"IDE_CONTRACT_RELAY_LAUNCH_BOUND" error:error];return nil;}
+  NSDictionary *copy=[NSJSONSerialization JSONObjectWithData:raw options:0 error:nil];
+  NSDictionary *after=[self copyOriginalIDEContractRelayScopeLocal:error];NSData *post=[NSJSONSerialization dataWithJSONObject:_selection[@"projectLaunch"] options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
+  if(!after||![before isEqual:after]||![raw isEqual:post]){[self fail:@"IDE_CONTRACT_RELAY_LAUNCH_POST_CURRENT_CHANGED" error:error];return nil;}return copy;
+ }
+}

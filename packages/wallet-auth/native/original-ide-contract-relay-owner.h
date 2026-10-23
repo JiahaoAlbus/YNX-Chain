@@ -6,6 +6,7 @@
 @interface YNXOriginalIDEContractRelayOwner : NSObject
 // Partial owner is returned before qualification errors. Adopt before error.
 + (instancetype)captureForActualRunningEntry:(NSString*)entry error:(NSError**)error;
++ (instancetype)captureForActualRunningEntry:(NSString*)entry localContext:(NSDictionary*)context error:(NSError**)error;
 - (BOOL)assertLocalCurrent:(NSError**)error;
 - (NSDictionary*)copyScopeLocal:(NSError**)error;
 - (BOOL)observeLocalRevocation:(dispatch_block_t)callback error:(NSError**)error;
