@@ -74,6 +74,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Bind bridge test to the selected Node runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node_path="$(node -p 'process.execPath')"
+          test -x "$node_path"
+          printf 'YNX_IDE_TEST_NODE=%s\n' "$node_path" >> "$GITHUB_ENV"
       - name: IDE deployment and Auth source integration
         run: >-
           go test -count=1 -timeout=90s
