@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "sourceCommit": "2e3b7a0042d18cf9a2a62947ce3b0e5faa87e419",
+  "runId": 40001570848,
+  "attempt": 1,
+  "normalCI": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/client-procs2-source/normal-ci-40001570848.json",
+    "bytes": 8810,
+    "sha256": "15a705f88f8555a5fbe066f6b19c1f65073ad6cedbac746c2ba6194c147dfc51"
+  },
+  "identity": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/client-procs2-source/normal-ci-40001570848-identity.json",
+    "bytes": 414,
+    "sha256": "6e5cb7fd81cc299b881774771f25dde5ca3dea8ca294674be5cf2a4df25241c6"
+  },
+  "originalLog": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/client-procs2-source/normal-ci-40001570848-full.raw",
+    "bytes": 584119,
+    "sha256": "4a6789c0e48028a9f4e4f2f6507bd6708b0999e70f074ae19d934c05cf2c26ea"
+  },
+  "actualTestsRunAndPassed": [
+    "TestClientProcs2IsExplicitAndRestoresAfterRealSetupFailure",
+    "TestObserverNativeLookupBindsBytesChainOwnershipAndEviction",
+    "TestObserverNativeFactsPreserveOriginalStateAndIndependentReaderChain",
+    "TestObserverNativeFactsExactOptionsAndConfiguration",
+    "TestObserverNativeFactsStillRequireFreshUncorruptedStoreAndRestartReplay",
+    "TestNativeSubmit8RequiresExactExplicitOptions",
+    "TestNativeSubmit8ActualWorkerBoundQueueCapacityAndNoUnknownRetry"
+  ],
+  "noNodesOnNormalPush": true
+}
