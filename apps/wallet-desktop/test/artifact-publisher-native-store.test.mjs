@@ -13,5 +13,5 @@ test('native purpose Keychain store compiles normally and passes explicit PUBLIC
  const syntax=spawnSync('/usr/bin/xcrun',[...common,'-fsyntax-only',source],{encoding:'utf8',timeout:30000});assert.equal(syntax.status,0,syntax.stderr);
  const binary=path.join(temp,'PUBLIC-store-test');
  const compile=spawnSync('/usr/bin/xcrun',[...common,'-DYNX_PUBLISHER_STORE_PUBLIC_TEST=1',source,fixture,'-framework','Foundation','-framework','Security','-framework','LocalAuthentication','-o',binary],{encoding:'utf8',timeout:30000});assert.equal(compile.status,0,compile.stderr);
- const run=spawnSync(binary,[],{encoding:'utf8',timeout:10000});assert.equal(run.status,0,run.stderr);assert.equal(run.stdout.match(/^PASS /gm)?.length,9);assert.match(run.stdout,/systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0/);
+ const run=spawnSync(binary,[],{encoding:'utf8',timeout:10000});assert.equal(run.status,0,run.stderr);assert.equal(run.stdout.match(/^PASS /gm)?.length,10);assert.match(run.stdout,/systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0/);
 });

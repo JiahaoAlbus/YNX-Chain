@@ -63,6 +63,11 @@ int main(){@autoreleasepool{
  std::puts("PASS uncertain committed add is retained and recovered read-only without re-add");
  readStatus=errSecInteractionNotAllowed;before=reads;assert(![store copyOriginalRecordForPublicOriginal:r error:&e]&&e.code==errSecInteractionNotAllowed&&reads==before+1);readStatus=errSecSuccess;
  std::puts("PASS unavailable protection refuses without UI or fallback");
+ NSData *rLocked=R(@"PUBLIC fake original R:post-add-lock");NSMutableData *wireLocked=record(rLocked);readStatus=errSecInteractionNotAllowed;before=adds;
+ assert(![store createOriginalRecord:wireLocked forPublicOriginal:rLocked error:&e]&&adds==before+1&&[e.userInfo[@"operationMayHaveCommitted"]boolValue]);
+ NSError *underlying=e.userInfo[NSUnderlyingErrorKey];assert(underlying.code==errSecInteractionNotAllowed&&[underlying.userInfo[@"phase"]isEqual:@"read"]);
+ readStatus=errSecSuccess;assert([[store copyOriginalRecordForPublicOriginal:rLocked error:&e]isEqual:wireLocked]&&adds==before+1);
+ std::puts("PASS post-add read error preserves underlying first cause and uncertain record");
  weakerProtection=YES;assert(![store copyOriginalRecordForPublicOriginal:r error:&e]&&e.code==errSecDecode);weakerProtection=NO;
  std::puts("PASS returned weaker item protection is refused before private data copy");
  NSData *r3=R(@"PUBLIC fake original R:3");NSMutableData *wire3=record(r3);corruptReadback=YES;assert(![store createOriginalRecord:wire3 forPublicOriginal:r3 error:&e]&&[e.userInfo[@"operationMayHaveCommitted"]boolValue]);corruptReadback=NO;assert([[store copyOriginalRecordForPublicOriginal:r3 error:&e]isEqual:wire3]);

@@ -86,7 +86,10 @@ static NSMutableDictionary *Query(NSData *r){
    if(status!=errSecSuccess)return Reject(error,@"create",status,status!=errSecDuplicateItem);
    NSError *readError=nil;NSMutableData *readback=[self copyOriginalRecordForPublicOriginal:r error:&readError];
    BOOL equal=readback&&[readback isEqualToData:record];[readback resetBytesInRange:NSMakeRange(0,readback.length)];
-   if(!equal)return Reject(error,@"create-readback",readError?(OSStatus)readError.code:errSecDecode,YES);
+   if(!equal){
+    if(error){NSError *failure=StoreError(@"create-readback",readError?(OSStatus)readError.code:errSecDecode,YES);NSMutableDictionary *info=[failure.userInfo mutableCopy];if(readError)info[NSUnderlyingErrorKey]=readError;*error=[NSError errorWithDomain:failure.domain code:failure.code userInfo:info];}
+    return NO;
+   }
    return YES;
   }@finally{[record resetBytesInRange:NSMakeRange(0,record.length)];}
  }
