@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { FamilyCustody } from '../src/multichain-family-custody.mjs';
@@ -9,6 +9,18 @@ const input = { id, family: 'bitcoin', networkId: 'testnet4', account: 'PUBLIC-Q
 const result = { raw: 'PUBLIC-fixture-transaction', txid: 'b'.repeat(64) };
 const verifyResult = (record, value) => { assert.equal(record.request.amount, '1'); assert.deepEqual(value, result); };
 async function setup() { const dir = await mkdtemp(path.join(tmpdir(), 'ynx-family-custody-public-')); const filePath = path.join(dir, 'ledger.json'); return { filePath, journal: new FamilyCustody({ filePath, verifyResult }) }; }
+
+for(const family of ['bitcoin','tron'])for(const state of ['included','failed'])test(`cold ${family} ${state} record with contradictory receipt cannot release the original hold`,async()=>{
+ const {journal,filePath}=await setup(),selected={...input,family,...(family==='tron'?{networkId:'nile',outpoints:[]}: {})},permit=await journal.reserve(selected);
+ await permit.beginSigning();permit.capture(result);await permit.saveProduced();permit.retire();
+ const receipt={txid:result.txid,blockHash:'c'.repeat(64),blockHeight:'42',success:state==='included',confirmationScope:'rpc-block-inclusion'};
+ await journal.check(id,async()=>({networkId:selected.networkId,txid:result.txid,state,receipt,evidence:{PUBLIC:'query fixture, not consensus'}}));
+ const corrupted=JSON.parse(await readFile(filePath,'utf8'));corrupted.records[0].receipt.success=!receipt.success;
+ const original=JSON.stringify(corrupted);await writeFile(filePath,original);
+ const cold=new FamilyCustody({filePath,verifyResult});await assert.rejects(cold.list(),{code:'MULTICHAIN_STORE_INVALID'});
+ await assert.rejects(cold.reserve({...selected,id:'00000000-0000-4000-8000-000000000002'}),{code:'MULTICHAIN_STORE_INVALID'});
+ assert.equal(await readFile(filePath,'utf8'),original);
+});
 
 test('signing fence is durable before signer; reopen is unknown and has no replay permit', async () => {
   const { journal, filePath } = await setup(); const permit = await journal.reserve(input);

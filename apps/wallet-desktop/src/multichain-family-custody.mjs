@@ -36,6 +36,9 @@ function validate(value) {
     if (['prepared', 'signing', 'cancelled'].includes(r.state) && r.result !== null || ['signed-unsubmitted', 'submitted-unconfirmed', 'included', 'failed'].includes(r.state) && r.result === null) fail();
     if (r.receipt !== null) validateReceipt(r.receipt, r.result?.txid);
     if (['included', 'failed'].includes(r.state) && r.receipt === null) fail();
+    // Cold readback must enforce the same outcome binding as live check(). A
+    // contradictory terminal record must not release the original send hold.
+    if (r.state === 'included' && r.receipt.success !== true || r.state === 'failed' && r.receipt.success !== false) fail();
   }
   return value;
 }
