@@ -54,12 +54,12 @@ func newImportedEVMBlockFixture(t *testing.T) *importedEVMBlockFixture {
 		}
 		d.ProduceBlock()
 	})
-	x := &importedEVMBlockFixture{f: f, ethereum: ethereum, newHash: strings.Repeat("d", 64)}
-	x.mode.Store("")
+	tx := &importedEVMBlockFixture{f: f, ethereum: ethereum, newHash: strings.Repeat("d", 64)}
+	tx.mode.Store("")
 	for _, block := range f.migration.Runtime.Blocks {
 		for _, row := range block.Transactions {
 			if row.Hash == ethereum.Hash {
-				x.block = block
+				tx.block = block
 			}
 		}
 	}
