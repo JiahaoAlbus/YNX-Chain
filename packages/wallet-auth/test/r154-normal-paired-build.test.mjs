@@ -7,10 +7,13 @@ import {pathToFileURL,fileURLToPath} from 'node:url';
 import * as build from '../../../apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const frameworks=argv=>argv.flatMap((v,i)=>v==='-framework'?[argv[i+1]]:[]);
-test('R159 normal Node recipe links actual twelve units and all original NAPI custody inputs',()=>{
+const selectedVersion=JSON.parse(readFileSync(join(root,'packages/wallet-auth/package.json'))).version;
+const nodeUnits=selectedVersion==='1.3.0-pq.3.32-auth.12'?13:12;
+test('Normal Node recipe links the exact selected lineage and original NAPI custody inputs',()=>{
  const p=build.originalAuthNativeBuildPlan('arm64','/original-pinned-node-headers');
- assert.equal(p.sources.length,12);assert.equal(new Set(p.sources).size,12);
+ assert.equal(p.sources.length,nodeUnits);assert.equal(new Set(p.sources).size,nodeUnits);
  for(const n of ['original-ide-helper-client.mm','original-ide-helper-xpc-peer.mm','original-ide-helper-service-install.mm'])assert(p.sources.includes(join(root,'packages/wallet-auth/native',n)));
+ if(nodeUnits===13)assert(p.sources.includes(join(root,'packages/wallet-auth/native/original-ide-contract-relay-owner.mm')));
  assert(!p.sources.some(n=>n.endsWith('.inc.mm')),'Node entry already includes R91/service channel inc units');
  assert.deepEqual(frameworks(p.commands[0].argv),['Foundation','Security','AppKit','ServiceManagement']);
  assert(p.commands[0].argv.includes('-DNAPI_VERSION=8'));assert(p.commands[0].argv.includes('-mmacosx-version-min=13.0'));

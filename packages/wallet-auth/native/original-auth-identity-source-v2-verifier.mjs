@@ -13,6 +13,7 @@ export const AUTH_SOURCE_V2='YNX-AUTH-SOURCE/v2';
 export const AUTH_SOURCE_DOMAIN_V2='YNX/AUTH/SOURCE-ORIGINAL/V2';
 export const AUTH_SOURCE_STATEMENT_CAP=393216;
 const suite='YNX-BATCH/v0.1',ops=['beginYNX','handleReturn','restore','disconnect'];
+const relayPurpose='ide-contract-relay-v1',relayOps=['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal'];
 const purposes=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOURCE-PROFILE',current:'AUTH-SOURCE-CURRENT'});
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const hex=x=>typeof x==='string'&&/^[0-9a-f]{64}$/.test(x);
@@ -90,6 +91,7 @@ export function selectOriginalAuthSourceAlgorithm(subjectSnapshot,credentialVers
 }
 export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs){
  const contract=sourcePolicy(policy);
+ const relay=contract.purpose===relayPurpose,expectedOps=relay?relayOps:ops;
  exact(registrations,['root','profile','current','subject']);
  if(sha(rootRaw)!==policy.rootDigest||sha(enrollmentRaw)!==policy.enrollmentDigest)fail('AUTH_SOURCE_V2_NOT_PINNED');
  const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);
@@ -98,7 +100,7 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  const enrollment=envelope(enrollmentRaw,'enrollment',contract.enrollmentFrame,registrations.root,root.networkId,root.rootOwner);
  const e=enrollment.body;
  exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
- if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!=='wallet-product-session-v2'||e.productId!=='developer'||e.platform!=='macos'||e.applicationId!=='com.ynxweb4.developer.testnetpreview'||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(ops)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
+ if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==(relay?relayPurpose:'wallet-product-session-v2')||e.productId!=='developer'||e.platform!=='macos'||e.applicationId!=='com.ynxweb4.developer.testnetpreview'||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(expectedOps)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
  window(e,atMs,86400000);
  const profile=envelope(profileRaw,'profile',contract.profileFrame,registrations.profile,root.networkId,e.profileOwner),p=profile.body;
  exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
@@ -111,7 +113,16 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  const a=s.association;exact(a,['account','clientId','productId','platform','applicationId','deviceId']);
  if(Object.values(a).some(x=>typeof x!=='string'||!x||x.length>512)||a.productId!==e.productId||a.platform!==e.platform||a.applicationId!==e.applicationId)fail('AUTH_SOURCE_V2_ASSOCIATION');
  const r=s.expectedRequest;
- if(!r||r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(ops)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');
+ if(!r||r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(expectedOps)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');
+ if(relay){
+  const scope=s.contractRelay,project=s.projectCurrent,peer=s.identityPeerBinding;
+  exact(scope,['kind','projectId','projectGeneration','callerIdentity','origin','expiresMS','chainId','methods','relayURL']);
+  exact(project,['projectId','projectGeneration','account','sessionId','callerIdentity','expiresMS']);
+  exact(peer,['walletCodeIdentity','ideCodeIdentity','nodeCodeIdentity','nodeSHA256','entrySHA256','provenanceSHA256']);
+  if(scope.kind!==relayPurpose||scope.origin!=='https://developer.ynxweb4.com'||scope.chainId!=='eip155:6423'||scope.relayURL!=='wss://relay.walletconnect.org'||canonical(scope.methods)!==canonical(relayOps)||!token(scope.projectId)||!integer(scope.projectGeneration)||scope.projectGeneration<1||!integer(scope.expiresMS)||scope.expiresMS<=atMs||scope.expiresMS>p.expiresAtMs||scope.projectId!==project.projectId||scope.projectGeneration!==project.projectGeneration||scope.callerIdentity!==project.callerIdentity||scope.callerIdentity!==peer.nodeCodeIdentity||project.account!==a.account||!token(project.sessionId)||!integer(project.expiresMS)||scope.expiresMS>project.expiresMS||project.expiresMS>p.expiresAtMs)fail('AUTH_SOURCE_V2_RELAY_PROJECT_CURRENT');
+  for(const k of ['walletCodeIdentity','ideCodeIdentity','nodeCodeIdentity'])if(typeof peer[k]!=='string'||!peer[k]||peer[k].length>1024||/[\x00-\x1f\x7f]/.test(peer[k]))fail('AUTH_SOURCE_V2_RELAY_PEER');
+  for(const k of ['nodeSHA256','entrySHA256','provenanceSHA256'])if(!hex(peer[k]))fail('AUTH_SOURCE_V2_RELAY_PEER');
+ }else if(Object.hasOwn(s,'contractRelay')||Object.hasOwn(s,'projectCurrent'))fail('AUTH_SOURCE_V2_RELAY_DEDICATED_PURPOSE_REQUIRED');
  window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
  const height=registrations.root.executionHeight;decimal(height);
  const roleKeys=[active(registrations.root,root.networkId,root.rootOwner,height),

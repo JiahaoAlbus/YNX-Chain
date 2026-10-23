@@ -79,6 +79,11 @@ struct JointLifecycle {
 // invocation. Rechecks original Source/request/fixed expiry before returning.
 // DATA only, NOT publication permission, a publisher signature or retry token.
 - (NSDictionary *)copyOriginalIDEVerifiedProofForRequest:(NSData *)request invocation:(NSData *)invocation error:(NSError **)error;
+// Private local-only relay project observation. Requires a dedicated verified
+// Source profile; old four-operation/identity/publication profiles cannot lend
+// this scope. Never HTTP, verifier process, signature, renewal or JS policy.
+- (NSDictionary *)copyOriginalIDEContractRelayScopeLocal:(NSError **)error;
+- (NSDictionary *)copyOriginalIDEContractRelayPeerBindingLocal:(NSError **)error;
 - (void)retire;
 - (BOOL)join:(NSError **)error;
 - (BOOL)close:(NSError **)error;

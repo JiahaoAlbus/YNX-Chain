@@ -1,7 +1,8 @@
 import {WALLETCONNECT_CHAIN,WALLETCONNECT_SESSION_METHODS,WALLETCONNECT_SESSION_EVENTS,parseWalletConnectPairingUri} from './walletconnect-protocol.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {bytesToHex,utf8ToBytes} from '@noble/hashes/utils.js';
-import {assertOriginalContractRelayGuard,observeOriginalContractRelayGuard,cancelOriginalContractRelayGuard,CONTRACT_RELAY_URL} from './original-ide-contract-relay-guard-core.js';
+import {assertOriginalContractRelayGuard,observeOriginalContractRelayGuard,cancelOriginalContractRelayGuard,assertOriginalContractRelayRuntime,CONTRACT_RELAY_URL} from './original-ide-contract-relay-guard-core.js';
+import {installContractInitiatorBoundary} from './walletconnect-contract-initiator-boundary.js';
 
 export const YNX_PAIR_PROJECT_ID='41857128a14a593ca4e4a7cb7c838d71';
 // Exact first-party transport policy; admission does not grant a ProductSession,
@@ -26,21 +27,32 @@ const reason={code:6000,message:'User disconnected'};
 // singleton prevents retries from constructing another SDK over that store.
 // The locked SDK's global slot/count are additional fail-closed checks, never
 // permission to close a Core supplied by another consumer or factory.
-const clients=new Map(),records=new WeakMap(),ownerRecords=new WeakMap();
-async function officialClient(options,owner){
+const clients=new Map(),records=new WeakMap(),ownerRecords=new WeakMap(),protectedCores=new WeakSet();
+async function officialClient(options,owner,hooks){
+  const dedicated=options.telemetryEnabled===false;
   let record=clients.get(options.storageOptions.database);
+  if(dedicated&&record&&!record.owners.has(owner))fail('YNX_CONTRACT_RELAY_SHARED_CORE_UNAVAILABLE');
   if(!record){
     record={owners:new Set(),leases:new Set(),client:null,core:null,count:null,candidate:false,paused:false,promise:null,constructionStarted:false,state:'initializing',failure:undefined};
     record.promise=(async()=>{
-      const [{default:SignClient},{Core,RELAYER_EVENTS}]=await Promise.all([import('@walletconnect/sign-client'),import('@walletconnect/core')]);
+      if(dedicated){if(!hooks||await hooks.runtimeCheck()!==true)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');hooks.current();}
+      const [{SignClient},{Core,RELAYER_EVENTS,RELAYER_SDK_VERSION}]=await Promise.all([import('@walletconnect/sign-client'),import('@walletconnect/core')]);
+      if(typeof SignClient?.init!=='function')fail('YNX_CONTRACT_INITIATOR_RUNTIME_INPUT_DIFFERS');
       const before=globalThis._walletConnectCore_,count=globalThis._walletConnectCore__count;
-      if(options.telemetryEnabled===false&&before!==undefined)fail('YNX_CONTRACT_RELAY_SHARED_CORE_UNAVAILABLE');
+      if(dedicated&&before!==undefined||before&&protectedCores.has(before))fail('YNX_CONTRACT_RELAY_SHARED_CORE_UNAVAILABLE');
       // Constructor/start may have allocated storage or transport before throwing.
       // There is no proven rollback ABI: retain this attempt and its first cause.
       record.constructionStarted=true;
       const core=new Core(options);record.core=core;record.count=globalThis._walletConnectCore__count;
       record.candidate=before===undefined&&(count===undefined||count===0)&&globalThis._walletConnectCore_===core&&record.count===1&&core.customStoragePrefix==='';
+      if(dedicated){
+        protectedCores.add(core);
+        record.boundary=installContractInitiatorBoundary(core,{lockedVersion:RELAYER_SDK_VERSION,current:hooks.current,onTerminal:hooks.onTerminal,cancelGuard:hooks.cancel,
+          ownsCore:()=>record.candidate&&!record.externallyExposed&&record.owners.size===1&&record.owners.has(owner)&&globalThis._walletConnectCore_===core&&globalThis._walletConnectCore__count===record.count,
+        });
+      }
       const client=await SignClient.init({...options,core});record.client=client;records.set(client,record);
+      record.boundary?.assertCurrent();
       core.relayer.on(RELAYER_EVENTS.connect,()=>{const flight=record.pauseFlight;if(record.paused&&flight&&exclusive(record,flight))void core.relayer.transportClose().catch(()=>{});});
       record.state='ready';return client;
     })();
@@ -68,6 +80,7 @@ function observationCode(error){
   try{
     const code=error!==null&&(typeof error==='object'||typeof error==='function')?Object.getOwnPropertyDescriptor(error,'code')?.value:undefined;
     if([4001,5000,5001,5002,5003].includes(code)||code==='USER_REJECTED')return 'USER_REJECTED';
+    if(typeof code==='string'&&/^YNX_CONTRACT_INITIATOR_(?:ROLE_VIOLATION|VERIFY_FORBIDDEN|CONTEXT_CHANGED|CORE_NOT_OWNED|BOUNDARY_SHAPE_INVALID|RUNTIME_INPUT_DIFFERS|DRAIN_UNKNOWN|CANCEL_UNKNOWN)$/.test(code))return code;
     if(typeof code==='string'&&(/^(?:YNX_PAIR_(?:INITIALIZATION|RELAY|APPROVAL|REQUEST|CLEANUP)_(?:TIMEOUT|UNAVAILABLE)|YNX_CONTRACT_RELAY_(?:GUARD_UNAVAILABLE|GUARD_SCOPE_INVALID|SHARED_CORE_UNAVAILABLE))$/.test(code)||['YNX_PAIR_TIMEOUT','YNX_PAIR_CANCELLED','YNX_PAIR_CONFIGURATION_INVALID','YNX_PAIR_SESSION_EXPIRED','YNX_PAIR_PEER_INVALID','YNX_PAIR_NAMESPACE_INVALID','YNX_PAIR_CHAIN_INVALID','YNX_PAIR_SESSION_SELECTION_REQUIRED','YNX_PAIR_METHOD_NOT_APPROVED','YNX_PAIR_CONTEXT_CHANGED','YNX_PAIR_TRANSPORT_DRAINING','YNX_PAIR_CLEANUP_UNCONFIRMED'].includes(code)))return code;
   }catch{}
   return 'UNCLASSIFIED';
@@ -78,21 +91,24 @@ function observationCode(error){
 // consumers receive a selected EIP-1193-shaped transport, never topics or keys
 // copied into another origin and never a product identity/session credential.
 export class WalletConnectDAppConnection{
-  #contractProfile=false;#allowed;#correlations=new WeakMap();#relayGuard;#relayContext;#guardObserver=null;#guardFlights=new Set();
+  #contractProfile=false;#allowed;#correlations=new WeakMap();#relayGuard;#relayContext;#guardObserver=null;#guardFlights=new Set();#initiatorCause=null;#guardCancelFlight=null;
   #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;#cancelledAttempt=0;#connectionState='not-started';#initializationState='not-started';#lastStage='idle';#cleanupObservation='unobserved';#firstCauseRecorded=false;#firstCauseCode=null;
   constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now(),relayGuard,relayContext}={},profile){
     this.#contractProfile=profile===DEVELOPER_CONTRACT_PROFILE;
     this.#allowed=this.#contractProfile?DEVELOPER_CONTRACT_METHODS:ORIGIN_METHODS.get(origin);
     if(this.#contractProfile&&origin!=='https://developer.ynxweb4.com'||!this.#allowed||!Array.isArray(methods)||(!methods.length&&origin!==ADDRESS_ORIGIN)||new Set(methods).size!==methods.length||methods.some(method=>!this.#allowed.includes(method)||!this.#contractProfile&&!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_CONFIGURATION_INVALID');
     if(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>120000)fail('YNX_PAIR_CONFIGURATION_INVALID');
-    this.#origin=origin;this.#methods=[...methods];this.#factory=clientFactory??(options=>officialClient(options,this));this.#deadline=deadlineMs;this.#now=now;
+    this.#origin=origin;this.#methods=[...methods];this.#factory=clientFactory??(options=>officialClient(options,this,{runtimeCheck:()=>assertOriginalContractRelayRuntime(this.#relayGuard),current:()=>{this.#assertRelay();return `${this.#epoch}:${this.#attempt}`;},onTerminal:error=>this.#terminateInitiator(error),cancel:()=>this.#cancelRelayAuthority()}));this.#deadline=deadlineMs;this.#now=now;
     if(this.#contractProfile){this.#relayGuard=relayGuard;this.#relayContext=relayContext?contractJSON(relayContext):null;}
   }
   #assertRelay(){
     if(!this.#contractProfile)return;
+    if(this.#initiatorCause)throw this.#initiatorCause;
     let scope=assertOriginalContractRelayGuard(this.#relayGuard,this.#relayContext);
     if(!this.#guardObserver){
       const off=observeOriginalContractRelayGuard(this.#relayGuard,()=>{
+        const boundary=ownerRecords.get(this)?.boundary;
+        if(boundary){boundary.terminate(Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'}));return;}
         this.#epoch++;this.#session=null;this.#flight?.cancel();
         for(const reject of this.#guardFlights)reject();
         try{this.#emit('disconnect',{code:4900,message:'CONTRACT_RELAY_REVOKED',reason:'permission-revoked'});}catch{}
@@ -103,6 +119,14 @@ export class WalletConnectDAppConnection{
     }
     return scope;
   }
+  #terminateInitiator(error){
+    if(this.#initiatorCause)return;
+    this.#initiatorCause=error;this.#observeFirstCause(error);this.#epoch++;this.#session=null;this.#flight?.cancel();
+    for(const reject of this.#guardFlights)reject();
+    this.#cleanupObservation='unknown';
+    try{this.#emit('disconnect',{code:4900,message:'CONTRACT_INITIATOR_TERMINATED',reason:'permission-revoked'});}catch{}
+  }
+  #cancelRelayAuthority(){return this.#guardCancelFlight??=(async()=>{try{return await cancelOriginalContractRelayGuard(this.#relayGuard);}catch(error){this.#cleanupObservation='unknown';this.#observeFirstCause(error);throw error;}})();}
   on(event,listener){if(!this.#listeners.has(event))this.#listeners.set(event,new Set());this.#listeners.get(event).add(listener);}
   removeListener(event,listener){this.#listeners.get(event)?.delete(listener);}
   #emit(event,value){for(const listener of this.#listeners.get(event)??[])listener(value);}
@@ -212,15 +236,17 @@ export class WalletConnectDAppConnection{
     task.then(()=>{if(attempt===this.#attempt)this.#connectionState='fulfilled';},()=>{if(attempt===this.#attempt)this.#connectionState='rejected';});this.#pending=task;return task;
   }
   async #pause(client,flight){
+    const boundary=records.get(client)?.boundary;
+    if(boundary?.snapshot().terminal){try{await boundary.drain();}catch{this.#cleanupObservation='unknown';}return;}
     const record=records.get(client);if(record){flight.record??=record;if(!record.leases.size)record.leases.add(flight);}
     if(!exclusive(record,flight)){if(this.#draining?.flight!==flight)record?.leases.delete(flight);if(this.#cleanupObservation!=='unknown')this.#cleanupObservation='shared-preserved';this.#emit('transportCleanup',{attempt:flight.attempt,current:flight.attempt===this.#attempt,status:'shared-preserved',inFlight:this.#draining?.flight===flight});return;}
     record.paused=true;record.pauseFlight=flight;
     try{await this.#wait(record.core.relayer.transportClose(),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});if(this.#cleanupObservation!=='unknown')this.#cleanupObservation='transport-paused';this.#emit('transportCleanup',{attempt:flight.attempt,current:flight.attempt===this.#attempt,status:'transport-paused',inFlight:this.#draining?.flight===flight});}
     catch{this.#unconfirmed('transport-unavailable',flight.attempt);}
   }
-  async #cancelPairing(epoch){const pairing=this.#pairing;if(!pairing||epoch!==undefined&&pairing.epoch!==epoch)return;this.#pairing=null;if(this.#client)try{await this.#wait(this.#client.core.pairing.disconnect({topic:pairing.topic}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',pairing.attempt);}}
-  async #retire(client,session,attempt){if(!session||!/^[0-9a-f]{64}$/.test(session.topic)){this.#unconfirmed('invalid-session',attempt);return;}try{await this.#wait(client.disconnect({topic:session.topic,reason}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',attempt);}}
-  async cancel(){this.#cancelledAttempt=this.#attempt;const epoch=this.#epoch++;this.#flight?.cancel();for(const reject of this.#guardFlights)reject();this.#pending=null;await this.#cancelPairing(epoch);if(this.#contractProfile)await cancelOriginalContractRelayGuard(this.#relayGuard);const debt=this.#initializationCleanupDebt();if(debt)throw debt;}
+  async #cancelPairing(epoch){const pairing=this.#pairing;if(!pairing||epoch!==undefined&&pairing.epoch!==epoch)return;if(ownerRecords.get(this)?.boundary?.snapshot().terminal){this.#cleanupObservation='unknown';return;}this.#pairing=null;if(this.#client)try{await this.#wait(this.#client.core.pairing.disconnect({topic:pairing.topic}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',pairing.attempt);}}
+  async #retire(client,session,attempt){const record=records.get(client);if(record?.boundary?.snapshot().terminal){(record.lateSessions??=[]).push(session);this.#cleanupObservation='unknown';return;}if(!session||!/^[0-9a-f]{64}$/.test(session.topic)){this.#unconfirmed('invalid-session',attempt);return;}try{await this.#wait(client.disconnect({topic:session.topic,reason}),{stage:'cleanup',deadline:Math.min(this.#deadline,1500)});}catch{this.#unconfirmed('transport-unavailable',attempt);}}
+  async cancel(){this.#cancelledAttempt=this.#attempt;const epoch=this.#epoch++;this.#flight?.cancel();for(const reject of this.#guardFlights)reject();this.#pending=null;await this.#cancelPairing(epoch);if(this.#contractProfile){const boundary=ownerRecords.get(this)?.boundary;if(boundary)boundary.terminate(Object.assign(new Error('YNX_PAIR_CANCELLED'),{code:'YNX_PAIR_CANCELLED'}));await this.#cancelRelayAuthority();if(boundary)await boundary.drain();}const debt=this.#initializationCleanupDebt();if(debt)throw debt;}
   async disconnect(){
     this.#epoch++;const session=this.#session;this.#session=null;for(const reject of this.#guardFlights)reject();
     if(!this.#contractProfile){await this.#cancelPairing();if(session)await this.#wait(this.#client.disconnect({topic:session.topic,reason}));const debt=this.#initializationCleanupDebt();if(debt)throw debt;this.#emit('disconnect',{code:4900,message:'PAIR_EXPLICIT_DISCONNECT',reason:'permission-revoked'});return;}
@@ -231,7 +257,7 @@ export class WalletConnectDAppConnection{
     finally{
       // Original Native scope invalidation is independent of transport cleanup.
       // A rejected remote disconnect must not leave its local authority active.
-      try{await cancelOriginalContractRelayGuard(this.#relayGuard);}catch(error){retain(error);}
+      try{const boundary=ownerRecords.get(this)?.boundary;if(boundary)boundary.terminate(first??Object.assign(new Error('YNX_PAIR_CANCELLED'),{code:'YNX_PAIR_CANCELLED'}));await this.#cancelRelayAuthority();if(boundary)await boundary.drain();}catch(error){retain(error);}
       finally{try{this.#guardObserver?.();}catch(error){retain(error);}this.#guardObserver=null;}
     }
     const debt=this.#initializationCleanupDebt();if(failed)throw first;if(debt)throw debt;

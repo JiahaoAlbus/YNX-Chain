@@ -56,3 +56,8 @@ export function observeOriginalContractRelayGuard(owner,listener){
 export function cancelOriginalContractRelayGuard(owner){
  const entry=owner&&owners.get(owner);if(!entry)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');return entry.adapter.cancel();
 }
+// Private bridge only. Ordinary browser consumers never import a Node checker.
+export async function assertOriginalContractRelayRuntime(owner){
+ const entry=owner&&owners.get(owner);if(!entry||typeof entry.adapter.runtimeCheck!=='function')fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');
+ if(await entry.adapter.runtimeCheck()!==true)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');return true;
+}

@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const nodeUnits=JSON.parse(readFileSync(new URL('../package.json',import.meta.url))).version==='1.3.0-pq.3.32-auth.12'?13:12;
 import * as builder from '../../../apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs';
 test('normal Node and helper each compile the actual typed publication implementation exactly once',()=>{
  const node=builder.originalAuthNativeBuildPlan('arm64','/original/pinned/headers'),helper=builder.originalIDEHelperBuildPlan('arm64');
- assert.equal(node.sources.length,12);assert.equal(helper.sources.length,11);
+ assert.equal(node.sources.length,nodeUnits);assert.equal(helper.sources.length,11);
  for(const plan of [node,helper]){
   assert.equal(plan.sources.filter(p=>p.endsWith('/original-ide-publication-artifact.mm')).length,1);
   assert.deepEqual(plan.ownedUndefinedScan,{tool:'/usr/bin/nm',argv:['-u',plan.output],rejectPattern:'YNX|ynx'});

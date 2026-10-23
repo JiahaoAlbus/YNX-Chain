@@ -12,12 +12,13 @@ export function verifySDK332R140Source(sourceRoot){
   const root=realpathSync(sourceRoot);
   const contract=JSON.parse(readFileSync(join(root,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')));
   const pkg=JSON.parse(readFileSync(join(root,'packages/wallet-auth/package.json')));
-  if(contract.version!=='1.3.0-pq.3.32-auth.11'||pkg.version!==contract.version||!isDeepStrictEqual(pkg.exports,contract.publicExports))fail('SDK332_R140_PACKAGE_SELECTION_INVALID');
+  if(contract.version!=='1.3.0-pq.3.32-auth.12'||pkg.version!==contract.version||!isDeepStrictEqual(pkg.exports,contract.publicExports))fail('SDK332_R140_PACKAGE_SELECTION_INVALID');
   // Pure deployment codecs join this canonical Auth line; independent file pins
-  // bind the supplier bytes while Native selection remains the matching64 Node/69 paired inputs.
+  // bind the supplier bytes while Native selection requires matching69 Node/74 paired inputs.
   const pure=['pq-contract-deployment-transport.js','pq-contract-deployment-transport.d.ts','pq-contract-deployment-transport-node.js','pq-contract-deployment-transport-node.d.ts'].map(n=>'packages/wallet-auth/src/'+n);
   if(!Array.isArray(contract.pureDeploymentInputs)||JSON.stringify(contract.pureDeploymentInputs.map(p=>p.path))!==JSON.stringify(pure))fail('SDK332_R140_DEPLOYMENT_INVENTORY_INVALID');
-  if(!Array.isArray(contract.NativeInputs)||contract.NativeInputs.length!==64||!Array.isArray(contract.HelperInputs)||contract.HelperInputs.length!==5)fail('SDK332_R140_NATIVE_INVENTORY_INVALID');
+  if(!Array.isArray(contract.NativeInputs)||contract.NativeInputs.length!==69||!Array.isArray(contract.HelperInputs)||contract.HelperInputs.length!==5)fail('SDK332_R140_NATIVE_INVENTORY_INVALID');
+  if(contract.require?.translationUnits!==13||contract.require?.helperTranslationUnits!==11||contract.require?.NAPI!==8||contract.require?.minMacOS!=='13.0'||contract.require?.sameSourceBuild!==true||contract.require?.pairedHelperRequired!==true||contract.require?.prebuiltSDK330ModuleAllowed!==false||contract.require?.prebuiltR140ModuleAllowed!==false||!isDeepStrictEqual(contract.require?.frameworks,['Foundation','Security','AppKit','ServiceManagement'])||!isDeepStrictEqual(contract.require?.helperFrameworks,['Foundation','Security','ServiceManagement']))fail('SDK332_R140_NORMAL_REQUIREMENTS_INVALID');
   const seen=new Set();
   for(const pin of [...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool]){
     if(typeof pin.path!=='string'||isAbsolute(pin.path)||pin.path.includes('\\')||pin.path.split('/').some(p=>!p||p==='.'||p==='..')||!resolve(root,pin.path).startsWith(root+'/')||seen.has(pin.path))fail('SDK332_R140_NATIVE_PATH_INVALID');
@@ -33,7 +34,9 @@ export async function sdk332R140NativePlan(sourceRoot,headersRoot,arch='arm64'){
   const tool=join(root,contract.normalBuildTool.path);
   const {originalAuthNativeBuildPlan,originalIDEHelperBuildPlan}=await import(pathToFileURL(tool).href);
   const plan=originalAuthNativeBuildPlan(arch,headersRoot),helperPlan=originalIDEHelperBuildPlan(arch);
-  if(plan.sources.length!==12||helperPlan.sources.length!==11||plan.minimumSystemVersion!=='13.0')fail('SDK332_R140_NORMAL_RECIPE_DIFFERS');
+  if(plan.sources.length!==13||helperPlan.sources.length!==11||plan.minimumSystemVersion!=='13.0')fail('SDK332_R140_NORMAL_RECIPE_DIFFERS');
+  const relayOwner=join(root,'packages/wallet-auth/native/original-ide-contract-relay-owner.mm');
+  if(plan.sources.filter(p=>p===relayOwner).length!==1||helperPlan.sources.includes(relayOwner))fail('SDK332_R140_NORMAL_RECIPE_DIFFERS');
   for(const selected of [plan,helperPlan])if(!isDeepStrictEqual(selected.ownedUndefinedScan,{tool:'/usr/bin/nm',argv:['-u',selected.output],rejectPattern:'YNX|ynx'}))fail('SDK332_R140_OWNED_SYMBOL_GUARD_MISSING');
   for(const command of plan.commands.filter(c=>c.tool==='/usr/bin/clang++')){
     for(const flag of ['-DNAPI_VERSION=8','-fobjc-arc','-std=c++17','-lbsm','-mmacosx-version-min=13.0'])if(!command.argv.includes(flag))fail('SDK332_R140_NORMAL_RECIPE_DIFFERS');

@@ -36,7 +36,8 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  std::vector<SourceHeldPublic> _files;
  NSTask *_task;
  NSMutableArray<NSFileHandle *> *_pipeHandles;NSMutableArray<NSNumber *> *_pipeStates;
- uint64_t _sequence,_floor,_timeFloor;NSString *_headDigest,*_observationHeight;
+ uint64_t _sequence,_floor,_timeFloor,_cachedCurrentExpiresMS;NSString *_headDigest,*_observationHeight;
+ BOOL _relayLocalEntered;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
  BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry;
  NSError *_firstCause,*_cleanupCause;
@@ -171,10 +172,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  return result;
 }
 #include "original-ide-auth-proof-source.inc.mm"
+#include "original-ide-contract-relay-source.inc.mm"
 - (BOOL)assertCurrent:(NSError **)error {return [self assertAuthenticatedNativePurpose:error];}
 - (BOOL)assertAuthenticatedNativePurpose:(NSError **)error {
  @synchronized(self){
-  if(_entered)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_REENTRANT" error:error];
+  if(_entered||_relayLocalEntered)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_REENTRANT" error:error];
   if(![self heldCurrent:error])return NO;_entered=YES;
   @try{
    uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(before<_timeFloor)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CLOCK_ROLLBACK" error:error];
@@ -214,7 +216,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    id nonce=[currentBody isKindOfClass:NSDictionary.class]?currentBody[@"nonce"]:nil;
    if(!currentBytes||currentBytes.length>(sourceV2?393216:32768)||![nonce isKindOfClass:NSString.class]||[nonce length]!=43)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CURRENT_ORIGINAL_INVALID" error:error];
    _currentOriginal=[currentBytes copy];_currentNonce=[nonce copy];
-   _selection=[projection[@"selection"] copy];_sequence=sequence;_floor=floor;_headDigest=[projection[@"head"] copy];_timeFloor=after;if(sourceV2)_observationHeight=[projection[@"executionHeight"]copy];return YES;
+   _selection=[projection[@"selection"] copy];_sequence=sequence;_floor=floor;_headDigest=[projection[@"head"] copy];_timeFloor=after;_cachedCurrentExpiresMS=expires;if(sourceV2)_observationHeight=[projection[@"executionHeight"]copy];return YES;
   }@catch(NSException *){return [self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_UNKNOWN" error:error];}
   @finally{_entered=NO;}
  }
