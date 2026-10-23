@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"math"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -85,6 +87,69 @@ func TestMigrationHistoryQueryPreservesOriginalBlocksTransactionsAndAbsence(t *t
 	}
 }
 
+func TestMigrationHistoryPageOriginalOuterRowsOrderAndWindows(t *testing.T) {
+	f := newApplicationInitializationFixture(t)
+	app, err := NewPersistentApplicationWithBootstrap(f.migration, "", f.bootstrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalMigration, originalState := mustJSON(t, app.migration), mustJSON(t, app.committed)
+	want := make([]MigrationHistoryPageEntry, 0)
+	nonemptyBlocks, newestCount, multipleInBlock := 0, uint64(0), false
+	for _, block := range f.migration.Runtime.Blocks {
+		if len(block.Transactions) > 0 {
+			nonemptyBlocks++
+			newestCount = uint64(len(block.Transactions))
+			multipleInBlock = multipleInBlock || len(block.Transactions) > 1
+		}
+		for index, tx := range block.Transactions {
+			want = append(want, MigrationHistoryPageEntry{Transaction: tx, NativeIndex: uint32(index)})
+		}
+	}
+	if nonemptyBlocks < 2 || !multipleInBlock {
+		t.Fatal("page fixture needs actual native transactions across blocks and within one block")
+	}
+	sort.SliceStable(want, func(i, j int) bool {
+		return want[i].Transaction.BlockNum > want[j].Transaction.BlockNum || want[i].Transaction.BlockNum == want[j].Transaction.BlockNum && want[i].NativeIndex > want[j].NativeIndex
+	})
+	for _, window := range []struct {
+		offset uint64
+		limit  uint32
+	}{{0, 100}, {0, 1}, {1, 2}, {newestCount - 1, 2}, {uint64(len(want)) - 1, 100}, {0, 0}, {uint64(len(want)) + 3, 3}, {math.MaxUint64, 0}} {
+		path := MigrationHistoryPagePath + strconv.FormatUint(window.offset, 10) + "/" + strconv.FormatUint(uint64(window.limit), 10)
+		raw := migrationHistoryRead(t, app, path)
+		var view MigrationHistoryPageView
+		if err := json.Unmarshal(raw, &view); err != nil || view.Offset != window.offset || view.Limit != window.limit || view.Total != uint64(len(want)) || view.Records == nil {
+			t.Fatal("source page lost exact coordinates, complete outer-row total or empty array", path, err)
+		}
+		assertMigrationHistoryAnchor(t, view.MigrationHistoryAnchor, f.migration)
+		start := window.offset
+		if start > uint64(len(want)) {
+			start = uint64(len(want))
+		}
+		end := start + uint64(window.limit)
+		if end > uint64(len(want)) {
+			end = uint64(len(want))
+		}
+		if !reflect.DeepEqual(view.Records, want[start:end]) {
+			t.Fatal("source page changed a native transaction, its original index or newest-first order", path)
+		}
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &fields); err != nil || string(fields["offset"]) != strconv.Quote(strconv.FormatUint(window.offset, 10)) || string(fields["limit"]) != strconv.Quote(strconv.FormatUint(uint64(window.limit), 10)) || string(fields["total"]) != strconv.Quote(strconv.Itoa(len(want))) {
+			t.Fatal("page coordinates are not canonical JSON strings", err)
+		}
+		for _, entry := range view.Records {
+			var fields map[string]json.RawMessage
+			if err := json.Unmarshal(mustJSON(t, entry), &fields); err != nil || string(fields["nativeIndex"]) != strconv.Quote(strconv.FormatUint(uint64(entry.NativeIndex), 10)) {
+				t.Fatal("page native index lost its canonical original coordinate", err)
+			}
+		}
+	}
+	if !bytes.Equal(originalMigration, mustJSON(t, app.migration)) || !bytes.Equal(originalState, mustJSON(t, app.committed)) {
+		t.Fatal("source pagination mutated imported history or committed state")
+	}
+}
+
 func TestMigrationHistoryQueryRejectsRelabelingNoncanonicalPathsAndForeignState(t *testing.T) {
 	f := newApplicationInitializationFixture(t)
 	app, err := NewPersistentApplicationWithBootstrap(f.migration, "", f.bootstrap)
@@ -99,6 +164,10 @@ func TestMigrationHistoryQueryRejectsRelabelingNoncanonicalPathsAndForeignState(
 	for _, suffix := range []string{"", "abc", strings.Repeat("A", 64), "0X" + strings.Repeat("a", 64), f.history + "/", " " + f.history} {
 		requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryTransactionPath + suffix})
 	}
+	for _, suffix := range []string{"", "0", "0/", "/1", "0/1/", "0/1/2", "00/1", "0/01", "+1/1", "-1/1", " 1/1", "0/101", "0/4294967296", "18446744073709551616/0", "18446744073709551615/1"} {
+		requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryPagePath + suffix})
+	}
+	requests = append(requests, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/1", Prove: true}, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/1", Data: []byte("not query authority")}, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/1", Height: app.committed.Height + 1})
 	for _, req := range requests {
 		response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("must be cleared")}
 		if !queryMigrationHistory(response, req, app.committed, app.migration) || response.Code == 0 || len(response.Value) != 0 {
@@ -121,8 +190,11 @@ func TestMigrationHistoryQueryRejectsRelabelingNoncanonicalPathsAndForeignState(
 		case "missing-runtime":
 			migration.Runtime = nil
 		}
-		if !queryMigrationHistory(response, &abci.RequestQuery{Path: valid}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
-			t.Fatal("source history accepted foreign committed state", mode, response)
+		for _, path := range []string{valid, MigrationHistoryPagePath + "0/1"} {
+			response.Code, response.Log, response.Value = 0, "", []byte("must be cleared")
+			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
+				t.Fatal("source history accepted foreign committed state", mode, path, response)
+			}
 		}
 	}
 	response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("untouched")}
@@ -147,7 +219,7 @@ func TestMigrationHistoryQueryKeepsOriginalBytesAcrossAllColdLayouts(t *testing.
 			if err != nil {
 				t.Fatal(err)
 			}
-			paths := []string{MigrationHistoryBlockPath + "0", MigrationHistoryBlockPath + strconv.FormatUint(f.migration.Height, 10), MigrationHistoryTransactionPath + f.history}
+			paths := []string{MigrationHistoryBlockPath + "0", MigrationHistoryBlockPath + strconv.FormatUint(f.migration.Height, 10), MigrationHistoryTransactionPath + f.history, MigrationHistoryPagePath + "0/2", MigrationHistoryPagePath + "0/0"}
 			originals := make(map[string][]byte)
 			for _, path := range paths {
 				originals[path] = migrationHistoryRead(t, app, path)
@@ -179,12 +251,28 @@ func TestMigrationHistoryQueryNeverReturnsPartialOrOversizedDTO(t *testing.T) {
 		block := &runtime.Blocks[len(runtime.Blocks)-1]
 		if mode == "marshal" {
 			block.Time = time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC)
+			block.Transactions = append([]chain.Transaction(nil), block.Transactions...)
+			if len(block.Transactions) == 0 {
+				t.Fatal("fixture requires actual source transactions in the latest block")
+			}
+			block.Transactions[0].Timestamp = block.Time
 		} else {
 			block.Transactions = []chain.Transaction{{Memo: strings.Repeat("x", MaxMigrationHistoryQueryBytes)}}
 		}
-		response := &abci.ResponseQuery{Height: state.Height, Value: []byte("must be cleared")}
-		if !queryMigrationHistory(response, &abci.RequestQuery{Path: MigrationHistoryBlockPath + strconv.FormatUint(block.Height, 10)}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
-			t.Fatal("encoding failure exposed a partial or oversized source response", mode, response.Code)
+		for _, path := range []string{MigrationHistoryBlockPath + strconv.FormatUint(block.Height, 10), MigrationHistoryPagePath + "0/100"} {
+			response := &abci.ResponseQuery{Height: state.Height, Value: []byte("must be cleared")}
+			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
+				t.Fatal("encoding failure exposed a partial or oversized source response", mode, path, response.Code)
+			}
+		}
+		// A metadata read never serializes unrequested transaction bodies.
+		response := &abci.ResponseQuery{Height: state.Height}
+		if !queryMigrationHistory(response, &abci.RequestQuery{Path: MigrationHistoryPagePath + "0/0"}, state, migration) || response.Code != 0 {
+			t.Fatal("metadata-only source pagination encoded an unrequested body", mode, response.Log)
+		}
+		var metadata MigrationHistoryPageView
+		if err := json.Unmarshal(response.Value, &metadata); err != nil || metadata.Records == nil || len(metadata.Records) != 0 || metadata.Total == 0 {
+			t.Fatal("metadata-only source pagination lost its outer-row count or empty array", err)
 		}
 	}
 }
