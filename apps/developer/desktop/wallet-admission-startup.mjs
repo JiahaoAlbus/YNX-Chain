@@ -8,6 +8,17 @@ import { OriginalIDEIdentityCall } from './wallet-identity-v2-caller.mjs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
+// Explicit backend acquisition only. Old installed SDKs remain unavailable;
+// this never silently switches a package, initializes Relay or restores a
+// shared Wallet session as project authorization.
+export async function openBundledProjectContractClient({context, admittedProject}) {
+  const originalSDK = createRequire(new URL('../../../packages/wallet-auth/package.json', import.meta.url));
+  const contract = await import(pathToFileURL(originalSDK.resolve('@ynx-chain/wallet-auth/walletconnect-dapp-connection')).href);
+  if (typeof contract.createDeveloperContractConnection !== 'function') throw Object.assign(Error('Original project Wallet contract connection is unavailable.'), {code:'IDE_CONTRACT_NOT_SUPPLIED'});
+  const {openProjectContractClient} = await import('./wallet-contract-client.mjs');
+  return openProjectContractClient({context, admittedProject, createConnection:() => contract.createDeveloperContractConnection()});
+}
+
 // Separate from the old four session operations: identity receive/recovery can
 // precede a qualified session parent. Only the original Auth/SDK fixed loader
 // may obtain the Native table; no renderer path, object or expected statement
