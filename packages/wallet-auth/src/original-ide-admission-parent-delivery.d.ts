@@ -1,4 +1,4 @@
-import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef} from './auth-native-contract.js';
+import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef,OriginalIDEProjectAuthorityRef,OriginalIDECurrentProjectData,OriginalIDECurrentPublisherData} from './auth-native-contract.js';
 /** Private original backend only. Native returns the exact recognized owner.
  * A partial acquisition has descriptor -1 and is cleanup custody, not a guard.
  * The consumer retains it and selects its original close once. */
@@ -95,3 +95,16 @@ export declare function closeOriginalIDEPublicationArtifact(originalArtifact:Ori
  * artifact custody; caller still closes its original DATA reference.
  * Null means unavailable, never successful completion or approval. */
 export declare function acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL:string,canonicalManifest:string,originalArtifact:OriginalIDEPublicationArtifactRef):OriginalIDEProtectedKeyCallOwner|null;
+
+/** Fixed original Native factory; no caller Source/provider/serverURL options.
+ * Retain the same returned partial for cleanup before attempting any read.
+ * Null means the original implementation is unavailable, never an admission. */
+export declare function acquireOriginalIDEProjectAuthority():OriginalIDEProjectAuthorityRef|null;
+/** Exact original frozen Native record, without new authorization flags. */
+export declare function readOriginalIDECurrentProject(originalAuthority:OriginalIDEProjectAuthorityRef,projectID:string):OriginalIDECurrentProjectData;
+/** Native argument order is owner, projectID, publisherID. Public-original
+ * bytes are an independent ordinary copy, not a publisher/key authority. */
+export declare function readOriginalIDECurrentPublisher(originalAuthority:OriginalIDEProjectAuthorityRef,projectID:string,publisherID:string):OriginalIDECurrentPublisherData;
+/** Undefined only after the actual original cleanup; original failures,
+ * including UNKNOWN and falsy throws, are propagated without retry. */
+export declare function closeOriginalIDEProjectAuthority(originalAuthority:OriginalIDEProjectAuthorityRef):undefined;

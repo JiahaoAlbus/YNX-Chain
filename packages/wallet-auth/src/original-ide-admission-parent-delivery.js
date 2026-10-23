@@ -310,6 +310,33 @@ export function acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL,can
  if(typeof native?.acquireOriginalIDEProtectedPublicationKeyCall!=='function')return null;
  return native.acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL,canonicalManifest,originalArtifact);
 }
+/** Same original Native Source owner, including a cleanup partial. No supplied
+ * Source/server/provider or implicit current/read/close belongs in this bridge. */
+export function acquireOriginalIDEProjectAuthority(){
+ if(arguments.length!==0)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.acquireOriginalIDEProjectAuthority!=='function')return null;
+ return native.acquireOriginalIDEProjectAuthority();
+}
+export function readOriginalIDECurrentProject(originalAuthority,projectID){
+ if(arguments.length!==2)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDECurrentProject!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDECurrentProject(originalAuthority,projectID);
+}
+export function readOriginalIDECurrentPublisher(originalAuthority,projectID,publisherID){
+ if(arguments.length!==3)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDECurrentPublisher!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDECurrentPublisher(originalAuthority,projectID,publisherID);
+}
+/** Undefined is the original cleanup result, not a fabricated true receipt. */
+export function closeOriginalIDEProjectAuthority(originalAuthority){
+ if(arguments.length!==1)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.closeOriginalIDEProjectAuthority!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.closeOriginalIDEProjectAuthority(originalAuthority);
+}
 /** Fixed Native cold reader only. Null startup selection is never a grant and
  * does not disable Native's independently qualified original Source acquisition. */
 export async function acquireOriginalIDEColdTerminalCustody(actualEntryURL){

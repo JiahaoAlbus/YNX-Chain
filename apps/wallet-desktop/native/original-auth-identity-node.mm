@@ -584,6 +584,7 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #include "original-ide-wallet-identity-source-owner.inc.mm"
 #include "original-ide-auth-identity-binding.inc.mm"
 #include "original-ide-contract-relay-binding.inc.mm"
+#include "original-ide-project-authority-binding.inc.mm"
 static napi_value Register(napi_env env,napi_value exports){
  // This original addon owns main-thread-only platform Source/UI/native
  // inventories. Worker environments cannot borrow them via DATA exports.
@@ -599,6 +600,6 @@ static napi_value Register(napi_env env,napi_value exports){
  {"readOriginalNativePrivateServiceTerminalResult",ReadPrivateTerminalResult,nullptr},
  {"captureOriginalNativePrivateServiceBorrow",CapturePrivate,nullptr},{"assertOriginalNativePrivateServiceCurrent",Lifecycle,(void *)jointCurrent},{"assertOriginalNativePrivateServiceAdmission",AdmissionPrivate,nullptr},{"assertOriginalNativePrivateServiceTerminal",TerminalPrivate,nullptr},{"retireOriginalNativePrivateService",Lifecycle,(void *)jointRetire},{"joinOriginalNativePrivateService",Lifecycle,(void *)jointJoin},{"closeOriginalNativePrivateService",Lifecycle,(void *)jointClose}};
  for(auto &m:methods){napi_property_descriptor descriptor={m.name,nullptr,m.callback,nullptr,nullptr,nullptr,napi_default,m.data};if(napi_define_properties(env,exports,1,&descriptor)!=napi_ok)return nullptr;}
- if(!RegisterOriginalIDEIdentityPeerBinding(env,exports,methods)||!RegisterOriginalIDEContractRelayBinding(env,exports)||!RegisterOriginalIDEPublicationArtifactBinding(env,exports))return nullptr;return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
+ if(!RegisterOriginalIDEIdentityPeerBinding(env,exports,methods)||!RegisterOriginalIDEContractRelayBinding(env,exports)||!RegisterOriginalIDEPublicationArtifactBinding(env,exports)||!RegisterOriginalIDEProjectAuthorityBinding(env,exports))return nullptr;return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
 }
 NAPI_MODULE(NODE_GYP_MODULE_NAME,Register)
