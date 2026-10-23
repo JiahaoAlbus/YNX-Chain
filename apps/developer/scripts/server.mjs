@@ -17,7 +17,7 @@ const types = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; ch
 const compilerWorker = fileURLToPath(new URL("./compiler-worker.mjs", import.meta.url));
 const aiKey = process.env.YNX_DEVELOPER_AI_KEY || "";
 const localAIURL = (process.env.YNX_DEVELOPER_LOCAL_AI_URL || "http://127.0.0.1:11434").replace(/\/$/, "");
-const localAIModel = process.env.YNX_DEVELOPER_LOCAL_AI_MODEL || "qwen3:4b";
+const localAIModel = process.env.YNX_DEVELOPER_LOCAL_AI_MODEL?.trim() || null;
 const aiLimits = new Map();
 const managedAIState = { available: null, error: null, checkedAt: null };
 let activeCompilers = 0;
@@ -87,6 +87,7 @@ createServer(async (request, response) => {
     return;
   }
   if (pathname === "/ai-build/health" && request.method === "GET") {
+    if (!localAIModel) { json(response, 503, { ok: false, available: false, providerConfigured: false, provider: "ynx-local", model: null, error: "ynx_ai_not_configured", truthfulStatus: "not-configured", managedSession: true }); return; }
     try {
       const upstream = await fetch(`${localAIURL}/api/tags`, { signal: AbortSignal.timeout(2_500) });
       const value = await upstream.json();
@@ -105,7 +106,10 @@ createServer(async (request, response) => {
     let body;
     try { body = JSON.parse((await readBody(request, 128 * 1024)).toString("utf8")); }
     catch (error) { json(response, error.status || 400, { error: error.message || "Invalid AI request." }); return; }
-    if (provider === "ynx-local") { await scheduleLocalAI(request, response, body); return; }
+    if (provider === "ynx-local") {
+      if (!localAIModel) { json(response, 503, { error: "ynx_ai_not_configured", available: false, providerConfigured: false }); return; }
+      await scheduleLocalAI(request, response, body); return;
+    }
     if (BYO_PROVIDERS[provider]) { await runBYOAI(request, response, body, provider); return; }
     json(response, 400, { error: "AI provider is not allowlisted." }); return;
   }

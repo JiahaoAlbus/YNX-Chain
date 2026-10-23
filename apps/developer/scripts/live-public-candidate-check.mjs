@@ -128,7 +128,9 @@ assert.equal(wallet.gateway.remoteDeployed, false);
 assert.equal(wallet.gateway.publicDeploymentReady, false);
 const models = await json(cookie, "/runtime/models");
 assert.equal(models.hosted.available, true);
-assert.equal(models.hosted.model, "qwen3:4b");
+const expectedHostedModel = process.env.YNX_CODE_CHECK_HOSTED_MODEL?.trim();
+assert.ok(expectedHostedModel, "Set the approved YNX hosted model identity explicitly; no model is assumed by this acceptance check.");
+assert.equal(models.hosted.model, expectedHostedModel);
 let agent;
 for (let attempt = 0; attempt < 3 && !agent; attempt++) {
   const aiProjectId = `ai-live-probe-${randomUUID().replaceAll("-", "")}`;

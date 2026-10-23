@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+test('unconfigured YNX AI fails closed without selecting a model or contacting any model service', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'ynx-no-default-ai-'));
+  const marker = join(dir, 'unexpected-model-call');
+  const reservation = createServer();
+  await new Promise(resolve => reservation.listen(0, '127.0.0.1', resolve));
+  const port = reservation.address().port;
+  await new Promise(resolve => reservation.close(resolve));
+  const preload = 'data:text/javascript,' + encodeURIComponent('import {writeFileSync} from "node:fs"; globalThis.fetch = async () => { writeFileSync('+JSON.stringify(marker)+', "UNEXPECTED"); throw Error("No configured model service"); };');
+  const child = spawn(process.execPath, ['--import', preload, fileURLToPath(new URL('./server.mjs', import.meta.url))], { env: { ...process.env, PORT: String(port), YNX_DEVELOPER_LOCAL_AI_MODEL: '', YNX_DEVELOPER_LOCAL_AI_URL: '' }, stdio: ['ignore','pipe','pipe'] });
+  const ended = new Promise(resolve => child.once('exit', resolve));
+  t.after(async () => { if(child.exitCode === null) child.kill('SIGTERM'); await ended; await rm(dir,{recursive:true}); });
+  let startup = '';
+  child.stdout.on('data', chunk => startup += chunk);
+  child.stderr.on('data', chunk => startup += chunk);
+  await new Promise((resolve, reject) => {
+    const timer = setInterval(() => { if(startup.includes('YNX Developer Web')) { clearTimeout(deadline); clearInterval(timer); resolve(); } }, 20);
+    const deadline = setTimeout(() => { clearInterval(timer); reject(Error('Server startup failed: '+startup)); },5000);
+  });
+  const base = 'http://127.0.0.1:'+port;
+  const health = await fetch(base+'/ai-build/health');
+  const status = await health.json();
+  assert.equal(health.status,503);
+  assert.equal(status.available,false);
+  assert.equal(status.providerConfigured,false);
+  assert.equal(status.model,null);
+  assert.equal(status.error,'ynx_ai_not_configured');
+  const stream = await fetch(base+'/ai-build/ai/stream',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({prompt:'QA context must never leave this process'})});
+  assert.equal(stream.status,503);
+  assert.equal((await stream.json()).error,'ynx_ai_not_configured');
+  await assert.rejects(readFile(marker), {code:'ENOENT'});
+});
