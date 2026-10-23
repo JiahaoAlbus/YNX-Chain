@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.2",
+  "version": "1.3.0-pq.3.32-auth.3",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -513,6 +513,11 @@
       "controls": 7,
       "typeConfigs": 2,
       "reexecuted": false
+    },
+    "parentAuth2": {
+      "source": "60756ad2f2bfe98abbd07bd77de3a8bc6206768f",
+      "CI": 39956050202,
+      "NativeInputsUnchanged": true
     }
   },
   "truth": {

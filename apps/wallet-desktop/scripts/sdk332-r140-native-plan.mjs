@@ -12,7 +12,7 @@ export function verifySDK332R140Source(sourceRoot){
   const root=realpathSync(sourceRoot);
   const contract=JSON.parse(readFileSync(join(root,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')));
   const pkg=JSON.parse(readFileSync(join(root,'packages/wallet-auth/package.json')));
-  if(contract.version!=='1.3.0-pq.3.32-auth.2'||pkg.version!==contract.version||!isDeepStrictEqual(pkg.exports,contract.publicExports))fail('SDK332_R140_PACKAGE_SELECTION_INVALID');
+  if(contract.version!=='1.3.0-pq.3.32-auth.3'||pkg.version!==contract.version||!isDeepStrictEqual(pkg.exports,contract.publicExports))fail('SDK332_R140_PACKAGE_SELECTION_INVALID');
   if(Object.keys(pkg.exports).some(k=>k.includes('contract-deployment')))fail('SDK332_R140_WRONG_SDK_LINE');
   if(!Array.isArray(contract.NativeInputs)||contract.NativeInputs.length!==55)fail('SDK332_R140_NATIVE_INVENTORY_INVALID');
   const seen=new Set();

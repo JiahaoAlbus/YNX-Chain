@@ -27,11 +27,11 @@ test('R15 actual joint startup and both fixed loaders decode paths without Nativ
 // PUBLIC lexical machinery controls. No real .node module, root/profile,
 // protected file, crypto or Native authority is loaded or supplied.
 const text=readFileSync(new URL('../src/original-auth-identity-private-joint-registration.js',import.meta.url),'utf8');
-function fixture({missing=false,commitFailure=false,hostNative={},typedNative=false,missingGenericAcquire=false,partialIDE=false,adminCloseFailure=false,payloadSelection=null,payloadDispatch=null}={}){
+function fixture({missing=false,commitFailure=false,hostNative={},typedNative=false,missingGenericAcquire=false,partialIDE=false,adminCloseFailure=false,localCloseFailure=false,payloadSelection=null,payloadDispatch=null}={}){
  const association={account:'PUBLIC_ACCOUNT',clientId:'PUBLIC_CLIENT',productId:'developer',platform:'macos',applicationId:'PUBLIC_APP',deviceId:'PUBLIC_DEVICE'},original={},joint={},localRef={},events=[];
  let live=true,closed=0,commits=0,guardHook=null,genericAcquisitions=0,ideAcquisitions=0,administrationLane=null;const localOriginal={scope:'LOCAL_SELECTED_VAULT',account:'PUBLIC_ACCOUNT',nativeQualified:false,independentLatest:false};
  const guard={assert(){if(!live)throw false;guardHook?.();}};
- const local={read:async()=>localOriginal,assertObservationCurrent:value=>{assert.equal(value,localOriginal);guard.assert();},close:async()=>{events.push('local-close');}};
+ const local={read:async()=>localOriginal,assertObservationCurrent:value=>{assert.equal(value,localOriginal);guard.assert();},close:async()=>{events.push('local-close');if(localCloseFailure)throw undefined;}};
  const vault={acquireOriginalServiceRoleLocalCurrentSource:async()=>localRef};
  local.vault=vault;
  const installed={vault,association,raw:{PUBLIC:'original'},executor:{PUBLIC:'executor',privateDispatch:payloadDispatch},observer:{PUBLIC:'observer'}};
@@ -51,7 +51,7 @@ test('R11 PUBLIC fixed startup refuses missing implementing exports and never cl
 
 // R19: actual SDK source with explicitly PUBLIC Native lexical stand-ins.
 // These controls never create an endpoint, run spawn, sign, or supply a grant.
-async function hostFixture({reserveFailure=false,readFailure=false,retireFailure=false,joinFailure=false,closeFailure=false,badBegin=false}={}){
+async function hostFixture({reserveFailure=false,readFailure=false,retireFailure=false,joinFailure=false,closeFailure=false,closeGate=null,badBegin=false}={}){
  const intent={},frame=Buffer.from('PUBLIC original installed bytes\n'),ack=Buffer.from('PUBLIC ack bytes');let reserved=0,ready=false,resolveBegin,rejectBegin;
  const prefix=new Promise((resolve,reject)=>{resolveBegin=()=>{ready=true;resolve();};rejectBegin=reject;});
  void prefix.catch(()=>{});
@@ -66,12 +66,78 @@ async function hostFixture({reserveFailure=false,readFailure=false,retireFailure
   assertOriginalIDEParentIntentCurrent(handle){same(handle);},
   retireOriginalIDEParentIntent(handle){same(handle);events.push('intent-retire');rejectBegin(undefined);if(retireFailure)throw false;},
   joinOriginalIDEParentIntent(handle){same(handle);events.push('intent-join');return joinFailure?Promise.reject(false):Promise.resolve();},
-  closeOriginalIDEParentIntent(handle){same(handle);events.push('intent-close');return closeFailure?Promise.reject(0):Promise.resolve();},
+  closeOriginalIDEParentIntent(handle){same(handle);events.push('intent-close');return closeGate??(closeFailure?Promise.reject(0):Promise.resolve());},
  };
  const f=fixture({hostNative,typedNative:true});f.api.initializeIDE(f.vault);const ref=await f.api.acquireIDE(f.vault,f.guard);
  assert.equal(typeof f.api.reserveIDE,'function','actual shared Host factory missing');
- const host=f.api.reserveIDE(ref);return {...f,ref,host,events,frame,ack,resolveBegin,rejectBegin,reserved:()=>reserved};
+ const host=f.api.reserveIDE(ref);return {...f,ref,host,events,parentEvents:f.events,frame,ack,resolveBegin,rejectBegin,reserved:()=>reserved};
 }
+test('joint cleanup retains parent Source while an IDE child close is unresolved',async()=>{
+ const f=await hostFixture({closeFailure:true});
+ const closing=f.api.closeOriginalAuthIdentityJointConfiguration(f.ref);
+ await assert.rejects(closing,e=>e===0);
+ assert.equal(f.closed(),0,'unresolved child must not close its parent Native joint');
+ assert.equal(f.parentEvents.includes('local-close'),false,'unresolved child must retain local Source');
+ assert.equal(f.parentEvents.includes('admin-close'),false,'unresolved child must retain administration');
+ assert.equal(f.host.outcome().cleanupComplete,false);assert.equal(f.host.outcome().cleanupCause,0);
+ assert.equal(f.api.originalAuthIdentityJointOutcome(f.ref).result.PUBLIC,'original-commit');
+ assert.equal(f.api.originalAuthIdentityStartupUnresolved(f.vault),true);
+ assert.equal(f.api.closeOriginalAuthIdentityJointConfiguration(f.ref),closing);
+ await assert.rejects(closing,e=>e===0);
+ assert.equal(f.events.filter(e=>e==='intent-close').length,1,'unknown child close is never retried');
+});
+test('joint cleanup retains local and administration when its own Native close fails',async()=>{
+ let attempts=0;
+ const f=fixture({hostNative:{closeOriginalJoint:async()=>{attempts++;throw undefined;}}});
+ f.api.initializeOriginalAuthIdentityPrivateStartup(f.vault);
+ const ref=await f.api.acquireOriginalAuthIdentityJointConfiguration(f.vault,f.guard);
+ const closing=f.api.closeOriginalAuthIdentityJointConfiguration(ref);
+ await assert.rejects(closing,e=>e===undefined);
+ assert.equal(f.events.includes('local-close'),false,'failed Native joint close must retain local Source');
+ assert.equal(f.events.includes('admin-close'),false,'failed Native joint close must retain administration');
+ assert.equal(f.api.closeOriginalAuthIdentityJointConfiguration(ref),closing);
+ await assert.rejects(closing,e=>e===undefined);assert.equal(attempts,1);
+ assert.equal(f.api.originalAuthIdentityStartupUnresolved(f.vault),true);
+});
+test('joint cleanup retains administration on uncertain local close without replay',async()=>{
+ const f=fixture({localCloseFailure:true});f.api.initializeOriginalAuthIdentityPrivateStartup(f.vault);
+ const ref=await f.api.acquireOriginalAuthIdentityJointConfiguration(f.vault,f.guard);
+ const closing=f.api.closeOriginalAuthIdentityJointConfiguration(ref);
+ await assert.rejects(closing,e=>e===undefined);
+ assert.equal(f.closed(),1);assert.equal(f.events.filter(e=>e==='local-close').length,1);
+ assert.equal(f.events.includes('admin-close'),false);
+ assert.equal(f.api.closeOriginalAuthIdentityJointConfiguration(ref),closing);
+ assert.equal(f.api.originalAuthIdentityStartupUnresolved(f.vault),true);
+});
+test('joint cleanup drains parents after same-owner confirmed close while retaining an earlier falsy failure',async()=>{
+ for(const stage of ['retireOriginalJoint','joinOriginalJoint']){
+  const f=fixture({hostNative:{[stage]:async()=>{throw false;}}});
+  f.api.initializeOriginalAuthIdentityPrivateStartup(f.vault);
+  const ref=await f.api.acquireOriginalAuthIdentityJointConfiguration(f.vault,f.guard);
+  const closing=f.api.closeOriginalAuthIdentityJointConfiguration(ref);
+  await assert.rejects(closing,e=>e===false);
+  assert.equal(f.closed(),1);assert.equal(f.events.filter(e=>e==='local-close').length,1);
+  assert.equal(f.events.filter(e=>e==='admin-close').length,1);
+  const outcome=f.api.originalAuthIdentityJointOutcome(ref);
+  assert.equal(outcome.firstCausePresent,true);assert.equal(outcome.cleanupFailurePresent,true);
+  assert.equal(outcome.result.PUBLIC,'original-commit');
+  assert.equal(f.api.closeOriginalAuthIdentityJointConfiguration(ref),closing);
+  await assert.rejects(closing,e=>e===false);assert.equal(f.closed(),1);
+ }
+});
+test('joint cleanup waits for actual child close settlement then closes parents once',async()=>{
+ let release;const gate=new Promise(resolve=>{release=resolve;});
+ const f=await hostFixture({closeGate:gate});
+ const closing=f.api.closeOriginalAuthIdentityJointConfiguration(f.ref);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(f.events.filter(e=>e==='intent-close').length,1);
+ assert.equal(f.closed(),0);assert.equal(f.parentEvents.includes('local-close'),false);
+ release();assert.equal(await closing,undefined);
+ assert.equal(f.closed(),1);assert.equal(f.parentEvents.filter(e=>e==='local-close').length,1);
+ assert.equal(f.parentEvents.filter(e=>e==='admin-close').length,1);
+ assert.equal(f.api.closeOriginalAuthIdentityJointConfiguration(f.ref),closing);
+ assert.equal(f.api.originalAuthIdentityStartupUnresolved(f.vault),false);
+});
 test('R19 PUBLIC original joint Host starts prelude immediately, then preserves fd and wire identities',async()=>{
  const f=await hostFixture();const pending=f.host.readPending();assert.equal(pending.descriptor,40);
  const begin=f.host.beginPrelude();assert.deepEqual(f.events,['intent-reserve','intent-read','begin']);

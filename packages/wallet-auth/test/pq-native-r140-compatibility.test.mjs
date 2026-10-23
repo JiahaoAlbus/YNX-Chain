@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-desktop/scripts/sdk332-r140-native-plan.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
-test('combined SDK332 auth2 preserves public ABI and selects exact R140 source through the normal eight-TU recipe',async()=>{
+test('combined SDK332 auth3 preserves public ABI and selects exact R140 source through the normal eight-TU recipe',async()=>{
   const selected=verifySDK332R140Source(root);
   assert.equal(selected.contract.NativeInputs.length,55);
   const plan=await sdk332R140NativePlan(root,'/original-a-pinned-node-headers','arm64');
@@ -27,7 +27,7 @@ test('composition rejects mixed Native source and an old SDK version before any 
     writeFileSync(node,Buffer.concat([saved,Buffer.from('\n// mixed source\n')]));
     assert.throws(()=>verifySDK332R140Source(temp),{code:'SDK332_R140_NATIVE_INPUT_DIFFERS'});
     writeFileSync(node,saved);
-    const pkg=join(temp,'packages/wallet-auth/package.json'),dto=JSON.parse(readFileSync(pkg));dto.version='1.3.0-pq.3.32-auth.1';writeFileSync(pkg,JSON.stringify(dto));
+    const pkg=join(temp,'packages/wallet-auth/package.json'),dto=JSON.parse(readFileSync(pkg));dto.version='1.3.0-pq.3.32-auth.2';writeFileSync(pkg,JSON.stringify(dto));
     assert.throws(()=>verifySDK332R140Source(temp),{code:'SDK332_R140_PACKAGE_SELECTION_INVALID'});
   }finally{rmSync(temp,{recursive:true,force:true});}
 });
