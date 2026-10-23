@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {originalPQHostSelectionVerifierReceipt as receipt} from '../src/wallet-pq-host-selection-receipt.mjs';
 import {originalPQVerifierReceipt,legacyPQVerifierReceipt591} from '../src/wallet-pq-verifier-receipt.mjs';
 import {createPackagedPQHostSelector,packagedPQVerifierAssetPaths,preparePackagedPQHostSelectionInvocation} from '../src/wallet-pq-verifier-assets.mjs';
+import * as fs from 'node:fs/promises';
+import {runInNewContext} from 'node:vm';
+import {originalPQVerifierReceipt as runtimeReceipt} from '../src/wallet-pq-runtime-component.mjs';
 
 test('selector adds only the independently pinned fourth file; old profile paths stay unchanged',()=>{
  const old=['SOURCE.json','manifest.json','darwin-arm64/ynx-consensus-proof-verify'];
@@ -36,4 +39,20 @@ test('catalog request rejects missing independent pins, unknown fields and overs
  for(const change of [{catalogSha256:'0'.repeat(64)},{catalogSha256:''},{stdin:'x'.repeat(4097)},{stdin:'\ud800'},{catalogPath:'/PUBLIC/../catalog.json'},{sourcePath:'/PUBLIC/foreign'}]){
   await assert.rejects(preparePackagedPQHostSelectionInvocation('/PUBLIC',receipt,{...base,...change}));
  }
+});
+test('normal Main and Mac build entrypoints share one fixed component; missing catalog fails before selector construction',async()=>{
+ assert.equal(runtimeReceipt,receipt);
+ const main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8');
+ for(const file of ['../src/main.mjs','../scripts/build-mac.mjs','../scripts/after-pack.mjs']){
+  const source=await fs.readFile(new URL(file,import.meta.url),'utf8');
+  assert.match(source,/import \{originalPQVerifierReceipt\} from ['"](?:\.\/|\.\.\/src\/)wallet-pq-runtime-component\.mjs['"]/);
+ }
+ const context={app:{},originalPQVerifierReceipt:runtimeReceipt};let factories=0;
+ for(const name of ['createPackagedPQFinalityVerifier','createPackagedPQHostProducer','createPackagedPQHostSelector'])context[name]=args=>{assert.equal(args.independentReceipt,receipt);factories++;return Object.freeze({PUBLIC:true});};
+ const declarations=main.split('\n').filter(line=>/^const (createOriginalPQ(FinalityVerifier|HostProducer|HostSelector)|readOriginalPQHostSourceCatalog)=/.test(line)).join('\n');
+ runInNewContext(declarations+'\nthis.calls=[createOriginalPQFinalityVerifier,createOriginalPQHostProducer,createOriginalPQHostSelector];this.catalog=readOriginalPQHostSourceCatalog;',context);
+ for(const create of context.calls)create();assert.equal(factories,3);
+ assert.throws(()=>context.catalog(),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});assert.equal(factories,3);
+ assert.match(main,/createSelection:\(original,binding\)=>createPQHostSelectionCapture\(\{original,binding,evidence:originalPQFinalityEvidence,sourceCatalog:readOriginalPQHostSourceCatalog\(\),selector:createOriginalPQHostSelector\(\)\}\)/);
+ assert.doesNotMatch(main,/selectSource:selectOriginalPQHostSource/);
 });

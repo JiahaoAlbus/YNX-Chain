@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {withMacDmgSource} from './mac-dmg-source.mjs';
 import {verifyPackagedPQVerifierAssets} from '../src/wallet-pq-verifier-assets.mjs';
-import {originalPQVerifierReceipt} from '../src/wallet-pq-verifier-receipt.mjs';
+import {originalPQVerifierReceipt} from '../src/wallet-pq-runtime-component.mjs';
 
 if (process.platform !== "darwin") throw new Error("Build the macOS package on macOS");
 const arch = process.argv[2] || "universal";

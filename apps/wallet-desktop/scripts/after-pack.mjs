@@ -4,6 +4,7 @@ import { writeFile,readFile } from "node:fs/promises";
 import { desktopReleaseIdentity, relocateDesktopPackage as assembleCanonicalDesktopPackage, desktopAsarHeaderIntegrity } from "./release-provenance.mjs";
 import { buildPublicWalletConnectConfig, WALLETCONNECT_PUBLIC_CONFIG_FILE } from "../src/walletconnect-public-config.mjs";
 import {installPackagedPQVerifierAssets} from './packaged-proof-verifier.mjs';
+import {originalPQVerifierReceipt} from '../src/wallet-pq-runtime-component.mjs';
 import {stageOriginalR155HelperBundle} from './r155-native-component.mjs';
 
 export function updatedMacAsarIntegrity(existing, relocated) {
@@ -55,7 +56,7 @@ export default async function afterPack(context) {
   }
   // builder-util Arch.arm64 is 3; other platform/architecture builds do not
   // inherit this arm64-only proof executable or falsely report it available.
-  if(context.arch===3)await installPackagedPQVerifierAssets(resources,process.env.YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE);
+  if(context.arch===3)await installPackagedPQVerifierAssets(resources,process.env.YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE,originalPQVerifierReceipt);
   // electron-builder writes this header hash BEFORE afterPack. Refresh only
   // this archive's entry before signing; never disable the integrity fuse or
   // discard integrity entries for other archives.

@@ -46,10 +46,11 @@ test('normal Mac hook installs fixed assets before outer signing and skip-sign p
  const source=await fs.readFile(new URL('../scripts/after-pack.mjs',import.meta.url),'utf8'),stripped=source.replace(/^import .*;$/mg,'').replace('export default async function afterPack','async function afterPack').replace(/^export /mg,'');
  const calls=[],context={path,process:{env:{YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE:'/PUBLIC/independent-stage'}},desktopReleaseIdentity:()=>({PUBLIC:true}),writeFile:async()=>{},assembleCanonicalDesktopPackage:()=>{},buildPublicWalletConnectConfig:()=>({}),WALLETCONNECT_PUBLIC_CONFIG_FILE:'PUBLIC.json',installPackagedPQVerifierAssets:async(...args)=>{calls.push(args);throw Error('PUBLIC stop before plist/outer signing');}};
  context.readFile=async file=>{assert.equal(file,'/packages/wallet-auth/package.json');return JSON.stringify({version:'1.3.0-pq.3.32-auth.6'});};
+ context.originalPQVerifierReceipt=originalPQHostSelectionVerifierReceipt;
  context.stageOriginalR155HelperBundle=input=>{assert.equal(input.contents,'/PUBLIC/output/Wallet.app/Contents');assert.equal(input.projectDir,'/PUBLIC/source');calls.push('R155 paired helper staged');};
  runInNewContext(stripped+'\nthis.hook=afterPack;',context);
  await assert.rejects(context.hook({electronPlatformName:'darwin',arch:3,appOutDir:'/PUBLIC/output',packager:{projectDir:'/PUBLIC/source',appInfo:{productFilename:'Wallet',version:'0.6.10'}}}),/PUBLIC stop/);
- assert.deepEqual(calls,['R155 paired helper staged',['/PUBLIC/output/Wallet.app/Contents/Resources','/PUBLIC/independent-stage']]);
+ assert.deepEqual(calls,['R155 paired helper staged',['/PUBLIC/output/Wallet.app/Contents/Resources','/PUBLIC/independent-stage',originalPQHostSelectionVerifierReceipt]]);
  const pkg=JSON.parse(await fs.readFile(new URL('../package.json',import.meta.url))),patterns=pkg.build.mac.signIgnore;assert.equal(patterns.length,1);const re=new RegExp(patterns[0]);assert(re.test('/PUBLIC/Wallet.app/Contents/Resources/consensus-proof-verifier/darwin-arm64/ynx-consensus-proof-verify'));assert(!re.test('/PUBLIC/Wallet.app/Contents/MacOS/Wallet'));assert(!re.test('/PUBLIC/Wallet.app/Contents/Resources/app.asar.unpacked/native/original-auth-identity.node'));
 });
 test('normal Main and preload consume only independent source receipt and expose no resource path or caller-selected receipt',async()=>{
