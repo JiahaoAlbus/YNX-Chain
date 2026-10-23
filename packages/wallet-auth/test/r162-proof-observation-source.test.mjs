@@ -10,16 +10,16 @@ import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-
 
 const root=resolve(fileURLToPath(new URL('../../..',import.meta.url)));
 const selectedVersion=JSON.parse(readFileSync(resolve(root,'packages/wallet-auth/package.json'))).version;
-assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.18','1.3.0-pq.3.32-auth.19','1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.21'].includes(selectedVersion));
+assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.18','1.3.0-pq.3.32-auth.19','1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.21','1.3.0-pq.3.32-auth.22'].includes(selectedVersion));
 const read=path=>readFileSync(resolve(root,path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // Independent supplier R162 H6843/67c056ae...; source selection only. These
 // checks do not rerun PUBLIC Auth fixtures or claim any real N1/Root/effect.
-const r185=selectedVersion==='1.3.0-pq.3.32-auth.21',r181=r185||selectedVersion==='1.3.0-pq.3.32-auth.20',r177=r181||selectedVersion==='1.3.0-pq.3.32-auth.19',r174=r177||selectedVersion==='1.3.0-pq.3.32-auth.18',r171=r174||selectedVersion==='1.3.0-pq.3.32-auth.17';
+const r185=['1.3.0-pq.3.32-auth.21','1.3.0-pq.3.32-auth.22'].includes(selectedVersion),r181=r185||selectedVersion==='1.3.0-pq.3.32-auth.20',r177=r181||selectedVersion==='1.3.0-pq.3.32-auth.19',r174=r177||selectedVersion==='1.3.0-pq.3.32-auth.18',r171=r174||selectedVersion==='1.3.0-pq.3.32-auth.17';
 const r172=r171||selectedVersion==='1.3.0-pq.3.32-auth.16';
 const r170=r172||selectedVersion==='1.3.0-pq.3.32-auth.15';
 const r166=r170||selectedVersion==='1.3.0-pq.3.32-auth.14';
-const r164=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16|17|18|19|20|21)$/)!==null;
+const r164=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16|17|18|19|20|21|22)$/)!==null;
 const r177Pins=[{"path":"apps/wallet-desktop/native/original-auth-identity-node.mm","bytes":81516,"sha256":"0630bf72c5c09fd6155c3d0c293e56f80db5310c9b0c95daeda4cb2d656e4122"},{"path":"apps/wallet-desktop/native/original-ide-project-authority-binding.inc.mm","bytes":9232,"sha256":"b79c0875677ce4230ed8c95974757eb5983d7bc88cd19077014d53193d646d11"},{"path":"apps/wallet-desktop/native/original-ide-workspace-project-selection.inc.mm","bytes":12315,"sha256":"0def43170e440c2e7d8ad252868eae0d5177cce9fa771950fa9b1a5b060167fb"},{"path":"packages/wallet-auth/native/original-auth-identity-source-authority.h","bytes":6855,"sha256":"ccf8162de16fcb552f138500c162a8dfb9462887301425f9ea7df5873c334478"},{"path":"packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs","bytes":24944,"sha256":"c5fc04c171de4f472fc3b20e752fd2e3388ae6809e56b675f3b4b76d133c1f8d"},{"path":"packages/wallet-auth/native/original-ide-project-authority-source.inc.mm","bytes":10570,"sha256":"f6ba57e086dd19875d63c7c81c75f4f48647f37e0d13cd9e932b2a44afe57b70"}];
 const inheritedLeaves=r171?[
  ['original-auth-identity-source-authority.mm',46433,'d8c5ea1b8bc971642fdf192f4d6bfb57ea6ce0842acb9dcaa8170e25b3ed4b45'],

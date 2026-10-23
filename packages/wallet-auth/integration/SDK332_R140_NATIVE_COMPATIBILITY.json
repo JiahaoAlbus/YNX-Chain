@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.21",
+  "version": "1.3.0-pq.3.32-auth.22",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -720,7 +720,7 @@
       "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
     }
   ],
-  "profile": "R185-source-v2-producer-and-independent-current-journal-source",
+  "profile": "R186-source-v2-sign-attempt-partial-custody-successor",
   "HelperInputs": [
     {
       "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
@@ -1399,5 +1399,34 @@
     "normalAdmittedServiceActivated": false,
     "HTTPSource13FactoryComplete": false,
     "AppOrInstalled": false
+  },
+  "supplierR186": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r186/HANDOFF.json",
+      "bytes": 4132,
+      "sha256": "d06dde34e9e0986e626250014677059175696e83a0c97d42638a6b630f44d084"
+    },
+    "parent": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r185/HANDOFF.json",
+      "bytes": 10050,
+      "sha256": "e7f1a39e0f1ea09e6c70145cce69e09cadfcb771fd76d13451e5f8d28aefb30a",
+      "blob": "c50d177de6e074d64d80269c85614670ad0bd226"
+    },
+    "sourceLeaf": {
+      "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
+      "bytes": 19737,
+      "sha256": "c6844cab9d1a02209e39bf008d53147eb93682717ba830ee7b90d33afe0deb43"
+    },
+    "originalReferencesVerified": 9,
+    "sourceEvidenceReused": true,
+    "NativeInputsUnchangedFrom21": true,
+    "independentIOUnchangedFrom21": true,
+    "normalBuildToolUnchangedFrom21": true,
+    "NativeTestsReexecuted": false,
+    "normalNativeBuild": false,
+    "Source13Complete": false,
+    "serviceStarted": false,
+    "installed": false,
+    "production": false
   }
 }

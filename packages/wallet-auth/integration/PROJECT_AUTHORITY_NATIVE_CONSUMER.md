@@ -153,3 +153,7 @@ The private v2 producer requires the exact server Node 26.7.0 / OpenSSL 3.6.4 na
 The explicit Source-current IO component has a separate input selection and one translation unit. Its new fixed openV2 mode bounds records to 393216 bytes; legacy open remains bounded to 8192. The normal addon retains 13 translation units and the helper 11. The normal 87 source inputs and the extended Source-current IO input closure are reported separately. Original A retains matching component/App build ownership.
 
 R185 does not issue R176 HTTP-read proofs or complete the Source13 factory. The R183 Go Principal DATA codec is not yet required by a production HTTP scope caller in this package and is not used as a fabricated authority. Real login, persisted recovery, revocation, independent enrollment and actual service activation remain separate acceptance gates.
+
+### Auth22 R186 failed-sign attempt custody
+
+Auth21 is retained as frozen source evidence and has a known failed-sign partial-result defect. Auth22 replaces only the formal R185 producer leaf: before invoking the protected signer, it records this exact nonce/profile/body as SIGN_SELECTED; only a complete new signature becomes SIGNED. A failed attempt cannot expose a previous successful currentRaw as its own partial. UNKNOWN and the first cause remain unresolved and do not authorize signing again. Native source and the independent IO implementation are unchanged from Auth21; complete successors still require precise source/runtime pins.
