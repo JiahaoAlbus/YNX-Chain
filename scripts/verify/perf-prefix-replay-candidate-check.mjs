@@ -1,4 +1,4 @@
-// Exact source qualification for the explicit read-only prefix prototype.
+// Exact opt-in prefix/runtime and bounded diagnostic shutdown source qualification.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,11 +7,12 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {withFrozenAnchor} from './perf-commit-validation-timing-check.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
-export const source='5388bf28a4ddfe0c970c21196d60d072ba8b5920';
-export const pairControllerSource='5388bf28a4ddfe0c970c21196d60d072ba8b5920';
+export const source='a2a0fbc084598fed891f6e60d897386f426856e3';
+export const pairControllerSource='a2a0fbc084598fed891f6e60d897386f426856e3';
 export const pairControllerFiles=['scripts/loadtest/supply-linux-window.py','scripts/loadtest/test_supply_linux_window.py','.github/workflows/chain-core.yml'];
 const parent='9cdaeb0a64bff4d26b2e4b1558c96863d2791640';
 const tree='77b2d8c96939078be83327ab533c34e9c10d4395';
+export const diagnosticNodeTree='8206358b1f284904285e9f5f78f7fd96eee40818';
 export const runtimeClientTree='3c331b40c978f49fc16133309bdd9c7c49983071';
 const diagnosticGuard='scripts/verify/perf-commit-validation-timing-check.mjs';
 const diagnosticTests='scripts/verify/perf-commit-validation-timing-check.test.mjs';
@@ -26,9 +27,12 @@ export function validatePrefixSource(repo=root){
  requireValue(git(repo,'rev-parse','HEAD:cmd/ynx-consensus-perf-client').toString().trim()===runtimeClientTree,'current runtime client tree differs');
  try{git(repo,'diff','--quiet',pairControllerSource,'--','cmd/ynx-consensus-perf-client')}catch{throw Error('current runtime client source differs')}
  requireValue(!git(repo,'ls-files','--others','--exclude-standard','--','cmd/ynx-consensus-perf-client').toString().trim(),'untracked runtime client input refused');
+ requireValue(git(repo,'rev-parse','HEAD:cmd/ynx-abci').toString().trim()===diagnosticNodeTree,'current diagnostic node tree differs');
+ try{git(repo,'diff','--quiet',pairControllerSource,'--','cmd/ynx-abci')}catch{throw Error('current diagnostic node source differs')}
+ requireValue(!git(repo,'ls-files','--others','--exclude-standard','--','cmd/ynx-abci').toString().trim(),'untracked diagnostic node input refused');
  for(const file of pairControllerFiles)requireValue(fs.readFileSync(path.join(repo,file)).equals(git(repo,'show',pairControllerSource+':'+file)),'prefix pair controller source differs: '+file);
  for(const file of [diagnosticGuard,diagnosticTests])requireValue(fs.readFileSync(path.join(repo,file)).equals(git(repo,'show',parent+':'+file)),'original diagnostic guard changed');
- return {sourceCommit:source,pairControllerSource,pairControllerFiles,runtimeClientTree,internalTree:tree,qualification:'read-only-source-candidate',defaultFullDecodeRetained:true,goRuntimeTestsRun:false,networkImprovementMeasured:false,releaseQualified:false};
+ return {sourceCommit:source,pairControllerSource,pairControllerFiles,runtimeClientTree,diagnosticNodeTree,internalTree:tree,qualification:'source-candidate-with-diagnostic-drain',defaultFullDecodeRetained:true,goRuntimeTestsRun:false,networkImprovementMeasured:false,releaseQualified:false};
 }
 export function withFixedDiagnosticSource(repo,action){
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-fixed-diagnostic-'));const fixture=path.join(temp,'source');

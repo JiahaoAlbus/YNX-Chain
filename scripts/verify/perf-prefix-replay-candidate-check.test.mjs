@@ -31,7 +31,7 @@ for(const file of pairControllerFiles)test('prefix candidate refuses changed pai
  try{
   execFileSync('git',['clone','--shared','--no-checkout','--quiet',root,temp],{stdio:'pipe'});
   execFileSync('git',['-C',temp,'update-ref','HEAD',pairControllerSource],{stdio:'pipe'});
-  execFileSync('git',['-C',temp,'checkout',pairControllerSource,'--','internal','cmd/ynx-consensus-perf-client',...pairControllerFiles,'scripts/verify/perf-commit-validation-timing-check.mjs','scripts/verify/perf-commit-validation-timing-check.test.mjs'],{stdio:'pipe'});
+  execFileSync('git',['-C',temp,'checkout',pairControllerSource,'--','internal','cmd/ynx-consensus-perf-client','cmd/ynx-abci',...pairControllerFiles,'scripts/verify/perf-commit-validation-timing-check.mjs','scripts/verify/perf-commit-validation-timing-check.test.mjs'],{stdio:'pipe'});
   assert.equal(validatePrefixSource(temp).pairControllerSource,pairControllerSource);
   fs.appendFileSync(path.join(temp,file),'\nchanged\n');
   assert.throws(()=>validatePrefixSource(temp),/prefix pair controller source differs/);
@@ -43,11 +43,25 @@ for(const mutation of ['modified','missing','untracked'])test('runtime client re
  try{
   execFileSync('git',['clone','--shared','--no-checkout','--quiet',root,temp],{stdio:'pipe'});
   execFileSync('git',['-C',temp,'update-ref','HEAD',pairControllerSource],{stdio:'pipe'});
-  execFileSync('git',['-C',temp,'checkout',pairControllerSource,'--','internal','cmd/ynx-consensus-perf-client',...pairControllerFiles,'scripts/verify/perf-commit-validation-timing-check.mjs','scripts/verify/perf-commit-validation-timing-check.test.mjs'],{stdio:'pipe'});
+  execFileSync('git',['-C',temp,'checkout',pairControllerSource,'--','internal','cmd/ynx-consensus-perf-client','cmd/ynx-abci',...pairControllerFiles,'scripts/verify/perf-commit-validation-timing-check.mjs','scripts/verify/perf-commit-validation-timing-check.test.mjs'],{stdio:'pipe'});
   const file=path.join(temp,'cmd/ynx-consensus-perf-client/process_cpu.go');
   if(mutation==='modified')fs.appendFileSync(file,'\nchanged\n');
   if(mutation==='missing')fs.unlinkSync(file);
   if(mutation==='untracked')fs.writeFileSync(path.join(temp,'cmd/ynx-consensus-perf-client/untracked-cpu-input'),'changed');
   assert.throws(()=>validatePrefixSource(temp),/runtime client (?:source differs|input refused)/);
+ }finally{fs.rmSync(temp,{recursive:true,force:true})}
+});
+
+for(const mutation of ['modified','missing','untracked'])test('diagnostic node refuses '+mutation+' source',()=>{
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-diagnostic-node-source-'));
+ try{
+  execFileSync('git',['clone','--shared','--no-checkout','--quiet',root,temp],{stdio:'pipe'});
+  execFileSync('git',['-C',temp,'update-ref','HEAD',pairControllerSource],{stdio:'pipe'});
+  execFileSync('git',['-C',temp,'checkout',pairControllerSource,'--','internal','cmd/ynx-consensus-perf-client','cmd/ynx-abci',...pairControllerFiles,'scripts/verify/perf-commit-validation-timing-check.mjs','scripts/verify/perf-commit-validation-timing-check.test.mjs'],{stdio:'pipe'});
+  const file=path.join(temp,'cmd/ynx-abci/phase_timing_shutdown.go');
+  if(mutation==='modified')fs.appendFileSync(file,'\nchanged\n');
+  if(mutation==='missing')fs.unlinkSync(file);
+  if(mutation==='untracked')fs.writeFileSync(path.join(temp,'cmd/ynx-abci/untracked-diagnostic-input'),'changed');
+  assert.throws(()=>validatePrefixSource(temp),/diagnostic node (?:source differs|input refused)/);
  }finally{fs.rmSync(temp,{recursive:true,force:true})}
 });
