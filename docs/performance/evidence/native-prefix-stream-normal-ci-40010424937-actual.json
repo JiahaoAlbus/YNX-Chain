@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "sourceCommit": "90e5144a5db51a1ab29f14e4c6d5e37dfaf77e09",
+  "codeCommit": "90625e9d36cd1bd3a8a53609b6778b8b12056385",
+  "runId": 40010424937,
+  "attempt": 1,
+  "normalCI": {
+    "path": "artifacts/chain-performance-20261017/native-stream-source/normal-ci-40010424937.json",
+    "bytes": 8858,
+    "sha256": "831a25fe84be892cb552ebd8ba565f42b8706961de56e797b033c6554fd0edf6"
+  },
+  "identity": {
+    "path": "artifacts/chain-performance-20261017/native-stream-source/normal-ci-40010424937-identity.json",
+    "bytes": 390,
+    "sha256": "bd8ca8a2ae78a179a6c123ef4a38e83e490472755c342ac7f6039809f63c0ad3"
+  },
+  "originalLog": {
+    "path": "artifacts/chain-performance-20261017/native-stream-source/normal-ci-40010424937-full.raw",
+    "bytes": 589939,
+    "sha256": "b6b28723e4121faebd6e97e38be88597b2c20597a12fced7cf418e7cbc69ad41"
+  },
+  "actualNewTestsRunAndPassed": [
+    "TestBlockJournalBoundedPrefixHasInstanceLimitsAndOriginalValidation",
+    "TestNativeStreamingScopeAndOriginalLimits",
+    "TestNativeStreamingReaderHasFreshConstructionAndCoupledBudget",
+    "TestNativeStreamingLargeCurrentInputEvictsAndNeverFallsBackToStaleState",
+    "TestNativeStreamingRealExecutionNonceEvidenceAndRecovery",
+    "TestNativeStreamingActualEightWorkersKeepUnknownAccountQuarantined",
+    "TestNativeStreamingDurablePlanBindsActualModeAndPreservesLegacy"
+  ],
+  "noNodesOnNormalPush": true,
+  "networkPerformanceQualified": false,
+  "resourceProfileAndControllerPending": true,
+  "sustained1000Qualified": false
+}
