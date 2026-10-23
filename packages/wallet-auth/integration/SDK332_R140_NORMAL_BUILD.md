@@ -1,6 +1,6 @@
 # Canonical SDK R154 paired Node and helper source
 
-Version `1.3.0-pq.3.32-auth.5` inherits Auth4 pure deployment DATA and the unchanged Auth3 JS caller/cleanup. It consumes original Auth R154 Source/client/peer and R150/R151/R153 parents. Existing ten ParentIntent methods, three business bindings, one-child adoption and Promise-undefined cleanup remain unchanged. No JS provider or new authority is introduced.
+Version `1.3.0-pq.3.32-auth.6` inherits Auth4 pure deployment DATA and the unchanged Auth3 JS caller/cleanup. It consumes original Auth R154 Source/client/peer and R150/R151/R153 parents. Existing ten ParentIntent methods, three business bindings, one-child adoption and Promise-undefined cleanup remain unchanged. No JS provider or new authority is introduced.
 
 The independent compatibility inventory now binds 62 Node inputs plus five helper-specific inputs, all 67 paired source files, four unchanged deployment DATA files and the updated normal build tool. The Node addon requires 11 translation units: original8 plus actual client, peer and service-install. It retains NAPI8, the original pinned Node headers, macOS13 and Foundation/Security/AppKit/ServiceManagement plus lbsm.
 

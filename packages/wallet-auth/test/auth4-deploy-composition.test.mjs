@@ -25,5 +25,5 @@ test('canonical successor retains exact frozen JS hierarchy and independently pi
  for(const p of pins){const b=readFileSync(new URL('../../../'+p.path,import.meta.url));assert.equal(b.length,p.bytes);assert.equal(hash(b),p.sha256);}
 });
 test('auth4 normal source selector accepts the combined frozen public exports and exact Native inputs',()=>{
- const selected=verifySDK332R140Source(root);assert.equal(selected.contract.version,'1.3.0-pq.3.32-auth.5');assert.deepEqual(selected.contract.pureDeploymentInputs,pins);
+ const selected=verifySDK332R140Source(root);assert.equal(selected.contract.version,'1.3.0-pq.3.32-auth.6');assert.deepEqual(selected.contract.pureDeploymentInputs,pins);
 });

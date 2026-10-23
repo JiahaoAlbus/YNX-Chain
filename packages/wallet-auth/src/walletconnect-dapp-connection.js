@@ -1,4 +1,6 @@
 import {WALLETCONNECT_CHAIN,WALLETCONNECT_SESSION_METHODS,WALLETCONNECT_SESSION_EVENTS,parseWalletConnectPairingUri} from './walletconnect-protocol.js';
+import {sha256} from '@noble/hashes/sha2.js';
+import {bytesToHex,utf8ToBytes} from '@noble/hashes/utils.js';
 
 export const YNX_PAIR_PROJECT_ID='41857128a14a593ca4e4a7cb7c838d71';
 // Exact first-party transport policy; admission does not grant a ProductSession,
@@ -7,6 +9,8 @@ const LEGACY_METHODS=Object.freeze(['personal_sign','ynx_requestProductSessionV2
 const PRIVATE_METHODS=Object.freeze(['ynx_requestProductSessionV2']);
 const IDENTITY_METHODS=Object.freeze(['ynx_requestProductSessionV2','ynx_requestCentralBrowserSignIn']);
 const ADDRESS_ORIGIN='https://wallet.ynxweb4.com';
+const DEVELOPER_CONTRACT_PROFILE=Symbol('developer-contract');
+export const DEVELOPER_CONTRACT_METHODS=Object.freeze(['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']);
 const ORIGIN_METHODS=new Map([
   [ADDRESS_ORIGIN,Object.freeze([])],
   ...['finance','exchange','quant','wallet-auth'].map(host=>[`https://${host}.ynxweb4.com`,LEGACY_METHODS]),
@@ -72,9 +76,12 @@ function observationCode(error){
 // consumers receive a selected EIP-1193-shaped transport, never topics or keys
 // copied into another origin and never a product identity/session credential.
 export class WalletConnectDAppConnection{
+  #contractProfile=false;#allowed;#correlations=new WeakMap();
   #origin;#methods;#factory;#client=null;#initializing=null;#session=null;#pending=null;#epoch=0;#attempt=0;#listeners=new Map();#deadline;#now;#pairing=null;#flight=null;#draining=null;#restoring=0;#cancelledAttempt=0;#connectionState='not-started';#initializationState='not-started';#lastStage='idle';#cleanupObservation='unobserved';#firstCauseRecorded=false;#firstCauseCode=null;
-  constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now()}={}){
-    if(!ORIGIN_METHODS.has(origin)||!Array.isArray(methods)||(!methods.length&&origin!==ADDRESS_ORIGIN)||new Set(methods).size!==methods.length||methods.some(method=>!ORIGIN_METHODS.get(origin).includes(method)||!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_CONFIGURATION_INVALID');
+  constructor({origin,methods,clientFactory,deadlineMs=30000,now=()=>Date.now()}={},profile){
+    this.#contractProfile=profile===DEVELOPER_CONTRACT_PROFILE;
+    this.#allowed=this.#contractProfile?DEVELOPER_CONTRACT_METHODS:ORIGIN_METHODS.get(origin);
+    if(this.#contractProfile&&origin!=='https://developer.ynxweb4.com'||!this.#allowed||!Array.isArray(methods)||(!methods.length&&origin!==ADDRESS_ORIGIN)||new Set(methods).size!==methods.length||methods.some(method=>!this.#allowed.includes(method)||!this.#contractProfile&&!WALLETCONNECT_SESSION_METHODS.includes(method)))fail('YNX_PAIR_CONFIGURATION_INVALID');
     if(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>120000)fail('YNX_PAIR_CONFIGURATION_INVALID');
     this.#origin=origin;this.#methods=[...methods];this.#factory=clientFactory??(options=>officialClient(options,this));this.#deadline=deadlineMs;this.#now=now;
   }
@@ -107,6 +114,15 @@ export class WalletConnectDAppConnection{
     const client=await this.#wait(this.#initializing,{stage:'initialization',flight});
     if(!flight&&!this.#restoring){const record=records.get(client);if(record)record.externallyExposed=true;}
     if(this.#client)return this.#client;this.#client=client;
+    client.on('session_request_sent',event=>{
+      const state=event?.request&&this.#correlations.get(event.request);
+      if(!state||event.topic!==state.topic||event.chainId!==WALLETCONNECT_CHAIN||!Number.isSafeInteger(event.id)||event.id<1)return;
+      // Locked SignClient emits the identical request object and its own ID.
+      // Main's original inbox key is JSON([topic,id]), not topic:id.
+      const hash=bytesToHex(sha256(utf8ToBytes(JSON.stringify([event.topic,event.id]))));
+      if(state.hash!==null&&state.hash!==hash)state.conflict=true;
+      else state.hash=hash;
+    });
     const ended=({topic})=>{if(this.#session?.topic!==topic)return;this.#session=null;this.#epoch++;this.#emit('disconnect',{code:4900,message:'PAIR_SESSION_ENDED',reason:'permission-revoked'});};
     client.on('session_delete',ended);client.on('session_expire',ended);
     client.on('session_update',({topic,params})=>{if(this.#session?.topic!==topic)return;const next={...this.#session,namespaces:params.namespaces};try{this.#validate(next);this.#session=next;this.#epoch++;this.#emit('accountsChanged',this.#accounts(next));}catch{ended({topic});}});
@@ -126,7 +142,7 @@ export class WalletConnectDAppConnection{
     const value=namespaces.eip155;
     // Address-only sessions must never carry remote RPC or identity grants.
     if(this.#origin===ADDRESS_ORIGIN&&(!Array.isArray(value.methods)||value.methods.length!==0))fail('YNX_PAIR_NAMESPACE_INVALID');
-    if(!Array.isArray(value.accounts)||value.accounts.length!==1||!/^eip155:6423:0x[0-9a-fA-F]{40}$/.test(value.accounts[0])||!Array.isArray(value.methods)||this.#methods.some(method=>!value.methods.includes(method))||value.methods.some(method=>!WALLETCONNECT_SESSION_METHODS.includes(method)||(!ORIGIN_METHODS.get(this.#origin).includes(method)&&!READ_METHODS.has(method))))fail('YNX_PAIR_NAMESPACE_INVALID');
+    if(!Array.isArray(value.accounts)||value.accounts.length!==1||!/^eip155:6423:0x[0-9a-fA-F]{40}$/.test(value.accounts[0])||!Array.isArray(value.methods)||new Set(value.methods).size!==value.methods.length||this.#methods.some(method=>!value.methods.includes(method))||value.methods.some(method=>this.#contractProfile?!this.#allowed.includes(method):!WALLETCONNECT_SESSION_METHODS.includes(method)||(!this.#allowed.includes(method)&&!READ_METHODS.has(method))))fail('YNX_PAIR_NAMESPACE_INVALID');
     if(value.chains&&(!Array.isArray(value.chains)||value.chains.length!==1||value.chains[0]!==WALLETCONNECT_CHAIN))fail('YNX_PAIR_CHAIN_INVALID');
     return session;
   }
@@ -180,6 +196,7 @@ export class WalletConnectDAppConnection{
   async disconnect(){this.#epoch++;const session=this.#session;this.#session=null;await this.#cancelPairing();if(session)await this.#wait(this.#client.disconnect({topic:session.topic,reason}));const debt=this.#initializationCleanupDebt();if(debt)throw debt;this.#emit('disconnect',{code:4900,message:'PAIR_EXPLICIT_DISCONNECT',reason:'permission-revoked'});}
   provider(){const owner=this;return {isYNXWallet:true,isMetaMask:false,isYNXPair:true,providerInfo:{rdns:'com.ynx.wallet.pair'},on:(event,listener)=>owner.on(event,listener),removeListener:(event,listener)=>owner.removeListener(event,listener),request:input=>owner.request(input)};}
   async request({method,params=[]}){
+    if(this.#contractProfile&&!READ_METHODS.has(method))return this.beginContractRequest({method,params}).outcome;
     const session=this.#validate(this.#session),epoch=this.#epoch,account=this.#accounts(session)[0];
     if(method==='eth_accounts'||method==='eth_requestAccounts')return [account];if(method==='eth_chainId')return '0x1917';
     if(!this.#methods.includes(method)||!session.namespaces.eip155.methods.includes(method))fail('YNX_PAIR_METHOD_NOT_APPROVED');
@@ -190,6 +207,59 @@ export class WalletConnectDAppConnection{
     const result=await this.#wait(this.#client.request({topic:session.topic,chainId:WALLETCONNECT_CHAIN,request:{method,params},expiry:300}));
     if(this.#epoch!==epoch||this.#session!==session)fail('YNX_PAIR_CONTEXT_CHANGED');this.#validate(session);return result;
   }
+  /** A local request observation, never a signing capability or receipt.
+   * No topic, RPC id, wire or credential is exposed or accepted from callers. */
+  beginContractRequest(input){
+    if(!this.#contractProfile)fail('YNX_PAIR_METHOD_NOT_APPROVED');
+    const captured=contractJSON(input);
+    if(Object.keys(captured).sort().join(',')!=='method,params'||!DEVELOPER_CONTRACT_METHODS.includes(captured.method))fail(DEVELOPER_CONTRACT_METHODS.includes(captured.method)?'YNX_PAIR_REQUEST_SCHEMA':'YNX_PAIR_METHOD_NOT_APPROVED');
+    if(!Array.isArray(captured.params)||captured.params.length!==1)fail('YNX_PAIR_REQUEST_SCHEMA');
+    const session=this.#validate(this.#session),epoch=this.#epoch,account=this.#accounts(session)[0];
+    const body=captured.params[0];
+    if(!body||body.version!==1||body.account!==account.toLowerCase())fail('YNX_PAIR_REQUEST_SCHEMA');
+    const reference=Object.hasOwn(body,'originalRequestKeyHash')?'originalRequestKeyHash':'operationId';
+    const fields=captured.method==='ynx_preparePQContractAction'?['version','account','action']:captured.method==='ynx_preparePQContractBroadcast'?['version','account','operationId']:['version','account',reference,'refresh'];
+    if(Object.keys(body).sort().join(',')!==fields.sort().join(','))fail('YNX_PAIR_REQUEST_SCHEMA');
+    const request={method:captured.method,params:captured.params};
+    // Leave room for the normal Main topic/id/Verify envelope. This does not
+    // relax its independent 64KiB gate or certify an unobserved envelope size.
+    const requestBytes=utf8ToBytes(JSON.stringify(request));
+    if(requestBytes.length>61440)fail('YNX_PAIR_REQUEST_TOO_LARGE');
+    const requestPayloadSHA256=bytesToHex(sha256(requestBytes));
+    const state={topic:session.topic,hash:null,conflict:false,state:'pending'};
+    this.#correlations.set(request,state);
+    let work;try{work=this.#client.request({topic:session.topic,chainId:WALLETCONNECT_CHAIN,request,expiry:300});}catch(error){work=Promise.reject(error);}
+    const outcome=(async()=>{
+      try{
+        const result=await this.#wait(work);
+        if(this.#epoch!==epoch||this.#session!==session)fail('YNX_PAIR_CONTEXT_CHANGED');this.#validate(session);
+        if(!state.hash||state.conflict)fail('YNX_PAIR_REQUEST_CORRELATION_UNAVAILABLE');
+        state.state='fulfilled';return result;
+      }catch(error){state.state='unknown';throw error;}
+    })();
+    outcome.catch(()=>{});
+    return Object.freeze({outcome,snapshot:()=>Object.freeze({scope:'local-only',origin:this.#origin,method:request.method,account,chainId:WALLETCONNECT_CHAIN,requestPayloadSHA256,state:state.conflict?'unknown':state.state,originalRequestKeyHash:state.hash,correlation:state.conflict?'conflict':state.hash?'observed':'missing',remoteOutcome:'not-proven',replayAllowed:false})});
+  }
+}
+
+function contractJSON(value,depth=0){
+  if(depth>14)fail('YNX_PAIR_REQUEST_SCHEMA');
+  if(value===null||typeof value==='string'||typeof value==='boolean'||typeof value==='number'&&Number.isSafeInteger(value))return value;
+  if(!value||typeof value!=='object'||![Object.prototype,Array.prototype].includes(Object.getPrototypeOf(value)))fail('YNX_PAIR_REQUEST_SCHEMA');
+  const ds=Object.getOwnPropertyDescriptors(value),array=Array.isArray(value),out=array?[]:{};
+  if(array&&(value.length>1024||Reflect.ownKeys(ds).length!==value.length+1||Array.from({length:value.length},(_,i)=>String(i)).some(k=>!Object.hasOwn(ds,k))))fail('YNX_PAIR_REQUEST_SCHEMA');
+  for(const key of Reflect.ownKeys(ds)){
+    if(array&&key==='length')continue;
+    if(typeof key!=='string'||!ds[key].enumerable||!Object.hasOwn(ds[key],'value')||['__proto__','constructor','prototype'].includes(key))fail('YNX_PAIR_REQUEST_SCHEMA');
+    out[key]=contractJSON(ds[key].value,depth+1);
+  }
+  return out;
+}
+
+/** Exact developer/Testnet contract transport. Identity grants stay separate. */
+export function createDeveloperContractConnection(options={}){
+  if(!options||typeof options!=='object'||Array.isArray(options)||Reflect.ownKeys(options).some(key=>!['clientFactory','deadlineMs','now'].includes(key)))fail('YNX_PAIR_CONFIGURATION_INVALID');
+  return new WalletConnectDAppConnection({...options,origin:'https://developer.ynxweb4.com',methods:[...DEVELOPER_CONTRACT_METHODS]},DEVELOPER_CONTRACT_PROFILE);
 }
 
 /** Address sharing only; uses the original SignClient lifetime and persistence. */
