@@ -6,6 +6,28 @@ export const SDK_ALIAS='node_modules/@ynx-chain/wallet-auth';
 export const SDK_CANONICAL='code/packages/wallet-auth';
 export const NATIVE_CANONICAL='code/apps/wallet-desktop/native/original-auth-identity.node';
 export const NATIVE_RECEIPT='code/apps/wallet-desktop/native/original-auth-identity-build.json';
+export const CANONICAL_NATIVE_EVIDENCE_TESTS=Object.freeze([
+ 'packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs',
+ 'packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'
+]);
+export const SDK332_NATIVE_INVENTORY='packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json';
+/** Production compilation and source-inspection tests are distinct inputs.
+ * Only the independently frozen auth3 inventory may select the 55 production
+ * leaves. Never infer that set from the receipt currently being checked. */
+export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,receiptInputs){
+ const evidenceAssets=CANONICAL_NATIVE_EVIDENCE_TESTS.filter(n=>names.includes(n));
+ if(sdkVersion!=='1.3.0-pq.3.32-auth.3')return {inputs:names,evidenceAssets};
+ const bad=()=>{throw Error('Canonical Native source inventory differs');};
+ if(!Buffer.isBuffer(inventoryBytes)||inventoryBytes.length!==19696||createHash('sha256').update(inventoryBytes).digest('hex')!=='3600874dc48acc5032540ad8b8df39f34381cf85bd6b96f9fbe000e2da4da0ee')bad();
+ const inventory=JSON.parse(inventoryBytes),pins=inventory.NativeInputs;
+ if(inventory.schema!=='ynx-sdk332-r140-native-compatibility/v1'||inventory.version!==sdkVersion||pins?.length!==55)bad();
+ const inputs=pins.map(p=>p.path),sorted=value=>[...value].sort();
+ if(new Set(names).size!==names.length||JSON.stringify(sorted(names))!==JSON.stringify(sorted([...inputs,...CANONICAL_NATIVE_EVIDENCE_TESTS])))bad();
+ if(!Array.isArray(receiptInputs)||receiptInputs.length!==55)bad();
+ const rows=receiptInputs.map(p=>({path:p.relative,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.path.localeCompare(b.path,'en'));
+ if(JSON.stringify(rows)!==JSON.stringify([...pins].sort((a,b)=>a.path.localeCompare(b.path,'en'))))bad();
+ return {inputs,evidenceAssets,inventory:{path:SDK332_NATIVE_INVENTORY,bytes:inventoryBytes.length,sha256:'3600874dc48acc5032540ad8b8df39f34381cf85bd6b96f9fbe000e2da4da0ee'}};
+}
 // Public Node headers from the already selected A build input, not a runtime
 // authority or Native qualification. No network/ambient version substitution.
 export const PINNED_NODE_HEADER_PINS=Object.freeze([

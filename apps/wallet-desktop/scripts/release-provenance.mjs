@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { isDeepStrictEqual } from "node:util";
 import { Readable } from "node:stream";
-import {canonicalArchivePlan,canonicalPackedPath,canonicalSourcePath,CANONICAL_MAIN,CANONICAL_APP_METADATA,NATIVE_CANONICAL,NATIVE_RECEIPT,SDK_ALIAS,verifyCanonicalNativeReceipt} from './canonical-package.mjs';
+import {canonicalArchivePlan,canonicalPackedPath,canonicalSourcePath,CANONICAL_MAIN,CANONICAL_APP_METADATA,NATIVE_CANONICAL,NATIVE_RECEIPT,SDK_ALIAS,verifyCanonicalNativeReceipt,canonicalNativeInputSelection,SDK332_NATIVE_INVENTORY,CANONICAL_NATIVE_EVIDENCE_TESTS} from './canonical-package.mjs';
 import {walletAuthDependencyPlan,verifyPackagedWalletAuthDependencies} from './wallet-auth-dependencies.mjs';
 
 const projectDir = fileURLToPath(new URL("..", import.meta.url));
@@ -86,10 +86,7 @@ function selectedRelocationRules(sdkVersion){
 }
 // Fixed original Native build-evidence inputs may be carried by the normal
 // builder. They are not runtime entrypoints; never allow arbitrary *.test.mjs.
-const NATIVE_BUILD_EVIDENCE_TESTS=Object.freeze([
- 'packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs',
- 'packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'
-]);
+const NATIVE_BUILD_EVIDENCE_TESTS=CANONICAL_NATIVE_EVIDENCE_TESTS;
 
 // SDK production JS can live outside src (for example the R28 same-Host
 // publisher). Derive that closure from the selected commit's package files,
@@ -275,14 +272,16 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const sourceMetadata=JSON.parse(execFileSync("git",["show",`${expected.sourceCommit}:apps/wallet-desktop/package.json`],{cwd:root,encoding:"utf8",maxBuffer:16*1024*1024}));
   const sdkMetadata=JSON.parse(execFileSync('git',['show',`${expected.sourceCommit}:packages/wallet-auth/package.json`],{cwd:root,maxBuffer:16*1024*1024}));
   const sdkRuntimeDependencies=verifyPackagedWalletAuthDependencies(asar,archive,dependencies,sdkMetadata);
-  const nativeInputs=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native').split('\n').filter(name=>/\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name));
+  const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native').split('\n').filter(name=>/\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name));
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
+  const nativeSelection=canonicalNativeInputSelection(sdkMetadata.version,nativeSourceNames,sdkMetadata.version===SDK332_CLEANUP_VERSION?execFileSync('git',['show',`${expected.sourceCommit}:${SDK332_NATIVE_INVENTORY}`],{cwd:root,maxBuffer:16*1024*1024}):null,nativeReceipt.inputFiles),nativeInputs=nativeSelection.inputs;
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
   if(!lstatSync(localNative).isFile()||!lstatSync(localReceipt).isFile()||!nativeBytes.equals(readFileSync(localNative))||!nativeReceiptBytes.equals(readFileSync(localReceipt)))throw Error('Packaged native module or receipt differs from frozen build input');
-  const nativeModuleBuild={...verifyCanonicalNativeReceipt(nativeReceipt,nativeBytes,nativeInputs,name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024})),receipt:{path:NATIVE_RECEIPT,bytes:nativeReceiptBytes.length,sha256:digest(nativeReceiptBytes)}};
-  // Include only the two closed names already in the independently validated
-  // Native source/receipt closure. Every packaged byte still matches Git.
-  const nativeBuildEvidenceAssets=NATIVE_BUILD_EVIDENCE_TESTS.filter(name=>nativeInputs.includes(name)&&nativeReceipt.inputFiles.some(row=>row.relative===name));
+  const nativeModuleBuild={...verifyCanonicalNativeReceipt(nativeReceipt,nativeBytes,nativeInputs,name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024})),sourceInventory:nativeSelection.inventory??null,receipt:{path:NATIVE_RECEIPT,bytes:nativeReceiptBytes.length,sha256:digest(nativeReceiptBytes)}};
+  // The two closed source-inspection assets remain exact Git-bound evidence,
+  // even when the production compile inventory correctly excludes tests.
+  // Do not make them compiler inputs or admit arbitrary packaged test files.
+  const nativeBuildEvidenceAssets=NATIVE_BUILD_EVIDENCE_TESTS.filter(name=>nativeSelection.evidenceAssets.includes(name));
   // Matching src bytes are insufficient if package.json can select another
   // entrypoint or alter resolution. Release version remains separately bound
   // by the existing identity; these runtime fields must match source exactly.
