@@ -22,6 +22,7 @@ export function validateJournal(value){
     if(r.raw!==null)(cctp?verifyCctpSignedRecord:verifySignedRecord)(r.raw,r);
     if(r.receipt!==null){exactObject(r.receipt,['hash','blockHash','blockNumber','status','confirmationScope']);if(r.receipt.hash!==r.hash||!hash(r.receipt.blockHash)||!quantity(r.receipt.blockNumber)||![0,1].includes(r.receipt.status)||r.receipt.confirmationScope!=='rpc-block-inclusion')throw Error('Invalid receipt')}
     if(['included','reverted'].includes(r.state)&&!r.receipt)throw Error('Missing inclusion receipt');
+    if(r.state==='included'&&r.receipt.status!==1||r.state==='reverted'&&r.receipt.status!==0)throw Error('Receipt outcome contradicts the recorded state');
     if(r.state==='local-cancelled-before-broadcast'&&r.receipt!==null)throw Error('Local cancellation is not an inclusion receipt');
     if(r.state==='signing-unknown'&&r.receipt!==null)throw Error('Unknown signing has no verified receipt');
   }

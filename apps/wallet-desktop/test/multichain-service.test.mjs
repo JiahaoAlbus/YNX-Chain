@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {Wallet} from 'ethers';
@@ -76,6 +76,26 @@ test('receipt errors remain unknown; exact synthetic inclusion releases blocking
 test('pending nonce change rejects before signature; unresolved network cannot be removed',async()=>{const f=await fixture();try{let review=await f.prepare();const rpc=f.adapter.rpc;f.adapter.rpc=(u,m,p)=>m==='eth_getTransactionCount'?Promise.resolve('0x1'):rpc(u,m,p);await assert.rejects(f.service.send(review.id,f.guard),{code:'MULTICHAIN_NONCE_CHANGED'});assert.deepEqual(f.effects(),{signs:0,broadcasts:0});f.adapter.rpc=rpc;review=await f.prepare();await f.service.send(review.id,f.guard);await assert.rejects(f.service.remove(review.network.id),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});assert.equal((await f.config.read()).networks.length,1)}finally{await f.close()}});
 test('uncertain signed journal commit is retained and cannot cause broadcast or another signature',async()=>{const f=await fixture();try{const review=await f.prepare(),transition=f.journal.transition.bind(f.journal);f.journal.transition=async(id,next)=>{const result=await transition(id,next);if(next.state==='signed')throw Error('synthetic post-rename failure');return result};await assert.rejects(f.service.send(review.id,f.guard));assert.deepEqual(f.effects(),{signs:1,broadcasts:0});const records=await f.journal.list(review.network.id,account);assert.equal(records[0].state,'unknown');assert.ok(records[0].raw);await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'})}finally{await f.close()}});
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}}
+for(const [state,status] of [['included',0],['reverted',1]])test(`recovered ${state} cannot contradict receipt status ${status} or release the original hold`,async()=>{
+ const f=await fixture();try{
+  const review=await f.prepare(),sent=await f.service.send(review.id,f.guard),filePath=path.join(f.dir,'journal.json');
+  const before=await readFile(filePath);
+  f.adapter.reconcile=async()=>({state,receipt:{hash:sent.hash,blockHash:'0x'+'3'.repeat(64),blockNumber:'1',status,confirmationScope:'rpc-block-inclusion'}});
+  await assert.rejects(f.service.check(review.id));
+  assert.deepEqual(await readFile(filePath),before,'invalid recovery must not rewrite the journal');
+  const reopened=new MultiJournal({filePath}),blocking=await reopened.blocking(review.network.id,account);
+  assert.equal(blocking.length,1);assert.equal(blocking[0].state,'unknown');assert.equal(blocking[0].hash,sent.hash);
+  await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+  // PUBLIC fixture of an already contradictory disk record: cold reads must
+  // refuse it, never reset the file or silently admit a replacement operation.
+  const contradictory={...blocking[0],state,receipt:{hash:sent.hash,blockHash:'0x'+'3'.repeat(64),blockNumber:'1',status,confirmationScope:'rpc-block-inclusion'}};
+  await f.journal.file.write({version:1,records:[contradictory]});
+  const originalInvalid=await readFile(filePath);
+  await assert.rejects(new MultiJournal({filePath}).list(review.network.id,account),{code:'MULTICHAIN_STORE_INVALID'});
+  assert.deepEqual(await readFile(filePath),originalInvalid,'cold invalid records remain intact');
+  assert.deepEqual(f.effects(),{signs:1,broadcasts:1});
+ }finally{await f.close()}
+});
 function coldService(f){return new MultichainService({config:f.config,journal:new MultiJournal({filePath:path.join(f.dir,'journal.json')}),adapter:f.adapter,getContext:f.service.getContext,withSecret:async()=>{throw Error('R36 cold recovery must not access a key')},now:()=>1000});}
 test('R36 cold normal check cannot cancel an interrupted signer or admit a replacement',async()=>{
  const f=await fixture(),entered=deferred(),release=deferred();let sending;
