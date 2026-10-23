@@ -1,0 +1,7 @@
+diff --git a/apps/wallet-desktop/test/pq-contract-deployment-inbox.test.mjs b/apps/wallet-desktop/test/pq-contract-deployment-inbox.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-contract-deployment-inbox.test.mjs
+@@ -0,0 +1,2 @@
++// Existing normal CI: exact additional Go-validated64KiB inbox materials.
++import '../src/features/pq-transaction/contract-deployment-inbox.test.mjs';

@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "parent": "71b346e84b41d1b8f8df8bb5eb37249ffbcf2890",
+  "change": "Select original Go-validated material rows by exact contract name/source/artifact/build-info bytes, admit fourth Wallet64KiB-compatible build-info envelopes alongside third originals, return provenance of selected row. No API or permission changes.",
+  "API": {
+    "module": "contract-deployment-material.mjs",
+    "name": "inspectPQGoValidatedContractMaterial",
+    "signature": "(action: normalized PQNativeAction, input: exact{source:string,material:{artifactFile:Uint8Array,buildInfoFile:Uint8Array}})",
+    "result": "exact{contractName,sourceSha256,artifactSha256,buildInfoSha256,goSourceCommit,materialHandoffSha256,goMaterialPinsMatched:true,dataOnly:true,nativeAdmission:false,permissionGranted:false,submitted:false,canRetry:false,consensusFinality:false}",
+    "error": "PQ_TYPED_CONTRACT_MATERIAL_UNAVAILABLE; all original SDK/schema/full-Member/hash/review errors still propagate",
+    "imports": [
+      "@ynx-chain/wallet-auth/pq-native-action",
+      "@ynx-chain/wallet-auth/pq-contract-deployment-transport",
+      "node:crypto",
+      "./contract-deployment-material-pins.mjs"
+    ],
+    "unchanged": "Existing .d.mts, reviewed dual-AND N1 source verification,18-field independent broadcast approval binder,complete body and792658-byte RPC fence. Node-only; no new mobile parity claim."
+  },
+  "materialH": {
+    "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-wallet-inbox-20261023/HANDOFF.json",
+    "bytes": 11159,
+    "sha256": "f4cd73d2580dabeefa441ac12d0279056caffb70ecf33923ee8abfe6e4042d22"
+  },
+  "newBuildInfo": {
+    "SampleEVMWriteCounter": {
+      "bytes": 1189,
+      "sha256": "5613cb98c7973e6292bb274707901dd7ad00ff3d9fd477c04e4eead6cdb4af50",
+      "originalGoParamsBytes": 6467,
+      "IDEreportedJSONRPCBytes": 6540
+    },
+    "SampleYNXTCompatibleERC20": {
+      "bytes": 1635,
+      "sha256": "0a6feea7841f4106c5e69a6beebd80c47ca140ff1c22595bea836ebe2e44903f",
+      "originalGoParamsBytes": 14483,
+      "IDEreportedJSONRPCBytes": 14556
+    }
+  },
+  "GoEvidence": {
+    "source": "5d712dee8ac0b48da05f91a94dd2f3f495c8544f",
+    "tree": "2c7fb167c676d14ff70d20b76eb4c96ac8045398",
+    "run": "39982960594",
+    "job": "120514737158",
+    "step": 24,
+    "stepName": "Verify existing Wallet inbox materials with original Go deployment callees",
+    "stepSuccess": true,
+    "focusedJobSuccess": true,
+    "wholeWorkflowClaim": false,
+    "flow": "Original registry, deployment Builder, ValidateMaterial and getter; exact fourth material and original64KiB negative case. Original owner ran Go; this leaf independently read focused job success via gh. No live account, root, nonce or chain effects."
+  },
+  "preservation": {
+    "thirdMaterialH": "2f9a0fa4fc9a579cd60d26ab213ab3abe286e004ae2d3252e6ef020e3eeba372",
+    "thirdGoSource": "4c14331f90d5359868c0ba66d55b0847f0409edc",
+    "oldRawBytesUnchanged": true,
+    "oldUnknownNotReencodedOrResent": true,
+    "oldRejectedCompilerGenerationsUnchanged": true
+  },
+  "validation": {
+    "red": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-inbox-material-20261024/evidence/inbox-material-red.tap",
+      "bytes": 1557,
+      "sha256": "a356dd66cf5530dea11e62e4f3111ca2bf13194013ff6e9a5068c5575a8d73ea"
+    },
+    "redPass": 0,
+    "redFail": 1,
+    "redCode": "PQ_TYPED_CONTRACT_MATERIAL_UNAVAILABLE",
+    "pass": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-inbox-material-20261024/evidence/inbox-material-pass.tap",
+      "bytes": 794,
+      "sha256": "c9ea06602dee936861887c595806db901d02a2b7fc26804bd12d1186dd9f17c3"
+    },
+    "passCount": 3,
+    "fail": 0,
+    "skip": 0,
+    "cases": [
+      "Both exact fourth original materials pass full original dual-AND reviewed broadcast plan and fit existing64KiB inbox and RPC budget.",
+      "Third originals keep4c/2f9a provenance; replacing a fourth original body with third material under saved fourth transport hash fails PQ_TYPED_TRANSPORT_HASH_MISMATCH.",
+      "Unqualified new build-info newline remains rejected by exact pin."
+    ],
+    "runtime": "Original SDK auth4 package via original exports node/import/default loader; synthetic ephemeral local N1 pair destroyed in after hook. No genuine user approval or Native source admission.",
+    "loader": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-reader-20261023/evidence/auth4-test-import.mjs",
+      "bytes": 1104,
+      "sha256": "85e603c32fc33e2f438aa0ded3b5a7dad35932590b1fba4a0e7b7958afa63d6b"
+    },
+    "oldGreensNotRerun": true,
+    "types": "No signature/type changes; existing strict declaration evidence reused."
+  },
+  "CI": {
+    "proposal": "contract-deployment-inbox-ci.patch",
+    "entry": "apps/wallet-desktop/test/pq-contract-deployment-inbox.test.mjs",
+    "integratedByLeaf": false
+  },
+  "mainNext": [
+    "Consume six owned files in independent auth4-compatible successor plus one original test entry.",
+    "Both material pre-keys match and separate broadcast matcher use selected exact row; preserve session authority, custody, sole sender and UNKNOWN original journal.",
+    "Actually execute three new cases and Main corresponding64KiB/existing approval guards; do not hot edit old packages."
+  ],
+  "effects": {
+    "MainMutation": false,
+    "SDKMutation": false,
+    "AuthMutation": false,
+    "ProtocolMutation": false,
+    "SourceRootReplacement": false,
+    "newPermission": false,
+    "networkPOST": false,
+    "userKeys": false,
+    "build": false,
+    "GUI": false
+  },
+  "status": "已验证未部署: material-specific delta and controlled checks only; Main/IDE consumption,normal connection/private-journal/independent approval,package/install and genuine deployment/finality remain separate."
+}
