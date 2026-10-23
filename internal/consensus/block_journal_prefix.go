@@ -147,7 +147,15 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 			return BlockJournalPrefixReadback{BlockJournalReadback: BlockJournalReadback{State: state, SnapshotJSON: payload, CompleteBytes: p.end}, ReusedPrefixBytes: p.end}, nil
 		}
 		var replay *Application
-		err := phases.measure("suffixSetup", func() error { var e error; replay, e = NewApplication(d.full.migration); return e })
+		err := phases.measure("suffixSetup", func() error {
+			var e error
+			if d.nativeClone {
+				replay, e = newSuffixApplicationForValidatedPrivateState(d.full.migration, state)
+			} else {
+				replay, e = NewApplication(d.full.migration)
+			}
+			return e
+		})
 		if err != nil {
 			return out, err
 		}
