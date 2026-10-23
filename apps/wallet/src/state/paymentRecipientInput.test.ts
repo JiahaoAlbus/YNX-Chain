@@ -59,6 +59,15 @@ test("draft cancellation never cancels a separate transaction lease", async () =
   const attempt = f.input.begin(owner); await attempt.read(async () => recipient); f.input.cancel();
   assert.equal(attempt.isCurrent(), false); transaction.assert(); transaction.finish();
 });
+test("zero-account paste is refused without cancelling a transaction or blocking a fresh valid paste", async () => {
+  const f = fixture(), transaction = f.operations.scope().begin({ account: owner });
+  const zero = ynxAddressFromEVM("0x" + "0".repeat(40)), attempt = f.input.begin(owner);
+  await assert.rejects(() => attempt.read(async () => `ynx:${zero}?chainId=ynx_6423-1&asset=YNXT`), PaymentRequestError);
+  transaction.assert(); attempt.finish();
+  const valid = f.input.begin(owner);
+  assert.equal((await valid.read(async () => createPaymentURI(recipient))).recipient, recipient);
+  valid.assert(); transaction.assert(); valid.finish(); transaction.finish();
+});
 
 test("locked or wrong-account attempts cannot request the clipboard", () => {
   const f = fixture(); assert.throws(() => f.input.begin(replacement), WalletOperationCancelled);

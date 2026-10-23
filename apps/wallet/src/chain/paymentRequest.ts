@@ -22,7 +22,8 @@ export type PaymentRecipient = Readonly<{
 function invalid(): never { throw new PaymentRequestError("INVALID_PAYMENT_REQUEST"); }
 function canonicalRecipient(value: string): string {
   try {
-    if (ynxAddressFromEVM(evmAddressFromYNX(value)) !== value) invalid();
+    const account = evmAddressFromYNX(value);
+    if (account === "0x" + "0".repeat(40) || ynxAddressFromEVM(account) !== value) invalid();
     return value;
   } catch { return invalid(); }
 }

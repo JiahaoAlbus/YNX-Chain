@@ -15,6 +15,13 @@ test("Native and Desktop receiving URI format produces only a canonical public r
   assert.deepEqual(parsePaymentRecipient(`ynx:${recipient}?asset=YNXT&chainId=ynx_6423-1`), parsed);
   assert.deepEqual(parsePaymentRecipient(recipient), { ...parsed, kind: "address" });
 });
+test("Android/Web receiving data rejects the zero account already refused by Desktop", () => {
+  const zero = ynxAddressFromEVM("0x" + "0".repeat(40));
+  for (const value of [zero, `ynx:${zero}?chainId=ynx_6423-1&asset=YNXT`]) {
+    assert.throws(() => parsePaymentRecipient(value), PaymentRequestError);
+  }
+  assert.throws(() => createPaymentURI(zero), PaymentRequestError);
+});
 
 test("receiving input rejects unknown, duplicate, encoded and action-bearing parameters", () => {
   const wrongChecksum = recipient.slice(0, -1) + (recipient.endsWith("q") ? "p" : "q");
