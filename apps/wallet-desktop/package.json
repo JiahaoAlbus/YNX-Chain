@@ -70,6 +70,7 @@
       "native/original-auth-identity-build.json",
       "package.json",
       "node_modules/@ynx-chain/wallet-auth/**",
+      "!node_modules/@ynx-chain/wallet-auth/native/tests/**",
       "node_modules/@noble/**"
     ],
     "linux": {
