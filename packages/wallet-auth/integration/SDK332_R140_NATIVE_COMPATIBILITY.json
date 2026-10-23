@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.3",
+  "version": "1.3.0-pq.3.32-auth.4",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -205,6 +205,17 @@
       "types": "./src/pq-action-transport-node.d.ts",
       "browser": null,
       "node": "./src/pq-action-transport-node.js",
+      "default": null
+    },
+    "./pq-contract-deployment-transport": {
+      "types": "./src/pq-contract-deployment-transport.d.ts",
+      "import": "./src/pq-contract-deployment-transport.js",
+      "default": "./src/pq-contract-deployment-transport.js"
+    },
+    "./pq-contract-deployment-transport-node": {
+      "types": "./src/pq-contract-deployment-transport-node.d.ts",
+      "browser": null,
+      "node": "./src/pq-contract-deployment-transport-node.js",
       "default": null
     }
   },
@@ -518,6 +529,18 @@
       "source": "60756ad2f2bfe98abbd07bd77de3a8bc6206768f",
       "CI": 39956050202,
       "NativeInputsUnchanged": true
+    },
+    "parentAuth3": {
+      "source": "aa9681f0dddf923b16b4eef4543731cfe57e4ef6",
+      "CI": 39960395177,
+      "NativeInputsUnchanged": true,
+      "hierarchyCleanupUnchanged": true
+    },
+    "pureDeploymentParent": {
+      "source": "e4dc7eb6a4d7aa5ca1649581264fa6d44dfb869f",
+      "CI": 39958138351,
+      "controls": 4,
+      "reexecuted": false
     }
   },
   "truth": {
@@ -526,5 +549,27 @@
     "installed": false,
     "genuineSource": false,
     "grant": false
-  }
+  },
+  "pureDeploymentInputs": [
+    {
+      "path": "packages/wallet-auth/src/pq-contract-deployment-transport.js",
+      "bytes": 6043,
+      "sha256": "63f13f64e553df2bda5fe511fe00a7e215e28ae0c10125dda451c8397d986c46"
+    },
+    {
+      "path": "packages/wallet-auth/src/pq-contract-deployment-transport.d.ts",
+      "bytes": 1548,
+      "sha256": "461d497f81d73fe574465f57a6727135c666135aa7b4c6d4a046f55af62809ff"
+    },
+    {
+      "path": "packages/wallet-auth/src/pq-contract-deployment-transport-node.js",
+      "bytes": 1361,
+      "sha256": "c03b859e88db84397c546540806b99832e223239a6a0512cb54b9181a131c622"
+    },
+    {
+      "path": "packages/wallet-auth/src/pq-contract-deployment-transport-node.d.ts",
+      "bytes": 740,
+      "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
+    }
+  ]
 }
