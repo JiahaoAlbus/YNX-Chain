@@ -97,6 +97,34 @@ class RetainedExportControls(unittest.TestCase):
         with patch.object(guard, "__file__", str(self.directory / "verify-retained-native-export.py")):
             self.base, self.base_witness = guard.load_base(self.descriptor)
 
+    def test_historical_controller_identity_is_independent_of_current_sampler(self):
+        historical = "fa8a1ac1230b4f3ac5bee549019d7e7e3312c5a954c3a19227c8607f054e6c37"
+        self.assertEqual(guard.PRIOR_GUARD_BYTES, "47901")
+        self.assertEqual(guard.PRIOR_GUARD_SHA256, historical)
+        self.assertEqual(guard.PRIOR_EXPORT["controllerSHA256"], historical)
+        raw = (ROOT / "scripts/ops" / guard.BASE_NAME).read_bytes()
+        self.assertEqual(guard.BASE_PIN, dict(bytes=str(len(raw)), sha256=hashlib.sha256(raw).hexdigest()))
+        self.assertNotEqual(guard.BASE_PIN["sha256"], historical)
+        evidence = copy.deepcopy(guard.PRIOR_EXPORT)
+        with patch.dict(guard.BASE_PIN, dict(bytes="123", sha256="c" * 64), clear=True):
+            self.assertEqual(guard.PRIOR_EXPORT, evidence)
+            _, intent = self.prior_observations()(Path("intent.json"),
+                {key: guard.PRIOR_FILES["intent.json"][key] for key in ("bytes", "sha256")}, 131072, lambda: None)
+            self.assertEqual(self.base.decode(intent)["controllerSHA256"], historical)
+
+    def test_historical_and_runtime_guard_pins_cannot_substitute_for_each_other(self):
+        value = contract(self.base)
+        value["priorExport"]["controllerSHA256"] = guard.BASE_PIN["sha256"]
+        with self.assertRaisesRegex(guard.Refused, "fixed_actual_export0_evidence_required"):
+            guard.validate_contract(self.base, value)
+        descriptor = copy.deepcopy(self.descriptor)
+        descriptor.update(bytes=guard.PRIOR_GUARD_BYTES, sha256=guard.PRIOR_GUARD_SHA256)
+        descriptor["witness"]["bytes"] = guard.PRIOR_GUARD_BYTES
+        with patch.object(guard, "ModuleType") as execute:
+            with self.assertRaisesRegex(guard.Refused, "fixed_base_guard_pin_required"):
+                guard.load_base(descriptor)
+        execute.assert_not_called()
+
     def test_false_authority_and_unproven_prior_exit_are_rejected(self):
         raw = completion()
         for key, changed in (("normalExitCodes", []), ("normalExitCodes", [False]), ("normalExitCodes", [1]),
@@ -210,7 +238,7 @@ class RetainedExportControls(unittest.TestCase):
         raw = {
             "result.json": self.base.json_bytes(prior_result()),
             "intent.json": self.base.json_bytes(dict(version=guard.BASE_VERSION, contractSHA256=guard.PRIOR_CONTRACT,
-                controllerSHA256=guard.BASE_PIN["sha256"], status="unknown", automaticRetry=False,
+                controllerSHA256=guard.PRIOR_GUARD_SHA256, status="unknown", automaticRetry=False,
                 limits=self.base.LIMITS, environment=self.base.ENVIRONMENT, sourceFinalCheckpoint=False, rootGrant=False)),
             "first-cause.json": self.base.json_bytes({"code": "fresh_memory_floor"}),
             "journal.jsonl": self.base.json_bytes({"event": "child_started", "detail": journal_child or guard.PRIOR_CHILD})
@@ -233,6 +261,22 @@ class RetainedExportControls(unittest.TestCase):
                 else:
                     with self.assertRaisesRegex(guard.Refused, "prior_export_journal_exit0"):
                         guard.validate_prior_export(self.base, self.directory, lambda: None)
+
+    def test_old_export_intent_cannot_adopt_the_new_sampler_identity(self):
+        original_read = self.prior_observations()
+        def wrong_intent(path, pin, maximum, progress):
+            record, raw = original_read(path, pin, maximum, progress)
+            if path.name == "intent.json":
+                value = self.base.decode(raw)
+                value["controllerSHA256"] = guard.BASE_PIN["sha256"]
+                raw = self.base.json_bytes(value)
+            return record, raw
+        with patch.object(self.base, "private_directory"), patch.object(self.base, "regular", side_effect=lambda path: path), \
+                patch.object(self.base, "prepared_witness", side_effect=lambda path: guard.PRIOR_FILES[path.name]["witness"]), \
+                patch.object(self.base, "read_file", side_effect=wrong_intent), patch.object(self.base, "Controller") as controller:
+            with self.assertRaisesRegex(guard.Refused, "prior_export_intent_mismatch"):
+                guard.validate_prior_export(self.base, self.directory, lambda: None)
+        controller.assert_not_called()
 
     def test_prior_replacement_identity_and_hash_refuse_before_verifier(self):
         for name in guard.PRIOR_FILES:

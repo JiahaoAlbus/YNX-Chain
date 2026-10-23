@@ -52,7 +52,9 @@ guard = importlib.util.module_from_spec(SPEC)
 with no_host_operations():
     SPEC.loader.exec_module(guard)
 
-EXPECTED_CASE = "/var/tmp/ynx-caddy-baseline-5591ad6ff-20261023T2000Z"
+EXPECTED_CASE = "/var/tmp/ynx-caddy-baseline-fd-observation-20261023T2040Z"
+CONSUMED_CASE = "/var/tmp/ynx-caddy-baseline-5591ad6ff-20261023T2000Z"
+EXPECTED_GUARD = dict(bytes="48804", sha256="f6f9b1da0289707e8e30cac545d3f557819bc7bd75f5d413ae08eb7ce8e9d11d")
 EXPECTED_RUNTIME = dict(path="/usr/bin/python3", resolvedPath="/usr/bin/python3.12", bytes="8020928",
     sha256="1643dacd9feaedc58f3cc581e4d22577dfe25c09b10282936186ccf0f2e61118")
 EXPECTED_ENVIRONMENT = dict(PATH="/usr/bin:/bin", LC_ALL="C", PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1")
@@ -70,7 +72,7 @@ def contract():
     prepared = {name: dict(uid="0", gid="0", mode="700", device="64770", inode=str(100 + index))
                 for index, name in enumerate(guard.DIRECTORIES)}
     for index, name in enumerate(guard.INPUT_NAMES):
-        size = EXPECTED_PINS[name]["bytes"] if name in EXPECTED_PINS else "47901" if name == guard.GUARD else str(RUNNER.stat().st_size)
+        size = EXPECTED_PINS[name]["bytes"] if name in EXPECTED_PINS else EXPECTED_GUARD["bytes"] if name == guard.GUARD else str(RUNNER.stat().st_size)
         prepared[name] = dict(uid="0", gid="0", mode="600", device="64770", inode=str(200 + index),
             bytes=size, nlink="1", mtimeNs="1792780753533647655", ctimeNs="1792780753533647655")
     return dict(version="YNX-CADDY-BASELINE-DATA-WINDOW/v1", classification="data", casePath=EXPECTED_CASE,
@@ -120,8 +122,16 @@ class CaddyWindowContractControls(unittest.TestCase):
         self.assertEqual(guard.CASE, EXPECTED_CASE)
         self.assertEqual(guard.VERSION, "YNX-CADDY-BASELINE-DATA-WINDOW/v1")
         self.assertEqual(guard.PINNED, EXPECTED_PINS)
-        self.assertEqual(guard.GUARD_BYTES, "47901")
-        self.assertEqual(guard.GUARD_SHA256, "fa8a1ac1230b4f3ac5bee549019d7e7e3312c5a954c3a19227c8607f054e6c37")
+        self.assertEqual(guard.GUARD_BYTES, EXPECTED_GUARD["bytes"])
+        self.assertEqual(guard.GUARD_SHA256, EXPECTED_GUARD["sha256"])
+        legacy = dict(pin=dict(bytes="47901", sha256="fa8a1ac1230b4f3ac5bee549019d7e7e3312c5a954c3a19227c8607f054e6c37"),
+                      identity=("historical-fa8-source-observation",))
+        source_path = Path(EXPECTED_CASE) / guard.GUARD
+        with patch.object(guard, "read_private", return_value=(b"PUBLIC HISTORICAL SOURCE OBSERVATION", legacy)) as read, patch.object(guard, "captured_module") as captured:
+            with self.assertRaisesRegex(guard.Refused, "original_process_guard_source_pin_mismatch"):
+                guard.load_process_guard(source_path)
+            read.assert_called_once_with(source_path, {"bytes": guard.GUARD_BYTES, "sha256": guard.GUARD_SHA256}, maximum=1 << 20)
+            captured.assert_not_called()
 
     def test_closed_contract_does_not_accept_authority_commands_or_an_old_profile(self):
         value = contract()
@@ -132,6 +142,7 @@ class CaddyWindowContractControls(unittest.TestCase):
             lambda v: v.update(version="YNX-ORIGINAL-NATIVE-COPY-VERIFY/v1"),
             lambda v: v.update(version="YNX-RETAINED-NATIVE-EXPORT-VERIFY/v1"),
             lambda v: v.update(classification="approval"), lambda v: v.update(casePath="/arbitrary"),
+            lambda v: v.update(casePath=CONSUMED_CASE),
             lambda v: v.update(casePath=EXPECTED_CASE + "/../other"), lambda v: v.pop("controllerSHA256")]
         for change in changes:
             bad = copy.deepcopy(value)

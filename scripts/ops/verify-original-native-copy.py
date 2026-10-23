@@ -318,8 +318,8 @@ class LinuxProc:
     def sample_task(self, original, check_sockets=True, observation_deadline=None):
         """Actual RSS or confirmed same-identity terminal state; never stat RSS.
 
-        Only missing/zero smaps or a disappearing FD directory can receive a
-        short terminal observation. All tasks share the caller's current 200ms
+        Missing/zero smaps, a disappearing FD directory or an FD closed/reused
+        during readback can receive a short complete observation. All tasks share the caller's current 200ms
         cycle deadline, also capped by its existing 180s active deadline. This
         neither extends the command budget nor turns an unreadable live task
         into zero RSS. Typed diagnostics never contain smaps bodies or FD paths.
@@ -332,6 +332,10 @@ class LinuxProc:
         pause = 0.01
         max_attempts = 1 + (LIMITS["sampleMs"] + 9) // 10
         observations = []
+        fd_churn = ("fd_closed_during_read", "fd_reused_during_read")
+
+        def unstable_code():
+            return "owned_fd_observation_unresolved" if any(item["kind"] in fd_churn for item in observations) else "owned_live_rss_unresolved"
 
         def public_stat(value):
             if value is None:
@@ -350,8 +354,8 @@ class LinuxProc:
                 budgetMs=max(0, int((deadline - started) * 1000)),
                 elapsedMs=max(0, int((time.monotonic() - started) * 1000)),
                 resolution=resolution, observations=observations,
-                resolvedStat=public_stat(after or before) if resolution in ("rss_recovered", "terminal_single_thread") else None,
-                resolvedSmapsRSSKiB=rss_kib if resolution == "rss_recovered" else None,
+                resolvedStat=public_stat(after or before) if resolution in ("rss_recovered", "fd_recovered", "terminal_single_thread") else None,
+                resolvedSmapsRSSKiB=rss_kib if resolution in ("rss_recovered", "fd_recovered") else None,
                 failureClass=None if failure is None else type(failure).__name__,
                 failureCode=None if failure is None else (str(failure) if isinstance(failure, Refused) else type(failure).__name__))
 
@@ -397,12 +401,20 @@ class LinuxProc:
                         for entry in entries:
                             try:
                                 target = os.readlink(entry)
-                            except FileNotFoundError:
+                            except FileNotFoundError as exc:
                                 try:
                                     entry.lstat()
                                 except FileNotFoundError:
-                                    continue
-                                raise Refused("owned_fd_readback_incomplete")
+                                    reason = "fd_closed_during_read"
+                                else:
+                                    reason = "fd_reused_during_read"
+                                missing_errno = exc.errno
+                                # Invalidate this whole FD observation. Still
+                                # inspect the remaining readable entries so a
+                                # socket already visible is refused immediately.
+                                # The next attempt starts with fresh stat, real
+                                # smaps RSS and the complete FD inventory.
+                                continue
                             require(not target.startswith("socket:["), "owned_socket_present")
                 stage = "after_stat"
                 after = self.one_or_gone(pid)
@@ -421,13 +433,13 @@ class LinuxProc:
                     return {**after, "rssBytes": 0}
                 if reason is None:
                     if observations:
-                        require(time.monotonic() <= deadline, "owned_live_rss_unresolved")
-                        finish("rss_recovered")
+                        require(time.monotonic() <= deadline, unstable_code())
+                        finish("fd_recovered" if any(item["kind"] in fd_churn for item in observations) else "rss_recovered")
                     return {**after, "rssBytes": rss_kib * 1024}
                 remaining = deadline - time.monotonic()
-                require(remaining > 0 and attempt < max_attempts, "owned_live_rss_unresolved")
+                require(remaining > 0 and attempt < max_attempts, unstable_code())
                 time.sleep(min(pause, remaining))
-                require(time.monotonic() < deadline, "owned_live_rss_unresolved")
+                require(time.monotonic() < deadline, unstable_code())
             except Exception as exc:
                 if not recorded:
                     observe(reason or stage + "_error", before, after, after_kind, rss_kib, raw_bytes,

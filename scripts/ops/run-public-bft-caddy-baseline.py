@@ -23,7 +23,7 @@ import sys
 import time
 
 VERSION = 'YNX-CADDY-BASELINE-DATA-WINDOW/v1'
-CASE = '/var/tmp/ynx-caddy-baseline-5591ad6ff-20261023T2000Z'
+CASE = '/var/tmp/ynx-caddy-baseline-fd-observation-20261023T2040Z'
 COMMIT = '5591ad6ff59f5e495be01712286b1acd846f0cea'
 TREE = '04b8b951a7c0ff0793e911549fc41471e833aebd'
 RUN_ID = '40014651538'
@@ -36,8 +36,8 @@ BINDING = 'BASELINE_BINDING_RPC_EVM.json'
 PRODUCER = 'source/scripts/ops/prepare-public-bft-caddy-json-source.py'
 HELPER = 'source/scripts/ops/remote/public-bft-caddy-json.py'
 INSTALLER = 'source/scripts/ops/install-public-bft-caddy-json-baseline.py'
-GUARD_SHA256 = 'fa8a1ac1230b4f3ac5bee549019d7e7e3312c5a954c3a19227c8607f054e6c37'
-GUARD_BYTES = '47901'
+GUARD_SHA256 = 'f6f9b1da0289707e8e30cac545d3f557819bc7bd75f5d413ae08eb7ce8e9d11d'
+GUARD_BYTES = '48804'
 PYTHON_RUNTIME = dict(path='/usr/bin/python3', resolvedPath='/usr/bin/python3.12', bytes='8020928',
                       sha256='1643dacd9feaedc58f3cc581e4d22577dfe25c09b10282936186ccf0f2e61118')
 PINNED = {
@@ -339,6 +339,7 @@ class Controller:
         self.children, self.codes = [], []
         self.next_sample, self.samples, self.peak_rss, self.max_delta = 0.0, 0, 0, 0
         self.events, self.journal_bytes, self.first_cause = None, 0, None
+        self.task_sample_failure, self.task_sample_journal_error = None, None
         self.log_bytes = {'stdout': 0, 'stderr': 0}
 
     def event(self, kind, detail):
@@ -359,7 +360,20 @@ class Controller:
         sampled = {}
         deadline = min(now + LIMITS['sampleMs'] / 1000, self.started + LIMITS['activeSeconds'])
         for pid, row in tasks.items():
-            task = self.proc.sample_task(row, check_sockets=pid != self.owned.controller, observation_deadline=deadline)
+            try:
+                task = self.proc.sample_task(row, check_sockets=pid != self.owned.controller, observation_deadline=deadline)
+            except Exception as original:
+                detail = getattr(self.proc,'last_task_observation',None)
+                if (type(detail) is dict and detail.get('pid') == pid and detail.get('expectedStartTicks') == row['startTicks']
+                        and detail.get('resolution') == 'refused'):
+                    self.task_sample_failure = detail
+                    try: self.event('task_sample_refused',detail)
+                    except Exception as secondary:
+                        self.task_sample_journal_error = dict(errorClass=type(secondary).__name__,errno=getattr(secondary,'errno',None))
+                raise original
+            detail = getattr(self.proc,'last_task_observation',None)
+            if type(detail) is dict and detail.get('pid') == pid and detail.get('expectedStartTicks') == row['startTicks']:
+                self.event('task_sample_observed',detail)
             if task is not None:
                 sampled[pid] = task
         blocked = {int(row['pgid']): int(row['leaderStartTicks']) for row in self.contract['mustBeEmptyProcessGroups']}
@@ -567,7 +581,8 @@ def run(contract, contract_pin, external_witnesses):
     if not cleanup_ok: controller.first_cause=controller.first_cause or cleanup_error
     if time.monotonic()-began > LIMITS['totalSeconds']: controller.first_cause=controller.first_cause or 'total_time_limit'
     if controller.first_cause:
-        try: exclusive(controller.output/'first-cause.json',encode(dict(code=controller.first_cause)))
+        try: exclusive(controller.output/'first-cause.json',encode(dict(code=controller.first_cause,
+                       taskSample=controller.task_sample_failure,taskSampleJournalError=controller.task_sample_journal_error)))
         except Exception: pass
     success=controller.first_cause is None and cleanup_ok and controller.codes==[0] and before==after and outputs is not None
     receipt=dict(version=VERSION,classification='data',contractSHA256=contract_pin,executionStarted=True,dataPrepared=success,

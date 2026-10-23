@@ -265,6 +265,10 @@ jobs:
         if: ${{ !cancelled() && steps.source.outcome == 'success' }}
         timeout-minutes: 3
         run: timeout 90s python3 -B scripts/verify/test_public_bft_caddy_baseline_window.py -v
+      - name: Verify real FD transitions in the original bounded process guard
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        timeout-minutes: 3
+        run: timeout 90s python3 -B scripts/verify/test_original_native_copy_guard.py -v
       - name: Verify independent closed Caddy DATA window contract
         if: ${{ !cancelled() && steps.source.outcome == 'success' }}
         timeout-minutes: 3

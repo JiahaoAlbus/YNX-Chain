@@ -587,7 +587,10 @@ def assert_workflow_contract(raw):
         ("Verify existing Caddyfile and JSON ingress source controls",
          "timeout 120s bash scripts/verify/public-bft-gateway-ingress-check.sh"),
         ("Verify exact persistent baseline installer without operating services",
-         "timeout 90s python3 -B scripts/verify/test_install_public_bft_caddy_json_baseline.py -v"))
+         "timeout 90s python3 -B scripts/verify/test_install_public_bft_caddy_json_baseline.py -v"),
+        ("Verify real FD transitions in the original bounded process guard",
+         "timeout 90s python3 -B scripts/verify/test_original_native_copy_guard.py -v"))
+    qualified_caddy_steps = []
     for name, command in caddy_commands:
         found = [step for step in caddy_steps if step.startswith("      - name: " + name + "\n")]
         need(len(found) == 1)
@@ -595,6 +598,15 @@ def assert_workflow_contract(raw):
             "        if: ${{ !cancelled() && steps.source.outcome == 'success' }}",
             "        timeout-minutes: 3", "        run: " + command])
         need(caddy_steps.index(source) < caddy_steps.index(found[0]))
+        qualified_caddy_steps.append(found[0])
+    control_seals = [step for step in caddy_steps if step.startswith(
+        "      - name: Seal only the normal bounded Caddy DATA control sources\n")]
+    control_uploads = [step for step in caddy_steps if step.startswith(
+        "      - name: Upload only the tested normal Caddy DATA control source bundle\n")]
+    need(len(control_seals) == len(control_uploads) == 1)
+    need(not re.search(r"(?m)^        if:", control_seals[0] + control_uploads[0]))
+    need(all(caddy_steps.index(step) < caddy_steps.index(control_seals[0]) for step in qualified_caddy_steps))
+    need(caddy_steps.index(control_seals[0]) < caddy_steps.index(control_uploads[0]))
     need(raw.count("bash scripts/verify/public-bft-gateway-ingress-check.sh") == 1)
     need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 6\n" in mac_job)
     need("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n" in mac_job)
@@ -757,6 +769,10 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         source = next(step for step in steps if "        id: source\n" in step)
         guard = next(step for step in steps if step.startswith(
             "      - name: Verify existing Caddyfile and JSON ingress source controls\n"))
+        fd_guard = next(step for step in steps if step.startswith(
+            "      - name: Verify real FD transitions in the original bounded process guard\n"))
+        control_seal = next(step for step in steps if step.startswith(
+            "      - name: Seal only the normal bounded Caddy DATA control sources\n"))
         guard_command = "timeout 120s bash scripts/verify/public-bft-gateway-ingress-check.sh"
         mutations = [
             raw.replace(caddy, "", 1),
@@ -784,7 +800,14 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(delivery, delivery.replace("needs.caddy-source.result == 'success'", "needs.caddy-source.result != 'failure'", 1), 1),
             raw.replace(delivery, delivery.replace("needs.caddy-source.result == 'success'", "true", 1), 1),
             raw.replace(delivery, delivery.replace("    timeout-minutes: 12\n", "    continue-on-error: true\n    timeout-minutes: 12\n", 1), 1),
-            raw.replace("      - 'codex/ynx-pq-perf-integration'\n", "      - 'main'\n", 1)]
+            raw.replace("      - 'codex/ynx-pq-perf-integration'\n", "      - 'main'\n", 1),
+            raw.replace(fd_guard, "", 1),
+            raw.replace(fd_guard, fd_guard.replace("!cancelled() && steps.source.outcome == 'success'", "false", 1), 1),
+            raw.replace(fd_guard, fd_guard.replace("test_original_native_copy_guard.py -v", "test_original_native_copy_guard.py -v || true", 1), 1),
+            raw.replace(fd_guard, fd_guard.replace("        timeout-minutes: 3\n", "        continue-on-error: true\n        timeout-minutes: 3\n", 1), 1),
+            raw.replace(caddy, caddy.replace(fd_guard, "", 1).replace(control_seal, control_seal + fd_guard, 1), 1),
+            raw.replace(control_seal, control_seal.replace("        env:\n", "        if: ${{ always() }}\n        env:\n", 1), 1),
+            raw.replace(control_seal, "", 1)]
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):

@@ -24,7 +24,12 @@ CASE = "/var/tmp/ynx-pq-original-native-check-5d-20261023163017Z"
 ATTEMPT = "offline-verify-retained-export-8g180s"
 PRIOR_ATTEMPT = "offline-export-verify-8g180s-observation-fixed"
 BASE_NAME = "verify-original-native-copy.py"
-BASE_PIN = {"bytes": "47901", "sha256": "fa8a1ac1230b4f3ac5bee549019d7e7e3312c5a954c3a19227c8607f054e6c37"}
+# Current executable source qualification is separate from the immutable
+# controller identity that produced the retained failed export. Updating the
+# sampler must never rewrite that export's intent or prior evidence.
+BASE_PIN = {"bytes": "48804", "sha256": "f6f9b1da0289707e8e30cac545d3f557819bc7bd75f5d413ae08eb7ce8e9d11d"}
+PRIOR_GUARD_BYTES = "47901"
+PRIOR_GUARD_SHA256 = "fa8a1ac1230b4f3ac5bee549019d7e7e3312c5a954c3a19227c8607f054e6c37"
 PRIOR_CONTRACT = "bc3b5448b12f2d3b5c5cb098f4f35fbd88e7320f893415b77198ae249e04cbb4"
 PRIOR_CHILD = {"phase": "export", "pid": 1592161, "startTicks": 1557438355}
 PRIOR_FILES = {}
@@ -38,7 +43,7 @@ for _name, _size, _sha, _inode, _ns in (
     PRIOR_FILES[_name] = dict(bytes=_size, sha256=_sha, witness=dict(uid="0", mode="600", device="64770",
         inode=_inode, bytes=_size, mtimeNs=_ns, ctimeNs=_ns, nlink="1"))
 PRIOR_EXPORT = dict(attempt=PRIOR_ATTEMPT, contractSHA256=PRIOR_CONTRACT,
-                    controllerSHA256=BASE_PIN["sha256"], files=PRIOR_FILES)
+                    controllerSHA256=PRIOR_GUARD_SHA256, files=PRIOR_FILES)
 CHECKPOINT = dict(height="1987832", stateHash="b8ec4956306d2c3951683ec8296797d39579cfc786a240cdb7c387044ff480f4",
                   accounts="5310", validators="4")
 BASE_FIELDS = ("classification", "casePath", "controllerSHA256", "inputs", "toolSource", "limits",
@@ -189,7 +194,7 @@ def validate_prior_export(base, case, progress):
     intent = base.decode(documents["intent.json"])
     base.closed(intent, ("version", "contractSHA256", "controllerSHA256", "status", "automaticRetry", "limits",
                         "environment", "sourceFinalCheckpoint", "rootGrant"))
-    require(intent == dict(version=BASE_VERSION, contractSHA256=PRIOR_CONTRACT, controllerSHA256=BASE_PIN["sha256"],
+    require(intent == dict(version=BASE_VERSION, contractSHA256=PRIOR_CONTRACT, controllerSHA256=PRIOR_GUARD_SHA256,
         status="unknown", automaticRetry=False, limits=base.LIMITS, environment=base.ENVIRONMENT,
         sourceFinalCheckpoint=False, rootGrant=False), "prior_export_intent_mismatch")
     require(base.decode(documents["first-cause.json"]) == {"code": "fresh_memory_floor"}, "prior_first_cause_changed")

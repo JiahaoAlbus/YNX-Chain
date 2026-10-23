@@ -716,6 +716,76 @@ class ProcessControls(unittest.TestCase):
         self.assertEqual(detail["observations"][0]["smapsRSSKiB"], 8192)
         self.assertEqual(clock.pauses, [0.01])
 
+    def test_fd_reuse_repeats_whole_inventory_and_real_rss_within_shared_cycle(self):
+        task, clock = row(200, 100, 200, 30, rss=1), SampleClock()
+        proc = object.__new__(guard.LinuxProc)
+        proc.one_or_gone = Mock(return_value=task)
+        proc.bounded = Mock(side_effect=[b"Rss: 8192 kB\n", b"Rss: 4096 kB\n"])
+        entry = Path('/synthetic-fd/4')
+        with patch.object(guard.time,'monotonic',side_effect=clock.monotonic), patch.object(guard.time,'sleep',side_effect=clock.sleep), \
+                patch.object(Path,'iterdir',side_effect=lambda: iter([entry])) as inventories, \
+                patch.object(Path,'lstat',return_value=SimpleNamespace()), \
+                patch.object(guard.os,'readlink',side_effect=[FileNotFoundError(errno.ENOENT,'synthetic reused fd'),'pipe:[42]']):
+            result=proc.sample_task(task,observation_deadline=0.2)
+        self.assertEqual(result['rssBytes'],4096*1024)
+        self.assertEqual(inventories.call_count,2)
+        self.assertEqual(proc.bounded.call_count,2)
+        self.assertEqual(clock.pauses,[0.01])
+        detail=proc.last_task_observation
+        self.assertEqual(detail['resolution'],'fd_recovered')
+        self.assertEqual(detail['resolvedSmapsRSSKiB'],4096)
+        self.assertEqual(detail['observations'][0]['kind'],'fd_reused_during_read')
+        self.assertEqual(detail['observations'][0]['before']['startTicks'],30)
+        self.assertEqual(detail['observations'][0]['after']['startTicks'],30)
+
+    def test_fd_churn_stays_refused_at_original_shared_deadline(self):
+        task,clock=row(200,100,200,30),SampleClock(now=0.17)
+        proc=object.__new__(guard.LinuxProc)
+        proc.one_or_gone=lambda _pid:task
+        proc.bounded=Mock(return_value=b'Rss: 8192 kB\n')
+        entry=Path('/synthetic-fd/4')
+        with patch.object(guard.time,'monotonic',side_effect=clock.monotonic), patch.object(guard.time,'sleep',side_effect=clock.sleep), \
+                patch.object(Path,'iterdir',side_effect=lambda:iter([entry])), patch.object(Path,'lstat',return_value=SimpleNamespace()), \
+                patch.object(guard.os,'readlink',side_effect=FileNotFoundError(errno.ENOENT,'synthetic continuous reuse')):
+            with self.assertRaisesRegex(guard.Refused,'owned_fd_observation_unresolved'):
+                proc.sample_task(task,observation_deadline=0.2)
+        self.assertLessEqual(clock.now,0.2)
+        self.assertLessEqual(len(clock.pauses),4)
+        self.assertEqual(proc.last_task_observation['failureCode'],'owned_fd_observation_unresolved')
+        self.assertTrue(all(item['kind']=='fd_reused_during_read' for item in proc.last_task_observation['observations']))
+
+    def test_fd_churn_never_skips_a_socket_or_changed_pid_identity(self):
+        task,clock=row(200,100,200,30),SampleClock()
+        entry,other=Path('/synthetic-fd/4'),Path('/synthetic-fd/5')
+        proc=object.__new__(guard.LinuxProc)
+        proc.one_or_gone=lambda _pid:task
+        proc.bounded=lambda *_:b'Rss: 8192 kB\n'
+        with patch.object(guard.time,'monotonic',side_effect=clock.monotonic), patch.object(guard.time,'sleep',side_effect=clock.sleep), \
+                patch.object(Path,'iterdir',return_value=iter([entry,other])), patch.object(Path,'lstat',return_value=SimpleNamespace()), \
+                patch.object(guard.os,'readlink',side_effect=[FileNotFoundError(errno.ENOENT,'synthetic reuse'),'socket:[42]']):
+            with self.assertRaisesRegex(guard.Refused,'owned_socket_present'):proc.sample_task(task,observation_deadline=0.2)
+        self.assertEqual(clock.pauses,[])
+        proc.one_or_gone=Mock(side_effect=[task,{**task,'startTicks':999}])
+        with patch.object(Path,'iterdir',return_value=iter([entry])), patch.object(Path,'lstat',return_value=SimpleNamespace()), \
+                patch.object(guard.os,'readlink',side_effect=FileNotFoundError(errno.ENOENT,'synthetic reuse')):
+            with self.assertRaisesRegex(guard.Refused,'sample_pid_identity_changed'):proc.sample_task(task)
+
+    def test_closed_fd_requires_fresh_complete_read_not_a_skipped_entry(self):
+        task,clock=row(200,100,200,30),SampleClock()
+        entry=Path('/synthetic-fd/4')
+        proc=object.__new__(guard.LinuxProc)
+        proc.one_or_gone=lambda _pid:task
+        proc.bounded=Mock(return_value=b'Rss: 8192 kB\n')
+        with patch.object(guard.time,'monotonic',side_effect=clock.monotonic), patch.object(guard.time,'sleep',side_effect=clock.sleep), \
+                patch.object(Path,'iterdir',side_effect=[iter([entry]),iter([])]) as inventories, \
+                patch.object(Path,'lstat',side_effect=FileNotFoundError(errno.ENOENT,'synthetic closed fd')), \
+                patch.object(guard.os,'readlink',side_effect=FileNotFoundError(errno.ENOENT,'synthetic closed fd')):
+            result=proc.sample_task(task,observation_deadline=0.2)
+        self.assertEqual(result['rssBytes'],8192*1024)
+        self.assertEqual(inventories.call_count,2)
+        self.assertEqual(proc.bounded.call_count,2)
+        self.assertEqual(proc.last_task_observation['observations'][0]['kind'],'fd_closed_during_read')
+
     def test_terminal_observation_permission_identity_and_live_threads_never_wait(self):
         task = row(200, 100, 200, 30)
         for kind in ("permission", "changed-ticks", "terminal-live-threads"):

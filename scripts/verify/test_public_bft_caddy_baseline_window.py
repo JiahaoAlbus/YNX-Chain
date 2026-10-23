@@ -6,12 +6,17 @@ binary, a service command or a deployment. Mocked telemetry is labelled here;
 the isolated child smoke test exercises actual Popen/pipes/smaps/exit only.
 """
 import copy
+import contextlib
+import errno
 import hashlib
 import importlib.util
 import json
 import os
 from pathlib import Path
 import signal
+import selectors
+import subprocess
+import sys
 from types import SimpleNamespace
 import tempfile
 import time
@@ -30,6 +35,53 @@ def low_level():
     if hashlib.sha256(raw).hexdigest() != window.GUARD_SHA256:
         raise AssertionError('test must reuse the exact measured original low-level source')
     return window.captured_module(raw, path, 'caddy_window_test_original_proc_definitions')
+
+
+def historical_fa8(raw):
+    """Reverse only this FD repair, then verify the whole historical source.
+
+    No copied 47 KiB fixture, Git/network lookup or invented old branch. The
+    resulting original callee must have the independently retained full pin.
+    """
+    changes = [
+        (b"        Missing/zero smaps, a disappearing FD directory or an FD closed/reused\n        during readback can receive a short complete observation. All tasks share the caller's current 200ms\n",
+         b"        Only missing/zero smaps or a disappearing FD directory can receive a\n        short terminal observation. All tasks share the caller's current 200ms\n"),
+        (b'        fd_churn = ("fd_closed_during_read", "fd_reused_during_read")\n\n        def unstable_code():\n            return "owned_fd_observation_unresolved" if any(item["kind"] in fd_churn for item in observations) else "owned_live_rss_unresolved"\n',b''),
+        (b'                resolvedStat=public_stat(after or before) if resolution in ("rss_recovered", "fd_recovered", "terminal_single_thread") else None,\n                resolvedSmapsRSSKiB=rss_kib if resolution in ("rss_recovered", "fd_recovered") else None,\n',
+         b'                resolvedStat=public_stat(after or before) if resolution in ("rss_recovered", "terminal_single_thread") else None,\n                resolvedSmapsRSSKiB=rss_kib if resolution == "rss_recovered" else None,\n'),
+        (b'''                            except FileNotFoundError as exc:
+                                try:
+                                    entry.lstat()
+                                except FileNotFoundError:
+                                    reason = "fd_closed_during_read"
+                                else:
+                                    reason = "fd_reused_during_read"
+                                missing_errno = exc.errno
+                                # Invalidate this whole FD observation. Still
+                                # inspect the remaining readable entries so a
+                                # socket already visible is refused immediately.
+                                # The next attempt starts with fresh stat, real
+                                # smaps RSS and the complete FD inventory.
+                                continue
+''',b'''                            except FileNotFoundError:
+                                try:
+                                    entry.lstat()
+                                except FileNotFoundError:
+                                    continue
+                                raise Refused("owned_fd_readback_incomplete")
+'''),
+        (b'                        require(time.monotonic() <= deadline, unstable_code())\n                        finish("fd_recovered" if any(item["kind"] in fd_churn for item in observations) else "rss_recovered")\n',
+         b'                        require(time.monotonic() <= deadline, "owned_live_rss_unresolved")\n                        finish("rss_recovered")\n'),
+        (b'                require(remaining > 0 and attempt < max_attempts, unstable_code())\n',b'                require(remaining > 0 and attempt < max_attempts, "owned_live_rss_unresolved")\n'),
+        (b'                require(time.monotonic() < deadline, unstable_code())\n',b'                require(time.monotonic() < deadline, "owned_live_rss_unresolved")\n'),
+    ]
+    for current, old in changes:
+        if raw.count(current) != 1:
+            raise AssertionError('exact historical reverse-patch anchor missing or duplicated')
+        raw = raw.replace(current, old, 1)
+    if len(raw) != 47901 or hashlib.sha256(raw).hexdigest() != 'fa8a1ac1230b4f3ac5bee549019d7e7e3312c5a954c3a19227c8607f054e6c37':
+        raise AssertionError('historical full source does not equal the retained fa8 callee')
+    return window.captured_module(raw, RUNNER.parent/'verify-original-native-copy.py', 'caddy_window_exact_fa8_regression')
 
 
 def row(pid, parent=1, start=1, group=None, rss=1 << 20, comm='python3'):
@@ -58,6 +110,7 @@ class CapacityControls(unittest.TestCase):
         controller.started, controller.next_sample, controller.initial_bytes = 0.0, 0.0, 1024
         controller.events, controller.samples, controller.peak_rss, controller.max_delta = None, 0, 0, 0
         controller.journal_bytes = 0
+        controller.task_sample_failure = controller.task_sample_journal_error = None
         return controller
 
     def capacity(self, controller, **kwargs):
@@ -126,6 +179,22 @@ class CapacityControls(unittest.TestCase):
                 with self.assertRaisesRegex(window.Refused, 'journal_size_limit'):
                     controller.event('sample', {'synthetic':True})
             self.assertEqual(path.read_bytes(), b'')
+
+    def test_typed_refused_task_is_retained_without_journal_masking_firstcause(self):
+        controller=self.controller()
+        detail=dict(pid=200,expectedStartTicks=2,resolution='refused',failureCode='owned_fd_observation_unresolved',observations=[])
+        def sample(original,**_):
+            if original['pid']==200:
+                controller.proc.last_task_observation=detail
+                raise window.Refused('owned_fd_observation_unresolved')
+            return original
+        controller.proc.sample_task.side_effect=sample
+        controller.event=mock.Mock(side_effect=OSError(errno.ENOSPC,'synthetic journal full'))
+        with self.assertRaisesRegex(window.Refused,'owned_fd_observation_unresolved'):
+            self.capacity(controller,fresh=True)
+        self.assertEqual(controller.task_sample_failure,detail)
+        self.assertEqual(controller.task_sample_journal_error,dict(errorClass='OSError',errno=errno.ENOSPC))
+        self.assertEqual(controller.samples,0)
 
 
 class CleanupControls(unittest.TestCase):
@@ -263,6 +332,117 @@ class SourceAndCommandControls(unittest.TestCase):
             self.assertEqual(result['argv'],spawned.call_args.args[0][2:])
             self.assertEqual((output/'prepare.stderr').read_bytes(),b'')
             self.assertEqual({path.name for path in output.iterdir()},{'prepare.stdout','prepare.stderr'})
+
+
+@unittest.skipUnless(sys.platform=='linux' and Path('/proc/self/smaps_rollup').exists(), 'real Linux FD regression only')
+class FDKernelControls(unittest.TestCase):
+    @contextlib.contextmanager
+    def child(self):
+        # One controlled synthetic child, pipes and /dev/null only. The socket
+        # negative creates an unbound AF_UNIX FD, never a listening port.
+        program='''import os,socket,sys
+fd=os.open('/dev/null',os.O_RDONLY)
+owned_socket=None
+print(fd,flush=True)
+for command in sys.stdin:
+    command=command.strip()
+    if command=='exit': break
+    if command=='close':
+        if owned_socket is not None:
+            owned_socket.close(); owned_socket=None
+        else: os.close(fd)
+    elif command=='open':
+        assert os.open('/dev/null',os.O_RDONLY)==fd
+    elif command=='socket':
+        owned_socket=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+        assert owned_socket.fileno()==fd
+    else: raise AssertionError('unexpected synthetic control')
+    print('ack',flush=True)
+'''
+        child=subprocess.Popen([sys.executable,'-B','-c',program],stdin=subprocess.PIPE,stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,text=True,env={'PATH':'/usr/bin:/bin','LC_ALL':'C'},close_fds=True,start_new_session=True)
+        selector=selectors.DefaultSelector(); selector.register(child.stdout,selectors.EVENT_READ)
+        def line():
+            self.assertTrue(selector.select(2),'synthetic FD child did not acknowledge')
+            value=child.stdout.readline()
+            self.assertTrue(value,'synthetic FD child exited unexpectedly')
+            return value.strip()
+        try:
+            fd=int(line())
+            def command(value):
+                child.stdin.write(value+'\n'); child.stdin.flush()
+                self.assertEqual(line(),'ack')
+            yield child,fd,command
+        finally:
+            selector.close()
+            try:
+                _out,error=child.communicate('exit\n',timeout=2)
+            except subprocess.TimeoutExpired:
+                child.kill(); _out,error=child.communicate(timeout=2)
+            self.assertEqual(child.returncode,0,error)
+
+    @contextlib.contextmanager
+    def kernel_close_reuse(self, child, fd, command, repeated=False, replacement='open'):
+        target='/proc/'+str(child.pid)+'/fd/'+str(fd)
+        original_readlink=os.readlink
+        events=[]
+        def ordered(entry,*args,**kwargs):
+            if os.fspath(entry)==target and (repeated or not events):
+                command('close')
+                try:
+                    original_readlink(entry,*args,**kwargs)
+                except FileNotFoundError as actual:
+                    self.assertEqual(actual.errno,errno.ENOENT)
+                    command(replacement)
+                    # Real kernel ENOENT followed by a real reused symlink.
+                    self.assertTrue(Path(target).is_symlink())
+                    events.append('actual_kernel_closed_then_reused')
+                    raise
+                else:
+                    raise AssertionError('kernel FD did not close before readlink')
+            return original_readlink(entry,*args,**kwargs)
+        with mock.patch.object(os,'readlink',side_effect=ordered):
+            yield events
+
+    def test_actual_fd_close_reuse_replays_exact_fa8_red_and_fixed_resample(self):
+        fixed=low_level()
+        raw=(RUNNER.parent/'verify-original-native-copy.py').read_bytes()
+        old=historical_fa8(raw)
+        with self.child() as (child,fd,command):
+            old_proc=old['LinuxProc'](); old_task=old_proc.one(child.pid)
+            with self.kernel_close_reuse(child,fd,command) as old_events:
+                with self.assertRaisesRegex(old['Refused'],'owned_fd_readback_incomplete'):
+                    old_proc.sample_task(old_task,observation_deadline=time.monotonic()+0.2)
+            self.assertEqual(len(old_events),1)
+            proc=fixed['LinuxProc'](); task=proc.one(child.pid)
+            with self.kernel_close_reuse(child,fd,command) as current_events:
+                observed=proc.sample_task(task,observation_deadline=time.monotonic()+0.2)
+            self.assertEqual(len(current_events),1)
+            self.assertEqual(observed['startTicks'],old_task['startTicks'])
+            self.assertGreater(observed['rssBytes'],0)
+            self.assertEqual(proc.last_task_observation['resolution'],'fd_recovered')
+            self.assertEqual(proc.last_task_observation['observations'][0]['kind'],'fd_reused_during_read')
+            self.assertTrue(all(item['before']['startTicks']==item['after']['startTicks']==task['startTicks']
+                                for item in proc.last_task_observation['observations']))
+        print('CADDY_FD_KERNEL_FA8_RED_REPRODUCED_FIXED_RESAMPLED_DATA_ONLY')
+
+    def test_actual_persistent_churn_and_reopened_socket_remain_refused(self):
+        low=low_level()
+        with self.child() as (child,fd,command):
+            proc=low['LinuxProc'](); task=proc.one(child.pid)
+            began=time.monotonic()
+            with self.kernel_close_reuse(child,fd,command,repeated=True) as events:
+                with self.assertRaisesRegex(low['Refused'],'owned_fd_observation_unresolved'):
+                    proc.sample_task(task,observation_deadline=began+0.2)
+            self.assertGreater(len(events),1)
+            self.assertLess(time.monotonic()-began,0.5)
+            self.assertEqual(proc.last_task_observation['resolution'],'refused')
+            self.assertTrue(all(item['smapsRSSKiB']>0 for item in proc.last_task_observation['observations']))
+            with self.kernel_close_reuse(child,fd,command,replacement='socket') as socket_events:
+                with self.assertRaisesRegex(low['Refused'],'owned_socket_present'):
+                    proc.sample_task(task,observation_deadline=time.monotonic()+0.2)
+            self.assertEqual(len(socket_events),1)
+            self.assertEqual(proc.last_task_observation['failureCode'],'owned_socket_present')
 
 
 if __name__=='__main__':
