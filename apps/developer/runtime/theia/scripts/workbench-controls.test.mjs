@@ -100,6 +100,15 @@ function fixture() {
   const shell = { getWidgets: () => [], getTabBarFor: () => undefined };
   return { commands, calls, views, editor, shell, controls: new WorkbenchControlsContribution({ commands, shell, views, editors: { all: [editor] } }) };
 }
+test('retired workbench controls cannot dispatch a delayed project action or reveal a view',async()=>{
+  const f=fixture(),errors=[];f.controls.messages={error:message=>errors.push(message)};
+  f.controls.dispose();
+  await assert.rejects(f.controls.run('ynx.workbench.runCurrentFile'),/stopped/i);
+  await assert.rejects(f.controls.openView('terminal'),/stopped/i);
+  await assert.rejects(f.controls.openView('problems'),/stopped/i);
+  f.controls.report(Error('late retired operation'));
+  assert.deepEqual(f.calls,[]);assert.deepEqual(errors,[]);
+});
 test('project toolbar dispatches registered commands without manufacturing runtime or chain authority', async () => {
   const f = fixture();
   for (const action of PROJECT_ACTIONS) {

@@ -88,6 +88,7 @@ class WorkbenchControlsContribution {
     return { ...state, reason: state.reason ? this.translate(state.reason === 'Unavailable in this runtime' ? 'unavailableRuntime' : 'currentlyUnavailable', state.reason) : '' };
   }
   async run(id) {
+    if (this.stopped) throw new Error(this.translate('workbenchStopped', 'Workbench controls have stopped.'));
     const state = this.state(id);
     if (!state.enabled) throw new Error(state.reason);
     return this.commands.executeCommand(id);
@@ -105,6 +106,7 @@ class WorkbenchControlsContribution {
     return VIEWS.filter(v => v.area === area && !nativeEntryVisible(this.shell, this.viewWidget(v)));
   }
   async openView(key) {
+    if (this.stopped) throw new Error(this.translate('workbenchStopped', 'Workbench controls have stopped.'));
     const view = VIEWS.find(v => v.key === key);
     if (!view) throw new Error('Unknown workbench view');
     if (!this.state(view.command).enabled) throw new Error(this.state(view.command).reason);
@@ -119,7 +121,7 @@ class WorkbenchControlsContribution {
     }
     throw new Error('Native view contribution is unavailable');
   }
-  report(error) { if (this.messages) this.messages.error(error.message || String(error)); }
+  report(error) { if (!this.stopped && this.messages) this.messages.error(error.message || String(error)); }
   async initializeLayout() {
     // Called only when the framework creates a default layout. Attach static
     // native panel views in one tab group without activating or creating a PTY.
