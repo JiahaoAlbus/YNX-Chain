@@ -41,7 +41,7 @@ LIMITS = {"activeSeconds": 180, "cleanupSeconds": 15, "totalSeconds": 195,
           "sampleMs": 200, "processes": 16, "threads": 320,
           "toolLogBytes": 1 << 20, "telemetryBytes": 8 << 20, "fdsPerTask": 4096}
 ENVIRONMENT = {"GOMAXPROCS": "2", "GOMEMLIMIT": "8GiB"}
-ATTEMPT = "offline-export-verify-8g180s"
+ATTEMPT = "offline-export-verify-8g180s-observation-fixed"
 HEAVY = {"cargo", "rustc", "go", "compile", "link", "cc1", "cc1plus",
          "gcc", "g++", "clang", "clang++", "cmake", "make", "ninja"}
 

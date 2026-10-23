@@ -325,6 +325,46 @@ class ContractControls(unittest.TestCase):
                 guard.run(value, "a" * 64, [])
         self.assertEqual((original / "intent.json").read_bytes(), b"ORIGINAL PARTIAL UNKNOWN\n")
 
+    def test_observation_fixed_profile_preserves_old_unknown_and_refuses_existing_before_proc(self):
+        old_name = "offline-export-verify-8g180s"
+        fixed_name = "offline-export-verify-8g180s-observation-fixed"
+        self.assertEqual(guard.ATTEMPT, fixed_name)
+        case = Path(guard.CASE)
+        migration = str(case / fixed_name / "migration.json")
+        self.assertEqual(guard.normal_commands(case), [
+            ([str(case / "tools/extracted/ynx-chaind"), "--data-dir", str(case / "data-verified"),
+              "--export-consensus-state", migration], "export", "ynx-chaind"),
+            ([str(case / "tools/extracted/ynx-consensus-package"), "-verify-migration-state", migration],
+             "verify", "ynx-consensus-package")])
+        original = self.directory / old_name
+        original.mkdir(mode=0o700)
+        (original / "intent.json").write_bytes(b"OLD ORIGINAL PARTIAL UNKNOWN\n")
+        (original / "migration.json").write_bytes(b"OLD PARTIAL EXPORT RETAINED\n")
+        def snapshot(directory):
+            return {path.name: (path.read_bytes(), path.stat().st_ino, path.stat().st_mtime_ns)
+                    for path in directory.iterdir()}
+        original_before = snapshot(original)
+        value = contract()
+        value["casePath"] = str(self.directory)
+        fixed = self.directory / fixed_name
+        with patch.object(guard.sys, "platform", "linux"), patch.object(guard.platform, "machine", return_value="x86_64"), patch.object(guard.os, "geteuid", return_value=0), patch.object(guard, "private_directory"), patch.object(guard, "Controller", side_effect=RuntimeError("fresh fixed-profile controller boundary")) as controller:
+            with self.assertRaisesRegex(RuntimeError, "fresh fixed-profile controller boundary"):
+                guard.run(value, "a" * 64, [])
+            controller.assert_called_once_with(value, "a" * 64)
+        self.assertFalse(fixed.exists())  # The boundary mock never executes.
+        self.assertEqual(snapshot(original), original_before)
+        fixed.mkdir(mode=0o700)
+        (fixed / "intent.json").write_bytes(b"NEW FIXED PROFILE PARTIAL UNKNOWN\n")
+        fixed_before = snapshot(fixed)
+        with patch.object(guard.sys, "platform", "linux"), patch.object(guard.platform, "machine", return_value="x86_64"), patch.object(guard.os, "geteuid", return_value=0), patch.object(guard, "private_directory"), patch.object(guard, "Controller") as controller, patch.object(guard, "LinuxProc") as proc, patch.object(guard.subprocess, "Popen") as spawn:
+            with self.assertRaisesRegex(guard.Refused, "original_attempt_partial_or_unknown_retained"):
+                guard.run(value, "a" * 64, [])
+        controller.assert_not_called()
+        proc.assert_not_called()
+        spawn.assert_not_called()
+        self.assertEqual(snapshot(original), original_before)
+        self.assertEqual(snapshot(fixed), fixed_before)
+
 
 class ProcessControls(unittest.TestCase):
     def setUp(self):
