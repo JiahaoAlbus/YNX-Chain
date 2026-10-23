@@ -5,7 +5,9 @@ cd "$(dirname "$0")/../.."
 # These pure controls do not inspect a real process, start a service or qualify
 # any deployed native binary. The original operator must perform that readback.
 python3 -B - <<'PY'
-import copy, hashlib, json, runpy
+import copy, hashlib, json, os, runpy, tempfile
+from pathlib import Path
+from unittest.mock import patch
 
 code = runpy.run_path('scripts/ops/remote/public-bft-native-identity.py', run_name='native_identity_controls')
 inspect, validate = code['inspect'], code['source_identity']
@@ -36,6 +38,11 @@ class Observations:
             nodeIdentity=dict(replicationMode='authoritative_producer', blockProductionEnabled=True, validatorAddress='ynx_validator_primary'))
         self.reads, self.observations, self.shows = [], 0, 0
         self.race = None
+        self.configuration_reads = {}
+        self.files = {'/etc/systemd/system/ynx-chaind.service': b'original unit fixture bytes\n',
+            '/etc/systemd/system/ynx-chaind.service.d/90-core-ecosystem-20260912.conf':
+                b'[Service]\nEnvironment="PRIVATE_CANARY=never-print-dropin-values"\n',
+            '/etc/systemd/system/ynx-chaind.service.d/99-native-controls.conf': b'[Service]\n# public control\n'}
     def show(self):
         self.shows += 1
         value = self.unit.copy()
@@ -51,6 +58,12 @@ class Observations:
         return {'999'} if self.race == 'listener' else {'123'}
     def canonical(self, filename):
         return filename
+    def configuration(self, filename, maximum):
+        raw = self.read(filename, maximum)
+        count = self.configuration_reads.get(filename, 0) + 1
+        self.configuration_reads[filename] = count
+        changed = self.race == 'configuration-inode' and count > 1
+        return raw, (1, 999 if changed else 123, 0o100644, 1, 0, 0, len(raw), 1, 1)
     def status(self):
         return copy.deepcopy(self.payload)
     def read(self, filename, maximum, proc=False):
@@ -66,8 +79,8 @@ class Observations:
             return b'123 (ynx-chaind) S ' + b'0 ' * 18 + ticks + b' 0'
         if filename == '/etc/ynx/ynx-chaind.env':
             return ('\n'.join(k + '=' + v for k, v in self.config.items()) + '\n').encode()
-        if filename == '/etc/systemd/system/ynx-chaind.service':
-            return b'original unit fixture bytes\n'
+        if filename in self.files:
+            return self.files[filename]
         raise AssertionError('unexpected/private file read: ' + filename)
 
 def rejected(fn):
@@ -87,6 +100,94 @@ assert result['runningExecutablePath'] == normal.exe
 assert result['readOnly'] is True and result['deployment'] is False and result['nativeRootAuthorized'] is False
 assert 'PRIVATE' not in json.dumps(result) and 'environ' not in json.dumps(result)
 assert not any('devnet-state' in name or 'key' in name or 'lock' in name for name in normal.reads)
+# The profile is independent approval DATA, not loaded-unit self-attestation.
+# Values in a pinned drop-in are hashed only, never decoded or returned.
+with_dropins = Observations()
+drop_paths = sorted(name for name in with_dropins.files if '/ynx-chaind.service.d/' in name)
+profile = dict(fragmentSha256=hashlib.sha256(with_dropins.files[with_dropins.unit['FragmentPath']]).hexdigest(),
+    dropIns=[dict(path=name, sha256=hashlib.sha256(with_dropins.files[name]).hexdigest()) for name in drop_paths])
+with_dropins.unit['DropInPaths'] = ' '.join(drop_paths)
+observed = inspect(source, full, release, binary, 'primary', with_dropins, profile)
+assert observed['authoritativeSystemd'] == profile and observed['unitSHA256'] == profile['fragmentSha256']
+assert all(with_dropins.configuration_reads[name] == 2 for name in with_dropins.files)
+assert 'PRIVATE_CANARY' not in json.dumps(observed) and 'never-print' not in json.dumps(observed)
+rejected(lambda: inspect(source, full, release, binary, 'primary', with_dropins))
+single = Observations(); single.unit['DropInPaths'] = drop_paths[0]
+single_profile = {**profile, 'dropIns': profile['dropIns'][:1]}
+assert inspect(source, full, release, binary, 'primary', single, single_profile)['authoritativeSystemd'] == single_profile
+for change in (
+    lambda x: x.unit.update(DropInPaths=' '.join(reversed(drop_paths))),
+    lambda x: x.unit.update(DropInPaths=' '.join(drop_paths + ['/etc/systemd/system/ynx-chaind.service.d/extra.conf'])),
+    lambda x: x.unit.update(DropInPaths=drop_paths[0]),
+    lambda x: setattr(x, 'race', 'configuration-inode'),
+    lambda x: x.files.update({drop_paths[0]: b'changed original bytes\n'}),
+    lambda x: x.files.update({x.unit['FragmentPath']: b'changed fragment\n'}),
+):
+    fixture = Observations(); fixture.unit['DropInPaths'] = ' '.join(drop_paths); change(fixture)
+    rejected(lambda: inspect(source, full, release, binary, 'primary', fixture, profile))
+for bad in (None, {}, {**profile, 'extra': True}, {**profile, 'fragmentSha256': '0' * 64},
+        {**profile, 'dropIns': list(reversed(profile['dropIns']))},
+        {**profile, 'dropIns': [profile['dropIns'][0]] * 2}, {**profile, 'dropIns': profile['dropIns'] * 9},
+        {**profile, 'dropIns': [{**profile['dropIns'][0], 'sha256': 'f' * 64}]},
+        {**profile, 'dropIns': [{'path': drop_paths[0]}]},
+        *({**profile, 'dropIns': [dict(path=name, sha256='a' * 64)]} for name in
+          ('/tmp/unapproved.conf', '/etc/systemd/system/ynx-chaind.service.d/../escape.conf',
+           "/etc/systemd/system/ynx-chaind.service.d/quoted';id.conf", drop_paths[0] + '\n'))):
+    if bad is not None and bad.get('dropIns') == [{**profile['dropIns'][0], 'sha256': 'f' * 64}]:
+        fixture = Observations(); fixture.unit['DropInPaths'] = drop_paths[0]
+        rejected(lambda: inspect(source, full, release, binary, 'primary', fixture, bad))
+    else:
+        rejected(lambda: code['systemd_identity'](bad))
+# Exercise the real bounded/no-follow configuration reader against real files,
+# including a same-byte inode replacement after opening the original file.
+reader = code['OriginalProcess']()
+with tempfile.TemporaryDirectory(prefix='ynx-native-systemd-read-') as directory:
+    original = Path(directory).resolve() / 'original.conf'
+    original.write_bytes(b'public exact fixture\n'); original.chmod(0o644)
+    assert reader.configuration(str(original), 65536)[0] == original.read_bytes()
+    link = original.with_name('symlink.conf'); link.symlink_to(original)
+    rejected(lambda: reader.configuration(str(link), 65536)); link.unlink()
+    link = original.with_name('hardlink.conf'); os.link(original, link)
+    rejected(lambda: reader.configuration(str(original), 65536)); link.unlink()
+    original.chmod(0o666); rejected(lambda: reader.configuration(str(original), 65536)); original.chmod(0o644)
+    rejected(lambda: reader.configuration(str(original), 1))
+    replacement = original.with_name('replacement.conf'); replacement.write_bytes(original.read_bytes()); replacement.chmod(0o644)
+    actual_open = os.open
+    def replacing_open(filename, flags, *args, **kwargs):
+        fd = actual_open(filename, flags, *args, **kwargs)
+        if filename == str(original):
+            os.replace(replacement, original)
+        return fd
+    with patch.object(os, 'open', side_effect=replacing_open):
+        rejected(lambda: reader.configuration(str(original), 65536))
+# Reuse the original capture fixture and unchanged final reader. Only OS
+# process observations are doubles; the real producer consumes the profile
+# from its independently pinned preparation and emits the original 19 fields.
+capture_controls = runpy.run_path('scripts/verify/test_public_bft_capture_snapshot_source.py',
+                                run_name='native_systemd_capture_controls')
+with tempfile.TemporaryDirectory(prefix='ynx-native-systemd-capture-') as directory:
+    fixture = capture_controls['Fixture'](Path(directory).resolve(), 'profile')
+    fixture.approval['authoritativeSystemd'] = copy.deepcopy(single_profile)
+    role_base = {k: fixture.approval[k] for k in
+        ('authoritativeCommit', 'authoritativeRelease', 'authoritativeBinarySha256', 'authoritativeSource')}
+    fixture.approval['authoritativeRoles'] = {role: copy.deepcopy(role_base) for role in ('primary', 'singapore', 'silicon-valley', 'seoul')}
+    fixture.approval['authoritativeRoles']['primary']['authoritativeSystemd'] = copy.deepcopy(single_profile)
+    fixture.replace(fixture.approval_path, fixture.approval, 'preparation_approval_sha256')
+    fixture.process.unit['DropInPaths'] = drop_paths[0]
+    def pinned_configuration(filename, maximum):
+        raw = single.files[filename]
+        return raw, (1, 123, 0o100644, 1, 0, 0, len(raw), 1, 1)
+    fixture.process.configuration = pinned_configuration
+    receipt = fixture.run()
+    output = Path(receipt['snapshotSourcePath']); raw = output.read_bytes()
+    assert len(json.loads(raw)) == 19 and 'PRIVATE' not in raw.decode()
+    identity = {**role_base, 'authoritativeSystemd': single_profile}
+    original_reader = capture_controls['original_reader']()
+    consumed, returned = original_reader['source_record'](output, hashlib.sha256(raw).hexdigest(),
+        fixture.tx, fixture.commit, fixture.native, fixture.release, identity)
+    assert returned == raw
+    original_reader['check_source'](consumed, fixture.tx, fixture.commit, fixture.release, identity)
+    assert receipt['exported'] is False and receipt['nativeRootAuthorized'] is False
 follower = Observations()
 follower.payload['nodeIdentity'] = dict(replicationMode='authoritative_follower', blockProductionEnabled=False, validatorAddress='ynx_validator_seoul')
 assert inspect(source, full, release, binary, 'seoul', follower)['role'] == 'seoul'
@@ -147,7 +248,7 @@ PY
 node --input-type=module <<'NODE'
 import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';import http from 'node:http';
 import {execFile} from 'node:child_process';import {promisify} from 'node:util';
-import {authoritativeRoleIdentities,roleAuthoritativeIdentity,validateAuthoritativeObservation} from './scripts/verify/lib/public-bft-native-source.mjs';
+import {authoritativeIdentity,authoritativeSystemdIdentity,authoritativeRoleIdentities,roleAuthoritativeIdentity,validateAuthoritativeObservation} from './scripts/verify/lib/public-bft-native-source.mjs';
 const run=promisify(execFile),repo=process.cwd(),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-native-helper-controls-'));
 const commit='abcdef012345',full='65efa82e06158f9616172144c3c9efdd8088f227',native='ynx-network-surgical-'+full.slice(0,12),bft='ynx-bft-gateway-'+commit,tx='native-helper-controls';
 const source=path.join(tmp,'source'),evidence=path.join(tmp,'evidence'),freeze=path.join(tmp,'freeze.json'),pause=path.join(tmp,'pause.json');
@@ -156,10 +257,40 @@ const observed={version:'YNX-PUBLIC-BFT-NATIVE-IDENTITY/v1',transactionId:tx,com
 validateAuthoritativeObservation(observed,approved,'primary',tx);
 for(const [name,value]of [['transactionId','another-transaction'],['commit','0'.repeat(12)],['role','seoul'],['authoritativeBinarySha256','f'.repeat(64)],['dataPath','/different-db'],['readOnly',false]])assert.throws(()=>validateAuthoritativeObservation({...observed,[name]:value},approved,'primary',tx));
 assert.throws(()=>validateAuthoritativeObservation(observed,approved,'primary','another-transaction'));
+const systemd={fragmentSha256:'b'.repeat(64),dropIns:[
+  {path:'/etc/systemd/system/ynx-chaind.service.d/90-core-ecosystem-20260912.conf',sha256:'c'.repeat(64)},
+  {path:'/etc/systemd/system/ynx-chaind.service.d/99-native-controls.conf',sha256:'d'.repeat(64)}]};
+const systemdApproval={...approved,authoritativeSystemd:systemd},systemdObservation={...observed,authoritativeSystemd:structuredClone(systemd)};
+assert.deepEqual(authoritativeIdentity(systemdApproval).authoritativeSystemd,systemd);
+validateAuthoritativeObservation(systemdObservation,systemdApproval,'primary',tx);
+assert.throws(()=>validateAuthoritativeObservation(systemdObservation,approved,'primary',tx));
+assert.throws(()=>validateAuthoritativeObservation(observed,systemdApproval,'primary',tx));
+assert.throws(()=>validateAuthoritativeObservation({...systemdObservation,unitSHA256:'f'.repeat(64)},systemdApproval,'primary',tx));
+for(const profile of [null,{}, {...systemd,extra:true}, {...systemd,fragmentSha256:'0'.repeat(64)},
+    {...systemd,dropIns:[...systemd.dropIns].reverse()}, {...systemd,dropIns:[systemd.dropIns[0],systemd.dropIns[0]]},
+    {...systemd,dropIns:Array(17).fill(systemd.dropIns[0])}, {...systemd,dropIns:[{path:systemd.dropIns[0].path}]},
+    ...['/tmp/foreign.conf',"/etc/systemd/system/ynx-chaind.service.d/inject';id.conf",'/etc/systemd/system/ynx-chaind.service.d/../other.conf',systemd.dropIns[0].path+'\n']
+      .map(path=>({...systemd,dropIns:[{path,sha256:'c'.repeat(64)}]}))]){
+  assert.throws(()=>authoritativeSystemdIdentity(profile));
+  assert.throws(()=>authoritativeIdentity({...approved,authoritativeSystemd:profile}));
+}
+for(const profile of [{...systemd,fragmentSha256:'e'.repeat(64)}, {...systemd,dropIns:[]},
+    {...systemd,dropIns:[{...systemd.dropIns[0],sha256:'e'.repeat(64)},systemd.dropIns[1]]}])
+  assert.throws(()=>validateAuthoritativeObservation({...systemdObservation,authoritativeSystemd:profile},systemdApproval,'primary',tx));
+const copied=authoritativeIdentity(systemdApproval);copied.authoritativeSystemd.dropIns[0].sha256='f'.repeat(64);
+assert.equal(systemd.dropIns[0].sha256,'c'.repeat(64));assert.equal(Object.keys(copied.authoritativeSource).length,4);
 const primary=JSON.parse(JSON.stringify(approved));delete primary.commit;
 const roleNames=['primary','singapore','silicon-valley','seoul'];
 const mixed={...approved,authoritativeRoles:Object.fromEntries(roleNames.map((role,index)=>[role,index===0?primary:{...primary,authoritativeCommit:String(index).repeat(40),authoritativeRelease:'ynx-chain-'+String(index).repeat(12),authoritativeBinarySha256:String(index).repeat(64)}]))};
 assert.equal(authoritativeRoleIdentities(mixed).authoritativeRoles.primary.authoritativeCommit,full);
+const systemdMixed=structuredClone(mixed);systemdMixed.authoritativeSystemd=structuredClone(systemd);
+systemdMixed.authoritativeRoles.primary.authoritativeSystemd=structuredClone(systemd);
+systemdMixed.authoritativeRoles.singapore.authoritativeSystemd={fragmentSha256:'e'.repeat(64),dropIns:[]};
+assert.deepEqual(roleAuthoritativeIdentity(systemdMixed,'primary').authoritativeSystemd,systemd);
+assert.deepEqual(roleAuthoritativeIdentity(systemdMixed,'singapore').authoritativeSystemd,{fragmentSha256:'e'.repeat(64),dropIns:[]});
+validateAuthoritativeObservation(systemdObservation,systemdMixed,'primary',tx);
+const missingPrimary=structuredClone(systemdMixed);delete missingPrimary.authoritativeRoles.primary.authoritativeSystemd;
+assert.throws(()=>authoritativeRoleIdentities(missingPrimary));
 for(const role of roleNames){
   const own=roleAuthoritativeIdentity(mixed,role),actual={...observed,role,...own};delete actual.authoritativeSource;
   validateAuthoritativeObservation(actual,mixed,role,tx);

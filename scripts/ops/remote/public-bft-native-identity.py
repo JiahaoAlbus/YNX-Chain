@@ -46,6 +46,33 @@ def sha(value):
     return value
 
 
+def systemd_identity(value):
+    require(type(value) is dict and set(value) == {'fragmentSha256', 'dropIns'},
+            'closed independent original systemd pins required')
+    sha(value['fragmentSha256'])
+    rows = value['dropIns']
+    require(type(rows) is list and len(rows) <= 16, 'bounded original drop-in pins required')
+    names = []
+    for row in rows:
+        require(type(row) is dict and set(row) == {'path', 'sha256'}, 'closed original drop-in pin required')
+        filename = path(row['path'])
+        require(len(filename) <= 4096 and re.fullmatch(
+            r'/etc/systemd/system/ynx-chaind\.service\.d/[A-Za-z0-9._-]+\.conf', filename),
+            'original native drop-in path required')
+        sha(row['sha256'])
+        names.append(filename)
+    require(names == sorted(set(names)), 'sorted unique original drop-in pins required')
+    require(len(json.dumps(value, separators=(',', ':')).encode('utf-8')) <= 65536,
+            'bounded original systemd pins required')
+    return dict(fragmentSha256=value['fragmentSha256'],
+                dropIns=[dict(path=row['path'], sha256=row['sha256']) for row in rows])
+
+
+def file_identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid,
+            info.st_gid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
 def source_identity(value, full_commit, release, binary_pin, tx, candidate):
     require(re.fullmatch('[0-9a-f]{40}', full_commit) and full_commit != '0' * 40,
             'original full native commit required')
@@ -87,7 +114,7 @@ class OriginalProcess:
 
     def read(self, filename, maximum, proc=False):
         if not proc:
-            require(os.path.realpath(filename) == filename, 'symlink in original source/configuration path')
+            return self.configuration(filename, maximum)[0]
         with open(filename, 'rb') as stream:
             before = os.fstat(stream.fileno())
             require(stat.S_ISREG(before.st_mode), 'original regular file required')
@@ -98,6 +125,21 @@ class OriginalProcess:
         require(len(raw) <= maximum and (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
                 == (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns), 'original file changed or exceeds bound')
         return raw
+
+    def configuration(self, filename, maximum):
+        require(os.path.realpath(filename) == filename, 'symlink in original source/configuration path')
+        before = os.lstat(filename)
+        require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and not before.st_mode & 0o022
+                and 0 < before.st_size <= maximum, 'unsafe original file metadata')
+        fd = os.open(filename, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        with os.fdopen(fd, 'rb') as stream:
+            require(file_identity(os.fstat(stream.fileno())) == file_identity(before),
+                    'original configuration changed before read')
+            raw = stream.read(maximum + 1)
+            require(len(raw) == before.st_size and file_identity(os.fstat(stream.fileno())) == file_identity(before)
+                    and file_identity(os.lstat(filename)) == file_identity(before),
+                    'original configuration changed during read')
+        return raw, file_identity(before)
 
     def executable(self, pid):
         filename = '/proc/' + pid + '/exe'
@@ -124,15 +166,27 @@ class OriginalProcess:
         return set(re.findall(r'pid=([1-9][0-9]*)', raw))
 
 
-def inspect(source, full_commit, release, binary_pin, role, process):
+def inspect(source, full_commit, release, binary_pin, role, process, systemd=None):
     require(role in ('primary', 'singapore', 'silicon-valley', 'seoul'), 'invalid original role')
     selected = ('YNX_DATA_DIR', 'YNX_MUTATION_FREEZE_FILE', 'YNX_BLOCK_PRODUCTION_PAUSE_FILE')
     unit = process.show()
     require(unit['ActiveState'] == 'active' and unit['SubState'] == 'running'
             and re.fullmatch('[1-9][0-9]*', unit['MainPID']) and int(unit['MainPID']) > 1,
             'original native unit has no active MainPID')
-    require(unit['FragmentPath'] == '/etc/systemd/system/ynx-chaind.service' and unit['DropInPaths'] == '',
+    profile = systemd_identity(systemd) if systemd is not None else None
+    require(unit['FragmentPath'] == '/etc/systemd/system/ynx-chaind.service'
+            and unit['DropInPaths'] == (' '.join(row['path'] for row in profile['dropIns']) if profile else ''),
             'unsupported original native unit/drop-in identity')
+    def configurations():
+        rows = [(unit['FragmentPath'], profile['fragmentSha256']),
+                *((row['path'], row['sha256']) for row in profile['dropIns'])]
+        observed = []
+        for filename, expected in rows:
+            raw, identity = process.configuration(filename, 1 << 20 if filename == unit['FragmentPath'] else 65536)
+            require(hashlib.sha256(raw).hexdigest() == expected, 'original systemd file differs from independent pin')
+            observed.append((raw, identity))
+        return observed
+    before_config = configurations() if profile else None
     require(unit['EnvironmentFiles'] == '/etc/ynx/ynx-chaind.env (ignore_errors=no)',
             'loaded original native environment differs')
     pid = unit['MainPID']
@@ -213,26 +267,33 @@ def inspect(source, full_commit, release, binary_pin, role, process):
                 and value.get('nodeIdentity', {}).get('blockProductionEnabled') is (role == 'primary'),
                 'original native status build/chain/role differs from approval')
     status()
-    unit_raw = process.read(unit['FragmentPath'], 1 << 20)
+    unit_raw = before_config[0][0] if profile else process.read(unit['FragmentPath'], 1 << 20)
     status()
+    if profile:
+        require(configurations() == before_config, 'original systemd files changed during qualification')
     require(process.show() == unit and observation() == before, 'original native process changed during qualification')
     return dict(version='YNX-PUBLIC-BFT-NATIVE-IDENTITY/v1', role=role, authoritativeCommit=full_commit,
         authoritativeRelease=release, authoritativeBinarySha256=binary_pin, mainPid=pid,
         runningExecutablePath=before[0][0], runningExecutableDeviceInode=before[0][2],
         unitSHA256=hashlib.sha256(unit_raw).hexdigest(), dataPath=data,
         pauseMarkerPath=pause, mutationMarkerPath=source['mutationMarkerPath'],
-        readOnly=True, deployment=False, nativeRootAuthorized=False)
+        readOnly=True, deployment=False, nativeRootAuthorized=False,
+        **({'authoritativeSystemd': profile} if profile else {}))
 
 
 def main(args):
-    require(len(args) == 10, 'exact approved native identity/stable paths/transaction/role inputs required')
-    full, release, binary, tx, candidate, role, state, integrity, pause, mutation = args
+    require(len(args) in (10, 11), 'exact approved native identity/stable paths/transaction/role inputs required')
+    systemd = None
+    if len(args) == 11:
+        require(len(args[-1].encode('utf-8')) <= 65536, 'bounded original systemd pins required')
+        systemd = systemd_identity(decode(args[-1].encode('utf-8')))
+    full, release, binary, tx, candidate, role, state, integrity, pause, mutation = args[:10]
     process = OriginalProcess()
     # These paths are already projected from the protected approval. They have
     # no future H, hash or marker bytes: qualification can precede freeze/pause.
     source = source_identity(dict(statePath=state, integrityMarkerPath=integrity,
         pauseMarkerPath=pause, mutationMarkerPath=mutation), full, release, binary, tx, candidate)
-    result = inspect(source, full, release, binary, role, process)
+    result = inspect(source, full, release, binary, role, process, systemd)
     result['transactionId'] = tx
     result['commit'] = candidate
     print(json.dumps(result, separators=(',', ':')))

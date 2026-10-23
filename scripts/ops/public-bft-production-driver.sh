@@ -20,6 +20,7 @@ public_bft_native_context() {
   native_full_commit=""
   native_binary_pin=""
   native_source_json=""
+  native_systemd_json=""
   native_approval_path=""
   native_transaction_id=""
   native_state=/var/lib/ynx-chain/testnet/devnet-state.json
@@ -39,16 +40,17 @@ public_bft_native_context() {
   fi
   [[ -f "$approved_path" && ! -L "$approved_path" ]] || { echo "original protected approval projection must be a regular non-symlink file" >&2; return 1; }
   approved="$(node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$approved_path" "$commit" "ynx-bft-gateway-$commit" "${approval_mode[@]}")" || return $?
-  values="$(printf '%s' "$approved" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{const a=JSON.parse(s);if(!a.authoritativeCommit)return;console.log([a.authoritativeCommit,a.authoritativeRelease,a.authoritativeBinarySha256,JSON.stringify(a.authoritativeSource),...Object.values(a.authoritativeSource)].join("\n"))})')" || return $?
+  values="$(printf '%s' "$approved" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{const a=JSON.parse(s);if(!a.authoritativeCommit)return;console.log([a.authoritativeCommit,a.authoritativeRelease,a.authoritativeBinarySha256,JSON.stringify(a.authoritativeSource),...Object.values(a.authoritativeSource),Object.hasOwn(a,"authoritativeSystemd")?JSON.stringify(a.authoritativeSystemd):"-"].join("\n"))})')" || return $?
   [[ -n "$values" ]] || return 0
   local -a identity
   mapfile -t identity <<<"$values"
-  (( ${#identity[@]} == 8 )) || { echo "incomplete approved native source identity" >&2; return 1; }
+  (( ${#identity[@]} == 9 )) || { echo "incomplete approved native source identity" >&2; return 1; }
   native_full_commit="${identity[0]}"; native_commit="${native_full_commit:0:12}"
   release="${identity[1]}"; native_binary_pin="${identity[2]}"; native_source_json="${identity[3]}"
   native_approval_path="$approved_path"
   native_transaction_id="$(basename "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR")"
   native_state="${identity[4]}"; native_integrity="${identity[5]}"; native_pause="${identity[6]}"; native_mutation="${identity[7]}"
+  [[ "${identity[8]}" == - ]] || native_systemd_json="${identity[8]}"
   # The original scoped backup covers this precise existing native layout. A
   # different live data directory needs its own preservation implementation,
   # never a service reconfiguration or a new empty DB to fit this contract.
@@ -65,30 +67,35 @@ public_bft_native_role_context() {
   role_native_integrity="${native_integrity:-/var/lib/ynx-chain/testnet/devnet-state.integrity-version}"
   role_native_pause="${native_pause:-/var/lib/ynx-chain/block-production-pause.json}"
   role_native_mutation="${native_mutation:-/var/lib/ynx-chain/mutation-freeze.json}"
+  role_native_systemd_json=""
   [[ -n "$role_native_full" ]] || return 0
   values="$(node --input-type=module - "$native_approval_path" "$role" <<'NODE'
 import fs from 'node:fs';import {roleAuthoritativeIdentity} from './scripts/verify/lib/public-bft-native-source.mjs';
 const a=roleAuthoritativeIdentity(JSON.parse(fs.readFileSync(process.argv[2])),process.argv[3]);
-console.log([a.authoritativeCommit,a.authoritativeRelease,a.authoritativeBinarySha256,...Object.values(a.authoritativeSource)].join('\n'));
+console.log([a.authoritativeCommit,a.authoritativeRelease,a.authoritativeBinarySha256,...Object.values(a.authoritativeSource),Object.hasOwn(a,'authoritativeSystemd')?JSON.stringify(a.authoritativeSystemd):'-'].join('\n'));
 NODE
 )" || return $?
   local -a identity
   mapfile -t identity <<<"$values"
-  (( ${#identity[@]} == 7 )) || { echo "incomplete approved original role identity" >&2; return 1; }
+  (( ${#identity[@]} == 8 )) || { echo "incomplete approved original role identity" >&2; return 1; }
   role_native_full="${identity[0]}"; role_native_release="${identity[1]}"; role_native_binary="${identity[2]}"
   role_native_state="${identity[3]}"; role_native_integrity="${identity[4]}"; role_native_pause="${identity[5]}"; role_native_mutation="${identity[6]}"
+  [[ "${identity[7]}" == - ]] || role_native_systemd_json="${identity[7]}"
   [[ "$role_native_state" == /var/lib/ynx-chain/testnet/devnet-state.json && "$role_native_pause" == /var/lib/ynx-chain/block-production-pause.json && "$role_native_mutation" == /var/lib/ynx-chain/mutation-freeze.json ]] || { echo "approved role paths are outside original scoped preservation layout" >&2; return 1; }
 }
 
 public_bft_native_qualify() {
-  local role="$1" user="$2" host="$3" key="$4" output="$5" tx
+  local role="$1" user="$2" host="$3" key="$4" output="$5" tx systemd_arg=""
   public_bft_native_role_context "$role" || return $?
   [[ -n "${native_full_commit:-}" ]] || return 0
   tx="$(basename "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR")"
+  # The normalized closed profile contains only fixed keys, canonical ASCII
+  # paths and lowercase hashes; no quote, control or shell syntax is admitted.
+  [[ -z "$role_native_systemd_json" ]] || systemd_arg=" '$role_native_systemd_json'"
   # The script is streamed through the existing transport; there is no native
   # install/start/restart or path inferred from the release's build label.
   # Keep any partial observation on error; it cannot authorize a later phase.
-  (set -C; ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo env -i PATH=/usr/bin:/bin python3 -B - '$role_native_full' '$role_native_release' '$role_native_binary' '$tx' '$commit' '$role' '$role_native_state' '$role_native_integrity' '$role_native_pause' '$role_native_mutation'" <scripts/ops/remote/public-bft-native-identity.py >"$output")
+  (set -C; ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo env -i PATH=/usr/bin:/bin python3 -B - '$role_native_full' '$role_native_release' '$role_native_binary' '$tx' '$commit' '$role' '$role_native_state' '$role_native_integrity' '$role_native_pause' '$role_native_mutation'$systemd_arg" <scripts/ops/remote/public-bft-native-identity.py >"$output")
 }
 
 authoritative_production_phase() {
@@ -260,6 +267,10 @@ final_snapshot_phase() {
     public_bft_native_qualify primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$evidence_dir/primary-export-native-identity.json"
     native_args=("$native_full_commit" "$native_binary_pin" "$native_source_json")
     native_remote_args=" '$native_full_commit' '$native_binary_pin' '$native_source_json'"
+    if [[ -n "$native_systemd_json" ]]; then
+      native_args+=("$native_systemd_json")
+      native_remote_args+=" '$native_systemd_json'"
+    fi
   fi
   # An existing local attempt, even an empty/partial one, prevents redispatch.
   # Preparation reserves this directory exclusively and preserves every error.

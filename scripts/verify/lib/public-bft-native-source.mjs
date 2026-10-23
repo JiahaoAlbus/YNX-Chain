@@ -10,9 +10,23 @@ export function caddySourceIdentity(approval) {
   return {caddySource: {manifestPath: file, manifestSha256: source.manifestSha256}};
 }
 
+export function authoritativeSystemdIdentity(value) {
+  const closed=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join()===[...keys].sort().join();
+  const pin=v=>typeof v==='string'&&/^[0-9a-f]{64}$/.test(v)&&!/^0{64}$/.test(v);
+  if(!closed(value,['fragmentSha256','dropIns'])||!pin(value.fragmentSha256)||!Array.isArray(value.dropIns)||value.dropIns.length>16)throw new Error('closed independent original systemd pins are required');
+  let previous='';
+  const dropIns=value.dropIns.map(row=>{
+    if(!closed(row,['path','sha256'])||!pin(row.sha256)||typeof row.path!=='string'||row.path.length>4096||!/^\/etc\/systemd\/system\/ynx-chaind\.service\.d\/[A-Za-z0-9._-]+\.conf$/.test(row.path)||row.path<=previous)throw new Error('sorted unique canonical original native drop-in pins are required');
+    previous=row.path;return {path:row.path,sha256:row.sha256};
+  });
+  const result={fragmentSha256:value.fragmentSha256,dropIns};
+  if(Buffer.byteLength(JSON.stringify(result),'utf8')>65536)throw new Error('bounded original systemd pins are required');
+  return result;
+}
+
 export function authoritativeIdentity(approval) {
   const names = ["authoritativeCommit", "authoritativeRelease", "authoritativeBinarySha256", "authoritativeSource"];
-  if (!names.some(name => Object.hasOwn(approval, name)) && !Object.hasOwn(approval, "authoritativeRoles")) return {};
+  if (!names.some(name => Object.hasOwn(approval, name)) && !Object.hasOwn(approval, "authoritativeRoles") && !Object.hasOwn(approval, "authoritativeSystemd")) return {};
   const commit = approval.authoritativeCommit;
   if (typeof commit !== "string" || !/^[0-9a-f]{40}$/.test(commit) || /^0{40}$/.test(commit)) throw new Error("independent authoritative full commit is required");
   const release = approval.authoritativeRelease;
@@ -26,7 +40,8 @@ export function authoritativeIdentity(approval) {
   const directory = source.statePath.slice(0, source.statePath.lastIndexOf("/"));
   if (!source.statePath.endsWith("/devnet-state.json") || source.integrityMarkerPath !== `${directory}/devnet-state.integrity-version` || new Set(paths.map(name => source[name])).size !== paths.length) throw new Error("original native source/marker paths conflict");
   return {authoritativeCommit: commit, authoritativeRelease: release, authoritativeBinarySha256: binary,
-    authoritativeSource: Object.fromEntries(paths.map(name => [name, source[name]]))};
+    authoritativeSource: Object.fromEntries(paths.map(name => [name, source[name]])),
+    ...(Object.hasOwn(approval,'authoritativeSystemd')?{authoritativeSystemd:authoritativeSystemdIdentity(approval.authoritativeSystemd)}:{})};
 }
 
 export function authoritativeRoleIdentities(approval) {
@@ -38,7 +53,7 @@ export function authoritativeRoleIdentities(approval) {
   const result = {};
   for (const role of roles) {
     const record = records[role];
-    if (!record || typeof record !== "object" || Array.isArray(record) || Object.keys(record).sort().join() !== [...names].sort().join()) throw new Error("closed original native role identity is required");
+    if (!record || typeof record !== "object" || Array.isArray(record) || names.some(name=>!Object.hasOwn(record,name)) || Object.keys(record).some(name=>![...names,'authoritativeSystemd'].includes(name))) throw new Error("closed original native role identity is required");
     result[role] = authoritativeIdentity(record);
   }
   if (JSON.stringify(result.primary) !== JSON.stringify(primary)) throw new Error("primary role must equal the independently approved snapshot authority");
@@ -66,6 +81,9 @@ export function validateAuthoritativeObservation(value, approval, role, transact
   const identity = roleAuthoritativeIdentity(approval, role);
   if (!identity.authoritativeCommit) throw new Error("independent native approval is required for process observations");
   const source = identity.authoritativeSource;
+  if(Object.hasOwn(identity,'authoritativeSystemd')){
+    if(!Object.hasOwn(value,'authoritativeSystemd')||JSON.stringify(authoritativeSystemdIdentity(value.authoritativeSystemd))!==JSON.stringify(identity.authoritativeSystemd)||value.unitSHA256!==identity.authoritativeSystemd.fragmentSha256)throw new Error('original native systemd observation differs from independent approval');
+  }else if(Object.hasOwn(value,'authoritativeSystemd'))throw new Error('unapproved original native systemd observation');
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(transactionId || "") || value.transactionId !== transactionId || value.version !== "YNX-PUBLIC-BFT-NATIVE-IDENTITY/v1" || value.role !== role || value.commit !== approval.commit || value.authoritativeCommit !== identity.authoritativeCommit || value.authoritativeRelease !== identity.authoritativeRelease || value.authoritativeBinarySha256 !== identity.authoritativeBinarySha256 || value.dataPath !== source.statePath.slice(0, source.statePath.lastIndexOf("/")) || value.pauseMarkerPath !== source.pauseMarkerPath || value.mutationMarkerPath !== source.mutationMarkerPath || value.readOnly !== true || value.deployment !== false || value.nativeRootAuthorized !== false || !/^[1-9][0-9]*$/.test(value.mainPid || "") || !/^[0-9]+:[1-9][0-9]*$/.test(value.runningExecutableDeviceInode || "") || !/^[0-9a-f]{64}$/.test(value.unitSHA256 || "") || typeof value.runningExecutablePath !== "string" || !/^\/[A-Za-z0-9._/-]+$/.test(value.runningExecutablePath)) throw new Error("original native process observation differs from independent approval");
   return identity;
 }

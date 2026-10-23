@@ -135,7 +135,7 @@ def preparation(value, tx):
         'ownerHandoverVerified rotationProcedureVerified validatorManifestSha256 '
         'operatorPreparationPlanSha256 runtimeManifestSha256 exporterManifestSha256 expiresAt').split())
     require(type(value) is dict and names <= set(value)
-            and set(value) <= names | {'authoritativeRoles', 'validated'}, 'CLOSED_PREPARATION_RECORD_REQUIRED')
+            and set(value) <= names | {'authoritativeRoles', 'authoritativeSystemd', 'validated'}, 'CLOSED_PREPARATION_RECORD_REQUIRED')
     require(value['custodyProfile'] == 'single-app-gateway/v1' and type(value['schemaVersion']) is int
             and value['schemaVersion'] == 1 and value['action'] == 'ynx-public-bft-cutover'
             and all(value[k] is True for k in ('approved', 'preparationOnly', 'publicCutoverAuthorized',
@@ -210,17 +210,23 @@ def capture(args, process=None, sleeper=None):
     tool = native_tool(args.native_identity_sha256)
     full, release, binary = (approval[k] for k in ('authoritativeCommit', 'authoritativeRelease', 'authoritativeBinarySha256'))
     source = tool['source_identity'](approval['authoritativeSource'], full, release, binary, tx, approval['commit'])
+    systemd = tool['systemd_identity'](approval['authoritativeSystemd']) if 'authoritativeSystemd' in approval else None
     if 'authoritativeRoles' in approval:
         roles = approval['authoritativeRoles']
         require(type(roles) is dict and set(roles) == {'primary', 'singapore', 'silicon-valley', 'seoul'},
                 'CLOSED_ORIGINAL_NATIVE_ROLES_REQUIRED')
         primary = {k: approval[k] for k in ('authoritativeCommit', 'authoritativeRelease',
                    'authoritativeBinarySha256', 'authoritativeSource')}
+        if systemd is not None:
+            primary['authoritativeSystemd'] = systemd
         require(roles['primary'] == primary, 'PRIMARY_PREPARATION_IDENTITY_MISMATCH')
         for role in roles.values():
-            require(type(role) is dict and set(role) == set(primary), 'CLOSED_ORIGINAL_NATIVE_ROLE_REQUIRED')
+            required = {'authoritativeCommit', 'authoritativeRelease', 'authoritativeBinarySha256', 'authoritativeSource'}
+            require(type(role) is dict and required <= set(role) <= required | {'authoritativeSystemd'}, 'CLOSED_ORIGINAL_NATIVE_ROLE_REQUIRED')
             tool['source_identity'](role['authoritativeSource'], role['authoritativeCommit'], role['authoritativeRelease'],
                                     role['authoritativeBinarySha256'], tx, approval['commit'])
+            if 'authoritativeSystemd' in role:
+                tool['systemd_identity'](role['authoritativeSystemd'])
     evidence, destination = absolute(args.primary_evidence_dir), absolute(args.output_dir)
     require(str(evidence.resolve(strict=True)) == str(evidence) and evidence.is_dir(), 'ORIGINAL_PRIMARY_EVIDENCE_REQUIRED')
     parent = destination.parent
@@ -257,7 +263,7 @@ def capture(args, process=None, sleeper=None):
             and freeze['readStatus'] == 200 and type(freeze.get('readEvm')) is int and freeze['readEvm'] == 200
             and freeze.get('markerPath') == source['mutationMarkerPath'], 'VERIFIED_ORIGINAL_PRIMARY_FREEZE_REQUIRED')
     stable = StableProcess(process if process is not None else tool['OriginalProcess'](), approval)
-    before_process = tool['inspect'](source, full, release, binary, 'primary', stable)
+    before_process = tool['inspect'](source, full, release, binary, 'primary', stable, systemd)
 
     def observe_files():
         measured = {}
@@ -282,7 +288,7 @@ def capture(args, process=None, sleeper=None):
     sleeper(args.observation_seconds)
     stable.status()
     require(observe_files() == before, 'ORIGINAL_SOURCE_OR_MARKERS_CHANGED')
-    require(tool['inspect'](source, full, release, binary, 'primary', stable) == before_process,
+    require(tool['inspect'](source, full, release, binary, 'primary', stable, systemd) == before_process,
             'ORIGINAL_NATIVE_PROCESS_CHANGED')
     for filename, expected, observed in ((approval_path, args.preparation_approval_sha256, approved_observation),
             (pause_path, args.primary_pause_sha256, pause_observation), (freeze_path, args.primary_freeze_sha256, freeze_observation)):

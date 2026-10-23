@@ -170,6 +170,24 @@ def main():
     prepare = args and args[0] == '--prepare'
     expected = 11 if prepare else 15
     native_identity = None
+    systemd = None
+    if len(args) == expected + 4:
+        require(len(args[-1].encode()) <= 65536, 'bounded original systemd pins required')
+        systemd = decode(args[-1].encode())
+        fields(systemd, ('fragmentSha256', 'dropIns'))
+        pin(systemd['fragmentSha256'])
+        require(type(systemd['dropIns']) is list and len(systemd['dropIns']) <= 16,
+                'bounded original drop-in pins required')
+        names = []
+        for row in systemd['dropIns']:
+            fields(row, ('path', 'sha256'))
+            require(type(row['path']) is str and len(row['path']) <= 4096 and re.fullmatch(
+                r'/etc/systemd/system/ynx-chaind\.service\.d/[A-Za-z0-9._-]+\.conf', row['path']),
+                'canonical original native drop-in path required')
+            pin(row['sha256'])
+            names.append(row['path'])
+        require(names == sorted(set(names)), 'sorted unique original drop-in pins required')
+        args = args[:-1]
     if len(args) == expected + 3:
         native_full, native_binary, native_paths = args[-3:]
         args = args[:-3]
@@ -181,6 +199,8 @@ def main():
             absolute(filename)
         native_identity = dict(authoritativeCommit=native_full, authoritativeBinarySha256=pin(native_binary),
                                authoritativeSource=native_paths)
+        if systemd is not None:
+            native_identity['authoritativeSystemd'] = systemd
     if prepare:
         require(len(args) == 11, 'offline preparation requires exact public inputs')
         _, source_path, bundle, full_commit, source_pin, manifest_pin, tx, commit, native, release, destination = args
