@@ -21,7 +21,8 @@
     "dist:windows": "electron-builder --win nsis --x64 --publish never",
     "dist:mac": "node scripts/build-mac.mjs",
     "dist:mac:arm64": "node scripts/build-mac.mjs arm64",
-    "build:original-auth-native": "node scripts/build-wallet-native-component.mjs"
+    "build:original-auth-native": "node scripts/build-wallet-native-component.mjs",
+    "build:wallet-native-component": "node scripts/build-wallet-native-component.mjs component"
   },
   "dependencies": {
     "@reown/walletkit": "1.5.6",

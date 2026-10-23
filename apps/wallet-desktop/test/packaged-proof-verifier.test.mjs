@@ -60,3 +60,10 @@ test('normal Main and preload consume only independent source receipt and expose
  let api;new Function('require',preload)(()=>({contextBridge:{exposeInMainWorld:(_name,value)=>{api=value;}},ipcRenderer:{invoke:(channel,...args)=>{calls.push(args);return handlers.get(channel)();}}}));
  const result=await api.pqFinalityVerifierStatus();assert.equal(result.available,true);assert.equal(result.nativeGrant,false);assert.deepEqual(calls,[[]]);assert.doesNotMatch(JSON.stringify(result),/path|receipt|root/i);
 });
+test('SDK13 normal Mac hook uses its matched helper component, never the original R155 profile',async()=>{
+ const source=await fs.readFile(new URL('../scripts/after-pack.mjs',import.meta.url),'utf8'),stripped=source.replace(/^import .*;$/mg,'').replace('export default async function afterPack','async function afterPack').replace(/^export /mg,'');
+ const calls=[],context={path,process:{env:{YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE:'/PUBLIC/514e-stage'}},desktopReleaseIdentity:()=>({PUBLIC:true}),writeFile:async()=>{},readFile:async()=>JSON.stringify({version:'1.3.0-pq.3.32-auth.13'}),assembleCanonicalDesktopPackage:()=>{},buildPublicWalletConnectConfig:()=>({}),WALLETCONNECT_PUBLIC_CONFIG_FILE:'PUBLIC.json',originalPQVerifierReceipt:originalPQHostSelectionVerifierReceipt,stageOriginalR155HelperBundle:()=>assert.fail('not R155'),stageSDK13HelperBundle:input=>{assert.equal(input.contents,'/PUBLIC/output/Wallet.app/Contents');assert.equal(input.projectDir,'/PUBLIC/source');calls.push('SDK13 matched helper');},installPackagedPQVerifierAssets:async(...args)=>{assert.equal(args[2],originalPQHostSelectionVerifierReceipt);calls.push('514e proof assets');throw Error('PUBLIC stop before outer signing');}};
+ runInNewContext(stripped+'\nthis.hook=afterPack;',context);
+ await assert.rejects(context.hook({electronPlatformName:'darwin',arch:3,appOutDir:'/PUBLIC/output',packager:{projectDir:'/PUBLIC/source',appInfo:{productFilename:'Wallet',version:'0.6.10'}}}),/PUBLIC stop/);
+ assert.deepEqual(calls,['SDK13 matched helper','514e proof assets']);
+});
