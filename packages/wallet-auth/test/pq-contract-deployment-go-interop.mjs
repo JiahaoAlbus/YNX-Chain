@@ -74,6 +74,7 @@ assert.deepEqual(Buffer.from(result.body),transport);assert.equal(result.signatu
 assert.equal(result.memberCount,2);assert.equal(result.memberIndex,1);
 assert.equal(result.action.kind,'contract_deploy');assert.equal(result.action.fee,'10');
 assert.equal(result.action.nonce,f.nonce);assert.equal(result.action.nativeChainId,'6423');
+assert.deepEqual(result.action.payload,f.payload,'complete signed Go payload, including value');
 assert.equal(result.compilerMaterialValidationRequired,true);assert.equal(result.nativeAdmission,false);
 assert.equal(f.http.length,4);
 for(const response of f.http){

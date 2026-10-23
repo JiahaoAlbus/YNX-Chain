@@ -3,7 +3,7 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-pq-deploy-material-20261019]
+    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-pq-deploy-material-20261019, codex/wallet-sdk333-go-deploy-interop-20261023]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -18,6 +18,33 @@ permissions:
   contents: read
 
 jobs:
+  sdk333-go-deploy-interop:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-sdk333-go-deploy-interop-20261023'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.19.0
+      - name: Require unchanged frozen SDK333 package inputs
+        run: git diff --exit-code e4dc7eb6a4d7aa5ca1649581264fa6d44dfb869f HEAD -- packages/wallet-auth ':(exclude)packages/wallet-auth/test'
+      - name: Install the original integrity-pinned SDK dependencies
+        timeout-minutes: 4
+        run: npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=1 --fetch-timeout=30000 --prefix packages/wallet-auth
+      - name: Run only new actual Go deployment interop and its negative controls
+        run: |
+          set -o pipefail
+          node --test --test-reporter=tap packages/wallet-auth/test/pq-contract-deployment-go-interop.test.mjs | tee "$RUNNER_TEMP/sdk333-go-deploy-interop.tap"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: sdk333-go-deploy-interop-evidence
+          path: ${{ runner.temp }}/sdk333-go-deploy-interop.tap
+          if-no-files-found: warn
+
   sdk-action-transport:
     name: SDK action transport DATA delta
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-pq-action-transport-20261019'
