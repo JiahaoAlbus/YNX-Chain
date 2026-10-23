@@ -586,6 +586,15 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #include "original-ide-contract-relay-binding.inc.mm"
 #include "original-ide-project-authority-binding.inc.mm"
 #include "original-ide-workspace-project-selection.inc.mm"
+// Fixed Main-owned user-addon binding only. The normal Main build owns the
+// include and its exact source pins; base SDK and root-helper builds omit it.
+// This is not a runtime provider table, Source/approval grant or key exporter.
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING)
+#if YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING != 1
+#error "YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING_REQUIRES_ONE"
+#endif
+#include "original-artifact-publisher-binding.inc.mm"
+#endif
 static napi_value Register(napi_env env,napi_value exports){
  // This original addon owns main-thread-only platform Source/UI/native
  // inventories. Worker environments cannot borrow them via DATA exports.
@@ -601,6 +610,10 @@ static napi_value Register(napi_env env,napi_value exports){
  {"readOriginalNativePrivateServiceTerminalResult",ReadPrivateTerminalResult,nullptr},
  {"captureOriginalNativePrivateServiceBorrow",CapturePrivate,nullptr},{"assertOriginalNativePrivateServiceCurrent",Lifecycle,(void *)jointCurrent},{"assertOriginalNativePrivateServiceAdmission",AdmissionPrivate,nullptr},{"assertOriginalNativePrivateServiceTerminal",TerminalPrivate,nullptr},{"retireOriginalNativePrivateService",Lifecycle,(void *)jointRetire},{"joinOriginalNativePrivateService",Lifecycle,(void *)jointJoin},{"closeOriginalNativePrivateService",Lifecycle,(void *)jointClose}};
  for(auto &m:methods){napi_property_descriptor descriptor={m.name,nullptr,m.callback,nullptr,nullptr,nullptr,napi_default,m.data};if(napi_define_properties(env,exports,1,&descriptor)!=napi_ok)return nullptr;}
- if(!RegisterOriginalIDEIdentityPeerBinding(env,exports,methods)||!RegisterOriginalIDEContractRelayBinding(env,exports)||!RegisterOriginalIDEPublicationArtifactBinding(env,exports)||!RegisterOriginalIDEProjectAuthorityBinding(env,exports)||!RegisterOriginalIDEWorkspaceProjectSelection(env,exports))return nullptr;return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
+ if(!RegisterOriginalIDEIdentityPeerBinding(env,exports,methods)||!RegisterOriginalIDEContractRelayBinding(env,exports)||!RegisterOriginalIDEPublicationArtifactBinding(env,exports)||!RegisterOriginalIDEProjectAuthorityBinding(env,exports)||!RegisterOriginalIDEWorkspaceProjectSelection(env,exports))return nullptr;
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING)
+ if(!RegisterOriginalArtifactPublisherBinding(env,exports))return nullptr;
+#endif
+ return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
 }
 NAPI_MODULE(NODE_GYP_MODULE_NAME,Register)
