@@ -118,16 +118,68 @@ class LocalHost:
              'EXISTING_DEDICATED_SIGNER_ACCOUNT_REQUIRED')
         return user.pw_uid, group.gr_gid
 
-    def observe(self, provider):
+    def observe(self, provider, checkpoint_directory=None):
         version = self.command(['/usr/bin/systemctl', 'show', '--property=Version', '--value'])
         need(re.fullmatch(r'[0-9]+[^\n]*', version) and int(re.match('[0-9]+', version)[0]) >= 250,
              'EXISTING_SYSTEMD_250_REQUIRED')
-        provider_state = self.command(['/usr/bin/systemctl', 'show', provider, '--property=LoadState', '--property=ActiveState'])
-        need(unique(line.split('=', 1) for line in provider_state.splitlines()) == {'LoadState': 'loaded', 'ActiveState': 'active'},
-             'EXISTING_REAL_CHECKPOINT_PROVIDER_REQUIRED')
-        active = self.command(['/usr/bin/systemctl', 'show', SERVICE, '--property=LoadState', '--property=ActiveState', '--property=DropInPaths'], (0, 4))
+        source = None
+        if provider == '-.mount':
+            source = self.root_provider_snapshot(checkpoint_directory)
+            need(self.root_provider_snapshot(checkpoint_directory) == source, 'ORIGINAL_ROOT_MOUNT_CHANGED_DURING_OBSERVATION')
+        else:
+            provider_state = self.command(['/usr/bin/systemctl', 'show', '--property=LoadState', '--property=ActiveState', '--', provider])
+            need(unique(line.split('=', 1) for line in provider_state.splitlines()) == {'LoadState': 'loaded', 'ActiveState': 'active'},
+                 'EXISTING_REAL_CHECKPOINT_PROVIDER_REQUIRED')
+        active = self.command(['/usr/bin/systemctl', 'show', '--property=LoadState', '--property=ActiveState', '--property=DropInPaths', '--', SERVICE], (0, 4))
         need(unique(line.split('=', 1) for line in active.splitlines()) == {'LoadState': 'not-found', 'ActiveState': 'inactive', 'DropInPaths': ''},
              'EXISTING_SIGNER_UNIT_OR_PROCESS_MUST_BE_RETAINED')
+        return source
+
+    def root_provider_snapshot(self, checkpoint_directory):
+        # Only the actual HOST root filesystem is this exception. A fresh bind
+        # alias or a child mount is not the original live checkpoint source.
+        # The future service's BindReadOnlyPaths namespace is deliberately not
+        # used here to infer the host mount that carries the writer's Commit.
+        directory = path(checkpoint_directory)
+        need(directory.resolve(strict=True) == directory, 'ORIGINAL_LIVE_CHECKPOINT_DIRECTORY_REQUIRED')
+        before, root_before = directory.lstat(), Path('/').lstat()
+        need(stat.S_ISDIR(before.st_mode) and stat.S_ISDIR(root_before.st_mode), 'ORIGINAL_LIVE_CHECKPOINT_DIRECTORY_REQUIRED')
+        namespace = os.readlink('/proc/self/ns/mnt')
+        need(re.fullmatch(r'mnt:\[[1-9][0-9]*\]', namespace)
+             and os.readlink('/proc/1/ns/mnt') == namespace, 'ORIGINAL_HOST_MOUNT_NAMESPACE_REQUIRED')
+        properties = ('Id', 'LoadState', 'ActiveState', 'Where', 'What', 'FragmentPath', 'SourcePath')
+        raw = self.command(['/usr/bin/systemctl', 'show', *['--property=' + key for key in properties], '--', '-.mount'])
+        unit = unique(line.split('=', 1) for line in raw.splitlines())
+        need(set(unit) == set(properties) and unit['Id'] == '-.mount' and unit['LoadState'] == 'loaded'
+             and unit['ActiveState'] == 'active' and unit['Where'] == '/', 'EXISTING_REAL_ROOT_MOUNT_REQUIRED')
+        path(unit['What']); path(unit['FragmentPath'])
+        if unit['SourcePath']:
+            path(unit['SourcePath'])
+        raw = self.command(['/usr/bin/findmnt', '--json', '--target', str(directory),
+                            '--output', 'TARGET,SOURCE,FSTYPE,MAJ:MIN,FSROOT,ID'])
+        view = decode(raw.encode('utf-8'))
+        need(type(view) is dict and set(view) == {'filesystems'} and type(view['filesystems']) is list
+             and len(view['filesystems']) == 1, 'ORIGINAL_ROOT_MOUNT_COVERAGE_REQUIRED')
+        mount = view['filesystems'][0]
+        fields = {'target', 'source', 'fstype', 'maj:min', 'fsroot', 'id'}
+        need(type(mount) is dict and set(mount) == fields and mount['target'] == '/' and mount['fsroot'] == '/'
+             and mount['source'] == unit['What'] and type(mount['fstype']) is str
+             and re.fullmatch(r'[A-Za-z0-9_.-]+', mount['fstype']) and type(mount['id']) is int and mount['id'] > 0
+             and type(mount['maj:min']) is str and re.fullmatch(r'(0|[1-9][0-9]*):(0|[1-9][0-9]*)', mount['maj:min']),
+             'ORIGINAL_ROOT_MOUNT_COVERAGE_REQUIRED')
+        major, minor = (int(part) for part in mount['maj:min'].split(':'))
+        need(before.st_dev == root_before.st_dev == os.makedev(major, minor), 'ORIGINAL_ROOT_MOUNT_DEVICE_MISMATCH')
+        # Commit can change the directory's times and the state file's inode.
+        # Only stable directory identity/permissions and the mount are bound;
+        # actual state bytes/H/AppHash remain the normal daemon's per-request check.
+        def directory_identity(info):
+            return info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid
+        need(directory.resolve(strict=True) == directory and directory_identity(directory.lstat()) == directory_identity(before)
+             and directory_identity(Path('/').lstat()) == directory_identity(root_before)
+             and os.readlink('/proc/self/ns/mnt') == namespace and os.readlink('/proc/1/ns/mnt') == namespace,
+             'ORIGINAL_ROOT_MOUNT_DIRECTORY_OR_NAMESPACE_CHANGED')
+        return (tuple(sorted(unit.items())), tuple(sorted(mount.items())), namespace,
+                directory_identity(before), directory_identity(root_before))
 
     def destination(self, filename):
         return Path(filename)
@@ -199,7 +251,7 @@ def rendered(args, source, templates):
     need(config['checkpointFormat'] in ('atomic-committed-json-v1', 'snapshot-journal-v1', 'block-journal-v2'),
          'EXPLICIT_ORIGINAL_CHECKPOINT_FORMAT_REQUIRED')
     provider = config['checkpointProviderUnit']
-    need(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*\.(service|mount)', provider) and provider != SERVICE,
+    need((provider == '-.mount' or re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*\.(service|mount)', provider)) and provider != SERVICE,
          'EXPLICIT_ORIGINAL_PROVIDER_REQUIRED')
     for key in ('memoryMaxBytes', 'goMemoryLimitBytes'):
         need(re.fullmatch('[1-9][0-9]{0,17}', config[key]), 'EXPLICIT_TARGET_MEMORY_BUDGET_REQUIRED')
@@ -242,6 +294,7 @@ def original_inputs(args, config, host, uid):
     roles = [r for r in plan['roles'] if r['role'] == args.role]
     need(len(roles) == 1, 'EXPLICIT_ORIGINAL_OPERATOR_ROLE_REQUIRED')
     role = roles[0]
+    need(role['abciState'] == config['abciState'], 'ORIGINAL_PLAN_CHECKPOINT_PATH_MISMATCH')
     need(role['remoteSigner'] == config['listen'] and role['legacyKeyPath'] == config['legacyKey']
          and role['legacyStatePath'] == config['legacyState'], 'ORIGINAL_PLAN_ENDPOINT_OR_HISTORY_MISMATCH')
     pin(role['signerPeerPublicKey'])  # Signer public key; NEVER the reverse engine peer.
@@ -356,7 +409,7 @@ def run(args, host=None):
     source, binary, templates = runtime_inputs(args)
     config, config_raw, canonical, unit = rendered(args, source, templates)
     uid, gid = host.account()
-    host.observe(config['checkpointProviderUnit'])
+    provider_observation = host.observe(config['checkpointProviderUnit'], config['checkpointDirectory'])
     originals = original_inputs(args, config, host, uid)
     outputs = {name: host.destination(filename) for name, filename in TARGETS.items()}
     for filename in outputs.values():
@@ -390,7 +443,8 @@ def run(args, host=None):
     exclusive(evidence / 'intent.json', (json.dumps(dict(result, status='unknown', automaticRetry=False)) + '\n').encode(), 0o600, host, 0, 0)
     # Reobserve immediately before the first install. No service/daemon-reload
     # command exists in this path. Partial writes stay original on every error.
-    host.observe(config['checkpointProviderUnit'])
+    need(host.observe(config['checkpointProviderUnit'], config['checkpointDirectory']) == provider_observation,
+         'ORIGINAL_CHECKPOINT_PROVIDER_CHANGED_BEFORE_INSTALL')
     for filename, before in originals.items():
         need(ident(Path(filename).lstat()) == before, 'ORIGINAL_CUSTODY_OR_SOURCE_CHANGED_BEFORE_INSTALL')
     check_live_source(config, host, uid)
@@ -408,6 +462,10 @@ def run(args, host=None):
     # Preserve its configured path and admissible metadata, never pin its inode
     # or mistake this DATA installation for a freshness/engine-state proof.
     check_live_source(config, host, uid)
+    if config['checkpointProviderUnit'] == '-.mount':
+        need(host.root_provider_snapshot(config['checkpointDirectory']) == provider_observation
+             and host.root_provider_snapshot(config['checkpointDirectory']) == provider_observation,
+             'ORIGINAL_CHECKPOINT_PROVIDER_CHANGED_DURING_INSTALL')
     result.update(installed=True, installedFiles=installed)
     exclusive(evidence / 'receipt.json', (json.dumps(result, separators=(',', ':')) + '\n').encode(), 0o600, host, 0, 0)
     return result

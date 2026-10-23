@@ -125,7 +125,7 @@ jq -e '
   ((.runtimePlan == "" and .runtimePlanHash == "") or
     (.runtimePlan != "" and (.runtimePlanHash | test("^[0-9a-f]{64}$") and . != ("0" * 64)))) and
   ([.memoryMaxBytes,.goMemoryLimitBytes] | all(test("^[1-9][0-9]{0,17}$"))) and
-  (.checkpointProviderUnit | test("^[A-Za-z0-9][A-Za-z0-9_.-]*\\.(service|mount)$")) and
+  (.checkpointProviderUnit | . == "-.mount" or test("^[A-Za-z0-9][A-Za-z0-9_.-]*\\.(service|mount)$")) and
   .checkpointProviderUnit != "ynx-consensus-pq-remote-signer.service" and
   (.listen | test("^tcp://[^[:space:]@]+:[1-9][0-9]{0,4}$")) and
   ([.[] | select(type == "string")] | all(contains("@") | not))
@@ -140,7 +140,7 @@ runtime_plan=$(field runtimePlan)
 memory_max=$(field memoryMaxBytes); go_memory_limit=$(field goMemoryLimitBytes)
 budget_evidence=$(field memoryBudgetEvidence)
 (( go_memory_limit < memory_max )) || fail 'Go memory limit must leave room below the measured service limit'
-loaded_memory_max=$(systemctl show --property=MemoryMax --value ynx-consensus-pq-remote-signer.service 2>/dev/null) || fail 'cannot read actual service memory limit'
+loaded_memory_max=$(systemctl show --property=MemoryMax --value -- ynx-consensus-pq-remote-signer.service 2>/dev/null) || fail 'cannot read actual service memory limit'
 [[ $loaded_memory_max == "$memory_max" ]] || fail 'loaded service memory limit differs from independently configured target budget'
 regular_file "$budget_evidence"; readonly_mount "$budget_evidence"
 [[ $(stat -c '%s' -- "$budget_evidence") -gt 0 && $(stat -c '%s' -- "$budget_evidence") -le 1048576 ]] || fail 'bounded target measurement evidence is required'

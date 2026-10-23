@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -55,7 +56,7 @@ class HostObservations(installer.LocalHost):
     def account(self):
         return os.getuid(), os.getgid()
 
-    def observe(self, provider):
+    def observe(self, provider, checkpoint_directory=None):
         self.observations += 1
         self.events.append(('read-only-host-observation', provider))
         installer.need(self.provider_ready, 'EXISTING_REAL_CHECKPOINT_PROVIDER_REQUIRED')
@@ -168,7 +169,7 @@ class Fixture:
         self.config = config
         self.config_path = self.root / 'operator-config.json'
         config_raw = write(self.config_path, config)
-        role = dict(home='/original/engine-home', abciState='/original/engine-state', legacyKeyPath=str(self.legacy),
+        role = dict(home='/original/engine-home', abciState=str(state), legacyKeyPath=str(self.legacy),
             legacyStatePath=str(legacy_state), nodeKeyPath='/original/p2p-key', hostBinding=self.binding,
             remoteSigner=config['listen'], transportKeyPath='/original/engine-transport-key', signerPeerPublicKey='e' * 64,
             remoteTimeout='5s')
@@ -194,14 +195,85 @@ class Fixture:
         self.host = HostObservations(self)
         self.forbidden = {str(p) for p in (self.legacy, self.transport, self.vault, pq_state, legacy_state, state)}
 
-    def run(self):
+    def provider(self, value):
+        self.config['checkpointProviderUnit'] = value
+        self.config_path.write_bytes((json.dumps(self.config, separators=(',', ':')) + '\n').encode())
+        self.args.config_sha256 = sha(self.config_path.read_bytes())
+        self.expected_unit = self.templates[installer.DAEMON + '.service.in']
+        replacements = {'CHECKPOINT_PROVIDER_UNIT': value, 'CHECKPOINT_DIRECTORY': self.config['checkpointDirectory'],
+            'OPERATOR_INPUTS_DIRECTORY': str(self.public), 'ORIGINAL_VAULT': self.config['vault'], 'ORIGINAL_LEGACY_KEY': self.config['legacyKey'],
+            'ORIGINAL_TRANSPORT_KEY': self.config['transportKey'], 'ORIGINAL_PQ_HRS_DIRECTORY': str(Path(self.config['pqState']).parent),
+            'ORIGINAL_LEGACY_HRS_DIRECTORY': str(Path(self.config['legacyState']).parent), 'MEASURED_TARGET_MEMORY_MAX_BYTES': self.config['memoryMaxBytes']}
+        for key, replacement in replacements.items():
+            self.expected_unit = self.expected_unit.replace(('@' + key + '@').encode(), replacement.encode())
+        self.args.unit_sha256 = sha(self.expected_unit)
+
+    def run(self, module=installer):
         original_open = os.open
         def guarded_open(filename, flags, *args, **kwargs):
             if str(filename) in self.forbidden:
                 raise AssertionError('installer opened original private/history/checkpoint body')
             return original_open(filename, flags, *args, **kwargs)
         with mock.patch.object(installer.os, 'open', side_effect=guarded_open):
-            return installer.run(self.args, host=self.host)
+            return module.run(self.args, host=self.host)
+
+
+class RootMountObservations(HostObservations):
+    """Real LocalHost policy, with explicit systemd/findmnt metadata fixtures."""
+    def __init__(self, fixture):
+        super().__init__(fixture)
+        self.unit = dict(Id='-.mount', LoadState='loaded', ActiveState='active', Where='/', What='/dev/vda2',
+                         FragmentPath='/run/systemd/generator/-.mount', SourcePath='/etc/fstab')
+        device = fixture.root.stat().st_dev
+        self.mount = {'target': '/', 'source': '/dev/vda2', 'fstype': 'ext4',
+                      'maj:min': str(os.major(device)) + ':' + str(os.minor(device)), 'fsroot': '/', 'id': 30}
+        self.namespace = 'mnt:[4026531841]'
+        self.commands, self.mount_reads = [], 0
+        self.on_mount = None
+        self.extra_filesystem = False
+
+    def observe(self, provider, checkpoint_directory=None):
+        self.observations += 1
+        self.events.append(('read-only-host-observation', provider))
+        return installer.LocalHost.observe(self, provider, checkpoint_directory)
+
+    def command(self, argv, accepted=(0,)):
+        self.commands.append(list(argv))
+        if argv == ['/usr/bin/systemctl', 'show', '--property=Version', '--value']:
+            return '255.4-1ubuntu8.12'
+        properties = ('Id', 'LoadState', 'ActiveState', 'Where', 'What', 'FragmentPath', 'SourcePath')
+        if argv == ['/usr/bin/systemctl', 'show', *['--property=' + key for key in properties], '--', '-.mount']:
+            return '\n'.join(key + '=' + value for key, value in self.unit.items())
+        if argv == ['/usr/bin/systemctl', 'show', '--property=LoadState', '--property=ActiveState', '--property=DropInPaths', '--', installer.SERVICE]:
+            return 'LoadState=not-found\nActiveState=inactive\nDropInPaths='
+        if argv == ['/usr/bin/findmnt', '--json', '--target', self.fixture.config['checkpointDirectory'],
+                    '--output', 'TARGET,SOURCE,FSTYPE,MAJ:MIN,FSROOT,ID']:
+            self.mount_reads += 1
+            if self.on_mount:
+                self.on_mount(self.mount_reads)
+            return json.dumps({'filesystems': [self.mount] * (2 if self.extra_filesystem else 1)})
+        raise AssertionError('unexpected host command: ' + repr(argv))
+
+    @contextlib.contextmanager
+    def metadata(self):
+        # Keep real fixture canonical paths/directory identity. Substitute only
+        # the root-device and namespace observations, not services/mounts.
+        # No host mount, /proc or privileged operation is used by this fixture.
+        lstat = Path.lstat
+        root = Path('/').lstat()
+        root = SimpleNamespace(st_dev=self.fixture.root.stat().st_dev, st_ino=root.st_ino,
+            st_mode=root.st_mode, st_uid=root.st_uid, st_gid=root.st_gid)
+        def observed_lstat(value, *args, **kwargs):
+            return root if value == Path('/') else lstat(value, *args, **kwargs)
+        readlink = os.readlink
+        def namespace(filename, *args, **kwargs):
+            if filename in ('/proc/self/ns/mnt', '/proc/1/ns/mnt'):
+                return self.namespace
+            if str(filename).startswith(str(self.fixture.root) + '/'):
+                return readlink(filename, *args, **kwargs)
+            raise AssertionError('unexpected readlink: ' + str(filename))
+        with mock.patch.object(Path, 'lstat', observed_lstat), mock.patch.object(installer.os, 'readlink', side_effect=namespace):
+            yield
 
 
 class SignerInstallTests(unittest.TestCase):
@@ -227,6 +299,149 @@ class SignerInstallTests(unittest.TestCase):
         self.assertEqual(f.host.owners, [])
         for p, raw in before.items(): self.assertEqual(p.read_bytes(), raw)
         for target in installer.TARGETS.values(): self.assertFalse(f.host.destination(target).exists())
+
+    def test_root_mount_uses_actual_directory_and_normal_unit_without_service_mutation(self):
+        f = self.fixture('root-provider')
+        f.provider('-.mount')
+        f.host = RootMountObservations(f)
+        f.args.install = True
+        original_path = f.config['abciState']
+        before = {Path(p): Path(p).read_bytes() for p in f.forbidden}
+        with f.host.metadata():
+            result = f.run()
+        self.assertIs(result['installed'], True)
+        self.assertIs(result['runtimeStarted'], False)
+        self.assertIs(result['freshnessVerified'], False)
+        self.assertIs(result['sandboxReadonlyValidated'], False)
+        self.assertEqual(f.config['abciState'], original_path)
+        self.assertEqual(f.host.observations, 2)
+        self.assertEqual(f.host.mount_reads, 6)
+        unit = f.host.destination(installer.TARGETS['unit']).read_bytes()
+        self.assertIn(b'Requires=-.mount\n', unit)
+        self.assertIn(b'After=network-online.target -.mount\n', unit)
+        self.assertIn(('BindReadOnlyPaths=' + f.config['checkpointDirectory'] + '\n').encode(), unit)
+        for command in f.host.commands:
+            if command[0] == '/usr/bin/systemctl':
+                self.assertEqual(command[1], 'show')
+                if '--property=Version' not in command:
+                    self.assertIn('--', command)
+            else:
+                self.assertEqual(command[0], '/usr/bin/findmnt')
+        for filename, raw in before.items():
+            self.assertEqual(filename.read_bytes(), raw)
+
+    def test_only_exact_root_mount_exception_and_original_provider_names_are_accepted(self):
+        f = self.fixture('provider-name')
+        for provider in ('-.mount', 'original-provider.mount', 'original-provider.service'):
+            with self.subTest(provider=provider):
+                f.provider(provider)
+                self.assertIs(f.run()['installed'], False)
+        for provider in ('-.service', '-other.mount', '--runtime.mount', '.', '', ' -.mount', '-.mount ',
+                         '-.mount\n', '../-.mount', installer.SERVICE):
+            with self.subTest(provider=provider):
+                f.provider(provider)
+                with self.assertRaisesRegex(ValueError, 'EXPLICIT_ORIGINAL_PROVIDER_REQUIRED'):
+                    f.run()
+        self.assertEqual(f.host.owners, [])
+
+    def test_real_host_root_policy_rejects_submount_device_alias_and_incomplete_observations(self):
+        f = self.fixture('mount-observation')
+        f.provider('-.mount')
+        for name in ('inactive', 'wrong-unit', 'where', 'what', 'fragment', 'extra-unit', 'submount', 'bind-fsroot',
+                     'device', 'missing-id', 'multiple', 'extra-mount', 'mount-id-drift', 'namespace', 'symlink', 'absent'):
+            with self.subTest(name=name):
+                host = RootMountObservations(f)
+                checkpoint = f.config['checkpointDirectory']
+                if name == 'inactive': host.unit['ActiveState'] = 'inactive'
+                elif name == 'wrong-unit': host.unit['Id'] = 'alias.mount'
+                elif name == 'where': host.unit['Where'] = '/var/lib'
+                elif name == 'what': host.unit['What'] = '/dev/foreign'
+                elif name == 'fragment': host.unit['FragmentPath'] = ''
+                elif name == 'extra-unit': host.unit['Unexpected'] = 'yes'
+                elif name == 'submount': host.mount['target'] = checkpoint
+                elif name == 'bind-fsroot': host.mount['fsroot'] = '/some-original-alias'
+                elif name == 'device': host.mount['maj:min'] = '253:999'
+                elif name == 'missing-id': del host.mount['id']
+                elif name == 'multiple': host.extra_filesystem = True
+                elif name == 'extra-mount': host.mount['children'] = []
+                elif name == 'mount-id-drift':
+                    host.on_mount = lambda count: host.mount.update(id=31) if count == 2 else None
+                elif name == 'namespace': host.namespace = 'unknown'
+                elif name == 'symlink':
+                    alias = f.root / 'alias'; alias.symlink_to(checkpoint, target_is_directory=True)
+                    checkpoint = str(alias)
+                elif name == 'absent': checkpoint = str(f.root / 'absent')
+                with host.metadata(), self.assertRaises((ValueError, FileNotFoundError)):
+                    host.observe('-.mount', checkpoint)
+                self.assertEqual(host.owners, [])
+                self.assertFalse(Path(f.args.output_dir).exists())
+
+    def test_root_mount_directory_times_can_change_but_identity_or_mount_change_retains_unknown(self):
+        f = self.fixture('root-live-commit')
+        f.provider('-.mount'); f.args.install = True; f.host = RootMountObservations(f)
+        def commit_times(count):
+            directory = Path(f.config['checkpointDirectory'])
+            info = directory.stat()
+            os.utime(directory, ns=(info.st_atime_ns, info.st_mtime_ns + 1))
+            if count == 3:
+                replacement = directory / 'normal-writer-commit'
+                write(replacement, b'ACTUAL WRITER CAN REPLACE ITS ORIGINAL STATE; no freshness assertion\n')
+                os.replace(replacement, f.config['abciState'])
+        f.host.on_mount = commit_times
+        with f.host.metadata():
+            self.assertIs(f.run()['installed'], True)
+        for name, changed_at in (('before-write', 3), ('after-write', 5)):
+            with self.subTest(name=name):
+                f = self.fixture(name)
+                f.provider('-.mount'); f.args.install = True; f.host = RootMountObservations(f)
+                f.host.on_mount = lambda count: f.host.mount.update(id=31) if count == changed_at else None
+                with f.host.metadata(), self.assertRaisesRegex(ValueError, 'ORIGINAL_CHECKPOINT_PROVIDER_CHANGED_'):
+                    f.run()
+                self.assertTrue((Path(f.args.output_dir) / 'intent.json').exists())
+                self.assertFalse((Path(f.args.output_dir) / 'receipt.json').exists())
+                self.assertEqual(bool(f.host.owners and len(f.host.owners) > 1), name == 'after-write')
+        f = self.fixture('directory-replaced')
+        f.provider('-.mount'); host = RootMountObservations(f)
+        directory = Path(f.config['checkpointDirectory'])
+        def replace_directory(count):
+            if count == 1:
+                directory.rename(directory.with_name('retained-original-directory'))
+                directory.mkdir(mode=0o700)
+        host.on_mount = replace_directory
+        with host.metadata(), self.assertRaisesRegex(ValueError, 'ORIGINAL_ROOT_MOUNT_DIRECTORY_OR_NAMESPACE_CHANGED'):
+            host.observe('-.mount', str(directory))
+        self.assertTrue((directory.with_name('retained-original-directory') / 'original-state').exists())
+        self.assertFalse(Path(f.args.output_dir).exists())
+
+    def test_localhost_existing_provider_commands_use_option_terminator(self):
+        host = installer.LocalHost()
+        replies = ['255.4-1ubuntu8.12', 'LoadState=loaded\nActiveState=active',
+                   'LoadState=not-found\nActiveState=inactive\nDropInPaths=']
+        with mock.patch.object(host, 'command', side_effect=replies) as command:
+            self.assertIsNone(host.observe('original-source.mount', '/original/checkpoint'))
+        self.assertEqual(command.call_args_list[1].args[0], ['/usr/bin/systemctl', 'show', '--property=LoadState',
+                          '--property=ActiveState', '--', 'original-source.mount'])
+        self.assertEqual(command.call_args_list[2].args[0], ['/usr/bin/systemctl', 'show', '--property=LoadState',
+                          '--property=ActiveState', '--property=DropInPaths', '--', installer.SERVICE])
+
+    def test_actual_launcher_config_filter_allows_only_exact_root_exception_without_weakening_readonly_checks(self):
+        f = self.fixture('launcher-root-config')
+        launcher = f.templates[installer.DAEMON + '-launch.sh'].decode()
+        start = "jq -e '\n"
+        end = "\n' <<<\"$config_json\" >/dev/null 2>&1 || fail 'unsupported or incomplete operator configuration'"
+        self.assertEqual(launcher.count(start), 1)
+        filter_body = launcher.split(start, 1)[1].split(end, 1)[0]
+        self.assertIn(end, launcher)
+        for provider in ('-.mount', 'original.mount', 'original.service', '-.service', '-other.mount', installer.SERVICE):
+            f.config['checkpointProviderUnit'] = provider
+            result = installer.subprocess.run(['/usr/bin/jq', '-e', filter_body],
+                input=json.dumps(f.config).encode(), stdout=installer.subprocess.PIPE, stderr=installer.subprocess.PIPE,
+                env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C'}, check=False, timeout=5)
+            self.assertEqual(result.returncode == 0, provider in ('-.mount', 'original.mount', 'original.service'))
+        self.assertIn('readonly_mount "$checkpoint_directory"', launcher)
+        self.assertIn('checkpoint_source "$state" "$(field checkpointFormat)"', launcher)
+        self.assertIn('systemctl is-active --quiet -- "$provider"', launcher)
+        self.assertIn('systemctl show --property=MemoryMax --value -- ynx-consensus-pq-remote-signer.service', launcher)
 
     def test_explicit_install_exact_original_bytes_no_service_or_custody_changes(self):
         f = self.fixture('installed')
@@ -390,6 +605,41 @@ class SignerInstallerCLIControls(unittest.TestCase):
         # this entrypoint repair, then require its independent whole-file pin.
         # No copied historical implementation or shallow-Git/network reliance.
         current = FILE.read_bytes()
+        # First reverse only the later root-filesystem admission/path repair.
+        # The entire pre-repair module must remain exact 4e74 source, then the
+        # earlier CLI reverse patch below proves exact original 0e67 identity.
+        start = b'    def observe(self, provider, checkpoint_directory=None):\n'
+        end = b'    def destination(self, filename):\n'
+        self.assertEqual(current.count(start), 1)
+        previous_observe = b'''    def observe(self, provider):
+        version = self.command(['/usr/bin/systemctl', 'show', '--property=Version', '--value'])
+        need(re.fullmatch(r'[0-9]+[^\\n]*', version) and int(re.match('[0-9]+', version)[0]) >= 250,
+             'EXISTING_SYSTEMD_250_REQUIRED')
+        provider_state = self.command(['/usr/bin/systemctl', 'show', provider, '--property=LoadState', '--property=ActiveState'])
+        need(unique(line.split('=', 1) for line in provider_state.splitlines()) == {'LoadState': 'loaded', 'ActiveState': 'active'},
+             'EXISTING_REAL_CHECKPOINT_PROVIDER_REQUIRED')
+        active = self.command(['/usr/bin/systemctl', 'show', SERVICE, '--property=LoadState', '--property=ActiveState', '--property=DropInPaths'], (0, 4))
+        need(unique(line.split('=', 1) for line in active.splitlines()) == {'LoadState': 'not-found', 'ActiveState': 'inactive', 'DropInPaths': ''},
+             'EXISTING_SIGNER_UNIT_OR_PROCESS_MUST_BE_RETAINED')
+
+'''
+        at = current.index(start)
+        current = current[:at] + previous_observe + current[current.index(end, at):]
+        replacements = (
+            (b"(provider == '-.mount' or re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*\\.(service|mount)', provider))",
+             b"re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*\\.(service|mount)', provider)"),
+            (b"    need(role['abciState'] == config['abciState'], 'ORIGINAL_PLAN_CHECKPOINT_PATH_MISMATCH')\n", b''),
+            (b"    provider_observation = host.observe(config['checkpointProviderUnit'], config['checkpointDirectory'])\n",
+             b"    host.observe(config['checkpointProviderUnit'])\n"),
+            (b"    need(host.observe(config['checkpointProviderUnit'], config['checkpointDirectory']) == provider_observation,\n         'ORIGINAL_CHECKPOINT_PROVIDER_CHANGED_BEFORE_INSTALL')\n",
+             b"    host.observe(config['checkpointProviderUnit'])\n"),
+            (b"    if config['checkpointProviderUnit'] == '-.mount':\n        need(host.root_provider_snapshot(config['checkpointDirectory']) == provider_observation\n             and host.root_provider_snapshot(config['checkpointDirectory']) == provider_observation,\n             'ORIGINAL_CHECKPOINT_PROVIDER_CHANGED_DURING_INSTALL')\n", b''),
+        )
+        for changed, previous in replacements:
+            self.assertEqual(current.count(changed), 1)
+            current = current.replace(changed, previous, 1)
+        self.assertEqual(len(current), 24691)
+        self.assertEqual(sha(current), '07a36fd0becf6040472d36dd3efecd651131cfb20532a482a92e86d0b4c45495')
         changed = b'''    required = ('runtime-bundle', 'runtime-commit', 'runtime-source-sha256', 'operator-plan', 'operator-plan-sha256',
                 'role', 'config', 'config-sha256', 'unit-sha256', 'operator-inputs-directory', 'credential-sha256')
     for name in required:
@@ -410,6 +660,21 @@ class SignerInstallerCLIControls(unittest.TestCase):
         module.__file__ = str(FILE)
         exec(compile(raw,str(FILE),'exec'),module.__dict__)
         return module
+
+    def test_original_same_config_different_engine_checkpoint_was_accepted_now_refused(self):
+        original = self.original()
+        with tempfile.TemporaryDirectory(prefix='ynx-signer-original-source-') as temporary:
+            f = Fixture(Path(temporary).resolve(), 'checkpoint-mismatch')
+            f.plan['roles'][0]['abciState'] = '/original/different-engine-state'
+            f.plan_path.write_bytes((json.dumps(f.plan, separators=(',', ':')) + '\n').encode())
+            f.args.operator_plan_sha256 = sha(f.plan_path.read_bytes())
+            result = f.run(module=original)
+            self.assertIs(result['installed'], False)
+            self.assertIs(result['freshnessVerified'], False)
+            with self.assertRaisesRegex(ValueError, 'ORIGINAL_PLAN_CHECKPOINT_PATH_MISMATCH'):
+                f.run()
+            self.assertFalse(Path(f.args.output_dir).exists())
+            self.assertEqual(f.host.owners, [])
 
     def test_actual_original_0e67_last_wins_then_fixed_refuses_same_security_inputs(self):
         original = self.original()
