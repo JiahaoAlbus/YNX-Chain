@@ -40,6 +40,7 @@ type durableReadbackPhases struct {
 }
 
 type durableReaderStats struct {
+	ObserverNativeFacts      *observerNativeFactStats                `json:"observerNativeFacts,omitempty"`
 	PrefixReplay             *durablePrefixReplayStats               `json:"prefixReplay,omitempty"`
 	SharedReplay             *sharedReplayStats                      `json:"sharedReplay,omitempty"`
 	SignatureFacts           *durableSignatureStats                  `json:"signatureFacts,omitempty"`
@@ -61,6 +62,7 @@ type durableFeeKey struct {
 }
 
 type durableSnapshotSlot struct {
+	observerFacts         observerNativeFactStats
 	mu                    sync.Mutex
 	storeInputBytes       int64
 	lastUse               uint64
@@ -80,21 +82,22 @@ type durableSnapshotSlot struct {
 // Slots are bound to at most four manifest paths and a privately cloned
 // migration. No parsed state, index or mutable slice escapes to an observer.
 type durableReader struct {
-	migration         chain.ConsensusMigrationState
-	slots             map[string]*durableSnapshotSlot
-	blockDecoder      *consensus.BlockJournalDecoder
-	prefixDecoder     *consensus.BlockJournalPrefixDecoder
-	prefixNativeClone bool
-	prefixMu          sync.Mutex
-	prefixStats       durablePrefixReplayStats
-	storeByteLimit    int64
-	cacheByteBudget   int64
-	profileMu         *sync.Mutex
-	cacheTick         uint64
-	cacheEvictions    uint64
-	signatureFacts    *durableSignatureFacts
-	measurePhases     bool               // Set only during construction, before any observer starts.
-	sharedReplay      *sharedReplayCache // Explicit candidate only; never enabled by timing.
+	migration           chain.ConsensusMigrationState
+	slots               map[string]*durableSnapshotSlot
+	blockDecoder        *consensus.BlockJournalDecoder
+	prefixDecoder       *consensus.BlockJournalPrefixDecoder
+	prefixNativeClone   bool
+	observerNativeFacts bool
+	prefixMu            sync.Mutex
+	prefixStats         durablePrefixReplayStats
+	storeByteLimit      int64
+	cacheByteBudget     int64
+	profileMu           *sync.Mutex
+	cacheTick           uint64
+	cacheEvictions      uint64
+	signatureFacts      *durableSignatureFacts
+	measurePhases       bool               // Set only during construction, before any observer starts.
+	sharedReplay        *sharedReplayCache // Explicit candidate only; never enabled by timing.
 }
 
 func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (*durableReader, error) {
@@ -143,6 +146,9 @@ func (r *durableReader) stats() durableReaderStats {
 		defer r.profileMu.Unlock()
 	}
 	var total durableReaderStats
+	if r.observerNativeFacts {
+		total.ObserverNativeFacts = &observerNativeFactStats{Enabled: true}
+	}
 	if r.prefixDecoder != nil {
 		r.prefixMu.Lock()
 		v := r.prefixStats
@@ -176,6 +182,9 @@ func (r *durableReader) stats() durableReaderStats {
 	for _, slot := range r.slots {
 		slot.mu.Lock()
 		s := slot.stats
+		if total.ObserverNativeFacts != nil {
+			total.ObserverNativeFacts.add(slot.observerFacts)
+		}
 		if total.PhaseTotalsNs != nil {
 			total.PhaseTotalsNs.LoadNs += slot.phases.LoadNs
 			total.PhaseTotalsNs.HashNs += slot.phases.HashNs
@@ -493,18 +502,40 @@ func (r *durableReader) verifyTransactionLocked(ctx context.Context, slot *durab
 	}
 	var tx consensus.SignedTransaction
 	var err error
-	if r.signatureFacts != nil {
-		tx, err = r.signatureFacts.decode(raw, r.migration.Network.ChainID)
-		if err != nil {
-			return fmt.Errorf("bounded fixture native signature: %w", err)
+	var observerFactFound bool
+	if r.observerNativeFacts {
+		slot.observerFacts.Enabled = true
+		slot.observerFacts.Lookups++
+		tx, observerFactFound = r.prefixDecoder.LookupVerifiedNativeForObserver(raw, r.migration.Network.ChainID)
+		if observerFactFound {
+			slot.observerFacts.Hits++
+		} else {
+			slot.observerFacts.Misses++
 		}
-	} else {
-		tx, err = consensus.DecodeSignedTransaction(raw)
-		if err != nil {
-			return fmt.Errorf("bounded fixture must use native signed transfers: %w", err)
-		}
-		if err := tx.Verify(r.migration.Network.ChainID); err != nil {
-			return err
+	}
+	if !observerFactFound {
+		if r.signatureFacts != nil {
+			tx, err = r.signatureFacts.decode(raw, r.migration.Network.ChainID)
+			if err != nil {
+				return fmt.Errorf("bounded fixture native signature: %w", err)
+			}
+		} else {
+			tx, err = consensus.DecodeSignedTransaction(raw)
+			if err != nil {
+				if r.observerNativeFacts {
+					slot.observerFacts.FallbackFailures++
+				}
+				return fmt.Errorf("bounded fixture must use native signed transfers: %w", err)
+			}
+			if err := tx.Verify(r.migration.Network.ChainID); err != nil {
+				if r.observerNativeFacts {
+					slot.observerFacts.FallbackFailures++
+				}
+				return err
+			}
+			if r.observerNativeFacts {
+				slot.observerFacts.FallbackMathVerifications++
+			}
 		}
 	}
 	slot.stats.TransactionVerifications++

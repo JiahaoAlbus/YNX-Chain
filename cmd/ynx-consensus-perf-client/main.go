@@ -64,6 +64,7 @@ type options struct {
 	prefixNativeClone              bool
 	nativeSubmit8                  bool
 	nativeSuffixSetup              bool
+	observerNativeFacts            bool
 	pacedWorkerInventory           *pacedWorkerInventory
 	endpointFair                   bool
 	endpointElastic                bool
@@ -198,6 +199,7 @@ type report struct {
 	PrefixNativeClone    bool                      `json:"prefixNativeClone,omitempty"`
 	NativeSubmit8        bool                      `json:"nativeSubmit8,omitempty"`
 	NativeSuffixSetup    bool                      `json:"nativeSuffixSetup,omitempty"`
+	ObserverNativeFacts  bool                      `json:"observerNativeFacts,omitempty"`
 	PacedWorkers         *pacedWorkerInventory     `json:"pacedWorkers,omitempty"`
 	SharedDurableReplay  bool                      `json:"sharedDurableReplay"`
 	EndpointFair         bool                      `json:"endpointFairSubmission"`
@@ -240,6 +242,7 @@ func main() {
 	flag.BoolVar(&o.endpointElastic, "endpoint-elastic-submission", false, "candidate: requires endpoint fairness; reuse original four workers across unchanged endpoints, maximum two in flight per endpoint")
 	flag.BoolVar(&o.prefixDurableReplay, "prefix-durable-replay", false, "candidate: reuse exact previously validated journal prefixes, private state and complete new-block validation; exclusive with shared replay")
 	flag.BoolVar(&o.prefixNativeClone, "prefix-native-clone", false, "candidate: private native account/fee-history copies; requires explicit prefix replay and its original bounds")
+	flag.BoolVar(&o.observerNativeFacts, "observer-native-facts", false, "candidate: reuse exact bytes+expected-chain signature facts from verified replay; original native8 setup only")
 	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: private suffix initialization; explicit native8 data64 mode only")
 	flag.BoolVar(&o.nativeSubmit8, "native-submit8", false, "candidate: exactly8 submitters, original four observers/queues and native-copy single-round supply")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
@@ -265,6 +268,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.observerNativeFacts && (!o.nativeSubmit8 || o.nativeSuffixSetup) {
+		return errors.New("observer native facts require original native8 setup; suffix candidate cannot combine")
+	}
 	if o.nativeSuffixSetup && !o.nativeSubmit8 {
 		return errors.New("native suffix setup requires explicit native8 mode")
 	}
@@ -948,6 +954,10 @@ func execute(o options) error {
 	r.PrefixNativeClone = o.prefixNativeClone
 	r.NativeSubmit8 = o.nativeSubmit8
 	r.NativeSuffixSetup = o.nativeSuffixSetup
+	r.ObserverNativeFacts = o.observerNativeFacts
+	if o.observerNativeFacts {
+		r.Interpretation = append(r.Interpretation, "Explicit observer native signature facts: expected reader chainID plus digest and complete original bytes bind only decoder-owned successful signature mathematics. Misses retain full native Decode+Verify; each current-state fee/nonce/height/context check remains. Existing4096entry/4MiB replay cache bounds and replay counters are unchanged; separate actual observer hits/misses/math counters are not execution or finality authorization.")
+	}
 	if o.nativeSuffixSetup {
 		r.Interpretation = append(r.Interpretation, "Explicit private suffix initialization: full migration validation and independent migration JSON clone retained, already fully validated private committed state installed without duplicate migration validation or discarded genesis allocation. Native8 workers, original queues, signature/execution/durability/quorum checks are unchanged; local constructor timings do not qualify network throughput.")
 	}
@@ -1018,6 +1028,11 @@ func execute(o options) error {
 		if o.prefixDurableReplay {
 			err = reader.configurePrefixReplayMode(migration, o.prefixNativeClone, o.nativeSuffixSetup)
 			if err != nil {
+				return err
+			}
+		}
+		if o.observerNativeFacts {
+			if err := reader.configureObserverNativeFacts(); err != nil {
 				return err
 			}
 		}

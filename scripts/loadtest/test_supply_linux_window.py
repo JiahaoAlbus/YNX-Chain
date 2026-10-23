@@ -692,6 +692,7 @@ class SupplySourceTests(unittest.TestCase):
                 label=(("shared-endpoint-elastic" if comparison=="shared-elastic" else "shared-endpoint-fair") if kwargs.get("endpoint_fair") else "shared-baseline") if comparison in ("shared-fair","shared-elastic") else ("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode
                 if comparison=="shared-prefix-data64":label="prefix-replay" if kwargs["prefix_replay"] else "shared-replay"
                 if comparison=="prefix-native-data64":label="prefix-native-clone" if kwargs["prefix_native_clone"] else "prefix-control"
+                if comparison=="native-observer-facts-data64":label="native-observer-facts" if kwargs["observer_native_facts"] else "native-observer-control"
                 if comparison=="native-suffix-data64":label="native-suffix-candidate" if kwargs["native_suffix_setup"] else "native-suffix-control"
                 if comparison=="native-submit8-data64":label="native-submit8" if kwargs["native_submit8"] else "native-submit4"
                 order.append(label);case.mkdir()
@@ -754,17 +755,24 @@ class SupplySourceTests(unittest.TestCase):
                     native_clone=kwargs.get("prefix_native_clone",False)
                     submit8=kwargs.get("native_submit8",False)
                     suffix=kwargs.get("native_suffix_setup",False)
+                    observer_facts=kwargs.get("observer_native_facts",False)
                     client,fixture=self.prefix_report_fixture() if prefix else self.oneshot_report_fixture()
                     self.runtime_fixture(client)
-                    if comparison in ("native-submit8-data64","native-suffix-data64"):
+                    if comparison in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64"):
                         client,fixture=self.submit8_report_fixture(submit8)
                         row["prefixNativeClone"]=True
                         if submit8:row["nativeSubmit8"]=True
+                    if observer_facts:
+                        client["observerNativeFacts"]=True
+                        client["durableReadback"]["observerNativeFacts"]=dict(enabled=True,lookups=2048,hits=2048,misses=0,fallbackMathVerifications=0,fallbackFailures=0)
+                        client["durableReadback"]["transactionVerifications"]=2048
+                        row["observerNativeFacts"]=True
+                        row["observerNativeFactVerification"]=supply.validate_observer_native_facts(client,True)
                     if suffix:
                         client["nativeSuffixSetup"]=True
                         client["durableReadback"]["prefixReplay"]["nativeSuffixSetup"]=True
                         row["nativeSuffixSetup"]=True
-                    if native_clone and comparison not in ("native-submit8-data64","native-suffix-data64"):
+                    if native_clone and comparison not in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64"):
                         client["prefixNativeClone"]=True
                         stats=client["durableReadback"]["prefixReplay"];phases=stats["workPhases"]
                         phases["privateNativeClone"]=phases["privateJSON"];phases["privateJSON"]=dict(calls=0,errors=0,durationNs=0)
@@ -773,8 +781,8 @@ class SupplySourceTests(unittest.TestCase):
                     self.assertEqual(profile,"supply-2048x1-data64");self.assertEqual(mode,"relative")
                     if not prefix:
                         client["durableReadback"]["sharedReplay"]["workPhases"]=dict(produce=dict(calls=1,errors=0,durationNs=100),canonicalCopy=dict(calls=1,errors=0,durationNs=10),privateJSON=dict(calls=0,errors=0,durationNs=0),privateValidate=dict(calls=0,errors=0,durationNs=0),canonicalCopyBytes=100)
-                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix)["profile"],
-                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix),
+                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix,observer_native_facts=observer_facts)["profile"],
+                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix,observer_native_facts=observer_facts),
                         runtimeMeasurements=supply.validate_runtime_measurements(client,require=True,native_submit8=submit8),observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
                         sharedReplayVerification=supply.validate_shared_replay(client,not prefix,require_work_phases=not prefix))
                     if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True,expected_native_clone=native_clone,expected_native_suffix=suffix))
@@ -784,6 +792,9 @@ class SupplySourceTests(unittest.TestCase):
                     if replay_fault=="phase":del client["transactions"][-1]["submissionPhases"]
                     if replay_fault=="selection":row["sharedDurableReplay"]=prefix
                     if replay_fault=="native-selection":client["prefixNativeClone"]=not native_clone
+                    if replay_fault=="observer-selection":client["observerNativeFacts"]=not observer_facts
+                    if replay_fault=="observer-config":client["durableReadback"]["observerNativeFacts"]={}
+                    if replay_fault=="observer-receipt":row["observerNativeFactVerification"]={}
                     if replay_fault=="suffix-selection":client["nativeSuffixSetup"]=not suffix
                     if replay_fault=="suffix-config":client["durableReadback"]["prefixReplay"]["nativeSuffixSetup"]=not suffix
                     if replay_fault=="suffix-receipt":row["nativeSuffixSetup"]=not suffix
@@ -909,6 +920,49 @@ class SupplySourceTests(unittest.TestCase):
                 else:changed["durableReadback"]["prefixReplay"]["nativeSuffixSetup"]=value
                 with self.subTest(where=where,value=value),self.assertRaises(RuntimeError):supply.validate_native_suffix_selection(changed,True)
         with self.assertRaises(RuntimeError):supply.validate_native_suffix_selection(client,False)
+
+    def test_observer_native_pair_only_changes_signature_lookup_and_refuses_drift(self):
+        code,order,row=self.mock_pair(comparison="native-observer-facts-data64")
+        self.assertEqual(code,0,row["firstCause"])
+        self.assertEqual(order,["native-observer-control","empty","native-observer-facts","empty"])
+        self.assertFalse(row["jointObservation"]["sustainedTPSQualified"])
+        for fault in ("observer-selection","observer-config","observer-receipt","fixture","phase","submit8-selection","submit8-queue","native-cache"):
+            with self.subTest(fault=fault):
+                code,order,row=self.mock_pair(comparison="native-observer-facts-data64",replay_fault=fault)
+                self.assertEqual(code,1);self.assertEqual(order.count("native-observer-facts"),0)
+        for options in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(mutate_binary=True),dict(fail_after_fsync=True)):
+            with self.subTest(options=options):
+                code,order,row=self.mock_pair(comparison="native-observer-facts-data64",**options)
+                self.assertEqual(code,1);self.assertFalse(row["_terminal"]["qualified"])
+        args=[sys.executable,"-B",str(FILE),"--prepare-pair","--pair-kind","native-observer-facts-data64","--profile","supply-2048x1-data64","--transport","grpc","--observer-phases"]
+        plan=json.loads(subprocess.check_output(args,timeout=5));before,after=plan["cases"]
+        self.assertFalse(plan["execute"]);self.assertTrue(plan["requiresSeparateRootGrant"])
+        self.assertEqual(dict(before,observerNativeFacts=True),after)
+        self.assertNotIn("nativeSuffixSetup",after);self.assertEqual(before["profile"]["concurrency"],8)
+        self.assertEqual(plan["pairCaps"],supply.pair_recipe("native-suffix-data64")["pairCaps"])
+        workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
+        for marker in ("paired-native-observer-facts-data64","--prepare-pair --pair-kind native-observer-facts-data64","--execute-pair --pair-kind native-observer-facts-data64"):self.assertIn(marker,workflow)
+
+    def test_observer_native_work_counters_are_typed_bound_and_not_default(self):
+        client,fixture=self.submit8_report_fixture(True)
+        client["observerNativeFacts"]=True
+        stats=dict(enabled=True,lookups=2048,hits=2047,misses=1,fallbackMathVerifications=1,fallbackFailures=0)
+        client["durableReadback"]["observerNativeFacts"]=stats
+        client["durableReadback"]["transactionVerifications"]=2048
+        supply.validate_report(client,"supply-2048x1-data64",fixture_transactions=fixture,prefix_replay=True,prefix_native_clone=True,native_submit8=True,observer_native_facts=True,require_inventory=True)
+        for field,value in (("enabled",1),("lookups",2049),("hits",2048),("misses",0),("fallbackMathVerifications",True),("fallbackFailures",1)):
+            bad=copy.deepcopy(client);bad["durableReadback"]["observerNativeFacts"][field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(RuntimeError):supply.validate_observer_native_facts(bad,True)
+        for where in ("nativeSuffixSetup","nativeSubmit8","prefixNativeClone","prefixDurableReplay","observerNativeFacts"):
+            bad=copy.deepcopy(client);bad[where]=True if where=="nativeSuffixSetup" else False
+            with self.subTest(where=where),self.assertRaises(RuntimeError):supply.validate_observer_native_facts(bad,True)
+        with self.assertRaises(RuntimeError):supply.validate_observer_native_facts(client,False)
+        values=dict(transport="grpc",profile_name="supply-2048x1-data64",observer_phases=True,prefix_replay=True,prefix_native_clone=True,native_submit8=True,observer_native_facts=True)
+        plan=supply.recipe(**values)
+        for delta in (dict(observer_native_facts=1),dict(native_submit8=False),dict(native_suffix_setup=True),dict(prefix_native_clone=False)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**dict(values,**delta))
+        cmd=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("out"),plan["profile"],"relative",True,False,prefix_replay=True,prefix_native_clone=True,native_submit8=True,observer_native_facts=True)
+        self.assertEqual(cmd.count("-observer-native-facts"),1);self.assertNotIn("-native-suffix-setup",cmd)
 
     def test_prefix_pair_receipts_are_charged_once_and_workflow_routes_match(self):
         with tempfile.TemporaryDirectory() as temp:
