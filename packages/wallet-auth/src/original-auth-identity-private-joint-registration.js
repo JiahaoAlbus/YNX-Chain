@@ -101,10 +101,15 @@ export function closeOriginalAuthIdentityJointConfiguration(ref){
  s.closing=Promise.resolve().then(async()=>{
   while(s.entered.size)await Promise.allSettled([...s.entered]);
   let failed=false,cause;
-  const cleanup=async operation=>{try{if(await operation()!==undefined)throw failure('AUTH_IDENTITY_CLEANUP_INCOMPLETE');}catch(error){if(!failed){failed=true;cause=error;}}};
-  for(const host of s.ideHosts??[])await cleanup(()=>host.close());
-  if(s.joint){await cleanup(()=>s.binding.retireOriginalJoint(s.joint));await cleanup(()=>s.binding.joinOriginalJoint(s.joint));await cleanup(()=>s.binding.closeOriginalJoint(s.joint));}
-  if(s.local)await cleanup(()=>s.local.close());
+  const cleanup=async operation=>{try{if(await operation()!==undefined)throw failure('AUTH_IDENTITY_CLEANUP_INCOMPLETE');return true;}catch(error){if(!failed){failed=true;cause=error;}return false;}};
+  // Drain independent children, but keep their parents when release is not
+  // confirmed. An earlier retire/join error is not itself a close result: the
+  // same Native owner may still confirm safe release while preserving first.
+  let childrenClosed=true;
+  for(const host of s.ideHosts??[])if(!await cleanup(()=>host.close()))childrenClosed=false;
+  if(!childrenClosed)throw cause;
+  if(s.joint){await cleanup(()=>s.binding.retireOriginalJoint(s.joint));await cleanup(()=>s.binding.joinOriginalJoint(s.joint));if(!await cleanup(()=>s.binding.closeOriginalJoint(s.joint)))throw cause;}
+  if(s.local&&!await cleanup(()=>s.local.close()))throw cause;
   if(s.administration){await cleanup(()=>s.binding.retireOriginalAdministrationProfile(s.administration));await cleanup(()=>s.binding.joinOriginalAdministrationProfile(s.administration));await cleanup(()=>s.binding.closeOriginalAdministrationProfile(s.administration));}
   if(failed)throw cause;s.cleanupComplete=true;if(!s.unknown)debt.delete(s);return undefined;
  }).catch(cause=>{s.cleanupFailurePresent=true;first(s,cause);throw cause;});return s.closing;
