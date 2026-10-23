@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import {constants} from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+import {pathToFileURL,fileURLToPath} from 'node:url';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const reject = code => Object.assign(Error('The selected project artifact requires a fresh publication review.'), {code});
@@ -9,6 +11,20 @@ const projectKeys = ['owner','workspaceOwner','account','generation','identityRe
 const same = (a,b) => a.dev === b.dev && a.ino === b.ino && a.uid === b.uid;
 const unchanged = (a,b) => same(a,b) && a.size === b.size && a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
 const text = value => typeof value === 'string' && Buffer.byteLength(value) > 0 && Buffer.byteLength(value) <= 256 && value.trim() === value && !/[\u0000-\u001f\u007f]/.test(value);
+
+// The paired package must supply the original Cloud SDK at its fixed source
+// role. No cwd, environment, renderer path or same-origin substitute is used.
+export async function openBundledArtifactPublicationObservation(options){
+  const metadataURL=new URL('../../cloud/sdk/package.json',import.meta.url);
+  const metadata=JSON.parse(await fs.readFile(metadataURL,'utf8'));
+  if(metadata.name!=='@ynx/cloud-client'||!metadata.exports?.['./observe-ide-deployment'])throw reject('IDE_ARTIFACT_CLOUD_NOT_SUPPLIED');
+  const root=await fs.realpath(path.dirname(fileURLToPath(metadataURL))),original=createRequire(metadataURL);
+  const resolve=async specifier=>{const target=await fs.realpath(original.resolve(specifier));if(!target.startsWith(root+path.sep))throw reject('IDE_ARTIFACT_CLOUD_NOT_SUPPLIED');return pathToFileURL(target).href;};
+  const {YNXCloudClient}=await import(await resolve('@ynx/cloud-client'));
+  const {observeIDEDeployment}=await import(await resolve('@ynx/cloud-client/observe-ide-deployment'));
+  const {openPublicationObservation}=await import('./artifact-publication-lifecycle.mjs');
+  return openPublicationObservation({...options,CloudClient:YNXCloudClient,observeIDEDeployment});
+}
 
 // DATA preparation for the existing publication flow, not approval/signature
 // authority. An immutable private byte snapshot prevents a pathname from being
