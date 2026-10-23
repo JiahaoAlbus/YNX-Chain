@@ -101,8 +101,11 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 			}})
 		case "/abci_query":
 			path, _ := strconv.Unquote(r.URL.Query().Get("path"))
-			if strings.HasPrefix(path, consensus.MigrationHistoryTransactionPath) || strings.HasPrefix(path, consensus.MigrationHistoryPagePath) || strings.HasPrefix(path, consensus.MigrationHistoryLogsPath) || path == consensus.PQWalletIdentityPath {
+			if strings.HasPrefix(path, consensus.MigrationHistoryTransactionPath) || strings.HasPrefix(path, consensus.MigrationHistoryBlockHashPath) || strings.HasPrefix(path, consensus.MigrationHistoryPagePath) || strings.HasPrefix(path, consensus.MigrationHistoryLogsPath) || path == consensus.PQWalletIdentityPath {
 				var value any = consensus.MigrationHistoryTransactionView{MigrationHistoryAnchor: consensus.MigrationHistoryAnchor{Version: consensus.MigrationHistoryVersion, Source: "source_import", SourceAnchor: strings.Repeat("1", 64), OriginalGenesisHash: strings.Repeat("2", 64), NativeChainID: 6423, MigrationHeight: 16, MigrationBlockHash: strings.Repeat("f", 64)}}
+				if strings.HasPrefix(path, consensus.MigrationHistoryBlockHashPath) {
+					value = consensus.MigrationHistoryBlockView{MigrationHistoryAnchor: value.(consensus.MigrationHistoryTransactionView).MigrationHistoryAnchor}
+				}
 				if strings.HasPrefix(path, consensus.MigrationHistoryPagePath) {
 					if path != consensus.MigrationHistoryPagePath+"0/0" {
 						t.Errorf("unexpected empty source history window: %s", path)

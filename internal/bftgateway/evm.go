@@ -570,6 +570,15 @@ func (g *Gateway) evmCommittedBlockResult(ctx context.Context, method string, ra
 	if err := json.Unmarshal(params[1], &full); err != nil {
 		return nil, errors.New("full-transaction parameter must be boolean")
 	}
+	if method == "eth_getBlockByNumber" || method == "eth_getBlockByHash" {
+		source, selected, _, err := g.importedEVMBlock(ctx, method == "eth_getBlockByHash", params[0])
+		if err != nil || selected {
+			if err != nil || source == nil {
+				return nil, err
+			}
+			return projectImportedEVMBlock(*source, full)
+		}
+	}
 	var evidence committedBlockEvidence
 	switch method {
 	case "eth_getBlockByNumber":
@@ -639,6 +648,27 @@ func (g *Gateway) evmCommittedBlockTransactionResult(ctx context.Context, method
 		return nil, -32602, fmt.Errorf("%s requires a block identifier and transaction index", method)
 	}
 	byHash := method == "eth_getBlockTransactionCountByHash" || method == "eth_getTransactionByBlockHashAndIndex"
+	source, selected, code, err := g.importedEVMBlock(ctx, byHash, params[0])
+	if err != nil || selected {
+		if err != nil || source == nil {
+			return nil, code, err
+		}
+		if countLookup {
+			return hexEVMQuantity(uint64(len(source.Block.Transactions))), 0, nil
+		}
+		index, err := parseCanonicalEVMQuantity(params[1], "transaction index")
+		if err != nil {
+			return nil, -32602, err
+		}
+		if index >= uint64(len(source.Block.Transactions)) {
+			return nil, 0, nil
+		}
+		projected, err := projectImportedEVMTransaction(source.Block.Transactions[index], index, source.MigrationHistoryAnchor)
+		if err != nil {
+			return nil, -32603, err
+		}
+		return projected, 0, nil
+	}
 	evidence, found, code, err := g.committedEVMBlockTransactionEvidence(ctx, byHash, params[0])
 	if err != nil || !found {
 		return nil, code, err
