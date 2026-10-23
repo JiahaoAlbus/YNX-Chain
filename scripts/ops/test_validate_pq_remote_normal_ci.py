@@ -480,8 +480,8 @@ def assert_native_cabi_workflow_contract(raw):
         "          set -euo pipefail", "          umask 077",
         '          test "$(go env GOHOSTOS)" = darwin', '          test "$(go env GOHOSTARCH)" = arm64',
         '          test "$(go env GOOS)" = darwin', '          test "$(go env GOARCH)" = arm64',
-        '          lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"',
-        '          lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver"'])
+        '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" -verify_arch arm64',
+        '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64'])
     seal = steps[5]
     need(not re.search(r"(?m)^        if:", seal))
     need(lines(seal)[1:5] == ["        run: |", "          set -euo pipefail", "          umask 077",
@@ -905,7 +905,9 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(actual, actual.replace("        run: |\n", "        continue-on-error: true\n        run: |\n", 1)),
             raw.replace(native, native.replace(actual, "", 1).replace(seal, seal + actual, 1), 1),
             change('test "$(go env GOHOSTARCH)" = arm64', 'test "$(go env GOHOSTARCH)" = amd64'),
-            change('lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver"', "true # skipped caller architecture"),
+            change('lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64', "true # skipped caller architecture"),
+            change('lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" -verify_arch arm64',
+                   'lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"'),
             change(arm, arm.replace("if: runner.os == 'macOS'", "if: false", 1)),
             change(seal, seal.replace("        run: |\n", "        if: always()\n        run: |\n", 1)),
             change("python3 -B - <<'PY'", "python3 -B - <<'PY' || true"),

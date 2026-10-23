@@ -373,8 +373,8 @@ jobs:
           test "$(go env GOHOSTARCH)" = arm64
           test "$(go env GOOS)" = darwin
           test "$(go env GOARCH)" = arm64
-          lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"
-          lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver"
+          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" -verify_arch arm64
+          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64
           # The immediately preceding real C call executed this exact archive
           # on the original Main target. No cross-compiled runtime claim.
       - name: Seal only native library public outputs and exact compile inputs
