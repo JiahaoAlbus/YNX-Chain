@@ -44,3 +44,8 @@ test('auth5 distinguishes62 Node inputs from3 helper Native leaves and2 preserve
  assert.throws(()=>canonicalNativeInputSelection(current.version,wide,raw,pins.slice(0,55)),/inventory differs/);
  assert.throws(()=>canonicalNativeInputSelection(current.version,wide,bytes,pins),/inventory differs/);
 });
+test('auth6 selects its independent inventory with the unchanged62+5 source graph',()=>{
+ const raw=readFileSync(new URL('./fixtures/sdk332-auth6-native62-helper5.json',import.meta.url)),v=JSON.parse(raw),helper=v.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),list=[...v.NativeInputs.map(p=>p.path),...helper,...CANONICAL_NATIVE_EVIDENCE_TESTS];
+ const result=canonicalNativeInputSelection(v.version,list,raw,v.NativeInputs.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})));
+ assert.equal(result.inputs.length,62);assert.equal(result.helperInputs.length,5);assert.equal(result.inventory.sha256,'cd7dd07ddd14d37e76b897fc179c5582cd739029a834a7134b0f8d9c9fe857f8');
+});

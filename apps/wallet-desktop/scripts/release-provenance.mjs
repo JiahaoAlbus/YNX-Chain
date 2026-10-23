@@ -8,6 +8,7 @@ import { isDeepStrictEqual } from "node:util";
 import { Readable } from "node:stream";
 import {canonicalArchivePlan,canonicalPackedPath,canonicalSourcePath,CANONICAL_MAIN,CANONICAL_APP_METADATA,NATIVE_CANONICAL,NATIVE_RECEIPT,SDK_ALIAS,verifyCanonicalNativeReceipt,canonicalNativeInputSelection,SDK332_NATIVE_INVENTORY,CANONICAL_NATIVE_EVIDENCE_TESTS} from './canonical-package.mjs';
 import {walletAuthDependencyPlan,verifyPackagedWalletAuthDependencies} from './wallet-auth-dependencies.mjs';
+import {verifyOriginalR155Component,verifyOriginalR155HelperBundle,R155_INTAKE_ASSET,R155_HELPER_ASSET} from './r155-native-component.mjs';
 
 const projectDir = fileURLToPath(new URL("..", import.meta.url));
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim();
@@ -53,12 +54,16 @@ const SDK332_VERSION='1.3.0-pq.3.32-auth.1';
 const SDK332_R140_VERSION='1.3.0-pq.3.32-auth.2';
 const SDK332_CLEANUP_VERSION='1.3.0-pq.3.32-auth.3';
 const SDK332_DEPLOYMENT_VERSION='1.3.0-pq.3.32-auth.4';
+const SDK_R154_VERSION='1.3.0-pq.3.32-auth.5';
+const SDK_CONTRACT_CLIENT_VERSION='1.3.0-pq.3.32-auth.6';
 export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
  [SDK330_VERSION]:Object.freeze({bytes:64574,sha256:'3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693'}),
  [SDK332_VERSION]:Object.freeze({bytes:65346,sha256:'0abdc434eb6e7aacc4708127e413c686e10963f4744b730c74f3d4300f522d07'}),
  [SDK332_R140_VERSION]:Object.freeze({bytes:65346,sha256:'2f7475868d459b918c612064e111322b937759b78779c16adef948a56e7c0220'}),
  [SDK332_CLEANUP_VERSION]:Object.freeze({bytes:65346,sha256:'eeea144302168f53c51be55e2403cde30ee4f9c6b6b04eb5e65f2c11d621cd3c'}),
- [SDK332_DEPLOYMENT_VERSION]:Object.freeze({bytes:65919,sha256:'d104b6f1670a60014fcae0470d8bc6e108cdbb2cb86deba30db8e7b9d067ae30'})
+ [SDK332_DEPLOYMENT_VERSION]:Object.freeze({bytes:65919,sha256:'d104b6f1670a60014fcae0470d8bc6e108cdbb2cb86deba30db8e7b9d067ae30'}),
+ [SDK_R154_VERSION]:Object.freeze({bytes:65919,sha256:'53446225376a55c36dca8fdcd3963c92bc69bf8ea39ab1df609a8c07525b34d3'}),
+ [SDK_CONTRACT_CLIENT_VERSION]:Object.freeze({bytes:65919,sha256:'c501bb7184460131b796850e2ad5f4ac1aa9b63e11fc89431e0ad375f6721c22'})
 });
 const FIXED_SDK_RUNTIME_MANIFEST='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
 export function fixedSDKRuntimeManifestSources(root,sourceCommit){
@@ -82,7 +87,7 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
 function selectedRelocationRules(sdkVersion){
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
-  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION)return PACKAGED_RELOCATION_RULES;
+  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION)return PACKAGED_RELOCATION_RULES;
   return PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
     ?{...rule,operands:rule.operands.map(operand=>({...operand,count:3}))}:rule);
 }
@@ -276,10 +281,19 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const sdkRuntimeDependencies=verifyPackagedWalletAuthDependencies(asar,archive,dependencies,sdkMetadata);
   const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native').split('\n').filter(name=>/\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name));
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
-  const nativeSelection=canonicalNativeInputSelection(sdkMetadata.version,nativeSourceNames,[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION].includes(sdkMetadata.version)?execFileSync('git',['show',`${expected.sourceCommit}:${SDK332_NATIVE_INVENTORY}`],{cwd:root,maxBuffer:16*1024*1024}):null,nativeReceipt.inputFiles),nativeInputs=nativeSelection.inputs;
+  const sourceBytes=name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024});
+  const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
   if(!lstatSync(localNative).isFile()||!lstatSync(localReceipt).isFile()||!nativeBytes.equals(readFileSync(localNative))||!nativeReceiptBytes.equals(readFileSync(localReceipt)))throw Error('Packaged native module or receipt differs from frozen build input');
-  const nativeModuleBuild={...verifyCanonicalNativeReceipt(nativeReceipt,nativeBytes,nativeInputs,name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024})),sourceInventory:nativeSelection.inventory??null,receipt:{path:NATIVE_RECEIPT,bytes:nativeReceiptBytes.length,sha256:digest(nativeReceiptBytes)}};
+  let originalR155=null;
+  if([SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION].includes(sdkMetadata.version)){
+    const extra=name=>{const packed=asar.extractFile(archive,canonicalSourcePath(name)),local=path.join(root,name);if(!lstatSync(local).isFile()||lstatSync(local).isSymbolicLink()||!packed.equals(readFileSync(local)))throw Error('R155 packaged supplier asset differs');return packed};
+    originalR155=verifyOriginalR155Component({recordBytes:nativeReceiptBytes,intakeBytes:extra(R155_INTAKE_ASSET),inventoryBytes,moduleBytes:nativeBytes,helperBytes:extra(R155_HELPER_ASSET)},sourceBytes);
+    if(!macAsarIntegrityVerified)throw Error('Original R155 component requires its matched Mac bundle');
+    originalR155.helperBundle=verifyOriginalR155HelperBundle(path.dirname(resources));
+  }
+  const nativeSelection=canonicalNativeInputSelection(sdkMetadata.version,nativeSourceNames,inventoryBytes,originalR155?.nodeInputFiles??nativeReceipt.inputFiles),nativeInputs=nativeSelection.inputs;
+  const nativeModuleBuild={...(originalR155??verifyCanonicalNativeReceipt(nativeReceipt,nativeBytes,nativeInputs,sourceBytes)),sourceInventory:nativeSelection.inventory??null,receipt:{path:NATIVE_RECEIPT,bytes:nativeReceiptBytes.length,sha256:digest(nativeReceiptBytes)}};
   // The two closed source-inspection assets remain exact Git-bound evidence,
   // even when the production compile inventory correctly excludes tests.
   // Do not make them compiler inputs or admit arbitrary packaged test files.

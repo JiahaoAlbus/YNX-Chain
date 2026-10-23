@@ -1,9 +1,10 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { writeFile } from "node:fs/promises";
+import { writeFile,readFile } from "node:fs/promises";
 import { desktopReleaseIdentity, relocateDesktopPackage as assembleCanonicalDesktopPackage, desktopAsarHeaderIntegrity } from "./release-provenance.mjs";
 import { buildPublicWalletConnectConfig, WALLETCONNECT_PUBLIC_CONFIG_FILE } from "../src/walletconnect-public-config.mjs";
 import {installPackagedPQVerifierAssets} from './packaged-proof-verifier.mjs';
+import {stageOriginalR155HelperBundle} from './r155-native-component.mjs';
 
 export function updatedMacAsarIntegrity(existing, relocated) {
   if(!existing||typeof existing!=="object"||Array.isArray(existing)||existing["Resources/app.asar"]?.algorithm!=="SHA256"||relocated?.algorithm!=="SHA256"||!/^[a-f0-9]{64}$/.test(relocated.hash)) throw new Error("Expected normal Mac ASAR integrity metadata");
@@ -47,6 +48,11 @@ export default async function afterPack(context) {
   assembleCanonicalDesktopPackage(resources, context.packager.projectDir);
   await writeFile(path.join(resources, WALLETCONNECT_PUBLIC_CONFIG_FILE), JSON.stringify(buildPublicWalletConnectConfig(), null, 2) + "\n");
   if (context.electronPlatformName !== "darwin") return;
+  const sdk=JSON.parse(await readFile(path.resolve(context.packager.projectDir,'../../packages/wallet-auth/package.json'),'utf8'));
+  if(['1.3.0-pq.3.32-auth.5','1.3.0-pq.3.32-auth.6'].includes(sdk.version)){
+    if(context.arch!==3)throw Error('Original R155 paired component is arm64 only');
+    stageOriginalR155HelperBundle({contents:path.join(context.appOutDir,`${context.packager.appInfo.productFilename}.app`,'Contents'),projectDir:context.packager.projectDir});
+  }
   // builder-util Arch.arm64 is 3; other platform/architecture builds do not
   // inherit this arm64-only proof executable or falsely report it available.
   if(context.arch===3)await installPackagedPQVerifierAssets(resources,process.env.YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE);

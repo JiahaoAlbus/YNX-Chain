@@ -1,0 +1,154 @@
+{
+  "intake": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/SOURCE_INTAKE.json",
+  "bytes": 33995,
+  "sha256": "52be5da510d0eaf33fd94cf0813fb0697c19765e963a38fc8c5f0bd44834d15a",
+  "sourceFiles": 67,
+  "nodeTUs": [
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/apps/wallet-desktop/native/original-auth-identity-node.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-kernel.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-node.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-wallet-identity-source.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-wallet-peer-launch.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-client.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-service-install.mm"
+  ],
+  "helperTUs": [
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/apps/developer/helper/main.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-listener.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-service-install.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-kernel.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-client.mm",
+    "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/apps/wallet-desktop/native/original-ide-auth-request-source.inc.mm"
+  ],
+  "headerRefs": [
+    {
+      "path": "/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node/node_api.h",
+      "bytes": 10731,
+      "sha256": "a6d6732d02b9ece6b53168edc3f8a53af2653db6a7ae13b1c03987e32e2d0125"
+    },
+    {
+      "path": "/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node/node_api_types.h",
+      "bytes": 1603,
+      "sha256": "8d5d854088d5725fec9775510e0aeeeb790a41ad083c49bb721d950b86e6bd61"
+    },
+    {
+      "path": "/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node/js_native_api.h",
+      "bytes": 32182,
+      "sha256": "89393f07881fcba3ed097a5989fba1746f1c2cf611f19ba4dcb17071da8a661e"
+    },
+    {
+      "path": "/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node/js_native_api_types.h",
+      "bytes": 7033,
+      "sha256": "0410c31e227f81e2981363c4d543f4832ac3df785343ec64cee621742ff8a034"
+    }
+  ],
+  "steps": [
+    {
+      "name": "normalNode11",
+      "tool": "/usr/bin/clang++",
+      "args": [
+        "-std=c++17",
+        "-fobjc-arc",
+        "-mmacosx-version-min=13.0",
+        "-arch",
+        "arm64",
+        "-I/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native",
+        "-dynamiclib",
+        "-undefined",
+        "dynamic_lookup",
+        "-DNAPI_VERSION=8",
+        "-DNODE_GYP_MODULE_NAME=original_auth_identity",
+        "-I/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node",
+        "-framework",
+        "Foundation",
+        "-framework",
+        "Security",
+        "-framework",
+        "AppKit",
+        "-framework",
+        "ServiceManagement",
+        "-lbsm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-kernel.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-node.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-wallet-identity-source.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-wallet-peer-launch.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-client.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-service-install.mm",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/auth-r155-normal-fpYiTH/original-auth-identity.node"
+      ],
+      "exit": 0,
+      "signal": null
+    },
+    {
+      "name": "normalHelper10",
+      "tool": "/usr/bin/clang++",
+      "args": [
+        "-std=c++17",
+        "-fobjc-arc",
+        "-mmacosx-version-min=13.0",
+        "-arch",
+        "arm64",
+        "-I/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native",
+        "-framework",
+        "Foundation",
+        "-framework",
+        "Security",
+        "-framework",
+        "ServiceManagement",
+        "-lbsm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/apps/developer/helper/main.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-listener.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-service-install.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-kernel.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/packages/wallet-auth/native/original-ide-helper-client.mm",
+        "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r154-source-intake-20261023/source/apps/wallet-desktop/native/original-ide-auth-request-source.inc.mm",
+        "-o",
+        "/Volumes/西部数据/YNX-large-work/auth-r155-normal-fpYiTH/YNXIdentityReceiver"
+      ],
+      "exit": 0,
+      "signal": null
+    }
+  ],
+  "ownUndefined": [],
+  "artifacts": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-r155-normal-fpYiTH/original-auth-identity.node",
+      "bytes": 1876376,
+      "sha256": "ce81d7f0d3e832d491379235af9a3e274a68539735e6aea7f71b0b3e56a7e492"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-r155-normal-fpYiTH/YNXIdentityReceiver",
+      "bytes": 645456,
+      "sha256": "f83ff102eff416a70fbc511c2e523974068e96d9c3211e9b2cb03dd4f05ffc3d"
+    }
+  ],
+  "pass": true,
+  "PUBLICSubstitutes": false,
+  "realKernelAndSource": true,
+  "architecture": "darwin-arm64",
+  "loaded": false,
+  "executed": false,
+  "signedByAcceptedDeveloperID": false,
+  "notarized": false,
+  "installed": false,
+  "Root": false,
+  "out": "/Volumes/西部数据/YNX-large-work/auth-r155-normal-fpYiTH"
+}

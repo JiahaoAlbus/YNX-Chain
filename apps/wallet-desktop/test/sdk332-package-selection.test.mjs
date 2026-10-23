@@ -55,3 +55,17 @@ test('SDK332 deployment successor selects auth4 runtime and unchanged triple Nat
  assert.equal(relocateDesktopRuntimeSource(file,Buffer.from(Array(3).fill(load).join(';')),version).operands[0].count,3);
  assert.throws(()=>relocateDesktopRuntimeSource(file,Buffer.from(Array(2).fill(load).join(';')),version),/count differs/);
 });
+test('R154 paired successor selects its independent auth5 runtime, not the old module or runtime',()=>{
+ const version='1.3.0-pq.3.32-auth.5';
+ assert.deepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],{bytes:65919,sha256:'53446225376a55c36dca8fdcd3963c92bc69bf8ea39ab1df609a8c07525b34d3'});
+ assert.notDeepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],FIXED_SDK_RUNTIME_IDENTITIES['1.3.0-pq.3.32-auth.4']);
+ const file='packages/wallet-auth/src/original-ide-admission-parent-delivery.js',load="new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)";
+ assert.equal(relocateDesktopRuntimeSource(file,Buffer.from(Array(3).fill(load).join(';')),version).operands[0].count,3);
+ assert.throws(()=>relocateDesktopRuntimeSource(file,Buffer.from(Array(2).fill(load).join(';')),version),/count differs/);
+});
+test('dedicated contract client selects closed auth6 runtime while retaining three original Native loads',()=>{
+ const version='1.3.0-pq.3.32-auth.6';
+ assert.deepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],{bytes:65919,sha256:'c501bb7184460131b796850e2ad5f4ac1aa9b63e11fc89431e0ad375f6721c22'});
+ const file='packages/wallet-auth/src/original-ide-admission-parent-delivery.js',load="new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)";
+ assert.equal(relocateDesktopRuntimeSource(file,Buffer.from(Array(3).fill(load).join(';')),version).operands[0].count,3);
+});
