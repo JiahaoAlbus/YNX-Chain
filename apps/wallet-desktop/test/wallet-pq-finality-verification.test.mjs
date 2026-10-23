@@ -13,7 +13,8 @@ import {readPQFinalityVerifierEvidence} from '../src/wallet-pq-verifier-restore.
 import {runInNewContext} from 'node:vm';
 import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
 import {pqFinalityRecordGeneration} from '../src/wallet-pq-finality-record.mjs';
-async function fixture(t){
+import {createPQHostSelectionCapture} from '../src/wallet-pq-host-selection-capture.mjs';
+async function fixture(t,{createSelection=null}={}){
  const root=await fs.mkdtemp(path.join(tmpdir(),'wallet-host-main-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const f=exportFixture();f.encode();
  let writes=0,fault=0,hostCalls=0,proofCalls=0,selectCalls=0,locked=false,missing=false,rejected=false,afterProof=()=>{},journalFault=false,journalCalls=0,flushCalls=0;const observations=[];
  const journalFile=path.join(root,'journal.json');await fs.writeFile(journalFile,JSON.stringify({schemaVersion:9,records:[],rejections:[],resolutions:[],signedPayments:[],payProgress:[],payHistory:[],preparations:[],pqOriginals:[original],sessionOriginals:[],sessionPublications:[],pqProgress:[]}),{mode:0o600});
@@ -24,7 +25,7 @@ async function fixture(t){
   mode==='proof'?proofCalls++:hostCalls++;const child=new EventEmitter();for(const name of ['stdin','stdout','stderr']){child[name]=new EventEmitter();child[name].destroy=()=>{};}child.kill=()=>true;
   child.stdin.end=()=>queueMicrotask(()=>{child.stdout.emit('data',mode==='proof'?Buffer.from(JSON.stringify(rejected?{version:'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1',code:'PROOF_REJECTED',error:'PUBLIC rejection; not a transaction failure claim'}:row.expectedResponse)):f.encode().stdout);if(mode==='proof')afterProof();child.emit('close',mode==='proof'&&rejected?1:0,null);});return child;
  }});}
- const service=createPQFinalityVerification({evidence,selectSource:async()=>{selectCalls++;if(missing)throw Object.assign(Error('PUBLIC no genuine source'),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});return f.selection;},createProducer:()=>kernel('host-producer'),createVerifier:()=>kernel('proof'),persistObservation:async(o,r)=>{journalCalls++;assert.equal(o,original);observations.push(r);return journal.savePQFinalityObservation(o,r);},flushObservation:async(o,r,g)=>{flushCalls++;g.assert();assert.equal(o,original);assert(observations.includes(r));return journal.flushPQFinalityObservation(o.account,o.hash,pqFinalityRecordGeneration(r),()=>g.assert());}});
+ const service=createPQFinalityVerification({evidence,createSelection:createSelection&&((o,b)=>createSelection(o,b,evidence,f)),selectSource:async()=>{selectCalls++;if(missing)throw Object.assign(Error('PUBLIC no genuine source'),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});return f.selection;},createProducer:()=>kernel('host-producer'),createVerifier:()=>kernel('proof'),persistObservation:async(o,r)=>{journalCalls++;assert.equal(o,original);observations.push(r);return journal.savePQFinalityObservation(o,r);},flushObservation:async(o,r,g)=>{flushCalls++;g.assert();assert.equal(o,original);assert(observations.includes(r));return journal.flushPQFinalityObservation(o.account,o.hash,pqFinalityRecordGeneration(r),()=>g.assert());}});
  return {root,f,service,evidence,guard,journal,journalFile,observations,journalCounts:()=>({journalCalls,flushCalls}),journalFault:v=>{journalFault=v;},counts:()=>({hostCalls,proofCalls,selectCalls}),fault:n=>{fault=n;},lock:v=>{locked=v;},missing:()=>{missing=true;},rejectProof:()=>{rejected=true;},afterProof:fn=>{afterProof=fn;}};
 }
 test('Main verification orchestrates acquire/current, same original proof capture and final current without granting finality',async t=>{
@@ -47,6 +48,41 @@ test('failed saving of the second evidence generation flushes that generation, n
 test('missing original source refuses before producer or verifier construction, without an alternate supplier',async t=>{
  const f=await fixture(t);f.missing();await assert.rejects(f.service.verify(original,binding,row.request.proof,f.guard),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});
  assert.deepEqual(f.counts(),{selectCalls:1,hostCalls:0,proofCalls:0});assert.equal(f.service.pending(),false);f.service.assertSafeToClose();
+});
+test('Main retains PUBLIC selector-owner save debt through retire/join without selecting a replacement',async t=>{
+ let pending=true,runs=0,saves=0,retired=0,joined=0;
+ const owner={async run(){runs++;throw Object.assign(Error('PUBLIC selector storage refusal'),{code:'PUBLIC_SELECTOR_SAVE'});},retire(){retired++;},async join(){joined++;},assertSafeToClose(){if(pending)throw Error('PUBLIC held selector evidence');},async save(guard){guard.assert();saves++;pending=false;}};
+ const f=await fixture(t,{createSelection:(o,b)=>{assert.equal(o,original);assert.equal(b,binding);return owner;}});
+ await assert.rejects(f.service.verify(original,binding,row.request.proof,f.guard),{code:'PUBLIC_SELECTOR_SAVE'});
+ assert(f.service.pending(original));assert.throws(()=>f.service.assertSafeToClose());
+ await f.service.join();assert.equal(joined,1);assert.equal(retired,1);
+ const saved=await f.service.save(original,binding,f.guard);
+ assert(saved.saved);assert.equal(saved.canRetry,false);assert.equal(runs,1);assert.equal(saves,1);
+ assert.deepEqual(f.counts(),{selectCalls:0,hostCalls:0,proofCalls:0});
+ assert.equal(f.service.pending(),false);f.service.assertSafeToClose();
+});
+test('selected new owner returning null cannot silently fall back to legacy source',async t=>{
+ const f=await fixture(t,{createSelection:()=>null});
+ await assert.rejects(f.service.verify(original,binding,row.request.proof,f.guard),{code:'PQ_HOST_SELECTION_OWNER_REQUIRED'});
+ assert.deepEqual(f.counts(),{selectCalls:0,hostCalls:0,proofCalls:0});f.service.assertSafeToClose();
+});
+test('actual capture owner joins Main Host/proof flow and cold evidence; PUBLIC child output is not a Source grant',async t=>{
+ let selectionRuns=0;
+ const f=await fixture(t,{createSelection:(o,b,evidence,exported)=>{
+  const selector=new PQFinalityVerifierProcessKernel({mode:'host-selection',prepare:async input=>({executable:'/PUBLIC/not-executable',contextPath:input.catalogPath,contextSha256:input.catalogSha256,stdin:input.stdin}),spawn:()=>{
+   selectionRuns++;const child=new EventEmitter();for(const name of ['stdin','stdout','stderr']){child[name]=new EventEmitter();child[name].destroy=()=>{};}
+   child.kill=()=>true;child.stdin.end=()=>queueMicrotask(()=>{child.stdout.emit('data',Buffer.from(JSON.stringify(exported.selection)));child.emit('close',0,null);});return child;
+  }});
+  return createPQHostSelectionCapture({original:o,binding:b,evidence,selector,sourceCatalog:{catalogPath:'/PUBLIC/private-catalog',catalogSha256:'a'.repeat(64)}});
+ }});
+ const result=await f.service.verify(original,binding,row.request.proof,f.guard);
+ assert.equal(result.nativeGrant,false);assert.equal(result.independentFinality,false);
+ assert.equal(selectionRuns,1);assert.deepEqual(f.counts(),{selectCalls:0,hostCalls:3,proofCalls:1});
+ const cold=new PQFinalityEvidence({directory:path.join(f.root,'evidence')}),found=await cold.candidates(original,binding);
+ const refs=found.candidates.filter(x=>x.kind.startsWith('host-selection-'));assert.equal(refs.length,4);
+ const metadata=JSON.parse(await cold.read(original,binding,refs.find(x=>x.kind==='host-selection-result')));
+ assert.equal(metadata.exitCode,0);assert.equal(metadata.lifecycle.closeObserved,true);
+ f.service.assertSafeToClose();
 });
 test('explicit verifier rejection remains error DATA in the Main envelope and cold record, never success or retry',async t=>{
  const f=await fixture(t);f.rejectProof();const result=await f.service.verify(original,binding,row.request.proof,f.guard);
