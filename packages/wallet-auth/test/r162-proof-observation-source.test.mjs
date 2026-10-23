@@ -10,14 +10,15 @@ import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-
 
 const root=resolve(fileURLToPath(new URL('../../..',import.meta.url)));
 const selectedVersion=JSON.parse(readFileSync(resolve(root,'packages/wallet-auth/package.json'))).version;
-assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.15'].includes(selectedVersion));
+assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16'].includes(selectedVersion));
 const read=path=>readFileSync(resolve(root,path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // Independent supplier R162 H6843/67c056ae...; source selection only. These
 // checks do not rerun PUBLIC Auth fixtures or claim any real N1/Root/effect.
-const r170=selectedVersion==='1.3.0-pq.3.32-auth.15';
+const r172=selectedVersion==='1.3.0-pq.3.32-auth.16';
+const r170=r172||selectedVersion==='1.3.0-pq.3.32-auth.15';
 const r166=r170||selectedVersion==='1.3.0-pq.3.32-auth.14';
-const r164=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15)$/)!==null;
+const r164=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16)$/)!==null;
 const leaves=r166?[
  ['original-auth-identity-source-authority.mm',45981,'1793d8399fdd8e6f7cc941b459321c9be2e9b3a3be6a2383b8d8a11f48ece978'],
  ['original-auth-identity-source-authority.h',6319,'1139a49d836fc3d41b7d737c0bd3a9e6e4397917b4803921c2289fae49441544'],
@@ -46,7 +47,7 @@ test('Inherited proof keeps exact selected Node/helper recipes and entry identit
  for(const plan of [selected.plan,selected.helperPlan])assert.equal(plan.sources.filter(p=>p.endsWith('/original-auth-identity-source-authority.mm')).length,1);
  // R164/R166 supersede Source/entry selection with Relay methods while the inherited
  // proof remains private DATA. Public signing exports stay unchanged.
- assert.equal(sha(read('apps/wallet-desktop/native/original-auth-identity-node.mm')),r170?'7fd76fdc2f99c26f4c8a1e9e82c8c70d8e936f2c62c921dee268bdaab2eeb30e':r164?'208f88b06818eb60b3d856c8a83d2da23ec1e6f557f2656d8f8ee3f129173b8d':'cca146d0381e57d7cb54cc7e146e033c4ed5d02a1106a11754dee5ca89c43561');
+ assert.equal(sha(read('apps/wallet-desktop/native/original-auth-identity-node.mm')),r172?'579e2756a755d3b759a39ead2811549bc13961dc8cd864354b6f4af02d2188d2':r170?'7fd76fdc2f99c26f4c8a1e9e82c8c70d8e936f2c62c921dee268bdaab2eeb30e':r164?'208f88b06818eb60b3d856c8a83d2da23ec1e6f557f2656d8f8ee3f129173b8d':'cca146d0381e57d7cb54cc7e146e033c4ed5d02a1106a11754dee5ca89c43561');
  assert.equal(sha(Buffer.from(JSON.stringify(JSON.parse(read('packages/wallet-auth/package.json')).exports))),'9911a84fcc30dc60811bb257df1499dd213a1c89c45b7dbbec8d9cc0b088b5cb');
  assert.equal(selected.NativeBuild,false);assert.equal(selected.artifactNativeEffectQualified,false);assert.equal(selected.grant,false);
 });
