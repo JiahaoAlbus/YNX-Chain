@@ -1178,6 +1178,7 @@ def validate_native_stream_report(report,network):
         need(type(supply.get(key)) is int and supply[key]==value,"stream signing/evidence phase coverage differs: "+key)
     for key in ("signNs","encodeNs","journalAppendNs","terminalSinkNs","journalSetupNs","journalDurableBytes"):
         need(type(supply.get(key)) is int and supply[key]>0,"stream original phase timing absent: "+key)
+    need(supply["journalDurableBytes"]==proof["intents"]["bytes"],"stream journal phase bytes differ from original inventory")
     budget=ready.get("evidenceBudget",{})
     need(same(budget,dict(limitBytes=64<<20,attemptedBytes=proof["intents"]["bytes"]+proof["terminal"]["bytes"],poisoned=False)),"stream encoded budget differs from full original inventories")
     need(report["terminalStream"].get("encoding")=="gzip","stream encoding differs")

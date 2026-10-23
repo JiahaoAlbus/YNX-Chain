@@ -1106,12 +1106,13 @@ class SupplySourceTests(unittest.TestCase):
                 self.assertFalse(out["sustainedTPSQualified"])
                 return out
         check(client)
-        for kind in ("scope","counts","latency","budget","reader","facts","runtime","timeline","backlog","rate","plan"):
+        for kind in ("scope","counts","latency","budget","phase","reader","facts","runtime","timeline","backlog","rate","plan"):
             bad=copy.deepcopy(client)
             if kind=="scope":bad["nativeStream8"]=1
             if kind=="counts":bad["summary"]["finalSubmitted"]=8191
             if kind=="latency":bad["readySenders"]["boundedSummary"]["terminalRecords"]=2048
             if kind=="budget":bad["readySenders"]["evidenceBudget"]["attemptedBytes"]+=1
+            if kind=="phase":bad["readySenders"]["supply"]["journalDurableBytes"]+=1
             if kind=="reader":bad["durableReadback"]["readerBudget"]["storeByteLimit"]=16<<20
             if kind=="facts":bad["durableReadback"]["observerNativeFacts"]["lookups"]-=1
             if kind=="runtime":bad["submissionOccupancy"]["callbackReturned"]=2048

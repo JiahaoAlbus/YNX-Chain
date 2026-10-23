@@ -30,6 +30,7 @@ class NativeStreamEvidenceTests(unittest.TestCase):
     def test_actual_go_supply_counters_cover_all_nonce_cycles_and_terminal_writes(self):
         ready=self.meta['readySenders'];total=self.meta['senders']*self.meta['rounds']
         self.assertEqual(ready['completed'],total);self.assertEqual(ready['quarantinedAccounts'],0)
+        self.assertEqual(ready['supply']['journalDurableBytes'],self.meta['intents']['bytes'])
         for key in ('signAttempts','encodeAttempts','signedSuccessors'):self.assertEqual(ready['supply'][key],total-self.meta['senders'])
         for key in ('journalDurableEnvelopes','terminalSinkAttempts'):self.assertEqual(ready['supply'][key],total)
         for key in ('signNs','encodeNs','journalAppendNs','terminalSinkNs','journalSetupNs','journalDurableBytes'):self.assertGreater(ready['supply'][key],0)
