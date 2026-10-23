@@ -217,7 +217,8 @@ class CaddyWindowContractControls(unittest.TestCase):
 
     def test_actual_witness_reader_rejects_replacement_before_business_import(self):
         value = contract()
-        for replaced in (None, "control", guard.PRODUCER):
+        shadows = ("source/scripts/ops/json.py", "control/ctypes.py")
+        for replaced in (None, "control", guard.PRODUCER, *shadows):
             def directory(path):
                 name = "." if str(path) == EXPECTED_CASE else str(path.relative_to(EXPECTED_CASE))
                 row = copy.deepcopy(value["preparedInputWitness"][name])
@@ -226,18 +227,38 @@ class CaddyWindowContractControls(unittest.TestCase):
                 return row
             def metadata(path):
                 name = str(path.relative_to(EXPECTED_CASE))
-                row = copy.deepcopy(value["preparedInputWitness"][name])
+                row = copy.deepcopy(value["preparedInputWitness"].get(name, dict(uid="0", gid="0", mode="600", device="64770",
+                    inode="7777", bytes="32", nlink="1", mtimeNs="1792780753533647655", ctimeNs="1792780753533647655")))
                 if name == replaced:
                     row["inode"] = "9999"
-                return SimpleNamespace(st_uid=int(row["uid"]), st_gid=int(row["gid"]), st_mode=stat.S_IFREG | int(row["mode"], 8),
-                    st_dev=int(row["device"]), st_ino=int(row["inode"]), st_size=int(row["bytes"]), st_nlink=int(row["nlink"]),
-                    st_mtime_ns=int(row["mtimeNs"]), st_ctime_ns=int(row["ctimeNs"]))
-            with self.subTest(replaced=replaced), patch.object(guard, "directory_witness", side_effect=directory), patch.object(Path, "lstat", metadata), patch.object(guard, "captured_module") as captured:
+                kind = stat.S_IFDIR if name in guard.DIRECTORIES else stat.S_IFREG
+                return SimpleNamespace(st_uid=int(row["uid"]), st_gid=int(row["gid"]), st_mode=kind | int(row["mode"], 8),
+                    st_dev=int(row["device"]), st_ino=int(row["inode"]), st_size=int(row.get("bytes", "4096")), st_nlink=int(row.get("nlink", "2")),
+                    st_mtime_ns=int(row.get("mtimeNs", "1")), st_ctime_ns=int(row.get("ctimeNs", "1")))
+            def walk(base, followlinks=False):
+                self.assertIs(followlinks, False)
+                if base == Path(EXPECTED_CASE) / "source":
+                    return iter([
+                        (str(base), ["scripts"], ["SOURCE.json"]),
+                        (str(base / "scripts"), ["ops"], []),
+                        (str(base / "scripts/ops"), ["remote"], ["prepare-public-bft-caddy-json-source.py", "install-public-bft-caddy-json-baseline.py"]
+                            + (["json.py"] if replaced == shadows[0] else [])),
+                        (str(base / "scripts/ops/remote"), [], ["public-bft-caddy-json.py"]),
+                    ])
+                self.assertEqual(base, Path(EXPECTED_CASE) / "control")
+                return iter([(str(base), [], [Path(guard.GUARD).name, Path(guard.CALLER).name]
+                    + (["ctypes.py"] if replaced == shadows[1] else []))])
+            with self.subTest(replaced=replaced), patch.object(guard, "directory_witness", side_effect=directory), patch.object(Path, "lstat", metadata), patch.object(guard.os, "walk", side_effect=walk) as walked, patch.object(guard, "captured_module") as captured:
                 if replaced is None:
                     guard.check_witness(value)
+                    self.assertEqual(walked.call_count, 2)
+                elif replaced in shadows:
+                    with self.assertRaisesRegex(guard.Refused, "closed_staged_python_sources_required"):
+                        guard.check_witness(value)
                 else:
                     with self.assertRaisesRegex(guard.Refused, "prepared_.*_identity_changed"):
                         guard.check_witness(value)
+                    walked.assert_not_called()
                 captured.assert_not_called()
 
     def test_source_index_cannot_replace_the_three_frozen_business_sources(self):
