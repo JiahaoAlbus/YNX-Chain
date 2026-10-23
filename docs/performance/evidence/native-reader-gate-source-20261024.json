@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "kind": "outer-native-stream-reader-gate-source-light-tests",
+  "sourceCommit": "a20ce9313e46d006128f65821bd038c0b9c64b8c",
+  "frozenNativePairSource": "6d653b63835e56fecb9d6bf07cc9a661e880e4cf",
+  "frozenNativePairRun": 40034580462,
+  "includedInFrozenNativePair": false,
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-reader-gate-red.raw",
+      "bytes": 324,
+      "sha256": "9709a0ad96b41790249e9d8fb98f4a3fae37c6683f5b38606e740f7b655f50fe"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-reader-gate-focused.raw",
+      "bytes": 582,
+      "sha256": "06203b06664892609cffa42dcb5755f374100f5eada33af23d07e95c5643fd2b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-reader-gate-native-suite.raw",
+      "bytes": 2181,
+      "sha256": "6dc4da0e2d6dc2af07934ecf59d58729990a1d3f0fbaab91c0b70b5b90279523"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-reader-gate-shared-reader-regression.raw",
+      "bytes": 1468,
+      "sha256": "24e26cef217e6a238092a561cd6cd835c6af395930d29ee2773733a9eb9e42e5"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-reader-gate-evidence-tests.raw",
+      "bytes": 4038,
+      "sha256": "b50f6bed610b26f8765ab7e1110c3f86b9f052f4d110d40e362d77e0ac157c1b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-reader-gate-pair-tests.raw",
+      "bytes": 1156,
+      "sha256": "5c92b35775fcc9943f136323df549d96728ab30834c7ce38a367d6f4597437be"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-reader-gate-controller-tests.raw",
+      "bytes": 188,
+      "sha256": "178e8424d3b7a97d2a8e8a78e5432f69a486fc95113cf6059515ad6b1437853b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-reader-gate-source-gate.raw",
+      "bytes": 3979,
+      "sha256": "a4cbe72f4c2a38db472d666bd92b68f28a261261176715eb051be6a1780eebcf"
+    }
+  ]
+}
