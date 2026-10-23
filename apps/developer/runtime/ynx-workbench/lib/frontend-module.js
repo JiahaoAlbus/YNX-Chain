@@ -1,6 +1,7 @@
 const { ContainerModule } = require('@theia/core/shared/inversify');
 require('./reconnection-lifecycle').install();
 require('./native-startup-frame').install();
+require('./native-webview-origin').install();
 require('./native-terminal-frame').install();
 require('./terminal-ui-trace').install();
 require('./task-terminal-attachment').install();
