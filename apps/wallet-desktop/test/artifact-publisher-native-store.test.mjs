@@ -18,5 +18,5 @@ test('native purpose Keychain store compiles normally and passes explicit PUBLIC
  // custody plaintext must never be passed through files or subprocess IPC.
  const publicRecord=path.join(temp,'PUBLIC-fake-record.bin');
  fs.writeFileSync(publicRecord,encodePublisherCustodyRecordData(Buffer.from('PUBLIC-JS-to-Native'),{format:'YNX-BATCH/KEY-MATERIAL/v1',algorithmVersion:'YNX-BATCH/v0.1',suite:'ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512',pkcs8A:Buffer.alloc(54),pkcs8B:Buffer.alloc(150),pkA:Buffer.alloc(2592),pkB:Buffer.alloc(64)}),{mode:0o600});
- const run=spawnSync(binary,[publicRecord],{encoding:'utf8',timeout:10000});assert.equal(run.status,0,run.stderr);assert.equal(run.stdout.match(/^PASS /gm)?.length,11);assert.match(run.stdout,/systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0/);
+ const run=spawnSync(binary,[publicRecord],{encoding:'utf8',timeout:10000});assert.equal(run.status,0,run.stderr);assert.equal(run.stdout.match(/^PASS /gm)?.length,12);assert.match(run.stdout,/systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0/);
 });

@@ -29,18 +29,8 @@ static NSData *Snapshot(NSData *value,NSUInteger maximum){
 // Validate ONLY Main's internal plaintext storage layout. This is not the
 // Protocol R13 parser or KEY7 mathematical verifier; those remain SDK owners.
 static BOOL MatchesRecord(NSData *record,NSData *r){
- static const char magic[]="YNX-PUBLISHER-CUSTODY/v1\n";
- if(!record||!r||record.length>16384||record.length<sizeof(magic)-1+4)return NO;
- const uint8_t *p=(const uint8_t *)record.bytes;size_t at=sizeof(magic)-1;
- if(std::memcmp(p,magic,at)!=0)return NO;
- auto take=[&](size_t maximum,size_t expected)->NSData*{
-  if(at+4>record.length)return nil;uint32_t n=0;std::memcpy(&n,p+at,4);n=CFSwapInt32BigToHost(n);at+=4;
-  if(!n||n>maximum||(expected&&n!=expected)||n>record.length-at)return nil;
-  NSData *part=[NSData dataWithBytesNoCopy:(void *)(p+at) length:n freeWhenDone:NO];at+=n;return part;
- };
- NSData *storedR=take(8192,0);if(!storedR||![storedR isEqualToData:r])return NO;
- const size_t sizes[]={54,150,2592,64};for(size_t n:sizes)if(!take(n,n))return NO;
- return at==record.length;
+ ynx_wallet_private::PublisherMaterialBorrow borrowed;
+ return record&&r&&ynx_wallet_private::borrowPublisherRecord(record.bytes,record.length,r.bytes,r.length,borrowed);
 }
 static BOOL Actor(NSError **error){
  // A privileged helper must never substitute its root keychain for the

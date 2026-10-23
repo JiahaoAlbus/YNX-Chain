@@ -26,7 +26,12 @@ function fixture(t){
  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-sdk13-component-')));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  const inventoryName='packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',inventoryBytes=fs.readFileSync(path.join(originalRoot,inventoryName)),inventory=JSON.parse(inventoryBytes),supplier=[...inventory.NativeInputs,...inventory.HelperInputs],profile=walletNativeSourceProfile(inventory.version);
  const put=(relative,bytes,mode=0o644)=>{const file=path.join(root,relative);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes,{mode});};
- for(const p of [...supplier,...WALLET_PUBLISHER_NATIVE_INPUTS])put(p.path,fs.readFileSync(path.join(originalRoot,p.path)));
+ for(const p of supplier)put(p.path,fs.readFileSync(path.join(originalRoot,p.path)));
+ // Original supplier inputs stay bound to selected supplier version. The
+ // independently pinned Main store is from THIS Main source, not an older
+ // assembled candidate whose private store may intentionally differ.
+ const mainRoot=fileURLToPath(new URL('../../..',import.meta.url));
+ for(const p of WALLET_PUBLISHER_NATIVE_INPUTS)put(p.path,fs.readFileSync(path.join(mainRoot,p.path)));
  put(inventoryName,inventoryBytes);
  if(Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version))put(SDK14_RUNTIME_UNION_SOURCE,fs.readFileSync(path.join(originalRoot,SDK14_RUNTIME_UNION_SOURCE)));
  // Deliberate PUBLIC non-executable output stand-ins. This tests record,

@@ -49,6 +49,33 @@ static NSMutableData *record(NSData *r){
 int main(int argc,char **argv){@autoreleasepool{
  items=[NSMutableDictionary new];auto store=[YNXOriginalArtifactPublisherStore new];NSError *e=nil;
  NSData *r=R(@"PUBLIC fake original R:1");NSMutableData *wire=record(r);
+ {
+  using namespace ynx_wallet_private;
+  PublisherMaterialBorrow view;const uint8_t*p=(const uint8_t*)wire.bytes;
+  assert(borrowPublisherRecord(p,wire.length,r.bytes,r.length,view));
+  assert(view.registration.bytes==p+sizeof("YNX-PUBLISHER-CUSTODY/v1\n")-1+4);
+  assert(view.pkcs8A.length==54&&view.pkcs8B.length==150&&view.pkA.length==2592&&view.pkB.length==64);
+  assert(view.pkcs8A.bytes==view.registration.bytes+view.registration.length+4);
+  assert(view.pkcs8B.bytes==view.pkcs8A.bytes+54+4&&view.pkA.bytes==view.pkcs8B.bytes+150+4&&view.pkB.bytes==view.pkA.bytes+2592+4);
+  for(size_t n=0;n<wire.length;n++){
+   assert(!borrowPublisherRecord(p,n,r.bytes,r.length,view));
+   assert(!view.registration.bytes&&!view.pkcs8A.bytes&&!view.pkcs8B.bytes&&!view.pkA.bytes&&!view.pkB.bytes);
+   assert(!view.registration.length&&!view.pkcs8A.length&&!view.pkcs8B.length&&!view.pkA.length&&!view.pkB.length);
+  }
+  for(NSData*bad in @[R(@"PUBLIC other registered R"),[NSData data]])assert(!borrowPublisherRecord(p,wire.length,bad.bytes,bad.length,view));
+  NSMutableData *extra=[wire mutableCopy];uint8_t one=1;[extra appendBytes:&one length:1];assert(!borrowPublisherRecord(extra.bytes,extra.length,r.bytes,r.length,view));
+  const size_t head=sizeof("YNX-PUBLISHER-CUSTODY/v1\n")-1,offsets[]={head,head+4+r.length,head+4+r.length+4+54,head+4+r.length+4+54+4+150,head+4+r.length+4+54+4+150+4+2592};
+  for(size_t offset:offsets){
+   NSMutableData*bad=[wire mutableCopy];std::memset((uint8_t*)bad.mutableBytes+offset,0xff,4);assert(!borrowPublisherRecord(bad.bytes,bad.length,r.bytes,r.length,view));
+  }
+  assert(!borrowPublisherRecord(nullptr,wire.length,r.bytes,r.length,view));
+  assert(!borrowPublisherRecord(p,wire.length,nullptr,r.length,view));
+  assert(!borrowPublisherRecord(p,wire.length,r.bytes,8193,view));
+  NSMutableData *longR=[NSMutableData dataWithLength:8192],*longRecord=record(longR);
+  assert(borrowPublisherRecord(longRecord.bytes,longRecord.length,longR.bytes,longR.length,view)&&view.registration.length==8192);
+  assert(adds==0&&reads==0);
+  std::puts("PASS private synchronous material spans; no copy or authority");
+ }
  assert([store createOriginalRecord:wire forPublicOriginal:r error:&e]&&!e&&adds==1&&reads==1);
  NSMutableData *read=[store copyOriginalRecordForPublicOriginal:r error:&e];assert([read isEqual:wire]);[read resetBytesInRange:NSMakeRange(0,read.length)];
  assert([[store copyOriginalRecordForPublicOriginal:r error:&e]isEqual:wire]);
