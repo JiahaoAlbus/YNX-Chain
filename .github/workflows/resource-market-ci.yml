@@ -60,6 +60,9 @@ on:
       - 'scripts/ops/remote/public-bft-caddy-json.py'
       - 'scripts/ops/prepare-public-bft-caddy-json-source.py'
       - 'scripts/ops/install-public-bft-caddy-json-baseline.py'
+      - 'scripts/ops/run-public-bft-caddy-baseline.py'
+      - 'scripts/verify/test_public_bft_caddy_baseline_window.py'
+      - 'scripts/verify/test_public_bft_caddy_window_contract.py'
       - 'scripts/verify/test_install_public_bft_caddy_json_baseline.py'
       - 'scripts/verify/test_public_bft_caddy_json.py'
       - 'scripts/verify/test_prepare_public_bft_caddy_json_source.py'
@@ -258,6 +261,14 @@ jobs:
         if: ${{ !cancelled() && steps.source.outcome == 'success' }}
         timeout-minutes: 3
         run: timeout 90s python3 -B scripts/verify/test_install_public_bft_caddy_json_baseline.py -v
+      - name: Verify bounded original Caddy DATA caller without starting a node
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        timeout-minutes: 3
+        run: timeout 90s python3 -B scripts/verify/test_public_bft_caddy_baseline_window.py -v
+      - name: Verify independent closed Caddy DATA window contract
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        timeout-minutes: 3
+        run: timeout 90s python3 -B scripts/verify/test_public_bft_caddy_window_contract.py -v
       - name: Seal only successfully tested public Caddy baseline sources
         env:
           YNX_CADDY_SOURCE_ROOT: ${{ runner.temp }}/ynx-caddy-baseline-source
@@ -280,6 +291,29 @@ jobs:
         with:
           name: caddy-baseline-source-${{ github.sha }}
           path: ${{ runner.temp }}/ynx-caddy-baseline-source
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Seal only the normal bounded Caddy DATA control sources
+        env:
+          YNX_CADDY_CONTROL_ROOT: ${{ runner.temp }}/ynx-caddy-baseline-control
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          root=pathlib.Path(os.environ['YNX_CADDY_CONTROL_ROOT']); root.mkdir(mode=0o700)
+          records=[]
+          for name in ('scripts/ops/run-public-bft-caddy-baseline.py','scripts/ops/verify-original-native-copy.py'):
+              raw=pathlib.Path(name).read_bytes(); leaf=pathlib.Path(name).name
+              (root/leaf).write_bytes(raw); (root/leaf).chmod(0o644)
+              records.append(dict(path=leaf,repositoryPath=name,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest()))
+          value=dict(version='YNX-CADDY-BASELINE-CONTROL-PUBLIC-SOURCE/v1',commit=os.environ['GITHUB_SHA'],tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),runId=os.environ['GITHUB_RUN_ID'],runAttempt=os.environ['GITHUB_RUN_ATTEMPT'],producerJob='caddy-source',files=records,publicSourceOnly=True,executionStarted=False,rootGrant=False)
+          (root/'SOURCE.json').write_text(json.dumps(value,sort_keys=True,separators=(',',':'))+'\n')
+          PY
+      - name: Upload only the tested normal Caddy DATA control source bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: caddy-baseline-control-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-caddy-baseline-control
           if-no-files-found: error
           retention-days: 30
 
@@ -1480,8 +1514,8 @@ jobs:
   # Current tests and delivery checks remain separate bounded stages of the
   # same run/source. Only the closed public fixture catalog crosses runners.
   protocol-delivery:
-    needs: focused-go
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success'
+    needs: [focused-go, caddy-source]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:

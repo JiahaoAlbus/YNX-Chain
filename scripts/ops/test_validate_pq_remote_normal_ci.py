@@ -550,8 +550,52 @@ def assert_workflow_contract(raw):
     need(".cleanupComplete == true" in receipts[0])
     delivery_job, delivery_steps = workflow_steps(raw, "protocol-delivery")
     mac_job, _ = workflow_steps(raw, "proof-verifier-macos")
-    need("    needs: focused-go\n" in delivery_job and "    timeout-minutes: 12\n" in delivery_job)
-    need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success'\n" in delivery_job)
+    push_condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
+                      "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
+    need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source]"]
+         and "    timeout-minutes: 12\n" in delivery_job)
+    need("continue-on-error:" not in delivery_job)
+    need(re.findall(r"(?m)^    if: (.+)$", delivery_job) == [push_condition
+         + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'"])
+    # Caddy's source-only controls run independently once. Delivery consumes
+    # their actual successful job result rather than replaying the old guard.
+    caddy_job, caddy_steps = workflow_steps(raw, "caddy-source")
+    need(caddy_job.split("    steps:\n", 1)[0] == "    if: " + push_condition
+         + "\n    runs-on: ubuntu-24.04\n    timeout-minutes: 6\n")
+    need("continue-on-error:" not in caddy_job)
+    branches = re.findall(r"(?m)^  push:\n    branches:\n((?:      - [^\n]+\n)+)", raw)
+    need(branches == ["      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n"])
+    lines = lambda step: [line for line in step.splitlines() if line.strip()]
+    need(lines(caddy_steps[0]) == [
+        "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "        with:", "          ref: ${{ github.sha }}", "          persist-credentials: false"])
+    need(lines(caddy_steps[1]) == [
+        "      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+        "        with:", "          node-version: '24.19.0'"])
+    sources = [step for step in caddy_steps if step.startswith("      - name: Record exact original Caddy source identity\n")]
+    need(len(sources) == 1)
+    source = sources[0]
+    need(lines(source) == ["      - name: Record exact original Caddy source identity", "        id: source",
+        "        run: |", "          test \"$(git rev-parse HEAD)\" = '${{ github.sha }}'", "          git diff --exit-code"])
+    caddy_commands = (
+        ("Verify original Caddy JSON consumer without changing services",
+         "timeout 90s python3 -B scripts/verify/test_public_bft_caddy_json.py -v"),
+        ("Verify independently prepared original Caddy baseline DATA",
+         "timeout 90s python3 -B scripts/verify/test_prepare_public_bft_caddy_json_source.py -v"),
+        ("Verify original Caddy source approval and normal cutover caller",
+         "node scripts/verify/public-bft-caddy-json-source-check.mjs"),
+        ("Verify existing Caddyfile and JSON ingress source controls",
+         "timeout 120s bash scripts/verify/public-bft-gateway-ingress-check.sh"),
+        ("Verify exact persistent baseline installer without operating services",
+         "timeout 90s python3 -B scripts/verify/test_install_public_bft_caddy_json_baseline.py -v"))
+    for name, command in caddy_commands:
+        found = [step for step in caddy_steps if step.startswith("      - name: " + name + "\n")]
+        need(len(found) == 1)
+        need(lines(found[0]) == ["      - name: " + name,
+            "        if: ${{ !cancelled() && steps.source.outcome == 'success' }}",
+            "        timeout-minutes: 3", "        run: " + command])
+        need(caddy_steps.index(source) < caddy_steps.index(found[0]))
+    need(raw.count("bash scripts/verify/public-bft-gateway-ingress-check.sh") == 1)
     need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 6\n" in mac_job)
     need("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n" in mac_job)
     need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
@@ -573,9 +617,10 @@ def assert_workflow_contract(raw):
     for script in ("public-bft-production-driver-check.sh --snapshot-only", "owner-handover-check.sh",
                    "production-service-signer-ceremony-check.sh", "production-custody-review-check.sh",
                    "public-bft-production-candidate-check.sh", "public-bft-cutover-transaction-check.sh",
-                   "public-bft-gateway-dependencies-check.sh", "public-bft-gateway-ingress-check.sh",
+                   "public-bft-gateway-dependencies-check.sh",
                    "public-bft-validator-registration-check.sh"):
         need("bash scripts/verify/" + script in cutover)
+    need("bash scripts/verify/public-bft-gateway-ingress-check.sh" not in cutover)
     need("PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED" in cutover)
     # Both complementary current consensus groups still execute once, with
     # the original whole selectors. Private Host stores stay on their runner.
@@ -702,6 +747,48 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_independent_caddy_source_failure_or_wrong_source_cannot_qualify_delivery(self):
+        # Mutate the real source job and its consumers. These are contract
+        # counterexamples, not evidence that GitHub ran any Caddy operation.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        caddy, steps = workflow_steps(raw, "caddy-source")
+        delivery, _ = workflow_steps(raw, "protocol-delivery")
+        source = next(step for step in steps if "        id: source\n" in step)
+        guard = next(step for step in steps if step.startswith(
+            "      - name: Verify existing Caddyfile and JSON ingress source controls\n"))
+        guard_command = "timeout 120s bash scripts/verify/public-bft-gateway-ingress-check.sh"
+        mutations = [
+            raw.replace(caddy, "", 1),
+            raw.replace(caddy, caddy.replace("github.event_name == 'push'", "false", 1), 1),
+            raw.replace(caddy, caddy.replace("github.event_name == 'push'", "github.event_name == 'workflow_dispatch'", 1), 1),
+            raw.replace(caddy, caddy.replace("refs/heads/codex/ynx-pq-perf-integration", "refs/heads/main", 1), 1),
+            raw.replace(caddy, caddy.replace("    runs-on: ubuntu-24.04\n", "    needs: focused-go\n    runs-on: ubuntu-24.04\n", 1), 1),
+            raw.replace(caddy, caddy.replace("          ref: ${{ github.sha }}", "          ref: refs/heads/main", 1), 1),
+            raw.replace(caddy, caddy.replace("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", "actions/checkout@v4", 1), 1),
+            raw.replace(source, source.replace("test \"$(git rev-parse HEAD)\" = '${{ github.sha }}'", "true # source check omitted", 1), 1),
+            raw.replace(source, source.replace("git diff --exit-code", "git diff --exit-code || true", 1), 1),
+            raw.replace(source, source.replace("        id: source\n", "        id: oldsource\n", 1), 1),
+            raw.replace(guard, "", 1),
+            raw.replace(guard, guard.replace(guard_command, "# " + guard_command, 1), 1),
+            raw.replace(guard, guard.replace(guard_command, guard_command + " || true", 1), 1),
+            raw.replace(guard, guard.replace(guard_command, guard_command + "; true", 1), 1),
+            raw.replace(guard, guard.replace("        timeout-minutes: 3\n", "        continue-on-error: true\n        timeout-minutes: 3\n", 1), 1),
+            raw.replace(guard, guard.replace("!cancelled() && steps.source.outcome == 'success'", "false", 1), 1),
+            raw.replace(guard, guard.replace("steps.source.outcome == 'success'", "true", 1), 1),
+            raw.replace(guard, guard + guard, 1),
+            raw.replace(delivery, delivery.replace("    needs: [focused-go, caddy-source]\n", "    needs: focused-go\n", 1), 1),
+            raw.replace(delivery, delivery.replace("    needs: [focused-go, caddy-source]\n", "    needs: caddy-source\n", 1), 1),
+            raw.replace(delivery, delivery.replace(" && needs.focused-go.result == 'success'", "", 1), 1),
+            raw.replace(delivery, delivery.replace(" && needs.caddy-source.result == 'success'", "", 1), 1),
+            raw.replace(delivery, delivery.replace("needs.caddy-source.result == 'success'", "needs.caddy-source.result != 'failure'", 1), 1),
+            raw.replace(delivery, delivery.replace("needs.caddy-source.result == 'success'", "true", 1), 1),
+            raw.replace(delivery, delivery.replace("    timeout-minutes: 12\n", "    continue-on-error: true\n    timeout-minutes: 12\n", 1), 1),
+            raw.replace("      - 'codex/ynx-pq-perf-integration'\n", "      - 'main'\n", 1)]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(changed)
 
     def test_source_and_cross_ref_heavy_groups_keep_all_actual_windows_serial(self):
         # Match the actual closed Actions expression. This is a source check,
