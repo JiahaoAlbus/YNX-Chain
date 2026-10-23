@@ -5,7 +5,7 @@ import { PassThrough } from 'node:stream';
 import { createRequire } from 'node:module';
 import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { cppDebugCleanupPlugin, transformCppDebugCleanup, PIN } from './cpp-debug-cleanup-build.mjs';
 const require = createRequire(new URL('../package.json', import.meta.url));
 const { ProcessDebugAdapter } = require('@theia/debug/lib/node/stream-debug-adapter');
@@ -13,13 +13,13 @@ const cleanup = createRequire(import.meta.url)('../../ynx-workbench/lib/local-cp
 const request = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const env = { YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: '/TEST_ONLY/project',
   THEIA_APP_PROJECT_PATH: '/TEST_ONLY/core', TMPDIR: '/private/tmp/yi-501/01234567-aB1234' };
-function fixture({ change = {}, environment = env, helper } = {}) {
+function fixture({ change = {}, environment = env, helper, backendDirectory = '/TEST_ONLY/core/lib/backend' } = {}) {
   const child = Object.assign(new EventEmitter(), { pid: 12345, exitCode: null, signalCode: null,
     stdout: new PassThrough(), stdin: new PassThrough(), kill() { this.kills++; }, kills: 0 });
   const adapter = new ProcessDebugAdapter(child), nativeStop = adapter.stop;
   const calls = []; let creations = 0;
   class Creator { async createDebugAdapter() { creations++; return adapter; } }
-  if (!process.env.YNX_CPP_CLEANUP_BASELINE) cleanup.install(Creator.prototype, { environment, platform: 'darwin', uid: 501, timeoutMs: 15,
+  if (!process.env.YNX_CPP_CLEANUP_BASELINE) cleanup.install(Creator.prototype, { environment, backendDirectory, platform: 'darwin', uid: 501, timeoutMs: 15,
     runHelper: (...args) => { calls.push(args); helper?.(...args); } });
   const session = { id: 'TEST_ONLY_SESSION', workspaceFolder: { uri: { fsPath: env.YNX_LOCAL_WORKSPACE } },
     configuration: { type: 'lldb-dap', request: 'launch', __ynxCppRunId: request,
@@ -113,8 +113,26 @@ test('attach, foreign project, wrong nonce and nonprivate program retain origina
   const f = fixture(); f.session.workspaceFolder.uri.fsPath = '/OTHER/project';
   assert.equal((await f.create()).stop, f.nativeStop);
 });
-test('invalid original runtime refuses before spawning any generated adapter', async () => {
-  const f = fixture({ environment: { ...env, THEIA_APP_PROJECT_PATH: '' } });
+test('actual framework IPC environment stripping cannot block owned C++ startup or redirect its helper', async () => {
+  const { createIpcEnv } = require('@theia/core/lib/node/messaging/ipc-protocol');
+  const childEnv = createIpcEnv({ env, entryPoint: '/TEST_ONLY/plugin-host.js' });
+  assert.equal(childEnv.THEIA_APP_PROJECT_PATH, undefined);
+  const f = fixture({ environment: childEnv });
+  const adapter = await f.create();
+  assert.equal(f.creations(), 1);
+  childEnv.THEIA_APP_PROJECT_PATH = '/OTHER/project/hostile-runtime';
+  const pending = adapter.stop();
+  assert.equal(f.calls[0][0], '/TEST_ONLY/core/lib/backend/ynx-process-tree');
+  f.close(); f.calls[0][3](null); await pending;
+  assert.equal(f.child.kills, 0);
+  // Also exercise the production default, not just the test directory option.
+  const production = fixture({ environment: childEnv, backendDirectory: null });
+  const actual = await production.create(), stopped = actual.stop();
+  assert.equal(production.calls[0][0], join(dirname(createRequire(import.meta.url).resolve('../../ynx-workbench/lib/local-cpp-debug-cleanup')), 'ynx-process-tree'));
+  production.close(); production.calls[0][3](null); await stopped;
+});
+test('invalid original module directory refuses before spawning any generated adapter', async () => {
+  const f = fixture({ backendDirectory: 'relative/backend' });
   await assert.rejects(f.create(), /original private runtime/); assert.equal(f.creations(), 0);
 });
 test('pinned production creator actually compiles with adjacent helper and rejects changed vendor bytes', async () => {

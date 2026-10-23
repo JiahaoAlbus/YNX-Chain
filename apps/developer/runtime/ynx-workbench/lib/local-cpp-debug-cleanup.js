@@ -13,6 +13,11 @@ function install(prototype, options = {}) {
   const original = prototype.createDebugAdapter;
   if (typeof original !== 'function') throw Error('The original debug adapter creator is unavailable');
   const runHelper = options.runHelper || execFile;
+  // Theia intentionally strips THEIA_* when creating the plugin host. This
+  // external module is sealed beside the original helper in lib/backend;
+  // its own directory survives that boundary and cannot be redirected by a
+  // debugger configuration or a later environment mutation.
+  const backendDirectory = options.backendDirectory ?? __dirname;
   prototype.createDebugAdapter = async function (session, ...args) {
     const config = session.configuration, request = config?.__ynxCppRunId;
     const generated = config?.type === 'lldb-dap' && config.request === 'launch' && UUID.test(request || '') &&
@@ -21,7 +26,7 @@ function install(prototype, options = {}) {
     if (!generated) return original.call(this, session, ...args);
     const uid = options.uid ?? process.getuid();
     if (dirname(env.TMPDIR) !== '/private/tmp/yi-' + uid || !/^[a-f0-9]{8}-[A-Za-z0-9]{6}$/.test(basename(env.TMPDIR)) ||
-        !isAbsolute(env.THEIA_APP_PROJECT_PATH || '') || typeof session.id !== 'string' || !session.id)
+        !isAbsolute(backendDirectory) || typeof session.id !== 'string' || !session.id)
       throw Error('C/C++ cleanup requires its original private runtime and session');
     let adapter, pending, acknowledged = false, childClosed = false, observedChild, helperInFlight = false, failed = false;
     let stopping = false, closeHeld = false, helperConfirmed = false, publishClose;
@@ -77,7 +82,7 @@ function install(prototype, options = {}) {
             // a persisted PID can orphan a pending macOS debugserver.
             try {
               helperInFlight = true;
-              runHelper(join(env.THEIA_APP_PROJECT_PATH, 'lib/backend/ynx-process-tree'), [String(child.pid), '--force'],
+              runHelper(join(backendDirectory, 'ynx-process-tree'), [String(child.pid), '--force'],
                 { timeout: options.helperTimeoutMs ?? 4000, maxBuffer: 65536 }, error => {
                   helperInFlight = false;
                   if (failed) pending = undefined;
