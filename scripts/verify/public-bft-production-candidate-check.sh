@@ -86,7 +86,7 @@ for(const role of ['primary','singapore','silicon-valley','seoul'])for(const fil
 }
 const harness=path.join(tmp,'caller.sh');
 write(harness,`#!/usr/bin/env bash\nset -Eeuo pipefail\ncommit=${q(commit)}\nrelease=ynx-chain-${commit}\n` +
-  ['public_bft_native_role_context','public_bft_native_qualify','public_bft_runtime_prepare','public_bft_operator_inputs','candidate_context','prepare_candidate_package','validated_candidate_initialization','deploy_candidate_phase','collect_candidate_original_guard','candidate_original_guard_command','initialize_candidate_phase','start_candidate_phase','verify_candidate_phase','rollback_candidate_phase','dependency_context','validated_candidate_result','gateway_runtime_pins','gateway_helper_command','gateway_dry_receipt','validated_gateway_start','start_dependencies_phase','verify_continuity_phase','rollback_dependencies_phase','ingress_context','validated_continuity_result','gateway_ingress_phase','switch_ingress_phase','rollback_ingress_phase','verify_public_phase','gateway_recovery_phase','recovery_phase','authoritative_production_phase','mutation_freeze_phase'].map(extract).join('\n')+String.raw`
+  ['public_bft_native_role_context','public_bft_native_qualify','public_bft_runtime_prepare','public_bft_operator_inputs','candidate_context','prepare_candidate_package','validated_candidate_initialization','deploy_candidate_phase','collect_candidate_original_guard','candidate_original_guard_command','initialize_candidate_phase','start_candidate_phase','verify_candidate_phase','rollback_candidate_phase','dependency_context','validated_candidate_result','gateway_runtime_pins','gateway_helper_command','gateway_dry_receipt','validated_gateway_start','start_dependencies_phase','verify_continuity_phase','rollback_dependencies_phase','ingress_context','validated_ingress_result','validated_continuity_result','gateway_ingress_phase','switch_ingress_phase','rollback_ingress_phase','verify_public_phase','gateway_recovery_phase','recovery_phase','authoritative_production_phase','mutation_freeze_phase'].map(extract).join('\n')+String.raw`
 PRIMARY_NODE_USER=u
 PRIMARY_NODE_HOST=host
 PRIMARY_NODE_SSH_KEY=key
@@ -305,20 +305,25 @@ try {
   const publicSourcePath=path.join(proofDir,'public-result.json');write(publicSourcePath,publicSource);const publicCheck=[bindingCLI,'--public-result-check',binding,publicSourcePath,'0'];node(publicCheck);
   for(const [field,value]of [['pqIdentityObserved',false],['pqIdentitySHA256',null],['independentFinalityVerified',true]]){write(publicSourcePath,{...publicSource,[field]:value});node(publicCheck,1);}write(publicSourcePath,publicSource);
   for(const [file,field,value]of [['account.json','address','0x'+'2'.repeat(40)],['block.json','hash','f'.repeat(64)],['evm-chain-id.json','result','0x1'],['mutation-freeze.json','httpStatus',404]]){const p=path.join(proofDir,file),old=fs.readFileSync(p);write(p,{...JSON.parse(old),[field]:value});node(publicArgs,1);fs.writeFileSync(p,old);}
-  // Exercise the original public caller, with admission isolated as a stub.
-  // Health/status succeed; only the real protocol GET returns curl's HTTP
-  // error status. This does not confer real ingress or candidate authority.
+  // Exercise the original public caller and its real ingress receipt reader.
+  // Other admission remains isolated: this synthetic public receipt does not
+  // confer ingress/candidate authority or prove a real service was switched.
+  // Health/status succeed; only the protocol GET returns curl's HTTP error.
   const failedPublic=path.join(f.dir,'public-identity-405'),failedLog=path.join(failedPublic,'calls.log'),failedHarness=path.join(failedPublic,'caller.sh');
   fs.mkdirSync(path.join(failedPublic,'ingress'),{recursive:true,mode:0o700});
+  const failedReceiptPath=path.join(failedPublic,'ingress/switch-result.json');
+  fs.writeFileSync(path.join(failedPublic,'binding.json'),raw,{mode:0o600});
+  write(failedReceiptPath,{...ingress,dryRun:false,publicIngressChanged:true,publicCutoverReady:true,authoritativeChecksumsSha256:'3'.repeat(64),candidateChecksumsSha256:'4'.repeat(64)});
+  const failedReceiptRaw=fs.readFileSync(failedReceiptPath);
   for(const name of ['HRS','ledger','UNKNOWN','mutation-freeze.json'])write(path.join(failedPublic,name),'retained original '+name+'\n');
   const retainedPublic=['HRS','ledger','UNKNOWN','mutation-freeze.json'].map(name=>[path.join(failedPublic,name),fs.readFileSync(path.join(failedPublic,name))]);
-  write(failedHarness,'#!/usr/bin/env bash\nset -Eeuo pipefail\n'+extract('verify_public_phase')+String.raw`
+  write(failedHarness,'#!/usr/bin/env bash\nset -Eeuo pipefail\n'+extract('validated_ingress_result')+'\n'+extract('verify_public_phase')+String.raw`
 prepare_candidate_package(){ :; }
-ingress_context(){ ingress_root="$CASE_ROOT/ingress"; dependency_root="$CASE_ROOT/dependencies"; candidate_binding="$CASE_ROOT/binding.json"; gateway_binary_sha=unobserved; }
+ingress_context(){ ingress_root="$CASE_ROOT/ingress"; dependency_root="$CASE_ROOT/dependencies"; candidate_binding="$CASE_ROOT/binding.json"; gateway_binary_sha="$CASE_GATEWAY_SHA"; ingress_mode=single-app-gateway; }
 validated_candidate_result(){ :; }
 validated_gateway_start(){ :; }
 validated_continuity_result(){ :; }
-node(){ printf 'node %s\n' "$*" >>"$CASE_LOG"; [[ "$2" == --ingress-check ]] || return 91; }
+node(){ printf 'node %s\n' "$*" >>"$CASE_LOG"; "$CASE_NODE" "$@"; }
 sleep(){ :; }
 systemctl(){ printf 'forbidden systemctl %s\n' "$*" >>"$CASE_LOG"; return 93; }
 ynx_ops_ssh(){ printf 'forbidden SSH %s\n' "$*" >>"$CASE_LOG"; return 94; }
@@ -334,21 +339,38 @@ curl(){
 }
 verify_public_phase
 `,0o700);
-  const failedEnv={...process.env,CASE_ROOT:failedPublic,CASE_LOG:failedLog,PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED:'yes',PUBLIC_BFT_PUBLIC_OBSERVATION_SECONDS:'2',DEPLOY_DRY_RUN:'0',PUBLIC_RPC_URL:'https://rpc.test.invalid',PUBLIC_EVM_RPC_URL:'https://evm.test.invalid'};
+  const failedEnv={...process.env,CASE_ROOT:failedPublic,CASE_LOG:failedLog,CASE_NODE:process.execPath,CASE_GATEWAY_SHA:gateway.gatewaySHA256,PUBLIC_BFT_PRODUCTION_INGRESS_APPROVED:'yes',PUBLIC_BFT_PUBLIC_OBSERVATION_SECONDS:'2',DEPLOY_DRY_RUN:'0',PUBLIC_RPC_URL:'https://rpc.test.invalid',PUBLIC_EVM_RPC_URL:'https://evm.test.invalid'};
   const failedRun=()=>spawnSync('bash',[failedHarness],{cwd:root,env:failedEnv,encoding:'utf8',maxBuffer:4<<20});
-  const firstFailed=failedRun();assert.equal(firstFailed.status,22,firstFailed.stderr);assert.ok(firstFailed.stderr.includes('HTTP 405'));
   const failedEvidence=path.join(failedPublic,'ingress/public-continuity');
+  const noPublicObservation=()=>{
+    assert.equal(fs.existsSync(failedEvidence),false);
+    assert.equal(fs.existsSync(path.join(failedPublic,'ingress/public-result.json')),false);
+    assert.ok(!/^(?:curl |forbidden )/m.test(fs.readFileSync(failedLog,'utf8')),'invalid ingress receipt reached transport/service boundary');
+    assert.deepEqual(fs.readFileSync(path.join(failedPublic,'binding.json')),raw);unchanged(retainedPublic);
+  };
+  // Missing/false receipts must fail in the actual reader, before reserving
+  // public evidence or performing any HTTP/SSH/service operation.
+  fs.renameSync(failedReceiptPath,failedReceiptPath+'.retained');
+  const missingIngress=failedRun();assert.notEqual(missingIngress.status,0);assert.match(missingIngress.stderr,/RPC ingress is not valid JSON/);assert.equal(fs.existsSync(failedReceiptPath),false);assert.deepEqual(fs.readFileSync(failedReceiptPath+'.retained'),failedReceiptRaw);noPublicObservation();
+  fs.renameSync(failedReceiptPath+'.retained',failedReceiptPath);
+  for(const [field,value]of [['rpcOnly',false],['publicIngressChanged',false],['publicCutoverReady',false]]){
+    write(failedReceiptPath,{...JSON.parse(failedReceiptRaw),[field]:value});const falseReceipt=fs.readFileSync(failedReceiptPath);
+    const falseIngress=failedRun();assert.notEqual(falseIngress.status,0);assert.match(falseIngress.stderr,/RPC-only ingress receipt identity\/pin\/result mismatch|RPC ingress lacks original runtime\/config byte identities/);assert.deepEqual(fs.readFileSync(failedReceiptPath),falseReceipt);noPublicObservation();
+  }
+  fs.writeFileSync(failedReceiptPath,failedReceiptRaw);
+  const firstFailed=failedRun();assert.equal(firstFailed.status,22,firstFailed.stderr);assert.ok(firstFailed.stderr.includes('HTTP 405'));
   assert.equal(fs.existsSync(failedEvidence),true);assert.equal(fs.readFileSync(path.join(failedEvidence,'gateway-pq-identity.json'),'utf8'),'Method Not Allowed\n');
   for(const name of ['result.json','observation.json'])assert.equal(fs.existsSync(path.join(failedEvidence,name)),false);
   assert.equal(fs.existsSync(path.join(failedPublic,'ingress/public-result.json')),false);
   const failedPublicCalls=fs.readFileSync(failedLog,'utf8'),requestLines=failedPublicCalls.split('\n').filter(line=>line.startsWith('curl '));
+  assert.equal(failedPublicCalls.split('\n').filter(line=>line.startsWith('node ')&&line.includes(' --ingress-check ')).length,5,'public caller did not execute the real receipt validator for every case');
   assert.equal(requestLines.length,4);assert.equal(requestLines.filter(line=>line.endsWith('/node/pq-identity')).length,1);assert.ok(requestLines.at(-1).includes('--max-redirs 0 --max-filesize 16777216 -fsS'));
   assert.ok(requestLines.at(-1).includes('--request GET'));assert.ok(requestLines.at(-1).startsWith('curl --disable '));
   assert.ok(!/\bPOST\b|(?:^|\s)-d(?:\s|$)|--data|systemctl|install-stub/m.test(failedPublicCalls));
   const failedBytes=fs.readdirSync(failedEvidence).map(name=>[path.join(failedEvidence,name),fs.readFileSync(path.join(failedEvidence,name))]);
   const repeatedFailed=failedRun();assert.notEqual(repeatedFailed.status,0);assert.ok(repeatedFailed.stderr.includes('retain UNKNOWN'));
   assert.equal(fs.readFileSync(failedLog,'utf8').split('\n').filter(line=>line.startsWith('curl ')).length,requestLines.length,'UNKNOWN public observation resent a request');
-  unchanged(failedBytes);unchanged(retainedPublic);
+  unchanged(failedBytes);unchanged(retainedPublic);assert.deepEqual(fs.readFileSync(failedReceiptPath),failedReceiptRaw);assert.deepEqual(fs.readFileSync(path.join(failedPublic,'binding.json')),raw);
   const unknown=fixture('unknown');run(unknown);const ub=fs.readFileSync(path.join(unknown.transaction,'candidate/binding.json'));write(path.join(unknown.transaction,'candidate/deploy-result.json'),{...deploy,transactionId:path.basename(unknown.transaction),bindingSha256:digest(ub)});write(path.join(unknown.transaction,'candidate/initialize-attempt/result.json'),{...JSON.parse(initRaw),bindingSha256:digest(ub)});
   run(unknown,'start',{DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED:'yes',FAIL_TRANSPORT:'partial'},1);const intent=path.join(unknown.transaction,'candidate/start-attempt/intent.json');assert.equal(JSON.parse(fs.readFileSync(intent)).status,'unknown');assert.equal(fs.existsSync(path.join(unknown.transaction,'candidate/start-attempt/result.json')),false);const failedCalls=fs.readFileSync(unknown.log+'.transport');assert.equal((failedCalls.toString().match(/timeout 30s systemctl start/g)||[]).length,2);run(unknown,'start',{DEPLOY_DRY_RUN:'1',PUBLIC_BFT_PRODUCTION_CANDIDATE_START_APPROVED:'yes'},1);assert.deepEqual(fs.readFileSync(unknown.log+'.transport'),failedCalls);
   const rollback=fixture('rollback'),rollbackBefore=originals(rollback);run(rollback,'rollback',{DEPLOY_DRY_RUN:'0'},1);assert.equal(fs.existsSync(rollback.log+'.transport'),false);assert.equal(fs.existsSync(path.join(rollback.transaction,'candidate/rollback-result.json')),false);
