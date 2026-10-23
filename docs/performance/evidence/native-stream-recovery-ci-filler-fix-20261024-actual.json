@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "failedRun": 40023780957,
+  "failedHead": "436dceb366fb26de7776cef2b6f6af759a28c60b",
+  "failedStep": "Run make no-placeholder-check",
+  "firstCause": "Foreign-host rejection counterexample literal matched the existing banned filler-domain pattern; original CI used grep fallback.",
+  "repairCommit": "d841da711d384fe6f6fe4bdf446253d843b75b0b",
+  "repair": "Use a reserved invalid foreign host while retaining the same rejection assertion. Existing scanner policy/exclusions unchanged. Correct explicit native-stream8192 receipt scope description.",
+  "focusedNegativeTests": 1,
+  "sourceContractsPassed": true,
+  "originalPlaceholderCheckPassed": true,
+  "artifacts": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/ci400237-failed-original-recovered.raw",
+      "bytes": 1716,
+      "sha256": "8b72fcb0979b092ce59e7239c067b37dfe2a5509d6c88bcc94bfe0c5590ff4a8"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/ci400237-local-placeholder-red.raw",
+      "bytes": 156,
+      "sha256": "34ed618eb04779fc71d2a4b374f91f97ded57a258343717da15fc6b7d9607301"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/ci400237-host-negative-fixed.raw",
+      "bytes": 98,
+      "sha256": "65d3a21d9a25d3449538a550bbf07742cec0a72ecf37d6271c24c8db70978275"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/ci400237-no-placeholder-fixed.raw",
+      "bytes": 115,
+      "sha256": "b9f22f79fe6d002e856ad9367c411176761116d8a90f184cbcda4952f4d1ac9a"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/ci400237-fixed-source-contract.raw",
+      "bytes": 2400,
+      "sha256": "c253bcfa9fa9218f176b71bf2ade090b518ed0d56168d18b347ee788a1aa4de9"
+    }
+  ],
+  "newNormalCIPending": true,
+  "networkDispatched": false,
+  "sustained1000Qualified": false
+}
