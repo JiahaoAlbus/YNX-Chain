@@ -49,6 +49,7 @@ type Application struct {
 	replayVerificationFacts     *nativeVerificationCache // decoder-owned crypto facts only; never mutable execution state
 	bootstrap                   *ConsensusBootstrap
 	persistenceHooks            *committedPersistenceHooks
+	persistence                 applicationPersistenceObservation
 	pqCertificateCache          *chain.PQCertificateCache
 	pqEngineAuthorization       *PQEngineAuthorization
 	runtimeUpgradeAuthorization *RuntimeUpgradeAuthorization
@@ -215,6 +216,7 @@ func newPersistentApplicationWithAuthorization(state chain.ConsensusMigrationSta
 			return nil, err
 		}
 	}
+	persistedBefore, persistedBeforeErr := applicationPersistenceFile(strings.TrimSpace(statePath))
 	committed, err := loadCommittedStateWithBootstrap(strings.TrimSpace(statePath), migration, bootstrap)
 	if err != nil {
 		return nil, err
@@ -246,7 +248,7 @@ func newPersistentApplicationWithAuthorization(state chain.ConsensusMigrationSta
 	if feeRecipient == "" {
 		return nil, errors.New("YNX migration has no active fee recipient")
 	}
-	return &Application{
+	application := &Application{
 		pqCertificateCache:    chain.NewPQCertificateCache(),
 		pqEngineAuthorization: authorization,
 		bootstrap:             bootstrap,
@@ -255,7 +257,9 @@ func newPersistentApplicationWithAuthorization(state chain.ConsensusMigrationSta
 		committed:             committed,
 		statePath:             strings.TrimSpace(statePath),
 		feeRecipient:          feeRecipient,
-	}, nil
+	}
+	application.observeLoadedPersistence(persistedBefore, persistedBeforeErr)
+	return application, nil
 }
 
 // NewJournaledApplication is an explicit alternative full-snapshot layout.
@@ -273,10 +277,12 @@ func NewJournaledApplication(state chain.ConsensusMigrationState, path string) (
 		return nil, err
 	}
 	a.journal, a.committed, a.statePath = j, committed, path
+	a.observePersistenceResult(committed, nil)
 	return a, nil
 }
 
-func (a *Application) persistState(state CommittedState, timings *commitTimings) error {
+func (a *Application) persistState(state CommittedState, timings *commitTimings) (result error) {
+	defer func() { a.observePersistenceResult(state, result) }()
 	if a.blockJournal != nil {
 		return a.blockJournal.replaceCheckpoint(state, a.migration)
 	}
@@ -301,6 +307,7 @@ func NewBlockJournaledApplication(state chain.ConsensusMigrationState, path stri
 		return nil, err
 	}
 	a.blockJournal, a.committed, a.statePath = j, committed, path
+	a.observePersistenceResult(committed, nil)
 	return a, nil
 }
 
@@ -369,6 +376,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	response := &abcitypes.ResponseQuery{Code: abcitypes.CodeTypeOK, Height: a.committed.Height}
+	if a.queryPersistence(response, req) {
+		return response, nil
+	}
 	if queryMigrationHistory(response, req, a.committed, a.migration) {
 		return response, nil
 	}
@@ -981,6 +991,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	var err error
 	if a.blockJournal != nil {
 		err = a.blockJournal.saveBlock(a.committed, *a.pending, a.pendingBlockRequest, a.pendingBlockResponseHash, a.migration, a.commitTimings)
+		a.observePersistenceResult(*a.pending, err)
 	} else {
 		err = a.persistState(*a.pending, a.commitTimings)
 	}

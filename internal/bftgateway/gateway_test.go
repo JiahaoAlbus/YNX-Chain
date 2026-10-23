@@ -1,6 +1,7 @@
 package bftgateway
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -71,6 +72,9 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 				}
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"block_height": "17", "validators": validators}})
+		case "/abci_info":
+			appHash := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x44}, 32))
+			_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"data": consensus.ApplicationName, "last_block_height": "17", "last_block_app_hash": appHash}}})
 		case "/block", "/block_by_hash":
 			if r.URL.Path == "/block_by_hash" {
 				hash := r.URL.Query().Get("hash")
@@ -101,6 +105,12 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 			}})
 		case "/abci_query":
 			path, _ := strconv.Unquote(r.URL.Query().Get("path"))
+			if path == consensus.ApplicationPersistencePath {
+				value := consensus.ApplicationPersistenceView{Version: consensus.ApplicationPersistenceVersion, Source: "ynx-abci", StateHeight: 17, StateAppHash: strings.Repeat("44", 32), Storage: "memory", PersistenceError: "memory_only"}
+				raw, _ := json.Marshal(value)
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"height": "17", "value": base64.StdEncoding.EncodeToString(raw)}}})
+				return
+			}
 			if strings.HasPrefix(path, consensus.MigrationHistoryTransactionPath) || strings.HasPrefix(path, consensus.MigrationHistoryBlockHashPath) || strings.HasPrefix(path, consensus.MigrationHistoryPagePath) || strings.HasPrefix(path, consensus.MigrationHistoryLogsPath) || path == consensus.PQWalletIdentityPath {
 				var value any = consensus.MigrationHistoryTransactionView{MigrationHistoryAnchor: consensus.MigrationHistoryAnchor{Version: consensus.MigrationHistoryVersion, Source: "source_import", SourceAnchor: strings.Repeat("1", 64), OriginalGenesisHash: strings.Repeat("2", 64), NativeChainID: 6423, MigrationHeight: 16, MigrationBlockHash: strings.Repeat("f", 64)}}
 				if strings.HasPrefix(path, consensus.MigrationHistoryBlockHashPath) {

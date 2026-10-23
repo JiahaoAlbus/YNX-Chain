@@ -106,27 +106,32 @@ type Health struct {
 }
 
 type Status struct {
-	Network              string    `json:"network"`
-	Slug                 string    `json:"slug"`
-	ChainID              int64     `json:"chainId"`
-	NativeCoinName       string    `json:"nativeCoinName"`
-	NativeCurrencySymbol string    `json:"nativeCurrencySymbol"`
-	Decimals             int       `json:"decimals"`
-	PublicNetwork        bool      `json:"publicNetwork"`
-	Height               uint64    `json:"height"`
-	LatestBlockHash      string    `json:"latestBlockHash"`
-	LatestBlockTime      time.Time `json:"latestBlockTime"`
-	EarliestBlockHeight  uint64    `json:"earliestBlockHeight"`
-	EarliestBlockHash    string    `json:"earliestBlockHash"`
-	EarliestBlockTime    time.Time `json:"earliestBlockTime"`
-	ValidatorCount       int       `json:"validatorCount"`
-	PendingTxCount       int       `json:"pendingTxCount"`
-	TruthfulStatus       string    `json:"truthfulStatus"`
-	ConsensusEngine      string    `json:"consensusEngine"`
-	CometChainID         string    `json:"cometChainId"`
-	PublicCutoverReady   bool      `json:"publicCutoverReady"`
-	MigrationHeight      uint64    `json:"migrationHeight,omitempty"`
-	MigrationBlockHash   string    `json:"migrationBlockHash,omitempty"`
+	Network                string                                `json:"network"`
+	Slug                   string                                `json:"slug"`
+	ChainID                int64                                 `json:"chainId"`
+	NativeCoinName         string                                `json:"nativeCoinName"`
+	NativeCurrencySymbol   string                                `json:"nativeCurrencySymbol"`
+	Decimals               int                                   `json:"decimals"`
+	PublicNetwork          bool                                  `json:"publicNetwork"`
+	Height                 uint64                                `json:"height"`
+	LatestBlockHash        string                                `json:"latestBlockHash"`
+	LatestBlockTime        time.Time                             `json:"latestBlockTime"`
+	EarliestBlockHeight    uint64                                `json:"earliestBlockHeight"`
+	EarliestBlockHash      string                                `json:"earliestBlockHash"`
+	EarliestBlockTime      time.Time                             `json:"earliestBlockTime"`
+	ValidatorCount         int                                   `json:"validatorCount"`
+	PendingTxCount         int                                   `json:"pendingTxCount"`
+	TruthfulStatus         string                                `json:"truthfulStatus"`
+	ConsensusEngine        string                                `json:"consensusEngine"`
+	CometChainID           string                                `json:"cometChainId"`
+	PublicCutoverReady     bool                                  `json:"publicCutoverReady"`
+	MigrationHeight        uint64                                `json:"migrationHeight,omitempty"`
+	MigrationBlockHash     string                                `json:"migrationBlockHash,omitempty"`
+	CatchingUp             bool                                  `json:"catchingUp"`
+	Persistence            bool                                  `json:"persistence"`
+	PersistenceError       string                                `json:"persistenceError"`
+	Build                  buildinfo.Info                        `json:"build"`
+	PersistenceObservation *consensus.ApplicationPersistenceView `json:"persistenceObservation,omitempty"`
 }
 
 type cometStatus struct {
@@ -141,7 +146,7 @@ type cometStatus struct {
 			LatestBlockHash     string    `json:"latest_block_hash"`
 			LatestBlockHeight   string    `json:"latest_block_height"`
 			LatestBlockTime     time.Time `json:"latest_block_time"`
-			CatchingUp          bool      `json:"catching_up"`
+			CatchingUp          *bool     `json:"catching_up"`
 		} `json:"sync_info"`
 	} `json:"result"`
 }
@@ -496,6 +501,10 @@ func (g *Gateway) status(ctx context.Context) (Status, error) {
 	if err := g.client.get(ctx, "/status", nil, &upstream); err != nil {
 		return Status{}, err
 	}
+	return g.mapStatus(ctx, upstream)
+}
+
+func (g *Gateway) mapStatus(ctx context.Context, upstream cometStatus) (Status, error) {
 	if upstream.Result.NodeInfo.Network != "ynx_6423-1" {
 		return Status{}, fmt.Errorf("unexpected CometBFT chain ID %q", upstream.Result.NodeInfo.Network)
 	}
@@ -539,6 +548,8 @@ func (g *Gateway) status(ctx context.Context) (Status, error) {
 		PublicCutoverReady:   g.publicCutoverReady(),
 		MigrationHeight:      g.migrationHeight,
 		MigrationBlockHash:   g.migrationBlockHash,
+		CatchingUp:           upstream.Result.SyncInfo.CatchingUp != nil && *upstream.Result.SyncInfo.CatchingUp,
+		Build:                g.build,
 	}, nil
 }
 
@@ -596,12 +607,100 @@ func (g *Gateway) publicCutoverReady() bool {
 }
 
 func (g *Gateway) handleStatus(w http.ResponseWriter, r *http.Request) {
-	status, err := g.status(r.Context())
+	w.Header().Set("Cache-Control", "no-store")
+	status, err := g.walletStatus(r.Context())
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
 		return
 	}
 	writeJSON(w, http.StatusOK, status)
+}
+
+// Wallet's existing health contract requires a real sync observation and a
+// recoverable committed application state. Neither a successful RPC response
+// nor /abci_info's height alone proves persistence: an in-memory application
+// returns the same Info fields. Keep /health's existing observations separate.
+// These are configured-RPC storage observations, never consensus finality or a
+// replacement for the Wallet's independently supplied network/build pins.
+func (g *Gateway) walletStatus(ctx context.Context) (Status, error) {
+	raw, err := g.identityRPCResult(ctx, "/status", nil, 64<<10)
+	if err != nil {
+		return Status{}, err
+	}
+	var upstream cometStatus
+	if err = json.Unmarshal(raw, &upstream.Result); err != nil {
+		return Status{}, errors.New("invalid CometBFT status observation")
+	}
+	if upstream.Result.SyncInfo.CatchingUp == nil {
+		return Status{}, errors.New("CometBFT status lacks explicit synchronization state")
+	}
+	status, err := g.mapStatus(ctx, upstream)
+	if err != nil {
+		return Status{}, err
+	}
+	// /status.latest_app_hash belongs to the latest block HEADER (H-1 state).
+	// /abci_info reports the application's current committed H/hash instead.
+	infoRaw, err := g.identityRPCResult(ctx, "/abci_info", nil, 64<<10)
+	if err != nil {
+		return Status{}, err
+	}
+	var info struct {
+		Response struct {
+			Data             string `json:"data"`
+			Version          string `json:"version"`
+			AppVersion       string `json:"app_version"`
+			LastBlockHeight  string `json:"last_block_height"`
+			LastBlockAppHash []byte `json:"last_block_app_hash"`
+		} `json:"response"`
+	}
+	if err = json.Unmarshal(infoRaw, &info); err != nil {
+		return Status{}, errors.New("invalid ABCI Info observation")
+	}
+	infoHeight, err := strconv.ParseInt(info.Response.LastBlockHeight, 10, 64)
+	if err != nil || infoHeight <= 0 || strconv.FormatInt(infoHeight, 10) != info.Response.LastBlockHeight || uint64(infoHeight) != status.Height || len(info.Response.LastBlockAppHash) != 32 || info.Response.Data != consensus.ApplicationName {
+		return Status{}, errors.New("CometBFT and ABCI Info observations disagree")
+	}
+	view, height, err := g.queryApplicationPersistence(ctx)
+	if err != nil {
+		return Status{}, err
+	}
+	if err = consensus.ValidateApplicationPersistenceView(view); err != nil {
+		return Status{}, err
+	}
+	if height != view.StateHeight || view.StateHeight != infoHeight || view.StateAppHash != fmt.Sprintf("%x", info.Response.LastBlockAppHash) {
+		// The sequential reads may straddle a commit. Refuse this observation;
+		// do not combine different heights, retry a transaction, or call it durable.
+		return Status{}, errors.New("CometBFT and ABCI persistence observations disagree")
+	}
+	status.Persistence = view.Persistence
+	status.PersistenceError = view.PersistenceError
+	status.PersistenceObservation = &view
+	return status, nil
+}
+
+func (g *Gateway) queryApplicationPersistence(ctx context.Context) (consensus.ApplicationPersistenceView, int64, error) {
+	var view consensus.ApplicationPersistenceView
+	raw, err := g.identityRPCResult(ctx, "/abci_query", url.Values{"path": {strconv.Quote(consensus.ApplicationPersistencePath)}}, 64<<10)
+	if err != nil {
+		return view, 0, err
+	}
+	var result cometABCIQuery
+	if err = json.Unmarshal(raw, &result.Result); err != nil || result.Result.Response.Code != 0 {
+		return view, 0, errors.New("ABCI persistence query unavailable")
+	}
+	response := result.Result.Response
+	height, err := strconv.ParseInt(response.Height, 10, 64)
+	if err != nil || height <= 0 || strconv.FormatInt(height, 10) != response.Height {
+		return view, 0, errors.New("invalid ABCI persistence response height")
+	}
+	value, err := base64.StdEncoding.DecodeString(response.Value)
+	if err != nil || len(value) == 0 || len(value) > 4<<10 || base64.StdEncoding.EncodeToString(value) != response.Value {
+		return view, 0, errors.New("invalid bounded ABCI persistence value")
+	}
+	if err = strictPQJSON(value, &view); err != nil {
+		return view, 0, err
+	}
+	return view, height, nil
 }
 
 func (g *Gateway) handleBlock(w http.ResponseWriter, r *http.Request) {

@@ -82,6 +82,7 @@ func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationS
 	committed.bootstrap = bootstrap
 	a.committed, a.statePath, a.pqEngineAuthorization = committed, path, authorization
 	a.runtimeUpgradeAuthorization = runtime
+	a.observePersistenceResult(committed, nil)
 	return a, nil
 }
 

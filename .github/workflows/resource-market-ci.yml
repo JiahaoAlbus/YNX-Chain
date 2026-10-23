@@ -1238,6 +1238,33 @@ jobs:
           cp "$YNX_HISTORY_CONTINUATION_CASE/fixed-history.go" internal/bftgateway/transaction_history_page.go
           trap - EXIT
           go test -p 1 -count=1 -timeout=90s -run '^TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead$' ./internal/bftgateway
+      - name: Reproduce the existing Wallet health refusal with the complete original Gateway
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          umask 077
+          YNX_WALLET_STATUS_CASE="$RUNNER_TEMP/ynx-wallet-status-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$YNX_WALLET_STATUS_CASE"
+          cp internal/bftgateway/gateway.go "$YNX_WALLET_STATUS_CASE/fixed-gateway.go"
+          trap 'cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go' EXIT
+          # Keep the entire original handler and normal real Application fixture.
+          # A compiler failure is not evidence of Wallet's actual health refusal.
+          git show 6b50fe364925bfb130ba27103a0965fcc9b553da:internal/bftgateway/gateway.go > "$YNX_WALLET_STATUS_CASE/original-gateway.go"
+          test "$(sha256sum "$YNX_WALLET_STATUS_CASE/original-gateway.go" | cut -d' ' -f1)" = a9267621488bf5ac7a4e45a3fe5d900112cd74d12eccc46dd1cbddeba79aa06f
+          cp "$YNX_WALLET_STATUS_CASE/original-gateway.go" internal/bftgateway/gateway.go
+          set +e
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage$' ./internal/bftgateway > "$YNX_WALLET_STATUS_CASE/original-red.log" 2>&1
+          YNX_WALLET_STATUS_RED=$?
+          set -e
+          cp "$YNX_WALLET_STATUS_CASE/fixed-gateway.go" internal/bftgateway/gateway.go
+          trap - EXIT
+          cat "$YNX_WALLET_STATUS_CASE/original-red.log"
+          test "$YNX_WALLET_STATUS_RED" -ne 0
+          test "$(grep -F -c 'actual Gateway response fails the existing Wallet contract' "$YNX_WALLET_STATUS_CASE/original-red.log")" -eq 1
+          grep -F -- '=== RUN   TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage' "$YNX_WALLET_STATUS_CASE/original-red.log"
+          grep -F -- '--- FAIL: TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage (' "$YNX_WALLET_STATUS_CASE/original-red.log"
+          # The following unchanged whole-suite step executes the fixed handler.
       - name: Verify Whole BFT gateway and native container readback
         id: pqgateway
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}

@@ -148,6 +148,10 @@ func identityJSONShape(raw json.RawMessage, kind string) error {
 		allowed = "jsonrpc id result error"
 	case "/abci_query":
 		allowed, children = "response", []child{{"response", "query-response", false}}
+	case "/abci_info":
+		allowed, children = "response", []child{{"response", "info-response", false}}
+	case "info-response":
+		allowed = "data version app_version last_block_height last_block_app_hash"
 	case "query-response":
 		allowed = "code log info index key value proof_ops height codespace"
 	case "/status":
