@@ -2,8 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
-const {CommandRegistry}=require('@theia/core/lib/common/command');
-const {Emitter}=require('@theia/core/lib/common/event');
+const frameworkRequire=createRequire(new URL('../runtime/theia/package.json',import.meta.url));
+const {CommandRegistry}=frameworkRequire('@theia/core/lib/common/command');
+const {Emitter}=frameworkRequire('@theia/core/lib/common/event');
 const {NativeWorkbenchCommands}=require('../runtime/ynx-workbench/lib/native-workbench-commands');
 test('native Stop/Restart availability follows real registry state after debug startup failure without dispatching either action',()=>{
  const changed=new Emitter(), calls=[], messages=[];
