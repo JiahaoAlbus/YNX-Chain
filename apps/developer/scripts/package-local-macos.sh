@@ -17,7 +17,7 @@ source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 node --input-type=module -e "import('./scripts/package-identity-admission-source.mjs').then(m=>m.verifyCanonicalIdentityAdmissionSource())"
 canonical_native_root=$(node scripts/package-identity-admission-source.mjs --native-source-root)
 canonical_app_native_root=$(node scripts/identity-app-custody-source.mjs)
-node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs
+node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs scripts/sdk14-native-build-receipt.test.mjs
 node --test scripts/native-wallet-transport-recipe.test.mjs
 node --test scripts/native-source-ownership.test.mjs
 node --test scripts/admit-derived-native.test.mjs
@@ -159,6 +159,7 @@ cp desktop/project-contracts-host.mjs desktop/wallet-contract-client.mjs desktop
 cp desktop/artifact-publication-host.mjs desktop/artifact-publication-client.mjs desktop/artifact-publication-lifecycle.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-native "$app/Contents/Resources/code"
+node scripts/package-identity-admission-source.mjs --copy-helper "$app/Contents/Resources/code"
 mkdir -p "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib"
 cp runtime/ynx-workbench/package.json "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/"
 cp runtime/ynx-workbench/lib/wallet-admission-channel.js runtime/ynx-workbench/lib/wallet-admission-protocol.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
@@ -300,7 +301,7 @@ while IFS= read -r bundled_binary; do
     continue
   fi
   /usr/bin/codesign --force --sign - "$bundled_binary"
-done < <(node -e 'const fs=require("fs"),path=require("path"),app=process.argv[1],inventory=JSON.parse(fs.readFileSync(path.join(app,"Contents/Resources/macos-compatibility.json")));for(const binary of inventory.binaries)if(binary.path.startsWith("Contents/Resources/"))console.log(path.join(app,binary.path));' "$app")
+done < <(node -e 'const fs=require("fs"),path=require("path"),app=process.argv[1],inventory=JSON.parse(fs.readFileSync(path.join(app,"Contents/Resources/macos-compatibility.json")));for(const binary of inventory.binaries)if(binary.path.startsWith("Contents/Resources/")||binary.path==="Contents/Library/HelperTools/YNXIdentityReceiver")console.log(path.join(app,binary.path));' "$app")
 if [[ -n "$local_node_runtime" ]]; then
   COPYFILE_DISABLE=1 cp -X "$app/Contents/Resources/runtime/node" "$app/Contents/Resources/runtime/ynx-js-node"
   chmod 0755 "$app/Contents/Resources/runtime/ynx-js-node"

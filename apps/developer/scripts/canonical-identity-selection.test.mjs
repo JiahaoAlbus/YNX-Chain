@@ -4,19 +4,19 @@ import {mkdtemp,readFile,writeFile,mkdir,copyFile,rm,symlink} from 'node:fs/prom
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection} from './package-identity-admission-source.mjs';
+import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection,canonicalNativeSourcesForOwner} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates exact SDK330 and its complete R114 Native, without loading Native',async()=>{
+test('normal selection validates exact SDK14 and its complete R166 Native, without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
- assert.equal(sdk.sdkCommit,'4de6b5c8f4848b62c486df9dbb9b61d672df10e7');assert.equal(sdk.files.length,272);
- assert.equal(sdk.dependencies.length,263);assert.equal(native.sourceLeaves,57);assert.equal(native.buildInputLeaves,55);
+ assert.equal(sdk.sdkCommit,'f250f6af67639268eef5a8f948f8f380b7870dcc');assert.equal(sdk.files.length,306);
+ assert.equal(sdk.dependencies.length,9123);assert.equal(native.sourceLeaves,83);assert.equal(native.buildInputLeaves,71);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'5d2b6a0854e8234221f6c3deb32c6ed8e33d5b84b6b1a82e5b2e50aff8f62f4b');
- assert.equal(inputs.nativeSourceCommit,'4de6b5c8f4848b62c486df9dbb9b61d672df10e7');
- assert.equal(sdk.runtimeClosure.files,454);assert.equal(sdk.runtimeClosure.edges,123);
- assert.equal(inputs.nativeComponent.module.sha256,'d03c19b153003e57f1c02c7d72c2bbdf797981685bbb8cba510c197282b5f214');
- assert.ok(inputs.nativeSourceUpdates.every(x=>Object.hasOwn(x,'parentSha256')));
+ assert.equal(inputs.predecessorManifestSha256,'2317cab0d4d71be86151ab0e994e36c0754cab53507fc61d92feae96db961b65');
+ assert.equal(inputs.nativeSourceCommit,'f250f6af67639268eef5a8f948f8f380b7870dcc');
+ assert.equal(sdk.runtimeClosure.contractRelay.files,9335);assert.equal(sdk.runtimeClosure.Auth.edges,129);
+ assert.equal(inputs.nativeComponent.module.sha256,'dab62a3a431a61f40bf72358cf28eaec13819d7883ce50904d9ee6d924de6f65');
+ assert.equal(inputs.helperComponent.registered,false);
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ynx-sdk-selection-'));
@@ -42,7 +42,7 @@ test('missing or changed complete Native source and receipt mutation cannot subs
  try{
   const rows=[...inputs.nativeSources,inputs.nativeComponent.receipt,inputs.nativeComponent.module];
   const ideSource=fileURLToPath(new URL('../../../',import.meta.url));
-  for(const row of rows){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});await copyFile(join(row.path.startsWith('apps/developer/')?ideSource:source,row.path),p);}
+  for(const row of rows){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});await copyFile(join(canonicalNativeSourcesForOwner({nativeSources:[row]},'ide').length?ideSource:source,row.path),p);}
   await verifyCanonicalNativeSourceSelection(root,root);
   const firstEnterHeader=join(root,'packages/wallet-auth/native/original-first-enter-selection.h'),firstEnterBytes=await readFile(firstEnterHeader);
   await rm(firstEnterHeader);await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/ENOENT/);

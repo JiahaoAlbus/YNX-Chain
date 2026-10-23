@@ -45,10 +45,11 @@ test('PUBLIC build receipt validation requires the exact selected Native closure
     'packages/wallet-auth/native/original-ide-parent-node.mm'];
   for(const path of ['packages/wallet-auth/native/original-ide-wallet-identity-source.mm','packages/wallet-auth/native/original-ide-wallet-peer-launch.mm'])
     if(inputs.nativeBuildInputs.some(row=>row.path===path))sourceNames.push(path);
+  if(inputs.requiredBuild?.nodeTU===13)sourceNames.push(...['original-ide-helper-client.mm','original-ide-helper-xpc-peer.mm','original-ide-helper-service-install.mm','original-ide-publication-artifact.mm','original-ide-contract-relay-owner.mm'].map(name=>'packages/wallet-auth/native/'+name));
   const record={schemaVersion:1,kind:'YNX_WALLET_ORIGINAL_NATIVE_BUILD',napiVersion:8,
     headerVersion:'22.13.1',minimumSystemVersion:'13.0',appSigned:false,nativeQualified:false,
     registrationAccepted:false,readbackOnly:true,commandsKind:'normal-build-plan',architectures:['arm64'],sourceRoot:'/PUBLIC/source',existingComponentEvidence:{path:'/PUBLIC/actual-compile-evidence.json',bytes:10,sha256:'3'.repeat(64)},
-    commands:[{tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-dynamiclib','-DNAPI_VERSION=8','-mmacosx-version-min=13.0','-lbsm','Foundation','Security',...(sourceNames.length===8?['-framework','AppKit']:[]),...sourceNames.map(p=>'/PUBLIC/source/'+p)]}],
+    commands:[{tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-dynamiclib','-DNAPI_VERSION=8','-mmacosx-version-min=13.0','-lbsm','Foundation','Security',...(sourceNames.length>=8?['-framework','AppKit']:[]),...(sourceNames.length===13?['-framework','ServiceManagement']:[]),...sourceNames.map(p=>'/PUBLIC/source/'+p)]}],
     relativeBases:{inputFiles:'repository-root',output:'repository-root',headers:'pinned-header-root'},
     headerRoot:'/PUBLIC/headers',headers:['node_api.h','node_api_types.h','js_native_api.h','js_native_api_types.h','node_version.h'].map(relative=>{const pin=inputs.node22HeaderPins.find(x=>x.path===relative);return{relative,bytes:pin.bytes,sha256:pin.sha256};}),
     inputFiles:inputs.nativeBuildInputs.map(pin=>({relative:pin.path,bytes:pin.bytes,sha256:pin.sha256})),
