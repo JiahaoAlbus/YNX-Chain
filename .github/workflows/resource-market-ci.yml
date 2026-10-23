@@ -87,6 +87,8 @@ on:
       - 'scripts/verify/validate-public-bft-cutover-approval-evidence.mjs'
       - 'scripts/ops/rollback-consensus-candidate*'
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
+      - 'scripts/fixtures/verify-artifact-release-cabi/**'
+      - 'scripts/verify/artifact-release-cabi-check.sh'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/resource-market-ci.yml'
@@ -320,6 +322,156 @@ jobs:
           path: ${{ runner.temp }}/ynx-caddy-baseline-control
           if-no-files-found: error
           retention-days: 30
+
+  artifact-release-cabi:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 18
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=1 -trimpath'
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+      GOTOOLCHAIN: local
+      YNX_NATIVE_MATRIX_RUNNER: ${{ matrix.runner }}
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    steps:
+      - name: Checkout exact Native callee and independent caller source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Install the original pinned Go toolchain
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+      - name: Verify fixed Native key and output cleanup behavior
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1
+      - name: Execute actual C ABI and independently verify both signatures
+        run: |
+          set -euo pipefail
+          bash scripts/verify/artifact-release-cabi-check.sh "$RUNNER_TEMP/ynx-artifact-release-cabi"
+      - name: Verify the executed original Main arm64 target
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(go env GOHOSTOS)" = darwin
+          test "$(go env GOHOSTARCH)" = arm64
+          test "$(go env GOOS)" = darwin
+          test "$(go env GOARCH)" = arm64
+          lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"
+          lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver"
+          # The immediately preceding real C call executed this exact archive
+          # on the original Main target. No cross-compiled runtime claim.
+      - name: Seal only native library public outputs and exact compile inputs
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PY'
+          import hashlib, json, os, shutil, stat, subprocess
+          from pathlib import Path
+          case = Path(os.environ['RUNNER_TEMP']) / 'ynx-artifact-release-cabi'
+          delivery = case / 'delivery'
+          delivery.mkdir(mode=0o700)
+          def command(*args):
+              return subprocess.check_output(args, text=True).strip()
+          def pin(path):
+              info = path.lstat()
+              if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or not 0 < info.st_size <= 128 << 20:
+                  raise RuntimeError('only bounded regular public leaves may be delivered')
+              with path.open('rb') as source:
+                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
+              return dict(bytes=info.st_size, sha256=digest)
+          if command('git', 'rev-parse', 'HEAD') != os.environ['GITHUB_SHA']:
+              raise RuntimeError('Native candidate is not the selected commit')
+          module = json.loads(command('go', 'list', '-m', '-json', 'github.com/cloudflare/circl'))
+          if module.get('Version') != 'v1.6.5' or module.get('Replace'):
+              raise RuntimeError('original fixed provider dependency required')
+          source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch',
+              'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',
+              'scripts/verify/artifact-release-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()
+          sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}
+          native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')
+          targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]
+          if native_os == 'darwin':
+              if native_arch != 'arm64':
+                  raise RuntimeError('original Main requires actual arm64 native execution')
+              targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))
+          public_names = ('PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json')
+          public_pins = {name:pin(case / 'output' / name) for name in public_names}
+          for label, archive, target_os, target_arch, executed in targets:
+              out = delivery / label
+              out.mkdir(mode=0o700)
+              shutil.copyfile(archive, out / 'libynx_artifact_release.a')
+              shutil.copyfile('cmd/ynx-artifact-release-cabi/ynx_artifact_release.h', out / 'ynx_artifact_release.h')
+              for name in public_names:
+                  shutil.copyfile(case / 'output' / name, out / name)
+              record = dict(version='YNX-ARTIFACT-RELEASE-CABI-CANDIDATE/v1', commit=os.environ['GITHUB_SHA'],
+                  sourceTree=command('git','rev-parse','HEAD^{tree}'), runId=os.environ['GITHUB_RUN_ID'],
+                  runAttempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'],
+                  matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], runnerOS=os.environ['RUNNER_OS'],
+                  host=dict(os=native_os, arch=native_arch), target=dict(os=target_os, arch=target_arch),
+                  minimumSystemVersion='13.0' if target_os == 'darwin' else None,
+                  deploymentTargetEnvironment=os.environ.get('MACOSX_DEPLOYMENT_TARGET') if target_os == 'darwin' else None,
+                  goVersion=command('go','version'), compilerVersion=command('cc','--version'),
+                  goMod=pin(Path('go.mod')), goSum=pin(Path('go.sum')),
+                  circl={k:module[k] for k in ('Path','Version','Sum','GoModSum') if k in module},
+                  sources=sources, abi='YNXArtifactPublicationSignV1', abiVersion=1,
+                  suite='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512',
+                  archive=pin(out / 'libynx_artifact_release.a'), header=pin(out / 'ynx_artifact_release.h'),
+                  publicEvidence=public_pins, publicEvidenceTarget=dict(os=native_os, arch=native_arch),
+                  nativeHostCoreTestsPassed=True, actualCABIExecuted=executed,
+                  independentGoDualANDVerified=executed, typedN1Inspected=executed,
+                  crossCompiled=(not executed and (target_os,target_arch)!=(native_os,native_arch)),
+                  targetCompiled=True, targetCallerLinked=True,
+                  buildCommand='CGO_ENABLED=1 GOOS=<hostOS> GOARCH=<hostArch> go build -p 1 -trimpath -buildmode=c-archive -o <case>/libynx_artifact_release.a ./cmd/ynx-artifact-release-cabi',
+                  callerRecipe='scripts/verify/artifact-release-cabi-check.sh',
+                  syntheticTestKeysOnly=True, privateMaterialIncluded=False, cleanup='logical Clear/Destroy; no provider physical-erasure guarantee',
+                  publisherAuthorized=False, nativeRootAuthorized=False, mainCustodyVerified=False,
+                  productInstalled=False, publicDeployment=False, pqActivation=False)
+              with (out / 'SOURCE.json').open('x') as sink:
+                  sink.write(json.dumps(record, sort_keys=True, separators=(',', ':'))+'\n')
+              print('YNX_ARTIFACT_CABI_CANDIDATE '+json.dumps(dict(target=record['target'],actualCABIExecuted=executed,archive=record['archive'],header=record['header']),sort_keys=True))
+          if command('git','status','--porcelain','--untracked-files=normal'):
+              raise RuntimeError('Native CI modified source checkout')
+          PY
+      - name: Upload only public native host archive header and evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-artifact-release-cabi-native-${{ matrix.runner }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/libynx_artifact_release.a
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/ynx_artifact_release.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/SOURCE.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-INTEROP.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload only public Main arm64 archive header and executed target evidence
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-artifact-release-cabi-darwin-arm64-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/libynx_artifact_release.a
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/ynx_artifact_release.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/SOURCE.json
+          if-no-files-found: error
+          retention-days: 7
 
   focused-go:
     if: ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))

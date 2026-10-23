@@ -431,7 +431,115 @@ def workflow_steps(raw, name="focused-go"):
     return job, chunks[1:]
 
 
+def assert_native_cabi_workflow_contract(raw):
+    """Closed source contract; actual C/Go execution remains the native job."""
+    job, steps = workflow_steps(raw, "artifact-release-cabi")
+
+    def need(condition):
+        if not condition:
+            raise AssertionError("native C-ABI normal-push source contract changed; no execution claim")
+
+    push = ("github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
+            "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
+    header = ("    if: " + push + "\n    strategy:\n      fail-fast: false\n      matrix:\n"
+              "        runner: [ubuntu-24.04, macos-15]\n    runs-on: ${{ matrix.runner }}\n"
+              "    timeout-minutes: 18\n    env:\n      GOMAXPROCS: '2'\n      GOGC: '50'\n"
+              "      GOMEMLIMIT: '1536MiB'\n      CGO_ENABLED: '1'\n      GOFLAGS: '-p=1 -trimpath'\n"
+              "      GOPROXY: https://proxy.golang.org\n      GOSUMDB: sum.golang.org\n"
+              "      GOTOOLCHAIN: local\n      YNX_NATIVE_MATRIX_RUNNER: ${{ matrix.runner }}\n"
+              "      MACOSX_DEPLOYMENT_TARGET: '13.0'\n")
+    need(job.split("    steps:\n", 1)[0] == header and "continue-on-error:" not in job)
+    push_source = raw.split("  pull_request:\n", 1)[0]
+    for leaf in ("cmd/**", "scripts/fixtures/verify-artifact-release-cabi/**",
+                 "scripts/verify/artifact-release-cabi-check.sh"):
+        need(push_source.count("      - '" + leaf + "'\n") == 1)
+    names = ("Checkout exact Native callee and independent caller source",
+             "Install the original pinned Go toolchain",
+             "Verify fixed Native key and output cleanup behavior",
+             "Execute actual C ABI and independently verify both signatures",
+             "Verify the executed original Main arm64 target",
+             "Seal only native library public outputs and exact compile inputs",
+             "Upload only public native host archive header and evidence",
+             "Upload only public Main arm64 archive header and executed target evidence")
+    need(len(steps) == len(names))
+    need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
+    lines = lambda step: [line for line in step.splitlines() if line.strip()]
+    need(lines(steps[0]) == ["      - name: " + names[0],
+        "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", "        with:",
+        "          ref: ${{ github.sha }}", "          persist-credentials: false"])
+    need(lines(steps[1]) == ["      - name: " + names[1],
+        "        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e", "        with:",
+        "          go-version-file: go.mod", "          check-latest: false", "          cache: true"])
+    need(lines(steps[2]) == ["      - name: " + names[2], "        run: |", "          set -euo pipefail",
+        '          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"', "          git diff --exit-code",
+        "          go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1"])
+    need(lines(steps[3]) == ["      - name: " + names[3], "        run: |", "          set -euo pipefail",
+        '          bash scripts/verify/artifact-release-cabi-check.sh "$RUNNER_TEMP/ynx-artifact-release-cabi"'])
+    arm_lines = [line for line in lines(steps[4]) if not line.lstrip().startswith("#")]
+    need(arm_lines == ["      - name: " + names[4], "        if: runner.os == 'macOS'", "        run: |",
+        "          set -euo pipefail", "          umask 077",
+        '          test "$(go env GOHOSTOS)" = darwin', '          test "$(go env GOHOSTARCH)" = arm64',
+        '          test "$(go env GOOS)" = darwin', '          test "$(go env GOARCH)" = arm64',
+        '          lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"',
+        '          lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver"'])
+    seal = steps[5]
+    need(not re.search(r"(?m)^        if:", seal))
+    need(lines(seal)[1:5] == ["        run: |", "          set -euo pipefail", "          umask 077",
+                            "          python3 -B - <<'PY'"])
+    # These facts refer to the preceding executed native archive. The arm64
+    # label must not substitute a different, unexecuted cross-compiled binary.
+    seal_lines = [line.strip() for line in seal.splitlines()]
+    for required in (
+        "if command('git', 'rev-parse', 'HEAD') != os.environ['GITHUB_SHA']:",
+        "if module.get('Version') != 'v1.6.5' or module.get('Replace'):",
+        "source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch',",
+        "'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',",
+        "'scripts/verify/artifact-release-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
+        "sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}",
+        "native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')",
+        "targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]",
+        "if native_os == 'darwin':", "if native_arch != 'arm64':",
+        "targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))",
+        "public_names = ('PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json')",
+        "public_pins = {name:pin(case / 'output' / name) for name in public_names}",
+        "for label, archive, target_os, target_arch, executed in targets:",
+        "shutil.copyfile(archive, out / 'libynx_artifact_release.a')",
+        "shutil.copyfile('cmd/ynx-artifact-release-cabi/ynx_artifact_release.h', out / 'ynx_artifact_release.h')",
+        "sourceTree=command('git','rev-parse','HEAD^{tree}'), runId=os.environ['GITHUB_RUN_ID'],",
+        "matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], runnerOS=os.environ['RUNNER_OS'],",
+        "host=dict(os=native_os, arch=native_arch), target=dict(os=target_os, arch=target_arch),",
+        "minimumSystemVersion='13.0' if target_os == 'darwin' else None,",
+        "deploymentTargetEnvironment=os.environ.get('MACOSX_DEPLOYMENT_TARGET') if target_os == 'darwin' else None,",
+        "sources=sources, abi='YNXArtifactPublicationSignV1', abiVersion=1,",
+        "suite='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512',",
+        "publicEvidence=public_pins, publicEvidenceTarget=dict(os=native_os, arch=native_arch),",
+        "nativeHostCoreTestsPassed=True, actualCABIExecuted=executed,",
+        "independentGoDualANDVerified=executed, typedN1Inspected=executed,",
+        "crossCompiled=(not executed and (target_os,target_arch)!=(native_os,native_arch)),",
+        "syntheticTestKeysOnly=True, privateMaterialIncluded=False, cleanup='logical Clear/Destroy; no provider physical-erasure guarantee',",
+        "publisherAuthorized=False, nativeRootAuthorized=False, mainCustodyVerified=False,",
+        "productInstalled=False, publicDeployment=False, pqActivation=False)",
+        "if command('git','status','--porcelain','--untracked-files=normal'):"):
+        need(required in seal_lines)
+    # Only these public leaves may leave the runner, never input DER, the case
+    # directory, caller binary or a recursive wildcard. Missing output fails.
+    for step, name, label, artifact, leaves, mac_only in (
+        (steps[6], names[6], "native-host", "native-${{ matrix.runner }}",
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json"), False),
+        (steps[7], names[7], "darwin-arm64", "darwin-arm64",
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "SOURCE.json"), True)):
+        expected = ["      - name: " + name]
+        if mac_only:
+            expected.append("        if: runner.os == 'macOS'")
+        expected.extend(["        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "        with:",
+                         "          name: ynx-artifact-release-cabi-" + artifact + "-${{ github.sha }}", "          path: |"])
+        expected.extend("            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/" + label + "/" + leaf for leaf in leaves)
+        expected.extend(["          if-no-files-found: error", "          retention-days: 7"])
+        need(lines(step) == expected)
+
+
 def assert_workflow_contract(raw):
+    assert_native_cabi_workflow_contract(raw)
     job, steps = workflow_steps(raw)
 
     def need(condition):
@@ -764,6 +872,66 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_native_cabi_push_matrix_rejects_skipped_actual_calls_and_private_artifacts(self):
+        # These mutations establish the source contract only. Actual native
+        # C signing and independent Go verification execute in the matrix job.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        native, steps = workflow_steps(raw, "artifact-release-cabi")
+        actual, arm, seal, upload, arm_upload = steps[3:]
+
+        def change(before, after):
+            self.assertIn(before, native)
+            return raw.replace(native, native.replace(before, after, 1), 1)
+
+        command = 'bash scripts/verify/artifact-release-cabi-check.sh "$RUNNER_TEMP/ynx-artifact-release-cabi"'
+        mutations = [raw.replace(native, "", 1),
+            change("github.event_name == 'push'", "github.event_name == 'workflow_dispatch'"),
+            change("refs/heads/codex/ynx-pq-perf-integration", "refs/heads/main"),
+            change("    strategy:\n", "    needs: focused-go\n    strategy:\n"),
+            change("fail-fast: false", "fail-fast: true"),
+            change("runner: [ubuntu-24.04, macos-15]", "runner: [ubuntu-24.04]"),
+            change("runner: [ubuntu-24.04, macos-15]", "runner: [ubuntu-24.04, macos-14]"),
+            change("          ref: ${{ github.sha }}", "          ref: refs/heads/main"),
+            change("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", "actions/checkout@v4"),
+            change("          go-version-file: go.mod", "          go-version: latest"),
+            change("      CGO_ENABLED: '1'", "      CGO_ENABLED: '0'"),
+            change("      MACOSX_DEPLOYMENT_TARGET: '13.0'", "      MACOSX_DEPLOYMENT_TARGET: '15.0'"),
+            change("          git diff --exit-code", "          git diff --exit-code || true"),
+            change("go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1", "true # skipped native core tests"),
+            change(actual, ""), change(command, "# " + command), change(command, command + " || true"),
+            change(actual, actual.replace("        run: |\n", "        if: false\n        run: |\n", 1)),
+            change(actual, actual.replace("        run: |\n", "        continue-on-error: true\n        run: |\n", 1)),
+            raw.replace(native, native.replace(actual, "", 1).replace(seal, seal + actual, 1), 1),
+            change('test "$(go env GOHOSTARCH)" = arm64', 'test "$(go env GOHOSTARCH)" = amd64'),
+            change('lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver"', "true # skipped caller architecture"),
+            change(arm, arm.replace("if: runner.os == 'macOS'", "if: false", 1)),
+            change(seal, seal.replace("        run: |\n", "        if: always()\n        run: |\n", 1)),
+            change("python3 -B - <<'PY'", "python3 -B - <<'PY' || true"),
+            change("if module.get('Version') != 'v1.6.5' or module.get('Replace'):", "if False:"),
+            change("targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))",
+                   "targets.append(('darwin-arm64', case / 'darwin-arm64/libynx_artifact_release.a', 'darwin', 'arm64', True))"),
+            change("actualCABIExecuted=executed", "actualCABIExecuted=True"),
+            change("independentGoDualANDVerified=executed", "independentGoDualANDVerified=True"),
+            change("publicEvidenceTarget=dict(os=native_os, arch=native_arch)", "publicEvidenceTarget=dict(os=target_os, arch=target_arch)"),
+            change("minimumSystemVersion='13.0' if target_os == 'darwin' else None,", "minimumSystemVersion='15.0' if target_os == 'darwin' else None,"),
+            change("ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512", "ML-DSA-87/OR/SLH-DSA-SHA2-256f"),
+            change("privateMaterialIncluded=False", "privateMaterialIncluded=True"),
+            change("nativeRootAuthorized=False", "nativeRootAuthorized=True"),
+            change("productInstalled=False", "productInstalled=True"),
+            change(upload, upload.replace("if-no-files-found: error", "if-no-files-found: ignore", 1)),
+            change(upload, upload.replace("            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/SOURCE.json\n",
+                                          "            ${{ runner.temp }}/ynx-artifact-release-cabi\n", 1)),
+            change(upload, upload.replace("          if-no-files-found:", "            ${{ runner.temp }}/ynx-artifact-release-cabi/input/SYNTHETIC-ONLY-a.der\n          if-no-files-found:", 1)),
+            change(arm_upload, arm_upload.replace("/delivery/darwin-arm64/SOURCE.json", "/input/SYNTHETIC-ONLY-b.der", 1)),
+            change(arm_upload, arm_upload.replace("        if: runner.os == 'macOS'\n", "", 1)),
+            raw.replace(native, native.replace(upload, "", 1).replace(seal, upload + seal, 1), 1),
+            raw.replace("      - 'scripts/fixtures/verify-artifact-release-cabi/**'\n", "", 1)]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(changed)
 
     def test_independent_caddy_source_failure_or_wrong_source_cannot_qualify_delivery(self):
         # Mutate the real source job and its consumers. These are contract
