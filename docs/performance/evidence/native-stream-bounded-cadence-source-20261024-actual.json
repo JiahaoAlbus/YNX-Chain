@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "codeCommit": "2abe8aa6a979f9168ae7212da3502d9cce2cf355",
+  "measuredBaselineRun": 40026609226,
+  "measuredBaselineSource": "c06b56ccf371a096614238e78439ac7b06c8cfff",
+  "measuredBaselineEffectiveFinalTPS": 296.63295119959116,
+  "measuredBaselineOfferInterarrival": 310.3421223097083,
+  "measuredPacingWaitNs": 23475727597,
+  "measuredPositiveIntervalRemainingNs": 7948455673,
+  "measuredWakeLatenessNs": 15527179353,
+  "measuredCompletionSupplyWaitAttempts": 0,
+  "candidate": "Explicit original bounded-cadence on the same native stream8192 profile. Previous-target cadence, at most four offers including waking offer, long stalls expire slots; relative default preserved.",
+  "sameLimitsAndCrypto": true,
+  "configuredRate": 1000,
+  "sameNativeStream8192Profile": true,
+  "changed": "Explicit pacing selection and persisted plan/receipt mode, registration of matching profile name, original pacing coverage/burst bounds validated. No original pacer algorithm, node or signature/state/fee/nonce/BFT/durable logic changed.",
+  "tests": {
+    "controller": 88,
+    "controllerSeconds": 10.563,
+    "newPlanGoRaceActualRun": true,
+    "planGoRacePackageSeconds": 1.697,
+    "newPythonFocusedTests": 2,
+    "newPythonFocusedSeconds": 0.372
+  },
+  "artifacts": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/bounded-cadence-new-source-first.raw",
+      "bytes": 100,
+      "sha256": "cdaf96ad34881d14fd92655d4c920e7ccb306398be386c8b2b112c505dd44b54"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/bounded-cadence-go-targeted.raw",
+      "bytes": 75,
+      "sha256": "6af65e48aaaa9ebee418f060f83143d242647b9f7454d03b1e180453a0c43581"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/bounded-cadence-plan-final-v.raw",
+      "bytes": 236,
+      "sha256": "145e366616dd60304482020ff23bc6a603eb213e9f7127acc4cbd051dc52b9eb"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/bounded-cadence-controller-suite.raw",
+      "bytes": 188,
+      "sha256": "eb3ce46a0d7f00410bf841db8caa0ac1a602c23204a2cac74ecd051bd60ae92d"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/bounded-cadence-source-gate.raw",
+      "bytes": 3868,
+      "sha256": "4ac4ee7a297f5abef7d95b63d204822a4b6995231fbe97139bb8be650832d481"
+    }
+  ],
+  "normalCIPending": true,
+  "candidateNetworkExecuted": false,
+  "candidatePerformanceImprovementMeasured": false,
+  "matchedBeforeAfter": false,
+  "sustained1000Qualified": false,
+  "nextRequired": "Wire the exact same-VM relative/bounded8192 pair and full paired raw recovery/admission; source CI and separate fresh Root grant required before new heavy. Old once grant remains consumed.",
+  "sourceGateTests": 19,
+  "sourceGateFailures": 0,
+  "sourceGateSkipped": 0
+}
