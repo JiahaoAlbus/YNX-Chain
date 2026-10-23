@@ -42,6 +42,9 @@ export function walletAuthDependencyPlan(cwd,sourceCommit){
  const lockPath='apps/wallet-desktop/package-lock.json';
  const hasLock=git(root,'ls-tree','--name-only',sourceCommit,'--',lockPath).toString().trim()===lockPath;
  const selectedVersion=hasLock?JSON.parse(git(root,'show',sourceCommit+':'+lockPath)).packages?.['../../packages/wallet-auth']?.version:sdk.version;
+ // Original SDK14's exact-lock normal image independently has ciphers2.2 at
+ // its OWN SDK root (union9335). Do not transplant parent13's nested layout.
+ // The application's separate outer dependency scope remains untouched.
  const relative=p=>['1.3.0-pq.3.32-auth.3','1.3.0-pq.3.32-auth.4','1.3.0-pq.3.32-auth.5','1.3.0-pq.3.32-auth.6','1.3.0-pq.3.32-auth.13'].includes(selectedVersion)&&p.startsWith('@noble/ciphers/')?'@noble/post-quantum/node_modules/'+p:p;
  const fixed={'@noble/curves':'2.2.0','@noble/hashes':'2.2.0','@noble/ciphers':'2.2.0','@noble/post-quantum':'0.6.1','@ynx/batch-v01-candidate':'0.1.0-candidate.2'};
  if(manifest.schemaVersion!==2||manifest.files?.length!==316||Object.keys(manifest.versions??{}).length!==5||Object.entries(fixed).some(([name,version])=>manifest.versions[name]!==version)||manifest.provider?.sha256!=='401eca733083c2ac67998295c54f09f0553760b99eaf0adf9ef1e1a85b4cbd0b'||manifest.provider?.bytes!==17804)throw Error('SDK_RUNTIME_DEPENDENCY_MANIFEST_INVALID');

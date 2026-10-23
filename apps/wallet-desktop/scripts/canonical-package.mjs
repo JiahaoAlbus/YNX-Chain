@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import path from 'node:path';
-import {WALLET_PUBLISHER_NATIVE_INPUTS} from './wallet-publisher-native-build.mjs';
+import {WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_NATIVE_SOURCE_PROFILES} from './wallet-publisher-native-build.mjs';
 export const CANONICAL_MAIN='code/apps/wallet-desktop/src/main.mjs';
 export const CANONICAL_APP_METADATA='code/apps/wallet-desktop/package.json';
 export const SDK_ALIAS='node_modules/@ynx-chain/wallet-auth';
@@ -20,16 +20,17 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  const fixed={'1.3.0-pq.3.32-auth.3':{bytes:19696,sha256:'3600874dc48acc5032540ad8b8df39f34381cf85bd6b96f9fbe000e2da4da0ee'},'1.3.0-pq.3.32-auth.4':{bytes:21347,sha256:'e1955ad13cd5187ef4672c34619a48c94bc12120dda393ed950ba19adcb47bf7'},'1.3.0-pq.3.32-auth.5':{bytes:24580,sha256:'f74b7e805eebb86b1adff2f5865641d8c6cade0159bcf8f1baf214ae34d81b92'}};
  fixed['1.3.0-pq.3.32-auth.6']={bytes:24580,sha256:'cd7dd07ddd14d37e76b897fc179c5582cd739029a834a7134b0f8d9c9fe857f8'};
  fixed['1.3.0-pq.3.32-auth.13']={bytes:30418,sha256:'3d256c3c4581748448026d53bfd8160be1e00b80733b3d4c03af5ad30fb68a3c'};
+ fixed['1.3.0-pq.3.32-auth.14']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.14'].inventory;
  if(!Object.hasOwn(fixed,sdkVersion))return {inputs:names,evidenceAssets};
  const pin=fixed[sdkVersion];
  const bad=()=>{throw Error('Canonical Native source inventory differs');};
  if(!Buffer.isBuffer(inventoryBytes)||inventoryBytes.length!==pin.bytes||createHash('sha256').update(inventoryBytes).digest('hex')!==pin.sha256)bad();
- const inventory=JSON.parse(inventoryBytes),pins=inventory.NativeInputs,relay=sdkVersion==='1.3.0-pq.3.32-auth.13',paired=relay||['1.3.0-pq.3.32-auth.5','1.3.0-pq.3.32-auth.6'].includes(sdkVersion);
- if(inventory.schema!=='ynx-sdk332-r140-native-compatibility/v1'||inventory.version!==sdkVersion||pins?.length!==(relay?69:paired?62:55))bad();
+ const inventory=JSON.parse(inventoryBytes),pins=inventory.NativeInputs,relay=Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,sdkVersion),paired=relay||['1.3.0-pq.3.32-auth.5','1.3.0-pq.3.32-auth.6'].includes(sdkVersion);
+ if(inventory.schema!=='ynx-sdk332-r140-native-compatibility/v1'||inventory.version!==sdkVersion||pins?.length!==(relay?WALLET_NATIVE_SOURCE_PROFILES[sdkVersion].supplierNodeInputs:paired?62:55))bad();
  const helper=paired?inventory.HelperInputs:[];
  if(!Array.isArray(helper)||paired&&helper.length!==5)bad();
  const helperNative=helper.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path);
- const pairedInputCount=relay?74:67;
+ const pairedInputCount=relay?WALLET_NATIVE_SOURCE_PROFILES[sdkVersion].supplierNodeInputs+5:67;
  if(paired&&(helperNative.length!==3||new Set([...pins,...helper].map(p=>p.path)).size!==pairedInputCount))bad();
  const wallet=relay&&WALLET_PUBLISHER_NATIVE_INPUTS.some(p=>names.includes(p.path))?WALLET_PUBLISHER_NATIVE_INPUTS:[];
  const inputs=[...pins,...wallet].map(p=>p.path),sorted=value=>[...value].sort();

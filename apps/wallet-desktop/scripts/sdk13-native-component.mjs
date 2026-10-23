@@ -3,15 +3,17 @@ import path from 'node:path';
 import {isDeepStrictEqual} from 'node:util';
 import {readFileSync,lstatSync,mkdirSync,writeFileSync} from 'node:fs';
 import {canonicalNativeInputSelection,verifyCanonicalNativeReceipt,CANONICAL_NATIVE_EVIDENCE_TESTS} from './canonical-package.mjs';
-import {WALLET_PUBLISHER_NATIVE_INPUTS} from './wallet-publisher-native-build.mjs';
+import {WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_NATIVE_SOURCE_PROFILES} from './wallet-publisher-native-build.mjs';
+import {SDK14_RUNTIME_UNION,SDK14_RUNTIME_UNION_SOURCE,verifySDK14RuntimeUnion} from './sdk14-runtime-union.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
-const fail=()=>{throw Error('SDK13 matched native component differs');};
+const fail=()=>{throw Error('Matched Wallet native component differs');};
 export const SDK13_HELPER_ASSET='apps/wallet-desktop/native/YNXIdentityReceiver';
 export const SDK13_HELPER_SOURCE_OUTPUT='apps/developer/helper/YNXIdentityReceiver';
 export const SDK13_HELPER_PLIST='apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist';
 export const SDK13_BUNDLE_HELPER='Library/HelperTools/YNXIdentityReceiver';
 export const SDK13_BUNDLE_PLIST='Library/LaunchDaemons/com.ynxweb4.developer.testnetpreview.identity-receiver.plist';
 export const SDK13_INVENTORY_PIN=Object.freeze({bytes:30418,sha256:'3d256c3c4581748448026d53bfd8160be1e00b80733b3d4c03af5ad30fb68a3c'});
+export const SDK14_INVENTORY_PIN=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.14'].inventory;
 const plistPin=Object.freeze({bytes:473,sha256:'08c5483639227287de41e081c61e3d2e5238db72122d08f5f397d8f4e78af69b'});
 export const SDK13_HELPER_TRANSLATION_UNITS=Object.freeze(['apps/developer/helper/main.mm',...['original-ide-helper-listener.mm','original-ide-helper-xpc-peer.mm','original-ide-helper-service-install.mm','original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-kernel.mm','original-ide-parent-source-binding.mm'].map(n=>'packages/wallet-auth/native/'+n),'apps/wallet-desktop/native/original-ide-auth-request-source.inc.mm','packages/wallet-auth/native/original-ide-helper-client.mm','packages/wallet-auth/native/original-ide-publication-artifact.mm']);
 function absolute(p){if(typeof p!=='string'||!path.isAbsolute(p)||path.normalize(p)!==p||p.includes('\0'))fail();}
@@ -30,9 +32,14 @@ export function sdk13HelperBuildCommands(sourceRoot,architectures){
  * The builder must separately attest the actual command execution.
  */
 export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource){
- const inventory=JSON.parse(pinned(inventoryBytes,SDK13_INVENTORY_PIN));
- if(inventory.version!=='1.3.0-pq.3.32-auth.13'||record?.readbackOnly!==false||record?.commandsKind!=='executed-normal-build'||typeof readSource!=='function')fail();
- same(record.sourceInventory,{relative:'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',...SDK13_INVENTORY_PIN});
+ const profile=Object.values(WALLET_NATIVE_SOURCE_PROFILES).find(p=>inventoryBytes?.length===p.inventory.bytes&&hash(inventoryBytes)===p.inventory.sha256);if(!profile)fail();
+ const inventory=JSON.parse(pinned(inventoryBytes,profile.inventory));
+ if(inventory.version!==profile.version||record?.readbackOnly!==false||record?.commandsKind!=='executed-normal-build'||typeof readSource!=='function')fail();
+ same(record.sourceInventory,{relative:'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',...profile.inventory});
+ if(profile.version==='1.3.0-pq.3.32-auth.14'){
+  same(record.runtimeUnion,{...SDK14_RUNTIME_UNION,filesVerified:9335,sourceRoot:path.join(record.sourceRoot,'packages/wallet-auth'),NativeAdmission:false,installedImageQualified:false,platformQualified:false,networkActivated:false});
+  pinned(readSource(SDK14_RUNTIME_UNION_SOURCE),SDK14_RUNTIME_UNION);
+ }
  const helper=record.helperBuild;
  if(!helper||helper.kind!=='YNX_WALLET_ORIGINAL_HELPER_BUILD/v1'||helper.sourceRoot!==record.sourceRoot||helper.readbackOnly!==false||helper.commandsKind!=='executed-normal-build'||helper.executed!==true||helper.serviceRegistered!==false||helper.installed!==false||helper.nativeQualified!==false||helper.appSigned!==false)fail();
  same(helper.architectures,record.architectures);same(helper.commands,sdk13HelperBuildCommands(record.sourceRoot,record.architectures));same(helper.exitCodes,helper.commands.map(()=>0));
@@ -52,7 +59,7 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
   if(!scan||scan.tool!=='/usr/bin/nm'||scan.exit!==0||typeof scan.stdoutSHA256!=='string'||!/^[a-f0-9]{64}$/.test(scan.stdoutSHA256))fail();
   same(scan.argv,['-u',path.join(record.sourceRoot,output)]);same(scan.ownedUndefined,[]);
  }
- return {...checked,sourceBytesVerified:true,artifactBytesVerified:true,walletInputs:selection.walletInputs,supplierNodeInputCount:69,helper:{output:helper.output,packagedOutput:helper.packagedOutput,translationUnits:11,sourceInputs:74},installed:false,serviceRegistered:false};
+ return {...checked,sourceBytesVerified:true,artifactBytesVerified:true,walletInputs:selection.walletInputs,supplierNodeInputCount:profile.supplierNodeInputs,helper:{output:helper.output,packagedOutput:helper.packagedOutput,translationUnits:11,sourceInputs:supplier.length},installed:false,serviceRegistered:false};
 }
 function regular(file){const stat=lstatSync(file);if(!stat.isFile()||stat.isSymbolicLink())fail();return readFileSync(file);}
 function bundleRows(helperBytes,plistBytes){return [[SDK13_BUNDLE_HELPER,helperBytes,0o755],[SDK13_BUNDLE_PLIST,plistBytes,0o644]];}
@@ -60,6 +67,7 @@ export function stageSDK13HelperBundle({contents,projectDir}){
  absolute(contents);absolute(projectDir);const repo=path.resolve(projectDir,'../..');
  const record=JSON.parse(regular(path.join(projectDir,'native/original-auth-identity-build.json'))),helper=regular(path.join(repo,SDK13_HELPER_ASSET)),plist=regular(path.join(repo,SDK13_HELPER_PLIST));
  verifySDK13NativeComponent({record,inventoryBytes:regular(path.join(repo,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')),moduleBytes:regular(path.join(projectDir,'native/original-auth-identity.node')),helperBytes:helper},name=>regular(path.join(repo,name)));
+ if(record.runtimeUnion)verifySDK14RuntimeUnion(path.join(repo,'packages/wallet-auth'),regular(path.join(repo,SDK14_RUNTIME_UNION_SOURCE)));
  const root=lstatSync(contents);if(!root.isDirectory()||root.isSymbolicLink())fail();
  for(const [relative,body,mode]of bundleRows(helper,plist)){
   let directory=contents;for(const part of path.posix.dirname(relative).split('/')){directory=path.join(directory,part);try{const s=lstatSync(directory);if(!s.isDirectory()||s.isSymbolicLink())fail();}catch(e){if(e.code!=='ENOENT')throw e;mkdirSync(directory,{mode:0o755});}}

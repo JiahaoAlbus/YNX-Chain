@@ -1,4 +1,9 @@
 import path from 'node:path';
+export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
+ '1.3.0-pq.3.32-auth.13':Object.freeze({version:'1.3.0-pq.3.32-auth.13',supplierNodeInputs:69,inventory:Object.freeze({bytes:30418,sha256:'3d256c3c4581748448026d53bfd8160be1e00b80733b3d4c03af5ad30fb68a3c'}),tool:Object.freeze({bytes:10764,sha256:'ae074c5d82d29c2b10a5ef0a55947ccc8a4a127745308a464c8c465035e0ee81'})}),
+ '1.3.0-pq.3.32-auth.14':Object.freeze({version:'1.3.0-pq.3.32-auth.14',supplierNodeInputs:71,inventory:Object.freeze({bytes:34752,sha256:'feafd827a9d42cea65af17b94944e6c565b8ef4b1e6eb56c938709811cc1eadf'}),tool:Object.freeze({bytes:10932,sha256:'c532946f53a6314d9c0ecb2ffb3afd2044f9ffb1961afbfe0b8ec32444f71461'})})
+});
+export function walletNativeSourceProfile(version){if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');return WALLET_NATIVE_SOURCE_PROFILES[version];}
 export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
  {path:'apps/wallet-desktop/native/original-artifact-publisher-store.h',bytes:1023,sha256:'8b709ee2bc54dfef8e58380b1442714a5cf392e90ee15875c0e077b7efee6f54'},
  {path:'apps/wallet-desktop/native/original-artifact-publisher-store.mm',bytes:7027,sha256:'522f2fb036d4d4c54a5f1c1a056d9ffdc789b2786a764037d193f0022e759e35'}
@@ -11,8 +16,9 @@ const fail=()=>{throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');};
 /** Build-only composition. Original supplier bytes and helper recipe remain
  * unchanged. This extra private IO class is NOT Source/approval qualification.
  */
-export function composeWalletPublisherNativeBuildPlan(plan,repo){
+export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInputCount=69){
  if(typeof repo!=='string'||!path.isAbsolute(repo)||path.normalize(repo)!==repo)fail();
+ if(![69,71].includes(supplierNodeInputCount))fail();
  const sources=SDK13_NODE_TRANSLATION_UNITS.map(n=>path.join(repo,n));
  if(plan.minimumSystemVersion!=='13.0'||JSON.stringify(plan.sources)!==JSON.stringify(sources)||!Array.isArray(plan.commands))fail();
  const store=path.join(repo,WALLET_PUBLISHER_NATIVE_INPUTS[1].path),output=path.join(repo,'apps/wallet-desktop/native/original-auth-identity.node');
@@ -30,5 +36,5 @@ export function composeWalletPublisherNativeBuildPlan(plan,repo){
   argv.splice(end,0,store);argv.splice(argv.indexOf('-lbsm'),0,'-framework','LocalAuthentication');
   return {...command,argv};
  });
- return {...plan,sources:[...sources,store],commands,walletInputFiles:WALLET_PUBLISHER_NATIVE_INPUTS,supplierNodeInputCount:69,nativeGrant:false,approval:false};
+ return {...plan,sources:[...sources,store],commands,walletInputFiles:WALLET_PUBLISHER_NATIVE_INPUTS,supplierNodeInputCount,nativeGrant:false,approval:false};
 }

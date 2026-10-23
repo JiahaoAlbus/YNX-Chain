@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,rmSync,realpathSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,readFileSync,writeFileSync,rmSync,realpathSync,existsSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
@@ -23,10 +24,19 @@ function fixture(t,version='1.3.0-pq.3.32-auth.3'){
  put('packages/wallet-auth/package.json',JSON.stringify({...sdk,version:'1.3.0-pq.3.18'}));
  put('apps/wallet-desktop/package-lock.json',JSON.stringify({packages:{'../../packages/wallet-auth':{version}}}));
  // Frozen public bytes only; reproduce npm's distinct root and PQ-local graphs.
- for(const pin of manifest.files)put('packages/wallet-auth/node_modules/'+relative(pin.path),readFileSync(path.join(dependencyRoot,relative(pin.path))));
+ const selectedRelative=version==='1.3.0-pq.3.32-auth.14'?p=>p:relative;
+ for(const pin of manifest.files){
+  // Fixture construction only: reproduce each historical layout from the
+  // SAME316 pinned public bytes, regardless of the test host's npm layout.
+  // Production walletAuthDependencyPlan above has no fallback/search path.
+  const candidates=[...new Set([relative(pin.path),pin.path])].map(p=>path.join(dependencyRoot,p));
+  const data=candidates.filter(existsSync).map(p=>readFileSync(p)).find(b=>b.length===pin.bytes&&createHash('sha256').update(b).digest('hex')===pin.sha256);
+  assert(data,'Original pinned fixture leaf required: '+pin.path);put('packages/wallet-auth/node_modules/'+selectedRelative(pin.path),data);
+ }
  const outer=Buffer.from('{"name":"@noble/ciphers","version":"1.3.0","main":"index.js"}');
- put('packages/wallet-auth/node_modules/@noble/ciphers/package.json',outer);
- put('packages/wallet-auth/node_modules/@noble/ciphers/index.js','module.exports="PUBLIC root 1.3";');
+ const outerScope=version==='1.3.0-pq.3.32-auth.14'?'apps/wallet-desktop/node_modules/':'packages/wallet-auth/node_modules/';
+ put(outerScope+'@noble/ciphers/package.json',outer);
+ put(outerScope+'@noble/ciphers/index.js','module.exports="PUBLIC root 1.3";');
  const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8',stdio:'pipe'}).trim();
  git('init','--quiet');git('add','apps','packages');git('-c','user.name=PUBLIC QA','-c','user.email=qa@example.invalid','commit','--quiet','-m','public dependency layout');
  return {root,put,outer,manifest,commit:git('rev-parse','HEAD')};
@@ -76,4 +86,12 @@ test('auth13 retains the pinned PQ-local graph and does not flatten the incompat
  assert.equal(plan.rows.length,316);assert.equal(plan.contents.has(prefix+'@noble/ciphers/package.json'),false);
  assert.equal(JSON.parse(plan.contents.get(prefix+'@noble/post-quantum/node_modules/@noble/ciphers/package.json')).version,'2.2.0');
  assert.deepEqual(readFileSync(path.join(f.root,'packages/wallet-auth/node_modules/@noble/ciphers/package.json')),f.outer);
+});
+test('auth14 exact lock retains316 crypto leaves in its original flat SDK scope, not parent13 nesting',t=>{
+ const f=fixture(t,'1.3.0-pq.3.32-auth.14'),plan=walletAuthDependencyPlan(f.root,f.commit);
+ assert.equal(plan.rows.length,316);assert.equal(plan.contents.has(prefix+'@noble/post-quantum/node_modules/@noble/ciphers/package.json'),false);
+ assert.equal(JSON.parse(plan.contents.get(prefix+'@noble/ciphers/package.json')).version,'2.2.0');
+ const req=createRequire(path.join(f.root,'packages/wallet-auth/node_modules/@noble/post-quantum/package.json'));
+ assert.equal(req.resolve('@noble/ciphers/chacha.js'),realpathSync(path.join(f.root,'packages/wallet-auth/node_modules/@noble/ciphers/chacha.js')));
+ assert.deepEqual(readFileSync(path.join(f.root,'apps/wallet-desktop/node_modules/@noble/ciphers/package.json')),f.outer);
 });
