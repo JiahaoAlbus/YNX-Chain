@@ -547,6 +547,27 @@ jobs:
           test "$(grep -c 'PQ_VALIDATOR_STAKING_TYPED_ENTRY_MISSING' "$YNX_STAKING_CASE/original-red.log")" -eq 1
           # Current lifecycle and old-hash compatibility tests remain in the
           # complete fixed-source consensus suite immediately below.
+      - name: Reproduce source log response budget overrun before later records
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          umask 077
+          YNX_SOURCE_LOG_CASE="$RUNNER_TEMP/ynx-source-log-budget-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir "$YNX_SOURCE_LOG_CASE"
+          cp internal/consensus/migration_history_query.go "$YNX_SOURCE_LOG_CASE/fixed-query.go"
+          trap 'cp "$YNX_SOURCE_LOG_CASE/fixed-query.go" internal/consensus/migration_history_query.go' EXIT
+          git show 09b959fb7f7e59c05702cb79a67f24df6496ce11:internal/consensus/migration_history_query.go > internal/consensus/migration_history_query.go
+          set +e
+          go test -p 1 -count=1 -timeout=60s -run '^TestMigrationHistoryLogsStopsAtByteBudgetBeforeLaterRecords$' ./internal/consensus > "$YNX_SOURCE_LOG_CASE/original-red.log" 2>&1
+          YNX_SOURCE_LOG_RED=$?
+          set -e
+          cp "$YNX_SOURCE_LOG_CASE/fixed-query.go" internal/consensus/migration_history_query.go
+          trap - EXIT
+          cat "$YNX_SOURCE_LOG_CASE/original-red.log"
+          test "$YNX_SOURCE_LOG_RED" -ne 0
+          grep -F 'source logs reached a later record before enforcing response budget' "$YNX_SOURCE_LOG_CASE/original-red.log"
+          go test -p 1 -count=1 -timeout=60s -run '^TestMigrationHistoryLogsStopsAtByteBudgetBeforeLaterRecords$' ./internal/consensus
       - name: Verify complete state bridge and sponsor continuity
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         env:

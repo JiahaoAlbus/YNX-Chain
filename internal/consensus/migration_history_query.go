@@ -15,6 +15,7 @@ import (
 const (
 	MigrationHistoryVersion         = "ynx-migration-history-v1"
 	MigrationHistoryBlockPath       = "/migration/source-history/blocks/"
+	MigrationHistoryBlockHashPath   = "/migration/source-history/block-hashes/"
 	MigrationHistoryTransactionPath = "/migration/source-history/transactions/"
 	MigrationHistoryPagePath        = "/migration/source-history/page/"
 	MigrationHistoryLogsPath        = "/migration/source-history/logs/"
@@ -71,9 +72,10 @@ type MigrationHistoryLogsView struct {
 // hashes and historical account policy. Never replay or relabel those records.
 func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery, state CommittedState, migration chain.ConsensusMigrationState) bool {
 	blockQuery := strings.HasPrefix(req.Path, MigrationHistoryBlockPath)
+	blockHashQuery := strings.HasPrefix(req.Path, MigrationHistoryBlockHashPath)
 	pageQuery := strings.HasPrefix(req.Path, MigrationHistoryPagePath)
 	logsQuery := strings.HasPrefix(req.Path, MigrationHistoryLogsPath)
-	if !blockQuery && !pageQuery && !logsQuery && !strings.HasPrefix(req.Path, MigrationHistoryTransactionPath) {
+	if !blockQuery && !blockHashQuery && !pageQuery && !logsQuery && !strings.HasPrefix(req.Path, MigrationHistoryTransactionPath) {
 		return false
 	}
 	fail := func(err error) { response.Code, response.Log, response.Value = 1, err.Error(), nil }
@@ -94,6 +96,17 @@ func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery,
 			return true
 		}
 		value := MigrationHistoryLogsView{MigrationHistoryAnchor: anchor, From: from, To: to, Logs: make([]chain.EVMLog, 0)}
+		// The empty DTO fixes canonical field order. Keep its opening log array
+		// and encode one original event at a time, reserving the closing bytes.
+		// A 1000-block range must not build an unbounded intermediate log body
+		// before enforcing the public response budget.
+		payload, err := json.Marshal(value)
+		if err != nil || len(payload) > MaxMigrationHistoryQueryBytes {
+			fail(errors.New("source logs exceed complete bounded response budget"))
+			return true
+		}
+		payload = payload[:len(payload)-2]
+		logCount := 0
 		for height := from; height <= to; height++ {
 			if height >= uint64(len(migration.Runtime.Blocks)) || migration.Runtime.Blocks[height].Height != height {
 				fail(errors.New("source log block sequence differs from validated original history"))
@@ -114,12 +127,26 @@ func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery,
 						fail(errors.New("source log coordinates differ from original transaction and block order"))
 						return true
 					}
-					value.Logs = append(value.Logs, log)
+					raw, err := json.Marshal(log)
+					separator := 0
+					if logCount > 0 {
+						separator = 1
+					}
+					if err != nil || len(raw) > MaxMigrationHistoryQueryBytes-len(payload)-2-separator {
+						fail(errors.New("source logs exceed complete bounded response budget"))
+						return true
+					}
+					if separator != 0 {
+						payload = append(payload, ',')
+					}
+					payload = append(payload, raw...)
+					logCount++
 					logIndex++
 				}
 			}
 		}
-		view = value
+		response.Value = append(payload, ']', '}')
+		return true
 	} else if pageQuery {
 		parts := strings.Split(strings.TrimPrefix(req.Path, MigrationHistoryPagePath), "/")
 		if len(parts) != 2 {
@@ -156,6 +183,26 @@ func queryMigrationHistory(response *abci.ResponseQuery, req *abci.RequestQuery,
 				index := count - 1 - (position - start)
 				value.Records = append(value.Records, MigrationHistoryPageEntry{Transaction: block.Transactions[index], NativeIndex: uint32(index)})
 			}
+		}
+		view = value
+	} else if blockHashQuery {
+		hash := strings.TrimPrefix(req.Path, MigrationHistoryBlockHashPath)
+		decoded, err := hex.DecodeString(hash)
+		if err != nil || len(decoded) != 32 || hex.EncodeToString(decoded) != hash {
+			fail(errors.New("canonical lowercase original source block hash required"))
+			return true
+		}
+		value := MigrationHistoryBlockView{MigrationHistoryAnchor: anchor}
+		for _, block := range migration.Runtime.Blocks {
+			if block.Hash != hash {
+				continue
+			}
+			if value.Found || block.Height > migration.Height {
+				fail(errors.New("source block hash has an inconsistent original position"))
+				return true
+			}
+			copy := block
+			value.Found, value.Block = true, &copy
 		}
 		view = value
 	} else if blockQuery {

@@ -18,6 +18,8 @@ import (
 	abci "github.com/cometbft/cometbft/abci/types"
 )
 
+const migrationBlockHashTestPath = "/migration/source-history/block-hashes/"
+
 func migrationHistoryRead(t *testing.T, app *Application, path string) []byte {
 	t.Helper()
 	response, err := app.Query(context.Background(), &abci.RequestQuery{Path: path})
@@ -372,7 +374,7 @@ func TestMigrationHistoryQueryKeepsOriginalBytesAcrossAllColdLayouts(t *testing.
 			if err != nil {
 				t.Fatal(err)
 			}
-			paths := []string{MigrationHistoryBlockPath + "0", MigrationHistoryBlockPath + strconv.FormatUint(f.migration.Height, 10), MigrationHistoryTransactionPath + f.history, MigrationHistoryPagePath + "0/2", MigrationHistoryPagePath + "0/0", MigrationHistoryLogsPath + "0/" + strconv.FormatUint(f.migration.Height, 10), MigrationHistoryLogsPath + "0/0"}
+			paths := []string{MigrationHistoryBlockPath + "0", MigrationHistoryBlockPath + strconv.FormatUint(f.migration.Height, 10), migrationBlockHashTestPath + f.migration.LastBlockHash, MigrationHistoryTransactionPath + f.history, MigrationHistoryPagePath + "0/2", MigrationHistoryPagePath + "0/0", MigrationHistoryLogsPath + "0/" + strconv.FormatUint(f.migration.Height, 10), MigrationHistoryLogsPath + "0/0"}
 			originals := make(map[string][]byte)
 			for _, path := range paths {
 				originals[path] = migrationHistoryRead(t, app, path)
@@ -428,4 +430,87 @@ func TestMigrationHistoryQueryNeverReturnsPartialOrOversizedDTO(t *testing.T) {
 			t.Fatal("metadata-only source pagination lost its outer-row count or empty array", err)
 		}
 	}
+}
+
+func TestMigrationHistoryBlockHashKeepsOriginalIdentityAndAbsence(t *testing.T) {
+	f := newApplicationInitializationFixture(t)
+	app, err := NewPersistentApplicationWithBootstrap(f.migration, "", f.bootstrap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := mustJSON(t, app.migration)
+	for _, block := range f.migration.Runtime.Blocks {
+		byHash := migrationHistoryRead(t, app, migrationBlockHashTestPath+block.Hash)
+		byHeight := migrationHistoryRead(t, app, MigrationHistoryBlockPath+strconv.FormatUint(block.Height, 10))
+		if !bytes.Equal(byHash, byHeight) {
+			t.Fatal("original block hash lookup changed its native fields or migration anchor")
+		}
+	}
+	var missing MigrationHistoryBlockView
+	if err := json.Unmarshal(migrationHistoryRead(t, app, migrationBlockHashTestPath+strings.Repeat("0", 64)), &missing); err != nil || missing.Found || missing.Block != nil {
+		t.Fatal("unknown source block hash was invented", err)
+	}
+	for _, suffix := range []string{"", "abc", strings.ToUpper(f.migration.LastBlockHash), "0x" + f.migration.LastBlockHash, f.migration.LastBlockHash + "/", " " + f.migration.LastBlockHash} {
+		response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("must be cleared")}
+		if !queryMigrationHistory(response, &abci.RequestQuery{Path: migrationBlockHashTestPath + suffix}, app.committed, app.migration) || response.Code == 0 || len(response.Value) != 0 {
+			t.Fatal("noncanonical source block hash was accepted", suffix)
+		}
+	}
+	for _, mode := range []string{"duplicate", "height"} {
+		var migration chain.ConsensusMigrationState
+		if err := json.Unmarshal(before, &migration); err != nil {
+			t.Fatal(err)
+		}
+		if len(migration.Runtime.Blocks) < 2 {
+			t.Fatal("fixture needs multiple original blocks")
+		}
+		if mode == "duplicate" {
+			migration.Runtime.Blocks[1].Hash = migration.Runtime.Blocks[0].Hash
+		} else {
+			migration.Runtime.Blocks[0].Height = migration.Height + 1
+		}
+		response := &abci.ResponseQuery{Height: app.committed.Height, Value: []byte("must be cleared")}
+		if !queryMigrationHistory(response, &abci.RequestQuery{Path: migrationBlockHashTestPath + migration.Runtime.Blocks[0].Hash}, app.committed, migration) || response.Code == 0 || len(response.Value) != 0 {
+			t.Fatal("source block hash accepted inconsistent original coordinates", mode)
+		}
+	}
+	if !bytes.Equal(before, mustJSON(t, app.migration)) {
+		t.Fatal("source block hash query changed retained history")
+	}
+}
+
+func TestMigrationHistoryLogsStopsAtByteBudgetBeforeLaterRecords(t *testing.T) {
+	migration, _, _ := sourceCounterMigration(t, false)
+	state := initialCommittedState(migration)
+	path := MigrationHistoryLogsPath + "0/" + strconv.FormatUint(migration.Height, 10)
+	response := &abci.ResponseQuery{Height: state.Height}
+	if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code != 0 {
+		t.Fatal("original source log fixture is unavailable", response.Log)
+	}
+	var view MigrationHistoryLogsView
+	if err := json.Unmarshal(response.Value, &view); err != nil || !bytes.Equal(response.Value, mustJSON(t, view)) {
+		t.Fatal("bounded log encoding changed the canonical original DTO", err)
+	}
+	for blockIndex := range migration.Runtime.Blocks {
+		for txIndex := range migration.Runtime.Blocks[blockIndex].Transactions {
+			tx := &migration.Runtime.Blocks[blockIndex].Transactions[txIndex]
+			if len(tx.Logs) < 2 {
+				continue
+			}
+			// Once this first event exceeds the response budget, the reader must
+			// stop. A later invalid coordinate detects continued traversal rather
+			// than requiring an unbounded source range or an OOM test.
+			tx.Logs[0].Data = strings.Repeat("a", MaxMigrationHistoryQueryBytes)
+			tx.Logs[1].BlockNumber++
+			response = &abci.ResponseQuery{Height: state.Height, Value: []byte("must be cleared")}
+			if !queryMigrationHistory(response, &abci.RequestQuery{Path: path}, state, migration) || response.Code == 0 || len(response.Value) != 0 {
+				t.Fatal("over-budget source logs exposed a partial response")
+			}
+			if response.Log != "source logs exceed complete bounded response budget" {
+				t.Fatal("source logs reached a later record before enforcing response budget", response.Log)
+			}
+			return
+		}
+	}
+	t.Fatal("fixture requires multiple actual events in one source transaction")
 }
