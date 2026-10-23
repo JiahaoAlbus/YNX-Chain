@@ -27,6 +27,7 @@ export function originalAuthNativeBuildPlan(arch,headers){
  const selected=transport.map(regular),withTransport=selected.some(Boolean);
  if(withTransport&&!selected.every(Boolean))throw Error('AUTH_NATIVE_TRANSPORT_SOURCE_SELECTION_INCOMPLETE');
  if(sources.some(file=>!regular(file)))throw Error('AUTH_NATIVE_BASE_SOURCE_SELECTION_INCOMPLETE');
+ if(withTransport&&!regular(path.join(native,'original-ide-artifact-result-data.h')))throw Error('AUTH_NATIVE_ARTIFACT_RESULT_SOURCE_SELECTION_INCOMPLETE');
  if(withTransport)sources.push(path.join(native,'original-ide-wallet-identity-source.mm'),path.join(native,'original-ide-wallet-peer-launch.mm'));
  const helperFiles=['original-ide-helper-client.h','original-ide-helper-client.mm','original-ide-helper-xpc-peer.h','original-ide-helper-xpc-peer.mm','original-ide-helper-build-release.h','original-ide-helper-service-contract.h','original-ide-helper-service-install.mm'].map(name=>path.join(native,name));
  const helperSelected=helperFiles.map(regular),withHelper=helperSelected.some(Boolean);

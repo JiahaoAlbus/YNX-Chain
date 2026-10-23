@@ -1,5 +1,6 @@
 #import "original-ide-wallet-peer-launch.h"
 #import "original-ide-parent-kernel.h"
+#include "original-ide-artifact-result-data.h"
 #import <AppKit/AppKit.h>
 #import <Security/Security.h>
 #include <CommonCrypto/CommonDigest.h>
@@ -109,6 +110,24 @@ static NSData *WalletPeerStaticIdentity(NSURL *url){SecStaticCodeRef code=nullpt
  return [self assertCurrent:error];
 }
 - (Frame)selectedDecision{return _decision;}
+- (BOOL)selectOriginalArtifactResult:(NSData *)original error:(NSError **)error{
+ if(![self thread:error])return NO;
+ if(_decisionSelected)return [self fail:@"AUTH_IDENTITY_WALLET_DECISION_ONCE" error:error];_decisionSelected=YES;
+ // Retain actual returned bytes BEFORE any current/cancel callback. Failure
+ // poisons this same once-selected stream; never fall back to proof2 or retry.
+ if([original isKindOfClass:NSData.class]&&original.length&&original.length<=ArtifactResultMax)_decision={Message::result,0,{(const unsigned char*)original.bytes,(const unsigned char*)original.bytes+original.length}};
+ if(!_requestSelected||!_requestPacket||_decision.payload.empty()||![self assertCurrent:error])return [self fail:@"IDE_ARTIFACT_RESULT_ORIGINAL_CONTEXT_REQUIRED" error:error];
+ @try{try{
+  NSData*held=[NSData dataWithBytes:_decision.payload.data() length:_decision.payload.size()];
+  NSData*request=[_requestPacket[@"requestRaw"]dataUsingEncoding:NSUTF8StringEncoding];id invocation=_requestPacket[@"invocationRaw"];
+  if(![invocation isKindOfClass:NSString.class])return [self fail:@"IDE_ARTIFACT_RESULT_INVOCATION_REQUIRED" error:error];
+  (void)parseOriginalArtifactResultDATA(held,request,[invocation dataUsingEncoding:NSUTF8StringEncoding]);
+  // This transports UNVERIFIED public bytes, never an Auth proof/approved
+  // boolean. Original receiver must independently inspect registered R/member;
+  // Main's real native approval ref lifetime cannot be restored from this DTO.
+  return [self assertCurrent:error];
+ }catch(...){return [self fail:@"IDE_ARTIFACT_RESULT_DATA_INVALID" error:error];}}@catch(id){return [self fail:@"IDE_ARTIFACT_RESULT_DATA_INVALID" error:error];}
+}
 - (NSDictionary *)copyCapturedRequest:(NSError **)error{if(![self assertCurrent:error]||!_requestPacket)return nil;NSDictionary *result=[_requestPacket copy];return [self assertCurrent:error]?result:nil;}
 - (void)retire{
  if(!pthread_equal(_thread,pthread_self()))return;_retired=YES;

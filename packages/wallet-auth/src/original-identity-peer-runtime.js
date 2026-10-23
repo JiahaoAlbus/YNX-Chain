@@ -2,6 +2,7 @@
 // objects as Native admission. Fixed SDK factory+actual NAPI type-tag owner
 // must supply peer/request owners; tests explicitly use PUBLIC seams.
 import {canonicalJSON} from './canonical.js';
+import {inspectIDEArtifactManifestData} from './ide-artifact-manifest.js';
 import {parseOriginalAuthIdentityRequest,AUTH_IDENTITY_PURPOSES} from '../native/original-auth-identity-v2-contract.mjs';
 const purposes=Object.freeze({receive:AUTH_IDENTITY_PURPOSES.receive,recover:AUTH_IDENTITY_PURPOSES.recover,keyCall:AUTH_IDENTITY_PURPOSES.keyCall});
 const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -22,16 +23,24 @@ function wire(value){
  try{return new Uint8Array(value);}catch{fail('AUTH_IDENTITY_PEER_PROOF_BOUND');}
 }
 export class OriginalIdentityPeerCall {
- #call;#peer;#kind;#request;#ready=false;#first;#hasFirst=false;#retired=false;#started=false;#selected=false;#settled=false;#inflight=new Set();#closing;#cleanup;#result;#proof;
+ #call;#peer;#kind;#request;#ready=false;#first;#hasFirst=false;#retired=false;#started=false;#selected=false;#settled=false;#inflight=new Set();#closing;#cleanup;#result;#proof;#publication=false;#publicationBytes;
  constructor(call,peer){this.#call=call;this.#peer=peer;}
  #remember(e){if(!this.#hasFirst){this.#hasFirst=true;this.#first=e;}return this.#first;}
  #live(){if(this.#retired||this.#hasFirst)throw this.#hasFirst?this.#first:Error('AUTH_IDENTITY_PEER_RETIRED');}
  async #current(){this.#live();voidResult(await this.#call.current());this.#live();voidResult(await this.#peer.current());this.#live();}
  #track(p){this.#inflight.add(p);void p.then(()=>this.#inflight.delete(p),()=>this.#inflight.delete(p));return p;}
  begin(kind,invocationOriginal){
+  return this.#begin(kind,invocationOriginal,false);
+ }
+ beginPublication(manifestOriginal){
+  if(arguments.length!==1||!text(manifestOriginal,16384))fail('AUTH_IDENTITY_PEER_PUBLICATION_MANIFEST');
+  inspectIDEArtifactManifestData(new TextEncoder().encode(manifestOriginal));
+  return this.#begin('keyCall',manifestOriginal,true);
+ }
+ #begin(kind,invocationOriginal,publication){
   if(this.#started)fail('AUTH_IDENTITY_PEER_BEGIN_ONCE');
   if(!Object.hasOwn(purposes,kind)||(kind==='keyCall'?!text(invocationOriginal,16384):invocationOriginal!==undefined))fail('AUTH_IDENTITY_PEER_OPERATION');
-  this.#started=true;this.#kind=kind;
+  this.#started=true;this.#kind=kind;this.#publication=publication;
   return this.#track(Promise.resolve().then(async()=>{
    this.#live();voidResult(await this.#call.begin(kind,invocationOriginal));this.#live();
    const request=await this.#call.request();this.#live();
@@ -45,6 +54,7 @@ export class OriginalIdentityPeerCall {
   }).catch(e=>{throw this.#remember(e);}));
  }
  waitForReturn(){
+  if(this.#publication)fail('AUTH_IDENTITY_PEER_RETURN_ROUTE');
   if(!this.#ready||this.#selected||this.#settled)fail('AUTH_IDENTITY_PEER_RETURN_ONCE');this.#selected=true;
   return this.#track(Promise.resolve().then(async()=>{
    await this.#current();const response=await this.#peer.receiveReturn();
@@ -59,6 +69,35 @@ export class OriginalIdentityPeerCall {
    await this.#current();voidResult(await this.#call.completeProof(this.#proof));
    await this.#current();this.#result=this.#kind==='keyCall'?await this.#call.invoke():await this.#call.result();
    await this.#current();this.#settled=true;return this.#result;
+  }).catch(e=>{throw this.#remember(e);}));
+ }
+ #publicationResult(){
+  return Object.freeze({...this.#result,resultOriginal:new Uint8Array(this.#publicationBytes)});
+ }
+ waitForPublicationResult(){
+  if(!this.#publication)fail('AUTH_IDENTITY_PEER_RETURN_ROUTE');
+  if(!this.#ready||this.#selected||this.#settled)fail('AUTH_IDENTITY_PEER_RETURN_ONCE');this.#selected=true;
+  return this.#track(Promise.resolve().then(async()=>{
+   await this.#current();const response=await this.#peer.receiveOriginalArtifactReturn();
+   if(!response||Object.getPrototypeOf(response)!==Object.prototype)fail('AUTH_IDENTITY_PEER_SCHEMA');
+   const decision=Object.getOwnPropertyDescriptor(response,'decision');
+   if(!decision||!Object.hasOwn(decision,'value')||!decision.enumerable)fail('AUTH_IDENTITY_PEER_SCHEMA');
+   if(decision.value==='reject'){
+    exact(response,['decision','requestId','purpose','proof']);
+    await this.#current();
+    if(response.requestId!==this.#request.requestId||response.purpose!==this.#request.purpose)fail('AUTH_IDENTITY_PEER_CORRELATION');
+    if(response.proof!==null)fail('AUTH_IDENTITY_PEER_REJECT_SCHEMA');
+    fail('AUTH_IDENTITY_PEER_USER_REJECTED');
+   }
+   exact(response,['decision','requestId','requestPurpose','purpose','resultOriginal','dataOnly','signatureVerified','publicationAuthorized','nativeAdmission','approvalCurrent']);
+   // Retain independent PUBLIC bytes before any foreign current callback. A
+   // late failure or cleanup UNKNOWN cannot erase the original received DATA.
+   this.#publicationBytes=wire(response.resultOriginal);
+   await this.#current();
+   if(response.requestId!==this.#request.requestId||response.requestPurpose!==purposes.keyCall)fail('AUTH_IDENTITY_PEER_CORRELATION');
+   if(response.decision!=='publication-result'||response.purpose!=='ARTIFACT-RELEASE'||response.dataOnly!==true||response.signatureVerified!==false||response.publicationAuthorized!==false||response.nativeAdmission!==false||response.approvalCurrent!==false)fail('AUTH_IDENTITY_PEER_PUBLICATION_DATA');
+   this.#result=Object.freeze({decision:'publication-result',requestId:this.#request.requestId,requestPurpose:purposes.keyCall,purpose:'ARTIFACT-RELEASE',dataOnly:true,signatureVerified:false,publicationAuthorized:false,nativeAdmission:false,approvalCurrent:false});
+   this.#settled=true;return this.#publicationResult();
   }).catch(e=>{throw this.#remember(e);}));
  }
  retire(){
@@ -76,7 +115,7 @@ export class OriginalIdentityPeerCall {
    if(failed){this.#cleanup=first;this.#remember(first);throw first;}return undefined;
   });void this.#closing.catch(()=>{});return this.#closing;
  }
- outcome(){return Object.freeze({kind:this.#kind??null,started:this.#started,proofSelected:this.#selected,settled:this.#settled,retired:this.#retired,proof:this.#proof?new Uint8Array(this.#proof):null,result:this.#result,firstCausePresent:this.#hasFirst,firstCause:this.#first,cleanupCause:this.#cleanup,dataOnly:true,nativeAdmission:false,effectRetryAuthorized:false});}
+ outcome(){return Object.freeze({kind:this.#kind??null,started:this.#started,proofSelected:!this.#publication&&this.#selected,publicationMode:this.#publication,publicationResultSelected:this.#publication&&this.#selected,settled:this.#settled,retired:this.#retired,proof:this.#proof?new Uint8Array(this.#proof):null,result:this.#publication&&this.#result?this.#publicationResult():this.#result,publicationResultOriginal:this.#publicationBytes?new Uint8Array(this.#publicationBytes):null,firstCausePresent:this.#hasFirst,firstCause:this.#first,cleanupCause:this.#cleanup,dataOnly:true,nativeAdmission:false,effectRetryAuthorized:false});}
 }
 // No production factory is exposed by this kernel. Native normal-peer factory
 // comes only through the original SDK fixed module/compiled method registry.

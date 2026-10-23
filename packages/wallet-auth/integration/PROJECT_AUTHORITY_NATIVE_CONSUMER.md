@@ -105,3 +105,41 @@ cannot supply the new selector. No Root, release row, registry entry or mapping
 was registered by this code delivery. A selector is DATA, not HTTP proof, an
 OriginalSource server factory, signing approval or KEY7 access. Real login,
 restore, revocation and matching App acceptance remain separate gates.
+
+## Auth20 distinct publication result DATA
+
+Auth20 combines the original R181 peer result transport with the existing CLI
+artifact DATA verifier and fixed Main-only registration hook. The base addon
+still uses 13 translation units; helper uses 11. Main's binding/include, private
+review/once/signature implementation and their input pins remain a separate
+Main product profile. No Main include is selected by merely being present.
+
+The original peer instance adds `receiveOriginalArtifactReturn()` for one
+publication terminal. Its success is exactly the frozen ten-field DATA result:
+`decision:'publication-result'`, `requestId`,
+`requestPurpose:'AUTH-PROTECTED-KEY-CALL'`, `purpose:'ARTIFACT-RELEASE'`,
+`resultOriginal:Uint8Array`, `dataOnly:true`, `signatureVerified:false`,
+`publicationAuthorized:false`, `nativeAdmission:false`, `approvalCurrent:false`.
+The original reject shape is retained; cancellation rejects with its original
+cause. It never accepts proof2 as a publication fallback. Ordinary identity
+`receiveReturn()` routes remain distinct.
+
+The private lifecycle kernel supplies `beginPublication(manifestOriginal)` and
+`waitForPublicationResult()` for the actual original publication request/peer
+owners. The first uses the existing exact six-field manifest validator and the
+original keyCall request route. The second captures and copies the original
+DATA before post-current checks and keeps terminal selection and UNKNOWN when
+current/cancellation/cleanup fails. It never calls `completeProof`, `invoke` or a
+second effect. Neither method constructs a Native owner or recognizes an
+arbitrary object as admission. Original fixed acquisition/opaque custody remains
+mandatory; PUBLIC kernel tests are not that acquisition.
+
+The canonical eleven-field result envelope binds the original request,
+invocation and manifest, the actual public publisher/signature bytes, and Main
+reference/registration/revision/key-version DATA. Parsing that envelope does not
+verify a publisher or approve a release. Before higher use, independent current
+registered R13 bytes, original dual-AND signature verification and the actual
+Main approval holder/current/revoke checks remain required. Packet-carried R13
+or a reference is not its own trust source. No Linux HTTP OriginalSource or
+server approval is minted by a macOS peer return. Installed Source, matching
+products, real login/recovery/revocation and publication acceptance are unverified.

@@ -1,6 +1,7 @@
 // SAME original Native module, after R91 request owners. No JS FD/Source/PID
 // constructor, old four-op capability, renderer provider or parallel daemon.
 #include "../../../packages/wallet-auth/native/original-ide-identity-peer-endpoint.h"
+#include "../../../packages/wallet-auth/native/original-ide-artifact-result-data.h"
 #include <sys/un.h>
 #include <bsm/libbsm.h>
 #include <poll.h>
@@ -59,7 +60,7 @@ static void PeerFinalize(napi_env,void*raw,void*){
  auto*p=static_cast<IDEIdentityPeerOwner*>(raw);if(!identityPeers.count(p))return;
  if(!PeerClose(p)){identityPeerDebts.insert(p);return;}identityPeers.erase(p);delete p;
 }
-struct PeerWork{IDEIdentityPeerOwner*p;bool sending;std::vector<unsigned char>payload;Frame result{Message::failure,0,{}};std::string failure;napi_async_work work=nullptr;napi_deferred deferred=nullptr;napi_ref self=nullptr;};
+struct PeerWork{IDEIdentityPeerOwner*p;bool sending;std::vector<unsigned char>payload;bool publication=false;Frame result{Message::failure,0,{}};std::string failure;napi_async_work work=nullptr;napi_deferred deferred=nullptr;napi_ref self=nullptr;};
 static void PeerExecute(napi_env,void*raw){auto*w=static_cast<PeerWork*>(raw);try{if(w->sending)w->p->endpoint->send(Message::request,w->payload);else w->result=w->p->endpoint->receive();}catch(const std::exception&e){w->failure=e.what();}catch(...){w->failure="AUTH_IDENTITY_PEER_IO_UNKNOWN";}}
 static napi_value PeerErrorValue(napi_env env,const char*code){napi_value text,error;napi_create_string_utf8(env,code,NAPI_AUTO_LENGTH,&text);napi_create_error(env,nullptr,text,&error);napi_set_named_property(env,error,"code",text);return error;}
 static napi_value PeerResponseValue(napi_env env,IDEIdentityPeerOwner*p,bool approved){
@@ -73,6 +74,22 @@ static napi_value PeerResponseValue(napi_env env,IDEIdentityPeerOwner*p,bool app
 // DATA classification only. Source/request current and original proof verification
 // remain independent mandatory gates; cancellation never becomes rejection/grant.
 enum class PeerDecision{invalid,approve,reject,cancel};
+static napi_value PeerPublicationDataValue(napi_env env,IDEIdentityPeerOwner*p){
+ using namespace ynx_auth_ide_identity_private;
+ auto&frame=p->selectedReturn;
+ if(p->parent->kind!=IDEIdentityKind::keyCall||frame.kind!=Message::result||frame.payload.empty()||frame.payload.size()>ArtifactResultMax)return nullptr;
+ NSData*raw=[NSData dataWithBytes:frame.payload.data() length:frame.payload.size()];
+ (void)parseOriginalArtifactResultDATA(raw,p->parent->expected,p->parent->invocation);
+ NSDictionary*request=IDERequestDictionary(p->parent->expected,16384);if(!request)return nullptr;
+ napi_value value,field,array,result;void*copied=nullptr;
+ if(napi_create_object(env,&value)!=napi_ok||napi_create_arraybuffer(env,frame.payload.size(),&copied,&array)!=napi_ok||!copied)return nullptr;
+ memcpy(copied,frame.payload.data(),frame.payload.size());
+ if(napi_create_typedarray(env,napi_uint8_array,frame.payload.size(),array,0,&result)!=napi_ok||napi_set_named_property(env,value,"resultOriginal",result)!=napi_ok)return nullptr;
+ NSDictionary*strings=@{@"decision":@"publication-result",@"requestId":request[@"requestId"],@"requestPurpose":request[@"purpose"],@"purpose":@"ARTIFACT-RELEASE"};
+ for(NSString*key in strings){NSData*b=[strings[key]dataUsingEncoding:NSUTF8StringEncoding];if(!b.length||napi_create_string_utf8(env,(const char*)b.bytes,b.length,&field)!=napi_ok||napi_set_named_property(env,value,key.UTF8String,field)!=napi_ok)return nullptr;}
+ for(const char*key:{"dataOnly","signatureVerified","publicationAuthorized","nativeAdmission","approvalCurrent"}){if(napi_get_boolean(env,!strcmp(key,"dataOnly"),&field)!=napi_ok||napi_set_named_property(env,value,key,field)!=napi_ok)return nullptr;}
+ if(napi_object_freeze(env,value)!=napi_ok)return nullptr;return value;
+}
 static PeerDecision PeerClassifyReturn(const Frame&frame,const unsigned char digest[32]){
  if(frame.kind==Message::proof)return !frame.payload.empty()&&frame.payload.size()<=262144?PeerDecision::approve:PeerDecision::invalid;
  if(frame.kind!=Message::reject&&frame.kind!=Message::cancel)return PeerDecision::invalid;
@@ -92,11 +109,18 @@ static void PeerComplete(napi_env env,napi_status status,void*raw){
    else{
     auto&frame=p->selectedReturn;
     unsigned char digest[CC_SHA256_DIGEST_LENGTH];CC_SHA256(p->parent->expected.bytes,(CC_LONG)p->parent->expected.length,digest);
+    // An artifact receive is explicitly distinct. It cannot accept proof2 as
+    // fallback, cannot invoke KEY7 a second time, and returns DATA not approval.
+    auto publicationDecision=ynx_auth_ide_identity_private::classifyOriginalArtifactTerminalDATA(frame,digest);
+    if(w->publication&&publicationDecision==ynx_auth_ide_identity_private::ArtifactTerminalDATA::result){value=PeerPublicationDataValue(env,p);if(!value)PeerFail(p,"IDE_ARTIFACT_RESULT_RETURN_INVALID");else success=PeerCurrent(p);}
+    else {
     PeerDecision decision=PeerClassifyReturn(frame,digest);
+    if(w->publication&&publicationDecision==ynx_auth_ide_identity_private::ArtifactTerminalDATA::invalid)decision=PeerDecision::invalid;
     if(decision==PeerDecision::cancel)PeerFail(p,"AUTH_IDENTITY_PEER_USER_CANCELLED");
     else if(decision==PeerDecision::invalid)PeerFail(p,(frame.kind==Message::reject||frame.kind==Message::cancel)?"AUTH_IDENTITY_PEER_REJECT_CORRELATION_INVALID":"AUTH_IDENTITY_PEER_RETURN_KIND_INVALID");
     else{
      value=PeerResponseValue(env,p,decision==PeerDecision::approve);if(!value)PeerFail(p,"AUTH_IDENTITY_PEER_RETURN_ALLOC_UNKNOWN");else success=PeerCurrent(p);
+    }
     }
    }
   }
@@ -105,8 +129,9 @@ static void PeerComplete(napi_env env,napi_status status,void*raw){
  else napi_resolve_deferred(env,w->deferred,value);
  if(!p->busy)std::terminate();p->busy--;napi_delete_async_work(env,w->work);napi_delete_reference(env,w->self);
 }
-static napi_value PeerQueue(napi_env env,napi_value self,IDEIdentityPeerOwner*p,bool sending,std::vector<unsigned char>payload){
+static napi_value PeerQueue(napi_env env,napi_value self,IDEIdentityPeerOwner*p,bool sending,std::vector<unsigned char>payload,bool publication=false){
  auto*w=new(std::nothrow)PeerWork{p,sending,std::move(payload)};if(!w)return Error(env,"AUTH_IDENTITY_PEER_CAPACITY");
+ w->publication=publication;
  napi_value promise,name;napi_create_string_utf8(env,"OriginalIdentityPeerIO",NAPI_AUTO_LENGTH,&name);
  if(napi_create_promise(env,&w->deferred,&promise)!=napi_ok||napi_create_reference(env,self,1,&w->self)!=napi_ok||napi_create_async_work(env,nullptr,name,PeerExecute,PeerComplete,w,&w->work)!=napi_ok){
   if(w->self)napi_delete_reference(env,w->self);delete w;PeerFail(p,"AUTH_IDENTITY_PEER_QUEUE_UNKNOWN");return Error(env,p->first.c_str());
@@ -115,7 +140,7 @@ static napi_value PeerQueue(napi_env env,napi_value self,IDEIdentityPeerOwner*p,
  if(napi_queue_async_work(env,w->work)!=napi_ok){p->busy--;napi_reject_deferred(env,w->deferred,PeerErrorValue(env,"AUTH_IDENTITY_PEER_QUEUE_UNKNOWN"));napi_delete_async_work(env,w->work);napi_delete_reference(env,w->self);delete w;PeerFail(p,"AUTH_IDENTITY_PEER_QUEUE_UNKNOWN");PeerRetire(p);}
  return promise;
 }
-enum class PeerMethod:uintptr_t{current=1,send,receive,retire,join,close,status};
+enum class PeerMethod:uintptr_t{current=1,send,receive,retire,join,close,status,receivePublication};
 static napi_value PeerOperation(napi_env env,napi_callback_info info){
  napi_value self,args[3];void*raw=nullptr;size_t n=3;if(napi_get_cb_info(env,info,&n,args,&self,&raw)!=napi_ok)return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
  auto method=static_cast<PeerMethod>((uintptr_t)raw);if(!IDEIdentityArgc(env,info,method==PeerMethod::send?3:0,args,&self,&raw))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
@@ -137,7 +162,7 @@ static napi_value PeerOperation(napi_env env,napi_callback_info info){
    if(!packet||packet.length>65536)return Error(env,"AUTH_IDENTITY_PEER_PACKET_BOUND");
    return PeerQueue(env,self,p,true,{(const unsigned char*)packet.bytes,(const unsigned char*)packet.bytes+packet.length});
   }
-  if(method==PeerMethod::receive){if(!p->sent||p->read||p->busy)return Error(env,"AUTH_IDENTITY_PEER_RETURN_ONCE");p->read=true;return PeerQueue(env,self,p,false,{});}
+  if(method==PeerMethod::receive||method==PeerMethod::receivePublication){if(!p->sent||p->read||p->busy)return Error(env,"AUTH_IDENTITY_PEER_RETURN_ONCE");if(method==PeerMethod::receivePublication&&p->parent->kind!=IDEIdentityKind::keyCall)return Error(env,"IDE_ARTIFACT_RESULT_KEY_CALL_REQUIRED");p->read=true;return PeerQueue(env,self,p,false,{},method==PeerMethod::receivePublication);}
   return Error(env,"AUTH_IDENTITY_PEER_METHOD_INVALID");
  }@catch(id){PeerFail(p,"AUTH_IDENTITY_PEER_NATIVE_EXCEPTION");}}catch(const std::exception&e){PeerFail(p,e.what());}return Error(env,p->first.c_str());
 }
@@ -150,7 +175,7 @@ static napi_value PeerConstruct(napi_env env,napi_callback_info info){
  napi_value result;if(napi_create_object(env,&result)!=napi_ok||napi_type_tag_object(env,result,&identityPeerTag)!=napi_ok||napi_create_reference(env,args[1],1,&p->parentReference)!=napi_ok){delete p;return nullptr;}
  identityPeers.insert(p);if(napi_wrap(env,result,p,PeerFinalize,nullptr,nullptr)!=napi_ok){identityPeers.erase(p);napi_delete_reference(env,p->parentReference);delete p;return nullptr;}
  request->peerChildren++;p->child=true;
- const char*names[]={"current","sendRequest","receiveReturn","retire","join","close","status"};for(uintptr_t i=0;i<7;i++){napi_property_descriptor d={names[i],nullptr,PeerOperation,nullptr,nullptr,nullptr,napi_default,(void*)(i+1)};if(napi_define_properties(env,result,1,&d)!=napi_ok)return nullptr;}napi_object_freeze(env,result);
+ const char*names[]={"current","sendRequest","receiveReturn","retire","join","close","status","receiveOriginalArtifactReturn"};for(uintptr_t i=0;i<8;i++){napi_property_descriptor d={names[i],nullptr,PeerOperation,nullptr,nullptr,nullptr,napi_default,(void*)(i+1)};if(napi_define_properties(env,result,1,&d)!=napi_ok)return nullptr;}napi_object_freeze(env,result);
  try{@try{
   // Observe only until Source, registration and the actual peer qualify.
   // Ordinary IDE fd5 must never acquire an Endpoint whose retire shuts it down.
