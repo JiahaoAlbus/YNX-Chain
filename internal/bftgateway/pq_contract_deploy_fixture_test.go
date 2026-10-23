@@ -194,14 +194,35 @@ func emitPQContractDeployPublicFixture(t *testing.T, observed *pqFinalityFixture
 			t.Fatal("export must not invent or replay a broadcast")
 		}
 	}
-	data, err := json.MarshalIndent(fixture, "", "  ")
+	// Account views require their exact compact JSON. Expanding the container
+	// changes the nested bytes passed to the production canonical decoder.
+	data, err := json.Marshal(fixture)
 	if err != nil {
 		t.Fatal(err)
 	}
 	data = append(data, '\n')
 	var roundtrip pqContractDeployPublicFixture
-	if json.Unmarshal(data, &roundtrip) != nil || !bytes.Equal(roundtrip.Transport, raw) || !bytes.Equal(roundtrip.NativeWire, wire) || !reflect.DeepEqual(roundtrip.Files, fixture.Files) || !reflect.DeepEqual(roundtrip.HTTP, responses) || !bytes.Equal(roundtrip.PreparedRequest.Body, raw) || roundtrip.BroadcastExecuted || roundtrip.PreparedRequest.Executed || roundtrip.IndependentFinality || roundtrip.NativeGrant || roundtrip.PublicBFT || roundtrip.ActualCometNode || roundtrip.DeployedSourceQualification {
+	if err := json.Unmarshal(data, &roundtrip); err != nil {
+		t.Fatal("public deployment canonical serialization did not decode", err)
+	}
+	if !bytes.Equal(roundtrip.Transport, raw) || !bytes.Equal(roundtrip.NativeWire, wire) || !reflect.DeepEqual(roundtrip.Files, fixture.Files) || !reflect.DeepEqual(roundtrip.HTTP, responses) || !bytes.Equal(roundtrip.PreparedRequest.Body, raw) || roundtrip.BroadcastExecuted || roundtrip.PreparedRequest.Executed || roundtrip.IndependentFinality || roundtrip.NativeGrant || roundtrip.PublicBFT || roundtrip.ActualCometNode || roundtrip.DeployedSourceQualification {
 		t.Fatal("public deployment serialization changed raw bytes or claimed a higher evidence layer")
+	}
+	for _, field := range []struct {
+		name               string
+		original, restored any
+	}{
+		{"accountBefore", fixture.AccountBefore, roundtrip.AccountBefore},
+		{"history", fixture.History, roundtrip.History},
+	} {
+		expectedJSON, err := json.Marshal(field.original)
+		if err != nil {
+			t.Fatal("cannot encode original public deployment state", field.name, err)
+		}
+		restoredJSON, err := json.Marshal(field.restored)
+		if err != nil || !bytes.Equal(expectedJSON, restoredJSON) {
+			t.Fatal("public deployment changed original account or history JSON", field.name, err)
+		}
 	}
 	// The SDK's exact contract payload includes value, even when it is zero.
 	// Re-encode the exported decimal strings through the original Go codec so
