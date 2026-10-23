@@ -349,7 +349,7 @@ export class ProductSessionGatewayNodeHost {
           if(!this.#authSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
           // This existing original producer handler owns the private branding
           // check; neither a marker nor a public arithmetic kernel can mount.
-          const result=handleOriginalAuthSourceCurrent(this.#authSourceCurrent,request.method,request.url,this.#now().getTime());
+          const result=await handleOriginalAuthSourceCurrent(this.#authSourceCurrent,request.method,request.url,this.#now().getTime());
           response.writeHead(result.status,result.headers);response.end(result.body);return;
         }
         const browserPath=this.#central?new URL(request.url,'http://127.0.0.1').pathname:null;

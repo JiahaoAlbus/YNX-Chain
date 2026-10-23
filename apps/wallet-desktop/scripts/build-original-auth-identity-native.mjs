@@ -78,6 +78,8 @@ export function originalIDEHelperBuildPlan(arch){
 export function originalAuthSourceCurrentIOBuildPlan(platform,arch,headers){
  if(!['darwin','linux'].includes(platform)||!['arm64','x64','universal'].includes(arch)||platform==='linux'&&arch==='universal'||typeof headers!=='string'||!path.isAbsolute(headers)||path.normalize(headers)!==headers)throw Error('AUTH_SOURCE_CURRENT_IO_BUILD_INPUT_INVALID');
  const source=path.join(repo,'packages/wallet-auth/native/original-source-current-dirfd-node.cpp'),output=path.join(app,'native/original-source-current-dirfd.node'),arches=arch==='universal'?['arm64','x64']:[arch];
+ // R185 explicit server IO is a separate one-TU artifact, never addon/helper.
+ if(![source,path.join(repo,'packages/wallet-auth/native/original-host-dirfd-journal.h')].every(file=>{try{const s=lstatSync(file);return s.isFile()&&!s.isSymbolicLink();}catch{return false;}}))throw Error('AUTH_SOURCE_CURRENT_IO_SOURCE_SELECTION_INCOMPLETE');
  const commands=arches.map(a=>({tool:platform==='darwin'?'/usr/bin/clang++':'/usr/bin/c++',argv:['-std=c++17',...(platform==='darwin'?['-dynamiclib','-undefined','dynamic_lookup','-arch',a==='x64'?'x86_64':a]:['-shared','-fPIC']),'-DNAPI_VERSION=8','-I'+headers,source,'-o',arches.length===1?output:output+'.'+a]}));
  if(arches.length===2)commands.push({tool:'/usr/bin/lipo',argv:['-create',output+'.arm64',output+'.x64','-output',output]});return {commands,output,source};
 }
