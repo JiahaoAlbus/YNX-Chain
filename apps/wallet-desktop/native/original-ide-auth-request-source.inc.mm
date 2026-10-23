@@ -1,4 +1,5 @@
 #import "original-ide-auth-request-source.h"
+#import "../../../packages/wallet-auth/native/original-ide-publication-artifact.h"
 #import <Security/Security.h>
 #include <CommonCrypto/CommonDigest.h>
 #include <climits>
@@ -39,6 +40,11 @@ static BOOL IDERequestPurpose(NSString *purpose){return [@[@"AUTH-IDENTITY-RECEI
 // authenticate the envelopes itself or let a legacy login Source mint v2.
 static NSDictionary *IDERequestContext(YNXAuthIdentitySourceAuthority *source,NSString *purpose,NSData *invocation,NSError **error){
  if([source class]!=YNXAuthIdentitySourceAuthority.class||!IDERequestPurpose(purpose)){IDERequestFail(error,@"AUTH_IDENTITY_ORIGINAL_SOURCE_REQUIRED");return nil;}
+ // First admitted protected-key business kind is build-artifact publication.
+ // Parse the same six-field manifest DATA BEFORE requesting any proof. The
+ // original requestDigest below still hashes these exact invocation bytes;
+ // no signing domain, provider, approval or current ACL is manufactured here.
+ if([purpose isEqual:@"AUTH-PROTECTED-KEY-CALL"]&&!YNXParseOriginalIDEPublicationManifest(invocation,error))return nil;
  NSDictionary *raw=[source copyOriginalProvisioningPublicOriginals:error];if(!raw|| (error&&*error))return nil;
  for(NSString *name in @[@"rootOriginal",@"enrollmentOriginal",@"profileOriginal",@"currentOriginal"]){NSData*b=raw[name];if(![b isKindOfClass:NSData.class]||!b.length||b.length>([name isEqual:@"rootOriginal"]?16384:393216)){IDERequestFail(error,@"AUTH_IDENTITY_ORIGINAL_SOURCE_BYTES_REQUIRED");return nil;}}
  NSDictionary *root=IDERequestDictionary(raw[@"rootOriginal"],16384),*profile=IDERequestV2Body(raw[@"profileOriginal"]),*current=IDERequestV2Body(raw[@"currentOriginal"]);
