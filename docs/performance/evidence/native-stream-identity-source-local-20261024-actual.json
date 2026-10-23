@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-10-23T19:54:49.623034+00:00",
+  "sourceCommit": "06401007ebaefdf77ad24fb0ffb6f426f63de1c1",
+  "scope": "original Go public unit stream identity/coverage layer only; no independent BFT/state/resource admission",
+  "actualRecords": 102,
+  "nonceCycles": 34,
+  "matchedLatestSlots": 3,
+  "peakPendingIdentities": 3,
+  "publicMembers": {
+    "members": 77,
+    "sha256": "f57f42fc594d9e9d8484d369edd923e6b131683bcad66f2dc3f9b8f42daf6554",
+    "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+  },
+  "producer": {
+    "path": "artifacts/chain-performance-20261017/native-stream-controller/public-go-producer-final-race.raw",
+    "bytes": 706,
+    "sha256": "f5cbac3b17fa32b62320a691df286d0b98f969fce1f10a4a54f01e2d4cb1870f"
+  },
+  "publicScope": {
+    "path": "artifacts/chain-performance-20261017/native-stream-controller/public-go-fixture-final/PUBLIC_FIXTURE_SCOPE.json",
+    "bytes": 6013,
+    "sha256": "f96089f9c9529db1b5722723f4145f60e4c2e4c62550aebd3831cf0dba6feb7f"
+  },
+  "publicInitialInputs": {
+    "path": "artifacts/chain-performance-20261017/native-stream-controller/public-go-fixture-final/transactions.json",
+    "bytes": 1683,
+    "sha256": "1de74f437a0a3411ed1c3c95cb47196f62ef54c697cf6e13902bcb3f55fd225e"
+  },
+  "publicManifest": {
+    "path": "artifacts/chain-performance-20261017/native-stream-controller/public-go-fixture-final/network-manifest.json",
+    "bytes": 4784,
+    "sha256": "f980c14f7b1cf43e81cefd820226e73da841030e6054cfaaf01d989be93439cf"
+  },
+  "identityReadout": {
+    "path": "artifacts/chain-performance-20261017/native-stream-controller/public-go-final-identity-readout.json",
+    "bytes": 1004,
+    "sha256": "074fbc9454f76d327725bff82201772acc48dea436622f592691d3fea7af1c8c"
+  },
+  "readerSource": {
+    "path": "scripts/loadtest/native-stream-evidence.py",
+    "bytes": 14286,
+    "sha256": "82c679b0dc6bc993d2ca69ff4adf1f9f75c230b1df7fb3c769f4a41d0dd7f855"
+  },
+  "localChecks": {
+    "goOriginalProducerRaceSeconds": 5.499,
+    "pythonTests": 14,
+    "pythonSeconds": 0.242,
+    "sourceGateTests": 16,
+    "sourceGateMs": 11736.952042
+  },
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/identity-reader-focused-first.raw",
+      "bytes": 2352,
+      "sha256": "fd4410fb22f126b7933b042f204c28c7c6b22f0e60543dab2c4e67fa31a97e32"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/identity-reader-final.raw",
+      "bytes": 2352,
+      "sha256": "852160153878a1b17963a8b9d747d68bbc83cf2e0f952b08ef88c7a74f673673"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/identity-reader-final-fresh-producer.raw",
+      "bytes": 2519,
+      "sha256": "51e4cc2e0a1b9cb5a66c7d334ba3b98ab35c8bfa7bdb640d936dec8e1e6938c7"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/identity-reader-ci-route-final.raw",
+      "bytes": 3487,
+      "sha256": "9caa43c6e72f69791323a38b1e2a92219220747de5783a78fab61ad2d9dde875"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/evidence-final-source-gate.raw",
+      "bytes": 3528,
+      "sha256": "e6cf34ace65ec55627962e8d348c396b67bda16ef0707430be1a362e54ef7da3"
+    }
+  ],
+  "memoryScope": "one bounded segment plus sender nonce state and <=senders+64 pending identities; member descriptors are hashed incrementally, no lifetime member/row list",
+  "actualNegativeCoverage": [
+    "missing segment",
+    "extra/symlink inventory",
+    "gzip CRC corruption",
+    "concatenated/hidden gzip suffix",
+    "latest slot substitution",
+    "UNKNOWN even after recomputing all terminal hashes",
+    "wrong nonce even after recomputing hashes",
+    "signed envelope substitution against original intent",
+    "strict receipt types/encoded budget",
+    "manifest-byte binding change",
+    "remote/other-chain manifest scope",
+    "runtime path escape",
+    "duplicate JSON fields/nonfinite values"
+  ],
+  "originalPrivateSenderKeysExported": false,
+  "normalCIPending": true,
+  "sourceCIChanges": "reuse existing Go race producer once via test-only explicit public destination; required-fixture Python tests cannot silently skip; retain only public fixture as unit-labelled artifact",
+  "networkExecuted": false,
+  "networkQualified": false,
+  "sustainedTPSQualified": false,
+  "resourceProfileControllerPending": true,
+  "next": "Connect this readback layer and original bounded post-fsync process/resource/closure guards to a distinct small native stream case in the original Supply controller, then qualify exact CI and request Root window."
+}
