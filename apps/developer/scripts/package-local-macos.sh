@@ -37,7 +37,7 @@ node --test runtime/theia/scripts/extension-display-identity.test.mjs
 node --test scripts/normal-local-workspace-aliases.test.mjs
 node --test scripts/verify-packaged-local-imports.test.mjs
 node --test scripts/solidity-current-file-route.test.mjs
-node --test scripts/ai-unconfigured-default.test.mjs
+node --test scripts/ai-unconfigured-default.test.mjs desktop/admitted-local-project-uuid.test.mjs
 node --test desktop/native-debug-menu-state.test.mjs desktop/native-current-file-routing.test.mjs
 node --test scripts/bundle-composed-core.test.mjs
 runtime_checkpoint="$source_commit"

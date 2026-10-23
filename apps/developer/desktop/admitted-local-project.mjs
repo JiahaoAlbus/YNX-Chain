@@ -1,6 +1,6 @@
 const failure = (code = 'AI_RETIRED') => Object.assign(new Error('The retained project is not current.'), { code });
 const keys = ['owner', 'workspaceOwner', 'account', 'generation', 'identityReference', 'localProjectId', 'workspace', 'launch', 'sessionId'];
-const uuid = value => typeof value === 'string' && /^[a-f0-9-]{36}$/.test(value);
+const uuid = value => typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value);
 const locator = value => value && Object.keys(value).sort().join('|') === 'launch|projectId|workspace';
 // Private desktop construction consumes an already retained original broker
 // owner from the protected supplier. This never imports/adopts/launches a project
