@@ -10,12 +10,12 @@ import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-
 
 const root=resolve(fileURLToPath(new URL('../../..',import.meta.url)));
 const selectedVersion=JSON.parse(readFileSync(resolve(root,'packages/wallet-auth/package.json'))).version;
-assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12'].includes(selectedVersion));
+assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13'].includes(selectedVersion));
 const read=path=>readFileSync(resolve(root,path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // Independent supplier R162 H6843/67c056ae...; source selection only. These
 // checks do not rerun PUBLIC Auth fixtures or claim any real N1/Root/effect.
-const r164=selectedVersion==='1.3.0-pq.3.32-auth.12';
+const r164=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13)$/)!==null;
 const leaves=r164?[
  ['original-auth-identity-source-authority.mm',45318,'0a4384cd537a56ff0cfcf067a013deef6bcef671c9092e67e272c65547dd468f'],
  ['original-auth-identity-source-authority.h',6035,'ce8645d7bffd55bc74b9eabd16d3b49b01f5be763e3084055eb63ac47570fa16'],

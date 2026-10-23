@@ -40,3 +40,8 @@ export interface OriginalIDEContractRelayGuard {
 /** No provider/module path override; original Native authenticates peer, running
  * server, project, scope and actual confirmation. No network initialization. */
 export declare function acquireOriginalIDEContractRelayGuard(input:{serverModuleURL:string;expectedScope:OriginalIDEContractRelayExpectedScope}):Promise<OriginalIDEContractRelayGuard>;
+/** Synchronously checks the original ready owner's Native current and unchanged
+ * nine-field scope before returning frozen scope DATA. Rejects partial, forged,
+ * expired, revoked or closed owners; does not renew expiry or initialize Relay.
+ * This is not an Auth principal, account credential or Wallet RPC approval. */
+export declare function assertOriginalIDEContractRelayGuardCurrent(guard:OriginalIDEContractRelayGuard):Readonly<OriginalIDEContractRelayScopeData>;

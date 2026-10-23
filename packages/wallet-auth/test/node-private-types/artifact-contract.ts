@@ -1,9 +1,16 @@
-import {acquireOriginalIDEContractRelayGuard, type OriginalIDEContractRelayScope} from '@ynx-chain/wallet-auth/original-ide-contract-relay-guard';
+import {acquireOriginalIDEContractRelayGuard, assertOriginalIDEContractRelayGuardCurrent, type OriginalIDEContractRelayScope} from '@ynx-chain/wallet-auth/original-ide-contract-relay-guard';
 import {createDeveloperContractConnection} from '@ynx-chain/wallet-auth/walletconnect-dapp-connection';
 import {encodeIDEArtifactManifestData,inspectIDEArtifactManifestData} from '@ynx-chain/wallet-auth/ide-artifact-manifest';
 declare const scope:OriginalIDEContractRelayScope;
 async function consume(){
  const guard=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///normal/server.mjs',expectedScope:scope});
+ const current=assertOriginalIDEContractRelayGuardCurrent(guard);
+ const dataOnly:true=current.dataOnly,notRPCApproval:false=current.authorized;
+ void dataOnly;void notRPCApproval;
+ // @ts-expect-error scope DATA does not fabricate the former Auth principal
+ current.account;
+ // @ts-expect-error a copied scope is not the original ready guard
+ assertOriginalIDEContractRelayGuardCurrent(scope);
  const client=createDeveloperContractConnection({relayGuard:guard,relayContext:scope});
  const initialized:void=await client.initialize();
  // @ts-expect-error raw SignClient is not exposed by the dedicated profile
