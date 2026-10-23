@@ -47,6 +47,51 @@ test('Watch caller: per-Wallet-account storage isolation and no authenticated st
 test('Watch caller: corrupt or foreign records are retained and never silently replaced',async()=>{
   for(const raw of ['{broken',JSON.stringify({schemaVersion:1,walletAccount:B,entries:[btc]})]){const storage=new PublicMemory();storage.data.set(PUBLIC_WATCH_PREFIX+A,raw);const h=fixture(storage);await h.controller.load();assert.equal(h.controller.snapshot().phase,'failed');await h.controller.save(btc);assert.equal(h.controller.snapshot().phase,'failed');assert.equal(storage.data.get(PUBLIC_WATCH_PREFIX+A),raw);assert.equal(storage.writes.length,0);h.controller.close()}
 });
+test('Watch caller: explicit removal changes only the selected public entry and survives reopen',async()=>{
+ const storage=new PublicMemory(),p=provider(),h=fixture(storage,A,p.fetchImpl),other=fixture(storage,B);
+ await h.controller.save(btc);await h.controller.save(trx);await other.controller.save(btc);
+ const foreign=storage.data.get(PUBLIC_WATCH_PREFIX+B),calls=p.calls.length;
+ h.controller.select(0);await h.controller.remove(h.controller.snapshot().selected!);
+ assert.equal(h.controller.snapshot().selected,null);assert.equal(h.controller.snapshot().result,null);
+ assert.deepEqual(h.controller.snapshot().entries.map(e=>e.family),['tron']);
+ assert.equal(storage.data.get(PUBLIC_WATCH_PREFIX+B),foreign);assert.equal(p.calls.length,calls);
+ h.controller.close();other.controller.close();const reopened=fixture(storage);await reopened.controller.load();
+ assert.deepEqual(reopened.controller.snapshot().entries.map(e=>e.family),['tron']);reopened.controller.close();
+});
+test('Watch caller: stale selected metadata cannot remove an updated watch entry',async()=>{
+ const storage=new PublicMemory(),h=fixture(storage);await h.controller.save(btc);const old=h.controller.snapshot().selected!;
+ await h.controller.save({...btc,label:'updated label'});const writes=storage.writes.length;
+ await h.controller.remove(old);assert.equal(h.controller.snapshot().phase,'failed');
+ assert.equal(h.controller.snapshot().error,'WATCH_SELECTION_CHANGED');assert.equal(storage.writes.length,writes);
+ assert.equal(h.controller.snapshot().entries[0]?.label,'updated label');h.controller.close();
+});
+test('Watch caller: removal serialized behind another controller update refuses stale disk metadata',async()=>{
+ const storage=new PublicMemory(),h=fixture(storage);await h.controller.save(btc);const selected=h.controller.snapshot().selected!;
+ const update=new PublicWatchStore(storage).save(A,{...btc,label:'other view update'},()=>{});
+ const removal=h.controller.remove(selected);await update;const count=storage.writes.length;await removal;
+ assert.equal(h.controller.snapshot().error,'WATCH_SELECTION_CHANGED');assert.equal(storage.writes.length,count);
+ assert.equal((await new PublicWatchStore(storage).load(A,()=>{}))[0]?.label,'other view update');h.controller.close();
+});
+test('Watch caller: lock before removal write admission preserves the saved entry',async()=>{
+ const storage=new PublicMemory(),h=fixture(storage);await h.controller.save(btc);const selected=h.controller.snapshot().selected!,count=storage.writes.length;
+ const pending=h.controller.remove(selected);h.operations.lock();await pending;
+ assert.equal(h.controller.snapshot().phase,'closed');assert.equal(storage.writes.length,count);
+ assert.equal((await new PublicWatchStore(storage).load(A,()=>{})).length,1);
+});
+test('Watch caller: uncertain committed removal is not success or rollback; reopen reads the actual list',async()=>{
+ const storage=new PublicMemory(),h=fixture(storage);await h.controller.save(btc);const selected=h.controller.snapshot().selected!,set=storage.setItem.bind(storage),count=storage.writes.length;
+ storage.setItem=async(key,value)=>{await set(key,value);throw Error('PUBLIC post-commit failure')};
+ await h.controller.remove(selected);assert.equal(h.controller.snapshot().phase,'failed');assert.equal(h.controller.snapshot().error,'WATCH_SAVE_FAILED_OR_UNCERTAIN');
+ assert.equal(h.controller.snapshot().entries.length,1);assert.equal(storage.writes.length,count+1);
+ h.controller.close();const reopened=fixture(storage);await reopened.controller.load();assert.equal(reopened.controller.snapshot().entries.length,0);assert.equal(storage.writes.length,count+1);reopened.controller.close();
+});
+test('Watch caller: explicit removal frees capacity without changing the twelve-entry limit',async()=>{
+ const storage=new PublicMemory(),h=fixture(storage),entries=Array.from({length:13},(_,index)=>({...trx,address:tronPublicAddress('41'+(index+1).toString(16).padStart(40,'0')).address,label:`PUBLIC watch ${index}`}));
+ for(const entry of entries.slice(0,12))await h.controller.save(entry);
+ const selected=h.controller.snapshot().selected!;await h.controller.save(entries[12]);assert.equal(h.controller.snapshot().error,'WATCH_LIMIT');
+ await h.controller.remove(selected);assert.equal(h.controller.snapshot().entries.length,11);
+ await h.controller.save(entries[12]);assert.equal(h.controller.snapshot().entries.length,12);assert.equal(h.controller.snapshot().selected?.label,'PUBLIC watch 12');h.controller.close();
+});
 test('Watch caller: invalid family address endpoint or secret-bearing input fails before writes and fetch',async()=>{
   for(const input of [{...btc,address:'ynx1public'},{...trx,address:'0x'+'11'.repeat(20)},{...btc,rpcURL:'http://localhost'},{...trx,genesisBlockId:'0'.repeat(64)},{...btc,secretHex:'PUBLIC NOT KEY'}]){const p=provider(),h=fixture(new PublicMemory(),A,p.fetchImpl);await h.controller.save(input);assert.equal(h.controller.snapshot().phase,'failed');assert.equal(h.storage.writes.length,0);assert.equal(p.calls.length,0);h.controller.close()}
 });
@@ -84,7 +129,7 @@ test('Watch caller: Dashboard real entry and modal normal controls bind public Q
 // Execute actual modal hook/callback body, without mounting RN or OS UI.
 const modalSource=readFileSync(new URL('./PublicChainWatchModal.tsx',import.meta.url),'utf8');
 const modalStart=modalSource.indexOf('export function PublicChainWatchModal('),modalEnd=modalSource.indexOf('  return <Modal visible',modalStart);assert.ok(modalStart>=0&&modalEnd>modalStart);
-const modalProgram=ts.transpileModule(modalSource.slice(modalStart,modalEnd).replace('export function','function')+'return {save,choose,dismiss,edit,snapshot,draft,controller};}\nreturn PublicChainWatchModal(props);',{compilerOptions:{target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText;
+const modalProgram=ts.transpileModule(modalSource.slice(modalStart,modalEnd).replace('export function','function')+'return {save,remove,choose,dismiss,edit,snapshot,draft,controller};}\nreturn PublicChainWatchModal(props);',{compilerOptions:{target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.React}}).outputText;
 function modalCaller(storage=new PublicMemory()){
   const p=provider(),h=fixture(storage,A,p.fetchImpl);h.controller.close(); // Use actual UI-created controller below.
   const slots:any[]=[],effects:Array<()=>void>=[];let cursor=0,closes=0;
@@ -101,6 +146,11 @@ function modalCaller(storage=new PublicMemory()){
 }
 test('Watch modal caller: real add/select/query callbacks publish public balance through UI state',async()=>{
   const h=modalCaller();h.render();await flush();h.render().edit({...btc,genesisBlockId:'',contract:''});h.render().save();await flush();const view=h.render();assert.equal(view.snapshot.entries.length,1);assert.equal(view.snapshot.selected.address,BTC);await view.controller.current.query();assert.equal(h.render().snapshot.result.totalBTC,'1.23456789');assert.equal(h.provider.calls.length,3);h.unmount();
+});
+test('Watch modal caller: explicit remove callback clears selected QR and retained dismissed callback cannot remove again',async()=>{
+ const h=modalCaller();h.render();await flush();h.render().edit({...btc,genesisBlockId:'',contract:''});h.render().save();await flush();
+ const view=h.render(),entry=view.snapshot.selected;view.remove(entry);await flush();assert.equal(h.render().snapshot.entries.length,0);assert.equal(h.render().snapshot.selected,null);
+ const count=h.storage.writes.length;view.dismiss();view.remove(entry);await flush();assert.equal(h.storage.writes.length,count);h.unmount();
 });
 test('Watch modal caller: duplicate close and retained unmounted callback do not close parent twice',async()=>{
   const h=modalCaller(),old=h.render();await flush();old.dismiss();old.dismiss();assert.equal(h.closes(),1);h.unmount();old.dismiss();assert.equal(h.closes(),1);

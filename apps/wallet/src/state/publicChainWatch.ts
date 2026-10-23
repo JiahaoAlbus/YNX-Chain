@@ -50,6 +50,18 @@ export class PublicWatchStore{
       const raw=JSON.stringify({schemaVersion:1,walletAccount:account,entries});if(raw.length>16384)fail('WATCH_LIMIT');guard();try{await this.storage.setItem(key,raw)}catch{fail('WATCH_SAVE_FAILED_OR_UNCERTAIN')}guard();return Object.freeze(entries);
     });queues.set(this.storage,work);try{return await work}finally{if(queues.get(this.storage)===work)queues.delete(this.storage)}
   }
+  async remove(account:string,input:PublicWatchAddress,guard:()=>void){
+    const entry=normalizePublicWatch(input),key=ownerKey(account);
+    const work=(queues.get(this.storage)??Promise.resolve()).catch(()=>{}).then(async()=>{
+      guard();const entries=[...await this.load(account,guard)],at=entries.findIndex(item=>identity(item)===identity(entry));
+      // The user selected this exact saved metadata, not any later address or
+      // endpoint update sharing its identity. Never remove by a stale index.
+      if(at<0||JSON.stringify(entries[at])!==JSON.stringify(entry))fail('WATCH_SELECTION_CHANGED');
+      entries.splice(at,1);const raw=JSON.stringify({schemaVersion:1,walletAccount:account,entries});
+      guard();try{await this.storage.setItem(key,raw)}catch{fail('WATCH_SAVE_FAILED_OR_UNCERTAIN')}guard();
+      return Object.freeze(entries);
+    });queues.set(this.storage,work);try{return await work}finally{if(queues.get(this.storage)===work)queues.delete(this.storage)}
+  }
 }
 /** A caller for public watch addresses, not a transaction or custody engine. */
 export class PublicChainWatchController{
@@ -75,6 +87,10 @@ export class PublicChainWatchController{
   }
   load(){return this.run('loading',async lease=>({entries:await this.store.load(this.walletAccount,lease.assert),selected:null}))}
   save(input:unknown){return this.run('saving',async lease=>{const entry=normalizePublicWatch(input),entries=await this.store.save(this.walletAccount,entry,lease.assert);return {entries,selected:entries.find(item=>identity(item)===identity(entry))!}})}
+  remove(input:PublicWatchAddress){const selected=this.state.selected;if(!selected||this.state.phase==='closed')return Promise.resolve();return this.run('saving',async lease=>{
+    const entry=normalizePublicWatch(input);if(JSON.stringify(entry)!==JSON.stringify(selected))fail('WATCH_SELECTION_CHANGED');
+    const entries=await this.store.remove(this.walletAccount,entry,lease.assert);return {entries,selected:null,result:null};
+  })}
   query(){const selected=this.state.selected;if(!selected||this.state.phase==='closed')return Promise.resolve();return this.run('querying',async(lease,signal)=>{
     const result=selected.family==='bitcoin'?await new BitcoinReadClient({network:selected.network as BitcoinNetwork,baseURL:selected.rpcURL,fetchImpl:this.fetchImpl}).readAddress(selected.address,{signal,guard:lease.assert}):await createTronReader({network:selected.network as TronReadConfig['network'],genesisBlockId:selected.genesisBlockId!,rpcURL:selected.rpcURL},{fetchImpl:this.fetchImpl,assertCurrent:lease.assert}).read({address:selected.address,...(selected.contract?{contract:selected.contract}:{}),...(selected.expectedDecimals===undefined?{}:{expectedDecimals:selected.expectedDecimals})},{signal});
     lease.assert();return {result};

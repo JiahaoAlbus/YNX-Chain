@@ -26,6 +26,7 @@ export function PublicChainWatchModal({account,operations,storage,locale,textSca
   const fillPreset=()=>{const patch=fillPublicChainPreset(draft);if(patch)edit(patch)};
   const choose=(entry:PublicWatchAddress,index:number)=>{controller.current?.select(index);setDraft({family:entry.family,network:entry.network,label:entry.label,address:entry.address,rpcURL:entry.rpcURL,genesisBlockId:entry.genesisBlockId??'',contract:entry.contract??''})};
   const save=()=>{void controller.current?.save({family:draft.family,network:draft.network,label:draft.label.trim(),address:draft.address.trim(),rpcURL:draft.rpcURL.trim(),...(draft.family==='tron'?{genesisBlockId:draft.genesisBlockId.trim(),...(draft.contract.trim()?{contract:draft.contract.trim()}: {})}: {})})};
+  const remove=(entry:PublicWatchAddress)=>{if(view.current.active&&!view.current.dismissed)void controller.current?.remove(entry)};
   const busy=['loading','saving','querying'].includes(snapshot.phase),font={color:colors.ink,fontSize:14*textScale};
   const button=(label:string,press:()=>void,disabled=false,selected=false)=><Pressable key={label} accessibilityRole="button" accessibilityState={{disabled,selected}} disabled={disabled} onPress={press} style={[styles.button,{borderColor:colors.blue,opacity:disabled?0.5:1}]}><Text style={[font,{color:colors.blue}]}>{label}</Text></Pressable>;
   const field=(key:'label'|'address'|'rpcURL'|'genesisBlockId'|'contract',label:string,maxLength:number)=><View key={key}><Text style={font}>{label}</Text><TextInput accessibilityLabel={label} value={draft[key]} autoCapitalize="none" autoCorrect={false} spellCheck={false} autoComplete="off" maxLength={maxLength} onChangeText={value=>edit({[key]:value})} style={[styles.input,font]}/></View>;
@@ -45,6 +46,8 @@ export function PublicChainWatchModal({account,operations,storage,locale,textSca
       {button(c('Save / update watch address','保存／更新观察地址'),save,busy||!draft.label.trim()||!draft.address.trim()||!draft.rpcURL.trim())}
       <Text style={font}>{c('Saved only on this device, isolated by YNX account. A cancelled save may already have reached storage; reopen to check. No RPC defaults are selected.','仅保存在本机，按 YNX 账户隔离。取消已开始的保存可能仍已落盘，可重新打开核对。不预填 RPC。')}</Text>
       {selected?<View style={styles.result}><Text style={font}>{selected.label} · {selected.network}</Text><Text selectable style={font}>{selected.address}</Text>
+        {button(c('Remove this saved watch address','移除此观察地址'),()=>remove(selected),busy)}
+        <Text style={font}>{c('Removes only this local public watch-list entry, not a wallet account, keys or funds. A started change may already be saved even if cancelled; reopen to check.','仅移除此本机公共观察列表项，不删除钱包账户、密钥或资金。已开始的变更即使取消也可能已保存，请重新打开核对。')}</Text>
         <Text style={font}>{c('Watch-address QR only; this does not prove ownership or authorize payment.','仅为观察地址二维码，不证明地址所有权，也不授权付款。')}</Text>
         <View accessibilityLabel={c('Watch public address QR','观察地址二维码')} style={{backgroundColor:'#fff',padding:12,alignSelf:'center'}}><QRCodeView value={selected.address} size={190} color="#000" backgroundColor="#fff"/></View>
         {button(c('Query balance','查询余额'),()=>{void controller.current?.query()},busy)}
