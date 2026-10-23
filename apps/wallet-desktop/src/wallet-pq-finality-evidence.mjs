@@ -6,6 +6,7 @@ import path from 'node:path';
 import {PrivateFilePolicy} from './platform-private-file.mjs';
 import {exactData,preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
 import {PQ_FINALITY_COLLECTOR_LIMITS} from './features/pq-transaction/finality-collector.mjs';
+import {pqTypedOriginalSummary} from './wallet-pq-typed-original.mjs';
 
 // Private Main evidence only. A stored HTTP body/context/CLI result establishes
 // neither trust nor finality and never releases the original transaction.
@@ -37,6 +38,13 @@ function reference(value){
 export {reference as parsePQFinalityEvidenceReference};
 function identity(original,binding){
  if(types.isProxy(binding))fail('PQ_FINALITY_EVIDENCE_INVALID');exactData(binding,['account','networkId'],'PQ_FINALITY_EVIDENCE_INVALID');
+ if(original&&typeof original==='object'&&!types.isProxy(original)&&Object.getOwnPropertyDescriptor(original,'kind')?.value==='pq-typed-action'){
+  // Validate the complete retained wire and both original SDK snapshots. A
+  // typed transport hash is never passed off as a legacy native transfer hash.
+  const saved=pqTypedOriginalSummary(original);
+  if(binding.account!==saved.account||binding.networkId!==saved.networkId)fail('PQ_FINALITY_EVIDENCE_BINDING_MISMATCH');
+  return Object.freeze({account:saved.account,networkId:saved.networkId,operationId:saved.operationId,hash:saved.hash,abciTransactionHash:saved.hash,kind:'pq-typed-action',memberHash:saved.memberHash});
+ }
  const {binding:b}=preparePQTransferOriginal(original,binding);
  return Object.freeze({account:b.account,networkId:b.chainId,operationId:b.operationId,hash:b.hash,abciTransactionHash:b.abciTransactionHash});
 }

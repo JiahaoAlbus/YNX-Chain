@@ -1,7 +1,7 @@
 import test,{before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
-import {readFileSync} from 'node:fs';
+import {readFileSync,constants} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import path from 'node:path';
@@ -15,6 +15,7 @@ import {FileTransactionIntentStore} from './transaction-intent-store.mjs';
 import {TransactionSubmissions} from './transaction-submissions.mjs';
 import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
 import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
+import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
 import {pqTypedBroadcastPermissionRequest} from './wallet-pq-typed-permission.mjs';
 import {projectPendingTransactions,projectPQOriginalObservation} from './transaction-resolution-display.mjs';
 const sha=b=>'0x'+createHash('sha256').update(b).digest('hex'),copy=x=>JSON.parse(JSON.stringify(x));
@@ -32,6 +33,35 @@ before(async()=>{
 });
 after(()=>{if(handle)destroyPQWalletKeyHandle(handle)});
 async function setup(t){const dir=await fs.mkdtemp(path.join(tmpdir(),'ynx-main-typed-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));const filePath=path.join(dir,'original-journal.json');return{filePath,store:new FileTransactionIntentStore({filePath})}}
+test('typed finality raw evidence uses exact dual-hash identity and survives cold recovery without grant',async t=>{
+ const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-typed-proof-custody-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
+ const evidence=new PQFinalityEvidence({directory}),binding={account:record.account,networkId:record.typed.networkId};
+ const bytes=Buffer.from('synthetic unparsed collector response'),expected=Buffer.from(bytes);
+ const saving=evidence.append(record,binding,'collector-http',bytes,{httpStatus:202});bytes.fill(0);const ref=await saving;
+ const cold=new PQFinalityEvidence({directory});assert.deepEqual(await cold.read(record,binding,ref),expected);
+ assert.deepEqual(await cold.candidates(record,binding),{candidates:[ref],unreadable:0});
+ assert.equal(ref.consensusFinality,undefined);assert.equal(ref.permissionGranted,undefined);
+ for(const wrong of [{...record,operationId:'foreign-operation'}, {...record,typed:{...record.typed,memberHash:record.hash}}, {...record,hash:record.typed.memberHash}]){
+  await assert.rejects(cold.read(wrong,binding,ref));
+ }
+ const files=await fs.readdir(directory);assert.equal(files.length,1);
+ const metadata=await fs.readFile(path.join(directory,files[0]));
+ assert.ok(metadata.includes(Buffer.from(record.hash)));assert.ok(metadata.includes(Buffer.from(record.typed.memberHash)));
+ evidence.assertSafeToClose();assert.equal(evidence.pending(),null);
+});
+test('typed finality storage failure holds exact bytes and first cause until explicit local save',async t=>{
+ const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-typed-proof-debt-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
+ let fault=true;const io={...fs,open:async(...args)=>{if(fault&&typeof args[1]==='number'&&(args[1]&constants.O_CREAT))throw false;return fs.open(...args);}};
+ const evidence=new PQFinalityEvidence({directory,io}),binding={account:record.account,networkId:record.typed.networkId};
+ const bytes=Buffer.from('synthetic typed response arriving after lock'),expected=Buffer.from(bytes);
+ await assert.rejects(evidence.append(record,binding,'collector-http',bytes,{httpStatus:202}),e=>e.cause===false);bytes.fill(0);
+ const held=evidence.pending();assert.equal(held.causePresent,true);assert.throws(()=>evidence.assertSafeToClose());
+ await assert.rejects(evidence.append(record,binding,'collector-http',Buffer.from('replacement'),{httpStatus:200}));
+ assert.equal(evidence.pending().eventId,held.eventId);fault=false;
+ const ref=await evidence.flush(held.eventId),cold=new PQFinalityEvidence({directory});
+ assert.deepEqual(await cold.read(record,binding,ref),expected);assert.equal(ref.httpStatus,202);assert.equal(evidence.pending(),null);
+ evidence.assertSafeToClose();assert.equal(record.status,'signed-unsubmitted');
+});
 test('normal Main journal retains exact typed raw/review/two snapshots and cold query never calls a sender or latest policy',async t=>{
  const f=await setup(t),account=record.account;await f.store.reserveOriginal(account,record.kind);f.store.captureOriginal(account,record,record.kind);await f.store.saveOriginal(account,record.hash,()=>{});
  const cold=new FileTransactionIntentStore({filePath:f.filePath});assert.deepEqual((await cold.readPQOriginals(account,()=>{}))[0],record);
