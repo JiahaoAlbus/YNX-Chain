@@ -15,7 +15,7 @@ assert.ok(selected===undefined||selected.length>0,'empty package root is not a d
 const packageRoot=realpathSync(selected===undefined?fileURLToPath(new URL('..',import.meta.url)):resolve(selected));
 function inside(path){const actual=realpathSync(path);assert.ok(actual.startsWith(packageRoot+sep),'module escaped selected package');return actual;}
 const packageJSON=inside(resolve(packageRoot,'package.json')),metadata=JSON.parse(readFileSync(packageJSON,'utf8'));
-assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.ok(['1.3.0-pq.3.32-auth.9','1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13'].includes(metadata.version));
+assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.ok(['1.3.0-pq.3.32-auth.9','1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14'].includes(metadata.version));
 const selectedRequire=createRequire(packageJSON);
 const entry=inside(selectedRequire.resolve('@ynx-chain/wallet-auth/pq-contract-deployment-material'));
 // Byte equality binds the already verified implementation before module load.
@@ -33,6 +33,7 @@ const registry=JSON.parse(registryRaw.toString('utf8'));
 const originalRaw=readFileSync(new URL('./fixtures/contract-deployment-fourth-go-5d712dee8.jsonl',import.meta.url));
 assert.equal(originalRaw.length,3112);assert.equal(hash(originalRaw),'d34649cefc2b0fcd9ea006f1797e5b9115ccb47b8bdb236080587263a2a4b2d6');
 const actualGo=originalRaw.toString('utf8').trim().split('\n').map(line=>JSON.parse(line));
+test('selected public package preserves unchanged deployment-material export',()=>{assert.equal(typeof publicModule.preparePQContractDeploymentMaterialData,'function');});
 test('new Go registry preserves bounded runtime and unavailable production compiler while reusing unchanged SDK evidence',()=>{
  assert.equal(registry.version,'YNX-PQ-CONTRACT-DEPLOYMENT-REGISTRY/v1');
  assert.equal(registry.runtimeMode,'pinned-artifact-bounded-evm-subset');

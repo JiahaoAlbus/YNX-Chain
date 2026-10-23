@@ -18,9 +18,23 @@ struct NativeSourceRelease {
  // historical rows are NOT proof consumers; no endpoint/TOFU/ENV defaults.
  std::string proofContract,proofDispatchDigest,proofRuntimeManifestDigest;
  std::string nativeNodeOrigin,nativeNodeSPKI,nativeChainId;
+ // Dedicated independently admitted initiator runtime. Empty historical rows
+ // do not qualify it. Paths/digests are compile-time release inputs, NOT ENV,
+ // caller JSON, a project owner boolean or a public signature projection.
+ std::string contractRelayRuntimeDirectory,contractRelayRuntimeManifestDigest,contractRelayExecutorDigest;
 };
 inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
- static const std::vector<NativeSourceRelease> admitted;return admitted;
+ // An independently approved App build may supply typed ROWS via its frozen
+ // private compile input. No runtime ENV/JSON/provider/setter is consulted.
+ // Keep those values OUTSIDE the packaged SDK runtime inventory, avoiding a
+ // digest self-reference through this public generic header. Macro presence
+ // is not authority: all original protected registry/Root/current checks run.
+#ifdef YNX_ORIGINAL_NATIVE_SOURCE_RELEASE_ROWS
+ static const std::vector<NativeSourceRelease> admitted={YNX_ORIGINAL_NATIVE_SOURCE_RELEASE_ROWS};
+#else
+ static const std::vector<NativeSourceRelease> admitted;
+#endif
+ return admitted;
 }
 }
 

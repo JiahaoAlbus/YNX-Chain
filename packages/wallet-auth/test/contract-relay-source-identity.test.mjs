@@ -17,7 +17,7 @@ function shim(changes={},currentEffect){
  Module._load=function(name,...args){if(name==='../../../apps/wallet-desktop/native/original-auth-identity.node')return native;return original.call(this,name,...args);};
  state.restore=()=>{Module._load=original;};return state;
 }
-const get=scope=>acquire({serverModuleURL:'file:///public/original-server.mjs',expectedScope:scope});
+const get=scope=>acquire({serverModuleURL:'file:///public/original-server.mjs',localContext:{workspace:'/PUBLIC/workspace',profile:'/PUBLIC/profile',id:'PUBLIC-project'},expectedScope:scope});
 test('PUBLIC caller omission adopts Native actual identity before current; readScopeData is detached DATA without current calls',async()=>{
  const f=shim();let owner;
  try{owner=await get(expected());assert.deepEqual(f.calls.slice(0,4).map(c=>c[0]),['acquire','read','current','read']);assert.equal('callerIdentity' in f.calls[0][1].expectedScope,false);

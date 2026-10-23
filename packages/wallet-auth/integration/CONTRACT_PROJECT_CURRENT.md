@@ -6,6 +6,24 @@ Auth13 adds `assertOriginalIDEContractRelayGuardCurrent(guard)` to the existing
 `@ynx-chain/wallet-auth/walletconnect-dapp-connection` through the same fixed SDK
 self-reference. Their original guard registration is private to that instance.
 
+Auth14 consumes the frozen R166 Native supplier. The factory requires
+`localContext:{workspace,profile,id}`: absolute normalized non-root paths
+(at most 4096 UTF-8 bytes each), and an ASCII local locator matching
+`[A-Za-z0-9_-]{1,128}`. These must be exactly three own DATA properties.
+Native checks the actual directories, held descriptors, process and signed
+launch binding. JavaScript validation does not establish that binding.
+The locator is not a canonical project ID. `expectedScope` is optional and
+only constrains the independently supplied actual nine-field scope; omitting
+it never creates a local project identity or bypasses Native current.
+
+R166 requires the exact final installed Auth/WalletConnect runtime union,
+independently approved Source release rows and platform qualification. The
+normal inventory contains 71 Native and five helper inputs, with unchanged
+13/11 translation units. Empty release rows and the Native initiator-role
+activation fence remain in place. The union generator inventories DATA and
+cannot qualify the installation. R167 artifact DATA is a separate supplier
+successor and is not part of Auth14.
+
 The assertion is synchronous. It only accepts an original factory owner whose
 initial acquisition succeeded. It checks actual Native current between two
 reads of the same original nine-field scope, including the original expiry.

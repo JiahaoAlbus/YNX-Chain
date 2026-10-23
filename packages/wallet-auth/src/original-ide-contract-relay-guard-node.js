@@ -1,4 +1,6 @@
 import {createRequire} from 'node:module';
+import {posix as posixPath} from 'node:path';
+import {Buffer} from 'node:buffer';
 import {assertContractRelayScope,assertSameContractRelayScope,assertOriginalContractRelayGuard,captureContractRelayExpectedScope,registerOriginalContractRelayGuard} from './original-ide-contract-relay-guard-core.js';
 const require=createRequire(import.meta.url);
 const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -13,16 +15,36 @@ export function assertOriginalIDEContractRelayGuardCurrent(owner){
 }
 const names=['acquire','readScope','assertCurrent','observeRevocation','cancel','revoke','retire','join','close'];
 const nativeNames={acquire:'acquireOriginalIDEContractRelayGuard',readScope:'readOriginalIDEContractRelayGuardScope',assertCurrent:'assertOriginalIDEContractRelayGuardCurrent',observeRevocation:'observeOriginalIDEContractRelayGuardRevocation',...Object.fromEntries(['cancel','revoke','retire','join','close'].map(n=>[n,`${n}OriginalIDEContractRelayGuard`]))};
+function captureLocalContext(value){
+  try{
+    if(!value||![Object.prototype,null].includes(Object.getPrototypeOf(value)))fail('YNX_CONTRACT_RELAY_GUARD_SCOPE_INVALID');
+    const descriptors=Object.getOwnPropertyDescriptors(value),keys=Reflect.ownKeys(descriptors);
+    if(keys.length!==3||keys.some(key=>!['workspace','profile','id'].includes(key)))fail('YNX_CONTRACT_RELAY_GUARD_SCOPE_INVALID');
+    const copy={};
+    for(const key of keys){
+      const d=descriptors[key];if(!d.enumerable||!Object.hasOwn(d,'value')||typeof d.value!=='string'||!d.value.length||/[\ud800-\udfff\p{Cc}\p{Cf}]/u.test(d.value))fail('YNX_CONTRACT_RELAY_GUARD_SCOPE_INVALID');
+      if(key==='id'){if(!/^[A-Za-z0-9_-]{1,128}$/.test(d.value))fail('YNX_CONTRACT_RELAY_GUARD_SCOPE_INVALID');}
+      else if(!d.value.startsWith('/')||d.value==='/'||d.value.endsWith('/')||Buffer.byteLength(d.value,'utf8')>4096||posixPath.normalize(d.value)!==d.value)fail('YNX_CONTRACT_RELAY_GUARD_SCOPE_INVALID');
+      copy[key]=d.value;
+    }
+    // These are only DATA constraints. Actual directory/process/launch binding
+    // belongs to the original Native Source; no project identity is derived.
+    return Object.freeze(copy);
+  }catch{fail('YNX_CONTRACT_RELAY_GUARD_SCOPE_INVALID');}
+}
 /** Acquires only through the original peer. This does not supply a confirmation,
  * project authority, wallet approval or arbitrary network capability. */
-export async function acquireOriginalIDEContractRelayGuard({serverModuleURL,expectedScope}={}){
-  if(typeof serverModuleURL!=='string'||!serverModuleURL.startsWith('file:')||!expectedScope)fail('YNX_CONTRACT_RELAY_GUARD_SCOPE_INVALID');
-  const expected=captureContractRelayExpectedScope(expectedScope,true);
+export async function acquireOriginalIDEContractRelayGuard({serverModuleURL,localContext,expectedScope}={}){
+  if(typeof serverModuleURL!=='string'||!serverModuleURL.startsWith('file:'))fail('YNX_CONTRACT_RELAY_GUARD_SCOPE_INVALID');
+  const local=captureLocalContext(localContext);
+  // No local defaults: the Native successor supplies its independent signed
+  // project scope. Optional expected fields only constrain that actual scope.
+  const expected=expectedScope===undefined?undefined:captureContractRelayExpectedScope(expectedScope,true);
   let native;try{native=require('../../../apps/wallet-desktop/native/original-auth-identity.node');}catch(cause){throw Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE',cause});}
   if(names.some(n=>typeof native[nativeNames[n]]!=='function'))fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');
   // Adopt immediately before any scope/current read: failed initialization still
   // leaves a caller-owned cleanup reference, never an invisible acquired owner.
-  const ref=await native[nativeNames.acquire]({serverModuleURL,expectedScope:expected});
+  const ref=await native[nativeNames.acquire]({serverModuleURL,localContext:local,...(expected===undefined?{}:{expectedScope:expected})});
   if(!ref)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');
   let closed=false,terminal=false,unknown=false,cleanupFlight,firstCause=null,capturedScope=null,nativeCurrentEntered=false,publicCurrentEntered=false;
   const actions=new Map();

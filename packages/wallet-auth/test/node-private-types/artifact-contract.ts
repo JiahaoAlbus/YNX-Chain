@@ -3,7 +3,12 @@ import {createDeveloperContractConnection} from '@ynx-chain/wallet-auth/walletco
 import {encodeIDEArtifactManifestData,inspectIDEArtifactManifestData} from '@ynx-chain/wallet-auth/ide-artifact-manifest';
 declare const scope:OriginalIDEContractRelayScope;
 async function consume(){
- const guard=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///normal/server.mjs',expectedScope:scope});
+ const localContext={workspace:'/normal/workspace',profile:'/normal/profile',id:'PUBLIC-local-project'};
+ const guard=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///normal/server.mjs',localContext,expectedScope:scope});
+ // The Native successor chooses the signed canonical scope, never localContext.
+ void acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///normal/server.mjs',localContext});
+ // @ts-expect-error actual local launch constraints remain mandatory
+ void acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///normal/server.mjs'});
  const current=assertOriginalIDEContractRelayGuardCurrent(guard);
  const dataOnly:true=current.dataOnly,notRPCApproval:false=current.authorized;
  void dataOnly;void notRPCApproval;

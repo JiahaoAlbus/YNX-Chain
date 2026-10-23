@@ -46,6 +46,7 @@ struct JointLifecycle {
 + (instancetype)acquireOriginalHelperSourceForMessagePeer:(YNXIDEHelperMessagePeer*)peer error:(NSError**)error;
 // Derived from actual parent app + actual runtime/node; no caller path.
 + (instancetype)acquireOriginalIDEConsumerSource:(NSError **)error;
++ (instancetype)acquireOriginalIDEContractRelaySource:(NSError **)error;
 + (instancetype)acquireOriginalIDEParentSource:(NSError **)error;
 // Dedicated identity-purpose Wallet owner; never old four-operation admission.
 + (instancetype)acquireOriginalIDEIdentityWalletSource:(NSError **)error;
@@ -84,6 +85,9 @@ struct JointLifecycle {
 // this scope. Never HTTP, verifier process, signature, renewal or JS policy.
 - (NSDictionary *)copyOriginalIDEContractRelayScopeLocal:(NSError **)error;
 - (NSDictionary *)copyOriginalIDEContractRelayPeerBindingLocal:(NSError **)error;
+- (BOOL)pinOriginalIDEContractRelayRuntime:(NSError **)error;
+- (BOOL)assertOriginalIDEContractRelayRuntimeCurrent:(NSError **)error;
+- (NSDictionary *)copyOriginalIDEContractRelayLaunchLocal:(NSError **)error;
 - (void)retire;
 - (BOOL)join:(NSError **)error;
 - (BOOL)close:(NSError **)error;

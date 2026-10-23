@@ -15,12 +15,12 @@ function shim({wrongScope=false,join=true,results={}}={}){
 }
 test('PUBLIC fixed-addon ABI unavailable is fail closed before Native acquisition',async()=>{
   const f=shim();delete f.native.assertOriginalIDEContractRelayGuardCurrent;
-  try{await assert.rejects(acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',expectedScope}),/GUARD_UNAVAILABLE/);assert.deepEqual(f.calls,[]);}finally{f.restore();}
+  try{await assert.rejects(acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',localContext:{workspace:'/PUBLIC/workspace',profile:'/PUBLIC/profile',id:'PUBLIC-project'},expectedScope}),/GUARD_UNAVAILABLE/);assert.deepEqual(f.calls,[]);}finally{f.restore();}
 });
 test('PUBLIC partial acquired owner survives scope failure and normal retire/join/close drains once',async()=>{
   const f=shim({wrongScope:true});
   try{
-    let retained;await assert.rejects(acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',expectedScope}),error=>{retained=error.cleanupOwner;return error.code==='YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'&&!!retained;});
+    let retained;await assert.rejects(acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',localContext:{workspace:'/PUBLIC/workspace',profile:'/PUBLIC/profile',id:'PUBLIC-project'},expectedScope}),error=>{retained=error.cleanupOwner;return error.code==='YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'&&!!retained;});
     assert.equal(retained.snapshot().closed,false);await retained.close();await retained.close();assert.equal(retained.snapshot().closed,true);
     assert.deepEqual(f.calls.map(v=>v[0]),['acquire','retire','join','close']);
   }finally{f.restore();}
@@ -28,7 +28,7 @@ test('PUBLIC partial acquired owner survives scope failure and normal retire/joi
 test('PUBLIC failed retire preserves first cause, does not join/close or replay cleanup',async()=>{
   for(const retire of [false,undefined,0,Error('PUBLIC_RETIRE_FAILURE')]){
     const f=shim({results:{retire}});
-    try{const owner=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',expectedScope});
+    try{const owner=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',localContext:{workspace:'/PUBLIC/workspace',profile:'/PUBLIC/profile',id:'PUBLIC-project'},expectedScope});
       await assert.rejects(owner.close(),/CLEANUP_UNKNOWN|PUBLIC_RETIRE_FAILURE/);await assert.rejects(owner.close(),/CLEANUP_UNKNOWN|PUBLIC_RETIRE_FAILURE/);
       assert.equal(owner.snapshot().closed,false);assert.equal(owner.snapshot().cleanup,'unknown');assert.equal(owner.snapshot().firstCause.present,true);
       assert.deepEqual(f.calls.map(v=>v[0]),['acquire','retire']);assert.throws(()=>assertOriginalContractRelayGuard(owner,expectedScope),/GUARD_UNAVAILABLE/);
@@ -38,7 +38,7 @@ test('PUBLIC failed retire preserves first cause, does not join/close or replay 
 test('PUBLIC false cancel/revoke remain UNKNOWN, preserve first cause and never repeat effects',async()=>{
   for(const verb of ['cancel','revoke'])for(const value of [false,undefined,0]){
     const f=shim({results:{[verb]:value,retire:false}});
-    try{const owner=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',expectedScope});
+    try{const owner=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',localContext:{workspace:'/PUBLIC/workspace',profile:'/PUBLIC/profile',id:'PUBLIC-project'},expectedScope});
       await assert.rejects(owner[verb](),new RegExp(`${verb.toUpperCase()}_UNKNOWN`));
       await assert.rejects(owner[verb](),new RegExp(`${verb.toUpperCase()}_UNKNOWN`));
       const first=owner.snapshot().firstCause;await assert.rejects(owner.close(),/CLEANUP_UNKNOWN/);
@@ -49,7 +49,7 @@ test('PUBLIC false cancel/revoke remain UNKNOWN, preserve first cause and never 
 });
 test('PUBLIC unconfirmed join preserves UNKNOWN owner and refuses current without close',async()=>{
   const f=shim({join:false});
-  try{const owner=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',expectedScope});assert.equal(assertOriginalContractRelayGuard(owner,expectedScope).projectId,expectedScope.projectId);
+  try{const owner=await acquireOriginalIDEContractRelayGuard({serverModuleURL:'file:///public/server.mjs',localContext:{workspace:'/PUBLIC/workspace',profile:'/PUBLIC/profile',id:'PUBLIC-project'},expectedScope});assert.equal(assertOriginalContractRelayGuard(owner,expectedScope).projectId,expectedScope.projectId);
     await assert.rejects(owner.close(),/CLEANUP_UNKNOWN/);assert.equal(owner.snapshot().cleanup,'unknown');assert.equal(owner.snapshot().closed,false);assert.deepEqual(f.calls.map(v=>v[0]),['acquire','retire','join']);assert.throws(()=>assertOriginalContractRelayGuard(owner,expectedScope),/GUARD_UNAVAILABLE/);
   }finally{f.restore();}
 });
