@@ -21,6 +21,10 @@ on:
       - 'scripts/ops/test_validate_private_consensus_copy.py'
       - 'scripts/ops/verify-original-native-copy.py'
       - 'scripts/verify/test_original_native_copy_guard.py'
+      - 'scripts/ops/install-pq-remote-signer.py'
+      - 'scripts/ops/test_install_pq_remote_signer.py'
+      - 'scripts/ops/init-consensus-candidate-keys.sh'
+      - 'scripts/verify/init-consensus-candidate-keys-check.sh'
       - 'scripts/ops/validate-pq-remote-signer-process.py'
       - 'scripts/ops/validate-pq-remote-window-entry.sh'
       - 'scripts/ops/test_validate_pq_remote_signer_process.py'
@@ -438,6 +442,46 @@ jobs:
         timeout-minutes: 3
         run: |
           bash scripts/verify/public-bft-operator-transition-check.sh
+      - name: Verify original key ceremony retains partial custody and never creates during resume
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          umask 077
+          YNX_KEY_CEREMONY_CASE="$RUNNER_TEMP/ynx-original-key-ceremony-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          export YNX_KEY_CEREMONY_CASE
+          mkdir "$YNX_KEY_CEREMONY_CASE"
+          cp internal/consensus/key_ceremony.go "$YNX_KEY_CEREMONY_CASE/fixed.go"
+          git show df4c9717c6cedda089c4a350b36cb09240e6b919:internal/consensus/key_ceremony.go > "$YNX_KEY_CEREMONY_CASE/original.go"
+          trap 'cp "$YNX_KEY_CEREMONY_CASE/fixed.go" internal/consensus/key_ceremony.go' EXIT
+          # Keep the new regression and persistence helpers, substituting only
+          # the actual original callee. A compiler failure never qualifies RED.
+          python3 -B - <<'PY'
+          import os, re
+          from pathlib import Path
+          root = Path(os.environ['YNX_KEY_CEREMONY_CASE'])
+          pattern = r'(?ms)^func InitializeProductionKeyFiles\(.*?^}\n'
+          fixed = (root / 'fixed.go').read_text()
+          old = re.findall(pattern, (root / 'original.go').read_text())
+          if len(old) != 1:
+              raise SystemExit('original key ceremony function is ambiguous')
+          replaced, count = re.subn(pattern, lambda _: old[0], fixed)
+          if count != 1:
+              raise SystemExit('fixed key ceremony function is ambiguous')
+          Path('internal/consensus/key_ceremony.go').write_text(replaced)
+          PY
+          set +e
+          go test -v -p 1 -count=1 -timeout=60s -run '^TestProductionKeyCeremonyPublicPathCannotReplaceGeneratedPrivateKey$' ./internal/consensus > "$YNX_KEY_CEREMONY_CASE/original-red.log" 2>&1
+          YNX_KEY_CEREMONY_RED_STATUS=$?
+          set -e
+          cp "$YNX_KEY_CEREMONY_CASE/fixed.go" internal/consensus/key_ceremony.go
+          trap - EXIT
+          cat "$YNX_KEY_CEREMONY_CASE/original-red.log"
+          test "$YNX_KEY_CEREMONY_RED_STATUS" -ne 0
+          grep -F 'public output replaced generated custody or hid the failure: <nil>' "$YNX_KEY_CEREMONY_CASE/original-red.log"
+          go test -v -p 1 -count=1 -timeout=90s -run '^TestProductionKeyCeremony' ./internal/consensus
+          go test -v -p 1 -count=1 -timeout=60s ./cmd/ynx-consensus-key-init
+          bash scripts/verify/init-consensus-candidate-keys-check.sh
       - name: Compile frozen measured production overlay without executing cases
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
@@ -1003,6 +1047,7 @@ jobs:
           python3 -B scripts/loadtest/test_pq_network_file_sizes.py
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
           python3 -B -m unittest discover -s scripts/verify -p 'test_original_native_copy_guard.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_install_pq_remote_signer.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
