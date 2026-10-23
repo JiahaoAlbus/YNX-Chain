@@ -33,6 +33,21 @@ function deploymentRequestId(value) {
   return value;
 }
 
+// A provider or transport may not cooperate with AbortSignal. End only this
+// local wait; consume any late settlement without dispatching another request.
+function deploymentAwait(signal, start) {
+  if (!signal) return Promise.resolve().then(start);
+  return new Promise((resolve, reject) => {
+    const cleanup = () => signal.removeEventListener("abort", abort);
+    const abort = () => { cleanup(); reject(signal.reason ?? new DOMException("Aborted", "AbortError")); };
+    const settle = callback => value => { cleanup(); callback(value); };
+    signal.addEventListener("abort", abort, { once: true });
+    if (signal.aborted) { abort(); return; }
+    try { Promise.resolve(start()).then(settle(resolve), settle(reject)); }
+    catch (cause) { cleanup(); reject(cause); }
+  });
+}
+
 function deploymentBytes(value, field, maximum) {
   if ((typeof value === "string" && value.length > maximum) || (value instanceof ArrayBuffer && value.byteLength > maximum) || (ArrayBuffer.isView(value) && value.byteLength > maximum)) throw new TypeError(`${field} exceeds its byte bound`);
   const result = bytes(value, field);
@@ -456,7 +471,7 @@ export class YNXCloudClient {
     if (this.product !== "cloud") throw new TypeError("IDE deployments require the Cloud product");
     const id = deploymentRequestId(requestId);
     if (this.deploymentRequests.has(id)) throw new YNXCloudDeploymentUnknownError(id);
-    const originalHeaders = await this.deploymentHeaders("POST", "/ide/deployments", id, headers);
+    const originalHeaders = await this.deploymentHeaders("POST", "/ide/deployments", id, headers, signal);
     if (originalHeaders.has("Content-Type") || originalHeaders.has("Idempotency-Key")) throw new TypeError("deployment content type and original request ID cannot be overridden");
     originalHeaders.set("Idempotency-Key", id);
     const payload = await deploymentPayload(manifest, artifact, approval);
@@ -465,7 +480,7 @@ export class YNXCloudClient {
     if (this.deploymentRequests.has(id)) throw new YNXCloudDeploymentUnknownError(id);
     this.deploymentRequests.add(id);
     try {
-      const result = await this.request("/ide/deployments", { method: "POST", body: payload.form, headers: originalHeaders, originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" });
+      const result = await deploymentAwait(signal, () => this.request("/ide/deployments", { method: "POST", body: payload.form, headers: originalHeaders, originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" }));
       if (result?.requestId !== id || !["unknown", "running", "completed", "failed"].includes(result?.state) || !payload.binding || Object.keys(payload.binding).some(key => result?.binding?.[key] !== payload.binding[key])) throw new YNXCloudDeploymentUnknownError(id);
       if (result.state === "completed" && result.exitCode !== 0) throw new YNXCloudDeploymentUnknownError(id);
       if (result.state === "running" || result.state === "completed") {
@@ -486,8 +501,8 @@ export class YNXCloudClient {
   async getIDEDeploymentStatus(requestId, { headers = {}, signal } = {}) {
     const id = deploymentRequestId(requestId);
     const path=`/ide/deployments/${id}`;
-    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers);
-    const result = await this.request(path, { headers:originalHeaders,originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" });
+    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers,signal);
+    const result = await deploymentAwait(signal, () => this.request(path, { headers:originalHeaders,originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" }));
     if (result?.requestId !== id || !["unknown", "running", "completed", "failed"].includes(result?.state) || (result.state === "completed" && result.exitCode !== 0)) throw new YNXCloudDeploymentUnknownError(id);
     return result;
   }
@@ -495,18 +510,19 @@ export class YNXCloudClient {
   async getIDEDeploymentLogs(requestId, { headers = {}, signal } = {}) {
     const id = deploymentRequestId(requestId);
     const path=`/ide/deployments/${id}/logs`;
-    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers);
-    const result = await this.request(path, { headers:originalHeaders,originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" });
+    const originalHeaders=await this.deploymentHeaders("GET",path,id,headers,signal);
+    const result = await deploymentAwait(signal, () => this.request(path, { headers:originalHeaders,originalAuthorizationHeaders:originalHeaders, signal, retry: 1, redirect: "error" }));
     if (result?.requestId !== id || result.runtimeLogSource !== "original-resource" || typeof result.runtimeLogs !== "string" || new TextEncoder().encode(result.runtimeLogs).length > 65536 || !Array.isArray(result.operationLogs)) throw new YNXCloudDeploymentUnknownError(id);
     return result;
   }
 
-  async deploymentHeaders(method, path, operationRequestId, extra) {
+  async deploymentHeaders(method, path, operationRequestId, extra, signal) {
     if (typeof this.getDeploymentRequestHeaders !== "function") throw new YNXCloudError("Original IDE deployment authentication provider is unavailable; ordinary Wallet login is not a deployment grant");
     const url = endpointURL(this.endpoint, path);
     const target = new URL(url);
     if (target.username || target.password || target.hash) throw new TypeError("deployment endpoint must not contain credentials or a fragment");
-    const original = await this.getDeploymentRequestHeaders(Object.freeze({ method, path:target.pathname+target.search, url, operationRequestId }));
+    const original = await deploymentAwait(signal, () => this.getDeploymentRequestHeaders(Object.freeze({ method, path:target.pathname+target.search, url, operationRequestId })));
+    if (signal?.aborted) throw signal.reason ?? new DOMException("Aborted", "AbortError");
     if (!original) throw new YNXCloudError("Original IDE deployment authentication headers are unavailable");
     const result = new Headers(extra);
     new Headers(original).forEach((value, name) => result.set(name, value));
