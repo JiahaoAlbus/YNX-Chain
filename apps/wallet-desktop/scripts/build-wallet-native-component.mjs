@@ -7,7 +7,7 @@ import * as originalBuild from './build-original-auth-identity-native.mjs';
 import {composeWalletPublisherNativeBuildPlan,WALLET_PUBLISHER_NATIVE_INPUTS,walletNativeSourceProfile} from './wallet-publisher-native-build.mjs';
 import {PINNED_NODE_HEADER_PINS} from './canonical-package.mjs';
 import {SDK13_HELPER_SOURCE_OUTPUT,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST,sdk13HelperBuildCommands,verifySDK13NativeComponent} from './sdk13-native-component.mjs';
-import {verifySDK14RuntimeUnion,SDK14_RUNTIME_UNION_SOURCE} from './sdk14-runtime-union.mjs';
+import {verifySDKRuntimeUnion,SDK_RUNTIME_UNIONS,SDK14_RUNTIME_UNION_SOURCE} from './sdk14-runtime-union.mjs';
 const here=fileURLToPath(import.meta.url),app=path.resolve(path.dirname(here),'..'),repo=path.resolve(app,'../..');
 const hash=b=>createHash('sha256').update(b).digest('hex');
 function assertMatchedOriginalBuild(){
@@ -36,7 +36,7 @@ export function buildWalletNativeComponent(arch,headers){
  const inventoryRelative='packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',inventoryBytes=regular(path.join(repo,inventoryRelative));
  if(inventoryBytes.length!==inventoryPin.bytes||hash(inventoryBytes)!==inventoryPin.sha256)throw Error('WALLET_NATIVE_SOURCE_INVENTORY_DIFFERS');
  const inventory=JSON.parse(inventoryBytes),supplier=[...inventory.NativeInputs,...inventory.HelperInputs];
- const runtimeUnion=profile.version==='1.3.0-pq.3.32-auth.14'?verifySDK14RuntimeUnion(path.join(repo,'packages/wallet-auth'),regular(path.join(repo,SDK14_RUNTIME_UNION_SOURCE))):null;
+ const runtimeUnion=Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version)?verifySDKRuntimeUnion(profile.version,path.join(repo,'packages/wallet-auth'),regular(path.join(repo,SDK14_RUNTIME_UNION_SOURCE))):null;
  for(const p of supplier){const bytes=regular(path.join(repo,p.path));if(bytes.length!==p.bytes||hash(bytes)!==p.sha256)throw Error('WALLET_NATIVE_SUPPLIER_SOURCE_DIFFERS');}
  const headerPins=PINNED_NODE_HEADER_PINS.map(p=>{const bytes=regular(path.join(headers,p.relative));if(bytes.length!==p.bytes||hash(bytes)!==p.sha256)throw Error('WALLET_NATIVE_PINNED_HEADERS_DIFFER');return {...p};});
  const recordPath=path.join(app,'native/original-auth-identity-build.json'),helperAlias=path.join(repo,SDK13_HELPER_ASSET);

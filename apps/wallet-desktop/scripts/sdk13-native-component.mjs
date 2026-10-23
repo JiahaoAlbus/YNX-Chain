@@ -4,7 +4,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {readFileSync,lstatSync,mkdirSync,writeFileSync} from 'node:fs';
 import {canonicalNativeInputSelection,verifyCanonicalNativeReceipt,CANONICAL_NATIVE_EVIDENCE_TESTS} from './canonical-package.mjs';
 import {WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_NATIVE_SOURCE_PROFILES} from './wallet-publisher-native-build.mjs';
-import {SDK14_RUNTIME_UNION,SDK14_RUNTIME_UNION_SOURCE,verifySDK14RuntimeUnion} from './sdk14-runtime-union.mjs';
+import {SDK_RUNTIME_UNIONS,sdkRuntimeUnionProfile,SDK14_RUNTIME_UNION_SOURCE,verifySDKRuntimeUnion} from './sdk14-runtime-union.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const fail=()=>{throw Error('Matched Wallet native component differs');};
 export const SDK13_HELPER_ASSET='apps/wallet-desktop/native/YNXIdentityReceiver';
@@ -36,9 +36,10 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  const inventory=JSON.parse(pinned(inventoryBytes,profile.inventory));
  if(inventory.version!==profile.version||record?.readbackOnly!==false||record?.commandsKind!=='executed-normal-build'||typeof readSource!=='function')fail();
  same(record.sourceInventory,{relative:'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',...profile.inventory});
- if(profile.version==='1.3.0-pq.3.32-auth.14'){
-  same(record.runtimeUnion,{...SDK14_RUNTIME_UNION,filesVerified:9335,sourceRoot:path.join(record.sourceRoot,'packages/wallet-auth'),NativeAdmission:false,installedImageQualified:false,platformQualified:false,networkActivated:false});
-  pinned(readSource(SDK14_RUNTIME_UNION_SOURCE),SDK14_RUNTIME_UNION);
+ if(Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version)){
+  const union=sdkRuntimeUnionProfile(profile.version);
+  same(record.runtimeUnion,{...union,filesVerified:union.files,sourceRoot:path.join(record.sourceRoot,'packages/wallet-auth'),NativeAdmission:false,installedImageQualified:false,platformQualified:false,networkActivated:false});
+  pinned(readSource(SDK14_RUNTIME_UNION_SOURCE),union);
  }
  const helper=record.helperBuild;
  if(!helper||helper.kind!=='YNX_WALLET_ORIGINAL_HELPER_BUILD/v1'||helper.sourceRoot!==record.sourceRoot||helper.readbackOnly!==false||helper.commandsKind!=='executed-normal-build'||helper.executed!==true||helper.serviceRegistered!==false||helper.installed!==false||helper.nativeQualified!==false||helper.appSigned!==false)fail();
@@ -67,7 +68,7 @@ export function stageSDK13HelperBundle({contents,projectDir}){
  absolute(contents);absolute(projectDir);const repo=path.resolve(projectDir,'../..');
  const record=JSON.parse(regular(path.join(projectDir,'native/original-auth-identity-build.json'))),helper=regular(path.join(repo,SDK13_HELPER_ASSET)),plist=regular(path.join(repo,SDK13_HELPER_PLIST));
  verifySDK13NativeComponent({record,inventoryBytes:regular(path.join(repo,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')),moduleBytes:regular(path.join(projectDir,'native/original-auth-identity.node')),helperBytes:helper},name=>regular(path.join(repo,name)));
- if(record.runtimeUnion)verifySDK14RuntimeUnion(path.join(repo,'packages/wallet-auth'),regular(path.join(repo,SDK14_RUNTIME_UNION_SOURCE)));
+ if(record.runtimeUnion){const profile=Object.values(WALLET_NATIVE_SOURCE_PROFILES).find(p=>p.inventory.sha256===record.sourceInventory.sha256&&p.inventory.bytes===record.sourceInventory.bytes);verifySDKRuntimeUnion(profile.version,path.join(repo,'packages/wallet-auth'),regular(path.join(repo,SDK14_RUNTIME_UNION_SOURCE)));}
  const root=lstatSync(contents);if(!root.isDirectory()||root.isSymbolicLink())fail();
  for(const [relative,body,mode]of bundleRows(helper,plist)){
   let directory=contents;for(const part of path.posix.dirname(relative).split('/')){directory=path.join(directory,part);try{const s=lstatSync(directory);if(!s.isDirectory()||s.isSymbolicLink())fail();}catch(e){if(e.code!=='ENOENT')throw e;mkdirSync(directory,{mode:0o755});}}

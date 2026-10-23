@@ -66,7 +66,7 @@ for(const variant of ['missing','duplicate','foreign','mismatch'])test(`real ASA
  assert.deepEqual(readFileSync(f.archive),before);assert.equal(existsSync(f.output),false);
 });
 
-test('normal relocation parent and data child restore excluded evidence from immutable Git and bind the receipt',t=>{
+for(const sdkVersion of ['1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.18'])test(`normal relocation ${sdkVersion} parent and data child restore excluded evidence from immutable Git and bind the receipt`,t=>{
  const root=mkdtempSync(path.join(tmpdir(),'PUBLIC-normal-evidence-')),app=path.join(root,'apps/wallet-desktop'),raw=path.join(root,'raw'),resources=path.join(root,'resources'),archive=path.join(resources,'app.asar');
  t.after(()=>rmSync(root,{recursive:true,force:true}));
  const manifestBytes=readFileSync(new URL('../scripts/wallet-auth-runtime-dependencies.json',import.meta.url)),manifest=JSON.parse(manifestBytes);
@@ -74,7 +74,7 @@ test('normal relocation parent and data child restore excluded evidence from imm
  const files=new Map([
   ['apps/wallet-desktop/package.json',Buffer.from(JSON.stringify({name:'PUBLIC-evidence-wallet',version:'0.0.0',main:'src/main.mjs',type:'module'}))],
   ['apps/wallet-desktop/native/original-auth-identity.node',Buffer.from('PUBLIC non-Native fixture; never loaded')],
-  ['packages/wallet-auth/package.json',Buffer.from(JSON.stringify({name:'@ynx-chain/wallet-auth',version:'1.3.0-pq.3.32-auth.14',type:'module',dependencies:{'@noble/curves':'2.2.0','@noble/hashes':'2.2.0'},peerDependencies:{'@ynx/batch-v01-candidate':'0.1.0-candidate.2'},peerDependenciesMeta:{'@ynx/batch-v01-candidate':{optional:true}}}))],
+  ['packages/wallet-auth/package.json',Buffer.from(JSON.stringify({name:'@ynx-chain/wallet-auth',version:sdkVersion,type:'module',dependencies:{'@noble/curves':'2.2.0','@noble/hashes':'2.2.0'},peerDependencies:{'@ynx/batch-v01-candidate':'0.1.0-candidate.2'},peerDependenciesMeta:{'@ynx/batch-v01-candidate':{optional:true}}}))],
   ['packages/wallet-auth/src/index.js',Buffer.from('export const PUBLIC_ONLY=true;\n')],
   ['apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json',manifestBytes],
   ...CANONICAL_NATIVE_EVIDENCE_TESTS.map(name=>[name,publicBytes(name)]),

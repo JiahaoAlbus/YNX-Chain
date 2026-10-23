@@ -20,8 +20,8 @@ test('SDK14 requires71 original SDK inputs plus2 Wallet inputs without accepting
  for(const [n,r,p]of [[names,old,receipt],[names,raw,receipt.slice(0,71)],[names.slice(1),raw,receipt]])assert.throws(()=>canonicalNativeInputSelection(v.version,n,r,p),/inventory differs/);
  const changed=structuredClone(receipt);changed[0].sha256='0'.repeat(64);assert.throws(()=>canonicalNativeInputSelection(v.version,names,raw,changed),/inventory differs/);
 });
-test('normal package lock selects exact supplied SDK14 without changing application dependencies',()=>{
+test('normal package lock selects an explicitly matched SDK profile without changing application dependencies',()=>{
  const lock=JSON.parse(readFileSync(new URL('../package-lock.json',import.meta.url))),metadata=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
- assert.equal(lock.packages['../../packages/wallet-auth'].version,'1.3.0-pq.3.32-auth.14');
+ assert.equal(walletNativeSourceProfile(lock.packages['../../packages/wallet-auth'].version).version,lock.packages['../../packages/wallet-auth'].version);
  assert.deepEqual(lock.packages[''].dependencies,metadata.dependencies);
 });
