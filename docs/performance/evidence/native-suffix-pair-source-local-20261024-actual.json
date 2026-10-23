@@ -1,0 +1,572 @@
+{
+  "schema": 1,
+  "kind": "explicit-native-suffix-pair-source-and-offline-reader-actual",
+  "sourceCommit": "c2f657c7f3557a4b3cd57fd2a4c2b449816218c4",
+  "sourceTrees": {
+    "internal": "027595661cec2d21f0c88e70949dd51f92819ffa",
+    "client": "1a901934fe2bec8b977c38391290728e6df5535b",
+    "node": "8206358b1f284904285e9f5f78f7fd96eee40818"
+  },
+  "sourcePins": [
+    {
+      "path": ".github/workflows/chain-core.yml",
+      "bytes": 32354,
+      "sha256": "0530b22a357cf719bbe4f5434630bfb0fbda7b26dbdb5d9d0a7b9933e85dbfcd"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/main.go",
+      "bytes": 66780,
+      "sha256": "e4d761fa8553a88a3aa66dc48c7c5eca48dadac3b0ad9000acfc054f73ba8c78"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/native_submit8_test.go",
+      "bytes": 5653,
+      "sha256": "70293d47256ac13fa72082b3d1fd677451559744589bf94769078deabe1ac3ec"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/prefix_replay.go",
+      "bytes": 3655,
+      "sha256": "2640dd25a6437c2526e52602a3dec2fecbfd63edfec8df420dbed920dab676c9"
+    },
+    {
+      "path": "internal/consensus/block_journal_prefix.go",
+      "bytes": 9054,
+      "sha256": "5d6e45afdc35f7b4a9e7258a822fb83233f37211f4a3bf60af290bad855ec934"
+    },
+    {
+      "path": "internal/consensus/block_journal_suffix_application_test.go",
+      "bytes": 5968,
+      "sha256": "cb65fb0114c1d68bd9ca7c450a81695635c3d528c9f76495f9baaa052cc924eb"
+    },
+    {
+      "path": "scripts/loadtest/supply-linux-window.py",
+      "bytes": 122286,
+      "sha256": "3742881beee7952435d46ad5f37fd239fa58e4da8d7061ceb332cc6827357895"
+    },
+    {
+      "path": "scripts/loadtest/test_supply_linux_window.py",
+      "bytes": 114077,
+      "sha256": "7247868a8352369ee23a18225403127d3d0a2cb5adb8d94d5e8c97e43249094b"
+    },
+    {
+      "path": "scripts/verify/perf-prefix-replay-candidate-check.mjs",
+      "bytes": 5345,
+      "sha256": "090c44f8e73e7f55bf1cb945d7efc575c54ddb5a42d9455be6953059bcb14ab4"
+    }
+  ],
+  "priorCandidateCI": {
+    "path": "artifacts/chain-performance-20261017/native-suffix-source/prior-ci-39986282445-terminal.json",
+    "bytes": 8519,
+    "sha256": "16d35c0d10f4539c7272d39ed3001d7c5f40f8a6c8a429decb22309975a85a33"
+  },
+  "newSourceCIQualified": false,
+  "newNetworkDispatched": false,
+  "preparedPair": {
+    "path": "artifacts/chain-performance-20261017/native-suffix-source/prepared-pair.json",
+    "bytes": 5975,
+    "sha256": "fff5fd623d9037bd7c1395a0d28f0b060fb35e1d883d283dd659d3b7297349c0"
+  },
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-suffix-source/controller-after-copy-import.raw",
+      "bytes": 174,
+      "sha256": "c1cec3acb2f07610f3c1be51f47e9ee7a8790909410542b81213b960b74e03ca"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-suffix-source/native-suffix-negative-race.raw",
+      "bytes": 64,
+      "sha256": "6411ed42675127f728c49e4de7f366ee0847db8a0559798b9eadda01d9ddb8be"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-suffix-source/client-full.raw",
+      "bytes": 76,
+      "sha256": "c706977ad7aa0c8ebe173454b1675115e68cb9fda641a1da22461c16cfa46507"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-suffix-source/source-gate.raw",
+      "bytes": 3302,
+      "sha256": "9d72667a2c3fb3b6981ca945d52685513410e542e43ccc5e43ca24c85d282f79"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-suffix-source/matched-reader-abba.raw",
+      "bytes": 7497,
+      "sha256": "9ace091f061f3970dce4f4c2a6d119f85bcb32afc70ab2b0e5eaa1749985a9e0"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-pair-controller.raw",
+      "bytes": 853,
+      "sha256": "9544c09ed9d9819ca0c1cc5b39081934de3b0c83ae17eb5a4643e84a890276bd"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-explicit-focused.raw",
+      "bytes": 139,
+      "sha256": "72e749181b9fe1253c6e1d10061b130be620969ca8654430d28bd3e3d3fdd285"
+    }
+  ],
+  "offlineProbe": {
+    "path": "docs/performance/evidence/native-suffix-offline-probe-20261024.go.txt",
+    "bytes": 4751,
+    "sha256": "cc23ec22157fd8c8be6b3e5cca52d5d27a17288e6d8cb5af6e7f9f6b0bcb019f"
+  },
+  "offlineOriginalFourStoreReadback": {
+    "arch": "arm64",
+    "goVersion": "go1.25.7",
+    "gomaxprocs": 1,
+    "kind": "offline_original_four_store_native_suffix_ABBA_not_network_tps",
+    "limits": "Four sequential private store captures per original prefix; same raw transaction observed24 times, never counted as new business. Includes controlled fixture writes/read-lock/hash/index/fee/nonce checks. No RPC/quorum/publishedInfo/new blocks or network qualification; two local samples per mode.",
+    "originalRun": 39164390241,
+    "os": "darwin",
+    "samples": [
+      {
+        "mode": "native-suffix-control",
+        "elapsedNs": 816067833,
+        "allocatedBytes": 549725744,
+        "stats": {
+          "prefixReplay": {
+            "calls": 32,
+            "successfulFullReplays": 1,
+            "successfulPrefixReuses": 31,
+            "failures": 0,
+            "durationNs": 723207458,
+            "replayedBlocks": 7,
+            "replayedTransactionInputs": 2048,
+            "canonicalByteLimit": 16777216,
+            "workPhases": {
+              "gateWait": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 30668
+              },
+              "prefixCheck": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 10950668
+              },
+              "privateJSON": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              },
+              "privateValidate": {
+                "calls": 31,
+                "errors": 0,
+                "durationNs": 120800626
+              },
+              "fullReplay": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 27517834
+              },
+              "suffixSetup": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 69888207
+              },
+              "suffixReplay": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 314338210
+              },
+              "suffixEncode": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 46325667
+              },
+              "canonicalCopy": {
+                "calls": 24,
+                "errors": 0,
+                "durationNs": 4426335
+              },
+              "certificatePublish": {
+                "calls": 8,
+                "errors": 0,
+                "durationNs": 100241584
+              },
+              "privateNativeClone": {
+                "calls": 31,
+                "errors": 0,
+                "durationNs": 28379001
+              }
+            },
+            "nativeCloneCache": {
+              "snapshotPresent": true,
+              "canonicalBytes": 2610833,
+              "height": 8,
+              "accounts": 2056,
+              "feeEvents": 2048,
+              "lotEntries": 6144
+            }
+          },
+          "phaseTotalsNs": {
+            "loadNs": 801564792,
+            "hashNs": 14399163,
+            "captureNs": 39044331,
+            "decodeNs": 723258417,
+            "indexPublishNs": 20805711,
+            "transactionVerifyNs": 2889208
+          },
+          "attempts": 32,
+          "bytesHashed": 35059168,
+          "snapshotValidations": 32,
+          "snapshotCacheHits": 0,
+          "transactionVerifications": 24,
+          "blockJournalReplayedBlocks": 7,
+          "blockJournalReplayedTransactionInputs": 2048,
+          "blockJournalNativeVerificationFacts": {
+            "capacity": 4096,
+            "string_byte_limit": 4194304,
+            "entries": 2048,
+            "retained_string_bytes": 1460288,
+            "lookups": 2048,
+            "hits": 0,
+            "successful_verifications": 2048
+          }
+        },
+        "cpuUserNs": 771652000,
+        "cpuSystemNs": 33476000
+      },
+      {
+        "mode": "native-suffix-candidate",
+        "elapsedNs": 805157333,
+        "allocatedBytes": 539599160,
+        "stats": {
+          "prefixReplay": {
+            "nativeSuffixSetup": true,
+            "calls": 32,
+            "successfulFullReplays": 1,
+            "successfulPrefixReuses": 31,
+            "failures": 0,
+            "durationNs": 718159624,
+            "replayedBlocks": 7,
+            "replayedTransactionInputs": 2048,
+            "canonicalByteLimit": 16777216,
+            "workPhases": {
+              "gateWait": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 23501
+              },
+              "prefixCheck": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 10622833
+              },
+              "privateJSON": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              },
+              "privateValidate": {
+                "calls": 31,
+                "errors": 0,
+                "durationNs": 124472079
+              },
+              "fullReplay": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 29258542
+              },
+              "suffixSetup": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 59433000
+              },
+              "suffixReplay": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 310719043
+              },
+              "suffixEncode": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 50260001
+              },
+              "canonicalCopy": {
+                "calls": 24,
+                "errors": 0,
+                "durationNs": 6112125
+              },
+              "certificatePublish": {
+                "calls": 8,
+                "errors": 0,
+                "durationNs": 99298082
+              },
+              "privateNativeClone": {
+                "calls": 31,
+                "errors": 0,
+                "durationNs": 27548625
+              }
+            },
+            "nativeCloneCache": {
+              "snapshotPresent": true,
+              "canonicalBytes": 2610833,
+              "height": 8,
+              "accounts": 2056,
+              "feeEvents": 2048,
+              "lotEntries": 6144
+            }
+          },
+          "phaseTotalsNs": {
+            "loadNs": 791108332,
+            "hashNs": 14222629,
+            "captureNs": 33586499,
+            "decodeNs": 718203997,
+            "indexPublishNs": 20407210,
+            "transactionVerifyNs": 2773082
+          },
+          "attempts": 32,
+          "bytesHashed": 35059168,
+          "snapshotValidations": 32,
+          "snapshotCacheHits": 0,
+          "transactionVerifications": 24,
+          "blockJournalReplayedBlocks": 7,
+          "blockJournalReplayedTransactionInputs": 2048,
+          "blockJournalNativeVerificationFacts": {
+            "capacity": 4096,
+            "string_byte_limit": 4194304,
+            "entries": 2048,
+            "retained_string_bytes": 1460288,
+            "lookups": 2048,
+            "hits": 0,
+            "successful_verifications": 2048
+          }
+        },
+        "cpuUserNs": 759543000,
+        "cpuSystemNs": 30771000
+      },
+      {
+        "mode": "native-suffix-candidate",
+        "elapsedNs": 809331083,
+        "allocatedBytes": 539599080,
+        "stats": {
+          "prefixReplay": {
+            "nativeSuffixSetup": true,
+            "calls": 32,
+            "successfulFullReplays": 1,
+            "successfulPrefixReuses": 31,
+            "failures": 0,
+            "durationNs": 719744369,
+            "replayedBlocks": 7,
+            "replayedTransactionInputs": 2048,
+            "canonicalByteLimit": 16777216,
+            "workPhases": {
+              "gateWait": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 25374
+              },
+              "prefixCheck": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 10887040
+              },
+              "privateJSON": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              },
+              "privateValidate": {
+                "calls": 31,
+                "errors": 0,
+                "durationNs": 125822539
+              },
+              "fullReplay": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 35250584
+              },
+              "suffixSetup": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 70814918
+              },
+              "suffixReplay": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 295357500
+              },
+              "suffixEncode": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 44901916
+              },
+              "canonicalCopy": {
+                "calls": 24,
+                "errors": 0,
+                "durationNs": 4867998
+              },
+              "certificatePublish": {
+                "calls": 8,
+                "errors": 0,
+                "durationNs": 101361666
+              },
+              "privateNativeClone": {
+                "calls": 31,
+                "errors": 0,
+                "durationNs": 30143960
+              }
+            },
+            "nativeCloneCache": {
+              "snapshotPresent": true,
+              "canonicalBytes": 2610833,
+              "height": 8,
+              "accounts": 2056,
+              "feeEvents": 2048,
+              "lotEntries": 6144
+            }
+          },
+          "phaseTotalsNs": {
+            "loadNs": 795104960,
+            "hashNs": 14424502,
+            "captureNs": 35995501,
+            "decodeNs": 719793709,
+            "indexPublishNs": 20281289,
+            "transactionVerifyNs": 2668666
+          },
+          "attempts": 32,
+          "bytesHashed": 35059168,
+          "snapshotValidations": 32,
+          "snapshotCacheHits": 0,
+          "transactionVerifications": 24,
+          "blockJournalReplayedBlocks": 7,
+          "blockJournalReplayedTransactionInputs": 2048,
+          "blockJournalNativeVerificationFacts": {
+            "capacity": 4096,
+            "string_byte_limit": 4194304,
+            "entries": 2048,
+            "retained_string_bytes": 1460288,
+            "lookups": 2048,
+            "hits": 0,
+            "successful_verifications": 2048
+          }
+        },
+        "cpuUserNs": 762781000,
+        "cpuSystemNs": 31987000
+      },
+      {
+        "mode": "native-suffix-control",
+        "elapsedNs": 823645334,
+        "allocatedBytes": 549731200,
+        "stats": {
+          "prefixReplay": {
+            "calls": 32,
+            "successfulFullReplays": 1,
+            "successfulPrefixReuses": 31,
+            "failures": 0,
+            "durationNs": 732076665,
+            "replayedBlocks": 7,
+            "replayedTransactionInputs": 2048,
+            "canonicalByteLimit": 16777216,
+            "workPhases": {
+              "gateWait": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 35500
+              },
+              "prefixCheck": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 10904872
+              },
+              "privateJSON": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              },
+              "privateValidate": {
+                "calls": 31,
+                "errors": 0,
+                "durationNs": 126412711
+              },
+              "fullReplay": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 28021708
+              },
+              "suffixSetup": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 74280125
+              },
+              "suffixReplay": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 306061625
+              },
+              "suffixEncode": {
+                "calls": 7,
+                "errors": 0,
+                "durationNs": 51361042
+              },
+              "canonicalCopy": {
+                "calls": 24,
+                "errors": 0,
+                "durationNs": 6230623
+              },
+              "certificatePublish": {
+                "calls": 8,
+                "errors": 0,
+                "durationNs": 99977042
+              },
+              "privateNativeClone": {
+                "calls": 31,
+                "errors": 0,
+                "durationNs": 28507041
+              }
+            },
+            "nativeCloneCache": {
+              "snapshotPresent": true,
+              "canonicalBytes": 2610833,
+              "height": 8,
+              "accounts": 2056,
+              "feeEvents": 2048,
+              "lotEntries": 6144
+            }
+          },
+          "phaseTotalsNs": {
+            "loadNs": 808415919,
+            "hashNs": 15141206,
+            "captureNs": 36329210,
+            "decodeNs": 732130292,
+            "indexPublishNs": 20438502,
+            "transactionVerifyNs": 2812876
+          },
+          "attempts": 32,
+          "bytesHashed": 35059168,
+          "snapshotValidations": 32,
+          "snapshotCacheHits": 0,
+          "transactionVerifications": 24,
+          "blockJournalReplayedBlocks": 7,
+          "blockJournalReplayedTransactionInputs": 2048,
+          "blockJournalNativeVerificationFacts": {
+            "capacity": 4096,
+            "string_byte_limit": 4194304,
+            "entries": 2048,
+            "retained_string_bytes": 1460288,
+            "lookups": 2048,
+            "hits": 0,
+            "successful_verifications": 2048
+          }
+        },
+        "cpuUserNs": 776556000,
+        "cpuSystemNs": 32685000
+      }
+    ]
+  },
+  "localMeanChangePercent": {
+    "elapsedNs": -1.5383636301555703,
+    "allocatedBytes": -1.8426100367601062,
+    "cpuUserNs": -1.6718683794425537,
+    "cpuSystemNs": -5.1435135502788665,
+    "suffixSetupNs": -9.655666960203158
+  },
+  "checks": {
+    "controller": "75PASS8.965s",
+    "originalNativeSuffixNegativeRace": "5originaltestsPASS3.065s",
+    "client": "PASS12.148s",
+    "sourceGate": "14PASS11.118s",
+    "explicitSignedHistoryAndOptions": "consensusPASS.645s/clientPASS.412s"
+  },
+  "firstFailure": "Initial75-controller run had74passes and NameError in new test due missing copy import; preserved original raw, fixed import without changing assertions; final75PASS.",
+  "limits": "Local full reader ABBA is four sequential private captures per prefix,32 valid captures/24 repeated observations per sample,2048 original distinct signature math checks. It is neither network, new business TPS nor statistical confidence. Constructor-only11.5percent saving is not full reader saving. One candidate suffixSetup sample70.815ms exceeds control69.888ms; all samples retained. No new pressure/dispatch/grant implied. Existing default native constructor now retains original NewApplication setup; only new explicit constructor/flag enables optimization."
+}

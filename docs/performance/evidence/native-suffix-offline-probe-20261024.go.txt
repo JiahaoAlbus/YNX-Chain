@@ -1,0 +1,55 @@
+package main
+import (
+ "context"
+ "crypto/sha256"
+ "encoding/base64"
+ "encoding/binary"
+ "encoding/hex"
+ "encoding/json"
+ "errors"
+ "os"
+ "path/filepath"
+ "runtime"
+ "testing"
+ "syscall"
+ "time"
+ "github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+ "github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+)
+func TestNativeSuffixMatchedOriginalFourStoreOffline(t *testing.T) {
+ dir:=os.Getenv("YNX_PREFIX_CLIENT_FIXTURE_DIR");if dir=="" {t.Fatal("explicit original artifact directory required")}
+ data,err:=os.ReadFile(filepath.Join(dir,"ynx-abci-state.json"));if err!=nil {t.Fatal(err)}
+ sum:=sha256.Sum256(data);if hex.EncodeToString(sum[:])!="7c2a5b38bdb057972462068772196e74e4ab5c8564712fea1f54a6e89bee4d0a" {t.Fatal("original journal differs")}
+ var migration chain.ConsensusMigrationState;b,err:=os.ReadFile(filepath.Join(dir,"bound-migration.json"));if err!=nil {t.Fatal(err)};if err=json.Unmarshal(b,&migration);err!=nil {t.Fatal(err)}
+ var binding struct{Wire string;Height int64;SnapshotSHA256 string};b,err=os.ReadFile(filepath.Join(dir,"original-replay-binding.json"));if err!=nil {t.Fatal(err)};if err=json.Unmarshal(b,&binding);err!=nil {t.Fatal(err)}
+ raw,err:=base64.StdEncoding.DecodeString(binding.Wire);if err!=nil {t.Fatal(err)}
+ if _,err=consensus.DecodeBlockJournal(context.Background(),data,migration);err!=nil {t.Fatal(err)}
+ offset:=len("YNX_ABCI_BLOCK_JOURNAL_V2\n"+migration.StateHash+"\n");ends:=[]int{}
+ for offset<len(data) {if len(data)-offset<72 {t.Fatal("partial original frame")};n:=binary.BigEndian.Uint64(data[offset:offset+8]);if n>uint64(len(data)-offset-72) {t.Fatal("original frame bound")};offset+=72+int(n);ends=append(ends,offset)}
+ if len(ends)!=8 {t.Fatal("original prefix count differs")}
+ type sample struct{Mode string `json:"mode"`;ElapsedNs int64 `json:"elapsedNs"`;AllocatedBytes uint64 `json:"allocatedBytes"`;Stats durableReaderStats `json:"stats"`;CPUUserNs int64 `json:"cpuUserNs"`;CPUSystemNs int64 `json:"cpuSystemNs"`}
+ samples:=[]sample{};expected:=map[int]string{}
+ for order,mode:=range []string{"native-suffix-control","native-suffix-candidate","native-suffix-candidate","native-suffix-control"} {
+  temp:=t.TempDir();paths:=[]string{}
+  for _,name:=range []string{"a","b","c","d"} {p:=filepath.Join(temp,name);paths=append(paths,p);if err=os.WriteFile(p+".read.lock",nil,0600);err!=nil {t.Fatal(err)}}
+  r,e:=newDurableReader(migration,paths);if e!=nil {t.Fatal(e)};r.measurePhases=true
+  if e=r.configurePrefixReplayMode(migration,true,mode=="native-suffix-candidate");e!=nil {t.Fatal(e)}
+  runtime.GC();var before,after runtime.MemStats;runtime.ReadMemStats(&before);var usageBefore,usageAfter syscall.Rusage;if e=syscall.Getrusage(syscall.RUSAGE_SELF,&usageBefore);e!=nil {t.Fatal(e)};started:=time.Now()
+  for i,end:=range ends {
+   for _,p:=range paths {if e=os.WriteFile(p,data[:end],0600);e!=nil {t.Fatal(e)}}
+   for _,p:=range paths {
+    evidence,e:=r.verify(context.Background(),p,raw,binding.Height)
+    if i<2 {if !errors.Is(e,errDurableNotReady) {t.Fatal("early state outcome changed",mode,i,e)};continue}
+    if e!=nil {t.Fatal(e)}
+    if order==0 {expected[i]=evidence.SnapshotSHA256} else if evidence.SnapshotSHA256!=expected[i] {t.Fatal("original captured state differs",mode,i)}
+    if i==len(ends)-1&&evidence.SnapshotSHA256!=binding.SnapshotSHA256 {t.Fatal("final original network snapshot differs")}
+   }
+  }
+  elapsed:=time.Since(started).Nanoseconds();if e=syscall.Getrusage(syscall.RUSAGE_SELF,&usageAfter);e!=nil {t.Fatal(e)};runtime.ReadMemStats(&after);stats:=r.stats()
+  userNs:=(int64(usageAfter.Utime.Sec)-int64(usageBefore.Utime.Sec))*1e9+(int64(usageAfter.Utime.Usec)-int64(usageBefore.Utime.Usec))*1e3
+  systemNs:=(int64(usageAfter.Stime.Sec)-int64(usageBefore.Stime.Sec))*1e9+(int64(usageAfter.Stime.Usec)-int64(usageBefore.Stime.Usec))*1e3
+  if stats.SnapshotValidations!=32||stats.TransactionVerifications!=24||stats.ReplayNativeFacts.SuccessfulVerifications!=2048 {t.Fatal("original capture/crypto/business checks lost",stats)}
+  samples=append(samples,sample{mode,elapsed,after.TotalAlloc-before.TotalAlloc,stats,userNs,systemNs})
+ }
+ out:=map[string]any{"kind":"offline_original_four_store_native_suffix_ABBA_not_network_tps","originalRun":39164390241,"goVersion":runtime.Version(),"os":runtime.GOOS,"arch":runtime.GOARCH,"gomaxprocs":runtime.GOMAXPROCS(0),"samples":samples,"limits":"Four sequential private store captures per original prefix; same raw transaction observed24 times, never counted as new business. Includes controlled fixture writes/read-lock/hash/index/fee/nonce checks. No RPC/quorum/publishedInfo/new blocks or network qualification; two local samples per mode."};b,err=json.Marshal(out);if err!=nil {t.Fatal(err)};t.Log(string(b))
+}
