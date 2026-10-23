@@ -315,63 +315,125 @@ class LinuxProc:
         require(len(found) == 1 and int(found[0]) > 0, "memory_telemetry_missing")
         return int(found[0]) * 1024
 
-    def sample_task(self, original, check_sockets=True):
-        """Actual smaps_rollup RSS; never substitute stat pages for missing RSS."""
-        pid = original["pid"]
-        for _ in range(3):
-            before = self.one_or_gone(pid)
-            if before is None:
+    def sample_task(self, original, check_sockets=True, observation_deadline=None):
+        """Actual RSS or confirmed same-identity terminal state; never stat RSS.
+
+        Only missing/zero smaps or a disappearing FD directory can receive a
+        short terminal observation. All tasks share the caller's current 200ms
+        cycle deadline, also capped by its existing 180s active deadline. This
+        neither extends the command budget nor turns an unreadable live task
+        into zero RSS. Typed diagnostics never contain smaps bodies or FD paths.
+        """
+        self.last_task_observation = None
+        pid, started = original["pid"], time.monotonic()
+        deadline = started + LIMITS["sampleMs"] / 1000
+        if observation_deadline is not None:
+            deadline = min(deadline, observation_deadline)
+        pause = 0.01
+        max_attempts = 1 + (LIMITS["sampleMs"] + 9) // 10
+        observations = []
+
+        def public_stat(value):
+            if value is None:
                 return None
-            require(before["startTicks"] == original["startTicks"], "sample_pid_identity_changed")
-            if before["state"] in ("Z", "X"):
-                require(before["threads"] == 1, "owned_terminal_thread_count_unresolved")
-                return {**before, "rssBytes": 0}
+            return {**{key: value[key] for key in ("pid", "parent", "group", "session", "startTicks", "threads", "state")},
+                    "statRSSBytes": value["rssBytes"]}
+
+        def observe(kind, before, after, after_kind, rss_kib, raw_bytes, errno, attempt):
+            observations.append(dict(attempt=attempt, kind=kind, errno=errno,
+                                     before=public_stat(before), after=public_stat(after), afterKind=after_kind,
+                                     smapsRSSKiB=rss_kib, smapsRawBytes=raw_bytes))
+
+        def finish(resolution, failure=None):
+            self.last_task_observation = dict(version="YNX-ORIGINAL-NATIVE-TASK-SAMPLE/v1", pid=pid,
+                expectedStartTicks=original["startTicks"], inventory=public_stat(original),
+                budgetMs=max(0, int((deadline - started) * 1000)),
+                elapsedMs=max(0, int((time.monotonic() - started) * 1000)),
+                resolution=resolution, observations=observations,
+                resolvedStat=public_stat(after or before) if resolution in ("rss_recovered", "terminal_single_thread") else None,
+                resolvedSmapsRSSKiB=rss_kib if resolution == "rss_recovered" else None,
+                failureClass=None if failure is None else type(failure).__name__,
+                failureCode=None if failure is None else (str(failure) if isinstance(failure, Refused) else type(failure).__name__))
+
+        for attempt in range(1, max_attempts + 1):
+            before, after, rss_kib, raw_bytes, missing_errno = None, None, None, None, None
+            stage, reason, after_kind, recorded = "before_stat", None, "not_observed", False
             try:
-                raw = self.bounded(Path("/proc") / str(pid) / "smaps_rollup", 1 << 20)
-            except (FileNotFoundError, ProcessLookupError):
-                # Only disappearance or a same-identity terminal state retires
-                # RSS. A still-live task must supply actual RSS or fail closed.
-                continue
-            rss = re.findall(rb"^Rss:\s+([0-9]+) kB$", raw, re.MULTILINE)
-            require(len(rss) == 1, "owned_smaps_rss_missing")
-            if int(rss[0]) == 0:
-                continue
-            if check_sockets:
-                directory = Path("/proc") / str(pid) / "fd"
+                before = self.one_or_gone(pid)
+                if before is None:
+                    observe("stat_confirmed_gone", None, None, "confirmed_gone", None, None, None, attempt)
+                    finish("confirmed_gone")
+                    return None
+                require(before["startTicks"] == original["startTicks"], "sample_pid_identity_changed")
+                if before["state"] in ("Z", "X"):
+                    observe("stat_terminal", before, before, "present", None, None, None, attempt)
+                    recorded = True
+                    require(before["threads"] == 1, "owned_terminal_thread_count_unresolved")
+                    finish("terminal_single_thread")
+                    return {**before, "rssBytes": 0}
+                stage = "smaps_read"
                 try:
-                    entries = list(directory.iterdir())
-                except FileNotFoundError:
-                    terminal = self.one_or_gone(pid)
-                    if terminal is None:
-                        return None
-                    require(terminal["startTicks"] == before["startTicks"], "sample_pid_identity_changed")
-                    if terminal["state"] in ("Z", "X"):
-                        require(terminal["threads"] == 1, "owned_terminal_thread_count_unresolved")
-                        return {**terminal, "rssBytes": 0}
-                    continue
-                require(len(entries) <= LIMITS["fdsPerTask"] and all(p.name.isdecimal() for p in entries), "owned_fd_inventory_invalid")
-                for entry in entries:
+                    raw = self.bounded(Path("/proc") / str(pid) / "smaps_rollup", 1 << 20)
+                    raw_bytes = len(raw)
+                except (FileNotFoundError, ProcessLookupError) as exc:
+                    reason, missing_errno = "smaps_missing", exc.errno
+                if reason is None:
+                    stage = "smaps_parse"
+                    rss = re.findall(rb"^Rss:\s+([0-9]+) kB$", raw, re.MULTILINE)
+                    require(len(rss) == 1, "owned_smaps_rss_missing")
+                    rss_kib = int(rss[0])
+                    if rss_kib == 0:
+                        reason = "smaps_zero"
+                if reason is None and check_sockets:
+                    stage = "fd_inventory"
+                    directory = Path("/proc") / str(pid) / "fd"
                     try:
-                        target = os.readlink(entry)
-                    except FileNotFoundError:
-                        try:
-                            entry.lstat()
-                        except FileNotFoundError:
-                            continue
-                        raise Refused("owned_fd_readback_incomplete")
-                    require(not target.startswith("socket:["), "owned_socket_present")
-            after = self.one_or_gone(pid)
-            if after is None:
-                return None
-            require(after["startTicks"] == before["startTicks"], "sample_pid_identity_changed")
-            return {**after, "rssBytes": int(rss[0]) * 1024}
-        final = self.one_or_gone(pid)
-        if final is None:
-            return None
-        require(final["startTicks"] == original["startTicks"], "sample_pid_identity_changed")
-        require(final["state"] in ("Z", "X"), "owned_live_rss_unresolved")
-        require(final["threads"] == 1, "owned_terminal_thread_count_unresolved")
-        return {**final, "rssBytes": 0}
+                        entries = list(directory.iterdir())
+                    except FileNotFoundError as exc:
+                        reason, missing_errno = "fd_directory_missing", exc.errno
+                    if reason is None:
+                        require(len(entries) <= LIMITS["fdsPerTask"] and all(p.name.isdecimal() for p in entries), "owned_fd_inventory_invalid")
+                        stage = "fd_readlink"
+                        for entry in entries:
+                            try:
+                                target = os.readlink(entry)
+                            except FileNotFoundError:
+                                try:
+                                    entry.lstat()
+                                except FileNotFoundError:
+                                    continue
+                                raise Refused("owned_fd_readback_incomplete")
+                            require(not target.startswith("socket:["), "owned_socket_present")
+                stage = "after_stat"
+                after = self.one_or_gone(pid)
+                after_kind = "confirmed_gone" if after is None else "present"
+                if reason is not None or after is None or after["state"] in ("Z", "X"):
+                    observe(reason or ("stat_confirmed_gone" if after is None else "stat_terminal"),
+                            before, after, after_kind, rss_kib, raw_bytes, missing_errno, attempt)
+                    recorded = True
+                if after is None:
+                    finish("confirmed_gone")
+                    return None
+                require(after["startTicks"] == original["startTicks"], "sample_pid_identity_changed")
+                if after["state"] in ("Z", "X"):
+                    require(after["threads"] == 1, "owned_terminal_thread_count_unresolved")
+                    finish("terminal_single_thread")
+                    return {**after, "rssBytes": 0}
+                if reason is None:
+                    if observations:
+                        require(time.monotonic() <= deadline, "owned_live_rss_unresolved")
+                        finish("rss_recovered")
+                    return {**after, "rssBytes": rss_kib * 1024}
+                remaining = deadline - time.monotonic()
+                require(remaining > 0 and attempt < max_attempts, "owned_live_rss_unresolved")
+                time.sleep(min(pause, remaining))
+                require(time.monotonic() < deadline, "owned_live_rss_unresolved")
+            except Exception as exc:
+                if not recorded:
+                    observe(reason or stage + "_error", before, after, after_kind, rss_kib, raw_bytes,
+                            getattr(exc, "errno", None), attempt)
+                finish("refused", exc)
+                raise
 
 
 class Owned:
@@ -497,24 +559,50 @@ class Controller:
         self.events = None
         self.first_cause = None
         self.last_sample = None
+        self.task_sample_failure = None
+        self.task_sample_journal_error = None
         self.capacity(fresh=True)
 
     def capacity(self, fresh=False):
         now = time.monotonic()
         if not fresh and now < self.next_sample:
             return
+        # One shared cycle budget, not a fresh 200ms allowance for each PID.
+        observation_deadline = min(now + LIMITS["sampleMs"] / 1000,
+                                   self.started + LIMITS["activeSeconds"])
         rows = self.proc.inventory()
         owned_rows = self.owned.update(rows)
         owned_rows[self.owned.controller] = rows[self.owned.controller]
         owned = {}
         for pid, row in owned_rows.items():
-            task = self.proc.sample_task(row, check_sockets=pid != self.owned.controller)
+            try:
+                task = self.proc.sample_task(row, check_sockets=pid != self.owned.controller,
+                                             observation_deadline=observation_deadline)
+            except Exception as original:
+                diagnostic = getattr(self.proc, "last_task_observation", None)
+                if (type(diagnostic) is dict and diagnostic.get("pid") == pid
+                        and diagnostic.get("expectedStartTicks") == row["startTicks"]
+                        and diagnostic.get("resolution") == "refused"):
+                    self.task_sample_failure = diagnostic
+                    try:
+                        self.event("task_sample_refused", diagnostic)
+                    except Exception as journal_error:
+                        # Keep the original telemetry refusal as first cause.
+                        # The existing first-cause file retains this secondary
+                        # failure without copying exception messages or paths.
+                        self.task_sample_journal_error = dict(kind="journal_persistence_failed",
+                            errorClass=type(journal_error).__name__, errno=getattr(journal_error, "errno", None))
+                raise original
+            observation = getattr(self.proc, "last_task_observation", None)
+            if observation is not None:
+                self.event("task_sample_observed", observation)
             if task is not None:
                 owned[pid] = task
         free_info = os.statvfs(self.case)
         free = free_info.f_bavail * free_info.f_frsize
         delta = max(0, directory_bytes(self.case) - self.initial_bytes)
-        sample = dict(elapsedMs=int((now - self.started) * 1000), rssBytes=sum(r["rssBytes"] for r in owned.values()),
+        observed = time.monotonic()
+        sample = dict(elapsedMs=int((observed - self.started) * 1000), rssBytes=sum(r["rssBytes"] for r in owned.values()),
                       caseDeltaBytes=delta, freeDiskBytes=free, availableMemoryBytes=self.proc.available_memory(),
                       tasks=[{k: row[k] for k in ("pid", "parent", "group", "session", "startTicks", "rssBytes", "threads", "state")}
                              for row in owned.values()])
@@ -524,7 +612,10 @@ class Controller:
         self.samples += 1
         self.last_sample = sample
         self.event("sample", sample)
-        capacity(rows, owned, self.contract, sample["availableMemoryBytes"], free, delta, now - self.started, fresh)
+        capacity(rows, owned, self.contract, sample["availableMemoryBytes"], free, delta,
+                 time.monotonic() - self.started, fresh)
+        # Do not wait another cycle after a terminal observation has used this
+        # cycle's time. The original schedule remains anchored at tick start.
         self.next_sample = now + LIMITS["sampleMs"] / 1000
 
     def event(self, kind, detail):
@@ -539,7 +630,7 @@ class Controller:
     def command(self, command, label, original_pin):
         # File descriptors anchor the exact pinned executable inode, while the
         # argv/environment remain the fixed normal CLI, with no shell/config.
-        self.capacity()
+        self.capacity(fresh=True)
         tool = Path(command[0])
         current, _ = read_file(tool, original_pin["pin"], progress=self.capacity, executable=True)
         require(current == original_pin, "binary_changed_before_execution")
@@ -550,6 +641,11 @@ class Controller:
             for name in ("stdout", "stderr"):
                 fd = os.open(self.output / (label + "." + name), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
                 logs[name] = os.fdopen(fd, "wb", buffering=0)
+            # Recheck the exact original window immediately before each spawn,
+            # after hashing/opening the tool. A cached active sample is not a
+            # fresh 16GiB/empty-original-owner/disk/time permission to start.
+            self.capacity(fresh=True)
+            require(identity(os.fstat(executable)) == original_pin["identity"], "binary_fd_identity_changed")
             child = subprocess.Popen(command, executable="/proc/self/fd/" + str(executable),
                 pass_fds=(executable,), cwd=self.output, env=dict(ENVIRONMENT),
                 stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -734,7 +830,11 @@ def run(contract, contract_pin, witnesses):
         try:
             # Prioritize the bounded owned cleanup; secondary persistence must
             # never replace its original failure or trigger a command retry.
-            exclusive(controller.output / "first-cause.json", json_bytes({"code": controller.first_cause}))
+            first_cause = {"code": controller.first_cause}
+            if controller.task_sample_failure is not None:
+                first_cause["taskSample"] = controller.task_sample_failure
+                first_cause["taskSampleJournalError"] = controller.task_sample_journal_error
+            exclusive(controller.output / "first-cause.json", json_bytes(first_cause))
         except Exception:
             pass
     receipt = {"version": VERSION, "classification": "data", "contractSHA256": contract_pin,

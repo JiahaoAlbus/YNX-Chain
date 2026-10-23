@@ -3,6 +3,7 @@ import builtins
 import contextlib
 import copy
 import ctypes
+import errno
 import hashlib
 import importlib.util
 import io
@@ -79,6 +80,21 @@ def cleanup_proc(inventory, one):
     proc = object.__new__(guard.LinuxProc)
     proc.inventory, proc.one = inventory, one
     return proc
+
+
+class SampleClock:
+    """Deterministic observation clock; no real waits or host timers."""
+    def __init__(self, now=0.0):
+        self.now, self.pauses = now, []
+
+    def monotonic(self):
+        return self.now
+
+    def sleep(self, seconds):
+        if not 0 < seconds <= 0.01:
+            raise AssertionError("terminal observation exceeded its short cadence")
+        self.pauses.append(seconds)
+        self.now += seconds
 
 
 class ContractControls(unittest.TestCase):
@@ -235,9 +251,12 @@ class ContractControls(unittest.TestCase):
         output.mkdir(mode=0o700)
         controller = object.__new__(guard.Controller)
         controller.output, controller.children = output, []
-        controller.capacity = lambda: None
+        observations = []
+        controller.capacity = lambda **kwargs: observations.append(("capacity", kwargs.copy()))
         captured = []
         def boundary(argv, **kwargs):
+            self.assertEqual(observations[-1], ("capacity", {"fresh": True}))
+            observations.append(("spawn", None))
             captured.append((argv, kwargs))
             self.assertEqual(guard.identity(os.fstat(kwargs["pass_fds"][0])), pin["identity"])
             raise OSError("intentional mocked spawn boundary; no process started")
@@ -253,8 +272,33 @@ class ContractControls(unittest.TestCase):
         self.assertEqual(kwargs["stdin"], subprocess.DEVNULL)
         self.assertNotIn("shell", kwargs)
         self.assertTrue(kwargs["executable"].startswith("/proc/self/fd/"))
+        self.assertGreaterEqual(observations.count(("capacity", {"fresh": True})), 2)
+        self.assertEqual(observations[-2:], [("capacity", {"fresh": True}), ("spawn", None)])
         self.assertEqual(controller.children, [])
         self.assertEqual(guard.read_file(tool, executable=True)[0], pin)
+
+    def test_spawn_rechecks_held_binary_identity_after_final_fresh_sample(self):
+        tool = self.directory / "never-executed-changed-tool"
+        tool.write_bytes(b"synthetic public binary boundary; not an ELF")
+        tool.chmod(0o700)
+        pin, _ = guard.read_file(tool, executable=True)
+        output = self.directory / "changed-output"
+        output.mkdir(mode=0o700)
+        controller = object.__new__(guard.Controller)
+        controller.output, controller.children = output, []
+        fresh = []
+        def sample(**kwargs):
+            if kwargs.get("fresh"):
+                fresh.append(True)
+                if len(fresh) == 2:
+                    tool.chmod(0o500)  # Synthetic same-inode identity change.
+        controller.capacity = sample
+        with patch.object(guard.subprocess, "Popen") as spawn, patch.object(guard.selectors, "DefaultSelector", return_value=Mock()):
+            with self.assertRaisesRegex(guard.Refused, "binary_fd_identity_changed"):
+                controller.command([str(tool)], "export", pin)
+        self.assertEqual(len(fresh), 2)
+        spawn.assert_not_called()
+        self.assertEqual(controller.children, [])
 
     def test_only_original_normal_two_commands_can_be_selected(self):
         commands = guard.normal_commands(Path(guard.CASE))
@@ -288,6 +332,30 @@ class ProcessControls(unittest.TestCase):
         self.fence.__enter__()
         self.addCleanup(self.fence.__exit__, None, None, None)
         self.base = {100: row(100, 1, 90, 10), 900: row(900, 1, 900, 20)}
+
+    def sampling_controller(self, rows, started=0.0):
+        # Actual Controller.capacity and LinuxProc.sample_task, with only public
+        # /proc/clock/disk observation seams. No real process or case is touched.
+        controller = object.__new__(guard.Controller)
+        controller.contract, controller.started, controller.next_sample = contract(), started, 0
+        controller.owned = guard.Owned(100, self.base)
+        controller.case, controller.initial_bytes = Path("/synthetic-case-unused"), 0
+        controller.peak_rss, controller.max_delta, controller.min_free = 0, 0, None
+        controller.samples, controller.last_sample = 0, None
+        controller.task_sample_failure, controller.task_sample_journal_error = None, None
+        events, calls = [], []
+        controller.event = lambda kind, detail: events.append((kind, detail))
+        proc = object.__new__(guard.LinuxProc)
+        proc.inventory = lambda: rows
+        proc.one_or_gone = lambda pid: rows[pid]
+        proc.available_memory = lambda: 16 << 30
+        actual_sample = proc.sample_task
+        def sample(original, **kwargs):
+            calls.append((original["pid"], kwargs.copy()))
+            return actual_sample(original, **kwargs)
+        proc.sample_task = sample
+        controller.proc = proc
+        return controller, proc, events, calls
 
     def test_recursive_descendants_escape_and_reparent_stay_owned(self):
         owner = guard.Owned(100, self.base)
@@ -525,11 +593,192 @@ class ProcessControls(unittest.TestCase):
             with self.assertRaisesRegex(guard.Refused, "terminal_thread_count_unresolved"):
                 proc.sample_task(task)
         # Also retain the guard on the final RSS-retry retirement path.
-        proc.one_or_gone = Mock(side_effect=[task, task, task, terminal])
+        proc.one_or_gone = Mock(side_effect=[task, task, task, task, task, terminal])
         proc.bounded = Mock(side_effect=FileNotFoundError("synthetic smaps exit transition"))
         with self.assertRaisesRegex(guard.Refused, "terminal_thread_count_unresolved"):
             proc.sample_task(task)
         self.assertEqual(proc.bounded.call_count, 3)
+
+    def test_terminal_observation_missing_smaps_retires_only_same_identity_single_thread(self):
+        task, clock = row(200, 100, 200, 30, rss=999999), SampleClock()
+        terminal = {**task, "state": "Z"}
+        proc = object.__new__(guard.LinuxProc)
+        proc.one_or_gone = Mock(side_effect=[task, terminal])
+        proc.bounded = Mock(side_effect=FileNotFoundError(errno.ENOENT, "synthetic missing smaps"))
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep):
+            result = proc.sample_task(task, observation_deadline=0.2)
+        self.assertEqual(result["rssBytes"], 0)
+        self.assertEqual(clock.pauses, [])
+        detail = proc.last_task_observation
+        self.assertEqual((detail["pid"], detail["expectedStartTicks"], detail["resolution"]), (200, 30, "terminal_single_thread"))
+        observation = detail["observations"][0]
+        self.assertEqual((observation["kind"], observation["errno"], observation["before"]["state"], observation["after"]["state"]), ("smaps_missing", errno.ENOENT, "S", "Z"))
+        self.assertIsNone(observation["smapsRSSKiB"])
+        self.assertIsNone(observation["smapsRawBytes"])
+        self.assertEqual(observation["before"]["statRSSBytes"], 999999)
+
+    def test_terminal_observation_missing_smaps_confirmed_gone_is_not_zero_fallback(self):
+        task, clock = row(200, 100, 200, 30), SampleClock()
+        proc = object.__new__(guard.LinuxProc)
+        proc.one_or_gone = Mock(side_effect=[task, None])
+        proc.bounded = Mock(side_effect=ProcessLookupError(errno.ESRCH, "synthetic confirmed exit"))
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep):
+            self.assertIsNone(proc.sample_task(task, observation_deadline=0.2))
+        detail = proc.last_task_observation
+        self.assertEqual(detail["resolution"], "confirmed_gone")
+        self.assertEqual(detail["observations"][0]["afterKind"], "confirmed_gone")
+        self.assertEqual(detail["observations"][0]["errno"], errno.ESRCH)
+        self.assertEqual(clock.pauses, [])
+
+    def test_terminal_observation_zero_rss_requires_real_positive_rss_and_complete_fds(self):
+        task, clock = row(200, 100, 200, 30, rss=1), SampleClock()
+        proc = object.__new__(guard.LinuxProc)
+        proc.one_or_gone = lambda _: task
+        proc.bounded = Mock(side_effect=[b"Rss: 0 kB\n", b"Rss: 8192 kB\n"])
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep), patch.object(Path, "iterdir", return_value=iter([])) as fds:
+            result = proc.sample_task(task, observation_deadline=0.2)
+        self.assertEqual(result["rssBytes"], 8192 * 1024)
+        fds.assert_called_once()
+        self.assertEqual(clock.pauses, [0.01])
+        self.assertEqual(proc.last_task_observation["resolution"], "rss_recovered")
+        self.assertEqual(proc.last_task_observation["resolvedSmapsRSSKiB"], 8192)
+        self.assertEqual(proc.last_task_observation["observations"][0]["kind"], "smaps_zero")
+        self.assertEqual(proc.last_task_observation["observations"][0]["smapsRSSKiB"], 0)
+
+    def test_terminal_observation_continuous_live_missing_stays_refused_within_cycle(self):
+        task, clock = row(200, 100, 200, 30), SampleClock()
+        proc = object.__new__(guard.LinuxProc)
+        proc.one_or_gone = lambda _: task
+        proc.bounded = Mock(side_effect=FileNotFoundError(errno.ENOENT, "synthetic continuously missing RSS"))
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep):
+            with self.assertRaisesRegex(guard.Refused, "owned_live_rss_unresolved"):
+                proc.sample_task(task, observation_deadline=0.2)
+        self.assertLessEqual(clock.now, 0.2)
+        self.assertGreaterEqual(clock.now, 0.19)
+        detail = proc.last_task_observation
+        self.assertEqual(detail["resolution"], "refused")
+        self.assertEqual(detail["failureCode"], "owned_live_rss_unresolved")
+        self.assertLessEqual(len(detail["observations"]), 21)
+        self.assertTrue(all(x["before"]["startTicks"] == x["after"]["startTicks"] == 30 and x["smapsRSSKiB"] is None for x in detail["observations"]))
+
+    def test_terminal_observation_missing_fd_directory_keeps_its_distinct_reason(self):
+        task, clock = row(200, 100, 200, 30), SampleClock()
+        proc = object.__new__(guard.LinuxProc)
+        proc.one_or_gone = lambda _: task
+        proc.bounded = lambda *_: b"Rss: 8192 kB\n"
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep), patch.object(Path, "iterdir", side_effect=[FileNotFoundError(errno.ENOENT, "synthetic FD directory transition"), iter([])]):
+            result = proc.sample_task(task, observation_deadline=0.2)
+        self.assertEqual(result["rssBytes"], 8192 * 1024)
+        detail = proc.last_task_observation
+        self.assertEqual(detail["resolution"], "rss_recovered")
+        self.assertEqual(detail["observations"][0]["kind"], "fd_directory_missing")
+        self.assertEqual(detail["observations"][0]["errno"], errno.ENOENT)
+        self.assertEqual(detail["observations"][0]["smapsRSSKiB"], 8192)
+        self.assertEqual(clock.pauses, [0.01])
+
+    def test_terminal_observation_permission_identity_and_live_threads_never_wait(self):
+        task = row(200, 100, 200, 30)
+        for kind in ("permission", "changed-ticks", "terminal-live-threads"):
+            with self.subTest(kind=kind):
+                clock = SampleClock()
+                proc = object.__new__(guard.LinuxProc)
+                proc.one_or_gone = lambda _: task
+                proc.bounded = Mock(side_effect=PermissionError(errno.EACCES, "never-record-this-private-path"))
+                expected = PermissionError
+                if kind == "changed-ticks":
+                    proc.one_or_gone = Mock(side_effect=[task, {**task, "startTicks": 31}])
+                    proc.bounded = Mock(side_effect=FileNotFoundError(errno.ENOENT, "synthetic exit transition"))
+                    expected = guard.Refused
+                elif kind == "terminal-live-threads":
+                    proc.one_or_gone = lambda _: {**task, "state": "Z", "threads": 2}
+                    expected = guard.Refused
+                with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep):
+                    with self.assertRaises(expected):
+                        proc.sample_task(task, observation_deadline=0.2)
+                self.assertEqual(clock.pauses, [])
+                detail = proc.last_task_observation
+                self.assertEqual((detail["pid"], detail["expectedStartTicks"], detail["resolution"]), (200, 30, "refused"))
+                self.assertNotIn("never-record-this-private-path", json.dumps(detail))
+                if kind == "permission":
+                    self.assertEqual(detail["observations"][0]["errno"], errno.EACCES)
+                elif kind == "changed-ticks":
+                    self.assertEqual(detail["observations"][0]["after"]["startTicks"], 31)
+                else:
+                    proc.bounded.assert_not_called()
+
+    def test_capacity_tasks_share_one_terminal_observation_deadline(self):
+        clock, first = SampleClock(), []
+        rows = {**self.base, 200: row(200, 100, 200, 30), 201: row(201, 100, 201, 31)}
+        controller, proc, events, calls = self.sampling_controller(rows)
+        def bounded(path, _limit):
+            pid = int(path.parent.name)
+            if not first:
+                first.append(pid)
+            if pid == first[0] and clock.now >= 0.14:
+                return b"Rss: 8192 kB\n"
+            raise FileNotFoundError(errno.ENOENT, "synthetic missing per-task RSS")
+        proc.bounded = bounded
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep), patch.object(Path, "iterdir", return_value=iter([])):
+            with self.assertRaisesRegex(guard.Refused, "owned_live_rss_unresolved"):
+                controller.capacity()
+        self.assertEqual(len(calls), 2)
+        self.assertEqual([kwargs["observation_deadline"] for _, kwargs in calls], [0.2, 0.2])
+        self.assertLessEqual(clock.now, 0.2)
+        self.assertEqual(controller.task_sample_failure["pid"], calls[1][0])
+        self.assertEqual(events[-1][0], "task_sample_refused")
+        self.assertEqual(controller.samples, 0)  # No partial RSS sum was accepted.
+
+    def test_capacity_controller_missing_rss_and_active_deadline_are_not_special_cased(self):
+        clock = SampleClock(179.95)
+        controller, proc, events, calls = self.sampling_controller(self.base)
+        proc.bounded = Mock(side_effect=FileNotFoundError(errno.ENOENT, "synthetic controller mm observation"))
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep):
+            with self.assertRaisesRegex(guard.Refused, "owned_live_rss_unresolved"):
+                controller.capacity()
+        self.assertEqual(calls, [(100, {"check_sockets": False, "observation_deadline": 180})])
+        self.assertLessEqual(clock.now, 180)
+        self.assertEqual((controller.task_sample_failure["pid"], controller.task_sample_failure["expectedStartTicks"]), (100, 10))
+        self.assertEqual(events[-1][0], "task_sample_refused")
+        self.assertEqual(controller.samples, 0)
+
+    def test_capacity_observation_updates_elapsed_without_postponing_next_sample(self):
+        clock = SampleClock()
+        controller, proc, events, calls = self.sampling_controller(self.base)
+        proc.bounded = lambda *_: b"Rss: 8192 kB\n"
+        def disk_scan(_case):
+            clock.now += 0.1  # Pure public fixture latency, no actual I/O/wait.
+            return 0
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep), patch.object(guard.os, "statvfs", return_value=SimpleNamespace(f_bavail=10 << 30, f_frsize=1)), patch.object(guard, "directory_bytes", side_effect=disk_scan):
+            controller.capacity()
+        self.assertEqual(controller.last_sample["elapsedMs"], 100)
+        self.assertEqual(controller.next_sample, 0.2)
+        self.assertNotEqual(controller.next_sample, clock.now + 0.2)
+        self.assertEqual(events[-1][0], "sample")
+
+    def test_fresh_spawn_memory_floor_does_not_apply_to_active_samples(self):
+        clock = SampleClock()
+        controller, proc, _, _ = self.sampling_controller(self.base)
+        proc.bounded = lambda *_: b"Rss: 8192 kB\n"
+        proc.available_memory = lambda: 14 << 30  # Above zero, below spawn's 16GiB.
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep), patch.object(guard.os, "statvfs", return_value=SimpleNamespace(f_bavail=10 << 30, f_frsize=1)), patch.object(guard, "directory_bytes", return_value=0):
+            controller.capacity()  # Existing active-run condition is >0 only.
+            with self.assertRaisesRegex(guard.Refused, "fresh_memory_floor"):
+                controller.capacity(fresh=True)  # Cannot use cached active sample.
+        self.assertEqual(controller.samples, 2)
+        self.assertEqual(clock.pauses, [])
+
+    def test_capacity_diagnostic_journal_failure_preserves_original_refusal(self):
+        clock = SampleClock()
+        controller, proc, _, _ = self.sampling_controller(self.base)
+        proc.bounded = Mock(side_effect=PermissionError(errno.EACCES, "never-record-this-private-path"))
+        controller.event = Mock(side_effect=OSError(errno.ENOSPC, "synthetic journal disk failure"))
+        with patch.object(guard.time, "monotonic", side_effect=clock.monotonic), patch.object(guard.time, "sleep", side_effect=clock.sleep):
+            with self.assertRaises(PermissionError) as failure:
+                controller.capacity()
+        self.assertEqual(failure.exception.errno, errno.EACCES)
+        self.assertEqual(controller.task_sample_failure["failureClass"], "PermissionError")
+        self.assertEqual(controller.task_sample_journal_error, {"kind": "journal_persistence_failed", "errorClass": "OSError", "errno": errno.ENOSPC})
+        self.assertEqual(clock.pauses, [])
 
     def test_normal_verifier_requires_both_codes_and_exact_stdout(self):
         raw = b"consensus migration state passed: height=1987000 lastBlockHash=" + b"a" * 64 + b" stateHash=" + b"b" * 64 + b" accounts=12 validators=4\n"
