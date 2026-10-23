@@ -47,7 +47,7 @@ node --test desktop/local-workbench-stop-causes.test.mjs
 node --test desktop/contract-deployment-view.test.mjs
 node --test desktop/project-contracts-host.test.mjs desktop/project-contracts-view.test.mjs desktop/code-server.test.mjs
 node --test desktop/native-debug-menu-state.test.mjs desktop/native-current-file-routing.test.mjs
-node --test scripts/bundle-composed-core.test.mjs
+node --test scripts/bundle-composed-core.test.mjs scripts/bundled-assistant-policy.test.mjs
 runtime_checkpoint="$source_commit"
 # One deployment target for the native shell, bundle declaration and all bundled
 # Mach-O dependencies. The portable Node runtime establishes the 13.5 floor.

@@ -16,6 +16,7 @@ test('compressed sealed payload uses the normal launcher and preserves modes, pi
     const source = join(root, 'source'), output = join(root, 'payload');
     await mkdir(join(source, 'lib/backend'), { recursive: true });
     await mkdir(join(source, 'lib/frontend'), { recursive: true });
+    await mkdir(join(source, 'plugins'));
     await writeFile(join(source, 'package-lock.json'), '{}');
     await writeFile(join(source, 'lib/backend/main.js'), '/* reviewed code */\n'.repeat(16384));
     await chmod(join(source, 'lib/backend/main.js'), 0o755);
