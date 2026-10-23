@@ -2,6 +2,8 @@ import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {PQ_ACTION_TRANSPORT_MAX_BYTES,decodePQActionTransportData} from '@ynx-chain/wallet-auth/pq-action-transport';
 import {preparePQNativeActionTransportData} from '@ynx-chain/wallet-auth/pq-action-transport-node';
+import {decodePQContractDeploymentTransportData} from '@ynx-chain/wallet-auth/pq-contract-deployment-transport';
+import {preparePQContractDeploymentTransportData} from '@ynx-chain/wallet-auth/pq-contract-deployment-transport-node';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const hash=value=>'0x'+createHash('sha256').update(value).digest('hex');
@@ -35,20 +37,29 @@ function expectedBinding(value){
  * This generic observer preserves SDK N/index. It does NOT replace the local
  * signer's existing N1/index0 inspection or establish classic witness validity. */
 export function inspectPQTypedActionTransportOriginal(snapshot,raw,expected){
+ return inspectTransport(snapshot,raw,expected,false);
+}
+/** SDK333 full compiler envelope. Compiler provenance still belongs to Go. */
+export function inspectPQContractDeploymentTransportOriginal(snapshot,raw,expected){
+ return inspectTransport(snapshot,raw,expected,true);
+}
+function inspectTransport(snapshot,raw,expected,deployment){
  const binding=expectedBinding(expected),body=transportBytes(raw);
  const transportHash=hash(body);
  if(transportHash!==binding.transportHash)fail('PQ_TYPED_TRANSPORT_HASH_MISMATCH');
- const captured=decodePQActionTransportData(body),member=captured.member,originals=captured.originals;
+ const captured=deployment?decodePQContractDeploymentTransportData(body):decodePQActionTransportData(body),member=captured.member,originals=deployment?[]:captured.originals;
  const memberHash=hash(member);
  if(memberHash!==binding.memberHash)fail('PQ_TYPED_TRANSPORT_HASH_MISMATCH');
- const verified=preparePQNativeActionTransportData(snapshot,{member,originals});
+ const verified=deployment?preparePQContractDeploymentTransportData(snapshot,{member,source:captured.source,material:captured.material}):preparePQNativeActionTransportData(snapshot,{member,originals});
  if(verified.owner!==binding.account||verified.chainId!==binding.networkId)fail('PQ_TYPED_TRANSPORT_BINDING_MISMATCH');
  if(!Buffer.from(verified.body).equals(body))fail('PQ_TYPED_TRANSPORT_BYTES_MISMATCH');
- return Object.freeze({account:binding.account,networkId:binding.networkId,memberHash,transportHash,
+ const result={account:binding.account,networkId:binding.networkId,memberHash,transportHash,
   action:verified.action,keyVersion:verified.keyVersion,executionHeight:verified.executionHeight,purpose:verified.purpose,
   memberCount:verified.memberCount,memberIndex:verified.memberIndex,originalsCount:originals.length,
-  signatureVerified:true,classicWitnessValidationRequired:verified.classicWitnessValidationRequired,
+  signatureVerified:true,classicWitnessValidationRequired:deployment?false:verified.classicWitnessValidationRequired,
   dataOnly:true,nativeAdmission:false,permissionGranted:false,submitted:false,canRetry:false,clearsOriginal:false,consensusFinality:false,
   get body(){return new Uint8Array(body);},get member(){return new Uint8Array(member);},
-  get originals(){return Object.freeze(originals.map(value=>new Uint8Array(value)));}});
+  get originals(){return Object.freeze(originals.map(value=>new Uint8Array(value)));}};
+ if(deployment)Object.defineProperties(result,{compilerMaterialValidationRequired:{value:true,enumerable:true},source:{value:captured.source,enumerable:true},material:{get:()=>captured.material,enumerable:true}});
+ return Object.freeze(result);
 }

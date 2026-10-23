@@ -1,0 +1,7 @@
+diff --git a/apps/wallet-desktop/test/pq-contract-deployment-reader.test.mjs b/apps/wallet-desktop/test/pq-contract-deployment-reader.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-contract-deployment-reader.test.mjs
+@@ -0,0 +1,2 @@
++// Normal CI entry: full compiler-material original reader; no send or grant.
++import '../src/features/pq-transaction/contract-deployment-reader.test.mjs';

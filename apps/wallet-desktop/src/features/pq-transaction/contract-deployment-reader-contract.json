@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "parent": "6b8977fa22703e944854a9e97ffdf80d4fca5dd0",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "change": "Original transport reader gains explicit inspectPQContractDeploymentTransportOriginal(snapshot,raw,expected); original reviewed reader selects that codec only from DATA action.kind===contract_deploy, then existing archived review/dual snapshot/fullAND/N1index0 validation. No decoder catch/fallback.",
+  "API": {
+    "expected": "exact{account,networkId,memberHash,transportHash}",
+    "reviewed": "Existing inspectPQReviewedTypedTransportOriginal(review,raw,{reviewSnapshot,signingSnapshot,selectedBinding,memberHash,transportHash}) signature unchanged.",
+    "output": "Existing body/member/originals and full signed action/dual hashes; deployment adds source:string, material:{artifactFile:Uint8Array,buildInfoFile:Uint8Array}, compilerMaterialValidationRequired:true. Byte getters return independent copies. Generic may retain GoN2/index1; local reviewed remainsN1/index0. Ordinary output keys unchanged.",
+    "boundary": "Material availability/canonical bytes and original registered dual math only; actual compiler/source provenance remains original Go/qualified source owner. Flags nativeAdmission/permissionGranted/submitted/canRetry/clearsOriginal/consensusFinality remain false."
+  },
+  "SDK": {
+    "formalH": {
+      "path": "/Users/huangjiahao/.codex/worktrees/wallet-auth-native-actions/YNX Chain/.native-action-evidence/SDK333_GO_FBEC_INTEROP_HANDOFF.json",
+      "bytes": 6251,
+      "sha256": "3f2d1c34172956069eeefa845c9a05f72627b64be0cdd600e7e9fe977c6f7b4e"
+    },
+    "version": "1.3.0-pq.3.33-auth.1",
+    "source": "e4dc7eb6a4d7aa5ca1649581264fa6d44dfb869f",
+    "archive": {
+      "path": "/Users/huangjiahao/.codex/worktrees/wallet-auth-native-actions/YNX Chain/.native-action-evidence/sdk333-e4dc-ci-package/ynx-chain-wallet-auth-1.3.0-pq.3.33-auth.1.tgz",
+      "bytes": 1150547,
+      "sha256": "36f11562a16e5f2344c789b376eb481295afccf37b6a39a2d1e4f72474c71286"
+    },
+    "isolatedRuntime": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-reader-20261023/sdk333/package",
+    "dependencies": "Existing original SDK owner packages/wallet-auth/node_modules, no install/download; extracted package sources unchanged.",
+    "subpaths": [
+      "pq-contract-deployment-transport",
+      "pq-contract-deployment-transport-node"
+    ],
+    "sameLineageSuccessor": "Original SDK owner is preparing auth4 retaining auth3 cleanup + Native55 with these exact codecs. Main must consume its formal compatible package/runtime/Native H; this leaf does not replace current SDK332 or approve old333 Auth lineage."
+  },
+  "validation": {
+    "red": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-reader-20261023/evidence/deployment-reader-red.tap",
+      "bytes": 2315,
+      "sha256": "0cc2c526f419644522c5674648cd67b2a48f907263c3b4733fa3343c5d7e5ead"
+    },
+    "redMeaning": "One actual reviewed deployment positive fails PQ_ACTION_TRANSPORT_INVALID on old three/four-field codec.",
+    "newDeployment": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-reader-20261023/evidence/deployment-reader-pass.tap",
+      "bytes": 1165,
+      "sha256": "6220486f3a215cd79fe449db40c36b3e798fca02d72f67466bb9863b7633b816"
+    },
+    "newDeploymentPass": 4,
+    "ordinaryAffected": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-reader-20261023/evidence/deployment-reader-ordinary-pass.tap",
+      "bytes": 396,
+      "sha256": "65445d832fd62e90dac52a5530eaaad8719e429aa00076b471e777f793c36bbc"
+    },
+    "ordinaryAffectedPass": 1,
+    "notSingleFiveRun": true,
+    "typecheck": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-reader-20261023/evidence/deployment-reader-types.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "typesExit": 0,
+    "fixtureFeeCorrection": "Initial added ordinary test wrongly usedstake fee1; original SDK rejectedPQ_ACTION_REVIEW_MISMATCH. Corrected test to actualfee0; production untouched. Failure retained deployment-reader-ordinary-fixture-fee-rejected.tap.",
+    "tests": "Ephemeral localN1 Counter signature and actual originalGoN2/index1 publicfixture. No real keys/account, genuine user capsule, live signing approval or dispatch. Full material capture/hash negatives, shared finality target echoes complete transport, safe codec discriminator and ordinary output compatibility.",
+    "oldGreensNotRerun": true
+  },
+  "originalFixture": {
+    "source": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/deploy-interop-fbec-39955891165/ynx-pq-contract-deploy-public-interop.json",
+      "bytes": 2314662,
+      "sha256": "ca39d8b803a118bb468ce2806cf7654ccf120c091c0364f973e859fedeba5982"
+    },
+    "gzip": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-deploy-reader-20261023/source/apps/wallet-desktop/src/features/pq-transaction/fixtures/contract-deployment-fbec-original.json.gz",
+      "bytes": 1088462,
+      "sha256": "a77658413b27a7b292d5c67f9d5fa25f665bc38f0c2b64b238e5363690ec5607"
+    },
+    "contract": "SampleEVMWriteCounter only; not ERC20 material delivery. Original fixture fee10/value0, constructorArgs exact1U64. No trim/reconstructedsource."
+  },
+  "mainIntegration": [
+    "Requires original SDK deployment subpaths in matching independent successor; static imports intentionally do not silently fallback toSDK332.",
+    "Main creates independent pending review fromIDE source/artifact/build-info exact bytes and original account/network/nonce/fee; captures material before keys and retains it with original signatures.",
+    "Main emits canonical full five-field transport via originalSDK encode; retains transportHash andMemberHash independently, and uses existing sole sender with separate explicit broadcast approval.",
+    "OriginalMain must implement material validation/provenance and actual connection/session contract. Review DATA does not grant these authorities.",
+    "Current source query/broadcast/finality modules calling reviewed reader now consume full deployment envelope; original RPC size/material fence still applies and may legitimately refuse large materials.",
+    "UNKNOWN read only by original hash/request; persist full original bytes before late lifecycle checks. No replacement sign/send, no transfer/login grant substitution.",
+    "IDE actualCounter/ERC20 compilation/material and normalconnection/session consumer H remain originalowners. Do not activate deployment until genuine dependencies exist."
+  ],
+  "ci": {
+    "proposal": "contract-deployment-reader-ci.patch",
+    "destination": "apps/wallet-desktop/test/pq-contract-deployment-reader.test.mjs",
+    "normalGlob": "test/*.test.mjs",
+    "integratedByLeaf": false
+  },
+  "effects": {
+    "MainMutation": false,
+    "SDKMutation": false,
+    "AuthMutation": false,
+    "ProtocolMutation": false,
+    "network": false,
+    "POST": false,
+    "GUI": false,
+    "build": false,
+    "installedPackageMutation": false
+  },
+  "status": "已验证未部署: owned minimal reader/decl/tests, originalGo Counter bytes plus controlled local signing; Main/IDE independent successor integration, ERC20 actualmaterial, formalconnection/session, R154 realclient, compatible package/install and realapproval unverified."
+}
