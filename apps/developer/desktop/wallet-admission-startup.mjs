@@ -4,7 +4,6 @@
 // configured targets with independently approved original owner material.
 import * as supplier from '../../../packages/wallet-auth/scripts/ynx-ide-service-admission-supplier.mjs';
 import { openOriginalParentDelivery } from './wallet-admission-delivery.mjs';
-import { OriginalIDEIdentityCall } from './wallet-identity-v2-caller.mjs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
@@ -38,6 +37,7 @@ export async function openBundledWalletIdentityCaller(runningBackendModuleURL) {
   // to a future SDK's private files. No cwd/renderer/ambient package selection.
   const originalSDK = createRequire(new URL('../../../packages/wallet-auth/package.json', import.meta.url));
   const contract = await import(pathToFileURL(originalSDK.resolve('@ynx-chain/wallet-auth/auth-identity-contract')).href);
+  const {OriginalIDEIdentityCall}=await import('./wallet-identity-v2-caller.mjs');
   // The caller must be retained by the backend before explicit begin(). Do not
   // construct/assert an owning partial here and then lose it on a late error.
   return new OriginalIDEIdentityCall({ binding, actualEntryURL: runningBackendModuleURL, contract });

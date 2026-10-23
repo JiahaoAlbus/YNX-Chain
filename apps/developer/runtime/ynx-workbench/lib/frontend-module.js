@@ -257,7 +257,8 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     commands.registerCommand({ id: 'ynx.internal.localAICancel' }, { execute: id => caller.cancel(id) });
   } }));
   bind(NativeWalletService).toDynamicValue(context => new NativeWalletService(window,
-    require('./wallet-admission-protocol').createAdmissionProxy(WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-wallet-admission')))).inSingletonScope();
+    require('./wallet-admission-protocol').createAdmissionProxy(WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-wallet-admission')),
+    WebSocketConnectionProvider.createProxy(context.container,'/services/ynx-project-contracts'))).inSingletonScope();
   bind(FrontendApplicationContribution).toService(NativeWalletService);
   bind(WidgetFactory).toDynamicValue(context => ({ id: NATIVE_WALLET_ID, createWidget: () => new NativeWalletWidget(context.container.get(NativeWalletService)) }));
   bind(NativeWalletContribution).toDynamicValue(context => new NativeWalletContribution(context.container.get(WidgetManager), context.container.get(ApplicationShell))).inSingletonScope();

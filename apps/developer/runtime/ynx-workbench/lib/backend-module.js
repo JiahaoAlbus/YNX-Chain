@@ -76,6 +76,9 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   const aiRpc = require('./local-ai-tools-channel').rpc(require('./local-ai-tools-channel').inherited());
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-local-ai', () => aiRpc));
   bind(BackendApplicationContribution).toConstantValue({ onStop: () => aiRpc.close() });
+  const projectContractsRpc=require('./project-contracts-channel').rpc(require('./project-contracts-channel').inherited());
+  bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-project-contracts',()=>projectContractsRpc));
+  bind(BackendApplicationContribution).toConstantValue({onStop:()=>projectContractsRpc.close()});
   const drafts = new DraftRecoveryStore();
   const draftApi = Object.freeze({ list: () => drafts.list(), getBaseline: (uri, text) => drafts.getBaseline(uri, text),
     upsert: entry => drafts.upsert(entry), remove: uri => drafts.remove(uri) });

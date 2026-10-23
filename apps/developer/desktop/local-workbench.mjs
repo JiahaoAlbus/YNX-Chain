@@ -1,6 +1,8 @@
 import { inspectBundledNodeVersion } from './local-startup-process.mjs';
 import localAIChannel from '../runtime/ynx-workbench/lib/local-ai-tools-channel.js';
 import { createLocalAIToolsHost } from './local-ai-tools-host.mjs';
+import projectContractsChannel from '../runtime/ynx-workbench/lib/project-contracts-channel.js';
+import {createProjectContractsHost} from './project-contracts-host.mjs';
 import admissionChannel from '../runtime/ynx-workbench/lib/wallet-admission-channel.js';
 import marketplaceChannel from '../runtime/ynx-workbench/lib/marketplace-channel.js';
 import artifactChannel from '../runtime/ynx-workbench/lib/marketplace-artifact-channel.js';
@@ -118,7 +120,7 @@ export function localWorkbenchEnvironment({ node, runtime, context, plugins, git
     // extension access to the user's global credentials or another project.
     QWEN_HOME: join(context.profile, 'agent-homes', 'qwen'), QWEN_RUNTIME_DIR: join(context.temporary, 'qwen'),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
-    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile, YNX_MARKETPLACE_PIPE: '4', YNX_PUBLIC_CHAIN_PIPE: '5', YNX_EXTENSION_ARTIFACT_PIPE: '6', YNX_LOCAL_AI_PIPE: '7',
+    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile, YNX_MARKETPLACE_PIPE: '4', YNX_PUBLIC_CHAIN_PIPE: '5', YNX_EXTENSION_ARTIFACT_PIPE: '6', YNX_LOCAL_AI_PIPE: '7', YNX_PROJECT_CONTRACTS_PIPE:'8',
     ...(python ? { YNX_IDE_PYTHON_ENTRY: python.executable } : {}),
     ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
     ...(jsDebugSupervisor ? { YNX_JS_DEBUG_SOCKET: jsDebugSupervisor.path, YNX_JS_DEBUG_CREDENTIAL: jsDebugSupervisor.credential, YNX_JS_DEBUG_PROJECT: context.id, YNX_JS_DEBUG_NODE: node, YNX_JS_DEBUG_LAUNCHER: join(dirname(node), 'local-js-debug-launcher.sh') } : {}),
@@ -257,7 +259,7 @@ export async function prepareLocalPlugins({ runtime, context, lifecycle = false 
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
-export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
+export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, openProjectContracts, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
   const startupOrigin = performance.now();
   let phaseOrigin = startupOrigin;
   const startupPhase = phase => {
@@ -317,7 +319,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   pluginCopy.beginLaunch();
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
-    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
+    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
   child.once('spawn', () => startupPhase('backend-process-spawned'));
@@ -326,6 +328,15 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const aiPipe = localAIChannel.serve(child.stdio[7], aiHost);
   child.once('close', () => aiPipe.close());
   child.once('error', () => aiPipe.close());
+  const projectContractsHost=createProjectContractsHost({context,
+    openClient:async()=>{if(typeof openProjectContracts!=='function')throw Error('Original project Wallet consumer is not supplied.');return openProjectContracts(context);},
+    assertPathCurrent:()=>assertWorkspacePathIdentity(workspaceProof),
+    // No admitted contract-service/Relay guard has been supplied by its owner.
+    // The existing four-operation product-session grant cannot substitute it.
+  });
+  const projectContractsPipe=projectContractsChannel.serve(child.stdio[8],projectContractsHost);
+  child.once('close',()=>projectContractsPipe.close());
+  child.once('error',()=>projectContractsPipe.close());
   let artifactsRetired = false;
   const artifactsPipe = artifactChannel.serveArtifacts(child.stdio[6], createArtifactDownloader({
     directory: ipc.path,
@@ -359,7 +370,8 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
   let stopping;
-  const stop = () => stopping ||= (async () => { retireAdmission(); aiHost.close(); aiPipe.close(); publicChainPipe.close(); catalogPipe.close(); let cleanupError, cleanupStdout;
+  const stop = () => stopping ||= (async () => { retireAdmission(); aiHost.close(); aiPipe.close(); publicChainPipe.close(); catalogPipe.close(); projectContractsPipe.close(); let cleanupError, cleanupStdout;
+    try{await projectContractsHost.close();}catch(error){cleanupError=error;}
     try { await retireArtifacts(); } catch (error) { cleanupError = error; }
     if (!ended) {
     // PTY children can own separate process groups. The sealed native helper

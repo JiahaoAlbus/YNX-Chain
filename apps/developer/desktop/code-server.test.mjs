@@ -9,6 +9,7 @@ import { copyFileSync } from 'node:fs';
 const sourceCommit = 'a'.repeat(40), sourceTree = 'b'.repeat(40);
 const valid = { schemaVersion: 1, productId: 'ynx-developer-v1', version: '0.2.0', sourceDirty: false,
   platform: `macos-${process.arch}`, sourceCommit, sourceTree, runtimeCheckpoint: sourceCommit };
+async function copyParentControl(desktop) { await copyFile(new URL('./native-parent-control.mjs',import.meta.url),join(desktop,'native-parent-control.mjs')); }
 async function launch(record, inspect, bundledTools = false) {
   const root = await mkdtemp(join(tmpdir(), 'ynx-desktop-provenance-'));
   try {
@@ -45,6 +46,7 @@ for (const outcome of ['normal-exit', 'startup-failure']) test(`PUBLIC inherited
   const oldExit = process.exitCode;
   try {
     await mkdir(desktop, { recursive: true });
+    await copyParentControl(desktop);
     // Optional source path is ONLY a PUBLIC parent behavioral control in this
     // test. It never selects the production supplier, authority or App entry.
     copyFileSync(process.env.YNX_PUBLIC_PARENT_CONTROL_SOURCE || new URL('./code-server.mjs', import.meta.url), join(root, 'server.mjs'));
@@ -87,7 +89,7 @@ for (const [name, record] of [
 for (const supplied of [true,false]) test('normal local launcher ' + (supplied ? 'injects independent supply and closes it' : 'keeps local development available with malformed AI supply'), async () => {
   const root=await mkdtemp(join(tmpdir(),'ynx-public-native-tools-startup-'));
   try {
-    const desktop=join(root,'code/apps/developer/desktop');await mkdir(desktop,{recursive:true});
+    const desktop=join(root,'code/apps/developer/desktop');await mkdir(desktop,{recursive:true});await copyParentControl(desktop);
     await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'code-server.mjs'));
     await copyFile(new URL('./native-tools-client.mjs',import.meta.url),join(desktop,'native-tools-client.mjs'));
     await copyFile(new URL('./admitted-local-project.mjs',import.meta.url),join(desktop,'admitted-local-project.mjs'));
@@ -106,6 +108,7 @@ for (const scenario of ['incomplete', 'async-close', 'missing-tools', 'launch-fa
   try {
     const desktop = join(root, 'code/apps/developer/desktop');
     await mkdir(desktop, { recursive: true });
+    await copyParentControl(desktop);
     await copyFile(new URL('./code-server.mjs', import.meta.url), join(root, 'code-server.mjs'));
     for (const file of ['native-tools-client.mjs', 'admitted-local-project.mjs']) await copyFile(new URL(`./${file}`, import.meta.url), join(desktop, file));
     await writeFile(join(root, 'build-provenance.json'), JSON.stringify(valid));
@@ -144,10 +147,11 @@ for (const cleanup of ['false-rejection','incomplete-result','clean']) test('P2 
   const oldMode=process.env.YNX_DEVELOPER_DESKTOP_MODE, oldSupport=process.env.YNX_CODE_DESKTOP_SUPPORT_DIR, oldExit=process.exitCode, oldError=console.error;
   const events=[], logs=[]; globalThis.__ynxP2Events=events;
   try {
-    const desktop=join(root,'code/apps/developer/desktop'), vendor=join(root,'code/apps/developer/vendor/identity-admission/scripts');
+    const desktop=join(root,'code/apps/developer/desktop'), vendor=join(root,'code/packages/wallet-auth/scripts');
     await mkdir(desktop,{recursive:true});await mkdir(vendor,{recursive:true});
     await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'server.mjs'));
-    for(const file of ['wallet-admission-startup.mjs','wallet-admission-delivery.mjs','native-tools-client.mjs','admitted-local-project.mjs'])await copyFile(new URL('./'+file,import.meta.url),join(desktop,file));
+    for(const file of ['wallet-admission-startup.mjs','wallet-admission-delivery.mjs','private-payload-pump.mjs','native-tools-client.mjs','admitted-local-project.mjs'])await copyFile(new URL('./'+file,import.meta.url),join(desktop,file));
+    await copyParentControl(desktop);
     await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
     await writeFile(join(desktop,'local-go-selection.mjs'),"export async function createLocalGoSelectionStore(){throw Error('PUBLIC no Go');}export function attachNativeGoSelectionChannel(){}");
     await writeFile(join(vendor,'ynx-ide-service-admission-supplier.mjs'),

@@ -18,13 +18,13 @@ const identityFailureKey=error=>({
 })[error?.code]||'identityFailed';
 function element(document, tag, text) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; return node; }
 class NativeWalletService {
-  constructor(target = window, admission = MISSING_WALLET_ADMISSION) {
-    this.target = target; this.listeners = new Set();
+  constructor(target = window, admission = MISSING_WALLET_ADMISSION, projectContracts) {
+    this.target = target; this.listeners = new Set();this.projectContracts=projectContracts;
     this.controller = new NativeWalletController(api, state => { for (const fn of this.listeners) fn(state); }, admission);
-    this.pagehide = () => { void this.controller.cancel(); };
+    this.pagehide = () => { void this.controller.cancel();void this.projectContracts?.call('cancel',{}).catch(()=>{}); };
   }
   onStart() { this.target.addEventListener('pagehide', this.pagehide); }
-  onStop() { this.target.removeEventListener('pagehide', this.pagehide); return this.controller.dispose(); }
+  onStop() { this.target.removeEventListener('pagehide', this.pagehide);void this.projectContracts?.call('cancel',{}).catch(()=>{});return this.controller.dispose(); }
 }
 class NativeWalletWidget extends BaseWidget {
   constructor(service) {
@@ -36,6 +36,38 @@ class NativeWalletWidget extends BaseWidget {
     const details = element(document, 'details'); details.append(element(document, 'summary', t('details')), this.source);
     this.node.append(element(document, 'h3', t('title')), this.status, this.session, this.detail, element(document, 'p', t('project')), element(document, 'p', t('standard')), element(document, 'p', t('closed')), details);
     this.buttons = {}; let live = true;
+    // Current-project operations use the retained backend owner, not the
+    // product-session bridge. Rendering this section never initializes Relay.
+    const projectStatus=element(document,'p',t('projectContractIdle'));projectStatus.setAttribute('role','status');
+    const reference=element(document,'input');reference.type='text';reference.value='';reference.placeholder=t('projectReference');reference.setAttribute('aria-label',t('projectReference'));reference.maxLength=36;
+    const pairing=element(document,'textarea');pairing.readOnly=true;pairing.setAttribute('aria-label',t('projectPairing'));pairing.hidden=true;
+    const result=element(document,'pre');result.setAttribute('aria-live','polite');
+    this.node.append(element(document,'h4',t('projectContractTitle')),projectStatus,reference,pairing,result);
+    let projectEpoch=0;
+    const projectButtons={};
+    const projectCall=async(action,body={})=>{
+      const epoch=++projectEpoch;
+      try{
+        if(!service.projectContracts)throw Error('Project service unavailable');
+        const value=await service.projectContracts.call(action,body);
+        if(!live||epoch!==projectEpoch)return;
+        if(action==='inspect'){
+          const configured=value?.onlineConfigured===true;
+          projectStatus.textContent=t(configured?'projectContractIdle':'projectContractUnavailable');
+          projectButtons.connect.disabled=!configured;projectButtons.query.disabled=!configured;
+          pairing.value=typeof value?.pairingURI==='string'?value.pairingURI:'';pairing.hidden=!pairing.value;
+        }else if(action==='read'||action==='query'){
+          result.textContent=value===null?t('projectReferenceMissing'):JSON.stringify(value,null,2);
+          projectStatus.textContent=t('projectQueryOnly');
+        }else{projectStatus.textContent=t(action==='cancel'?'projectContractCancelled':'projectContractConnected');pairing.value='';pairing.hidden=true;}
+      }catch{if(live&&epoch===projectEpoch)projectStatus.textContent=t('projectContractUnavailable');}
+    };
+    for(const [action,key] of [['connect','projectContractConnect'],['inspect','projectContractRefresh'],['read','projectReferenceRead'],['query','projectReferenceQuery'],['cancel','projectContractCancel']]){
+      const button=element(document,'button',t(key));button.type='button';button.className='theia-button secondary';if(action==='connect'||action==='query')button.disabled=true;
+      button.addEventListener('click',()=>{if(!live)return;void projectCall(action,action==='read'?{referenceId:reference.value.trim()}:action==='query'?{referenceId:reference.value.trim(),refresh:true}:{});});projectButtons[action]=button;this.node.append(button);
+    }
+    this.toDispose.push({dispose:()=>{projectEpoch++;pairing.value='';}});
+    void projectCall('inspect');
     // Native identity bootstrap is separate from Product Session and project
     // permissions. A DATA response must never promote controller.session.
     const identityStatus=element(document,'p',t('identityNote'));

@@ -41,7 +41,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   let goStore,goToolchain;
   try{goStore=await createLocalGoSelectionStore({supportRoot,context,pathIdentityHelper:join(resources,'runtime','workspace-path-identity')});goToolchain=await goStore.load();}
   catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
-  const { openBundledWalletAdmission } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
+  const { openBundledWalletAdmission, openBundledProjectContractClient } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
   const walletAdmission = await openBundledWalletAdmission(import.meta.url);
   // Retire service capability before child shutdown; late four-op results may
   // not reopen a cancelled native parent epoch. This is separate from Tools.
@@ -78,7 +78,9 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   }
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
-    walletAdmission, aiTools, goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
+    walletAdmission, aiTools, goToolchain,
+    openProjectContracts:projectContext=>openBundledProjectContractClient({context:projectContext,admittedProject:walletAdmission?.admittedProject}),
+    node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
       retireWallet();
       await finishWalletCleanup();
       retireTools();
@@ -96,11 +98,11 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
       throw error;
     });
   const { createNativeParentControl } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-parent-control.mjs')));
-  const { attachOriginalServicePipe } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'original-service-pipe.mjs')));
-  const { attachNativeIdentityChannel } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-identity-channel.mjs')));
   const parentControl = createNativeParentControl({input:process.stdin,onError:error=>console.error('YNX_NATIVE_PARENT_CONTROL '+String(error?.message??error).slice(0,240))});
   let goChannel, originalServiceChannel, identityChannel;
   if(goStore&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
+    const {attachOriginalServicePipe}=await import(pathToFileURL(join(applicationRoot,'desktop','original-service-pipe.mjs')));
+    const {attachNativeIdentityChannel}=await import(pathToFileURL(join(applicationRoot,'desktop','native-identity-channel.mjs')));
     try{const instance=process.env.YNX_NATIVE_GO_INSTANCE;const directory=await goStore.controlDirectory(instance);
       goChannel=attachNativeGoSelectionChannel({control:parentControl,store:goStore,context,directory,onError:error=>console.error('YNX_GO_SELECTION_CONTROL '+String(error.message).slice(0,240))});
       // Bootstrap identity is independent of an admitted legacy four-op parent.
