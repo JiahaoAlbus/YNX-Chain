@@ -20,10 +20,10 @@ test('auth4 combined package exposes original deployment DATA codec without repl
 });
 test('canonical successor retains exact frozen JS hierarchy and independently pinned Native tuple while reusing four original pure files',()=>{
  const c=JSON.parse(readFileSync(new URL('../integration/SDK332_R140_NATIVE_COMPATIBILITY.json',import.meta.url)));
- assert.equal(hash(JSON.stringify(c.NativeInputs)),'fd224705ff3c1787de462bf40816e8cbf4d2298e22a5e7fb1d896aeef0cb19c5');
+ assert.equal(hash(JSON.stringify(c.NativeInputs)),'19138daa98ce13a6fcfa0148f7bf899192fc97c46c36a2fc05f4532af3832e69');
  assert.equal(hash(readFileSync(new URL('../src/original-auth-identity-private-joint-registration.js',import.meta.url))),'b9f7c59b42a7032a6e429b4a805aa26cb9f8267158dc2e96d2d4b8601892a2de');
  for(const p of pins){const b=readFileSync(new URL('../../../'+p.path,import.meta.url));assert.equal(b.length,p.bytes);assert.equal(hash(b),p.sha256);}
 });
 test('auth4 normal source selector accepts the combined frozen public exports and exact Native inputs',()=>{
- const selected=verifySDK332R140Source(root);assert.equal(selected.contract.version,'1.3.0-pq.3.32-auth.6');assert.deepEqual(selected.contract.pureDeploymentInputs,pins);
+ const selected=verifySDK332R140Source(root);assert.equal(selected.contract.version,'1.3.0-pq.3.32-auth.7');assert.deepEqual(selected.contract.pureDeploymentInputs,pins);
 });

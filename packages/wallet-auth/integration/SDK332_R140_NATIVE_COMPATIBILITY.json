@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.6",
+  "version": "1.3.0-pq.3.32-auth.7",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -242,8 +242,8 @@
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-auth-request-source.inc.mm",
-      "bytes": 10150,
-      "sha256": "2f641f98d5c2e2a7cc7a41afe5de195791f59e0d5415ea94a15c999b772f5688"
+      "bytes": 10662,
+      "sha256": "d2b41882c50c171bd0c9967ec6de6adca75e0e1bdb4c57462026b54ed884984a"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-identity-peer-owner.inc.mm",
@@ -529,12 +529,22 @@
       "path": "packages/wallet-auth/native/original-ide-helper-service-install.mm",
       "bytes": 7916,
       "sha256": "9f159712f33553ee860d0902541a7412bb8e357578e76cec86b0ebb58faa9ce4"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-publication-artifact.h",
+      "bytes": 1038,
+      "sha256": "775a0e9236c411b7738d9e3f6431626029ed935a6ab25f8faec5daa55d33a56b"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-publication-artifact.mm",
+      "bytes": 5325,
+      "sha256": "6f6b3ebabe20d90b7a02b8e42220bee24d6e6840923c06ad1d8e0d4829dd8f5f"
     }
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 8419,
-    "sha256": "4376b17a21cf65cc0bcc4226d41b90593f19477bc9125e5ee3d68a462b21f092"
+    "bytes": 9828,
+    "sha256": "1717c0dd25f19546d706989720e037d836e859d6a139edb81daa3026730444e1"
   },
   "require": {
     "translationUnits": 11,
@@ -623,7 +633,7 @@
       "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
     }
   ],
-  "profile": "R154-paired-client-helper",
+  "profile": "R159-typed-publication-client-helper",
   "HelperInputs": [
     {
       "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
@@ -658,5 +668,14 @@
     "differentialGroups": 13,
     "OSSourceAndCleanupArePUBLICSeams": true,
     "normalBuildConfirmationPending": true
+  },
+  "supplierR159": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r159/HANDOFF.json",
+      "bytes": 7016,
+      "sha256": "242e2f9d3b42c78cb6e035e4f46388a75b73ad75615408204633f123c8fcd3ec"
+    },
+    "normalBuildConfirmationPending": true,
+    "actualBusinessEffectAvailable": false
   }
 }
