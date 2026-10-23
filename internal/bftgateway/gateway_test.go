@@ -101,6 +101,15 @@ func TestGatewayMapsCometBFTAndKeepsCutoverBlocked(t *testing.T) {
 			}})
 		case "/abci_query":
 			path, _ := strconv.Unquote(r.URL.Query().Get("path"))
+			if strings.HasPrefix(path, consensus.MigrationHistoryTransactionPath) || path == consensus.PQWalletIdentityPath {
+				var value any = consensus.MigrationHistoryTransactionView{MigrationHistoryAnchor: consensus.MigrationHistoryAnchor{Version: consensus.MigrationHistoryVersion, Source: "source_import", SourceAnchor: strings.Repeat("1", 64), OriginalGenesisHash: strings.Repeat("2", 64), NativeChainID: 6423, MigrationHeight: 16, MigrationBlockHash: strings.Repeat("f", 64)}}
+				if path == consensus.PQWalletIdentityPath {
+					value = consensus.PQWalletIdentityView{Version: consensus.PQWalletIdentityVersion, Source: "configured-abci-bootstrap", RecordsView: "committed", HashAlgorithm: "sha256", NativeChainID: 6423, NativeGenesisHash: strings.Repeat("2", 64), CometChainID: "ynx_6423-1", CometGenesisSHA256: strings.Repeat("3", 64), MigrationStateHash: strings.Repeat("1", 64), MigrationHeight: 16, InitialHeight: 17, CurrentStateHeight: 17, CurrentStateAppHash: strings.Repeat("4", 64)}
+				}
+				raw, _ := json.Marshal(value)
+				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": "17", "value": base64.StdEncoding.EncodeToString(raw)}}})
+				return
+			}
 			if path == "/evm/logs" {
 				_ = json.NewEncoder(w).Encode(map[string]any{"result": map[string]any{"response": map[string]any{"code": 0, "height": "17", "value": base64.StdEncoding.EncodeToString([]byte("[]"))}}})
 				return

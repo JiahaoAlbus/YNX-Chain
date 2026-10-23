@@ -43,13 +43,17 @@ type pqIdentityFixture struct {
 	latest, earliest int64
 	mode             string
 	commitReads      int
+	statePath        string
 }
 
 // Application-backed test RPC with real synthetic Ed25519 commit signatures.
 // No Comet node runs and these are not deployed-network/finality fixtures.
-func newPQIdentityFixture(t *testing.T) *pqIdentityFixture {
+func newPQIdentityFixture(t *testing.T, beforeExport ...func(*chain.Devnet)) *pqIdentityFixture {
 	t.Helper()
 	d := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), []chain.Validator{{Address: "ynx_validator_identity_a", VotingPower: 1, Active: true}, {Address: "ynx_validator_identity_b", VotingPower: 1, Active: true}})
+	for _, prepare := range beforeExport {
+		prepare(d)
+	}
 	d.ProduceBlock()
 	m, err := d.ExportConsensusMigrationState()
 	if err != nil {
@@ -83,7 +87,8 @@ func newPQIdentityFixture(t *testing.T) *pqIdentityFixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	f.app, err = consensus.NewPersistentApplicationWithBootstrap(f.migration, filepath.Join(t.TempDir(), "identity.json"), f.bootstrap)
+	f.statePath = filepath.Join(t.TempDir(), "identity.json")
+	f.app, err = consensus.NewPersistentApplicationWithBootstrap(f.migration, f.statePath, f.bootstrap)
 	if err != nil {
 		t.Fatal(err)
 	}

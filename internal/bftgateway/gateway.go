@@ -602,8 +602,12 @@ func (g *Gateway) handleStatus(w http.ResponseWriter, r *http.Request) {
 
 func (g *Gateway) handleBlock(w http.ResponseWriter, r *http.Request) {
 	height, err := strconv.ParseUint(r.PathValue("height"), 10, 64)
-	if err != nil || height == 0 {
+	if err != nil || strconv.FormatUint(height, 10) != r.PathValue("height") || height == 0 && g.migrationHeight == 0 {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "positive block height is required"})
+		return
+	}
+	if g.migrationHeight != 0 && height <= g.migrationHeight {
+		g.handleImportedBlock(w, r, height)
 		return
 	}
 	block, err := g.block(r.Context(), height)
@@ -1037,9 +1041,24 @@ func (g *Gateway) handleBroadcastTransaction(w http.ResponseWriter, r *http.Requ
 
 func (g *Gateway) handleTransaction(w http.ResponseWriter, r *http.Request) {
 	hash := strings.TrimSpace(r.PathValue("hash"))
-	if !transactionHashPattern.MatchString(hash) {
+	if !transactionHashPattern.MatchString(hash) && !(g.migrationHeight != 0 && sourceTransactionHash(hash)) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical lowercase transaction hash is required"})
 		return
+	}
+	if g.migrationHeight != 0 {
+		original, found, err := g.importedTransaction(r.Context(), hash)
+		if err != nil {
+			writeJSON(w, http.StatusBadGateway, map[string]string{"error": err.Error()})
+			return
+		}
+		if found {
+			writeJSON(w, http.StatusOK, original)
+			return
+		}
+		if !transactionHashPattern.MatchString(hash) {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "original source transaction not found"})
+			return
+		}
 	}
 	var upstream cometTxLookup
 	if err := g.client.get(r.Context(), "/tx", url.Values{"hash": {hash}, "prove": {"true"}}, &upstream); err != nil {

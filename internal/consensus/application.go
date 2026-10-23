@@ -369,6 +369,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	response := &abcitypes.ResponseQuery{Code: abcitypes.CodeTypeOK, Height: a.committed.Height}
+	if queryMigrationHistory(response, req, a.committed, a.migration) {
+		return response, nil
+	}
 	if queryPQWallet(response, req, a.committed, a.migration) {
 		return response, nil
 	}

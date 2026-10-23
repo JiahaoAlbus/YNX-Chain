@@ -294,7 +294,9 @@ systemctl(){ printf 'forbidden systemctl %s\n' "$*" >>"$CASE_LOG"; return 93; }
 ynx_ops_ssh(){ printf 'forbidden SSH %s\n' "$*" >>"$CASE_LOG"; return 94; }
 curl(){
   printf 'curl %s\n' "$*" >>"$CASE_LOG"
-  case "${*: -1}" in
+  local target
+  for target; do :; done
+  case "$target" in
     https://rpc.test.invalid/health|https://rpc.test.invalid/status) printf '{"sourceFixtureOnly":true}\n' ;;
     https://rpc.test.invalid/node/pq-identity) printf 'Method Not Allowed\n'; echo 'fixture: HTTP 405' >&2; return 22 ;;
     *) echo 'unexpected request or mutation' >&2; return 92 ;;
