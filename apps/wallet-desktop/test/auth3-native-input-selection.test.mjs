@@ -35,3 +35,12 @@ test('auth4 selects its own exact inventory while retaining all55 original Nativ
  assert.throws(()=>canonicalNativeInputSelection(current.version,names(),bytes,pins()),/inventory differs/);
  assert.throws(()=>canonicalNativeInputSelection(version,names(),raw,pins()),/inventory differs/);
 });
+test('auth5 distinguishes62 Node inputs from3 helper Native leaves and2 preserved evidence tests',()=>{
+ const raw=readFileSync(new URL('./fixtures/sdk332-auth5-native62-helper5.json',import.meta.url)),current=JSON.parse(raw),pins=current.NativeInputs.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));
+ const node=current.NativeInputs.map(p=>p.path),helper=current.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),wide=[...node,...helper,...CANONICAL_NATIVE_EVIDENCE_TESTS];
+ assert.equal(wide.length,67);assert.equal(helper.length,3);
+ const plan=canonicalNativeInputSelection(current.version,wide,raw,pins);assert.equal(plan.inputs.length,62);assert.equal(plan.helperInputs.length,5);assert.equal(plan.pairedInputCount,67);assert.deepEqual(plan.evidenceAssets,CANONICAL_NATIVE_EVIDENCE_TESTS);
+ for(const bad of [node,[...wide,'packages/wallet-auth/native/foreign.mm'],wide.slice(1)])assert.throws(()=>canonicalNativeInputSelection(current.version,bad,raw,pins),/inventory differs/);
+ assert.throws(()=>canonicalNativeInputSelection(current.version,wide,raw,pins.slice(0,55)),/inventory differs/);
+ assert.throws(()=>canonicalNativeInputSelection(current.version,wide,bytes,pins),/inventory differs/);
+});
