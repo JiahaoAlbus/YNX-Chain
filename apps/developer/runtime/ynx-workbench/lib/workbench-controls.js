@@ -226,7 +226,7 @@ class WorkbenchControlsContribution {
   }
   primaryRunLabel() {
     const editor = this.editors.currentEditor?.editor;
-    return !this.debugConfigurations?.current && editor?.uri?.scheme === 'file' && editor.document?.languageId === 'solidity'
+    return editor?.uri?.scheme === 'file' && editor.document?.languageId === 'solidity'
       ? this.translate('compileSolidityProject', 'Compile Solidity project')
       : this.translate('runCurrentTarget', 'Run current file or project');
   }

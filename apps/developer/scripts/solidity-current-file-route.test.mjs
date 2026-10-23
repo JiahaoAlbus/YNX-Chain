@@ -24,14 +24,23 @@ test('Solidity primary action compiles through existing command; absent debugger
   f.commands.isEnabled = () => false;
   assert.equal(f.handlers.get('ynx.workbench.runCurrentFile').isEnabled(), false);
 });
-test('explicit user launch choice remains authoritative; nonfile documents do not enter Solidity compiler', () => {
-  const f = routing(); f.configurations.current = { name: 'user-selected chain debugger' };
-  assert.equal(f.contribution.currentFileCommand(false), 'workbench.action.debug.run');
-  assert.equal(f.contribution.currentFileCommand(true), 'workbench.action.debug.start');
-  f.configurations.current = undefined; f.editors.currentEditor.editor.uri.scheme = 'untitled';
+test('current Solidity Run compiles while explicit Debug retains the user launch; nonfile Run retains project fallback', () => {
+  const f = routing(), selected = { name: 'user-selected chain debugger' };
+  f.configurations.current = selected;
+  f.handlers.get('ynx.workbench.runCurrentFile').execute();
+  f.handlers.get('ynx.workbench.debugCurrentFile').execute();
+  assert.deepEqual(f.calls, ['ynx.compileSolidity', 'workbench.action.debug.start']);
+  assert.equal(f.configurations.current, selected);
+  for (const scheme of ['untitled', 'debug', 'https']) {
+    f.editors.currentEditor.editor.uri.scheme = scheme;
+    f.handlers.get('ynx.workbench.runCurrentFile').execute();
+    assert.equal(f.calls.at(-1), 'workbench.action.debug.run');
+    assert.equal(f.configurations.current, selected);
+  }
+  f.configurations.current = undefined;
   assert.equal(f.contribution.currentFileCommand(false), 'workbench.action.debug.run');
 });
-test('primary Solidity label says compile, and changes when current target or explicit selection changes', () => {
+test('primary Solidity label matches compile despite retained launch, and changes for another current target', () => {
   const source = readFileSync(new URL('../runtime/ynx-workbench/lib/workbench-controls.js', import.meta.url), 'utf8'), module = { exports: {} };
   vm.runInNewContext(source, { module, require: name => name === 'react' ? { createElement: (type, props, ...children) => ({ type, props: { ...props, children } }) } : require(name), setInterval, clearInterval });
   const { WorkbenchControlsContribution } = module.exports, f = routing(); let toolbar, updates = 0;
@@ -44,9 +53,10 @@ test('primary Solidity label says compile, and changes when current target or ex
   assert.equal(toolbar.render(f.editors.currentEditor).props.children[0].props.title, 'Compile Solidity project');
   controls.refresh(); const first = updates;
   f.configurations.current = { name: 'explicit target' }; controls.refresh();
-  assert.equal(updates, first + 1);
-  assert.equal(toolbar.render(f.editors.currentEditor).props.children[0].props.title, 'Run current file or project');
+  assert.equal(updates, first, 'a retained Debug selection does not change the current-file Compile action');
+  assert.equal(toolbar.render(f.editors.currentEditor).props.children[0].props.title, 'Compile Solidity project');
   f.configurations.current = undefined; controls.refresh();
   f.editors.currentEditor.editor.document.languageId = 'go'; const before = updates; controls.refresh();
   assert.equal(updates, before + 1);
+  assert.equal(toolbar.render(f.editors.currentEditor).props.children[0].props.title, 'Run current file or project');
 });
