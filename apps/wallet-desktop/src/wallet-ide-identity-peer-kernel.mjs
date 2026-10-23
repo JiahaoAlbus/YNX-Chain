@@ -23,7 +23,7 @@ export class WalletIDEIdentityPeerKernel {
    if(!this.#deps.evidence.pending()&&!this.#own.storagePresent)try{await this.#store();}catch{}throw cause;
   }).finally(()=>{this.#busy=false;this.#activeGuard=null;});this.#work=p;void p.catch(()=>{});return p;}
  status(){const o=this.#own;return Object.freeze({operationId:o?.id??null,reviewId:o?.review?.describe().reviewId??null,phase:o?.phase??'idle',decision:o?.decision??null,busy:this.#busy,retired:o?.retired??false,closed:o?.closed??false,hasSignedResult:!!o?.wire,sendSelected:o?.sendSelected??false,sendStarted:o?.sendStarted??false,sendReturned:o?.sendReturned??false,firstCausePresent:o?.firstPresent??false,storageCausePresent:o?.storagePresent??false,cleanupCausePresent:o?.cleanupPresent??false,localSaveRequired:o?.needsSave??false,dataOnly:true,userApproved:false,handoffAuthorized:false,retryAuthorized:false});}
- review(){const o=this.#own;if(!o?.review)return null;return Object.freeze({...o.review.describe(),approvalAvailable:o.purpose!=='AUTH-PROTECTED-KEY-CALL',approvalUnavailableCode:o.purpose==='AUTH-PROTECTED-KEY-CALL'?'AUTH_IDENTITY_KEY_CALL_REVIEW_NOT_SUPPLIED':null});}
+ review(){const o=this.#own;if(!o?.review)return null;const detail=o.review.describe();return Object.freeze({...detail,approvalAvailable:o.purpose!=='AUTH-PROTECTED-KEY-CALL',approvalUnavailableCode:o.purpose==='AUTH-PROTECTED-KEY-CALL'?(detail.publication?'AUTH_IDENTITY_PUBLICATION_APPROVAL_NOT_SUPPLIED':'AUTH_IDENTITY_KEY_CALL_REVIEW_NOT_SUPPLIED'):null});}
  start(guard){
   if(this.#busy||this.#own&&!this.#own.closed)fail('AUTH_IDENTITY_PEER_PENDING');this.assertSafeToClose();guard.assert();
   this.#own={id:randomUUID(),sequence:0,account:guard.account,source:null,sourceKnown:false,policy:null,policyKnown:false,review:null,raw:null,invocation:null,purpose:null,decision:null,wire:null,phase:'launch-selected',sendSelected:false,sendStarted:false,sendReturned:false,retired:false,closed:false,needsSave:false,firstPresent:false,storagePresent:false,cleanupPresent:false,cleanupDebt:false,nativeRetired:false,policyRetired:false,nativeCloseSelected:false,policyCloseSelected:false,nativeClosed:false,policyClosed:false};
@@ -35,16 +35,16 @@ export class WalletIDEIdentityPeerKernel {
    // Native has already bound this packet. Never call bindRequest again.
    this.#current(guard);if(o.source.copyRequestOriginal()!==o.raw)fail('AUTH_IDENTITY_PEER_ORIGINAL_CHANGED');const body=this.#deps.inspect(o.raw);o.purpose=body.purpose;
    if(!['AUTH-IDENTITY-RECEIVE','AUTH-IDENTITY-RECOVER','AUTH-PROTECTED-KEY-CALL'].includes(o.purpose)||body.owner!==o.account||(o.purpose==='AUTH-PROTECTED-KEY-CALL')!==(o.invocation!==null))fail('AUTH_IDENTITY_PEER_REQUEST_REFUSED');
-   o.review=this.#deps.createReview({requestOriginal:o.raw,expectedOriginal:o.raw,purpose:o.purpose,assertCurrent:()=>this.#current(),getSnapshot:()=>{if(!o.policy||!o.policyKnown)fail('AUTH_IDENTITY_POLICY_REQUIRED');sync(o.policy,'assertCurrent');return o.policy.readOriginal().authorization;}});
+   o.review=this.#deps.createReview({requestOriginal:o.raw,expectedOriginal:o.raw,invocationOriginal:o.invocation,purpose:o.purpose,assertCurrent:()=>this.#current(),getSnapshot:()=>{if(!o.policy||!o.policyKnown)fail('AUTH_IDENTITY_POLICY_REQUIRED');sync(o.policy,'assertCurrent');return o.policy.readOriginal().authorization;}});
    o.phase='review-ready';await this.#store();this.#current(guard);return this.review();
   },guard);
  }
  decide(reviewId,decision,guard){
   const o=this.#own;if(!o?.review||o.review.describe().reviewId!==reviewId||!['approve','reject','cancel'].includes(decision)||o.decision!==null)fail('AUTH_IDENTITY_PEER_REVIEW_INVALID');
-  // Auth's original key-call callee currently binds only an opaque canonical
-  // dictionary/digest. Until its original semantic/public review is supplied,
-  // a digest is not informed consent. Rejection/cancellation stay available.
-  if(decision==='approve'&&o.purpose==='AUTH-PROTECTED-KEY-CALL')fail('AUTH_IDENTITY_KEY_CALL_REVIEW_NOT_SUPPLIED');
+  // Parsed publication semantics are DATA, not independently current publisher
+  // authority, explicit release approval or a once-only Native signing effect.
+  // A digest/manifest alone cannot open this gate. Reject/cancel remain usable.
+  if(decision==='approve'&&o.purpose==='AUTH-PROTECTED-KEY-CALL')fail(o.review.describe().publication?'AUTH_IDENTITY_PUBLICATION_APPROVAL_NOT_SUPPLIED':'AUTH_IDENTITY_KEY_CALL_REVIEW_NOT_SUPPLIED');
   return this.#run(async()=>{
    this.#current(guard);o.decision=decision;o.phase='decision-selected';await this.#store();this.#current(guard);
    if(decision==='approve'){

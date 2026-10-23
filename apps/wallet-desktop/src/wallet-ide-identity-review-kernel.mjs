@@ -7,11 +7,11 @@ const fail=code=>{throw Object.assign(Error(code),{code});};
  * alone supplies admitted request/current and protected-result persistence.
  */
 export class WalletIDEIdentityReviewKernel {
- #raw;#expected;#purpose;#snapshot;#vault;#sourceCurrent;#persist;#inspect;#createAction;#now;
+ #raw;#expected;#purpose;#snapshot;#vault;#sourceCurrent;#persist;#inspect;#createAction;#now;#publication;
  #id=randomUUID();#body;#selected=null;#phase='pending';#active=false;#action=null;#wire=null;#payload=null;#stored=false;#saveAttempted=false;#saveUnconfirmed=false;#retired=false;#first;#hasFirst=false;#cleanup;#hasCleanup=false;
- constructor({vault,requestOriginal,expectedOriginal,purpose,snapshot,assertCurrent,persistOriginal,inspect,createAction,now=Date.now}){
+ constructor({vault,requestOriginal,expectedOriginal,purpose,snapshot,publication=null,assertCurrent,persistOriginal,inspect,createAction,now=Date.now}){
   if(!purposes.has(purpose)||[assertCurrent,persistOriginal,inspect,createAction,now].some(x=>typeof x!=='function'))fail('AUTH_IDENTITY_PRIVATE_APPROVAL_REQUIRED');
-  this.#vault=vault;this.#raw=requestOriginal;this.#expected=expectedOriginal;this.#purpose=purpose;this.#snapshot=snapshot;this.#sourceCurrent=assertCurrent;this.#persist=persistOriginal;this.#inspect=inspect;this.#createAction=createAction;this.#now=now;
+  this.#vault=vault;this.#raw=requestOriginal;this.#expected=expectedOriginal;this.#purpose=purpose;this.#snapshot=snapshot;this.#publication=publication;this.#sourceCurrent=assertCurrent;this.#persist=persistOriginal;this.#inspect=inspect;this.#createAction=createAction;this.#now=now;
   this.#current();this.#body=this.#inspect(requestOriginal,expectedOriginal,purpose,this.#at()).body;this.#current();
  }
  #at(){const n=this.#now();if(!Number.isSafeInteger(n)||n<0)fail('AUTH_IDENTITY_CLOCK_INVALID');return String(n);}
@@ -27,7 +27,7 @@ export class WalletIDEIdentityReviewKernel {
   try{if(await this.#persist(record)!==undefined)fail('AUTH_IDENTITY_RESULT_SAVE_UNCONFIRMED');this.#stored=true;this.#saveUnconfirmed=false;}
   catch(cause){this.#saveUnconfirmed=true;if(!this.#hasCleanup){this.#hasCleanup=true;this.#cleanup=cause;}throw cause;}
  }
- describe(){const detail={};for(const k of ['principalId','productId','applicationId','deviceId','requestDigest','credentialDigest','keyVersion','executionHeight','issuedAtMs'])if(typeof this.#body[k]==='string')detail[k]=this.#body[k];return Object.freeze({reviewId:this.#id,requestId:this.#body.requestId,purpose:this.#purpose,account:this.#body.owner,networkId:this.#body.networkId,expiresAtMs:this.#body.expiresAtMs,...detail});}
+ describe(){const detail={};for(const k of ['principalId','productId','applicationId','deviceId','requestDigest','credentialDigest','keyVersion','executionHeight','issuedAtMs'])if(typeof this.#body[k]==='string')detail[k]=this.#body[k];if(this.#publication!==null)detail.publication=this.#publication;return Object.freeze({reviewId:this.#id,requestId:this.#body.requestId,purpose:this.#purpose,account:this.#body.owner,networkId:this.#body.networkId,expiresAtMs:this.#body.expiresAtMs,...detail});}
  status(){return Object.freeze({reviewId:this.#id,decision:this.#selected,phase:this.#phase,active:this.#active,recorded:this.#stored,hasSignedResult:this.#wire!==null,retired:this.#retired,firstCausePresent:this.#hasFirst,cleanupCausePresent:this.#hasCleanup,retryAuthorized:false,handoffAuthorized:false});}
  readOriginalResult(){return Object.freeze({...this.status(),requestOriginal:this.#raw,purpose:this.#purpose,wire:this.#wire?new Uint8Array(this.#wire):null,payload:this.#payload?{kind:this.#payload.kind,bytes:Buffer.from(this.#payload.payload)}:null,firstCause:this.#first,cleanupCause:this.#cleanup,dataOnly:true});}
  retire(){this.#retired=true;this.#action?.retire();}
