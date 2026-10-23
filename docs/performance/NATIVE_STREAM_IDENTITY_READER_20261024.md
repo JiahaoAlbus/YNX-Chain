@@ -11,3 +11,13 @@ Actual local production of the public fixture completed102real signed applicatio
 This layer checks retained observation identity and coverage. Quorum flags in the unit producer are explicit synthetic gate inputs; neither those flags nor these hash chains replace independent real-node BFT/state/signature/resource admission. The reader always returns networkQualified=false and sustainedTPSQualified=false. No new network workload, performance improvement or1000TPS acceptance is claimed. Exact-head normal CI is pending at this source report.
 
 The exact small native-stream resource profile/controller, complete native-node/post-fsync closure qualification and bounded full artifact recovery are still being connected. After those are complete, Root must schedule a new exact-source once window. The eventual600s stable business-final timeline and broader throughput goals remain unchanged and unproven.
+
+## Original normal CI recovered
+
+Run [40015137664](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40015137664), exact source `abb8b0438fe33486fd3bfcabf7e297d23cc4d1a8`, attempt1, completed SUCCESS. Original log records the Go producer RUN/PASS, Python14 tests in0.262s, all16 source-gate case names, and the scheduled Linux network step SKIPPED. Original public artifact12529085149 is164451 bytes. Its102 stream members were read back using the original signed-intent/terminal/latest-slot verifier and exactly match the identity printed by CI: member-manifest SHA256 `d73ff57cedef2ba5ece6f89623ca3a4d439353182e946760bbc2c8b8e58719f4`. This descriptor manifest is not a whole ZIP digest.
+
+Evidence: [normal CI qualification](evidence/native-stream-identity-normal-ci-40015137664-actual.json). This is public unit evidence, with no independent BFT or sustained throughput qualification.
+
+## Post-fsync controller repair
+
+The original one-shot controller used double cleanup scans taken before the receipt fsync. Source counterexample retains a qualified original result despite a later owned child, with zero post-fsync native scans. The controller now scans actual native process ownership twice after persistence, checks the actual launcher PID/startTicks against cleanup, and retains original known child identities. Scan failure, new child or launcher replacement refuses the terminal verdict. The immutable receipt digest remains bound to the original receipt; fresh scan evidence is in the terminal record. Three targeted source tests pass. Native Linux execution of this repair is pending; no new network load has been started. The small-history streaming runtime/controller integration remains incomplete.

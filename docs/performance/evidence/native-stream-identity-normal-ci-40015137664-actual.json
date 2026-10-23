@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "sourceCommit": "abb8b0438fe33486fd3bfcabf7e297d23cc4d1a8",
+  "codeCommit": "06401007ebaefdf77ad24fb0ffb6f426f63de1c1",
+  "runId": 40015137664,
+  "attempt": 1,
+  "conclusion": "success",
+  "originalEvidence": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40015137664-run.json",
+      "bytes": 12400,
+      "sha256": "be9307a0e6408a69e043d247329eafd094985d92e8b98bc846221e27d902243b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40015137664-jobs.json",
+      "bytes": 14123,
+      "sha256": "fc881eecdc74d6af2e48352355ec088f0d1f1eaf08715dfed0203e7898f17b42"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40015137664-full.raw",
+      "bytes": 603613,
+      "sha256": "246decfd671183d7901b9860dcfc6c8947051041099a2b7080a3e321ebbd2fd4"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40015137664-public.zip",
+      "bytes": 164451,
+      "sha256": "d926cf1306c5a19da15bb181d9fde46aa193f524446c47dcbe02b6d9f216e48d"
+    }
+  ],
+  "publicArtifactId": 12529085149,
+  "publicOriginalMemberReadbackMatchesCILog": true,
+  "publicProof": {
+    "schema": 1,
+    "validatedRecords": 102,
+    "matchedLatestSlots": 3,
+    "peakPendingIdentities": 2,
+    "intents": {
+      "records": 102,
+      "bytes": 124197,
+      "chainSha256": "eb3acd56b290ad0c37c4e940b12f582879c5df0cdd60d5b3b76251debca97e77"
+    },
+    "terminal": {
+      "records": 102,
+      "bytes": 51186,
+      "chainSha256": "cf143e36187012f8cab67b4c17ede3bab14ff527dc2d8eb568cd627a432e4503"
+    },
+    "originalPublicMemberManifest": {
+      "members": 102,
+      "sha256": "d73ff57cedef2ba5ece6f89623ca3a4d439353182e946760bbc2c8b8e58719f4",
+      "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+    },
+    "networkQualified": false,
+    "sustainedTPSQualified": false,
+    "interpretation": "Read-only original stream identity/coverage validation. Reported quorum/state flags and hash chains do not replace independent source/node/BFT/durable/resource admission. No network call or submission."
+  },
+  "newPythonTests": 14,
+  "networkPerformanceQualified": false,
+  "sustained1000Qualified": false,
+  "resourceProfileAndControllerPending": true,
+  "sourceGateCasesActual": [
+    "exact prefix source has no network or release qualification",
+    "all original diagnostic and anchor tests run at their fixed source",
+    "prefix candidate refuses modified internal source",
+    "prefix candidate refuses missing internal source",
+    "prefix candidate refuses untracked internal source",
+    "prefix candidate refuses changed paired controller scripts/loadtest/supply-linux-window.py",
+    "prefix candidate refuses changed paired controller scripts/loadtest/test_supply_linux_window.py",
+    "prefix candidate refuses changed paired controller .github/workflows/chain-core.yml",
+    "prefix candidate refuses changed paired controller scripts/loadtest/native-stream-evidence.py",
+    "prefix candidate refuses changed paired controller scripts/loadtest/test_native_stream_evidence.py",
+    "runtime client refuses modified source",
+    "runtime client refuses missing source",
+    "runtime client refuses untracked source",
+    "diagnostic node refuses modified source",
+    "diagnostic node refuses missing source",
+    "diagnostic node refuses untracked source"
+  ],
+  "sourceGateCaseNamesPresentInOriginalLog": true,
+  "networkStepSkipped": true
+}
