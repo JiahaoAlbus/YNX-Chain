@@ -329,7 +329,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool) {
 		t.Fatal("completed fixture claim was silently reusable")
 	}
 	if native {
-		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats.IntentSegments, &stream.report, results)
+		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results)
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)
 }

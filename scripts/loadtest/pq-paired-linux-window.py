@@ -129,10 +129,14 @@ def directory_bytes(root):
     return total
 
 
-def enforce(sample, initial=False, *, private_bytes_cap=None):
-    # Only the explicitly registered Supply data64 profile opts into this budget.
-    # Default and all legacy callers retain the original cap. No sample is clipped.
-    if private_bytes_cap is not None and (type(private_bytes_cap) is not int or private_bytes_cap != 64 << 20):
+def enforce(sample, initial=False, *, private_bytes_cap=None, private_profile=None):
+    # Explicit data64 and named native-stream profiles have separate budgets.
+    # The256MiB selection also requires its exact profile; defaults stay32MiB.
+    # No sample is clipped and no failed case automatically retries at a new cap.
+    if private_profile is not None:
+        if private_profile!="supply-native-stream-2048x4" or type(private_bytes_cap) is not int or private_bytes_cap!=256<<20:
+            raise RuntimeError("unregistered private profile/cap")
+    elif private_bytes_cap is not None and (type(private_bytes_cap) is not int or private_bytes_cap != 64 << 20):
         raise RuntimeError("unregistered private data cap")
     caps = CAPS if private_bytes_cap is None else dict(CAPS, privateBytes=private_bytes_cap)
     for key, cap in (("rssBytes", "ownedRSSBytes"), ("threads", "threads"),

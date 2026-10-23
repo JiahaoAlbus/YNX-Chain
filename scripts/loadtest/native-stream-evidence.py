@@ -3,7 +3,8 @@
 The owning Supply controller must separately qualify source, nodes, resources,
 actual signature/state/quorum verification and the complete monotonic timeline.
 """
-import base64,hashlib,json,os,re,stat,zlib
+import base64,hashlib,json,os,re,stat,zlib,math
+from array import array
 from pathlib import Path
 
 ROW_LIMIT=64<<10
@@ -68,7 +69,55 @@ def signed_shape(encoded,templates,sender,round_number):
     need(all(value==base[key] for key,value in tx.items() if key not in ('nonce','signature')),'successor changed signed business template')
     return wire
 
-def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial,intents,terminal,latest,rounds,evidence_limit):
+class LatencyFold:
+    """Same fixed 1ms/60s histogram intervals as Go; never retain lifetime rows."""
+    names=('queue','checkTx','authenticatedInclusion','effectiveBusinessInclusion','final','offerToFinal')
+    measured_names=names+('checkToObservedInclusion','observedInclusionToFinal','offerToEffectiveBusinessInclusion')
+    def __init__(self):
+        self.bins=[array('Q',[0])*60001 for _ in self.measured_names]
+        self.samples=0;self.mins=[None]*9;self.maxs=[0]*9
+        self.queue_ns=0;self.peak_queue_ns=0;self.callback_ns=0;self.callback_samples=0
+    def add(self,row):
+        values=[row.get(k) for k in ('queueDelayMs','checkTxMs','inclusionMs','inclusionMs','confirmationMs')]
+        need(all(type(v) in (int,float) and math.isfinite(v) and 0<=v<(2**63-1)/1e6 for v in values),'complete finite original latency fields required')
+        need(values[1]<=values[2]<=values[4],'original stage latencies are not ordered')
+        values.extend((values[0]+values[4],values[2]-values[1],values[4]-values[2],values[0]+values[2]))
+        ns=[]
+        for value in values:
+            scaled=value*1e6;whole=math.floor(scaled)
+            ns.append(whole+(1 if scaled-whole>=0.5 else 0))
+        need(all(0<=v<2**63 for v in ns) and self.samples<MAX_RECORDS,'latency sample/duration bound')
+        for i,v in enumerate(ns):
+            self.bins[i][min(v//1000000,60000)]+=1
+            self.mins[i]=v if self.mins[i] is None else min(v,self.mins[i]);self.maxs[i]=max(v,self.maxs[i])
+        self.samples+=1;self.queue_ns+=ns[0];self.peak_queue_ns=max(self.peak_queue_ns,ns[0])
+        callback=row.get('submissionPhases',{}).get('callbackReturnNs')
+        if callback is not None:
+            need(integer(callback,0,2**63-1),'invalid original callback interval')
+            self.callback_ns+=callback;self.callback_samples+=1
+    def result(self):
+        need(self.samples>0,'empty original latency fold');out={}
+        for i,name in enumerate(self.measured_names):
+            dist=dict(samples=self.samples,resolutionNs=1000000,overflowSamples=self.bins[i][-1],minNs=self.mins[i],maxNs=self.maxs[i])
+            rank=[(self.samples*q+99)//100 for q in (50,95,99)];seen=0;n=0
+            for bucket,count in enumerate(self.bins[i]):
+                seen+=count
+                while n<3 and seen>=rank[n]:
+                    dist[('p50','p95','p99')[n]]=dict(valid=True,lowerNs=max(bucket*1000000,self.mins[i]),upperNs=min(self.maxs[i],(bucket+1)*1000000-1) if bucket<60000 else self.maxs[i],overflow=bucket==60000);n+=1
+                if n==3:break
+            out[name]=dist
+        return dict(records=self.samples,latencyIntervalsNs={k:out[k] for k in self.names},stageGapIntervalsNs={k:out[k] for k in ('queue','checkTx','checkToObservedInclusion','observedInclusionToFinal')},offerLatencyIntervalsNs={k:out[k] for k in ('offerToEffectiveBusinessInclusion','offerToFinal')},queueWaitNs=self.queue_ns,peakQueueWaitNs=self.peak_queue_ns,callbackReturnNs=self.callback_ns,callbackSamples=self.callback_samples)
+
+
+def verify_bounded_latency(measured,bounded):
+    need(isinstance(bounded,dict) and type(bounded.get('terminalRecords')) is int and bounded['terminalRecords']==measured['records'] and type(bounded.get('invalidLatencyRecords')) is int and bounded['invalidLatencyRecords']==0,'bounded latency record coverage differs')
+    # Strict JSON equality also excludes bools being accepted as integer counters.
+    need(json.dumps(measured['latencyIntervalsNs'],sort_keys=True,separators=(',',':'))==json.dumps(bounded.get('latencyIntervalsNs'),sort_keys=True,separators=(',',':')),'bounded latency intervals differ from complete original stream')
+    return measured
+
+
+def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial,intents,terminal,latest,rounds,evidence_limit,measure_latency=False):
+    fold=LatencyFold() if measure_latency else None
     root=Path(capture_root).absolute();runtime_root=Path(runtime_root);output=Path(runtime_output)
     need(root.resolve()==root and runtime_root.is_absolute() and output==runtime_root/'transactions-result.json','fixed original runtime/capture paths required')
     senders=len(initial);total=senders*rounds
@@ -147,9 +196,13 @@ def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial
         need(row.get('bytes')==len(wire) and type(row.get('bytes')) is int and row.get('hash')==e['hash'] and row['signedTransaction']==e['transaction'],'terminal signed envelope changed')
         if row['round']==rounds:
             need(json.dumps(latest[index%senders],sort_keys=True,separators=(',',':'))==json.dumps(row,sort_keys=True,separators=(',',':')),'latest slot differs from original terminal');matched_latest+=1
+        if fold is not None:fold.add(row)
         matched+=1
     try:next(intents_iter)
     except StopIteration:pass
     else:raise RuntimeError('unmatched signed suffix')
     need(not pending and matched==total and matched_latest==senders and intent_state and terminal_state,'incomplete signed/terminal join')
-    return dict(schema=1,validatedRecords=matched,matchedLatestSlots=matched_latest,peakPendingIdentities=peak_pending,intents=intent_state,terminal=terminal_state,originalPublicMemberManifest=dict(members=member_count,sha256=member_manifest.hexdigest(),encoding='sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest'),networkQualified=False,sustainedTPSQualified=False,interpretation='Read-only original stream identity/coverage validation. Reported quorum/state flags and hash chains do not replace independent source/node/BFT/durable/resource admission. No network call or submission.')
+    result=dict(schema=1,validatedRecords=matched,matchedLatestSlots=matched_latest,peakPendingIdentities=peak_pending,intents=intent_state,terminal=terminal_state,originalPublicMemberManifest=dict(members=member_count,sha256=member_manifest.hexdigest(),encoding='sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest'),networkQualified=False,sustainedTPSQualified=False,interpretation='Read-only original stream identity/coverage validation. Reported quorum/state flags and hash chains do not replace independent source/node/BFT/durable/resource admission. No network call or submission.')
+
+    if fold is not None:result['rowMetrics']=fold.result()
+    return result

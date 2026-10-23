@@ -16,6 +16,36 @@ class NativeStreamEvidenceTests(unittest.TestCase):
     def verify(self,budget=4<<20):
         d=self.meta
         return evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],budget)
+    def test_complete_original_latencies_match_go_bounded_summary(self):
+        d=self.meta
+        proof=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20,measure_latency=True)
+        got=evidence.verify_bounded_latency(proof['rowMetrics'],d['boundedSummary'])
+        self.assertEqual(got['records'],102)
+        self.assertEqual(set(got['stageGapIntervalsNs']),{'queue','checkTx','checkToObservedInclusion','observedInclusionToFinal'})
+        for name in evidence.LatencyFold.names:self.assertEqual(got['latencyIntervalsNs'][name]['samples'],102)
+        bad=copy.deepcopy(d['boundedSummary']);bad['latencyIntervalsNs']['final']['p95']['upperNs']+=1
+        with self.assertRaisesRegex(RuntimeError,'intervals differ'):evidence.verify_bounded_latency(got,bad)
+        bad=copy.deepcopy(d['boundedSummary']);bad['terminalRecords']=3
+        with self.assertRaisesRegex(RuntimeError,'coverage differs'):evidence.verify_bounded_latency(got,bad)
+    def test_actual_go_supply_counters_cover_all_nonce_cycles_and_terminal_writes(self):
+        ready=self.meta['readySenders'];total=self.meta['senders']*self.meta['rounds']
+        self.assertEqual(ready['completed'],total);self.assertEqual(ready['quarantinedAccounts'],0)
+        for key in ('signAttempts','encodeAttempts','signedSuccessors'):self.assertEqual(ready['supply'][key],total-self.meta['senders'])
+        for key in ('journalDurableEnvelopes','terminalSinkAttempts'):self.assertEqual(ready['supply'][key],total)
+        for key in ('signNs','encodeNs','journalAppendNs','terminalSinkNs','journalSetupNs','journalDurableBytes'):self.assertGreater(ready['supply'][key],0)
+
+    def test_latency_fold_has_go_rounding_overflow_and_no_lifetime_rows(self):
+        fold=evidence.LatencyFold()
+        for q,c in ((0.0000005,0.0000005),(60001.,60002.)):
+            fold.add(dict(queueDelayMs=q,checkTxMs=0.,inclusionMs=0.,confirmationMs=c))
+        got=fold.result();self.assertEqual(got['latencyIntervalsNs']['queue']['minNs'],1)
+        self.assertEqual(got['latencyIntervalsNs']['offerToFinal']['minNs'],1)
+        self.assertTrue(got['latencyIntervalsNs']['offerToFinal']['p95']['overflow'])
+        self.assertEqual(len(fold.bins),9);self.assertEqual(sum(len(b) for b in fold.bins),9*60001)
+        for value in (None,True,float('nan'),float('inf'),-1):
+            with self.subTest(value=value),self.assertRaises(RuntimeError):
+                evidence.LatencyFold().add(dict(queueDelayMs=value,checkTxMs=0,inclusionMs=1,confirmationMs=2))
+
     def terminal_file(self):return self.root/'transactions-result.json.terminal-stream'/'terminal-000000.jsonl'
     def rewrite_terminal(self,mutate):
         chain='0'*64;size=0

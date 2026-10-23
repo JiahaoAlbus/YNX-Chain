@@ -1009,6 +1009,131 @@ class SupplySourceTests(unittest.TestCase):
         self.assertFalse(supply.recipe()["execute"])
         self.assertEqual(supply.recipe()["profile"]["concurrency"],4)
 
+    def stream_config(self):
+        return dict(transport="grpc",profile_name=supply.STREAM_PROFILE,observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
+
+    def test_native_stream_profile_command_and_budget_are_explicit(self):
+        config=self.stream_config();plan=supply.recipe(**config)
+        self.assertFalse(plan["execute"]);self.assertTrue(plan["requiresSeparateRootGrant"])
+        self.assertEqual(plan["profile"]["senders"]*plan["profile"]["rounds"],8192)
+        self.assertEqual(plan["resourceCaps"]["privateBytes"],256<<20)
+        self.assertEqual((plan["resourceCaps"]["activeMs"],plan["resourceCaps"]["totalMs"],plan["resourceCaps"]["ownedProcesses"]),(45000,60000,10))
+        self.assertEqual(supply.native.CAPS["privateBytes"],32<<20)
+        cmd=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("out"),plan["profile"],"relative",True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
+        for flag in ("-native-stream8","-terminal-stream","-terminal-gzip","-reuse-result-slots","-segmented-intents","-observer-native-facts"):self.assertEqual(cmd.count(flag),1)
+        self.assertNotIn("-native-submit8",cmd);self.assertNotIn("-client-procs2",cmd)
+        workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
+        self.assertIn("- supply-native-stream-2048x4",workflow)
+        self.assertIn("observer_args+=(--native-stream8 --prefix-replay --prefix-native-clone --observer-native-facts)",workflow)
+        self.assertIn("!${{ runner.temp }}/ynx-linux-supply-case/**/ephemeral-sender-secrets.json",workflow)
+        self.assertEqual(cmd[cmd.index("-durable-store-byte-limit")+1],str(32<<20))
+        for delta in (dict(native_stream8=False),dict(native_stream8=1),dict(profile_name="supply-2048x1-data64"),dict(transport="socket"),dict(observer_phases=False),dict(shared_replay=True),dict(native_submit8=True),dict(observer_native_facts=False),dict(prefix_native_clone=False),dict(client_procs2=True)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**dict(config,**delta))
+        args=[sys.executable,"-B",str(FILE),"--native-stream8","--profile",supply.STREAM_PROFILE,"--transport","grpc","--observer-phases","--prefix-replay","--prefix-native-clone","--observer-native-facts"]
+        self.assertEqual(json.loads(subprocess.check_output(args,timeout=5))["profile"],plan["profile"])
+
+    def test_native_stream_private_cap_is_separate_and_preserves_default(self):
+        cap=supply.native.CAPS;floor=sum(cap[k] for k in ("diskFloorBytes","rootReserveBytes","compileReserveBytes"))
+        sample=dict(rssBytes=1,threads=1,privateBytes=100<<20,buildBytes=1,freeDiskBytes=floor+(256<<20),availableMemoryBytes=cap["availableMemoryFloorBytes"],tasks=[])
+        result=dict(profile=supply.recipe(**self.stream_config())["profile"])
+        supply.enforce_captured_sample(sample,result,True)
+        for delta in (dict(privateBytes=(256<<20)+1),dict(rssBytes=(1<<30)+1),dict(threads=321),dict(tasks=[{}]*11),dict(freeDiskBytes=floor+(256<<20)-1)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.enforce_captured_sample(dict(sample,**delta),dict(result),True)
+        with self.assertRaisesRegex(RuntimeError,"unregistered"):supply.native.enforce(sample,private_bytes_cap=256<<20)
+        with self.assertRaises(RuntimeError):supply.enforce_captured_sample(sample,dict(profile=supply.recipe()["profile"]))
+
+    def test_native_stream_runtime_binds_complete_fold_and_distinct_nested_windows(self):
+        client,_=self.submit8_report_fixture(True)
+        client.update(nativeStream8=True,nativeSubmit8=False)
+        # Synthetic source contract only: latest2048 rows cannot substitute for8192 fold records.
+        metrics=dict(records=8192,callbackSamples=8192,queueWaitNs=client["submissionOccupancy"]["queueWaitNs"]*4,peakQueueWaitNs=client["submissionOccupancy"]["peakQueueWaitNs"],callbackReturnNs=1)
+        occupancy=client["submissionOccupancy"]
+        for key in ("callbackStarted","callbackReturned","queueWaitSamples"):occupancy[key]=8192
+        occupancy["queueWaitNs"]=metrics["queueWaitNs"]
+        client["summary"]["measurementWindowSeconds"]=20
+        client["readySenders"]["boundedSummary"]=dict(timeSeries=dict(windowNs=19_000_000_000))
+        actual=supply.validate_runtime_measurements(client,8192,True,stream_metrics=metrics)
+        self.assertEqual(actual["innerReadyWindowNs"],19_000_000_000);self.assertEqual(actual["outerClientWindowNs"],20_000_000_000)
+        for delta in (dict(records=2048),dict(callbackSamples=2048),dict(queueWaitNs=metrics["queueWaitNs"]+8193),dict(callbackReturnNs=occupancy["callbackBusyNs"]+1)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.validate_runtime_measurements(client,8192,True,stream_metrics=dict(metrics,**delta))
+        client["summary"]["measurementWindowSeconds"]=21
+        with self.assertRaises(RuntimeError):supply.validate_runtime_measurements(client,8192,True,stream_metrics=metrics)
+
+    def test_native_stream_composite_uses_full_identity_latency_runtime_and_timeline(self):
+        # Synthetic source branch coverage only; raw identity producer itself is
+        # covered separately with original Go signed/executed/persisted samples.
+        import base64,hashlib
+        client,initial=self.submit8_report_fixture(True);network=Path("/tmp/ynx-stream-source-contract")
+        client.update(schemaVersion=14,nativeStream8=True,nativeSubmit8=False,observerNativeFacts=True,observerPhaseTiming=True,endpointFairSubmission=False,
+            roundsRequested=4,roundsCompleted=4,senderMode="ready-pool",pacingMode="relative",retentionMode="latest_per_account_slots",gomaxprocs=1)
+        summary=client["summary"]
+        for key in ("input","offered","submitted","checkTxResponses","checkTxAccepted","includedCodeZero","effectiveBusinessIncluded","quorumConfirmed","finalSubmitted"):summary[key]=8192
+        summary["measurementWindowSeconds"]=20
+        for key in ("rpcSubmissionsPerMeasurementSecond","checkTxAcceptedPerMeasurementSecond","codeZeroIncludedPerMeasurementSecond","effectiveBusinessIncludedPerMeasurementSecond","quorumConfirmedPerMeasurementSecond","finalSubmittedPerMeasurementSecond"):summary[key]=8192/20
+        metrics=dict(records=8192,latencyIntervalsNs={},stageGapIntervalsNs={},offerLatencyIntervalsNs={},callbackSamples=8192,callbackReturnNs=1,queueWaitNs=client["submissionOccupancy"]["queueWaitNs"]*4,peakQueueWaitNs=client["submissionOccupancy"]["peakQueueWaitNs"])
+        occupancy=client["submissionOccupancy"]
+        for key in ("callbackStarted","callbackReturned","queueWaitSamples"):occupancy[key]=8192
+        occupancy["queueWaitNs"]=metrics["queueWaitNs"]
+        bins=[]
+        for i in range(19):
+            b=dict(second=i,spanNs=10**9,completeSecond=True,awaitingTerminal=0,offeredNotYetFinal=0)
+            for key in ("offered","submitted","checkTxAccepted","effectiveBusinessIncluded","finalSubmitted","terminalHandedBack"):b[key]=8192 if i==0 else 0
+            for key in ("rejected","executionFailed","submissionUnknown","timedOut","observationFailed"):b[key]=0
+            bins.append(b)
+        timeline=dict(valid=True,invalidRows=0,bucketNs=10**9,windowNs=19*10**9,buckets=bins)
+        ready=client["readySenders"];ready.update(prepared=8192,offered=8192,completed=8192,quarantinedAccounts=0,roundsCompleted=4,peakInFlightAccounts=2048,
+            boundedSummary=dict(counts=summary,terminalRecords=8192,invalidLatencyRecords=0,latencyIntervalsNs={},timeSeries=timeline),evidenceBudget=dict(limitBytes=64<<20,attemptedBytes=579,poisoned=False),intentSegments={})
+        ready["supply"].update(signAttempts=6144,encodeAttempts=6144,signedSuccessors=6144,journalDurableEnvelopes=8192,terminalSinkAttempts=8192,signNs=1,encodeNs=1,journalAppendNs=1,terminalSinkNs=1,journalSetupNs=1,journalDurableBytes=123)
+        reader=client["durableReadback"];reader["prefixReplay"]["canonicalByteLimit"]=32<<20
+        reader["prefixReplay"]["nativeCloneCache"].update(accounts=2048,feeEvents=8192)
+        reader["blockJournalNativeVerificationFacts"].update(successful_verifications=8192,lookups=8192)
+        reader.update(transactionVerifications=8192,observerNativeFacts=dict(enabled=True,lookups=8192,hits=8192,misses=0,fallbackMathVerifications=0,fallbackFailures=0),readerBudget=dict(storeByteLimit=32<<20,cacheInputByteBudget=64<<20,cachedInputBytes=1))
+        raw_manifest=json.dumps(dict(migrationStateHash="1"*64,genesisHash="2"*64)).encode()
+        fixture=dict(kind="YNX_LOCAL_READY_SENDER_V1",manifestSha256=hashlib.sha256(raw_manifest).hexdigest(),migrationHash="1"*64,genesisHash="2"*64)
+        plan=dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",fixture=fixture,senders=2048,rounds=4,plannedRecords=8192,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=30000,durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip",initialSignedHashes=[hashlib.sha256(base64.b64decode(t)).hexdigest().upper() for t in initial],nativePrefix=dict(offeredRate=1000,pacingMode="relative",submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True))
+        raw_plan=json.dumps(plan).encode();client["streamingWorkload"]=dict(name=plan["profile"],plannedRecords=8192,rounds=4,maxRuntimeMs=30000,evidenceByteBudget=64<<20,evidenceVerified=True,evidenceReadbackMs=1,planPath=str(network/"transactions-result.json.streaming-plan.json"),planSha256=hashlib.sha256(raw_plan).hexdigest())
+        client["terminalStream"]=dict(encoding="gzip")
+        proof=dict(rowMetrics=metrics,intents=dict(bytes=123),terminal=dict(bytes=456),networkQualified=False)
+        def capture(path,limit):
+            if str(path).endswith("streaming-plan.json"):return raw_plan
+            if str(path).endswith("network-manifest.json"):return raw_manifest
+            return json.dumps(dict(transactions=initial)).encode()
+        def check(row):
+            with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
+                out=supply.validate_native_stream_report(row,network)
+                self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
+                self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
+                self.assertFalse(out["sustainedTPSQualified"])
+                return out
+        check(client)
+        for kind in ("scope","counts","latency","budget","reader","facts","runtime","timeline","backlog","rate","plan"):
+            bad=copy.deepcopy(client)
+            if kind=="scope":bad["nativeStream8"]=1
+            if kind=="counts":bad["summary"]["finalSubmitted"]=8191
+            if kind=="latency":bad["readySenders"]["boundedSummary"]["terminalRecords"]=2048
+            if kind=="budget":bad["readySenders"]["evidenceBudget"]["attemptedBytes"]+=1
+            if kind=="reader":bad["durableReadback"]["readerBudget"]["storeByteLimit"]=16<<20
+            if kind=="facts":bad["durableReadback"]["observerNativeFacts"]["lookups"]-=1
+            if kind=="runtime":bad["submissionOccupancy"]["callbackReturned"]=2048
+            if kind=="timeline":bad["readySenders"]["boundedSummary"]["timeSeries"]["buckets"].pop()
+            if kind=="backlog":bad["readySenders"]["boundedSummary"]["timeSeries"]["buckets"][0]["offeredNotYetFinal"]=1
+            if kind=="rate":bad["summary"]["finalSubmittedPerMeasurementSecond"]+=1
+            if kind=="plan":bad["streamingWorkload"]["planSha256"]="0"*64
+            with self.subTest(kind=kind),self.assertRaises(RuntimeError):check(bad)
+
+    def test_native_stream_post_fsync_requires8192_and_fresh_original_identity(self):
+        plan=supply.recipe(**self.stream_config())
+        base=dict(profile=plan["profile"],firstCause=None,nodesStarted=True,cleanupComplete=True,launcher=7,
+            closureScans=[dict(owned=[7],launcherStartTicks=1)]*2,measurement=dict(summary=dict(finalSubmitted=8192)))
+        with tempfile.TemporaryDirectory() as d:
+            receipt=Path(d)/"receipt.json";receipt.write_text(json.dumps(base))
+            for count in (8192,2048):
+                row=copy.deepcopy(base);row["measurement"]["summary"]["finalSubmitted"]=count;out=io.StringIO()
+                with patch.object(supply.time,"monotonic",return_value=1),patch.object(supply,"post_fsync_owned_closure",return_value=dict(owned=[7],launcherStartTicks=1)),contextlib.redirect_stdout(out):
+                    qualified=supply.oneshot_post_fsync(row,receipt,lambda:dict(privateBytes=1),0,native_stream8=True)
+                self.assertEqual(qualified,count==8192)
+                self.assertIn("YNX_NATIVE_STREAM_TERMINAL ",out.getvalue())
+
     def test_finite_controller_rejects_native_stream_marker_without_new_profile(self):
         client,fixture=self.submit8_report_fixture(True)
         config=dict(fixture_transactions=fixture,prefix_replay=True,prefix_native_clone=True,native_submit8=True,require_inventory=True)

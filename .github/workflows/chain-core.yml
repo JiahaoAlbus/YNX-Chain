@@ -73,6 +73,7 @@ on:
           - supply-512x2
           - supply-2048x1
           - supply-2048x1-data64
+          - supply-native-stream-2048x4
         default: supply-256x4
       linux_supply_pacing:
         description: "Explicit bounded short-jitter compensation for512x2 only; relative remains default"
@@ -391,6 +392,13 @@ jobs:
           if [ "$YNX_OBSERVER_PHASE_TIMING" = 1 ]; then
             observer_args+=(--observer-phases)
           fi
+          if [ "$YNX_SUPPLY_PROFILE" = supply-native-stream-2048x4 ]; then
+            test "$YNX_SUPPLY_TRANSPORT" = grpc
+            test "$YNX_SUPPLY_PACING" = relative
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            test "$YNX_PREFIX_REPLAY" = 0
+            observer_args+=(--native-stream8 --prefix-replay --prefix-native-clone --observer-native-facts)
+          fi
           if [ "$YNX_PREFIX_REPLAY" = 1 ]; then
             test "$YNX_SUPPLY_PROFILE" = supply-2048x1-data64
             test "$YNX_SUPPLY_TRANSPORT" = grpc
@@ -491,6 +499,8 @@ jobs:
             ${{ runner.temp }}/ynx-linux-supply-evidence
             ${{ runner.temp }}/ynx-linux-supply-case
             ${{ runner.temp }}/ynx-linux-supply-pair
+            !${{ runner.temp }}/ynx-linux-supply-case/**/ephemeral-sender-secrets.json
+            !${{ runner.temp }}/ynx-linux-supply-pair/**/ephemeral-sender-secrets.json
           if-no-files-found: error
           retention-days: 90
       - name: Measure selected matched state hash encoders
