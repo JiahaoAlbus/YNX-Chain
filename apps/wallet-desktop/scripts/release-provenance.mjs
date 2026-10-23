@@ -56,6 +56,7 @@ const SDK332_CLEANUP_VERSION='1.3.0-pq.3.32-auth.3';
 const SDK332_DEPLOYMENT_VERSION='1.3.0-pq.3.32-auth.4';
 const SDK_R154_VERSION='1.3.0-pq.3.32-auth.5';
 const SDK_CONTRACT_CLIENT_VERSION='1.3.0-pq.3.32-auth.6';
+const SDK_CONTRACT_CURRENT_VERSION='1.3.0-pq.3.32-auth.13';
 export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
  [SDK330_VERSION]:Object.freeze({bytes:64574,sha256:'3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693'}),
  [SDK332_VERSION]:Object.freeze({bytes:65346,sha256:'0abdc434eb6e7aacc4708127e413c686e10963f4744b730c74f3d4300f522d07'}),
@@ -63,7 +64,8 @@ export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
  [SDK332_CLEANUP_VERSION]:Object.freeze({bytes:65346,sha256:'eeea144302168f53c51be55e2403cde30ee4f9c6b6b04eb5e65f2c11d621cd3c'}),
  [SDK332_DEPLOYMENT_VERSION]:Object.freeze({bytes:65919,sha256:'d104b6f1670a60014fcae0470d8bc6e108cdbb2cb86deba30db8e7b9d067ae30'}),
  [SDK_R154_VERSION]:Object.freeze({bytes:65919,sha256:'53446225376a55c36dca8fdcd3963c92bc69bf8ea39ab1df609a8c07525b34d3'}),
- [SDK_CONTRACT_CLIENT_VERSION]:Object.freeze({bytes:65919,sha256:'c501bb7184460131b796850e2ad5f4ac1aa9b63e11fc89431e0ad375f6721c22'})
+ [SDK_CONTRACT_CLIENT_VERSION]:Object.freeze({bytes:65919,sha256:'c501bb7184460131b796850e2ad5f4ac1aa9b63e11fc89431e0ad375f6721c22'}),
+ [SDK_CONTRACT_CURRENT_VERSION]:Object.freeze({bytes:67464,sha256:'0984d592faf25df7cf63fcc5188bd4eee4796db62c73d7040e9494edda71fb2c'})
 });
 const FIXED_SDK_RUNTIME_MANIFEST='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
 export function fixedSDKRuntimeManifestSources(root,sourceCommit){
@@ -87,7 +89,7 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
 function selectedRelocationRules(sdkVersion){
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
-  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION)return PACKAGED_RELOCATION_RULES;
+  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION&&sdkVersion!==SDK_CONTRACT_CURRENT_VERSION)return PACKAGED_RELOCATION_RULES;
   return PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
     ?{...rule,operands:rule.operands.map(operand=>({...operand,count:3}))}:rule);
 }
@@ -282,7 +284,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native').split('\n').filter(name=>/\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name));
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
   const sourceBytes=name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024});
-  const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
+  const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
   if(!lstatSync(localNative).isFile()||!lstatSync(localReceipt).isFile()||!nativeBytes.equals(readFileSync(localNative))||!nativeReceiptBytes.equals(readFileSync(localReceipt)))throw Error('Packaged native module or receipt differs from frozen build input');
   let originalR155=null;

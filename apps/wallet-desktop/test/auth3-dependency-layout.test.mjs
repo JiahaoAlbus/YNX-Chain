@@ -71,3 +71,9 @@ test('auth6 preserves the original316 pinned dependency leaves and nested PQ cip
  assert.equal(plan.rows.length,316);assert.equal(plan.contents.has(prefix+'@noble/ciphers/package.json'),false);
  assert.equal(JSON.parse(plan.contents.get(prefix+'@noble/post-quantum/node_modules/@noble/ciphers/package.json')).version,'2.2.0');
 });
+test('auth13 retains the pinned PQ-local graph and does not flatten the incompatible root ciphers',t=>{
+ const f=fixture(t,'1.3.0-pq.3.32-auth.13'),plan=walletAuthDependencyPlan(f.root,f.commit);
+ assert.equal(plan.rows.length,316);assert.equal(plan.contents.has(prefix+'@noble/ciphers/package.json'),false);
+ assert.equal(JSON.parse(plan.contents.get(prefix+'@noble/post-quantum/node_modules/@noble/ciphers/package.json')).version,'2.2.0');
+ assert.deepEqual(readFileSync(path.join(f.root,'packages/wallet-auth/node_modules/@noble/ciphers/package.json')),f.outer);
+});

@@ -49,3 +49,14 @@ test('auth6 selects its independent inventory with the unchanged62+5 source grap
  const result=canonicalNativeInputSelection(v.version,list,raw,v.NativeInputs.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})));
  assert.equal(result.inputs.length,62);assert.equal(result.helperInputs.length,5);assert.equal(result.inventory.sha256,'cd7dd07ddd14d37e76b897fc179c5582cd739029a834a7134b0f8d9c9fe857f8');
 });
+test('auth13 binds all69 original Node inputs and5 separate helper inputs, rejecting legacy receipts and unowned extras',()=>{
+ const raw=readFileSync(new URL('./fixtures/auth13-native-inventory.json',import.meta.url)),v=JSON.parse(raw);
+ const node=v.NativeInputs.map(p=>p.path),helper=v.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path);
+ const list=[...node,...helper,...CANONICAL_NATIVE_EVIDENCE_TESTS],rows=v.NativeInputs.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));
+ const result=canonicalNativeInputSelection(v.version,list,raw,rows);
+ assert.equal(result.inputs.length,69);assert.equal(result.helperInputs.length,5);assert.equal(result.pairedInputCount,74);
+ assert.equal(result.inventory.sha256,'3d256c3c4581748448026d53bfd8160be1e00b80733b3d4c03af5ad30fb68a3c');
+ for(const bad of [rows.slice(0,62),rows.slice(1),[...rows,{relative:'apps/wallet-desktop/native/foreign.mm',bytes:1,sha256:'0'.repeat(64)}]])assert.throws(()=>canonicalNativeInputSelection(v.version,list,raw,bad),/inventory differs/);
+ for(const bad of [list.slice(1),[...list,'apps/wallet-desktop/native/unreviewed.mm'],[...list,list[0]]])assert.throws(()=>canonicalNativeInputSelection(v.version,bad,raw,rows),/inventory differs/);
+ const changed=Buffer.from(raw);changed[changed.length-1]^=1;assert.throws(()=>canonicalNativeInputSelection(v.version,list,changed,rows),/inventory differs/);
+});

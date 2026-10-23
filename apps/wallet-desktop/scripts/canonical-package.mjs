@@ -18,22 +18,24 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  const evidenceAssets=CANONICAL_NATIVE_EVIDENCE_TESTS.filter(n=>names.includes(n));
  const fixed={'1.3.0-pq.3.32-auth.3':{bytes:19696,sha256:'3600874dc48acc5032540ad8b8df39f34381cf85bd6b96f9fbe000e2da4da0ee'},'1.3.0-pq.3.32-auth.4':{bytes:21347,sha256:'e1955ad13cd5187ef4672c34619a48c94bc12120dda393ed950ba19adcb47bf7'},'1.3.0-pq.3.32-auth.5':{bytes:24580,sha256:'f74b7e805eebb86b1adff2f5865641d8c6cade0159bcf8f1baf214ae34d81b92'}};
  fixed['1.3.0-pq.3.32-auth.6']={bytes:24580,sha256:'cd7dd07ddd14d37e76b897fc179c5582cd739029a834a7134b0f8d9c9fe857f8'};
+ fixed['1.3.0-pq.3.32-auth.13']={bytes:30418,sha256:'3d256c3c4581748448026d53bfd8160be1e00b80733b3d4c03af5ad30fb68a3c'};
  if(!Object.hasOwn(fixed,sdkVersion))return {inputs:names,evidenceAssets};
  const pin=fixed[sdkVersion];
  const bad=()=>{throw Error('Canonical Native source inventory differs');};
  if(!Buffer.isBuffer(inventoryBytes)||inventoryBytes.length!==pin.bytes||createHash('sha256').update(inventoryBytes).digest('hex')!==pin.sha256)bad();
- const inventory=JSON.parse(inventoryBytes),pins=inventory.NativeInputs,paired=['1.3.0-pq.3.32-auth.5','1.3.0-pq.3.32-auth.6'].includes(sdkVersion);
- if(inventory.schema!=='ynx-sdk332-r140-native-compatibility/v1'||inventory.version!==sdkVersion||pins?.length!==(paired?62:55))bad();
+ const inventory=JSON.parse(inventoryBytes),pins=inventory.NativeInputs,relay=sdkVersion==='1.3.0-pq.3.32-auth.13',paired=relay||['1.3.0-pq.3.32-auth.5','1.3.0-pq.3.32-auth.6'].includes(sdkVersion);
+ if(inventory.schema!=='ynx-sdk332-r140-native-compatibility/v1'||inventory.version!==sdkVersion||pins?.length!==(relay?69:paired?62:55))bad();
  const helper=paired?inventory.HelperInputs:[];
  if(!Array.isArray(helper)||paired&&helper.length!==5)bad();
  const helperNative=helper.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path);
- if(paired&&(helperNative.length!==3||new Set([...pins,...helper].map(p=>p.path)).size!==67))bad();
+ const pairedInputCount=relay?74:67;
+ if(paired&&(helperNative.length!==3||new Set([...pins,...helper].map(p=>p.path)).size!==pairedInputCount))bad();
  const inputs=pins.map(p=>p.path),sorted=value=>[...value].sort();
  if(new Set(names).size!==names.length||JSON.stringify(sorted(names))!==JSON.stringify(sorted([...inputs,...helperNative,...CANONICAL_NATIVE_EVIDENCE_TESTS])))bad();
  if(!Array.isArray(receiptInputs)||receiptInputs.length!==pins.length)bad();
  const rows=receiptInputs.map(p=>({path:p.relative,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.path.localeCompare(b.path,'en'));
  if(JSON.stringify(rows)!==JSON.stringify([...pins].sort((a,b)=>a.path.localeCompare(b.path,'en'))))bad();
- return {inputs,evidenceAssets,...(paired?{helperInputs:helper,pairedInputCount:67}:{}),inventory:{path:SDK332_NATIVE_INVENTORY,bytes:inventoryBytes.length,sha256:pin.sha256}};
+ return {inputs,evidenceAssets,...(paired?{helperInputs:helper,pairedInputCount}:{}),inventory:{path:SDK332_NATIVE_INVENTORY,bytes:inventoryBytes.length,sha256:pin.sha256}};
 }
 // Public Node headers from the already selected A build input, not a runtime
 // authority or Native qualification. No network/ambient version substitution.
