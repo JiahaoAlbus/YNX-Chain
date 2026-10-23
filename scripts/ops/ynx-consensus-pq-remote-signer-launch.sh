@@ -106,13 +106,15 @@ config_json=$(cat -- "$config")
 canonical=$(jq -cS . <<<"$config_json" 2>/dev/null) || fail 'invalid configuration JSON'
 [[ $config_json == "$canonical" ]] || fail 'configuration must be canonical jq -cS JSON without duplicate or trailing fields'
 jq -e '
-  (keys == (["abciState","binary","binarySHA256","binding","bindingSHA256",
+  ((["abciState","binary","binarySHA256","binding","bindingSHA256",
     "checkpointDirectory","checkpointFormat","checkpointProviderUnit","cometGenesisSHA256",
     "enginePeerPin","enginePeerPublicKey","genesis","goMemoryLimitBytes","legacyKey","legacyKeySHA256",
     "legacyState","listen","memoryBudgetEvidence","memoryBudgetEvidenceSHA256","memoryMaxBytes",
     "migration","migrationStateHash","originalGenesisHash","pqState",
     "runtimePlan","runtimePlanHash","schedule","scheduleHash","schema","timeoutSeconds",
-    "transportKey","transportKeySHA256","vault","vaultSHA256"] | sort)) and
+    "transportKey","transportKeySHA256","vault","vaultSHA256"] | sort) as $base |
+    keys == $base or keys == (($base + ["checkpointAccessMode","checkpointAccessSocket","checkpointEngineUID",
+      "checkpointSignerUID","checkpointAccessTimeoutSeconds","checkpointStartupTimeoutSeconds"]) | sort)) and
   ([to_entries[] | select(.key != "timeoutSeconds") | .value | type == "string"] | all) and
   .schema == "ynx-pq-remote-service-v1" and
   (.checkpointFormat == "atomic-committed-json-v1" or
@@ -127,8 +129,16 @@ jq -e '
   ([.memoryMaxBytes,.goMemoryLimitBytes] | all(test("^[1-9][0-9]{0,17}$"))) and
   (.checkpointProviderUnit | . == "-.mount" or test("^[A-Za-z0-9][A-Za-z0-9_.-]*\\.(service|mount)$")) and
   .checkpointProviderUnit != "ynx-consensus-pq-remote-signer.service" and
+  (if has("checkpointAccessMode") then
+    .checkpointAccessMode == "unix-fd-v1" and
+    (.checkpointAccessSocket | test("^@ynx-pq-checkpoint-[a-z0-9-]{8,64}$")) and
+    ([.checkpointEngineUID,.checkpointSignerUID] | all(test("^[1-9][0-9]{0,9}$") and (tonumber <= 4294967295))) and
+    .checkpointEngineUID != .checkpointSignerUID and
+    (.checkpointAccessTimeoutSeconds | test("^[1-9][0-9]?$") and (tonumber <= 60)) and
+    (.checkpointStartupTimeoutSeconds | test("^[1-9][0-9]{0,2}$") and (tonumber <= 600))
+   else true end) and
   (.listen | test("^tcp://[^[:space:]@]+:[1-9][0-9]{0,4}$")) and
-  ([.[] | select(type == "string")] | all(contains("@") | not))
+  ([to_entries[] | select(.key != "checkpointAccessSocket") | .value | select(type == "string")] | all(contains("@") | not))
 ' <<<"$config_json" >/dev/null 2>&1 || fail 'unsupported or incomplete operator configuration'
 field() { jq -er --arg name "$1" '.[$name]' <<<"$config_json"; }
 binary=$(field binary); genesis=$(field genesis); migration=$(field migration)
@@ -137,6 +147,7 @@ legacy_state=$(field legacyState); pq_state=$(field pqState); transport_key=$(fi
 peer_pin=$(field enginePeerPin); schedule=$(field schedule); state=$(field abciState)
 checkpoint_directory=$(field checkpointDirectory); provider=$(field checkpointProviderUnit)
 runtime_plan=$(field runtimePlan)
+access_mode=$(jq -er '.checkpointAccessMode // "file-v1"' <<<"$config_json")
 memory_max=$(field memoryMaxBytes); go_memory_limit=$(field goMemoryLimitBytes)
 budget_evidence=$(field memoryBudgetEvidence)
 (( go_memory_limit < memory_max )) || fail 'Go memory limit must leave room below the measured service limit'
@@ -169,11 +180,28 @@ check_hash "$transport_key" "$(field transportKeySHA256)"
 [[ $(jq -er '.SignerStatePath' "$binding") == "$pq_state" ]] || fail 'binding does not preserve the original absolute PQ history path'
 [[ $(cat -- "$peer_pin") == "$(field enginePeerPublicKey)" ]] || fail 'full peer key differs from the independent operator pin'
 
-canonical_path "$checkpoint_directory"
-[[ -d $checkpoint_directory && ${state%/*} == "$checkpoint_directory" ]] || fail 'committed state must be directly inside the live checkpoint directory'
-trusted_parents "$checkpoint_directory"
-readonly_mount "$checkpoint_directory"
-checkpoint_source "$state" "$(field checkpointFormat)"
+if [[ $access_mode == unix-fd-v1 ]]; then
+  # The source remains engine-owned 0600 at its original path. Do not stat,
+  # open, hash, bind an alias or read its lock from this distinct signer UID.
+  # The broker's UID-checked O_RDONLY capability and the original reader verify
+  # every real H/AppHash, lock, bytes and final source identity in the daemon.
+  for pinned in "$checkpoint_directory" "$state"; do
+    [[ $pinned =~ ^/[A-Za-z0-9_./-]+$ && $pinned != / && $pinned != */ && $pinned != *//* &&
+       $pinned != */./* && $pinned != */../* && $pinned != */. && $pinned != */.. ]] || fail 'noncanonical pinned checkpoint path'
+  done
+  [[ ${state%/*} == "$checkpoint_directory" ]] || fail 'checkpoint path differs from its original directory pin'
+  [[ $(field checkpointSignerUID) == "$EUID" && $(field checkpointEngineUID) == "$(id -u ynx)" &&
+     $(field checkpointEngineUID) != "$EUID" ]] || fail 'independent engine or signer UID pin differs from the actual account'
+  [[ ${NOTIFY_SOCKET:-} == /run/systemd/notify ]] || fail 'real systemd notification socket is required'
+  [[ $(systemctl show --property=NotifyAccess --value -- ynx-consensus-pq-remote-signer.service) == main &&
+     $(systemctl show --property=Type --value -- ynx-consensus-pq-remote-signer.service) == notify ]] || fail 'loaded service must wait for the actual signer readiness notification'
+else
+  canonical_path "$checkpoint_directory"
+  [[ -d $checkpoint_directory && ${state%/*} == "$checkpoint_directory" ]] || fail 'committed state must be directly inside the live checkpoint directory'
+  trusted_parents "$checkpoint_directory"
+  readonly_mount "$checkpoint_directory"
+  checkpoint_source "$state" "$(field checkpointFormat)"
+fi
 systemctl is-active --quiet -- "$provider" || fail 'configured real checkpoint provider is not active'
 
 args=(--serve --migration-state "$migration" --genesis "$genesis" --abci-state "$state"
@@ -183,6 +211,11 @@ args=(--serve --migration-state "$migration" --genesis "$genesis" --abci-state "
   --legacy-key "$legacy_key" --legacy-state "$legacy_state" --listen "$(field listen)"
   --pq-transport-key "$transport_key" --pq-engine-peer-pin "$peer_pin" --timeout "$(field timeoutSeconds)s"
   --recovery-fd 3)
+if [[ $access_mode == unix-fd-v1 ]]; then
+  args+=(--checkpoint-access-socket "$(field checkpointAccessSocket)" --checkpoint-engine-uid "$(field checkpointEngineUID)"
+    --checkpoint-signer-uid "$(field checkpointSignerUID)" --checkpoint-access-timeout "$(field checkpointAccessTimeoutSeconds)s"
+    --checkpoint-startup-timeout "$(field checkpointStartupTimeoutSeconds)s")
+fi
 if [[ -n $runtime_plan ]]; then
   regular_file "$runtime_plan"; readonly_mount "$runtime_plan"
   args+=(--runtime-upgrade-plan "$runtime_plan" --runtime-upgrade-plan-hash "$(field runtimePlanHash)")
@@ -203,5 +236,7 @@ exec 3<"$credential"
 # CLI reads and closes FD3, authenticates/resumes both ORIGINAL histories and
 # takes their existing OS leases. No retry loop, cleanup trap or key generation.
 # Reconnect/restart after UNKNOWN requires explicit reconciliation by the owner.
-exec /usr/bin/env -i PATH=/usr/bin:/bin LANG=C TZ=UTC GOMAXPROCS=2 GOMEMLIMIT="${go_memory_limit}B" GOGC=50 \
+notify_environment=()
+if [[ $access_mode == unix-fd-v1 ]]; then notify_environment=(NOTIFY_SOCKET="$NOTIFY_SOCKET"); fi
+exec /usr/bin/env -i PATH=/usr/bin:/bin LANG=C TZ=UTC GOMAXPROCS=2 GOMEMLIMIT="${go_memory_limit}B" GOGC=50 "${notify_environment[@]}" \
   "$binary" "${args[@]}"

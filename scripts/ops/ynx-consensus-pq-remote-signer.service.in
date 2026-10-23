@@ -4,14 +4,19 @@
 # Requires systemd >= 250 with working LoadCredentialEncrypted. No plaintext
 # EnvironmentFile, synthetic key initialization, automatic reconnect or retry.
 #
+# Original file mode binds the checkpoint directory read-only; unix-fd-v1
+# instead makes this path inaccessible to the signer and uses an independently
+# UID-pinned abstract Unixpacket broker in the engine. No source ownership,
+# key/HRS permission or account changes are performed by this unit.
 # The checkpoint directory must expose the actual writer's committed state at
 # the SAME original path. Set checkpointFormat explicitly to one of:
-# atomic-committed-json-v1, snapshot-journal-v1, block-journal-v2. For journals,
-# the ORIGINAL adjacent <state>.read.lock must also be visible and readable;
-# the daemon opens it read-only with SH|NB, never creates it, and rejects busy,
-# changed, corrupt or incomplete reads without source repair or cache fallback.
-# Bind the directory, never an individual inode, so writer compaction/atomic
-# replacements stay visible. The daemon reopens, fully reconstructs and binds
+# atomic-committed-json-v1, snapshot-journal-v1, block-journal-v2. File mode must
+# also expose the ORIGINAL adjacent journal <state>.read.lock read-only. Unix
+# FD mode leaves both files private to the engine; its broker acquires the
+# same original SH|NB read lease. Neither reader creates a replacement lock.
+# Busy, changed, corrupt or incomplete reads fail without source repair/cache
+# fallback. File mode binds the directory, never an individual inode, so
+# compaction/atomic replacements stay visible. Both modes fully reconstruct and bind
 # exact authenticated engine H/AppHash on every request. The independent
 # bootstrap, schedule, migration and optional runtime pins remain mandatory.
 # This unit DOES NOT provide cross-host replication. A frozen file is not a
@@ -21,8 +26,9 @@
 #
 # ORIGINAL_PQ_HRS_DIRECTORY must preserve HostKeyBinding.SignerStatePath.
 # Never rewrite that binding or move/reset either original history to fit this
-# template. Existing private files must be single-link 0600 and owned by the
-# dedicated service UID; original history directories must be 0700. Original
+# template. Existing keys/vault/HRS must be single-link 0600 and owned by the
+# dedicated signer UID; original history directories must be 0700. The Unix FD
+# source/read lock remain 0600 under the distinct pinned engine UID. Original
 # keys/vault are read-only here; only history directories are writable.
 [Unit]
 Description=YNX original PQ consensus remote signer
@@ -31,7 +37,7 @@ After=network-online.target @CHECKPOINT_PROVIDER_UNIT@
 Wants=network-online.target
 
 [Service]
-Type=exec
+@SIGNER_STARTUP_CONFIGURATION@
 User=ynx-pq-signer
 Group=ynx-pq-signer
 UMask=0077
@@ -62,7 +68,7 @@ RestrictNamespaces=yes
 RestrictRealtime=yes
 LockPersonality=yes
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
-BindReadOnlyPaths=@CHECKPOINT_DIRECTORY@
+@CHECKPOINT_SOURCE_ACCESS@
 ReadOnlyPaths=@OPERATOR_INPUTS_DIRECTORY@ @ORIGINAL_VAULT@ @ORIGINAL_LEGACY_KEY@ @ORIGINAL_TRANSPORT_KEY@
 ReadWritePaths=@ORIGINAL_PQ_HRS_DIRECTORY@ @ORIGINAL_LEGACY_HRS_DIRECTORY@
 UnsetEnvironment=BASH_ENV ENV SHELLOPTS BASHOPTS CDPATH LD_PRELOAD LD_LIBRARY_PATH GODEBUG GOTRACEBACK

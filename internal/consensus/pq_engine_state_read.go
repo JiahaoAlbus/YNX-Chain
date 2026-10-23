@@ -56,6 +56,11 @@ type pqEngineStateRead struct {
 	lockInfo os.FileInfo
 	layout   string
 	data     []byte
+	// An explicitly configured local capability transport may supply the same
+	// original read-only file. Its final check must attest the still-current
+	// original inode under the engine's normal journal read lock.
+	checkOriginal func() error
+	closeOriginal func() error
 }
 
 func pqStateLayout(prefix []byte) string {
@@ -76,6 +81,9 @@ func samePQStateFile(a, b os.FileInfo) bool {
 // old checkpoint while the writer advanced must not publish it as fresh signing
 // authority. No retry and no fallback to the cached or last complete record.
 func (r *pqEngineStateRead) unchanged() error {
+	if r.checkOriginal != nil {
+		return r.checkOriginal()
+	}
 	if r.layout != "atomic-json" {
 		release, err := LockSnapshotJournalRead(r.path)
 		if err != nil {
@@ -162,9 +170,16 @@ func capturePQEngineState(path string) (_ *pqEngineStateRead, result error) {
 }
 
 func readPQEngineCommittedState(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, engine *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization) (CommittedState, error) {
-	r, err := capturePQEngineState(path)
+	return readPQEngineCommittedStateWithCapture(path, migration, bootstrap, engine, runtime, capturePQEngineState)
+}
+
+func readPQEngineCommittedStateWithCapture(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, engine *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, capture func(string) (*pqEngineStateRead, error)) (_ CommittedState, result error) {
+	r, err := capture(path)
 	if err != nil {
 		return CommittedState{}, err
+	}
+	if r.closeOriginal != nil {
+		defer func() { result = errors.Join(result, r.closeOriginal()) }()
 	}
 	var state CommittedState
 	switch r.layout {

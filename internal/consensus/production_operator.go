@@ -52,18 +52,66 @@ type ProductionOperatorPlan struct {
 }
 
 type ProductionOperatorRole struct {
-	Role                  string                           `json:"role"`
-	Home                  string                           `json:"home"`
-	ABCIState             string                           `json:"abciState"`
-	LegacyKeyPath         string                           `json:"legacyKeyPath"`
-	LegacyStatePath       string                           `json:"legacyStatePath"`
-	NodeKeyPath           string                           `json:"nodeKeyPath"`
-	HostBinding           *ynxconsensusauth.HostKeyBinding `json:"hostBinding"`
-	RemoteSigner          string                           `json:"remoteSigner"`
-	TransportKeyPath      string                           `json:"transportKeyPath"`
-	SignerPeerPublicKey   string                           `json:"signerPeerPublicKey"`
-	RemoteTimeout         string                           `json:"remoteTimeout"`
-	HeightHaltControlPath string                           `json:"heightHaltControlPath,omitempty"`
+	Role                  string                              `json:"role"`
+	Home                  string                              `json:"home"`
+	ABCIState             string                              `json:"abciState"`
+	LegacyKeyPath         string                              `json:"legacyKeyPath"`
+	LegacyStatePath       string                              `json:"legacyStatePath"`
+	NodeKeyPath           string                              `json:"nodeKeyPath"`
+	HostBinding           *ynxconsensusauth.HostKeyBinding    `json:"hostBinding"`
+	RemoteSigner          string                              `json:"remoteSigner"`
+	TransportKeyPath      string                              `json:"transportKeyPath"`
+	SignerPeerPublicKey   string                              `json:"signerPeerPublicKey"`
+	RemoteTimeout         string                              `json:"remoteTimeout"`
+	HeightHaltControlPath string                              `json:"heightHaltControlPath,omitempty"`
+	CheckpointAccess      *ProductionOperatorCheckpointAccess `json:"checkpointAccess,omitempty"`
+}
+
+// ProductionOperatorCheckpointAccess is independently pinned public capability
+// DATA. It selects one read-only source channel, never a key, HRS or authority.
+// Startup is the separately provisioned signer's cold-source wait budget; the
+// engine receives only the request timeout and never waits for its own writer.
+type ProductionOperatorCheckpointAccess struct {
+	Mode                  string `json:"mode"`
+	Socket                string `json:"socket"`
+	EngineUID             string `json:"engineUID"`
+	SignerUID             string `json:"signerUID"`
+	TimeoutSeconds        string `json:"timeoutSeconds"`
+	StartupTimeoutSeconds string `json:"startupTimeoutSeconds"`
+}
+
+func productionCheckpointNumber(value string, maximum uint64) (uint32, error) {
+	number, err := strconv.ParseUint(value, 10, 32)
+	if err != nil || number == 0 || number > maximum || strconv.FormatUint(number, 10) != value {
+		return 0, errors.New("checkpoint access requires independently pinned canonical positive decimal limits and UIDs")
+	}
+	return uint32(number), nil
+}
+
+func (a ProductionOperatorCheckpointAccess) capability() (PQCheckpointAccess, error) {
+	if a.Mode != "unix-fd-v1" {
+		return PQCheckpointAccess{}, errors.New("unsupported production checkpoint access mode")
+	}
+	engine, err := productionCheckpointNumber(a.EngineUID, 1<<32-1)
+	if err != nil {
+		return PQCheckpointAccess{}, err
+	}
+	signer, err := productionCheckpointNumber(a.SignerUID, 1<<32-1)
+	if err != nil {
+		return PQCheckpointAccess{}, err
+	}
+	seconds, err := productionCheckpointNumber(a.TimeoutSeconds, 60)
+	if err != nil {
+		return PQCheckpointAccess{}, err
+	}
+	if _, err = productionCheckpointNumber(a.StartupTimeoutSeconds, 600); err != nil {
+		return PQCheckpointAccess{}, err
+	}
+	access := PQCheckpointAccess{Address: a.Socket, EngineUID: engine, SignerUID: signer, Timeout: time.Duration(seconds) * time.Second}
+	if err = access.Validate(); err != nil {
+		return PQCheckpointAccess{}, err
+	}
+	return access, nil
 }
 
 func (p *ProductionOperatorPlan) role(name string) ProductionOperatorRole {
@@ -274,7 +322,7 @@ func validateProductionOperatorPlan(p ProductionOperatorPlan, m chain.ConsensusM
 			return errors.New("operator state and custody paths must be distinct")
 		}
 		if pq == nil {
-			if r.HostBinding != nil || r.RemoteSigner != "" || r.TransportKeyPath != "" || r.SignerPeerPublicKey != "" || r.RemoteTimeout != "" {
+			if r.HostBinding != nil || r.RemoteSigner != "" || r.TransportKeyPath != "" || r.SignerPeerPublicKey != "" || r.RemoteTimeout != "" || r.CheckpointAccess != nil {
 				return errors.New("bootstrap/runtime-only operator must not contain partial PQ custody")
 			}
 			continue
@@ -315,6 +363,11 @@ func validateProductionOperatorPlan(p ProductionOperatorPlan, m chain.ConsensusM
 		if err != nil || numErr != nil || number < 1 || number > 65535 || strconv.Itoa(number) != port || ip == nil || (!ip.IsPrivate() && !ip.IsLoopback()) || ip.String() != host {
 			return errors.New("remote operator requires canonical private/loopback IP and port")
 		}
+		if r.CheckpointAccess != nil {
+			if _, err := r.CheckpointAccess.capability(); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
@@ -342,6 +395,9 @@ func ProductionValidatorManifestHash(m ProductionValidatorManifest) (string, err
 // client and the separately provisioned ynx-consensus-pq-remote-signer service.
 func productionOperatorRoleFiles(p *ProductionOperatorPlan, r ProductionOperatorRole, config, roleManifest []byte) (map[string][]byte, error) {
 	files := map[string][]byte{}
+	if r.CheckpointAccess != nil && (len(p.PQSchedule) == 0 || r.RemoteSigner == "") {
+		return nil, errors.New("checkpoint access requires the original remote PQ signer role")
+	}
 	args := []string{"start", "--home", r.Home, "--migration-state", ProductionCandidateRoot + "/config/bound-migration.json", "--abci-state", r.ABCIState, "--abci-state-layout", p.StateLayout, "--consensus-genesis-sha256", p.ConsensusGenesisSHA256, "--original-genesis-hash", p.OriginalGenesisHash, "--bound-migration-state-hash", p.MigrationStateHash}
 	if p.HeightHaltSessionID != "" {
 		canonicalPlan, err := json.Marshal(p)
@@ -363,6 +419,17 @@ func productionOperatorRoleFiles(p *ProductionOperatorPlan, r ProductionOperator
 		files["config/pq-engine-schedule.json"] = p.PQSchedule
 		files["config/pq-signer-peer-pin"] = []byte(r.SignerPeerPublicKey + "\n")
 		args = append(args, "--pq-engine-schedule", ProductionCandidateRoot+"/config/pq-engine-schedule.json", "--pq-engine-schedule-hash", p.PQScheduleHash, "--pq-host-key-binding", ProductionCandidateRoot+"/config/pq-host-binding.json", "--pq-remote-signer", r.RemoteSigner, "--pq-transport-key", r.TransportKeyPath, "--pq-signer-peer-pin", ProductionCandidateRoot+"/config/pq-signer-peer-pin", "--pq-remote-timeout", r.RemoteTimeout)
+	}
+	unitAfter, unitRequires := "network-online.target", ""
+	if r.CheckpointAccess != nil {
+		access, err := r.CheckpointAccess.capability()
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, "--checkpoint-access-socket", access.Address, "--checkpoint-engine-uid", r.CheckpointAccess.EngineUID,
+			"--checkpoint-signer-uid", r.CheckpointAccess.SignerUID, "--checkpoint-access-timeout", r.CheckpointAccess.TimeoutSeconds+"s")
+		unitAfter += " ynx-consensus-pq-remote-signer.service"
+		unitRequires = "Requires=ynx-consensus-pq-remote-signer.service\n"
 	}
 	var launch strings.Builder
 	launch.WriteString("#!/usr/bin/env bash\nset -euo pipefail\ntest \"$#\" = 0\n")
@@ -403,8 +470,8 @@ func productionOperatorRoleFiles(p *ProductionOperatorPlan, r ProductionOperator
 	files["scripts/start-operator.sh"] = []byte(launch.String())
 	unit := fmt.Sprintf(`[Unit]
 Description=YNX original-state single-App consensus operator (%s)
-After=network-online.target
-Wants=network-online.target
+After=%s
+%sWants=network-online.target
 Conflicts=ynx-consensus-abci-candidate.service ynx-consensus-comet-candidate.service
 
 [Service]
@@ -425,7 +492,7 @@ LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
-`, r.Role, ProductionCandidateRoot, readOnly, readWrite)
+`, r.Role, unitAfter, unitRequires, ProductionCandidateRoot, readOnly, readWrite)
 	files["systemd/ynx-consensus-operator-candidate.service"] = []byte(unit)
 	files["scripts/install-candidate.sh"] = []byte(fmt.Sprintf(`#!/usr/bin/env bash
 set -euo pipefail

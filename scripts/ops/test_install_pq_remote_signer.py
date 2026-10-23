@@ -45,6 +45,7 @@ class HostObservations(installer.LocalHost):
     def __init__(self, fixture):
         self.fixture = fixture
         self.events, self.owners = [], []
+        self.private_observations = []
         self.provider_ready, self.existing_unit = True, False
         self.drift_on_second = None
         self.observations = 0
@@ -55,6 +56,9 @@ class HostObservations(installer.LocalHost):
 
     def account(self):
         return os.getuid(), os.getgid()
+
+    def engine_account(self):
+        return 65533 if os.getuid() != 65533 else 65532
 
     def observe(self, provider, checkpoint_directory=None):
         self.observations += 1
@@ -78,6 +82,7 @@ class HostObservations(installer.LocalHost):
     def private_stat(self, filename, maximum, uid, minimum=1):
         # The real host supplies root/service ownership. A public fixture has
         # just its CI UID and substitutes that metadata observation only.
+        self.private_observations.append((str(filename), uid))
         return installer.regular(filename, maximum, os.getuid(), minimum)
 
     def installed_metadata(self, filename, uid, gid, mode):
@@ -157,6 +162,8 @@ class Fixture:
         credential = self.host_root / installer.CREDENTIAL.lstrip('/')
         credential_raw = write(credential, b'opaque EXISTING ENCRYPTED systemd credential blob\n')
         config = json.loads(self.templates[installer.DAEMON + '.conf.in'])
+        for key in installer.CHECKPOINT_ACCESS_FIELDS:
+            config.pop(key)
         config.update(abciState=str(state), binary=installer.TARGETS['binary'], binarySHA256=binaries[installer.DAEMON]['sha256'],
             binding=str(binding), bindingSHA256=sha(binding_raw), checkpointDirectory=str(state.parent),
             checkpointFormat='atomic-committed-json-v1', checkpointProviderUnit='actual-original-source.mount',
@@ -184,7 +191,8 @@ class Fixture:
             operator_plan=str(self.plan_path), operator_plan_sha256=sha(plan_raw), role='primary', config=str(self.config_path),
             config_sha256=sha(config_raw), unit_sha256='', operator_inputs_directory=str(self.public), credential_sha256=sha(credential_raw),
             install=False, output_dir=str(self.root / 'install-attempt'))
-        replacements = {'CHECKPOINT_PROVIDER_UNIT': config['checkpointProviderUnit'], 'CHECKPOINT_DIRECTORY': config['checkpointDirectory'],
+        replacements = {'CHECKPOINT_PROVIDER_UNIT': config['checkpointProviderUnit'], 'SIGNER_STARTUP_CONFIGURATION': 'Type=exec',
+            'CHECKPOINT_SOURCE_ACCESS': 'BindReadOnlyPaths=' + config['checkpointDirectory'],
             'OPERATOR_INPUTS_DIRECTORY': str(self.public), 'ORIGINAL_VAULT': config['vault'], 'ORIGINAL_LEGACY_KEY': config['legacyKey'],
             'ORIGINAL_TRANSPORT_KEY': config['transportKey'], 'ORIGINAL_PQ_HRS_DIRECTORY': str(pq_state.parent),
             'ORIGINAL_LEGACY_HRS_DIRECTORY': str(legacy_state.parent), 'MEASURED_TARGET_MEMORY_MAX_BYTES': config['memoryMaxBytes']}
@@ -200,7 +208,10 @@ class Fixture:
         self.config_path.write_bytes((json.dumps(self.config, separators=(',', ':')) + '\n').encode())
         self.args.config_sha256 = sha(self.config_path.read_bytes())
         self.expected_unit = self.templates[installer.DAEMON + '.service.in']
-        replacements = {'CHECKPOINT_PROVIDER_UNIT': value, 'CHECKPOINT_DIRECTORY': self.config['checkpointDirectory'],
+        uses_fd = 'checkpointAccessMode' in self.config
+        replacements = {'CHECKPOINT_PROVIDER_UNIT': value,
+            'SIGNER_STARTUP_CONFIGURATION': ('Type=notify\nNotifyAccess=main\nTimeoutStartSec=' + self.config['checkpointStartupTimeoutSeconds'] + 's') if uses_fd else 'Type=exec',
+            'CHECKPOINT_SOURCE_ACCESS': ('InaccessiblePaths=' if uses_fd else 'BindReadOnlyPaths=') + self.config['checkpointDirectory'],
             'OPERATOR_INPUTS_DIRECTORY': str(self.public), 'ORIGINAL_VAULT': self.config['vault'], 'ORIGINAL_LEGACY_KEY': self.config['legacyKey'],
             'ORIGINAL_TRANSPORT_KEY': self.config['transportKey'], 'ORIGINAL_PQ_HRS_DIRECTORY': str(Path(self.config['pqState']).parent),
             'ORIGINAL_LEGACY_HRS_DIRECTORY': str(Path(self.config['legacyState']).parent), 'MEASURED_TARGET_MEMORY_MAX_BYTES': self.config['memoryMaxBytes']}
@@ -208,13 +219,45 @@ class Fixture:
             self.expected_unit = self.expected_unit.replace(('@' + key + '@').encode(), replacement.encode())
         self.args.unit_sha256 = sha(self.expected_unit)
 
+    def unix_fd(self):
+        engine = self.host.engine_account()
+        self.config.update(checkpointAccessMode='unix-fd-v1', checkpointAccessSocket='@ynx-pq-checkpoint-original-primary',
+            checkpointEngineUID=str(engine), checkpointSignerUID=str(os.getuid()), checkpointAccessTimeoutSeconds='5',
+            checkpointStartupTimeoutSeconds='120')
+        # The public fixture substitutes ownership metadata; real two-UID
+        # Linux EACCES/SCM_RIGHTS evidence belongs to the separate Go control.
+        if os.getuid() == 0:
+            self.config['checkpointSignerUID'] = '65534'
+            self.host.account = lambda: (65534, 65534)
+        access = {key: self.config[field] for key, field in (
+            ('mode', 'checkpointAccessMode'), ('socket', 'checkpointAccessSocket'), ('engineUID', 'checkpointEngineUID'),
+            ('signerUID', 'checkpointSignerUID'), ('timeoutSeconds', 'checkpointAccessTimeoutSeconds'),
+            ('startupTimeoutSeconds', 'checkpointStartupTimeoutSeconds'))}
+        self.plan['roles'][0]['checkpointAccess'] = access
+        self.plan_path.write_bytes((json.dumps(self.plan, separators=(',', ':')) + '\n').encode())
+        self.args.operator_plan_sha256 = sha(self.plan_path.read_bytes())
+        self.provider(self.config['checkpointProviderUnit'])
+
     def run(self, module=installer):
         original_open = os.open
         def guarded_open(filename, flags, *args, **kwargs):
             if str(filename) in self.forbidden:
                 raise AssertionError('installer opened original private/history/checkpoint body')
             return original_open(filename, flags, *args, **kwargs)
-        with mock.patch.object(installer.os, 'open', side_effect=guarded_open):
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.object(installer.os, 'open', side_effect=guarded_open))
+            if os.getuid() == 0 and 'checkpointAccessMode' in self.config:
+                # Metadata-only fixture remains usable under a root test
+                # runner. This is NOT the two-real-UID permission experiment.
+                original_lstat = Path.lstat
+                def observed_lstat(filename, *args, **kwargs):
+                    info = original_lstat(filename, *args, **kwargs)
+                    if filename in self.histories[:2]:
+                        fields = {key: getattr(info, key) for key in dir(info) if key.startswith('st_')}
+                        fields.update(st_uid=int(self.config['checkpointSignerUID']))
+                        return SimpleNamespace(**fields)
+                    return info
+                stack.enter_context(mock.patch.object(Path, 'lstat', observed_lstat))
             return module.run(self.args, host=self.host)
 
 
@@ -299,6 +342,153 @@ class SignerInstallTests(unittest.TestCase):
         self.assertEqual(f.host.owners, [])
         for p, raw in before.items(): self.assertEqual(p.read_bytes(), raw)
         for target in installer.TARGETS.values(): self.assertFalse(f.host.destination(target).exists())
+
+    def test_unix_fd_profile_preserves_private_source_and_custody_and_requires_actual_notify_startup(self):
+        f = self.fixture('unix-fd')
+        f.unix_fd(); f.args.install = True
+        before = {Path(p): (Path(p).read_bytes(), installer.ident(Path(p).lstat())) for p in f.forbidden}
+        result = f.run()
+        self.assertIs(result['installed'], True)
+        self.assertIs(result['runtimeStarted'], False)
+        self.assertIs(result['privateKeyCheckPerformed'], False)
+        self.assertIs(result['freshnessVerified'], False)
+        unit = f.host.destination(installer.TARGETS['unit']).read_bytes()
+        self.assertIn(b'Type=notify\nNotifyAccess=main\nTimeoutStartSec=120s\n', unit)
+        self.assertIn(('InaccessiblePaths=' + f.config['checkpointDirectory'] + '\n').encode(), unit)
+        self.assertNotIn(b'BindReadOnlyPaths=', unit)
+        self.assertIn((f.config['abciState'], int(f.config['checkpointEngineUID'])), f.host.private_observations)
+        self.assertIn((str(f.legacy), int(f.config['checkpointSignerUID'])), f.host.private_observations)
+        for filename, (raw, identity) in before.items():
+            self.assertEqual(filename.read_bytes(), raw)
+            self.assertEqual(installer.ident(filename.lstat()), identity)
+        self.assertTrue(all(event[0] == 'read-only-host-observation' for event in f.host.events))
+
+    def test_unix_fd_group_is_complete_explicit_bounded_and_not_a_file_permission_fallback(self):
+        f = self.fixture('unix-fd-group')
+        f.unix_fd()
+        original = dict(f.config)
+        cases = [(key, None) for key in sorted(installer.CHECKPOINT_ACCESS_FIELDS)]
+        cases += [('checkpointAccessMode', 'file-v1'), ('checkpointAccessSocket', '/tmp/source.sock'),
+                  ('checkpointAccessSocket', '@foreign-source'), ('checkpointEngineUID', '0'),
+                  ('checkpointEngineUID', '01'), ('checkpointEngineUID', '4294967296'),
+                  ('checkpointSignerUID', original['checkpointEngineUID']), ('checkpointSignerUID', 123),
+                  ('checkpointAccessTimeoutSeconds', '0'), ('checkpointAccessTimeoutSeconds', '61'),
+                  ('checkpointStartupTimeoutSeconds', ''), ('checkpointStartupTimeoutSeconds', '601'),
+                  ('checkpointStartupTimeoutSeconds', '0120')]
+        for key, value in cases:
+            with self.subTest(key=key, value=value):
+                f.config = dict(original)
+                if value is None: del f.config[key]
+                else: f.config[key] = value
+                f.config_path.write_bytes((json.dumps(f.config) + '\n').encode())
+                f.args.config_sha256 = sha(f.config_path.read_bytes())
+                with self.assertRaises(ValueError): f.run()
+                self.assertFalse(Path(f.args.output_dir).exists())
+                self.assertEqual(f.host.owners, [])
+        f.config = original
+        f.provider(f.config['checkpointProviderUnit'])
+        f.host.engine_account = lambda: int(original['checkpointEngineUID']) - 1
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_ENGINE_AND_SIGNER_UID_PIN_MISMATCH'): f.run()
+        self.assertEqual(f.host.private_observations, [])
+
+    def test_unix_fd_plan_group_cannot_drift_from_either_normal_caller(self):
+        f = self.fixture('unix-fd-plan')
+        f.unix_fd()
+        original = dict(f.plan['roles'][0]['checkpointAccess'])
+        for key in ('mode', 'socket', 'engineUID', 'signerUID', 'timeoutSeconds', 'startupTimeoutSeconds', 'missing'):
+            with self.subTest(key=key):
+                access = dict(original)
+                if key == 'missing': f.plan['roles'][0].pop('checkpointAccess', None)
+                else:
+                    access[key] = 'different'
+                    f.plan['roles'][0]['checkpointAccess'] = access
+                f.plan_path.write_bytes((json.dumps(f.plan) + '\n').encode())
+                f.args.operator_plan_sha256 = sha(f.plan_path.read_bytes())
+                with self.assertRaisesRegex(ValueError, 'ORIGINAL_PLAN_CHECKPOINT_ACCESS_MISMATCH'): f.run()
+                self.assertEqual(f.host.owners, [])
+        f.plan['roles'][0]['checkpointAccess'] = original
+        f.config = {key: value for key, value in f.config.items() if key not in installer.CHECKPOINT_ACCESS_FIELDS}
+        f.provider(f.config['checkpointProviderUnit'])
+        f.plan_path.write_bytes((json.dumps(f.plan) + '\n').encode())
+        f.args.operator_plan_sha256 = sha(f.plan_path.read_bytes())
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_PLAN_CHECKPOINT_ACCESS_MISMATCH'): f.run()
+
+    def test_unix_fd_does_not_accept_an_old_pinned_runtime_template(self):
+        f = self.fixture('unix-fd-old-runtime')
+        f.unix_fd()
+        source, _, templates = installer.runtime_inputs(f.args)
+        config_template = installer.decode(templates[installer.DAEMON + '.conf.in'])
+        templates[installer.DAEMON + '.conf.in'] = json.dumps({key: value for key, value in config_template.items()
+            if key not in installer.CHECKPOINT_ACCESS_FIELDS}).encode()
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_CLOSED_CONFIG_REQUIRED'):
+            installer.rendered(f.args, source, templates)
+        self.assertEqual(f.host.events, [])
+
+    def test_actual_launcher_unix_fd_branch_never_opens_source_and_passes_exact_uid_and_timeout_flags(self):
+        f = self.fixture('unix-fd-launcher')
+        f.unix_fd()
+        launcher = f.templates[installer.DAEMON + '-launch.sh'].decode()
+        start = launcher.index('if [[ $access_mode == unix-fd-v1 ]]; then\n')
+        branch = launcher[start:launcher.index('\nsystemctl is-active --quiet -- "$provider"', start)]
+        start = launcher.index('if [[ $access_mode == unix-fd-v1 ]]; then\n', launcher.index('  --recovery-fd 3)'))
+        flag_branch = launcher[start:launcher.index('\nif [[ -n $runtime_plan ]]', start)]
+        scaffold = '''set -euo pipefail
+fail() { printf '%s\\n' "$1" >&2; exit 78; }
+config_json=$1; checkpoint_directory=$2; state=$3; access_mode=unix-fd-v1
+field() { /usr/bin/jq -er --arg name "$1" '.[$name]' <<<"$config_json"; }
+id() { [[ $# == 2 && $1 == -u && $2 == ynx ]] || exit 95; field checkpointEngineUID; }
+systemctl() {
+  case "$*" in
+    'show --property=NotifyAccess --value -- ynx-consensus-pq-remote-signer.service') printf '%s\\n' main ;;
+    'show --property=Type --value -- ynx-consensus-pq-remote-signer.service') printf '%s\\n' notify ;;
+    *) exit 96 ;;
+  esac
+}
+canonical_path() { exit 97; }; trusted_parents() { exit 97; }
+readonly_mount() { exit 97; }; checkpoint_source() { exit 97; }
+NOTIFY_SOCKET=/run/systemd/notify
+'''
+        body = scaffold + branch + '\nargs=(--recovery-fd 3)\n' + flag_branch + '\nprintf "%s\\n" "${args[@]}"\n'
+        config = dict(f.config, checkpointDirectory='/no-direct-source-read', abciState='/no-direct-source-read/state')
+        result = installer.subprocess.run(['/bin/bash', '-c', body, 'actual-launcher-uid-control', json.dumps(config),
+            config['checkpointDirectory'], config['abciState']], env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C'},
+            stdout=installer.subprocess.PIPE, stderr=installer.subprocess.PIPE, timeout=10, check=False)
+        if os.getuid() == 0:
+            self.assertEqual(result.returncode, 78)  # Root is never the signer.
+        else:
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+            self.assertEqual(result.stdout.decode().splitlines(), ['--recovery-fd', '3', '--checkpoint-access-socket',
+                config['checkpointAccessSocket'], '--checkpoint-engine-uid', config['checkpointEngineUID'],
+                '--checkpoint-signer-uid', config['checkpointSignerUID'], '--checkpoint-access-timeout', '5s',
+                '--checkpoint-startup-timeout', '120s'])
+            for old, replacement, reason in (
+                ('NOTIFY_SOCKET=/run/systemd/notify', 'NOTIFY_SOCKET=/run/foreign', 'real systemd notification socket is required'),
+                ("printf '%s\\n' main ;;", "printf '%s\\n' all ;;", 'loaded service must wait for the actual signer readiness notification'),
+                ("printf '%s\\n' notify ;;", "printf '%s\\n' exec ;;", 'loaded service must wait for the actual signer readiness notification')):
+                with self.subTest(observation=replacement):
+                    self.assertEqual(body.count(old), 1)
+                    denied = installer.subprocess.run(['/bin/bash', '-c', body.replace(old, replacement, 1),
+                        'actual-launcher-observation-refusal', json.dumps(config), config['checkpointDirectory'], config['abciState']],
+                        env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C'}, stdout=installer.subprocess.PIPE,
+                        stderr=installer.subprocess.PIPE, timeout=10, check=False)
+                    self.assertEqual(denied.returncode, 78)
+                    self.assertEqual(denied.stdout, b'')
+                    self.assertIn(reason.encode(), denied.stderr)
+        self.assertIn('notify_environment=(NOTIFY_SOCKET="$NOTIFY_SOCKET")', launcher)
+        self.assertIn('GOGC=50 "${notify_environment[@]}"', launcher)
+        # The full production JSON gate, not a copied mode parser, rejects
+        # partial groups, fake source modes and duplicate-UID aliases.
+        filter_body = launcher.split("jq -e '\n", 1)[1].split("\n' <<<\"$config_json\"", 1)[0]
+        cases = [dict(config)]
+        for key in sorted(installer.CHECKPOINT_ACCESS_FIELDS):
+            changed = dict(config); del changed[key]; cases.append(changed)
+        changed = dict(config, checkpointSignerUID=config['checkpointEngineUID']); cases.append(changed)
+        changed = dict(config, checkpointAccessMode='file-v1'); cases.append(changed)
+        for index, value in enumerate(cases):
+            observed = installer.subprocess.run(['/usr/bin/jq', '-e', filter_body], input=json.dumps(value).encode(),
+                env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C'}, stdout=installer.subprocess.PIPE,
+                stderr=installer.subprocess.PIPE, timeout=5, check=False)
+            self.assertEqual(observed.returncode == 0, index == 0)
 
     def test_root_mount_uses_actual_directory_and_normal_unit_without_service_mutation(self):
         f = self.fixture('root-provider')
@@ -605,6 +795,45 @@ class SignerInstallerCLIControls(unittest.TestCase):
         # this entrypoint repair, then require its independent whole-file pin.
         # No copied historical implementation or shallow-Git/network reliance.
         current = FILE.read_bytes()
+        # Reverse this later capability acquisition change first. Require the
+        # independently frozen whole d2bf source before earlier historical REDs;
+        # do not relabel an updated implementation as the old caller.
+        begin = current.index(b'CHECKPOINT_ACCESS_FIELDS = ')
+        current = current[:begin] + b'\n\n' + current[current.index(b'def need(ok, code):\n', begin):]
+        begin = current.index(b'    def engine_account(self):\n')
+        current = current[:begin] + current[current.index(b'    def observe(self, provider, checkpoint_directory=None):\n', begin):]
+        changed = b'''    need(type(config) is dict and set(config) in (set(template) - CHECKPOINT_ACCESS_FIELDS, set(template))
+         and config.get('schema') == template.get('schema')
+         and config['schema'] == 'ynx-pq-remote-service-v1', 'ORIGINAL_CLOSED_CONFIG_REQUIRED')
+    uses_fd = checkpoint_access(config)
+    need(not uses_fd or CHECKPOINT_ACCESS_FIELDS <= set(template), 'PINNED_RUNTIME_UNIX_FD_TEMPLATE_REQUIRED')
+'''
+        previous = b'''    need(type(config) is dict and set(config) == set(template) and config.get('schema') == template.get('schema')
+         and config['schema'] == 'ynx-pq-remote-service-v1', 'ORIGINAL_CLOSED_CONFIG_REQUIRED')
+'''
+        self.assertEqual(current.count(changed), 1)
+        current = current.replace(changed, previous, 1)
+        changes = (
+            (b"('@' not in v or k == 'checkpointAccessSocket')", b"'@' not in v"),
+            (b"    replacements = {'CHECKPOINT_PROVIDER_UNIT': provider,\n", b"    replacements = {'CHECKPOINT_PROVIDER_UNIT': provider, 'CHECKPOINT_DIRECTORY': config['checkpointDirectory'],\n"),
+            (b'    source_uid = checkpoint_owner(config, host, uid)\n', b''),
+            (b"source_uid if key == 'abciState' else uid)", b'uid)'),
+            (b'        info = host.private_stat(filename, 65536, source_uid, 0)\n', b'        info = host.private_stat(filename, 65536, uid, 0)\n'),
+            (b"        owner = source_uid if filename == Path(config['abciState']) else (uid if filename != actual else 0)\n        host.trusted(filename.parent, owner)\n",
+             b'        host.trusted(filename.parent, uid if filename != actual else 0)\n'),
+            (b'    uid = checkpoint_owner(config, host, uid)\n', b''),
+        )
+        for changed, previous in changes:
+            self.assertEqual(current.count(changed), 1)
+            current = current.replace(changed, previous, 1)
+        begin = current.index(b"    if 'CHECKPOINT_DIRECTORY' in tokens:\n")
+        current = current[:begin] + current[current.index(b'    need(tokens == set(replacements)', begin):]
+        begin = current.index(b'    if checkpoint_access(config):\n        expected_access = ')
+        current = current[:begin] + current[current.index(b"    need(role['remoteSigner']", begin):]
+        begin = current.index(b'    if checkpoint_access(config):\n        need(not any(')
+        current = current[:begin] + current[current.index(b'    actual = host.destination(CREDENTIAL)\n', begin):]
+        self.assertEqual(len(current), 29340)
+        self.assertEqual(sha(current), '1e8c11e41ff5627ee08dbfc649c7e281ba49cf2566fb14cbbf2fdc1a5380b3b2')
         # First reverse only the later root-filesystem admission/path repair.
         # The entire pre-repair module must remain exact 4e74 source, then the
         # earlier CLI reverse patch below proves exact original 0e67 identity.
@@ -668,11 +897,12 @@ class SignerInstallerCLIControls(unittest.TestCase):
             f.plan['roles'][0]['abciState'] = '/original/different-engine-state'
             f.plan_path.write_bytes((json.dumps(f.plan, separators=(',', ':')) + '\n').encode())
             f.args.operator_plan_sha256 = sha(f.plan_path.read_bytes())
-            result = f.run(module=original)
-            self.assertIs(result['installed'], False)
-            self.assertIs(result['freshnessVerified'], False)
+            # Current runtime templates have explicit access-mode tokens. The
+            # exact historical input callee itself still accepts the wrong
+            # original App path; no synthetic old runtime is substituted.
+            original.original_inputs(f.args, f.config, f.host, os.getuid())
             with self.assertRaisesRegex(ValueError, 'ORIGINAL_PLAN_CHECKPOINT_PATH_MISMATCH'):
-                f.run()
+                installer.original_inputs(f.args, f.config, f.host, os.getuid())
             self.assertFalse(Path(f.args.output_dir).exists())
             self.assertEqual(f.host.owners, [])
 

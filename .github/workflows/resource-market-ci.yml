@@ -50,6 +50,7 @@ on:
       - 'scripts/ops/remote/public-bft-native-identity.py'
       - 'scripts/ops/remote/public-bft-capture-snapshot-source.py'
       - 'scripts/verify/public-bft-native-identity-check.sh'
+      - 'scripts/verify/pq-checkpoint-dual-uid-check.sh'
       - 'scripts/verify/test_public_bft_capture_snapshot_source.py'
       - 'scripts/verify/lib/public-bft-native-source.mjs'
       - 'scripts/verify/validate-public-bft-production-rehearsal.mjs'
@@ -1828,6 +1829,17 @@ jobs:
               manifestSHA256=pin(root / 'SOURCE.json')['sha256'], binaries=binaries,
               sourceLeaves=source['sourceLeaves']), sort_keys=True, separators=(',', ':')))
           PY
+      - name: Verify original checkpoint access with two real nonroot users
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        timeout-minutes: 4
+        run: |
+          # Reuse the exact normally built test binary and its prior SOURCE pin.
+          # Only the synthetic coordinator is root; the two helpers are not.
+          # This source regression starts no node or deployed service.
+          bash scripts/verify/pq-checkpoint-dual-uid-check.sh \
+            --test-binary "$YNX_REMOTE_BUILD/consensus.test" \
+            --test-binary-sha256 "$YNX_REMOTE_TEST_SHA" \
+            --engine-uid "$(id -u)" --signer-uid "$(id -u nobody)"
       - name: Checkout fixed repaired performance client
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

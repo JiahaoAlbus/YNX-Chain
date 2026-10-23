@@ -210,6 +210,21 @@ func servePQRemoteConnection(ctx context.Context, secret *p2pconn.SecretConnecti
 // ListenPQRemoteSigner accepts a single bounded session. It never redials or
 // resumes UNKNOWN work. A new session requires a new explicit invocation.
 func ListenPQRemoteSigner(ctx context.Context, config PQRemoteTransport, chainID string, source cmttypes.ConsensusSigningAuthoritySource, pv cmttypes.PrivValidator) error {
+	return listenPQRemoteSigner(ctx, config, chainID, source, pv, config.Timeout, nil)
+}
+
+// Explicit split-UID startup allows the signer to become actually listening
+// before the engine performs its original (possibly large) App recovery. The
+// separately pinned startup budget covers ONE accept only; no reconnect/retry,
+// and connected handshake/request deadlines retain config.Timeout unchanged.
+func ListenPQRemoteSignerReady(ctx context.Context, config PQRemoteTransport, chainID string, source cmttypes.ConsensusSigningAuthoritySource, pv cmttypes.PrivValidator, startup time.Duration, ready func() error) error {
+	if startup < time.Second || startup > 10*time.Minute || ready == nil {
+		return errors.New("explicit remote readiness requires a bounded independent startup budget and readiness callback")
+	}
+	return listenPQRemoteSigner(ctx, config, chainID, source, pv, startup, ready)
+}
+
+func listenPQRemoteSigner(ctx context.Context, config PQRemoteTransport, chainID string, source cmttypes.ConsensusSigningAuthoritySource, pv cmttypes.PrivValidator, acceptTimeout time.Duration, ready func() error) error {
 	if ctx == nil || source == nil || pv == nil || chainID == "" {
 		return errors.New("remote listener requires context and original signing authority")
 	}
@@ -236,8 +251,13 @@ func ListenPQRemoteSigner(ctx context.Context, config PQRemoteTransport, chainID
 	if !ok {
 		return errors.New("unexpected remote listener type")
 	}
-	if err = tcp.SetDeadline(time.Now().Add(config.Timeout)); err != nil {
+	if err = tcp.SetDeadline(time.Now().Add(acceptTimeout)); err != nil {
 		return err
+	}
+	if ready != nil {
+		if err = ready(); err != nil {
+			return err
+		}
 	}
 	conn, err := listener.Accept()
 	if err != nil {

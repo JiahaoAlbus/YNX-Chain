@@ -24,6 +24,7 @@ type PQEngineFileSource struct {
 	bootstrap            *ConsensusBootstrap
 	authorization        *PQEngineAuthorization
 	runtimeAuthorization *RuntimeUpgradeAuthorization
+	capture              func(string) (*pqEngineStateRead, error)
 	checkpoints          [2]pqEngineCheckpoint
 	// Signing observations cannot be evicted by historical engine reads.
 	// Protected by mu; durable anti-equivocation still belongs to Signer H/R/S.
@@ -78,7 +79,7 @@ func (s *PQEngineFileSource) ConsensusAuthorityForState(chainID string, committe
 			return checkpoint.snapshot, nil
 		}
 	}
-	snapshot, err := loadPQEngineSnapshotWithRuntime(s.migration, s.path, s.bootstrap, s.authorization, s.runtimeAuthorization, committedHeight, hash[:])
+	snapshot, err := s.loadSnapshot(committedHeight, hash[:])
 	if err != nil {
 		return nil, err
 	}
@@ -118,13 +119,25 @@ func LoadPQEngineSnapshot(migration chain.ConsensusMigrationState, statePath str
 }
 
 func loadPQEngineSnapshotWithRuntime(migration chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, committedHeight int64, committedAppHash []byte) (*PQEngineSnapshot, error) {
+	return loadPQEngineSnapshotWithCapture(migration, statePath, bootstrap, authorization, runtime, committedHeight, committedAppHash, capturePQEngineState)
+}
+
+func (s *PQEngineFileSource) loadSnapshot(height int64, hash []byte) (*PQEngineSnapshot, error) {
+	capture := s.capture
+	if capture == nil {
+		capture = capturePQEngineState
+	}
+	return loadPQEngineSnapshotWithCapture(s.migration, s.path, s.bootstrap, s.authorization, s.runtimeAuthorization, height, hash, capture)
+}
+
+func loadPQEngineSnapshotWithCapture(migration chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, committedHeight int64, committedAppHash []byte, capture func(string) (*pqEngineStateRead, error)) (*PQEngineSnapshot, error) {
 	if bootstrap == nil || strings.TrimSpace(statePath) == "" || len(committedAppHash) != 32 {
 		return nil, errors.New("engine file source requires pinned bootstrap, committed path and full trusted AppHash")
 	}
 	if err := bootstrap.matchesMigration(migration); err != nil {
 		return nil, err
 	}
-	state, err := readPQEngineCommittedState(statePath, migration, bootstrap, authorization, runtime)
+	state, err := readPQEngineCommittedStateWithCapture(statePath, migration, bootstrap, authorization, runtime, capture)
 	if err != nil {
 		return nil, fmt.Errorf("read committed engine authority: %w", err)
 	}

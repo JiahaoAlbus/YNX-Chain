@@ -29,6 +29,40 @@ TARGETS = {'binary': '/usr/local/libexec/' + DAEMON,
            'unit': '/etc/systemd/system/' + SERVICE}
 CREDENTIAL = '/etc/credstore.encrypted/ynx-pq-recovery'
 TEMPLATES = (DAEMON + '.service.in', DAEMON + '-launch.sh', DAEMON + '.conf.in')
+CHECKPOINT_ACCESS_FIELDS = frozenset(('checkpointAccessMode', 'checkpointAccessSocket', 'checkpointEngineUID',
+                                     'checkpointSignerUID', 'checkpointAccessTimeoutSeconds', 'checkpointStartupTimeoutSeconds'))
+
+
+def checkpoint_access(config):
+    fields = set(config) & CHECKPOINT_ACCESS_FIELDS
+    need(not fields or fields == CHECKPOINT_ACCESS_FIELDS, 'COMPLETE_CHECKPOINT_ACCESS_GROUP_REQUIRED')
+    if not fields:
+        return False
+    need(config['checkpointAccessMode'] == 'unix-fd-v1'
+         and type(config['checkpointAccessSocket']) is str
+         and re.fullmatch(r'@ynx-pq-checkpoint-[a-z0-9-]{8,64}', config['checkpointAccessSocket']),
+         'EXPLICIT_UNIX_FD_CHECKPOINT_ACCESS_REQUIRED')
+    for key in ('checkpointEngineUID', 'checkpointSignerUID'):
+        value = config[key]
+        need(type(value) is str and re.fullmatch(r'[1-9][0-9]{0,9}', value) and int(value) <= 4294967295,
+             'INDEPENDENT_NONROOT_CHECKPOINT_UID_REQUIRED')
+    need(config['checkpointEngineUID'] != config['checkpointSignerUID'], 'DISTINCT_ENGINE_AND_SIGNER_UIDS_REQUIRED')
+    timeout = config['checkpointAccessTimeoutSeconds']
+    need(type(timeout) is str and re.fullmatch(r'[1-9][0-9]?', timeout) and int(timeout) <= 60,
+         'EXPLICIT_CHECKPOINT_ACCESS_TIMEOUT_REQUIRED')
+    startup = config['checkpointStartupTimeoutSeconds']
+    need(type(startup) is str and re.fullmatch(r'[1-9][0-9]{0,2}', startup) and int(startup) <= 600,
+         'EXPLICIT_CHECKPOINT_STARTUP_TIMEOUT_REQUIRED')
+    return True
+
+
+def checkpoint_owner(config, host, signer_uid):
+    if not checkpoint_access(config):
+        return signer_uid
+    engine_uid = int(config['checkpointEngineUID'])
+    need(int(config['checkpointSignerUID']) == signer_uid and host.engine_account() == engine_uid,
+         'ORIGINAL_ENGINE_AND_SIGNER_UID_PIN_MISMATCH')
+    return engine_uid
 
 
 def need(ok, code):
@@ -117,6 +151,11 @@ class LocalHost:
         need(user.pw_uid > 0 and group.gr_gid > 0 and user.pw_gid == group.gr_gid,
              'EXISTING_DEDICATED_SIGNER_ACCOUNT_REQUIRED')
         return user.pw_uid, group.gr_gid
+
+    def engine_account(self):
+        user = pwd.getpwnam('ynx')
+        need(user.pw_uid > 0, 'EXISTING_ORIGINAL_ENGINE_ACCOUNT_REQUIRED')
+        return user.pw_uid
 
     def observe(self, provider, checkpoint_directory=None):
         version = self.command(['/usr/bin/systemctl', 'show', '--property=Version', '--value'])
@@ -237,9 +276,12 @@ def runtime_inputs(args):
 def rendered(args, source, templates):
     config, config_raw, _ = pinned(path(args.config), args.config_sha256, 16384)
     template = decode(templates[DAEMON + '.conf.in'])
-    need(type(config) is dict and set(config) == set(template) and config.get('schema') == template.get('schema')
+    need(type(config) is dict and set(config) in (set(template) - CHECKPOINT_ACCESS_FIELDS, set(template))
+         and config.get('schema') == template.get('schema')
          and config['schema'] == 'ynx-pq-remote-service-v1', 'ORIGINAL_CLOSED_CONFIG_REQUIRED')
-    need(all(type(v) is str and '@' not in v for k, v in config.items() if k != 'timeoutSeconds')
+    uses_fd = checkpoint_access(config)
+    need(not uses_fd or CHECKPOINT_ACCESS_FIELDS <= set(template), 'PINNED_RUNTIME_UNIX_FD_TEMPLATE_REQUIRED')
+    need(all(type(v) is str and ('@' not in v or k == 'checkpointAccessSocket') for k, v in config.items() if k != 'timeoutSeconds')
          and type(config['timeoutSeconds']) is int and 1 <= config['timeoutSeconds'] <= 60,
          'ORIGINAL_CONFIG_FIELD_TYPES_REQUIRED')
     for key in ('binarySHA256', 'bindingSHA256', 'cometGenesisSHA256', 'enginePeerPublicKey', 'legacyKeySHA256',
@@ -269,12 +311,18 @@ def rendered(args, source, templates):
                 'memoryBudgetEvidence', 'migration', 'pqState', 'schedule', 'transportKey', 'vault'):
         path(config[key])
     public_dir = path(args.operator_inputs_directory)
-    replacements = {'CHECKPOINT_PROVIDER_UNIT': provider, 'CHECKPOINT_DIRECTORY': config['checkpointDirectory'],
+    replacements = {'CHECKPOINT_PROVIDER_UNIT': provider,
         'OPERATOR_INPUTS_DIRECTORY': str(public_dir), 'ORIGINAL_VAULT': config['vault'], 'ORIGINAL_LEGACY_KEY': config['legacyKey'],
         'ORIGINAL_TRANSPORT_KEY': config['transportKey'], 'ORIGINAL_PQ_HRS_DIRECTORY': str(Path(config['pqState']).parent),
         'ORIGINAL_LEGACY_HRS_DIRECTORY': str(Path(config['legacyState']).parent), 'MEASURED_TARGET_MEMORY_MAX_BYTES': config['memoryMaxBytes']}
     unit = templates[DAEMON + '.service.in'].decode('utf-8')
     tokens = set(re.findall('@([A-Z0-9_]+)@', unit))
+    if 'CHECKPOINT_DIRECTORY' in tokens:
+        need(not uses_fd, 'PINNED_RUNTIME_UNIX_FD_UNIT_REQUIRED')
+        replacements['CHECKPOINT_DIRECTORY'] = config['checkpointDirectory']
+    else:
+        replacements['SIGNER_STARTUP_CONFIGURATION'] = ('Type=notify\nNotifyAccess=main\nTimeoutStartSec=' + config['checkpointStartupTimeoutSeconds'] + 's') if uses_fd else 'Type=exec'
+        replacements['CHECKPOINT_SOURCE_ACCESS'] = ('InaccessiblePaths=' if uses_fd else 'BindReadOnlyPaths=') + config['checkpointDirectory']
     need(tokens == set(replacements), 'ORIGINAL_UNIT_TEMPLATE_TOKEN_SET_CHANGED')
     unit = re.sub('@([A-Z0-9_]+)@', lambda m: replacements[m[1]], unit).encode()
     need(hashlib.sha256(unit).hexdigest() == pin(args.unit_sha256), 'INDEPENDENT_RENDERED_UNIT_PIN_MISMATCH')
@@ -283,6 +331,7 @@ def rendered(args, source, templates):
 
 
 def original_inputs(args, config, host, uid):
+    source_uid = checkpoint_owner(config, host, uid)
     plan, _, _ = pinned(path(args.operator_plan), args.operator_plan_sha256, 96 << 20)
     required = {'version', 'chainId', 'validatorManifestSHA256', 'consensusGenesis', 'consensusGenesisSHA256',
         'originalGenesisHash', 'migrationStateHash', 'stateLayout', 'runtimePlan', 'runtimePlanHash',
@@ -295,6 +344,14 @@ def original_inputs(args, config, host, uid):
     need(len(roles) == 1, 'EXPLICIT_ORIGINAL_OPERATOR_ROLE_REQUIRED')
     role = roles[0]
     need(role['abciState'] == config['abciState'], 'ORIGINAL_PLAN_CHECKPOINT_PATH_MISMATCH')
+    if checkpoint_access(config):
+        expected_access = {key: config[field] for key, field in (
+            ('mode', 'checkpointAccessMode'), ('socket', 'checkpointAccessSocket'), ('engineUID', 'checkpointEngineUID'),
+            ('signerUID', 'checkpointSignerUID'), ('timeoutSeconds', 'checkpointAccessTimeoutSeconds'),
+            ('startupTimeoutSeconds', 'checkpointStartupTimeoutSeconds'))}
+        need(role.get('checkpointAccess') == expected_access, 'ORIGINAL_PLAN_CHECKPOINT_ACCESS_MISMATCH')
+    else:
+        need(role.get('checkpointAccess') is None, 'ORIGINAL_PLAN_CHECKPOINT_ACCESS_MISMATCH')
     need(role['remoteSigner'] == config['listen'] and role['legacyKeyPath'] == config['legacyKey']
          and role['legacyStatePath'] == config['legacyState'], 'ORIGINAL_PLAN_ENDPOINT_OR_HISTORY_MISMATCH')
     pin(role['signerPeerPublicKey'])  # Signer public key; NEVER the reverse engine peer.
@@ -328,7 +385,7 @@ def original_inputs(args, config, host, uid):
     # No open/read/hash of private keys, vault, history or checkpoint bodies.
     for key in ('legacyKey', 'transportKey', 'vault', 'legacyState', 'pqState', 'abciState'):
         filename = config[key]
-        info = host.private_stat(filename, (1 << 40) if key == 'abciState' else (128 << 20), uid)
+        info = host.private_stat(filename, (1 << 40) if key == 'abciState' else (128 << 20), source_uid if key == 'abciState' else uid)
         if key != 'abciState':
             identities[filename] = ident(info)
     for filename in (config['legacyState'] + '.writer.lock', config['pqState'] + '.lock'):
@@ -339,7 +396,7 @@ def original_inputs(args, config, host, uid):
          and Path(config['abciState']).parent == checkpoint, 'ORIGINAL_LIVE_CHECKPOINT_DIRECTORY_REQUIRED')
     if config['checkpointFormat'] != 'atomic-committed-json-v1':
         filename = config['abciState'] + '.read.lock'
-        info = host.private_stat(filename, 65536, uid, 0)
+        info = host.private_stat(filename, 65536, source_uid, 0)
         identities[filename] = ident(info)
     histories = [Path(config[k]).parent for k in ('legacyState', 'pqState')]
     for directory in histories:
@@ -358,6 +415,10 @@ def original_inputs(args, config, host, uid):
     directory = path(args.operator_inputs_directory)
     need(directory.resolve(strict=True) == directory and directory.is_dir(), 'ORIGINAL_PUBLIC_INPUT_DIRECTORY_REQUIRED')
     need(not any(directory == d or d in directory.parents for d in histories), 'PUBLIC_INPUT_DIRECTORY_INSIDE_WRITABLE_HISTORY')
+    if checkpoint_access(config):
+        need(not any(filename == checkpoint or checkpoint in filename.parents for filename in
+             [item for item in protected if item != Path(config['abciState'])] + histories + [directory]),
+             'UNIX_FD_SOURCE_MUST_NOT_CONTAIN_SIGNER_INPUTS_OR_HISTORY')
     actual = host.destination(CREDENTIAL)
     info = host.private_stat(actual, 1 << 20, 0)
     need(stat.S_IMODE(info.st_mode) == 0o600, 'ORIGINAL_ENCRYPTED_CREDENTIAL_MODE_REQUIRED')
@@ -365,7 +426,8 @@ def original_inputs(args, config, host, uid):
     need(digest == pin(args.credential_sha256) and credential_identity == ident(info), 'BOUND_ENCRYPTED_CREDENTIAL_PIN_MISMATCH')
     identities[str(actual)] = credential_identity
     for filename in protected + [Path(config['legacyState']), Path(config['pqState']), actual]:
-        host.trusted(filename.parent, uid if filename != actual else 0)
+        owner = source_uid if filename == Path(config['abciState']) else (uid if filename != actual else 0)
+        host.trusted(filename.parent, owner)
     # Installation runs in the HOST namespace. A real writer may own an RW
     # source there; the pinned unit binds it read-only inside the future service
     # namespace. Do not substitute a host mount flag for actual sandbox startup.
@@ -381,6 +443,7 @@ def sync_dir(directory):
 
 
 def check_live_source(config, host, uid):
+    uid = checkpoint_owner(config, host, uid)
     directory = Path(config['checkpointDirectory'])
     need(directory.resolve(strict=True) == directory and directory.is_dir()
          and Path(config['abciState']).parent == directory, 'ORIGINAL_LIVE_CHECKPOINT_DIRECTORY_REQUIRED')

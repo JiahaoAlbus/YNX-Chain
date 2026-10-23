@@ -39,10 +39,12 @@ type pqOptions struct {
 	heightHaltControl, heightHaltPlanHash, heightHaltSessionID        string
 	proofLivePolicy, proofLivePolicyHash                              string
 	proofLiveBind                                                     func(*consensus.Application) error
+	checkpointAccess                                                  consensus.PQCheckpointAccess
+	checkpointAccessRequested                                         bool
 }
 
 func (p pqOptions) enabled() bool {
-	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured()
+	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -60,6 +62,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateCheckpointAccess(); err != nil {
+		return err
+	}
 	if err := p.validateProofHostLive(); err != nil {
 		return err
 	}
@@ -284,6 +289,18 @@ func constructRemotePQNode(ctx context.Context, config *cfg.Config, logger log.L
 			return nil, nil, err
 		}
 	}
+	// The signer can already be listening: its source constructor is lazy.
+	// Bind the original-file capability before the ONE normal signer Dial.
+	checkpoint, err := startOperatorCheckpointAccess(options)
+	if err != nil {
+		return nil, nil, err
+	}
+	keepCheckpoint := false
+	defer func() {
+		if !keepCheckpoint && checkpoint != nil {
+			_ = checkpoint.Close()
+		}
+	}()
 	conn, pin, err := consensus.DialPQRemoteConnection(ctx, options.transport())
 	if err != nil {
 		return nil, nil, err
@@ -291,6 +308,10 @@ func constructRemotePQNode(ctx context.Context, config *cfg.Config, logger log.L
 	n, session, err := consensus.NewPQRemoteConsensusNodeSession(config, app, conn, pin, options.transport().Timeout, inputs.Binding, nodeKey, logger)
 	if err != nil {
 		return nil, nil, errors.Join(err, conn.Close())
+	}
+	keepCheckpoint = true
+	if checkpoint != nil {
+		return n, &checkpointRemoteCustody{PQRemotePrivValidator: session, source: checkpoint}, nil
 	}
 	return n, session, nil
 }
@@ -386,7 +407,10 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if options.heightHaltConfigured() {
 		heightHaltDone = node.HeightHaltDone()
 	}
-	remote, isRemote := custody.(*consensus.PQRemotePrivValidator)
+	remote, isRemote := custody.(interface {
+		Done() <-chan struct{}
+		Err() error
+	})
 	if isRemote {
 		remoteDone = remote.Done()
 	}
@@ -452,6 +476,7 @@ func main() {
 	f := start.Flags()
 	registerHeightHaltFlags(f, &options)
 	registerProofHostLiveFlags(f, &options)
+	registerCheckpointAccessFlags(f, &options)
 	f.StringVar(&options.runtimePlan, "runtime-upgrade-plan", "", "canonical independently pinned old-runtime upgrade plan")
 	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")
 	f.StringVar(&options.migration, "migration-state", "", "original validated key-bound migration JSON")

@@ -166,6 +166,91 @@ func TestProductionOperatorScriptsPreserveOriginalStateAndExecuteExactArgv(t *te
 	}
 }
 
+func TestProductionOperatorScriptsExecutePinnedCheckpointAccessArgv(t *testing.T) {
+	f := newProductionOperatorFixture(t, false, true)
+	base := t.TempDir()
+	role := &f.plan.Roles[0]
+	role.Home = filepath.Join(base, "original-home")
+	role.ABCIState = filepath.Join(role.Home, "data", "original-committed.json")
+	role.CheckpointAccess = productionCheckpointAccessPlanFixture()
+	// This is a caller/argv control, not an App or checkpoint parse claim. The
+	// core tests capture real three-layout state through the actual source.
+	productionScriptWrite(t, role.ABCIState, []byte("original source bytes remain opaque to the launcher\n"), 0600)
+	unknown := filepath.Join(role.Home, "data", "source.UNKNOWN")
+	productionScriptWrite(t, unknown, []byte("original uncertain source retained\n"), 0600)
+	for _, filename := range []string{role.ABCIState, role.LegacyKeyPath, role.LegacyStatePath, role.NodeKeyPath, unknown} {
+		defer productionScriptUnchanged(t, filename)()
+	}
+	raw, pin := productionOperatorPlanBytes(t, f.plan)
+	root := filepath.Join(base, "package")
+	if _, err := GenerateProductionCandidatePackageWithOperator(f.migration, f.validators, root, f.genesisTime, raw, pin); err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyProductionOperatorCandidatePackage(root, pin); err != nil {
+		t.Fatal(err)
+	}
+	roleRoot := filepath.Join(root, "roles", role.Role)
+	for _, filename := range []string{"config.toml", "genesis.json"} {
+		productionScriptWrite(t, filepath.Join(role.Home, "config", filename), productionScriptRead(t, filepath.Join(roleRoot, "config", filename)), 0600)
+	}
+	self, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	argvFile := filepath.Join(base, "exec.argv")
+	productionScriptWrite(t, filepath.Join(roleRoot, "bin", "ynx-consensus-keycheck"), []byte("#!/usr/bin/env bash\nexec \"$YNX_SCRIPT_TEST_BINARY\" -test.run=^TestProductionOperatorKeyCheckHelper$ -- \"$@\"\n"), 0700)
+	productionScriptWrite(t, filepath.Join(roleRoot, "bin", "ynx-comet"), []byte("#!/bin/sh\nset -eu\ntest -z \"${CMTHOME:-}${TMHOME:-}${CMT_HOME:-}\"\nprintf '%s\\0' \"$@\" >'"+argvFile+"'\n"), 0700)
+	launch := filepath.Join(roleRoot, "scripts", "start-operator.sh")
+	productionScriptWrite(t, launch, bytes.ReplaceAll(productionScriptRead(t, launch), []byte(ProductionCandidateRoot), []byte(roleRoot)), 0700)
+	run := func(args ...string) ([]byte, error) {
+		t.Helper()
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "bash", append([]string{launch}, args...)...)
+		cmd.Env = append(os.Environ(), "YNX_PRODUCTION_SCRIPT_HELPER=1", "YNX_SCRIPT_TEST_BINARY="+self,
+			"CMTHOME=/unapproved", "TMHOME=/unapproved", "CMT_HOME=/unapproved")
+		out, err := cmd.CombinedOutput()
+		if ctx.Err() != nil {
+			t.Fatal("isolated checkpoint operator caller timed out")
+		}
+		return out, err
+	}
+	if out, err := run(); err != nil {
+		t.Fatalf("normal generated checkpoint launcher rejected: %v %s", err, out)
+	}
+	actual := bytes.Split(bytes.TrimSuffix(productionScriptRead(t, argvFile), []byte{0}), []byte{0})
+	want := []string{"start", "--home", role.Home, "--migration-state", roleRoot + "/config/bound-migration.json", "--abci-state", role.ABCIState,
+		"--abci-state-layout", f.plan.StateLayout, "--consensus-genesis-sha256", f.plan.ConsensusGenesisSHA256, "--original-genesis-hash", f.plan.OriginalGenesisHash,
+		"--bound-migration-state-hash", f.plan.MigrationStateHash, "--pq-engine-schedule", roleRoot + "/config/pq-engine-schedule.json", "--pq-engine-schedule-hash", f.plan.PQScheduleHash,
+		"--pq-host-key-binding", roleRoot + "/config/pq-host-binding.json", "--pq-remote-signer", role.RemoteSigner, "--pq-transport-key", role.TransportKeyPath,
+		"--pq-signer-peer-pin", roleRoot + "/config/pq-signer-peer-pin", "--pq-remote-timeout", role.RemoteTimeout,
+		"--checkpoint-access-socket", role.CheckpointAccess.Socket, "--checkpoint-engine-uid", role.CheckpointAccess.EngineUID,
+		"--checkpoint-signer-uid", role.CheckpointAccess.SignerUID, "--checkpoint-access-timeout", role.CheckpointAccess.TimeoutSeconds + "s"}
+	if len(actual) != len(want) {
+		t.Fatalf("wrong checkpoint argc: %d != %d", len(actual), len(want))
+	}
+	for index, value := range want {
+		if string(actual[index]) != value {
+			t.Fatalf("checkpoint argv %d differs: %q != %q", index, actual[index], value)
+		}
+	}
+	if err = os.Remove(argvFile); err != nil {
+		t.Fatal(err)
+	}
+	if out, err := run("--checkpoint-startup-timeout=600s"); err == nil {
+		t.Fatalf("unreviewed engine argument accepted: %s", out)
+	}
+	schedulePath := filepath.Join(roleRoot, "config", "pq-engine-schedule.json")
+	original := productionScriptRead(t, schedulePath)
+	productionScriptWrite(t, schedulePath, append(bytes.Clone(original), '\n'), 0600)
+	if out, err := run(); err == nil {
+		t.Fatalf("changed independently pinned schedule reached engine: %s", out)
+	}
+	if _, err := os.Stat(argvFile); !os.IsNotExist(err) {
+		t.Fatal("failed checkpoint launch executed engine boundary")
+	}
+}
+
 func TestProductionOperatorKeyCheckHelper(t *testing.T) {
 	if os.Getenv("YNX_PRODUCTION_SCRIPT_HELPER") != "1" {
 		return

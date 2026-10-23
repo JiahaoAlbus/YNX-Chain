@@ -24,6 +24,9 @@ type options struct {
 	legacyKey, legacyState, vault string
 	recoveryFD                    int
 	runtimePlan, runtimePlanHash  string
+	checkpointAccess              consensus.PQCheckpointAccess
+	checkpointStartup             time.Duration
+	checkpointAccessRequested     bool
 }
 
 func parseOptions(args []string, diagnostics io.Writer) (options, error) {
@@ -50,9 +53,16 @@ func parseOptions(args []string, diagnostics io.Writer) (options, error) {
 	f.StringVar(&o.transport.PeerPin, "pq-engine-peer-pin", "", "file containing independent full engine transport public key")
 	f.DurationVar(&o.transport.Timeout, "timeout", 5*time.Second, "bounded accept/handshake/request timeout; maximum 1m")
 	f.IntVar(&o.recoveryFD, "recovery-fd", -1, "inherited private descriptor >=3 containing exactly 32 raw credential bytes and EOF")
+	registerCheckpointAccessOptions(f, &o)
 	if err := f.Parse(args); err != nil {
 		return o, err
 	}
+	f.Visit(func(value *flag.Flag) {
+		switch value.Name {
+		case "checkpoint-access-socket", "checkpoint-engine-uid", "checkpoint-signer-uid", "checkpoint-access-timeout", "checkpoint-startup-timeout":
+			o.checkpointAccessRequested = true
+		}
+	})
 	if f.NArg() != 0 || !o.serve {
 		return o, errors.New("explicit --serve and named operator configuration are required")
 	}
@@ -66,6 +76,9 @@ func parseOptions(args []string, diagnostics io.Writer) (options, error) {
 	}
 	if o.recoveryFD < 3 {
 		return o, errors.New("remote signer credential requires private inherited descriptor >=3")
+	}
+	if err := o.validateCheckpointAccess(); err != nil {
+		return o, err
 	}
 	return o, o.transport.Validate()
 }
@@ -81,7 +94,7 @@ func serve(ctx context.Context, o options) (result error) {
 	if err != nil {
 		return err
 	}
-	source, err := consensus.NewPQEngineFileSourceWithRuntimeUpgrade(inputs.Migration, o.files.State, inputs.Bootstrap, inputs.Authorization, runtime)
+	source, err := o.newCheckpointSource(inputs, runtime)
 	if err != nil {
 		return err
 	}
@@ -120,6 +133,9 @@ func serve(ctx context.Context, o options) (result error) {
 	transition, err := consensus.NewPQTransitionPrivValidator(legacy, pq, inputs.Bootstrap, inputs.Authorization)
 	if err != nil {
 		return err
+	}
+	if o.checkpointAccessConfigured() {
+		return consensus.ListenPQRemoteSignerReady(ctx, o.transport, inputs.Binding.Policy.ChainID, source, transition, o.checkpointStartup, checkpointSystemdReady)
 	}
 	return consensus.ListenPQRemoteSigner(ctx, o.transport, inputs.Binding.Policy.ChainID, source, transition)
 }

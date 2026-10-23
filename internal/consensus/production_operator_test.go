@@ -461,3 +461,186 @@ func TestProductionOperatorRejectsUnpinnedMixedAndRehashedDowngrades(t *testing.
 		}
 	}
 }
+
+func productionCheckpointAccessPlanFixture() *ProductionOperatorCheckpointAccess {
+	return &ProductionOperatorCheckpointAccess{Mode: "unix-fd-v1", Socket: "@ynx-pq-checkpoint-original-source", EngineUID: "1001", SignerUID: "1002", TimeoutSeconds: "60", StartupTimeoutSeconds: "600"}
+}
+
+func TestProductionOperatorCheckpointAccessNormalGenerator(t *testing.T) {
+	f := newProductionOperatorFixture(t, false, true)
+	legacy, legacyPin := productionOperatorPlanBytes(t, f.plan)
+	if bytes.Contains(legacy, []byte(`"checkpointAccess"`)) {
+		t.Fatal("absent optional capability changed legacy canonical bytes")
+	}
+	legacyRoot := filepath.Join(t.TempDir(), "legacy")
+	if _, err := GenerateProductionCandidatePackageWithOperator(f.migration, f.validators, legacyRoot, f.genesisTime, legacy, legacyPin); err != nil {
+		t.Fatal(err)
+	}
+	legacyUnit := productionScriptReadForOperator(t, filepath.Join(legacyRoot, "roles", f.plan.Roles[0].Role, "systemd", "ynx-consensus-operator-candidate.service"))
+	if !bytes.Contains(legacyUnit, []byte("After=network-online.target\nWants=network-online.target\n")) || bytes.Contains(legacyUnit, []byte("ynx-consensus-pq-remote-signer.service")) {
+		t.Fatal("legacy service dependency changed without an explicit capability")
+	}
+	f.plan.Roles[0].CheckpointAccess = productionCheckpointAccessPlanFixture()
+	raw, pin := productionOperatorPlanBytes(t, f.plan)
+	if pin == legacyPin {
+		t.Fatal("capability was not bound by the independent plan hash")
+	}
+	root := filepath.Join(t.TempDir(), "candidate")
+	manifest, err := GenerateProductionCandidatePackageWithOperator(f.migration, f.validators, root, f.genesisTime, raw, pin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = VerifyProductionOperatorCandidatePackage(root, pin); err != nil {
+		t.Fatal(err)
+	}
+	roleRoot := filepath.Join(root, "roles", f.plan.Roles[0].Role)
+	launchPath := filepath.Join(roleRoot, "scripts", "start-operator.sh")
+	unitPath := filepath.Join(roleRoot, "systemd", "ynx-consensus-operator-candidate.service")
+	launch, unit := productionScriptReadForOperator(t, launchPath), productionScriptReadForOperator(t, unitPath)
+	for _, want := range []string{"'--checkpoint-access-socket' '@ynx-pq-checkpoint-original-source'", "'--checkpoint-engine-uid' '1001'", "'--checkpoint-signer-uid' '1002'", "'--checkpoint-access-timeout' '60s'"} {
+		if strings.Count(string(launch), want) != 1 {
+			t.Fatalf("normal launcher lost exact capability argument %q", want)
+		}
+	}
+	if strings.Count(string(launch), "'--checkpoint-") != 4 || bytes.Contains(launch, []byte("--checkpoint-startup")) {
+		t.Fatal("engine received an invented startup flag or extra capability selector")
+	}
+	if !bytes.Contains(unit, []byte("After=network-online.target ynx-consensus-pq-remote-signer.service\nRequires=ynx-consensus-pq-remote-signer.service\n")) || !bytes.Contains(unit, []byte("Restart=no\n")) {
+		t.Fatal("engine does not wait for the explicitly provisioned notify-ready signer")
+	}
+	changed := f.plan
+	changed.Roles = append([]ProductionOperatorRole(nil), f.plan.Roles...)
+	access := *changed.Roles[0].CheckpointAccess
+	access.StartupTimeoutSeconds = "599"
+	changed.Roles[0].CheckpointAccess = &access
+	newRaw, newPin := productionOperatorPlanBytes(t, changed)
+	if newPin == pin {
+		t.Fatal("independent cold-start budget is not plan-hash bound")
+	}
+	if _, err = DecodeProductionOperatorPlan(newRaw, pin); err == nil {
+		t.Fatal("old plan pin authorized a different startup budget")
+	}
+	// A package cannot rehash away the access timeout or signer readiness
+	// dependency while retaining the independent operator plan pin.
+	manifestPath := filepath.Join(root, "package-manifest.json")
+	manifestRaw := productionScriptReadForOperator(t, manifestPath)
+	for _, tc := range []struct {
+		path   string
+		before []byte
+		old    string
+		new    string
+	}{{launchPath, launch, "'--checkpoint-access-timeout' '60s'", "'--checkpoint-access-timeout' '1s'"},
+		{unitPath, unit, "Requires=ynx-consensus-pq-remote-signer.service\n", ""}} {
+		bad := bytes.Replace(tc.before, []byte(tc.old), []byte(tc.new), 1)
+		if bytes.Equal(bad, tc.before) {
+			t.Fatal("counterexample did not change generated file")
+		}
+		if err = os.WriteFile(tc.path, bad, 0600); err != nil {
+			t.Fatal(err)
+		}
+		relative, err := filepath.Rel(root, tc.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		manifest.Files[filepath.ToSlash(relative)] = productionOperatorSHA(bad)
+		if err = writeJSON(manifestPath, manifest, 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err = VerifyProductionOperatorCandidatePackage(root, pin); err == nil {
+			t.Fatal("self-rehashed capability downgrade accepted")
+		}
+		if err = os.WriteFile(tc.path, tc.before, 0600); err != nil {
+			t.Fatal(err)
+		}
+		if err = os.WriteFile(manifestPath, manifestRaw, 0600); err != nil {
+			t.Fatal(err)
+		}
+		manifest.Files[filepath.ToSlash(relative)] = productionOperatorSHA(tc.before)
+	}
+	if err = VerifyProductionOperatorCandidatePackage(root, pin); err != nil {
+		t.Fatal("restored original public package rejected", err)
+	}
+}
+
+// Kept in this platform-neutral test file: production_operator_scripts_test.go
+// is Linux-only, whereas canonical plan generation is portable.
+func productionScriptReadForOperator(t *testing.T, filename string) []byte {
+	t.Helper()
+	raw, err := os.ReadFile(filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+func TestProductionOperatorCheckpointAccessRejectsPartialAndUnsafeGroups(t *testing.T) {
+	for _, change := range []func(*ProductionOperatorCheckpointAccess){
+		func(a *ProductionOperatorCheckpointAccess) { a.Mode = "" },
+		func(a *ProductionOperatorCheckpointAccess) { a.Mode = "unix-fd" },
+		func(a *ProductionOperatorCheckpointAccess) { a.Socket = "" },
+		func(a *ProductionOperatorCheckpointAccess) { a.Socket = "/run/checkpoint.sock" },
+		func(a *ProductionOperatorCheckpointAccess) { a.Socket += "';exit 0" },
+		func(a *ProductionOperatorCheckpointAccess) {
+			a.Socket = "@ynx-pq-checkpoint-" + strings.Repeat("a", 65)
+		},
+		func(a *ProductionOperatorCheckpointAccess) { a.EngineUID = "0" },
+		func(a *ProductionOperatorCheckpointAccess) { a.EngineUID = "01001" },
+		func(a *ProductionOperatorCheckpointAccess) { a.EngineUID = "+1001" },
+		func(a *ProductionOperatorCheckpointAccess) { a.EngineUID = "4294967296" },
+		func(a *ProductionOperatorCheckpointAccess) { a.SignerUID = "" },
+		func(a *ProductionOperatorCheckpointAccess) { a.SignerUID = "-1" },
+		func(a *ProductionOperatorCheckpointAccess) { a.SignerUID = a.EngineUID },
+		func(a *ProductionOperatorCheckpointAccess) { a.TimeoutSeconds = "0" },
+		func(a *ProductionOperatorCheckpointAccess) { a.TimeoutSeconds = "61" },
+		func(a *ProductionOperatorCheckpointAccess) { a.TimeoutSeconds = "01" },
+		func(a *ProductionOperatorCheckpointAccess) { a.TimeoutSeconds = "1s" },
+		func(a *ProductionOperatorCheckpointAccess) { a.StartupTimeoutSeconds = "" },
+		func(a *ProductionOperatorCheckpointAccess) { a.StartupTimeoutSeconds = "0" },
+		func(a *ProductionOperatorCheckpointAccess) { a.StartupTimeoutSeconds = "601" },
+		func(a *ProductionOperatorCheckpointAccess) { a.StartupTimeoutSeconds = "060" },
+	} {
+		access := productionCheckpointAccessPlanFixture()
+		change(access)
+		if _, err := access.capability(); err == nil {
+			t.Fatalf("invalid checkpoint capability accepted: %+v", access)
+		}
+		if _, err := productionOperatorRoleFiles(&ProductionOperatorPlan{PQSchedule: []byte("public")}, ProductionOperatorRole{RemoteSigner: "tcp://127.0.0.1:28659", CheckpointAccess: access}, nil, nil); err == nil {
+			t.Fatal("normal file generator accepted unsafe capability")
+		}
+	}
+	f := newProductionOperatorFixture(t, false, true)
+	f.plan.Roles[0].CheckpointAccess = productionCheckpointAccessPlanFixture()
+	raw, _ := productionOperatorPlanBytes(t, f.plan)
+	accessRaw, err := json.Marshal(f.plan.Roles[0].CheckpointAccess)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range [][]byte{
+		bytes.Replace(raw, []byte(`"mode":"unix-fd-v1",`), nil, 1),
+		bytes.Replace(raw, []byte(`"checkpointAccess":{`), []byte(`"checkpointAccess":{"unknown":"data",`), 1),
+		bytes.Replace(raw, []byte(`"mode":"unix-fd-v1"`), []byte(`"mode":"unix-fd-v1","mode":"unix-fd-v1"`), 1),
+		bytes.Replace(raw, append([]byte(`"checkpointAccess":`), accessRaw...), []byte(`"checkpointAccess":null`), 1),
+	} {
+		if bytes.Equal(bad, raw) {
+			t.Fatal("counterexample did not change actual canonical plan")
+		}
+		if _, err := DecodeProductionOperatorPlan(bad, productionOperatorSHA(bad)); err == nil {
+			t.Fatal("partial, unknown, duplicate or null capability group accepted")
+		}
+	}
+	f.plan.Roles[0].CheckpointAccess.SignerUID = f.plan.Roles[0].CheckpointAccess.EngineUID
+	bad, badPin := productionOperatorPlanBytes(t, f.plan)
+	output := filepath.Join(t.TempDir(), "rejected")
+	if _, err := GenerateProductionCandidatePackageWithOperator(f.migration, f.validators, output, f.genesisTime, bad, badPin); err == nil {
+		t.Fatal("real generator accepted same-UID source capability")
+	}
+	if _, err := os.Lstat(output); !os.IsNotExist(err) {
+		t.Fatal("invalid capability reserved output before validation")
+	}
+	local := newProductionOperatorFixture(t, false, false)
+	local.plan.Roles[0].CheckpointAccess = productionCheckpointAccessPlanFixture()
+	bad, badPin = productionOperatorPlanBytes(t, local.plan)
+	if _, err := GenerateProductionCandidatePackageWithOperator(local.migration, local.validators, output, local.genesisTime, bad, badPin); err == nil || !strings.Contains(err.Error(), "partial PQ custody") {
+		t.Fatal("local bootstrap accepted remote checkpoint capability", err)
+	}
+}
