@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxconsensusauth"
 	"github.com/cometbft/cometbft/crypto/ed25519"
@@ -52,6 +53,9 @@ func main() {
 }
 
 func run(args []string, output, diagnostics io.Writer, disk ceremonyIO) error {
+	if err := rejectDuplicateOptions(args); err != nil {
+		return err
+	}
 	fs := flag.NewFlagSet("ynx-consensus-pq-key-init", flag.ContinueOnError)
 	fs.SetOutput(diagnostics)
 	var o options
@@ -111,6 +115,38 @@ func run(args []string, output, diagnostics io.Writer, disk ceremonyIO) error {
 	}
 	if err = json.NewEncoder(output).Encode(result); err != nil {
 		return errors.New("new epoch files were written but public result delivery failed; inspect the original out-dir, do not generate again")
+	}
+	return nil
+}
+
+func rejectDuplicateOptions(args []string) error {
+	// Follow Go flag's option/value boundaries without parsing values or opening
+	// an inherited credential. Single/double hyphens name the same option.
+	boolean := map[string]bool{"new-epoch": true, "inspect": true, "request": false,
+		"request-sha256": false, "genesis": false, "genesis-sha256": false,
+		"out-dir": false, "recovery-fd": false}
+	seen := make(map[string]bool, len(boolean))
+	for index := 0; index < len(args); index++ {
+		arg := args[index]
+		if len(arg) < 2 || arg[0] != '-' || arg == "--" {
+			break // FlagSet.Parse retains the original positional/help/error rules.
+		}
+		name := arg[1:]
+		if name[0] == '-' {
+			name = name[1:]
+		}
+		name, _, assigned := strings.Cut(name, "=")
+		isBoolean, known := boolean[name]
+		if !known {
+			break // Let the original parser reject unknown or malformed options.
+		}
+		if seen[name] {
+			return fmt.Errorf("duplicate -%s", name)
+		}
+		seen[name] = true
+		if !isBoolean && !assigned {
+			index++ // Go consumes the next string even when it begins with '-'.
+		}
 	}
 	return nil
 }

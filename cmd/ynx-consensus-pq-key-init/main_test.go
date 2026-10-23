@@ -7,6 +7,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"flag"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"io"
 	"os"
 	"path/filepath"
@@ -539,4 +543,337 @@ func TestPQKeyInitOutputFailureRetainsTheCompletedOriginalResult(t *testing.T) {
 		t.Fatal("lost public reply regenerated keys", err)
 	}
 	assertFilesEqual(t, before, snapshotFiles(t, f.paths))
+}
+
+func sourceFunction(t *testing.T, raw []byte, name string) []byte {
+	t.Helper()
+	positions := token.NewFileSet()
+	file, err := parser.ParseFile(positions, "public-source.go", raw, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, declaration := range file.Decls {
+		function, ok := declaration.(*ast.FuncDecl)
+		if ok && function.Name.Name == name {
+			return bytes.Clone(raw[positions.Position(function.Pos()).Offset:positions.Position(function.End()).Offset])
+		}
+	}
+	t.Fatalf("source function %s absent", name)
+	return nil
+}
+
+func requireOriginal395Run(t *testing.T) {
+	t.Helper()
+	raw, err := os.ReadFile("main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := []byte("\tif err := rejectDuplicateOptions(args); err != nil {\n\t\treturn err\n\t}\n")
+	helper := append(sourceFunction(t, raw, "rejectDuplicateOptions"), '\n', '\n')
+	for _, change := range []struct{ current, old []byte }{
+		{check, nil}, {helper, nil}, {[]byte("\t\"strings\"\n"), nil},
+	} {
+		if bytes.Count(raw, change.current) != 1 {
+			t.Fatal("historical reverse patch must match exactly one current source block")
+		}
+		raw = bytes.Replace(raw, change.current, change.old, 1)
+	}
+	// Full original source from 395bb8d991bc0659b922baa09bb7b13b3c2baa5e,
+	// not a hand-recreated FlagSet or a copied old parser approximation.
+	if len(raw) != 9459 || hash(raw) != "56cdd8523af70bd46ca6c89757c34bb3efbfe0531f277b1699533684b6faf4b6" {
+		t.Fatal("reconstructed historical main.go differs from complete original 395 source")
+	}
+	tests, err := os.ReadFile("main_test.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	historical := sourceFunction(t, tests, "runPQKeyInit395")
+	historical = bytes.Replace(historical, []byte("func runPQKeyInit395("), []byte("func run("), 1)
+	if !bytes.Equal(historical, sourceFunction(t, raw, "run")) {
+		t.Fatal("compiled historical run must equal the original complete run, with only its name changed")
+	}
+}
+
+func cliOptionValues(f *initFixture, fd int) [][2]string {
+	return [][2]string{{"new-epoch", "true"}, {"inspect", "false"}, {"request", f.options.request},
+		{"request-sha256", f.options.requestHash}, {"genesis", f.options.genesis},
+		{"genesis-sha256", f.options.genesisHash}, {"out-dir", f.paths.Directory}, {"recovery-fd", strconv.Itoa(fd)}}
+}
+
+func optionArguments(name, value, prefix string, assigned bool) []string {
+	if assigned || name == "new-epoch" || name == "inspect" {
+		return []string{prefix + name + "=" + value}
+	}
+	return []string{prefix + name, value}
+}
+
+func retainedCredentialDescriptor(t *testing.T, raw []byte) int {
+	t.Helper()
+	file, err := os.CreateTemp(t.TempDir(), "synthetic-protected-credential-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	if _, err := file.Write(raw); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	fd, err := syscall.Dup(int(file.Fd()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return fd // Each caller closes this exact owned FD; never a host credential.
+}
+
+func assertUnconsumedDescriptor(t *testing.T, fd int) {
+	t.Helper()
+	position, err := syscall.Seek(fd, 0, io.SeekCurrent)
+	if err != nil || position != 0 {
+		t.Fatal("duplicate CLI touched or closed the synthetic inherited descriptor", err)
+	}
+}
+
+func TestPQKeyInitOriginal395DuplicateLastWinsAndFixedRefusesBeforeIO(t *testing.T) {
+	requireOriginal395Run(t)
+	f := fixture(t)
+	for _, target := range []string{"new-epoch", "inspect", "request", "request-sha256", "genesis", "genesis-sha256", "out-dir", "recovery-fd"} {
+		t.Run(target, func(t *testing.T) {
+			fd := retainedCredentialDescriptor(t, f.credential)
+			owned := true
+			defer func() {
+				if owned {
+					syscall.Close(fd)
+				}
+			}()
+			var args []string
+			for _, pair := range cliOptionValues(f, fd) {
+				if pair[0] == target {
+					first := "superseded-public-value"
+					switch target {
+					case "new-epoch":
+						first = "false"
+					case "inspect":
+						first = "true"
+					case "recovery-fd":
+						first = "-1"
+					}
+					args = append(args, optionArguments(target, first, "-", true)...)
+				}
+				args = append(args, optionArguments(pair[0], pair[1], "--", false)...)
+			}
+			calls := 0
+			stopped := errors.New("synthetic first exclusive marker boundary; no key generation or actual write")
+			disk := ceremonyIO{writeExclusive: func(path string, raw []byte) error {
+				calls++
+				if path != f.paths.Marker || len(raw) == 0 {
+					t.Fatal("historical run did not reach its real first intent marker")
+				}
+				return stopped
+			}, createState: func(string, *ynxconsensusauth.CandidateKey, ynxconsensusauth.Policy, ynxconsensusauth.Registry, []byte, uint64) (*ynxconsensusauth.Signer, error) {
+				t.Fatal("duplicate CLI reached signer creation")
+				return nil, stopped
+			}}
+			var out, diagnostic bytes.Buffer
+			if err := run(args, &out, &diagnostic, disk); err == nil || err.Error() != "duplicate -"+target {
+				t.Fatal("fixed CLI did not reject the same original duplicate arguments", err)
+			}
+			assertUnconsumedDescriptor(t, fd)
+			if calls != 0 || out.Len() != 0 || diagnostic.Len() != 0 {
+				t.Fatal("fixed duplicate CLI reached parse diagnostics, output or ceremony I/O")
+			}
+			// The original whole run executes its real public/genesis preflight,
+			// credential read and createEpoch call. Stop at the original first
+			// exclusive marker seam, before generation or any filesystem write.
+			err := runPQKeyInit395(args, &out, &diagnostic, disk)
+			owned = false // Original run owns and closes this inherited descriptor.
+			if !errors.Is(err, stopped) || calls != 1 {
+				t.Fatal("original 395 did not silently take the last value to its real ceremony boundary", err)
+			}
+			if _, err := syscall.Seek(fd, 0, io.SeekCurrent); !errors.Is(err, syscall.EBADF) {
+				t.Fatal("original run did not consume/close the last inherited descriptor", err)
+			}
+			if entries, err := os.ReadDir(f.paths.Directory); err != nil || len(entries) != 0 {
+				t.Fatal("CLI counterexample wrote a ceremony artifact", err)
+			}
+		})
+	}
+	t.Log("PQ_KEY_INIT_ORIGINAL_395_LAST_WINS_RED_FIXED_PRE_IO_REFUSAL_DATA_ONLY")
+}
+
+func TestPQKeyInitAllEightDuplicateSpellingsPrecedeFlagParsing(t *testing.T) {
+	f := fixture(t)
+	fd := retainedCredentialDescriptor(t, f.credential)
+	defer syscall.Close(fd)
+	prefixes := [][2]string{{"-", "-"}, {"--", "--"}, {"-", "--"}, {"--", "-"}}
+	for _, pair := range cliOptionValues(f, fd) {
+		for _, prefix := range prefixes {
+			for style := 0; style < 4; style++ {
+				t.Run(pair[0]+prefix[0]+prefix[1]+strconv.Itoa(style), func(t *testing.T) {
+					var args []string
+					for _, other := range cliOptionValues(f, fd) {
+						if other[0] != pair[0] {
+							value := other[1]
+							if other[0] == "recovery-fd" {
+								value = "invalid-integer-before-duplicate"
+							}
+							args = append(args, "--"+other[0]+"="+value)
+						}
+					}
+					first := pair[1]
+					if pair[0] == "recovery-fd" {
+						first = "invalid-integer-before-duplicate"
+					}
+					args = append(args, optionArguments(pair[0], first, prefix[0], style == 1 || style == 2)...)
+					args = append(args, optionArguments(pair[0], pair[1], prefix[1], style == 1 || style == 3)...)
+					if pair[0] == "new-epoch" || pair[0] == "inspect" {
+						// Bare bool flags, unlike string/int flags, do not consume a
+						// following value. Exercise the actual supported bare form.
+						if style == 0 || style == 2 {
+							args[len(args)-2] = prefix[0] + pair[0]
+						}
+						if style == 0 || style == 3 {
+							args[len(args)-1] = prefix[1] + pair[0]
+						}
+					}
+					var out, diagnostics bytes.Buffer
+					err := run(args, &out, &diagnostics, ceremonyIO{})
+					if err == nil || err.Error() != "duplicate -"+pair[0] || out.Len() != 0 || diagnostics.Len() != 0 {
+						t.Fatal("duplicate was not refused before the deliberately invalid integer could be parsed", err)
+					}
+					assertUnconsumedDescriptor(t, fd)
+				})
+			}
+		}
+	}
+}
+
+func TestPQKeyInitGoOptionValueAndErrorBoundariesRemain(t *testing.T) {
+	for _, args := range [][]string{{"--request", "--inspect", "--inspect=false"}, {"-request=-inspect", "--inspect"},
+		{"--recovery-fd", "-1"}, {"--inspect", "--out-dir=/synthetic"}, {"--", "--inspect", "--inspect"}} {
+		if err := rejectDuplicateOptions(args); err != nil {
+			t.Fatal("duplicate scanner changed Go's value/terminator boundaries", args, err)
+		}
+	}
+	for _, args := range [][]string{{"--unknown"}, {"--inspec"}, {"---inspect"}, {"unexpected"}, {"--", "--inspect"}} {
+		var out, diagnostics bytes.Buffer
+		if err := run(args, &out, &diagnostics, ceremonyIO{}); err == nil || out.Len() != 0 {
+			t.Fatal("original unknown/abbreviated/positional refusal changed", args, err)
+		}
+	}
+}
+
+func TestPQKeyInitSingleGoSpellingsReachOriginalNewEpochAndInspect(t *testing.T) {
+	f := fixture(t)
+	for _, prefix := range []string{"-", "--"} {
+		for _, assigned := range []bool{false, true} {
+			t.Run(prefix+strconv.FormatBool(assigned), func(t *testing.T) {
+				fd := retainedCredentialDescriptor(t, f.credential)
+				var args []string
+				for _, pair := range cliOptionValues(f, fd) {
+					if pair[0] == "inspect" {
+						continue
+					}
+					if pair[0] == "new-epoch" && !assigned {
+						args = append(args, prefix+pair[0])
+					} else {
+						args = append(args, optionArguments(pair[0], pair[1], prefix, assigned)...)
+					}
+				}
+				stopped := errors.New("synthetic new-epoch first marker boundary")
+				calls := 0
+				disk := ceremonyIO{writeExclusive: func(path string, _ []byte) error {
+					calls++
+					if path != f.paths.Marker {
+						t.Fatal("single options changed the real new-epoch output path")
+					}
+					return stopped
+				}, createState: func(string, *ynxconsensusauth.CandidateKey, ynxconsensusauth.Policy, ynxconsensusauth.Registry, []byte, uint64) (*ynxconsensusauth.Signer, error) {
+					t.Fatal("single-option parser control reached key generation")
+					return nil, stopped
+				}}
+				var out, diagnostics bytes.Buffer
+				err := run(args, &out, &diagnostics, disk)
+				if !errors.Is(err, stopped) || calls != 1 || out.Len() != 0 {
+					t.Fatal("legal single flags did not reach the unchanged real ceremony boundary", err)
+				}
+				inspectArgs := append(optionArguments("inspect", "true", prefix, assigned), optionArguments("out-dir", f.paths.Directory, prefix, assigned)...)
+				out.Reset()
+				if err := run(inspectArgs, &out, &diagnostics, disk); err != nil {
+					t.Fatal("legal inspection flags changed", err)
+				}
+				var report inspection
+				if err := json.Unmarshal(out.Bytes(), &report); err != nil || !report.ReadOnly || report.RegistrationAuthorized || calls != 1 {
+					t.Fatal("legal inspection did not remain read-only and unauthorized", err)
+				}
+			})
+		}
+	}
+}
+
+// Exact original 395 run, compiled as a historical callee under one new name.
+// requireOriginal395Run binds every byte to the complete original main.go.
+func runPQKeyInit395(args []string, output, diagnostics io.Writer, disk ceremonyIO) error {
+	fs := flag.NewFlagSet("ynx-consensus-pq-key-init", flag.ContinueOnError)
+	fs.SetOutput(diagnostics)
+	var o options
+	fs.BoolVar(&o.newEpoch, "new-epoch", false, "explicitly create a genuinely new validator key epoch; never recovery")
+	fs.BoolVar(&o.inspect, "inspect", false, "read only original ceremony files; never generate, repair or reset")
+	fs.StringVar(&o.request, "request", "", "canonical public new-epoch request JSON")
+	fs.StringVar(&o.requestHash, "request-sha256", "", "independent lowercase SHA256 pin of exact request bytes")
+	fs.StringVar(&o.genesis, "genesis", "", "exact original Comet genesis JSON")
+	fs.StringVar(&o.genesisHash, "genesis-sha256", "", "independent lowercase SHA256 pin of exact original genesis")
+	fs.StringVar(&o.directory, "out-dir", "", "existing canonical absolute private 0700 directory for this new epoch")
+	fs.IntVar(&o.credentialFD, "recovery-fd", -1, "inherited descriptor >=3 containing exactly 32 raw credential bytes and EOF")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	var credentialFile *os.File
+	if o.credentialFD >= 3 {
+		credentialFile = os.NewFile(uintptr(o.credentialFD), "pq-new-epoch-credential")
+		if credentialFile != nil {
+			defer credentialFile.Close()
+		}
+	}
+	if fs.NArg() != 0 {
+		return errors.New("unexpected positional arguments")
+	}
+	if o.inspect {
+		if o.newEpoch || o.request != "" || o.requestHash != "" || o.genesis != "" || o.genesisHash != "" || o.credentialFD != -1 {
+			return errors.New("inspect accepts only out-dir and never consumes a credential")
+		}
+		report, err := inspectCeremony(o.directory)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(output).Encode(report)
+	}
+	if !o.newEpoch || o.request == "" || o.requestHash == "" || o.genesis == "" || o.genesisHash == "" || o.credentialFD < 3 {
+		return errors.New("new epoch requires explicit --new-epoch, pinned request and genesis, out-dir and private inherited recovery-fd >=3")
+	}
+	request, err := readPinnedRequest(o)
+	if err != nil {
+		return err
+	}
+	paths, err := newPaths(o.directory)
+	if err != nil {
+		return err
+	}
+	if err = paths.requireAbsent(); err != nil {
+		return err
+	}
+	credential, err := readCredential(credentialFile)
+	if err != nil {
+		return err
+	}
+	defer clear(credential)
+	result, err := createEpoch(request, o, paths, credential, disk)
+	if err != nil {
+		return err
+	}
+	if err = json.NewEncoder(output).Encode(result); err != nil {
+		return errors.New("new epoch files were written but public result delivery failed; inspect the original out-dir, do not generate again")
+	}
+	return nil
 }
