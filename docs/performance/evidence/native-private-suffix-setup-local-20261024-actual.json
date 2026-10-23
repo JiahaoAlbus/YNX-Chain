@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "kind": "offline-native-private-suffix-initialization-local-cost-not-network-tps",
+  "sourceCommit": "ebe2733397c4ab42708efcbf4977c8eb2762bec4",
+  "internalTree": "d59bc9b6f2c7bd486f25f973f6c974572d875033",
+  "sourcePins": [
+    {
+      "path": "internal/consensus/block_journal_prefix.go",
+      "bytes": 8580,
+      "sha256": "26433f4db019bd6d9f5ed413b1e1b3ff57dddfa0e59cf2d6d7e81f60366c99e0"
+    },
+    {
+      "path": "internal/consensus/block_journal_suffix_application.go",
+      "bytes": 1375,
+      "sha256": "7f5acc2b22d7530da17009cad704f3f631b84e24b4a48ea80eaabcc428b6a4d2"
+    },
+    {
+      "path": "internal/consensus/block_journal_suffix_application_test.go",
+      "bytes": 3277,
+      "sha256": "efa76be9923fcf764fee0563bd3a71c273f5e17c986c80e6848f145d23a5c019"
+    },
+    {
+      "path": "scripts/verify/perf-prefix-replay-candidate-check.mjs",
+      "bytes": 5364,
+      "sha256": "c72e5922344ceee8e46981876b3bd710a69dae0d728484ac054f241c2177e04c"
+    }
+  ],
+  "fixture": {
+    "path": "artifacts/chain-performance-20261017/shared-work-phases-source/bound-migration.json",
+    "bytes": 847001,
+    "sha256": "92b3040f1ac4aab8e4ab3163fa7132af772ea8ad22d5caaed72c98fb37981b94"
+  },
+  "fixtureAccounts": 2055,
+  "environment": {
+    "os": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M4",
+    "go": "go1.25.7",
+    "gomaxprocs": 1,
+    "gogc": 100,
+    "gomemlimit": "160MiB"
+  },
+  "serialSamples": [
+    {
+      "mode": "control-A",
+      "iterations": 8,
+      "nsPerOp": 10844146,
+      "bytesPerOp": 5848311,
+      "allocsPerOp": 34982
+    },
+    {
+      "mode": "candidate-B",
+      "iterations": 8,
+      "nsPerOp": 9569109,
+      "bytesPerOp": 4401604,
+      "allocsPerOp": 24698
+    },
+    {
+      "mode": "candidate-B2",
+      "iterations": 8,
+      "nsPerOp": 9792115,
+      "bytesPerOp": 4401633,
+      "allocsPerOp": 24698
+    },
+    {
+      "mode": "control-A2",
+      "iterations": 8,
+      "nsPerOp": 11039052,
+      "bytesPerOp": 5848311,
+      "allocsPerOp": 34982
+    }
+  ],
+  "serialMeanChangePercent": {
+    "nsPerOp": -11.524704935722829,
+    "bytesPerOp": -24.73692831998845,
+    "allocsPerOp": -29.397976101995315
+  },
+  "earlierSamplesWithConcurrentRaceCompile": [
+    {
+      "mode": "control-A",
+      "iterations": 8,
+      "nsPerOp": 13733135,
+      "bytesPerOp": 5848311,
+      "allocsPerOp": 34982
+    },
+    {
+      "mode": "candidate-B",
+      "iterations": 8,
+      "nsPerOp": 10092859,
+      "bytesPerOp": 4401598,
+      "allocsPerOp": 24698
+    },
+    {
+      "mode": "candidate-B2",
+      "iterations": 8,
+      "nsPerOp": 11387005,
+      "bytesPerOp": 4139402,
+      "allocsPerOp": 24695
+    },
+    {
+      "mode": "control-A2",
+      "iterations": 8,
+      "nsPerOp": 11488172,
+      "bytesPerOp": 5848311,
+      "allocsPerOp": 34982
+    }
+  ],
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-setup-focused.raw",
+      "bytes": 64,
+      "sha256": "ff4b3d50cb62285478b2e520f10cb7fb2c0abd8fe56c11b055bdb994e8951e76"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-native-negative-race.raw",
+      "bytes": 64,
+      "sha256": "f76cf96c355c26f6203c2bab275e0a02a68d661a62cc615937aeb175c323cdd1"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-client-regression.raw",
+      "bytes": 76,
+      "sha256": "63f0481126f28e7c068f25e90edbe26e5659b6ef949c5b85586d936522920ff0"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-source-gate.raw",
+      "bytes": 3302,
+      "sha256": "f793c3f0fcaaedf3e0835faa0c1300acf39f870e9c9f45e91242bce0ea40dfb0"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-setup-abba.raw",
+      "bytes": 314,
+      "sha256": "7ced602dde59ed9a56f194bd9ec8900b2026e2b9d912bc4699d71497187fdc16"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-setup-abba-absolute-fixture.raw",
+      "bytes": 683,
+      "sha256": "8cf1d0d96d82158c5f6058f6d844001bdcd7b4d4f8be4778f15ac3498bb50d5c"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-submit8-source/suffix-setup-abba-serial.raw",
+      "bytes": 683,
+      "sha256": "49b808b75913da0bc294f3303eeaebef425fef344831042cff83932737ba8f4d"
+    }
+  ],
+  "validation": {
+    "focused": "PASS0.644s",
+    "nativeOriginalNegativeRace": "PASS2.690s",
+    "clientRegression": "PASS10.601s",
+    "sourceGate": "14PASS16.028s"
+  },
+  "preservedFirstFailure": "Relative fixture path failed because go test runs inside package directory. Original raw suffix-setup-abba.raw retained; absolute original fixture path corrected, no benchmark assertion weakened.",
+  "limits": "Constructor-only offline local comparison; original migration validation and private JSON clone retained once per call, previous full committed state validation retained. Complete replay is still original production path. No new network run or sustained1000TPS claim. One preliminary ABBA overlapped race compile; all samples retained and separate serial ABBA used for stated delta. Two8iteration samples per mode do not establish statistical confidence.",
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false
+}
