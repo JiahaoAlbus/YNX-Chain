@@ -693,6 +693,7 @@ class SupplySourceTests(unittest.TestCase):
                 if comparison=="shared-prefix-data64":label="prefix-replay" if kwargs["prefix_replay"] else "shared-replay"
                 if comparison=="prefix-native-data64":label="prefix-native-clone" if kwargs["prefix_native_clone"] else "prefix-control"
                 if comparison=="native-observer-facts-data64":label="native-observer-facts" if kwargs["observer_native_facts"] else "native-observer-control"
+                if comparison=="native-client-procs2-data64":label="native-client-procs2" if kwargs["client_procs2"] else "native-client-procs1"
                 if comparison=="native-suffix-data64":label="native-suffix-candidate" if kwargs["native_suffix_setup"] else "native-suffix-control"
                 if comparison=="native-submit8-data64":label="native-submit8" if kwargs["native_submit8"] else "native-submit4"
                 order.append(label);case.mkdir()
@@ -756,9 +757,11 @@ class SupplySourceTests(unittest.TestCase):
                     submit8=kwargs.get("native_submit8",False)
                     suffix=kwargs.get("native_suffix_setup",False)
                     observer_facts=kwargs.get("observer_native_facts",False)
+                    procs2=kwargs.get("client_procs2",False)
+                    require_runtime=kwargs.get("require_client_runtime",False)
                     client,fixture=self.prefix_report_fixture() if prefix else self.oneshot_report_fixture()
                     self.runtime_fixture(client)
-                    if comparison in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64"):
+                    if comparison in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64"):
                         client,fixture=self.submit8_report_fixture(submit8)
                         row["prefixNativeClone"]=True
                         if submit8:row["nativeSubmit8"]=True
@@ -768,11 +771,15 @@ class SupplySourceTests(unittest.TestCase):
                         client["durableReadback"]["transactionVerifications"]=2048
                         row["observerNativeFacts"]=True
                         row["observerNativeFactVerification"]=supply.validate_observer_native_facts(client,True)
+                    if require_runtime:
+                        client["gomaxprocs"]=2 if procs2 else 1
+                        if procs2:client["clientProcs2"]=True;row["clientProcs2"]=True
+                        row["clientRuntimeVerification"]=supply.validate_client_runtime(client,procs2,True)
                     if suffix:
                         client["nativeSuffixSetup"]=True
                         client["durableReadback"]["prefixReplay"]["nativeSuffixSetup"]=True
                         row["nativeSuffixSetup"]=True
-                    if native_clone and comparison not in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64"):
+                    if native_clone and comparison not in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64"):
                         client["prefixNativeClone"]=True
                         stats=client["durableReadback"]["prefixReplay"];phases=stats["workPhases"]
                         phases["privateNativeClone"]=phases["privateJSON"];phases["privateJSON"]=dict(calls=0,errors=0,durationNs=0)
@@ -781,8 +788,8 @@ class SupplySourceTests(unittest.TestCase):
                     self.assertEqual(profile,"supply-2048x1-data64");self.assertEqual(mode,"relative")
                     if not prefix:
                         client["durableReadback"]["sharedReplay"]["workPhases"]=dict(produce=dict(calls=1,errors=0,durationNs=100),canonicalCopy=dict(calls=1,errors=0,durationNs=10),privateJSON=dict(calls=0,errors=0,durationNs=0),privateValidate=dict(calls=0,errors=0,durationNs=0),canonicalCopyBytes=100)
-                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix,observer_native_facts=observer_facts)["profile"],
-                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix,observer_native_facts=observer_facts),
+                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix,observer_native_facts=observer_facts,client_procs2=procs2,require_client_runtime=require_runtime)["profile"],
+                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix,observer_native_facts=observer_facts,client_procs2=procs2,require_client_runtime=require_runtime),
                         runtimeMeasurements=supply.validate_runtime_measurements(client,require=True,native_submit8=submit8),observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
                         sharedReplayVerification=supply.validate_shared_replay(client,not prefix,require_work_phases=not prefix))
                     if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True,expected_native_clone=native_clone,expected_native_suffix=suffix))
@@ -792,6 +799,12 @@ class SupplySourceTests(unittest.TestCase):
                     if replay_fault=="phase":del client["transactions"][-1]["submissionPhases"]
                     if replay_fault=="selection":row["sharedDurableReplay"]=prefix
                     if replay_fault=="native-selection":client["prefixNativeClone"]=not native_clone
+                    if replay_fault=="procs-runtime":client["gomaxprocs"]=2
+                    if replay_fault=="procs-missing":del client["gomaxprocs"]
+                    if replay_fault=="procs-type":client["gomaxprocs"]=True
+                    if replay_fault=="procs-selection":client["clientProcs2"]=not procs2
+                    if replay_fault=="procs-receipt":row["clientRuntimeVerification"]["gomaxprocs"]=3
+                    if replay_fault=="procs-receipt-type":row["clientRuntimeVerification"]["gomaxprocs"]=True
                     if replay_fault=="observer-selection":client["observerNativeFacts"]=not observer_facts
                     if replay_fault=="observer-config":client["durableReadback"]["observerNativeFacts"]={}
                     if replay_fault=="observer-receipt":row["observerNativeFactVerification"]={}
@@ -943,7 +956,59 @@ class SupplySourceTests(unittest.TestCase):
         workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
         for marker in ("paired-native-observer-facts-data64","--prepare-pair --pair-kind native-observer-facts-data64","--execute-pair --pair-kind native-observer-facts-data64"):self.assertIn(marker,workflow)
         self.assertIn("Verify explicit observer native facts and current-state negatives",workflow)
-        self.assertIn("-race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^TestObserverNative'",workflow)
+        self.assertIn("-race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(ObserverNative|ClientProcs2)'",workflow)
+
+    def test_client_procs_pair_binds_actual_runtime_and_refuses_first_case_drift(self):
+        code,order,row=self.mock_pair(comparison="native-client-procs2-data64")
+        self.assertEqual(code,0,row["firstCause"])
+        self.assertEqual(order,["native-client-procs1","empty","native-client-procs2","empty"])
+        self.assertEqual([case["clientRuntimeVerification"]["gomaxprocs"] for case in row["cases"]],[1,2])
+        self.assertFalse(row["jointObservation"]["sustainedTPSQualified"])
+        for fault in ("procs-runtime","procs-missing","procs-type","procs-selection","procs-receipt","procs-receipt-type","observer-selection","observer-config","observer-receipt","fixture","phase","submit8-selection","submit8-queue","native-cache"):
+            with self.subTest(fault=fault):
+                code,order,row=self.mock_pair(comparison="native-client-procs2-data64",replay_fault=fault)
+                self.assertEqual(code,1,row);self.assertNotIn("native-client-procs2",order)
+        for options in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(mutate_binary=True),dict(fail_after_fsync=True)):
+            with self.subTest(options=options):
+                code,order,row=self.mock_pair(comparison="native-client-procs2-data64",**options)
+                self.assertEqual(code,1);self.assertFalse(row["_terminal"]["qualified"])
+        args=[sys.executable,"-B",str(FILE),"--prepare-pair","--pair-kind","native-client-procs2-data64","--profile","supply-2048x1-data64","--transport","grpc","--observer-phases"]
+        plan=json.loads(subprocess.check_output(args,timeout=5));before,after=plan["cases"]
+        self.assertEqual(dict(before,clientProcs2=True,expectedClientGOMAXPROCS=2),after)
+        self.assertTrue(before["observerNativeFacts"]);self.assertNotIn("nativeSuffixSetup",after)
+        self.assertEqual(before["environment"]["GOMAXPROCS"],"1")
+        self.assertEqual(plan["pairCaps"],supply.pair_recipe("native-observer-facts-data64")["pairCaps"])
+        workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
+        for marker in ("paired-native-client-procs2-data64","--prepare-pair --pair-kind native-client-procs2-data64","--execute-pair --pair-kind native-client-procs2-data64","-run '^Test(ObserverNative|ClientProcs2)'"):self.assertIn(marker,workflow)
+        self.assertFalse(supply.recipe()["execute"])
+        self.assertEqual(supply.recipe()["profile"]["concurrency"],4)
+
+    def test_client_runtime_requires_actual_typed_values_and_explicit_original_backend(self):
+        client,fixture=self.submit8_report_fixture(True)
+        client["observerNativeFacts"]=True
+        client["durableReadback"]["observerNativeFacts"]=dict(enabled=True,lookups=2048,hits=2048,misses=0,fallbackMathVerifications=0,fallbackFailures=0)
+        client["durableReadback"]["transactionVerifications"]=2048
+        values=dict(prefix_replay=True,prefix_native_clone=True,native_submit8=True,observer_native_facts=True,require_inventory=True,require_client_runtime=True)
+        for selected in (False,True):
+            raw=dict(client,clientProcs2=selected,gomaxprocs=2 if selected else 1)
+            supply.validate_report(raw,"supply-2048x1-data64",fixture_transactions=fixture,client_procs2=selected,**values)
+            for badvalue in (None,True,False,1.0,"2",0,3,1 if selected else 2):
+                bad=dict(raw,gomaxprocs=badvalue)
+                with self.subTest(selected=selected,value=badvalue),self.assertRaises(RuntimeError):supply.validate_client_runtime(bad,selected,True)
+            for field in ("observerNativeFacts","nativeSubmit8","prefixNativeClone","prefixDurableReplay","sharedDurableReplay","nativeSuffixSetup"):
+                if not selected:continue
+                bad=dict(raw);bad[field]=field in ("sharedDurableReplay","nativeSuffixSetup")
+                with self.subTest(field=field),self.assertRaises(RuntimeError):supply.validate_client_runtime(bad,True,True)
+        raw=dict(client,clientProcs2=True,gomaxprocs=2)
+        with self.assertRaises(RuntimeError):supply.validate_report(raw,"supply-2048x1-data64",fixture_transactions=fixture,**values)
+        config=dict(transport="grpc",profile_name="supply-2048x1-data64",observer_phases=True,prefix_replay=True,prefix_native_clone=True,native_submit8=True,observer_native_facts=True,client_procs2=True)
+        plan=supply.recipe(**config)
+        for delta in (dict(client_procs2=1),dict(observer_native_facts=False),dict(native_suffix_setup=True),dict(native_submit8=False)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**dict(config,**delta))
+        for selected in (False,True):
+            cmd=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("out"),plan["profile"],"relative",True,False,prefix_replay=True,prefix_native_clone=True,native_submit8=True,observer_native_facts=True,client_procs2=selected)
+            self.assertEqual(cmd.count("-client-procs2"),int(selected))
+            self.assertNotIn("-native-suffix-setup",cmd)
 
     def test_observer_native_work_counters_are_typed_bound_and_not_default(self):
         client,fixture=self.submit8_report_fixture(True)

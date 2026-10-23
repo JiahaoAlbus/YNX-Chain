@@ -65,6 +65,7 @@ type options struct {
 	nativeSubmit8                  bool
 	nativeSuffixSetup              bool
 	observerNativeFacts            bool
+	clientProcs2                   bool
 	pacedWorkerInventory           *pacedWorkerInventory
 	endpointFair                   bool
 	endpointElastic                bool
@@ -200,6 +201,7 @@ type report struct {
 	NativeSubmit8        bool                      `json:"nativeSubmit8,omitempty"`
 	NativeSuffixSetup    bool                      `json:"nativeSuffixSetup,omitempty"`
 	ObserverNativeFacts  bool                      `json:"observerNativeFacts,omitempty"`
+	ClientProcs2         bool                      `json:"clientProcs2,omitempty"`
 	PacedWorkers         *pacedWorkerInventory     `json:"pacedWorkers,omitempty"`
 	SharedDurableReplay  bool                      `json:"sharedDurableReplay"`
 	EndpointFair         bool                      `json:"endpointFairSubmission"`
@@ -242,6 +244,7 @@ func main() {
 	flag.BoolVar(&o.endpointElastic, "endpoint-elastic-submission", false, "candidate: requires endpoint fairness; reuse original four workers across unchanged endpoints, maximum two in flight per endpoint")
 	flag.BoolVar(&o.prefixDurableReplay, "prefix-durable-replay", false, "candidate: reuse exact previously validated journal prefixes, private state and complete new-block validation; exclusive with shared replay")
 	flag.BoolVar(&o.prefixNativeClone, "prefix-native-clone", false, "candidate: private native account/fee-history copies; requires explicit prefix replay and its original bounds")
+	flag.BoolVar(&o.clientProcs2, "client-procs2", false, "candidate: client-local GOMAXPROCS2 with original native8 observer facts; node environment and resource caps unchanged")
 	flag.BoolVar(&o.observerNativeFacts, "observer-native-facts", false, "candidate: reuse exact bytes+expected-chain signature facts from verified replay; original native8 setup only")
 	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: private suffix initialization; explicit native8 data64 mode only")
 	flag.BoolVar(&o.nativeSubmit8, "native-submit8", false, "candidate: exactly8 submitters, original four observers/queues and native-copy single-round supply")
@@ -268,6 +271,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.clientProcs2 && !o.observerNativeFacts {
+		return errors.New("client procs2 requires explicit original native8 observer facts")
+	}
 	if o.observerNativeFacts && (!o.nativeSubmit8 || o.nativeSuffixSetup) {
 		return errors.New("observer native facts require original native8 setup; suffix candidate cannot combine")
 	}
@@ -914,6 +920,8 @@ func execute(o options) error {
 	if err := validateOptions(o); err != nil {
 		return err
 	}
+	restoreClientProcs := configureClientProcs(o.clientProcs2)
+	defer restoreClientProcs()
 	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	ctx, cancel := context.WithTimeout(signalCtx, o.timeout)
@@ -955,6 +963,10 @@ func execute(o options) error {
 	r.NativeSubmit8 = o.nativeSubmit8
 	r.NativeSuffixSetup = o.nativeSuffixSetup
 	r.ObserverNativeFacts = o.observerNativeFacts
+	r.ClientProcs2 = o.clientProcs2
+	if o.clientProcs2 {
+		r.Interpretation = append(r.Interpretation, "Explicit client-local GOMAXPROCS2 candidate: only this client scheduler changes; original node environment, workers, queues, original suffix setup, signature/state/quorum/durability checks and all resource guards remain. Actual gomaxprocs is reported; additional CPU availability and throughput improvement require the scheduled same-condition measurement.")
+	}
 	if o.observerNativeFacts {
 		r.Interpretation = append(r.Interpretation, "Explicit observer native signature facts: expected reader chainID plus digest and complete original bytes bind only decoder-owned successful signature mathematics. Misses retain full native Decode+Verify; each current-state fee/nonce/height/context check remains. Existing4096entry/4MiB replay cache bounds and replay counters are unchanged; separate actual observer hits/misses/math counters are not execution or finality authorization.")
 	}

@@ -43,13 +43,14 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
                  buildBytes=1 << 30, metadataReserveMs=500)
 
 
-def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None, prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None, prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False):
     if prefix_native_clone is not None and (type(prefix_native_clone) is not bool or prefix_native_clone and prefix_replay is not True):
         raise RuntimeError("native clone requires explicit prefix replay selection")
     if type(native_submit8) is not bool or native_submit8 and (prefix_native_clone is not True or prefix_replay is not True):
         raise RuntimeError("submit8 requires explicit native prefix selection")
     if type(native_suffix_setup) is not bool or native_suffix_setup and not native_submit8:raise RuntimeError("native suffix setup requires explicit native8 mode")
     if type(observer_native_facts) is not bool or observer_native_facts and (not native_submit8 or native_suffix_setup):raise RuntimeError("observer native facts require original native8 setup")
+    if type(client_procs2) is not bool or type(require_client_runtime) is not bool or client_procs2 and not observer_native_facts:raise RuntimeError("client procs2 requires explicit observer native facts")
     one_shot=profile_name in ONESHOT_PROFILES
     if prefix_replay is not None and (type(prefix_replay) is not bool or prefix_replay and profile_name!="supply-2048x1-data64"):
         raise RuntimeError("prefix replay requires the explicit data64 profile")
@@ -83,6 +84,8 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
     if native_submit8:result["nativeSubmit8"]=True
     if native_suffix_setup:result["nativeSuffixSetup"]=True
     if observer_native_facts:result["observerNativeFacts"]=True
+    if client_procs2:result["clientProcs2"]=True
+    if require_client_runtime or client_procs2:result["expectedClientGOMAXPROCS"]=2 if client_procs2 else 1
     if observer_phases:
         result["observerPhaseTiming"]=True
         result["observerTraceLimits"]=dict(perWorker=256,aggregate=1024,totalsCompleteDespiteTraceCap=True)
@@ -128,8 +131,9 @@ PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
               "prefix-native-data64": ("prefix-control", "prefix-native-clone"),
               "native-submit8-data64": ("native-submit4", "native-submit8"),
               "native-suffix-data64": ("native-suffix-control", "native-suffix-candidate"),
-              "native-observer-facts-data64": ("native-observer-control", "native-observer-facts")}
-DATA64_PAIRS=("shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64")
+              "native-observer-facts-data64": ("native-observer-control", "native-observer-facts"),
+              "native-client-procs2-data64": ("native-client-procs1", "native-client-procs2")}
+DATA64_PAIRS=("shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64")
 
 
 def pair_modes(comparison):
@@ -233,6 +237,14 @@ def fixture_resource_readout(network):
 
 
 def pair_recipe(comparison="relative-bounded"):
+    if comparison == "native-client-procs2-data64":
+        selected=pair_recipe("native-observer-facts-data64")
+        selected.update(kind="fixed-same-VM-native-client-procs2-data64-pair",
+            cases=[recipe("grpc","supply-2048x1-data64","relative",True,prefix_replay=True,prefix_native_clone=True,native_submit8=True,observer_native_facts=True,client_procs2=flag,require_client_runtime=True) for flag in (False,True)],
+            order="native-client-procs1 then native-client-procs2; sequential, no second case after any first-case refusal",
+            input=dict(selected["input"],linux_supply_pacing="paired-native-client-procs2-data64"),
+            interpretation="Only explicit client-local GOMAXPROCS1 versus2 changes. Require actual typed runtime values on both original reports. Both retain observer native facts,original suffix setup,8submitters/4observers/original queues,node GOMAXPROCS1 and original resource caps. No throughput gain or sustained1000 qualification is presumed.")
+        return selected
     if comparison == "native-observer-facts-data64":
         selected=pair_recipe("native-submit8-data64")
         selected.update(kind="fixed-same-VM-native-observer-facts-data64-pair",
@@ -374,7 +386,12 @@ def empty_pair_closure(budget):
     return scans
 
 
-def pair_case_qualified(row, mode, profile="supply-512x2", total=1024,native_submit8=False,native_suffix_setup=False,observer_native_facts=False):
+def pair_case_qualified(row, mode, profile="supply-512x2", total=1024,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False):
+    if row.get("clientProcs2",False) is not client_procs2:raise RuntimeError("pair client scheduler selection differs")
+    if require_client_runtime or client_procs2:
+        runtime_receipt=row.get("clientRuntimeVerification") or {}
+        if type(runtime_receipt.get("gomaxprocs")) is not int or runtime_receipt.get("clientProcs2") is not client_procs2:raise RuntimeError("pair client runtime receipt is not typed")
+        if row.get("clientRuntimeVerification")!={"clientProcs2":client_procs2,"gomaxprocs":2 if client_procs2 else 1}:raise RuntimeError("pair client actual runtime receipt differs")
     if type(observer_native_facts) is not bool or row.get("observerNativeFacts",False) is not observer_native_facts:raise RuntimeError("pair observer native selection differs")
     if type(native_suffix_setup) is not bool or row.get("nativeSuffixSetup",False) is not native_suffix_setup:raise RuntimeError("pair native suffix selection differs")
     if row.get("nativeSubmit8",False) is not native_submit8:raise RuntimeError("pair submit8 selection differs")
@@ -560,6 +577,20 @@ def validate_prefix_replay(report,expected,require_work_phases=False,expected_na
     result=dict(prefixDurableReplay=True,stats=stats,interpretation="Successful full and reused-prefix outputs are separate; failed partial work is not included in completed block/input counts. Counters are not physical RSS or finality.")
     if expected_native_clone:result["prefixNativeClone"]=True
     return result
+
+
+def validate_client_runtime(report,expected=False,require=False):
+    if type(expected) is not bool or type(require) is not bool or report.get("clientProcs2",False) is not expected:
+        raise RuntimeError("actual client scheduler selection differs")
+    if expected and (report.get("observerNativeFacts") is not True or report.get("nativeSubmit8") is not True
+            or report.get("prefixNativeClone") is not True or report.get("prefixDurableReplay") is not True
+            or report.get("nativeSuffixSetup",False) is not False or report.get("sharedDurableReplay") is not False):
+        raise RuntimeError("client procs2 backend selection differs")
+    actual=report.get("gomaxprocs")
+    if require or expected:
+        if type(actual) is not int or actual!=(2 if expected else 1):raise RuntimeError("actual client GOMAXPROCS differs or missing")
+        return dict(clientProcs2=expected,gomaxprocs=actual)
+    return None
 
 
 def validate_observer_native_facts(report,expected=False):
@@ -806,8 +837,8 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
             pace = "relative" if comparison in DATA64_PAIRS else "bounded-cadence" if comparison in ("independent-shared","shared-fair","shared-elastic") else mode
             if comparison in DATA64_PAIRS:
                 code = run(source,build,case,out,"grpc","supply-2048x1-data64",pace,pair_budget=budget,observer_phases=True,
-                    prefix_replay=comparison in ("prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64") or index==1,
-                    **({"prefix_native_clone":True,"native_submit8":True,"observer_native_facts":index==1} if comparison=="native-observer-facts-data64" else {"prefix_native_clone":True,"native_submit8":True,"native_suffix_setup":index==1} if comparison=="native-suffix-data64" else {"prefix_native_clone":True,"native_submit8":index==1} if comparison=="native-submit8-data64" else {"prefix_native_clone":index==1} if comparison=="prefix-native-data64" else {}))
+                    prefix_replay=comparison in ("prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64") or index==1,
+                    **({"prefix_native_clone":True,"native_submit8":True,"observer_native_facts":True,"client_procs2":index==1,"require_client_runtime":True} if comparison=="native-client-procs2-data64" else {"prefix_native_clone":True,"native_submit8":True,"observer_native_facts":index==1} if comparison=="native-observer-facts-data64" else {"prefix_native_clone":True,"native_submit8":True,"native_suffix_setup":index==1} if comparison=="native-suffix-data64" else {"prefix_native_clone":True,"native_submit8":index==1} if comparison=="native-submit8-data64" else {"prefix_native_clone":index==1} if comparison=="prefix-native-data64" else {}))
             elif comparison in ("shared-fair","shared-elastic"):
                 code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=True,endpoint_fair=index==1,**(dict(endpoint_elastic=index==1) if comparison=="shared-elastic" else {}))
             elif comparison == "independent-shared":
@@ -822,20 +853,23 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                                         firstCause=row.get("firstCause"), summary=row.get("measurement", {}).get("summary")))
             if code != 0 or duration > 60:
                 raise RuntimeError("pair case failed or invocation/fsync exceeded60s: "+str(row.get("firstCause")))
-            pair_case_qualified(row, pace,"supply-2048x1-data64" if comparison in DATA64_PAIRS else "supply-512x2",2048 if comparison in DATA64_PAIRS else 1024,**({"native_submit8":True,"observer_native_facts":index==1} if comparison=="native-observer-facts-data64" else {"native_submit8":True,"native_suffix_setup":index==1} if comparison=="native-suffix-data64" else {"native_submit8":index==1} if comparison=="native-submit8-data64" else {}))
+            pair_case_qualified(row, pace,"supply-2048x1-data64" if comparison in DATA64_PAIRS else "supply-512x2",2048 if comparison in DATA64_PAIRS else 1024,**({"native_submit8":True,"observer_native_facts":True,"client_procs2":index==1,"require_client_runtime":True} if comparison=="native-client-procs2-data64" else {"native_submit8":True,"observer_native_facts":index==1} if comparison=="native-observer-facts-data64" else {"native_submit8":True,"native_suffix_setup":index==1} if comparison=="native-suffix-data64" else {"native_submit8":index==1} if comparison=="native-submit8-data64" else {}))
             if comparison in DATA64_PAIRS:
-                selected_prefix=comparison in ("prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64") or index==1
-                selected_native=comparison in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64") or comparison=="prefix-native-data64" and index==1
-                selected_submit8=comparison in ("native-suffix-data64","native-observer-facts-data64") or comparison=="native-submit8-data64" and index==1
+                selected_prefix=comparison in ("prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64") or index==1
+                selected_native=comparison in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64") or comparison=="prefix-native-data64" and index==1
+                selected_submit8=comparison in ("native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64") or comparison=="native-submit8-data64" and index==1
                 selected_suffix=comparison=="native-suffix-data64" and index==1
-                selected_observer=comparison=="native-observer-facts-data64" and index==1
+                selected_observer=comparison=="native-client-procs2-data64" or comparison=="native-observer-facts-data64" and index==1
+                selected_procs2=comparison=="native-client-procs2-data64" and index==1
+                require_client_runtime=comparison=="native-client-procs2-data64"
                 selected_shared=not selected_prefix
                 client_raw=native.bounded(case/"network/transactions-result.json",16 << 20)
                 if hashlib.sha256(client_raw).hexdigest()!=row.get("resultSHA256"):
                     raise RuntimeError("prefix pair original client hash differs")
                 client=json.loads(client_raw)
                 fixture=json.loads(native.bounded(case/"network/transactions.json",16 << 20))["transactions"]
-                measured=validate_report(client,"supply-2048x1-data64",pace,fixture_transactions=fixture,prefix_replay=selected_prefix,prefix_native_clone=selected_native,native_submit8=selected_submit8,require_inventory=comparison in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64"),native_suffix_setup=selected_suffix,observer_native_facts=selected_observer)
+                measured=validate_report(client,"supply-2048x1-data64",pace,fixture_transactions=fixture,prefix_replay=selected_prefix,prefix_native_clone=selected_native,native_submit8=selected_submit8,require_inventory=comparison in ("native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64"),native_suffix_setup=selected_suffix,observer_native_facts=selected_observer,client_procs2=selected_procs2,require_client_runtime=require_client_runtime)
+                client_runtime=validate_client_runtime(client,selected_procs2,require_client_runtime)
                 observer_facts=validate_observer_native_facts(client,selected_observer)
                 phases=validate_observer_phases(client)
                 shared=validate_shared_replay(client,selected_shared,require_work_phases=selected_shared)
@@ -845,10 +879,13 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                         or shared!=row.get("sharedReplayVerification") or row.get("sharedDurableReplay") is not selected_shared
                         or runtime!=row.get("runtimeMeasurements") or prefix!=row.get("prefixReplayVerification",dict(prefixDurableReplay=False,stats=None)) or row.get("prefixDurableReplay",False) is not selected_prefix
                         or row.get("prefixNativeClone",False) is not selected_native or row.get("nativeSubmit8",False) is not selected_submit8 or row.get("nativeSuffixSetup",False) is not selected_suffix or row.get("observerNativeFacts",False) is not selected_observer
+                        or row.get("clientProcs2",False) is not selected_procs2
+                        or (require_client_runtime and row.get("clientRuntimeVerification")!=client_runtime)
                         or (selected_observer and row.get("observerNativeFactVerification")!=observer_facts)
                         or (not selected_observer and row.get("observerNativeFactVerification") is not None)):
                     raise RuntimeError("prefix pair receipt differs from original business/backend/timing facts")
-                if comparison=="native-observer-facts-data64":result["cases"][-1]["observerNativeFactVerification"]=observer_facts
+                if comparison in ("native-observer-facts-data64","native-client-procs2-data64"):result["cases"][-1]["observerNativeFactVerification"]=observer_facts
+                if require_client_runtime:result["cases"][-1]["clientRuntimeVerification"]=client_runtime
                 result["cases"][-1].update(offerLatency=offer_latency_readout(client,2048),nodePhases=row["nodePhases"],
                     observerPhases=phases,sharedReplayVerification=shared,prefixReplayVerification=prefix,
                     durableReadback=client["durableReadback"],submissionPhaseVerification=validate_submission_phases(client,2048),runtimeMeasurements=runtime)
@@ -895,7 +932,7 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                     raise RuntimeError("pair VM identity differs")
             budget.observe()
         result["casesQualified"] = True
-        if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic","shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64"):
+        if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic","shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64"):
             result["jointObservation"]=joint_observation(*result["cases"])
         if comparison in ("shared-fair","shared-elastic"):
             result["dispatchTailObservation"]=dispatch_tail_observation(*result["cases"],result["jointObservation"])
@@ -990,7 +1027,8 @@ def validate_manifest(m, root):
     return m
 
 
-def validate_oneshot_report(report,fixture_transactions,prefix_replay=False,prefix_native_clone=False,native_submit8=False,require_inventory=False,native_suffix_setup=False,observer_native_facts=False):
+def validate_oneshot_report(report,fixture_transactions,prefix_replay=False,prefix_native_clone=False,native_submit8=False,require_inventory=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False):
+    validate_client_runtime(report,client_procs2,require_client_runtime)
     validate_observer_native_facts(report,observer_native_facts)
     validate_native_suffix_selection(report,native_suffix_setup)
     submitter_selection=validate_submitter_selection(report,native_submit8,require_inventory)
@@ -1063,7 +1101,8 @@ def qualify_business_rows(report,total):
     return s
 
 
-def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False,fixture_transactions=None,prefix_replay=False,prefix_native_clone=False,native_submit8=False,require_inventory=False,native_suffix_setup=False,observer_native_facts=False):
+def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False,fixture_transactions=None,prefix_replay=False,prefix_native_clone=False,native_submit8=False,require_inventory=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False):
+    validate_client_runtime(report,client_procs2,require_client_runtime)
     validate_observer_native_facts(report,observer_native_facts)
     validate_native_suffix_selection(report,native_suffix_setup)
     validate_submitter_selection(report,native_submit8,require_inventory)
@@ -1073,7 +1112,7 @@ def validate_report(report, profile_name="supply-256x4", pacing="relative", endp
     if profile_name in ONESHOT_PROFILES:
         if pacing!="relative" or endpoint_fair or endpoint_elastic:
             raise RuntimeError("2048x1 cannot select pair endpoint or pacing candidates")
-        return validate_oneshot_report(report,fixture_transactions,prefix_replay,prefix_native_clone,native_submit8,require_inventory,native_suffix_setup,observer_native_facts)
+        return validate_oneshot_report(report,fixture_transactions,prefix_replay,prefix_native_clone,native_submit8,require_inventory,native_suffix_setup,observer_native_facts,client_procs2,require_client_runtime)
     profile = recipe("grpc", profile_name, pacing)["profile"]
     if report.get("endpointElasticSubmission",False) is not endpoint_elastic:
         raise RuntimeError("actual elastic endpoint selection differs from selected profile")
@@ -1212,12 +1251,13 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases=False,shared_replay=None,endpoint_fair=None,endpoint_elastic=None,prefix_replay=None,prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False):
+def supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases=False,shared_replay=None,endpoint_fair=None,endpoint_elastic=None,prefix_replay=None,prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False):
     if prefix_native_clone and (prefix_replay is not True or shared_replay):raise RuntimeError("native clone client requires exclusive prefix replay")
     if type(native_submit8) is not bool or profile["concurrency"]!=(8 if native_submit8 else 4) or native_submit8 and (prefix_native_clone is not True or prefix_replay is not True):raise RuntimeError("submit8 client mode/worker selection differs")
     if type(native_suffix_setup) is not bool or native_suffix_setup and not native_submit8:raise RuntimeError("native suffix client mode differs")
     if type(observer_native_facts) is not bool or observer_native_facts and (not native_submit8 or native_suffix_setup):raise RuntimeError("observer native client mode differs")
-    return [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", str(profile["concurrency"]), "-observers", str(profile["observers"]), "-offered-rate", str(profile["offeredRate"]), "-rounds", str(profile["rounds"]), "-sender-mode", profile.get("senderMode","ready-pool"), "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])+(["-prefix-durable-replay"] if prefix_replay else [])+(["-prefix-native-clone"] if prefix_native_clone else [])+(["-native-submit8"] if native_submit8 else [])+(["-native-suffix-setup"] if native_suffix_setup else [])+(["-observer-native-facts"] if observer_native_facts else [])
+    if type(client_procs2) is not bool or client_procs2 and not observer_native_facts:raise RuntimeError("client procs2 command requires observer native facts")
+    return [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", str(profile["concurrency"]), "-observers", str(profile["observers"]), "-offered-rate", str(profile["offeredRate"]), "-rounds", str(profile["rounds"]), "-sender-mode", profile.get("senderMode","ready-pool"), "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])+(["-prefix-durable-replay"] if prefix_replay else [])+(["-prefix-native-clone"] if prefix_native_clone else [])+(["-native-submit8"] if native_submit8 else [])+(["-native-suffix-setup"] if native_suffix_setup else [])+(["-observer-native-facts"] if observer_native_facts else [])+(["-client-procs2"] if client_procs2 else [])
 
 
 def case_evidence_bytes(receipt, paired=False):
@@ -1226,14 +1266,14 @@ def case_evidence_bytes(receipt, paired=False):
     return (receipt.stat().st_size if receipt.is_file() else 0) if paired else native.directory_bytes(receipt.parent)
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None,prefix_replay=None,prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False):
-    if fixture_only and (prefix_native_clone or native_submit8 or native_suffix_setup or observer_native_facts):raise RuntimeError("native candidates cannot select a fixture-only case")
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None,prefix_replay=None,prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False):
+    if fixture_only and (prefix_native_clone or native_submit8 or native_suffix_setup or observer_native_facts or client_procs2 or require_client_runtime):raise RuntimeError("native candidates cannot select a fixture-only case")
     one_shot=not fixture_only and profile_name in ONESHOT_PROFILES
     if one_shot:
         if shared_replay is not None and shared_replay is not (prefix_replay is not True):
             raise RuntimeError("2048x1 requires exclusive shared replay or prefix selection")
         shared_replay=prefix_replay is not True
-    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts)
+    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2,require_client_runtime)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -1407,9 +1447,9 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             mark("all_nodes_height2")
             output = network / "transactions-result.json"
             mark("client_start")
-            wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts)))
+            wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2)))
             client_report=json.loads(native.bounded(output,16 << 20))
-            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True,fixture_transactions=json.loads(native.bounded(network/"transactions.json",16 << 20))["transactions"] if one_shot else None,prefix_replay=prefix_replay is True,prefix_native_clone=prefix_native_clone is True,native_submit8=native_submit8,native_suffix_setup=native_suffix_setup,observer_native_facts=observer_native_facts)
+            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True,fixture_transactions=json.loads(native.bounded(network/"transactions.json",16 << 20))["transactions"] if one_shot else None,prefix_replay=prefix_replay is True,prefix_native_clone=prefix_native_clone is True,native_submit8=native_submit8,native_suffix_setup=native_suffix_setup,observer_native_facts=observer_native_facts,client_procs2=client_procs2,require_client_runtime=require_client_runtime)
             if observer_phases:
                 result["observerPhases"]=validate_observer_phases(client_report)
             if shared_replay is not None:
@@ -1419,6 +1459,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             if endpoint_elastic is not None:
                 result["submissionPhaseVerification"]=validate_submission_phases(client_report)
             if prefix_replay is True:result["prefixReplayVerification"]=validate_prefix_replay(client_report,True,require_work_phases=True,expected_native_clone=prefix_native_clone is True,expected_native_suffix=native_suffix_setup)
+            if require_client_runtime or client_procs2:result["clientRuntimeVerification"]=validate_client_runtime(client_report,client_procs2,require_client_runtime)
             if observer_native_facts:result["observerNativeFactVerification"]=validate_observer_native_facts(client_report,True)
             if one_shot:result["runtimeMeasurements"]=validate_runtime_measurements(client_report,2048,require=True,native_submit8=native_submit8)
             mark("client_complete")
@@ -1524,11 +1565,13 @@ if __name__ == "__main__":
     parser.add_argument("--native-submit8", action="store_true")
     parser.add_argument("--native-suffix-setup", action="store_true")
     parser.add_argument("--observer-native-facts", action="store_true")
+    parser.add_argument("--client-procs2", action="store_true")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--build", type=Path)
     parser.add_argument("--case", type=Path)
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
+    if args.client_procs2 and not args.observer_native_facts:parser.error("client procs2 requires original observer native facts")
     if args.observer_native_facts and (not args.native_submit8 or args.native_suffix_setup):
         parser.error("observer native facts require original native8 setup")
     if args.native_suffix_setup and not args.native_submit8:
@@ -1566,7 +1609,7 @@ if __name__ == "__main__":
     if args.prepare_pair or args.execute_pair:
         if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
                 or args.transport != "grpc" or args.profile != ("supply-2048x1-data64" if args.pair_kind in DATA64_PAIRS else "supply-512x2") or args.pacing != "relative"
-                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair","shared-elastic","shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64"))):
+                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair","shared-elastic","shared-prefix-data64","prefix-native-data64","native-submit8-data64","native-suffix-data64","native-observer-facts-data64","native-client-procs2-data64"))):
             parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
         if args.prepare_pair:
             print(json.dumps(pair_recipe(args.pair_kind), indent=2))
@@ -1579,8 +1622,8 @@ if __name__ == "__main__":
             parser.error("check-runner requires build/new case and excludes execute")
         print(json.dumps(preflight(args.build, args.case), indent=2))
     elif not args.execute:
-        print(json.dumps(recipe(args.transport, args.profile, args.pacing,args.observer_phases,prefix_replay=True if args.prefix_replay else None,prefix_native_clone=True if args.prefix_native_clone else None,native_submit8=args.native_submit8,native_suffix_setup=args.native_suffix_setup,observer_native_facts=args.observer_native_facts), indent=2))
+        print(json.dumps(recipe(args.transport, args.profile, args.pacing,args.observer_phases,prefix_replay=True if args.prefix_replay else None,prefix_native_clone=True if args.prefix_native_clone else None,native_submit8=args.native_submit8,native_suffix_setup=args.native_suffix_setup,observer_native_facts=args.observer_native_facts,client_procs2=args.client_procs2), indent=2))
     else:
         if not all((args.source, args.build, args.case, args.receipt)):
             parser.error("execute requires exact source/build/new case/new receipt")
-        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing, observer_phases=args.observer_phases,prefix_replay=True if args.prefix_replay else None,prefix_native_clone=True if args.prefix_native_clone else None,native_submit8=args.native_submit8,native_suffix_setup=args.native_suffix_setup,observer_native_facts=args.observer_native_facts))
+        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing, observer_phases=args.observer_phases,prefix_replay=True if args.prefix_replay else None,prefix_native_clone=True if args.prefix_native_clone else None,native_submit8=args.native_submit8,native_suffix_setup=args.native_suffix_setup,observer_native_facts=args.observer_native_facts,client_procs2=args.client_procs2))

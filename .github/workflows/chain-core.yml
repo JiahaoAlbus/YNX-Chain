@@ -91,6 +91,7 @@ on:
           - paired-native-submit8-data64
           - paired-native-suffix-data64
           - paired-native-observer-facts-data64
+          - paired-native-client-procs2-data64
         default: relative
       measure_anchor_validation:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
@@ -245,7 +246,7 @@ jobs:
           -run '^(TestEndpointFair.*|TestSharedReplay.*|TestPrefixReplay.*|TestNativeSubmit8.*|TestNativeSuffixSetup.*|TestRuntimeMeasurement.*|TestDurableReaderSharesOnlyReplayCryptoFactsAcrossIndependentStores|TestObserverPhaseTiming.*|TestReadyPacing.*|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
           -count=1 -timeout=45s -v
       - name: Verify explicit observer native facts and current-state negatives
-        run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^TestObserverNative' -count=1 -timeout=30s -v
+        run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(ObserverNative|ClientProcs2)' -count=1 -timeout=30s -v
       - name: Verify actual prefix decoder phases and held-gate cancellation
         run: go test -p 1 ./internal/consensus -run '^TestBlockJournalPrefix' -count=1 -timeout=30s -v
       - name: Verify opt-in node phase timings against real durable execution
@@ -418,6 +419,10 @@ jobs:
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind native-observer-facts-data64 --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-native-client-procs2-data64 ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            test "$YNX_PREFIX_REPLAY" = 0
+            python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind native-client-procs2-data64 --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           else
             python3 -B scripts/loadtest/supply-linux-window.py --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" "${observer_args[@]}" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           fi
@@ -456,6 +461,10 @@ jobs:
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind native-observer-facts-data64 --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-native-client-procs2-data64 ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            test "$YNX_PREFIX_REPLAY" = 0
+            python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind native-client-procs2-data64 --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           else
             python3 -B scripts/loadtest/supply-linux-window.py --execute --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" "${observer_args[@]}" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           fi
