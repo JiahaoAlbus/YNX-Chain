@@ -14,7 +14,7 @@ const supplierPins=[{"path":"packages/wallet-auth/native/original-auth-identity-
 const read=path=>readFileSync(resolve(root,path));
 const proof='packages/wallet-auth/native/original-ide-auth-proof-source.inc.mm';
 test('R164 normal inventory consumes exact nine supplier leaves and unchanged R162 proof in 69+5 closure',()=>{
- const {contract}=verifySDK332R140Source(root);assert.equal(contract.version,'1.3.0-pq.3.32-auth.12');assert.equal(contract.NativeInputs.length,69);assert.equal(contract.HelperInputs.length,5);assert.equal(new Set([...contract.NativeInputs,...contract.HelperInputs].map(p=>p.path)).size,74);
+ const {contract}=verifySDK332R140Source(root);assert.ok(['1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13'].includes(contract.version));assert.equal(contract.NativeInputs.length,69);assert.equal(contract.HelperInputs.length,5);assert.equal(new Set([...contract.NativeInputs,...contract.HelperInputs].map(p=>p.path)).size,74);
  for(const expected of supplierPins){const actual=read(expected.path),pin=contract.NativeInputs.find(p=>p.path===expected.path);assert.deepEqual(pin,expected);assert.equal(actual.length,expected.bytes);assert.equal(sha(actual),expected.sha256);}
  assert.equal(sha(read(proof)),'5c4a4ebd3251de6862763a40ea48e48123503b789f0438e06b96a50e5bb95826');
  assert.equal(contract.require.translationUnits,13);assert.equal(contract.require.helperTranslationUnits,11);assert.equal(contract.supplierR164.handoff.bytes,9576);assert.equal(contract.supplierR164.handoff.sha256,'476902f30d86ebd5b9df9904983fd38879f1fcc4b1f7714a4a1ecb5e3880de24');assert.deepEqual(contract.supplierR164.sourceLeaves,supplierPins);

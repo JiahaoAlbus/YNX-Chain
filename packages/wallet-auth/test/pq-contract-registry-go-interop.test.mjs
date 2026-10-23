@@ -15,7 +15,7 @@ assert.ok(selected===undefined||selected.length>0,'empty package root is not a d
 const packageRoot=realpathSync(selected===undefined?fileURLToPath(new URL('..',import.meta.url)):resolve(selected));
 function inside(path){const actual=realpathSync(path);assert.ok(actual.startsWith(packageRoot+sep),'module escaped selected package');return actual;}
 const packageJSON=inside(resolve(packageRoot,'package.json')),metadata=JSON.parse(readFileSync(packageJSON,'utf8'));
-assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.ok(['1.3.0-pq.3.32-auth.9','1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12'].includes(metadata.version));
+assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.ok(['1.3.0-pq.3.32-auth.9','1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13'].includes(metadata.version));
 const selectedRequire=createRequire(packageJSON);
 const entry=inside(selectedRequire.resolve('@ynx-chain/wallet-auth/pq-contract-deployment-material'));
 // Byte equality binds the already verified implementation before module load.
