@@ -1137,9 +1137,11 @@ def qualify_business_rows(report,total):
     return s
 
 
-def validate_native_stream_report(report,network):
+def validate_native_stream_report(report,network,*,runtime_network=None):
     """Complete small-history route; never reuse the finite latest-slot validator."""
     need=stream_evidence.need;network=Path(network).absolute();total=8192
+    runtime=network if runtime_network is None else Path(runtime_network)
+    need(runtime.is_absolute(),"original stream runtime root must be absolute")
     def same(a,b):return json.dumps(a,sort_keys=True,separators=(',',':'))==json.dumps(b,sort_keys=True,separators=(',',':'))
     expected=dict(schemaVersion=14,nativeStream8=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
         observerPhaseTiming=True,sharedDurableReplay=False,endpointFairSubmission=False,roundsRequested=4,roundsCompleted=4,
@@ -1160,7 +1162,8 @@ def validate_native_stream_report(report,network):
         need(type(work.get(key)) is type(value) and work[key]==value,"stream durable plan/report differs: "+key)
     need(type(work.get("evidenceReadbackMs")) in (int,float) and math.isfinite(work["evidenceReadbackMs"]) and work["evidenceReadbackMs"]>=0,"stream readback duration absent")
     output=network/"transactions-result.json";plan_path=Path(str(output)+".streaming-plan.json")
-    need(work.get("planPath")==str(plan_path),"stream plan path differs")
+    runtime_output=runtime/"transactions-result.json"
+    need(work.get("planPath")==str(runtime_output)+".streaming-plan.json","stream plan path differs")
     raw=stream_evidence.capture(plan_path,1<<20);need(stream_evidence.digest(raw)==work.get("planSha256"),"stream plan digest differs")
     plan=stream_evidence.strict_json(raw)
     for key,value in dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",senders=2048,rounds=4,plannedRecords=total,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=30000,durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip").items():
@@ -1171,7 +1174,7 @@ def validate_native_stream_report(report,network):
     need(len(initial)==2048 and plan.get("initialSignedHashes")==[hashlib.sha256(base64.b64decode(t,validate=True)).hexdigest().upper() for t in initial],"stream plan initial identity differs")
     m=stream_evidence.strict_json(manifest_raw)
     need(plan.get("fixture")==dict(kind="YNX_LOCAL_READY_SENDER_V1",manifestSha256=hashlib.sha256(manifest_raw).hexdigest(),migrationHash=m["migrationStateHash"],genesisHash=m["genesisHash"]),"stream plan fixture binding differs")
-    proof=stream_evidence.verify_streams(network,str(network),str(output),manifest_raw,initial,ready.get("intentSegments",{}),report.get("terminalStream",{}),report.get("transactions"),4,64<<20,measure_latency=True)
+    proof=stream_evidence.verify_streams(network,str(runtime),str(runtime_output),manifest_raw,initial,ready.get("intentSegments",{}),report.get("terminalStream",{}),report.get("transactions"),4,64<<20,measure_latency=True)
     metrics=stream_evidence.verify_bounded_latency(proof["rowMetrics"],bounded)
     supply=ready.get("supply",{})
     for key,value in dict(signAttempts=6144,encodeAttempts=6144,signedSuccessors=6144,journalDurableEnvelopes=8192,terminalSinkAttempts=8192).items():

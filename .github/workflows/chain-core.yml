@@ -254,6 +254,10 @@ jobs:
         env:
           YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-stream-public-fixture
         run: python3 -B -m unittest discover -s scripts/loadtest -p test_native_stream_evidence.py -v
+      - name: Verify bounded original segmented ZIP range recovery (no network)
+        env:
+          YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-stream-public-fixture
+        run: python3 -B scripts/loadtest/test_native_stream_artifact.py -v
       - name: Retain original public native stream unit evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -501,6 +505,10 @@ jobs:
             ${{ runner.temp }}/ynx-linux-supply-pair
             !${{ runner.temp }}/ynx-linux-supply-case/**/ephemeral-sender-secrets.json
             !${{ runner.temp }}/ynx-linux-supply-pair/**/ephemeral-sender-secrets.json
+            !${{ runner.temp }}/ynx-linux-supply-case/**/priv_validator_key.json
+            !${{ runner.temp }}/ynx-linux-supply-case/**/node_key.json
+            !${{ runner.temp }}/ynx-linux-supply-pair/**/priv_validator_key.json
+            !${{ runner.temp }}/ynx-linux-supply-pair/**/node_key.json
           if-no-files-found: error
           retention-days: 90
       - name: Measure selected matched state hash encoders

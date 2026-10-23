@@ -1106,6 +1106,12 @@ class SupplySourceTests(unittest.TestCase):
                 self.assertFalse(out["sustainedTPSQualified"])
                 return out
         check(client)
+        remote=copy.deepcopy(client);remote_root=Path("/tmp/original-runner/ynx-linux-supply-case/network")
+        remote["streamingWorkload"]["planPath"]=str(remote_root/"transactions-result.json.streaming-plan.json")
+        with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
+            recovered=supply.validate_native_stream_report(remote,network,runtime_network=remote_root)
+            self.assertEqual(readback.call_args.args[1:3],(str(remote_root),str(remote_root/"transactions-result.json")))
+            self.assertEqual(recovered["summary"],summary)
         for kind in ("scope","counts","latency","budget","phase","reader","facts","runtime","timeline","backlog","rate","plan"):
             bad=copy.deepcopy(client)
             if kind=="scope":bad["nativeStream8"]=1
