@@ -100,6 +100,25 @@ export function fetchSourceCurrentV2(endpoint,spki,profileDigest,nonce){return f
 async function run(){
  let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>2097152)bad();chunks.push(chunk);}
  const input=parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)),2097152);
+ // Fixed read-only artifact mathematics for the original server subprocess.
+ // Expected originals must already belong to its independently admitted
+ // request/publisher. This branch never issues Source, approval or a grant.
+ if(input?.operation==='ide-artifact-signature-data/v1'){
+  if(size>262144)bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_CAPACITY');
+  exact(input,['operation','signatureOriginal','manifestOriginal','expectedPublicOriginal']);
+  const decode=(value,maximum)=>{
+   if(typeof value!=='string'||!value.length||value.length>Math.ceil(maximum*4/3)||!/^[A-Za-z0-9_-]+$/.test(value))bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_ENCODING');
+   const bytes=Buffer.from(value,'base64url');
+   if(!bytes.length||bytes.length>maximum||bytes.toString('base64url')!==value)bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_ENCODING');
+   return new Uint8Array(bytes);
+  };
+  const signature=decode(input.signatureOriginal,100000),manifest=decode(input.manifestOriginal,16384),publisher=decode(input.expectedPublicOriginal,8192);
+  const {inspectIDEArtifactSignatureData}=await import('../src/ide-artifact-signature.js');
+  const result=inspectIDEArtifactSignatureData(signature,manifest,publisher);
+  const raw=canonical(result);
+  if(result.dataOnly!==true||result.signatureVerified!==true||['trusted','authorized','nativeAdmission','registered','current','publicationAuthorized'].some(key=>result[key]!==false)||Buffer.byteLength(raw)>4096)bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_RESULT');
+  process.stdout.write(raw+'\n');return;
+ }
  // SAME original bounded driver/process. No second CLI, Source owner or
  // renderer-selected module. Native retains expected + trusted node binding;
  // this branch returns cryptographic DATA only, never an admission/grant.
