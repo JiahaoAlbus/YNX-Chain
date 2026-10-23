@@ -1058,7 +1058,7 @@ jobs:
           from pathlib import Path
           path = Path('internal/consensus/pq_engine_file_source.go')
           text = path.read_text()
-          fixed = 'readPQEngineCommittedState(statePath, migration, bootstrap, authorization, runtime)'
+          fixed = 'readPQEngineCommittedStateWithCapture(statePath, migration, bootstrap, authorization, runtime, capture)'
           assert text.count(fixed) == 1
           path.write_text(text.replace(fixed, 'loadCommittedStateWithBootstrap(statePath, migration, bootstrap)'))
           PY
