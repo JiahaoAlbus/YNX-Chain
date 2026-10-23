@@ -1209,13 +1209,37 @@ def enforce_captured_sample(sampled,result,initial=False):
         raise
 
 
+def post_fsync_owned_closure(result):
+    """Fresh native identity scan after receipt persistence; no process signalling."""
+    launcher=result.get("launcher")
+    if type(launcher) is not int or launcher!=os.getpid():
+        raise RuntimeError("post-fsync launcher differs from actual controller")
+    rows,_=native.proc_inventory()
+    row=rows.get(launcher)
+    if row is None or type(row.get("startTicks")) is not int or row["startTicks"]<=0:
+        raise RuntimeError("post-fsync launcher identity absent")
+    known={c["pid"]:c["startTicks"] for c in result.get("knownProcessIdentities",[]) if type(c.get("pid")) is int and type(c.get("startTicks")) is int}
+    owned=sorted(native.owned_set(rows,launcher,known=known))
+    return dict(owned=owned,launcherStartTicks=row["startTicks"])
+
+
 def oneshot_post_fsync(result,receipt,capture_sample,started):
     sampled=None
     try:
         sampled=capture_sample()
         if (time.monotonic()-started)*1000>60000:
             raise RuntimeError("one-shot total including receipt fsync exceeded60s")
-        scans=result.get("closureScans",[])
+        # Earlier cleanup scans precede the receipt fsync. Recheck the actual
+        # launcher and descendants twice after persistence, including retained
+        # known child identities so reparenting cannot hide an owned process.
+        prior=result.get("closureScans",[])
+        if (len(prior)<2 or any(s.get("owned")!=[result.get("launcher")] or type(s.get("launcherStartTicks")) is not int or s["launcherStartTicks"]<=0 for s in prior[-2:])
+                or prior[-1]["launcherStartTicks"]!=prior[-2]["launcherStartTicks"]):
+            raise RuntimeError("one-shot final double owned closure absent")
+        scans=[post_fsync_owned_closure(result),post_fsync_owned_closure(result)]
+        result["postFsyncClosureScans"]=scans
+        if scans[0].get("launcherStartTicks")!=prior[-1].get("launcherStartTicks"):
+            raise RuntimeError("post-fsync launcher identity changed from cleanup")
         if (type(result.get("launcher")) is not int or result["launcher"]<=0
                 or len(scans)<2 or any(s.get("owned")!=[result.get("launcher")] or type(s.get("launcherStartTicks")) is not int or s["launcherStartTicks"]<=0 for s in scans[-2:])
                 or scans[-1].get("launcherStartTicks")!=scans[-2].get("launcherStartTicks")):
@@ -1232,7 +1256,7 @@ def oneshot_post_fsync(result,receipt,capture_sample,started):
     print("YNX_ONESHOT_1000_TERMINAL "+json.dumps(dict(schema=1,kind="fixed2048x1-post-fsync-verdict",
         qualified=qualified,nodesStarted=result.get("nodesStarted"),firstCause=result.get("firstCause"),
         receiptSHA256=digest,elapsedMs=elapsed,
-        postFsyncSample=sampled,refusedSamples=result.get("refusedSamples",[]))),flush=True)
+        postFsyncSample=sampled,postFsyncClosureScans=result.get("postFsyncClosureScans",[]),refusedSamples=result.get("refusedSamples",[]))),flush=True)
     return qualified
 
 
@@ -1530,6 +1554,8 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             result["measurementLimits"]="Finite2048 independent signed nonce1 inputs, configured1000offers/s, not sustained TPS. Fixture generation/signing precedes measured client window. All original resource caps unchanged; actual node/reader/history/evidence growth may refuse this case. No retry, endpoint candidate or default promotion. Original native admission, cleanup and post-fsync verdict required."
         if fixture_only:
             result["measurementLimits"]="Fixture-only resource sampling including build/generation and structural file readback within45+15s. Preexisting shared Go cache is inventoried separately; build/tmp+incremental cache and all private data/evidence are charged. Non-atomic sampled RSS/process observations are not instantaneous upper bounds. No nodes/reader/network/business finality or1000TPS admission. Post-fsync terminal+exit0 required."
+        if one_shot:
+            result["knownProcessIdentities"]=[dict(pid=pid,startTicks=ticks) for pid,ticks in sorted(known.items())]
         with receipt.open("x") as handle:
             json.dump(result, handle, indent=2); handle.write("\n"); handle.flush(); os.fsync(handle.fileno())
         if fixture_only:

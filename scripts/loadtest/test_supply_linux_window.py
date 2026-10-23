@@ -384,7 +384,7 @@ class SupplySourceTests(unittest.TestCase):
             receipt=Path(d)/"actual.json";receipt.write_text(json.dumps(base))
             def check(row,capture=lambda:dict(privateBytes=1),elapsed=1):
                 out=io.StringIO()
-                with patch.object(supply.time,"monotonic",return_value=elapsed),contextlib.redirect_stdout(out):
+                with patch.object(supply.time,"monotonic",return_value=elapsed),patch.object(supply,"post_fsync_owned_closure",side_effect=lambda _:copy.deepcopy(row["closureScans"][-1])),contextlib.redirect_stdout(out):
                     qualified=supply.oneshot_post_fsync(row,receipt,capture,0)
                 frame=json.loads(out.getvalue().split("YNX_ONESHOT_1000_TERMINAL ")[1])
                 self.assertEqual(frame["receiptSHA256"],hashlib.sha256(receipt.read_bytes()).hexdigest())
@@ -405,6 +405,32 @@ class SupplySourceTests(unittest.TestCase):
                 with self.subTest(kind=kind):
                     qualified,frame=check(row,capture,elapsed)
                     self.assertFalse(qualified);self.assertIsNotNone(frame["firstCause"])
+
+    def test_post_fsync_new_child_identity_or_scan_failure_refuses_original_success(self):
+        base=dict(firstCause=None,nodesStarted=True,cleanupComplete=True,launcher=7,
+                  closureScans=[dict(owned=[7],launcherStartTicks=1)]*2,
+                  measurement=dict(summary=dict(finalSubmitted=2048)))
+        clean=dict(owned=[7],launcherStartTicks=1)
+        cases=([clean,dict(owned=[7,8],launcherStartTicks=1)],
+               [dict(owned=[7],launcherStartTicks=2)]*2,
+               [clean,RuntimeError("native process scan failed after fsync")])
+        with tempfile.TemporaryDirectory() as d:
+            receipt=Path(d)/"receipt.json";receipt.write_text(json.dumps(base))
+            before=receipt.read_bytes()
+            for scans in cases:
+                row=copy.deepcopy(base);out=io.StringIO()
+                with patch.object(supply.time,"monotonic",return_value=1),patch.object(supply,"post_fsync_owned_closure",side_effect=scans),contextlib.redirect_stdout(out):
+                    self.assertFalse(supply.oneshot_post_fsync(row,receipt,lambda:dict(privateBytes=1),0))
+                self.assertIsNotNone(row["firstCause"])
+                self.assertEqual(receipt.read_bytes(),before)
+
+    def test_post_fsync_scan_uses_original_known_identities_and_actual_launcher(self):
+        row=dict(launcher=7,knownProcessIdentities=[dict(pid=8,startTicks=3)])
+        with patch.object(supply.os,"getpid",return_value=7),patch.object(supply.native,"proc_inventory",return_value=({7:dict(startTicks=1)},None)),patch.object(supply.native,"owned_set",return_value={7,8}) as owned:
+            self.assertEqual(supply.post_fsync_owned_closure(row),dict(owned=[7,8],launcherStartTicks=1))
+            owned.assert_called_once_with({7:dict(startTicks=1)},7,known={8:3})
+        with patch.object(supply.os,"getpid",return_value=9),self.assertRaisesRegex(RuntimeError,"actual controller"):
+            supply.post_fsync_owned_closure(row)
 
     def test_default_has_no_execution(self):
         raw = subprocess.check_output([sys.executable, "-B", str(FILE)], timeout=5)
