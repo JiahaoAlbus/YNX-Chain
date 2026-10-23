@@ -24,6 +24,7 @@ node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-mac
 node --test desktop/wallet-identity-v2-caller.test.mjs desktop/wallet-identity-v2-startup.test.mjs
 node --test desktop/native-identity-channel.test.mjs
 node --test desktop/native-identity-ui.test.mjs
+node --test desktop/native-bridge-document-lifetime.test.mjs
 node --test scripts/native-display-locale.test.mjs
 YNX_IDE_PEER_KERNEL_SOURCE="${YNX_DEVELOPER_CANONICAL_SDK_ROOT:-$repo_root/packages/wallet-auth}/src/original-identity-peer-runtime.js" node --test desktop/wallet-identity-peer-bridge.test.mjs
 # Test the normal App consumer against the same selected holder header. The
