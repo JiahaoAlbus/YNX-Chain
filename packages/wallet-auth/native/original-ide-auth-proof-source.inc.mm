@@ -52,21 +52,40 @@
   if(![self pinOriginalIDEProofRuntime:error])return NO;
   const uint64_t after=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);
   if(after<now||after<issued||after>=expires)return [self fail:@"AUTH_IDENTITY_PROOF_READINESS_POST_CURRENT_EXPIRED" error:error];
+  if([request[@"purpose"]isEqual:@"AUTH-IDENTITY-RECEIVE"]){
+   if(_receiveRequestOriginal&&![_receiveRequestOriginal isEqual:raw])return [self fail:@"AUTH_IDENTITY_HELPER_REQUEST_CHANGED" error:error];
+   if(!_receiveRequestOriginal)_receiveRequestOriginal=[raw copy];
+  }
   return YES;
  }
 }
 - (BOOL)assertOriginalIDEIdentityReceiveExecutionAvailable:(NSError **)error {
  @synchronized(self){
   if(![self assertAuthenticatedNativePurpose:error])return NO;
-  // No claimed privileged helper exists. The existing real receiver requires
-  // actual privilege; this preflight prevents prompting when it cannot run.
-  if(!_policy||_policy->purpose!="AUTH-IDENTITY-RECEIVE"||geteuid()!=0||
-   !ynx_auth_private::SourcePublicInstallation::protectedRootAncestors(ynx_auth_ide_private::originalIDERegistryBase(getuid())))return [self fail:@"AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED" error:error];
-  return YES;
+  if(geteuid()!=0){
+   if(!_policy||_policy->purpose!="AUTH-IDENTITY-RECEIVE"||!_receiveRequestOriginal)return [self fail:@"AUTH_IDENTITY_RECEIVE_ORIGINAL_REQUEST_REQUIRED" error:error];
+   NSError*clientError=nil;if(!_helperClient)_helperClient=[YNXIDEHelperClient acquireOriginalNodeClient:&clientError]; // retain same partial FIRST
+   if(clientError||!_helperClient){_invalid=YES;if(!_firstCause)_firstCause=clientError?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_CLIENT_REQUIRED"}];if(error)*error=_firstCause;return NO;}
+   NSDictionary*data=[_helperClient prepareOriginalReceiveRequest:_receiveRequestOriginal error:&clientError];
+   if(clientError||!data){_invalid=YES;if(!_firstCause)_firstCause=clientError?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_PREPARE_UNKNOWN"}];if(error)*error=_firstCause;return NO;}
+   return [self assertOriginalIDEIdentityRequestCurrent:_receiveRequestOriginal invocation:[NSData data] error:error];
+  }
+  // Actual helper Source only. Ordinary Node readiness still needs its normal
+  // authenticated client path; this never elevates the Node or installs a daemon.
+  if(!_policy||_policy->purpose!="AUTH-IDENTITY-RECEIVE"||geteuid()!=0||!_helperPeer)return [self fail:@"AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED" error:error];
+  NSString*base=[_helperPeer copyOriginalUserRegistryBase:error];
+  if(!base||!ynx_auth_private::SourcePublicInstallation::protectedRootAncestors(std::string(base.UTF8String)))return [self fail:@"AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED" error:error];
+  return [_helperPeer assertCurrentMessage:error];
  }
 }
 - (BOOL)verifyOriginalIDEIdentityProof:(NSData *)wire expectedRequest:(NSData *)raw invocation:(NSData *)invocation error:(NSError **)error {
  @synchronized(self){
+  // Preserve exact original returned wire BEFORE readiness/current callbacks.
+  // Two booleans/public projections can never reconstruct this proof.
+  if([wire isKindOfClass:NSData.class]&&wire.length&&wire.length<=262144){
+   if(_receiveProofOriginal&&![_receiveProofOriginal isEqual:wire])return [self fail:@"AUTH_IDENTITY_HELPER_PROOF_CHANGED" error:error];
+   if(!_receiveProofOriginal)_receiveProofOriginal=[wire copy];
+  }
   if(![self assertOriginalIDEIdentityProofConsumerReady:raw error:error])return NO;
   _ideProofSelected=YES; // Select before any proof consumer/callback; never retry.
   if(![wire isKindOfClass:NSData.class]||!wire.length||wire.length>262144||

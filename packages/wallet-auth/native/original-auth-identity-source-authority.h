@@ -37,8 +37,13 @@ struct JointLifecycle {
 #ifdef __OBJC__
 #import <Foundation/Foundation.h>
 @class YNXAuthIdentityCurrentOwner;
+@class YNXIDEHelperMessagePeer;
 @interface YNXAuthIdentitySourceAuthority : NSObject
 + (instancetype)acquireOriginalSource:(NSError **)error;
+// Helper's own independently admitted Source, bound to ONE actual incoming
+// OS message. Peer identity supplies target only, never Source permission.
+// Failure plus nonnil result is the same cleanup partial; capture it first.
++ (instancetype)acquireOriginalHelperSourceForMessagePeer:(YNXIDEHelperMessagePeer*)peer error:(NSError**)error;
 // Derived from actual parent app + actual runtime/node; no caller path.
 + (instancetype)acquireOriginalIDEConsumerSource:(NSError **)error;
 + (instancetype)acquireOriginalIDEParentSource:(NSError **)error;
