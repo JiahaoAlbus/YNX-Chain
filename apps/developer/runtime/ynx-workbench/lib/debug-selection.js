@@ -1,7 +1,7 @@
 // VS Code extensions and keybindings can invoke the familiar command ID.
 // The framework already provides the picker, dynamic providers and compounds.
 class DebugSelectionContribution {
-  constructor(commands, editors, configurations) { Object.assign(this, { commands, editors, configurations }); }
+  constructor(commands, editors, configurations, debugView) { Object.assign(this, { commands, editors, configurations, debugView }); }
   currentFileCommand(debug) {
     const editor = this.editors?.currentEditor?.editor;
     const language = editor?.uri?.scheme === 'file' ? editor.document?.languageId : undefined;
@@ -25,6 +25,12 @@ class DebugSelectionContribution {
     return pair ? pair[Number(debug)] : debug ? 'select.debug.configuration' : 'workbench.action.debug.run';
   }
   registerCommands(registry) {
+    // Extensions use the VS Code view ID in recovery notifications. Opening a
+    // view must stay idempotent: the framework's toggle can hide an open view,
+    // and starting a debugger would repeat the rejected user operation.
+    registry.registerCommand({ id: 'workbench.view.debug' }, {
+      execute: () => this.debugView.openView({ activate: true }),
+    });
     registry.registerCommand({ id: 'workbench.action.debug.selectandstart' }, {
       execute: () => this.commands.executeCommand('select.debug.configuration'),
     });

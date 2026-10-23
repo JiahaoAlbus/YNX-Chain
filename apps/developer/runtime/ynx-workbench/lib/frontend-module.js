@@ -338,6 +338,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(MenuContribution).toService(KeyboardShortcutsContribution);
   bind(CommandContribution).toDynamicValue(context => new DebugSelectionContribution(
     context.container.get(CommandRegistry), context.container.get(EditorManager), context.container.get(DebugConfigurationManager),
+    context.container.get(DebugFrontendApplicationContribution),
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     async onStart() {

@@ -40,3 +40,23 @@ test('current-file Run follows language and explicit Debug preserves launch sele
   configurations.current = undefined; editors.currentEditor.editor.uri.scheme = 'debug';
   assert.equal(contribution.currentFileCommand(true), 'select.debug.configuration');
 });
+
+test('standard debug view action opens and focuses the existing view without toggling or starting a session', async () => {
+  require('reflect-metadata');
+  const { CommandRegistry } = require('@theia/core/lib/common/command');
+  const registry = new CommandRegistry({ getContributions: () => [] });
+  const selected = { name: 'Keep user launch', type: 'lldb-dap' };
+  const configurations = { current: selected };
+  let opened = false, calls = 0;
+  const debugView = { async openView(options) {
+    assert.deepEqual(options, { activate: true }); opened = true; calls++;
+    return 'existing-debug-view';
+  } };
+  new DebugSelectionContribution(registry, {}, configurations, debugView).registerCommands(registry);
+  assert.ok(registry.getCommand('workbench.view.debug'), 'notification command must be registered');
+  assert.equal(await registry.executeCommand('workbench.view.debug'), 'existing-debug-view');
+  assert.equal(await registry.executeCommand('workbench.view.debug'), 'existing-debug-view');
+  assert.equal(opened, true); assert.equal(calls, 2);
+  assert.equal(configurations.current, selected);
+  assert.equal(registry.getCommand('workbench.action.debug.start'), undefined, 'opening the view must not need a debugger or run command');
+});
