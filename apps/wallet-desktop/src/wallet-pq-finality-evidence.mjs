@@ -26,14 +26,25 @@ export const PQ_FINALITY_EVIDENCE_LIMITS=Object.freeze({
 const limits=PQ_FINALITY_EVIDENCE_LIMITS;
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+function httpMetadata(value){
+ if(types.isProxy(value))fail('PQ_FINALITY_EVIDENCE_INVALID');
+ exactData(value,['method','requestPath','contentType','cacheControl'],'PQ_FINALITY_EVIDENCE_INVALID');
+ if(value.method!=='GET'||typeof value.requestPath!=='string'||!/^\/txs\/0x[0-9a-f]{64}\/pq-action-finality-proof$/.test(value.requestPath))fail('PQ_FINALITY_EVIDENCE_INVALID');
+ // Preserve observed headers, even a bounded invalid value, for later parsing;
+ // never manufacture accepted content/cache headers during cold recovery.
+ for(const name of ['contentType','cacheControl'])if(typeof value[name]!=='string'||Buffer.byteLength(value[name])>1024)fail('PQ_FINALITY_EVIDENCE_INVALID');
+ return Object.freeze({...value});
+}
 async function readExactly(handle,length){const bytes=Buffer.alloc(length);let offset=0;while(offset<length){const result=await handle.read(bytes,offset,length-offset,null);if(!result.bytesRead)fail('PQ_FINALITY_EVIDENCE_UNVERIFIED');offset+=result.bytesRead;}return bytes;}
 function reference(value){
  if(types.isProxy(value))fail('PQ_FINALITY_EVIDENCE_INVALID');
  const status=Object.hasOwn(value??{},'httpStatus');
- exactData(value,['eventId','attemptId','kind','bytes','sha256',...(status?['httpStatus']:[])],'PQ_FINALITY_EVIDENCE_INVALID');
+ const http=Object.hasOwn(value??{},'http');
+ exactData(value,['eventId','attemptId','kind','bytes','sha256',...(status?['httpStatus']:[]),...(http?['http']:[])],'PQ_FINALITY_EVIDENCE_INVALID');
  if(typeof value.eventId!=='string'||typeof value.attemptId!=='string'||typeof value.kind!=='string'||typeof value.sha256!=='string'||!uuid.test(value.eventId)||!uuid.test(value.attemptId)||!Object.hasOwn(limits,value.kind)||!Number.isSafeInteger(value.bytes)||value.bytes<0||value.bytes>limits[value.kind]||! /^[a-f0-9]{64}$/.test(value.sha256))fail('PQ_FINALITY_EVIDENCE_INVALID');
  if(status&&(value.kind!=='collector-http'||![200,202,502].includes(value.httpStatus)))fail('PQ_FINALITY_EVIDENCE_INVALID');
- return Object.freeze({...value});
+ if(http&&(!status||value.kind!=='collector-http'))fail('PQ_FINALITY_EVIDENCE_INVALID');
+ return Object.freeze({...value,...(http?{http:httpMetadata(value.http)}:{})});
 }
 export {reference as parsePQFinalityEvidenceReference};
 function identity(original,binding){
@@ -109,7 +120,12 @@ export class PQFinalityEvidence {
  async append(original,binding,kind,bytes,transport=null){
   if(this.#held||this.#active)fail('PQ_FINALITY_EVIDENCE_UNCONFIRMED');
   const owner=identity(original,binding);
-  let extra={};if(transport!==null){if(types.isProxy(transport))fail('PQ_FINALITY_EVIDENCE_INVALID');exactData(transport,['httpStatus'],'PQ_FINALITY_EVIDENCE_INVALID');if(kind!=='collector-http'||![200,202,502].includes(transport.httpStatus))fail('PQ_FINALITY_EVIDENCE_INVALID');extra={httpStatus:transport.httpStatus};}
+  let extra={};if(transport!==null){
+   if(types.isProxy(transport))fail('PQ_FINALITY_EVIDENCE_INVALID');const http=Object.hasOwn(transport,'http');
+   exactData(transport,['httpStatus',...(http?['http']:[])],'PQ_FINALITY_EVIDENCE_INVALID');
+   if(kind!=='collector-http'||![200,202,502].includes(transport.httpStatus))fail('PQ_FINALITY_EVIDENCE_INVALID');extra={httpStatus:transport.httpStatus};
+   if(http){const observed=httpMetadata(transport.http);if(owner.kind!=='pq-typed-action'||observed.requestPath!=='/txs/'+owner.abciTransactionHash+'/pq-action-finality-proof')fail('PQ_FINALITY_EVIDENCE_BINDING_MISMATCH');extra.http=observed;}
+  }
   if(typeof kind!=='string'||!Object.hasOwn(limits,kind)||types.isProxy(bytes)||!types.isUint8Array(bytes)||![Uint8Array.prototype,Buffer.prototype].includes(Object.getPrototypeOf(bytes))||['buffer','byteLength','byteOffset','length'].some(key=>Object.hasOwn(bytes,key))||types.isSharedArrayBuffer(bytes.buffer)||bytes.byteLength>limits[kind])fail('PQ_FINALITY_EVIDENCE_INVALID');
   const body=Buffer.from(bytes);this.#held={owner,kind,body,extra,eventId:randomUUID(),sha256:sha(body),lastAttempt:null,causePresent:false,cause:undefined};
   return this.flush(this.#held.eventId);

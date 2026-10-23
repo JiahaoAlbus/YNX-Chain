@@ -37,7 +37,9 @@ test('typed finality raw evidence uses exact dual-hash identity and survives col
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-typed-proof-custody-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
  const evidence=new PQFinalityEvidence({directory}),binding={account:record.account,networkId:record.typed.networkId};
  const bytes=Buffer.from('synthetic unparsed collector response'),expected=Buffer.from(bytes);
- const saving=evidence.append(record,binding,'collector-http',bytes,{httpStatus:202});bytes.fill(0);const ref=await saving;
+ const http={method:'GET',requestPath:'/txs/'+record.hash+'/pq-action-finality-proof',contentType:'application/json; charset=utf-8',cacheControl:'no-store'},observed={...http};
+ const saving=evidence.append(record,binding,'collector-http',bytes,{httpStatus:202,http});bytes.fill(0);http.cacheControl='mutated';const ref=await saving;
+ assert.deepEqual(ref.http,observed);assert.equal(Object.isFrozen(ref.http),true);
  const cold=new PQFinalityEvidence({directory});assert.deepEqual(await cold.read(record,binding,ref),expected);
  assert.deepEqual(await cold.candidates(record,binding),{candidates:[ref],unreadable:0});
  assert.equal(ref.consensusFinality,undefined);assert.equal(ref.permissionGranted,undefined);
@@ -54,13 +56,23 @@ test('typed finality storage failure holds exact bytes and first cause until exp
  let fault=true;const io={...fs,open:async(...args)=>{if(fault&&typeof args[1]==='number'&&(args[1]&constants.O_CREAT))throw false;return fs.open(...args);}};
  const evidence=new PQFinalityEvidence({directory,io}),binding={account:record.account,networkId:record.typed.networkId};
  const bytes=Buffer.from('synthetic typed response arriving after lock'),expected=Buffer.from(bytes);
- await assert.rejects(evidence.append(record,binding,'collector-http',bytes,{httpStatus:202}),e=>e.cause===false);bytes.fill(0);
+ const http={method:'GET',requestPath:'/txs/'+record.hash+'/pq-action-finality-proof',contentType:'observed-invalid-type',cacheControl:'observed-invalid-cache'};
+ await assert.rejects(evidence.append(record,binding,'collector-http',bytes,{httpStatus:202,http}),e=>e.cause===false);bytes.fill(0);
  const held=evidence.pending();assert.equal(held.causePresent,true);assert.throws(()=>evidence.assertSafeToClose());
  await assert.rejects(evidence.append(record,binding,'collector-http',Buffer.from('replacement'),{httpStatus:200}));
  assert.equal(evidence.pending().eventId,held.eventId);fault=false;
  const ref=await evidence.flush(held.eventId),cold=new PQFinalityEvidence({directory});
- assert.deepEqual(await cold.read(record,binding,ref),expected);assert.equal(ref.httpStatus,202);assert.equal(evidence.pending(),null);
+ assert.deepEqual(await cold.read(record,binding,ref),expected);assert.equal(ref.httpStatus,202);assert.deepEqual(ref.http,http);assert.equal(evidence.pending(),null);
  evidence.assertSafeToClose();assert.equal(record.status,'signed-unsubmitted');
+});
+test('typed finality HTTP metadata cannot substitute Member hash or execute header accessors',async t=>{
+ const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-typed-proof-http-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
+ const evidence=new PQFinalityEvidence({directory}),binding={account:record.account,networkId:record.typed.networkId};let hits=0;
+ const http={method:'GET',requestPath:'/txs/'+record.hash+'/pq-action-finality-proof',contentType:'application/json',cacheControl:'no-store'};
+ await assert.rejects(evidence.append(record,binding,'collector-http',Buffer.from('DATA'),{httpStatus:202,http:{...http,requestPath:'/txs/'+record.typed.memberHash+'/pq-action-finality-proof'}}));
+ const exotic={...http};Object.defineProperty(exotic,'cacheControl',{enumerable:true,get(){hits++;throw Error('must not run')}});
+ await assert.rejects(evidence.append(record,binding,'collector-http',Buffer.from('DATA'),{httpStatus:202,http:exotic}));
+ assert.equal(hits,0);assert.equal(evidence.pending(),null);assert.deepEqual(await fs.readdir(directory),[]);
 });
 test('normal Main journal retains exact typed raw/review/two snapshots and cold query never calls a sender or latest policy',async t=>{
  const f=await setup(t),account=record.account;await f.store.reserveOriginal(account,record.kind);f.store.captureOriginal(account,record,record.kind);await f.store.saveOriginal(account,record.hash,()=>{});
