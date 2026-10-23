@@ -12,6 +12,7 @@ const labels = Object.freeze({
   throughRevision: "包含待生效密钥的撤销范围 / Revoke through pending revision",
   executionHeight: "审查执行高度 / Reviewed execution height",
   typedReview: "完整原 PQ 操作、网络、费用、nonce 和密钥版本 / Exact original PQ action, network, fee, nonce and key revision",
+  deployment: "部署源码及编译材料的字节数和 SHA-256（尚待 Go 认证） / Deployment material sizes and SHA-256 (Go authentication still required)",
   revokeAt: "撤销生效高度 / Revocation effective height",
 });
 

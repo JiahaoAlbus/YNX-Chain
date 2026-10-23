@@ -48,3 +48,10 @@ test('SDK332 cleanup successor binds its distinct auth3 manifest without changin
  assert.equal(relocateDesktopRuntimeSource(file,Buffer.from(Array(3).fill(load).join(';')),version).operands[0].count,3);
  assert.throws(()=>relocateDesktopRuntimeSource(file,Buffer.from(Array(2).fill(load).join(';')),version),/count differs/);
 });
+test('SDK332 deployment successor selects auth4 runtime and unchanged triple Native loads',()=>{
+ const version='1.3.0-pq.3.32-auth.4';
+ assert.deepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],{bytes:65919,sha256:'d104b6f1670a60014fcae0470d8bc6e108cdbb2cb86deba30db8e7b9d067ae30'});
+ const file='packages/wallet-auth/src/original-ide-admission-parent-delivery.js',load="new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)";
+ assert.equal(relocateDesktopRuntimeSource(file,Buffer.from(Array(3).fill(load).join(';')),version).operands[0].count,3);
+ assert.throws(()=>relocateDesktopRuntimeSource(file,Buffer.from(Array(2).fill(load).join(';')),version),/count differs/);
+});

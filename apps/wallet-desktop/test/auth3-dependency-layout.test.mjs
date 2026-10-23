@@ -12,7 +12,7 @@ import {canonicalArchivePlan,SDK_ALIAS} from '../scripts/canonical-package.mjs';
 const prefix='code/packages/wallet-auth/node_modules/';
 const relative=p=>p.startsWith('@noble/ciphers/')?'@noble/post-quantum/node_modules/'+p:p;
 const dependencyRoot=process.env.PROVENANCE_SDK_DEPENDENCY_ROOT??fileURLToPath(new URL('../../../packages/wallet-auth/node_modules/',import.meta.url));
-function fixture(t){
+function fixture(t,version='1.3.0-pq.3.32-auth.3'){
  const root=mkdtempSync(path.join(tmpdir(),'wallet-auth3-dependency-'));
  t.after(()=>rmSync(root,{recursive:true,force:true}));
  const put=(name,bytes)=>{const file=path.join(root,name);mkdirSync(path.dirname(file),{recursive:true});writeFileSync(file,bytes);};
@@ -21,7 +21,7 @@ function fixture(t){
  const sdk=JSON.parse(readFileSync(new URL('../../../packages/wallet-auth/package.json',import.meta.url)));
  // Match the actual recipe: baseline source descriptor plus locked successor.
  put('packages/wallet-auth/package.json',JSON.stringify({...sdk,version:'1.3.0-pq.3.18'}));
- put('apps/wallet-desktop/package-lock.json',JSON.stringify({packages:{'../../packages/wallet-auth':{version:'1.3.0-pq.3.32-auth.3'}}}));
+ put('apps/wallet-desktop/package-lock.json',JSON.stringify({packages:{'../../packages/wallet-auth':{version}}}));
  // Frozen public bytes only; reproduce npm's distinct root and PQ-local graphs.
  for(const pin of manifest.files)put('packages/wallet-auth/node_modules/'+relative(pin.path),readFileSync(path.join(dependencyRoot,relative(pin.path))));
  const outer=Buffer.from('{"name":"@noble/ciphers","version":"1.3.0","main":"index.js"}');
@@ -59,4 +59,10 @@ test('auth3 refuses a damaged nested leaf and never falls back to a valid flat c
  const damaged=Buffer.from(good);damaged[damaged.length-1]^=1;
  f.put('packages/wallet-auth/node_modules/'+relative(pin.path),damaged);
  assert.throws(()=>walletAuthDependencyPlan(f.root,f.commit),/SDK_RUNTIME_DEPENDENCY_INPUT_DIFFERS:@noble\/ciphers\/package.json/);
+});
+test('auth4 preserves nested ciphers instead of selecting the incompatible flat root graph',t=>{
+ const f=fixture(t,'1.3.0-pq.3.32-auth.4'),plan=walletAuthDependencyPlan(f.root,f.commit);
+ assert.equal(plan.rows.length,316);
+ assert.equal(plan.contents.has(prefix+'@noble/ciphers/package.json'),false);
+ assert.equal(JSON.parse(plan.contents.get(prefix+'@noble/post-quantum/node_modules/@noble/ciphers/package.json')).version,'2.2.0');
 });

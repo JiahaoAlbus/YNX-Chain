@@ -18,6 +18,7 @@ import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
 import {registerHooks} from 'node:module';
 import {createPUBLICPeer} from './wallet-pq-typed-auth-peer.fixture.mjs';
 import {AsyncLocalStorage} from 'node:async_hooks';
+import {gunzipSync} from 'node:zlib';
 import {runInNewContext} from 'node:vm';
 import {createPQTransactionSubmission} from '../src/features/pq-transaction/submission.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from '../src/features/pq-transaction/typed-action-reviewed-transport.mjs';
@@ -93,6 +94,32 @@ test('typed cancel and absent classic witness never enter keys or accept rendere
  for(const kind of ['stake_delegate','stake_unbond','stake_withdraw'])await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTypedAction({...f.action,kind})),e=>e.data?.code==='PQ_TYPED_CLASSIC_ORIGINALS_NOT_SUPPLIED');
  await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTypedAction({...f.action,kind:'contract_deploy'})),e=>e.data?.code==='PQ_TYPED_DEPLOYMENT_MATERIAL_NOT_SUPPLIED');
  assert.equal(f.counts.source,0);const response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));assert.throws(()=>f.authority.reject(response.request.id));await f.authority.shutdownPQReviews();assert.equal(f.counts.sign,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
+});
+test('Main deployment review captures compiler materials before custody and retains complete signed original',async t=>{
+ const f=await fixture(t),publicData=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/contract-deployment-fbec-original.json.gz',import.meta.url)),{maxOutputLength:4<<20}));
+ const material=Object.fromEntries(publicData.files.filter(x=>x.role!=='source').map(x=>[x.role,Buffer.from(x.bytes,'base64')]));
+ const action={kind:'contract_deploy',fee:'10',payload:publicData.payload,deployment:{source:publicData.source,material}};
+ const response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(action));
+ assert.equal(f.counts.sign,0);assert.equal(response.request.review.deployment.compilerMaterialValidationRequired,true);
+ const expected=createHash('sha256').update(material.artifactFile).digest('hex');assert.equal(response.request.review.deployment.artifactFile.sha256,expected);
+ material.artifactFile.fill(0);
+ await f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule));
+ const [record]=await new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')}).readPQOriginals(f.account,()=>{});
+ const network={chainId:input.chainId,nativeChainId:'6423',owner:f.account};
+ const read=inspectPQReviewedTypedTransportOriginal(record.typed.review,Buffer.from(record.wire,'base64url'),{reviewSnapshot:parsePQAccountAuthorization(record.typed.reviewSnapshot,network),signingSnapshot:parsePQAccountAuthorization(record.typed.signingSnapshot,network),selectedBinding:{account:f.account,networkId:input.chainId},memberHash:record.typed.memberHash,transportHash:record.hash});
+ assert.equal(createHash('sha256').update(read.material.artifactFile).digest('hex'),expected);assert.equal(read.source,publicData.source);assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);
+ await assert.rejects(f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule)));assert.equal(f.counts.sign,1);
+});
+test('deployment material capacity and focus-loss refuse before synthetic signing or reservation',async t=>{
+ const f=await fixture(t),data=JSON.parse(gunzipSync(readFileSync(new URL('../src/features/pq-transaction/fixtures/contract-deployment-fbec-original.json.gz',import.meta.url)),{maxOutputLength:4<<20}));
+ const material=Object.fromEntries(data.files.filter(x=>x.role!=='source').map(x=>[x.role,Buffer.from(x.bytes,'base64')]));
+ const action={kind:'contract_deploy',fee:'10',payload:data.payload,deployment:{source:data.source,material}};
+ await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTypedAction({...action,deployment:{source:data.source,material:{...material,buildInfoFile:Buffer.alloc(200000,65)}}})),e=>e.data?.code==='PQ_TYPED_ORIGINAL_CAPACITY');
+ assert.equal(f.counts.sign,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
+ const response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(action));f.lifecycle.setFocused(false);f.lifecycle.setFocused(true);
+ await f.lifecycle.unlock({password:PASSWORD});
+ await assert.rejects(f.lifecycle.run(()=>f.authority.approve(response.request.id,f.capsule)));
+ assert.equal(f.counts.sign,0);assert.equal(f.counts.posts,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
 });
 test('actual Auth factory and typed kernel consume actual Main private borrow and SDK sign once (PUBLIC Electron only)',async t=>{
  const f=await fixture(t,{actualFactory:true}),response=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action)),capsule=f.capsuleFor(response.request.id);

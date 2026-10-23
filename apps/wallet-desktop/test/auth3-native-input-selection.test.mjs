@@ -27,3 +27,11 @@ test('historical Native receipt input sets are retained without substituting aut
  const plan=canonicalNativeInputSelection('1.3.0-pq.3.18',historical,null,[]);
  assert.deepEqual(plan.inputs,historical);assert.deepEqual(plan.evidenceAssets,CANONICAL_NATIVE_EVIDENCE_TESTS);
 });
+test('auth4 selects its own exact inventory while retaining all55 original Native inputs',()=>{
+ const raw=readFileSync(new URL('./fixtures/sdk332-auth4-native55.json',import.meta.url)),current=JSON.parse(raw);
+ assert.deepEqual(current.NativeInputs,inventory.NativeInputs);
+ const plan=canonicalNativeInputSelection(current.version,names(),raw,pins());
+ assert.equal(plan.inputs.length,55);assert.equal(plan.inventory.sha256,'e1955ad13cd5187ef4672c34619a48c94bc12120dda393ed950ba19adcb47bf7');
+ assert.throws(()=>canonicalNativeInputSelection(current.version,names(),bytes,pins()),/inventory differs/);
+ assert.throws(()=>canonicalNativeInputSelection(version,names(),raw,pins()),/inventory differs/);
+});
