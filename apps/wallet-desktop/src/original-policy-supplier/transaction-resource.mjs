@@ -1,16 +1,19 @@
 import {parsePQAccountAuthorization,assertPQAuthorizationCurrent} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {CANONICAL_NETWORK_ID,openNormalOperatorSource} from './operator-query.mjs';
+import {captureCometPolicyObservation} from './comet-projection.mjs';
 const supplied=new WeakSet(),fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>{if(!v||typeof v!=='object'||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).some(k=>typeof k!=='string'||!Object.hasOwn(Object.getOwnPropertyDescriptor(v,k),'value')||!Object.getOwnPropertyDescriptor(v,k).enumerable)||Reflect.ownKeys(v).sort().join('|')!==[...keys].sort().join('|'))fail('AUTH_TX_POLICY_SCHEMA');};
 const time=v=>{if(typeof v!=='string'||!Number.isFinite(Date.parse(v))||new Date(Date.parse(v)).toISOString()!==v)fail('AUTH_TX_POLICY_TIME');return Date.parse(v);};
 const req=v=>{exact(v,['networkId','nativeChainId','owner','operation','at']);if(v.networkId!==CANONICAL_NETWORK_ID||v.nativeChainId!=='6423'||typeof v.owner!=='string'||!/^0x[0-9a-f]{40}$/.test(v.owner)||!['transfer','migration','revocation','typed-action'].includes(v.operation))fail('AUTH_TX_POLICY_BINDING');time(v.at);return Object.freeze({...v});};
 function packet(raw,expected,now){
  if(typeof raw!=='string'||Buffer.byteLength(raw)>8*1024*1024)fail('AUTH_TX_POLICY_BYTES');let v;try{v=JSON.parse(raw);}catch{fail('AUTH_TX_POLICY_BYTES');}
- exact(v,['version','networkId','nativeChainId','canonicalOwner','authorization','observedAt','expiresAt']);
- if(v.version!=='YNX-WALLET-TRANSACTION-POLICY/v1'||v.networkId!==expected.networkId||v.nativeChainId!==expected.nativeChainId||v.canonicalOwner!==expected.owner)fail('AUTH_TX_POLICY_BINDING');
+ const comet=v?.version==='YNX-WALLET-TRANSACTION-POLICY/v2';
+ exact(v,['version','networkId','nativeChainId','canonicalOwner','authorization','observedAt','expiresAt',...(comet?['observation']:[])]);
+ if(!['YNX-WALLET-TRANSACTION-POLICY/v1','YNX-WALLET-TRANSACTION-POLICY/v2'].includes(v.version)||v.networkId!==expected.networkId||v.nativeChainId!==expected.nativeChainId||v.canonicalOwner!==expected.owner)fail('AUTH_TX_POLICY_BINDING');
  if(time(v.observedAt)<time(expected.at)||time(v.observedAt)>now||time(v.expiresAt)<=time(v.observedAt)||now>=time(v.expiresAt))fail('AUTH_TX_POLICY_EXPIRED');
  const authorization=parsePQAccountAuthorization(v.authorization,{chainId:v.networkId,nativeChainId:v.nativeChainId,owner:v.canonicalOwner});
- return Object.freeze({version:v.version,networkId:v.networkId,nativeChainId:v.nativeChainId,canonicalOwner:v.canonicalOwner,authorization,observedAt:v.observedAt,expiresAt:v.expiresAt});
+ const observation=comet?captureCometPolicyObservation(v.observation,authorization):null;
+ return Object.freeze({version:v.version,networkId:v.networkId,nativeChainId:v.nativeChainId,canonicalOwner:v.canonicalOwner,authorization,...(observation?{observation}:{}),observedAt:v.observedAt,expiresAt:v.expiresAt});
 }
 // PUBLIC test kernel isn't a normal original. Only the fixed factory below
 // brands successfully captured resources. No signer or planner is implemented.
@@ -32,6 +35,8 @@ export class TransactionPolicyResourceKernel{
   this.assertCurrent();if(this.#checking)fail('AUTH_TX_POLICY_RECHECK_PENDING');this.#checking=true;const p=Promise.resolve().then(async()=>{
    this.assertCurrent();const raw=await this.#source.recheck(this.#request,this.#original);if(typeof raw==='string'&&Buffer.byteLength(raw)<=8*1024*1024)this.#refreshRaw=raw;this.assertCurrent();
    const fresh=packet(raw,this.#request,this.#now());assertPQAuthorizationCurrent(this.#original.authorization,fresh.authorization);
+   const prior=this.#original.observation,next=fresh.observation;
+   if(!!prior!==!!next||prior&&(BigInt(next.committedHeight)<BigInt(prior.committedHeight)||next.committedHeight===prior.committedHeight&&next.committedAppHash!==prior.committedAppHash))fail('AUTH_TX_POLICY_COMET_STATE_CHANGED');
    if(time(fresh.observedAt)<time(this.#original.observedAt)||time(fresh.expiresAt)>this.#deadline)fail('AUTH_TX_POLICY_CHANGED');this.#deadline=Math.min(this.#deadline,time(fresh.expiresAt));this.assertCurrent();return undefined;
   });try{return await this.#track(p);}catch(e){this.#remember(e);throw e;}finally{this.#checking=false;}
  }

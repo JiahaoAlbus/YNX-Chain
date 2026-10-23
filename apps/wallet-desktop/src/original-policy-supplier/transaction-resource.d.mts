@@ -4,7 +4,9 @@ export interface WalletTransactionPolicyRequest{
  readonly operation:'transfer'|'migration'|'revocation' | 'typed-action';readonly at:string;
 }
 export interface WalletTransactionPolicyOriginal{
- readonly version:'YNX-WALLET-TRANSACTION-POLICY/v1';readonly networkId:string;readonly nativeChainId:'6423';readonly canonicalOwner:string;
+ readonly version:'YNX-WALLET-TRANSACTION-POLICY/v1'|'YNX-WALLET-TRANSACTION-POLICY/v2';readonly networkId:string;readonly nativeChainId:'6423';readonly canonicalOwner:string;
+ /** v2 node observation DATA only; never a native durable/block checkpoint. */
+ readonly observation?:Readonly<{kind:'comet-node-observed-app-state/v1';source:'comet-rpc';recordsView:'committed';committedHeight:string;committedAppHash:string;independentFinality:false}>;
  /** Complete sole-SDK snapshot, including pending records and v2 tombstones.
   * executionHeight is verified next H; ledgerNonce is not a signing approval. */
  readonly authorization:PQAuthorizationSnapshot;readonly observedAt:string;readonly expiresAt:string;

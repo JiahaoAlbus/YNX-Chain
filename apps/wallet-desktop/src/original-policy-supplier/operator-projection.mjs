@@ -1,6 +1,8 @@
 // Source-owned RPC metadata checks. The sole SDK owns core policy/revocation
 // interpretation; this module never drops a nonempty owner tombstone.
 import {parsePQAccountAuthorization, inspectPQAuthorizationView} from '@ynx-chain/wallet-auth/pq-wallet-policy';
+import {types} from 'node:util';
+import {inspectCometOperatorProjection} from './comet-projection.mjs';
 export const CANONICAL_NETWORK_ID = '16366ff25bcc73c6bb95d12733be74d1ac885d3daf518ddd0e4bd4438cff243f';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const hex = v => typeof v === 'string' && /^[0-9a-f]{64}$/.test(v);
@@ -16,8 +18,9 @@ const additive = [...statusMetadata, 'revocations'];
 const version1 = 'YNX-ACCOUNT-POLICY/v1', version2 = 'YNX-ACCOUNT-POLICY/v2';
 
 export function inspectOperatorProjection(body, owner) {
-  if (!body || Object.getPrototypeOf(body) !== Object.prototype ||
+  if (!body || types.isProxy(body) || Object.getPrototypeOf(body) !== Object.prototype ||
       Reflect.ownKeys(body).some(k => typeof k !== 'string' || !Object.hasOwn(Object.getOwnPropertyDescriptor(body, k), 'value') || !Object.getOwnPropertyDescriptor(body, k).enumerable)) fail('AUTH_POLICY_QUERY_SCHEMA');
+  if(body.source==='comet-rpc')return inspectCometOperatorProjection(body,owner,CANONICAL_NETWORK_ID);
   const newMetadata = additive.some(k => Object.hasOwn(body, k));
   if (newMetadata && !additive.every(k => Object.hasOwn(body, k))) fail('AUTH_POLICY_QUERY_INCOMPLETE');
   const v2 = body.policyVersion === version2;
