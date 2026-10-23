@@ -13,6 +13,7 @@ cp scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$repo/scrip
 cp scripts/verify/validate-production-custody-review.mjs "$repo/scripts/verify/"
 cp scripts/verify/validate-owner-handover-receipt.mjs "$repo/scripts/verify/"
 cp scripts/verify/lib/owner-handover.mjs "$repo/scripts/verify/lib/"
+cp scripts/verify/lib/public-bft-native-source.mjs "$repo/scripts/verify/lib/"
 git -C "$repo" init -q -b main
 git -C "$repo" add scripts
 git -C "$repo" -c user.name='YNX self test' -c user.email='self-test@localhost' commit -q -m 'cutover fixture'
@@ -83,6 +84,32 @@ assert.equal(evidence.status,0,evidence.stderr);
 const forwarded=JSON.parse(evidence.stdout);
 for(const field of fields)assert.equal(forwarded[field],raw[field],`CUTOVER_APPROVAL_EVIDENCE_PIN_DROPPED: ${field}`);
 assert.deepEqual(forwarded,{...projected,validated:true});
+// Preserve the original all-or-none native group through both real approval
+// readers. No frozen state hash/H exists in this stable-paths preflight input.
+const native={authoritativeCommit:'65efa82e06158f9616172144c3c9efdd8088f227',authoritativeRelease:'ynx-network-surgical-65efa82e0615',authoritativeBinarySha256:'b'.repeat(64),authoritativeSource:{statePath:'/var/lib/ynx-chain/testnet/devnet-state.json',integrityMarkerPath:'/var/lib/ynx-chain/testnet/devnet-state.integrity-version',pauseMarkerPath:'/var/lib/ynx-chain/block-production-pause.json',mutationMarkerPath:'/var/lib/ynx-chain/mutation-freeze.json'}};
+for(const [stage,script,base,extra] of [['raw',first,raw,[custody]],['evidence',second,projected,[]]]){
+  const file=path.join(tmp,`${stage}-native-positive.json`),value={...base,...native};
+  fs.writeFileSync(file,JSON.stringify(value)+'\n',{flag:'wx',mode:0o600});
+  const accepted=call(script,file,extra);assert.equal(accepted.status,0,accepted.stderr);
+  const result=JSON.parse(accepted.stdout);for(const key of Object.keys(native))assert.deepEqual(result[key],native[key]);
+  assert.equal(result.commit,commit);assert.equal(result.release,release);
+  for(const [name,change]of [
+    ...Object.keys(native).map(key=>['missing-'+key,x=>delete x[key]]),
+    ['short-commit',x=>x.authoritativeCommit=x.authoritativeCommit.slice(0,12)],
+    ['wrong-release',x=>x.authoritativeRelease='ynx-chain-'+commit],
+    ['zero-binary',x=>x.authoritativeBinarySha256='0'.repeat(64)],
+    ['uppercase-binary',x=>x.authoritativeBinarySha256='A'.repeat(64)],
+    ['future-state-required',x=>x.authoritativeSource.height='100'],
+    ['missing-marker',x=>delete x.authoritativeSource.pauseMarkerPath],
+    ['dot-path',x=>x.authoritativeSource.statePath='/original/../devnet-state.json'],
+    ['conflicting-marker',x=>x.authoritativeSource.pauseMarkerPath=x.authoritativeSource.mutationMarkerPath],
+  ]){
+    const bad=JSON.parse(JSON.stringify(value));change(bad);
+    const p=path.join(tmp,`${stage}-native-${name}.json`),bytes=JSON.stringify(bad)+'\n';
+    fs.writeFileSync(p,bytes,{flag:'wx',mode:0o600});const rejected=call(script,p,extra);
+    assert.notEqual(rejected.status,0,`${stage} accepted ${name}`);assert.equal(rejected.stdout,'');assert.equal(fs.readFileSync(p,'utf8'),bytes);
+  }
+}
 const invalid=[['missing',undefined],['empty',''],['zero','0'.repeat(64)],['uppercase','A'.repeat(64)],['short','a'.repeat(63)],['whitespace',' '+raw.operatorPlanSha256],['array',[raw.operatorPlanSha256]],['number',123],['null',null]];
 for(const [stage,script,base,extra] of [['raw',first,raw,[custody]],['evidence',second,projected,[]]]){
   for(const field of fields){
@@ -508,6 +535,72 @@ fi
 [[ -L "$tmp/evidence/retained-transaction-link" && "$(readlink "$tmp/evidence/retained-transaction-link")" == absent-original-transaction ]]
 [[ ! -e "$tmp/evidence/absent-original-transaction" ]]
 cmp "$state" "$baseline" >/dev/null
+
+# Execute the actual two-phase transaction caller. The existing external
+# driver is the isolated state-machine fixture above, not a node or approval
+# oracle. These cases cannot establish deployed consensus or a public root.
+node --input-type=module - "$repo" "$tmp" "$custody_review" "$state" "$baseline" <<'NODE'
+import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import {spawnSync} from 'node:child_process';
+const [repo,tmp,custody,state,baseline]=process.argv.slice(2),raw=JSON.parse(fs.readFileSync(path.join(tmp,'approval.json')));
+const full='65efa82e06158f9616172144c3c9efdd8088f227',stable={authoritativeCommit:full,authoritativeRelease:'ynx-network-surgical-'+full.slice(0,12),authoritativeBinarySha256:'b'.repeat(64),authoritativeSource:{statePath:'/var/lib/ynx-chain/testnet/devnet-state.json',integrityMarkerPath:'/var/lib/ynx-chain/testnet/devnet-state.integrity-version',pauseMarkerPath:'/var/lib/ynx-chain/block-production-pause.json',mutationMarkerPath:'/var/lib/ynx-chain/mutation-freeze.json'}};
+const prep={...raw,...stable,preparationOnly:true};delete prep.snapshotSourceSha256;
+const final={...prep,snapshotSourceSha256:raw.snapshotSourceSha256};delete final.preparationOnly;
+const write=(p,v)=>fs.writeFileSync(p,JSON.stringify(v)+'\n',{flag:'wx',mode:0o600});
+const prepPath=path.join(tmp,'native-preparation.json'),finalPath=path.join(tmp,'native-final.json');write(prepPath,prep);write(finalPath,final);
+const tx=id=>path.join(tmp,'evidence',id);
+function call(id,mode,approval,extra={}){
+  return spawnSync('bash',['scripts/ops/public-bft-cutover-transaction.sh'],{cwd:repo,encoding:'utf8',maxBuffer:1<<20,env:{...process.env,PUBLIC_BFT_CUTOVER_MODE:mode,PUBLIC_BFT_CUTOVER_APPROVED:'yes',PUBLIC_BFT_CUTOVER_APPROVAL_FILE:approval,PUBLIC_BFT_CUSTODY_REVIEW_FILE:custody,PUBLIC_BFT_PRODUCTION_INITIALIZATION_APPROVED:'yes',PUBLIC_BFT_CUTOVER_DRIVER:path.join(tmp,'driver'),PUBLIC_BFT_CUTOVER_EVIDENCE_DIR:path.join(tmp,'evidence'),PUBLIC_BFT_CUTOVER_TRANSACTION_ID:id,CUTOVER_TEST_STATE:state,CUTOVER_TEST_BASELINE:baseline,...extra}});
+}
+const phases=['preflight','backup','freeze_mutations','pause_authoritative'];
+function prepare(id){fs.copyFileSync(baseline,state);const p=call(id,'prepare-native',prepPath);assert.equal(p.status,0,p.stderr);assert.match(p.stdout,/awaiting_final_snapshot_authorization/);assert.ok(!p.stdout.includes('transaction passed'));assert.deepEqual(fs.readFileSync(path.join(tx(id),'driver-calls.txt'),'utf8').trim().split('\n'),phases);assert.ok(fs.readFileSync(state,'utf8').includes('authoritative=paused\n'));assert.ok(fs.readFileSync(state,'utf8').includes('frozen=true\n'));assert.equal(fs.existsSync(path.join(tx(id),'approval.json')),false);assert.equal(fs.existsSync(path.join(tx(id),'candidate')),false);assert.deepEqual(fs.readFileSync(path.join(tx(id),'preparation-approval.original.json')),fs.readFileSync(prepPath));return tx(id);}
+function snapshot(dir){return ['preparation-approval.json','preparation-approval.original.json','journal.jsonl','driver-calls.txt'].map(name=>[path.join(dir,name),fs.readFileSync(path.join(dir,name))]);}
+const unchanged=items=>items.forEach(([file,bytes])=>assert.deepEqual(fs.readFileSync(file),bytes));
+const good=prepare('native-two-phase-positive'),before=snapshot(good),prefix=fs.readFileSync(path.join(good,'journal.jsonl'));
+// The real native context must qualify stable paths before a final source file
+// or hash exists, and must forbid candidate/export/ingress under preparation.
+const sourceDriver=fs.readFileSync(path.join(process.cwd(),'scripts/ops/public-bft-production-driver.sh'),'utf8');
+const context=sourceDriver.match(/^public_bft_native_context\(\) \{\n[\s\S]*?^\}/m)?.[0];assert.ok(context);
+const contextScript=path.join(tmp,'native-context.sh');fs.writeFileSync(contextScript,`set -Eeuo pipefail\ncd "$NATIVE_CONTEXT_REPO"\ncommit=${raw.commit}\nrelease=ynx-chain-${raw.commit}\naction="$NATIVE_CONTEXT_ACTION"\n${context}\npublic_bft_native_context\nprintf '%s\\n' "$native_full_commit" "$release" "$native_state"\n`,{mode:0o700});
+for(const action of ['preflight','backup','freeze_mutations','pause_authoritative','export_final_snapshot','initialize_candidate','start_candidate','switch_ingress']){
+  const p=spawnSync('bash',[contextScript],{encoding:'utf8',env:{...process.env,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:good,NATIVE_CONTEXT_REPO:process.cwd(),NATIVE_CONTEXT_ACTION:action,PUBLIC_BFT_PRODUCTION_SNAPSHOT_SOURCE:''}});
+  if(['preflight','backup','freeze_mutations','pause_authoritative'].includes(action)){assert.equal(p.status,0,p.stderr);assert.deepEqual(p.stdout.trim().split('\n'),[full,stable.authoritativeRelease,stable.authoritativeSource.statePath]);}
+  else{assert.notEqual(p.status,0);assert.equal(p.stdout,'');}
+}
+const result=call('native-two-phase-positive','continue-native',finalPath);assert.equal(result.status,0,result.stderr);
+for(const [file,bytes]of before.filter(([file])=>file.includes('preparation-approval')))assert.deepEqual(fs.readFileSync(file),bytes);
+assert.deepEqual(fs.readFileSync(path.join(good,'journal.jsonl')).subarray(0,prefix.length),prefix);
+const actual=fs.readFileSync(path.join(good,'driver-calls.txt'),'utf8').trim().split('\n');assert.equal(actual.filter(x=>x==='freeze_mutations').length,1);assert.equal(actual.filter(x=>x==='pause_authoritative').length,1);assert.equal(actual[4],'export_final_snapshot');assert.equal(actual.at(-1),'unfreeze_mutations');
+assert.equal(JSON.parse(fs.readFileSync(path.join(good,'continuation-attempt/result.json'))).status,'passed');
+const completeCalls=fs.readFileSync(path.join(good,'driver-calls.txt')),completeJournal=fs.readFileSync(path.join(good,'journal.jsonl'));
+assert.notEqual(call('native-two-phase-positive','continue-native',finalPath).status,0);assert.deepEqual(fs.readFileSync(path.join(good,'driver-calls.txt')),completeCalls);assert.deepEqual(fs.readFileSync(path.join(good,'journal.jsonl')),completeJournal);
+for(const name of ['changed-source','changed-expiry','changed-approver','missing-final-pin','unknown','partial','journal','attempt','initialization','wrong-transaction']){
+  const id='native-negative-'+name,dir=prepare(id);let file=finalPath;
+  if(name.startsWith('changed-')||name==='missing-final-pin'){
+    const v=JSON.parse(JSON.stringify(final));if(name==='changed-source')v.authoritativeSource.pauseMarkerPath='/other/pause.json';if(name==='changed-expiry')v.expiresAt=new Date(Date.parse(v.expiresAt)-1000).toISOString().replace('.000Z','Z');if(name==='changed-approver')v.approver='another authorized approver';if(name==='missing-final-pin')delete v.snapshotSourceSha256;
+    file=path.join(tmp,id+'.json');write(file,v);
+  }
+  if(name==='unknown')fs.writeFileSync(path.join(dir,'original.UNKNOWN'),'ORIGINAL UNKNOWN\n',{flag:'wx'});
+  if(name==='partial')fs.writeFileSync(path.join(dir,'source.partial'),'ORIGINAL PARTIAL\n',{flag:'wx'});
+  if(name==='journal')fs.appendFileSync(path.join(dir,'journal.jsonl'),'{"phase":"transaction","status":"unknown","at":"2026-10-23T00:00:00Z"}\n');
+  if(name==='attempt')fs.mkdirSync(path.join(dir,'continuation-attempt'));
+  if(name==='initialization'){fs.mkdirSync(path.join(dir,'candidate'));fs.symlinkSync('missing-original',path.join(dir,'candidate/initialize-attempt'));}
+  const saved=snapshot(dir),stateBefore=fs.readFileSync(state);
+  const p=call(name==='wrong-transaction'?id+'-different':id,'continue-native',file);assert.notEqual(p.status,0,name+' accepted');unchanged(saved);assert.deepEqual(fs.readFileSync(state),stateBefore);
+}
+for(const name of ['prepare-failure','continue-failure']){
+  const id='native-'+name;let dir;
+  if(name==='prepare-failure'){
+    fs.copyFileSync(baseline,state);const p=call(id,'prepare-native',prepPath,{CUTOVER_TEST_FAIL_PHASE:'pause_authoritative:after'});assert.equal(p.status,73,p.stderr);dir=tx(id);
+  }else{dir=prepare(id);const p=call(id,'continue-native',finalPath,{CUTOVER_TEST_FAIL_PHASE:'export_final_snapshot:after'});assert.equal(p.status,73,p.stderr);assert.ok(fs.existsSync(path.join(dir,'continuation-attempt/intent.json')));}
+  const calls=fs.readFileSync(path.join(dir,'driver-calls.txt'),'utf8');assert.ok(!/rollback_|resume_authoritative|unfreeze_mutations/.test(calls));assert.ok(fs.readFileSync(state,'utf8').includes('authoritative=paused\n'));assert.ok(fs.readFileSync(state,'utf8').includes('frozen=true\n'));assert.match(fs.readFileSync(path.join(dir,'journal.jsonl'),'utf8'),/"phase":"transaction","status":"unknown"/);
+  const saved=snapshot(dir);assert.notEqual(call(id,'continue-native',finalPath).status,0);unchanged(saved);
+}
+for(const [name,value,mode]of [['prepare-with-future-pin',{...prep,snapshotSourceSha256:final.snapshotSourceSha256},'prepare-native'],['prepare-without-only',final,'prepare-native'],['direct-independent-execute',final,'execute']]){
+  fs.copyFileSync(baseline,state);const file=path.join(tmp,name+'.json');write(file,value);const p=call('native-'+name,mode,file);assert.notEqual(p.status,0);assert.equal(fs.existsSync(path.join(tx('native-'+name),'driver-calls.txt')),false);assert.deepEqual(fs.readFileSync(state),fs.readFileSync(baseline));
+}
+fs.copyFileSync(baseline,state);
+console.log('PUBLIC_BFT_NATIVE_TWO_PHASE_DATA_ONLY: real transaction caller, no future pin before pause, exact original authorization/expiry, no re-freeze/retry/UNKNOWN cleanup; synthetic driver only');
+NODE
 
 cp "$tmp/approval.json" "$tmp/insecure-approval.json"
 chmod 644 "$tmp/insecure-approval.json"

@@ -12,6 +12,7 @@ evidence_root="${8:?evidence root is required}"
 chain_url="${9:?chain URL is required}"
 config_root="${10:?config root is required}"
 observation="${11:-4}"
+native_commit="${12:-}"
 
 fail() {
   echo "$1" >&2
@@ -21,7 +22,15 @@ fail() {
 [[ "$operation" == "pause" || "$operation" == "resume" ]] || fail "invalid authoritative production operation"
 [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || fail "invalid transaction id"
 [[ "$commit" =~ ^[0-9a-f]{12}$ ]] || fail "invalid commit"
-[[ "$authoritative_release" == "ynx-chain-${commit}" ]] || fail "authoritative release mismatch"
+(( $# >= 10 && $# <= 12 )) || fail "unexpected pause inputs"
+if [[ -n "$native_commit" ]]; then
+  [[ "$native_commit" =~ ^[0-9a-f]{40}$ && "$native_commit" != "$(printf '0%.0s' {1..40})" ]] || fail "invalid approved native full commit"
+  [[ "$authoritative_release" == "ynx-chain-${native_commit:0:12}" || "$authoritative_release" == "ynx-network-surgical-${native_commit:0:12}" ]] || fail "approved native release mismatch"
+else
+  [[ "$authoritative_release" == "ynx-chain-${commit}" ]] || fail "authoritative release mismatch"
+fi
+native_fields=""
+[[ -z "$native_commit" ]] || native_fields=",\"authoritativeCommit\":\"$native_commit\""
 [[ "$bft_release" == "ynx-bft-gateway-${commit}" ]] || fail "BFT release mismatch"
 [[ "$observation" =~ ^[0-9]+$ ]] && (( observation >= 1 && observation <= 15 )) || fail "invalid production observation window"
 for path in "$pause_marker" "$mutation_marker" "$evidence_root" "$config_root"; do
@@ -39,6 +48,8 @@ fi
 marker_matches_transaction() {
   grep -Fq "\"transactionId\":\"${transaction_id}\"" "$pause_marker" &&
     grep -Fq "\"commit\":\"${commit}\"" "$pause_marker" &&
+    grep -Fq "\"authoritativeRelease\":\"${authoritative_release}\"" "$pause_marker" &&
+    { [[ -z "$native_commit" ]] || grep -Fq "\"authoritativeCommit\":\"${native_commit}\"" "$pause_marker"; } &&
     grep -Fq "\"bftRelease\":\"${bft_release}\"" "$pause_marker"
 }
 
@@ -56,13 +67,24 @@ install -d -m 0700 "$evidence_root" || fail "cannot create production pause evid
 evidence="$evidence_root/primary-${operation}-authoritative.json"
 partial="${evidence}.partial"
 marker_partial="${pause_marker}.partial-${transaction_id}"
-trap 'rm -f "$partial" "$marker_partial"' EXIT
+if [[ -n "$native_commit" ]]; then
+  for retained in "$evidence" "$partial" "$marker_partial" "${pause_marker}.UNKNOWN" "${evidence}.UNKNOWN"; do
+    [[ ! -e "$retained" && ! -L "$retained" ]] || fail "existing native pause evidence/partial/UNKNOWN must be retained"
+  done
+  if [[ "$operation" == pause ]]; then
+    [[ ! -e "$pause_marker" && ! -L "$pause_marker" ]] || fail "existing native pause marker must not be replayed"
+  fi
+else
+  trap 'rm -f "$partial" "$marker_partial"' EXIT
+fi
 
 reused=false
 if [[ "$operation" == "pause" ]]; then
   test -s "$mutation_marker" || fail "mutation freeze marker is required before authoritative pause"
   grep -Fq "\"transactionId\":\"${transaction_id}\"" "$mutation_marker" || fail "mutation marker transaction mismatch"
   grep -Fq "\"commit\":\"${commit}\"" "$mutation_marker" || fail "mutation marker commit mismatch"
+  grep -Fq "\"authoritativeRelease\":\"${authoritative_release}\"" "$mutation_marker" || fail "mutation marker native release mismatch"
+  [[ -z "$native_commit" ]] || grep -Fq "\"authoritativeCommit\":\"${native_commit}\"" "$mutation_marker" || fail "mutation marker native commit mismatch"
   freeze_evidence="$evidence_root/primary-freeze.json"
   test -s "$freeze_evidence" || fail "validated primary freeze evidence is required"
   grep -Fq '"mutationStateVerified":true' "$freeze_evidence" || fail "primary freeze evidence is not validated"
@@ -70,8 +92,8 @@ if [[ "$operation" == "pause" ]]; then
     marker_matches_transaction || fail "production pause marker belongs to another transaction"
     reused=true
   else
-    printf '{"transactionId":"%s","commit":"%s","authoritativeRelease":"%s","bftRelease":"%s","pausedAt":"%s"}\n' \
-      "$transaction_id" "$commit" "$authoritative_release" "$bft_release" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$marker_partial"
+    printf '{"transactionId":"%s","commit":"%s","authoritativeRelease":"%s"%s,"bftRelease":"%s","pausedAt":"%s"}\n' \
+      "$transaction_id" "$commit" "$authoritative_release" "$native_fields" "$bft_release" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$marker_partial"
     chmod 0600 "$marker_partial"
     mv "$marker_partial" "$pause_marker"
   fi
@@ -97,12 +119,12 @@ else
   (( height_after > height_before )) || fail "authoritative height did not resume after production pause removal"
 fi
 
-printf '{"transactionId":"%s","operation":"%s","commit":"%s","authoritativeRelease":"%s","bftRelease":"%s","pauseMarker":"%s","markerSha256":"%s","heightBefore":%s,"heightAfter":%s,"readsOnline":true,"productionStateVerified":true,"reused":%s,"recordedAt":"%s"}\n' \
-  "$transaction_id" "$operation" "$commit" "$authoritative_release" "$bft_release" "$pause_marker" "$marker_sha" "$height_before" "$height_after" "$reused" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$partial"
+printf '{"transactionId":"%s","operation":"%s","commit":"%s","authoritativeRelease":"%s"%s,"bftRelease":"%s","pauseMarker":"%s","markerSha256":"%s","heightBefore":%s,"heightAfter":%s,"readsOnline":true,"productionStateVerified":true,"reused":%s,"recordedAt":"%s"}\n' \
+  "$transaction_id" "$operation" "$commit" "$authoritative_release" "$native_fields" "$bft_release" "$pause_marker" "$marker_sha" "$height_before" "$height_after" "$reused" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$partial"
 chmod 0600 "$partial"
 mv "$partial" "$evidence"
 trap - EXIT
-rm -f "$marker_partial"
+[[ -n "$native_commit" ]] || rm -f "$marker_partial"
 
 printf 'transactionId=%s\noperation=%s\ncommit=%s\nauthoritativeRelease=%s\nbftRelease=%s\npauseMarker=%s\nmarkerSha256=%s\nheightBefore=%s\nheightAfter=%s\nreadsOnline=true\nproductionStateVerified=true\nreused=%s\n' \
   "$transaction_id" "$operation" "$commit" "$authoritative_release" "$bft_release" "$pause_marker" "$marker_sha" "$height_before" "$height_after" "$reused"

@@ -119,6 +119,23 @@ function run(f,action='prepare',change={},expected=0){
 function originals(f){return [f.planPath,f.validator,path.join(f.transaction,'approval.json'),path.join(f.transaction,'final-snapshot/migration.json'),path.join(f.transaction,'final-snapshot/remote-evidence.json'),path.join(f.env.CONSENSUS_CANDIDATE_RUNTIME_BUNDLE,'original-marker')].map(p=>[p,fs.readFileSync(p)]);}
 const unchanged=before=>before.forEach(([p,b])=>assert.deepEqual(fs.readFileSync(p),b,`original changed: ${p}`));
 try {
+  const nativeIdentity={authoritativeCommit:'65efa82e06158f9616172144c3c9efdd8088f227',authoritativeRelease:'ynx-network-surgical-65efa82e0615',authoritativeBinarySha256:'b'.repeat(64),authoritativeSource:{statePath:'/var/lib/ynx-chain/testnet/devnet-state.json',integrityMarkerPath:'/var/lib/ynx-chain/testnet/devnet-state.integrity-version',pauseMarkerPath:'/var/lib/ynx-chain/block-production-pause.json',mutationMarkerPath:'/var/lib/ynx-chain/mutation-freeze.json'}};
+  function nativeFixture(name){
+    const x=fixture(name);Object.assign(x.approval,nativeIdentity);write(path.join(x.transaction,'approval.json'),x.approval);
+    const p=path.join(x.transaction,'final-snapshot/remote-evidence.json');write(p,{...JSON.parse(fs.readFileSync(p)),...nativeIdentity});return x;
+  }
+  const oldNative=nativeFixture('original-native-source'),nativeBefore=originals(oldNative);run(oldNative);
+  const nativeBinding=JSON.parse(fs.readFileSync(path.join(oldNative.transaction,'candidate/binding.json')));
+  for(const key of Object.keys(nativeIdentity))assert.deepEqual(nativeBinding[key],nativeIdentity[key]);
+  assert.equal(nativeBinding.commit,commit);assert.equal(nativeBinding.runtimeCommit,fullCommit);unchanged(nativeBefore);
+  for(const [name,change]of [
+    ['native-commit',x=>x.authoritativeCommit='f'.repeat(40)],['native-binary',x=>x.authoritativeBinarySha256='f'.repeat(64)],
+    ['native-release',x=>x.authoritativeRelease='ynx-chain-'+commit],['native-path',x=>x.authoritativeSource={...x.authoritativeSource,pauseMarkerPath:'/other/pause.json'}],
+    ['missing-native',x=>delete x.authoritativeCommit]
+  ]){
+    const x=nativeFixture('bad-'+name),p=path.join(x.transaction,'final-snapshot/remote-evidence.json'),v=JSON.parse(fs.readFileSync(p));change(v);write(p,v);
+    const saved=originals(x);run(x,'prepare',{},1);assert.equal(fs.existsSync(x.log),false);assert.equal(fs.existsSync(x.log+'.transport'),false);unchanged(saved);
+  }
   const scoped=fixture('single-app-custody');
   scoped.approval.custodyProfile='single-app-gateway/v1';delete scoped.approval.serviceSignerRecoveryVerified;delete scoped.approval.serviceSignerManifestSha256;
   write(path.join(scoped.transaction,'approval.json'),scoped.approval);const scopedBefore=originals(scoped);run(scoped);

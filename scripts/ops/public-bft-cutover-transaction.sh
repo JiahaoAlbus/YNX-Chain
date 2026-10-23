@@ -5,8 +5,8 @@ cd "$(dirname "$0")/../.."
 
 mode="${PUBLIC_BFT_CUTOVER_MODE:-plan}"
 case "$mode" in
-  plan|execute) ;;
-  *) echo "PUBLIC_BFT_CUTOVER_MODE must be plan or execute" >&2; exit 1 ;;
+  plan|execute|prepare-native|continue-native) ;;
+  *) echo "PUBLIC_BFT_CUTOVER_MODE must be plan, execute, prepare-native or continue-native" >&2; exit 1 ;;
 esac
 
 commit="$(git rev-parse --short=12 HEAD)"
@@ -55,12 +55,67 @@ fi
 [[ -z "$(git status --short)" ]] || { echo "public BFT cutover requires a clean worktree" >&2; exit 1; }
 
 umask 077
-[[ ! -e "$transaction_dir" && ! -L "$transaction_dir" ]] || { echo "cutover transaction evidence directory already exists: $transaction_dir" >&2; exit 1; }
-mkdir -p -- "$evidence_root"
-# Creation, not a prior existence check, decides ownership of this attempt.
-mkdir -- "$transaction_dir"
-approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")"
-printf '%s\n' "$approval_evidence" >"${transaction_dir}/approval.json"
+if [[ "$mode" == continue-native ]]; then
+  # No preflight/backup/freeze/pause is replayed. The exact completed original
+  # preparation, not a newly constructed checkpoint or successful exit alone,
+  # selects this one continuation. Any uncertain attempt remains exclusive.
+  node --input-type=module - "$transaction_dir" <<'NODE'
+import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
+const root=path.resolve(process.argv[2]),info=fs.lstatSync(root);
+assert.ok(info.isDirectory()&&!info.isSymbolicLink()&&(info.mode&0o7777)===0o700&&fs.realpathSync(root)===root,'original private canonical transaction required');
+const forbidden=['approval.json','continuation-attempt','candidate/initialize-attempt','candidate/start-attempt'];
+for(const name of forbidden)assert.equal(fs.existsSync(path.join(root,name))||(()=>{try{fs.lstatSync(path.join(root,name));return true}catch(e){if(e.code==='ENOENT')return false;throw e}})(),false,'existing continuation/initialization/UNKNOWN must be retained');
+function scan(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){assert.ok(!entry.isSymbolicLink(),'unexpected original evidence symlink');assert.ok(!/UNKNOWN|\.partial|\.tmp(?:$|[-.])/.test(entry.name),'retained partial/UNKNOWN blocks continuation');if(entry.isDirectory())scan(path.join(dir,entry.name));}}
+scan(root);
+const rows=fs.readFileSync(path.join(root,'journal.jsonl'),'utf8').trimEnd().split('\n').map(JSON.parse);
+const expected=['preflight','backup','freeze_mutations','pause_authoritative'].flatMap(phase=>[[phase,'started'],[phase,'passed']]);expected.push(['preparation','awaiting_final_snapshot_authorization']);
+assert.equal(rows.length,expected.length,'incomplete or changed original preparation');
+rows.forEach((row,index)=>{assert.deepEqual(Object.keys(row).sort(),['at','phase','status']);assert.deepEqual([row.phase,row.status],expected[index]);assert.match(row.at,/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);});
+NODE
+  approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE")"
+  # Revalidate the original preparation projection and compare every stable
+  # approved field, including original expiry. Only the independently granted
+  # final source hash may be added, never inferred from the new source itself.
+  node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$transaction_dir/preparation-approval.json" "$commit" "$release" --prepare-native >/dev/null
+  # stdin is used for JSON, so keep the program in -e rather than a here-doc.
+  printf '%s\n' "$approval_evidence" | node --input-type=module -e '
+import fs from "node:fs";import assert from "node:assert/strict";
+const before=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),after=JSON.parse(fs.readFileSync(0,"utf8"));
+assert.equal(before.preparationOnly,true);assert.ok(after.authoritativeCommit);assert.ok(!Object.hasOwn(after,"preparationOnly"));
+assert.match(after.snapshotSourceSha256,/^[0-9a-f]{64}$/);delete before.preparationOnly;delete after.snapshotSourceSha256;
+assert.deepEqual(after,before,"continuation changed original stable authorization or expiry");' "$transaction_dir/preparation-approval.json"
+  mkdir -- "$transaction_dir/continuation-attempt"
+  (set -C; printf '{"status":"unknown","automaticRetry":false}\n' >"$transaction_dir/continuation-attempt/intent.json")
+  [[ -f "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" && ! -L "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" ]] || { echo "original continuation approval must be a protected regular file" >&2; exit 1; }
+  (set -C; cat -- "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" >"$transaction_dir/continuation-attempt/approval.original.json")
+  cmp -- "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$transaction_dir/continuation-attempt/approval.original.json" >/dev/null
+  printf '%s\n' "$approval_evidence" | cmp - <(node scripts/verify/validate-public-bft-cutover-approval.mjs "$transaction_dir/continuation-attempt/approval.original.json" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE") >/dev/null
+  (set -C; printf '%s\n' "$approval_evidence" >"${transaction_dir}/approval.json")
+  node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/continuation-attempt/intent.json" "$transaction_dir/continuation-attempt/approval.original.json" "$transaction_dir/continuation-attempt" "$transaction_dir/approval.json" "$transaction_dir"
+else
+  [[ ! -e "$transaction_dir" && ! -L "$transaction_dir" ]] || { echo "cutover transaction evidence directory already exists: $transaction_dir" >&2; exit 1; }
+  mkdir -p -- "$evidence_root"
+  # Creation, not a prior existence check, decides ownership of this attempt.
+  mkdir -- "$transaction_dir"
+  approval_mode=()
+  [[ "$mode" != prepare-native ]] || approval_mode=(--prepare-native)
+  approval_input="$PUBLIC_BFT_CUTOVER_APPROVAL_FILE"
+  if [[ "$mode" == prepare-native ]]; then
+    [[ -f "$approval_input" && ! -L "$approval_input" ]] || { echo "original preparation approval must be a protected regular file" >&2; exit 1; }
+    node -e 'const fs=require("fs"),s=fs.lstatSync(process.argv[1]);if(!s.isFile()||(s.mode&0o077)!==0)throw Error("original preparation approval permissions are not private")' "$approval_input"
+    (set -C; cat -- "$approval_input" >"${transaction_dir}/preparation-approval.original.json")
+    cmp -- "$approval_input" "${transaction_dir}/preparation-approval.original.json" >/dev/null
+    approval_input="${transaction_dir}/preparation-approval.original.json"
+  fi
+  approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$approval_input" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" "${approval_mode[@]}")"
+  if [[ "$mode" == prepare-native ]]; then
+    (set -C; printf '%s\n' "$approval_evidence" >"${transaction_dir}/preparation-approval.json")
+    node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/preparation-approval.original.json" "$transaction_dir/preparation-approval.json" "$transaction_dir"
+  else
+    printf '%s\n' "$approval_evidence" | node -e 'const fs=require("fs"),a=JSON.parse(fs.readFileSync(0,"utf8"));if(Object.hasOwn(a,"authoritativeCommit"))throw Error("independent native source requires prepare-native then continue-native")'
+    (set -C; printf '%s\n' "$approval_evidence" >"${transaction_dir}/approval.json")
+  fi
+fi
 
 export PUBLIC_BFT_CUTOVER_COMMIT="$commit"
 export PUBLIC_BFT_CUTOVER_RELEASE="$release"
@@ -95,6 +150,12 @@ rollback_transaction() {
   local original_status="$?"
   trap - EXIT INT TERM
   if [[ "$transaction_complete" == "1" || "$mutation_started" != "1" ]]; then
+    exit "$original_status"
+  fi
+  if [[ "$mode" == prepare-native || "$mode" == continue-native ]]; then
+    journal_event transaction unknown
+    echo "PUBLIC_BFT_NATIVE_OUTCOME_UNKNOWN: preserve original journal/markers/DB/attempt; no automatic resume, unfreeze, cleanup or retry" >&2
+    [[ "$original_status" != 0 ]] || original_status=1
     exit "$original_status"
   fi
   set +e
@@ -137,11 +198,22 @@ trap rollback_transaction EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
-run_phase preflight
-run_phase backup
+if [[ "$mode" != continue-native ]]; then
+  run_phase preflight
+  run_phase backup
+  mutation_started=1
+  run_phase freeze_mutations
+  run_phase pause_authoritative
+fi
+if [[ "$mode" == prepare-native ]]; then
+  journal_event preparation awaiting_final_snapshot_authorization
+  node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/journal.jsonl" "$transaction_dir"
+  transaction_complete=1
+  trap - EXIT INT TERM
+  printf 'public BFT native preparation awaiting_final_snapshot_authorization: id=%s evidence=%s; native remains frozen/paused; no export, initialization, start or ingress\n' "$transaction_id" "$transaction_dir"
+  exit 0
+fi
 mutation_started=1
-run_phase freeze_mutations
-run_phase pause_authoritative
 run_phase export_final_snapshot
 run_phase initialize_candidate
 run_phase deploy_candidate
@@ -153,6 +225,10 @@ run_phase switch_ingress
 run_phase verify_public
 run_phase unfreeze_mutations
 journal_event transaction passed
+if [[ "$mode" == continue-native ]]; then
+  (set -C; printf '{"status":"passed","automaticRetry":false}\n' >"$transaction_dir/continuation-attempt/result.json")
+  node -e 'const fs=require("fs");for(const p of process.argv.slice(1)){const fd=fs.openSync(p,"r");try{fs.fsyncSync(fd)}finally{fs.closeSync(fd)}}' "$transaction_dir/continuation-attempt/result.json" "$transaction_dir/journal.jsonl" "$transaction_dir/continuation-attempt" "$transaction_dir"
+fi
 transaction_complete=1
 trap - EXIT INT TERM
 printf 'public BFT cutover transaction passed: id=%s evidence=%s\n' "$transaction_id" "$transaction_dir"

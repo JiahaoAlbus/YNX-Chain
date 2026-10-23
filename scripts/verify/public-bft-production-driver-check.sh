@@ -22,7 +22,8 @@ const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const write=(p,x,mode=0o600)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,typeof x==='string'?x:JSON.stringify(x)+'\n',{flag:'wx',mode});};
 const full='abcdef012345'+'a'.repeat(28),commit=full.slice(0,12),release='ynx-bft-gateway-'+commit;
 const blockHash='a'.repeat(64),stateHash='b'.repeat(64),q=x=>"'"+x.replaceAll("'","'\\''")+"'";
-const server=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({height:100,latestBlockHash:blockHash}));});
+let nativeStatus=null;
+const server=http.createServer((req,res)=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify({height:100,latestBlockHash:blockHash,...(nativeStatus?{build:nativeStatus}:{})}));});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const url='http://127.0.0.1:'+server.address().port;
 function fixture(name){
@@ -67,6 +68,17 @@ async function invoke(f){
   catch(e){return {code:e.code,stdout:e.stdout||'',stderr:e.stderr||''};}
 }
 const unchanged=(files,before)=>files.forEach((p,i)=>assert.deepEqual(fs.readFileSync(p),before[i],`original changed: ${p}`));
+function independent(f){
+  const authoritativeCommit='65efa82e06158f9616172144c3c9efdd8088f227',authoritativeRelease='ynx-network-surgical-'+authoritativeCommit.slice(0,12),authoritativeBinarySha256='e'.repeat(64);
+  const marker={transactionId:f.tx,commit,bftRelease:release,authoritativeCommit,authoritativeRelease};
+  fs.writeFileSync(f.pause,JSON.stringify(marker)+'\n');fs.writeFileSync(f.freeze,JSON.stringify(marker)+'\n');
+  fs.writeFileSync(path.join(f.evidence,'primary-pause-authoritative.json'),JSON.stringify({...marker,productionStateVerified:true})+'\n');
+  const source={...f.source,authoritativeRelease,authoritativeCommit,authoritativeBinarySha256,pauseMarkerSHA256:hash(fs.readFileSync(f.pause)),mutationMarkerSHA256:hash(fs.readFileSync(f.freeze))};
+  fs.writeFileSync(f.input,JSON.stringify(source)+'\n');f.args[2]=authoritativeRelease;f.args[12]=hash(fs.readFileSync(f.input));
+  const paths={statePath:f.state,integrityMarkerPath:f.integrity,pauseMarkerPath:f.pause,mutationMarkerPath:f.freeze};
+  f.args.push(authoritativeCommit,authoritativeBinarySha256,JSON.stringify(paths));
+  return {authoritativeCommit,authoritativeRelease,authoritativeBinarySha256,authoritativeSource:paths};
+}
 try{
   // With the old real helper this exact retained partial is removed by its
   // EXIT trap (and its old service environment is sourced). Keep this first:
@@ -128,6 +140,25 @@ try{
   const mutated=fixture('source-changed-during-export');write(path.join(mutated.root,'mutate-after'),'yes');
   assert.notEqual((await invoke(mutated)).code,0);assert.ok(fs.existsSync(path.join(mutated.evidence,'final-migration-state.json')));
   assert.equal(fs.existsSync(path.join(mutated.evidence,'final-migration-state.evidence.json')),false);
+  const native=fixture('independent-native'),identity=independent(native);
+  nativeStatus={commit:identity.authoritativeCommit.slice(0,12),release:identity.authoritativeRelease};
+  const nativeFiles=[native.state,native.integrity,native.pause,native.freeze,native.input],nativeBytes=nativeFiles.map(p=>fs.readFileSync(p));
+  const nativePrepared=path.join(native.root,'prepared');
+  await execute('bash',[helper,'--prepare',native.input,native.tools,full,native.args[12],native.args[13],native.tx,commit,identity.authoritativeRelease,release,nativePrepared,...native.args.slice(15)]);
+  const nativeResult=await invoke(native);assert.equal(nativeResult.code,0,nativeResult.stderr);unchanged(nativeFiles,nativeBytes);
+  const nativeEvidence=JSON.parse(fs.readFileSync(path.join(native.evidence,'final-migration-state.evidence.json')));
+  for(const key of Object.keys(identity))assert.deepEqual(nativeEvidence[key],identity[key]);assert.equal(nativeEvidence.commit,commit);assert.equal(nativeEvidence.exporterCommit,full);
+  for(const name of ['missing-pin','wrong-full','wrong-path','wrong-status']){
+    const f=fixture('independent-'+name),n=independent(f);nativeStatus={commit:n.authoritativeCommit.slice(0,12),release:n.authoritativeRelease};
+    if(name==='missing-pin')f.args.pop();
+    if(name==='wrong-full')f.args[15]='f'.repeat(40);
+    if(name==='wrong-path')f.args[17]=JSON.stringify({...n.authoritativeSource,statePath:path.join(f.root,'different/devnet-state.json')});
+    if(name==='wrong-status')nativeStatus={commit,release:'ynx-chain-'+commit};
+    const originals=[f.state,f.integrity,f.pause,f.freeze,f.input],saved=originals.map(p=>fs.readFileSync(p));
+    assert.notEqual((await invoke(f)).code,0,`independent native accepted ${name}`);unchanged(originals,saved);
+    assert.equal(fs.existsSync(path.join(f.evidence,'snapshot-attempt')),false,'wrong original native reached exporter');
+  }
+  nativeStatus=null;
   // Exercise the actual production phase with only its external SSH transport
   // stubbed. The normal approval reader and offline preparation remain real.
   const body=fs.readFileSync(path.join(repo,'scripts/ops/public-bft-production-driver.sh'),'utf8').match(/^final_snapshot_phase\(\) \{\n[\s\S]*?^\}/m)?.[0];

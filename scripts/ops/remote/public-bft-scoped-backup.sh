@@ -9,6 +9,7 @@ bft_release="${5:?BFT release is required}"
 root="${6:?backup root is required}"
 include_indexer="${7:?indexer flag is required}"
 source_root="${8:?source root is required}"
+native_commit="${9:-}"
 
 fail() {
   echo "$1" >&2
@@ -18,7 +19,15 @@ fail() {
 [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || fail "invalid transaction id"
 [[ "$role" =~ ^(primary|singapore|silicon-valley|seoul)$ ]] || fail "invalid role"
 [[ "$commit" =~ ^[0-9a-f]{12}$ ]] || fail "invalid commit"
-[[ "$authoritative_release" == "ynx-chain-${commit}" ]] || fail "authoritative release mismatch"
+(( $# == 8 || $# == 9 )) || fail "unexpected backup inputs"
+if [[ -n "$native_commit" ]]; then
+  [[ "$native_commit" =~ ^[0-9a-f]{40}$ && "$native_commit" != "$(printf '0%.0s' {1..40})" ]] || fail "invalid approved native full commit"
+  [[ "$authoritative_release" == "ynx-chain-${native_commit:0:12}" || "$authoritative_release" == "ynx-network-surgical-${native_commit:0:12}" ]] || fail "approved native release mismatch"
+else
+  [[ "$authoritative_release" == "ynx-chain-${commit}" ]] || fail "authoritative release mismatch"
+fi
+native_fields=""
+[[ -z "$native_commit" ]] || native_fields=",\"authoritativeCommit\":\"$native_commit\""
 [[ "$bft_release" == "ynx-bft-gateway-${commit}" ]] || fail "BFT release mismatch"
 [[ "$include_indexer" == "true" || "$include_indexer" == "false" ]] || fail "invalid indexer flag"
 [[ "$root" == /* && "$root" != *..* && "$root" =~ ^/[A-Za-z0-9._/-]+$ ]] || fail "invalid backup root"
@@ -29,6 +38,11 @@ archive="${root}/${role}.tar.gz"
 partial="${root}/.${role}.tar.gz.partial"
 evidence="${root}/${role}.json"
 evidence_partial="${evidence}.partial"
+if [[ -n "$native_commit" ]]; then
+  for retained in "$archive" "$partial" "$evidence" "$evidence_partial" "${archive}.UNKNOWN" "${evidence}.UNKNOWN"; do
+    [[ ! -e "$retained" && ! -L "$retained" ]] || fail "existing native backup/partial/UNKNOWN must be retained"
+  done
+fi
 install -d -m 0700 "$root" || fail "cannot create backup root"
 test -d "$source_root/etc/ynx" || fail "missing YNX configuration directory"
 test -d "$source_root/var/lib/ynx-chain/testnet" || fail "missing authoritative chain state"
@@ -67,6 +81,8 @@ if [[ -e "$archive" || -e "$evidence" ]]; then
   grep -Fq "\"transactionId\":\"${transaction_id}\"" "$evidence" || fail "existing backup transaction mismatch"
   grep -Fq "\"role\":\"${role}\"" "$evidence" || fail "existing backup role mismatch"
   grep -Fq "\"commit\":\"${commit}\"" "$evidence" || fail "existing backup commit mismatch"
+  grep -Fq "\"authoritativeRelease\":\"${authoritative_release}\"" "$evidence" || fail "existing backup native release mismatch"
+  [[ -z "$native_commit" ]] || grep -Fq "\"authoritativeCommit\":\"${native_commit}\"" "$evidence" || fail "existing backup native commit mismatch"
   grep -Fq "\"bftRelease\":\"${bft_release}\"" "$evidence" || fail "existing backup BFT release mismatch"
   saved_sha="$(sed -n 's/.*"sha256":"\([0-9a-f]\{64\}\)".*/\1/p' "$evidence")"
   current_sha="$(sha256sum "$archive" | awk '{print $1}')"
@@ -95,8 +111,8 @@ else
   mv "$partial" "$archive" || fail "cannot publish scoped backup archive"
   validate_archive
   current_sha="$(sha256sum "$archive" | awk '{print $1}')"
-  printf '{"transactionId":"%s","role":"%s","commit":"%s","authoritativeRelease":"%s","bftRelease":"%s","archivePath":"%s","sha256":"%s","validated":true}\n' \
-    "$transaction_id" "$role" "$commit" "$authoritative_release" "$bft_release" "$archive" "$current_sha" >"$evidence_partial"
+  printf '{"transactionId":"%s","role":"%s","commit":"%s","authoritativeRelease":"%s"%s,"bftRelease":"%s","archivePath":"%s","sha256":"%s","validated":true}\n' \
+    "$transaction_id" "$role" "$commit" "$authoritative_release" "$native_fields" "$bft_release" "$archive" "$current_sha" >"$evidence_partial"
   chmod 0600 "$evidence_partial" || fail "cannot restrict scoped backup evidence"
   mv "$evidence_partial" "$evidence" || fail "cannot publish scoped backup evidence"
 fi

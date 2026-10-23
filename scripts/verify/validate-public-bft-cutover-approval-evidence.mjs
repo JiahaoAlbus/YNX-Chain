@@ -2,12 +2,15 @@
 
 import fs from "node:fs";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
+import { authoritativeIdentity } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error(`public BFT cutover approval evidence rejected: ${message}`);
 }
 
 const [approvalPath, expectedCommit, expectedRelease] = process.argv.slice(2);
+const preparation = process.argv[5] === "--prepare-native";
+if (process.argv.length !== (preparation ? 6 : 5)) fail("unexpected approval evidence mode/arguments");
 if (!approvalPath || !expectedCommit || !expectedRelease) fail("approval evidence path, commit, and release are required");
 if (!/^[0-9a-f]{12}$/.test(expectedCommit) || expectedRelease !== `ynx-bft-gateway-${expectedCommit}`) fail("expected identity is invalid");
 const stat = fs.statSync(approvalPath);
@@ -19,6 +22,10 @@ try {
   fail(`approval evidence is not valid JSON: ${error.message}`);
 }
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval evidence identity mismatch");
+const nativeIdentity = authoritativeIdentity(approval);
+if (preparation) {
+  if (!nativeIdentity.authoritativeCommit || approval.preparationOnly !== true || Object.hasOwn(approval, "snapshotSourceSha256")) fail("native preparation requires explicit preparationOnly and no future snapshot source pin");
+} else if (Object.hasOwn(approval, "preparationOnly")) fail("preparation approval cannot authorize export, initialization or cutover");
 const singleApp = isSingleAppCustody(approval);
 if (singleApp && ["serviceSignerRecoveryVerified", "serviceSignerManifestSha256"].some(key => Object.hasOwn(approval, key))) fail("single-App approval evidence cannot assert service signer recovery or identity");
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(approval.approvalId || "") || typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("approval evidence attribution is invalid");
@@ -31,7 +38,7 @@ if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequi
 if (approval.validatorKeyRecoveryVerified !== true || (!singleApp && approval.serviceSignerRecoveryVerified !== true) || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("approval evidence custody recovery is incomplete");
 if (!singleApp && !/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("approval evidence service signer manifest checksum is invalid");
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) fail("validator manifest checksum is invalid");
-for (const field of ["operatorPlanSha256", "runtimeManifestSha256", "snapshotSourceSha256", "exporterManifestSha256"]) {
+for (const field of ["operatorPlanSha256", "runtimeManifestSha256", "exporterManifestSha256", ...(!preparation ? ["snapshotSourceSha256"] : [])]) {
   const value = approval[field];
   if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
     fail(`${field} must preserve an independent nonzero lowercase SHA256 from the original approval`);
@@ -55,6 +62,8 @@ process.stdout.write(`${JSON.stringify({
   ownerHandoverReceiptEvidence: approval.ownerHandoverReceiptEvidence,
   commit: expectedCommit,
   release: expectedRelease,
+  ...nativeIdentity,
+  ...(preparation ? {preparationOnly: true} : {}),
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,
   validatorKeyRecoveryVerified: true,
@@ -65,7 +74,7 @@ process.stdout.write(`${JSON.stringify({
   validatorManifestSha256: approval.validatorManifestSha256,
   operatorPlanSha256: approval.operatorPlanSha256,
   runtimeManifestSha256: approval.runtimeManifestSha256,
-  snapshotSourceSha256: approval.snapshotSourceSha256,
+  ...(!preparation ? {snapshotSourceSha256: approval.snapshotSourceSha256} : {}),
   exporterManifestSha256: approval.exporterManifestSha256,
   candidateGenesisTime: approval.candidateGenesisTime,
   expiresAt: approval.expiresAt,

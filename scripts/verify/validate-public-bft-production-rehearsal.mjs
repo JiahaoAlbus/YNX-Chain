@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { authoritativeIdentity, validateAuthoritativeObservation } from "./lib/public-bft-native-source.mjs";
 
 const roles = ["primary", "singapore", "silicon-valley", "seoul"];
 const validators = {
@@ -23,8 +24,11 @@ function readJSON(file) {
   }
 }
 
-function validate(root, commit, release) {
-  if (!/^[0-9a-f]{12}$/.test(commit) || release !== `ynx-chain-${commit}`) fail("invalid expected release identity");
+function validate(root, commit, release, approvalPath = "", transactionId = "") {
+  const approval = approvalPath ? readJSON(approvalPath) : null;
+  const native = approval ? authoritativeIdentity(approval) : {};
+  if (!/^[0-9a-f]{12}$/.test(commit) || (native.authoritativeCommit ? native.authoritativeCommit.slice(0,12) !== commit || native.authoritativeRelease !== release : release !== `ynx-chain-${commit}`)) fail("invalid expected release identity");
+  if (approvalPath && !native.authoritativeCommit) fail("independent native approval is missing");
   const hashes = new Set();
   const heights = new Set();
   for (const role of roles) {
@@ -41,7 +45,10 @@ function validate(root, commit, release) {
     for (const marker of [`role=${role}`, `validator=${validators[role]}`, `release=${release}`, "services=active", "overlay=active", "keys=restricted", "candidate=absent", "freeze=absent", "ports=free", "disk=ready", "backup=present"]) {
       if (!checks.split(/\r?\n/).includes(marker)) fail(`${role} missing ${marker}`);
     }
-    if (!/^manifest_sha256=[0-9a-f]{64}$/m.test(checks)) fail(`${role} manifest checksum missing`);
+    if (native.authoritativeCommit) {
+      validateAuthoritativeObservation(readJSON(path.join(roleDir, "native-identity.json")), approval, role, transactionId);
+      if (!checks.split(/\r?\n/).includes(`native_running_sha256=${native.authoritativeBinarySha256}`)) fail(`${role} independent running binary checksum missing`);
+    } else if (!/^manifest_sha256=[0-9a-f]{64}$/m.test(checks)) fail(`${role} manifest checksum missing`);
     if (!Number.isSafeInteger(Number(block.height)) || !/^[0-9a-f]{64}$/.test(String(block.hash || ""))) fail(`${role} block evidence invalid`);
     heights.add(Number(block.height));
     hashes.add(block.hash);
@@ -77,7 +84,7 @@ function selfTest() {
 if (process.argv[2] === "--self-test") {
   selfTest();
 } else {
-  const [root, commit, release] = process.argv.slice(2);
+  const [root, commit, release, approvalPath, transactionId] = process.argv.slice(2);
   if (!root || !commit || !release) fail("usage: validate-public-bft-production-rehearsal.mjs <evidence-dir> <commit> <release>");
-  console.log(JSON.stringify(validate(root, commit, release), null, 2));
+  console.log(JSON.stringify(validate(root, commit, release, approvalPath, transactionId), null, 2));
 }

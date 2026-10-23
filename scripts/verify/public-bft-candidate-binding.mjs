@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
+import { authoritativeIdentity } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error(`public BFT candidate binding rejected: ${message}`);
@@ -256,7 +257,7 @@ if (rawArgs[0] === "--activation-evidence") {
   requireRestrictedFile(bindingPath, "candidate binding");
   const binding = readJSON(bindingPath, "candidate binding");
   if (binding.schemaVersion !== 2 || binding.transactionId !== path.basename(path.resolve(tx)) || binding.operatorProfile !== operatorVersion || !hash(binding.operatorPlanSha256)) fail("activation binding identity/version mismatch");
-  const identity = (v, withRole = true) => v.transactionId === binding.transactionId && v.commit === binding.commit && v.authoritativeRelease === binding.authoritativeRelease && v.bftRelease === binding.bftRelease && (!withRole || v.role === role);
+  const identity = (v, withRole = true) => v.transactionId === binding.transactionId && v.commit === binding.commit && v.authoritativeRelease === binding.authoritativeRelease && (!binding.authoritativeCommit || v.authoritativeCommit === binding.authoritativeCommit) && v.bftRelease === binding.bftRelease && (!withRole || v.role === role);
   function evidence(name) {
     const file = path.join(directory, name);
     requireRestrictedFile(file, name);
@@ -316,6 +317,7 @@ if (!inputsOnly) {
 }
 
 const approval = readJSON(approvalPath, "transaction approval");
+const nativeIdentity = authoritativeIdentity(approval);
 const singleApp = isSingleAppCustody(approval);
 if (singleApp && ["serviceSignerRecoveryVerified", "serviceSignerManifestSha256"].some(key => Object.hasOwn(approval, key))) fail("single-App approval cannot assert unrelated service custody");
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("transaction approval identity mismatch");
@@ -340,7 +342,10 @@ const snapshot = readJSON(snapshotPath, "final snapshot");
 const snapshotEvidence = readJSON(snapshotEvidencePath, "final snapshot evidence");
 const finalSnapshotSha256 = sha256(snapshotPath);
 if (snapshotEvidence.transactionId !== transactionId || snapshotEvidence.commit !== expectedCommit || snapshotEvidence.bftRelease !== expectedRelease) fail("final snapshot evidence identity mismatch");
-if (snapshotEvidence.authoritativeRelease !== `ynx-chain-${expectedCommit}`) fail("final snapshot authoritative release mismatch");
+if (snapshotEvidence.authoritativeRelease !== (nativeIdentity.authoritativeRelease || `ynx-chain-${expectedCommit}`)) fail("final snapshot authoritative release mismatch");
+if (nativeIdentity.authoritativeCommit) {
+  if (JSON.stringify(authoritativeIdentity(snapshotEvidence)) !== JSON.stringify(nativeIdentity)) fail("final snapshot independent native identity/paths differ from approval");
+} else if (["authoritativeCommit", "authoritativeBinarySha256", "authoritativeSource"].some(name => Object.hasOwn(snapshotEvidence, name))) fail("unapproved independent native snapshot identity");
 if (snapshotEvidence.validated !== true || snapshotEvidence.pauseVerified !== true || snapshotEvidence.mutationFreezeVerified !== true) fail("final snapshot evidence is not fully validated");
 if (snapshotEvidence.sourceUnchanged !== true || snapshotEvidence.exporterCommit !== runtimeCommit) fail("final snapshot must preserve the original source and use the independently pinned current exporter commit");
 for (const field of ["snapshotSourceSha256", "exporterManifestSha256"]) {
@@ -389,7 +394,8 @@ process.stdout.write(`${JSON.stringify({
   schemaVersion: 2,
   transactionId,
   commit: expectedCommit,
-  authoritativeRelease: `ynx-chain-${expectedCommit}`,
+  authoritativeRelease: nativeIdentity.authoritativeRelease || `ynx-chain-${expectedCommit}`,
+  ...nativeIdentity,
   bftRelease: expectedRelease,
   finalSnapshotSha256,
   finalSnapshotHeight: snapshot.height,

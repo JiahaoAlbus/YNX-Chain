@@ -5,6 +5,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
+import { authoritativeIdentity } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error("public BFT cutover approval rejected: " + message);
@@ -14,6 +15,8 @@ const approvalPath = process.argv[2];
 const expectedCommit = String(process.argv[3] || "");
 const expectedRelease = String(process.argv[4] || "");
 const custodyReviewPath = String(process.argv[5] || "");
+const preparation = process.argv[6] === "--prepare-native";
+if (process.argv.length !== (preparation ? 7 : 6)) fail("unexpected approval mode/arguments");
 if (!approvalPath || !expectedCommit || !expectedRelease || !custodyReviewPath) fail("approval path, commit, release, and custody review path are required");
 if (!/^[0-9a-f]{12}$/.test(expectedCommit)) fail("expected commit must be 12 lowercase hexadecimal characters");
 if (expectedRelease !== "ynx-bft-gateway-" + expectedCommit) fail("expected release is not bound to the expected commit");
@@ -40,6 +43,10 @@ if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.tri
 if (approval.custodyReviewer.trim().toLowerCase() === approval.approver.trim().toLowerCase()) fail("custody reviewer must differ from transaction approver");
 if (typeof approval.custodyEvidence !== "string" || !/^sha256:[0-9a-f]{64}$/.test(approval.custodyEvidence.trim())) fail("an exact sha256 custody review evidence reference is required");
 if (approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval is bound to a different commit or release");
+const nativeIdentity = authoritativeIdentity(approval);
+if (preparation) {
+  if (!nativeIdentity.authoritativeCommit || approval.preparationOnly !== true || Object.hasOwn(approval, "snapshotSourceSha256")) fail("native preparation requires explicit preparationOnly and no future snapshot source pin");
+} else if (Object.hasOwn(approval, "preparationOnly")) fail("preparation approval cannot authorize export, initialization or cutover");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) {
   fail("explicit cutover authorization and automatic rollback consent are required");
 }
@@ -62,7 +69,7 @@ if (participants.some((value) => value.length < 3) || new Set(participants).size
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) {
   fail("validatorManifestSha256 is required");
 }
-for (const field of ["operatorPlanSha256", "runtimeManifestSha256", "snapshotSourceSha256", "exporterManifestSha256"]) {
+for (const field of ["operatorPlanSha256", "runtimeManifestSha256", "exporterManifestSha256", ...(!preparation ? ["snapshotSourceSha256"] : [])]) {
   const value = approval[field];
   if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
     fail(`${field} must be an independent nonzero lowercase SHA256 in the original approval`);
@@ -94,6 +101,8 @@ process.stdout.write(JSON.stringify({
   ownerHandoverReceiptEvidence: custodyReview.ownerHandoverReceiptEvidence,
   commit: expectedCommit,
   release: expectedRelease,
+  ...nativeIdentity,
+  ...(preparation ? {preparationOnly: true} : {}),
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,
   validatorKeyRecoveryVerified: true,
@@ -104,7 +113,7 @@ process.stdout.write(JSON.stringify({
   validatorManifestSha256: approval.validatorManifestSha256,
   operatorPlanSha256: approval.operatorPlanSha256,
   runtimeManifestSha256: approval.runtimeManifestSha256,
-  snapshotSourceSha256: approval.snapshotSourceSha256,
+  ...(!preparation ? {snapshotSourceSha256: approval.snapshotSourceSha256} : {}),
   exporterManifestSha256: approval.exporterManifestSha256,
   candidateGenesisTime: approval.candidateGenesisTime,
   expiresAt: new Date(expiresAt).toISOString().replace(".000Z", "Z"),

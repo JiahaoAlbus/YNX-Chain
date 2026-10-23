@@ -12,6 +12,7 @@ evidence_root="${8:?evidence root is required}"
 chain_url="${9:?chain URL is required}"
 mutation_urls="${10:?mutation URLs are required}"
 config_root="${11:?config root is required}"
+native_commit="${12:-}"
 
 fail() {
   echo "$1" >&2
@@ -22,7 +23,15 @@ fail() {
 [[ "$transaction_id" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || fail "invalid transaction id"
 [[ "$role" =~ ^(primary|singapore|silicon-valley|seoul)$ ]] || fail "invalid role"
 [[ "$commit" =~ ^[0-9a-f]{12}$ ]] || fail "invalid commit"
-[[ "$authoritative_release" == "ynx-chain-${commit}" ]] || fail "authoritative release mismatch"
+(( $# == 11 || $# == 12 )) || fail "unexpected freeze inputs"
+if [[ -n "$native_commit" ]]; then
+  [[ "$native_commit" =~ ^[0-9a-f]{40}$ && "$native_commit" != "$(printf '0%.0s' {1..40})" ]] || fail "invalid approved native full commit"
+  [[ "$authoritative_release" == "ynx-chain-${native_commit:0:12}" || "$authoritative_release" == "ynx-network-surgical-${native_commit:0:12}" ]] || fail "approved native release mismatch"
+else
+  [[ "$authoritative_release" == "ynx-chain-${commit}" ]] || fail "authoritative release mismatch"
+fi
+native_fields=""
+[[ -z "$native_commit" ]] || native_fields=",\"authoritativeCommit\":\"$native_commit\""
 [[ "$bft_release" == "ynx-bft-gateway-${commit}" ]] || fail "BFT release mismatch"
 for path in "$marker" "$evidence_root"; do
   [[ "$path" == /* && "$path" != *..* && "$path" =~ ^/[A-Za-z0-9._/-]+$ ]] || fail "invalid mutation freeze path"
@@ -41,6 +50,14 @@ install -d -m 0700 "$evidence_root" || fail "cannot create mutation evidence dir
 evidence="$evidence_root/${role}-${operation}.json"
 evidence_partial="${evidence}.partial"
 marker_partial="${marker}.partial-${transaction_id}"
+if [[ -n "$native_commit" ]]; then
+  for retained in "$evidence" "$evidence_partial" "$marker_partial" "${marker}.UNKNOWN" "${evidence}.UNKNOWN"; do
+    [[ ! -e "$retained" && ! -L "$retained" ]] || fail "existing native freeze evidence/partial/UNKNOWN must be retained"
+  done
+  if [[ "$operation" == freeze ]]; then
+    [[ ! -e "$marker" && ! -L "$marker" ]] || fail "existing native freeze marker must not be replayed"
+  fi
+fi
 
 shared_env="etc/ynx/ynx-chaind.env"
 service_units=(etc/systemd/system/ynx-chaind.service)
@@ -63,6 +80,8 @@ done
 marker_matches_transaction() {
   grep -Fq "\"transactionId\":\"${transaction_id}\"" "$marker" &&
     grep -Fq "\"commit\":\"${commit}\"" "$marker" &&
+    grep -Fq "\"authoritativeRelease\":\"${authoritative_release}\"" "$marker" &&
+    { [[ -z "$native_commit" ]] || grep -Fq "\"authoritativeCommit\":\"${native_commit}\"" "$marker"; } &&
     grep -Fq "\"bftRelease\":\"${bft_release}\"" "$marker"
 }
 
@@ -75,6 +94,8 @@ if [[ "$operation" == "freeze" ]]; then
   grep -Fq "\"transactionId\":\"${transaction_id}\"" "$backup_evidence" || fail "backup transaction mismatch"
   grep -Fq "\"role\":\"${role}\"" "$backup_evidence" || fail "backup role mismatch"
   grep -Fq "\"commit\":\"${commit}\"" "$backup_evidence" || fail "backup commit mismatch"
+  grep -Fq "\"authoritativeRelease\":\"${authoritative_release}\"" "$backup_evidence" || fail "backup native release mismatch"
+  [[ -z "$native_commit" ]] || grep -Fq "\"authoritativeCommit\":\"${native_commit}\"" "$backup_evidence" || fail "backup native commit mismatch"
   grep -Fq "\"bftRelease\":\"${bft_release}\"" "$backup_evidence" || fail "backup BFT release mismatch"
   grep -Fq '"validated":true' "$backup_evidence" || fail "backup is not validated"
   backup_saved_sha="$(sed -n 's/.*"sha256":"\([0-9a-f]\{64\}\)".*/\1/p' "$backup_evidence")"
@@ -87,8 +108,8 @@ if [[ "$operation" == "freeze" ]]; then
     }
     reused=true
   else
-    printf '{"transactionId":"%s","role":"%s","commit":"%s","authoritativeRelease":"%s","bftRelease":"%s","frozenAt":"%s"}\n' \
-      "$transaction_id" "$role" "$commit" "$authoritative_release" "$bft_release" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$marker_partial"
+    printf '{"transactionId":"%s","role":"%s","commit":"%s","authoritativeRelease":"%s"%s,"bftRelease":"%s","frozenAt":"%s"}\n' \
+      "$transaction_id" "$role" "$commit" "$authoritative_release" "$native_fields" "$bft_release" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$marker_partial"
     chmod 0600 "$marker_partial" || fail "cannot restrict mutation marker"
     mv "$marker_partial" "$marker" || fail "cannot publish mutation marker"
   fi
@@ -108,7 +129,11 @@ else
 fi
 
 probe_dir="$(mktemp -d)"
-trap 'rm -rf "$probe_dir" "$marker_partial" "$evidence_partial"' EXIT
+if [[ -n "$native_commit" ]]; then
+  trap 'rm -rf "$probe_dir"' EXIT
+else
+  trap 'rm -rf "$probe_dir" "$marker_partial" "$evidence_partial"' EXIT
+fi
 status_code="$(curl -sS -o "$probe_dir/status" -w '%{http_code}' "$chain_url/status")" || fail "chain status probe failed"
 [[ "$status_code" == "200" ]] || fail "chain status read failed during mutation transition"
 evm_code="$(curl -sS -o "$probe_dir/evm" -w '%{http_code}' -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' "$chain_url/evm")" || fail "EVM read probe failed"
@@ -123,12 +148,13 @@ for url in "${mutation_url_list[@]}"; do
   fi
 done
 
-printf '{"transactionId":"%s","role":"%s","operation":"%s","commit":"%s","authoritativeRelease":"%s","bftRelease":"%s","markerPath":"%s","markerSha256":"%s","readStatus":200,"readEvm":200,"mutationStateVerified":true,"reused":%s,"recordedAt":"%s"}\n' \
-  "$transaction_id" "$role" "$operation" "$commit" "$authoritative_release" "$bft_release" "$marker" "$marker_sha" "$reused" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$evidence_partial"
+printf '{"transactionId":"%s","role":"%s","operation":"%s","commit":"%s","authoritativeRelease":"%s"%s,"bftRelease":"%s","markerPath":"%s","markerSha256":"%s","readStatus":200,"readEvm":200,"mutationStateVerified":true,"reused":%s,"recordedAt":"%s"}\n' \
+  "$transaction_id" "$role" "$operation" "$commit" "$authoritative_release" "$native_fields" "$bft_release" "$marker" "$marker_sha" "$reused" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$evidence_partial"
 chmod 0600 "$evidence_partial" || fail "cannot restrict mutation evidence"
 mv "$evidence_partial" "$evidence" || fail "cannot publish mutation evidence"
 trap - EXIT
-rm -rf "$probe_dir" "$marker_partial"
+rm -rf "$probe_dir"
+[[ -n "$native_commit" ]] || rm -f "$marker_partial"
 
 printf 'transactionId=%s\nrole=%s\noperation=%s\ncommit=%s\nauthoritativeRelease=%s\nbftRelease=%s\nmarker=%s\nmarkerSha256=%s\nreadStatus=200\nreadEvm=200\nmutationStateVerified=true\nreused=%s\n' \
   "$transaction_id" "$role" "$operation" "$commit" "$authoritative_release" "$bft_release" "$marker" "$marker_sha" "$reused"

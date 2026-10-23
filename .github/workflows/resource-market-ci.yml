@@ -1790,6 +1790,11 @@ jobs:
           cat "$YNX_OLD_SNAPSHOT_LOG"
           test "$(grep -c 'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED' "$YNX_OLD_SNAPSHOT_LOG")" -eq 1
           bash scripts/verify/public-bft-production-driver-check.sh --snapshot-only
+          # Check the original native process/config observer and unchanged
+          # backup/freeze/pause helpers using isolated observation fixtures.
+          # Keep these after the exact old snapshot RED so failures cannot
+          # substitute for its retained-partial first cause.
+          bash scripts/verify/public-bft-native-identity-check.sh
           bash scripts/verify/owner-handover-check.sh
           bash scripts/verify/production-service-signer-ceremony-check.sh
           bash scripts/verify/production-custody-review-check.sh
