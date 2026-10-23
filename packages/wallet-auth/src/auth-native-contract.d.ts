@@ -120,12 +120,24 @@ export interface OriginalIDEIdentityPeerStatus {
 export type OriginalIDEIdentityPeerReturn=Readonly<
  {decision:'approve';requestId:string;purpose:string;proof:Uint8Array}|
  {decision:'reject';requestId:string;purpose:string;proof:null}>;
+/** Correlated original publication envelope DATA only. Sender already selected
+ * its one signing effect; never completeProof or invoke this return again. */
+export interface OriginalIDEPublicationPeerReturnData {
+ readonly decision:'publication-result';readonly requestId:string;
+ readonly requestPurpose:'AUTH-PROTECTED-KEY-CALL';readonly purpose:'ARTIFACT-RELEASE';
+ readonly resultOriginal:Uint8Array<ArrayBuffer>;readonly dataOnly:true;
+ readonly signatureVerified:false;readonly publicationAuthorized:false;
+ readonly nativeAdmission:false;readonly approvalCurrent:false;
+}
 export interface OriginalIDEIdentityPeerOwner {
  readonly [originalIdentityPeerOwner]:true;
  current():undefined;
  /** Always exactly three arguments, even when invocation is absent. */
  sendRequest(kind:'receive'|'recover'|'keyCall',requestOriginal:string,invocationOriginal:string|undefined):Promise<undefined>;
  receiveReturn():Promise<OriginalIDEIdentityPeerReturn>;
+ /** Reject retains the original identity reject schema; cancel rejects the
+  * Promise. Publication DATA does not establish independent verification. */
+ receiveOriginalArtifactReturn():Promise<OriginalIDEPublicationPeerReturnData|Readonly<{decision:'reject';requestId:string;purpose:string;proof:null}>>;
  retire():undefined;join():undefined;close():undefined;
  status():Readonly<OriginalIDEIdentityPeerStatus>;
 }

@@ -14,6 +14,10 @@
 // Main-thread capture happens before any Source callback.
 - (BOOL)captureRequest:(ynx_auth_ide_identity_private::Frame)frame error:(NSError **)error;
 - (BOOL)selectDecision:(NSString *)kind proof:(NSData *)proof error:(NSError **)error;
+// Same original stream, mutually exclusive terminal kind6 for publication.
+// DATA correlation only; Main must assert its native approval/current/once
+// holder and independently registered publisher before and after this call.
+- (BOOL)selectOriginalArtifactResult:(NSData *)original error:(NSError **)error;
 - (ynx_auth_ide_identity_private::Frame)selectedDecision;
 - (NSDictionary *)copyCapturedRequest:(NSError **)error;
 - (void)retire;
