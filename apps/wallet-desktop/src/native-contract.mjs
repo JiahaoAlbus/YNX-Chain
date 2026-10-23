@@ -206,7 +206,7 @@ export class NativeContractClient {
             return fail("NATIVE_CONTRACT_UNSUPPORTED_EXECUTION");
         const engine = value.executionEngine === undefined ? null : text(value.executionEngine);
         const steps = value.opcodeStepCount === undefined ? null : value.opcodeStepCount;
-        if (status === "evm_opcode_interpreter_staticcall_subset" && (engine !== "local-bounded-evm-opcode-interpreter" || !Number.isSafeInteger(steps) || Number(steps) <= 0) ||
+        if (status === "evm_opcode_interpreter_staticcall_subset" && (engine !== "local-bounded-evm-opcode-interpreter" || !Number.isSafeInteger(steps) || Number(steps) <= 0 || Number(steps) > 2048) ||
             status !== "evm_opcode_interpreter_staticcall_subset" && (engine !== null || steps !== null))
             return fail("NATIVE_CONTRACT_UNSUPPORTED_EXECUTION");
         const after = parseNativeContractArtifact(await this.request("GET", "/contracts/" + target, undefined, guard), target);

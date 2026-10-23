@@ -91,7 +91,8 @@ test("pinned bytecode subset must retain selector match and bounded interpreter 
     const meta = { ...artifact, functions: artifact.functions.map(row => ({ ...row, selector: "0x82da2e57", bytecodeSelectorMatched: true })), artifactKind: "pinned-solc-bytecode-artifact", runtimeMode: "hardhat-artifact-local-evm-opcode-staticcall-subset" };
     const read = { ...result, selector: "0x82da2e57", artifactKind: meta.artifactKind, runtimeMode: meta.runtimeMode, executionStatus: "evm_opcode_interpreter_staticcall_subset", bytecodeSelectorMatched: true, executionEngine: "local-bounded-evm-opcode-interpreter", opcodeStepCount: 24 };
     assert.equal((await fixture(meta, read).client.read(target, "readValue", guard)).opcodeStepCount, 24);
-    for (const patch of [{ bytecodeSelectorMatched: false }, { opcodeStepCount: 0 }, { executionEngine: "remote-evm" }])
+    assert.equal((await fixture(meta, { ...read, opcodeStepCount: 2048 }).client.read(target, "readValue", guard)).opcodeStepCount, 2048);
+    for (const patch of [{ bytecodeSelectorMatched: false }, { opcodeStepCount: 0 }, { opcodeStepCount: 2049 }, { opcodeStepCount: Number.MAX_SAFE_INTEGER }, { executionEngine: "remote-evm" }])
         await assert.rejects(() => fixture(meta, { ...read, ...patch }).client.read(target, "readValue", guard));
     const unmatched = fixture({ ...meta, functions: meta.functions.map(row => ({ ...row, bytecodeSelectorMatched: false })) }, read);
     await assert.rejects(() => unmatched.client.read(target, "readValue", guard), /NATIVE_CONTRACT_SELECTOR_NOT_MATCHED/);
