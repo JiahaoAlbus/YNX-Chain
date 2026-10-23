@@ -32,6 +32,7 @@ spec.loader.exec_module(shared)
 CANARY = 'PRIVATE_CADDY_VALUE_MUST_NEVER_APPEAR_ON_STDOUT_OR_STDERR'
 TESTNET_POINTER = '/apps/http/servers/srv0/routes/16/handle/0/routes/0/handle/0/upstreams/0/dial'
 RPC_POINTER = '/apps/http/servers/srv0/routes/38/handle/0/routes/2/handle/0/routes/0/handle/0/upstreams/0/dial'
+EVM_POINTER = '/apps/http/servers/srv0/routes/39/handle/0/routes/0/handle/0/routes/1/handle/0/upstreams/0/dial'
 BRIDGE_POINTER = '/apps/http/servers/srv0/routes/38/handle/0/routes/0/handle/0/routes/1/handle/0/upstreams/0/dial'
 
 
@@ -61,9 +62,9 @@ def pointer(value, path):
 
 
 def config_fixture():
-    # These exact two 6420 pointers and the separate 6433 bridge branch follow
+    # These exact three 6420 pointers and the separate 6433 bridge branch follow
     # the approved metadata-only structure, never a copy of private JSON.
-    routes = [route('unrelated-%d.invalid' % n, proxy(6420)) for n in range(39)]
+    routes = [route('unrelated-%d.invalid' % n, proxy(6420)) for n in range(40)]
     routes[16] = route('rpc-testnet.ynxweb4.com', {'handler': 'subroute', 'routes': [{'handle': [proxy(6420)]}]})
     routes[38] = route('rpc.ynxweb4.com', {'handler': 'subroute', 'routes': [
         {'handle': [{'handler': 'subroute', 'routes': [
@@ -71,6 +72,10 @@ def config_fixture():
             {'match': [{'path': ['/bridge/health']}], 'handle': [proxy(6433)]}]}]},
         {'handle': [{'handler': 'static_response', 'body': 'preserved'}]},
         {'handle': [{'handler': 'subroute', 'routes': [{'handle': [proxy(6420)]}]}]}]})
+    routes[39] = route('evm.ynxweb4.com', {'handler': 'subroute', 'routes': [
+        {'handle': [{'handler': 'subroute', 'routes': [
+            {'handle': [{'handler': 'static_response', 'body': 'preserved EVM branch'}]},
+            {'handle': [proxy(6420)]}]}]}]})
     return {'admin': {'listen': '127.0.0.1:2019'}, 'apps': {'http': {'servers': {
         'srv0': {'listen': [':443'], 'routes': routes}}}},
         'logging': {'logs': {'private': {'writer': {'output': 'file', 'filename': CANARY}}}}}
@@ -106,6 +111,8 @@ class Fixture:
             rpcUpstreams=[dict(pointer=TESTNET_POINTER, host='rpc-testnet.ynxweb4.com',
                 **{'from': '127.0.0.1:6420', 'to': '127.0.0.1:27620'}),
                 dict(pointer=RPC_POINTER, host='rpc.ynxweb4.com',
+                **{'from': '127.0.0.1:6420', 'to': '127.0.0.1:27620'}),
+                dict(pointer=EVM_POINTER, host='evm.ynxweb4.com',
                 **{'from': '127.0.0.1:6420', 'to': '127.0.0.1:27620'})])
         self.binding_path = parent / 'independent-binding.json'
         self.process_reads = 0
@@ -172,6 +179,7 @@ class PrepareCaddyJSONSourceTests(unittest.TestCase):
         self.assertEqual((self.f.output / 'candidate.json').read_bytes(), candidate)
         projected = shared.parse_config(candidate)
         self.assertEqual(value['baseline']['candidateSemanticSHA256'], shared.semantic_hash(projected))
+        self.assertEqual(pointer(projected, EVM_POINTER), '127.0.0.1:27620')
         self.assertEqual(pointer(projected, BRIDGE_POINTER), '127.0.0.1:6433')
         for entry in self.f.binding['rpcUpstreams']:
             self.assertEqual(pointer(projected, entry['pointer']), entry['to'])
@@ -213,6 +221,21 @@ class PrepareCaddyJSONSourceTests(unittest.TestCase):
         self.f.save_binding()
         code, out, _ = self.call_main()
         self.assertEqual((code, out), (1, ''))
+        self.assertFalse(self.f.output.exists())
+
+    def test_old_two_rpc_binding_cannot_omit_actual_evm_route(self):
+        self.f.binding['rpcUpstreams'] = self.f.binding['rpcUpstreams'][:2]
+        self.f.save_binding()
+        code, out, err = self.call_main()
+        self.assertEqual((code, out), (1, ''))
+        self.assertIn('THREE_EXPLICIT_RPC_UPSTREAMS_REQUIRED', err)
+        self.assertFalse(self.f.output.exists())
+        self.assertEqual(self.f.process_reads, 0)
+
+    def test_three_records_cannot_replace_evm_with_duplicate_rpc(self):
+        self.f.binding['rpcUpstreams'][2] = copy.deepcopy(self.f.binding['rpcUpstreams'][0])
+        self.f.save_binding()
+        self.assertEqual(self.call_main()[0], 1)
         self.assertFalse(self.f.output.exists())
 
     def test_baseline_version_rejects_smuggled_protocol_authority(self):

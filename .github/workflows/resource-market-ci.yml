@@ -59,6 +59,8 @@ on:
       - 'scripts/ops/remote/public-bft-ingress.sh'
       - 'scripts/ops/remote/public-bft-caddy-json.py'
       - 'scripts/ops/prepare-public-bft-caddy-json-source.py'
+      - 'scripts/ops/install-public-bft-caddy-json-baseline.py'
+      - 'scripts/verify/test_install_public_bft_caddy_json_baseline.py'
       - 'scripts/verify/test_public_bft_caddy_json.py'
       - 'scripts/verify/test_prepare_public_bft_caddy_json_source.py'
       - 'scripts/verify/public-bft-caddy-json-source-check.mjs'
@@ -218,6 +220,68 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 6
+
+  caddy-source:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Record exact original Caddy source identity
+        id: source
+        run: |
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          git diff --exit-code
+      - name: Verify original Caddy JSON consumer without changing services
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        timeout-minutes: 3
+        run: timeout 90s python3 -B scripts/verify/test_public_bft_caddy_json.py -v
+      - name: Verify independently prepared original Caddy baseline DATA
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        timeout-minutes: 3
+        run: timeout 90s python3 -B scripts/verify/test_prepare_public_bft_caddy_json_source.py -v
+      - name: Verify original Caddy source approval and normal cutover caller
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        timeout-minutes: 3
+        run: node scripts/verify/public-bft-caddy-json-source-check.mjs
+      - name: Verify existing Caddyfile and JSON ingress source controls
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        timeout-minutes: 3
+        run: timeout 120s bash scripts/verify/public-bft-gateway-ingress-check.sh
+      - name: Verify exact persistent baseline installer without operating services
+        if: ${{ !cancelled() && steps.source.outcome == 'success' }}
+        timeout-minutes: 3
+        run: timeout 90s python3 -B scripts/verify/test_install_public_bft_caddy_json_baseline.py -v
+      - name: Seal only successfully tested public Caddy baseline sources
+        env:
+          YNX_CADDY_SOURCE_ROOT: ${{ runner.temp }}/ynx-caddy-baseline-source
+        run: |
+          python3 -B - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          root=pathlib.Path(os.environ['YNX_CADDY_SOURCE_ROOT'])
+          root.mkdir(mode=0o700)
+          records=[]
+          for name in ('scripts/ops/prepare-public-bft-caddy-json-source.py','scripts/ops/remote/public-bft-caddy-json.py','scripts/ops/install-public-bft-caddy-json-baseline.py'):
+              source=pathlib.Path(name); raw=source.read_bytes()
+              target=root/name; target.parent.mkdir(parents=True,exist_ok=True)
+              target.write_bytes(raw); target.chmod(0o644)
+              records.append(dict(path=name,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest()))
+          value=dict(version='YNX-CADDY-BASELINE-PUBLIC-SOURCE/v1',commit=os.environ['GITHUB_SHA'],tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),runId=os.environ['GITHUB_RUN_ID'],runAttempt=os.environ['GITHUB_RUN_ATTEMPT'],producerJob='caddy-source',files=records,publicSourceOnly=True,deployed=False,servicesChanged=False,rootGrant=False)
+          (root/'SOURCE.json').write_text(json.dumps(value,sort_keys=True,separators=(',',':'))+'\n')
+          PY
+      - name: Upload only the tested Caddy source bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: caddy-baseline-source-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-caddy-baseline-source
+          if-no-files-found: error
+          retention-days: 30
 
   focused-go:
     if: ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))
@@ -446,13 +510,6 @@ jobs:
         with:
           node-version: '24.19.0'
           cache: npm
-      - name: Verify exact full-JSON Caddy source preparation and original cutover inputs
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
-        timeout-minutes: 3
-        run: |
-          timeout 90s python3 -B scripts/verify/test_public_bft_caddy_json.py -v
-          timeout 90s python3 -B scripts/verify/test_prepare_public_bft_caddy_json_source.py -v
-          node scripts/verify/public-bft-caddy-json-source-check.mjs
       - name: Verify failed candidate deployment preserves services and signing history
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         run: node --test scripts/deploy/consensus-candidate-failure-retention.test.mjs scripts/verify/consensus-production-package-check.test.mjs
@@ -1935,7 +1992,6 @@ jobs:
           # no service, remote transport or paused product is started.
           bash scripts/verify/public-bft-cutover-transaction-check.sh
           bash scripts/verify/public-bft-gateway-dependencies-check.sh
-          bash scripts/verify/public-bft-gateway-ingress-check.sh
           bash scripts/verify/public-bft-validator-registration-check.sh "$RUNNER_TEMP/ynx-pq-linux-runtime-candidate/ynx-comet" "$RUNNER_TEMP/ynx-pq-consensus-light-proof-public.json"
       - name: Verify normal proof CLI with exact public interoperability fixture
         id: pqproofcli

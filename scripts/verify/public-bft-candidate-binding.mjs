@@ -102,9 +102,9 @@ function caddyManifest(file, b, gatewaySHA256) {
   closed(base,["configPath","configSHA256","semanticSHA256","candidateSemanticSHA256","dropInPath","dropInSHA256"]);
   const dropin="[Service]\nExecStart=\nExecStart=/usr/bin/caddy run --environ --config /etc/caddy/ynx-chain.json\nExecReload=\nExecReload=/usr/bin/caddy reload --config /etc/caddy/ynx-chain.json --force\n";
   if(base.configPath!=="/etc/caddy/ynx-chain.json"||base.configSHA256!==m.source.sha256||![base.semanticSHA256,base.candidateSemanticSHA256,base.dropInSHA256].every(hash)||base.semanticSHA256===base.candidateSemanticSHA256||base.dropInPath!=="/etc/systemd/system/caddy.service.d/ynx-chain-json.conf"||base.dropInSHA256!==crypto.createHash("sha256").update(dropin).digest("hex"))fail("Caddy persistent baseline/projection metadata differs");
-  if(!Array.isArray(m.rpcUpstreams)||m.rpcUpstreams.length!==2)fail("exact two approved RPC projections required");
+  if(!Array.isArray(m.rpcUpstreams)||m.rpcUpstreams.length!==3)fail("exact three approved JSON-RPC projections required");
   const hosts=new Set(), pointers=new Set();
-  for(const r of m.rpcUpstreams){closed(r,["pointer","host","from","to"]);if(!["rpc.ynxweb4.com","rpc-testnet.ynxweb4.com"].includes(r.host)||hosts.has(r.host)||typeof r.pointer!=="string"||r.pointer.length>4096||!/^\/apps\/http\/servers\/[A-Za-z0-9_-]+\/routes\/(0|[1-9][0-9]*)(?:\/[A-Za-z0-9_-]+|\/(?:0|[1-9][0-9]*))*\/dial$/.test(r.pointer)||pointers.has(r.pointer)||r.from!=="127.0.0.1:6420"||r.to!=="127.0.0.1:27620")fail("Caddy RPC source projections differ");hosts.add(r.host);pointers.add(r.pointer);}
+  for(const r of m.rpcUpstreams){closed(r,["pointer","host","from","to"]);if(!["rpc.ynxweb4.com","rpc-testnet.ynxweb4.com","evm.ynxweb4.com"].includes(r.host)||hosts.has(r.host)||typeof r.pointer!=="string"||r.pointer.length>4096||!/^\/apps\/http\/servers\/[A-Za-z0-9_-]+\/routes\/(0|[1-9][0-9]*)(?:\/[A-Za-z0-9_-]+|\/(?:0|[1-9][0-9]*))*\/dial$/.test(r.pointer)||pointers.has(r.pointer)||r.from!=="127.0.0.1:6420"||r.to!=="127.0.0.1:27620")fail("Caddy RPC source projections differ");hosts.add(r.host);pointers.add(r.pointer);}
   return m;
 }
 

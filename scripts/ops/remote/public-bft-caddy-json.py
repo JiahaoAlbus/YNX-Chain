@@ -15,7 +15,7 @@ CONFIG_PATH = '/etc/caddy/ynx-chain.json'
 DROP_IN_PATH = '/etc/systemd/system/caddy.service.d/ynx-chain-json.conf'
 UNIT_PATH = '/usr/lib/systemd/system/caddy.service'
 OLD_ARGV = ['/usr/bin/caddy', 'run', '--environ', '--config', '/etc/caddy/Caddyfile']
-HOSTS = {'rpc-testnet.ynxweb4.com', 'rpc.ynxweb4.com'}
+HOSTS = {'rpc-testnet.ynxweb4.com', 'rpc.ynxweb4.com', 'evm.ynxweb4.com'}
 
 
 class SourceValidationError(ValueError):
@@ -147,8 +147,8 @@ def file_witness(info):
 
 
 def project_rpc_config(value, rpc_upstreams):
-    if type(rpc_upstreams) is not list or len(rpc_upstreams) != 2:
-        _reject('exact two approved RPC upstreams required')
+    if type(rpc_upstreams) is not list or len(rpc_upstreams) != 3:
+        _reject('exact three approved RPC and EVM upstreams required')
     candidate = copy.deepcopy(value)
     pointers, hosts = set(), set()
     for record in rpc_upstreams:
@@ -199,7 +199,7 @@ def project_rpc_config(value, rpc_upstreams):
         pointers.add(pointer)
         hosts.add(host)
     if hosts != HOSTS:
-        _reject('both approved RPC hosts required')
+        _reject('all three approved RPC and EVM hosts required')
     # A residual 6420 dial under either approved host would yield a partial
     # switch. Other hosts and 6433 routes remain exactly untouched.
     def scan(node, scoped=False, original=False):
@@ -289,6 +289,51 @@ def _proc_start(path):
     return fields[19].decode()
 
 
+def validate_exec_observation(actual, argv):
+    """Accept exactly one systemctl Exec command and bounded public metadata.
+
+    Metadata describes an observation, not authority to alter the argv. Empty
+    metadata is supported for source fixtures; real systemd may provide each
+    of the five known fields once, in any order. No shell text is evaluated.
+    """
+    if (type(actual) is not str or len(actual) > 65536 or type(argv) is not list or not argv
+            or any(type(arg) is not str or not arg or re.search(r'[\s;{}\x00-\x1f\x7f]', arg) for arg in argv)
+            or any(ord(char) < 32 or ord(char) == 127 for char in actual)):
+        _reject('invalid structured Exec observation')
+    prefix = '{ path=' + argv[0] + ' ; argv[]=' + ' '.join(argv) + ' ; ignore_errors=no ; '
+    if (not actual.startswith(prefix) or not actual.endswith('}')
+            or actual.count('{') != 1 or actual.count('}') != 1):
+        _reject('structured Exec command or closed tail differs')
+    tail = actual[len(prefix):-1]
+    if not tail:
+        return
+    if tail.endswith(' ; '):
+        fields = tail[:-3]
+    elif tail.endswith(' '):
+        # systemctl commonly omits the final metadata semicolon; the older
+        # source fixture includes it. Both still require the single brace.
+        fields = tail[:-1]
+    else:
+        _reject('structured Exec metadata delimiter differs')
+    values = {}
+    timestamp = (r'\[(?:n/a|(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) [0-9]{4}-'
+                 r'(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01]) '
+                 r'(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\.[0-9]{1,9})? '
+                 r'(?:[A-Za-z][A-Za-z0-9_+/-]{0,31}|[+-][0-9]{2}(?::?[0-9]{2})?))\]')
+    patterns = dict(start_time=timestamp, stop_time=timestamp,
+                    pid=r'(?:0|[1-9][0-9]{0,9})',
+                    code=r'(?:\(null\)|exited|killed|dumped|trapped|stopped|continued)',
+                    status=r'(?:0|[1-9][0-9]{0,9})/(?:0|[1-9][0-9]{0,9}|[A-Z][A-Z0-9_+-]{0,63})')
+    for field in fields.split(' ; '):
+        key, separator, value = field.partition('=')
+        if (not separator or key not in patterns or key in values
+                or re.fullmatch(patterns[key], value) is None):
+            _reject('unknown duplicate or malformed structured Exec metadata')
+        if key == 'pid' and int(value) > 0xffffffff:
+            _reject('structured Exec metadata PID overflow')
+        values[key] = value
+
+
 def guard(value, original, candidate, phase, root, observed, loaded):
     """Read-only guard; observed systemd fields come from exact caller queries."""
     config = root + CONFIG_PATH
@@ -311,10 +356,7 @@ def guard(value, original, candidate, phase, root, observed, loaded):
         _reject('loaded systemd source differs from persistent JSON source')
     for field, argv in [('start', [program, 'run', '--environ', '--config', config]),
                         ('reload', [program, 'reload', '--config', config, '--force'])]:
-        prefix = '{ path=' + program + ' ; argv[]=' + ' '.join(argv) + ' ; ignore_errors=no ; '
-        actual = observed[field]
-        if not actual.startswith(prefix) or 'argv[]=' in actual[len(prefix):]:
-            _reject('loaded JSON ExecStart or ExecReload differs')
+        validate_exec_observation(observed[field], argv)
     pid = observed['pid']
     if not re.fullmatch(r'[1-9][0-9]*', pid) or int(pid) < 2:
         _reject('Caddy running PID unavailable')

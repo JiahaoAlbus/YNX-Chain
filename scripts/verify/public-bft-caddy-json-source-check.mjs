@@ -15,6 +15,7 @@ const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "ynx-caddy-so
 const profile = "single-app-gateway/v1", fullCommit = "0123456789abcdef0123456789abcdef01234567";
 const commit = fullCommit.slice(0, 12), release = `ynx-bft-gateway-${commit}`;
 const roles = ["primary", "singapore", "silicon-valley", "seoul"];
+const evmPointer = "/apps/http/servers/srv0/routes/39/handle/0/routes/0/handle/0/routes/1/handle/0/upstreams/0/dial";
 const sha = value => crypto.createHash("sha256").update(value).digest("hex");
 const encode = value => Buffer.from(`${JSON.stringify(value)}\n`);
 const hash = char => char.repeat(64);
@@ -66,7 +67,7 @@ function fixture() {
     originalProcess:{pid:"1432803",startTicks:"1557106000",argv:["/usr/bin/caddy","run","--environ","--config","/etc/caddy/Caddyfile"]},
     originalUnit:{path:"/usr/lib/systemd/system/caddy.service",sha256:hash("6")},
     baseline:{configPath:"/etc/caddy/ynx-chain.json",configSHA256:hash("7"),semanticSHA256:hash("5"),candidateSemanticSHA256:hash("4"),dropInPath:"/etc/systemd/system/caddy.service.d/ynx-chain-json.conf",dropInSHA256:sha(dropin)},
-    rpcUpstreams:["rpc-testnet.ynxweb4.com","rpc.ynxweb4.com"].map((host,index)=>({pointer:`/apps/http/servers/main/routes/${index}/handle/0/upstreams/0/dial`,host,from:"127.0.0.1:6420",to:"127.0.0.1:27620"}))};
+    rpcUpstreams:["rpc-testnet.ynxweb4.com","rpc.ynxweb4.com","evm.ynxweb4.com"].map((host,index)=>({pointer:host==="evm.ynxweb4.com"?evmPointer:`/apps/http/servers/main/routes/${index}/handle/0/upstreams/0/dial`,host,from:"127.0.0.1:6420",to:"127.0.0.1:27620"}))};
   const manifestFile=write(path.join(directory,"manifest.json"),manifest);
   const caddySource={manifestPath:"/var/lib/ynx-chain/caddy-source/manifest.json",manifestSha256:sha(fs.readFileSync(manifestFile))};
   const approval={custodyProfile:profile,schemaVersion:1,action:"ynx-public-bft-cutover",approved:true,approvalId:"caddy-source-data-fixture",approver:"transaction fixture",custodyReviewer:"custody fixture",custodyEvidence:`sha256:${hash("1")}`,
@@ -146,6 +147,8 @@ try {
 
   const f=fixture(),saved=snapshot(f.files);
   check("normal actual binding and approval evidence carry exact original source",()=>{
+    assert.deepEqual(f.manifest.rpcUpstreams.map(value=>value.host).sort(),["evm.ynxweb4.com","rpc-testnet.ynxweb4.com","rpc.ynxweb4.com"]);
+    assert.equal(f.manifest.rpcUpstreams.find(value=>value.host==="evm.ynxweb4.com").pointer,evmPointer);
     assert.deepEqual(f.binding.caddySource,f.approval.caddySource);
     const approved=JSON.parse(cli(evidenceProgram,[f.approvalFile,commit,release]).stdout);
     assert.deepEqual(approved.caddySource,f.approval.caddySource);
@@ -192,7 +195,10 @@ try {
     ["unequal-reads",m=>{m.secondRead.sha256=hash("f");}],["same-inode",m=>{m.secondRead.witness.inode=m.source.witness.inode;}],
     ["different-owner",m=>{m.secondRead.witness.uid="99";}],["different-parent",m=>{m.secondRead.path="/different/second.json";}],
     ["wrong-dropin",m=>{m.baseline.dropInSHA256=hash("f");}],["same-projection",m=>{m.baseline.candidateSemanticSHA256=m.baseline.semanticSHA256;}],
-    ["unknown-rpc-host",m=>{m.rpcUpstreams[1].host="unrelated.ynxweb4.com";}],["duplicate-pointer",m=>{m.rpcUpstreams[1].pointer=m.rpcUpstreams[0].pointer;}]
+    ["unknown-rpc-host",m=>{m.rpcUpstreams[1].host="unrelated.ynxweb4.com";}],["duplicate-pointer",m=>{m.rpcUpstreams[1].pointer=m.rpcUpstreams[0].pointer;}],
+    ["only-two-rpc-records",m=>{m.rpcUpstreams=m.rpcUpstreams.slice(0,2);}],
+    ["missing-evm-with-three-records",m=>{m.rpcUpstreams[2].host=m.rpcUpstreams[0].host;}],
+    ["unapproved-mixed-evm-host",m=>{m.rpcUpstreams[2].host="ide.ynxweb4.com";}]
   ];
   for(const [name,mutate] of manifestMutations)check(`re-pinned malformed metadata ${name} rejected`,()=>{
     const m=structuredClone(f.manifest);mutate(m);const file=variant(f,`manifest-${name}`,m);

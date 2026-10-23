@@ -157,8 +157,8 @@ def validate_binding(value):
     require(type(unit) is dict and set(unit) == {'path', 'sha256'} and unit['path'] == UNIT,
             'FIXED_ORIGINAL_UNIT_REQUIRED')
     pin(unit['sha256'])
-    require(type(value['rpcUpstreams']) is list and len(value['rpcUpstreams']) == 2,
-            'TWO_EXPLICIT_RPC_UPSTREAMS_REQUIRED')
+    require(type(value['rpcUpstreams']) is list and len(value['rpcUpstreams']) == 3,
+            'THREE_EXPLICIT_RPC_UPSTREAMS_REQUIRED')
     return full
 
 

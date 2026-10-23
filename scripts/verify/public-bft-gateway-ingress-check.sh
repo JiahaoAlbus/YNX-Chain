@@ -521,13 +521,19 @@ run_helper switch; must_fail CADDY_ORIGINAL_UNIT_MISMATCH; no_mutations
 [[ ! -e "$ingress" ]] || fail 'old JSON-incompatible caller created attempt'
 run_json_helper switch
 [[ "$status" == 0 ]] || fail 'normal explicit JSON switch failed'
-cmp "$root/etc/caddy/ynx-chain.json" "$root/expected.json" || fail 'JSON switch is not exact two-leaf projection'
+cmp "$root/etc/caddy/ynx-chain.json" "$root/expected.json" || fail 'JSON switch is not exact three-leaf projection'
 cmp "$master" "$root/original.master" && cmp "$config" "$root/original.caddy" || fail 'JSON switch touched Caddyfile/stub'
 preserved
 sha256sum --strict -c "$root/json-retained.sha256" >/dev/null || fail 'JSON switch changed pinned original retained sources'
-python3 - "$root/result.json" "$json_manifest" "$json_pin" <<'PY'
+python3 - "$root/result.json" "$json_manifest" "$json_pin" "$root/etc/caddy/ynx-chain.json" <<'PY'
 import json,sys
 v=json.load(open(sys.argv[1])); m=json.load(open(sys.argv[2]))
+assert len(m['rpcUpstreams'])==3 and {item['host'] for item in m['rpcUpstreams']}=={'rpc-testnet.ynxweb4.com','rpc.ynxweb4.com','evm.ynxweb4.com'}
+active=json.load(open(sys.argv[4]))
+for item in m['rpcUpstreams']:
+    node=active
+    for key in item['pointer'][1:].split('/'): node=node[int(key)] if isinstance(node,list) else node[key]
+    assert node=='127.0.0.1:27620'
 assert v['mode']=='single-app-gateway-json' and v['caddySourceManifestSHA256']==sys.argv[3]
 assert v['sourceSHA256']==m['source']['sha256'] and v['baselineSemanticSHA256']==m['baseline']['semanticSHA256']
 assert v['candidateSemanticSHA256']==m['baseline']['candidateSemanticSHA256'] and v['dropInSHA256']==m['baseline']['dropInSHA256']
@@ -543,11 +549,20 @@ preserved
 sha256sum --strict -c "$root/json-retained.sha256" >/dev/null || fail 'JSON rollback changed pinned original retained sources'
 run_json_helper rollback; must_fail 'original rollback attempt exists'
 
-for scenario in missing-baseline missing-dropin wrong-pin loaded foreign-dropin old-start old-reload wrong-startticks wrong-source; do
+for scenario in missing-baseline missing-dropin missing-evm wrong-pin loaded foreign-dropin old-start old-reload wrong-startticks wrong-source; do
   new_json_fixture
   case "$scenario" in
     missing-baseline) rm "$root/etc/caddy/ynx-chain.json" ;;
     missing-dropin) rm "$root/etc/systemd/system/caddy.service.d/ynx-chain-json.conf" ;;
+    missing-evm)
+      python3 - "$json_manifest" <<'PY'
+import json,sys
+p=sys.argv[1]
+with open(p) as f: v=json.load(f)
+v['rpcUpstreams']=[item for item in v['rpcUpstreams'] if item['host']!='evm.ynxweb4.com']
+with open(p,'w') as f: json.dump(v,f,separators=(',',':'))
+PY
+      json_pin="$(hash "$json_manifest")" ;;
     wrong-pin) json_pin="$(printf 'd%.0s' {1..64})" ;;
     loaded) cp "$root/expected.json" "$root/caddy-loaded.json" ;;
     foreign-dropin) export FIX_CADDY_DROPIN=yes ;;

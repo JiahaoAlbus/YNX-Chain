@@ -255,6 +255,8 @@ PY
     # The original Caddy owner must already have installed the exact JSON
     # baseline and persistent drop-in. This consumer never repairs a stub or
     # changes a systemd source, and never interprets JSON as a Caddyfile.
+    # The shared v1 projection requires all three approved RPC/EVM hosts;
+    # omitting the EVM dial must not leave it on the stopped native producer.
     local json_args=(--manifest "$json_manifest" --manifest-sha256 "$json_manifest_pin" --transaction-id "$transaction_id" --commit "$commit" --operator-plan-sha256 "$operator_pin" --runtime-commit "$runtime_commit" --runtime-source-sha256 "$runtime_pin" --gateway-sha256 "$gateway_pin" --root "$root")
     local json_coordinates="" json_guard_result
     caddy_json_guard() {

@@ -20,13 +20,14 @@ spec.loader.exec_module(module)
 
 TESTNET_POINTER = '/apps/http/servers/srv0/routes/16/handle/0/routes/0/handle/0/upstreams/0/dial'
 MAIN_POINTER = '/apps/http/servers/srv0/routes/38/handle/0/routes/2/handle/0/routes/0/handle/0/upstreams/0/dial'
+EVM_POINTER = '/apps/http/servers/srv0/routes/39/handle/0/routes/0/handle/0/routes/1/handle/0/upstreams/0/dial'
 BRIDGE_POINTER = '/apps/http/servers/srv0/routes/38/handle/0/routes/0/handle/0/routes/1/handle/0/upstreams/0/dial'
 
 
 def fixture_config():
     def proxy(port):
         return {'handler': 'reverse_proxy', 'upstreams': [{'dial': '127.0.0.1:' + str(port)}]}
-    routes = [{'match': [{'host': ['unrelated%d.invalid' % i]}], 'handle': [proxy(6430)]} for i in range(39)]
+    routes = [{'match': [{'host': ['unrelated%d.invalid' % i]}], 'handle': [proxy(6430)]} for i in range(40)]
     routes[16] = {'match': [{'host': ['rpc-testnet.ynxweb4.com']}], 'handle': [
         {'handler': 'subroute', 'routes': [{'handle': [proxy(6420)]}]}]}
     routes[38] = {'match': [{'host': ['rpc.ynxweb4.com']}], 'handle': [
@@ -36,6 +37,11 @@ def fixture_config():
                 {'match': [{'path': ['/bridge/*']}], 'handle': [proxy(6433)]}]}]},
             {'handle': [{'handler': 'static_response', 'body': 'retained'}]},
             {'handle': [{'handler': 'subroute', 'routes': [{'handle': [proxy(6420)]}]}]}]}]}
+    routes[39] = {'match': [{'host': ['evm.ynxweb4.com']}], 'handle': [
+        {'handler': 'subroute', 'routes': [
+            {'handle': [{'handler': 'subroute', 'routes': [
+                {'handle': [{'handler': 'static_response', 'body': 'retained EVM route'}]},
+                {'handle': [proxy(6420)]}]}]}]}]}
     return {'apps': {'http': {'servers': {'srv0': {'listen': [':443'], 'routes': routes}}},
                      'tls': {'certificates': {'load_pem': [{'certificate': 'SYNTHETIC-PRIVATE-CANARY', 'key': 'NOT-A-REAL-KEY'}]}}},
             'admin': {'listen': '127.0.0.1:2019'}}
@@ -43,20 +49,76 @@ def fixture_config():
 
 def rpc_records():
     return [dict(pointer=TESTNET_POINTER, host='rpc-testnet.ynxweb4.com', **{'from': '127.0.0.1:6420', 'to': '127.0.0.1:27620'}),
-            dict(pointer=MAIN_POINTER, host='rpc.ynxweb4.com', **{'from': '127.0.0.1:6420', 'to': '127.0.0.1:27620'})]
+            dict(pointer=MAIN_POINTER, host='rpc.ynxweb4.com', **{'from': '127.0.0.1:6420', 'to': '127.0.0.1:27620'}),
+            dict(pointer=EVM_POINTER, host='evm.ynxweb4.com', **{'from': '127.0.0.1:6420', 'to': '127.0.0.1:27620'})]
+
+
+class ExecObservationContract(unittest.TestCase):
+    def setUp(self):
+        self.argv = ['/usr/bin/caddy', 'run', '--environ', '--config', module.CONFIG_PATH]
+        self.prefix = '{ path=/usr/bin/caddy ; argv[]=' + ' '.join(self.argv) + ' ; ignore_errors=no ; '
+
+    def test_real_systemctl_metadata_and_existing_fixture_forms(self):
+        for tail in ['}', 'pid=0 ; }',
+                     'start_time=[Sat 2026-10-24 07:06:05 UTC] ; stop_time=[n/a] ; pid=1432803 ; code=(null) ; status=0/0 }',
+                     'start_time=[Sat 2026-10-24 07:06:05 UTC] ; stop_time=[n/a] ; pid=1432803 ; code=(null) ; status=0/0 ; }',
+                     'start_time=[Sat 2026-10-24 15:06:05.123456 CST] ; stop_time=[Sat 2026-10-24 15:06:06 +08] ; pid=1432803 ; code=exited ; status=0/SUCCESS ; }',
+                     'status=9/KILL ; code=killed ; pid=42 ; stop_time=[n/a] ; start_time=[n/a] ; }']:
+            with self.subTest(tail=tail):
+                self.assertIsNone(module.validate_exec_observation(self.prefix + tail, self.argv))
+        reload_argv = ['/usr/bin/caddy', 'reload', '--config', module.CONFIG_PATH, '--force']
+        reload_observed = '{ path=/usr/bin/caddy ; argv[]=' + ' '.join(reload_argv) + ' ; ignore_errors=no ; pid=0 ; }'
+        self.assertIsNone(module.validate_exec_observation(reload_observed, reload_argv))
+
+    def test_single_command_tail_injection_duplicate_and_unknown_fields_reject(self):
+        for tail in ['} foreign', '} ', '}\n', '}\r', '}\0', '} { path=/bin/foreign ; }',
+                     'pid=0 ; } ; argv[]=/bin/foreign', 'pid=0 ; } }',
+                     'pid=0 ; pid=1 ; }', 'start_time=[n/a] ; start_time=[n/a] ; }',
+                     'stop_time=[n/a] ; stop_time=[n/a] ; }', 'code=exited ; code=killed ; }',
+                     'status=0/0 ; status=1/FAILURE ; }', 'unknown=value ; }',
+                     'argv[]=/bin/foreign ; }', 'path=/bin/foreign ; }', 'ignore_errors=yes ; }',
+                     'pid=00 ; }', 'pid=4294967296 ; }', 'pid=-1 ; }', 'pid=0; }',
+                     'pid=0 ;', 'pid=0}', 'pid=0 ; \n}',
+                     'start_time=[n/a] foreign ; }', 'start_time=[n/a ; pid=1] ; }',
+                     'status=0/0 foreign ; }', 'code=arbitrary ; }']:
+            with self.subTest(tail=tail), self.assertRaises(ValueError):
+                module.validate_exec_observation(self.prefix + tail, self.argv)
+
+    def test_extra_argv_wrong_path_or_noncanonical_prefix_reject(self):
+        actual = self.prefix + 'pid=0 ; }'
+        for value in [actual.replace('path=/usr/bin/caddy', 'path=/bin/foreign'),
+                      actual.replace(' run --environ', ' run --resume --environ'),
+                      actual.replace('--config ' + module.CONFIG_PATH, '--config /etc/caddy/Caddyfile'),
+                      actual.replace('ignore_errors=no', 'ignore_errors=yes'),
+                      actual.replace('argv[]=', 'argv[]=/bin/foreign '),
+                      actual.replace(' ; ', '; ', 1)]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                module.validate_exec_observation(value, self.argv)
+        for argv in [[], ['/usr/bin/caddy', 'run --resume'], ['/usr/bin/caddy', 'run;foreign']]:
+            with self.subTest(argv=argv), self.assertRaises(ValueError):
+                module.validate_exec_observation(actual, argv)
 
 
 class FullJSONProjection(unittest.TestCase):
-    def test_real_retained_shape_changes_only_two_exact_dials(self):
+    def test_real_retained_shape_changes_only_three_exact_dials(self):
         value = fixture_config()
         original = copy.deepcopy(value)
         projected = module.project_rpc_config(value, rpc_records())
         expected = copy.deepcopy(value)
         expected['apps']['http']['servers']['srv0']['routes'][16]['handle'][0]['routes'][0]['handle'][0]['upstreams'][0]['dial'] = '127.0.0.1:27620'
         expected['apps']['http']['servers']['srv0']['routes'][38]['handle'][0]['routes'][2]['handle'][0]['routes'][0]['handle'][0]['upstreams'][0]['dial'] = '127.0.0.1:27620'
+        expected['apps']['http']['servers']['srv0']['routes'][39]['handle'][0]['routes'][0]['handle'][0]['routes'][1]['handle'][0]['upstreams'][0]['dial'] = '127.0.0.1:27620'
         self.assertEqual(projected, expected)
         self.assertEqual(value, original)
         self.assertEqual(projected['apps']['http']['servers']['srv0']['routes'][38]['handle'][0]['routes'][0]['handle'][0]['routes'][1]['handle'][0]['upstreams'][0]['dial'], '127.0.0.1:6433')
+
+    def test_missing_evm_two_selector_manifest_is_not_supported(self):
+        records = rpc_records()
+        with self.assertRaises(ValueError):
+            module.project_rpc_config(fixture_config(), records[:2])
+        records[2]['host'] = 'unapproved-evm.invalid'
+        with self.assertRaises(ValueError):
+            module.project_rpc_config(fixture_config(), records)
 
     def test_strict_config_and_semantic_hash(self):
         value = fixture_config()
