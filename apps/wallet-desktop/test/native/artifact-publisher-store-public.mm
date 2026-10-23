@@ -46,7 +46,7 @@ static NSMutableData *record(NSData *r){
  auto append=[&](NSData *part){uint32_t n=CFSwapInt32HostToBig((uint32_t)part.length);[out appendBytes:&n length:4];[out appendData:part];};
  append(r);const size_t sizes[]={54,150,2592,64};for(size_t n:sizes)append([NSMutableData dataWithLength:n]);return out;
 }
-int main(){@autoreleasepool{
+int main(int argc,char **argv){@autoreleasepool{
  items=[NSMutableDictionary new];auto store=[YNXOriginalArtifactPublisherStore new];NSError *e=nil;
  NSData *r=R(@"PUBLIC fake original R:1");NSMutableData *wire=record(r);
  assert([store createOriginalRecord:wire forPublicOriginal:r error:&e]&&!e&&adds==1&&reads==1);
@@ -79,5 +79,8 @@ int main(){@autoreleasepool{
  NSData *r4=R(@"PUBLIC fake original R:4");NSMutableData *wire4=record(r4),*expected=[wire4 mutableCopy];mutateCaller=wire4;
  assert([store createOriginalRecord:wire4 forPublicOriginal:r4 error:&e]);mutateCaller=nil;assert([[store copyOriginalRecordForPublicOriginal:r4 error:&e]isEqual:expected]);
  std::puts("PASS callback mutation cannot replace captured original record");
+ assert(argc==2);NSData *jsRecord=[NSData dataWithContentsOfFile:[NSString stringWithUTF8String:argv[1]]];NSData *jsR=R(@"PUBLIC-JS-to-Native");
+ assert([store createOriginalRecord:jsRecord forPublicOriginal:jsR error:&e]);NSMutableData *jsRead=[store copyOriginalRecordForPublicOriginal:jsR error:&e];assert([jsRead isEqual:jsRecord]);[jsRead resetBytesInRange:NSMakeRange(0,jsRead.length)];
+ std::puts("PASS actual Main JS storage framing interoperates with native parser using PUBLIC fake material only");
  std::puts("PUBLIC_KEYCHAIN_SEAM_ONLY systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0");
  }}

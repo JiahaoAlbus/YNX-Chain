@@ -78,7 +78,10 @@ static NSMutableDictionary *Query(NSData *r){
 - (BOOL)createOriginalRecord:(NSData *)input forPublicOriginal:(NSData *)publicOriginal error:(NSError **)error{
  @synchronized(self){
   if(error)*error=nil;if(!Actor(error))return NO;
-  NSData *r=Snapshot(publicOriginal,8192);NSMutableData *record=[Snapshot(input,16384) mutableCopy];
+  NSData *r=Snapshot(publicOriginal,8192);NSMutableData *record=nil;
+  // Own one mutable private copy, not an additional immutable intermediate
+  // that could not be wiped in the finally path below.
+  if([input isKindOfClass:NSData.class]&&input.length>0&&input.length<=16384)record=[NSMutableData dataWithBytes:input.bytes length:input.length];
   if(!MatchesRecord(record,r)){[record resetBytesInRange:NSMakeRange(0,record.length)];return Reject(error,@"record-input",errSecParam,NO);}
   @try{
    NSMutableDictionary *attributes=Query(r);attributes[(__bridge id)kSecAttrAccessible]=(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly;attributes[(__bridge id)kSecValueData]=record;
