@@ -16,10 +16,11 @@ const blockJournalPrefixLimit = 16 << 20
 // It must not be copied. Callers still capture stable current bytes and verify
 // publication/quorum/business evidence independently.
 type BlockJournalPrefixDecoder struct {
-	full        *BlockJournalDecoder
-	gate        chan struct{}
-	prefix      *blockJournalPrefix
-	nativeClone bool
+	full              *BlockJournalDecoder
+	gate              chan struct{}
+	prefix            *blockJournalPrefix
+	nativeClone       bool
+	nativeSuffixSetup bool
 }
 type blockJournalPrefix struct {
 	payload           []byte
@@ -56,6 +57,16 @@ func NewBlockJournalNativeClonePrefixDecoder(migration chain.ConsensusMigrationS
 	d, err := NewBlockJournalPrefixDecoder(migration)
 	if err == nil {
 		d.nativeClone = true
+	}
+	return d, err
+}
+
+// NewBlockJournalNativeSuffixPrefixDecoder selects the private suffix initializer
+// explicitly. The existing native clone constructor retains NewApplication setup.
+func NewBlockJournalNativeSuffixPrefixDecoder(migration chain.ConsensusMigrationState) (*BlockJournalPrefixDecoder, error) {
+	d, err := NewBlockJournalNativeClonePrefixDecoder(migration)
+	if err == nil {
+		d.nativeSuffixSetup = true
 	}
 	return d, err
 }
@@ -149,7 +160,7 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 		var replay *Application
 		err := phases.measure("suffixSetup", func() error {
 			var e error
-			if d.nativeClone {
+			if d.nativeSuffixSetup {
 				replay, e = newSuffixApplicationForValidatedPrivateState(d.full.migration, state)
 			} else {
 				replay, e = NewApplication(d.full.migration)

@@ -1,10 +1,14 @@
 package consensus
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	abci "github.com/cometbft/cometbft/abci/types"
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
@@ -100,5 +104,73 @@ func BenchmarkPrivateSuffixApplicationOriginalMigration(b *testing.B) {
 				}
 			}
 		})
+	}
+}
+
+func TestNativeSuffixSelectionReplaysSameSignedHistoryAndRejectsInvalidSuffix(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewBlockJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	control, err := NewBlockJournalNativeClonePrefixDecoder(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidate, err := NewBlockJournalNativeSuffixPrefixDecoder(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if control.nativeSuffixSetup || !candidate.nativeSuffixSetup || !control.nativeClone || !candidate.nativeClone {
+		t.Fatal("initializer selection changed backend")
+	}
+	for nonce := uint64(1); nonce <= 4; nonce++ {
+		raw := journalTransfer(t, nonce)
+		response, e := app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: int64(migration.Height) + int64(nonce), Time: time.Unix(1802736000+int64(nonce), 0), Txs: [][]byte{raw, raw, []byte("invalid-envelope")}})
+		if e != nil || response.TxResults[0].Code != 0 || response.TxResults[1].Code != CodeInvalidNonce || response.TxResults[2].Code == 0 {
+			t.Fatal("signed/nonce/malformed outcome", e)
+		}
+		if _, e = app.Commit(context.Background(), &abci.RequestCommit{}); e != nil {
+			t.Fatal(e)
+		}
+		data, e := os.ReadFile(path)
+		if e != nil {
+			t.Fatal(e)
+		}
+		want, e := control.DecodeWithPhaseTiming(context.Background(), data)
+		if e != nil {
+			t.Fatal(e)
+		}
+		got, e := candidate.DecodeWithPhaseTiming(context.Background(), data)
+		if e != nil || !bytes.Equal(want.SnapshotJSON, got.SnapshotJSON) || !journalStateEqual(t, want.State, got.State) {
+			t.Fatal("initializer changed signed history", e)
+		}
+		if nonce > 1 && (got.WorkPhases.SuffixSetup.Calls != 1 || got.WorkPhases.PrivateValidate.Calls != 1 || want.WorkPhases.SuffixSetup.Calls != 1) {
+			t.Fatal("actual suffix setup or private validation omitted")
+		}
+		altered := append([]byte(nil), data...)
+		altered[len(altered)-1] ^= 1
+		if _, e = candidate.Decode(context.Background(), altered); e == nil {
+			t.Fatal("invalid original frame accepted")
+		}
+	}
+	if candidate.VerificationStats().SuccessfulVerifications != control.VerificationStats().SuccessfulVerifications {
+		t.Fatal("signature math coverage differs")
+	}
+	restored, e := NewBlockJournalNativeSuffixPrefixDecoder(migration)
+	if e != nil {
+		t.Fatal(e)
+	}
+	data, e := os.ReadFile(path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	want, e := control.Decode(context.Background(), data)
+	if e != nil {
+		t.Fatal(e)
+	}
+	got, e := restored.Decode(context.Background(), data)
+	if e != nil || !bytes.Equal(got.SnapshotJSON, want.SnapshotJSON) {
+		t.Fatal("fresh decoder recovery differs", e)
 	}
 }

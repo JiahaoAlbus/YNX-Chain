@@ -11,6 +11,7 @@ import (
 // Successful output work only. Failed attempts retain their separate count and
 // duration; partial failed replay work is not reported as completed blocks.
 type durablePrefixReplayStats struct {
+	NativeSuffixSetup         bool                                   `json:"nativeSuffixSetup,omitempty"`
 	Calls                     uint64                                 `json:"calls"`
 	FullReplays               uint64                                 `json:"successfulFullReplays"`
 	PrefixReuses              uint64                                 `json:"successfulPrefixReuses"`
@@ -25,13 +26,24 @@ type durablePrefixReplayStats struct {
 
 // Configure only before any reader worker starts.
 func (r *durableReader) configurePrefixReplay(migration chain.ConsensusMigrationState, nativeClone bool) error {
+	return r.configurePrefixReplayMode(migration, nativeClone, false)
+}
+func (r *durableReader) configurePrefixReplayMode(migration chain.ConsensusMigrationState, nativeClone, nativeSuffix bool) error {
+	if nativeSuffix && !nativeClone {
+		return errors.New("native suffix setup requires private native clone")
+	}
 	var err error
 	if nativeClone {
-		r.prefixDecoder, err = consensus.NewBlockJournalNativeClonePrefixDecoder(migration)
+		if nativeSuffix {
+			r.prefixDecoder, err = consensus.NewBlockJournalNativeSuffixPrefixDecoder(migration)
+		} else {
+			r.prefixDecoder, err = consensus.NewBlockJournalNativeClonePrefixDecoder(migration)
+		}
 		r.prefixStats.WorkPhases.PrivateNativeClone = new(consensus.BlockJournalPrefixPhase)
 	} else {
 		r.prefixDecoder, err = consensus.NewBlockJournalPrefixDecoder(migration)
 	}
+	r.prefixStats.NativeSuffixSetup = nativeSuffix
 	r.prefixNativeClone = nativeClone
 	return err
 }

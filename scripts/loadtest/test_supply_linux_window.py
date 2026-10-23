@@ -1,5 +1,6 @@
 """Source-only counterexamples; never start a fixture, node or compiler."""
 import importlib.util
+import copy
 import contextlib
 import io
 import json
@@ -691,6 +692,7 @@ class SupplySourceTests(unittest.TestCase):
                 label=(("shared-endpoint-elastic" if comparison=="shared-elastic" else "shared-endpoint-fair") if kwargs.get("endpoint_fair") else "shared-baseline") if comparison in ("shared-fair","shared-elastic") else ("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode
                 if comparison=="shared-prefix-data64":label="prefix-replay" if kwargs["prefix_replay"] else "shared-replay"
                 if comparison=="prefix-native-data64":label="prefix-native-clone" if kwargs["prefix_native_clone"] else "prefix-control"
+                if comparison=="native-suffix-data64":label="native-suffix-candidate" if kwargs["native_suffix_setup"] else "native-suffix-control"
                 if comparison=="native-submit8-data64":label="native-submit8" if kwargs["native_submit8"] else "native-submit4"
                 order.append(label);case.mkdir()
                 if replay_fault=="rss" and (kwargs.get("endpoint_fair") if comparison in ("shared-fair","shared-elastic") else kwargs.get("shared_replay")):
@@ -751,13 +753,18 @@ class SupplySourceTests(unittest.TestCase):
                     prefix=kwargs["prefix_replay"]
                     native_clone=kwargs.get("prefix_native_clone",False)
                     submit8=kwargs.get("native_submit8",False)
+                    suffix=kwargs.get("native_suffix_setup",False)
                     client,fixture=self.prefix_report_fixture() if prefix else self.oneshot_report_fixture()
                     self.runtime_fixture(client)
-                    if comparison=="native-submit8-data64":
+                    if comparison in ("native-submit8-data64","native-suffix-data64"):
                         client,fixture=self.submit8_report_fixture(submit8)
                         row["prefixNativeClone"]=True
                         if submit8:row["nativeSubmit8"]=True
-                    if native_clone and comparison!="native-submit8-data64":
+                    if suffix:
+                        client["nativeSuffixSetup"]=True
+                        client["durableReadback"]["prefixReplay"]["nativeSuffixSetup"]=True
+                        row["nativeSuffixSetup"]=True
+                    if native_clone and comparison not in ("native-submit8-data64","native-suffix-data64"):
                         client["prefixNativeClone"]=True
                         stats=client["durableReadback"]["prefixReplay"];phases=stats["workPhases"]
                         phases["privateNativeClone"]=phases["privateJSON"];phases["privateJSON"]=dict(calls=0,errors=0,durationNs=0)
@@ -766,17 +773,20 @@ class SupplySourceTests(unittest.TestCase):
                     self.assertEqual(profile,"supply-2048x1-data64");self.assertEqual(mode,"relative")
                     if not prefix:
                         client["durableReadback"]["sharedReplay"]["workPhases"]=dict(produce=dict(calls=1,errors=0,durationNs=100),canonicalCopy=dict(calls=1,errors=0,durationNs=10),privateJSON=dict(calls=0,errors=0,durationNs=0),privateValidate=dict(calls=0,errors=0,durationNs=0),canonicalCopyBytes=100)
-                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8)["profile"],
-                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8),
+                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix)["profile"],
+                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8,native_suffix_setup=suffix),
                         runtimeMeasurements=supply.validate_runtime_measurements(client,require=True,native_submit8=submit8),observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
                         sharedReplayVerification=supply.validate_shared_replay(client,not prefix,require_work_phases=not prefix))
-                    if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True,expected_native_clone=native_clone))
+                    if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True,expected_native_clone=native_clone,expected_native_suffix=suffix))
                     if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=1
                     network=case/"network";network.mkdir()
                     if replay_fault=="fixture":fixture[-1]=fixture[0]
                     if replay_fault=="phase":del client["transactions"][-1]["submissionPhases"]
                     if replay_fault=="selection":row["sharedDurableReplay"]=prefix
                     if replay_fault=="native-selection":client["prefixNativeClone"]=not native_clone
+                    if replay_fault=="suffix-selection":client["nativeSuffixSetup"]=not suffix
+                    if replay_fault=="suffix-config":client["durableReadback"]["prefixReplay"]["nativeSuffixSetup"]=not suffix
+                    if replay_fault=="suffix-receipt":row["nativeSuffixSetup"]=not suffix
                     if replay_fault=="submit8-selection":client["nativeSubmit8"]=not submit8
                     if replay_fault=="submit8-queue":client["pacedWorkers"]["submissionQueueCapacity"]=4096
                     if replay_fault=="native-cache" and native_clone:client["durableReadback"]["prefixReplay"]["nativeCloneCache"]["snapshotPresent"]=False
@@ -861,6 +871,44 @@ class SupplySourceTests(unittest.TestCase):
         self.assertEqual(supply.PROFILES["supply-2048x1-data64"]["concurrency"],4);self.assertEqual(supply.PAIR_CAPS["retainedBytes"],64<<20)
         workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
         self.assertIn("paired-native-submit8-data64",workflow);self.assertIn("--prepare-pair --pair-kind native-submit8-data64",workflow);self.assertIn("--execute-pair --pair-kind native-submit8-data64",workflow)
+
+    def test_native_suffix_pair_only_changes_initializer_and_preserves_refusal(self):
+        code,order,row=self.mock_pair(comparison="native-suffix-data64")
+        self.assertEqual(code,0,row["firstCause"])
+        self.assertEqual(order,["native-suffix-control","empty","native-suffix-candidate","empty"])
+        self.assertFalse(row["jointObservation"]["sustainedTPSQualified"])
+        for fault in ("suffix-selection","suffix-config","suffix-receipt","fixture","phase","submit8-selection","submit8-queue","native-cache"):
+            with self.subTest(fault=fault):
+                code,order,row=self.mock_pair(comparison="native-suffix-data64",replay_fault=fault)
+                self.assertEqual(code,1);self.assertEqual(order.count("native-suffix-candidate"),0)
+        for options in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(mutate_binary=True),dict(fail_after_fsync=True)):
+            with self.subTest(options=options):
+                code,order,row=self.mock_pair(comparison="native-suffix-data64",**options)
+                self.assertEqual(code,1);self.assertFalse(row["_terminal"]["qualified"])
+        plan=supply.pair_recipe("native-suffix-data64");before,after=plan["cases"]
+        self.assertEqual(dict(before,nativeSuffixSetup=True),after)
+        self.assertEqual(before["profile"]["concurrency"],8);self.assertEqual(after["profile"]["observers"],4)
+        self.assertEqual(plan["pairCaps"],supply.pair_recipe("native-submit8-data64")["pairCaps"])
+        workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
+        for marker in ("paired-native-suffix-data64","--prepare-pair --pair-kind native-suffix-data64","--execute-pair --pair-kind native-suffix-data64"):self.assertIn(marker,workflow)
+
+    def test_native_suffix_typed_selection_and_client_flag(self):
+        values=dict(transport="grpc",profile_name="supply-2048x1-data64",observer_phases=True,prefix_replay=True,prefix_native_clone=True,native_submit8=True,native_suffix_setup=True)
+        plan=supply.recipe(**values)
+        for delta in (dict(native_suffix_setup=1),dict(native_submit8=False),dict(prefix_native_clone=False),dict(prefix_replay=False),dict(observer_phases=False)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**dict(values,**delta))
+        command=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("out"),plan["profile"],"relative",True,False,prefix_replay=True,prefix_native_clone=True,native_submit8=True,native_suffix_setup=True)
+        self.assertEqual(command.count("-native-suffix-setup"),1)
+        client,fixture=self.submit8_report_fixture(True)
+        client["nativeSuffixSetup"]=True;client["durableReadback"]["prefixReplay"]["nativeSuffixSetup"]=True
+        supply.validate_report(client,"supply-2048x1-data64",fixture_transactions=fixture,prefix_replay=True,prefix_native_clone=True,native_submit8=True,native_suffix_setup=True,require_inventory=True)
+        for where in ("top","stats"):
+            for value in (None,False,0,1,"true"):
+                changed=copy.deepcopy(client)
+                if where=="top":changed["nativeSuffixSetup"]=value
+                else:changed["durableReadback"]["prefixReplay"]["nativeSuffixSetup"]=value
+                with self.subTest(where=where,value=value),self.assertRaises(RuntimeError):supply.validate_native_suffix_selection(changed,True)
+        with self.assertRaises(RuntimeError):supply.validate_native_suffix_selection(client,False)
 
     def test_prefix_pair_receipts_are_charged_once_and_workflow_routes_match(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -129,3 +129,34 @@ func TestNativeSubmit8ActualWorkerBoundQueueCapacityAndNoUnknownRetry(t *testing
 		})
 	}
 }
+
+func TestNativeSuffixSetupRequiresExplicitNative8AndDefaultJSONOmission(t *testing.T) {
+	base := options{manifest: "manifest", transactions: "transactions", concurrency: 8, observers: 4, timeout: 10 * time.Second, poll: 100 * time.Millisecond, rounds: 1, senderMode: "rounds", inclusionMode: "block-scan", offeredRate: 1000, observerPhaseTiming: true, durableStoreByteLimit: durableSnapshotLimit, prefixDurableReplay: true, prefixNativeClone: true, nativeSubmit8: true, nativeSuffixSetup: true}
+	if err := validateOptions(base); err != nil {
+		t.Fatal(err)
+	}
+	for _, kind := range []string{"submit8", "native", "prefix", "workers", "timing", "rate"} {
+		o := base
+		switch kind {
+		case "submit8":
+			o.nativeSubmit8 = false
+		case "native":
+			o.prefixNativeClone = false
+		case "prefix":
+			o.prefixDurableReplay = false
+		case "workers":
+			o.concurrency = 4
+		case "timing":
+			o.observerPhaseTiming = false
+		case "rate":
+			o.offeredRate = 500
+		}
+		if err := validateOptions(o); err == nil {
+			t.Fatal("unsupported suffix mode accepted", kind)
+		}
+	}
+	b, err := json.Marshal(report{})
+	if err != nil || strings.Contains(string(b), "nativeSuffixSetup") {
+		t.Fatal("default report changed", err)
+	}
+}
