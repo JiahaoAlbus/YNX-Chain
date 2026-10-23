@@ -8,6 +8,7 @@ const digest=value=>createHash('sha256').update(value).digest('hex');
 const profiles=Object.freeze({
  proof:Object.freeze({pathFlag:'--trust-context',hashFlag:'--trust-context-sha256',stdin:limits['verifier-stdin'],stdout:limits['verifier-stdout'],stderr:limits['verifier-stderr']}),
  'host-producer':Object.freeze({pathFlag:'--host-trust-source',hashFlag:'--host-trust-source-sha256',stdin:4096,stdout:104521276,stderr:65536}),
+ 'host-selection':Object.freeze({pathFlag:'--host-source-catalog',hashFlag:'--host-source-catalog-sha256',stdin:4096,stdout:16384,stderr:65536}),
 });
 /** One fixed caller invocation, never a signer, provider or authority source.
  * Injection is restricted to this PUBLIC test kernel. The packaged factory

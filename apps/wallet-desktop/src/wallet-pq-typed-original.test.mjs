@@ -26,6 +26,7 @@ import {parsePQTransferHostContext} from './wallet-pq-host-context.mjs';
 import {installOriginalProofHostDelivery,readInstalledOriginalProofHostDelivery} from './original-proof-host-delivery.mjs';
 import {fixture as publicHostFixture} from '../test/helpers/pq-host-export.mjs';
 import {pqTypedBroadcastPermissionRequest} from './wallet-pq-typed-permission.mjs';
+import {preparePQHostSelectionRequest} from './wallet-pq-host-selection.mjs';
 import {projectPendingTransactions,projectPQOriginalObservation} from './transaction-resolution-display.mjs';
 const sha=b=>'0x'+createHash('sha256').update(b).digest('hex'),copy=x=>JSON.parse(JSON.stringify(x));
 let handle,record,memberBytes;
@@ -41,6 +42,16 @@ before(async()=>{
  record={version:2,account:input.owner,kind:'pq-typed-action',operationId:review.operationId,hash:sha(raw),wire:Buffer.from(raw).toString('base64url'),status:'signed-unsubmitted',typed:{networkId:input.chainId,memberHash:sha(member),review:copy(review),reviewSnapshot:reviewDTO,signingSnapshot:signingDTO}};
 });
 after(()=>{if(handle)destroyPQWalletKeyHandle(handle)});
+test('typed Host selection binds the complete original transport separately from the native Member',()=>{
+ const binding={account:record.account,networkId:record.typed.networkId};
+ const body=JSON.parse(preparePQHostSelectionRequest(record,binding).stdin);
+ assert.equal(body.transactionHash,record.hash.slice(2));
+ assert.equal(body.nativeWireHash,record.typed.memberHash.slice(2));
+ assert.notEqual(body.transactionHash,body.nativeWireHash);
+ assert.equal(body.networkId,record.typed.networkId);
+ assert.throws(()=>preparePQHostSelectionRequest({...record,hash:record.typed.memberHash},binding));
+ assert.throws(()=>preparePQHostSelectionRequest(record,{...binding,networkId:'ff'.repeat(32)}));
+});
 async function setup(t){const dir=await fs.mkdtemp(path.join(tmpdir(),'ynx-main-typed-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));const filePath=path.join(dir,'original-journal.json');return{filePath,store:new FileTransactionIntentStore({filePath})}}
 test('typed finality raw evidence uses exact dual-hash identity and survives cold recovery without grant',async t=>{
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-typed-proof-custody-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
