@@ -27,7 +27,7 @@ export async function openContractReferenceJournal({profile,projectId,owner,acco
  function current(){const a=lstatSync(profile),b=lstatSync(directory);if(!a.isDirectory()||a.isSymbolicLink()||!same(a,base)||(a.mode&0o777)!==0o700||!b.isDirectory()||b.isSymbolicLink()||!same(b,captured)||(b.mode&0o777)!==0o700)throw fail('CONTRACT_REFERENCE_BINDING');}
  const file=id=>{if(!UUID.test(id))throw fail('CONTRACT_REFERENCE_INVALID');return path.join(directory,id+'.jsonl');};
  async function read(id){
-  current();const target=file(id);let fd;try{fd=await fs.open(target,constants.O_RDONLY|constants.O_NOFOLLOW);}catch(e){if(e.code==='ENOENT')return null;throw e;}
+  current();const target=file(id);let fd;try{fd=await fs.open(target,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);}catch(e){if(e.code==='ENOENT')return null;throw e;}
   try{const before=await fd.stat();if(!before.isFile()||before.uid!==uid()||before.nlink!==1||(before.mode&0o777)!==0o600||before.size>128*1024)throw fail('CONTRACT_REFERENCE_INVALID');const raw=await fd.readFile('utf8'),after=await fd.stat();current();if(!same(before,after)||!same(lstatSync(target),after)||after.nlink!==1||(after.mode&0o777)!==0o600||before.size!==after.size||raw.length===0||!raw.endsWith('\n'))throw fail('CONTRACT_REFERENCE_UNKNOWN');let previous=null,revision=0;
    for(const line of raw.trimEnd().split('\n')){const row=JSON.parse(line);if(Object.keys(row).sort().join()!=='bindingHash,referenceId,revision,value'||row.bindingHash!==digest||row.referenceId!==id||row.revision!==revision++)throw fail('CONTRACT_REFERENCE_BINDING');const next=validate(row.value);if(previous)compatible(previous,next);previous=next;}
    return Object.freeze({referenceId:id,revision:revision-1,...previous,authority:'query-reference-only',replayAllowed:false});
@@ -45,11 +45,11 @@ export async function openContractReferenceJournal({profile,projectId,owner,acco
    await lock.writeFile(JSON.stringify({pid:process.pid,nonce:randomUUID()})+'\n');await lock.sync();
    const old=await read(id);if(old)compatible(old,next);
    if(!old){const files=await fs.readdir(directory);if(files.filter(n=>n.endsWith('.jsonl')).length>=128)throw fail('CONTRACT_REFERENCE_CAPACITY');}
-   fd=await fs.open(target,constants.O_APPEND|constants.O_WRONLY|constants.O_NOFOLLOW|(old?0:constants.O_CREAT|constants.O_EXCL),0o600);
+   fd=await fs.open(target,constants.O_APPEND|constants.O_WRONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK|(old?0:constants.O_CREAT|constants.O_EXCL),0o600);
    const stat=await fd.stat();if(!stat.isFile()||stat.uid!==uid()||stat.nlink!==1||(stat.mode&0o777)!==0o600)throw fail('CONTRACT_REFERENCE_INVALID');
    const row=JSON.stringify({bindingHash:digest,referenceId:id,revision:old?old.revision+1:0,value:next})+'\n';if(stat.size+Buffer.byteLength(row)>128*1024)throw fail('CONTRACT_REFERENCE_CAPACITY');
    current();if(!same(lstatSync(target),stat))throw fail('CONTRACT_REFERENCE_UNKNOWN');entered=true;const bytes=Buffer.from(row);let written=0;while(written<bytes.length){const count=writeSync(fd.fd,bytes,written,bytes.length-written);if(count<=0)throw fail('CONTRACT_REFERENCE_UNKNOWN');written+=count;}fsyncSync(fd.fd);current();if(!same(lstatSync(target),fstatSync(fd.fd)))throw fail('CONTRACT_REFERENCE_UNKNOWN');
-   const dirfd=await fs.open(directory,constants.O_RDONLY|constants.O_NOFOLLOW);try{if(!same(await dirfd.stat(),captured))throw fail('CONTRACT_REFERENCE_BINDING');await dirfd.sync();}finally{await dirfd.close();}current();done=true;return await read(id);
+   const dirfd=await fs.open(directory,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK|constants.O_DIRECTORY);try{if(!same(await dirfd.stat(),captured))throw fail('CONTRACT_REFERENCE_BINDING');await dirfd.sync();}finally{await dirfd.close();}current();done=true;return await read(id);
   }finally{
    await fd?.close();await lock.close();if(!entered||done){const held=lstatSync(lockPath);if(same(held,lockIdentity))unlinkSync(lockPath);}
    // An uncertain write keeps its lock and original bytes. A later reader may

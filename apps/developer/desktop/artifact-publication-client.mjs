@@ -45,7 +45,7 @@ export async function capturePublicationArtifact({context, admittedProject, arti
   }
   async function readSelected() {
     await current(); await pathsCurrent();
-    const file = await fs.open(selected, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const file = await fs.open(selected, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
     try {
       const before = await file.stat({bigint:true});
       if (!before.isFile() || before.nlink !== 1n || before.uid !== BigInt(process.getuid()) || before.size < 1n || before.size > 67108864n) throw reject('IDE_ARTIFACT_FILE_INVALID');

@@ -5,6 +5,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {capturePublicationArtifact} from './artifact-publication-client.mjs';
+import {execFileSync,spawnSync} from 'node:child_process';
 const program="import {createServer} from 'node:http';\ncreateServer((req,res)=>res.end('YNX project\\n')).listen(Number(process.env.PORT),'0.0.0.0');\n";
 async function fixture(t){
  const workspace=await fs.realpath(await fs.mkdtemp(join(tmpdir(),'ynx-publication-file-')));t.after(()=>fs.rm(workspace,{recursive:true}));const artifactPath=join(workspace,'server.mjs');await fs.writeFile(artifactPath,program);
@@ -33,4 +34,10 @@ test('noncanonical workspace is rejected before walking parents',async t=>{
 });
 test('manifest codec cannot substitute project, digest, purpose or extra trusted-key fields',async t=>{
  const f=await fixture(t),draft=await capturePublicationArtifact(f.options);for(const change of [{projectId:'PUBLIC-other'},{contentDigest:'0'.repeat(64)},{publishPurpose:'PUBLIC-other'},{trustedKey:'PUBLIC-not-trust'}])await assert.rejects(draft.encodeManifest(binding=>JSON.stringify({...binding,...change})),{code:'IDE_ARTIFACT_ORIGINAL_CODEC_INVALID'});
+});
+test('a real FIFO selected as an artifact cannot block normal project publication review',async t=>{
+ const f=await fixture(t);await fs.unlink(f.artifactPath);execFileSync('/usr/bin/mkfifo',['-m','600',f.artifactPath]);
+ const data={context:f.options.context,artifactPath:f.artifactPath,version:f.options.version,publishPurpose:f.options.publishPurpose,targetEnvironment:f.options.targetEnvironment};
+ const program=`import {capturePublicationArtifact} from ${JSON.stringify(new URL('./artifact-publication-client.mjs',import.meta.url).href)};const input=JSON.parse(process.argv[1]),state=JSON.parse(process.argv[2]);try{await capturePublicationArtifact({...input,admittedProject:{assertCurrent:async()=>state}});process.exitCode=2;}catch(e){if(e.code!=='IDE_ARTIFACT_FILE_INVALID')throw e;console.log('FIFO_REFUSED');}`;
+ const result=spawnSync(process.execPath,['--input-type=module','-e',program,JSON.stringify(data),JSON.stringify(f.state)],{encoding:'utf8',timeout:1500});assert.equal(result.error,undefined);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/FIFO_REFUSED/);assert.equal((await fs.lstat(f.artifactPath)).isFIFO(),true);
 });

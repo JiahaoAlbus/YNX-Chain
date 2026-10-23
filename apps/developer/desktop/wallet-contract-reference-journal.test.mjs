@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {openContractReferenceJournal} from './wallet-contract-reference-journal.mjs';
+import {execFileSync,spawnSync} from 'node:child_process';
 const id='11111111-2222-3333-4444-555555555555';
 const initial=()=>({account:'0x'+'a'.repeat(40),method:'ynx_preparePQContractAction',requestPayloadSHA256:'b'.repeat(64),originalRequestKeyHash:null,operationId:null,transportHash:null,memberHash:null,state:'pending'});
 async function setup(t){const profile=await fs.realpath(await fs.mkdtemp(join(tmpdir(),'ynx-contract-ref-')));await fs.chmod(profile,0o700);t.after(()=>fs.rm(profile,{recursive:true}));const opts={profile,projectId:id,owner:'PUBLIC-owner',account:'PUBLIC-auth-account'};return {profile,opts,journal:await openContractReferenceJournal(opts),file:join(profile,'wallet-contract-query-references',id+'.jsonl')};}
@@ -13,3 +14,9 @@ test('conflicting sent-event hash and UNKNOWN reversal are refused without overw
 test('partial durable tail remains UNKNOWN with original bytes retained',async t=>{const f=await setup(t);await f.journal.append(id,initial());await fs.appendFile(f.file,'{');const before=await fs.readFile(f.file);await assert.rejects(f.journal.read(id),{code:'CONTRACT_REFERENCE_UNKNOWN'});await assert.rejects(f.journal.append(id,initial()),{code:'CONTRACT_REFERENCE_UNKNOWN'});assert.deepEqual(await fs.readFile(f.file),before);});
 test('existing writer lock is never taken over or used as cleanup proof',async t=>{const f=await setup(t);await f.journal.append(id,initial());await fs.writeFile(f.file+'.lock','PUBLIC unknown original write',{mode:0o600});await assert.rejects(f.journal.append(id,initial()),{code:'CONTRACT_REFERENCE_BUSY'});assert.equal(await fs.readFile(f.file+'.lock','utf8'),'PUBLIC unknown original write');assert.equal((await f.journal.read(id)).state,'pending');});
 test('linked reference files are rejected without affecting the other path',async t=>{const f=await setup(t);await f.journal.append(id,initial());const other=join(f.profile,'PUBLIC-other');await fs.link(f.file,other);await assert.rejects(f.journal.read(id),{code:'CONTRACT_REFERENCE_INVALID'});assert.deepEqual(await fs.readFile(other),await fs.readFile(f.file));});
+test('a real FIFO reference is refused promptly without blocking reopen or deleting original evidence',async t=>{
+ const f=await setup(t);execFileSync('/usr/bin/mkfifo',['-m','600',f.file]);
+ const program=`import {openContractReferenceJournal} from ${JSON.stringify(new URL('./wallet-contract-reference-journal.mjs',import.meta.url).href)};const journal=await openContractReferenceJournal(JSON.parse(process.argv[1]));try{await journal.read(process.argv[2]);process.exitCode=2;}catch(e){if(e.code!=='CONTRACT_REFERENCE_INVALID')throw e;console.log('FIFO_REFUSED');}`;
+ const result=spawnSync(process.execPath,['--input-type=module','-e',program,JSON.stringify(f.opts),id],{encoding:'utf8',timeout:1500});
+ assert.equal(result.error,undefined);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/FIFO_REFUSED/);assert.equal((await fs.lstat(f.file)).isFIFO(),true);
+});
