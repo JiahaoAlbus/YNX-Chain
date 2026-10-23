@@ -1,0 +1,43 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url);
+const {CommandRegistry}=require('@theia/core/lib/common/command');
+const {Emitter}=require('@theia/core/lib/common/event');
+const {NativeWorkbenchCommands}=require('../runtime/ynx-workbench/lib/native-workbench-commands');
+test('native Stop/Restart availability follows real registry state after debug startup failure without dispatching either action',()=>{
+ const changed=new Emitter(), calls=[], messages=[];
+ const state={enabled:false};
+ const commands=new CommandRegistry({getContributions:()=>[]});
+ for(const id of ['workbench.action.debug.stop','workbench.action.debug.restart'])commands.registerCommand({id},{isEnabled:()=>state.enabled,execute:()=>calls.push(id)});
+ const target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:m=>messages.push(m)}}}};
+ const bridge=new NativeWorkbenchCommands(commands,target,'en',{onDidChange:changed.event});
+ bridge.onStart();
+ const states=()=>messages.filter(m=>m.action==='debug-command-state');
+ assert.deepEqual(states().at(-1),{action:'debug-command-state',stopEnabled:false,restartEnabled:false});
+ state.enabled=true;changed.fire({});
+ assert.deepEqual(states().at(-1),{action:'debug-command-state',stopEnabled:true,restartEnabled:true});
+ state.enabled=false;changed.fire({});
+ assert.deepEqual(states().at(-1),{action:'debug-command-state',stopEnabled:false,restartEnabled:false});
+ assert.deepEqual(calls,[]);
+ const before=states().length;bridge.onStop();changed.fire({});assert.equal(states().length,before);
+});
+
+import {readFile,mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {spawnSync} from 'node:child_process';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+test('real Cocoa decoder only accepts exact debug availability booleans',async t=>{
+ if(process.platform!=='darwin')return t.skip('Cocoa requires macOS');
+ const source=await readFile(new URL('./macos/main.m',import.meta.url),'utf8');
+ const start=source.indexOf('static BOOL YNXLocalDebugCommandState');
+ const end=source.indexOf('static BOOL YNXLocalCommandResult',start);
+ assert.ok(start>=0&&end>start);
+ const code='#import <Foundation/Foundation.h>\n'+source.slice(start,end)+`\nint main(){@autoreleasepool{NSDictionary *ok=@{@"action":@"debug-command-state",@"stopEnabled":@YES,@"restartEnabled":@NO};if(!YNXLocalDebugCommandState(ok))return 1;for(id bad in @[@0,@1,@"true",NSNull.null]){NSMutableDictionary *m=[ok mutableCopy];m[@"stopEnabled"]=bad;if(YNXLocalDebugCommandState(m))return 2;}NSMutableDictionary *extra=[ok mutableCopy];extra[@"command"]=@"anything";if(YNXLocalDebugCommandState(extra))return 3;NSMutableDictionary *missing=[ok mutableCopy];[missing removeObjectForKey:@"restartEnabled"];if(YNXLocalDebugCommandState(missing))return 4;return 0;}}`;
+ const dir=await mkdtemp(join(tmpdir(),'ynx-native-debug-state-'));t.after(()=>rm(dir,{recursive:true}));
+ const file=join(dir,'check.m'),bin=join(dir,'check');await writeFile(file,code);
+ const sdk='/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk';
+ const built=spawnSync('/Library/Developer/CommandLineTools/usr/bin/clang',['-fobjc-arc','-isysroot',sdk,'-framework','Foundation',file,'-o',bin],{encoding:'utf8',timeout:20000});
+ assert.equal(built.status,0,built.stderr||built.error?.message);
+ const ran=spawnSync(bin,[],{encoding:'utf8',timeout:5000});assert.equal(ran.status,0,ran.stderr||ran.error?.message);
+});

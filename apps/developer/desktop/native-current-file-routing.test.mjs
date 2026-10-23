@@ -41,10 +41,15 @@ test('active debug session retains upstream start/continue and run behavior', as
   await f.dispatch('workbench.action.debug.stop');
   assert.deepEqual(f.calls, ['workbench.action.debug.start', 'workbench.action.debug.run', 'workbench.action.debug.stop']);
 });
-test('explicit project configuration remains authoritative through production selector', async () => {
+test('explicit Debug keeps project configuration while current source Run uses its language', async () => {
   const f = fixture(); f.configurations.current = { name: 'user launch' };
   await f.dispatch('workbench.action.debug.start'); await f.dispatch('workbench.action.debug.run');
-  assert.deepEqual(f.calls, ['workbench.action.debug.start', 'workbench.action.debug.run']);
+  assert.deepEqual(f.calls, ['workbench.action.debug.start', 'ynx.cpp.runActive']);
+});
+test('a non-source project Run retains the configured project target', async () => {
+  const f=fixture(); f.configurations.current={name:'user launch'}; f.editors.currentEditor.editor.uri.scheme='untitled';
+  await f.dispatch('workbench.action.debug.run');
+  assert.deepEqual(f.calls,['workbench.action.debug.run']);
 });
 test('disabled language target refuses without falling back to an unrelated debugger', async () => {
   const f = fixture(); f.commands.unregisterCommand('ynx.cpp.runActive');

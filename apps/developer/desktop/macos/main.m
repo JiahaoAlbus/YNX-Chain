@@ -140,6 +140,11 @@ static NSSet<NSString *> *YNXLocalWorkbenchCommands(void) {
         @"terminal:new",@"workbench.action.terminal.toggleTerminal",@"terminal:split",@"terminal:clear",@"task:run:build",@"workbench.action.tasks.runTask"
     ]];});return commands;
 }
+static BOOL YNXLocalDebugCommandState(NSDictionary *body) {
+    if(![body isKindOfClass:NSDictionary.class]||body.count!=3||![body[@"action"] isEqual:@"debug-command-state"])return NO;
+    for(NSString *key in @[@"stopEnabled",@"restartEnabled"]){id value=body[key];if(![value isKindOfClass:NSNumber.class]||CFGetTypeID((__bridge CFTypeRef)value)!=CFBooleanGetTypeID())return NO;}
+    return YES;
+}
 static BOOL YNXLocalCommandResult(id value,NSDictionary *pending) {
     if(![value isKindOfClass:NSDictionary.class])return NO;NSDictionary *body=value;
     if((body.count!=3&&body.count!=4)||![body[@"action"] isEqual:@"command-result"]||![body[@"requestId"] isKindOfClass:NSString.class]||!pending[body[@"requestId"]]||![body[@"accepted"] isKindOfClass:NSNumber.class]||CFGetTypeID((__bridge CFTypeRef)body[@"accepted"])!=CFBooleanGetTypeID())return NO;
@@ -633,6 +638,8 @@ static NSError *YNXEarlyIdentityCaptureError;
 @property(nonatomic,copy) NSString *localCloseRequest;
 @property(nonatomic,strong) NSMutableDictionary<NSString *,NSString *> *pendingLocalCommands;
 @property(nonatomic) BOOL localCommandDocumentReady;
+@property(nonatomic) BOOL localDebugStopEnabled;
+@property(nonatomic) BOOL localDebugRestartEnabled;
 @property(nonatomic) BOOL localTerminalTraceEnabled;
 @property(nonatomic,copy) NSString *localLocale;
 @property(nonatomic,strong) NSURL *serverLogURL;
@@ -866,7 +873,7 @@ static NSError *YNXEarlyIdentityCaptureError;
     }
 }
 - (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView){[_localProjectFocus stop];_localProjectFocus=nil;_localPresentationGeneration++;[self cancelLocalOriginalServices];[self cancelLocalFileSelection:NO];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
+    if(_localWorkbenchMode&&view==_webView){[_localProjectFocus stop];_localProjectFocus=nil;_localPresentationGeneration++;[self cancelLocalOriginalServices];[self cancelLocalFileSelection:NO];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;_localDebugStopEnabled=NO;_localDebugRestartEnabled=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
 }
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
@@ -1586,6 +1593,8 @@ static NSError *YNXEarlyIdentityCaptureError;
         BOOL webResponder=window==_window&&[responder isKindOfClass:NSView.class]&&[(NSView *)responder isDescendantOf:_webView];
         SEL selector=YNXLocalNativeEditSelector(command);
         if(!webResponder&&selector)return responder&&[responder respondsToSelector:selector];
+        if([command isEqual:@"workbench.action.debug.stop"]&&!_localDebugStopEnabled)return NO;
+        if([command isEqual:@"workbench.action.debug.restart"]&&!_localDebugRestartEnabled)return NO;
         return window==_window&&_localCommandDocumentReady&&_server.running&&YNXLocalEditorDocumentURL(_webView.URL,_port)&&!_localCloseRequest&&_pendingLocalCommands.count<32;
     }
     if(item.action==@selector(desktopEdit:))return !_nativeEditPending && NSApp.keyWindow.firstResponder!=nil;
@@ -1858,6 +1867,10 @@ static NSError *YNXEarlyIdentityCaptureError;
         // cannot submit a filesystem path or alter this instance's binding.
         if(!YNXLocalOpenFolderPayload(body)||!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!_localCommandDocumentReady||!_server.running)return;
         if([body[@"action"] isEqual:@"new-project"])[self newLocalProject:nil];else [self openLocalFolder:nil];return;
+    }
+    if([body[@"action"] isEqual:@"debug-command-state"]){
+        if(!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!YNXLocalDebugCommandState(body))return;
+        _localDebugStopEnabled=[body[@"stopEnabled"] boolValue];_localDebugRestartEnabled=[body[@"restartEnabled"] boolValue];return;
     }
     if([body[@"action"] isEqual:@"command-result"]){
         if(!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!YNXLocalCommandResult(body,_pendingLocalCommands))return;

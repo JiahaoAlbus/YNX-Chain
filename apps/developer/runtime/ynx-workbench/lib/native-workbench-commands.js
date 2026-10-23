@@ -46,8 +46,27 @@ class NativeWorkbenchCommands {
       try{if(Intl.getCanonicalLocales(this.locale).length===1)locale=this.locale;}catch{}
     }
     bridge.postMessage({ action: 'locale', locale });
+    // Cocoa cannot synchronously query the asynchronous registry while tracking
+    // its menu. Mirror only these bounded booleans; execution still rechecks the
+    // original registry. A failed/ended session must not leave Stop enabled.
+    const publishDebugState = () => {
+      let stopEnabled = false, restartEnabled = false;
+      try {
+        stopEnabled = !!this.commands.getCommand('workbench.action.debug.stop') && this.commands.isEnabled('workbench.action.debug.stop') === true;
+        restartEnabled = !!this.commands.getCommand('workbench.action.debug.restart') && this.commands.isEnabled('workbench.action.debug.restart') === true;
+      } catch { /* Unknown framework state stays disabled. */ }
+      const state = { action: 'debug-command-state', stopEnabled, restartEnabled };
+      const fingerprint = JSON.stringify(state);
+      if (fingerprint === this.debugStateFingerprint) return;
+      this.debugStateFingerprint = fingerprint; bridge.postMessage(state);
+    };
+    this.debugStateSubscription = this.contextKeys?.onDidChange?.(publishDebugState);
+    publishDebugState();
   }
-  onStop() { if (this.target.__ynxLocalWorkbenchCommand === this.dispatch) delete this.target.__ynxLocalWorkbenchCommand; }
+  onStop() {
+    this.debugStateSubscription?.dispose(); this.debugStateSubscription = undefined; this.debugStateFingerprint = undefined;
+    if (this.target.__ynxLocalWorkbenchCommand === this.dispatch) delete this.target.__ynxLocalWorkbenchCommand;
+  }
 }
 async function selectNativeGoToolchain(target, ...args) {
   if(args.length)throw Error('Go toolchain selection accepts no supplied paths or arguments.');

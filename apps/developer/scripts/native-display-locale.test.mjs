@@ -11,14 +11,14 @@ test('normal frontend locale bridge preserves installed language choices beyond 
   for(const locale of ['en','zh-cn','de','fr','ja','pt-br','zh-tw','sr-Latn','es-419']){
     const messages=[],target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:value=>messages.push(value)}}}};
     new NativeWorkbenchCommands({},target,locale).onStart();
-    assert.deepEqual(messages,[{action:'locale',locale}]);
+    assert.deepEqual(messages,[{action:'locale',locale},{action:'debug-command-state',stopEnabled:false,restartEnabled:false}]);
   }
 });
 test('frontend locale bridge rejects malformed language values without changing the command surface',()=>{
   for(const locale of ['../secret','de--DE','en\nprivate','',null,{},'x'.repeat(64)]){
     const messages=[],target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:value=>messages.push(value)}}}};
     new NativeWorkbenchCommands({},target,locale).onStart();
-    assert.deepEqual(messages,[{action:'locale',locale:'en'}]);
+    assert.deepEqual(messages,[{action:'locale',locale:'en'},{action:'debug-command-state',stopEnabled:false,restartEnabled:false}]);
   }
 });
 test('actual Foundation locale persistence keeps standard plugin languages and rejects unsafe values',{
