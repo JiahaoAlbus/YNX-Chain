@@ -253,6 +253,14 @@ jobs:
         env:
           YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-stream-public-fixture
         run: python3 -B -m unittest discover -s scripts/loadtest -p test_native_stream_evidence.py -v
+      - name: Retain original public native stream unit evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: native-stream-public-unit-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-native-stream-public-fixture
+          if-no-files-found: ignore
+          retention-days: 90
       - name: Verify actual prefix decoder phases and held-gate cancellation
         run: go test -p 1 ./internal/consensus -run '^TestBlockJournal(Prefix|BoundedPrefix)' -count=1 -timeout=30s -v
       - name: Verify opt-in node phase timings against real durable execution

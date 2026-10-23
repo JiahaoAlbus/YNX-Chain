@@ -35,6 +35,7 @@ class NativeStreamEvidenceTests(unittest.TestCase):
         self.assertEqual(got['originalPublicMemberManifest']['members'],self.meta['intents']['segments']+self.meta['terminalStream']['segments'])
         self.assertRegex(got['originalPublicMemberManifest']['sha256'],r'^[0-9a-f]{64}$')
         self.assertEqual({p.name for p in self.root.iterdir()},{'network-manifest.json','transactions.json','transactions-result.json.streaming-plan.json','PUBLIC_FIXTURE_SCOPE.json','sender-ready-intents','transactions-result.json.terminal-stream'})
+        print('YNX_NATIVE_STREAM_PUBLIC_IDENTITY '+json.dumps(got,sort_keys=True),flush=True)
     def test_missing_original_segment_is_not_reconstructed(self):
         self.terminal_file().unlink()
         with self.assertRaisesRegex(RuntimeError,'missing|inventory'):self.verify()
