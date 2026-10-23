@@ -40,3 +40,11 @@ test('unknown SDK cannot evade independent runtime pinning by omitting the manif
  const legacy=select('1.3.0-pq.3.18');assert.deepEqual(fixedSDKRuntimeManifestSources(root,legacy),[]);
  const supported=select('1.3.0-pq.3.32-auth.2');assert.throws(()=>fixedSDKRuntimeManifestSources(root,supported),/Required SDK runtime manifest is missing/);
 });
+test('SDK332 cleanup successor binds its distinct auth3 manifest without changing Native load count',()=>{
+ const version='1.3.0-pq.3.32-auth.3';
+ assert.deepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],{bytes:65346,sha256:'eeea144302168f53c51be55e2403cde30ee4f9c6b6b04eb5e65f2c11d621cd3c'});
+ assert.notDeepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],FIXED_SDK_RUNTIME_IDENTITIES['1.3.0-pq.3.32-auth.2']);
+ const file='packages/wallet-auth/src/original-ide-admission-parent-delivery.js',load="new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)";
+ assert.equal(relocateDesktopRuntimeSource(file,Buffer.from(Array(3).fill(load).join(';')),version).operands[0].count,3);
+ assert.throws(()=>relocateDesktopRuntimeSource(file,Buffer.from(Array(2).fill(load).join(';')),version),/count differs/);
+});
