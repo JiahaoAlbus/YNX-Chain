@@ -4,6 +4,87 @@
 #import <CommonCrypto/CommonDigest.h>
 #include <unistd.h>
 #include <cstring>
+#include <pthread.h>
+#import "../../../packages/wallet-auth/native/original-auth-identity-source-authority.h"
+#import "../../../packages/wallet-auth/native/original-ide-publication-artifact.h"
+
+@implementation YNXOriginalArtifactPublisherCurrent {
+ YNXAuthIdentitySourceAuthority *_source;
+ NSDictionary *_manifest,*_view,*_snapshot;
+ NSError *_first,*_closeCause;
+ BOOL _entered,_closing,_retired,_retireSelected,_closeSelected,_closed;
+}
+- (instancetype)initPrivate {return [super init];}
+- (BOOL)refuse:(NSString *)code cause:(NSError *)cause error:(NSError **)error {
+ if(!_first)_first=cause?:[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:1 userInfo:@{NSLocalizedDescriptionKey:code}];
+ if(error)*error=_first;return NO;
+}
+- (NSDictionary *)readHeld:(NSError **)error {
+ if(!pthread_main_np()||getuid()==0||getuid()!=geteuid()){[self refuse:@"PUBLISHER_ORIGINAL_USER_THREAD_REQUIRED" cause:nil error:error];return nil;}
+ if(_entered){[self refuse:@"PUBLISHER_CURRENT_REENTRANT" cause:nil error:error];return nil;}
+ if(_first||_retired||_closeSelected||_closed||!_source){[self refuse:@"PUBLISHER_CURRENT_UNAVAILABLE" cause:nil error:error];return nil;}
+ _entered=YES;
+ @try{
+  NSError *e=nil;
+  if(![_source assertCurrent:&e]||e){[self refuse:@"PUBLISHER_SOURCE_CURRENT_REFUSED" cause:e error:error];return nil;}
+  NSDictionary *first=[_source copyOriginalIDEProjectSelectionLocal:&e];
+  if(e||![first isKindOfClass:NSDictionary.class]){[self refuse:@"PUBLISHER_SELECTION_UNAVAILABLE" cause:e error:error];return nil;}
+  NSDictionary *selection=first[@"selection"],*authority=first[@"authority"];
+  if(![selection isKindOfClass:NSDictionary.class]||![authority isKindOfClass:NSDictionary.class]){[self refuse:@"PUBLISHER_SELECTION_BINDING_REFUSED" cause:nil error:error];return nil;}
+  NSString *project=selection[@"projectId"],*publisher=selection[@"publisherId"];
+  if(![project isKindOfClass:NSString.class]||![publisher isKindOfClass:NSString.class]||!publisher.length||![project isEqual:_manifest[@"projectId"]]){[self refuse:@"PUBLISHER_SELECTION_BINDING_REFUSED" cause:nil error:error];return nil;}
+  // This original SDK getter enforces Publish; local selection DATA cannot
+  // lend it. Keep actual fullR + registrationRef/revision, never a local hash.
+  NSDictionary *snapshot=[_source copyOriginalIDECurrentPublisher:publisher forProject:project error:&e];
+  if(e||![snapshot isKindOfClass:NSDictionary.class]){[self refuse:@"PUBLISHER_PUBLISH_CURRENT_REFUSED" cause:e error:error];return nil;}
+  NSData *r=snapshot[@"publisherOriginal"];NSDictionary *key=snapshot[@"publisher"];
+  if(![r isKindOfClass:NSData.class]||!r.length||r.length>8192||![key isKindOfClass:NSDictionary.class]||![key[@"registrationRef"]isKindOfClass:NSString.class]||![key[@"registrationRef"]length]||![key[@"revision"]isKindOfClass:NSString.class]||![key[@"projectId"]isEqual:project]||![key[@"publisherId"]isEqual:publisher]){[self refuse:@"PUBLISHER_ORIGINAL_BINDING_REFUSED" cause:nil error:error];return nil;}
+  for(NSString *name in @[@"principal",@"project",@"publisher",@"publisherOriginal",@"expiresMS"])if(![snapshot[name]isEqual:authority[name]]){[self refuse:@"PUBLISHER_SNAPSHOT_CHANGED" cause:nil error:error];return nil;}
+  NSDictionary *last=[_source copyOriginalIDEProjectSelectionLocal:&e];
+  if(e||!last||![first isEqual:last]||(_view&&![_view isEqual:last])||(_snapshot&&![_snapshot isEqual:snapshot])||_first||_retired||_closeSelected){[self refuse:@"PUBLISHER_POST_CURRENT_CHANGED" cause:e error:error];return nil;}
+  // Last original getter already applies current/time post-completion fences.
+  // Do not refresh Source after the comparison and return an older snapshot.
+  if(!_view){_view=[last copy];_snapshot=[snapshot copy];}
+  return [_snapshot copy];
+ }@catch(NSException *){[self refuse:@"PUBLISHER_CURRENT_EXCEPTION" cause:nil error:error];return nil;}
+ @finally{_entered=NO;}
+}
++ (instancetype)acquireForOriginalManifest:(NSData *)input error:(NSError **)error {
+ if(error)*error=nil;YNXOriginalArtifactPublisherCurrent *owner=[[self alloc]initPrivate];
+ @try{
+  if(!pthread_main_np()||getuid()==0||getuid()!=geteuid()){[owner refuse:@"PUBLISHER_ORIGINAL_USER_THREAD_REQUIRED" cause:nil error:error];return owner;}
+  if(![input isKindOfClass:NSData.class]||!input.length||input.length>16384){[owner refuse:@"PUBLISHER_MANIFEST_REQUIRED" cause:nil error:error];return owner;}
+  NSData *manifest=[NSData dataWithBytes:input.bytes length:input.length];NSError *e=nil;
+  owner->_manifest=YNXParseOriginalIDEPublicationManifest(manifest,&e);
+  if(e||!owner->_manifest){[owner refuse:@"PUBLISHER_MANIFEST_REFUSED" cause:e error:error];return owner;}
+  if(![YNXAuthIdentitySourceAuthority respondsToSelector:@selector(acquireOriginalIDEProjectAuthoritySource:)]){[owner refuse:@"PUBLISHER_PROJECT_SOURCE_CALLEE_REQUIRED" cause:nil error:error];return owner;}
+  owner->_source=[YNXAuthIdentitySourceAuthority acquireOriginalIDEProjectAuthoritySource:&e]; // capture partial first
+  if(e||!owner->_source||[owner->_source class]!=YNXAuthIdentitySourceAuthority.class){[owner refuse:@"PUBLISHER_ORIGINAL_SOURCE_UNAVAILABLE" cause:e error:error];return owner;}
+  if(![owner->_source respondsToSelector:@selector(copyOriginalIDEProjectSelectionLocal:)]){[owner refuse:@"PUBLISHER_PROJECT_SELECTION_CALLEE_REQUIRED" cause:nil error:error];return owner;}
+  [owner readHeld:error];return owner;
+ }@catch(NSException *){[owner refuse:@"PUBLISHER_ACQUISITION_UNKNOWN" cause:nil error:error];return owner;}
+}
+- (BOOL)assertCurrent:(NSError **)error {@synchronized(self){if(error)*error=nil;return [self readHeld:error]!=nil;}}
+- (NSDictionary *)copyOriginalPublisherSnapshot:(NSError **)error {@synchronized(self){if(error)*error=nil;return [self readHeld:error];}}
+- (void)retire {@synchronized(self){_retired=YES;if(_source&&!_retireSelected){_retireSelected=YES;@try{[_source retire];}@catch(NSException *){_closeCause=[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:2 userInfo:@{NSLocalizedDescriptionKey:@"PUBLISHER_RETIRE_UNKNOWN"}];}}}}
+- (BOOL)close:(NSError **)error {@synchronized(self){
+ if(error)*error=nil;
+ if(!pthread_main_np()||getuid()==0||getuid()!=geteuid()){if(error)*error=[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:3 userInfo:@{NSLocalizedDescriptionKey:@"PUBLISHER_ORIGINAL_USER_THREAD_REQUIRED"}];return NO;}
+ if(_entered||_closing){if(error)*error=[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:3 userInfo:@{NSLocalizedDescriptionKey:@"PUBLISHER_CURRENT_CALL_PENDING"}];return NO;}
+ if(_closed)return YES;
+ if(_closeCause){if(error)*error=_closeCause;return NO;}
+ _closing=YES;
+ @try{
+  [self retire];if(_closeCause){if(error)*error=_closeCause;return NO;}
+  if(!_source){_closed=YES;return YES;}
+  NSError *e=nil;
+  if(![_source join:&e]||e){if(error)*error=e?:[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:3 userInfo:@{NSLocalizedDescriptionKey:@"PUBLISHER_JOIN_PENDING"}];return NO;}
+  if(_closeSelected){if(error)*error=_closeCause;return NO;}_closeSelected=YES;
+  if(![_source close:&e]||e){_closeCause=e?:[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:2 userInfo:@{NSLocalizedDescriptionKey:@"PUBLISHER_CLOSE_UNKNOWN"}];if(error)*error=_closeCause;return NO;}
+  _closed=YES;_source=nil;return YES;
+ }@catch(NSException *){_closeCause=[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:2 userInfo:@{NSLocalizedDescriptionKey:@"PUBLISHER_CLEANUP_EXCEPTION"}];if(error)*error=_closeCause;return NO;}@finally{_closing=NO;}
+}}
+@end
 
 // PUBLIC unit linkage replaces these two calls only at compile time. There is
 // no runtime provider injection or alternative keychain in the normal binary.
@@ -48,6 +129,14 @@ static NSMutableDictionary *Query(NSData *r){
   (__bridge id)kSecUseAuthenticationContext:context} mutableCopy];
 }
 @implementation YNXOriginalArtifactPublisherStore
+- (NSMutableData *)copyOriginalRecordForCurrentPublisher:(YNXOriginalArtifactPublisherCurrent *)current error:(NSError **)error {
+ if(error)*error=nil;
+ if(!current||[current class]!=YNXOriginalArtifactPublisherCurrent.class){Reject(error,@"current-owner",errSecAuthFailed,NO);return nil;}
+ NSDictionary *snapshot=[current copyOriginalPublisherSnapshot:error];if(!snapshot)return nil;
+ NSMutableData *record=[self copyOriginalRecordForPublicOriginal:snapshot[@"publisherOriginal"]error:error];if(!record)return nil;
+ if(![current assertCurrent:error]){[record resetBytesInRange:NSMakeRange(0,record.length)];return nil;}
+ return record;
+}
 - (NSMutableData *)copyOriginalRecordForPublicOriginal:(NSData *)input error:(NSError **)error{
  @synchronized(self){
   if(error)*error=nil;if(!Actor(error))return nil;

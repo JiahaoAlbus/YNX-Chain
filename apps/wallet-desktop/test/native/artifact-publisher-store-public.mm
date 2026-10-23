@@ -6,6 +6,43 @@
 #import <LocalAuthentication/LocalAuthentication.h>
 #include <cassert>
 #include <cstdio>
+#include <thread>
+#import "../../../../packages/wallet-auth/native/original-auth-identity-source-authority.h"
+
+// PUBLIC compile-only Source double, never linked into the normal binary.
+// Only Main's consumer/lifetime code executes; no Source/Root is admitted.
+static NSDictionary *sourceView;
+static NSError *sourceAcquireError,*sourcePublishError,*sourceCloseError;
+static NSUInteger sourceAcquires,sourceViews,sourcePublishes,sourceRetires,sourceJoins,sourceCloses;
+static BOOL sourceJoinPending,sourceSnapshotMismatch;
+static void (^selectionHook)(void),(^joinHook)(void),(^recordHook)(void);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wincomplete-implementation"
+@implementation YNXAuthIdentitySourceAuthority
++ (instancetype)acquireOriginalIDEProjectAuthoritySource:(NSError **)error {sourceAcquires++;if(error)*error=sourceAcquireError;return [self new];}
+- (BOOL)assertCurrent:(NSError **)error {if(error)*error=nil;return YES;}
+- (NSDictionary *)copyOriginalIDEProjectSelectionLocal:(NSError **)error {sourceViews++;if(error)*error=nil;void(^hook)(void)=selectionHook;selectionHook=nil;if(hook)hook();return sourceView;}
+- (NSDictionary *)copyOriginalIDECurrentPublisher:(NSString *)publisher forProject:(NSString *)project error:(NSError **)error {
+ sourcePublishes++;if(error)*error=nil;
+ if(sourcePublishError){if(error)*error=sourcePublishError;return nil;}
+ NSDictionary*a=sourceView[@"authority"];
+ if(![a[@"project"][@"publish"]boolValue]||![a[@"project"][@"projectId"]isEqual:project]||![a[@"publisher"][@"publisherId"]isEqual:publisher]){if(error)*error=[NSError errorWithDomain:@"PUBLIC Source" code:1 userInfo:nil];return nil;}
+ NSMutableDictionary *result=[NSMutableDictionary dictionary];for(NSString*k in @[@"principal",@"project",@"publisher",@"publisherOriginal",@"expiresMS"])result[k]=a[k];
+ if(sourceSnapshotMismatch){NSMutableDictionary*key=[result[@"publisher"]mutableCopy];key[@"revision"]=@"8";result[@"publisher"]=key;}
+ return [result copy];
+}
+- (void)retire {sourceRetires++;}
+- (BOOL)join:(NSError **)error {sourceJoins++;if(error)*error=nil;void(^hook)(void)=joinHook;joinHook=nil;if(hook)hook();if(sourceJoinPending){if(error)*error=[NSError errorWithDomain:@"PUBLIC join pending" code:1 userInfo:nil];return NO;}return YES;}
+- (BOOL)close:(NSError **)error {sourceCloses++;if(error)*error=sourceCloseError;return sourceCloseError==nil;}
+@end
+#pragma clang diagnostic pop
+
+static NSMutableData *observedRecord;
+@interface YNXPublicObservedStore : YNXOriginalArtifactPublisherStore
+@end
+@implementation YNXPublicObservedStore
+- (NSMutableData *)copyOriginalRecordForPublicOriginal:(NSData *)r error:(NSError **)error {observedRecord=[super copyOriginalRecordForPublicOriginal:r error:error];if(recordHook)recordHook();return observedRecord;}
+@end
 
 static NSMutableDictionary *items;
 static NSUInteger adds=0,reads=0;
@@ -45,6 +82,36 @@ static NSMutableData *record(NSData *r){
  NSMutableData *out=[NSMutableData dataWithData:[@"YNX-PUBLISHER-CUSTODY/v1\n" dataUsingEncoding:NSUTF8StringEncoding]];
  auto append=[&](NSData *part){uint32_t n=CFSwapInt32HostToBig((uint32_t)part.length);[out appendBytes:&n length:4];[out appendData:part];};
  append(r);const size_t sizes[]={54,150,2592,64};for(size_t n:sizes)append([NSMutableData dataWithLength:n]);return out;
+}
+static NSDictionary *publisherView(NSData*r,NSString*project= @"PUBLIC-project",id publisher= @"PUBLIC-publisher",BOOL publish=YES,NSString*revision= @"7"){
+ NSDictionary*principal=@{@"account":@"PUBLIC-original-account"},*p=@{@"projectId":project,@"publish":@(publish)};
+ NSDictionary*key=@{@"account":@"PUBLIC-original-account",@"projectId":project,@"publisherId":publisher,@"registrationRef":@"PUBLIC-original-registration-not-R-hash",@"revision":revision};
+ return @{@"authority":@{@"principal":principal,@"project":p,@"publisher":key,@"publisherOriginal":r,@"expiresMS":@900719925000},@"selection":@{@"projectId":project,@"publisherId":publisher,@"projectRevision":@"3",@"catalogRevision":@"4",@"workspace":@"PUBLIC-signed-path-is-not-FD-owner"}};
+}
+static NSData *manifest(){NSDictionary*d=@{@"byteSize":@1,@"contentDigest":[@"a" stringByPaddingToLength:64 withString:@"a" startingAtIndex:0],@"projectId":@"PUBLIC-project",@"publishPurpose":@"release",@"targetEnvironment":@"testnet",@"version":@"PUBLIC-v1"};return [NSJSONSerialization dataWithJSONObject:d options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];}
+static void resetSource(NSData*r){sourceView=publisherView(r);sourceAcquireError=sourcePublishError=sourceCloseError=nil;sourceAcquires=sourceViews=sourcePublishes=sourceRetires=sourceJoins=sourceCloses=0;sourceJoinPending=sourceSnapshotMismatch=NO;selectionHook=joinHook=recordHook=nil;observedRecord=nil;}
+static void currentCases(YNXOriginalArtifactPublisherStore*store,NSData*r,NSData*wire){
+ NSError *e=nil;resetSource(r);auto c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];assert(c&&!e);
+ NSDictionary*s=[c copyOriginalPublisherSnapshot:&e];assert(s&&!e&&[s[@"publisherOriginal"]isEqual:r]);assert([s[@"publisher"][@"registrationRef"]isEqual:@"PUBLIC-original-registration-not-R-hash"]&&[s[@"publisher"][@"revision"]isEqual:@"7"]);
+ NSMutableData *read=[store copyOriginalRecordForCurrentPublisher:c error:&e];assert([read isEqual:wire]&&!e);[read resetBytesInRange:NSMakeRange(0,read.length)];assert(sourceAcquires==1&&sourcePublishes>0);assert([c close:&e]&&[c close:&e]&&sourceCloses==1&&sourceRetires==1);
+ std::puts("PASS independent original publisher selection retains full R and actual registration ref/revision");
+ for(unsigned mode=0;mode<4;mode++){resetSource(r);if(mode==0)sourceView=publisherView(r,@"PUBLIC-other-project");if(mode==1)sourceView=publisherView(r,@"PUBLIC-project",NSNull.null);if(mode==2)sourceView=publisherView(r,@"PUBLIC-project",@"PUBLIC-publisher",NO);if(mode==3)sourceSnapshotMismatch=YES;
+  NSUInteger before=reads;c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];assert(c&&e&&![store copyOriginalRecordForCurrentPublisher:c error:&e]&&reads==before);assert([c close:&e]);}
+ std::puts("PASS null publisher/project mismatch/Publish denial/changed original snapshot never read private storage");
+ resetSource(r);sourceAcquireError=[NSError errorWithDomain:@"PUBLIC original partial" code:9 userInfo:nil];NSError*first=sourceAcquireError;c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];assert(c&&e==first&&sourceViews==0);assert(![c assertCurrent:&e]&&e==first);assert([c close:&e]&&sourceAcquires==1&&sourceCloses==1);
+ std::puts("PASS acquisition error preserves original cleanup partial and first cause without reacquire");
+ resetSource(r);c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];assert(!e);sourceView=publisherView(r,@"PUBLIC-project",@"PUBLIC-publisher",YES,@"8");NSUInteger before=reads;assert(![c assertCurrent:&e]&&e);assert(![store copyOriginalRecordForCurrentPublisher:c error:&e]&&reads==before);assert([c close:&e]&&sourceAcquires==1);
+ std::puts("PASS late publisher revision change permanently refuses old current owner and key read");
+ resetSource(r);c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];assert(!e);recordHook=^{sourceView=publisherView(r,@"PUBLIC-project",@"PUBLIC-publisher",YES,@"8");};auto observed=[YNXPublicObservedStore new];assert(![observed copyOriginalRecordForCurrentPublisher:c error:&e]&&e&&observedRecord);for(NSUInteger i=0;i<observedRecord.length;i++)assert(((const uint8_t*)observedRecord.bytes)[i]==0);recordHook=nil;assert([c close:&e]);
+ std::puts("PASS current refusal after actual private copy wipes caller-owned late result before return");
+ resetSource(r);c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];assert(!e);selectionHook=^{NSError*n=nil;assert(![c copyOriginalPublisherSnapshot:&n]&&n);};assert(![c assertCurrent:&e]&&e);assert(![c copyOriginalPublisherSnapshot:&e]&&e&&sourceAcquires==1);assert([c close:&e]);
+ std::puts("PASS current getter reentry cannot produce a snapshot or rearm a failed owner");
+ resetSource(r);c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];sourceCloseError=[NSError errorWithDomain:@"PUBLIC close unknown" code:8 userInfo:nil];first=sourceCloseError;assert(![c close:&e]&&e==first);assert(![c close:&e]&&e==first&&sourceCloses==1&&sourceRetires==1);
+ resetSource(r);c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];sourceJoinPending=YES;assert(![c close:&e]&&sourceCloses==0);sourceJoinPending=NO;assert([c close:&e]&&sourceJoins==2&&sourceCloses==1);
+ std::puts("PASS unknown close is sticky/never repeated while known join pending stays drainable");
+ resetSource(r);c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];joinHook=^{NSError*n=nil;assert(![c close:&n]&&n);};assert([c close:&e]&&sourceJoins==1&&sourceCloses==1);
+ resetSource(r);c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];std::thread worker([c](){@autoreleasepool{NSError*n=nil;assert(![c assertCurrent:&n]&&n);}});worker.join();assert(![c assertCurrent:&e]&&e);assert([c close:&e]&&sourceAcquires==1);
+ std::puts("PASS cleanup reentry and worker current access cannot duplicate cleanup or lend authority");
 }
 int main(int argc,char **argv){@autoreleasepool{
  items=[NSMutableDictionary new];auto store=[YNXOriginalArtifactPublisherStore new];NSError *e=nil;
@@ -109,5 +176,6 @@ int main(int argc,char **argv){@autoreleasepool{
  assert(argc==2);NSData *jsRecord=[NSData dataWithContentsOfFile:[NSString stringWithUTF8String:argv[1]]];NSData *jsR=R(@"PUBLIC-JS-to-Native");
  assert([store createOriginalRecord:jsRecord forPublicOriginal:jsR error:&e]);NSMutableData *jsRead=[store copyOriginalRecordForPublicOriginal:jsR error:&e];assert([jsRead isEqual:jsRecord]);[jsRead resetBytesInRange:NSMakeRange(0,jsRead.length)];
  std::puts("PASS actual Main JS storage framing interoperates with native parser using PUBLIC fake material only");
- std::puts("PUBLIC_KEYCHAIN_SEAM_ONLY systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0");
+ currentCases(store,r,wire);
+ std::puts("PUBLIC_KEYCHAIN_SOURCE_SEAMS_ONLY systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0 workspaceFDQualified=0");
  }}

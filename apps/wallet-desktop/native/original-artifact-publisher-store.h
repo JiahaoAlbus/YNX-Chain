@@ -31,6 +31,21 @@ inline bool borrowPublisherRecord(const void *record,size_t length,const void *e
 }
 #endif
 
+// Private, independently acquired SDK19 project-authority Source owner.
+// Snapshot DATA is not release consent, a workspace FD owner or a signer.
+// Adopt returned cleanup partial BEFORE inspecting NSError; never reacquire
+// to repair a failed/changed selection. The effect still needs its own fixed
+// request/approval window, artifact binding, once entry and result durability.
+@interface YNXOriginalArtifactPublisherCurrent : NSObject
++ (instancetype)acquireForOriginalManifest:(NSData *)manifest error:(NSError **)error;
+- (BOOL)assertCurrent:(NSError **)error;
+- (NSDictionary *)copyOriginalPublisherSnapshot:(NSError **)error;
+- (void)retire;
+- (BOOL)close:(NSError **)error;
+- (instancetype)init NS_UNAVAILABLE;
++ (instancetype)new NS_UNAVAILABLE;
+@end
+
 // Private native storage ONLY. No Node exports, authority factory, generic
 // signing callback, asset vault or secret-export UI. Actual Source/current
 // publisher registry and independent approval must gate the owning effect.
@@ -45,4 +60,8 @@ inline bool borrowPublisherRecord(const void *record,size_t length,const void *e
 // bytes after purpose-specific SDK import. Never expose through IPC or logs.
 - (NSMutableData *)copyOriginalRecordForPublicOriginal:(NSData *)publicOriginal
                                                 error:(NSError **)error;
+// Private storage body only: performs independent current checks around the
+// read and wipes a late-refused copy. It does NOT supply release approval.
+- (NSMutableData *)copyOriginalRecordForCurrentPublisher:(YNXOriginalArtifactPublisherCurrent *)current
+                                                  error:(NSError **)error;
 @end
