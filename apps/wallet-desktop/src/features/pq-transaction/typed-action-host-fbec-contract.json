@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "parent": "1942214e3e9e07809680b511392454b35412c084",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "scope": "Four owned test/fixture/contract/CI-proposal files only. Production five APIs and all shared modules unchanged; no Main/SDK/Auth/Protocol/trust-pin changes.",
+  "originalProducer": {
+    "source": "/Volumes/西部数据/YNX-large-work/protocol/host-delivery-fbec-39955891165",
+    "commit": "fbecfbefff09d1f20b059fc859cfcdd6affcabde",
+    "runId": "39955891165",
+    "artifactId": "12502948470",
+    "zip": {
+      "bytes": 3538471,
+      "sha256": "0a75ed554df3500ad81ceff6f0ca11ae91db33b3e901562a28e2233309c48e8e"
+    },
+    "closedPublicFiles": 22,
+    "exactReadback": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-finality-pipeline-20261023/evidence/HOST_FBEC_EXACT_READBACK.json",
+      "bytes": 12709,
+      "sha256": "0ad0ee0cf3e6e08a9468e07bb29d35d86a175b5fe6f808a42cb4f50865bc7311"
+    }
+  },
+  "fixture": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-host-interop-20261023/source/apps/wallet-desktop/src/features/pq-transaction/fixtures/typed-host-fbec-public.json.gz",
+    "bytes": 1191947,
+    "sha256": "bcf73aee6af688449a8b03f6847277967b53039ca917bed6c3423771a97fea7e",
+    "inputs": [
+      {
+        "path": "ynx-proof-host-source-public/typed-request.json",
+        "bytes": 1261388,
+        "sha256": "c4e63b91974d4cf2ef02df8fb8771edc150a473367752d797cc766f1acf06230"
+      },
+      {
+        "path": "ynx-proof-host-source-public/typed-delivery/trust-context.json",
+        "bytes": 233642,
+        "sha256": "04abde4d6b444ad3606fbfaead9b9861264bf9b5ed07ddd39694d83ac276fc7f"
+      },
+      {
+        "path": "ynx-proof-host-source-public/typed-delivery/delivery.json",
+        "bytes": 1800,
+        "sha256": "ecfc4d48d529243f84051d246a60dcd8dab37d575b5c00153fc1de7fcfbed02d"
+      },
+      {
+        "path": "ynx-proof-host-typed-source-cli-public-receipt.json",
+        "bytes": 2429,
+        "sha256": "01fdbec72fb96c985c88a69fa1c5910d8c027e765ee27f5095273180e9fac9e4"
+      }
+    ],
+    "encoding": "Raw original files retained as base64; no reconstruction of raw JSON/stdout/review/authority."
+  },
+  "rawRetention": "Four original raw UTF8 files base64-embedded in bounded gzip; raw hashes and lengths checked before parsing. No reconstruction of producer stdout/Host/Wallet review.",
+  "validation": {
+    "evidence": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-host-interop-20261023/evidence/host-fbec-public-interop.tap",
+      "bytes": 981,
+      "sha256": "7f0248c3a9f8ac144c147b30941f248a69d59720da71410a12e1063acf966221"
+    },
+    "pass": 3,
+    "fail": 0,
+    "skip": 0,
+    "cases": [
+      "Actual SDK332 transport/Member/Action decoding, exact Member and full transport hashes, original request/context equality; stake nonce2/H12/index0.",
+      "Actual original Go proof DTO passes existing validatePQTransactionProofDTO grammar; synthetic Linux normalCLI receipt provenance/flags preserved.",
+      "Actual request/context cannot replace missing original Wallet archived review and both policy snapshots: all five reviewed APIs refuse PQ_REVIEWED_TRANSPORT_ORIGINAL_INVALID."
+    ],
+    "oldSevenNotRerun": true,
+    "actualGoProofCryptographyRerun": false,
+    "actualNewSignatures": false,
+    "actualNormalCLIRerun": false
+  },
+  "identity": {
+    "transactionType": "pq_action",
+    "actionKind": "stake",
+    "transportBytes": 115661,
+    "memberBytes": 57808,
+    "transportHash": "422401f5148f065ab97f4d4a7662284643dcf967cf87a8106cb194f876daf4b2",
+    "memberHash": "9a97248a94a43e66c9bf9d9c056dd9d92b1b15ef716ff344cc049a4bea01a324",
+    "height": "12",
+    "cometIndex": "0",
+    "classicOriginals": 0,
+    "note": "Protocol delivery.binding.originalHash is0xMember; Wallet typed journal key is0xtransport. Main owns explicit exact dual-identity mapping; neither aliases the other."
+  },
+  "originalReceipt": {
+    "normalCLIExecuted": true,
+    "transactionProofVerified": true,
+    "syntheticOnly": true,
+    "typedCases": 6,
+    "allExitCode": 0,
+    "proofStdout": {
+      "bytes": 2310,
+      "sha256": "a224ae2057c7ad4a3324681e6ee61f1442967edbbccf28cc7ec03edd8f745d6c",
+      "rawBytesSupplied": false
+    },
+    "linuxVerifier": {
+      "bytes": 35585743,
+      "sha256": "b0b4f3fcced0318730596d57af31fa4fceab68a55d030e71717f8628ec63b6fb"
+    },
+    "nativeRootAuthorized": false,
+    "sourceDeploymentQualified": false,
+    "actualCometNode": false,
+    "installedWallet": false,
+    "publicDeployment": false,
+    "pqActivation": false
+  },
+  "remaining": [
+    "Original Wallet archived review and both saved public policy snapshots for this exact original; no reconstruction from public committed state or Host target.",
+    "Original2310B typed verifier stdout plus independently matched process execution provenance; a receipt digest cannot be parsed in place of stdout.",
+    "Matching qualified original Main Host and verifier source/signature receipts. Linux b0b4f3fc proof does not establish old Mac591 a7e47ea7 compatibility."
+  ],
+  "newerMacReport": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/macos-verifier-fbec-39955891165",
+    "source": "Original Protocol message, not inspected or executed by this leaf",
+    "classification": "Cross-compiled candidate reportedly supplied; no Mac physical execution or installed product proof. Original Main/A own required qualification, pins and integration."
+  },
+  "ci": {
+    "proposal": "typed-action-host-fbec-ci.patch",
+    "destination": "apps/wallet-desktop/test/pq-typed-action-host-fbec-public.test.mjs",
+    "applies": true,
+    "integratedByLeaf": false,
+    "entry": "Existing npm test / normal CI glob, no separate framework."
+  },
+  "runtime": "Actual SDK3321.3.0-pq.3.32-auth.1 and its original @ynx/batch-v01-candidate dependency; no new SDK code. Node24.19.0 only. No Android/browser/native parity claim.",
+  "effects": {
+    "network": false,
+    "download": false,
+    "NodeStart": false,
+    "actualCLIRun": false,
+    "actualSigning": false,
+    "realAccounts": false,
+    "MainMutation": false,
+    "SDKMutation": false,
+    "AuthMutation": false,
+    "ProtocolMutation": false,
+    "trustPinMutation": false,
+    "build": false,
+    "GUI": false,
+    "POST": false
+  },
+  "status": "已验证未部署: original fixed public byte/DTO interop3PASS only. Prior194 statement of missing ALL typed producer receipts is superseded for fbec synthetic Linux source; actual full reviewed Wallet/qualifiedHost/verifier pipeline is not established."
+}
