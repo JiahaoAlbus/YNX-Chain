@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"time"
 )
@@ -19,6 +20,20 @@ type durablePrefixReplayStats struct {
 	ReplayedTransactionInputs uint64                                 `json:"replayedTransactionInputs"`
 	CanonicalByteLimit        int                                    `json:"canonicalByteLimit"`
 	WorkPhases                consensus.BlockJournalPrefixWorkPhases `json:"workPhases"`
+	NativeCloneCache          *consensus.NativeCloneCacheInventory   `json:"nativeCloneCache,omitempty"`
+}
+
+// Configure only before any reader worker starts.
+func (r *durableReader) configurePrefixReplay(migration chain.ConsensusMigrationState, nativeClone bool) error {
+	var err error
+	if nativeClone {
+		r.prefixDecoder, err = consensus.NewBlockJournalNativeClonePrefixDecoder(migration)
+		r.prefixStats.WorkPhases.PrivateNativeClone = new(consensus.BlockJournalPrefixPhase)
+	} else {
+		r.prefixDecoder, err = consensus.NewBlockJournalPrefixDecoder(migration)
+	}
+	r.prefixNativeClone = nativeClone
+	return err
 }
 
 func (r *durableReader) decodePrefixSnapshot(ctx context.Context, data []byte) (decodedDurableSnapshot, error) {

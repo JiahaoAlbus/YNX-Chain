@@ -43,7 +43,9 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
                  buildBytes=1 << 30, metadataReserveMs=500)
 
 
-def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None, prefix_native_clone=None):
+    if prefix_native_clone is not None and (type(prefix_native_clone) is not bool or prefix_native_clone and prefix_replay is not True):
+        raise RuntimeError("native clone requires explicit prefix replay selection")
     one_shot=profile_name in ONESHOT_PROFILES
     if prefix_replay is not None and (type(prefix_replay) is not bool or prefix_replay and profile_name!="supply-2048x1-data64"):
         raise RuntimeError("prefix replay requires the explicit data64 profile")
@@ -72,6 +74,7 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
             priorFailedRun=39161413763, priorFinalPrivateBytes=40191359,
             priorProfile="supply-2048x1", noPerformanceQualification=True)
     if prefix_replay is True:result["prefixDurableReplay"]=True
+    if prefix_native_clone is True:result["prefixNativeClone"]=True
     if observer_phases:
         result["observerPhaseTiming"]=True
         result["observerTraceLimits"]=dict(perWorker=256,aggregate=1024,totalsCompleteDespiteTraceCap=True)
@@ -113,7 +116,9 @@ PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
               "independent-shared": ("independent-replay", "shared-replay"),
               "shared-fair": ("shared-baseline", "shared-endpoint-fair"),
               "shared-elastic": ("shared-baseline", "shared-endpoint-elastic"),
-              "shared-prefix-data64": ("shared-replay", "prefix-replay")}
+              "shared-prefix-data64": ("shared-replay", "prefix-replay"),
+              "prefix-native-data64": ("prefix-control", "prefix-native-clone")}
+DATA64_PAIRS=("shared-prefix-data64","prefix-native-data64")
 
 
 def pair_modes(comparison):
@@ -217,6 +222,14 @@ def fixture_resource_readout(network):
 
 
 def pair_recipe(comparison="relative-bounded"):
+    if comparison == "prefix-native-data64":
+        selected=pair_recipe("shared-prefix-data64")
+        selected.update(kind="fixed-same-VM-prefix-native-data64-pair",
+            cases=[recipe("grpc","supply-2048x1-data64","relative",True,prefix_replay=True,prefix_native_clone=flag) for flag in (False,True)],
+            order="prefix-control then prefix-native-clone; never concurrent; stop after failed or unclean first case",
+            input=dict(selected["input"],linux_supply_pacing="paired-prefix-native-data64"),
+            interpretation="Same source/VM/ELFs/environment/native signed workload and unchanged data64 caps; only explicit private reconstruction differs. Native cache object inventory is not RSS; original owned RSS sampler charges all decoded state. Preserve all original business/signature/quorum/durable/queue-inclusive latency and adverse samples. Finite only, no sustained1000TPS qualification.")
+        return selected
     if comparison == "shared-prefix-data64":
         return dict(schema=1,kind="fixed-same-VM-shared-prefix-data64-pair",execute=False,
                     requiresSeparateRootGrant=True,nodesStarted=False,
@@ -271,7 +284,7 @@ class PairBudget:
         self.root, self.evidence, self.started = root, evidence, started
         self.build, self.active_case = build, root
         self.caps = pair_recipe(comparison)["pairCaps"]
-        self.data64 = comparison == "shared-prefix-data64"
+        self.data64 = comparison in DATA64_PAIRS
         before, after = pair_modes(comparison)
         self.case_names = ("before-"+before, "after-"+after)
         self.deadline = started + self.caps["totalMs"]/1000
@@ -445,7 +458,10 @@ def validate_shared_replay(report, expected, require_work_phases=False):
                 interpretation="Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance.")
 
 
-def validate_prefix_replay(report,expected,require_work_phases=False):
+def validate_prefix_replay(report,expected,require_work_phases=False,expected_native_clone=False):
+    if (type(expected_native_clone) is not bool or report.get("prefixNativeClone",False) is not expected_native_clone
+            or expected_native_clone and expected is not True):
+        raise RuntimeError("actual native clone selection differs")
     if type(expected) is not bool or report.get("prefixDurableReplay",False) is not expected:
         raise RuntimeError("actual prefix replay selection differs")
     reader=report.get("durableReadback",{});stats=reader.get("prefixReplay")
@@ -454,7 +470,7 @@ def validate_prefix_replay(report,expected,require_work_phases=False):
         return dict(prefixDurableReplay=False,stats=None)
     names={"calls","successfulFullReplays","successfulPrefixReuses","failures","durationNs","replayedBlocks","replayedTransactionInputs","canonicalByteLimit"}
     if (report.get("sharedDurableReplay") is not False or report.get("observerPhaseTiming") is not True or reader.get("sharedReplay") is not None
-            or not isinstance(stats,dict) or set(stats) not in (names,names|{"workPhases"}) or any(type(stats[k]) is not int or stats[k]<0 for k in names)
+            or not isinstance(stats,dict) or set(stats) not in ((names|{"workPhases","nativeCloneCache"},) if expected_native_clone else (names,names|{"workPhases"})) or any(type(stats[k]) is not int or stats[k]<0 for k in names)
             or stats["calls"]!=reader.get("snapshotValidations") or stats["calls"]<1 or stats["durationNs"]<=0
             or stats["calls"]!=stats["successfulFullReplays"]+stats["successfulPrefixReuses"]+stats["failures"]
             or stats["successfulFullReplays"]<1 or stats["successfulPrefixReuses"]<1 or stats["canonicalByteLimit"]!=16<<20
@@ -462,9 +478,10 @@ def validate_prefix_replay(report,expected,require_work_phases=False):
             or stats["replayedTransactionInputs"]!=reader.get("blockJournalReplayedTransactionInputs")):
         raise RuntimeError("prefix replay successful work counters/bounds missing or inconsistent")
     phases=stats.get("workPhases")
-    if require_work_phases and phases is None:raise RuntimeError("actual prefix child phases required")
+    if (require_work_phases or expected_native_clone) and phases is None:raise RuntimeError("actual prefix child phases required")
     if phases is not None:
         phase_names={"gateWait","prefixCheck","privateJSON","privateValidate","fullReplay","suffixSetup","suffixReplay","suffixEncode","canonicalCopy","certificatePublish"}
+        if expected_native_clone:phase_names.add("privateNativeClone")
         if not isinstance(phases,dict) or set(phases)!=phase_names:raise RuntimeError("prefix phase inventory differs")
         for phase in phases.values():
             if (not isinstance(phase,dict) or set(phase)!={"calls","errors","durationNs"}
@@ -472,11 +489,24 @@ def validate_prefix_replay(report,expected,require_work_phases=False):
                     or phase["calls"]==0 and (phase["errors"]!=0 or phase["durationNs"]!=0) or phase["calls"]>0 and phase["durationNs"]<=0):raise RuntimeError("invalid actual prefix phase counts/time")
         def calls(name):return phases[name]["calls"]
         def success(name):return calls(name)-phases[name]["errors"]
-        if (calls("prefixCheck")>success("gateWait") or calls("privateJSON")+calls("fullReplay")!=calls("prefixCheck")
-                or calls("privateValidate")!=success("privateJSON") or calls("suffixSetup")+calls("canonicalCopy")>success("privateValidate")
+        native_calls=calls("privateNativeClone") if expected_native_clone else 0
+        native_success=success("privateNativeClone") if expected_native_clone else 0
+        if (calls("prefixCheck")>success("gateWait") or calls("privateJSON")+native_calls+calls("fullReplay")!=calls("prefixCheck")
+                or calls("privateValidate")!=success("privateJSON")+native_success or calls("suffixSetup")+calls("canonicalCopy")>success("privateValidate")
                 or calls("suffixReplay")!=success("suffixSetup") or calls("suffixEncode")!=success("suffixReplay")
                 or calls("certificatePublish")>success("fullReplay")+success("suffixEncode")
                 or sum(p["durationNs"] for p in phases.values())>stats["durationNs"]):raise RuntimeError("prefix child phases differ from actual sequential branches/parent time")
+    if expected_native_clone:
+        cache=stats.get("nativeCloneCache")
+        keys={"canonicalBytes","height","accounts","feeEvents","lotEntries"}
+        if (not isinstance(cache,dict) or set(cache)!=keys|{"snapshotPresent"} or cache["snapshotPresent"] is not True
+                or any(type(cache[k]) is not int or cache[k]<0 for k in keys)
+                or not 0<cache["canonicalBytes"]<=16<<20 or cache["height"]<1
+                or cache["accounts"]<report.get("summary",{}).get("input",0)
+                or cache["feeEvents"]<report.get("summary",{}).get("input",0)
+                or phases["privateNativeClone"]["calls"]<1
+                or any(cache["height"]<t.get("durableStateHeight",0) for t in report.get("transactions",[]))):
+            raise RuntimeError("actual native clone retained cache inventory differs")
     facts=reader.get("blockJournalNativeVerificationFacts",{})
     if (facts.get("capacity")!=4096 or facts.get("string_byte_limit")!=4<<20
             or type(facts.get("entries")) is not int or not 1<=facts["entries"]<=4096
@@ -487,7 +517,9 @@ def validate_prefix_replay(report,expected,require_work_phases=False):
         raise RuntimeError("prefix replay original native verification facts differ")
     if any(t.get("durableStoreFormat")!="block-journal" for t in report.get("transactions",[])):
         raise RuntimeError("prefix replay requires original block-journal business readback")
-    return dict(prefixDurableReplay=True,stats=stats,interpretation="Successful full and reused-prefix outputs are separate; failed partial work is not included in completed block/input counts. Counters are not physical RSS or finality.")
+    result=dict(prefixDurableReplay=True,stats=stats,interpretation="Successful full and reused-prefix outputs are separate; failed partial work is not included in completed block/input counts. Counters are not physical RSS or finality.")
+    if expected_native_clone:result["prefixNativeClone"]=True
+    return result
 
 
 def validate_runtime_measurements(report,total=2048,require=False):
@@ -682,9 +714,11 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
             out = root / (mode+"-actual.json")
             budget.active_case = case
             invoked = time.monotonic()
-            pace = "relative" if comparison == "shared-prefix-data64" else "bounded-cadence" if comparison in ("independent-shared","shared-fair","shared-elastic") else mode
-            if comparison == "shared-prefix-data64":
-                code = run(source,build,case,out,"grpc","supply-2048x1-data64",pace,pair_budget=budget,observer_phases=True,prefix_replay=index==1)
+            pace = "relative" if comparison in DATA64_PAIRS else "bounded-cadence" if comparison in ("independent-shared","shared-fair","shared-elastic") else mode
+            if comparison in DATA64_PAIRS:
+                code = run(source,build,case,out,"grpc","supply-2048x1-data64",pace,pair_budget=budget,observer_phases=True,
+                    prefix_replay=comparison=="prefix-native-data64" or index==1,
+                    **({"prefix_native_clone":index==1} if comparison=="prefix-native-data64" else {}))
             elif comparison in ("shared-fair","shared-elastic"):
                 code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=True,endpoint_fair=index==1,**(dict(endpoint_elastic=index==1) if comparison=="shared-elastic" else {}))
             elif comparison == "independent-shared":
@@ -699,21 +733,25 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                                         firstCause=row.get("firstCause"), summary=row.get("measurement", {}).get("summary")))
             if code != 0 or duration > 60:
                 raise RuntimeError("pair case failed or invocation/fsync exceeded60s: "+str(row.get("firstCause")))
-            pair_case_qualified(row, pace,"supply-2048x1-data64" if comparison=="shared-prefix-data64" else "supply-512x2",2048 if comparison=="shared-prefix-data64" else 1024)
-            if comparison == "shared-prefix-data64":
+            pair_case_qualified(row, pace,"supply-2048x1-data64" if comparison in DATA64_PAIRS else "supply-512x2",2048 if comparison in DATA64_PAIRS else 1024)
+            if comparison in DATA64_PAIRS:
+                selected_prefix=comparison=="prefix-native-data64" or index==1
+                selected_native=comparison=="prefix-native-data64" and index==1
+                selected_shared=not selected_prefix
                 client_raw=native.bounded(case/"network/transactions-result.json",16 << 20)
                 if hashlib.sha256(client_raw).hexdigest()!=row.get("resultSHA256"):
                     raise RuntimeError("prefix pair original client hash differs")
                 client=json.loads(client_raw)
                 fixture=json.loads(native.bounded(case/"network/transactions.json",16 << 20))["transactions"]
-                measured=validate_report(client,"supply-2048x1-data64",pace,fixture_transactions=fixture,prefix_replay=index==1)
+                measured=validate_report(client,"supply-2048x1-data64",pace,fixture_transactions=fixture,prefix_replay=selected_prefix,prefix_native_clone=selected_native)
                 phases=validate_observer_phases(client)
-                shared=validate_shared_replay(client,index==0,require_work_phases=index==0)
-                prefix=validate_prefix_replay(client,index==1,require_work_phases=index==1)
+                shared=validate_shared_replay(client,selected_shared,require_work_phases=selected_shared)
+                prefix=validate_prefix_replay(client,selected_prefix,require_work_phases=selected_prefix,expected_native_clone=selected_native)
                 runtime=validate_runtime_measurements(client,2048,require=True)
                 if (measured!=row.get("measurement") or phases!=row.get("observerPhases")
-                        or shared!=row.get("sharedReplayVerification") or row.get("sharedDurableReplay") is not (index==0)
-                        or runtime!=row.get("runtimeMeasurements") or prefix!=row.get("prefixReplayVerification",dict(prefixDurableReplay=False,stats=None)) or row.get("prefixDurableReplay",False) is not (index==1)):
+                        or shared!=row.get("sharedReplayVerification") or row.get("sharedDurableReplay") is not selected_shared
+                        or runtime!=row.get("runtimeMeasurements") or prefix!=row.get("prefixReplayVerification",dict(prefixDurableReplay=False,stats=None)) or row.get("prefixDurableReplay",False) is not selected_prefix
+                        or row.get("prefixNativeClone",False) is not selected_native):
                     raise RuntimeError("prefix pair receipt differs from original business/backend/timing facts")
                 result["cases"][-1].update(offerLatency=offer_latency_readout(client,2048),nodePhases=row["nodePhases"],
                     observerPhases=phases,sharedReplayVerification=shared,prefixReplayVerification=prefix,
@@ -761,7 +799,7 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                     raise RuntimeError("pair VM identity differs")
             budget.observe()
         result["casesQualified"] = True
-        if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic","shared-prefix-data64"):
+        if comparison in ("bounded-grouped","independent-shared","shared-fair","shared-elastic","shared-prefix-data64","prefix-native-data64"):
             result["jointObservation"]=joint_observation(*result["cases"])
         if comparison in ("shared-fair","shared-elastic"):
             result["dispatchTailObservation"]=dispatch_tail_observation(*result["cases"],result["jointObservation"])
@@ -856,7 +894,7 @@ def validate_manifest(m, root):
     return m
 
 
-def validate_oneshot_report(report,fixture_transactions,prefix_replay=False):
+def validate_oneshot_report(report,fixture_transactions,prefix_replay=False,prefix_native_clone=False):
     total=2048
     if (report.get("roundsRequested")!=1 or report.get("roundsCompleted")!=1 or report.get("senderMode")!="rounds"
             or report.get("configuredOfferedRate")!=1000 or report.get("concurrency")!=4 or report.get("observerConcurrency")!=4
@@ -889,7 +927,7 @@ def validate_oneshot_report(report,fixture_transactions,prefix_replay=False):
         senders.add(tx["from"]);recipients.add(tx["to"])
     if len(senders)!=total or len(recipients)!=1:
         raise RuntimeError("fixed2048 independent sender/one recipient shape differs")
-    validate_prefix_replay(report,prefix_replay)
+    validate_prefix_replay(report,prefix_replay,expected_native_clone=prefix_native_clone)
     validate_shared_replay(report,not prefix_replay)
     validate_observer_phases(report)
     measured=dict(summary=summary,oneShot=dict(independentSenders=total,nonce=1,configuredOfferedRate=1000,
@@ -925,13 +963,14 @@ def qualify_business_rows(report,total):
     return s
 
 
-def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False,fixture_transactions=None,prefix_replay=False):
+def validate_report(report, profile_name="supply-256x4", pacing="relative", endpoint_fair=False, endpoint_elastic=False,fixture_transactions=None,prefix_replay=False,prefix_native_clone=False):
+    if prefix_native_clone and not prefix_replay:raise RuntimeError("native clone readout requires prefix replay")
     if prefix_replay and profile_name!="supply-2048x1-data64":raise RuntimeError("prefix readout requires explicit data64 profile")
     if profile_name not in ONESHOT_PROFILES:validate_prefix_replay(report,False)
     if profile_name in ONESHOT_PROFILES:
         if pacing!="relative" or endpoint_fair or endpoint_elastic:
             raise RuntimeError("2048x1 cannot select pair endpoint or pacing candidates")
-        return validate_oneshot_report(report,fixture_transactions,prefix_replay)
+        return validate_oneshot_report(report,fixture_transactions,prefix_replay,prefix_native_clone)
     profile = recipe("grpc", profile_name, pacing)["profile"]
     if report.get("endpointElasticSubmission",False) is not endpoint_elastic:
         raise RuntimeError("actual elastic endpoint selection differs from selected profile")
@@ -1070,8 +1109,9 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases=False,shared_replay=None,endpoint_fair=None,endpoint_elastic=None,prefix_replay=None):
-    return [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", str(profile["offeredRate"]), "-rounds", str(profile["rounds"]), "-sender-mode", profile.get("senderMode","ready-pool"), "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])+(["-prefix-durable-replay"] if prefix_replay else [])
+def supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases=False,shared_replay=None,endpoint_fair=None,endpoint_elastic=None,prefix_replay=None,prefix_native_clone=None):
+    if prefix_native_clone and (prefix_replay is not True or shared_replay):raise RuntimeError("native clone client requires exclusive prefix replay")
+    return [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", str(profile["offeredRate"]), "-rounds", str(profile["rounds"]), "-sender-mode", profile.get("senderMode","ready-pool"), "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])+(["-endpoint-fair-submission"] if endpoint_fair else [])+(["-endpoint-elastic-submission"] if endpoint_elastic else [])+(["-prefix-durable-replay"] if prefix_replay else [])+(["-prefix-native-clone"] if prefix_native_clone else [])
 
 
 def case_evidence_bytes(receipt, paired=False):
@@ -1080,13 +1120,14 @@ def case_evidence_bytes(receipt, paired=False):
     return (receipt.stat().st_size if receipt.is_file() else 0) if paired else native.directory_bytes(receipt.parent)
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None,prefix_replay=None):
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None,prefix_replay=None,prefix_native_clone=None):
+    if fixture_only and prefix_native_clone:raise RuntimeError("native clone cannot select a fixture-only case")
     one_shot=not fixture_only and profile_name in ONESHOT_PROFILES
     if one_shot:
         if shared_replay is not None and shared_replay is not (prefix_replay is not True):
             raise RuntimeError("2048x1 requires exclusive shared replay or prefix selection")
         shared_replay=prefix_replay is not True
-    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic,prefix_replay)
+    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic,prefix_replay,prefix_native_clone)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -1260,9 +1301,9 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             mark("all_nodes_height2")
             output = network / "transactions-result.json"
             mark("client_start")
-            wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay)))
+            wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay,prefix_native_clone)))
             client_report=json.loads(native.bounded(output,16 << 20))
-            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True,fixture_transactions=json.loads(native.bounded(network/"transactions.json",16 << 20))["transactions"] if one_shot else None,prefix_replay=prefix_replay is True)
+            result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True,fixture_transactions=json.loads(native.bounded(network/"transactions.json",16 << 20))["transactions"] if one_shot else None,prefix_replay=prefix_replay is True,prefix_native_clone=prefix_native_clone is True)
             if observer_phases:
                 result["observerPhases"]=validate_observer_phases(client_report)
             if shared_replay is not None:
@@ -1271,7 +1312,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
                 result["endpointDispatchVerification"]=validate_endpoint_dispatch(client_report,endpoint_fair,elastic=endpoint_elastic is True)
             if endpoint_elastic is not None:
                 result["submissionPhaseVerification"]=validate_submission_phases(client_report)
-            if prefix_replay is True:result["prefixReplayVerification"]=validate_prefix_replay(client_report,True,require_work_phases=True)
+            if prefix_replay is True:result["prefixReplayVerification"]=validate_prefix_replay(client_report,True,require_work_phases=True,expected_native_clone=prefix_native_clone is True)
             if one_shot:result["runtimeMeasurements"]=validate_runtime_measurements(client_report,2048,require=True)
             mark("client_complete")
             result["resultSHA256"] = native.digest(output)
@@ -1372,11 +1413,14 @@ if __name__ == "__main__":
     parser.add_argument("--check-runner", action="store_true")
     parser.add_argument("--observer-phases", action="store_true")
     parser.add_argument("--prefix-replay", action="store_true")
+    parser.add_argument("--prefix-native-clone", action="store_true")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--build", type=Path)
     parser.add_argument("--case", type=Path)
     parser.add_argument("--receipt", type=Path)
     args = parser.parse_args()
+    if args.prefix_native_clone and not args.prefix_replay:
+        parser.error("native clone requires explicit individual prefix replay")
     if args.prefix_replay and (args.prepare_pair or args.execute_pair or args.check_runner or args.prepare_1000_fixture or args.measure_1000_fixture or args.prepare_1000_tier or args.prepare_shared_replay_pair):
         parser.error("prefix replay is only an explicit individual data64 case")
     if args.prepare_1000_fixture or args.measure_1000_fixture:
@@ -1405,8 +1449,8 @@ if __name__ == "__main__":
         parser.error("nondefault pair-kind requires an explicit pair action")
     if args.prepare_pair or args.execute_pair:
         if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
-                or args.transport != "grpc" or args.profile != ("supply-2048x1-data64" if args.pair_kind=="shared-prefix-data64" else "supply-512x2") or args.pacing != "relative"
-                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair","shared-elastic","shared-prefix-data64"))):
+                or args.transport != "grpc" or args.profile != ("supply-2048x1-data64" if args.pair_kind in DATA64_PAIRS else "supply-512x2") or args.pacing != "relative"
+                or args.observer_phases != (args.pair_kind in ("independent-shared","shared-fair","shared-elastic","shared-prefix-data64","prefix-native-data64"))):
             parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
         if args.prepare_pair:
             print(json.dumps(pair_recipe(args.pair_kind), indent=2))
@@ -1419,8 +1463,8 @@ if __name__ == "__main__":
             parser.error("check-runner requires build/new case and excludes execute")
         print(json.dumps(preflight(args.build, args.case), indent=2))
     elif not args.execute:
-        print(json.dumps(recipe(args.transport, args.profile, args.pacing,args.observer_phases,prefix_replay=True if args.prefix_replay else None), indent=2))
+        print(json.dumps(recipe(args.transport, args.profile, args.pacing,args.observer_phases,prefix_replay=True if args.prefix_replay else None,prefix_native_clone=True if args.prefix_native_clone else None), indent=2))
     else:
         if not all((args.source, args.build, args.case, args.receipt)):
             parser.error("execute requires exact source/build/new case/new receipt")
-        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing, observer_phases=args.observer_phases,prefix_replay=True if args.prefix_replay else None))
+        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing, observer_phases=args.observer_phases,prefix_replay=True if args.prefix_replay else None,prefix_native_clone=True if args.prefix_native_clone else None))

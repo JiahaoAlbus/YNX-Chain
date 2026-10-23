@@ -1,10 +1,48 @@
 package consensus
 
 import (
+	"context"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"reflect"
 	"time"
 )
+
+// NativeCloneCacheInventory counts retained objects, not heap bytes or RSS.
+// Memory admission must still use the original actual process RSS sampler.
+type NativeCloneCacheInventory struct {
+	SnapshotPresent bool  `json:"snapshotPresent"`
+	CanonicalBytes  int   `json:"canonicalBytes"`
+	Height          int64 `json:"height"`
+	Accounts        int   `json:"accounts"`
+	FeeEvents       int   `json:"feeEvents"`
+	LotEntries      int   `json:"lotEntries"`
+}
+
+func (d *BlockJournalPrefixDecoder) NativeCloneCacheInventory(ctx context.Context) (NativeCloneCacheInventory, error) {
+	var out NativeCloneCacheInventory
+	if d == nil || !d.nativeClone {
+		return out, nil
+	}
+	select {
+	case <-ctx.Done():
+		return out, ctx.Err()
+	case <-d.gate:
+	}
+	defer func() { d.gate <- struct{}{} }()
+	if p := d.prefix; p != nil {
+		out.CanonicalBytes = len(p.payload)
+		if p.native != nil {
+			out.SnapshotPresent = true
+			out.Height = p.native.Height
+			out.Accounts = len(p.native.Accounts)
+			out.FeeEvents = len(p.native.FeeEvents)
+			for _, account := range p.native.Accounts {
+				out.LotEntries += len(account.Lots)
+			}
+		}
+	}
+	return out, nil
+}
 
 // cloneNativeCommittedState is deliberately limited to native accounts and fee
 // history. Any populated other domain falls back to the original strict JSON

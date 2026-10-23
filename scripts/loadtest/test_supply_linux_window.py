@@ -140,6 +140,42 @@ class SupplySourceTests(unittest.TestCase):
             changed=copy.deepcopy(client);changed["durableReadback"]["prefixReplay"]["workPhases"][phase][key]=value
             with self.subTest(phase=phase,key=key),self.assertRaises(RuntimeError):supply.validate_prefix_replay(changed,True,require_work_phases=True)
 
+    def test_unselected_native_clone_report_cannot_be_accepted_as_control(self):
+        client,_=self.prefix_report_fixture()
+        client["prefixNativeClone"]=True
+        with self.assertRaisesRegex(RuntimeError,"native clone selection"):
+            supply.validate_prefix_replay(client,True)
+
+    def test_native_clone_mode_binds_phases_cache_and_explicit_recipe(self):
+        import copy
+        client,_=self.prefix_report_fixture();self.runtime_fixture(client)
+        client["prefixNativeClone"]=True
+        stats=client["durableReadback"]["prefixReplay"];phases=stats["workPhases"]
+        phases["privateNativeClone"]=phases["privateJSON"];phases["privateJSON"]=dict(calls=0,errors=0,durationNs=0)
+        stats["nativeCloneCache"]=dict(snapshotPresent=True,canonicalBytes=1000,height=100,accounts=2049,feeEvents=2048,lotEntries=0)
+        actual=supply.validate_prefix_replay(client,True,expected_native_clone=True)
+        self.assertTrue(actual["prefixNativeClone"])
+        for field,value in (("snapshotPresent",False),("canonicalBytes",True),("canonicalBytes",(16<<20)+1),("height",0),("accounts",2047),("feeEvents",2047),("lotEntries",-1)):
+            changed=copy.deepcopy(client);changed["durableReadback"]["prefixReplay"]["nativeCloneCache"][field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(RuntimeError):supply.validate_prefix_replay(changed,True,expected_native_clone=True)
+        for phase,field,value in (("privateNativeClone","calls",0),("privateNativeClone","errors",True),("privateNativeClone","durationNs",101),("privateJSON","calls",1),("privateValidate","calls",0)):
+            changed=copy.deepcopy(client);changed["durableReadback"]["prefixReplay"]["workPhases"][phase][field]=value
+            with self.subTest(phase=phase,field=field),self.assertRaises(RuntimeError):supply.validate_prefix_replay(changed,True,expected_native_clone=True)
+        for value in (False,1,None):
+            changed=copy.deepcopy(client);changed["prefixNativeClone"]=value
+            with self.subTest(value=value),self.assertRaises(RuntimeError):supply.validate_prefix_replay(changed,True,expected_native_clone=True)
+        values=dict(transport="grpc",profile_name="supply-2048x1-data64",observer_phases=True,prefix_replay=True,prefix_native_clone=True)
+        plan=supply.recipe(**values);self.assertTrue(plan["prefixNativeClone"]);self.assertFalse(plan["execute"])
+        for delta in (dict(prefix_replay=None),dict(prefix_native_clone=1),dict(profile_name="supply-512x2"),dict(shared_replay=True),dict(observer_phases=False)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**(values|delta))
+        command=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("output"),plan["profile"],"relative",True,False,prefix_replay=True,prefix_native_clone=True)
+        self.assertIn("-prefix-native-clone",command);self.assertIn("-prefix-durable-replay",command)
+        args=[sys.executable,"-B",str(FILE),"--prefix-native-clone","--prefix-replay","--profile","supply-2048x1-data64","--transport","grpc","--observer-phases"]
+        result=subprocess.run(args,capture_output=True,text=True,timeout=5)
+        self.assertEqual(result.returncode,0,result.stderr);self.assertFalse(json.loads(result.stdout)["nodesStarted"])
+        result=subprocess.run([x for x in args if x!="--prefix-replay"],capture_output=True,text=True,timeout=5)
+        self.assertNotEqual(result.returncode,0)
+
     def test_prefix_data64_recipe_command_and_cli_are_explicit_read_only(self):
         legacy=supply.recipe("grpc","supply-2048x1-data64","relative",True)
         plan=supply.recipe("grpc","supply-2048x1-data64","relative",True,prefix_replay=True)
@@ -613,6 +649,7 @@ class SupplySourceTests(unittest.TestCase):
             def fake_run(source,build,case,out,transport,profile,mode,**kwargs):
                 label=(("shared-endpoint-elastic" if comparison=="shared-elastic" else "shared-endpoint-fair") if kwargs.get("endpoint_fair") else "shared-baseline") if comparison in ("shared-fair","shared-elastic") else ("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode
                 if comparison=="shared-prefix-data64":label="prefix-replay" if kwargs["prefix_replay"] else "shared-replay"
+                if comparison=="prefix-native-data64":label="prefix-native-clone" if kwargs["prefix_native_clone"] else "prefix-control"
                 order.append(label);case.mkdir()
                 if replay_fault=="rss" and (kwargs.get("endpoint_fair") if comparison in ("shared-fair","shared-elastic") else kwargs.get("shared_replay")):
                     raise RuntimeError("synthetic candidate owned RSS cap exceeded")
@@ -668,23 +705,32 @@ class SupplySourceTests(unittest.TestCase):
                     network=case/"network";network.mkdir()
                     encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
                     row["resultSHA256"]=hashlib.sha256(encoded).hexdigest() if not corrupt_result else "0"*64
-                if comparison=="shared-prefix-data64":
+                if comparison in supply.DATA64_PAIRS:
                     prefix=kwargs["prefix_replay"]
+                    native_clone=kwargs.get("prefix_native_clone",False)
                     client,fixture=self.prefix_report_fixture() if prefix else self.oneshot_report_fixture()
                     self.runtime_fixture(client)
+                    if native_clone:
+                        client["prefixNativeClone"]=True
+                        stats=client["durableReadback"]["prefixReplay"];phases=stats["workPhases"]
+                        phases["privateNativeClone"]=phases["privateJSON"];phases["privateJSON"]=dict(calls=0,errors=0,durationNs=0)
+                        stats["nativeCloneCache"]=dict(snapshotPresent=True,canonicalBytes=1000,height=100,accounts=2049,feeEvents=2048,lotEntries=0)
+                        row["prefixNativeClone"]=True
                     self.assertEqual(profile,"supply-2048x1-data64");self.assertEqual(mode,"relative")
                     if not prefix:
                         client["durableReadback"]["sharedReplay"]["workPhases"]=dict(produce=dict(calls=1,errors=0,durationNs=100),canonicalCopy=dict(calls=1,errors=0,durationNs=10),privateJSON=dict(calls=0,errors=0,durationNs=0),privateValidate=dict(calls=0,errors=0,durationNs=0),canonicalCopyBytes=100)
                     row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix)["profile"],
-                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix),
+                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone),
                         runtimeMeasurements=supply.validate_runtime_measurements(client,require=True),observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
                         sharedReplayVerification=supply.validate_shared_replay(client,not prefix,require_work_phases=not prefix))
-                    if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True))
+                    if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True,expected_native_clone=native_clone))
                     if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=1
                     network=case/"network";network.mkdir()
                     if replay_fault=="fixture":fixture[-1]=fixture[0]
                     if replay_fault=="phase":del client["transactions"][-1]["submissionPhases"]
                     if replay_fault=="selection":row["sharedDurableReplay"]=prefix
+                    if replay_fault=="native-selection":client["prefixNativeClone"]=not native_clone
+                    if replay_fault=="native-cache" and native_clone:client["durableReadback"]["prefixReplay"]["nativeCloneCache"]["snapshotPresent"]=False
                     if replay_fault=="receipt":row["measurement"]["submissionPhaseVerification"]["samples"]=1
                     (network/"transactions.json").write_text(json.dumps(dict(transactions=fixture)))
                     encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
@@ -723,6 +769,29 @@ class SupplySourceTests(unittest.TestCase):
                 self.assertEqual(code,1);self.assertIsNotNone(row["_terminal"]["firstCause"])
                 self.assertFalse(row["_terminal"]["qualified"])
                 if not options.get("fail_after_fsync"):self.assertEqual(order.count("prefix-replay"),0)
+
+    def test_native_clone_pair_binds_modes_and_stops_after_first_failure(self):
+        code,order,row=self.mock_pair(comparison="prefix-native-data64")
+        self.assertEqual(code,0,row["firstCause"])
+        self.assertEqual(order,["prefix-control","empty","prefix-native-clone","empty"])
+        self.assertEqual(row["pairCaps"]["retainedBytes"],128<<20)
+        self.assertFalse(row["jointObservation"]["sustainedTPSQualified"])
+        for options in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(mutate_binary=True),dict(replay_fault="fixture"),dict(replay_fault="phase"),dict(replay_fault="native-selection"),dict(fail_after_fsync=True)):
+            with self.subTest(options=options):
+                code,order,row=self.mock_pair(comparison="prefix-native-data64",**options)
+                self.assertEqual(code,1);self.assertFalse(row["_terminal"]["qualified"])
+                if not options.get("fail_after_fsync"):self.assertEqual(order.count("prefix-native-clone"),0)
+        code,order,row=self.mock_pair(comparison="prefix-native-data64",replay_fault="native-cache")
+        self.assertEqual(code,1);self.assertFalse(row["_terminal"]["qualified"])
+        args=[sys.executable,"-B",str(FILE),"--prepare-pair","--pair-kind","prefix-native-data64","--profile","supply-2048x1-data64","--transport","grpc","--observer-phases"]
+        plan=json.loads(subprocess.check_output(args,timeout=5));self.assertFalse(plan["execute"])
+        before,after=plan["cases"]
+        self.assertEqual(before|{"prefixNativeClone":True},after)
+        self.assertTrue(before["prefixDurableReplay"]);self.assertFalse(before["sharedDurableReplay"])
+        workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
+        self.assertIn("paired-prefix-native-data64",workflow)
+        self.assertIn("--prepare-pair --pair-kind prefix-native-data64",workflow)
+        self.assertIn("--execute-pair --pair-kind prefix-native-data64",workflow)
 
     def test_prefix_pair_receipts_are_charged_once_and_workflow_routes_match(self):
         with tempfile.TemporaryDirectory() as temp:

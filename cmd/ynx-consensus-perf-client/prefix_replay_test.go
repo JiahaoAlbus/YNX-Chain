@@ -57,6 +57,76 @@ func TestPrefixReplayOptionsAreExplicitExclusiveAndBounded(t *testing.T) {
 	}
 }
 
+func TestNativeCloneReplaySelectionAndActualPrivateCacheInventory(t *testing.T) {
+	o := options{manifest: "manifest", transactions: "transactions", concurrency: 4, observers: 4, timeout: 10 * time.Second, poll: 100 * time.Millisecond, rounds: 1, senderMode: "rounds", inclusionMode: "block-scan", offeredRate: 1000, observerPhaseTiming: true, durableStoreByteLimit: durableSnapshotLimit, prefixNativeClone: true}
+	if err := validateOptions(o); err == nil || !strings.Contains(err.Error(), "native clone") {
+		t.Fatal("implicit prefix selection accepted", err)
+	}
+	o.prefixDurableReplay = true
+	if err := validateOptions(o); err != nil {
+		t.Fatal(err)
+	}
+	o.sharedDurableReplay = true
+	if err := validateOptions(o); err == nil {
+		t.Fatal("shared clone accepted")
+	}
+	b, err := json.Marshal(report{})
+	if err != nil || bytes.Contains(b, []byte(`"prefixNativeClone"`)) {
+		t.Fatal("default report changed", err)
+	}
+	_, migration, path, raw, height := durableJournalFixture(t, "block-journal")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := filepath.Join(t.TempDir(), "same.blocks")
+	if err = os.WriteFile(other, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(other+".read.lock", nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	r, err := newDurableReader(migration, []string{path, other})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = r.configurePrefixReplay(migration, true); err != nil {
+		t.Fatal(err)
+	}
+	a, err := r.verify(context.Background(), path, raw, height)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := r.verify(context.Background(), other, raw, height)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stats := r.stats()
+	p := stats.PrefixReplay
+	if a.AppHash != c.AppHash || a.SnapshotSHA256 != c.SnapshotSHA256 || p == nil || p.Calls != 2 || p.FullReplays != 1 || p.PrefixReuses != 1 || p.Failures != 0 || stats.TransactionVerifications != 2 || stats.ReplayNativeFacts.SuccessfulVerifications != 1 {
+		t.Fatal("actual business/crypto output changed", stats)
+	}
+	cache := p.NativeCloneCache
+	if cache == nil || !cache.SnapshotPresent || cache.CanonicalBytes < 1 || cache.CanonicalBytes > durableSnapshotLimit || cache.Height != height || cache.Accounts < 2 || cache.FeeEvents != 1 {
+		t.Fatal("actual retained cache inventory missing", cache)
+	}
+	phase := p.WorkPhases.PrivateNativeClone
+	if phase == nil || phase.Calls != 1 || phase.Errors != 0 || phase.DurationNs <= 0 || p.WorkPhases.PrivateJSON.Calls != 0 || p.WorkPhases.PrivateValidate.Calls != 1 {
+		t.Fatal("native copy/full validate timings missing", p)
+	}
+	actual, err := json.Marshal(map[string]any{"kind": "offline_native_clone_reader_actual_not_network", "report": map[string]any{"prefixDurableReplay": true, "prefixNativeClone": true, "sharedDurableReplay": false, "observerPhaseTiming": true, "summary": map[string]int{"input": 1}, "durableReadback": stats, "transactions": []map[string]any{{"durableStoreFormat": "block-journal", "durableStateHeight": height}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("YNX_NATIVE_CLONE_READER_ACTUAL %s", actual)
+	phase.Calls = 999
+	cache.Accounts = 999
+	again := r.stats().PrefixReplay
+	if again.WorkPhases.PrivateNativeClone.Calls != 1 || again.NativeCloneCache.Accounts == 999 {
+		t.Fatal("reported counters alias mutable reader state", again)
+	}
+}
+
 func TestPrefixReplayRealStoresPreserveCaptureBusinessAndWorkCounts(t *testing.T) {
 	app, migration, path, raw, height := durableJournalFixture(t, "block-journal")
 	data, err := os.ReadFile(path)

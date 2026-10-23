@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"os"
@@ -196,5 +197,25 @@ func TestBlockJournalPrefixNativeCloneHotReuseEliminatesPrivateJSON(t *testing.T
 	out, e := d.Decode(context.Background(), data)
 	if e != nil || !journalStateEqual(t, out.State, first.State) || !bytes.Equal(out.SnapshotJSON, first.SnapshotJSON) {
 		t.Fatal("parallel caller changed cache", e)
+	}
+}
+
+func TestBlockJournalPrefixNativeCloneInventoryCancellation(t *testing.T) {
+	migration, _ := journalFixture(t)
+	d, err := NewBlockJournalNativeClonePrefixDecoder(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	initial, err := d.NativeCloneCacheInventory(context.Background())
+	if err != nil || initial.SnapshotPresent || initial.CanonicalBytes != 0 {
+		t.Fatal("uncertified state reported as cached", initial, err)
+	}
+	<-d.gate
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	got, err := d.NativeCloneCacheInventory(ctx)
+	d.gate <- struct{}{}
+	if !errors.Is(err, context.Canceled) || got.SnapshotPresent || got.CanonicalBytes != 0 {
+		t.Fatal("cancelled inventory did not fail without data", got, err)
 	}
 }

@@ -61,6 +61,7 @@ type options struct {
 	submissionOccupancy            *submissionOccupancyRecorder
 	sharedDurableReplay            bool
 	prefixDurableReplay            bool
+	prefixNativeClone              bool
 	endpointFair                   bool
 	endpointElastic                bool
 	terminalGzip                   bool
@@ -191,6 +192,7 @@ type report struct {
 	ProcessCPU           *processCPUReport         `json:"processCPU,omitempty"`
 	SubmissionOccupancy  *submissionOccupancyStats `json:"submissionOccupancy,omitempty"`
 	PrefixDurableReplay  bool                      `json:"prefixDurableReplay,omitempty"`
+	PrefixNativeClone    bool                      `json:"prefixNativeClone,omitempty"`
 	SharedDurableReplay  bool                      `json:"sharedDurableReplay"`
 	EndpointFair         bool                      `json:"endpointFairSubmission"`
 	EndpointElastic      bool                      `json:"endpointElasticSubmission,omitempty"`
@@ -231,6 +233,7 @@ func main() {
 	flag.BoolVar(&o.endpointFair, "endpoint-fair-submission", false, "candidate: original four submit workers, one per original index%4 endpoint, bounded total queue, no retry")
 	flag.BoolVar(&o.endpointElastic, "endpoint-elastic-submission", false, "candidate: requires endpoint fairness; reuse original four workers across unchanged endpoints, maximum two in flight per endpoint")
 	flag.BoolVar(&o.prefixDurableReplay, "prefix-durable-replay", false, "candidate: reuse exact previously validated journal prefixes, private state and complete new-block validation; exclusive with shared replay")
+	flag.BoolVar(&o.prefixNativeClone, "prefix-native-clone", false, "candidate: private native account/fee-history copies; requires explicit prefix replay and its original bounds")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
@@ -254,6 +257,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.prefixNativeClone && !o.prefixDurableReplay {
+		return errors.New("native clone requires explicit prefix replay")
+	}
 	if o.terminalGzip && !o.streamingWorkload {
 		return errors.New("terminal gzip requires explicit streaming workload")
 	}
@@ -925,6 +931,10 @@ func execute(o options) error {
 		r.Interpretation = append(r.Interpretation, "Explicit endpoint fairness candidate: four original submit goroutines each consume a bounded queue for the unchanged index%4 endpoint. Total queue capacity is unchanged. Callback counts are not extra RPC or business successes; cancellation, UNKNOWN quarantine, durable-before-dispatch, signature/fee/nonce and consensus gates are unchanged. Per-endpoint concurrency1 can trade concentrated load throughput for isolation; no network latency improvement is inferred from source tests.")
 	}
 	r.PrefixDurableReplay = o.prefixDurableReplay
+	r.PrefixNativeClone = o.prefixNativeClone
+	if o.prefixNativeClone {
+		r.Interpretation = append(r.Interpretation, "Explicit native private copy candidate: one canonical JSON reconstruction per new prefix certificate, independent account lots and fee history on repeated reads, complete Validate retained. Populated other domains retain strict JSON. Additional decoded snapshot memory is included in process RSS guards; cache inventory counts objects and canonical bytes, not decoded heap bytes. No network improvement inferred from local probes.")
+	}
 	if o.prefixDurableReplay {
 		r.Interpretation = append(r.Interpretation, "Explicit prefix replay candidate: exact freshly captured prefix SHA binding, private state plus full Validate, original suffix frame/signature/execution/response/Commit verification. One bounded16MiB canonical cache, no new authority, RPC or retry. Successful full replays and prefix-state outputs are counted separately; failed partial work is not counted as completed replay. No network gain or memory admission inferred from offline results.")
 	}
@@ -980,7 +990,7 @@ func execute(o options) error {
 		}
 		reader.measurePhases = o.observerPhaseTiming
 		if o.prefixDurableReplay {
-			reader.prefixDecoder, err = consensus.NewBlockJournalPrefixDecoder(migration)
+			err = reader.configurePrefixReplay(migration, o.prefixNativeClone)
 			if err != nil {
 				return err
 			}

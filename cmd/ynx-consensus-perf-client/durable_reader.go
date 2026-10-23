@@ -80,20 +80,21 @@ type durableSnapshotSlot struct {
 // Slots are bound to at most four manifest paths and a privately cloned
 // migration. No parsed state, index or mutable slice escapes to an observer.
 type durableReader struct {
-	migration       chain.ConsensusMigrationState
-	slots           map[string]*durableSnapshotSlot
-	blockDecoder    *consensus.BlockJournalDecoder
-	prefixDecoder   *consensus.BlockJournalPrefixDecoder
-	prefixMu        sync.Mutex
-	prefixStats     durablePrefixReplayStats
-	storeByteLimit  int64
-	cacheByteBudget int64
-	profileMu       *sync.Mutex
-	cacheTick       uint64
-	cacheEvictions  uint64
-	signatureFacts  *durableSignatureFacts
-	measurePhases   bool               // Set only during construction, before any observer starts.
-	sharedReplay    *sharedReplayCache // Explicit candidate only; never enabled by timing.
+	migration         chain.ConsensusMigrationState
+	slots             map[string]*durableSnapshotSlot
+	blockDecoder      *consensus.BlockJournalDecoder
+	prefixDecoder     *consensus.BlockJournalPrefixDecoder
+	prefixNativeClone bool
+	prefixMu          sync.Mutex
+	prefixStats       durablePrefixReplayStats
+	storeByteLimit    int64
+	cacheByteBudget   int64
+	profileMu         *sync.Mutex
+	cacheTick         uint64
+	cacheEvictions    uint64
+	signatureFacts    *durableSignatureFacts
+	measurePhases     bool               // Set only during construction, before any observer starts.
+	sharedReplay      *sharedReplayCache // Explicit candidate only; never enabled by timing.
 }
 
 func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (*durableReader, error) {
@@ -145,8 +146,20 @@ func (r *durableReader) stats() durableReaderStats {
 	if r.prefixDecoder != nil {
 		r.prefixMu.Lock()
 		v := r.prefixStats
+		if v.WorkPhases.PrivateNativeClone != nil {
+			private := *v.WorkPhases.PrivateNativeClone
+			v.WorkPhases.PrivateNativeClone = &private
+		}
 		v.CanonicalByteLimit = durableSnapshotLimit
 		r.prefixMu.Unlock()
+		if r.prefixNativeClone {
+			// Reporting happens after the observer work completes. Inventory
+			// acquires the decoder gate; it adds no RPC or process sampling.
+			inventory, err := r.prefixDecoder.NativeCloneCacheInventory(context.Background())
+			if err == nil {
+				v.NativeCloneCache = &inventory
+			}
+		}
 		total.PrefixReplay = &v
 	}
 	if r.sharedReplay != nil {
