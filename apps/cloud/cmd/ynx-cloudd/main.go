@@ -73,6 +73,7 @@ func (devWalletVerifier) Verify(_ context.Context, envelope cloud.WalletSessionE
 func main() {
 	addr := flag.String("addr", ":8092", "listen address")
 	data := flag.String("data", "tmp/cloud", "bounded local data directory")
+	ideConfig := flag.String("ide-deployment-config", "", "original-owner private IDE catalog/runtime configuration; requires genuine Auth Source")
 	cloudUI := flag.String("cloud-ui", "apps/cloud/web", "Cloud static files")
 	docsUI := flag.String("docs-ui", "apps/docs/web", "Docs static files")
 	devWallet := flag.Bool("dev-wallet", false, "enable explicit local-only Wallet test verifier")
@@ -145,6 +146,10 @@ func main() {
 	if u := os.Getenv("YNX_OBJECT_STORE_URL"); u != "" {
 		objects = cloud.RemoteObjectStore{BaseURL: u, Token: os.Getenv("YNX_OBJECT_STORE_TOKEN"), DirectUploadOrigin: os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN")}
 	}
+	ideStartup, err := resolveIDEDeploymentStartup(context.Background(), *ideConfig, originalIDEDeploymentStartup)
+	if err != nil {
+		log.Fatal(err)
+	}
 	service, err := cloud.New(cloud.Config{StatePath: filepath.Join(*data, "state.json"), ObjectDir: filepath.Join(*data, "objects"), WalletVerifier: verifier, AIProvider: ai, TrustSink: trust, ObjectStore: objects, ReleaseCommit: os.Getenv("YNX_RELEASE_COMMIT"), ReleaseVersion: os.Getenv("YNX_RELEASE_VERSION"), ExitMode: *exitMode})
 	if err != nil {
 		log.Fatal(err)
@@ -177,7 +182,7 @@ func main() {
 		}
 	}()
 	apiServer := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute})
-	ideRuntime, err := attachOriginalIDEDeploymentRuntime(workerCtx, apiServer, originalIDEDeploymentStartup)
+	ideRuntime, err := attachOriginalIDEDeploymentRuntime(workerCtx, apiServer, ideStartup)
 	closeIDE := func() {
 		if ideRuntime != nil {
 			if err := ideRuntime.Close(); err != nil {
