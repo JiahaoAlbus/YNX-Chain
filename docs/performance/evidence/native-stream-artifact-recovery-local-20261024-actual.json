@@ -1,0 +1,85 @@
+{
+  "schema": 1,
+  "codeCommit": "adb4e5f107b4c0d10654ac244f17806a8d8f079c",
+  "originalControllerCI": 40020611434,
+  "artifact": {
+    "artifactId": 12530985827,
+    "bytes": 166219,
+    "digestReportedButNotRecomputed": "sha256:9ecd26f35a762b7c011c32b4348a7ce31d678b7c097d71750357cef3e39ea45e",
+    "head": "c232425848bbbb14f3bc3a0f4d0debfc00358f03",
+    "name": "native-stream-public-unit-c232425848bbbb14f3bc3a0f4d0debfc00358f03",
+    "runId": 40020611434
+  },
+  "publicMembers": 106,
+  "decodedPublicBytes": 202167,
+  "originalTransferRecords": 102,
+  "newRangeBytes": 166219,
+  "exactHTTPBlocks": 3,
+  "resumeNewRangeBytes": 0,
+  "selectedMemberManifestSHA256": "ed4731f101ed662ec65ecd7dc668fcf933b2ec7febe7e864c7c3fd6a09313b8b",
+  "originalStreamMemberManifest": {
+    "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest",
+    "members": 102,
+    "sha256": "dcd577ef3a6d8b039c0f7d8be88e488f548ec92e3b268a387dc60aa140803b5c"
+  },
+  "originalCompleteReadbackMatchesCILog": true,
+  "wholeZipDigestComputed": false,
+  "limits": {
+    "rangeBytes": 65536,
+    "archiveBytes": 536870912,
+    "centralDirectoryBytes": 8388608,
+    "indexEntries": 20000,
+    "memberBytes": 16777216,
+    "selectedDecodedBytes": 100663296,
+    "retainedCacheBytes": 134217728,
+    "totalRecoverySeconds": 60
+  },
+  "localZipAndHTTPSourceTests": 16,
+  "originalGoArchiveRoundtripCovered": true,
+  "originalLargeCentralUnitMembers": 1800,
+  "readbackStillUnitOnly": true,
+  "sourceCIForRecoveryPending": true,
+  "nodesStarted": false,
+  "networkQualified": false,
+  "sustainedTPSQualified": false,
+  "artifacts": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/segmented-artifact-final-source.raw",
+      "bytes": 2989,
+      "sha256": "43cfdfff89de72ddabc57d9d21007663e9a5926ccbbf6482aa4175ae19fbb719"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/ci400206-exact-range-recovery.raw",
+      "bytes": 6778,
+      "sha256": "6c32d4ccb63e9a09dc06055b457b5505b8ddb7321d30337c0fca8663c7b3429d"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/ci400206-resume-original-ranges.raw",
+      "bytes": 6773,
+      "sha256": "4ae7f2352b4d87bf1a5cd4388bd869c4a806d697f46acf1953729c246ff7a729"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/segmented-artifact-hard-deadline.raw",
+      "bytes": 98,
+      "sha256": "0276289a917b36926f4a82fd7b7e1660cb3eb443b96c998d41c5d3cf04007a39"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/ci400206-hard-deadline-cached-readback.raw",
+      "bytes": 6773,
+      "sha256": "4ae7f2352b4d87bf1a5cd4388bd869c4a806d697f46acf1953729c246ff7a729"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/segmented-artifact-source-gate-final.raw",
+      "bytes": 3869,
+      "sha256": "571c1071da632a6c1587f7efcacaedb81cc020b1d403abf7615d7e1a36d201be"
+    }
+  ],
+  "privateSelectionExclusionCounterexamplesPassed": true,
+  "sourceCIUnitExportHasNoPrivateKeyMembers": true,
+  "initialRecoveryCode": "766f9afcd1f0ead1bd6b5162f1e239bb9aae6a24",
+  "hardDeadlineTargetedTests": 1,
+  "finalHardDeadlineCLIOriginalCachedReadback": true,
+  "finalSourceGateTests": 19,
+  "finalSourceGateFailures": 0,
+  "finalSourceGateSkipped": 0
+}

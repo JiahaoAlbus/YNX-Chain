@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "kind": "prepared-native-stream-small-tier-not-executed",
+  "controllerCode": "adb4e5f107b4c0d10654ac244f17806a8d8f079c",
+  "recoveryCode": "adb4e5f107b4c0d10654ac244f17806a8d8f079c",
+  "normalRecoveryCIPending": true,
+  "requiresFreshExactRootGrant": true,
+  "executionAuthorized": false,
+  "workflowInputs": {
+    "run_linux_supply": true,
+    "linux_supply_transport": "grpc",
+    "linux_supply_profile": "supply-native-stream-2048x4",
+    "linux_supply_pacing": "relative",
+    "measure_observer_phases": true,
+    "prefix_durable_replay": false
+  },
+  "otherHeavyWorkflowInputs": false,
+  "profile": {
+    "senders": 2048,
+    "rounds": 4,
+    "plannedSignedRecords": 8192,
+    "configuredOfferRate": 1000,
+    "submitters": 8,
+    "observers": 4
+  },
+  "caseBudget": {
+    "activeMs": 45000,
+    "cleanupMs": 15000,
+    "totalMs": 60000,
+    "ownedProcesses": 10,
+    "longLivedChildren": 9,
+    "rssBytes": 1073741824,
+    "threads": 320,
+    "privateBytes": 268435456,
+    "encodedEvidenceBytes": 67108864,
+    "durableStoreBytes": 33554432,
+    "retainedInputCacheBytes": 67108864
+  },
+  "prespawnChecks": "original Linux amd64ELF/vcs.modified=false/exact source, four original nodes, fresh native memory/disk inventory and owner process limits; first node spawn must fit future Root deadline",
+  "dispatch": "one dispatch only after fresh Root grant; old once grants remain consumed; uncertain dispatch reconciles original run",
+  "interpretation": "Single bounded finite growth/phase-cost case, not a matched before/after or sustained1000TPS claim. Source tree fixes the actual producer and complete range reader. Native resource/closure and original post-fsync terminal still require actual execution evidence.",
+  "initialControllerCommit": "b0617596aa7d1cef9c34fa3499fb1b2388d01f38"
+}

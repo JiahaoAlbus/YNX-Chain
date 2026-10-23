@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "runId": 40020611434,
+  "attempt": 1,
+  "head": "c232425848bbbb14f3bc3a0f4d0debfc00358f03",
+  "conclusion": "success",
+  "jobId": 120643897237,
+  "controllerSourceTests": 87,
+  "controllerTestsActualSeconds": 19.53,
+  "originalReaderTests": 17,
+  "originalReaderActualSeconds": 0.364,
+  "sourceGateCases": [
+    "exact prefix source has no network or release qualification",
+    "all original diagnostic and anchor tests run at their fixed source",
+    "prefix candidate refuses modified internal source",
+    "prefix candidate refuses missing internal source",
+    "prefix candidate refuses untracked internal source",
+    "prefix candidate refuses changed paired controller scripts/loadtest/supply-linux-window.py",
+    "prefix candidate refuses changed paired controller scripts/loadtest/test_supply_linux_window.py",
+    "prefix candidate refuses changed paired controller .github/workflows/chain-core.yml",
+    "prefix candidate refuses changed paired controller scripts/loadtest/native-stream-evidence.py",
+    "prefix candidate refuses changed paired controller scripts/loadtest/test_native_stream_evidence.py",
+    "prefix candidate refuses changed paired controller scripts/loadtest/pq-paired-linux-window.py",
+    "runtime client refuses modified source",
+    "runtime client refuses missing source",
+    "runtime client refuses untracked source",
+    "diagnostic node refuses modified source",
+    "diagnostic node refuses missing source",
+    "diagnostic node refuses untracked source"
+  ],
+  "networkStepSkipped": true,
+  "originalPublicIdentity": {
+    "intents": {
+      "bytes": 124229,
+      "chainSha256": "a9010cacf3d8617004c981858aa0b835f2143a46dda4225da5e46ff578424c73",
+      "records": 102
+    },
+    "interpretation": "Read-only original stream identity/coverage validation. Reported quorum/state flags and hash chains do not replace independent source/node/BFT/durable/resource admission. No network call or submission.",
+    "matchedLatestSlots": 3,
+    "networkQualified": false,
+    "originalPublicMemberManifest": {
+      "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest",
+      "members": 102,
+      "sha256": "dcd577ef3a6d8b039c0f7d8be88e488f548ec92e3b268a387dc60aa140803b5c"
+    },
+    "peakPendingIdentities": 2,
+    "schema": 1,
+    "sustainedTPSQualified": false,
+    "terminal": {
+      "bytes": 50904,
+      "chainSha256": "c05153185cf75c16135c5ce9210dcabc1526bd9462c03bf706ca51fd679fa5e2",
+      "records": 102
+    },
+    "validatedRecords": 102
+  },
+  "originalRangeRecoveredIdentityMatchesCILog": true,
+  "originalEvidence": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40020611434-run.json",
+      "bytes": 12421,
+      "sha256": "1bc7257b8218d556c6244b201d86cc80907b6f7f222cdd75b7ebe8b5aa86deb8"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40020611434-jobs.json",
+      "bytes": 9753,
+      "sha256": "cdb19dde7bce86e817652cf824ea70ce75f2ca484945063919120e04d5cd3b85"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-controller/normal-ci-40020611434-full.raw",
+      "bytes": 606908,
+      "sha256": "7be4086bfd628a679575590f2829a855bc41fe55e8b96c480806d8478126624b"
+    }
+  ],
+  "networkPerformanceQualified": false,
+  "sustained1000Qualified": false
+}
