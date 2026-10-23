@@ -77,6 +77,12 @@ test('offline query retains original tuple as unknown, never generates replaceme
   const { journal } = await setup(); const permit = await journal.reserve(input); await permit.beginSigning(); permit.capture(result); await permit.saveProduced(); permit.retire();
   const queried = await journal.check(id, async () => { throw Error('PUBLIC offline'); }); assert.equal(queried.state, 'unknown'); assert.deepEqual(queried.result, result);
 });
+test('null and undefined query failures retain durable UNKNOWN and never become a handler TypeError',async()=>{
+ for(const cause of [null,undefined]){const {journal,filePath}=await setup(),permit=await journal.reserve(input);await permit.beginSigning();permit.capture(result);await permit.saveProduced();permit.retire();
+  const checked=await journal.check(id,async()=>{throw cause;});assert.equal(checked.state,'unknown');assert.equal(checked.queryEvidence.queryError,'FAMILY_QUERY_UNAVAILABLE');assert.deepEqual(checked.result,result);
+  assert.equal((await new FamilyCustody({filePath,verifyResult}).list())[0].state,'unknown');
+ }
+});
 test('late duplicate query cannot overwrite newer state even with identical timestamps', async () => {
   const { journal } = await setup(); journal.now = () => 1;
   const permit = await journal.reserve(input); await permit.beginSigning(); permit.capture(result); await permit.saveProduced(); permit.retire();

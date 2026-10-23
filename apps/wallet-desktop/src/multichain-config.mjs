@@ -2,8 +2,16 @@ import {createHash,randomUUID} from 'node:crypto';
 import {open,readFile,rename,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {isIP} from 'node:net';
+import {types} from 'node:util';
 
 export function multiError(code,message){return Object.assign(new Error(message),{code,data:{code}})}
+// Public journal evidence may retain only a bounded own DATA code, never a
+// transport message, accessor, Proxy trap or secret-bearing thrown value.
+export function publicMultiErrorCode(error,fallback){
+ if(error===null||!['object','function'].includes(typeof error)||types.isProxy(error))return fallback;
+ const code=Object.getOwnPropertyDescriptor(error,'code')?.value;
+ return typeof code==='string'&&/^[A-Z0-9_]{1,80}$/.test(code)?code:fallback;
+}
 export function exactObject(value,keys){
   if(!value||typeof value!=='object'||Array.isArray(value)||![Object.prototype,null].includes(Object.getPrototypeOf(value))||Reflect.ownKeys(value).some(k=>typeof k!=='string'||!keys.includes(k)||!Object.hasOwn(Object.getOwnPropertyDescriptor(value,k),'value')))throw multiError('MULTICHAIN_INVALID_INPUT','Invalid network or asset input.');
 }

@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import {MultiConfigStore,validateNetwork,validateToken,rpcURL,publicAddress} from '../src/multichain-config.mjs';
+import {MultiConfigStore,validateNetwork,validateToken,rpcURL,publicAddress,publicMultiErrorCode} from '../src/multichain-config.mjs';
+test('public error code extraction never calls accessors or Proxy traps and never copies arbitrary messages',()=>{
+ let calls=0;const getter={get code(){calls++;throw Error('PUBLIC getter must not run');}},proxy=new Proxy({},{getOwnPropertyDescriptor(){calls++;throw Error('PUBLIC trap must not run');}});
+ for(const error of [null,undefined,false,0,'PUBLIC sensitive message',getter,proxy,{code:'https://public.example/error'},{code:'X'.repeat(81)},Object.create({code:'INHERITED'})])assert.equal(publicMultiErrorCode(error,'FAMILY_SUBMISSION_UNKNOWN'),'FAMILY_SUBMISSION_UNKNOWN');
+ assert.equal(publicMultiErrorCode({code:'PUBLIC_OFFLINE',message:'not copied'},'FALLBACK'),'PUBLIC_OFFLINE');assert.equal(calls,0);
+});
 const input={name:'PUBLIC synthetic local-chain fixture',rpcUrl:'https://qa.example.test/rpc',chainId:'31337',symbol:'QA',decimals:18,genesis:'0x'+'1'.repeat(64)};
 test('custom config rejects private endpoints and canonical YNX override',()=>{
   for(const url of ['http://qa.example.test','https://localhost','https://127.0.0.1','https://[::1]','https://user:pass@qa.example.test','https://qa.example.test/?key=secret','https://192.168.1.1'])assert.throws(()=>rpcURL(url));

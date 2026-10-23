@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { AtomicMultiFile, exactObject, multiError } from './multichain-config.mjs';
+import { AtomicMultiFile, exactObject, multiError, publicMultiErrorCode } from './multichain-config.mjs';
 
 // BTC/TRON only: the existing EVM journal and every existing profile remain
 // unchanged. This ledger stores transaction evidence, never seed/key material.
@@ -158,7 +158,7 @@ export class FamilyCustody {
     this.verifyResult(record, record.result);
     let observation;
     try { observation = await query(structuredClone(record)); }
-    catch (error) { observation = { networkId: record.networkId, txid: record.result.txid, state: 'unknown', receipt: null, evidence: {queryError: typeof error.code === 'string' && /^[A-Z0-9_]{1,80}$/.test(error.code) ? error.code : 'FAMILY_QUERY_UNAVAILABLE'} }; }
+    catch (error) { observation = { networkId: record.networkId, txid: record.result.txid, state: 'unknown', receipt: null, evidence: {queryError: publicMultiErrorCode(error,'FAMILY_QUERY_UNAVAILABLE')} }; }
     exactObject(observation, ['networkId', 'txid', 'state', 'receipt', 'evidence']);
     publicJSON(observation.evidence ?? null);
     if (observation.networkId !== record.networkId || observation.txid !== record.result.txid || !['unknown', 'submitted-unconfirmed', 'included', 'failed'].includes(observation.state)) fail();

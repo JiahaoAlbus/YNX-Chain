@@ -12,6 +12,17 @@ import {FamilyNetworks} from '../src/multichain-family-networks.mjs';
 import {FamilyBitcoinSubmission} from '../src/multichain-family-bitcoin-submit.mjs';
 import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';
 const id='00000000-0000-4000-8000-000000000001';
+test('null/undefined Bitcoin dispatch failures retain first cause and durable original UNKNOWN',async()=>{
+ for(const cause of [null,undefined]){const f=await fixture(),review=await f.service.review({id}),before=(await f.recovery.journal.list())[0];let sends=0;f.service.createSender=async()=>async()=>{sends++;throw cause;};
+  await assert.rejects(f.service.send({reviewId:review.reviewId},f.guard),e=>e.code==='FAMILY_SUBMISSION_UNKNOWN'&&Object.hasOwn(e,'cause')&&e.cause===cause);
+  const saved=(await f.recovery.journal.list())[0];assert.equal(saved.state,'unknown');assert.equal(saved.queryEvidence.phase,'dispatch-outcome-unknown');assert.deepEqual(saved.result,before.result);assert.equal(sends,1);await assert.rejects(f.service.review({id}),{code:'FAMILY_RESOLUTION_REQUIRED'});
+ }
+});
+test('Bitcoin failure recording cannot replace a falsy dispatch cause or erase the existing durable fence',async()=>{
+ const f=await fixture(),review=await f.service.review({id});let sends=0,saves=0;f.service.createSender=async()=>async()=>{sends++;throw null;};f.recovery.journal.finishSubmission=async()=>{saves++;throw false;};
+ await assert.rejects(f.service.send({reviewId:review.reviewId},f.guard),e=>e.code==='FAMILY_SUBMISSION_UNKNOWN'&&e.cause===null&&e.cleanupCausePresent===true&&e.cleanupCause===false);
+ const saved=(await f.recovery.journal.list())[0];assert.equal(saved.state,'unknown');assert.equal(saved.queryEvidence.phase,'submission-fenced');assert.equal(sends,1);assert.equal(saves,1);await assert.rejects(f.service.review({id}),{code:'FAMILY_RESOLUTION_REQUIRED'});
+});
 async function fixture(){
   const dir=await mkdtemp(path.join(tmpdir(),'ynx-btc-public-submit-')),filePath=path.join(dir,'journal.json');let context={account:'PUBLIC-base',revision:1,locked:false},calls=0;
   // Published scalar-one/two fixtures, never a real funded account.

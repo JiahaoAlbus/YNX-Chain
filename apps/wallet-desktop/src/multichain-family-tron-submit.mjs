@@ -1,5 +1,5 @@
 import {randomUUID} from 'node:crypto';
-import {exactObject,multiError} from './multichain-config.mjs';
+import {exactObject,multiError,publicMultiErrorCode} from './multichain-config.mjs';
 import {FamilyOperationGate} from './multichain-family-operation-gate.mjs';
 import {createFamilyReadTransport} from './multichain-family-transport.mjs';
 import {TronPreflight} from './multichain-tron-preflight.mjs';
@@ -42,6 +42,10 @@ export class FamilyTronSubmission {
       exactObject(observation,['networkId','txid','state','receipt']);if(observation.networkId!==record.networkId||observation.txid!==record.result.txid||!['submitted-unconfirmed','unknown'].includes(observation.state)||observation.receipt!==null)fail('FAMILY_SUBMISSION_UNKNOWN');
       await this.journal.finishSubmission(record,{state:observation.state,evidence:{phase:observation.state==='submitted-unconfirmed'?'rpc-accepted':'dispatch-outcome-unknown'}});
       return {id:record.id,family:'tron',network:record.networkId,txid:record.result.txid,state:observation.state};
-    }catch(error){if(fenced){await this.journal.finishSubmission(record,{state:'unknown',evidence:{phase:dispatchStarted?'dispatch-outcome-unknown':'not-dispatched',error:typeof error.code==='string'&&/^[A-Z0-9_]{1,80}$/.test(error.code)?error.code:'FAMILY_SUBMISSION_UNKNOWN'}}).catch(()=>{});fail('FAMILY_SUBMISSION_UNKNOWN');}throw error;}
+    }catch(error){if(fenced){
+      let cleanupCausePresent=false,cleanupCause;
+      try{await this.journal.finishSubmission(record,{state:'unknown',evidence:{phase:dispatchStarted?'dispatch-outcome-unknown':'not-dispatched',error:publicMultiErrorCode(error,'FAMILY_SUBMISSION_UNKNOWN')}});}catch(cause){cleanupCausePresent=true;cleanupCause=cause;}
+      throw Object.assign(multiError('FAMILY_SUBMISSION_UNKNOWN','Keep and check the original TRON transaction.'),{cause:error,cleanupCausePresent,cleanupCause});
+    }throw error;}
   }
 }
