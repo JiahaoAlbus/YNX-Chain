@@ -287,13 +287,17 @@ def verify_capture(destination,mode,head):
     need(canonical(measured)==canonical(receipt.get('measurement')),'recovered complete stream differs from original controller measurement')
     return dict(measurement=measured,streamReadbackVerified=True,postFsyncTerminalStillRequiresOriginalCILog=True,independentNativeResourceAdmission=False,networkQualified=False,sustainedTPSQualified=False)
 
+def recovery_timeout(signum,frame):
+    raise RuntimeError('original60s recovery deadline exceeded; retain original cache')
+
 if __name__=='__main__':
-    import argparse,sys
+    import argparse,sys,signal
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-id',type=int,required=True);parser.add_argument('--run-id',type=int,required=True)
     parser.add_argument('--head',required=True);parser.add_argument('--mode',choices=('unit','network'),required=True)
     parser.add_argument('--destination',type=Path,required=True);parser.add_argument('--cache',type=Path,required=True)
     args=parser.parse_args()
+    signal.signal(signal.SIGALRM,recovery_timeout);signal.setitimer(signal.ITIMER_REAL,60)
     try:
         began=time.monotonic()
         meta,url=original_artifact(args.artifact_id,args.run_id,args.head,args.mode)
@@ -308,3 +312,6 @@ if __name__=='__main__':
         # first cause without printing a bearer token or redirect query.
         message=str(error) if isinstance(error,RuntimeError) else type(error).__name__
         print(json.dumps(dict(recovered=False,firstCause=message,networkQualified=False)),file=sys.stderr,flush=True);sys.exit(1)
+
+    finally:
+        signal.setitimer(signal.ITIMER_REAL,0)

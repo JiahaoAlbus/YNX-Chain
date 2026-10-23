@@ -150,6 +150,23 @@ class HTTPRangeTests(unittest.TestCase):
         resumed,opener=self.backend()
         with self.assertRaisesRegex(RuntimeError,'incomplete original'):resumed.fetch(65536,54464)
         self.assertEqual(opener.calls,0)
+    def test_hard_deadline_interrupts_blocked_work(self):
+        import subprocess,sys
+        code="""import importlib.util,signal,time
+spec=importlib.util.spec_from_file_location('reader',%r);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+signal.signal(signal.SIGALRM,m.recovery_timeout);signal.setitimer(signal.ITIMER_REAL,.01)
+try:
+ time.sleep(1)
+except RuntimeError as error:
+ assert 'original60s recovery deadline' in str(error);print('DEADLINE_INTERRUPTED')
+else:
+ raise RuntimeError('deadline handler did not interrupt blocked work')
+finally:
+ signal.setitimer(signal.ITIMER_REAL,0)
+"""%str(FILE.resolve())
+        out=subprocess.check_output([sys.executable,'-B','-c',code],timeout=3)
+        self.assertEqual(out.strip(),b'DEADLINE_INTERRUPTED')
+
     def test_redirect_host_and_aligned_range_are_explicit(self):
         for url in ('http://unit.blob.core.windows.net/unit','https://example.com/unit','https:///unit','https://u:p@unit.blob.core.windows.net/unit'):
             with self.subTest(url=url),self.assertRaises(RuntimeError):zip_reader.ExactHTTPRanges(url,120000,self.cache,self.identity)
