@@ -53,5 +53,16 @@ test('closed profile bounds copied JSON before sending and cannot accept caller 
  const f=fixture();await f.connection.restore();
  for(const input of [{...query(),id:1},{...query(),topic},{method:methods[0],params:[{value:'x'.repeat(65536)}]},{method:'eth_sendTransaction',params:[]}])assert.throws(()=>f.connection.beginContractRequest(input),/SCHEMA|TOO_LARGE|METHOD_NOT_APPROVED/);
  const input=query(),handle=f.connection.beginContractRequest(input);input.params[0].operationId='changed';assert.equal(f.calls[0].request.params[0].operationId,'op_1');
+ assert.ok(Object.isFrozen(f.calls[0].request));assert.ok(Object.isFrozen(f.calls[0].request.params[0]));
  f.sent(0,1);f.calls[0].resolve({});await handle.outcome;
+});
+test('fresh proposal is exactly contract-only and cold restore preserves unrelated identity sessions',async()=>{
+ const f=fixture();f.client.session.getAll=()=>[];
+ let proposal;
+ f.client.connect=async input=>{proposal=input;return {uri:`wc:${topic}@2?relay-protocol=irn&symKey=${'2'.repeat(64)}`,approval:async()=>session()};};
+ await f.connection.connect();assert.deepEqual(proposal.requiredNamespaces.eip155.methods,methods);
+ assert.deepEqual(proposal.requiredNamespaces.eip155.chains,['eip155:6423']);assert.equal(f.calls.length,0);
+ const identity=session(['ynx_requestProductSessionV2']),valid=session(),cold=fixture();
+ cold.client.session.getAll=()=>[identity,valid];assert.ok(await cold.connection.restore());assert.equal(identity.namespaces.eip155.methods[0],'ynx_requestProductSessionV2');
+ const expired=fixture();expired.client.session.getAll=()=>[{...session(),expiry:1}];assert.equal(await expired.connection.restore(),null);
 });

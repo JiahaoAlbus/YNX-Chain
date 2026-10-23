@@ -220,7 +220,7 @@ export class WalletConnectDAppConnection{
     const reference=Object.hasOwn(body,'originalRequestKeyHash')?'originalRequestKeyHash':'operationId';
     const fields=captured.method==='ynx_preparePQContractAction'?['version','account','action']:captured.method==='ynx_preparePQContractBroadcast'?['version','account','operationId']:['version','account',reference,'refresh'];
     if(Object.keys(body).sort().join(',')!==fields.sort().join(','))fail('YNX_PAIR_REQUEST_SCHEMA');
-    const request={method:captured.method,params:captured.params};
+    const request=Object.freeze({method:captured.method,params:captured.params});
     // Leave room for the normal Main topic/id/Verify envelope. This does not
     // relax its independent 64KiB gate or certify an unobserved envelope size.
     const requestBytes=utf8ToBytes(JSON.stringify(request));
@@ -253,7 +253,7 @@ function contractJSON(value,depth=0){
     if(typeof key!=='string'||!ds[key].enumerable||!Object.hasOwn(ds[key],'value')||['__proto__','constructor','prototype'].includes(key))fail('YNX_PAIR_REQUEST_SCHEMA');
     out[key]=contractJSON(ds[key].value,depth+1);
   }
-  return out;
+  return Object.freeze(out);
 }
 
 /** Exact developer/Testnet contract transport. Identity grants stay separate. */
