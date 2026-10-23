@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.9",
+  "version": "1.3.0-pq.3.32-auth.10",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -334,13 +334,13 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 5271,
-      "sha256": "5a89e986237eb563e09fa41ce05ea5f844d8f1a918c99db0cc989a5de1550b8f"
+      "bytes": 5640,
+      "sha256": "9fab18dc544820970e3f8a633f78408d9125ef7d87b7778e2f9795f2191b36cf"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 45006,
-      "sha256": "6e5ad727fd8e1e9f2e2039a01eb98fa65596f4ee0a750f48efd640663b514f70"
+      "bytes": 45163,
+      "sha256": "d8ea4c3651b5d373c416ca904e79a11d76e8909b5b4a4c94539188085046c7d4"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
@@ -389,8 +389,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-ide-auth-proof-source.inc.mm",
-      "bytes": 12943,
-      "sha256": "b01e0f558fe601926f258c644c84633cf945c7da682146310bb85de69f57040c"
+      "bytes": 17824,
+      "sha256": "5c4a4ebd3251de6862763a40ea48e48123503b789f0438e06b96a50e5bb95826"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-identity-launch-holder.h",
@@ -699,5 +699,23 @@
     },
     "normalBuildConfirmationPending": true,
     "actualBusinessEffectAvailable": false
+  },
+  "R162Observation": {
+    "handoff": {
+      "bytes": 6843,
+      "sha256": "67c056ae826157281198cd158f37d52afdab789750cdccecef63b55143679bdf"
+    },
+    "callee": "-[YNXAuthIdentitySourceAuthority copyOriginalIDEVerifiedProofForRequest:(NSData*)request invocation:(NSData*)invocation error:(NSError**)error] -> NSDictionary* private DATA only",
+    "nativeN1WireBytesMax": 262144,
+    "requestAndInvocationBytesMax": 16384,
+    "noNewNodeExports": true,
+    "authSourceLinkAndPUBLICCustodyGroups": 10,
+    "actualN1": false,
+    "actualRoot": false,
+    "actualPublisherPermission": false,
+    "actualUserApproval": false,
+    "actualEffect": false,
+    "SDKNormalNativeBuild": false,
+    "AppBuild": false
   }
 }

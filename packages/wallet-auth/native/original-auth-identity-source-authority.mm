@@ -27,6 +27,8 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  YNXIDEHelperMessagePeer *_helperPeer;
  YNXIDEHelperClient *_helperClient;
  NSData *_receiveRequestOriginal,*_receiveProofOriginal;NSDictionary*_remoteReceiveActual;
+ NSData *_ideProofRequestOriginal,*_ideProofInvocationOriginal,*_ideProofDataOriginal;
+ NSDictionary *_ideProofObservation;BOOL _ideProofObservationEntered;
  NSData *_profileOriginal,*_headOriginal,*_rootOriginal,*_enrollmentOriginal;
  NSData *_currentOriginal;NSString *_currentNonce;BOOL _firstEnterPinned;
  NSDictionary *_selection;
