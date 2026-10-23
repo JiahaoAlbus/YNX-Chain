@@ -1,0 +1,293 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-10-23T18:13:33.637465+00:00",
+  "sourceCommit": "86c2136ac26b3d4d7c4ad8481acbbca42145580e",
+  "scope": "explicit client scheduler pair source qualification only",
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "goVersion": "go version go1.25.7 darwin/arm64",
+  "sourceFiles": [
+    "cmd/ynx-consensus-perf-client/main.go",
+    "cmd/ynx-consensus-perf-client/client_runtime.go",
+    "cmd/ynx-consensus-perf-client/client_runtime_test.go",
+    "scripts/loadtest/supply-linux-window.py",
+    "scripts/loadtest/test_supply_linux_window.py",
+    ".github/workflows/chain-core.yml"
+  ],
+  "trees": {
+    "internal": "90cd94a2dfe08f6ad3e3767d82709feb25b49c3d",
+    "cmd/ynx-consensus-perf-client": "228e24b3b3ad61ae4fac11720d114b0cbcea6e2b",
+    "cmd/ynx-abci": "8206358b1f284904285e9f5f78f7fd96eee40818"
+  },
+  "actualLocalCommands": [
+    {
+      "name": "controller-focused",
+      "path": "artifacts/chain-performance-20261017/client-procs2-source/controller-focused.raw",
+      "bytes": 1042,
+      "sha256": "20f165e57d6ef3ca90d1a3d9549dd446965defd4fa89aa4d620f862408a89fed",
+      "qualified": true,
+      "interpretation": "Actual local command output, not network business evidence."
+    },
+    {
+      "name": "controller-all",
+      "path": "artifacts/chain-performance-20261017/client-procs2-source/controller-all.raw",
+      "bytes": 14097,
+      "sha256": "86812c390d0ae40b2296d028e9f0aa83a8283f3ac98cf4969cf0c42512c6abdb",
+      "qualified": true,
+      "interpretation": "Actual local command output, not network business evidence."
+    },
+    {
+      "name": "go-race",
+      "path": "artifacts/chain-performance-20261017/client-procs2-source/go-race.raw",
+      "bytes": 4535,
+      "sha256": "76d60936ef6042177473135e2f70a790c6b7b3379fc4ff69daf41bf2e033444a",
+      "qualified": true,
+      "interpretation": "Actual local command output, not network business evidence."
+    },
+    {
+      "name": "client-all-race",
+      "path": "artifacts/chain-performance-20261017/client-procs2-source/client-all-race.raw",
+      "bytes": 7808,
+      "sha256": "b9b3322bc76a77c9b2ef57cabb7e7afc438780815d9a90f68f82dc4b029e126c",
+      "qualified": false,
+      "interpretation": "Original full-package race timed out at60s in unchanged streaming identity verification, after16s in that case; no race warning. Raw failure preserved; not a passing test."
+    },
+    {
+      "name": "client-all",
+      "path": "artifacts/chain-performance-20261017/client-procs2-source/client-all.raw",
+      "bytes": 76,
+      "sha256": "9db429ec0755d5dd820a5f70f513585afb4c5fddb1fb966c99d0286ef098e91e",
+      "qualified": true,
+      "interpretation": "Actual local command output, not network business evidence."
+    },
+    {
+      "name": "stream-isolated-race",
+      "path": "artifacts/chain-performance-20261017/client-procs2-source/stream-isolated-race.raw",
+      "bytes": 4632,
+      "sha256": "623c4dc57c384d0c28e530509e310a71e882a768f7e7b281f97fe8396b70a088",
+      "qualified": true,
+      "interpretation": "Actual local command output, not network business evidence."
+    },
+    {
+      "name": "source-gate",
+      "path": "artifacts/chain-performance-20261017/client-procs2-source/source-gate.raw",
+      "bytes": 3297,
+      "sha256": "2aa6397192ad3ee43ff3ab11bddcfde38051f8d74730beef5d51e598367f4b80",
+      "qualified": true,
+      "interpretation": "Actual local command output, not network business evidence."
+    }
+  ],
+  "checks": {
+    "controllerTests": 79,
+    "controllerSeconds": 9.881,
+    "targetedRaceInternalSeconds": 1.608,
+    "targetedRaceClientSeconds": 1.803,
+    "fullClientGOMAXPROCS2Seconds": 10.734,
+    "isolatedStreamingAndCandidateRaceSeconds": 18.909,
+    "isolatedStreamingSignatureCaseSeconds": 17.3,
+    "sourceGateTests": 14,
+    "sourceGateMs": 11149.839041
+  },
+  "fullPackageRacePassed": false,
+  "fullPackageRaceLimitation": "60s package deadline exhausted during unchanged2112-record real-signature synthetic observation test. Same test+candidate race independently PASS18.909s; entire ordinary package PASS10.734s atGOMAXPROCS2. Full race remains unqualified; no timeout extended and no assertions removed.",
+  "networkDispatched": false,
+  "networkImprovementMeasured": false,
+  "normalCIPending": true,
+  "newRootGrantRequired": true,
+  "pairRecipe": {
+    "schema": 1,
+    "kind": "fixed-same-VM-native-client-procs2-data64-pair",
+    "execute": false,
+    "requiresSeparateRootGrant": true,
+    "nodesStarted": false,
+    "pairCaps": {
+      "totalMs": 120000,
+      "retainedBytes": 134217728,
+      "logBytes": 2097152,
+      "buildBytes": 1073741824,
+      "metadataReserveMs": 500
+    },
+    "cases": [
+      {
+        "schema": 1,
+        "profile": {
+          "name": "supply-2048x1-data64-grpc",
+          "senders": 2048,
+          "rounds": 1,
+          "offeredRate": 1000,
+          "concurrency": 8,
+          "observers": 4,
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedProcesses": 10,
+          "longLivedChildren": 9,
+          "ownedRSSBytes": 1073741824,
+          "privateBytes": 67108864,
+          "threads": 320,
+          "availableMemoryFloorBytes": 1207959552,
+          "senderMode": "rounds"
+        },
+        "abciTransport": "grpc",
+        "pacingMode": "relative",
+        "pacingCatchupOfferLimit": 1,
+        "environment": {
+          "GOMAXPROCS": "1",
+          "GOGC": "100",
+          "GOMEMLIMIT": "off"
+        },
+        "execute": false,
+        "requiresSeparateRootGrant": true,
+        "nodesStarted": false,
+        "platform": "Linux native /proc; not macOS pressure1",
+        "comparison": "Independent private CI case; no Darwin before/after multiplier",
+        "resourceCaps": {
+          "activeMs": 105000,
+          "cleanupMs": 15000,
+          "totalMs": 120000,
+          "ownedRSSBytes": 1073741824,
+          "threads": 320,
+          "ownedProcesses": 16,
+          "privateBytes": 67108864,
+          "buildBytes": 1073741824,
+          "logBytes": 1048576,
+          "diskFloorBytes": 1073741824,
+          "rootReserveBytes": 445644800,
+          "compileReserveBytes": 1073741824,
+          "availableMemoryFloorBytes": 1207959552,
+          "sampleMs": 200
+        },
+        "input": "workflow_dispatch.run_linux_supply (default false)",
+        "capacityScope": {
+          "explicitProfileOnly": true,
+          "automaticRetry": false,
+          "priorFailedRun": 39161413763,
+          "priorFinalPrivateBytes": 40191359,
+          "priorProfile": "supply-2048x1",
+          "noPerformanceQualification": true
+        },
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "nativeSubmit8": true,
+        "observerNativeFacts": true,
+        "expectedClientGOMAXPROCS": 1,
+        "observerPhaseTiming": true,
+        "observerTraceLimits": {
+          "perWorker": 256,
+          "aggregate": 1024,
+          "totalsCompleteDespiteTraceCap": true
+        },
+        "sharedDurableReplay": false
+      },
+      {
+        "schema": 1,
+        "profile": {
+          "name": "supply-2048x1-data64-grpc",
+          "senders": 2048,
+          "rounds": 1,
+          "offeredRate": 1000,
+          "concurrency": 8,
+          "observers": 4,
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedProcesses": 10,
+          "longLivedChildren": 9,
+          "ownedRSSBytes": 1073741824,
+          "privateBytes": 67108864,
+          "threads": 320,
+          "availableMemoryFloorBytes": 1207959552,
+          "senderMode": "rounds"
+        },
+        "abciTransport": "grpc",
+        "pacingMode": "relative",
+        "pacingCatchupOfferLimit": 1,
+        "environment": {
+          "GOMAXPROCS": "1",
+          "GOGC": "100",
+          "GOMEMLIMIT": "off"
+        },
+        "execute": false,
+        "requiresSeparateRootGrant": true,
+        "nodesStarted": false,
+        "platform": "Linux native /proc; not macOS pressure1",
+        "comparison": "Independent private CI case; no Darwin before/after multiplier",
+        "resourceCaps": {
+          "activeMs": 105000,
+          "cleanupMs": 15000,
+          "totalMs": 120000,
+          "ownedRSSBytes": 1073741824,
+          "threads": 320,
+          "ownedProcesses": 16,
+          "privateBytes": 67108864,
+          "buildBytes": 1073741824,
+          "logBytes": 1048576,
+          "diskFloorBytes": 1073741824,
+          "rootReserveBytes": 445644800,
+          "compileReserveBytes": 1073741824,
+          "availableMemoryFloorBytes": 1207959552,
+          "sampleMs": 200
+        },
+        "input": "workflow_dispatch.run_linux_supply (default false)",
+        "capacityScope": {
+          "explicitProfileOnly": true,
+          "automaticRetry": false,
+          "priorFailedRun": 39161413763,
+          "priorFinalPrivateBytes": 40191359,
+          "priorProfile": "supply-2048x1",
+          "noPerformanceQualification": true
+        },
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "nativeSubmit8": true,
+        "observerNativeFacts": true,
+        "clientProcs2": true,
+        "expectedClientGOMAXPROCS": 2,
+        "observerPhaseTiming": true,
+        "observerTraceLimits": {
+          "perWorker": 256,
+          "aggregate": 1024,
+          "totalsCompleteDespiteTraceCap": true
+        },
+        "sharedDurableReplay": false
+      }
+    ],
+    "order": "native-client-procs1 then native-client-procs2; sequential, no second case after any first-case refusal",
+    "binaries": "same exact four ELF files, built once before pair runtime",
+    "input": {
+      "run_linux_supply": true,
+      "linux_supply_transport": "grpc",
+      "linux_supply_profile": "supply-2048x1-data64",
+      "linux_supply_pacing": "paired-native-client-procs2-data64",
+      "measure_observer_phases": true,
+      "prefix_durable_replay": false
+    },
+    "timing": "120s total including both cases, receipt fsync and double empty closures; each case45s active+15s cleanup including fsync<=60s. Remaining time can only shorten admission.",
+    "admission": "Explicit pair128MiB retained including all case/aggregate receipts; each case64MiB, RSS1GiB, threads320, process10, logs1MiB, pair logs2MiB, build1GiB. Fresh native floors plus initial128MiB aggregate disk reserve. Original default pair64MiB unchanged. No grant or admission implied.",
+    "interpretation": "Only explicit client-local GOMAXPROCS1 versus2 changes. Require actual typed runtime values on both original reports. Both retain observer native facts,original suffix setup,8submitters/4observers/original queues,node GOMAXPROCS1 and original resource caps. No throughput gain or sustained1000 qualification is presumed."
+  },
+  "expectedRuntime": [
+    1,
+    2
+  ],
+  "unchanged": {
+    "nodeGOMAXPROCS": 1,
+    "submitters": 8,
+    "observers": 4,
+    "submissionQueue": 2048,
+    "eachObservationQueue": 2048,
+    "observerNativeFacts": true,
+    "nativeSuffixSetup": false,
+    "resourceCaps": {
+      "totalMs": 120000,
+      "retainedBytes": 134217728,
+      "logBytes": 2097152,
+      "buildBytes": 1073741824,
+      "metadataReserveMs": 500
+    }
+  },
+  "next": "Normal exact-head CI then immutable source/readout contract and fresh Root pressure1 once grant. No old grant reuse. Full4096 original rows/2fixtures/8node logs and phase/latency/resources required.",
+  "sustained1000Qualified": false,
+  "actualBusinessTPS": null,
+  "actualInclusionLatency": null,
+  "actualFinalityLatency": null
+}
