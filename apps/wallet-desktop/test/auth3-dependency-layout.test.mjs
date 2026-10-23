@@ -19,7 +19,9 @@ function fixture(t){
  const bytes=readFileSync(new URL('../scripts/wallet-auth-runtime-dependencies.json',import.meta.url)),manifest=JSON.parse(bytes);
  put('apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json',bytes);
  const sdk=JSON.parse(readFileSync(new URL('../../../packages/wallet-auth/package.json',import.meta.url)));
- put('packages/wallet-auth/package.json',JSON.stringify({...sdk,version:'1.3.0-pq.3.32-auth.3'}));
+ // Match the actual recipe: baseline source descriptor plus locked successor.
+ put('packages/wallet-auth/package.json',JSON.stringify({...sdk,version:'1.3.0-pq.3.18'}));
+ put('apps/wallet-desktop/package-lock.json',JSON.stringify({packages:{'../../packages/wallet-auth':{version:'1.3.0-pq.3.32-auth.3'}}}));
  // Frozen public bytes only; reproduce npm's distinct root and PQ-local graphs.
  for(const pin of manifest.files)put('packages/wallet-auth/node_modules/'+relative(pin.path),readFileSync(path.join(dependencyRoot,relative(pin.path))));
  const outer=Buffer.from('{"name":"@noble/ciphers","version":"1.3.0","main":"index.js"}');

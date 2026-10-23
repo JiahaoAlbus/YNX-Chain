@@ -36,7 +36,13 @@ export function walletAuthDependencyPlan(cwd,sourceCommit){
  // consumers and the pinned 2.2 only beneath PQ. Preserve both resolution
  // graphs in the archive; never flatten or search for a convenient version.
  // Historical source recipes retain their original flat mapping.
- const relative=p=>sdk.version==='1.3.0-pq.3.32-auth.3'&&p.startsWith('@noble/ciphers/')?'@noble/post-quantum/node_modules/'+p:p;
+ // The whole-source recipe installs the independently frozen SDK over the
+ // repository baseline. Select its source-owned lock version, not that stale
+ // baseline package descriptor or unverified ambient package metadata.
+ const lockPath='apps/wallet-desktop/package-lock.json';
+ const hasLock=git(root,'ls-tree','--name-only',sourceCommit,'--',lockPath).toString().trim()===lockPath;
+ const selectedVersion=hasLock?JSON.parse(git(root,'show',sourceCommit+':'+lockPath)).packages?.['../../packages/wallet-auth']?.version:sdk.version;
+ const relative=p=>selectedVersion==='1.3.0-pq.3.32-auth.3'&&p.startsWith('@noble/ciphers/')?'@noble/post-quantum/node_modules/'+p:p;
  const fixed={'@noble/curves':'2.2.0','@noble/hashes':'2.2.0','@noble/ciphers':'2.2.0','@noble/post-quantum':'0.6.1','@ynx/batch-v01-candidate':'0.1.0-candidate.2'};
  if(manifest.schemaVersion!==2||manifest.files?.length!==316||Object.keys(manifest.versions??{}).length!==5||Object.entries(fixed).some(([name,version])=>manifest.versions[name]!==version)||manifest.provider?.sha256!=='401eca733083c2ac67998295c54f09f0553760b99eaf0adf9ef1e1a85b4cbd0b'||manifest.provider?.bytes!==17804)throw Error('SDK_RUNTIME_DEPENDENCY_MANIFEST_INVALID');
  const rows=[],contents=new Map(),seen=new Set();
