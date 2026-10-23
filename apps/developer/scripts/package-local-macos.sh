@@ -32,6 +32,7 @@ YNX_IDE_PEER_KERNEL_SOURCE="${YNX_DEVELOPER_CANONICAL_SDK_ROOT:-$repo_root/packa
 YNX_IDE_IDENTITY_NATIVE_INCLUDE="$canonical_app_native_root/packages/wallet-auth/native" node --test runtime/theia/scripts/identity-launch-consumer.test.mjs scripts/package-native-parent-link.test.mjs scripts/identity-app-selection.test.mjs scripts/identity-app-custody-source.test.mjs
 node --test desktop/marketplace-artifact-download.test.mjs desktop/marketplace-catalog-policy.test.mjs desktop/marketplace-catalog-transport.test.mjs desktop/marketplace-readme.test.mjs desktop/marketplace-channel.test.mjs
 node --test desktop/marketplace-artifact-channel-diagnostics.test.mjs
+node --test desktop/local-qwen-environment.test.mjs
 node --test runtime/theia/scripts/extension-display-identity.test.mjs
 node --test scripts/normal-local-workspace-aliases.test.mjs
 node --test scripts/verify-packaged-local-imports.test.mjs
