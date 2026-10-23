@@ -171,6 +171,15 @@ func (g *Gateway) evmCommittedResult(ctx context.Context, method string, raw jso
 		if err := json.Unmarshal(params[0], &hash); err != nil || !transactionHashPattern.MatchString(hash) {
 			return nil, errors.New("canonical lowercase transaction hash is required")
 		}
+		if g.migrationHeight != 0 {
+			original, found, err := g.importedEVMTransaction(ctx, hash, method == "eth_getTransactionReceipt")
+			if err != nil {
+				return nil, err
+			}
+			if found {
+				return original, nil
+			}
+		}
 		upstream, tx, found, err := g.committedTransaction(ctx, hash)
 		if err != nil || !found {
 			return nil, err
