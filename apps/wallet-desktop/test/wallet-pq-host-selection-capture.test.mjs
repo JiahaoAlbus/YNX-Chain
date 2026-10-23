@@ -78,6 +78,24 @@ test('outstanding child retains cleanup debt and later close is saved without se
  assert.ok(rows.some(x=>x.ref.kind==='host-selection-stderr'&&x.body.toString()==='PUBLIC late close diagnostic'));
  assert.equal(capture.status().pendingSave,false);capture.assertSafeToClose();
 });
+test('close arriving during metadata fsync cannot erase uncaptured late output',async t=>{
+ const f=await fixture(t),p=processFixture({cleanupPending:true});
+ const evidence={
+  append:async(...args)=>{const ref=await f.evidence.append(...args);if(args[2]==='host-selection-result')p.close();return ref;},
+  pending:()=>f.evidence.pending(),flush:id=>f.evidence.flush(id),assertSafeToClose:()=>f.evidence.assertSafeToClose()
+ };
+ const capture=createPQHostSelectionCapture({original,binding,sourceCatalog,evidence,selector:p.selector});
+ await assert.rejects(capture.run(f.guard),{code:'PQ_HOST_SELECTION_PROCESS_INCOMPLETE'});
+ assert.equal(capture.status().pendingSave,true);assert.equal((await readCold(f)).rows.length,4);
+ await capture.save(f.guard);const {rows}=await readCold(f);assert.equal(rows.length,7);
+ assert.ok(rows.some(x=>x.ref.kind==='host-selection-stderr'&&x.body.toString()==='PUBLIC late close diagnostic'));
+ assert.equal(p.calls(),1);assert.equal(capture.status().selected,false);capture.assertSafeToClose();
+});
+test('retirement while the process returns still saves raw output without source publication',async t=>{
+ const f=await fixture(t);let capture;const p=processFixture({afterRun:()=>capture.retire()});capture=f.capture(p);
+ await assert.rejects(capture.run(f.guard),{code:'PQ_HOST_SELECTION_RETIRED'});
+ assert.equal((await readCold(f)).rows.length,4);assert.equal(capture.status().retired,true);assert.equal(capture.status().selected,false);assert.equal(p.calls(),1);capture.assertSafeToClose();
+});
 test('different original owner or preexisting evidence debt blocks before a process dispatch',async t=>{
  const f=await fixture(t),p=processFixture(),capture=f.capture(p);
  await assert.rejects(capture.run({...f.guard,account:'foreign'}),{code:'PQ_HOST_CONTEXT_MISMATCH'});assert.equal(p.calls(),0);

@@ -10,7 +10,7 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 function catalog(value){
  if(types.isProxy(value))fail('PQ_HOST_SELECTION_CATALOG_INVALID');
  exactData(value,['catalogPath','catalogSha256'],'PQ_HOST_SELECTION_CATALOG_INVALID');
- if(typeof value.catalogPath!=='string'||!path.isAbsolute(value.catalogPath)||path.normalize(value.catalogPath)!==value.catalogPath||value.catalogPath===path.parse(value.catalogPath).root||value.catalogPath.includes('\0')||Buffer.byteLength(value.catalogPath)>4096||typeof value.catalogSha256!=='string'||! /^[a-f0-9]{64}$/.test(value.catalogSha256)||/^0{64}$/.test(value.catalogSha256))fail('PQ_HOST_SELECTION_CATALOG_INVALID');
+ if(typeof value.catalogPath!=='string'||!path.isAbsolute(value.catalogPath)||path.normalize(value.catalogPath)!==value.catalogPath||value.catalogPath===path.parse(value.catalogPath).root||value.catalogPath.includes('\0')||Buffer.from(value.catalogPath).toString()!==value.catalogPath||Buffer.byteLength(value.catalogPath)>4096||typeof value.catalogSha256!=='string'||! /^[a-f0-9]{64}$/.test(value.catalogSha256)||/^0{64}$/.test(value.catalogSha256))fail('PQ_HOST_SELECTION_CATALOG_INVALID');
  return Object.freeze({...value});
 }
 const samePacket=(a,b)=>JSON.stringify(a.lifecycle)===JSON.stringify(b.lifecycle)&&a.result.exitCode===b.result.exitCode&&a.result.signal===b.result.signal&&sha(a.result.stdout)===sha(b.result.stdout)&&sha(a.result.stderr)===sha(b.result.stderr);
