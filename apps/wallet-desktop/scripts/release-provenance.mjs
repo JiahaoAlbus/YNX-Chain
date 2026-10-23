@@ -196,22 +196,25 @@ export async function writeRelocatedArchive(resources, cwd, output) {
   const metadata=JSON.parse(asar.extractFile(archive,"package.json").toString("utf8"));
   const expected=desktopReleaseIdentity(cwd,metadata.version),plan=relocationPlan(cwd,expected);
   const before=archiveInventory(asar,archive),metadataInput=asar.extractFile(archive,'package.json'),dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit),evidence=nativeEvidencePlan(cwd,expected.sourceCommit);
+  // Preserve the normal early refusal for already-canonical/foreign inputs,
+  // before attempting any raw source-path lookup or creating output streams.
+  const canonical=canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows]);
   for(const row of plan){
     const rawPath=row.sourcePath.startsWith('apps/wallet-desktop/')?row.sourcePath.slice('apps/wallet-desktop/'.length):SDK_ALIAS+'/'+row.sourcePath.slice('packages/wallet-auth/'.length);
     const info=asar.statFile(archive,path.normalize(rawPath),false);
     if(info.unpacked||info.link||info.files||!asar.extractFile(archive,path.normalize(rawPath),false).equals(row.source)) throw new Error(`Relocation input differs: ${row.sourcePath}`);
   }
-  await writeCanonicalArchiveInputs({asar,archive,output,before,metadataInput,dependencies,evidence});
+  await writeCanonicalArchiveInputs({asar,archive,output,before,metadataInput,dependencies,evidence,canonical});
 }
 
 /** The normal relocation child's real ASAR writer. Tests use PUBLIC archives,
  * not a replacement packer; final product verification remains separate. */
-export async function writeCanonicalArchiveInputs({asar,archive,output,before,metadataInput,dependencies,evidence}){
+export async function writeCanonicalArchiveInputs({asar,archive,output,before,metadataInput,dependencies,evidence,canonical:preparedPlan}){
   if(evidence.rows.length){
     const allowed=new Set(CANONICAL_NATIVE_EVIDENCE_TESTS.map(canonicalSourcePath));
     for(const row of before)if(/^code\/packages\/wallet-auth\/native\/.+\.test\.mjs$/.test(canonicalPackedPath(row.path))&&!allowed.has(canonicalPackedPath(row.path)))throw Error('Foreign Native build evidence asset');
   }
-  const canonical=canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows]);
+  const canonical=preparedPlan??canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows]);
   const originals=new Map(before.map(row=>[canonicalPackedPath(row.path),row.path]));
   const streams=canonical.after.map(row=>{
     if(row.type==="directory") return {path:row.path,type:row.type,unpacked:row.unpacked};
