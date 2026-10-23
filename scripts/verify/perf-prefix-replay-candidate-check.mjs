@@ -7,20 +7,20 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {withFrozenAnchor} from './perf-commit-validation-timing-check.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
-export const source='43b769ca36960d764d95b74bb25f6b7eba9cd097';
-export const pairControllerSource='43b769ca36960d764d95b74bb25f6b7eba9cd097';
+export const source='b8ae642db162ad1293595cd7eff799f2fe30c533';
+export const pairControllerSource='b8ae642db162ad1293595cd7eff799f2fe30c533';
 export const pairControllerFiles=['scripts/loadtest/supply-linux-window.py','scripts/loadtest/test_supply_linux_window.py','.github/workflows/chain-core.yml'];
 const parent='9cdaeb0a64bff4d26b2e4b1558c96863d2791640';
-const tree='5ce0d984ba9bdad226e10dc598747db0befe68b1';
+const tree='af2931e0c9109da5ef37d947894bfbe92aa1418b';
 export const diagnosticNodeTree='8206358b1f284904285e9f5f78f7fd96eee40818';
-export const runtimeClientTree='3c331b40c978f49fc16133309bdd9c7c49983071';
+export const runtimeClientTree='af253ce4ba22f80f7d2f822e3656f5fcbeb94d1d';
 const diagnosticGuard='scripts/verify/perf-commit-validation-timing-check.mjs';
 const diagnosticTests='scripts/verify/perf-commit-validation-timing-check.test.mjs';
 const git=(repo,...args)=>execFileSync('git',['-C',repo,...args],{env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},maxBuffer:16<<20,stdio:['ignore','pipe','pipe']});
 const requireValue=(v,m)=>{if(!v)throw Error(m)};
 export function validatePrefixSource(repo=root){
  const delta=git(repo,'diff','--binary',parent,source,'--','internal');
- requireValue(createHash('sha256').update(delta).digest('hex')==='9a5a8243bebd1b2fa520a12d06f752151038632f40486b33c74ea44a4f0d4256','prefix source derivation differs');
+ requireValue(createHash('sha256').update(delta).digest('hex')==='0656305035e2f2b7cd084c0aeebd0e57443428586656713bf2451037ff43b1ac','prefix source derivation differs');
  requireValue(git(repo,'rev-parse','HEAD:internal').toString().trim()===tree,'current prefix internal tree differs');
  try{git(repo,'diff','--quiet',source,'--','internal')}catch{throw Error('current prefix source differs')}
  requireValue(!git(repo,'ls-files','--others','--exclude-standard','--','internal').toString().trim(),'untracked prefix internal input refused');

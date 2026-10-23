@@ -1,0 +1,310 @@
+{
+  "schema": 1,
+  "sourceCommit": "b8ae642db162ad1293595cd7eff799f2fe30c533",
+  "internalTree": "af2931e0c9109da5ef37d947894bfbe92aa1418b",
+  "runtimeClientTree": "af253ce4ba22f80f7d2f822e3656f5fcbeb94d1d",
+  "sourceDeltaFrom": "9cdaeb0a64bff4d26b2e4b1558c96863d2791640",
+  "deltaBytes": 48044,
+  "deltaSHA256": "0656305035e2f2b7cd084c0aeebd0e57443428586656713bf2451037ff43b1ac",
+  "sourcePins": [
+    {
+      "path": "internal/consensus/block_journal_native_clone.go",
+      "bytes": 3377,
+      "sha256": "3b77eec5d32f492d1067a2247736a3216e4b1a1d818432ba0859f584aed67335"
+    },
+    {
+      "path": "internal/consensus/block_journal_native_clone_test.go",
+      "bytes": 8476,
+      "sha256": "ad3a8538b52e5f650245f929ab61e3265edda908fcbc434bdd7c6e9efed78adb"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/main.go",
+      "bytes": 64408,
+      "sha256": "c068c3232d39e6578b3b6c3483e508e9f10bc9edc29ef21c2a7939d73b5f18c7"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/prefix_replay.go",
+      "bytes": 3069,
+      "sha256": "8123cea6f32093e34942ee4eb77497efe40953661d15efe714637a4494ae08fa"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/prefix_replay_test.go",
+      "bytes": 10584,
+      "sha256": "3765224f6674c385a9595a7f5ef404c451e2983880e832d7e3bfcc3cb692c022"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/durable_reader.go",
+      "bytes": 20890,
+      "sha256": "e7a7670daee3c691ca5eba6dc68da8b70eb09c199ebc758f15f918d425c6f5b3"
+    },
+    {
+      "path": "scripts/loadtest/supply-linux-window.py",
+      "bytes": 113060,
+      "sha256": "3cba731334e82cc6d1c5e5a0521abbc4aea6d90e9cafb948dcf2df64b079ea50"
+    },
+    {
+      "path": "scripts/loadtest/test_supply_linux_window.py",
+      "bytes": 102672,
+      "sha256": "dd6f4b531ea0a2c6bbd0c28e69e16c23401b1f673d41be18f81ad6f89a877266"
+    },
+    {
+      "path": ".github/workflows/chain-core.yml",
+      "bytes": 30335,
+      "sha256": "b385a2c472059da273ef245924ef7bbdc70a7495310cec2a72a3461a9b51d07a"
+    }
+  ],
+  "actualReaderCrosscheck": {
+    "kind": "offline_native_clone_reader_actual_not_network",
+    "original": {
+      "kind": "offline_native_clone_reader_actual_not_network",
+      "report": {
+        "durableReadback": {
+          "prefixReplay": {
+            "calls": 2,
+            "successfulFullReplays": 1,
+            "successfulPrefixReuses": 1,
+            "failures": 0,
+            "durationNs": 764333,
+            "replayedBlocks": 1,
+            "replayedTransactionInputs": 1,
+            "canonicalByteLimit": 16777216,
+            "workPhases": {
+              "gateWait": {
+                "calls": 2,
+                "errors": 0,
+                "durationNs": 1833
+              },
+              "prefixCheck": {
+                "calls": 2,
+                "errors": 0,
+                "durationNs": 1166
+              },
+              "privateJSON": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              },
+              "privateValidate": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 16708
+              },
+              "fullReplay": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 679416
+              },
+              "suffixSetup": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              },
+              "suffixReplay": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              },
+              "suffixEncode": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              },
+              "canonicalCopy": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 1042
+              },
+              "certificatePublish": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 52167
+              },
+              "privateNativeClone": {
+                "calls": 1,
+                "errors": 0,
+                "durationNs": 7333
+              }
+            },
+            "nativeCloneCache": {
+              "snapshotPresent": true,
+              "canonicalBytes": 3984,
+              "height": 2,
+              "accounts": 6,
+              "feeEvents": 1,
+              "lotEntries": 3
+            }
+          },
+          "attempts": 2,
+          "bytesHashed": 6222,
+          "snapshotValidations": 2,
+          "snapshotCacheHits": 0,
+          "transactionVerifications": 2,
+          "blockJournalReplayedBlocks": 1,
+          "blockJournalReplayedTransactionInputs": 1,
+          "blockJournalNativeVerificationFacts": {
+            "capacity": 4096,
+            "string_byte_limit": 4194304,
+            "entries": 1,
+            "retained_string_bytes": 711,
+            "lookups": 1,
+            "hits": 0,
+            "successful_verifications": 1
+          }
+        },
+        "observerPhaseTiming": true,
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "sharedDurableReplay": false,
+        "summary": {
+          "input": 1
+        },
+        "transactions": [
+          {
+            "durableStateHeight": 2,
+            "durableStoreFormat": "block-journal"
+          }
+        ]
+      }
+    },
+    "strictPrefixReadout": {
+      "prefixDurableReplay": true,
+      "stats": {
+        "calls": 2,
+        "successfulFullReplays": 1,
+        "successfulPrefixReuses": 1,
+        "failures": 0,
+        "durationNs": 764333,
+        "replayedBlocks": 1,
+        "replayedTransactionInputs": 1,
+        "canonicalByteLimit": 16777216,
+        "workPhases": {
+          "gateWait": {
+            "calls": 2,
+            "errors": 0,
+            "durationNs": 1833
+          },
+          "prefixCheck": {
+            "calls": 2,
+            "errors": 0,
+            "durationNs": 1166
+          },
+          "privateJSON": {
+            "calls": 0,
+            "errors": 0,
+            "durationNs": 0
+          },
+          "privateValidate": {
+            "calls": 1,
+            "errors": 0,
+            "durationNs": 16708
+          },
+          "fullReplay": {
+            "calls": 1,
+            "errors": 0,
+            "durationNs": 679416
+          },
+          "suffixSetup": {
+            "calls": 0,
+            "errors": 0,
+            "durationNs": 0
+          },
+          "suffixReplay": {
+            "calls": 0,
+            "errors": 0,
+            "durationNs": 0
+          },
+          "suffixEncode": {
+            "calls": 0,
+            "errors": 0,
+            "durationNs": 0
+          },
+          "canonicalCopy": {
+            "calls": 1,
+            "errors": 0,
+            "durationNs": 1042
+          },
+          "certificatePublish": {
+            "calls": 1,
+            "errors": 0,
+            "durationNs": 52167
+          },
+          "privateNativeClone": {
+            "calls": 1,
+            "errors": 0,
+            "durationNs": 7333
+          }
+        },
+        "nativeCloneCache": {
+          "snapshotPresent": true,
+          "canonicalBytes": 3984,
+          "height": 2,
+          "accounts": 6,
+          "feeEvents": 1,
+          "lotEntries": 3
+        }
+      },
+      "interpretation": "Successful full and reused-prefix outputs are separate; failed partial work is not included in completed block/input counts. Counters are not physical RSS or finality.",
+      "prefixNativeClone": true
+    },
+    "limits": "One signed transaction reread from two actual private stores, not new submissions/network TPS."
+  },
+  "historicalOriginalReadout": {
+    "runId": 39964428468,
+    "originalTransactions": 4096,
+    "originalReadoutIdentical": true,
+    "newWorkloadStarted": false
+  },
+  "logs": [
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-selection-red.raw",
+      "bytes": 866,
+      "sha256": "c9cb05de54e12667d43f504d240a69d08c24e9180b31d577adaa95f46a9d2bce"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-controller-pass.raw",
+      "bytes": 168,
+      "sha256": "c3a4e8d934408fc1a3aa46e2686f8d1123f878e76e922a09fbe6b5207cebcd07"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-pair-first.raw",
+      "bytes": 169,
+      "sha256": "79ff05c94a4ebeb2b6679a743b1f9e3fc9b15bcc590d2fab4043e4f300250821"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-client-integration-pass.raw",
+      "bytes": 2882,
+      "sha256": "16c1df32e0a62dc356da5971c116dd8b751f30b3a8633d5e957ea816cb229152"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-client-integration-race.raw",
+      "bytes": 75,
+      "sha256": "55da9e69cb5feaef15d86a6a5f6a6e616bed2c6012156dc0bae6586b4bcd8905"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-integrated-client-regression.raw",
+      "bytes": 76,
+      "sha256": "d1937f586e82430d4e1c84c2a76f333039d191757fe2c9da1731319766a41a2b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-inventory-pass.raw",
+      "bytes": 64,
+      "sha256": "ac9b72e7149fa929f8a325eb51a87accf553395b96c250af9cc158a183b2e9ab"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-reader-crosscheck-actual.json",
+      "bytes": 5164,
+      "sha256": "c4b3f0fa887a7ff5d2bb8925b3d8d0e2b9af1eac6100d05ca5740aa636acecfa"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/abci-drain-window-source/native-clone-historical-39964428468-identical.json",
+      "bytes": 126,
+      "sha256": "804bae80c1aaf9709fdb13099197a0854ab00489ceb0e065b4abc1d450474513"
+    }
+  ],
+  "pregrantContract": {
+    "path": "artifacts/chain-performance-20261017/native-clone-window-source/pregrant-contract.json",
+    "bytes": 2232,
+    "sha256": "3245fbb5fa1afa5d06264449c5d2f6fa85deba96f5cf459bccf6afd0fba1f616"
+  },
+  "limits": "Actual signed private-store readback and source/unit tests. Pair orchestration tests use synthetic fixtures and launch no nodes. No new four-node benchmark or network speedup claim."
+}
