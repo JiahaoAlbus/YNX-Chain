@@ -1,0 +1,182 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-10-23T19:18:50.003800+00:00",
+  "sourceCommit": "90625e9d36cd1bd3a8a53609b6778b8b12056385",
+  "scope": "new explicit native-prefix streaming client source and local validation; no four-node execution or resource admission",
+  "trees": {
+    "internal": "1a720c724a4684d7096a95aa835e43e80905e44c",
+    "cmd/ynx-consensus-perf-client": "a1a8a34d3cabec24442a074b23384c7345c25ef4",
+    "cmd/ynx-abci": "8206358b1f284904285e9f5f78f7fd96eee40818"
+  },
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/next-bounded-prefix-first.raw",
+      "bytes": 337,
+      "sha256": "a47f1939906ce3baa1fd4b7d4e705a7dacde82ff72b561a77e068f9d89aab936"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-focused-first.raw",
+      "bytes": 1176,
+      "sha256": "e20daab7b1ae0ee39f17fed7fc395dcd58b553ee6a83644383b6eabfa7c95a23"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-focused-race.raw",
+      "bytes": 1942,
+      "sha256": "599cb42f7403225a3acf9c25235bad8c1890a18ccfefecee63af4ec7a7098226"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-strict-final-race.raw",
+      "bytes": 1783,
+      "sha256": "f9e0847ead02b688260b06b026f6d160a98aae384f8027064f8fe976ec3de0a1"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-client-full.raw",
+      "bytes": 76,
+      "sha256": "df8817b24da90c34e535db616f0a29486c34b348d9278c538ba9dc6bfa3a4204"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-and-original-race.raw",
+      "bytes": 10242,
+      "sha256": "d6301728b91e53fcf6318e4831a72c2ab6cb7d3119d658b1bec27b7432a54bdc"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-controller-compat.raw",
+      "bytes": 14293,
+      "sha256": "6e116a6aca7056cce0e20f05fecd5f5f262defb48ac5db794d16bf40171d274a"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-final-instance-bound.raw",
+      "bytes": 233,
+      "sha256": "c185f25362203a5fe6f53813a2030766a7b523207afa3ddda43eede36d35b630"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-pace-and-plan-final.raw",
+      "bytes": 468,
+      "sha256": "b19bb6e0b11fb7d71b3dfa4b5930f9c58791613eaa2bb5ab6cee9e1d8f48ba46"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-source/native-stream-final-source-gate.raw",
+      "bytes": 3309,
+      "sha256": "c3e2c8175997f1cdd2184c1cfea516ebe562c53ef6ca08cca35cae4553ffcd33"
+    }
+  ],
+  "actualLocalEvidence": {
+    "realSignedApplicationPipelineInputs": 102,
+    "senderAccounts": 3,
+    "nonceCycles": 34,
+    "checkTxExecutionCommitNativeReadbackRestartAndEvidenceVerified": true,
+    "quorumFlagsAreUnitGateInputs": true,
+    "paddedCurrentInputBytes": 16781349,
+    "paddingIsNotExecutedHistory": true,
+    "selectedStoreAndCanonicalLimitBytes": 33554432,
+    "encodedInputCacheBudgetBytes": 33554432,
+    "actualCacheEvictions": 2,
+    "unknownGate": {
+      "expectedError": "ready sender run incomplete; quarantined inputs are never retried",
+      "callbackStarted": 31,
+      "callbackReturned": 31,
+      "callbackActiveAtEnd": 0,
+      "callbackPeak": 8,
+      "queueWaitSamples": 31,
+      "originalUnknownAttempts": 1,
+      "successor21Attempts": 0,
+      "unknownAcceptedObservation": 0,
+      "completed": 30,
+      "quarantined": 1
+    },
+    "controllerTests": 80,
+    "controllerSeconds": 9.803,
+    "fullOrdinaryClientSecondsBeforeFinalPacePlanDelta": 12.966,
+    "originalAndNewClientRaceSecondsBeforeFinalPacePlanDelta": 10.057,
+    "strictNativeRaceSeconds": 9.213,
+    "finalPacePlanAndOriginalSubmit8RaceSeconds": 1.708,
+    "finalInstanceBoundRaceSeconds": 1.802,
+    "finalSourceGateTests": 14,
+    "finalSourceGateMs": 11254.927667
+  },
+  "failureAccounting": [
+    "Original nonexistent Reused test field compile failure preserved; corrected to actual ReusedPrefixBytes>0 before actual execution.",
+    "Initial unit test incorrectly expected nil error after quarantine; changed test to exact existing incomplete error plus full attempt/observation/drain assertions; production incomplete semantics unchanged.",
+    "Initial large second-store fixture used a direct empty lock file; final test uses the normal NewBlockJournaledApplication constructor, including original writer lease.",
+    "First new-mode draft fixed offer1000; final new mode retains existing positive<=2048 ready pace bound with rate/pacing durably bound. Original single-round nativeSubmit8 remains exactly1000 and rejects higher rates."
+  ],
+  "unchanged": {
+    "oldSingleRoundNative8": true,
+    "defaultReadyWorkers": 4,
+    "originalPrefixByteLimit": 16777216,
+    "nativeSignatureFactEntries": 4096,
+    "nativeSignatureFactBytes": 4194304,
+    "originalSuffixInitializer": true,
+    "fullStateValidation": true,
+    "originalNonceFundingUnknownAndRestartRules": true,
+    "oldNetworkTimeRSSProcessDiskGuards": true
+  },
+  "pending": [
+    "Exact new native-stream resource profile/controller and full segmented raw recovery/qualification.",
+    "Final exact-head normal CI and actual selected test RUN/PASS verification.",
+    "Fresh Root once grant for any network execution; all old grants consumed.",
+    "Genuine growing-history and at least600s stable valid inclusion/final throughput with P50/P95/P99 and error/backlog/resource series."
+  ],
+  "unexecutedTargetPlan": {
+    "initialIndependentSenders": 2048,
+    "rounds": 320,
+    "plannedRecords": 655360,
+    "requestedOfferRate": 1050,
+    "nominalOfferSeconds": 624.152380952381,
+    "reason": "Leave potential warmup/drain margin around600 complete steady seconds; actual monotonic valid-final bins, not this arithmetic, determine acceptance.",
+    "command": [
+      "ynx-consensus-perf-client",
+      "-manifest",
+      "FRESH_ISOLATED_MANIFEST",
+      "-transactions",
+      "FRESH_SIGNED_INPUTS",
+      "-output",
+      "NEW_RESULT",
+      "-native-stream8",
+      "-prefix-durable-replay",
+      "-prefix-native-clone",
+      "-observer-native-facts",
+      "-observer-phase-timing",
+      "-streaming-workload",
+      "-terminal-stream",
+      "-reuse-result-slots",
+      "-segmented-intents",
+      "-terminal-gzip",
+      "-concurrency",
+      "8",
+      "-observers",
+      "4",
+      "-sender-mode",
+      "ready-pool",
+      "-inclusion-mode",
+      "block-scan",
+      "-pacing-mode",
+      "relative",
+      "-offered-rate",
+      "1050",
+      "-rounds",
+      "320",
+      "-timeout",
+      "15m",
+      "-poll",
+      "100ms",
+      "-evidence-byte-budget",
+      "2147483648",
+      "-durable-store-byte-limit",
+      "536870912",
+      "-durable-cache-byte-budget",
+      "2147483648"
+    ],
+    "executionAuthorized": false,
+    "resourcesAdmitted": false,
+    "existingWorkloadMaxRecords": 1000000,
+    "existingWorkloadMaxSeconds": 900,
+    "encodedBudgetsAreNotHeapRSSOrFilesystemAdmission": true
+  },
+  "networkExecuted": false,
+  "businessTPS": null,
+  "actualInclusionLatency": null,
+  "actualFinalityLatency": null,
+  "sustained1000Qualified": false,
+  "releaseQualified": false
+}
