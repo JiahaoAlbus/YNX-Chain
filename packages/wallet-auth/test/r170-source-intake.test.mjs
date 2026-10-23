@@ -12,10 +12,13 @@ const pins=[{"path":"apps/wallet-desktop/native/original-auth-identity-node.mm",
 // R170 H7871/90f09d0e supplied complete successor includes R167 carrier.
 // Only source-selection checks here; original normal3/PUBLIC5 Native evidence
 // is reused, not rebuilt/reexecuted or treated as approval/publication.
-test('R170 exact four leaves join complete normal72+5 inventory without intermediate R167 application',()=>{
- const {contract}=verifySDK332R140Source(root);assert.equal(contract.version,'1.3.0-pq.3.32-auth.15');assert.equal(contract.NativeInputs.length,72);assert.equal(contract.HelperInputs.length,5);assert.equal(new Set([...contract.NativeInputs,...contract.HelperInputs].map(p=>p.path)).size,77);
- for(const p of pins){const actual=readFileSync(resolve(root,p.path));assert.equal(actual.length,p.bytes);assert.equal(sha(actual),p.sha256);assert.deepEqual(contract.NativeInputs.find(pin=>pin.path===p.path),p);}
- const supplier=contract.supplierR170;assert.equal(supplier.handoff.bytes,7871);assert.equal(supplier.handoff.sha256,'90f09d0e248c2e5be2b9285c53ae071399e7598ab6f9779a0e791ddb1ce9d616');assert.deepEqual(supplier.sourceLeaves,pins);assert.equal(supplier.R167SourceAppliedSeparately,false);assert.equal(supplier.parents[0].bytes,3840);assert.equal(supplier.parents[0].sha256,'b8cce9b811b20e215d8b5a31256676d479c1cd5846461e27820669c42d37e098');assert.equal(supplier.parents[1].sha256,'523c9081c00d26f375fc7138ad0025afcbe0a2e1f7adb9db20d09b99332de2f2');
+const selectedVersion=JSON.parse(readFileSync(resolve(root,'packages/wallet-auth/package.json'))).version,r172=selectedVersion==='1.3.0-pq.3.32-auth.16';
+const r172NodePin={"path":"apps/wallet-desktop/native/original-auth-identity-node.mm","bytes":81282,"sha256":"579e2756a755d3b759a39ead2811549bc13961dc8cd864354b6f4af02d2188d2"};
+const currentPins=r172?pins.map(p=>p.path===r172NodePin.path?r172NodePin:p):pins;
+test('Inherited R170 complete source pins retain original provenance with explicit selected Node successor',()=>{
+ const {contract}=verifySDK332R140Source(root);assert.ok(['1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16'].includes(contract.version));assert.equal(contract.NativeInputs.length,72);assert.equal(contract.HelperInputs.length,5);assert.equal(new Set([...contract.NativeInputs,...contract.HelperInputs].map(p=>p.path)).size,77);
+ for(const p of currentPins){const actual=readFileSync(resolve(root,p.path));assert.equal(actual.length,p.bytes);assert.equal(sha(actual),p.sha256);assert.deepEqual(contract.NativeInputs.find(pin=>pin.path===p.path),p);}
+ const supplier=contract.supplierR170;assert.equal(supplier.handoff.bytes,7871);assert.equal(supplier.handoff.sha256,'90f09d0e248c2e5be2b9285c53ae071399e7598ab6f9779a0e791ddb1ce9d616');assert.deepEqual(supplier.sourceLeaves,pins);if(r172)assert.deepEqual(contract.supplierR172.sourceLeaves,[r172NodePin]);assert.equal(supplier.R167SourceAppliedSeparately,false);assert.equal(supplier.parents[0].bytes,3840);assert.equal(supplier.parents[0].sha256,'b8cce9b811b20e215d8b5a31256676d479c1cd5846461e27820669c42d37e098');assert.equal(supplier.parents[1].sha256,'523c9081c00d26f375fc7138ad0025afcbe0a2e1f7adb9db20d09b99332de2f2');
  for(const flag of ['sourceTestArtifactCopied','normalNativeBuild','matchingApp','genuineSource','currentPublisher','MainApprovalEffect','actualApproval','signature','publication'])assert.equal(supplier[flag],false);
  assert.equal(contract.supplierR166.handoff.sha256,'54609d7d3035c8445adf3460c021d121caa6b0be8fd51952c77d80de66974241');
 });

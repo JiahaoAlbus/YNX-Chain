@@ -585,6 +585,10 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #include "original-ide-auth-identity-binding.inc.mm"
 #include "original-ide-contract-relay-binding.inc.mm"
 static napi_value Register(napi_env env,napi_value exports){
+ // This original addon owns main-thread-only platform Source/UI/native
+ // inventories. Worker environments cannot borrow them via DATA exports.
+ // Refuse BEFORE registering callbacks or any environment cleanup hook.
+ if(!pthread_main_np())return Error(env,"AUTH_IDENTITY_ADDON_MAIN_THREAD_REQUIRED");
  napi_property_descriptor publication={"acquireOriginalIDEProtectedPublicationKeyCall",nullptr,IDEIdentityConstruct,nullptr,nullptr,nullptr,napi_default,(void*)4};
  if(napi_define_properties(env,exports,1,&publication)!=napi_ok)return nullptr;
  struct Method {const char *name;napi_callback callback;void *data;};

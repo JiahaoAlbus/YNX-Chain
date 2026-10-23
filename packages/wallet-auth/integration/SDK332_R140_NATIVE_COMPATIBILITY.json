@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.15",
+  "version": "1.3.0-pq.3.32-auth.16",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -244,8 +244,8 @@
   "NativeInputs": [
     {
       "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
-      "bytes": 80978,
-      "sha256": "7fd76fdc2f99c26f4c8a1e9e82c8c70d8e936f2c62c921dee268bdaab2eeb30e"
+      "bytes": 81282,
+      "sha256": "579e2756a755d3b759a39ead2811549bc13961dc8cd864354b6f4af02d2188d2"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-auth-identity-binding.inc.mm",
@@ -695,7 +695,7 @@
       "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
     }
   ],
-  "profile": "R170-typed-publication-caller-native",
+  "profile": "R172-native-main-thread-publication-client-helper",
   "HelperInputs": [
     {
       "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
@@ -968,5 +968,88 @@
     "actualApproval": false,
     "signature": false,
     "publication": false
+  },
+  "supplierR172": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/HANDOFF.json",
+      "bytes": 4614,
+      "sha256": "e14e57d57093298eb03f22e6db576dac058d1f8f22968707331b3f7ca6bd31c6"
+    },
+    "parent": {
+      "path": "/Users/huangjiahao/.codex/worktrees/wallet-auth-wallet-source/YNX Chain/.wallet-source-evidence/auth15-d4ad9d20-ci-package/FINAL_HANDOFF.json",
+      "bytes": 2869,
+      "sha256": "c850750757d98e09d68e9bdc341afaf2fcd26a0adfcb5e06a75440b9a61b538d"
+    },
+    "sourceLeaves": [
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 81282,
+        "sha256": "579e2756a755d3b759a39ead2811549bc13961dc8cd864354b6f4af02d2188d2"
+      }
+    ],
+    "originalWorkerSignal": "SIGSEGV",
+    "originalWorkerCount": 2,
+    "originalEvidenceReused": {
+      "metadata": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/result.json",
+        "bytes": 124,
+        "sha256": "eea01ce9fc9af091c06d570477366a9a4347bbac1ae703be4cfd4121a10fc670"
+      },
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/stdout",
+        "bytes": 536,
+        "sha256": "42db4ac5e28a21d0d8c2cafc133765f8e51dc2e5b6f93da30279257adb46bf0b"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "oldAddon": "/Volumes/西部数据/YNX-large-work/auth-owned-r170/evidence/run-5c2bvD/normal.node",
+      "outerExit": 1,
+      "actualTestChildSignal": "SIGSEGV",
+      "realWorkers": 2,
+      "firstUnclassifiedProbePreserved": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-pTw2nz/result.json",
+        "bytes": 124,
+        "sha256": "eea01ce9fc9af091c06d570477366a9a4347bbac1ae703be4cfd4121a10fc670"
+      },
+      "causeBoundary": "Concurrent unsupported worker environments can access original addon shared state. This reproduces the failure; it does not attribute a crash stack to one exact std::set instruction."
+    },
+    "newNativeEvidenceReused": {
+      "result": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/run-JuA72P/result.json",
+        "bytes": 5256,
+        "sha256": "f641a9503ad675fa506a7302c73bb81de43987afac6eb0357f16bb5466244fb3"
+      },
+      "test": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/worker.test.mjs",
+        "bytes": 1961,
+        "sha256": "1ef6186c92c5d68d855a727efe7658b48bfdca9e8135a3493e30a6f07d84edff"
+      },
+      "runner": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/run.mjs",
+        "bytes": 3209,
+        "sha256": "6e7d5287e17af4f6d2b08fb6c1e7b5fefb35a68b3bbc8616a4930a2e730779f0"
+      },
+      "normalExactSDK15Base": true,
+      "translationUnits": 13,
+      "nmOwnUndefined": [],
+      "newGroups": 2,
+      "checks": [
+        "two real workers deterministically fail initialization with exact error",
+        "normal actual process main thread still captures immutable artifact DATA and closes"
+      ],
+      "oldGreenRerun": false
+    },
+    "normalNativeBuild": false,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "matchingApp": false,
+    "SourceGrant": false,
+    "installedOrPublic": false,
+    "approval": false,
+    "sign": false,
+    "transaction": false
   }
 }

@@ -5,6 +5,14 @@ normal source inventory. Auth14 remains immutable. Use the existing Node-only
 `@ynx-chain/wallet-auth/original-ide-admission` export through the same SDK root
 as the original peer and request-owner consumers.
 
+Auth16 includes the frozen R172 main-thread registration fix. The original
+addon refuses worker initialization with `AUTH_IDENTITY_ADDON_MAIN_THREAD_REQUIRED`
+before exporting callbacks or registering environment cleanup. This includes
+the artifact DATA bridge; it is not a general worker API. The original process
+main-thread API remains unchanged. Pure SDK codecs/math and the separate batch
+provider are not changed by this Native registration boundary. Auth15's frozen
+R170 addon reproduced a real two-worker SIGSEGV and does not contain this fix.
+
 The Native calls are:
 
 ```text
