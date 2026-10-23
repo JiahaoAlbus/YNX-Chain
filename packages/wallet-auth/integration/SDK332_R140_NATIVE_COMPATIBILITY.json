@@ -543,8 +543,8 @@
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 9488,
-    "sha256": "78d8b556ba3b7434a6331087e7cb352b86b8a93247607dc42dffea5d864e43c5"
+    "bytes": 9828,
+    "sha256": "1717c0dd25f19546d706989720e037d836e859d6a139edb81daa3026730444e1"
   },
   "require": {
     "translationUnits": 11,

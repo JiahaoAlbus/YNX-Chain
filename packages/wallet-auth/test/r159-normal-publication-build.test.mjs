@@ -14,3 +14,7 @@ test('normal post-link guard rejects an unresolved own publication parser even w
  for(const name of ['_YNXParseOriginalIDEPublicationManifest','_OBJC_CLASS_$_YNXOriginalIDEPublicationArtifact','__ZN3YNX6memberEv'])assert.throws(()=>builder.assertOriginalAuthOwnedSymbols(name),/OWNED_SYMBOL_UNRESOLVED/);
  assert.doesNotThrow(()=>builder.assertOriginalAuthOwnedSymbols('                 U _napi_create_object\n                 U _objc_msgSend'));
 });
+test('owned scan reads actual symbol rows without rejecting universal binary filename headings',()=>{
+ assert.doesNotThrow(()=>builder.assertOriginalAuthOwnedSymbols('/original/YNX Chain/YNXIdentityReceiver (for architecture arm64):\n_napi_create_object\n_objc_msgSend\n'));
+ assert.throws(()=>builder.assertOriginalAuthOwnedSymbols('/original/YNX Chain/output (for architecture x86_64):\n_YNXParseOriginalIDEPublicationManifest\n'),/OWNED_SYMBOL_UNRESOLVED/);
+});

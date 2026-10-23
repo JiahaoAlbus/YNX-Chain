@@ -5,7 +5,13 @@ import path from 'node:path';
 const here=fileURLToPath(import.meta.url),app=path.resolve(path.dirname(here),'..'),repo=path.resolve(app,'../..');
 export function assertOriginalAuthOwnedSymbols(undefinedSymbols){
  if(typeof undefinedSymbols!=='string')throw Error('AUTH_NATIVE_OWNED_SYMBOL_SCAN_INVALID');
- if(/YNX|ynx/.test(undefinedSymbols))throw Error('AUTH_NATIVE_OWNED_SYMBOL_UNRESOLVED');
+ // nm -u on a universal Mach-O also emits filename/architecture headings.
+ // Inspect symbol rows only; a YNX checkout path is not an undefined symbol.
+ const symbols=undefinedSymbols.split(/\r?\n/).flatMap(line=>{
+  const symbol=line.match(/^\s*(?:U\s+)?([A-Za-z_$][A-Za-z0-9_$.]*)\s*$/);
+  return symbol?[symbol[1]]:[];
+ });
+ if(symbols.some(symbol=>/YNX|ynx/.test(symbol)))throw Error('AUTH_NATIVE_OWNED_SYMBOL_UNRESOLVED');
 }
 export function validateOriginalMacMinimumSystemVersion(value){
  if(typeof value!=='string'||!/^[1-9][0-9]*\.(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*))?$/.test(value)||value.length>24)throw Error('AUTH_NATIVE_PACKAGE_MINIMUM_INVALID');
