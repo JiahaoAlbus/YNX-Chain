@@ -7,8 +7,10 @@ These DATA tests cannot qualify an installed signer, Root or signing session.
 """
 import argparse
 import base64
+import contextlib
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -346,6 +348,124 @@ class SignerInstallTests(unittest.TestCase):
                 self.assertEqual(f.host.owners, owners)
                 for p, raw in saved.items(): self.assertEqual(p.read_bytes(), raw)
                 if name == 'partial': self.assertTrue(f.host.destination(installer.TARGETS['launcher']).exists())
+
+
+class SignerInstallerCLIControls(unittest.TestCase):
+    """Real main parsers with an explicit non-executing run-boundary sentinel."""
+    values = {
+        'runtime-bundle': '/synthetic/normal-runtime', 'runtime-commit': 'a' * 40,
+        'runtime-source-sha256': '1' * 64, 'operator-plan': '/synthetic/operator-plan.json',
+        'operator-plan-sha256': '2' * 64, 'role': 'primary', 'config': '/synthetic/config.json',
+        'config-sha256': '3' * 64, 'unit-sha256': '4' * 64,
+        'operator-inputs-directory': '/synthetic/public-inputs', 'credential-sha256': '5' * 64,
+    }
+
+    class RunBoundary(RuntimeError):
+        pass
+
+    def argv(self, values=None, equals=False):
+        values = self.values if values is None else values
+        return [arg for name, value in values.items()
+                for arg in (['--'+name+'='+value] if equals else ['--'+name,value])]
+
+    @contextlib.contextmanager
+    def boundary(self, module):
+        # No installer, service/account observation, parser subprocess or file
+        # reader can run while testing either original or fixed entrypoints.
+        with contextlib.ExitStack() as stack:
+            functions = {}
+            for name in ('LocalHost','read','regular','runtime_inputs','rendered','original_inputs'):
+                functions[name] = stack.enter_context(mock.patch.object(module,name))
+            functions['subprocess'] = stack.enter_context(mock.patch.object(installer.subprocess,'run',side_effect=AssertionError('CLI attempted host command')))
+            functions['open'] = stack.enter_context(mock.patch.object(installer.os,'open',side_effect=AssertionError('CLI attempted file open')))
+            run = stack.enter_context(mock.patch.object(module,'run',side_effect=self.RunBoundary))
+            output = stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            stack.enter_context(contextlib.redirect_stderr(io.StringIO()))
+            yield run, functions, output
+            for function in functions.values():
+                function.assert_not_called()
+
+    def original(self):
+        # Reconstruct the complete reachable 0e67 Git callee by reversing only
+        # this entrypoint repair, then require its independent whole-file pin.
+        # No copied historical implementation or shallow-Git/network reliance.
+        current = FILE.read_bytes()
+        changed = b'''    required = ('runtime-bundle', 'runtime-commit', 'runtime-source-sha256', 'operator-plan', 'operator-plan-sha256',
+                'role', 'config', 'config-sha256', 'unit-sha256', 'operator-inputs-directory', 'credential-sha256')
+    for name in required:
+'''
+        previous = b'''    for name in ('runtime-bundle', 'runtime-commit', 'runtime-source-sha256', 'operator-plan', 'operator-plan-sha256',
+                 'role', 'config', 'config-sha256', 'unit-sha256', 'operator-inputs-directory', 'credential-sha256'):
+'''
+        guard = b'''    for name in (*required, 'install', 'output-dir'):
+        need(sum(item.split('=', 1)[0] == '--' + name for item in argv) <= 1,
+             'DUPLICATE_INSTALLER_OPTION_REFUSED')
+'''
+        self.assertEqual(current.count(changed),1)
+        self.assertEqual(current.count(guard),1)
+        raw = current.replace(changed,previous,1).replace(guard,b'',1)
+        self.assertEqual(len(raw),24485)
+        self.assertEqual(sha(raw),'710ec9ed5ec82c455fe6b385f5a4254f37551ada9b4d1ee670f0da4f2a878b28')
+        module = type(installer)('signer_installer_original_0e67')
+        module.__file__ = str(FILE)
+        exec(compile(raw,str(FILE),'exec'),module.__dict__)
+        return module
+
+    def test_actual_original_0e67_last_wins_then_fixed_refuses_same_security_inputs(self):
+        original = self.original()
+        for name, replacement in [('operator-plan-sha256','f'*64),('config','/synthetic/replaced-config.json'),
+                                  ('credential-sha256','e'*64)]:
+            for style in ('separate','equals','mixed'):
+                # All forms use the original caller's complete required argv.
+                # Only run's boundary is observed, never an installation result.
+                args = self.argv(equals=style=='mixed')
+                args += ['--'+name+'='+replacement] if style in ('equals','mixed') else ['--'+name,replacement]
+                with self.subTest(name=name,style=style),self.boundary(original) as (run,_,out):
+                    with self.assertRaises(self.RunBoundary): original.main(args)
+                    self.assertEqual(getattr(run.call_args.args[0],name.replace('-','_')),replacement)
+                    self.assertEqual(run.call_count,1);self.assertEqual(out.getvalue(),'')
+                with self.boundary(installer) as (run,_,out):
+                    with self.assertRaisesRegex(ValueError,'DUPLICATE_INSTALLER_OPTION_REFUSED'):installer.main(args)
+                    run.assert_not_called();self.assertEqual(out.getvalue(),'')
+        print('REMOTE_SIGNER_CLI_ORIGINAL_0E67_LAST_WINS_RED_FIXED_DUPLICATE_REFUSED_DATA_ONLY')
+
+    def test_every_supported_option_duplicate_refuses_before_parse_io_host_or_run(self):
+        options = dict(self.values, **{'output-dir':'/synthetic/install-attempt'})
+        for name in (*options,'install'):
+            for style in ('separate','equals','mixed','reverse-mixed'):
+                values = {key:value for key,value in self.values.items() if key != name}
+                args = self.argv(values)
+                if name == 'install': extra = ['--install','--install']
+                else:
+                    old = options[name]; new = '/synthetic/replacement' if old.startswith('/') else 'replaced'
+                    first = ['--'+name,old] if style in ('separate','mixed') else ['--'+name+'='+old]
+                    second = ['--'+name,new] if style in ('separate','reverse-mixed') else ['--'+name+'='+new]
+                    extra = first+second
+                with self.subTest(name=name,style=style),self.boundary(installer) as (run,_,out), \
+                        mock.patch.object(installer.argparse.ArgumentParser,'parse_args') as parse:
+                    with self.assertRaisesRegex(ValueError,'DUPLICATE_INSTALLER_OPTION_REFUSED'):installer.main(args+extra)
+                    parse.assert_not_called();run.assert_not_called();self.assertEqual(out.getvalue(),'')
+
+    def test_legal_single_options_keep_default_data_and_explicit_install_run_boundary(self):
+        for equals in (False,True):
+            for install, output in ((False,None),(False,'/synthetic/data-output'),(True,'/synthetic/install-attempt')):
+                values = dict(self.values)
+                if output is not None: values['output-dir'] = output
+                args = self.argv(values,equals)
+                if install:args.append('--install')
+                with self.subTest(equals=equals,install=install,output=output),self.boundary(installer) as (run,_,out):
+                    with self.assertRaises(self.RunBoundary):installer.main(args)
+                    namespace = run.call_args.args[0]
+                    self.assertEqual(vars(namespace),{**{name.replace('-','_'):value for name,value in self.values.items()},
+                                                      'install':install,'output_dir':output})
+                    self.assertEqual(run.call_count,1);self.assertEqual(out.getvalue(),'')
+
+    def test_unknown_abbreviated_and_positional_options_still_refuse_before_run(self):
+        for extra in (['--operator-plan-sha','f'*64],['--conf','/synthetic/foreign'],['--start'],
+                      ['--install=true'],['unexpected']):
+            with self.subTest(extra=extra),self.boundary(installer) as (run,_,out):
+                with self.assertRaises(SystemExit) as stopped:installer.main(self.argv()+extra)
+                self.assertEqual(stopped.exception.code,2);run.assert_not_called();self.assertEqual(out.getvalue(),'')
 
 
 if __name__ == '__main__':

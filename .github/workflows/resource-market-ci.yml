@@ -418,6 +418,17 @@ jobs:
         run: |
           python3 -B -m unittest discover -s scripts/verify -p 'test_original_native_copy_guard.py' -v
           python3 -B -m unittest discover -s scripts/verify -p 'test_retained_native_export_guard.py' -v
+      - name: Verify Linux window controls without starting a node
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: |
+          bash scripts/verify/reuse-pq-history-counterexamples-check.sh
+          python3 -B scripts/loadtest/test_pq_paired_linux_window.py
+          python3 -B scripts/loadtest/test_pq_network_file_sizes.py
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_install_pq_remote_signer.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
       - name: Verify pure dual-PQ protocol and account authorization
         id: pqprotocol
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
@@ -1160,17 +1171,6 @@ jobs:
           cat "$YNX_EXIT_CASE/original-diagnostic-red.log"
           test "$YNX_DIAGNOSTIC_RED_STATUS" -ne 0
           grep -F 'PRIVATE_COPY_RSS_DIAGNOSTIC_MISSING' "$YNX_EXIT_CASE/original-diagnostic-red.log"
-      - name: Verify Linux window controls without starting a node
-        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: |
-          bash scripts/verify/reuse-pq-history-counterexamples-check.sh
-          python3 -B scripts/loadtest/test_pq_paired_linux_window.py
-          python3 -B scripts/loadtest/test_pq_network_file_sizes.py
-          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
-          python3 -B -m unittest discover -s scripts/ops -p 'test_install_pq_remote_signer.py' -v
-          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
-          python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
-          python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
       - name: Verify operator checkpoint format and original read-lock admission
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |

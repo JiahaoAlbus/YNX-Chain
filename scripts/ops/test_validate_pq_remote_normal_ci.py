@@ -542,6 +542,11 @@ def assert_workflow_contract(raw):
     need(condition(controls[0]) == "${{ !cancelled() && steps.identity.outcome == 'success' }}")
     need("test_validate_pq_remote_normal_ci.py" in controls[0]
          and "scripts/loadtest/test_pq_paired_linux_window.py" in controls[0])
+    # Pure source/CLI admission controls need no compiled inputs and must fail
+    # before the expensive protocol group, while still executing only once.
+    protocol = [step for step in steps if step.startswith(
+        "      - name: Verify pure dual-PQ protocol and account authorization\n")]
+    need(len(protocol) == 1 and steps.index(controls[0]) < steps.index(protocol[0]))
     receipts = [step for step in steps if step.startswith((
         "      - name: Record public retained network-file size metadata after owned cleanup\n",
         "      - name: Preserve only public network-test logs and guard receipt\n"))]
@@ -891,6 +896,20 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             self.assertIn(before, raw)
             with self.subTest(before=before), self.assertRaises(AssertionError):
                 assert_workflow_contract(raw.replace(before, after, 1))
+        # Keep the complete original controls block, its condition and every
+        # command; changing only its position after pure PQ must be refused.
+        assert_workflow_contract(raw)
+        _, steps = workflow_steps(raw)
+        controls = next(step for step in steps if step.startswith(
+            "      - name: Verify Linux window controls without starting a node\n"))
+        protocol = next(step for step in steps if step.startswith(
+            "      - name: Verify pure dual-PQ protocol and account authorization\n"))
+        late_controls = raw.replace(controls, "", 1).replace(protocol, protocol + controls, 1)
+        self.assertNotEqual(late_controls, raw)
+        self.assertEqual(late_controls.count(controls), 1)
+        self.assertGreater(late_controls.index(controls), late_controls.index(protocol))
+        with self.subTest(late_controls=True), self.assertRaises(AssertionError):
+            assert_workflow_contract(late_controls)
 
     def test_remote_contract_prerequisite_is_generated_from_same_source_before_any_network_start(self):
         # This tests the real workflow source contract, not a GitHub scheduler,

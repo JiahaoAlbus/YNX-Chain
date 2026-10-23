@@ -415,11 +415,15 @@ def run(args, host=None):
 
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
-    for name in ('runtime-bundle', 'runtime-commit', 'runtime-source-sha256', 'operator-plan', 'operator-plan-sha256',
-                 'role', 'config', 'config-sha256', 'unit-sha256', 'operator-inputs-directory', 'credential-sha256'):
+    required = ('runtime-bundle', 'runtime-commit', 'runtime-source-sha256', 'operator-plan', 'operator-plan-sha256',
+                'role', 'config', 'config-sha256', 'unit-sha256', 'operator-inputs-directory', 'credential-sha256')
+    for name in required:
         parser.add_argument('--' + name, required=True)
     parser.add_argument('--install', action='store_true')
     parser.add_argument('--output-dir')
+    for name in (*required, 'install', 'output-dir'):
+        need(sum(item.split('=', 1)[0] == '--' + name for item in argv) <= 1,
+             'DUPLICATE_INSTALLER_OPTION_REFUSED')
     result = run(parser.parse_args(argv))
     print(json.dumps(result, separators=(',', ':')))
 
