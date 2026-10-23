@@ -5,8 +5,18 @@
 #include <unistd.h>
 #include <cstring>
 #include <pthread.h>
+#include <chrono>
+#import <AppKit/AppKit.h>
 #import "../../../packages/wallet-auth/native/original-auth-identity-source-authority.h"
 #import "../../../packages/wallet-auth/native/original-ide-publication-artifact.h"
+#import "../../../packages/wallet-auth/native/original-ide-wallet-identity-source.h"
+#import "../../../packages/wallet-auth/native/original-ide-wallet-peer-launch.h"
+// Reuse original Auth's bounded DATA parsers, not a parallel R13 or request
+// signature implementation. Their Native Source already verifies registration.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#import "../../../packages/wallet-auth/native/original-ide-project-authority-data.h"
+#pragma clang diagnostic pop
 
 @implementation YNXOriginalArtifactPublisherCurrent {
  YNXAuthIdentitySourceAuthority *_source;
@@ -83,6 +93,89 @@
   if(![_source close:&e]||e){_closeCause=e?:[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:2 userInfo:@{NSLocalizedDescriptionKey:@"PUBLISHER_CLOSE_UNKNOWN"}];if(error)*error=_closeCause;return NO;}
   _closed=YES;_source=nil;return YES;
  }@catch(NSException *){_closeCause=[NSError errorWithDomain:@"YNXArtifactPublisherCurrent" code:2 userInfo:@{NSLocalizedDescriptionKey:@"PUBLISHER_CLEANUP_EXCEPTION"}];if(error)*error=_closeCause;return NO;}@finally{_closing=NO;}
+}}
+@end
+
+static BOOL PublisherApprovalFocused(){
+#if defined(YNX_PUBLISHER_STORE_PUBLIC_TEST)
+ return YES; // PUBLIC control seam, never compiled into the normal user addon.
+#else
+ return NSRunningApplication.currentApplication.active;
+#endif
+}
+@implementation YNXOriginalArtifactReleaseApproval {
+ YNXOriginalIDEWalletIdentitySource *_wallet;YNXOriginalIDEWalletPeerLaunch *_transport;
+ YNXOriginalArtifactPublisherCurrent *_publisher;
+ NSDictionary *_packet,*_request,*_manifest,*_binding;
+ NSString *_reviewId,*_approvalRef;NSData *_rawRequest,*_rawManifest;
+ NSError *_first;BOOL _checking,_decisionSelected,_approved,_signSelected,_retired,_closed;
+ uint64_t _floor,_expires;std::chrono::steady_clock::time_point _deadline;
+}
+- (instancetype)initPrivate {return [super init];}
+- (BOOL)refuse:(NSString *)code cause:(NSError *)cause error:(NSError **)error {
+ if(!_first)_first=cause?:[NSError errorWithDomain:@"YNXArtifactReleaseApproval" code:1 userInfo:@{NSLocalizedDescriptionKey:code}];if(error)*error=_first;return NO;
+}
+- (NSDictionary *)current:(NSError **)error {
+ if(!pthread_main_np()||getuid()==0||getuid()!=geteuid())return [self refuse:@"PUBLISHER_APPROVAL_ORIGINAL_ACTOR_REQUIRED" cause:nil error:error],nil;
+ if(_checking)return [self refuse:@"PUBLISHER_APPROVAL_REENTRANT" cause:nil error:error],nil;
+ if(_first||_retired||_closed)return [self refuse:@"PUBLISHER_APPROVAL_RETIRED" cause:nil error:error],nil;
+ _checking=YES;
+ @try{
+  const uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);
+  if(before<_floor||before>=_expires||std::chrono::steady_clock::now()>=_deadline)return [self refuse:@"PUBLISHER_APPROVAL_EXPIRED" cause:nil error:error],nil;
+  NSError *e=nil;
+  if(![_wallet assertCurrent:&e]||e||![_transport assertCurrent:&e]||e)return [self refuse:@"PUBLISHER_APPROVAL_CHANNEL_REFUSED" cause:e error:error],nil;
+  NSDictionary*packet=[_transport copyCapturedRequest:&e];NSData*request=[_wallet copyRequest:&e];
+  if(e||![packet isEqual:_packet]||![request isEqual:_rawRequest])return [self refuse:@"PUBLISHER_APPROVAL_ORIGINAL_CHANGED" cause:e error:error],nil;
+  NSDictionary*snapshot=[_publisher copyOriginalPublisherSnapshot:&e];
+  if(e||!snapshot)return [self refuse:@"PUBLISHER_APPROVAL_CURRENT_REFUSED" cause:e error:error],nil;
+  NSDictionary*binding=SourceProjectR13(snapshot[@"publisherOriginal"]);
+  if(!binding||![binding[@"subjectOwner"]isEqual:_request[@"owner"]]||![binding[@"networkId"]isEqual:_request[@"networkId"]]||![binding[@"account"]isEqual:snapshot[@"publisher"][@"account"]]||![binding[@"projectId"]isEqual:_manifest[@"projectId"]]||![binding[@"publisherId"]isEqual:snapshot[@"publisher"][@"publisherId"]]||(_binding&&![_binding isEqual:binding]))return [self refuse:@"PUBLISHER_APPROVAL_BINDING_CHANGED" cause:nil error:error],nil;
+  NSDictionary*last=[_transport copyCapturedRequest:&e];request=[_wallet copyRequest:&e];
+  const uint64_t after=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);
+  if(e||![last isEqual:_packet]||![request isEqual:_rawRequest]||after<before||after>=_expires||std::chrono::steady_clock::now()>=_deadline||_retired||_closed||_first)return [self refuse:@"PUBLISHER_APPROVAL_POST_CURRENT_REFUSED" cause:e error:error],nil;
+  if(!_binding)_binding=[binding copy];_floor=after;return snapshot;
+ }@catch(NSException*){return [self refuse:@"PUBLISHER_APPROVAL_CURRENT_UNKNOWN" cause:nil error:error],nil;}@finally{_checking=NO;}
+}
++ (instancetype)captureWalletSource:(YNXOriginalIDEWalletIdentitySource*)wallet transport:(YNXOriginalIDEWalletPeerLaunch*)transport error:(NSError**)error {
+ if(error)*error=nil;auto owner=[[self alloc]initPrivate];owner->_reviewId=NSUUID.UUID.UUIDString.lowercaseString;
+ @try{
+  if(!pthread_main_np()||getuid()==0||getuid()!=geteuid()||!wallet||wallet.class!=YNXOriginalIDEWalletIdentitySource.class||!transport||transport.class!=YNXOriginalIDEWalletPeerLaunch.class){[owner refuse:@"PUBLISHER_APPROVAL_ORIGINAL_CHANNEL_REQUIRED" cause:nil error:error];return owner;}
+  owner->_wallet=wallet;owner->_transport=transport;NSError*e=nil;
+  if(![wallet assertCurrent:&e]||e||![transport assertCurrent:&e]||e){[owner refuse:@"PUBLISHER_APPROVAL_CHANNEL_REFUSED" cause:e error:error];return owner;}
+  NSDictionary*packet=[transport copyCapturedRequest:&e];NSString*raw=packet[@"requestRaw"],*invocation=packet[@"invocationRaw"];
+  if(e||![raw isKindOfClass:NSString.class]||![invocation isKindOfClass:NSString.class]){[owner refuse:@"PUBLISHER_APPROVAL_PACKET_REQUIRED" cause:e error:error];return owner;}
+  owner->_rawRequest=[raw dataUsingEncoding:NSUTF8StringEncoding];owner->_rawManifest=[invocation dataUsingEncoding:NSUTF8StringEncoding];owner->_packet=[packet copy];
+  owner->_request=SourceProofDictionary(owner->_rawRequest,16384);owner->_manifest=YNXParseOriginalIDEPublicationManifest(owner->_rawManifest,&e);
+  uint64_t issued=0,expires=0,now=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);
+  if(e||!owner->_request||!owner->_manifest||![owner->_request[@"requestId"]isKindOfClass:NSString.class]||![owner->_request[@"requestId"]length]||![owner->_request[@"purpose"]isEqual:@"AUTH-PROTECTED-KEY-CALL"]||!SourceProofU64(owner->_request[@"issuedAtMs"],issued,true)||!SourceProofU64(owner->_request[@"expiresAtMs"],expires,true)||expires<=issued||expires-issued>30000||now<issued||now>=expires){[owner refuse:@"PUBLISHER_APPROVAL_REQUEST_WINDOW_REFUSED" cause:e error:error];return owner;}
+  owner->_expires=expires;owner->_floor=now;owner->_deadline=std::chrono::steady_clock::now()+std::chrono::milliseconds(expires-now);
+  owner->_publisher=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:owner->_rawManifest error:&e]; // adopt partial first
+  if(e||!owner->_publisher){[owner refuse:@"PUBLISHER_APPROVAL_PUBLISHER_REQUIRED" cause:e error:error];return owner;}
+  [owner current:error];return owner;
+ }@catch(NSException*){[owner refuse:@"PUBLISHER_APPROVAL_CAPTURE_UNKNOWN" cause:nil error:error];return owner;}
+}
+- (NSDictionary*)copyOriginalReview:(NSError**)error {@synchronized(self){if(error)*error=nil;NSDictionary*s=[self current:error];if(!s)return nil;
+ NSMutableDictionary*v=[@{@"reviewId":_reviewId,@"requestId":_request[@"requestId"],@"purpose":@"ARTIFACT-RELEASE",@"account":_binding[@"subjectOwner"],@"networkId":_binding[@"networkId"],@"publication":_manifest,@"publisherId":_binding[@"publisherId"],@"publisherKeyVersion":_binding[@"publisherKeyVersion"],@"publisherRegistrationRef":s[@"publisher"][@"registrationRef"],@"publisherRevision":s[@"publisher"][@"revision"],@"approved":@(_approved),@"signingSelected":@(_signSelected),@"workspaceFDQualified":@NO,@"artifactVerified":@NO}mutableCopy];if(_approvalRef)v[@"actualApprovalRef"]=_approvalRef;return [v copy];}}
+- (BOOL)approveOriginalReview:(NSString*)reviewId error:(NSError**)error {@synchronized(self){if(error)*error=nil;
+ if(_decisionSelected||![reviewId isKindOfClass:NSString.class]||![_reviewId isEqual:reviewId])return [self refuse:@"PUBLISHER_APPROVAL_DECISION_REFUSED" cause:nil error:error];
+ _decisionSelected=YES; // before any original/current callback; never reissue
+ if(!PublisherApprovalFocused()||![self current:error])return [self refuse:@"PUBLISHER_APPROVAL_CONTEXT_REFUSED" cause:nil error:error];
+ _approvalRef=NSUUID.UUID.UUIDString.lowercaseString;_approved=YES;return YES;
+}}
+- (BOOL)assertOriginalApprovalCurrent:(NSString*)ref error:(NSError**)error {@synchronized(self){if(error)*error=nil;
+ if(!_approved||![ref isKindOfClass:NSString.class]||![_approvalRef isEqual:ref])return [self refuse:@"PUBLISHER_APPROVAL_UNAVAILABLE" cause:nil error:error];
+ if(!PublisherApprovalFocused())return [self refuse:@"PUBLISHER_APPROVAL_CONTEXT_REFUSED" cause:nil error:error];return [self current:error]!=nil;
+}}
+- (NSDictionary*)selectOriginalSigning:(NSString*)ref error:(NSError**)error {@synchronized(self){if(error)*error=nil;
+ if(!_approved||_signSelected||![ref isKindOfClass:NSString.class]||![_approvalRef isEqual:ref])return [self refuse:@"PUBLISHER_SIGNING_ALREADY_SELECTED_OR_UNAPPROVED" cause:nil error:error],nil;
+ _signSelected=YES; // before source/custody/crypto; failure is UNKNOWN, not retry
+ if(!PublisherApprovalFocused())return [self refuse:@"PUBLISHER_APPROVAL_CONTEXT_REFUSED" cause:nil error:error],nil;
+ return [self current:error];
+}}
+- (void)retire {@synchronized(self){_retired=YES;_approved=NO;[_publisher retire];}}
+- (BOOL)close:(NSError**)error {@synchronized(self){if(error)*error=nil;if(_checking)return [self refuse:@"PUBLISHER_APPROVAL_CALL_PENDING" cause:nil error:error];if(_closed)return YES;
+ [self retire];if(_publisher&&![_publisher close:error])return NO;_closed=YES;_wallet=nil;_transport=nil;return YES;
 }}
 @end
 

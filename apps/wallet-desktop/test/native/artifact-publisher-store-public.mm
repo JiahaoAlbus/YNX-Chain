@@ -8,6 +8,8 @@
 #include <cstdio>
 #include <thread>
 #import "../../../../packages/wallet-auth/native/original-auth-identity-source-authority.h"
+#import "../../../../packages/wallet-auth/native/original-ide-wallet-identity-source.h"
+#import "../../../../packages/wallet-auth/native/original-ide-wallet-peer-launch.h"
 
 // PUBLIC compile-only Source double, never linked into the normal binary.
 // Only Main's consumer/lifetime code executes; no Source/Root is admitted.
@@ -16,6 +18,7 @@ static NSError *sourceAcquireError,*sourcePublishError,*sourceCloseError;
 static NSUInteger sourceAcquires,sourceViews,sourcePublishes,sourceRetires,sourceJoins,sourceCloses;
 static BOOL sourceJoinPending,sourceSnapshotMismatch;
 static void (^selectionHook)(void),(^joinHook)(void),(^recordHook)(void);
+static NSDictionary *walletPacket;static NSData *walletRequest;static BOOL walletLive=YES;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wincomplete-implementation"
 @implementation YNXAuthIdentitySourceAuthority
@@ -34,6 +37,14 @@ static void (^selectionHook)(void),(^joinHook)(void),(^recordHook)(void);
 - (void)retire {sourceRetires++;}
 - (BOOL)join:(NSError **)error {sourceJoins++;if(error)*error=nil;void(^hook)(void)=joinHook;joinHook=nil;if(hook)hook();if(sourceJoinPending){if(error)*error=[NSError errorWithDomain:@"PUBLIC join pending" code:1 userInfo:nil];return NO;}return YES;}
 - (BOOL)close:(NSError **)error {sourceCloses++;if(error)*error=sourceCloseError;return sourceCloseError==nil;}
+@end
+@implementation YNXOriginalIDEWalletIdentitySource
+- (BOOL)assertCurrent:(NSError**)error {if(error)*error=walletLive?nil:[NSError errorWithDomain:@"PUBLIC wallet retired" code:1 userInfo:nil];return walletLive;}
+- (NSData*)copyRequest:(NSError**)error {return [self assertCurrent:error]?walletRequest:nil;}
+@end
+@implementation YNXOriginalIDEWalletPeerLaunch
+- (BOOL)assertCurrent:(NSError**)error {if(error)*error=walletLive?nil:[NSError errorWithDomain:@"PUBLIC transport retired" code:1 userInfo:nil];return walletLive;}
+- (NSDictionary*)copyCapturedRequest:(NSError**)error {return [self assertCurrent:error]?walletPacket:nil;}
 @end
 #pragma clang diagnostic pop
 
@@ -113,6 +124,43 @@ static void currentCases(YNXOriginalArtifactPublisherStore*store,NSData*r,NSData
  resetSource(r);c=[YNXOriginalArtifactPublisherCurrent acquireForOriginalManifest:manifest()error:&e];std::thread worker([c](){@autoreleasepool{NSError*n=nil;assert(![c assertCurrent:&n]&&n);}});worker.join();assert(![c assertCurrent:&e]&&e);assert([c close:&e]&&sourceAcquires==1);
  std::puts("PASS cleanup reentry and worker current access cannot duplicate cleanup or lend authority");
 }
+static NSData *approvalPublicR(){
+ // PUBLIC structural R13 bytes only. Native Source double admits no Root,
+ // and this zero-key fixture is never imported or used by a crypto signer.
+ NSArray*parts=@[R(@"YNX-IDE-ARTIFACT-PUBLISHER/v1"),R(@"YNX-BATCH/v0.1"),R(@"ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512"),R(@"ARTIFACT-RELEASE"),R(@"ide-artifact-publisher"),[NSMutableData dataWithLength:32],R(@"0x1111111111111111111111111111111111111111"),R(@"PUBLIC-original-account"),R(@"PUBLIC-project"),R(@"PUBLIC-publisher"),R(@"5"),[NSMutableData dataWithLength:2592],[NSMutableData dataWithLength:64]];
+ uint32_t count=CFSwapInt32HostToBig(13);NSMutableData*out=[NSMutableData dataWithBytes:&count length:4];for(NSData*p in parts){uint32_t n=CFSwapInt32HostToBig((uint32_t)p.length);[out appendBytes:&n length:4];[out appendData:p];}return out;
+}
+static void setupApproval(NSDictionary*patch=nil){
+ resetSource(approvalPublicR());walletLive=YES;
+ uint64_t now=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);
+ NSMutableDictionary*body=[@{@"purpose":@"AUTH-PROTECTED-KEY-CALL",@"requestId":@"PUBLIC-original-native-request",@"owner":@"0x1111111111111111111111111111111111111111",@"networkId":[@"0" stringByPaddingToLength:64 withString:@"0" startingAtIndex:0],@"issuedAtMs":[NSString stringWithFormat:@"%llu",(unsigned long long)now],@"expiresAtMs":[NSString stringWithFormat:@"%llu",(unsigned long long)(now+30000)]}mutableCopy];if(patch)[body addEntriesFromDictionary:patch];
+ walletRequest=[NSJSONSerialization dataWithJSONObject:body options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
+ walletPacket=@{@"requestRaw":[[NSString alloc]initWithData:walletRequest encoding:NSUTF8StringEncoding],@"invocationRaw":[[NSString alloc]initWithData:manifest()encoding:NSUTF8StringEncoding]};
+}
+static YNXOriginalArtifactReleaseApproval *captureApproval(NSError**e){return [YNXOriginalArtifactReleaseApproval captureWalletSource:[YNXOriginalIDEWalletIdentitySource new]transport:[YNXOriginalIDEWalletPeerLaunch new]error:e];}
+static void approvalCases(){
+ NSError*e=nil;setupApproval();NSUInteger privateReads=reads;auto a=captureApproval(&e);assert(a&&!e);NSDictionary*v=[a copyOriginalReview:&e];assert(v&&!e&&![v[@"approved"]boolValue]&&!v[@"actualApprovalRef"]);assert([v[@"publisherKeyVersion"]isEqual:@"5"]&&[v[@"publisherRevision"]isEqual:@"7"]&&reads==privateReads);
+ assert([a approveOriginalReview:v[@"reviewId"]error:&e]);v=[a copyOriginalReview:&e];NSString*ref=v[@"actualApprovalRef"];assert(ref.length==36&&[v[@"approved"]boolValue]);assert([a assertOriginalApprovalCurrent:ref error:&e]);assert(reads==privateReads&&[a close:&e]);
+ std::puts("PASS approval reference is issued only by explicit original decision with separate publisher key version");
+ setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];assert(![a selectOriginalSigning:@"PUBLIC invented approval" error:&e]&&e);assert([a close:&e]);
+ std::puts("PASS pending review or a fabricated approval reference cannot select signing");
+ setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);assert(![a approveOriginalReview:v[@"reviewId"]error:&e]&&e);assert([a close:&e]);
+ std::puts("PASS repeated explicit approval cannot mint a second reference");
+ setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);ref=[a copyOriginalReview:&e][@"actualApprovalRef"];assert([a selectOriginalSigning:ref error:&e]&&!e);assert([a assertOriginalApprovalCurrent:ref error:&e]);assert(![a selectOriginalSigning:ref error:&e]&&e);assert([a close:&e]);
+ std::puts("PASS signing entry is consumed once while decision current is not a second signing permission");
+ setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];selectionHook=^{NSError*n=nil;assert(![a approveOriginalReview:v[@"reviewId"]error:&n]&&n);};assert(![a approveOriginalReview:v[@"reviewId"]error:&e]&&e);assert([a close:&e]);
+ std::puts("PASS decision reservation precedes reentrant original-current callbacks");
+ for(NSString*key in @[@"purpose",@"owner",@"networkId",@"expiresAtMs"]){NSDictionary*patch=@{key:[key isEqual:@"purpose"]?@"AUTH-IDENTITY-RECEIVE":[key isEqual:@"owner"]?@"0x2222222222222222222222222222222222222222":[key isEqual:@"networkId"]?[@"f" stringByPaddingToLength:64 withString:@"f" startingAtIndex:0]:@"1"};setupApproval(patch);a=captureApproval(&e);assert(a&&e&&![a copyOriginalReview:&e]);assert([a close:&e]);}
+ std::puts("PASS wrong purpose/owner/network or expired request never creates an approval");
+ setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];NSMutableDictionary*changed=[walletPacket mutableCopy];changed[@"invocationRaw"]=@"{}";walletPacket=changed;assert(![a approveOriginalReview:v[@"reviewId"]error:&e]&&e);assert([a close:&e]);
+ std::puts("PASS exact bound original invocation cannot be substituted after visible review");
+ setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);ref=[a copyOriginalReview:&e][@"actualApprovalRef"];walletLive=NO;assert(![a assertOriginalApprovalCurrent:ref error:&e]&&e);walletLive=YES;assert(![a selectOriginalSigning:ref error:&e]&&e);assert([a close:&e]);
+ std::puts("PASS parent channel retirement permanently revokes a live approval without reacquisition");
+ setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);ref=[a copyOriginalReview:&e][@"actualApprovalRef"];[a retire];assert(![a assertOriginalApprovalCurrent:ref error:&e]&&e);assert(![a selectOriginalSigning:ref error:&e]&&e);assert([a close:&e]);
+ std::puts("PASS explicit retire revokes the exact approval without deleting its once-selection history");
+ setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);ref=[a copyOriginalReview:&e][@"actualApprovalRef"];sourceView=publisherView(approvalPublicR(),@"PUBLIC-project",@"PUBLIC-publisher",YES,@"8");assert(![a selectOriginalSigning:ref error:&e]&&e);sourceView=publisherView(approvalPublicR());assert(![a selectOriginalSigning:ref error:&e]&&e);assert([a close:&e]);assert(reads==privateReads);
+ std::puts("PASS failed once-entry current check cannot be repaired into a new key attempt");
+}
 int main(int argc,char **argv){@autoreleasepool{
  items=[NSMutableDictionary new];auto store=[YNXOriginalArtifactPublisherStore new];NSError *e=nil;
  NSData *r=R(@"PUBLIC fake original R:1");NSMutableData *wire=record(r);
@@ -177,5 +225,6 @@ int main(int argc,char **argv){@autoreleasepool{
  assert([store createOriginalRecord:jsRecord forPublicOriginal:jsR error:&e]);NSMutableData *jsRead=[store copyOriginalRecordForPublicOriginal:jsR error:&e];assert([jsRead isEqual:jsRecord]);[jsRead resetBytesInRange:NSMakeRange(0,jsRead.length)];
  std::puts("PASS actual Main JS storage framing interoperates with native parser using PUBLIC fake material only");
  currentCases(store,r,wire);
+ approvalCases();
  std::puts("PUBLIC_KEYCHAIN_SOURCE_SEAMS_ONLY systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0 workspaceFDQualified=0");
  }}

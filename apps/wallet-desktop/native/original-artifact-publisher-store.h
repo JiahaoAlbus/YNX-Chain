@@ -46,6 +46,27 @@ inline bool borrowPublisherRecord(const void *record,size_t length,const void *e
 + (instancetype)new NS_UNAVAILABLE;
 @end
 
+@class YNXOriginalIDEWalletIdentitySource,YNXOriginalIDEWalletPeerLaunch;
+// Main-only bounded review/approval owner for the existing admitted Wallet
+// channel. The fixed Native binding supplies actual same-env source/transport,
+// never a JS provider or approval boolean. Public IDs alone grant nothing.
+// Approve must be called only by Main's explicit visible decision handler;
+// this class does not itself attest a GUI click or produce a signature.
+@interface YNXOriginalArtifactReleaseApproval : NSObject
++ (instancetype)captureWalletSource:(YNXOriginalIDEWalletIdentitySource *)source
+                          transport:(YNXOriginalIDEWalletPeerLaunch *)transport error:(NSError **)error;
+- (NSDictionary *)copyOriginalReview:(NSError **)error;
+- (BOOL)approveOriginalReview:(NSString *)reviewId error:(NSError **)error;
+- (BOOL)assertOriginalApprovalCurrent:(NSString *)approvalRef error:(NSError **)error;
+// Once-selection before custody/crypto. A failure after this selection is not
+// permission to enter again, including when no memberOriginal was returned.
+- (NSDictionary *)selectOriginalSigning:(NSString *)approvalRef error:(NSError **)error;
+- (void)retire;
+- (BOOL)close:(NSError **)error;
+- (instancetype)init NS_UNAVAILABLE;
++ (instancetype)new NS_UNAVAILABLE;
+@end
+
 // Private native storage ONLY. No Node exports, authority factory, generic
 // signing callback, asset vault or secret-export UI. Actual Source/current
 // publisher registry and independent approval must gate the owning effect.

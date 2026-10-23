@@ -7,8 +7,8 @@ export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
 });
 export function walletNativeSourceProfile(version){if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');return WALLET_NATIVE_SOURCE_PROFILES[version];}
 export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
- {path:'apps/wallet-desktop/native/original-artifact-publisher-store.h',bytes:3783,sha256:'fc460d1a150a58a315a81174f1e43d9bb9c513ef15f93d6a36431fd41d74e3be'},
- {path:'apps/wallet-desktop/native/original-artifact-publisher-store.mm',bytes:14609,sha256:'c080c5940f9507476e8f18dbbbb183a3ed600af03f687684ff70ebc88e3cc193'}
+ {path:'apps/wallet-desktop/native/original-artifact-publisher-store.h',bytes:5073,sha256:'fc6d3d490bfbb975546c175fcb9ec96778b9107b65fdf5e73a9db6cb03f419ed'},
+ {path:'apps/wallet-desktop/native/original-artifact-publisher-store.mm',bytes:23880,sha256:'34cc78f78fa846afacd90dd54db446fb319d3811b5309c09c890ced1ad7184ec'}
 ].map(Object.freeze));
 export const SDK13_NODE_TRANSLATION_UNITS=Object.freeze([
  'apps/wallet-desktop/native/original-auth-identity-node.mm',

@@ -1,0 +1,34 @@
+{
+  "contract": "YNX-IDE-ARTIFACT-RELEASE-RESULT-CONTRACT/v1",
+  "qualification": "Public DATA framing only; not an approval, Source, signature producer or HTTP grant",
+  "wireKind": 6,
+  "maximumPayloadBytes": 262144,
+  "encoding": "Exact UTF-8 canonical JSON, sorted keys, no extra keys or duplicate fields",
+  "fields": {
+    "version": "literal YNX-IDE-ARTIFACT-RELEASE-RESULT/v1",
+    "purpose": "literal ARTIFACT-RELEASE",
+    "requestOriginal": "exact retained original Auth request, UTF-8 bytes 1..16384",
+    "invocationOriginal": "exact retained invocation, UTF-8 bytes 1..16384",
+    "manifestOriginal": "exact canonical six-field original manifest, UTF-8 bytes 1..16384; byte-equal invocationOriginal",
+    "publisherOriginal": "canonical unpadded base64url of original R13, decoded bytes 1..8192",
+    "signatureOriginal": "canonical unpadded base64url of original public N1/index0 member, decoded bytes 1..98304",
+    "actualApprovalRef": "canonical lowercase UUIDv4 issued by the live Main Native approval owner; identifier alone grants nothing",
+    "publisherRegistrationRef": "exact original independent registered reference, UTF-8 bytes 1..256; not R13 hash",
+    "publisherRevision": "exact original registry revision, canonical positive uint64 decimal",
+    "publisherKeyVersion": "exact publisher R13 key version, canonical positive uint64 decimal; not account key version or registry revision"
+  },
+  "requiredChecks": [
+    "Original peer authenticates actual same original request and Native endpoints; kind2 Auth N1 cannot stand in for kind6 member or approval",
+    "Exact request/invocation/manifest originals must match the retained request window and original purpose",
+    "Independent current registered publisher R13/ref/revision and key version must match; dual-AND verification must use original fixed ARTIFACT-RELEASE message",
+    "Actual approval current/revoke is checked by the same live Native holder bound to the original request/ref, not by any JSON approved flag",
+    "Entry availability is separate from whether the original decision remains current after its sole signing selection",
+    "Unknown send/write/signature/cleanup cannot authorize re-signing, automatic replay or a new grant",
+    "Closed/restarted holders may recover public result DATA only, never restore approval authority",
+    "Mac Source enrollment, opaque IDs, raw R13 and valid signature mathematics cannot authorize Linux HTTP control or resource lease operations"
+  ],
+  "nativeIssuerAndReader": "YNXOriginalArtifactReleaseApproval in original-artifact-publisher-store.h/.mm; fixed Main binding and actual visible user decision still require normal matching integration",
+  "liveApprovalVerified": false,
+  "signatureProduced": false,
+  "httpPermissionGranted": false
+}

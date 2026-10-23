@@ -1,0 +1,38 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
+test('actual Main NAPI binding retains original parent and refuses recapture across close/failure/GC (PUBLIC Native doubles)',{skip:process.platform!=='darwin'},t=>{
+ const root=fileURLToPath(new URL('..',import.meta.url)),temp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-publisher-binding-'));
+ t.after(()=>fs.rmSync(temp,{recursive:true,force:true}));
+ const headers='/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node';
+ const binary=path.join(temp,'PUBLIC-binding.node');
+ const compile=spawnSync('/usr/bin/xcrun',['clang++','-std=c++17','-fobjc-arc','-mmacosx-version-min=13.0','-Wall','-Wextra','-Werror','-shared','-undefined','dynamic_lookup','-I'+headers,path.join(root,'test/native/artifact-publisher-binding-public.mm'),'-framework','Foundation','-o',binary],{encoding:'utf8',timeout:30000});
+ assert.equal(compile.status,0,compile.stderr);
+ const binding=createRequire(import.meta.url)(binary),capture=binding.captureOriginalWalletPublisherApproval;
+ assert.throws(()=>capture({}),/ORIGINAL_PARENT_REQUIRED/);
+ assert.throws(()=>capture(),/ARGUMENTS_INVALID/);
+ const parent=binding.PUBLICParent(),owner=capture(parent);
+ assert(Object.isFrozen(owner));const review=owner.copyOriginalReview();assert.equal(review.reviewId,'PUBLIC-review');assert.equal(review.actualApprovalRef,undefined);
+ assert.throws(()=>capture(parent),/CAPTURE_ONCE/);
+ assert.throws(()=>owner.copyOriginalReview.call({}),/ORIGINAL_APPROVAL_REQUIRED/);
+ assert.equal(owner.approveOriginalReview('PUBLIC-review').actualApprovalRef,'PUBLIC-ref');
+ assert.equal(owner.assertOriginalApprovalCurrent('PUBLIC-ref').actualApprovalRef,'PUBLIC-ref');
+ owner.close();owner.close();assert.throws(()=>capture(parent),/CAPTURE_ONCE/);
+ assert.throws(()=>owner.copyOriginalReview(),/APPROVAL_RETIRED/);
+ const failedParent=binding.PUBLICParent(),failed=capture(failedParent);
+ assert.throws(()=>failed.approveOriginalReview('wrong'),/APPROVAL_REFUSED/);
+ assert.throws(()=>failed.approveOriginalReview('PUBLIC-review'),/APPROVAL_REFUSED/);
+ failed.close();assert.throws(()=>capture(failedParent),/CAPTURE_ONCE/);
+ const revokedParent=binding.PUBLICParent(),revoked=capture(revokedParent);
+ binding.PUBLICRetireParent(revokedParent);
+ assert.throws(()=>revoked.copyOriginalReview(),/PARENT_NOT_CURRENT/);revoked.close();
+ // No production signing entry, raw keys, transport or native parent escapes.
+ assert.deepEqual(Object.getOwnPropertyNames(owner),['copyOriginalReview','approveOriginalReview','assertOriginalApprovalCurrent','retire','close']);
+ const gc=spawnSync(process.execPath,['--expose-gc','-e',`const b=require(${JSON.stringify(binary)}),p=b.PUBLICParent();(()=>{b.captureOriginalWalletPublisherApproval(p)})();global.gc();setImmediate(()=>{global.gc();setImmediate(()=>{try{b.captureOriginalWalletPublisherApproval(p);process.exitCode=9}catch(e){if(!/CAPTURE_ONCE/.test(e.code))throw e;console.log('PUBLIC_GC_ONCE_PASS')}})})`],{encoding:'utf8',timeout:10000});
+ assert.equal(gc.status,0,gc.stderr);assert.match(gc.stdout,/PUBLIC_GC_ONCE_PASS/);
+});
