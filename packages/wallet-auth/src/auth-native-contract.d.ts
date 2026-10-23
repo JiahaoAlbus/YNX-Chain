@@ -52,6 +52,37 @@ declare const originalPublicationArtifact:unique symbol;
 export interface OriginalIDEPublicationArtifactRef {
  readonly [originalPublicationArtifact]:true;
 }
+declare const originalProjectAuthority:unique symbol;
+/** Same-env original Native Source owner. A partial must remain reachable for
+ * cleanup before any read; a structural object cannot create this owner. */
+export interface OriginalIDEProjectAuthorityRef {
+ readonly [originalProjectAuthority]:true;
+}
+/** Original R171 fields only; U64 generations/revisions retain decimal strings.
+ * expiresMS is the bounded safe-integer NSNumber converted by actual NAPI. */
+export interface OriginalIDEProjectPrincipalData {
+ readonly account:string;readonly deviceId:string;readonly sessionRef:string;readonly currentRef:string;
+ readonly accountGeneration:string;readonly sessionGeneration:string;readonly expiresMS:number;
+}
+export interface OriginalIDEProjectCurrentData {
+ readonly projectId:string;readonly ownerAccount:string;readonly runtimeOrigin:string;readonly currentReference:string;
+ readonly projectRevision:string;readonly catalogRevision:string;
+ readonly read:boolean;readonly publish:boolean;readonly runtime:boolean;readonly expiresMS:number;
+}
+export interface OriginalIDEProjectPublisherData {
+ readonly account:string;readonly projectId:string;readonly publisherId:string;readonly keyRole:'ide-artifact-publisher';
+ /** Exact original base64url field; independent publisherOriginal below is bytes. */
+ readonly publicOriginal:string;readonly publicSHA256:string;readonly registrationRef:string;
+ readonly revision:string;readonly expiresMS:number;readonly revoked:boolean;
+}
+export interface OriginalIDECurrentProjectData {
+ readonly principal:OriginalIDEProjectPrincipalData;readonly project:OriginalIDEProjectCurrentData;readonly expiresMS:number;
+}
+export interface OriginalIDECurrentPublisherData extends OriginalIDECurrentProjectData {
+ readonly publisher:OriginalIDEProjectPublisherData;
+ /** Independent ordinary public-original copy; never a key or authority ref. */
+ readonly publisherOriginal:Uint8Array<ArrayBuffer>;
+}
 /** Describe only the genuine, fixed, original Native binding. Acquiring and
  * validating that binding belongs to original Auth, not to a caller adapter.
  * Constructors return the SAME owning/partial object before late checks; they

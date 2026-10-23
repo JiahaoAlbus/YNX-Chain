@@ -12,11 +12,13 @@ const pins=[{"path":"apps/wallet-desktop/native/original-auth-identity-node.mm",
 // R170 H7871/90f09d0e supplied complete successor includes R167 carrier.
 // Only source-selection checks here; original normal3/PUBLIC5 Native evidence
 // is reused, not rebuilt/reexecuted or treated as approval/publication.
-const selectedVersion=JSON.parse(readFileSync(resolve(root,'packages/wallet-auth/package.json'))).version,r171=selectedVersion==='1.3.0-pq.3.32-auth.17',r172=r171||selectedVersion==='1.3.0-pq.3.32-auth.16';
+const selectedVersion=JSON.parse(readFileSync(resolve(root,'packages/wallet-auth/package.json'))).version,r174=selectedVersion==='1.3.0-pq.3.32-auth.18',r171=r174||selectedVersion==='1.3.0-pq.3.32-auth.17',r172=r171||selectedVersion==='1.3.0-pq.3.32-auth.16';
 const r172NodePin={"path":"apps/wallet-desktop/native/original-auth-identity-node.mm","bytes":81282,"sha256":"579e2756a755d3b759a39ead2811549bc13961dc8cd864354b6f4af02d2188d2"};
-const currentPins=r172?pins.map(p=>p.path===r172NodePin.path?r172NodePin:p):pins;
+const r174NodePin={"path":"apps/wallet-desktop/native/original-auth-identity-node.mm","bytes":81397,"sha256":"4e95b6e194be68140c172ecce961579395bb18c77c2e32548ec8e1a368de219b"};
+const currentNodePin=r174?r174NodePin:r172NodePin;
+const currentPins=r172?pins.map(p=>p.path===r172NodePin.path?currentNodePin:p):pins;
 test('Inherited R170 complete source pins retain original provenance with explicit selected Node successor',()=>{
- const {contract}=verifySDK332R140Source(root);assert.ok(['1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17'].includes(contract.version));assert.equal(contract.NativeInputs.length,r171?74:72);assert.equal(contract.HelperInputs.length,5);assert.equal(new Set([...contract.NativeInputs,...contract.HelperInputs].map(p=>p.path)).size,r171?79:77);
+ const {contract}=verifySDK332R140Source(root);assert.ok(['1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.18'].includes(contract.version));assert.equal(contract.NativeInputs.length,r174?75:r171?74:72);assert.equal(contract.HelperInputs.length,5);assert.equal(new Set([...contract.NativeInputs,...contract.HelperInputs].map(p=>p.path)).size,r174?80:r171?79:77);
  for(const p of currentPins){const actual=readFileSync(resolve(root,p.path));assert.equal(actual.length,p.bytes);assert.equal(sha(actual),p.sha256);assert.deepEqual(contract.NativeInputs.find(pin=>pin.path===p.path),p);}
  const supplier=contract.supplierR170;assert.equal(supplier.handoff.bytes,7871);assert.equal(supplier.handoff.sha256,'90f09d0e248c2e5be2b9285c53ae071399e7598ab6f9779a0e791ddb1ce9d616');assert.deepEqual(supplier.sourceLeaves,pins);if(r172)assert.deepEqual(contract.supplierR172.sourceLeaves,[r172NodePin]);assert.equal(supplier.R167SourceAppliedSeparately,false);assert.equal(supplier.parents[0].bytes,3840);assert.equal(supplier.parents[0].sha256,'b8cce9b811b20e215d8b5a31256676d479c1cd5846461e27820669c42d37e098');assert.equal(supplier.parents[1].sha256,'523c9081c00d26f375fc7138ad0025afcbe0a2e1f7adb9db20d09b99332de2f2');
  for(const flag of ['sourceTestArtifactCopied','normalNativeBuild','matchingApp','genuineSource','currentPublisher','MainApprovalEffect','actualApproval','signature','publication'])assert.equal(supplier[flag],false);
@@ -30,7 +32,7 @@ test('R170 typed publication stays in user addon same13 TUs and helper11 gains n
 async function isolated(run){const {contract}=verifySDK332R140Source(root),temporary=mkdtempSync(join(tmpdir(),'ynx-r170-source-'));try{
  const paths=new Set(['packages/wallet-auth/package.json','packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json','apps/wallet-desktop/package.json','apps/wallet-desktop/scripts/sdk332-r140-native-plan.mjs',...[...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool].map(p=>p.path)]);
  for(const p of paths){const to=resolve(temporary,p);mkdirSync(dirname(to),{recursive:true});copyFileSync(resolve(root,p),to);}
- assert.equal(verifySDK332R140Source(temporary).contract.NativeInputs.length,r171?74:72);const build=await import(pathToFileURL(resolve(temporary,contract.normalBuildTool.path)).href);await run(temporary,build);
+ assert.equal(verifySDK332R140Source(temporary).contract.NativeInputs.length,r174?75:r171?74:72);const build=await import(pathToFileURL(resolve(temporary,contract.normalBuildTool.path)).href);await run(temporary,build);
  }finally{rmSync(temporary,{recursive:true,force:true});}}
 test('R170 missing typed carrier binding rejects Node recipe while helper remains independent',async()=>{
  await isolated(async(dir,build)=>{unlinkSync(resolve(dir,'apps/wallet-desktop/native/original-ide-publication-artifact-binding.inc.mm'));assert.throws(()=>build.originalAuthNativeBuildPlan('arm64','/original/headers'),/AUTH_NATIVE_PUBLICATION_BINDING_SOURCE_SELECTION_INCOMPLETE/);assert.equal(build.originalIDEHelperBuildPlan('arm64').sources.length,11);});

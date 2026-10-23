@@ -8,13 +8,13 @@ import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 test('canonical SDK R159 retains original APIs, adds pure deployment exports and selects exact R140 source through the exact successor normal recipe',async()=>{
   const selected=verifySDK332R140Source(root);
-  assert.equal(selected.contract.NativeInputs.length,selected.contract.version==='1.3.0-pq.3.32-auth.17'?74:['1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17'].includes(selected.contract.version)?72:selected.contract.version==='1.3.0-pq.3.32-auth.14'?71:selected.contract.version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13)$/)!==null?69:64);
+  assert.equal(selected.contract.NativeInputs.length,selected.contract.version==='1.3.0-pq.3.32-auth.18'?75:selected.contract.version==='1.3.0-pq.3.32-auth.17'?74:['1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.18'].includes(selected.contract.version)?72:selected.contract.version==='1.3.0-pq.3.32-auth.14'?71:selected.contract.version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13)$/)!==null?69:64);
   const plan=await sdk332R140NativePlan(root,'/original-a-pinned-node-headers','arm64');
-  assert.equal(plan.plan.sources.length,selected.contract.version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16|17)$/)!==null?13:12);assert.equal(plan.rebuildRequired,true);
+  assert.equal(plan.plan.sources.length,selected.contract.version.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16|17|18)$/)!==null?13:12);assert.equal(plan.rebuildRequired,true);
   assert.equal(plan.prebuiltSDK330ModuleAllowed,false);assert.equal(plan.NativeBuild,false);assert.equal(plan.grant,false);
   assert(plan.plan.sources.every(p=>p.startsWith(selected.root+'/')));
   const r140=selected.contract.NativeInputs.filter(p=>['original-ide-auth-identity-owners.inc.mm','original-ide-parent-node.mm'].some(n=>p.path.endsWith('/'+n)));
-  assert.deepEqual(r140.map(p=>p.sha256),[['1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17'].includes(selected.contract.version)?'63af0b267cad6940c7497ee76bcf0a6a0b8435aac9777114d72eb4f478b3e43a':'dc3e4178d032c52c9238abf885716a0d23802377739e8a4e5155c89befe785ca','ab91b89a5d31b34116b7243c2b52002555ac7649d154a76e917307c2614f9dc7']);
+  assert.deepEqual(r140.map(p=>p.sha256),[['1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17','1.3.0-pq.3.32-auth.18'].includes(selected.contract.version)?'63af0b267cad6940c7497ee76bcf0a6a0b8435aac9777114d72eb4f478b3e43a':'dc3e4178d032c52c9238abf885716a0d23802377739e8a4e5155c89befe785ca','ab91b89a5d31b34116b7243c2b52002555ac7649d154a76e917307c2614f9dc7']);
 });
 test('composition rejects mixed Native source and an old SDK version before any build',()=>{
   const {contract}=verifySDK332R140Source(root),temp=mkdtempSync(join(tmpdir(),'ynx-sdk332-r140-selection-'));

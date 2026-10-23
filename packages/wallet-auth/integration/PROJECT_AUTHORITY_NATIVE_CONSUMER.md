@@ -38,11 +38,37 @@ The returned expiry is the intersection of signed principal/project/publisher
 and authenticated Source-current deadlines, not permission to extend an existing
 review, proof or uncertain operation. Getters do not perform RPC or renew Source.
 
-The existing public Node export `original-ide-admission` retains its four typed
-artifact/publication calls. This delivery adds no public JS/NAPI CurrentProject
+The Auth17 public Node export `original-ide-admission` retains its four typed
+artifact/publication calls. That delivery added no public JS/NAPI CurrentProject
 factory, openPublication factory or renderer actor DTO. The Source-v2 declaration
 only describes the service/operation DATA accepted by the original verifier;
 types themselves do not bind a purpose or establish authorization.
+
+## Auth18 original opaque reader
+
+Auth18 includes the frozen R174 normal NAPI bridge, through that same fixed
+Node-only SDK export. It adds exactly these original callbacks:
+
+```text
+acquireOriginalIDEProjectAuthority()
+readOriginalIDECurrentProject(actualRef, projectID)
+readOriginalIDECurrentPublisher(actualRef, projectID, publisherID)
+closeOriginalIDEProjectAuthority(actualRef)
+```
+
+Acquire accepts no caller Source, Root, endpoint or permissions. Adopt the actual
+same-environment tagged reference before reading; a partial remains closable.
+The reader returns ordinary frozen Native snapshot records, with an independent
+Uint8Array copy of the actual R13 bytes. These are DATA, without additional JS
+authorized/dataOnly fields or a signing capability. IDs are comparison operands
+for the intended canonical project/publisher; a local UUID or AI lease cannot
+replace their original provenance or the reader's independent Source checks.
+
+Close returns undefined on actual success. Preserve the first UNKNOWN cleanup
+failure and do not retry or treat it as true. SDK wrappers return original refs,
+snapshots and failures unchanged, without reading, renewing, auto-closing or
+manufacturing a second Source. The Native reader performs its original current
+and final snapshot checks; no extra refresh follows its final comparison.
 
 Auth's HTTP OriginalSource/principal/publication/selector issuer and
 getDeploymentRequestHeaders are still separate, undelivered producer interfaces.

@@ -45,6 +45,8 @@ export function originalAuthNativeBuildPlan(arch,headers){
  sources.push(path.join(native,'original-ide-contract-relay-owner.mm'));
  // R171 getters are private methods in the SAME SourceAuthority unit. Both
  // addon and helper require its typed include closure; no extra TU or Node ABI.
+ // R174 private project reader NAPI include belongs only to the user addon.
+ if(!regular(path.join(app,'native/original-ide-project-authority-binding.inc.mm')))throw Error('AUTH_NATIVE_PROJECT_AUTHORITY_BINDING_SOURCE_SELECTION_INCOMPLETE');
  const projectAuthority=['original-ide-project-authority-data.h','original-ide-project-authority-source.inc.mm'].map(name=>path.join(native,name));
  if(!projectAuthority.every(regular))throw Error('AUTH_NATIVE_PROJECT_AUTHORITY_SOURCE_SELECTION_INCOMPLETE');
  const minimumSystemVersion=validateOriginalMacMinimumSystemVersion(JSON.parse(readFileSync(path.join(app,'package.json'),'utf8'))?.build?.mac?.minimumSystemVersion);

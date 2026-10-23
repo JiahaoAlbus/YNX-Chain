@@ -1,0 +1,28 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync,copyFileSync,mkdtempSync,mkdirSync,unlinkSync,rmSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {resolve,dirname,join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-desktop/scripts/sdk332-r140-native-plan.mjs';
+const root=resolve(fileURLToPath(new URL('../../..',import.meta.url))),sha=b=>createHash('sha256').update(b).digest('hex');
+const pins=[{path:'apps/wallet-desktop/native/original-auth-identity-node.mm',bytes:81397,sha256:'4e95b6e194be68140c172ecce961579395bb18c77c2e32548ec8e1a368de219b'},{path:'apps/wallet-desktop/native/original-ide-project-authority-binding.inc.mm',bytes:9156,sha256:'bcba19edf40a0f908fafa2bc91cf71d8800781f5f5313f46a3cef543d0786504'}];
+// Source selection only; original Auth11 bridge/1 normal Native evidence reused.
+test('R174 exact two-leaf successor preserves all eight R171 leaves and admission boundary',()=>{
+ const {contract}=verifySDK332R140Source(root);assert.equal(contract.version,'1.3.0-pq.3.32-auth.18');assert.equal(contract.NativeInputs.length,75);assert.equal(contract.HelperInputs.length,5);assert.equal(new Set([...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool].map(p=>p.path)).size,85);
+ for(const p of pins){const b=readFileSync(resolve(root,p.path));assert.equal(b.length,p.bytes);assert.equal(sha(b),p.sha256);assert.deepEqual(contract.NativeInputs.find(x=>x.path===p.path),p);}
+ const parent=JSON.parse(execFileSync('git',['show','1258ed1ed6c5ab6419e4a82eb6730c9ac046fd60:packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json'],{cwd:root}));assert.deepEqual(contract.supplierR171,parent.supplierR171);for(const p of parent.supplierR171.sourceLeaves)assert.deepEqual(contract.NativeInputs.find(x=>x.path===p.path),p);
+ const s=contract.supplierR174;assert.equal(s.handoff.bytes,7025);assert.equal(s.handoff.sha256,'60ede70c1213f8d0a11136f9b9e2a1f6cbba56de98fe6045d2a51804ddcfba63');assert.deepEqual(s.sourceLeaves,pins);assert.equal(s.originalReferencesVerified,8);assert.equal(s.parentR171LeavesVerified,8);assert.equal(s.newActualBindingTestsReused,11);assert.equal(s.newNormalAdmissionBoundaryTestsReused,1);
+ for(const f of ['NativeTestsReexecuted','sourceTestArtifactCopied','normalNativeBuild','matchingApp','actualRootOrSourceRelease','realProjectPublisherRegistry','actualUserApproval','signature','serverOriginalSource','deploymentHeadersIssuer','production'])assert.equal(s[f],false);
+});
+async function isolated(run){const {contract}=verifySDK332R140Source(root),temporary=mkdtempSync(join(tmpdir(),'ynx-r174-source-'));try{const paths=new Set(['packages/wallet-auth/package.json','packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json','apps/wallet-desktop/package.json',...[...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool].map(p=>p.path)]);for(const p of paths){const to=resolve(temporary,p);mkdirSync(dirname(to),{recursive:true});copyFileSync(resolve(root,p),to);}const build=await import(pathToFileURL(resolve(temporary,contract.normalBuildTool.path)).href);await run(temporary,build);}finally{rmSync(temporary,{recursive:true,force:true});}}
+test('R174 missing NAPI include refuses user Node recipe while helper remains independent',async()=>{
+ const selected=await sdk332R140NativePlan(root,'/original/pinned/headers','arm64');assert.equal(selected.plan.sources.length,13);assert.equal(selected.helperPlan.sources.length,11);assert.equal(selected.NativeBuild,false);assert.equal(selected.grant,false);for(const plan of [selected.plan,selected.helperPlan])assert.equal(plan.sources.some(p=>p.endsWith('/original-ide-project-authority-binding.inc.mm')),false);
+ await isolated(async(dir,build)=>{unlinkSync(resolve(dir,pins[1].path));assert.throws(()=>build.originalAuthNativeBuildPlan('arm64','/original/headers'),/AUTH_NATIVE_PROJECT_AUTHORITY_BINDING_SOURCE_SELECTION_INCOMPLETE/);assert.equal(build.originalIDEHelperBuildPlan('arm64').sources.length,11);});
+});
+test('R174 normal selector refuses actual frozen17 Node entry while retaining first main-thread fence',async()=>{
+ const source=readFileSync(resolve(root,pins[0].path),'utf8'),start=source.indexOf('static napi_value Register(napi_env env,napi_value exports){'),body=source.slice(start),guard='if(!pthread_main_np())return Error(env,"AUTH_IDENTITY_ADDON_MAIN_THREAD_REQUIRED");';assert.ok(start>=0);assert.ok(body.indexOf(guard)<body.indexOf('RegisterOriginalIDEProjectAuthorityBinding'));assert.ok(body.includes('RegisterOriginalIDEProjectAuthorityBinding'));
+ await isolated(async(dir)=>{const old=execFileSync('git',['show','1258ed1ed6c5ab6419e4a82eb6730c9ac046fd60:'+pins[0].path],{cwd:root});assert.equal(old.length,81282);assert.equal(sha(old),'579e2756a755d3b759a39ead2811549bc13961dc8cd864354b6f4af02d2188d2');writeFileSync(resolve(dir,pins[0].path),old);assert.throws(()=>verifySDK332R140Source(dir),e=>e.code==='SDK332_R140_NATIVE_INPUT_DIFFERS');});
+});
