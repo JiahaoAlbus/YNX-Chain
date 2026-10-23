@@ -59,6 +59,7 @@ func TestObserverPhaseTimingActualSignedBlockAndReadbackCounters(t *testing.T) {
 				blockCalls, resultCalls = &scanner.blockCalls, &scanner.resultCalls
 			}
 			g.stats.enablePhaseTiming(0, time.Now())
+			c.requireMeasuredTick = true
 			g.reader.measurePhases = true
 			if remaining := g.step(context.Background(), jobs); len(remaining) != 0 {
 				t.Fatal("actual signed block did not finish")

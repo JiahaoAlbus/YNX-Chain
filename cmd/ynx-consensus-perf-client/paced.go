@@ -17,6 +17,13 @@ type acceptedObservation struct {
 	started time.Time
 }
 
+type pacedWorkerInventory struct {
+	Submitters                 int   `json:"submitters"`
+	Observers                  int   `json:"observers"`
+	SubmissionQueueCapacity    int   `json:"submissionQueueCapacity"`
+	ObservationQueueCapacities []int `json:"observationQueueCapacities"`
+}
+
 func atomicMaximum(target *atomic.Int64, value int64) {
 	for previous := target.Load(); value > previous; previous = target.Load() {
 		if target.CompareAndSwap(previous, value) {
@@ -64,10 +71,20 @@ func runPacedWorkers(ctx context.Context, o options, started time.Time, results 
 	}
 	jobs := make(chan job, len(results))
 	accepted := make([]chan acceptedObservation, o.observers)
+	if o.pacedWorkerInventory != nil {
+		o.pacedWorkerInventory.Submitters = 0
+		o.pacedWorkerInventory.Observers = 0
+		o.pacedWorkerInventory.SubmissionQueueCapacity = cap(jobs)
+		o.pacedWorkerInventory.ObservationQueueCapacities = make([]int, len(accepted))
+	}
 	var pendingSubmit, peakSubmit, pendingObserve, peakObserve atomic.Int64
 	var submitters, observers sync.WaitGroup
 	for worker := 0; worker < o.observers; worker++ {
 		accepted[worker] = make(chan acceptedObservation, len(results))
+		if o.pacedWorkerInventory != nil {
+			o.pacedWorkerInventory.Observers++
+			o.pacedWorkerInventory.ObservationQueueCapacities[worker] = cap(accepted[worker])
+		}
 		observers.Add(1)
 		go func(worker int) {
 			defer observers.Done()
@@ -75,6 +92,9 @@ func runPacedWorkers(ctx context.Context, o options, started time.Time, results 
 		}(worker)
 	}
 	for worker := 0; worker < o.concurrency; worker++ {
+		if o.pacedWorkerInventory != nil {
+			o.pacedWorkerInventory.Submitters++
+		}
 		submitters.Add(1)
 		go func() {
 			defer submitters.Done()

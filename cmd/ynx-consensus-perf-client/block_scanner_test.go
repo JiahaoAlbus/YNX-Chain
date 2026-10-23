@@ -29,6 +29,7 @@ type scannerTestClient struct {
 }
 
 func (c *scannerTestClient) Block(_ context.Context, height *int64) (*coretypes.ResultBlock, error) {
+	c.timingFixtureBoundary()
 	c.blockCalls++
 	if height == nil || c.blocks == nil {
 		return c.block, nil
@@ -36,6 +37,7 @@ func (c *scannerTestClient) Block(_ context.Context, height *int64) (*coretypes.
 	return c.blocks[*height], nil
 }
 func (c *scannerTestClient) BlockResults(_ context.Context, height *int64) (*coretypes.ResultBlockResults, error) {
+	c.timingFixtureBoundary()
 	c.resultCalls++
 	if c.afterResults != nil {
 		c.afterResults()
@@ -63,12 +65,14 @@ func corruptDurableScannerStore(t *testing.T, g *groupedObserver) {
 }
 func (c *scannerTestClient) Commit(ctx context.Context, height *int64) (*coretypes.ResultCommit, error) {
 	if c.commits != nil {
+		c.timingFixtureBoundary()
 		c.commitCalls++
 		return c.commits[*height], nil
 	}
 	return c.groupedTestClient.Commit(ctx, height)
 }
 func (c *scannerTestClient) Validators(_ context.Context, height *int64, _ *int, _ *int) (*coretypes.ResultValidators, error) {
+	c.timingFixtureBoundary()
 	c.validatorCalls++
 	v := *c.validators
 	v.BlockHeight = *height

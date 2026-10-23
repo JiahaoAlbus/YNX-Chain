@@ -146,6 +146,47 @@ class SupplySourceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError,"native clone selection"):
             supply.validate_prefix_replay(client,True)
 
+    def test_unselected_submit8_marker_cannot_be_accepted_as_control(self):
+        client,fixture=self.oneshot_report_fixture()
+        client["nativeSubmit8"]=True
+        with self.assertRaisesRegex(RuntimeError,"submit8 selection"):
+            supply.validate_oneshot_report(client,fixture)
+
+    def submit8_report_fixture(self,enabled):
+        client,fixture=self.prefix_report_fixture();self.runtime_fixture(client)
+        client["prefixNativeClone"]=True;client["concurrency"]=8 if enabled else 4
+        if enabled:client["nativeSubmit8"]=True
+        client["pacedWorkers"]=dict(submitters=client["concurrency"],observers=4,submissionQueueCapacity=2048,observationQueueCapacities=[2048]*4)
+        stats=client["durableReadback"]["prefixReplay"];phases=stats["workPhases"]
+        phases["privateNativeClone"]=phases["privateJSON"];phases["privateJSON"]=dict(calls=0,errors=0,durationNs=0)
+        stats["nativeCloneCache"]=dict(snapshotPresent=True,canonicalBytes=1000,height=100,accounts=2049,feeEvents=2048,lotEntries=0)
+        return client,fixture
+
+    def test_submit8_explicit_selection_actual_queue_inventory_and_occupancy(self):
+        import copy
+        client,fixture=self.submit8_report_fixture(True)
+        client["submissionOccupancy"]["peakActiveCallbacks"]=8
+        actual=supply.validate_report(client,"supply-2048x1-data64",fixture_transactions=fixture,prefix_replay=True,prefix_native_clone=True,native_submit8=True,require_inventory=True)
+        self.assertTrue(actual["submitterVerification"]["nativeSubmit8"])
+        for field,value in (("submitters",4),("observers",8),("submissionQueueCapacity",4096),("submissionQueueCapacity",True),("observationQueueCapacities",[2048]*8),("observationQueueCapacities",[2048,2048,2048,4096])):
+            changed=copy.deepcopy(client);changed["pacedWorkers"][field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):supply.validate_report(changed,"supply-2048x1-data64",fixture_transactions=fixture,prefix_replay=True,prefix_native_clone=True,native_submit8=True)
+        for field,value in (("nativeSubmit8",False),("nativeSubmit8",1),("concurrency",4),("concurrency",8.0),("observerConcurrency",8),("prefixNativeClone",False)):
+            changed=copy.deepcopy(client);changed[field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(RuntimeError):supply.validate_report(changed,"supply-2048x1-data64",fixture_transactions=fixture,prefix_replay=True,prefix_native_clone=True,native_submit8=True)
+        changed=copy.deepcopy(client);changed["submissionOccupancy"]["peakActiveCallbacks"]=9
+        with self.assertRaises(RuntimeError):supply.validate_runtime_measurements(changed,native_submit8=True)
+        control,_=self.submit8_report_fixture(False)
+        supply.validate_submitter_selection(control,False,require_inventory=True)
+        del control["pacedWorkers"]
+        with self.assertRaises(RuntimeError):supply.validate_submitter_selection(control,False,require_inventory=True)
+        values=dict(transport="grpc",profile_name="supply-2048x1-data64",observer_phases=True,prefix_replay=True,prefix_native_clone=True,native_submit8=True)
+        plan=supply.recipe(**values);self.assertEqual(plan["profile"]["concurrency"],8)
+        for delta in (dict(native_submit8=1),dict(prefix_native_clone=False),dict(prefix_replay=False),dict(shared_replay=True),dict(observer_phases=False),dict(profile_name="supply-2048x1")):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**(values|delta))
+        command=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("out"),plan["profile"],"relative",True,False,prefix_replay=True,prefix_native_clone=True,native_submit8=True)
+        self.assertIn("-native-submit8",command);self.assertEqual(command[command.index("-concurrency")+1],"8");self.assertEqual(command[command.index("-observers")+1],"4")
+
     def test_native_clone_mode_binds_phases_cache_and_explicit_recipe(self):
         import copy
         client,_=self.prefix_report_fixture();self.runtime_fixture(client)
@@ -650,6 +691,7 @@ class SupplySourceTests(unittest.TestCase):
                 label=(("shared-endpoint-elastic" if comparison=="shared-elastic" else "shared-endpoint-fair") if kwargs.get("endpoint_fair") else "shared-baseline") if comparison in ("shared-fair","shared-elastic") else ("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode
                 if comparison=="shared-prefix-data64":label="prefix-replay" if kwargs["prefix_replay"] else "shared-replay"
                 if comparison=="prefix-native-data64":label="prefix-native-clone" if kwargs["prefix_native_clone"] else "prefix-control"
+                if comparison=="native-submit8-data64":label="native-submit8" if kwargs["native_submit8"] else "native-submit4"
                 order.append(label);case.mkdir()
                 if replay_fault=="rss" and (kwargs.get("endpoint_fair") if comparison in ("shared-fair","shared-elastic") else kwargs.get("shared_replay")):
                     raise RuntimeError("synthetic candidate owned RSS cap exceeded")
@@ -708,9 +750,14 @@ class SupplySourceTests(unittest.TestCase):
                 if comparison in supply.DATA64_PAIRS:
                     prefix=kwargs["prefix_replay"]
                     native_clone=kwargs.get("prefix_native_clone",False)
+                    submit8=kwargs.get("native_submit8",False)
                     client,fixture=self.prefix_report_fixture() if prefix else self.oneshot_report_fixture()
                     self.runtime_fixture(client)
-                    if native_clone:
+                    if comparison=="native-submit8-data64":
+                        client,fixture=self.submit8_report_fixture(submit8)
+                        row["prefixNativeClone"]=True
+                        if submit8:row["nativeSubmit8"]=True
+                    if native_clone and comparison!="native-submit8-data64":
                         client["prefixNativeClone"]=True
                         stats=client["durableReadback"]["prefixReplay"];phases=stats["workPhases"]
                         phases["privateNativeClone"]=phases["privateJSON"];phases["privateJSON"]=dict(calls=0,errors=0,durationNs=0)
@@ -719,9 +766,9 @@ class SupplySourceTests(unittest.TestCase):
                     self.assertEqual(profile,"supply-2048x1-data64");self.assertEqual(mode,"relative")
                     if not prefix:
                         client["durableReadback"]["sharedReplay"]["workPhases"]=dict(produce=dict(calls=1,errors=0,durationNs=100),canonicalCopy=dict(calls=1,errors=0,durationNs=10),privateJSON=dict(calls=0,errors=0,durationNs=0),privateValidate=dict(calls=0,errors=0,durationNs=0),canonicalCopyBytes=100)
-                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix)["profile"],
-                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone),
-                        runtimeMeasurements=supply.validate_runtime_measurements(client,require=True),observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
+                    row.update(profile=supply.recipe("grpc",profile,mode,True,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8)["profile"],
+                        measurement=supply.validate_report(client,profile,mode,fixture_transactions=fixture,prefix_replay=prefix,prefix_native_clone=native_clone,native_submit8=submit8),
+                        runtimeMeasurements=supply.validate_runtime_measurements(client,require=True,native_submit8=submit8),observerPhases=supply.validate_observer_phases(client),sharedDurableReplay=not prefix,
                         sharedReplayVerification=supply.validate_shared_replay(client,not prefix,require_work_phases=not prefix))
                     if prefix:row.update(prefixDurableReplay=True,prefixReplayVerification=supply.validate_prefix_replay(client,True,expected_native_clone=native_clone))
                     if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=1
@@ -730,6 +777,8 @@ class SupplySourceTests(unittest.TestCase):
                     if replay_fault=="phase":del client["transactions"][-1]["submissionPhases"]
                     if replay_fault=="selection":row["sharedDurableReplay"]=prefix
                     if replay_fault=="native-selection":client["prefixNativeClone"]=not native_clone
+                    if replay_fault=="submit8-selection":client["nativeSubmit8"]=not submit8
+                    if replay_fault=="submit8-queue":client["pacedWorkers"]["submissionQueueCapacity"]=4096
                     if replay_fault=="native-cache" and native_clone:client["durableReadback"]["prefixReplay"]["nativeCloneCache"]["snapshotPresent"]=False
                     if replay_fault=="receipt":row["measurement"]["submissionPhaseVerification"]["samples"]=1
                     (network/"transactions.json").write_text(json.dumps(dict(transactions=fixture)))
@@ -792,6 +841,26 @@ class SupplySourceTests(unittest.TestCase):
         self.assertIn("paired-prefix-native-data64",workflow)
         self.assertIn("--prepare-pair --pair-kind prefix-native-data64",workflow)
         self.assertIn("--execute-pair --pair-kind prefix-native-data64",workflow)
+
+    def test_native_submit8_pair_preserves_queue_caps_and_refusal_order(self):
+        code,order,row=self.mock_pair(comparison="native-submit8-data64")
+        self.assertEqual(code,0,row["firstCause"])
+        self.assertEqual(order,["native-submit4","empty","native-submit8","empty"])
+        self.assertFalse(row["jointObservation"]["sustainedTPSQualified"])
+        for options in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(mutate_binary=True),dict(replay_fault="fixture"),dict(replay_fault="phase"),dict(replay_fault="submit8-selection"),dict(replay_fault="submit8-queue"),dict(fail_after_fsync=True)):
+            with self.subTest(options=options):
+                code,order,row=self.mock_pair(comparison="native-submit8-data64",**options)
+                self.assertEqual(code,1);self.assertFalse(row["_terminal"]["qualified"])
+                if not options.get("fail_after_fsync"):self.assertEqual(order.count("native-submit8"),0)
+        args=[sys.executable,"-B",str(FILE),"--prepare-pair","--pair-kind","native-submit8-data64","--profile","supply-2048x1-data64","--transport","grpc","--observer-phases"]
+        plan=json.loads(subprocess.check_output(args,timeout=5));self.assertFalse(plan["execute"]);self.assertTrue(plan["requiresSeparateRootGrant"])
+        before,after=plan["cases"];self.assertEqual(before["profile"]["concurrency"],4);self.assertEqual(after["profile"]["concurrency"],8)
+        expected=dict(before,nativeSubmit8=True,profile=dict(before["profile"],concurrency=8))
+        self.assertEqual(expected,after);self.assertEqual(after["profile"]["observers"],4)
+        self.assertTrue(before["prefixNativeClone"]);self.assertTrue(after["prefixNativeClone"])
+        self.assertEqual(supply.PROFILES["supply-2048x1-data64"]["concurrency"],4);self.assertEqual(supply.PAIR_CAPS["retainedBytes"],64<<20)
+        workflow=(FILE.parents[2]/".github/workflows/chain-core.yml").read_text()
+        self.assertIn("paired-native-submit8-data64",workflow);self.assertIn("--prepare-pair --pair-kind native-submit8-data64",workflow);self.assertIn("--execute-pair --pair-kind native-submit8-data64",workflow)
 
     def test_prefix_pair_receipts_are_charged_once_and_workflow_routes_match(self):
         with tempfile.TemporaryDirectory() as temp:

@@ -22,9 +22,23 @@ type groupedTestClient struct {
 	info                                            *coretypes.ResultABCIInfo
 	txCalls, commitCalls, validatorCalls, infoCalls int
 	afterInfo                                       func()
+	requireMeasuredTick                             bool
+}
+
+// A pure in-memory RPC fixture can finish within one platform clock tick.
+// Timing assertions opt into actual clock progress inside that same call;
+// production counters/clock reads and the positive-duration assertion stay intact.
+func (c *groupedTestClient) timingFixtureBoundary() {
+	if !c.requireMeasuredTick {
+		return
+	}
+	start := time.Now()
+	for !time.Now().After(start) {
+	}
 }
 
 func (c *groupedTestClient) Tx(_ context.Context, hash []byte, _ bool) (*coretypes.ResultTx, error) {
+	c.timingFixtureBoundary()
 	c.txCalls++
 	tx := c.txs[string(hash)]
 	if tx == nil {
@@ -33,14 +47,17 @@ func (c *groupedTestClient) Tx(_ context.Context, hash []byte, _ bool) (*coretyp
 	return tx, nil
 }
 func (c *groupedTestClient) Commit(context.Context, *int64) (*coretypes.ResultCommit, error) {
+	c.timingFixtureBoundary()
 	c.commitCalls++
 	return c.commit, nil
 }
 func (c *groupedTestClient) Validators(context.Context, *int64, *int, *int) (*coretypes.ResultValidators, error) {
+	c.timingFixtureBoundary()
 	c.validatorCalls++
 	return c.validators, nil
 }
 func (c *groupedTestClient) ABCIInfo(context.Context) (*coretypes.ResultABCIInfo, error) {
+	c.timingFixtureBoundary()
 	c.infoCalls++
 	if c.afterInfo != nil {
 		c.afterInfo()

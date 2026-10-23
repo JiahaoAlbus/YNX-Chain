@@ -62,6 +62,8 @@ type options struct {
 	sharedDurableReplay            bool
 	prefixDurableReplay            bool
 	prefixNativeClone              bool
+	nativeSubmit8                  bool
+	pacedWorkerInventory           *pacedWorkerInventory
 	endpointFair                   bool
 	endpointElastic                bool
 	terminalGzip                   bool
@@ -193,6 +195,8 @@ type report struct {
 	SubmissionOccupancy  *submissionOccupancyStats `json:"submissionOccupancy,omitempty"`
 	PrefixDurableReplay  bool                      `json:"prefixDurableReplay,omitempty"`
 	PrefixNativeClone    bool                      `json:"prefixNativeClone,omitempty"`
+	NativeSubmit8        bool                      `json:"nativeSubmit8,omitempty"`
+	PacedWorkers         *pacedWorkerInventory     `json:"pacedWorkers,omitempty"`
 	SharedDurableReplay  bool                      `json:"sharedDurableReplay"`
 	EndpointFair         bool                      `json:"endpointFairSubmission"`
 	EndpointElastic      bool                      `json:"endpointElasticSubmission,omitempty"`
@@ -222,7 +226,7 @@ func main() {
 	flag.StringVar(&o.manifest, "manifest", "", "local ephemeral four-node network manifest")
 	flag.StringVar(&o.transactions, "transactions", "", "JSON file containing transactions: [base64 raw signed transaction]")
 	flag.StringVar(&o.output, "output", "", "optional new JSON output file; existing files are never overwritten")
-	flag.IntVar(&o.concurrency, "concurrency", 2, "maximum concurrent submit-and-observe workers (1..4)")
+	flag.IntVar(&o.concurrency, "concurrency", 2, "maximum submit workers (1..4; exactly8 only with explicit native-submit8 candidate)")
 	flag.IntVar(&o.observers, "observers", 4, "confirmation workers for paced mode (1..4)")
 	flag.Float64Var(&o.offeredRate, "offered-rate", 0, fmt.Sprintf("paced offers per second (0=legacy closed loop; positive at most %d)", maxTransactions))
 	flag.DurationVar(&o.timeout, "timeout", 20*time.Second, "overall setup/workload timeout (default mode <=30s; explicit streaming mode <=15m)")
@@ -234,6 +238,7 @@ func main() {
 	flag.BoolVar(&o.endpointElastic, "endpoint-elastic-submission", false, "candidate: requires endpoint fairness; reuse original four workers across unchanged endpoints, maximum two in flight per endpoint")
 	flag.BoolVar(&o.prefixDurableReplay, "prefix-durable-replay", false, "candidate: reuse exact previously validated journal prefixes, private state and complete new-block validation; exclusive with shared replay")
 	flag.BoolVar(&o.prefixNativeClone, "prefix-native-clone", false, "candidate: private native account/fee-history copies; requires explicit prefix replay and its original bounds")
+	flag.BoolVar(&o.nativeSubmit8, "native-submit8", false, "candidate: exactly8 submitters, original four observers/queues and native-copy single-round supply")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
@@ -257,6 +262,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.nativeSubmit8 && (!o.prefixNativeClone || !o.prefixDurableReplay || o.concurrency != 8 || o.observers != 4 || o.offeredRate != 1000 || o.rounds != 1 || o.senderMode != "rounds") {
+		return errors.New("native submit8 requires explicit native prefix copy, exactly8 submitters/4 observers and single-round offer1000")
+	}
 	if o.prefixNativeClone && !o.prefixDurableReplay {
 		return errors.New("native clone requires explicit prefix replay")
 	}
@@ -316,7 +324,7 @@ func validateOptions(o options) error {
 	if o.manifest == "" || o.transactions == "" {
 		return errors.New("-manifest and -transactions are required")
 	}
-	if o.concurrency < 1 || o.concurrency > 4 {
+	if o.concurrency < 1 || o.concurrency > 4 && !o.nativeSubmit8 {
 		return errors.New("concurrency must be in 1..4")
 	}
 	if math.IsNaN(o.offeredRate) || math.IsInf(o.offeredRate, 0) || o.offeredRate < 0 || o.offeredRate > maxTransactions {
@@ -932,6 +940,14 @@ func execute(o options) error {
 	}
 	r.PrefixDurableReplay = o.prefixDurableReplay
 	r.PrefixNativeClone = o.prefixNativeClone
+	r.NativeSubmit8 = o.nativeSubmit8
+	if o.prefixNativeClone {
+		o.pacedWorkerInventory = new(pacedWorkerInventory)
+		r.PacedWorkers = o.pacedWorkerInventory
+	}
+	if o.nativeSubmit8 {
+		r.Interpretation = append(r.Interpretation, "Explicit eight-submitter candidate on the original paced single-round native-copy path. Four observers and original per-input queue capacities remain unchanged. Each original index retains its endpoint authority and exactly one submission attempt; UNKNOWN never enters accepted observation or retry. Actual worker/queue inventory and callback occupancy are reported; no throughput gain follows from worker count alone.")
+	}
 	if o.prefixNativeClone {
 		r.Interpretation = append(r.Interpretation, "Explicit native private copy candidate: one canonical JSON reconstruction per new prefix certificate, independent account lots and fee history on repeated reads, complete Validate retained. Populated other domains retain strict JSON. Additional decoded snapshot memory is included in process RSS guards; cache inventory counts objects and canonical bytes, not decoded heap bytes. No network improvement inferred from local probes.")
 	}
