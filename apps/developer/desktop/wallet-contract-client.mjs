@@ -1,8 +1,8 @@
 import {createHash, randomUUID} from 'node:crypto';
-import {openContractReferenceJournal} from './wallet-contract-reference-journal.mjs';
+import {openRelayContractReferenceJournal} from './wallet-contract-reference-journal.mjs';
+import {createContractScopeFence} from './contract-relay-scope.mjs';
 
 const methods = new Set(['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']);
-const bindingKeys = ['owner','workspaceOwner','account','generation','identityReference','localProjectId','workspace','launch','sessionId'];
 const failure = (code, cause) => Object.assign(Error('The original project Wallet request cannot be continued.'), {code, ...(cause === undefined ? {} : {cause})});
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const validOperationId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
@@ -21,20 +21,19 @@ export function contractBroadcastReferenceId(referenceId){
 // Backend-only consumer. The production caller supplies the SDK's fixed
 // developer factory, never a renderer-selected origin, module or RPC transport.
 // This constructor does not initialize Relay, restore a session or send a request.
-export async function openProjectContractClient({context, admittedProject, createConnection, now = Date.now}) {
-  if (!context?.profile || !context.id || !context.workspace || typeof admittedProject?.assertCurrent !== 'function' || typeof createConnection !== 'function') throw failure('IDE_CONTRACT_NOT_SUPPLIED');
-  let closed = false, busy = false, captured, deadline, journal, provider, connection;
+export async function openProjectContractClient({context, relayAuthority, createConnection, now = Date.now}) {
+  if (!context?.profile || !context.id || !context.workspace || typeof relayAuthority?.assertCurrent !== 'function' || typeof createConnection !== 'function') throw failure('IDE_CONTRACT_NOT_SUPPLIED');
+  let closed = false, busy = false, journal, provider, connection;
+  const scopeCurrent=createContractScopeFence({relayAuthority,now});
   const retained = new Set();
   async function current() {
     if (closed) throw failure('IDE_CONTRACT_RETIRED');
-    const state = await admittedProject.assertCurrent();
-    if (closed || !state || bindingKeys.some(key => state[key] === undefined) || state.workspace !== context.workspace || !Number.isSafeInteger(state.generation) || state.generation < 0 || !Number.isFinite(state.expiresAt) || state.expiresAt <= now()) throw failure('IDE_CONTRACT_RETIRED');
-    if (captured && (bindingKeys.some(key => captured[key] !== state[key]) || state.expiresAt < deadline || now() >= deadline)) throw failure('IDE_CONTRACT_RETIRED');
-    if (!captured) { captured = Object.freeze({...state}); deadline = state.expiresAt; }
+    const state = await scopeCurrent();
+    if (closed) throw failure('IDE_CONTRACT_RETIRED');
     return state;
   }
-  await current();
-  journal = await openContractReferenceJournal({profile:context.profile, projectId:context.id, owner:captured.owner, account:captured.account});
+  const scope=await current();
+  journal = await openRelayContractReferenceJournal({profile:context.profile, projectId:context.id, scope});
   await current();
   const connectOwner=()=>{if(!connection){connection=createConnection();if(typeof connection?.beginContractRequest!=='function'||typeof connection.connect!=='function'||typeof connection.cancel!=='function')throw failure('IDE_CONTRACT_NOT_SUPPLIED');}return connection;};
   async function exclusive(work) {

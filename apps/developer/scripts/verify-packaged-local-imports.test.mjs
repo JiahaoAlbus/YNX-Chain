@@ -8,7 +8,7 @@ import { loadOwnedEsbuild, verifyPackagedLocalImports } from './verify-packaged-
 // Test-only location for the actual retained workbench input; production CLI
 // has no environment/tool-path option and always resolves its own workbench.
 const workbench = process.env.YNX_QA_OWNED_WORKBENCH_ROOT || fileURLToPath(new URL('../runtime/theia/', import.meta.url));
-const entries = ['local-workbench.mjs', 'wallet-admission-startup.mjs', 'local-go-selection.mjs', 'native-parent-control.mjs', 'original-service-pipe.mjs'];
+const entries = ['local-workbench.mjs', 'wallet-admission-startup.mjs', 'local-go-selection.mjs', 'native-parent-control.mjs', 'original-service-pipe.mjs', 'project-contract-deployment.mjs', 'artifact-publication-host.mjs'];
 test('actual locked esbuild builds the packaged relative graph without writing output or running entries', async () => {
   const root = await mkdtemp(join(tmpdir(), 'ynx-import-graph-'));
   try {
@@ -16,7 +16,7 @@ test('actual locked esbuild builds the packaged relative graph without writing o
     for (const name of entries) await writeFile(join(root, 'desktop', name), "import {value} from './shared.mjs'; throw Error('entry execution forbidden'); export {value};\n");
     await writeFile(join(root, 'desktop/shared.mjs'), 'export const value=42;\n');
     const result = await verifyPackagedLocalImports(root, workbench);
-    assert.equal(result.relativeModules, 6);
+    assert.equal(result.relativeModules, 8);
     await assert.rejects(access(join(root, '.import-verification')), { code: 'ENOENT' });
     await rm(join(root, 'desktop/shared.mjs'));
     await assert.rejects(verifyPackagedLocalImports(root, workbench), /Could not resolve/);

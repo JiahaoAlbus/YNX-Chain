@@ -45,7 +45,8 @@ export async function verifyPackagedLocalImports(root, workbenchRoot = ownedWork
     // Explicit entries make those real runtime imports part of this guard.
     entryPoints: ['desktop/local-workbench.mjs', 'desktop/wallet-admission-startup.mjs',
       'desktop/local-go-selection.mjs', 'desktop/native-parent-control.mjs',
-      'desktop/original-service-pipe.mjs'].map(entry => resolve(root, entry)),
+      'desktop/original-service-pipe.mjs', 'desktop/project-contract-deployment.mjs',
+      'desktop/artifact-publication-host.mjs'].map(entry => resolve(root, entry)),
     outdir: resolve(root, '.import-verification'),
     absWorkingDir: resolve(root), bundle: true, write: false,
     platform: 'node', format: 'esm', packages: 'external',

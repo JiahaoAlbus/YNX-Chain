@@ -21,12 +21,27 @@ export async function loadBundledContractMaterialBuilder(){
 // Explicit backend acquisition only. Old installed SDKs remain unavailable;
 // this never silently switches a package, initializes Relay or restores a
 // shared Wallet session as project authorization.
-export async function openBundledProjectContractClient({context, admittedProject}) {
-  const originalSDK = createRequire(new URL('../../../packages/wallet-auth/package.json', import.meta.url));
-  const contract = await import(pathToFileURL(originalSDK.resolve('@ynx-chain/wallet-auth/walletconnect-dapp-connection')).href);
-  if (typeof contract.createDeveloperContractConnection !== 'function') throw Object.assign(Error('Original project Wallet contract connection is unavailable.'), {code:'IDE_CONTRACT_NOT_SUPPLIED'});
+export async function openBundledProjectContractClient({context, relayAuthority}) {
+  if(typeof relayAuthority?.assertCurrent!=='function'||typeof relayAuthority?.createConnection!=='function')throw Object.assign(Error('Original project Wallet contract authority is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
   const {openProjectContractClient} = await import('./wallet-contract-client.mjs');
-  return openProjectContractClient({context, admittedProject, createConnection:() => contract.createDeveloperContractConnection()});
+  return openProjectContractClient({context, relayAuthority, createConnection:() => relayAuthority.createConnection()});
+}
+
+// Explicit, backend-only acquisition. expectedScope must come from the original
+// signed Source selection; local directory IDs and AI leases cannot supply it.
+// Both modules resolve through one fixed SDK instance (its private brand map).
+export async function openBundledContractRelayAuthority({serverModuleURL,expectedScope}){
+  const metadataURL=new URL('../../../packages/wallet-auth/package.json',import.meta.url),metadata=JSON.parse(await fs.readFile(metadataURL,'utf8'));
+  if(metadata.name!=='@ynx-chain/wallet-auth')throw Object.assign(Error('Original contract authority is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
+  const root=await fs.realpath(path.dirname(fileURLToPath(metadataURL))),sdk=createRequire(metadataURL);
+  const load=async name=>{const entry=await fs.realpath(sdk.resolve('@ynx-chain/wallet-auth/'+name));if(!entry.startsWith(root+path.sep))throw Object.assign(Error('Original contract authority is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});return import(pathToFileURL(entry).href);};
+  const guardAPI=await load('original-ide-contract-relay-guard'),connectionAPI=await load('walletconnect-dapp-connection');
+  if(typeof guardAPI.acquireOriginalIDEContractRelayGuard!=='function'||typeof guardAPI.assertOriginalIDEContractRelayGuardCurrent!=='function'||typeof connectionAPI.createDeveloperContractConnection!=='function')throw Object.assign(Error('Original contract authority is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
+  let guard,firstCause,failed=false,closed=false,cleanup;
+  try{guard=await guardAPI.acquireOriginalIDEContractRelayGuard({serverModuleURL,expectedScope});}catch(error){failed=true;firstCause=error;guard=error?.cleanupOwner;}
+  const current=()=>{if(closed)throw Object.assign(Error('Contract authority retired.'),{code:'IDE_CONTRACT_RETIRED'});if(failed)throw firstCause;return guardAPI.assertOriginalIDEContractRelayGuardCurrent(guard);};
+  // A partial result stays cleanup-only, retaining its exact original cause.
+  return Object.freeze({assertCurrent:current,createConnection(){const scope=current();return connectionAPI.createDeveloperContractConnection({relayGuard:guard,relayContext:{projectId:scope.projectId,projectGeneration:scope.projectGeneration}});},close(){closed=true;return cleanup ||= Promise.resolve().then(()=>guard?.close());}});
 }
 
 // Separate from the old four session operations: identity receive/recovery can

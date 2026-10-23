@@ -79,9 +79,11 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
     walletAdmission, aiTools, goToolchain,
-    openProjectContracts:projectContext=>openBundledProjectContractClient({context:projectContext,admittedProject:walletAdmission?.admittedProject}),
+    // The contract-specific Source selector is supplied independently of AI.
+    // Until its fixed producer is connected, this remains locally unavailable.
+    openProjectContracts:projectContext=>openBundledProjectContractClient({context:projectContext}),
     openPublication:async projectContext=>{const {createArtifactPublicationHost}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-host.mjs')));return createArtifactPublicationHost({context:projectContext,admittedProject:walletAdmission?.admittedProject});},
-    openDeployment:async projectContext=>{const {createProjectContractDeployment}=await import(pathToFileURL(join(applicationRoot,'desktop','project-contract-deployment.mjs')));return createProjectContractDeployment({context:projectContext,admittedProject:walletAdmission?.admittedProject,loadMaterialBuilder:()=>loadBundledContractMaterialBuilder()});},
+    openDeployment:async projectContext=>{const {createProjectContractDeployment}=await import(pathToFileURL(join(applicationRoot,'desktop','project-contract-deployment.mjs')));return createProjectContractDeployment({context:projectContext,loadMaterialBuilder:()=>loadBundledContractMaterialBuilder()});},
     node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
       retireWallet();
       await finishWalletCleanup();

@@ -4,8 +4,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID,createHash} from 'node:crypto';
 import {contractBroadcastReferenceId} from './wallet-contract-client.mjs';
+import {createContractScopeFence} from './contract-relay-scope.mjs';
 const fail=()=>Object.assign(Error('Review the actual project compiler materials again. Nothing was automatically signed or submitted.'),{code:'IDE_CONTRACT_MATERIAL_REVIEW_REQUIRED'});
-const fields=['owner','workspaceOwner','account','generation','identityReference','localProjectId','workspace','launch','sessionId'];
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // The published Go transport expects strings.TrimSpace(source), whereas a
 // compiler source FILE normally retains its final newline. Normalize only the
@@ -13,9 +13,10 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // remains the sole fixed-registry/commitment builder and rejects unknown data.
 const goEdgeSpace='\\u0009-\\u000d\\u0020\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000';
 const goEdges=new RegExp('^['+goEdgeSpace+']+|['+goEdgeSpace+']+$','gu');
-export function createProjectContractDeployment({context,admittedProject,loadMaterialBuilder,now=Date.now}){
- let closed=false,captured,deadline,draft,busy=false;
- async function current(){if(closed||typeof admittedProject?.assertCurrent!=='function')throw fail();const state=await admittedProject.assertCurrent();if(closed||!state||fields.some(key=>state[key]===undefined)||state.workspace!==context.workspace||!Number.isSafeInteger(state.generation)||state.generation<0||!Number.isFinite(state.expiresAt)||state.expiresAt<=now())throw fail();if(captured&&(fields.some(key=>captured[key]!==state[key])||state.expiresAt<deadline||now()>=deadline))throw fail();if(!captured){captured=Object.freeze({...state});deadline=state.expiresAt;}}
+export function createProjectContractDeployment({context,relayAuthority,loadMaterialBuilder,now=Date.now}){
+ let closed=false,draft,busy=false;
+ const scopeCurrent=createContractScopeFence({relayAuthority,now});
+ async function current(){if(closed)throw fail();await scopeCurrent();if(closed)throw fail();}
  async function read(uri,limit){
   await current();const url=new URL(uri);if(url.protocol!=='file:'||url.host||url.search||url.hash)throw fail();const selected=fileURLToPath(url),relative=path.relative(context.workspace,selected);if(!relative||relative==='..'||relative.startsWith('..'+path.sep)||path.isAbsolute(relative)||await fs.realpath(selected)!==selected)throw fail();
   const fd=await fs.open(selected,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);

@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import {constants,writeSync,fsyncSync,fstatSync,lstatSync,unlinkSync} from 'node:fs';
 import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
+import {contractScopeNamespace} from './contract-relay-scope.mjs';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const HASH=/^[a-f0-9]{64}$/;
 const METHODS=new Set(['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']);
@@ -18,11 +19,18 @@ function validate(value){
 // This journal stores query coordinates only. Neither editable local files nor
 // their digest can grant an identity, a project permission, a signature or send.
 export async function openContractReferenceJournal({profile,projectId,owner,account}){
- if(!path.isAbsolute(profile)||!UUID.test(projectId)||typeof owner!=='string'||!owner||owner.length>512||typeof account!=='string'||!account||account.length>512)throw fail('CONTRACT_REFERENCE_BINDING');
+ if(typeof owner!=='string'||!owner||owner.length>512||typeof account!=='string'||!account||account.length>512)throw fail('CONTRACT_REFERENCE_BINDING');
+ return openJournal({profile,projectId,binding:{projectId,owner,account},directoryName:'wallet-contract-query-references'});
+}
+export async function openRelayContractReferenceJournal({profile,projectId,scope}){
+ return openJournal({profile,projectId,binding:{version:2,localProjectId:projectId,relay:contractScopeNamespace(scope)},directoryName:'wallet-contract-query-references-v2'});
+}
+async function openJournal({profile,projectId,binding,directoryName}){
+ if(!path.isAbsolute(profile)||!UUID.test(projectId))throw fail('CONTRACT_REFERENCE_BINDING');
  if(await fs.realpath(profile)!==profile)throw fail('CONTRACT_REFERENCE_BINDING');
  const base=await fs.lstat(profile);if(!base.isDirectory()||base.isSymbolicLink()||base.uid!==uid()||(base.mode&0o777)!==0o700)throw fail('CONTRACT_REFERENCE_BINDING');
- const digest=createHash('sha256').update(JSON.stringify({projectId,owner,account})).digest('hex');
- const directory=path.join(profile,'wallet-contract-query-references');await fs.mkdir(directory,{mode:0o700}).catch(e=>{if(e.code!=='EEXIST')throw e;});
+ const digest=createHash('sha256').update(JSON.stringify(binding)).digest('hex');
+ const directory=path.join(profile,directoryName);await fs.mkdir(directory,{mode:0o700}).catch(e=>{if(e.code!=='EEXIST')throw e;});
  const captured=await fs.lstat(directory);if(!captured.isDirectory()||captured.isSymbolicLink()||captured.uid!==uid()||(captured.mode&0o777)!==0o700)throw fail('CONTRACT_REFERENCE_BINDING');
  function current(){const a=lstatSync(profile),b=lstatSync(directory);if(!a.isDirectory()||a.isSymbolicLink()||!same(a,base)||(a.mode&0o777)!==0o700||!b.isDirectory()||b.isSymbolicLink()||!same(b,captured)||(b.mode&0o777)!==0o700)throw fail('CONTRACT_REFERENCE_BINDING');}
  const file=id=>{if(!UUID.test(id))throw fail('CONTRACT_REFERENCE_INVALID');return path.join(directory,id+'.jsonl');};

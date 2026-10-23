@@ -39,6 +39,8 @@ node --test scripts/verify-packaged-local-imports.test.mjs
 node --test scripts/solidity-current-file-route.test.mjs
 node --test scripts/ai-unconfigured-default.test.mjs desktop/admitted-local-project-uuid.test.mjs
 node --test desktop/wallet-contract-reference-journal.test.mjs desktop/wallet-contract-client.test.mjs
+node --test desktop/contract-relay-scope.test.mjs
+node --test desktop/contract-relay-startup.test.mjs
 node --test desktop/artifact-publication-client.test.mjs
 node --test desktop/artifact-publication-lifecycle.test.mjs
 node --test desktop/artifact-publication-entry.test.mjs
@@ -148,6 +150,8 @@ cp desktop/native-tools-client.mjs desktop/local-ai-tools-host.mjs desktop/admit
 cp desktop/marketplace-catalog-policy.mjs desktop/marketplace-catalog-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/marketplace-artifact-policy.mjs desktop/marketplace-artifact-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/chain-public-reader.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/project-contracts-host.mjs desktop/wallet-contract-client.mjs desktop/wallet-contract-reference-journal.mjs desktop/contract-relay-scope.mjs desktop/project-contract-deployment.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/artifact-publication-host.mjs desktop/artifact-publication-client.mjs desktop/artifact-publication-lifecycle.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-native "$app/Contents/Resources/code"
 mkdir -p "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib"
@@ -158,6 +162,7 @@ cp runtime/ynx-workbench/lib/marketplace-readme.js "$app/Contents/Resources/code
 cp runtime/ynx-workbench/lib/marketplace-artifact-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 cp runtime/ynx-workbench/lib/chain-public-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 cp runtime/ynx-workbench/lib/local-ai-tools-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
+cp runtime/ynx-workbench/lib/project-contracts-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 if [[ -n "$local_node_runtime" ]]; then
   cp desktop/workspace-path-identity.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-debug-session.mjs desktop/local-debugpy-bootstrap.py "$app/Contents/Resources/code/apps/developer/desktop/"
