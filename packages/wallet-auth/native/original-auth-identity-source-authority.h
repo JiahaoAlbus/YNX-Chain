@@ -75,6 +75,10 @@ struct JointLifecycle {
 - (BOOL)assertOriginalIDEIdentityProofConsumerReady:(NSData *)request error:(NSError **)error;
 - (BOOL)assertOriginalIDEIdentityReceiveExecutionAvailable:(NSError **)error;
 - (BOOL)verifyOriginalIDEIdentityProof:(NSData *)wire expectedRequest:(NSData *)request invocation:(NSData *)invocation error:(NSError **)error;
+// Native-only immutable observation of this SAME actual verified N1/request/
+// invocation. Rechecks original Source/request/fixed expiry before returning.
+// DATA only, NOT publication permission, a publisher signature or retry token.
+- (NSDictionary *)copyOriginalIDEVerifiedProofForRequest:(NSData *)request invocation:(NSData *)invocation error:(NSError **)error;
 - (void)retire;
 - (BOOL)join:(NSError **)error;
 - (BOOL)close:(NSError **)error;

@@ -15,7 +15,9 @@ assert.ok(selected===undefined||selected.length>0,'empty package root is not a d
 const packageRoot=realpathSync(selected===undefined?fileURLToPath(new URL('..',import.meta.url)):resolve(selected));
 function inside(path){const actual=realpathSync(path);assert.ok(actual.startsWith(packageRoot+sep),`module escaped selected package: ${actual}`);return actual;}
 const packageJSON=inside(resolve(packageRoot,'package.json')),metadata=JSON.parse(readFileSync(packageJSON,'utf8'));
-assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.equal(metadata.version,'1.3.0-pq.3.32-auth.9');
+// Native-only successors retain the exact frozen Auth9 crypto bytes below.
+const expectedVersion=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')).version;
+assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.equal(metadata.version,expectedVersion);
 const selectedRequire=createRequire(packageJSON);
 const publicPath=name=>inside(selectedRequire.resolve(name));
 const signaturePath=publicPath('@ynx-chain/wallet-auth/ide-artifact-signature'),manifestPath=publicPath('@ynx-chain/wallet-auth/ide-artifact-manifest');
