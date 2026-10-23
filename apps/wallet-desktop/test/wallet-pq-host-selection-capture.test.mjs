@@ -47,6 +47,14 @@ test('selector original stdin, both raw streams and lifecycle are durable before
  assert.equal(capture.status().stored,true);assert.equal(capture.status().pendingSave,false);assert.equal(capture.status().nativeGrant,false);
  await assert.rejects(capture.run(f.guard),{code:'PQ_HOST_SELECTION_ALREADY_ENTERED'});capture.assertSafeToClose();
 });
+test('async caller mutation cannot change the retained original binding or catalog',async t=>{
+ const f=await fixture(t),inputBinding={...binding},inputCatalog={...sourceCatalog};
+ const p=processFixture({afterRun:()=>{inputBinding.networkId='0'.repeat(64);inputCatalog.catalogSha256='c'.repeat(64);}});
+ const capture=createPQHostSelectionCapture({original,binding:inputBinding,sourceCatalog:inputCatalog,evidence:f.evidence,selector:p.selector});
+ assert.deepEqual(await capture.run(f.guard),selection);
+ const {rows}=await readCold(f);assert.equal(rows.length,4);
+ assert.deepEqual(JSON.parse(rows.find(x=>x.ref.kind==='host-selection-result').body).catalog,sourceCatalog);
+});
 test('local save failure holds original output; explicit save never reruns or returns selection',async t=>{
  let fault=true;const io={...fs,open:async(...args)=>{if(fault&&typeof args[1]==='number'&&(args[1]&constants.O_CREAT))throw false;return fs.open(...args);}};
  const f=await fixture(t,{io}),p=processFixture(),capture=f.capture(p);

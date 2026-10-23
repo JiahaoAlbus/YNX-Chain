@@ -21,7 +21,7 @@ const samePacket=(a,b)=>JSON.stringify(a.lifecycle)===JSON.stringify(b.lifecycle
  * only: it never runs a process, parses a late result or returns a selection.
  */
 export function createPQHostSelectionCapture({original,binding,sourceCatalog,evidence,selector}){
- const own=preparePQFinalityOriginal(original,binding),selectedCatalog=catalog(sourceCatalog),request=preparePQHostSelectionRequest(own.original,binding);
+ const own=preparePQFinalityOriginal(original,binding),selectedBinding=Object.freeze({account:own.original.account,networkId:own.binding.chainId}),selectedCatalog=catalog(sourceCatalog),request=preparePQHostSelectionRequest(own.original,selectedBinding);
  let used=false,active=false,retired=false,stored=false,selected=false,pending=null,firstCause,firstCausePresent=false;
  const remember=cause=>{if(!firstCausePresent){firstCausePresent=true;firstCause=cause;}};
  const guardOwner=guard=>{guard.assert();if(guard.account!==own.original.account)fail('PQ_HOST_CONTEXT_MISMATCH');};
@@ -32,7 +32,7 @@ export function createPQHostSelectionCapture({original,binding,sourceCatalog,evi
  }
  async function drain(r){
   while(r.index<r.queue.length){const item=r.queue[r.index];
-   try{r.refs.push(await evidence.append(own.original,binding,item.kind,item.body));r.index++;}
+   try{r.refs.push(await evidence.append(own.original,selectedBinding,item.kind,item.body));r.index++;}
    catch(cause){
     // Never flush a different operation's pending evidence. Only a failure
     // carrying this append's actual eventId can transfer its local save debt.
