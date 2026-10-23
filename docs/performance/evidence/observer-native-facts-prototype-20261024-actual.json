@@ -1,0 +1,172 @@
+{
+  "schema": 1,
+  "kind": "observer-native-fact-reuse-isolated-source-overlay-prototype-not-production",
+  "frozenProductionSource": "0c6f2ad54ccba3c8d8d27543a5b39f0c42b3708c",
+  "productionWorktreeUnchanged": true,
+  "actual": {
+    "arch": "arm64",
+    "goVersion": "go1.25.7",
+    "gomaxprocs": 1,
+    "kind": "offline_original2048_observer_signature_phase_ABBA_prototype_not_network_tps",
+    "limits": "Only original verifyTransactionLocked phase after full2048 original signed replay and index construction. Excludes file freshness/capture/state validation/RPC/quorum/finality. Each raw input unique; cache peek only decoder-owned successful exact bytes+chain facts, misses keep original full verification; fees/nonce/height/context checked per call. Frozen production unchanged; no new network qualification.",
+    "originalStateAppHash": "a79b383f356a7791382fd483d0d5bb83f707ea73107375cc030ab10fda7628f2",
+    "os": "darwin",
+    "samples": [
+      {
+        "Mode": "control",
+        "ElapsedNs": 189922709,
+        "AllocatedBytes": 7964088,
+        "ObserverHits": 0,
+        "TransactionChecks": 2048,
+        "ReplayFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      {
+        "Mode": "observer-fact-reuse",
+        "ElapsedNs": 1240375,
+        "AllocatedBytes": 425984,
+        "ObserverHits": 2048,
+        "TransactionChecks": 2048,
+        "ReplayFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      {
+        "Mode": "observer-fact-reuse",
+        "ElapsedNs": 1035417,
+        "AllocatedBytes": 425984,
+        "ObserverHits": 2048,
+        "TransactionChecks": 2048,
+        "ReplayFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      },
+      {
+        "Mode": "control",
+        "ElapsedNs": 189460375,
+        "AllocatedBytes": 7964088,
+        "ObserverHits": 0,
+        "TransactionChecks": 2048,
+        "ReplayFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 2048,
+          "retained_string_bytes": 1460288,
+          "lookups": 2048,
+          "hits": 0,
+          "successful_verifications": 2048
+        }
+      }
+    ]
+  },
+  "phaseMeanChangePercent": {
+    "ElapsedNs": -99.40013350727045,
+    "AllocatedBytes": -94.65118918826613
+  },
+  "pins": [
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/consensus-observer-lookup.go",
+      "bytes": 854,
+      "sha256": "6a0833c8e156d0c778a673d3acd534a154a50bff19492b96d25b77f254277390"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/durable-reader-prototype.go",
+      "bytes": 21329,
+      "sha256": "1ca027008f91eb234f90682c79192474f6a024db448869ee5942dd6942de5763"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/observer-lookup-test.go",
+      "bytes": 6893,
+      "sha256": "7f05e5ae8b6c6901ad59919bc3d85436ef4413470b497de261258a0f47183316"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/consensus-observer-lookup-test.go",
+      "bytes": 3296,
+      "sha256": "4322633fa7c3d6dbc210a9043f61123c008020e4b01f9300eac72ef5d8fd8ebf"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/overlay.json",
+      "bytes": 1256,
+      "sha256": "b5218247f34c7e6d1f03fe8221b8bee79ec0d265e3739aa43fba9744cf1bc643"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/actual.raw",
+      "bytes": 2030,
+      "sha256": "475793ee89f6ff303747c47e6ce75234d7b68186d4ac50ae94e789aaefbef1c1"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/cross-reader-chain-red.raw",
+      "bytes": 306,
+      "sha256": "59f4fef8e5bfa341666780065f5349cfa88ac26d3486eec02d70c047fd3f121d"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/lookup-negative-race.raw",
+      "bytes": 64,
+      "sha256": "9508d3af0f70429b421e05811e73a545fa3ac6f701f240ee336ab9607cac35a4"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/lookup-negative-race-after-chain-binding.raw",
+      "bytes": 64,
+      "sha256": "fe29864587a023a4ba82a876db1192bb5ec51d7ba8374e7fd1237d70ae9383a7"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/actual-after-chain-binding.raw",
+      "bytes": 2030,
+      "sha256": "a03de0558ecbc91318486f7dbe24d0eb463654b57881d52afbb563f5a4959cd0"
+    }
+  ],
+  "redCase": {
+    "file": "artifacts/chain-performance-20261017/observer-native-facts-prototype/cross-reader-chain-red.raw",
+    "actualExit": 1,
+    "firstCause": "Prototype initially failed to bind cached signature to expected observer reader chain; exact original valid signature passed against intentionally different reader chain.",
+    "fixed": "Lookup now requires explicit expectedChainID equal to decoder migration chain before digest+exact bytes lookup; misses retain original Decode+Verify; per-input fee/nonce/height/context checks retained.",
+    "originalCodeSnapshots": [
+      {
+        "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/initial-consensus-observer-lookup-test.go",
+        "bytes": 2860,
+        "sha256": "3d4f55729883ea23c50a8b9fb62ea151c148436cece27be208d545fd5a072481"
+      },
+      {
+        "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/initial-consensus-observer-lookup.go",
+        "bytes": 778,
+        "sha256": "517d472db0ff8d9d42648f7133bdfe032798b64ba9074627ad7b77c638243bea"
+      },
+      {
+        "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/initial-durable-reader-prototype.go",
+        "bytes": 21301,
+        "sha256": "69412c1d80cd88669bb9e2a10978e3de3e70156db9353f9a94a6d20569f28cbd"
+      },
+      {
+        "path": "artifacts/chain-performance-20261017/observer-native-facts-prototype/initial-observer-lookup-test.go",
+        "bytes": 6537,
+        "sha256": "325c66a2fe45fa55e217efa1f85279ab395d313aaff0a324244445c2af44e089"
+      }
+    ]
+  },
+  "negativeRace": {
+    "file": "artifacts/chain-performance-20261017/observer-native-facts-prototype/lookup-negative-race-after-chain-binding.raw",
+    "exit": 0,
+    "seconds": 1.608,
+    "scope": "nil/cold/changed bytes/explicit different chain/digest collision canonical bytes/returned ownership/concurrent reads/eviction and existing4096entry4MiB caps; synthetic eviction entries are not signature or execution successes."
+  },
+  "limits": "Phase after independent full original2048 signed replay and original state index construction. All2048 unique inputs cryptographically verified in replay, then every observer fee/nonce/height checked. No RPC/fresh file/state capture/quorum/finality/new business throughput claim; cannot project phase delta to network improvement. Production lookup/flag/stats/controller integration not implemented; current pressure run uses frozen source without this overlay."
+}

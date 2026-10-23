@@ -1,0 +1,72 @@
+package main
+import (
+ "context"
+ "crypto/sha256"
+ "encoding/binary"
+ "encoding/hex"
+ "encoding/json"
+ "os"
+ "path/filepath"
+ "runtime"
+ "testing"
+ "time"
+ "github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+ "github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+ abci "github.com/cometbft/cometbft/abci/types"
+)
+func TestObserverNativeFactsOriginal2048PhaseABBA(t *testing.T) {
+ dir:=os.Getenv("YNX_PREFIX_CLIENT_FIXTURE_DIR");if dir=="" {t.Fatal("explicit original fixture required")}
+ raw,err:=os.ReadFile(filepath.Join(dir,"ynx-abci-state.json"));if err!=nil {t.Fatal(err)}
+ sum:=sha256.Sum256(raw);if hex.EncodeToString(sum[:])!="7c2a5b38bdb057972462068772196e74e4ab5c8564712fea1f54a6e89bee4d0a" {t.Fatal("original journal differs")}
+ migrationRaw,err:=os.ReadFile(filepath.Join(dir,"bound-migration.json"));if err!=nil {t.Fatal(err)}
+ var migration chain.ConsensusMigrationState;if err=json.Unmarshal(migrationRaw,&migration);err!=nil {t.Fatal(err)}
+ type input struct{Raw []byte;Height int64};inputs:=[]input{}
+ pos:=len("YNX_ABCI_BLOCK_JOURNAL_V2\n"+migration.StateHash+"\n")
+ for pos<len(raw) {
+  if len(raw)-pos<72 {t.Fatal("partial original frame")};n:=binary.BigEndian.Uint64(raw[pos:pos+8]);if n>uint64(len(raw)-pos-72) {t.Fatal("frame bound")}
+  var record struct{Kind string;Request []byte};if err=json.Unmarshal(raw[pos+72:pos+72+int(n)],&record);err!=nil {t.Fatal(err)};pos+=72+int(n)
+  if record.Kind!="block" {continue};var req abci.RequestFinalizeBlock;if err=req.Unmarshal(record.Request);err!=nil {t.Fatal(err)}
+  for _,tx:=range req.Txs {inputs=append(inputs,input{append([]byte(nil),tx...),req.Height})}
+ }
+ if len(inputs)!=2048 {t.Fatal("original unique input count differs",len(inputs))}
+ seen:=map[string]bool{};for _,i:=range inputs {key:=consensus.SignedTransactionHash(i.Raw);if seen[key] {t.Fatal("duplicate original input")};seen[key]=true}
+ type sample struct{Mode string;ElapsedNs int64;AllocatedBytes uint64;ObserverHits uint64;TransactionChecks uint64;ReplayFacts consensus.BlockJournalVerificationStats}
+ samples:=[]sample{};expectedHash:=""
+ defer func(){prototypeObserverFactsEnabled=false}()
+ for _,mode:=range []string{"control","observer-fact-reuse","observer-fact-reuse","control"} {
+  r,e:=newDurableReader(migration,[]string{"isolated-original-store"});if e!=nil {t.Fatal(e)}
+  if e=r.configurePrefixReplayMode(migration,true,true);e!=nil {t.Fatal(e)}
+  decoded,e:=r.prefixDecoder.Decode(context.Background(),raw);if e!=nil {t.Fatal(e)}
+  if decoded.ReplayedTransactionInputs!=2048 {t.Fatal("full original replay omitted")}
+  if expectedHash=="" {expectedHash=decoded.State.AppHash};if decoded.State.AppHash!=expectedHash {t.Fatal("state result differs")}
+  state:=decoded.State
+  slot:=&durableSnapshotSlot{state:&state,fees:map[durableFeeKey]struct{}{},nonces:map[string]uint64{}}
+  for _,fee:=range state.FeeEvents {slot.fees[durableFeeKey{hash:fee.TxHash,payer:fee.Payer,kind:fee.TransactionType,height:fee.BlockHeight,fee:fee.GrossFeeYNXT}]=struct{}{}}
+  for _,account:=range state.Accounts {slot.nonces[account.Address]=account.Nonce}
+  beforeFacts:=r.prefixDecoder.VerificationStats();if beforeFacts.SuccessfulVerifications!=2048 {t.Fatal("original2048 mathematics missing")}
+  prototypeObserverFactsEnabled=mode!="control";prototypeObserverFactHits=0
+  runtime.GC();var before,after runtime.MemStats;runtime.ReadMemStats(&before);started:=time.Now()
+  for _,i:=range inputs {if e=r.verifyTransactionLocked(context.Background(),slot,i.Raw,i.Height);e!=nil {t.Fatal("original business result differs",mode,e)}}
+  elapsed:=time.Since(started).Nanoseconds();runtime.ReadMemStats(&after)
+  afterFacts:=r.prefixDecoder.VerificationStats()
+  if afterFacts!=beforeFacts || slot.stats.TransactionVerifications!=2048 {t.Fatal("observer altered replay math counters or skipped business checks")}
+  if prototypeObserverFactsEnabled && prototypeObserverFactHits!=2048 || !prototypeObserverFactsEnabled && prototypeObserverFactHits!=0 {t.Fatal("actual lookup hit count differs")}
+  samples=append(samples,sample{mode,elapsed,after.TotalAlloc-before.TotalAlloc,prototypeObserverFactHits,slot.stats.TransactionVerifications,afterFacts})
+  if prototypeObserverFactsEnabled {
+   i:=inputs[0];tx,e:=consensus.DecodeSignedTransaction(i.Raw);if e!=nil {t.Fatal(e)}
+   originalChain:=r.migration.Network.ChainID;r.migration.Network.ChainID++
+   if e=r.verifyTransactionLocked(context.Background(),slot,i.Raw,i.Height);e==nil {t.Fatal("prototype reused signature across reader chain binding")}
+   r.migration.Network.ChainID=originalChain
+   key:=durableFeeKey{hash:consensus.SignedTransactionHash(i.Raw),payer:tx.From,kind:consensus.SignedTransactionType,height:i.Height,fee:tx.Fee}
+   delete(slot.fees,key);if e=r.verifyTransactionLocked(context.Background(),slot,i.Raw,i.Height);e==nil {t.Fatal("verified signature authorized absent fee")};slot.fees[key]=struct{}{}
+   nonce:=slot.nonces[tx.From];slot.nonces[tx.From]=0;if e=r.verifyTransactionLocked(context.Background(),slot,i.Raw,i.Height);e==nil {t.Fatal("verified signature authorized absent nonce")};slot.nonces[tx.From]=nonce
+   if e=r.verifyTransactionLocked(context.Background(),slot,i.Raw,i.Height+1);e==nil {t.Fatal("verified signature authorized wrong execution height")}
+   changed:=append([]byte(nil),i.Raw...);changed[len(changed)-2]^=1
+   if _,known:=r.prefixDecoder.LookupVerifiedNativeForObserver(changed,r.migration.Network.ChainID);known {t.Fatal("modified bytes matched fact")}
+   if e=r.verifyTransactionLocked(context.Background(),slot,changed,i.Height);e==nil {t.Fatal("modified envelope accepted")}
+   ctx,cancel:=context.WithCancel(context.Background());cancel();if e=r.verifyTransactionLocked(ctx,slot,i.Raw,i.Height);e==nil {t.Fatal("cancelled observation accepted")}
+   returned,known:=r.prefixDecoder.LookupVerifiedNativeForObserver(i.Raw,r.migration.Network.ChainID);if !known {t.Fatal("verified original missing")};returned.From="mutated";again,known:=r.prefixDecoder.LookupVerifiedNativeForObserver(i.Raw,r.migration.Network.ChainID);if !known || again.From==returned.From {t.Fatal("caller value altered retained fact")}
+  }
+ }
+ out:=map[string]any{"kind":"offline_original2048_observer_signature_phase_ABBA_prototype_not_network_tps","goVersion":runtime.Version(),"os":runtime.GOOS,"arch":runtime.GOARCH,"gomaxprocs":runtime.GOMAXPROCS(0),"samples":samples,"originalStateAppHash":expectedHash,"limits":"Only original verifyTransactionLocked phase after full2048 original signed replay and index construction. Excludes file freshness/capture/state validation/RPC/quorum/finality. Each raw input unique; cache peek only decoder-owned successful exact bytes+chain facts, misses keep original full verification; fees/nonce/height/context checked per call. Frozen production unchanged; no new network qualification."};b,e:=json.Marshal(out);if e!=nil {t.Fatal(e)};t.Log(string(b))
+}

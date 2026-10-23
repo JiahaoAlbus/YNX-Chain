@@ -1,0 +1,39 @@
+package consensus
+import (
+ "crypto/sha256"
+ "fmt"
+ "sync"
+ "testing"
+)
+func TestPrototypeObserverLookupBindsBytesChainOwnershipAndEviction(t *testing.T) {
+ app,raw:=nativeVerificationFixture(t)
+ d,e:=NewBlockJournalNativeSuffixPrefixDecoder(app.migration);if e!=nil {t.Fatal(e)}
+ var absent *BlockJournalPrefixDecoder
+ if _,ok:=absent.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID);ok {t.Fatal("nil certified")}
+ if _,ok:=d.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID);ok {t.Fatal("cold cache certified")}
+ replay:=&Application{migration:d.full.migration,replayVerificationFacts:&d.full.native}
+ want,e:=replay.decodeVerifiedNativeTransaction(raw);if e!=nil {t.Fatal(e)}
+ initial:=d.VerificationStats()
+ if _,found:=d.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID+1);found {t.Fatal("unexpected caller chain accepted")}
+ got,ok:=d.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID);if !ok || got!=want {t.Fatal("real verified fact unavailable")}
+ got.From="caller mutation";got,ok=d.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID);if !ok || got!=want {t.Fatal("return aliases retained value")}
+ changed:=append([]byte(nil),raw...);changed[0]^=1
+ if _,ok=d.LookupVerifiedNativeForObserver(changed,app.migration.Network.ChainID);ok {t.Fatal("modified bytes certified")}
+ for _,input:=range [][]byte{nil,make([]byte,MaxSignedTransactionSize+1)} {if _,ok=d.LookupVerifiedNativeForObserver(input,app.migration.Network.ChainID);ok {t.Fatal("invalid bound certified")}}
+ d.full.migration.Network.ChainID++
+ if _,ok=d.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID);ok {t.Fatal("different chain reused fact")}
+ d.full.migration.Network.ChainID--
+ key:=nativeVerificationKey{chainID:d.full.migration.Network.ChainID,digest:sha256.Sum256(raw)}
+ original:=d.full.native.entries[key];corrupt:=original;corrupt.payload="different canonical bytes";d.full.native.entries[key]=corrupt
+ if _,ok=d.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID);ok {t.Fatal("digest match ignored canonical bytes")}
+ d.full.native.entries[key]=original
+ var wg sync.WaitGroup
+ for i:=0;i<4;i++ {wg.Add(1);go func(){defer wg.Done();for j:=0;j<100;j++ {v,found:=d.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID);if !found || v!=want {t.Error("concurrent immutable fact differs")};v.From="private caller"}}()};wg.Wait()
+ if d.VerificationStats()!=initial {t.Fatal("observer peek mixed into replay counters")}
+ // Existing private cache eviction mechanism is exercised with synthetic keys;
+ // only the original envelope above was cryptographically certified. Synthetic
+ // entries are not execution results, signatures or business throughput.
+ for i:=0;i<nativeVerificationCapacity;i++ {payload:=fmt.Sprintf("synthetic-eviction-%d",i);d.full.native.rememberVerified(nativeVerificationKey{chainID:d.full.migration.Network.ChainID,digest:sha256.Sum256([]byte(payload))},payload,SignedTransaction{})}
+ if _,ok=d.LookupVerifiedNativeForObserver(raw,app.migration.Network.ChainID);ok {t.Fatal("evicted fact certified")}
+ if len(d.full.native.entries)>nativeVerificationCapacity || d.full.native.stringBytes>nativeVerificationStringBytes {t.Fatal("original cache capacity expanded")}
+}
