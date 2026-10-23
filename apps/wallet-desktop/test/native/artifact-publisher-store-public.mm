@@ -57,28 +57,32 @@ static NSMutableData *observedRecord;
 
 static NSMutableDictionary *items;
 static NSUInteger adds=0,reads=0;
+static NSUInteger journalAdds=0,journalReads=0;
 static OSStatus addStatus=errSecSuccess,readStatus=errSecSuccess;
 static BOOL commitDespiteError=NO,corruptReadback=NO,wrongR=NO,weakerProtection=NO;
 static NSMutableData *mutateCaller=nil;
+static NSString*lastJournalKey;
+static void(^journalAfterAddHook)(void);
 static NSString *address(NSDictionary *query){
  assert([query[(__bridge id)kSecClass]isEqual:(__bridge id)kSecClassGenericPassword]);
- assert([query[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-publisher.v1"]);
+ NSString*service=query[(__bridge id)kSecAttrService];assert(([@[@"com.ynxweb4.wallet.artifact-publisher.v1",@"com.ynxweb4.wallet.artifact-release-intent.v1",@"com.ynxweb4.wallet.artifact-release-result.v1"]containsObject:service]));
  assert([query[(__bridge id)kSecAttrSynchronizable]isEqual:@NO]);
  assert([query[(__bridge id)kSecUseDataProtectionKeychain]isEqual:@YES]);
  LAContext *context=query[(__bridge id)kSecUseAuthenticationContext];assert([context isKindOfClass:LAContext.class]&&context.interactionNotAllowed);
  assert(!query[(__bridge id)kSecUseKeychain]&&!query[(__bridge id)kSecReturnPersistentRef]);
- NSString *a=query[(__bridge id)kSecAttrAccount];assert(a.length==64);return a;
+ NSString *a=query[(__bridge id)kSecAttrAccount];assert(a.length==64);NSString*key=[service stringByAppendingFormat:@"/%@",a];if(![service isEqual:@"com.ynxweb4.wallet.artifact-publisher.v1"])lastJournalKey=key;return key;
 }
 extern "C" OSStatus YNXPublisherStoreTestAdd(CFDictionaryRef raw,CFTypeRef *){
- adds++;NSDictionary *q=(__bridge NSDictionary *)raw;NSString *a=address(q);
+ NSDictionary *q=(__bridge NSDictionary *)raw;NSString *a=address(q);if([q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-publisher.v1"])adds++;else journalAdds++;
  assert([q[(__bridge id)kSecAttrAccessible]isEqual:(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly]);
  if(items[a])return errSecDuplicateItem;
  if(addStatus==errSecSuccess||commitDespiteError)items[a]=[q[(__bridge id)kSecValueData]copy];
+ if(journalAfterAddHook&&[q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-release-intent.v1"]){void(^hook)(void)=journalAfterAddHook;journalAfterAddHook=nil;hook();}
  if(mutateCaller)[mutateCaller resetBytesInRange:NSMakeRange(0,mutateCaller.length)];
  return addStatus;
 }
 extern "C" OSStatus YNXPublisherStoreTestCopy(CFDictionaryRef raw,CFTypeRef *result){
- reads++;NSDictionary *q=(__bridge NSDictionary *)raw;NSString *a=address(q);
+ NSDictionary *q=(__bridge NSDictionary *)raw;NSString *a=address(q);if([q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-publisher.v1"])reads++;else journalReads++;
  assert([q[(__bridge id)kSecReturnData]isEqual:@YES]);assert([q[(__bridge id)kSecMatchLimit]isEqual:(__bridge id)kSecMatchLimitOne]);
  assert([q[(__bridge id)kSecReturnAttributes]isEqual:@YES]);
  if(readStatus!=errSecSuccess)return readStatus;
@@ -86,7 +90,7 @@ extern "C" OSStatus YNXPublisherStoreTestCopy(CFDictionaryRef raw,CFTypeRef *res
  NSMutableData *returned=[item mutableCopy];
  if(corruptReadback)((uint8_t *)returned.mutableBytes)[returned.length-1]^=1;
  if(wrongR)((uint8_t *)returned.mutableBytes)[[@"YNX-PUBLISHER-CUSTODY/v1\n" lengthOfBytesUsingEncoding:NSUTF8StringEncoding]+4]^=1;
- *result=CFBridgingRetain(@{(__bridge id)kSecAttrService:q[(__bridge id)kSecAttrService],(__bridge id)kSecAttrAccount:a,(__bridge id)kSecAttrSynchronizable:@NO,(__bridge id)kSecAttrAccessible:weakerProtection?(__bridge id)kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly:(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly,(__bridge id)kSecValueData:returned});return errSecSuccess;
+ *result=CFBridgingRetain(@{(__bridge id)kSecAttrService:q[(__bridge id)kSecAttrService],(__bridge id)kSecAttrAccount:q[(__bridge id)kSecAttrAccount],(__bridge id)kSecAttrSynchronizable:@NO,(__bridge id)kSecAttrAccessible:weakerProtection?(__bridge id)kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly:(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly,(__bridge id)kSecValueData:returned});return errSecSuccess;
 }
 static NSData *R(NSString *label){return [label dataUsingEncoding:NSUTF8StringEncoding];}
 static NSMutableData *record(NSData *r){
@@ -160,9 +164,50 @@ static void approvalCases(){
  std::puts("PASS explicit retire revokes the exact approval without deleting its once-selection history");
  setupApproval();a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);ref=[a copyOriginalReview:&e][@"actualApprovalRef"];sourceView=publisherView(approvalPublicR(),@"PUBLIC-project",@"PUBLIC-publisher",YES,@"8");assert(![a selectOriginalSigning:ref error:&e]&&e);sourceView=publisherView(approvalPublicR());assert(![a selectOriginalSigning:ref error:&e]&&e);assert([a close:&e]);assert(reads==privateReads);
  std::puts("PASS failed once-entry current check cannot be repaired into a new key attempt");
+ setupApproval(@{@"requestId":NSUUID.UUID.UUIDString.lowercaseString});a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);ref=[a copyOriginalReview:&e][@"actualApprovalRef"];assert([a selectOriginalSigning:ref error:&e]);assert([a close:&e]);auto cold=captureApproval(&e);v=[cold copyOriginalReview:&e];assert([cold approveOriginalReview:v[@"reviewId"]error:&e]);ref=[cold copyOriginalReview:&e][@"actualApprovalRef"];assert(![cold selectOriginalSigning:ref error:&e]&&e.code==errSecDuplicateItem);assert([cold close:&e]&&reads==privateReads);
+ std::puts("PASS actual Native once selection persists before private access and blocks a fresh approval owner for the same request");
+ setupApproval(@{@"requestId":NSUUID.UUID.UUIDString.lowercaseString});a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);ref=[a copyOriginalReview:&e][@"actualApprovalRef"];addStatus=errSecInteractionNotAllowed;commitDespiteError=YES;assert(![a selectOriginalSigning:ref error:&e]&&[e.userInfo[@"operationMayHaveCommitted"]boolValue]);addStatus=errSecSuccess;commitDespiteError=NO;assert(![a selectOriginalSigning:ref error:&e]);assert([a close:&e]);cold=captureApproval(&e);v=[cold copyOriginalReview:&e];assert([cold approveOriginalReview:v[@"reviewId"]error:&e]);ref=[cold copyOriginalReview:&e][@"actualApprovalRef"];assert(![cold selectOriginalSigning:ref error:&e]&&e.code==errSecDuplicateItem);assert([cold close:&e]&&reads==privateReads);
+ std::puts("PASS actual Native uncertain intent save refuses private access and cannot be replayed after owner recreation");
+ setupApproval(@{@"requestId":NSUUID.UUID.UUIDString.lowercaseString});a=captureApproval(&e);v=[a copyOriginalReview:&e];assert([a approveOriginalReview:v[@"reviewId"]error:&e]);ref=[a copyOriginalReview:&e][@"actualApprovalRef"];journalAfterAddHook=^{walletLive=NO;};assert(![a selectOriginalSigning:ref error:&e]&&e);walletLive=YES;assert(![a selectOriginalSigning:ref error:&e]);assert([a close:&e]);cold=captureApproval(&e);v=[cold copyOriginalReview:&e];assert([cold approveOriginalReview:v[@"reviewId"]error:&e]);ref=[cold copyOriginalReview:&e][@"actualApprovalRef"];assert(![cold selectOriginalSigning:ref error:&e]&&e.code==errSecDuplicateItem);assert([cold close:&e]&&reads==privateReads);
+ std::puts("PASS channel retirement at durable intent boundary preserves fence and never falls back to unsigned or re-enters");
 }
+#if !defined(YNX_PUBLISHER_APPROVAL_DURABILITY_RED_ONLY)
+static NSString*journalB64(NSData*b){return [[[[b base64EncodedStringWithOptions:0]stringByReplacingOccurrencesOfString:@"+" withString:@"-"]stringByReplacingOccurrencesOfString:@"/" withString:@"_"]stringByReplacingOccurrencesOfString:@"=" withString:@""];}
+static NSDictionary*journalIntent(){setupApproval(@{@"requestId":NSUUID.UUID.UUIDString.lowercaseString});return @{@"version":@"YNX-WALLET-ARTIFACT-RELEASE-JOURNAL/v1",@"requestOriginal":walletPacket[@"requestRaw"],@"manifestOriginal":walletPacket[@"invocationRaw"],@"reviewId":NSUUID.UUID.UUIDString.lowercaseString,@"actualApprovalRef":NSUUID.UUID.UUIDString.lowercaseString,@"publisherOriginal":journalB64(approvalPublicR()),@"publisherRegistrationRef":@"PUBLIC-original-registration-not-R-hash",@"publisherRevision":@"7",@"publisherKeyVersion":@"5",@"phase":@"signing-selected"};}
+static NSDictionary*journalResult(NSDictionary*intent){NSMutableDictionary*r=[intent mutableCopy];[r addEntriesFromDictionary:@{@"phase":@"signed-unhanded",@"memberOriginal":@"AQID",@"status":@"0",@"cleanup":@"2",@"invoked":@YES,@"errorCode":NSNull.null}];return r;}
+static NSData*journalRequest(NSDictionary*d){return [d[@"requestOriginal"]dataUsingEncoding:NSUTF8StringEncoding];}
+static void journalCases(){
+ auto j=[YNXOriginalArtifactReleaseJournal new];NSError*e=nil;NSDictionary*i=journalIntent(),*r=journalResult(i);NSData*request=journalRequest(i);
+ assert([j createOriginalIntent:i error:&e]&&!e);assert([j createOriginalResult:r error:&e]&&!e);
+ auto cold=[YNXOriginalArtifactReleaseJournal new];NSDictionary*saved=[cold copyOriginalResultForRequest:request error:&e];assert(saved&&!e&&[saved[@"memberOriginal"]isEqual:@"AQID"]&&[saved[@"dataOnly"]boolValue]&&![saved[@"handoffAuthorized"]boolValue]&&![saved[@"retryAuthorized"]boolValue]);
+ std::puts("PASS protected immutable intent and public outcome survive cold read as DATA without retry/handoff permission");
+ NSData*original=items[lastJournalKey];assert(![cold createOriginalIntent:i error:&e]&&e.code==errSecDuplicateItem);assert([cold createOriginalResult:r error:&e]&&!e);assert([items[lastJournalKey]isEqual:original]);
+ std::puts("PASS duplicate intent never reopens signing while identical result reconciliation confirms storage only");
+ i=journalIntent();r=journalResult(i);NSUInteger before=journalAdds;assert(![j createOriginalResult:r error:&e]&&e.code==errSecItemNotFound&&journalAdds==before);
+ std::puts("PASS missing durable intent cannot be silently created by saving a result");
+ assert([j createOriginalIntent:i error:&e]);for(NSString*key in @[@"reviewId",@"actualApprovalRef",@"publisherRegistrationRef",@"publisherRevision"]){NSMutableDictionary*changed=[r mutableCopy];changed[key]=[key hasSuffix:@"Id"]||[key isEqual:@"actualApprovalRef"]?NSUUID.UUID.UUIDString.lowercaseString:[key isEqual:@"publisherRevision"]?@"8":@"PUBLIC-other-ref";before=journalAdds;assert(![j createOriginalResult:changed error:&e]&&journalAdds==before);}
+ std::puts("PASS saved outcome cannot substitute original decision, approval, registration reference or registry revision");
+ i=journalIntent();addStatus=errSecInteractionNotAllowed;commitDespiteError=YES;assert(![j createOriginalIntent:i error:&e]&&[e.userInfo[@"operationMayHaveCommitted"]boolValue]);commitDespiteError=NO;addStatus=errSecSuccess;assert(![[YNXOriginalArtifactReleaseJournal new]createOriginalIntent:i error:&e]&&e.code==errSecDuplicateItem);
+ std::puts("PASS uncertain intent write remains a durable anti-resigning fence after a new journal owner");
+ i=journalIntent();r=journalResult(i);assert([j createOriginalIntent:i error:&e]);addStatus=errSecInteractionNotAllowed;commitDespiteError=YES;assert(![j createOriginalResult:r error:&e]&&[e.userInfo[@"operationMayHaveCommitted"]boolValue]);original=items[lastJournalKey];commitDespiteError=NO;addStatus=errSecSuccess;assert([j createOriginalResult:r error:&e]&&!e&&[items[lastJournalKey]isEqual:original]);
+ std::puts("PASS uncertain public outcome can reconcile only identical original bytes without overwrite or a new signature");
+ i=journalIntent();r=journalResult(i);assert([j createOriginalIntent:i error:&e]);before=journalAdds;corruptReadback=YES;assert(![j createOriginalResult:r error:&e]);assert(journalAdds==before);corruptReadback=NO;assert([j createOriginalResult:r error:&e]);original=items[lastJournalKey];weakerProtection=YES;assert(![j copyOriginalResultForRequest:journalRequest(i)error:&e]&&e.code==errSecDecode);weakerProtection=NO;assert([items[lastJournalKey]isEqual:original]);
+ std::puts("PASS changed intent readback blocks result write and weak protection never promotes retained outcome");
+ before=journalAdds;for(NSDictionary*patch in @[@{@"memberOriginal":@"AQID="},@{@"status":@"01"},@{@"cleanup":@"0"},@{@"invoked":@NO},@{@"errorCode":@"private material must not be copied as an error code"},@{@"phase":@"unsigned"},@{@"handoffAuthorized":@YES},@{@"publisherKeyVersion":@"7"}]){NSMutableDictionary*bad=[r mutableCopy];[bad addEntriesFromDictionary:patch];assert(![j createOriginalResult:bad error:&e]);}assert(journalAdds==before);
+ std::puts("PASS contradictory outcome, unknown fields, version confusion and malformed data refuse before write");
+ for(NSString*phase in @[@"unknown",@"failed",@"cancelled"]){i=journalIntent();assert([j createOriginalIntent:i error:&e]);NSMutableDictionary*state=[journalResult(i)mutableCopy];state[@"phase"]=phase;if(![phase isEqual:@"unknown"]){state[@"memberOriginal"]=NSNull.null;state[@"status"]=@"1";state[@"cleanup"]=@"0";state[@"invoked"]=@NO;}state[@"errorCode"]=[phase isEqual:@"cancelled"]?NSNull.null:@"PUBLIC_ORIGINAL_FAILURE";assert([j createOriginalResult:state error:&e]);saved=[cold copyOriginalResultForRequest:journalRequest(i)error:&e];assert([saved[@"phase"]isEqual:phase]&&[saved[@"memberOriginal"]isEqual:state[@"memberOriginal"]]&&![saved[@"retryAuthorized"]boolValue]);}
+ std::puts("PASS unknown with retained member, definite failure and cancellation remain distinct durable states");
+ i=journalIntent();assert([j createOriginalIntent:i error:&e]);NSMutableDictionary*large=[journalResult(i)mutableCopy];large[@"memberOriginal"]=journalB64([NSMutableData dataWithLength:98304]);assert([j createOriginalResult:large error:&e]);saved=[j copyOriginalResultForRequest:journalRequest(i)error:&e];assert([saved[@"memberOriginal"]length]==131072);large[@"memberOriginal"]=journalB64([NSMutableData dataWithLength:98305]);before=journalAdds;assert(![j createOriginalResult:large error:&e]&&journalAdds==before);
+ std::puts("PASS maximum bounded public member survives cold storage while oversized output cannot write");
+}
+#endif
 int main(int argc,char **argv){@autoreleasepool{
  items=[NSMutableDictionary new];auto store=[YNXOriginalArtifactPublisherStore new];NSError *e=nil;
+#if defined(YNX_PUBLISHER_APPROVAL_DURABILITY_RED_ONLY)
+ setupApproval(@{@"requestId":NSUUID.UUID.UUIDString.lowercaseString});auto original=captureApproval(&e);NSDictionary*review=[original copyOriginalReview:&e];assert([original approveOriginalReview:review[@"reviewId"]error:&e]);NSString*ref=[original copyOriginalReview:&e][@"actualApprovalRef"];assert([original selectOriginalSigning:ref error:&e]);assert([original close:&e]);auto recreated=captureApproval(&e);review=[recreated copyOriginalReview:&e];assert([recreated approveOriginalReview:review[@"reviewId"]error:&e]);ref=[recreated copyOriginalReview:&e][@"actualApprovalRef"];
+ if([recreated selectOriginalSigning:ref error:&e]){std::puts("RED_ORIGINAL_NATIVE_RECREATED_OWNER_REENTERED_SAME_REQUEST privateReads=0 cryptoCalls=0");return 23;}
+ std::puts("RED_NOT_REPRODUCED");return 24;
+#endif
  NSData *r=R(@"PUBLIC fake original R:1");NSMutableData *wire=record(r);
  {
   using namespace ynx_wallet_private;
@@ -226,5 +271,8 @@ int main(int argc,char **argv){@autoreleasepool{
  std::puts("PASS actual Main JS storage framing interoperates with native parser using PUBLIC fake material only");
  currentCases(store,r,wire);
  approvalCases();
+#if !defined(YNX_PUBLISHER_APPROVAL_DURABILITY_RED_ONLY)
+ journalCases();
+#endif
  std::puts("PUBLIC_KEYCHAIN_SOURCE_SEAMS_ONLY systemKeychainOperations=0 sourceGrant=0 approval=0 signature=0 workspaceFDQualified=0");
  }}

@@ -46,6 +46,18 @@ inline bool borrowPublisherRecord(const void *record,size_t length,const void *e
 + (instancetype)new NS_UNAVAILABLE;
 @end
 
+// Wallet-owned protected append-only operation storage. Two create-only slots
+// per exact original request: intent before private read, public outcome after
+// the sole attempt. Stored DATA never grants approval, signing or handoff.
+// Duplicate intent is ALWAYS a refusal; matching result reconciliation only
+// confirms storage, never authorizes another key read/signature/send.
+@interface YNXOriginalArtifactReleaseJournal : NSObject
+- (BOOL)createOriginalIntent:(NSDictionary *)record error:(NSError **)error;
+- (BOOL)createOriginalResult:(NSDictionary *)record error:(NSError **)error;
+- (NSDictionary *)copyOriginalIntentForRequest:(NSData *)request error:(NSError **)error;
+- (NSDictionary *)copyOriginalResultForRequest:(NSData *)request error:(NSError **)error;
+@end
+
 @class YNXOriginalIDEWalletIdentitySource,YNXOriginalIDEWalletPeerLaunch;
 // Main-only bounded review/approval owner for the existing admitted Wallet
 // channel. The fixed Native binding supplies actual same-env source/transport,

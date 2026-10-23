@@ -8,8 +8,8 @@ export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
 });
 export function walletNativeSourceProfile(version){if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');return WALLET_NATIVE_SOURCE_PROFILES[version];}
 export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
- {path:'apps/wallet-desktop/native/original-artifact-publisher-store.h',bytes:5073,sha256:'fc6d3d490bfbb975546c175fcb9ec96778b9107b65fdf5e73a9db6cb03f419ed'},
- {path:'apps/wallet-desktop/native/original-artifact-publisher-store.mm',bytes:23880,sha256:'34cc78f78fa846afacd90dd54db446fb319d3811b5309c09c890ced1ad7184ec'}
+ {path:'apps/wallet-desktop/native/original-artifact-publisher-store.h',bytes:5852,sha256:'b2075c4f5545739b51d2843d5d393c6e638aedf45ba5e59cbc90796c73b0d9b3'},
+ {path:'apps/wallet-desktop/native/original-artifact-publisher-store.mm',bytes:34560,sha256:'c770906765202e39ab9424f6df034ccbe30489af1e11bc9485486f8297e5ad46'}
 ].map(Object.freeze));
 export const WALLET_PUBLISHER_APPROVAL_FLAG='-DYNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING=1';
 export const WALLET_PUBLISHER_APPROVAL_INPUT=Object.freeze({path:'apps/wallet-desktop/native/original-artifact-publisher-binding.inc.mm',bytes:10178,sha256:'add3470e361124eaf70549c08a62a98bdafedfcf14173f068a9dbc6b2faaca1c'});

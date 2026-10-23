@@ -171,6 +171,14 @@ static BOOL PublisherApprovalFocused(){
  if(!_approved||_signSelected||![ref isKindOfClass:NSString.class]||![_approvalRef isEqual:ref])return [self refuse:@"PUBLISHER_SIGNING_ALREADY_SELECTED_OR_UNAPPROVED" cause:nil error:error],nil;
  _signSelected=YES; // before source/custody/crypto; failure is UNKNOWN, not retry
  if(!PublisherApprovalFocused())return [self refuse:@"PUBLISHER_APPROVAL_CONTEXT_REFUSED" cause:nil error:error],nil;
+ NSDictionary*snapshot=[self current:error];if(!snapshot)return nil;
+ // Persist the exact original once selection BEFORE returning a context that
+ // could read private custody. A duplicate/uncertain write cannot rearm this
+ // owner, and a fresh owner meets the same create-only request fence.
+ NSDictionary*intent=@{@"version":@"YNX-WALLET-ARTIFACT-RELEASE-JOURNAL/v1",@"requestOriginal":_packet[@"requestRaw"],@"manifestOriginal":_packet[@"invocationRaw"],@"reviewId":_reviewId,@"actualApprovalRef":_approvalRef,@"publisherOriginal":[[[[snapshot[@"publisherOriginal"]base64EncodedStringWithOptions:0]stringByReplacingOccurrencesOfString:@"+" withString:@"-"]stringByReplacingOccurrencesOfString:@"/" withString:@"_"]stringByReplacingOccurrencesOfString:@"=" withString:@""],@"publisherRegistrationRef":snapshot[@"publisher"][@"registrationRef"],@"publisherRevision":snapshot[@"publisher"][@"revision"],@"publisherKeyVersion":_binding[@"publisherKeyVersion"],@"phase":@"signing-selected"};
+ NSError*storedError=nil;auto journal=[YNXOriginalArtifactReleaseJournal new];
+ if(![journal createOriginalIntent:intent error:&storedError]||storedError)return [self refuse:@"PUBLISHER_SIGNING_INTENT_UNCONFIRMED" cause:storedError error:error],nil;
+ if(!PublisherApprovalFocused())return [self refuse:@"PUBLISHER_SIGNING_INTENT_POST_CURRENT" cause:nil error:error],nil;
  return [self current:error];
 }}
 - (void)retire {@synchronized(self){_retired=YES;_approved=NO;[_publisher retire];}}
@@ -221,6 +229,90 @@ static NSMutableDictionary *Query(NSData *r){
   (__bridge id)kSecAttrSynchronizable:@NO,(__bridge id)kSecUseDataProtectionKeychain:@YES,
   (__bridge id)kSecUseAuthenticationContext:context} mutableCopy];
 }
+
+static NSString*const ReleaseJournalVersion=@"YNX-WALLET-ARTIFACT-RELEASE-JOURNAL/v1";
+static NSArray*ReleaseJournalBaseKeys(){return @[@"version",@"requestOriginal",@"manifestOriginal",@"reviewId",@"actualApprovalRef",@"publisherOriginal",@"publisherRegistrationRef",@"publisherRevision",@"publisherKeyVersion",@"phase"];}
+static BOOL ReleaseJournalUUID(id value){
+ if(![value isKindOfClass:NSString.class]||[value length]!=36)return NO;
+ NSUUID*uuid=[[NSUUID alloc]initWithUUIDString:value];return uuid&&[uuid.UUIDString.lowercaseString isEqual:value]&&[value characterAtIndex:14]=='4'&&[@"89ab" rangeOfString:[value substringWithRange:NSMakeRange(19,1)]].location!=NSNotFound;
+}
+static NSData*ReleaseJournalText(id value,NSUInteger maximum){
+ if(![value isKindOfClass:NSString.class]||![value length]||![value canBeConvertedToEncoding:NSUTF8StringEncoding]||[value lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>maximum)return nil;
+ return [value dataUsingEncoding:NSUTF8StringEncoding];
+}
+static NSData*ReleaseJournalMember(id value){
+ if(![value isKindOfClass:NSString.class]||![value length]||[value length]>131072)return nil;
+ NSString*s=[[value stringByReplacingOccurrencesOfString:@"-" withString:@"+"]stringByReplacingOccurrencesOfString:@"_" withString:@"/"];if(s.length%4==1)return nil;while(s.length%4)s=[s stringByAppendingString:@"="];
+ NSData*b=[[NSData alloc]initWithBase64EncodedString:s options:0];NSString*again=[[[[b base64EncodedStringWithOptions:0]stringByReplacingOccurrencesOfString:@"+" withString:@"-"]stringByReplacingOccurrencesOfString:@"/" withString:@"_"]stringByReplacingOccurrencesOfString:@"=" withString:@""];
+ return b.length&&b.length<=98304&&[again isEqual:value]?b:nil;
+}
+static BOOL ReleaseJournalErrorCode(id value){
+ if(value==NSNull.null)return YES;if(![value isKindOfClass:NSString.class]||![value length]||[value length]>128)return NO;
+ for(NSUInteger i=0;i<[value length];i++){unichar c=[value characterAtIndex:i];if(!((c>='A'&&c<='Z')||(c>='0'&&c<='9')||c=='_'))return NO;}return YES;
+}
+static NSData*ReleaseJournalCapture(NSDictionary*record,BOOL result){
+ NSArray*base=ReleaseJournalBaseKeys();NSArray*keys=result?[base arrayByAddingObjectsFromArray:@[@"memberOriginal",@"status",@"cleanup",@"invoked",@"errorCode"]]:base;
+ if(!SourceProjectKeys(record,keys)||![record[@"version"]isEqual:ReleaseJournalVersion]||!ReleaseJournalUUID(record[@"reviewId"])||!ReleaseJournalUUID(record[@"actualApprovalRef"]))return nil;
+ NSData*raw=ReleaseJournalText(record[@"requestOriginal"],16384),*manifest=ReleaseJournalText(record[@"manifestOriginal"],16384),*r=SourceProjectBase64(record[@"publisherOriginal"]);
+ NSDictionary*request=SourceProofDictionary(raw,16384),*publisher=SourceProjectR13(r);NSError*error=nil;NSDictionary*parsedManifest=YNXParseOriginalIDEPublicationManifest(manifest,&error);uint64_t issued=0,expires=0,revision=0;
+ if(!request||!publisher||!parsedManifest||error||![request[@"purpose"]isEqual:@"AUTH-PROTECTED-KEY-CALL"]||!ReleaseJournalText(request[@"requestId"],256)||![request[@"owner"]isEqual:publisher[@"subjectOwner"]]||![request[@"networkId"]isEqual:publisher[@"networkId"]]||!SourceProofU64(request[@"issuedAtMs"],issued,true)||!SourceProofU64(request[@"expiresAtMs"],expires,true)||expires<=issued||expires-issued>30000||![parsedManifest[@"projectId"]isEqual:publisher[@"projectId"]]||![record[@"publisherKeyVersion"]isEqual:publisher[@"publisherKeyVersion"]]||!SourceProjectText(record[@"publisherRegistrationRef"])||!SourceProofU64(record[@"publisherRevision"],revision,true))return nil;
+ if(!result){if(![record[@"phase"]isEqual:@"signing-selected"])return nil;}
+ else {
+  NSString*phase=record[@"phase"];uint64_t status=0,cleanup=0;id member=record[@"memberOriginal"];
+  BOOL invoked=SourceProofBoolean(record[@"invoked"],true),notInvoked=SourceProofBoolean(record[@"invoked"],false),hasMember=member!=NSNull.null;
+  if(![@[@"signed-unhanded",@"failed",@"unknown",@"cancelled"]containsObject:phase]||(!invoked&&!notInvoked)||!SourceProofU64(record[@"status"],status)||status>10||!SourceProofU64(record[@"cleanup"],cleanup)||cleanup>3||!ReleaseJournalErrorCode(record[@"errorCode"])||(hasMember&&!ReleaseJournalMember(member)))return nil;
+  if(hasMember&&(!invoked||status!=0||cleanup!=2))return nil;
+  if([phase isEqual:@"signed-unhanded"]&&(!hasMember||record[@"errorCode"]!=NSNull.null))return nil;
+  if([phase isEqual:@"failed"]&&(hasMember||status==0||record[@"errorCode"]==NSNull.null))return nil;
+  if([phase isEqual:@"cancelled"]&&(hasMember||invoked||status!=1||cleanup!=0))return nil;
+ }
+ NSMutableDictionary*stored=[record mutableCopy];stored[@"dataOnly"]=@YES;stored[@"handoffAuthorized"]=@NO;stored[@"retryAuthorized"]=@NO;
+ NSData*bytes=SourceProofCanonical(stored);return bytes.length&&bytes.length<=262144?bytes:nil;
+}
+static NSMutableDictionary*ReleaseJournalQuery(NSData*request,BOOL result){
+ NSMutableDictionary*q=Query(request);q[(__bridge id)kSecAttrService]=result?@"com.ynxweb4.wallet.artifact-release-result.v1":@"com.ynxweb4.wallet.artifact-release-intent.v1";return q;
+}
+static NSDictionary*ReleaseJournalRead(NSData*request,BOOL isResult,NSError**error){
+ if(!Actor(error))return nil;request=Snapshot(request,16384);if(!request){Reject(error,@"release-request",errSecParam,NO);return nil;}
+ NSMutableDictionary*q=ReleaseJournalQuery(request,isResult);q[(__bridge id)kSecReturnData]=@YES;q[(__bridge id)kSecReturnAttributes]=@YES;q[(__bridge id)kSecMatchLimit]=(__bridge id)kSecMatchLimitOne;
+ CFTypeRef raw=nullptr;OSStatus status=PublisherCopy((__bridge CFDictionaryRef)q,&raw);
+ if(status!=errSecSuccess){if(raw)CFRelease(raw);Reject(error,@"release-read",status,NO);return nil;}
+ if(!raw||CFGetTypeID(raw)!=CFDictionaryGetTypeID()){if(raw)CFRelease(raw);Reject(error,@"release-read-type",errSecDecode,NO);return nil;}
+ NSDictionary*a=CFBridgingRelease(raw);NSData*bytes=a[(__bridge id)kSecValueData];
+ if(![a[(__bridge id)kSecAttrService]isEqual:q[(__bridge id)kSecAttrService]]||![a[(__bridge id)kSecAttrAccount]isEqual:q[(__bridge id)kSecAttrAccount]]||![a[(__bridge id)kSecAttrSynchronizable]isEqual:@NO]||![a[(__bridge id)kSecAttrAccessible]isEqual:(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly]){Reject(error,@"release-read-protection",errSecDecode,NO);return nil;}
+ NSDictionary*body=SourceProofDictionary(bytes,262144);NSMutableDictionary*input=[body mutableCopy];
+ if(!SourceProofBoolean(input[@"dataOnly"],true)||!SourceProofBoolean(input[@"handoffAuthorized"],false)||!SourceProofBoolean(input[@"retryAuthorized"],false)){Reject(error,@"release-read-authority",errSecDecode,NO);return nil;}
+ [input removeObjectsForKeys:@[@"dataOnly",@"handoffAuthorized",@"retryAuthorized"]];
+ if(![ReleaseJournalCapture(input,isResult)isEqual:bytes]||![ReleaseJournalText(input[@"requestOriginal"],16384)isEqual:request]){Reject(error,@"release-read-binding",errSecDecode,NO);return nil;}
+ return [body copy];
+}
+static BOOL ReleaseJournalCreate(NSDictionary*record,BOOL isResult,NSError**error){
+ if(error)*error=nil;if(!Actor(error))return NO;
+ NSData*bytes=ReleaseJournalCapture(record,isResult);if(!bytes)return Reject(error,@"release-input",errSecParam,NO);
+ NSData*request=ReleaseJournalText(record[@"requestOriginal"],16384);
+ if(isResult){
+  NSError*intentError=nil;NSDictionary*intent=ReleaseJournalRead(request,NO,&intentError);
+  if(!intent){if(error)*error=intentError;return NO;}
+  for(NSString*key in ReleaseJournalBaseKeys())if(![key isEqual:@"phase"]&&![record[key]isEqual:intent[key]])return Reject(error,@"release-intent-result-binding",errSecDecode,NO);
+ }
+ NSMutableDictionary*q=ReleaseJournalQuery(request,isResult);q[(__bridge id)kSecAttrAccessible]=(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly;q[(__bridge id)kSecValueData]=bytes;
+ OSStatus status=PublisherAdd((__bridge CFDictionaryRef)q,nullptr);
+ // Even a byte-identical duplicate intent NEVER reopens signing. Only the
+ // result slot may confirm an already stored identical public outcome.
+ if(status!=errSecSuccess&&!(isResult&&status==errSecDuplicateItem))return Reject(error,@"release-create",status,status!=errSecDuplicateItem);
+ NSError*readError=nil;NSDictionary*saved=ReleaseJournalRead(request,isResult,&readError);
+ if(!saved||![SourceProofCanonical(saved)isEqual:bytes]){
+  if(error){NSError*failure=StoreError(@"release-create-readback",readError?(OSStatus)readError.code:errSecDecode,YES);NSMutableDictionary*info=[failure.userInfo mutableCopy];if(readError)info[NSUnderlyingErrorKey]=readError;*error=[NSError errorWithDomain:failure.domain code:failure.code userInfo:info];}return NO;
+ }
+ return YES;
+}
+@implementation YNXOriginalArtifactReleaseJournal
+- (BOOL)createOriginalIntent:(NSDictionary*)record error:(NSError**)error {@synchronized(self){return ReleaseJournalCreate(record,NO,error);}}
+- (BOOL)createOriginalResult:(NSDictionary*)record error:(NSError**)error {@synchronized(self){return ReleaseJournalCreate(record,YES,error);}}
+- (NSDictionary*)copyOriginalIntentForRequest:(NSData*)request error:(NSError**)error {@synchronized(self){if(error)*error=nil;return ReleaseJournalRead(request,NO,error);}}
+- (NSDictionary*)copyOriginalResultForRequest:(NSData*)request error:(NSError**)error {@synchronized(self){if(error)*error=nil;return ReleaseJournalRead(request,YES,error);}}
+@end
+
 @implementation YNXOriginalArtifactPublisherStore
 - (NSMutableData *)copyOriginalRecordForCurrentPublisher:(YNXOriginalArtifactPublisherCurrent *)current error:(NSError **)error {
  if(error)*error=nil;
