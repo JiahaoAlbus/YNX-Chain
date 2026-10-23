@@ -14,6 +14,34 @@ export interface WalletConnectCleanupSnapshot {
  readonly remoteCleanupUnconfirmed:true;
 }
 export declare const YNX_PAIR_PROJECT_ID: "41857128a14a593ca4e4a7cb7c838d71";
+export declare const DEVELOPER_CONTRACT_METHODS:readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal'];
+export type DeveloperContractMethod=typeof DEVELOPER_CONTRACT_METHODS[number];
+export interface DeveloperContractRequestSnapshot {
+ readonly scope:'local-only';
+ readonly origin:'https://developer.ynxweb4.com';
+ readonly method:DeveloperContractMethod;
+ readonly requestPayloadSHA256:string;
+ readonly account:string;
+ readonly chainId:'eip155:6423';
+ readonly state:'pending'|'fulfilled'|'unknown';
+ readonly originalRequestKeyHash:string|null;
+ readonly correlation:'missing'|'observed'|'conflict';
+ readonly remoteOutcome:'not-proven';
+ readonly replayAllowed:false;
+}
+export interface DeveloperContractRequestHandle {
+ readonly outcome:Promise<unknown>;
+ /** Late original sent events remain observable after a timeout. Persist the
+  * observed hash in the owning consumer journal; never recreate or retry a write. */
+ snapshot():DeveloperContractRequestSnapshot;
+ /** Original sent-event observation; already observed correlation is delivered
+  * immediately. This does not certify the consumer's durable journal write. */
+ onCorrelation(listener:(snapshot:DeveloperContractRequestSnapshot)=>unknown):()=>void;
+}
+export interface DeveloperContractRequest {
+ method:DeveloperContractMethod;
+ params:[{version:1;account:string;[key:string]:unknown}];
+}
 export interface WalletConnectProvider {
  readonly isYNXWallet:true;
  readonly isMetaMask:false;
@@ -57,8 +85,14 @@ export declare class WalletConnectDAppConnection {
  disconnect():Promise<void>;
  provider():WalletConnectProvider;
  request(input:{method:string;params?:unknown[]}):Promise<unknown>;
+ /** Available only on the dedicated developer-contract factory instance. */
+ beginContractRequest(input:DeveloperContractRequest):DeveloperContractRequestHandle;
 }
 /** Exact https://wallet.ynxweb4.com / eip155:6423 address-only profile.
  * Proposes methods:[], locally answers account/chain reads after approval,
  * and rejects all remote RPC, signing and identity requests. */
 export declare function createWalletAddressConnection(options?:WalletAddressConnectionOptions):WalletConnectDAppConnection;
+/** Exact developer origin/Testnet/three-method profile. This shares the original
+ * SignClient store and lifecycle; it does not grant identity or signing rights.
+ * No Relay is initialized by constructing it. */
+export declare function createDeveloperContractConnection(options?:WalletAddressConnectionOptions):WalletConnectDAppConnection;
