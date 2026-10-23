@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {exactData} from './transfer-binding.mjs';
-import {preparePQTransferFinalityTarget} from './finality-invocation.mjs';
+import {preparePQTransferFinalityTarget,preparePQReviewedTypedActionFinalityTarget} from './finality-invocation.mjs';
 
 // Protocol c3c219d / 0345970 normal CLI DATA profile. This module never
 // authenticates a binary, host context, clock, issuer or invocation history.
@@ -39,7 +39,7 @@ function snapshot(value,maximum,empty=false){
   }catch{invalid();}
 }
 
-// The fixed transfer output has only three object levels and string/bool/null
+// The fixed single-transaction output has three object levels and string/bool/null
 // leaves. Decode keys before duplicate checks; reject arrays, numeric tokens,
 // unknown fields and escaped aliases without generic recursive JSON objects.
 function resultJSON(text){
@@ -94,9 +94,9 @@ function light(value,expected){
   if(trusted>=height||height>through+2n)mismatch();
   for(const name of ['genesisSha256','trustedBlockHash','blockHash','stateAppHash','validatorsHash','nextValidatorsHash','consensusHash'])hash(value[name]);
 }
-function transferResult(value,code,expected){
+function transactionResult(value,code,expected){
   closed(value,resultFields);
-  if(value.version!=='YNX-PQ-TRANSACTION-PROOF/v1'||value.classification!=='data'||value.transactionType!=='pq_transfer'||value.included!==true||value.finalized!==true||value.nativeGrant!==false)invalid();
+  if(value.version!=='YNX-PQ-TRANSACTION-PROOF/v1'||value.classification!=='data'||value.transactionType!==expected.transactionType||value.included!==true||value.finalized!==true||value.nativeGrant!==false)invalid();
   for(const [name,wanted] of [['transactionHash',expected.transactionHash],['nativeWireHash',expected.nativeWireHash],['height',expected.block.headerHeight],['index',expected.index]])if(value[name]!==wanted)mismatch();
   const index=integer(value.index,{maximum:4294967295n}),total=integer(value.total,{nonzero:true});
   if(index>=total)mismatch();
@@ -119,6 +119,18 @@ function transferResult(value,code,expected){
  * All finality/authorization/retry decisions remain with the original owner. */
 export function parsePQTransferFinalityVerifierResult(original,binding,hostExpectedTransaction,execution){
   const expected=preparePQTransferFinalityTarget(original,binding,hostExpectedTransaction);
+  return parseResult({account:original.account,operationId:original.operationId,kind:'pq-transfer'},expected,execution);
+}
+
+/** Same bounded CLI result DATA profile; original bytes and both snapshots
+ * must validate first. A matched stdout does not qualify the Host or CLI. */
+export function parsePQReviewedTypedActionFinalityVerifierResult(review,raw,original,hostExpectedTransaction,execution){
+  const expected=preparePQReviewedTypedActionFinalityTarget(review,raw,original,hostExpectedTransaction);
+  return parseResult({account:Object.getOwnPropertyDescriptor(review,'account').value,
+    operationId:Object.getOwnPropertyDescriptor(review,'operationId').value,kind:'pq-typed-action'},expected,execution);
+}
+
+function parseResult(original,expected,execution){
   closed(execution,['stdout','stderr','exitCode','signal']);
   const stdout=snapshot(execution.stdout,PQ_FINALITY_VERIFIER_RESULT_LIMITS.stdoutBytes);
   const stderr=snapshot(execution.stderr,PQ_FINALITY_VERIFIER_RESULT_LIMITS.stderrBytes,true);
@@ -127,7 +139,7 @@ export function parsePQTransferFinalityVerifierResult(original,binding,hostExpec
   const parsed=resultJSON(text);let result=null;
   if(execution.exitCode===0){
     closed(parsed,['version','code','result']);if(parsed.version!==version)invalid();
-    transferResult(parsed.result,parsed.code,expected);result=parsed.result;
+    transactionResult(parsed.result,parsed.code,expected);result=parsed.result;
   }else{
     closed(parsed,['version','code','error']);
     if(![version,lightVersion].includes(parsed.version)||!failures.has(parsed.code)||typeof parsed.error!=='string'||!parsed.error.length||Buffer.byteLength(parsed.error,'utf8')>4096)invalid();
@@ -135,7 +147,7 @@ export function parsePQTransferFinalityVerifierResult(original,binding,hostExpec
     if(parsed.code==='INVALID_ARGUMENTS'&&parsed.version!==lightVersion)invalid();
   }
   const observation=Object.freeze({
-    account:original.account,operationId:original.operationId,kind:'pq-transfer',transactionType:'pq_transfer',
+    account:original.account,operationId:original.operationId,kind:original.kind,transactionType:expected.transactionType,
     nativeTransactionHash:'0x'+expected.nativeWireHash,abciTransactionHash:'0x'+expected.transactionHash,
     executionHeight:expected.block.headerHeight,cometIndex:Number(expected.index),
     status:result?'verifier-result-data':'verifier-error-data',verifierCode:parsed.code,

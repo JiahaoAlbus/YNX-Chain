@@ -19,6 +19,10 @@ export function createPQFinalityVerification({evidence,selectSource,createProduc
   async join(){await operation?.work?.catch(()=>{});await operation?.host?.join();await operation?.capture?.join();},
   async verify(original,binding,proof,guard){
    if(active||operation)fail('PQ_FINALITY_VERIFICATION_UNCONFIRMED');assertOwner(original,binding,guard);
+   // Current independently signed packaged receipt591 has no typed CLI
+   // capability evidence. PUBLIC/Linux producer success cannot replace it.
+   // Keep DATA capture/restore usable; no source/process is selected here.
+   if(original.kind==='pq-typed-action')fail('PQ_TYPED_VERIFIER_ASSET_NOT_SUPPLIED');
    active=true;const own={original,binding,host:null,capture:null,work:null,result:null,journalStored:false};operation=own;
    const work=(async()=>{
     const selection=await selectSource(original,binding);assertOwner(original,binding,guard);

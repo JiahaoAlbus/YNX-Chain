@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {exactData, preparePQTransferOriginal} from './transfer-binding.mjs';
 import {validatePQTransactionProofDTO} from './finality-collector.mjs';
+import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
 
 // Pinned normal CLI profile: Protocol c3c219d transaction.go and trust.go.
 // These bound DATA transport only; the normal CLI must still load its original
@@ -62,6 +63,23 @@ export function preparePQTransferFinalityTarget(original, binding, hostExpectedT
   const nativeHash = digest(wire), transactionHash = digest(envelope);
   if (plan.binding.hash !== '0x' + nativeHash || plan.binding.abciTransactionHash !== '0x' + transactionHash) fail('PQ_FINALITY_INVOCATION_ORIGINAL_MISMATCH');
 
+  return bindTarget('pq_transfer', wire, envelope, hostExpectedTransaction);
+}
+
+/** Current typed original DATA: full canonical transport is the envelope;
+ * nativeWire is the Member. Keep classic originals and both original hashes.
+ * The archived review, both snapshots and full dual-AND signatures are checked
+ * by the existing SDK332 reader. No target or trust is inferred from them. */
+export function preparePQReviewedTypedActionFinalityTarget(review, raw, original, hostExpectedTransaction) {
+  const local = inspectPQReviewedTypedTransportOriginal(review, raw, original);
+  const wire = Buffer.from(local.member), envelope = Buffer.from(local.body);
+  return bindTarget('pq_action', wire, envelope, hostExpectedTransaction);
+}
+
+function bindTarget(transactionType, wire, envelope, hostExpectedTransaction) {
+  if (!wire.length || wire.length > maxNativeWireBytes || !envelope.length || envelope.length > maxEnvelopeBytes) fail('PQ_FINALITY_INVOCATION_BYTES_EXCEEDED');
+  const nativeHash = digest(wire), transactionHash = digest(envelope);
+
   const selected = dataCopy(hostExpectedTransaction, targetFields);
   const block = statement(selected.block), successor = statement(selected.successor);
   const height = BigInt(block.headerHeight);
@@ -71,7 +89,7 @@ export function preparePQTransferFinalityTarget(original, binding, hostExpectedT
   if (typeof selected.envelope !== 'string' || selected.envelope.length > base64Bound(maxEnvelopeBytes) || typeof selected.nativeWire !== 'string' || selected.nativeWire.length > base64Bound(maxNativeWireBytes)) targetInvalid();
   // Exact equality to locally rebuilt canonical standard base64 also rejects
   // base64url, ignored whitespace, alternate pad bits and replacement bytes.
-  if (selected.transactionType !== 'pq_transfer' || selected.envelope !== envelope.toString('base64') || selected.nativeWire !== wire.toString('base64') || selected.transactionHash !== transactionHash || selected.nativeWireHash !== nativeHash) fail('PQ_FINALITY_INVOCATION_ORIGINAL_MISMATCH');
+  if (selected.transactionType !== transactionType || selected.envelope !== envelope.toString('base64') || selected.nativeWire !== wire.toString('base64') || selected.transactionHash !== transactionHash || selected.nativeWireHash !== nativeHash) fail('PQ_FINALITY_INVOCATION_ORIGINAL_MISMATCH');
   const expected = Object.freeze({...selected, block, successor});
   if (Buffer.byteLength(JSON.stringify(expected), 'utf8') > maxExpectedBytes) fail('PQ_FINALITY_INVOCATION_BYTES_EXCEEDED');
   return expected;
@@ -84,6 +102,15 @@ export function preparePQTransferFinalityTarget(original, binding, hostExpectedT
  * No file/CLI/network effect or approval/finality result is produced here. */
 export function preparePQTransferFinalityInvocation(original, binding, hostExpectedTransaction, collectorProof) {
   const expected = preparePQTransferFinalityTarget(original, binding, hostExpectedTransaction);
+  return invocation(expected, collectorProof);
+}
+
+export function preparePQReviewedTypedActionFinalityInvocation(review, raw, original, hostExpectedTransaction, collectorProof) {
+  const expected = preparePQReviewedTypedActionFinalityTarget(review, raw, original, hostExpectedTransaction);
+  return invocation(expected, collectorProof);
+}
+
+function invocation(expected, collectorProof) {
   const proof = validatePQTransactionProofDTO(collectorProof);
   const stdin = JSON.stringify({version:requestVersion, expected, proof});
   const stdinByteLength = Buffer.byteLength(stdin, 'utf8');

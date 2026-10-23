@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
+import {preparePQFinalityOriginal as preparePQTransferOriginal} from './wallet-pq-finality-original.mjs';
 import {parsePQTransferHostContext,preparePQHostSourceRequest} from './wallet-pq-host-context.mjs';
 import {pqProcessCauseData} from './wallet-pq-verifier-capture.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};

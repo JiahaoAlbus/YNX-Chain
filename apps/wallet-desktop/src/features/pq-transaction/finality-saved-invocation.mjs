@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {posix} from 'node:path';
 import {types} from 'node:util';
-import {preparePQTransferFinalityTarget} from './finality-invocation.mjs';
+import {preparePQTransferFinalityTarget, preparePQReviewedTypedActionFinalityTarget} from './finality-invocation.mjs';
 import {validatePQTransactionProofDTO} from './finality-collector.mjs';
 
 // Fixed normal transaction.go / trust.go DATA grammar, unchanged between
@@ -144,11 +144,23 @@ function sameExpected(left, right) {
 /** Shared private DATA parser for original Main's Host export and saved-input
  * consumers. It does not establish that any Host produced these bytes. */
 export function bindPQTransferFinalityContext(original, binding, contextBytes) {
+  return bindContext(contextBytes, expected => preparePQTransferFinalityTarget(original, binding, expected),
+    () => Object.getOwnPropertyDescriptor(binding, 'networkId').value);
+}
+
+/** Same strict raw context grammar for the reviewed typed original. These
+ * bytes remain DATA, not evidence of an independently qualified Host. */
+export function bindPQReviewedTypedActionFinalityContext(review, raw, original, contextBytes) {
+  return bindContext(contextBytes, expected => preparePQReviewedTypedActionFinalityTarget(review, raw, original, expected),
+    () => Object.getOwnPropertyDescriptor(Object.getOwnPropertyDescriptor(original, 'selectedBinding').value, 'networkId').value);
+}
+
+function bindContext(contextBytes, prepareTarget, networkId) {
   const contextRaw = snapshot(contextBytes, maxContext), context = savedJSON(contextRaw, 'context');
   if (context.version !== contextVersion) invalid();
-  const expected = preparePQTransferFinalityTarget(original, binding, context.expectedTransaction);
+  const expected = prepareTarget(context.expectedTransaction);
   // prepareTarget has rejected proxies/accessors and validated exact binding.
-  lightTrust(context.lightTrust, expected, Object.getOwnPropertyDescriptor(binding, 'networkId').value);
+  lightTrust(context.lightTrust, expected, networkId());
   return Object.freeze({expected, lightTrust:Object.freeze(context.lightTrust),
     contextSha256:digest(contextRaw), contextByteLength:contextRaw.length, classification:'data', proofVerification:'not-performed',
     independentFinality:false, consensusFinality:false, nativeGrant:false, canRetry:false, clearsOriginal:false});
@@ -160,10 +172,19 @@ export function bindPQTransferFinalityContext(original, binding, contextBytes) {
  * It performs no file, process, network, time, approval or journal operation. */
 export function bindSavedPQTransferFinalityInvocation(original, binding, contextBytes, stdinBytes) {
   const context = bindPQTransferFinalityContext(original, binding, contextBytes);
+  return bindSaved(context, stdinBytes, expected => preparePQTransferFinalityTarget(original, binding, expected));
+}
+
+export function bindSavedPQReviewedTypedActionFinalityInvocation(review, raw, original, contextBytes, stdinBytes) {
+  const context = bindPQReviewedTypedActionFinalityContext(review, raw, original, contextBytes);
+  return bindSaved(context, stdinBytes, expected => preparePQReviewedTypedActionFinalityTarget(review, raw, original, expected));
+}
+
+function bindSaved(context, stdinBytes, prepareTarget) {
   const stdinRaw = snapshot(stdinBytes, maxStdin), stdin = savedJSON(stdinRaw, 'stdin');
   if (stdin.version !== stdinVersion) invalid();
   const expected = context.expected;
-  const inputExpected = preparePQTransferFinalityTarget(original, binding, stdin.expected);
+  const inputExpected = prepareTarget(stdin.expected);
   sameExpected(expected, inputExpected);
   validatePQTransactionProofDTO(stdin.proof);
   return Object.freeze({expected, contextSha256:context.contextSha256, contextByteLength:context.contextByteLength,

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import {readFileSync,constants} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {gunzipSync} from 'node:zlib';
 import {spawnSync} from 'node:child_process';
 import path from 'node:path';
 import {tmpdir} from 'node:os';
@@ -16,6 +17,13 @@ import {TransactionSubmissions} from './transaction-submissions.mjs';
 import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
 import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
 import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
+import {createPQFinalityVerifierCapture} from './wallet-pq-verifier-capture.mjs';
+import {readPQFinalityVerifierEvidence} from './wallet-pq-verifier-restore.mjs';
+import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
+import {createPQFinalityVerification} from './wallet-pq-finality-verification.mjs';
+import {parsePQTransferHostContext} from './wallet-pq-host-context.mjs';
+import {installOriginalProofHostDelivery,readInstalledOriginalProofHostDelivery} from './original-proof-host-delivery.mjs';
+import {fixture as publicHostFixture} from '../test/helpers/pq-host-export.mjs';
 import {pqTypedBroadcastPermissionRequest} from './wallet-pq-typed-permission.mjs';
 import {projectPendingTransactions,projectPQOriginalObservation} from './transaction-resolution-display.mjs';
 const sha=b=>'0x'+createHash('sha256').update(b).digest('hex'),copy=x=>JSON.parse(JSON.stringify(x));
@@ -73,6 +81,90 @@ test('typed finality HTTP metadata cannot substitute Member hash or execute head
  const exotic={...http};Object.defineProperty(exotic,'cacheControl',{enumerable:true,get(){hits++;throw Error('must not run')}});
  await assert.rejects(evidence.append(record,binding,'collector-http',Buffer.from('DATA'),{httpStatus:202,http:exotic}));
  assert.equal(hits,0);assert.equal(evidence.pending(),null);assert.deepEqual(await fs.readdir(directory),[]);
+});
+async function typedCaptureFixture(t,{lockAfter=false,failOutput=false}={}){
+ const f=await setup(t),directory=path.join(path.dirname(f.filePath),'evidence');
+ const vector=JSON.parse(gunzipSync(readFileSync(new URL('./features/pq-transaction/fixtures/finality-c3-public.json.gz',import.meta.url)))).cases.find(r=>r.name==='succeeded-transfer');
+ const target={...copy(vector.expectedTransaction),transactionType:'pq_action',envelope:Buffer.from(record.wire,'base64url').toString('base64'),nativeWire:memberBytes.toString('base64'),transactionHash:record.hash.slice(2),nativeWireHash:record.typed.memberHash.slice(2)};
+ // Controlled Host/CLI DATA only; the reused proof is NOT a typed Go proof.
+ const context=publicHostFixture().context;context.expectedTransaction=target;context.lightTrust.originalGenesisHash=record.typed.networkId;
+ const contextBytes=Buffer.from(JSON.stringify(context)),output=copy(vector.expectedResponse);
+ Object.assign(output.result,{transactionType:'pq_action',transactionHash:target.transactionHash,nativeWireHash:target.nativeWireHash,executionData:Buffer.from(record.hash).toString('base64')});
+ let calls=0,invocation=null,locked=false,creates=0,fault=failOutput;
+ const io={...fs,open:async(...args)=>{if(typeof args[1]==='number'&&(args[1]&constants.O_CREAT)&&++creates===3&&fault)throw false;return fs.open(...args)}};
+ const evidence=new PQFinalityEvidence({directory,io}),guard={account:record.account,assert(){if(locked)throw Object.assign(Error('controlled lock'),{code:'CONTROLLED_LOCK'})}};
+ const verifier={async run(input){calls++;invocation=input;locked=lockAfter},snapshot(){return {result:{stdout:Buffer.from(JSON.stringify(output)),stderr:Buffer.alloc(0),exitCode:0,signal:null},lifecycle:{started:calls>0,closeObserved:true,cleanupPending:false,interruption:null,stdoutTruncated:false,stderrTruncated:false,firstCausePresent:false,cleanupCausePresent:false,stdinSha256:invocation?sha(Buffer.from(invocation.stdin)).slice(2):null,stdinByteLength:invocation?Buffer.byteLength(invocation.stdin):0},firstCause:undefined,cleanupCause:undefined}},assertSafeToClose(){},retire(){},async join(){}};
+ const capture=createPQFinalityVerifierCapture({evidence,verifier});
+ return {...f,directory,evidence,capture,guard,binding:{account:record.account,networkId:record.typed.networkId},input:{contextPath:path.join(directory,'controlled-not-opened'),contextBytes,contextSha256:sha(contextBytes).slice(2),expected:target,proof:vector.request.proof},calls:()=>calls,unlock:()=>{locked=false},repair:()=>{fault=false}};
+}
+test('actual Main typed capture and journal cold restore preserve Member versus transport identity without finality',async t=>{
+ const f=await typedCaptureFixture(t),result=await f.capture.run(record,f.binding,f.input,f.guard);assert.equal(f.calls(),1);
+ assert.equal(result.observation.kind,'pq-typed-action');assert.equal(result.observation.nativeTransactionHash,record.typed.memberHash);assert.equal(result.observation.abciTransactionHash,record.hash);
+ for(const key of ['independentFinality','consensusFinality','nativeGrant','canRetry','clearsOriginal'])assert.equal(result.observation[key],false);
+ await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
+ await f.store.savePQFinalityObservation(record,result.journalRecord);
+ const cold=new FileTransactionIntentStore({filePath:f.filePath}),rows=await cold.readPQFinalityObservations(record.account,record.hash,()=>{});
+ assert.equal(rows.length,1);assert.deepEqual(rows[0],result.journalRecord);assert.deepEqual((await cold.readPQOriginals(record.account,()=>{}))[0],record);
+ const evidence=new PQFinalityEvidence({directory:f.directory}),ref=result.records.find(r=>r.kind==='verifier-result');
+ const restored=await readPQFinalityVerifierEvidence(record,f.binding,evidence,ref);assert.equal(restored.nativeTransactionHash,record.typed.memberHash);assert.equal(restored.consensusFinality,false);
+ f.capture.assertSafeToClose();await assert.rejects(f.capture.run(record,f.binding,f.input,f.guard));assert.equal(f.calls(),1);
+});
+test('actual Main typed capture keeps returned evidence through late lock and never re-enters the producer',async t=>{
+ const f=await typedCaptureFixture(t,{lockAfter:true});await assert.rejects(f.capture.run(record,f.binding,f.input,f.guard),{code:'CONTROLLED_LOCK'});
+ assert.equal(f.calls(),1);f.capture.assertSafeToClose();f.unlock();
+ const cold=new PQFinalityEvidence({directory:f.directory}),refs=await cold.candidates(record,f.binding);assert.equal(refs.candidates.length,5);
+ const result=await readPQFinalityVerifierEvidence(record,f.binding,cold,refs.candidates.find(r=>r.kind==='verifier-result'));assert.equal(result.status,'verifier-result-data');assert.equal(result.consensusFinality,false);
+ await assert.rejects(f.capture.run(record,f.binding,f.input,f.guard));assert.equal(f.calls(),1);
+});
+test('actual Main typed capture local flush preserves a failed output save without redispatch',async t=>{
+ const f=await typedCaptureFixture(t,{failOutput:true});await assert.rejects(f.capture.run(record,f.binding,f.input,f.guard),e=>e.cause===false);
+ assert.equal(f.calls(),1);assert.throws(()=>f.capture.assertSafeToClose());f.repair();
+ const result=await f.capture.save(f.guard);assert.equal(f.calls(),1);assert.equal(result.observation.nativeTransactionHash,record.typed.memberHash);assert.equal(result.observation.canRetry,false);f.capture.assertSafeToClose();
+});
+test('actual Main typed Host context adapter keeps bounded DATA and independent original coordinates',async t=>{
+ const f=await typedCaptureFixture(t),host=publicHostFixture();host.context.expectedTransaction=f.input.expected;host.light.originalGenesisHash=record.typed.networkId;host.exported.expectedTransaction=f.input.expected;
+ const result=parsePQTransferHostContext(record,f.binding,host.selection,host.encode());
+ assert.equal(result.expected.transactionType,'pq_action');assert.equal(result.expected.transactionHash,record.hash.slice(2));assert.equal(result.expected.nativeWireHash,record.typed.memberHash.slice(2));
+ assert.equal(result.nativeRootAuthorized,false);assert.equal(result.sourceDeploymentQualified,false);assert.equal(result.independentFinality,false);
+ host.exported.expectedTransaction={...f.input.expected,nativeWireHash:record.hash.slice(2)};
+ assert.throws(()=>parsePQTransferHostContext(record,f.binding,host.selection,host.encode()));
+});
+test('actual Main typed collector persists actual HTTP response before late lock and cold restore never queries',async t=>{
+ const f=await typedCaptureFixture(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
+ let locked=false,reads=0;const guard={account:record.account,assert(){if(locked)throw Object.assign(Error('controlled lock'),{code:'CONTROLLED_LOCK'})}};
+ const body=Buffer.from(JSON.stringify({version:'YNX-PQ-RPC-TRANSACTION-PROOF/v1',source:'configured-comet-rpc',status:'pending',observedExecutionStatus:'committed',nativeTransactionHash:record.typed.memberHash,abciTransactionHash:record.hash,executionHeight:'9',cometIndex:0,independentFinality:false,proofVerification:'not-performed'}));
+ const http={method:'GET',requestPath:'/txs/'+record.hash+'/pq-action-finality-proof',status:202,contentType:'application/json; charset=utf-8',cacheControl:'no-store',body};
+ const service=createPQFinalityCollection({intentStore:f.store,networkId:f.binding.networkId,evidence:f.evidence,transport:{readFinalityProof(){throw Error('typed must not use Transfer route')}},typedTransport:{async readOriginalProof(review,raw,original){reads++;assert.equal(review.operationId,record.operationId);assert.equal(original.memberHash,record.typed.memberHash);assert.equal(original.transportHash,record.hash);assert.deepEqual(Buffer.from(raw),Buffer.from(record.wire,'base64url'));locked=true;return http}}});
+ await assert.rejects(service.collect(record.hash,guard),{code:'CONTROLLED_LOCK'});assert.equal(reads,1);service.assertSafeToClose();locked=false;
+ const cold=new PQFinalityEvidence({directory:f.directory}),restored=createPQFinalityCollection({intentStore:new FileTransactionIntentStore({filePath:f.filePath}),networkId:f.binding.networkId,evidence:cold,transport:{readFinalityProof(){throw Error('cold restore cannot query')}}});
+ const result=await restored.restore(record.hash,guard);assert.equal(result.records.length,1);assert.equal(result.records[0].kind,'pq-typed-action');assert.equal(result.records[0].proofCollected,false);assert.equal(result.records[0].memberHash,record.typed.memberHash);assert.equal(result.records[0].transportHash,record.hash);assert.equal(result.consensusFinality,false);assert.equal(reads,1);
+ const ref=result.records[0].evidence;assert.equal(ref.http.contentType,http.contentType);assert.equal(ref.http.cacheControl,http.cacheControl);assert.deepEqual(await cold.read(record,f.binding,ref),body);
+});
+test('normal typed verification refuses unqualified packaged capability before selecting any Host or process',async t=>{
+ const f=await typedCaptureFixture(t);let effects=0;const fail=()=>{effects++;throw Error('no Host or process permitted')};
+ const normal=createPQFinalityVerification({evidence:f.evidence,selectSource:fail,createProducer:fail,createVerifier:fail,persistObservation:fail,flushObservation:fail});
+ await assert.rejects(normal.verify(record,f.binding,f.input.proof,f.guard),{code:'PQ_TYPED_VERIFIER_ASSET_NOT_SUPPLIED'});assert.equal(effects,0);assert.equal(normal.pending(),false);normal.assertSafeToClose();
+});
+test('actual typed Host delivery preserves Protocol Member originalHash separately from Wallet transport journal key',async t=>{
+ const f=await typedCaptureFixture(t),root=await fs.realpath(path.dirname(f.filePath)),incoming=path.join(root,'incoming'),destination=path.join(root,'installed');await fs.mkdir(incoming,{mode:0o700});
+ const host=publicHostFixture();host.context.expectedTransaction=f.input.expected;host.light.originalGenesisHash=record.typed.networkId;
+ const layout=[['migration','migration.json'],['genesis','genesis.json'],['state','committed-state.json'],['schedule','schedule.json'],['trustedLightBlock','trusted-light-block.json'],['context','trust-context.json'],['lifecycle','lifecycle.json'],['source','host-source.json']],body=new Map();
+ for(const [role]of layout)if(!['context','lifecycle','source'].includes(role))body.set(role,Buffer.from(JSON.stringify({syntheticOnly:role})));
+ const origin='/CONTROLLED-NOT-A-HOST/typed-delivery';
+ for(const [field,role]of Object.entries({migrationFile:'migration',genesisFile:'genesis',stateFile:'state',scheduleFile:'schedule',trustedLightBlockFile:'trustedLightBlock'}))host.light[field]=path.join(origin,layout.find(x=>x[0]===role)[1]);
+ host.light.trustedLightBlockSHA256=sha(body.get('trustedLightBlock')).slice(2);body.set('context',Buffer.from(JSON.stringify(host.context)));body.set('lifecycle',Buffer.from(JSON.stringify(host.lifecycle)));
+ for(const [field,role]of Object.entries({migrationSHA256:'migration',genesisSHA256:'genesis',stateSHA256:'state',scheduleSHA256:'schedule',trustedLightBlockSHA256:'trustedLightBlock',contextSHA256:'context',lifecycleSHA256:'lifecycle'}))host.source[field]=sha(body.get(role)).slice(2);
+ host.source.contextFile=path.join(origin,'trust-context.json');host.source.lifecycleFile=path.join(origin,'lifecycle.json');body.set('source',Buffer.from(JSON.stringify(host.source)));
+ const manifest={version:'YNX-CONSENSUS-PROOF-HOST-DELIVERY/v1',sourceId:host.selection.sourceId,epoch:host.selection.epoch,binding:{operationId:record.operationId,account:record.account,networkId:record.typed.networkId,originalHash:record.typed.memberHash,nativeWireHash:record.typed.memberHash.slice(2),transactionHash:record.hash.slice(2)},sourceFile:'host-source.json',sourceSHA256:sha(body.get('source')).slice(2),files:layout.map(([role,name])=>({role,name,bytes:String(body.get(role).length),sha256:sha(body.get(role)).slice(2)})),totalBytes:String([...body.values()].reduce((n,b)=>n+b.length,0))};
+ for(const [role,name]of layout)await fs.writeFile(path.join(incoming,name),body.get(role),{mode:0o600});
+ const raw=Buffer.from(JSON.stringify(manifest));await fs.writeFile(path.join(incoming,'delivery.json'),raw,{mode:0o600});
+ const args={deliveryDirectory:incoming,deliverySha256:sha(raw).slice(2),destinationDirectory:destination,original:record,binding:f.binding,guard:f.guard};
+ const selected=await installOriginalProofHostDelivery(args),cold=await readInstalledOriginalProofHostDelivery({directory:destination,deliverySha256:args.deliverySha256,original:record,binding:f.binding,guard:f.guard});
+ assert.deepEqual(cold,selected);assert.deepEqual(await fs.readFile(path.join(destination,'original/delivery.json')),raw);
+ const context=JSON.parse(await fs.readFile(path.join(destination,'trust-context.json'),'utf8'));assert.equal(context.expectedTransaction.transactionType,'pq_action');assert.equal(context.expectedTransaction.transactionHash,record.hash.slice(2));assert.equal(context.expectedTransaction.nativeWireHash,record.typed.memberHash.slice(2));
+ manifest.binding.originalHash=record.hash;const bad=Buffer.from(JSON.stringify(manifest));await fs.writeFile(path.join(incoming,'delivery.json'),bad,{mode:0o600});
+ await assert.rejects(installOriginalProofHostDelivery({...args,deliverySha256:sha(bad).slice(2),destinationDirectory:destination+'-wrong'}));await assert.rejects(fs.stat(destination+'-wrong'),{code:'ENOENT'});
+ assert.deepEqual(await fs.readFile(path.join(destination,'original/delivery.json')),raw);
 });
 test('normal Main journal retains exact typed raw/review/two snapshots and cold query never calls a sender or latest policy',async t=>{
  const f=await setup(t),account=record.account;await f.store.reserveOriginal(account,record.kind);f.store.captureOriginal(account,record,record.kind);await f.store.saveOriginal(account,record.hash,()=>{});

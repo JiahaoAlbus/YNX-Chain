@@ -1,7 +1,7 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
-import {exactData,preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
-import {preparePQTransferFinalityTarget} from './features/pq-transaction/finality-invocation.mjs';
+import {exactData} from './features/pq-transaction/transfer-binding.mjs';
+import {preparePQFinalityOriginal as preparePQTransferOriginal,preparePQFinalityTarget as preparePQTransferFinalityTarget} from './wallet-pq-finality-original.mjs';
 import {parsePQFinalityEvidenceReference} from './wallet-pq-finality-evidence.mjs';
 const fail=()=>{throw Object.assign(Error('PQ_FINALITY_RECORD_INVALID'),{code:'PQ_FINALITY_RECORD_INVALID'});};
 const fields=['account','operationId','kind','transactionType','nativeTransactionHash','abciTransactionHash','executionHeight','cometIndex','status','verifierCode','reportedOutcome','reportedExecutionSuccessful','executionCode','proofVerification','independentFinality','consensusFinality','nativeGrant','canRetry','clearsOriginal'];
@@ -23,10 +23,10 @@ export function parsePQFinalityRecord(value,original){
  closed(value.target,['block','successor','index']);
  // Reuse the original target grammar, rebuilding only redundant public wire
  // fields from the retained original instead of persisting another large copy.
- const wire=Buffer.from(own.request.body),envelope=Buffer.from(JSON.stringify({version:1,type:'pq_transfer',wireHex:wire.toString('hex')}));
- const expected=preparePQTransferFinalityTarget(original,{account:value.account,networkId:value.networkId},{...value.target,transactionType:'pq_transfer',envelope:envelope.toString('base64'),nativeWire:wire.toString('base64'),transactionHash:own.binding.abciTransactionHash.slice(2),nativeWireHash:own.original.hash.slice(2)});
+ const typed=own.original.kind==='pq-typed-action',wire=Buffer.from(typed?own.nativeWire:own.request.body),envelope=typed?Buffer.from(own.request.body):Buffer.from(JSON.stringify({version:1,type:'pq_transfer',wireHex:wire.toString('hex')})),nativeHash=typed?own.original.typed.memberHash:own.original.hash,transactionType=typed?'pq_action':'pq_transfer';
+ const expected=preparePQTransferFinalityTarget(original,{account:value.account,networkId:value.networkId},{...value.target,transactionType,envelope:envelope.toString('base64'),nativeWire:wire.toString('base64'),transactionHash:own.binding.abciTransactionHash.slice(2),nativeWireHash:nativeHash.slice(2)});
  const t={block:expected.block,successor:expected.successor,index:expected.index},o=value.observation;closed(o,fields);
- if(o.account!==value.account||o.operationId!==value.operationId||o.kind!=='pq-transfer'||o.transactionType!=='pq_transfer'||o.nativeTransactionHash!==value.hash||o.abciTransactionHash!==own.binding.abciTransactionHash||o.executionHeight!==t.block.headerHeight||o.cometIndex!==Number(t.index)||o.proofVerification!=='result-data-only')fail();
+ if(o.account!==value.account||o.operationId!==value.operationId||o.kind!==own.original.kind||o.transactionType!==transactionType||o.nativeTransactionHash!==nativeHash||o.abciTransactionHash!==own.binding.abciTransactionHash||o.executionHeight!==t.block.headerHeight||o.cometIndex!==Number(t.index)||o.proofVerification!=='result-data-only')fail();
  for(const name of ['independentFinality','consensusFinality','nativeGrant','canRetry','clearsOriginal'])if(o[name]!==false)fail();
  if(o.status==='verifier-result-data'){
   if(o.verifierCode==='VERIFIED_TRANSACTION_DATA'){if(o.reportedOutcome!=='succeeded'||o.reportedExecutionSuccessful!==true||o.executionCode!=='0')fail();}

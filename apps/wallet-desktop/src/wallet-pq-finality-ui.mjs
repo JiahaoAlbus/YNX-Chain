@@ -1,14 +1,14 @@
 /** Main returns bounded public DATA only. No proof body, context, local path,
  * wire, key, provider or independent trust selection crosses this interface. */
 export function appendPQFinalityActions({row,record,api,getKeyState,isCurrent,onResult,document:doc=document}){
- if(record.kind!=='pq-transfer'||!/^0x[0-9a-f]{64}$/.test(record.hash??''))return;
+ if(!['pq-transfer','pq-typed-action'].includes(record.kind)||!/^0x[0-9a-f]{64}$/.test(record.hash??''))return;
  let busy=false,uncertain=false,held=false;const buttons=[];
  const current=before=>{const s=getKeyState();return isCurrent()&&!s.locked&&!s.authenticating&&s.account===record.account&&s.account===before.account&&s.revision===before.revision;};
  const base=v=>v?.account===record.account&&v?.consensusFinality===false&&v?.independentFinality===false&&v?.canRetry===false&&v?.clearsOriginal===false;
  const notice='仅收集或读取资料，尚未独立验证；原交易保留，没有重签或发送。 / Evidence only, not independently verified. Original retained; no replacement signature or send.';
  function render(){const s=getKeyState();for(const {button,action}of buttons){button.hidden=action==='save'&&!held;button.disabled=busy||s.locked||s.authenticating||s.account!==record.account||['collect','verify'].includes(action)&&uncertain;}}
  const actions=[['collect','只读收集证明资料（未验证） / Collect proof evidence (unverified)'],['restore','读取本地核验资料 / Read saved proof evidence'],['save','仅保存保留的核验资料 / Save held evidence locally']];
- if(typeof api.verifyPQFinalityEvidence==='function')actions.push(['verify','使用原 Host 校验证明（不发送） / Check proof with original Host (no send)']);
+ if(record.kind==='pq-transfer'&&typeof api.verifyPQFinalityEvidence==='function')actions.push(['verify','使用原 Host 校验证明（不发送） / Check proof with original Host (no send)']);
  for(const [action,label]of actions){
   const button=doc.createElement('button');button.type='button';button.textContent=label;buttons.push({button,action});
   button.addEventListener('click',async()=>{
@@ -33,7 +33,10 @@ export function appendPQFinalityActions({row,record,api,getKeyState,isCurrent,on
      if(!base(v)||v.hash!==record.hash||action==='verify'&&(v.rawStored!==true||!['verifier-result-data','verifier-error-data'].includes(v.status))){onResult('资料回执未绑定原交易；原记录保留。 / Evidence acknowledgement unbound; original retained.');return;}
      held=false;uncertain=false;onResult(action==='verify'&&v.status==='verifier-error-data'?'证明校验返回错误，已保留原始结果；这不证明交易失败，未授予重试、重签或发送权限。 / Proof verification returned an error; original evidence retained. This does not establish transaction failure or authorize retry, signing or sending.':notice);
     }else{
-     if(!base(v)||v.hash!==record.hash||v.nativeTransactionHash!==record.hash&&!(v.status==='unavailable'&&v.executionHeight==='0'&&v.nativeTransactionHash==='')||v.rawStored!==true||!['collected','pending','unavailable'].includes(v.status)){onResult('资料回执未绑定原交易；原记录保留。 / Evidence acknowledgement unbound; original retained.');return;}
+     const sameOriginal=record.kind==='pq-typed-action'
+      ?v?.kind==='pq-typed-action'&&v.operationId===record.operationId&&v.transportHash===record.hash&&/^0x[0-9a-f]{64}$/.test(v.memberHash??'')&&(v.observedNativeTransactionHash===v.memberHash||v.status==='unavailable'&&v.observedExecutionHeight==='0'&&v.observedNativeTransactionHash==='')
+      :v?.nativeTransactionHash===record.hash||v?.status==='unavailable'&&v.executionHeight==='0'&&v.nativeTransactionHash==='';
+     if(!base(v)||v.hash!==record.hash||!sameOriginal||v.rawStored!==true||!['collected','pending','unavailable'].includes(v.status)){onResult('资料回执未绑定原交易；原记录保留。 / Evidence acknowledgement unbound; original retained.');return;}
      held=false;uncertain=false;onResult(notice);
     }
    }catch{if(current(before))onResult('回执未知；请先读取本地核验资料，不自动重复查询。 / Acknowledgement unknown. Read local evidence first; no automatic repeat query.');}

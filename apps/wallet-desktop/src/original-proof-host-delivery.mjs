@@ -4,8 +4,8 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {PrivateFilePolicy} from './platform-private-file.mjs';
-import {exactData,preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
-import {bindPQTransferFinalityContext} from './features/pq-transaction/finality-saved-invocation.mjs';
+import {exactData} from './features/pq-transaction/transfer-binding.mjs';
+import {preparePQFinalityOriginal as preparePQTransferOriginal,bindPQFinalityContext as bindPQTransferFinalityContext} from './wallet-pq-finality-original.mjs';
 import {preparePQHostSourceRequest} from './wallet-pq-host-context.mjs';
 const roles=[['migration','migration.json',1<<30],['genesis','genesis.json',64<<20],['state','committed-state.json',1<<30],['schedule','schedule.json',32768],['runtime','runtime-plan.json',4096],['trustedLightBlock','trusted-light-block.json',10<<20],['context','trust-context.json',44781228],['lifecycle','lifecycle.json',4096],['source','host-source.json',16384]];
 const fields={manifest:['version','sourceId','epoch','binding','sourceFile','sourceSHA256','files','totalBytes'],binding:['operationId','account','networkId','originalHash','nativeWireHash','transactionHash'],file:['role','name','bytes','sha256'],source:['version','sourceId','epoch','contextFile','contextSHA256','lifecycleFile','lifecycleSHA256','migrationSHA256','genesisSHA256','stateSHA256','scheduleSHA256','runtimePlanSHA256','trustedLightBlockSHA256'],lifecycle:['version','sourceId','epoch','status']};
@@ -47,7 +47,10 @@ async function syncDirectory(directory){const h=await fs.open(directory,'r');try
 function catalogFor(manifestRaw,original,binding){
  const own=preparePQTransferOriginal(original,binding),manifest=json(manifestRaw);exact(manifest,fields.manifest);exact(manifest.binding,fields.binding);
  if(manifest.version!=='YNX-CONSENSUS-PROOF-HOST-DELIVERY/v1'||manifest.sourceFile!=='host-source.json'||!Array.isArray(manifest.files)||![8,9].includes(manifest.files.length))invalid();
- const expected={operationId:own.original.operationId,account:own.original.account,networkId:own.binding.chainId,originalHash:own.original.hash,nativeWireHash:own.original.hash.slice(2),transactionHash:own.binding.abciTransactionHash.slice(2)};
+ // Protocol DELIVERY originalHash names native bytes, not the Wallet typed
+ // journal's full-transport key. Bind both explicitly rather than aliasing.
+ const nativeHash=own.original.kind==='pq-typed-action'?own.original.typed.memberHash:own.original.hash;
+ const expected={operationId:own.original.operationId,account:own.original.account,networkId:own.binding.chainId,originalHash:nativeHash,nativeWireHash:nativeHash.slice(2),transactionHash:own.binding.abciTransactionHash.slice(2)};
  if(Object.entries(expected).some(([k,v])=>manifest.binding[k]!==v))fail('PQ_HOST_DELIVERY_ORIGINAL_MISMATCH');
  const layout=roles.filter(([r])=>manifest.files.length===9||r!=='runtime'),catalog=new Map();let total=0n;
  for(let i=0;i<layout.length;i++){const f=manifest.files[i],[role,name,max]=layout[i];exact(f,fields.file);if(f.role!==role||f.name!==name)invalid();const size=integer(f.bytes,max);digest(f.sha256);total+=size;catalog.set(role,{name,bytes:Number(size),sha256:f.sha256});}

@@ -1,9 +1,7 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
-import {exactData,preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
-import {preparePQTransferFinalityInvocation} from './features/pq-transaction/finality-invocation.mjs';
-import {bindSavedPQTransferFinalityInvocation} from './features/pq-transaction/finality-saved-invocation.mjs';
-import {parsePQTransferFinalityVerifierResult} from './features/pq-transaction/finality-verifier-result.mjs';
+import {exactData} from './features/pq-transaction/transfer-binding.mjs';
+import {preparePQFinalityOriginal as preparePQTransferOriginal,preparePQFinalityInvocation as preparePQTransferFinalityInvocation,bindSavedPQFinalityInvocation as bindSavedPQTransferFinalityInvocation,parsePQFinalityVerifierResult as parsePQTransferFinalityVerifierResult} from './wallet-pq-finality-original.mjs';
 import {PQ_FINALITY_EVIDENCE_LIMITS as limits} from './wallet-pq-finality-evidence.mjs';
 import {createPQFinalityRecord} from './wallet-pq-finality-record.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};

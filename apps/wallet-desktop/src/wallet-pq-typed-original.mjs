@@ -53,3 +53,11 @@ export async function observePQTypedOriginalQuery(value,readOriginal,assertCurre
  const outcome={committed:'typed-commit-observed',rejected:'typed-rejection-observed',unknown:'typed-outcome-unknown'}[observed.observedStatus];
  return Object.freeze({...summary,outcome,networkQueryPerformed:true});
 }
+
+// Private immutable evidence arguments, never a Host/process permission.
+export function pqTypedFinalityArguments(value){
+ const saved=parsePQTypedOriginalRecord(value),t=saved.typed;
+ const network={owner:saved.account,chainId:t.networkId,nativeChainId:'6423'};
+ const original=Object.freeze({reviewSnapshot:parsePQAccountAuthorization(t.reviewSnapshot,network),signingSnapshot:parsePQAccountAuthorization(t.signingSnapshot,network),selectedBinding:Object.freeze({account:saved.account,networkId:t.networkId}),memberHash:t.memberHash,transportHash:saved.hash});
+ return Object.freeze({review:t.review,raw:Buffer.from(saved.wire,'base64url'),original});
+}

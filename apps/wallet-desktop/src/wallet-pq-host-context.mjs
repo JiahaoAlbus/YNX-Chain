@@ -2,8 +2,7 @@ import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import path from 'node:path';
 import {exactData} from './features/pq-transaction/transfer-binding.mjs';
-import {preparePQTransferFinalityTarget} from './features/pq-transaction/finality-invocation.mjs';
-import {bindPQTransferFinalityContext} from './features/pq-transaction/finality-saved-invocation.mjs';
+import {preparePQFinalityTarget as preparePQTransferFinalityTarget,bindPQFinalityContext as bindPQTransferFinalityContext} from './wallet-pq-finality-original.mjs';
 import {PQ_FINALITY_EVIDENCE_LIMITS} from './wallet-pq-finality-evidence.mjs';
 
 // Exact Protocol57d2d90 host_context{,_command}.go DATA ABI. The old034 proof

@@ -1,0 +1,14 @@
+diff --git a/apps/wallet-desktop/src/wallet-pq-typed-original.mjs b/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
+--- a/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
++++ b/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
+@@ -55,1 +55,10 @@
+ }
++
++// Main-only argument adapter for the owned reviewed typed finality DATA APIs.
++// This supplies no Host provenance, process authorization or finality grant.
++export function pqTypedFinalityArguments(value){
++ const saved=parsePQTypedOriginalRecord(value),t=saved.typed;
++ const network={owner:saved.account,chainId:t.networkId,nativeChainId:'6423'};
++ const original=Object.freeze({reviewSnapshot:parsePQAccountAuthorization(t.reviewSnapshot,network),signingSnapshot:parsePQAccountAuthorization(t.signingSnapshot,network),selectedBinding:Object.freeze({account:saved.account,networkId:t.networkId}),memberHash:t.memberHash,transportHash:saved.hash});
++ return Object.freeze({review:t.review,raw:Buffer.from(saved.wire,'base64url'),original});
++}

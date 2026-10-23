@@ -1,0 +1,214 @@
+{
+  "version": 1,
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "base": "72d5ba2d4b4ea99ca301d7000bf2a141b6879a23",
+  "scope": "Owned features/pq-transaction only; three existing runtime modules add reviewed typed variants using their existing strict target/raw parsers. No Main, SDK, Auth, Protocol, pins, actual process, network, build, UI, signing permission or journal changes.",
+  "api": {
+    "triple": "(review, rawTransport: Uint8Array, original: {reviewSnapshot, signingSnapshot, selectedBinding:{account,networkId}, memberHash, transportHash})",
+    "original": "Use original Main parsePQTypedOriginalRecord and SDK parsePQAccountAuthorization on BOTH saved DTOs. raw is exact saved wire decoded from canonical base64url. memberHash from saved typed memberHash and transportHash from saved hash, never recomputed substitutes. No latest-state reconstruction. Local original retains N1/index0, full dual-AND verification and classic originals.",
+    "exports": [
+      {
+        "module": "finality-invocation.mjs",
+        "name": "preparePQReviewedTypedActionFinalityTarget",
+        "suffix": "hostExpectedTransaction",
+        "returns": "exact8 target"
+      },
+      {
+        "module": "finality-invocation.mjs",
+        "name": "preparePQReviewedTypedActionFinalityInvocation",
+        "suffix": "hostExpectedTransaction, collectorProof",
+        "returns": "{expected,stdin,stdinByteLength,stdinSha256}"
+      },
+      {
+        "module": "finality-saved-invocation.mjs",
+        "name": "bindPQReviewedTypedActionFinalityContext",
+        "suffix": "contextBytes",
+        "returns": "{expected,lightTrust,contextSha256,contextByteLength,classification,proofVerification,independentFinality,consensusFinality,nativeGrant,canRetry,clearsOriginal}"
+      },
+      {
+        "module": "finality-saved-invocation.mjs",
+        "name": "bindSavedPQReviewedTypedActionFinalityInvocation",
+        "suffix": "contextBytes,stdinBytes",
+        "returns": "{expected,contextSha256,contextByteLength,stdinSha256,stdinByteLength,classification,proofVerification,independentFinality,consensusFinality,nativeGrant,canRetry,clearsOriginal}"
+      },
+      {
+        "module": "finality-verifier-result.mjs",
+        "name": "parsePQReviewedTypedActionFinalityVerifierResult",
+        "suffix": "hostExpectedTransaction,execution",
+        "returns": "{observation,stdoutSha256,stdoutByteLength,stderrSha256,stderrByteLength}"
+      }
+    ],
+    "target": {
+      "fields": [
+        "block",
+        "successor",
+        "transactionType",
+        "envelope",
+        "nativeWire",
+        "transactionHash",
+        "nativeWireHash",
+        "index"
+      ],
+      "statementFields": [
+        "chainId",
+        "headerHeight",
+        "blockHash",
+        "stateHeight",
+        "stateAppHash"
+      ],
+      "transactionType": "pq_action",
+      "envelope": "Exact full original canonical transport standard base64 INCLUDING classic-original materials.",
+      "nativeWire": "Exact original Member standard base64.",
+      "transactionHash": "SHA256 full transport, lowercase64 without0x.",
+      "nativeWireHash": "SHA256 Member, lowercase64 without0x.",
+      "coordinates": "Original independent Host block H / H+1, state H-1 / H, nonzero hashes and uint32 decimal-string Comet index; never signing H or Member index. They are only checked, never derived from collector or local signature."
+    },
+    "invocation": {
+      "version": "YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-REQUEST/v1",
+      "stdin": "Immutable exact JSON UTF8 string {version,expected,proof}; byte count and SHA256 refer to these bytes."
+    },
+    "saved": "Same original strict bounded raw UTF8 parser, duplicate/escaped aliases rejected, 24-field lightTrust, original network digest matched, context/stdin expected target semantic equality, exact source-byte hashes preserved; no filesystem/time/trust verification.",
+    "executionFields": [
+      "stdout",
+      "stderr",
+      "exitCode",
+      "signal"
+    ],
+    "observationFields": [
+      "account",
+      "operationId",
+      "kind",
+      "transactionType",
+      "nativeTransactionHash",
+      "abciTransactionHash",
+      "executionHeight",
+      "cometIndex",
+      "status",
+      "verifierCode",
+      "reportedOutcome",
+      "reportedExecutionSuccessful",
+      "executionCode",
+      "proofVerification",
+      "independentFinality",
+      "consensusFinality",
+      "nativeGrant",
+      "canRetry",
+      "clearsOriginal"
+    ],
+    "observation": "kind=pq-typed-action; transactionType=pq_action; nativeTransactionHash=Member with0x; abciTransactionHash=transport with0x. Success executionData must be base64 ASCII0x transport hash; rejection nonzeroCode/nullData. Matched stdout is result-data-only and all finality/nativeGrant/retry/clear flags false. No proof/raw/secret/error in observation.",
+    "failures": {
+      "target": [
+        "PQ_FINALITY_INVOCATION_TARGET_INVALID",
+        "PQ_FINALITY_INVOCATION_ORIGINAL_MISMATCH",
+        "PQ_FINALITY_INVOCATION_BYTES_EXCEEDED"
+      ],
+      "saved": [
+        "PQ_FINALITY_SAVED_INVOCATION_INVALID",
+        "PQ_FINALITY_SAVED_INVOCATION_MISMATCH"
+      ],
+      "result": [
+        "PQ_FINALITY_VERIFIER_RESULT_INVALID",
+        "PQ_FINALITY_VERIFIER_RESULT_MISMATCH",
+        "PQ_FINALITY_VERIFIER_PROCESS_INCOMPLETE"
+      ],
+      "shared": "Existing original SDK/typed reviewed transport/proof validation errors propagate unchanged. No catch/drop/false success."
+    },
+    "collectionReuse": "Existing e4 inspectPQReviewedTypedActionFinalityCollector(review,raw,original,response6) and createPQTypedActionFinalityNodeReader().readOriginalProof(review,raw,original,assertCurrent) unchanged. Exact /txs/{transportHash}/pq-action-finality-proof, six-field raw response. Main captures complete actual HTTP metadata/body before lifecycle checks or parse; no fabricated headers. Proof returned here is only DATA."
+  },
+  "sdk": {
+    "version": "1.3.0-pq.3.32-auth.1",
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/sdk332-package",
+    "source": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
+    "tree": "891e6da1b704537071f375c56bd0c781bb937314",
+    "priorFullRuntimeReadback": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/evidence/sdk332-final-runtime-readback.json",
+    "pins": [
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/sdk332-package/package.json",
+        "bytes": 12901,
+        "sha256": "906d4f29129e431ebbbfa1605dc327a11ad2074afc00a36b91ce88525ac7e0a0"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/sdk332-package/src/pq-wallet-policy.js",
+        "bytes": 17327,
+        "sha256": "2c53afaf378dc2490118bd52850df327db5d2658915e611f1f30b6aa05a8d2a2"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/sdk332-package/src/pq-action-transport.js",
+        "bytes": 6558,
+        "sha256": "899d195469295237fcc2fad1676132a12bf5763743f56d1847f30138a7024f4f"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/sdk332-package/src/pq-action-transport-node.js",
+        "bytes": 1574,
+        "sha256": "0d5e422b9512b11b244f0fd3ee0e0a0f553a7fc5a059f7b567639776740a4905"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-transport-caller-20261019/sdk332-package/src/pq-native-action.js",
+        "bytes": 10127,
+        "sha256": "df1436d8d6543b0d8e2860149693fde78b482b97f85ea8342433abcebdab958e"
+      }
+    ],
+    "reusedAPIs": [
+      "parsePQAccountAuthorization(savedPublicDTO,{owner,chainId,nativeChainId})",
+      "decodePQActionTransportData(raw)",
+      "preparePQNativeActionTransportData(signingSnapshot,{member,originals})",
+      "existing inspectPQReviewedTypedTransportOriginal composes reviewed Member full dual-AND inspection."
+    ],
+    "noNewSDKExport": true
+  },
+  "mainIntegration": {
+    "base": "72d5ba2d4b4ea99ca301d7000bf2a141b6879a23",
+    "adapterProposal": "typed-action-finality-pipeline-main-adapter.patch",
+    "adapter": "pqTypedFinalityArguments(savedRecord) -> {review,raw,original}; optional minimal private adapter only, not production integration. Main chooses/owns final adapter.",
+    "ciProposal": "typed-action-finality-pipeline-ci.patch",
+    "entry": "apps/wallet-desktop/test/pq-typed-action-finality-pipeline.test.mjs",
+    "ownerTasks": [
+      "Existing evidence owner: kind + Member + transport identity and exact original HTTP metadata; never recast typed record as transfer.",
+      "Existing Host context/reference: use typed context/target APIs only after original exact source acquisition/current/provenance validation.",
+      "Existing capture and restore: use typed invocation, saved binding and result parser; persist original bytes before late lifecycle validation; keep cleanup/first cause/UNKNOWN/held debt.",
+      "Existing collection: use reviewed original and e4 response6 collector; stored raw metadata is actual observed response.",
+      "Existing finality record: same current journal, transport hash key and separate Member hash; typed target/observation mapping. No alternate store.",
+      "Original Main private Host source, independently pinned verifier, normal sole controller and normal CI remain original owner."
+    ]
+  },
+  "fixedHelperBoundary": {
+    "sourceCommit": "59185090aab3e4eaa6f8c9a0b29e975a2917e8b1",
+    "bundled": {
+      "bytes": 34310208,
+      "sha256": "a7e47ea79b3e4bdd40014c8c02aafbad7b37a69c9c15c7f45a9fd0c51d44479d"
+    },
+    "currentSource": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-finality-pipeline-20261023/source/apps/wallet-desktop/src/wallet-pq-verifier-assets.mjs",
+      "bytes": 11538,
+      "sha256": "88acafb681187ece0feaa74832528c564d08d4367a638b3cf33a09cd057622ad"
+    },
+    "actualTypedSupportEvidence": false,
+    "statement": "No receipt demonstrates typed pq_action support in this fixed normal binary. DATA adapter implementation does not activate it or authorize changing its pins. Actual typed process activation requires original Protocol supplied matching qualified helper/source/signature receipts and independent qualified Host. An old three-type verifier or HTTP200 is not typed finality."
+  },
+  "validation": {
+    "red": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-finality-pipeline-20261023/evidence/typed-finality-pipeline-red.tap",
+      "bytes": 1022,
+      "sha256": "50756fb9b2b606d8aeb691a2ed1ebaf66f5d713a16952a5cc56058cf2d48ef7f"
+    },
+    "redMeaning": "Existing transfer API rejects current typed Main record; missing typed target export fails new positive case (0PASS/1FAIL).",
+    "pass": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-finality-pipeline-20261023/evidence/typed-finality-pipeline-pass.tap",
+      "bytes": 2078,
+      "sha256": "7b3dd6a3158409819cac134200b5e9f4ed540ff7ba8377f1b4a8f12a566a482e"
+    },
+    "passCount": 7,
+    "fail": 0,
+    "skip": 0,
+    "types": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-finality-pipeline-20261023/evidence/typed-finality-pipeline-types.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "typesExit": 0,
+    "truth": "Actual finalSDK332 ephemeral dual signing and current Main72d original parser; controlled Host/CLI/proof DATA. 6 typed new cases plus1 affected shared-helper transfer case using prior actual public Transfer fixture. Not rerunning old14/55/12 groups; no actual Go typed producer fixture, normal CLI run, qualified Host, network or finality."
+  },
+  "platform": "Node/Main only. No Android/browser/native parity assertion.",
+  "status": "已验证未部署: owned source + targeted controlled checks; Main integration, actual original producer fixture, matching qualified verifier/Host, normal process, package/install and real finality not established."
+}

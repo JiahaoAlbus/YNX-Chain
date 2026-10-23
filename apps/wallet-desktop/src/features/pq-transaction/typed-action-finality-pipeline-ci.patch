@@ -1,0 +1,7 @@
+diff --git a/apps/wallet-desktop/test/pq-typed-action-finality-pipeline.test.mjs b/apps/wallet-desktop/test/pq-typed-action-finality-pipeline.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-typed-action-finality-pipeline.test.mjs
+@@ -0,0 +1,2 @@
++// Original npm test / CI entry for the owned typed finality DATA pipeline.
++import '../src/features/pq-transaction/typed-action-finality-pipeline.test.mjs';

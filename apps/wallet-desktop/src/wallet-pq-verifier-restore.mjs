@@ -1,6 +1,5 @@
 import {exactData} from './features/pq-transaction/transfer-binding.mjs';
-import {bindSavedPQTransferFinalityInvocation} from './features/pq-transaction/finality-saved-invocation.mjs';
-import {parsePQTransferFinalityVerifierResult} from './features/pq-transaction/finality-verifier-result.mjs';
+import {bindSavedPQFinalityInvocation as bindSavedPQTransferFinalityInvocation,parsePQFinalityVerifierResult as parsePQTransferFinalityVerifierResult} from './wallet-pq-finality-original.mjs';
 const fail=()=>{throw Object.assign(Error('PQ_FINALITY_SAVED_CAPTURE_UNVERIFIED'),{code:'PQ_FINALITY_SAVED_CAPTURE_UNVERIFIED'});};
 function json(bytes){const text=new TextDecoder('utf-8',{fatal:true}).decode(bytes),value=JSON.parse(text);if(JSON.stringify(value)!==text)fail();return value;}
 /** Cold local DATA recovery. Neither saved context nor a saved CLI result is

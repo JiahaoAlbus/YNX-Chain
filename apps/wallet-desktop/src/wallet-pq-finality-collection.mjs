@@ -1,11 +1,13 @@
 import {types} from 'node:util';
-import {exactData,readPQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
+import {exactData} from './features/pq-transaction/transfer-binding.mjs';
+import {readPQFinalityOriginal as readPQTransferOriginal} from './wallet-pq-finality-original.mjs';
 import {parsePQTransferFinalityCollector} from './features/pq-transaction/finality-collector.mjs';
+import {inspectPQReviewedTypedActionFinalityCollector} from './features/pq-transaction/typed-action-finality.mjs';
 import {readPQFinalityVerifierEvidence} from './wallet-pq-verifier-restore.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 // Original Main's read-only collector. Neither a 200 response, saved proof,
 // returned observation nor this controller can release or mutate an outbox.
-export function createPQFinalityCollection({intentStore,networkId,evidence,transport,verification=null}){
+export function createPQFinalityCollection({intentStore,networkId,evidence,transport,typedTransport=null,verification=null}){
  let active=false,pending=null;
  const binding=plan=>({account:plan.original.account,networkId});
  async function enter(hash,guard,action){
@@ -15,8 +17,13 @@ export function createPQFinalityCollection({intentStore,networkId,evidence,trans
  }
  async function observation(plan,ref){
   const raw=await evidence.read(plan.original,binding(plan),ref);
-  const parsed=parsePQTransferFinalityCollector(plan.original,binding(plan),ref.httpStatus,raw);
+  const parsed=parse(plan,ref,raw);
   return Object.freeze({...parsed.observation,hash:plan.original.hash,evidence:ref,rawStored:true,proofCollected:parsed.proof!==null,clearsOriginal:false,consensusFinality:false,independentFinality:false,canRetry:false});
+ }
+ function parse(plan,ref,raw){
+  if(!plan.typed)return parsePQTransferFinalityCollector(plan.original,binding(plan),ref.httpStatus,raw);
+  if(!ref.http)fail('PQ_TYPED_FINALITY_HTTP_METADATA_REQUIRED');
+  const t=plan.typed;return inspectPQReviewedTypedActionFinalityCollector(t.review,t.raw,t.original,{...ref.http,status:ref.httpStatus,body:raw});
  }
  const api=Object.freeze({
   retire(){verification?.retire();},
@@ -28,22 +35,22 @@ export function createPQFinalityCollection({intentStore,networkId,evidence,trans
    if(!collected.proofCollected)fail('PQ_FINALITY_PROOF_NOT_COLLECTED');
    return enter(hash,guard,async plan=>{
     const raw=await evidence.read(plan.original,binding(plan),collected.evidence);guard.assert();
-    const parsed=parsePQTransferFinalityCollector(plan.original,binding(plan),collected.evidence.httpStatus,raw);
+    const parsed=parse(plan,collected.evidence,raw);
     if(parsed.proof===null)fail('PQ_FINALITY_PROOF_NOT_COLLECTED');
     return verification.verify(plan.original,binding(plan),parsed.proof,guard);
    });
   },
   async collect(hash,guard){
    if(pending||verification?.pending())fail('PQ_FINALITY_EVIDENCE_UNCONFIRMED');evidence.assertSafeToClose();
-   if(typeof transport?.readFinalityProof!=='function')fail('PQ_FINALITY_TRANSPORT_NOT_SUPPLIED');
    return enter(hash,guard,async plan=>{
-    guard.assert();const response=await transport.readFinalityProof(plan.original,binding(plan));
-    if(types.isProxy(response))fail('PQ_FINALITY_RESPONSE_INVALID');exactData(response,['status','rawBytes'],'PQ_FINALITY_RESPONSE_INVALID');
+    if(typeof (plan.typed?typedTransport?.readOriginalProof:transport?.readFinalityProof)!=='function')fail('PQ_FINALITY_TRANSPORT_NOT_SUPPLIED');
+    guard.assert();const t=plan.typed,response=t?await typedTransport.readOriginalProof(t.review,t.raw,t.original,()=>guard.assert()):await transport.readFinalityProof(plan.original,binding(plan));
+    if(types.isProxy(response))fail('PQ_FINALITY_RESPONSE_INVALID');exactData(response,t?['method','requestPath','status','contentType','cacheControl','body']:['status','rawBytes'],'PQ_FINALITY_RESPONSE_INVALID');
     // Capture complete authenticated HTTP bytes/status BEFORE post-await lock
     // checks or any UTF-8/JSON/proof interpretation. No outward write follows.
     pending=plan;
     let ref;
-    try{ref=await evidence.append(plan.original,binding(plan),'collector-http',response.rawBytes,{httpStatus:response.status});pending=null;}
+    try{ref=await evidence.append(plan.original,binding(plan),'collector-http',t?response.body:response.rawBytes,{httpStatus:response.status,...(t?{http:{method:response.method,requestPath:response.requestPath,contentType:response.contentType,cacheControl:response.cacheControl}}:{})});pending=null;}
     catch(error){if(!evidence.pending())pending=null;throw error;}
     const result=await observation(plan,ref);guard.assert();return result;
    });
@@ -66,7 +73,7 @@ export function createPQFinalityCollection({intentStore,networkId,evidence,trans
      try{
       const raw=await evidence.read(plan.original,binding(plan),ref);rawStored=true;
       if(ref.kind==='verifier-result'){records.push(await readPQFinalityVerifierEvidence(plan.original,binding(plan),evidence,ref));guard.assert();continue;}
-      const parsed=parsePQTransferFinalityCollector(plan.original,binding(plan),ref.httpStatus,raw);
+      const parsed=parse(plan,ref,raw);
       records.push(Object.freeze({...parsed.observation,hash:plan.original.hash,evidence:ref,rawStored:true,proofCollected:parsed.proof!==null,clearsOriginal:false,consensusFinality:false,independentFinality:false,canRetry:false}));
      }catch{records.push(Object.freeze({evidence:ref,rawStored,status:'evidence-unverified',clearsOriginal:false,consensusFinality:false,independentFinality:false,canRetry:false}));}
      guard.assert();
