@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""One externally confirmed, bounded Caddy baseline DATA preparation only.
+"""Two separately confirmed, fixed Caddy baseline preparation/install profiles.
 
-No installation, reload, restart, protocol executable or daemon is supported.
+DATA cannot install. INSTALL only persists the original JSON startup source;
+neither profile can reload/restart Caddy, reroute traffic or run protocol code.
 Default validation never contacts Caddy or starts a child. The fixed original
 process guard is measured before its low-level definitions are compiled; none
 of its old migration commands, profile limits or high-level controller is used.
@@ -17,13 +18,19 @@ import platform
 import re
 import selectors
 import signal
+import socket
 import stat
+import struct
 import subprocess
 import sys
 import time
 
 VERSION = 'YNX-CADDY-BASELINE-DATA-WINDOW/v1'
 CASE = '/var/tmp/ynx-caddy-baseline-fd-observation-20261023T2040Z'
+INSTALL_VERSION = 'YNX-CADDY-BASELINE-INSTALL-WINDOW/v1'
+INSTALL_CASE = '/var/tmp/ynx-caddy-persistent-source-20261023T2100Z'
+INSTALL_ATTEMPT = 'persistent-source-install-attempt'
+INSTALL_DESTINATION = 'persistent-startup-install'
 COMMIT = '5591ad6ff59f5e495be01712286b1acd846f0cea'
 TREE = '04b8b951a7c0ff0793e911549fc41471e833aebd'
 RUN_ID = '40014651538'
@@ -36,10 +43,25 @@ BINDING = 'BASELINE_BINDING_RPC_EVM.json'
 PRODUCER = 'source/scripts/ops/prepare-public-bft-caddy-json-source.py'
 HELPER = 'source/scripts/ops/remote/public-bft-caddy-json.py'
 INSTALLER = 'source/scripts/ops/install-public-bft-caddy-json-baseline.py'
-GUARD_SHA256 = 'f6f9b1da0289707e8e30cac545d3f557819bc7bd75f5d413ae08eb7ce8e9d11d'
-GUARD_BYTES = '48804'
+GUARD_SHA256 = '3474ec7304ac1a43270d49fb106450a3698e1130764b3bd3b885ad6b1aabc610'
+GUARD_BYTES = '49677'
 PYTHON_RUNTIME = dict(path='/usr/bin/python3', resolvedPath='/usr/bin/python3.12', bytes='8020928',
                       sha256='1643dacd9feaedc58f3cc581e4d22577dfe25c09b10282936186ccf0f2e61118')
+SYSTEM_BINARIES = {
+    'curl': dict(path='/usr/bin/curl', bytes='297288', sha256='ea43dc3e72aadac2d8820181a79af1ce94f0f713f7aef81f5ef0ed5881d1f5eb'),
+    'systemctl': dict(path='/usr/bin/systemctl', bytes='1501304', sha256='d03995d5d2ce6a5dd1822854f80c40cdf3d92c7a008179d89e80e5ffcd1a9aa2'),
+    'caddy': dict(path='/usr/bin/caddy', bytes='38845944', sha256='9681d054b6e5137d53f6d027188b349e0603fd12ea6334bd0d49da6755432f1b'),
+}
+CONFIG = '/etc/caddy/ynx-chain.json'
+DROPIN = '/etc/systemd/system/caddy.service.d/ynx-chain-json.conf'
+SHOW = ['/usr/bin/systemctl','show','caddy.service','--no-pager',
+        '--property=ActiveState,SubState,MainPID,FragmentPath,DropInPaths,User,Group,ExecStart,ExecReload']
+GET = ['/usr/bin/curl','--disable','--request','GET','--noproxy','*','--max-redirs','0',
+       '--connect-timeout','5','--max-time','10','--max-filesize','16777216','--fail','--silent',
+       '--show-error','--url','http://127.0.0.1:2019/config/']
+VALIDATE = ['/usr/bin/caddy','validate','--config',CONFIG]
+DAEMON_RELOAD = ['/usr/bin/systemctl','daemon-reload']
+IPC_PEERS = ('/run/systemd/private', '/run/dbus/system_bus_socket')
 PINNED = {
     SOURCE: {'bytes': '766', 'sha256': '3caa9ff2c340f758316550d1455618b7992a0e046e803817e105f39fbb025811'},
     BINDING: {'bytes': '2013', 'sha256': 'f296b0ce244425ff083edfeb75e8182a66287bb35d384ce738b4219cdda80cff'},
@@ -106,10 +128,27 @@ def identity(info):
             info.st_gid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
 
 
+def installing(contract):
+    return contract.get('version') == INSTALL_VERSION
+
+
+def case_path(contract):
+    return Path(contract.get('casePath', CASE))
+
+
+def output_names(contract):
+    return (INSTALL_ATTEMPT, INSTALL_DESTINATION) if installing(contract) else (ATTEMPT, DESTINATION)
+
+
 def validate_contract(value):
-    closed(value, ('version', 'classification', 'casePath', 'controllerSHA256', 'pythonRuntime',
-                   'limits', 'environment', 'mustBeEmptyProcessGroups', 'preparedInputWitness'))
-    require(value['version'] == VERSION and value['classification'] == 'data' and value['casePath'] == CASE,
+    require(type(value) is dict, 'closed_fields_required')
+    install = installing(value)
+    fields = ('version', 'classification', 'casePath', 'controllerSHA256', 'pythonRuntime',
+              'limits', 'environment', 'mustBeEmptyProcessGroups', 'preparedInputWitness')
+    closed(value, (*fields, 'systemBinaries') if install else fields)
+    require(value['version'] == (INSTALL_VERSION if install else VERSION)
+            and value['classification'] == ('install' if install else 'data')
+            and value['casePath'] == (INSTALL_CASE if install else CASE),
             'wrong_fixed_data_profile')
     pin(value['controllerSHA256'])
     runtime = value['pythonRuntime']
@@ -148,6 +187,17 @@ def validate_contract(value):
                 require(row['bytes'] == PINNED[name]['bytes'], 'fixed_source_input_size_required')
             if name == GUARD:
                 require(row['bytes'] == GUARD_BYTES, 'fixed_guard_source_size_required')
+    if install:
+        closed(value['systemBinaries'], SYSTEM_BINARIES)
+        for name, expected in SYSTEM_BINARIES.items():
+            row = value['systemBinaries'][name]
+            closed(row, ('path', 'bytes', 'sha256', 'witness'))
+            require({key:row[key] for key in expected} == expected, 'fixed_install_system_binary_required')
+            witness = row['witness']
+            closed(witness, ('uid','gid','mode','device','inode','bytes','nlink','mtimeNs','ctimeNs'))
+            require(witness['uid'] == witness['gid'] == '0' and witness['mode'] == '755'
+                    and witness['nlink'] == '1' and witness['bytes'] == expected['bytes'], 'install_runtime_witness_required')
+            for field in ('device','inode','mtimeNs','ctimeNs'): decimal(witness[field],1)
     return value
 
 
@@ -190,7 +240,7 @@ def file_witness(info):
 
 
 def check_witness(contract):
-    case = Path(CASE)
+    case = case_path(contract)
     for name in DIRECTORIES:
         require(directory_witness(case if name == '.' else case / name) == contract['preparedInputWitness'][name],
                 'prepared_directory_identity_changed')
@@ -246,10 +296,10 @@ def load_inputs(contract, progress):
     check_witness(contract)
     records, raw = {}, {}
     for name, expected in PINNED.items():
-        raw[name], records[name] = read_private(Path(CASE) / name, expected, progress=progress)
+        raw[name], records[name] = read_private(case_path(contract) / name, expected, progress=progress)
     validate_source_index(decode(raw[SOURCE]))
-    helper = captured_module(raw[HELPER], Path(CASE) / HELPER, 'ynx_caddy_data_captured_helper')
-    producer = captured_module(raw[PRODUCER], Path(CASE) / PRODUCER, 'ynx_caddy_data_captured_producer')
+    helper = captured_module(raw[HELPER], case_path(contract) / HELPER, 'ynx_caddy_data_captured_helper')
+    producer = captured_module(raw[PRODUCER], case_path(contract) / PRODUCER, 'ynx_caddy_data_captured_producer')
     binding = helper['parse_json'](raw[BINDING])
     require(producer['validate_binding'](binding) is False, 'baseline_only_binding_required')
     require(binding['version'] == 'YNX-CADDY-JSON-BASELINE/v1', 'no_cutover_authority_in_data_window')
@@ -261,10 +311,16 @@ def load_inputs(contract, progress):
     return records, helper, producer, binding
 
 
-def normal_command():
-    return ['/usr/bin/python3', '-B', str(Path(CASE) / PRODUCER), '--binding', str(Path(CASE) / BINDING),
+def normal_command(contract=None):
+    contract = {} if contract is None else contract
+    case = case_path(contract)
+    if installing(contract):
+        return ['/usr/bin/python3','-B',str(case/INSTALLER),'--binding',str(case/BINDING),
+                '--binding-sha256',PINNED[BINDING]['sha256'],'--producer-sha256',PINNED[PRODUCER]['sha256'],
+                '--json-helper-sha256',PINNED[HELPER]['sha256'],'--output-dir',str(case/INSTALL_DESTINATION),'--install']
+    return ['/usr/bin/python3', '-B', str(case / PRODUCER), '--binding', str(case / BINDING),
             '--binding-sha256', PINNED[BINDING]['sha256'], '--json-helper-sha256', PINNED[HELPER]['sha256'],
-            '--output-dir', str(Path(CASE) / DESTINATION)]
+            '--output-dir', str(case / DESTINATION)]
 
 
 def live_snapshot(producer, helper, binding, progress=lambda: None):
@@ -307,6 +363,111 @@ def live_snapshot(producer, helper, binding, progress=lambda: None):
                 threeLiveNativeUpstreams=True)
 
 
+def parse_unix_diag(raw, sequence, port, inode):
+    """One exact Linux unix_diag reply, never a socket-table dump.
+
+    Linux uapi unix_diag.h: NAME=0, PEER=2, SHUTDOWN=6; an exact
+    reply carries the requesting port id in its header. Kernel provenance
+    comes from recvmsg's sender, not a guessed zero nlmsg_pid.
+    """
+    require(32 <= len(raw) <= 65536, 'unix_diag_reply_bound')
+    length, kind, flags, seq, pid = struct.unpack_from('=IHHII', raw)
+    require(length == len(raw) and flags == 0 and seq == sequence and pid == port,
+            'unix_diag_header_mismatch')
+    if kind == 2:
+        require(length >= 36, 'unix_diag_error_incomplete')
+        error = struct.unpack_from('=i', raw, 16)[0]
+        if error == -2: raise FileNotFoundError(2, 'owned_socket_closed')
+        raise Refused('unix_diag_kernel_error')
+    require(kind == 20, 'unix_diag_reply_type')
+    family, socktype, state, pad, observed, cookie0, cookie1 = struct.unpack_from('=BBBBIII', raw, 16)
+    require(family == socket.AF_UNIX and pad == 0 and observed == inode, 'unix_diag_identity_mismatch')
+    attrs, offset = {}, 32
+    while offset < len(raw):
+        require(offset + 4 <= len(raw), 'unix_diag_attribute_truncated')
+        size, attr = struct.unpack_from('=HH', raw, offset)
+        require(size >= 4 and offset + size <= len(raw) and attr in (0, 2, 6) and attr not in attrs,
+                'unix_diag_attribute_invalid')
+        attrs[attr] = raw[offset+4:offset+size]
+        aligned = (size + 3) & ~3
+        require(offset + aligned <= len(raw) and not any(raw[offset+size:offset+aligned]),
+                'unix_diag_attribute_padding')
+        offset += aligned
+    require(6 in attrs and len(attrs[6]) == 1 and attrs[6][0] <= 3, 'unix_diag_shutdown_missing')
+    peer = None
+    if 2 in attrs:
+        require(len(attrs[2]) == 4, 'unix_diag_peer_invalid')
+        peer = struct.unpack('=I',attrs[2])[0]
+        require(peer > 0, 'unix_diag_peer_invalid')
+    name = None
+    if 0 in attrs:
+        name = attrs[0]
+        require(0 < len(name) <= 108, 'unix_diag_name_invalid')
+        if name.endswith(b'\0'): name = name[:-1]
+    return dict(inode=inode, type=socktype, state=state, cookie=(cookie0,cookie1), peer=peer, name=name)
+
+
+def unix_diag(inode, deadline, cookie=(0xffffffff, 0xffffffff)):
+    require(type(inode) is int and 0 < inode <= 0xffffffff and time.monotonic() < deadline,
+            'unix_diag_deadline_or_inode')
+    # No dump flag, multicast, shell, service operation or network fallback.
+    with socket.socket(socket.AF_NETLINK, socket.SOCK_RAW | socket.SOCK_CLOEXEC, 4) as channel:
+        channel.bind((0,0))
+        port = channel.getsockname()[0]
+        sequence = 1
+        request = struct.pack('=BBHIIIII',socket.AF_UNIX,0,0,0xffffffff,inode,5,*cookie)
+        packet = struct.pack('=IHHII',16+len(request),20,1,sequence,port)+request
+        channel.settimeout(max(0.000001,deadline-time.monotonic()))
+        require(channel.sendto(packet,(0,0)) == len(packet), 'unix_diag_request_incomplete')
+        raw, ancillary, flags, sender = channel.recvmsg(65536)
+        require(sender == (0,0) and not ancillary and flags == 0, 'unix_diag_kernel_sender_required')
+        require(time.monotonic() <= deadline, 'unix_diag_deadline_or_inode')
+        return parse_unix_diag(raw,sequence,port,inode)
+
+
+def verify_ipc_socket(inode, deadline):
+    client = unix_diag(inode,deadline)
+    require(client['type'] == 1 and client['state'] == 1 and client['peer'] is not None,
+            'systemctl_connected_stream_required')
+    peer = unix_diag(client['peer'],deadline)
+    require(peer['type'] == 1 and peer['state'] == 1 and peer['peer'] == inode
+            and peer['name'] in tuple(path.encode() for path in IPC_PEERS), 'systemctl_fixed_ipc_peer_required')
+    # Cookie re-query binds the observation against inode reuse while the peer
+    # was queried. A disappeared exact socket receives whole-FD resampling.
+    require(unix_diag(inode,deadline,client['cookie']) == client, 'unix_diag_socket_changed')
+
+
+def verify_curl_socket(raw, inode):
+    require(0 < len(raw) <= 4 << 20, 'curl_tcp_observation_bound')
+    found = []
+    for line in raw.splitlines()[1:]:
+        fields = line.split()
+        require(len(fields) >= 10, 'curl_tcp_table_incomplete')
+        if fields[9] == str(inode).encode(): found.append(fields)
+    require(len(found) == 1, 'curl_exact_socket_not_observed')
+    fields = found[0]
+    require(re.fullmatch(rb'0100007F:[0-9A-F]{4}', fields[1]) and fields[1][-4:] != b'0000'
+            and fields[2] == b'0100007F:07E3' and fields[3] in (b'01',b'02',b'04',b'05',b'08',b'09',b'0B'),
+            'curl_fixed_loopback_admin_peer_required')
+
+
+def load_system_binaries(contract, progress=lambda: None):
+    records = {}
+    for name, expected in SYSTEM_BINARIES.items():
+        path = Path(expected['path'])
+        _, measured = read_private(path,{key:expected[key] for key in ('bytes','sha256')},maximum=64 << 20,
+                                   progress=progress,runtime=True)
+        require(file_witness(path.lstat()) == contract['systemBinaries'][name]['witness'], 'install_runtime_identity_changed')
+        records[name] = measured
+    return records
+
+
+def absent_install_targets():
+    for name in (CONFIG, DROPIN, str(Path(DROPIN).parent)):
+        require(not any(os.path.lexists(name+suffix) for suffix in ('','.partial','.UNKNOWN','.tmp')),
+                'existing_install_target_or_unknown')
+
+
 def sync_directory(path):
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
@@ -331,11 +492,12 @@ class Controller:
     def __init__(self, contract, low, started=None):
         self.contract, self.low = contract, low
         self.started = time.monotonic() if started is None else started
-        self.output = Path(CASE) / ATTEMPT
+        self.output = case_path(contract) / output_names(contract)[0]
         self.proc = low['LinuxProc']()
         rows = self.proc.inventory()
         self.owned = low['Owned'](os.getpid(), rows)
-        self.initial_bytes = low['directory_bytes'](Path(CASE))
+        self.initial_bytes = low['directory_bytes'](case_path(contract))
+        self.system_records = {}
         self.children, self.codes = [], []
         self.next_sample, self.samples, self.peak_rss, self.max_delta = 0.0, 0, 0, 0
         self.events, self.journal_bytes, self.first_cause = None, 0, None
@@ -361,7 +523,10 @@ class Controller:
         deadline = min(now + LIMITS['sampleMs'] / 1000, self.started + LIMITS['activeSeconds'])
         for pid, row in tasks.items():
             try:
-                task = self.proc.sample_task(row, check_sockets=pid != self.owned.controller, observation_deadline=deadline)
+                options = dict(check_sockets=pid != self.owned.controller,observation_deadline=deadline)
+                if installing(self.contract) and pid != self.owned.controller:
+                    options['socket_authorizer'] = self.authorize_socket
+                task = self.proc.sample_task(row, **options)
             except Exception as original:
                 detail = getattr(self.proc,'last_task_observation',None)
                 if (type(detail) is dict and detail.get('pid') == pid and detail.get('expectedStartTicks') == row['startTicks']
@@ -380,8 +545,10 @@ class Controller:
         require(not any(row['group'] in blocked or blocked.get(pid) == row['startTicks'] for pid, row in rows.items()),
                 'original_owner_group_not_empty')
         available = self.proc.available_memory()
-        disk = os.statvfs(CASE); free = disk.f_bavail * disk.f_frsize
-        delta = max(0, self.low['directory_bytes'](Path(CASE)) - self.initial_bytes)
+        disk = os.statvfs(case_path(self.contract)); free = disk.f_bavail * disk.f_frsize
+        delta = max(0, self.low['directory_bytes'](case_path(self.contract)) - self.initial_bytes)
+        if installing(self.contract):
+            self.check_install_logs()
         rss = sum(row['rssBytes'] for row in sampled.values())
         require(available > 0 and (not fresh or available >= LIMITS['freshMemoryBytes']), 'fresh_memory_floor')
         require(free >= LIMITS['diskFloorBytes'], 'disk_floor')
@@ -397,6 +564,59 @@ class Controller:
                                         for row in sampled.values()]))
         self.next_sample = now + LIMITS['sampleMs'] / 1000
 
+    def check_install_logs(self):
+        directory = case_path(self.contract)/INSTALL_DESTINATION/'commands'
+        totals = dict(self.log_bytes)
+        if os.path.lexists(directory):
+            directory_witness(directory)
+            for path in directory.iterdir():
+                info = path.lstat()
+                require(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600
+                        and info.st_uid == info.st_gid == 0 and info.st_nlink == 1,
+                        'install_command_capture_identity')
+                for stream in ('stdout','stderr'):
+                    if path.name.endswith('.'+stream): totals[stream] += info.st_size
+        for stream, total in totals.items():
+            require(total <= LIMITS[stream+'Bytes'], 'install_'+stream+'_limit')
+        return totals
+
+    def authorize_socket(self, before, fd, inode, deadline):
+        require(installing(self.contract) and self.owned.known.get(before['pid']) == before['startTicks']
+                and before['pid'] != self.owned.controller, 'install_socket_owned_identity_required')
+        pid = before['pid']; directory = Path('/proc')/str(pid)
+        current = self.proc.one_or_gone(pid)
+        require(current is not None and current['startTicks'] == before['startTicks'], 'install_socket_pid_changed')
+        require(os.readlink(directory/'ns/net') == os.readlink('/proc/self/ns/net'), 'install_socket_network_namespace_changed')
+        target = 'socket:['+str(inode)+']'
+        require(os.readlink(directory/'fd'/str(fd)) == target, 'install_socket_fd_changed')
+        actual_exe = os.readlink(directory/'exe')
+        names = [name for name in SYSTEM_BINARIES if SYSTEM_BINARIES[name]['path'] == actual_exe]
+        require(len(names) == 1 and names[0] in ('curl','systemctl'), 'install_socket_fixed_tool_required')
+        name = names[0]
+        record = self.system_records.get(name)
+        require(record is not None and identity((directory/'exe').stat()) == record['identity']
+                and file_witness(Path(actual_exe).lstat()) == self.contract['systemBinaries'][name]['witness'],
+                'install_socket_executable_identity_changed')
+        raw = self.proc.bounded(directory/'cmdline',65536)
+        require(raw.endswith(b'\0'), 'install_socket_argv_incomplete')
+        argv = raw[:-1].split(b'\0')
+        expected = (GET,) if name == 'curl' else (SHOW,DAEMON_RELOAD)
+        require(any(argv == [part.encode() for part in command] for command in expected), 'install_socket_fixed_argv_required')
+        try:
+            if name == 'curl': verify_curl_socket(self.proc.bounded(directory/'net/tcp',4 << 20),inode)
+            else: verify_ipc_socket(inode,deadline)
+        except Refused:
+            # Preserve a real refusal; only actual FD disappearance is a churn
+            # retry. Same-number reuse never turns the refusal into approval.
+            require(os.readlink(directory/'fd'/str(fd)) == target, 'install_socket_fd_changed')
+            raise
+        require(os.readlink(directory/'fd'/str(fd)) == target, 'install_socket_fd_changed')
+        after = self.proc.one_or_gone(pid)
+        require(after is not None and after['startTicks'] == before['startTicks']
+                and identity((directory/'exe').stat()) == record['identity'] and time.monotonic() <= deadline,
+                'install_socket_observation_changed')
+        return True
+
     def command(self, runtime_record):
         self.capacity(fresh=True)
         runtime_path = Path(self.contract['pythonRuntime']['resolvedPath'])
@@ -404,6 +624,9 @@ class Controller:
                                    progress=self.capacity, runtime=True)
         require(measured == runtime_record and str(Path('/usr/bin/python3').resolve(strict=True)) == str(runtime_path),
                 'normal_python_runtime_changed')
+        if installing(self.contract):
+            self.system_records = load_system_binaries(self.contract,self.capacity)
+            absent_install_targets()
         executable = os.open(runtime_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
         selector, logs, child = selectors.DefaultSelector(), {}, None
         try:
@@ -413,8 +636,8 @@ class Controller:
                 logs[name] = os.fdopen(fd, 'wb', buffering=0)
             self.capacity(fresh=True)
             check_witness(self.contract)
-            child = subprocess.Popen(normal_command(), executable='/proc/self/fd/'+str(executable), pass_fds=(executable,),
-                cwd=str(Path(CASE)), env=dict(ENVIRONMENT), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+            child = subprocess.Popen(normal_command(self.contract), executable='/proc/self/fd/'+str(executable), pass_fds=(executable,),
+                cwd=str(case_path(self.contract)), env=dict(ENVIRONMENT), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE, start_new_session=True, close_fds=True)
             self.children.append(child)
             self.next_sample = 0; self.capacity()
@@ -477,11 +700,14 @@ class Controller:
         return False, error or 'owned_cleanup_incomplete'
 
 
-def qualify_output(helper, binding):
-    destination = Path(CASE) / DESTINATION
+def qualify_output(helper, binding, contract=None):
+    contract = {} if contract is None else contract
+    install = installing(contract)
+    destination = case_path(contract) / output_names(contract)[1]
     directory_witness(destination)
     expected = {'intent.json', 'original.json', 'candidate.json', 'ynx-chain-json.conf', 'BASELINE_DATA.json', 'receipt.json'}
-    require({path.name for path in destination.iterdir()} == expected, 'closed_baseline_data_output_required')
+    extra = {'commands','baseline-install-intent.json','baseline-install-receipt.json'} if install else set()
+    require({path.name for path in destination.iterdir()} == expected | extra, 'closed_baseline_data_output_required')
     records, blobs = {}, {}
     for name in sorted(expected):
         blobs[name], records[name] = read_private(destination / name, maximum=16 << 20)
@@ -498,6 +724,62 @@ def qualify_output(helper, binding):
     require(receipt.get('baselineDataSHA256') == records['BASELINE_DATA.json']['pin']['sha256']
             and receipt.get('manifestSHA256') is None and receipt.get('bindingSHA256') == PINNED[BINDING]['sha256']
             and receipt.get('jsonHelperSHA256') == PINNED[HELPER]['sha256'], 'prepared_receipt_source_pin_differs')
+    if install:
+        raw, _ = read_private(case_path(contract)/INSTALLER,PINNED[INSTALLER])
+        installer = captured_module(raw,case_path(contract)/INSTALLER,'ynx_caddy_install_result_reader')
+        commands = destination/'commands'; directory_witness(commands)
+        command_names = ('before-unit','before-loaded','validate','pre-daemon-unit','pre-daemon-loaded',
+                         'daemon-reload','after-unit','after-loaded')
+        require({path.name for path in commands.iterdir()} ==
+                {label+suffix for label in command_names for suffix in ('.json','.stdout','.stderr')},
+                'closed_install_command_captures_required')
+        for label in command_names:
+            body, body_record = read_private(commands/(label+'.json'),maximum=65536)
+            record = decode(body); closed(record,('returnCode','stdout','stderr'))
+            require(type(record['returnCode']) is int and record['returnCode'] == 0, 'install_command_failed')
+            streams = {}
+            for stream in ('stdout','stderr'):
+                item = record[stream]; closed(item,('file','bytes','sha256'))
+                require(item['file'] == label+'.'+stream, 'install_command_capture_path_changed')
+                decimal(item['bytes']); pin(item['sha256'])
+                data = installer['read_capture'](commands/item['file'],LIMITS[stream+'Bytes'])
+                require(str(len(data)) == item['bytes'] and hashlib.sha256(data).hexdigest() == item['sha256'],
+                        'install_command_capture_bytes_changed')
+                streams[stream] = data
+            if label.endswith('-loaded'):
+                require(hashlib.sha256(streams['stdout']).hexdigest() == binding['source']['sha256'],
+                        'install_loaded_config_changed')
+            elif label.endswith('-unit'):
+                installer['assert_unit_state'](installer['show_state'](streams['stdout']),binding,label=='after-unit',helper)
+            records['commands/'+label+'.json'] = body_record
+        for path, expected_raw, mode, uid, gid in (
+                (Path(CONFIG),blobs['original.json'],0o600,int(binding['source']['witness']['uid']),int(binding['source']['witness']['gid'])),
+                (Path(DROPIN),blobs['ynx-chain-json.conf'],0o644,0,0)):
+            # The original config is Caddy-owned and the drop-in root0644;
+            # producer's original protected reader accepts those exact owners.
+            producer_raw,_ = read_private(case_path(contract)/PRODUCER,PINNED[PRODUCER])
+            producer = captured_module(producer_raw,case_path(contract)/PRODUCER,'ynx_caddy_installed_reader')
+            actual,sha,_,info = producer['read_file'](path,16 << 20)
+            require(actual == expected_raw and stat.S_IMODE(info.st_mode) == mode and info.st_nlink == 1
+                    and (info.st_uid,info.st_gid) == (uid,gid), 'installed_original_startup_source_mismatch')
+            records[str(path)] = dict(pin=dict(bytes=str(len(actual)),sha256=sha))
+        installer['assert_no_unknown_sources'](Path(CONFIG),Path(DROPIN),True)
+        install_raw, install_record = read_private(destination/'baseline-install-receipt.json',maximum=65536)
+        result = decode(install_raw)
+        install_intent, intent_record = read_private(destination/'baseline-install-intent.json',maximum=65536)
+        intent = decode(install_intent)
+        expected_intent = dict(version='YNX-CADDY-JSON-BASELINE-INSTALL/v1',status='unknown',automaticRetry=False,
+            bindingSHA256=PINNED[BINDING]['sha256'],producerSHA256=PINNED[PRODUCER]['sha256'],
+            jsonHelperSHA256=PINNED[HELPER]['sha256'],baselineDataSHA256=records['BASELINE_DATA.json']['pin']['sha256'])
+        require(intent == expected_intent, 'install_intent_source_changed')
+        wanted = dict(expected_intent,status='persistent-startup-source-installed',persistentStartupSource=True,
+            configPath=CONFIG,dropInPath=DROPIN,originalSHA256=binding['source']['sha256'],
+            originalSemanticSHA256=helper['semantic_hash'](helper['parse_config'](blobs['original.json'])),
+            originalPID=binding['originalProcess']['pid'],originalStartTicks=binding['originalProcess']['startTicks'],
+            liveConfigUnchanged=True,daemonReloadOnly=True,caddyReloaded=False,caddyRestarted=False,routesChanged=False,
+            restartRecovery=False,rollbackVerified=False,chainActivation=False,rootGrant=False,publicDeployment=False)
+        require(result == wanted, 'install_receipt_not_fixed_startup_source')
+        records['baseline-install-receipt.json'],records['baseline-install-intent.json'] = install_record,intent_record
     return {name: record['pin'] for name, record in records.items()}
 
 
@@ -505,12 +787,14 @@ def run(contract, contract_pin, external_witnesses):
     require(sys.platform == 'linux' and platform.machine() == 'x86_64' and os.geteuid() == 0, 'root_linux_amd64_required')
     require(hasattr(os, 'pidfd_open') and hasattr(signal, 'pidfd_send_signal'), 'identity_safe_cleanup_required')
     began = time.monotonic()
-    directory_witness(Path(CASE))
-    for name in (ATTEMPT, DESTINATION):
-        require(not any(os.path.lexists(Path(CASE)/(name+suffix)) for suffix in ('','.partial','.UNKNOWN','.tmp')),
+    case = case_path(contract); install = installing(contract)
+    directory_witness(case)
+    for name in output_names(contract):
+        require(not any(os.path.lexists(case/(name+suffix)) for suffix in ('','.partial','.UNKNOWN','.tmp')),
                 'original_attempt_or_partial_retained')
+    if install: absent_install_targets()
     check_witness(contract)
-    low, guard_record = load_process_guard(Path(CASE) / GUARD)
+    low, guard_record = load_process_guard(case / GUARD)
     controller = Controller(contract, low, began)
     libc = ctypes.CDLL(None, use_errno=True)
     libc.prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
@@ -518,8 +802,8 @@ def run(contract, contract_pin, external_witnesses):
     require(libc.prctl(37, ctypes.cast(ctypes.pointer(previous), ctypes.c_void_p).value, 0, 0, 0) == 0
             and libc.prctl(36, 1, 0, 0, 0) == 0 and libc.prctl(37, ctypes.cast(ctypes.pointer(confirmed), ctypes.c_void_p).value, 0, 0, 0) == 0
             and confirmed.value == 1, 'owned_child_subreaper_required')
-    controller.output.mkdir(mode=0o700); sync_directory(Path(CASE))
-    exclusive(controller.output/'intent.json', encode(dict(version=VERSION, contractSHA256=contract_pin, status='unknown',
+    controller.output.mkdir(mode=0o700); sync_directory(case)
+    exclusive(controller.output/'intent.json', encode(dict(version=contract['version'], contractSHA256=contract_pin, status='unknown',
               automaticRetry=False, limits=LIMITS, rootGrant=False, installed=False, serviceCommandsPerformed=False)))
     fd = os.open(controller.output/'journal.jsonl', os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW, 0o600)
     controller.events = os.fdopen(fd, 'wb')
@@ -541,7 +825,10 @@ def run(contract, contract_pin, external_witnesses):
         before = live_snapshot(producer,helper,binding,controller.capacity)
         controller.event('original_caddy_before',before)
         controller.command(runtime_record)
-        outputs = qualify_output(helper,binding)
+        outputs = qualify_output(helper,binding,contract)
+        if install:
+            require(load_system_binaries(contract,controller.capacity) == controller.system_records,
+                    'install_system_binary_changed')
         _, runtime_after = read_private(Path(runtime['resolvedPath']),runtime_record['pin'],maximum=64 << 20,
                                         progress=controller.capacity,runtime=True)
         require(runtime_after == runtime_record and str(Path('/usr/bin/python3').resolve(strict=True)) == runtime['resolvedPath'],
@@ -550,9 +837,9 @@ def run(contract, contract_pin, external_witnesses):
         require(before == after, 'original_service_or_loaded_config_changed')
         controller.event('original_caddy_after',after)
         for name, original in records.items():
-            _, current = read_private(Path(CASE)/name, original['pin'], progress=controller.capacity)
+            _, current = read_private(case/name, original['pin'], progress=controller.capacity)
             require(current == original, 'original_staged_source_changed')
-        _, current_guard = read_private(Path(CASE)/GUARD, guard_record['pin'], progress=controller.capacity)
+        _, current_guard = read_private(case/GUARD, guard_record['pin'], progress=controller.capacity)
         require(current_guard == guard_record, 'original_proc_guard_changed')
         for path, original in external_witnesses:
             _, current = read_private(path, original['pin'], progress=controller.capacity)
@@ -580,18 +867,28 @@ def run(contract, contract_pin, external_witnesses):
         except OSError: cleanup_ok,cleanup_error=False,cleanup_error or 'journal_persistence_failed'
     if not cleanup_ok: controller.first_cause=controller.first_cause or cleanup_error
     if time.monotonic()-began > LIMITS['totalSeconds']: controller.first_cause=controller.first_cause or 'total_time_limit'
+    capture_bytes = None
+    if install:
+        try: capture_bytes = controller.check_install_logs()
+        except Exception as error: controller.first_cause = controller.first_cause or public_error(error)
     if controller.first_cause:
         try: exclusive(controller.output/'first-cause.json',encode(dict(code=controller.first_cause,
                        taskSample=controller.task_sample_failure,taskSampleJournalError=controller.task_sample_journal_error)))
         except Exception: pass
     success=controller.first_cause is None and cleanup_ok and controller.codes==[0] and before==after and outputs is not None
-    receipt=dict(version=VERSION,classification='data',contractSHA256=contract_pin,executionStarted=True,dataPrepared=success,
+    receipt=dict(version=contract['version'],classification=contract['classification'],contractSHA256=contract_pin,executionStarted=True,
+        dataPrepared=success and not install,
         normalExitCodes=controller.codes,firstCause=controller.first_cause,cleanupComplete=cleanup_ok,cleanupError=cleanup_error,
         elapsedMs=int((time.monotonic()-began)*1000),sampleCount=controller.samples,peakOwnedRSSBytes=controller.peak_rss,
         maxCaseDeltaBytes=controller.max_delta,stdoutBytes=controller.log_bytes['stdout'],stderrBytes=controller.log_bytes['stderr'],
         originalInputsUnchanged=success,originalCaddyUnchanged=success,outputs=outputs if success else None,
-        guardMode='sampled-proc-smaps-rollup-200ms',cgroupHardWall=False,rootGrant=False,installed=False,
-        serviceCommandsPerformed=False,publicDeployment=False,pqActivation=False,authoritativeFinalCheckpoint=False,automaticRetry=False)
+        guardMode='sampled-proc-smaps-rollup-200ms',cgroupHardWall=False,rootGrant=False,installed=success and install,
+        serviceCommandsPerformed=(True if success else None) if install else False,
+        publicDeployment=False,pqActivation=False,authoritativeFinalCheckpoint=False,automaticRetry=False)
+    if install:
+        receipt.update(persistentStartupSourceInstalled=success,daemonReloadOnly=success,
+            caddyReloaded=False,caddyRestarted=False,routesChanged=False,restartRecovery=False,rollbackVerified=False,
+            ownedSockets='sampled-fixed-tool-peer-verified',commandCaptureBytes=capture_bytes)
     exclusive(controller.output/'result.json',encode(receipt))
     return receipt
 
@@ -611,17 +908,18 @@ def main(argv=None):
         contract=validate_contract(decode(raw))
         require(args.execute or args.confirmed_contract_sha256 is None,'confirmation_without_execution')
         if not args.execute:
-            print(encode(dict(version=VERSION,classification='data',contractValidated=True,executionStarted=False,
+            print(encode(dict(version=contract['version'],classification=contract['classification'],contractValidated=True,executionStarted=False,
                               rootGrant=False,installed=False,serviceCommandsPerformed=False)).decode(),end='')
             return 0
         require(args.confirmed_contract_sha256==args.contract_sha256,'later_exact_confirmation_required')
         caller=Path(__file__).resolve(strict=True)
-        require(caller==Path(CASE)/CALLER,'fixed_normal_caller_path_required')
+        require(caller==case_path(contract)/CALLER,'fixed_normal_caller_path_required')
         _,caller_record=read_private(caller,maximum=1 << 20)
         require(caller_record['pin']['sha256']==contract['controllerSHA256'],'external_controller_source_pin_mismatch')
         result=run(contract,args.contract_sha256,[(Path(args.contract),contract_record),(caller,caller_record)])
         print(encode(result).decode(),end='')
-        return 0 if result['dataPrepared'] else 1
+        success = result.get('persistentStartupSourceInstalled') if installing(contract) else result['dataPrepared']
+        return 0 if success else 1
     except Exception as error:
         print('YNX_CADDY_BASELINE_DATA_REFUSED '+public_error(error),file=sys.stderr)
         return 1

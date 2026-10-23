@@ -27,7 +27,7 @@ BASE_NAME = "verify-original-native-copy.py"
 # Current executable source qualification is separate from the immutable
 # controller identity that produced the retained failed export. Updating the
 # sampler must never rewrite that export's intent or prior evidence.
-BASE_PIN = {"bytes": "48804", "sha256": "f6f9b1da0289707e8e30cac545d3f557819bc7bd75f5d413ae08eb7ce8e9d11d"}
+BASE_PIN = {"bytes": "49677", "sha256": "3474ec7304ac1a43270d49fb106450a3698e1130764b3bd3b885ad6b1aabc610"}
 PRIOR_GUARD_BYTES = "47901"
 PRIOR_GUARD_SHA256 = "fa8a1ac1230b4f3ac5bee549019d7e7e3312c5a954c3a19227c8607f054e6c37"
 PRIOR_CONTRACT = "bc3b5448b12f2d3b5c5cb098f4f35fbd88e7320f893415b77198ae249e04cbb4"

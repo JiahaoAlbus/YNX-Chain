@@ -315,7 +315,7 @@ class LinuxProc:
         require(len(found) == 1 and int(found[0]) > 0, "memory_telemetry_missing")
         return int(found[0]) * 1024
 
-    def sample_task(self, original, check_sockets=True, observation_deadline=None):
+    def sample_task(self, original, check_sockets=True, observation_deadline=None, socket_authorizer=None):
         """Actual RSS or confirmed same-identity terminal state; never stat RSS.
 
         Missing/zero smaps, a disappearing FD directory or an FD closed/reused
@@ -415,7 +415,18 @@ class LinuxProc:
                                 # The next attempt starts with fresh stat, real
                                 # smaps RSS and the complete FD inventory.
                                 continue
-                            require(not target.startswith("socket:["), "owned_socket_present")
+                            if target.startswith("socket:["):
+                                match = re.fullmatch(r"socket:\[([1-9][0-9]*)\]", target)
+                                require(match is not None and socket_authorizer is not None, "owned_socket_present")
+                                try:
+                                    allowed = socket_authorizer(before, int(entry.name), int(match[1]), deadline)
+                                except FileNotFoundError as exc:
+                                    # An exact socket/FD can close during kernel
+                                    # readback too. Re-observe the whole task;
+                                    # never authorize an absent or reused FD.
+                                    reason, missing_errno = "fd_closed_during_read", exc.errno
+                                    continue
+                                require(allowed is True, "owned_socket_present")
                 stage = "after_stat"
                 after = self.one_or_gone(pid)
                 after_kind = "confirmed_gone" if after is None else "present"

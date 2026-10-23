@@ -617,6 +617,30 @@ class ProcessControls(unittest.TestCase):
         with self.assertRaisesRegex(guard.Refused, "identity_changed"):
             proc.sample_task(task)
 
+    def test_socket_authorizer_closure_repeats_whole_observation_and_keeps_permissions(self):
+        task, clock = row(200,100,200,30), SampleClock()
+        proc = object.__new__(guard.LinuxProc)
+        proc.one_or_gone = Mock(return_value=task)
+        proc.bounded = Mock(side_effect=[b'Rss: 8192 kB\n', b'Rss: 4096 kB\n'])
+        entry = Path('/synthetic-fd/4')
+        authorization = Mock(side_effect=[FileNotFoundError(errno.ENOENT,'synthetic exact socket closed'),True])
+        with patch.object(guard.time,'monotonic',side_effect=clock.monotonic), patch.object(guard.time,'sleep',side_effect=clock.sleep), \
+                patch.object(Path,'iterdir',side_effect=lambda:iter([entry])) as inventory, \
+                patch.object(guard.os,'readlink',side_effect=['socket:[42]','socket:[43]']):
+            result = proc.sample_task(task,observation_deadline=0.2,socket_authorizer=authorization)
+        self.assertEqual(result['rssBytes'],4096*1024)
+        self.assertEqual(inventory.call_count,2)
+        self.assertEqual(proc.last_task_observation['resolution'],'fd_recovered')
+        self.assertEqual(authorization.call_args_list[0].args,(task,4,42,0.2))
+        self.assertEqual(authorization.call_args_list[1].args,(task,4,43,0.2))
+        proc.bounded = Mock(return_value=b'Rss: 8192 kB\n')
+        with patch.object(Path,'iterdir',side_effect=lambda:iter([entry])), \
+                patch.object(guard.os,'readlink',return_value='socket:[42]'):
+            denied = Mock(side_effect=PermissionError('synthetic diag denied'))
+            with self.assertRaises(PermissionError): proc.sample_task(task,socket_authorizer=denied)
+        self.assertEqual(proc.last_task_observation['resolution'],'refused')
+        self.assertEqual(proc.last_task_observation['failureClass'],'PermissionError')
+
     def test_dead_leader_live_threads_never_report_zero_rss_or_skip_fd_failure(self):
         task = row(200, 100, 200, 30)
         terminal = {**task, "state": "Z", "threads": 2}

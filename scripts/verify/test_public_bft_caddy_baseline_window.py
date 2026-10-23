@@ -15,6 +15,8 @@ import os
 from pathlib import Path
 import signal
 import selectors
+import socket
+import struct
 import subprocess
 import sys
 from types import SimpleNamespace
@@ -44,6 +46,22 @@ def historical_fa8(raw):
     resulting original callee must have the independently retained full pin.
     """
     changes = [
+        (b'    def sample_task(self, original, check_sockets=True, observation_deadline=None, socket_authorizer=None):\n',
+         b'    def sample_task(self, original, check_sockets=True, observation_deadline=None):\n'),
+        (b'''                            if target.startswith("socket:["):
+                                match = re.fullmatch(r"socket:\\[([1-9][0-9]*)\\]", target)
+                                require(match is not None and socket_authorizer is not None, "owned_socket_present")
+                                try:
+                                    allowed = socket_authorizer(before, int(entry.name), int(match[1]), deadline)
+                                except FileNotFoundError as exc:
+                                    # An exact socket/FD can close during kernel
+                                    # readback too. Re-observe the whole task;
+                                    # never authorize an absent or reused FD.
+                                    reason, missing_errno = "fd_closed_during_read", exc.errno
+                                    continue
+                                require(allowed is True, "owned_socket_present")
+''', b'''                            require(not target.startswith("socket:["), "owned_socket_present")
+'''),
         (b"        Missing/zero smaps, a disappearing FD directory or an FD closed/reused\n        during readback can receive a short complete observation. All tasks share the caller's current 200ms\n",
          b"        Only missing/zero smaps or a disappearing FD directory can receive a\n        short terminal observation. All tasks share the caller's current 200ms\n"),
         (b'        fd_churn = ("fd_closed_during_read", "fd_reused_during_read")\n\n        def unstable_code():\n            return "owned_fd_observation_unresolved" if any(item["kind"] in fd_churn for item in observations) else "owned_live_rss_unresolved"\n',b''),
@@ -292,6 +310,220 @@ class SourceAndCommandControls(unittest.TestCase):
             controller.command(pinned)
         spawned.assert_not_called()
         controller.capacity.assert_called_once_with(fresh=True)
+
+    @unittest.skipUnless(sys.platform=='linux' and Path('/proc/self/smaps_rollup').exists(), 'Linux actual-process smoke only')
+    def test_actual_install_profile_popen_is_fixed_and_env_empty_without_installing(self):
+        # Only a temporary Python program stands in for the measured installer
+        # here. It reports argv/env and never loads Caddy or changes a target.
+        # The real installer bytes and their results are separately pinned.
+        low=low_level()
+        with tempfile.TemporaryDirectory() as temporary:
+            case=Path(temporary).resolve()
+            script=case/window.INSTALLER; script.parent.mkdir(parents=True)
+            script.write_text('import json,os,sys\nprint(json.dumps({"syntheticProcessOnly":True,"env":dict(os.environ),"argv":sys.argv}))\n')
+            script.chmod(0o600)
+            output=case/window.INSTALL_ATTEMPT; output.mkdir(mode=0o700)
+            runtime=Path('/usr/bin/python3').resolve(strict=True); raw=runtime.read_bytes()
+            record=dict(pin=dict(bytes=str(len(raw)),sha256=hashlib.sha256(raw).hexdigest()),identity=window.identity(runtime.stat()))
+            contract=dict(version=window.INSTALL_VERSION,casePath=str(case),mustBeEmptyProcessGroups=[],
+                          pythonRuntime=dict(resolvedPath=str(runtime)))
+            controller=window.Controller(contract,low)
+            actual_popen=window.subprocess.Popen
+            with mock.patch.object(window,'check_witness') as source, \
+                    mock.patch.object(window,'load_system_binaries',return_value={}) as binaries, \
+                    mock.patch.object(window,'absent_install_targets') as targets, \
+                    mock.patch.object(window.subprocess,'Popen',wraps=actual_popen) as spawned:
+                controller.command(record)
+            self.assertEqual(controller.codes,[0]); self.assertEqual(controller.cleanup(),(True,None))
+            self.assertEqual(spawned.call_args.args[0],window.normal_command(contract))
+            self.assertEqual(spawned.call_args.args[0][-1],'--install')
+            self.assertEqual(spawned.call_args.kwargs['env'],window.ENVIRONMENT)
+            self.assertEqual(spawned.call_args.kwargs['cwd'],str(case))
+            self.assertEqual(spawned.call_args.kwargs['stdin'],subprocess.DEVNULL)
+            self.assertTrue(spawned.call_args.kwargs['close_fds']); self.assertTrue(spawned.call_args.kwargs['start_new_session'])
+            self.assertRegex(spawned.call_args.kwargs['executable'],r'^/proc/self/fd/[0-9]+$')
+            self.assertEqual(len(spawned.call_args.kwargs['pass_fds']),1)
+            self.assertGreater(controller.peak_rss,0)
+            result=json.loads((output/'prepare.stdout').read_bytes())
+            self.assertTrue(result['syntheticProcessOnly']); self.assertEqual(result['env'],window.ENVIRONMENT)
+            self.assertEqual(result['argv'],window.normal_command(contract)[2:])
+            targets.assert_called_once_with(); binaries.assert_called_once(); source.assert_called_once_with(contract)
+            self.assertTrue(all(pipe.closed for child in controller.children for pipe in (child.stdout,child.stderr)))
+            self.assertFalse((case/window.INSTALL_DESTINATION).exists())
+
+
+class InstallKernelObservationControls(unittest.TestCase):
+    def test_install_command_captures_share_the_outer_stream_caps(self):
+        controller=window.Controller.__new__(window.Controller)
+        controller.contract=dict(version=window.INSTALL_VERSION,casePath=window.INSTALL_CASE)
+        controller.log_bytes=dict(stdout=10,stderr=20)
+        directory=Path(window.INSTALL_CASE)/window.INSTALL_DESTINATION/'commands'
+        files=[directory/'before-loaded.stdout',directory/'validate.stderr']
+        def info(path):
+            size={'before-loaded.stdout':262134,'validate.stderr':262124}[path.name]
+            return SimpleNamespace(st_mode=0o100600,st_uid=0,st_gid=0,st_nlink=1,st_size=size)
+        with mock.patch.object(window.os.path,'lexists',return_value=True), \
+                mock.patch.object(window,'directory_witness'),mock.patch.object(Path,'iterdir',return_value=iter(files)), \
+                mock.patch.object(Path,'lstat',info):
+            self.assertEqual(controller.check_install_logs(),dict(stdout=262144,stderr=262144))
+        controller.log_bytes['stdout']=11
+        with mock.patch.object(window.os.path,'lexists',return_value=True), \
+                mock.patch.object(window,'directory_witness'),mock.patch.object(Path,'iterdir',return_value=iter(files)), \
+                mock.patch.object(Path,'lstat',info),self.assertRaisesRegex(window.Refused,'install_stdout_limit'):
+            controller.check_install_logs()
+
+    def test_install_output_cannot_claim_success_without_exact_normal_receipt_and_after_unit(self):
+        # Public serializer fixture only: protected I/O is supplied as explicit
+        # synthetic observations. The production qualifier and the measured
+        # installer's actual unit/Exec parser run, never a service operation.
+        case=Path(window.INSTALL_CASE); destination=case/window.INSTALL_DESTINATION
+        original=window.encode(dict(original=True)); candidate=window.encode(dict(original=True,candidate=True))
+        dropin=b'SYNTHETIC startup source only\n'
+        sha=lambda raw:hashlib.sha256(raw).hexdigest()
+        binding=dict(source=dict(sha256=sha(original),witness=dict(uid='999',gid='988')),
+                     originalProcess=dict(pid='1432803',startTicks='905926894'),rpcUpstreams=[])
+        blobs={'intent.json':b'{}','original.json':original,'candidate.json':candidate,'ynx-chain-json.conf':dropin,
+               'BASELINE_DATA.json':window.encode(dict(binding,baseline={})),
+               'receipt.json':window.encode(dict(publicDeployment=False,rootGrant=False,restartRecovery=False,
+                   rollbackVerified=False,installed=False,serviceCommandsPerformed=False,automaticRetry=False,
+                   fullCutoverManifestProduced=False,baselineDataSHA256=sha(window.encode(dict(binding,baseline={}))),
+                   manifestSHA256=None,bindingSHA256=window.PINNED[window.BINDING]['sha256'],
+                   jsonHelperSHA256=window.PINNED[window.HELPER]['sha256']))}
+        intent=dict(version='YNX-CADDY-JSON-BASELINE-INSTALL/v1',status='unknown',automaticRetry=False,
+            bindingSHA256=window.PINNED[window.BINDING]['sha256'],producerSHA256=window.PINNED[window.PRODUCER]['sha256'],
+            jsonHelperSHA256=window.PINNED[window.HELPER]['sha256'],baselineDataSHA256=sha(blobs['BASELINE_DATA.json']))
+        result=dict(intent,status='persistent-startup-source-installed',persistentStartupSource=True,
+            configPath=window.CONFIG,dropInPath=window.DROPIN,originalSHA256=sha(original),originalSemanticSHA256=sha(original),
+            originalPID='1432803',originalStartTicks='905926894',liveConfigUnchanged=True,daemonReloadOnly=True,
+            caddyReloaded=False,caddyRestarted=False,routesChanged=False,restartRecovery=False,rollbackVerified=False,
+            chainActivation=False,rootGrant=False,publicDeployment=False)
+        blobs['baseline-install-intent.json']=window.encode(intent)
+        blobs['baseline-install-receipt.json']=window.encode(result)
+        helper=dict(parse_json=window.decode,parse_config=window.decode,canonical_config=window.encode,
+            project_rpc_config=lambda value,_records:dict(value,candidate=True),render_dropin=lambda:dropin,
+            semantic_hash=lambda value:sha(window.encode(value)))
+        raw_installer=(RUNNER.parent/'install-public-bft-caddy-json-baseline.py').read_bytes()
+        installer=window.captured_module(raw_installer,RUNNER.parent/'install-public-bft-caddy-json-baseline.py','synthetic_receipt_qualifier')
+        shared_raw=(RUNNER.parent/'remote/public-bft-caddy-json.py').read_bytes()
+        helper['validate_exec_observation']=window.captured_module(shared_raw,RUNNER.parent/'remote/public-bft-caddy-json.py','synthetic_exec_qualifier')['validate_exec_observation']
+        labels=('before-unit','before-loaded','validate','pre-daemon-unit','pre-daemon-loaded','daemon-reload','after-unit','after-loaded')
+        for label in labels:
+            stdout=b''
+            if label.endswith('-loaded'):stdout=original
+            if label.endswith('-unit'):
+                config=window.CONFIG if label=='after-unit' else '/etc/caddy/Caddyfile'
+                values=dict(ActiveState='active',SubState='running',MainPID='1432803',FragmentPath=installer['UNIT'],
+                            DropInPaths=window.DROPIN if label=='after-unit' else '',User='caddy',Group='caddy')
+                for key,args in [('ExecStart',['run','--environ','--config',config]),('ExecReload',['reload','--config',config,'--force'])]:
+                    values[key]='{ path=/usr/bin/caddy ; argv[]=/usr/bin/caddy '+' '.join(args)+' ; ignore_errors=no ; pid=0 ; }'
+                stdout=''.join(key+'='+value+'\n' for key,value in values.items()).encode()
+            blobs['commands/'+label+'.stdout']=stdout;blobs['commands/'+label+'.stderr']=b''
+            blobs['commands/'+label+'.json']=window.encode(dict(returnCode=0,**{stream:dict(file=label+'.'+stream,
+                bytes=str(len(blobs['commands/'+label+'.'+stream])),sha256=sha(blobs['commands/'+label+'.'+stream])) for stream in ('stdout','stderr')}))
+        def read(path,*_args,**_kwargs):
+            relative=str(path.relative_to(destination)) if path.is_relative_to(destination) else None
+            raw=blobs[relative] if relative is not None else raw_installer if path==case/window.INSTALLER else b'synthetic producer'
+            return raw,dict(pin=dict(bytes=str(len(raw)),sha256=sha(raw)),identity=(1,))
+        installer['read_capture']=lambda path,_bound:blobs[str(path.relative_to(destination))]
+        installer['assert_no_unknown_sources']=mock.Mock()
+        def installed(path,_bound):
+            is_config=str(path)==window.CONFIG; raw=original if is_config else dropin
+            return raw,sha(raw),None,SimpleNamespace(st_mode=0o100600 if is_config else 0o100644,st_nlink=1,
+                                                    st_uid=999 if is_config else 0,st_gid=988 if is_config else 0)
+        producer=dict(read_file=installed)
+        def captured(_raw,path,_name):return installer if path==case/window.INSTALLER else producer
+        def entries(path):
+            if path==destination:return iter(destination/name for name in {name.split('/')[0] for name in blobs})
+            return iter(destination/name for name in blobs if name.startswith('commands/'))
+        contract=dict(version=window.INSTALL_VERSION,casePath=window.INSTALL_CASE)
+        with mock.patch.object(window,'directory_witness'),mock.patch.object(window,'read_private',side_effect=read), \
+                mock.patch.object(window,'captured_module',side_effect=captured),mock.patch.object(Path,'iterdir',entries):
+            self.assertIn('baseline-install-receipt.json',window.qualify_output(helper,binding,contract))
+            for field in ('routesChanged','caddyReloaded','chainActivation','rootGrant'):
+                blobs['baseline-install-receipt.json']=window.encode(dict(result,**{field:True}))
+                with self.subTest(field=field),self.assertRaisesRegex(window.Refused,'install_receipt_not_fixed_startup_source'):
+                    window.qualify_output(helper,binding,contract)
+            blobs['baseline-install-receipt.json']=window.encode(result)
+            raw=blobs['commands/after-unit.stdout'].replace(window.DROPIN.encode(),b'/etc/systemd/system/foreign.conf')
+            blobs['commands/after-unit.stdout']=raw
+            record=window.decode(blobs['commands/after-unit.json']);record['stdout'].update(bytes=str(len(raw)),sha256=sha(raw))
+            blobs['commands/after-unit.json']=window.encode(record)
+            with self.assertRaisesRegex(installer['Refusal'],'CADDY_ORIGINAL_UNIT_IDENTITY_MISMATCH'):
+                window.qualify_output(helper,binding,contract)
+
+    def reply(self, inode=444, seq=7, port=123, attrs=None, state=1, cookie=(100,200)):
+        if attrs is None: attrs=[(2,struct.pack('=I',555)),(6,b'\0')]
+        body=struct.pack('=BBBBIII',socket.AF_UNIX,1,state,0,inode,*cookie)
+        for kind, value in attrs:
+            raw=struct.pack('=HH',4+len(value),kind)+value
+            body+=raw+b'\0'*((-len(raw))%4)
+        return struct.pack('=IHHII',16+len(body),20,0,seq,port)+body
+
+    def test_unix_diag_parser_rejects_forged_metadata_and_accepts_real_uapi_shape(self):
+        raw=self.reply()
+        observed=window.parse_unix_diag(raw,7,123,444)
+        self.assertEqual(observed,dict(inode=444,type=1,state=1,cookie=(100,200),peer=555,name=None))
+        named=self.reply(attrs=[(0,b'/run/systemd/private\0'),(2,struct.pack('=I',555)),(6,b'\0')])
+        self.assertEqual(window.parse_unix_diag(named,7,123,444)['name'],b'/run/systemd/private')
+        variants=[self.reply(seq=8),self.reply(port=0),self.reply(inode=445),raw+b'\0',raw[:20],
+            self.reply(attrs=[(2,struct.pack('=I',555)),(2,struct.pack('=I',555)),(6,b'\0')]),
+            self.reply(attrs=[(2,b'bad'),(6,b'\0')]),self.reply(attrs=[(99,b'x'),(6,b'\0')]),
+            self.reply(attrs=[(2,struct.pack('=I',555))])]
+        for body in variants:
+            with self.subTest(body=body.hex()),self.assertRaises(window.Refused):window.parse_unix_diag(body,7,123,444)
+
+    def test_netlink_query_uses_exact_inode_and_cookie_without_dump_or_sender_fallback(self):
+        channel=mock.MagicMock()
+        channel.__enter__.return_value=channel; channel.getsockname.return_value=(123,0)
+        channel.sendto.side_effect=lambda raw,_peer:len(raw)
+        channel.recvmsg.return_value=(self.reply(seq=1),[],0,(0,0))
+        with mock.patch.object(window.socket,'socket',return_value=channel) as created, \
+                mock.patch.object(window.time,'monotonic',return_value=0):
+            result=window.unix_diag(444,0.2,(100,200))
+        self.assertEqual(result['inode'],444)
+        created.assert_called_once_with(socket.AF_NETLINK,socket.SOCK_RAW|socket.SOCK_CLOEXEC,4)
+        raw,peer=channel.sendto.call_args.args
+        self.assertEqual(peer,(0,0)); self.assertEqual(struct.unpack_from('=IHHII',raw),(40,20,1,1,123))
+        self.assertEqual(struct.unpack_from('=BBHIIIII',raw,16),(socket.AF_UNIX,0,0,0xffffffff,444,5,100,200))
+        for response in [(self.reply(seq=1),[],0,(999,0)),(self.reply(seq=1),[],socket.MSG_TRUNC,(0,0)),
+                         (self.reply(seq=2),[],0,(0,0))]:
+            channel.recvmsg.return_value=response
+            with self.subTest(response=response),mock.patch.object(window.socket,'socket',return_value=channel), \
+                    mock.patch.object(window.time,'monotonic',return_value=0),self.assertRaises(window.Refused):
+                window.unix_diag(444,0.2)
+        # An exact kernel ENOENT is distinct from permission/unsupported errors.
+        for code, expected in [(-2,FileNotFoundError),(-1,window.Refused),(-95,window.Refused)]:
+            payload=struct.pack('=i',code)+b'\0'*20
+            error=struct.pack('=IHHII',16+len(payload),2,0,1,123)+payload
+            channel.recvmsg.return_value=(error,[],0,(0,0))
+            with self.subTest(code=code),mock.patch.object(window.socket,'socket',return_value=channel), \
+                    mock.patch.object(window.time,'monotonic',return_value=0),self.assertRaises(expected):
+                window.unix_diag(444,0.2)
+
+    @unittest.skipUnless(sys.platform=='linux', 'Linux actual AF_UNIX/SOCK_DIAG only')
+    def test_actual_kernel_unix_connected_peer_name_cookie_and_listener_refusal(self):
+        # Private temporary AF_UNIX endpoints only, never a port, Caddy or
+        # systemd service. Real kernel responses prove NAME/PEER/cookie ABI.
+        with tempfile.TemporaryDirectory() as temporary:
+            path=str(Path(temporary)/'synthetic-systemctl-peer.sock')
+            with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as server, \
+                    socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as client:
+                server.bind(path); server.listen(1); client.connect(path)
+                accepted,_=server.accept()
+                with accepted:
+                    inode=os.fstat(client.fileno()).st_ino
+                    deadline=time.monotonic()+0.2
+                    observation=window.unix_diag(inode,deadline)
+                    peer=window.unix_diag(observation['peer'],deadline)
+                    self.assertEqual(peer['name'],path.encode()); self.assertEqual(peer['peer'],inode)
+                    self.assertEqual(window.unix_diag(inode,deadline,observation['cookie']),observation)
+                    with mock.patch.object(window,'IPC_PEERS',(path,)):
+                        window.verify_ipc_socket(inode,time.monotonic()+0.2)
+                        with self.assertRaisesRegex(window.Refused,'connected_stream'):
+                            window.verify_ipc_socket(os.fstat(server.fileno()).st_ino,time.monotonic()+0.2)
+                    with self.assertRaisesRegex(window.Refused,'fixed_ipc_peer'):
+                        window.verify_ipc_socket(inode,time.monotonic()+0.2)
+        print('CADDY_INSTALL_KERNEL_UNIX_PEER_COOKIE_VERIFIED_SYNTHETIC_ONLY')
 
     @unittest.skipUnless(os.name=='posix' and Path('/proc/self/smaps_rollup').exists(), 'Linux actual-process smoke only')
     def test_actual_small_python_child_uses_fixed_env_pipes_and_observed_exit(self):
