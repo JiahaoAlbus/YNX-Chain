@@ -259,7 +259,7 @@ export async function prepareLocalPlugins({ runtime, context, lifecycle = false 
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
-export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, openProjectContracts, openPublication, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
+export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, openProjectContracts, openPublication, openDeployment, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
   const startupOrigin = performance.now();
   let phaseOrigin = startupOrigin;
   const startupPhase = phase => {
@@ -330,6 +330,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   child.once('error', () => aiPipe.close());
   const projectContractsHost=createProjectContractsHost({context,
     openPublication,
+    openDeployment,
     openClient:async()=>{if(typeof openProjectContracts!=='function')throw Error('Original project Wallet consumer is not supplied.');return openProjectContracts(context);},
     assertPathCurrent:()=>assertWorkspacePathIdentity(workspaceProof),
     // No admitted contract-service/Relay guard has been supplied by its owner.
@@ -371,21 +372,21 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
   let stopping;
-  const stop = () => stopping ||= (async () => { retireAdmission(); aiHost.close(); aiPipe.close(); publicChainPipe.close(); catalogPipe.close(); projectContractsPipe.close(); let cleanupError, cleanupStdout;
-    try{await projectContractsHost.close();}catch(error){cleanupError=error;}
-    try { await retireArtifacts(); } catch (error) { cleanupError = error; }
+  const stop = () => stopping ||= (async () => { retireAdmission(); aiHost.close(); aiPipe.close(); publicChainPipe.close(); catalogPipe.close(); projectContractsPipe.close(); const cleanupErrors=[];let cleanupStdout;
+    try{await projectContractsHost.close();}catch(error){cleanupErrors.push(error);}
+    try { await retireArtifacts(); } catch (error) { cleanupErrors.push(error); }
     if (!ended) {
     // PTY children can own separate process groups. The sealed native helper
     // verifies OS UID, ancestry and process start time before signalling them.
-    try { ({ stdout: cleanupStdout } = await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid), '--graceful-root'], { timeout: 15000 })); } catch (error) { cleanupError = error; }
+    try { ({ stdout: cleanupStdout } = await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid), '--graceful-root'], { timeout: 15000 })); } catch (error) { cleanupErrors.push(error); }
     try { await Promise.race([exited, new Promise((_, reject) => setTimeout(() => reject(Error('Local backend exit was not verified')), 5000).unref())]); }
-    catch (error) { cleanupError ||= error; } }
+    catch (error) { cleanupErrors.push(error); } }
     // The single native cleanup already owns TERM/escalation and identity
     // checks. Never signal a historical process-group number after exit.
     const debugResults = await Promise.allSettled([debugSupervisor.stop(), jsDebugSupervisor.stop()]);
     const debugErrors = debugResults.filter(result => result.status === 'rejected').map(result => result.reason);
-    if (debugErrors.length) throw new AggregateError(debugErrors, 'Local debug session cleanup could not be verified.');
-    if (cleanupError) throw Error('Local child cleanup could not be verified. Runtime state was retained.', { cause: cleanupError });
+    if (debugErrors.length) throw new AggregateError([...cleanupErrors,...debugErrors], 'Local debug session cleanup could not be verified.',{cause:cleanupErrors.length?cleanupErrors[0]:debugErrors[0]});
+    if (cleanupErrors.length) throw new AggregateError(cleanupErrors,'Local child cleanup could not be verified. Runtime state was retained.',{cause:cleanupErrors[0]});
     if (!await ipc.cleanup({ confirmedExited: ended })) throw Error('Local IPC cleanup could not be verified. Session residue was retained.');
     // A backend close alone does not prove detached PTY descendants exited.
     if (!await pluginCopy.cleanup({ confirmedSessionExited: verifiedPluginSessionExit({ backendClosed: ended, cleanupStdout }) })) log.write('YNX_LOCAL_PLUGIN_COPY_RETAINED: descendant exit was not verified.\n');

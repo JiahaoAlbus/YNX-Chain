@@ -29,7 +29,7 @@ export async function openContractReferenceJournal({profile,projectId,owner,acco
  async function read(id){
   current();const target=file(id);let fd;try{fd=await fs.open(target,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);}catch(e){if(e.code==='ENOENT')return null;throw e;}
   try{const before=await fd.stat();if(!before.isFile()||before.uid!==uid()||before.nlink!==1||(before.mode&0o777)!==0o600||before.size>128*1024)throw fail('CONTRACT_REFERENCE_INVALID');const raw=await fd.readFile('utf8'),after=await fd.stat();current();if(!same(before,after)||!same(lstatSync(target),after)||after.nlink!==1||(after.mode&0o777)!==0o600||before.size!==after.size||raw.length===0||!raw.endsWith('\n'))throw fail('CONTRACT_REFERENCE_UNKNOWN');let previous=null,revision=0;
-   for(const line of raw.trimEnd().split('\n')){const row=JSON.parse(line);if(Object.keys(row).sort().join()!=='bindingHash,referenceId,revision,value'||row.bindingHash!==digest||row.referenceId!==id||row.revision!==revision++)throw fail('CONTRACT_REFERENCE_BINDING');const next=validate(row.value);if(previous)compatible(previous,next);previous=next;}
+   for(const line of raw.trimEnd().split('\n')){const row=JSON.parse(line);if(!row||typeof row!=='object'||!HASH.test(row.bindingHash||''))throw fail('CONTRACT_REFERENCE_UNKNOWN');if(row.bindingHash!==digest)throw fail('CONTRACT_REFERENCE_BINDING');if(Object.keys(row).sort().join()!=='bindingHash,referenceId,revision,value'||row.referenceId!==id||row.revision!==revision++)throw fail('CONTRACT_REFERENCE_UNKNOWN');const next=validate(row.value);if(previous)compatible(previous,next);previous=next;}
    return Object.freeze({referenceId:id,revision:revision-1,...previous,authority:'query-reference-only',replayAllowed:false});
   }finally{await fd.close();}
  }
@@ -56,5 +56,6 @@ export async function openContractReferenceJournal({profile,projectId,owner,acco
    // inspect them, but no stale-lock takeover or automatic resend is provided.
   }
  }
- return Object.freeze({read,append});
+ async function list(strict=false){current();const rows=[];let seen=0;for await(const entry of await fs.opendir(directory)){if(++seen>256)throw fail('CONTRACT_REFERENCE_CAPACITY');const match=/^([a-f0-9-]{36})\.jsonl$/.exec(entry.name);if(!match)continue;try{const row=await read(match[1]);if(row)rows.push(row);}catch(error){if(strict&&error.code!=='CONTRACT_REFERENCE_BINDING')throw fail('CONTRACT_REFERENCE_UNKNOWN');/* Foreign bindings and damaged originals are never adopted or removed. */}}current();return Object.freeze(rows.sort((a,b)=>a.referenceId.localeCompare(b.referenceId)));}
+ return Object.freeze({read,append,list});
 }

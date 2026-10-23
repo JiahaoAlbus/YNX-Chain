@@ -41,7 +41,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   let goStore,goToolchain;
   try{goStore=await createLocalGoSelectionStore({supportRoot,context,pathIdentityHelper:join(resources,'runtime','workspace-path-identity')});goToolchain=await goStore.load();}
   catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
-  const { openBundledWalletAdmission, openBundledProjectContractClient } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
+  const { openBundledWalletAdmission, openBundledProjectContractClient,loadBundledContractMaterialBuilder } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
   const walletAdmission = await openBundledWalletAdmission(import.meta.url);
   // Retire service capability before child shutdown; late four-op results may
   // not reopen a cancelled native parent epoch. This is separate from Tools.
@@ -81,6 +81,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
     walletAdmission, aiTools, goToolchain,
     openProjectContracts:projectContext=>openBundledProjectContractClient({context:projectContext,admittedProject:walletAdmission?.admittedProject}),
     openPublication:async projectContext=>{const {createArtifactPublicationHost}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-host.mjs')));return createArtifactPublicationHost({context:projectContext,admittedProject:walletAdmission?.admittedProject});},
+    openDeployment:async projectContext=>{const {createProjectContractDeployment}=await import(pathToFileURL(join(applicationRoot,'desktop','project-contract-deployment.mjs')));return createProjectContractDeployment({context:projectContext,admittedProject:walletAdmission?.admittedProject,loadMaterialBuilder:()=>loadBundledContractMaterialBuilder()});},
     node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
       retireWallet();
       await finishWalletCleanup();

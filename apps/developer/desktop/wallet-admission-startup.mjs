@@ -6,6 +6,12 @@ import * as supplier from '../../../packages/wallet-auth/scripts/ynx-ide-service
 import { openOriginalParentDelivery } from './wallet-admission-delivery.mjs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+export async function loadBundledContractMaterialBuilder(){
+  const originalSDK=createRequire(new URL('../../../packages/wallet-auth/package.json',import.meta.url));
+  const original=await import(pathToFileURL(originalSDK.resolve('@ynx-chain/wallet-auth/pq-contract-deployment-material')).href);
+  if(typeof original.preparePQContractDeploymentMaterialData!=='function')throw Object.assign(Error('Original bounded contract material builder is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
+  return original.preparePQContractDeploymentMaterialData;
+}
 
 // Explicit backend acquisition only. Old installed SDKs remain unavailable;
 // this never silently switches a package, initializes Relay or restores a

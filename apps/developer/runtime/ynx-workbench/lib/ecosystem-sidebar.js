@@ -10,6 +10,7 @@ const ACTION_ICONS = Object.freeze({
   'ynx.chainResults.focus': 'history',
   'ynx.review.focus': 'diff',
   'ynx.publication.open':'cloud-upload',
+  'ynx.deploy.open':'rocket',
   'ynx.ai.open': 'sparkle',
   'vsxExtensions.toggle': 'extensions',
 });
@@ -18,6 +19,7 @@ const ACTION_ICONS = Object.freeze({
 const SECTIONS = Object.freeze([
   { key: 'ecosystemContracts', label: 'Contract development', actions: [
     ['ynx.contracts.focus', 'ecosystemOpenContracts', 'Open project contracts'],
+    ['ynx.deploy.open','deployTitle','Review testnet deployment'],
   ] },
   { key: 'ecosystemNetwork', label: 'Network and account', actions: [
     ['ynx.network.focus', 'ecosystemOpenNetwork', 'Project network'],
