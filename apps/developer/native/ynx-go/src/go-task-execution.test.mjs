@@ -369,6 +369,9 @@ test('R36 normal generic Run reaches original Go task terminal, cwd and repeat r
 });
 test('R36 generic Run retains owned cancel, terminal exit and retry instead of starting stale run',{timeout:2000},async()=>{
  const f=await currentGoButtonFixture();try {
+  // A stale C++ debugger must not steal the current Go Run or its cancel.
+  const selected={configuration:{name:'TEST_ONLY_cpp_launch',type:'lldb-dap'}};
+  f.configurations.current=selected;
   let deliver,terminated=0,entered;
   const entry=new Promise(resolve=>{entered=resolve;});
   f.hooks.execute=(task,execution,listeners)=>new Promise(resolve=>{execution.terminate=()=>{terminated++;for(const fn of listeners)fn({execution,exitCode:143});};deliver=()=>resolve(execution);entered();});
@@ -376,14 +379,26 @@ test('R36 generic Run retains owned cancel, terminal exit and retry instead of s
   // Abort quickly on the old incorrect fallback, without a timeout polling loop.
   await Promise.race([pending.then(()=>{throw Error('Run returned before Go task entry');}),entry]);
   assert.equal(await f.handlers.get('ynx.go.cancel').execute(),true);deliver();assert.equal((await pending).cancelled,true);assert.equal(terminated,1);assert.deepEqual(f.executions,['build']);assert.equal(f.workflow.status().running,false);
-  delete f.hooks.execute;assert.equal((await f.handlers.get('ynx.workbench.runCurrentFile').execute()).exitCode,0);assert.deepEqual(f.executions,['build','build','run']);assert.deepEqual(f.errors,[]);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.execute;assert.equal((await f.handlers.get('ynx.workbench.runCurrentFile').execute()).exitCode,0);assert.deepEqual(f.executions,['build','build','run']);assert.deepEqual(f.errors,[]);assert.equal(f.workflow.status().running,false);assert.equal(f.configurations.current,selected);
  }finally{await f.close();}
 });
-test('R36 generic Go Run preserves explicit launch ownership and unconfigured debug selection',async()=>{
+test('current Go Run owns its real task while explicit Debug preserves project launch selection',async()=>{
  const f=await currentGoButtonFixture();try {
   assert.equal(f.contribution.currentFileCommand(true),'select.debug.configuration');
-  f.configurations.current={name:'TEST_ONLY_user_launch'};
-  assert.equal(f.contribution.currentFileCommand(false),'workbench.action.debug.run');assert.equal(f.contribution.currentFileCommand(true),'workbench.action.debug.start');assert.deepEqual(f.executions,[]);
+  const selected={configuration:{name:'TEST_ONLY_user_launch',type:'lldb-dap'}};
+  f.configurations.current=selected;
+  assert.equal(f.contribution.currentFileCommand(false),'ynx.go.run');
+  assert.equal((await f.handlers.get('ynx.workbench.runCurrentFile').execute()).exitCode,0);
+  assert.deepEqual(f.executions,['build','run']);assert.equal(f.workflow.status().running,false);
+  assert.equal(f.configurations.current,selected);
+  assert.equal(f.contribution.currentFileCommand(true),'workbench.action.debug.start');
+  let debugCalls=0;f.handlers.set('workbench.action.debug.start',{execute:()=>{debugCalls++;return 'explicit-project-debug';}});
+  assert.equal(await f.handlers.get('ynx.workbench.debugCurrentFile').execute(),'explicit-project-debug');
+  assert.equal(debugCalls,1);assert.deepEqual(f.executions,['build','run']);assert.equal(f.configurations.current,selected);
+  // Non-source project Run still uses the selected launch through the mature
+  // framework. Only the supported current-file shortcut changed its policy.
+  f.editors.currentEditor.editor.uri.scheme='debug';
+  assert.equal(f.contribution.currentFileCommand(false),'workbench.action.debug.run');
  }finally{await f.close();}
 });
 
