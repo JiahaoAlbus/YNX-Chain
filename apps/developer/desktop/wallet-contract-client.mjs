@@ -5,8 +5,9 @@ const methods = new Set(['ynx_preparePQContractAction','ynx_preparePQContractBro
 const bindingKeys = ['owner','workspaceOwner','account','generation','identityReference','localProjectId','workspace','launch','sessionId'];
 const failure = (code, cause) => Object.assign(Error('The original project Wallet request cannot be continued.'), {code, ...(cause === undefined ? {} : {cause})});
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const validOperationId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(value);
 function signedReference(value,account){
-  if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join()!=='account,confirmed,hash,memberHash,operationId,savedLocally,submitted,transportHash,version'||value.version!==1||value.account!==account||value.hash!==value.transportHash||!/^0x[a-f0-9]{64}$/.test(value.transportHash)||!/^0x[a-f0-9]{64}$/.test(value.memberHash)||!/^[A-Za-z0-9:_-]{1,160}$/.test(value.operationId||'')||value.savedLocally!==true||value.submitted!==false||value.confirmed!==false)throw failure('IDE_CONTRACT_SIGNED_REFERENCE_INVALID');
+  if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join()!=='account,confirmed,hash,memberHash,operationId,savedLocally,submitted,transportHash,version'||value.version!==1||value.account!==account||value.hash!==value.transportHash||!/^0x[a-f0-9]{64}$/.test(value.transportHash)||!/^0x[a-f0-9]{64}$/.test(value.memberHash)||!validOperationId(value.operationId)||value.savedLocally!==true||value.submitted!==false||value.confirmed!==false)throw failure('IDE_CONTRACT_SIGNED_REFERENCE_INVALID');
   return{operationId:value.operationId,transportHash:value.transportHash,memberHash:value.memberHash};
 }
 export function contractBroadcastReferenceId(referenceId){
@@ -130,7 +131,7 @@ export async function openProjectContractClient({context, admittedProject, creat
     });},
     broadcastDeployment(referenceId){return exclusive(async()=>{
       const original=await journal.read(referenceId),account=await walletAccount();
-      if(!original||original.method!=='ynx_preparePQContractAction'||original.state!=='saved'||!original.operationId||!original.transportHash||!original.memberHash||original.account!==account)throw failure('IDE_CONTRACT_BROADCAST_NOT_PREPARED');
+      if(!original||original.method!=='ynx_preparePQContractAction'||original.state!=='saved'||!validOperationId(original.operationId)||!original.transportHash||!original.memberHash||original.account!==account)throw failure('IDE_CONTRACT_BROADCAST_NOT_PREPARED');
       return execute(contractBroadcastReferenceId(referenceId),{method:'ynx_preparePQContractBroadcast',params:[{version:1,account,operationId:original.operationId}]});
     });},
     read(referenceId) { return exclusive(() => journal.read(referenceId)); },
