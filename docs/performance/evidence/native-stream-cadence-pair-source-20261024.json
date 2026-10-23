@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "kind": "native-stream-cadence-pair-source-lighttest-only",
+  "sourceCommit": "ee45f301df4ac9d6107df06ab262b714f454d765",
+  "normalPrecedingCI": {
+    "run": 40032309329,
+    "source": "cf8038e56cc0b9e1bc7116b5ac811aaf044543cd",
+    "conclusion": "success"
+  },
+  "networkExecuted": false,
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "raw": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-controller-tests-final.raw",
+      "bytes": 188,
+      "sha256": "ba398b7d722dd7240f9f60d83703eb11d6b390b4ef0817c015ed001cb6d9914f"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-tests.raw",
+      "bytes": 1156,
+      "sha256": "7d2d2fa741a4627bcfc33661c7c9369c2a3ba2cf1a11a9c73af9349e99e40496"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-artifact-tests-current-fixture.raw",
+      "bytes": 3288,
+      "sha256": "3c142abf2f37b33076646f9855a09c28deadd4ab065687c59b8c7309cc78f1e1"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-source-gate.raw",
+      "bytes": 3993,
+      "sha256": "bea3bd52f2bbf940e719aa9040c1212fe03b1e10fbaf7889153368ef28034797"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-pair-recipe.json",
+      "bytes": 5138,
+      "sha256": "c7f230e84d976550d14f777746de86d8e53fffdfa6481c7b380dc654be3ca185"
+    }
+  ]
+}
