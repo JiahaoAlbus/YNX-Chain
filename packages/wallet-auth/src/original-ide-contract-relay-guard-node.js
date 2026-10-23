@@ -38,7 +38,7 @@ export async function acquireOriginalIDEContractRelayGuard({serverModuleURL,expe
     revoke:()=>action('revoke'),
     close:cleanup,
   });
-  registerOriginalContractRelayGuard(owner,{scope,current,cancel:owner.cancel,observe:listener=>native[nativeNames.observeRevocation](ref,()=>{terminal=true;listener();})});
+  registerOriginalContractRelayGuard(owner,{scope,current,cancel:owner.cancel,runtimeCheck:async()=>{const {verifyContractInitiatorRuntime}=await import('./walletconnect-contract-initiator-boundary-node.js');return verifyContractInitiatorRuntime();},observe:listener=>native[nativeNames.observeRevocation](ref,()=>{terminal=true;listener();})});
   try{scope();if(current()!==true)fail('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE');scope();}catch(cause){throw Object.assign(new Error('YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE'),{code:'YNX_CONTRACT_RELAY_GUARD_UNAVAILABLE',cause,cleanupOwner:owner});}
   return owner;
 }
