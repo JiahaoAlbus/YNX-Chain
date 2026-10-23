@@ -12,6 +12,7 @@ struct IDEIdentityRequestOwner{
  napi_env env;pthread_t thread;IDEIdentityKind kind;
  YNXAuthIdentitySourceAuthority *__strong source=nil;
  id<YNXOriginalIDEIdentityPrivateEffect> __strong effect=nil;
+ YNXOriginalIDEPublicationArtifact *__strong artifact=nil;
  NSData *__strong expected=nil,*__strong invocation=nil;id __strong result=nil;
  uint64_t issued=0,expires=0,wallFloor=0,monoFloor=0,deadline=0;
  unsigned entered=0,peerChildren=0;bool ready=false,selected=false,verified=false,completed=false,unknown=false,retired=false,closeSelected=false,cleanupComplete=false;
@@ -36,6 +37,7 @@ static bool IDEIdentityClock(IDEIdentityRequestOwner*h){
 static bool IDEIdentityCurrent(IDEIdentityRequestOwner*h){
  if(h->unknown||h->retired||h->closeSelected||!h->ready)return false;
  if(!IDEIdentityClock(h))return false;NSError *error=nil;
+ if(h->artifact&&![[h->artifact copyOriginalManifest]isEqual:h->invocation])return IDEIdentityFail(h,"AUTH_IDENTITY_PUBLICATION_ARTIFACT_CHANGED");
  if(![h->source assertOriginalIDEIdentityRequestCurrent:h->expected invocation:h->invocation error:&error]||error)return IDEIdentityFail(h,IDEIdentityCode(error,"AUTH_IDENTITY_SOURCE_CURRENT_REFUSED"));
  if(h->effect&&(![h->effect assertCurrent:&error]||error))return IDEIdentityFail(h,IDEIdentityCode(error,"AUTH_IDENTITY_EFFECT_CURRENT_REFUSED"));
  return IDEIdentityClock(h); // final local fence after every foreign callback
@@ -57,7 +59,7 @@ static bool IDEIdentityClose(IDEIdentityRequestOwner*h){
    IDEIdentityFail(h,h->closeFirst);ideIdentityDebt.insert(h);return false;
   }
   error=nil;if(h->source&&(![h->source close:&error]||error)){done=false;if(h->closeFirst.empty())h->closeFirst=IDEIdentityCode(error,"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN");}
-  h->cleanupComplete=done;if(done){h->effect=nil;h->source=nil;}else{IDEIdentityFail(h,h->closeFirst);ideIdentityDebt.insert(h);}return done;
+  h->cleanupComplete=done;if(done){h->effect=nil;h->artifact=nil;h->source=nil;}else{IDEIdentityFail(h,h->closeFirst);ideIdentityDebt.insert(h);}return done;
  }@catch(NSException*){if(h->closeFirst.empty())h->closeFirst="AUTH_IDENTITY_CLOSE_EXCEPTION";h->closeSelected=true;IDEIdentityFail(h,h->closeFirst);ideIdentityDebt.insert(h);return false;}
 }
 static void IDEIdentityFinalize(napi_env,void *raw,void*){
@@ -146,14 +148,17 @@ static napi_value IDEIdentityOperation(napi_env env,napi_callback_info info){
  }@catch(NSException*){IDEIdentityFail(h,"AUTH_IDENTITY_NATIVE_OPERATION_EXCEPTION");return IDEIdentityThrow(h,"AUTH_IDENTITY_NATIVE_OPERATION_EXCEPTION");}}catch(const std::exception&){IDEIdentityFail(h,"AUTH_IDENTITY_NATIVE_OPERATION_EXCEPTION");return IDEIdentityThrow(h,"AUTH_IDENTITY_NATIVE_OPERATION_EXCEPTION");}
 }
 static napi_value IDEIdentityConstruct(napi_env env,napi_callback_info info){
- napi_value args[2];void*data=nullptr;size_t count=0;if(napi_get_cb_info(env,info,&count,nullptr,nullptr,&data)!=napi_ok)return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
- auto kind=static_cast<IDEIdentityKind>((uintptr_t)data);if(kind!=IDEIdentityKind::receive&&kind!=IDEIdentityKind::recover&&kind!=IDEIdentityKind::keyCall)return Error(env,"AUTH_IDENTITY_OPERATION_INVALID");
- if(!IDEIdentityArgc(env,info,kind==IDEIdentityKind::keyCall?2:1,args,nullptr,&data)||!pthread_main_np()||getuid()!=geteuid()||getgid()!=getegid())return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
+ napi_value args[3];void*data=nullptr;size_t count=0;if(napi_get_cb_info(env,info,&count,nullptr,nullptr,&data)!=napi_ok)return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
+ const bool publication=(uintptr_t)data==4;
+ auto kind=publication?IDEIdentityKind::keyCall:static_cast<IDEIdentityKind>((uintptr_t)data);if(kind!=IDEIdentityKind::receive&&kind!=IDEIdentityKind::recover&&kind!=IDEIdentityKind::keyCall)return Error(env,"AUTH_IDENTITY_OPERATION_INVALID");
+ if(!IDEIdentityArgc(env,info,publication?3:kind==IDEIdentityKind::keyCall?2:1,args,nullptr,&data)||!pthread_main_np()||getuid()!=geteuid()||getgid()!=getegid())return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
  NSData *entryRaw=IDEIdentityString(env,args[0],8192),*invocation=kind==IDEIdentityKind::keyCall?IDEIdentityString(env,args[1],16384):[NSData data];
  if(!entryRaw||!invocation)return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");NSString*entry=[[NSString alloc]initWithData:entryRaw encoding:NSUTF8StringEncoding];
+ YNXOriginalIDEPublicationArtifact*artifact=publication?OriginalPublicationArtifactValue(env,args[2]):nil;
+ if(publication&&(!artifact||![[artifact copyOriginalManifest]isEqual:invocation]))return Error(env,"AUTH_IDENTITY_PUBLICATION_ARTIFACT_ORIGINAL_REQUIRED");
  try{NSString*resources=ynx_auth_ide_private::actualNodeParentResources();if(!ynx_auth_ide_private::actualNodeEntry(resources,entry))return Error(env,"IDE_NODE_RUNNING_ENTRY_INVALID");}catch(const std::exception&){return Error(env,"IDE_NODE_ACTUAL_PARENT_ENTRY_UNAVAILABLE");}
  if(ideIdentityOriginals.size()>=32)return Error(env,"AUTH_IDENTITY_OWNER_CAPACITY");
- auto*h=new(std::nothrow)IDEIdentityRequestOwner{};if(!h)return Error(env,"AUTH_IDENTITY_OWNER_CAPACITY");h->env=env;h->thread=pthread_self();h->kind=kind;h->invocation=[invocation copy];
+ auto*h=new(std::nothrow)IDEIdentityRequestOwner{};if(!h)return Error(env,"AUTH_IDENTITY_OWNER_CAPACITY");h->env=env;h->thread=pthread_self();h->kind=kind;h->invocation=[invocation copy];h->artifact=artifact;
  napi_value object;if(napi_create_object(env,&object)!=napi_ok||napi_type_tag_object(env,object,&ideIdentityTag)!=napi_ok){delete h;return nullptr;}
  ideIdentityOriginals.insert(h);if(napi_wrap(env,object,h,IDEIdentityFinalize,nullptr,nullptr)!=napi_ok){ideIdentityOriginals.erase(h);delete h;return nullptr;}
  const char *names[]={"assertReady","copyRequestOriginal","completeProof","current","result","invoke","retire","join","close","status"};
@@ -172,8 +177,13 @@ static napi_value IDEIdentityConstruct(napi_env env,napi_callback_info info){
   if(kind==IDEIdentityKind::receive&&(![h->source respondsToSelector:@selector(assertOriginalIDEIdentityReceiveExecutionAvailable:)]||![h->source assertOriginalIDEIdentityReceiveExecutionAvailable:&error]||error)){IDEIdentityFail(h,IDEIdentityCode(error,"AUTH_IDENTITY_PRIVILEGED_RECEIVER_NOT_CONNECTED"));return object;}
   if(kind==IDEIdentityKind::recover&&![h->source respondsToSelector:@selector(recoverOriginalIDEIdentityForRequest:error:)]){IDEIdentityFail(h,"AUTH_IDENTITY_RECOVERY_CONSUMER_NOT_IMPLEMENTED");return object;}
   if(kind==IDEIdentityKind::keyCall){
-   if(![h->source respondsToSelector:@selector(captureOriginalIDEProtectedKeyCall:expectedRequest:error:)]){IDEIdentityFail(h,"AUTH_IDENTITY_KEY_CALL_CONSUMER_NOT_IMPLEMENTED");return object;}
-   h->effect=[h->source captureOriginalIDEProtectedKeyCall:h->invocation expectedRequest:h->expected error:&error];
+   if(publication){
+    if(![h->source respondsToSelector:@selector(captureOriginalIDEProtectedPublicationKeyCall:expectedRequest:artifact:error:)]){IDEIdentityFail(h,"AUTH_IDENTITY_PUBLICATION_EFFECT_CONSUMER_NOT_IMPLEMENTED");return object;}
+    h->effect=[h->source captureOriginalIDEProtectedPublicationKeyCall:h->invocation expectedRequest:h->expected artifact:h->artifact error:&error];
+   }else{
+    if(![h->source respondsToSelector:@selector(captureOriginalIDEProtectedKeyCall:expectedRequest:error:)]){IDEIdentityFail(h,"AUTH_IDENTITY_KEY_CALL_CONSUMER_NOT_IMPLEMENTED");return object;}
+    h->effect=[h->source captureOriginalIDEProtectedKeyCall:h->invocation expectedRequest:h->expected error:&error];
+   }
    if(error||!IDEIdentityEffectComplete(h->effect)){IDEIdentityFail(h,IDEIdentityCode(error,"AUTH_IDENTITY_PROTECTED_CALL_OWNER_REQUIRED"));return object;}
   }
   h->ready=true;if(!IDEIdentityCurrent(h))return object;return object;

@@ -35,6 +35,9 @@ export function originalAuthNativeBuildPlan(arch,headers){
  const publication=['original-ide-publication-artifact.h','original-ide-publication-artifact.mm'].map(name=>path.join(native,name));
  if(!publication.every(regular))throw Error('AUTH_NATIVE_PUBLICATION_SOURCE_SELECTION_INCOMPLETE');
  sources.push(publication[1]);
+ // Typed carrier and protected-publication constructor live only in this
+ // user addon entry, never the root helper or a second translation unit.
+ if(!regular(path.join(app,'native/original-ide-publication-artifact-binding.inc.mm')))throw Error('AUTH_NATIVE_PUBLICATION_BINDING_SOURCE_SELECTION_INCOMPLETE');
  // R164 joins this SAME original addon. The Source include is compiled once
  // inside SourceAuthority; the NAPI binding is included once by the Node entry.
  const relay=[path.join(app,'native/original-auth-identity-node.mm'),path.join(app,'native/original-ide-contract-relay-binding.inc.mm'),...['original-auth-identity-source-authority.h','original-auth-identity-source-authority.mm','original-auth-identity-source-v2-verifier.mjs','original-ide-contract-relay-owner.h','original-ide-contract-relay-owner.mm','original-ide-contract-relay-peer.h','original-ide-contract-relay-source.inc.mm','original-ide-contract-relay-launch.h','original-ide-contract-relay-runtime.inc.mm'].map(name=>path.join(native,name))];

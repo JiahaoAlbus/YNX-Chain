@@ -45,6 +45,13 @@ export interface OriginalIDEProtectedKeyCallOwner extends OriginalAuthNativeOwne
  * or raw private material. Exact public result shape remains unknown. */
  invoke():unknown;
 }
+declare const originalPublicationArtifact:unique symbol;
+/** Native's same-env type-tagged immutable artifact DATA. No JS constructor,
+ * bytes accessor, publisher identity, approval or signing capability exists.
+ * The unexported brand is not structural Native recognition. */
+export interface OriginalIDEPublicationArtifactRef {
+ readonly [originalPublicationArtifact]:true;
+}
 /** Describe only the genuine, fixed, original Native binding. Acquiring and
  * validating that binding belongs to original Auth, not to a caller adapter.
  * Constructors return the SAME owning/partial object before late checks; they
