@@ -6,6 +6,8 @@ function valid(action,body){
  const keys=Object.keys(body).sort().join();
  if(['inspect','connect','cancel'].includes(action))return keys==='';
  if(action==='read')return keys==='referenceId'&&UUID.test(body.referenceId||'');
+ if(action==='publication-observe')return keys==='requestId'&&UUID.test(body.requestId||'');
+ if(action==='publication-preview')return keys==='artifactURI,publishPurpose,targetEnvironment,version'&&typeof body.artifactURI==='string'&&body.artifactURI.length<=4096&&['publishPurpose','targetEnvironment','version'].every(key=>typeof body[key]==='string'&&body[key].length>0&&body[key].length<=256);
  return action==='query'&&keys==='referenceId,refresh'&&UUID.test(body.referenceId||'')&&typeof body.refresh==='boolean';
 }
 function wire(stream,receive,closed){
@@ -30,7 +32,7 @@ function client(stream){
   const item=pending.get(message?.id);if(!item||!(message.ok===true&&Object.keys(message).sort().join()==='id,ok,result'||message.ok===false&&Object.keys(message).sort().join()==='id,ok'))throw fail();
   pending.delete(message.id);clearTimeout(item.timer);message.ok?item.resolve(message.result):item.reject(fail());
  },()=>{retired=true;for(const item of pending.values()){clearTimeout(item.timer);item.reject(fail());}pending.clear();});
- return {call(action,body={}){if(retired||pending.size>=4||!valid(action,body))return Promise.reject(fail());return new Promise((resolve,reject)=>{const id=++sequence,timer=setTimeout(()=>channel.close(),action==='connect'?125000:20000);timer.unref?.();pending.set(id,{resolve,reject,timer});try{channel.send({id,action,body});}catch{channel.close();}});},close:channel.close};
+ return {call(action,body={}){if(retired||pending.size>=4||!valid(action,body))return Promise.reject(fail());return new Promise((resolve,reject)=>{const id=++sequence,timer=setTimeout(()=>channel.close(),action==='connect'?125000:action.startsWith('publication-')?65000:20000);timer.unref?.();pending.set(id,{resolve,reject,timer});try{channel.send({id,action,body});}catch{channel.close();}});},close:channel.close};
 }
 function inherited(){try{if(process.env.YNX_PROJECT_CONTRACTS_PIPE!=='8'||!require('node:fs').fstatSync(8).isSocket())throw fail();return client(new(require('node:net').Socket)({fd:8,readable:true,writable:true}));}catch{return{call:async()=>{throw fail();},close(){}};}}
 function rpc(connection){return {call(action,body){if(!valid(action,body))return Promise.reject(fail());return connection.call(action,body);},close(){connection.close();}};}

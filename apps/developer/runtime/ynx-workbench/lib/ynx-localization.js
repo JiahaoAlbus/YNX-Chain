@@ -4,6 +4,19 @@
 // pack supplies the host/editor translations; this contribution never claims
 // to be a complete display language on its own.
 const entries = [
+  ['publicationTitle','Publish project','发布项目'],
+  ['publicationNote','Review a built project file before requesting publication. Nothing is uploaded by this view.','先审阅构建产物，再请求发布；打开本视图不会上传文件。'],
+  ['publicationFieldartifact','Build artifact','构建产物'],
+  ['publicationFieldversion','Version','版本'],
+  ['publicationFieldpublishPurpose','Publication purpose','发布用途'],
+  ['publicationFieldtargetEnvironment','Target environment','目标环境'],
+  ['publicationFieldrequestId','Saved deployment request','已保存的部署请求'],
+  ['publicationChoose','Choose build artifact…','选择构建产物…'],
+  ['publicationReview','Review selected artifact','审阅所选产物'],
+  ['publicationObserve','Read deployment status and logs','读取部署状态和日志'],
+  ['publicationUnavailable','Publication is not ready. Your project files are preserved.','发布服务尚未就绪，项目文件均保留。'],
+  ['publicationReviewOnly','Local artifact reviewed. Signing and deployment still require their own approval.','已审阅本地产物，签名和部署仍须分别批准。'],
+  ['publicationObserved','Original deployment status and logs read. No deployment was resubmitted.','已读取原部署状态和日志，没有重新提交部署。'],
   ['projectActions', 'Project actions', '项目操作'],
   ['core.save', 'Save', '保存'],
   ['task:run:build', 'Build', '构建'],

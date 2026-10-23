@@ -9,6 +9,7 @@ const ACTION_ICONS = Object.freeze({
   'ynx.workbench.wallet': 'account',
   'ynx.chainResults.focus': 'history',
   'ynx.review.focus': 'diff',
+  'ynx.publication.open':'cloud-upload',
   'ynx.ai.open': 'sparkle',
   'vsxExtensions.toggle': 'extensions',
 });
@@ -28,6 +29,7 @@ const SECTIONS = Object.freeze([
   { key: 'ecosystemAI', label: 'AI development', actions: [
     ['ynx.ai.open', 'ecosystemOpenAI', 'Open AI Builder'],
   ] },
+  {key:'publicationTitle',label:'Publish project',actions:[['ynx.publication.open','publicationTitle','Publish project']]},
   { key: 'ecosystemReview', label: 'Project changes', actions: [
     ['ynx.review.focus', 'ecosystemOpenReview', 'Review local changes'],
   ] },

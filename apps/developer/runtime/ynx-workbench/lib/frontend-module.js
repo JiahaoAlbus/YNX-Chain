@@ -103,6 +103,7 @@ const { ShellLayoutRestorer } = require('@theia/core/lib/browser/shell/shell-lay
 const { LocalWorkbenchStorage } = require('./local-workbench-storage');
 const OriginalBrowserStorage = Symbol('YNX original browser UI storage');
 const { NativeWalletService, NativeWalletWidget, NativeWalletContribution, NATIVE_WALLET_ID } = require('./native-wallet-view');
+const {ArtifactPublicationWidget,ArtifactPublicationContribution,ARTIFACT_PUBLICATION_ID}=require('./artifact-publication-view');
 const { EcosystemSidebarWidget, EcosystemSidebarContribution, ECOSYSTEM_ID } = require('./ecosystem-sidebar');
 const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
 require('./token-cache-adapter').install();
@@ -264,6 +265,9 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(NativeWalletContribution).toDynamicValue(context => new NativeWalletContribution(context.container.get(WidgetManager), context.container.get(ApplicationShell))).inSingletonScope();
   bind(CommandContribution).toService(NativeWalletContribution);
   bind(MenuContribution).toService(NativeWalletContribution);
+  bind(WidgetFactory).toDynamicValue(context=>({id:ARTIFACT_PUBLICATION_ID,createWidget:()=>new ArtifactPublicationWidget(context.container.get(NativeWalletService).projectContracts,window,translateWorkbench)}));
+  bind(ArtifactPublicationContribution).toDynamicValue(context=>new ArtifactPublicationContribution(context.container.get(WidgetManager),context.container.get(ApplicationShell),translateWorkbench)).inSingletonScope();
+  bind(CommandContribution).toService(ArtifactPublicationContribution);bind(MenuContribution).toService(ArtifactPublicationContribution);
   bind(WidgetFactory).toDynamicValue(context => ({ id: ECOSYSTEM_ID, createWidget: () => new EcosystemSidebarWidget(context.container.get(CommandRegistry), context.container.get(MessageService), translateWorkbench) }));
   bind(EcosystemSidebarContribution).toDynamicValue(context => new EcosystemSidebarContribution(context.container.get(WidgetManager), context.container.get(ApplicationShell), translateWorkbench)).inSingletonScope();
   bind(CommandContribution).toService(EcosystemSidebarContribution);

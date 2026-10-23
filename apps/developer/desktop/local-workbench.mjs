@@ -259,7 +259,7 @@ export async function prepareLocalPlugins({ runtime, context, lifecycle = false 
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
-export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, openProjectContracts, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
+export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, openProjectContracts, openPublication, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
   const startupOrigin = performance.now();
   let phaseOrigin = startupOrigin;
   const startupPhase = phase => {
@@ -329,6 +329,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   child.once('close', () => aiPipe.close());
   child.once('error', () => aiPipe.close());
   const projectContractsHost=createProjectContractsHost({context,
+    openPublication,
     openClient:async()=>{if(typeof openProjectContracts!=='function')throw Error('Original project Wallet consumer is not supplied.');return openProjectContracts(context);},
     assertPathCurrent:()=>assertWorkspacePathIdentity(workspaceProof),
     // No admitted contract-service/Relay guard has been supplied by its owner.

@@ -41,6 +41,7 @@ node --test scripts/ai-unconfigured-default.test.mjs desktop/admitted-local-proj
 node --test desktop/wallet-contract-reference-journal.test.mjs desktop/wallet-contract-client.test.mjs
 node --test desktop/artifact-publication-client.test.mjs
 node --test desktop/artifact-publication-lifecycle.test.mjs
+node --test desktop/artifact-publication-entry.test.mjs
 node --test desktop/project-contracts-host.test.mjs desktop/project-contracts-view.test.mjs desktop/code-server.test.mjs
 node --test desktop/native-debug-menu-state.test.mjs desktop/native-current-file-routing.test.mjs
 node --test scripts/bundle-composed-core.test.mjs

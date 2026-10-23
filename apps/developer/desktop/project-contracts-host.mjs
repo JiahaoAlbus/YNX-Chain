@@ -2,8 +2,8 @@ const unavailable = () => Object.assign(Error('Project Wallet service is unavail
 
 // This host belongs to exactly one local-workbench process/project. Neither a
 // WebSocket client nor a plugin can select its SDK, account, project or origin.
-export function createProjectContractsHost({context, openClient, assertPathCurrent, assertNetworkApproved}) {
-  let retired = false, client, acquiring, busy = false, uri = null, cleanup;
+export function createProjectContractsHost({context, openClient, openPublication, assertPathCurrent, assertNetworkApproved}) {
+  let retired = false, client, acquiring, publication, acquiringPublication, busy = false, uri = null, cleanup;
   async function current() { if(retired)throw unavailable(); await assertPathCurrent(); if(retired)throw unavailable(); }
   async function acquire() {
     await current();
@@ -20,7 +20,7 @@ export function createProjectContractsHost({context, openClient, assertPathCurre
     if(cleanup)return cleanup;
     // Retain the same acquisition and cleanup; closing a pending acquisition
     // must not construct a second connection or discard the original owner.
-    cleanup=(async()=>{const owned=client||await acquiring?.catch(()=>null);if(owned)await owned.close();})();
+    cleanup=(async()=>{const results=await Promise.allSettled([(async()=>{const owned=client||await acquiring?.catch(()=>null);if(owned)await owned.close();})(),(async()=>{const owned=publication||await acquiringPublication?.catch(()=>null);if(owned)await owned.close();})()]);const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;})();
     return cleanup;
   }
   return Object.freeze({
@@ -31,6 +31,10 @@ export function createProjectContractsHost({context, openClient, assertPathCurre
       if(busy)throw Object.assign(unavailable(),{code:'IDE_CONTRACT_BUSY'});
       busy=true;
       try {
+        if(action==='publication-preview'||action==='publication-observe'){
+          if(!publication){if(typeof openPublication!=='function')throw unavailable();acquiringPublication ||= Promise.resolve().then(()=>openPublication(context));publication=await acquiringPublication;if(retired){await close();throw unavailable();}}
+          await current();const result=action==='publication-preview'?await publication.preview(body):await publication.observe(body.requestId);await current();return result;
+        }
         if(action==='read'){const result=await (await acquire()).read(body.referenceId);await current();return result;}
         if(action!=='connect'&&action!=='query')throw unavailable();
         // A product session or a project DATA object is not network admission.

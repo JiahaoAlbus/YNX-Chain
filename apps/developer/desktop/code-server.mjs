@@ -80,6 +80,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
     walletAdmission, aiTools, goToolchain,
     openProjectContracts:projectContext=>openBundledProjectContractClient({context:projectContext,admittedProject:walletAdmission?.admittedProject}),
+    openPublication:async projectContext=>{const {createArtifactPublicationHost}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-host.mjs')));return createArtifactPublicationHost({context:projectContext,admittedProject:walletAdmission?.admittedProject});},
     node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
       retireWallet();
       await finishWalletCleanup();
