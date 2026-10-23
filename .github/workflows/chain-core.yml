@@ -246,7 +246,13 @@ jobs:
           -run '^(TestEndpointFair.*|TestSharedReplay.*|TestPrefixReplay.*|TestNativeSubmit8.*|TestNativeSuffixSetup.*|TestRuntimeMeasurement.*|TestDurableReaderSharesOnlyReplayCryptoFactsAcrossIndependentStores|TestObserverPhaseTiming.*|TestReadyPacing.*|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
           -count=1 -timeout=45s -v
       - name: Verify explicit observer native facts and current-state negatives
+        env:
+          YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-stream-public-fixture
         run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(ObserverNative|ClientProcs2|NativeStreaming)' -count=1 -timeout=30s -v
+      - name: Verify original native stream evidence identity and corruption negatives
+        env:
+          YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-stream-public-fixture
+        run: python3 -B -m unittest discover -s scripts/loadtest -p test_native_stream_evidence.py -v
       - name: Verify actual prefix decoder phases and held-gate cancellation
         run: go test -p 1 ./internal/consensus -run '^TestBlockJournal(Prefix|BoundedPrefix)' -count=1 -timeout=30s -v
       - name: Verify opt-in node phase timings against real durable execution
