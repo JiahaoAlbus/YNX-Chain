@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.7",
+  "version": "1.3.0-pq.3.32-auth.8",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -216,6 +216,23 @@
       "types": "./src/pq-contract-deployment-transport-node.d.ts",
       "browser": null,
       "node": "./src/pq-contract-deployment-transport-node.js",
+      "default": null
+    },
+    "./ide-artifact-manifest": {
+      "types": "./src/ide-artifact-manifest.d.ts",
+      "import": "./src/ide-artifact-manifest.js",
+      "default": "./src/ide-artifact-manifest.js"
+    },
+    "./ide-artifact-signature": {
+      "types": "./src/ide-artifact-signature.d.ts",
+      "browser": null,
+      "node": "./src/ide-artifact-signature.js",
+      "default": null
+    },
+    "./original-ide-contract-relay-guard": {
+      "types": "./src/original-ide-contract-relay-guard-node.d.ts",
+      "browser": null,
+      "node": "./src/original-ide-contract-relay-guard-node.js",
       "default": null
     }
   },
