@@ -452,6 +452,14 @@ jobs:
           # Both retained raw-ABI refusal and compatible full-material calls use
           # the original Go registry; no account or signer is started.
           go test -v -p 1 -count=1 -timeout=90s -run '^TestIDECanonicalCompilerMaterial' ./internal/chain
+      - name: Verify existing Wallet inbox materials with original Go deployment callees
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 2
+        run: |
+          # The input-only build-info is a different exact file and requires its
+          # own Go result. Preserve the prior oversized ERC20 params countercase
+          # and the unchanged normal Wallet inbox limit.
+          go test -v -p 1 -count=1 -timeout=90s -run '^TestIDEWalletInboxMaterialActualGoCalleesAndExactParamsSizes$' ./internal/chain
       - name: Verify native ledger and HTTP PQ integration
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
