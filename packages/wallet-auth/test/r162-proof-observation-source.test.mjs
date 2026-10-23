@@ -10,16 +10,21 @@ import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-
 
 const root=resolve(fileURLToPath(new URL('../../..',import.meta.url)));
 const selectedVersion=JSON.parse(readFileSync(resolve(root,'packages/wallet-auth/package.json'))).version;
-assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16'].includes(selectedVersion));
+assert.ok(['1.3.0-pq.3.32-auth.10','1.3.0-pq.3.32-auth.11','1.3.0-pq.3.32-auth.12','1.3.0-pq.3.32-auth.13','1.3.0-pq.3.32-auth.14','1.3.0-pq.3.32-auth.15','1.3.0-pq.3.32-auth.16','1.3.0-pq.3.32-auth.17'].includes(selectedVersion));
 const read=path=>readFileSync(resolve(root,path));
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // Independent supplier R162 H6843/67c056ae...; source selection only. These
 // checks do not rerun PUBLIC Auth fixtures or claim any real N1/Root/effect.
-const r172=selectedVersion==='1.3.0-pq.3.32-auth.16';
+const r171=selectedVersion==='1.3.0-pq.3.32-auth.17';
+const r172=r171||selectedVersion==='1.3.0-pq.3.32-auth.16';
 const r170=r172||selectedVersion==='1.3.0-pq.3.32-auth.15';
 const r166=r170||selectedVersion==='1.3.0-pq.3.32-auth.14';
-const r164=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16)$/)!==null;
-const leaves=r166?[
+const r164=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16|17)$/)!==null;
+const leaves=r171?[
+ ['original-auth-identity-source-authority.mm',46433,'d8c5ea1b8bc971642fdf192f4d6bfb57ea6ce0842acb9dcaa8170e25b3ed4b45'],
+ ['original-auth-identity-source-authority.h',6781,'b34ef92dc10e44b360190c27dd7b2775efd621b3bb977140a1ee36a60b2ebdc7'],
+ ['original-ide-auth-proof-source.inc.mm',17824,'5c4a4ebd3251de6862763a40ea48e48123503b789f0438e06b96a50e5bb95826'],
+]:r166?[
  ['original-auth-identity-source-authority.mm',45981,'1793d8399fdd8e6f7cc941b459321c9be2e9b3a3be6a2383b8d8a11f48ece978'],
  ['original-auth-identity-source-authority.h',6319,'1139a49d836fc3d41b7d737c0bd3a9e6e4397917b4803921c2289fae49441544'],
  ['original-ide-auth-proof-source.inc.mm',17824,'5c4a4ebd3251de6862763a40ea48e48123503b789f0438e06b96a50e5bb95826'],
@@ -35,7 +40,7 @@ const leaves=r166?[
 test('Inherited R162 proof and exact successor Source leaves match normal source selector',()=>{
  const {contract}=verifySDK332R140Source(root);
  assert.equal(contract.version,selectedVersion);
- assert.equal(contract.NativeInputs.length,r170?72:r166?71:r164?69:64);assert.equal(contract.HelperInputs.length,5);
+ assert.equal(contract.NativeInputs.length,r171?74:r170?72:r166?71:r164?69:64);assert.equal(contract.HelperInputs.length,5);
  for(const [name,bytes,hash]of leaves){
   const path='packages/wallet-auth/native/'+name,actual=read(path),pin=contract.NativeInputs.find(p=>p.path===path);
   assert.ok(pin);assert.equal(actual.length,bytes);assert.equal(sha(actual),hash);assert.equal(pin.bytes,bytes);assert.equal(pin.sha256,hash);

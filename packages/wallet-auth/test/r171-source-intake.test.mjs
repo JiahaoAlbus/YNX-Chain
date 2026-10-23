@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync,copyFileSync,mkdtempSync,mkdirSync,unlinkSync,rmSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {resolve,dirname,join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {fileURLToPath,pathToFileURL} from 'node:url';
+import {verifySDK332R140Source,sdk332R140NativePlan} from '../../../apps/wallet-desktop/scripts/sdk332-r140-native-plan.mjs';
+const root=resolve(fileURLToPath(new URL('../../..',import.meta.url))),sha=b=>createHash('sha256').update(b).digest('hex');
+const pins=[{"path":"packages/wallet-auth/native/original-auth-identity-joint-owner.h","bytes":1131,"sha256":"b79289a6cd61804b76e8fc02b4235878b0de5f868d72a39a6d5a64c3bade655b"},{"path":"packages/wallet-auth/native/original-auth-identity-joint-owner.mm","bytes":11917,"sha256":"f8047587f8f3a92a125ed5642cec2eb002b00f006369b875c3fd78050456a911"},{"path":"packages/wallet-auth/native/original-auth-identity-native-release.h","bytes":2549,"sha256":"aee53add28936505ae171d34b0f8c0552ebddf6afd9868c2430ee4e46c28045c"},{"path":"packages/wallet-auth/native/original-auth-identity-source-authority.h","bytes":6781,"sha256":"b34ef92dc10e44b360190c27dd7b2775efd621b3bb977140a1ee36a60b2ebdc7"},{"path":"packages/wallet-auth/native/original-auth-identity-source-authority.mm","bytes":46433,"sha256":"d8c5ea1b8bc971642fdf192f4d6bfb57ea6ce0842acb9dcaa8170e25b3ed4b45"},{"path":"packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs","bytes":23223,"sha256":"a73f04a1bdcf6f4bc55b36d3af886a5ddc27de2cfea099ecc7c57405078403ec"},{"path":"packages/wallet-auth/native/original-ide-project-authority-data.h","bytes":3689,"sha256":"870385db0eb9acaa370d1bb49addc5adb35bfc50fa37f4bdc27b43ec120232ff"},{"path":"packages/wallet-auth/native/original-ide-project-authority-source.inc.mm","bytes":9316,"sha256":"b3a69cf9725d3d523b24c047ec840865d240804239524617cc215984b852eff5"}];
+// Source selection only. Original Native/crypto evidence is reused; no addon
+// initialization, compiler, Source grant, HTTP issuer or publication is run.
+test('R171 exact private project-authority leaves bind successor inventory and preserve historical suppliers',()=>{
+ const {contract}=verifySDK332R140Source(root);assert.equal(contract.version,'1.3.0-pq.3.32-auth.17');assert.equal(contract.NativeInputs.length,74);assert.equal(contract.HelperInputs.length,5);
+ assert.equal(new Set([...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool].map(p=>p.path)).size,84);
+ for(const p of pins){const raw=readFileSync(resolve(root,p.path));assert.equal(raw.length,p.bytes);assert.equal(sha(raw),p.sha256);assert.deepEqual(contract.NativeInputs.find(x=>x.path===p.path),p);}
+ const supplier=contract.supplierR171;assert.equal(supplier.handoff.bytes,10648);assert.equal(supplier.handoff.sha256,'0f36ef3ce8751bf70f87289b789430e4276512a2a9b1dfdf270e7b8efd339c85');assert.deepEqual(supplier.sourceLeaves,pins);
+ for(const flag of ['privateObjCOnly','NodeCallbackShapeUnchanged','sourceEvidenceReused'])assert.equal(supplier[flag],true);
+ for(const flag of ['NativeTestsReexecuted','sourceTestArtifactCopied','normalNativeBuild','matchingApp','actualSourceRootOrRelease','actualProtectedPublisherRegistry','actualBackendCatalogOrHTTPIssuer','getDeploymentRequestHeaders','MainExplicitApprovalOrEffect','realSignOrPublish','productionOrInstalled'])assert.equal(supplier[flag],false);
+ assert.equal(contract.supplierR166.handoff.sha256,'54609d7d3035c8445adf3460c021d121caa6b0be8fd51952c77d80de66974241');assert.equal(contract.supplierR170.handoff.sha256,'90f09d0e248c2e5be2b9285c53ae071399e7598ab6f9779a0e791ddb1ce9d616');assert.equal(contract.supplierR172.sourceLeaves[0].sha256,'579e2756a755d3b759a39ead2811549bc13961dc8cd864354b6f4af02d2188d2');
+});
+async function isolated(run){const {contract}=verifySDK332R140Source(root),temporary=mkdtempSync(join(tmpdir(),'ynx-r171-source-'));try{const paths=new Set(['packages/wallet-auth/package.json','packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json','apps/wallet-desktop/package.json',...[...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool].map(p=>p.path)]);for(const p of paths){const to=resolve(temporary,p);mkdirSync(dirname(to),{recursive:true});copyFileSync(resolve(root,p),to);}const build=await import(pathToFileURL(resolve(temporary,contract.normalBuildTool.path)).href);await run(temporary,build);}finally{rmSync(temporary,{recursive:true,force:true});}}
+test('R171 both normal source closures require private includes without adding translation units',async()=>{
+ const selected=await sdk332R140NativePlan(root,'/original/pinned/headers','arm64');assert.equal(selected.plan.sources.length,13);assert.equal(selected.helperPlan.sources.length,11);assert.equal(selected.NativeBuild,false);assert.equal(selected.grant,false);assert.equal(selected.rebuildRequired,true);
+ for(const plan of [selected.plan,selected.helperPlan]){assert.equal(plan.sources.filter(p=>p.endsWith('/original-auth-identity-source-authority.mm')).length,1);assert.equal(plan.sources.some(p=>p.includes('original-ide-project-authority-')),false);}
+ for(const p of pins.slice(-2))await isolated(async(dir,build)=>{unlinkSync(resolve(dir,p.path));assert.throws(()=>build.originalAuthNativeBuildPlan('arm64','/original/headers'),/AUTH_NATIVE_PROJECT_AUTHORITY_SOURCE_SELECTION_INCOMPLETE/);assert.throws(()=>build.originalIDEHelperBuildPlan('arm64'),/AUTH_NATIVE_HELPER_EXECUTABLE_SOURCE_INCOMPLETE/);});
+});
+test('R171 selector refuses actual frozen16 Source authority without dropping prior refusal evidence',async()=>{
+ await isolated(async(dir)=>{const p='packages/wallet-auth/native/original-auth-identity-source-authority.h',old=execFileSync('git',['show','ea4de5b772d421622e3bfc17d26562b34f2aea88:'+p],{cwd:root});assert.equal(old.length,6319);assert.equal(sha(old),'1139a49d836fc3d41b7d737c0bd3a9e6e4397917b4803921c2289fae49441544');writeFileSync(resolve(dir,p),old);assert.throws(()=>verifySDK332R140Source(dir),e=>e.code==='SDK332_R140_NATIVE_INPUT_DIFFERS');});
+});

@@ -8,12 +8,14 @@ import {exactPQRecord,pqDecodeBase64url,pqBase64url} from '../src/pq-wallet-cont
 import {pqU64} from '../src/pq-wallet-authorization.js';
 import {inspectPQAuthorizationView} from '../src/pq-wallet-policy.js';
 import {verifyPQRegisteredMemberData} from '../src/pq-registered-member.js';
+import {inspectIDEArtifactPublisherPublicOriginalData} from '../src/ide-artifact-signature.js';
 
 export const AUTH_SOURCE_V2='YNX-AUTH-SOURCE/v2';
 export const AUTH_SOURCE_DOMAIN_V2='YNX/AUTH/SOURCE-ORIGINAL/V2';
 export const AUTH_SOURCE_STATEMENT_CAP=393216;
 const suite='YNX-BATCH/v0.1',ops=['beginYNX','handleReturn','restore','disconnect'];
 const relayPurpose='ide-contract-relay-v1',relayOps=['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal'];
+const projectPurpose='ide-project-authority-v1',projectOps=['CurrentProject','CurrentPublisher','RecheckProject'];
 const purposes=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOURCE-PROFILE',current:'AUTH-SOURCE-CURRENT'});
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const hex=x=>typeof x==='string'&&/^[0-9a-f]{64}$/.test(x);
@@ -91,7 +93,7 @@ export function selectOriginalAuthSourceAlgorithm(subjectSnapshot,credentialVers
 }
 export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs){
  const contract=sourcePolicy(policy);
- const relay=contract.purpose===relayPurpose,expectedOps=relay?relayOps:ops;
+ const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,expectedOps=relay?relayOps:projectAuthority?projectOps:ops;
  exact(registrations,['root','profile','current','subject']);
  if(sha(rootRaw)!==policy.rootDigest||sha(enrollmentRaw)!==policy.enrollmentDigest)fail('AUTH_SOURCE_V2_NOT_PINNED');
  const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);
@@ -100,7 +102,7 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  const enrollment=envelope(enrollmentRaw,'enrollment',contract.enrollmentFrame,registrations.root,root.networkId,root.rootOwner);
  const e=enrollment.body;
  exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
- if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==(relay?relayPurpose:'wallet-product-session-v2')||e.productId!=='developer'||e.platform!=='macos'||e.applicationId!=='com.ynxweb4.developer.testnetpreview'||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(expectedOps)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
+ if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==(relay?relayPurpose:projectAuthority?projectPurpose:'wallet-product-session-v2')||e.productId!=='developer'||e.platform!=='macos'||e.applicationId!=='com.ynxweb4.developer.testnetpreview'||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(expectedOps)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
  window(e,atMs,86400000);
  const profile=envelope(profileRaw,'profile',contract.profileFrame,registrations.profile,root.networkId,e.profileOwner),p=profile.body;
  exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
@@ -131,6 +133,8 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
   for(const k of ['pid','parent','uid','gid','startSeconds','startMicros'])decimal(launch.node[k],['pid','parent','startSeconds'].includes(k));
   if(BigInt(launch.node.startMicros)>999999n)fail('AUTH_SOURCE_V2_RELAY_LAUNCH');
  }else if(Object.hasOwn(s,'contractRelay')||Object.hasOwn(s,'projectCurrent'))fail('AUTH_SOURCE_V2_RELAY_DEDICATED_PURPOSE_REQUIRED');
+ if(projectAuthority)verifyProjectAuthority(s,p,e,root,registrations,atMs);
+ else if(Object.hasOwn(s,'projectAuthority'))fail('AUTH_SOURCE_V2_PROJECT_DEDICATED_PURPOSE_REQUIRED');
  window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
  const height=registrations.root.executionHeight;decimal(height);
  const roleKeys=[active(registrations.root,root.networkId,root.rootOwner,height),
@@ -141,6 +145,32 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  active(registrations.subject,root.networkId,p.subjectOwner,height);
  const selected=selectOriginalAuthSourceAlgorithm(registrations.subject,2);
  return Object.freeze({root,enrollment:e,profile:p,executionHeight:height,credentialIssuedHeights:Object.freeze({enrollment:enrollment.binding.executionHeight,profile:profile.binding.executionHeight}),subjectKeyVersion:selected.keyVersion,dataOnly:true,nativeAdmission:false});
+}
+function verifyProjectAuthority(s,profile,enrollment,root,registrations,at){
+ const a=s.projectAuthority;exact(a,['principal','project','publisher','endpoint','spki']);const p=a.principal,j=a.project,k=a.publisher;
+ exact(p,['account','deviceId','sessionRef','currentRef','accountGeneration','sessionGeneration','expiresMS']);
+ exact(j,['projectId','ownerAccount','runtimeOrigin','currentReference','projectRevision','catalogRevision','read','publish','runtime','expiresMS']);
+ if(k!==null)exact(k,['account','projectId','publisherId','keyRole','publicOriginal','publicSHA256','registrationRef','revision','expiresMS','revoked']);
+ const text=x=>typeof x==='string'&&x.length>0&&Buffer.byteLength(x)<=256&&!/[\x00-\x20\x7f\ud800-\udfff]/u.test(x)&&x.trim()===x;
+ for(const key of ['account','deviceId','sessionRef','currentRef'])if(!text(p[key]))fail('AUTH_SOURCE_V2_PROJECT_PRINCIPAL');
+ for(const key of ['projectId','ownerAccount','currentReference'])if(!text(j[key]))fail('AUTH_SOURCE_V2_PROJECT_CURRENT');
+ if(k!==null)for(const key of ['account','projectId','publisherId','registrationRef'])if(!text(k[key]))fail('AUTH_SOURCE_V2_PROJECT_PUBLISHER');
+ for(const key of ['accountGeneration','sessionGeneration'])decimal(p[key],true);for(const key of ['projectRevision','catalogRevision'])decimal(j[key],true);if(k!==null)decimal(k.revision,true);
+ const origin=(value,empty=false)=>{if(empty&&value==='')return true;try{const u=new URL(value);return typeof value==='string'&&u.protocol==='https:'&&!!u.hostname&&!u.username&&!u.password&&!u.search&&!u.hash&&(u.pathname==='/'||u.pathname==='')&&u.origin===value;}catch{return false;}};
+ let endpoint;try{endpoint=new URL(a.endpoint);}catch{fail('AUTH_SOURCE_V2_PROJECT_ENDPOINT');}
+ if(typeof a.endpoint!=='string'||a.endpoint!==endpoint.href||endpoint.protocol!=='https:'||!endpoint.hostname||endpoint.username||endpoint.password||endpoint.search||endpoint.hash||!hex(a.spki)||!origin(j.runtimeOrigin,true))fail('AUTH_SOURCE_V2_PROJECT_ENDPOINT');
+ if(['read','publish','runtime'].some(key=>typeof j[key]!=='boolean')||(!j.read&&!j.publish&&!j.runtime)||p.account!==s.association.account||p.deviceId!==s.association.deviceId||(k!==null&&(k.revoked!==false||k.keyRole!=='ide-artifact-publisher'||!hex(k.publicSHA256)||k.account!==p.account||k.projectId!==j.projectId)))fail('AUTH_SOURCE_V2_PROJECT_BINDING');
+ for(const row of k===null?[p,j]:[p,j,k])if(!integer(row.expiresMS)||row.expiresMS<=at||row.expiresMS>Math.min(profile.expiresAtMs,enrollment.expiresAtMs))fail('AUTH_SOURCE_V2_PROJECT_EXPIRED');
+ if(k===null)return; // Project access may predate a registered purpose key.
+ let raw,r13;try{raw=pqDecodeBase64url(k.publicOriginal,{max:8192});r13=inspectIDEArtifactPublisherPublicOriginalData(raw);}catch{fail('AUTH_SOURCE_V2_PROJECT_R13');}
+ const record=active(registrations.subject,root.networkId,profile.subjectOwner,registrations.root.executionHeight);
+ if(sha(raw)!==k.publicSHA256||r13.networkId!==root.networkId||r13.subjectOwner!==profile.subjectOwner||r13.account!==p.account||r13.projectId!==j.projectId||r13.publisherId!==k.publisherId)fail('AUTH_SOURCE_V2_PROJECT_REGISTERED_PUBLISHER');
+ // R13 is an independently registered purpose key, NOT the native account
+ // signing key/revision. Its exact original+registrationRef/revision is bound
+ // by the dedicated protected project-authority Source profile. Never force
+ // account-key reuse or pretend account registration registers a publisher.
+ const pkA=Buffer.from(r13.pkA).toString('hex'),pkB=Buffer.from(r13.pkB).toString('hex');
+ for(const [snapshot,id]of [[registrations.root,root.rootOwner],[registrations.profile,enrollment.profileOwner],[registrations.current,enrollment.currentOwner],[registrations.subject,profile.subjectOwner]]){const other=active(snapshot,root.networkId,id,registrations.root.executionHeight);if(pkA===other.pkA||pkB===other.pkB||(snapshot!==registrations.subject&&(record.pkA===other.pkA||record.pkB===other.pkB)))fail('AUTH_SOURCE_V2_PROJECT_PUBLISHER_ROLE_COLLISION');}
 }
 function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,expectedNonce,previous,atMs,historical){
  const verified=verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs),contract=sourcePolicy(policy);
