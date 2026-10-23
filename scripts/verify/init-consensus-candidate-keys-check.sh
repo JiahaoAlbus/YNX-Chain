@@ -3,7 +3,45 @@ set -Eeuo pipefail
 umask 077
 repo="$(cd "$(dirname "$0")/../.." && pwd -P)"
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+case_root=''
+finish_controls() {
+  local original_status="$1" path case_name="${case_root##*/}" count=0
+  trap - EXIT
+  # A diagnostic read/write failure cannot replace the original test status.
+  set +e
+  [[ -n "$case_name" ]] || case_name=setup
+  if [[ "$original_status" == 0 ]]; then
+    rm -rf -- "$tmp"
+  else
+    # Diagnostics are only this check's synthetic caller/transport fixture.
+    # Never dump custody files, public records or the complete fixture tree.
+    # Failed evidence remains at its original path for the CI owner.
+    printf 'INIT_CONSENSUS_CANDIDATE_KEYS_CONTROLS_FAILED: exit=%s case=%s fixtureRetained=%s\n' \
+      "$original_status" "$case_name" "$tmp" >&2
+    if [[ -n "$case_root" && "$case_root" == "$tmp/"* && -d "$case_root" && ! -L "$case_root" ]]; then
+      if [[ -f "$case_root/stderr" && ! -L "$case_root/stderr" ]]; then
+        printf '%s\n' '--- synthetic caller stderr (first 4096 bytes) ---' >&2
+        head -c 4096 -- "$case_root/stderr" >&2 || :
+        printf '\n' >&2
+      fi
+      for path in "$case_root"/work/*.stderr; do
+        [[ -f "$path" && ! -L "$path" ]] || continue
+        (( count < 24 )) || break
+        printf '%s\n' "--- synthetic ${path##*/} (first 1024 bytes) ---" >&2
+        head -c 1024 -- "$path" >&2 || :
+        printf '\n' >&2
+        count=$((count + 1))
+      done
+      if [[ -f "$case_root/events" && ! -L "$case_root/events" ]]; then
+        printf '%s\n' '--- synthetic transport events (last 4096 bytes) ---' >&2
+        tail -c 4096 -- "$case_root/events" >&2 || :
+        printf '\n' >&2
+      fi
+    fi
+  fi
+  exit "$original_status"
+}
+trap 'finish_controls "$?"' EXIT
 mkdir -p "$tmp/repo/scripts/ops" "$tmp/repo/scripts/deploy" "$tmp/bin"
 # Execute the original caller and BOTH original transport libraries. Only the
 # build, JSON reader and remote boundary are doubles; no real Go/keygen/SSH or

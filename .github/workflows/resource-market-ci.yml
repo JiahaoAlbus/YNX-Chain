@@ -304,6 +304,9 @@ jobs:
           with open(os.environ['GITHUB_ENV'], 'a') as output:
               output.write('YNX_REMOTE_WORKFLOW_STARTED_AT=' + str(int(started.timestamp())) + '\n')
           PY
+      - name: Verify original-copy observation controls without touching the original case
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        run: python3 -B -m unittest discover -s scripts/verify -p 'test_original_native_copy_guard.py' -v
       - name: Verify pure dual-PQ protocol and account authorization
         id: pqprotocol
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
@@ -468,6 +471,13 @@ jobs:
           replaced, count = re.subn(pattern, lambda _: old[0], fixed)
           if count != 1:
               raise SystemExit('fixed key ceremony function is ambiguous')
+          # Only the new intent encoder uses this standard-library import.
+          # Replaying the old function must compile before its real overwrite
+          # can qualify as the expected assertion failure.
+          unused = '\t"encoding/json"\n'
+          if replaced.count(unused) != 1:
+              raise SystemExit('new intent-only import is ambiguous')
+          replaced = replaced.replace(unused, '')
           Path('internal/consensus/key_ceremony.go').write_text(replaced)
           PY
           set +e
@@ -1046,7 +1056,6 @@ jobs:
           python3 -B scripts/loadtest/test_pq_paired_linux_window.py
           python3 -B scripts/loadtest/test_pq_network_file_sizes.py
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_private_consensus_copy.py' -v
-          python3 -B -m unittest discover -s scripts/verify -p 'test_original_native_copy_guard.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_install_pq_remote_signer.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v

@@ -199,7 +199,7 @@ def rendered(args, source, templates):
     need(config['checkpointFormat'] in ('atomic-committed-json-v1', 'snapshot-journal-v1', 'block-journal-v2'),
          'EXPLICIT_ORIGINAL_CHECKPOINT_FORMAT_REQUIRED')
     provider = config['checkpointProviderUnit']
-    need(re.fullmatch('[A-Za-z0-9][A-Za-z0-9_.-]*\.(service|mount)', provider) and provider != SERVICE,
+    need(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*\.(service|mount)', provider) and provider != SERVICE,
          'EXPLICIT_ORIGINAL_PROVIDER_REQUIRED')
     for key in ('memoryMaxBytes', 'goMemoryLimitBytes'):
         need(re.fullmatch('[1-9][0-9]{0,17}', config[key]), 'EXPLICIT_TARGET_MEMORY_BUDGET_REQUIRED')
