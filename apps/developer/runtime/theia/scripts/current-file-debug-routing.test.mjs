@@ -3,7 +3,23 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { DebugSelectionContribution } = require('../../ynx-workbench/lib/debug-selection');
-test('current-file routing follows language and preserves explicit launch selections', () => {
+test('triangle Run follows the active language even while another project debugger remains selected', () => {
+  const selected = { configuration: { name: 'YNX C++ active file', type: 'lldb-dap', request: 'launch' }, workspaceFolderUri: 'file:///project' };
+  const configurations = { current: selected };
+  const editor = { uri: { scheme: 'file' }, document: { languageId: 'javascript' } };
+  const calls = [], handlers = new Map();
+  const contribution = new DebugSelectionContribution({ executeCommand: id => calls.push(id), isEnabled: id => id !== 'workbench.action.debug.run' }, { currentEditor: { editor } }, configurations);
+  contribution.registerCommands({ registerCommand: (command, handler) => handlers.set(command.id, handler) });
+  for (const [language, run] of [['javascript','ynx.js.runActive'], ['python','python.execInTerminal'], ['go','ynx.go.run'], ['typescript','ynx.ts.runActive'], ['cpp','ynx.cpp.runActive'], ['solidity','ynx.compileSolidity']]) {
+    editor.document.languageId = language;
+    assert.equal(handlers.get('ynx.workbench.runCurrentFile').isEnabled(), true);
+    handlers.get('ynx.workbench.runCurrentFile').execute();
+    assert.equal(calls.pop(), run);
+    assert.equal(configurations.current, selected, 'Never clear or replace the user launch selection');
+  }
+  assert.equal(contribution.currentFileCommand(true), 'workbench.action.debug.start');
+});
+test('current-file Run follows language and explicit Debug preserves launch selections', () => {
   const editors = { currentEditor: { editor: { uri: { scheme: 'file' }, document: { languageId: 'javascript' } } } };
   const configurations = {};
   const called = [], handlers = new Map();
@@ -20,7 +36,7 @@ test('current-file routing follows language and preserves explicit launch select
   }
   configurations.current = { name: 'user configuration' };
   assert.equal(contribution.currentFileCommand(true), 'workbench.action.debug.start');
-  assert.equal(contribution.currentFileCommand(false), 'workbench.action.debug.run');
+  assert.equal(contribution.currentFileCommand(false), 'ynx.ts.runActive');
   configurations.current = undefined; editors.currentEditor.editor.uri.scheme = 'debug';
   assert.equal(contribution.currentFileCommand(true), 'select.debug.configuration');
 });

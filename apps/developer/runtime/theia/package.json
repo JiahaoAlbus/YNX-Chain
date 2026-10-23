@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npm run test:run-controls && node scripts/sync-owned-workbench.mjs && theia build --mode production && node scripts/sync-owned-workbench.mjs --seal-build",
     "start": "theia start --hostname 127.0.0.1",
-    "test:run-controls": "node --test scripts/workbench-controls.test.mjs scripts/go-task-start-ownership.test.mjs scripts/python-terminal-production-build.test.mjs scripts/cpp-owned-debug-cleanup.test.mjs scripts/identity-launch-consumer.test.mjs scripts/local-workspace-context.test.mjs"
+    "test:run-controls": "node --test scripts/workbench-controls.test.mjs scripts/go-task-start-ownership.test.mjs scripts/python-terminal-production-build.test.mjs scripts/cpp-owned-debug-cleanup.test.mjs scripts/identity-launch-consumer.test.mjs scripts/local-workspace-context.test.mjs scripts/current-file-debug-routing.test.mjs"
   },
   "dependencies": {
     "@theia/callhierarchy": "1.76.0",
