@@ -39,6 +39,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  NSMutableArray<NSFileHandle *> *_pipeHandles;NSMutableArray<NSNumber *> *_pipeStates;
  uint64_t _sequence,_floor,_timeFloor,_cachedCurrentExpiresMS;NSString *_headDigest,*_observationHeight;
  BOOL _relayLocalEntered;
+ BOOL _projectLocalEntered,_ideProjectConsumer;
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
@@ -97,19 +98,23 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  return s;
 }
 + (instancetype)acquireOriginalIDEConsumerSource:(NSError **)error {
- return [self acquireIDEConsumerWithContractRelay:NO error:error];
+ return [self acquireIDEConsumerWithPurpose:0 error:error];
 }
 + (instancetype)acquireOriginalIDEContractRelaySource:(NSError **)error {
- return [self acquireIDEConsumerWithContractRelay:YES error:error];
+ return [self acquireIDEConsumerWithPurpose:1 error:error];
 }
-+ (instancetype)acquireIDEConsumerWithContractRelay:(BOOL)relay error:(NSError **)error {
++ (instancetype)acquireOriginalIDEProjectAuthoritySource:(NSError **)error {
+ return [self acquireIDEConsumerWithPurpose:2 error:error];
+}
++ (instancetype)acquireIDEConsumerWithPurpose:(unsigned)purpose error:(NSError **)error {
  YNXAuthIdentitySourceAuthority *s=[self new];s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
- s->_custody=relay?[YNXAuthIdentityCurrentOwner acquireOriginalIDEContractRelayProfile:error]:[YNXAuthIdentityCurrentOwner acquireOriginalIDEConsumerProfile:error];if(!s->_custody)return nil;
+ s->_ideProjectConsumer=purpose==2;
+ s->_custody=purpose==2?[YNXAuthIdentityCurrentOwner acquireOriginalIDEProjectAuthorityProfile:error]:purpose==1?[YNXAuthIdentityCurrentOwner acquireOriginalIDEContractRelayProfile:error]:[YNXAuthIdentityCurrentOwner acquireOriginalIDEConsumerProfile:error];if(!s->_custody)return nil;
  s->_profileOriginal=[s->_custody copyOriginalProfile:error];s->_headOriginal=[s->_custody copyOriginalHead:error];
  if(s->_profileOriginal&&s->_headOriginal){
   NSDictionary *body=SourceOriginalBodyHint(s->_profileOriginal);id source=body[@"sourceId"];
   if([source isKindOfClass:NSString.class])for(const auto &policy:ynx_auth_private::originalNativeSourceReleases())if(policy.sourceId==[source UTF8String]){s->_policy=&policy;break;}
-  if(relay&&s->_policy&&s->_policy->purpose!="ide-contract-relay-v1")s->_policy=nullptr;
+  if(s->_policy&&((purpose==1&&s->_policy->purpose!="ide-contract-relay-v1")||(purpose==2&&s->_policy->purpose!="ide-project-authority-v1")))s->_policy=nullptr;
   if(!s->_policy)[s fail:@"AUTH_IDENTITY_NATIVE_ENROLLMENT_NOT_SUPPLIED" error:error];
   else{
    NSString *root=[[s->_custody copyOriginalResourceDirectory:error] stringByAppendingPathComponent:@"original-auth-identity"];
@@ -184,10 +189,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "original-ide-auth-proof-source.inc.mm"
 #include "original-ide-contract-relay-source.inc.mm"
 #include "original-ide-contract-relay-runtime.inc.mm"
+#include "original-ide-project-authority-source.inc.mm"
 - (BOOL)assertCurrent:(NSError **)error {return [self assertAuthenticatedNativePurpose:error];}
 - (BOOL)assertAuthenticatedNativePurpose:(NSError **)error {
  @synchronized(self){
-  if(_entered||_relayLocalEntered||_relayRuntimeEntered)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_REENTRANT" error:error];
+  if(_entered||_relayLocalEntered||_relayRuntimeEntered||_projectLocalEntered)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_REENTRANT" error:error];
   if(![self heldCurrent:error])return NO;_entered=YES;
   @try{
    uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(before<_timeFloor)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CLOCK_ROLLBACK" error:error];

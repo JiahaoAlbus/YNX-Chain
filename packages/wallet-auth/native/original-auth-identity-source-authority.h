@@ -47,6 +47,11 @@ struct JointLifecycle {
 // Derived from actual parent app + actual runtime/node; no caller path.
 + (instancetype)acquireOriginalIDEConsumerSource:(NSError **)error;
 + (instancetype)acquireOriginalIDEContractRelaySource:(NSError **)error;
++ (instancetype)acquireOriginalIDEProjectAuthoritySource:(NSError **)error;
+// Dedicated original Source purpose only, never Relay/old login/key-call ACL.
+// Read-only Native snapshots; caller project/publisher IDs restrict selection.
+- (NSDictionary *)copyOriginalIDECurrentProject:(NSString *)projectID error:(NSError **)error;
+- (NSDictionary *)copyOriginalIDECurrentPublisher:(NSString *)publisherID forProject:(NSString *)projectID error:(NSError **)error;
 + (instancetype)acquireOriginalIDEParentSource:(NSError **)error;
 // Dedicated identity-purpose Wallet owner; never old four-operation admission.
 + (instancetype)acquireOriginalIDEIdentityWalletSource:(NSError **)error;

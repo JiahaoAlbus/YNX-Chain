@@ -8,7 +8,7 @@ import * as build from '../../../apps/wallet-desktop/scripts/build-original-auth
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const frameworks=argv=>argv.flatMap((v,i)=>v==='-framework'?[argv[i+1]]:[]);
 const selectedVersion=JSON.parse(readFileSync(join(root,'packages/wallet-auth/package.json'))).version;
-const nodeUnits=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16)$/)!==null?13:12;
+const nodeUnits=selectedVersion.match(/^1\.3\.0-pq\.3\.32-auth\.(12|13|14|15|16|17)$/)!==null?13:12;
 test('Normal Node recipe links the exact selected lineage and original NAPI custody inputs',()=>{
  const p=build.originalAuthNativeBuildPlan('arm64','/original-pinned-node-headers');
  assert.equal(p.sources.length,nodeUnits);assert.equal(new Set(p.sources).size,nodeUnits);

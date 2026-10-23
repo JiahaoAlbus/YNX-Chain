@@ -22,6 +22,9 @@ struct NativeSourceRelease {
  // do not qualify it. Paths/digests are compile-time release inputs, NOT ENV,
  // caller JSON, a project owner boolean or a public signature projection.
  std::string contractRelayRuntimeDirectory,contractRelayRuntimeManifestDigest,contractRelayExecutorDigest;
+ // Original independently admitted project authority endpoint. Never supplied
+ // by renderer/HTTP request or inferred from Relay/login source selections.
+ std::string projectAuthorityEndpoint,projectAuthoritySPKI;
 };
 inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
  // An independently approved App build may supply typed ROWS via its frozen

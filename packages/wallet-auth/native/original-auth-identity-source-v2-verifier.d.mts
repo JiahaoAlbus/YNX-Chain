@@ -31,13 +31,20 @@ export interface OriginalAuthSourceV2Root {
  readonly version:2;readonly algorithmVersion:'YNX-BATCH/v0.1';
  readonly purpose:string;readonly rootId:string;readonly networkId:string;readonly rootOwner:string;
 }
+/** Signed enrollment DATA only. The original verifier binds the service and
+ * exact operation tuple to the independently admitted purpose; types do not. */
+export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1';
+export type OriginalAuthSourceV2Operations=
+ readonly ['beginYNX','handleReturn','restore','disconnect']|
+ readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']|
+ readonly ['CurrentProject','CurrentPublisher','RecheckProject'];
 export interface OriginalAuthSourceV2Enrollment {
  readonly version:2;readonly purpose:string;readonly rootId:string;readonly rootOwner:string;
- readonly sourceId:string;readonly service:'wallet-product-session-v2';readonly productId:'developer';readonly platform:'macos';
+ readonly sourceId:string;readonly service:OriginalAuthSourceV2Service;readonly productId:'developer';readonly platform:'macos';
  readonly applicationId:'com.ynxweb4.developer.testnetpreview';readonly gatewayOrigin:'https://wallet-auth.ynxweb4.com';
  readonly registryDigest:string;readonly profileOwner:string;readonly currentOwner:string;
  readonly endpoint:string;readonly spki:string;readonly currentStatePath:string;
- readonly operations:readonly ['beginYNX','handleReturn','restore','disconnect'];
+ readonly operations:OriginalAuthSourceV2Operations;
  readonly issuedAtMs:number;readonly expiresAtMs:number;
 }
 export interface OriginalAuthSourceV2Profile {

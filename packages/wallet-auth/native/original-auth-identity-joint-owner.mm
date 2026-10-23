@@ -63,7 +63,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  NSString *_rootPath;
  NSData *_profileRaw,*_headRaw;
  BOOL _retired,_closeSelected,_cleanupComplete;
- NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay;
+ NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority;
  NSString *_actualIDEResources;
  NSError *_firstCause,*_cleanupCause;
 }
@@ -88,6 +88,10 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideConsumer=YES;owner->_ideRegistry=YES;owner->_contractRelay=YES;
  if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
 }
++ (instancetype)acquireOriginalIDEProjectAuthorityProfile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideConsumer=YES;owner->_ideRegistry=YES;owner->_projectAuthority=YES;
+ if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
+}
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error {
  @synchronized(self){if(![self assertOriginalCurrent:error])return nil;return [_rootPath.stringByDeletingLastPathComponent copy];}
 }
@@ -96,6 +100,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
   if(_ideConsumer){_actualIDEResources=YNXActualIDEConsumerResources().path;if(!_actualIDEResources)return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_UNAVAILABLE" error:error];}
   NSURL *resources=_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
   if(_contractRelay)resources=[resources URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
+  if(_projectAuthority)resources=[resources URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(!resources.isFileURL)return [self fail:@"AUTH_IDENTITY_ORIGINAL_SOURCE_NOT_SUPPLIED" error:error];
   _rootPath=[[resources URLByAppendingPathComponent:@"original-auth-identity" isDirectory:YES] path];
   if(_ideRegistry&&!YNXOriginalIDEProtectedAncestors(_rootPath))return [self fail:@"AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED" error:error];
@@ -117,6 +122,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
   if(_ideConsumer&&![YNXActualIDEConsumerResources().path isEqual:_actualIDEResources])return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_CHANGED" error:error];
   NSURL *expectedRegistry=YNXOriginalIDERegistryResources();
   if(_contractRelay)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
+  if(_projectAuthority)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(_ideRegistry&&(![expectedRegistry.path isEqual:_rootPath.stringByDeletingLastPathComponent]||!YNXOriginalIDEProtectedAncestors(_rootPath)))return [self fail:@"AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_CHANGED" error:error];
   struct stat root,profile,head,namedRoot,namedProfile,namedHead;
   if(_root<0||_profile<0||_head<0||fstat(_root,&root)||fstat(_profile,&profile)||fstat(_head,&head)||lstat(_rootPath.fileSystemRepresentation,&namedRoot)
