@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import path from 'node:path';
+import {WALLET_PUBLISHER_NATIVE_INPUTS} from './wallet-publisher-native-build.mjs';
 export const CANONICAL_MAIN='code/apps/wallet-desktop/src/main.mjs';
 export const CANONICAL_APP_METADATA='code/apps/wallet-desktop/package.json';
 export const SDK_ALIAS='node_modules/@ynx-chain/wallet-auth';
@@ -30,12 +31,13 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  const helperNative=helper.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path);
  const pairedInputCount=relay?74:67;
  if(paired&&(helperNative.length!==3||new Set([...pins,...helper].map(p=>p.path)).size!==pairedInputCount))bad();
- const inputs=pins.map(p=>p.path),sorted=value=>[...value].sort();
+ const wallet=relay&&WALLET_PUBLISHER_NATIVE_INPUTS.some(p=>names.includes(p.path))?WALLET_PUBLISHER_NATIVE_INPUTS:[];
+ const inputs=[...pins,...wallet].map(p=>p.path),sorted=value=>[...value].sort();
  if(new Set(names).size!==names.length||JSON.stringify(sorted(names))!==JSON.stringify(sorted([...inputs,...helperNative,...CANONICAL_NATIVE_EVIDENCE_TESTS])))bad();
- if(!Array.isArray(receiptInputs)||receiptInputs.length!==pins.length)bad();
+ if(!Array.isArray(receiptInputs)||receiptInputs.length!==pins.length+wallet.length)bad();
  const rows=receiptInputs.map(p=>({path:p.relative,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.path.localeCompare(b.path,'en'));
- if(JSON.stringify(rows)!==JSON.stringify([...pins].sort((a,b)=>a.path.localeCompare(b.path,'en'))))bad();
- return {inputs,evidenceAssets,...(paired?{helperInputs:helper,pairedInputCount}:{}),inventory:{path:SDK332_NATIVE_INVENTORY,bytes:inventoryBytes.length,sha256:pin.sha256}};
+ if(JSON.stringify(rows)!==JSON.stringify([...pins,...wallet].sort((a,b)=>a.path.localeCompare(b.path,'en'))))bad();
+ return {inputs,evidenceAssets,...(paired?{helperInputs:helper,pairedInputCount}:{}),...(wallet.length?{walletInputs:wallet,supplierNodeInputCount:pins.length}:{}),inventory:{path:SDK332_NATIVE_INVENTORY,bytes:inventoryBytes.length,sha256:pin.sha256}};
 }
 // Public Node headers from the already selected A build input, not a runtime
 // authority or Native qualification. No network/ambient version substitution.
@@ -134,9 +136,19 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  const selected=transport.map(name=>expectedInputs.includes(name)),withTransport=selected.some(Boolean);
  if(withTransport&&!selected.every(Boolean))bad();
  if(withTransport)sourceRel.push('packages/wallet-auth/native/original-ide-wallet-identity-source.mm','packages/wallet-auth/native/original-ide-wallet-peer-launch.mm');
+ const selectGroup=group=>{const selected=group.map(name=>expectedInputs.includes(name));if(selected.some(Boolean)&&!selected.every(Boolean))bad();return selected.every(Boolean);};
+ const helper=['original-ide-helper-client.h','original-ide-helper-client.mm','original-ide-helper-xpc-peer.h','original-ide-helper-xpc-peer.mm','original-ide-helper-build-release.h','original-ide-helper-service-contract.h','original-ide-helper-service-install.mm'].map(n=>'packages/wallet-auth/native/'+n);
+ const withHelper=selectGroup(helper);
+ if(withHelper){if(!withTransport)bad();sourceRel.push(...helper.filter(n=>n.endsWith('.mm')));}
+ const publication=['original-ide-publication-artifact.h','original-ide-publication-artifact.mm'].map(n=>'packages/wallet-auth/native/'+n),withPublication=selectGroup(publication);
+ if(withPublication){if(!withHelper)bad();sourceRel.push(publication[1]);}
+ const relay=['apps/wallet-desktop/native/original-ide-contract-relay-binding.inc.mm',...['original-ide-contract-relay-owner.h','original-ide-contract-relay-owner.mm','original-ide-contract-relay-peer.h','original-ide-contract-relay-source.inc.mm'].map(n=>'packages/wallet-auth/native/'+n)],withRelay=selectGroup(relay);
+ if(withRelay){if(!withPublication)bad();sourceRel.push('packages/wallet-auth/native/original-ide-contract-relay-owner.mm');}
+ const withPublisherStore=selectGroup(WALLET_PUBLISHER_NATIVE_INPUTS.map(p=>p.path));
+ if(withPublisherStore){if(!withRelay)bad();sourceRel.push(WALLET_PUBLISHER_NATIVE_INPUTS[1].path);}
  if(sourceRel.some(name=>!expectedInputs.includes(name)))bad();
  for(let i=0;i<compilers.length;i++){
-  const expected=['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=original_auth_identity','-mmacosx-version-min=13.0','-I'+receipt.headerRoot,'-I'+path.join(receipt.sourceRoot,'packages/wallet-auth/native'),'-framework','Foundation','-framework','Security',...(withTransport?['-framework','AppKit']:[]),'-lbsm','-arch',arches[i],...sourceRel.map(p=>path.join(receipt.sourceRoot,p)),'-o',path.join(receipt.sourceRoot,receipt.output.relative)+(arches.length===2?'.'+(arches[i]==='x86_64'?'x64':arches[i]):'')];
+  const expected=['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=original_auth_identity','-mmacosx-version-min=13.0','-I'+receipt.headerRoot,'-I'+path.join(receipt.sourceRoot,'packages/wallet-auth/native'),'-framework','Foundation','-framework','Security',...(withTransport?['-framework','AppKit']:[]),...(withHelper?['-framework','ServiceManagement']:[]),...(withPublisherStore?['-framework','LocalAuthentication']:[]),'-lbsm','-arch',arches[i],...sourceRel.map(p=>path.join(receipt.sourceRoot,p)),'-o',path.join(receipt.sourceRoot,receipt.output.relative)+(arches.length===2?'.'+(arches[i]==='x86_64'?'x64':arches[i]):'')];
   if(JSON.stringify(compilers[i].argv)!==JSON.stringify(expected))bad();
  }
  if(arches.length===2){const output=path.join(receipt.sourceRoot,receipt.output.relative),last=receipt.commands[2];if(last.tool!=='/usr/bin/lipo'||JSON.stringify(last.argv)!==JSON.stringify(['-create',output+'.arm64',output+'.x64','-output',output]))bad();}

@@ -295,7 +295,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     originalR155.helperBundle=verifyOriginalR155HelperBundle(path.dirname(resources));
   }
   const nativeSelection=canonicalNativeInputSelection(sdkMetadata.version,nativeSourceNames,inventoryBytes,originalR155?.nodeInputFiles??nativeReceipt.inputFiles),nativeInputs=nativeSelection.inputs;
-  const nativeModuleBuild={...(originalR155??verifyCanonicalNativeReceipt(nativeReceipt,nativeBytes,nativeInputs,sourceBytes)),sourceInventory:nativeSelection.inventory??null,receipt:{path:NATIVE_RECEIPT,bytes:nativeReceiptBytes.length,sha256:digest(nativeReceiptBytes)}};
+  const nativeModuleBuild={...(originalR155??verifyCanonicalNativeReceipt(nativeReceipt,nativeBytes,nativeInputs,sourceBytes)),sourceInventory:nativeSelection.inventory??null,walletSourceInputs:nativeSelection.walletInputs??[],supplierNodeInputCount:nativeSelection.supplierNodeInputCount??nativeInputs.length,receipt:{path:NATIVE_RECEIPT,bytes:nativeReceiptBytes.length,sha256:digest(nativeReceiptBytes)}};
   // The two closed source-inspection assets remain exact Git-bound evidence,
   // even when the production compile inventory correctly excludes tests.
   // Do not make them compiler inputs or admit arbitrary packaged test files.
