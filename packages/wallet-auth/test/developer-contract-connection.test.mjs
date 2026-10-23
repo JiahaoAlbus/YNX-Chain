@@ -2,13 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import * as sdk from '../src/walletconnect-dapp-connection.js';
+import {registerOriginalContractRelayGuard} from '../src/original-ide-contract-relay-guard-core.js';
 const methods=['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal'];
 const topic='a'.repeat(64),account='0x'+'1'.repeat(40);
 const session=(approved=methods)=>({topic,expiry:Math.floor(Date.now()/1000)+300,peer:{metadata:{url:'https://wallet.ynxweb4.com'}},namespaces:{eip155:{chains:['eip155:6423'],accounts:[`eip155:6423:${account}`],methods:approved,events:[]}}});
 function fixture(approved=methods,deadlineMs=30){
+ // Explicit PUBLIC native/current seam: not a production guard or approval.
+ const relayContext={projectId:'public-project',projectGeneration:1,callerIdentity:'public-peer'},relayGuard={};
+ registerOriginalContractRelayGuard(relayGuard,{scope:()=>({...relayContext,kind:'ide-contract-relay-v1',origin:'https://developer.ynxweb4.com',expiresMS:Date.now()+60000,chainId:'eip155:6423',methods:[...methods],relayURL:'wss://relay.walletconnect.org'}),current:()=>true,observe:()=>()=>{},cancel:async()=>true});
  const events=new Map(),calls=[];
  const client={on:(e,f)=>events.set(e,f),session:{getAll:()=>[session(approved)]},request:input=>{calls.push(input);return new Promise((resolve,reject)=>Object.assign(input,{resolve,reject}));},disconnect:async()=>{},core:{pairing:{disconnect:async()=>{}}}};
- const connection=sdk.createDeveloperContractConnection({clientFactory:async()=>client,deadlineMs});
+ const connection=sdk.createDeveloperContractConnection({clientFactory:async()=>client,deadlineMs,relayGuard,relayContext});
  const sent=(i,id,extra={})=>events.get('session_request_sent')({topic,chainId:'eip155:6423',request:calls[i].request,id,...extra});
  return {connection,client,calls,events,sent};
 }

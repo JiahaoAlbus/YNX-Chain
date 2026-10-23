@@ -95,4 +95,19 @@ export declare function createWalletAddressConnection(options?:WalletAddressConn
 /** Exact developer origin/Testnet/three-method profile. This shares the original
  * SignClient store and lifecycle; it does not grant identity or signing rights.
  * No Relay is initialized by constructing it. */
-export declare function createDeveloperContractConnection(options?:WalletAddressConnectionOptions):WalletConnectDAppConnection;
+export interface DeveloperContractRelayContext {
+ readonly projectId:string;
+ /** Positive safe integer, read from original admitted-project generation. */
+ readonly projectGeneration:number;
+ readonly callerIdentity:string;
+}
+export interface DeveloperContractConnectionOptions extends WalletAddressConnectionOptions {
+ /** Original fixed-Node acquirer result; structural objects are rejected. */
+ readonly relayGuard?:import('./original-ide-contract-relay-guard-node.js').OriginalIDEContractRelayGuard;
+ readonly relayContext?:DeveloperContractRelayContext;
+}
+export interface DeveloperContractConnection extends Omit<WalletConnectDAppConnection,'initialize'> {
+ /** Initializes under the original current guard without exposing raw SignClient. */
+ initialize():Promise<void>;
+}
+export declare function createDeveloperContractConnection(options?:DeveloperContractConnectionOptions):DeveloperContractConnection;

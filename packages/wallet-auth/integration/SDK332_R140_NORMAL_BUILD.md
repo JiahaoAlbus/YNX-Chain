@@ -1,5 +1,7 @@
 # Canonical R159 typed Native successor
 
+Current source successor `1.3.0-pq.3.32-auth.9` adds artifact DATA and the contract Relay guard consumer; see [ARTIFACT_CONTRACT_AUTH8.md](ARTIFACT_CONTRACT_AUTH8.md). The R159 Native inputs below remain unchanged and do not contain the not-yet-delivered Native Relay producer or a qualified artifact effect. A new source/package version alone does not qualify these live gates.
+
 Version `1.3.0-pq.3.32-auth.7` independently consumes Auth R159's immutable publication artifact DATA/parser and exact original R91 request gate. It inherits `.6`'s developer contract client and R154 parents without editing the frozen `.6` package or R155 outputs. Generic keyCall dictionaries now refuse before Source/proof lookup; typed invocation is still not authorization or an implemented effect. Recover keeps its original empty invocation.
 
 The inventory pins 64 Node source inputs and five additional helper inputs, 69 paired files, four unchanged pure deployment files and the new normal build tool. Node compiles 12 translation units and helper compiles 11. Each includes `original-ide-publication-artifact.mm` exactly once, with its required header. Node retains NAPI8, original pinned headers, macOS13 and Foundation/Security/AppKit/ServiceManagement plus lbsm. Helper remains a normal executable with Foundation/Security/ServiceManagement and lbsm, without NAPI or dynamic lookup.
