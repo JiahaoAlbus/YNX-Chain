@@ -140,7 +140,7 @@ test('R222 with formal R224 successor retains exact supplier leaves and private 
 
 test('SDK32 derives99/109/110/87 and15/11; all seven actual new dependencies must be present and declared', async () => {
   const {contract} = verifySDK332R140Source(root), normal = [...contract.NativeInputs, ...contract.HelperInputs, ...contract.pureDeploymentInputs, contract.normalBuildTool];
-  assert.equal(contract.version, '1.3.0-pq.3.32-auth.32'); assert.equal(contract.NativeInputs.length, 99); assert.equal(normal.length, 109);
+  assert.equal(contract.version, '1.3.0-pq.3.32-auth.33'); assert.equal(contract.NativeInputs.length, 99); assert.equal(normal.length, 109);
   assert.equal(new Set([...normal, ...contract.sourceCurrentIOInputs].map(r => r.path)).size, 110);
   assert.equal(normal.filter(r => /\.(?:h|mm|cpp)$/.test(r.path)).length, 87);
   for (const p of added) assert.equal(contract.NativeInputs.filter(r => r.path === p).length, 1);

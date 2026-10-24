@@ -5,6 +5,7 @@ import {canonical,sha,fetchSourceCurrentV2} from './original-auth-identity-sourc
 import {fetchOriginalNativeAuthorization} from './original-ide-auth-proof-dispatch.mjs';
 import {verifyOriginalAuthSourceTransitionV2,verifyOriginalAuthSourceCurrentV2} from './original-auth-identity-source-v2-verifier.mjs';
 import {parsePQAccountAuthorization,assertPQAuthorizationCurrent} from '../src/pq-wallet-policy.js';
+import {PQ_HOST_CATALOG_SOURCE_PURPOSE} from './original-pq-host-catalog-source-contract.mjs';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>{
  if(!v||Object.getPrototypeOf(v)!==Object.prototype)fail('AUTH_SOURCE_V2_DISPATCH_SCHEMA');
@@ -35,8 +36,13 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  exact(input,['operation','node','rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
  if(input.operation!=='auth-source-v2-native-node/v1')fail('AUTH_SOURCE_V2_DISPATCH_OPERATION');
  exact(input.node,['origin','spki','nativeChainId']);
- exact(input.policy,['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
  exact(input.policy.signatureContract,['purpose','enrollmentFrame','profileFrame','currentFrame']);
+ // SAME original native-node entry as the dedicated Source verifier. Only
+ // its independently release-selected purpose carries applicationId; legacy
+ // purposes keep their exact five-field schema. The original N1 verifier
+ // still checks the application against signed enrollment/profile originals.
+ const pqCatalog=input.policy.signatureContract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
+ exact(input.policy,pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
  exact(input.previous,['sequence','floor','head','timeFloor','executionHeight']);
  const p=input.previous;
  if(!Number.isSafeInteger(p.sequence)||p.sequence<0||!Number.isSafeInteger(p.floor)||p.floor<0||p.floor>p.sequence||!Number.isSafeInteger(p.timeFloor)||p.timeFloor<0||Date.now()<p.timeFloor||!(p.head===''||typeof p.head==='string'&&/^[0-9a-f]{64}$/.test(p.head))||typeof p.executionHeight!=='string'||!/^(0|[1-9][0-9]*)$/.test(p.executionHeight)||BigInt(p.executionHeight)>0xffffffffffffffffn)fail('AUTH_SOURCE_V2_DISPATCH_PREVIOUS');
