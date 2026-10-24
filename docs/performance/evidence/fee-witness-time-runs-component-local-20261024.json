@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "kind": "unselected_fee_witness_time_run_component_experiment",
+  "baseCommit": "2ec211be6",
+  "runtimeEnabled": false,
+  "fullSealBenefitProven": false,
+  "networkOrSustainedBenefitProven": false,
+  "fixtureEvents": 1024,
+  "actualTimestampRuns": 16,
+  "fixtureSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+  "hardware": "Apple M4 darwin arm64",
+  "goVersion": "go1.25.7",
+  "gomaxprocs": 1,
+  "sequence": "ABBAAB",
+  "benchtime": "100ms",
+  "originalMedianNs": 86308.0,
+  "candidateMedianNs": 66901.0,
+  "medianChangePercent": -22.485748713908325,
+  "originalBytesPerOp": 114944,
+  "candidateBytesPerOp": 90896,
+  "bytesChangePercent": -20.92149220489977,
+  "originalAllocsPerOp": 3,
+  "candidateAllocsPerOp": 4,
+  "patch": {
+    "path": "docs/performance/experiments/fee-witness-time-runs-candidate-20261024.patch",
+    "bytes": 5902,
+    "sha256": "e465745bb662ac68a0075bb3ad8bd7778ffed98824f9d5ab484c8f631e6d513a"
+  },
+  "finalTestSourceSHA256": "75d520a2d9b982fa8e549cd4f9e8f6faf67b3d821a536ed57c3f7aa61cc00268",
+  "race": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-race-01.raw",
+    "sha256": "b37d10371668095588a7e71dac82fe36d7c42d56284cb8e8d220cd53c79e64d7",
+    "passed": true,
+    "packageSeconds": 1.654
+  },
+  "componentMeasurement": {
+    "schema": 1,
+    "scope": "retained real1024 fee witness create+check component only; runtime unchanged; not business TPS",
+    "sourceSHA256": "dc295238756540627ab7d03bb548a6c0bb5d9994f4d7d60e7862b19caa79e9a2",
+    "sequence": "ABBAAB",
+    "gomaxprocs": 1,
+    "rows": [
+      {
+        "mode": "original",
+        "nsPerOp": 87678.0,
+        "bytesPerOp": 114944,
+        "allocsPerOp": 3,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-abbaab-01.raw",
+        "sha256": "c18ef284d64b2c206f4bb3aa361c69825f646dcc15be59be255c5bc00cc6cb76"
+      },
+      {
+        "mode": "candidate",
+        "nsPerOp": 66901.0,
+        "bytesPerOp": 90896,
+        "allocsPerOp": 4,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-abbaab-02.raw",
+        "sha256": "a559e6f79c0103e3e66a03413b48f85324623653805316ffa9f0a5a91edf8a79"
+      },
+      {
+        "mode": "candidate",
+        "nsPerOp": 66547.0,
+        "bytesPerOp": 90896,
+        "allocsPerOp": 4,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-abbaab-03.raw",
+        "sha256": "dd6d8b0c0060259bd87df99a6de470db1e1c8e21801e9f27ee4ee21e38450b0d"
+      },
+      {
+        "mode": "original",
+        "nsPerOp": 83775.0,
+        "bytesPerOp": 114944,
+        "allocsPerOp": 3,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-abbaab-04.raw",
+        "sha256": "b60cdbe9222e6e980a4d9c2475701744c09f0a0b75efdb50dd8e45e5e7f2549e"
+      },
+      {
+        "mode": "original",
+        "nsPerOp": 86308.0,
+        "bytesPerOp": 114944,
+        "allocsPerOp": 3,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-abbaab-05.raw",
+        "sha256": "b72eaaac763b25d8bcf57da95e84503200ed58c028a10fc2320124971a864852"
+      },
+      {
+        "mode": "candidate",
+        "nsPerOp": 69038.0,
+        "bytesPerOp": 90896,
+        "allocsPerOp": 4,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-abbaab-06.raw",
+        "sha256": "1a031a727fdd4f138b85a158b5e81645a91ddda6396a4bd9c750857fbac385b1"
+      }
+    ]
+  },
+  "next": "Measure complete sealing path including snapshot creation/comparison, schema guards, hash and semantics; only select after exact sealed state bytes and persistence/recovery remain identical"
+}

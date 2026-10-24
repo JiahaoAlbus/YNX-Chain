@@ -1,0 +1,180 @@
+diff --git a/internal/consensus/fee_witness_time_runs_experiment_test.go b/internal/consensus/fee_witness_time_runs_experiment_test.go
+new file mode 100644
+index 000000000..52c047593
+--- /dev/null
++++ b/internal/consensus/fee_witness_time_runs_experiment_test.go
+@@ -0,0 +1,174 @@
++package consensus
++
++import (
++	"reflect"
++	"sync"
++	"testing"
++	"time"
++)
++
++// Measurement-only candidate. Runtime remains snapshotCompactFeeRows until a
++// full sealing-path comparison demonstrates a benefit, including mixed rows.
++type experimentFeeValues struct {
++	ID, TxHash, Payer, Recipient, AuditHash string
++	BlockHeight                             int64
++}
++
++type experimentFeeTimeRun struct {
++	end  int
++	when time.Time
++}
++
++func experimentFeeTimeRuns(input []BFTFeeEvent) func([]BFTFeeEvent) bool {
++	if len(input) == 0 {
++		return snapshotCompactFeeRows(input)
++	}
++	metadata, _ := splitSealFeeValues(input[0])
++	runs := 1
++	for i := 1; i < len(input); i++ {
++		other, _ := splitSealFeeValues(input[i])
++		if other != metadata {
++			return snapshotCompactFeeRows(input)
++		}
++		// Full value equality includes location and monotonic representation.
++		if input[i].RecordedAt != input[i-1].RecordedAt {
++			runs++
++		}
++	}
++	// A run owns 32 bytes instead of copying a 24-byte time per row. Avoid
++	// allocating the candidate when timestamp entropy erases the saving.
++	if runs*32 >= len(input)*24 {
++		return snapshotCompactFeeRows(input)
++	}
++	values := make([]experimentFeeValues, len(input))
++	times := make([]experimentFeeTimeRun, 0, runs)
++	for i, event := range input {
++		values[i] = experimentFeeValues{event.ID, event.TxHash, event.Payer, event.Recipient, event.AuditHash, event.BlockHeight}
++		if i == 0 || event.RecordedAt != input[i-1].RecordedAt {
++			times = append(times, experimentFeeTimeRun{i + 1, event.RecordedAt})
++		} else {
++			times[len(times)-1].end = i + 1
++		}
++	}
++	return func(current []BFTFeeEvent) bool {
++		if len(current) != len(values) {
++			return false
++		}
++		run := 0
++		for i, v := range values {
++			if i == times[run].end {
++				run++
++			}
++			expected := metadata
++			expected.ID, expected.TxHash, expected.Payer, expected.Recipient, expected.AuditHash = v.ID, v.TxHash, v.Payer, v.Recipient, v.AuditHash
++			expected.BlockHeight, expected.RecordedAt = v.BlockHeight, times[run].when
++			if current[i] != expected {
++				return false
++			}
++		}
++		return true
++	}
++}
++
++func TestFeeWitnessTimeRunsExperiment(t *testing.T) {
++	_, state := retainedSealFixture(t)
++	original := append([]BFTFeeEvent(nil), state.FeeEvents...)
++	witness := experimentFeeTimeRuns(state.FeeEvents)
++	if !witness(original) {
++		t.Fatal("retained actual history changed")
++	}
++	// Every scalar/time field at every run boundary and both endpoints must
++	// remain covered. A matching digest is never used as mutation authority.
++	for row := range original {
++		if row != 0 && row != len(original)-1 && original[row].RecordedAt == original[row-1].RecordedAt {
++			continue
++		}
++		for field := 0; field < reflect.TypeOf(BFTFeeEvent{}).NumField(); field++ {
++			changed := append([]BFTFeeEvent(nil), original...)
++			v := reflect.ValueOf(&changed[row]).Elem().Field(field)
++			switch v.Kind() {
++			case reflect.String:
++				v.SetString(v.String() + "changed")
++			case reflect.Int, reflect.Int64:
++				v.SetInt(v.Int() + 1)
++			case reflect.Bool:
++				v.SetBool(!v.Bool())
++			case reflect.Struct:
++				if v.Type() != reflect.TypeOf(time.Time{}) {
++					t.Fatal("new schema needs explicit coverage")
++				}
++				v.Set(reflect.ValueOf(changed[row].RecordedAt.Add(time.Nanosecond)))
++			default:
++				t.Fatal("new schema needs explicit coverage")
++			}
++			if witness(changed) {
++				t.Fatalf("row %d field %d mutation accepted", row, field)
++			}
++		}
++	}
++	state.FeeEvents[0].AuditHash = "caller mutation"
++	if !witness(original) || witness(state.FeeEvents) || witness(original[:len(original)-1]) {
++		t.Fatal("snapshot aliases caller or ignores row count")
++	}
++	for _, events := range [][]BFTFeeEvent{nil, {}, {{RecordedAt: time.Now()}}, {{Source: "a"}, {Source: "b"}}} {
++		check := experimentFeeTimeRuns(events)
++		if !check(events) || check(append(append([]BFTFeeEvent(nil), events...), BFTFeeEvent{})) {
++			t.Fatal("empty, high entropy or mixed metadata fallback differs")
++		}
++	}
++	// Equal instants with distinct locations must remain unequal values.
++	when := time.Now()
++	events := make([]BFTFeeEvent, 8)
++	for i := range events {
++		events[i].RecordedAt = when
++	}
++	check := experimentFeeTimeRuns(events)
++	events[4].RecordedAt = when.In(time.FixedZone("same instant", 0))
++	if check(events) {
++		t.Fatal("time.Equal substituted for exact time value")
++	}
++	for _, count := range []int{2, 31, 32, 33, 128} {
++		rows := make([]BFTFeeEvent, count)
++		for i := range rows {
++			rows[i].RecordedAt = when.Add(time.Duration(i))
++		}
++		check := experimentFeeTimeRuns(rows) // high entropy: original fallback
++		if !check(rows) {
++			t.Fatal("high entropy fallback rejected unchanged values")
++		}
++		rows[count/2].RecordedAt = time.Time{}
++		if check(rows) {
++			t.Fatal("high entropy fallback lost owned time values")
++		}
++	}
++	var wg sync.WaitGroup
++	for i := 0; i < 8; i++ {
++		wg.Add(1)
++		go func() {
++			defer wg.Done()
++			for j := 0; j < 10; j++ {
++				if !witness(original) {
++					t.Error("concurrent witness changed")
++				}
++			}
++		}()
++	}
++	wg.Wait()
++}
++
++func BenchmarkFeeWitnessTimeRunsActualHistory(b *testing.B) {
++	_, state := retainedSealFixture(b)
++	for _, mode := range []struct {
++		name string
++		make func([]BFTFeeEvent) func([]BFTFeeEvent) bool
++	}{{"original", snapshotCompactFeeRows}, {"candidate", experimentFeeTimeRuns}} {
++		b.Run(mode.name, func(b *testing.B) {
++			b.ReportAllocs()
++			for i := 0; i < b.N; i++ {
++				if !mode.make(state.FeeEvents)(state.FeeEvents) {
++					b.Fatal("actual history witness differs")
++				}
++			}
++		})
++	}
++}
