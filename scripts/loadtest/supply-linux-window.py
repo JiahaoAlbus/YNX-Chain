@@ -1550,6 +1550,7 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
     if len(ids) > PROFILE["ownedProcesses"]:
         raise RuntimeError("Supply owned process cap exceeded")
     tasks = []
+    retired_transitions = []
     for pid in ids:
         before = rows[pid]
         failed_read = "smaps_rollup"
@@ -1567,14 +1568,31 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
                     continue
                 raise
             if after["startTicks"] != before["startTicks"] or after["state"] != "Z":
-                # Preserve the exact refusal and enough original process
-                # identity to distinguish exit transitions from a live read
-                # failure. Never replace unknown RSS with zero or retry work.
                 context = dict(pid=pid, before=before, after=after,
                                errno=error.errno, failedRead=failed_read,
                                capturedAtUnixNs=time.time_ns())
-                raise RuntimeError("live owned RSS unreadable; capture=" +
-                                   json.dumps(context, sort_keys=True, separators=(",", ":"))) from error
+                # An exiting task can lose its mm before stat becomes Z.
+                # Confirm retirement once, immediately, without sleeping or
+                # rereading RSS. Only kernel-proven disappearance or the SAME
+                # startTicks in Z permits the existing retired-task handling.
+                if failed_read == "smaps_rollup" and after["startTicks"] == before["startTicks"]:
+                    try:
+                        confirmation = native.parse_stat(native.bounded(Path("/proc") / str(pid) / "stat"), pid)
+                    except OSError as confirm_error:
+                        context["retirementConfirmationReadErrno"] = confirm_error.errno
+                        if confirm_error.errno in (errno.ENOENT, errno.ESRCH):
+                            context.update(retirementConfirmation=None, outcome="gone")
+                            retired_transitions.append(context)
+                            continue
+                    else:
+                        context["retirementConfirmation"] = confirmation
+                        if confirmation["startTicks"] == before["startTicks"] and confirmation["state"] == "Z":
+                            context["outcome"] = "zombie"
+                            retired_transitions.append(context)
+                            after = confirmation
+                if context.get("outcome") != "zombie":
+                    raise RuntimeError("live owned RSS unreadable; capture=" +
+                                       json.dumps(context, sort_keys=True, separators=(",", ":"))) from error
             raw = None
         if before["startTicks"] != after["startTicks"] or raw is None and after["state"] != "Z":
             raise RuntimeError("owned identity changed during sample")
@@ -1586,6 +1604,8 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
                privateBytes=native.directory_bytes(case), buildBytes=native.directory_bytes(build),
                freeDiskBytes=disk.f_bavail*disk.f_frsize, availableMemoryBytes=native.memory_available(),
                hostIdentities=len(rows), vanishedHostPIDs=vanished)
+    if retired_transitions:
+        row["retiredOwnedTransitions"] = retired_transitions
     logs=sum(p.stat().st_size for p in case.glob("*.log"))
     if enforce_limits:
         native.enforce(row, initial)

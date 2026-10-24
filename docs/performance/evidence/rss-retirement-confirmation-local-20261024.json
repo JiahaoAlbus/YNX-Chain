@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "scope": "One immediate stat-only retirement confirmation after original unreadable RSS and same owned startTicks still non-zombie; never reread RSS, sleep, extend limits, retry workloads or infer live RSS zero",
+  "baseCommit": "4f492421c",
+  "source": {
+    "path": "scripts/loadtest/supply-linux-window.py",
+    "bytes": 190621,
+    "sha256": "fc801f32290ba743795a72ee14d710fc61b55288bd8674260d5c6bb5cbb843f6"
+  },
+  "test": {
+    "path": "scripts/loadtest/test_supply_linux_window.py",
+    "bytes": 174776,
+    "sha256": "fe4d3c54300a7761f6d1e3bdfad690554a04511fae7c80ebebd14e02f452a368"
+  },
+  "red": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-confirmation-red-01.raw",
+    "bytes": 9858,
+    "sha256": "28a8cafab80f65f878b57c8231293b4aca0359182d5a081a2a18f9e243495301"
+  },
+  "focused": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-confirmation-focused-02.raw",
+    "bytes": 115,
+    "sha256": "f49821216a6aeefc32329678bc90ba1b2552b483dee7ad966d1ee8c8f221f442"
+  },
+  "controller": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-confirmation-controller-01.raw",
+    "bytes": 208,
+    "sha256": "9044671d3d907480392c18b5365612f7a846c644205446d33c358cbb3cac20de"
+  },
+  "pair": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-confirmation-pair-01.raw",
+    "bytes": 135,
+    "sha256": "b1baabf248bc6e8323766251258d89bf0db7b6a576001edb3e65081ea7dd6ec0"
+  },
+  "localController": {
+    "total": 96,
+    "passed": 95,
+    "skipped": 1,
+    "seconds": 11.944
+  },
+  "localPair": {
+    "total": 36,
+    "passed": 36,
+    "seconds": 0.159
+  },
+  "localFocused": {
+    "total": 5,
+    "passed": 4,
+    "skipped": 1
+  },
+  "actualLinuxProbe": {
+    "requiredInNormalCI": true,
+    "locallySkippedOnDarwin": true,
+    "processes": 16,
+    "maximumChildMemoryMiB": 8,
+    "sourceDeadlineSeconds": 10,
+    "resourceQualification": false
+  },
+  "kernelReferences": [
+    {
+      "url": "https://github.com/torvalds/linux/blob/v6.17/kernel/exit.c",
+      "fact": "do_exit calls exit_mm before exit_notify sets EXIT_ZOMBIE"
+    },
+    {
+      "url": "https://github.com/torvalds/linux/blob/v6.17/fs/proc/task_mmu.c",
+      "fact": "smaps_rollup returns ESRCH without an available task/mm"
+    }
+  ],
+  "kernelExplanationIsHypothesisForOriginalRun": true,
+  "originalRefusedRun": 40101270671,
+  "originalRunStillUnqualified": true,
+  "actualFourNodeRepairVerified": false,
+  "normalCIPending": true,
+  "newHeavyDispatch": false,
+  "next": "Run existing normal CI including actual bounded Linux procfs probe; inspect actual valid/retired/refused counts without treating a refusal as resource admission. Only then freeze and request another pressure1 once paired run."
+}

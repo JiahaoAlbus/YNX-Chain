@@ -539,7 +539,7 @@ class SupplySourceTests(unittest.TestCase):
                     known = {}
                     with self.subTest(failedRead=failed_read, errno=code, state=state, startTicks=ticks), \
                             patch.object(supply.native, "proc_inventory", return_value=({launcher: before}, [])), \
-                            patch.object(supply.native, "bounded", side_effect=([OSError(code, "original RSS unavailable"), b"stat"] if failed_read=="smaps_rollup" else [b"Rss: 1 kB\n", OSError(code, "original stat unavailable"), b"stat"])), \
+                            patch.object(supply.native, "bounded", side_effect=([OSError(code, "original RSS unavailable"), b"stat", b"confirmation-still-live"] if failed_read=="smaps_rollup" else [b"Rss: 1 kB\n", OSError(code, "original stat unavailable"), b"stat", b"confirmation-still-live"])), \
                             patch.object(supply.native, "parse_stat", return_value=after), \
                             patch.object(supply.native, "smaps_rss") as rss:
                         with self.assertRaisesRegex(RuntimeError, "live owned RSS unreadable") as failure:
@@ -565,6 +565,92 @@ class SupplySourceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "process cap"):
                 supply.native_sample(Path("/case"), Path("/build"), {}, 0)
             read.assert_not_called()
+
+    def test_rss_exit_boundary_requires_exact_kernel_retirement_proof(self):
+        launcher = supply.os.getpid()
+        owner = dict(pid=launcher, parent=0, group=launcher, startTicks=1, state="R", threads=1)
+        child = dict(pid=launcher+100, parent=launcher, group=launcher+100, startTicks=17, state="R", threads=1)
+        for code in (supply.errno.ENOENT, supply.errno.ESRCH):
+            for outcome in ("zombie", "gone"):
+                final = dict(child, state="Z")
+                reads = [b"Rss: 1 kB\n", b"owner-stat", OSError(code, "RSS disappeared"), b"child-live-stat"]
+                reads.append(b"child-retired-stat" if outcome=="zombie" else OSError(code, "PID disappeared"))
+                with self.subTest(errno=code, outcome=outcome), tempfile.TemporaryDirectory() as d, \
+                        patch.object(supply.native, "proc_inventory", return_value=({launcher: owner, child['pid']: child}, [])), \
+                        patch.object(supply.native, "bounded", side_effect=reads) as read, \
+                        patch.object(supply.native, "parse_stat", side_effect=[owner, child, final]), \
+                        patch.object(supply.native, "directory_bytes", return_value=1), \
+                        patch.object(supply.native, "memory_available", return_value=2<<30), \
+                        patch.object(supply.time, "sleep") as sleep:
+                    row = supply.native_sample(Path(d), Path(d), {}, supply.time.monotonic(), enforce_limits=False)
+                    self.assertEqual(row['rssBytes'], 1024)
+                    self.assertEqual(len(row['retiredOwnedTransitions']), 1)
+                    transition = row['retiredOwnedTransitions'][0]
+                    self.assertEqual(transition['before'], child)
+                    self.assertEqual(transition['after'], child)
+                    self.assertEqual(transition['outcome'], outcome)
+                    self.assertEqual(transition['retirementConfirmation'], final if outcome=='zombie' else None)
+                    # One RSS attempt only: no rereading until a smaller value.
+                    self.assertEqual(sum(p.args[0].name=='smaps_rollup' and p.args[0].parent.name==str(child['pid']) for p in read.call_args_list), 1)
+                    sleep.assert_not_called()
+
+    def test_rss_retirement_confirmation_rejects_reused_pid_and_unreadable_proof(self):
+        launcher = supply.os.getpid()
+        before = dict(pid=launcher, parent=0, group=launcher, startTicks=17, state="R", threads=1)
+        for confirmation in (dict(before, state="Z", startTicks=18), OSError(supply.errno.EACCES, "confirmation denied")):
+            reads = [OSError(supply.errno.ESRCH, "RSS unavailable"), b"still-live", confirmation if isinstance(confirmation, OSError) else b"reused-pid"]
+            with self.subTest(confirmation=str(confirmation)), \
+                    patch.object(supply.native, "proc_inventory", return_value=({launcher: before}, [])), \
+                    patch.object(supply.native, "bounded", side_effect=reads), \
+                    patch.object(supply.native, "parse_stat", side_effect=[before, confirmation]), \
+                    patch.object(supply.native, "smaps_rss") as rss:
+                with self.assertRaisesRegex(RuntimeError, "live owned RSS unreadable"):
+                    supply.native_sample(Path("/case"), Path("/build"), {}, 0)
+                rss.assert_not_called()
+
+    def test_valid_rss_is_not_reread_after_failed_stat_to_select_a_lower_value(self):
+        launcher = supply.os.getpid()
+        before = dict(pid=launcher, parent=0, group=launcher, startTicks=17, state="R", threads=1)
+        with patch.object(supply.native, "proc_inventory", return_value=({launcher: before}, [])), \
+                patch.object(supply.native, "bounded", side_effect=[b"Rss: 2097152 kB\n", OSError(supply.errno.ESRCH, "stat unavailable"), b"still-live"]) as read, \
+                patch.object(supply.native, "parse_stat", return_value=before):
+            with self.assertRaisesRegex(RuntimeError, "live owned RSS unreadable"):
+                supply.native_sample(Path("/case"), Path("/build"), {}, 0)
+            self.assertEqual(len(read.call_args_list), 3)
+
+    @unittest.skipUnless(sys.platform=="linux", "actual procfs exit probe requires Linux")
+    def test_actual_owned_python_exit_rss_capture_is_bounded_and_identity_checked(self):
+        # Ordinary small CI probe only: no chain fixture, accounts or nodes.
+        captures = transitions = refused = 0
+        refusal_samples = []
+        with tempfile.TemporaryDirectory() as d:
+            started = supply.time.monotonic()
+            for _ in range(16):
+                child = subprocess.Popen([sys.executable, "-c", "import os,time; data=bytearray(8<<20); time.sleep(0.005); os._exit(0)"])
+                try:
+                    while child.poll() is None:
+                        self.assertLess(supply.time.monotonic()-started, 10, "bounded exit probe deadline")
+                        try:
+                            row = supply.native_sample(Path(d), Path(d), {}, started, enforce_limits=False)
+                        except RuntimeError as error:
+                            # A still-unproven exit must stay refused. This
+                            # probe is not resource/performance admission and
+                            # never promotes a later sample over that refusal.
+                            self.assertIn("live owned RSS unreadable; capture=", str(error))
+                            context = json.loads(str(error).split("; capture=", 1)[1])
+                            self.assertEqual(context['pid'], child.pid)
+                            refused += 1
+                            if len(refusal_samples)<4:refusal_samples.append(context)
+                            break
+                        self.assertTrue(all(p['rssBytes']>=0 for p in row['tasks']))
+                        self.assertEqual(row['rssBytes'], sum(p['rssBytes'] for p in row['tasks']))
+                        captures += 1
+                        transitions += len(row.get('retiredOwnedTransitions', []))
+                finally:
+                    if child.poll() is None:
+                        child.kill()
+                    child.wait(timeout=2)
+        print(json.dumps(dict(probe="actual_owned_procfs_exit", children=16, validCaptures=captures, confirmedRetirements=transitions, refusedUnknownSnapshots=refused, refusalSamples=refusal_samples, performanceQualification=False)))
 
     def test_ci_is_opt_in_and_follows_existing_release_gates(self):
         workflow = FILE.parents[2] / ".github/workflows/chain-core.yml"
