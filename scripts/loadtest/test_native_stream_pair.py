@@ -226,6 +226,40 @@ class NativeStreamPairTests(unittest.TestCase):
                 with patch.object(supply.native,'directory_bytes',return_value=(256<<20)+1):
                     with self.assertRaisesRegex(RuntimeError,'retained512MiB'):budget.observe(sample)
 
+    def test_pair_retirement_proof_and_tasks_survive_without_mutable_aliases(self):
+        for direct in (False,True):
+            with self.subTest(directNativeCapture=direct),tempfile.TemporaryDirectory() as d:
+                root=Path(d);data=root/'data';evidence=root/'evidence';build=root/'build'
+                for path in (data,evidence,build):path.mkdir()
+                before=dict(pid=2,parent=1,group=2,startTicks=17,state='R',threads=1)
+                retired=dict(before,state='Z')
+                trace=dict(pid=2,before=before,after=dict(before),errno=3,failedRead='smaps_rollup',capturedAtUnixNs=100,retirementConfirmation=retired,outcome='zombie')
+                sample=dict(rssBytes=1024,threads=2,privateBytes=1,buildBytes=1,freeDiskBytes=10<<30,availableMemoryBytes=2<<30,tasks=[dict(pid=1,rssBytes=1024),dict(retired,rssBytes=0)],retiredOwnedTransitions=[trace])
+                budget=supply.PairBudget(data,evidence,0,build,supply.STREAM_GROUPED_PAIR)
+                with patch.object(supply.time,'monotonic',return_value=1),patch.object(supply,'native_sample',return_value=sample):
+                    observed=budget.observe() if direct else budget.observe(sample)
+                    self.assertEqual(observed['retiredOwnedTransitions'],sample['retiredOwnedTransitions'])
+                    self.assertEqual(observed['tasks'],sample['tasks'])
+                    self.assertEqual(observed['rssBytes'],1024)
+                    trace['retirementConfirmation']['startTicks']=999
+                    sample['tasks'][1]['state']='R'
+                    self.assertEqual(observed['retiredOwnedTransitions'][0]['retirementConfirmation']['startTicks'],17)
+                    self.assertEqual(observed['tasks'][1]['state'],'Z')
+                    count=len(budget.samples)
+                    with self.assertRaisesRegex(RuntimeError,'rssBytes'):
+                        budget.observe(dict(sample,rssBytes=(1<<30)+1))
+                    self.assertEqual(len(budget.samples),count)
+
+    def test_pair_without_retirement_keeps_original_summary_shape(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);data=root/'data';evidence=root/'evidence';build=root/'build'
+            for path in (data,evidence,build):path.mkdir()
+            sample=dict(rssBytes=1024,threads=1,privateBytes=1,buildBytes=1,freeDiskBytes=10<<30,availableMemoryBytes=2<<30,tasks=[dict(pid=1,rssBytes=1024)])
+            budget=supply.PairBudget(data,evidence,0,build,supply.STREAM_GROUPED_PAIR)
+            with patch.object(supply.time,'monotonic',return_value=1):observed=budget.observe(sample)
+            self.assertNotIn('tasks',observed)
+            self.assertNotIn('retiredOwnedTransitions',observed)
+
     def test_current_input_pair_uses_same_bounded_pace_and_only_cache_changes(self):
         plan=supply.pair_recipe(supply.STREAM_CACHE_PAIR);before,after=plan['cases']
         self.assertEqual([x['pacingMode'] for x in plan['cases']],['bounded-cadence','bounded-cadence'])

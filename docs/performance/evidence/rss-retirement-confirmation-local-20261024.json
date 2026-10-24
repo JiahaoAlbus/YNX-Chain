@@ -70,7 +70,7 @@
   "originalRefusedRun": 40101270671,
   "originalRunStillUnqualified": true,
   "actualFourNodeRepairVerified": false,
-  "normalCIPending": true,
+  "normalCIPending": false,
   "newHeavyDispatch": false,
   "next": "Run existing normal CI including actual bounded Linux procfs probe; inspect actual valid/retired/refused counts without treating a refusal as resource admission. Only then freeze and request another pressure1 once paired run.",
   "codeCommit": "37999dda0e45e961ce19c60f11f16ccd87e52ca8",
@@ -81,5 +81,37 @@
     "tests": 24,
     "passed": true,
     "seconds": 16.7075845
+  },
+  "normalCI": {
+    "id": 40104750919,
+    "head": "ffe2c59a82d64aca50ed59964289db5d67b0bfbe",
+    "conclusion": "success",
+    "codeCommit": "37999dda0e45e961ce19c60f11f16ccd87e52ca8",
+    "originalAPI": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-retirement-source-ffe2c59a82/normal-ci-terminal-api.json",
+      "bytes": 12374,
+      "sha256": "aa859619b237948e1e943101b6d819f2e7210bcff0ff76a35a610a6169181b72"
+    },
+    "originalLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-retirement-source-ffe2c59a82/normal-ci-full.raw",
+      "bytes": 728124,
+      "sha256": "077bcd8fe6d360df5acf89eb73e57d2fbfc7d0b2085a38ab7406f634db09ac9d"
+    },
+    "actualLinuxProbe": {
+      "probe": "actual_owned_procfs_exit",
+      "children": 16,
+      "validCaptures": 77,
+      "confirmedRetirements": 0,
+      "refusedUnknownSnapshots": 0,
+      "refusalSamples": [],
+      "performanceQualification": false
+    },
+    "desiredRetirementTransitionObserved": false,
+    "doesNotQualifyPairRetentionFollowup": true
+  },
+  "ffe2RequestWithdrawnBeforeGrant": {
+    "bytes": 19494,
+    "sha256": "d9caad87197d405c87e4608a32b40b508a0d9104b193fd1ede632c79880ceb49",
+    "reason": "Follow-up pair-budget proof retention gap found before heavy activation; source repair and new CI required"
   }
 }

@@ -6,6 +6,7 @@ Reuse the original native resource monitor without changing its global caps.
 """
 import argparse
 import base64
+import copy
 import ctypes
 import errno
 import hashlib
@@ -443,6 +444,12 @@ class PairBudget:
             raise RuntimeError("combined pair child stdout/stderr log2MiB cap exceeded")
         row = dict(elapsedMs=int((time.monotonic()-self.started)*1000), retainedBytes=retained, logBytes=logs)
         row.update({k:sample[k] for k in ("rssBytes", "threads", "availableMemoryBytes", "freeDiskBytes", "buildBytes")})
+        if sample.get("retiredOwnedTransitions"):
+            # Direct pair/closure captures need the same exact proof as case
+            # ticks. Own the nested data so later caller edits cannot rewrite
+            # the retained kernel retirement observation.
+            row["tasks"] = copy.deepcopy(sample["tasks"])
+            row["retiredOwnedTransitions"] = copy.deepcopy(sample["retiredOwnedTransitions"])
         self.samples.append(row)
         if self.remaining() <= 0:
             raise RuntimeError("pair120s exceeded during guard I/O")

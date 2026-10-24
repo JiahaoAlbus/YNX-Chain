@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "scope": "Retain direct pair-budget kernel retirement proof as independent nested copies; source adds no resource acceptance or time/cap changes",
+  "baseCommit": "ffe2c59a82d64aca50ed59964289db5d67b0bfbe",
+  "source": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/supply-linux-window.py",
+    "bytes": 191048,
+    "sha256": "bee8676f4b2b8daeca52636a6a79964f94d8fc92c1e0a97b8634998fef6181b8"
+  },
+  "test": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_native_stream_pair.py",
+    "bytes": 50988,
+    "sha256": "01ddfc78939d19bd177b21ffbba686a0f0d2cf57ded50b4f260ec4025d1907a9"
+  },
+  "red": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-pair-trace-red-01.raw",
+    "bytes": 1669,
+    "sha256": "8a63cacd2ff89d7d08df910229567bb4cbd1739aec0ec4df60d821f120b5fa77"
+  },
+  "pair": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-pair-trace-pair-01.raw",
+    "bytes": 137,
+    "sha256": "3dd9aad48bafdc551e09e54a5a005c5ba1386be6427705e5b87fc624b1635065"
+  },
+  "controllerFocused": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-pair-trace-controller-focused-01.raw",
+    "bytes": 102,
+    "sha256": "80144f3bf12d071a1497821467ab02765712cb11da3f547a5e2b5cf79f938e9a"
+  },
+  "pairTests": 38,
+  "controllerFocusedTests": 4,
+  "priorSamplerCI": {
+    "id": 40104750919,
+    "head": "ffe2c59a82d64aca50ed59964289db5d67b0bfbe",
+    "conclusion": "success",
+    "originalAPI": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-retirement-source-ffe2c59a82/normal-ci-terminal-api.json",
+      "bytes": 12374,
+      "sha256": "aa859619b237948e1e943101b6d819f2e7210bcff0ff76a35a610a6169181b72"
+    },
+    "originalLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-retirement-source-ffe2c59a82/normal-ci-full.raw",
+      "bytes": 728124,
+      "sha256": "077bcd8fe6d360df5acf89eb73e57d2fbfc7d0b2085a38ab7406f634db09ac9d"
+    },
+    "actualLinuxProbe": {
+      "probe": "actual_owned_procfs_exit",
+      "children": 16,
+      "validCaptures": 77,
+      "confirmedRetirements": 0,
+      "refusedUnknownSnapshots": 0,
+      "refusalSamples": [],
+      "performanceQualification": false
+    },
+    "originalProbeDidNotObserveRetirement": true,
+    "qualifiesFollowupPairRetentionSource": false
+  },
+  "withdrawnUnconsumedRequest": {
+    "source": "ffe2c59a82d64aca50ed59964289db5d67b0bfbe",
+    "bytes": 19494,
+    "sha256": "d9caad87197d405c87e4608a32b40b508a0d9104b193fd1ede632c79880ceb49",
+    "neverGranted": true,
+    "neverDispatched": true,
+    "reason": "PairBudget.observe direct captures discarded optional proof; fixed before any heavy run"
+  },
+  "normalCIPending": true,
+  "sourceFreezePending": true,
+  "newHeavyDispatch": false,
+  "originalRunStillUnqualified": 40101270671
+}
