@@ -578,8 +578,41 @@ def assert_native_cabi_workflow_contract(raw):
     need(lines(steps[13]) == expected)
 
 
+def assert_runtime_gateway_identity_workflow_contract(raw):
+    """The normal build must observe its actual ELF, never synthesize identity."""
+    _, steps = workflow_steps(raw, "protocol-delivery")
+    found = [step for step in steps if step.startswith(
+        "      - name: Build public Linux runtime candidate without starting services\n")]
+    if len(found) != 1:
+        raise AssertionError("one original runtime build required")
+    step = found[0]
+    required = (
+        'YNX_RUNTIME_GATEWAY_COMMIT=${GITHUB_SHA:0:12}',
+        'YNX_RUNTIME_BUILD_OBSERVATION="$RUNNER_TEMP/ynx-pq-runtime-gateway-build-info.json"',
+        'export YNX_RUNTIME_BUILD_TIME YNX_RUNTIME_BUILD_OBSERVATION',
+        'go build -p 1 -trimpath -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd',
+        '(set -C; timeout 5s "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" --build-info --comet-rpc not-a-url --http invalid-address --migration-height 1 >"$YNX_RUNTIME_BUILD_OBSERVATION")',
+        "observation = Path(os.environ['YNX_RUNTIME_BUILD_OBSERVATION'])",
+        'if not 0 < observation.stat().st_size <= 1024:',
+        "gateway_build = json.loads(observation.read_text(encoding='utf8'))",
+        "expected_build = dict(commit=os.environ['GITHUB_SHA'][:12],",
+        "release='ynx-bft-gateway-' + os.environ['GITHUB_SHA'][:12],",
+        "buildTime=os.environ['YNX_RUNTIME_BUILD_TIME'])",
+        'if gateway_build != expected_build:',
+        "print('YNX_GATEWAY_BUILD_IDENTITY ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'],",
+        "binary=binaries['ynx-bft-gatewayd'], build=gateway_build,",
+        "runtimeStarted=False, publicDeployment=False, pqActivation=False), sort_keys=True, separators=(',', ':')))",
+    )
+    lines = [line.strip() for line in step.splitlines()]
+    if any(lines.count(line) != 1 for line in required):
+        raise AssertionError("runtime gateway build/observation identity changed")
+    if lines.index(required[3]) >= lines.index(required[4]) or lines.index(required[4]) >= lines.index(required[5]):
+        raise AssertionError("actual runtime identity observation must follow its build")
+
+
 def assert_workflow_contract(raw):
     assert_native_cabi_workflow_contract(raw)
+    assert_runtime_gateway_identity_workflow_contract(raw)
     job, steps = workflow_steps(raw)
 
     def need(condition):
@@ -930,6 +963,28 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_runtime_gateway_identity_rejects_old_labels_and_unobserved_binary(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_runtime_gateway_identity_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "protocol-delivery")
+        build = next(step for step in steps if step.startswith(
+            "      - name: Build public Linux runtime candidate without starting services\n"))
+        mutations = (
+            ('YNX_RUNTIME_GATEWAY_COMMIT=${GITHUB_SHA:0:12}', 'YNX_RUNTIME_GATEWAY_COMMIT=$GITHUB_SHA'),
+            ('main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT', 'main.buildRelease=pq-source-candidate-$GITHUB_SHA'),
+            ('main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT', 'main.buildCommit=$GITHUB_SHA'),
+            ('timeout 5s "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" --build-info', 'echo synthetic-build-info'),
+            ('--comet-rpc not-a-url --http invalid-address --migration-height 1', '--comet-rpc http://127.0.0.1:27757'),
+            ("gateway_build = json.loads(observation.read_text(encoding='utf8'))", 'gateway_build = expected_build'),
+            ('if gateway_build != expected_build:', 'if False:'),
+            ("binary=binaries['ynx-bft-gatewayd'], build=gateway_build,", "binary=binaries['ynx-comet'], build=gateway_build,"),
+        )
+        for before, after in mutations:
+            self.assertIn(before, build)
+            changed = raw.replace(build, build.replace(before, after, 1), 1)
+            with self.subTest(before=before), self.assertRaises(AssertionError):
+                assert_runtime_gateway_identity_workflow_contract(changed)
 
     def test_native_cabi_push_matrix_rejects_skipped_actual_calls_and_private_artifacts(self):
         # These mutations establish the source contract only. Actual native

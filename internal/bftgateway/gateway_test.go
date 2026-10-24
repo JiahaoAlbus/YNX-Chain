@@ -545,6 +545,8 @@ func TestPublicCutoverReadyRequiresAuthorizationAndReleaseIdentity(t *testing.T)
 		{name: "unknown build", authorized: true, build: buildinfo.Info{}},
 		{name: "short commit", authorized: true, build: buildinfo.Info{Commit: "abcdef", Release: "ynx-bft-gateway-abcdef", BuildTime: validBuild.BuildTime}},
 		{name: "uppercase commit", authorized: true, build: buildinfo.Info{Commit: "ABCDEF123456", Release: "ynx-bft-gateway-ABCDEF123456", BuildTime: validBuild.BuildTime}},
+		{name: "original runtime candidate label", authorized: true, build: buildinfo.Info{Commit: "abcdef1234567890abcdef1234567890abcdef1234", Release: "pq-source-candidate-abcdef1234567890abcdef1234567890abcdef1234", BuildTime: validBuild.BuildTime}},
+		{name: "full source commit is not release identity", authorized: true, build: buildinfo.Info{Commit: "abcdef1234567890abcdef1234567890abcdef1234", Release: "ynx-bft-gateway-abcdef1234567890abcdef1234567890abcdef1234", BuildTime: validBuild.BuildTime}},
 		{name: "release mismatch", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: "ynx-bft-gateway-other", BuildTime: validBuild.BuildTime}},
 		{name: "invalid build time", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: validBuild.Release, BuildTime: "unknown"}},
 		{name: "non UTC build time", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: validBuild.Release, BuildTime: "2026-07-12T12:00:00+08:00"}},
