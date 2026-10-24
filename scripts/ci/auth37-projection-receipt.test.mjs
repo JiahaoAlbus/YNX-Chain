@@ -26,3 +26,7 @@ test('Auth37 same-count altered policy or substituted product members refuse',()
 test('Auth37 version rollback, authority promotion, unknown receipt fields and repinned policy refuse',()=>{
  for(const change of [f=>{f.policy.versionSDK='1.3.0-pq.3.32-auth.36';},f=>{f.receipt.SourceQualified=true;},f=>{f.receipt.SourceAdmission=true;},f=>{f.policyRef.sha256='b'.repeat(64);},f=>{f.selection.versionSDK='1.3.0-pq.3.32-auth.36';}]){const f=fixture();change(f);assert.throws(()=>finalize(f));}
 });
+test('Auth37 exact receipt revision refuses changed or coerced revision DATA',()=>{
+ const original=finalize(fixture());assert.equal(validate(original),true);
+ for(const revision of [1,3,'2',null,false])assert.throws(()=>validate({...original,projectionMetadataRevision:revision}),{code:'AUTH37_RECEIPT_REVISION'});
+});

@@ -29,6 +29,7 @@ export function validateSDK37FiniteReceiptDATA(receipt){
  if(receipt.kind!=='YNX_SDK37_PRODUCT_RUNTIME_METADATA_PROJECTION/v1'||receipt.versionSDK!==VERSION||receipt.sourceCommit!==COMMIT||receipt.excludedFiles!==15||flags.some(k=>receipt[k]!==false))fail('AUTH37_RECEIPT_SELECTION');
  if(JSON.stringify(receipt.excluded)!==JSON.stringify(excluded)||receipt.finite15RowsCount!==15||receipt.inheritedExclusionRowsDATAOnly!==true||receipt.oldSDK36IdentityOrAdmissionInherited!==false)fail('AUTH37_RECEIPT_EXACT_EXCLUSIONS_REQUIRED');
  keys(receipt,[...baseKeys,...resultKeys]);
+ if(receipt.projectionMetadataRevision!==2)fail('AUTH37_RECEIPT_REVISION');
  data(receipt.finite15Contract);if(typeof receipt.finite15Contract.path!=='string'||!path.isAbsolute(receipt.finite15Contract.path)||receipt.finite15Contract.bytes!==3013||receipt.finite15Contract.sha256!=='55a2dece3fa0aa55290e0347deb2a7775ff4b28509fdb6130e892b72117ef8c6')fail('AUTH37_RECEIPT_POLICY_REF');
  return true;
 }

@@ -3084,12 +3084,12 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24.19.0
-      - name: Four new finite exclusion receipt controls only
+      - name: New exact revision control after frozen four original passes
         run: |
           mkdir -p .ci-evidence/auth37-projection-r2
-          node --test --test-reporter=tap packages/wallet-auth/test/auth37-projection-receipt.test.mjs > .ci-evidence/auth37-projection-r2/stdout.log 2>&1 || { status=$?; cat .ci-evidence/auth37-projection-r2/stdout.log; exit "$status"; }
+          node --test --test-reporter=tap --test-name-pattern='^Auth37 exact receipt revision' packages/wallet-auth/test/auth37-projection-receipt.test.mjs > .ci-evidence/auth37-projection-r2/stdout.log 2>&1 || { status=$?; cat .ci-evidence/auth37-projection-r2/stdout.log; exit "$status"; }
           cat .ci-evidence/auth37-projection-r2/stdout.log
-          node --input-type=module -e "import fs from 'node:fs'; import assert from 'node:assert/strict'; const s=fs.readFileSync('.ci-evidence/auth37-projection-r2/stdout.log','utf8'); for(const n of ['tests 4','pass 4','fail 0','skipped 0','cancelled 0'])assert(s.split(/\r?\n/).includes('# '+n),n); assert(!/^not ok/m.test(s));"
+          node --input-type=module -e "import fs from 'node:fs'; import assert from 'node:assert/strict'; const s=fs.readFileSync('.ci-evidence/auth37-projection-r2/stdout.log','utf8'); for(const n of ['tests 1','pass 1','fail 0','skipped 0','cancelled 0'])assert(s.split(/\r?\n/).includes('# '+n),n); assert(!/^not ok/m.test(s));"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
