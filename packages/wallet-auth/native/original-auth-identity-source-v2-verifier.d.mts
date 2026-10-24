@@ -33,12 +33,13 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1';
+export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1';
 export type OriginalAuthSourceV2Operations=
  readonly ['beginYNX','handleReturn','restore','disconnect']|
  readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']|
  readonly ['CurrentProject','CurrentPublisher','RecheckProject']|
- readonly ['CaptureProjectControl','RecheckProjectControl'];
+ readonly ['CaptureProjectControl','RecheckProjectControl']|
+ readonly ['approval.capture','approval.current','approval.revoke'];
 export interface OriginalAuthSourceV2Enrollment {
  readonly version:2;readonly purpose:string;readonly rootId:string;readonly rootOwner:string;
  readonly sourceId:string;readonly service:OriginalAuthSourceV2Service;readonly productId:'developer';readonly platform:'macos';

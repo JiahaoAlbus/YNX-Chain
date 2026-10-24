@@ -9,7 +9,7 @@ R194 fixes noncanonical base64url member aliases. Its codec remains an internal 
 ## Unfinished admission and delivery gates
 
 - R193 mounts the normal POST `/v1/developer/original-http-principal` authenticate/recheck handler in the original Host. The separate approval route remains unqualified. Deployment, independent TLS/SPKI admission and genuine Root-selected Source commissioning remain pending; this is not a live issuer. Auth owns the Go adapter, which is not copied into this SDK branch.
-- R196 includes the publication-purpose verifier through its formal R189 ancestor. The fixed approval CLI/dispatch closure and complete publication types remain pending; this does not qualify the publication workflow.
+- R196 includes the publication-purpose verifier through its formal R189 ancestor. The fixed approval CLI/dispatch closure remains pending; this does not qualify the publication workflow.
 - The new Source IO `openV2Existing` requires the matching original A build. The previous SDK22 Node26 IO artifact cannot qualify it.
 - Frozen R196 supplies the actual two Native control selectors, protected namespace and capture validator. They are included in the new Auth23 source recipe; original A matching link/build and code-signed Wallet capture remain pending. No stub or fallback is supplied.
 - Root-signed Source provisioning, actual user authorization, installed Wallet/IDE login, session recovery and revocation are not verified by these source tests.
@@ -26,3 +26,7 @@ The Source/JointOwner selectors and dedicated capture validator are exact frozen
 The new normal selection has 82 Native inputs and five helper-only inputs, four pure inputs and one build tool (92 total); the independent old IO source adds one (93 extended). Both existing user-addon 13 TUs and helper 11 TUs remain unchanged. Five new include/relative-JS inputs must be present. These counts identify this Auth23 recipe, not any older Main recipe with a coincidentally equal count.
 
 The old independent IO CPP remains 5009 bytes and lacks openV2Existing. Its prior binary evidence is reused only for that exact older input. Control uses the normal non-read-only path; publication read-only operation still requires a matching future IO supply. No old IO, Native/module, App or signing qualification transfers to Auth23. The normal dynamic protected capture writer, complete Source13, purpose signing effect, TLS/Source commissioning, matching original A build and real Wallet/IDE user flows remain unfinished.
+
+## SDK publication type alignment
+
+A separate SDK type-only successor adds the already implemented `ide-publication-approval-authority-v1` service and fixed approval.capture/current/revoke tuple to the public declarations, with original Auth confirmation. The prior declarations rejected a real supported consumer at compilation. This declaration is an SDK-owned change from the frozen R196 d.mts parent, not a claim of supplier byte identity. Native/runtime/recipe bytes remain the Auth23 frozen selection; publication issuer, CLI/dispatch, protected effects and admission are still incomplete.
