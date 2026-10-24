@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "runId": 40101270671,
+  "nativePairQualified": false,
+  "performanceComparisonQualified": false,
+  "sustainedTPSQualified": false,
+  "proof": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/original-node-business-phases-02.json",
+    "bytes": 87066,
+    "sha256": "767875c96006711c282f71bb6bd87ae9db149bd82c0af6956a28a8bd1127c4ab"
+  },
+  "consumer": {
+    "path": "docs/performance/evidence/native-refused-node-phases-20261025.mjs",
+    "bytes": 5604,
+    "sha256": "3235f0ac81adb2cecea9500da7d6f023cc1ec63d694b48ee60c233e597434049"
+  },
+  "cases": [
+    {
+      "name": "before-native-prepared-bounded",
+      "businessTransactions": 8192,
+      "pooledReplicaSamples": {
+        "commit": {
+          "samples": 144,
+          "totalMs": 6063.382896,
+          "meanMs": 42.106825666666666,
+          "p50Ms": 40.074848,
+          "p95Ms": 77.166207,
+          "p99Ms": 103.450234
+        },
+        "validate": {
+          "samples": 144,
+          "totalMs": 5544.072937,
+          "meanMs": 38.50050650694445,
+          "p50Ms": 37.016515,
+          "p95Ms": 68.892592,
+          "p99Ms": 73.789726
+        },
+        "delta_encode": {
+          "samples": 144,
+          "totalMs": 33.108466,
+          "meanMs": 0.22991990277777777,
+          "p50Ms": 0.166381,
+          "p95Ms": 0.359822,
+          "p99Ms": 0.457315
+        },
+        "write": {
+          "samples": 144,
+          "totalMs": 29.292474,
+          "meanMs": 0.20341995833333334,
+          "p50Ms": 0.158386,
+          "p95Ms": 0.318194,
+          "p99Ms": 0.534298
+        },
+        "file_sync": {
+          "samples": 144,
+          "totalMs": 133.883924,
+          "meanMs": 0.9297494722222223,
+          "p50Ms": 0.606363,
+          "p95Ms": 2.622231,
+          "p99Ms": 3.110934
+        },
+        "close_file": {
+          "samples": 144,
+          "totalMs": 3.942608,
+          "meanMs": 0.02737922222222222,
+          "p50Ms": 0.008856,
+          "p95Ms": 0.012263,
+          "p99Ms": 0.031499
+        },
+        "prepare_file": {
+          "samples": 144,
+          "totalMs": 5.685827,
+          "meanMs": 0.03948490972222222,
+          "p50Ms": 0.034945,
+          "p95Ms": 0.062307,
+          "p99Ms": 0.172282
+        },
+        "journal_maintenance": {
+          "samples": 144,
+          "totalMs": 311.645575,
+          "meanMs": 2.1642053819444445,
+          "p50Ms": 0.090499,
+          "p95Ms": 24.343039,
+          "p99Ms": 44.915265
+        },
+        "semantics": {
+          "samples": 144,
+          "totalMs": 1868.903587,
+          "meanMs": 12.978497131944444,
+          "p50Ms": 11.76621,
+          "p95Ms": 25.040759,
+          "p99Ms": 31.235315
+        },
+        "app_hash": {
+          "samples": 144,
+          "totalMs": 3659.203948,
+          "meanMs": 25.411138527777776,
+          "p50Ms": 24.414498,
+          "p95Ms": 46.185734,
+          "p99Ms": 51.430608
+        }
+      }
+    },
+    {
+      "name": "after-native-prepared-grouped",
+      "businessTransactions": 8192,
+      "pooledReplicaSamples": {
+        "commit": {
+          "samples": 140,
+          "totalMs": 5889.485147,
+          "meanMs": 42.06775105,
+          "p50Ms": 38.79182,
+          "p95Ms": 77.098215,
+          "p99Ms": 119.359096
+        },
+        "validate": {
+          "samples": 140,
+          "totalMs": 5359.483744,
+          "meanMs": 38.28202674285714,
+          "p50Ms": 36.226174,
+          "p95Ms": 68.013175,
+          "p99Ms": 87.395816
+        },
+        "delta_encode": {
+          "samples": 140,
+          "totalMs": 31.256963,
+          "meanMs": 0.22326402142857144,
+          "p50Ms": 0.166922,
+          "p95Ms": 0.470209,
+          "p99Ms": 1.470338
+        },
+        "write": {
+          "samples": 140,
+          "totalMs": 31.205349,
+          "meanMs": 0.22289535,
+          "p50Ms": 0.167974,
+          "p95Ms": 0.400649,
+          "p99Ms": 1.874213
+        },
+        "file_sync": {
+          "samples": 140,
+          "totalMs": 145.257711,
+          "meanMs": 1.0375550785714285,
+          "p50Ms": 0.62078,
+          "p95Ms": 3.102799,
+          "p99Ms": 7.079954
+        },
+        "close_file": {
+          "samples": 140,
+          "totalMs": 1.339001,
+          "meanMs": 0.009564292857142857,
+          "p50Ms": 0.008476,
+          "p95Ms": 0.015088,
+          "p99Ms": 0.035336
+        },
+        "prepare_file": {
+          "samples": 140,
+          "totalMs": 10.66804,
+          "meanMs": 0.0762002857142857,
+          "p50Ms": 0.034464,
+          "p95Ms": 0.076644,
+          "p99Ms": 1.099235
+        },
+        "journal_maintenance": {
+          "samples": 140,
+          "totalMs": 307.993301,
+          "meanMs": 2.19995215,
+          "p50Ms": 0.0906,
+          "p95Ms": 24.98646,
+          "p99Ms": 46.51436
+        },
+        "semantics": {
+          "samples": 140,
+          "totalMs": 1847.320915,
+          "meanMs": 13.195149392857143,
+          "p50Ms": 12.137254,
+          "p95Ms": 26.436987,
+          "p99Ms": 31.717719
+        },
+        "app_hash": {
+          "samples": 140,
+          "totalMs": 3498.246039,
+          "meanMs": 24.987471707142856,
+          "p50Ms": 23.94951,
+          "p95Ms": 49.954915,
+          "p99Ms": 61.070811
+        }
+      }
+    }
+  ]
+}
