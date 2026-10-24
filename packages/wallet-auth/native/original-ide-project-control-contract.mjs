@@ -17,7 +17,7 @@ export const ORIGINAL_PUBLISHER_CUSTODIAN_FRAME='YNX-AUTH-PROTECTED-PUBLISHER-RE
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const commandFields=['RequestID','Action','ProjectID','TeamID','SubjectAccount','PublisherID','RuntimeOrigin','ExpectedRevision','GrantExpiresMS','Read','Publish','Runtime','Revoke','ExpiresMS','PublicOriginalSHA256'];
 function exact(v,keys){if(!v||Object.getPrototypeOf(v)!==Object.prototype)fail('IDE_CONTROL_SCHEMA');const d=Object.getOwnPropertyDescriptors(v),ks=Reflect.ownKeys(d);if(ks.length!==keys.length||ks.some(k=>!keys.includes(k)||!d[k].enumerable||!Object.hasOwn(d[k],'value')))fail('IDE_CONTROL_SCHEMA');return v;}
-function text(v,empty=false){if(typeof v!=='string'||!v.isWellFormed()||(!empty&&!v.length)||Buffer.byteLength(v)>256||/[\s\x00-\x1f\x7f]/u.test(v))fail('IDE_CONTROL_TEXT');return v;}
+function text(v,empty=false){if(typeof v!=='string'||!v.isWellFormed()||(!empty&&!v.length)||Buffer.byteLength(v)>256||/[\x00-\x20\x7f]/u.test(v)||/^\p{White_Space}|\p{White_Space}$/u.test(v))fail('IDE_CONTROL_TEXT');return v;}
 function decimal(v,max=9223372036854775807n){if(typeof v!=='string'||!/^(0|[1-9][0-9]*)$/.test(v)||BigInt(v)>max)fail('IDE_CONTROL_DECIMAL');return BigInt(v);}
 const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 function memberBytes(value){if(typeof value!=='string'||!value.length||value.length>349526||!/^[A-Za-z0-9_-]+$/.test(value))fail('IDE_CONTROL_MEMBER');const raw=Buffer.from(value,'base64url');if(!raw.length||raw.length>262144||raw.toString('base64url')!==value)fail('IDE_CONTROL_MEMBER');return raw;}
