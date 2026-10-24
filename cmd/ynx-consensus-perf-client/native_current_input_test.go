@@ -72,6 +72,12 @@ func TestNativeStreamingCurrentInputReuseAvoidsDuplicateDecode(t *testing.T) {
 	if r.stats().PrefixReplay.WorkPhases.SuffixReplayDetails.FinalizeDetails.SealState.Calls != 1 {
 		t.Fatal("nested Finalize snapshot aliases reader")
 	}
+	r.prefixStats.WorkPhases.SuffixReplayDetails.FinalizeDetails.TransactionDetails.NativeFeeEventAppend.Calls = 1
+	r.stats().PrefixReplay.WorkPhases.SuffixReplayDetails.FinalizeDetails.TransactionDetails.NativeFeeEventAppend.Calls = 999
+	if r.stats().PrefixReplay.WorkPhases.SuffixReplayDetails.FinalizeDetails.TransactionDetails.NativeFeeEventAppend.Calls != 1 {
+		t.Fatal("transaction detail snapshot aliases reader")
+	}
+
 }
 
 func currentInputFixture(t *testing.T) (*durableReader, *consensus.Application, string, string, []byte, int64) {

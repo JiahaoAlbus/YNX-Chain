@@ -50,3 +50,15 @@ GOMAXPROCS=1 go test -race ./internal/consensus -run '^Test(BlockJournal|NativeS
 [本轮原始计数与摘要](evidence/native-finalize-children-local32-20261024.json)。原raw `native-finalize-child-real32-first.raw` PASS1.394s；新增子计数守恒与嵌套别名断言后，受影响block journal/native suffix/application/commit timing组race PASS12.125s，客户端快照race PASS1.674s，consensus/client vet通过。必要测试仍由原CI匹配，不另造网络或合成业务资格。
 
 Root后来签发了绑定冻结4e4d26a71的once grant。实际唯一Hosted dispatch开始02:42:15.248706Z，原run40055278746/job120756796984精确使用4e4；最初CLI JSON布尔值本地解析拒绝、未创建run的首因已保留，改用gh声明支持的raw-field输入后创建原run，没有重跑未知远端结果。源包记录所有原命令、时间、CI、grant及固定reader。此后Finalize诊断源码与该冻结网络源分离；原网络仍在途，结果未读回前不报告新TPS或延迟提升。
+
+## 原生交易执行进一步细分
+
+在显式suffix细项API内新增transactionDetails：封套类型解析、nativeDecodeVerified、nativeApplyState，以及嵌套在state内的nativeFeeEventAppend。原入口使用同一实现但不记录时钟；nonce/余额/lot/手续费事件/回滚逻辑保留。newCurrentFeeEvent及不可变journal追加作为真实调用测量，不把历史seal拷贝混入每笔追加。原交易执行阶段还包含生成交易结果等剩余开销，各子阶段与父阶段不可相加。
+
+本机非race 32笔真实签名、执行、Commit与重放，30次suffix交易执行累计6.216792ms：封套解析0.125748ms，验签解码5.793334ms（占执行93.19%），账户状态更新0.184542ms；其中手续费事件构造和追加0.065377ms（占执行1.05%，嵌套在状态更新内）。32笔只验证一次，verification facts为lookups32/hits0/success32。nativeDecodeVerified仍包含摘要、缓存查询、解析和数学验签，不能把整个5.793ms称为纯数学验签。该小账户短历史的费用追加占比不能代替长历史seal、完整Validate或实际2048账户网络结果，也不能据此降低验签。
+
+坏封套、坏签名、合法签名但错误nonce和成功路径均与原未计时入口逐字段比较输出及错误分类；失败不产生后续手续费事件，借用的提交状态不变。32笔子阶段计数/父子包含关系/聚合与快照隔离race通过；原native delta差分/晚手续费失败/验签缓存及重启/混合交易手续费顺序组race PASS13.352s，客户端嵌套快照race PASS1.792s，vet通过。新测试名匹配原CI的TestBlockJournalPrefix步骤。
+
+[本轮全部计数、运行条件和原raw摘要](evidence/native-execution-children-local32-20261024.json)。所有前置样本保留，绝对耗时随主机负载变化，不以不同轮次的时间变化宣称优化收益。
+
+当前冻结suffix初始化对比使用独立tag codex/chain-native-suffix-pair-ea2dc6b80（原CI40060431754 SUCCESS），Root新once grant对应唯一run40060919778/job120774026990；本段新增交易子计时不进入该冻结源码。旧canonical配对40055278746已完整读回并保留其端到端回退，详见对应比较报告。新配对尚未完成读回，持续1000有效final/s×600秒仍未达。

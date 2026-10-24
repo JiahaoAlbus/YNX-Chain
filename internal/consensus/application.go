@@ -663,7 +663,11 @@ func (a *Application) finalizeBlockWithReplayTiming(_ context.Context, req *abci
 	_ = phases.measure("executeTransactions", func() error {
 		results = make([]*abcitypes.ExecTxResult, len(req.Txs))
 		for i, payload := range req.Txs {
-			next, tx, err := a.applyTransaction(state, payload, req.Height, req.Time)
+			var transactionPhases *BlockJournalTransactionPhases
+			if phases != nil {
+				transactionPhases = &phases.TransactionDetails
+			}
+			next, tx, err := a.applyTransactionWithReplayTiming(state, payload, req.Height, req.Time, transactionPhases)
 			if err != nil {
 				results[i] = &abcitypes.ExecTxResult{Code: transactionCode(err), Log: err.Error()}
 				continue
@@ -782,7 +786,12 @@ func (a *Application) committedExecutionStateView() executionState {
 }
 
 func (a *Application) applyTransaction(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
-	kind, err := TransactionEnvelopeType(payload)
+	return a.applyTransactionWithReplayTiming(state, payload, height, blockTime, nil)
+}
+
+func (a *Application) applyTransactionWithReplayTiming(state executionState, payload []byte, height int64, blockTime time.Time, phases *BlockJournalTransactionPhases) (executionState, transactionExecution, error) {
+	var kind string
+	err := phases.measure("envelopeType", func() error { var e error; kind, e = TransactionEnvelopeType(payload); return e })
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
@@ -803,10 +812,24 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if kind == EthereumLegacyTransferType || kind == EthereumAccessListTransferType || kind == EthereumDynamicFeeTransferType {
 		return a.applyEthereumValueTransfer(cloneExecutionStateValue(state), payload, height, blockTime)
 	}
-	tx, err := a.decodeVerifiedNativeTransaction(payload)
+	var tx SignedTransaction
+	err = phases.measure("nativeDecodeVerified", func() error { var e error; tx, e = a.decodeVerifiedNativeTransaction(payload); return e })
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
+	var next executionState
+	var execution transactionExecution
+	err = phases.measure("nativeApplyState", func() error {
+		var e error
+		next, execution, e = a.applyVerifiedNativeState(state, tx, payload, height, blockTime, phases)
+		return e
+	})
+	return next, execution, err
+}
+
+// Shared state transition for timed replay and normal execution. No checks or
+// rollback boundaries are removed; only the explicit replay API records clocks.
+func (a *Application) applyVerifiedNativeState(state executionState, tx SignedTransaction, payload []byte, height int64, blockTime time.Time, phases *BlockJournalTransactionPhases) (executionState, transactionExecution, error) {
 	sender, ok := nativeAccountAt(state, tx.From)
 	if !ok {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("signed transaction sender account does not exist"))
@@ -855,7 +878,10 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	for i := 0; i < count; i++ {
 		state.nativeAccounts = deltaPut(state.nativeAccounts, working[i].account.Address, working[i])
 	}
-	state.feeEvents = state.feeEvents.append(newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	_ = phases.measure("nativeFeeEventAppend", func() error {
+		state.feeEvents = state.feeEvents.append(newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+		return nil
+	})
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
 }
 

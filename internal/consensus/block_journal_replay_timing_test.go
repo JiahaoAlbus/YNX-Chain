@@ -91,6 +91,17 @@ func TestBlockJournalPrefixSuffixReplayDetailsRealSignedHistoryAndFailures(t *te
 				}
 				nested += phase.DurationNs
 			}
+			tx := f.TransactionDetails
+			var transactionTotal int64
+			for _, phase := range []BlockJournalPrefixPhase{tx.EnvelopeType, tx.NativeDecodeVerified, tx.NativeApplyState} {
+				if phase.Calls != 1 || phase.Errors != 0 || phase.DurationNs <= 0 {
+					t.Fatal("native execution child coverage differs", phase)
+				}
+				transactionTotal += phase.DurationNs
+			}
+			if tx.NativeFeeEventAppend.Calls != 1 || tx.NativeFeeEventAppend.Errors != 0 || tx.NativeFeeEventAppend.DurationNs <= 0 || tx.NativeFeeEventAppend.DurationNs > tx.NativeApplyState.DurationNs || transactionTotal > f.ExecuteTransactions.DurationNs {
+				t.Fatal("native execution nesting differs", tx)
+			}
 			if nested > parts.Finalize.DurationNs {
 				t.Fatal("Finalize children exceed parent")
 			}
@@ -102,6 +113,15 @@ func TestBlockJournalPrefixSuffixReplayDetailsRealSignedHistoryAndFailures(t *te
 	if aggregate.SuffixReplay.Calls < 28 || aggregate.SuffixReplayDetails.Finalize.Calls != aggregate.SuffixReplay.Calls {
 		t.Fatal("real suffix coverage missing")
 	}
+	facts := d.VerificationStats()
+	if facts.SuccessfulVerifications != 32 {
+		t.Fatal("real signed history verification count differs", facts)
+	}
+	encodedFacts, err := json.Marshal(facts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("REAL_SIGNED_EXECUTION_VERIFICATION_FACTS %s", encodedFacts)
 	expected := aggregate.SuffixReplayDetails.FinalValidate.Calls
 	last.WorkPhases.SuffixReplayDetails.FinalValidate.Calls = 999
 	if aggregate.SuffixReplayDetails.FinalValidate.Calls != expected {
@@ -115,6 +135,13 @@ func TestBlockJournalPrefixSuffixReplayDetailsRealSignedHistoryAndFailures(t *te
 	copy.FinalizeDetails.SealState.Calls = 999
 	if aggregate.SuffixReplayDetails.FinalizeDetails.SealState.Calls != aggregate.SuffixReplay.Calls {
 		t.Fatal("clone aliases nested Finalize counters")
+	}
+	if aggregate.SuffixReplayDetails.FinalizeDetails.TransactionDetails.NativeFeeEventAppend.Calls != aggregate.SuffixReplay.Calls {
+		t.Fatal("transaction child aggregation lost")
+	}
+	copy.FinalizeDetails.TransactionDetails.NativeFeeEventAppend.Calls = 999
+	if aggregate.SuffixReplayDetails.FinalizeDetails.TransactionDetails.NativeFeeEventAppend.Calls != aggregate.SuffixReplay.Calls {
+		t.Fatal("transaction child clone aliases")
 	}
 	// Use the real31 ->32 append pair. The next real33 write compacts the
 	// checkpoint and cannot be assumed to preserve the previous byte prefix.
@@ -178,4 +205,76 @@ func TestBlockJournalPrefixSuffixReplayDetailsRealSignedHistoryAndFailures(t *te
 		t.Fatal(err)
 	}
 	t.Logf("REAL_SIGNED_SUFFIX_CHILDREN_32 %s", encoded)
+}
+
+func TestBlockJournalPrefixReplayTransactionChildrenPreserveFirstFailureAndRollback(t *testing.T) {
+	migration, _ := journalFixture(t)
+	valid := journalTransfer(t, 1)
+	var tx SignedTransaction
+	if err := json.Unmarshal(valid, &tx); err != nil {
+		t.Fatal(err)
+	}
+	tx.Signature = "invalid-signature"
+	badSignature, err := json.Marshal(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		name    string
+		payload []byte
+		stage   string
+	}{
+		{"envelope", nil, "envelope"}, {"signature", badSignature, "signature"}, {"nonce", journalTransfer(t, 2), "state"}, {"valid", valid, ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			original, err := NewApplication(migration)
+			if err != nil {
+				t.Fatal(err)
+			}
+			timed, err := NewApplication(migration)
+			if err != nil {
+				t.Fatal(err)
+			}
+			before := timed.cloneExecutionState()
+			wanted, execution, wantErr := original.applyTransaction(original.cloneExecutionState(), c.payload, int64(migration.Height)+1, time.Unix(1802736001, 123).UTC())
+			var phases BlockJournalTransactionPhases
+			got, result, gotErr := timed.applyTransactionWithReplayTiming(before, c.payload, int64(migration.Height)+1, time.Unix(1802736001, 123).UTC(), &phases)
+			if !reflect.DeepEqual(wanted, got) || !reflect.DeepEqual(execution, result) || (wantErr == nil) != (gotErr == nil) || wantErr != nil && (wantErr.Error() != gotErr.Error() || transactionCode(wantErr) != transactionCode(gotErr)) {
+				t.Fatalf("timing changed transition: %v / %v", wantErr, gotErr)
+			}
+			if !reflect.DeepEqual(before, timed.cloneExecutionState()) {
+				t.Fatal("execution mutated original committed state")
+			}
+			if phases.EnvelopeType.Calls != 1 {
+				t.Fatal("envelope count", phases)
+			}
+			if c.stage == "envelope" {
+				if phases.EnvelopeType.Errors != 1 || phases.NativeDecodeVerified.Calls != 0 {
+					t.Fatal("envelope first cause", phases)
+				}
+				return
+			}
+			if phases.NativeDecodeVerified.Calls != 1 {
+				t.Fatal("native decode count", phases)
+			}
+			if c.stage == "signature" {
+				if phases.NativeDecodeVerified.Errors != 1 || phases.NativeApplyState.Calls != 0 {
+					t.Fatal("signature first cause", phases)
+				}
+				return
+			}
+			if phases.NativeApplyState.Calls != 1 {
+				t.Fatal("state count", phases)
+			}
+			if c.stage == "state" {
+				if phases.NativeApplyState.Errors != 1 || phases.NativeFeeEventAppend.Calls != 0 {
+					t.Fatal("failed nonce appended fees", phases)
+				}
+				return
+			}
+			if phases.NativeFeeEventAppend.Calls != 1 || phases.NativeApplyState.Errors != 0 || phases.NativeDecodeVerified.Errors != 0 {
+				t.Fatal("success count", phases)
+			}
+		})
+	}
 }

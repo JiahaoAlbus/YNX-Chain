@@ -81,10 +81,11 @@ func (p *BlockJournalFrameReplayPhases) Clone() BlockJournalFrameReplayPhases {
 }
 
 type BlockJournalFinalizePhases struct {
-	CloneExecutionState BlockJournalPrefixPhase `json:"cloneExecutionState"`
-	ExecuteTransactions BlockJournalPrefixPhase `json:"executeTransactions"`
-	SealState           BlockJournalPrefixPhase `json:"sealState"`
-	BuildResponse       BlockJournalPrefixPhase `json:"buildResponse"`
+	TransactionDetails  BlockJournalTransactionPhases `json:"transactionDetails"`
+	CloneExecutionState BlockJournalPrefixPhase       `json:"cloneExecutionState"`
+	ExecuteTransactions BlockJournalPrefixPhase       `json:"executeTransactions"`
+	SealState           BlockJournalPrefixPhase       `json:"sealState"`
+	BuildResponse       BlockJournalPrefixPhase       `json:"buildResponse"`
 }
 
 func (p *BlockJournalFinalizePhases) measure(name string, action func() error) error {
@@ -115,8 +116,55 @@ func (p *BlockJournalFinalizePhases) measure(name string, action func() error) e
 }
 
 func (p *BlockJournalFinalizePhases) add(other BlockJournalFinalizePhases) {
+	p.TransactionDetails.add(other.TransactionDetails)
 	targets := []*BlockJournalPrefixPhase{&p.CloneExecutionState, &p.ExecuteTransactions, &p.SealState, &p.BuildResponse}
 	for i, v := range []BlockJournalPrefixPhase{other.CloneExecutionState, other.ExecuteTransactions, other.SealState, other.BuildResponse} {
+		targets[i].Calls += v.Calls
+		targets[i].Errors += v.Errors
+		targets[i].DurationNs += v.DurationNs
+	}
+}
+
+// Children of executeTransactions. NativeFeeEventAppend is nested inside
+// NativeApplyState; none of these counters is additional wall-clock duration.
+// DecodeVerified includes cache lookup and full verification on misses.
+type BlockJournalTransactionPhases struct {
+	EnvelopeType         BlockJournalPrefixPhase `json:"envelopeType"`
+	NativeDecodeVerified BlockJournalPrefixPhase `json:"nativeDecodeVerified"`
+	NativeApplyState     BlockJournalPrefixPhase `json:"nativeApplyState"`
+	NativeFeeEventAppend BlockJournalPrefixPhase `json:"nativeFeeEventAppend"`
+}
+
+func (p *BlockJournalTransactionPhases) measure(name string, action func() error) error {
+	if p == nil {
+		return action()
+	}
+	var phase *BlockJournalPrefixPhase
+	switch name {
+	case "envelopeType":
+		phase = &p.EnvelopeType
+	case "nativeDecodeVerified":
+		phase = &p.NativeDecodeVerified
+	case "nativeApplyState":
+		phase = &p.NativeApplyState
+	case "nativeFeeEventAppend":
+		phase = &p.NativeFeeEventAppend
+	default:
+		panic("unregistered replay transaction phase")
+	}
+	started := time.Now()
+	phase.Calls++
+	err := action()
+	phase.DurationNs += time.Since(started).Nanoseconds()
+	if err != nil {
+		phase.Errors++
+	}
+	return err
+}
+
+func (p *BlockJournalTransactionPhases) add(other BlockJournalTransactionPhases) {
+	targets := []*BlockJournalPrefixPhase{&p.EnvelopeType, &p.NativeDecodeVerified, &p.NativeApplyState, &p.NativeFeeEventAppend}
+	for i, v := range []BlockJournalPrefixPhase{other.EnvelopeType, other.NativeDecodeVerified, other.NativeApplyState, other.NativeFeeEventAppend} {
 		targets[i].Calls += v.Calls
 		targets[i].Errors += v.Errors
 		targets[i].DurationNs += v.DurationNs

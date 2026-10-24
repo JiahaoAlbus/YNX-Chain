@@ -1,0 +1,235 @@
+{
+  "schema": 1,
+  "kind": "real_signed_local32_suffix_execution_children_not_network_tps",
+  "sourceParent": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+  "host": {
+    "machine": "arm64",
+    "goVersion": "go version go1.25.7 darwin/arm64",
+    "gomaxprocs": 1,
+    "race": false,
+    "exclusiveHost": false
+  },
+  "signedTransactions": 32,
+  "suffixTransactions": 30,
+  "verificationFacts": {
+    "capacity": 4096,
+    "string_byte_limit": 4194304,
+    "entries": 32,
+    "retained_string_bytes": 22835,
+    "lookups": 32,
+    "hits": 0,
+    "successful_verifications": 32
+  },
+  "executeTransactions": {
+    "calls": 30,
+    "errors": 0,
+    "durationNs": 6216792
+  },
+  "rows": [
+    {
+      "phase": "envelopeType",
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 125748,
+      "percentOfExecuteTransactions": 2.022715252496786,
+      "nestedInside": "executeTransactions"
+    },
+    {
+      "phase": "nativeDecodeVerified",
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 5793334,
+      "percentOfExecuteTransactions": 93.18848048961587,
+      "nestedInside": "executeTransactions"
+    },
+    {
+      "phase": "nativeApplyState",
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 184542,
+      "percentOfExecuteTransactions": 2.968444175066497,
+      "nestedInside": "executeTransactions"
+    },
+    {
+      "phase": "nativeFeeEventAppend",
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 65377,
+      "percentOfExecuteTransactions": 1.0516195491179374,
+      "nestedInside": "nativeApplyState"
+    }
+  ],
+  "allPhases": {
+    "suffixReplayDetails": {
+      "finalizeDetails": {
+        "transactionDetails": {
+          "envelopeType": {
+            "calls": 30,
+            "errors": 0,
+            "durationNs": 125748
+          },
+          "nativeDecodeVerified": {
+            "calls": 30,
+            "errors": 0,
+            "durationNs": 5793334
+          },
+          "nativeApplyState": {
+            "calls": 30,
+            "errors": 0,
+            "durationNs": 184542
+          },
+          "nativeFeeEventAppend": {
+            "calls": 30,
+            "errors": 0,
+            "durationNs": 65377
+          }
+        },
+        "cloneExecutionState": {
+          "calls": 30,
+          "errors": 0,
+          "durationNs": 103501
+        },
+        "executeTransactions": {
+          "calls": 30,
+          "errors": 0,
+          "durationNs": 6216792
+        },
+        "sealState": {
+          "calls": 30,
+          "errors": 0,
+          "durationNs": 2560668
+        },
+        "buildResponse": {
+          "calls": 30,
+          "errors": 0,
+          "durationNs": 11289
+        }
+      },
+      "readFrame": {
+        "calls": 60,
+        "errors": 0,
+        "durationNs": 62629
+      },
+      "decodeRecord": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 264667
+      },
+      "checkpointValidate": {
+        "calls": 0,
+        "errors": 0,
+        "durationNs": 0
+      },
+      "decodeRequest": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 90793
+      },
+      "finalize": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 8922416
+      },
+      "verifyResponse": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 38373
+      },
+      "memoryCommit": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 13997
+      },
+      "finalValidate": {
+        "calls": 30,
+        "errors": 0,
+        "durationNs": 1526292
+      }
+    },
+    "gateWait": {
+      "calls": 32,
+      "errors": 0,
+      "durationNs": 14334
+    },
+    "prefixCheck": {
+      "calls": 32,
+      "errors": 0,
+      "durationNs": 248166
+    },
+    "privateJSON": {
+      "calls": 0,
+      "errors": 0,
+      "durationNs": 0
+    },
+    "privateValidate": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 1828459
+    },
+    "fullReplay": {
+      "calls": 2,
+      "errors": 0,
+      "durationNs": 1738709
+    },
+    "suffixSetup": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 3471042
+    },
+    "suffixReplay": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 10963790
+    },
+    "suffixEncode": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 3387454
+    },
+    "canonicalCopy": {
+      "calls": 0,
+      "errors": 0,
+      "durationNs": 0
+    },
+    "certificatePublish": {
+      "calls": 32,
+      "errors": 0,
+      "durationNs": 6404164
+    },
+    "privateNativeClone": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 617164
+    }
+  },
+  "rawEvidence": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-execution-children-qualified.raw",
+      "bytes": 2230,
+      "sha256": "7581472b53aa1be6026ba0162f184b9a7034152c8d76fc9794afd2ae11717f18"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-execution-children-race.raw",
+      "bytes": 2848,
+      "sha256": "4ee2c613a523376040b1204c30221603d10c7fdf9ee7a82e3308427ad9c7fc3d"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-execution-children-safety.raw",
+      "bytes": 3838,
+      "sha256": "98e5de1756fcca6f87256ae4aa6207108ba6430bc983ae12c1b065322b4b2c96"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-execution-children-snapshot-race.raw",
+      "bytes": 224,
+      "sha256": "a465d77387b88cb5ed655d93dbf6c441aa4769373030f5e4d62ca5b528bdddc2"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-execution-children-vet.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "interpretation": "Short history/small account local sequential signed journal; each envelope verified once, no cache hits. nativeDecodeVerified includes digest/cache lookup/parsing/crypto on misses; does not isolate mathematical verification. FeeEventAppend includes tx hash/current fee construction/immutable journal append, excludes block seal/history materialization. Nested durations are not additive. No same-condition speedup comparison; all measured runs retained."
+}
