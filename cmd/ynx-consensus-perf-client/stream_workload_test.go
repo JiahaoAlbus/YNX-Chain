@@ -151,6 +151,9 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		o.nativeCurrentInputReuse = true
 		o.nativeCanonicalCertificate = len(candidates) >= 1 && candidates[0]
 		o.nativeSuffixSetup = len(candidates) >= 2 && candidates[1]
+		if len(candidates) >= 3 && candidates[2] {
+			o.nativeStreamSubmitters, o.concurrency = 16, 16
+		}
 		o.pacedWorkerInventory = new(pacedWorkerInventory)
 	}
 	o.terminalGzip = compressed
@@ -300,6 +303,9 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		t.Fatal("scoped controller differs", stats, runErr)
 	}
 	if native {
+		if plan.Profile != streamingProfileName(o) || plan.NativePrefix.Submitters != o.concurrency || plan.NativePrefix.Observers != 4 {
+			t.Fatal("persisted plan does not bind actual worker scope", plan.NativePrefix)
+		}
 		actual := nativeReader.stats()
 		if actual.PrefixReplay.CanonicalCertificate != o.nativeCanonicalCertificate || plan.NativePrefix.CanonicalCertificate != o.nativeCanonicalCertificate || plan.NativePrefix.OriginalSuffixSetup == o.nativeSuffixSetup || actual.PrefixReplay.NativeSuffixSetup != o.nativeSuffixSetup {
 			t.Fatal("certificate configuration/plan differs")
@@ -314,7 +320,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 			t.Fatal("actual native stream current-state/signature work differs", actual)
 		}
 		inventory := o.pacedWorkerInventory
-		if inventory.Submitters != 8 || inventory.Observers != 4 || inventory.SubmissionQueueCapacity != len(initial) || len(inventory.ObservationQueueCapacities) != 4 {
+		if inventory.Submitters != o.concurrency || inventory.Observers != 4 || inventory.SubmissionQueueCapacity != len(initial) || len(inventory.ObservationQueueCapacities) != 4 {
 			t.Fatal("native stream actual workers/queues differ", inventory)
 		}
 		finishDurableReader(&nativeReader, &finalNativeStats)
@@ -348,7 +354,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	if err := claimSenderPool(path); err == nil {
 		t.Fatal("completed fixture claim was silently reusable")
 	}
-	if native {
+	if native && o.nativeStreamSubmitters == 0 {
 		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats)
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)

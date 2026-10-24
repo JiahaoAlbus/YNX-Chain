@@ -1,0 +1,11 @@
+# Explicit native stream16 client candidate
+
+The measured stream8 Status pair offered about 327.68 transactions/s against a declared 1000/s. This change prepares a separately identifiable submit-concurrency experiment; it does not establish that concurrency is the bottleneck or that throughput improves.
+
+Select `--native-stream8 --native-stream-submitters 16 --concurrency 16` together with all original native streaming options. Zero (omitted) preserves the original eight submitters. The plan identifies `scoped_native_prefix_stream16_v1`, records sixteen submitters and four observers; the report records the explicit selection. Plain concurrency16 and unsupported overrides fail validation. Original signing, sender nonce sequence, balances, bounded queues, native reader budget, durable readback and full evidence checks remain active.
+
+Focused actual-business validation executes 102 signed transactions, three accounts with 34 nonce cycles each, CheckTx/FinalizeBlock/Commit, original native signature/state observation, full terminal evidence verification, reopening and replay rejection. It constructs the sixteen worker inventory and checks the persisted plan against it. This fixture has only three sender accounts: it does not exercise sixteen simultaneous submissions or measure network capacity. Quorum gates remain synthetic in the application fixture. The original eight-worker public archive fixture is preserved separately.
+
+Validation on the current local Go toolchain: focused tests PASS 2.531s; focused original8/new16 race PASS 6.676s; full client package PASS 15.988s. Existing Chain Core CI already selects all TestNativeStreaming tests with race; no separate workflow is added. Raw logs reside under `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-reader-finish-pair-source-1c86e2bad/native-stream16-*.raw`.
+
+Next: prove bounded sixteen-way simultaneous issuance with more test senders, instrument/compare submit waiting and queue utilization, and bind the new profile through the pair controller, worker and archive verifier. Hosted four-node execution requires a fresh exact Root grant after the prior run fullstream readback is independently qualified. No old grant is reused, no new network test has run, and Status remains off by default. Sustained1000/s and finality latency are unproven.

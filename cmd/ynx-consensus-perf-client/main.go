@@ -65,6 +65,7 @@ type options struct {
 	nativeCurrentInputReuse        bool
 	nativeCanonicalCertificate     bool
 	nativeBlockTipHint             bool
+	nativeStreamSubmitters         int
 	nativeStream8                  bool
 	nativeSubmit8                  bool
 	nativeSuffixSetup              bool
@@ -205,6 +206,7 @@ type report struct {
 	NativeCurrentInputReuse    bool                      `json:"nativeCurrentInputReuse,omitempty"`
 	NativeBlockTipHint         bool                      `json:"nativeBlockTipHint,omitempty"`
 	NativeCanonicalCertificate bool                      `json:"nativeCanonicalCertificate,omitempty"`
+	NativeStreamSubmitters     int                       `json:"nativeStreamSubmitters,omitempty"`
 	NativeStream8              bool                      `json:"nativeStream8,omitempty"`
 	NativeSubmit8              bool                      `json:"nativeSubmit8,omitempty"`
 	NativeSuffixSetup          bool                      `json:"nativeSuffixSetup,omitempty"`
@@ -258,7 +260,8 @@ func main() {
 	flag.BoolVar(&o.nativeCurrentInputReuse, "native-current-input-reuse", false, "explicit native stream only: share privately validated identical freshly captured input under original reader budget")
 	flag.BoolVar(&o.nativeCanonicalCertificate, "native-canonical-certificate", false, "explicit native stream only: canonical private certificate copy with exact encoded-byte comparison and strict JSON fallback")
 	flag.BoolVar(&o.nativeBlockTipHint, "native-block-tip-hint", false, "explicit native stream only: status height/hash guides full authenticated block fetch; never authority or finality")
-	flag.BoolVar(&o.nativeStream8, "native-stream8", false, "explicit history-growing native prefix stream: original ready sender/nonce/evidence rules, exactly8submitters/4observers; separate resource grant required")
+	flag.IntVar(&o.nativeStreamSubmitters, "native-stream-submitters", 0, "explicit native stream16 candidate only; zero preserves stream8; separate resource grant required")
+	flag.BoolVar(&o.nativeStream8, "native-stream8", false, "explicit history-growing native prefix stream: original ready sender/nonce/evidence rules, 8submitters/4observers unless explicit stream16 candidate selected; separate resource grant required")
 	flag.BoolVar(&o.nativeSubmit8, "native-submit8", false, "candidate: exactly8 submitters, original four observers/queues and native-copy single-round supply")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
 	flag.BoolVar(&o.observerPhaseTiming, "observer-phase-timing", false, "measure original observer RPC/verification/readback calls and bounded per-worker traces; no extra requests")
@@ -982,6 +985,7 @@ func execute(o options) error {
 		r.Interpretation = append(r.Interpretation, "Explicit block tip hint only avoids repeated full latest-block bodies at unchanged authenticated height. Status height/hash is discovery data, never authority. Each new height retains original signed commit/validator quorum/Merkle/execution results and fresh durable state/Info verification; no fallback, timeout extension or business TPS qualification.")
 	}
 	r.NativeStream8 = o.nativeStream8
+	r.NativeStreamSubmitters = o.nativeStreamSubmitters
 	r.NativeSubmit8 = o.nativeSubmit8
 	r.NativeSuffixSetup = o.nativeSuffixSetup
 	r.ObserverNativeFacts = o.observerNativeFacts

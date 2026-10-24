@@ -9,6 +9,14 @@ import (
 // Separate opt-in scope. The original nativeSubmit8 single-round contract and
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
+	if o.nativeStreamSubmitters != 0 && (o.nativeStreamSubmitters != 16 || !o.nativeStream8 || o.concurrency != 16) {
+		return errors.New("explicit native stream submitters requires stream16 and concurrency16")
+	}
+	expectedSubmitters := 8
+	if o.nativeStreamSubmitters == 16 {
+		expectedSubmitters = 16
+	}
+
 	if o.nativeBlockTipHint && (!o.nativeStream8 || o.nativeCanonicalCertificate || o.nativeSuffixSetup) {
 		return errors.New("block tip hint requires native streaming and no mixed construction candidate")
 	}
@@ -21,8 +29,8 @@ func validateNativeStreamingOptions(o options) error {
 		}
 		return nil
 	}
-	if !o.streamingWorkload || o.senderMode != "ready-pool" || o.rounds < 2 || o.rounds > 4096 || o.concurrency != 8 || o.observers != 4 || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || !o.prefixDurableReplay || !o.prefixNativeClone || !o.observerNativeFacts || !o.observerPhaseTiming || o.nativeSubmit8 || o.nativeSuffixSetup && o.nativeCanonicalCertificate || o.clientProcs2 || o.sharedDurableReplay || o.endpointFair || o.endpointElastic || o.inclusionMode != "block-scan" || !o.terminalStream || !o.reuseResultSlots || !o.segmentedIntents || o.output == "" || o.evidenceByteBudget < 1 || o.evidenceByteBudget > 2<<30 {
-		return errors.New("native stream8 requires explicit native-prefix/facts/phase ready streaming,8submitters/4observers/original bounded positive pace and at most one certificate/suffix construction candidate")
+	if !o.streamingWorkload || o.senderMode != "ready-pool" || o.rounds < 2 || o.rounds > 4096 || o.concurrency != expectedSubmitters || o.observers != 4 || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || !o.prefixDurableReplay || !o.prefixNativeClone || !o.observerNativeFacts || !o.observerPhaseTiming || o.nativeSubmit8 || o.nativeSuffixSetup && o.nativeCanonicalCertificate || o.clientProcs2 || o.sharedDurableReplay || o.endpointFair || o.endpointElastic || o.inclusionMode != "block-scan" || !o.terminalStream || !o.reuseResultSlots || !o.segmentedIntents || o.output == "" || o.evidenceByteBudget < 1 || o.evidenceByteBudget > 2<<30 {
+		return errors.New("native stream requires explicit native-prefix/facts/phase ready streaming,selected8or16submitters/4observers/original bounded positive pace and at most one certificate/suffix construction candidate")
 	}
 	if _, err := normalizeReadyPacingMode(o.pacingMode); err != nil {
 		return err
@@ -116,6 +124,9 @@ type nativeStreamingPlan struct {
 
 func streamingProfileName(o options) string {
 	if o.nativeStream8 {
+		if o.nativeStreamSubmitters == 16 {
+			return "scoped_native_prefix_stream16_v1"
+		}
 		return "scoped_native_prefix_stream8_v1"
 	}
 	return "scoped_streaming_v1"
