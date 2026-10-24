@@ -6,6 +6,8 @@ import {createPackagedPQHostSelector,packagedPQVerifierAssetPaths,preparePackage
 import * as fs from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
 import {originalPQVerifierReceipt as runtimeReceipt} from '../src/wallet-pq-runtime-component.mjs';
+import {readOriginalPQHostSourceCatalog as loadOriginalPQHostSourceCatalog} from '../src/wallet-pq-host-catalog.mjs';
+import {originalPQHostCatalogRegistration} from '../src/wallet-pq-host-catalog-registration.mjs';
 
 test('selector adds only the independently pinned fourth file; old profile paths stay unchanged',()=>{
  const old=['SOURCE.json','manifest.json','darwin-arm64/ynx-consensus-proof-verify'];
@@ -40,6 +42,13 @@ test('catalog request rejects missing independent pins, unknown fields and overs
   await assert.rejects(preparePackagedPQHostSelectionInvocation('/PUBLIC',receipt,{...base,...change}));
  }
 });
+test('normal Main consumes the original private registration through the fixed loader rather than an unconditional refusal',async()=>{
+ const main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),pair=Object.freeze({catalogPath:'/PUBLIC/private/catalog.json',catalogSha256:'a'.repeat(64)});let loads=0;
+ const context={originalPQHostCatalogRegistration:pair,loadOriginalPQHostSourceCatalog:r=>{loads++;assert.equal(r,pair);return pair;}};
+ const declaration=main.split('\n').find(line=>/^const readOriginalPQHostSourceCatalog=/.test(line));assert(declaration);
+ runInNewContext(declaration+'\nthis.read=readOriginalPQHostSourceCatalog;',context);
+ assert.equal(context.read(),pair);assert.equal(loads,1);
+});
 test('normal Main and Mac build entrypoints share one fixed component; missing catalog fails before selector construction',async()=>{
  assert.equal(runtimeReceipt,receipt);
  const main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8');
@@ -47,7 +56,7 @@ test('normal Main and Mac build entrypoints share one fixed component; missing c
   const source=await fs.readFile(new URL(file,import.meta.url),'utf8');
   assert.match(source,/import \{originalPQVerifierReceipt\} from ['"](?:\.\/|\.\.\/src\/)wallet-pq-runtime-component\.mjs['"]/);
  }
- const context={app:{},originalPQVerifierReceipt:runtimeReceipt};let factories=0;
+ const context={app:{},originalPQVerifierReceipt:runtimeReceipt,loadOriginalPQHostSourceCatalog,originalPQHostCatalogRegistration};let factories=0;
  for(const name of ['createPackagedPQFinalityVerifier','createPackagedPQHostProducer','createPackagedPQHostSelector'])context[name]=args=>{assert.equal(args.independentReceipt,receipt);factories++;return Object.freeze({PUBLIC:true});};
  const declarations=main.split('\n').filter(line=>/^const (createOriginalPQ(FinalityVerifier|HostProducer|HostSelector)|readOriginalPQHostSourceCatalog)=/.test(line)).join('\n');
  runInNewContext(declarations+'\nthis.calls=[createOriginalPQFinalityVerifier,createOriginalPQHostProducer,createOriginalPQHostSelector];this.catalog=readOriginalPQHostSourceCatalog;',context);

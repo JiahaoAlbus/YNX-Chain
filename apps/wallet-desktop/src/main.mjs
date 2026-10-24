@@ -4,6 +4,8 @@ import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import {recordRPCMetadataFailure} from './rpc-metadata-failure-record.mjs';
 import {createPackagedPQFinalityVerifier,createPackagedPQHostProducer,createPackagedPQHostSelector} from './wallet-pq-verifier-assets.mjs';
 import {originalPQVerifierReceipt} from './wallet-pq-runtime-component.mjs';
+import {readOriginalPQHostSourceCatalog as loadOriginalPQHostSourceCatalog} from './wallet-pq-host-catalog.mjs';
+import {originalPQHostCatalogRegistration} from './wallet-pq-host-catalog-registration.mjs';
 import {createPQHostSelectionCapture} from './wallet-pq-host-selection-capture.mjs';
 import {createProductWalletReturnPublisher} from '@ynx-chain/wallet-auth/product-wallet-connection';
 import {createOriginalAdmissionController} from './original-admission-controller.mjs';
@@ -130,10 +132,9 @@ async function getOriginalIDEIdentityPeer(){
 const createOriginalPQFinalityVerifier=()=>createPackagedPQFinalityVerifier({app,independentReceipt:originalPQVerifierReceipt});
 const createOriginalPQHostProducer=()=>createPackagedPQHostProducer({app,independentReceipt:originalPQVerifierReceipt});
 const createOriginalPQHostSelector=()=>createPackagedPQHostSelector({app,independentReceipt:originalPQVerifierReceipt});
-// Protocol's independently pinned source/lifecycle/current selection is not
-// supplied in this source freeze. No renderer, ENV, Auth identity or arbitrary
-// local JSON can replace that original private producer handoff.
-const readOriginalPQHostSourceCatalog=()=>{throw Object.assign(Error('Original Protocol independently pinned private Host source catalog has not been supplied.'),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});};
+// Fixed private original-registration receiver. File/digest verification is
+// DATA only; the original selector and Host still enforce binding/current/trust.
+const readOriginalPQHostSourceCatalog=()=>loadOriginalPQHostSourceCatalog(originalPQHostCatalogRegistration);
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
 async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
   const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
