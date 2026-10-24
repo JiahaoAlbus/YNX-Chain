@@ -11,3 +11,17 @@ Unix纳秒用十进制字符串保存，避免JavaScript Number截断。每个�
 这些时刻仍需在同一原VM/boot身份下，与完整原签名终端流和原BFT/持久化验证按高度、块哈希及durable post-state app hash关联。Finalize响应的appHash是H的post-state，不能与块头H中的H-1 appHash混同。单节点Commit返回不单独证明BFT最终性；读回器明确保留bftFinalityProven=false。还没有完成四节点与客户端时刻的业务逐行关联，不能用新增字段宣称已测出精确共识延迟。
 
 验证包括：原真实签名执行/重开后的状态逐字节一致，失败及错高度Commit不复用成功点，原关闭/计数/输出失败边界，JS无精度损失及漂移反例，客户端真实时钟覆盖/旧模式/UTC不匹配反例，原Go公开签名流的跨语言读回。沿原CI的TestPhaseTiming、TestNativeStreaming与原读回步骤运行。
+
+后续源码差量在原 `native-stream-evidence.py` 中加入显式、可选的
+`NodeCompletionJoin`：原签名/终端流完整匹配后，按原 endpoint、高度、块哈希、
+durable state/Info 的 post-state 哈希及交易位置匹配对应节点完成点。时间戳用
+整数纳秒解析，拒绝浮点 epoch、不完整时钟覆盖、大于1ms漂移及超出校准误差的
+事件逆序。固定直方图只保留计数，P50/P95/P99 给出包含客户端和节点漂移的区间。
+
+该关联分别报告 offer→节点 Finalize 返回、offer→节点 durable Commit 返回、
+节点 Commit→客户端最终观察。它不测最早 quorum 形成瞬间，不代替原同VM准入或
+BFT密码学验证，也不把当前节点post-state与同高度块头的前态混同。旧数据缺少
+endpoint/块身份时拒绝，不补造时间。新增反例与原公开fixture读取合计28项轻测
+通过（`native-node-clock-join-full.raw`）；原真实ABCI单测fixture缺少网络身份，
+确实不能生成节点延迟。这批关联差量不在已冻结7c4cac62a运行源中，尚未对实际
+四节点归档完成关联，不能称真实网络延迟闭环。

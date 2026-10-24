@@ -23,6 +23,13 @@ class NativeStreamEvidenceTests(unittest.TestCase):
         self.assertEqual(clock,timeline['clock'])
         stats=evidence.current_input_reuse_measurements(d["durableReadback"],True)
         self.assertTrue(stats["enabled"])
+    def test_real_go_unit_fixture_cannot_invent_missing_network_node_identity(self):
+        endpoints,phases,timeline,_=NodeCompletionJoinTests().fixture()
+        records=self.meta['terminalStream']['records'];timeline['clock']['samples']=3*records
+        join=evidence.NodeCompletionJoin(endpoints,phases,timeline,records)
+        d=self.meta
+        with self.assertRaisesRegex(RuntimeError,'terminal endpoint outside original node set'):
+            evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20,node_completion_join=join)
     def test_complete_original_latencies_match_go_bounded_summary(self):
         d=self.meta
         proof=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20,measure_latency=True)
@@ -172,5 +179,51 @@ class CurrentInputReuseMeasurementTests(unittest.TestCase):
         for changed in (dict(hits=5),dict(misses=2),dict(attempts=3),dict(lookupNs=0),dict(retainedInputBytes=12001),dict(enabled=False)):
             with self.subTest(changed=changed),self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(dict(reader,currentInputReuse=dict(stats,**changed)),True)
         with self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(reader,False)
+
+class NodeCompletionJoinTests(unittest.TestCase):
+    """Synthetic correlation counterexamples only, no network/finality claim."""
+    def fixture(self):
+        origin=evidence.utc_nanoseconds('2026-10-24T00:00:00Z')
+        clock=dict(originUnixNs=str(origin),samples=3,invalidSamples=0,maximumAbsWallDriftNs=20,valid=True,driftWithin1ms=True)
+        point=dict(height=3,blockHash='a'*64,appHash='b'*64,transactions=2,codeZeroTransactions=2)
+        for name,offset in [('finalizeReturned',2000000000),('commitReturned',2100000000)]:
+            point[name]=dict(unixNs=str(origin+offset),elapsedNs=offset,wallDriftNs=0)
+        phases=[dict(blockExecutionClock=dict(originUnixNs=str(origin),maximumAbsWallDriftNs=30,driftWithin1ms=True,completeCommitCoverage=True,completeBlockHashCoverage=True,blocks=[copy.deepcopy(point)])) for _ in range(4)]
+        row=dict(status='confirmed',checkTxCode=0,executionCode=0,quorumVerified=True,transactionProofVerified=True,durableStateVerified=True,durableInfoVerified=True,height=3,durableStateHeight=3,durableInfoHeight=3,endpoint='node0',blockHash='A'*64,durableStateAppHash='B'*64,durableInfoAppHash='B'*64,headerAppHash='c'*64,blockTxTotal=2,blockTxIndex=0,offeredAt='2026-10-24T00:00:01.000000001Z',submittedAt='2026-10-24T00:00:01.1Z',confirmedObservedAt='2026-10-24T00:00:02.2Z')
+        return ['node'+str(i) for i in range(4)],phases,dict(clock=clock),row
+    def test_exact_nanoseconds_and_current_post_state_not_prior_header(self):
+        endpoints,phases,timeline,row=self.fixture()
+        join=evidence.NodeCompletionJoin(endpoints,phases,timeline,1);join.add(row);result=join.result()
+        self.assertEqual(result['maximumCalibrationErrorBoundNs'],50)
+        d=result['nodeCompletionLatencyIntervalsNs']['offerToNodeFinalizeReturn']
+        self.assertEqual(d['minimumLowerBoundNs'],999999949);self.assertEqual(d['p95']['upperNs'],1000000049)
+        self.assertFalse(result['independentBFTVerification']);self.assertFalse(result['networkQualified'])
+        self.assertFalse(result['bftQuorumFormationInstantMeasured'])
+        self.assertEqual(evidence.utc_nanoseconds('2026-10-24T00:00:00.000000001Z')-evidence.utc_nanoseconds('2026-10-24T00:00:00Z'),1)
+    def test_unqualified_identity_clock_and_node_coverage_refuse(self):
+        for field,value in [('endpoint','foreign'),('blockHash','c'*64),('durableStateAppHash','c'*64),('durableInfoAppHash','c'*64),('height',4),('blockTxTotal',3),('blockTxIndex',2),('quorumVerified',False),('executionCode',1),('confirmedObservedAt','2026-10-24T00:00:02Z')]:
+            endpoints,phases,timeline,row=self.fixture();row[field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):evidence.NodeCompletionJoin(endpoints,phases,timeline,1).add(row)
+        for field,value in [('completeBlockHashCoverage',False),('completeCommitCoverage',False),('maximumAbsWallDriftNs',1000001),('driftWithin1ms',False)]:
+            endpoints,phases,timeline,row=self.fixture();phases[0]['blockExecutionClock'][field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):evidence.NodeCompletionJoin(endpoints,phases,timeline,1)
+        endpoints,phases,timeline,row=self.fixture();timeline['clock']['maximumAbsWallDriftNs']=1000001;timeline['clock']['driftWithin1ms']=False
+        with self.assertRaises(RuntimeError):evidence.NodeCompletionJoin(endpoints,phases,timeline,1)
+    def test_empty_blocks_allowed_but_missing_or_duplicate_business_height_refuses(self):
+        endpoints,phases,timeline,row=self.fixture()
+        for phase in phases:
+            empty=copy.deepcopy(phase['blockExecutionClock']['blocks'][0]);empty.update(height=2,transactions=0,codeZeroTransactions=0)
+            phase['blockExecutionClock']['blocks'].insert(0,empty)
+        join=evidence.NodeCompletionJoin(endpoints,phases,timeline,1)
+        with self.assertRaises(RuntimeError):join.result()
+        join.add(row);self.assertEqual(join.result()['records'],1)
+        with self.assertRaises(RuntimeError):join.add(row)
+        phases[0]['blockExecutionClock']['blocks'].append(copy.deepcopy(phases[0]['blockExecutionClock']['blocks'][0]))
+        with self.assertRaises(RuntimeError):evidence.NodeCompletionJoin(endpoints,phases,timeline,1)
+    def test_invalid_calendar_float_timestamp_or_node_calibration_refuses(self):
+        for at in (0,1.7e18,'2026-02-30T00:00:00Z','2026-10-24T00:00:00.0000000001Z','2026-10-24T00:00:00+00:00'):
+            with self.subTest(at=at),self.assertRaises(RuntimeError):evidence.utc_nanoseconds(at)
+        endpoints,phases,timeline,row=self.fixture();phases[0]['blockExecutionClock']['blocks'][0]['commitReturned']['elapsedNs']+=1
+        with self.assertRaises(RuntimeError):evidence.NodeCompletionJoin(endpoints,phases,timeline,1)
 
 if __name__=='__main__':unittest.main()

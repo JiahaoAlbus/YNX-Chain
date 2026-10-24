@@ -3,7 +3,7 @@
 The owning Supply controller must separately qualify source, nodes, resources,
 actual signature/state/quorum verification and the complete monotonic timeline.
 """
-import base64,hashlib,json,os,re,stat,zlib,math
+import base64,hashlib,json,os,re,stat,zlib,math,calendar,datetime
 from array import array
 from pathlib import Path
 
@@ -116,7 +116,8 @@ def verify_bounded_latency(measured,bounded):
     return measured
 
 
-def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial,intents,terminal,latest,rounds,evidence_limit,measure_latency=False):
+def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial,intents,terminal,latest,rounds,evidence_limit,measure_latency=False,node_completion_join=None):
+    need(node_completion_join is None or isinstance(node_completion_join,NodeCompletionJoin),'original node completion join type differs')
     fold=LatencyFold() if measure_latency else None
     root=Path(capture_root).absolute();runtime_root=Path(runtime_root);output=Path(runtime_output)
     need(root.resolve()==root and runtime_root.is_absolute() and output==runtime_root/'transactions-result.json','fixed original runtime/capture paths required')
@@ -197,6 +198,7 @@ def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial
         if row['round']==rounds:
             need(json.dumps(latest[index%senders],sort_keys=True,separators=(',',':'))==json.dumps(row,sort_keys=True,separators=(',',':')),'latest slot differs from original terminal');matched_latest+=1
         if fold is not None:fold.add(row)
+        if node_completion_join is not None:node_completion_join.add(row)
         matched+=1
     try:next(intents_iter)
     except StopIteration:pass
@@ -205,6 +207,7 @@ def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial
     result=dict(schema=1,validatedRecords=matched,matchedLatestSlots=matched_latest,peakPendingIdentities=peak_pending,intents=intent_state,terminal=terminal_state,originalPublicMemberManifest=dict(members=member_count,sha256=member_manifest.hexdigest(),encoding='sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest'),networkQualified=False,sustainedTPSQualified=False,interpretation='Read-only original stream identity/coverage validation. Reported quorum/state flags and hash chains do not replace independent source/node/BFT/durable/resource admission. No network call or submission.')
 
     if fold is not None:result['rowMetrics']=fold.result()
+    if node_completion_join is not None:result['nodeCompletionJoin']=node_completion_join.result()
     return result
 
 
@@ -241,6 +244,92 @@ def client_clock_measurements(timeline,records,required=False):
     valid=clock['invalidSamples']==0 and clock['samples']>0
     need(type(clock['valid']) is bool and clock['valid']==valid and type(clock['driftWithin1ms']) is bool and clock['driftWithin1ms']==(valid and clock['maximumAbsWallDriftNs']<=1000000),'client clock validity/drift claim differs')
     return dict(clock)
+
+
+def utc_nanoseconds(value):
+    """Go UTC timestamps, parsed without a float or loss of nanoseconds."""
+    need(type(value) is str,'exact UTC timestamp required')
+    match=re.fullmatch(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?Z',value)
+    need(match is not None,'exact UTC timestamp format differs')
+    try:date=datetime.datetime.strptime(match[1],'%Y-%m-%dT%H:%M:%S')
+    except ValueError as error:raise RuntimeError('invalid UTC calendar timestamp') from error
+    ns=calendar.timegm(date.timetuple())*1000000000+int((match[2] or '').ljust(9,'0') or '0')
+    need(integer(ns,1,2**63-1),'UTC timestamp outside signed nanosecond range')
+    return ns
+
+
+class NodeCompletionJoin:
+    """Bounded diagnostic join, never independent BFT or same-VM admission.
+
+    Input node phases must come from readNodePhaseTiming, after original node
+    shutdown; the owner separately verifies source, /proc host and BFT evidence.
+    Header AppHash at H is deliberately not treated as post-state AppHash at H.
+    """
+    names=('offerToNodeFinalizeReturn','offerToNodeDurableCommitReturn','nodeCommitToClientFinalObservation')
+    def __init__(self,endpoints,node_phases,timeline,records):
+        need(type(endpoints) is list and len(endpoints)==4 and all(type(e) is str and e for e in endpoints) and len(set(endpoints))==4,'four unique original node endpoints required')
+        need(type(node_phases) is list and len(node_phases)==4,'four original node phase reports required')
+        self.clock=client_clock_measurements(timeline,records,True)
+        need(self.clock['valid'] and self.clock['driftWithin1ms'],'client clock cannot qualify node correlation')
+        self.nodes={};self.expected=records;self.records=0;self.max_error=0
+        self.bins=[array('Q',[0])*60001 for _ in self.names]
+        self.mins=[None]*3;self.maxs=[0]*3
+        for endpoint,phase in zip(endpoints,node_phases):
+            clock=phase.get('blockExecutionClock',{})
+            drift=clock.get('maximumAbsWallDriftNs')
+            need(clock.get('completeCommitCoverage') is True and clock.get('completeBlockHashCoverage') is True and clock.get('driftWithin1ms') is True and integer(drift,0,1000000),'complete calibrated node clocks required')
+            origin=clock.get('originUnixNs');need(type(origin) is str and re.fullmatch('[1-9][0-9]{0,18}',origin) is not None and int(origin)<=2**63-1,'exact node origin required')
+            blocks=clock.get('blocks');need(type(blocks) is list and 1<=len(blocks)<=4096,'bounded node block points required')
+            indexed={}
+            for point in blocks:
+                height=point.get('height');need(integer(height,1,2**63-1) and height not in indexed,'duplicate/invalid node block height')
+                need(all(hex_digest(point.get(k)) for k in ('blockHash','appHash')),'node block/state identity absent')
+                need(integer(point.get('transactions'),0,MAX_RECORDS) and integer(point.get('codeZeroTransactions'),0,point['transactions']),'node transaction coverage invalid')
+                points=[]
+                for name in ('finalizeReturned','commitReturned'):
+                    at=point.get(name,{})
+                    ns=at.get('unixNs');elapsed=at.get('elapsedNs');offset=at.get('wallDriftNs')
+                    need(type(ns) is str and re.fullmatch('[1-9][0-9]{0,18}',ns) is not None and int(ns)<=2**63-1 and integer(elapsed,0,2**63-1) and type(offset) is int and abs(offset)<=drift and int(ns)-int(origin)-elapsed==offset,'node point calibration differs')
+                    points.append(int(ns))
+                need(points[0]<=points[1],'node completion order differs')
+                indexed[height]=(point,points)
+            self.nodes[endpoint]=(indexed,drift)
+    def add(self,row):
+        need(self.records<self.expected,'node join record bound exceeded')
+        need(row.get('status')=='confirmed' and all(row.get(k) is True for k in ('quorumVerified','transactionProofVerified','durableStateVerified','durableInfoVerified')),'node join requires original qualified final flags')
+        need(type(row.get('executionCode')) is int and row['executionCode']==0 and type(row.get('checkTxCode')) is int and row['checkTxCode']==0,'node join requires code-zero execution')
+        height=row.get('height');need(integer(height,1,2**63-1) and row.get('durableStateHeight')==height and row.get('durableInfoHeight')==height,'node join requires exact current durable height')
+        need(row.get('endpoint') in self.nodes,'terminal endpoint outside original node set')
+        indexed,drift=self.nodes[row['endpoint']];need(height in indexed,'terminal height missing node completion')
+        point,(finalized,committed)=indexed[height]
+        need(type(row.get('blockHash')) is str and row['blockHash'].lower()==point['blockHash'] and type(row.get('durableStateAppHash')) is str and row['durableStateAppHash'].lower()==point['appHash'] and type(row.get('durableInfoAppHash')) is str and row['durableInfoAppHash'].lower()==point['appHash'],'terminal block/post-state identities differ from node completion')
+        need(type(row.get('blockTxTotal')) is int and row['blockTxTotal']==point['transactions'] and integer(row.get('blockTxIndex'),0,point['transactions']-1),'terminal transaction position differs from node block')
+        offered=utc_nanoseconds(row.get('offeredAt'));submitted=utc_nanoseconds(row.get('submittedAt'));observed=utc_nanoseconds(row.get('confirmedObservedAt'))
+        error=drift+self.clock['maximumAbsWallDriftNs']
+        need(offered>=int(self.clock['originUnixNs']) and offered<=submitted and submitted<=finalized+error and committed<=observed+error,'cross-process completion order outside measured clock error')
+        values=(finalized-offered,committed-offered,observed-committed)
+        for i,value in enumerate(values):
+            low=max(0,value-error);high=max(0,value+error)
+            # Conservative quantile envelopes include calibration uncertainty;
+            # bins store upper bounds, and min/max retain exact integer bounds.
+            self.bins[i][min(high//1000000,60000)]+=1
+            self.mins[i]=low if self.mins[i] is None else min(low,self.mins[i]);self.maxs[i]=max(high,self.maxs[i])
+        self.max_error=max(self.max_error,error);self.records+=1
+    def result(self):
+        need(self.records==self.expected,'incomplete original node/terminal join')
+        distributions={}
+        for i,name in enumerate(self.names):
+            ranks=[(self.records*q+99)//100 for q in (50,95,99)];seen=0;next_rank=0
+            dist=dict(samples=self.records,resolutionNs=1000000,overflowSamples=self.bins[i][-1],minimumLowerBoundNs=self.mins[i],maximumUpperBoundNs=self.maxs[i])
+            for bucket,count in enumerate(self.bins[i]):
+                seen+=count
+                while next_rank<3 and seen>=ranks[next_rank]:
+                    # Every lower bound differs from its upper bound by at
+                    # most twice the maximum measured calibration error.
+                    dist[('p50','p95','p99')[next_rank]]=dict(lowerNs=max(self.mins[i],bucket*1000000-2*self.max_error),upperNs=min(self.maxs[i],(bucket+1)*1000000-1) if bucket<60000 else self.maxs[i]);next_rank+=1
+                if next_rank==3:break
+            distributions[name]=dist
+        return dict(records=self.records,maximumCalibrationErrorBoundNs=self.max_error,nodeCompletionLatencyIntervalsNs=distributions,independentSameVMAdmission=False,independentBFTVerification=False,bftQuorumFormationInstantMeasured=False,networkQualified=False,interpretation='Original endpoint node Finalize and durable Commit returns joined by block hash and exact post-state height/hash; calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory.')
 
 
 def current_input_reuse_measurements(reader,selected=False):
