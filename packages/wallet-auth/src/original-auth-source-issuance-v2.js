@@ -13,7 +13,10 @@ import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthoriza
 import {verifyPQRegisteredMemberData} from './pq-registered-member.js';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const roles=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOURCE-PROFILE'});
-const PURPOSE='wallet-pq-host-catalog-source-v1';
+// Two EXISTING, separately admitted Source contracts, not interchangeable
+// originals or a caller-selectable generic signing domain. RECEIVE is the
+// normal AdministrationProfile/private-daemon + IDE-parent Source family.
+const PURPOSES=Object.freeze(['wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE']);
 function document(raw){let v;try{v=JSON.parse(raw);}catch{fail('AUTH_ISSUANCE_CANONICAL');}if(typeof raw!=='string'||Buffer.byteLength(raw)>393216||canonical(v)!==raw)fail('AUTH_ISSUANCE_CANONICAL');return v;}
 function exact(v,names){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==names.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')))fail('AUTH_ISSUANCE_SCHEMA');}
 function window(v,now){if(!Number.isSafeInteger(v.issuedAtMs)||!Number.isSafeInteger(v.expiresAtMs)||v.issuedAtMs<0||v.expiresAtMs<=v.issuedAtMs||v.expiresAtMs-v.issuedAtMs>86400000||now<v.issuedAtMs||now>=v.expiresAtMs)fail('AUTH_ISSUANCE_EXPIRED');}
@@ -34,9 +37,16 @@ export class OriginalSourceIssuanceV2Kernel {
  #check(views){
   this.#alive();const p=this.#plan;
   exact(p,['role','rootRaw','enrollmentRaw','bodyRaw','policy','binding','approvalDigest','journalPath']);
-  if(!Object.hasOwn(roles,p.role)||p.policy.signatureContract.purpose!==PURPOSE)fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
+  if(!Object.hasOwn(roles,p.role)||!PURPOSES.includes(p.policy.signatureContract.purpose))fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
   const root=document(p.rootRaw),body=document(p.bodyRaw),binding=p.binding;
-  if(sha(p.rootRaw)!==p.policy.rootDigest||root.purpose!==PURPOSE||body.purpose!==PURPOSE||root.networkId!==binding.networkId||binding.owner!==(p.role==='enrollment'?root.rootOwner:document(Buffer.from(document(p.enrollmentRaw).body,'base64url').toString('utf8')).profileOwner))fail('AUTH_ISSUANCE_ROLE_BINDING');
+  if(sha(p.rootRaw)!==p.policy.rootDigest||root.purpose!==p.policy.signatureContract.purpose||body.purpose!==root.purpose||root.networkId!==binding.networkId||binding.owner!==(p.role==='enrollment'?root.rootOwner:document(Buffer.from(document(p.enrollmentRaw).body,'base64url').toString('utf8')).profileOwner))fail('AUTH_ISSUANCE_ROLE_BINDING');
+  // A normal profile may not borrow even an independently signed catalog
+  // enrollment. Reject this BEFORE intent persistence or any signing effect,
+  // not merely in the output verifier after a signature already exists.
+  if(p.role==='profile'){
+   verifyOriginalAuthSourceEnrollmentV2(p.rootRaw,p.enrollmentRaw,p.policy,views,this.#now());
+   if(body.enrollmentDigest!==sha(p.enrollmentRaw))fail('AUTH_ISSUANCE_ROLE_BINDING');
+  }
   const snapshot=views[p.role==='enrollment'?'root':'profile'],v=inspectPQAuthorizationView(snapshot);
   if(!v.pqSigningEnabled||!v.activeRecord||v.authorizationStatus==='revoked'||snapshot.networkId!==binding.networkId||snapshot.owner!==binding.owner||snapshot.executionHeight!==binding.executionHeight||v.activeRecord.revision!==binding.keyVersion)fail('AUTH_ISSUANCE_ROLE_NOT_CURRENT');
   const approvalRaw=this.#approval.readOriginal(),{message,a}=independentApproval(p,approvalRaw,this.#now());
@@ -99,7 +109,7 @@ export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
  let approval,a,b,keys,kernel,closed=false,first,present=false;
  const close=()=>{if(closed){if(present)throw first;return;}closed=true;for(const work of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_ISSUANCE_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close()])try{work();}catch(e){if(!present){present=true;first=e;}}if(present)throw first;};
  try{
-  if(!Object.hasOwn(roles,entry.plan.role)||entry.plan.policy.signatureContract.purpose!==PURPOSE||entry.plan.approvalDigest!==entry.approval.sha256)fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
+  if(!Object.hasOwn(roles,entry.plan.role)||!PURPOSES.includes(entry.plan.policy.signatureContract.purpose)||entry.plan.approvalDigest!==entry.approval.sha256)fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
   approval=new ProtectedApprovalOriginal(entry.approval);approval.initialize();
   // Denial/expiry/mismatched exact operation refuses before touching role keys.
   independentApproval(entry.plan,approval.readOriginal(),Date.now());

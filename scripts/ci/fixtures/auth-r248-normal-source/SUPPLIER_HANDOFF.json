@@ -1,0 +1,221 @@
+{
+  "kind": "AUTH_R248_NORMAL_RECEIVE_FIXED_SOURCE_ISSUANCE_AND_CONFIG_MAP/v1",
+  "parentSDK38": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/SDK38_NORMAL_SOURCE_ISSUANCE_RUNTIME_HANDOFF.json",
+    "bytes": 13267,
+    "sha256": "6fdbcb622a543db4f100e2e5eb84cbc967f1ffd48205dd54e3bf2f2f55a815f9",
+    "blob": "a3141c3e733836e9586fc6abc772849cd3627279"
+  },
+  "productionBefore": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/package/src/original-auth-source-issuance-v2.js",
+    "bytes": 14973,
+    "sha256": "4bde60cb18839b82a0bbe6f751375b4aac2c64296799b31386c8cf2efca83ec7",
+    "blob": "f87a71cc01ef744d647424592a560ddb6ad782b7"
+  },
+  "productionAfter": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/source/packages/wallet-auth/src/original-auth-source-issuance-v2.js",
+    "bytes": 15729,
+    "sha256": "b4ce5ef5cc1d1afc8d27b6d6ac18fdb3418c53fcce3c63b3f2ac0f1b3c49b7fd",
+    "blob": "7046218eca159f92f5e143dcb64e0c833a3761c4"
+  },
+  "files": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/source/packages/wallet-auth/src/original-auth-source-issuance-v2.js",
+      "bytes": 15729,
+      "sha256": "b4ce5ef5cc1d1afc8d27b6d6ac18fdb3418c53fcce3c63b3f2ac0f1b3c49b7fd",
+      "blob": "7046218eca159f92f5e143dcb64e0c833a3761c4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/source/packages/wallet-auth/test-r248-normal-source-issuance.mjs",
+      "bytes": 14820,
+      "sha256": "021f6db330e51c060f37b8cb35dea68b7d46a73dc10aee7d0d936f7be72f15d0",
+      "blob": "127056857a7ca3a9e0c355746f4805287d39d315"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/beforeFence-1h4FVD-RESULT.json",
+      "bytes": 217,
+      "sha256": "bfa551c0e4bebc2049b4b70d5b65357e43796ba4b113f21f9b057bc7389bcc41",
+      "blob": "1645156676bf4b1a5225494b9a3bbe52651ebcde"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/beforeFence-1h4FVD-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/beforeFence-1h4FVD-stdout.log",
+      "bytes": 969,
+      "sha256": "0af162774e6707aa0bf4a9365eec9ed9d41d19cae98a37293961ae04c66fd681",
+      "blob": "d418b2ec478eb11d5fc276a4930417e1ffc71045"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/fixed-MFX4oY-RESULT.json",
+      "bytes": 211,
+      "sha256": "80d2f589f495ecbc79e7101ba94ac37182cc8afcee599df8b6792214920a5007",
+      "blob": "e2049c35b68a94bba9d8c4c1d763bc52859986ed"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/fixed-MFX4oY-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/fixed-MFX4oY-stdout.log",
+      "bytes": 721,
+      "sha256": "a79017532764099f9e9d51bba1721660473977b5ef063a2c650bdc4bf106b912",
+      "blob": "eb40019041635d7c461d1728981a6abfdbf7492f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/normal-soTfa7-RESULT.json",
+      "bytes": 186,
+      "sha256": "92d3826ebca491da803d464f939795b9e203cc82616e64d7489d4b2ea71a08a3",
+      "blob": "4dc1fd0f23df65cc0c439c4135a235167cd85edc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/normal-soTfa7-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/normal-soTfa7-stdout.log",
+      "bytes": 606,
+      "sha256": "b492a539baad330116330fcd67a5dfba8f374a79cb04064f2d93b57ed1c29bb7",
+      "blob": "ebe07344605b81b17488567499a663a67c0e8442"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/red-QvBj9z-RESULT.json",
+      "bytes": 209,
+      "sha256": "c1925a1960f77b299b0e4854f9e7946ee7e78f693cdef422ae5782791727075a",
+      "blob": "dce11433cc6a5584010214879263c0a5963231b7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/red-QvBj9z-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/evidence/red-QvBj9z-stdout.log",
+      "bytes": 6533,
+      "sha256": "24308bbc9403dd313780e97384b83b863556938b30a1be72cfe30efdef0601a1",
+      "blob": "236564615080b5ec53053106db8f9bae7653876e"
+    }
+  ],
+  "map": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248-supply-20261024-r1/NORMAL_SOURCE_PRODUCER_AND_RELEASE_MAP.md",
+    "bytes": 8692,
+    "sha256": "0855320eb965c7d77674edfe19b3ca1470975aad4bd8fca1a0cd17c5ab1f5e49",
+    "blob": "cf86b75013c5d8c2f268849cdc1187dda09384f8"
+  },
+  "testPrefixParent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/source/packages/wallet-auth/test-publication-issuer.mjs",
+    "bytes": 14729,
+    "sha256": "e88232dfeec1f8bb4df3604e702e729356eacfe5ee8bde55d6c5519cc95465f2",
+    "blob": "87d0b387fa8c2d85d382c9bfa1aa072b6df083d5"
+  },
+  "actualA37ScopeIntake": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/A37_APP_AND_NORMAL_SOURCE_SCOPE_INTAKE.json",
+    "bytes": 4172,
+    "sha256": "05ba9a79efeccb81069f2e0e1cb234625928e366ac8114eff220646dd2844ca4",
+    "blob": "78925421b4d9318ec1d8234df911b77eb95985f5"
+  },
+  "currentConfigSourceRefs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/package/native/original-auth-identity-native-release.h",
+      "bytes": 2979,
+      "sha256": "507dbb1a65a70774bbd543db07871b71dd686b766db216049f0fbf61e48bd264",
+      "blob": "229c9b20d3a96304729ee8bd7303f4b6444fc975"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/package/native/original-auth-identity-source-authority.mm",
+      "bytes": 51354,
+      "sha256": "f92cc5a4961ef38b27ddb4a875dae3a82ceff26e2ce24bc45adf610251a70edf",
+      "blob": "14679033e78e82fd5c0efd9eff8cc4c5b8292721"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/package/native/original-auth-identity-joint-owner.mm",
+      "bytes": 13399,
+      "sha256": "de91b9b18cfab291c7bca0a3bdb88e16f911505be356ce3afc1da5a1d8d34ae5",
+      "blob": "d4395c4484fc61810b9f1e17ef094069ea7205bb"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/package/src/original-auth-identity-source-current.js",
+      "bytes": 19868,
+      "sha256": "d070a8efd603f7410e20dc6698b77039fab14070b5318accb063c4314171a724",
+      "blob": "3e74e254e781182b869b14125aa6477058bb3448"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/package/src/original-auth-source-current-v2.js",
+      "bytes": 33485,
+      "sha256": "9267f9a11529a626a380ccc8abca1cc283bdd2027ac411b8998e89032a316152",
+      "blob": "a4bb761c1f791bce30aaf737d601a2127bf375d5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/package/src/original-auth-source-current-request.js",
+      "bytes": 5274,
+      "sha256": "efbe015d5cbbd05a0d741f0ecd47be4fd96dc1572e82d2dd8b333712004030b7",
+      "blob": "9c74e2f8603b5332610b17b879170fa71bff95f5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk38-normal-supply/package/scripts/ynx-wallet-gatewayd.mjs",
+      "bytes": 21867,
+      "sha256": "ec7881590d37b1a9e71e2ed84fa7abbf700b8e510d5601c63691be0f3814e04f",
+      "blob": "29cca56cf408e030dd414f3031304d87e166249f"
+    }
+  ],
+  "actual": {
+    "SDK38RED": "First two normal-purpose positive operations refused before custody effects by catalog-only gate; remaining diagnostics retained, not a live authorization failure",
+    "newPreSignFenceRED": "Uncommitted normal-purpose-only candidate accepted mixed catalog enrollment at initialize; added actual original enrollment verification before intent/sign",
+    "fixedTests": 6,
+    "fixedPass": 6,
+    "skip": 0,
+    "normalPUBEnrollmentAndProfile": true,
+    "crossPurposeAndOriginalDigestSignCount": 0,
+    "crossPurposeAndOriginalDigestJournalWrites": 0,
+    "syntax": true
+  },
+  "normalEntry": "Existing ynx-auth-source-issue -> original empty release loader -> same protected role/approval factory; no new service/HTTP signing route",
+  "configGaps": {
+    "candidateNativeReleaseRows": "empty (no macro in actual Node/helper command record)",
+    "A37BundleOriginals": "root/enrollment/profile/head absent",
+    "backendSourceCandidate": "admittedSourceServices empty; actual deployed build/config NOT inferred",
+    "issuanceCandidate": "admittedSourceIssuance empty; separate real normal-purpose role custody and original independent approval required",
+    "HTTP": "Existing exact nonce/profile GET caller and current producer exist; observed bare GET405 cannot diagnose issuer absence",
+    "publisher": "Existing SameVault runtime/admission publishers present, unchanged"
+  },
+  "next": {
+    "SDK": "Only one production leaf + new six PUBLIC tests into new formal supply/CI, no old R243/R244/Native rerun; preserve SDK38",
+    "Root": "Coordinate original independent public Root/role approval/provisioning and matching normal release refs; never request secrets or infer approval from PUB tests",
+    "MainA": "Current SDK37 normal build/User preview independent; no hot replacement or old record relabel"
+  },
+  "truth": {
+    "implemented": true,
+    "newLocalControls": true,
+    "normalCI": false,
+    "npmPacked": false,
+    "realRole": false,
+    "realIndependentApproval": false,
+    "NativeReleaseRowAdmitted": false,
+    "privateDaemonQualified": false,
+    "IDEParentQualified": false,
+    "HTTPServiceMountedHere": false,
+    "Root": false,
+    "installed": false,
+    "production": false
+  },
+  "localReproductionRunner": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r248/run-new.mjs",
+    "bytes": 2101,
+    "sha256": "3384a7854ebb4f6d70dc2bf52e673e17dd03c859494b46d2b353f339716edb13",
+    "blob": "67506cb080024dce1339f726b75f809d1b7c88e4"
+  },
+  "actualVaultPublisherSource": {
+    "path": "/Volumes/西部数据/YNX-large-work/original-a-builds/wallet-main9da-auth37-composed-target-20261024/source/apps/wallet-desktop/src/password-wallet-vault.mjs",
+    "bytes": 73923,
+    "sha256": "a7a28c4e0925030cfa3398f2cac7c68b3348c40e627336922ea7fe90a44933c8",
+    "blob": "4843bbb1f2478b40389532117afeb4da84d34937"
+  }
+}
