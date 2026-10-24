@@ -618,6 +618,34 @@ class SupplySourceTests(unittest.TestCase):
                 supply.native_sample(Path("/case"), Path("/build"), {}, 0)
             self.assertEqual(len(read.call_args_list), 3)
 
+    def test_rss_refusal_preserves_original_kernel_memory_fields_without_accepting_zero(self):
+        pid=supply.os.getpid()
+        def stat_bytes(flags,virtual,pages):
+            fields=[b'0']*22
+            for index,value in ((0,'R'),(1,0),(2,pid),(6,flags),(17,1),(19,17),(20,virtual),(21,pages)):
+                fields[index]=str(value).encode()
+            return str(pid).encode()+b' (python (exit)) '+b' '.join(fields)
+        first=stat_bytes(4,0,0)
+        for flags,virtual,pages in ((12,4096,1),(4,0,0)):
+            second=stat_bytes(flags,virtual,pages)
+            before=supply.native.parse_stat(first,pid)
+            with self.subTest(flags=flags,virtualBytes=virtual,residentPages=pages), \
+                    patch.object(supply.native,'proc_inventory',return_value=({pid:before},[])), \
+                    patch.object(supply.native,'bounded',side_effect=[OSError(supply.errno.ESRCH,'RSS absent'),first,second]) as read, \
+                    patch.object(supply.native,'smaps_rss') as rss:
+                with self.assertRaisesRegex(RuntimeError,'live owned RSS unreadable') as failure:
+                    supply.native_sample(Path('/case'),Path('/build'),{},0)
+                context=json.loads(str(failure.exception).split('; capture=',1)[1])
+                self.assertEqual(context['afterStatMemory'],dict(flags=4,virtualBytes=0,residentPages=0,threads=1,startTicks=17))
+                self.assertEqual(context['retirementConfirmationStatMemory'],dict(flags=flags,virtualBytes=virtual,residentPages=pages,threads=1,startTicks=17))
+                self.assertNotIn('outcome',context)
+                rss.assert_not_called()
+                self.assertEqual(len(read.call_args_list),3)
+
+    def test_kernel_memory_diagnostics_do_not_fabricate_missing_fields(self):
+        for raw in (b'',b'17 (short) R',b'18 (wrong pid) '+b'0 '*22,b'17 (bad) '+b'not-a-number '*22,b'17 (negative) '+b'-1 '*22):
+            with self.subTest(raw=raw):self.assertIsNone(supply.native_stat_memory_fields(raw,17))
+
     @unittest.skipUnless(sys.platform=="linux", "actual procfs exit probe requires Linux")
     def test_actual_owned_python_exit_rss_capture_is_bounded_and_identity_checked(self):
         # Ordinary small CI probe only: no chain fixture, accounts or nodes.
@@ -625,7 +653,7 @@ class SupplySourceTests(unittest.TestCase):
         refusal_samples = []
         with tempfile.TemporaryDirectory() as d:
             started = supply.time.monotonic()
-            for _ in range(16):
+            for _ in range(32):
                 child = subprocess.Popen([sys.executable, "-c", "import os,time; data=bytearray(8<<20); time.sleep(0.005); os._exit(0)"])
                 try:
                     while child.poll() is None:
@@ -650,7 +678,7 @@ class SupplySourceTests(unittest.TestCase):
                     if child.poll() is None:
                         child.kill()
                     child.wait(timeout=2)
-        print(json.dumps(dict(probe="actual_owned_procfs_exit", children=16, validCaptures=captures, confirmedRetirements=transitions, refusedUnknownSnapshots=refused, refusalSamples=refusal_samples, performanceQualification=False)))
+        print(json.dumps(dict(probe="actual_owned_procfs_exit", children=32, validCaptures=captures, confirmedRetirements=transitions, refusedUnknownSnapshots=refused, refusalSamples=refusal_samples, performanceQualification=False)))
 
     def test_ci_is_opt_in_and_follows_existing_release_gates(self):
         workflow = FILE.parents[2] / ".github/workflows/chain-core.yml"

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "baseCommit": "e1c534b1d",
+  "scope": "Observe flags/vsize/resident pages/thread count/startTicks from the same already-read stat bytes at original refusal; no new acceptance criterion or OS read",
+  "source": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/supply-linux-window.py",
+    "bytes": 191905,
+    "sha256": "21bc246189a1842e9bdcdc7863f8070cb3c9d682e1cbacdf469679a98cc6111b"
+  },
+  "test": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_supply_linux_window.py",
+    "bytes": 176806,
+    "sha256": "b3544c7e80a556e47d98fa8890517269cc125ef4c7b8573f2b6fcb796d0a20c9"
+  },
+  "red": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-kernel-memory-fields-red-01.raw",
+    "bytes": 902,
+    "sha256": "faf21526cc14e3ffc2c4ab0c353e13fabe22d3164f6384402ab73747b4591f6b"
+  },
+  "fullControllerBeforeFinalAdditionalParserTest": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-kernel-memory-fields-controller-01.raw",
+    "bytes": 209,
+    "sha256": "27efb113f80723c15cecb93290b4013b21a13835a0a7ca54b2db4f62f020bd7b"
+  },
+  "focusedFinal": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-kernel-memory-fields-focused-02.raw",
+    "bytes": 100,
+    "sha256": "fe008aab760eb03ccac7578e2b84665b1b50b0d7f855b17a0c7a8d039435b658"
+  },
+  "pair": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-kernel-memory-fields-pair-01.raw",
+    "bytes": 137,
+    "sha256": "9e4431ee795354e00781026b0597d2ade4314940552a0f5dc128861dc3e50465"
+  },
+  "localController": {
+    "total": 97,
+    "passed": 96,
+    "skippedLinux": 1
+  },
+  "localFinalFocused": {
+    "total": 2,
+    "passed": 2
+  },
+  "pairTests": 38,
+  "newLiveAcceptance": false,
+  "RStateZeroFieldsStillRefused": true,
+  "additionalKernelReads": 0,
+  "actualLinuxProbePending": true,
+  "expectedLinuxProbe": {
+    "children": 32,
+    "childAllocationMiB": 8,
+    "deadlineSeconds": 10
+  },
+  "priorActualLinuxRefusals": 3,
+  "normalCIPending": true,
+  "newHeavyRequest": false,
+  "kernelReference": "https://github.com/torvalds/linux/blob/v6.17/fs/proc/array.c",
+  "originalRefusedRun": 40101270671
+}

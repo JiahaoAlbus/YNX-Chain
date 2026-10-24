@@ -1551,6 +1551,18 @@ def validate_report(report, profile_name="supply-256x4", pacing="relative", endp
     return dict(summary=s, supply=supply)
 
 
+def native_stat_memory_fields(raw, pid):
+    """Diagnostic fields from already-read proc stat; never RSS admission."""
+    end=raw.rfind(b")")
+    if not raw.startswith((str(pid)+" (").encode()) or end<0:return None
+    fields=raw[end+1:].split()
+    if len(fields)<22:return None
+    try:
+        values=dict(flags=int(fields[6]),virtualBytes=int(fields[20]),residentPages=int(fields[21]),threads=int(fields[17]),startTicks=int(fields[19]))
+    except ValueError:return None
+    return values if all(value>=0 for value in values.values()) else None
+
+
 def native_sample(case, build, known, started, initial=False, enforce_limits=True):
     rows, vanished = native.proc_inventory()
     ids = native.owned_set(rows, os.getpid(), known=known)
@@ -1569,7 +1581,8 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
             if error.errno not in (errno.ENOENT, errno.ESRCH):
                 raise
             try:
-                after = native.parse_stat(native.bounded(Path("/proc") / str(pid) / "stat"), pid)
+                after_raw = native.bounded(Path("/proc") / str(pid) / "stat")
+                after = native.parse_stat(after_raw, pid)
             except OSError as absent:
                 if absent.errno in (errno.ENOENT, errno.ESRCH):
                     continue
@@ -1577,14 +1590,16 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
             if after["startTicks"] != before["startTicks"] or after["state"] != "Z":
                 context = dict(pid=pid, before=before, after=after,
                                errno=error.errno, failedRead=failed_read,
-                               capturedAtUnixNs=time.time_ns())
+                               capturedAtUnixNs=time.time_ns(),
+                               afterStatMemory=native_stat_memory_fields(after_raw,pid))
                 # An exiting task can lose its mm before stat becomes Z.
                 # Confirm retirement once, immediately, without sleeping or
                 # rereading RSS. Only kernel-proven disappearance or the SAME
                 # startTicks in Z permits the existing retired-task handling.
                 if failed_read == "smaps_rollup" and after["startTicks"] == before["startTicks"]:
                     try:
-                        confirmation = native.parse_stat(native.bounded(Path("/proc") / str(pid) / "stat"), pid)
+                        confirmation_raw = native.bounded(Path("/proc") / str(pid) / "stat")
+                        confirmation = native.parse_stat(confirmation_raw, pid)
                     except OSError as confirm_error:
                         context["retirementConfirmationReadErrno"] = confirm_error.errno
                         if confirm_error.errno in (errno.ENOENT, errno.ESRCH):
@@ -1593,6 +1608,7 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
                             continue
                     else:
                         context["retirementConfirmation"] = confirmation
+                        context["retirementConfirmationStatMemory"] = native_stat_memory_fields(confirmation_raw,pid)
                         if confirmation["startTicks"] == before["startTicks"] and confirmation["state"] == "Z":
                             context["outcome"] = "zombie"
                             retired_transitions.append(context)
