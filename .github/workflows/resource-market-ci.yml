@@ -2954,6 +2954,8 @@ jobs:
               sourcePinsScope='direct registration, original-file checks, CLI and entrypoint leaves; complete linked program identified by sourceTree and module pins',
               binaries=binaries, entrypoint='cmd/ynx-comet', binaryScope='complete normal ynx-comet CLI, not a registration-only executable',
               registrationCallee='consensus.RegisterProofHostSourceCatalogForWallet',
+              readOnlyReconcileCallee='consensus.ReconcileProofHostSourceCatalogForWallet',
+              readOnlyReconcileFlag=['--wallet-reconcile-existing', 'true'], readOnlyReconcileWrites=False,
               fixedCommand='register-proof-host-source',
               fixedArgvContract=['register-proof-host-source', '--wallet-request-stdin', 'true',
                   '--delivery-manifest', '<protected-original-delivery.json>',

@@ -460,3 +460,197 @@ func TestProofHostSelectionWalletRequestRejectsClosedBindingBeforeOutput(t *test
 		t.Fatal("rejected Wallet requests left reserved output", err)
 	}
 }
+
+func TestProofHostSelectionWalletReconcileColdCatalogAndFailuresAreReadOnly(t *testing.T) {
+	f := newProofSelectionFixture(t)
+	request := proofSourceJSON(t, f.binding)
+	bindingPin := proofHostSHA(request)
+	directory := filepath.Join(f.root, "wallet-reconcile")
+	if err := os.Mkdir(directory, 0700); err != nil {
+		t.Fatal(err)
+	}
+	catalogPath := filepath.Join(directory, "catalog.json")
+	registered, err := f.register(t, catalogPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, err := os.ReadFile(catalogPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Observe real original files and directory entries around every call. The
+	// cold reader must not create, replace, chmod, truncate or change mtime on
+	// success or failure. Read-induced atime is deliberately not an identity.
+	reconcile := func(t *testing.T, raw []byte, path, manifestPin, independentBindingPin string) (ProofHostSourceCatalogReceipt, error) {
+		t.Helper()
+		infos := make(map[string]os.FileInfo)
+		bodies := make(map[string][]byte)
+		for _, input := range []string{f.bindingPath, f.delivery.ManifestPath, f.delivery.SourcePath, catalogPath, path} {
+			info, statErr := os.Lstat(input)
+			if statErr != nil && !os.IsNotExist(statErr) {
+				t.Fatal(statErr)
+			}
+			infos[input] = info
+			if info != nil {
+				bodies[input], err = os.ReadFile(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+		before, readErr := os.ReadDir(filepath.Dir(path))
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		got, callErr := ReconcileProofHostSourceCatalogForWallet(raw, f.delivery.ManifestPath, manifestPin, f.bindingPath, independentBindingPin, path)
+		for input, info := range infos {
+			after, statErr := os.Lstat(input)
+			if info == nil {
+				if !os.IsNotExist(statErr) {
+					t.Fatal("read-only Wallet recovery created a missing catalog", input, statErr)
+				}
+				continue
+			}
+			body, readErr := os.ReadFile(input)
+			if statErr != nil || readErr != nil || !samePQStateFile(info, after) || !bytes.Equal(body, bodies[input]) {
+				t.Fatal("Wallet recovery changed original inode, bytes, mode or mtime", input, statErr, readErr)
+			}
+		}
+		after, readErr := os.ReadDir(filepath.Dir(path))
+		if readErr != nil || len(before) != len(after) {
+			t.Fatal("Wallet recovery created or removed directory entries", readErr)
+		}
+		for index := range before {
+			if before[index].Name() != after[index].Name() {
+				t.Fatal("Wallet recovery replaced a directory entry")
+			}
+		}
+		return got, callErr
+	}
+	for call := 0; call < 2; call++ {
+		got, err := reconcile(t, request, catalogPath, f.delivery.ManifestSHA256, bindingPin)
+		if err != nil || got != registered {
+			t.Fatal("cold read-only Wallet recovery did not reproduce exact registration DATA", call, err)
+		}
+		proofHostDeliveryTestExactKeys(t, proofSourceJSON(t, got), "catalogPath", "catalogSha256")
+	}
+	bounded := append(bytes.Clone(request), bytes.Repeat([]byte{' '}, MaxProofHostSourceSelectionRequestBytes-len(request))...)
+	if got, err := reconcile(t, bounded, catalogPath, f.delivery.ManifestSHA256, bindingPin); err != nil || got != registered {
+		t.Fatal("exact-budget Wallet recovery rejected the original binding", err)
+	}
+	badRequests := map[string][]byte{
+		"duplicate":   append([]byte(`{"operationId":"other",`), request[1:]...),
+		"extra":       append([]byte(`{"root":true,`), request[1:]...),
+		"missing":     bytes.Replace(request, []byte(`"account":"`+f.binding.Account+`",`), nil, 1),
+		"over-budget": append(bytes.Clone(bounded), ' '),
+	}
+	for _, field := range []string{"operation", "account", "network", "original-hash", "native-wire", "transaction"} {
+		bad := f.binding
+		switch field {
+		case "operation":
+			bad.OperationID += "-other"
+		case "account":
+			bad.Account = "0x" + strings.Repeat("a", 40)
+		case "network":
+			bad.NetworkID = strings.Repeat("a", 64)
+		case "original-hash":
+			bad.OriginalHash = "0x" + bad.TransactionHash
+		case "native-wire":
+			bad.NativeWireHash, bad.OriginalHash = bad.TransactionHash, "0x"+bad.TransactionHash
+		case "transaction":
+			bad.TransactionHash = bad.NativeWireHash
+		}
+		badRequests[field] = proofSourceJSON(t, bad)
+	}
+	for name, raw := range badRequests {
+		t.Run(name, func(t *testing.T) {
+			if got, err := reconcile(t, raw, catalogPath, f.delivery.ManifestSHA256, bindingPin); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+				t.Fatal("foreign or nonclosed request recovered a Wallet catalog")
+			}
+		})
+	}
+	for _, pins := range [][2]string{{strings.Repeat("a", 64), bindingPin}, {f.delivery.ManifestSHA256, strings.Repeat("a", 64)}} {
+		if got, err := reconcile(t, request, catalogPath, pins[0], pins[1]); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+			t.Fatal("existing catalog replaced an independently supplied source pin")
+		}
+	}
+	for name, raw := range map[string][]byte{
+		"partial":      original[:len(original)/2],
+		"tampered":     bytes.Replace(original, []byte(f.binding.Account), []byte("0x"+strings.Repeat("a", 40)), 1),
+		"noncanonical": bytes.TrimSuffix(original, []byte{'\n'}),
+		"empty":        nil,
+	} {
+		path := filepath.Join(directory, name+".json")
+		proofSourceWrite(t, path, raw)
+		if got, err := reconcile(t, request, path, f.delivery.ManifestSHA256, bindingPin); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+			t.Fatal("recovery adopted a partial, altered or self-reported catalog", name)
+		}
+	}
+	unsafe := filepath.Join(directory, "nonprivate.json")
+	proofSourceWrite(t, unsafe, original)
+	if err := os.Chmod(unsafe, 0644); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := reconcile(t, request, unsafe, f.delivery.ManifestSHA256, bindingPin); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+		t.Fatal("read-only recovery accepted a nonprivate catalog")
+	}
+	alias := filepath.Join(directory, "symlink.json")
+	if err := os.Symlink(catalogPath, alias); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := reconcile(t, request, alias, f.delivery.ManifestSHA256, bindingPin); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+		t.Fatal("read-only recovery followed a catalog symlink")
+	}
+	missing := filepath.Join(directory, "missing.json")
+	if got, err := reconcile(t, request, missing, f.delivery.ManifestSHA256, bindingPin); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+		t.Fatal("read-only recovery created or registered a missing catalog")
+	}
+}
+
+func TestProofHostSelectionWalletReconcileHeldCatalogRejectsSameBytesReplacement(t *testing.T) {
+	f := newProofSelectionFixture(t)
+	path := filepath.Join(f.root, "wallet-replaced-catalog.json")
+	registered, err := f.register(t, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reads := &proofSelectionReads{}
+	defer reads.close()
+	original, _, err := reads.walletDelivery(proofSourceJSON(t, f.binding), f.delivery.ManifestPath, f.delivery.ManifestSHA256, f.bindingPath, proofHostSHA(proofSourceJSON(t, f.binding)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected, err := encodeProofHostSourceCatalog(original)
+	if err != nil || proofHostSHA(expected) != registered.CatalogSHA256 {
+		t.Fatal("recovery encoder changed the original registrar's exact bytes", err)
+	}
+	if _, err = reads.read(path, proofHostSHA(expected), MaxProofHostSourceCatalogBytes); err != nil {
+		t.Fatal(err)
+	}
+	held, err := os.Lstat(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replacement := filepath.Join(f.root, "replacement.json")
+	proofSourceWrite(t, replacement, expected)
+	if err := os.Chtimes(replacement, held.ModTime(), held.ModTime()); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(replacement, path); err != nil {
+		t.Fatal(err)
+	}
+	replaced, err := os.Lstat(path)
+	if err != nil || os.SameFile(held, replaced) {
+		t.Fatal("replacement counterexample did not change the original inode", err)
+	}
+	// Exercise the exact final identity guard used by reconciliation after its
+	// separate selector read. No testing callback or production retry is added.
+	if err := reads.unchanged(); err == nil {
+		t.Fatal("same bytes and mtime revived a replaced held catalog")
+	}
+	after, err := os.Lstat(path)
+	raw, readErr := os.ReadFile(path)
+	if err != nil || readErr != nil || !samePQStateFile(replaced, after) || !bytes.Equal(raw, expected) {
+		t.Fatal("failed original identity check repaired or removed replacement DATA", err, readErr)
+	}
+}

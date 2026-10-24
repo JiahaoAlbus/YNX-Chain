@@ -15,13 +15,19 @@ import (
 // Register existing public DATA after the original SourceOwner independently
 // qualifies its delivery and binding. This bypasses EnsureRoot, never Node.Start.
 func newRegisterProofHostSourceCommand() *cobra.Command {
-	var manifest, manifestPin, binding, bindingPin, output, walletOutput, walletRequestStdin string
+	var manifest, manifestPin, binding, bindingPin, output, walletOutput, walletRequestStdin, walletReconcileExisting string
 	c := &cobra.Command{Use: "register-proof-host-source", Short: "Register one independently pinned original proof source DATA catalog; no Root or Host grant",
 		Args: cobra.NoArgs, SilenceUsage: true, SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error { return nil },
 		RunE: func(cmd *cobra.Command, _ []string) (resultErr error) {
 			if walletRequestStdin != "" && walletRequestStdin != "true" && walletRequestStdin != "false" {
 				return errors.New("wallet-request-stdin requires an explicit canonical true or false")
+			}
+			if walletReconcileExisting != "" && walletReconcileExisting != "true" && walletReconcileExisting != "false" {
+				return errors.New("wallet-reconcile-existing requires an explicit canonical true or false")
+			}
+			if walletReconcileExisting == "true" && (walletRequestStdin != "true" || walletOutput != "") {
+				return errors.New("Wallet reconciliation requires explicit Wallet request stdin and cannot write a static source module")
 			}
 			if walletRequestStdin == "true" {
 				if walletOutput != "" {
@@ -34,11 +40,19 @@ func newRegisterProofHostSourceCommand() *cobra.Command {
 				if len(raw) > consensus.MaxProofHostSourceSelectionRequestBytes {
 					return errors.New("bounded complete Wallet transaction request stdin required")
 				}
-				receipt, err := consensus.RegisterProofHostSourceCatalogForWallet(raw, manifest, manifestPin, binding, bindingPin, output)
+				var receipt consensus.ProofHostSourceCatalogReceipt
+				if walletReconcileExisting == "true" {
+					receipt, err = consensus.ReconcileProofHostSourceCatalogForWallet(raw, manifest, manifestPin, binding, bindingPin, output)
+				} else {
+					receipt, err = consensus.RegisterProofHostSourceCatalogForWallet(raw, manifest, manifestPin, binding, bindingPin, output)
+				}
 				if err != nil {
 					return err
 				}
 				if err = json.NewEncoder(cmd.OutOrStdout()).Encode(receipt); err != nil {
+					if walletReconcileExisting == "true" {
+						return fmt.Errorf("existing catalog retained; Wallet reconciliation stdout UNKNOWN: %w", err)
+					}
 					return fmt.Errorf("registered catalog retained; Wallet receipt stdout UNKNOWN: %w", err)
 				}
 				return nil
@@ -92,5 +106,6 @@ func newRegisterProofHostSourceCommand() *cobra.Command {
 	}
 	c.Flags().Var(&initializationStringFlag{target: &walletOutput}, "wallet-main-registration-output", "optional new fixed-name private Wallet source module; DATA handoff only, no install or Root grant")
 	c.Flags().Var(&initializationStringFlag{target: &walletRequestStdin}, "wallet-request-stdin", "explicit true to bind the exact six-field Wallet journal request on bounded stdin; cannot write a static Wallet module, DATA only")
+	c.Flags().Var(&initializationStringFlag{target: &walletReconcileExisting}, "wallet-reconcile-existing", "explicit true with Wallet request stdin to read-only reconcile the existing output catalog against original independent pins; never register or repair")
 	return c
 }

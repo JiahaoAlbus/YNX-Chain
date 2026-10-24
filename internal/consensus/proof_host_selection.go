@@ -3,6 +3,7 @@
 package consensus
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"math"
@@ -229,6 +230,14 @@ func (r *proofSelectionReads) delivery(path, pin string, binding ProofHostDelive
 	return ProofHostSourceCatalog{Version: ProofHostSourceCatalogVersion, ManifestPath: path, ManifestSHA256: pin, Binding: binding, SourcePath: sourcePath, SourceSHA256: manifest.SourceSHA256, SourceID: manifest.SourceID, Epoch: manifest.Epoch}, nil
 }
 
+func encodeProofHostSourceCatalog(catalog ProofHostSourceCatalog) ([]byte, error) {
+	encoded, err := json.Marshal(catalog)
+	if err != nil || len(encoded)+1 > MaxProofHostSourceCatalogBytes {
+		return nil, errors.New("selection catalog exceeds its bound")
+	}
+	return append(encoded, '\n'), nil
+}
+
 // RegisterProofHostSourceCatalog records independently supplied DATA only. The
 // private parent and external digests protect selection, not Root/Host status.
 // All preflight checks finish before reserving the exclusive destination.
@@ -256,11 +265,10 @@ func RegisterProofHostSourceCatalog(manifestPath, manifestPin, bindingPath, bind
 		return receipt, err
 	}
 	defer parent.file.Close()
-	encoded, err := json.Marshal(catalog)
-	if err != nil || len(encoded)+1 > MaxProofHostSourceCatalogBytes {
-		return receipt, errors.New("selection catalog exceeds its bound")
+	encoded, err := encodeProofHostSourceCatalog(catalog)
+	if err != nil {
+		return receipt, err
 	}
-	encoded = append(encoded, '\n')
 	if err := reads.unchanged(); err != nil {
 		return receipt, err
 	}
@@ -316,25 +324,9 @@ func RegisterProofHostSourceCatalog(manifestPath, manifestPin, bindingPath, bind
 // a Host lease, current-state evidence or a Native Root grant.
 func RegisterProofHostSourceCatalogForWallet(requestRaw []byte, manifestPath, manifestPin, bindingPath, bindingPin, output string) (ProofHostSourceCatalogReceipt, error) {
 	var receipt ProofHostSourceCatalogReceipt
-	var request ProofHostDeliveryBinding
-	if err := proofSelectionJSON(requestRaw, &request, MaxProofHostSourceSelectionRequestBytes); err != nil || !validProofSelectionBinding(request) {
-		return receipt, errors.New("exact complete six-field Wallet transaction request required")
-	}
 	reads := &proofSelectionReads{}
 	defer reads.close()
-	raw, err := reads.read(bindingPath, bindingPin, MaxProofHostSourceSelectionRequestBytes)
-	if err != nil {
-		return receipt, err
-	}
-	var binding ProofHostDeliveryBinding
-	if err = proofSelectionJSON(raw, &binding, MaxProofHostSourceSelectionRequestBytes); err != nil || binding != request {
-		return receipt, errors.New("Wallet request differs from independently pinned original binding")
-	}
-	original, err := reads.delivery(manifestPath, manifestPin, binding)
-	if err != nil {
-		return receipt, err
-	}
-	selectionRaw, err := json.Marshal(ProofHostSourceSelectionRequest{Version: ProofHostSourceSelectionRequestVersion, OperationID: request.OperationID, Account: request.Account, NetworkID: request.NetworkID, TransactionHash: request.TransactionHash, NativeWireHash: request.NativeWireHash})
+	original, selectionRaw, err := reads.walletDelivery(requestRaw, manifestPath, manifestPin, bindingPath, bindingPin)
 	if err != nil {
 		return receipt, err
 	}
@@ -360,6 +352,68 @@ func RegisterProofHostSourceCatalogForWallet(requestRaw []byte, manifestPath, ma
 		return receipt, errors.Join(errors.New("registered catalog retained; Wallet handoff UNKNOWN"), err)
 	}
 	return registered, nil
+}
+
+// ReconcileProofHostSourceCatalogForWallet recovers only the exact catalog
+// implied by the independent original delivery and binding. Its expected pin
+// is never taken from the existing catalog or its receipt. This path only reads:
+// no registration, creation, fsync, repair or replacement is attempted, including
+// when the original is absent, partial or UNKNOWN. A receipt remains DATA, not a
+// Host current check, SourceOwner authentication or Root grant.
+func ReconcileProofHostSourceCatalogForWallet(requestRaw []byte, manifestPath, manifestPin, bindingPath, bindingPin, existingCatalog string) (ProofHostSourceCatalogReceipt, error) {
+	var receipt ProofHostSourceCatalogReceipt
+	reads := &proofSelectionReads{}
+	defer reads.close()
+	original, selectionRaw, err := reads.walletDelivery(requestRaw, manifestPath, manifestPin, bindingPath, bindingPin)
+	if err != nil {
+		return receipt, err
+	}
+	expected, err := encodeProofHostSourceCatalog(original)
+	if err != nil {
+		return receipt, err
+	}
+	pin := proofHostSHA(expected)
+	raw, err := reads.read(existingCatalog, pin, MaxProofHostSourceCatalogBytes)
+	if err != nil {
+		return receipt, err
+	}
+	if !bytes.Equal(raw, expected) {
+		return receipt, errors.New("existing catalog differs from independently derived exact original bytes")
+	}
+	if err = reads.unchanged(); err != nil {
+		return receipt, err
+	}
+	selected, err := SelectRegisteredProofHostSource(existingCatalog, pin, selectionRaw)
+	want := ProofHostSourceSelection{SourcePath: original.SourcePath, SourceSHA256: original.SourceSHA256, SourceID: original.SourceID, Epoch: original.Epoch}
+	if err != nil || selected != want {
+		return receipt, errors.Join(errors.New("existing catalog retained; original Wallet reconciliation UNKNOWN"), err)
+	}
+	if err = reads.unchanged(); err != nil {
+		return receipt, err
+	}
+	return ProofHostSourceCatalogReceipt{CatalogPath: existingCatalog, CatalogSHA256: pin}, nil
+}
+
+func (reads *proofSelectionReads) walletDelivery(requestRaw []byte, manifestPath, manifestPin, bindingPath, bindingPin string) (ProofHostSourceCatalog, []byte, error) {
+	var original ProofHostSourceCatalog
+	var request ProofHostDeliveryBinding
+	if err := proofSelectionJSON(requestRaw, &request, MaxProofHostSourceSelectionRequestBytes); err != nil || !validProofSelectionBinding(request) {
+		return original, nil, errors.New("exact complete six-field Wallet transaction request required")
+	}
+	raw, err := reads.read(bindingPath, bindingPin, MaxProofHostSourceSelectionRequestBytes)
+	if err != nil {
+		return original, nil, err
+	}
+	var binding ProofHostDeliveryBinding
+	if err = proofSelectionJSON(raw, &binding, MaxProofHostSourceSelectionRequestBytes); err != nil || binding != request {
+		return original, nil, errors.New("Wallet request differs from independently pinned original binding")
+	}
+	original, err = reads.delivery(manifestPath, manifestPin, binding)
+	if err != nil {
+		return original, nil, err
+	}
+	selectionRaw, err := json.Marshal(ProofHostSourceSelectionRequest{Version: ProofHostSourceSelectionRequestVersion, OperationID: request.OperationID, Account: request.Account, NetworkID: request.NetworkID, TransactionHash: request.TransactionHash, NativeWireHash: request.NativeWireHash})
+	return original, selectionRaw, err
 }
 
 // SelectRegisteredProofHostSource reads at most catalog/manifest/source headers

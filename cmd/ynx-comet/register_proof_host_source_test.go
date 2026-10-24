@@ -69,6 +69,20 @@ func TestRegisterProofHostSourceWalletRequestStrictArguments(t *testing.T) {
 		{name: "numeric-wallet-flag", flags: []string{"--wallet-request-stdin", "1"}},
 		{name: "false-preserves-legacy", flags: []string{"--wallet-request-stdin", "false"}, readError: readFailure},
 		{name: "legacy-does-not-read", readError: readFailure},
+		{name: "reconcile-requires-stdin", flags: []string{"--wallet-reconcile-existing", "true"}},
+		{name: "reconcile-refuses-false-stdin", flags: []string{"--wallet-request-stdin", "false", "--wallet-reconcile-existing", "true"}},
+		{name: "reconcile-refuses-static-output", flags: []string{"--wallet-request-stdin", "true", "--wallet-reconcile-existing", "true", "--wallet-main-registration-output", filepath.Join(parent, "wallet-proof-host-source-registration.mjs")}},
+		{name: "reconcile-duplicate-flag", flags: []string{"--wallet-request-stdin", "true", "--wallet-reconcile-existing", "true", "--wallet-reconcile-existing", "false"}},
+		{name: "reconcile-bare-flag", flags: []string{"--wallet-reconcile-existing"}},
+		{name: "reconcile-empty-flag", flags: []string{"--wallet-reconcile-existing="}},
+		{name: "reconcile-invalid-flag", flags: []string{"--wallet-reconcile-existing", "TRUE"}},
+		{name: "reconcile-whitespace-flag", flags: []string{"--wallet-reconcile-existing", " true"}},
+		{name: "reconcile-numeric-flag", flags: []string{"--wallet-reconcile-existing", "1"}},
+		{name: "reconcile-false-preserves-legacy", flags: []string{"--wallet-reconcile-existing", "false"}, readError: readFailure},
+		{name: "reconcile-false-keeps-stdin-registration", flags: []string{"--wallet-request-stdin", "true", "--wallet-reconcile-existing", "false"}, raw: []byte(`{"operationId":`), read: true},
+		{name: "reconcile-empty-request", flags: []string{"--wallet-request-stdin", "true", "--wallet-reconcile-existing", "true"}, read: true},
+		{name: "reconcile-4097-bytes", flags: []string{"--wallet-request-stdin", "true", "--wallet-reconcile-existing", "true"}, raw: bytes.Repeat([]byte{'x'}, consensus.MaxProofHostSourceSelectionRequestBytes+1), read: true},
+		{name: "reconcile-read-error", flags: []string{"--wallet-request-stdin", "true", "--wallet-reconcile-existing", "true"}, readError: readFailure, read: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			reader := &proofHostWalletRequestReader{raw: bytes.Clone(tc.raw), err: tc.readError}
@@ -85,10 +99,10 @@ func TestRegisterProofHostSourceWalletRequestStrictArguments(t *testing.T) {
 			if (reader.reads != 0) != tc.read {
 				t.Fatal("Wallet request input was read outside the explicit true mode", reader.reads, err)
 			}
-			if tc.name == "read-error" && !errors.Is(err, readFailure) {
+			if tc.readError != nil && tc.read && !errors.Is(err, readFailure) {
 				t.Fatal("Wallet stdin read lost its original cause", err)
 			}
-			if tc.name == "4097-bytes" && reader.bytes != consensus.MaxProofHostSourceSelectionRequestBytes+1 {
+			if len(tc.raw) == consensus.MaxProofHostSourceSelectionRequestBytes+1 && tc.read && reader.bytes != consensus.MaxProofHostSourceSelectionRequestBytes+1 {
 				t.Fatal("Wallet stdin did not enforce the exact bounded read", reader.bytes)
 			}
 			for _, name := range []string{"catalog.json", "wallet-proof-host-source-registration.mjs"} {
@@ -242,10 +256,13 @@ func TestRegisterProofHostSourceNormalCommandRetainedFixture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	runWallet := func(input io.Reader, destination string, mode string, stdout ...io.Writer) ([]byte, error) {
+	runWalletMode := func(input io.Reader, destination, mode, reconcile string, stdout ...io.Writer) ([]byte, error) {
 		walletArgs := append([]string{}, args...)
 		walletArgs[len(walletArgs)-1] = destination
 		walletArgs = append(walletArgs, "--wallet-request-stdin", mode)
+		if reconcile != "" {
+			walletArgs = append(walletArgs, "--wallet-reconcile-existing", reconcile)
+		}
 		var result bytes.Buffer
 		root := &cobra.Command{Use: "ynx-comet", PersistentPreRunE: func(*cobra.Command, []string) error { return errors.New("normal Comet root setup must not run") }}
 		root.AddCommand(newRegisterProofHostSourceCommand())
@@ -258,6 +275,9 @@ func TestRegisterProofHostSourceNormalCommandRetainedFixture(t *testing.T) {
 		root.SetArgs(walletArgs)
 		err := root.Execute()
 		return result.Bytes(), err
+	}
+	runWallet := func(input io.Reader, destination, mode string, stdout ...io.Writer) ([]byte, error) {
+		return runWalletMode(input, destination, mode, "", stdout...)
 	}
 	walletCatalogPath := filepath.Join(walletParent, "catalog.json")
 	walletOut, err := runWallet(bytes.NewReader(bindingRaw), walletCatalogPath, "true")
@@ -320,6 +340,7 @@ func TestRegisterProofHostSourceNormalCommandRetainedFixture(t *testing.T) {
 	if after, err := os.ReadFile(partialCatalogPath); err != nil || !bytes.Equal(after, partialCatalogRaw) {
 		t.Fatal("refused Wallet registration changed original partial bytes", err)
 	}
+	walletMismatchRequests := make(map[string][]byte)
 	for _, field := range []string{"operationId", "account", "networkId", "originalHash", "nativeWireHash", "transactionHash"} {
 		t.Run("wallet-binding-mismatch-"+field, func(t *testing.T) {
 			var wrong map[string]string
@@ -344,6 +365,7 @@ func TestRegisterProofHostSourceNormalCommandRetainedFixture(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			walletMismatchRequests[field] = raw
 			destination := filepath.Join(walletParent, "mismatch-"+field+".json")
 			if result, err := runWallet(bytes.NewReader(raw), destination, "true"); err == nil || strings.Contains(string(result), "catalogSha256") {
 				t.Fatal("Wallet mismatch reached registration", field, err)
@@ -353,7 +375,7 @@ func TestRegisterProofHostSourceNormalCommandRetainedFixture(t *testing.T) {
 			}
 		})
 	}
-	for _, tc := range []struct {
+	walletMalformedRequests := []struct {
 		name string
 		raw  []byte
 	}{
@@ -365,7 +387,8 @@ func TestRegisterProofHostSourceNormalCommandRetainedFixture(t *testing.T) {
 		{name: "nonstring-field", raw: bytes.Replace(bindingRaw, []byte(`"account":"`+binding.Account+`"`), []byte(`"account":1`), 1)},
 		{name: "trailing-object", raw: append(bytes.Clone(bindingRaw), []byte(`{}`)...)},
 		{name: "array", raw: []byte(`[]`)},
-	} {
+	}
+	for _, tc := range walletMalformedRequests {
 		t.Run("wallet-malformed-"+tc.name, func(t *testing.T) {
 			destination := filepath.Join(walletParent, "malformed-"+tc.name+".json")
 			if result, err := runWallet(bytes.NewReader(tc.raw), destination, "true"); err == nil || strings.Contains(string(result), "catalogSha256") {
@@ -380,6 +403,129 @@ func TestRegisterProofHostSourceNormalCommandRetainedFixture(t *testing.T) {
 	if _, err := runWallet(falseInput, filepath.Join(walletParent, "false-mode-catalog.json"), "false"); err != nil || falseInput.reads != 0 {
 		t.Fatal("explicit false did not retain normal legacy registration", err, falseInput.reads)
 	}
+	// Explicit reconciliation false must leave both original registration modes
+	// intact. A true reconciliation below always starts another normal CLI object.
+	for _, mode := range []string{"true", "false"} {
+		input := &proofHostWalletRequestReader{raw: bytes.Clone(bindingRaw)}
+		if mode == "false" {
+			input.err = errors.New("legacy registration with reconciliation false must not read stdin")
+		}
+		destination := filepath.Join(walletParent, "reconcile-false-stdin-"+mode+".json")
+		result, err := runWalletMode(input, destination, mode, "false")
+		var got consensus.ProofHostSourceCatalogReceipt
+		if err != nil || json.Unmarshal(result, &got) != nil || got.CatalogPath != destination || got.CatalogSHA256 != walletReceipt.CatalogSHA256 || (input.reads != 0) != (mode == "true") {
+			t.Fatal("reconciliation false changed the original registration behavior", mode, err)
+		}
+	}
+	type readOnlyFile struct {
+		info os.FileInfo
+		raw  []byte
+	}
+	captureReadOnly := func(t *testing.T) map[string]readOnlyFile {
+		t.Helper()
+		entries, err := os.ReadDir(walletParent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		paths := []string{bindingPath, delivery.ManifestPath, delivery.SourcePath}
+		for _, entry := range entries {
+			paths = append(paths, filepath.Join(walletParent, entry.Name()))
+		}
+		before := make(map[string]readOnlyFile, len(paths)+1)
+		directory, err := os.Lstat(walletParent)
+		if err != nil {
+			t.Fatal(err)
+		}
+		before[walletParent] = readOnlyFile{info: directory}
+		for _, path := range paths {
+			info, err := os.Lstat(path)
+			if err != nil || !info.Mode().IsRegular() {
+				t.Fatal("readonly CLI fixture must retain its original regular files", path, err)
+			}
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			before[path] = readOnlyFile{info: info, raw: raw}
+		}
+		return before
+	}
+	assertReadOnly := func(t *testing.T, before map[string]readOnlyFile) {
+		t.Helper()
+		after := captureReadOnly(t)
+		if len(after) != len(before) {
+			t.Fatal("Wallet reconciliation created or removed an original file")
+		}
+		for path, original := range before {
+			got, exists := after[path]
+			if !exists || !os.SameFile(original.info, got.info) || original.info.Mode() != got.info.Mode() || original.info.Size() != got.info.Size() || !original.info.ModTime().Equal(got.info.ModTime()) || !bytes.Equal(original.raw, got.raw) {
+				t.Fatal("Wallet reconciliation changed original inode, bytes, mode or mtime", path)
+			}
+		}
+	}
+	runReconcile := func(input io.Reader, destination string, stdout ...io.Writer) ([]byte, error) {
+		return runWalletMode(input, destination, "true", "true", stdout...)
+	}
+	for _, destination := range []string{walletCatalogPath, stdoutCatalogPath} {
+		before := captureReadOnly(t)
+		result, err := runReconcile(bytes.NewReader(bindingRaw), destination)
+		var got consensus.ProofHostSourceCatalogReceipt
+		var fields map[string]json.RawMessage
+		if err != nil || json.Unmarshal(result, &got) != nil || json.Unmarshal(result, &fields) != nil || len(fields) != 2 || got.CatalogPath != destination || got.CatalogSHA256 != walletReceipt.CatalogSHA256 {
+			t.Fatal("cold readonly CLI could not reconcile the exact retained normal/UNKNOWN catalog", destination, err)
+		}
+		assertReadOnly(t, before)
+	}
+	beforeReconcileStdout := captureReadOnly(t)
+	if _, err := runReconcile(bytes.NewReader(bindingRaw), walletCatalogPath, walletHandoffFailedStdout{cause: stdoutCause}); !errors.Is(err, stdoutCause) {
+		t.Fatal("readonly reconciliation lost its original stdout failure", err)
+	}
+	assertReadOnly(t, beforeReconcileStdout)
+	nonprivateCatalogPath := filepath.Join(walletParent, "nonprivate-catalog.json")
+	selectionCommandWrite(t, nonprivateCatalogPath, walletCatalogRaw)
+	if err := os.Chmod(nonprivateCatalogPath, 0644); err != nil {
+		t.Fatal(err)
+	}
+	tamperedCatalogPath := filepath.Join(walletParent, "tampered-catalog.json")
+	tamperedCatalogRaw := bytes.Replace(walletCatalogRaw, []byte(`"sourceId":"`+selected.SourceID+`"`), []byte(`"sourceId":"`+selected.SourceID+`-tampered"`), 1)
+	if bytes.Equal(tamperedCatalogRaw, walletCatalogRaw) {
+		t.Fatal("tampered catalog fixture did not change its original identity")
+	}
+	selectionCommandWrite(t, tamperedCatalogPath, tamperedCatalogRaw)
+	reconcileFailures := []struct {
+		name, path string
+		raw        []byte
+	}{
+		{name: "missing", path: filepath.Join(walletParent, "missing-catalog.json"), raw: bindingRaw},
+		{name: "partial", path: partialCatalogPath, raw: bindingRaw},
+		{name: "nonprivate", path: nonprivateCatalogPath, raw: bindingRaw},
+		{name: "tampered", path: tamperedCatalogPath, raw: bindingRaw},
+		{name: "4097-bytes", path: walletCatalogPath, raw: append(bytes.Clone(bindingRaw), bytes.Repeat([]byte{' '}, consensus.MaxProofHostSourceSelectionRequestBytes+1-len(bindingRaw))...)},
+	}
+	if len(walletMismatchRequests) != 6 {
+		t.Fatal("reconciliation must retain every original binding mismatch regression")
+	}
+	for field, raw := range walletMismatchRequests {
+		reconcileFailures = append(reconcileFailures, struct {
+			name, path string
+			raw        []byte
+		}{name: "binding-" + field, path: walletCatalogPath, raw: raw})
+	}
+	for _, malformed := range walletMalformedRequests {
+		reconcileFailures = append(reconcileFailures, struct {
+			name, path string
+			raw        []byte
+		}{name: "request-" + malformed.name, path: walletCatalogPath, raw: malformed.raw})
+	}
+	for _, tc := range reconcileFailures {
+		t.Run("wallet-reconcile-refuses-"+tc.name, func(t *testing.T) {
+			before := captureReadOnly(t)
+			if result, err := runReconcile(bytes.NewReader(tc.raw), tc.path); err == nil || strings.Contains(string(result), "catalogSha256") {
+				t.Fatal("readonly reconciliation accepted unavailable, changed or foreign original DATA", err)
+			}
+			assertReadOnly(t, before)
+		})
+	}
 	for path, original := range map[string][]byte{walletRequestPath: bindingRaw, bindingPath: bindingRaw, delivery.ManifestPath: deliveryRaw, catalogPath: catalogRaw} {
 		if after, err := os.ReadFile(path); err != nil || !bytes.Equal(after, original) {
 			t.Fatal("Wallet registration changed a retained original input or catalog", path, err)
@@ -388,6 +534,7 @@ func TestRegisterProofHostSourceNormalCommandRetainedFixture(t *testing.T) {
 	if t.Failed() {
 		return
 	}
+	t.Log("PROOF_HOST_SOURCE_WALLET_REQUEST_RECONCILED_DATA_ONLY normalCLI=true readonly=true RootGrant=false HostQualification=false")
 	t.Log("PROOF_HOST_SOURCE_WALLET_REQUEST_REGISTERED_DATA_ONLY normalCLI=true exactBinding=true RootGrant=false HostQualification=false")
 	t.Log("PROOF_HOST_SOURCE_REGISTERED_DATA_ONLY normalCLI=true RootGrant=false HostQualification=false")
 }
