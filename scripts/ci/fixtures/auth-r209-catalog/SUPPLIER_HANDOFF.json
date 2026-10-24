@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "state": "CATALOG_ORIGINAL_SERVICE_AND_PRINCIPAL_CURRENT_CALLEE_VERIFIED_PUBLIC_FIXTURE_NOT_FULL_SOURCE13",
+  "parent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/HANDOFF.json",
+    "bytes": 14261,
+    "sha256": "5115dbbe571e31a5e21a7af2868ffe012e26457cbb8a26d52d3bd0ca9856e72f",
+    "gitBlob": "df4b676ca755aac92d46f5a6f5ae66ce7f9f3381"
+  },
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r209-supply-20261024-r1/source/internal/developerauthority/original_catalog_authority.go",
+      "relative": "source/internal/developerauthority/original_catalog_authority.go",
+      "bytes": 1211,
+      "sha256": "2ac5d7dcf6729063a8e2228b3275bf55ad71db60a2477f014914f53e8cc35465",
+      "gitBlob": "02653f3064faeb7c46cbd3e763f3418a02f8bcc1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r209-supply-20261024-r1/source/internal/developerauthority/original_catalog_authority_test.go",
+      "relative": "source/internal/developerauthority/original_catalog_authority_test.go",
+      "bytes": 2239,
+      "sha256": "291961e5665ca927dc731f3389175c8dbc738e42a8e538e8ebb015cfee252657",
+      "gitBlob": "b6b9a89f47e5352148029db1c79f51d0cda4f029"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r209-supply-20261024-r1/run-new-catalog.mjs",
+      "relative": "run-new-catalog.mjs",
+      "bytes": 1111,
+      "sha256": "091d85004e0c78d3ee09a9d14e580331d1d41141851705d470b471b6f947f546",
+      "gitBlob": "05734b515247be19a8e5b9c6e4f2d96c3be53765"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r209-supply-20261024-r1/evidence/catalog-current-Hw8iNp/stdout",
+      "relative": "evidence/catalog-current-Hw8iNp/stdout",
+      "bytes": 2172,
+      "sha256": "3210d9061fa1af3c22c5b6f5ef0335a8f13873cf33709e96600fd41baffc476b",
+      "gitBlob": "ad89a3d180255c441e9cb16a49597090f308ccbc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r209-supply-20261024-r1/evidence/catalog-current-Hw8iNp/stderr",
+      "relative": "evidence/catalog-current-Hw8iNp/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r209-supply-20261024-r1/evidence/catalog-current-Hw8iNp/result.json",
+      "relative": "evidence/catalog-current-Hw8iNp/result.json",
+      "bytes": 2136,
+      "sha256": "8d668c5adb34a88a26c15f2ff67f75df7cbb9298a28d22967ecab67c60e40ad0",
+      "gitBlob": "21fc87b7e3c1720ce60de19dc4bd97fa42aba940"
+    }
+  ],
+  "normalCaller": "Catalog.CurrentProject already calls AssertCatalogAuthorityCurrent inside its original serializable transaction; this actual method supplies original Source-current then same principal HTTP-current then Source-current plus final principal expiry/context fence. Catalog remains sole ACL/revision/grant owner.",
+  "tests": {
+    "newTests": 2,
+    "race": true,
+    "exit": 0,
+    "GoPackageCompiled": true,
+    "pinnedSourceChildExecuted": true,
+    "actualLoopbackTLSFixture": true,
+    "realRoot": false,
+    "production": false
+  },
+  "boundaries": [
+    "supplier Go dependency only; no new Go server/daemon/normal mount claim",
+    "no control approval insert on catalog liveness",
+    "Root/OS item/admitted service selection stays unchanged",
+    "remaining VerifyProtectedPublisherOriginal/AssertPublisherCurrent, publication4, selector1 and dynamic capture issuer are still own CODE unfinished"
+  ],
+  "truth": {
+    "fullSource13": false,
+    "mounted": false,
+    "production": false,
+    "Root": false,
+    "grants": false,
+    "FinanceResumed": false
+  }
+}
