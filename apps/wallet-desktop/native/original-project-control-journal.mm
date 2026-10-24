@@ -36,11 +36,11 @@ static BOOL ControlActor(NSError**error){return getuid()!=0&&getuid()==geteuid()
  if(!result||CFGetTypeID(result)!=CFDictionaryGetTypeID()){if(result)CFRelease(result);ControlError(error,@"decision-read-type",errSecDecode,NO);return nil;}
  NSDictionary*a=CFBridgingRelease(result);
  if(![a[(__bridge id)kSecAttrService]isEqual:ControlService]||![a[(__bridge id)kSecAttrAccount]isEqual:q[(__bridge id)kSecAttrAccount]]||![a[(__bridge id)kSecAttrSynchronizable]isEqual:@NO]||![a[(__bridge id)kSecAttrAccessible]isEqual:(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly]){ControlError(error,@"decision-protection",errSecDecode,NO);return nil;}
- NSData*body=ControlCopyBytes(a[(__bridge id)kSecValueData],393216);if(!body){ControlError(error,@"decision-read-bound",errSecDecode,NO);return nil;}return body;
+ NSData*body=ControlCopyBytes(a[(__bridge id)kSecValueData],524288);if(!body){ControlError(error,@"decision-read-bound",errSecDecode,NO);return nil;}return body;
 }}
 - (BOOL)reserveOriginalDecision:(NSData*)input forOriginalRequest:(NSData*)original error:(NSError**)error {@synchronized(self){
  if(error)*error=nil;if(!ControlActor(error))return NO;
- NSData*request=ControlCopyBytes(original,65536),*decision=ControlCopyBytes(input,393216);
+ NSData*request=ControlCopyBytes(original,65536),*decision=ControlCopyBytes(input,524288);
  if(!request||!decision)return ControlError(error,@"decision-input-bound",errSecParam,NO);
  NSMutableDictionary*q=ControlQuery(request);q[(__bridge id)kSecAttrAccessible]=(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly;q[(__bridge id)kSecValueData]=decision;
  // Never update/delete. Duplicate and uncertain outcomes retain the original

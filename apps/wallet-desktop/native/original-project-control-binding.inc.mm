@@ -23,17 +23,19 @@ static WalletControlOwner*WalletControlOriginal(napi_env env,napi_value value){
 static bool WalletControlTryClose(WalletControlOwner*p){@try{NSError*e=nil;return [p->review close:&e]&&!e;}@catch(NSException*){return false;}}
 static void WalletControlCleanup(void*raw){auto*p=static_cast<WalletControlOwner*>(raw);if(!walletControlOwners.count(p))return;p->gone=true;bool closed=WalletControlTryClose(p);if(closed)p->admissionClosed=true;if(p->finalized&&closed){walletControlOwners.erase(p);delete p;}}
 static void WalletControlFinalize(napi_env,void*raw,void*){auto*p=static_cast<WalletControlOwner*>(raw);if(!walletControlOwners.count(p))return;p->finalized=true;bool closed=WalletControlTryClose(p);if(closed)p->admissionClosed=true;if(closed&&(p->gone||napi_remove_env_cleanup_hook(p->env,WalletControlCleanup,p)==napi_ok)){walletControlOwners.erase(p);delete p;}}
-enum class WalletControlMethod:uintptr_t {review=1,current,select,result,retire,save,close};
+enum class WalletControlMethod:uintptr_t {review=1,current,select,result,retire,save,close,proof,saveProof};
 static napi_value WalletControlOperation(napi_env env,napi_callback_info info){
  napi_value self=nullptr,args[2];void*raw=nullptr;size_t count=2;if(napi_get_cb_info(env,info,&count,args,&self,&raw)!=napi_ok)return Error(env,"CONTROL_ARGUMENTS_INVALID");
  auto method=static_cast<WalletControlMethod>((uintptr_t)raw);size_t wanted=method==WalletControlMethod::select?2:method==WalletControlMethod::save?1:0;
  if(!IDEIdentityArgc(env,info,wanted,args,&self,&raw))return Error(env,"CONTROL_ARGUMENTS_INVALID");auto*p=WalletControlOriginal(env,self);if(!p||!p->review)return Error(env,"CONTROL_ORIGINAL_NATIVE_REQUIRED");if(p->busy)return Error(env,"CONTROL_NATIVE_BUSY");
- if(p->admissionClosed&&method!=WalletControlMethod::result&&method!=WalletControlMethod::close&&method!=WalletControlMethod::retire)return Error(env,"CONTROL_NATIVE_CLOSED");
+ if(p->admissionClosed&&method!=WalletControlMethod::result&&method!=WalletControlMethod::proof&&method!=WalletControlMethod::close&&method!=WalletControlMethod::retire)return Error(env,"CONTROL_NATIVE_CLOSED");
  struct Busy{WalletControlOwner*p;Busy(WalletControlOwner*v):p(v){p->busy=true;}~Busy(){p->busy=false;}}busy(p);
  @try{try{
   NSError*e=nil;NSDictionary*result=nil;
   if(method==WalletControlMethod::review)result=[p->review copyOriginalReview:&e];
   else if(method==WalletControlMethod::result)result=[p->review copyOriginalDecision:&e];
+  else if(method==WalletControlMethod::proof){NSData*bytes=[p->review copyOriginalApprovalProof:&e];if(e||!bytes.length||bytes.length>393216)return Error(env,IDEIdentityCode(e,"CONTROL_ORIGINAL_PROOF_UNAVAILABLE").c_str());void*copy=nullptr;napi_value buffer=nullptr,out=nullptr;if(napi_create_arraybuffer(env,bytes.length,&copy,&buffer)!=napi_ok)return nullptr;memcpy(copy,bytes.bytes,bytes.length);if(napi_create_typedarray(env,napi_uint8_array,bytes.length,buffer,0,&out)!=napi_ok)return nullptr;return out;}
+  else if(method==WalletControlMethod::saveProof){if(![p->review saveOriginalApprovalResult:&e]||e)return Error(env,IDEIdentityCode(e,"CONTROL_ORIGINAL_PROOF_SAVE_UNKNOWN").c_str());return Undefined(env);}
   else if(method==WalletControlMethod::retire){[p->review retire];return Undefined(env);}
   else if(method==WalletControlMethod::current){if(![p->review assertCurrent:&e]||e)return Error(env,IDEIdentityCode(e,"CONTROL_CURRENT_REFUSED").c_str());return Undefined(env);}
   else if(method==WalletControlMethod::close){if(![p->review close:&e]||e)return Error(env,IDEIdentityCode(e,"CONTROL_CLOSE_PENDING").c_str());p->admissionClosed=true;return Undefined(env);}
@@ -50,8 +52,8 @@ static napi_value CaptureOriginalWalletProjectControlReview(napi_env env,napi_ca
  auto*p=new(std::nothrow)WalletControlOwner;if(!p)return Error(env,"CONTROL_NATIVE_CAPACITY");p->env=env;p->thread=pthread_self();walletControlOwners.insert(p);
  if(napi_add_env_cleanup_hook(env,WalletControlCleanup,p)!=napi_ok){walletControlOwners.erase(p);delete p;return Error(env,"CONTROL_ENV_CLEANUP_UNKNOWN");}napi_value result=nullptr;
  if(napi_create_object(env,&result)!=napi_ok||napi_type_tag_object(env,result,&walletControlTag)!=napi_ok||napi_wrap(env,result,p,WalletControlFinalize,nullptr,nullptr)!=napi_ok)return Error(env,"CONTROL_NATIVE_WRAP_UNKNOWN");
- const char*names[]={"copyOriginalReview","assertCurrent","selectOriginalDecision","copyOriginalDecision","retire","persistOriginalLifecycle","close"};
- for(uintptr_t i=0;i<7;i++){napi_property_descriptor d={names[i],nullptr,WalletControlOperation,nullptr,nullptr,nullptr,napi_default,(void*)(i+1)};if(napi_define_properties(env,result,1,&d)!=napi_ok)return Error(env,"CONTROL_NATIVE_METHODS_UNKNOWN");}
+ const char*names[]={"copyOriginalReview","assertCurrent","selectOriginalDecision","copyOriginalDecision","retire","persistOriginalLifecycle","close","copyOriginalApprovalProof","saveOriginalApprovalResult"};
+ for(uintptr_t i=0;i<9;i++){napi_property_descriptor d={names[i],nullptr,WalletControlOperation,nullptr,nullptr,nullptr,napi_default,(void*)(i+1)};if(napi_define_properties(env,result,1,&d)!=napi_ok)return Error(env,"CONTROL_NATIVE_METHODS_UNKNOWN");}
  if(napi_object_freeze(env,result)!=napi_ok)return Error(env,"CONTROL_NATIVE_FREEZE_UNKNOWN");NSError*e=nil;p->review=[YNXOriginalProjectControlReview captureOriginal:&e];
  // Return the actual partial owner even on capture refusal. Its own first
  // cause gates review/decision; Main retains it for cleanup, not reacquisition.

@@ -4,7 +4,8 @@ export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
  '1.3.0-pq.3.32-auth.14':Object.freeze({version:'1.3.0-pq.3.32-auth.14',supplierNodeInputs:71,inventory:Object.freeze({bytes:34752,sha256:'feafd827a9d42cea65af17b94944e6c565b8ef4b1e6eb56c938709811cc1eadf'}),tool:Object.freeze({bytes:10932,sha256:'c532946f53a6314d9c0ecb2ffb3afd2044f9ffb1961afbfe0b8ec32444f71461'})}),
  '1.3.0-pq.3.32-auth.18':Object.freeze({version:'1.3.0-pq.3.32-auth.18',supplierNodeInputs:75,inventory:Object.freeze({bytes:45891,sha256:'de4028e5ef58287c954c31c46b4e944828ae3e42712892eda3be6d659c44fbad'}),tool:Object.freeze({bytes:11989,sha256:'218c73f9883ef9263181453a7e12049009ccc400ec313e85c29ece3848ebc4dc'})}),
  '1.3.0-pq.3.32-auth.19':Object.freeze({version:'1.3.0-pq.3.32-auth.19',supplierNodeInputs:76,inventory:Object.freeze({bytes:48913,sha256:'faf4ab0694a4ecdf1b1e31ad69239ac038a02c2abf165e5e940da6222334e01d'}),tool:Object.freeze({bytes:12230,sha256:'06b86ae2cb60cd750623e790214a2698671315987c67ce4603871b413d5debdc'})}),
- '1.3.0-pq.3.32-auth.20':Object.freeze({version:'1.3.0-pq.3.32-auth.20',supplierNodeInputs:77,inventory:Object.freeze({bytes:51343,sha256:'408042f992ecbf4904e3677e4bb503e65ab6fb56990743adc1b19540829b9ea4'}),tool:Object.freeze({bytes:12387,sha256:'882c936591a31fed919cadb063a5d496182d82175cc80a80dbaaaf6d109e179e'})})
+ '1.3.0-pq.3.32-auth.20':Object.freeze({version:'1.3.0-pq.3.32-auth.20',supplierNodeInputs:77,inventory:Object.freeze({bytes:51343,sha256:'408042f992ecbf4904e3677e4bb503e65ab6fb56990743adc1b19540829b9ea4'}),tool:Object.freeze({bytes:12387,sha256:'882c936591a31fed919cadb063a5d496182d82175cc80a80dbaaaf6d109e179e'})}),
+ '1.3.0-pq.3.32-auth.23':Object.freeze({version:'1.3.0-pq.3.32-auth.23',supplierNodeInputs:82,inventory:Object.freeze({bytes:60578,sha256:'aafecb4804cdbe1c4c23cb8931cb495215142ec25d6890f5e8d850220da8b89c'}),tool:Object.freeze({bytes:13487,sha256:'c78a2448c9892a9943051bc7c5409f473f2a2838a11a165e908754ccd3090adf'})})
 });
 export function walletNativeSourceProfile(version){if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');return WALLET_NATIVE_SOURCE_PROFILES[version];}
 export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
@@ -16,10 +17,10 @@ export const WALLET_PUBLISHER_APPROVAL_INPUT=Object.freeze({path:'apps/wallet-de
 export const WALLET_PROJECT_CONTROL_FLAG='-DYNX_ORIGINAL_WALLET_PROJECT_CONTROL=1';
 export const WALLET_PROJECT_CONTROL_INPUTS=Object.freeze([
  {path:'apps/wallet-desktop/native/original-project-control-journal.h',bytes:705,sha256:'f2ce1185a38a3e534dcc0478eb0fddae04839cb8b3b4377fffc3c7cff8a5dd28'},
- {path:'apps/wallet-desktop/native/original-project-control-journal.mm',bytes:4783,sha256:'252cce4984bf3fd2db59e7b67f9ad42905f687a9604ef9eac228fb05681bc813'},
- {path:'apps/wallet-desktop/native/original-project-control-review.h',bytes:954,sha256:'c5aed04f989b589a3373dd498f244378075caa372461199db01b96f14f021aed'},
- {path:'apps/wallet-desktop/native/original-project-control-review.mm',bytes:11072,sha256:'44dbd0f333df890a83b00c6b7c9cb916590be406d3264ddcb85a38be2b03fef7'},
- {path:'apps/wallet-desktop/native/original-project-control-binding.inc.mm',bytes:8838,sha256:'69a5238a19d27feb39764f12de6c5db868de7081ed3457e5e2b94cbddc60befa'}
+ {path:'apps/wallet-desktop/native/original-project-control-journal.mm',bytes:4783,sha256:'fa02c314dd925d0bd5ae3a7e636cf58c682be9a8adc8a434354dd88995c981e6'},
+ {path:'apps/wallet-desktop/native/original-project-control-review.h',bytes:1867,sha256:'2983c54e267d822710b1eabc8176e95bd5e5b5b034fe72001d4d566c229981e3'},
+ {path:'apps/wallet-desktop/native/original-project-control-review.mm',bytes:28633,sha256:'3b494bc5bb78e2a3466d8ae643207c09879309b21118eb395ea9d5d0369d2957'},
+ {path:'apps/wallet-desktop/native/original-project-control-binding.inc.mm',bytes:9665,sha256:'4e3492f8421340dd5cfe9b4a629835651e1d20496a22e5b25debb31dbff92dfc'}
 ].map(Object.freeze));
 const withApproval=Object.freeze([...WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_PUBLISHER_APPROVAL_INPUT]);
 export const WALLET_ARTIFACT_CABI_FLAG='-DYNX_ORIGINAL_WALLET_ARTIFACT_CABI=1';
@@ -32,11 +33,11 @@ export const WALLET_ARTIFACT_CABI_INPUTS=Object.freeze([
 ].map(Object.freeze));
 const withCABI=Object.freeze([...withApproval,...WALLET_ARTIFACT_CABI_INPUTS]);
 export function walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease=false,projectControl=false){
- if(typeof projectControl!=='boolean'||projectControl&&supplierNodeInputCount!==77)throw Error('WALLET_CONTROL_MATCHED_SDK20_REQUIRED');
+ if(typeof projectControl!=='boolean'||projectControl&&![77,82].includes(supplierNodeInputCount))throw Error('WALLET_CONTROL_MATCHED_SDK20_OR_23_REQUIRED');
  if(typeof artifactRelease!=='boolean')throw Error('WALLET_ARTIFACT_CABI_ROLE_INVALID');
  if(artifactRelease&&supplierNodeInputCount!==77)throw Error('WALLET_ARTIFACT_CABI_SDK20_REQUIRED');
- if(![69,71,75,76,77].includes(supplierNodeInputCount))throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');
- const selected=artifactRelease?withCABI:supplierNodeInputCount===77?withApproval:WALLET_PUBLISHER_NATIVE_INPUTS;
+ if(![69,71,75,76,77,82].includes(supplierNodeInputCount))throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');
+ const selected=artifactRelease?withCABI:[77,82].includes(supplierNodeInputCount)?withApproval:WALLET_PUBLISHER_NATIVE_INPUTS;
  return projectControl?Object.freeze([...selected,...WALLET_PROJECT_CONTROL_INPUTS]):selected;
 }
 export const SDK13_NODE_TRANSLATION_UNITS=Object.freeze([
@@ -69,7 +70,7 @@ export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInpu
   if(argv.filter(a=>a==='ServiceManagement').length!==1||argv.filter(a=>a==='AppKit').length!==1||argv.filter(a=>a==='-lbsm').length!==1)fail();
   argv.splice(end,0,store,...controlSources);argv.splice(argv.indexOf('-lbsm'),0,'-framework','LocalAuthentication');
   if(artifactRelease){argv.splice(argv.lastIndexOf('-o'),0,path.join(repo,WALLET_ARTIFACT_CABI_INPUTS[2].path));argv.unshift(WALLET_ARTIFACT_CABI_FLAG,'-I'+path.join(repo,'apps/wallet-desktop/native'));}
-  if(supplierNodeInputCount===77)argv.unshift(WALLET_PUBLISHER_APPROVAL_FLAG);
+  if([77,82].includes(supplierNodeInputCount))argv.unshift(WALLET_PUBLISHER_APPROVAL_FLAG);
   if(projectControl)argv.unshift(WALLET_PROJECT_CONTROL_FLAG);
   return {...command,argv};
  });

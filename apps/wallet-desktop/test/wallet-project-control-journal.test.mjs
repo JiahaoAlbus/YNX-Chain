@@ -25,6 +25,6 @@ test('actual Native capture/decision body retains original choice across retirem
  const root=fileURLToPath(new URL('..',import.meta.url)),temp=await fs.mkdtemp(path.join(os.tmpdir(),'ynx-control-review-public-'));
  try{
   const binary=path.join(temp,'public-review');const build=spawnSync('/usr/bin/clang++',['-std=c++17','-fobjc-arc','-DYNX_CONTROL_JOURNAL_PUBLIC_TEST=1','-DYNX_CONTROL_REVIEW_PUBLIC_TEST=1','-I'+originalNative,'-framework','Foundation','-framework','Security','-framework','LocalAuthentication','-framework','AppKit',path.join(root,'native/original-project-control-journal.mm'),path.join(root,'native/original-project-control-review.mm'),path.join(root,'test/native/project-control-review-public.mm'),'-o',binary],{encoding:'utf8',timeout:30000});assert.equal(build.status,0,build.stderr);
-  const run=spawnSync(binary,[],{encoding:'utf8',timeout:10000});assert.equal(run.status,0,run.stderr);assert.deepEqual(JSON.parse(run.stdout),{cases:5,systemKeychainCalls:0,SourceQualified:false,signing:false});
+  const run=spawnSync(binary,[],{encoding:'utf8',timeout:10000});assert.equal(run.status,0,run.stderr);assert.deepEqual(JSON.parse(run.stdout),{cases:9,systemKeychainCalls:0,SourceQualified:false,signing:false});
  }finally{await fs.rm(temp,{recursive:true,force:true});}
 });

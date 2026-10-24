@@ -10,12 +10,13 @@ export function mountWalletProjectControlPanel({root,api,getKeyState,document:do
   try{const r=await fn();if(!live(before,ticket))return;if(r?.ok!==true)throw Error('CONTROL_ORIGINAL_UNAVAILABLE');
    if(label.startsWith('读取')){if(r.value?.walletAccount!==before.account)throw Error('CONTROL_ACCOUNT_CHANGED');request.replaceChildren();reviewUI=appendWalletProjectControlReview({container:request,review:r.value.review,walletAccount:r.value.walletAccount,api,getKeyState,isCurrent:()=>live(before,ticket),onResult:s=>{if(live(before,ticket))result.textContent=s;},document:doc});}
    else if(r.value.reviewClosed===true){generation++;reviewUI=null;request.replaceChildren();result.textContent='本次复核已结束，原记录保留。下一次读取需要独立的新请求，不会重做旧选择。';}
-   else result.textContent='原选择状态：'+r.value.phase+'。仅查询原操作，不代表批准、注册或签名完成。';
+   else {const v=r.value;result.textContent=v.hasSignedResult?(v.resultStored?'原批准证明已在本地保留；不代表服务端批准或注册完成。':'原批准证明已生成，保存尚未确认；请仅本地保存原结果，不重签。'):v.phase==='approval-failed'?'本次签发明确失败；保留原记录，不自动重做。':v.phase==='approval-outcome-unknown'?'本次签发结果未知；只查询原操作，不重新签发。':'原选择状态：'+v.phase+'。仅查询原操作，不代表批准、注册或签名完成。';if(v.cleanupPending)result.textContent+=' 原资源清理尚未确认，不能按已关闭处理。';}
   }catch{if(live(before,ticket))result.textContent='原请求、当前授权或保存结果未确认。请保留原操作；不会重新签名、自动重试或借用其他用途许可。';}
   finally{busy=false;render();}
  });buttons.push(b);root.append(b);}
  button('读取项目控制请求 / Read project control request',()=>api.startIDEProjectControl());
  button('只查询原选择 / Observe original choice only',()=>api.observeIDEProjectControl());
+ button('仅保存原结果 / Save original result only',()=>api.saveIDEProjectControlResult());
  button('结束本次复核 / Close this review',()=>api.closeIDEProjectControl());root.append(request,result);render();
  return Object.freeze({render,invalidate(){generation++;reviewUI=null;request.replaceChildren();result.textContent='此视图已失效；原选择和结果仍保留，不会自动重做。';render();}});
 }

@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   startIDEProjectControl:()=>ipcRenderer.invoke('wallet:ide-project-control-start'),
   decideIDEProjectControl:(reviewId,decision)=>ipcRenderer.invoke('wallet:ide-project-control-decide',reviewId,decision),
   observeIDEProjectControl:()=>ipcRenderer.invoke('wallet:ide-project-control-observe'),
+  saveIDEProjectControlResult:()=>ipcRenderer.invoke('wallet:ide-project-control-save'),
   closeIDEProjectControl:()=>ipcRenderer.invoke('wallet:ide-project-control-close'),
   retireIDEProjectControl:()=>ipcRenderer.invoke('wallet:ide-project-control-retire'),
   startIDEIdentityPeer:()=>ipcRenderer.invoke('wallet:ide-identity-peer-start'),

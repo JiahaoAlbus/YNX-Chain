@@ -3,10 +3,21 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {composeWalletPublisherNativeBuildPlan,SDK13_NODE_TRANSLATION_UNITS,WALLET_PUBLISHER_NATIVE_INPUTS,walletPublisherNativeInputs,WALLET_ARTIFACT_CABI_INPUTS,WALLET_ARTIFACT_CABI_FLAG,WALLET_PROJECT_CONTROL_INPUTS,WALLET_PROJECT_CONTROL_FLAG} from '../scripts/wallet-publisher-native-build.mjs';
+import {composeWalletPublisherNativeBuildPlan,SDK13_NODE_TRANSLATION_UNITS,WALLET_PUBLISHER_NATIVE_INPUTS,walletPublisherNativeInputs,WALLET_ARTIFACT_CABI_INPUTS,WALLET_ARTIFACT_CABI_FLAG,WALLET_PROJECT_CONTROL_INPUTS,WALLET_PROJECT_CONTROL_FLAG,walletNativeSourceProfile} from '../scripts/wallet-publisher-native-build.mjs';
+import {sdkRuntimeUnionProfile} from '../scripts/sdk14-runtime-union.mjs';
 import {canonicalNativeInputSelection,CANONICAL_NATIVE_EVIDENCE_TESTS,verifyCanonicalNativeReceipt,PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
 const inventoryBytes=readFileSync(new URL('./fixtures/auth13-native-inventory.json',import.meta.url)),inventory=JSON.parse(inventoryBytes),repo='/PUBLIC/source',headers='/PUBLIC/headers';
 const hash=b=>createHash('sha256').update(b).digest('hex');
+test('SDK23 selects its own frozen82-input source and9342-file runtime, never SDK20 qualification',()=>{
+ const profile=walletNativeSourceProfile('1.3.0-pq.3.32-auth.23');assert.equal(profile.supplierNodeInputs,82);assert.equal(profile.inventory.sha256,'aafecb4804cdbe1c4c23cb8931cb495215142ec25d6890f5e8d850220da8b89c');
+ const runtime=sdkRuntimeUnionProfile(profile.version);assert.equal(runtime.files,9342);assert.equal(runtime.sha256,'dc4427a01bad707eaae9861b92e22b251dc83ac3d2b9535b576b162df1e60b84');
+ const plan=composeWalletPublisherNativeBuildPlan(originalPlan(),repo,82,false,true);assert.equal(plan.sources.length,16);assert(plan.commands[0].argv.includes(WALLET_PROJECT_CONTROL_FLAG));assert.equal(plan.walletInputFiles.length,8);
+ assert.throws(()=>composeWalletPublisherNativeBuildPlan(originalPlan(),repo,82,true,true),/SDK20_REQUIRED/); // old artifact archive is NOT the new CONTROL archive
+});
+test('actual SDK23 inventory and canonical receipt use the supplied unchanged82 leaves',{skip:!process.env.WALLET_CONTROL_CABI_SDK_RUNTIME},()=>{
+ const invBytes=readFileSync(path.join(process.env.WALLET_CONTROL_CABI_SDK_RUNTIME,'integration/SDK332_R140_NATIVE_COMPATIBILITY.json')),inv=JSON.parse(invBytes),wallet=walletPublisherNativeInputs(82,false,true),rows=[...inv.NativeInputs,...wallet],names=[...rows.map(p=>p.path),...inv.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...CANONICAL_NATIVE_EVIDENCE_TESTS],pins=rows.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));
+ assert.equal(canonicalNativeInputSelection(inv.version,names,invBytes,pins).inputs.length,90);const changed=Buffer.from(invBytes);changed[0]^=1;assert.throws(()=>canonicalNativeInputSelection(inv.version,names,changed,pins));
+});
 function originalPlan(universal=false){
  const output=path.join(repo,'apps/wallet-desktop/native/original-auth-identity.node'),sources=SDK13_NODE_TRANSLATION_UNITS.map(n=>path.join(repo,n)),arches=universal?['arm64','x64']:['arm64'];
  const commands=arches.map(arch=>({tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=original_auth_identity','-mmacosx-version-min=13.0','-I'+headers,'-I'+path.join(repo,'packages/wallet-auth/native'),'-framework','Foundation','-framework','Security','-framework','AppKit','-framework','ServiceManagement','-lbsm','-arch',arch==='x64'?'x86_64':arch,...sources,'-o',output+(universal?'.'+arch:'')]}));

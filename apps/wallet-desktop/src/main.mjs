@@ -341,6 +341,7 @@ handleWalletIPC('wallet:ide-identity-peer-retire',()=>safeIPC(()=>{originalIDEId
 handleWalletIPC('wallet:ide-project-control-start',()=>sensitiveIPC(()=>originalProjectControl.start(()=>keyAccess.current())));
 handleWalletIPC('wallet:ide-project-control-decide',(_event,reviewId,decision)=>sensitiveIPC(()=>originalProjectControl.decide(reviewId,decision,()=>keyAccess.current())));
 handleWalletIPC('wallet:ide-project-control-observe',()=>sensitiveIPC(()=>originalProjectControl.observeOriginal(()=>keyAccess.current())));
+handleWalletIPC('wallet:ide-project-control-save',()=>sensitiveIPC(()=>originalProjectControl.saveOriginalResult(()=>keyAccess.current())));
 handleWalletIPC('wallet:ide-project-control-close',()=>safeIPC(()=>originalProjectControl.closeReview()));
 handleWalletIPC('wallet:ide-project-control-retire',()=>safeIPC(()=>{originalProjectControl.retire();return originalProjectControl.status();}));
 handleWalletIPC('wallet:family-account', (_event, input) => sensitiveIPC(() => {
