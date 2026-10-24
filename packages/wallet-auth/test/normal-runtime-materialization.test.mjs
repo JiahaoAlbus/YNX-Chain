@@ -50,7 +50,7 @@ test('PUBLIC actual CLI merges263 plus53, verifies316, rejects wrong request pin
   assert.equal(good.status, 0, good.stderr);
   const r = JSON.parse(good.stdout), pkg = JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json')));
   assert.equal(r.actualSDKVersion, pkg.version); assert.equal(r.minUnionDependencyCount, 263); assert.equal(r.app316Added, 53); assert.equal(r.app316AlreadyInMinimumUnion, 263); assert.equal(r.filesCopied, 316); assert.equal(r.fullAppDependencyCoverage, true);
-  assert.equal(r.declaredNormalInputCounts.normal, 102); assert.equal(r.declaredNormalInputCounts.withSourceCurrentIO, 103); assert.equal(r.declaredNormalInputCounts.CPPHeaderInputs, 81);
+  assert.equal(r.declaredNormalInputCounts.normal, 109); assert.equal(r.declaredNormalInputCounts.withSourceCurrentIO, 110); assert.equal(r.declaredNormalInputCounts.CPPHeaderInputs, 87);
   for (const k of ['packagePayloadMaterialized', 'CoWClaimed', 'NativeAdmission', 'SourceAdmission', 'AppQualified', 'installed', 'published']) assert.equal(r[k], false);
   assert.equal(verifyNormalRuntimeAppCoverage(request.newOutputRoot).filesVerified, 316);
   assert.throws(() => materializeNormalRuntimeDependencies(request), {code: 'NORMAL_RUNTIME_OUTPUT_EXISTS'});

@@ -46,7 +46,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
- BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry;
+ BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog;
  NSError *_firstCause,*_cleanupCause;
  std::unique_ptr<ynx_auth_private::SourcePublicInstallation> _publicInstallation;
 }
@@ -86,6 +86,21 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   }
  }
  [s retire];if(![s close:nil])return s;return nil;
+}
++ (instancetype)acquireOriginalWalletPQHostCatalogSource:(NSError **)error {
+ YNXAuthIdentitySourceAuthority *s=[self new];s->_walletPQCatalog=YES;s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
+ NSError *e=nil;s->_custody=[YNXAuthIdentityCurrentOwner acquireOriginalWalletPQHostCatalogProfile:&e];
+ // Return actual partial + error intact; caller owns every acquired child.
+ if(e||!s->_custody){[s fail:e.localizedDescription?:@"PQ_HOST_ORIGINAL_SOURCE_NOT_SUPPLIED" error:error];return s;}
+ s->_profileOriginal=[s->_custody copyOriginalProfile:&e];s->_headOriginal=[s->_custody copyOriginalHead:&e];
+ NSDictionary *body=SourceOriginalBodyHint(s->_profileOriginal);id source=body[@"sourceId"];
+ if([source isKindOfClass:NSString.class])for(const auto&policy:ynx_auth_private::originalNativeSourceReleases())if(policy.sourceId==[source UTF8String]){s->_policy=&policy;break;}
+ if(e||!s->_policy||s->_policy->purpose!="wallet-pq-host-catalog-source-v1"||s->_policy->walletPQApplicationId.empty()||s->_policy->walletPQProtocolImagePath.empty()||s->_policy->walletPQProtocolImageDigest.empty()||s->_policy->walletPQProtocolSourceRevision.empty()||s->_policy->walletPQProtocolContract!="YNX-PQ-HOST-CATALOG-WALLET-JOURNAL6/v1"){[s fail:@"PQ_HOST_DEDICATED_SOURCE_RELEASE_NOT_SUPPLIED" error:error];return s;}
+ NSString *root=[[s->_custody copyOriginalResourceDirectory:&e]stringByAppendingPathComponent:@"original-auth-identity"];
+ if(root)s->_rootOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"root.original"] maximum:ynx_auth_private::OriginalAuthPublicRootMax image:NO digest:s->_policy->rootDigest error:&e];
+ if(s->_rootOriginal)s->_enrollmentOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"enrollment.original"] maximum:ynx_auth_private::OriginalAuthPublicOriginalMax image:NO digest:s->_policy->enrollmentDigest error:&e];
+ if(e||!s->_enrollmentOriginal||![s holdPublic:[NSString stringWithUTF8String:s->_policy->verifierImagePath.c_str()] maximum:131072 image:YES digest:s->_policy->verifierImageDigest error:&e]||![s holdPublic:[NSString stringWithUTF8String:s->_policy->nodeImagePath.c_str()] maximum:134217728 image:YES digest:s->_policy->nodeImageDigest error:&e]||![s assertAuthenticatedNativePurpose:&e]){[s fail:e.localizedDescription?:@"PQ_HOST_ORIGINAL_SOURCE_NOT_CURRENT" error:error];return s;}
+ return s;
 }
 + (instancetype)acquireOriginalHelperSourceForMessagePeer:(YNXIDEHelperMessagePeer*)peer error:(NSError**)error {
  if(!peer||![peer assertCurrentMessage:error]){if(error&&!*error)*error=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_MESSAGE_REQUIRED"}];return nil;}
@@ -203,7 +218,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   @try{
    uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(before<_timeFloor)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CLOCK_ROLLBACK" error:error];
    NSDictionary *contract=@{@"purpose":[NSString stringWithUTF8String:_policy->purpose.c_str()],@"enrollmentFrame":[NSString stringWithUTF8String:_policy->enrollmentFrame.c_str()],@"profileFrame":[NSString stringWithUTF8String:_policy->profileFrame.c_str()],@"currentFrame":[NSString stringWithUTF8String:_policy->currentFrame.c_str()]};
-   NSDictionary *policy=@{@"rootDigest":[NSString stringWithUTF8String:_policy->rootDigest.c_str()],@"enrollmentDigest":[NSString stringWithUTF8String:_policy->enrollmentDigest.c_str()],@"endpoint":[NSString stringWithUTF8String:_policy->endpoint.c_str()],@"spki":[NSString stringWithUTF8String:_policy->spki.c_str()],@"signatureContract":contract};
+   NSMutableDictionary *policy=[@{@"rootDigest":[NSString stringWithUTF8String:_policy->rootDigest.c_str()],@"enrollmentDigest":[NSString stringWithUTF8String:_policy->enrollmentDigest.c_str()],@"endpoint":[NSString stringWithUTF8String:_policy->endpoint.c_str()],@"spki":[NSString stringWithUTF8String:_policy->spki.c_str()],@"signatureContract":contract}mutableCopy];
+   if(_policy->purpose=="wallet-pq-host-catalog-source-v1"){
+    if(!_walletPQCatalog||_policy->walletPQApplicationId.empty())return [self fail:@"PQ_HOST_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
+    policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->walletPQApplicationId.c_str()];
+   }else if(_walletPQCatalog)return [self fail:@"PQ_HOST_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
    NSDictionary *input=@{@"rootRaw":[[NSString alloc]initWithData:_rootOriginal encoding:NSUTF8StringEncoding],@"enrollmentRaw":[[NSString alloc]initWithData:_enrollmentOriginal encoding:NSUTF8StringEncoding],@"profileRaw":[[NSString alloc]initWithData:_profileOriginal encoding:NSUTF8StringEncoding],@"headRaw":[[NSString alloc]initWithData:_headOriginal encoding:NSUTF8StringEncoding],@"policy":policy,@"previous":@{@"sequence":@(_sequence),@"floor":@(_floor),@"head":_headDigest,@"timeFloor":@(_timeFloor)}};
    NSDictionary *rootBody=SourceProofDictionary(_rootOriginal,16384);BOOL sourceV2=[rootBody[@"version"]isEqual:@2];
    if(sourceV2){
@@ -244,6 +263,22 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (NSDictionary *)copyOriginalSelection:(NSError **)error {if(![self assertAuthenticatedNativePurpose:error])return nil;NSDictionary *original=[_selection copy];if(![self heldCurrent:error])return nil;return original;}
+- (NSDictionary *)copyOriginalWalletPQHostCatalogContext:(NSError **)error {
+ @synchronized(self){
+  if(!_walletPQCatalog||!_policy||_policy->purpose!="wallet-pq-host-catalog-source-v1"||![self assertAuthenticatedNativePurpose:error])return [self fail:@"PQ_HOST_DEDICATED_SOURCE_OWNER_REQUIRED" error:error],nil;
+  NSDictionary *scope=_selection[@"pqHostCatalogSource"];NSDictionary *profile=SourceOriginalBodyHint(_profileOriginal);
+  if(![scope isKindOfClass:NSDictionary.class]||![profile[@"instanceId"]isKindOfClass:NSString.class]||
+    ![scope[@"protocolImagePath"]isEqual:[NSString stringWithUTF8String:_policy->walletPQProtocolImagePath.c_str()]]||
+    ![scope[@"protocolImageSHA256"]isEqual:[NSString stringWithUTF8String:_policy->walletPQProtocolImageDigest.c_str()]]||
+    ![scope[@"protocolSourceRevision"]isEqual:[NSString stringWithUTF8String:_policy->walletPQProtocolSourceRevision.c_str()]]||
+    ![scope[@"protocolReconcileContract"]isEqual:[NSString stringWithUTF8String:_policy->walletPQProtocolReconcileContract.c_str()]]||
+    ![scope[@"protocolWalletRequestContract"]isEqual:@"YNX-PQ-HOST-CATALOG-WALLET-JOURNAL6/v1"]||
+    _cachedCurrentExpiresMS<=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0))return [self fail:@"PQ_HOST_QUALIFIED_PROTOCOL_RELEASE_REQUIRED" error:error],nil;
+  NSDictionary *context=@{@"sourceId":[NSString stringWithUTF8String:_policy->sourceId.c_str()],@"instanceId":profile[@"instanceId"],@"profileDigest":SourceSHA(_profileOriginal),@"applicationId":[NSString stringWithUTF8String:_policy->walletPQApplicationId.c_str()],@"scope":[scope copy]};
+  if(![self heldCurrent:error]||_cachedCurrentExpiresMS<=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0))return nil;
+  return context;
+ }
+}
 - (NSDictionary *)copyOriginalProvisioningPublicOriginals:(NSError **)error {
  @synchronized(self){
   // Original owning source only: no caller Root, raw bundle, clock, endpoint,

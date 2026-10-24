@@ -11,6 +11,34 @@ const loadOriginalNative=()=>requireOriginal(fileURLToPath(new URL('../../../app
 const startups=new WeakMap(),ideStartups=new WeakMap(),owned=new WeakMap(),debt=new Set();
 const genericLane=Symbol('original-generic-source'),ideLane=Symbol('original-ide-source');
 const failure=code=>Object.assign(new Error(code),{code});
+// Dedicated PQ catalog Source channel, SAME fixed implementing image/loader.
+// This list does not borrow any existing Auth/IDE Source or recognize DATA
+// receipts as native ownership. Real qualification is the native callee's job.
+const pqCatalogSourceMethods=['acquireOriginalPQHostCatalogSource','isOriginalPQHostCatalogSource','readOriginalPQHostCatalogHandoff','assertOriginalPQHostCatalogSourceCurrent','observeOriginalPQHostCatalogSourceRevocation','retireOriginalPQHostCatalogSource','joinOriginalPQHostCatalogSource','closeOriginalPQHostCatalogSource','readOriginalPQHostCatalogSourceStatus'];
+function pqCatalogSourceNative(){
+ let native;try{native=loadOriginalNative();}catch(cause){throw Object.assign(failure('PQ_HOST_ORIGINAL_SOURCE_IMPLEMENTATION_NOT_SUPPLIED'),{cause});}
+ if(pqCatalogSourceMethods.some(name=>typeof native?.[name]!=='function'))throw failure('PQ_HOST_ORIGINAL_SOURCE_IMPLEMENTATION_NOT_SUPPLIED');
+ return native;
+}
+function pqCatalogSourceArguments(actual,expected){if(actual!==expected)throw failure('PQ_HOST_ORIGINAL_SOURCE_ARGUMENTS_INVALID');}
+function pqCatalogJournalDATA(value){
+ if(!value||typeof value!=='object'||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)throw failure('PQ_HOST_ORIGINAL_SOURCE_JOURNAL_INVALID');
+ const keys=['operationId','account','networkId','originalHash','nativeWireHash','transactionHash'];
+ const descriptors=Object.getOwnPropertyDescriptors(value);
+ if(Reflect.ownKeys(descriptors).length!==keys.length||keys.some(k=>!Object.hasOwn(descriptors,k)||!Object.hasOwn(descriptors[k],'value')||!descriptors[k].enumerable||typeof descriptors[k].value!=='string'))throw failure('PQ_HOST_ORIGINAL_SOURCE_JOURNAL_INVALID');
+ // Copy only inert DATA; no renderer getter/proxy may run while Native holds
+ // the original Source's one-enter/current/cleanup state.
+ return Object.freeze(Object.fromEntries(keys.map(k=>[k,descriptors[k].value])));
+}
+export function acquireOriginalPQHostCatalogSource(...args){pqCatalogSourceArguments(args.length,0);return pqCatalogSourceNative().acquireOriginalPQHostCatalogSource();}
+export function isOriginalPQHostCatalogSource(...args){pqCatalogSourceArguments(args.length,1);return pqCatalogSourceNative().isOriginalPQHostCatalogSource(args[0]);}
+export function readOriginalPQHostCatalogHandoff(...args){pqCatalogSourceArguments(args.length,2);const journal=pqCatalogJournalDATA(args[1]);return pqCatalogSourceNative().readOriginalPQHostCatalogHandoff(args[0],journal);}
+export function assertOriginalPQHostCatalogSourceCurrent(...args){pqCatalogSourceArguments(args.length,2);const journal=pqCatalogJournalDATA(args[1]);return pqCatalogSourceNative().assertOriginalPQHostCatalogSourceCurrent(args[0],journal);}
+export function observeOriginalPQHostCatalogSourceRevocation(...args){pqCatalogSourceArguments(args.length,1);return pqCatalogSourceNative().observeOriginalPQHostCatalogSourceRevocation(args[0]);}
+export function retireOriginalPQHostCatalogSource(...args){pqCatalogSourceArguments(args.length,1);return pqCatalogSourceNative().retireOriginalPQHostCatalogSource(args[0]);}
+export function joinOriginalPQHostCatalogSource(...args){pqCatalogSourceArguments(args.length,1);return pqCatalogSourceNative().joinOriginalPQHostCatalogSource(args[0]);}
+export function closeOriginalPQHostCatalogSource(...args){pqCatalogSourceArguments(args.length,1);return pqCatalogSourceNative().closeOriginalPQHostCatalogSource(args[0]);}
+export function readOriginalPQHostCatalogSourceStatus(...args){pqCatalogSourceArguments(args.length,1);return pqCatalogSourceNative().readOriginalPQHostCatalogSourceStatus(args[0]);}
 const methods=['acquireOriginalAdministrationProfile','readOriginalAdministrationProfile','assertOriginalAdministrationProfileCurrent','retireOriginalAdministrationProfile','joinOriginalAdministrationProfile','closeOriginalAdministrationProfile','reserveOriginalJointRegistration','commitOriginalJointRegistration','readOriginalJointRegistration','assertOriginalJointCurrent','assertOriginalJointExecutorChild','assertOriginalJointSuccession','retireOriginalJoint','joinOriginalJoint','closeOriginalJoint'];
 function state(ref){const s=owned.get(ref);if(!s)throw failure('AUTH_IDENTITY_ORIGINAL_JOINT_OWNER_REQUIRED');return s;}
 function first(s,cause){if(!s.firstPresent){s.firstPresent=true;s.firstCause=cause;}}

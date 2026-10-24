@@ -25,6 +25,11 @@ struct NativeSourceRelease {
  // Original independently admitted project authority endpoint. Never supplied
  // by renderer/HTTP request or inferred from Relay/login source selections.
  std::string projectAuthorityEndpoint,projectAuthoritySPKI;
+ // Dedicated Wallet catalog Source ONLY. Old entries stay unsupported. These
+ // independent Root/release inputs must identify the normal registrar build
+ // with the journal-six contract; a filename/old proof receipt is insufficient.
+ std::string walletPQApplicationId,walletPQProtocolImagePath,walletPQProtocolImageDigest,walletPQProtocolSourceRevision,walletPQProtocolContract;
+ std::string walletPQProtocolReconcileContract;
 };
 inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
  // An independently approved App build may supply typed ROWS via its frozen

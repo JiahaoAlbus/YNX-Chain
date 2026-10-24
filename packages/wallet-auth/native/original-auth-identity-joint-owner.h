@@ -10,6 +10,7 @@
 + (instancetype)acquireOriginalIDEProjectAuthorityProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDEProjectControlProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDERegistryProfile:(NSError **)error;
++ (instancetype)acquireOriginalWalletPQHostCatalogProfile:(NSError **)error;
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error;
 - (NSData *)copyOriginalProfile:(NSError **)error;
 - (NSData *)copyOriginalHead:(NSError **)error;
