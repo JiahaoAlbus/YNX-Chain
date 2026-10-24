@@ -72,7 +72,7 @@ actual=$(sha256sum -- "$case_dir/consensus.test"); [[ ${actual%% *} == "$pin" ]]
 # build tree or any original source, key, HRS, account or checkpoint path.
 chmod 0755 -- "$case_dir"
 for uid in "$engine_uid" "$signer_uid"; do
-  runuser -u "$(getent passwd "$uid" | cut -d: -f1)" -- /usr/bin/test -x "$case_dir/consensus.test" || refuse 'helper cannot execute the public staged copy'
+  /usr/sbin/runuser -u "$(getent passwd "$uid" | cut -d: -f1)" -- /usr/bin/test -x "$case_dir/consensus.test" || refuse 'helper cannot execute the public staged copy'
 done
 : > "$case_dir/stdout"; : > "$case_dir/stderr"
 set +e
