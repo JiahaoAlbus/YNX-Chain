@@ -9,7 +9,7 @@ import {createOriginalPublicationInputData} from './publication-result-originals
 
 test('normal SDK public decoder feeds the Auth six-field caller without altering inner result or member',async()=>{
  const root=await realpath(process.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT||fileURLToPath(new URL('../../../packages/wallet-auth',import.meta.url)));
- const metadataPath=join(root,'package.json'),metadata=JSON.parse(await readFile(metadataPath));assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.equal(metadata.version,'1.3.0-pq.3.32-auth.36');
+ const metadataPath=join(root,'package.json'),metadata=JSON.parse(await readFile(metadataPath));assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.equal(metadata.version,'1.3.0-pq.3.32-auth.37');
  const sdk=createRequire(pathToFileURL(metadataPath)),target=await realpath(sdk.resolve('@ynx-chain/wallet-auth/ide-artifact-release-result'));assert.ok(target.startsWith(root+sep));
  const {decodeIDEArtifactReleaseResultData}=await import(pathToFileURL(target).href);
  const fields={version:'YNX-IDE-ARTIFACT-RELEASE-RESULT/v1',purpose:'ARTIFACT-RELEASE',requestOriginal:'{"requestId":"PUBLIC-request"}',manifestOriginal:'{"projectId":"PUBLIC-project","label":"中文/🌏"}',invocationOriginal:'{"projectId":"PUBLIC-project","label":"中文/🌏"}',publisherOriginal:'AQID',signatureOriginal:'BAUG',actualApprovalRef:'00000000-0000-4000-8000-000000000001',publisherRegistrationRef:'PUBLIC-registration',publisherRevision:'1',publisherKeyVersion:'1'};

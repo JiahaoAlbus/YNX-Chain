@@ -1,4 +1,5 @@
 #import "original-auth-identity-joint-owner.h"
+#include "original-auth-identity-public-limits.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -27,6 +28,12 @@ static NSURL *YNXOriginalIDERegistryResources(void){
  NSString *base=[NSString stringWithUTF8String:ynx_auth_ide_private::originalIDERegistryBase(getuid()).c_str()];
  return [NSURL fileURLWithPath:base isDirectory:YES];
 }
+// Separate fixed Wallet namespace, not Developer/SSO/IDE purpose lending.
+static NSURL *YNXOriginalWalletPQRegistryResources(void){
+ if(getuid()==0||getuid()!=geteuid()||getgid()!=getegid())return nil;
+ NSString *base=[NSString stringWithFormat:@"/Library/Application Support/YNX/OriginalAuthIdentity/UID-%u/Wallet/PQHostCatalog",getuid()];
+ return [NSURL fileURLWithPath:base isDirectory:YES];
+}
 static BOOL YNXOriginalIDEProtectedAncestors(NSString *path){
  NSString *part=@"/";for(NSString *name in path.pathComponents){if([name isEqual:@"/"])continue;part=[part stringByAppendingPathComponent:name];struct stat s;
   if(lstat(part.fileSystemRepresentation,&s)||!ynx_auth_ide_private::originalIDERegistryDirectory(s))return NO;
@@ -42,7 +49,7 @@ static BOOL YNXAuthSameIdentity(struct stat a,struct stat b) {
  &&a.st_ctimespec.tv_sec==b.st_ctimespec.tv_sec&&a.st_ctimespec.tv_nsec==b.st_ctimespec.tv_nsec;
 }
 static BOOL YNXAuthProtectedFile(struct stat s) {
- return S_ISREG(s.st_mode)&&s.st_nlink==1&&!(s.st_mode&0022)&&(s.st_uid==getuid()||s.st_uid==0)&&s.st_size>0&&s.st_size<=65536;
+ return S_ISREG(s.st_mode)&&s.st_nlink==1&&!(s.st_mode&0022)&&(s.st_uid==getuid()||s.st_uid==0)&&s.st_size>0&&s.st_size<=(off_t)ynx_auth_private::OriginalAuthPublicOriginalMax;
 }
 // Retains exact original raw bytes and FD. No pathname/profile/key is accepted
 // from renderer, environment, caller dictionary or an approving callback.
@@ -62,7 +69,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  NSString *_rootPath;
  NSData *_profileRaw,*_headRaw;
  BOOL _retired,_closeSelected,_cleanupComplete;
- NSUInteger _entered;BOOL _ideConsumer,_ideRegistry;
+ NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog;
  NSString *_actualIDEResources;
  NSError *_firstCause,*_cleanupCause;
 }
@@ -83,13 +90,34 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideRegistry=YES;
  if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
 }
++ (instancetype)acquireOriginalIDEContractRelayProfile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideConsumer=YES;owner->_ideRegistry=YES;owner->_contractRelay=YES;
+ if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
+}
++ (instancetype)acquireOriginalIDEProjectAuthorityProfile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideConsumer=YES;owner->_ideRegistry=YES;owner->_projectAuthority=YES;
+ if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
+}
++ (instancetype)acquireOriginalIDEProjectControlProfile:(NSError **)error {
+ // Wallet-side original capture, not an IDE child path/ENV/provider. Same
+ // protected external registry, separate purpose-specific leaf and custody.
+ YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideRegistry=YES;owner->_projectControl=YES;
+ if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
+}
++ (instancetype)acquireOriginalWalletPQHostCatalogProfile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideRegistry=YES;owner->_walletPQCatalog=YES;
+ if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
+}
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error {
  @synchronized(self){if(![self assertOriginalCurrent:error])return nil;return [_rootPath.stringByDeletingLastPathComponent copy];}
 }
 - (BOOL)capture:(NSError **)error {
  @synchronized(self){
   if(_ideConsumer){_actualIDEResources=YNXActualIDEConsumerResources().path;if(!_actualIDEResources)return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_UNAVAILABLE" error:error];}
-  NSURL *resources=_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
+  NSURL *resources=_walletPQCatalog?YNXOriginalWalletPQRegistryResources():_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
+  if(_contractRelay)resources=[resources URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
+  if(_projectAuthority)resources=[resources URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
+  if(_projectControl)resources=[resources URLByAppendingPathComponent:@"project-control" isDirectory:YES];
   if(!resources.isFileURL)return [self fail:@"AUTH_IDENTITY_ORIGINAL_SOURCE_NOT_SUPPLIED" error:error];
   _rootPath=[[resources URLByAppendingPathComponent:@"original-auth-identity" isDirectory:YES] path];
   if(_ideRegistry&&!YNXOriginalIDEProtectedAncestors(_rootPath))return [self fail:@"AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED" error:error];
@@ -109,7 +137,11 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  @synchronized(self){
   if(_retired)return [self fail:@"AUTH_IDENTITY_ORIGINAL_RETIRED" error:error];
   if(_ideConsumer&&![YNXActualIDEConsumerResources().path isEqual:_actualIDEResources])return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_CHANGED" error:error];
-  if(_ideRegistry&&(![YNXOriginalIDERegistryResources().path isEqual:_rootPath.stringByDeletingLastPathComponent]||!YNXOriginalIDEProtectedAncestors(_rootPath)))return [self fail:@"AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_CHANGED" error:error];
+  NSURL *expectedRegistry=_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
+  if(_contractRelay)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
+  if(_projectAuthority)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
+  if(_projectControl)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-control" isDirectory:YES];
+  if(_ideRegistry&&(![expectedRegistry.path isEqual:_rootPath.stringByDeletingLastPathComponent]||!YNXOriginalIDEProtectedAncestors(_rootPath)))return [self fail:@"AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_CHANGED" error:error];
   struct stat root,profile,head,namedRoot,namedProfile,namedHead;
   if(_root<0||_profile<0||_head<0||fstat(_root,&root)||fstat(_profile,&profile)||fstat(_head,&head)||lstat(_rootPath.fileSystemRepresentation,&namedRoot)
    ||fstatat(_root,"profile.original",&namedProfile,AT_SYMLINK_NOFOLLOW)||fstatat(_root,"head.original",&namedHead,AT_SYMLINK_NOFOLLOW)

@@ -1,0 +1,85 @@
+{
+  "kind": "YNX_SDK37_FINITE_PRODUCT_EXCLUSION_POLICY/v1",
+  "versionSDK": "1.3.0-pq.3.32-auth.37",
+  "excluded": [
+    {
+      "bytes": 1041,
+      "path": "integration/source-acquisition-r101/tests/public-http-seam.mjs",
+      "sha256": "55b7d11a6e9b0c71d70f8434bd94b7fb3826efdc047d23aee7d87eb8276f32a9"
+    },
+    {
+      "bytes": 1115,
+      "path": "integration/source-acquisition-r101/tests/public-math-seam.mjs",
+      "sha256": "744ff6cc99ca05b484a2a4a488d4a9c7bef7f7ef91ba6e34c0adeb1c9f55145e"
+    },
+    {
+      "bytes": 124,
+      "path": "integration/source-acquisition-r101/tests/public-node-seam.mjs",
+      "sha256": "f8970a821ce3908c9015968132610591efce181f1d7d3532c5c55e9b91d85e5d"
+    },
+    {
+      "bytes": 539,
+      "path": "integration/source-acquisition-r101/tests/public-policy-seam.mjs",
+      "sha256": "495a72ffaa6c8547af8c1b6c97f5c549e2a89aac36d546ac7082c1fac96717ac"
+    },
+    {
+      "bytes": 5153,
+      "path": "integration/source-acquisition-r101/tests/run.mjs",
+      "sha256": "bd4ac3ed2262498f365cffdf9f1a28db9ed09ac79c7ae4d2d7cab825a2933159"
+    },
+    {
+      "bytes": 1838,
+      "path": "native/original-auth-identity-joint-owner.test.mjs",
+      "sha256": "370effa29fff4cdd69947d8abc51b05fc0aa75c18a7a4b37c41a6fea2a55504e"
+    },
+    {
+      "bytes": 8851,
+      "path": "native/original-auth-identity-source-authority.test.mjs",
+      "sha256": "682cece63881c53efc358fd1698d59c97ab27ecd5c29f8485d42a62c82e5c21e"
+    },
+    {
+      "bytes": 2111,
+      "path": "native/test-pq-catalog-source-contract.mjs",
+      "sha256": "c785e7054a812446ee3b73819f406ef8c533aa5196d28da9f05957624f612af3"
+    },
+    {
+      "bytes": 4218,
+      "path": "native/test-pq-catalog-source-lifetime.mm",
+      "sha256": "2db2ead2889913b7acb70f8e1db717e500bc5e9c4920397e5103f5eadf7f7935"
+    },
+    {
+      "bytes": 1655,
+      "path": "native/test-pq-catalog-task-exit.mm",
+      "sha256": "52f4733cb2f8d2fb6d0a431fb073b994e42a1199aa487208f25defb40b8dcfc7"
+    },
+    {
+      "bytes": 1134,
+      "path": "native/tests/ide-close-order/README.md",
+      "sha256": "c32906c64afc2604a2c1575683a74d58f8b9ff5929e8a1277644dd2204ba9f18"
+    },
+    {
+      "bytes": 1173,
+      "path": "native/tests/ide-close-order/connection.inc",
+      "sha256": "0bf0d7f39cb5b5843d32399bccbe26b50e72f7ce93e9e028f3cf3d497e67b391"
+    },
+    {
+      "bytes": 2753,
+      "path": "native/tests/ide-close-order/node-close.mm",
+      "sha256": "06c5c26e4d84b31951648c2f08f563d9838b2c134032c69337f8a39e8a6ead1e"
+    },
+    {
+      "bytes": 2725,
+      "path": "native/tests/ide-close-order/request-close.mm",
+      "sha256": "1dd11bf608ae5a829eba2126d327ca6410ad005b1d76484ccc9d9a11699bcc84"
+    },
+    {
+      "bytes": 2355,
+      "path": "native/tests/ide-close-order/run.mjs",
+      "sha256": "b02cbc6aeba7ac795e684a94cee0686909f5f2c47b6eb942d9e5716f221ba417"
+    }
+  ],
+  "count": 15,
+  "inheritedDATAOnly": true,
+  "oldSDK35IdentityOrAdmissionInherited": false,
+  "oldSDK36IdentityOrAdmissionInherited": false
+}
