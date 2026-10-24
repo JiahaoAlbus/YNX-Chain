@@ -5,17 +5,17 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {validateCanonicalNativeBuildReceipt,copyCanonicalIdentityHelper} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('actual A SDK20 record retains executed provenance and rejects changed or incomplete evidence',async()=>{
+test('actual A SDK35 record retains executed provenance and rejects changed or incomplete evidence',async()=>{
   const root=process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT;
-  assert.ok(root,'Original fixed SDK20 component root required.');
+  assert.ok(root,'Original fixed SDK35 component root required.');
   const original=JSON.parse(await readFile(join(root,inputs.nativeComponent.receipt.path)));
   const view=validateCanonicalNativeBuildReceipt(original,inputs,'arm64');
-  assert.equal(view.originalExecutedRecordSchema,original.schema);
-  assert.equal(view.inputFiles.length,77);assert.equal(view.readbackOnly,false);
+  assert.equal(view,original); // SDK35 producer uses the normal record directly.
+  assert.equal(view.inputFiles.length,112);assert.equal(view.readbackOnly,false);
   assert.equal(view.nativeQualified,false);assert.equal(view.registrationAccepted,false);
-  for(const mutate of [r=>r.helperTUs.pop(),r=>r.nodeTUs.pop(),r=>r.actualSteps[0].actualExit=1,
-    r=>r.NativeQualified=true,r=>r.normalNodeLoad.exports.pop(),r=>r.ownedUndefined.Node.push('PUBLIC_FOREIGN_OWNED_SYMBOL'),r=>{delete r.ownedUndefined.Node;},r=>{r.ownedUndefined.helper={};},r=>r.workspaceSelectorCalled=true,r=>r.actualCompilerDrivers[0].exactArgvEqual=false,
-    r=>r.artifacts.helper.sha256='0'.repeat(64),r=>r.inputFiles[0].sha256='0'.repeat(64)]){
+  for(const mutate of [r=>r.helperBuild.inputFiles.pop(),r=>r.inputFiles.pop(),r=>r.exitCodes[0]=1,
+    r=>r.nativeQualified=true,r=>r.helperBuild.executed=false,r=>r.ownedUndefinedScan.ownedUndefined.push('PUBLIC_FOREIGN_OWNED_SYMBOL'),r=>{delete r.ownedUndefinedScan;},r=>{r.helperBuild.ownedUndefinedScan={};},r=>r.registrationAccepted=true,r=>r.commands[0].argv.push('-DUNREVIEWED=1'),
+    r=>r.helperBuild.output.sha256='0'.repeat(64),r=>r.inputFiles[0].sha256='0'.repeat(64)]){
     const changed=structuredClone(original);mutate(changed);
     assert.throws(()=>validateCanonicalNativeBuildReceipt(changed,inputs,'arm64'),/differs/);
   }

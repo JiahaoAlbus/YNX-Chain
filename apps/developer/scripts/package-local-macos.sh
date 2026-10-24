@@ -17,7 +17,7 @@ source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 node --input-type=module -e "import('./scripts/package-identity-admission-source.mjs').then(m=>m.verifyCanonicalIdentityAdmissionSource())"
 canonical_native_root=$(node scripts/package-identity-admission-source.mjs --native-source-root)
 canonical_app_native_root=$(node scripts/identity-app-custody-source.mjs)
-node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs scripts/sdk14-native-build-receipt.test.mjs
+node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs scripts/sdk14-native-build-receipt.test.mjs scripts/sdk35-native-component.test.mjs scripts/sdk35-product-layout.test.mjs
 node --test scripts/native-wallet-transport-recipe.test.mjs
 node --test scripts/native-source-ownership.test.mjs
 node --test scripts/admit-derived-native.test.mjs
@@ -43,7 +43,7 @@ node --test desktop/wallet-contract-reference-journal.test.mjs desktop/wallet-co
 node --test desktop/contract-relay-scope.test.mjs
 node --test desktop/contract-relay-startup.test.mjs
 node --test desktop/project-contract-runtime.test.mjs
-node --test desktop/artifact-publication-client.test.mjs
+node --test desktop/artifact-publication-client.test.mjs desktop/artifact-publication-key-call.test.mjs desktop/publication-result-originals.test.mjs desktop/publication-result-normal-prefix.test.mjs
 node --test desktop/artifact-publication-lifecycle.test.mjs
 node --test desktop/artifact-publication-entry.test.mjs desktop/original-publication-project.test.mjs desktop/publication-ui-cause.test.mjs
 node --test desktop/project-contract-deployment.test.mjs
@@ -157,7 +157,7 @@ cp desktop/marketplace-catalog-policy.mjs desktop/marketplace-catalog-transport.
 cp desktop/marketplace-artifact-policy.mjs desktop/marketplace-artifact-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/chain-public-reader.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/project-contracts-host.mjs desktop/wallet-contract-client.mjs desktop/wallet-contract-reference-journal.mjs desktop/contract-relay-scope.mjs desktop/project-contract-deployment.mjs desktop/project-contract-runtime.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
-cp desktop/artifact-publication-host.mjs desktop/artifact-publication-client.mjs desktop/artifact-publication-lifecycle.mjs desktop/original-publication-project.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/artifact-publication-host.mjs desktop/artifact-publication-client.mjs desktop/artifact-publication-lifecycle.mjs desktop/original-publication-project.mjs desktop/publication-result-originals.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-native "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-helper "$app/Contents/Resources/code"

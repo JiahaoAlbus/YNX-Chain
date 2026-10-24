@@ -5,6 +5,12 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 
 const unavailable=()=>Object.assign(Error('The original publication project is not available.'),{code:'IDE_PUBLICATION_PROJECT_UNAVAILABLE'});
 const retired=()=>Object.assign(Error('The publication project changed. Review it again.'),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});
+// Local composition identity only; never a Native Source or signing approval.
+// The real protected constructor still independently enforces original custody.
+const composedPublicationSelections=new WeakSet();
+export function assertComposedPublicationSelection(selection){
+ if(!composedPublicationSelections.has(selection))throw Object.assign(Error('Original project composition is unavailable.'),{code:'IDE_PUBLICATION_NOT_SUPPLIED'});
+}
 const text=(value,maxBytes=1024)=>typeof value==='string'&&value.length>0&&Buffer.byteLength(value)<=maxBytes&&value.trim()===value&&!/[\u0000-\u001f\u007f]/.test(value);
 const principalKeys=['account','deviceId','sessionRef','currentRef','accountGeneration','sessionGeneration'];
 const projectKeys=['projectId','ownerAccount','currentReference','projectRevision','catalogRevision'];
@@ -144,7 +150,8 @@ export async function bindOriginalPublicationProject({selection,project}){
   if(current.projectId!==binding.projectId)throw retired();
   await selection.assertCurrent();return binding;
  }
- return Object.freeze({binding,assertCurrent,artifactBytes:()=>selection.artifactBytes(),
+ const composed=Object.freeze({binding,assertCurrent,artifactBytes:()=>selection.artifactBytes(),
   async encodeManifest(encoder){await assertCurrent();if(typeof encoder!=='function')throw unavailable();return encoder(binding);},
   authority:'artifact-data-only',signingApproved:false,deploymentApproved:false});
+ composedPublicationSelections.add(composed);return composed;
 }

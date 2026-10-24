@@ -8,6 +8,8 @@ import {identityAppCustodyPins,verifyIdentityAppCustodySource} from './identity-
 import {sdk14NativeBuildReceipt} from './sdk14-native-build-receipt.mjs';
 import {sdk19NativeBuildReceipt} from './sdk19-native-build-receipt.mjs';
 import {sdk20NativeBuildReceipt} from './sdk20-native-build-receipt.mjs';
+import {validateSDK35NativeComponent} from './sdk35-native-component.mjs';
+import {sdk35ProductLayout} from './sdk35-product-layout.mjs';
 
 const developer = dirname(dirname(fileURLToPath(import.meta.url)));
 const owned = join(developer, 'vendor/identity-admission');
@@ -82,7 +84,7 @@ export async function copyIdentityAdmissionSource(destination) {
 }
 // Canonical source custody is independent of runtime service admission. Keep the
 // original SDK loader relative to its unique apps/wallet-desktop Native module.
-export const CANONICAL_IDENTITY_INPUTS_SHA256 = '3d15f65bec23ed6ec825f7b62ebf5613bc0b947fff5e574079617f451352e21a';
+export const CANONICAL_IDENTITY_INPUTS_SHA256 = 'cc51b0a5acf20eaa732d96ead0a678635e9595f698212104d8bcd047ead43427';
 // These select source custody, never runtime authority. Every selected byte is
 // still checked against the immutable manifest; there is no fallback on error.
 const canonicalOwned = resolve(process.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT || resolve(developer, '../../packages/wallet-auth'));
@@ -102,7 +104,7 @@ async function canonicalInputs() {
   const bytes = await readFile(new URL('./canonical-identity-inputs.json', import.meta.url));
   if (sha256(bytes) !== CANONICAL_IDENTITY_INPUTS_SHA256) throw Error('Canonical identity source manifest differs.');
   const record = JSON.parse(bytes);
-  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== 'b330fffdfe5ceda04ff665f396e46c6c85e8bb74' || record.sdkTree !== '3cd4b578eaba75ccafdee5f4745da744423bd9aa') throw Error('Canonical identity source selection differs.');
+  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== 'be54cda76a5a2b4e22da00af56c24a5871e7ba28' || record.sdkTree !== '672f240ad7b4b04c4c12f937233df8bdb7eb62a8') throw Error('Canonical identity source selection differs.');
   for (const rows of [record.files, record.dependencies, record.nativeSources, record.nativeBuildInputs]) {
     if (!Array.isArray(rows) || !rows.length || new Set(rows.map(x => x.path)).size !== rows.length) throw Error('Canonical identity source inventory differs.');
     for (const row of rows) if (!/^[A-Za-z0-9_@. /-]+$/.test(row.path) || row.path.startsWith('/') || row.path.split('/').some(p => !p || p === '.' || p === '..') || !Number.isSafeInteger(row.bytes) || !/^[a-f0-9]{64}$/.test(row.sha256)) throw Error('Canonical identity source pin differs.');
@@ -127,12 +129,13 @@ async function verifyRows(root, rows) {
 export async function verifyCanonicalIdentityAdmissionSource(root = canonicalOwned, dependencies = root === canonicalOwned ? canonicalDependencies : join(root, 'node_modules')) {
   const stat = await lstat(root);
   if (!stat.isDirectory() || stat.isSymbolicLink()) throw Error('Regular canonical identity directory required.');
-  const record = await canonicalInputs();
+  const sourceRecord = await canonicalInputs();
+  const record = sourceRecord.sdkVersion==='1.3.0-pq.3.32-auth.35' && root!==canonicalOwned ? sdk35ProductLayout(sourceRecord) : sourceRecord;
   await verifyRows(root, record.files);
   await verifyRows(dependencies, record.dependencies);
   const closure=record.runtimeClosure,relay=closure?.contractRelay;
-  if(closure?.Auth?.files!==475||closure.Auth.edges!==134||closure.WalletConnect?.files!==9072||closure.WalletConnect.edges!==181||closure.WalletConnect.packages!==112
-    ||relay?.files!==9335||relay.nativeQualified!==false||relay.registrationAccepted!==false
+  if((record.sdkVersion==='1.3.0-pq.3.32-auth.35' ? closure?.Auth?.files!==(root===canonicalOwned?566:556) : closure?.Auth?.files!==475||closure.Auth.edges!==134)||closure.WalletConnect?.files!==9072||closure.WalletConnect.edges!==181||closure.WalletConnect.packages!==112
+    ||(record.sdkVersion==='1.3.0-pq.3.32-auth.35' ? relay?.files!==(root===canonicalOwned?9426:9417) : relay?.files!==9335)||relay.nativeQualified!==false||relay.registrationAccepted!==false
     ||relay.manifest?.destination!=='native/original-ide-contract-relay-runtime-manifest.json')throw Error('Canonical SDK20 runtime closure selection differs.');
   const rows=new Map([...record.files,...record.dependencies.map(row=>({...row,path:'node_modules/'+row.path}))].map(row=>[row.path,row]));
   for(const part of [closure.Auth,relay]){
@@ -181,15 +184,21 @@ export async function copyCanonicalIdentityAdmissionSource(codeRoot) {
   const packageStat = await lstat(dirname(destination));
   if (!packageStat.isDirectory() || packageStat.isSymbolicLink()) throw Error('Regular canonical packages directory required.');
   await mkdir(destination); // No merging or replacement of an existing payload.
-  for (const [source, targetRoot, rows] of [[canonicalOwned,destination,record.files],
+  const selected=record.sdkVersion==='1.3.0-pq.3.32-auth.35' ? sdk35ProductLayout(record) : record;
+  const generated=new Set(record.productProjection?.generated.map(p=>p.destination)||[]);
+  for (const [source, targetRoot, rows] of [[canonicalOwned,destination,selected.files.filter(p=>!generated.has(p.path))],
     [canonicalDependencies,join(destination,'node_modules'),record.dependencies]]) {
     for (const row of rows) {
       const target = join(targetRoot,row.path); await mkdir(dirname(target),{recursive:true});
       await copyFile(join(source,row.path),target,1);
     }
   }
+  for(const pin of record.productProjection?.generated||[]){
+    await verifyRows(repository,[{path:pin.source,bytes:pin.bytes,sha256:pin.sha256}]);
+    const target=join(destination,pin.destination);await mkdir(dirname(target),{recursive:true});await copyFile(join(repository,pin.source),target,1);
+  }
   await verifyCanonicalIdentityAdmissionSource(destination);
-  return {sourceLeaves:record.files.length,dependencyLeaves:record.dependencies.length,
+  return {sourceLeaves:selected.files.length,dependencyLeaves:selected.dependencies.length,
     manifestSha256:CANONICAL_IDENTITY_INPUTS_SHA256,sharedModulesExecuted:false,nativeModuleCopied:false};
 }
 
@@ -234,6 +243,7 @@ export function validateOriginalIdentityAppSources(inputs, receipt) {
 
 // A build receipt records compilation, never registration or service rights.
 export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchitecture = process.arch) {
+  if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.35')validateSDK35NativeComponent(record,inputs);
   if(record?.schema==='YNX_SDK20_R181_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk20NativeBuildReceipt(record,inputs);
   if(record?.schema==='YNX_SDK19_R177_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk19NativeBuildReceipt(record,inputs);
   if(record?.schema==='YNX_SDK14_R166_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk14NativeBuildReceipt(record,inputs);
@@ -293,6 +303,7 @@ export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchit
     units.push(...transportUnits);
   }
   if(inputs.requiredBuild?.nodeTU===13)units.push(...['original-ide-helper-client.mm','original-ide-helper-xpc-peer.mm','original-ide-helper-service-install.mm','original-ide-publication-artifact.mm','original-ide-contract-relay-owner.mm'].map(name=>'packages/wallet-auth/native/'+name));
+  if(inputs.requiredBuild?.nodeTU===18)units.push(...inputs.requiredBuild.nodeUnits.filter(unit=>!units.includes(unit)));
   for (const required of units) if (!seen.has(required)) throw Error('Canonical Native build closure differs.');
   const headers = new Map(inputs.node22HeaderPins.map(pin => [pin.path, pin]));
   const selectedHeaders = new Set();
@@ -312,7 +323,11 @@ export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchit
 }
 
 async function verifyComponentEvidence(record, packagedCodeRoot) {
-  if (!record.readbackOnly) return undefined;
+  if (!record.readbackOnly) {
+    const inputs=await canonicalInputs();
+    if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.35')await verifyRows(packagedCodeRoot||canonicalNativeRoot,inputs.nativeComponent.producerEvidence.files);
+    return undefined;
+  }
   const pin=record.existingComponentEvidence;
   const path=packagedCodeRoot ? join(packagedCodeRoot,nativeEvidenceRelative) : pin.path;
   const st=await lstat(path), raw=await readFile(path);
@@ -360,6 +375,9 @@ export async function copyCanonicalNativeModule(codeRoot) {
   await mkdir(destination); // A second module/copy may not be merged silently.
   await copyFile(join(canonicalNativeRoot,nativeRelative),join(codeRoot,nativeRelative),1);
   await copyFile(receiptPath,join(codeRoot,nativeReceiptRelative),1);
+  for(const pin of inputs.nativeComponent.producerEvidence?.files||[]){
+    const target=join(codeRoot,pin.path);await mkdir(dirname(target),{recursive:true});await copyFile(join(canonicalNativeRoot,pin.path),target,1);
+  }
   if (evidenceBytes) {
     const {writeFile}=await import('node:fs/promises');
     await writeFile(join(codeRoot,nativeEvidenceRelative),evidenceBytes,{flag:'wx'});
@@ -414,6 +432,7 @@ export async function sealCanonicalNativeModule(resources) {
     nativeBuildReceipt:{path:'Contents/Resources/code/'+nativeReceiptRelative,sha256:sha256(raw),readbackOnly:receipt.readbackOnly,commandsKind:receipt.commandsKind},
     ...(receipt.readbackOnly ? {nativeComponentEvidence:{path:'Contents/Resources/code/'+nativeEvidenceRelative,
       bytes:receipt.existingComponentEvidence.bytes,sha256:receipt.existingComponentEvidence.sha256}} : {}),
+    ...(inputs.nativeComponent.producerEvidence?{producerEvidence:inputs.nativeComponent.producerEvidence}:{}),
     nativeQualified:false,registrationAccepted:false};
   const helper=inputs.helperComponent,app=resolve(resources,'../..');
   const helperBytes=await readFile(join(app,helper.destinations.helper));
@@ -439,6 +458,7 @@ export async function verifySealedCanonicalNativeModule(resources) {
   if(raw.length!==inputs.nativeComponent.receipt.bytes || sha256(raw)!==inputs.nativeComponent.receipt.sha256) throw Error('Canonical Native receipt bytes differ.');
   const receipt=validateCanonicalNativeBuildReceipt(JSON.parse(raw),inputs);
   await verifyComponentEvidence(receipt,join(resources,'code'));
+  if(inputs.nativeComponent.producerEvidence && JSON.stringify(record.producerEvidence)!==JSON.stringify(inputs.nativeComponent.producerEvidence))throw Error('SDK35 producer evidence ledger differs.');
   if (receipt.readbackOnly && (record.nativeComponentEvidence?.path!=='Contents/Resources/code/'+nativeEvidenceRelative
     || record.nativeComponentEvidence?.bytes!==receipt.existingComponentEvidence.bytes
     || record.nativeComponentEvidence?.sha256!==receipt.existingComponentEvidence.sha256)) throw Error('Canonical Native compilation evidence ledger differs.');

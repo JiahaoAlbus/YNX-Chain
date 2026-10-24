@@ -4,6 +4,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {pathToFileURL,fileURLToPath} from 'node:url';
+import {assertComposedPublicationSelection} from './original-publication-project.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const reject = code => Object.assign(Error('The selected project artifact requires a fresh publication review.'), {code});
@@ -40,6 +41,7 @@ export async function captureOriginalPublicationArtifact({selection,actualEntryU
   const encoded=await selection.encodeManifest(api.encodeIDEArtifactManifestData);
   const canonical=new TextDecoder('utf-8',{fatal:true}).decode(encoded);
   let reference,retired=false,failed=false,firstCause,cleanupSelected=false,cleanupComplete=false,cleanupFailed=false,cleanupCause;
+  let keyCall,keyCallSelected=false,keyCallConstructing=false;
   const remember=cause=>{if(!failed){failed=true;firstCause=cause;}return firstCause;};
   const live=()=>{if(retired)throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_RETIRED');if(failed)throw firstCause;};
   try{reference=api.captureOriginalIDEPublicationArtifact(canonical,Uint8Array.from(selection.artifactBytes()));if(reference===null||reference===undefined)throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_UNAVAILABLE');}catch(cause){remember(cause);}
@@ -52,18 +54,40 @@ export async function captureOriginalPublicationArtifact({selection,actualEntryU
     assertCurrent:current,
     async acquireProtectedKeyCall(){
       live();
-      // Canonical CurrentProject/Publisher consumption is still missing. A DATA
-      // artifact, local UUID or former AI lease cannot select this constructor.
-      throw reject('IDE_PUBLICATION_NOT_SUPPLIED');
+      if(keyCallSelected)throw reject('IDE_ARTIFACT_KEY_CALL_ALREADY_SELECTED');
+      // Select before the first await. A concurrent request or late callback
+      // cannot repeat a constructor after cancellation, failure or UNKNOWN.
+      keyCallSelected=true;
+      try{
+        await current();live();assertComposedPublicationSelection(selection);
+        keyCallConstructing=true;
+        try{
+          // Retain the SAME partial before any post-return live check. Native
+          // owns Source/current/project/publisher checks and proof readiness.
+          keyCall=api.acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL,canonical,reference);
+          if(keyCall===null||keyCall===undefined)throw reject('IDE_PUBLICATION_NOT_SUPPLIED');
+        }finally{keyCallConstructing=false;}
+        live();return keyCall; // backend only; no assertReady/proof/invoke here
+      }catch(cause){throw remember(cause);}
     },
     close(){
       retired=true;
+      // A reentrant close must not destroy the artifact while its original
+      // constructor is entered. A later close joins the retained partial;
+      // this pre-cleanup guard never marks a failed Native close successful.
+      if(keyCallConstructing)throw reject('IDE_ARTIFACT_KEY_CALL_CLEANUP_PENDING');
       if(cleanupSelected){if(cleanupFailed)throw cleanupCause;return cleanupComplete;}
       cleanupSelected=true;
-      try{if(reference!==null&&reference!==undefined&&api.closeOriginalIDEPublicationArtifact(reference)!==true)throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_CLOSE_INVALID');cleanupComplete=true;return true;}
+      try{
+        if(keyCall)for(const method of ['retire','join','close']){
+          if(typeof keyCall[method]!=='function'||keyCall[method]()!==undefined)throw reject('IDE_ARTIFACT_KEY_CALL_CLEANUP_INVALID');
+        }
+        if(reference!==null&&reference!==undefined&&api.closeOriginalIDEPublicationArtifact(reference)!==true)throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_CLOSE_INVALID');
+        keyCall=undefined;cleanupComplete=true;return true;
+      }
       catch(cause){cleanupFailed=true;cleanupCause=cause;throw cause;}
     },
-    status(){return Object.freeze({captured:reference!==null&&reference!==undefined,retired,firstCausePresent:failed,cleanupSelected,cleanupComplete,keyCallSelected:false});},
+    status(){return Object.freeze({captured:reference!==null&&reference!==undefined,retired,firstCausePresent:failed,cleanupSelected,cleanupComplete,keyCallSelected,keyCallCaptured:keyCall!==undefined&&keyCall!==null});},
     authority:'artifact-data-only',signingApproved:false,deploymentApproved:false,
   });
 }
@@ -155,3 +179,6 @@ export async function capturePublicationArtifact({context, localProjectSnapshot,
     deploymentApproved:false,
   });
 }
+
+// Backend-only retained publication result DATA. No new wire, proof or grant.
+export {openBundledOriginalPublicationResult,decodeOriginalPublicationResultData,openBundledOriginalPublicationInput,createOriginalPublicationInputData} from './publication-result-originals.mjs';
