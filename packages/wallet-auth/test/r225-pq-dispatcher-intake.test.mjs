@@ -16,7 +16,7 @@ test('R225 exact dispatcher and original test join SDK33 with unchanged99/109/11
     ['test-pq-catalog-source-dispatch.mjs', 7719, 'f9f4ebfcd17d904890b822d0399016f37facd7b0fc4b2698b884f84c219ef126'],
   ]) { const b = fs.readFileSync(path.join(sdk, relative)); assert.equal(b.length, bytes); assert.equal(sha(b), hash); }
   const {contract} = verifySDK332R140Source(root);
-  assert.equal(contract.version, '1.3.0-pq.3.32-auth.34'); assert.equal(contract.NativeInputs.length, 99);
+  assert.equal(contract.version, '1.3.0-pq.3.32-auth.35'); assert.equal(contract.NativeInputs.length, 99);
   const normal = [...contract.NativeInputs, ...contract.HelperInputs, ...contract.pureDeploymentInputs, contract.normalBuildTool];
   assert.equal(normal.length, 109); assert.equal(new Set([...normal, ...contract.sourceCurrentIOInputs].map(r => r.path)).size, 110);
   const cpp = normal.filter(r => /\.(?:h|mm|cpp)$/.test(r.path)).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0);

@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.3.0-pq.3.32-auth.34",
+  "version": "1.3.0-pq.3.32-auth.35",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -241,6 +241,11 @@
       "types": "./src/pq-contract-deployment-material.d.ts",
       "import": "./src/pq-contract-deployment-material.js",
       "default": "./src/pq-contract-deployment-material.js"
+    },
+    "./ide-artifact-release-result": {
+      "types": "./src/ide-artifact-release-result.d.ts",
+      "import": "./src/ide-artifact-release-result.js",
+      "default": "./src/ide-artifact-release-result.js"
     }
   },
   "types": "./src/index.d.ts",
@@ -360,7 +365,8 @@
     "test:r218-publication-selector": "node --test --test-concurrency=1 test-signed-manifest-selector.mjs test/r218-signed-manifest-recipe.test.mjs",
     "test:r222-pq-source": "node --test --test-concurrency=1 native/test-pq-catalog-source-contract.mjs test-pq-catalog-source-n1.mjs test/r222-pq-native-recipe.test.mjs test/r222-pq-source-intake.test.mjs",
     "test:r225-pq-dispatcher": "node --test --test-concurrency=1 test-pq-catalog-source-dispatch.mjs test/r225-pq-dispatcher-intake.test.mjs",
-    "test:r226-normal-source-route": "node --test test-r226-normal-source-route.mjs"
+    "test:r226-normal-source-route": "node --test test-r226-normal-source-route.mjs",
+    "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
