@@ -14,7 +14,7 @@ function exact(value,keys){
 const text=v=>typeof v==='string'&&v.length>0&&new TextEncoder().encode(v).length<=256&&!/[\s\u0000-\u001f\u007f]/u.test(v);
 const uint=v=>typeof v==='string'&&/^(0|[1-9][0-9]*)$/.test(v)&&v.length<=19&&BigInt(v)<=9223372036854775807n;
 const digest=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
-function capture(review,at){
+export function inspectWalletProjectControlReviewData(review,at){
  const ds=Object.getOwnPropertyDescriptors(review??{});
  const r=exact(review,Object.hasOwn(ds,'publisher')?['reviewId','account','networkId','command','publisher']:['reviewId','account','networkId','command']);
  if(![r.reviewId,r.account,r.networkId].every(text)||!Number.isSafeInteger(at)||at<0)fail();
@@ -44,7 +44,7 @@ function capture(review,at){
  return Object.freeze({...r,command:Object.freeze(c),...(p?{publisher:Object.freeze(p)}:{})});
 }
 export function appendWalletProjectControlReview({container,review,api,getKeyState,isCurrent,onResult,now=Date.now,document:doc=document}){
- const openedAt=now(),own=capture(review,openedAt),initial={...getKeyState()},buttons=[];let entered=false,floor=openedAt;
+ const openedAt=now(),own=inspectWalletProjectControlReviewData(review,openedAt),initial={...getKeyState()},buttons=[];let entered=false,floor=openedAt;
  if(typeof api?.decideIDEProjectControl!=='function'||[getKeyState,isCurrent,onResult,now].some(f=>typeof f!=='function'))fail();
  const live=()=>{const s=getKeyState(),at=now();if(!Number.isSafeInteger(at)||at<floor)return false;floor=at;return isCurrent()&&!s.locked&&!s.authenticating&&s.account===own.account&&s.account===initial.account&&s.revision===initial.revision&&BigInt(at)<BigInt(own.command.ExpiresMS)&&(own.command.Revoke||own.command.GrantExpiresMS==='0'||BigInt(at)<BigInt(own.command.GrantExpiresMS));};
  const line=(tag,text)=>{const el=doc.createElement(tag);el.textContent=text;container.append(el);};
