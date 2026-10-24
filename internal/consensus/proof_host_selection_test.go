@@ -296,3 +296,167 @@ func TestProofHostSelectionRegistrationRejectsBindingAndMetadataBeforeOutput(t *
 		t.Fatal("fake metadata created output")
 	}
 }
+
+func TestProofHostSelectionWalletRequestRegistersRealDeliveryAndRetainsAttempts(t *testing.T) {
+	f := newProofSelectionFixture(t)
+	before := proofHostDeliveryTestSnapshot(t, filepath.Dir(f.delivery.ManifestPath))
+	requestRaw := proofSourceJSON(t, f.binding)
+	proofHostDeliveryTestExactKeys(t, requestRaw, "operationId", "account", "networkId", "originalHash", "nativeWireHash", "transactionHash")
+	bindingPin := proofHostSHA(requestRaw)
+	register := func(request []byte, output string) (ProofHostSourceCatalogReceipt, error) {
+		return RegisterProofHostSourceCatalogForWallet(request, f.delivery.ManifestPath, f.delivery.ManifestSHA256, f.bindingPath, bindingPin, output)
+	}
+	output := filepath.Join(f.root, "wallet-request-catalog.json")
+	receipt, err := register(requestRaw, output)
+	if err != nil {
+		t.Fatal("real six-field Wallet request could not register original DATA", err)
+	}
+	catalogRaw, err := os.ReadFile(output)
+	if err != nil || receipt.CatalogPath != output || receipt.CatalogSHA256 != proofHostSHA(catalogRaw) {
+		t.Fatal("Wallet request receipt differs from exact retained catalog", err)
+	}
+	proofHostDeliveryTestExactKeys(t, proofSourceJSON(t, receipt), "catalogPath", "catalogSha256")
+	selected, err := SelectRegisteredProofHostSource(receipt.CatalogPath, receipt.CatalogSHA256, proofSourceJSON(t, f.request))
+	if err != nil || selected != (ProofHostSourceSelection{SourcePath: f.delivery.SourcePath, SourceSHA256: f.delivery.SourceSHA256, SourceID: f.delivery.SourceID, Epoch: f.delivery.Epoch}) {
+		t.Fatal("registered Wallet request could not select the same original source", err)
+	}
+	if got, err := register(requestRaw, output); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+		t.Fatal("Wallet request replay replaced or acknowledged an existing catalog")
+	}
+	if after, _ := os.ReadFile(output); !bytes.Equal(after, catalogRaw) {
+		t.Fatal("Wallet request replay changed original catalog bytes")
+	}
+	for _, name := range []string{"wallet-partial.json", "wallet-UNKNOWN"} {
+		path := filepath.Join(f.root, name)
+		retained := []byte("original Wallet registration partial/UNKNOWN\x00\xff")
+		proofSourceWrite(t, path, retained)
+		if got, err := register(requestRaw, path); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+			t.Fatal("Wallet request overwrote partial/UNKNOWN output", name)
+		}
+		if after, _ := os.ReadFile(path); !bytes.Equal(after, retained) {
+			t.Fatal("Wallet request altered uncertain output", name)
+		}
+	}
+	// This is the existing transport budget, not a new protocol limit. Exact
+	// budget JSON with harmless trailing whitespace remains valid; one byte over
+	// it must fail before the registrar reserves another output.
+	bounded := append(bytes.Clone(requestRaw), bytes.Repeat([]byte{' '}, MaxProofHostSourceSelectionRequestBytes-len(requestRaw))...)
+	if _, err := register(bounded, filepath.Join(f.root, "wallet-boundary-catalog.json")); err != nil {
+		t.Fatal("exact-budget original Wallet request was rejected", err)
+	}
+	overflowOutput := filepath.Join(f.root, "wallet-overflow-catalog.json")
+	if got, err := register(append(bounded, ' '), overflowOutput); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+		t.Fatal("over-budget Wallet request registered a catalog")
+	}
+	if _, err := os.Lstat(overflowOutput); !os.IsNotExist(err) {
+		t.Fatal("over-budget Wallet request reserved output")
+	}
+	if !reflect.DeepEqual(before, proofHostDeliveryTestSnapshot(t, filepath.Dir(f.delivery.ManifestPath))) {
+		t.Fatal("Wallet registration changed original delivery bytes or metadata")
+	}
+}
+
+func TestProofHostSelectionWalletRequestRejectsClosedBindingBeforeOutput(t *testing.T) {
+	f := newProofSelectionFixture(t)
+	requestRaw := proofSourceJSON(t, f.binding)
+	bindingPin := proofHostSHA(requestRaw)
+	outputs := filepath.Join(f.root, "wallet-rejected-outputs")
+	if err := os.Mkdir(outputs, 0700); err != nil {
+		t.Fatal(err)
+	}
+	badRequests := map[string][]byte{
+		"empty":         nil,
+		"null":          []byte("null"),
+		"array":         []byte("[]"),
+		"partial":       requestRaw[:len(requestRaw)-1],
+		"trailing-json": append(bytes.Clone(requestRaw), []byte("{}")...),
+		"extra-version": append([]byte(`{"version":"YNX-CONSENSUS-PROOF-HOST-SELECTION-REQUEST/v1",`), requestRaw[1:]...),
+		"extra-path":    append([]byte(`{"sourcePath":"/untrusted",`), requestRaw[1:]...),
+		"extra-grant":   append([]byte(`{"root":true,`), requestRaw[1:]...),
+		"case-alias":    bytes.Replace(requestRaw, []byte(`"operationId":`), []byte(`"OperationId":`), 1),
+		"over-budget":   bytes.Repeat([]byte{' '}, MaxProofHostSourceSelectionRequestBytes+1),
+	}
+	fields := []string{"operationId", "account", "networkId", "originalHash", "nativeWireHash", "transactionHash"}
+	for _, field := range fields {
+		var values map[string]json.RawMessage
+		if err := json.Unmarshal(requestRaw, &values); err != nil {
+			t.Fatal(err)
+		}
+		delete(values, field)
+		badRequests["missing-"+field] = proofSourceJSON(t, values)
+		badRequests["duplicate-"+field] = append([]byte(`{"`+field+`":"duplicate",`), requestRaw[1:]...)
+		values[field] = json.RawMessage(`123`)
+		badRequests["wrong-type-"+field] = proofSourceJSON(t, values)
+	}
+	for _, field := range []string{"operation", "account", "network", "original-hash", "native-wire", "transaction"} {
+		bad := f.binding
+		switch field {
+		case "operation":
+			bad.OperationID += "-other"
+		case "account":
+			bad.Account = "0x" + strings.Repeat("a", 40)
+		case "network":
+			bad.NetworkID = strings.Repeat("a", 64)
+		case "original-hash":
+			bad.OriginalHash = "0x" + bad.TransactionHash
+		case "native-wire":
+			bad.NativeWireHash, bad.OriginalHash = bad.TransactionHash, "0x"+bad.TransactionHash
+		case "transaction":
+			bad.TransactionHash = bad.NativeWireHash
+		}
+		badRequests["foreign-"+field] = proofSourceJSON(t, bad)
+	}
+	for _, kind := range []string{"zero", "uppercase", "prefixed", "short", "overlong-operation", "account-alias"} {
+		bad := f.binding
+		switch kind {
+		case "zero":
+			bad.TransactionHash = strings.Repeat("0", 64)
+		case "uppercase":
+			bad.NetworkID = strings.Repeat("A", 64)
+		case "prefixed":
+			bad.TransactionHash = "0x" + bad.TransactionHash
+		case "short":
+			bad.NativeWireHash = bad.NativeWireHash[:63]
+			bad.OriginalHash = "0x" + bad.NativeWireHash
+		case "overlong-operation":
+			bad.OperationID = strings.Repeat("a", 129)
+		case "account-alias":
+			bad.Account = "0X" + strings.Repeat("a", 40)
+		}
+		badRequests["invalid-"+kind] = proofSourceJSON(t, bad)
+	}
+	for name, raw := range badRequests {
+		t.Run(name, func(t *testing.T) {
+			output := filepath.Join(outputs, name+".json")
+			got, err := RegisterProofHostSourceCatalogForWallet(raw, f.delivery.ManifestPath, f.delivery.ManifestSHA256, f.bindingPath, bindingPin, output)
+			if err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+				t.Fatal("invalid or foreign Wallet request returned a catalog receipt")
+			}
+			if _, err := os.Lstat(output); !os.IsNotExist(err) {
+				t.Fatal("invalid Wallet request reserved any catalog output")
+			}
+		})
+	}
+	for name, pins := range map[string][2]string{
+		"binding-pin":  {f.delivery.ManifestSHA256, strings.Repeat("a", 64)},
+		"manifest-pin": {strings.Repeat("a", 64), bindingPin},
+	} {
+		output := filepath.Join(outputs, name+".json")
+		if got, err := RegisterProofHostSourceCatalogForWallet(requestRaw, f.delivery.ManifestPath, pins[0], f.bindingPath, pins[1], output); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+			t.Fatal("Wallet request supplied or replaced an independent source pin", name)
+		}
+		if _, err := os.Lstat(output); !os.IsNotExist(err) {
+			t.Fatal("bad independent pin reserved output", name)
+		}
+	}
+	badBindingPath := filepath.Join(f.root, "wallet-duplicate-binding.json")
+	badBinding := append([]byte(`{"operationId":"duplicate",`), requestRaw[1:]...)
+	proofSourceWrite(t, badBindingPath, badBinding)
+	output := filepath.Join(outputs, "bad-independent-binding.json")
+	if got, err := RegisterProofHostSourceCatalogForWallet(requestRaw, f.delivery.ManifestPath, f.delivery.ManifestSHA256, badBindingPath, proofHostSHA(badBinding), output); err == nil || got != (ProofHostSourceCatalogReceipt{}) {
+		t.Fatal("re-pinned nonclosed independent binding registered a Wallet request")
+	}
+	if entries, err := os.ReadDir(outputs); err != nil || len(entries) != 0 {
+		t.Fatal("rejected Wallet requests left reserved output", err)
+	}
+}

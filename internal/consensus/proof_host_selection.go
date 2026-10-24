@@ -308,6 +308,60 @@ func RegisterProofHostSourceCatalog(manifestPath, manifestPin, bindingPath, bind
 	return ProofHostSourceCatalogReceipt{CatalogPath: output, CatalogSHA256: proofHostSHA(encoded)}, nil
 }
 
+// RegisterProofHostSourceCatalogForWallet binds the actual Main journal's exact
+// six-field request to the independently supplied original delivery binding.
+// Neither paths nor pins are taken from the request. Every request check occurs
+// before the existing registrar can reserve its exclusive output; later failures
+// retain that output as UNKNOWN. This is DATA, not SourceOwner authentication,
+// a Host lease, current-state evidence or a Native Root grant.
+func RegisterProofHostSourceCatalogForWallet(requestRaw []byte, manifestPath, manifestPin, bindingPath, bindingPin, output string) (ProofHostSourceCatalogReceipt, error) {
+	var receipt ProofHostSourceCatalogReceipt
+	var request ProofHostDeliveryBinding
+	if err := proofSelectionJSON(requestRaw, &request, MaxProofHostSourceSelectionRequestBytes); err != nil || !validProofSelectionBinding(request) {
+		return receipt, errors.New("exact complete six-field Wallet transaction request required")
+	}
+	reads := &proofSelectionReads{}
+	defer reads.close()
+	raw, err := reads.read(bindingPath, bindingPin, MaxProofHostSourceSelectionRequestBytes)
+	if err != nil {
+		return receipt, err
+	}
+	var binding ProofHostDeliveryBinding
+	if err = proofSelectionJSON(raw, &binding, MaxProofHostSourceSelectionRequestBytes); err != nil || binding != request {
+		return receipt, errors.New("Wallet request differs from independently pinned original binding")
+	}
+	original, err := reads.delivery(manifestPath, manifestPin, binding)
+	if err != nil {
+		return receipt, err
+	}
+	selectionRaw, err := json.Marshal(ProofHostSourceSelectionRequest{Version: ProofHostSourceSelectionRequestVersion, OperationID: request.OperationID, Account: request.Account, NetworkID: request.NetworkID, TransactionHash: request.TransactionHash, NativeWireHash: request.NativeWireHash})
+	if err != nil {
+		return receipt, err
+	}
+	if err = reads.unchanged(); err != nil {
+		return receipt, err
+	}
+	registered, err := RegisterProofHostSourceCatalog(manifestPath, manifestPin, bindingPath, bindingPin, output)
+	if err != nil {
+		return receipt, err
+	}
+	// Keep the first original binding, manifest and source descriptors alive
+	// across registration and selection. Same bytes on a replacement inode do
+	// not silently replace the independently accepted input during this call.
+	if err = reads.unchanged(); err != nil {
+		return receipt, errors.Join(errors.New("registered catalog retained; Wallet handoff UNKNOWN"), err)
+	}
+	selected, err := SelectRegisteredProofHostSource(registered.CatalogPath, registered.CatalogSHA256, selectionRaw)
+	want := ProofHostSourceSelection{SourcePath: original.SourcePath, SourceSHA256: original.SourceSHA256, SourceID: original.SourceID, Epoch: original.Epoch}
+	if err != nil || selected != want {
+		return receipt, errors.Join(errors.New("registered catalog retained; original Wallet source selection UNKNOWN"), err)
+	}
+	if err = reads.unchanged(); err != nil {
+		return receipt, errors.Join(errors.New("registered catalog retained; Wallet handoff UNKNOWN"), err)
+	}
+	return registered, nil
+}
+
 // SelectRegisteredProofHostSource reads at most catalog/manifest/source headers
 // and compares both original hashes. It neither repairs nor checks current by
 // proxy; a revoked, retired or expired source still fails normal acquire/current.

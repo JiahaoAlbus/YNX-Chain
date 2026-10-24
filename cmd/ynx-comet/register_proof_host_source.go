@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/spf13/cobra"
@@ -14,11 +15,34 @@ import (
 // Register existing public DATA after the original SourceOwner independently
 // qualifies its delivery and binding. This bypasses EnsureRoot, never Node.Start.
 func newRegisterProofHostSourceCommand() *cobra.Command {
-	var manifest, manifestPin, binding, bindingPin, output, walletOutput string
+	var manifest, manifestPin, binding, bindingPin, output, walletOutput, walletRequestStdin string
 	c := &cobra.Command{Use: "register-proof-host-source", Short: "Register one independently pinned original proof source DATA catalog; no Root or Host grant",
 		Args: cobra.NoArgs, SilenceUsage: true, SilenceErrors: true,
 		PersistentPreRunE: func(*cobra.Command, []string) error { return nil },
 		RunE: func(cmd *cobra.Command, _ []string) (resultErr error) {
+			if walletRequestStdin != "" && walletRequestStdin != "true" && walletRequestStdin != "false" {
+				return errors.New("wallet-request-stdin requires an explicit canonical true or false")
+			}
+			if walletRequestStdin == "true" {
+				if walletOutput != "" {
+					return errors.New("Wallet request stdin and static Wallet source module output cannot be combined")
+				}
+				raw, err := io.ReadAll(io.LimitReader(cmd.InOrStdin(), consensus.MaxProofHostSourceSelectionRequestBytes+1))
+				if err != nil {
+					return fmt.Errorf("read bounded complete Wallet transaction request stdin: %w", err)
+				}
+				if len(raw) > consensus.MaxProofHostSourceSelectionRequestBytes {
+					return errors.New("bounded complete Wallet transaction request stdin required")
+				}
+				receipt, err := consensus.RegisterProofHostSourceCatalogForWallet(raw, manifest, manifestPin, binding, bindingPin, output)
+				if err != nil {
+					return err
+				}
+				if err = json.NewEncoder(cmd.OutOrStdout()).Encode(receipt); err != nil {
+					return fmt.Errorf("registered catalog retained; Wallet receipt stdout UNKNOWN: %w", err)
+				}
+				return nil
+			}
 			var wallet *proofHostWalletHandoff
 			if walletOutput != "" {
 				if walletOutput == output {
@@ -67,5 +91,6 @@ func newRegisterProofHostSourceCommand() *cobra.Command {
 		}
 	}
 	c.Flags().Var(&initializationStringFlag{target: &walletOutput}, "wallet-main-registration-output", "optional new fixed-name private Wallet source module; DATA handoff only, no install or Root grant")
+	c.Flags().Var(&initializationStringFlag{target: &walletRequestStdin}, "wallet-request-stdin", "explicit true to bind the exact six-field Wallet journal request on bounded stdin; cannot write a static Wallet module, DATA only")
 	return c
 }
