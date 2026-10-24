@@ -204,6 +204,39 @@ class CurrentInputReuseMeasurementTests(unittest.TestCase):
             with self.subTest(changed=changed),self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(dict(reader,currentInputReuse=dict(stats,**changed)),True)
         with self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(reader,False)
 
+class NativeCachedFeeClientFixtureTests(unittest.TestCase):
+    def setUp(self):
+        selected=os.environ.get('YNX_NATIVE_CACHED_FEE_PUBLIC_FIXTURE_DIR')
+        self.assertTrue(selected,'required actual cached client Go fixture absent; no skipped positive')
+        self.root=Path(selected).resolve();self.meta=evidence.strict_json((self.root/'PUBLIC_FIXTURE_SCOPE.json').read_bytes())
+        self.assertEqual(self.meta['kind'],'native_stream_public_unit_fixture_not_network');self.assertIs(self.meta['independentBFTProof'],False)
+        self.assertIs(self.meta['unitProducerSharesProcess'],True)
+    def test_actual_plan_process_selection_and_counter_negatives(self):
+        d=self.meta;self.assertIs(d['clientCachedFeeJSON'],True)
+        plan=evidence.strict_json((self.root/'transactions-result.json.streaming-plan.json').read_bytes())
+        self.assertEqual(plan['profile'],'scoped_native_prefix_stream8_prepared_cached_fee_v1');self.assertIs(plan['nativePrefix']['clientCachedFeeJSON'],True);self.assertIs(plan['nativePrefix']['preparedCertificate'],True)
+        report=dict(nativeCachedFeeJSON=d['clientCachedFeeJSON'],clientStateHashEncoding=d['clientStateHashEncoding'],durableReadback=d['durableReadback'])
+        measured=evidence.client_hash_encoding_measurements(report,True)
+        self.assertGreater(measured['candidateAttempts'],0);self.assertEqual(measured['encodingErrors'],0)
+        self.assertIsNone(evidence.client_hash_encoding_measurements({}))
+        with self.assertRaises(RuntimeError):evidence.client_hash_encoding_measurements(report)
+        for fault in ('missing','marker','zero','bool','error','mode','extra','backend','coverage'):
+            bad=copy.deepcopy(report);value=bad['clientStateHashEncoding']
+            if fault=='missing':bad.pop('clientStateHashEncoding')
+            if fault=='marker':bad['nativeCachedFeeJSON']=False
+            if fault=='zero':value['candidateAttempts']=0
+            if fault=='bool':value['candidateAttempts']=True
+            if fault=='error':value['encodingErrors']=1
+            if fault=='mode':value['mode']='original-json'
+            if fault=='extra':value['cachedValidationAuthority']=True
+            if fault=='backend':bad['durableReadback']['prefixReplay'].pop('preparedCertificate')
+            if fault=='coverage':value['candidateAttempts']=1
+            with self.subTest(fault=fault),self.assertRaises(RuntimeError):evidence.client_hash_encoding_measurements(bad,True)
+    def test_complete_actual_selected_signed_terminal_stream(self):
+        d=self.meta;initial=evidence.strict_json((self.root/'transactions.json').read_bytes())['transactions']
+        proof=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20)
+        self.assertEqual(proof['validatedRecords'],102);self.assertEqual(proof['matchedLatestSlots'],3)
+
 class NativePreparedClientFixtureTests(unittest.TestCase):
     def setUp(self):
         original=os.environ.get('YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR')

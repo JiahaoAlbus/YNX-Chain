@@ -1382,15 +1382,18 @@ def qualify_business_rows(report,total):
     return s
 
 
-def validate_native_stream_report(report,network,*,runtime_network=None,pacing="relative",expected_input_reuse=None,expected_canonical_certificate=False,expected_native_suffix=False,expected_block_tip_hint=False,expected_submitters=8,expected_prepared_certificate=False):
+def validate_native_stream_report(report,network,*,runtime_network=None,pacing="relative",expected_input_reuse=None,expected_canonical_certificate=False,expected_native_suffix=False,expected_block_tip_hint=False,expected_submitters=8,expected_prepared_certificate=False,expected_client_cached_fee_json=False):
     """Complete small-history route; never reuse the finite latest-slot validator."""
     need=stream_evidence.need;network=Path(network).absolute();total=8192
+    need(type(expected_client_cached_fee_json) is bool and (not expected_client_cached_fee_json or expected_prepared_certificate is True and expected_submitters==8 and not(expected_canonical_certificate or expected_native_suffix or expected_block_tip_hint)),"cached client hash producer scope differs")
+    client_hash=stream_evidence.client_hash_encoding_measurements(report,expected_client_cached_fee_json)
     native_stream_profile(pacing,expected_submitters,expected_prepared_certificate)  # Validate the selected mode, never infer it from untrusted rows.
     runtime=network if runtime_network is None else Path(runtime_network)
     need(runtime.is_absolute(),"original stream runtime root must be absolute")
     def same(a,b):return json.dumps(a,sort_keys=True,separators=(',',':'))==json.dumps(b,sort_keys=True,separators=(',',':'))
     need(type(expected_prepared_certificate) is bool and report.get("nativePreparedCertificate",False) is expected_prepared_certificate and not(expected_prepared_certificate and (expected_canonical_certificate or expected_native_suffix or expected_block_tip_hint)),"prepared certificate producer differs")
     profile_name=f"scoped_native_prefix_stream{expected_submitters}"+("_prepared" if expected_prepared_certificate else "")+"_v1"
+    if expected_client_cached_fee_json:profile_name="scoped_native_prefix_stream8_prepared_cached_fee_v1"
     expected=dict(schemaVersion=14,nativeStream8=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
         observerPhaseTiming=True,sharedDurableReplay=False,endpointFairSubmission=False,roundsRequested=4,roundsCompleted=4,
         concurrency=expected_submitters,observerConcurrency=4,configuredOfferedRate=1000,senderMode="ready-pool",pacingMode=pacing,inclusionMode="block-scan",retentionMode="latest_per_account_slots",gomaxprocs=1,timeoutMs=STREAM_BUDGET["timeoutMs"])
@@ -1424,7 +1427,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     need(type(selected_reuse) is bool,"explicit current input reuse plan boolean required")
     canonical=plan.get("nativePrefix",{}).get("canonicalCertificate",False)
     need(type(expected_canonical_certificate) is bool and canonical is expected_canonical_certificate and report.get("nativeCanonicalCertificate",False) is canonical,"canonical certificate plan/report/producer differs")
-    need(same(plan.get("nativePrefix"),dict(**({"preparedCertificate":True} if expected_prepared_certificate else {}),offeredRate=1000,pacingMode=pacing,submitters=expected_submitters,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=not expected_native_suffix,serializedReaderBudget=True,readerGateTiming=True,clientClockTiming=True,currentInputReuse=selected_reuse,**({"canonicalCertificate":True} if canonical else {}),**({"blockTipHint":True} if expected_block_tip_hint else {}))),"stream original native backend differs")
+    need(same(plan.get("nativePrefix"),dict(**({"clientCachedFeeJSON":True} if expected_client_cached_fee_json else {}),**({"preparedCertificate":True} if expected_prepared_certificate else {}),offeredRate=1000,pacingMode=pacing,submitters=expected_submitters,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=not expected_native_suffix,serializedReaderBudget=True,readerGateTiming=True,clientClockTiming=True,currentInputReuse=selected_reuse,**({"canonicalCertificate":True} if canonical else {}),**({"blockTipHint":True} if expected_block_tip_hint else {}))),"stream original native backend differs")
     manifest_raw=stream_evidence.capture(network/"network-manifest.json",1<<20)
     initial=stream_evidence.strict_json(stream_evidence.capture(network/"transactions.json",16<<20))["transactions"]
     need(len(initial)==2048 and plan.get("initialSignedHashes")==[hashlib.sha256(base64.b64decode(t,validate=True)).hexdigest().upper() for t in initial],"stream plan initial identity differs")
@@ -1453,6 +1456,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     if expected_input_reuse is not None:need(type(expected_input_reuse) is bool and reuse_selected is expected_input_reuse,"original current input reuse differs from selected producer")
     need(type(reuse_selected) is bool and type(report.get("nativeCurrentInputReuse",False)) is bool and report.get("nativeCurrentInputReuse",False)==reuse_selected,"current input reuse plan/report selection differs")
     reuse_stats=stream_evidence.current_input_reuse_measurements(reader,reuse_selected)
+    need(not expected_client_cached_fee_json or reuse_selected is True,"cached client hash requires original current input reuse")
     need(rb.get("storeByteLimit")==32<<20 and rb.get("cacheInputByteBudget")==64<<20 and type(rb.get("cachedInputBytes")) is int and 0<=rb["cachedInputBytes"]<=64<<20,"stream reader retained input budget differs")
     gate_timing=plan.get("nativePrefix",{}).get("readerGateTiming",False)
     gate=stream_evidence.reader_gate_measurements(reader,required=gate_timing)
@@ -1477,7 +1481,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     need(type(window) in (int,float) and math.isfinite(window) and window>0,"stream ready measurement window absent")
     for key in ("rpcSubmissionsPerMeasurementSecond","checkTxAcceptedPerMeasurementSecond","codeZeroIncludedPerMeasurementSecond","effectiveBusinessIncludedPerMeasurementSecond","quorumConfirmedPerMeasurementSecond","finalSubmittedPerMeasurementSecond"):
         need(type(summary.get(key)) in (int,float) and math.isfinite(summary[key]) and abs(summary[key]-total/window)<=1e-8,"stream actual full-window rate differs")
-    return dict(**({"currentInputReuse":reuse_stats} if reuse_stats is not None else {}),**({"readerGate":gate} if gate is not None else {}),**({"clientClock":client_clock} if client_clock is not None else {}),summary=summary,streamEvidence=proof,prefixReplayVerification=prefix,observerNativeFactVerification=facts,workers=workers,runtimeMeasurements=runtime,
+    return dict(**({"clientStateHashEncoding":client_hash} if client_hash is not None else {}),**({"currentInputReuse":reuse_stats} if reuse_stats is not None else {}),**({"readerGate":gate} if gate is not None else {}),**({"clientClock":client_clock} if client_clock is not None else {}),summary=summary,streamEvidence=proof,prefixReplayVerification=prefix,observerNativeFactVerification=facts,workers=workers,runtimeMeasurements=runtime,
         latencyIntervalsNs=metrics["latencyIntervalsNs"],stageGapIntervalsNs=metrics["stageGapIntervalsNs"],offerLatencyIntervalsNs=metrics["offerLatencyIntervalsNs"],supplyPhases=supply,timeSeries=timeline,sustainedTPSQualified=False,
         interpretation="Complete8192 signed/terminal identities and raw latency intervals, actual runtime and original native readback. This small finite case does not qualify sustained1000TPS or independently redo BFT cryptography.")
 

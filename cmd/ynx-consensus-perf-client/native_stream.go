@@ -9,6 +9,9 @@ import (
 // Separate opt-in scope. The original nativeSubmit8 single-round contract and
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
+	if o.nativeCachedFeeJSON && (!o.nativeStream8 || !o.nativePreparedCertificate || !o.nativeCurrentInputReuse || o.nativeStreamSubmitters != 0 || o.concurrency != 8 || o.clientProcs2 || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint) {
+		return errors.New("cached fee JSON requires explicit prepared/current-reuse native stream8 and no mixed candidate")
+	}
 	if o.nativePreparedCertificate && (!o.nativeStream8 || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint) {
 		return errors.New("prepared certificate requires explicit native stream and no mixed construction/tip candidate")
 	}
@@ -56,6 +59,14 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	}
 	if err := validateNativeStreamingOptions(o); err != nil {
 		return err
+	}
+	mode, _, _ := consensus.StateHashEncodingMeasurements()
+	expectedMode := consensus.StateHashOriginalJSON
+	if o.nativeCachedFeeJSON {
+		expectedMode = consensus.StateHashCachedFeeJSON
+	}
+	if mode != expectedMode {
+		return errors.New("actual client process hash encoding differs from selected reader")
 	}
 	limit, budget, err := durableReadLimits(o)
 	if err != nil {
@@ -116,6 +127,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
+	ClientCachedFeeJSON    bool    `json:"clientCachedFeeJSON,omitempty"`
 	BlockTipHint           bool    `json:"blockTipHint,omitempty"`
 	PreparedCertificate    bool    `json:"preparedCertificate,omitempty"`
 	CanonicalCertificate   bool    `json:"canonicalCertificate,omitempty"`
@@ -134,6 +146,9 @@ type nativeStreamingPlan struct {
 
 func streamingProfileName(o options) string {
 	if o.nativeStream8 {
+		if o.nativeCachedFeeJSON {
+			return "scoped_native_prefix_stream8_prepared_cached_fee_v1"
+		}
 		if o.nativePreparedCertificate {
 			if o.nativeStreamSubmitters == 16 {
 				return "scoped_native_prefix_stream16_prepared_v1"

@@ -64,6 +64,7 @@ type options struct {
 	prefixNativeClone              bool
 	nativeCurrentInputReuse        bool
 	nativePreparedCertificate      bool
+	nativeCachedFeeJSON            bool
 	nativeCanonicalCertificate     bool
 	nativeBlockTipHint             bool
 	nativeStreamSubmitters         int
@@ -207,6 +208,8 @@ type report struct {
 	NativeCurrentInputReuse    bool                      `json:"nativeCurrentInputReuse,omitempty"`
 	NativeBlockTipHint         bool                      `json:"nativeBlockTipHint,omitempty"`
 	NativePreparedCertificate  bool                      `json:"nativePreparedCertificate,omitempty"`
+	NativeCachedFeeJSON        bool                      `json:"nativeCachedFeeJSON,omitempty"`
+	ClientStateHashEncoding    *clientHashEncodingReport `json:"clientStateHashEncoding,omitempty"`
 	NativeCanonicalCertificate bool                      `json:"nativeCanonicalCertificate,omitempty"`
 	NativeStreamSubmitters     int                       `json:"nativeStreamSubmitters,omitempty"`
 	NativeStream8              bool                      `json:"nativeStream8,omitempty"`
@@ -261,6 +264,7 @@ func main() {
 	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: validated private suffix initialization; explicit native8 data64 or native stream8 only")
 	flag.BoolVar(&o.nativeCurrentInputReuse, "native-current-input-reuse", false, "explicit native stream only: share privately validated identical freshly captured input under original reader budget")
 	flag.BoolVar(&o.nativePreparedCertificate, "native-prepared-certificate", false, "explicit native stream candidate: private normalized suffix snapshot encoded once; original strict fallback/full state checks retained")
+	flag.BoolVar(&o.nativeCachedFeeJSON, "native-cached-fee-json", false, "explicit prepared stream8 client-only exact-byte fee timestamp JSON reuse; full state/hash/history validation retained")
 	flag.BoolVar(&o.nativeCanonicalCertificate, "native-canonical-certificate", false, "explicit native stream only: canonical private certificate copy with exact encoded-byte comparison and strict JSON fallback")
 	flag.BoolVar(&o.nativeBlockTipHint, "native-block-tip-hint", false, "explicit native stream only: status height/hash guides full authenticated block fetch; never authority or finality")
 	flag.IntVar(&o.nativeStreamSubmitters, "native-stream-submitters", 0, "explicit native stream16 candidate only; zero preserves stream8; separate resource grant required")
@@ -941,6 +945,13 @@ func execute(o options) error {
 	if err := validateOptions(o); err != nil {
 		return err
 	}
+	if err := configureClientHashEncoding(o); err != nil {
+		return err
+	}
+	var hashEncodingStart *clientHashEncodingReport
+	if o.nativeCachedFeeJSON {
+		hashEncodingStart = currentClientHashEncoding()
+	}
 	restoreClientProcs := configureClientProcs(o.clientProcs2)
 	defer restoreClientProcs()
 	signalCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -984,6 +995,7 @@ func execute(o options) error {
 	r.NativeCurrentInputReuse = o.nativeCurrentInputReuse
 	r.NativeCanonicalCertificate = o.nativeCanonicalCertificate
 	r.NativePreparedCertificate = o.nativePreparedCertificate
+	r.NativeCachedFeeJSON = o.nativeCachedFeeJSON
 	r.NativeBlockTipHint = o.nativeBlockTipHint
 	if o.nativeBlockTipHint {
 		r.Interpretation = append(r.Interpretation, "Explicit block tip hint only avoids repeated full latest-block bodies at unchanged authenticated height. Status height/hash is discovery data, never authority. Each new height retains original signed commit/validator quorum/Merkle/execution results and fresh durable state/Info verification; no fallback, timeout extension or business TPS qualification.")
@@ -1359,6 +1371,16 @@ func execute(o options) error {
 		}
 		return nil
 	}()
+	if o.nativeCachedFeeJSON {
+		var encodingErr error
+		r.ClientStateHashEncoding, encodingErr = clientHashEncodingSince(hashEncodingStart)
+		if encodingErr != nil {
+			runErr = errors.Join(runErr, encodingErr)
+		}
+		if runErr == nil && (r.ClientStateHashEncoding == nil || r.ClientStateHashEncoding.Mode != consensus.StateHashCachedFeeJSON || r.ClientStateHashEncoding.CandidateAttempts == 0 || r.ClientStateHashEncoding.EncodingErrors != 0) {
+			runErr = errors.New("selected client state hash encoding lacks successful actual coverage")
+		}
+	}
 	r.FinishedAt = time.Now().UTC()
 	if runErr != nil {
 		addError(&r.SetupErrors, "run", runErr)

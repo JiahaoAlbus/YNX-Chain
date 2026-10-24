@@ -264,6 +264,24 @@ def client_clock_measurements(timeline,records,required=False):
     return dict(clock)
 
 
+def client_hash_encoding_measurements(report,selected=False):
+    """Actual explicit client process window counters, never finality authority."""
+    need(type(report) is dict and type(selected) is bool and report.get('nativeCachedFeeJSON',False) is selected,'client hash encoding selection differs')
+    value=report.get('clientStateHashEncoding')
+    if not selected:
+        need('clientStateHashEncoding' not in report,'unselected client hash encoding inventory')
+        return None
+    need(type(value) is dict and set(value)=={'mode','candidateAttempts','encodingErrors'},'client hash encoding inventory differs')
+    need(value['mode']=='cached-fee-time-json' and integer(value['candidateAttempts'],1,2**63-1) and type(value['encodingErrors']) is int and value['encodingErrors']==0,'selected client hash work absent/failed')
+    reader=report.get('durableReadback');need(type(reader) is dict,'client hash reader inventory absent')
+    prefix=reader.get('prefixReplay');need(type(prefix) is dict,'client hash prefix inventory absent')
+    phases=prefix.get('workPhases');need(type(phases) is dict,'client hash work inventory absent')
+    details=phases.get('certificatePublishDetails');need(type(details) is dict,'client hash publication inventory absent')
+    accepted=details.get('preparedNativeAccepted')
+    need(prefix.get('preparedCertificate') is True and integer(accepted,1,2**63-1) and value['candidateAttempts']>=accepted,'client hash work lacks prepared full-state coverage')
+    return dict(value)
+
+
 def certificate_publish_measurements(phases,canonical_limit,required=False,native_clone=False,canonical_native=False,prepared_native=False):
     """Nested costs are already inside certificatePublish; never sum twice."""
     need(type(required) is bool and type(native_clone) is bool and type(canonical_native) is bool and (not canonical_native or native_clone) and integer(canonical_limit,1,512<<20),'certificate timing selection/bound differs')

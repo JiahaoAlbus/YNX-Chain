@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "scope": "explicit cached fee JSON client CLI/reader/plan/report and offline evidence; unit only, not network",
+  "previousLibraryCode": "ce8958c0d512694ceabef58de02829e22b7333e2",
+  "previousLibraryCI": {
+    "run": 40094539979,
+    "head": "a7894d9851a0039f69581e9e48f30358e4e375e9",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "option": "-native-cached-fee-json",
+  "required": {
+    "nativeStream": true,
+    "preparedCertificate": true,
+    "currentInputReuse": true,
+    "submitters": 8,
+    "observers": 4,
+    "noOtherMixedCandidate": true
+  },
+  "defaultOriginalRetained": true,
+  "profile": "scoped_native_prefix_stream8_prepared_cached_fee_v1",
+  "actualApplicationInputs": 102,
+  "selectedProcessCounters": {
+    "mode": "cached-fee-time-json",
+    "candidateAttempts": 517,
+    "encodingErrors": 0
+  },
+  "unitProducerSharesProcess": true,
+  "independentBFTProof": false,
+  "failedFreshExecuteInheritedWork": false,
+  "wrongProcessModeTouchesOutput": false,
+  "reportCounters": "delta from after explicit startup selection/before manifest to after full evidence readback; not phase CPU attribution",
+  "python": {
+    "controllerTests": 91,
+    "evidenceTests": 47,
+    "firstFailure": "new cached synthetic positive omitted snapshotCacheHits; original current-input-reuse guard correctly refused, fixture supplied explicit0; guard not weakened"
+  },
+  "heavyProfileDispatchImplemented": false,
+  "networkGainMeasured": false,
+  "sustainedTPSQualified": false,
+  "raws": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-client-race-01.raw",
+      "bytes": 1351,
+      "sha256": "6a7698230fd86d507f4412beb05d85283c55e8240ef5e12c23f86e7ac5129a63"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-client-race-02.raw",
+      "bytes": 2872,
+      "sha256": "221a91c374b5ad1265b24b7c6fac4bd255433e56e8eecbefd0c26515038eb73c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-client-controller-01.raw",
+      "bytes": 2552,
+      "sha256": "f64afb445666e5a213f65c1d261f61175d6d7debbabe0b4221dac96ec42c883b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-client-controller-02.raw",
+      "bytes": 191,
+      "sha256": "9e702b8a919f682b73ae0a9f70040aad3b899481f1512ca38006d72ab84e0409"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-client-evidence-01.raw",
+      "bytes": 9617,
+      "sha256": "8ded182ca424263dc8d3f4e12654b028af2d74f4737bfa1c875e6967b55d2ebe"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-client-full-go-01.raw",
+      "bytes": 76,
+      "sha256": "beeaa664d3611fbe632363ac9d20cdf9e4fa61243f6d7bc845c5ae87e1757638"
+    }
+  ],
+  "publicFixture": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-client-public-fixture-02/PUBLIC_FIXTURE_SCOPE.json",
+    "bytes": 22748,
+    "sha256": "9f6e74d3a18a565c357389b5ad797eb2873f0a24721a6bae3bc029a05655b5ff"
+  }
+}

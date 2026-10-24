@@ -1141,9 +1141,9 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False):
+        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared)
+                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
@@ -1192,6 +1192,23 @@ class SupplySourceTests(unittest.TestCase):
             if fault=='encoding':stats['workPhases']['certificatePublishDetails']['preparedNativeAccepted']=100
             if fault=='runtime':bad['submissionOccupancy']['callbackReturned']=2048
             with self.subTest(preparedFault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True)
+        cached_plan=copy.deepcopy(prepared_plan);cached_plan['profile']='scoped_native_prefix_stream8_prepared_cached_fee_v1';cached_plan['nativePrefix'].update(clientCachedFeeJSON=True,currentInputReuse=True)
+        raw_plan=json.dumps(cached_plan).encode()
+        cached_client=copy.deepcopy(prepared_client);cached_client.update(nativeCachedFeeJSON=True,nativeCurrentInputReuse=True,clientStateHashEncoding=dict(mode='cached-fee-time-json',candidateAttempts=2,encodingErrors=0))
+        cached_client['streamingWorkload'].update(name=cached_plan['profile'],planSha256=hashlib.sha256(raw_plan).hexdigest())
+        cached_reader=cached_client['durableReadback'];cached_reader['snapshotCacheHits']=0;misses=cached_reader['snapshotValidations'];cached_reader['currentInputReuse']=dict(enabled=True,attempts=misses,errors=0,hits=0,misses=misses,comparedBytes=0,lookupNs=1 if misses else 0,retainedInputBytes=cached_reader['readerBudget']['cachedInputBytes'])
+        self.assertEqual(check(cached_client,prepared=True,cached=True)['clientStateHashEncoding'],cached_client['clientStateHashEncoding'])
+        with self.assertRaises(RuntimeError):check(cached_client,prepared=True)
+        with self.assertRaises(RuntimeError):check(cached_client,cached=True)
+        for fault in ('missing','mode','zero','bool','errors','marker'):
+            bad=copy.deepcopy(cached_client)
+            if fault=='missing':bad.pop('clientStateHashEncoding')
+            if fault=='mode':bad['clientStateHashEncoding']['mode']='original-json'
+            if fault=='zero':bad['clientStateHashEncoding']['candidateAttempts']=0
+            if fault=='bool':bad['clientStateHashEncoding']['candidateAttempts']=True
+            if fault=='errors':bad['clientStateHashEncoding']['encodingErrors']=1
+            if fault=='marker':bad['nativeCachedFeeJSON']=False
+            with self.subTest(cachedFault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True,cached=True)
         raw_plan=saved_plan
         # One explicit choice must bind producer expectation, durable plan,
         # top-level report, actual backend and accepted/fallback child counters.

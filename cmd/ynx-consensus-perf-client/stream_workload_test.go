@@ -156,6 +156,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		o = nativeStreamingOptions()
 		o.nativeCurrentInputReuse = true
 		o.nativePreparedCertificate = len(candidates) >= 5 && candidates[4]
+		o.nativeCachedFeeJSON = len(candidates) >= 6 && candidates[5]
 		o.nativeCanonicalCertificate = len(candidates) >= 1 && candidates[0]
 		o.nativeSuffixSetup = len(candidates) >= 2 && candidates[1]
 		if len(candidates) >= 3 && candidates[2] {
@@ -347,6 +348,16 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		actual := nativeReader.stats()
 		if actual.PrefixReplay.PreparedCertificate != o.nativePreparedCertificate || plan.NativePrefix.PreparedCertificate != o.nativePreparedCertificate {
 			t.Fatal("prepared actual backend/plan differs")
+		}
+		if plan.NativePrefix.ClientCachedFeeJSON != o.nativeCachedFeeJSON {
+			t.Fatal("cached fee JSON plan selection differs")
+		}
+		if o.nativeCachedFeeJSON {
+			selected := currentClientHashEncoding()
+			if selected.Mode != consensus.StateHashCachedFeeJSON || selected.CandidateAttempts == 0 || selected.EncodingErrors != 0 {
+				t.Fatal("actual selected hash work absent", selected)
+			}
+			t.Logf("actual unit process hash mode=%s candidate attempts=%d/errors=%d; fixture producer shares this unit process, not independent nodes", selected.Mode, selected.CandidateAttempts, selected.EncodingErrors)
 		}
 		if o.nativePreparedCertificate {
 			parts := actual.PrefixReplay.WorkPhases.CertificatePublishDetails

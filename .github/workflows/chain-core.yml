@@ -269,9 +269,12 @@ jobs:
           YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-prepared-public-fixture
         run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(PreparedNativeSnapshot|BlockJournalPreparedPrefix|PreparedNativeStreaming)' -count=1 -timeout=30s -v
       - name: Verify unselected cached fee JSON bytes and first errors
-        run: go test -p 1 -race ./internal/consensus -run '^Test(CachedFeeHashCandidate|StateHashEncodingSelectedApplication)' -count=1 -timeout=30s -v
+        env:
+          YNX_NATIVE_CACHED_FEE_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-cached-fee-public-fixture
+        run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(CachedFeeHashCandidate|StateHashEncodingSelectedApplication|CachedFeeClient)' -count=1 -timeout=30s -v
       - name: Verify original native stream evidence identity and corruption negatives
         env:
+          YNX_NATIVE_CACHED_FEE_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-cached-fee-public-fixture
           YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-stream-public-fixture
           YNX_NATIVE_CANONICAL_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-canonical-public-fixture
           YNX_NATIVE_SUFFIX_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-suffix-public-fixture
@@ -291,6 +294,7 @@ jobs:
             ${{ runner.temp }}/ynx-native-canonical-public-fixture
             ${{ runner.temp }}/ynx-native-suffix-public-fixture
             ${{ runner.temp }}/ynx-native-prepared-public-fixture
+            ${{ runner.temp }}/ynx-native-cached-fee-public-fixture
           if-no-files-found: ignore
           retention-days: 90
       - name: Verify actual prefix decoder phases and held-gate cancellation

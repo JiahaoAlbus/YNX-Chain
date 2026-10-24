@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"os"
 	"path/filepath"
 	"testing"
@@ -21,6 +22,13 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 	}
 	if reader.PrefixReplay != nil && reader.PrefixReplay.PreparedCertificate {
 		destination = os.Getenv("YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR")
+	}
+	mode, _, _ := consensus.StateHashEncodingMeasurements()
+	if mode == consensus.StateHashCachedFeeJSON {
+		if reader.PrefixReplay == nil || !reader.PrefixReplay.PreparedCertificate {
+			t.Fatal("cached fee fixture scope differs")
+		}
+		destination = os.Getenv("YNX_NATIVE_CACHED_FEE_PUBLIC_FIXTURE_DIR")
 	}
 	if destination == "" {
 		return
@@ -68,6 +76,11 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 		}
 	}
 	metadata := map[string]any{"durableReadback": reader, "kind": "native_stream_public_unit_fixture_not_network", "independentBFTProof": false, "runtimeNetworkRoot": network, "runtimeOutput": output, "senders": len(latest), "rounds": 34, "intents": intents, "boundedSummary": stats.BoundedSummary, "readySenders": stats, "terminalStream": terminal, "latest": latest}
+	if mode == consensus.StateHashCachedFeeJSON {
+		metadata["clientCachedFeeJSON"] = true
+		metadata["clientStateHashEncoding"] = currentClientHashEncoding()
+		metadata["unitProducerSharesProcess"] = true
+	}
 	data, err := json.Marshal(metadata)
 	if err != nil {
 		t.Fatal(err)
