@@ -5,10 +5,10 @@ import path from 'node:path';
 import {SDK_CANONICAL} from './canonical-package.mjs';
 const base='runtime-projections/sdk36-product/';
 export const SDK36_PRODUCT_PINS=Object.freeze({
- 'original-ide-auth-runtime-manifest.json':{bytes:79116,sha256:'503a8d454cfce4cfa87acb45266b0a947de199220158f5e059ad9ebd7803b788',fullBytes:80553,fullSHA256:'3844fa8a6ac8fdb98cd355530530833fbf57bc3ac1772f6d06610a3b3b6adc64'},
- 'original-ide-contract-relay-runtime-manifest.json':{bytes:1464978,sha256:'febfb1adcb362f0dced49f6d77d7a5930a5aaa54c58865b7d845ae4c16c7f457',fullBytes:1466282,fullSHA256:'4f4f309b843c1d3743bf218cc3f7cb9371c8f179e8bf597b1d885238132fa4ee'},
+ 'original-ide-auth-runtime-manifest.json':{bytes:79115,sha256:'c746876dde012ff9401207e2e64354c007400e98287c6c20a91d33a40e5d240f',fullBytes:80552,fullSHA256:'9ff6d289420a4593e36de4105b8fa287ee91abde81c01a551615377fa14e9ae8'},
+ 'original-ide-contract-relay-runtime-manifest.json':{bytes:1464977,sha256:'6e15dfd28105e37c0c2ef6b25b7d31ca96703bf7bb4afa13561057dac0097b30',fullBytes:1466281,fullSHA256:'898e42a7f2aa2e5a8a9b4d8e8b2c958bf1d318299dc30f733c0617299d7039e4'},
  'SDK36_PRODUCT_PACK_SELECTION.json':{bytes:1486242,sha256:'47e3e26dee61a334ce8ccf9105c8045b8aba65d36f6f1f479dfce89f9e0a572f'},
- 'PROJECTION_RECEIPT.json':{bytes:6661,sha256:'f9ea32fdc8dafe6457084bd2d5ab73982532562c646b8154175e554f7093258e'},
+ 'PROJECTION_RECEIPT.json':{bytes:7454,sha256:'62b85e9d808b1f9777bb76f7f24062da6c7f7282c232eebb37dde0f80fd4b4c6'},
  'STATIC_SOURCE_ANALYSIS.json':{bytes:139541,sha256:'b2a868fe56440f77dda46a2cd30f21e06013794df9fb555e4754d4b63f119f8e'}
 });
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -20,6 +20,13 @@ function rows(value,count){
  return map;
 }
 const equalRow=(a,b)=>a&&b&&a.bytes===b.bytes&&a.sha256===b.sha256;
+// Match the original normal/Main and Native dictionary readers. A fixed pin
+// alone cannot establish their canonical byte contract. Never trim or repair.
+export function assertSDK36CanonicalRuntimeManifest(raw){
+ let body;try{body=JSON.parse(raw);}catch{fail('SDK36_PRODUCT_MANIFEST_SERIALIZATION_DIFFERS');}
+ if(!Buffer.isBuffer(raw)||!body||Array.isArray(body)||Object.keys(body).join(',')!=='files,version'||body.version!=='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'||!Array.isArray(body.files)||!Buffer.from(JSON.stringify(body)).equals(raw))fail('SDK36_PRODUCT_MANIFEST_SERIALIZATION_DIFFERS');
+ return body;
+}
 /** Fixed build DATA projection. This does not generate a manifest, change a
  * component record or authorize a Source. Missing projection keeps old normal
  * source behavior; its manifest/filter conflicts must still be refused.
@@ -32,6 +39,7 @@ export function readSDK36ProductRuntime(root,sourceCommit){
  const blobs=new Map(),documents=new Map();
  for(const[name,pin]of Object.entries(SDK36_PRODUCT_PINS)){const raw=git('show',sourceCommit+':'+base+name);if(raw.length!==pin.bytes||hash(raw)!==pin.sha256)fail('SDK36_PRODUCT_SOURCE_PIN_DIFFERS');blobs.set(name,raw);documents.set(name,JSON.parse(raw));}
  const selection=documents.get('SDK36_PRODUCT_PACK_SELECTION.json'),auth=documents.get('original-ide-auth-runtime-manifest.json'),union=documents.get('original-ide-contract-relay-runtime-manifest.json'),receipt=documents.get('PROJECTION_RECEIPT.json');
+ assertSDK36CanonicalRuntimeManifest(blobs.get('original-ide-auth-runtime-manifest.json'));assertSDK36CanonicalRuntimeManifest(blobs.get('original-ide-contract-relay-runtime-manifest.json'));
  if(selection.kind!=='YNX_SDK36_PRODUCT_PACK_SELECTION/v1'||selection.versionSDK!==sdk.version||auth.version!=='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'||union.version!==auth.version||receipt.kind!=='YNX_SDK36_PRODUCT_RUNTIME_METADATA_PROJECTION/v1'||receipt.versionSDK!==sdk.version)fail('SDK36_PRODUCT_SCHEMA_DIFFERS');
  const selected=rows(selection.files,9566),authRows=rows(auth.files,556),unionRows=rows(union.files,9417),excluded=rows(receipt.excluded,15);
  for(const row of [...authRows.values(),...unionRows.values()])if(!equalRow(row,selected.get(row.path)))fail('SDK36_PRODUCT_CLOSURE_INCOMPLETE');
@@ -39,7 +47,7 @@ export function readSDK36ProductRuntime(root,sourceCommit){
  const lock=unionRows.get('node_modules/.package-lock.json');if(lock?.bytes!==54706||lock.sha256!=='4bcda46e64a177344da39833571be1c875398fa3b4fc8e6dd12104bfc4e77048')fail('SDK36_PRODUCT_INSTALLED_LOCK_REQUIRED');
  const manifestRows=[],contents=new Map();
  for(const[name,pin]of Object.entries(SDK36_PRODUCT_PINS).filter(([,pin])=>pin.fullSHA256)){
-  const original=git('show',sourceCommit+':packages/wallet-auth/native/'+name);if(original.length!==pin.fullBytes||hash(original)!==pin.fullSHA256)fail('SDK36_PRODUCT_FULL_CUSTODY_DIFFERS');
+  const original=git('show',sourceCommit+':packages/wallet-auth/native/'+name);if(original.length!==pin.fullBytes||hash(original)!==pin.fullSHA256)fail('SDK36_PRODUCT_FULL_CUSTODY_DIFFERS');assertSDK36CanonicalRuntimeManifest(original);
   const packed=SDK_CANONICAL+'/native/'+name;manifestRows.push({path:packed,sourcePath:base+name,bytes:pin.bytes,sha256:pin.sha256,originalBytes:pin.fullBytes,originalSHA256:pin.fullSHA256});contents.set(packed,blobs.get(name));
  }
  const publicData=Object.freeze({kind:'YNX-WALLET-SDK36-PRODUCT-PACK/v1',inputs:Object.entries(SDK36_PRODUCT_PINS).map(([name,pin])=>({sourcePath:base+name,bytes:pin.bytes,sha256:pin.sha256})),manifestRows,packRows:9566,authRows:556,unionRows:9417,excluded:[...excluded.values()],fullBuildCustodyUnchanged:true,computedEdgesProven:false,SourceQualified:false,Root:false});

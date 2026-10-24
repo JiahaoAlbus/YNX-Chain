@@ -99,7 +99,7 @@ export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
  [SDK33_VERSION]:Object.freeze({bytes:80280,sha256:'19f2e15913232f1dd84a1152799f89201e60300879feb75e0f36cf2742830d84'}),
  [SDK34_VERSION]:Object.freeze({bytes:80280,sha256:'9dfcc99af154e826db909ad65ed57760cfbca53192fb405276f6da91bf9f2489'}),
  [SDK35_VERSION]:Object.freeze({bytes:80552,sha256:'d033551404b49ced72bf8ff2abe0df054889bc08287112ebefca940add11fd25'}),
- [SDK36_VERSION]:Object.freeze({bytes:80553,sha256:'3844fa8a6ac8fdb98cd355530530833fbf57bc3ac1772f6d06610a3b3b6adc64'})
+ [SDK36_VERSION]:Object.freeze({bytes:80552,sha256:'9ff6d289420a4593e36de4105b8fa287ee91abde81c01a551615377fa14e9ae8'})
 });
 const FIXED_SDK_RUNTIME_MANIFEST='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
 export function fixedSDKRuntimeManifestSources(root,sourceCommit){
