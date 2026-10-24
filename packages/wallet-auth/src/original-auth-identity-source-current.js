@@ -26,7 +26,7 @@ const signed=(body,key,policy)=>canonical({body,signature:sign(null,Buffer.from(
 // Kernel is testable CODE, not an enrollment factory. Production mounting
 // accepts only instances branded by the fixed release-selection factory below.
 export class OriginalAuthSourceCurrentKernel {
- #root;#enrollment;#policy;#key;#profiles=new Map();#io;#loan;#rows=new Map();#retired=false;#entered=false;#unknown=false;#first;#firstPresent=false;#closing=false;#closed=false;#cleanupCause;#cleanupCausePresent=false;#clockFloor=0;#clock;#nonces=new Map();
+ #root;#enrollment;#policy;#key;#profiles=new Map();#io;#loan;#rows=new Map();#retired=false;#entered=false;#unknown=false;#first;#firstPresent=false;#closing=false;#closed=false;#cleanupCause;#cleanupCausePresent=false;#clockFloor=0;#clock;#nonces=new Map();#lastCurrent;
  constructor(rootRaw,enrollmentRaw,profiles,privateKey,policy,nativeIO,now,clock=Date.now){
   if(typeof clock!=='function')fail('AUTH_SOURCE_CURRENT_CLOCK_UNAVAILABLE');this.#clock=clock;
   this.#root=rootRaw;this.#enrollment=enrollmentRaw;this.#policy=Object.freeze({...policy,signatureContract:Object.freeze({...policy.signatureContract})});this.#key=privateKey;this.#io=nativeIO;
@@ -78,7 +78,7 @@ export class OriginalAuthSourceCurrentKernel {
   }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered=false;}
  }
  #body(profileDigest,profile,state,challenge,now){const role=verifySourceEnrollment(this.#root,this.#enrollment,this.#policy,now).body;return {version:1,purpose:originalSignatureContract(this.#policy).purpose,sourceId:profile.sourceId,enrollmentDigest:this.#policy.enrollmentDigest,profileDigest,instanceId:profile.instanceId,generation:profile.generation,sequence:state.sequence,floor:state.floor,head:state.head,status:state.status,nonce:challenge,issuedAtMs:now,expiresAtMs:Math.min(now+30000,profile.expiresAtMs,role.expiresAtMs)};}
- current(profileDigest,challenge,now){
+ current(profileDigest,challenge,now=this.#clock()){
   if(typeof challenge!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(challenge)||Buffer.from(challenge,'base64url').toString('base64url')!==challenge)fail('AUTH_SOURCE_CURRENT_NONCE_INVALID');
   const profile=this.#profiles.get(profileDigest),state=this.#rows.get(profileDigest);if(!profile||!state)fail('AUTH_SOURCE_PROFILE_NOT_REGISTERED');
   for(const [key,time] of this.#nonces)if(now-time>=30000)this.#nonces.delete(key);
@@ -88,8 +88,16 @@ export class OriginalAuthSourceCurrentKernel {
    this.#check(now);this.#nonces.set(nonceKey,now);verifySourceProfile(this.#root,this.#enrollment,profile.raw,this.#policy,now);
    const key=sha(canonical({profileDigest,sequence:state.sequence})),raw=this.#io.read(this.#loan,key+'.entered'),terminal=this.#io.read(this.#loan,key+'.terminal');
    if(sha(raw)!==state.recordDigest||terminal!==canonical({version:1,eventDigest:state.recordDigest}))fail('AUTH_SOURCE_CURRENT_HISTORY_CHANGED');
-   const body=this.#body(profileDigest,profile.body,state,challenge,now),signedRaw=signed(body,this.#key,this.#policy);const post=this.#clock();this.#check(post);if(post>=body.expiresAtMs)fail('AUTH_SOURCE_CURRENT_EXPIRED');return signedRaw;
+   const body=this.#body(profileDigest,profile.body,state,challenge,now),signedRaw=signed(body,this.#key,this.#policy);this.#lastCurrent={profileDigest,challenge,raw:signedRaw,expires:body.expiresAtMs,state};const post=this.#clock();this.#check(post);if(post>=body.expiresAtMs)fail('AUTH_SOURCE_CURRENT_EXPIRED');return signedRaw;
   }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered=false;}
+ }
+ assertOriginalCurrentCompletion(profileDigest,challenge,raw){
+  const last=this.#lastCurrent,profile=this.#profiles.get(profileDigest),state=this.#rows.get(profileDigest);
+  if(this.#entered||!last||!profile||last.profileDigest!==profileDigest||last.challenge!==challenge||last.raw!==raw||last.state!==state||state.status!=='active')fail('AUTH_SOURCE_CURRENT_COMPLETION_NOT_ORIGINAL');
+  this.#check(this.#clock());verifySourceProfile(this.#root,this.#enrollment,profile.raw,this.#policy,this.#time(this.#clock()));
+  const key=sha(canonical({profileDigest,sequence:state.sequence}));
+  if(sha(this.#io.read(this.#loan,key+'.entered'))!==state.recordDigest||this.#io.read(this.#loan,key+'.terminal')!==canonical({version:1,eventDigest:state.recordDigest}))fail('AUTH_SOURCE_CURRENT_HISTORY_CHANGED');
+  const end=this.#time(this.#clock());if(this.#retired||this.#unknown||end>=last.expires)fail('AUTH_SOURCE_CURRENT_COMPLETION_EXPIRED');
  }
  retire(){this.#retired=true;}
  join(){if(!this.#retired||this.#entered)fail('AUTH_SOURCE_CURRENT_JOIN_PENDING');}
@@ -135,6 +143,11 @@ export async function handleOriginalAuthSourceCurrent(service,method,url,now=Dat
  if(!services.has(service))fail('AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED');
  const parsed=new URL(url,'https://wallet-auth.ynxweb4.com');if(method!=='GET'||parsed.origin!=='https://wallet-auth.ynxweb4.com'||parsed.pathname!=='/v1/auth-identity/source-current'||parsed.hash||[...parsed.searchParams.keys()].sort().join('|')!=='nonce|profile')fail('AUTH_SOURCE_CURRENT_REQUEST_INVALID');
  return {status:200,headers:{'content-type':'application/json','cache-control':'no-store'},body:await service.current(parsed.searchParams.get('profile'),parsed.searchParams.get('nonce'),now)};
+}
+// Private module boundary for the normal original HTTP request owner. Not an
+// enrollment API and never a renderer/JSON brand or a public arithmetic kernel.
+export function assertOriginalAuthSourceCurrentService(service){
+ if(!services.has(service)||typeof service.current!=='function'||typeof service.assertOriginalCurrentCompletion!=='function')fail('AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED');
 }
 // Private normal issuer call, not a public mount or caller-provided provider.
 // Only the SAME release-selected original factory brand may select this path.

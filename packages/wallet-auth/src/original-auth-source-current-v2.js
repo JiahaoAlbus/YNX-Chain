@@ -26,7 +26,7 @@ function exact(v,keys){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Refle
 function sameViews(before,after){for(const role of ['root','profile','current','subject']){assertPQAuthorizationCurrent(before[role],after[role]);if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_SOURCE_V2_HEIGHT_CHANGED');}}
 
 export class OriginalAuthSourceCurrentV2Kernel {
- #root;#enrollment;#profiles=new Map();#policy;#node;#get;#clock;#signer;#io;#loan;#rows=new Map();#nonces=new Map();#floor=0;#height=0n;#entered=false;#initialized=false;#retired=false;#closed=false;#closeSelected=false;#closeCause;#closeFailed=false;#unknown=false;#first;#firstPresent=false;#partial;
+ #root;#enrollment;#profiles=new Map();#policy;#node;#get;#clock;#signer;#io;#loan;#rows=new Map();#nonces=new Map();#floor=0;#height=0n;#entered=false;#initialized=false;#retired=false;#closed=false;#closeSelected=false;#closeCause;#closeFailed=false;#unknown=false;#first;#firstPresent=false;#partial;#completionViews;#completionRaw;
  constructor(rootRaw,enrollmentRaw,profiles,policy,node,signer,nativeIO,clock=Date.now,get=fetchOriginalNativeAuthorization){
   // Explicit test seams exist only here. Normal loader supplies the fixed
   // fetcher, native signer and native directory owner; no request can select.
@@ -107,8 +107,25 @@ export class OriginalAuthSourceCurrentV2Kernel {
    const before=await this.#views(p),v=this.#verify(p,before),key=sha(canonical({profileDigest,sequence:state.sequence})),raw=this.#io.read(this.#loan,key+'.entered');if(sha(raw)!==state.recordDigest||this.#io.read(this.#loan,key+'.terminal')!==canonical({version:2,eventDigest:state.recordDigest}))fail('AUTH_SOURCE_V2_HISTORY_CHANGED');
    const body=this.#body(p,profileDigest,state,challenge,v),signed=this.#signed(body,v,before);verifyOriginalAuthSourceCurrentV2(this.#root,this.#enrollment,p.raw,signed,this.#policy,before,challenge,{sequence:state.sequence,floor:state.floor,head:state.head,timeFloor:now,executionHeight:state.executionHeight},this.#time());
    const after=await this.#post(p,before,body.expiresAtMs);
-   this.#completed(p,after,body.expiresAtMs,{digest:profileDigest,state,key,raw,terminal:canonical({version:2,eventDigest:state.recordDigest})});return signed;
+   this.#completed(p,after,body.expiresAtMs,{digest:profileDigest,state,key,raw,terminal:canonical({version:2,eventDigest:state.recordDigest})});this.#completionViews=after;this.#completionRaw=signed;return signed;
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
+ }
+ // Normal HTTP caller's synchronous completion, after awaiting current().
+ // Only the SAME private signed partial and current journal row are accepted.
+ // This issues nothing and cannot turn a supplied string into an authority.
+ assertOriginalCurrentCompletion(profileDigest,challenge,raw){
+  this.#alive();if(!this.#initialized||this.#entered||!nonced(challenge))fail('AUTH_SOURCE_V2_NOT_READY');
+  const p=this.#profiles.get(profileDigest),state=this.#rows.get(profileDigest),partial=this.#partial;
+  if(!p||!state||state.status!=='active'||partial?.phase!=='SIGNED'||partial.profileDigest!==profileDigest||partial.nonce!==challenge||partial.currentRaw!==raw)fail('AUTH_SOURCE_V2_COMPLETION_NOT_ORIGINAL');
+  const body=hint(raw);if(body.profileDigest!==profileDigest||body.nonce!==challenge||body.sequence!==state.sequence||body.floor!==state.floor||body.head!==state.head||body.status!==state.status)fail('AUTH_SOURCE_V2_COMPLETION_NOT_ORIGINAL');
+  // The selected registered current role was verified by current's original
+  // pre/post network observations. Obtain the same independently verified role
+  // from the retained signing operation rather than accepting an HTTP view.
+  const views=this.#completionViews;
+  if(!views||this.#completionRaw!==raw)fail('AUTH_SOURCE_V2_COMPLETION_NOT_ORIGINAL');
+  const key=sha(canonical({profileDigest,sequence:state.sequence})),journal=this.#io.read(this.#loan,key+'.entered');
+  if(sha(journal)!==state.recordDigest)fail('AUTH_SOURCE_V2_HISTORY_CHANGED');
+  this.#completed(p,views,body.expiresAtMs,{digest:profileDigest,state,key,raw:journal,terminal:canonical({version:2,eventDigest:state.recordDigest})});
  }
  assertDeveloperPrincipalPurpose(){this.#alive();if(!this.#initialized||this.#policy.signatureContract.purpose!=='ide-project-authority-v1')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');}
  async existingDeveloperPrincipal(credential){
