@@ -380,6 +380,7 @@ NORMAL_STEP_NAMES = (
     "Reproduce the original missing PQ validator staking entry",
     "Verify complete state bridge and sponsor continuity",
     "Verify original Host source, live lifecycle and delivery persistence",
+    "Verify complete large original migration through normal package and cold recovery",
     "Verify normal Host source producer with original signed transaction fixture",
     "Reproduce signed-history overwrite and unsafe rollback callers",
     "Reproduce source-authority initialization coupling and verify independent execution",
@@ -735,9 +736,14 @@ def assert_workflow_contract(raw):
                  and condition(step).endswith(") }}"))
     non_host = by_name("Verify complete state bridge and sponsor continuity")[0]
     host = by_name("Verify original Host source, live lifecycle and delivery persistence")[0]
-    need("-skip '^TestProofHost' ./internal/consensus" in non_host)
+    need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus" in non_host)
     need("-run '^TestProofHost' ./internal/consensus" in host)
     need("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public" in host)
+    large = by_name("Verify complete large original migration through normal package and cold recovery")[0]
+    need(large in delivery_steps and "        timeout-minutes: 3\n" in large)
+    need(large.count("go test ") == 1 and "-timeout=180s -v -run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$' ./internal/consensus" in large)
+    need("--- PASS: TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery (" in large)
+    need("grep -F -c 'COMET_MIGRATION_REFERENCE_LARGE_CANONICAL_RECOVERY_PASS'" in large and '" -eq 1' in large)
     cutover = by_name("Verify original public cutover caller preserves independent operator and runtime pins")[0]
     for script in ("public-bft-production-driver-check.sh --snapshot-only", "owner-handover-check.sh",
                    "production-service-signer-ceremony-check.sh", "production-custody-review-check.sh",
@@ -747,8 +753,9 @@ def assert_workflow_contract(raw):
         need("bash scripts/verify/" + script in cutover)
     need("bash scripts/verify/public-bft-gateway-ingress-check.sh" not in cutover)
     need("PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED" in cutover)
-    # Both complementary current consensus groups still execute once, with
-    # the original whole selectors. Private Host stores stay on their runner.
+    # All current consensus cases still execute once. Only the new large
+    # fixture runs separately under its original bounded timeout; no old case
+    # is removed. Private Host stores stay on their original runner.
     for name in ("Verify complete state bridge and sponsor continuity", "Verify Whole BFT gateway and native container readback"):
         need(by_name(name)[0] in steps)
     gateway = by_name("Verify Whole BFT gateway and native container readback")[0]
@@ -1048,8 +1055,10 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("artifact-ids: ${{ needs.focused-go.outputs.inputs-artifact-id }}", "name: old-same-name-artifact"),
             ('--manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"', '--manifest-sha256 "0000000000000000000000000000000000000000000000000000000000000000"'),
             ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),
-            ("-skip '^TestProofHost'", "-skip '^TestProofHost|TestABCI'"),
+            ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestABCI)'"),
             ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
+            ("      - name: Verify complete large original migration through normal package and cold recovery\n", "      - name: Silently omitted large migration recovery\n"),
+            ("-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$'", "-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecoveryMissing$'"),
             ("steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'", "true"),
             ('--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', "--normal-run-id '${{ inputs.normal_ci_run_id }}'"),
             ("    timeout-minutes: 12\n", "    timeout-minutes: 15\n"),

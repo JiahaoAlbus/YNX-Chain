@@ -21,9 +21,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { constants as bufferConstants } from 'node:buffer';
 import { spawnSync } from 'node:child_process';
 const root = process.cwd(), tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ynx-operator-caller-'));
 const digest = b => crypto.createHash('sha256').update(b).digest('hex');
+const bindingSource=fs.readFileSync('scripts/verify/public-bft-candidate-binding.mjs','utf8');
 const driver = fs.readFileSync('scripts/ops/public-bft-production-driver.sh', 'utf8');
 const extract = name => {
   const match = driver.match(new RegExp(`^${name}\\(\\) \\{\\n[\\s\\S]*?^\\}`, 'm'));
@@ -31,11 +33,31 @@ const extract = name => {
   return match[0];
 };
 const fullCommit = '123456789abc' + 'd'.repeat(28), commit = fullCommit.slice(0, 12);
-const release = `ynx-bft-gateway-${commit}`, manifestPin = 'e'.repeat(64);
+const release = `ynx-bft-gateway-${commit}`;
+// These bytes are an explicit synthetic executable-transport boundary. They
+// pass the real header/pin reader but are NEVER executed or called Go evidence.
+const metadataELF=Buffer.alloc((1<<20)+64);metadataELF.set([127,69,76,70,2,1,1]);metadataELF.writeUInt16LE(2,16);metadataELF.writeUInt16LE(62,18);metadataELF.writeUInt32LE(1,20);
+const runtimeSource=Buffer.from(JSON.stringify({version:'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2',commit:fullCommit,platform:'linux/amd64',binaries:{'ynx-consensus-package':{bytes:metadataELF.length,sha256:digest(metadataELF)}},runtimeStarted:false,publicDeployment:false,pqActivation:false})+'\n');
+const manifestPin=digest(runtimeSource);
 const roles = ['primary', 'singapore', 'silicon-valley', 'seoul'];
 const write = (file, value, mode = 0o600) => { fs.mkdirSync(path.dirname(file), {recursive:true}); fs.writeFileSync(file, typeof value === 'string' ? value : JSON.stringify(value)+'\n', {mode}); };
 const q = value => "'" + value.replaceAll("'", "'\\''") + "'";
 const bindingCLI = path.join(root, 'scripts/verify/public-bft-candidate-binding.mjs');
+const summaryPreload=path.join(tmp,'summary-transport.mjs');
+write(summaryPreload,String.raw`
+import cp from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
+import {syncBuiltinESMExports} from 'node:module';
+const original=cp.spawnSync;
+cp.spawnSync=(command,args,options)=>{
+  if(command!==process.env.SYNTHETIC_METADATA_ELF)return original(command,args,options);
+  const control=path.join(path.dirname(path.dirname(path.dirname(args[1]))),'summary-control.json');
+  if(fs.existsSync(control)&&JSON.parse(fs.readFileSync(control)).kind==='timeout')return {error:Object.assign(new Error('fixture timeout original firstcause'),{code:'ETIMEDOUT'}),status:null,signal:'SIGTERM',stdout:'',stderr:''};
+  return original(process.execPath,[process.env.SYNTHETIC_METADATA_STUB,...args],options);
+};
+syncBuiltinESMExports();
+`);
 // The original rollback script is executed with transport that must never run.
 // This preserves its real HRS refusal rather than a fake successful rollback.
 const rollbackRoot=path.join(tmp,'rollback-source');
@@ -46,8 +68,8 @@ ynx_ops_each_node(){ for r in primary singapore silicon-valley seoul; do "$1" "$
 ynx_ops_ssh(){ echo 'forbidden rollback transport' >&2; return 99; }
 ynx_ops_copy(){ echo 'forbidden rollback copy' >&2; return 99; }
 `);
-function node(args, expected = 0) {
-  const p = spawnSync(process.execPath, args, {encoding:'utf8', maxBuffer:4<<20});
+function node(args, expected = 0, environment = process.env) {
+  const p = spawnSync(process.execPath, args, {env:environment,encoding:'utf8', maxBuffer:4<<20});
   if (expected === 0) assert.equal(p.status, 0, p.stderr); else assert.notEqual(p.status, 0, p.stdout);
   return p;
 }
@@ -70,6 +92,27 @@ function fixture(name) {
   const log=path.join(dir,'calls.jsonl'), tool=path.join(dir,'package-boundary');
   write(tool,`#!${process.execPath}\n`+String.raw`
 const fs=require('fs'),path=require('path'),a=process.argv.slice(2);
+if(a[0]==='-verify-migration-state'){
+  if(a.length!==4||a[2]!=='-migration-public-summary'||a[3]!=='json')throw Error('summary argv');
+  const input=a[1],dir=path.dirname(path.dirname(path.dirname(input))),control=path.join(dir,'summary-control.json');
+  const change=fs.existsSync(control)?JSON.parse(fs.readFileSync(control)):{};
+  fs.appendFileSync(path.join(dir,'calls.jsonl.summary'),JSON.stringify(a)+'\n');
+  if(fs.statSync(input).size>1<<20){console.error('synthetic sparse NUL input: complete migration validation refused; no valid ledger claim');process.exit(47)}
+  if(change.kind==='failed'){console.error('original synthetic verifier firstcause');process.exit(46)}
+  if(change.kind==='malformed'){process.stdout.write('not JSON\n');process.exit(0)}
+  if(change.kind==='large-output'){process.stdout.write('x'.repeat(16384));process.exit(0)}
+  const raw=fs.readFileSync(input),m=JSON.parse(raw),crypto=require('crypto');
+  const out={version:'YNX-MIGRATION-PUBLIC-SUMMARY/v1',classification:'data',sourceSHA256:crypto.createHash('sha256').update(raw).digest('hex'),sourceBytes:String(raw.length),height:String(m.height),lastBlockHash:m.lastBlockHash,stateHash:m.stateHash,firstCanonicalAccount:(m.accounts.find(a=>/^0x[0-9a-f]{40}$/.test(a.address))||{address:''}).address};
+  if(change.kind==='wrong-sha')out.sourceSHA256='f'.repeat(64);
+  if(change.kind==='wrong-bytes')out.sourceBytes='1';
+  if(change.kind==='wrong-type')out.height=Number(out.height);
+  if(change.kind==='extra')out.authorized=true;
+  if(change.kind==='duplicate'){process.stdout.write(JSON.stringify(out).replace('{','{"classification":"data",')+'\n');process.exit(0)}
+  if(change.kind==='mutate-source')fs.appendFileSync(input,'\n');
+  if(change.kind==='mutate-binary')fs.appendFileSync(path.join(dir,'metadata-runtime/ynx-consensus-package'),'!');
+  if(change.kind==='mutate-index')fs.appendFileSync(path.join(dir,'metadata-runtime/SOURCE.json'),' ');
+  process.stdout.write(JSON.stringify(out)+'\n');process.exit(0);
+}
 fs.appendFileSync(process.env.CALL_LOG,JSON.stringify(a)+'\n');
 if(process.env.FAIL_VERIFIER==='yes')process.exit(43);
 const value=k=>{const i=a.indexOf(k);if(i<0||a.lastIndexOf(k)!==i||!a[i+1])throw Error(k);return a[i+1]};
@@ -82,6 +125,10 @@ for(const role of ['primary','singapore','silicon-valley','seoul'])for(const fil
   const env={...process.env,PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:transaction,PUBLIC_BFT_PRODUCTION_CANDIDATE_APPROVED:'yes',PUBLIC_BFT_PRODUCTION_VALIDATOR_MANIFEST:validator,PUBLIC_BFT_PRODUCTION_CANDIDATE_GENESIS_TIME:genesis,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN:planPath,PUBLIC_BFT_PRODUCTION_OPERATOR_PLAN_SHA256:planPin,CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:path.join(dir,'original-runtime'),CONSENSUS_CANDIDATE_RUNTIME_COMMIT:fullCommit,CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:manifestPin,EXPECTED_PLAN_PIN:planPin,CALL_LOG:log,BOUNDARY_TOOL:tool,FAIL_TRANSPORT:'no'};
   fs.mkdirSync(env.CONSENSUS_CANDIDATE_RUNTIME_BUNDLE);
   write(path.join(env.CONSENSUS_CANDIDATE_RUNTIME_BUNDLE,'original-marker'),'original 0644 bytes',0o644);
+  const metadataRuntime=path.join(dir,'metadata-runtime');fs.mkdirSync(metadataRuntime,{mode:0o700});
+  const metadataBinary=path.join(metadataRuntime,'ynx-consensus-package');fs.writeFileSync(metadataBinary,metadataELF,{mode:0o700});
+  fs.writeFileSync(path.join(metadataRuntime,'SOURCE.json'),runtimeSource,{mode:0o600});
+  Object.assign(env,{NODE_OPTIONS:`--import=${summaryPreload}`,CASE_NODE:process.execPath,SYNTHETIC_METADATA_ELF:metadataBinary,SYNTHETIC_METADATA_STUB:tool});
   return {dir,transaction,planPath,plan,planPin,validator,genesis,approval,env,log};
 }
 const harness=path.join(tmp,'caller.sh');
@@ -94,6 +141,13 @@ uname(){ if [[ "$1" == -s ]]; then echo Linux; else echo x86_64; fi; }
 git(){ [[ "$*" == 'rev-parse HEAD' ]] || return 91; printf '%s\n' "$CONSENSUS_CANDIDATE_RUNTIME_COMMIT"; }
 validate_runtime_bundle(){ [[ "$#" == 3 && "$1" == "$CONSENSUS_CANDIDATE_RUNTIME_BUNDLE" && "$2" == "$CONSENSUS_CANDIDATE_RUNTIME_COMMIT" && "$3" == "$CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256" ]] || return 92; printf 'validate\n' >>"$CALL_LOG.runtime"; }
 prepare_runtime_bundle(){ [[ "$#" == 4 && "$1" == "$CONSENSUS_CANDIDATE_RUNTIME_BUNDLE" && "$2" == "$CONSENSUS_CANDIDATE_RUNTIME_COMMIT" && "$3" == "$CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256" ]] || return 93; mkdir -m 0700 "$4"; cp "$BOUNDARY_TOOL" "$4/ynx-consensus-package"; chmod 0700 "$4/ynx-consensus-package"; printf 'not ELF (caller fixture only)\n' >"$4/ynx-comet"; cp "$4/ynx-comet" "$4/ynx-consensus-keycheck"; cp "$4/ynx-comet" "$4/ynx-bft-gatewayd"; cp "$CONSENSUS_CANDIDATE_RUNTIME_BUNDLE/original-marker" "$4/SOURCE.json"; }
+node(){
+  if [[ "$1" == scripts/verify/public-bft-candidate-binding.mjs && ( "$2" == --inputs-only || "$2" == --public-read-targets || "$2" != --* ) ]]; then
+    declare -p public_package_verifier PUBLIC_BFT_MIGRATION_VERIFIER >/dev/null 2>&1 || return 98
+    [[ -n "$public_package_verifier" && "$PUBLIC_BFT_MIGRATION_VERIFIER" == "$public_package_verifier" ]] || return 98
+    PUBLIC_BFT_MIGRATION_VERIFIER="$SYNTHETIC_METADATA_ELF" "$CASE_NODE" "$@"
+  else "$CASE_NODE" "$@"; fi
+}
 ynx_ops_each_node(){ local cb="$1"; for r in primary singapore silicon-valley seoul; do "$cb" "$r" u host key full; done; }
 ynx_ops_ssh(){ printf '%s\n' "$5" >>"$CALL_LOG.transport"; if [[ "$FAIL_TRANSPORT" == yes || ( "$FAIL_TRANSPORT" == partial && "$1" == singapore && "$5" == *'timeout 30s systemctl start'* ) ]]; then return 42; fi; }
 ynx_ops_copy(){ test -s "$5"; printf 'copy %s\n' "$6" >>"$CALL_LOG.transport"; }
@@ -160,6 +214,56 @@ try {
   }
   const f=fixture('normal'),before=originals(f);run(f);
   const binding=path.join(f.transaction,'candidate/binding.json'), raw=fs.readFileSync(binding), b=JSON.parse(raw);
+  const summaryCommand=x=>[bindingCLI,'--migration-public-summary',path.join(x.transaction,'final-snapshot/migration.json'),fullCommit,manifestPin];
+  const summaryEnvironment=x=>({...x.env,PUBLIC_BFT_MIGRATION_VERIFIER:x.env.SYNTHETIC_METADATA_ELF});
+  const summaryResult=JSON.parse(node(summaryCommand(f),0,summaryEnvironment(f)).stdout);
+  assert.deepEqual(Object.keys(summaryResult).sort(),['version','classification','sourceSHA256','sourceBytes','height','lastBlockHash','stateHash','firstCanonicalAccount'].sort());
+  assert.equal(summaryResult.sourceSHA256,digest(before.find(([p])=>p.endsWith('/migration.json'))[1]));
+  assert.equal(summaryResult.height,'41');assert.equal(summaryResult.firstCanonicalAccount,'0x'+'1'.repeat(40));
+  for(const kind of ['failed','malformed','large-output','wrong-sha','wrong-bytes','wrong-type','extra','duplicate','timeout','mutate-source','mutate-binary','mutate-index']){
+    const x=fixture('summary-'+kind),input=path.join(x.transaction,'final-snapshot/migration.json');
+    write(path.join(x.dir,'summary-control.json'),{kind});const saved=originals(x),r=node(summaryCommand(x),1,summaryEnvironment(x));
+    if(kind==='failed')assert.match(r.stderr,/original synthetic verifier firstcause/);
+    else if(kind==='timeout')assert.match(r.stderr,/fixture timeout original firstcause/);
+    else if(kind.startsWith('mutate-'))assert.match(r.stderr,/source changed during complete validation/);
+    else assert.match(r.stderr,/normal migration (?:verifier|public summary)/);
+    assert.equal(fs.existsSync(x.log),false);assert.equal(fs.existsSync(x.log+'.transport'),false);assert.equal(fs.existsSync(path.join(x.transaction,'candidate')),false);
+    if(kind!=='mutate-source')unchanged(saved);else assert.deepEqual(fs.readFileSync(input),Buffer.concat([saved.find(([p])=>p===input)[1],Buffer.from('\n')]));
+    if(kind==='mutate-binary')assert.equal(fs.readFileSync(x.env.SYNTHETIC_METADATA_ELF).at(-1),33);
+    if(kind==='mutate-index')assert.equal(fs.readFileSync(path.join(path.dirname(x.env.SYNTHETIC_METADATA_ELF),'SOURCE.json')).at(-1),32);
+  }
+  for(const kind of ['missing-tool','wrong-source-pin','wrong-runtime-commit','swapped-binary','not-elf','symlink']){
+    const x=fixture('summary-source-'+kind),environment=summaryEnvironment(x),args=summaryCommand(x);
+    if(kind==='missing-tool')delete environment.PUBLIC_BFT_MIGRATION_VERIFIER;
+    if(kind==='wrong-source-pin')args[4]='f'.repeat(64);
+    if(kind==='wrong-runtime-commit')args[3]='f'.repeat(40);
+    if(kind==='swapped-binary')fs.appendFileSync(environment.PUBLIC_BFT_MIGRATION_VERIFIER,'changed');
+    if(kind==='symlink'){const old=environment.PUBLIC_BFT_MIGRATION_VERIFIER;fs.renameSync(old,old+'.retained');fs.symlinkSync(old+'.retained',old);}
+    if(kind==='not-elf'){
+      const invalid=Buffer.from(metadataELF);invalid[0]=0;fs.writeFileSync(environment.PUBLIC_BFT_MIGRATION_VERIFIER,invalid);
+      const source=JSON.parse(runtimeSource);source.binaries['ynx-consensus-package'].sha256=digest(invalid);
+      const sourceRaw=Buffer.from(JSON.stringify(source)+'\n');fs.writeFileSync(path.join(path.dirname(environment.PUBLIC_BFT_MIGRATION_VERIFIER),'SOURCE.json'),sourceRaw);args[4]=digest(sourceRaw);
+    }
+    const r=node(args,1,environment);assert.match(r.stderr,/migration verifier|original hash input/);
+    assert.equal(fs.existsSync(x.log+'.summary'),false,'unqualified executable/source reached the spawn boundary');
+    assert.equal(fs.existsSync(x.log),false);assert.equal(fs.existsSync(x.log+'.transport'),false);
+  }
+  // Exact original readJSON body, not a rewritten imitation of the old path.
+  // Sparse NUL is intentionally NOT a valid migration. This proves only the
+  // historical UTF8 string failure and the fixed bounded callee/error boundary.
+  const historicalReader=bindingSource.match(/^function readJSON\(file, label\) \{\n[\s\S]*?^\}/m)?.[0];
+  assert.ok(historicalReader);assert.ok(historicalReader.includes('JSON.parse(fs.readFileSync(file, "utf8"))'));
+  assert.equal(Buffer.byteLength(historicalReader),315);assert.equal(digest(historicalReader),'4c57e46626cefeecfe43bfc3c611973f77fbc13c7a18dc9d8c00d90de0d961be','historical actual reader changed; do not invent an old callee');
+  const large=fixture('historical-string-limit'),largeInput=path.join(large.transaction,'final-snapshot/migration.json');
+  const largeFD=fs.openSync(largeInput,'r+');fs.ftruncateSync(largeFD,bufferConstants.MAX_STRING_LENGTH+1);fs.closeSync(largeFD);
+  const historicalSource=`const fs=require('node:fs');function fail(message){throw new Error(message)}\n${historicalReader}\ntry{readJSON(process.argv[1],'original large migration');process.exitCode=91}catch(error){if(!/Cannot create a string longer than/.test(error.message))throw error;console.error('HISTORICAL_MIGRATION_UTF8_STRING_LIMIT_RED '+error.message);process.exitCode=23}`;
+  const oldLarge=spawnSync(process.execPath,['--max-old-space-size=768','-e',historicalSource,largeInput],{encoding:'utf8',maxBuffer:8192,timeout:120000});
+  assert.equal(oldLarge.error,undefined);assert.equal(oldLarge.signal,null);assert.equal(oldLarge.status,23,oldLarge.stderr);assert.match(oldLarge.stderr,/HISTORICAL_MIGRATION_UTF8_STRING_LIMIT_RED .*Cannot create a string longer than/);
+  const largeBefore=fs.statSync(largeInput,{bigint:true}),fixedLarge=node(summaryCommand(large),1,summaryEnvironment(large)),largeAfter=fs.statSync(largeInput,{bigint:true});
+  assert.match(fixedLarge.stderr,/synthetic sparse NUL input: complete migration validation refused/);assert.doesNotMatch(fixedLarge.stderr,/Cannot create a string longer than/);
+  for(const field of ['dev','ino','size','mode','mtimeNs','ctimeNs'])assert.equal(largeAfter[field],largeBefore[field]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(large.log+'.summary','utf8').trim()),['-verify-migration-state',largeInput,'-migration-public-summary','json']);
+  console.log('HISTORICAL_MIGRATION_UTF8_STRING_LIMIT_RED_AND_BOUNDED_SUMMARY_CALLER_PASS_DATA_ONLY (sparse invalid input; not large-ledger verification)');
   assert.equal(b.schemaVersion,2); assert.equal(b.operatorPlanSha256,f.planPin);assert.equal(b.runtimeCommit,fullCommit);assert.equal(b.runtimeManifestSha256,manifestPin);assert.equal(b.originalGenesisHash,f.plan.originalGenesisHash);
   const calls=fs.readFileSync(f.log,'utf8').trim().split('\n').map(JSON.parse);
   assert.deepEqual(calls[0],['-migration-state',path.join(f.transaction,'final-snapshot/migration.json'),'-validator-manifest',f.validator,'-genesis-time',f.genesis,'-operator-plan',f.planPath,'-operator-plan-hash',f.planPin,'-output',path.join(f.transaction,'candidate/package')]);
@@ -294,7 +398,8 @@ try {
   const observedPath=path.join(proofDir,'continuity.json');write(observedPath,observedJSON);const continuityArgs=[bindingCLI,'--continuity-check',binding,observedPath,'0'];node(continuityArgs);
   for(const [field,value]of [['pqIdentityObserved',false],['pqIdentitySHA256',null],['independentFinalityVerified',true]]){write(observedPath,{...JSON.parse(observedJSON),[field]:value});node(continuityArgs,1);}write(observedPath,observedJSON);
   for(const [file,field,value]of [['start.json','runningExecutableSHA256','f'.repeat(64)],['after.json','height',43],['after.json','migrationBlockHash','f'.repeat(64)],['after.json','chainId',1],['gateway-status.json','earliestBlockHeight',41]]){const p=path.join(proofDir,file),old=fs.readFileSync(p);write(p,{...JSON.parse(old),[field]:value});const bad=fs.readFileSync(p);node(observeArgs,1);assert.deepEqual(fs.readFileSync(p),bad);fs.writeFileSync(p,old);}
-  const publicTargets=node([bindingCLI,'--public-read-targets',binding,path.join(f.transaction,'final-snapshot/migration.json'),path.join(proofDir,'gateway-status.json')]).stdout;
+  const summaryEnv={...f.env,PUBLIC_BFT_MIGRATION_VERIFIER:f.env.SYNTHETIC_METADATA_ELF};
+  const publicTargets=node([bindingCLI,'--public-read-targets',binding,path.join(f.transaction,'final-snapshot/migration.json'),path.join(proofDir,'gateway-status.json')],0,summaryEnv).stdout;
   node([...observeArgs,'public'],1);for(const file of ['before.json','after.json','gateway-status.json']){const p=path.join(proofDir,file);write(p,{...JSON.parse(fs.readFileSync(p)),publicCutoverReady:true});}node(observeArgs,1);const publicObservation=node([...observeArgs,'public']).stdout;
   write(path.join(proofDir,'read-targets.txt'),publicTargets);write(path.join(proofDir,'observation.json'),publicObservation);write(path.join(proofDir,'account.json'),{address:'0x'+'1'.repeat(40),balance:100,nonce:0});write(path.join(proofDir,'block.json'),{height:42,hash:'d'.repeat(64)});write(path.join(proofDir,'evm-chain-id.json'),{jsonrpc:'2.0',id:1,result:'0x1917'});
   write(path.join(proofDir,'mutation-freeze.json'),{httpStatus:503});

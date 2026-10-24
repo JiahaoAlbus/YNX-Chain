@@ -173,6 +173,9 @@ public_bft_runtime_prepare() {
   prepare_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" "$retained/runtime" || return $?
   public_package_verifier="$retained/runtime/ynx-consensus-package"
   [[ -x "$public_package_verifier" ]] || { echo "verified package verifier is unavailable" >&2; return 1; }
+  # Selected only after the original runtime's independent commit/SOURCE pins
+  # and all eight ELF bytes have passed the existing normal verifier.
+  export PUBLIC_BFT_MIGRATION_VERIFIER="$public_package_verifier"
 }
 
 public_bft_operator_inputs() {
@@ -327,8 +330,8 @@ prepare_candidate_package() {
   [[ -n "$genesis_time" ]] || { echo "PUBLIC_BFT_PRODUCTION_CANDIDATE_GENESIS_TIME is required" >&2; exit 1; }
   public_bft_operator_inputs
   local binding_args=("$candidate_transaction_dir" "$commit" "$candidate_bft_release" "$validator_manifest" "$genesis_time" "$candidate_operator_plan" "$candidate_operator_pin" "${CONSENSUS_CANDIDATE_RUNTIME_COMMIT:-}" "${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:-}")
-  node scripts/verify/public-bft-candidate-binding.mjs --inputs-only "${binding_args[@]}" >/dev/null
   public_bft_runtime_prepare "$candidate_transaction_dir"
+  node scripts/verify/public-bft-candidate-binding.mjs --inputs-only "${binding_args[@]}" >/dev/null
   umask 077
   mkdir -p "$candidate_root"
   chmod 0700 "$candidate_root"

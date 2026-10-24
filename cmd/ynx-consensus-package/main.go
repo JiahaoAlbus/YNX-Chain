@@ -91,6 +91,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	}
 	verifyPackage := stringFlag("verify-package", "verify an existing production candidate package and exit")
 	verifyMigration := stringFlag("verify-migration-state", "verify one unbound YNX migration state and exit")
+	publicSummary := stringFlag("migration-public-summary", "json: emit bounded public metadata only after complete -verify-migration-state validation")
 	verifyExecution := stringFlag("verify-migration-execution", "read-only migration executor compatibility check; no validator binding, application restore, deployment, InitChain or PQ activation")
 	migrationPath := stringFlag("migration-state", "validated unbound YNX migration state")
 	validatorManifestPath := stringFlag("validator-manifest", "public-key-only production validator manifest")
@@ -130,8 +131,14 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	if mode == "" && (supplied["operator-plan"] != supplied["operator-plan-hash"] || (supplied["operator-plan"] && (strings.TrimSpace(*operatorPlan) == "" || strings.TrimSpace(*operatorPlanHash) == ""))) {
 		return errors.New("-operator-plan and -operator-plan-hash must be supplied together and nonempty")
 	}
+	if supplied["migration-public-summary"] && (mode != "verify-migration-state" || *publicSummary != "json") {
+		return errors.New("-migration-public-summary json requires only -verify-migration-state")
+	}
 	switch mode {
 	case "verify-migration-state":
+		if supplied["migration-public-summary"] {
+			return writeMigrationPublicSummary(*verifyMigration, stdout)
+		}
 		migration, err := verifyMigrationState(*verifyMigration)
 		if err != nil {
 			return err
@@ -176,6 +183,10 @@ func verifyMigrationState(path string) (chain.ConsensusMigrationState, error) {
 	if err != nil {
 		return chain.ConsensusMigrationState{}, fmt.Errorf("read migration state: %w", err)
 	}
+	return verifyMigrationStatePayload(payload)
+}
+
+func verifyMigrationStatePayload(payload []byte) (chain.ConsensusMigrationState, error) {
 	decoder := json.NewDecoder(bytes.NewReader(payload))
 	decoder.DisallowUnknownFields()
 	var migration chain.ConsensusMigrationState

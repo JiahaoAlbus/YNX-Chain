@@ -3,6 +3,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
 import { caddySourceIdentity, authoritativeIdentity, authoritativeRoleIdentities, roleAuthoritativeIdentity } from "./lib/public-bft-native-source.mjs";
 
@@ -28,7 +29,66 @@ function requireRestrictedFile(file, label) {
 }
 
 function sha256(file) {
-  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+  return hashOriginalFile(file).sha256;
+}
+
+const originalFileFields = ["dev", "ino", "mode", "uid", "gid", "nlink", "size", "mtimeNs", "ctimeNs"];
+function sameOriginalFile(a, b) {
+  return originalFileFields.every(key => a[key] === b[key]);
+}
+function hashOriginalFile(file, maximum = 1 << 30, singleLink = false, capture = false) {
+  const before = fs.lstatSync(file, {bigint:true});
+  if (!before.isFile() || before.nlink < 1n || (singleLink && before.nlink !== 1n) || before.size <= 0n || before.size > BigInt(maximum) || (before.mode & 0o022n) !== 0n || fs.realpathSync(file) !== path.resolve(file)) fail("original hash input is not a stable bounded regular file");
+  const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK);
+  try {
+    if (!sameOriginalFile(before, fs.fstatSync(fd, {bigint:true}))) fail("original hash input changed before read");
+    const block = Buffer.alloc(1 << 20), digest = crypto.createHash("sha256"), chunks = [];
+    let bytes = 0, count;
+    while ((count = fs.readSync(fd, block, 0, block.length, null)) > 0) {
+      bytes += count;
+      if (bytes > maximum) fail("original hash input exceeded its existing bound");
+      digest.update(block.subarray(0,count));
+      if (capture) chunks.push(Buffer.from(block.subarray(0,count)));
+    }
+    if (BigInt(bytes) !== before.size || !sameOriginalFile(before, fs.fstatSync(fd, {bigint:true})) || !sameOriginalFile(before, fs.lstatSync(file, {bigint:true}))) fail("original hash input changed during read");
+    return {sha256:digest.digest("hex"), bytes:String(bytes), identity:before, ...(capture ? {raw:Buffer.concat(chunks)} : {})};
+  } finally { fs.closeSync(fd); }
+}
+
+// The driver first validates the complete original eight-ELF runtime. This
+// reader additionally binds the selected normal callee to that external SOURCE
+// pin. No installed package or incoming summary can select its own authority.
+function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256) {
+  const binary = process.env.PUBLIC_BFT_MIGRATION_VERIFIER;
+  if (!path.isAbsolute(binary || "") || path.basename(binary) !== "ynx-consensus-package" || !/^[0-9a-f]{40}$/.test(runtimeCommit || "") || /^0{40}$/.test(runtimeCommit) || !hash(runtimeManifestSHA256)) fail("independently pinned normal migration verifier is required");
+  const sourcePath = path.join(path.dirname(binary), "SOURCE.json");
+  const sourcePin = hashOriginalFile(sourcePath, 128 << 10, true, true);
+  if (sourcePin.sha256 !== runtimeManifestSHA256) fail("migration verifier SOURCE differs from independent runtime pin");
+  let source;
+  try { source = JSON.parse(sourcePin.raw.toString("utf8")); } catch { fail("normal migration verifier SOURCE is not JSON"); }
+  if (!source || Array.isArray(source) || typeof source!=="object" || !sameOriginalFile(sourcePin.identity, fs.lstatSync(sourcePath,{bigint:true})) || source.version !== "YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2" || source.commit !== runtimeCommit || source.platform !== "linux/amd64" || source.runtimeStarted !== false || source.publicDeployment !== false || source.pqActivation !== false) fail("normal migration verifier SOURCE identity differs");
+  const wanted = source.binaries?.["ynx-consensus-package"];
+  if (!wanted || Object.keys(wanted).sort().join() !== "bytes,sha256" || !Number.isSafeInteger(wanted.bytes) || wanted.bytes <= 1 << 20 || wanted.bytes > 128 << 20 || !hash(wanted.sha256)) fail("normal migration verifier binary pin is incomplete");
+  const executable = hashOriginalFile(binary, 128 << 20, true);
+  if (executable.sha256 !== wanted.sha256 || executable.bytes !== String(wanted.bytes) || (executable.identity.mode & 0o111n) === 0n) fail("normal migration verifier differs from independent runtime bytes");
+  const descriptor = fs.openSync(binary, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+  try {
+    const head=Buffer.alloc(64), n=fs.readSync(descriptor,head,0,head.length,0);
+    if (n!==64 || !head.subarray(0,7).equals(Buffer.from([127,69,76,70,2,1,1])) || ![2,3].includes(head.readUInt16LE(16)) || head.readUInt16LE(18)!==62 || head.readUInt32LE(20)!==1 || !sameOriginalFile(executable.identity,fs.fstatSync(descriptor,{bigint:true}))) fail("normal migration verifier is not its original amd64 ELF");
+    const input = hashOriginalFile(file, 1 << 30, true);
+    const result = spawnSync(binary, ["-verify-migration-state",file,"-migration-public-summary","json"], {
+      shell:false, encoding:"utf8", timeout:120000, maxBuffer:8192, stdio:["ignore","pipe","pipe"],
+      env:{PATH:"/usr/bin:/bin",LANG:"C",LC_ALL:"C",GOMAXPROCS:"2"}
+    });
+    if (result.error || result.status !== 0 || result.signal || result.stderr) fail(`normal migration verifier failed: ${result.error?.message || ""} exit=${result.status} signal=${result.signal || ""} ${String(result.stderr || "").slice(0,4096)}`);
+    if (typeof result.stdout!=="string" || Buffer.byteLength(result.stdout)>4096) fail("normal migration verifier exceeded its bounded public summary");
+    let summary;
+    try { summary=JSON.parse(result.stdout); } catch { fail("normal migration verifier did not return public summary JSON"); }
+    const keys=["version","classification","sourceSHA256","sourceBytes","height","lastBlockHash","stateHash","firstCanonicalAccount"];
+    if (!summary || Array.isArray(summary) || Object.keys(summary).sort().join()!==keys.sort().join() || Object.values(summary).some(v=>typeof v!=="string") || result.stdout!==JSON.stringify(summary)+"\n" || summary.version!=="YNX-MIGRATION-PUBLIC-SUMMARY/v1" || summary.classification!=="data" || summary.sourceSHA256!==input.sha256 || summary.sourceBytes!==input.bytes || !/^[1-9][0-9]*$/.test(summary.height) || BigInt(summary.height)>=9223372036854775807n || !/^(0x)?[0-9a-fA-F]{64}$/.test(summary.lastBlockHash) || !hash(summary.stateHash) || (summary.firstCanonicalAccount!=="" && !/^0x[0-9a-f]{40}$/.test(summary.firstCanonicalAccount))) fail("normal migration public summary differs from the complete original input");
+    if (!sameOriginalFile(input.identity,fs.lstatSync(file,{bigint:true})) || !sameOriginalFile(executable.identity,fs.fstatSync(descriptor,{bigint:true})) || !sameOriginalFile(executable.identity,fs.lstatSync(binary,{bigint:true})) || !sameOriginalFile(sourcePin.identity,fs.lstatSync(sourcePath,{bigint:true}))) fail("normal migration verifier or source changed during complete validation");
+    return summary;
+  } finally { fs.closeSync(descriptor); }
 }
 
 function canonicalSecond(value, label) {
@@ -44,6 +104,11 @@ const roles = ["primary", "singapore", "silicon-valley", "seoul"];
 const hash = (value) => typeof value === "string" && /^[0-9a-f]{64}$/.test(value) && value !== "0".repeat(64);
 const gatewayMode = "single-app-gateway";
 const gatewayContinuityVersion = "YNX-SINGLE-APP-GATEWAY-CONTINUITY/v1";
+if (rawArgs[0] === "--migration-public-summary") {
+  if (rawArgs.length !== 4) fail("exact complete migration path, independent runtime commit and SOURCE pin are required");
+  process.stdout.write(JSON.stringify(verifiedMigrationSummary(rawArgs[1],rawArgs[2],rawArgs[3]))+"\n");
+  process.exit(0);
+}
 function gatewayBinding(file) {
   requireRestrictedFile(file, "candidate binding");
   const b = readJSON(file, "candidate binding");
@@ -227,11 +292,10 @@ if (rawArgs[0] === "--public-result-check") {
 }
 if (rawArgs[0] === "--public-read-targets") {
   if (rawArgs.length !== 4) fail("exact public read target arguments required");
-  const b=gatewayBinding(rawArgs[1]),m=readJSON(rawArgs[2],"original migration"),s=readJSON(rawArgs[3],"gateway status");
-  if (sha256(rawArgs[2]) !== b.finalSnapshotSha256 || m.height !== b.finalSnapshotHeight || m.stateHash !== b.finalSnapshotStateHash || !Array.isArray(m.accounts) || s.earliestBlockHeight !== b.finalSnapshotHeight+1 || !hash(String(s.earliestBlockHash||"").replace(/^0x/,""))) fail("original account/history read boundary mismatch");
-  const account=m.accounts.find(a=>typeof a.address === "string" && /^0x[0-9a-f]{40}$/.test(a.address));
-  if (!account) fail("original migration contains no canonical account for readback");
-  process.stdout.write(`${account.address} ${s.earliestBlockHeight}\n`);process.exit(0);
+  const b=gatewayBinding(rawArgs[1]),m=verifiedMigrationSummary(rawArgs[2],b.runtimeCommit,b.runtimeManifestSha256),s=readJSON(rawArgs[3],"gateway status");
+  if (m.sourceSHA256 !== b.finalSnapshotSha256 || m.height !== String(b.finalSnapshotHeight) || m.stateHash !== b.finalSnapshotStateHash || s.earliestBlockHeight !== b.finalSnapshotHeight+1 || !hash(String(s.earliestBlockHash||"").replace(/^0x/,""))) fail("original account/history read boundary mismatch");
+  if (!m.firstCanonicalAccount) fail("original migration contains no canonical account for readback");
+  process.stdout.write(`${m.firstCanonicalAccount} ${s.earliestBlockHeight}\n`);process.exit(0);
 }
 if (rawArgs[0] === "--public-readback") {
   if (rawArgs.length !== 3) fail("exact public readback arguments required");
@@ -467,9 +531,7 @@ for (const field of ["snapshotSourceSha256", "exporterManifestSha256"]) {
   if (typeof approval[field] !== "string" || !hash(approval[field])) fail(`${field} must be an independent nonzero SHA256 in the original transaction approval`);
 }
 
-const snapshot = readJSON(snapshotPath, "final snapshot");
 const snapshotEvidence = readJSON(snapshotEvidencePath, "final snapshot evidence");
-const finalSnapshotSha256 = sha256(snapshotPath);
 if (snapshotEvidence.transactionId !== transactionId || snapshotEvidence.commit !== expectedCommit || snapshotEvidence.bftRelease !== expectedRelease) fail("final snapshot evidence identity mismatch");
 if (snapshotEvidence.authoritativeRelease !== (nativeIdentity.authoritativeRelease || `ynx-chain-${expectedCommit}`)) fail("final snapshot authoritative release mismatch");
 if (nativeIdentity.authoritativeCommit) {
@@ -480,10 +542,6 @@ if (snapshotEvidence.sourceUnchanged !== true || snapshotEvidence.exporterCommit
 for (const field of ["snapshotSourceSha256", "exporterManifestSha256"]) {
   if (snapshotEvidence[field] !== approval[field]) fail(`final snapshot ${field} differs from the original transaction approval`);
 }
-if (snapshotEvidence.sha256 !== finalSnapshotSha256) fail("final snapshot checksum mismatch");
-if (!Number.isSafeInteger(snapshot.height) || snapshot.height < 1 || snapshotEvidence.height !== snapshot.height) fail("final snapshot height mismatch");
-if (!/^(0x)?[0-9a-fA-F]{64}$/.test(snapshot.lastBlockHash || "") || snapshotEvidence.lastBlockHash !== snapshot.lastBlockHash) fail("final snapshot block hash mismatch");
-if (!/^[0-9a-f]{64}$/.test(snapshot.stateHash || "") || snapshotEvidence.stateHash !== snapshot.stateHash) fail("final snapshot state hash mismatch");
 
 const recordedAt = canonicalSecond(snapshotEvidence.recordedAt, "final snapshot recordedAt");
 const genesisAt = canonicalSecond(genesisTime, "candidate genesis time");
@@ -504,6 +562,13 @@ function rejectSensitive(value, trail = "validator manifest") {
 }
 rejectSensitive(validatorManifest);
 rejectSensitive(operatorPlan, "public operator plan");
+
+const snapshot = verifiedMigrationSummary(snapshotPath, runtimeCommit, runtimeManifestSha256);
+const finalSnapshotSha256 = snapshot.sourceSHA256;
+if (snapshotEvidence.sha256 !== finalSnapshotSha256) fail("final snapshot checksum mismatch");
+if (!Number.isSafeInteger(snapshotEvidence.height) || snapshotEvidence.height < 1 || String(snapshotEvidence.height) !== snapshot.height) fail("final snapshot height mismatch");
+if (snapshotEvidence.lastBlockHash !== snapshot.lastBlockHash) fail("final snapshot block hash mismatch");
+if (snapshotEvidence.stateHash !== snapshot.stateHash) fail("final snapshot state hash mismatch");
 
 if (inputsOnly) {
   process.stdout.write(`${JSON.stringify({ transactionId, commit: expectedCommit, release: expectedRelease, finalSnapshotSha256, validatorManifestSha256, candidateGenesisTime: genesisTime, operatorPlanSha256, runtimeCommit, runtimeManifestSha256, validated: true })}\n`);
@@ -529,7 +594,7 @@ process.stdout.write(`${JSON.stringify({
   ...caddySource,
   bftRelease: expectedRelease,
   finalSnapshotSha256,
-  finalSnapshotHeight: snapshot.height,
+  finalSnapshotHeight: Number(snapshot.height),
   finalSnapshotBlockHash: snapshot.lastBlockHash,
   finalSnapshotStateHash: snapshot.stateHash,
   validatorManifestSha256,

@@ -361,6 +361,9 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code
           go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1
+          if [[ "$YNX_NATIVE_MATRIX_RUNNER" == macos-15 ]]; then
+            go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
+          fi
       - name: Execute actual C ABI and independently verify both signatures
         run: |
           set -euo pipefail
@@ -2191,6 +2194,15 @@ jobs:
               target.write(json.dumps(receipt, sort_keys=True, separators=(',', ':')) + '\n')
           print('YNX_CONSENSUS_OPERATOR_CLI ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
           PY
+          # Reuse the actual normal runtime and complete original fixture. The
+          # Node caller must execute the pinned Go decoder, not a mock summary.
+          YNX_SUMMARY_RUNTIME="$RUNNER_TEMP/ynx-pq-linux-runtime-candidate"
+          YNX_SUMMARY_INPUT="$RUNNER_TEMP/ynx-consensus-operator-public-inputs/migration.json"
+          YNX_SUMMARY_SOURCE_PIN="$(sha256sum "$YNX_SUMMARY_RUNTIME/SOURCE.json" | cut -d' ' -f1)"
+          "$YNX_SUMMARY_RUNTIME/ynx-consensus-package" -verify-migration-state "$YNX_SUMMARY_INPUT" -migration-public-summary json > "$RUNNER_TEMP/ynx-migration-summary-go.json"
+          PUBLIC_BFT_MIGRATION_VERIFIER="$YNX_SUMMARY_RUNTIME/ynx-consensus-package" node scripts/verify/public-bft-candidate-binding.mjs --migration-public-summary "$YNX_SUMMARY_INPUT" '${{ github.sha }}' "$YNX_SUMMARY_SOURCE_PIN" > "$RUNNER_TEMP/ynx-migration-summary-node.json"
+          cmp "$RUNNER_TEMP/ynx-migration-summary-go.json" "$RUNNER_TEMP/ynx-migration-summary-node.json"
+          printf '%s\n' 'YNX_MIGRATION_PUBLIC_SUMMARY_REAL_GO_NODE_PASS completeMigration=true pinnedRuntime=true mock=false RootGrant=false'
       - name: Upload only public operator inputs and normal CLI receipt
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqoperatorcli.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
