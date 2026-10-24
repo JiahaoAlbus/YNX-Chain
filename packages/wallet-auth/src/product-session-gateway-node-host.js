@@ -374,8 +374,9 @@ export class ProductSessionGatewayNodeHost {
     const dispatch=async(request,response)=>{
       const path=new URL(request.url,'http://127.0.0.1').pathname;
       // The real v2 daemon uses THIS listener, not gatewayd's v3 pre-router.
-      // Forward only the fixed Source-current route into the owning handler.
-      if(path==='/v1/auth-identity/source-current')return productHandler(request,response);
+      // The existing original Source/principal handlers own strict method,
+      // request and release-brand checks before any proof can be consumed.
+      if(path==='/v1/auth-identity/source-current'||path==='/v1/developer/original-http-principal')return productHandler(request,response);
       if(central&&CentralBrowserSessionNodeRoutes.prototype.handles.call(central,path)){
         if(this.#accountPolicy)fail('ACCOUNT_POLICY_CENTRAL_CONTEXT_NOT_SUPPLIED','Central authority has no original request-local policy transaction');
         let body='';if(request.method==='POST'){let size=0;const chunks=[];for await(const chunk of request){size+=chunk.length;if(size>16384)throw new Error('Central browser body exceeds policy');chunks.push(chunk);}body=Buffer.concat(chunks).toString('utf8');}
