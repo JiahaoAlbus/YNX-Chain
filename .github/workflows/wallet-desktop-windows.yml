@@ -2700,7 +2700,7 @@ jobs:
           if-no-files-found: error
 
   sdk-auth-publication-continuation-r217:
-    name: R217 production publication continuation and affected CurrentPublisher
+    name: R219 capped PUBLIC fixture remaining failed pair and new regression
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth-publication-continuation-r217-ci-20261024'
     runs-on: ubuntu-latest
     timeout-minutes: 7
@@ -2713,20 +2713,20 @@ jobs:
         with:
           go-version: '1.25.13'
           cache: false
-      - name: Verify only new exact publication continuation staging boundaries
+      - name: Verify only new exact PUBLIC expiry fixture staging boundaries
         run: |
-          mkdir -p packages/wallet-auth/.ci-evidence/auth-r217-stage-controls
-          node --test scripts/ci/auth-r217-publication-continuation-supply.test.mjs > packages/wallet-auth/.ci-evidence/auth-r217-stage-controls/stdout.log 2>&1 || { status=$?; cat packages/wallet-auth/.ci-evidence/auth-r217-stage-controls/stdout.log; exit "$status"; }
-          cat packages/wallet-auth/.ci-evidence/auth-r217-stage-controls/stdout.log
-      - name: Run only only new continuation and affected current-read cases with exact private Node
+          mkdir -p packages/wallet-auth/.ci-evidence/auth-r219-stage-controls
+          node --test scripts/ci/auth-r219-publication-fixture-expiry-supply.test.mjs > packages/wallet-auth/.ci-evidence/auth-r219-stage-controls/stdout.log 2>&1 || { status=$?; cat packages/wallet-auth/.ci-evidence/auth-r219-stage-controls/stdout.log; exit "$status"; }
+          cat packages/wallet-auth/.ci-evidence/auth-r219-stage-controls/stdout.log
+      - name: Run only remaining failed pair and new expiry regression with exact private Node
         run: node scripts/ci/run-auth-go-private-node.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: auth-r217-publication-continuation-evidence
+          name: auth-r219-publication-fixture-expiry-evidence
           path: |
             packages/wallet-auth/.ci-evidence/auth-r202-go-fixture
             packages/wallet-auth/.ci-evidence/auth-r207-private-node
-            packages/wallet-auth/.ci-evidence/auth-r217-stage-controls
+            packages/wallet-auth/.ci-evidence/auth-r219-stage-controls
           include-hidden-files: true
           if-no-files-found: error
