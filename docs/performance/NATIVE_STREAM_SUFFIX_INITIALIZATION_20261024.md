@@ -64,4 +64,3 @@ python3 -B scripts/loadtest/test_native_stream_pair.py -v
 ```
 
 prepare仅生成计划，不启动节点；execute必须使用Root针对新冻结源码安排的具体窗口。
-
