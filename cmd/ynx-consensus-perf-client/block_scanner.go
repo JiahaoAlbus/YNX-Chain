@@ -39,15 +39,16 @@ type scannedBlock struct {
 // cached signed headers/proofs own their bytes, and no cache entry is a durable
 // execution receipt. Current disk bytes and published Info remain mandatory.
 type blockInclusionScanner struct {
-	manifest    consensus.EphemeralNetworkManifest
-	trusted     *cmttypes.ValidatorSet
-	client      blockObservationClient
-	stats       *groupedObservationStats
-	start, next int64
-	blocks      []*scannedBlock
-	bytes       int
-	poisoned    error
-	node        int
+	manifest     consensus.EphemeralNetworkManifest
+	trusted      *cmttypes.ValidatorSet
+	client       blockObservationClient
+	stats        *groupedObservationStats
+	start, next  int64
+	blocks       []*scannedBlock
+	bytes        int
+	poisoned     error
+	node         int
+	useStatusTip bool
 }
 
 func (s *blockInclusionScanner) fatal(err error) error { s.poisoned = err; return err }
@@ -62,15 +63,10 @@ func (s *blockInclusionScanner) refresh(ctx context.Context) error {
 	if s.start <= 0 || s.next < s.start {
 		return s.fatal(errors.New("invalid block scanner start"))
 	}
-	s.stats.BlockQueries++
-	latest, err := observedCall(s.stats, "block_query", s.node, 0, 0, "", func() (*coretypes.ResultBlock, error) { return s.client.Block(ctx, nil) })
+	tip, latest, hintHash, err := s.queryTip(ctx)
 	if err != nil {
-		return fmt.Errorf("%w: latest block query: %v", errBlockScanNotReady, err)
+		return err
 	}
-	if err := observedCheck(s.stats, "block_envelope_verification", s.node, 0, 0, "", func() error { return s.validateEnvelope(latest, 0) }); err != nil {
-		return s.fatal(err)
-	}
-	tip := latest.Block.Height
 	if tip < s.next-1 {
 		return s.fatal(errors.New("block scanner tip regressed"))
 	}
@@ -86,7 +82,7 @@ func (s *blockInclusionScanner) refresh(ctx context.Context) error {
 		}
 		height := s.next
 		block := latest
-		if height != tip {
+		if block == nil || height != tip {
 			s.stats.BlockQueries++
 			block, err = observedCall(s.stats, "block_query", s.node, height, 0, "", func() (*coretypes.ResultBlock, error) { return s.client.Block(ctx, &height) })
 			if err != nil {
@@ -95,6 +91,9 @@ func (s *blockInclusionScanner) refresh(ctx context.Context) error {
 		}
 		if err := observedCheck(s.stats, "block_envelope_verification", s.node, height, 0, "", func() error { return s.validateEnvelope(block, height) }); err != nil {
 			return s.fatal(err)
+		}
+		if hintHash != nil && height == tip && !bytes.Equal(block.BlockID.Hash, hintHash) {
+			return s.fatal(errors.New("status hint differs from fetched block hash"))
 		}
 		s.stats.CommitQueries++
 		commit, err := observedCall(s.stats, "commit_query", s.node, height, 0, "", func() (*coretypes.ResultCommit, error) { return s.client.Commit(ctx, &height) })

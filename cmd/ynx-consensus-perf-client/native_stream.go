@@ -9,6 +9,9 @@ import (
 // Separate opt-in scope. The original nativeSubmit8 single-round contract and
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
+	if o.nativeBlockTipHint && (!o.nativeStream8 || o.nativeCanonicalCertificate || o.nativeSuffixSetup) {
+		return errors.New("block tip hint requires native streaming and no mixed construction candidate")
+	}
 	if !o.nativeStream8 {
 		if o.nativeCanonicalCertificate {
 			return errors.New("canonical certificate requires explicit native stream")
@@ -96,6 +99,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
+	BlockTipHint           bool    `json:"blockTipHint,omitempty"`
 	CanonicalCertificate   bool    `json:"canonicalCertificate,omitempty"`
 	CurrentInputReuse      bool    `json:"currentInputReuse"`
 	ClientClockTiming      bool    `json:"clientClockTiming"`

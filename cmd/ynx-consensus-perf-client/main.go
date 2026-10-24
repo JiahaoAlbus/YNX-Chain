@@ -64,6 +64,7 @@ type options struct {
 	prefixNativeClone              bool
 	nativeCurrentInputReuse        bool
 	nativeCanonicalCertificate     bool
+	nativeBlockTipHint             bool
 	nativeStream8                  bool
 	nativeSubmit8                  bool
 	nativeSuffixSetup              bool
@@ -202,6 +203,7 @@ type report struct {
 	PrefixDurableReplay        bool                      `json:"prefixDurableReplay,omitempty"`
 	PrefixNativeClone          bool                      `json:"prefixNativeClone,omitempty"`
 	NativeCurrentInputReuse    bool                      `json:"nativeCurrentInputReuse,omitempty"`
+	NativeBlockTipHint         bool                      `json:"nativeBlockTipHint,omitempty"`
 	NativeCanonicalCertificate bool                      `json:"nativeCanonicalCertificate,omitempty"`
 	NativeStream8              bool                      `json:"nativeStream8,omitempty"`
 	NativeSubmit8              bool                      `json:"nativeSubmit8,omitempty"`
@@ -255,6 +257,7 @@ func main() {
 	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: validated private suffix initialization; explicit native8 data64 or native stream8 only")
 	flag.BoolVar(&o.nativeCurrentInputReuse, "native-current-input-reuse", false, "explicit native stream only: share privately validated identical freshly captured input under original reader budget")
 	flag.BoolVar(&o.nativeCanonicalCertificate, "native-canonical-certificate", false, "explicit native stream only: canonical private certificate copy with exact encoded-byte comparison and strict JSON fallback")
+	flag.BoolVar(&o.nativeBlockTipHint, "native-block-tip-hint", false, "explicit native stream only: status height/hash guides full authenticated block fetch; never authority or finality")
 	flag.BoolVar(&o.nativeStream8, "native-stream8", false, "explicit history-growing native prefix stream: original ready sender/nonce/evidence rules, exactly8submitters/4observers; separate resource grant required")
 	flag.BoolVar(&o.nativeSubmit8, "native-submit8", false, "candidate: exactly8 submitters, original four observers/queues and native-copy single-round supply")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
@@ -974,6 +977,10 @@ func execute(o options) error {
 	r.PrefixNativeClone = o.prefixNativeClone
 	r.NativeCurrentInputReuse = o.nativeCurrentInputReuse
 	r.NativeCanonicalCertificate = o.nativeCanonicalCertificate
+	r.NativeBlockTipHint = o.nativeBlockTipHint
+	if o.nativeBlockTipHint {
+		r.Interpretation = append(r.Interpretation, "Explicit block tip hint only avoids repeated full latest-block bodies at unchanged authenticated height. Status height/hash is discovery data, never authority. Each new height retains original signed commit/validator quorum/Merkle/execution results and fresh durable state/Info verification; no fallback, timeout extension or business TPS qualification.")
+	}
 	r.NativeStream8 = o.nativeStream8
 	r.NativeSubmit8 = o.nativeSubmit8
 	r.NativeSuffixSetup = o.nativeSuffixSetup
@@ -1182,7 +1189,7 @@ func execute(o options) error {
 						for i, client := range clients {
 							observationClients[i] = client
 						}
-						observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: txs, results: results, included: map[int]*coretypes.ResultTx{}, inclusionMode: o.inclusionMode}
+						observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: txs, results: results, included: map[int]*coretypes.ResultTx{}, inclusionMode: o.inclusionMode, blockTipHint: o.nativeBlockTipHint}
 						if o.observerPhaseTiming {
 							observer.stats.enablePhaseTiming(worker, started)
 						}
@@ -1266,7 +1273,7 @@ func execute(o options) error {
 					for i, client := range clients {
 						observationClients[i] = client
 					}
-					observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: allTxs, results: r.Transactions, included: map[int]*coretypes.ResultTx{}, inclusionMode: o.inclusionMode}
+					observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: allTxs, results: r.Transactions, included: map[int]*coretypes.ResultTx{}, inclusionMode: o.inclusionMode, blockTipHint: o.nativeBlockTipHint}
 					if o.observerPhaseTiming {
 						observer.stats.enablePhaseTiming(worker, started)
 					}

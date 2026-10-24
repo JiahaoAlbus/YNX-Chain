@@ -1104,6 +1104,7 @@ class SupplySourceTests(unittest.TestCase):
             roundsRequested=4,roundsCompleted=4,senderMode="ready-pool",pacingMode="relative",retentionMode="latest_per_account_slots",gomaxprocs=1,timeoutMs=supply.STREAM_BUDGET["timeoutMs"])
         summary=client["summary"]
         for key in ("input","offered","submitted","checkTxResponses","checkTxAccepted","includedCodeZero","effectiveBusinessIncluded","quorumConfirmed","finalSubmitted"):summary[key]=8192
+        client["groupedObservation"]["phases"]["totals"]["transaction_inclusion_proof"]["attempts"]=8192
         summary["measurementWindowSeconds"]=20
         for key in ("rpcSubmissionsPerMeasurementSecond","checkTxAcceptedPerMeasurementSecond","codeZeroIncludedPerMeasurementSecond","effectiveBusinessIncludedPerMeasurementSecond","quorumConfirmedPerMeasurementSecond","finalSubmittedPerMeasurementSecond"):summary[key]=8192/20
         metrics=dict(records=8192,latencyIntervalsNs={},stageGapIntervalsNs={},offerLatencyIntervalsNs={},callbackSamples=8192,callbackReturnNs=1,queueWaitNs=client["submissionOccupancy"]["queueWaitNs"]*4,peakQueueWaitNs=client["submissionOccupancy"]["peakQueueWaitNs"])
@@ -1140,9 +1141,9 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False,suffix=False):
+        def check(row,canonical=False,suffix=False,tip=False):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix)
+                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
@@ -1151,6 +1152,26 @@ class SupplySourceTests(unittest.TestCase):
         # One explicit choice must bind producer expectation, durable plan,
         # top-level report, actual backend and accepted/fallback child counters.
         original_raw=raw_plan
+        tip_plan=copy.deepcopy(plan);tip_plan['nativePrefix']['blockTipHint']=True
+        raw_plan=json.dumps(tip_plan).encode()
+        tip_client=copy.deepcopy(client);tip_client['nativeBlockTipHint']=True
+        tip_client['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
+        tip_stats=tip_client['groupedObservation'];tip_stats['blockTipStatusQueries']=9
+        tip_stats['phases']['totals'].update(block_tip_status_query=dict(attempts=9,errors=1,durationNs=90),block_tip_status_validation=dict(attempts=8,errors=0,durationNs=8))
+        check(tip_client,tip=True)
+        with self.assertRaises(RuntimeError):check(tip_client)
+        for fault in ('report','counter','queries','validation','mixed','bool'):
+            bad=copy.deepcopy(tip_client);stats=bad['groupedObservation']
+            if fault=='report':bad['nativeBlockTipHint']=False
+            if fault=='counter':stats['blockTipStatusQueries']=10
+            if fault=='queries':stats['phases']['totals']['block_tip_status_query']['attempts']=10
+            if fault=='validation':stats['phases']['totals']['block_tip_status_validation']['attempts']=9
+            if fault=='mixed':bad['nativeSuffixSetup']=True
+            if fault=='bool':stats['blockTipStatusQueries']=True
+            with self.subTest(tipFault=fault),self.assertRaises(RuntimeError):check(bad,tip=True)
+        raw_plan=original_raw
+        bad=copy.deepcopy(tip_client);bad['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
+        with self.assertRaisesRegex(RuntimeError,'native backend'):check(bad,tip=True)
         canonical_plan=copy.deepcopy(plan);canonical_plan['nativePrefix']['canonicalCertificate']=True
         raw_plan=json.dumps(canonical_plan).encode()
         candidate=copy.deepcopy(client);candidate['nativeCanonicalCertificate']=True

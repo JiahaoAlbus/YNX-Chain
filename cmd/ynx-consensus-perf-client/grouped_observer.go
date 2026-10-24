@@ -29,6 +29,7 @@ type groupedObservationStats struct {
 	DurableBatches         uint64               `json:"durableBatches"`
 	LargestDurableBatch    uint64               `json:"largestDurableBatch"`
 	PublishedInfoQueries   uint64               `json:"publishedInfoQueries"`
+	BlockTipStatusQueries  uint64               `json:"blockTipStatusQueries,omitempty"`
 	BlockQueries           uint64               `json:"blockQueries"`
 	BlockResultsQueries    uint64               `json:"blockResultsQueries"`
 	ScannedBlocks          uint64               `json:"scannedBlocks"`
@@ -45,6 +46,7 @@ func (s *groupedObservationStats) add(other groupedObservationStats) {
 	s.DurableBatches += other.DurableBatches
 	s.PublishedInfoQueries += other.PublishedInfoQueries
 	s.BlockQueries += other.BlockQueries
+	s.BlockTipStatusQueries += other.BlockTipStatusQueries
 	s.BlockResultsQueries += other.BlockResultsQueries
 	s.ScannedBlocks += other.ScannedBlocks
 	s.CachedConfirmationHits += other.CachedConfirmationHits
@@ -103,6 +105,7 @@ type groupedObserver struct {
 	included      map[int]*coretypes.ResultTx
 	stats         groupedObservationStats
 	inclusionMode string
+	blockTipHint  bool
 	scanners      map[int]*blockInclusionScanner
 }
 
@@ -132,7 +135,7 @@ func (g *groupedObserver) refreshBlockScans(ctx context.Context, pending []accep
 				continue
 			}
 			start := int64(g.reader.migration.Height) + 1
-			scanner = &blockInclusionScanner{manifest: g.manifest, trusted: g.trusted, client: client, stats: &g.stats, node: node, start: start, next: start}
+			scanner = &blockInclusionScanner{manifest: g.manifest, trusted: g.trusted, client: client, stats: &g.stats, node: node, start: start, next: start, useStatusTip: g.blockTipHint}
 			g.scanners[node] = scanner
 		}
 		errorsByNode[node] = scanner.refresh(ctx)

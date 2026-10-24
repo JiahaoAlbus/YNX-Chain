@@ -131,11 +131,11 @@ class Archive:
 
 class Selection:
     def __init__(self,mode):
-        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network") for _ in range(8)] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
+        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network") for _ in range(10)] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
     def select(self,name):
         if name.endswith('/'):return None
         if self.mode=='network-pair':
-            labels=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared','native-certificate-json','native-certificate-canonical','native-suffix-original','native-suffix-private')
+            labels=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared','native-certificate-json','native-certificate-canonical','native-suffix-original','native-suffix-private','native-tip-full-block','native-tip-status')
             if name=='ynx-linux-supply-evidence/actual.json':
                 need(name not in self.seen,'duplicate pair receipt');self.seen.add(name);return 'evidence/actual.json'
             for i,label in enumerate(labels):
@@ -326,12 +326,14 @@ def verify_network_pair(root,head,evidence,controller):
     for index,(label,mode_name,reuse) in enumerate(controller.native_stream_pair_spec(kind)):
         canonical=kind==controller.STREAM_CERTIFICATE_PAIR and index==1
         suffix=kind==controller.STREAM_SUFFIX_PAIR and index==1
+        tip=kind==controller.STREAM_TIP_PAIR and index==1
         case=('before-' if index==0 else 'after-')+label
         selected=pair['cases'][index]
         raw=evidence.capture(root/case/'evidence/actual.json',16<<20);receipt=evidence.strict_json(raw)
         need(selected.get('currentInputReuse') is reuse and selected.get('order')==index+1 and selected.get('mode')==mode_name and selected.get('label')==label and selected.get('code')==0 and selected.get('firstCause') is None,'original pair order/mode/status differs')
         need(selected.get('canonicalCertificate',False) is canonical and receipt.get('nativeCanonicalCertificate',False) is canonical,'original pair canonical certificate differs')
         need(selected.get('nativeSuffixSetup',False) is suffix and receipt.get('nativeSuffixSetup',False) is suffix,'original pair private suffix selection differs')
+        need(selected.get('blockTipHint',False) is tip and receipt.get('nativeBlockTipHint',False) is tip,'original pair tip hint selection differs')
         need(selected.get('sha256')==hashlib.sha256(raw).hexdigest(),'original pair case receipt SHA differs')
         need(selected.get('hostIdentity')==pair.get('hostIdentity') and bool(pair.get('hostIdentity')),'original pair VM identity differs')
         need(receipt.get('pacingMode')==mode_name and receipt.get('nativeCurrentInputReuse') is reuse and receipt.get('binaries')==pair.get('compiledBinaries'),'original pair mode/ELF differs')
@@ -372,7 +374,7 @@ def verify_capture(destination,mode,head,*,expected_case="ynx-linux-supply-case"
     report_raw=evidence.capture(root/'network/transactions-result.json',16<<20)
     need(hashlib.sha256(report_raw).hexdigest()==receipt.get('resultSHA256'),'original client result hash differs')
     report=evidence.strict_json(report_raw)
-    measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing,expected_input_reuse=receipt.get('nativeCurrentInputReuse',False),expected_canonical_certificate=receipt.get('nativeCanonicalCertificate',False),expected_native_suffix=receipt.get('nativeSuffixSetup',False))
+    measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing,expected_input_reuse=receipt.get('nativeCurrentInputReuse',False),expected_canonical_certificate=receipt.get('nativeCanonicalCertificate',False),expected_native_suffix=receipt.get('nativeSuffixSetup',False),expected_block_tip_hint=receipt.get('nativeBlockTipHint',False))
     need(canonical(measured)==canonical(receipt.get('measurement')),'recovered complete stream differs from original controller measurement')
     return dict(measurement=measured,streamReadbackVerified=True,postFsyncTerminalStillRequiresOriginalCILog=True,independentNativeResourceAdmission=False,networkQualified=False,sustainedTPSQualified=False)
 

@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "kind": "local-source-discovery-body-reduction-not-network-capacity",
+  "sourceParent": "163d799745b5399dfa7cb096fd58cc348a4d13bf",
+  "candidateDirty": true,
+  "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+  "go": "go version go1.25.7 darwin/arm64",
+  "defaultEnabled": false,
+  "fixture": {
+    "refreshes": 9,
+    "signedExecutedDurableTransactions": 3,
+    "authenticatedBlocks": 1,
+    "transactionPayloadBytesPerRepeatedBody": 1239
+  },
+  "baseline": {
+    "statusQueries": 0,
+    "fullBlockQueries": 9,
+    "totalDiscoveryAndBlockRPC": 9
+  },
+  "candidate": {
+    "statusQueries": 9,
+    "fullBlockQueries": 1,
+    "totalDiscoveryAndBlockRPC": 10
+  },
+  "claim": "Repeated full-block responses reduced from9 to1 at unchanged authenticated height; total discovery/block RPC increases9 to10 in this fixture. Neither network bytes nor network throughput/time improvement measured.",
+  "qualification": {
+    "sourceLightTestsPassed": true,
+    "networkMeasured": false,
+    "sustainedTPSQualified": false,
+    "defaultPromotion": false
+  },
+  "raw": {
+    "native-tip-hint-baseline.raw": {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-tip-hint-baseline.raw",
+      "bytes": 385,
+      "sha256": "daff07fff69f966170f11fdf00edd5c173aa7b3a993a984bc22a94207ad1dcf3"
+    },
+    "native-tip-hint-baseline-preserved.raw": {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-tip-hint-baseline-preserved.raw",
+      "bytes": 385,
+      "sha256": "f2834d62b0e87833dffe66ec5a4d5cfb7c9a2041312e73bff36a0cbb9a9e93fa"
+    },
+    "native-tip-hint-full-scanner-race.raw": {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-tip-hint-full-scanner-race.raw",
+      "bytes": 7826,
+      "sha256": "2a94344fb8d1a23cffbe696a8b6970b02494a0623811272c444dc0f834deac09"
+    },
+    "native-tip-controller-final2.raw": {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-tip-controller-final2.raw",
+      "bytes": 116,
+      "sha256": "6acfa7a2db8707c2a8f3530db94358e9979f0b6c8232437c9489cf5e5790c725"
+    },
+    "native-tip-supply-final2.raw": {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-tip-supply-final2.raw",
+      "bytes": 189,
+      "sha256": "bae7fca06b10e27767b3ca77018706971f1b4302ba3fb0ff38b644020cc81646"
+    },
+    "native-tip-artifact-final.raw": {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-tip-artifact-final.raw",
+      "bytes": 378,
+      "sha256": "11d14a54d99b3de2e78d176f30bab5caeef6b264e6ea70645990d7be8ddd7460"
+    },
+    "native-tip-public-fixture.raw": {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-tip-public-fixture.raw",
+      "bytes": 706,
+      "sha256": "eb00504adec6b3bf172924dfcd2381f1bf7e2ca31d6ade14fc783cce12f03d87"
+    },
+    "native-tip-pair-recipe.json": {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-tip-pair-recipe.json",
+      "bytes": 5387,
+      "sha256": "124a68c7d221d2cd4aca635b5f073e8f640d67b64b3a787c2f849ffe9c420899"
+    }
+  },
+  "sourceFiles": {
+    ".github/workflows/chain-core.yml": {
+      "bytes": 42926,
+      "sha256": "9afc12cd16c475583a9a8da114e3601a2a588ed14e722cf52a1c10722b9bad9f"
+    },
+    "cmd/ynx-consensus-perf-client/block_scanner.go": {
+      "bytes": 9271,
+      "sha256": "94d1a762d865b8973f21de8dc2f9be4c7991be136b2c92e565c06b1b8b23defd"
+    },
+    "cmd/ynx-consensus-perf-client/grouped_observer.go": {
+      "bytes": 13751,
+      "sha256": "695a3dd8feeab9844176c4c99c9cc073c3b86b2d40f0e7981697870b0e08e1be"
+    },
+    "cmd/ynx-consensus-perf-client/main.go": {
+      "bytes": 72196,
+      "sha256": "cee89784e23daf8da149578ee0128aee408a8fb8111bd12346d9e14ae32943bd"
+    },
+    "cmd/ynx-consensus-perf-client/native_stream.go": {
+      "bytes": 5897,
+      "sha256": "5dcf4604a3def0dc4827f7adc2cab99d66e74348d7264ba33c74f2b546c01b07"
+    },
+    "cmd/ynx-consensus-perf-client/stream_workload_plan.go": {
+      "bytes": 3836,
+      "sha256": "bf6fe6a36be7b21e0b45a570db13706f3d2c43a827c63684c1ee87e0d5ba374a"
+    },
+    "scripts/loadtest/native-stream-artifact.py": {
+      "bytes": 31298,
+      "sha256": "c6fd8738f4a235ba1d666c2258f55c4caad987d280ecaa1bd6ce5ca7764dfe13"
+    },
+    "scripts/loadtest/supply-linux-window.py": {
+      "bytes": 176244,
+      "sha256": "53ab42dcd974dac8b1df0c851101e1f609bb9e53658d8f0dcba9f35273af6e53"
+    },
+    "scripts/loadtest/test_native_stream_pair.py": {
+      "bytes": 21876,
+      "sha256": "9ea9c02515a1c0e628d27e180f7da3425212ad973aaff5b6ff1360e40c143ae6"
+    },
+    "scripts/loadtest/test_supply_linux_window.py": {
+      "bytes": 154804,
+      "sha256": "5c4194533faee4c64d5b5ccffb9f5c124ad62136710c85266137f082b782e4d3"
+    },
+    "cmd/ynx-consensus-perf-client/block_scanner_tip.go": {
+      "bytes": 2824,
+      "sha256": "26ce2dc927850cc0918b1dcbd658f9a6dbd19b92a45070243dd31dbeade1dbf0"
+    },
+    "cmd/ynx-consensus-perf-client/block_scanner_tip_test.go": {
+      "bytes": 11177,
+      "sha256": "48a7993a1486b686fffdf710c6d39c4fc4933429423c8840d9e27a8e926b0be9"
+    }
+  }
+}

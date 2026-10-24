@@ -56,6 +56,33 @@ class NativeStreamPairTests(unittest.TestCase):
             code,calls,terminal=self.run_pair(fault,supply.STREAM_SUFFIX_PAIR)
             self.assertEqual(code,1);self.assertEqual(calls,['bounded-cadence']);self.assertFalse(terminal['qualified'])
 
+    def test_tip_pair_changes_only_discovery_hint_and_preserves_stop_rules(self):
+        plan=supply.pair_recipe(supply.STREAM_TIP_PAIR);before,after=plan['cases']
+        self.assertEqual(before,{k:v for k,v in after.items() if k!='nativeBlockTipHint'})
+        self.assertIs(after['nativeBlockTipHint'],True)
+        self.assertEqual(before['pacingMode'],'bounded-cadence')
+        self.assertIs(before['nativeCurrentInputReuse'],True)
+        self.assertEqual(plan['pairCaps'],supply.pair_recipe(supply.STREAM_CACHE_PAIR)['pairCaps'])
+        commands=[supply.supply_client_command(Path('build'),Path('manifest'),Path('network'),Path('out'),before['profile'],'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,block_tip_hint=flag) for flag in (False,True)]
+        self.assertNotIn('-native-block-tip-hint',commands[0])
+        self.assertEqual(commands[0],[x for x in commands[1] if x!='-native-block-tip-hint'])
+        for delta in (dict(block_tip_hint=1),dict(canonical_certificate=True),dict(native_suffix_setup=True),dict(native_stream8=False)):
+            args=dict(transport='grpc',profile_name=supply.STREAM_PROFILE,pacing='bounded-cadence',observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,block_tip_hint=True)
+            args.update(delta)
+            with self.assertRaises(RuntimeError):supply.recipe(**args)
+        with self.assertRaisesRegex(RuntimeError,'outside finite'):supply.validate_report(dict(nativeBlockTipHint=True))
+        with self.assertRaisesRegex(RuntimeError,'tip command'):supply.supply_client_command(Path('build'),Path('manifest'),Path('network'),Path('out'),before['profile'],'relative',block_tip_hint=True)
+        for action in ('prepare','execute'):
+            self.assertIn('--'+action+'-pair --pair-kind native-block-tip-hint --observer-phases',Path('.github/workflows/chain-core.yml').read_text())
+        code,calls,terminal=self.run_pair(comparison=supply.STREAM_TIP_PAIR)
+        self.assertEqual(code,0,terminal);self.assertEqual(len(calls),2)
+        for fault in ('unknown','binary','closure','host'):
+            code,calls,terminal=self.run_pair(fault,supply.STREAM_TIP_PAIR)
+            self.assertEqual(code,1);self.assertEqual(calls,['bounded-cadence']);self.assertFalse(terminal['qualified'])
+
+    def test_tip_pair_recovery_binds_hint_to_original_receipt(self):
+        self.check_pair_recovery(supply.STREAM_TIP_PAIR)
+
     def test_recipe_fixed_order_and_scoped_budget(self):
         plan=supply.pair_recipe(supply.STREAM_PAIR)
         self.assertEqual([r['pacingMode'] for r in plan['cases']],['relative','bounded-cadence'])
@@ -124,11 +151,12 @@ class NativeStreamPairTests(unittest.TestCase):
             for index,(label,mode,reuse) in enumerate(supply.native_stream_pair_spec(kind)):
                 canonical=kind==supply.STREAM_CERTIFICATE_PAIR and index==1
                 suffix=kind==supply.STREAM_SUFFIX_PAIR and index==1
+                tip=kind==supply.STREAM_TIP_PAIR and index==1
                 case=('before-' if index==0 else 'after-')+label
                 directory=root/case/'evidence';directory.mkdir(parents=True)
-                row=dict(sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),binaries=pair['compiledBinaries'])
+                row=dict(sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),**({"nativeBlockTipHint":True} if tip else {}),binaries=pair['compiledBinaries'])
                 raw=json.dumps(row).encode();(directory/'actual.json').write_bytes(raw);rows.append((directory/'actual.json',raw))
-                cases.append(dict(order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
+                cases.append(dict(order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
             pair['cases']=cases;pair['jointObservation']=supply.native_stream_pair_observation(cases)
             def verify(destination,mode,head,**kwargs):
                 index=0 if Path(destination).name.startswith('before-') else 1
@@ -138,7 +166,7 @@ class NativeStreamPairTests(unittest.TestCase):
                 (root/'evidence/actual.json').write_text(json.dumps(value))
                 with patch.object(archive,'verify_capture',side_effect=verify):return archive.verify_network_pair(root,head,supply.stream_evidence,supply)
             proof=check(pair);self.assertTrue(proof['streamReadbackVerified']);self.assertFalse(proof['networkQualified'])
-            for fault in ('order','hostIdentity','sha256','measurement','mode','canonicalCertificate','nativeSuffixSetup'):
+            for fault in ('order','hostIdentity','sha256','measurement','mode','canonicalCertificate','nativeSuffixSetup','blockTipHint'):
                 changed=copy.deepcopy(pair);changed['cases'][1][fault]='changed'
                 with self.subTest(fault=fault),self.assertRaises(RuntimeError):check(changed)
             if kind==supply.STREAM_SUFFIX_PAIR:
@@ -146,6 +174,12 @@ class NativeStreamPairTests(unittest.TestCase):
                 bad_raw=json.dumps(bad_receipt).encode();rows[1][0].write_bytes(bad_raw)
                 rebound=copy.deepcopy(pair);rebound['cases'][1]['sha256']=hashlib.sha256(bad_raw).hexdigest()
                 with self.assertRaisesRegex(RuntimeError,'private suffix selection'):check(rebound)
+                rows[1][0].write_bytes(rows[1][1])
+            if kind==supply.STREAM_TIP_PAIR:
+                bad_receipt=json.loads(rows[1][1]);bad_receipt['nativeBlockTipHint']=False
+                bad_raw=json.dumps(bad_receipt).encode();rows[1][0].write_bytes(bad_raw)
+                rebound=copy.deepcopy(pair);rebound['cases'][1]['sha256']=hashlib.sha256(bad_raw).hexdigest()
+                with self.assertRaisesRegex(RuntimeError,'tip hint selection'):check(rebound)
                 rows[1][0].write_bytes(rows[1][1])
             rows[1][0].write_bytes(rows[1][1]+b' ')
             with self.assertRaises(RuntimeError):check(pair)
@@ -165,6 +199,11 @@ class NativeStreamPairTests(unittest.TestCase):
                     self.assertIs(kwargs['current_input_reuse'],True)
                 if comparison==supply.STREAM_SUFFIX_PAIR:
                     self.assertIs(kwargs['native_suffix_setup'],len(calls)==1)
+                    self.assertIs(kwargs['canonical_certificate'],False)
+                    self.assertIs(kwargs['current_input_reuse'],True)
+                if comparison==supply.STREAM_TIP_PAIR:
+                    self.assertIs(kwargs['block_tip_hint'],len(calls)==1)
+                    self.assertIs(kwargs['native_suffix_setup'],False)
                     self.assertIs(kwargs['canonical_certificate'],False)
                     self.assertIs(kwargs['current_input_reuse'],True)
                 calls.append(pace);case.mkdir()
