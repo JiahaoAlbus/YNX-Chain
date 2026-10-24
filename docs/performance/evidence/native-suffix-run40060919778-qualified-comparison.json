@@ -1,0 +1,2402 @@
+{
+  "schema": 1,
+  "runId": 40060919778,
+  "sourceCommit": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+  "sourceRef": "codex/chain-native-suffix-pair-ea2dc6b80",
+  "normalCISuccessRun": 40060431754,
+  "onlyAxis": "native suffix initializer false -> true",
+  "nativePairQualified": true,
+  "slotReturned": true,
+  "sustainedTPSQualified": false,
+  "finiteJointImprovementObserved": false,
+  "defaultPromotion": false,
+  "host": {
+    "model": "AMD EPYC 7763 64-Core Processor",
+    "allocatedLogicalCPUs": 4,
+    "compiler": "go version go1.25.14 linux/amd64",
+    "environment": {
+      "GOMAXPROCS": "1",
+      "GOGC": "100",
+      "GOMEMLIMIT": "off"
+    },
+    "sameVM": {
+      "bootID": "c092db45-8acc-47b1-a762-a30055091cfa",
+      "pidNamespaceDevice": 4,
+      "pidNamespaceInode": 4026531836,
+      "uname": [
+        "Linux",
+        "runnervm8k3b6",
+        "6.17.0-1022-azure",
+        "#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "x86_64",
+        "x86_64"
+      ],
+      "logicalCPUs": 4
+    }
+  },
+  "originalProof": {
+    "path": "artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/original-pair-qualified-verdict.json",
+    "bytes": 600197,
+    "sha256": "9966c308c44d1a7a18fec285fbc31cc31a7013a91ba75fb630875d5f26c4a1d6"
+  },
+  "originalGrant": {
+    "path": "artifacts/chain-performance-20261017/native-suffix-pair-source-ea2dc6b80/original-root-grant.json",
+    "bytes": 2781,
+    "sha256": "e7366518909e1b404fa3d53c21f3784c325ae4b3829e9f700c94a9524d835e7c"
+  },
+  "originalPairReceipt": {
+    "path": "artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/evidence/actual.json",
+    "bytes": 622669,
+    "sha256": "a82db7961d20a7d9b9b00dc29c45db33e1451dde21306093c39031c7fbb0e5fc"
+  },
+  "originalTerminal": {
+    "schema": 1,
+    "qualified": true,
+    "firstCause": null,
+    "pairReceiptSHA256": "a82db7961d20a7d9b9b00dc29c45db33e1451dde21306093c39031c7fbb0e5fc",
+    "elapsedMs": 84000,
+    "postFsyncSample": {
+      "elapsedMs": 83888,
+      "retainedBytes": 248699460,
+      "logBytes": 1445177,
+      "rssBytes": 70406144,
+      "threads": 1,
+      "availableMemoryBytes": 15607054336,
+      "freeDiskBytes": 88556564480,
+      "buildBytes": 119159703
+    },
+    "postFsyncClosureScans": [
+      {
+        "elapsedMs": 83893,
+        "owned": [
+          39217
+        ],
+        "launcherStartTicks": 51320
+      },
+      {
+        "elapsedMs": 83949,
+        "owned": [
+          39217
+        ],
+        "launcherStartTicks": 51320
+      }
+    ],
+    "sustainedTPSQualified": false
+  },
+  "parameters": {
+    "schema": 1,
+    "kind": "fixed-same-VM-native-stream-suffix-pair",
+    "execute": false,
+    "requiresSeparateRootGrant": true,
+    "nodesStarted": false,
+    "pairCaps": {
+      "totalMs": 120000,
+      "retainedBytes": 536870912,
+      "logBytes": 2097152,
+      "buildBytes": 1073741824,
+      "metadataReserveMs": 500
+    },
+    "cases": [
+      {
+        "schema": 1,
+        "profile": {
+          "name": "supply-native-stream-2048x4-grpc-bounded-cadence",
+          "senders": 2048,
+          "rounds": 4,
+          "offeredRate": 1000,
+          "concurrency": 8,
+          "observers": 4,
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedProcesses": 10,
+          "longLivedChildren": 9,
+          "ownedRSSBytes": 1073741824,
+          "privateBytes": 268435456,
+          "threads": 320,
+          "availableMemoryFloorBytes": 1207959552,
+          "senderMode": "ready-pool"
+        },
+        "abciTransport": "grpc",
+        "pacingMode": "bounded-cadence",
+        "environment": {
+          "GOMAXPROCS": "1",
+          "GOGC": "100",
+          "GOMEMLIMIT": "off"
+        },
+        "execute": false,
+        "nativeStream8": true,
+        "observerPhaseTiming": true,
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "observerNativeFacts": true,
+        "nativeCurrentInputReuse": true,
+        "streamBudget": {
+          "evidenceBytes": 67108864,
+          "durableStoreBytes": 33554432,
+          "durableCacheBytes": 67108864,
+          "timeoutMs": 40000
+        },
+        "resourceCaps": {
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedRSSBytes": 1073741824,
+          "threads": 320,
+          "ownedProcesses": 10,
+          "privateBytes": 268435456,
+          "buildBytes": 1073741824,
+          "logBytes": 1048576,
+          "diskFloorBytes": 1073741824,
+          "rootReserveBytes": 445644800,
+          "compileReserveBytes": 1073741824,
+          "availableMemoryFloorBytes": 1207959552,
+          "sampleMs": 200,
+          "longLivedChildren": 9
+        },
+        "requiresSeparateRootGrant": true,
+        "nodesStarted": false,
+        "platform": "Linux native /proc; not macOS pressure1",
+        "interpretation": "Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion."
+      },
+      {
+        "schema": 1,
+        "profile": {
+          "name": "supply-native-stream-2048x4-grpc-bounded-cadence",
+          "senders": 2048,
+          "rounds": 4,
+          "offeredRate": 1000,
+          "concurrency": 8,
+          "observers": 4,
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedProcesses": 10,
+          "longLivedChildren": 9,
+          "ownedRSSBytes": 1073741824,
+          "privateBytes": 268435456,
+          "threads": 320,
+          "availableMemoryFloorBytes": 1207959552,
+          "senderMode": "ready-pool"
+        },
+        "abciTransport": "grpc",
+        "pacingMode": "bounded-cadence",
+        "environment": {
+          "GOMAXPROCS": "1",
+          "GOGC": "100",
+          "GOMEMLIMIT": "off"
+        },
+        "execute": false,
+        "nativeStream8": true,
+        "observerPhaseTiming": true,
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "observerNativeFacts": true,
+        "nativeSuffixSetup": true,
+        "nativeCurrentInputReuse": true,
+        "streamBudget": {
+          "evidenceBytes": 67108864,
+          "durableStoreBytes": 33554432,
+          "durableCacheBytes": 67108864,
+          "timeoutMs": 40000
+        },
+        "resourceCaps": {
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedRSSBytes": 1073741824,
+          "threads": 320,
+          "ownedProcesses": 10,
+          "privateBytes": 268435456,
+          "buildBytes": 1073741824,
+          "logBytes": 1048576,
+          "diskFloorBytes": 1073741824,
+          "rootReserveBytes": 445644800,
+          "compileReserveBytes": 1073741824,
+          "availableMemoryFloorBytes": 1207959552,
+          "sampleMs": 200,
+          "longLivedChildren": 9
+        },
+        "requiresSeparateRootGrant": true,
+        "nodesStarted": false,
+        "platform": "Linux native /proc; not macOS pressure1",
+        "interpretation": "Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion."
+      }
+    ],
+    "order": "native-suffix-original then native-suffix-private; no second activation after any first failure/UNKNOWN/incomplete raw/unclean closure",
+    "input": {
+      "run_linux_supply": true,
+      "linux_supply_transport": "grpc",
+      "linux_supply_profile": "supply-native-stream-2048x4",
+      "linux_supply_pacing": "paired-native-stream-suffix",
+      "measure_observer_phases": true,
+      "prefix_durable_replay": false
+    },
+    "binaries": "one original four-ELF build; SHA/buildInfo/source unchanged across both original cases",
+    "interpretation": "Explicit pair only: each8192 signed business inputs, original45+15/60s and RSS/thread/process/log guards, private256MiB each; aggregate retained512MiB including receipts, total120s/log2MiB/build1GiB. Same boot/PID namespace/host/launcher/source/ELFs, separate fresh ephemeral fixtures. Only the registered cadence, exact-input-cache, canonical-certificate or private-suffix axis changes; cache/certificate/suffix comparisons use bounded-cadence on both sides. No network or sustained TPS qualification from a recipe."
+  },
+  "business": [
+    {
+      "label": "original suffix",
+      "nativeSuffixSetup": false,
+      "canonicalCertificate": false,
+      "summary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 50040,
+        "measurementWindowSeconds": 32.290845751,
+        "rpcSubmissionsPerMeasurementSecond": 253.69419132499203,
+        "checkTxAcceptedPerMeasurementSecond": 253.69419132499203,
+        "codeZeroIncludedPerMeasurementSecond": 253.69419132499203,
+        "effectiveBusinessIncludedPerMeasurementSecond": 253.69419132499203,
+        "quorumConfirmedPerMeasurementSecond": 253.69419132499203,
+        "finalSubmittedPerMeasurementSecond": 253.69419132499203,
+        "offeredEventSpanSeconds": 30.248626844,
+        "offeredInterarrivalRate": 270.78915159498337,
+        "submissionEventSpanSeconds": 30.572372532,
+        "submissionInterarrivalRate": 267.9216338681765,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "submissionOccupancy": {
+        "callbackStarted": 8192,
+        "callbackReturned": 8192,
+        "activeCallbacksAtEnd": 0,
+        "peakActiveCallbacks": 8,
+        "callbackBusyNs": 194347248533,
+        "queueWaitSamples": 8192,
+        "queueWaitNs": 575309398984,
+        "peakQueueWaitNs": 609590389,
+        "measurementWallNs": 32290845751,
+        "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+      },
+      "queueWaitMeanNs": 70228198.11816406,
+      "callbackBusyMeanNs": 23724029.361938477,
+      "meanActiveCallbacks": 6.018648443947349,
+      "peakOfferedNotYetFinal": 981
+    },
+    {
+      "label": "validated private suffix",
+      "nativeSuffixSetup": true,
+      "canonicalCertificate": false,
+      "summary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 51095,
+        "measurementWindowSeconds": 31.467346049,
+        "rpcSubmissionsPerMeasurementSecond": 260.33336231290895,
+        "checkTxAcceptedPerMeasurementSecond": 260.33336231290895,
+        "codeZeroIncludedPerMeasurementSecond": 260.33336231290895,
+        "effectiveBusinessIncludedPerMeasurementSecond": 260.33336231290895,
+        "quorumConfirmedPerMeasurementSecond": 260.33336231290895,
+        "finalSubmittedPerMeasurementSecond": 260.33336231290895,
+        "offeredEventSpanSeconds": 30.032191824,
+        "offeredInterarrivalRate": 272.7406660160656,
+        "submissionEventSpanSeconds": 30.044645717,
+        "submissionInterarrivalRate": 272.62761149369555,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "submissionOccupancy": {
+        "callbackStarted": 8192,
+        "callbackReturned": 8192,
+        "activeCallbacksAtEnd": 0,
+        "peakActiveCallbacks": 8,
+        "callbackBusyNs": 197598597410,
+        "queueWaitSamples": 8192,
+        "queueWaitNs": 847446411690,
+        "peakQueueWaitNs": 798062912,
+        "measurementWallNs": 31467346049,
+        "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+      },
+      "queueWaitMeanNs": 103448048.30200195,
+      "callbackBusyMeanNs": 24120922.53540039,
+      "meanActiveCallbacks": 6.279480865729999,
+      "peakOfferedNotYetFinal": 992
+    }
+  ],
+  "comparison": {
+    "schema": 1,
+    "runId": 40060919778,
+    "sourceCommit": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+    "originalQualifiedPairSHA256": "9966c308c44d1a7a18fec285fbc31cc31a7013a91ba75fb630875d5f26c4a1d6",
+    "cases": 2,
+    "finalTransactionsPerCase": 8192,
+    "metrics": {
+      "finalSubmittedPerMeasurementSecond": {
+        "before": 253.69419132499203,
+        "after": 260.33336231290895,
+        "change": 6.639170987916913,
+        "changePercent": 2.616997635319085
+      },
+      "rpcSubmissionsPerMeasurementSecond": {
+        "before": 253.69419132499203,
+        "after": 260.33336231290895,
+        "change": 6.639170987916913,
+        "changePercent": 2.616997635319085
+      },
+      "checkTxAcceptedPerMeasurementSecond": {
+        "before": 253.69419132499203,
+        "after": 260.33336231290895,
+        "change": 6.639170987916913,
+        "changePercent": 2.616997635319085
+      },
+      "effectiveBusinessIncludedPerMeasurementSecond": {
+        "before": 253.69419132499203,
+        "after": 260.33336231290895,
+        "change": 6.639170987916913,
+        "changePercent": 2.616997635319085
+      },
+      "measurementWindowSeconds": {
+        "before": 32.290845751,
+        "after": 31.467346049,
+        "change": -0.8234997019999994,
+        "changePercent": -2.550257457949978
+      },
+      "offeredInterarrivalRate": {
+        "before": 270.78915159498337,
+        "after": 272.7406660160656,
+        "change": 1.9515144210822086,
+        "changePercent": 0.7206767367110345
+      },
+      "clientCPU.totalNs": {
+        "before": 25047340000,
+        "after": 24582309000,
+        "change": -465031000,
+        "changePercent": -1.856608326472986
+      },
+      "clientCPU.userNs": {
+        "before": 24209571000,
+        "after": 23752512000,
+        "change": -457059000,
+        "changePercent": -1.8879268864367749
+      },
+      "clientCPU.systemNs": {
+        "before": 837769000,
+        "after": 829797000,
+        "change": -7972000,
+        "changePercent": -0.951574956819834
+      },
+      "clientCPU.cpuPercentOfOneCore": {
+        "before": 77.56791060657484,
+        "after": 78.12003894820168,
+        "change": 0.5521283416268403,
+        "changePercent": 0.7117999406059061
+      },
+      "sampledPeaks.rssBytes": {
+        "before": 1048297472,
+        "after": 1020837888,
+        "change": -27459584,
+        "changePercent": -2.619445790288044
+      },
+      "sampledPeaks.threads": {
+        "before": 67,
+        "after": 66,
+        "change": -1,
+        "changePercent": -1.4925373134328401
+      },
+      "sampledPeaks.privateBytes": {
+        "before": 123842499,
+        "after": 124228492,
+        "change": 385993,
+        "changePercent": 0.31168056452091086
+      },
+      "sampledPeaks.buildBytes": {
+        "before": 119159703,
+        "after": 119159703,
+        "change": 0,
+        "changePercent": 0.0
+      },
+      "readerWall.loadNs": {
+        "before": 14455396002,
+        "after": 13663103850,
+        "change": -792292152,
+        "changePercent": -5.480943945709827
+      },
+      "readerWallPerFinalNs.loadNs": {
+        "before": 1764574.7072753906,
+        "after": 1667859.3566894531,
+        "change": -96715.3505859375,
+        "changePercent": -5.480943945709827
+      },
+      "readerWall.hashNs": {
+        "before": 392202014,
+        "after": 480786983,
+        "change": 88584969,
+        "changePercent": 22.586566574846813
+      },
+      "readerWallPerFinalNs.hashNs": {
+        "before": 47876.222412109375,
+        "after": 58689.81726074219,
+        "change": 10813.594848632812,
+        "changePercent": 22.586566574846813
+      },
+      "readerWall.captureNs": {
+        "before": 1174825100,
+        "after": 1056485065,
+        "change": -118340035,
+        "changePercent": -10.072991715958402
+      },
+      "readerWallPerFinalNs.captureNs": {
+        "before": 143411.26708984375,
+        "after": 128965.46203613281,
+        "change": -14445.805053710938,
+        "changePercent": -10.072991715958402
+      },
+      "readerWall.decodeNs": {
+        "before": 12682303623,
+        "after": 11957670126,
+        "change": -724633497,
+        "changePercent": -5.7137371769418905
+      },
+      "readerWallPerFinalNs.decodeNs": {
+        "before": 1548132.7664794922,
+        "after": 1459676.5290527344,
+        "change": -88456.23742675781,
+        "changePercent": -5.7137371769418905
+      },
+      "readerWall.indexPublishNs": {
+        "before": 193782554,
+        "after": 158442538,
+        "change": -35340016,
+        "changePercent": -18.236944074955275
+      },
+      "readerWallPerFinalNs.indexPublishNs": {
+        "before": 23655.096923828125,
+        "after": 19341.130126953125,
+        "change": -4313.966796875,
+        "changePercent": -18.236944074955275
+      },
+      "readerWall.transactionVerifyNs": {
+        "before": 18747877,
+        "after": 18533438,
+        "change": -214439,
+        "changePercent": -1.143804175800811
+      },
+      "readerWallPerFinalNs.transactionVerifyNs": {
+        "before": 2288.5592041015625,
+        "after": 2262.382568359375,
+        "change": -26.1766357421875,
+        "changePercent": -1.143804175800811
+      },
+      "readerGate.acquisitions": {
+        "before": 130,
+        "after": 129,
+        "change": -1,
+        "changePercent": -0.7692307692307665
+      },
+      "readerGate.waitNs": {
+        "before": 17782533599,
+        "after": 17678397079,
+        "change": -104136520,
+        "changePercent": -0.5856112652353196
+      },
+      "readerGate.holdNs": {
+        "before": 14475134485,
+        "after": 13682611044,
+        "change": -792523441,
+        "changePercent": -5.4750678953709215
+      },
+      "readerGate.maxWaitNs": {
+        "before": 447970071,
+        "after": 410467503,
+        "change": -37502568,
+        "changePercent": -8.371668204593075
+      },
+      "readerGate.maxHoldNs": {
+        "before": 493418468,
+        "after": 490052179,
+        "change": -3366289,
+        "changePercent": -0.6822381443574166
+      },
+      "reader.snapshotValidations": {
+        "before": 38,
+        "after": 37,
+        "change": -1,
+        "changePercent": -2.631578947368418
+      },
+      "reader.snapshotCacheHits": {
+        "before": 92,
+        "after": 92,
+        "change": 0,
+        "changePercent": 0.0
+      },
+      "reader.transactionVerifications": {
+        "before": 8192,
+        "after": 8192,
+        "change": 0,
+        "changePercent": 0.0
+      },
+      "reader.bytesHashed": {
+        "before": 432686491,
+        "after": 425863308,
+        "change": -6823183,
+        "changePercent": -1.5769346032113551
+      },
+      "prefix.gateWait.calls": {
+        "before": 38,
+        "after": 37,
+        "change": -1,
+        "changePercent": -2.631578947368418
+      },
+      "prefix.gateWait.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.gateWait.durationNs": {
+        "before": 45625,
+        "after": 42086,
+        "change": -3539,
+        "changePercent": -7.756712328767124
+      },
+      "prefix.prefixCheck.calls": {
+        "before": 38,
+        "after": 37,
+        "change": -1,
+        "changePercent": -2.631578947368418
+      },
+      "prefix.prefixCheck.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.prefixCheck.durationNs": {
+        "before": 106393945,
+        "after": 102862690,
+        "change": -3531255,
+        "changePercent": -3.3190375636508285
+      },
+      "prefix.privateJSON.calls": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateJSON.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateJSON.durationNs": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateValidate.calls": {
+        "before": 35,
+        "after": 34,
+        "change": -1,
+        "changePercent": -2.857142857142858
+      },
+      "prefix.privateValidate.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateValidate.durationNs": {
+        "before": 1298332196,
+        "after": 1400155455,
+        "change": 101823259,
+        "changePercent": 7.842619886782809
+      },
+      "prefix.fullReplay.calls": {
+        "before": 3,
+        "after": 3,
+        "change": 0,
+        "changePercent": 0.0
+      },
+      "prefix.fullReplay.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.fullReplay.durationNs": {
+        "before": 952316972,
+        "after": 953352966,
+        "change": 1035994,
+        "changePercent": 0.10878667822376009
+      },
+      "prefix.suffixSetup.calls": {
+        "before": 35,
+        "after": 34,
+        "change": -1,
+        "changePercent": -2.857142857142858
+      },
+      "prefix.suffixSetup.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.suffixSetup.durationNs": {
+        "before": 1250156773,
+        "after": 990178775,
+        "change": -259977998,
+        "changePercent": -20.795631685147065
+      },
+      "prefix.suffixReplay.calls": {
+        "before": 35,
+        "after": 34,
+        "change": -1,
+        "changePercent": -2.857142857142858
+      },
+      "prefix.suffixReplay.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.suffixReplay.durationNs": {
+        "before": 4141749060,
+        "after": 3793537539,
+        "change": -348211521,
+        "changePercent": -8.407354379890897
+      },
+      "prefix.suffixEncode.calls": {
+        "before": 35,
+        "after": 34,
+        "change": -1,
+        "changePercent": -2.857142857142858
+      },
+      "prefix.suffixEncode.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.suffixEncode.durationNs": {
+        "before": 1496825544,
+        "after": 1442944911,
+        "change": -53880633,
+        "changePercent": -3.5996601752274704
+      },
+      "prefix.canonicalCopy.calls": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.canonicalCopy.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.canonicalCopy.durationNs": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.certificatePublish.calls": {
+        "before": 38,
+        "after": 37,
+        "change": -1,
+        "changePercent": -2.631578947368418
+      },
+      "prefix.certificatePublish.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.certificatePublish.durationNs": {
+        "before": 3137707150,
+        "after": 2925647081,
+        "change": -212060069,
+        "changePercent": -6.758440442729019
+      },
+      "prefix.privateNativeClone.calls": {
+        "before": 35,
+        "after": 34,
+        "change": -1,
+        "changePercent": -2.857142857142858
+      },
+      "prefix.privateNativeClone.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateNativeClone.durationNs": {
+        "before": 298264215,
+        "after": 348451482,
+        "change": 50187267,
+        "changePercent": 16.826445975089577
+      },
+      "supplyWall.pacingWaitNs": {
+        "before": 25971107767,
+        "after": 25938579130,
+        "change": -32528637,
+        "changePercent": -0.12524932433314317
+      },
+      "supplyWall.pacingPositiveRemainingNs": {
+        "before": 4927034702,
+        "after": 4909853074,
+        "change": -17181628,
+        "changePercent": -0.3487214732428301
+      },
+      "supplyWall.pacingWakeLatenessNs": {
+        "before": 21043678179,
+        "after": 21028339648,
+        "change": -15338531,
+        "changePercent": -0.0728890209664379
+      },
+      "supplyWall.signNs": {
+        "before": 1007094118,
+        "after": 909629949,
+        "change": -97464169,
+        "changePercent": -9.677761716407918
+      },
+      "supplyWall.encodeNs": {
+        "before": 1993548078,
+        "after": 2015850692,
+        "change": 22302614,
+        "changePercent": 1.118739710675798
+      },
+      "supplyWall.journalAppendNs": {
+        "before": 238015917,
+        "after": 160192893,
+        "change": -77823024,
+        "changePercent": -32.696562894153004
+      },
+      "supplyWall.terminalSinkNs": {
+        "before": 843766565,
+        "after": 816954712,
+        "change": -26811853,
+        "changePercent": -3.177638711010078
+      },
+      "observer.block_capture_and_merkle.attempts": {
+        "before": 157,
+        "after": 156,
+        "change": -1,
+        "changePercent": -0.6369426751592355
+      },
+      "observer.block_capture_and_merkle.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.block_capture_and_merkle.durationNs": {
+        "before": 187394285,
+        "after": 150513633,
+        "change": -36880652,
+        "changePercent": -19.68077735134772
+      },
+      "observer.block_envelope_verification.attempts": {
+        "before": 862,
+        "after": 879,
+        "change": 17,
+        "changePercent": 1.9721577726218076
+      },
+      "observer.block_envelope_verification.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.block_envelope_verification.durationNs": {
+        "before": 9857875,
+        "after": 10143114,
+        "change": 285239,
+        "changePercent": 2.8935140687014194
+      },
+      "observer.block_query.attempts": {
+        "before": 699,
+        "after": 718,
+        "change": 19,
+        "changePercent": 2.7181688125894166
+      },
+      "observer.block_query.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.block_query.durationNs": {
+        "before": 25949515694,
+        "after": 26707728084,
+        "change": 758212390,
+        "changePercent": 2.921874916437517
+      },
+      "observer.block_results_query.attempts": {
+        "before": 163,
+        "after": 164,
+        "change": 1,
+        "changePercent": 0.6134969325153339
+      },
+      "observer.block_results_query.errors": {
+        "before": 6,
+        "after": 8,
+        "change": 2,
+        "changePercent": 33.33333333333333
+      },
+      "observer.block_results_query.durationNs": {
+        "before": 11866043482,
+        "after": 12428172814,
+        "change": 562129332,
+        "changePercent": 4.737293714225066
+      },
+      "observer.commit_query.attempts": {
+        "before": 163,
+        "after": 164,
+        "change": 1,
+        "changePercent": 0.6134969325153339
+      },
+      "observer.commit_query.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.commit_query.durationNs": {
+        "before": 5573573696,
+        "after": 6037569506,
+        "change": 463995810,
+        "changePercent": 8.32492464095338
+      },
+      "observer.durable_business_batch.attempts": {
+        "before": 130,
+        "after": 129,
+        "change": -1,
+        "changePercent": -0.7692307692307665
+      },
+      "observer.durable_business_batch.errors": {
+        "before": 3,
+        "after": 5,
+        "change": 2,
+        "changePercent": 66.66666666666667
+      },
+      "observer.durable_business_batch.durationNs": {
+        "before": 32261686718,
+        "after": 31395329475,
+        "change": -866357243,
+        "changePercent": -2.685405913747918
+      },
+      "observer.published_info_query.attempts": {
+        "before": 127,
+        "after": 124,
+        "change": -3,
+        "changePercent": -2.3622047244094446
+      },
+      "observer.published_info_query.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.published_info_query.durationNs": {
+        "before": 2585780525,
+        "after": 2479430389,
+        "change": -106350136,
+        "changePercent": -4.112883323691985
+      },
+      "observer.published_state_verification.attempts": {
+        "before": 127,
+        "after": 124,
+        "change": -3,
+        "changePercent": -2.3622047244094446
+      },
+      "observer.published_state_verification.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.published_state_verification.durationNs": {
+        "before": 98344,
+        "after": 96722,
+        "change": -1622,
+        "changePercent": -1.6493126169364714
+      },
+      "observer.quorum_verification.attempts": {
+        "before": 163,
+        "after": 164,
+        "change": 1,
+        "changePercent": 0.6134969325153339
+      },
+      "observer.quorum_verification.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.quorum_verification.durationNs": {
+        "before": 31649631,
+        "after": 39240586,
+        "change": 7590955,
+        "changePercent": 23.984339659441844
+      },
+      "observer.transaction_inclusion_proof.attempts": {
+        "before": 8269,
+        "after": 8396,
+        "change": 127,
+        "changePercent": 1.5358568146087714
+      },
+      "observer.transaction_inclusion_proof.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.transaction_inclusion_proof.durationNs": {
+        "before": 124279737,
+        "after": 65556333,
+        "change": -58723404,
+        "changePercent": -47.25098830873773
+      },
+      "observer.validators_query.attempts": {
+        "before": 163,
+        "after": 164,
+        "change": 1,
+        "changePercent": 0.6134969325153339
+      },
+      "observer.validators_query.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.validators_query.durationNs": {
+        "before": 4521357929,
+        "after": 4447578603,
+        "change": -73779326,
+        "changePercent": -1.6317957383285009
+      },
+      "certificate.payloadCopy.calls": {
+        "before": 38,
+        "after": 37,
+        "change": -1,
+        "changePercent": -2.631578947368418
+      },
+      "certificate.payloadCopy.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.payloadCopy.durationNs": {
+        "before": 146655758,
+        "after": 119465907,
+        "change": -27189851,
+        "changePercent": -18.539913720946434
+      },
+      "certificate.strictJSON.calls": {
+        "before": 38,
+        "after": 37,
+        "change": -1,
+        "changePercent": -2.631578947368418
+      },
+      "certificate.strictJSON.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.strictJSON.durationNs": {
+        "before": 2809355675,
+        "after": 2647723508,
+        "change": -161632167,
+        "changePercent": -5.7533536404214765
+      },
+      "certificate.nativeClone.calls": {
+        "before": 38,
+        "after": 37,
+        "change": -1,
+        "changePercent": -2.631578947368418
+      },
+      "certificate.nativeClone.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.nativeClone.durationNs": {
+        "before": 181423433,
+        "after": 158077045,
+        "change": -23346388,
+        "changePercent": -12.868452334930735
+      },
+      "certificate.canonicalNative.calls": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.canonicalNative.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.canonicalNative.durationNs": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.payloadBytes": {
+        "before": 173690077,
+        "after": 166309027,
+        "change": -7381050,
+        "changePercent": -4.249551918846805
+      },
+      "certificate.prefixBytesHashed": {
+        "before": 131572581,
+        "after": 125815025,
+        "change": -5757556,
+        "changePercent": -4.375954287922646
+      },
+      "certificate.canonicalNativeAccepted": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      }
+    },
+    "currentInputReuseBefore": {
+      "attempts": 123,
+      "errors": 0,
+      "enabled": true,
+      "hits": 85,
+      "misses": 38,
+      "comparedBytes": 283331856,
+      "lookupNs": 15771072,
+      "retainedInputBytes": 21774335
+    },
+    "currentInputReuseAfter": {
+      "attempts": 122,
+      "errors": 0,
+      "enabled": true,
+      "hits": 85,
+      "misses": 37,
+      "comparedBytes": 276655861,
+      "lookupNs": 14384787,
+      "retainedInputBytes": 21779172
+    },
+    "latencies": [
+      {
+        "latencyIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 5019,
+            "maxNs": 609590389,
+            "p50": {
+              "valid": true,
+              "lowerNs": 5019,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 399000000,
+              "upperNs": 399999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 492000000,
+              "upperNs": 492999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 585787,
+            "maxNs": 314908461,
+            "p50": {
+              "valid": true,
+              "lowerNs": 3000000,
+              "upperNs": 3999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 106000000,
+              "upperNs": 106999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 184000000,
+              "upperNs": 184999999,
+              "overflow": false
+            }
+          },
+          "authenticatedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 425873682,
+            "maxNs": 1917780795,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1226000000,
+              "upperNs": 1226999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1600000000,
+              "upperNs": 1600999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1717000000,
+              "upperNs": 1717999999,
+              "overflow": false
+            }
+          },
+          "effectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 425873682,
+            "maxNs": 1917780795,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1226000000,
+              "upperNs": 1226999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1600000000,
+              "upperNs": 1600999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1717000000,
+              "upperNs": 1717999999,
+              "overflow": false
+            }
+          },
+          "final": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 621239340,
+            "maxNs": 2062773831,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1523000000,
+              "upperNs": 1523999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1819000000,
+              "upperNs": 1819999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1926000000,
+              "upperNs": 1926999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 710408611,
+            "maxNs": 2380091216,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1543000000,
+              "upperNs": 1543999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 2054000000,
+              "upperNs": 2054999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2221000000,
+              "upperNs": 2221999999,
+              "overflow": false
+            }
+          }
+        },
+        "offerLatencyIntervalsNs": {
+          "offerToEffectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 457821630,
+            "maxNs": 2250261805,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1262000000,
+              "upperNs": 1262999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1746000000,
+              "upperNs": 1746999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2012000000,
+              "upperNs": 2012999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 710408611,
+            "maxNs": 2380091216,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1543000000,
+              "upperNs": 1543999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 2054000000,
+              "upperNs": 2054999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2221000000,
+              "upperNs": 2221999999,
+              "overflow": false
+            }
+          }
+        },
+        "stageGapIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 5019,
+            "maxNs": 609590389,
+            "p50": {
+              "valid": true,
+              "lowerNs": 5019,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 399000000,
+              "upperNs": 399999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 492000000,
+              "upperNs": 492999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 585787,
+            "maxNs": 314908461,
+            "p50": {
+              "valid": true,
+              "lowerNs": 3000000,
+              "upperNs": 3999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 106000000,
+              "upperNs": 106999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 184000000,
+              "upperNs": 184999999,
+              "overflow": false
+            }
+          },
+          "checkToObservedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 402920279,
+            "maxNs": 1806668878,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1209000000,
+              "upperNs": 1209999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1586000000,
+              "upperNs": 1586999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1684000000,
+              "upperNs": 1684999999,
+              "overflow": false
+            }
+          },
+          "observedInclusionToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 2156931,
+            "maxNs": 535186702,
+            "p50": {
+              "valid": true,
+              "lowerNs": 296000000,
+              "upperNs": 296999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 474000000,
+              "upperNs": 474999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 533000000,
+              "upperNs": 533999999,
+              "overflow": false
+            }
+          }
+        }
+      },
+      {
+        "latencyIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 8777,
+            "maxNs": 798062912,
+            "p50": {
+              "valid": true,
+              "lowerNs": 8777,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 479000000,
+              "upperNs": 479999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 644000000,
+              "upperNs": 644999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 585135,
+            "maxNs": 281198641,
+            "p50": {
+              "valid": true,
+              "lowerNs": 3000000,
+              "upperNs": 3999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 108000000,
+              "upperNs": 108999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 189000000,
+              "upperNs": 189999999,
+              "overflow": false
+            }
+          },
+          "authenticatedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 389579954,
+            "maxNs": 1886871254,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1201000000,
+              "upperNs": 1201999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1610000000,
+              "upperNs": 1610999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1823000000,
+              "upperNs": 1823999999,
+              "overflow": false
+            }
+          },
+          "effectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 389579954,
+            "maxNs": 1886871254,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1201000000,
+              "upperNs": 1201999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1610000000,
+              "upperNs": 1610999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1823000000,
+              "upperNs": 1823999999,
+              "overflow": false
+            }
+          },
+          "final": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 669483218,
+            "maxNs": 2065818294,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1519000000,
+              "upperNs": 1519999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1831000000,
+              "upperNs": 1831999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1975000000,
+              "upperNs": 1975999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 678091438,
+            "maxNs": 2392601047,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1555000000,
+              "upperNs": 1555999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 2138000000,
+              "upperNs": 2138999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2293000000,
+              "upperNs": 2293999999,
+              "overflow": false
+            }
+          }
+        },
+        "offerLatencyIntervalsNs": {
+          "offerToEffectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 398188174,
+            "maxNs": 2281411545,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1259000000,
+              "upperNs": 1259999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1835000000,
+              "upperNs": 1835999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2024000000,
+              "upperNs": 2024999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 678091438,
+            "maxNs": 2392601047,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1555000000,
+              "upperNs": 1555999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 2138000000,
+              "upperNs": 2138999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2293000000,
+              "upperNs": 2293999999,
+              "overflow": false
+            }
+          }
+        },
+        "stageGapIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 8777,
+            "maxNs": 798062912,
+            "p50": {
+              "valid": true,
+              "lowerNs": 8777,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 479000000,
+              "upperNs": 479999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 644000000,
+              "upperNs": 644999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 585135,
+            "maxNs": 281198641,
+            "p50": {
+              "valid": true,
+              "lowerNs": 3000000,
+              "upperNs": 3999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 108000000,
+              "upperNs": 108999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 189000000,
+              "upperNs": 189999999,
+              "overflow": false
+            }
+          },
+          "checkToObservedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 362232132,
+            "maxNs": 1863078362,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1184000000,
+              "upperNs": 1184999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1601000000,
+              "upperNs": 1601999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1819000000,
+              "upperNs": 1819999999,
+              "overflow": false
+            }
+          },
+          "observedInclusionToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 9296444,
+            "maxNs": 521599946,
+            "p50": {
+              "valid": true,
+              "lowerNs": 290000000,
+              "upperNs": 290999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 477000000,
+              "upperNs": 477999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 506000000,
+              "upperNs": 506999999,
+              "overflow": false
+            }
+          }
+        }
+      }
+    ],
+    "jointObservation": {
+      "finiteFinalRateIncreased": true,
+      "offerInclusionTailNotWorse": false,
+      "offerFinalTailNotWorse": false,
+      "finiteFinalP95UpperBoundWithin3s": true,
+      "finiteJointImprovementObserved": false,
+      "sustainedTPSQualified": false,
+      "interpretation": "Same-VM finite pair only; compare original complete-window rates and bounded per-row offer latency intervals, preserve worse results, drops/catchups/errors/backlogs. No default or sustained1000 promotion."
+    },
+    "sameHostIdentity": {
+      "bootID": "c092db45-8acc-47b1-a762-a30055091cfa",
+      "pidNamespaceDevice": 4,
+      "pidNamespaceInode": 4026531836,
+      "uname": [
+        "Linux",
+        "runnervm8k3b6",
+        "6.17.0-1022-azure",
+        "#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "x86_64",
+        "x86_64"
+      ],
+      "logicalCPUs": 4
+    },
+    "binaries": {
+      "ynx-abci": {
+        "sha256": "5b6b07a2d219d3dec739f0c34f5c075db198f9fd10b79a78a75f4b9131daf7ed",
+        "bytes": 26673853,
+        "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-abci: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-abci\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261024035743-ea2dc6b80b17\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=ea2dc6b80b17f49751dbf7752e167c051564e20d\n\tbuild\tvcs.time=2026-10-24T03:57:43Z\n\tbuild\tvcs.modified=false"
+      },
+      "cometbft": {
+        "sha256": "dbc49af9e123b17b06002ade4a783100843c0b718cf80c7f8167de125b2eb184",
+        "bytes": 37928076,
+        "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/cometbft: go1.25.14\n\tpath\tgithub.com/cometbft/cometbft/cmd/cometbft\n\tmod\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/fsnotify/fsnotify\tv1.7.0\th1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/google/orderedcode\tv0.0.1\th1:UzfcAexk9Vhv8+9pNOgRu41f16lHq725vPwnSeiG/Us=\n\tdep\tgithub.com/gorilla/websocket\tv1.5.3\th1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=\n\tdep\tgithub.com/hashicorp/golang-lru/v2\tv2.0.7\th1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=\n\tdep\tgithub.com/hashicorp/hcl\tv1.0.0\th1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=\n\tdep\tgithub.com/klauspost/compress\tv1.17.11\th1:In6xLpyWOi1+C7tXUUWv2ot1QvBjxevKAaI6IXrJmUc=\n\tdep\tgithub.com/lib/pq\tv1.12.0\th1:mC1zeiNamwKBecjHarAr26c/+d8V5w/u4J0I/yASbJo=\n\tdep\tgithub.com/magiconair/properties\tv1.8.7\th1:IeQXZAiQcpL9mgcAe1Nu6cX9LLw6ExEHKjN0VQdvPDY=\n\tdep\tgithub.com/minio/highwayhash\tv1.0.4\th1:asJizugGgchQod2ja9NJlGOWq4s7KsAWr5XUc9Clgl4=\n\tdep\tgithub.com/mitchellh/mapstructure\tv1.5.0\th1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pelletier/go-toml/v2\tv2.2.2\th1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/rcrowley/go-metrics\tv0.0.0-20201227073835-cf1acfcdf475\th1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=\n\tdep\tgithub.com/rs/cors\tv1.11.1\th1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=\n\tdep\tgithub.com/sagikazarmark/slog-shim\tv0.1.0\th1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=\n\tdep\tgithub.com/spf13/afero\tv1.11.0\th1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=\n\tdep\tgithub.com/spf13/cast\tv1.6.0\th1:GEiTHELF+vaR5dhz3VqZfFSzZjYbgeKDpBxQVS4GYJ0=\n\tdep\tgithub.com/spf13/cobra\tv1.9.1\th1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=\n\tdep\tgithub.com/spf13/pflag\tv1.0.6\th1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=\n\tdep\tgithub.com/spf13/viper\tv1.19.0\th1:RWq5SEjt8o25SROyN3z2OrDB9l7RPd3lwTWU8EcEdcI=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/subosito/gotenv\tv1.6.0\th1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sync\tv0.20.0\th1:e0PTpb7pjO8GAtTs2dQ6jYa5BWYlMuX047Dco/pItO4=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/ini.v1\tv1.67.0\th1:Dgnx+6+nfE+IfzjUEISNeydPJh9AXNNsWbGP9KzCsOA=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1"
+      },
+      "ynx-consensus-perf-fixture": {
+        "sha256": "c47c2d6cfba56eb017a9b7e5d823dda04728f5ddb5d0fcbcf71617ed9e9bf5d8",
+        "bytes": 24894327,
+        "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-consensus-perf-fixture: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-fixture\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261024035743-ea2dc6b80b17\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=ea2dc6b80b17f49751dbf7752e167c051564e20d\n\tbuild\tvcs.time=2026-10-24T03:57:43Z\n\tbuild\tvcs.modified=false"
+      },
+      "ynx-consensus-perf-client": {
+        "sha256": "1cdea5f43b24780750d92755d84608dcc3c7a4be3b7b53b7973bb6f1eaaa8330",
+        "bytes": 29663447,
+        "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-consensus-perf-client: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261024035743-ea2dc6b80b17\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/gorilla/websocket\tv1.5.3\th1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/rcrowley/go-metrics\tv0.0.0-20201227073835-cf1acfcdf475\th1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=ea2dc6b80b17f49751dbf7752e167c051564e20d\n\tbuild\tvcs.time=2026-10-24T03:57:43Z\n\tbuild\tvcs.modified=false"
+      }
+    },
+    "sustainedTPSQualified": false,
+    "interpretation": "Only original qualified same-VM/source/four-ELF8192x2. Negative wall/CPU changes indicate reduction; negative rate changes indicate regression. Per-final wall normalizes equal business coverage; wall totals and nested child phases overlap, never add. Sampled peaks are not hard upper bounds. No sustained1000TPS/600s qualification."
+  },
+  "nodeCompletionJoins": [
+    {
+      "schema": 1,
+      "runId": 40060919778,
+      "sourceCommit": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+      "diagnosticSource": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+      "originalReceiptSHA256": "8d27e31d6f0d0a0f33d31d7b110d89e5655b727c9edb0fb2dcca47d5818ae003",
+      "originalClientSHA256": "59cd4b6a2659c85cec677e6677071c1afa3e344840d3964b59ab55483d839312",
+      "reader": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-source-ea2dc6b80/frozen-readers/scripts/loadtest/native-stream-evidence.py",
+        "bytes": 34043,
+        "sha256": "a76b6f9c04a182c72d76667ce7d9d702db5936cc1385982489d9c248eb38238a"
+      },
+      "nodeLogs": [
+        {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/before-native-suffix-original/abci-0.log",
+          "bytes": 96315,
+          "sha256": "c7c85c00b18cca89e0dc995ba6f21a294b06934e5fa95d9592336fc1956b7e98"
+        },
+        {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/before-native-suffix-original/abci-1.log",
+          "bytes": 96329,
+          "sha256": "8739801b73e6fb487139a6b03006d0bc446f94fe49976636d73946c19ef865da"
+        },
+        {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/before-native-suffix-original/abci-2.log",
+          "bytes": 96366,
+          "sha256": "3743a0bc4ebc03b0274f89be8e77f97cf046812b76e80ec37e28312c1ea7fa8c"
+        },
+        {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/before-native-suffix-original/abci-3.log",
+          "bytes": 96341,
+          "sha256": "e0147625d7539575d400dda8f068d9811b90e8d6246ae51e55a37b54442ad87e"
+        }
+      ],
+      "join": {
+        "records": 8192,
+        "publishedInfoAheadRows": 0,
+        "durableStateAheadRows": 6,
+        "maximumCalibrationErrorBoundNs": 56244,
+        "nodeCompletionLatencyIntervalsNs": {
+          "offerToNodeFinalizeReturn": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 328770522,
+            "maximumUpperBoundNs": 1829406853,
+            "p50": {
+              "lowerNs": 1014887512,
+              "upperNs": 1015999999
+            },
+            "p95": {
+              "lowerNs": 1537887512,
+              "upperNs": 1538999999
+            },
+            "p99": {
+              "lowerNs": 1710887512,
+              "upperNs": 1711999999
+            }
+          },
+          "offerToNodeDurableCommitReturn": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 368860055,
+            "maximumUpperBoundNs": 1874224140,
+            "p50": {
+              "lowerNs": 1058887512,
+              "upperNs": 1059999999
+            },
+            "p95": {
+              "lowerNs": 1579887512,
+              "upperNs": 1580999999
+            },
+            "p99": {
+              "lowerNs": 1762887512,
+              "upperNs": 1763999999
+            }
+          },
+          "nodeCommitToClientFinalObservation": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 252188538,
+            "maximumUpperBoundNs": 1095145582,
+            "p50": {
+              "lowerNs": 479887512,
+              "upperNs": 480999999
+            },
+            "p95": {
+              "lowerNs": 656887512,
+              "upperNs": 657999999
+            },
+            "p99": {
+              "lowerNs": 685887512,
+              "upperNs": 686999999
+            }
+          }
+        },
+        "independentSameVMAdmission": false,
+        "independentBFTVerification": false,
+        "bftQuorumFormationInstantMeasured": false,
+        "networkQualified": false,
+        "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+      },
+      "originalSignedTerminalIdentity": {
+        "members": 256,
+        "sha256": "d19ced7be7fbb043ffdb3b3712c15f5a9f7f3369956bb6d75bab4de56c57f00d",
+        "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+      },
+      "networkQualified": false,
+      "sustainedTPSQualified": false
+    },
+    {
+      "schema": 1,
+      "runId": 40060919778,
+      "sourceCommit": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+      "diagnosticSource": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+      "originalReceiptSHA256": "f0ccdfec5060867e430cd2105f988495aef925e5f3faae7b152d20204a78e3be",
+      "originalClientSHA256": "f8eb74a266c1a039e4f08dd7aaa625211d5a37950caee2c4ed78bd7528197b9a",
+      "reader": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-source-ea2dc6b80/frozen-readers/scripts/loadtest/native-stream-evidence.py",
+        "bytes": 34043,
+        "sha256": "a76b6f9c04a182c72d76667ce7d9d702db5936cc1385982489d9c248eb38238a"
+      },
+      "nodeLogs": [
+        {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/after-native-suffix-private/abci-0.log",
+          "bytes": 94230,
+          "sha256": "be205c9492351d890669bc7ab12cfd0e9343e36acedbc3ece228c9ab4ea12bcf"
+        },
+        {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/after-native-suffix-private/abci-1.log",
+          "bytes": 94203,
+          "sha256": "9f9ed9756cabde281a2888eb3e7d1226ab741112814300b62bbd0465c303affe"
+        },
+        {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/after-native-suffix-private/abci-2.log",
+          "bytes": 94239,
+          "sha256": "5bddb96b949e6022a274b303f7164583e1ddf1d54e084234ea8c7b6cb122e4fc"
+        },
+        {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/capture/after-native-suffix-private/abci-3.log",
+          "bytes": 94223,
+          "sha256": "9673d337a2fb6f5220aaae2c57d0f3f146e1c68c37045ffadb48e47b30aa7b7f"
+        }
+      ],
+      "join": {
+        "records": 8192,
+        "publishedInfoAheadRows": 9,
+        "durableStateAheadRows": 0,
+        "maximumCalibrationErrorBoundNs": 17472,
+        "nodeCompletionLatencyIntervalsNs": {
+          "offerToNodeFinalizeReturn": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 279615737,
+            "maximumUpperBoundNs": 1930519956,
+            "p50": {
+              "lowerNs": 1018965056,
+              "upperNs": 1019999999
+            },
+            "p95": {
+              "lowerNs": 1624965056,
+              "upperNs": 1625999999
+            },
+            "p99": {
+              "lowerNs": 1744965056,
+              "upperNs": 1745999999
+            }
+          },
+          "offerToNodeDurableCommitReturn": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 308224883,
+            "maximumUpperBoundNs": 1961742939,
+            "p50": {
+              "lowerNs": 1062965056,
+              "upperNs": 1063999999
+            },
+            "p95": {
+              "lowerNs": 1674965056,
+              "upperNs": 1675999999
+            },
+            "p99": {
+              "lowerNs": 1782965056,
+              "upperNs": 1783999999
+            }
+          },
+          "nodeCommitToClientFinalObservation": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 232159770,
+            "maximumUpperBoundNs": 840390354,
+            "p50": {
+              "lowerNs": 467965056,
+              "upperNs": 468999999
+            },
+            "p95": {
+              "lowerNs": 675965056,
+              "upperNs": 676999999
+            },
+            "p99": {
+              "lowerNs": 761965056,
+              "upperNs": 762999999
+            }
+          }
+        },
+        "independentSameVMAdmission": false,
+        "independentBFTVerification": false,
+        "bftQuorumFormationInstantMeasured": false,
+        "networkQualified": false,
+        "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+      },
+      "originalSignedTerminalIdentity": {
+        "members": 256,
+        "sha256": "7329bf7abbbc46ff5acd5afbb64595d953aad23c1f2ce1055a35f32c5f762a4f",
+        "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+      },
+      "networkQualified": false,
+      "sustainedTPSQualified": false
+    }
+  ],
+  "nodeCommitResources": {
+    "schema": 1,
+    "runId": 40060919778,
+    "sourceCommit": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+    "qualifiedVerdictSHA256": "9966c308c44d1a7a18fec285fbc31cc31a7013a91ba75fb630875d5f26c4a1d6",
+    "cases": [
+      {
+        "mode": "bounded-cadence",
+        "canonicalCertificate": false,
+        "perNode": [
+          {
+            "node": 0,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 38
+          },
+          {
+            "node": 1,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 38
+          },
+          {
+            "node": 2,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 38
+          },
+          {
+            "node": 3,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 38
+          }
+        ],
+        "businessCommitPhases": {
+          "commit": {
+            "samples": 152,
+            "totalNs": 6250294750,
+            "meanNs": 41120360.19736842,
+            "p50Ns": 41324001,
+            "p95Ns": 74293211,
+            "p99Ns": 105661611
+          },
+          "close_file": {
+            "samples": 152,
+            "totalNs": 1326676,
+            "meanNs": 8728.131578947368,
+            "p50Ns": 7865,
+            "p95Ns": 11492,
+            "p99Ns": 23464
+          },
+          "delta_encode": {
+            "samples": 152,
+            "totalNs": 32412857,
+            "meanNs": 213242.4802631579,
+            "p50Ns": 151314,
+            "p95Ns": 424444,
+            "p99Ns": 2573951
+          },
+          "file_sync": {
+            "samples": 152,
+            "totalNs": 147505752,
+            "meanNs": 970432.5789473684,
+            "p50Ns": 653089,
+            "p95Ns": 2931493,
+            "p99Ns": 3728313
+          },
+          "journal_maintenance": {
+            "samples": 152,
+            "totalNs": 321644744,
+            "meanNs": 2116083.8421052634,
+            "p50Ns": 80992,
+            "p95Ns": 23926911,
+            "p99Ns": 47817336
+          },
+          "prepare_file": {
+            "samples": 152,
+            "totalNs": 6487791,
+            "meanNs": 42682.83552631579,
+            "p50Ns": 30487,
+            "p95Ns": 71704,
+            "p99Ns": 396131
+          },
+          "validate": {
+            "samples": 152,
+            "totalNs": 5707710548,
+            "meanNs": 37550727.28947368,
+            "p50Ns": 38847194,
+            "p95Ns": 63163569,
+            "p99Ns": 75703047
+          },
+          "write": {
+            "samples": 152,
+            "totalNs": 31362346,
+            "meanNs": 206331.22368421053,
+            "p50Ns": 149369,
+            "p95Ns": 430956,
+            "p99Ns": 1630672
+          },
+          "validate.app_hash": {
+            "samples": 152,
+            "totalNs": 3653404625,
+            "meanNs": 24035556.74342105,
+            "p50Ns": 23826348,
+            "p95Ns": 41425214,
+            "p99Ns": 49592406
+          },
+          "validate.semantics": {
+            "samples": 152,
+            "totalNs": 2042087684,
+            "meanNs": 13434787.394736841,
+            "p50Ns": 12740484,
+            "p95Ns": 24975310,
+            "p99Ns": 34214975
+          }
+        },
+        "sampledRSSPeak": 1048297472,
+        "rssAtAggregatePeakByRole": {
+          "launcher": 36749312,
+          "abci-0": 71098368,
+          "abci-1": 80392192,
+          "abci-2": 77099008,
+          "abci-3": 78147584,
+          "comet-0": 95887360,
+          "comet-1": 97587200,
+          "comet-2": 99364864,
+          "comet-3": 92848128,
+          "client": 319123456
+        },
+        "independentRolePeaks": {
+          "launcher": 62128128,
+          "fixture": 37613568,
+          "abci-0": 83124224,
+          "abci-1": 83173376,
+          "abci-2": 85295104,
+          "abci-3": 85286912,
+          "comet-0": 97755136,
+          "comet-1": 97615872,
+          "comet-2": 99377152,
+          "comet-3": 92876800,
+          "client": 319123456
+        }
+      },
+      {
+        "mode": "bounded-cadence",
+        "canonicalCertificate": false,
+        "perNode": [
+          {
+            "node": 0,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 37
+          },
+          {
+            "node": 1,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 37
+          },
+          {
+            "node": 2,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 37
+          },
+          {
+            "node": 3,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 37
+          }
+        ],
+        "businessCommitPhases": {
+          "commit": {
+            "samples": 148,
+            "totalNs": 6259245951,
+            "meanNs": 42292202.37162162,
+            "p50Ns": 39239872,
+            "p95Ns": 80192377,
+            "p99Ns": 96740337
+          },
+          "close_file": {
+            "samples": 148,
+            "totalNs": 1391541,
+            "meanNs": 9402.304054054053,
+            "p50Ns": 7975,
+            "p95Ns": 11752,
+            "p99Ns": 31819
+          },
+          "delta_encode": {
+            "samples": 148,
+            "totalNs": 28704862,
+            "meanNs": 193951.77027027027,
+            "p50Ns": 158065,
+            "p95Ns": 435123,
+            "p99Ns": 912206
+          },
+          "file_sync": {
+            "samples": 148,
+            "totalNs": 154867821,
+            "meanNs": 1046404.1959459459,
+            "p50Ns": 652253,
+            "p95Ns": 3003458,
+            "p99Ns": 4636554
+          },
+          "journal_maintenance": {
+            "samples": 148,
+            "totalNs": 305356934,
+            "meanNs": 2063222.527027027,
+            "p50Ns": 81613,
+            "p95Ns": 20321707,
+            "p99Ns": 43152639
+          },
+          "prepare_file": {
+            "samples": 148,
+            "totalNs": 7646822,
+            "meanNs": 51667.71621621621,
+            "p50Ns": 29836,
+            "p95Ns": 53560,
+            "p99Ns": 77174
+          },
+          "validate": {
+            "samples": 148,
+            "totalNs": 5730685688,
+            "meanNs": 38720849.24324324,
+            "p50Ns": 37348034,
+            "p95Ns": 71569994,
+            "p99Ns": 80369361
+          },
+          "write": {
+            "samples": 148,
+            "totalNs": 28898932,
+            "meanNs": 195263.05405405405,
+            "p50Ns": 153797,
+            "p95Ns": 341639,
+            "p99Ns": 526324
+          },
+          "validate.app_hash": {
+            "samples": 148,
+            "totalNs": 3676917900,
+            "meanNs": 24844039.864864863,
+            "p50Ns": 22814538,
+            "p95Ns": 47321877,
+            "p99Ns": 61213130
+          },
+          "validate.semantics": {
+            "samples": 148,
+            "totalNs": 2044155110,
+            "meanNs": 13811858.85135135,
+            "p50Ns": 13396472,
+            "p95Ns": 25816589,
+            "p99Ns": 33401523
+          }
+        },
+        "sampledRSSPeak": 1020837888,
+        "rssAtAggregatePeakByRole": {
+          "launcher": 64933888,
+          "abci-0": 69869568,
+          "abci-1": 71245824,
+          "abci-2": 69771264,
+          "abci-3": 69885952,
+          "comet-0": 94187520,
+          "comet-1": 92876800,
+          "comet-2": 92848128,
+          "comet-3": 93425664,
+          "client": 301793280
+        },
+        "independentRolePeaks": {
+          "launcher": 68141056,
+          "fixture": 33079296,
+          "abci-0": 75665408,
+          "abci-1": 81768448,
+          "abci-2": 77979648,
+          "abci-3": 80134144,
+          "comet-0": 94240768,
+          "comet-1": 94351360,
+          "comet-2": 97894400,
+          "comet-3": 95596544,
+          "client": 301793280
+        }
+      }
+    ],
+    "networkOrSustainedQualificationAdded": false,
+    "interpretation": "Business heights only;4node execution samples are not4x business TPS. Per-role peaks occur at different times and must not be added; aggregate peak decomposition uses one actual sample. Stage children/quantiles are nested and not additive; batch density differs."
+  },
+  "publicRecovery": {
+    "members": 545,
+    "bytes": 43604223,
+    "selectedMemberManifestSHA256": "cc20f3c62945f56a9e8b234aaccb0ebe340b7ca09e5f767a3fe98d7cd2cbde2e",
+    "finalRecheckNetworkBytes": 0,
+    "offlineProof": {
+      "path": "artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/original-public-recovery-complete.json",
+      "bytes": 110732,
+      "sha256": "19977d8ac465886275ea931c2e66e0a4ff8959ec5998a3005d8868d6a258ab4e"
+    },
+    "frozenOriginalReaderUsed": true,
+    "posthocReaderRepair": false,
+    "firstLocalMissingParentPreserved": true,
+    "boundedRecoveryAttempts": 15
+  },
+  "portableReaders": [
+    {
+      "path": "docs/performance/evidence/native-suffix-qualified-pair-reader-20261024.py",
+      "bytes": 14481,
+      "sha256": "f6a88e192b99bff961a778aac9cad3c523d93000b7f3fd752d97f82e19b72ad1"
+    },
+    {
+      "path": "docs/performance/evidence/native-suffix-qualified-comparison-reader-20261024.py",
+      "bytes": 5400,
+      "sha256": "831e729d2d0d805f5e3b7d6558d0dcddfd7cc64cf4923634221a52018ba87e4a"
+    },
+    {
+      "path": "docs/performance/evidence/native-suffix-node-completion-reader-20261024.py",
+      "bytes": 3615,
+      "sha256": "ceaeb57d2216de65dd7d8ca5d5f0f45696396929eed96622ab9bf6613a36db9a"
+    },
+    {
+      "path": "docs/performance/evidence/native-suffix-node-resources-reader-20261024.py",
+      "bytes": 3064,
+      "sha256": "671e7e5453e42cc5c74d69f7583ae13f83d8ad6e7049e2e561638b2b7c2b6054"
+    }
+  ],
+  "limitations": "One fixed-order finite8192x2 pair, not variance estimate or sustained1000TPSx600s. Configured1000/s did not achieve actual offer. Node timestamps are completion returns after original verified BFT proof, not earliest quorum formation instants. Info/durable state match their own height/post-state hash. Quantiles and overlapping/nested wall phases are not additive. Process sampled RSS is not a hard cgroup maximum. Runtime source is frozen ea2; later compiled-canonical source was not executed here.",
+  "portableReproductionProof": {
+    "path": "artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/portable-readers-verified.json",
+    "bytes": 178,
+    "sha256": "74d16312633c2ded3a45221864672980a55435d69c8adedcb270f6dc68374250"
+  }
+}
