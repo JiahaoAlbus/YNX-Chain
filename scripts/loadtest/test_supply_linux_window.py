@@ -529,6 +529,33 @@ class SupplySourceTests(unittest.TestCase):
             with self.assertRaises(PermissionError):
                 supply.native_sample(Path("/case"), Path("/build"), {}, 0)
 
+    def test_unreadable_live_rss_refusal_retains_process_capture_context(self):
+        launcher = supply.os.getpid()
+        before = dict(pid=launcher, parent=0, group=launcher, startTicks=17, state="R", threads=1)
+        for failed_read in ("smaps_rollup", "stat_after_rss"):
+            for code in (supply.errno.ENOENT, supply.errno.ESRCH):
+                for state, ticks in (("R", 17), ("S", 17), ("D", 17), ("R", 18)):
+                    after = dict(before, state=state, startTicks=ticks)
+                    known = {}
+                    with self.subTest(failedRead=failed_read, errno=code, state=state, startTicks=ticks), \
+                            patch.object(supply.native, "proc_inventory", return_value=({launcher: before}, [])), \
+                            patch.object(supply.native, "bounded", side_effect=([OSError(code, "original RSS unavailable"), b"stat"] if failed_read=="smaps_rollup" else [b"Rss: 1 kB\n", OSError(code, "original stat unavailable"), b"stat"])), \
+                            patch.object(supply.native, "parse_stat", return_value=after), \
+                            patch.object(supply.native, "smaps_rss") as rss:
+                        with self.assertRaisesRegex(RuntimeError, "live owned RSS unreadable") as failure:
+                            supply.native_sample(Path("/case"), Path("/build"), known, 0)
+                        message = str(failure.exception)
+                        self.assertIn("; capture=", message)
+                        context = json.loads(message.split("; capture=", 1)[1])
+                        self.assertEqual(context["before"], before)
+                        self.assertEqual(context["after"], after)
+                        self.assertEqual(context["errno"], code)
+                        self.assertEqual(context["failedRead"], failed_read)
+                        self.assertEqual(context["pid"], launcher)
+                        self.assertIsInstance(context["capturedAtUnixNs"], int)
+                        self.assertEqual(known, {})
+                        rss.assert_not_called()
+
     def test_owned_pid_overflow_is_not_truncated(self):
         launcher = supply.os.getpid()
         rows = {launcher: dict(pid=launcher, parent=0, startTicks=1)}

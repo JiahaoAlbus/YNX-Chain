@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "runId": 40101270671,
+  "jobId": 120893741442,
+  "sourceCommit": "1f21f1f2eed732c0948ac98ff7028bee5f2d6ca4",
+  "workflowConclusion": "failure",
+  "independentVerdict": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/independent-unqualified-verdict-01.json",
+    "bytes": 9072,
+    "sha256": "78ba2e37995a0bac6bd75de1e37f3e6e60b76a23479e771cd5d52499e0ba4f6b"
+  },
+  "nativePairQualified": false,
+  "slotReturned": true,
+  "firstCause": "native pair firstcause/UNKNOWN/case deadline: live owned RSS unreadable",
+  "cases": [
+    {
+      "case": "before-native-prepared-bounded",
+      "receipt": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/capture/before-native-prepared-bounded/evidence/actual.json",
+        "bytes": 1397774,
+        "sha256": "c0211c247d499286ac8bc4555f7716f8ca882a8b28126cda2e03d95cc8b1d107"
+      },
+      "firstCause": null,
+      "clientExit": {
+        "pid": 39848,
+        "returncode": 0
+      },
+      "verifierPresent": true,
+      "timelineTail": [
+        {
+          "phase": "verifier_complete",
+          "elapsedNs": 40255905685,
+          "unixNs": 1792851511960760233
+        },
+        {
+          "phase": "stream_readback_complete",
+          "elapsedNs": 40255907489,
+          "unixNs": 1792851511960761535
+        },
+        {
+          "phase": "client_complete",
+          "elapsedNs": 40255908481,
+          "unixNs": 1792851511960762467
+        },
+        {
+          "phase": "cleanup_start",
+          "elapsedNs": 40255910715,
+          "unixNs": 1792851511960764861
+        },
+        {
+          "phase": "cleanup_complete",
+          "elapsedNs": 40375272473,
+          "unixNs": 1792851512080127042
+        }
+      ],
+      "sampledPeakRSSBytes": 960942080,
+      "sampledPeakIsNotHardLimit": true
+    },
+    {
+      "case": "after-native-prepared-grouped",
+      "receipt": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/capture/after-native-prepared-grouped/evidence/actual.json",
+        "bytes": 932548,
+        "sha256": "d8d2f134f1324072d176d27073d23afb09309d0fd580986e5cc95bec4a8c2028"
+      },
+      "firstCause": "live owned RSS unreadable",
+      "clientExit": {
+        "pid": 39956,
+        "returncode": 0
+      },
+      "verifierPresent": false,
+      "timelineTail": [
+        {
+          "phase": "client_exit",
+          "elapsedNs": 37044652687,
+          "unixNs": 1792851549558172011
+        },
+        {
+          "phase": "stream_readback_start",
+          "elapsedNs": 37044661243,
+          "unixNs": 1792851549558179365
+        },
+        {
+          "phase": "verifier_start",
+          "elapsedNs": 37044662065,
+          "unixNs": 1792851549558180106
+        },
+        {
+          "phase": "cleanup_start",
+          "elapsedNs": 39847445900,
+          "unixNs": 1792851552360965765
+        },
+        {
+          "phase": "cleanup_complete",
+          "elapsedNs": 39965786372,
+          "unixNs": 1792851552479305054
+        }
+      ],
+      "sampledPeakRSSBytes": 1017057280,
+      "sampledPeakIsNotHardLimit": true
+    }
+  ],
+  "originalRunAPI": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/native-complete-run-api.json",
+    "bytes": 12372,
+    "sha256": "eb002e8dd2e3bb01b2172a29a40aaafc2988a17420b143bcfb4d9ca16a03aba5"
+  },
+  "originalCILog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/native-full.raw",
+    "bytes": 773975,
+    "sha256": "b9fd8183e45a50c771f181d2605b3df79a6e2a05cee7d9597bcf95096c4dcc80"
+  },
+  "originalTerminalMarkers": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/original-terminal-markers.json",
+    "bytes": 3448,
+    "sha256": "3f756d32bf83b173e1a991120832efbb49ca29b2709715946668e538d6602354"
+  },
+  "artifact": {
+    "id": 12563147355,
+    "bytes": 99518524
+  },
+  "originalPublicRecoveryComplete": false,
+  "partialCacheAndFailuresRetained": true,
+  "performanceComparisonQualified": false,
+  "sustainedTPSQualified": false,
+  "diagnosticRepair": {
+    "scope": "Retain rejected PID, exact before/after identities and states, failing kernel read/errno and wall timestamp in existing firstCause. Unknown live RSS still fails; no retry, zeroing, cap change, qualification repair or new dispatch.",
+    "red": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-refusal-context-red-01.raw",
+      "bytes": 6018,
+      "sha256": "dc259be9189f7f1a2f60a00d3fc22ed8b9b8aa0837043fbd023684478d45b9e6"
+    },
+    "controller": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-refusal-context-controller-01.raw",
+      "bytes": 192,
+      "sha256": "e8b9d007f90c7dae4ba4dca3a0567eb3971ccd05fb2daf0f7473e0966d88743b"
+    },
+    "focused": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-refusal-context-focused-02.raw",
+      "bytes": 98,
+      "sha256": "24cefc2bc38a1c71e18591075993695fc72546b32ff6b5baab3d98032ce96fb5"
+    },
+    "pair": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-refusal-context-pair-01.raw",
+      "bytes": 135,
+      "sha256": "b27133c33fd659ec6b391889a046e3c6efeb0c968077acac500474b91cd7e8a2"
+    },
+    "controllerTests": 92,
+    "pairTests": 36,
+    "negativeKernelTransitions": 16,
+    "underlyingRSSFailureFixed": false
+  },
+  "next": "Complete bounded original artifact readback, correlate verifier process exit/receipt with last resource samples; reproduce underlying Linux exit/read condition before changing acceptance logic or scheduling a new frozen run"
+}

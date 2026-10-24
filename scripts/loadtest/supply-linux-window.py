@@ -1552,8 +1552,10 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
     tasks = []
     for pid in ids:
         before = rows[pid]
+        failed_read = "smaps_rollup"
         try:
             raw = native.bounded(Path("/proc") / str(pid) / "smaps_rollup") if before["state"] != "Z" else None
+            failed_read = "stat_after_rss"
             after = native.parse_stat(native.bounded(Path("/proc") / str(pid) / "stat"), pid)
         except OSError as error:
             if error.errno not in (errno.ENOENT, errno.ESRCH):
@@ -1565,7 +1567,14 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
                     continue
                 raise
             if after["startTicks"] != before["startTicks"] or after["state"] != "Z":
-                raise RuntimeError("live owned RSS unreadable")
+                # Preserve the exact refusal and enough original process
+                # identity to distinguish exit transitions from a live read
+                # failure. Never replace unknown RSS with zero or retry work.
+                context = dict(pid=pid, before=before, after=after,
+                               errno=error.errno, failedRead=failed_read,
+                               capturedAtUnixNs=time.time_ns())
+                raise RuntimeError("live owned RSS unreadable; capture=" +
+                                   json.dumps(context, sort_keys=True, separators=(",", ":"))) from error
             raw = None
         if before["startTicks"] != after["startTicks"] or raw is None and after["state"] != "Z":
             raise RuntimeError("owned identity changed during sample")
