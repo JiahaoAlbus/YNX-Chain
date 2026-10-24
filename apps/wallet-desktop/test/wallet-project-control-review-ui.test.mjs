@@ -12,12 +12,16 @@ function fixture(change={}){
  return{children,calls,messages,ui,buttons:children.filter(x=>x.type==='button'),state:s=>{state={...state,...s};},reply:f=>{reply=f;},clock:n=>{clock=n;}};
 }
 test('separate control review renders exact command and publisher binding; sends only opaque ID and decision',async()=>{
- const f=fixture();for(const value of ['project.publisher','project','publisher-owner','registration','a'.repeat(64),'GrantExpiresMS','Revoke: false','ExpectedRevision: 2'])assert(f.children.some(x=>x.textContent.includes(value)),value);
+ const f=fixture();for(const value of ['注册发布者','project','publisher-owner','registration','a'.repeat(64),'授权到期','不是撤销','预期记录版本：2'])assert(f.children.some(x=>x.textContent.includes(value)),value);
  await f.buttons[0].click();assert.deepEqual(f.calls,[['opaque','approve']]);assert.match(f.messages.at(-1),/not registration or publication completion/);
 });
 test('foreign public binding and artifact-release payload cannot become a control review',()=>{
  assert.throws(()=>fixture({publisher:{}}),/CONTROL_REVIEW_INVALID/);
  assert.throws(()=>fixture({publication:{projectId:'project'}}),/CONTROL_REVIEW_INVALID/);
+});
+test('primary review uses readable action, target, permissions and expiry labels',()=>{
+ const f=fixture();for(const value of ['动作：注册发布者','公钥指纹（SHA-256）','本次确认到期','技术摘要'])assert(f.children.some(x=>x.textContent.includes(value)),value);
+ for(const prefix of ['RequestID:','GrantExpiresMS:','PublicOriginalSHA256:','Read:','Publish:','Runtime:'])assert(!f.children.some(x=>x.textContent.startsWith(prefix)));
 });
 test('expiry and lock fence a choice without enabling a replacement operation',async()=>{
  for(const mode of ['expiry','lock']){const f=fixture();if(mode==='expiry')f.clock(now+10000);else f.state({locked:true});await f.buttons[0].click();assert.equal(f.calls.length,0);}

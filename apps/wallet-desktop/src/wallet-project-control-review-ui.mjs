@@ -50,9 +50,23 @@ export function appendWalletProjectControlReview({container,review,api,getKeySta
  const line=(tag,text)=>{const el=doc.createElement(tag);el.textContent=text;container.append(el);};
  line('h3','项目控制批准 / Project control consent');
  line('p','仅批准下列明确控制操作；不是制品签名、转账或 Root 授权。 / This exact control operation only; not artifact signing, transfer or Root authorization.');
- for(const k of ['account','networkId'])line('p',k+': '+own[k]);
- for(const k of commandKeys)line('p',k+': '+String(own.command[k]));
- if(own.publisher)for(const k of publisherKeys)line('p','Publisher '+k+': '+own.publisher[k]);
+ const c=own.command;
+ const actions={'project.create':'创建项目','team.create':'创建团队','team.member':c.Revoke?'移除团队成员':'添加或更新团队成员','project.member':c.Revoke?'撤销账户的项目权限':'授予或更新账户的项目权限','project.team':c.Revoke?'撤销团队的项目权限':'授予或更新团队的项目权限','project.origin':'更改运行站点','project.revoke':'撤销项目','team.revoke':'撤销团队','project.publisher':c.Revoke?'撤销发布者':'注册发布者'};
+ const time=value=>new Date(Number(value)).toISOString()+'（UTC）';
+ line('p','批准账户：'+own.account);line('p','网络：'+own.networkId);
+ line('p','动作：'+actions[c.Action]);
+ if(c.ProjectID)line('p','项目：'+c.ProjectID);
+ if(c.TeamID)line('p','团队：'+c.TeamID);
+ if(c.SubjectAccount)line('p','目标账户：'+c.SubjectAccount);
+ if(c.PublisherID)line('p','目标发布者：'+c.PublisherID);
+ if(c.RuntimeOrigin)line('p','运行站点：'+c.RuntimeOrigin);
+ line('p',c.Revoke?'撤销操作：将撤销以上对象的授权。':'不是撤销操作：仅执行上述明确变更。');
+ if(['project.member','project.team'].includes(c.Action)&&!c.Revoke){const rights=[c.Read?'读取项目':null,c.Publish?'发布制品':null,c.Runtime?'运行应用':null].filter(Boolean);line('p','授予权限：'+rights.join('、'));}
+ if(c.GrantExpiresMS!=='0')line('p','授权到期：'+time(c.GrantExpiresMS));
+ line('p','本次确认到期：'+time(c.ExpiresMS));
+ if(c.PublicOriginalSHA256)line('p','公钥指纹（SHA-256）：'+c.PublicOriginalSHA256);
+ if(own.publisher){line('p','公钥绑定账户：'+own.publisher.Account);line('p','发布者注册引用：'+own.publisher.RegistrationRef);line('p','公钥绑定到期：'+time(own.publisher.ExpiresMS));}
+ line('details','技术摘要 — 请求：'+c.RequestID+'；动作代码：'+c.Action+'；预期记录版本：'+c.ExpectedRevision+(own.publisher?'；密钥用途：'+own.publisher.KeyRole:''));
  line('p','公开绑定由原 Native/服务端独立验证；显示字段不授予权限。 / Original Native/server must independently verify the public binding; display DATA grants nothing.');
  const render=()=>{for(const b of buttons)b.disabled=entered||!live();};
  for(const [decision,label]of [['approve','批准此控制操作 / Approve this control operation'],['reject','拒绝 / Reject'],['cancel','取消 / Cancel']]){
