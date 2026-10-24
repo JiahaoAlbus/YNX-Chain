@@ -12,6 +12,7 @@ import {verifyOriginalR155Component,verifyOriginalR155HelperBundle,R155_INTAKE_A
 import {verifySDK13NativeComponent,verifySDK13HelperBundle,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST} from './sdk13-native-component.mjs';
 import {SDK_RUNTIME_UNIONS,sdkRuntimeUnionProfile,SDK14_RUNTIME_UNION_SOURCE} from './sdk14-runtime-union.mjs';
 import {canonicalNativeEvidencePlan} from './canonical-native-evidence.mjs';
+import {readSDK35ProductRuntime,assertSDK35ProductArchive} from './sdk35-product-runtime.mjs';
 
 const projectDir = fileURLToPath(new URL("..", import.meta.url));
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim();
@@ -231,8 +232,8 @@ export function assertSDKRuntimePackCoverage(cwd,sourceCommit){
  const root=git(cwd,'rev-parse','--show-toplevel'),metadata=JSON.parse(git(root,'show',`${sourceCommit}:apps/wallet-desktop/package.json`));
  if(!Array.isArray(metadata.build?.files)||metadata.build.files.some(p=>typeof p!=='string'))throw Error('SDK_RUNTIME_PACK_FILTER_REQUIRED');
  const {FileMatcher}=createRequire(import.meta.url)('app-builder-lib/out/fileMatcher');
- const selected=new FileMatcher(cwd,'/PUBLIC/not-an-output',value=>value,metadata.build.files).createFilter(),manifests=fixedSDKRuntimeManifestSources(root,sourceCommit),seen=new Set();
- for(const manifest of manifests){const body=JSON.parse(git(root,'show',`${sourceCommit}:${manifest}`));
+ const selected=new FileMatcher(cwd,'/PUBLIC/not-an-output',value=>value,metadata.build.files).createFilter(),manifests=fixedSDKRuntimeManifestSources(root,sourceCommit),seen=new Set(),product=readSDK35ProductRuntime(root,sourceCommit);
+ for(const manifest of manifests){const body=product?{files:[...(manifest.endsWith('/original-ide-auth-runtime-manifest.json')?product.authRows:product.unionRows).values()]}:JSON.parse(git(root,'show',`${sourceCommit}:${manifest}`));
   if(!Array.isArray(body.files))throw Error('SDK_RUNTIME_MANIFEST_INVALID');
   for(const row of body.files){const relative=row.path;
    // Type declarations/Native source and dependency layout have their own
@@ -244,8 +245,8 @@ export function assertSDKRuntimePackCoverage(cwd,sourceCommit){
  }
  return Object.freeze({manifests,executableSDKRowsChecked:seen.size,runtimeQualified:false});
 }
-function ensureUnchangedMembers(before, after, plan, metadataInput,dependencies,evidence) {
-  const expected=canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows]).after;
+function ensureUnchangedMembers(before, after, plan, metadataInput,dependencies,evidence,productRuntime=null) {
+  const expected=canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows],productRuntime?.manifestRows??[],productRuntime?.dataRows??[],productRuntime?.excludedRows??[]).after;
   if(!isDeepStrictEqual(after,expected))throw new Error('Canonical packaging changed unexpected archive members');
   for(const row of plan){const found=after.find(item=>item.path===row.packedPath);if(!found||found.type!=='file'||found.bytes!==row.emittedBytes||found.sha256!==row.emittedSHA256)throw new Error('Canonical source input differs: '+row.sourcePath);}
 }
@@ -261,30 +262,31 @@ export async function writeRelocatedArchive(resources, cwd, output) {
   const before=archiveInventory(asar,archive),metadataInput=asar.extractFile(archive,'package.json'),dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit),evidence=nativeEvidencePlan(cwd,expected.sourceCommit);
   // Preserve the normal early refusal for already-canonical/foreign inputs,
   // before attempting any raw source-path lookup or creating output streams.
-  const canonical=canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows]);
+  const product=readSDK35ProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(before)??null;
+  const canonical=canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows],productRuntime?.manifestRows??[],productRuntime?.dataRows??[],productRuntime?.excludedRows??[]);
   for(const row of plan){
     const rawPath=row.sourcePath.startsWith('apps/wallet-desktop/')?row.sourcePath.slice('apps/wallet-desktop/'.length):SDK_ALIAS+'/'+row.sourcePath.slice('packages/wallet-auth/'.length);
     const info=asar.statFile(archive,path.normalize(rawPath),false);
     if(info.unpacked||info.link||info.files||!asar.extractFile(archive,path.normalize(rawPath),false).equals(row.source)) throw new Error(`Relocation input differs: ${row.sourcePath}`);
   }
-  await writeCanonicalArchiveInputs({asar,archive,output,before,metadataInput,dependencies,evidence,canonical});
+  await writeCanonicalArchiveInputs({asar,archive,output,before,metadataInput,dependencies,evidence,productRuntime,canonical});
 }
 
 /** The normal relocation child's real ASAR writer. Tests use PUBLIC archives,
  * not a replacement packer; final product verification remains separate. */
-export async function writeCanonicalArchiveInputs({asar,archive,output,before,metadataInput,dependencies,evidence,canonical:preparedPlan}){
+export async function writeCanonicalArchiveInputs({asar,archive,output,before,metadataInput,dependencies,evidence,productRuntime=null,canonical:preparedPlan}){
   if(evidence.rows.length){
     const allowed=new Set(CANONICAL_NATIVE_EVIDENCE_TESTS.map(canonicalSourcePath));
     for(const row of before)if(/^code\/packages\/wallet-auth\/native\/.+\.test\.mjs$/.test(canonicalPackedPath(row.path))&&!allowed.has(canonicalPackedPath(row.path)))throw Error('Foreign Native build evidence asset');
   }
-  const canonical=preparedPlan??canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows]);
+  const canonical=preparedPlan??canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows],productRuntime?.manifestRows??[],productRuntime?.dataRows??[],productRuntime?.excludedRows??[]);
   const originals=new Map(before.map(row=>[canonicalPackedPath(row.path),row.path]));
   const streams=canonical.after.map(row=>{
     if(row.type==="directory") return {path:row.path,type:row.type,unpacked:row.unpacked};
     if(row.type==="link") return {path:row.path,type:row.type,unpacked:row.unpacked,symlink:path.posix.relative(path.posix.dirname(row.path),row.link),stat:{mode:0o777}};
     const canonicalAlias=row.path.startsWith(SDK_ALIAS+'/')?'code/packages/wallet-auth'+row.path.slice(SDK_ALIAS.length):null;
     const input=canonicalAlias??row.path;
-    const bytes=row.path==='package.json'?canonical.metadata:row.path===CANONICAL_APP_METADATA?canonical.appMetadata:dependencies.contents.get(input)??evidence.contents.get(input)??asar.extractFile(archive,path.normalize(originals.get(input)),false);
+    const bytes=row.path==='package.json'?canonical.metadata:row.path===CANONICAL_APP_METADATA?canonical.appMetadata:productRuntime?.contents.get(input)??productRuntime?.readAdditional?.(input)??dependencies.contents.get(input)??evidence.contents.get(input)??asar.extractFile(archive,path.normalize(originals.get(input)),false);
     return {path:row.path,type:"file",unpacked:row.unpacked,stat:{mode:row.physicalMode??(row.executable?0o755:0o644),size:bytes.length},streamGenerator:()=>Readable.from([bytes])};
   });
   await asar.createPackageFromStreams(output,streams);
@@ -301,19 +303,21 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
   const metadataInput=asar.extractFile(archive,'package.json');
   const dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit);
   const evidence=nativeEvidencePlan(cwd,expected.sourceCommit);
+  const product=readSDK35ProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(before)??null;
   const temporary=mkdtempSync(path.join(resources,".ynx-relocation-")),output=path.join(temporary,"app.asar");
   const nativeBefore=path.join(archive+'.unpacked','native/original-auth-identity.node'),nativeAfter=path.join(archive+'.unpacked',NATIVE_CANONICAL),backup=path.join(temporary,'original.asar');
   let nativeMoved=false,archiveMoved=false,replacement=false;
   try{
     execFileSync(process.execPath,[fileURLToPath(import.meta.url),"--relocate-data-child",resources,cwd,output],{maxBuffer:16*1024*1024,stdio:"pipe"});
     const after=archiveInventory(asar,output);
-    ensureUnchangedMembers(before,after,plan,metadataInput,dependencies,evidence);
+    ensureUnchangedMembers(before,after,plan,metadataInput,dependencies,evidence,productRuntime);
+    assertSDK35ProductArchive(product,after);
     // Only packed operands change; retain the original unpacked tree, not a
     // newly copied native artifact. Verify again against that retained tree.
     mkdirSync(path.dirname(nativeAfter),{recursive:true});renameSync(nativeBefore,nativeAfter);nativeMoved=true;
     renameSync(archive,backup);archiveMoved=true;renameSync(output,archive);replacement=true;asar.uncache(archive);
     if(!isDeepStrictEqual(archiveInventory(asar,archive),after)) throw new Error("Retained unpacked tree differs");
-    const receipt={schemaVersion:2,recipe:RELOCATION_VERSION,sourceCommit:expected.sourceCommit,files:publicRelocationRows(plan),sdkDependencies:dependencies.public,nativeBuildEvidence:evidence.public,metadataInputBase64:metadataInput.toString('base64'),before,after,asarHeaderIntegrity:desktopAsarHeaderIntegrity(resources,cwd)};
+    const receipt={schemaVersion:2,recipe:RELOCATION_VERSION,sourceCommit:expected.sourceCommit,files:publicRelocationRows(plan),sdkDependencies:dependencies.public,nativeBuildEvidence:evidence.public,sdkProductRuntime:product?.public??null,metadataInputBase64:metadataInput.toString('base64'),before,after,asarHeaderIntegrity:desktopAsarHeaderIntegrity(resources,cwd)};
     writeFileSync(path.join(resources,PACKAGED_RELOCATION_RECEIPT),JSON.stringify(receipt,null,2)+"\n");
     return receipt;
   }catch(cause){
@@ -359,7 +363,10 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   if(receipt.schemaVersion!==2||receipt.recipe!==RELOCATION_VERSION||receipt.sourceCommit!==expected.sourceCommit||!isDeepStrictEqual(receipt.files,publicRelocationRows(plan))||typeof receipt.metadataInputBase64!=='string') throw new Error("Packaged relocation receipt differs from source recipe");
   if(!isDeepStrictEqual(receipt.sdkDependencies,dependencies.public))throw Error('Packaged SDK dependency receipt differs from fixed source inputs');
   if(!isDeepStrictEqual(receipt.nativeBuildEvidence??[],evidence.public))throw Error('Packaged Native evidence receipt differs from fixed source inputs');
-  ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'),dependencies,evidence);
+  const product=readSDK35ProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(receipt.before)??null;
+  if(!isDeepStrictEqual(receipt.sdkProductRuntime??null,product?.public??null))throw Error('Packaged SDK product projection receipt differs from fixed source inputs');
+  ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'),dependencies,evidence,productRuntime);
+  assertSDK35ProductArchive(product,receipt.after);
   if(!isDeepStrictEqual(archiveInventory(asar,archive),receipt.after)) throw new Error("Packaged archive differs from relocation receipt");
   const unavailableOptionalRuntimeAssets=plan.filter(row=>row.unavailableNativeAsset).map(row=>{
     if(receipt.after.some(member=>member.path===row.unavailableNativeAsset))throw Error('Unreviewed optional source-current Native module');
@@ -410,7 +417,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // The two closed source-inspection assets remain exact Git-bound evidence,
   // even when the production compile inventory correctly excludes tests.
   // Do not make them compiler inputs or admit arbitrary packaged test files.
-  const nativeBuildEvidenceAssets=NATIVE_BUILD_EVIDENCE_TESTS.filter(name=>nativeSelection.evidenceAssets.includes(name));
+  const nativeBuildEvidenceAssets=NATIVE_BUILD_EVIDENCE_TESTS.filter(name=>nativeSelection.evidenceAssets.includes(name)&&!product?.excluded.has(name.replace(/^packages\/wallet-auth\//,'')));
   // Matching src bytes are insufficient if package.json can select another
   // entrypoint or alter resolution. Release version remains separately bound
   // by the existing identity; these runtime fields must match source exactly.
@@ -438,31 +445,32 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // Keep that exclusion explicit; all runtime logic binds to the selected
   // checkout. Canonical packaging validates the seven closed operand inventories
   // but never rewrites any source operand or executes the packaged entrypoint.
-  const excludedTypeDeclarations = names.filter(name => name.endsWith(".d.ts"));
+  const excludedTypeDeclarations = names.filter(name => name.endsWith(".d.ts")&&!product?.selected.has(name.replace(/^packages\/wallet-auth\//,'')));
   const verified = [];
   for (const name of names) {
-    if (name.endsWith(".d.ts")) continue;
+    if (excludedTypeDeclarations.includes(name)) continue;
     const packedName = packedRuntimePath(name);
     const source = execFileSync("git", ["show", `${expected.sourceCommit}:${name}`], { cwd: root, maxBuffer: 16 * 1024 * 1024 });
     // @electron/asar traverses its header with the host path separator.
     const packed = asar.extractFile(archive, path.normalize(packedName));
     // Evidence data is never interpreted as runtime or relocated. This exact
     // closed subset can contain source-inspection operands in its test body.
-    const emitted=nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source,sdkMetadata.version).bytes;
+    const emitted=product?.contents.get(packedName)??(nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source,sdkMetadata.version).bytes);
     if (!emitted.equals(packed)) throw new Error(`Packaged source differs: ${name}`);
     verified.push({ path: packedName, bytes: packed.length, sha256: digest(packed) });
   }
-  const allowed=new Set(names.filter(name=>!name.endsWith(".d.ts")).map(packedRuntimePath));
+  const allowed=new Set(names.filter(name=>!excludedTypeDeclarations.includes(name)).map(packedRuntimePath));
+  if(product)for(const name of product.selected.keys())allowed.add('code/packages/wallet-auth/'+name);
   for(const row of receipt.after){
     const additionalSDKRuntime=/^code\/packages\/wallet-auth\/(?:native|scripts)\/.+\.(?:mjs|js|cjs|json)$/.test(row.path);
     if(row.type!=="directory"&&(row.path.startsWith("code/apps/wallet-desktop/src/")||row.path.startsWith("code/packages/wallet-auth/src/")||additionalSDKRuntime)&&!allowed.has(row.path)) throw new Error(`Unlisted packaged runtime member: ${row.path}`);
   }
   return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
     canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,declaredSDKRuntimeAssets,nativeBuildEvidenceAssets,
-    unavailableOptionalRuntimeAssets,
+    unavailableOptionalRuntimeAssets,sdkProductRuntime:product?.public??null,
     sdkRuntimeDependenciesVerified:true,sdkRuntimeDependencies,
     staticPathRelocationVerified:true,staticPathRelocation:receipt.files,macAsarIntegrityVerified,
-    typeDeclarationExclusionReason: "TypeScript declarations are compile-time files excluded by electron-builder; they are not claimed to be packaged runtime bytes.",
+    typeDeclarationExclusionReason: product?"Fixed SDK35 product selection retains required declarations; only declarations outside that selection are excluded.":"TypeScript declarations are compile-time files excluded by electron-builder; they are not claimed to be packaged runtime bytes.",
     asarSHA256: digest(readFileSync(archive)), files: verified };
 }
 

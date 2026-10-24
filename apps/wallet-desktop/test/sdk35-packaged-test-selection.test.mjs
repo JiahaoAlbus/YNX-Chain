@@ -21,7 +21,7 @@ test('actual immutable A35 package does not declare the excluded test as a runti
 });
 test('the actual final runtime gate still rejects the known test if packed, and rejects foreign Native/script runtime assets',()=>{
  const raw=fs.readFileSync(new URL('../scripts/release-provenance.mjs',import.meta.url),'utf8'),start=raw.indexOf('  const allowed=new Set(names.filter'),end=raw.indexOf('  return { ...expected, packagedSourceVerified',start);assert(start>0&&end>start);
- const run=Function('names','receipt','packedRuntimePath',raw.slice(start,end)),runtime='packages/wallet-auth/native/original-pq-host-catalog-source-contract.mjs',packed=name=>'code/'+name;
+ const gate=Function('names','receipt','packedRuntimePath','excludedTypeDeclarations','product',raw.slice(start,end)),run=(names,receipt,packed)=>gate(names,receipt,packed,[],null),runtime='packages/wallet-auth/native/original-pq-host-catalog-source-contract.mjs',packed=name=>'code/'+name;
  run([runtime],{after:[{path:packed(runtime),type:'file'}]},packed);
  for(const name of ['packages/wallet-auth/'+regression,'packages/wallet-auth/native/test-foreign.mjs','packages/wallet-auth/scripts/foreign-runtime.mjs'])assert.throws(()=>run([runtime],{after:[{path:packed(name),type:'file'}]},packed),/Unlisted packaged runtime member/);
 });

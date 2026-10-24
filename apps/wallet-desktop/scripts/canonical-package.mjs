@@ -84,7 +84,7 @@ const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 /** Closed path-only packaging, never source operand rewriting. The sole SDK
  * alias is a link to the canonical copy; the Native module has one unpacked
  * canonical path. The archive contains no second implementation. */
-export function canonicalArchivePlan(before,metadataBytes,dependencyRows=[]){
+export function canonicalArchivePlan(before,metadataBytes,dependencyRows=[],productManifestRows=[],productPackRows=[],productExcludedRows=[]){
  if(before.some(row=>row.path==='code'||row.path.startsWith('code/')))throw Error('Canonical packaging already applied or foreign code tree');
  const native=before.filter(row=>row.path.endsWith('/original-auth-identity.node'));
  if(native.length!==1||native[0].path!=='native/original-auth-identity.node'||native[0].type!=='file'||!native[0].unpacked)throw Error('Exactly one original unpacked Native module required');
@@ -103,6 +103,29 @@ export function canonicalArchivePlan(before,metadataBytes,dependencyRows=[]){
   rows.set(target,next);
  }
  for(const row of dependencyRows){const previous=rows.get(row.path);if(previous&&(previous.type!=='file'||previous.unpacked||previous.executable||previous.bytes!==row.bytes||previous.sha256!==row.sha256))throw Error('Conflicting canonical SDK dependency input: '+row.path);rows.set(row.path,{...row});}
+ const productPath=name=>typeof name==='string'&&name.startsWith(SDK_CANONICAL+'/')&&path.posix.normalize(name)===name&&!name.includes('\\')&&!name.includes('\0');
+ const productSeen=new Set();
+ for(const row of productPackRows){const previous=rows.get(row.path);
+  if(!productPath(row.path)||productSeen.has(row.path)||row.type!=='file'||row.unpacked!==false||typeof row.executable!=='boolean'||row.physicalMode!==null||!Number.isSafeInteger(row.bytes)||row.bytes<0||!/^[a-f0-9]{64}$/.test(row.sha256))throw Error('Product pack data row differs');
+  productSeen.add(row.path);
+  if(previous){if(previous.type!=='file'||previous.unpacked||previous.bytes!==row.bytes||previous.sha256!==row.sha256)throw Error('Product pack source bytes differ');}
+  else rows.set(row.path,{...row});
+ }
+ for(const row of productExcludedRows){const previous=rows.get(row.path);
+  if(!productPath(row.path)||productSeen.has(row.path)||!Number.isSafeInteger(row.bytes)||row.bytes<0||!/^[a-f0-9]{64}$/.test(row.sha256))throw Error('Product excluded source row differs');
+  if(previous){if(previous.type!=='file'||previous.bytes!==row.bytes||previous.sha256!==row.sha256)throw Error('Product excluded source bytes differ');rows.delete(row.path);}
+ }
+ // A product manifest is DATA projected into the two original Native-reader
+ // slots. Full build-source manifests and component receipts are not replaced
+ // on disk or relabeled. The original Main producer supplies independently
+ // pinned source/previous byte identities; no JS/runtime code rewrite exists.
+ if(!Array.isArray(productManifestRows)||productManifestRows.length!==0&&productManifestRows.length!==2)throw Error('Product runtime manifest pair required');
+ const productSlots=new Set(['original-ide-auth-runtime-manifest.json','original-ide-contract-relay-runtime-manifest.json'].map(name=>SDK_CANONICAL+'/native/'+name)),seenProduct=new Set();
+ for(const row of productManifestRows){
+  const expectedSource='runtime-projections/sdk35-product/'+path.posix.basename(row.path??''),previous=rows.get(row.path);
+  if(!productSlots.has(row.path)||seenProduct.has(row.path)||row.sourcePath!==expectedSource||!Number.isSafeInteger(row.bytes)||row.bytes<1||!/^[a-f0-9]{64}$/.test(row.sha256)||!Number.isSafeInteger(row.originalBytes)||row.originalBytes<1||!/^[a-f0-9]{64}$/.test(row.originalSHA256)||!previous||previous.type!=='file'||previous.unpacked||previous.executable||previous.bytes!==row.originalBytes||previous.sha256!==row.originalSHA256)throw Error('Product runtime manifest mapping differs');
+  seenProduct.add(row.path);rows.set(row.path,{...previous,bytes:row.bytes,sha256:row.sha256});
+ }
  // Native ESM's package-json reader cannot traverse an ASAR directory link.
  // Keep normal directories and exact regular package descriptors; every code
  // file alias realpaths to the sole canonical implementation/cache identity.
