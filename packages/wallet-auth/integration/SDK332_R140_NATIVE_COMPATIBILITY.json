@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.28",
+  "version": "1.3.0-pq.3.32-auth.29",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -349,8 +349,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
-      "bytes": 20284,
-      "sha256": "5cbecd3bb24a8c82f256ece5b0900d539219aac66324bad31348b40cfc6ec804"
+      "bytes": 20641,
+      "sha256": "950a173933046244fadb23031007a85b31e5a1f133d2a0e5b7e8fde39134c0fc"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-v2-contract.mjs",
@@ -673,6 +673,11 @@
       "sha256": "e20cb3cde24c6e61db2b4c6dcb3fdb9ffe732ae92930b80e27166c180a5ddfc6"
     },
     {
+      "path": "packages/wallet-auth/native/original-ide-protected-publisher-dispatch.mjs",
+      "bytes": 7199,
+      "sha256": "9fa9078c9ce04da0e2253177a60b351031c94d67942f7fba06e224ab1b4e015b"
+    },
+    {
       "path": "packages/wallet-auth/native/original-ide-project-control-custody.h",
       "bytes": 1139,
       "sha256": "475f5630f31585f4598607c6c02fde7881131a99631d2f8ce0e31fe68d6eaf7e"
@@ -700,8 +705,8 @@
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 14606,
-    "sha256": "219d5e0435c216ce5e78a556843d9bbcfe2be5dc321cd6dc4a8a0883507c0aee"
+    "bytes": 14702,
+    "sha256": "83db7b575e57ceb67cf59efdc767c6988d30eb075877dca44ea55c003888e6be"
   },
   "require": {
     "translationUnits": 14,

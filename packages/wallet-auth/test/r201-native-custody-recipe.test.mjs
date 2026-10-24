@@ -16,7 +16,7 @@ test('R201 normal user custody is one new TU and LocalAuthentication; helper ret
 });
 test('R201 declares exact new five inputs and independent81 compile-input/14+11 normal recipe',async()=>{
  const {contract}=verifySDK332R140Source(root),normal=[...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool];
- assert.equal(contract.version,'1.3.0-pq.3.32-auth.28');assert.equal(contract.NativeInputs.length,91);assert.equal(contract.HelperInputs.length,5);assert.equal(normal.length,101);assert.equal(new Set([...normal,...contract.sourceCurrentIOInputs].map(x=>x.path)).size,102);assert.equal(normal.filter(p=>/\.(?:h|mm|cpp)$/.test(p.path)).length,81);
+ assert.equal(contract.version,'1.3.0-pq.3.32-auth.29');assert.equal(contract.NativeInputs.length,92);assert.equal(contract.HelperInputs.length,5);assert.equal(normal.length,102);assert.equal(new Set([...normal,...contract.sourceCurrentIOInputs].map(x=>x.path)).size,103);assert.equal(normal.filter(p=>/\.(?:h|mm|cpp)$/.test(p.path)).length,81);
  for(const p of additions)assert.equal(contract.NativeInputs.filter(x=>x.path===p).length,1);
  assert.equal(contract.supplierR201.compileInputCount,81);assert.equal(contract.supplierR201.prior77MachineCodeReusable,false);assert.equal(contract.supplierR201.NativeBuild,false);assert.equal(contract.supplierR201.Source13,false);assert.equal(contract.supplierR201.Root,false);
  const selected=await sdk332R140NativePlan(root,'/PUBLIC/UNUSED_HEADERS','arm64');assert.equal(selected.plan.sources.length,14);assert.equal(selected.helperPlan.sources.length,11);assert.equal(selected.NativeBuild,false);assert.equal(selected.grant,false);
