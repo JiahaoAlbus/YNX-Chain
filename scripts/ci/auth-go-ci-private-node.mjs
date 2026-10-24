@@ -20,12 +20,17 @@ export function preparePrivateCINode({source=process.execPath,home=os.homedir(),
   fs.writeFileSync(wfd,bytes);fs.fchmodSync(wfd,0o700);fs.fsyncSync(wfd);const written=fs.fstatSync(wfd,{bigint:true});receipt.fileTuple=meta(written);receipt.bytes=bytes.length;receipt.sha256=sha(bytes);
   const end=fs.fstatSync(sfd,{bigint:true});if(!same(before,end)||!same(before,stat(source))||before.mtimeNs!==end.mtimeNs||before.ctimeNs!==end.ctimeNs)fail('CI_SOURCE_CHANGED');
   checkRoot(receipt);const copy=stat(receipt.path);if(!same(copy,written)||copy.uid!==uid()||copy.nlink!==1n||(copy.mode&0o777n)!==0o700n||sha(fs.readFileSync(receipt.path))!==receipt.sha256)fail('CI_COPY_MISMATCH');
-  const probe=spawnSync(receipt.path,['--version'],{cwd:directory,env:{},encoding:'utf8',timeout:5000,maxBuffer:4096});receipt.versionProbe={exit:probe.status,stdoutBytes:Buffer.byteLength(probe.stdout??''),stdoutSHA256:sha(probe.stdout??''),stderrBytes:Buffer.byteLength(probe.stderr??''),stderrSHA256:sha(probe.stderr??'')};
+  // Linux refuses exec of an image still open for write (ETXTBSY). Close the
+  // exact verified writer before exec; never relax identity/hash predicates.
+  fs.closeSync(wfd);wfd=undefined;checkRoot(receipt);
+  if(JSON.stringify(meta(stat(receipt.path)))!==JSON.stringify(receipt.fileTuple)||sha(fs.readFileSync(receipt.path))!==receipt.sha256)fail('CI_COPY_POST_CLOSE_CHANGED');
+  const probe=spawnSync(receipt.path,['--version'],{cwd:directory,env:{},encoding:'utf8',timeout:5000,maxBuffer:4096});receipt.versionProbe={exit:probe.status,signal:probe.signal??null,errorCode:typeof probe.error?.code==='string'?probe.error.code:null,errorName:typeof probe.error?.name==='string'?probe.error.name:null,stdoutBytes:Buffer.byteLength(probe.stdout??''),stdoutSHA256:sha(probe.stdout??''),stderrBytes:Buffer.byteLength(probe.stderr??''),stderrSHA256:sha(probe.stderr??'')};
   if(probe.status!==0||probe.stdout.trim()!==expectedVersion||probe.stderr!=='')fail('CI_COPY_VERSION');receipt.ready=true;answer=receipt;
  }catch(error){primary=error;present=true;
   // Preserve a failed/partial owned copy only after FD/name/root identity
   // checks. Never infer cleanup authority over an unknown replacement.
   if(receipt&&wfd!==undefined)try{const s=fs.fstatSync(wfd,{bigint:true});checkRoot(receipt);if(String(s.dev)!==receipt.fileTuple.device||String(s.ino)!==receipt.fileTuple.inode||!same(s,stat(receipt.path))||s.size>268435456n)throw Error('partial changed');const b=Buffer.alloc(Number(s.size));let n=0;while(n<b.length){const got=fs.readSync(wfd,b,n,b.length-n,n);if(got<=0)throw Error('partial read');n+=got}receipt.fileTuple=meta(s);receipt.bytes=b.length;receipt.sha256=sha(b);receipt.partialCleanupBound=true}catch{receipt.partialCleanupBound=false}
+  else if(receipt)try{checkRoot(receipt);if(JSON.stringify(meta(stat(receipt.path)))!==JSON.stringify(receipt.fileTuple)||sha(fs.readFileSync(receipt.path))!==receipt.sha256)throw Error('closed copy changed');receipt.partialCleanupBound=true}catch{receipt.partialCleanupBound=false}
  }finally{for(const fd of[wfd,sfd])if(fd!==undefined)try{fs.closeSync(fd)}catch(error){if(!present){primary=error;present=true}}}
  if(present){if(receipt&&primary&&typeof primary==='object')Object.assign(primary,{partial:receipt});throw primary}return answer;
 }

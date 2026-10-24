@@ -2481,8 +2481,11 @@ jobs:
         with:
           go-version: '1.25.13'
           cache: false
-      - name: First Linux validation of new supplier private-copy boundaries
-        run: node --test scripts/ci/test-private-node.mjs
+      - name: Verify only failed copy cases and new Linux writer-close regression
+        run: |
+          mkdir -p packages/wallet-auth/.ci-evidence/auth-r208-copy-controls
+          node --test --test-name-pattern='^(PUBLIC byte fixture|substituted copy|foreign sibling|writer-close)' scripts/ci/test-private-node.mjs > packages/wallet-auth/.ci-evidence/auth-r208-copy-controls/stdout.log 2>&1 || { status=$?; cat packages/wallet-auth/.ci-evidence/auth-r208-copy-controls/stdout.log; exit "$status"; }
+          cat packages/wallet-auth/.ci-evidence/auth-r208-copy-controls/stdout.log
       - name: Run only failed R202 cases with exact private official Node bytes
         run: node scripts/ci/run-auth-go-private-node.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -2492,5 +2495,6 @@ jobs:
           path: |
             packages/wallet-auth/.ci-evidence/auth-r202-go-fixture
             packages/wallet-auth/.ci-evidence/auth-r207-private-node
+            packages/wallet-auth/.ci-evidence/auth-r208-copy-controls
           include-hidden-files: true
           if-no-files-found: error
