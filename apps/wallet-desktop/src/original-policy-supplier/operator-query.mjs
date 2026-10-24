@@ -9,6 +9,19 @@ import {operatorProjectionCheckpoint,operatorCheckpointIdentity,encodeOperatorPo
 export {CANONICAL_NETWORK_ID, inspectOperatorProjection};
 export const NORMAL_OPERATOR=Object.freeze({origin:'https://rpc.ynxweb4.com',spkiSha256:'916248ff98c234e4389f872d26638d35783acd4d9cc27f9eb6ffb6eded56558f',reportedCommit:'65efa82e0615',reportedRelease:'ynx-network-surgical-65efa82e0615',lifetimeMs:30000,readTimeoutMs:5000,maxBytes:8*1024*1024});
 const fail=code=>{throw Object.assign(new Error(code),{code});};
+// Local diagnostic DATA only, not Source admission or transaction authority.
+// Keep the original refusal message and strict gate. Never retain a URL owner,
+// transaction hash, response body, credential or caller-provided endpoint.
+export function operatorReadResponseProblem(path,status,headers,allowAbsence=false){
+ const type=String(headers['content-type']??'').split(';')[0].trim().toLowerCase(),noStore=String(headers['cache-control']??'').toLowerCase().split(',').some(v=>v.trim()==='no-store');
+ const privateRead=path.startsWith('/accounts/')||path.startsWith('/txs/');
+ const reason=status!==200&&!(allowAbsence&&status===404)?'http-status':type!=='application/json'?'content-type':privateRead&&!noStore?'missing-no-store':null;
+ if(!reason)return null;
+ const error=Error('AUTH_POLICY_SOURCE_NOT_SUPPLIED');
+ const routeKind=path==='/status'?'status':path==='/blocks/0'?'genesis-block':path.startsWith('/accounts/')?'account-authorization':path.startsWith('/txs/')?'transaction-lookup':'public-metadata';
+ Object.defineProperty(error,'operatorReadObservation',{value:Object.freeze({kind:'YNX_OPERATOR_READ_REFUSAL/v1',method:'GET',routeKind,reason,httpStatus:Number.isInteger(status)&&status>=100&&status<=599?status:null,contentType:/^[a-z0-9.+-]+\/[a-z0-9.+-]+$/.test(type)?type:'unknown',noStore}),enumerable:false});
+ return error;
+}
 function readResponse(path,signal,remaining,allowAbsence=false){
  return new Promise((resolve,reject)=>{
   let settled=false,size=0;const chunks=[];let timer;
@@ -17,7 +30,7 @@ function readResponse(path,signal,remaining,allowAbsence=false){
    const error=checkServerIdentity(host,cert);if(error)return error;
    try{const spki=new X509Certificate(cert.raw).publicKey.export({format:'der',type:'spki'});if(createHash('sha256').update(spki).digest('hex')!==NORMAL_OPERATOR.spkiSha256)return Error('AUTH_POLICY_TLS_PIN');}catch{return Error('AUTH_POLICY_TLS_PIN');}
   }},res=>{
-   if((res.statusCode!==200&&!(allowAbsence&&res.statusCode===404))||String(res.headers['content-type']??'').split(';')[0].trim().toLowerCase()!=='application/json'||((path.startsWith('/accounts/')||path.startsWith('/txs/'))&&!String(res.headers['cache-control']??'').toLowerCase().split(',').some(v=>v.trim()==='no-store'))){res.destroy();done(Error('AUTH_POLICY_SOURCE_NOT_SUPPLIED'));return;}
+   const problem=operatorReadResponseProblem(path,res.statusCode,res.headers,allowAbsence);if(problem){res.destroy();done(problem);return;}
    res.on('data',b=>{size+=b.length;if(size>NORMAL_OPERATOR.maxBytes){res.destroy();done(Error('AUTH_POLICY_QUERY_SIZE'));}else chunks.push(b);});res.on('error',e=>done(e));
    res.on('end',()=>{try{done(null,Object.freeze({status:res.statusCode,text:new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks))}));}catch{done(Error('AUTH_POLICY_QUERY_UTF8'));}});
   });
