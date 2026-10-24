@@ -58,3 +58,19 @@ YNX_MEASURE_CANONICAL_NATIVE=1 GOMAXPROCS=1 GOGC=100 GOMEMLIMIT=off go test ./in
 前一提交的CI40053396149在go vet失败：测试中故意重复的静态JSON标签触发structtag检查。保留原失败raw，将同一歧义schema改为reflect.StructOf动态构造，保留拒绝断言；没有禁用vet或删反例。本机针对consensus/client的vet已通过。一次本机消费者调用漏选原Go fixture而失败、一次Go名称过滤零命中均保留；补跑均使用明确fixture/真实测试名，不计作通过证据。
 
 下一步将显式模式接入受约束客户端参数与四节点同条件配对，绑定配置、实际计数和原始读取器资格；尚未启动新的四节点测试。
+
+## 客户端显式模式与真实102笔读回
+
+客户端新增默认关闭的 `-native-canonical-certificate`，只允许原native stream8范围选择；原有限native8、普通stream或缺失原校验/资源约束均不能选它。模式同时写入顶层报告、durable plan的nativePrefix及实际prefixReplay计数。新的有界构造器保留原stream的suffix初始化和实例字节上限，仅改变证书构造；不会把先前独立suffix候选混进本次对比。当前四节点配对控制器尚未生成该候选命令，默认路径不推广该参数。
+
+实际客户端使用3个临时发送账户×34个nonce周期，完成102笔真实签名、状态执行、Commit、日志重开和读取器验证；原公开流完整读回得到102行及3个最新槽位。实际canonicalNative尝试/接受均102、strictJSON调用0、原交易签名验证102；复用路径完整Validate95次，其余冷重放保留原校验。原32MiB输入/规范载荷边界、缓存预算和reader gate保持。该夹具中的quorum仍为unit gates，不证明网络共识或性能。
+
+[实际102笔客户端计数和fixture摘要](evidence/native-canonical-client-real102-20261024.json)。原raw为owner artifacts下的 `native-canonical-client-first.raw`（race PASS8.299s），公开fixture为 `native-stream-controller/public-go-canonical-client-fixture`。Python35项（包括两项新增真实候选fixture消费）PASS0.441s，有界构造器race PASS1.434s，针对consensus/client的vet通过。原CI新增候选fixture独立目录及同任务消费/归档，避免覆盖原对照fixture；候选实际102次构造、plan/backend选择、原完整流和未选择模式拒绝自动验证。
+
+复现真实客户端夹具（目录必须是尚不存在的绝对路径）：
+
+```sh
+YNX_NATIVE_CANONICAL_PUBLIC_FIXTURE_DIR=/absolute/new-fixture GOMAXPROCS=1 go test -race ./cmd/ynx-consensus-perf-client -run '^TestNativeStreamingCanonical' -count=1 -v
+```
+
+四节点报告校验已显式绑定canonical选择、实际backend、子分支计数和原字节上限；不匹配或未选择模式拒绝。下一步将单轴开关接入原同条件pair recipe/command及durable plan验证，完成原CI后提交Root具体窗口申请。尚无新网络吞吐或入块/最终确认延迟结果，持续1000有效final/s×600秒仍未达。

@@ -1,0 +1,47 @@
+{
+  "scope": "real local Go application/reader/recovery and cross-language fixture; synthetic quorum gates; no network TPS",
+  "independentBFTProof": false,
+  "effectiveSignedExecutedPersisted": 102,
+  "senders": 3,
+  "nonceCycles": 34,
+  "plannedRecords": 102,
+  "originalSuffixSetup": true,
+  "canonicalCertificate": true,
+  "canonicalByteLimit": 33554432,
+  "transactionVerifications": 102,
+  "certificateDetails": {
+    "canonicalNative": {
+      "calls": 102,
+      "errors": 0,
+      "durationNs": 319702045
+    },
+    "canonicalNativeAccepted": 102,
+    "payloadCopy": {
+      "calls": 102,
+      "errors": 0,
+      "durationNs": 4693750
+    },
+    "strictJSON": {
+      "calls": 0,
+      "errors": 0,
+      "durationNs": 0
+    },
+    "nativeClone": {
+      "calls": 102,
+      "errors": 0,
+      "durationNs": 1651376
+    },
+    "payloadBytes": 4123835,
+    "prefixBytesHashed": 3526729
+  },
+  "privateValidate": {
+    "calls": 95,
+    "errors": 0,
+    "durationNs": 109773955
+  },
+  "publicFixture": "artifacts/chain-performance-20261017/native-stream-controller/public-go-canonical-client-fixture",
+  "manifestSHA256": "e1377065478b3d40e637d1242e744365d4856c376e0fa2dca2c723f89ab8365f",
+  "metadataSHA256": "adb2f5e90513949ae2a712d035297a14a77bf47ca9706afbaa674a48fa23b910",
+  "planSHA256": "ecbf39b5d2862a8f2260e052bd70b4b6797db6632e71118b36f458613a942dc0",
+  "networkPerformanceMeasured": false
+}

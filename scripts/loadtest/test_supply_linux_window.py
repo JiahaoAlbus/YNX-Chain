@@ -210,6 +210,7 @@ class SupplySourceTests(unittest.TestCase):
         plan=supply.recipe(**values);self.assertTrue(plan["prefixNativeClone"]);self.assertFalse(plan["execute"])
         for delta in (dict(prefix_replay=None),dict(prefix_native_clone=1),dict(profile_name="supply-512x2"),dict(shared_replay=True),dict(observer_phases=False)):
             with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**(values|delta))
+
         command=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("output"),plan["profile"],"relative",True,False,prefix_replay=True,prefix_native_clone=True)
         self.assertIn("-prefix-native-clone",command);self.assertIn("-prefix-durable-replay",command)
         args=[sys.executable,"-B",str(FILE),"--prefix-native-clone","--prefix-replay","--profile","supply-2048x1-data64","--transport","grpc","--observer-phases"]
@@ -217,6 +218,26 @@ class SupplySourceTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stderr);self.assertFalse(json.loads(result.stdout)["nodesStarted"])
         result=subprocess.run([x for x in args if x!="--prefix-replay"],capture_output=True,text=True,timeout=5)
         self.assertNotEqual(result.returncode,0)
+
+    def test_canonical_certificate_report_requires_matching_selection_and_backend(self):
+        client,_=self.prefix_report_fixture();self.runtime_fixture(client)
+        client.update(nativeStream8=True,prefixNativeClone=True,nativeCanonicalCertificate=True)
+        stats=client['durableReadback']['prefixReplay'];phases=stats['workPhases']
+        stats.update(canonicalByteLimit=32<<20,canonicalCertificate=True,nativeCloneCache=dict(snapshotPresent=True,canonicalBytes=1000,height=100,accounts=2049,feeEvents=2048,lotEntries=0))
+        phases['privateNativeClone']=phases['privateJSON'];phases['privateJSON']=dict(calls=0,errors=0,durationNs=0)
+        phases['certificatePublish']['durationNs']=10
+        phases['certificatePublishDetails']=dict(payloadCopy=dict(calls=1,errors=0,durationNs=1),strictJSON=dict(calls=0,errors=0,durationNs=0),canonicalNative=dict(calls=1,errors=0,durationNs=2),canonicalNativeAccepted=1,nativeClone=dict(calls=1,errors=0,durationNs=1),payloadBytes=1000,prefixBytesHashed=1000)
+        args=dict(expected=True,expected_native_clone=True,native_stream8=True,expected_canonical_certificate=True)
+        supply.validate_prefix_replay(client,**args)
+        with self.assertRaises(RuntimeError):supply.validate_prefix_replay(client,True,expected_native_clone=True,native_stream8=True)
+        for change in ('report','backend','accepted','attempt','limit'):
+            bad=copy.deepcopy(client);prefix=bad['durableReadback']['prefixReplay']
+            if change=='report':bad['nativeCanonicalCertificate']=False
+            if change=='backend':prefix['canonicalCertificate']=False
+            if change=='accepted':prefix['workPhases']['certificatePublishDetails']['canonicalNativeAccepted']=2
+            if change=='attempt':prefix['workPhases']['certificatePublishDetails']['canonicalNative']['calls']=0
+            if change=='limit':prefix['canonicalByteLimit']=16<<20
+            with self.subTest(change=change),self.assertRaises(RuntimeError):supply.validate_prefix_replay(bad,**args)
 
     def test_prefix_data64_recipe_command_and_cli_are_explicit_read_only(self):
         legacy=supply.recipe("grpc","supply-2048x1-data64","relative",True)

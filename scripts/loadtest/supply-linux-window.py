@@ -560,8 +560,11 @@ def validate_shared_replay(report, expected, require_work_phases=False):
                 interpretation="Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance.")
 
 
-def validate_prefix_replay(report,expected,require_work_phases=False,expected_native_clone=False,expected_native_suffix=False,native_stream8=False):
+def validate_prefix_replay(report,expected,require_work_phases=False,expected_native_clone=False,expected_native_suffix=False,native_stream8=False,expected_canonical_certificate=False):
     if report.get("nativeStream8",False) is not native_stream8:raise RuntimeError("prefix stream scope differs")
+    if (type(expected_canonical_certificate) is not bool or report.get("nativeCanonicalCertificate",False) is not expected_canonical_certificate
+            or expected_canonical_certificate and (not native_stream8 or not expected_native_clone or expected_native_suffix)):
+        raise RuntimeError("canonical certificate scope differs")
     canonical_limit=32<<20 if native_stream8 else 16<<20
     account_floor=2048 if native_stream8 else report.get("summary",{}).get("input",0)
     validate_native_suffix_selection(report,expected_native_suffix)
@@ -571,12 +574,14 @@ def validate_prefix_replay(report,expected,require_work_phases=False,expected_na
     if type(expected) is not bool or report.get("prefixDurableReplay",False) is not expected:
         raise RuntimeError("actual prefix replay selection differs")
     reader=report.get("durableReadback",{});stats=reader.get("prefixReplay")
+    if isinstance(stats,dict) and stats.get("canonicalCertificate",False) is not expected_canonical_certificate:raise RuntimeError("canonical certificate backend differs")
     if not expected:
         if stats is not None:raise RuntimeError("unselected prefix replay counters present")
         return dict(prefixDurableReplay=False,stats=None)
     names={"calls","successfulFullReplays","successfulPrefixReuses","failures","durationNs","replayedBlocks","replayedTransactionInputs","canonicalByteLimit"}
+    selected_names={"canonicalCertificate"} if expected_canonical_certificate else set()
     if (report.get("sharedDurableReplay") is not False or report.get("observerPhaseTiming") is not True or reader.get("sharedReplay") is not None
-            or not isinstance(stats,dict) or set(stats) not in ((names|{"workPhases","nativeCloneCache"}|({"nativeSuffixSetup"} if expected_native_suffix else set()),) if expected_native_clone else (names,names|{"workPhases"})) or any(type(stats[k]) is not int or stats[k]<0 for k in names)
+            or not isinstance(stats,dict) or set(stats) not in ((names|{"workPhases","nativeCloneCache"}|selected_names|({"nativeSuffixSetup"} if expected_native_suffix else set()),) if expected_native_clone else (names,names|{"workPhases"})) or any(type(stats[k]) is not int or stats[k]<0 for k in names)
             or stats["calls"]!=reader.get("snapshotValidations") or stats["calls"]<1 or stats["durationNs"]<=0
             or stats["calls"]!=stats["successfulFullReplays"]+stats["successfulPrefixReuses"]+stats["failures"]
             or stats["successfulFullReplays"]<1 or stats["successfulPrefixReuses"]<1 or stats["canonicalByteLimit"]!=canonical_limit
@@ -603,7 +608,7 @@ def validate_prefix_replay(report,expected,require_work_phases=False,expected_na
                 or calls("suffixReplay")!=success("suffixSetup") or calls("suffixEncode")!=success("suffixReplay")
                 or calls("certificatePublish")>success("fullReplay")+success("suffixEncode")
                 or sum(phases[k]["durationNs"] for k in phase_names)>stats["durationNs"]):raise RuntimeError("prefix child phases differ from actual sequential branches/parent time")
-        stream_evidence.certificate_publish_measurements(phases,canonical_limit,required=native_stream8,native_clone=expected_native_clone)
+        stream_evidence.certificate_publish_measurements(phases,canonical_limit,required=native_stream8,native_clone=expected_native_clone,canonical_native=expected_canonical_certificate)
     if expected_native_clone:
         cache=stats.get("nativeCloneCache")
         keys={"canonicalBytes","height","accounts","feeEvents","lotEntries"}

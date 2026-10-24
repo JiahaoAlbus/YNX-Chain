@@ -10,6 +10,9 @@ import (
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
 	if !o.nativeStream8 {
+		if o.nativeCanonicalCertificate {
+			return errors.New("canonical certificate requires explicit native stream")
+		}
 		if o.nativeCurrentInputReuse {
 			return errors.New("current input reuse requires explicit native stream")
 		}
@@ -58,7 +61,11 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	if r.signatureFacts != nil && (len(r.signatureFacts.entries) != 0 || r.signatureFacts.bytes != 0 || r.signatureFacts.hits != 0 || r.signatureFacts.verified != 0) {
 		return errors.New("native streaming cannot discard existing signature-cache work")
 	}
-	decoder, err := consensus.NewBoundedBlockJournalNativeClonePrefixDecoder(r.migration, int(limit))
+	constructor := consensus.NewBoundedBlockJournalNativeClonePrefixDecoder
+	if o.nativeCanonicalCertificate {
+		constructor = consensus.NewBoundedBlockJournalCanonicalNativePrefixDecoder
+	}
+	decoder, err := constructor(r.migration, int(limit))
 	if err != nil {
 		return err
 	}
@@ -67,6 +74,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	r.currentInputReuseStats.Enabled = o.nativeCurrentInputReuse
 	r.prefixDecoder = decoder
 	r.prefixNativeClone = true
+	r.prefixStats.CanonicalCertificate = o.nativeCanonicalCertificate
 	r.prefixStats.WorkPhases.PrivateNativeClone = new(consensus.BlockJournalPrefixPhase)
 	r.signatureFacts = nil
 	r.observerNativeFacts = true
@@ -82,6 +90,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
+	CanonicalCertificate   bool    `json:"canonicalCertificate,omitempty"`
 	CurrentInputReuse      bool    `json:"currentInputReuse"`
 	ClientClockTiming      bool    `json:"clientClockTiming"`
 	ReaderGateTiming       bool    `json:"readerGateTiming"`

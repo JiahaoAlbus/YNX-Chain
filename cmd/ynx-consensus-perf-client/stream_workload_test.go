@@ -142,12 +142,13 @@ func TestStreamingWorkloadGzipRealExecutionAcrossLegacyNonceBoundary(t *testing.
 	testStreamingWorkloadRealExecution(t, true, false)
 }
 
-func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool) {
+func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, canonical ...bool) {
 	path, manifest, m, migration, initial := senderFixture(t)
 	o := streamingOptions()
 	if native {
 		o = nativeStreamingOptions()
 		o.nativeCurrentInputReuse = true
+		o.nativeCanonicalCertificate = len(canonical) == 1 && canonical[0]
 		o.pacedWorkerInventory = new(pacedWorkerInventory)
 	}
 	o.terminalGzip = compressed
@@ -297,6 +298,15 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool) {
 	}
 	if native {
 		actual := nativeReader.stats()
+		if actual.PrefixReplay.CanonicalCertificate != o.nativeCanonicalCertificate || plan.NativePrefix.CanonicalCertificate != o.nativeCanonicalCertificate || !plan.NativePrefix.OriginalSuffixSetup {
+			t.Fatal("certificate configuration/plan differs")
+		}
+		if o.nativeCanonicalCertificate {
+			parts := actual.PrefixReplay.WorkPhases.CertificatePublishDetails
+			if parts.CanonicalNative == nil || parts.CanonicalNative.Calls != 102 || parts.CanonicalNativeAccepted != 102 || parts.StrictJSON.Calls != 0 {
+				t.Fatalf("actual signed canonical certificate branch differs: %+v", parts)
+			}
+		}
 		if actual.ObserverNativeFacts == nil || actual.ObserverNativeFacts.Lookups != 102 || actual.ObserverNativeFacts.Hits != 102 || actual.ObserverNativeFacts.FallbackFailures != 0 || actual.PrefixReplay.CanonicalByteLimit != 32<<20 || actual.TransactionVerifications != 102 {
 			t.Fatal("actual native stream current-state/signature work differs", actual)
 		}

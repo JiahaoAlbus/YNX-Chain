@@ -63,6 +63,7 @@ type options struct {
 	prefixDurableReplay            bool
 	prefixNativeClone              bool
 	nativeCurrentInputReuse        bool
+	nativeCanonicalCertificate     bool
 	nativeStream8                  bool
 	nativeSubmit8                  bool
 	nativeSuffixSetup              bool
@@ -181,54 +182,55 @@ type summary struct {
 }
 
 type report struct {
-	SchemaVersion           int                       `json:"schemaVersion"`
-	RoundsRequested         int                       `json:"roundsRequested"`
-	RoundsCompleted         int                       `json:"roundsCompleted"`
-	Kind                    string                    `json:"kind"`
-	ChainID                 string                    `json:"chainId"`
-	GenesisSHA256           string                    `json:"genesisSha256"`
-	Endpoints               []string                  `json:"endpoints"`
-	Concurrency             int                       `json:"concurrency"`
-	OfferedRate             float64                   `json:"configuredOfferedRate"`
-	ObserverConcurrency     int                       `json:"observerConcurrency"`
-	LoadMode                string                    `json:"loadMode"`
-	LoadQueues              pacedStatistics           `json:"loadQueues"`
-	DurableReadback         durableReaderStats        `json:"durableReadback"`
-	GroupedObservation      groupedObservationStats   `json:"groupedObservation"`
-	ObserverPhaseTiming     bool                      `json:"observerPhaseTiming"`
-	ProcessCPU              *processCPUReport         `json:"processCPU,omitempty"`
-	SubmissionOccupancy     *submissionOccupancyStats `json:"submissionOccupancy,omitempty"`
-	PrefixDurableReplay     bool                      `json:"prefixDurableReplay,omitempty"`
-	PrefixNativeClone       bool                      `json:"prefixNativeClone,omitempty"`
-	NativeCurrentInputReuse bool                      `json:"nativeCurrentInputReuse,omitempty"`
-	NativeStream8           bool                      `json:"nativeStream8,omitempty"`
-	NativeSubmit8           bool                      `json:"nativeSubmit8,omitempty"`
-	NativeSuffixSetup       bool                      `json:"nativeSuffixSetup,omitempty"`
-	ObserverNativeFacts     bool                      `json:"observerNativeFacts,omitempty"`
-	ClientProcs2            bool                      `json:"clientProcs2,omitempty"`
-	PacedWorkers            *pacedWorkerInventory     `json:"pacedWorkers,omitempty"`
-	SharedDurableReplay     bool                      `json:"sharedDurableReplay"`
-	EndpointFair            bool                      `json:"endpointFairSubmission"`
-	EndpointElastic         bool                      `json:"endpointElasticSubmission,omitempty"`
-	SenderMode              string                    `json:"senderMode"`
-	PacingMode              string                    `json:"pacingMode"`
-	InclusionMode           string                    `json:"inclusionMode"`
-	ReadySenders            readySenderStats          `json:"readySenders"`
-	RetentionMode           string                    `json:"retentionMode,omitempty"`
-	StreamingWorkload       *streamingWorkloadReport  `json:"streamingWorkload,omitempty"`
-	TerminalStream          *terminalStreamReport     `json:"terminalStream,omitempty"`
-	TimeoutMs               int64                     `json:"timeoutMs"`
-	PollMs                  int64                     `json:"pollMs"`
-	StartedAt               time.Time                 `json:"startedAt"`
-	MeasurementStartedAt    *time.Time                `json:"measurementStartedAt,omitempty"`
-	FinishedAt              time.Time                 `json:"finishedAt"`
-	GoVersion               string                    `json:"goVersion"`
-	Platform                string                    `json:"platform"`
-	GOMAXPROCS              int                       `json:"gomaxprocs"`
-	Summary                 summary                   `json:"summary"`
-	Transactions            []transactionResult       `json:"transactions"`
-	SetupErrors             []errorObservation        `json:"setupErrors"`
-	Interpretation          []string                  `json:"interpretation"`
+	SchemaVersion              int                       `json:"schemaVersion"`
+	RoundsRequested            int                       `json:"roundsRequested"`
+	RoundsCompleted            int                       `json:"roundsCompleted"`
+	Kind                       string                    `json:"kind"`
+	ChainID                    string                    `json:"chainId"`
+	GenesisSHA256              string                    `json:"genesisSha256"`
+	Endpoints                  []string                  `json:"endpoints"`
+	Concurrency                int                       `json:"concurrency"`
+	OfferedRate                float64                   `json:"configuredOfferedRate"`
+	ObserverConcurrency        int                       `json:"observerConcurrency"`
+	LoadMode                   string                    `json:"loadMode"`
+	LoadQueues                 pacedStatistics           `json:"loadQueues"`
+	DurableReadback            durableReaderStats        `json:"durableReadback"`
+	GroupedObservation         groupedObservationStats   `json:"groupedObservation"`
+	ObserverPhaseTiming        bool                      `json:"observerPhaseTiming"`
+	ProcessCPU                 *processCPUReport         `json:"processCPU,omitempty"`
+	SubmissionOccupancy        *submissionOccupancyStats `json:"submissionOccupancy,omitempty"`
+	PrefixDurableReplay        bool                      `json:"prefixDurableReplay,omitempty"`
+	PrefixNativeClone          bool                      `json:"prefixNativeClone,omitempty"`
+	NativeCurrentInputReuse    bool                      `json:"nativeCurrentInputReuse,omitempty"`
+	NativeCanonicalCertificate bool                      `json:"nativeCanonicalCertificate,omitempty"`
+	NativeStream8              bool                      `json:"nativeStream8,omitempty"`
+	NativeSubmit8              bool                      `json:"nativeSubmit8,omitempty"`
+	NativeSuffixSetup          bool                      `json:"nativeSuffixSetup,omitempty"`
+	ObserverNativeFacts        bool                      `json:"observerNativeFacts,omitempty"`
+	ClientProcs2               bool                      `json:"clientProcs2,omitempty"`
+	PacedWorkers               *pacedWorkerInventory     `json:"pacedWorkers,omitempty"`
+	SharedDurableReplay        bool                      `json:"sharedDurableReplay"`
+	EndpointFair               bool                      `json:"endpointFairSubmission"`
+	EndpointElastic            bool                      `json:"endpointElasticSubmission,omitempty"`
+	SenderMode                 string                    `json:"senderMode"`
+	PacingMode                 string                    `json:"pacingMode"`
+	InclusionMode              string                    `json:"inclusionMode"`
+	ReadySenders               readySenderStats          `json:"readySenders"`
+	RetentionMode              string                    `json:"retentionMode,omitempty"`
+	StreamingWorkload          *streamingWorkloadReport  `json:"streamingWorkload,omitempty"`
+	TerminalStream             *terminalStreamReport     `json:"terminalStream,omitempty"`
+	TimeoutMs                  int64                     `json:"timeoutMs"`
+	PollMs                     int64                     `json:"pollMs"`
+	StartedAt                  time.Time                 `json:"startedAt"`
+	MeasurementStartedAt       *time.Time                `json:"measurementStartedAt,omitempty"`
+	FinishedAt                 time.Time                 `json:"finishedAt"`
+	GoVersion                  string                    `json:"goVersion"`
+	Platform                   string                    `json:"platform"`
+	GOMAXPROCS                 int                       `json:"gomaxprocs"`
+	Summary                    summary                   `json:"summary"`
+	Transactions               []transactionResult       `json:"transactions"`
+	SetupErrors                []errorObservation        `json:"setupErrors"`
+	Interpretation             []string                  `json:"interpretation"`
 }
 
 func main() {
@@ -252,6 +254,7 @@ func main() {
 	flag.BoolVar(&o.observerNativeFacts, "observer-native-facts", false, "candidate: reuse exact bytes+expected-chain signature facts from verified replay; native8 or native-stream8 with original suffix setup")
 	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: private suffix initialization; explicit native8 data64 mode only")
 	flag.BoolVar(&o.nativeCurrentInputReuse, "native-current-input-reuse", false, "explicit native stream only: share privately validated identical freshly captured input under original reader budget")
+	flag.BoolVar(&o.nativeCanonicalCertificate, "native-canonical-certificate", false, "explicit native stream only: canonical private certificate copy with exact encoded-byte comparison and strict JSON fallback")
 	flag.BoolVar(&o.nativeStream8, "native-stream8", false, "explicit history-growing native prefix stream: original ready sender/nonce/evidence rules, exactly8submitters/4observers; separate resource grant required")
 	flag.BoolVar(&o.nativeSubmit8, "native-submit8", false, "candidate: exactly8 submitters, original four observers/queues and native-copy single-round supply")
 	flag.BoolVar(&o.sharedDurableReplay, "shared-durable-replay", false, "candidate: coalesce identical freshly captured block-journal replay; retain private state and full business/publication checks")
@@ -970,6 +973,7 @@ func execute(o options) error {
 	r.PrefixDurableReplay = o.prefixDurableReplay
 	r.PrefixNativeClone = o.prefixNativeClone
 	r.NativeCurrentInputReuse = o.nativeCurrentInputReuse
+	r.NativeCanonicalCertificate = o.nativeCanonicalCertificate
 	r.NativeStream8 = o.nativeStream8
 	r.NativeSubmit8 = o.nativeSubmit8
 	r.NativeSuffixSetup = o.nativeSuffixSetup

@@ -25,6 +25,16 @@ func NewBoundedBlockJournalNativeClonePrefixDecoder(migration chain.ConsensusMig
 	return d, nil
 }
 
+// Keep the bounded stream's original suffix initializer; only certificate
+// construction changes relative to the bounded native-clone control.
+func NewBoundedBlockJournalCanonicalNativePrefixDecoder(migration chain.ConsensusMigrationState, limit int) (*BlockJournalPrefixDecoder, error) {
+	d, err := NewBoundedBlockJournalNativeClonePrefixDecoder(migration, limit)
+	if err == nil {
+		d.canonicalNative = true
+	}
+	return d, err
+}
+
 // ByteLimit is immutable after construction. It reports encoded input/canonical
 // bounds only; native decoded snapshots and concurrent private clones also
 // consume heap and remain subject to the external runtime RSS guard.

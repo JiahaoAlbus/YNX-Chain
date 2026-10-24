@@ -21,6 +21,38 @@ func nativeStreamingOptions() options {
 	o.durableStoreByteLimit, o.durableCacheByteBudget = 32<<20, 32<<20
 	return o
 }
+
+func TestNativeStreamingCanonicalCertificateScopeAndDefault(t *testing.T) {
+	o := nativeStreamingOptions()
+	if o.nativeCanonicalCertificate {
+		t.Fatal("candidate enabled by default")
+	}
+	o.nativeCanonicalCertificate = true
+	if err := validateOptions(o); err != nil {
+		t.Fatal(err)
+	}
+	for _, mutate := range []func(*options){
+		func(o *options) { o.nativeStream8 = false },
+		func(o *options) { o.prefixNativeClone = false },
+		func(o *options) { o.observerPhaseTiming = false },
+		func(o *options) { o.nativeSuffixSetup = true },
+		func(o *options) { o.durableStoreByteLimit = 513 << 20 },
+	} {
+		bad := o
+		mutate(&bad)
+		if validateOptions(bad) == nil {
+			t.Fatal("unsupported canonical scope accepted")
+		}
+	}
+	b, err := json.Marshal(report{})
+	if err != nil || strings.Contains(string(b), "nativeCanonicalCertificate") {
+		t.Fatal("default report expanded", err)
+	}
+}
+
+func TestNativeStreamingCanonicalCertificateRealExecutionAndRecovery(t *testing.T) {
+	testStreamingWorkloadRealExecution(t, true, true, true)
+}
 func TestNativeStreamingScopeAndOriginalLimits(t *testing.T) {
 	o := nativeStreamingOptions()
 	if err := validateOptions(o); err != nil {
