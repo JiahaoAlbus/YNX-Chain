@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -183,6 +184,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		t.Fatal(err)
 	}
 	var nativeReader *durableReader
+	var finalNativeStats durableReaderStats
 	if native {
 		nativeReader, err = newWorkloadDurableReader(migration, []string{statePath}, o)
 		if err != nil {
@@ -315,6 +317,11 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		if inventory.Submitters != 8 || inventory.Observers != 4 || inventory.SubmissionQueueCapacity != len(initial) || len(inventory.ObservationQueueCapacities) != 4 {
 			t.Fatal("native stream actual workers/queues differ", inventory)
 		}
+		finishDurableReader(&nativeReader, &finalNativeStats)
+		if nativeReader != nil || !reflect.DeepEqual(actual, finalNativeStats) {
+			t.Fatal("finished native reader or complete observation stats changed")
+		}
+		t.Logf("measurement reader released before original complete stream readback; all102 per-input verifications retained")
 		t.Logf("original signed execution+Commit+native readback+nonce34+stream recovery102 inputs; quorum remains unit gates, no network business TPS")
 	}
 	if o.evidenceBudget.Poisoned || o.evidenceBudget.AttemptedBytes != stats.IntentSegments.Bytes+int64(stream.report.Bytes) {
@@ -342,7 +349,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		t.Fatal("completed fixture claim was silently reusable")
 	}
 	if native {
-		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, nativeReader.stats())
+		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats)
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)
 }

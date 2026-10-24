@@ -1082,7 +1082,7 @@ func execute(o options) error {
 		if o.sharedDurableReplay {
 			reader.sharedReplay = &sharedReplayCache{}
 		}
-		defer func() { r.DurableReadback = reader.stats() }()
+		defer finishDurableReader(&reader, &r.DurableReadback)
 		r.ChainID, r.GenesisSHA256 = m.ChainID, m.GenesisHash
 		for _, n := range m.Nodes {
 			r.Endpoints = append(r.Endpoints, n.RPCURL)
@@ -1308,6 +1308,12 @@ func execute(o options) error {
 		measurementWall := time.Since(started)
 		r.ProcessCPU = cpuProbe.finish(measurementWall)
 		r.SubmissionOccupancy = o.submissionOccupancy.snapshot(measurementWall)
+		if o.nativeStream8 {
+			// runReadySenderPool has joined all observation workers. Preserve
+			// their final statistics before independent whole-stream readback,
+			// without keeping measurement caches alive through that next phase.
+			finishDurableReader(&reader, &r.DurableReadback)
+		}
 		if o.reuseResultSlots {
 			if r.ReadySenders.BoundedSummary == nil {
 				return errors.Join(roundErr, errors.New("missing cumulative slot summary"))

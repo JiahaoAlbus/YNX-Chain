@@ -1,0 +1,98 @@
+{
+  "scope": "native streaming observation-to-independent-evidence phase lifetime; real signed cache weak-reference RED/GREEN, not a network RSS or throughput benchmark",
+  "baseCommit": "a8fd44968760f8f14dcb877a0bca2c9630e4c862",
+  "files": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/main.go",
+      "bytes": 72489,
+      "sha256": "3d8b7927fe0f10cf3b6d43a706406f8931afb83fc9c2a4e94741c84432a4cb91"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/reader_finish.go",
+      "bytes": 323,
+      "sha256": "37c6f8dd755d867e8dd0e59f50c15f72acaaed5670c75284bca04c21074837d3"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/reader_finish_test.go",
+      "bytes": 1996,
+      "sha256": "4712ad9774d494013c37312754f6161af08094d00d803e34c0a6bf16816463ae"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/stream_workload_test.go",
+      "bytes": 19314,
+      "sha256": "10c54b33d5695ed5a405b5d208a323e6daf67275c20a42de6612bb97dc2f5db4"
+    }
+  ],
+  "lifecycle": {
+    "workersJoinedBeforeEarlyFinish": true,
+    "allOriginalStatsPreserved": true,
+    "deferredErrorStatsPreserved": true,
+    "repeatFinishDoesNotOverwrite": true,
+    "independentCompleteEvidenceReadbackRetained": true,
+    "productionForcedGC": false,
+    "resourceCapsChanged": false,
+    "defaultLegacyEarlyFinish": false
+  },
+  "realCacheProbe": {
+    "snapshotEncodedInputBytes": 6222,
+    "oldDeferKeepsReaderPrefixSlotAndInputReachable": true,
+    "finishedReaderPrefixSlotAndInputUnreachableAfterTestGC": true,
+    "testGCOnly": true,
+    "RSSReductionBytes": null
+  },
+  "realExecution": {
+    "inputsPerMode": 102,
+    "nonceCycles": 34,
+    "modes": [
+      "original native",
+      "canonical certificate",
+      "suffix setup"
+    ],
+    "signatureExecutionCommitRecoveryAndReplayRejectionPassed": true,
+    "syntheticQuorumGatesNotNetworkFinality": true
+  },
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/reader-finish-original-retention-red.raw",
+      "bytes": 821,
+      "sha256": "68e27aeb09d437a6b7e1cd65d61c111eea9827667039c4e3d7433188883e2bc9"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/reader-finish-cache-lifetime-green.raw",
+      "bytes": 868,
+      "sha256": "3339fb7b4b74ed4520ab0ec70773533b60cbab79a8bb7ae759f190870b433a8a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/reader-finish-green-and-real102.raw",
+      "bytes": 2074,
+      "sha256": "2ba78a436853bc5d10c3a21fa0c4c7d76d8f5e5620d2a8693f10492940c6c8dc"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/reader-finish-final-real102-all-modes.raw",
+      "bytes": 2030,
+      "sha256": "66e1001e3c012bca5a51cc7d00aa4fd71ca3c2723cecdba4e2ead468bfa29abf"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/reader-finish-focused-race.raw",
+      "bytes": 75,
+      "sha256": "af2ca94ba11ce7c124ee0c473982cd15a9e3b632095c8bb4d29428279274da65"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/reader-finish-full-go.raw",
+      "bytes": 198,
+      "sha256": "e74ceb5a8018fdbb5ab93828a9bf6eba875d2424cb9c42bffaaf27436f6a2a11"
+    }
+  ],
+  "intermediateFailure": "Initial shared test exporter dereferenced released reader; preserved raw failure, repaired exporter to use exact saved stats, final all-mode102 proof passed",
+  "tests": {
+    "consensusSeconds": 7.306,
+    "abciSeconds": 0.51,
+    "perfClientSeconds": 16.386,
+    "focusedRaceSeconds": 5.786
+  },
+  "networkRSSRepairProven": false,
+  "networkThroughputImprovementMeasured": false,
+  "sustained1000Qualified": false,
+  "sourceContractPending": true,
+  "normalCIPending": true
+}
