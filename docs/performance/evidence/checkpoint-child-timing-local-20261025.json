@@ -61,7 +61,13 @@
       "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/checkpoint-parser-final-01.raw",
       "bytes": 1153,
       "sha256": "3a0ad25f35ce4f67e068efd63af2c54acd2b73b5971d5fee96e07da4ff02c8d7"
+    },
+    "checkpoint-no-stale-child-race-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/checkpoint-no-stale-child-race-01.raw",
+      "bytes": 769,
+      "sha256": "e07d89e1992daf6adaa054e5fe93560b69d09a4550f328931a3528fa5af9f2e8"
     }
   },
-  "parserTests": 10
+  "parserTests": 10,
+  "codeCommit": "53d9669da"
 }

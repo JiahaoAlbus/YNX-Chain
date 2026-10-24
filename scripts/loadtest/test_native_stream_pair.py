@@ -10,6 +10,50 @@ def measurement(rate=300,upper=2000000000):
     return dict(summary=dict(finalSubmittedPerMeasurementSecond=rate),offerLatencyIntervalsNs={n:copy.deepcopy(distribution) for n in ('offerToEffectiveBusinessInclusion','offerToFinal')})
 
 class NativeStreamPairTests(unittest.TestCase):
+    def test_exit_mm_pair_is_explicit_on_both_cases_without_changing_load_or_caps(self):
+        old=supply.pair_recipe(supply.STREAM_GROUPED_PAIR)
+        new=supply.pair_recipe(supply.STREAM_MM_PAIR)
+        self.assertEqual(new['input']['linux_supply_pacing'],'paired-native-prepared-grouped-mm-proof')
+        self.assertEqual(new['pairCaps'],old['pairCaps'])
+        self.assertEqual(supply.pair_modes(supply.STREAM_MM_PAIR),('native-mm-bounded','native-mm-grouped'))
+        for before,after in zip(old['cases'],new['cases']):
+            after=copy.deepcopy(after)
+            self.assertIs(after.pop('nativeExitMMProof'),True)
+            self.assertEqual(before,after)
+        for candidate in (1,'true',None):
+            with self.subTest(candidate=candidate),self.assertRaises(RuntimeError):supply.recipe(exit_mm_proof=candidate)
+        with self.assertRaises(RuntimeError):supply.recipe(exit_mm_proof=True)
+        workflow=Path('.github/workflows/chain-core.yml').read_text()
+        for action in ('prepare','execute'):
+            self.assertIn('--'+action+'-pair --pair-kind native-prepared-grouped-mm-proof --observer-phases',workflow)
+
+    def test_exit_mm_pair_recovery_binds_both_original_receipt_selectors(self):
+        self.check_pair_recovery(supply.STREAM_MM_PAIR)
+
+    def test_exit_mm_pair_budget_selects_sampler_only_for_new_scope(self):
+        for kind in (supply.STREAM_GROUPED_PAIR,supply.STREAM_MM_PAIR):
+            with self.subTest(kind=kind),tempfile.TemporaryDirectory() as d:
+                root=Path(d);data=root/'data';evidence=root/'evidence';build=root/'build'
+                for path in (data,evidence,build):path.mkdir()
+                sample=dict(rssBytes=1,threads=1,privateBytes=1,buildBytes=1,freeDiskBytes=10<<30,availableMemoryBytes=2<<30)
+                budget=supply.PairBudget(data,evidence,0,build,kind)
+                with patch.object(supply.time,'monotonic',return_value=1),patch.object(supply,'native_sample',return_value=sample) as capture:
+                    budget.observe()
+                    self.assertIs(capture.call_args.kwargs['allow_exit_mm'],kind==supply.STREAM_MM_PAIR)
+
+    def test_exit_mm_original_receipt_proof_cannot_be_stripped_or_rewritten(self):
+        task=dict(pid=2,parent=1,group=2,startTicks=17,state='R',threads=1)
+        memory=dict(flags=4194316,virtualBytes=0,residentPages=0,threads=1,startTicks=17)
+        proof=dict(pid=2,before=dict(task,state='S'),after=dict(task),errno=3,failedRead='smaps_rollup',
+                   afterStatMemory=memory,retirementConfirmation=dict(task),retirementConfirmationStatMemory=dict(memory),outcome='exited-mm')
+        observed=dict(task,rssBytes=0,rssProvenance='kernel-exited-mm-double-stat')
+        receipt=dict(nativeExitMMProof=True,samples=[dict(tasks=[observed],retiredOwnedTransitions=[proof])])
+        supply.validate_exit_mm_samples(receipt,True)
+        for mutate in (lambda r:r.update(nativeExitMMProof=False),lambda r:r['samples'][0].pop('retiredOwnedTransitions'),lambda r:r['samples'][0]['retiredOwnedTransitions'][0]['afterStatMemory'].update(virtualBytes=1),lambda r:r['samples'][0]['tasks'][0].update(state='Z'),lambda r:r['samples'][0]['tasks'][0].pop('rssProvenance')):
+            changed=copy.deepcopy(receipt);mutate(changed)
+            with self.assertRaises(RuntimeError):supply.validate_exit_mm_samples(changed,True)
+        with self.assertRaises(RuntimeError):supply.validate_exit_mm_samples(receipt,False)
+
     def test_grouped_prepared_pair_changes_only_pacing_with_original_caps(self):
         plan=supply.pair_recipe(supply.STREAM_GROUPED_PAIR);before,after=plan['cases']
         self.assertEqual(plan['kind'],'fixed-same-VM-native-prepared-grouped-cadence-pair');self.assertEqual(plan['input']['linux_supply_pacing'],'paired-native-prepared-grouped-cadence')
@@ -301,12 +345,13 @@ class NativeStreamPairTests(unittest.TestCase):
                 suffix=kind==supply.STREAM_SUFFIX_PAIR and index==1
                 tip=kind==supply.STREAM_TIP_PAIR and index==1
                 submitters=16 if kind==supply.STREAM_SUBMIT16_PAIR and index==1 else 8
-                prepared=kind==supply.STREAM_GROUPED_PAIR or kind==supply.STREAM_PREPARED_PAIR and index==1
+                exit_mm_proof=kind==supply.STREAM_MM_PAIR
+                prepared=kind in (supply.STREAM_GROUPED_PAIR,supply.STREAM_MM_PAIR) or kind==supply.STREAM_PREPARED_PAIR and index==1
                 case=('before-' if index==0 else 'after-')+label
                 directory=root/case/'evidence';directory.mkdir(parents=True)
-                row=dict(**({"nativePreparedCertificate":True} if prepared else {}),**({"nativeStreamSubmitters":16} if submitters==16 else {}),sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),**({"nativeBlockTipHint":True} if tip else {}),binaries=pair['compiledBinaries'])
+                row=dict(**({"nativeExitMMProof":True} if exit_mm_proof else {}),**({"nativePreparedCertificate":True} if prepared else {}),**({"nativeStreamSubmitters":16} if submitters==16 else {}),sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),**({"nativeBlockTipHint":True} if tip else {}),binaries=pair['compiledBinaries'])
                 raw=json.dumps(row).encode();(directory/'actual.json').write_bytes(raw);rows.append((directory/'actual.json',raw))
-                cases.append(dict(**({"preparedCertificate":prepared} if kind in (supply.STREAM_PREPARED_PAIR,supply.STREAM_GROUPED_PAIR) else {}),**({"submitters":submitters} if kind==supply.STREAM_SUBMIT16_PAIR else {}),order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
+                cases.append(dict(**({"exitMMProof":True} if exit_mm_proof else {}),**({"preparedCertificate":prepared} if kind in (supply.STREAM_PREPARED_PAIR,supply.STREAM_GROUPED_PAIR,supply.STREAM_MM_PAIR) else {}),**({"submitters":submitters} if kind==supply.STREAM_SUBMIT16_PAIR else {}),order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
             pair['cases']=cases;pair['jointObservation']=supply.native_stream_pair_observation(cases)
             def verify(destination,mode,head,**kwargs):
                 index=0 if Path(destination).name.startswith('before-') else 1
@@ -319,7 +364,10 @@ class NativeStreamPairTests(unittest.TestCase):
             for fault in ('order','hostIdentity','sha256','measurement','mode','canonicalCertificate','nativeSuffixSetup','blockTipHint'):
                 changed=copy.deepcopy(pair);changed['cases'][1][fault]='changed'
                 with self.subTest(fault=fault),self.assertRaises(RuntimeError):check(changed)
-            if kind in (supply.STREAM_PREPARED_PAIR,supply.STREAM_GROUPED_PAIR):
+            if kind==supply.STREAM_MM_PAIR:
+                changed=copy.deepcopy(pair);changed['cases'][1]['exitMMProof']=False
+                with self.assertRaises(RuntimeError):check(changed)
+            if kind in (supply.STREAM_PREPARED_PAIR,supply.STREAM_GROUPED_PAIR,supply.STREAM_MM_PAIR):
                 changed=copy.deepcopy(pair);changed['cases'][1]['preparedCertificate']=False
                 with self.assertRaises(RuntimeError):check(changed)
                 bad_receipt=json.loads(rows[1][1]);bad_receipt['nativePreparedCertificate']=False

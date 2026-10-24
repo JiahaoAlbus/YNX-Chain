@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "baseCommit": "53d9669da",
+  "comparison": "native-prepared-grouped-mm-proof",
+  "input": {
+    "run_linux_supply": true,
+    "linux_supply_transport": "grpc",
+    "linux_supply_profile": "supply-native-stream-2048x4",
+    "linux_supply_pacing": "paired-native-prepared-grouped-mm-proof",
+    "measure_observer_phases": true,
+    "prefix_durable_replay": false
+  },
+  "cases": [
+    "before-native-mm-bounded",
+    "after-native-mm-grouped"
+  ],
+  "exitMMProofEnabledBothCases": true,
+  "originalGroupScopeUnchanged": true,
+  "defaultSamplerRejectionUnchanged": true,
+  "limitsUnchanged": true,
+  "networkPerformanceQualified": false,
+  "sustainedTPSQualified": false,
+  "heavyDispatched": false,
+  "normalCIPending": true,
+  "localTests": {
+    "controller": 101,
+    "controllerPassed": 99,
+    "controllerLinuxSkipped": 2,
+    "pair": 42,
+    "artifact": 23,
+    "actualGoPublicFixtureReused": true
+  },
+  "raw": {
+    "exit-mm-pair-red-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/exit-mm-pair-red-01.raw",
+      "bytes": 902,
+      "sha256": "4ed0e88460429698f92fbf6536e129cea1728c6991c81757580b03cd1b2e445b"
+    },
+    "exit-mm-pair-final-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/exit-mm-pair-final-01.raw",
+      "bytes": 141,
+      "sha256": "2301b45bb9e51c389ef1b30c2655bb78086084419daadd25ca6467fc537d8869"
+    },
+    "exit-mm-pair-controller-02.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/exit-mm-pair-controller-02.raw",
+      "bytes": 214,
+      "sha256": "3420314c750f23f4cdf63ea6557d10f5f4875d930251394dcef67e1b36af1eef"
+    },
+    "exit-mm-pair-artifact-02.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/exit-mm-pair-artifact-02.raw",
+      "bytes": 378,
+      "sha256": "404589dceac6468d23deae016102edf5e9e42831e415e73ad8851fe856a43cba"
+    },
+    "exit-mm-pair-prepare-02.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/exit-mm-pair-prepare-02.json",
+      "bytes": 6073,
+      "sha256": "9085be7f9280d1c785bb16453db0ec45af1111cab3cee13c42a1b2769b1a1e18"
+    }
+  }
+}

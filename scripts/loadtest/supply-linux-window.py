@@ -61,7 +61,8 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
                  buildBytes=1 << 30, metadataReserveMs=500)
 
 
-def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None, prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False,native_stream8=False,current_input_reuse=True,canonical_certificate=False,block_tip_hint=False,submitters=8,prepared=False):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None, prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False,native_stream8=False,current_input_reuse=True,canonical_certificate=False,block_tip_hint=False,submitters=8,prepared=False,exit_mm_proof=False):
+    if type(exit_mm_proof) is not bool or exit_mm_proof and (not native_stream8 or not prepared or current_input_reuse is not True or pacing not in ("bounded-cadence","grouped-cadence4")):raise RuntimeError("exit-mm proof requires explicit prepared8/current-reuse native stream")
     if type(prepared) is not bool or prepared and (not native_stream8 or submitters!=8 or canonical_certificate or native_suffix_setup or block_tip_hint):raise RuntimeError("prepared requires explicit8-worker native stream and no mixed candidate")
     if type(submitters) is not int or submitters not in (8,16) or submitters==16 and not native_stream8:raise RuntimeError("submit16 requires explicit native stream")
     if type(block_tip_hint) is not bool or block_tip_hint and (not native_stream8 or canonical_certificate or native_suffix_setup):raise RuntimeError("tip hint requires explicit stream boolean and no mixed construction candidate")
@@ -77,7 +78,7 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
             raise RuntimeError("native stream profile requires explicit grpc/bounded ready pacing/phase/native-prefix/facts and no finite candidates")
         profile=native_stream_profile(pacing,submitters,prepared)
         return dict(schema=1,profile=profile,abciTransport="grpc",pacingMode=pacing,environment=ENV,execute=False,
-            nativeStream8=True,**({"nativePreparedCertificate":True} if prepared else {}),**({"nativeStreamSubmitters":16} if submitters==16 else {}),nativeStreamVerifier=True,verifierLifecycle=dict(clientExitRequired=True,completeCheckerPasses=2,withinOriginalActiveMs=45000,maximumConcurrentOwnedProcesses=10,recordedChildRoles=11),observerPhaseTiming=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
+            nativeStream8=True,**({"nativeExitMMProof":True} if exit_mm_proof else {}),**({"nativePreparedCertificate":True} if prepared else {}),**({"nativeStreamSubmitters":16} if submitters==16 else {}),nativeStreamVerifier=True,verifierLifecycle=dict(clientExitRequired=True,completeCheckerPasses=2,withinOriginalActiveMs=45000,maximumConcurrentOwnedProcesses=10,recordedChildRoles=11),observerPhaseTiming=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
             **({"nativeCanonicalCertificate":True} if canonical_certificate else {}),**({"nativeBlockTipHint":True} if block_tip_hint else {}),**({"nativeSuffixSetup":True} if native_suffix_setup else {}),nativeCurrentInputReuse=current_input_reuse,streamBudget=dict(STREAM_BUDGET),resourceCaps=dict(native.CAPS,privateBytes=profile["privateBytes"],activeMs=45000,totalMs=60000,ownedProcesses=10,longLivedChildren=9),
             requiresSeparateRootGrant=True,nodesStarted=False,platform="Linux native /proc; not macOS pressure1",
             interpretation="Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion.")
@@ -180,7 +181,8 @@ STREAM_TIP_PAIR="native-block-tip-hint"
 STREAM_SUBMIT16_PAIR="native-stream-submit16"
 STREAM_PREPARED_PAIR="native-prepared-certificate"
 STREAM_GROUPED_PAIR="native-prepared-grouped-cadence"
-STREAM_PAIRS=(STREAM_PAIR,STREAM_CACHE_PAIR,STREAM_CERTIFICATE_PAIR,STREAM_SUFFIX_PAIR,STREAM_TIP_PAIR,STREAM_SUBMIT16_PAIR,STREAM_PREPARED_PAIR,STREAM_GROUPED_PAIR)
+STREAM_MM_PAIR="native-prepared-grouped-mm-proof"
+STREAM_PAIRS=(STREAM_PAIR,STREAM_CACHE_PAIR,STREAM_CERTIFICATE_PAIR,STREAM_SUFFIX_PAIR,STREAM_TIP_PAIR,STREAM_SUBMIT16_PAIR,STREAM_PREPARED_PAIR,STREAM_GROUPED_PAIR,STREAM_MM_PAIR)
 PAIR_MODES[STREAM_PAIR]=("native-stream-relative","native-stream-bounded")
 PAIR_MODES[STREAM_CACHE_PAIR]=("native-input-separate","native-input-shared")
 PAIR_MODES[STREAM_CERTIFICATE_PAIR]=("native-certificate-json","native-certificate-canonical")
@@ -191,8 +193,10 @@ PAIR_MODES[STREAM_SUBMIT16_PAIR]=("native-submit8","native-submit16")
 
 PAIR_MODES[STREAM_PREPARED_PAIR]=("native-prepared-control","native-prepared-owned")
 PAIR_MODES[STREAM_GROUPED_PAIR]=("native-prepared-bounded","native-prepared-grouped")
+PAIR_MODES[STREAM_MM_PAIR]=("native-mm-bounded","native-mm-grouped")
 
 def native_stream_pair_spec(comparison):
+    if comparison==STREAM_MM_PAIR:return [("native-mm-bounded","bounded-cadence",True),("native-mm-grouped","grouped-cadence4",True)]
     if comparison==STREAM_GROUPED_PAIR:return [("native-prepared-bounded","bounded-cadence",True),("native-prepared-grouped","grouped-cadence4",True)]
     if comparison==STREAM_PREPARED_PAIR:return [("native-prepared-control","bounded-cadence",True),("native-prepared-owned","bounded-cadence",True)]
     if comparison==STREAM_SUBMIT16_PAIR:return [("native-submit8","bounded-cadence",True),("native-submit16","bounded-cadence",True)]
@@ -306,9 +310,9 @@ def fixture_resource_readout(network):
 
 def pair_recipe(comparison="relative-bounded"):
     if comparison in STREAM_PAIRS:
-        return dict(schema=1,kind="fixed-same-VM-native-prepared-grouped-cadence-pair" if comparison==STREAM_GROUPED_PAIR else "fixed-same-VM-native-prepared-certificate-pair" if comparison==STREAM_PREPARED_PAIR else "fixed-same-VM-native-stream-submit16-pair" if comparison==STREAM_SUBMIT16_PAIR else "fixed-same-VM-native-block-tip-hint-pair" if comparison==STREAM_TIP_PAIR else "fixed-same-VM-native-stream-suffix-pair" if comparison==STREAM_SUFFIX_PAIR else "fixed-same-VM-native-canonical-certificate-pair" if comparison==STREAM_CERTIFICATE_PAIR else "fixed-same-VM-native-current-input-pair" if comparison==STREAM_CACHE_PAIR else "fixed-same-VM-native-stream-cadence-pair",execute=False,requiresSeparateRootGrant=True,nodesStarted=False,
+        return dict(schema=1,kind="fixed-same-VM-native-prepared-grouped-mm-proof-pair" if comparison==STREAM_MM_PAIR else "fixed-same-VM-native-prepared-grouped-cadence-pair" if comparison==STREAM_GROUPED_PAIR else "fixed-same-VM-native-prepared-certificate-pair" if comparison==STREAM_PREPARED_PAIR else "fixed-same-VM-native-stream-submit16-pair" if comparison==STREAM_SUBMIT16_PAIR else "fixed-same-VM-native-block-tip-hint-pair" if comparison==STREAM_TIP_PAIR else "fixed-same-VM-native-stream-suffix-pair" if comparison==STREAM_SUFFIX_PAIR else "fixed-same-VM-native-canonical-certificate-pair" if comparison==STREAM_CERTIFICATE_PAIR else "fixed-same-VM-native-current-input-pair" if comparison==STREAM_CACHE_PAIR else "fixed-same-VM-native-stream-cadence-pair",execute=False,requiresSeparateRootGrant=True,nodesStarted=False,
             pairCaps=dict(PAIR_CAPS,retainedBytes=512<<20),
-            cases=[recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=reuse,canonical_certificate=comparison==STREAM_CERTIFICATE_PAIR and index==1,native_suffix_setup=comparison==STREAM_SUFFIX_PAIR and index==1,block_tip_hint=comparison==STREAM_TIP_PAIR and index==1,submitters=16 if comparison==STREAM_SUBMIT16_PAIR and index==1 else 8,prepared=(comparison==STREAM_GROUPED_PAIR or comparison==STREAM_PREPARED_PAIR and index==1)) for index,(_,mode,reuse) in enumerate(native_stream_pair_spec(comparison))],
+            cases=[recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=reuse,canonical_certificate=comparison==STREAM_CERTIFICATE_PAIR and index==1,native_suffix_setup=comparison==STREAM_SUFFIX_PAIR and index==1,block_tip_hint=comparison==STREAM_TIP_PAIR and index==1,submitters=16 if comparison==STREAM_SUBMIT16_PAIR and index==1 else 8,prepared=(comparison in (STREAM_GROUPED_PAIR,STREAM_MM_PAIR) or comparison==STREAM_PREPARED_PAIR and index==1),exit_mm_proof=comparison==STREAM_MM_PAIR) for index,(_,mode,reuse) in enumerate(native_stream_pair_spec(comparison))],
             order=" then ".join(label for label,_,_ in native_stream_pair_spec(comparison))+"; no second activation after any first failure/UNKNOWN/incomplete raw/unclean closure",
             input=dict(run_linux_supply=True,linux_supply_transport="grpc",linux_supply_profile=STREAM_PROFILE,linux_supply_pacing="paired-"+comparison,measure_observer_phases=True,prefix_durable_replay=False),
             binaries="one original four-ELF build; SHA/buildInfo/source unchanged across both original cases",
@@ -409,6 +413,7 @@ class PairBudget:
         self.caps = pair_recipe(comparison)["pairCaps"]
         self.data64 = comparison in DATA64_PAIRS
         self.stream = comparison in STREAM_PAIRS
+        self.exit_mm_proof = comparison==STREAM_MM_PAIR
         before, after = pair_modes(comparison)
         self.case_names = ("before-"+before, "after-"+after)
         self.deadline = started + self.caps["totalMs"]/1000
@@ -427,7 +432,8 @@ class PairBudget:
         if self.remaining() <= 0:
             raise RuntimeError("pair120s total deadline exceeded")
         if sample is None:
-            sample = native_sample(self.active_case, self.build, {}, self.started,enforce_limits=not (self.data64 or self.stream))
+            sample = native_sample(self.active_case, self.build, {}, self.started,enforce_limits=not (self.data64 or self.stream),allow_exit_mm=self.exit_mm_proof)
+        validate_exit_mm_samples(dict(nativeExitMMProof=self.exit_mm_proof,samples=[sample]),self.exit_mm_proof)
         native.enforce(sample,private_bytes_cap=256<<20 if self.stream else 64<<20 if self.data64 else None,**(dict(private_profile=STREAM_PROFILE) if self.stream else {}))
         if (self.data64 or self.stream) and not self.samples and sample["freeDiskBytes"] < (native.CAPS["diskFloorBytes"]+native.CAPS["rootReserveBytes"]+native.CAPS["compileReserveBytes"]+self.caps["retainedBytes"]):
             raise RuntimeError("pair%dMiB initial disk reserve failed"%(self.caps["retainedBytes"]>>20))
@@ -968,11 +974,12 @@ def _verifier_controller():
     return SimpleNamespace(__file__=__file__,stream_evidence=stream_evidence,recipe=recipe,STREAM_PROFILE=STREAM_PROFILE)
 
 
-def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_certificate=False,native_suffix_setup=False,block_tip_hint=False,submitters=8,prepared=False):
-    expected=recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=current_input_reuse,canonical_certificate=canonical_certificate,native_suffix_setup=native_suffix_setup,block_tip_hint=block_tip_hint,submitters=submitters,prepared=prepared)
+def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_certificate=False,native_suffix_setup=False,block_tip_hint=False,submitters=8,prepared=False,exit_mm_proof=False):
+    expected=recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=current_input_reuse,canonical_certificate=canonical_certificate,native_suffix_setup=native_suffix_setup,block_tip_hint=block_tip_hint,submitters=submitters,prepared=prepared,exit_mm_proof=exit_mm_proof)
     if row.get("nativeCanonicalCertificate",False) is not canonical_certificate:raise RuntimeError("native pair canonical certificate selection differs")
     if row.get("nativeSuffixSetup",False) is not native_suffix_setup:raise RuntimeError("native pair suffix setup selection differs")
     if row.get("nativeBlockTipHint",False) is not block_tip_hint:raise RuntimeError("native pair tip hint selection differs")
+    validate_exit_mm_samples(row,exit_mm_proof)
     if row.get("nativePreparedCertificate",False) is not prepared:raise RuntimeError("native pair prepared selection differs")
     if row.get("nativeStreamSubmitters",0)!=(16 if submitters==16 else 0):raise RuntimeError("native case explicit submitter selection differs")
     for key in ("profile","abciTransport","pacingMode","environment","nativeStream8","nativeStreamVerifier","verifierLifecycle","nativeCurrentInputReuse","observerPhaseTiming","prefixDurableReplay","prefixNativeClone","observerNativeFacts","streamBudget","resourceCaps"):
@@ -1032,18 +1039,19 @@ def run_native_stream_pair(source,build,root,receipt,comparison=STREAM_PAIR):
             suffix=comparison==STREAM_SUFFIX_PAIR and index==1
             tip=comparison==STREAM_TIP_PAIR and index==1
             submitters=16 if comparison==STREAM_SUBMIT16_PAIR and index==1 else 8
-            prepared=(comparison==STREAM_GROUPED_PAIR or comparison==STREAM_PREPARED_PAIR and index==1)
+            exit_mm_proof=comparison==STREAM_MM_PAIR
+            prepared=(comparison in (STREAM_GROUPED_PAIR,STREAM_MM_PAIR) or comparison==STREAM_PREPARED_PAIR and index==1)
             if budget.remaining()<=60.5:raise RuntimeError("native pair reserve insufficient before activation")
             if native_pair_host_identity()!=host:raise RuntimeError("native pair VM/boot/PID namespace changed")
             if {name:dict(sha256=native.digest(build/name),bytes=(build/name).stat().st_size) for name in BINARIES}!=binary_pins:
                 raise RuntimeError("native pair binary SHA/bytes changed before activation")
             case=root/(("before-" if index==0 else "after-")+label);out=receipt.parent/(label+"-actual.json");budget.active_case=case
             invoked=time.monotonic()
-            code=run(source,build,case,out,"grpc",STREAM_PROFILE,pace,pair_budget=budget,observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=reuse,canonical_certificate=canonical,native_suffix_setup=suffix,block_tip_hint=tip,submitters=submitters,prepared=prepared)
+            code=run(source,build,case,out,"grpc",STREAM_PROFILE,pace,pair_budget=budget,observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=reuse,canonical_certificate=canonical,native_suffix_setup=suffix,block_tip_hint=tip,submitters=submitters,prepared=prepared,exit_mm_proof=exit_mm_proof)
             elapsed=(time.monotonic()-invoked)*1000;row=stream_evidence.strict_json(native.bounded(out,16<<20))
-            result["cases"].append(dict(order=index+1,mode=pace,label=label,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if comparison==STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if comparison==STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if comparison==STREAM_TIP_PAIR else {}),**({"submitters":submitters} if comparison==STREAM_SUBMIT16_PAIR else {}),**({"preparedCertificate":prepared} if comparison in (STREAM_PREPARED_PAIR,STREAM_GROUPED_PAIR) else {}),receipt=str(out),sha256=native.digest(out),code=code,invocationElapsedMs=int(elapsed),firstCause=row.get("firstCause")))
+            result["cases"].append(dict(order=index+1,mode=pace,label=label,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if comparison==STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if comparison==STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if comparison==STREAM_TIP_PAIR else {}),**({"submitters":submitters} if comparison==STREAM_SUBMIT16_PAIR else {}),**({"preparedCertificate":prepared} if comparison in (STREAM_PREPARED_PAIR,STREAM_GROUPED_PAIR,STREAM_MM_PAIR) else {}),**({"exitMMProof":True} if exit_mm_proof else {}),receipt=str(out),sha256=native.digest(out),code=code,invocationElapsedMs=int(elapsed),firstCause=row.get("firstCause")))
             if code!=0 or elapsed>60000:raise RuntimeError("native pair firstcause/UNKNOWN/case deadline: "+str(row.get("firstCause")))
-            measured=native_stream_pair_case(row,case,pace,current_input_reuse=reuse,canonical_certificate=canonical,native_suffix_setup=suffix,block_tip_hint=tip,submitters=submitters,prepared=prepared)
+            measured=native_stream_pair_case(row,case,pace,current_input_reuse=reuse,canonical_certificate=canonical,native_suffix_setup=suffix,block_tip_hint=tip,submitters=submitters,prepared=prepared,exit_mm_proof=exit_mm_proof)
             if native_pair_host_identity()!=host:raise RuntimeError("native pair VM identity changed during case")
             for name in BINARIES:
                 if row.get("binaries",{}).get(name,{}).get("sha256")!=binary_pins[name]["sha256"] or row["binaries"][name].get("bytes")!=binary_pins[name]["bytes"]:raise RuntimeError("original case ELF differs from pair build")
@@ -1593,6 +1601,28 @@ def native_exit_mm_proof(context):
     return True
 
 
+def validate_exit_mm_samples(receipt, enabled):
+    if type(enabled) is not bool or receipt.get('nativeExitMMProof',False) is not enabled:
+        raise RuntimeError('native exit-mm proof selection differs')
+    for sample in receipt.get('samples',[]):
+        covered=set()
+        tasks=sample.get('tasks',[])
+        for proof in sample.get('retiredOwnedTransitions',[]):
+            if proof.get('outcome')!='exited-mm':continue
+            if not enabled or not native_exit_mm_proof(proof):raise RuntimeError('invalid original exited-mm proof')
+            pid=proof['pid']
+            matches=[task for task in tasks if task.get('pid')==pid]
+            if pid in covered or len(matches)!=1:raise RuntimeError('exited-mm task coverage differs')
+            task=matches[0]
+            if (task.get('rssBytes')!=0 or type(task.get('rssBytes')) is not int
+                    or task.get('rssProvenance')!='kernel-exited-mm-double-stat'
+                    or any(task.get(key)!=proof['retirementConfirmation'][key] for key in ('pid','parent','group','startTicks','threads','state'))):
+                raise RuntimeError('exited-mm original task provenance differs')
+            covered.add(pid)
+        if any(task.get('rssProvenance')=='kernel-exited-mm-double-stat' and task.get('pid') not in covered for task in tasks):
+            raise RuntimeError('exited-mm task lacks original double-stat proof')
+
+
 def native_sample(case, build, known, started, initial=False, enforce_limits=True, allow_exit_mm=False):
     if type(allow_exit_mm) is not bool:raise RuntimeError('exit-mm candidate selector must be boolean')
     rows, vanished = native.proc_inventory()
@@ -1796,15 +1826,15 @@ def case_evidence_bytes(receipt, paired=False):
     return (receipt.stat().st_size if receipt.is_file() else 0) if paired else native.directory_bytes(receipt.parent)
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None,prefix_replay=None,prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False,native_stream8=False,current_input_reuse=True,canonical_certificate=False,block_tip_hint=False,submitters=8,prepared=False):
-    if fixture_only and (prepared or block_tip_hint or canonical_certificate or native_stream8 or prefix_native_clone or native_submit8 or native_suffix_setup or observer_native_facts or client_procs2 or require_client_runtime):raise RuntimeError("native candidates cannot select a fixture-only case")
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None, fixture_only=False, endpoint_fair=None, endpoint_elastic=None,prefix_replay=None,prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False,native_stream8=False,current_input_reuse=True,canonical_certificate=False,block_tip_hint=False,submitters=8,prepared=False,exit_mm_proof=False):
+    if fixture_only and (exit_mm_proof or prepared or block_tip_hint or canonical_certificate or native_stream8 or prefix_native_clone or native_submit8 or native_suffix_setup or observer_native_facts or client_procs2 or require_client_runtime):raise RuntimeError("native candidates cannot select a fixture-only case")
     one_shot=not fixture_only and profile_name in ONESHOT_PROFILES
     scoped_case=one_shot or native_stream8
     if one_shot:
         if shared_replay is not None and shared_replay is not (prefix_replay is not True):
             raise RuntimeError("2048x1 requires exclusive shared replay or prefix selection")
         shared_replay=prefix_replay is not True
-    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2,require_client_runtime,native_stream8,current_input_reuse,canonical_certificate,block_tip_hint,submitters,prepared)
+    selected = fixture_resource_recipe() if fixture_only else recipe(transport, profile_name, pacing, observer_phases, shared_replay, endpoint_fair, endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2,require_client_runtime,native_stream8,current_input_reuse,canonical_certificate,block_tip_hint,submitters,prepared,exit_mm_proof)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -1835,7 +1865,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         return subprocess.check_output(args, cwd=source, timeout=pair_budget.io_timeout() if pair_budget else 5, stderr=subprocess.STDOUT).decode().strip()
 
     def capture_sample(initial=False):
-        sampled=native_sample(case,build,known,started,initial,enforce_limits=not (fixture_only or scoped_case))
+        sampled=native_sample(case,build,known,started,initial,enforce_limits=not (fixture_only or scoped_case),allow_exit_mm=exit_mm_proof)
         if fixture_only or scoped_case:
             sampled["privateBytes"]+=case_evidence_bytes(receipt,pair_budget is not None)
         if fixture_only:

@@ -2197,7 +2197,8 @@ class SupplySourceTests(unittest.TestCase):
                 if str(path)=="/proc/mounts":return b'proc /proc proc rw 0 0\n'
                 if str(path) in ("/proc/meminfo","/proc/cpuinfo"):return b'synthetic-unit'
                 return real_bounded(path,limit)
-            def sample(case,build,known,started,initial=False,enforce_limits=True):
+            def sample(case,build,known,started,initial=False,enforce_limits=True,allow_exit_mm=False):
+                self.assertIs(allow_exit_mm,False)
                 return dict(rssBytes=100,threads=1,privateBytes=supply.native.directory_bytes(case),buildBytes=supply.native.directory_bytes(build),freeDiskBytes=10 << 30,availableMemoryBytes=2 << 30,tasks=[])
             rows={supply.os.getpid():dict(pid=supply.os.getpid(),parent=0,startTicks=1,threads=1,state='R')}
             stdout=io.StringIO()
