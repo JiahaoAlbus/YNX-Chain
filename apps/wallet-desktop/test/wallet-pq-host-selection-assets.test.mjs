@@ -42,12 +42,13 @@ test('catalog request rejects missing independent pins, unknown fields and overs
   await assert.rejects(preparePackagedPQHostSelectionInvocation('/PUBLIC',receipt,{...base,...change}));
  }
 });
-test('normal Main consumes the original private registration through the fixed loader rather than an unconditional refusal',async()=>{
+test('normal Main selects persisted registration using the actual journal binding rather than the legacy constant',async()=>{
  const main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),pair=Object.freeze({catalogPath:'/PUBLIC/private/catalog.json',catalogSha256:'a'.repeat(64)});let loads=0;
- const context={originalPQHostCatalogRegistration:pair,loadOriginalPQHostSourceCatalog:r=>{loads++;assert.equal(r,pair);return pair;}};
- const declaration=main.split('\n').find(line=>/^const readOriginalPQHostSourceCatalog=/.test(line));assert(declaration);
+ const original={PUBLIC:'journal'},binding={PUBLIC:'network'},request={version:'PUBLIC',operationId:'PUBLIC-op',account:'0x'+'a'.repeat(40),networkId:'b'.repeat(64),transactionHash:'c'.repeat(64),nativeWireHash:'d'.repeat(64)};
+ const context={preparePQHostSelectionRequest:(o,b)=>{assert.equal(o,original);assert.equal(b,binding);return {stdin:JSON.stringify(request)};},originalPQHostCatalogReceiver:{select:r=>{loads++;assert.equal(r.operationId,request.operationId);assert.equal(r.originalHash,'0x'+request.nativeWireHash);assert.equal(Object.hasOwn(r,'version'),false);return pair;}}};
+ const declaration=main.match(/const readOriginalPQHostSourceCatalog=[\s\S]*?\n};/)?.[0];assert(declaration);
  runInNewContext(declaration+'\nthis.read=readOriginalPQHostSourceCatalog;',context);
- assert.equal(context.read(),pair);assert.equal(loads,1);
+ assert.equal(context.read(original,binding),pair);assert.equal(loads,1);
 });
 test('normal Main and Mac build entrypoints share one fixed component; missing catalog fails before selector construction',async()=>{
  assert.equal(runtimeReceipt,receipt);
@@ -56,12 +57,12 @@ test('normal Main and Mac build entrypoints share one fixed component; missing c
   const source=await fs.readFile(new URL(file,import.meta.url),'utf8');
   assert.match(source,/import \{originalPQVerifierReceipt\} from ['"](?:\.\/|\.\.\/src\/)wallet-pq-runtime-component\.mjs['"]/);
  }
- const context={app:{},originalPQVerifierReceipt:runtimeReceipt,loadOriginalPQHostSourceCatalog,originalPQHostCatalogRegistration};let factories=0;
+ const context={app:{},originalPQVerifierReceipt:runtimeReceipt,preparePQHostSelectionRequest:()=>({stdin:'{"version":"PUBLIC","nativeWireHash":"PUBLIC"}'}),originalPQHostCatalogReceiver:{select:()=>{throw Object.assign(Error('PQ_HOST_SOURCE_NOT_SUPPLIED'),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});}}};let factories=0;
  for(const name of ['createPackagedPQFinalityVerifier','createPackagedPQHostProducer','createPackagedPQHostSelector'])context[name]=args=>{assert.equal(args.independentReceipt,receipt);factories++;return Object.freeze({PUBLIC:true});};
- const declarations=main.split('\n').filter(line=>/^const (createOriginalPQ(FinalityVerifier|HostProducer|HostSelector)|readOriginalPQHostSourceCatalog)=/.test(line)).join('\n');
+ const declarations=main.split('\n').filter(line=>/^const createOriginalPQ(FinalityVerifier|HostProducer|HostSelector)=/.test(line)).join('\n')+'\n'+main.match(/const readOriginalPQHostSourceCatalog=[\s\S]*?\n};/)[0];
  runInNewContext(declarations+'\nthis.calls=[createOriginalPQFinalityVerifier,createOriginalPQHostProducer,createOriginalPQHostSelector];this.catalog=readOriginalPQHostSourceCatalog;',context);
  for(const create of context.calls)create();assert.equal(factories,3);
  assert.throws(()=>context.catalog(),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});assert.equal(factories,3);
- assert.match(main,/createSelection:\(original,binding\)=>createPQHostSelectionCapture\(\{original,binding,evidence:originalPQFinalityEvidence,sourceCatalog:readOriginalPQHostSourceCatalog\(\),selector:createOriginalPQHostSelector\(\)\}\)/);
+ assert.match(main,/createSelection:\(original,binding\)=>createPQHostSelectionCapture\(\{original,binding,evidence:originalPQFinalityEvidence,sourceCatalog:readOriginalPQHostSourceCatalog\(original,binding\),selector:createOriginalPQHostSelector\(\)\}\)/);
  assert.doesNotMatch(main,/selectSource:selectOriginalPQHostSource/);
 });

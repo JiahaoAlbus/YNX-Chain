@@ -24,7 +24,7 @@ function registration(value){
  * resource between Main guard and original process-owner capture. Read-only:
  * no create/repair/chmod, producer invocation or fallback on any error.
  */
-export function readOriginalPQHostSourceCatalog(independentRegistration){
+function readCatalog(independentRegistration){
  const selected=registration(independentRegistration);let fd,result,cause,failed=false;
  try{
   if(typeof process.getuid!=='function'||process.getuid()===0)invalid();
@@ -40,9 +40,13 @@ export function readOriginalPQHostSourceCatalog(independentRegistration){
   if(createHash('sha256').update(bytes).digest('hex')!==selected.catalogSha256)invalid();
   same(before,fs.fstatSync(fd));same(before,fs.lstatSync(file));same(parent,fs.lstatSync(dir));
   if(fs.realpathSync(dir)!==dir||fs.realpathSync(file)!==file)invalid();
-  result=selected;
+  result={registration:selected,bytes};
  }catch(error){failed=true;cause=error;}
  finally{if(fd!==undefined)try{fs.closeSync(fd);}catch(error){if(failed){if(cause&&typeof cause==='object'&&!Object.hasOwn(cause,'cleanupCause'))cause.cleanupCause=error;}else{failed=true;cause=error;}}}
  if(failed)throw Object.assign(Error('Original private Protocol catalog could not be verified.'),{code:'PQ_HOST_CATALOG_UNVERIFIED',cause});
  return result;
 }
+export function readOriginalPQHostSourceCatalog(independentRegistration){return readCatalog(independentRegistration).registration;}
+// Original pinned DATA for the private receiver's journal binding check, not
+// a source factory or authority. Same protected bounded read/cleanup checks.
+export function readOriginalPQHostSourceCatalogBytes(independentRegistration){return readCatalog(independentRegistration).bytes;}
