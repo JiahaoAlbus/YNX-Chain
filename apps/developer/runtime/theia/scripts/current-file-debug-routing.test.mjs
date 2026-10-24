@@ -3,6 +3,32 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { DebugSelectionContribution } = require('../../ynx-workbench/lib/debug-selection');
+
+test('default run shortcuts reach all supported file runners while debug defaults do not intercept an active session or unsupported debugger', async () => {
+  const { pathToFileURL } = await import('node:url');
+  // Use the expression implementation from the same pinned Monaco runtime.
+  // A dummy ContextKeyService.match returning true would hide missing bindings.
+  const { ContextKeyExpr } = await import(pathToFileURL(require.resolve('@theia/monaco-editor-core/esm/vs/platform/contextkey/common/contextkey.js')));
+  const { registerDefaultKeybindings } = require('../../ynx-workbench/lib/default-keybindings');
+  const bindings = [];
+  registerDefaultKeybindings({ registerKeybinding: binding => bindings.push(binding) }, 'core.close.tab');
+  const matches = (command, language, changes = {}) => bindings.some(binding => binding.command === command &&
+    ContextKeyExpr.deserialize(binding.when).evaluate({ getValue: key => ({ editorTextFocus: true, resourceScheme: 'file', inDebugMode: false, editorLangId: language, ...changes })[key] }));
+  for (const language of ['c', 'cpp', 'javascript', 'python', 'typescript', 'typescriptreact', 'go', 'solidity']) {
+    assert.equal(matches('ynx.workbench.runCurrentFile', language), true, `${language}: normal run shortcut must reach its current-file runner`);
+    for (const changes of [{ inDebugMode: true }, { editorTextFocus: false }, { resourceScheme: 'untitled' }]) {
+      assert.equal(matches('ynx.workbench.runCurrentFile', language, changes), false);
+      assert.equal(matches('ynx.workbench.debugCurrentFile', language, changes), false);
+    }
+  }
+  for (const language of ['c', 'cpp', 'javascript', 'python', 'typescript', 'typescriptreact']) {
+    assert.equal(matches('ynx.workbench.debugCurrentFile', language), true, `${language}: supported debug shortcut`);
+  }
+  for (const language of ['go', 'solidity', 'plaintext', 'json']) assert.equal(matches('ynx.workbench.debugCurrentFile', language), false);
+  const run = bindings.find(binding => binding.command === 'ynx.workbench.runCurrentFile');
+  const debug = bindings.find(binding => binding.command === 'ynx.workbench.debugCurrentFile');
+  assert.equal(run.keybinding, 'ctrl+f5'); assert.equal(debug.keybinding, 'f5');
+});
 test('triangle Run follows the active language even while another project debugger remains selected', () => {
   const selected = { configuration: { name: 'YNX C++ active file', type: 'lldb-dap', request: 'launch' }, workspaceFolderUri: 'file:///project' };
   const configurations = { current: selected };

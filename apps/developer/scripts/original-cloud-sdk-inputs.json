@@ -1,0 +1,54 @@
+{
+  "schema": "YNX_IDE_ORIGINAL_CLOUD_SDK_SOURCE_ROLE_V1",
+  "commit": "b7c8f37504cc0f0460686302b375b8978919b7dd",
+  "tree": "5f76ce7c2e39ccfc0e785bc5a64ae5a758896dbd",
+  "roleTree": "956204c838badc1244fa422b9dd55b13694a9acc",
+  "sourceRole": "apps/cloud/sdk",
+  "destination": "apps/cloud/sdk",
+  "packageName": "@ynx/cloud-client",
+  "version": "1.0.0-testnet-preview",
+  "files": [
+    {
+      "path": "README.md",
+      "mode": 420,
+      "bytes": 3028,
+      "sha256": "206d9cd105f0d5fa3fbc71f3cfa96447b8ad777e03b2d9ee3b9e35dfadb7b458",
+      "gitBlob": "17eaf1de8b2adc2c49d5921b51071d6dae0c9c6b"
+    },
+    {
+      "path": "index.d.ts",
+      "mode": 420,
+      "bytes": 8752,
+      "sha256": "ea3351ae5876e234f19e7f66a4addba83807ef94edf47b9eea4e1b0b26413b7a",
+      "gitBlob": "5cfd8601ded36cb5964f89bd133cbeaafbd97023"
+    },
+    {
+      "path": "index.js",
+      "mode": 420,
+      "bytes": 34157,
+      "sha256": "9ea525b7ed1e1b446039fa7c9eb6a67f05babe95df13f5ae13753bf4bfd3731d",
+      "gitBlob": "0c4bd5f5433731bac62f60a05a89bb817a532840"
+    },
+    {
+      "path": "observe-ide-deployment.d.ts",
+      "mode": 420,
+      "bytes": 1035,
+      "sha256": "1894df8279293fde450b2701a8eccbd7a5c5b72d8d2fde47636cb9ae5e78bb7c",
+      "gitBlob": "78f7d3d5e9df518147a5c6c7aa039d0b50dcb5b0"
+    },
+    {
+      "path": "observe-ide-deployment.mjs",
+      "mode": 420,
+      "bytes": 5631,
+      "sha256": "6cb8cac88a17d39dd212a82f210746104936da2251f5968af02524a332770a31",
+      "gitBlob": "e24d3c7f1d121ad5c65084889e35756e56f4f0f4"
+    },
+    {
+      "path": "package.json",
+      "mode": 420,
+      "bytes": 464,
+      "sha256": "a65b7ee63d94d40f5368b5a420b34229c3e6d763ae4a8ec67d24208923683867",
+      "gitBlob": "b2b1498d3246d6d3d63df98df37e9fc508c05b6e"
+    }
+  ]
+}

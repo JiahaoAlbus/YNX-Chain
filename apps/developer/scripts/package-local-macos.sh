@@ -45,13 +45,14 @@ node --test desktop/contract-relay-startup.test.mjs
 node --test desktop/project-contract-runtime.test.mjs
 node --test desktop/artifact-publication-client.test.mjs
 node --test desktop/artifact-publication-lifecycle.test.mjs
-node --test desktop/artifact-publication-entry.test.mjs
+node --test desktop/artifact-publication-entry.test.mjs desktop/original-publication-project.test.mjs desktop/publication-ui-cause.test.mjs
 node --test desktop/project-contract-deployment.test.mjs
 node --test desktop/local-workbench-stop-causes.test.mjs
 node --test desktop/contract-deployment-view.test.mjs
 node --test desktop/project-contracts-host.test.mjs desktop/project-contracts-view.test.mjs desktop/code-server.test.mjs
 node --test desktop/native-debug-menu-state.test.mjs desktop/native-current-file-routing.test.mjs
 node --test scripts/bundle-composed-core.test.mjs scripts/bundled-assistant-policy.test.mjs
+node --test scripts/package-original-cloud-sdk.test.mjs scripts/generate-code-sbom.test.mjs
 runtime_checkpoint="$source_commit"
 # One deployment target for the native shell, bundle declaration and all bundled
 # Mach-O dependencies. The portable Node runtime establishes the 13.5 floor.
@@ -156,10 +157,11 @@ cp desktop/marketplace-catalog-policy.mjs desktop/marketplace-catalog-transport.
 cp desktop/marketplace-artifact-policy.mjs desktop/marketplace-artifact-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/chain-public-reader.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/project-contracts-host.mjs desktop/wallet-contract-client.mjs desktop/wallet-contract-reference-journal.mjs desktop/contract-relay-scope.mjs desktop/project-contract-deployment.mjs desktop/project-contract-runtime.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
-cp desktop/artifact-publication-host.mjs desktop/artifact-publication-client.mjs desktop/artifact-publication-lifecycle.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/artifact-publication-host.mjs desktop/artifact-publication-client.mjs desktop/artifact-publication-lifecycle.mjs desktop/original-publication-project.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-native "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-helper "$app/Contents/Resources/code"
+node scripts/package-original-cloud-sdk.mjs --copy "${YNX_DEVELOPER_ORIGINAL_CLOUD_SDK_ROOT:-$repo_root/apps/cloud/sdk}" "$app/Contents/Resources/code"
 mkdir -p "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib"
 cp runtime/ynx-workbench/package.json "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/"
 cp runtime/ynx-workbench/lib/wallet-admission-channel.js runtime/ynx-workbench/lib/wallet-admission-protocol.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
@@ -359,8 +361,10 @@ if [[ -n "$local_node_runtime" ]]; then
   node scripts/package-node-pty-distribution.mjs seal "$app/Contents/Resources"
 fi
 node scripts/package-identity-admission-source.mjs --seal-native "$app/Contents/Resources"
+node scripts/package-original-cloud-sdk.mjs --seal "$app/Contents/Resources"
 /usr/bin/codesign --force --deep --sign - "$app"
 node scripts/package-identity-admission-source.mjs --verify-native "$app/Contents/Resources"
+node scripts/package-original-cloud-sdk.mjs --verify "$app/Contents/Resources/code"
 if [[ -n "$local_node_runtime" ]]; then
   node scripts/package-node-pty-distribution.mjs verify "$app/Contents/Resources"
 fi

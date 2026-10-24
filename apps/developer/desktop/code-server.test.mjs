@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { copyFileSync } from 'node:fs';
+import {pathToFileURL} from 'node:url';
 
 const sourceCommit = 'a'.repeat(40), sourceTree = 'b'.repeat(40);
 const valid = { schemaVersion: 1, productId: 'ynx-developer-v1', version: '0.2.0', sourceDirty: false,
@@ -73,6 +74,80 @@ test('Finder-like minimal PATH discovers bundled language tools and their exact 
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(JSON.parse(result.stdout), { toolPath: [dirname(process.execPath), join(await realpath(dirname(support)), 'code/apps/developer/node_modules/.bin')], probe: 'bundled-language-server-found' });
   }, true);
+});
+test('normal server refuses the legacy AI project mapping before any publication capture',async()=>{
+  const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-publication-normal-caller-空 格-')));
+  try{
+    const desktop=join(root,'code/apps/developer/desktop'),sdk=join(root,'code/packages/wallet-auth'),workspace=join(root,'project');
+    await mkdir(desktop,{recursive:true});await mkdir(sdk,{recursive:true});await mkdir(workspace);
+    const artifact=join(workspace,'server.mjs');await writeFile(artifact,"console.log('PUBLIC artifact');\n");
+    await copyParentControl(desktop);await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'server.mjs'));
+    for(const name of ['artifact-publication-host.mjs','artifact-publication-client.mjs','original-publication-project.mjs'])await copyFile(new URL('./'+name,import.meta.url),join(desktop,name));
+    await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
+    await writeFile(join(desktop,'local-go-selection.mjs'),'export async function createLocalGoSelectionStore(){throw Error("PUBLIC no Go");}export function attachNativeGoSelectionChannel(){}');
+    await writeFile(join(desktop,'native-tools-client.mjs'),'export function createNativeToolsClient(){return null;}');
+    await writeFile(join(desktop,'admitted-local-project.mjs'),'export function createAdmittedLocalProjectMapping(){return null;}');
+    const state={owner:'PUBLIC-owner',workspaceOwner:'PUBLIC-owner',account:'PUBLIC-account',generation:1,identityReference:'PUBLIC-ref',localProjectId:'PUBLIC-project',workspace,launch:'PUBLIC-launch',sessionId:'PUBLIC-session',expiresAt:Date.now()+60000};
+    await writeFile(join(desktop,'wallet-admission-startup.mjs'),`export async function openBundledWalletAdmission(){return {admittedProject:{assertCurrent:async()=>(${JSON.stringify(state)})}};}`);
+    // Controlled DATA SDK doubles prove the normal loader/callback route only;
+    // they do not qualify Native, a product session or an actual publisher.
+    await writeFile(join(sdk,'package.json'),JSON.stringify({name:'@ynx-chain/wallet-auth',type:'module',exports:{'./original-ide-admission':{node:'./original.mjs'},'./ide-artifact-manifest':'./codec.mjs'}}));
+    await writeFile(join(sdk,'codec.mjs'),'export const encodeIDEArtifactManifestData=input=>new TextEncoder().encode(JSON.stringify(input));');
+    await writeFile(join(sdk,'original.mjs'),`let original;export function captureOriginalIDEPublicationArtifact(manifest,bytes){console.log('PUBLIC_CAPTURE');return original={manifest,bytes};}export function readOriginalIDEPublicationArtifactManifest(ref){if(ref!==original)throw Error('wrong ref');console.log('PUBLIC_READ');return ref.manifest;}export function closeOriginalIDEPublicationArtifact(ref){if(ref!==original)throw Error('wrong ref');console.log('PUBLIC_CLOSE');return true;}export function acquireOriginalIDEProtectedPublicationKeyCall(){throw Error('Preview must not select a key request');}`);
+    const profile=join(root,'profile');await mkdir(profile,{mode:0o700});
+    await writeFile(join(desktop,'local-workbench.mjs'),`export async function localProjectContext(){return {id:'PUBLIC-project',workspace:${JSON.stringify(workspace)},profile:${JSON.stringify(profile)}};}export async function startLocalWorkbench({openPublication}){const owner=await openPublication(await localProjectContext());let missing=false;try{await owner.preview({artifactURI:${JSON.stringify(pathToFileURL(artifact).href)},version:'0.1.0',publishPurpose:'PUBLIC-purpose',targetEnvironment:'PUBLIC-environment'});}catch(error){if(error.code!=='IDE_PUBLICATION_PROJECT_UNAVAILABLE')throw error;missing=true;}if(!missing)throw Error('Legacy AI mapping must not become a publication project');await owner.close();console.log('PUBLIC_PUBLICATION_NOT_SUPPLIED');return {exited:Promise.resolve({code:0}),stop:async()=>{}};}`);
+    const result=spawnSync(process.execPath,[join(root,'server.mjs')],{encoding:'utf8',timeout:5000,env:{PATH:'/usr/bin:/bin',YNX_DEVELOPER_DESKTOP_MODE:'local-workbench',YNX_CODE_DESKTOP_SUPPORT_DIR:join(root,'support')}});
+    assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/PUBLIC_PUBLICATION_NOT_SUPPLIED/);assert.doesNotMatch(result.stdout,/PUBLIC_CAPTURE|PUBLIC_READ|PUBLIC_CLOSE|PUBLIC_PREVIEW_COMPLETE/);
+  }finally{await rm(root,{recursive:true,force:true});}
+});
+for(const outcome of ['canonical-preview','source-missing','publisher-missing'])test(`normal server original workspace selector ${outcome}`,async()=>{
+ const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-normal-workspace-selector-空 格-')));
+ try{
+  const desktop=join(root,'code/apps/developer/desktop'),sdk=join(root,'code/packages/wallet-auth'),workspace=join(root,'project'),profile=join(root,'profile');
+  for(const directory of [desktop,sdk,workspace,profile])await mkdir(directory,{recursive:true,mode:0o700});
+  const context={workspace,profile,id:'PUBLIC-local-uuid'},artifact=join(workspace,'server.mjs');await writeFile(artifact,"console.log('PUBLIC artifact');\n");
+  await copyParentControl(desktop);await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'server.mjs'));
+  for(const name of ['artifact-publication-host.mjs','artifact-publication-client.mjs','original-publication-project.mjs'])await copyFile(new URL('./'+name,import.meta.url),join(desktop,name));
+  await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
+  await writeFile(join(desktop,'local-go-selection.mjs'),'export async function createLocalGoSelectionStore(){throw Error("PUBLIC no Go");}export function attachNativeGoSelectionChannel(){}');
+  await writeFile(join(desktop,'native-tools-client.mjs'),'export function createNativeToolsClient(){return null;}');
+  await writeFile(join(desktop,'admitted-local-project.mjs'),'export function createAdmittedLocalProjectMapping(){return null;}');
+  await writeFile(join(desktop,'wallet-admission-startup.mjs'),`export async function openBundledWalletAdmission(){return {admittedProject:{assertCurrent(){throw Error('Legacy AI mapping must never be read');}}};}`);
+  await writeFile(join(sdk,'package.json'),JSON.stringify({name:'@ynx-chain/wallet-auth',type:'module',exports:{'./original-ide-admission':{node:'./original.mjs'},'./ide-artifact-manifest':'./codec.mjs'}}));
+  await writeFile(join(sdk,'codec.mjs'),'export const encodeIDEArtifactManifestData=input=>new TextEncoder().encode(JSON.stringify(input));');
+  // Controlled contract doubles route the real server and fixed bundled
+  // loader. They are not Native, signed Source, a registered publisher or QA.
+  await writeFile(join(sdk,'original.mjs'),`
+const context=${JSON.stringify(context)},mode=${JSON.stringify(outcome)},selector={},authority={},artifact={},expiresMS=Date.now()+60000;
+const principal={account:'PUBLIC-account',deviceId:'PUBLIC-device',sessionRef:'PUBLIC-session',currentRef:'PUBLIC-current',accountGeneration:'1',sessionGeneration:'2',expiresMS};
+const project={projectId:'PUBLIC-canonical-project',ownerAccount:'PUBLIC-owner',runtimeOrigin:'',currentReference:'PUBLIC-project-current',projectRevision:'3',catalogRevision:'4',read:false,publish:true,runtime:false,expiresMS};
+const publisher={account:'PUBLIC-account',projectId:project.projectId,publisherId:'PUBLIC-publisher',keyRole:'ide-artifact-publisher',publicOriginal:'PUBLIC-original',publicSHA256:'PUBLIC-digest',registrationRef:'PUBLIC-registration',revision:'5',expiresMS,revoked:false};
+export function acquireOriginalIDEWorkspaceProjectSelection(workspace,profile,localID){if(workspace!==context.workspace||profile!==context.profile||localID!==context.id)throw Error('Wrong original launch context');console.log('PUBLIC_SELECTOR_CAPTURE');if(mode==='source-missing')throw Object.assign(Error('PUBLIC original Source missing'),{code:'IDE_PROJECT_ORIGINAL_SOURCE_NOT_SUPPLIED'});return selector;}
+export function readOriginalIDEWorkspaceProjectSelection(ref){if(ref!==selector)throw Error('Wrong selector ref');return Object.freeze({projectId:project.projectId,publisherId:mode==='publisher-missing'?null:publisher.publisherId,projectRevision:project.projectRevision,catalogRevision:project.catalogRevision,expiresMS});}
+export function closeOriginalIDEWorkspaceProjectSelection(ref){if(ref!==selector)throw Error('Wrong selector close');console.log('PUBLIC_SELECTOR_CLOSE');}
+export function acquireOriginalIDEProjectAuthority(){console.log('PUBLIC_PROJECT_CAPTURE');return authority;}
+export function readOriginalIDECurrentProject(ref,id){if(ref!==authority||id!==project.projectId)throw Error('Local UUID was used as canonical identity');return {principal,project,expiresMS};}
+export function readOriginalIDECurrentPublisher(ref,id,publisherID){if(ref!==authority||id!==project.projectId||publisherID!==publisher.publisherId)throw Error('Wrong canonical publisher');return {principal,project,publisher,publisherOriginal:new Uint8Array([1,2,3]),expiresMS};}
+export function closeOriginalIDEProjectAuthority(ref){if(ref!==authority)throw Error('Wrong authority close');console.log('PUBLIC_PROJECT_CLOSE');}
+export function captureOriginalIDEPublicationArtifact(manifest,bytes){const data=JSON.parse(manifest);if(data.projectId!==project.projectId||'localProjectId'in data||!bytes.length)throw Error('Wrong canonical artifact');artifact.manifest=manifest;console.log('PUBLIC_ARTIFACT_CAPTURE');return artifact;}
+export function readOriginalIDEPublicationArtifactManifest(ref){if(ref!==artifact)throw Error('Wrong artifact ref');return artifact.manifest;}
+export function closeOriginalIDEPublicationArtifact(ref){if(ref!==artifact)throw Error('Wrong artifact close');console.log('PUBLIC_ARTIFACT_CLOSE');return true;}
+export function acquireOriginalIDEProtectedPublicationKeyCall(){console.log('PUBLIC_KEY_INVOKED');throw Error('Must not select a key during preview');}
+`);
+  await writeFile(join(desktop,'local-workbench.mjs'),`
+export async function localProjectContext(){return ${JSON.stringify(context)};}
+export async function startLocalWorkbench({openPublication}){
+ const owner=await openPublication(await localProjectContext());console.log('PUBLIC_HOST_CREATED_LAZILY');
+ try{const result=await owner.preview({artifactURI:${JSON.stringify(pathToFileURL(artifact).href)},version:'0.1.0',publishPurpose:'PUBLIC-purpose',targetEnvironment:'testnet'});
+ if(${JSON.stringify(outcome)}!=='canonical-preview'||result.binding.projectId!=='PUBLIC-canonical-project'||result.signingApproved||result.deploymentApproved)throw Error('Wrong publication result');console.log('PUBLIC_CANONICAL_PREVIEW');
+ }catch(cause){const expected=${JSON.stringify(outcome==='source-missing'?'IDE_PROJECT_ORIGINAL_SOURCE_NOT_SUPPLIED':outcome==='publisher-missing'?'IDE_PUBLICATION_PUBLISHER_UNAVAILABLE':null)};if(!expected||cause?.code!==expected)throw cause;console.log('PUBLIC_EXPECTED_'+expected);}
+ await owner.close();await owner.close();return{exited:Promise.resolve({code:0}),stop:async()=>{}};
+}`);
+  const result=spawnSync(process.execPath,[join(root,'server.mjs')],{encoding:'utf8',timeout:5000,env:{PATH:'/usr/bin:/bin',YNX_DEVELOPER_DESKTOP_MODE:'local-workbench',YNX_CODE_DESKTOP_SUPPORT_DIR:join(root,'support')}});
+  assert.equal(result.status,0,result.stderr);assert.doesNotMatch(result.stdout,/PUBLIC_KEY_INVOKED/);assert.ok(result.stdout.indexOf('PUBLIC_HOST_CREATED_LAZILY')<result.stdout.indexOf('PUBLIC_SELECTOR_CAPTURE'));
+  if(outcome==='canonical-preview'){assert.match(result.stdout,/PUBLIC_CANONICAL_PREVIEW/);for(const token of ['PUBLIC_PROJECT_CAPTURE','PUBLIC_ARTIFACT_CAPTURE','PUBLIC_ARTIFACT_CLOSE','PUBLIC_PROJECT_CLOSE','PUBLIC_SELECTOR_CLOSE'])assert.equal(result.stdout.split(token).length-1,1,token);}
+  else{assert.doesNotMatch(result.stdout,/PUBLIC_PROJECT_CAPTURE|PUBLIC_ARTIFACT_CAPTURE/);assert.match(result.stdout,/PUBLIC_EXPECTED_IDE_/);assert.equal(result.stdout.split('PUBLIC_SELECTOR_CLOSE').length-1,outcome==='publisher-missing'?1:0);}
+ }finally{await rm(root,{recursive:true,force:true});}
 });
 for (const [name, record] of [
   ['missing metadata', undefined], ['historical checkpoint', { ...valid, runtimeCheckpoint: 'c'.repeat(40) }],

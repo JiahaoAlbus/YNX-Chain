@@ -6,16 +6,16 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection,canonicalNativeSourcesForOwner} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates exact SDK14 and its complete R166 Native, without loading Native',async()=>{
+test('normal selection validates exact SDK20 and complete R181 Native without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
- assert.equal(sdk.sdkCommit,'f250f6af67639268eef5a8f948f8f380b7870dcc');assert.equal(sdk.files.length,306);
- assert.equal(sdk.dependencies.length,9123);assert.equal(native.sourceLeaves,83);assert.equal(native.buildInputLeaves,71);
+ assert.equal(sdk.sdkCommit,'b330fffdfe5ceda04ff665f396e46c6c85e8bb74');assert.equal(sdk.files.length,309); // 307 raw SDK payloads and two same-version runtime inventories.
+ assert.equal(sdk.dependencies.length,9123);assert.equal(native.sourceLeaves,89);assert.equal(native.buildInputLeaves,77);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'2317cab0d4d71be86151ab0e994e36c0754cab53507fc61d92feae96db961b65');
- assert.equal(inputs.nativeSourceCommit,'f250f6af67639268eef5a8f948f8f380b7870dcc');
- assert.equal(sdk.runtimeClosure.contractRelay.files,9335);assert.equal(sdk.runtimeClosure.Auth.edges,129);
- assert.equal(inputs.nativeComponent.module.sha256,'dab62a3a431a61f40bf72358cf28eaec13819d7883ce50904d9ee6d924de6f65');
+ assert.equal(inputs.predecessorManifestSha256,'f88f98e62c95b739f3a09706685245416c53d83f6735e3b94065c1f3013d98c1');
+ assert.equal(inputs.nativeSourceCommit,'b330fffdfe5ceda04ff665f396e46c6c85e8bb74');
+ assert.equal(sdk.runtimeClosure.contractRelay.files,9335);assert.equal(sdk.runtimeClosure.Auth.edges,134);
+ assert.equal(inputs.nativeComponent.module.sha256,'f7e87a618198a0e4aaa5f5724e4c9d0a560226e60f79f61c59b7fb78a2be60e2');
  assert.equal(inputs.helperComponent.registered,false);
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
@@ -51,6 +51,10 @@ test('missing or changed complete Native source and receipt mutation cannot subs
   await writeFile(journalHeader,Buffer.concat([journalBytes,Buffer.from('\n// changed terminal-write boundary\n')]));
   await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/source leaf differs/);
   await writeFile(journalHeader,journalBytes);
+  const resultHeader=join(root,'packages/wallet-auth/native/original-ide-artifact-result-data.h'),resultBytes=await readFile(resultHeader);
+  await writeFile(resultHeader,Buffer.concat([resultBytes,Buffer.from('\n// changed R181 publication result binding\n')]));
+  await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/source leaf differs/);
+  await writeFile(resultHeader,resultBytes);
   const ownSupplier=join(root,'apps/developer/desktop/macos/original-ide-parent-supplier.mm'),ownBytes=await readFile(ownSupplier);
   await writeFile(ownSupplier,Buffer.concat([ownBytes,Buffer.from('\n// current IDE body changed\n')]));
   await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/source leaf differs/);

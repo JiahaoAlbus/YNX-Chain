@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync, readdirSync, lstatSync, realpa
 import { join, dirname, resolve, relative, sep } from "node:path";
 
 import { fileURLToPath } from "node:url";
+import { addOriginalCloudSDKComponent } from './package-original-cloud-sdk.mjs';
 
 export function generateCodeSbom(output, runtimeNode, npmPackagePath, sourceCommit) {
 if (!output || !runtimeNode || !npmPackagePath || !/^[0-9a-f]{40}$/.test(sourceCommit || "")) throw new Error("SBOM output, runtime, npm package and source commit are required.");
@@ -48,6 +49,7 @@ if (existsSync(compilerReceipt)) {
   }
 }
 addPackagedServiceComponents(components, join(dirname(output), 'code/apps/developer'));
+addOriginalCloudSDKComponent(components, dirname(output));
 components.sort((a, b) => a["bom-ref"].localeCompare(b["bom-ref"]));
 const serialSeed = createHash("sha256").update(`${sourceCommit}\n${nodeVersion}\n${npmPackage.version}\n${components.map(value => value["bom-ref"]).join("\n")}`).digest("hex");
 const sbom = {

@@ -10,8 +10,11 @@ function registerDefaultKeybindings(registry, closeMainTabId) {
   // calling its view superclass, so its advertised toggle key is absent.
   registry.registerKeybinding({ command: 'problemsView:toggle', keybinding: 'ctrlcmd+shift+m' });
   // Default scope preserves user overrides and an active session's Continue.
-  const when = 'editorTextFocus && resourceScheme == file && !inDebugMode && (editorLangId == cpp || editorLangId == c || editorLangId == javascript || editorLangId == python)';
-  registry.registerKeybinding({ command: 'ynx.workbench.runCurrentFile', keybinding: 'ctrl+f5', when });
-  registry.registerKeybinding({ command: 'ynx.workbench.debugCurrentFile', keybinding: 'f5', when });
+  const editor = 'editorTextFocus && resourceScheme == file && !inDebugMode';
+  const debugLanguages = '(editorLangId == cpp || editorLangId == c || editorLangId == javascript || editorLangId == python || editorLangId == typescript || editorLangId == typescriptreact)';
+  // Go has a real runner and Solidity a compiler, but neither has an admitted
+  // current-file debugger. Route their Run shortcut without inventing one.
+  registry.registerKeybinding({ command: 'ynx.workbench.runCurrentFile', keybinding: 'ctrl+f5', when: `${editor} && (${debugLanguages} || editorLangId == go || editorLangId == solidity)` });
+  registry.registerKeybinding({ command: 'ynx.workbench.debugCurrentFile', keybinding: 'f5', when: `${editor} && ${debugLanguages}` });
 }
 module.exports = { registerDefaultKeybindings };

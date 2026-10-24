@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {identityAppCustodyPins,verifyIdentityAppCustodySource} from './identity-app-custody-source.mjs';
 import {sdk14NativeBuildReceipt} from './sdk14-native-build-receipt.mjs';
+import {sdk19NativeBuildReceipt} from './sdk19-native-build-receipt.mjs';
+import {sdk20NativeBuildReceipt} from './sdk20-native-build-receipt.mjs';
 
 const developer = dirname(dirname(fileURLToPath(import.meta.url)));
 const owned = join(developer, 'vendor/identity-admission');
@@ -80,7 +82,7 @@ export async function copyIdentityAdmissionSource(destination) {
 }
 // Canonical source custody is independent of runtime service admission. Keep the
 // original SDK loader relative to its unique apps/wallet-desktop Native module.
-export const CANONICAL_IDENTITY_INPUTS_SHA256 = 'f2e150dd167a90a16dc2482ebd5fbf15eb69a88d3b70512275765a8af240a938';
+export const CANONICAL_IDENTITY_INPUTS_SHA256 = '3d15f65bec23ed6ec825f7b62ebf5613bc0b947fff5e574079617f451352e21a';
 // These select source custody, never runtime authority. Every selected byte is
 // still checked against the immutable manifest; there is no fallback on error.
 const canonicalOwned = resolve(process.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT || resolve(developer, '../../packages/wallet-auth'));
@@ -100,7 +102,7 @@ async function canonicalInputs() {
   const bytes = await readFile(new URL('./canonical-identity-inputs.json', import.meta.url));
   if (sha256(bytes) !== CANONICAL_IDENTITY_INPUTS_SHA256) throw Error('Canonical identity source manifest differs.');
   const record = JSON.parse(bytes);
-  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== 'f250f6af67639268eef5a8f948f8f380b7870dcc' || record.sdkTree !== 'f553b5ccc70a61b2b0f72109a24103d7c79ec9e9') throw Error('Canonical identity source selection differs.');
+  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== 'b330fffdfe5ceda04ff665f396e46c6c85e8bb74' || record.sdkTree !== '3cd4b578eaba75ccafdee5f4745da744423bd9aa') throw Error('Canonical identity source selection differs.');
   for (const rows of [record.files, record.dependencies, record.nativeSources, record.nativeBuildInputs]) {
     if (!Array.isArray(rows) || !rows.length || new Set(rows.map(x => x.path)).size !== rows.length) throw Error('Canonical identity source inventory differs.');
     for (const row of rows) if (!/^[A-Za-z0-9_@. /-]+$/.test(row.path) || row.path.startsWith('/') || row.path.split('/').some(p => !p || p === '.' || p === '..') || !Number.isSafeInteger(row.bytes) || !/^[a-f0-9]{64}$/.test(row.sha256)) throw Error('Canonical identity source pin differs.');
@@ -129,9 +131,9 @@ export async function verifyCanonicalIdentityAdmissionSource(root = canonicalOwn
   await verifyRows(root, record.files);
   await verifyRows(dependencies, record.dependencies);
   const closure=record.runtimeClosure,relay=closure?.contractRelay;
-  if(closure?.Auth?.files!==475||closure.Auth.edges!==129||closure.WalletConnect?.files!==9072||closure.WalletConnect.edges!==181||closure.WalletConnect.packages!==112
+  if(closure?.Auth?.files!==475||closure.Auth.edges!==134||closure.WalletConnect?.files!==9072||closure.WalletConnect.edges!==181||closure.WalletConnect.packages!==112
     ||relay?.files!==9335||relay.nativeQualified!==false||relay.registrationAccepted!==false
-    ||relay.manifest?.destination!=='native/original-ide-contract-relay-runtime-manifest.json')throw Error('Canonical SDK14 runtime closure selection differs.');
+    ||relay.manifest?.destination!=='native/original-ide-contract-relay-runtime-manifest.json')throw Error('Canonical SDK20 runtime closure selection differs.');
   const rows=new Map([...record.files,...record.dependencies.map(row=>({...row,path:'node_modules/'+row.path}))].map(row=>[row.path,row]));
   for(const part of [closure.Auth,relay]){
     const held=record.files.find(row=>row.path===part.manifest.destination);
@@ -232,6 +234,8 @@ export function validateOriginalIdentityAppSources(inputs, receipt) {
 
 // A build receipt records compilation, never registration or service rights.
 export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchitecture = process.arch) {
+  if(record?.schema==='YNX_SDK20_R181_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk20NativeBuildReceipt(record,inputs);
+  if(record?.schema==='YNX_SDK19_R177_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk19NativeBuildReceipt(record,inputs);
   if(record?.schema==='YNX_SDK14_R166_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk14NativeBuildReceipt(record,inputs);
   if (record?.schemaVersion !== 1 || record.kind !== 'YNX_WALLET_ORIGINAL_NATIVE_BUILD'
     || record.napiVersion !== 8 || record.headerVersion !== '22.13.1'

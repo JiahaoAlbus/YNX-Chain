@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 const { installNativeNewFile } = createRequire(import.meta.url)('../runtime/ynx-workbench/lib/native-file-picker');
-function fixture(native = true) {
+function fixture(native = true, errorFeedback) {
   const events = [], handlers = []; let finish, fail = false;
   class URI {
     constructor(path) { this.value = path; this.scheme = path.split(':')[0]; this.path = { base: path.split('/').at(-1) }; }
@@ -26,9 +26,9 @@ function fixture(native = true) {
   instance.workspaceService = { workspace: root, tryGetRoots: () => [root] };
   instance.fileDialogService = { showSaveDialog: props => { events.push(['native', props.inputValue]); return new Promise(resolve => { finish = resolve; }); } };
   instance.fileService = { async create(uri, content, options) { events.push(['create', uri.value, options]); if (fail) throw Error('EXISTS'); } };
-  instance.messageService = { error: async message => events.push(['error', message]) };
+  instance.messageService = { error: async message => { events.push(['error', message]); return errorFeedback; } };
   instance.registerCommands({ registerHandler: (_, handler) => handlers.unshift(handler) });
-  return { run: () => handlers[0].execute(root.resource), events, target, instance, finish: path => finish(path && new URI(path)), changeEditor: () => editor = {}, fail: () => fail = true };
+  return { run: () => handlers[0].execute(root.resource), events, target, instance, finish: path => finish(path && new URI(path)), changeEditor: () => editor = {}, fail: (value = true) => fail = value };
 }
 async function tick() { await Promise.resolve(); await Promise.resolve(); }
 test('Explorer new file uses native destination and creates once without overwrite', async () => {
@@ -60,3 +60,43 @@ test('foreign destination rejects and create failure cannot report created or op
   assert.deepEqual(f.events.at(-1),['error','EXISTS']);
 });
 test('browser keeps upstream new-file behavior', async () => { const f=fixture(false);await f.run();assert.deepEqual(f.events,['html']); });
+
+test('failed create releases its request before error feedback is dismissed so an explicit retry can open a fresh picker', async () => {
+  let dismiss;
+  const feedback = new Promise(resolve => { dismiss = resolve; });
+  const f = fixture(true, feedback);
+  f.fail();
+  let settled = false;
+  const failed = f.run().finally(() => { settled = true; });
+  await tick(); f.finish('file:///qa/existing.txt');
+  // Model a real notification that remains visible until the user dismisses it.
+  // Use an event-loop turn rather than a product delay or closing that notice.
+  await new Promise(resolve => setImmediate(resolve));
+  const beforeDismissal = settled;
+  f.fail(false);
+  const retry = f.run(); await tick();
+  const pickersBeforeDismissal = f.events.filter(event => event[0] === 'native').length;
+  if (pickersBeforeDismissal === 2) f.finish('file:///qa/retried.txt');
+  // Always release the fixture to avoid leaving a pending test after a RED.
+  dismiss(); await Promise.all([failed, retry]);
+  assert.equal(beforeDismissal, true, 'the failed command must finish while feedback is still visible');
+  assert.equal(pickersBeforeDismissal, 2, 'an explicit retry must not depend on dismissing old feedback');
+  assert.equal(f.events.filter(event => event[0] === 'create' && event[1] === 'file:///qa/retried.txt').length, 1);
+  assert.equal(f.events.filter(event => event[0] === 'created').length, 1);
+});
+
+for (const kind of ['throw', 'reject']) test(`a ${kind} from feedback cannot leak or block a subsequent file creation`, async () => {
+  const f = fixture();
+  f.instance.messageService.error = () => {
+    if (kind === 'throw') throw Error('notification unavailable');
+    return Promise.reject(Error('notification unavailable'));
+  };
+  f.fail();
+  const first = f.run(); await tick(); f.finish('file:///qa/existing.txt'); await first;
+  assert.equal(f.events.some(event => event[0] === 'created' || event[0] === 'open'), false);
+  f.fail(false);
+  const retry = f.run(); await tick(); f.finish('file:///qa/recovered.txt'); await retry;
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.events.filter(event => event[0] === 'created').length, 1);
+  assert.equal(f.events.filter(event => event[0] === 'open').length, 1);
+});

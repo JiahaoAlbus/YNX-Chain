@@ -7,10 +7,66 @@ import {pathToFileURL,fileURLToPath} from 'node:url';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const reject = code => Object.assign(Error('The selected project artifact requires a fresh publication review.'), {code});
-const projectKeys = ['owner','workspaceOwner','account','generation','identityReference','localProjectId','workspace','launch','sessionId'];
+// Local snapshot freshness only. These fields are not a signed project role.
+const projectKeys = ['generation','localProjectId','workspace','launch'];
 const same = (a,b) => a.dev === b.dev && a.ino === b.ino && a.uid === b.uid;
 const unchanged = (a,b) => same(a,b) && a.size === b.size && a.mtimeNs === b.mtimeNs && a.ctimeNs === b.ctimeNs;
 const text = value => typeof value === 'string' && Buffer.byteLength(value) > 0 && Buffer.byteLength(value) <= 256 && value.trim() === value && !/[\u0000-\u001f\u007f]/.test(value);
+
+// Same fixed Node-only SDK for codec, DATA reference and protected constructor.
+// This is deliberately not a CurrentProject/Publisher factory or an AI lease.
+export async function openBundledOriginalPublicationArtifact({selection,actualEntryURL}){
+  const metadataURL=new URL('../../../packages/wallet-auth/package.json',import.meta.url);
+  const metadata=JSON.parse(await fs.readFile(metadataURL,'utf8'));
+  if(metadata.name!=='@ynx-chain/wallet-auth')throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_UNAVAILABLE');
+  const root=await fs.realpath(path.dirname(fileURLToPath(metadataURL))),sdk=createRequire(metadataURL);
+  const load=async specifier=>{const target=await fs.realpath(sdk.resolve('@ynx-chain/wallet-auth/'+specifier));if(!target.startsWith(root+path.sep))throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_UNAVAILABLE');return import(pathToFileURL(target).href);};
+  const [original,codec]=await Promise.all([load('original-ide-admission'),load('ide-artifact-manifest')]);
+  return captureOriginalPublicationArtifact({selection,actualEntryURL,api:{
+    encodeIDEArtifactManifestData:codec.encodeIDEArtifactManifestData,
+    captureOriginalIDEPublicationArtifact:original.captureOriginalIDEPublicationArtifact,
+    readOriginalIDEPublicationArtifactManifest:original.readOriginalIDEPublicationArtifactManifest,
+    closeOriginalIDEPublicationArtifact:original.closeOriginalIDEPublicationArtifact,
+    acquireOriginalIDEProtectedPublicationKeyCall:original.acquireOriginalIDEProtectedPublicationKeyCall,
+  }});
+}
+
+// Backend custody only. Return cleanup custody BEFORE any later current/read
+// check, including when Native capture throws false/undefined or returns null.
+// No opaque reference or protected owner may cross the renderer DATA boundary.
+export async function captureOriginalPublicationArtifact({selection,actualEntryURL,api}){
+  const names=['encodeIDEArtifactManifestData','captureOriginalIDEPublicationArtifact','readOriginalIDEPublicationArtifactManifest','closeOriginalIDEPublicationArtifact','acquireOriginalIDEProtectedPublicationKeyCall'];
+  if(names.some(name=>typeof api?.[name]!=='function')||typeof selection?.encodeManifest!=='function'||typeof selection?.assertCurrent!=='function'||typeof selection?.artifactBytes!=='function')throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_UNAVAILABLE');
+  const encoded=await selection.encodeManifest(api.encodeIDEArtifactManifestData);
+  const canonical=new TextDecoder('utf-8',{fatal:true}).decode(encoded);
+  let reference,retired=false,failed=false,firstCause,cleanupSelected=false,cleanupComplete=false,cleanupFailed=false,cleanupCause;
+  const remember=cause=>{if(!failed){failed=true;firstCause=cause;}return firstCause;};
+  const live=()=>{if(retired)throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_RETIRED');if(failed)throw firstCause;};
+  try{reference=api.captureOriginalIDEPublicationArtifact(canonical,Uint8Array.from(selection.artifactBytes()));if(reference===null||reference===undefined)throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_UNAVAILABLE');}catch(cause){remember(cause);}
+  async function current(){
+    live();
+    try{await selection.assertCurrent();live();if(api.readOriginalIDEPublicationArtifactManifest(reference)!==canonical)throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_INVALID');live();return selection.binding;}
+    catch(cause){throw remember(cause);}
+  }
+  return Object.freeze({
+    assertCurrent:current,
+    async acquireProtectedKeyCall(){
+      live();
+      // Canonical CurrentProject/Publisher consumption is still missing. A DATA
+      // artifact, local UUID or former AI lease cannot select this constructor.
+      throw reject('IDE_PUBLICATION_NOT_SUPPLIED');
+    },
+    close(){
+      retired=true;
+      if(cleanupSelected){if(cleanupFailed)throw cleanupCause;return cleanupComplete;}
+      cleanupSelected=true;
+      try{if(reference!==null&&reference!==undefined&&api.closeOriginalIDEPublicationArtifact(reference)!==true)throw reject('IDE_ARTIFACT_ORIGINAL_CAPTURE_CLOSE_INVALID');cleanupComplete=true;return true;}
+      catch(cause){cleanupFailed=true;cleanupCause=cause;throw cause;}
+    },
+    status(){return Object.freeze({captured:reference!==null&&reference!==undefined,retired,firstCausePresent:failed,cleanupSelected,cleanupComplete,keyCallSelected:false});},
+    authority:'artifact-data-only',signingApproved:false,deploymentApproved:false,
+  });
+}
 
 // The paired package must supply the original Cloud SDK at its fixed source
 // role. No cwd, environment, renderer path or same-origin substitute is used.
@@ -26,12 +82,12 @@ export async function openBundledArtifactPublicationObservation(options){
   return openPublicationObservation({...options,CloudClient:YNXCloudClient,observeIDEDeployment});
 }
 
-// DATA preparation for the existing publication flow, not approval/signature
-// authority. An immutable private byte snapshot prevents a pathname from being
-// reopened as different bytes after approval. Auth/SDK own encoding, current
-// permission, purpose key selection, approval, signing and independent verify.
-export async function capturePublicationArtifact({context, admittedProject, artifactPath, version, publishPurpose, targetEnvironment, signal, now = Date.now}) {
-  if (!context?.workspace || !path.isAbsolute(context.workspace) || path.resolve(context.workspace) !== context.workspace || typeof artifactPath !== 'string' || !path.isAbsolute(artifactPath) || typeof admittedProject?.assertCurrent !== 'function' || ![version,publishPurpose,targetEnvironment].every(text)) throw reject('IDE_ARTIFACT_SELECTION_INVALID');
+// Local file/snapshot DATA only. Its localProjectId is not a canonical signed
+// publication identity. The missing original project supplier must be resolved
+// before manifest encoding or protected-key selection can be enabled.
+export async function capturePublicationArtifact({context, localProjectSnapshot, artifactPath, version, publishPurpose, targetEnvironment, signal, now = Date.now}) {
+  if(typeof localProjectSnapshot?.assertCurrent!=='function')throw reject('IDE_PUBLICATION_NOT_SUPPLIED');
+  if (!context?.workspace || !path.isAbsolute(context.workspace) || path.resolve(context.workspace) !== context.workspace || typeof artifactPath !== 'string' || !path.isAbsolute(artifactPath) || ![version,publishPurpose,targetEnvironment].every(text)) throw reject('IDE_ARTIFACT_SELECTION_INVALID');
   const workspace = context.workspace;
   const selected = path.resolve(artifactPath);
   const relative = path.relative(workspace, selected);
@@ -39,11 +95,11 @@ export async function capturePublicationArtifact({context, admittedProject, arti
   let captured, deadline;
   async function current() {
     signal?.throwIfAborted();
-    const state = await admittedProject.assertCurrent();
+    const state = await localProjectSnapshot.assertCurrent();
     signal?.throwIfAborted();
     if (!state || projectKeys.some(key => state[key] === undefined) || state.workspace !== workspace || !text(state.localProjectId) || !Number.isSafeInteger(state.generation) || state.generation < 0 || !Number.isFinite(state.expiresAt) || state.expiresAt <= now()) throw reject('IDE_ARTIFACT_PROJECT_RETIRED');
     if (captured && (projectKeys.some(key => captured[key] !== state[key]) || state.expiresAt < deadline || now() >= deadline)) throw reject('IDE_ARTIFACT_PROJECT_RETIRED');
-    if (!captured) { captured = Object.freeze({...state}); deadline = state.expiresAt; }
+    if (!captured) { captured = Object.freeze(Object.fromEntries(projectKeys.map(key=>[key,state[key]]))); deadline = state.expiresAt; }
   }
   await current();
   const parents = [];
@@ -77,7 +133,7 @@ export async function capturePublicationArtifact({context, admittedProject, arti
     } finally { await file.close(); }
   }
   const original = await readSelected();
-  const binding = Object.freeze({projectId:captured.localProjectId,version,contentDigest:digest(original.bytes),publishPurpose,targetEnvironment,byteSize:original.bytes.length});
+  const binding = Object.freeze({localProjectId:captured.localProjectId,version,contentDigest:digest(original.bytes),publishPurpose,targetEnvironment,byteSize:original.bytes.length});
   async function assertCurrent() {
     const latest = await readSelected();
     if (!unchanged(original.stat,latest.stat) || digest(latest.bytes) !== binding.contentDigest) throw reject('IDE_ARTIFACT_FRESH_APPROVAL_REQUIRED');
@@ -88,16 +144,11 @@ export async function capturePublicationArtifact({context, admittedProject, arti
     assertCurrent,
     // Each accessor returns a copy, never the private approved backing buffer.
     artifactBytes() { return Uint8Array.from(original.bytes); },
-    async encodeManifest(originalEncoder) {
+    async encodeManifest() {
       await assertCurrent();
-      if (typeof originalEncoder !== 'function') throw reject('IDE_ARTIFACT_ORIGINAL_CODEC_UNAVAILABLE');
-      const encoded = await originalEncoder(binding);
-      const raw = typeof encoded === 'string' ? Buffer.from(encoded,'utf8') : encoded instanceof Uint8Array ? Buffer.from(encoded) : null;
-      if (!raw || !raw.length || raw.length > 16384) throw reject('IDE_ARTIFACT_ORIGINAL_CODEC_INVALID');
-      const parsed = JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));
-      if (!parsed || Object.keys(parsed).sort().join() !== Object.keys(binding).sort().join() || Object.keys(binding).some(key => parsed[key] !== binding[key])) throw reject('IDE_ARTIFACT_ORIGINAL_CODEC_INVALID');
-      await assertCurrent();
-      return Uint8Array.from(raw);
+      // This local snapshot has no canonical publication project identity.
+      // Do not invoke even an original codec with a guessed projectId.
+      throw reject('IDE_PUBLICATION_NOT_SUPPLIED');
     },
     authority:'artifact-data-only',
     signingApproved:false,

@@ -86,7 +86,18 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
     assertContractNetworkApproved:contractRuntime?()=>contractRuntime.assertNetworkApproved():undefined,
     resetContractAuthority:contractRuntime?()=>contractRuntime.reset():undefined,
     closeContractAuthority:contractRuntime?()=>contractRuntime.close():undefined,
-    openPublication:async projectContext=>{const {createArtifactPublicationHost}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-host.mjs')));return createArtifactPublicationHost({context:projectContext,admittedProject:walletAdmission?.admittedProject});},
+    // Independent original workspace selector. Acquired lazily only for an
+    // explicit artifact review; local development never requires this Source.
+    // HTTP observation/protected approval remain unavailable until supplied.
+    openPublication:async projectContext=>{
+      const {createArtifactPublicationHost}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-host.mjs')));
+      const {openBundledOriginalPublicationProject}=await import(pathToFileURL(join(applicationRoot,'desktop','original-publication-project.mjs')));
+      const {openBundledOriginalPublicationArtifact}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-client.mjs')));
+      return createArtifactPublicationHost({context:projectContext,
+        openOriginalProject:(currentContext,assertLocalCurrent)=>openBundledOriginalPublicationProject({context:currentContext,assertLocalCurrent}),
+        openNativeArtifact:selection=>openBundledOriginalPublicationArtifact({selection,actualEntryURL:import.meta.url}),
+      });
+    },
     openDeployment:contractRuntime?projectContext=>contractRuntime.openDeployment(projectContext):undefined,
     node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
       retireWallet();

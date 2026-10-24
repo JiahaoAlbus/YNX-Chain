@@ -1,6 +1,9 @@
 'use strict';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/,LIMIT=160*1024;
 const CODES=new Set(['IDE_CONTRACT_MATERIAL_REVIEW_REQUIRED','PQ_CONTRACT_DEPLOYMENT_MATERIAL_INVALID','IDE_CONTRACT_NOT_CONNECTED','IDE_CONTRACT_WALLET_CHANGED','IDE_CONTRACT_RETIRED','IDE_CONTRACT_SIGNED_REFERENCE_INVALID','IDE_CONTRACT_REFERENCE_EXISTS','IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED','IDE_CONTRACT_REFERENCE_NOT_DURABLE']);
+// Only reviewed public diagnostics cross this DATA channel. Never serialize
+// the original exception message, stack, path, Source record or opaque owner.
+for(const code of ['IDE_PROJECT_ORIGINAL_SOURCE_NOT_SUPPLIED','IDE_PUBLICATION_NOT_SUPPLIED','IDE_PUBLICATION_PROJECT_UNAVAILABLE','IDE_PUBLICATION_PROJECT_RETIRED','IDE_PUBLICATION_PUBLISHER_UNAVAILABLE','IDE_ARTIFACT_FILE_CHANGED','IDE_ARTIFACT_FRESH_APPROVAL_REQUIRED','IDE_ARTIFACT_PATH_CHANGED','IDE_ARTIFACT_OUTSIDE_PROJECT','IDE_ARTIFACT_CLOUD_NOT_SUPPLIED'])CODES.add(code);
 const fail=()=>Object.assign(Error('Project Wallet request unavailable; retained references were preserved.'),{code:'IDE_CONTRACT_SERVICE_UNAVAILABLE'});
 function valid(action,body){
  if(!body||Object.getPrototypeOf(body)!==Object.prototype)return false;
@@ -26,7 +29,7 @@ function serve(stream,host){
  const channel=wire(stream,message=>{
   if(!message||Object.keys(message).sort().join()!=='action,body,id'||!Number.isSafeInteger(message.id)||message.id<=last||!valid(message.action,message.body))throw fail();
   last=message.id;if(active.size>=4){channel.send({id:message.id,ok:false});return;}active.add(message.id);
-  Promise.resolve().then(()=>host.call(message.action,message.body)).then(result=>{if(!retired)channel.send({id:message.id,ok:true,result});},error=>{if(!retired)channel.send({id:message.id,ok:false,...(CODES.has(error?.code)?{code:error.code}:{}),...(error?.code==='IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED'&&UUID.test(error.referenceId||'')?{referenceId:error.referenceId}:{})});}).catch(()=>channel.close()).finally(()=>active.delete(message.id));
+  Promise.resolve().then(()=>{if(retired)throw fail();return host.call(message.action,message.body);}).then(result=>{if(!retired)channel.send({id:message.id,ok:true,result});},error=>{if(!retired)channel.send({id:message.id,ok:false,...(CODES.has(error?.code)?{code:error.code}:{}),...(error?.code==='IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED'&&UUID.test(error.referenceId||'')?{referenceId:error.referenceId}:{})});}).catch(()=>channel.close()).finally(()=>active.delete(message.id));
  },()=>{retired=true;void host.close().catch(()=>{});});
  return channel;
 }

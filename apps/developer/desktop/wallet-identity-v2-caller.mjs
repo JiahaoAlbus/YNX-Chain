@@ -76,6 +76,7 @@ export class OriginalIDEIdentityCall {
         current:()=>this.#peerCurrent(),
         sendRequest:(kind,raw,invocation)=>this.#peerOperation('sendRequest',[kind,raw,invocation]),
         receiveReturn:()=>this.#peerOperation('receiveReturn',[]),
+        receiveOriginalArtifactReturn:()=>this.#peerOperation('receiveOriginalArtifactReturn',[]),
         retire:()=>this.#retirePeer(),join:()=>this.#joinPeer(),close:()=>this.#closePeer(),
       });
       return new OriginalIdentityPeerCall(this,view);
@@ -124,7 +125,13 @@ export class OriginalIDEIdentityCall {
       const value=await this.#native(()=>operation.apply(peer,args));
       // Keep a received frame even if cancellation/current invalidates its
       // consumer immediately afterwards. EOF/UNKNOWN is never an approval.
-      if(method==='receiveReturn')this.#peerReturned=value;
+      if(method==='receiveReturn'||method==='receiveOriginalArtifactReturn')this.#peerReturned=value;
+      // This entered R181 receive returns PUBLIC DATA, never an approval or
+      // another key effect. The fixed SDK kernel must first retain an
+      // independent copy, then enforce its post-return current/retired checks.
+      // Rejecting here would erase a result received during cancellation.
+      // New receives still pass load/live/once checks above; no replay occurs.
+      if(method==='receiveOriginalArtifactReturn')return value;
       this.#assertLive();
       if(method==='sendRequest')successful(value);
       return value;

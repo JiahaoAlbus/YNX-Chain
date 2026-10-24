@@ -171,7 +171,12 @@ function installNativeNewFile({ Contribution, command, target, open, uniqueResou
           if (current()) await open(this.openerService, selected);
           return selected;
         } catch (error) {
-          if (current()) await this.messageService.error(error?.message || 'The new file could not be created.');
+          // Feedback settles when the notification is dismissed. It does not
+          // own this creation request: finish cleanup immediately so an
+          // explicit retry can select another destination while it is visible.
+          if (current()) {
+            try { Promise.resolve(this.messageService.error(error?.message || 'The new file could not be created.')).catch(() => {}); } catch {}
+          }
         } finally { pending.delete(this); }
       },
     }));
