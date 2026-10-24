@@ -2416,5 +2416,5 @@ jobs:
           cache-dependency-path: packages/wallet-auth/package-lock.json
       - name: Install exact SDK dependencies without package scripts
         run: npm ci --ignore-scripts --no-audit --fund=false --fetch-retries=1 --fetch-timeout=30000 --prefix packages/wallet-auth
-      - name: Check only added Main c132 SDK entry; reuse prior R201 five-case receipt
-        run: npm run test:main-c132-entry --prefix packages/wallet-auth
+      - name: Check only two affected post-hook source metadata cases; reuse entry and custody CI
+        run: node --test --test-name-pattern='fixed CLI graph|current source recipe' packages/wallet-auth/test/r200-recipe-closure.test.mjs
