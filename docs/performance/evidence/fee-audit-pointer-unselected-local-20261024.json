@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "scope": "test-only pointer fee audit experiment; actual retained1024 signed-transfer history; not network",
+  "baseline": "028988655",
+  "conditions": {
+    "hardware": "Apple M4",
+    "go": "1.25.7",
+    "os": "darwin",
+    "arch": "arm64",
+    "GOMAXPROCS": 1,
+    "sequence": "ABBAAB",
+    "benchtime": "100ms"
+  },
+  "measurements": {
+    "value": [
+      {
+        "ns": 310212,
+        "bytes": 54608,
+        "allocs": 5
+      },
+      {
+        "ns": 323877,
+        "bytes": 54608,
+        "allocs": 5
+      },
+      {
+        "ns": 301814,
+        "bytes": 54608,
+        "allocs": 5
+      }
+    ],
+    "pointer": [
+      {
+        "ns": 309340,
+        "bytes": 54608,
+        "allocs": 5
+      },
+      {
+        "ns": 304504,
+        "bytes": 54608,
+        "allocs": 5
+      },
+      {
+        "ns": 290911,
+        "bytes": 54608,
+        "allocs": 5
+      }
+    ]
+  },
+  "medianNs": {
+    "value": 310212,
+    "pointer": 304504
+  },
+  "medianChangePercent": -1.8400319781310848,
+  "selected": false,
+  "reason": "Timing ranges overlap, allocations unchanged; no full Validate or network gain established. Do not change production for this short small component difference.",
+  "equivalence": "All1024 audit digests and actual complete-history first errors match; actual late-hash/duplicate/negative/payer/source/allocation/time negatives rejected",
+  "patch": {
+    "path": "docs/performance/experiments/fee-audit-pointer-unselected-20261024.patch",
+    "bytes": 5438,
+    "sha256": "0e356557e4b5e854b53b3211b5e66905ee831fc91bbce4558e9d6ae42f7cf76b"
+  },
+  "raw": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/fee-audit-pointer-experiment-01.raw",
+    "sha256": "dda14fa039a965aa90e6b771a92f73c28817cc2794d9a8019c2815240b540bda"
+  }
+}

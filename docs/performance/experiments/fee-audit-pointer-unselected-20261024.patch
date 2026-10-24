@@ -1,0 +1,130 @@
+diff --git a/internal/consensus/fee_audit_pointer_experiment_test.go b/internal/consensus/fee_audit_pointer_experiment_test.go
+new file mode 100644
+--- /dev/null
++++ b/internal/consensus/fee_audit_pointer_experiment_test.go
+@@ -0,0 +1,125 @@
++package consensus
++
++import (
++	"crypto/sha256"
++	"encoding/hex"
++	"errors"
++	"strconv"
++	"strings"
++	"testing"
++	"time"
++)
++
++// Unselected local experiment: no production call sites or validation authority.
++func candidateFeeAuditDigestPointer(event *BFTFeeEvent) [sha256.Size]byte {
++	// Keep the V1 byte contract while avoiding variadic formatting and a
++	// formatted string allocation for every historical event on validation.
++	// Larger fields still grow normally; this is not a record-size restriction.
++	var buffer [768]byte
++	payload := append(buffer[:0], "YNX_FEE_EVENT_AUDIT_V1\x00"...)
++	text := func(value string) { payload = append(payload, value...); payload = append(payload, 0) }
++	number := func(value int64) { payload = strconv.AppendInt(payload, value, 10); payload = append(payload, 0) }
++	text(event.ID)
++	number(int64(event.PolicyVersion))
++	text(event.TxHash)
++	text(event.TransactionType)
++	text(event.Payer)
++	text(event.Recipient)
++	number(event.GrossFeeYNXT)
++	number(event.BurnYNXT)
++	number(event.ValidatorYNXT)
++	number(event.ProviderYNXT)
++	number(event.ProtocolYNXT)
++	number(event.TreasuryYNXT)
++	payload = strconv.AppendBool(payload, event.Sponsored)
++	payload = append(payload, 0)
++	text(event.Source)
++	number(event.BlockHeight)
++	payload = event.RecordedAt.UTC().AppendFormat(payload, time.RFC3339Nano)
++	return sha256.Sum256(payload)
++}
++
++func candidateFeeAuditMatchesPointer(event *BFTFeeEvent) bool {
++	sum := candidateFeeAuditDigestPointer(event)
++	var encoded [sha256.Size * 2]byte
++	hex.Encode(encoded[:], sum[:])
++	return event.AuditHash == string(encoded[:])
++}
++func candidateValidateFeeEventsPointer(events []BFTFeeEvent) error {
++	seen := make(map[string]struct{}, len(events))
++	for index := range events {
++		event := &events[index]
++		isEthereumType := event.TransactionType == EthereumLegacyTransferType || event.TransactionType == EthereumAccessListTransferType || event.TransactionType == EthereumDynamicFeeTransferType
++		sourceValid := (event.TransactionType == EthereumLegacyTransferType && event.Source == EthereumLegacyGasFeeSource) ||
++			(event.TransactionType == EthereumAccessListTransferType && event.Source == EthereumAccessListGasFeeSource) ||
++			(event.TransactionType == EthereumDynamicFeeTransferType && event.Source == EthereumDynamicFeeGasFeeSource) ||
++			(!isEthereumType && event.Source == FixedFeeSource)
++		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || !sourceValid || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || !candidateFeeAuditMatchesPointer(event) {
++			return errors.New("committed fee events must be complete and audit-bound")
++		}
++		if event.BurnYNXT+event.ValidatorYNXT+event.ProviderYNXT+event.ProtocolYNXT+event.TreasuryYNXT != event.GrossFeeYNXT {
++			return errors.New("committed fee event allocation must reconcile to gross fee")
++		}
++		if _, exists := seen[event.ID]; exists {
++			return errors.New("committed fee event IDs must be unique")
++		}
++		seen[event.ID] = struct{}{}
++	}
++	return nil
++}
++
++func TestFeeAuditPointerExperimentExactHistoryAndFirstErrors(t *testing.T) {
++	_, actual := retainedSealFixture(t)
++	for i := range actual.FeeEvents {
++		if candidateFeeAuditDigestPointer(&actual.FeeEvents[i]) != feeEventAuditDigest(actual.FeeEvents[i]) {
++			t.Fatal("audit bytes differ", i)
++		}
++	}
++	for _, kind := range []string{"valid", "late-hash", "duplicate", "negative", "payer", "source", "allocation", "time"} {
++		events := append([]BFTFeeEvent(nil), actual.FeeEvents...)
++		at := len(events) - 1
++		switch kind {
++		case "late-hash":
++			events[at].AuditHash = "invalid"
++		case "duplicate":
++			events[at] = events[0]
++		case "negative":
++			events[at].GrossFeeYNXT = -1
++		case "payer":
++			events[at].Payer = "0Xbad"
++		case "source":
++			events[at].Source = "unknown"
++		case "allocation":
++			events[at].ProviderYNXT = 1
++			events[at].AuditHash = feeEventAuditHash(events[at])
++		case "time":
++			events[at].RecordedAt = time.Time{}
++		}
++		a, b := validateFeeEvents(events), candidateValidateFeeEventsPointer(events)
++		if (a == nil) != (b == nil) || a != nil && a.Error() != b.Error() {
++			t.Fatal(kind, a, b)
++		}
++		if kind != "valid" && b == nil {
++			t.Fatal("invalid history accepted", kind)
++		}
++	}
++}
++func BenchmarkFeeAuditPointerExperiment(b *testing.B) {
++	_, state := retainedSealFixture(b)
++	for _, row := range []struct {
++		name string
++		run  func([]BFTFeeEvent) error
++	}{
++		{"A1_value", validateFeeEvents}, {"B1_pointer", candidateValidateFeeEventsPointer}, {"B2_pointer", candidateValidateFeeEventsPointer}, {"A2_value", validateFeeEvents}, {"A3_value", validateFeeEvents}, {"B3_pointer", candidateValidateFeeEventsPointer},
++	} {
++		b.Run(row.name, func(b *testing.B) {
++			b.ReportAllocs()
++			b.ResetTimer()
++			for i := 0; i < b.N; i++ {
++				if err := row.run(state.FeeEvents); err != nil {
++					b.Fatal(err)
++				}
++			}
++		})
++	}
++}
