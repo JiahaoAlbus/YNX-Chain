@@ -5,14 +5,14 @@
   "performanceComparisonQualified": false,
   "sustainedTPSQualified": false,
   "proof": {
-    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/original-node-business-phases-02.json",
-    "bytes": 87066,
-    "sha256": "767875c96006711c282f71bb6bd87ae9db149bd82c0af6956a28a8bd1127c4ab"
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/original-node-business-phases-03.json",
+    "bytes": 90323,
+    "sha256": "aa797f0f84703d016095815c96f150a412d8a1c08d152dcac8cba05d0685a431"
   },
   "consumer": {
     "path": "docs/performance/evidence/native-refused-node-phases-20261025.mjs",
-    "bytes": 5604,
-    "sha256": "3235f0ac81adb2cecea9500da7d6f023cc1ec63d694b48ee60c233e597434049"
+    "bytes": 5873,
+    "sha256": "3108a7cce41933eaa66f83ee5f1180d58798158424d745dac35fb2174afa87b3"
   },
   "cases": [
     {
@@ -187,5 +187,154 @@
         }
       }
     }
-  ]
+  ],
+  "maintenanceSpikes": [
+    {
+      "case": "before-native-prepared-bounded",
+      "nodes": [
+        {
+          "node": 0,
+          "spikes": [
+            {
+              "height": 18,
+              "transactions": 222,
+              "journalMaintenanceMs": 24.646664,
+              "commitMs": 54.676427
+            },
+            {
+              "height": 34,
+              "transactions": 176,
+              "journalMaintenanceMs": 44.915265,
+              "commitMs": 114.00628
+            }
+          ]
+        },
+        {
+          "node": 1,
+          "spikes": [
+            {
+              "height": 18,
+              "transactions": 222,
+              "journalMaintenanceMs": 54.261452,
+              "commitMs": 103.450234
+            },
+            {
+              "height": 34,
+              "transactions": 176,
+              "journalMaintenanceMs": 36.612412,
+              "commitMs": 87.316246
+            }
+          ]
+        },
+        {
+          "node": 2,
+          "spikes": [
+            {
+              "height": 18,
+              "transactions": 222,
+              "journalMaintenanceMs": 43.578917,
+              "commitMs": 77.166207
+            },
+            {
+              "height": 34,
+              "transactions": 176,
+              "journalMaintenanceMs": 31.918904,
+              "commitMs": 79.434083
+            }
+          ]
+        },
+        {
+          "node": 3,
+          "spikes": [
+            {
+              "height": 18,
+              "transactions": 222,
+              "journalMaintenanceMs": 24.343039,
+              "commitMs": 74.238669
+            },
+            {
+              "height": 34,
+              "transactions": 176,
+              "journalMaintenanceMs": 33.751829,
+              "commitMs": 77.489087
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "after-native-prepared-grouped",
+      "nodes": [
+        {
+          "node": 0,
+          "spikes": [
+            {
+              "height": 18,
+              "transactions": 357,
+              "journalMaintenanceMs": 24.98646,
+              "commitMs": 62.276073
+            },
+            {
+              "height": 34,
+              "transactions": 124,
+              "journalMaintenanceMs": 36.431699,
+              "commitMs": 88.934023
+            }
+          ]
+        },
+        {
+          "node": 1,
+          "spikes": [
+            {
+              "height": 18,
+              "transactions": 357,
+              "journalMaintenanceMs": 32.926882,
+              "commitMs": 60.718242
+            },
+            {
+              "height": 34,
+              "transactions": 124,
+              "journalMaintenanceMs": 46.51436,
+              "commitMs": 122.510252
+            }
+          ]
+        },
+        {
+          "node": 2,
+          "spikes": [
+            {
+              "height": 18,
+              "transactions": 357,
+              "journalMaintenanceMs": 30.965035,
+              "commitMs": 77.098215
+            },
+            {
+              "height": 34,
+              "transactions": 124,
+              "journalMaintenanceMs": 45.291838,
+              "commitMs": 87.492579
+            }
+          ]
+        },
+        {
+          "node": 3,
+          "spikes": [
+            {
+              "height": 18,
+              "transactions": 357,
+              "journalMaintenanceMs": 25.503114,
+              "commitMs": 64.282451
+            },
+            {
+              "height": 34,
+              "transactions": 124,
+              "journalMaintenanceMs": 47.483885,
+              "commitMs": 119.359096
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "checkpointSubphasesMeasuredSeparately": false
 }

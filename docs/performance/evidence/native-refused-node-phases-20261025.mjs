@@ -37,6 +37,7 @@ for(const name of ['before-native-prepared-bounded','after-native-prepared-group
   for(const key of ['semantics','app_hash'])phase[key]=business.map(f=>f.commit.validationStagesNs[key]);
   nodes.push({node:i,source:{path:file,bytes:bytes.length,sha256:sha(bytes)},completeLogValidated:true,
    businessBlocks:business.length,businessTransactions:identities.reduce((n,r)=>n+r[3],0),
+   journalMaintenanceOver5ms:business.filter(f=>f.commit.stagesNs.journal_maintenance>5000000).map(f=>({height:f.commit.height,transactions:f.blockExecution.transactions,journalMaintenanceMs:f.commit.stagesNs.journal_maintenance/1e6,commitMs:f.commit.elapsedNs/1e6})),
    phases:Object.fromEntries(Object.entries(phase).map(([key,values])=>[key,summarize(values)])),
    cumulativeHandlerTimings:timing.stages});
  }
