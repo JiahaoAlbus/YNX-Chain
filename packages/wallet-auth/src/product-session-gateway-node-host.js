@@ -21,6 +21,7 @@ import {CentralBrowserSessionStore} from './central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
 import {OriginalHostTerminalJournal} from './original-host-terminal-journal.js';
 import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent,assertOriginalDeveloperPrincipalSource} from './original-auth-identity-source-current.js';
+import {openOriginalAuthSourceCurrentRequest} from './original-auth-source-current-request.js';
 import {verifyProductSessionProofV2,productSessionProofV2Digest} from './product-session-proof-v2.js';
 import {httpBodyDigest} from './session-proof.js';
 
@@ -426,8 +427,11 @@ export class ProductSessionGatewayNodeHost {
           if(!this.#authSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
           // This existing original producer handler owns the private branding
           // check; neither a marker nor a public arithmetic kernel can mount.
-          const result=await handleOriginalAuthSourceCurrent(this.#authSourceCurrent,request.method,request.url,this.#now().getTime());
-          response.writeHead(result.status,result.headers);response.end(result.body);return;
+          const original=openOriginalAuthSourceCurrentRequest(this.#authSourceCurrent,request.method,request.url);
+          try{
+            original.bindOriginalHTTP(request,response);await original.run();
+            this.#assertStateIdentity();original.writeOriginalResponse(request,response);return;
+          }finally{original.retire();original.join();original.close();}
         }
         const browserPath=this.#central?new URL(request.url,'http://127.0.0.1').pathname:null;
         const route=this.#central?.handles(browserPath)?browserPath:pathname(request.url);
