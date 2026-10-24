@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "baseCommit": "43a13bef9",
+  "scope": "Explicit node hash flag, default original; independent of frozen d24 MM pacing pair",
+  "newFlag": "-state-hash-encoding",
+  "default": "original-json",
+  "candidate": "cached-fee-time-json",
+  "source": {
+    "cmd/ynx-abci/main.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-abci/main.go",
+      "bytes": 4351,
+      "sha256": "64e4a1a5d05c7a5a3a3338c46a7db5b325cc825b6b51cb2758186745aa724851"
+    },
+    "cmd/ynx-abci/state_hash_encoding.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-abci/state_hash_encoding.go",
+      "bytes": 843,
+      "sha256": "0b08e6800bdbb33de14e6403923ee6c6b225e4f8229ab8c8c9f713a29e0a0a3e"
+    },
+    "cmd/ynx-abci/state_hash_encoding_test.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-abci/state_hash_encoding_test.go",
+      "bytes": 9193,
+      "sha256": "e942f592da3716325295c1d5ba37564aed41b1988df6d716e43dc6542c963ebc"
+    }
+  },
+  "raw": {
+    "node-hash-startup-red-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/node-hash-startup-red-01.raw",
+      "bytes": 3427,
+      "sha256": "51f72b430d44e26ab9ca0651475344138d40feac85aafb49a1aec8746323699b"
+    },
+    "node-hash-startup-focused-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/node-hash-startup-focused-01.raw",
+      "bytes": 1221,
+      "sha256": "01cb2c18769311664287d4b90de4b24df5bfc60590f4ff79d9ad1525e6a28740"
+    },
+    "node-hash-startup-application-race-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/node-hash-startup-application-race-01.raw",
+      "bytes": 2342,
+      "sha256": "e14bc20856ceb65cd8a20a24b0c470b91fe1a32e1b52f621f5b12e1eb6f77300"
+    },
+    "node-hash-command-race-02.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/node-hash-command-race-02.raw",
+      "bytes": 6117,
+      "sha256": "4b1e81c1c22f4e85eaf8e13b64634f76a2d326742d6c7da051e4ec4c47ec9a02"
+    }
+  },
+  "actualStartup": {
+    "defaultMode": "original-json",
+    "defaultCachedAttempts": 0,
+    "candidateInitialCachedAttempts": 0,
+    "interpretation": "Initial migration creation does not hash a committed-state document; mode selection is not executed-work proof"
+  },
+  "actualSelectedApplication": {
+    "originalCachedAttempts": 0,
+    "candidateCachedBefore": 0,
+    "candidateCachedAfter": 2,
+    "candidateErrors": 0,
+    "signedTransfersEach": 1,
+    "replayRejected": true,
+    "exactDurableBytesCompared": true,
+    "originalParentDecoderReopened": true,
+    "serverStarted": false
+  },
+  "normalCIPending": true,
+  "frozenFourNodeSourceChanged": false,
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false
+}

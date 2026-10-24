@@ -25,6 +25,7 @@ func main() {
 	statePath := flag.String("state", "", "durable ABCI committed state path (default: <migration-state>.abci-state.json)")
 	layout := flag.String("state-layout", "atomic-json", "persistent layout: atomic-json, snapshot-journal or block-journal (explicit incompatible formats)")
 	phaseTiming := flag.Bool("phase-timing", false, "emit bounded cumulative ABCI handler and Commit storage timings to stderr (diagnostics only)")
+	hashEncoding := flag.String("state-hash-encoding", consensus.StateHashOriginalJSON, "exact-byte state hash encoding: original-json or explicit cached-fee-time-json candidate")
 	flag.Parse()
 	if *migrationPath == "" {
 		log.Fatal("-migration-state is required")
@@ -32,7 +33,7 @@ func main() {
 	if *statePath == "" {
 		*statePath = *migrationPath + ".abci-state.json"
 	}
-	if err := runWithDiagnostics(*listen, *transport, *migrationPath, *statePath, *layout, *phaseTiming); err != nil {
+	if err := runWithDiagnosticsAndEncoding(*listen, *transport, *migrationPath, *statePath, *layout, *phaseTiming, *hashEncoding); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -46,8 +47,15 @@ func runWithLayout(listen, transport, migrationPath, statePath, layout string) e
 }
 
 func runWithDiagnostics(listen, transport, migrationPath, statePath, layout string, phaseTiming bool) (runErr error) {
+	return runWithDiagnosticsAndEncoding(listen, transport, migrationPath, statePath, layout, phaseTiming, consensus.StateHashOriginalJSON)
+}
+
+func runWithDiagnosticsAndEncoding(listen, transport, migrationPath, statePath, layout string, phaseTiming bool, hashEncoding string) (runErr error) {
 	if layout != "atomic-json" && layout != "snapshot-journal" && layout != "block-journal" {
 		return fmt.Errorf("unsupported state layout %q", layout)
+	}
+	if err := consensus.ConfigureStateHashEncoding(hashEncoding); err != nil {
+		return fmt.Errorf("configure state hash encoding: %w", err)
 	}
 	payload, err := os.ReadFile(migrationPath)
 	if err != nil {
@@ -67,6 +75,11 @@ func runWithDiagnostics(listen, transport, migrationPath, statePath, layout stri
 	}
 	if err != nil {
 		return err
+	}
+	if phaseTiming || hashEncoding == consensus.StateHashCachedFeeJSON {
+		if err := writeStateHashEncodingStartup(os.Stderr); err != nil {
+			return fmt.Errorf("record state hash encoding: %w", err)
+		}
 	}
 	var application abcitypes.Application = app
 	var timed *phaseTimedApplication
