@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "scope": "explicit process-selected exact hash backend; default original retained; actual application-only execution not network",
+  "previousCandidateCode": "15acc1a227615605a2dfe640fd99202a93f86b3d",
+  "previousNormalCI": {
+    "run": 40093467067,
+    "head": "6c0388ad8c5b44c130951126c1c4a9ab99f18596",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "selection": {
+    "original": "original-json",
+    "candidate": "cached-fee-time-json",
+    "default": "original-json",
+    "frozenOn": "first valid configuration or first hash/report read",
+    "laterDifferentModeRefused": true
+  },
+  "actualBusiness": {
+    "signedSuccessPerRegularChild": 19,
+    "duplicateNonceRejectsPerRegularChild": 18,
+    "cachedSelectedAttempts": 77,
+    "cachedEncodingErrors": 1,
+    "originalCandidateAttempts": 0,
+    "parallelSelectedHashes": 32,
+    "uncertainWriteDoesNotPublish": true,
+    "noAutomaticRetry": true,
+    "recoveryNonceReplayRejected": true,
+    "originalAndCandidateExactStateAndJournalSHAEqual": true,
+    "actualAbruptSelectedWriterExit": 73,
+    "crashBoundary": "append_synced",
+    "originalBackendRecoversSelectedJournal": true
+  },
+  "networkSelected": false,
+  "nodeCLISelectorImplemented": false,
+  "fullFourNodeGainMeasured": false,
+  "sustainedTPSQualified": false,
+  "raws": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-selected-application-race-01.raw",
+      "bytes": 350,
+      "sha256": "26a5198e36ff5d51fc3775cec0cbe32953384cea0d6bace1a86f8de534d0d77d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-selected-application-race-02.raw",
+      "bytes": 2381,
+      "sha256": "fdd1392bba99b428b885eca5b9140181d4606b68683cdcf7a9169bdc2a02fc84"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-selected-application-race-03.raw",
+      "bytes": 785,
+      "sha256": "e4ddfd8d177f8f3a0d2d0552810513989522375dd7c51b9b2f07055210e6a044"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-selected-full-go-01.raw",
+      "bytes": 198,
+      "sha256": "7436e411782e1de1af7aa5fcf83dd914f7618887fcb510c06b36f8381490f707"
+    }
+  ]
+}

@@ -33,6 +33,15 @@ func (w *committedStateHashWriter) Write(payload []byte) (int, error) {
 }
 
 func hashCommittedStateDocument(doc committedStateHashDocument) (string, error) {
+	stateHashEncodingSelection.once.Do(func() {})
+	if stateHashEncodingSelection.cached {
+		stateHashEncodingSelection.calls.Add(1)
+		value, err := hashCachedFeeDocument(doc)
+		if err != nil {
+			stateHashEncodingSelection.errors.Add(1)
+		}
+		return value, err
+	}
 	// The first chunked candidate regressed the matched real-state benchmark.
 	// Keep the measured baseline active; experiments are invoked explicitly.
 	return hashSingleBufferDocument(doc)
