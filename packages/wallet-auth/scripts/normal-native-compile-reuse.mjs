@@ -208,6 +208,62 @@ export function verifyNormalNativeCompileReuseBinding({request,receipt}){
  return Object.freeze({receipt:pin(receipt.path,original),executed:false,NativeQualified:false,SourceActivated:false});
 }
 
+/** Read completed original CREATE/VERIFY evidence only. The caller must obtain
+ * completedHandoff's exact pin through its trusted delivery channel. No union,
+ * source input, binary, header tree or current package is read or qualified.
+ * This does not rerun create/verify and emits no new receipt or schema. */
+export function readCompletedNormalNativeCompileReuseData({completedHandoff}){
+ const observed=[];let total=0;
+ const read=(ref,empty=false)=>{
+  if(!ref||!Number.isSafeInteger(ref.bytes)||ref.bytes<(empty?0:1)||ref.bytes>262144)fail('NATIVE_REUSE_COMPLETED_PIN');
+  if(observed.length>=32||(total+=ref.bytes)>2097152)fail('NATIVE_REUSE_COMPLETED_CAP');
+  const st=lstatSync(ref.path);if(!st.isFile()||st.isSymbolicLink()||st.size!==ref.bytes)fail('NATIVE_REUSE_COMPLETED_PIN');
+  const raw=pinned(ref,undefined,empty);observed.push([ref,raw]);return raw;
+ };
+ const parse=ref=>{try{return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(read(ref)));}catch(error){if(error.code)throw error;fail('NATIVE_REUSE_COMPLETED_JSON');}};
+ const h=parse(completedHandoff);
+ if(h.state!=='ACTUAL_ORIGINAL_A23_TO_AUTH24_CREATE_AND_VERIFY_COMPLETE_DATA_ONLY'||h.schema!=='YNX_NORMAL_NATIVE_COMPILE_REUSE_BINDING/v1'||h.executedBytesUnchanged!==true||h.originalRecordUnmodified!==true||h.newBuildOrModuleLoad!==false||h.network!==false)fail('NATIVE_REUSE_COMPLETED_STATE');
+ read(h.adapter);const r=parse(h.receipt),request=parse(h.request),e=parse(r.executionEvidence),record=parse(h.originalExecutedRecord),source=parse(h.sourceTuple),target=parse(h.targetTuple),full=parse(h.originalFullH),final=parse(h.finalH),limitation=parse(h.mandatoryLimitation),plan=parse(h.plan),grant=parse(h.grant),terminal=parse(h.actualTerminal),joined=parse(h.ownedJoined);
+ if(r.kind!==h.schema||r.originalRecordSchema!=='YNX_SDK23_R196_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1'||record.schema!==r.originalRecordSchema||record.executed!==true||r.compiledSourceVersion!=='1.3.0-pq.3.32-auth.23'||r.targetRuntimeVersion!=='1.3.0-pq.3.32-auth.24'||source.version!==r.compiledSourceVersion||target.version!==r.targetRuntimeVersion)fail('NATIVE_REUSE_COMPLETED_SELECTION');
+ for(const key of ['originalExecutedRecord','originalFullH','finalH','mandatoryLimitation','sourceTuple','targetTuple','sourceRuntime','targetRuntime'])same(h[key],r[key],'NATIVE_REUSE_COMPLETED_BINDING');
+ same(request.executedRecord,h.originalExecutedRecord,'NATIVE_REUSE_COMPLETED_BINDING');same(request.executionEvidence,r.executionEvidence,'NATIVE_REUSE_COMPLETED_BINDING');
+ same(request.sourceTuplePath,h.sourceTuple.path,'NATIVE_REUSE_COMPLETED_BINDING');same(request.targetTuplePath,h.targetTuple.path,'NATIVE_REUSE_COMPLETED_BINDING');
+ for(const key of ['originalExecutedRecord','originalFullH','finalH','mandatoryLimitation'])same(e[key],h[key],'NATIVE_REUSE_COMPLETED_BINDING');
+ same(full.actualExecutedRecord,h.originalExecutedRecord,'NATIVE_REUSE_COMPLETED_BINDING');same(final.executedRecord,h.originalExecutedRecord,'NATIVE_REUSE_COMPLETED_BINDING');same(limitation.executedRecord,h.originalExecutedRecord,'NATIVE_REUSE_COMPLETED_BINDING');
+ same(final.originalFullH,h.originalFullH,'NATIVE_REUSE_COMPLETED_BINDING');same(limitation.originalH,h.originalFullH,'NATIVE_REUSE_COMPLETED_BINDING');same(final.mandatoryLimitation,h.mandatoryLimitation,'NATIVE_REUSE_COMPLETED_BINDING');
+ same(source.inventory,r.sourceInventory,'NATIVE_REUSE_COMPLETED_BINDING');same(target.inventory,r.targetInventory,'NATIVE_REUSE_COMPLETED_BINDING');same(source.runtime.manifest,r.sourceRuntime.ref,'NATIVE_REUSE_COMPLETED_BINDING');same(target.runtime.manifest,r.targetRuntime.ref,'NATIVE_REUSE_COMPLETED_BINDING');same(record.runtime.manifest,r.sourceRuntime.ref,'NATIVE_REUSE_COMPLETED_BINDING');
+ if(source.sourceRoot!==record.sourceRoot||source.runtime.root!==record.runtime.root||source.runtime.root===target.runtime.root||record.SDKVersion!==source.version||record.runtime.fileCount!==9342||r.sourceRuntime.files!==9342||r.targetRuntime.files!==9344)fail('NATIVE_REUSE_COMPLETED_SELECTION');
+ for(const [key,value]of Object.entries({sourceNormalInputs:92,targetNormalInputs:95,compileInputs:77,nodeTU:13,helperTU:11}))if(h[key]!==value)fail('NATIVE_REUSE_COMPLETED_SELECTION');
+ for(const [key,value]of Object.entries({sourceNormalInputCount:92,targetNormalInputCount:95,compileInputCount:77,nodeTranslationUnits:13,helperTranslationUnits:11}))if(r[key]!==value)fail('NATIVE_REUSE_COMPLETED_SELECTION');
+ const cpp=[...record.inputFiles,...record.helperAdditionalInputs].filter(x=>/\.(?:h|mm|cpp)$/.test(x.relative)).map(x=>({path:x.relative,bytes:x.bytes,sha256:x.sha256})).sort((a,b)=>a.path.localeCompare(b.path));
+ if(cpp.length!==77||new Set(cpp.map(x=>x.path)).size!==77)fail('NATIVE_REUSE_COMPLETED_SELECTION');same(cpp,r.compileInputs,'NATIVE_REUSE_COMPLETED_BINDING');
+ for(const [role,key]of [['node','module'],['helper','helper']]){const a=record.artifacts[key];same({relative:a.path.slice(record.sourceRoot.length+1),bytes:a.bytes,sha256:a.sha256},r.artifacts[role],'NATIVE_REUSE_COMPLETED_BINDING');if(!a.path.startsWith(record.sourceRoot+'/'))fail('NATIVE_REUSE_COMPLETED_BINDING');}
+ const falseLimits=['strictCOWQualified','compilerBinaryIndependentlyPinned','completeOSSDKIndependentlyCaptured','helperExecuted','helperRegistered','NativeQualified','SourceActivated','AppBuilt','installed','realUserLogin','realSessionRecovery','realRevocation','applicableToR201'];
+ if(!h.limitations||falseLimits.some(k=>h.limitations[k]!==false)||h.limitations.copyPhysicalFallbackUnknown!==true||final.strictCOWQualified!==false||final.copyPhysicalFallbackUnknown!==true||limitation.qualification?.materializationStrictCOWQualification!==false||limitation.copyPrimitive?.primitiveGuaranteesNoFallback!==false||limitation.copyPrimitive?.actualCloneUsed!=='UNKNOWN'||limitation.copyPrimitive?.physicalCopyFallbackOccurred!=='UNKNOWN')fail('NATIVE_REUSE_COMPLETED_LIMITATION');
+ for(const key of ['executed','originalExecutionIndependentlyProven','targetRecompiled','strictCOWQualified','helperExecuted','helperRegistered','NativeQualified','SourceActivated','AppBuilt','installed'])if(r[key]!==false)fail('NATIVE_REUSE_COMPLETED_LIMITATION');
+ if(r.copyPhysicalFallbackUnknown!==true||r.toolchain?.compilerBinaryIndependentlyPinned!==false||r.toolchain?.completeOSSDKIndependentlyCaptured!==false||r.exactCompileInputCompatible!==true||r.artifactsFromOriginalExecution!==true||r.sourcePathsInBinaryRetained!==true)fail('NATIVE_REUSE_COMPLETED_LIMITATION');
+ for(const key of ['NativeQualified','helperExecuted','helperRegistered','SourceGranted','installed'])if(record[key]!==false)fail('NATIVE_REUSE_COMPLETED_LIMITATION');
+ same(plan.request,h.request,'NATIVE_REUSE_COMPLETED_BINDING');same({bytes:plan.adapter.bytes,sha256:plan.adapter.sha256},{bytes:h.adapter.bytes,sha256:h.adapter.sha256},'NATIVE_REUSE_COMPLETED_BINDING');same(grant.plan,h.plan,'NATIVE_REUSE_COMPLETED_BINDING');
+ if(grant.once!==true||grant.Source!==false||grant.NativeBuild!==false||grant.realUserAuthorization!==false||plan.NativeBuild!==false||plan.Source!==false||plan.network!==false)fail('NATIVE_REUSE_COMPLETED_LIMITATION');
+ if(terminal.complete!==true||terminal.failed!==null||terminal.ownedEmpty!==true||terminal.NativeBuild!==false||terminal.NativeAdmission!==false||terminal.network!==false||joined.actualExit!==0||joined.ownedEmpty!==true||joined.slotReturned!==true||terminal.elapsedMS!==h.actualElapsedMS||!Number.isSafeInteger(terminal.wrapperPID)||terminal.wrapperPID<1)fail('NATIVE_REUSE_COMPLETED_TERMINAL');
+ if(!Array.isArray(terminal.terms)||terminal.terms.length!==2||!Array.isArray(terminal.owned)||terminal.owned.length!==2||!Array.isArray(joined.known)||joined.known.length!==3)fail('NATIVE_REUSE_COMPLETED_TERMINAL');
+ let previousEnd=0;for(const stage of ['CREATE','VERIFY']){
+  const start=parse(h[stage].start),end=parse(h[stage].terminal),out=parse(h[stage].stdout),stderr=read(h[stage].stderr,true);
+  if(stderr.length!==0||start.stage!==stage||end.stage!==stage||end.actualExit!==0||end.signal!==null||end.timedOut!==false||!Number.isSafeInteger(start.pid)||start.pid<1||start.parentPID!==terminal.wrapperPID||typeof start.processStart!=='string'||!start.processStart.length)fail('NATIVE_REUSE_COMPLETED_TERMINAL');
+  for(const key of ['stage','pid','parentPID','argv','at','processStart'])same(start[key],end[key],'NATIVE_REUSE_COMPLETED_TERMINAL');
+  const begin=Date.parse(start.at),finish=Date.parse(end.end);if(!Number.isFinite(begin)||!Number.isFinite(finish)||begin<previousEnd||finish<begin)fail('NATIVE_REUSE_COMPLETED_TERMINAL');previousEnd=finish;
+  const option=stage==='CREATE'?'--output':'--verify',argv=[plan.adapter.path,'--request',h.request.path,option,h.receipt.path];same(plan[stage==='CREATE'?'createArgv':'verifyArgv'],argv,'NATIVE_REUSE_COMPLETED_BINDING');
+  if(!Array.isArray(start.argv)||start.argv.length!==7||typeof start.argv[0]!=='string'||!isAbsolute(start.argv[0])||start.argv[1]!=='--max-old-space-size=192')fail('NATIVE_REUSE_COMPLETED_TERMINAL');same(start.argv.slice(2),argv,'NATIVE_REUSE_COMPLETED_BINDING');
+  const term=terminal.terms.find(x=>x.stage===stage);same(term,{stage,pid:start.pid,actualExit:0,signal:null},'NATIVE_REUSE_COMPLETED_TERMINAL');
+  if(!terminal.owned.some(x=>x.pid===start.pid&&x.present===false)||!joined.known.some(x=>x.pid===start.pid&&x.present===false))fail('NATIVE_REUSE_COMPLETED_TERMINAL');
+  same(out,stage==='CREATE'?{output:h.receipt.path,executed:false,NativeQualified:false}:{receipt:h.receipt,executed:false,NativeQualified:false,SourceActivated:false},'NATIVE_REUSE_COMPLETED_BINDING');
+ }
+ if(terminal.terms[0].stage!=='CREATE'||terminal.terms[1].stage!=='VERIFY'||terminal.terms[0].pid===terminal.terms[1].pid||terminal.owned.some(x=>x.present!==false)||joined.known.some(x=>x.present!==false)||!joined.known.some(x=>x.pid===terminal.wrapperPID))fail('NATIVE_REUSE_COMPLETED_TERMINAL');
+ for(const [ref,raw]of observed)if(!pinned(ref,undefined,ref.bytes===0).equals(raw))fail('NATIVE_REUSE_COMPLETED_CHANGED');
+ const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
+ return freeze({completedHandoff:{...completedHandoff},receipt:h.receipt,binding:r,sourceTupleData:source,targetTupleData:target,limitations:h.limitations,completedEvidenceRead:true,dataOnly:true,runtimeFilesRehashed:false,actualArtifactsRehashed:false,targetPackageBytesVerified:false,executed:false,NativeQualified:false,SourceActivated:false,AppBuilt:false,installed:false,realUserLogin:false,realSessionRecovery:false,realRevocation:false});
+}
+
 // Explicit offline normal-receipt entry. Original A supplies pinned original
 // records; output is exclusive. --verify uses exactly the same schema/reader.
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){

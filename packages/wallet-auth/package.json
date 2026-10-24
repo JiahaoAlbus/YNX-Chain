@@ -333,7 +333,8 @@
     "test:original-native-control-interop": "node --test test/r199-native-control-interop.test.mjs",
     "test:normal-native-compile-reuse": "node --test test/normal-native-compile-reuse.test.mjs",
     "test:normal-native-actual-record": "node --test test/normal-native-compile-reuse-actual.test.mjs",
-    "test:normal-native-empty-runtime": "node --test --test-name-pattern=\"^runtime empty-file pins\" test/normal-native-compile-reuse.test.mjs"
+    "test:normal-native-empty-runtime": "node --test --test-name-pattern=\"^runtime empty-file pins\" test/normal-native-compile-reuse.test.mjs",
+    "test:normal-native-completed-proof": "node --test test/normal-native-completed-proof-reader.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

@@ -93,3 +93,19 @@ For this branch each tuple keeps sourceRoot/version/inventory/plansRef/runtime.r
 `helperExecuted:false` means no helper business activation; helper compilation is checked through NORMAL_HELPER11_BUILD and its eleven-unit captured compiler driver. Mandatory materialization limitations survive as strictCOWQualified:false and copyPhysicalFallbackUnknown:true. Captured argv does not independently pin a compiler binary or a complete OS SDK; both limitations are explicitly false in the derived toolchain DATA. Original execution remains supplier evidence rather than an independently witnessed process. NativeQualified/SourceActivated/helperRegistered/AppBuilt/installed remain false. Auth25 is not accepted or relabeled as Auth24; it needs its own successor compatibility and runtime closure binding.
 
 Actual pinned request maps are delivery evidence outside the package. For the selected SDK23/24 delivery they reside under `.wallet-source-evidence/native-reuse-actual-schema/`; the owner must schedule the bounded read of both real runtimes before invoking the same `--output` and `--verify` CLI. PUBLIC prefix tests do not read real runtimes or create a qualified actual receipt.
+
+## Read an already completed R3 proof without replaying verification
+
+Use the same module's `readCompletedNormalNativeCompileReuseData({completedHandoff})` for an IDE consumer of a completed proof. `completedHandoff` is an exact `{path,bytes,sha256}` pin received through the consumer's trusted delivery channel. A hash obtained from an arbitrary untrusted handoff is not an authority anchor.
+
+```js
+import {readCompletedNormalNativeCompileReuseData} from './normal-native-compile-reuse.mjs';
+const data = readCompletedNormalNativeCompileReuseData({completedHandoff: trustedHandoffPin});
+// data.receipt is the existing same-schema receipt pin; data.binding is its
+// deeply frozen DATA. Compare data.targetTupleData / binding.targetRuntime
+// against the IDE's own normal target-package byte gate before using a package.
+```
+
+The reader only reads a capped set of small pinned evidence files: the authoritative completed H, its frozen executed adapter, the existing `YNX_NORMAL_NATIVE_COMPILE_REUSE_BINDING/v1` receipt, original A record/full/final/limitation handoffs, tuple and execution-evidence JSON, consumed plan/grant, actual CREATE/VERIFY starts/zero terminals/stdout/empty stderr, and owned-join outcome. It checks cross-file pins, recorded argv/PIDs, terminal success and owned emptiness, the original 77 input/artifact records, distinct 92/95 and 9342/9344 runtime references, and preserved limitations. It does not recursively follow handoffs, read either runtime manifest or runtime file, read actual source/headers/binaries, call create/verify, launch a process, write a receipt, or grant any permission. The existing CLI `--verify` retains its full verification behavior; this explicitly separate consumer API never silently weakens it.
+
+Return fields `completedEvidenceRead:true` and `dataOnly:true` describe the completed evidence read. `runtimeFilesRehashed`, `actualArtifactsRehashed`, `targetPackageBytesVerified`, `NativeQualified`, `SourceActivated`, `AppBuilt`, `installed`, `realUserLogin`, `realSessionRecovery`, and `realRevocation` remain false. COW/physical-fallback, compiler/OS SDK capture, helper and R201 limitations are retained. No second receipt/schema is created, and the live module is not substituted for the immutable adapter bytes that performed the original R3 execution.
