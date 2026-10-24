@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "scope": "unselected per-encoding fee timestamp JSON reuse candidate; full canonical bytes and original full semantics remain",
+  "baseline": "5d410aa5e",
+  "productionSelected": false,
+  "networkGainMeasured": false,
+  "sustainedTPSQualified": false,
+  "conditions": {
+    "hardware": "Apple M4",
+    "go": "1.25.7",
+    "os": "darwin",
+    "arch": "arm64",
+    "GOMAXPROCS": 1,
+    "actualRetainedSignedHistory": 1024,
+    "sequence": "ABBAAB"
+  },
+  "hashComponent": {
+    "samples": {
+      "original": [
+        {
+          "ns": 827689,
+          "bytes": 76987,
+          "allocs": 2055
+        },
+        {
+          "ns": 833595,
+          "bytes": 76987,
+          "allocs": 2055
+        },
+        {
+          "ns": 830833,
+          "bytes": 76987,
+          "allocs": 2055
+        }
+      ],
+      "cached": [
+        {
+          "ns": 751696,
+          "bytes": 28882,
+          "allocs": 1049
+        },
+        {
+          "ns": 740471,
+          "bytes": 28882,
+          "allocs": 1049
+        },
+        {
+          "ns": 752497,
+          "bytes": 28882,
+          "allocs": 1049
+        }
+      ]
+    },
+    "median": {
+      "original": {
+        "ns": 830833,
+        "bytes": 76987,
+        "allocs": 2055
+      },
+      "cached": {
+        "ns": 751696,
+        "bytes": 28882,
+        "allocs": 1049
+      }
+    },
+    "changePercent": {
+      "ns": -9.525018866607372,
+      "bytes": -62.48457531791082,
+      "allocs": -48.95377128953772
+    }
+  },
+  "fullValidate": {
+    "samples": {
+      "original": [
+        {
+          "ns": 1214041,
+          "bytes": 243421,
+          "allocs": 2849
+        },
+        {
+          "ns": 1217360,
+          "bytes": 243420,
+          "allocs": 2849
+        },
+        {
+          "ns": 1210933,
+          "bytes": 243421,
+          "allocs": 2849
+        }
+      ],
+      "cached": [
+        {
+          "ns": 1201710,
+          "bytes": 195323,
+          "allocs": 1843
+        },
+        {
+          "ns": 1171423,
+          "bytes": 195321,
+          "allocs": 1843
+        },
+        {
+          "ns": 1182950,
+          "bytes": 195323,
+          "allocs": 1843
+        }
+      ]
+    },
+    "median": {
+      "original": {
+        "ns": 1214041,
+        "bytes": 243421,
+        "allocs": 2849
+      },
+      "cached": {
+        "ns": 1182950,
+        "bytes": 195323,
+        "allocs": 1843
+      }
+    },
+    "changePercent": {
+      "ns": -2.5609514011470824,
+      "bytes": -19.759182650634088,
+      "allocs": -35.310635310635305
+    }
+  },
+  "raws": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-json-experiment-01.raw",
+      "bytes": 2815,
+      "sha256": "4509fb2d2a76cca7cbbd3372e56f73dbf8a80d29e736fe80c48013f4ea0e9a92"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-json-full-validate-01.raw",
+      "bytes": 3037,
+      "sha256": "b612a17e036fc3753d76003a72fa35f186eadaf686c7f6581b1083420e304f06"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-json-race-01.raw",
+      "bytes": 1829,
+      "sha256": "e69914507d01cd638abf9dfad38bd504b3232c0449eb4388e8d7ece903db42d1"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/cached-fee-json-race-02.raw",
+      "bytes": 1941,
+      "sha256": "6f2b10a0e4d201c33555074caf6bb4b45f560f44d4823cc354fe08bddaccebc0"
+    }
+  ],
+  "sourcePins": [
+    {
+      "path": "internal/consensus/state_hash_cached_fee_candidate.go",
+      "sha256": "0aad9f7be2cb948d02f5c639190b23f594ebedf2d55d35176d86602dd53ae801"
+    },
+    {
+      "path": "internal/consensus/state_hash_cached_fee_candidate_test.go",
+      "sha256": "efc45e8d90cdf3bf79b0fd036e1b6c914d796989178fbf81924f64432247dc56"
+    }
+  ],
+  "safety": [
+    "exact complete json.Marshal bytes and SHA versions1..13",
+    "actual retained1024 hashes",
+    "nil/empty/special Unicode/invalidUTF8/HTML/NUL/long fields/int bounds",
+    "same instant differing timezone JSON; monotonic/zero times",
+    "late invalid time preserves json.MarshalerError Type/Err/first cause",
+    "original successful and invalid full-state Validate first errors",
+    "sink short writes/errors/framing",
+    "parallel private scratch under race",
+    "closed17field JSON schema inventory"
+  ],
+  "limitations": "Local short component/full Validate comparison only. No original writer/hash default or frozen142 measurement changed; integration and Linux/network measurement still required."
+}

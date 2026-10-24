@@ -268,6 +268,8 @@ jobs:
         env:
           YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-prepared-public-fixture
         run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(PreparedNativeSnapshot|BlockJournalPreparedPrefix|PreparedNativeStreaming)' -count=1 -timeout=30s -v
+      - name: Verify unselected cached fee JSON bytes and first errors
+        run: go test -p 1 -race ./internal/consensus -run '^TestCachedFeeHashCandidate' -count=1 -timeout=30s -v
       - name: Verify original native stream evidence identity and corruption negatives
         env:
           YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-stream-public-fixture
