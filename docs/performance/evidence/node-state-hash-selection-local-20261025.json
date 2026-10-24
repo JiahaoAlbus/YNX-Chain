@@ -64,5 +64,14 @@
   "normalCIPending": true,
   "frozenFourNodeSourceChanged": false,
   "networkImprovementMeasured": false,
-  "sustainedTPSQualified": false
+  "sustainedTPSQualified": false,
+  "codeCommit": "ecc4f22fa43b63a82ed3ea5b3bf93a734c9037a0",
+  "diagnosticNodeTree": "3e9df17d01a24f43a54eb724323798a0b5b72958",
+  "sourceGuard": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/node-hash-source-guard-01.raw",
+    "bytes": 4436,
+    "sha256": "a66414c7763b54f29a9d0163421e736b08e24b11a71b0a330236589cce2e87e8",
+    "tests": 24,
+    "passed": true
+  }
 }
