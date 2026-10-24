@@ -9,6 +9,9 @@ import (
 // Separate opt-in scope. The original nativeSubmit8 single-round contract and
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
+	if o.nativePreparedCertificate && (!o.nativeStream8 || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint) {
+		return errors.New("prepared certificate requires explicit native stream and no mixed construction/tip candidate")
+	}
 	if o.nativeStreamSubmitters != 0 && (o.nativeStreamSubmitters != 16 || !o.nativeStream8 || o.concurrency != 16) {
 		return errors.New("explicit native stream submitters requires stream16 and concurrency16")
 	}
@@ -73,7 +76,9 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 		return errors.New("native streaming cannot discard existing signature-cache work")
 	}
 	constructor := consensus.NewBoundedBlockJournalNativeClonePrefixDecoder
-	if o.nativeCanonicalCertificate {
+	if o.nativePreparedCertificate {
+		constructor = consensus.NewBoundedBlockJournalPreparedNativePrefixDecoder
+	} else if o.nativeCanonicalCertificate {
 		constructor = consensus.NewBoundedBlockJournalCanonicalNativePrefixDecoder
 	} else if o.nativeSuffixSetup {
 		constructor = consensus.NewBoundedBlockJournalNativeSuffixPrefixDecoder
@@ -90,6 +95,10 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	r.currentInputReuseStats.Enabled = o.nativeCurrentInputReuse
 	r.prefixDecoder = decoder
 	r.prefixNativeClone = true
+	if decoder.PreparedNativePublicationEnabled() != o.nativePreparedCertificate {
+		return errors.New("actual prepared publication constructor differs")
+	}
+	r.prefixStats.PreparedCertificate = o.nativePreparedCertificate
 	r.prefixStats.CanonicalCertificate = o.nativeCanonicalCertificate
 	r.prefixStats.NativeSuffixSetup = decoder.NativeSuffixSetupEnabled()
 	r.prefixStats.WorkPhases.PrivateNativeClone = new(consensus.BlockJournalPrefixPhase)
@@ -108,6 +117,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
 	BlockTipHint           bool    `json:"blockTipHint,omitempty"`
+	PreparedCertificate    bool    `json:"preparedCertificate,omitempty"`
 	CanonicalCertificate   bool    `json:"canonicalCertificate,omitempty"`
 	CurrentInputReuse      bool    `json:"currentInputReuse"`
 	ClientClockTiming      bool    `json:"clientClockTiming"`
@@ -124,6 +134,12 @@ type nativeStreamingPlan struct {
 
 func streamingProfileName(o options) string {
 	if o.nativeStream8 {
+		if o.nativePreparedCertificate {
+			if o.nativeStreamSubmitters == 16 {
+				return "scoped_native_prefix_stream16_prepared_v1"
+			}
+			return "scoped_native_prefix_stream8_prepared_v1"
+		}
 		if o.nativeStreamSubmitters == 16 {
 			return "scoped_native_prefix_stream16_v1"
 		}

@@ -31,6 +31,7 @@ type BlockJournalPrefixWorkPhases struct {
 // untimed APIs retain their output shape and do not read these child clocks.
 type BlockJournalPrefixCertificatePhases struct {
 	CanonicalNative         *BlockJournalPrefixPhase `json:"canonicalNative,omitempty"` // Explicit candidate copy plus exact encoded-byte comparison.
+	PreparedNativeAccepted  uint64                   `json:"preparedNativeAccepted,omitempty"`
 	CanonicalNativeAccepted uint64                   `json:"canonicalNativeAccepted,omitempty"`
 	PayloadCopy             BlockJournalPrefixPhase  `json:"payloadCopy"` // Original payload copy plus current input-prefix digest.
 	StrictJSON              BlockJournalPrefixPhase  `json:"strictJSON"`
@@ -127,6 +128,7 @@ func (p *BlockJournalPrefixWorkPhases) Add(other BlockJournalPrefixWorkPhases) {
 		}
 		target, source := p.CertificatePublishDetails, other.CertificatePublishDetails
 		target.CanonicalNativeAccepted += source.CanonicalNativeAccepted
+		target.PreparedNativeAccepted += source.PreparedNativeAccepted
 		if source.CanonicalNative != nil {
 			if target.CanonicalNative == nil {
 				target.CanonicalNative = new(BlockJournalPrefixPhase)

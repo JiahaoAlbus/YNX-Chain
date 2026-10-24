@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "defaultChanged": false,
+  "explicitDecoder": "NewBoundedBlockJournalPreparedNativePrefixDecoder",
+  "explicitClientFlag": "native-prepared-certificate",
+  "profileNames": [
+    "scoped_native_prefix_stream8_prepared_v1",
+    "scoped_native_prefix_stream16_prepared_v1"
+  ],
+  "hostedControllerWired": false,
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "realJournalTest": {
+    "successfulSigned": 18,
+    "duplicateNonceRejected": 18,
+    "invalidEnvelopeRejected": 18,
+    "preparedPublications": 16,
+    "coldStrictPublications": 2,
+    "checkpointEpochs": 2,
+    "publicMutationIsolated": true,
+    "privateStateAndPayloadCorruptionRejected": true,
+    "olderCaptureDoesNotDisplaceHighWater": true,
+    "freshDecoderRecovery": true,
+    "cancellationRejected": true
+  },
+  "realClientTest": {
+    "signedExecutedDurable": 102,
+    "accounts": 3,
+    "nonceCycles": 34,
+    "privateReadbackAndSignatureVerificationRecords": 102,
+    "terminalEvidenceReadback": true,
+    "reopenAndNonceReplayRejection": true,
+    "quorum": "synthetic unit gates, no network BFT claim"
+  },
+  "selectionAndOwnership": [
+    "prepared instance only; original makePrefixCertificate API always strict JSON",
+    "same private object is encoded once before private publication",
+    "public snapshot and private payload/object storage are independent",
+    "binding checks decoder selection/exact payload/height/AppHash/Initialized",
+    "all reused state still runs full Validate",
+    "cold/unsupported state and old constructors retain original strict route",
+    "mixed canonical/suffix/tip construction selections rejected",
+    "original byte limits and external RSS admission remain"
+  ],
+  "raw": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-prefix-integration-first.raw",
+      "bytes": 2454,
+      "sha256": "aff0194cedd15910d5ebb91eec479c191b0ed0a7ef0933b57a5e7c96cb796dcf"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-prefix-integration-race.raw",
+      "bytes": 2454,
+      "sha256": "6f8d2cf1dcda4eb72ca6e24085cc2a6632a88a6531ac40a19e958489773c33cb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-prefix-integration-full-go.raw",
+      "bytes": 140,
+      "sha256": "7b82a5c024acb2a50be27b0cec98a9a45bbf11b64a6b8a8947d2bedeea0d3ff8"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-prefix-client-race-first.raw",
+      "bytes": 1529,
+      "sha256": "574f8186b34483c73612cf1a4520c18c289ec16097157d7aeea5bd2a90a54d9c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-prefix-client-race-final.raw",
+      "bytes": 1529,
+      "sha256": "b76ac651afa738c17c5d641f3df6509b322eac9b5e0d97e5bf838bdcf3670063"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-prefix-cli-full-go.raw",
+      "bytes": 198,
+      "sha256": "380bcc61ada75a54ef20ead68ebb7cf1834725be7b4263c590340ca5b178a7ec"
+    }
+  ],
+  "interpretation": "Actual opt-in decoder and client application pipeline executed. No default promotion, external arbitrary-JSON shortcut or signature/state/history skip. Earlier local component benchmark remains component-only; complete decoder/network/RSS comparison still outstanding. Original frozen9d run40087248053 is independent and contains none of this candidate.",
+  "fullGoPassed": {
+    "consensusSeconds": 7.967,
+    "abciSeconds": 0.32,
+    "clientSeconds": 18.443
+  }
+}

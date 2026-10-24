@@ -23,6 +23,7 @@ type BlockJournalPrefixDecoder struct {
 	nativeClone       bool
 	nativeSuffixSetup bool
 	canonicalNative   bool
+	preparedNative    bool
 	byteLimit         int // Immutable; zero preserves the original16MiB limit.
 }
 type blockJournalPrefix struct {
@@ -152,6 +153,7 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 		return nil
 	})
 	logicalBlocks := 0
+	var prepared *preparedCanonicalNativeSnapshot
 	if reused {
 		// Always reconstruct private state and fully validate its current AppHash.
 		var state CommittedState
@@ -223,7 +225,15 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 			return out, err
 		}
 		var payload []byte
-		err = phases.measure("suffixEncode", func() error { var e error; payload, e = encodeCommittedStateJSON(next); return e })
+		err = phases.measure("suffixEncode", func() error {
+			var e error
+			if d.preparedNative {
+				payload, prepared, e = d.encodePreparedPrefixSnapshot(next)
+			} else {
+				payload, e = encodeCommittedStateJSON(next)
+			}
+			return e
+		})
 		if err != nil {
 			return out, err
 		}
@@ -246,7 +256,7 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 	// a newer validated state. Rotation at equal/newer height can replace it.
 	if len(out.SnapshotJSON) <= d.ByteLimit() && (p == nil || out.State.Height >= p.height) {
 		err := phases.measure("certificatePublish", func() error {
-			certificate, err := d.makePrefixCertificate(data, out.BlockJournalReadback, logicalBlocks, phases)
+			certificate, err := d.makePrefixCertificateWithPrepared(data, out.BlockJournalReadback, logicalBlocks, phases, prepared)
 			if err != nil {
 				return err
 			}
@@ -263,9 +273,26 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 // The caller publishes only a fully constructed certificate. Failed strict JSON
 // normalization must leave the prior private certificate/high-water untouched.
 func (d *BlockJournalPrefixDecoder) makePrefixCertificate(data []byte, out BlockJournalReadback, logicalBlocks int, phases *BlockJournalPrefixWorkPhases) (*blockJournalPrefix, error) {
+	return d.makePrefixCertificateWithPrepared(data, out, logicalBlocks, phases, nil)
+}
+
+// The prepared object can only come from this call's private suffix encode.
+// The public byte result remains independently owned. Arbitrary callers using
+// the original method above always retain original strict JSON reconstruction.
+func (d *BlockJournalPrefixDecoder) makePrefixCertificateWithPrepared(data []byte, out BlockJournalReadback, logicalBlocks int, phases *BlockJournalPrefixWorkPhases, prepared *preparedCanonicalNativeSnapshot) (*blockJournalPrefix, error) {
+	if prepared != nil && (!d.preparedNative || !d.nativeClone || d.canonicalNative || !bytes.Equal(prepared.payload, out.SnapshotJSON) || prepared.state.Height != out.State.Height || prepared.state.AppHash != out.State.AppHash || prepared.state.Initialized != out.State.Initialized) {
+		return nil, errors.New("prepared prefix snapshot producer identity differs")
+	}
+
 	var certificate *blockJournalPrefix
 	err := phases.measureCertificate("payloadCopy", func() error {
-		certificate = &blockJournalPrefix{payload: append([]byte(nil), out.SnapshotJSON...), digest: sha256.Sum256(data[:out.CompleteBytes]), end: out.CompleteBytes, blocks: logicalBlocks, height: out.State.Height}
+		var payload []byte
+		if prepared != nil {
+			payload = prepared.payload
+		} else {
+			payload = append([]byte(nil), out.SnapshotJSON...)
+		}
+		certificate = &blockJournalPrefix{payload: payload, digest: sha256.Sum256(data[:out.CompleteBytes]), end: out.CompleteBytes, blocks: logicalBlocks, height: out.State.Height}
 		if phases != nil && phases.CertificatePublishDetails != nil {
 			phases.CertificatePublishDetails.PayloadBytes += uint64(len(out.SnapshotJSON))
 			phases.CertificatePublishDetails.PrefixBytesHashed += uint64(out.CompleteBytes)
@@ -280,6 +307,12 @@ func (d *BlockJournalPrefixDecoder) makePrefixCertificate(data []byte, out Block
 		// clone. Every reused result still performs the original full Validate.
 		var canonical CommittedState
 		canonicalReady := false
+		if prepared != nil {
+			canonical, canonicalReady = prepared.state, true
+			if phases != nil && phases.CertificatePublishDetails != nil {
+				phases.CertificatePublishDetails.PreparedNativeAccepted++
+			}
+		}
 		if d.canonicalNative {
 			if err := phases.measureCertificate("canonicalNative", func() error {
 				private, ok := cloneCanonicalNativeCommittedState(out.State)

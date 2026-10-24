@@ -63,6 +63,7 @@ type options struct {
 	prefixDurableReplay            bool
 	prefixNativeClone              bool
 	nativeCurrentInputReuse        bool
+	nativePreparedCertificate      bool
 	nativeCanonicalCertificate     bool
 	nativeBlockTipHint             bool
 	nativeStreamSubmitters         int
@@ -205,6 +206,7 @@ type report struct {
 	PrefixNativeClone          bool                      `json:"prefixNativeClone,omitempty"`
 	NativeCurrentInputReuse    bool                      `json:"nativeCurrentInputReuse,omitempty"`
 	NativeBlockTipHint         bool                      `json:"nativeBlockTipHint,omitempty"`
+	NativePreparedCertificate  bool                      `json:"nativePreparedCertificate,omitempty"`
 	NativeCanonicalCertificate bool                      `json:"nativeCanonicalCertificate,omitempty"`
 	NativeStreamSubmitters     int                       `json:"nativeStreamSubmitters,omitempty"`
 	NativeStream8              bool                      `json:"nativeStream8,omitempty"`
@@ -258,6 +260,7 @@ func main() {
 	flag.BoolVar(&o.observerNativeFacts, "observer-native-facts", false, "candidate: reuse exact bytes+expected-chain signature facts from verified replay; native8 or native-stream8 with original suffix setup")
 	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: validated private suffix initialization; explicit native8 data64 or native stream8 only")
 	flag.BoolVar(&o.nativeCurrentInputReuse, "native-current-input-reuse", false, "explicit native stream only: share privately validated identical freshly captured input under original reader budget")
+	flag.BoolVar(&o.nativePreparedCertificate, "native-prepared-certificate", false, "explicit native stream candidate: private normalized suffix snapshot encoded once; original strict fallback/full state checks retained")
 	flag.BoolVar(&o.nativeCanonicalCertificate, "native-canonical-certificate", false, "explicit native stream only: canonical private certificate copy with exact encoded-byte comparison and strict JSON fallback")
 	flag.BoolVar(&o.nativeBlockTipHint, "native-block-tip-hint", false, "explicit native stream only: status height/hash guides full authenticated block fetch; never authority or finality")
 	flag.IntVar(&o.nativeStreamSubmitters, "native-stream-submitters", 0, "explicit native stream16 candidate only; zero preserves stream8; separate resource grant required")
@@ -980,6 +983,7 @@ func execute(o options) error {
 	r.PrefixNativeClone = o.prefixNativeClone
 	r.NativeCurrentInputReuse = o.nativeCurrentInputReuse
 	r.NativeCanonicalCertificate = o.nativeCanonicalCertificate
+	r.NativePreparedCertificate = o.nativePreparedCertificate
 	r.NativeBlockTipHint = o.nativeBlockTipHint
 	if o.nativeBlockTipHint {
 		r.Interpretation = append(r.Interpretation, "Explicit block tip hint only avoids repeated full latest-block bodies at unchanged authenticated height. Status height/hash is discovery data, never authority. Each new height retains original signed commit/validator quorum/Merkle/execution results and fresh durable state/Info verification; no fallback, timeout extension or business TPS qualification.")

@@ -60,3 +60,18 @@ func (d *BlockJournalPrefixDecoder) ByteLimit() int {
 func (d *BlockJournalPrefixDecoder) NativeSuffixSetupEnabled() bool {
 	return d != nil && d.nativeSuffixSetup
 }
+
+// NewBoundedBlockJournalPreparedNativePrefixDecoder is an explicit candidate:
+// privately normalize+encode only states this decoder just replayed. Original
+// native clone/strict JSON paths remain fallback and all reused states still
+// run full Validate. The encoded bound is unchanged; external RSS is separate.
+func NewBoundedBlockJournalPreparedNativePrefixDecoder(migration chain.ConsensusMigrationState, limit int) (*BlockJournalPrefixDecoder, error) {
+	d, err := NewBoundedBlockJournalNativeClonePrefixDecoder(migration, limit)
+	if err == nil {
+		d.preparedNative = true
+	}
+	return d, err
+}
+func (d *BlockJournalPrefixDecoder) PreparedNativePublicationEnabled() bool {
+	return d != nil && d.preparedNative
+}

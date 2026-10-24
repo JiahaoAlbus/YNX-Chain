@@ -53,6 +53,7 @@ func persistStreamingWorkloadPlan(o options, manifest []byte, m consensus.Epheme
 		}
 		plan.NativePrefix = &nativeStreamingPlan{OfferedRate: o.offeredRate, PacingMode: mode, Submitters: o.concurrency, Observers: o.observers, CanonicalByteLimit: storeLimit, ObserverNativeFacts: true, OriginalSuffixSetup: true, SerializedReaderBudget: cacheBudget > 0, ReaderGateTiming: cacheBudget > 0, ClientClockTiming: true, CurrentInputReuse: o.nativeCurrentInputReuse}
 		plan.NativePrefix.CanonicalCertificate = o.nativeCanonicalCertificate
+		plan.NativePrefix.PreparedCertificate = o.nativePreparedCertificate
 		plan.NativePrefix.BlockTipHint = o.nativeBlockTipHint
 		plan.NativePrefix.OriginalSuffixSetup = !o.nativeSuffixSetup
 	}

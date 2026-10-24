@@ -155,6 +155,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	if native {
 		o = nativeStreamingOptions()
 		o.nativeCurrentInputReuse = true
+		o.nativePreparedCertificate = len(candidates) >= 5 && candidates[4]
 		o.nativeCanonicalCertificate = len(candidates) >= 1 && candidates[0]
 		o.nativeSuffixSetup = len(candidates) >= 2 && candidates[1]
 		if len(candidates) >= 3 && candidates[2] {
@@ -344,6 +345,15 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 			t.Fatal("persisted plan does not bind actual worker scope", plan.NativePrefix)
 		}
 		actual := nativeReader.stats()
+		if actual.PrefixReplay.PreparedCertificate != o.nativePreparedCertificate || plan.NativePrefix.PreparedCertificate != o.nativePreparedCertificate {
+			t.Fatal("prepared actual backend/plan differs")
+		}
+		if o.nativePreparedCertificate {
+			parts := actual.PrefixReplay.WorkPhases.CertificatePublishDetails
+			if parts.PreparedNativeAccepted == 0 || parts.PreparedNativeAccepted+parts.StrictJSON.Calls != uint64(expected) || parts.NativeClone.Calls != uint64(expected) {
+				t.Fatal("actual prepared construction/strict fallback coverage differs", parts)
+			}
+		}
 		if actual.PrefixReplay.CanonicalCertificate != o.nativeCanonicalCertificate || plan.NativePrefix.CanonicalCertificate != o.nativeCanonicalCertificate || plan.NativePrefix.OriginalSuffixSetup == o.nativeSuffixSetup || actual.PrefixReplay.NativeSuffixSetup != o.nativeSuffixSetup {
 			t.Fatal("certificate configuration/plan differs")
 		}
@@ -391,7 +401,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	if err := claimSenderPool(path); err == nil {
 		t.Fatal("completed fixture claim was silently reusable")
 	}
-	if native && o.nativeStreamSubmitters == 0 {
+	if native && o.nativeStreamSubmitters == 0 && !o.nativePreparedCertificate {
 		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats)
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)
