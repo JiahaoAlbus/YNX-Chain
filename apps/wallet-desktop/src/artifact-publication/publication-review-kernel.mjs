@@ -1,6 +1,7 @@
 import {isDeepStrictEqual,types} from 'node:util';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const id=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+const nativePhases=new Set(['not-entered','signing-outcome-unknown','signed-outcome-unknown','signed-unhanded','failed','unknown','cancelled']);
 const bounded=v=>typeof v==='string'&&v.length>0&&Buffer.byteLength(v)<=256&&!/[\u0000-\u001f\u007f]/.test(v);
 const typed=Object.getPrototypeOf(Uint8Array.prototype),getter=key=>Object.getOwnPropertyDescriptor(typed,key).get;
 const bufferOf=getter('buffer'),offsetOf=getter('byteOffset'),lengthOf=getter('byteLength');
@@ -17,7 +18,7 @@ function copiedResult(value){
  * channel. Approval uses the Native publisher journal, never the Auth signer.
  */
 export class WalletIDEPublicationReviewKernel {
- #base;#captureNative;#current;#invocation;#native=null;#nativeView=null;#selected=null;#active=false;#retired=false;#closed=false;#wire=null;#stored=false;#effectEntered=null;#signed=false;#phase='pending';#first;#hasFirst=false;#cleanup;#hasCleanup=false;#cleanupDebt=false;
+ #base;#captureNative;#current;#invocation;#native=null;#nativeView=null;#selected=null;#active=false;#retired=false;#closed=false;#wire=null;#stored=false;#effectEntered=null;#signed=false;#nativePhase='not-entered';#phase='pending';#first;#hasFirst=false;#cleanup;#hasCleanup=false;#cleanupDebt=false;
  constructor({base,captureNative,assertCurrent,invocationOriginal}){this.#base=base;this.#captureNative=captureNative;this.#current=assertCurrent;this.#invocation=invocationOriginal;}
  #remember(cause){if(!this.#hasFirst){this.#hasFirst=true;this.#first=cause;}}
  #rememberCleanup(cause,debt=false){if(!this.#hasCleanup){this.#hasCleanup=true;this.#cleanup=cause;}if(debt)this.#cleanupDebt=true;}
@@ -33,9 +34,9 @@ export class WalletIDEPublicationReviewKernel {
  }
  publicationReady(){return !!this.#nativeView&&!this.#hasFirst&&!this.#retired&&this.#selected===null;}
  describe(){const base=this.#base.describe();return Object.freeze({...base,...(this.#nativeView?{nativePublication:Object.freeze({publisherId:this.#nativeView.publisherId,publisherRegistrationRef:this.#nativeView.publisherRegistrationRef,publisherRevision:this.#nativeView.publisherRevision,publisherKeyVersion:this.#nativeView.publisherKeyVersion,dataOnly:true})}:{})});}
- status(){if(this.#selected!=='approve')return Object.freeze({...this.#base.status(),firstCausePresent:this.#hasFirst||this.#base.status().firstCausePresent});return Object.freeze({reviewId:this.describe().reviewId,decision:this.#selected,phase:this.#phase,active:this.#active,recorded:this.#stored&&(!this.#signed||this.#wire!==null),hasSignedResult:this.#signed,signingSelected:this.#effectEntered===true,retired:this.#retired,firstCausePresent:this.#hasFirst,cleanupCausePresent:this.#hasCleanup,retryAuthorized:false,handoffAuthorized:false});}
+ status(){if(this.#selected!=='approve')return Object.freeze({...this.#base.status(),signingSelected:false,nativeResultStored:false,nativePhase:this.#nativePhase,firstCausePresent:this.#hasFirst||this.#base.status().firstCausePresent});return Object.freeze({reviewId:this.describe().reviewId,decision:this.#selected,phase:this.#phase,active:this.#active,recorded:this.#stored&&(!this.#signed||this.#wire!==null),hasSignedResult:this.#signed,signingSelected:this.#effectEntered===true,nativeResultStored:this.#stored,nativePhase:this.#nativePhase,retired:this.#retired,firstCausePresent:this.#hasFirst,cleanupCausePresent:this.#hasCleanup,retryAuthorized:false,handoffAuthorized:false});}
  #capture(){
-  if(!this.#native)return;const result=this.#native.copyOriginalSigningOutcome();if(['stored','effectEntered','hasSignedResult'].some(k=>typeof result[k]!=='boolean'))fail('AUTH_IDENTITY_PUBLICATION_RESULT_INVALID');if(this.#stored&&!result.stored||this.#signed&&!result.hasSignedResult||this.#effectEntered===true&&!result.effectEntered)fail('AUTH_IDENTITY_RESULT_CHANGED');this.#stored=result.stored;this.#effectEntered=result.effectEntered;this.#signed=result.hasSignedResult;
+  if(!this.#native)return;const result=this.#native.copyOriginalSigningOutcome();if(['stored','effectEntered','hasSignedResult'].some(k=>typeof result[k]!=='boolean')||!nativePhases.has(result.phase))fail('AUTH_IDENTITY_PUBLICATION_RESULT_INVALID');if(this.#stored&&!result.stored||this.#signed&&!result.hasSignedResult||this.#effectEntered===true&&!result.effectEntered)fail('AUTH_IDENTITY_RESULT_CHANGED');this.#stored=result.stored;this.#effectEntered=result.effectEntered;this.#signed=result.hasSignedResult;this.#nativePhase=result.phase;
   if(result.hasSignedResult===true){const copy=copiedResult(this.#native.copyOriginalPublicationResult());if(this.#wire&&!this.#wire.equals(copy))fail('AUTH_IDENTITY_RESULT_CHANGED');this.#wire=copy;}
  }
  readOriginalResult(){const result=this.#selected==='approve'?{...this.status(),wire:this.#wire?new Uint8Array(this.#wire):null,dataOnly:true}:this.#base.readOriginalResult();return Object.freeze({...result,firstCausePresent:this.#hasFirst||result.firstCausePresent===true,firstCause:this.#hasFirst?this.#first:result.firstCause,cleanupCause:this.#cleanup});}
