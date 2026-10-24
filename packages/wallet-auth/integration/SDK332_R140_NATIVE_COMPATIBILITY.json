@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.24",
+  "version": "1.3.0-pq.3.32-auth.25",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -349,8 +349,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
-      "bytes": 19196,
-      "sha256": "e973e746b6968ccbc696aa6d7c372ad2c323f2372f45d7e7e914bfe839406e7c"
+      "bytes": 20284,
+      "sha256": "5cbecd3bb24a8c82f256ece5b0900d539219aac66324bad31348b40cfc6ec804"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-v2-contract.mjs",
@@ -666,12 +666,17 @@
       "path": "packages/wallet-auth/native/original-ide-approval-state-head-data.mjs",
       "bytes": 1599,
       "sha256": "28aa4713d6e9792294976b5318abc87c9be89b11fdb4f5e2f22152a5eab81786"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-protected-publisher-contract.mjs",
+      "bytes": 8585,
+      "sha256": "e20cb3cde24c6e61db2b4c6dcb3fdb9ffe732ae92930b80e27166c180a5ddfc6"
     }
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 13761,
-    "sha256": "d6b27f0dca1aca3e7314ce83b4a644bdda4f271083d76d3a9da7d718d71791a6"
+    "bytes": 13857,
+    "sha256": "afb8bb6d44d691e6b5a7b4ae604130cde08a47024af3d1d2d4a8c3712c66bd83"
   },
   "require": {
     "translationUnits": 13,
@@ -760,7 +765,7 @@
       "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
     }
   ],
-  "profile": "R197-fixed-control-and-publication-cli-relative-closure",
+  "profile": "R200-protected-publisher-dual-proof-readonly-cli-source",
   "HelperInputs": [
     {
       "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
@@ -1677,6 +1682,75 @@
       "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-auth24-r197-matching-source-498e7919-20261024/SOURCE_HANDOFF.json",
       "bytes": 26871,
       "sha256": "630b8ccc6d16150cd5bb08cc7168c8b219b5ca5438e508f2e6dbe8513c133708"
+    }
+  },
+  "supplierR200": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r200/HANDOFF.json",
+      "bytes": 6852,
+      "sha256": "f1861a8bf007ad23d30f553fee4f092dbac100a6df590060139cff8ea63e525a"
+    },
+    "parent": {
+      "specification": "R192 exact PoP9/custodian12/registration16",
+      "JS": "R197/R199 staged data closure; merge actual diff into latest SDK only",
+      "Go": "R193/R197 original pinned process"
+    },
+    "cumulativeSDKParent": "b92b1b724ebdfe477a93e57e8df43a7ad7bff3c0",
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-ide-protected-publisher-contract.mjs",
+        "bytes": 8585,
+        "sha256": "e20cb3cde24c6e61db2b4c6dcb3fdb9ffe732ae92930b80e27166c180a5ddfc6"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+        "bytes": 20284,
+        "sha256": "5cbecd3bb24a8c82f256ece5b0900d539219aac66324bad31348b40cfc6ec804"
+      }
+    ],
+    "normalNativeInputs": 86,
+    "helperInputs": 5,
+    "normalCanonicalInputs": 96,
+    "extendedSourceClosure": 97,
+    "compileInputsUnchanged": 77,
+    "normalTranslationUnits": 13,
+    "helperTranslationUnits": 11,
+    "runtimeRelativeDependencyTracking": {
+      "originalTool": "scripts/auth-runtime-closure.mjs",
+      "requiredStaticSrcRoots": [
+        "src/ide-artifact-signature.js",
+        "src/pq-registered-member.js",
+        "src/pq-wallet-policy.js"
+      ],
+      "mechanism": "Existing original Auth runtime AST/manifest plus package files src; Native recipe pins the fixed Native MJS graph. New normal runtime manifest still requires regeneration/readback.",
+      "normalRuntimeRegeneratedOrQualified": false
+    },
+    "sourceEvidenceReused": true,
+    "NativeTestsReexecuted": false,
+    "NativeBuild": false,
+    "newNativeTU": false,
+    "newNPMDependency": false,
+    "Node26Signing": false,
+    "independentIOUnchanged": true,
+    "publicationReadOnlyIOQualified": false,
+    "Root": false,
+    "protectedCustodyAdmitted": false,
+    "registered": false,
+    "authorized": false,
+    "Source13": false,
+    "production": false,
+    "pending": [
+      "Full Source13 composition",
+      "Independent custodian role/current/revoke enforcement and durable publisher/control registration writer",
+      "Real purpose-specific Native/Main custody",
+      "Cold Source/account/accepted-device/message bridge"
+    ],
+    "machineCodeCompatibility": {
+      "compileInput77BytesUnchanged": true,
+      "normal25RuntimeMustBeIndependentlyBound": true,
+      "officialSuccessorCompatibilityPending": true,
+      "adapter23Or24ReceiptAcceptedAs25": false,
+      "duplicateNativeCompileRequiredByThisSourceRecipe": false
     }
   }
 }
