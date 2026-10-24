@@ -48,4 +48,20 @@ YNX_SUFFIX_MIGRATION_FIXTURE=/absolute/original/bound-migration.json GOMAXPROCS=
 YNX_NATIVE_SUFFIX_PUBLIC_FIXTURE_DIR=/absolute/new-fixture GOMAXPROCS=1 go test -race ./cmd/ynx-consensus-perf-client -run '^TestNativeStreamingSuffix' -count=1 -timeout=30s -v
 ```
 
-当前源码和轻测已验证；四节点控制器尚未登记新的suffix流配对，现有接收器会拒绝该未登记模式，没有网络收益或部署资格。下一步绑定原recipe/命令/plan/backend的单轴选择，再完成原CI并提交Root新的必要窗口材料；1000有效final/s×600秒仍未达。
+## 原四节点控制器的单轴接入
+
+新增 `native-stream-suffix` 配对：两侧均2048账户×4轮、bounded-cadence、currentInputReuse=true、8提交者/4观察者；canonical关闭。仅第二侧命令添加 `-native-suffix-setup`。recipe、原case receipt、完整8192流报告、durable plan originalSuffixSetup及prefixReplay实际backend必须一致；类型混淆、混入canonical、计划不符和重新计算SHA后的错误receipt均拒绝。原同VM/相同ELF、40秒客户端、每侧45+15秒、配对120秒、1GiB采样RSS和512MiB总保留上限不变；首侧UNKNOWN/二进制变化/清理失败不运行第二侧。
+
+原workflow增加显式 `paired-native-stream-suffix` 入口。归档选择器登记两个新标签，同时新增遍历全部已注册stream pair标签的覆盖测试：原缺标签实现实际RED，修复后PASS。选择仍仅公开签名流、回执与必要原证据，不扩大到私钥或整个ZIP。
+
+本轮控制器15项PASS0.067s，完整原supply校验89项PASS10.881s，补充计划不匹配的composite用例PASS0.889s；原归档23项PASS1.134s。归档首次缺少必需fixture、继而误选旧fixture缺AppHash的两次失败原raw保留；使用当前源码新生产102笔真实签名/执行/Commit/重开/读回fixture后完整归档通过，Go race生产PASS5.807s，quorum仍仅unit gates。
+
+证据在owner artifacts/chain-performance-20261017/native-stream-small-source/ 的 native-stream-suffix-{controller-final,supply,composite-final,archive-current-fixture,controller-default-producer}.raw。尚无本候选四节点网络收益或部署资格；下一步完成新源码原CI并提交Root新的必要窗口材料，原grant不得复用。1000有效final/s×600秒仍未达。
+
+```sh
+python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind native-stream-suffix --observer-phases --transport grpc --profile supply-native-stream-2048x4
+python3 -B scripts/loadtest/test_native_stream_pair.py -v
+```
+
+prepare仅生成计划，不启动节点；execute必须使用Root针对新冻结源码安排的具体窗口。
+

@@ -20,6 +20,16 @@ def source(raw,seen=None):
     return zip_reader.Blocks(len(raw),fetch)
 
 class NativeStreamArtifactTests(unittest.TestCase):
+    def test_every_registered_stream_pair_label_has_public_case_selection(self):
+        spec=importlib.util.spec_from_file_location('registered_supply',FILE.with_name('supply-linux-window.py'))
+        controller=importlib.util.module_from_spec(spec);spec.loader.exec_module(controller)
+        for kind in controller.STREAM_PAIRS:
+            selected=zip_reader.Selection('network-pair')
+            for index,(label,_,_) in enumerate(controller.native_stream_pair_spec(kind)):
+                case=('before-' if index==0 else 'after-')+label
+                with self.subTest(kind=kind,label=label):
+                    self.assertEqual(selected.select('ynx-linux-supply-pair/'+case+'/network/transactions.json'),case+'/network/transactions.json')
+                    self.assertEqual(selected.select('ynx-linux-supply-evidence/'+label+'-actual.json'),case+'/evidence/actual.json')
     def test_canonical_pair_selection_keeps_both_case_streams_and_receipts(self):
         selected=zip_reader.Selection('network-pair')
         for label,side in [('native-certificate-json','before'),('native-certificate-canonical','after')]:

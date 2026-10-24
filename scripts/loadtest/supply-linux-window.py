@@ -58,16 +58,17 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
 def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None, endpoint_fair=None, endpoint_elastic=None, prefix_replay=None, prefix_native_clone=None,native_submit8=False,native_suffix_setup=False,observer_native_facts=False,client_procs2=False,require_client_runtime=False,native_stream8=False,current_input_reuse=True,canonical_certificate=False):
     if type(canonical_certificate) is not bool or canonical_certificate and not native_stream8:raise RuntimeError("canonical certificate requires explicit native stream boolean")
     if native_stream8 or profile_name==STREAM_PROFILE:
+        if type(native_suffix_setup) is not bool or native_suffix_setup and canonical_certificate:raise RuntimeError("stream suffix requires explicit boolean and no canonical candidate")
         if type(current_input_reuse) is not bool:raise RuntimeError("explicit current input reuse boolean required")
         if (native_stream8 is not True or profile_name!=STREAM_PROFILE or transport!="grpc" or pacing not in STREAM_PACING_MODES or observer_phases is not True
                 or prefix_replay is not True or prefix_native_clone is not True or observer_native_facts is not True
-                or native_submit8 is not False or native_suffix_setup is not False or client_procs2 is not False
+                or native_submit8 is not False or client_procs2 is not False
                 or shared_replay is not None or endpoint_fair is not None or endpoint_elastic is not None):
             raise RuntimeError("native stream profile requires explicit grpc/bounded ready pacing/phase/native-prefix/facts and no finite candidates")
         profile=native_stream_profile(pacing)
         return dict(schema=1,profile=profile,abciTransport="grpc",pacingMode=pacing,environment=ENV,execute=False,
             nativeStream8=True,observerPhaseTiming=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
-            **({"nativeCanonicalCertificate":True} if canonical_certificate else {}),nativeCurrentInputReuse=current_input_reuse,streamBudget=dict(STREAM_BUDGET),resourceCaps=dict(native.CAPS,privateBytes=profile["privateBytes"],activeMs=45000,totalMs=60000,ownedProcesses=10,longLivedChildren=9),
+            **({"nativeCanonicalCertificate":True} if canonical_certificate else {}),**({"nativeSuffixSetup":True} if native_suffix_setup else {}),nativeCurrentInputReuse=current_input_reuse,streamBudget=dict(STREAM_BUDGET),resourceCaps=dict(native.CAPS,privateBytes=profile["privateBytes"],activeMs=45000,totalMs=60000,ownedProcesses=10,longLivedChildren=9),
             requiresSeparateRootGrant=True,nodesStarted=False,platform="Linux native /proc; not macOS pressure1",
             interpretation="Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion.")
     if type(native_stream8) is not bool:raise RuntimeError("invalid stream selection")
@@ -164,15 +165,18 @@ DATA64_PAIRS=("shared-prefix-data64","prefix-native-data64","native-submit8-data
 STREAM_PAIR="native-stream-cadence"
 STREAM_CACHE_PAIR="native-current-input"
 STREAM_CERTIFICATE_PAIR="native-canonical-certificate"
-STREAM_PAIRS=(STREAM_PAIR,STREAM_CACHE_PAIR,STREAM_CERTIFICATE_PAIR)
+STREAM_SUFFIX_PAIR="native-stream-suffix"
+STREAM_PAIRS=(STREAM_PAIR,STREAM_CACHE_PAIR,STREAM_CERTIFICATE_PAIR,STREAM_SUFFIX_PAIR)
 PAIR_MODES[STREAM_PAIR]=("native-stream-relative","native-stream-bounded")
 PAIR_MODES[STREAM_CACHE_PAIR]=("native-input-separate","native-input-shared")
 PAIR_MODES[STREAM_CERTIFICATE_PAIR]=("native-certificate-json","native-certificate-canonical")
+PAIR_MODES[STREAM_SUFFIX_PAIR]=("native-suffix-original","native-suffix-private")
 
 def native_stream_pair_spec(comparison):
     if comparison==STREAM_PAIR:return [("native-stream-relative","relative",True),("native-stream-bounded","bounded-cadence",True)]
     if comparison==STREAM_CACHE_PAIR:return [("native-input-separate","bounded-cadence",False),("native-input-shared","bounded-cadence",True)]
     if comparison==STREAM_CERTIFICATE_PAIR:return [("native-certificate-json","bounded-cadence",True),("native-certificate-canonical","bounded-cadence",True)]
+    if comparison==STREAM_SUFFIX_PAIR:return [("native-suffix-original","bounded-cadence",True),("native-suffix-private","bounded-cadence",True)]
     raise RuntimeError("registered native stream pair required")
 
 
@@ -278,13 +282,13 @@ def fixture_resource_readout(network):
 
 def pair_recipe(comparison="relative-bounded"):
     if comparison in STREAM_PAIRS:
-        return dict(schema=1,kind="fixed-same-VM-native-canonical-certificate-pair" if comparison==STREAM_CERTIFICATE_PAIR else "fixed-same-VM-native-current-input-pair" if comparison==STREAM_CACHE_PAIR else "fixed-same-VM-native-stream-cadence-pair",execute=False,requiresSeparateRootGrant=True,nodesStarted=False,
+        return dict(schema=1,kind="fixed-same-VM-native-stream-suffix-pair" if comparison==STREAM_SUFFIX_PAIR else "fixed-same-VM-native-canonical-certificate-pair" if comparison==STREAM_CERTIFICATE_PAIR else "fixed-same-VM-native-current-input-pair" if comparison==STREAM_CACHE_PAIR else "fixed-same-VM-native-stream-cadence-pair",execute=False,requiresSeparateRootGrant=True,nodesStarted=False,
             pairCaps=dict(PAIR_CAPS,retainedBytes=512<<20),
-            cases=[recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=reuse,canonical_certificate=comparison==STREAM_CERTIFICATE_PAIR and index==1) for index,(_,mode,reuse) in enumerate(native_stream_pair_spec(comparison))],
+            cases=[recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=reuse,canonical_certificate=comparison==STREAM_CERTIFICATE_PAIR and index==1,native_suffix_setup=comparison==STREAM_SUFFIX_PAIR and index==1) for index,(_,mode,reuse) in enumerate(native_stream_pair_spec(comparison))],
             order=" then ".join(label for label,_,_ in native_stream_pair_spec(comparison))+"; no second activation after any first failure/UNKNOWN/incomplete raw/unclean closure",
             input=dict(run_linux_supply=True,linux_supply_transport="grpc",linux_supply_profile=STREAM_PROFILE,linux_supply_pacing="paired-"+comparison,measure_observer_phases=True,prefix_durable_replay=False),
             binaries="one original four-ELF build; SHA/buildInfo/source unchanged across both original cases",
-            interpretation="Explicit pair only: each8192 signed business inputs, original45+15/60s and RSS/thread/process/log guards, private256MiB each; aggregate retained512MiB including receipts, total120s/log2MiB/build1GiB. Same boot/PID namespace/host/launcher/source/ELFs, separate fresh ephemeral fixtures. Only the registered cadence, exact-input-cache or canonical-certificate axis changes; cache and certificate comparisons use bounded-cadence on both sides. No network or sustained TPS qualification from a recipe.")
+            interpretation="Explicit pair only: each8192 signed business inputs, original45+15/60s and RSS/thread/process/log guards, private256MiB each; aggregate retained512MiB including receipts, total120s/log2MiB/build1GiB. Same boot/PID namespace/host/launcher/source/ELFs, separate fresh ephemeral fixtures. Only the registered cadence, exact-input-cache, canonical-certificate or private-suffix axis changes; cache/certificate/suffix comparisons use bounded-cadence on both sides. No network or sustained TPS qualification from a recipe.")
     if comparison == "native-client-procs2-data64":
         selected=pair_recipe("native-observer-facts-data64")
         selected.update(kind="fixed-same-VM-native-client-procs2-data64-pair",
@@ -655,7 +659,8 @@ def validate_client_runtime(report,expected=False,require=False):
     return None
 
 
-def validate_observer_native_facts(report,expected=False,*,native_stream8=False,total=2048):
+def validate_observer_native_facts(report,expected=False,*,native_stream8=False,total=2048,expected_native_suffix=False):
+    if type(expected_native_suffix) is not bool or expected_native_suffix and not native_stream8:raise RuntimeError("observer suffix scope differs")
     if native_stream8 and report.get("nativeStream8") is not True:raise RuntimeError("native facts stream scope differs")
     if type(expected) is not bool or report.get("observerNativeFacts",False) is not expected:
         raise RuntimeError("observer native facts selection differs")
@@ -665,7 +670,7 @@ def validate_observer_native_facts(report,expected=False,*,native_stream8=False,
         return dict(observerNativeFacts=False,stats=None)
     names={"lookups","hits","misses","fallbackMathVerifications","fallbackFailures"}
     if (report.get("nativeSubmit8",False) is not (not native_stream8) or report.get("prefixNativeClone") is not True or report.get("prefixDurableReplay") is not True
-            or report.get("nativeSuffixSetup",False) is not False or report.get("sharedDurableReplay") is not False
+            or report.get("nativeSuffixSetup",False) is not expected_native_suffix or report.get("sharedDurableReplay") is not False
             or not isinstance(stats,dict) or set(stats)!=names|{"enabled"} or stats.get("enabled") is not True
             or any(type(stats[k]) is not int or stats[k]<0 for k in names)
             or stats["lookups"]!=stats["hits"]+stats["misses"] or stats["hits"]<1 or stats["fallbackFailures"]!=0
@@ -679,7 +684,7 @@ def validate_native_suffix_selection(report,expected=False):
     stats=report.get("durableReadback",{}).get("prefixReplay") or {}
     if type(expected) is not bool or actual is not expected or stats.get("nativeSuffixSetup",False) is not expected:
         raise RuntimeError("actual native suffix initialization selection differs")
-    if expected and (report.get("nativeSubmit8") is not True or report.get("prefixNativeClone") is not True or report.get("prefixDurableReplay") is not True):
+    if expected and ((report.get("nativeSubmit8",False) is True)==(report.get("nativeStream8",False) is True) or report.get("prefixNativeClone") is not True or report.get("prefixDurableReplay") is not True):
         raise RuntimeError("native suffix initialization requires selected native8 backend")
     return dict(nativeSuffixSetup=expected)
 
@@ -879,9 +884,10 @@ def re_full_uuid(value):
     return re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",value) is not None
 
 
-def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_certificate=False):
-    expected=recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=current_input_reuse,canonical_certificate=canonical_certificate)
+def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_certificate=False,native_suffix_setup=False):
+    expected=recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=current_input_reuse,canonical_certificate=canonical_certificate,native_suffix_setup=native_suffix_setup)
     if row.get("nativeCanonicalCertificate",False) is not canonical_certificate:raise RuntimeError("native pair canonical certificate selection differs")
+    if row.get("nativeSuffixSetup",False) is not native_suffix_setup:raise RuntimeError("native pair suffix setup selection differs")
     for key in ("profile","abciTransport","pacingMode","environment","nativeStream8","nativeCurrentInputReuse","observerPhaseTiming","prefixDurableReplay","prefixNativeClone","observerNativeFacts","streamBudget","resourceCaps"):
         if row.get(key)!=expected[key]:raise RuntimeError("native stream pair case selection differs: "+key)
     if row.get("firstCause") is not None or row.get("cleanupComplete") is not True or row.get("nodesStarted") is not True:
@@ -889,7 +895,7 @@ def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_cer
     raw=native.bounded(case/"network/transactions-result.json",16<<20)
     if hashlib.sha256(raw).hexdigest()!=row.get("resultSHA256"):raise RuntimeError("native pair original client hash differs")
     client=stream_evidence.strict_json(raw)
-    measured=validate_native_stream_report(client,case/"network",pacing=mode,expected_input_reuse=row.get("nativeCurrentInputReuse"),expected_canonical_certificate=canonical_certificate)
+    measured=validate_native_stream_report(client,case/"network",pacing=mode,expected_input_reuse=row.get("nativeCurrentInputReuse"),expected_canonical_certificate=canonical_certificate,expected_native_suffix=native_suffix_setup)
     phases=validate_observer_phases(client)
     if measured!=row.get("measurement") or phases!=row.get("observerPhases"):
         raise RuntimeError("native pair complete original stream/phase readback differs from receipt")
@@ -932,17 +938,18 @@ def run_native_stream_pair(source,build,root,receipt,comparison=STREAM_PAIR):
         budget.observe()
         for index,(label,pace,reuse) in enumerate(native_stream_pair_spec(comparison)):
             canonical=comparison==STREAM_CERTIFICATE_PAIR and index==1
+            suffix=comparison==STREAM_SUFFIX_PAIR and index==1
             if budget.remaining()<=60.5:raise RuntimeError("native pair reserve insufficient before activation")
             if native_pair_host_identity()!=host:raise RuntimeError("native pair VM/boot/PID namespace changed")
             if {name:dict(sha256=native.digest(build/name),bytes=(build/name).stat().st_size) for name in BINARIES}!=binary_pins:
                 raise RuntimeError("native pair binary SHA/bytes changed before activation")
             case=root/(("before-" if index==0 else "after-")+label);out=receipt.parent/(label+"-actual.json");budget.active_case=case
             invoked=time.monotonic()
-            code=run(source,build,case,out,"grpc",STREAM_PROFILE,pace,pair_budget=budget,observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=reuse,canonical_certificate=canonical)
+            code=run(source,build,case,out,"grpc",STREAM_PROFILE,pace,pair_budget=budget,observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=reuse,canonical_certificate=canonical,native_suffix_setup=suffix)
             elapsed=(time.monotonic()-invoked)*1000;row=stream_evidence.strict_json(native.bounded(out,16<<20))
-            result["cases"].append(dict(order=index+1,mode=pace,label=label,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if comparison==STREAM_CERTIFICATE_PAIR else {}),receipt=str(out),sha256=native.digest(out),code=code,invocationElapsedMs=int(elapsed),firstCause=row.get("firstCause")))
+            result["cases"].append(dict(order=index+1,mode=pace,label=label,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if comparison==STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if comparison==STREAM_SUFFIX_PAIR else {}),receipt=str(out),sha256=native.digest(out),code=code,invocationElapsedMs=int(elapsed),firstCause=row.get("firstCause")))
             if code!=0 or elapsed>60000:raise RuntimeError("native pair firstcause/UNKNOWN/case deadline: "+str(row.get("firstCause")))
-            measured=native_stream_pair_case(row,case,pace,current_input_reuse=reuse,canonical_certificate=canonical)
+            measured=native_stream_pair_case(row,case,pace,current_input_reuse=reuse,canonical_certificate=canonical,native_suffix_setup=suffix)
             if native_pair_host_identity()!=host:raise RuntimeError("native pair VM identity changed during case")
             for name in BINARIES:
                 if row.get("binaries",{}).get(name,{}).get("sha256")!=binary_pins[name]["sha256"] or row["binaries"][name].get("bytes")!=binary_pins[name]["bytes"]:raise RuntimeError("original case ELF differs from pair build")
@@ -1291,7 +1298,7 @@ def qualify_business_rows(report,total):
     return s
 
 
-def validate_native_stream_report(report,network,*,runtime_network=None,pacing="relative",expected_input_reuse=None,expected_canonical_certificate=False):
+def validate_native_stream_report(report,network,*,runtime_network=None,pacing="relative",expected_input_reuse=None,expected_canonical_certificate=False,expected_native_suffix=False):
     """Complete small-history route; never reuse the finite latest-slot validator."""
     need=stream_evidence.need;network=Path(network).absolute();total=8192
     native_stream_profile(pacing)  # Validate the selected mode, never infer it from untrusted rows.
@@ -1303,7 +1310,8 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
         concurrency=8,observerConcurrency=4,configuredOfferedRate=1000,senderMode="ready-pool",pacingMode=pacing,inclusionMode="block-scan",retentionMode="latest_per_account_slots",gomaxprocs=1,timeoutMs=STREAM_BUDGET["timeoutMs"])
     for key,value in expected.items():
         need(type(report.get(key)) is type(value) and report[key]==value,"actual native stream scope differs: "+key)
-    need(not report.get("setupErrors") and all(report.get(k,False) is False for k in ("nativeSubmit8","nativeSuffixSetup","clientProcs2","endpointElasticSubmission")),"mixed native stream candidates/setup errors")
+    need(not report.get("setupErrors") and all(report.get(k,False) is False for k in ("nativeSubmit8","clientProcs2","endpointElasticSubmission")),"mixed native stream candidates/setup errors")
+    need(type(expected_native_suffix) is bool and report.get("nativeSuffixSetup",False) is expected_native_suffix and not (expected_native_suffix and expected_canonical_certificate),"actual stream suffix producer selection differs")
     summary=report.get("summary",{});ready=report.get("readySenders",{});bounded=ready.get("boundedSummary",{});work=report.get("streamingWorkload",{})
     for key in ("input","offered","submitted","checkTxResponses","checkTxAccepted","includedCodeZero","effectiveBusinessIncluded","quorumConfirmed","finalSubmitted"):
         need(type(summary.get(key)) is int and summary[key]==total,"incomplete stream business counter: "+key)
@@ -1327,7 +1335,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     need(type(selected_reuse) is bool,"explicit current input reuse plan boolean required")
     canonical=plan.get("nativePrefix",{}).get("canonicalCertificate",False)
     need(type(expected_canonical_certificate) is bool and canonical is expected_canonical_certificate and report.get("nativeCanonicalCertificate",False) is canonical,"canonical certificate plan/report/producer differs")
-    need(same(plan.get("nativePrefix"),dict(offeredRate=1000,pacingMode=pacing,submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True,readerGateTiming=True,clientClockTiming=True,currentInputReuse=selected_reuse,**({"canonicalCertificate":True} if canonical else {}))),"stream original native backend differs")
+    need(same(plan.get("nativePrefix"),dict(offeredRate=1000,pacingMode=pacing,submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=not expected_native_suffix,serializedReaderBudget=True,readerGateTiming=True,clientClockTiming=True,currentInputReuse=selected_reuse,**({"canonicalCertificate":True} if canonical else {}))),"stream original native backend differs")
     manifest_raw=stream_evidence.capture(network/"network-manifest.json",1<<20)
     initial=stream_evidence.strict_json(stream_evidence.capture(network/"transactions.json",16<<20))["transactions"]
     need(len(initial)==2048 and plan.get("initialSignedHashes")==[hashlib.sha256(base64.b64decode(t,validate=True)).hexdigest().upper() for t in initial],"stream plan initial identity differs")
@@ -1359,8 +1367,8 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     need(rb.get("storeByteLimit")==32<<20 and rb.get("cacheInputByteBudget")==64<<20 and type(rb.get("cachedInputBytes")) is int and 0<=rb["cachedInputBytes"]<=64<<20,"stream reader retained input budget differs")
     gate_timing=plan.get("nativePrefix",{}).get("readerGateTiming",False)
     gate=stream_evidence.reader_gate_measurements(reader,required=gate_timing)
-    prefix=validate_prefix_replay(report,True,True,True,False,native_stream8=True,expected_canonical_certificate=canonical)
-    facts=validate_observer_native_facts(report,True,native_stream8=True,total=total)
+    prefix=validate_prefix_replay(report,True,True,True,expected_native_suffix,native_stream8=True,expected_canonical_certificate=canonical)
+    facts=validate_observer_native_facts(report,True,native_stream8=True,total=total,expected_native_suffix=expected_native_suffix)
     workers=validate_submitter_selection(report,False,True,total=2048,native_stream8=True)
     runtime=validate_runtime_measurements(report,total,True,stream_metrics=metrics)
     timeline=bounded.get("timeSeries",{});bins=timeline.get("buckets",[])
@@ -1573,6 +1581,7 @@ def supply_client_command(build,manifest_path,network,output,profile,pacing,obse
             "-native-stream8","-native-current-input-reuse","-observer-phase-timing","-prefix-durable-replay","-prefix-native-clone","-observer-native-facts","-streaming-workload","-terminal-stream","-terminal-gzip","-reuse-result-slots","-segmented-intents",
             "-evidence-byte-budget",str(STREAM_BUDGET["evidenceBytes"]),"-durable-store-byte-limit",str(STREAM_BUDGET["durableStoreBytes"]),"-durable-cache-byte-budget",str(STREAM_BUDGET["durableCacheBytes"])]
         if canonical_certificate:command.append("-native-canonical-certificate")
+        if native_suffix_setup:command.append("-native-suffix-setup")
         if not current_input_reuse:command.remove("-native-current-input-reuse")
         return command
     if profile.get("name") in STREAM_PROFILE_NAMES:raise RuntimeError("stream command requires explicit native stream selection")
@@ -1776,7 +1785,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             client_report=json.loads(native.bounded(output,16 << 20))
             if native_stream8:
                 mark("stream_readback_start")
-                result["measurement"]=validate_native_stream_report(client_report,network,pacing=pacing,expected_input_reuse=result.get("nativeCurrentInputReuse",False),expected_canonical_certificate=canonical_certificate)
+                result["measurement"]=validate_native_stream_report(client_report,network,pacing=pacing,expected_input_reuse=result.get("nativeCurrentInputReuse",False),expected_canonical_certificate=canonical_certificate,expected_native_suffix=native_suffix_setup)
                 result["observerPhases"]=validate_observer_phases(client_report)
                 tick();mark("stream_readback_complete")
             else:
@@ -1910,9 +1919,9 @@ if __name__ == "__main__":
     if args.native_stream8 and (args.prepare_pair or args.execute_pair or args.check_runner or args.prepare_1000_fixture or args.measure_1000_fixture or args.prepare_1000_tier or args.prepare_shared_replay_pair):
         parser.error("native stream is an explicit separate individual profile")
     if args.client_procs2 and not args.observer_native_facts:parser.error("client procs2 requires original observer native facts")
-    if args.observer_native_facts and (not (args.native_submit8 or args.native_stream8) or args.native_suffix_setup):
+    if args.observer_native_facts and (not (args.native_submit8 or args.native_stream8) or args.native_suffix_setup and not args.native_stream8):
         parser.error("observer native facts require original native8 setup")
-    if args.native_suffix_setup and not args.native_submit8:
+    if args.native_suffix_setup and not (args.native_submit8 or args.native_stream8):
         parser.error("native suffix setup requires explicit native8")
     if args.native_submit8 and not args.prefix_native_clone:
         parser.error("submit8 requires explicit native prefix copy")

@@ -1140,9 +1140,9 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False):
+        def check(row,canonical=False,suffix=False):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical)
+                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
@@ -1167,6 +1167,23 @@ class SupplySourceTests(unittest.TestCase):
             if fault=='backend':bad['durableReadback']['prefixReplay']['canonicalCertificate']=False
             if fault=='accepted':bad['durableReadback']['prefixReplay']['workPhases']['certificatePublishDetails']['canonicalNativeAccepted']=count+1
             with self.subTest(canonicalFault=fault),self.assertRaises(RuntimeError):check(bad,True)
+        suffix_plan=copy.deepcopy(plan);suffix_plan['nativePrefix']['originalSuffixSetup']=False
+        raw_plan=json.dumps(suffix_plan).encode()
+        suffix_client=copy.deepcopy(client);suffix_client['nativeSuffixSetup']=True
+        suffix_client['durableReadback']['prefixReplay']['nativeSuffixSetup']=True
+        suffix_client['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
+        check(suffix_client,suffix=True)
+        with self.assertRaises(RuntimeError):check(suffix_client)
+        raw_plan=original_raw
+        bad=copy.deepcopy(suffix_client);bad['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
+        with self.assertRaisesRegex(RuntimeError,'native backend'):check(bad,suffix=True)
+        raw_plan=json.dumps(suffix_plan).encode()
+        for location in ('report','backend','mixed'):
+            bad=copy.deepcopy(suffix_client)
+            if location=='report':bad['nativeSuffixSetup']=False
+            elif location=='backend':bad['durableReadback']['prefixReplay']['nativeSuffixSetup']=False
+            else:bad['nativeCanonicalCertificate']=True
+            with self.subTest(suffixFault=location),self.assertRaises(RuntimeError):check(bad,suffix=True)
         raw_plan=original_raw
         # The actual run40044977213 failed after complete business counters:
         # the producer emitted40s but this consumer retained a30s literal.
