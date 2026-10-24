@@ -18,8 +18,8 @@ func validateNativeStreamingOptions(o options) error {
 		}
 		return nil
 	}
-	if !o.streamingWorkload || o.senderMode != "ready-pool" || o.rounds < 2 || o.rounds > 4096 || o.concurrency != 8 || o.observers != 4 || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || !o.prefixDurableReplay || !o.prefixNativeClone || !o.observerNativeFacts || !o.observerPhaseTiming || o.nativeSubmit8 || o.nativeSuffixSetup || o.clientProcs2 || o.sharedDurableReplay || o.endpointFair || o.endpointElastic || o.inclusionMode != "block-scan" || !o.terminalStream || !o.reuseResultSlots || !o.segmentedIntents || o.output == "" || o.evidenceByteBudget < 1 || o.evidenceByteBudget > 2<<30 {
-		return errors.New("native stream8 requires explicit native-prefix/facts/phase ready streaming,8submitters/4observers/original bounded positive pace,original suffix and no other candidates")
+	if !o.streamingWorkload || o.senderMode != "ready-pool" || o.rounds < 2 || o.rounds > 4096 || o.concurrency != 8 || o.observers != 4 || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || !o.prefixDurableReplay || !o.prefixNativeClone || !o.observerNativeFacts || !o.observerPhaseTiming || o.nativeSubmit8 || o.nativeSuffixSetup && o.nativeCanonicalCertificate || o.clientProcs2 || o.sharedDurableReplay || o.endpointFair || o.endpointElastic || o.inclusionMode != "block-scan" || !o.terminalStream || !o.reuseResultSlots || !o.segmentedIntents || o.output == "" || o.evidenceByteBudget < 1 || o.evidenceByteBudget > 2<<30 {
+		return errors.New("native stream8 requires explicit native-prefix/facts/phase ready streaming,8submitters/4observers/original bounded positive pace and at most one certificate/suffix construction candidate")
 	}
 	if _, err := normalizeReadyPacingMode(o.pacingMode); err != nil {
 		return err
@@ -64,10 +64,15 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	constructor := consensus.NewBoundedBlockJournalNativeClonePrefixDecoder
 	if o.nativeCanonicalCertificate {
 		constructor = consensus.NewBoundedBlockJournalCanonicalNativePrefixDecoder
+	} else if o.nativeSuffixSetup {
+		constructor = consensus.NewBoundedBlockJournalNativeSuffixPrefixDecoder
 	}
 	decoder, err := constructor(r.migration, int(limit))
 	if err != nil {
 		return err
+	}
+	if decoder.NativeSuffixSetupEnabled() != o.nativeSuffixSetup {
+		return errors.New("actual native suffix constructor differs from selected mode")
 	}
 	r.nativeCurrentInputReuse = o.nativeCurrentInputReuse
 	r.currentInputScopeChainID = r.migration.Network.ChainID
@@ -75,6 +80,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	r.prefixDecoder = decoder
 	r.prefixNativeClone = true
 	r.prefixStats.CanonicalCertificate = o.nativeCanonicalCertificate
+	r.prefixStats.NativeSuffixSetup = decoder.NativeSuffixSetupEnabled()
 	r.prefixStats.WorkPhases.PrivateNativeClone = new(consensus.BlockJournalPrefixPhase)
 	r.signatureFacts = nil
 	r.observerNativeFacts = true

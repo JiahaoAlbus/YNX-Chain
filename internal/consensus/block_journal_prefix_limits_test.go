@@ -19,6 +19,9 @@ func TestBlockJournalBoundedPrefixHasInstanceLimitsAndOriginalValidation(t *test
 		if _, err := NewBoundedBlockJournalCanonicalNativePrefixDecoder(migration, limit); err == nil {
 			t.Fatal("invalid canonical scoped byte limit accepted", limit)
 		}
+		if _, err := NewBoundedBlockJournalNativeSuffixPrefixDecoder(migration, limit); err == nil {
+			t.Fatal("invalid suffix scoped byte limit accepted", limit)
+		}
 	}
 	legacy, err := NewBlockJournalNativeClonePrefixDecoder(migration)
 	if err != nil {
@@ -34,6 +37,10 @@ func TestBlockJournalBoundedPrefixHasInstanceLimitsAndOriginalValidation(t *test
 	canonical, err := NewBoundedBlockJournalCanonicalNativePrefixDecoder(migration, 32<<20)
 	if err != nil || canonical.ByteLimit() != scoped.ByteLimit() || canonical.nativeSuffixSetup || !canonical.canonicalNative || scoped.canonicalNative {
 		t.Fatal("canonical selection changed original suffix/byte limit", err)
+	}
+	suffix, err := NewBoundedBlockJournalNativeSuffixPrefixDecoder(migration, 32<<20)
+	if err != nil || suffix.ByteLimit() != scoped.ByteLimit() || !suffix.nativeSuffixSetup || suffix.canonicalNative {
+		t.Fatal("bounded suffix selection mixed modes or bounds", err)
 	}
 	oversized := make([]byte, (16<<20)+1)
 	if _, err := legacy.Decode(context.Background(), oversized); err == nil || !strings.Contains(err.Error(), "explicit16MiB") {

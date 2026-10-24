@@ -22,6 +22,51 @@ func nativeStreamingOptions() options {
 	return o
 }
 
+func TestNativeStreamingSuffixScopeAndDefault(t *testing.T) {
+	o := nativeStreamingOptions()
+	if o.nativeSuffixSetup {
+		t.Fatal("suffix candidate enabled by default")
+	}
+	o.nativeSuffixSetup = true
+	if err := validateOptions(o); err != nil {
+		t.Fatal(err)
+	}
+	_, migration, path, _, _ := durableJournalFixture(t, "block-journal")
+	r, err := newWorkloadDurableReader(migration, []string{path}, o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = r.configureNativeStreamingReplay(o); err != nil || !r.prefixDecoder.NativeSuffixSetupEnabled() || !r.stats().PrefixReplay.NativeSuffixSetup {
+		t.Fatal("actual suffix constructor selection differs", err)
+	}
+	baseline := o
+	baseline.nativeSuffixSetup = false
+	control, err := newWorkloadDurableReader(migration, []string{path}, baseline)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = control.configureNativeStreamingReplay(baseline); err != nil || control.prefixDecoder.NativeSuffixSetupEnabled() || control.stats().PrefixReplay.NativeSuffixSetup {
+		t.Fatal("default suffix constructor changed", err)
+	}
+	for _, mutate := range []func(*options){
+		func(o *options) { o.nativeStream8 = false },
+		func(o *options) { o.nativeCanonicalCertificate = true },
+		func(o *options) { o.prefixNativeClone = false },
+		func(o *options) { o.observerPhaseTiming = false },
+		func(o *options) { o.durableStoreByteLimit = 513 << 20 },
+	} {
+		bad := o
+		mutate(&bad)
+		if validateOptions(bad) == nil {
+			t.Fatal("unsupported/mixed suffix scope accepted")
+		}
+	}
+}
+
+func TestNativeStreamingSuffixRealExecutionAndRecovery(t *testing.T) {
+	testStreamingWorkloadRealExecution(t, true, true, false, true)
+}
+
 func TestNativeStreamingCanonicalCertificateScopeAndDefault(t *testing.T) {
 	o := nativeStreamingOptions()
 	if o.nativeCanonicalCertificate {
@@ -70,7 +115,7 @@ func TestNativeStreamingScopeAndOriginalLimits(t *testing.T) {
 		t.Fatal("original planned-record bound differs", planned, err)
 	}
 	for _, mutate := range []func(*options){
-		func(o *options) { o.nativeStream8 = false }, func(o *options) { o.streamingWorkload = false }, func(o *options) { o.concurrency = 4 }, func(o *options) { o.concurrency = 9 }, func(o *options) { o.observers = 2 }, func(o *options) { o.offeredRate = 2049 }, func(o *options) { o.offeredRate = 0 }, func(o *options) { o.offeredRate = math.NaN() }, func(o *options) { o.offeredRate = math.Inf(1) }, func(o *options) { o.rounds = 1 }, func(o *options) { o.senderMode = "rounds" }, func(o *options) { o.prefixNativeClone = false }, func(o *options) { o.prefixDurableReplay = false }, func(o *options) { o.observerNativeFacts = false }, func(o *options) { o.observerPhaseTiming = false }, func(o *options) { o.sharedDurableReplay = true }, func(o *options) { o.nativeSubmit8 = true }, func(o *options) { o.nativeSuffixSetup = true }, func(o *options) { o.clientProcs2 = true }, func(o *options) { o.endpointFair = true }, func(o *options) { o.segmentedIntents = false }, func(o *options) { o.durableCacheByteBudget = 0 },
+		func(o *options) { o.nativeStream8 = false }, func(o *options) { o.streamingWorkload = false }, func(o *options) { o.concurrency = 4 }, func(o *options) { o.concurrency = 9 }, func(o *options) { o.observers = 2 }, func(o *options) { o.offeredRate = 2049 }, func(o *options) { o.offeredRate = 0 }, func(o *options) { o.offeredRate = math.NaN() }, func(o *options) { o.offeredRate = math.Inf(1) }, func(o *options) { o.rounds = 1 }, func(o *options) { o.senderMode = "rounds" }, func(o *options) { o.prefixNativeClone = false }, func(o *options) { o.prefixDurableReplay = false }, func(o *options) { o.observerNativeFacts = false }, func(o *options) { o.observerPhaseTiming = false }, func(o *options) { o.sharedDurableReplay = true }, func(o *options) { o.nativeSubmit8 = true }, func(o *options) { o.nativeSuffixSetup = true; o.nativeCanonicalCertificate = true }, func(o *options) { o.clientProcs2 = true }, func(o *options) { o.endpointFair = true }, func(o *options) { o.segmentedIntents = false }, func(o *options) { o.durableCacheByteBudget = 0 },
 	} {
 		bad := nativeStreamingOptions()
 		mutate(&bad)

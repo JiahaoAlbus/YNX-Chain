@@ -216,6 +216,33 @@ class NativeCanonicalClientFixtureTests(unittest.TestCase):
         self.assertEqual(result['validatedRecords'],102)
         self.assertEqual(result['matchedLatestSlots'],3)
 
+class NativeSuffixClientFixtureTests(unittest.TestCase):
+    def setUp(self):
+        original=os.environ.get('YNX_NATIVE_SUFFIX_PUBLIC_FIXTURE_DIR')
+        self.assertTrue(original,'required original suffix Go public fixture was not selected')
+        self.root=Path(original).resolve()
+        self.meta=evidence.strict_json((self.root/'PUBLIC_FIXTURE_SCOPE.json').read_bytes())
+        self.assertEqual(self.meta['kind'],'native_stream_public_unit_fixture_not_network')
+        self.assertIs(self.meta['independentBFTProof'],False)
+    def test_actual_private_suffix_selection_retains_full_validation_and_original_certificate(self):
+        prefix=self.meta['durableReadback']['prefixReplay']
+        plan=evidence.strict_json((self.root/'transactions-result.json.streaming-plan.json').read_bytes())['nativePrefix']
+        self.assertIs(prefix['nativeSuffixSetup'],True)
+        self.assertIs(plan['originalSuffixSetup'],False)
+        self.assertNotIn('canonicalCertificate',prefix);self.assertNotIn('canonicalCertificate',plan)
+        self.assertEqual(prefix['canonicalByteLimit'],32<<20)
+        phases=prefix['workPhases']
+        self.assertGreater(phases['suffixSetup']['calls'],0)
+        self.assertEqual(phases['suffixSetup']['calls'],phases['privateValidate']['calls'])
+        parts=evidence.certificate_publish_measurements(phases,32<<20,True,True)
+        self.assertNotIn('canonicalNative',parts)
+        self.assertEqual(parts['strictJSON']['calls'],102)
+        self.assertEqual(self.meta['durableReadback']['transactionVerifications'],102)
+    def test_complete_real_signed_stream_and_recovered_latest_slots(self):
+        d=self.meta;initial=evidence.strict_json((self.root/'transactions.json').read_bytes())['transactions']
+        result=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20)
+        self.assertEqual(result['validatedRecords'],102);self.assertEqual(result['matchedLatestSlots'],3)
+
 class CertificatePublishMeasurementTests(unittest.TestCase):
     def fixture(self):
         return dict(certificatePublish=dict(calls=2,errors=0,durationNs=100),certificatePublishDetails=dict(payloadCopy=dict(calls=2,errors=0,durationNs=10),strictJSON=dict(calls=2,errors=0,durationNs=60),nativeClone=dict(calls=2,errors=0,durationNs=20),payloadBytes=200,prefixBytesHashed=120))

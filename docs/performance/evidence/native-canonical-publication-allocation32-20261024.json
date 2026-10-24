@@ -1,0 +1,27 @@
+{
+  "candidate": {
+    "ElapsedNs": 31711707,
+    "Bytes": 23008808,
+    "Mallocs": 52461,
+    "Collections": 4,
+    "PauseNs": 64208
+  },
+  "componentOnly": true,
+  "control": {
+    "ElapsedNs": 36986666,
+    "Bytes": 29793872,
+    "Mallocs": 74592,
+    "Collections": 7,
+    "PauseNs": 109667
+  },
+  "forcedGC": false,
+  "iterationsPerPath": 224,
+  "networkRSSCauseProved": false,
+  "payloadBytes": 25763,
+  "signedBusiness": 32,
+  "wholeProcessCounters": true,
+  "rawSHA256": "d71f6497dd11dd13bc24618a34b95374c2bdb240ae33fb6f83ac1bc2dfeadfcd",
+  "allocationChangePercent": -22.773354198474106,
+  "controlBytesPerCall": 133008.35714285713,
+  "candidateBytesPerCall": 102717.89285714286
+}

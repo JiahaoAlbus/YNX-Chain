@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"reflect"
 	"runtime"
@@ -162,6 +163,44 @@ func TestBlockJournalCertificateCanonicalNativeMatchedMeasurement(t *testing.T) 
 		t.Logf("publishRound=%d iterations=32 controlNs=%d candidateNs=%d", round, old.Nanoseconds(), next.Nanoseconds())
 	}
 	t.Logf("publicationOnly=true canonicalByteCheck=true signedBusiness=32 iterationsPerPath=224 controlNs=%d candidateNs=%d networkProof=false", controlTotal.Nanoseconds(), candidateTotal.Nanoseconds())
+	// Whole-process allocation counters bracket only the same publication calls.
+	// No forced GC or runtime setting changes; alternating order retains actual
+	// collector behavior. This component probe cannot explain network RSS alone.
+	type allocationSample struct {
+		ElapsedNs                            int64
+		Bytes, Mallocs, Collections, PauseNs uint64
+	}
+	allocations := func(fn func() CommittedState) allocationSample {
+		var before, after runtime.MemStats
+		runtime.ReadMemStats(&before)
+		elapsed := measure(fn)
+		runtime.ReadMemStats(&after)
+		return allocationSample{ElapsedNs: elapsed.Nanoseconds(), Bytes: after.TotalAlloc - before.TotalAlloc, Mallocs: after.Mallocs - before.Mallocs, Collections: uint64(after.NumGC - before.NumGC), PauseNs: after.PauseTotalNs - before.PauseTotalNs}
+	}
+	var oldTotal, nextTotal allocationSample
+	add := func(total *allocationSample, v allocationSample) {
+		total.ElapsedNs += v.ElapsedNs
+		total.Bytes += v.Bytes
+		total.Mallocs += v.Mallocs
+		total.Collections += v.Collections
+		total.PauseNs += v.PauseNs
+	}
+	for round := 0; round < 7; round++ {
+		var old, next allocationSample
+		if round%2 == 0 {
+			old, next = allocations(oldPublish), allocations(nextPublish)
+		} else {
+			next, old = allocations(nextPublish), allocations(oldPublish)
+		}
+		add(&oldTotal, old)
+		add(&nextTotal, next)
+		t.Logf("allocRound=%d iterations=32 controlBytes=%d candidateBytes=%d controlMallocs=%d candidateMallocs=%d controlGC=%d candidateGC=%d controlPauseNs=%d candidatePauseNs=%d", round, old.Bytes, next.Bytes, old.Mallocs, next.Mallocs, old.Collections, next.Collections, old.PauseNs, next.PauseNs)
+	}
+	data, err := json.Marshal(map[string]any{"componentOnly": true, "wholeProcessCounters": true, "forcedGC": false, "networkRSSCauseProved": false, "signedBusiness": 32, "payloadBytes": len(decoded.SnapshotJSON), "iterationsPerPath": 224, "control": oldTotal, "candidate": nextTotal})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("REAL_MATCHED_PUBLICATION_ALLOCATION %s", data)
 }
 
 type futureCertificateScalar string

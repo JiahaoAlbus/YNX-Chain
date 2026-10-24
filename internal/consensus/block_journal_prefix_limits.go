@@ -35,6 +35,16 @@ func NewBoundedBlockJournalCanonicalNativePrefixDecoder(migration chain.Consensu
 	return d, err
 }
 
+// Same original bounds/private full validation; avoid rebuilding a genesis
+// application before replaying a suffix over already validated private state.
+func NewBoundedBlockJournalNativeSuffixPrefixDecoder(migration chain.ConsensusMigrationState, limit int) (*BlockJournalPrefixDecoder, error) {
+	d, err := NewBoundedBlockJournalNativeClonePrefixDecoder(migration, limit)
+	if err == nil {
+		d.nativeSuffixSetup = true
+	}
+	return d, err
+}
+
 // ByteLimit is immutable after construction. It reports encoded input/canonical
 // bounds only; native decoded snapshots and concurrent private clones also
 // consume heap and remain subject to the external runtime RSS guard.
@@ -43,4 +53,10 @@ func (d *BlockJournalPrefixDecoder) ByteLimit() int {
 		return blockJournalPrefixLimit
 	}
 	return d.byteLimit
+}
+
+// NativeSuffixSetupEnabled reports immutable constructor selection, not a caller
+// report flag. Successful replay work is measured separately in SuffixSetup.
+func (d *BlockJournalPrefixDecoder) NativeSuffixSetupEnabled() bool {
+	return d != nil && d.nativeSuffixSetup
 }

@@ -1,0 +1,124 @@
+{
+  "scope": "existing original2055account migration constructor ABBA only; not network gain",
+  "migrationIdentity": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-canonical-pair-run-40055278746/capture/before-native-certificate-json/network/bound-migration.json",
+    "bytes": 847001,
+    "sha256": "4076f35f04a2a7e1d10cab3eec961e93a7be12f0e13ce8ffc928df9ed420a609",
+    "accounts": 2055,
+    "sourceRun": 40055278746,
+    "readOnly": true
+  },
+  "migrationUnchangedAfter": true,
+  "benchmarkRows": [
+    {
+      "mode": "control-A",
+      "n": 4,
+      "nsPerOp": 9938677,
+      "bytesPerOp": 5586080,
+      "allocsPerOp": 34979
+    },
+    {
+      "mode": "candidate-B",
+      "n": 4,
+      "nsPerOp": 8426562,
+      "bytesPerOp": 4663864,
+      "allocsPerOp": 24702
+    },
+    {
+      "mode": "candidate-B2",
+      "n": 4,
+      "nsPerOp": 8259604,
+      "bytesPerOp": 4663864,
+      "allocsPerOp": 24702
+    },
+    {
+      "mode": "control-A2",
+      "n": 4,
+      "nsPerOp": 9169250,
+      "bytesPerOp": 6110542,
+      "allocsPerOp": 34986
+    }
+  ],
+  "equalIterationMeans": {
+    "nsPerOp": {
+      "control": 9553963.5,
+      "candidate": 8343083.0,
+      "changePercent": -12.6741168730653
+    },
+    "bytesPerOp": {
+      "control": 5848311.0,
+      "candidate": 4663864.0,
+      "changePercent": -20.252804613160958
+    },
+    "allocsPerOp": {
+      "control": 34982.5,
+      "candidate": 24702.0,
+      "changePercent": -29.387550918316297
+    }
+  },
+  "benchmarkSHA256": "430ab37fda711cf2a4290394d80f042d2300d06d8b928ca7702a1a4d6819a0d0",
+  "goVersion": "go version go1.25.7 darwin/arm64",
+  "gomaxprocs": 1,
+  "gogc": 100,
+  "gomemlimit": "off",
+  "race": false,
+  "exclusiveHost": false,
+  "streamClientActualFixture": {
+    "businessSignedExecutedCommitted": 102,
+    "senders": 3,
+    "nonceCycles": 34,
+    "nativeSuffixSetup": true,
+    "originalSuffixSetup": false,
+    "canonicalCertificate": false,
+    "suffixSetup": {
+      "calls": 95,
+      "errors": 0,
+      "durationNs": 90061132
+    },
+    "privateValidate": {
+      "calls": 95,
+      "errors": 0,
+      "durationNs": 102143709
+    },
+    "transactionVerifications": 102,
+    "metadataSHA256": "e475a21f3ae6bf3798ffdc2fad54338cbd2f741924b2cdad3fd70687a7ee19de",
+    "independentBFTProof": false
+  },
+  "networkPerformanceMeasured": false,
+  "earlierProbe": {
+    "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-stream-suffix-original2048-abba.raw",
+    "sha256": "a65982cba4231442fedbbe4ef3f3de3a5dc5833e7a5eb35875ffa607f3a233ec",
+    "rows": [
+      {
+        "mode": "control-A",
+        "n": 4,
+        "nsPerOp": 10554500,
+        "bytesPerOp": 6110542,
+        "allocsPerOp": 34986
+      },
+      {
+        "mode": "candidate-B",
+        "n": 4,
+        "nsPerOp": 8422031,
+        "bytesPerOp": 4663864,
+        "allocsPerOp": 24702
+      },
+      {
+        "mode": "candidate-B2",
+        "n": 4,
+        "nsPerOp": 8323219,
+        "bytesPerOp": 4663864,
+        "allocsPerOp": 24702
+      },
+      {
+        "mode": "control-A2",
+        "n": 4,
+        "nsPerOp": 9169000,
+        "bytesPerOp": 6110542,
+        "allocsPerOp": 34986
+      }
+    ]
+  },
+  "actualMigrationConstructorDeepEqualBeforeTiming": true,
+  "smallSampleNotNetworkQualification": true
+}

@@ -85,6 +85,15 @@ func BenchmarkPrivateSuffixApplicationOriginalMigration(b *testing.B) {
 	if err := state.Validate(migration); err != nil {
 		b.Fatal(err)
 	}
+	control, err := NewApplication(migration)
+	if err != nil {
+		b.Fatal(err)
+	}
+	control.committed = state
+	candidate, err := newSuffixApplicationForValidatedPrivateState(migration, state)
+	if err != nil || !reflect.DeepEqual(control, candidate) {
+		b.Fatal("actual migration constructor equivalence failed", err)
+	}
 	for _, mode := range []string{"control-A", "candidate-B", "candidate-B2", "control-A2"} {
 		b.Run(mode, func(b *testing.B) {
 			b.ReportAllocs()

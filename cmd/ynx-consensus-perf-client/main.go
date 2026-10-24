@@ -252,7 +252,7 @@ func main() {
 	flag.BoolVar(&o.prefixNativeClone, "prefix-native-clone", false, "candidate: private native account/fee-history copies; requires explicit prefix replay and its original bounds")
 	flag.BoolVar(&o.clientProcs2, "client-procs2", false, "candidate: client-local GOMAXPROCS2 with original native8 observer facts; node environment and resource caps unchanged")
 	flag.BoolVar(&o.observerNativeFacts, "observer-native-facts", false, "candidate: reuse exact bytes+expected-chain signature facts from verified replay; native8 or native-stream8 with original suffix setup")
-	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: private suffix initialization; explicit native8 data64 mode only")
+	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: validated private suffix initialization; explicit native8 data64 or native stream8 only")
 	flag.BoolVar(&o.nativeCurrentInputReuse, "native-current-input-reuse", false, "explicit native stream only: share privately validated identical freshly captured input under original reader budget")
 	flag.BoolVar(&o.nativeCanonicalCertificate, "native-canonical-certificate", false, "explicit native stream only: canonical private certificate copy with exact encoded-byte comparison and strict JSON fallback")
 	flag.BoolVar(&o.nativeStream8, "native-stream8", false, "explicit history-growing native prefix stream: original ready sender/nonce/evidence rules, exactly8submitters/4observers; separate resource grant required")
@@ -286,11 +286,11 @@ func validateOptions(o options) error {
 	if o.clientProcs2 && !o.observerNativeFacts {
 		return errors.New("client procs2 requires explicit original native8 observer facts")
 	}
-	if o.observerNativeFacts && (!o.nativeSubmit8 && !o.nativeStream8 || o.nativeSuffixSetup) {
-		return errors.New("observer native facts require explicit native8 or native stream8 with original suffix setup")
+	if o.observerNativeFacts && (!o.nativeSubmit8 && !o.nativeStream8 || o.nativeSuffixSetup && !o.nativeStream8) {
+		return errors.New("observer native facts require native8 with original suffix setup or explicit native stream8")
 	}
-	if o.nativeSuffixSetup && !o.nativeSubmit8 {
-		return errors.New("native suffix setup requires explicit native8 mode")
+	if o.nativeSuffixSetup && !o.nativeSubmit8 && !o.nativeStream8 {
+		return errors.New("native suffix setup requires explicit native8 or native stream8 mode")
 	}
 	if o.nativeSubmit8 && (!o.prefixNativeClone || !o.prefixDurableReplay || o.concurrency != 8 || o.observers != 4 || o.offeredRate != 1000 || o.rounds != 1 || o.senderMode != "rounds") {
 		return errors.New("native submit8 requires explicit native prefix copy, exactly8 submitters/4 observers and single-round offer1000")

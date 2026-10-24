@@ -142,13 +142,14 @@ func TestStreamingWorkloadGzipRealExecutionAcrossLegacyNonceBoundary(t *testing.
 	testStreamingWorkloadRealExecution(t, true, false)
 }
 
-func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, canonical ...bool) {
+func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, candidates ...bool) {
 	path, manifest, m, migration, initial := senderFixture(t)
 	o := streamingOptions()
 	if native {
 		o = nativeStreamingOptions()
 		o.nativeCurrentInputReuse = true
-		o.nativeCanonicalCertificate = len(canonical) == 1 && canonical[0]
+		o.nativeCanonicalCertificate = len(candidates) >= 1 && candidates[0]
+		o.nativeSuffixSetup = len(candidates) >= 2 && candidates[1]
 		o.pacedWorkerInventory = new(pacedWorkerInventory)
 	}
 	o.terminalGzip = compressed
@@ -298,7 +299,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	}
 	if native {
 		actual := nativeReader.stats()
-		if actual.PrefixReplay.CanonicalCertificate != o.nativeCanonicalCertificate || plan.NativePrefix.CanonicalCertificate != o.nativeCanonicalCertificate || !plan.NativePrefix.OriginalSuffixSetup {
+		if actual.PrefixReplay.CanonicalCertificate != o.nativeCanonicalCertificate || plan.NativePrefix.CanonicalCertificate != o.nativeCanonicalCertificate || plan.NativePrefix.OriginalSuffixSetup == o.nativeSuffixSetup || actual.PrefixReplay.NativeSuffixSetup != o.nativeSuffixSetup {
 			t.Fatal("certificate configuration/plan differs")
 		}
 		if o.nativeCanonicalCertificate {
