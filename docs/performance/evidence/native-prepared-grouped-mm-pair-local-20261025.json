@@ -56,5 +56,8 @@
       "bytes": 6073,
       "sha256": "9085be7f9280d1c785bb16453db0ec45af1111cab3cee13c42a1b2769b1a1e18"
     }
-  }
+  },
+  "controllerCodeCommit": "a02fa84574e2e61c379c894f2389dc8d8ada6e73",
+  "internalTree": "a191bc07a650bc34fae386de27961ca6e7aacdbe",
+  "internalDeltaSHA256": "025c77b0670ecde47416e1a09aeee67f10d37cb902cda21a90deac0245d8164f"
 }
