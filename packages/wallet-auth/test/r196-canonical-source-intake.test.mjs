@@ -8,7 +8,6 @@ const root=fileURLToPath(new URL('../../../',import.meta.url)).replace(/\/$/,'')
  'native/original-auth-identity-joint-owner.h':'bdf37c7c11d483cba9f2b44dcdf3e9b3766b582ee6da86aece3a5b465e92605b',
  'native/original-auth-identity-joint-owner.mm':'8a2441c76515cb1c7de6def4a08392ee302d03c78a8f1a4aed1042ff6668ba42',
  'native/original-auth-identity-source-v2-verifier.mjs':'3c1470e2ebf02b7acd3be545ab733b7951fd30d0fad5a487a82ae98d321129a8',
- 'native/original-auth-identity-source-v2-verifier.d.mts':'3f4c37a35ed9596d714635d653774f4ca4781b575a2a257ecdb87b771ee3ab55',
  'src/original-auth-source-current-v2.js':'ffce0c998b4b33ec1688abfef596172241029d8faea46c8558c7e387aa1e2f55',
  'src/product-session-gateway-node-host.js':'b252ef02eeb2e3dce045608f66e891d3da0bffc3bbf6c1c1699051429ba8642a',
  'src/original-auth-identity-source-current.js':'d4efda732d5cc21fc443926aa07be11ebb95c1d46d7d84939fc4c5544e79e759',
