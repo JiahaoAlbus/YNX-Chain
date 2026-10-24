@@ -9,7 +9,7 @@ import (
 	"unicode/utf8"
 )
 
-// Candidate primitive only; no decoder constructor currently selects it.
+// Selected only by the explicit canonical native prefix decoder candidate.
 // Reproduce the old JSON round-trip object for the closed native account/fee
 // shape, retaining independent storage and rejecting any unsupported schema.
 // Callers must retain original full validation and strict-JSON fallback.

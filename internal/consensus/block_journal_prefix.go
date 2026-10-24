@@ -22,6 +22,7 @@ type BlockJournalPrefixDecoder struct {
 	prefix            *blockJournalPrefix
 	nativeClone       bool
 	nativeSuffixSetup bool
+	canonicalNative   bool
 	byteLimit         int // Immutable; zero preserves the original16MiB limit.
 }
 type blockJournalPrefix struct {
@@ -69,6 +70,17 @@ func NewBlockJournalNativeSuffixPrefixDecoder(migration chain.ConsensusMigration
 	d, err := NewBlockJournalNativeClonePrefixDecoder(migration)
 	if err == nil {
 		d.nativeSuffixSetup = true
+	}
+	return d, err
+}
+
+// NewBlockJournalCanonicalNativePrefixDecoder explicitly selects canonical native
+// certificate construction. Unsupported shapes or differing canonical bytes use
+// the original strict JSON path. All replay and private full validation remain.
+func NewBlockJournalCanonicalNativePrefixDecoder(migration chain.ConsensusMigrationState) (*BlockJournalPrefixDecoder, error) {
+	d, err := NewBlockJournalNativeSuffixPrefixDecoder(migration)
+	if err == nil {
+		d.canonicalNative = true
 	}
 	return d, err
 }
@@ -254,11 +266,39 @@ func (d *BlockJournalPrefixDecoder) makePrefixCertificate(data []byte, out Block
 		// Preserve the original strict JSON normalization semantics and private
 		// clone. Every reused result still performs the original full Validate.
 		var canonical CommittedState
-		if err := phases.measureCertificate("strictJSON", func() error { return decodeStrictJSON(certificate.payload, &canonical) }); err != nil {
-			return nil, err
+		canonicalReady := false
+		if d.canonicalNative {
+			if err := phases.measureCertificate("canonicalNative", func() error {
+				private, ok := cloneCanonicalNativeCommittedState(out.State)
+				if !ok {
+					return nil
+				}
+				// Bind the copied object to the exact independently encoded payload.
+				// Any mismatch retains original strict JSON behavior and errors.
+				encoded, err := encodeCommittedStateJSON(private)
+				if err != nil || !bytes.Equal(encoded, certificate.payload) {
+					return nil
+				}
+				canonical, canonicalReady = private, true
+				if phases != nil && phases.CertificatePublishDetails != nil {
+					phases.CertificatePublishDetails.CanonicalNativeAccepted++
+				}
+				return nil
+			}); err != nil {
+				return nil, err
+			}
+		}
+		if !canonicalReady {
+			if err := phases.measureCertificate("strictJSON", func() error { return decodeStrictJSON(certificate.payload, &canonical) }); err != nil {
+				return nil, err
+			}
 		}
 		if err := phases.measureCertificate("nativeClone", func() error {
-			if private, ok := cloneNativeCommittedState(canonical); ok {
+			private, ok := canonical, canonicalReady
+			if !ok {
+				private, ok = cloneNativeCommittedState(canonical)
+			}
+			if ok {
 				certificate.native = &private
 				certificate.payloadDigest = sha256.Sum256(certificate.payload)
 				certificate.nativeAppHash = canonical.AppHash

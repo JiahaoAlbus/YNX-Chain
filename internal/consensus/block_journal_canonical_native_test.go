@@ -128,6 +128,40 @@ func TestBlockJournalCertificateCanonicalNativeMatchedMeasurement(t *testing.T) 
 		t.Logf("round=%d iterations=32 strictJSONAndCloneNs=%d canonicalNativeNs=%d", round, old.Nanoseconds(), next.Nanoseconds())
 	}
 	t.Logf("componentOnly=true signedBusiness=32 feeEvents=%d payloadBytes=%d iterationsPerPath=224 controlNs=%d candidateNs=%d go=%s os=%s arch=%s gomaxprocs=%d networkProof=false", len(actual.FeeEvents), len(decoded.SnapshotJSON), controlTotal.Nanoseconds(), candidateTotal.Nanoseconds(), runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.GOMAXPROCS(0))
+	oldDecoder, err := NewBlockJournalNativeSuffixPrefixDecoder(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nextDecoder, err := NewBlockJournalCanonicalNativePrefixDecoder(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	publication := func(d *BlockJournalPrefixDecoder) func() CommittedState {
+		return func() CommittedState {
+			certificate, err := d.makePrefixCertificate(raw, decoded, 32, nil)
+			if err != nil || certificate.native == nil {
+				t.Fatal("publication failed", err)
+			}
+			return *certificate.native
+		}
+	}
+	oldPublish, nextPublish := publication(oldDecoder), publication(nextDecoder)
+	if !reflect.DeepEqual(oldPublish(), nextPublish()) {
+		t.Fatal("publication differs")
+	}
+	controlTotal, candidateTotal = 0, 0
+	for round := 0; round < 7; round++ {
+		var old, next time.Duration
+		if round%2 == 0 {
+			old, next = measure(oldPublish), measure(nextPublish)
+		} else {
+			next, old = measure(nextPublish), measure(oldPublish)
+		}
+		controlTotal += old
+		candidateTotal += next
+		t.Logf("publishRound=%d iterations=32 controlNs=%d candidateNs=%d", round, old.Nanoseconds(), next.Nanoseconds())
+	}
+	t.Logf("publicationOnly=true canonicalByteCheck=true signedBusiness=32 iterationsPerPath=224 controlNs=%d candidateNs=%d networkProof=false", controlTotal.Nanoseconds(), candidateTotal.Nanoseconds())
 }
 
 type futureCertificateScalar string
@@ -135,12 +169,15 @@ type futureCertificateScalar string
 func (futureCertificateScalar) MarshalJSON() ([]byte, error) { return []byte(`"changed"`), nil }
 
 func TestBlockJournalCertificateCanonicalNativeRejectsUnsupportedShapes(t *testing.T) {
+	// Construct the ambiguous future schema dynamically: retaining this negative
+	// case must not make go vet reject the test file's static struct tags.
+	duplicate := reflect.New(reflect.StructOf([]reflect.StructField{
+		{Name: "A", Type: reflect.TypeOf(""), Tag: `json:"same"`},
+		{Name: "B", Type: reflect.TypeOf(""), Tag: `json:"same"`},
+	})).Elem().Interface()
 	for _, value := range []any{struct{ Future *string }{}, struct{ Value futureCertificateScalar }{}, struct {
 		Hidden string `json:"-"`
-	}{}, struct {
-		A string `json:"same"`
-		B string `json:"same"`
-	}{}, struct {
+	}{}, duplicate, struct {
 		N int `json:",string"`
 	}{}, struct {
 		A int `json:"a\\bad"`

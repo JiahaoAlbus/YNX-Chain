@@ -1,0 +1,64 @@
+{
+  "scope": "same-payload local complete certificate publication function; not network",
+  "signedBusinessTransactions": 32,
+  "payloadBytes": 25763,
+  "iterationsPerPath": 224,
+  "rounds": [
+    {
+      "round": 0,
+      "iterations": 32,
+      "controlNs": 6088375,
+      "candidateNs": 4546125
+    },
+    {
+      "round": 1,
+      "iterations": 32,
+      "controlNs": 5909375,
+      "candidateNs": 5072417
+    },
+    {
+      "round": 2,
+      "iterations": 32,
+      "controlNs": 5915500,
+      "candidateNs": 4552500
+    },
+    {
+      "round": 3,
+      "iterations": 32,
+      "controlNs": 5739583,
+      "candidateNs": 4883750
+    },
+    {
+      "round": 4,
+      "iterations": 32,
+      "controlNs": 5597583,
+      "candidateNs": 4403750
+    },
+    {
+      "round": 5,
+      "iterations": 32,
+      "controlNs": 5462209,
+      "candidateNs": 4808334
+    },
+    {
+      "round": 6,
+      "iterations": 32,
+      "controlNs": 5722958,
+      "candidateNs": 4443041
+    }
+  ],
+  "controlTotalNs": 40435583,
+  "candidateTotalNs": 32709917,
+  "elapsedReductionPercent": 19.106107608241977,
+  "candidateIncludesExactReencodingComparison": true,
+  "gomaxprocs": 1,
+  "go": "go1.25.7",
+  "os": "darwin",
+  "arch": "arm64",
+  "networkProof": false,
+  "sustained1000Qualified": false,
+  "raw": {
+    "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-canonical-publication-matched32.raw",
+    "sha256": "5061b00cd385ce13c321e1a2964bfc9dd8125fe42855b3f2039eeaf54de4848d"
+  }
+}

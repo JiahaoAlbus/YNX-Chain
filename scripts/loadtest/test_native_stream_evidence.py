@@ -193,6 +193,23 @@ class CurrentInputReuseMeasurementTests(unittest.TestCase):
 class CertificatePublishMeasurementTests(unittest.TestCase):
     def fixture(self):
         return dict(certificatePublish=dict(calls=2,errors=0,durationNs=100),certificatePublishDetails=dict(payloadCopy=dict(calls=2,errors=0,durationNs=10),strictJSON=dict(calls=2,errors=0,durationNs=60),nativeClone=dict(calls=2,errors=0,durationNs=20),payloadBytes=200,prefixBytesHashed=120))
+    def test_canonical_candidate_requires_selection_and_conserves_fallbacks(self):
+        for accepted in (0,1,2):
+            phases=self.fixture();parts=phases['certificatePublishDetails']
+            parts['canonicalNative']=dict(calls=2,errors=0,durationNs=5)
+            if accepted:parts['canonicalNativeAccepted']=accepted
+            parts['strictJSON']=dict(calls=2-accepted,errors=0,durationNs=10*(2-accepted))
+            result=evidence.certificate_publish_measurements(phases,1024,True,True,True)
+            result['canonicalNative']['calls']=999
+            self.assertEqual(parts['canonicalNative']['calls'],2)
+            with self.assertRaises(RuntimeError):evidence.certificate_publish_measurements(phases,1024,True,True)
+            for change in ('accepted','attempts','missing','errors'):
+                bad=copy.deepcopy(phases);child=bad['certificatePublishDetails']
+                if change=='accepted':child['canonicalNativeAccepted']=3
+                if change=='attempts':child['canonicalNative']['calls']=1
+                if change=='missing':del child['canonicalNative']
+                if change=='errors':child['canonicalNative']['errors']=1
+                with self.subTest(accepted=accepted,change=change),self.assertRaises(RuntimeError):evidence.certificate_publish_measurements(bad,1024,True,True,True)
     def test_nested_costs_are_copied_and_not_added_twice(self):
         phases=self.fixture();result=evidence.certificate_publish_measurements(phases,1024,True,True)
         result['strictJSON']['calls']=999

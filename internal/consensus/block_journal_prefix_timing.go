@@ -29,11 +29,13 @@ type BlockJournalPrefixWorkPhases struct {
 // are selected only by DecodeWithCertificatePhaseTiming; the original timed and
 // untimed APIs retain their output shape and do not read these child clocks.
 type BlockJournalPrefixCertificatePhases struct {
-	PayloadCopy       BlockJournalPrefixPhase `json:"payloadCopy"` // Original payload copy plus current input-prefix digest.
-	StrictJSON        BlockJournalPrefixPhase `json:"strictJSON"`
-	NativeClone       BlockJournalPrefixPhase `json:"nativeClone"` // Original private copy plus payload digest/identity sealing.
-	PayloadBytes      uint64                  `json:"payloadBytes"`
-	PrefixBytesHashed uint64                  `json:"prefixBytesHashed"`
+	CanonicalNative         *BlockJournalPrefixPhase `json:"canonicalNative,omitempty"` // Explicit candidate copy plus exact encoded-byte comparison.
+	CanonicalNativeAccepted uint64                   `json:"canonicalNativeAccepted,omitempty"`
+	PayloadCopy             BlockJournalPrefixPhase  `json:"payloadCopy"` // Original payload copy plus current input-prefix digest.
+	StrictJSON              BlockJournalPrefixPhase  `json:"strictJSON"`
+	NativeClone             BlockJournalPrefixPhase  `json:"nativeClone"` // Original private copy plus payload digest/identity sealing.
+	PayloadBytes            uint64                   `json:"payloadBytes"`
+	PrefixBytesHashed       uint64                   `json:"prefixBytesHashed"`
 }
 
 func (p *BlockJournalPrefixWorkPhases) measureCertificate(name string, action func() error) error {
@@ -48,6 +50,11 @@ func (p *BlockJournalPrefixWorkPhases) measureCertificate(name string, action fu
 		phase = &p.CertificatePublishDetails.StrictJSON
 	case "nativeClone":
 		phase = &p.CertificatePublishDetails.NativeClone
+	case "canonicalNative":
+		if p.CertificatePublishDetails.CanonicalNative == nil {
+			p.CertificatePublishDetails.CanonicalNative = new(BlockJournalPrefixPhase)
+		}
+		phase = p.CertificatePublishDetails.CanonicalNative
 	default:
 		panic("unregistered certificate publish phase")
 	}
@@ -112,6 +119,15 @@ func (p *BlockJournalPrefixWorkPhases) Add(other BlockJournalPrefixWorkPhases) {
 			p.CertificatePublishDetails = new(BlockJournalPrefixCertificatePhases)
 		}
 		target, source := p.CertificatePublishDetails, other.CertificatePublishDetails
+		target.CanonicalNativeAccepted += source.CanonicalNativeAccepted
+		if source.CanonicalNative != nil {
+			if target.CanonicalNative == nil {
+				target.CanonicalNative = new(BlockJournalPrefixPhase)
+			}
+			target.CanonicalNative.Calls += source.CanonicalNative.Calls
+			target.CanonicalNative.Errors += source.CanonicalNative.Errors
+			target.CanonicalNative.DurationNs += source.CanonicalNative.DurationNs
+		}
 		target.PayloadBytes += source.PayloadBytes
 		target.PrefixBytesHashed += source.PrefixBytesHashed
 		targets := []*BlockJournalPrefixPhase{&target.PayloadCopy, &target.StrictJSON, &target.NativeClone}

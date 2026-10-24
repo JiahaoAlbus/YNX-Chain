@@ -173,6 +173,10 @@ func (r *durableReader) stats() durableReaderStats {
 		v := r.prefixStats
 		if v.WorkPhases.CertificatePublishDetails != nil {
 			details := *v.WorkPhases.CertificatePublishDetails
+			if details.CanonicalNative != nil {
+				canonical := *details.CanonicalNative
+				details.CanonicalNative = &canonical
+			}
 			v.WorkPhases.CertificatePublishDetails = &details
 		}
 		if v.WorkPhases.PrivateNativeClone != nil {
