@@ -66,6 +66,9 @@ const SDK_WORKSPACE_SELECTION_VERSION='1.3.0-pq.3.32-auth.19';
 const SDK_PUBLICATION_RESULT_VERSION='1.3.0-pq.3.32-auth.20';
 const SDK_CONTROL_CUSTODY_VERSION='1.3.0-pq.3.32-auth.26';
 const SDK_PRINCIPAL_CURRENT_VERSION='1.3.0-pq.3.32-auth.28';
+// Auth28 adds this runtime module, but not its optional Source IO component.
+// Keep the exact URL bytes/path; do not turn packaging into Source activation.
+const SDK28_SOURCE_CURRENT_RULE=Object.freeze({sourcePath:'packages/wallet-auth/src/original-auth-source-current-v2.js',packedPath:'code/packages/wallet-auth/src/original-auth-source-current-v2.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-current-dirfd.node',operands:Object.freeze([Object.freeze({kind:'url',from:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',count:1})])});
 export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
  [SDK330_VERSION]:Object.freeze({bytes:64574,sha256:'3fb78277a0e2b842d86bccb499275809040206c26d3358d270ef8f1ff2a02693'}),
  [SDK332_VERSION]:Object.freeze({bytes:65346,sha256:'0abdc434eb6e7aacc4708127e413c686e10963f4744b730c74f3d4300f522d07'}),
@@ -111,8 +114,9 @@ function selectedRelocationRules(sdkVersion){
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
   if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION&&sdkVersion!==SDK_CONTRACT_CURRENT_VERSION&&sdkVersion!==SDK_AUTONOMOUS_SCOPE_VERSION&&sdkVersion!==SDK_PROJECT_READER_VERSION&&sdkVersion!==SDK_WORKSPACE_SELECTION_VERSION&&sdkVersion!==SDK_PUBLICATION_RESULT_VERSION&&sdkVersion!==SDK_CONTROL_CUSTODY_VERSION&&sdkVersion!==SDK_PRINCIPAL_CURRENT_VERSION)return PACKAGED_RELOCATION_RULES;
-  return PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
+  const selected=PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
     ?{...rule,operands:rule.operands.map(operand=>({...operand,count:3}))}:rule);
+  return sdkVersion===SDK_PRINCIPAL_CURRENT_VERSION?[...selected,SDK28_SOURCE_CURRENT_RULE]:selected;
 }
 // Build/readback DATA only. The normal package caller MUST first obtain this
 // component from verifySDK13NativeComponent; it is never Source admission.
@@ -320,7 +324,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   if(!isDeepStrictEqual(receipt.nativeBuildEvidence??[],evidence.public))throw Error('Packaged Native evidence receipt differs from fixed source inputs');
   ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'),dependencies,evidence);
   if(!isDeepStrictEqual(archiveInventory(asar,archive),receipt.after)) throw new Error("Packaged archive differs from relocation receipt");
-  const unavailableOptionalRuntimeAssets=PACKAGED_RELOCATION_RULES.filter(row=>row.unavailableNativeAsset).map(row=>{
+  const unavailableOptionalRuntimeAssets=plan.filter(row=>row.unavailableNativeAsset).map(row=>{
     if(receipt.after.some(member=>member.path===row.unavailableNativeAsset))throw Error('Unreviewed optional source-current Native module');
     return {declaredBy:row.sourcePath,path:row.unavailableNativeAsset,packaged:false,capability:'NOT_SUPPLIED'};
   });
