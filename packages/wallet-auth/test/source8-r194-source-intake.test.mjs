@@ -9,7 +9,7 @@ const pins={
  'native/original-developer-principal-data.mjs':'7e0748cb9ab85839843469c6dca087ed0a0bc5d4ffcde34a2d0bf12d8ac9aab3',
  'native/original-ide-publication-approval-contract.mjs':'c37462cbf7bdb9ee7b327f0d33e8712d3bbc7b6aa0ae43a39f7ca426c69e33f6',
  'native/original-ide-approval-state-head-data.mjs':'28aa4713d6e9792294976b5318abc87c9be89b11fdb4f5e2f22152a5eab81786',
- 'native/original-ide-project-control-contract.mjs':'86bad0df3624396d12b5c66f0affb3820ce9cd15cf7a92ad59161693da545677'
+ 'native/original-ide-project-control-contract.mjs':'41b5e5aff29769f6e1d0e02d0bde1b3dc1242ee291b79863c081e720b68b8d39'
 };
 test('canonical successor preserves frozen Auth production leaf bytes',()=>{for(const[f,h]of Object.entries(pins))assert.equal(createHash('sha256').update(readFileSync(new URL(f,root))).digest('hex'),h,f)});
 test('required relative native JS closure is included without new public credential or DATA export',()=>{
@@ -17,5 +17,5 @@ test('required relative native JS closure is included without new public credent
  for(const f of ['original-developer-principal-data.mjs','original-ide-project-control-contract.mjs','original-ide-approval-state-head-data.mjs','original-ide-publication-approval-contract.mjs'])assert.ok(p.files.includes('native/'+f),f);
  assert.equal(p.exports['./product-session-gateway-node-host'].import,'./src/product-session-gateway-node-host.js');
  for(const s of Object.keys(p.exports))assert.doesNotMatch(s,/credential|project-control|developer-principal/);
- assert.equal(p.version,'1.3.0-pq.3.32-auth.23'); // source-only successor; no published or installed package implied.
+ assert.equal(p.version,'1.3.0-pq.3.32-auth.24'); // source-only successor; no published or installed package implied.
 });

@@ -1,0 +1,23 @@
+import test from'node:test';import assert from'node:assert/strict';import{spawnSync}from'node:child_process';
+import{keyGen,batchSign,extract,encodeMember,discardBatch,destroyKey}from'@ynx/batch-v01-candidate';
+import{canonical}from'../native/original-auth-identity-source-verifier.mjs';
+import{encodeOriginalDeveloperPrincipalDATA}from'../native/original-developer-principal-data.mjs';
+import{encodeOriginalDeveloperCommandDATA as commandData,encodeOriginalProjectControlApprovalDATA as message,canonicalOriginalProjectControlApprovalDATA as envelope}from'../native/original-ide-project-control-contract.mjs';
+import{ynxAddressFromEVM}from'../src/crypto.js';
+// Ephemeral PUBLIC math only. This executes the actual fixed CLI, not a model.
+export function fixture(decision='approve'){
+ const key=keyGen({provider:'portable'}),owner='0x'+'1'.repeat(40),networkId='ab'.repeat(32),now=Date.now(),nonce=Buffer.alloc(32,8).toString('base64url');let batch;
+ try{
+ const principal={account:ynxAddressFromEVM(owner),deviceId:'PUBLIC-device',sessionRef:'PUBLIC-session',currentRef:'PUBLIC-current',accountGeneration:'9007199254740993',sessionGeneration:'18446744073709551615',expiresMS:String(now+60000)};
+ const command={RequestID:'PUBLIC-request',Action:'project.create',ProjectID:'PUBLIC-project',TeamID:'',SubjectAccount:'',PublisherID:'',RuntimeOrigin:'',ExpectedRevision:'0',GrantExpiresMS:'0',Read:false,Publish:false,Runtime:false,Revoke:false,ExpiresMS:String(now+30000),PublicOriginalSHA256:''};
+ const binding={networkId,owner,keyVersion:'1',executionHeight:'9007199254740993',callerIdentity:'PUBLIC-native',sourceCurrentRef:principal.currentRef};
+ const body=canonical({version:'YNX-IDE-PROJECT-CONTROL-DECISION/v1',decision,requestId:command.RequestID,principalSHA256:encodeOriginalDeveloperPrincipalDATA(principal).principalSHA256,commandSHA256:commandData(command,now).commandSHA256,reviewId:'PUBLIC-review',nonce,confirmationRef:'PUBLIC-confirm',revocationRef:'PUBLIC-revoke',issuedAtMs:now,expiresAtMs:now+20000});
+ batch=batchSign(key.privateKey,{chainId:Buffer.from(networkId,'hex'),owner,purpose:'IDE-PROJECT-CONTROL'},[Buffer.from(message(binding,principal,command,body))]).batch;
+ return{operation:'ide-project-control-signature-data/v1',approvalOriginal:envelope(binding,principal,command,body,encodeMember(extract(batch,0)).toString('base64url')),registeredContext:{chainId:networkId,nativeChainId:'6423',owner},registeredSender:{owner,executionHeight:binding.executionHeight,ledgerNonce:'1',algorithmVersion:'YNX-BATCH/v0.1',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId,enableAt:'10',activeRevision:'1',records:[{algorithmVersion:'YNX-BATCH/v0.1',owner,pkA:key.publicKey.pkA.toString('hex'),pkB:key.publicKey.pkB.toString('hex'),revision:'1',registeredAt:'10',activeFrom:'11',ledgerNonce:'1'}]},principal,command,expected:{nonce,callerIdentity:binding.callerIdentity,sourceCurrentRef:binding.sourceCurrentRef}};
+ }finally{if(batch)discardBatch(batch);destroyKey(key.privateKey)}
+}
+function run(input){return spawnSync(process.execPath,['native/original-auth-identity-source-verifier.mjs'],{cwd:new URL('..',import.meta.url),input:canonical(input),encoding:'utf8',timeout:20000,maxBuffer:2<<20})}
+test('normal CLI verifies PUBLIC registered AND with original big generations; remains DATA',()=>{const r=run(fixture());assert.equal(r.status,0,r.stderr);const v=JSON.parse(r.stdout);assert.equal(v.signatureVerified,true);assert.equal(v.readyForSourceVerification,true);for(const k of['authorized','committed','nativeAdmission'])assert.equal(v[k],false)});
+test('normal CLI reject decision remains negative',()=>{const r=run(fixture('reject'));assert.equal(r.status,0,r.stderr);assert.equal(JSON.parse(r.stdout).readyForSourceVerification,false)});
+test('normal CLI wrong caller/current/command or unregistered key fails with no public result',()=>{const q=fixture();for(const edit of[v=>v.expected.callerIdentity='PUBLIC-other',v=>v.expected.sourceCurrentRef='PUBLIC-other',v=>v.command.ProjectID='PUBLIC-other',v=>v.registeredSender.enabled=false]){const v=structuredClone(q);edit(v);const r=run(v);assert.notEqual(r.status,0);assert.equal(r.stdout,'')}});
+test('normal CLI rejects unknown field, noncanonical input and wrong operation without output',()=>{const q=fixture();for(const v of[{...q,authorized:true},{...q,operation:'ide-project-control-signature-data/v2'}]){const r=run(v);assert.notEqual(r.status,0);assert.equal(r.stdout,'')}const r=spawnSync(process.execPath,['native/original-auth-identity-source-verifier.mjs'],{cwd:new URL('..',import.meta.url),input:JSON.stringify(q,null,2),encoding:'utf8'});assert.notEqual(r.status,0);assert.equal(r.stdout,'')});

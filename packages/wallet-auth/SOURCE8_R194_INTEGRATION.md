@@ -1,6 +1,6 @@
-# Auth23 source-only canonical successor to Auth22
+# Wallet/Auth canonical source supply
 
-This branch integrates original Auth R191 HTTP-principal methods plus the frozen R193 normal Host HTTP relay and observation-only recheck and the fixed R194 project-control DATA codec, including exact R183/R189 relative imports. It is not a new published package or an updated installed client. Auth23 identifies the new source selection and recipe; no npm tarball, Native binary or installed client is produced from this branch. Auth20, Auth22, 50fc5edd and b743cc20 remain immutable parents.
+The current branch is the source-only Auth24/R197 successor to frozen Auth23. Earlier integration includes R191 HTTP-principal methods, the R193 original Host relay/recheck, R183/R189 relative dependencies, the R194 strict-member fix and R196 control capture. Auth23 normal npm payload and its exact runtime union were completed separately under the original bounded slot. No Auth24 package, Native binary, installed client or service activation is produced by this source-only successor. Auth20, Auth22, 50fc5edd, b743cc20, 1b53e3d2 and 802527eb remain immutable parents.
 
 The existing Node-only service consumer is `ProductSessionGatewayNodeHost.authenticateOriginalDeveloperHTTPRequest` followed internally by the genuine credential consumer, or `currentExistingDeveloperPrincipal` for the combined operation. Both use the original durable Product Session Host. The credential is an in-process reference, not JSON. The principal result remains DATA, with `authorized:false` and `nativeAdmission:false`. No renderer factory, credential mint or new public control API is added.
 
@@ -30,3 +30,13 @@ The old independent IO CPP remains 5009 bytes and lacks openV2Existing. Its prio
 ## SDK publication type alignment
 
 A separate SDK type-only successor adds the already implemented `ide-publication-approval-authority-v1` service and fixed approval.capture/current/revoke tuple to the public declarations, with original Auth confirmation. The prior declarations rejected a real supported consumer at compilation. This declaration is an SDK-owned change from the frozen R196 d.mts parent, not a claim of supplier byte identity. Native/runtime/recipe bytes remain the Auth23 frozen selection; publication issuer, CLI/dispatch, protected effects and admission are still incomplete.
+
+## Auth24 / R197 fixed CONTROL CLI successor
+
+Auth24 is a separate source-only successor to the frozen Auth23 package and union. It adds the original fixed CONTROL signature-DATA and Source-current CLI operations, the original CONTROL dispatch and the formally inherited R189 publication dispatch required by that same CLI. The R197 codec aligns text acceptance with original Go Unicode behavior while retaining the strict member wire guard. Public publication types from the SDK correction remain unchanged.
+
+The normal Source recipe selects 84 Native inputs, five helper-only inputs, four pure inputs and one tool (94 normal, 95 including the independent unchanged IO input). User-addon/helper TUs remain 13/11. Both newly required dispatch files are checked in the original source selectors. This is not a new public loader, credential factory, issuer or permission API.
+
+Only the current-dispatch test entry is selected for the seven supplied cases: it imports the four CLI fixtures and adds three current/revocation/time-fence cases. Running both files separately would duplicate four cases. The actual original Go Marshal interoperability evidence is reused as one Go race test with four Unicode/escaping vectors; it is not four top-level tests or SDK execution. No Go implementation is copied into the SDK.
+
+The fixed current-dispatch source/role seams in the supplier tests are PUBLIC test transports. They do not qualify Root, a live Source or a production endpoint. Full Source13, durable capture/current/revoke/once state, the independent publisher dual-proof writer and Protocol's CONTROL CABI remain owning work. Auth24 requires its own future matching normal package/union and Native qualification; the completed Auth23 package, union and original Native/IO evidence cannot be relabeled as Auth24. No new pack, dependency copy, build, key use, network activation or real-user operation is performed for this source-only successor.

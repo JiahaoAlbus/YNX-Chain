@@ -100,6 +100,25 @@ export function fetchSourceCurrentV2(endpoint,spki,profileDigest,nonce){return f
 async function run(){
  let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>2097152)bad();chunks.push(chunk);}
  const input=parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)),2097152);
+ if(input?.operation==='ide-project-control-current-native-node/v1'){
+  const {dispatchOriginalProjectControlCurrent}=await import('./original-ide-project-control-dispatch.mjs');
+  const result=await dispatchOriginalProjectControlCurrent(input);process.stdout.write(canonical(result)+'\n');if(!result.completed)process.exitCode=1;return;
+ }
+ // Fixed CONTROL mathematics for the normal server process. This is not
+ // Source admission: the owning factory supplies the independently observed
+ // registered sender and current/caller/nonce binding, never HTTP JSON roles.
+ if(input?.operation==='ide-project-control-signature-data/v1'){
+  exact(input,['operation','approvalOriginal','registeredSender','registeredContext','principal','command','expected']);
+  exact(input.registeredContext,['chainId','nativeChainId','owner']);
+  const {parsePQAccountAuthorization}=await import('../src/pq-wallet-policy.js');
+  const sender=parsePQAccountAuthorization(input.registeredSender,input.registeredContext);
+  const {verifyOriginalProjectControlApprovalDATA}=await import('./original-ide-project-control-contract.mjs');
+  const before=Date.now();
+  const result=verifyOriginalProjectControlApprovalDATA(input.approvalOriginal,sender,input.principal,input.command,input.expected,before);
+  const after=Date.now();
+  if(after<before||after>=result.expiresMS||result.signatureVerified!==true||result.dataOnly!==true||result.authorized!==false||result.committed!==false||result.nativeAdmission!==false)bad('IDE_CONTROL_POST_COMPLETION_EXPIRED');
+  process.stdout.write(canonical(result)+'\n');return;
+ }
  // Fixed read-only artifact mathematics for the original server subprocess.
  // Expected originals must already belong to its independently admitted
  // request/publisher. This branch never issues Source, approval or a grant.
@@ -118,6 +137,10 @@ async function run(){
   const raw=canonical(result);
   if(result.dataOnly!==true||result.signatureVerified!==true||['trusted','authorized','nativeAdmission','registered','current','publicationAuthorized'].some(key=>result[key]!==false)||Buffer.byteLength(raw)>4096)bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_RESULT');
   process.stdout.write(raw+'\n');return;
+ }
+ if(input?.operation==='ide-publication-approval-current-native-node/v1'){
+  const {dispatchOriginalIDEApprovalCurrent}=await import('./original-ide-publication-approval-dispatch.mjs');const result=await dispatchOriginalIDEApprovalCurrent(input);
+  process.stdout.write(canonical(result)+'\n');if(!result.completed)process.exitCode=1;return;
  }
  // SAME original bounded driver/process. No second CLI, Source owner or
  // renderer-selected module. Native retains expected + trusted node binding;
