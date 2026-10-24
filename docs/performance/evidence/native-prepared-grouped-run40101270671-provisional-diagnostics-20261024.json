@@ -1,0 +1,638 @@
+{
+  "schema": 1,
+  "runId": 40101270671,
+  "sourceCommit": "1f21f1f2eed732c0948ac98ff7028bee5f2d6ca4",
+  "nativePairQualified": false,
+  "diagnosticOnly": true,
+  "performanceComparisonQualified": false,
+  "sustainedTPSQualified": false,
+  "originalPriorityProof": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/priority-original-diagnostics-02.json",
+    "bytes": 2302,
+    "sha256": "5036ca93e13abb7eebd8d6bda414c875eb0e97f6b8e79c98d69af694cf1af15c"
+  },
+  "independentRefusal": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/independent-unqualified-verdict-01.json",
+    "bytes": 9072,
+    "sha256": "78ba2e37995a0bac6bd75de1e37f3e6e60b76a23479e771cd5d52499e0ba4f6b"
+  },
+  "rows": [
+    {
+      "case": "before-native-prepared-bounded",
+      "caseFirstCause": null,
+      "originalWorkerCompleted": true,
+      "checkerPasses": 2,
+      "workerSHA256": "a28c7b6737721237286d29c6851c5727083857e66b095e7d3acd3f1e04f40dfd",
+      "clientSHA256": "10e2fc6e59ec75d51188f6a7d34ee9dd44b82570d5bf1f97111e2661ec0f2955",
+      "summary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 50583,
+        "measurementWindowSeconds": 29.971400995,
+        "rpcSubmissionsPerMeasurementSecond": 273.3272295601609,
+        "checkTxAcceptedPerMeasurementSecond": 273.3272295601609,
+        "codeZeroIncludedPerMeasurementSecond": 273.3272295601609,
+        "effectiveBusinessIncludedPerMeasurementSecond": 273.3272295601609,
+        "quorumConfirmedPerMeasurementSecond": 273.3272295601609,
+        "finalSubmittedPerMeasurementSecond": 273.3272295601609,
+        "offeredEventSpanSeconds": 28.583723582,
+        "offeredInterarrivalRate": 286.56168523677263,
+        "submissionEventSpanSeconds": 28.595299369,
+        "submissionInterarrivalRate": 286.445680959711,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "supply": {
+        "completionWaitAttempts": 5,
+        "completionWaitNs": 1346581356,
+        "completionSupplyWaitAttempts": 0,
+        "completionSupplyWaitNs": 0,
+        "completionDrainWaitAttempts": 5,
+        "completionDrainWaitNs": 1346581356,
+        "completionFailureWaitAttempts": 0,
+        "completionFailureWaitNs": 0,
+        "terminalSinkAttempts": 8192,
+        "terminalSinkNs": 833331433,
+        "offerDecodeAttempts": 8192,
+        "offerDecodeNs": 159914114,
+        "pacingWaitAttempts": 8192,
+        "pacingWaitNs": 24065542663,
+        "pacingFutureTargetAttempts": 7000,
+        "pacingAlreadyDueAttempts": 1192,
+        "pacingPositiveRemainingNs": 4951725962,
+        "pacingWakeLatenessNs": 19113398920,
+        "pacingMaxWakeLatenessNs": 50734174,
+        "pacingCatchupTargets": 998,
+        "pacingCadenceResets": 1345,
+        "pacingPeakCatchupTargets": 3,
+        "dispatchAttempts": 8192,
+        "dispatchNs": 4587872,
+        "signAttempts": 6144,
+        "signNs": 1074502595,
+        "encodeAttempts": 6144,
+        "encodeNs": 2091307128,
+        "signedSuccessors": 6144,
+        "journalSetupNs": 229559,
+        "journalAppendAttempts": 128,
+        "journalAppendNs": 327387260,
+        "journalDurableEnvelopes": 8192,
+        "journalDurableBytes": 5668329
+      },
+      "reader": {
+        "currentInputReuse": {
+          "attempts": 125,
+          "errors": 0,
+          "enabled": true,
+          "hits": 89,
+          "misses": 36,
+          "comparedBytes": 285171499,
+          "lookupNs": 15574645,
+          "retainedInputBytes": 21700825
+        },
+        "readerGate": {
+          "acquisitions": 130,
+          "waitNs": 14298429905,
+          "maxWaitNs": 441783751,
+          "holdNs": 10891001629,
+          "maxHoldNs": 466139439
+        },
+        "observerNativeFacts": {
+          "enabled": true,
+          "lookups": 8192,
+          "hits": 8192,
+          "misses": 0,
+          "fallbackMathVerifications": 0,
+          "fallbackFailures": 0
+        },
+        "prefixReplay": {
+          "preparedCertificate": true,
+          "calls": 36,
+          "successfulFullReplays": 3,
+          "successfulPrefixReuses": 33,
+          "failures": 0,
+          "durationNs": 9666970439,
+          "replayedBlocks": 38,
+          "replayedTransactionInputs": 8192,
+          "canonicalByteLimit": 33554432,
+          "workPhases": {
+            "preparedEncodeDetails": {
+              "normalize": {
+                "calls": 33,
+                "errors": 0,
+                "durationNs": 119373186
+              },
+              "jsonEncode": {
+                "calls": 33,
+                "errors": 0,
+                "durationNs": 1338399749
+              },
+              "publicCopy": {
+                "calls": 33,
+                "errors": 0,
+                "durationNs": 18627143
+              },
+              "fallbackEncode": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              }
+            },
+            "certificatePublishDetails": {
+              "preparedNativeAccepted": 33,
+              "payloadCopy": {
+                "calls": 36,
+                "errors": 0,
+                "durationNs": 78703988
+              },
+              "strictJSON": {
+                "calls": 3,
+                "errors": 0,
+                "durationNs": 161932536
+              },
+              "nativeClone": {
+                "calls": 36,
+                "errors": 0,
+                "durationNs": 104133389
+              },
+              "payloadBytes": 158655058,
+              "prefixBytesHashed": 119886834
+            },
+            "gateWait": {
+              "calls": 36,
+              "errors": 0,
+              "durationNs": 50184
+            },
+            "prefixCheck": {
+              "calls": 36,
+              "errors": 0,
+              "durationNs": 106435158
+            },
+            "privateJSON": {
+              "calls": 0,
+              "errors": 0,
+              "durationNs": 0
+            },
+            "privateValidate": {
+              "calls": 33,
+              "errors": 0,
+              "durationNs": 1224861327
+            },
+            "fullReplay": {
+              "calls": 3,
+              "errors": 0,
+              "durationNs": 1075316331
+            },
+            "suffixSetup": {
+              "calls": 33,
+              "errors": 0,
+              "durationNs": 1112221097
+            },
+            "suffixReplay": {
+              "calls": 33,
+              "errors": 0,
+              "durationNs": 4000716849
+            },
+            "suffixEncode": {
+              "calls": 33,
+              "errors": 0,
+              "durationNs": 1476529752
+            },
+            "canonicalCopy": {
+              "calls": 0,
+              "errors": 0,
+              "durationNs": 0
+            },
+            "certificatePublish": {
+              "calls": 36,
+              "errors": 0,
+              "durationNs": 353170336
+            },
+            "privateNativeClone": {
+              "calls": 33,
+              "errors": 0,
+              "durationNs": 317221254
+            }
+          },
+          "nativeCloneCache": {
+            "snapshotPresent": true,
+            "canonicalBytes": 6953561,
+            "height": 39,
+            "accounts": 2056,
+            "feeEvents": 8192,
+            "lotEntries": 6144
+          }
+        },
+        "phaseTotalsNs": {
+          "loadNs": 10871273778,
+          "hashNs": 403311229,
+          "captureNs": 613067457,
+          "decodeNs": 9667084915,
+          "indexPublishNs": 151036674,
+          "transactionVerifyNs": 18733912
+        },
+        "attempts": 130,
+        "bytesHashed": 420611341,
+        "snapshotValidations": 36,
+        "snapshotCacheHits": 93,
+        "transactionVerifications": 8192,
+        "blockJournalReplayedBlocks": 38,
+        "blockJournalReplayedTransactionInputs": 8192,
+        "readerBudget": {
+          "storeByteLimit": 33554432,
+          "cacheInputByteBudget": 67108864,
+          "cachedInputBytes": 21700825,
+          "evictions": 0
+        },
+        "blockJournalNativeVerificationFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 4096,
+          "retained_string_bytes": 2920680,
+          "lookups": 8192,
+          "hits": 0,
+          "successful_verifications": 8192
+        }
+      },
+      "processCPU": {
+        "available": true,
+        "samples": 2,
+        "userNs": 22385570000,
+        "systemNs": 741338000,
+        "totalNs": 23126908000,
+        "measurementWallNs": 29971400995,
+        "sampleBracketWallNs": 29971408129,
+        "sampleBracketOverheadNs": 7134,
+        "cpuPercentOfOneCore": 77.1632347084242,
+        "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+      },
+      "workerPhaseTotalsNs": {
+        "publicHashBeforeNs": 26600665,
+        "reportCaptureDecodeNs": 54181442,
+        "firstCompleteCheckNs": 1186129701,
+        "secondCompleteCheckNs": 1252263540,
+        "publicHashAfterNs": 25903743
+      }
+    },
+    {
+      "case": "after-native-prepared-grouped",
+      "caseFirstCause": "live owned RSS unreadable",
+      "originalWorkerCompleted": true,
+      "checkerPasses": 2,
+      "workerSHA256": "9471f7de0c17ead647f905e9708e2f36866cd91dcef7e85906286fdd695c092e",
+      "clientSHA256": "a19a533a5209327ce4baa428b39661804b446300bc67b99c2c51d918d9e0d496",
+      "summary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 53608,
+        "measurementWindowSeconds": 29.716409205,
+        "rpcSubmissionsPerMeasurementSecond": 275.6726071271638,
+        "checkTxAcceptedPerMeasurementSecond": 275.6726071271638,
+        "codeZeroIncludedPerMeasurementSecond": 275.6726071271638,
+        "effectiveBusinessIncludedPerMeasurementSecond": 275.6726071271638,
+        "quorumConfirmedPerMeasurementSecond": 275.6726071271638,
+        "finalSubmittedPerMeasurementSecond": 275.6726071271638,
+        "offeredEventSpanSeconds": 27.734953936,
+        "offeredInterarrivalRate": 295.3312999510006,
+        "submissionEventSpanSeconds": 28.320160745,
+        "submissionInterarrivalRate": 289.2285843203112,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "supply": {
+        "completionWaitAttempts": 7,
+        "completionWaitNs": 1937648046,
+        "completionSupplyWaitAttempts": 0,
+        "completionSupplyWaitNs": 0,
+        "completionDrainWaitAttempts": 7,
+        "completionDrainWaitNs": 1937648046,
+        "completionFailureWaitAttempts": 0,
+        "completionFailureWaitNs": 0,
+        "terminalSinkAttempts": 8192,
+        "terminalSinkNs": 998653631,
+        "offerDecodeAttempts": 8192,
+        "offerDecodeNs": 160690358,
+        "pacingWaitAttempts": 8192,
+        "pacingWaitNs": 23316976716,
+        "pacingFutureTargetAttempts": 2808,
+        "pacingAlreadyDueAttempts": 5384,
+        "pacingPositiveRemainingNs": 9736484875,
+        "pacingWakeLatenessNs": 13579038659,
+        "pacingMaxWakeLatenessNs": 57244352,
+        "pacingCatchupTargets": 5344,
+        "pacingCadenceResets": 1116,
+        "pacingPeakCatchupTargets": 3,
+        "dispatchAttempts": 8192,
+        "dispatchNs": 3394904,
+        "signAttempts": 6144,
+        "signNs": 1094995922,
+        "encodeAttempts": 6144,
+        "encodeNs": 1934984096,
+        "signedSuccessors": 6144,
+        "journalSetupNs": 213819,
+        "journalAppendAttempts": 128,
+        "journalAppendNs": 181043201,
+        "journalDurableEnvelopes": 8192,
+        "journalDurableBytes": 5668025
+      },
+      "reader": {
+        "currentInputReuse": {
+          "attempts": 117,
+          "errors": 0,
+          "enabled": true,
+          "hits": 82,
+          "misses": 35,
+          "comparedBytes": 260604417,
+          "lookupNs": 14557869,
+          "retainedInputBytes": 21763510
+        },
+        "readerGate": {
+          "acquisitions": 123,
+          "waitNs": 13648497790,
+          "maxWaitNs": 413149626,
+          "holdNs": 10766940838,
+          "maxHoldNs": 472520990
+        },
+        "observerNativeFacts": {
+          "enabled": true,
+          "lookups": 8192,
+          "hits": 8192,
+          "misses": 0,
+          "fallbackMathVerifications": 0,
+          "fallbackFailures": 0
+        },
+        "prefixReplay": {
+          "preparedCertificate": true,
+          "calls": 35,
+          "successfulFullReplays": 3,
+          "successfulPrefixReuses": 32,
+          "failures": 0,
+          "durationNs": 9663077644,
+          "replayedBlocks": 37,
+          "replayedTransactionInputs": 8192,
+          "canonicalByteLimit": 33554432,
+          "workPhases": {
+            "preparedEncodeDetails": {
+              "normalize": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 140120615
+              },
+              "jsonEncode": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 1478598892
+              },
+              "publicCopy": {
+                "calls": 32,
+                "errors": 0,
+                "durationNs": 27339828
+              },
+              "fallbackEncode": {
+                "calls": 0,
+                "errors": 0,
+                "durationNs": 0
+              }
+            },
+            "certificatePublishDetails": {
+              "preparedNativeAccepted": 32,
+              "payloadCopy": {
+                "calls": 35,
+                "errors": 0,
+                "durationNs": 102676307
+              },
+              "strictJSON": {
+                "calls": 3,
+                "errors": 0,
+                "durationNs": 216327794
+              },
+              "nativeClone": {
+                "calls": 35,
+                "errors": 0,
+                "durationNs": 122102268
+              },
+              "payloadBytes": 156142867,
+              "prefixBytesHashed": 117926540
+            },
+            "gateWait": {
+              "calls": 35,
+              "errors": 0,
+              "durationNs": 54513
+            },
+            "prefixCheck": {
+              "calls": 35,
+              "errors": 0,
+              "durationNs": 127668178
+            },
+            "privateJSON": {
+              "calls": 0,
+              "errors": 0,
+              "durationNs": 0
+            },
+            "privateValidate": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 1365708479
+            },
+            "fullReplay": {
+              "calls": 3,
+              "errors": 0,
+              "durationNs": 907016850
+            },
+            "suffixSetup": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 1051134310
+            },
+            "suffixReplay": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 3796394234
+            },
+            "suffixEncode": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 1646225780
+            },
+            "canonicalCopy": {
+              "calls": 0,
+              "errors": 0,
+              "durationNs": 0
+            },
+            "certificatePublish": {
+              "calls": 35,
+              "errors": 0,
+              "durationNs": 466716269
+            },
+            "privateNativeClone": {
+              "calls": 32,
+              "errors": 0,
+              "durationNs": 301669077
+            }
+          },
+          "nativeCloneCache": {
+            "snapshotPresent": true,
+            "canonicalBytes": 6953635,
+            "height": 38,
+            "accounts": 2056,
+            "feeEvents": 8192,
+            "lotEntries": 6144
+          }
+        },
+        "phaseTotalsNs": {
+          "loadNs": 10745772356,
+          "hashNs": 408533573,
+          "captureNs": 504010005,
+          "decodeNs": 9663223124,
+          "indexPublishNs": 159566970,
+          "transactionVerifyNs": 20072941
+        },
+        "attempts": 123,
+        "bytesHashed": 399321180,
+        "snapshotValidations": 35,
+        "snapshotCacheHits": 88,
+        "transactionVerifications": 8192,
+        "blockJournalReplayedBlocks": 37,
+        "blockJournalReplayedTransactionInputs": 8192,
+        "readerBudget": {
+          "storeByteLimit": 33554432,
+          "cacheInputByteBudget": 67108864,
+          "cachedInputBytes": 21763510,
+          "evictions": 0
+        },
+        "blockJournalNativeVerificationFacts": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 4096,
+          "retained_string_bytes": 2920288,
+          "lookups": 8192,
+          "hits": 0,
+          "successful_verifications": 8192
+        }
+      },
+      "processCPU": {
+        "available": true,
+        "samples": 2,
+        "userNs": 21975822000,
+        "systemNs": 668559000,
+        "totalNs": 22644381000,
+        "measurementWallNs": 29716409205,
+        "sampleBracketWallNs": 29716416689,
+        "sampleBracketOverheadNs": 7484,
+        "cpuPercentOfOneCore": 76.20158660778968,
+        "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+      },
+      "workerPhaseTotalsNs": {
+        "publicHashBeforeNs": 26525094,
+        "reportCaptureDecodeNs": 54427413,
+        "firstCompleteCheckNs": 1223722234,
+        "secondCompleteCheckNs": 1244015241,
+        "publicHashAfterNs": 26771023
+      }
+    }
+  ],
+  "interpretation": "Actual original reports and complete original worker terminals only. Resource sampling refused after; full public recovery still pending. These data may guide investigation, never promote throughput/finality/defaults or replace qualification."
+}
