@@ -14,8 +14,8 @@ function regular(file){
  return readFileSync(file);
 }
 function relative(p){if(typeof p!=='string'||p.includes('\\')||isAbsolute(p)||p.split('/').some(x=>!x||x==='.'||x==='..'))fail('NATIVE_REUSE_RELATIVE');return p;}
-function pinned(ref,root){
- if(!ref||!Number.isSafeInteger(ref.bytes)||ref.bytes<1||!/^[a-f0-9]{64}$/.test(ref.sha256))fail('NATIVE_REUSE_PIN');
+function pinned(ref,root,allowEmptyRuntimeFile=false){
+ if(!ref||!Number.isSafeInteger(ref.bytes)||ref.bytes<(allowEmptyRuntimeFile?0:1)||!/^[a-f0-9]{64}$/.test(ref.sha256))fail('NATIVE_REUSE_PIN');
  const file=root?join(root,relative(ref.path)):ref.path,b=regular(file);
  if(b.length!==ref.bytes||sha(b)!==ref.sha256)fail('NATIVE_REUSE_INPUT_DIFFERS');return b;
 }
@@ -40,7 +40,7 @@ function planIdentity(plan,root,count){
 }
 function manifest(ref,root){
  const raw=pinned(ref),m=JSON.parse(raw);if(m.version!=='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'||!Array.isArray(m.files)||!m.files.length)fail('NATIVE_REUSE_RUNTIME');
- const seen=new Set();for(const f of m.files){if(seen.has(f.path))fail('NATIVE_REUSE_DUPLICATE');seen.add(f.path);pinned(f,root);}if(!seen.has('package.json'))fail('NATIVE_REUSE_RUNTIME_PACKAGE');
+ const seen=new Set();for(const f of m.files){if(seen.has(f.path))fail('NATIVE_REUSE_DUPLICATE');seen.add(f.path);pinned(f,root,true);}if(!seen.has('package.json'))fail('NATIVE_REUSE_RUNTIME_PACKAGE');
  return {ref:pin(ref.path,raw),files:m.files.length};
 }
 function tuple(file,actualSchema=false){
