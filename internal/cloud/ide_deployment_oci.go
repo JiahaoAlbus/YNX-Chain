@@ -89,11 +89,14 @@ func NewOCIIDEDeploymentExecutor(cfg IDEExistingOCIConfig) (*OCIIDEDeploymentExe
 		if len(args) > 0 && args[0] == "logs" {
 			cmd.Stderr = out
 		}
-		if err := cmd.Run(); err != nil {
-			return nil, ErrIDEExistingRuntimeUnavailable
-		}
+		runErr := cmd.Run()
 		if out.overflow || stderr.overflow {
 			return nil, ErrIDEExistingRuntimeUnavailable
+		}
+		if runErr != nil {
+			// A create may have returned its immutable ID before the CLI lost
+			// its final acknowledgment. Preserve that bounded partial output.
+			return out.buf.Bytes(), ErrIDEExistingRuntimeUnavailable
 		}
 		return out.buf.Bytes(), nil
 	}
@@ -199,7 +202,7 @@ func (e *OCIIDEDeploymentExecutor) ApplyExisting(ctx context.Context, p IDEDeplo
 	if err := socialSync(dir); err != nil {
 		return empty, err
 	}
-	op := IDEDeploymentOperation{RequestID: p.RequestID, ResourceID: p.ResourceID, Binding: p.Binding, ManifestSHA256: p.ManifestSHA256, ApprovalSHA256: p.ApprovalSHA256}
+	op := IDEDeploymentOperation{RequestID: p.RequestID, ResourceID: p.ResourceID, PublisherID: p.PublisherID, Binding: p.Binding, ManifestSHA256: p.ManifestSHA256, ApprovalSHA256: p.ApprovalSHA256}
 	op.RuntimeHandle = productHash([]byte(p.Principal + "\x00" + p.RequestID))
 	op.RuntimeSeconds = p.RuntimeSeconds
 	op.ResourceApprovalRef = p.ResourceApprovalRef
@@ -214,8 +217,24 @@ func (e *OCIIDEDeploymentExecutor) ApplyExisting(ctx context.Context, p IDEDeplo
 	if err := current(); err != nil {
 		return empty, err
 	}
-	if _, err := e.run(ctx, args...); err != nil {
-		return empty, err
+	created, createErr := e.run(ctx, args...)
+	op.DeploymentID = strings.TrimSpace(string(created))
+	if !ideOCIDigest.MatchString("sha256:" + op.DeploymentID) {
+		if createErr != nil {
+			return empty, createErr
+		}
+		return empty, ErrIDEExistingRuntimeUnavailable
+	}
+	// Record the actual acknowledgment before any subsequent current/inspect
+	// call. This local receipt grants nothing and survives cancellation.
+	if err := e.rememberCreatedInstance(op); err != nil {
+		return empty, errors.Join(createErr, err)
+	}
+	if err := e.pinCreatedResource(op); err != nil {
+		return empty, errors.Join(createErr, err)
+	}
+	if createErr != nil {
+		return empty, createErr
 	}
 	// Check the same original container identity, then fence the actual start.
 	inspection, err := e.inspect(ctx, op)
@@ -270,12 +289,9 @@ func (e *OCIIDEDeploymentExecutor) inspect(ctx context.Context, op IDEDeployment
 	if op.ResourceID != e.cfg.ResourceID || op.Binding.TargetEnvironment != e.cfg.TargetEnvironment || !productWriteKey.MatchString(op.RequestID) || len(op.ApprovalSHA256) != 64 {
 		return empty, ErrDenied
 	}
-	target := e.name(op.RequestID, op.ApprovalSHA256)
-	if op.DeploymentID != "" {
-		if !ideOCIDigest.MatchString("sha256:" + op.DeploymentID) {
-			return empty, ErrDenied
-		}
-		target = op.DeploymentID
+	target, err := e.createdContainerID(op)
+	if err != nil {
+		return empty, err
 	}
 	raw, err := e.run(ctx, "inspect", "--type=container", target)
 	if err != nil {
@@ -286,7 +302,7 @@ func (e *OCIIDEDeploymentExecutor) inspect(ctx context.Context, op IDEDeployment
 		return empty, ErrIDEExistingRuntimeUnavailable
 	}
 	v := rows[0]
-	if op.DeploymentID != "" && v.ID != op.DeploymentID {
+	if v.ID != target {
 		return empty, ErrIDEExistingRuntimeUnavailable
 	}
 	if len(v.ID) != 64 || !ideOCIDigest.MatchString("sha256:"+v.ID) || v.Config.Image != e.cfg.ImageDigest || v.Config.User != "10001:10001" || v.HostConfig.NetworkMode != "none" || !v.HostConfig.ReadonlyRootfs || v.HostConfig.Memory != 128<<20 || v.HostConfig.MemorySwap != 128<<20 || v.HostConfig.NanoCpus != 500000000 || v.HostConfig.PidsLimit != 64 {

@@ -87,7 +87,7 @@ func publicIDEOCIFixture(t *testing.T) *publicIDEOCI {
 	return model
 }
 func (m *publicIDEOCI) operation() IDEDeploymentOperation {
-	return IDEDeploymentOperation{RequestID: m.p.RequestID, ResourceID: m.p.ResourceID, Binding: m.p.Binding, ManifestSHA256: m.p.ManifestSHA256, ApprovalSHA256: m.p.ApprovalSHA256, RuntimeSeconds: m.p.RuntimeSeconds, ResourceApprovalRef: m.p.ResourceApprovalRef}
+	return IDEDeploymentOperation{RequestID: m.p.RequestID, ResourceID: m.p.ResourceID, PublisherID: m.p.PublisherID, Binding: m.p.Binding, ManifestSHA256: m.p.ManifestSHA256, ApprovalSHA256: m.p.ApprovalSHA256, RuntimeSeconds: m.p.RuntimeSeconds, ResourceApprovalRef: m.p.ResourceApprovalRef, RuntimeHandle: productHash([]byte(m.p.Principal + "\x00" + m.p.RequestID)), DeploymentID: m.row.ID}
 }
 
 func TestIDEDeploymentOCIExistingOfflineSandboxContract(t *testing.T) {

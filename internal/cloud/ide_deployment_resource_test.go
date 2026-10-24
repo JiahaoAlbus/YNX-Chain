@@ -1,6 +1,7 @@
 package cloud
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"os"
@@ -39,11 +40,10 @@ func TestIDEDeploymentResourceConcurrentClaimAndUnknownRemainBusy(t *testing.T) 
 }
 func TestIDEDeploymentResourceOriginalRunningThenActualTerminal(t *testing.T) {
 	m := publicIDEOCIFixture(t)
-	release, err := m.e.acquireResource(context.Background(), m.p, func() error { return nil })
+	_, err := m.e.ApplyExisting(context.Background(), m.p, bytes.NewReader(m.body), func() error { return nil })
 	if err != nil {
 		t.Fatal(err)
 	}
-	release()
 	next := m.p
 	next.RequestID = "request_second_123456"
 	next.ApprovalSHA256 = strings.Repeat("e", 64)
@@ -63,7 +63,7 @@ func TestIDEDeploymentResourceOriginalRunningThenActualTerminal(t *testing.T) {
 		t.Fatalf("confirmed prior exit did not release: %v", err)
 	}
 	unlock()
-	if m.creates != 0 || m.starts != 0 {
+	if m.creates != 1 || m.starts != 1 {
 		t.Fatal("reservation silently deployed")
 	}
 }

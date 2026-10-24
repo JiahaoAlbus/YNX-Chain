@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -67,31 +66,14 @@ func (e *OCIIDEDeploymentExecutor) acquireResource(ctx context.Context, p IDEDep
 }
 
 func (e *OCIIDEDeploymentExecutor) reconcileResourceRecord(ctx context.Context, file string, next IDEDeploymentPermit) error {
-	// Reject links and open special files without waiting for a FIFO writer.
-	// The regular/private/same-inode checks below still run before any read.
-	fd, err := unix.Open(file, unix.O_RDONLY|unix.O_CLOEXEC|unix.O_NOFOLLOW|unix.O_NONBLOCK, 0)
+	prior, err := readIDECreatedRecord(file)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
-		return err
-	}
-	f := os.NewFile(uintptr(fd), "ide-resource-reservation")
-	defer f.Close()
-	info, err := f.Stat()
-	named, namedErr := os.Lstat(file)
-	if err != nil || namedErr != nil || !info.Mode().IsRegular() || named.Mode()&os.ModeSymlink != 0 || !os.SameFile(info, named) || info.Mode().Perm()&0077 != 0 {
 		return ErrIDEResourceBusy
 	}
-	raw, err := io.ReadAll(io.LimitReader(f, (64<<10)+1))
-	if err != nil || len(raw) > 64<<10 {
-		return ErrIDEResourceBusy
-	}
-	var prior struct {
-		Version   int                    `json:"version"`
-		Operation IDEDeploymentOperation `json:"operation"`
-	}
-	if json.Unmarshal(raw, &prior) != nil || prior.Version != 1 || prior.Operation.ResourceID != e.cfg.ResourceID {
+	if prior.Operation.ResourceID != e.cfg.ResourceID {
 		return ErrIDEResourceBusy
 	}
 	if prior.Operation.RequestID == next.RequestID {
@@ -105,4 +87,23 @@ func (e *OCIIDEDeploymentExecutor) reconcileResourceRecord(ctx context.Context, 
 		return ErrIDEResourceBusy
 	}
 	return nil
+}
+
+// Called while acquireResource's original exclusive lock is still held.
+// Publishing an acknowledged ID is metadata recovery, not a new grant/start.
+func (e *OCIIDEDeploymentExecutor) pinCreatedResource(op IDEDeploymentOperation) error {
+	file := filepath.Join(e.cfg.StorageRoot, "resource-"+productHash([]byte(e.cfg.ResourceID))+".json")
+	prior, err := readIDECreatedRecord(file)
+	if err != nil {
+		return err
+	}
+	if prior.Operation.State != "unknown" || !sameIDECreatedSelection(prior.Operation, op) || (prior.Operation.DeploymentID != "" && prior.Operation.DeploymentID != op.DeploymentID) {
+		return ErrIDEDeploymentConflict
+	}
+	prior.Operation.DeploymentID = op.DeploymentID
+	raw, err := json.Marshal(prior)
+	if err != nil {
+		return err
+	}
+	return socialAtomicGuarded(file, raw, nil)
 }
