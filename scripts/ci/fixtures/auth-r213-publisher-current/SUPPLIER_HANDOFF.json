@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "state": "ACTUAL_NORMAL_PINNED_GO_PUBLISHER_CURRENT_COUNTERPART_AND_POST_IO_COMPLETION_FENCE_IMPLEMENTED_NOT_REGISTRY_AUTHORITY",
+  "parent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/HANDOFF.json",
+    "bytes": 5773,
+    "sha256": "e3305b55b516943b70b7d0e1c4ccafb6e04717be53808c65be0e726976c505b2",
+    "gitBlob": "8316f8552bef828df23cfbc7a05b33a6b65b4fbd"
+  },
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/source/internal/developerauthority/original_publisher_current.go",
+      "relative": "source/internal/developerauthority/original_publisher_current.go",
+      "bytes": 12885,
+      "sha256": "37795f27973115ae9d66419a58968d9f802c0208abc6784732d161fcaba2230c",
+      "gitBlob": "40d9bdfd76a8a2e177c8f55c3c7221addcaaada1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/source/internal/developerauthority/original_publisher_current_test.go",
+      "relative": "source/internal/developerauthority/original_publisher_current_test.go",
+      "bytes": 8064,
+      "sha256": "3e19236fec2f038e2cbd7d2a6f8d40e69d885fd910aef89e2cefad61506f7090",
+      "gitBlob": "6c94c46cf6b948f92ec867ec5057ff81ff83b998"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/CALLER.md",
+      "relative": "CALLER.md",
+      "bytes": 2335,
+      "sha256": "ef59a97ac1cc790e6d4bc73572bad2040ee13e0049dc9ec379d206aff74078dc",
+      "gitBlob": "09cca6a333d24169524917f08fd20caa0921ae69"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/run-new-go.mjs",
+      "relative": "run-new-go.mjs",
+      "bytes": 1112,
+      "sha256": "b5dfb56526f08b1da85a874e1cd0e41b53ea18d0305c80679eb1607366dc90ab",
+      "gitBlob": "417aae7135209f71e73fef69f8652027e62bb9cb"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-CtwjR8/stdout",
+      "relative": "evidence/publisher-current-go-CtwjR8/stdout",
+      "bytes": 12774,
+      "sha256": "f66a3835fd0d4d17bde90a414e87009745cd58ce15b41995b4382adb2fcf955d",
+      "gitBlob": "cce92b93e212d520a82d7c1febca458edc712476"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-DJWKVW/stdout",
+      "relative": "evidence/publisher-current-go-DJWKVW/stdout",
+      "bytes": 12781,
+      "sha256": "13dd33d3a6198a59e8811a6c1eb1308df0e2c953b729a80a26d0b0f86c874797",
+      "gitBlob": "72059b7a962f37d3ba8e7ea8574b7ca2f106ba78"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-8fnv1J/stdout",
+      "relative": "evidence/publisher-current-go-8fnv1J/stdout",
+      "bytes": 11870,
+      "sha256": "f7b5b035233d57028418a05384addd2937839422548c70782bf9a3affd5dee31",
+      "gitBlob": "eea76f41c0f4697dff237209b5c6f879e2e288ef"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-CtwjR8/stderr",
+      "relative": "evidence/publisher-current-go-CtwjR8/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-DJWKVW/stderr",
+      "relative": "evidence/publisher-current-go-DJWKVW/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-8fnv1J/stderr",
+      "relative": "evidence/publisher-current-go-8fnv1J/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-CtwjR8/result.json",
+      "relative": "evidence/publisher-current-go-CtwjR8/result.json",
+      "bytes": 2353,
+      "sha256": "ebcca2ae32cd08e8dc64d29fb03027d7b9014b1fdb7a1de0843dcbaf860c7693",
+      "gitBlob": "7df076f2ee4afc184b4a368fc3e1a19891ae3026"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-DJWKVW/result.json",
+      "relative": "evidence/publisher-current-go-DJWKVW/result.json",
+      "bytes": 2353,
+      "sha256": "ebcca2ae32cd08e8dc64d29fb03027d7b9014b1fdb7a1de0843dcbaf860c7693",
+      "gitBlob": "7df076f2ee4afc184b4a368fc3e1a19891ae3026"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/evidence/publisher-current-go-8fnv1J/result.json",
+      "relative": "evidence/publisher-current-go-8fnv1J/result.json",
+      "bytes": 2353,
+      "sha256": "ebcca2ae32cd08e8dc64d29fb03027d7b9014b1fdb7a1de0843dcbaf860c7693",
+      "gitBlob": "7df076f2ee4afc184b4a368fc3e1a19891ae3026"
+    }
+  ],
+  "requiresSDK": {
+    "source": "Auth29 exact R211 normal fixed CLI closure; no public npm assertion",
+    "operation": "ide-protected-publisher-current-native-node/v1",
+    "R211": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r211-supply-20261024-r1/HANDOFF.json",
+      "bytes": 6676,
+      "sha256": "0663e47a6636b67d3e2dd3cf4462b4a0db491f5d69309764a74f1f5ccaeedf94"
+    }
+  },
+  "normalCall": "(*OriginalSourceVerifierOwner).invokeOriginalProtectedPublisherCurrent(ctx,input,p,cmd,publicOriginal,registrationOriginal,caller) -> nonnil original observation may coexist with error; retain both and original process diagnostics. After durable await call same observation.recheckOriginalCompletion; no retry/renewal.",
+  "checks": [
+    "strict fixed input/output schema, source purpose and profile exact binding",
+    "same before/after current Source identity/selection/capture/floor/sequence/generation/role/height",
+    "exact original Go principal u64, command, raw public/proof digests",
+    "Root-selected capture head, publisher reference/review, independent Source-supplied nonce",
+    "all DATA/registration/authority flags remain unpromoted",
+    "final post-process and post-durable-IO window/cancellation fences with sticky UNKNOWN and retained originals"
+  ],
+  "tests": {
+    "newTop": 4,
+    "newSub": 8,
+    "totalPass": 12,
+    "exit": 0,
+    "race": true,
+    "compiledGoClosure": 32,
+    "actualPinnedSubprocess": true,
+    "child": "explicit PUBLIC metadata, no Root/Source authority or crypto claim; real dual-PQ tests owned R211",
+    "oldGroupsRerun": false
+  },
+  "remaining": [
+    "durable protected publisher capture/current/revoke writer and its normal HTTP/Source factory caller",
+    "publication4/selector1 and dynamic capture issuer own CODE",
+    "Root-admitted actual original resources and matching runtime deployment/real login"
+  ],
+  "truth": {
+    "Source13": false,
+    "Root": false,
+    "registered": false,
+    "protectedCustodyAdmitted": false,
+    "authorized": false,
+    "mounted": false,
+    "production": false,
+    "FinanceResumed": false
+  }
+}
