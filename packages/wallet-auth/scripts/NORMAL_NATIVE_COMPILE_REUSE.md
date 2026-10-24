@@ -1,5 +1,26 @@
 # Normal 23/24 machine-code reuse binding
 
+## Explicit Main711/Auth26 to Main2c200b/Auth28 DATA comparison
+
+The same CREATE/VERIFY CLI now dispatches to the explicit Main component
+contract only when the request supplies `sourceExecutionHandoff` and
+`targetMainProfileHandoff` pins. These bind the original A26 combined17/helper11
+execution and the formal Main28 target profile. Both tuple JSON files still
+need an actual composed source root, its inventory, a pinned `plansRef` exported
+from that root by the normal Main/supplier plan functions, and its independently
+versioned runtime root/manifest. A profile's TU list is not an exported plan.
+
+This branch checks 81 supplier plus 12 Main C++/header inputs, Main's single
+co-resident archive, 17/11 ordered TUs, original process/driver argv, headers,
+both runtimes and exact selected artifacts. It preserves supplier materialization
+facts and independent-evidence limitations separately. Its receipt remains
+`YNX_NORMAL_NATIVE_COMPILE_REUSE_BINDING/v1`, with `compileReuseAdmitted:false`
+and Native/Source/App/install qualification false. No compile, load, artifact
+copy or original record rewrite occurs. Actual target source/plan and a bounded
+read window are required before CREATE/VERIFY; the old 23/24 proof cannot select
+this branch. The existing completed-proof lightweight reader still accepts
+only its original completed 23/24 proof.
+
 This is an offline adapter for one original A executed 13-TU addon / 11-TU
 helper record. It does not compile, load, copy artifacts or change that record.
 It does not qualify Native, Source, installation or a user flow.
