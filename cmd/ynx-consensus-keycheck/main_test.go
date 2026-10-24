@@ -318,7 +318,9 @@ func TestKeyCheckInspectPublicIdentityPreservesCustodyAndEmitsOnlyPublicData(t *
 	if receipt.Version != "YNX-CONSENSUS-KEYCHECK-PUBLIC-IDENTITY/v1" || !receipt.PublicDataOnly || !receipt.SourceReadOnly || !receipt.HRSUnchanged || receipt.ManifestMatched || receipt.AuthorityGranted || receipt.HRSHistoryVerified || receipt.SigningPerformed || receipt.FilesCreated {
 		t.Fatal("inspection implied manifest, historical HRS, signing or authority qualification")
 	}
-	want := consensus.ProductionKeyCeremonyRecord{Version: 1, Purpose: consensus.ProductionValidatorManifestPurpose, Role: "primary", ValidatorAddress: "ynx_validator_primary", ConsensusKeyType: f.manifest.Node.ConsensusKeyType, ConsensusPubKey: f.manifest.Node.ConsensusPubKey, ConsensusAddress: f.manifest.Node.ConsensusAddress, NodeID: f.manifest.Node.NodeID, CustodyBoundary: "owner-controlled-host-local"}
+	// The role-manifest fixture uses Comet's "ed25519" alias. The existing
+	// public ceremony ABI emits the canonical public-key type, not that alias.
+	want := consensus.ProductionKeyCeremonyRecord{Version: 1, Purpose: consensus.ProductionValidatorManifestPurpose, Role: "primary", ValidatorAddress: "ynx_validator_primary", ConsensusKeyType: "tendermint/PubKeyEd25519", ConsensusPubKey: f.manifest.Node.ConsensusPubKey, ConsensusAddress: f.manifest.Node.ConsensusAddress, NodeID: f.manifest.Node.NodeID, CustodyBoundary: "owner-controlled-host-local"}
 	if receipt.PublicRecord != want {
 		t.Fatal("inspection did not return the actual original public identity")
 	}
