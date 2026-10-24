@@ -15,6 +15,18 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 )
 
+// macOS's temporary root may use /var -> /private/var. Resolve the fixture
+// parent once; explicit symlink counterexamples remain below this real parent.
+// Production's original-path/no-follow requirement is deliberately unchanged.
+func canonicalPackageTempDir(t *testing.T) string {
+	t.Helper()
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return parent
+}
+
 func TestVerifyMigrationState(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
 	if _, err := devnet.Faucet("ynx_migration_verifier", 25); err != nil {
@@ -29,7 +41,7 @@ func TestVerifyMigrationState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(t.TempDir(), "migration.json")
+	path := filepath.Join(canonicalPackageTempDir(t), "migration.json")
 	if err := os.WriteFile(path, append(payload, '\n'), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +77,7 @@ func writeMigrationFixture(t *testing.T, migration chain.ConsensusMigrationState
 		t.Fatal(err)
 	}
 	payload = append(payload, '\n')
-	path := filepath.Join(t.TempDir(), "migration.json")
+	path := filepath.Join(canonicalPackageTempDir(t), "migration.json")
 	if err := os.WriteFile(path, payload, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -275,7 +287,7 @@ func TestVerifyMigrationExecutionRetainsStrictLoader(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			path := filepath.Join(t.TempDir(), "migration.json")
+			path := filepath.Join(canonicalPackageTempDir(t), "migration.json")
 			if err := os.WriteFile(path, payload, 0o600); err != nil {
 				t.Fatal(err)
 			}
@@ -292,7 +304,7 @@ func TestVerifyMigrationExecutionRetainsStrictLoader(t *testing.T) {
 			assertMigrationFileUnchanged(t, path, payload, before)
 		})
 	}
-	missing := filepath.Join(t.TempDir(), "missing.json")
+	missing := filepath.Join(canonicalPackageTempDir(t), "missing.json")
 	if _, err := verifyMigrationExecution(missing); err == nil {
 		t.Fatal("missing source document was accepted")
 	}

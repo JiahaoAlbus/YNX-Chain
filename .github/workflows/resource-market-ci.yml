@@ -20,6 +20,8 @@ on:
       - 'scripts/ops/validate-private-consensus-copy.py'
       - 'scripts/ops/test_validate_private_consensus_copy.py'
       - 'scripts/ops/verify-original-native-copy.py'
+      - 'scripts/ops/remote/verify-original-native-copy-once.sh'
+      - 'scripts/ops/test_verify_original_native_copy_once.py'
       - 'scripts/verify/test_original_native_copy_guard.py'
       - 'scripts/ops/verify-retained-native-export.py'
       - 'scripts/verify/test_retained_native_export_guard.py'
@@ -361,9 +363,6 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code
           go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1
-          if [[ "$YNX_NATIVE_MATRIX_RUNNER" == macos-15 ]]; then
-            go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
-          fi
       - name: Execute actual C ABI and independently verify both signatures
         run: |
           set -euo pipefail
@@ -381,6 +380,34 @@ jobs:
           lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64
           # The immediately preceding real C call executed this exact archive
           # on the original Main target. No cross-compiled runtime claim.
+      - name: Install pinned contract runtime for Darwin migration callers
+        if: runner.os == 'macOS'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Prepare same-source compiled contracts for Darwin migration callers
+        if: runner.os == 'macOS'
+        timeout-minutes: 3
+        env:
+          NODE_OPTIONS: --max-old-space-size=1536
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol
+          npm run contracts:selectors
+          git diff --exit-code -- artifacts
+          test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json
+          test -s artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
+          shasum -a 256 contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json
+          shasum -a 256 contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
+      - name: Verify complete Darwin migration package CLI against original contract inputs
+        if: runner.os == 'macOS'
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
       - name: Seal only native library public outputs and exact compile inputs
         run: |
           set -euo pipefail
@@ -572,8 +599,11 @@ jobs:
       - name: Verify original-copy observation controls without touching the original case
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
+          set -euo pipefail
           python3 -B -m unittest discover -s scripts/verify -p 'test_original_native_copy_guard.py' -v
           python3 -B -m unittest discover -s scripts/verify -p 'test_retained_native_export_guard.py' -v
+          timeout 45s python3 -B scripts/ops/test_verify_original_native_copy_once.py -v 2>&1 | tee "$RUNNER_TEMP/ynx-native-readonly-copy-source.log"
+          test "$(grep -F -c 'YNX_NATIVE_ROFD_STABLE_FINAL_PATH_DATA_PASS' "$RUNNER_TEMP/ynx-native-readonly-copy-source.log")" -eq 1
       - name: Verify Linux window controls without starting a node
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |

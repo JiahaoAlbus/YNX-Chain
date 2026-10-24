@@ -23,6 +23,13 @@ const dropin = "[Service]\nExecStart=\nExecStart=/usr/bin/caddy run --environ --
 const bindingProgram = path.join(repo, "scripts/verify/public-bft-candidate-binding.mjs");
 const evidenceProgram = path.join(repo, "scripts/verify/validate-public-bft-cutover-approval-evidence.mjs");
 const approvalProgram = path.join(repo, "scripts/verify/validate-public-bft-cutover-approval.mjs");
+// Match the production ELF/SOURCE reader without executing an ELF or claiming
+// Go migration validity. Only the subprocess transport below is doubled.
+const summaryELF=Buffer.alloc((1<<20)+64);
+summaryELF.set([127,69,76,70,2,1,1]);summaryELF.writeUInt16LE(2,16);summaryELF.writeUInt16LE(62,18);summaryELF.writeUInt32LE(1,20);
+const summarySOURCE=encode({version:"YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2",commit:fullCommit,platform:"linux/amd64",
+  binaries:{"ynx-consensus-package":{bytes:summaryELF.length,sha256:sha(summaryELF)}},runtimeStarted:false,publicDeployment:false,pqActivation:false});
+const summaryRuntimePin=sha(summarySOURCE);
 let cases = 0, serial = 0;
 function check(name, action) {
   try { action(); cases++; } catch (error) { error.message = `${name}: ${error.message}`; throw error; }
@@ -48,6 +55,32 @@ function cli(program, args, accepted = true, env = {}) {
   if(accepted)assert.equal(p.status,0,p.stderr);else assert.notEqual(p.status,0,`rejected input accepted: ${p.stdout}`);
   return p;
 }
+function summaryTransport(directory, migration) {
+  const binary=write(path.join(directory,"summary-runtime/ynx-consensus-package"),summaryELF);
+  fs.chmodSync(binary,0o700); // Synthetic QA file only; never original custody.
+  const source=write(path.join(directory,"summary-runtime/SOURCE.json"),summarySOURCE);
+  const calls=write(path.join(directory,"summary-calls.jsonl"),Buffer.alloc(0));
+  const hook=write(path.join(directory,"summary-spawn-only.mjs"),Buffer.from(`
+import assert from 'node:assert/strict';
+import cp from 'node:child_process';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import {syncBuiltinESMExports} from 'node:module';
+cp.spawnSync=(command,args,options)=>{
+  assert.equal(command,${JSON.stringify(binary)},'unexpected subprocess outside the synthetic verifier boundary');
+  assert.deepEqual(args,${JSON.stringify(["-verify-migration-state",migration,"-migration-public-summary","json"])});
+  assert.equal(options.shell,false);assert.equal(options.timeout,120000);assert.equal(options.maxBuffer,8192);
+  assert.deepEqual(options.env,{PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C',GOMAXPROCS:'2'});
+  const raw=fs.readFileSync(${JSON.stringify(migration)});assert.ok(raw.length<65536,'source propagation fixture must remain small synthetic DATA');
+  const value=JSON.parse(raw);
+  fs.appendFileSync(${JSON.stringify(calls)},JSON.stringify({syntheticOnly:true,goMigrationVerified:false,command,args})+'\\n');
+  const summary={version:'YNX-MIGRATION-PUBLIC-SUMMARY/v1',classification:'data',sourceSHA256:crypto.createHash('sha256').update(raw).digest('hex'),sourceBytes:String(raw.length),height:String(value.height),lastBlockHash:value.lastBlockHash,stateHash:value.stateHash,firstCanonicalAccount:''};
+  return {status:0,signal:null,stdout:JSON.stringify(summary)+'\\n',stderr:''};
+};
+syncBuiltinESMExports();
+`));
+  return {binary,source,calls,hook,env:{PUBLIC_BFT_MIGRATION_VERIFIER:binary,NODE_OPTIONS:`--import=${hook}`}};
+}
 function fixture() {
   const directory=path.join(root,`case-${++serial}`), transaction=path.join(directory,"caddy-source-fixture");
   fs.mkdirSync(directory,{mode:0o700});
@@ -58,10 +91,11 @@ function fixture() {
   const planPath=write(path.join(directory,"operator.json"),plan),planPin=sha(fs.readFileSync(planPath));
   const snapshotValue={height:41,lastBlockHash:hash("d"),stateHash:hash("c"),accounts:[]};
   const migration=write(path.join(transaction,"final-snapshot/migration.json"),snapshotValue);
+  const verifier=summaryTransport(directory,migration);
   const remote=write(path.join(transaction,"final-snapshot/remote-evidence.json"),{transactionId:path.basename(transaction),commit,bftRelease:release,authoritativeRelease:`ynx-chain-${commit}`,
     ...snapshotValue,sha256:sha(fs.readFileSync(migration)),recordedAt,validated:true,pauseVerified:true,mutationFreezeVerified:true,sourceUnchanged:true,exporterCommit:fullCommit,snapshotSourceSha256:hash("e"),exporterManifestSha256:hash("f")});
   const witness=inode=>({uid:"0",gid:"0",mode:"600",nlink:"1",device:"64770",inode,mtimeNs:"1792780753533647655",ctimeNs:"1792780753533647655"});
-  const manifest={version:"YNX-CADDY-JSON-INGRESS-SOURCE/v1",transactionId:path.basename(transaction),commit,operatorPlanSHA256:planPin,runtimeCommit:fullCommit,runtimeSOURCEsha256:hash("9"),gatewaySHA256:hash("8"),
+  const manifest={version:"YNX-CADDY-JSON-INGRESS-SOURCE/v1",transactionId:path.basename(transaction),commit,operatorPlanSHA256:planPin,runtimeCommit:fullCommit,runtimeSOURCEsha256:summaryRuntimePin,gatewaySHA256:hash("8"),
     source:{path:"/var/tmp/ynx-caddy-original/source.json",bytes:"4242",sha256:hash("7"),witness:witness("101")},
     secondRead:{path:"/var/tmp/ynx-caddy-original/second.json",bytes:"4242",sha256:hash("7"),witness:witness("102")},
     originalProcess:{pid:"1432803",startTicks:"1557106000",argv:["/usr/bin/caddy","run","--environ","--config","/etc/caddy/Caddyfile"]},
@@ -73,13 +107,13 @@ function fixture() {
   const approval={custodyProfile:profile,schemaVersion:1,action:"ynx-public-bft-cutover",approved:true,approvalId:"caddy-source-data-fixture",approver:"transaction fixture",custodyReviewer:"custody fixture",custodyEvidence:`sha256:${hash("1")}`,
     owner:"owner fixture",ownerHandoverReviewer:"handover fixture",ownerHandoverInventoryDigest:`sha256:${hash("2")}`,ownerHandoverInventoryEvidence:`sha256:${hash("3")}`,ownerHandoverReceiptEvidence:`sha256:${hash("4")}`,
     commit,release,publicCutoverAuthorized:true,automaticRollbackRequired:true,validatorKeyRecoveryVerified:true,ownerHandoverVerified:true,rotationProcedureVerified:true,
-    validatorManifestSha256:sha(fs.readFileSync(validator)),operatorPlanSha256:planPin,runtimeManifestSha256:hash("9"),snapshotSourceSha256:hash("e"),exporterManifestSha256:hash("f"),candidateGenesisTime:genesis,expiresAt,caddySource};
+    validatorManifestSha256:sha(fs.readFileSync(validator)),operatorPlanSha256:planPin,runtimeManifestSha256:summaryRuntimePin,snapshotSourceSha256:hash("e"),exporterManifestSha256:hash("f"),candidateGenesisTime:genesis,expiresAt,caddySource};
   const approvalFile=write(path.join(transaction,"approval.json"),approval);
   const packageRoot=path.join(directory,"package"),packageFile=write(path.join(packageRoot,"package-manifest.json"),{operatorProfile:"YNX-PRODUCTION-OPERATOR/v1",operatorPlanHash:planPin,genesisTime:genesis,chainId:"ynx_6423-1",roles,genesisHash:hash("a"),migrationStateHash:hash("c")});
-  const args=[transaction,commit,release,validator,genesis,planPath,planPin,fullCommit,hash("9"),packageRoot];
-  const binding=JSON.parse(cli(bindingProgram,args).stdout),bindingFile=write(path.join(directory,"binding.json"),binding);
-  const files=[validator,planPath,migration,remote,manifestFile,approvalFile,packageFile,bindingFile];
-  return {directory,transaction,manifest,manifestFile,approval,approvalFile,validator,planPin,genesis,expiresAt,args,binding,bindingFile,files};
+  const args=[transaction,commit,release,validator,genesis,planPath,planPin,fullCommit,summaryRuntimePin,packageRoot];
+  const binding=JSON.parse(cli(bindingProgram,args,true,verifier.env).stdout),bindingFile=write(path.join(directory,"binding.json"),binding);
+  const files=[validator,planPath,migration,remote,manifestFile,approvalFile,packageFile,bindingFile,verifier.binary,verifier.source,verifier.hook,verifier.calls];
+  return {directory,transaction,manifest,manifestFile,approval,approvalFile,validator,planPin,genesis,expiresAt,args,binding,bindingFile,files,verifier};
 }
 function receipt(f, operation="switch", dry=false, json=true) {
   const b=f.binding,m=f.manifest;
@@ -146,6 +180,21 @@ try {
   check("legacy cannot opt into JSON source",()=>assert.throws(()=>caddySourceIdentity({caddySource:{manifestPath:"/a/manifest.json",manifestSha256:hash("a")}})));
 
   const f=fixture(),saved=snapshot(f.files);
+  check("binding fixture supplies only the explicit synthetic verifier transport",()=>{
+    const calls=fs.readFileSync(f.verifier.calls,"utf8").trim().split("\n").map(JSON.parse);
+    assert.equal(calls.length,1);assert.equal(calls[0].syntheticOnly,true);assert.equal(calls[0].goMigrationVerified,false);
+    assert.equal(calls[0].command,f.verifier.binary);
+    assert.deepEqual(calls[0].args,["-verify-migration-state",path.join(f.transaction,"final-snapshot/migration.json"),"-migration-public-summary","json"]);
+    assert.equal(f.binding.runtimeManifestSha256,summaryRuntimePin);assert.equal(f.manifest.runtimeSOURCEsha256,summaryRuntimePin);
+    unchanged(saved);
+  });
+  check("missing verifier reproduces the actual caller refusal without a production fallback",()=>{
+    const rejected=cli(bindingProgram,f.args,false,{PUBLIC_BFT_MIGRATION_VERIFIER:""});
+    assert.match(rejected.stderr,/independently pinned normal migration verifier is required/);
+    const badPin=cli(bindingProgram,["--migration-public-summary",path.join(f.transaction,"final-snapshot/migration.json"),fullCommit,hash("f")],false,f.verifier.env);
+    assert.match(badPin.stderr,/migration verifier SOURCE differs from independent runtime pin/);
+    unchanged(saved);
+  });
   check("normal actual binding and approval evidence carry exact original source",()=>{
     assert.deepEqual(f.manifest.rpcUpstreams.map(value=>value.host).sort(),["evm.ynxweb4.com","rpc-testnet.ynxweb4.com","rpc.ynxweb4.com"]);
     assert.equal(f.manifest.rpcUpstreams.find(value=>value.host==="evm.ynxweb4.com").pointer,evmPointer);

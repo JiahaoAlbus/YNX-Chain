@@ -459,6 +459,9 @@ def assert_native_cabi_workflow_contract(raw):
              "Verify fixed Native key and output cleanup behavior",
              "Execute actual C ABI and independently verify both signatures",
              "Verify the executed original Main arm64 target",
+             "Install pinned contract runtime for Darwin migration callers",
+             "Prepare same-source compiled contracts for Darwin migration callers",
+             "Verify complete Darwin migration package CLI against original contract inputs",
              "Seal only native library public outputs and exact compile inputs",
              "Upload only public native host archive header and evidence",
              "Upload only public Main arm64 archive header and executed target evidence")
@@ -483,7 +486,23 @@ def assert_native_cabi_workflow_contract(raw):
         '          test "$(go env GOOS)" = darwin', '          test "$(go env GOARCH)" = arm64',
         '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" -verify_arch arm64',
         '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64'])
-    seal = steps[5]
+    need(lines(steps[5]) == ["      - name: " + names[5], "        if: runner.os == 'macOS'",
+        "        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020", "        with:",
+        "          node-version: '24.19.0'", "          cache: npm"])
+    need(lines(steps[6]) == ["      - name: " + names[6], "        if: runner.os == 'macOS'",
+        "        timeout-minutes: 3", "        env:", "          NODE_OPTIONS: --max-old-space-size=1536",
+        "        run: |", "          set -euo pipefail", '          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+        "          npm ci --ignore-scripts --no-audit --no-fund",
+        "          npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol",
+        "          npm run contracts:selectors", "          git diff --exit-code -- artifacts",
+        "          test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json",
+        "          test -s artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json",
+        "          shasum -a 256 contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json",
+        "          shasum -a 256 contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json"])
+    need(lines(steps[7]) == ["      - name: " + names[7], "        if: runner.os == 'macOS'", "        run: |",
+        "          set -euo pipefail", '          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+        "          go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package"])
+    seal = steps[8]
     need(not re.search(r"(?m)^        if:", seal))
     need(lines(seal)[1:5] == ["        run: |", "          set -euo pipefail", "          umask 077",
                             "          python3 -B - <<'PY'"])
@@ -525,9 +544,9 @@ def assert_native_cabi_workflow_contract(raw):
     # Only these public leaves may leave the runner, never input DER, the case
     # directory, caller binary or a recursive wildcard. Missing output fails.
     for step, name, label, artifact, leaves, mac_only in (
-        (steps[6], names[6], "native-host", "native-${{ matrix.runner }}",
+        (steps[9], names[9], "native-host", "native-${{ matrix.runner }}",
          ("libynx_artifact_release.a", "ynx_artifact_release.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json"), False),
-        (steps[7], names[7], "darwin-arm64", "darwin-arm64",
+        (steps[10], names[10], "darwin-arm64", "darwin-arm64",
          ("libynx_artifact_release.a", "ynx_artifact_release.h", "SOURCE.json"), True)):
         expected = ["      - name: " + name]
         if mac_only:
@@ -727,6 +746,15 @@ def assert_workflow_contract(raw):
     need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
     combined = steps + delivery_steps
     by_name = lambda name: [step for step in combined if step.startswith("      - name: " + name + "\n")]
+    copy_controls = by_name("Verify original-copy observation controls without touching the original case")
+    need(len(copy_controls) == 1 and copy_controls[0] in steps)
+    copy_controls = copy_controls[0]
+    need(condition(copy_controls) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}")
+    need("          set -euo pipefail\n" in copy_controls and "||" not in copy_controls)
+    need("timeout 45s python3 -B scripts/ops/test_verify_original_native_copy_once.py -v 2>&1 | tee" in copy_controls)
+    need("grep -F -c 'YNX_NATIVE_ROFD_STABLE_FINAL_PATH_DATA_PASS'" in copy_controls and '\" -eq 1' in copy_controls)
+    for leaf in ("scripts/ops/remote/verify-original-native-copy-once.sh", "scripts/ops/test_verify_original_native_copy_once.py"):
+        need("      - '" + leaf + "'\n" in raw)
     signer_name = "Build and pin normal signer process binaries without running them"
     for name in NORMAL_STEP_NAMES:
         found = by_name(name)
@@ -886,7 +914,9 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_native_cabi_workflow_contract(raw)
         native, steps = workflow_steps(raw, "artifact-release-cabi")
-        actual, arm, seal, upload, arm_upload = steps[3:]
+        actual, arm = steps[3:5]
+        runtime, contracts, darwin = steps[5:8]
+        seal, upload, arm_upload = steps[8:]
 
         def change(before, after):
             self.assertIn(before, native)
@@ -907,6 +937,21 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change("      MACOSX_DEPLOYMENT_TARGET: '13.0'", "      MACOSX_DEPLOYMENT_TARGET: '15.0'"),
             change("          git diff --exit-code", "          git diff --exit-code || true"),
             change("go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1", "true # skipped native core tests"),
+            change(darwin, darwin.replace("if: runner.os == 'macOS'", "if: false", 1)),
+            change("go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package", "true # skipped actual Darwin migration caller"),
+            change(runtime, ""), change(contracts, ""), change(darwin, ""),
+            change(runtime, runtime.replace("if: runner.os == 'macOS'", "if: always()", 1)),
+            change(contracts, contracts.replace("if: runner.os == 'macOS'", "if: false", 1)),
+            change(runtime, runtime.replace("actions/setup-node@820762786026740c76f36085b0efc47a31fe5020", "actions/setup-node@v4", 1)),
+            change(runtime, runtime.replace("node-version: '24.19.0'", "node-version: latest", 1)),
+            change(contracts, contracts.replace("npm ci --ignore-scripts --no-audit --no-fund", "true # skipped fixed dependencies", 1)),
+            change(contracts, contracts.replace("npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol", "test -s artifacts/old-fixture.json", 1)),
+            change(contracts, contracts.replace("npm run contracts:selectors", "true # skipped actual selector generation", 1)),
+            change(contracts, contracts.replace("git diff --exit-code -- artifacts", "git diff --exit-code -- artifacts || true", 1)),
+            change(contracts, contracts.replace('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"', "true # unbound contract source", 1)),
+            change(darwin, darwin.replace("-timeout=90s ./cmd/ynx-consensus-package", "-timeout=90s -run '^TestMigrationPublicSummary' ./cmd/ynx-consensus-package", 1)),
+            change(darwin, darwin.replace("        run: |\n", "        continue-on-error: true\n        run: |\n", 1)),
+            raw.replace(native, native.replace(contracts, "", 1).replace(darwin, darwin + contracts, 1), 1),
             change(actual, ""), change(command, "# " + command), change(command, command + " || true"),
             change(actual, actual.replace("        run: |\n", "        if: false\n        run: |\n", 1)),
             change(actual, actual.replace("        run: |\n", "        continue-on-error: true\n        run: |\n", 1)),
@@ -1069,6 +1114,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("steps.pqnetworkbuild.outcome == 'success'", "true"),
             ("scripts/loadtest/pq-paired-linux-window.py --consensus-remote-e2e-retained-history", "scripts/loadtest/pq-paired-linux-window.py --consensus-e2e"),
             ("      - name: Verify Linux window controls without starting a node\n", "      - name: Silently omitted controls\n"),
+            ("timeout 45s python3 -B scripts/ops/test_verify_original_native_copy_once.py", "timeout 90s python3 -B scripts/ops/test_verify_original_native_copy_once.py"),
+            ("test_verify_original_native_copy_once.py -v 2>&1 | tee", "test_verify_original_native_copy_once.py -v 2>&1 || true | tee"),
             (".cleanupComplete == true", ".cleanupComplete != false"),
             ("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n", "    if: false\n"),
         ]

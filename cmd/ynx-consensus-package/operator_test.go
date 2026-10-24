@@ -60,7 +60,7 @@ func newOperatorCLIFixture(t *testing.T) operatorCLIFixture {
 			ConsensusPubKey: base64.StdEncoding.EncodeToString(key.PubKey().Bytes()), ConsensusAddress: strings.ToUpper(hex.EncodeToString(key.PubKey().Address())),
 		})
 	}
-	root := t.TempDir()
+	root := canonicalPackageTempDir(t)
 	migrationRaw, err := migration.CanonicalJSON()
 	if err != nil {
 		t.Fatal(err)
@@ -122,7 +122,7 @@ func writeOperatorCLIPlan(t *testing.T, plan consensus.ProductionOperatorPlan) (
 	if err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(t.TempDir(), "operator.json")
+	path := filepath.Join(canonicalPackageTempDir(t), "operator.json")
 	if err := os.WriteFile(path, raw, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestConsensusPackageOperatorRealGenerationAndIndependentVerification(t *tes
 			plan := f.plan
 			plan.StateLayout = layout
 			path, original, pin := writeOperatorCLIPlan(t, plan)
-			output := filepath.Join(t.TempDir(), "operator-package")
+			output := filepath.Join(canonicalPackageTempDir(t), "operator-package")
 			var out, diagnostic bytes.Buffer
 			if err := runCommand(f.generationArgs(output, path, pin), &out, &diagnostic); err != nil {
 				t.Fatal(err)
@@ -234,7 +234,7 @@ func TestConsensusPackageOperatorRejectsPinnedMalformedOrMismatchedPlans(t *test
 	}
 	for name, raw := range cases {
 		t.Run(name, func(t *testing.T) {
-			root := t.TempDir()
+			root := canonicalPackageTempDir(t)
 			path, output := filepath.Join(root, "operator.json"), filepath.Join(root, "candidate")
 			if err := os.WriteFile(path, raw, 0o600); err != nil {
 				t.Fatal(err)
@@ -283,7 +283,7 @@ func TestConsensusPackageOperatorBindsPublicTopologyIndependentOfArrayOrder(t *t
 			if err != nil {
 				t.Fatal(err)
 			}
-			root := t.TempDir()
+			root := canonicalPackageTempDir(t)
 			path, output := filepath.Join(root, "validators.json"), filepath.Join(root, "candidate")
 			if err := os.WriteFile(path, raw, 0o600); err != nil {
 				t.Fatal(err)
@@ -314,7 +314,7 @@ func TestConsensusPackageOperatorBindsPublicTopologyIndependentOfArrayOrder(t *t
 func TestConsensusPackageOperatorPreservesExistingUnknownOutputAndLegacyMode(t *testing.T) {
 	f := newOperatorCLIFixture(t)
 	path, _, pin := writeOperatorCLIPlan(t, f.plan)
-	output := filepath.Join(t.TempDir(), "original-UNKNOWN-package")
+	output := filepath.Join(canonicalPackageTempDir(t), "original-UNKNOWN-package")
 	if err := os.Mkdir(output, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -335,7 +335,7 @@ func TestConsensusPackageOperatorPreservesExistingUnknownOutputAndLegacyMode(t *
 	if err != nil || len(entries) != 1 || entries[0].Name() != "UNKNOWN.json" {
 		t.Fatalf("operator output UNKNOWN was modified: %v", err)
 	}
-	legacyOutput := filepath.Join(t.TempDir(), "legacy-package")
+	legacyOutput := filepath.Join(canonicalPackageTempDir(t), "legacy-package")
 	out.Reset()
 	if err := runCommand(f.generationArgs(legacyOutput, "", ""), &out, &diagnostic); err != nil || !strings.Contains(out.String(), "mode=legacy-external-abci") || strings.Contains(out.String(), "mode=single-app-operator") {
 		t.Fatalf("original generation entry lost its explicit legacy mode: %v %q", err, out.String())
@@ -351,7 +351,7 @@ func TestConsensusPackageOperatorPreservesExistingUnknownOutputAndLegacyMode(t *
 }
 
 func TestConsensusPackageOperatorPlanReadOnlyBoundedPins(t *testing.T) {
-	root := t.TempDir()
+	root := canonicalPackageTempDir(t)
 	path := filepath.Join(root, "operator.json")
 	raw := []byte(`{"public":"operator-plan-reader-control"}`)
 	if err := os.WriteFile(path, raw, 0o600); err != nil {
@@ -412,7 +412,7 @@ func TestConsensusPackageOperatorFlagsRejectPartialDuplicateAndVerificationMix(t
 		{"-operator-plan", "plan.json", "-operator-plan-hash", strings.Repeat("a", 64), "unexpected"},
 	} {
 		t.Run(strings.Join(args, " "), func(t *testing.T) {
-			output := filepath.Join(t.TempDir(), "must-not-exist")
+			output := filepath.Join(canonicalPackageTempDir(t), "must-not-exist")
 			var out, diagnostics bytes.Buffer
 			err := runCommand(append(append([]string(nil), args...), "-output", output), &out, &diagnostics)
 			if err == nil || out.Len() != 0 {
@@ -578,7 +578,7 @@ func TestConsensusPackageOperatorPublicFixtureExport(t *testing.T) {
 		plan := f.plan
 		plan.StateLayout = layout
 		path, raw, pin := writeOperatorCLIPlan(t, plan)
-		output := filepath.Join(t.TempDir(), "candidate")
+		output := filepath.Join(canonicalPackageTempDir(t), "candidate")
 		var out, diagnostic bytes.Buffer
 		if err := runCommand(f.generationArgs(output, path, pin), &out, &diagnostic); err != nil {
 			t.Fatal(err)
@@ -625,7 +625,7 @@ func TestConsensusPackageOperatorPublicFixtureExclusivePreservation(t *testing.T
 	for _, name := range []string{"migration.json", "validator-manifest.json", "genesis.json", "operator-atomic-json.json", "operator-snapshot-journal.json", "operator-block-journal.json"} {
 		files[name] = []byte(`{"public":"tiny-writer-control"}`)
 	}
-	parent, err := filepath.EvalSymlinks(t.TempDir())
+	parent, err := filepath.EvalSymlinks(canonicalPackageTempDir(t))
 	if err != nil {
 		t.Fatal(err)
 	}
