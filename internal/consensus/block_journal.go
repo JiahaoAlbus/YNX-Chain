@@ -131,6 +131,10 @@ func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration cha
 
 // Shared exact frame validation; the default full path enters after its header.
 func replayBlockJournalFrames(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, replay *Application) (CommittedState, error) {
+	return replayBlockJournalFramesWithTiming(ctx, r, migration, j, replay, nil)
+}
+
+func replayBlockJournalFramesWithTiming(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, replay *Application, phases *BlockJournalFrameReplayPhases) (CommittedState, error) {
 	for {
 		if err := ctx.Err(); err != nil {
 			return CommittedState{}, err
@@ -139,7 +143,13 @@ func replayBlockJournalFrames(ctx context.Context, r io.Reader, migration chain.
 		if j.io.records > 0 {
 			limit = 2 * blockJournalMaxRequest
 		}
-		payload, frameBytes, _, err := readBlockJournalFrameLimit(r, limit)
+		var payload []byte
+		var frameBytes int64
+		err := phases.measure("readFrame", func() error {
+			var e error
+			payload, frameBytes, _, e = readBlockJournalFrameLimit(r, limit)
+			return e
+		})
 		if err != nil {
 			return CommittedState{}, err
 		}
@@ -147,14 +157,14 @@ func replayBlockJournalFrames(ctx context.Context, r io.Reader, migration chain.
 			break
 		}
 		var record blockJournalRecord
-		if err := decodeStrictJSON(payload, &record); err != nil {
+		if err := phases.measure("decodeRecord", func() error { return decodeStrictJSON(payload, &record) }); err != nil {
 			return CommittedState{}, err
 		}
 		if j.io.records == 0 {
 			if record.Kind != "checkpoint" || record.Snapshot == nil || len(record.Request) != 0 || record.BeforeAppHash != "" || record.AppHash != "" || record.ResponseHash != "" {
 				return CommittedState{}, errors.New("block journal must begin with one canonical checkpoint")
 			}
-			if err := record.Snapshot.Validate(migration); err != nil {
+			if err := phases.measure("checkpointValidate", func() error { return record.Snapshot.Validate(migration) }); err != nil {
 				return CommittedState{}, err
 			}
 			replay.committed = *record.Snapshot
@@ -166,22 +176,28 @@ func replayBlockJournalFrames(ctx context.Context, r io.Reader, migration chain.
 				return CommittedState{}, errors.New("block journal replay exceeds checkpoint interval")
 			}
 			var req abci.RequestFinalizeBlock
-			if err := req.Unmarshal(record.Request); err != nil {
+			if err := phases.measure("decodeRequest", func() error { return req.Unmarshal(record.Request) }); err != nil {
 				return CommittedState{}, err
 			}
 			j.replayedTxInputs += len(req.Txs)
-			response, err := replay.FinalizeBlock(ctx, &req)
+			var response *abci.ResponseFinalizeBlock
+			err := phases.measure("finalize", func() error { var e error; response, e = replay.FinalizeBlock(ctx, &req); return e })
 			if err != nil {
 				return CommittedState{}, err
 			}
-			hash, err := finalizeResponseHash(response)
-			if err != nil {
+			if err := phases.measure("verifyResponse", func() error {
+				hash, err := finalizeResponseHash(response)
+				if err != nil {
+					return err
+				}
+				if hex.EncodeToString(response.AppHash) != record.AppHash || hash != record.ResponseHash {
+					return errors.New("block journal replay state/transaction response mismatch")
+				}
+				return nil
+			}); err != nil {
 				return CommittedState{}, err
 			}
-			if hex.EncodeToString(response.AppHash) != record.AppHash || hash != record.ResponseHash {
-				return CommittedState{}, errors.New("block journal replay state/transaction response mismatch")
-			}
-			if _, err := replay.Commit(ctx, &abci.RequestCommit{}); err != nil {
+			if err := phases.measure("memoryCommit", func() error { _, e := replay.Commit(ctx, &abci.RequestCommit{}); return e }); err != nil {
 				return CommittedState{}, err
 			}
 			j.blocks++
@@ -193,7 +209,7 @@ func replayBlockJournalFrames(ctx context.Context, r io.Reader, migration chain.
 	if j.io.records == 0 {
 		return CommittedState{}, errors.New("block journal missing complete checkpoint")
 	}
-	if err := replay.committed.Validate(migration); err != nil {
+	if err := phases.measure("finalValidate", func() error { return replay.committed.Validate(migration) }); err != nil {
 		return CommittedState{}, err
 	}
 	j.io.height = replay.committed.Height

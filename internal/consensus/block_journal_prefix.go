@@ -108,6 +108,15 @@ func (d *BlockJournalPrefixDecoder) DecodeWithCertificatePhaseTiming(ctx context
 	return out, err
 }
 
+// DecodeWithSuffixReplayPhaseTiming measures only incremental replay children.
+// Cold full replay retains its original path and produces zero child counters.
+func (d *BlockJournalPrefixDecoder) DecodeWithSuffixReplayPhaseTiming(ctx context.Context, data []byte) (BlockJournalPrefixReadback, error) {
+	phases := &BlockJournalPrefixWorkPhases{SuffixReplayDetails: new(BlockJournalFrameReplayPhases)}
+	out, err := d.decode(ctx, data, phases)
+	out.WorkPhases = phases
+	return out, err
+}
+
 func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, phases *BlockJournalPrefixWorkPhases) (BlockJournalPrefixReadback, error) {
 	var out BlockJournalPrefixReadback
 	if err := ctx.Err(); err != nil {
@@ -203,7 +212,11 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 		var next CommittedState
 		err = phases.measure("suffixReplay", func() error {
 			var e error
-			next, e = replayBlockJournalFrames(ctx, bytes.NewReader(data[p.end:]), d.full.migration, j, replay)
+			var details *BlockJournalFrameReplayPhases
+			if phases != nil {
+				details = phases.SuffixReplayDetails
+			}
+			next, e = replayBlockJournalFramesWithTiming(ctx, bytes.NewReader(data[p.end:]), d.full.migration, j, replay, details)
 			return e
 		})
 		if err != nil {

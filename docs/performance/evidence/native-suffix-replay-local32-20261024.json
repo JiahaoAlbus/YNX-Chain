@@ -1,0 +1,73 @@
+{
+  "scope": "local actual signed application/journal readback; not network",
+  "businessSignedExecutedCommitted": 32,
+  "fullReplayCalls": 2,
+  "suffixReplayCalls": 30,
+  "suffixReplayNs": 5889959,
+  "children": {
+    "readFrame": {
+      "calls": 60,
+      "errors": 0,
+      "durationNs": 24829
+    },
+    "decodeRecord": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 121335
+    },
+    "checkpointValidate": {
+      "calls": 0,
+      "errors": 0,
+      "durationNs": 0
+    },
+    "decodeRequest": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 7998
+    },
+    "finalize": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 4733336
+    },
+    "verifyResponse": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 14212
+    },
+    "memoryCommit": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 7250
+    },
+    "finalValidate": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 942203
+    }
+  },
+  "childShareOfSuffixPercent": {
+    "readFrame": 0.4215479258853924,
+    "decodeRecord": 2.0600313177052674,
+    "checkpointValidate": 0.0,
+    "decodeRequest": 0.1357904189146308,
+    "finalize": 80.36280048808489,
+    "verifyResponse": 0.24129200220239225,
+    "memoryCommit": 0.12309083985134701,
+    "finalValidate": 15.996766700752925
+  },
+  "unattributedParentNs": 38796,
+  "memoryCommitIsDurability": false,
+  "fullValidationRetained": true,
+  "originalErrorIdentityAndPriorPublicationRetained": true,
+  "coldReplayChildrenNotMeasured": true,
+  "rawSHA256": "64cc481809b4c8e39dfee16b4cb594043d964953bb223de05c63e3e07008608a",
+  "gomaxprocs": 1,
+  "gogc": 100,
+  "gomemlimit": "off",
+  "os": "darwin",
+  "arch": "arm64",
+  "exclusiveHost": false,
+  "frozenNetworkPairSourceUnaffected": "4e4d26a71205866765b57b000c5adf1b6361342a",
+  "networkPerformanceMeasured": false
+}

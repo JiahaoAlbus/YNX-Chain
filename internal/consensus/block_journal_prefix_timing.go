@@ -11,6 +11,7 @@ type BlockJournalPrefixPhase struct {
 	DurationNs int64  `json:"durationNs"`
 }
 type BlockJournalPrefixWorkPhases struct {
+	SuffixReplayDetails       *BlockJournalFrameReplayPhases       `json:"suffixReplayDetails,omitempty"`
 	CertificatePublishDetails *BlockJournalPrefixCertificatePhases `json:"certificatePublishDetails,omitempty"`
 	GateWait                  BlockJournalPrefixPhase              `json:"gateWait"`
 	PrefixCheck               BlockJournalPrefixPhase              `json:"prefixCheck"`
@@ -114,6 +115,12 @@ func (p *BlockJournalPrefixWorkPhases) measure(name string, action func() error)
 
 // Add copies counters from a completed call, including failed phase attempts.
 func (p *BlockJournalPrefixWorkPhases) Add(other BlockJournalPrefixWorkPhases) {
+	if other.SuffixReplayDetails != nil {
+		if p.SuffixReplayDetails == nil {
+			p.SuffixReplayDetails = new(BlockJournalFrameReplayPhases)
+		}
+		p.SuffixReplayDetails.add(*other.SuffixReplayDetails)
+	}
 	if other.CertificatePublishDetails != nil {
 		if p.CertificatePublishDetails == nil {
 			p.CertificatePublishDetails = new(BlockJournalPrefixCertificatePhases)

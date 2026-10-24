@@ -63,6 +63,11 @@ func TestNativeStreamingCurrentInputReuseAvoidsDuplicateDecode(t *testing.T) {
 	if r.stats().PrefixReplay.WorkPhases.CertificatePublishDetails.CanonicalNative.Calls != 1 {
 		t.Fatal("canonical phase snapshot aliases reader")
 	}
+	r.prefixStats.WorkPhases.SuffixReplayDetails = &consensus.BlockJournalFrameReplayPhases{FinalValidate: consensus.BlockJournalPrefixPhase{Calls: 1, DurationNs: 1}}
+	r.stats().PrefixReplay.WorkPhases.SuffixReplayDetails.FinalValidate.Calls = 999
+	if r.stats().PrefixReplay.WorkPhases.SuffixReplayDetails.FinalValidate.Calls != 1 {
+		t.Fatal("suffix child snapshot aliases reader")
+	}
 }
 
 func currentInputFixture(t *testing.T) (*durableReader, *consensus.Application, string, string, []byte, int64) {
