@@ -36,7 +36,7 @@ test('packaged parent symlink and arbitrary destination cannot widen the copy ro
 test('actual packaged IDE loader resolves the original SDK and still refuses absent Source without any network request',async t=>{
  const f=await fixture(t);copyOriginalCloudSDK(f.source,f.code);
  const desktop=join(f.code,'apps/developer/desktop');await mkdir(desktop,{recursive:true});
- for(const name of ['artifact-publication-client.mjs','artifact-publication-lifecycle.mjs'])await copyFile(fileURLToPath(new URL('../desktop/'+name,import.meta.url)),join(desktop,name));
+ for(const name of ['artifact-publication-client.mjs','artifact-publication-lifecycle.mjs','original-publication-project.mjs','publication-result-originals.mjs'])await copyFile(fileURLToPath(new URL('../desktop/'+name,import.meta.url)),join(desktop,name));
  const {openBundledArtifactPublicationObservation}=await import(pathToFileURL(join(desktop,'artifact-publication-client.mjs')));
  const originalFetch=globalThis.fetch;let network=0;globalThis.fetch=()=>{network++;throw Error('unexpected network');};
  try{await assert.rejects(openBundledArtifactPublicationObservation({}),{code:'IDE_PUBLICATION_NOT_SUPPLIED'});assert.equal(network,0);}finally{globalThis.fetch=originalFetch;}
