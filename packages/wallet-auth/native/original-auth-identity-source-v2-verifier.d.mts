@@ -58,6 +58,13 @@ export interface OriginalAuthSourceV2Profile {
  readonly generation:number;readonly minimumSequence:number;readonly minimumFloor:number;readonly subjectOwner:string;
  readonly selection:OriginalAuthSourceV2Selection;readonly issuedAtMs:number;readonly expiresAtMs:number;
 }
+/** Verified enrollment DATA only. No profile, subject permission, issuer or
+ * Native admission is created by this independently framed verification. */
+export interface OriginalAuthSourceV2EnrollmentData {
+ readonly root:OriginalAuthSourceV2Root;readonly enrollment:OriginalAuthSourceV2Enrollment;
+ readonly enrollmentBinding:OriginalAuthSourceV2Context;
+ readonly executionHeight:string;readonly dataOnly:true;readonly nativeAdmission:false;
+}
 export interface OriginalAuthSourceV2ProfileData {
  readonly root:OriginalAuthSourceV2Root;readonly enrollment:OriginalAuthSourceV2Enrollment;readonly profile:OriginalAuthSourceV2Profile;
  /** Current observed H, distinct from immutable credential signing heights. */
@@ -85,6 +92,7 @@ export function canonicalOriginalAuthSourceEnvelopeV2(role:OriginalAuthSourceV2R
 export function selectOriginalAuthSourceAlgorithm(subject:PQAuthorizationSnapshot,credentialVersion:1|2):Readonly<({algorithmVersion:'YNX-BATCH/v0.1';keyVersion:string}|{algorithmVersion:'ed25519';keyVersion:null}) & {dataOnly:true;nativeAdmission:false}>;
 /** atMs is the original safe-integer clock observation, distinct from full U64
  * execution heights and key versions. Native provenance remains separate. */
+export function verifyOriginalAuthSourceEnrollmentV2(rootRaw:string,enrollmentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<OriginalAuthSourceV2EnrollmentData>;
 export function verifyOriginalAuthSourceProfileV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<OriginalAuthSourceV2ProfileData>;
 export function verifyOriginalAuthSourceCurrentV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,currentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,expectedNonce:string,previous:OriginalAuthSourceV2Previous,atMs:number):Readonly<OriginalAuthSourceV2CurrentData>;
 

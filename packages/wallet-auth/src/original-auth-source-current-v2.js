@@ -26,7 +26,7 @@ function exact(v,keys){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Refle
 function sameViews(before,after){for(const role of ['root','profile','current','subject']){assertPQAuthorizationCurrent(before[role],after[role]);if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_SOURCE_V2_HEIGHT_CHANGED');}}
 
 export class OriginalAuthSourceCurrentV2Kernel {
- #root;#enrollment;#profiles=new Map();#policy;#node;#get;#clock;#signer;#io;#loan;#rows=new Map();#nonces=new Map();#floor=0;#height=0n;#entered=false;#initialized=false;#retired=false;#closed=false;#closeSelected=false;#closeCause;#closeFailed=false;#unknown=false;#first;#firstPresent=false;#partial;#completionViews;#completionRaw;#principalCompletions=new WeakMap();
+ #root;#enrollment;#profiles=new Map();#policy;#node;#get;#clock;#signer;#io;#loan;#rows=new Map();#nonces=new Map();#floor=0;#height=0n;#entered=false;#initialized=false;#retired=false;#closed=false;#closeSelected=false;#closeCause;#closeFailed=false;#unknown=false;#first;#firstPresent=false;#partial;#completionViews;#completionRaw;#principalCompletions=new WeakMap();#approvalCompletion;
  constructor(rootRaw,enrollmentRaw,profiles,policy,node,signer,nativeIO,clock=Date.now,get=fetchOriginalNativeAuthorization){
   // Explicit test seams exist only here. Normal loader supplies the fixed
   // fetcher, native signer and native directory owner; no request can select.
@@ -181,12 +181,21 @@ export class OriginalAuthSourceCurrentV2Kernel {
    const binding={networkId:v.root.networkId,owner:v.enrollment.currentOwner,keyVersion:before.current.activeRevision,executionHeight:before.current.executionHeight};const message=encodeOriginalIDEApprovalCurrentDATA(binding,scopeOriginal,currentOriginal);
    if(body.expiresAtMs>Math.min(v.profile.expiresAtMs,v.enrollment.expiresAtMs)||this.#time()>=body.expiresAtMs)fail('AUTH_PUBLICATION_CURRENT_EXPIRED');
    const member=this.#signer.signCurrent(message,binding,before.current),raw=canonicalOriginalIDEApprovalCurrentDATA(binding,scopeOriginal,currentOriginal,Buffer.from(member).toString('base64url'));this.#partial=Object.freeze({phase:'APPROVAL_SIGNED',profileDigest,nonce:body.nonce,approvalCurrentOriginal:raw});
-   verifyOriginalIDEApprovalCurrentDATA(raw,before.current,scopeOriginal,body.nonce,{sequence:'0',floor:'0',decision:'',requestState:'',resultOriginalSHA256:'',scopeSHA256:'',timeFloor:0},this.#time());await this.#post(p,before,body.expiresAtMs);
+   verifyOriginalIDEApprovalCurrentDATA(raw,before.current,scopeOriginal,body.nonce,{sequence:'0',floor:'0',decision:'',requestState:'',resultOriginalSHA256:'',scopeSHA256:'',timeFloor:0},this.#time());const after=await this.#post(p,before,body.expiresAtMs);
    if(this.#rows.get(profileDigest)!==state||this.#io.read(this.#loan,key+'.entered')!==journalRaw||this.#io.read(this.#loan,key+'.terminal')!==canonical({version:2,eventDigest:state.recordDigest}))fail('AUTH_PUBLICATION_POST_CURRENT_CHANGED');
    // A retained IO/current check is itself a completion boundary. Recheck time
    // after it, not only before entering a callback/native read.
-   this.#signer.assertCurrent(before.current);if(this.#time()>=body.expiresAtMs)fail('AUTH_PUBLICATION_POST_COMPLETION_EXPIRED');return raw;
+   this.#completed(p,after,body.expiresAtMs,{digest:profileDigest,state,key,raw:journalRaw,terminal:canonical({version:2,eventDigest:state.recordDigest})});
+   this.#approvalCompletion={profileDigest,scopeOriginal,currentOriginal,raw,p,after,state,key,journalRaw,expires:body.expiresAtMs};return raw;
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
+ }
+ // Synchronous original caller delivery fence, not another approval/signing
+ // operation. A string that merely verifies cannot select this completion.
+ assertOriginalPublicationApprovalCompletion(profileDigest,scopeOriginal,currentOriginal,raw){
+  const c=this.#approvalCompletion;
+  if(!c||c.profileDigest!==profileDigest||c.scopeOriginal!==scopeOriginal||c.currentOriginal!==currentOriginal||c.raw!==raw)fail('AUTH_PUBLICATION_COMPLETION_NOT_ORIGINAL');
+  try{this.#alive();if(this.#entered)fail('AUTH_SOURCE_V2_NOT_READY');this.#completed(c.p,c.after,c.expires,{digest:profileDigest,state:c.state,key:c.key,raw:c.journalRaw,terminal:canonical({version:2,eventDigest:c.state.recordDigest})});}
+  catch(error){this.#remember(error);throw error;}
  }
  retire(){this.#retired=true;}
  join(){if(!this.#retired||this.#entered)fail('AUTH_SOURCE_V2_JOIN_PENDING');}

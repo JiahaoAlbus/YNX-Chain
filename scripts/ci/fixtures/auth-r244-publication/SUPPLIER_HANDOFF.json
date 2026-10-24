@@ -1,0 +1,101 @@
+{
+  "kind": "AUTH_R244_PUBLICATION_FINAL_AND_CALLER_COMPLETION_FENCE/v1",
+  "parentOwn": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/HANDOFF.json",
+    "bytes": 8928,
+    "sha256": "06333d2472b7ae8f11fa93bf325624bec4a618a8e9b445bab10bf7e70c73e4af",
+    "blob": "a4badf7fd4da75bbc5a735ec7e3a0c68d93e5dff"
+  },
+  "files": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/source/packages/wallet-auth/scripts/test-r244-publication-completion.mjs",
+      "bytes": 1420,
+      "sha256": "60762b61ffd0a86f456ed0e6bcd351321b187b673c3d99fcdb8e9103fe9dd9fc",
+      "blob": "310e276200b6c1609bc79c59a60e7a0ae08461d5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/source/packages/wallet-auth/src/original-auth-identity-source-current.js",
+      "bytes": 19868,
+      "sha256": "d070a8efd603f7410e20dc6698b77039fab14070b5318accb063c4314171a724",
+      "blob": "3e74e254e781182b869b14125aa6477058bb3448"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/source/packages/wallet-auth/src/original-auth-source-current-v2.js",
+      "bytes": 33485,
+      "sha256": "9267f9a11529a626a380ccc8abca1cc283bdd2027ac411b8998e89032a316152",
+      "blob": "a4bb761c1f791bce30aaf737d601a2127bf375d5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/source/packages/wallet-auth/test-r244-publication-completion.mjs",
+      "bytes": 10454,
+      "sha256": "a9a7c7b290bfdbb90bbfd5b680a594f9d5fc4165c75587e23724b3a110021514",
+      "blob": "3b53f46ecc4a8fe063ad6d3093b3e8bad6a57026"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/evidence/fixed-pzyjSm-RESULT.json",
+      "bytes": 119,
+      "sha256": "00bab7665366f0421d6043426178382c5b4fcfa23a2a5611b3105b97693b331f",
+      "blob": "9406213145cefeaa71190f327d894ede7b3a84ed"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/evidence/fixed-pzyjSm-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/evidence/fixed-pzyjSm-stdout.log",
+      "bytes": 414,
+      "sha256": "23114ead15c07403777319c35a54b0a194018ae4a18630178d27519d60d53f6d",
+      "blob": "e6840654477504256dc1a317207c0fe80dc095c3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/evidence/red-n4ZDBp-RESULT.json",
+      "bytes": 117,
+      "sha256": "6cc9a1c2dff12035b9f13b7131cfba17def00b79376a15e9b8cb16782b8d5139",
+      "blob": "fb5f042d017ab4afd17b0b11a2cd635f41d3dd54"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/evidence/red-n4ZDBp-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r244-supply-20261024-r1/evidence/red-n4ZDBp-stdout.log",
+      "bytes": 2305,
+      "sha256": "3cdf9a787123e62a6f1d5ff87b0ca40d4988b523dc3ee24bc912bf043073073b",
+      "blob": "0dc2701ecef83ff180d9bf5624dbb670f79e0746"
+    }
+  ],
+  "actual": {
+    "red": "first two tests Missing expected rejection (actual retired Source still returned), third missing new completion callee",
+    "fixedPass": 3,
+    "skip": 0,
+    "originalPublicPQ": true,
+    "productionBrand": false,
+    "temporarySeamOnly": true
+  },
+  "normalChange": "same original issuer handler awaits same service then invokes same original completion fence; kernel uses existing completed() after last foreign read, retains same result/journal/views, preserves signed partial UNKNOWN/no retry",
+  "unchanged": [
+    "original signature/domain/schema",
+    "current signing role",
+    "normal empty release selections",
+    "Root/approval requirements",
+    "all previous source operations"
+  ],
+  "CI": [
+    "node scripts/test-r244-publication-completion.mjs",
+    "runner only appends PUBLIC brand into new temporary SDK copy, never production"
+  ],
+  "truth": {
+    "implemented": true,
+    "localVerified": true,
+    "normalCI": false,
+    "packed": false,
+    "installed": false,
+    "SourceQualified": false,
+    "realApproval": false,
+    "production": false
+  }
+}
