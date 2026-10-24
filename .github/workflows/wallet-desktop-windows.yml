@@ -2369,7 +2369,7 @@ jobs:
         run: npm run test:original-native-control-interop --prefix packages/wallet-auth
 
   sdk-normal-compile-reuse:
-    name: SDK original executed compile reuse binding delta
+    name: SDK original A actual executed record adapter delta
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-normal-compile-reuse-20261024'
     runs-on: ubuntu-latest
     timeout-minutes: 4
@@ -2378,5 +2378,5 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24.19.0
-      - name: Check only new PUBLIC compile receipt reuse bindings and refusals
-        run: npm run test:normal-native-compile-reuse --prefix packages/wallet-auth
+      - name: Check only new actual record schema and exact builder mapping delta
+        run: npm run test:normal-native-actual-record --prefix packages/wallet-auth
