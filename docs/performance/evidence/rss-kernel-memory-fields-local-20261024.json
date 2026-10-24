@@ -45,14 +45,14 @@
   "newLiveAcceptance": false,
   "RStateZeroFieldsStillRefused": true,
   "additionalKernelReads": 0,
-  "actualLinuxProbePending": true,
+  "actualLinuxProbePending": false,
   "expectedLinuxProbe": {
     "children": 32,
     "childAllocationMiB": 8,
     "deadlineSeconds": 10
   },
   "priorActualLinuxRefusals": 3,
-  "normalCIPending": true,
+  "normalCIPending": false,
   "newHeavyRequest": false,
   "kernelReference": "https://github.com/torvalds/linux/blob/v6.17/fs/proc/array.c",
   "originalRefusedRun": 40101270671,
@@ -64,5 +64,201 @@
     "tests": 24,
     "passed": true,
     "seconds": 16.323621125
+  },
+  "normalCI": {
+    "runId": 40108613784,
+    "head": "e9d67b028b7e33621cbb526906ffde38a4e5e2e0",
+    "conclusion": "success",
+    "raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-kernel-fields-source-e9d67b028b/normal-ci-full.raw",
+      "bytes": 732876,
+      "sha256": "ca17454a9523d4e683de997231933daf27a2426f73c245fd98757136a2de0adc"
+    }
+  },
+  "actualLinuxProbe": {
+    "probe": "actual_owned_procfs_exit",
+    "children": 32,
+    "validCaptures": 106,
+    "confirmedRetirements": 0,
+    "refusedUnknownSnapshots": 7,
+    "refusalSamples": [
+      {
+        "after": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25584,
+          "startTicks": 21397,
+          "state": "R",
+          "threads": 1
+        },
+        "afterStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 21397,
+          "threads": 1,
+          "virtualBytes": 0
+        },
+        "before": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25584,
+          "startTicks": 21397,
+          "state": "S",
+          "threads": 1
+        },
+        "capturedAtUnixNs": 1792857061824715462,
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "pid": 25584,
+        "retirementConfirmation": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25584,
+          "startTicks": 21397,
+          "state": "R",
+          "threads": 1
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 21397,
+          "threads": 1,
+          "virtualBytes": 0
+        }
+      },
+      {
+        "after": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25586,
+          "startTicks": 21401,
+          "state": "R",
+          "threads": 1
+        },
+        "afterStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 21401,
+          "threads": 1,
+          "virtualBytes": 0
+        },
+        "before": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25586,
+          "startTicks": 21401,
+          "state": "S",
+          "threads": 1
+        },
+        "capturedAtUnixNs": 1792857061864655463,
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "pid": 25586,
+        "retirementConfirmation": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25586,
+          "startTicks": 21401,
+          "state": "R",
+          "threads": 1
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 21401,
+          "threads": 1,
+          "virtualBytes": 0
+        }
+      },
+      {
+        "after": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25587,
+          "startTicks": 21403,
+          "state": "R",
+          "threads": 1
+        },
+        "afterStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 21403,
+          "threads": 1,
+          "virtualBytes": 0
+        },
+        "before": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25587,
+          "startTicks": 21403,
+          "state": "S",
+          "threads": 1
+        },
+        "capturedAtUnixNs": 1792857061886032268,
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "pid": 25587,
+        "retirementConfirmation": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25587,
+          "startTicks": 21403,
+          "state": "R",
+          "threads": 1
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 21403,
+          "threads": 1,
+          "virtualBytes": 0
+        }
+      },
+      {
+        "after": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25597,
+          "startTicks": 21428,
+          "state": "R",
+          "threads": 1
+        },
+        "afterStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 21428,
+          "threads": 1,
+          "virtualBytes": 0
+        },
+        "before": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25597,
+          "startTicks": 21428,
+          "state": "S",
+          "threads": 1
+        },
+        "capturedAtUnixNs": 1792857062141528416,
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "pid": 25597,
+        "retirementConfirmation": {
+          "group": 2304,
+          "parent": 25564,
+          "pid": 25597,
+          "startTicks": 21428,
+          "state": "R",
+          "threads": 1
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 21428,
+          "threads": 1,
+          "virtualBytes": 0
+        }
+      }
+    ],
+    "performanceQualification": false
   }
 }

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "runId": 40101270671,
+  "fullOriginalPublicIntegrityVerified": true,
+  "originalMembers": 549,
+  "originalBytes": 44070424,
+  "networkRangeBytes": 0,
+  "originalReaderUnchanged": true,
+  "nativePairQualified": false,
+  "sustainedTPSQualified": false,
+  "proof": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-run-40101270671/complete-original-public-integrity-03.json",
+    "bytes": 1810,
+    "sha256": "19179efb68cfa0812a3e4aa33614b4855b974f99802c07f6899ea4b25545b832"
+  }
+}

@@ -1563,7 +1563,38 @@ def native_stat_memory_fields(raw, pid):
     return values if all(value>=0 for value in values.values()) else None
 
 
-def native_sample(case, build, known, started, initial=False, enforce_limits=True):
+def native_exit_mm_proof(context):
+    """Isolated candidate: two original stat reads prove an exiting user mm is gone.
+
+    Linux do_exit releases mm before publishing EXIT_ZOMBIE. proc stat emits
+    vsize/rss without ptrace redaction. No extra read or later sample is used.
+    This is deliberately stricter than PF_EXITING or a zero RSS alone.
+    """
+    if not isinstance(context,dict) or context.get('failedRead')!='smaps_rollup':return False
+    if type(context.get('errno')) is not int or context['errno'] not in (errno.ENOENT,errno.ESRCH):return False
+    pid=context.get('pid')
+    if type(pid) is not int or pid<=0:return False
+    before=context.get('before')
+    if not isinstance(before,dict):return False
+    for stage in ('before','after','retirementConfirmation'):
+        task=context.get(stage)
+        if not isinstance(task,dict):return False
+        if any(type(task.get(k)) is not int for k in ('pid','parent','group','startTicks','threads')):return False
+        if task['pid']!=pid or task['threads']!=1 or task['startTicks']<=0:return False
+        if any(task[k]!=before[k] for k in ('parent','group','startTicks')):return False
+        if task.get('state') not in ('R','S','D'):return False
+    for stage in ('afterStatMemory','retirementConfirmationStatMemory'):
+        memory=context.get(stage)
+        if not isinstance(memory,dict):return False
+        if any(type(memory.get(k)) is not int for k in ('flags','virtualBytes','residentPages','threads','startTicks')):return False
+        if memory['flags']<0 or not memory['flags']&0x00000004 or memory['flags']&0x00200000:return False
+        if memory['threads']!=1 or memory['startTicks']!=before['startTicks']:return False
+        if memory['virtualBytes']!=0 or memory['residentPages']!=0:return False
+    return True
+
+
+def native_sample(case, build, known, started, initial=False, enforce_limits=True, allow_exit_mm=False):
+    if type(allow_exit_mm) is not bool:raise RuntimeError('exit-mm candidate selector must be boolean')
     rows, vanished = native.proc_inventory()
     ids = native.owned_set(rows, os.getpid(), known=known)
     if len(ids) > PROFILE["ownedProcesses"]:
@@ -1572,6 +1603,7 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
     retired_transitions = []
     for pid in ids:
         before = rows[pid]
+        exited_mm = False
         failed_read = "smaps_rollup"
         try:
             raw = native.bounded(Path("/proc") / str(pid) / "smaps_rollup") if before["state"] != "Z" else None
@@ -1613,13 +1645,19 @@ def native_sample(case, build, known, started, initial=False, enforce_limits=Tru
                             context["outcome"] = "zombie"
                             retired_transitions.append(context)
                             after = confirmation
-                if context.get("outcome") != "zombie":
+                        elif allow_exit_mm and native_exit_mm_proof(context):
+                            context['outcome'] = 'exited-mm'
+                            retired_transitions.append(context)
+                            after = confirmation
+                            exited_mm = True
+                if context.get("outcome") not in ("zombie", "exited-mm"):
                     raise RuntimeError("live owned RSS unreadable; capture=" +
                                        json.dumps(context, sort_keys=True, separators=(",", ":"))) from error
             raw = None
-        if before["startTicks"] != after["startTicks"] or raw is None and after["state"] != "Z":
+        if before["startTicks"] != after["startTicks"] or raw is None and after["state"] != "Z" and not exited_mm:
             raise RuntimeError("owned identity changed during sample")
-        tasks.append(dict(after, rssBytes=native.smaps_rss(raw) if raw is not None else 0))
+        tasks.append(dict(after, rssBytes=native.smaps_rss(raw) if raw is not None else 0,
+                          **({'rssProvenance':'kernel-exited-mm-double-stat'} if exited_mm else {})))
     known.update({p["pid"]: p["startTicks"] for p in tasks if p["pid"] != os.getpid()})
     disk = os.statvfs(case)
     row = dict(elapsedMs=int((time.monotonic()-started)*1000), tasks=tasks,

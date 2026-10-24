@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "baseCommit": "e9d67b028b7e33621cbb526906ffde38a4e5e2e0",
+  "scope": "Explicit native_sample allow_exit_mm candidate only; no production/heavy recipe caller enabled",
+  "defaultUnchanged": true,
+  "heavyRecipeEnabled": false,
+  "performanceQualification": false,
+  "sustainedTPSQualified": false,
+  "localTests": {
+    "total": 101,
+    "passed": 99,
+    "linuxSkipped": 2
+  },
+  "raw": {
+    "red": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-kernel-fields-source-e9d67b028b/exit-mm-candidate-red-01.raw",
+      "bytes": 1661,
+      "sha256": "64cadd98722dcb6703188d77d9c8a5f20d14bc558b4d4a46ae6240245e4fc2f1"
+    },
+    "focused": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-kernel-fields-source-e9d67b028b/exit-mm-candidate-focused-01.raw",
+      "bytes": 100,
+      "sha256": "24adda79e21044fef19cdc7f0606a9cd7770fc9a99c705a8622ee923c13bce5d"
+    },
+    "controller": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-kernel-fields-source-e9d67b028b/exit-mm-candidate-controller-01.raw",
+      "bytes": 214,
+      "sha256": "3e9b6546c5352a5ce7e67b2e3768b9dca482e01f14edc7c3dc5501f7aa6b79c1"
+    }
+  },
+  "normalCIPending": true,
+  "kernelReferences": [
+    "https://github.com/torvalds/linux/blob/v6.17/include/linux/sched.h",
+    "https://github.com/torvalds/linux/blob/v6.17/fs/proc/array.c",
+    "https://github.com/torvalds/linux/blob/v6.17/kernel/exit.c"
+  ]
+}

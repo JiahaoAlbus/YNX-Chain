@@ -646,6 +646,88 @@ class SupplySourceTests(unittest.TestCase):
         for raw in (b'',b'17 (short) R',b'18 (wrong pid) '+b'0 '*22,b'17 (bad) '+b'not-a-number '*22,b'17 (negative) '+b'-1 '*22):
             with self.subTest(raw=raw):self.assertIsNone(supply.native_stat_memory_fields(raw,17))
 
+    def test_exit_mm_candidate_requires_both_complete_original_kernel_proofs(self):
+        task=dict(pid=17,parent=1,group=17,startTicks=19,state='R',threads=1)
+        memory=dict(flags=0x0040000c,virtualBytes=0,residentPages=0,threads=1,startTicks=19)
+        context=dict(pid=17,before=dict(task,state='S'),after=task,errno=3,failedRead='smaps_rollup',
+                     afterStatMemory=memory,retirementConfirmation=copy.deepcopy(task),
+                     retirementConfirmationStatMemory=copy.deepcopy(memory))
+        self.assertTrue(supply.native_exit_mm_proof(context))
+        for key,value in (('failedRead','stat_after_rss'),('errno',13),('pid',18)):
+            changed=copy.deepcopy(context);changed[key]=value
+            with self.subTest(key=key):self.assertFalse(supply.native_exit_mm_proof(changed))
+        for stage in ('before','after','retirementConfirmation'):
+            for key,value in (('pid',18),('startTicks',20),('threads',2),('threads',True),('parent',2),('group',18)):
+                changed=copy.deepcopy(context);changed[stage][key]=value
+                with self.subTest(stage=stage,key=key):self.assertFalse(supply.native_exit_mm_proof(changed))
+        for stage in ('afterStatMemory','retirementConfirmationStatMemory'):
+            for key,value in (('flags',0),('flags',0x00200004),('flags',True),('virtualBytes',4096),('residentPages',1),('threads',2),('startTicks',20)):
+                changed=copy.deepcopy(context);changed[stage][key]=value
+                with self.subTest(stage=stage,key=key):self.assertFalse(supply.native_exit_mm_proof(changed))
+            for key in memory:
+                changed=copy.deepcopy(context);del changed[stage][key]
+                with self.subTest(stage=stage,missing=key):self.assertFalse(supply.native_exit_mm_proof(changed))
+        for key in context:
+            changed=copy.deepcopy(context);del changed[key]
+            with self.subTest(missing=key):self.assertFalse(supply.native_exit_mm_proof(changed))
+
+    def test_exit_mm_candidate_preserves_R_and_exact_RSS_provenance_without_rereads(self):
+        pid=supply.os.getpid()
+        fields=[b'0']*22
+        for index,value in ((0,'R'),(1,0),(2,pid),(6,0x0040000c),(17,1),(19,17),(20,0),(21,0)):
+            fields[index]=str(value).encode()
+        raw=str(pid).encode()+b' (python (exit)) '+b' '.join(fields)
+        before=supply.native.parse_stat(raw,pid)
+        with tempfile.TemporaryDirectory() as d, \
+                patch.object(supply.native,'proc_inventory',return_value=({pid:before},[])), \
+                patch.object(supply.native,'bounded',side_effect=[OSError(supply.errno.ESRCH,'RSS absent'),raw,raw]) as read, \
+                patch.object(supply.native,'directory_bytes',return_value=1), \
+                patch.object(supply.native,'memory_available',return_value=2<<30), \
+                patch.object(supply.time,'sleep') as sleep:
+            row=supply.native_sample(Path(d),Path(d),{},supply.time.monotonic(),enforce_limits=False,allow_exit_mm=True)
+            self.assertEqual(row['tasks'][0]['state'],'R')
+            self.assertEqual(row['tasks'][0]['rssBytes'],0)
+            self.assertEqual(row['tasks'][0]['rssProvenance'],'kernel-exited-mm-double-stat')
+            self.assertEqual(row['retiredOwnedTransitions'][0]['outcome'],'exited-mm')
+            self.assertEqual(len(read.call_args_list),3)
+            sleep.assert_not_called()
+
+    @unittest.skipUnless(sys.platform=="linux", "actual procfs exit probe requires Linux")
+    def test_actual_exit_mm_candidate_probe_retains_original_proof_and_live_state(self):
+        captures = confirmed = refused = 0
+        proofs = []
+        with tempfile.TemporaryDirectory() as d:
+            started=supply.time.monotonic()
+            for _ in range(32):
+                child=subprocess.Popen([sys.executable,'-c','import os,time; data=bytearray(8<<20); time.sleep(0.005); os._exit(0)'])
+                try:
+                    while child.poll() is None:
+                        self.assertLess(supply.time.monotonic()-started,10,'bounded candidate exit probe deadline')
+                        try:
+                            row=supply.native_sample(Path(d),Path(d),{},started,enforce_limits=False,allow_exit_mm=True)
+                        except RuntimeError as error:
+                            self.assertIn('live owned RSS unreadable; capture=',str(error))
+                            context=json.loads(str(error).split('; capture=',1)[1])
+                            self.assertEqual(context['pid'],child.pid)
+                            self.assertFalse(supply.native_exit_mm_proof(context))
+                            refused+=1
+                            break
+                        captures+=1
+                        for proof in row.get('retiredOwnedTransitions',[]):
+                            if proof['outcome']!='exited-mm':continue
+                            self.assertTrue(supply.native_exit_mm_proof(proof))
+                            task=next(p for p in row['tasks'] if p['pid']==proof['pid'])
+                            self.assertEqual(task['state'],proof['retirementConfirmation']['state'])
+                            self.assertEqual(task['rssProvenance'],'kernel-exited-mm-double-stat')
+                            confirmed+=1
+                            if len(proofs)<4:proofs.append(proof)
+                finally:
+                    if child.poll() is None:child.kill()
+                    child.wait(timeout=2)
+        print(json.dumps(dict(probe='actual_owned_procfs_exit_mm_candidate',children=32,validCaptures=captures,
+                             confirmedExitedMM=confirmed,refusedUnknownSnapshots=refused,proofSamples=proofs,
+                             performanceQualification=False,heavyRecipeEnabled=False)))
+
     @unittest.skipUnless(sys.platform=="linux", "actual procfs exit probe requires Linux")
     def test_actual_owned_python_exit_rss_capture_is_bounded_and_identity_checked(self):
         # Ordinary small CI probe only: no chain fixture, accounts or nodes.
