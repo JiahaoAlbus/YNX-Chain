@@ -1,5 +1,10 @@
 # Native current input reuse candidate
 
+Latest evidence: frozen147eae73e/run40047424926 completed the original qualified
+same-VM/four-ELF8192x2 pair. Effective final rate229.240→252.644/s (+10.21%),
+CPU−13.24%, sampled peak RSS+2.75%; sustained1000TPS/600s remains unproved.
+See [complete comparison](NATIVE_CURRENT_INPUT_PAIR_COMPARISON_20261024.md).
+
 The original forty-second four-node attempt (run 40037942357, source
 `d6fb96d3ef08ac25e755695cba1a3701d3a8a244`) timed out before completing its
 first relative-paced side. Its second side never started. The failed partial
@@ -65,8 +70,8 @@ python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair \
 ```
 
 Actual four-node execution requires Root's fresh pressure-level-1 slot and
-exact single-use scheduling grant. No such execution or network speedup is
-claimed by this source change. The 1,000 valid final transactions/s for ten
+exact single-use scheduling grant. The subsequent qualified finite run is linked above;
+it provides a measured finite improvement, not sustained target qualification. The 1,000 valid final transactions/s for ten
 minutes and P95 finality <=3s targets remain unachieved. Node completion/client
 clock metadata likewise requires an actual same-run identity join before it
 can establish node-stage latency.

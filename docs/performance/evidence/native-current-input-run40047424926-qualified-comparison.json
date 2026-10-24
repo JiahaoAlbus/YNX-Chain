@@ -1,0 +1,1150 @@
+{
+  "schema": 1,
+  "runId": 40047424926,
+  "sourceCommit": "147eae73eb9435cdfff6a3dcec4fc3a254c35885",
+  "originalQualifiedPairSHA256": "5ad17f1b0a748f78956e56c165d45e4d061c3c1f66eef919c1d226cf680799d7",
+  "cases": 2,
+  "finalTransactionsPerCase": 8192,
+  "metrics": {
+    "finalSubmittedPerMeasurementSecond": {
+      "before": 229.23978151664826,
+      "after": 252.64357755391256,
+      "change": 23.4037960372643,
+      "changePercent": 10.209308298247798
+    },
+    "rpcSubmissionsPerMeasurementSecond": {
+      "before": 229.23978151664826,
+      "after": 252.64357755391256,
+      "change": 23.4037960372643,
+      "changePercent": 10.209308298247798
+    },
+    "checkTxAcceptedPerMeasurementSecond": {
+      "before": 229.23978151664826,
+      "after": 252.64357755391256,
+      "change": 23.4037960372643,
+      "changePercent": 10.209308298247798
+    },
+    "effectiveBusinessIncludedPerMeasurementSecond": {
+      "before": 229.23978151664826,
+      "after": 252.64357755391256,
+      "change": 23.4037960372643,
+      "changePercent": 10.209308298247798
+    },
+    "measurementWindowSeconds": {
+      "before": 35.735507798,
+      "after": 32.425126652,
+      "change": -3.3103811459999974,
+      "changePercent": -9.26356262995448
+    },
+    "offeredInterarrivalRate": {
+      "before": 240.20465058048626,
+      "after": 268.3980498948069,
+      "change": 28.19339931432063,
+      "changePercent": 11.737241242493667
+    },
+    "clientCPU.totalNs": {
+      "before": 29194506000,
+      "after": 25328072000,
+      "change": -3866434000,
+      "changePercent": -13.24370414077224
+    },
+    "clientCPU.userNs": {
+      "before": 28200728000,
+      "after": 24462218000,
+      "change": -3738510000,
+      "changePercent": -13.256785427666973
+    },
+    "clientCPU.systemNs": {
+      "before": 993778000,
+      "after": 865854000,
+      "change": -127924000,
+      "changePercent": -12.872492649263723
+    },
+    "clientCPU.cpuPercentOfOneCore": {
+      "before": 81.69605266939563,
+      "after": 78.11246531561311,
+      "change": -3.5835873537825194,
+      "changePercent": -4.386487763716618
+    },
+    "sampledPeaks.rssBytes": {
+      "before": 999256064,
+      "after": 1026777088,
+      "change": 27521024,
+      "changePercent": 2.754151312310671
+    },
+    "sampledPeaks.threads": {
+      "before": 66,
+      "after": 64,
+      "change": -2,
+      "changePercent": -3.0303030303030276
+    },
+    "sampledPeaks.privateBytes": {
+      "before": 124605615,
+      "after": 124254703,
+      "change": -350912,
+      "changePercent": -0.2816181277224161
+    },
+    "sampledPeaks.buildBytes": {
+      "before": 119092056,
+      "after": 119092056,
+      "change": 0,
+      "changePercent": 0.0
+    },
+    "readerWall.loadNs": {
+      "before": 19348192816,
+      "after": 14346457835,
+      "change": -5001734981,
+      "changePercent": -25.851173949764505
+    },
+    "readerWallPerFinalNs.loadNs": {
+      "before": 2361839.943359375,
+      "after": 1751276.5911865234,
+      "change": -610563.3521728516,
+      "changePercent": -25.851173949764505
+    },
+    "readerWall.hashNs": {
+      "before": 563304564,
+      "after": 415926080,
+      "change": -147378484,
+      "changePercent": -26.16319721492617
+    },
+    "readerWallPerFinalNs.hashNs": {
+      "before": 68762.76416015625,
+      "after": 50772.2265625,
+      "change": -17990.53759765625,
+      "changePercent": -26.16319721492617
+    },
+    "readerWall.captureNs": {
+      "before": 1371993781,
+      "after": 1271399707,
+      "change": -100594074,
+      "changePercent": -7.331962826149285
+    },
+    "readerWallPerFinalNs.captureNs": {
+      "before": 167479.70959472656,
+      "after": 155200.15954589844,
+      "change": -12279.550048828125,
+      "changePercent": -7.331962826149285
+    },
+    "readerWall.decodeNs": {
+      "before": 16711301064,
+      "after": 12460869029,
+      "change": -4250432035,
+      "changePercent": -25.43447705670513
+    },
+    "readerWallPerFinalNs.decodeNs": {
+      "before": 2039953.7431640625,
+      "after": 1521102.1763916016,
+      "change": -518851.56677246094,
+      "changePercent": -25.43447705670513
+    },
+    "readerWall.indexPublishNs": {
+      "before": 687358088,
+      "after": 186985717,
+      "change": -500372371,
+      "changePercent": -72.79646224225414
+    },
+    "readerWallPerFinalNs.indexPublishNs": {
+      "before": 83906.0166015625,
+      "after": 22825.404907226562,
+      "change": -61080.61169433594,
+      "changePercent": -72.79646224225414
+    },
+    "readerWall.transactionVerifyNs": {
+      "before": 17709918,
+      "after": 19847233,
+      "change": 2137315,
+      "changePercent": 12.068463558103426
+    },
+    "readerWallPerFinalNs.transactionVerifyNs": {
+      "before": 2161.855224609375,
+      "after": 2422.7579345703125,
+      "change": 260.9027099609375,
+      "changePercent": 12.068463558103426
+    },
+    "readerGate.acquisitions": {
+      "before": 166,
+      "after": 136,
+      "change": -30,
+      "changePercent": -18.07228915662651
+    },
+    "readerGate.waitNs": {
+      "before": 24331590775,
+      "after": 19266831488,
+      "change": -5064759287,
+      "changePercent": -20.81556990595079
+    },
+    "readerGate.holdNs": {
+      "before": 19367048989,
+      "after": 14367459213,
+      "change": -4999589776,
+      "changePercent": -25.814928122708015
+    },
+    "readerGate.maxWaitNs": {
+      "before": 521660407,
+      "after": 509718213,
+      "change": -11942194,
+      "changePercent": -2.2892659361821166
+    },
+    "readerGate.maxHoldNs": {
+      "before": 514558190,
+      "after": 535829649,
+      "change": 21271459,
+      "changePercent": 4.133926815935052
+    },
+    "reader.snapshotValidations": {
+      "before": 146,
+      "after": 39,
+      "change": -107,
+      "changePercent": -73.28767123287672
+    },
+    "reader.snapshotCacheHits": {
+      "before": 20,
+      "after": 97,
+      "change": 77,
+      "changePercent": 384.99999999999994
+    },
+    "reader.transactionVerifications": {
+      "before": 8192,
+      "after": 8192,
+      "change": 0,
+      "changePercent": 0.0
+    },
+    "reader.bytesHashed": {
+      "before": 565499088,
+      "after": 447101831,
+      "change": -118397257,
+      "changePercent": -20.936772403777947
+    },
+    "prefix.gateWait.calls": {
+      "before": 146,
+      "after": 39,
+      "change": -107,
+      "changePercent": -73.28767123287672
+    },
+    "prefix.gateWait.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.gateWait.durationNs": {
+      "before": 233949,
+      "after": 54349,
+      "change": -179600,
+      "changePercent": -76.76886842858914
+    },
+    "prefix.prefixCheck.calls": {
+      "before": 146,
+      "after": 39,
+      "change": -107,
+      "changePercent": -73.28767123287672
+    },
+    "prefix.prefixCheck.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.prefixCheck.durationNs": {
+      "before": 430672228,
+      "after": 138838626,
+      "change": -291833602,
+      "changePercent": -67.76234524228482
+    },
+    "prefix.privateJSON.calls": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.privateJSON.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.privateJSON.durationNs": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.privateValidate.calls": {
+      "before": 143,
+      "after": 36,
+      "change": -107,
+      "changePercent": -74.82517482517483
+    },
+    "prefix.privateValidate.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.privateValidate.durationNs": {
+      "before": 3813420770,
+      "after": 1283846561,
+      "change": -2529574209,
+      "changePercent": -66.33346702519796
+    },
+    "prefix.fullReplay.calls": {
+      "before": 3,
+      "after": 3,
+      "change": 0,
+      "changePercent": 0.0
+    },
+    "prefix.fullReplay.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.fullReplay.durationNs": {
+      "before": 795648071,
+      "after": 1042897297,
+      "change": 247249226,
+      "changePercent": 31.075199577779156
+    },
+    "prefix.suffixSetup.calls": {
+      "before": 40,
+      "after": 36,
+      "change": -4,
+      "changePercent": -9.999999999999998
+    },
+    "prefix.suffixSetup.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.suffixSetup.durationNs": {
+      "before": 1375966940,
+      "after": 1218786618,
+      "change": -157180322,
+      "changePercent": -11.423262974617687
+    },
+    "prefix.suffixReplay.calls": {
+      "before": 40,
+      "after": 36,
+      "change": -4,
+      "changePercent": -9.999999999999998
+    },
+    "prefix.suffixReplay.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.suffixReplay.durationNs": {
+      "before": 4303725991,
+      "after": 3737544941,
+      "change": -566181050,
+      "changePercent": -13.155601708473174
+    },
+    "prefix.suffixEncode.calls": {
+      "before": 40,
+      "after": 36,
+      "change": -4,
+      "changePercent": -9.999999999999998
+    },
+    "prefix.suffixEncode.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.suffixEncode.durationNs": {
+      "before": 1730046107,
+      "after": 1523273921,
+      "change": -206772186,
+      "changePercent": -11.951830946202636
+    },
+    "prefix.canonicalCopy.calls": {
+      "before": 103,
+      "after": 0,
+      "change": -103,
+      "changePercent": -100.0
+    },
+    "prefix.canonicalCopy.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.canonicalCopy.durationNs": {
+      "before": 61946705,
+      "after": 0,
+      "change": -61946705,
+      "changePercent": -100.0
+    },
+    "prefix.certificatePublish.calls": {
+      "before": 43,
+      "after": 39,
+      "change": -4,
+      "changePercent": -9.302325581395355
+    },
+    "prefix.certificatePublish.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.certificatePublish.durationNs": {
+      "before": 3220337605,
+      "after": 3106114285,
+      "change": -114223320,
+      "changePercent": -3.5469361914928776
+    },
+    "prefix.privateNativeClone.calls": {
+      "before": 143,
+      "after": 36,
+      "change": -107,
+      "changePercent": -74.82517482517483
+    },
+    "prefix.privateNativeClone.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "prefix.privateNativeClone.durationNs": {
+      "before": 973685814,
+      "after": 408895430,
+      "change": -564790384,
+      "changePercent": -58.00540337337195
+    },
+    "supplyWall.pacingWaitNs": {
+      "before": 29620444301,
+      "after": 26133912833,
+      "change": -3486531468,
+      "changePercent": -11.77069267621449
+    },
+    "supplyWall.pacingPositiveRemainingNs": {
+      "before": 4845047382,
+      "after": 4898442025,
+      "change": 53394643,
+      "changePercent": 1.1020458375364584
+    },
+    "supplyWall.pacingWakeLatenessNs": {
+      "before": 24774974756,
+      "after": 21235075557,
+      "change": -3539899199,
+      "changePercent": -14.288205069281478
+    },
+    "supplyWall.signNs": {
+      "before": 1024269413,
+      "after": 1008637342,
+      "change": -15632071,
+      "changePercent": -1.526167900905584
+    },
+    "supplyWall.encodeNs": {
+      "before": 2040978357,
+      "after": 2134417487,
+      "change": 93439130,
+      "changePercent": 4.5781538877925465
+    },
+    "supplyWall.journalAppendNs": {
+      "before": 252230159,
+      "after": 180416580,
+      "change": -71813579,
+      "changePercent": -28.471448174442926
+    },
+    "supplyWall.terminalSinkNs": {
+      "before": 919344373,
+      "after": 862518512,
+      "change": -56825861,
+      "changePercent": -6.181128929365842
+    },
+    "observer.block_capture_and_merkle.attempts": {
+      "before": 179,
+      "after": 161,
+      "change": -18,
+      "changePercent": -10.05586592178771
+    },
+    "observer.block_capture_and_merkle.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.block_capture_and_merkle.durationNs": {
+      "before": 128459630,
+      "after": 256798430,
+      "change": 128338800,
+      "changePercent": 99.9059393211704
+    },
+    "observer.block_envelope_verification.attempts": {
+      "before": 891,
+      "after": 869,
+      "change": -22,
+      "changePercent": -2.4691358024691357
+    },
+    "observer.block_envelope_verification.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.block_envelope_verification.durationNs": {
+      "before": 10519691,
+      "after": 10955901,
+      "change": 436210,
+      "changePercent": 4.146604686392408
+    },
+    "observer.block_query.attempts": {
+      "before": 703,
+      "after": 703,
+      "change": 0,
+      "changePercent": 0.0
+    },
+    "observer.block_query.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.block_query.durationNs": {
+      "before": 25152782316,
+      "after": 25922529085,
+      "change": 769746769,
+      "changePercent": 3.0602847801467936
+    },
+    "observer.block_results_query.attempts": {
+      "before": 192,
+      "after": 172,
+      "change": -20,
+      "changePercent": -10.416666666666663
+    },
+    "observer.block_results_query.errors": {
+      "before": 13,
+      "after": 11,
+      "change": -2,
+      "changePercent": -15.384615384615385
+    },
+    "observer.block_results_query.durationNs": {
+      "before": 13535094193,
+      "after": 12601427907,
+      "change": -933666286,
+      "changePercent": -6.898114432649227
+    },
+    "observer.commit_query.attempts": {
+      "before": 192,
+      "after": 172,
+      "change": -20,
+      "changePercent": -10.416666666666663
+    },
+    "observer.commit_query.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.commit_query.durationNs": {
+      "before": 6085248122,
+      "after": 5768066500,
+      "change": -317181622,
+      "changePercent": -5.212303847616228
+    },
+    "observer.durable_business_batch.attempts": {
+      "before": 166,
+      "after": 136,
+      "change": -30,
+      "changePercent": -18.07228915662651
+    },
+    "observer.durable_business_batch.errors": {
+      "before": 7,
+      "after": 4,
+      "change": -3,
+      "changePercent": -42.85714285714286
+    },
+    "observer.durable_business_batch.durationNs": {
+      "before": 43709141021,
+      "after": 33640800580,
+      "change": -10068340441,
+      "changePercent": -23.03486228695888
+    },
+    "observer.published_info_query.attempts": {
+      "before": 159,
+      "after": 132,
+      "change": -27,
+      "changePercent": -16.981132075471695
+    },
+    "observer.published_info_query.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.published_info_query.durationNs": {
+      "before": 6843381175,
+      "after": 3005995342,
+      "change": -3837385833,
+      "changePercent": -56.074413142710846
+    },
+    "observer.published_state_verification.attempts": {
+      "before": 159,
+      "after": 132,
+      "change": -27,
+      "changePercent": -16.981132075471695
+    },
+    "observer.published_state_verification.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.published_state_verification.durationNs": {
+      "before": 141212,
+      "after": 116401,
+      "change": -24811,
+      "changePercent": -17.5700365408039
+    },
+    "observer.quorum_verification.attempts": {
+      "before": 192,
+      "after": 172,
+      "change": -20,
+      "changePercent": -10.416666666666663
+    },
+    "observer.quorum_verification.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.quorum_verification.durationNs": {
+      "before": 43619704,
+      "after": 42038553,
+      "change": -1581151,
+      "changePercent": -3.624854950872658
+    },
+    "observer.transaction_inclusion_proof.attempts": {
+      "before": 8475,
+      "after": 8441,
+      "change": -34,
+      "changePercent": -0.4011799410029493
+    },
+    "observer.transaction_inclusion_proof.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.transaction_inclusion_proof.durationNs": {
+      "before": 77587028,
+      "after": 26558891,
+      "change": -51028137,
+      "changePercent": -65.76890276039443
+    },
+    "observer.validators_query.attempts": {
+      "before": 192,
+      "after": 172,
+      "change": -20,
+      "changePercent": -10.416666666666663
+    },
+    "observer.validators_query.errors": {
+      "before": 0,
+      "after": 0,
+      "change": 0,
+      "changePercent": null
+    },
+    "observer.validators_query.durationNs": {
+      "before": 5129039827,
+      "after": 4215007239,
+      "change": -914032588,
+      "changePercent": -17.820734851548657
+    }
+  },
+  "currentInputReuse": {
+    "attempts": 129,
+    "errors": 0,
+    "enabled": true,
+    "hits": 90,
+    "misses": 39,
+    "comparedBytes": 289406946,
+    "lookupNs": 16052108,
+    "retainedInputBytes": 21681955
+  },
+  "jointObservation": {
+    "finiteFinalRateIncreased": true,
+    "offerInclusionTailNotWorse": true,
+    "offerFinalTailNotWorse": true,
+    "finiteFinalP95UpperBoundWithin3s": true,
+    "finiteJointImprovementObserved": true,
+    "sustainedTPSQualified": false,
+    "interpretation": "Same-VM finite pair only; compare original complete-window rates and bounded per-row offer latency intervals, preserve worse results, drops/catchups/errors/backlogs. No default or sustained1000 promotion."
+  },
+  "sameHostIdentity": {
+    "bootID": "49e3dcc4-143d-4d00-8e61-de573c4aa81b",
+    "pidNamespaceDevice": 4,
+    "pidNamespaceInode": 4026531836,
+    "uname": [
+      "Linux",
+      "runnervm8k3b6",
+      "6.17.0-1022-azure",
+      "#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+      "x86_64",
+      "x86_64"
+    ],
+    "logicalCPUs": 4
+  },
+  "binaries": {
+    "ynx-abci": {
+      "sha256": "02ca3d435f9490986fa86eb2e2627424b44c3b9fa23f28dbed7d87eabc51ef37",
+      "bytes": 26656553
+    },
+    "cometbft": {
+      "sha256": "dbc49af9e123b17b06002ade4a783100843c0b718cf80c7f8167de125b2eb184",
+      "bytes": 37928076
+    },
+    "ynx-consensus-perf-fixture": {
+      "sha256": "47a01fb3ce74b6d9ef6ee28e05d165cd9fde0c0f4f5d4cc1ec881dade5a8ce03",
+      "bytes": 24894497
+    },
+    "ynx-consensus-perf-client": {
+      "sha256": "edaef4e7368bb0a785ff064fcd86c7d9a08fd65291b8e8483e0b9bf2dfc3f9fe",
+      "bytes": 29612930
+    }
+  },
+  "sustainedTPSQualified": false,
+  "interpretation": "Only original qualified same-VM/source/four-ELF8192x2. Negative wall/CPU changes indicate reduction; negative rate changes indicate regression. Per-final wall normalizes equal business coverage; wall totals and nested child phases overlap, never add. Sampled peaks are not hard upper bounds. No sustained1000TPS/600s qualification.",
+  "originalVerdict": {
+    "bytes": 620069,
+    "sha256": "5ad17f1b0a748f78956e56c165d45e4d061c3c1f66eef919c1d226cf680799d7"
+  },
+  "hardware": {
+    "model": "AMD EPYC7763",
+    "logicalCPUs": 4,
+    "comparison": "same original VM/boot/PID namespace, fresh ephemeral fixture per side"
+  },
+  "offerLatencies": {
+    "before": {
+      "offerToEffectiveBusinessInclusion": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 339083773,
+        "maxNs": 2576587454,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1221000000,
+          "upperNs": 1221999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 1883000000,
+          "upperNs": 1883999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 2206000000,
+          "upperNs": 2206999999,
+          "overflow": false
+        }
+      },
+      "offerToFinal": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 657309887,
+        "maxNs": 3002424323,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1589000000,
+          "upperNs": 1589999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 2286000000,
+          "upperNs": 2286999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 2623000000,
+          "upperNs": 2623999999,
+          "overflow": false
+        }
+      }
+    },
+    "after": {
+      "offerToEffectiveBusinessInclusion": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 488737972,
+        "maxNs": 2377711176,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1227000000,
+          "upperNs": 1227999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 1754000000,
+          "upperNs": 1754999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 2030000000,
+          "upperNs": 2030999999,
+          "overflow": false
+        }
+      },
+      "offerToFinal": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 635929565,
+        "maxNs": 2494611679,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1544000000,
+          "upperNs": 1544999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 2083000000,
+          "upperNs": 2083999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 2289000000,
+          "upperNs": 2289999999,
+          "overflow": false
+        }
+      }
+    }
+  },
+  "nodeCompletion": {
+    "before": {
+      "records": 8192,
+      "publishedInfoAheadRows": 189,
+      "durableStateAheadRows": 242,
+      "maximumCalibrationErrorBoundNs": 14607,
+      "nodeCompletionLatencyIntervalsNs": {
+        "offerToNodeFinalizeReturn": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 211783740,
+          "maximumUpperBoundNs": 2157109562,
+          "p50": {
+            "lowerNs": 988970786,
+            "upperNs": 989999999
+          },
+          "p95": {
+            "lowerNs": 1606970786,
+            "upperNs": 1607999999
+          },
+          "p99": {
+            "lowerNs": 1729970786,
+            "upperNs": 1730999999
+          }
+        },
+        "offerToNodeDurableCommitReturn": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 228270520,
+          "maximumUpperBoundNs": 2211237916,
+          "p50": {
+            "lowerNs": 1034970786,
+            "upperNs": 1035999999
+          },
+          "p95": {
+            "lowerNs": 1676970786,
+            "upperNs": 1677999999
+          },
+          "p99": {
+            "lowerNs": 1787970786,
+            "upperNs": 1788999999
+          }
+        },
+        "nodeCommitToClientFinalObservation": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 286423476,
+          "maximumUpperBoundNs": 1426366732,
+          "p50": {
+            "lowerNs": 523970786,
+            "upperNs": 524999999
+          },
+          "p95": {
+            "lowerNs": 818970786,
+            "upperNs": 819999999
+          },
+          "p99": {
+            "lowerNs": 1335970786,
+            "upperNs": 1336999999
+          }
+        }
+      },
+      "independentSameVMAdmission": false,
+      "independentBFTVerification": false,
+      "bftQuorumFormationInstantMeasured": false,
+      "networkQualified": false,
+      "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+    },
+    "after": {
+      "records": 8192,
+      "publishedInfoAheadRows": 172,
+      "durableStateAheadRows": 0,
+      "maximumCalibrationErrorBoundNs": 10799,
+      "nodeCompletionLatencyIntervalsNs": {
+        "offerToNodeFinalizeReturn": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 322422159,
+          "maximumUpperBoundNs": 1759279443,
+          "p50": {
+            "lowerNs": 1005978402,
+            "upperNs": 1006999999
+          },
+          "p95": {
+            "lowerNs": 1570978402,
+            "upperNs": 1571999999
+          },
+          "p99": {
+            "lowerNs": 1674978402,
+            "upperNs": 1675999999
+          }
+        },
+        "offerToNodeDurableCommitReturn": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 351575665,
+          "maximumUpperBoundNs": 1893161368,
+          "p50": {
+            "lowerNs": 1054978402,
+            "upperNs": 1055999999
+          },
+          "p95": {
+            "lowerNs": 1621978402,
+            "upperNs": 1622999999
+          },
+          "p99": {
+            "lowerNs": 1731978402,
+            "upperNs": 1732999999
+          }
+        },
+        "nodeCommitToClientFinalObservation": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 232425425,
+          "maximumUpperBoundNs": 791796909,
+          "p50": {
+            "lowerNs": 471978402,
+            "upperNs": 472999999
+          },
+          "p95": {
+            "lowerNs": 617978402,
+            "upperNs": 618999999
+          },
+          "p99": {
+            "lowerNs": 790978402,
+            "upperNs": 791796909
+          }
+        }
+      },
+      "independentSameVMAdmission": false,
+      "independentBFTVerification": false,
+      "bftQuorumFormationInstantMeasured": false,
+      "networkQualified": false,
+      "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+    }
+  },
+  "nodeCommitDistributions": {
+    "before-native-input-separate": {
+      "businessHeights": 43,
+      "commitSamplesPerNode": [
+        43,
+        43,
+        43,
+        43
+      ],
+      "commitDistributions": {
+        "commit": {
+          "samples": 172,
+          "meanMs": 43.92306893604651,
+          "p50Ms": 42.919744,
+          "p95Ms": 80.149444,
+          "p99Ms": 101.82367
+        },
+        "close_file": {
+          "samples": 172,
+          "meanMs": 0.010192296511627907,
+          "p50Ms": 0.008376,
+          "p95Ms": 0.013966,
+          "p99Ms": 0.054361
+        },
+        "delta_encode": {
+          "samples": 172,
+          "meanMs": 0.2135283023255814,
+          "p50Ms": 0.147565,
+          "p95Ms": 0.343622,
+          "p99Ms": 3.378765
+        },
+        "file_sync": {
+          "samples": 172,
+          "meanMs": 1.1856328604651163,
+          "p50Ms": 0.699747,
+          "p95Ms": 3.40961,
+          "p99Ms": 4.897386
+        },
+        "journal_maintenance": {
+          "samples": 172,
+          "meanMs": 1.5775773488372093,
+          "p50Ms": 0.08564,
+          "p95Ms": 4.781948,
+          "p99Ms": 36.663266
+        },
+        "prepare_file": {
+          "samples": 172,
+          "meanMs": 0.0378786511627907,
+          "p50Ms": 0.032972,
+          "p95Ms": 0.062657,
+          "p99Ms": 0.116227
+        },
+        "validate": {
+          "samples": 172,
+          "meanMs": 40.72794062209302,
+          "p50Ms": 40.290365,
+          "p95Ms": 74.019583,
+          "p99Ms": 87.297171
+        },
+        "write": {
+          "samples": 172,
+          "meanMs": 0.15905860465116278,
+          "p50Ms": 0.146393,
+          "p95Ms": 0.267159,
+          "p99Ms": 0.650876
+        },
+        "validate.app_hash": {
+          "samples": 172,
+          "meanMs": 26.468190662790697,
+          "p50Ms": 26.170127,
+          "p95Ms": 49.352938,
+          "p99Ms": 61.28982
+        },
+        "validate.semantics": {
+          "samples": 172,
+          "meanMs": 14.19845998255814,
+          "p50Ms": 12.948028,
+          "p95Ms": 28.253457,
+          "p99Ms": 39.680315
+        }
+      },
+      "observationRetryCounts": {
+        "block_scan_wait": 41512,
+        "local_durable_readback": 283
+      },
+      "reportedErrorOccurrences": 41795,
+      "interpretation": "Business transaction-height Commit samples across four original logs; nested validation stages overlap. Observation retry counters do not imply failed business finals."
+    },
+    "after-native-input-shared": {
+      "businessHeights": 39,
+      "commitSamplesPerNode": [
+        39,
+        39,
+        39,
+        39
+      ],
+      "commitDistributions": {
+        "commit": {
+          "samples": 156,
+          "meanMs": 41.99541937820513,
+          "p50Ms": 40.098379,
+          "p95Ms": 82.950638,
+          "p99Ms": 116.467017
+        },
+        "close_file": {
+          "samples": 156,
+          "meanMs": 0.009149352564102564,
+          "p50Ms": 0.008496,
+          "p95Ms": 0.014156,
+          "p99Ms": 0.023373
+        },
+        "delta_encode": {
+          "samples": 156,
+          "meanMs": 0.1972438205128205,
+          "p50Ms": 0.162343,
+          "p95Ms": 0.41726,
+          "p99Ms": 1.101739
+        },
+        "file_sync": {
+          "samples": 156,
+          "meanMs": 0.9626561282051282,
+          "p50Ms": 0.617395,
+          "p95Ms": 3.181104,
+          "p99Ms": 4.109531
+        },
+        "journal_maintenance": {
+          "samples": 156,
+          "meanMs": 1.7791450192307692,
+          "p50Ms": 0.087473,
+          "p95Ms": 22.337235,
+          "p99Ms": 45.305695
+        },
+        "prepare_file": {
+          "samples": 156,
+          "meanMs": 0.07158484615384615,
+          "p50Ms": 0.035346,
+          "p95Ms": 0.074379,
+          "p99Ms": 0.639934
+        },
+        "validate": {
+          "samples": 156,
+          "meanMs": 38.77850707692308,
+          "p50Ms": 38.056653,
+          "p95Ms": 71.292304,
+          "p99Ms": 86.530507
+        },
+        "write": {
+          "samples": 156,
+          "meanMs": 0.18603264102564104,
+          "p50Ms": 0.152595,
+          "p95Ms": 0.344965,
+          "p99Ms": 0.592107
+        },
+        "validate.app_hash": {
+          "samples": 156,
+          "meanMs": 24.98929448717949,
+          "p50Ms": 24.109871,
+          "p95Ms": 48.714811,
+          "p99Ms": 61.954031
+        },
+        "validate.semantics": {
+          "samples": 156,
+          "meanMs": 13.66021541025641,
+          "p50Ms": 12.783931,
+          "p95Ms": 24.732892,
+          "p99Ms": 31.848266
+        }
+      },
+      "observationRetryCounts": {
+        "block_scan_wait": 48431,
+        "local_durable_readback": 249
+      },
+      "reportedErrorOccurrences": 48680,
+      "interpretation": "Business transaction-height Commit samples across four original logs; nested validation stages overlap. Observation retry counters do not imply failed business finals."
+    }
+  },
+  "originalPublicReadback": {
+    "members": 545,
+    "bytes": 43804004,
+    "selectedMemberManifestSHA256": "938de4544faafe95dc7c98becc9d2e2140d081fd287da8a790f04d378e70ddb9",
+    "networkBytes": 0
+  }
+}

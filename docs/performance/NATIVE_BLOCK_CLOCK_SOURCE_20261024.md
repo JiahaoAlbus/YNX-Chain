@@ -1,6 +1,6 @@
 # 节点完成时刻与客户端时钟证据
 
-状态：新7c4四节点实验首侧8192笔实际完成点已在修复后的读取器中离线关联；原实验因消费者缺陷失败、没有第二侧，持续1000TPS目标未通过。详见[原实验与后验完成点](NATIVE_CURRENT_INPUT_PAIR_FAILED_20261024.md)。
+状态：147eae73e/run40047424926原四节点配对已通过，两侧各8192笔完成点已完整关联；持续1000TPS目标未通过。详见[同条件对比](NATIVE_CURRENT_INPUT_PAIR_COMPARISON_20261024.md)。旧7c4单侧消费者失败及其后验诊断继续保留在[原失败记录](NATIVE_CURRENT_INPUT_PAIR_FAILED_20261024.md)。
 
 显式phase timing的原ABCI包装器现在在应用FinalizeBlock及Commit返回后立即采样时刻。只有当前Finalize高度与成功、durable的Commit样本高度一致，才在该Commit帧附带固定大小blockExecution，包含高度、Finalize后的状态哈希、原请求存在时的块哈希、输入/Code0计数和两个完成观测点。失败、不匹配、重复Commit及shutdown不会带出旧成功点。诊断元数据不改ABCI响应或持久化状态；其记录开销不计入原Finalize/Commit处理计时。
 
