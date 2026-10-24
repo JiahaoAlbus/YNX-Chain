@@ -753,6 +753,12 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 				sample.ValidationStagesNs[stage] = duration.Nanoseconds()
 			}
 		}
+		if a.commitTimings.checkpointStages != nil {
+			sample.CheckpointStagesNs = make(map[string]int64, len(a.commitTimings.checkpointStages))
+			for stage, duration := range a.commitTimings.checkpointStages {
+				sample.CheckpointStagesNs[stage] = duration.Nanoseconds()
+			}
+		}
 		a.commitTimingLatest = sample
 	}
 	if err != nil {

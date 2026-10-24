@@ -787,6 +787,7 @@ func saveCommittedState(path string, state CommittedState, migration chain.Conse
 type commitTimings struct {
 	stages           map[string]time.Duration
 	validationStages map[string]time.Duration
+	checkpointStages map[string]time.Duration
 	bytes            int
 	onStage          func(string) // nil except explicit owned resource probes
 }
@@ -815,6 +816,17 @@ func (t *commitTimings) start() time.Time {
 		return time.Time{}
 	}
 	return time.Now()
+}
+
+func (t *commitTimings) checkpointMark(stage string, started time.Time) {
+	if t == nil {
+		return
+	}
+	duration := time.Since(started)
+	if t.checkpointStages == nil {
+		t.checkpointStages = make(map[string]time.Duration, 8)
+	}
+	t.checkpointStages[stage] = duration
 }
 
 func (t *commitTimings) mark(stage string, started time.Time) time.Time {

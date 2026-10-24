@@ -328,41 +328,71 @@ func (j *blockJournal) checkCurrentFile() (*os.File, error) {
 }
 
 func (j *blockJournal) replaceCheckpointLocked(state CommittedState) error {
-	return visitBlockCheckpointPayload(state, func(payload []byte) error {
+	return j.replaceCheckpointLockedWithTimings(state, nil)
+}
+
+func (j *blockJournal) replaceCheckpointLockedWithTimings(state CommittedState, timings *commitTimings) error {
+	encodeStarted := timings.start()
+	visited := false
+	err := visitBlockCheckpointPayload(state, func(payload []byte) error {
+		visited = true
+		timings.checkpointMark("encode", encodeStarted)
 		if len(payload) > blockJournalMaxFrame {
 			return errors.New("checkpoint exceeds block journal frame bound")
 		}
+		started := timings.start()
 		temp, err := os.CreateTemp(filepath.Dir(j.io.path), ".ynx-block-checkpoint-*")
 		if err != nil {
+			timings.checkpointMark("prepare_file", started)
 			return err
 		}
 		defer temp.Close()
 		defer os.Remove(temp.Name())
 		if err := temp.Chmod(0o600); err != nil {
+			timings.checkpointMark("prepare_file", started)
 			return err
 		}
+		timings.checkpointMark("prepare_file", started)
+		started = timings.start()
 		if n, err := temp.Write(j.io.header); err != nil || n != len(j.io.header) {
+			timings.checkpointMark("write", started)
 			return errors.Join(err, io.ErrShortWrite)
 		}
 		if err := j.writeFrame(temp, payload, false); err != nil {
+			timings.checkpointMark("write", started)
 			return err
 		}
-		if err := errors.Join(temp.Sync(), temp.Close()); err != nil {
+		timings.checkpointMark("write", started)
+		started = timings.start()
+		syncErr := temp.Sync()
+		timings.checkpointMark("file_sync", started)
+		started = timings.start()
+		closeErr := temp.Close()
+		timings.checkpointMark("close_file", started)
+		if err := errors.Join(syncErr, closeErr); err != nil {
 			return err
 		}
 		if err := j.io.checkpoint("compaction_synced"); err != nil {
 			return err
 		}
-		if err := os.Rename(temp.Name(), j.io.path); err != nil {
-			return err
+		started = timings.start()
+		renameErr := os.Rename(temp.Name(), j.io.path)
+		timings.checkpointMark("rename", started)
+		if renameErr != nil {
+			return renameErr
 		}
 		if err := j.io.checkpoint("compaction_renamed"); err != nil {
 			return err
 		}
-		if err := syncJournalDirectory(j.io.path); err != nil {
-			return err
+		started = timings.start()
+		directoryErr := syncJournalDirectory(j.io.path)
+		timings.checkpointMark("directory_sync", started)
+		if directoryErr != nil {
+			return directoryErr
 		}
+		started = timings.start()
 		j.io.identity, err = os.Stat(j.io.path)
+		timings.checkpointMark("identity", started)
 		if err != nil {
 			return err
 		}
@@ -377,6 +407,10 @@ func (j *blockJournal) replaceCheckpointLocked(state CommittedState) error {
 		j.checkpointBytesWritten += int64(len(payload))
 		return nil
 	})
+	if !visited {
+		timings.checkpointMark("encode", encodeStarted)
+	}
+	return err
 }
 
 func (j *blockJournal) replaceCheckpoint(state CommittedState, migration chain.ConsensusMigrationState) (err error) {
@@ -460,7 +494,7 @@ func (j *blockJournal) saveBlock(previous, next CommittedState, request []byte, 
 		}
 	}()
 	if j.blocks >= blockJournalCheckpointBlocks || (j.blocks > 0 && j.tailBytes+int64(snapshotJournalHeader+len(payload)) > blockJournalTailTarget) {
-		if err := j.replaceCheckpointLocked(previous); err != nil {
+		if err := j.replaceCheckpointLockedWithTimings(previous, timings); err != nil {
 			return err
 		}
 		if err := f.Close(); err != nil {

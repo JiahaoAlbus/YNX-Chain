@@ -363,6 +363,8 @@ func TestBlockJournalAbruptExit(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		// Exercise the diagnostic path at actual abrupt persistence boundaries.
+		app.SetCommitTimingEnabled(true)
 		if stage := os.Getenv("YNX_BLOCK_JOURNAL_EXIT_STAGE"); stage != "ack" {
 			app.blockJournal.io.fault = func(at string) error {
 				if at == stage {

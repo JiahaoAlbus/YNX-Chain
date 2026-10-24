@@ -1,6 +1,7 @@
 const prefix='YNX_ABCI_PHASE_TIMING ';
 const stages=['check_tx','prepare_proposal','process_proposal','finalize_block','commit'];
 const subphases=new Set(['validate','json_encode','delta_encode','journal_maintenance','prepare_file','write','file_sync','close_file','rename','directory_sync']);
+const checkpointPhases=['encode','prepare_file','write','file_sync','close_file','rename','directory_sync','identity'];
 const integer=n=>Number.isSafeInteger(n)&&n>=0;
 const signedInteger=n=>Number.isSafeInteger(n);
 function unixNs(value){
@@ -29,7 +30,7 @@ export function readNodePhaseTiming(log){
  if(typeof log!=='string'||Buffer.byteLength(log)>1024*1024)throw Error('node timing log bound');
  const frames=log.split('\n').filter(line=>line.startsWith(prefix));
  if(!frames.length||frames.length>4097)throw Error('missing or excessive node timing frames');
- const commitTotalsNs={},validationTotalsNs={semantics:0,app_hash:0};let prior,commits=0,previousHeight,validationPresent,clockPresent,origin;const blockExecutions=[];let maximumClockDrift=0;
+ const commitTotalsNs={},validationTotalsNs={semantics:0,app_hash:0},checkpointTotalsNs={};let checkpointSamples=0;let prior,commits=0,previousHeight,validationPresent,clockPresent,origin;const blockExecutions=[];let maximumClockDrift=0;
  for(let i=0;i<frames.length;i++){
   const row=JSON.parse(frames[i].slice(prefix.length));
   if(row.schema!==1||row.sequence!==i+1||row.valid!==true||row.capped!==false||!integer(row.inFlight)||row.reason==='shutdown'&&row.inFlight!==0||!integer(row.windowElapsedNs)||row.windowElapsedNs<=0||!['commit','shutdown'].includes(row.reason)||row.reason==='shutdown'&&i!==frames.length-1||i===frames.length-1&&row.reason!=='shutdown')throw Error('incomplete or invalid node timing session');
@@ -63,6 +64,14 @@ export function readNodePhaseTiming(log){
     if(!child||Array.isArray(child)||Object.keys(child).length!==2||!Object.hasOwn(child,'semantics')||!Object.hasOwn(child,'app_hash')||!integer(child.semantics)||!integer(child.app_hash)||!integer(child.semantics+child.app_hash)||child.semantics+child.app_hash>c.stagesNs.validate)throw Error('invalid nested validation child timing');
     for(const name of ['semantics','app_hash']){validationTotalsNs[name]+=child[name];if(!integer(validationTotalsNs[name]))throw Error('validation aggregate overflow');}
    }
+   if(Object.hasOwn(c,'checkpointStagesNs')){
+    const child=c.checkpointStagesNs;
+    if(c.storage!=='block-journal-v2'||!integer(c.stagesNs.journal_maintenance)||!child||Array.isArray(child)||Object.keys(child).length!==checkpointPhases.length||checkpointPhases.some(name=>!Object.hasOwn(child,name)||!integer(child[name])))throw Error('invalid checkpoint child timing');
+    const sum=checkpointPhases.reduce((n,name)=>n+child[name],0);
+    if(!integer(sum)||sum>c.stagesNs.journal_maintenance)throw Error('checkpoint children exceed maintenance parent');
+    checkpointSamples++;
+    for(const name of checkpointPhases){checkpointTotalsNs[name]=(checkpointTotalsNs[name]??0)+child[name];if(!integer(checkpointTotalsNs[name]))throw Error('checkpoint aggregate overflow');}
+   }
    if(Object.hasOwn(row,'blockExecution')){
     maximumClockDrift=Math.max(maximumClockDrift,readBlockExecution(row.blockExecution,c,row.clock,row.windowElapsedNs));
     blockExecutions.push(row.blockExecution);
@@ -72,5 +81,5 @@ export function readNodePhaseTiming(log){
   prior=row;
  }
  if(!commits||!prior.stages.finalize_block.calls||prior.stages.commit.calls!==commits||prior.stages.commit.failedResponses!==0)throw Error('missing executed node phase coverage');
- return {...(clockPresent?{blockExecutionClock:{originUnixNs:origin,maximumAbsWallDriftNs:maximumClockDrift,driftWithin1ms:maximumClockDrift<=1000000,completeCommitCoverage:blockExecutions.length===commits,completeBlockHashCoverage:blockExecutions.length===commits&&blockExecutions.every(p=>Object.hasOwn(p,'blockHash')),blocks:blockExecutions,requiresSameVMAndClientClockEvidence:true,bftFinalityProven:false}}:{}),schema:1,commitAttempts:commits,windowElapsedNs:prior.windowElapsedNs,stages:prior.stages,commitTotalsNs,...(validationPresent?{validationTotalsNs,validationCommitSamples:commits,validationInterpretation:'Validation children are already included in commitTotalsNs.validate; never add them again into Commit or finality.'}:{}),interpretation:'Cumulative completed ABCI handler wall durations include application lock waits; parallel stage sums may exceed window time. Commit subphases cover the original durable write path. Histogram quantiles are intervals, not exact points. Diagnostic emission overhead is outside handler timers and remains in client-observed latency. These are local node timings, not BFT finality.'};
+ return {...(clockPresent?{blockExecutionClock:{originUnixNs:origin,maximumAbsWallDriftNs:maximumClockDrift,driftWithin1ms:maximumClockDrift<=1000000,completeCommitCoverage:blockExecutions.length===commits,completeBlockHashCoverage:blockExecutions.length===commits&&blockExecutions.every(p=>Object.hasOwn(p,'blockHash')),blocks:blockExecutions,requiresSameVMAndClientClockEvidence:true,bftFinalityProven:false}}:{}),schema:1,commitAttempts:commits,windowElapsedNs:prior.windowElapsedNs,stages:prior.stages,commitTotalsNs,...(checkpointSamples?{checkpointTotalsNs,checkpointSamples,checkpointInterpretation:'Checkpoint children are already inside journal_maintenance; absent checkpoints have no fabricated child samples. Never add these children again to Commit or finality.'}:{}),...(validationPresent?{validationTotalsNs,validationCommitSamples:commits,validationInterpretation:'Validation children are already included in commitTotalsNs.validate; never add them again into Commit or finality.'}:{}),interpretation:'Cumulative completed ABCI handler wall durations include application lock waits; parallel stage sums may exceed window time. Commit subphases cover the original durable write path. Histogram quantiles are intervals, not exact points. Diagnostic emission overhead is outside handler timers and remains in client-observed latency. These are local node timings, not BFT finality.'};
 }

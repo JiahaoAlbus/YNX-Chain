@@ -34,6 +34,24 @@ test('validation child decoder refuses malformed partial mixed or double-counted
  assert.throws(()=>readNodePhaseTiming(log(rows)),/validation/);
 });
 
+test('checkpoint children retain original maintenance parent and omit absent checkpoints',()=>{
+ const rows=fixture();rows[0].commit.stagesNs.journal_maintenance=20;
+ rows[0].commit.checkpointStagesNs={encode:2,prepare_file:1,write:1,file_sync:3,close_file:1,rename:1,directory_sync:2,identity:1};
+ const value=readNodePhaseTiming(log(rows));
+ assert.deepEqual(value.checkpointTotalsNs,rows[0].commit.checkpointStagesNs);
+ assert.equal(value.checkpointSamples,1);assert.equal(value.commitTotalsNs.journal_maintenance,20);
+ assert.equal('encode' in value.commitTotalsNs,false);
+ assert.equal('checkpointTotalsNs' in readNodePhaseTiming(log(fixture())),false);
+});
+
+test('checkpoint child decoder rejects partial unknown noninteger nonjournal and excessive children',()=>{
+ const complete={encode:2,prepare_file:1,write:1,file_sync:3,close_file:1,rename:1,directory_sync:2,identity:1};
+ for(const mutate of [c=>c.checkpointStagesNs=null,c=>c.checkpointStagesNs=[],c=>delete c.checkpointStagesNs.encode,c=>c.checkpointStagesNs.extra=1,c=>c.checkpointStagesNs.encode=-1,c=>c.checkpointStagesNs.encode=1.5,c=>c.checkpointStagesNs.encode=true,c=>c.stagesNs.journal_maintenance=1,c=>delete c.stagesNs.journal_maintenance,c=>{c.storage='atomic-json';c.stagesNs.json_encode=1;}]){
+  const rows=fixture();rows[0].commit.stagesNs.journal_maintenance=20;rows[0].commit.checkpointStagesNs=structuredClone(complete);mutate(rows[0].commit);
+  assert.throws(()=>readNodePhaseTiming(log(rows)),/checkpoint/);
+ }
+});
+
 function clockFixture(){
  const rows=fixture(),origin=1800000000000000000n;
  for(const row of rows)row.clock={originUnixNs:String(origin),emittedUnixNs:String(origin+BigInt(row.windowElapsedNs)),wallDriftNs:0};

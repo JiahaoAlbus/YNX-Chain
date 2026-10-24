@@ -12,6 +12,8 @@ type CommitTimingSample struct {
 	StagesNs     map[string]int64 `json:"stagesNs"`
 	// Nested children of validate, not additional elapsed work.
 	ValidationStagesNs map[string]int64 `json:"validationStagesNs,omitempty"`
+	// Nested checkpoint replacement children, already inside journal_maintenance.
+	CheckpointStagesNs map[string]int64 `json:"checkpointStagesNs,omitempty"`
 }
 
 // SetCommitTimingEnabled enables bounded diagnostics of the existing Commit
@@ -44,6 +46,12 @@ func (a *Application) LastCommitTiming() (CommitTimingSample, bool) {
 		sample.ValidationStagesNs = make(map[string]int64, len(a.commitTimingLatest.ValidationStagesNs))
 		for stage, ns := range a.commitTimingLatest.ValidationStagesNs {
 			sample.ValidationStagesNs[stage] = ns
+		}
+	}
+	if sample.CheckpointStagesNs != nil {
+		sample.CheckpointStagesNs = make(map[string]int64, len(a.commitTimingLatest.CheckpointStagesNs))
+		for stage, ns := range a.commitTimingLatest.CheckpointStagesNs {
+			sample.CheckpointStagesNs[stage] = ns
 		}
 	}
 	return sample, true
