@@ -31,6 +31,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  fixed['1.3.0-pq.3.32-auth.31']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.31'].inventory;
  fixed['1.3.0-pq.3.32-auth.32']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.32'].inventory;
  fixed['1.3.0-pq.3.32-auth.33']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.33'].inventory;
+ fixed['1.3.0-pq.3.32-auth.34']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.34'].inventory;
  if(!Object.hasOwn(fixed,sdkVersion))return {inputs:names,evidenceAssets};
  const pin=fixed[sdkVersion];
  const bad=()=>{throw Error('Canonical Native source inventory differs');};
@@ -43,7 +44,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  const pairedInputCount=relay?WALLET_NATIVE_SOURCE_PROFILES[sdkVersion].supplierNodeInputs+5:67;
  if(paired&&(helperNative.length!==3||new Set([...pins,...helper].map(p=>p.path)).size!==pairedInputCount))bad();
  const artifactRelease=WALLET_ARTIFACT_CABI_INPUTS.slice(0,2).some(p=>names.includes(p.path));
- if(artifactRelease&&!['1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.26','1.3.0-pq.3.32-auth.28','1.3.0-pq.3.32-auth.31','1.3.0-pq.3.32-auth.32','1.3.0-pq.3.32-auth.33'].includes(sdkVersion))bad();
+ if(artifactRelease&&!['1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.26','1.3.0-pq.3.32-auth.28','1.3.0-pq.3.32-auth.31','1.3.0-pq.3.32-auth.32','1.3.0-pq.3.32-auth.33','1.3.0-pq.3.32-auth.34'].includes(sdkVersion))bad();
  const projectControl=WALLET_PROJECT_CONTROL_INPUTS.some(p=>names.includes(p.path));
  const controlCABI=WALLET_PROJECT_CONTROL_CABI_INPUTS.slice(0,2).some(p=>names.includes(p.path));
  const availableWallet=relay?walletPublisherNativeInputs(pins.length,artifactRelease,projectControl,controlCABI):[];
