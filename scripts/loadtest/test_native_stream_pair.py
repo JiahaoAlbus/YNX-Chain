@@ -319,4 +319,88 @@ class NativeStreamPairTests(unittest.TestCase):
                 code,calls,terminal=self.run_pair(fault)
                 self.assertEqual(code,1);self.assertEqual(len(calls),2);self.assertFalse(terminal['qualified']);self.assertTrue(terminal['firstCause'])
 
+
+# Protocol/lifetime counterexamples only. The mocked checker below is never a
+# business or network qualification; real8192 original evidence is exercised
+# separately by the unchanged full checker in an actual child process.
+class NativeVerifierProtocolTests(unittest.TestCase):
+    def fixture(self,root):
+        from types import SimpleNamespace
+        case=Path(root).resolve();network=case/'network';network.mkdir()
+        for name in ('network-manifest.json','transactions.json','transactions-result.json','transactions-result.json.streaming-plan.json'):(network/name).write_text('{}')
+        for directory,prefix in [('sender-ready-intents','intent'),('transactions-result.json.terminal-stream','terminal')]:
+            (network/directory).mkdir();(network/directory/(prefix+'-000000.jsonl')).write_bytes(b'mocked protocol data only\n')
+        selection=supply.native_verifier_selection('bounded-cadence',True,False,False,False);calls=[]
+        def validate(report,path,**kwargs):calls.append(kwargs);return dict(summary=dict(input=8192,finalSubmitted=8192),sourceOnlyMock=True)
+        controller=SimpleNamespace(__file__=supply.__file__,stream_evidence=supply.stream_evidence,recipe=supply.recipe,STREAM_PROFILE=supply.STREAM_PROFILE,read_native_stream_report=supply.read_native_stream_report,validate_native_stream_report=validate,validate_observer_phases=lambda report,tip:dict(sourceOnlyMock=True))
+        return case,selection,controller,calls
+    def produce(self,case,selection,controller):
+        out=io.StringIO()
+        with contextlib.redirect_stdout(out):value=supply.stream_verifier.produce(controller,case,selection)
+        (case/'verifier.log').write_text(out.getvalue());return value
+    def test_two_full_checker_calls_and_transfer_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            case,selection,c,calls=self.fixture(d);v=self.produce(case,selection,c)
+            self.assertEqual(calls,[selection,selection]);self.assertEqual(v['checkerPasses'],2)
+            value,meta=supply.stream_verifier.load_result(c,case,selection,v['pid'],v['parentPID'])
+            self.assertEqual(value,v);self.assertEqual(meta['clientSHA256'],v['clientSHA256']);self.assertFalse(value['networkQualified'])
+            with self.assertRaises(FileExistsError):self.produce(case,selection,c)
+    def test_changed_evidence_or_terminal_never_transfers(self):
+        for fault in ('body','new-member','pid','selection','source','missing-terminal','partial-result'):
+            with self.subTest(fault=fault),tempfile.TemporaryDirectory() as d:
+                case,selection,c,_=self.fixture(d);v=self.produce(case,selection,c)
+                pid=v['pid'];chosen=copy.deepcopy(selection)
+                if fault=='body':(case/'network/transactions.json').write_text('{"changed":true}')
+                if fault=='new-member':(case/'network/sender-ready-intents/intent-000001.jsonl').write_text('new')
+                if fault=='pid':pid+=1
+                if fault=='selection':chosen['expected_block_tip_hint']=True
+                if fault=='source':
+                    v['sourceIdentity']['controller']='0'*64;(case/supply.stream_verifier.NAME).write_text(json.dumps(v))
+                if fault=='missing-terminal':(case/'verifier.log').write_text('')
+                if fault=='partial-result':(case/supply.stream_verifier.NAME).write_text('{')
+                with self.assertRaises((RuntimeError,UnicodeError)):supply.stream_verifier.load_result(c,case,chosen,pid,v['parentPID'])
+    def test_mutation_during_checker_never_publishes(self):
+        with tempfile.TemporaryDirectory() as d:
+            case,selection,c,calls=self.fixture(d);original=c.validate_native_stream_report
+            def changed(*args,**kwargs):
+                result=original(*args,**kwargs);(case/'network/transactions.json').write_text('{"changed":true}');return result
+            c.validate_native_stream_report=changed
+            with self.assertRaises(RuntimeError):self.produce(case,selection,c)
+            self.assertFalse((case/supply.stream_verifier.NAME).exists())
+    def test_post_fsync_cannot_qualify_without_selected_full_worker(self):
+        with tempfile.TemporaryDirectory() as d:
+            row=supply.recipe('grpc',supply.STREAM_PROFILE,'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
+            row.update(case=str(Path(d).resolve()),launcher=7,firstCause=None,nodesStarted=True,cleanupComplete=True,closureScans=[dict(owned=[7],launcherStartTicks=1)]*2,measurement=dict(summary=dict(finalSubmitted=8192)))
+            receipt=Path(d)/'receipt.json';receipt.write_text(json.dumps(row));out=io.StringIO()
+            with patch.object(supply.time,'monotonic',return_value=1),patch.object(supply,'post_fsync_owned_closure',return_value=dict(owned=[7],launcherStartTicks=1)),contextlib.redirect_stdout(out):
+                self.assertFalse(supply.oneshot_post_fsync(row,receipt,lambda:dict(privateBytes=1),0,native_stream8=True))
+            self.assertIn('native verifier',row['firstCause'])
+
+    def test_verifier_is_not_exempt_from_original_aggregate_caps(self):
+        row=supply.recipe('grpc',supply.STREAM_PROFILE,'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
+        caps=row['resourceCaps'];sample=dict(rssBytes=1,threads=1,privateBytes=1,buildBytes=1,freeDiskBytes=10<<30,availableMemoryBytes=2<<30,tasks=[dict(role='launcher')]+[dict(role='node') for _ in range(8)]+[dict(role='verifier')])
+        supply.enforce_captured_sample(sample,copy.deepcopy(row))
+        for delta in (dict(rssBytes=caps['ownedRSSBytes']+1),dict(threads=caps['threads']+1),dict(privateBytes=caps['privateBytes']+1),dict(tasks=sample['tasks']+[dict(role='unexpected')])):
+            result=copy.deepcopy(row)
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.enforce_captured_sample(dict(sample,**delta),result)
+            self.assertEqual(len(result['refusedSamples']),1)
+
+    def test_client_exit_is_required_and_worker_failure_is_not_retried(self):
+        from types import SimpleNamespace
+        for state in (None,False,1,-15):
+            started=[]
+            with self.assertRaisesRegex(RuntimeError,'client exit'):supply.stream_verifier.after_client_exit(SimpleNamespace(poll=lambda:state),lambda *a:started.append(a),lambda p:None,[],Path('missing'))
+            self.assertEqual(started,[])
+        with tempfile.TemporaryDirectory() as d:
+            log=Path(d)/'verifier.log';log.write_text(supply.stream_verifier.MARKER+json.dumps(dict(complete=False,firstCause='original checker failed'))+'\n')
+            started=[];worker=SimpleNamespace(poll=lambda:1,returncode=1)
+            def spawn(*args):started.append(args);return worker
+            def wait(p):raise RuntimeError('child failed: original worker')
+            with self.assertRaisesRegex(RuntimeError,'original checker failed'):supply.stream_verifier.after_client_exit(SimpleNamespace(poll=lambda:0),spawn,wait,[],log)
+            self.assertEqual(len(started),1)
+            unknown=SimpleNamespace(poll=lambda:None,returncode=None)
+            with self.assertRaisesRegex(RuntimeError,'terminal UNKNOWN'):supply.stream_verifier.after_client_exit(SimpleNamespace(poll=lambda:0),lambda *a:unknown,lambda p:None,[],log)
+            def budget(p):raise RuntimeError('rssBytes cap exceeded/invalid')
+            with self.assertRaisesRegex(RuntimeError,'rssBytes cap'):supply.stream_verifier.after_client_exit(SimpleNamespace(poll=lambda:0),spawn,budget,[],log)
+
 if __name__=='__main__':unittest.main()

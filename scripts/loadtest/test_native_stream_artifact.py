@@ -30,6 +30,8 @@ class NativeStreamArtifactTests(unittest.TestCase):
                 with self.subTest(kind=kind,label=label):
                     self.assertEqual(selected.select('ynx-linux-supply-pair/'+case+'/network/transactions.json'),case+'/network/transactions.json')
                     self.assertEqual(selected.select('ynx-linux-supply-evidence/'+label+'-actual.json'),case+'/evidence/actual.json')
+                    self.assertEqual(selected.select('ynx-linux-supply-pair/'+case+'/native-stream-verifier.json'),case+'/native-stream-verifier.json')
+                    self.assertEqual(selected.select('ynx-linux-supply-pair/'+case+'/verifier.log'),case+'/verifier.log')
     def test_canonical_pair_selection_keeps_both_case_streams_and_receipts(self):
         selected=zip_reader.Selection('network-pair')
         for label,side in [('native-certificate-json','before'),('native-certificate-canonical','after')]:

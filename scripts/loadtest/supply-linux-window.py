@@ -29,6 +29,9 @@ spec.loader.exec_module(native)
 stream_spec=importlib.util.spec_from_file_location("native_stream_evidence", HERE / "native-stream-evidence.py")
 stream_evidence=importlib.util.module_from_spec(stream_spec)
 stream_spec.loader.exec_module(stream_evidence)
+verifier_spec=importlib.util.spec_from_file_location("native_stream_verifier", HERE / "native-stream-verifier.py")
+stream_verifier=importlib.util.module_from_spec(verifier_spec)
+verifier_spec.loader.exec_module(stream_verifier)
 PROFILE = dict(name="supply-256x4", senders=256, rounds=4, offeredRate=512,
                concurrency=4, observers=4, activeMs=45000, cleanupMs=15000,
                totalMs=60000, ownedProcesses=10, longLivedChildren=9,
@@ -68,7 +71,7 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
             raise RuntimeError("native stream profile requires explicit grpc/bounded ready pacing/phase/native-prefix/facts and no finite candidates")
         profile=native_stream_profile(pacing)
         return dict(schema=1,profile=profile,abciTransport="grpc",pacingMode=pacing,environment=ENV,execute=False,
-            nativeStream8=True,observerPhaseTiming=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
+            nativeStream8=True,nativeStreamVerifier=True,verifierLifecycle=dict(clientExitRequired=True,completeCheckerPasses=2,withinOriginalActiveMs=45000,maximumConcurrentOwnedProcesses=10,recordedChildRoles=11),observerPhaseTiming=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
             **({"nativeCanonicalCertificate":True} if canonical_certificate else {}),**({"nativeBlockTipHint":True} if block_tip_hint else {}),**({"nativeSuffixSetup":True} if native_suffix_setup else {}),nativeCurrentInputReuse=current_input_reuse,streamBudget=dict(STREAM_BUDGET),resourceCaps=dict(native.CAPS,privateBytes=profile["privateBytes"],activeMs=45000,totalMs=60000,ownedProcesses=10,longLivedChildren=9),
             requiresSeparateRootGrant=True,nodesStarted=False,platform="Linux native /proc; not macOS pressure1",
             interpretation="Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion.")
@@ -909,22 +912,45 @@ def read_native_stream_report(path,expected_sha=None):
     return stream_evidence.strict_json(text),digest
 
 
+def native_verifier_selection(mode,reuse,canonical,suffix,tip):
+    return dict(pacing=mode,expected_input_reuse=reuse,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip)
+
+
+def native_verifier_case_result(row,case,selection,relocated=False):
+    need=stream_evidence.need;meta=row.get('nativeVerifier',{})
+    need(row.get('nativeStreamVerifier') is True and type(meta) is dict,'native verifier receipt absent')
+    workers=[p for p in row.get('children',[]) if p.get('role')=='verifier'];clients=[p for p in row.get('children',[]) if p.get('role')=='client']
+    need(len(workers)==len(clients)==1 and workers[0]['pid']==meta.get('pid'),'native verifier/client role differs')
+    exited=row.get('clientExit',{});need(type(exited.get('returncode')) is int and exited.get('pid')==clients[0]['pid'] and exited.get('returncode')==0 and workers[0]['pid']!=clients[0]['pid'],'native verifier started without known client exit')
+    events=[p for p in row.get('timeline',[]) if p['phase'] in ('client_exit','verifier_start','verifier_complete')]
+    need(len(events)==3 and all(type(p.get('elapsedNs')) is int and p['elapsedNs']>=0 for p in events),'native verifier timeline missing/repeated')
+    marks={p['phase']:p['elapsedNs'] for p in events}
+    need(set(marks)=={'client_exit','verifier_start','verifier_complete'} and marks['client_exit']<=marks['verifier_start']<=marks['verifier_complete']<=45000000000,'native verifier lifetime outside original active window')
+    value,actual=stream_verifier.load_result(_verifier_controller(),case,selection,meta['pid'],row['launcher'],meta.get('sha256'),not relocated,row.get('case') if relocated else None)
+    need(actual==meta and value['clientSHA256']==row.get('resultSHA256'),'native verifier transfer identity differs')
+    need(value['measurement']==row.get('measurement') and value['observerPhases']==row.get('observerPhases'),'native verifier full result differs from case receipt')
+    return value
+
+
+def _verifier_controller():
+    # importlib callers need no sys.modules registration; expose only this
+    # same loaded controller's functions to the verifier protocol.
+    from types import SimpleNamespace
+    return SimpleNamespace(__file__=__file__,stream_evidence=stream_evidence,recipe=recipe,STREAM_PROFILE=STREAM_PROFILE)
+
+
 def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_certificate=False,native_suffix_setup=False,block_tip_hint=False):
     expected=recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=current_input_reuse,canonical_certificate=canonical_certificate,native_suffix_setup=native_suffix_setup,block_tip_hint=block_tip_hint)
     if row.get("nativeCanonicalCertificate",False) is not canonical_certificate:raise RuntimeError("native pair canonical certificate selection differs")
     if row.get("nativeSuffixSetup",False) is not native_suffix_setup:raise RuntimeError("native pair suffix setup selection differs")
     if row.get("nativeBlockTipHint",False) is not block_tip_hint:raise RuntimeError("native pair tip hint selection differs")
-    for key in ("profile","abciTransport","pacingMode","environment","nativeStream8","nativeCurrentInputReuse","observerPhaseTiming","prefixDurableReplay","prefixNativeClone","observerNativeFacts","streamBudget","resourceCaps"):
+    for key in ("profile","abciTransport","pacingMode","environment","nativeStream8","nativeStreamVerifier","verifierLifecycle","nativeCurrentInputReuse","observerPhaseTiming","prefixDurableReplay","prefixNativeClone","observerNativeFacts","streamBudget","resourceCaps"):
         if row.get(key)!=expected[key]:raise RuntimeError("native stream pair case selection differs: "+key)
     if row.get("firstCause") is not None or row.get("cleanupComplete") is not True or row.get("nodesStarted") is not True:
         raise RuntimeError("native stream pair original business/cleanup incomplete")
     if not stream_evidence.hex_digest(row.get("resultSHA256")):raise RuntimeError("native pair original client hash differs")
-    client,_=read_native_stream_report(case/"network/transactions-result.json",row.get("resultSHA256"))
-    measured=validate_native_stream_report(client,case/"network",pacing=mode,expected_input_reuse=row.get("nativeCurrentInputReuse"),expected_canonical_certificate=canonical_certificate,expected_native_suffix=native_suffix_setup,expected_block_tip_hint=block_tip_hint)
-    phases=validate_observer_phases(client,block_tip_hint)
-    if measured!=row.get("measurement") or phases!=row.get("observerPhases"):
-        raise RuntimeError("native pair complete original stream/phase readback differs from receipt")
-    return measured
+    value=native_verifier_case_result(row,case,native_verifier_selection(mode,current_input_reuse,canonical_certificate,native_suffix_setup,block_tip_hint))
+    return value['measurement']
 
 
 def native_stream_pair_observation(cases):
@@ -1578,6 +1604,8 @@ def oneshot_post_fsync(result,receipt,capture_sample,started,*,native_stream8=Fa
                 or len(scans)<2 or any(s.get("owned")!=[result.get("launcher")] or type(s.get("launcherStartTicks")) is not int or s["launcherStartTicks"]<=0 for s in scans[-2:])
                 or scans[-1].get("launcherStartTicks")!=scans[-2].get("launcherStartTicks")):
             raise RuntimeError("one-shot final double owned closure absent")
+        if native_stream8 and result.get('nativeStreamVerifier') is True:
+            native_verifier_case_result(result,Path(result['case']),native_verifier_selection(result['pacingMode'],result['nativeCurrentInputReuse'],result.get('nativeCanonicalCertificate',False),result.get('nativeSuffixSetup',False),result.get('nativeBlockTipHint',False)))
         if (result.get("cleanupComplete") is not True or result.get("nodesStarted") is not True
                 or result.get("measurement",{}).get("summary",{}).get("finalSubmitted")!=expected):
             raise RuntimeError("one-shot final business/cleanup evidence incomplete")
@@ -1590,6 +1618,7 @@ def oneshot_post_fsync(result,receipt,capture_sample,started,*,native_stream8=Fa
     print(("YNX_NATIVE_STREAM_TERMINAL " if native_stream8 else "YNX_ONESHOT_1000_TERMINAL ")+json.dumps(dict(schema=1,kind="native-stream2048x4-post-fsync-verdict" if native_stream8 else "fixed2048x1-post-fsync-verdict",
         qualified=qualified,nodesStarted=result.get("nodesStarted"),firstCause=result.get("firstCause"),
         receiptSHA256=digest,elapsedMs=elapsed,
+        **(dict(nativeVerifierPhasesNs=result.get('nativeVerifier',{}).get('phaseTotalsNs'),nativeVerifierReceiptFsyncNs=result.get('nativeVerifier',{}).get('receiptWriteAndFsyncNs')) if result.get('nativeStreamVerifier') is True else {}),
         postFsyncSample=sampled,postFsyncClosureScans=result.get("postFsyncClosureScans",[]),refusedSamples=result.get("refusedSamples",[]))),flush=True)
     return qualified
 
@@ -1822,15 +1851,19 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             mark("all_nodes_height2")
             output = network / "transactions-result.json"
             mark("client_start")
-            wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2,native_stream8,current_input_reuse,canonical_certificate,block_tip_hint)))
-            if native_stream8:client_report,captured_client_sha=read_native_stream_report(output)
-            else:client_report=json.loads(native.bounded(output,16 << 20))
+            client=spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2,native_stream8,current_input_reuse,canonical_certificate,block_tip_hint))
+            wait(client)
             if native_stream8:
-                mark("stream_readback_start")
-                result["measurement"]=validate_native_stream_report(client_report,network,pacing=pacing,expected_input_reuse=result.get("nativeCurrentInputReuse",False),expected_canonical_certificate=canonical_certificate,expected_native_suffix=native_suffix_setup,expected_block_tip_hint=block_tip_hint)
-                result["observerPhases"]=validate_observer_phases(client_report,block_tip_hint)
-                tick();mark("stream_readback_complete")
+                result["clientExit"]=dict(pid=client.pid,returncode=client.returncode);mark("client_exit")
+                selection=native_verifier_selection(pacing,current_input_reuse,canonical_certificate,native_suffix_setup,block_tip_hint)
+                mark("stream_readback_start");mark("verifier_start")
+                worker=stream_verifier.after_client_exit(client,spawn,wait,[sys.executable,'-B',str(source/'scripts/loadtest/native-stream-verifier.py'),'--case',str(case),'--selection',json.dumps(selection,sort_keys=True)],case/'verifier.log')
+                verified,meta=stream_verifier.load_result(_verifier_controller(),case,selection,worker.pid,os.getpid())
+                result['nativeVerifier']=meta;result['measurement']=verified['measurement'];result['observerPhases']=verified['observerPhases'];captured_client_sha=verified['clientSHA256']
+                del verified
+                tick();mark("verifier_complete");mark("stream_readback_complete")
             else:
+                client_report=json.loads(native.bounded(output,16 << 20))
                 result["measurement"] = validate_report(client_report, profile_name, pacing, endpoint_fair=endpoint_fair is True, endpoint_elastic=endpoint_elastic is True,fixture_transactions=json.loads(native.bounded(network/"transactions.json",16 << 20))["transactions"] if one_shot else None,prefix_replay=prefix_replay is True,prefix_native_clone=prefix_native_clone is True,native_submit8=native_submit8,native_suffix_setup=native_suffix_setup,observer_native_facts=observer_native_facts,client_procs2=client_procs2,require_client_runtime=require_client_runtime)
                 if observer_phases:
                     result["observerPhases"]=validate_observer_phases(client_report)

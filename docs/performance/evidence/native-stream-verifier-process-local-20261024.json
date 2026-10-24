@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "kind": "same-source-short-lived-full-native-stream-verifier-source-evidence",
+  "sourceParent": "d5de15ce85f02bb59309c61a6f71730ce7cd507e",
+  "sourceFiles": {
+    "scripts/loadtest/native-stream-verifier.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-stream-verifier.py",
+      "bytes": 11806,
+      "sha256": "928e0f66516a43b4f88e45c88dd65746235c864827dbffb8255c391c6107fb79"
+    },
+    "scripts/loadtest/supply-linux-window.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/supply-linux-window.py",
+      "bytes": 181127,
+      "sha256": "98b02c134a2fcc4b8fabe4e2bc9adf408abad180b9af44e22d2d4a3016337561"
+    },
+    "scripts/loadtest/native-stream-artifact.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-stream-artifact.py",
+      "bytes": 31688,
+      "sha256": "e2e1eae719e7b332cba0129183eda58ff7f423b5982787fb5edcc0072464be44"
+    },
+    "scripts/loadtest/native-stream-submission-trace.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-stream-submission-trace.py",
+      "bytes": 10199,
+      "sha256": "b4d1666c83ee3758627dc6877f9a6b8441f162ac51dc3675be204e71a8152ac3"
+    },
+    "scripts/loadtest/test_native_stream_pair.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_native_stream_pair.py",
+      "bytes": 34522,
+      "sha256": "ce833f232d1de835c2b7bda9c14f8f5c6c1ff876ca5dec6368a84b63b41c25b0"
+    },
+    "scripts/loadtest/test_native_stream_artifact.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_native_stream_artifact.py",
+      "bytes": 18627,
+      "sha256": "bc7fec9172938844abe9f4d6f1bb6c9091ef15f6a7118c62db6db3396a416740"
+    }
+  },
+  "environment": {
+    "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+    "python": "3.13.3",
+    "nodesStarted": 0,
+    "rpcCalls": 0,
+    "newTransactions": 0
+  },
+  "actualChild": {
+    "pid": 94102,
+    "parentPID": 94101,
+    "originalRecords": 8192,
+    "checkerPasses": 2,
+    "phaseTotalsNs": {
+      "publicHashBeforeNs": 50769250,
+      "reportCaptureDecodeNs": 27105667,
+      "firstCompleteCheckNs": 470513167,
+      "secondCompleteCheckNs": 484295791,
+      "publicHashAfterNs": 17252916
+    },
+    "terminal": {
+      "receiptWriteAndFsyncNs": 9944958,
+      "schema": 1,
+      "complete": true,
+      "pid": 94102,
+      "parentPID": 94101,
+      "resultSHA256": "23cc1080319eaffb8cab3e4aa33b25f49f0d7ac585d958422d45dda9b6cacf17",
+      "clientSHA256": "1e931b29a6cea5df41644f92a1cbc71239fc0683b66c89f20abf861eb1400fae",
+      "checkerPasses": 2,
+      "networkQualified": false,
+      "sustainedTPSQualified": false
+    },
+    "receipt": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-verifier-original8192-case/native-stream-verifier.json",
+      "bytes": 514779,
+      "sha256": "23cc1080319eaffb8cab3e4aa33b25f49f0d7ac585d958422d45dda9b6cacf17"
+    },
+    "log": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-verifier-original8192-case/verifier.log",
+      "bytes": 1161,
+      "sha256": "45ae8852b049a48956e49862a7f2200619bdf805712fcdea39b13ab5b5014a30"
+    },
+    "localMaxRSSBytes": 74072064
+  },
+  "actualParentTransfer": {
+    "meta": {
+      "schema": 1,
+      "pid": 94102,
+      "parentPID": 94101,
+      "path": "native-stream-verifier.json",
+      "sha256": "23cc1080319eaffb8cab3e4aa33b25f49f0d7ac585d958422d45dda9b6cacf17",
+      "clientSHA256": "1e931b29a6cea5df41644f92a1cbc71239fc0683b66c89f20abf861eb1400fae",
+      "sourceIdentity": {
+        "controller": "98b02c134a2fcc4b8fabe4e2bc9adf408abad180b9af44e22d2d4a3016337561",
+        "verifier": "928e0f66516a43b4f88e45c88dd65746235c864827dbffb8255c391c6107fb79"
+      },
+      "checkerPasses": 2,
+      "phaseTotalsNs": {
+        "publicHashBeforeNs": 50769250,
+        "reportCaptureDecodeNs": 27105667,
+        "firstCompleteCheckNs": 470513167,
+        "secondCompleteCheckNs": 484295791,
+        "publicHashAfterNs": 17252916
+      },
+      "receiptWriteAndFsyncNs": 9944958
+    },
+    "originalRecords": 8192,
+    "checkerPasses": 2,
+    "parentTransferLiveTracedBytes": 809605,
+    "parentTransferPeakTracedBytes": 1623497,
+    "networkBytes": 0,
+    "nodeCalls": 0,
+    "newTransactions": 0,
+    "nativeAggregateResourceAdmission": false,
+    "sustainedTPSQualified": false
+  },
+  "originalQualifiedData": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-compiled-canonical-pair-run-40064083012/original-pair-qualified-verdict.json",
+    "bytes": 606839,
+    "sha256": "d20ec31677ea77ab13a296713302195b37ac8ac77a9b288218d166d310f641bb"
+  },
+  "sourceTests": {
+    "native-verifier-protocol-tests-candidate.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-verifier-protocol-tests-candidate.raw",
+      "bytes": 127,
+      "sha256": "4ba1b9599660d9ed817934b204eb3c22350cb28b5cc605377fa5c4aa5cddd7de"
+    },
+    "native-verifier-supply-tests-final.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-verifier-supply-tests-final.raw",
+      "bytes": 189,
+      "sha256": "c39d09dd3a324fd72be79e2e23663233b0f09386bf797bee5b6b1e56a35cc934"
+    },
+    "native-verifier-artifact-tests-final.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-verifier-artifact-tests-final.raw",
+      "bytes": 378,
+      "sha256": "0def56c68f65932a5944866a8783186d68a3a6be9689b8e2225c0b9474d9cb83"
+    },
+    "native-verifier-http-legacy-check.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-verifier-http-legacy-check.raw",
+      "bytes": 284,
+      "sha256": "d19dcaff3e42ba1aad5a1f518fd767b6f51e100f5232837728e09915e78064d2"
+    }
+  },
+  "limits": {
+    "activeMs": 45000,
+    "caseMs": 60000,
+    "pairMs": 120000,
+    "aggregateOwnedRSSBytes": 1073741824,
+    "ownedConcurrentProcesses": 10,
+    "threads": 320,
+    "privateBytesPerCase": 268435456,
+    "retainedBytesPair": 536870912,
+    "processLogBytesPair": 2097152,
+    "recordedSpawnChildRoles": 11,
+    "longLivedChildren": 9
+  },
+  "nativeAggregateResourceAdmission": false,
+  "networkRSSRepairProven": false,
+  "networkImprovementMeasured": false,
+  "defaultPromotion": false,
+  "sustained1000Qualified": false,
+  "interpretation": "Actual isolated child rechecks the same original8192 records twice, not16384 transactions and not new business TPS. Full checker remains inside native case active budget; parent validates source/PID/footer/SHA and current raw identities. Local macOS child RSS/parent traced allocation cannot be added into a native Linux aggregate peak."
+}

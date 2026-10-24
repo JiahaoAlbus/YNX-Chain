@@ -157,7 +157,7 @@ class Selection:
         network='network/' if self.mode=='network' else ''
         fixed={network+n for n in ('network-manifest.json','transactions.json','transactions-result.json','transactions-result.json.streaming-plan.json','bound-migration.json')}
         if self.mode=='unit':fixed.add('PUBLIC_FIXTURE_SCOPE.json')
-        else:fixed.update({'evidence/'+n+'.json' for n in ('actual','recipe','preflight')}|{'abci-'+str(i)+'.log' for i in range(4)}|{'comet-'+str(i)+'.log' for i in range(4)}|{'client.log','fixture.log'})
+        else:fixed.update({'evidence/'+n+'.json' for n in ('actual','recipe','preflight')}|{'abci-'+str(i)+'.log' for i in range(4)}|{'comet-'+str(i)+'.log' for i in range(4)}|{'client.log','fixture.log','verifier.log','native-stream-verifier.json'})
         if name in fixed:
             need(name not in self.seen,'duplicate selected ZIP member');self.seen.add(name);return name
         for i,(directory,prefix) in enumerate((('sender-ready-intents','intent'),('transactions-result.json.terminal-stream','terminal'))):
@@ -376,6 +376,8 @@ def verify_capture(destination,mode,head,*,expected_case="ynx-linux-supply-case"
     report=evidence.strict_json(report_raw)
     measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing,expected_input_reuse=receipt.get('nativeCurrentInputReuse',False),expected_canonical_certificate=receipt.get('nativeCanonicalCertificate',False),expected_native_suffix=receipt.get('nativeSuffixSetup',False),expected_block_tip_hint=receipt.get('nativeBlockTipHint',False))
     need(canonical(measured)==canonical(receipt.get('measurement')),'recovered complete stream differs from original controller measurement')
+    if receipt.get('nativeStreamVerifier') is True:
+        controller.native_verifier_case_result(receipt,root,controller.native_verifier_selection(pacing,receipt.get('nativeCurrentInputReuse',False),receipt.get('nativeCanonicalCertificate',False),receipt.get('nativeSuffixSetup',False),receipt.get('nativeBlockTipHint',False)),relocated=True)
     return dict(measurement=measured,streamReadbackVerified=True,postFsyncTerminalStillRequiresOriginalCILog=True,independentNativeResourceAdmission=False,networkQualified=False,sustainedTPSQualified=False)
 
 def recovery_timeout(signum,frame):
