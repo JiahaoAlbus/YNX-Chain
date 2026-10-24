@@ -39,6 +39,20 @@ class NativeStreamPairTests(unittest.TestCase):
                 with patch.object(supply.native,'directory_bytes',return_value=(256<<20)+1):
                     with self.assertRaisesRegex(RuntimeError,'retained512MiB'):budget.observe(sample)
 
+    def test_current_input_pair_uses_same_bounded_pace_and_only_cache_changes(self):
+        plan=supply.pair_recipe(supply.STREAM_CACHE_PAIR);before,after=plan['cases']
+        self.assertEqual([x['pacingMode'] for x in plan['cases']],['bounded-cadence','bounded-cadence'])
+        self.assertEqual([x['nativeCurrentInputReuse'] for x in plan['cases']],[False,True])
+        omit={'nativeCurrentInputReuse'}
+        self.assertEqual({k:v for k,v in before.items() if k not in omit},{k:v for k,v in after.items() if k not in omit})
+        self.assertEqual(plan['pairCaps'],supply.pair_recipe(supply.STREAM_PAIR)['pairCaps'])
+        for selected in (False,True):
+            command=supply.supply_client_command(Path('build'),Path('manifest'),Path('network'),Path('out'),before['profile'],'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=selected)
+            self.assertEqual('-native-current-input-reuse' in command,selected)
+            self.assertEqual(command[command.index('-pacing-mode')+1],'bounded-cadence')
+        for action in ('prepare','execute'):
+            self.assertIn('--'+action+'-pair --pair-kind native-current-input --observer-phases',Path('.github/workflows/chain-core.yml').read_text())
+
     def test_comparison_retains_regression_and_never_claims_sustained(self):
         before=dict(measurement=measurement());after=dict(measurement=measurement(400))
         self.assertTrue(supply.native_stream_pair_observation([before,after])['finiteJointImprovementObserved'])
@@ -58,9 +72,9 @@ class NativeStreamPairTests(unittest.TestCase):
             for index,mode in enumerate(supply.STREAM_PACING_MODES):
                 label=supply.pair_modes(supply.STREAM_PAIR)[index];case=('before-' if index==0 else 'after-')+label
                 directory=root/case/'evidence';directory.mkdir(parents=True)
-                row=dict(sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,binaries=pair['compiledBinaries'])
+                row=dict(sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=True,binaries=pair['compiledBinaries'])
                 raw=json.dumps(row).encode();(directory/'actual.json').write_bytes(raw);rows.append((directory/'actual.json',raw))
-                cases.append(dict(order=index+1,label=label,mode=mode,code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
+                cases.append(dict(order=index+1,label=label,mode=mode,currentInputReuse=True,code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
             pair['cases']=cases;pair['jointObservation']=supply.native_stream_pair_observation(cases)
             def verify(destination,mode,head,**kwargs):
                 index=0 if Path(destination).name.startswith('before-') else 1
@@ -76,7 +90,7 @@ class NativeStreamPairTests(unittest.TestCase):
             rows[1][0].write_bytes(rows[1][1]+b' ')
             with self.assertRaises(RuntimeError):check(pair)
 
-    def run_pair(self,fault=None):
+    def run_pair(self,fault=None,comparison=None):
         with tempfile.TemporaryDirectory() as d:
             parent=Path(d).resolve();source=parent/'source';source.mkdir();build=parent/'build';build.mkdir();evidence=parent/'evidence';evidence.mkdir()
             for name in supply.BINARIES:(build/name).write_bytes(name.encode())
@@ -99,8 +113,8 @@ class NativeStreamPairTests(unittest.TestCase):
             def observe(*args):
                 if fault=='post-fsync' and (evidence/'actual.json').exists():raise RuntimeError('post fsync resource violation')
                 return dict(elapsedMs=1,retainedBytes=1,logBytes=0,rssBytes=1,threads=1,availableMemoryBytes=2<<30,freeDiskBytes=10<<30,buildBytes=1) if fault!='missing-sample' else None
-            with patch.object(supply.sys,'platform','linux'),patch.object(supply.platform,'machine',return_value='x86_64'),patch.object(supply,'native_pair_host_identity',side_effect=host_identity),patch.object(supply.PairBudget,'observe',side_effect=observe),patch.object(supply,'empty_pair_closure',side_effect=closure),patch.object(supply,'run',side_effect=run),patch.object(supply,'native_stream_pair_case',side_effect=lambda row,case,mode:measurement(300 if mode=='relative' else 400)),patch.object(supply.signal,'signal'),patch.object(supply.signal,'setitimer'),contextlib.redirect_stdout(output):
-                code=supply.run_native_stream_pair(source,build,parent/'pair',evidence/'actual.json')
+            with patch.object(supply.sys,'platform','linux'),patch.object(supply.platform,'machine',return_value='x86_64'),patch.object(supply,'native_pair_host_identity',side_effect=host_identity),patch.object(supply.PairBudget,'observe',side_effect=observe),patch.object(supply,'empty_pair_closure',side_effect=closure),patch.object(supply,'run',side_effect=run),patch.object(supply,'native_stream_pair_case',side_effect=lambda row,case,mode,**kwargs:measurement(300 if mode=='relative' else 400)),patch.object(supply.signal,'signal'),patch.object(supply.signal,'setitimer'),contextlib.redirect_stdout(output):
+                code=supply.run_native_stream_pair(source,build,parent/'pair',evidence/'actual.json',comparison or supply.STREAM_PAIR)
             terminal=json.loads(output.getvalue().split('YNX_NATIVE_STREAM_PAIR_TERMINAL ')[-1])
             return code,calls,terminal
 
@@ -113,6 +127,12 @@ class NativeStreamPairTests(unittest.TestCase):
             with self.subTest(fault=fault):
                 code,calls,terminal=self.run_pair(fault)
                 self.assertEqual(code,1);self.assertEqual(calls,['relative']);self.assertFalse(terminal['qualified']);self.assertTrue(terminal['firstCause'])
+
+    def test_current_input_pair_keeps_first_failure_stop_rule(self):
+        code,calls,terminal=self.run_pair(comparison=supply.STREAM_CACHE_PAIR)
+        self.assertEqual(code,0,terminal);self.assertEqual(calls,['bounded-cadence','bounded-cadence'])
+        code,calls,terminal=self.run_pair('unknown',supply.STREAM_CACHE_PAIR)
+        self.assertEqual(code,1);self.assertEqual(calls,['bounded-cadence']);self.assertFalse(terminal['qualified'])
 
     def test_post_fsync_failure_cannot_be_qualified(self):
         for fault in ('post-fsync','missing-sample'):

@@ -10,6 +10,9 @@ import (
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
 	if !o.nativeStream8 {
+		if o.nativeCurrentInputReuse {
+			return errors.New("current input reuse requires explicit native stream")
+		}
 		return nil
 	}
 	if !o.streamingWorkload || o.senderMode != "ready-pool" || o.rounds < 2 || o.rounds > 4096 || o.concurrency != 8 || o.observers != 4 || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || !o.prefixDurableReplay || !o.prefixNativeClone || !o.observerNativeFacts || !o.observerPhaseTiming || o.nativeSubmit8 || o.nativeSuffixSetup || o.clientProcs2 || o.sharedDurableReplay || o.endpointFair || o.endpointElastic || o.inclusionMode != "block-scan" || !o.terminalStream || !o.reuseResultSlots || !o.segmentedIntents || o.output == "" || o.evidenceByteBudget < 1 || o.evidenceByteBudget > 2<<30 {
@@ -18,7 +21,10 @@ func validateNativeStreamingOptions(o options) error {
 	if _, err := normalizeReadyPacingMode(o.pacingMode); err != nil {
 		return err
 	}
-	_, _, err := durableReadLimits(o)
+	_, budget, err := durableReadLimits(o)
+	if err == nil && o.nativeCurrentInputReuse && budget == 0 {
+		return errors.New("current input reuse requires explicit original cache budget")
+	}
 	return err
 }
 
@@ -41,6 +47,9 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	if r == nil || r.prefixDecoder != nil || r.sharedReplay != nil || r.observerNativeFacts || r.storeByteLimit != limit || r.cacheByteBudget != budget || (r.profileMu != nil) != (budget > 0) {
 		return errors.New("native streaming reader/backend/resource scope differs")
 	}
+	if o.nativeCurrentInputReuse && r.profileMu == nil {
+		return errors.New("current input reuse requires original serialized budget")
+	}
 	for _, slot := range r.slots {
 		if slot.state != nil || slot.storeInputBytes != 0 || slot.stats.Attempts != 0 || slot.lastUse != 0 {
 			return errors.New("native streaming configuration requires unused reader slots")
@@ -53,6 +62,9 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	if err != nil {
 		return err
 	}
+	r.nativeCurrentInputReuse = o.nativeCurrentInputReuse
+	r.currentInputScopeChainID = r.migration.Network.ChainID
+	r.currentInputReuseStats.Enabled = o.nativeCurrentInputReuse
 	r.prefixDecoder = decoder
 	r.prefixNativeClone = true
 	r.prefixStats.WorkPhases.PrivateNativeClone = new(consensus.BlockJournalPrefixPhase)
@@ -68,6 +80,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
+	CurrentInputReuse      bool    `json:"currentInputReuse"`
 	ClientClockTiming      bool    `json:"clientClockTiming"`
 	ReaderGateTiming       bool    `json:"readerGateTiming"`
 	OfferedRate            float64 `json:"offeredRate"`

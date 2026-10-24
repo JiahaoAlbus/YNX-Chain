@@ -1020,7 +1020,7 @@ class SupplySourceTests(unittest.TestCase):
         self.assertEqual((plan["resourceCaps"]["activeMs"],plan["resourceCaps"]["totalMs"],plan["resourceCaps"]["ownedProcesses"]),(45000,60000,10))
         self.assertEqual(supply.native.CAPS["privateBytes"],32<<20)
         cmd=supply.supply_client_command(Path("build"),Path("manifest"),Path("network"),Path("out"),plan["profile"],"relative",True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
-        for flag in ("-native-stream8","-terminal-stream","-terminal-gzip","-reuse-result-slots","-segmented-intents","-observer-native-facts"):self.assertEqual(cmd.count(flag),1)
+        for flag in ("-native-stream8","-native-current-input-reuse","-terminal-stream","-terminal-gzip","-reuse-result-slots","-segmented-intents","-observer-native-facts"):self.assertEqual(cmd.count(flag),1)
         self.assertNotIn("-native-submit8",cmd);self.assertNotIn("-client-procs2",cmd)
         self.assertEqual(cmd[cmd.index("-timeout")+1],"40s")
         self.assertEqual(plan["streamBudget"]["timeoutMs"],40000)

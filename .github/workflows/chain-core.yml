@@ -94,6 +94,7 @@ on:
           - paired-native-observer-facts-data64
           - paired-native-client-procs2-data64
           - paired-native-stream-cadence
+          - paired-native-current-input
         default: relative
       measure_anchor_validation:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
@@ -401,7 +402,7 @@ jobs:
           fi
           if [ "$YNX_SUPPLY_PROFILE" = supply-native-stream-2048x4 ]; then
             test "$YNX_SUPPLY_TRANSPORT" = grpc
-            test "$YNX_SUPPLY_PACING" = relative || test "$YNX_SUPPLY_PACING" = bounded-cadence || test "$YNX_SUPPLY_PACING" = paired-native-stream-cadence
+            test "$YNX_SUPPLY_PACING" = relative || test "$YNX_SUPPLY_PACING" = bounded-cadence || test "$YNX_SUPPLY_PACING" = paired-native-stream-cadence || test "$YNX_SUPPLY_PACING" = paired-native-current-input
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             observer_args+=(--native-stream8 --prefix-replay --prefix-native-clone --observer-native-facts)
@@ -448,6 +449,10 @@ jobs:
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind native-observer-facts-data64 --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-native-current-input ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            test "$YNX_PREFIX_REPLAY" = 0
+            python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind native-current-input --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           elif [ "$YNX_SUPPLY_PACING" = paired-native-stream-cadence ]; then
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
@@ -494,6 +499,10 @@ jobs:
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind native-observer-facts-data64 --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-native-current-input ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            test "$YNX_PREFIX_REPLAY" = 0
+            python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind native-current-input --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           elif [ "$YNX_SUPPLY_PACING" = paired-native-stream-cadence ]; then
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0

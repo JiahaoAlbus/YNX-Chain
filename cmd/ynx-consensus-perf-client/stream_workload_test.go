@@ -147,6 +147,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool) {
 	o := streamingOptions()
 	if native {
 		o = nativeStreamingOptions()
+		o.nativeCurrentInputReuse = true
 		o.pacedWorkerInventory = new(pacedWorkerInventory)
 	}
 	o.terminalGzip = compressed
@@ -329,7 +330,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool) {
 		t.Fatal("completed fixture claim was silently reusable")
 	}
 	if native {
-		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results)
+		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, nativeReader.stats())
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)
 }

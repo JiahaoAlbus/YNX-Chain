@@ -40,6 +40,7 @@ type durableReadbackPhases struct {
 }
 
 type durableReaderStats struct {
+	CurrentInputReuse        *currentInputReuseStats                 `json:"currentInputReuse,omitempty"`
 	ReaderGate               *durableReaderGateStats                 `json:"readerGate,omitempty"`
 	ObserverNativeFacts      *observerNativeFactStats                `json:"observerNativeFacts,omitempty"`
 	PrefixReplay             *durablePrefixReplayStats               `json:"prefixReplay,omitempty"`
@@ -63,6 +64,7 @@ type durableFeeKey struct {
 }
 
 type durableSnapshotSlot struct {
+	capturedInput         []byte // Immutable, reader-owned and charged to the original input budget.
 	observerFacts         observerNativeFactStats
 	mu                    sync.Mutex
 	storeInputBytes       int64
@@ -83,23 +85,26 @@ type durableSnapshotSlot struct {
 // Slots are bound to at most four manifest paths and a privately cloned
 // migration. No parsed state, index or mutable slice escapes to an observer.
 type durableReader struct {
-	migration           chain.ConsensusMigrationState
-	slots               map[string]*durableSnapshotSlot
-	blockDecoder        *consensus.BlockJournalDecoder
-	prefixDecoder       *consensus.BlockJournalPrefixDecoder
-	prefixNativeClone   bool
-	observerNativeFacts bool
-	prefixMu            sync.Mutex
-	prefixStats         durablePrefixReplayStats
-	storeByteLimit      int64
-	cacheByteBudget     int64
-	readerGate          *durableReaderGateStats // Construction-only opt-in; protected by profileMu.
-	profileMu           *sync.Mutex
-	cacheTick           uint64
-	cacheEvictions      uint64
-	signatureFacts      *durableSignatureFacts
-	measurePhases       bool               // Set only during construction, before any observer starts.
-	sharedReplay        *sharedReplayCache // Explicit candidate only; never enabled by timing.
+	nativeCurrentInputReuse  bool
+	currentInputScopeChainID int64
+	currentInputReuseStats   currentInputReuseStats
+	migration                chain.ConsensusMigrationState
+	slots                    map[string]*durableSnapshotSlot
+	blockDecoder             *consensus.BlockJournalDecoder
+	prefixDecoder            *consensus.BlockJournalPrefixDecoder
+	prefixNativeClone        bool
+	observerNativeFacts      bool
+	prefixMu                 sync.Mutex
+	prefixStats              durablePrefixReplayStats
+	storeByteLimit           int64
+	cacheByteBudget          int64
+	readerGate               *durableReaderGateStats // Construction-only opt-in; protected by profileMu.
+	profileMu                *sync.Mutex
+	cacheTick                uint64
+	cacheEvictions           uint64
+	signatureFacts           *durableSignatureFacts
+	measurePhases            bool               // Set only during construction, before any observer starts.
+	sharedReplay             *sharedReplayCache // Explicit candidate only; never enabled by timing.
 }
 
 func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (*durableReader, error) {
@@ -148,6 +153,13 @@ func (r *durableReader) stats() durableReaderStats {
 		defer r.profileMu.Unlock()
 	}
 	var total durableReaderStats
+	if r.nativeCurrentInputReuse {
+		stats := r.currentInputReuseStats
+		for _, slot := range r.slots {
+			stats.RetainedInputBytes += int64(len(slot.capturedInput))
+		}
+		total.CurrentInputReuse = &stats
+	}
 	if r.readerGate != nil {
 		gate := *r.readerGate
 		total.ReaderGate = &gate
@@ -374,6 +386,11 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 	var digest [sha256.Size]byte
 	copy(digest[:], hasher.Sum(nil))
 	phaseTimer.end()
+	if r.nativeCurrentInputReuse {
+		if err := r.checkCurrentInputFile(ctx, path, f, info); err != nil {
+			return evidence, err
+		}
+	}
 	hit := slot.state != nil && slot.digest == digest
 	if !hit {
 		phaseTimer.begin(&slot.phases.CaptureNs)
@@ -398,41 +415,59 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 		if !journal && (consensus.IsSnapshotJournal(data) || consensus.IsBlockJournal(data)) {
 			return evidence, errors.New("journal readback requires writer synchronization")
 		}
+		if r.nativeCurrentInputReuse {
+			if err := r.checkCurrentInputFile(ctx, path, f, info); err != nil {
+				return evidence, err
+			}
+		}
 		if release != nil {
 			release()
 			release = nil
 		}
-		phaseTimer.begin(&slot.phases.DecodeNs)
-		slot.stats.SnapshotValidations++
-		decoded, err := r.decodeCurrentSnapshot(ctx, data, digest)
+		reused, err := r.reuseCapturedInput(ctx, slot, data, digest)
 		if err != nil {
 			return evidence, err
 		}
-		phaseTimer.begin(&slot.phases.IndexPublishNs)
-		slot.stats.BlockReplayBlocks += uint64(decoded.replayedBlocks)
-		slot.stats.BlockReplayTxInputs += uint64(decoded.replayedTxInputs)
-		state := decoded.state
+		if reused {
+			hit = true
+			slot.stats.SnapshotCacheHits++
+		} else {
+			phaseTimer.begin(&slot.phases.DecodeNs)
+			slot.stats.SnapshotValidations++
+			decoded, err := r.decodeCurrentSnapshot(ctx, data, digest)
+			if err != nil {
+				return evidence, err
+			}
+			phaseTimer.begin(&slot.phases.IndexPublishNs)
+			slot.stats.BlockReplayBlocks += uint64(decoded.replayedBlocks)
+			slot.stats.BlockReplayTxInputs += uint64(decoded.replayedTxInputs)
+			state := decoded.state
 
-		if err := ctx.Err(); err != nil {
-			return evidence, err
+			if err := ctx.Err(); err != nil {
+				return evidence, err
+			}
+			fees := make(map[durableFeeKey]struct{}, len(state.FeeEvents))
+			for _, fee := range state.FeeEvents {
+				fees[durableFeeKey{hash: fee.TxHash, payer: fee.Payer, kind: fee.TransactionType, height: fee.BlockHeight, fee: fee.GrossFeeYNXT}] = struct{}{}
+			}
+			nonces := make(map[string]uint64, len(state.Accounts))
+			for _, account := range state.Accounts {
+				nonces[account.Address] = account.Nonce
+			}
+			if err := ctx.Err(); err != nil {
+				return evidence, err
+			}
+			slot.snapshotDigest = sha256.Sum256(decoded.payload)
+			slot.format = decoded.format
+			slot.journalCompleteBytes, slot.journalIncompleteTail = decoded.completeBytes, decoded.incompleteTail
+			slot.state, slot.digest, slot.fees, slot.nonces = &state, digest, fees, nonces
+			slot.storeInputBytes = size
+			if r.nativeCurrentInputReuse && decoded.format == "block-journal" {
+				slot.capturedInput = data
+			}
+			phaseTimer.end()
 		}
-		fees := make(map[durableFeeKey]struct{}, len(state.FeeEvents))
-		for _, fee := range state.FeeEvents {
-			fees[durableFeeKey{hash: fee.TxHash, payer: fee.Payer, kind: fee.TransactionType, height: fee.BlockHeight, fee: fee.GrossFeeYNXT}] = struct{}{}
-		}
-		nonces := make(map[string]uint64, len(state.Accounts))
-		for _, account := range state.Accounts {
-			nonces[account.Address] = account.Nonce
-		}
-		if err := ctx.Err(); err != nil {
-			return evidence, err
-		}
-		slot.snapshotDigest = sha256.Sum256(decoded.payload)
-		slot.format = decoded.format
-		slot.journalCompleteBytes, slot.journalIncompleteTail = decoded.completeBytes, decoded.incompleteTail
-		slot.state, slot.digest, slot.fees, slot.nonces = &state, digest, fees, nonces
-		slot.storeInputBytes = size
-		phaseTimer.end()
+
 	} else {
 		slot.stats.SnapshotCacheHits++
 	}

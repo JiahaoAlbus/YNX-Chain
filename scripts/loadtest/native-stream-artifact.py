@@ -131,15 +131,15 @@ class Archive:
 
 class Selection:
     def __init__(self,mode):
-        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network"),Selection("network")] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
+        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network") for _ in range(4)] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
     def select(self,name):
         if name.endswith('/'):return None
         if self.mode=='network-pair':
-            labels=('native-stream-relative','native-stream-bounded')
+            labels=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared')
             if name=='ynx-linux-supply-evidence/actual.json':
                 need(name not in self.seen,'duplicate pair receipt');self.seen.add(name);return 'evidence/actual.json'
             for i,label in enumerate(labels):
-                case=('before-' if i==0 else 'after-')+label
+                case=('before-' if i%2==0 else 'after-')+label
                 prefix='ynx-linux-supply-pair/'+case+'/'
                 if name.startswith(prefix):
                     selected=self.children[i].select('ynx-linux-supply-case/'+name[len(prefix):])
@@ -317,18 +317,20 @@ def original_artifact(artifact_id,run_id,head,mode):
 
 def verify_network_pair(root,head,evidence,controller):
     pair=evidence.strict_json(evidence.capture(root/'evidence/actual.json',16<<20))
-    need(pair.get('kind')==controller.pair_recipe(controller.STREAM_PAIR)['kind'] and pair.get('sourceCommit')==head,'original paired source/kind differs')
+    kinds=[kind for kind in controller.STREAM_PAIRS if pair.get('kind')==controller.pair_recipe(kind)['kind']]
+    need(len(kinds)==1 and pair.get('sourceCommit')==head,'original paired source/kind differs')
+    kind=kinds[0]
     need(pair.get('casesQualified') is True and pair.get('firstCause') is None and len(pair.get('cases',[]))==2,'original paired cases incomplete')
-    need(pair.get('pairCaps')==controller.pair_recipe(controller.STREAM_PAIR)['pairCaps'],'original paired caps differ')
+    need(pair.get('pairCaps')==controller.pair_recipe(kind)['pairCaps'],'original paired caps differ')
     measured=[];baseline=None
-    for index,mode_name in enumerate(controller.STREAM_PACING_MODES):
-        label=controller.pair_modes(controller.STREAM_PAIR)[index];case=('before-' if index==0 else 'after-')+label
+    for index,(label,mode_name,reuse) in enumerate(controller.native_stream_pair_spec(kind)):
+        case=('before-' if index==0 else 'after-')+label
         selected=pair['cases'][index]
         raw=evidence.capture(root/case/'evidence/actual.json',16<<20);receipt=evidence.strict_json(raw)
-        need(selected.get('order')==index+1 and selected.get('mode')==mode_name and selected.get('label')==label and selected.get('code')==0 and selected.get('firstCause') is None,'original pair order/mode/status differs')
+        need(selected.get('currentInputReuse') is reuse and selected.get('order')==index+1 and selected.get('mode')==mode_name and selected.get('label')==label and selected.get('code')==0 and selected.get('firstCause') is None,'original pair order/mode/status differs')
         need(selected.get('sha256')==hashlib.sha256(raw).hexdigest(),'original pair case receipt SHA differs')
         need(selected.get('hostIdentity')==pair.get('hostIdentity') and bool(pair.get('hostIdentity')),'original pair VM identity differs')
-        need(receipt.get('pacingMode')==mode_name and receipt.get('binaries')==pair.get('compiledBinaries'),'original pair mode/ELF differs')
+        need(receipt.get('pacingMode')==mode_name and receipt.get('nativeCurrentInputReuse') is reuse and receipt.get('binaries')==pair.get('compiledBinaries'),'original pair mode/ELF differs')
         if baseline is not None:
             need(all(receipt.get(k)==baseline.get(k) for k in ('sourceCommit','sourceTree','internalTree','compiler','binaries','environment')),'paired original source/build/host differs')
         if baseline is not None:
@@ -366,7 +368,7 @@ def verify_capture(destination,mode,head,*,expected_case="ynx-linux-supply-case"
     report_raw=evidence.capture(root/'network/transactions-result.json',16<<20)
     need(hashlib.sha256(report_raw).hexdigest()==receipt.get('resultSHA256'),'original client result hash differs')
     report=evidence.strict_json(report_raw)
-    measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing)
+    measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing,expected_input_reuse=receipt.get('nativeCurrentInputReuse',False))
     need(canonical(measured)==canonical(receipt.get('measurement')),'recovered complete stream differs from original controller measurement')
     return dict(measurement=measured,streamReadbackVerified=True,postFsyncTerminalStillRequiresOriginalCILog=True,independentNativeResourceAdmission=False,networkQualified=False,sustainedTPSQualified=False)
 

@@ -56,6 +56,17 @@ class NativeStreamArtifactTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):zip_reader.recover(source(build([('network-manifest.json',b'original-public')])),self.root,'unit')
         self.assertTrue(linked.is_symlink());self.assertEqual(other.read_bytes(),b'original')
 
+    def test_current_input_pair_public_segments_are_independent(self):
+        files=[]
+        for case in ('before-native-input-separate','after-native-input-shared'):
+            base='ynx-linux-supply-pair/'+case+'/'
+            files.extend([(base+'network/sender-ready-intents/intent-000000.jsonl',case.encode()),(base+'network/ephemeral-sender-secrets.json',b'PRIVATE')])
+        files.extend([('ynx-linux-supply-evidence/actual.json',b'pair'),('ynx-linux-supply-evidence/native-input-separate-actual.json',b'before'),('ynx-linux-supply-evidence/native-input-shared-actual.json',b'after')])
+        result=zip_reader.recover(source(build(files)),self.root,'network-pair')
+        self.assertEqual(result['members'],5)
+        self.assertEqual((self.root/'after-native-input-shared/network/sender-ready-intents/intent-000000.jsonl').read_bytes(),b'after-native-input-shared')
+        self.assertFalse((self.root/'after-native-input-shared/network/ephemeral-sender-secrets.json').exists())
+
     def test_pair_selection_keeps_independent_segments_and_excludes_secrets(self):
         files=[]
         for case in ('before-native-stream-relative','after-native-stream-bounded'):

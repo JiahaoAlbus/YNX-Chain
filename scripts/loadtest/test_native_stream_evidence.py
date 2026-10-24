@@ -21,6 +21,8 @@ class NativeStreamEvidenceTests(unittest.TestCase):
         clock=evidence.client_clock_measurements(timeline,d['terminalStream']['records'],True)
         self.assertTrue(clock['valid']);self.assertEqual(clock['samples'],3*d['terminalStream']['records'])
         self.assertEqual(clock,timeline['clock'])
+        stats=evidence.current_input_reuse_measurements(d["durableReadback"],True)
+        self.assertTrue(stats["enabled"])
     def test_complete_original_latencies_match_go_bounded_summary(self):
         d=self.meta
         proof=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20,measure_latency=True)
@@ -160,5 +162,15 @@ class ClientClockMeasurementTests(unittest.TestCase):
         clock=dict(originUnixNs='1800000000000000001',samples=6,invalidSamples=0,maximumAbsWallDriftNs=100,valid=True,driftWithin1ms=True)
         for changes in (dict(originUnixNs=1800000000000000001),dict(samples=5),dict(samples=True),dict(valid=False),dict(maximumAbsWallDriftNs=2000000),dict(invalidSamples=1)):
             with self.subTest(changes=changes),self.assertRaises(RuntimeError):evidence.client_clock_measurements(dict(clock=dict(clock,**changes)),2,True)
+
+class CurrentInputReuseMeasurementTests(unittest.TestCase):
+    def test_actual_reuse_work_and_original_retained_budget_are_bound(self):
+        stats=dict(enabled=True,attempts=4,errors=0,hits=3,misses=1,comparedBytes=9000,lookupNs=123,retainedInputBytes=12000)
+        reader=dict(currentInputReuse=stats,snapshotValidations=1,snapshotCacheHits=4,readerBudget=dict(cachedInputBytes=12000,cacheInputByteBudget=64<<20))
+        self.assertEqual(evidence.current_input_reuse_measurements(reader,True),stats)
+        self.assertIsNone(evidence.current_input_reuse_measurements({}))
+        for changed in (dict(hits=5),dict(misses=2),dict(attempts=3),dict(lookupNs=0),dict(retainedInputBytes=12001),dict(enabled=False)):
+            with self.subTest(changed=changed),self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(dict(reader,currentInputReuse=dict(stats,**changed)),True)
+        with self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(reader,False)
 
 if __name__=='__main__':unittest.main()

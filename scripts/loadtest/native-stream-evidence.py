@@ -241,3 +241,21 @@ def client_clock_measurements(timeline,records,required=False):
     valid=clock['invalidSamples']==0 and clock['samples']>0
     need(type(clock['valid']) is bool and clock['valid']==valid and type(clock['driftWithin1ms']) is bool and clock['driftWithin1ms']==(valid and clock['maximumAbsWallDriftNs']<=1000000),'client clock validity/drift claim differs')
     return dict(clock)
+
+
+def current_input_reuse_measurements(reader,selected=False):
+    need(type(selected) is bool,'current input reuse selection must be boolean')
+    stats=reader.get('currentInputReuse')
+    if not selected:
+        need(stats is None,'unselected current input reuse has statistics')
+        return None
+    fields={'enabled','attempts','errors','hits','misses','comparedBytes','lookupNs','retainedInputBytes'}
+    need(type(stats) is dict and set(stats)==fields and stats['enabled'] is True,'selected current input reuse statistics missing')
+    need(all(integer(stats[k],0,2**63-1) for k in fields-{'enabled'}),'current input reuse counter invalid')
+    need(integer(reader.get('snapshotValidations'),0,2**63-1) and stats['misses']==reader['snapshotValidations'],'current input reuse misses differ from actual decode work')
+    need(integer(reader.get('snapshotCacheHits'),0,2**63-1) and stats['hits']<=reader['snapshotCacheHits'] and stats['comparedBytes']>=stats['hits'],'current input reuse hit/byte coverage differs')
+    budget=reader.get('readerBudget',{})
+    need(integer(budget.get('cachedInputBytes'),0,2**31) and integer(budget.get('cacheInputByteBudget'),1,2**31) and stats['retainedInputBytes']==budget['cachedInputBytes']<=budget['cacheInputByteBudget'],'current retained input budget differs')
+    need(stats['attempts']==stats['hits']+stats['misses']+stats['errors'],'current input lookup attempts/outcomes differ')
+    need(stats['lookupNs']>0 if stats['attempts'] else stats['lookupNs']==0,'actual current input lookup timer absent')
+    return dict(stats)

@@ -50,6 +50,7 @@ func (r *durableReader) cachedStoreInputBytes() int64 {
 	return total
 }
 func clearDurableCache(slot *durableSnapshotSlot) {
+	slot.capturedInput = nil
 	slot.state = nil
 	slot.fees = nil
 	slot.nonces = nil

@@ -10,7 +10,7 @@ import (
 // Optional public cross-language fixture for the existing source CI. Copy only
 // original public envelopes/observations/manifests; never sender private keys.
 // Quorum remains a unit gate and is explicitly labelled, never network proof.
-func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats readySenderStats, terminal *terminalStreamReport, latest []transactionResult) {
+func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats readySenderStats, terminal *terminalStreamReport, latest []transactionResult, reader durableReaderStats) {
 	t.Helper()
 	destination := os.Getenv("YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR")
 	if destination == "" {
@@ -58,7 +58,7 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 			copyFile(filepath.Join(from, entry.Name()), filepath.Join(to, entry.Name()))
 		}
 	}
-	metadata := map[string]any{"kind": "native_stream_public_unit_fixture_not_network", "independentBFTProof": false, "runtimeNetworkRoot": network, "runtimeOutput": output, "senders": len(latest), "rounds": 34, "intents": intents, "boundedSummary": stats.BoundedSummary, "readySenders": stats, "terminalStream": terminal, "latest": latest}
+	metadata := map[string]any{"durableReadback": reader, "kind": "native_stream_public_unit_fixture_not_network", "independentBFTProof": false, "runtimeNetworkRoot": network, "runtimeOutput": output, "senders": len(latest), "rounds": 34, "intents": intents, "boundedSummary": stats.BoundedSummary, "readySenders": stats, "terminalStream": terminal, "latest": latest}
 	data, err := json.Marshal(metadata)
 	if err != nil {
 		t.Fatal(err)
