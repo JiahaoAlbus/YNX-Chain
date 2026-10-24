@@ -157,10 +157,11 @@ export async function handleOriginalPublicationApprovalCurrent(service,profileDi
 }
 export async function handleOriginalDeveloperPrincipalCurrent(service,credential){
  assertOriginalDeveloperPrincipalSource(service);
- return await service.existingDeveloperPrincipal(credential);
+ const result=await service.existingDeveloperPrincipal(credential);
+ service.assertOriginalDeveloperPrincipalCompletion(credential,result);return result;
 }
 export function assertOriginalDeveloperPrincipalSource(service){
- if(!services.has(service)||typeof service.existingDeveloperPrincipal!=='function'||typeof service.assertDeveloperPrincipalPurpose!=='function')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+ if(!services.has(service)||typeof service.existingDeveloperPrincipal!=='function'||typeof service.assertDeveloperPrincipalPurpose!=='function'||typeof service.assertOriginalDeveloperPrincipalCompletion!=='function')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
  service.assertDeveloperPrincipalPurpose();
 }
 export async function loadOriginalPublicationApprovalIssuer(){

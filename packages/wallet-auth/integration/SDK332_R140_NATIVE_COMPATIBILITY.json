@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.35",
+  "version": "1.3.0-pq.3.32-auth.36",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -2025,5 +2025,44 @@
     "proofOriginalProvided": false,
     "resourceResultProducerSupplied": false,
     "NativeBuildRequiredByNewDecoder": false
+  },
+  "supplierR237": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/HANDOFF.json",
+      "bytes": 15547,
+      "sha256": "64e8e90ad47d06eb446e113524557eaa601896f40f8fdc54591318cc39350c80"
+    },
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
+        "bytes": 32541,
+        "sha256": "412d8173d4781748ca05563233d007502608ffd5cac9a65c6eb50ba1ba605959"
+      },
+      {
+        "path": "packages/wallet-auth/src/original-auth-identity-source-current.js",
+        "bytes": 19025,
+        "sha256": "e3d79ae1c461a2d28bb42d9557b3fbb06b2c3e6e415bf3e19f18069466f2bf95"
+      },
+      {
+        "path": "packages/wallet-auth/src/product-session-gateway-node-host.js",
+        "bytes": 58895,
+        "sha256": "86fc0ca5eb6c65dc80a0033d78f5d69766c7f71e8eed118e44d9cfd1e4c230b2"
+      }
+    ],
+    "principalCompletionBoundToSameResultAndCredential": true,
+    "physicalHTTPDeliveryFence": true,
+    "principalWireFieldsUnchanged": 12,
+    "nativeTranslationUnitsUnchanged": true,
+    "existingNativeComponentQualificationReused": false,
+    "normalNativeInputs": 99,
+    "normalCanonicalInputs": 109,
+    "extendedSourceClosure": 110,
+    "NativeBuild": false,
+    "Source": false,
+    "Root": false,
+    "App": false,
+    "realLogin": false,
+    "realRestoration": false,
+    "realRevocation": false
   }
 }

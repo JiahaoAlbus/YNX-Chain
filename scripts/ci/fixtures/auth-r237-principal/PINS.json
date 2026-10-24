@@ -1,0 +1,33 @@
+{
+  "kind": "YNX-R237-PUBLIC-PRINCIPAL-FIXTURE/v1",
+  "PUBLIC": true,
+  "Root": false,
+  "SourceAdmitted": false,
+  "production": false,
+  "supplierHandoff": {
+    "bytes": 15547,
+    "sha256": "64e8e90ad47d06eb446e113524557eaa601896f40f8fdc54591318cc39350c80"
+  },
+  "generatedTest": {
+    "path": "test-r237.mjs",
+    "bytes": 13801,
+    "sha256": "4b848b8a6ddaabc3b565ee8ed3515aa56df8f4f449fa93b3d50921813774caa2"
+  },
+  "productionSource": [
+    {
+      "path": "src/original-auth-source-current-v2.js",
+      "bytes": 32541,
+      "sha256": "412d8173d4781748ca05563233d007502608ffd5cac9a65c6eb50ba1ba605959"
+    },
+    {
+      "path": "src/original-auth-identity-source-current.js",
+      "bytes": 19025,
+      "sha256": "e3d79ae1c461a2d28bb42d9557b3fbb06b2c3e6e415bf3e19f18069466f2bf95"
+    },
+    {
+      "path": "src/product-session-gateway-node-host.js",
+      "bytes": 58895,
+      "sha256": "86fc0ca5eb6c65dc80a0033d78f5d69766c7f71e8eed118e44d9cfd1e4c230b2"
+    }
+  ]
+}

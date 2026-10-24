@@ -18,7 +18,7 @@ test('R218 exact supplier SDK leaves remain selected with the current87 CPP and1
     ['native/original-auth-identity-source-verifier.mjs', 20978, '7670b7093f4ba6fe6f9a26c6b999ec7a4069fec7d46dd06105bc9661867c66cf'],
   ]) { const raw = fs.readFileSync(path.join(sdk, relative)); assert.equal(raw.length, bytes); assert.equal(sha(raw), hash); }
   const {contract} = verifySDK332R140Source(root);
-  assert.equal(contract.version, '1.3.0-pq.3.32-auth.35');
+  assert.equal(contract.version, '1.3.0-pq.3.32-auth.36');
   assert.equal(contract.NativeInputs.length, 99);
   const normal = [...contract.NativeInputs, ...contract.HelperInputs, ...contract.pureDeploymentInputs, contract.normalBuildTool];
   assert.equal(normal.length, 109); assert.equal(new Set([...normal, ...contract.sourceCurrentIOInputs].map(r => r.path)).size, 110);

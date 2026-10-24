@@ -30,11 +30,18 @@ export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 // No structural callback/DTO can enter this inventory.
 const originalRuntimeHostSources = new WeakMap();
 const originalDeveloperHTTPCredentials = new WeakMap();
+const originalDeveloperPrincipalResults = new WeakMap();
 // Only the actual original Host below creates this opaque reference. There is
 // no public registration callback, JSON restore or caller-supplied capability.
 export async function readOriginalDeveloperHTTPCredential(credential){
   const c=originalDeveloperHTTPCredentials.get(credential);if(!c)fail('ORIGINAL_HTTP_CREDENTIAL_REQUIRED','Original HTTP credential is unavailable');
   await c.recheck();return c.view;
+}
+// Synchronous delivery fence on the SAME opaque Host credential. It borrows
+// no new policy context and never re-arms or consumes an original proof.
+export function assertOriginalDeveloperHTTPCredentialCompletion(credential){
+  const c=originalDeveloperHTTPCredentials.get(credential);if(!c)fail('ORIGINAL_HTTP_CREDENTIAL_REQUIRED','Original HTTP credential is unavailable');
+  c.complete();return c.view;
 }
 // Local transaction custody only. Not a Native-purpose/terminal authority.
 const originalPrivateTransactions = new WeakMap();
@@ -293,27 +300,45 @@ export class ProductSessionGatewayNodeHost {
     const expires=Math.min(Date.parse(proof.expiresAt),Date.parse(original.expiresAt));
     const operation={requestId:v.requestId,method:v.method,path:v.path,body:v.body,proofHeader:v.proofHeader,walletControlProofHeader:null,session:original,at:this.#now().toISOString()};
     const credential=Object.freeze({}),view=Object.freeze({session:original,method:v.method,path:v.path,bodyDigest:proof.bodyDigest,proofExpiresMS:expires});
+    let completedSnapshot=null,lastTime=Date.parse(proof.issuedAt);
+    const complete=()=>{
+      this.#assertStateIdentity();
+      if(completedSnapshot===null||snapshotDigest(this.#handler.snapshot())!==completedSnapshot)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original HTTP identity changed after current check');
+      const end=this.#now().getTime();if(end<lastTime||end>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired at delivery');lastTime=end;
+    };
     const recheck=async()=>{
+      completedSnapshot=null;let selectedSnapshot=null;
       this.#assertStateIdentity();const now=this.#now();if(now.getTime()<Date.parse(proof.issuedAt)||now.getTime()>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired');
       await this.#withAccountPolicy({...operation,at:now.toISOString()},context=>{
         this.#assertStateIdentity();const h=this.#accountPolicy?this.#newHandler(this.#handler.snapshot(),context):this.#handler;
-        h.revalidate(original,[],'developer',this.#now(),true);this.#assertStateIdentity();return true;
+        h.revalidate(original,[],'developer',this.#now(),true);this.#assertStateIdentity();selectedSnapshot=snapshotDigest(this.#handler.snapshot());return true;
       });
       const end=this.#now();if(end.getTime()<now.getTime()||end.getTime()>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired after current check');
+      completedSnapshot=selectedSnapshot;lastTime=end.getTime();complete();
     };
-    originalDeveloperHTTPCredentials.set(credential,{view,recheck});
+    originalDeveloperHTTPCredentials.set(credential,{view,recheck,complete});
     await recheck();return credential;
   }
 
   async currentExistingDeveloperPrincipal(input){
     assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
     const credential=await this.authenticateOriginalDeveloperHTTPRequest(input);
-    return await handleOriginalDeveloperPrincipalCurrent(this.#authSourceCurrent,credential);
+    return await this.#originalPrincipalResult(credential);
   }
   async recheckExistingDeveloperPrincipal(input){
     assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
     const credential=await this.revalidateOriginalDeveloperHTTPRequest(input);
-    return await handleOriginalDeveloperPrincipalCurrent(this.#authSourceCurrent,credential);
+    return await this.#originalPrincipalResult(credential);
+  }
+  async #originalPrincipalResult(credential){
+    const result=await handleOriginalDeveloperPrincipalCurrent(this.#authSourceCurrent,credential);
+    this.#assertStateIdentity();this.#authSourceCurrent.assertOriginalDeveloperPrincipalCompletion(credential,result);
+    originalDeveloperPrincipalResults.set(result,{host:this,credential});return result;
+  }
+  #assertPrincipalDelivery(result){
+    const retained=originalDeveloperPrincipalResults.get(result);
+    if(!retained||retained.host!==this)fail('AUTH_ORIGINAL_PRINCIPAL_COMPLETION_NOT_ORIGINAL','Original principal result is unavailable');
+    this.#assertStateIdentity();this.#authSourceCurrent.assertOriginalDeveloperPrincipalCompletion(retained.credential,result);
   }
 
   // Fixed private caller uses the SAME kernel/state transaction as HTTP.
@@ -421,7 +446,7 @@ export class ProductSessionGatewayNodeHost {
           let input;try{input=JSON.parse(await boundedBody(request,3145728));}catch{fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay body is invalid');}
           const v=privateData(input,['operation','requestId','method','path','body','proofHeader']);if(!['authenticate','recheck'].includes(v.operation))fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay operation is invalid');
           const {operation,...original}=v,result=operation==='authenticate'?await this.currentExistingDeveloperPrincipal(original):await this.recheckExistingDeveloperPrincipal(original);
-          this.#assertStateIdentity();response.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});response.end(canonicalJSON(result));return;
+          this.#assertPrincipalDelivery(result);response.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});response.end(canonicalJSON(result));return;
         }
         if(new URL(request.url,'http://127.0.0.1').pathname==='/v1/auth-identity/source-current'){
           if(!this.#authSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
