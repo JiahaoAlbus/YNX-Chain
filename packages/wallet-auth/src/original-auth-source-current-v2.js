@@ -17,7 +17,7 @@ const nonced=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{43}$/.test(value)&&
 // EXACT original Go store digest, without parsing decimal counters as Number.
 // Only opaque hash/counter/enum fields occur here; no alternate grant codec.
 import {originalApprovalStateHeadDATA} from '../native/original-ide-approval-state-head-data.mjs';
-import {readOriginalDeveloperHTTPCredential} from './product-session-gateway-node-host.js';
+import {readOriginalDeveloperHTTPCredential,assertOriginalDeveloperHTTPCredentialCompletion} from './product-session-gateway-node-host.js';
 import {encodeOriginalDeveloperPrincipalDATA} from '../native/original-developer-principal-data.mjs';
 export {originalApprovalStateHeadDATA};
 function parsed(raw,cap=CAP){if(typeof raw!=='string'||!raw.length||Buffer.byteLength(raw)>cap)fail('AUTH_SOURCE_V2_CAPACITY');let v;try{v=JSON.parse(raw);}catch{fail('AUTH_SOURCE_V2_CANONICAL');}if(canonical(v)!==raw)fail('AUTH_SOURCE_V2_CANONICAL');return v;}
@@ -26,7 +26,7 @@ function exact(v,keys){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Refle
 function sameViews(before,after){for(const role of ['root','profile','current','subject']){assertPQAuthorizationCurrent(before[role],after[role]);if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_SOURCE_V2_HEIGHT_CHANGED');}}
 
 export class OriginalAuthSourceCurrentV2Kernel {
- #root;#enrollment;#profiles=new Map();#policy;#node;#get;#clock;#signer;#io;#loan;#rows=new Map();#nonces=new Map();#floor=0;#height=0n;#entered=false;#initialized=false;#retired=false;#closed=false;#closeSelected=false;#closeCause;#closeFailed=false;#unknown=false;#first;#firstPresent=false;#partial;#completionViews;#completionRaw;
+ #root;#enrollment;#profiles=new Map();#policy;#node;#get;#clock;#signer;#io;#loan;#rows=new Map();#nonces=new Map();#floor=0;#height=0n;#entered=false;#initialized=false;#retired=false;#closed=false;#closeSelected=false;#closeCause;#closeFailed=false;#unknown=false;#first;#firstPresent=false;#partial;#completionViews;#completionRaw;#principalCompletions=new WeakMap();
  constructor(rootRaw,enrollmentRaw,profiles,policy,node,signer,nativeIO,clock=Date.now,get=fetchOriginalNativeAuthorization){
   // Explicit test seams exist only here. Normal loader supplies the fixed
   // fetcher, native signer and native directory owner; no request can select.
@@ -140,12 +140,28 @@ export class OriginalAuthSourceCurrentV2Kernel {
   const currentRaw=await this.current(digest,randomBytes(32).toString('base64url'));
   const after=await readOriginalDeveloperHTTPCredential(credential);
   if(after!==first||this.#rows.get(digest)!==state)fail('AUTH_ORIGINAL_PRINCIPAL_POST_CHANGED');
-  const before=await this.#views(p);this.#verify(p,before);await this.#post(p,before,Math.min(principal.expiresMS,first.proofExpiresMS));
+  const before=await this.#views(p);this.#verify(p,before);const completed=await this.#post(p,before,Math.min(principal.expiresMS,first.proofExpiresMS));
   const finalCredential=await readOriginalDeveloperHTTPCredential(credential);this.#alive();this.#signer.assertCurrent(before.current);
   if(finalCredential!==first)fail('AUTH_ORIGINAL_PRINCIPAL_POST_CHANGED');
   if(this.#rows.get(digest)!==state||this.#time()>=Math.min(principal.expiresMS,first.proofExpiresMS))fail('AUTH_ORIGINAL_PRINCIPAL_POST_EXPIRED');
   const original=encodeOriginalDeveloperPrincipalDATA({...principal,expiresMS:String(principal.expiresMS)});
-  return Object.freeze({version:'YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v1',principalOriginal:original.principalOriginal,principalSHA256:original.principalSHA256,profileDigest:digest,currentRaw,method:first.method,path:first.path,bodyDigest:first.bodyDigest,expiresAtMs:Math.min(principal.expiresMS,first.proofExpiresMS),dataOnly:true,authorized:false,nativeAdmission:false});
+  const result=Object.freeze({version:'YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v1',principalOriginal:original.principalOriginal,principalSHA256:original.principalSHA256,profileDigest:digest,currentRaw,method:first.method,path:first.path,bodyDigest:first.bodyDigest,expiresAtMs:Math.min(principal.expiresMS,first.proofExpiresMS),dataOnly:true,authorized:false,nativeAdmission:false});
+  this.#principalCompletions.set(result,{credential,view:first,p,state,digest,views:completed});
+  this.assertOriginalDeveloperPrincipalCompletion(credential,result);return result;
+ }
+ // Delivery is not a new Source selection: require the original result object,
+ // original credential, same active row, same signed journal and retained
+ // role/custody. No network/sign/write/replay occurs in this synchronous fence.
+ assertOriginalDeveloperPrincipalCompletion(credential,result){
+  const r=this.#principalCompletions.get(result);
+  if(!r||r.credential!==credential)fail('AUTH_ORIGINAL_PRINCIPAL_COMPLETION_NOT_ORIGINAL');
+  this.assertDeveloperPrincipalPurpose();
+  if(this.#entered||this.#rows.get(r.digest)!==r.state||r.state.status!=='active')fail('AUTH_ORIGINAL_PRINCIPAL_POST_CHANGED');
+  const key=sha(canonical({profileDigest:r.digest,sequence:r.state.sequence})),raw=this.#io.read(this.#loan,key+'.entered');
+  if(sha(raw)!==r.state.recordDigest)fail('AUTH_SOURCE_V2_HISTORY_CHANGED');
+  this.#completed(r.p,r.views,result.expiresAtMs,{digest:r.digest,state:r.state,key,raw,terminal:canonical({version:2,eventDigest:r.state.recordDigest})});
+  if(assertOriginalDeveloperHTTPCredentialCompletion(credential)!==r.view)fail('AUTH_ORIGINAL_PRINCIPAL_POST_CHANGED');
+  const end=this.#time();this.#alive();if(end>=result.expiresAtMs)fail('AUTH_ORIGINAL_PRINCIPAL_POST_EXPIRED');
  }
  async publicationApprovalCurrent(profileDigest,scopeOriginal,currentOriginal){
   this.#alive();if(!this.#initialized||this.#entered)fail('AUTH_SOURCE_V2_NOT_READY');

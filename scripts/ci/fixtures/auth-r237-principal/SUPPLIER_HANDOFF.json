@@ -1,0 +1,349 @@
+{
+  "version": 1,
+  "state": "ORIGINAL_PRINCIPAL_PHYSICAL_HTTP_POST_COMPLETION_REPAIRED_NEW9_LOCAL_PASS_NOT_MOUNTED",
+  "owner": "original Auth supplier",
+  "sourceParentCheckpoint": "5d4ead4d70102be42af37d5e416001c1ac32f683",
+  "parentSourceRefs": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/SDK35_PRINCIPAL_THREE_SOURCE_PARENT_REFS.json",
+    "bytes": 1644,
+    "sha256": "f08ca1887985fa4e4f7246649ff6826f6e5c254910f356389bd533f236640518",
+    "gitBlob": "e4767c2a1a740ee57e74e3bd10041a4fd2537f00"
+  },
+  "sourceDelta": [
+    {
+      "relative": "source/packages/wallet-auth/src/original-auth-source-current-v2.js",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/source/packages/wallet-auth/src/original-auth-source-current-v2.js",
+      "bytes": 32541,
+      "sha256": "412d8173d4781748ca05563233d007502608ffd5cac9a65c6eb50ba1ba605959",
+      "gitBlob": "8d2f7cc20480c990f9c03a03fa65b65e11df0bc9",
+      "parent": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk35-normal-supply/package/src/original-auth-source-current-v2.js",
+        "bytes": 31049,
+        "sha256": "926d639611753d8e1d3baa59daee8844e449567dbd89301a30d25e264d502068",
+        "gitBlob": "5c067be6d7e81881fb8874771265e5b901686cb1"
+      }
+    },
+    {
+      "relative": "source/packages/wallet-auth/src/original-auth-identity-source-current.js",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/source/packages/wallet-auth/src/original-auth-identity-source-current.js",
+      "bytes": 19025,
+      "sha256": "e3d79ae1c461a2d28bb42d9557b3fbb06b2c3e6e415bf3e19f18069466f2bf95",
+      "gitBlob": "7e49a7c2ae857d619a557842047fe88f40c47d84",
+      "parent": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk35-normal-supply/package/src/original-auth-identity-source-current.js",
+        "bytes": 18861,
+        "sha256": "fb303966e45bfda6c225664b4734a6a2a3c1355a597076fe6577b03f4aa67155",
+        "gitBlob": "4d8aa35be23a3cd062520bd0ea3ae3e6168d9802"
+      }
+    },
+    {
+      "relative": "source/packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/source/packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "bytes": 58895,
+      "sha256": "86fc0ca5eb6c65dc80a0033d78f5d69766c7f71e8eed118e44d9cfd1e4c230b2",
+      "gitBlob": "c1834b6bd02a98d697b8a635ef5cff6a24421524",
+      "parent": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk35-normal-supply/package/src/product-session-gateway-node-host.js",
+        "bytes": 57080,
+        "sha256": "3080c31654b8c72c26b44f52e5b8bdc7c685bd54f964949dd00608cada11dc54",
+        "gitBlob": "d16fe67a023b7817373b3e80c59b89b629a1a002"
+      }
+    }
+  ],
+  "refs": [
+    {
+      "relative": "source/packages/wallet-auth/src/original-auth-source-current-v2.js",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/source/packages/wallet-auth/src/original-auth-source-current-v2.js",
+      "bytes": 32541,
+      "sha256": "412d8173d4781748ca05563233d007502608ffd5cac9a65c6eb50ba1ba605959",
+      "gitBlob": "8d2f7cc20480c990f9c03a03fa65b65e11df0bc9"
+    },
+    {
+      "relative": "source/packages/wallet-auth/src/original-auth-identity-source-current.js",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/source/packages/wallet-auth/src/original-auth-identity-source-current.js",
+      "bytes": 19025,
+      "sha256": "e3d79ae1c461a2d28bb42d9557b3fbb06b2c3e6e415bf3e19f18069466f2bf95",
+      "gitBlob": "7e49a7c2ae857d619a557842047fe88f40c47d84"
+    },
+    {
+      "relative": "source/packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/source/packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "bytes": 58895,
+      "sha256": "86fc0ca5eb6c65dc80a0033d78f5d69766c7f71e8eed118e44d9cfd1e4c230b2",
+      "gitBlob": "c1834b6bd02a98d697b8a635ef5cff6a24421524"
+    },
+    {
+      "relative": "source/packages/wallet-auth/test-r237-principal-completion.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/source/packages/wallet-auth/test-r237-principal-completion.mjs",
+      "bytes": 4835,
+      "sha256": "d7dba8e00e947c6584e09098cb73bfd33cfcba4db975619210423821702498e9",
+      "gitBlob": "7185be0b87c137a78f9d4d04edbdf4f4981945f5"
+    },
+    {
+      "relative": "run-new.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/run-new.mjs",
+      "bytes": 2078,
+      "sha256": "c1feefea823001e67d0eff7d6817022d3fba72038dba0b843dad8cda04f64425",
+      "gitBlob": "2a9c031b7e47c23e7a0da848b0e658c042ad343a"
+    },
+    {
+      "relative": "freeze.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/freeze.mjs",
+      "bytes": 5681,
+      "sha256": "2902590929e493cae71ba9de0133bc12dbda4460e718eb558ec5c65884501438",
+      "gitBlob": "dd2545c993eb124409199cb44c2db289518798ac"
+    },
+    {
+      "relative": "PHYSICAL_PRINCIPAL_COMPLETION.md",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/PHYSICAL_PRINCIPAL_COMPLETION.md",
+      "bytes": 2701,
+      "sha256": "5abb45b36669adf72eb0e5acb03a8d32fa5c85fe02587f64c18656fb12d89da6",
+      "gitBlob": "4d0f2ce29a9ef49b9076423f18255a8a8feebf23"
+    },
+    {
+      "relative": "evidence/fixed-2bVzWO/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-2bVzWO/stdout",
+      "bytes": 1023,
+      "sha256": "bac0414f4c33a1a8f2ca618d20cbe9c97b2decedfde4719bcd07bed08673a3b8",
+      "gitBlob": "20c9e6610522affb2bee6fd2fb9738da7f99144a"
+    },
+    {
+      "relative": "evidence/fixed-2bVzWO/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-2bVzWO/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/fixed-2bVzWO/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-2bVzWO/result.json",
+      "bytes": 226,
+      "sha256": "36af9bf93acaf04603c495bf51689e92695ca69953ce445c7a7bf9c7ed3ecbea",
+      "gitBlob": "6c2ab4290bbe238cfce383e9bf8fa72e9faa2d36"
+    },
+    {
+      "relative": "evidence/fixed-FixEHs/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-FixEHs/stdout",
+      "bytes": 1021,
+      "sha256": "c1f4b6f19a84c5eff2a4360f078560310c98bab78e1157c61042a2e42150e4ea",
+      "gitBlob": "fbc8550adea8045bbd4b0a56ec8a881cb393d0c1"
+    },
+    {
+      "relative": "evidence/fixed-FixEHs/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-FixEHs/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/fixed-FixEHs/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-FixEHs/result.json",
+      "bytes": 226,
+      "sha256": "36af9bf93acaf04603c495bf51689e92695ca69953ce445c7a7bf9c7ed3ecbea",
+      "gitBlob": "6c2ab4290bbe238cfce383e9bf8fa72e9faa2d36"
+    },
+    {
+      "relative": "evidence/fixed-S4AYwx/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-S4AYwx/stdout",
+      "bytes": 508,
+      "sha256": "24e34f407518a11d2326a23ef77a066e3e0644ae21be8d635bb2e69dc3d443fb",
+      "gitBlob": "91665e2d84017ace4ba794111756e661b8d6f724"
+    },
+    {
+      "relative": "evidence/fixed-S4AYwx/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-S4AYwx/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/fixed-S4AYwx/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-S4AYwx/result.json",
+      "bytes": 226,
+      "sha256": "36af9bf93acaf04603c495bf51689e92695ca69953ce445c7a7bf9c7ed3ecbea",
+      "gitBlob": "6c2ab4290bbe238cfce383e9bf8fa72e9faa2d36"
+    },
+    {
+      "relative": "evidence/fixed-nYIkvo/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-nYIkvo/stdout",
+      "bytes": 3232,
+      "sha256": "2cdce475b147e4dc0c91e4e9e28b2f8a8f20a4ced437e4bcd44e8ac2ebcf9ff7",
+      "gitBlob": "98574fcdf49a3a35d240a96311447af9a67481a9"
+    },
+    {
+      "relative": "evidence/fixed-nYIkvo/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-nYIkvo/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/fixed-nYIkvo/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-nYIkvo/result.json",
+      "bytes": 226,
+      "sha256": "85afa3dd18e105b1a7c32bb2258dfdd17bba6e166868e992006e0421ea31d80b",
+      "gitBlob": "a040a24abe16062fe8f617acb73c0e056ea901ec"
+    },
+    {
+      "relative": "evidence/red-gYa3Dk/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/red-gYa3Dk/stdout",
+      "bytes": 2862,
+      "sha256": "26865039716ddf83f7f5ca5d093bb3a86acd532fd24a67f9c2e192da3714121d",
+      "gitBlob": "141f6f71dfe5d65c918cc13f50e6ce1b66524f38"
+    },
+    {
+      "relative": "evidence/red-gYa3Dk/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/red-gYa3Dk/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/red-gYa3Dk/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/red-gYa3Dk/result.json",
+      "bytes": 224,
+      "sha256": "f4b9bf44f35a33980004e5007b6d8f8d9ae3431e298c5dcdad50dc615236952f",
+      "gitBlob": "0046a87a98ec4f7da07ef0b0d21ff4b0cd189022"
+    },
+    {
+      "relative": "evidence/fixed-FixEHs/closed-sdk/test-r237.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/evidence/fixed-FixEHs/closed-sdk/test-r237.mjs",
+      "bytes": 13801,
+      "sha256": "4b848b8a6ddaabc3b565ee8ed3515aa56df8f4f449fa93b3d50921813774caa2",
+      "gitBlob": "8ffa3c89b341182129c8503c7c4924e04f6a8b7a"
+    },
+    {
+      "relative": "SYNTAX.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/SYNTAX.json",
+      "bytes": 736,
+      "sha256": "9e49e9b9cb2f22e27530b63c95e9c5405664de4a239eaeb55f8f616141319109",
+      "gitBlob": "627fea7b0743352fe6660ff8b49385bb64351382"
+    }
+  ],
+  "fixtureOriginalDeclarations": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r227/evidence/transport-BsJMCU/closed-sdk/test-developer-http-principal.mjs",
+    "bytes": 13855,
+    "sha256": "040d57e17e8c0070e6a26bd8d94eccc9ceefafb5086548511105a2a3134400f1",
+    "gitBlob": "a539a872628256b8d1567266599e48ad061ce247"
+  },
+  "newTests": 9,
+  "rawCases": [
+    {
+      "name": "fixed-2bVzWO",
+      "phase": "fixed",
+      "exit": 0,
+      "signal": null,
+      "actualLoopbackHTTP": true,
+      "originalDeviceProof": true,
+      "PUBLICDualPQSource": true,
+      "temporaryBrandSeamOnly": true,
+      "Root": false,
+      "SourceMounted": false,
+      "production": false,
+      "oldGreenRerun": false
+    },
+    {
+      "name": "fixed-FixEHs",
+      "phase": "fixed",
+      "exit": 0,
+      "signal": null,
+      "actualLoopbackHTTP": true,
+      "originalDeviceProof": true,
+      "PUBLICDualPQSource": true,
+      "temporaryBrandSeamOnly": true,
+      "Root": false,
+      "SourceMounted": false,
+      "production": false,
+      "oldGreenRerun": false
+    },
+    {
+      "name": "fixed-S4AYwx",
+      "phase": "fixed",
+      "exit": 0,
+      "signal": null,
+      "actualLoopbackHTTP": true,
+      "originalDeviceProof": true,
+      "PUBLICDualPQSource": true,
+      "temporaryBrandSeamOnly": true,
+      "Root": false,
+      "SourceMounted": false,
+      "production": false,
+      "oldGreenRerun": false
+    },
+    {
+      "name": "fixed-nYIkvo",
+      "phase": "fixed",
+      "exit": 1,
+      "signal": null,
+      "actualLoopbackHTTP": true,
+      "originalDeviceProof": true,
+      "PUBLICDualPQSource": true,
+      "temporaryBrandSeamOnly": true,
+      "Root": false,
+      "SourceMounted": false,
+      "production": false,
+      "oldGreenRerun": false
+    },
+    {
+      "name": "red-gYa3Dk",
+      "phase": "red",
+      "exit": 1,
+      "signal": null,
+      "actualLoopbackHTTP": true,
+      "originalDeviceProof": true,
+      "PUBLICDualPQSource": true,
+      "temporaryBrandSeamOnly": true,
+      "Root": false,
+      "SourceMounted": false,
+      "production": false,
+      "oldGreenRerun": false
+    }
+  ],
+  "final26": "fixed-FixEHs",
+  "final24": "fixed-2bVzWO",
+  "normalProductionCalls": [
+    "Kernel existingDeveloperPrincipal retains original result+opaque credential and checks completion",
+    "same branded handler completion after await",
+    "same original Host completion after await",
+    "same Host physical response writer completion before HTTP200"
+  ],
+  "fences": [
+    "original result identity, not copied DTO",
+    "same opaque original HTTP credential, not session DTO",
+    "same Source active row, signed original journal, protected signer and custody",
+    "after-foreign-read Source local time/liveness",
+    "last successful policy observation/current Host persisted snapshot match; no new policy context",
+    "original proof/session expiry and local monotonic time",
+    "unchanged12field DATA-only response"
+  ],
+  "tests": {
+    "RED": "actual expiry/retire after await returns HTTP200 under exact3 parents",
+    "Node26New": 9,
+    "Node24New": 9,
+    "skip": 0,
+    "oldGreensRerun": false,
+    "realLoopbackHTTP": true,
+    "realOriginalDeviceProof": true,
+    "realPUBLICDualPQMath": true,
+    "temporaryTestBrandNotProduction": true,
+    "syntax": true,
+    "intermediateFailedAssertionRetained": true,
+    "originalCILinux": false
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "localVerified": true,
+    "realRoot": false,
+    "SourceAdmitted": false,
+    "serviceMounted": false,
+    "protocolFieldsChanged": false,
+    "proofReplay": false,
+    "customerKeyRead": false,
+    "NativeRebuilt": false,
+    "installed": false,
+    "deployed": false,
+    "realLogin": false,
+    "FinanceResumed": false
+  },
+  "next": "SDK atomic3-leaf originalCI new/necessary affected only, next matching JS package identity; original A R236 normal C14/7bin/Go122 is independent. Actual Source registration and existing Go service main supplied only by original owners/Root."
+}
