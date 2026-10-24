@@ -275,6 +275,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool) {
 			row.DurableStoreFormat = "block-journal-v2"
 			row.DurableInfoVerified = true
 			row.DurableInfoHeight = h
+			row.DurableInfoAppHash = fmt.Sprintf("%x", info.LastBlockAppHash)
 			if native {
 				row.DurableSnapshotSHA256 = nativeEvidence.SnapshotSHA256
 				row.DurableStoreSHA256 = nativeEvidence.StoreSHA256

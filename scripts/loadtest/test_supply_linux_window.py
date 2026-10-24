@@ -1095,7 +1095,7 @@ class SupplySourceTests(unittest.TestCase):
             for key in ("offered","submitted","checkTxAccepted","effectiveBusinessIncluded","finalSubmitted","terminalHandedBack"):b[key]=8192 if i==0 else 0
             for key in ("rejected","executionFailed","submissionUnknown","timedOut","observationFailed"):b[key]=0
             bins.append(b)
-        timeline=dict(valid=True,invalidRows=0,bucketNs=10**9,windowNs=19*10**9,buckets=bins)
+        timeline=dict(valid=True,invalidRows=0,bucketNs=10**9,windowNs=19*10**9,buckets=bins,clock=dict(originUnixNs="1792800000000000000",samples=3*8192,invalidSamples=0,maximumAbsWallDriftNs=10,valid=True,driftWithin1ms=True))
         ready=client["readySenders"];ready.update(prepared=8192,offered=8192,completed=8192,quarantinedAccounts=0,roundsCompleted=4,peakInFlightAccounts=2048,
             boundedSummary=dict(counts=summary,terminalRecords=8192,invalidLatencyRecords=0,latencyIntervalsNs={},timeSeries=timeline),evidenceBudget=dict(limitBytes=64<<20,attemptedBytes=579,poisoned=False),intentSegments={})
         ready["supply"].update(signAttempts=6144,encodeAttempts=6144,signedSuccessors=6144,journalDurableEnvelopes=8192,terminalSinkAttempts=8192,signNs=1,encodeNs=1,journalAppendNs=1,terminalSinkNs=1,journalSetupNs=1,journalDurableBytes=123,
@@ -1103,10 +1103,10 @@ class SupplySourceTests(unittest.TestCase):
         reader=client["durableReadback"];reader["prefixReplay"]["canonicalByteLimit"]=32<<20
         reader["prefixReplay"]["nativeCloneCache"].update(accounts=2048,feeEvents=8192)
         reader["blockJournalNativeVerificationFacts"].update(successful_verifications=8192,lookups=8192)
-        reader.update(transactionVerifications=8192,observerNativeFacts=dict(enabled=True,lookups=8192,hits=8192,misses=0,fallbackMathVerifications=0,fallbackFailures=0),readerBudget=dict(storeByteLimit=32<<20,cacheInputByteBudget=64<<20,cachedInputBytes=1))
+        reader.update(attempts=1,readerGate=dict(acquisitions=1,waitNs=1,maxWaitNs=1,holdNs=1,maxHoldNs=1),transactionVerifications=8192,observerNativeFacts=dict(enabled=True,lookups=8192,hits=8192,misses=0,fallbackMathVerifications=0,fallbackFailures=0),readerBudget=dict(storeByteLimit=32<<20,cacheInputByteBudget=64<<20,cachedInputBytes=1))
         raw_manifest=json.dumps(dict(migrationStateHash="1"*64,genesisHash="2"*64)).encode()
         fixture=dict(kind="YNX_LOCAL_READY_SENDER_V1",manifestSha256=hashlib.sha256(raw_manifest).hexdigest(),migrationHash="1"*64,genesisHash="2"*64)
-        plan=dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",fixture=fixture,senders=2048,rounds=4,plannedRecords=8192,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=supply.STREAM_BUDGET["timeoutMs"],durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip",initialSignedHashes=[hashlib.sha256(base64.b64decode(t)).hexdigest().upper() for t in initial],nativePrefix=dict(offeredRate=1000,pacingMode="relative",submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True))
+        plan=dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",fixture=fixture,senders=2048,rounds=4,plannedRecords=8192,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=supply.STREAM_BUDGET["timeoutMs"],durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip",initialSignedHashes=[hashlib.sha256(base64.b64decode(t)).hexdigest().upper() for t in initial],nativePrefix=dict(offeredRate=1000,pacingMode="relative",submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True,readerGateTiming=True,clientClockTiming=True,currentInputReuse=False))
         raw_plan=json.dumps(plan).encode();client["streamingWorkload"]=dict(name=plan["profile"],plannedRecords=8192,rounds=4,maxRuntimeMs=supply.STREAM_BUDGET["timeoutMs"],evidenceByteBudget=64<<20,evidenceVerified=True,evidenceReadbackMs=1,planPath=str(network/"transactions-result.json.streaming-plan.json"),planSha256=hashlib.sha256(raw_plan).hexdigest())
         client["terminalStream"]=dict(encoding="gzip")
         proof=dict(rowMetrics=metrics,intents=dict(bytes=123),terminal=dict(bytes=456),networkQualified=False)
@@ -1133,6 +1133,13 @@ class SupplySourceTests(unittest.TestCase):
                 if field=='timeoutMs':bad[field]=value
                 else:bad['streamingWorkload'][field]=value
                 with self.subTest(field=field,value=value),self.assertRaises(RuntimeError):check(bad)
+        for field,value in (('readerGateTiming',False),('clientClockTiming',False),('currentInputReuse',None),('currentInputReuse',1),('unknownBackend',True)):
+            bad_plan=copy.deepcopy(plan);bad_plan['nativePrefix'][field]=value
+            changed_raw=json.dumps(bad_plan).encode();bad=copy.deepcopy(client)
+            bad['streamingWorkload']['planSha256']=hashlib.sha256(changed_raw).hexdigest()
+            def changed_capture(path,limit):return changed_raw if str(path).endswith('streaming-plan.json') else capture(path,limit)
+            with self.subTest(field=field,value=value),patch.object(supply.stream_evidence,'capture',side_effect=changed_capture),self.assertRaises(RuntimeError):
+                supply.validate_native_stream_report(bad,network)
         remote=copy.deepcopy(client);remote_root=Path("/tmp/original-runner/ynx-linux-supply-case/network")
         remote["streamingWorkload"]["planPath"]=str(remote_root/"transactions-result.json.streaming-plan.json")
         with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:

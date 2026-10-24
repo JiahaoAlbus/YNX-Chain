@@ -189,7 +189,7 @@ class NodeCompletionJoinTests(unittest.TestCase):
         for name,offset in [('finalizeReturned',2000000000),('commitReturned',2100000000)]:
             point[name]=dict(unixNs=str(origin+offset),elapsedNs=offset,wallDriftNs=0)
         phases=[dict(blockExecutionClock=dict(originUnixNs=str(origin),maximumAbsWallDriftNs=30,driftWithin1ms=True,completeCommitCoverage=True,completeBlockHashCoverage=True,blocks=[copy.deepcopy(point)])) for _ in range(4)]
-        row=dict(status='confirmed',checkTxCode=0,executionCode=0,quorumVerified=True,transactionProofVerified=True,durableStateVerified=True,durableInfoVerified=True,height=3,durableStateHeight=3,durableInfoHeight=3,endpoint='node0',blockHash='A'*64,durableStateAppHash='B'*64,durableInfoAppHash='B'*64,headerAppHash='c'*64,blockTxTotal=2,blockTxIndex=0,offeredAt='2026-10-24T00:00:01.000000001Z',submittedAt='2026-10-24T00:00:01.1Z',confirmedObservedAt='2026-10-24T00:00:02.2Z')
+        row=dict(status='confirmed',checkTxCode=0,executionCode=0,checkTxIdentityVerified=True,quorumVerified=True,transactionProofVerified=True,durableStateVerified=True,durableInfoVerified=True,height=3,durableStateHeight=3,durableInfoHeight=3,endpoint='node0',blockHash='A'*64,durableStateAppHash='B'*64,durableInfoAppHash='B'*64,headerAppHash='c'*64,blockTxTotal=2,blockTxIndex=0,offeredAt='2026-10-24T00:00:01.000000001Z',submittedAt='2026-10-24T00:00:01.1Z',confirmedObservedAt='2026-10-24T00:00:02.2Z')
         return ['node'+str(i) for i in range(4)],phases,dict(clock=clock),row
     def test_exact_nanoseconds_and_current_post_state_not_prior_header(self):
         endpoints,phases,timeline,row=self.fixture()
@@ -225,5 +225,20 @@ class NodeCompletionJoinTests(unittest.TestCase):
             with self.subTest(at=at),self.assertRaises(RuntimeError):evidence.utc_nanoseconds(at)
         endpoints,phases,timeline,row=self.fixture();phases[0]['blockExecutionClock']['blocks'][0]['commitReturned']['elapsedNs']+=1
         with self.assertRaises(RuntimeError):evidence.NodeCompletionJoin(endpoints,phases,timeline,1)
+    def test_advanced_info_and_state_match_their_own_node_height_hash(self):
+        endpoints,phases,timeline,row=self.fixture();origin=int(timeline['clock']['originUnixNs'])
+        for phase in phases:
+            point=copy.deepcopy(phase['blockExecutionClock']['blocks'][0])
+            point.update(height=4,blockHash='e'*64,appHash='d'*64,transactions=0,codeZeroTransactions=0)
+            for name,offset in [('finalizeReturned',2150000000),('commitReturned',2160000000)]:point[name]=dict(unixNs=str(origin+offset),elapsedNs=offset,wallDriftNs=0)
+            phase['blockExecutionClock']['blocks'].append(point)
+        row.update(durableInfoHeight=4,durableInfoAppHash='D'*64)
+        join=evidence.NodeCompletionJoin(endpoints,phases,timeline,1);join.add(row)
+        self.assertEqual(join.result()['publishedInfoAheadRows'],1)
+        for changed in (dict(durableInfoHeight=2),dict(durableInfoAppHash='B'*64),dict(durableInfoHeight=True)):
+            with self.subTest(changed=changed),self.assertRaises(RuntimeError):evidence.NodeCompletionJoin(endpoints,phases,timeline,1).add(dict(row,**changed))
+        row.update(durableStateHeight=4,durableStateAppHash='D'*64)
+        join=evidence.NodeCompletionJoin(endpoints,phases,timeline,1);join.add(row)
+        self.assertEqual(join.result()['durableStateAheadRows'],1)
 
 if __name__=='__main__':unittest.main()

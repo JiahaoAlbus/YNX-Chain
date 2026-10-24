@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "runId": 40044977213,
+  "sourceCommit": "7c4cac62a6e434d2ee7eb6c3793421c95a3035b7",
+  "diagnosticSource": "uncommitted-plan-and-publication-fix; exact reader SHA retained",
+  "originalNativePairQualified": false,
+  "originalConsumerRejected": true,
+  "originalConsumerFirstCause": "stream durable plan/report differs: maxRuntimeMs",
+  "posthocCorrectedReadback": true,
+  "correctedController": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-current-input-pair-source-7c4cac62a/diagnostic-readers-publication-fix/supply-linux-window.py",
+    "bytes": 168274,
+    "sha256": "a188948e20f92560ea2d84d6fdccbd2917fc3c70c0b539076d67b065f2d059b2"
+  },
+  "originalReceiptSHA256": "7467bd4568d8bc89b008c6fd15dba979f9efedaf93de95ef5e81e8d0adf1aa32",
+  "originalClientSHA256": "3ad925f66d3bbe431c511e155eb4aa699888a3e5a95081719d936623a69a0c7b",
+  "reader": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-current-input-pair-source-7c4cac62a/diagnostic-readers-publication-fix/native-stream-evidence.py",
+    "bytes": 31164,
+    "sha256": "bc7046c4d62cd3cd5e123924dcfa2929245fa9fc5176de82f64fe6d9da78a995"
+  },
+  "nodeLogs": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-current-input-pair-run-40044977213/capture/before-native-input-separate/abci-0.log",
+      "bytes": 83572,
+      "sha256": "3320cff1661a8b2c8e4cec4e856a778828f4a7adbf0f609cb0b3340b418cbb46"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-current-input-pair-run-40044977213/capture/before-native-input-separate/abci-1.log",
+      "bytes": 83554,
+      "sha256": "405f7067c5ea13ca204da1ab3935ec85b4fd18d4e8f8c810cd5dfcc2ab598048"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-current-input-pair-run-40044977213/capture/before-native-input-separate/abci-2.log",
+      "bytes": 83534,
+      "sha256": "008bb23fa867aa767e562a0580423b3694415cdfcd714fe5c29de09535a2c652"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-current-input-pair-run-40044977213/capture/before-native-input-separate/abci-3.log",
+      "bytes": 83543,
+      "sha256": "7a5c1ffec93f026561750d11fd9b79aae6ef4668f0c8434affba8ec94916cf40"
+    }
+  ],
+  "join": {
+    "records": 8192,
+    "publishedInfoAheadRows": 46,
+    "durableStateAheadRows": 0,
+    "maximumCalibrationErrorBoundNs": 12589,
+    "nodeCompletionLatencyIntervalsNs": {
+      "offerToNodeFinalizeReturn": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 342291878,
+        "maximumUpperBoundNs": 2457813562,
+        "p50": {
+          "lowerNs": 1031974822,
+          "upperNs": 1032999999
+        },
+        "p95": {
+          "lowerNs": 1479974822,
+          "upperNs": 1480999999
+        },
+        "p99": {
+          "lowerNs": 1827974822,
+          "upperNs": 1828999999
+        }
+      },
+      "offerToNodeDurableCommitReturn": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 394122464,
+        "maximumUpperBoundNs": 2500551392,
+        "p50": {
+          "lowerNs": 1082974822,
+          "upperNs": 1083999999
+        },
+        "p95": {
+          "lowerNs": 1531974822,
+          "upperNs": 1532999999
+        },
+        "p99": {
+          "lowerNs": 1876974822,
+          "upperNs": 1877999999
+        }
+      },
+      "nodeCommitToClientFinalObservation": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 164569140,
+        "maximumUpperBoundNs": 781319180,
+        "p50": {
+          "lowerNs": 397974822,
+          "upperNs": 398999999
+        },
+        "p95": {
+          "lowerNs": 571974822,
+          "upperNs": 572999999
+        },
+        "p99": {
+          "lowerNs": 615974822,
+          "upperNs": 616999999
+        }
+      }
+    },
+    "independentSameVMAdmission": false,
+    "independentBFTVerification": false,
+    "bftQuorumFormationInstantMeasured": false,
+    "networkQualified": false,
+    "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+  },
+  "originalSignedTerminalIdentity": {
+    "members": 256,
+    "sha256": "6afff753b82ca37f2abd5e2f70dc490afa3e29b167dfa192f888cef129c098fb",
+    "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+  },
+  "networkQualified": false,
+  "sustainedTPSQualified": false
+}

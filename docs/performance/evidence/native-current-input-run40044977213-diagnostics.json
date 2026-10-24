@@ -1,0 +1,733 @@
+{
+  "schema": 1,
+  "runId": 40044977213,
+  "sourceCommit": "7c4cac62a6e434d2ee7eb6c3793421c95a3035b7",
+  "originalNativePairQualified": false,
+  "secondCaseActivated": false,
+  "posthocCompleteOriginalSignedTerminalReadback": true,
+  "posthocDiagnosticReaderSHA256": "bc7046c4d62cd3cd5e123924dcfa2929245fa9fc5176de82f64fe6d9da78a995",
+  "originalFirstCause": "stream durable plan/report differs: maxRuntimeMs",
+  "reportedSummary": {
+    "input": 8192,
+    "offered": 8192,
+    "submitted": 8192,
+    "checkTxResponses": 8192,
+    "checkTxAccepted": 8192,
+    "checkTxRejected": 0,
+    "checkTxUnverifiedResponses": 0,
+    "includedCodeZero": 8192,
+    "effectiveBusinessIncluded": 8192,
+    "executionFailed": 0,
+    "quorumConfirmed": 8192,
+    "finalSubmitted": 8192,
+    "submissionUnknown": 0,
+    "timedOut": 0,
+    "observationFailed": 0,
+    "notSubmitted": 0,
+    "errorOccurrences": 58640,
+    "measurementWindowSeconds": 29.396732799,
+    "rpcSubmissionsPerMeasurementSecond": 278.67042422750706,
+    "checkTxAcceptedPerMeasurementSecond": 278.67042422750706,
+    "codeZeroIncludedPerMeasurementSecond": 278.67042422750706,
+    "effectiveBusinessIncludedPerMeasurementSecond": 278.67042422750706,
+    "quorumConfirmedPerMeasurementSecond": 278.67042422750706,
+    "finalSubmittedPerMeasurementSecond": 278.67042422750706,
+    "offeredEventSpanSeconds": 27.600004153,
+    "offeredInterarrivalRate": 296.77531766275746,
+    "submissionEventSpanSeconds": 27.647140155,
+    "submissionInterarrivalRate": 296.2693412077435,
+    "steadyStateEffectiveTPS": null,
+    "validInclusionBlocks": {
+      "blocks": null,
+      "completeObservedBlockCoverage": false,
+      "activeOfferInteriorIntervals": 0,
+      "activeOfferInteriorTransactions": 0,
+      "activeOfferInteriorSeconds": 0,
+      "activeOfferInteriorEffectiveTPS": null,
+      "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+    },
+    "submissionQueueDelayMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "checkTxLatencyMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "inclusionLatencyMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "effectiveBusinessInclusionLatencyMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    },
+    "confirmationLatencyMs": {
+      "samples": 8192,
+      "p50": null,
+      "p95": null,
+      "p99": null
+    }
+  },
+  "originalResultSHA256": "3ad925f66d3bbe431c511e155eb4aa699888a3e5a95081719d936623a69a0c7b",
+  "originalReportedCountersMatchPartialReceipt": true,
+  "completeTerminalStatuses": {
+    "confirmed": 8192
+  },
+  "clientObservedLatencies": {
+    "records": 8192,
+    "latencyIntervalsNs": {
+      "queue": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 5749,
+        "maxNs": 1050222640,
+        "p50": {
+          "valid": true,
+          "lowerNs": 5749,
+          "upperNs": 999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 380000000,
+          "upperNs": 380999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 620000000,
+          "upperNs": 620999999,
+          "overflow": false
+        }
+      },
+      "checkTx": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 478596,
+        "maxNs": 301831575,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1000000,
+          "upperNs": 1999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 90000000,
+          "upperNs": 90999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 147000000,
+          "upperNs": 147999999,
+          "overflow": false
+        }
+      },
+      "authenticatedInclusion": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 288513024,
+        "maxNs": 1977961954,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1182000000,
+          "upperNs": 1182999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 1626000000,
+          "upperNs": 1626999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 1920000000,
+          "upperNs": 1920999999,
+          "overflow": false
+        }
+      },
+      "effectiveBusinessInclusion": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 288513024,
+        "maxNs": 1977961954,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1182000000,
+          "upperNs": 1182999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 1626000000,
+          "upperNs": 1626999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 1920000000,
+          "upperNs": 1920999999,
+          "overflow": false
+        }
+      },
+      "final": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 599690866,
+        "maxNs": 2086672740,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1473000000,
+          "upperNs": 1473999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 1875000000,
+          "upperNs": 1875999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 2024000000,
+          "upperNs": 2024999999,
+          "overflow": false
+        }
+      },
+      "offerToFinal": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 599709224,
+        "maxNs": 2964749283,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1494000000,
+          "upperNs": 1494999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 2008000000,
+          "upperNs": 2008999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 2313000000,
+          "upperNs": 2313999999,
+          "overflow": false
+        }
+      }
+    },
+    "stageGapIntervalsNs": {
+      "queue": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 5749,
+        "maxNs": 1050222640,
+        "p50": {
+          "valid": true,
+          "lowerNs": 5749,
+          "upperNs": 999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 380000000,
+          "upperNs": 380999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 620000000,
+          "upperNs": 620999999,
+          "overflow": false
+        }
+      },
+      "checkTx": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 478596,
+        "maxNs": 301831575,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1000000,
+          "upperNs": 1999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 90000000,
+          "upperNs": 90999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 147000000,
+          "upperNs": 147999999,
+          "overflow": false
+        }
+      },
+      "checkToObservedInclusion": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 287222063,
+        "maxNs": 1945655526,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1166000000,
+          "upperNs": 1166999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 1619000000,
+          "upperNs": 1619999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 1919000000,
+          "upperNs": 1919999999,
+          "overflow": false
+        }
+      },
+      "observedInclusionToFinal": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 4001488,
+        "maxNs": 716112958,
+        "p50": {
+          "valid": true,
+          "lowerNs": 278000000,
+          "upperNs": 278999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 509000000,
+          "upperNs": 509999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 715000000,
+          "upperNs": 715999999,
+          "overflow": false
+        }
+      }
+    },
+    "offerLatencyIntervalsNs": {
+      "offerToEffectiveBusinessInclusion": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 372137368,
+        "maxNs": 2576971117,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1219000000,
+          "upperNs": 1219999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 1687000000,
+          "upperNs": 1687999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 2119000000,
+          "upperNs": 2119999999,
+          "overflow": false
+        }
+      },
+      "offerToFinal": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minNs": 599709224,
+        "maxNs": 2964749283,
+        "p50": {
+          "valid": true,
+          "lowerNs": 1494000000,
+          "upperNs": 1494999999,
+          "overflow": false
+        },
+        "p95": {
+          "valid": true,
+          "lowerNs": 2008000000,
+          "upperNs": 2008999999,
+          "overflow": false
+        },
+        "p99": {
+          "valid": true,
+          "lowerNs": 2313000000,
+          "upperNs": 2313999999,
+          "overflow": false
+        }
+      }
+    },
+    "queueWaitNs": 517970470927,
+    "peakQueueWaitNs": 1050222640,
+    "callbackReturnNs": 149508294296,
+    "callbackSamples": 8192
+  },
+  "nodeCompletion": {
+    "records": 8192,
+    "publishedInfoAheadRows": 46,
+    "durableStateAheadRows": 0,
+    "maximumCalibrationErrorBoundNs": 12589,
+    "nodeCompletionLatencyIntervalsNs": {
+      "offerToNodeFinalizeReturn": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 342291878,
+        "maximumUpperBoundNs": 2457813562,
+        "p50": {
+          "lowerNs": 1031974822,
+          "upperNs": 1032999999
+        },
+        "p95": {
+          "lowerNs": 1479974822,
+          "upperNs": 1480999999
+        },
+        "p99": {
+          "lowerNs": 1827974822,
+          "upperNs": 1828999999
+        }
+      },
+      "offerToNodeDurableCommitReturn": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 394122464,
+        "maximumUpperBoundNs": 2500551392,
+        "p50": {
+          "lowerNs": 1082974822,
+          "upperNs": 1083999999
+        },
+        "p95": {
+          "lowerNs": 1531974822,
+          "upperNs": 1532999999
+        },
+        "p99": {
+          "lowerNs": 1876974822,
+          "upperNs": 1877999999
+        }
+      },
+      "nodeCommitToClientFinalObservation": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 164569140,
+        "maximumUpperBoundNs": 781319180,
+        "p50": {
+          "lowerNs": 397974822,
+          "upperNs": 398999999
+        },
+        "p95": {
+          "lowerNs": 571974822,
+          "upperNs": 572999999
+        },
+        "p99": {
+          "lowerNs": 615974822,
+          "upperNs": 616999999
+        }
+      }
+    },
+    "independentSameVMAdmission": false,
+    "independentBFTVerification": false,
+    "bftQuorumFormationInstantMeasured": false,
+    "networkQualified": false,
+    "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+  },
+  "nodeCompletionEvidenceSHA256": "85e6222de6465a15a497269727233280d637e7abb0e16e85b07ea27d0b0cfb5f",
+  "commitBusinessHeights": 34,
+  "commitDistributions": {
+    "commit": {
+      "samples": 136,
+      "meanMs": 38.678526544117645,
+      "p50Ms": 32.36598,
+      "p95Ms": 93.798308,
+      "p99Ms": 165.578282
+    },
+    "close_file": {
+      "samples": 136,
+      "meanMs": 0.010272632352941177,
+      "p50Ms": 0.008603,
+      "p95Ms": 0.019379,
+      "p99Ms": 0.037316
+    },
+    "delta_encode": {
+      "samples": 136,
+      "meanMs": 0.17177698529411764,
+      "p50Ms": 0.145238,
+      "p95Ms": 0.296494,
+      "p99Ms": 0.984693
+    },
+    "file_sync": {
+      "samples": 136,
+      "meanMs": 5.006999389705882,
+      "p50Ms": 0.52099,
+      "p95Ms": 57.984006,
+      "p99Ms": 70.972004
+    },
+    "journal_maintenance": {
+      "samples": 136,
+      "meanMs": 4.919478948529412,
+      "p50Ms": 0.087301,
+      "p95Ms": 47.852666,
+      "p99Ms": 125.48528
+    },
+    "prepare_file": {
+      "samples": 136,
+      "meanMs": 0.23632669852941177,
+      "p50Ms": 0.033099,
+      "p95Ms": 0.087902,
+      "p99Ms": 12.596088
+    },
+    "validate": {
+      "samples": 136,
+      "meanMs": 28.151286661764708,
+      "p50Ms": 27.981912,
+      "p95Ms": 48.93151,
+      "p99Ms": 66.491087
+    },
+    "write": {
+      "samples": 136,
+      "meanMs": 0.16178367647058822,
+      "p50Ms": 0.144216,
+      "p95Ms": 0.28722,
+      "p99Ms": 0.590544
+    },
+    "validate.app_hash": {
+      "samples": 136,
+      "meanMs": 18.02548113235294,
+      "p50Ms": 17.55214,
+      "p95Ms": 33.304757,
+      "p99Ms": 38.827594
+    },
+    "validate.semantics": {
+      "samples": 136,
+      "meanMs": 10.04566044852941,
+      "p50Ms": 9.303397,
+      "p95Ms": 17.236866,
+      "p99Ms": 30.547197
+    }
+  },
+  "reader": {
+    "readerGate": {
+      "acquisitions": 134,
+      "waitNs": 13078973187,
+      "maxWaitNs": 394960662,
+      "holdNs": 12589858882,
+      "maxHoldNs": 406463039
+    },
+    "observerNativeFacts": {
+      "enabled": true,
+      "lookups": 8192,
+      "hits": 8192,
+      "misses": 0,
+      "fallbackMathVerifications": 0,
+      "fallbackFailures": 0
+    },
+    "prefixReplay": {
+      "calls": 113,
+      "successfulFullReplays": 3,
+      "successfulPrefixReuses": 110,
+      "failures": 0,
+      "durationNs": 10888265486,
+      "replayedBlocks": 36,
+      "replayedTransactionInputs": 8192,
+      "canonicalByteLimit": 33554432,
+      "workPhases": {
+        "gateWait": {
+          "calls": 113,
+          "errors": 0,
+          "durationNs": 165847
+        },
+        "prefixCheck": {
+          "calls": 113,
+          "errors": 0,
+          "durationNs": 215755002
+        },
+        "privateJSON": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "privateValidate": {
+          "calls": 110,
+          "errors": 0,
+          "durationNs": 2422140245
+        },
+        "fullReplay": {
+          "calls": 3,
+          "errors": 0,
+          "durationNs": 749684401
+        },
+        "suffixSetup": {
+          "calls": 31,
+          "errors": 0,
+          "durationNs": 777618345
+        },
+        "suffixReplay": {
+          "calls": 31,
+          "errors": 0,
+          "durationNs": 3294943975
+        },
+        "suffixEncode": {
+          "calls": 31,
+          "errors": 0,
+          "durationNs": 929151981
+        },
+        "canonicalCopy": {
+          "calls": 79,
+          "errors": 0,
+          "durationNs": 63899842
+        },
+        "certificatePublish": {
+          "calls": 34,
+          "errors": 0,
+          "durationNs": 1831528740
+        },
+        "privateNativeClone": {
+          "calls": 110,
+          "errors": 0,
+          "durationNs": 600907758
+        }
+      },
+      "nativeCloneCache": {
+        "snapshotPresent": true,
+        "canonicalBytes": 6953904,
+        "height": 37,
+        "accounts": 2056,
+        "feeEvents": 8192,
+        "lotEntries": 6144
+      }
+    },
+    "phaseTotalsNs": {
+      "loadNs": 12570790025,
+      "hashNs": 320531820,
+      "captureNs": 770817248,
+      "decodeNs": 10889661781,
+      "indexPublishNs": 513159611,
+      "transactionVerifyNs": 18168707
+    },
+    "attempts": 134,
+    "bytesHashed": 411842304,
+    "snapshotValidations": 113,
+    "snapshotCacheHits": 9,
+    "transactionVerifications": 8192,
+    "blockJournalReplayedBlocks": 36,
+    "blockJournalReplayedTransactionInputs": 8192,
+    "readerBudget": {
+      "storeByteLimit": 33554432,
+      "cacheInputByteBudget": 67108864,
+      "cachedInputBytes": 21781316,
+      "evictions": 0
+    },
+    "blockJournalNativeVerificationFacts": {
+      "capacity": 4096,
+      "string_byte_limit": 4194304,
+      "entries": 4096,
+      "retained_string_bytes": 2920212,
+      "lookups": 8192,
+      "hits": 0,
+      "successful_verifications": 8192
+    }
+  },
+  "supply": {
+    "completionWaitAttempts": 7,
+    "completionWaitNs": 1559519306,
+    "completionSupplyWaitAttempts": 0,
+    "completionSupplyWaitNs": 0,
+    "completionDrainWaitAttempts": 7,
+    "completionDrainWaitNs": 1559519306,
+    "completionFailureWaitAttempts": 0,
+    "completionFailureWaitNs": 0,
+    "terminalSinkAttempts": 8192,
+    "terminalSinkNs": 1285252480,
+    "offerDecodeAttempts": 8192,
+    "offerDecodeNs": 141226657,
+    "pacingWaitAttempts": 8192,
+    "pacingWaitNs": 22343001206,
+    "pacingFutureTargetAttempts": 7022,
+    "pacingAlreadyDueAttempts": 1170,
+    "pacingPositiveRemainingNs": 4586555937,
+    "pacingWakeLatenessNs": 17756079709,
+    "pacingMaxWakeLatenessNs": 49659742,
+    "pacingCatchupTargets": 970,
+    "pacingCadenceResets": 1203,
+    "pacingPeakCatchupTargets": 3,
+    "dispatchAttempts": 8192,
+    "dispatchNs": 3565609,
+    "signAttempts": 6144,
+    "signNs": 779654499,
+    "encodeAttempts": 6144,
+    "encodeNs": 1523941994,
+    "signedSuccessors": 6144,
+    "journalSetupNs": 191767,
+    "journalAppendAttempts": 128,
+    "journalAppendNs": 1696129656,
+    "journalDurableEnvelopes": 8192,
+    "journalDurableBytes": 5668105
+  },
+  "processCPU": {
+    "available": true,
+    "samples": 2,
+    "userNs": 20370826000,
+    "systemNs": 888110000,
+    "totalNs": 21258936000,
+    "measurementWallNs": 29396732799,
+    "sampleBracketWallNs": 29396740820,
+    "sampleBracketOverheadNs": 8021,
+    "cpuPercentOfOneCore": 72.3173229650565,
+    "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+  },
+  "resourcePeaks": {
+    "rssBytes": 1042063360,
+    "threads": 68,
+    "privateBytes": 133250778,
+    "buildBytes": 119092056
+  },
+  "hardware": {
+    "uname": [
+      "Linux",
+      "runnervm8k3b6",
+      "6.17.0-1022-azure",
+      "#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+      "x86_64",
+      "x86_64"
+    ],
+    "cpuCount": 4,
+    "meminfo": "MemTotal:       16373452 kB\nMemFree:         9361720 kB\nMemAvailable:   15261036 kB\nBuffers:          185380 kB\nCached:          5836668 kB\nSwapCached:            0 kB\nActive:           994992 kB\nInactive:        5342884 kB\nActive(anon):     377280 kB\nInactive(anon):        0 kB\nActive(file):     617712 kB\nInactive(file):  5342884 kB\nUnevictable:       46728 kB\nMlocked:           43656 kB\nSwapTotal:       3145724 kB\nSwapFree:        3145724 kB\nZswap:                 0 kB\nZswapped:              0 kB\nDirty:            270676 kB\nWriteback:             0 kB\nAnonPages:        339200 kB\nMapped:           325364 kB\nShmem:             52720 kB\nKReclaimable:     284672 kB\nSlab:             384568 kB\nSReclaimable:     284672 kB\nSUnreclaim:        99896 kB\nKernelStack:        4016 kB\nPageTables:         6540 kB\nSecPageTables:         0 kB\nNFS_Unstable:          0 kB\nBounce:                0 kB\nWritebackTmp:          0 kB\nCommitLimit:    11332448 kB\nCommitted_AS:    2043264 kB\nVmallocTotal:   34359738367 kB\nVmallocUsed:       39328 kB\nVmallocChunk:          0 kB\nPercpu:             2256 kB\nHardwareCorrupted:     0 kB\nAnonHugePages:    137216 kB\nShmemHugePages:        0 kB\nShmemPmdMapped:        0 kB\nFileHugePages:      2048 kB\nFilePmdMapped:         0 kB\nCmaTotal:              0 kB\nCmaFree:               0 kB\nUnaccepted:            0 kB\nBalloon:               0 kB\nHugePages_Total:       0\nHugePages_Free:        0\nHugePages_Rsvd:        0\nHugePages_Surp:        0\nHugepagesize:       2048 kB\nHugetlb:               0 kB\nDirectMap4k:      124032 kB\nDirectMap2M:     4065280 kB\nDirectMap1G:    14680064 kB\n",
+    "cpuinfo": "processor\t: 0\nvendor_id\t: AuthenticAMD\ncpu family\t: 25\nmodel\t\t: 17\nmodel name\t: AMD EPYC 9V74 80-Core Processor\nstepping\t: 1\nmicrocode\t: 0xffffffff\ncpu MHz\t\t: 3714.997\ncache size\t: 1024 KB\nphysical id\t: 0\nsiblings\t: 4\ncore id\t\t: 0\ncpu cores\t: 2\napicid\t\t: 0\ninitial apicid\t: 0\nfpu\t\t: yes\nfpu_exception\t: yes\ncpuid level\t: 28\nwp\t\t: yes\nflags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves user_shstk avx512_bf16 clzero xsaveerptr rdpru arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm\nbugs\t\t: sysret_ss_attrs null_seg spectre_v1 spectre_v2 spec_store_bypass srso spectre_v2_user tsa\nbogomips\t: 5192.28\nTLB size\t: 3584 4K pages\nclflush size\t: 64\ncache_alignment\t: 64\naddress sizes\t: 48 bits physical, 48 bits virtual\npower management:\n\nprocessor\t: 1\nvendor_id\t: AuthenticAMD\ncpu family\t: 25\nmodel\t\t: 17\nmodel name\t: AMD EPYC 9V74 80-Core Processor\nstepping\t: 1\nmicrocode\t: 0xffffffff\ncpu MHz\t\t: 3694.443\ncache size\t: 1024 KB\nphysical id\t: 0\nsiblings\t: 4\ncore id\t\t: 0\ncpu cores\t: 2\napicid\t\t: 1\ninitial apicid\t: 1\nfpu\t\t: yes\nfpu_exception\t: yes\ncpuid level\t: 28\nwp\t\t: yes\nflags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves user_shstk avx512_bf16 clzero xsaveerptr rdpru arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm\nbugs\t\t: sysret_ss_attrs null_seg spectre_v1 spectre_v2 spec_store_bypass srso spectre_v2_user tsa\nbogomips\t: 5192.28\nTLB size\t: 3584 4K pages\nclflush size\t: 64\ncache_alignment\t: 64\naddress sizes\t: 48 bits physical, 48 bits virtual\npower management:\n\nprocessor\t: 2\nvendor_id\t: AuthenticAMD\ncpu family\t: 25\nmodel\t\t: 17\nmodel name\t: AMD EPYC 9V74 80-Core Processor\nstepping\t: 1\nmicrocode\t: 0xffffffff\ncpu MHz\t\t: 3697.611\ncache size\t: 1024 KB\nphysical id\t: 0\nsiblings\t: 4\ncore id\t\t: 1\ncpu cores\t: 2\napicid\t\t: 2\ninitial apicid\t: 2\nfpu\t\t: yes\nfpu_exception\t: yes\ncpuid level\t: 28\nwp\t\t: yes\nflags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves user_shstk avx512_bf16 clzero xsaveerptr rdpru arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm\nbugs\t\t: sysret_ss_attrs null_seg spectre_v1 spectre_v2 spec_store_bypass srso spectre_v2_user tsa\nbogomips\t: 5192.28\nTLB size\t: 3584 4K pages\nclflush size\t: 64\ncache_alignment\t: 64\naddress sizes\t: 48 bits physical, 48 bits virtual\npower management:\n\nprocessor\t: 3\nvendor_id\t: AuthenticAMD\ncpu family\t: 25\nmodel\t\t: 17\nmodel name\t: AMD EPYC 9V74 80-Core Processor\nstepping\t: 1\nmicrocode\t: 0xffffffff\ncpu MHz\t\t: 3659.841\ncache size\t: 1024 KB\nphysical id\t: 0\nsiblings\t: 4\ncore id\t\t: 1\ncpu cores\t: 2\napicid\t\t: 3\ninitial apicid\t: 3\nfpu\t\t: yes\nfpu_exception\t: yes\ncpuid level\t: 28\nwp\t\t: yes\nflags\t\t: fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves user_shstk avx512_bf16 clzero xsaveerptr rdpru arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm\nbugs\t\t: sysret_ss_attrs null_seg spectre_v1 spectre_v2 spec_store_bypass srso spectre_v2_user tsa\nbogomips\t: 5192.28\nTLB size\t: 3584 4K pages\nclflush size\t: 64\ncache_alignment\t: 64\naddress sizes\t: 48 bits physical, 48 bits virtual\npower management:\n\n"
+  },
+  "sustainedTPSQualified": false,
+  "interpretation": "Original case and pair remain rejected by frozen reader; corrected offline complete signed/terminal and node-point joins are diagnostics, not retroactive original native qualification or cache A/B benefit. All cumulative phases overlap. Node transaction-height Commit return is not earliest quorum formation. Finite8192 cache-off case does not prove sustained1000TPS/600s."
+}

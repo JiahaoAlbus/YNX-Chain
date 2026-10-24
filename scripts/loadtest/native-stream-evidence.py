@@ -116,6 +116,22 @@ def verify_bounded_latency(measured,bounded):
     return measured
 
 
+def qualified_terminal_publication(row):
+    """Mirror original Go qualifiedBusinessFinal/verifyJournalPublishedState.
+
+    Published Info may advance while the reader verifies an earlier committed
+    state. Equal height requires equal AppHash; a later Info hash belongs to its
+    own height and must never be relabeled as the earlier post-state hash.
+    """
+    need(row.get('status')=='confirmed' and type(row.get('checkTxCode')) is int and row['checkTxCode']==0 and type(row.get('executionCode')) is int and row['executionCode']==0 and all(row.get(k) is True for k in ('checkTxIdentityVerified','quorumVerified','transactionProofVerified','durableStateVerified','durableInfoVerified')),'terminal is not a reported qualified business final')
+    height,state,info=(row.get(k) for k in ('height','durableStateHeight','durableInfoHeight'))
+    need(integer(height,1,2**63-1) and integer(state,height,2**63-1) and integer(info,state,2**63-1),'terminal durable publication height regressed')
+    hashes=[row.get(k) for k in ('durableStateAppHash','durableInfoAppHash')]
+    need(all(type(h) is str and re.fullmatch('[0-9a-fA-F]{64}',h) is not None for h in hashes),'terminal publication AppHash malformed')
+    if state==info:need(hashes[0].lower()==hashes[1].lower(),'same-height published AppHash differs')
+    return height,state,info
+
+
 def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial,intents,terminal,latest,rounds,evidence_limit,measure_latency=False,node_completion_join=None):
     need(node_completion_join is None or isinstance(node_completion_join,NodeCompletionJoin),'original node completion join type differs')
     fold=LatencyFold() if measure_latency else None
@@ -180,7 +196,7 @@ def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial
                 need(len(line)<=ROW_LIMIT,'terminal row byte bound');row=strict_json(line)
                 need(set(row)=={'sequence','previousSha256','result'} and type(row['sequence']) is int and row['sequence']==sequence and row['previousSha256']==chain,'terminal row hash/sequence differs')
                 r=row['result'];need(isinstance(r,dict) and integer(r.get('index'),0,total-1) and type(r.get('round')) is int and r['round']==r['index']//senders+1 and r['round']==last[r['index']%senders]+1,'terminal sender nonce coverage differs')
-                need(r.get('status')=='confirmed' and type(r.get('checkTxCode')) is int and r['checkTxCode']==0 and type(r.get('executionCode')) is int and r['executionCode']==0 and all(r.get(k) is True for k in ('checkTxIdentityVerified','quorumVerified','transactionProofVerified','durableStateVerified','durableInfoVerified')) and type(r.get('height')) is int and r['height']>0 and type(r.get('durableStateHeight')) is int and r['durableStateHeight']==r['height'] and type(r.get('durableInfoHeight')) is int and r['durableInfoHeight']==r['height'],'terminal is not a reported qualified business final')
+                qualified_terminal_publication(r)
                 chain=digest(line);last[r['index']%senders]=r['round'];sequence+=1;batch.append(r)
             seal=strict_json(lines[-1]);need(set(seal)=={'kind','records','chainSha256'} and seal['kind']=='YNX_LOCAL_TERMINAL_SEAL_V1' and type(seal['records']) is int and seal['records']==len(batch) and seal['chainSha256']==chain,'terminal seal differs')
             yield from batch
@@ -271,7 +287,7 @@ class NodeCompletionJoin:
         need(type(node_phases) is list and len(node_phases)==4,'four original node phase reports required')
         self.clock=client_clock_measurements(timeline,records,True)
         need(self.clock['valid'] and self.clock['driftWithin1ms'],'client clock cannot qualify node correlation')
-        self.nodes={};self.expected=records;self.records=0;self.max_error=0
+        self.nodes={};self.expected=records;self.records=0;self.max_error=0;self.info_ahead=0;self.state_ahead=0
         self.bins=[array('Q',[0])*60001 for _ in self.names]
         self.mins=[None]*3;self.maxs=[0]*3
         for endpoint,phase in zip(endpoints,node_phases):
@@ -296,17 +312,16 @@ class NodeCompletionJoin:
             self.nodes[endpoint]=(indexed,drift)
     def add(self,row):
         need(self.records<self.expected,'node join record bound exceeded')
-        need(row.get('status')=='confirmed' and all(row.get(k) is True for k in ('quorumVerified','transactionProofVerified','durableStateVerified','durableInfoVerified')),'node join requires original qualified final flags')
-        need(type(row.get('executionCode')) is int and row['executionCode']==0 and type(row.get('checkTxCode')) is int and row['checkTxCode']==0,'node join requires code-zero execution')
-        height=row.get('height');need(integer(height,1,2**63-1) and row.get('durableStateHeight')==height and row.get('durableInfoHeight')==height,'node join requires exact current durable height')
+        height,state_height,info_height=qualified_terminal_publication(row)
         need(row.get('endpoint') in self.nodes,'terminal endpoint outside original node set')
-        indexed,drift=self.nodes[row['endpoint']];need(height in indexed,'terminal height missing node completion')
+        indexed,drift=self.nodes[row['endpoint']];need(all(h in indexed for h in (height,state_height,info_height)),'terminal publication height missing node completion')
         point,(finalized,committed)=indexed[height]
-        need(type(row.get('blockHash')) is str and row['blockHash'].lower()==point['blockHash'] and type(row.get('durableStateAppHash')) is str and row['durableStateAppHash'].lower()==point['appHash'] and type(row.get('durableInfoAppHash')) is str and row['durableInfoAppHash'].lower()==point['appHash'],'terminal block/post-state identities differ from node completion')
+        state_point,state_times=indexed[state_height];info_point,info_times=indexed[info_height]
+        need(type(row.get('blockHash')) is str and row['blockHash'].lower()==point['blockHash'] and row['durableStateAppHash'].lower()==state_point['appHash'] and row['durableInfoAppHash'].lower()==info_point['appHash'],'terminal block/post-state identities differ from node completion')
         need(type(row.get('blockTxTotal')) is int and row['blockTxTotal']==point['transactions'] and integer(row.get('blockTxIndex'),0,point['transactions']-1),'terminal transaction position differs from node block')
         offered=utc_nanoseconds(row.get('offeredAt'));submitted=utc_nanoseconds(row.get('submittedAt'));observed=utc_nanoseconds(row.get('confirmedObservedAt'))
         error=drift+self.clock['maximumAbsWallDriftNs']
-        need(offered>=int(self.clock['originUnixNs']) and offered<=submitted and submitted<=finalized+error and committed<=observed+error,'cross-process completion order outside measured clock error')
+        need(offered>=int(self.clock['originUnixNs']) and offered<=submitted and submitted<=finalized+error and max(committed,state_times[1],info_times[1])<=observed+error,'cross-process completion order outside measured clock error')
         values=(finalized-offered,committed-offered,observed-committed)
         for i,value in enumerate(values):
             low=max(0,value-error);high=max(0,value+error)
@@ -315,6 +330,7 @@ class NodeCompletionJoin:
             self.bins[i][min(high//1000000,60000)]+=1
             self.mins[i]=low if self.mins[i] is None else min(low,self.mins[i]);self.maxs[i]=max(high,self.maxs[i])
         self.max_error=max(self.max_error,error);self.records+=1
+        self.info_ahead+=int(info_height>state_height);self.state_ahead+=int(state_height>height)
     def result(self):
         need(self.records==self.expected,'incomplete original node/terminal join')
         distributions={}
@@ -329,7 +345,7 @@ class NodeCompletionJoin:
                     dist[('p50','p95','p99')[next_rank]]=dict(lowerNs=max(self.mins[i],bucket*1000000-2*self.max_error),upperNs=min(self.maxs[i],(bucket+1)*1000000-1) if bucket<60000 else self.maxs[i]);next_rank+=1
                 if next_rank==3:break
             distributions[name]=dist
-        return dict(records=self.records,maximumCalibrationErrorBoundNs=self.max_error,nodeCompletionLatencyIntervalsNs=distributions,independentSameVMAdmission=False,independentBFTVerification=False,bftQuorumFormationInstantMeasured=False,networkQualified=False,interpretation='Original endpoint node Finalize and durable Commit returns joined by block hash and exact post-state height/hash; calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory.')
+        return dict(records=self.records,publishedInfoAheadRows=self.info_ahead,durableStateAheadRows=self.state_ahead,maximumCalibrationErrorBoundNs=self.max_error,nodeCompletionLatencyIntervalsNs=distributions,independentSameVMAdmission=False,independentBFTVerification=False,bftQuorumFormationInstantMeasured=False,networkQualified=False,interpretation='Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory.')
 
 
 def current_input_reuse_measurements(reader,selected=False):

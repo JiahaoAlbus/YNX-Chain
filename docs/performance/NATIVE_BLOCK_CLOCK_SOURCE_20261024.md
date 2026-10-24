@@ -1,6 +1,6 @@
 # 节点完成时刻与客户端时钟证据
 
-状态：源码轻测已验证，未加入已冻结的D6网络实验。尚未获得四节点精确时刻的实测结果，持续1000TPS目标未通过。
+状态：新7c4四节点实验首侧8192笔实际完成点已在修复后的读取器中离线关联；原实验因消费者缺陷失败、没有第二侧，持续1000TPS目标未通过。详见[原实验与后验完成点](NATIVE_CURRENT_INPUT_PAIR_FAILED_20261024.md)。
 
 显式phase timing的原ABCI包装器现在在应用FinalizeBlock及Commit返回后立即采样时刻。只有当前Finalize高度与成功、durable的Commit样本高度一致，才在该Commit帧附带固定大小blockExecution，包含高度、Finalize后的状态哈希、原请求存在时的块哈希、输入/Code0计数和两个完成观测点。失败、不匹配、重复Commit及shutdown不会带出旧成功点。诊断元数据不改ABCI响应或持久化状态；其记录开销不计入原Finalize/Commit处理计时。
 
@@ -8,20 +8,21 @@ Unix纳秒用十进制字符串保存，避免JavaScript Number截断。每个�
 
 客户端仅在显式nativeStream8的原timeSeries中记录时钟证据：对原offered、submitted及terminal-hand-back时刻分别核对序列化UTC与原monotonic时钟，保留起点纳秒字符串、真实样本数、无效数和最大绝对漂移。计划明示clientClockTiming，原Python读回器核验全量三阶段覆盖及有效性/漂移声明。旧模式省略字段。真实102行签名流单测导出的原记录有306个时钟样本、无无效样本；这是轻测，不是网络TPS。
 
-这些时刻仍需在同一原VM/boot身份下，与完整原签名终端流和原BFT/持久化验证按高度、块哈希及durable post-state app hash关联。Finalize响应的appHash是H的post-state，不能与块头H中的H-1 appHash混同。单节点Commit返回不单独证明BFT最终性；读回器明确保留bftFinalityProven=false。还没有完成四节点与客户端时刻的业务逐行关联，不能用新增字段宣称已测出精确共识延迟。
+这些时刻仍需在同一原VM/boot身份下，与完整原签名终端流和原BFT/持久化验证按高度、块哈希及durable post-state app hash关联。Finalize响应的appHash是H的post-state，不能与块头H中的H-1 appHash混同。单节点Commit返回不单独证明BFT最终性；读回器明确保留bftFinalityProven=false。run40044977213首侧已完成8192行后验关联；它仍不测最早quorum形成瞬间，也没有改变原消费者拒绝该实验的结果。
 
 验证包括：原真实签名执行/重开后的状态逐字节一致，失败及错高度Commit不复用成功点，原关闭/计数/输出失败边界，JS无精度损失及漂移反例，客户端真实时钟覆盖/旧模式/UTC不匹配反例，原Go公开签名流的跨语言读回。沿原CI的TestPhaseTiming、TestNativeStreaming与原读回步骤运行。
 
 后续源码差量在原 `native-stream-evidence.py` 中加入显式、可选的
-`NodeCompletionJoin`：原签名/终端流完整匹配后，按原 endpoint、高度、块哈希、
-durable state/Info 的 post-state 哈希及交易位置匹配对应节点完成点。时间戳用
+`NodeCompletionJoin`：原签名/终端流完整匹配后，按原 endpoint、交易高度和块哈希、
+durable state/Info 各自高度的 post-state 哈希及交易位置匹配对应节点完成点。时间戳用
 整数纳秒解析，拒绝浮点 epoch、不完整时钟覆盖、大于1ms漂移及超出校准误差的
 事件逆序。固定直方图只保留计数，P50/P95/P99 给出包含客户端和节点漂移的区间。
 
 该关联分别报告 offer→节点 Finalize 返回、offer→节点 durable Commit 返回、
 节点 Commit→客户端最终观察。它不测最早 quorum 形成瞬间，不代替原同VM准入或
 BFT密码学验证，也不把当前节点post-state与同高度块头的前态混同。旧数据缺少
-endpoint/块身份时拒绝，不补造时间。新增反例与原公开fixture读取合计28项轻测
-通过（`native-node-clock-join-full.raw`）；原真实ABCI单测fixture缺少网络身份，
-确实不能生成节点延迟。这批关联差量不在已冻结7c4cac62a运行源中，尚未对实际
-四节点归档完成关联，不能称真实网络延迟闭环。
+endpoint/块身份时拒绝，不补造时间。最初28项轻测通过，publication差量后29项通过；原真实ABCI单测fixture缺少网络身份，
+确实不能生成节点延迟。这批关联读取器差量不在已冻结7c4cac62a运行源中，
+对原完整归档的后验诊断与原运行资格分别保留。46行Info正常推进已按原Go规则
+接受，并额外对照下一高度的真实节点post-state哈希；同高度哈希不一致、倒退或
+缺少对应节点点仍拒绝。

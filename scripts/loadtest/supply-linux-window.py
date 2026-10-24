@@ -1310,7 +1310,9 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     plan=stream_evidence.strict_json(raw)
     for key,value in dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",senders=2048,rounds=4,plannedRecords=total,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=STREAM_BUDGET["timeoutMs"],durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip").items():
         need(type(plan.get(key)) is type(value) and plan[key]==value,"original stream plan scope differs: "+key)
-    need(same(plan.get("nativePrefix"),dict(offeredRate=1000,pacingMode=pacing,submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True)),"stream original native backend differs")
+    selected_reuse=plan.get("nativePrefix",{}).get("currentInputReuse")
+    need(type(selected_reuse) is bool,"explicit current input reuse plan boolean required")
+    need(same(plan.get("nativePrefix"),dict(offeredRate=1000,pacingMode=pacing,submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True,readerGateTiming=True,clientClockTiming=True,currentInputReuse=selected_reuse)),"stream original native backend differs")
     manifest_raw=stream_evidence.capture(network/"network-manifest.json",1<<20)
     initial=stream_evidence.strict_json(stream_evidence.capture(network/"transactions.json",16<<20))["transactions"]
     need(len(initial)==2048 and plan.get("initialSignedHashes")==[hashlib.sha256(base64.b64decode(t,validate=True)).hexdigest().upper() for t in initial],"stream plan initial identity differs")
