@@ -324,10 +324,12 @@ def verify_network_pair(root,head,evidence,controller):
     need(pair.get('pairCaps')==controller.pair_recipe(kind)['pairCaps'],'original paired caps differ')
     measured=[];baseline=None
     for index,(label,mode_name,reuse) in enumerate(controller.native_stream_pair_spec(kind)):
+        canonical=kind==controller.STREAM_CERTIFICATE_PAIR and index==1
         case=('before-' if index==0 else 'after-')+label
         selected=pair['cases'][index]
         raw=evidence.capture(root/case/'evidence/actual.json',16<<20);receipt=evidence.strict_json(raw)
         need(selected.get('currentInputReuse') is reuse and selected.get('order')==index+1 and selected.get('mode')==mode_name and selected.get('label')==label and selected.get('code')==0 and selected.get('firstCause') is None,'original pair order/mode/status differs')
+        need(selected.get('canonicalCertificate',False) is canonical and receipt.get('nativeCanonicalCertificate',False) is canonical,'original pair canonical certificate differs')
         need(selected.get('sha256')==hashlib.sha256(raw).hexdigest(),'original pair case receipt SHA differs')
         need(selected.get('hostIdentity')==pair.get('hostIdentity') and bool(pair.get('hostIdentity')),'original pair VM identity differs')
         need(receipt.get('pacingMode')==mode_name and receipt.get('nativeCurrentInputReuse') is reuse and receipt.get('binaries')==pair.get('compiledBinaries'),'original pair mode/ELF differs')
@@ -368,7 +370,7 @@ def verify_capture(destination,mode,head,*,expected_case="ynx-linux-supply-case"
     report_raw=evidence.capture(root/'network/transactions-result.json',16<<20)
     need(hashlib.sha256(report_raw).hexdigest()==receipt.get('resultSHA256'),'original client result hash differs')
     report=evidence.strict_json(report_raw)
-    measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing,expected_input_reuse=receipt.get('nativeCurrentInputReuse',False))
+    measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing,expected_input_reuse=receipt.get('nativeCurrentInputReuse',False),expected_canonical_certificate=receipt.get('nativeCanonicalCertificate',False))
     need(canonical(measured)==canonical(receipt.get('measurement')),'recovered complete stream differs from original controller measurement')
     return dict(measurement=measured,streamReadbackVerified=True,postFsyncTerminalStillRequiresOriginalCILog=True,independentNativeResourceAdmission=False,networkQualified=False,sustainedTPSQualified=False)
 

@@ -1140,14 +1140,34 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row):
+        def check(row,canonical=False):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network)
+                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
                 return out
         check(client)
+        # One explicit choice must bind producer expectation, durable plan,
+        # top-level report, actual backend and accepted/fallback child counters.
+        original_raw=raw_plan
+        canonical_plan=copy.deepcopy(plan);canonical_plan['nativePrefix']['canonicalCertificate']=True
+        raw_plan=json.dumps(canonical_plan).encode()
+        candidate=copy.deepcopy(client);candidate['nativeCanonicalCertificate']=True
+        candidate['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
+        prefix=candidate['durableReadback']['prefixReplay'];prefix['canonicalCertificate']=True
+        parts=prefix['workPhases']['certificatePublishDetails'];count=parts['strictJSON']['calls']
+        parts['strictJSON']=dict(calls=0,errors=0,durationNs=0)
+        parts['canonicalNative']=dict(calls=count,errors=0,durationNs=1);parts['canonicalNativeAccepted']=count
+        check(candidate,True)
+        with self.assertRaises(RuntimeError):check(candidate)
+        for fault in ('report','backend','accepted'):
+            bad=copy.deepcopy(candidate)
+            if fault=='report':bad['nativeCanonicalCertificate']=False
+            if fault=='backend':bad['durableReadback']['prefixReplay']['canonicalCertificate']=False
+            if fault=='accepted':bad['durableReadback']['prefixReplay']['workPhases']['certificatePublishDetails']['canonicalNativeAccepted']=count+1
+            with self.subTest(canonicalFault=fault),self.assertRaises(RuntimeError):check(bad,True)
+        raw_plan=original_raw
         # The actual run40044977213 failed after complete business counters:
         # the producer emitted40s but this consumer retained a30s literal.
         # Bind both top-level and workload report to the selected original

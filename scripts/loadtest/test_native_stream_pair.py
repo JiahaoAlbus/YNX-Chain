@@ -10,6 +10,26 @@ def measurement(rate=300,upper=2000000000):
     return dict(summary=dict(finalSubmittedPerMeasurementSecond=rate),offerLatencyIntervalsNs={n:copy.deepcopy(distribution) for n in ('offerToEffectiveBusinessInclusion','offerToFinal')})
 
 class NativeStreamPairTests(unittest.TestCase):
+    def test_canonical_pair_changes_only_certificate_with_cache_and_pace_fixed(self):
+        before,after=supply.pair_recipe(supply.STREAM_CERTIFICATE_PAIR)['cases']
+        self.assertEqual(before['pacingMode'],after['pacingMode'])
+        self.assertEqual(before['pacingMode'],'bounded-cadence')
+        self.assertIs(before['nativeCurrentInputReuse'],True);self.assertIs(after['nativeCurrentInputReuse'],True)
+        self.assertNotIn('nativeCanonicalCertificate',before)
+        self.assertIs(after['nativeCanonicalCertificate'],True)
+        self.assertEqual(before,{k:v for k,v in after.items() if k!='nativeCanonicalCertificate'})
+        commands=[]
+        for flag in (False,True):
+            commands.append(supply.supply_client_command(Path('build'),Path('manifest'),Path('network'),Path('out'),before['profile'],'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,canonical_certificate=flag))
+        self.assertNotIn('-native-canonical-certificate',commands[0])
+        self.assertEqual(commands[0],[x for x in commands[1] if x!='-native-canonical-certificate'])
+        self.assertEqual(supply.pair_recipe(supply.STREAM_CERTIFICATE_PAIR)['pairCaps'],supply.pair_recipe(supply.STREAM_CACHE_PAIR)['pairCaps'])
+        for action in ('prepare','execute'):
+            self.assertIn('--'+action+'-pair --pair-kind native-canonical-certificate --observer-phases',Path('.github/workflows/chain-core.yml').read_text())
+        for bad in (None,1,'yes'):
+            with self.assertRaises(RuntimeError):supply.recipe('grpc',supply.STREAM_PROFILE,'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,canonical_certificate=bad)
+        with self.assertRaises(RuntimeError):supply.recipe(canonical_certificate=True)
+
     def test_recipe_fixed_order_and_scoped_budget(self):
         plan=supply.pair_recipe(supply.STREAM_PAIR)
         self.assertEqual([r['pacingMode'] for r in plan['cases']],['relative','bounded-cadence'])
@@ -63,18 +83,25 @@ class NativeStreamPairTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):supply.native_stream_pair_observation([before,after])
 
     def test_pair_recovery_binds_both_raw_receipts_and_identity(self):
+        self.check_pair_recovery(supply.STREAM_PAIR)
+
+    def test_canonical_pair_recovery_binds_certificate_and_raw_identity(self):
+        self.check_pair_recovery(supply.STREAM_CERTIFICATE_PAIR)
+
+    def check_pair_recovery(self,kind):
         spec=importlib.util.spec_from_file_location('pair_archive',Path(__file__).with_name('native-stream-artifact.py'))
         archive=importlib.util.module_from_spec(spec);spec.loader.exec_module(archive)
         with tempfile.TemporaryDirectory() as d:
             root=Path(d).resolve();(root/'evidence').mkdir();head='a'*40
-            pair=dict(supply.pair_recipe(supply.STREAM_PAIR),sourceCommit=head,case='/unit/pair',hostIdentity=dict(bootID='unit-boot'),compiledBinaries=dict(ELF='same'),casesQualified=True,firstCause=None)
+            pair=dict(supply.pair_recipe(kind),sourceCommit=head,case='/unit/pair',hostIdentity=dict(bootID='unit-boot'),compiledBinaries=dict(ELF='same'),casesQualified=True,firstCause=None)
             rows=[];cases=[]
-            for index,mode in enumerate(supply.STREAM_PACING_MODES):
-                label=supply.pair_modes(supply.STREAM_PAIR)[index];case=('before-' if index==0 else 'after-')+label
+            for index,(label,mode,reuse) in enumerate(supply.native_stream_pair_spec(kind)):
+                canonical=kind==supply.STREAM_CERTIFICATE_PAIR and index==1
+                case=('before-' if index==0 else 'after-')+label
                 directory=root/case/'evidence';directory.mkdir(parents=True)
-                row=dict(sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=True,binaries=pair['compiledBinaries'])
+                row=dict(sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),binaries=pair['compiledBinaries'])
                 raw=json.dumps(row).encode();(directory/'actual.json').write_bytes(raw);rows.append((directory/'actual.json',raw))
-                cases.append(dict(order=index+1,label=label,mode=mode,currentInputReuse=True,code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
+                cases.append(dict(order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
             pair['cases']=cases;pair['jointObservation']=supply.native_stream_pair_observation(cases)
             def verify(destination,mode,head,**kwargs):
                 index=0 if Path(destination).name.startswith('before-') else 1
@@ -84,7 +111,7 @@ class NativeStreamPairTests(unittest.TestCase):
                 (root/'evidence/actual.json').write_text(json.dumps(value))
                 with patch.object(archive,'verify_capture',side_effect=verify):return archive.verify_network_pair(root,head,supply.stream_evidence,supply)
             proof=check(pair);self.assertTrue(proof['streamReadbackVerified']);self.assertFalse(proof['networkQualified'])
-            for fault in ('order','hostIdentity','sha256','measurement','mode'):
+            for fault in ('order','hostIdentity','sha256','measurement','mode','canonicalCertificate'):
                 changed=copy.deepcopy(pair);changed['cases'][1][fault]='changed'
                 with self.subTest(fault=fault),self.assertRaises(RuntimeError):check(changed)
             rows[1][0].write_bytes(rows[1][1]+b' ')
@@ -100,6 +127,9 @@ class NativeStreamPairTests(unittest.TestCase):
                 host_calls.append(1)
                 return dict(host,bootID='changed') if fault=='host' and len(host_calls)>=4 else host
             def run(source,build,case,out,transport,profile,pace,**kwargs):
+                if comparison==supply.STREAM_CERTIFICATE_PAIR:
+                    self.assertIs(kwargs['canonical_certificate'],len(calls)==1)
+                    self.assertIs(kwargs['current_input_reuse'],True)
                 calls.append(pace);case.mkdir()
                 row=dict(sourceCommit='a'*40,sourceTree='tree',internalTree='internal',compiler='compiler',binaries=pins,environment={},host=dict(uname='unit',cpuCount=4),nodePhases={},firstCause=None)
                 if fault=='unknown':row['firstCause']='submission UNKNOWN'
@@ -133,6 +163,13 @@ class NativeStreamPairTests(unittest.TestCase):
         self.assertEqual(code,0,terminal);self.assertEqual(calls,['bounded-cadence','bounded-cadence'])
         code,calls,terminal=self.run_pair('unknown',supply.STREAM_CACHE_PAIR)
         self.assertEqual(code,1);self.assertEqual(calls,['bounded-cadence']);self.assertFalse(terminal['qualified'])
+
+    def test_canonical_pair_keeps_first_failure_stop_rule(self):
+        code,calls,terminal=self.run_pair(comparison=supply.STREAM_CERTIFICATE_PAIR)
+        self.assertEqual(code,0,terminal);self.assertEqual(calls,["bounded-cadence","bounded-cadence"])
+        for fault in ("unknown","binary","closure","host"):
+            code,calls,terminal=self.run_pair(fault,supply.STREAM_CERTIFICATE_PAIR)
+            self.assertEqual(code,1);self.assertEqual(calls,["bounded-cadence"]);self.assertFalse(terminal["qualified"])
 
     def test_post_fsync_failure_cannot_be_qualified(self):
         for fault in ('post-fsync','missing-sample'):
