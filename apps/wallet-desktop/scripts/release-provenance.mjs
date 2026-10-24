@@ -155,7 +155,10 @@ export function declaredSDKRuntimeSources(root,sourceCommit){
   // type or native source. Zero JS matches alone is not proof of a missing file.
   if(!declared.length)throw Error(`SDK declared runtime source is missing: ${scope}`);
   const found=declared.filter(name=>/\.(?:mjs|js|cjs|json)$/.test(name)&&!name.endsWith('.test.mjs'));
-  const nonRuntime=name=>/\.d\.(?:ts|mts|cts)$/.test(name)||/\.(?:h|hpp|c|cc|cpp|mm|m)$/.test(name);
+  // Existing package documentation is not JavaScript. Still require its
+  // declaration to exist in the immutable selected commit above; this never
+  // makes a missing JS file, unknown asset or arbitrary scope acceptable.
+  const nonRuntime=name=>/\.d\.(?:ts|mts|cts)$/.test(name)||/\.(?:h|hpp|c|cc|cpp|mm|m|md)$/.test(name);
   if(!found.length&&!declared.every(nonRuntime))throw Error(`SDK declared runtime source is missing: ${scope}`);
   for(const name of found)names.add(name);
  }
