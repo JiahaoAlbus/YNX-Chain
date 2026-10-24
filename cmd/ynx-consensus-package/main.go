@@ -94,6 +94,10 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	publicSummary := stringFlag("migration-public-summary", "json: emit bounded public metadata only after complete -verify-migration-state validation")
 	verifyExecution := stringFlag("verify-migration-execution", "read-only migration executor compatibility check; no validator binding, application restore, deployment, InitChain or PQ activation")
 	verifyPreservation := stringFlag("verify-migration-preservation", "read-only unbound Application import and complete original account/contract/history query check; no persistence, validator binding, InitChain or activation")
+	verifyImportStorage := stringFlag("verify-migration-import-storage", "check an explicitly created or reopened uninitialized import checkpoint; no InitChain, consensus bootstrap or activation")
+	importStorageDirectory := stringFlag("import-storage-directory", "exclusive private directory for the uninitialized import checkpoint")
+	importStoragePhase := stringFlag("import-storage-phase", "create or reopen the uninitialized import checkpoint in separate invocations")
+	importStorageSHA256 := stringFlag("import-storage-sha256", "independent lowercase SHA256 checkpoint pin, required only for reopen")
 	migrationPath := stringFlag("migration-state", "validated unbound YNX migration state")
 	validatorManifestPath := stringFlag("validator-manifest", "public-key-only production validator manifest")
 	genesisTime := stringFlag("genesis-time", "explicit whole-second UTC genesis time in RFC3339 format")
@@ -107,7 +111,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		return errors.New("unexpected positional arguments")
 	}
 	mode := ""
-	for _, name := range []string{"verify-package", "verify-migration-state", "verify-migration-execution", "verify-migration-preservation"} {
+	for _, name := range []string{"verify-package", "verify-migration-state", "verify-migration-execution", "verify-migration-preservation", "verify-migration-import-storage"} {
 		if supplied[name] {
 			if mode != "" {
 				return errors.New("verification modes are mutually exclusive")
@@ -124,7 +128,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		if supplied["operator-plan-hash"] && (mode != "verify-package" || strings.TrimSpace(*operatorPlanHash) == "") {
 			return errors.New("-operator-plan-hash is allowed only for pinned package generation or -verify-package with a nonempty independent pin")
 		}
-		modeInput := map[string]string{"verify-package": *verifyPackage, "verify-migration-state": *verifyMigration, "verify-migration-execution": *verifyExecution, "verify-migration-preservation": *verifyPreservation}
+		modeInput := map[string]string{"verify-package": *verifyPackage, "verify-migration-state": *verifyMigration, "verify-migration-execution": *verifyExecution, "verify-migration-preservation": *verifyPreservation, "verify-migration-import-storage": *verifyImportStorage}
 		if strings.TrimSpace(modeInput[mode]) == "" {
 			return fmt.Errorf("-%s requires an existing input path", mode)
 		}
@@ -134,6 +138,26 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	}
 	if supplied["migration-public-summary"] && (mode != "verify-migration-state" || *publicSummary != "json") {
 		return errors.New("-migration-public-summary json requires only -verify-migration-state")
+	}
+	if mode != "verify-migration-import-storage" {
+		for _, name := range []string{"import-storage-directory", "import-storage-phase", "import-storage-sha256"} {
+			if supplied[name] {
+				return fmt.Errorf("-%s requires -verify-migration-import-storage", name)
+			}
+		}
+	} else {
+		if !supplied["import-storage-directory"] || strings.TrimSpace(*importStorageDirectory) == "" || !supplied["import-storage-phase"] || (*importStoragePhase != "create" && *importStoragePhase != "reopen") {
+			return errors.New("import storage requires a nonempty explicit directory and phase create or reopen")
+		}
+		if *importStoragePhase == "create" && supplied["import-storage-sha256"] {
+			return errors.New("checkpoint pin is allowed only for import storage reopen")
+		}
+		if *importStoragePhase == "reopen" {
+			pin, err := hex.DecodeString(*importStorageSHA256)
+			if !supplied["import-storage-sha256"] || err != nil || len(pin) != sha256.Size || hex.EncodeToString(pin) != *importStorageSHA256 || bytes.Equal(pin, make([]byte, sha256.Size)) {
+				return errors.New("import storage reopen requires an independent lowercase SHA256 checkpoint pin")
+			}
+		}
 	}
 	switch mode {
 	case "verify-migration-state":
@@ -155,6 +179,8 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		return err
 	case "verify-migration-preservation":
 		return verifyMigrationPreservation(*verifyPreservation, stdout)
+	case "verify-migration-import-storage":
+		return verifyMigrationImportStorage(*verifyImportStorage, *importStorageDirectory, *importStoragePhase, *importStorageSHA256, stdout)
 	case "verify-package":
 		if supplied["operator-plan-hash"] {
 			if err := consensus.VerifyProductionOperatorCandidatePackage(*verifyPackage, *operatorPlanHash); err != nil {

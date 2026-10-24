@@ -2305,6 +2305,29 @@ jobs:
           PUBLIC_BFT_MIGRATION_VERIFIER="$YNX_SUMMARY_RUNTIME/ynx-consensus-package" node scripts/verify/public-bft-candidate-binding.mjs --migration-public-summary "$YNX_SUMMARY_INPUT" '${{ github.sha }}' "$YNX_SUMMARY_SOURCE_PIN" > "$RUNNER_TEMP/ynx-migration-summary-node.json"
           cmp "$RUNNER_TEMP/ynx-migration-summary-go.json" "$RUNNER_TEMP/ynx-migration-summary-node.json"
           printf '%s\n' 'YNX_MIGRATION_PUBLIC_SUMMARY_REAL_GO_NODE_PASS completeMigration=true pinnedRuntime=true mock=false RootGrant=false'
+          # Exercise the built CLI in two independent processes. This checks
+          # only durable uninitialized import data, never consensus activation.
+          YNX_IMPORT_STORAGE_CASE="$RUNNER_TEMP/ynx-import-storage-cli-${{ github.sha }}"
+          mkdir -m 0700 "$YNX_IMPORT_STORAGE_CASE"
+          "$YNX_SUMMARY_RUNTIME/ynx-consensus-package" -verify-migration-import-storage "$YNX_SUMMARY_INPUT" -import-storage-directory "$YNX_IMPORT_STORAGE_CASE/checkpoint" -import-storage-phase create > "$RUNNER_TEMP/ynx-import-storage-create.json"
+          YNX_IMPORT_STORAGE_PIN="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["checkpointSHA256"])' "$RUNNER_TEMP/ynx-import-storage-create.json")"
+          "$YNX_SUMMARY_RUNTIME/ynx-consensus-package" -verify-migration-import-storage "$YNX_SUMMARY_INPUT" -import-storage-directory "$YNX_IMPORT_STORAGE_CASE/checkpoint" -import-storage-phase reopen -import-storage-sha256 "$YNX_IMPORT_STORAGE_PIN" > "$RUNNER_TEMP/ynx-import-storage-reopen.json"
+          python3 - "$RUNNER_TEMP/ynx-import-storage-create.json" "$RUNNER_TEMP/ynx-import-storage-reopen.json" <<'PY'
+          import json, sys
+          created, reopened = [json.load(open(path)) for path in sys.argv[1:]]
+          assert created['phase'] == 'create' and created['restoredImportedState'] is False
+          assert reopened['phase'] == 'reopen' and reopened['restoredImportedState'] is True
+          for receipt in (created, reopened):
+              assert receipt['version'] == 'YNX-MIGRATION-IMPORTED-STORAGE/v1'
+              assert receipt['classification'] == 'data' and receipt['scope'] == 'uninitialized-import-checkpoint'
+              assert receipt['consensusColdRestore'] == 'unchecked'
+              assert receipt['preservation']['infoInitialized'] is False
+              assert receipt['preservation']['initChain'] == 'not-performed'
+              assert receipt['preservation']['pqActivation'] == 'not-performed'
+          for field in ('sourceSHA256', 'sourceBytes', 'checkpointSHA256', 'checkpointBytes', 'preservation'):
+              assert created[field] == reopened[field], field
+          print('YNX_MIGRATION_IMPORTED_STORAGE_REAL_CLI_PASS separateProcesses=true uninitialized=true consensusColdRestore=unchecked activation=false')
+          PY
       - name: Upload only public operator inputs and normal CLI receipt
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqoperatorcli.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -2313,6 +2336,8 @@ jobs:
           path: |
             ${{ runner.temp }}/ynx-consensus-operator-public-inputs
             ${{ runner.temp }}/ynx-consensus-operator-cli-public-receipt.json
+            ${{ runner.temp }}/ynx-import-storage-create.json
+            ${{ runner.temp }}/ynx-import-storage-reopen.json
           if-no-files-found: error
           retention-days: 7
       - name: Verify original public cutover caller preserves independent operator and runtime pins
