@@ -341,7 +341,8 @@
     "test:r200-protected-publisher": "node --test --test-concurrency=1 test/r200-protected-publisher-contract.test.mjs test/r200-recipe-closure.test.mjs",
     "test:normal-native-actual-record": "node --test test/normal-native-compile-reuse-actual.test.mjs",
     "test:normal-native-empty-runtime": "node --test --test-name-pattern=\"^runtime empty-file pins\" test/normal-native-compile-reuse.test.mjs",
-    "test:r201-control-custody": "node --test --test-name-pattern=\"new custody\" test/r201-project-control-capture.test.mjs && node --test test/r201-native-custody-recipe.test.mjs"
+    "test:r201-control-custody": "node --test --test-name-pattern=\"new custody\" test/r201-project-control-capture.test.mjs && node --test test/r201-native-custody-recipe.test.mjs",
+    "test:main-c132-entry": "node --test test/main-c132-control-entry.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

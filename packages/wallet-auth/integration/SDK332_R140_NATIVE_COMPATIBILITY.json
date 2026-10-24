@@ -244,8 +244,8 @@
   "NativeInputs": [
     {
       "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
-      "bytes": 82148,
-      "sha256": "0e68c3602df35da7884a52cf5e7f74d67eccab585028e74dbfe4453563287201"
+      "bytes": 82780,
+      "sha256": "c27f835c8fe1be7efebcba6a635b5f20cfb3b60d2b82211a33c4b35b3871e1fe"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-auth-identity-binding.inc.mm",

@@ -595,6 +595,16 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #endif
 #include "original-artifact-publisher-binding.inc.mm"
 #endif
+// Main's Artifact binding already includes/registers CONTROL when co-resident.
+// The direct route serves CONTROL-only builds; never register the role twice.
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL)
+#if YNX_ORIGINAL_WALLET_PROJECT_CONTROL != 1
+#error "YNX_ORIGINAL_WALLET_PROJECT_CONTROL_REQUIRES_ONE"
+#endif
+#if !defined(YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING)
+#include "original-project-control-binding.inc.mm"
+#endif
+#endif
 static napi_value Register(napi_env env,napi_value exports){
  // This original addon owns main-thread-only platform Source/UI/native
  // inventories. Worker environments cannot borrow them via DATA exports.
@@ -613,6 +623,9 @@ static napi_value Register(napi_env env,napi_value exports){
  if(!RegisterOriginalIDEIdentityPeerBinding(env,exports,methods)||!RegisterOriginalIDEContractRelayBinding(env,exports)||!RegisterOriginalIDEPublicationArtifactBinding(env,exports)||!RegisterOriginalIDEProjectAuthorityBinding(env,exports)||!RegisterOriginalIDEWorkspaceProjectSelection(env,exports))return nullptr;
 #if defined(YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING)
  if(!RegisterOriginalArtifactPublisherBinding(env,exports))return nullptr;
+#endif
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL) && !defined(YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING)
+ if(!RegisterOriginalProjectControlBinding(env,exports))return nullptr;
 #endif
  return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
 }

@@ -2416,5 +2416,5 @@ jobs:
           cache-dependency-path: packages/wallet-auth/package-lock.json
       - name: Install exact SDK dependencies without package scripts
         run: npm ci --ignore-scripts --no-audit --fund=false --fetch-retries=1 --fetch-timeout=30000 --prefix packages/wallet-auth
-      - name: Check only two new custody role cases and new Native recipe closure
-        run: npm run test:r201-control-custody --prefix packages/wallet-auth
+      - name: Check only added Main c132 SDK entry; reuse prior R201 five-case receipt
+        run: npm run test:main-c132-entry --prefix packages/wallet-auth
