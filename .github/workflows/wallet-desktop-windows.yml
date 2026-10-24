@@ -3,7 +3,7 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-ide-native-close-r140-20261019, codex/wallet-sdk332-r140-compat-20261019, codex/wallet-joint-child-cleanup-debt-20261023, codex/wallet-auth4-deploy-material-20261023, codex/wallet-r154-paired-source-20261023, codex/wallet-developer-contract-client-20261023, codex/wallet-r159-typed-native-20261023, codex/wallet-artifact-contract-20261024, codex/wallet-artifact-go-interop-20261024, codex/wallet-r162-observation-20261024, codex/wallet-contract-registry-interop-20261024, codex/wallet-native-relay-source-scope-20261024, codex/wallet-contract-initiator-boundary-20261024, codex/wallet-contract-current-callee-20261024, codex/wallet-source-autonomous-scope-20261024, codex/wallet-typed-publication-r170-20261024, codex/wallet-native-main-thread-r172-20261024, codex/wallet-project-authority-r171-20261024, codex/wallet-project-reader-r174-20261024, codex/wallet-workspace-selector-r177-20261024, codex/wallet-artifact-verifier-cli-20261024, codex/wallet-main-publisher-hook-20261024, codex/wallet-publication-result-r181-20261024, codex/wallet-source-v2-r185-20261024, codex/wallet-source-sign-partial-r186-20261024, codex/wallet-canonical-source8-r194-20261024, codex/wallet-http-relay-r193-20261024, codex/wallet-control-source-r196-20261024, codex/wallet-publication-source-types-20261024, codex/wallet-control-dispatch-r197-20261024, codex/wallet-cli-head-closure-20261024, codex/wallet-native-control-interop-r199-20261024, codex/wallet-normal-compile-reuse-20261024, codex/wallet-protected-publisher-r200-20261024, codex/wallet-control-custody-r201-20261024, codex/wallet-principal-daemon-route-20261024, codex/wallet-source-completion-r204-20261024, codex/wallet-source-lifecycle-r205-20261024, codex/wallet-publisher-current-r211-20261024, codex/wallet-normal-runtime-materialization-20261024, codex/wallet-publication-selector-r218-20261024, codex/wallet-pq-catalog-source-r222-20261024, codex/wallet-pq-dispatcher-r225-20261024]
+    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-ide-native-close-r140-20261019, codex/wallet-sdk332-r140-compat-20261019, codex/wallet-joint-child-cleanup-debt-20261023, codex/wallet-auth4-deploy-material-20261023, codex/wallet-r154-paired-source-20261023, codex/wallet-developer-contract-client-20261023, codex/wallet-r159-typed-native-20261023, codex/wallet-artifact-contract-20261024, codex/wallet-artifact-go-interop-20261024, codex/wallet-r162-observation-20261024, codex/wallet-contract-registry-interop-20261024, codex/wallet-native-relay-source-scope-20261024, codex/wallet-contract-initiator-boundary-20261024, codex/wallet-contract-current-callee-20261024, codex/wallet-source-autonomous-scope-20261024, codex/wallet-typed-publication-r170-20261024, codex/wallet-native-main-thread-r172-20261024, codex/wallet-project-authority-r171-20261024, codex/wallet-project-reader-r174-20261024, codex/wallet-workspace-selector-r177-20261024, codex/wallet-artifact-verifier-cli-20261024, codex/wallet-main-publisher-hook-20261024, codex/wallet-publication-result-r181-20261024, codex/wallet-source-v2-r185-20261024, codex/wallet-source-sign-partial-r186-20261024, codex/wallet-canonical-source8-r194-20261024, codex/wallet-http-relay-r193-20261024, codex/wallet-control-source-r196-20261024, codex/wallet-publication-source-types-20261024, codex/wallet-control-dispatch-r197-20261024, codex/wallet-cli-head-closure-20261024, codex/wallet-native-control-interop-r199-20261024, codex/wallet-normal-compile-reuse-20261024, codex/wallet-protected-publisher-r200-20261024, codex/wallet-control-custody-r201-20261024, codex/wallet-principal-daemon-route-20261024, codex/wallet-source-completion-r204-20261024, codex/wallet-source-lifecycle-r205-20261024, codex/wallet-publisher-current-r211-20261024, codex/wallet-normal-runtime-materialization-20261024, codex/wallet-publication-selector-r218-20261024, codex/wallet-pq-catalog-source-r222-20261024, codex/wallet-pq-dispatcher-r225-20261024, codex/wallet-source-http-completion-r226-20261024]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -2667,4 +2667,63 @@ jobs:
           path: |
             ${{ runner.temp }}/sdk-auth33/*
             ${{ runner.temp }}/auth-r225-tests/*
+          if-no-files-found: error
+
+  sdk-normal-source-http-r226:
+    name: SDK Auth34 actual normal Source HTTP completion fence
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-source-http-completion-r226-20261024'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: packages/wallet-auth/package-lock.json
+      - name: Install exact SDK dependencies without package scripts
+        run: npm ci --ignore-scripts --no-audit --fund=false --fetch-retries=1 --fetch-timeout=30000 --prefix packages/wallet-auth
+      - name: Run only new actual normal Source HTTP caller cases
+        run: |
+          mkdir -p "$RUNNER_TEMP/auth-r226-tests"
+          npm run test:r226-normal-source-route --prefix packages/wallet-auth > "$RUNNER_TEMP/auth-r226-tests/stdout.log" 2>&1 || { status=$?; cat "$RUNNER_TEMP/auth-r226-tests/stdout.log"; exit "$status"; }
+          cat "$RUNNER_TEMP/auth-r226-tests/stdout.log"
+      - name: Verify only affected legacy daemon snippet fixture
+        run: |
+          cd packages/wallet-auth
+          node --test --test-name-pattern='PUBLIC original daemon GET snippet awaits response and propagates original rejection' test/r185-source-current-async-integration.test.mjs > "$RUNNER_TEMP/auth-r226-tests/affected-r185.log" 2>&1 || { status=$?; cat "$RUNNER_TEMP/auth-r226-tests/affected-r185.log"; exit "$status"; }
+          cat "$RUNNER_TEMP/auth-r226-tests/affected-r185.log"
+      - name: Pack Auth34 and compare every member to exact Git source
+        run: |
+          mkdir -p "$RUNNER_TEMP/sdk-auth34"
+          npm pack ./packages/wallet-auth --ignore-scripts --pack-destination "$RUNNER_TEMP/sdk-auth34" --json > "$RUNNER_TEMP/sdk-auth34/npm-pack.json"
+          python3 <<'PYCODE'
+          import hashlib,json,os,pathlib,subprocess,tarfile
+          root=pathlib.Path(os.environ['RUNNER_TEMP'])/'sdk-auth34'
+          package=json.loads((root/'npm-pack.json').read_text())[0]
+          assert package['version']=='1.3.0-pq.3.32-auth.34'
+          archive=root/package['filename'];seen=set();rows=[]
+          with tarfile.open(archive,'r:gz') as tar:
+              for m in tar.getmembers():
+                  p=pathlib.PurePosixPath(m.name)
+                  assert m.isfile() and p.parts[0]=='package' and not p.is_absolute() and '..' not in p.parts
+                  rel=str(p.relative_to('package'));assert rel not in seen;seen.add(rel)
+                  raw=tar.extractfile(m).read()
+                  assert raw==subprocess.check_output(['git','show','HEAD:packages/wallet-auth/'+rel]),rel
+                  rows.append({'path':rel,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()})
+          assert seen=={f['path'] for f in package['files']}
+          for name in ['native/original-auth-source-v2-dispatch.mjs','src/original-pq-host-catalog-source.js','native/original-pq-host-catalog-task-exit.h','scripts/normal-runtime-materialization.mjs']:
+              assert name in seen,name
+          daemon=next(r for r in rows if r['path']=='scripts/ynx-wallet-gatewayd.mjs')
+          assert daemon['bytes']==21867 and daemon['sha256']=='ec7881590d37b1a9e71e2ed84fa7abbf700b8e510d5601c63691be0f3814e04f'
+          (root/'git-blob-readback.json').write_text(json.dumps({'commit':os.environ['GITHUB_SHA'],'version':package['version'],'archive':archive.name,'bytes':archive.stat().st_size,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'files':rows,'addonLinked':False,'Root':False,'nativeAdmission':False,'installed':False,'oldSDK33TestsRerun':False,'oldFullPinnedFailureOpen':True},indent=2)+'\n')
+          print('Auth34 exact Git package members:',len(rows))
+          PYCODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: sdk-auth34-normal-http-evidence
+          path: |
+            ${{ runner.temp }}/sdk-auth34/*
+            ${{ runner.temp }}/auth-r226-tests/*
           if-no-files-found: error

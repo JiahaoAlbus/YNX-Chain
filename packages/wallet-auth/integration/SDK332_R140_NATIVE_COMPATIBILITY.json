@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.33",
+  "version": "1.3.0-pq.3.32-auth.34",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -1966,6 +1966,30 @@
     "helperTranslationUnits": 11,
     "actualDispatcherSourceChanged": true,
     "supplierActualDispatcherFocusedPassed": true,
+    "NativeBuild": false,
+    "Source": false,
+    "Root": false,
+    "App": false
+  },
+  "supplierR226": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r226-supply-20261024-r1/HANDOFF.json",
+      "bytes": 7648,
+      "sha256": "dd3b8d2a0522b2ac1f02358f7d68047198938b2f1754bb1a6b5a75b8d41b4570"
+    },
+    "daemonSource": {
+      "path": "packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs",
+      "bytes": 21867,
+      "sha256": "ec7881590d37b1a9e71e2ed84fa7abbf700b8e510d5601c63691be0f3814e04f"
+    },
+    "normalNativeInputsUnchanged": true,
+    "normalNativeInputs": 99,
+    "normalCanonicalInputs": 109,
+    "extendedSourceClosure": 110,
+    "compileInputCount": 87,
+    "nodeTranslationUnits": 15,
+    "helperTranslationUnits": 11,
+    "supplierNormalHTTPFocusedPassed": true,
     "NativeBuild": false,
     "Source": false,
     "Root": false,
