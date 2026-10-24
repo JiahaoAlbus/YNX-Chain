@@ -3,11 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {composeWalletPublisherNativeBuildPlan,SDK13_NODE_TRANSLATION_UNITS,WALLET_PUBLISHER_NATIVE_INPUTS,walletPublisherNativeInputs,WALLET_ARTIFACT_CABI_INPUTS,WALLET_ARTIFACT_CABI_FLAG,WALLET_PROJECT_CONTROL_INPUTS,WALLET_PROJECT_CONTROL_FLAG,walletNativeSourceProfile} from '../scripts/wallet-publisher-native-build.mjs';
+import {composeWalletPublisherNativeBuildPlan,SDK13_NODE_TRANSLATION_UNITS,WALLET_PUBLISHER_NATIVE_INPUTS,walletPublisherNativeInputs,WALLET_ARTIFACT_CABI_INPUTS,WALLET_ARTIFACT_CABI_FLAG,WALLET_PROJECT_CONTROL_INPUTS,WALLET_PROJECT_CONTROL_FLAG,WALLET_PROJECT_CONTROL_CABI_FLAG,WALLET_PROJECT_CONTROL_CABI_INPUTS,walletNativeSourceProfile} from '../scripts/wallet-publisher-native-build.mjs';
 import {sdkRuntimeUnionProfile} from '../scripts/sdk14-runtime-union.mjs';
 import {canonicalNativeInputSelection,CANONICAL_NATIVE_EVIDENCE_TESTS,verifyCanonicalNativeReceipt,PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
 const inventoryBytes=readFileSync(new URL('./fixtures/auth13-native-inventory.json',import.meta.url)),inventory=JSON.parse(inventoryBytes),repo='/PUBLIC/source',headers='/PUBLIC/headers';
 const hash=b=>createHash('sha256').update(b).digest('hex');
+test('CONTROL role declares one exact original archive but cannot activate an old SDK23/24 recipe',{skip:!process.env.WALLET_CONTROL_CABI_HEADER_ROOT},()=>{
+ assert.equal(WALLET_PROJECT_CONTROL_CABI_FLAG,'-DYNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI=1');assert.equal(WALLET_PROJECT_CONTROL_CABI_INPUTS.filter(p=>p.path.endsWith('.a')).length,1);
+ for(const pin of WALLET_PROJECT_CONTROL_CABI_INPUTS){const b=readFileSync(pin.path.endsWith('original-project-control-cabi.h')?new URL('../native/original-project-control-cabi.h',import.meta.url):path.join(process.env.WALLET_CONTROL_CABI_HEADER_ROOT,path.basename(pin.path)));assert.equal(b.length,pin.bytes);assert.equal(hash(b),pin.sha256);}
+ assert(!composeWalletPublisherNativeBuildPlan(originalPlan(),repo,82,false,true).commands[0].argv.includes(WALLET_PROJECT_CONTROL_CABI_FLAG));
+});
 test('SDK23 selects its own frozen82-input source and9342-file runtime, never SDK20 qualification',()=>{
  const profile=walletNativeSourceProfile('1.3.0-pq.3.32-auth.23');assert.equal(profile.supplierNodeInputs,82);assert.equal(profile.inventory.sha256,'aafecb4804cdbe1c4c23cb8931cb495215142ec25d6890f5e8d850220da8b89c');
  const runtime=sdkRuntimeUnionProfile(profile.version);assert.equal(runtime.files,9342);assert.equal(runtime.sha256,'dc4427a01bad707eaae9861b92e22b251dc83ac3d2b9535b576b162df1e60b84');

@@ -11,6 +11,9 @@
 - (BOOL)assertCurrent:(NSError **)error;
 - (BOOL)selectOriginalDecision:(NSString *)reviewId decision:(NSString *)decision error:(NSError **)error;
 - (NSDictionary *)copyOriginalDecision:(NSError **)error;
+// Normal approve-only Native entry. It owns once intent, SAME Source custody,
+// fixed CABI call, result adoption and cleanup. No descriptor/key/callback arg.
+- (BOOL)signOriginalApproval:(NSError **)error;
 // Main's fixed dedicated CABI adapter only; never NAPI/JS provider entry.
 // Reserve/persist once before custody. Returned context is public DATA, not
 // a Root/key grant. The actual CABI adapter remains a separately matched input.

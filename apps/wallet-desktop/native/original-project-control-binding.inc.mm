@@ -2,6 +2,9 @@
 // caller-selected Source, signer, module path or key. Recognition is type/env/
 // thread ownership only, NOT proof that current/approval/signing was admitted.
 #import "original-project-control-review.h"
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI) && YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI != 1
+#error YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI_REQUIRES_ONE
+#endif
 struct WalletControlOwner {napi_env env=nullptr;pthread_t thread{};YNXOriginalProjectControlReview*__strong review=nil;bool busy=false,finalized=false,gone=false,admissionClosed=false;};
 static const napi_type_tag walletControlTag={0x594e584354524c31ULL,0x4d41494e4f574e31ULL};
 static std::unordered_set<WalletControlOwner*>walletControlOwners;
@@ -42,7 +45,14 @@ static napi_value WalletControlOperation(napi_env env,napi_callback_info info){
   else if(method==WalletControlMethod::save){NSData*b=IDEIdentityString(env,args[0],65536);if(!b||![p->review saveOriginalLifecycle:b error:&e]||e)return Error(env,IDEIdentityCode(e,"CONTROL_SAVE_UNKNOWN").c_str());return Undefined(env);}
   else{
    NSData*idBytes=IDEIdentityString(env,args[0],256),*decisionBytes=IDEIdentityString(env,args[1],16);NSString*identifier=idBytes?[[NSString alloc]initWithData:idBytes encoding:NSUTF8StringEncoding]:nil,*decision=decisionBytes?[[NSString alloc]initWithData:decisionBytes encoding:NSUTF8StringEncoding]:nil;
-   if(!identifier||!decision||![p->review selectOriginalDecision:identifier decision:decision error:&e]||e)return Error(env,IDEIdentityCode(e,"CONTROL_DECISION_UNKNOWN").c_str());return Undefined(env);
+   if(!identifier||!decision||![p->review selectOriginalDecision:identifier decision:decision error:&e]||e)return Error(env,IDEIdentityCode(e,"CONTROL_DECISION_UNKNOWN").c_str());
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+   // The SAME original Native owner performs its sole approve effect. Never
+   // pass a signer, Source, custody descriptor or key through JS. On failure
+   // Main's kernel reads the SAME retained partial before inspecting this error.
+   if([decision isEqual:@"approve"]&&(![p->review signOriginalApproval:&e]||e))return Error(env,IDEIdentityCode(e,"CONTROL_APPROVAL_OUTCOME_UNKNOWN").c_str());
+#endif
+   return Undefined(env);
   }
   return result&&!e?WalletControlPublic(env,result):Error(env,IDEIdentityCode(e,"CONTROL_ORIGINAL_RESULT_UNAVAILABLE").c_str());
  }catch(...){return Error(env,"CONTROL_NATIVE_EXCEPTION");}}@catch(NSException*){return Error(env,"CONTROL_NATIVE_EXCEPTION");}

@@ -4,15 +4,27 @@
 #import "../../native/original-project-control-review.h"
 #import "original-auth-identity-source-authority.h"
 static NSDictionary*publicCapture;static BOOL sourceLive=YES,sourceJoinPending=NO;
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+static NSDictionary*publicControlContext;static BOOL publicReleaseFail;
+#endif
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wincomplete-implementation"
-@implementation YNXAuthIdentitySourceAuthority
+@implementation YNXAuthIdentitySourceAuthority {
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+ id _publicControlToken;BOOL _publicControlSelected;
+#endif
+}
 + (instancetype)acquireOriginalIDEProjectControlAuthoritySource:(NSError**)error {if(error)*error=nil;return [self new];}
 - (NSDictionary*)copyOriginalIDEProjectControlCapture:(NSError**)error {if(error)*error=nil;return publicCapture;}
 - (BOOL)assertCurrent:(NSError**)error {if(error)*error=nil;return sourceLive;}
 - (void)retire {}
 - (BOOL)join:(NSError**)error {if(error)*error=nil;return !sourceJoinPending;}
 - (BOOL)close:(NSError**)error {if(error)*error=nil;return YES;}
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+- (NSDictionary*)copyOriginalIDEProjectControlSigningContext:(NSError**)error {if(error)*error=nil;return sourceLive?publicControlContext:nil;}
+- (id)reserveOriginalControlKeyBorrow:(NSError**)error {if(error)*error=nil;if(_publicControlSelected)return nil;_publicControlSelected=YES;_publicControlToken=[NSObject new];return _publicControlToken;}
+- (BOOL)releaseOriginalControlKeyBorrow:(id)token error:(NSError**)error {if(error)*error=nil;if(token!=_publicControlToken||publicReleaseFail)return NO;_publicControlToken=nil;return YES;}
+#endif
 @end
 #pragma clang diagnostic pop
 static void capture(NSString*request){
@@ -21,6 +33,7 @@ static void capture(NSString*request){
  for(NSData*part in @[bytes(@"YNX-IDE-PROJECT-CONTROL-REQUEST/v1"),bytes(@"YNX-BATCH/v0.1"),bytes(@"ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512"),bytes(@"IDE-PROJECT-CONTROL"),chain,bytes(@"PUBLIC-caller"),principal,command]){uint32_t n=(uint32_t)part.length;unsigned char len[4]={(unsigned char)(n>>24),(unsigned char)(n>>16),(unsigned char)(n>>8),(unsigned char)n};[raw appendBytes:len length:4];[raw appendData:part];}
  publicCapture=@{@"requestOriginal":raw,@"principalOriginal":principal,@"commandOriginal":command,@"expiresAtMs":[NSString stringWithFormat:@"%llu",(unsigned long long)end],@"review":@{@"reviewId":request,@"account":@"PUBLIC-owner",@"networkId":network,@"command":@{@"RequestID":request,@"ProjectID":@"PUBLIC-project"}}};sourceLive=YES;readStatus=addStatus=errSecSuccess;commitUnknown=corruptRead=NO;
 }
+#if !defined(YNX_CONTROL_REVIEW_PUBLIC_NO_MAIN)
 int main(){@autoreleasepool{
  items=[NSMutableDictionary new];NSError*e=nil;capture(@"PUBLIC approve");auto first=[YNXOriginalProjectControlReview captureOriginal:&e];assert(first&&!e&&[first copyOriginalReview:&e]);
  assert([first selectOriginalDecision:@"PUBLIC approve" decision:@"approve" error:&e]);assert([[[first copyOriginalDecision:&e]objectForKey:@"phase"]isEqual:@"decision-retained"]);
@@ -50,3 +63,4 @@ int main(){@autoreleasepool{
  capture(@"PUBLIC cancel effect refusal");auto noSign=[YNXOriginalProjectControlReview captureOriginal:&e];assert([noSign selectOriginalDecision:@"PUBLIC cancel effect refusal" decision:@"cancel" error:&e]);NSUInteger noWrites=adds;assert(![noSign selectOriginalApprovalEffectForReview:@"PUBLIC cancel effect refusal" error:&e]);assert(adds==noWrites);
  puts("{\"cases\":9,\"systemKeychainCalls\":0,\"SourceQualified\":false,\"signing\":false}");
 }return 0;}
+#endif

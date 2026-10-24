@@ -8,6 +8,10 @@
 #include <pthread.h>
 #include <chrono>
 #include <cmath>
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+#import "original-ide-project-control-custody.h"
+#include "original-project-control-cabi.h"
+#endif
 // Auth-owned dedicated resource, not an arbitrary provider/signer. Exact
 // snapshot: review (public UI DATA), requestOriginal, principalOriginal,
 // commandOriginal (NSData), expiresAtMs (decimal NSString). The original
@@ -49,6 +53,10 @@ static NSDictionary*ControlReviewSnapshot(NSDictionary*input){
  BOOL _effectSelected,_effectEntered,_hasSignedResult,_effectStored,_outcomeStored,_cleanupPending;NSData*_proof,*_outcomeOriginal;NSError*_effectCause;
  NSString*_nonce,*_confirmationRef,*_revocationRef;uint64_t _effectIssued;
  NSDictionary*_signingBinding;NSData*_decisionOriginal;
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+ YNXAuthOriginalProjectControlCustody*_controlCustody;BOOL _controlBorrowSelected,_controlBorrowCompleted,_controlCustodyClosed;
+ NSData*_cleanupReceiptOriginal,*_unknownOriginal;BOOL _cleanupReceiptStored,_unknownStored;
+#endif
 }
 - (instancetype)initPrivate{return [super init];}
 - (BOOL)refuse:(NSString*)message cause:(NSError*)cause error:(NSError**)error {if(!_first)_first=cause?:[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:message}];if(error)*error=_first;return NO;}
@@ -133,6 +141,85 @@ static NSDictionary*ControlReviewSnapshot(NSDictionary*input){
   return @{@"capture":_capture,@"reviewId":identifier,@"nonce":_nonce,@"confirmationRef":_confirmationRef,@"revocationRef":_revocationRef,@"issuedAtMs":@(_effectIssued),@"expiresAtMs":@(_expires)};
  }@catch(NSException*){[self refuse:@"CONTROL_EFFECT_SELECTION_UNKNOWN" cause:nil error:error];return nil;}@finally{_busy=NO;}
 }}
+- (BOOL)signOriginalApproval:(NSError**)error {@synchronized(self){
+#if !defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+ return [self refuse:@"CONTROL_MATCHED_FIXED_CABI_REQUIRED" cause:nil error:error];
+#else
+ if(error)*error=nil;
+ // Consume the SAME durable effect intent before Source custody acquisition.
+ // No external descriptor, callback, key or purpose is accepted by this entry.
+ if(![self selectOriginalApprovalEffectForReview:_capture[@"review"][@"reviewId"]error:error])return NO;
+ NSMutableData*record=nil;NSError*cause=nil,*cleanupCause=nil;BOOL invoked=NO,returned=NO,retained=NO;NSData*envelope=nil;uint32_t logicalCleanup=YNX_CONTROL_CLEANUP_UNKNOWN_V1;int32_t status=YNX_CONTROL_INTERNAL_V1;
+ @try{
+  do{
+   NSDictionary*context=[_source copyOriginalIDEProjectControlSigningContext:&cause];
+   if(cause||!ControlKeys(context,@[@"networkId",@"owner",@"keyVersion",@"executionHeight",@"callerIdentity",@"sourceCurrentRef",@"pkA",@"pkB",@"keychainAccount",@"expiresAtMs"])||!ControlReviewBytes(context[@"pkA"],2592)||[context[@"pkA"]length]!=2592||!ControlReviewBytes(context[@"pkB"],64)||[context[@"pkB"]length]!=64||!ControlHex(context[@"keychainAccount"],64)||!ControlDecimal(context[@"expiresAtMs"],YES)||[context[@"expiresAtMs"]longLongValue]>(long long)_expires||[context[@"expiresAtMs"]longLongValue]<=(long long)_floor)break;
+   _expires=std::min(_expires,(uint64_t)[context[@"expiresAtMs"]longLongValue]);
+   NSMutableDictionary*binding=[NSMutableDictionary new];for(NSString*k in @[@"networkId",@"owner",@"keyVersion",@"executionHeight",@"callerIdentity",@"sourceCurrentRef"])binding[k]=context[k];
+   NSDictionary*input=[self prepareOriginalApprovalInputForBinding:binding error:&cause];if(!input||cause)break;
+   // Retain the actual cleanup partial BEFORE inspecting NSError. Never
+   // reacquire a replacement Source/custody to repair refusal or unknown.
+   _controlCustody=[YNXAuthOriginalProjectControlCustody acquireForOriginalSource:_source error:&cause];_cleanupPending=_controlCustody!=nil;
+   if(cause||_controlCustody.class!=YNXAuthOriginalProjectControlCustody.class)break;
+   NSMutableDictionary*expectedContext=[binding mutableCopy];expectedContext[@"pkA"]=context[@"pkA"];expectedContext[@"pkB"]=context[@"pkB"];
+   NSDictionary*held=[_controlCustody copyOriginalExpectedBinding:&cause];
+   if(cause||![held isEqual:expectedContext]||![_controlCustody assertOriginalCurrent:&cause]||cause||![self assertCurrent:&cause])break;
+   _controlBorrowSelected=YES;record=[_controlCustody borrowOriginalControlRecord:&cause]; // adopt actual mutable borrow even on error
+   if(cause||![record isKindOfClass:NSMutableData.class]||![_controlCustody assertOriginalCurrent:&cause]||cause||![self assertCurrent:&cause])break;
+   // Re-observe the SAME immutable public context after the protected read.
+   NSDictionary*post=[_controlCustody copyOriginalExpectedBinding:&cause];if(cause||![expectedContext isEqual:post])break;
+   NSDictionary*postSource=[_source copyOriginalIDEProjectControlSigningContext:&cause];if(cause||![context isEqual:postSource])break;
+   input=[self prepareOriginalApprovalInputForBinding:binding error:&cause];if(!input||cause)break;
+   NSMutableData*network=[NSMutableData dataWithLength:32];for(unsigned i=0;i<32;i++){unsigned byte=0;NSScanner*s=[NSScanner scannerWithString:[context[@"networkId"]substringWithRange:NSMakeRange(i*2,2)]];[s scanHexInt:&byte];((uint8_t*)network.mutableBytes)[i]=(uint8_t)byte;}
+   NSMutableArray<NSData*>*strings=[NSMutableArray new];for(NSString*k in @[@"owner",@"keyVersion",@"executionHeight",@"callerIdentity",@"sourceCurrentRef"])[strings addObject:[context[k]dataUsingEncoding:NSUTF8StringEncoding]];
+   const auto bytes=[](NSData*b)->YNXProjectControlBytesV1{return{(const uint8_t*)b.bytes,b.length};};
+   YNXProjectControlExpectedV1 expected{bytes(network),bytes(strings[0]),bytes(strings[1]),bytes(strings[2]),bytes(strings[3]),bytes(strings[4]),bytes(context[@"pkA"]),bytes(context[@"pkB"])};
+   _busy=YES;_effectEntered=YES;_result=[self decisionState:@"approval-outcome-unknown"];
+   auto outcome=ynx_wallet_private::invokeOriginalProjectControlCABI(record,input[@"principalOriginal"],input[@"commandOriginal"],input[@"decisionOriginal"],expected,[input[@"observedAtMs"]unsignedLongLongValue]);
+   returned=YES;invoked=outcome.invoked;status=outcome.status;logicalCleanup=outcome.cleanup;
+   if(outcome.member)envelope=[self envelopeForOriginalMember:outcome.member error:&cause];
+   if(!envelope&&!cause)cause=[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:status userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_FIXED_CABI_OUTCOME_NOT_SIGNED"}];
+  }while(false);
+  if(!envelope&&!cause)cause=[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_ORIGINAL_CUSTODY_OR_CONTEXT_REFUSED"}];
+ }@catch(NSException*){if(!cause)cause=[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_EFFECT_EXCEPTION_UNKNOWN"}];}
+ @finally{
+  _busy=NO;
+  // Public result is adopted and saved BEFORE any foreign completion, current
+  // or close callback. Returned bytes and error are separate retained facts.
+  NSString*phase=envelope?@"signed":!_effectEntered||returned&&(!invoked||logicalCleanup==YNX_CONTROL_CLEANUP_NOT_REQUIRED_V1&&status>=YNX_CONTROL_INVALID_ARGUMENT_V1&&status<=YNX_CONTROL_KEY_MATERIAL_V1)?@"failed":@"unknown";
+  NSString*errorCode=cause?[NSString stringWithFormat:@"NATIVE:%@:%ld;CABI:%d:%u:%d",ControlSHA([cause.domain dataUsingEncoding:NSUTF8StringEncoding]),(long)cause.code,status,logicalCleanup,invoked]:nil;
+  NSDictionary*out=@{@"requestOriginal":_capture[@"requestOriginal"],@"reviewId":_capture[@"review"][@"reviewId"],@"decision":@"approve",@"envelopeOriginal":envelope?:NSNull.null,@"effectEntered":@(_effectEntered),@"hasSignedResult":@(envelope!=nil),@"resultStored":@NO,@"phase":phase,@"errorCode":errorCode?:NSNull.null,@"cleanupPending":@(_cleanupPending)};
+  @try{NSError*saveCause=nil;retained=[self adoptOriginalEffect:out error:&saveCause];if(!cause)cause=saveCause;}@catch(NSException*){if(!cause)cause=[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_RESULT_RETENTION_EXCEPTION_UNKNOWN"}];}
+  if([phase isEqual:@"unknown"]){@try{
+   // The durable once intent fences re-entry; this separate observation also
+   // retains exact public ABI status/cleanup on cold UNKNOWN recovery. A
+   // later definite result has its own slot, never overwrites this record.
+   NSDictionary*observation=@{@"version":@"YNX-WALLET-CONTROL-UNKNOWN/v1",@"requestOriginal":_capture[@"requestOriginal"],@"reviewId":_capture[@"review"][@"reviewId"],@"status":_result,@"cabiReturned":@(returned),@"cabiInvoked":@(invoked),@"cabiStatus":[NSString stringWithFormat:@"%d",status],@"cabiCleanup":[NSString stringWithFormat:@"%u",logicalCleanup],@"nativeErrorCode":errorCode?:@""};
+   _unknownOriginal=[NSPropertyListSerialization dataWithPropertyList:observation format:NSPropertyListBinaryFormat_v1_0 options:0 error:nil];NSError*saved=nil;if(![self saveOriginalApprovalResult:&saved]&&!cause)cause=saved;
+  }@catch(NSException*){if(!cause)cause=[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_UNKNOWN_OBSERVATION_SAVE_UNKNOWN"}];}}
+  // Post-effect current/foreground failure must be returned, but only AFTER
+  // the original proof has been captured and saved. It never authorizes a
+  // replacement signature or erases already produced public result bytes.
+  if(envelope&&retained){@try{NSError*postCause=nil;if(![_controlCustody assertOriginalCurrent:&postCause]||postCause||![self assertCurrent:&postCause]||postCause){if(!cause)cause=postCause?:[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_POST_EFFECT_CURRENT_REFUSED"}];}}@catch(NSException*){if(!cause)cause=[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_POST_EFFECT_CURRENT_UNKNOWN"}];}}
+  // The adapter already wiped normal/exception returns; also wipe a partial
+  // borrow refused BEFORE CABI. The SAME owner's completion never signs.
+  @try{if([record isKindOfClass:NSMutableData.class])[record resetBytesInRange:NSMakeRange(0,record.length)];if(_controlBorrowSelected)_controlBorrowCompleted=[_controlCustody completeOriginalControlBorrow:&cleanupCause]&&!cleanupCause;
+   if(_controlCustody&&(!_controlBorrowSelected||_controlBorrowCompleted)){[_controlCustody retire];if([_controlCustody join:&cleanupCause]&&!cleanupCause)_controlCustodyClosed=[_controlCustody close:&cleanupCause]&&!cleanupCause;}
+  }@catch(NSException*){cleanupCause=[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_CUSTODY_CLEANUP_UNKNOWN"}];}
+  BOOL cryptoCleanupKnown=!_effectEntered||returned&&(!invoked||logicalCleanup==YNX_CONTROL_CLEANUP_NOT_REQUIRED_V1||logicalCleanup==YNX_CONTROL_CLEANUP_LOGICAL_COMPLETE_V1);
+  if(_controlCustody&&_controlCustodyClosed&&(!_controlBorrowSelected||_controlBorrowCompleted)&&cryptoCleanupKnown&&!cleanupCause){
+   // Separate append-only cleanup receipt: never rewrite the signed outcome
+   // which was already saved while cleanup was still pending.
+   _cleanupReceiptOriginal=ControlCanonical(@{@"version":@"YNX-WALLET-CONTROL-CLEANUP/v1",@"requestSHA256":ControlSHA(_capture[@"requestOriginal"]),@"reviewId":_capture[@"review"][@"reviewId"],@"outcomeSHA256":_outcomeOriginal?ControlSHA(_outcomeOriginal):@"",@"observationSHA256":_unknownOriginal?ControlSHA(_unknownOriginal):@"",@"borrowSelected":@(_controlBorrowSelected),@"borrowCompleted":@(_controlBorrowCompleted),@"custodyClosed":@YES,@"cryptoCleanupKnown":@YES,@"cryptoCleanupStatus":[NSString stringWithFormat:@"%u",logicalCleanup],@"nativeErrorDomainSHA256":cause?ControlSHA([cause.domain dataUsingEncoding:NSUTF8StringEncoding]):@"",@"nativeErrorStatus":cause?[NSString stringWithFormat:@"%ld",(long)cause.code]:@""});
+   // A failed/unknown outcome save is NOT an automatic second write attempt.
+   // Keep the cleanup receipt in memory for the explicit save-original route.
+   if(_outcomeStored||_unknownStored){NSError*saved=nil;if(![self saveOriginalApprovalResult:&saved]&&!cause)cause=saved;}
+  }
+  if(cleanupCause){_cleanup=cleanupCause;_cleanupPending=YES;}if(cause){_effectCause=cause;if(!_first)_first=cause;}
+ }
+ if(!retained||cause||_cleanupPending){if(error)*error=_first?:_cleanup?:[NSError errorWithDomain:@"YNXOriginalProjectControlReview" code:1 userInfo:@{NSLocalizedDescriptionKey:@"CONTROL_APPROVAL_OUTCOME_UNKNOWN"}];return NO;}return _hasSignedResult;
+#endif
+}}
 - (BOOL)retainOriginalApprovalResult:(NSDictionary*)result cause:(NSError*)cause error:(NSError**)error {@synchronized(self){
  if(error)*error=nil;if(!_effectSelected||_busy)return [self refuse:@"CONTROL_ORIGINAL_EFFECT_REQUIRED" cause:nil error:error];
  // Dedicated CABI caller adopts returned public output BEFORE considering
@@ -160,12 +247,24 @@ static NSDictionary*ControlReviewSnapshot(NSDictionary*input){
  return ControlCanonical(@{@"version":@"YNX-IDE-PROJECT-CONTROL-APPROVAL/v1",@"binding":_signingBinding,@"principalOriginal":principal,@"commandOriginal":command,@"decisionOriginal":decision,@"memberOriginal":encoded});
 }}
 - (BOOL)saveOriginalApprovalResult:(NSError**)error {@synchronized(self){
- if(error)*error=nil;if(!_outcomeOriginal)return [self refuse:@"CONTROL_ORIGINAL_OUTCOME_REQUIRED" cause:nil error:error];if(_outcomeStored)return YES;
- NSData*key=[[@"YNX-CONTROL-EFFECT-OUTCOME/v1:" stringByAppendingString:ControlSHA(_capture[@"requestOriginal"])]dataUsingEncoding:NSUTF8StringEncoding];auto journal=[YNXOriginalProjectControlJournal new];NSError*e=nil;
- BOOL saved=[journal reserveOriginalDecision:_outcomeOriginal forOriginalRequest:key error:&e];
- if(!saved){NSError*readError=nil;NSData*existing=[journal copyOriginalDecisionForRequest:key error:&readError];if(!readError&&[existing isEqual:_outcomeOriginal])saved=YES;}
- if(!saved){_storage=e;return [self refuse:@"CONTROL_APPROVAL_RESULT_SAVE_UNKNOWN" cause:e error:error];}
- _outcomeStored=YES;_result=[self decisionState:_hasSignedResult?@"approval-proof-retained":@"approval-failed"];return YES;
+ if(error)*error=nil;
+ auto journal=[YNXOriginalProjectControlJournal new];NSError*e=nil;
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+ if(!_outcomeOriginal&&_unknownOriginal){NSData*unknownKey=[[@"YNX-CONTROL-EFFECT-UNKNOWN/v1:" stringByAppendingString:ControlSHA(_capture[@"requestOriginal"])]dataUsingEncoding:NSUTF8StringEncoding];BOOL saved=_unknownStored||[journal reserveOriginalDecision:_unknownOriginal forOriginalRequest:unknownKey error:&e];if(!saved){if(!_storage)_storage=e;NSError*readError=nil;NSData*existing=[journal copyOriginalDecisionForRequest:unknownKey error:&readError];saved=!readError&&[existing isEqual:_unknownOriginal];}if(!saved)return [self refuse:@"CONTROL_UNKNOWN_OBSERVATION_SAVE_UNKNOWN" cause:e error:error];_unknownStored=YES;}
+ else
+#endif
+ {
+ if(!_outcomeOriginal)return [self refuse:@"CONTROL_ORIGINAL_OUTCOME_REQUIRED" cause:nil error:error];
+ NSData*key=[[@"YNX-CONTROL-EFFECT-OUTCOME/v1:" stringByAppendingString:ControlSHA(_capture[@"requestOriginal"])]dataUsingEncoding:NSUTF8StringEncoding];
+ BOOL saved=_outcomeStored||[journal reserveOriginalDecision:_outcomeOriginal forOriginalRequest:key error:&e];
+ if(!saved){if(!_storage)_storage=e;NSError*readError=nil;NSData*existing=[journal copyOriginalDecisionForRequest:key error:&readError];if(!readError&&[existing isEqual:_outcomeOriginal])saved=YES;}
+ if(!saved){return [self refuse:@"CONTROL_APPROVAL_RESULT_SAVE_UNKNOWN" cause:e error:error];}
+ _outcomeStored=YES;
+ }
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI)
+ if(_cleanupReceiptOriginal&&!_cleanupReceiptStored){NSData*cleanupKey=[[@"YNX-CONTROL-EFFECT-CLEANUP/v1:" stringByAppendingString:ControlSHA(_capture[@"requestOriginal"])]dataUsingEncoding:NSUTF8StringEncoding];NSError*cleanupError=nil;BOOL cleanupSaved=[journal reserveOriginalDecision:_cleanupReceiptOriginal forOriginalRequest:cleanupKey error:&cleanupError];if(!cleanupSaved){NSError*readError=nil;NSData*existing=[journal copyOriginalDecisionForRequest:cleanupKey error:&readError];cleanupSaved=!readError&&[existing isEqual:_cleanupReceiptOriginal];}if(!cleanupSaved){_storage=cleanupError;return [self refuse:@"CONTROL_CLEANUP_RECEIPT_SAVE_UNKNOWN" cause:cleanupError error:error];}_cleanupReceiptStored=YES;_cleanupPending=NO;}
+#endif
+ _result=[self decisionState:_hasSignedResult?@"approval-proof-retained":_outcomeStored?@"approval-failed":@"approval-outcome-unknown"];return YES;
 }}
 - (NSData*)copyOriginalApprovalProof:(NSError**)error {@synchronized(self){if(error)*error=nil;if(!_hasSignedResult||!_proof){[self refuse:@"CONTROL_ORIGINAL_PROOF_UNAVAILABLE" cause:nil error:error];return nil;}return [NSData dataWithBytes:_proof.bytes length:_proof.length];}}
 - (NSDictionary*)copyOriginalDecision:(NSError**)error {@synchronized(self){

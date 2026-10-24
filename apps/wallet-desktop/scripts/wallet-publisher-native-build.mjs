@@ -18,9 +18,18 @@ export const WALLET_PROJECT_CONTROL_FLAG='-DYNX_ORIGINAL_WALLET_PROJECT_CONTROL=
 export const WALLET_PROJECT_CONTROL_INPUTS=Object.freeze([
  {path:'apps/wallet-desktop/native/original-project-control-journal.h',bytes:705,sha256:'f2ce1185a38a3e534dcc0478eb0fddae04839cb8b3b4377fffc3c7cff8a5dd28'},
  {path:'apps/wallet-desktop/native/original-project-control-journal.mm',bytes:4783,sha256:'fa02c314dd925d0bd5ae3a7e636cf58c682be9a8adc8a434354dd88995c981e6'},
- {path:'apps/wallet-desktop/native/original-project-control-review.h',bytes:1867,sha256:'2983c54e267d822710b1eabc8176e95bd5e5b5b034fe72001d4d566c229981e3'},
- {path:'apps/wallet-desktop/native/original-project-control-review.mm',bytes:28633,sha256:'3b494bc5bb78e2a3466d8ae643207c09879309b21118eb395ea9d5d0369d2957'},
- {path:'apps/wallet-desktop/native/original-project-control-binding.inc.mm',bytes:9665,sha256:'4e3492f8421340dd5cfe9b4a629835651e1d20496a22e5b25debb31dbff92dfc'}
+ {path:'apps/wallet-desktop/native/original-project-control-review.h',bytes:2075,sha256:'884af35345d974b0ec168daec93ee77e9464f40aed9a8a18c340d39ffaa6f332'},
+ {path:'apps/wallet-desktop/native/original-project-control-review.mm',bytes:41421,sha256:'d6f8ab5647912e52a03a011c064ddc5c88be7f9a869184f019919e631690ac8f'},
+ {path:'apps/wallet-desktop/native/original-project-control-binding.inc.mm',bytes:10298,sha256:'49c95e1be1d0849dff878ddbb0e19fd9ee86d8a481b8998a4f57daff5e7feada'}
+].map(Object.freeze));
+// Exact separate role inputs for the R201 matching supplier successor. This
+// does NOT enable the role in old SDK23/24 recipes or lend their Native record.
+// A must freeze the new supplier TU/inventory before composing this role.
+export const WALLET_PROJECT_CONTROL_CABI_FLAG='-DYNX_ORIGINAL_WALLET_PROJECT_CONTROL_CABI=1';
+export const WALLET_PROJECT_CONTROL_CABI_INPUTS=Object.freeze([
+ {path:'apps/wallet-desktop/native/original-project-control-cabi.h',bytes:4180,sha256:'a85524f65a20dbeb01d8c79ce2ce98636736e54b9605e0fc4843a593bc87bc96'},
+ {path:'apps/wallet-desktop/native/ynx_project_control.h',bytes:4420,sha256:'98c4f5fa607d6a1e87b5ea091c7110288aee7f8ac9ff5a901f98e1c2990ca5af'},
+ {path:'apps/wallet-desktop/native/libynx_project_control.a',bytes:7588424,sha256:'9ec0b0ebe0e979afa701a483985c7e4ed19757c582b1479de2c7b9701ad3ceb9'}
 ].map(Object.freeze));
 const withApproval=Object.freeze([...WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_PUBLISHER_APPROVAL_INPUT]);
 export const WALLET_ARTIFACT_CABI_FLAG='-DYNX_ORIGINAL_WALLET_ARTIFACT_CABI=1';
