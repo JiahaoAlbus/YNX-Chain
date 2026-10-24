@@ -17,7 +17,7 @@ function cancel(){aborted=true;if(!pid)return;try{process.kill(-pid,'SIGTERM')}c
 process.once('SIGTERM',cancel);process.once('SIGINT',cancel);
 try{
   receipt=preparePrivateCINode();save('PRIVATE_NODE_READY.json',receipt);
-  if(!receipt.ready||receipt.source.sha256!==receipt.sha256||receipt.source.bytes!==receipt.bytes)throw Error('AUTH_PRIVATE_COPY_NOT_READY');
+  if(!receipt.ready||receipt.sha256!=='bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12'||receipt.source.sha256!==receipt.sha256||receipt.source.bytes!==receipt.bytes)throw Error('AUTH_PRIVATE_COPY_NOT_READY');
   const started=new Date().toISOString(),tool=receipt.path,argv=[path.join(root,'packages/wallet-auth/scripts/run-auth-go-fixture-ci.mjs')];
   const out=fs.openSync(path.join(evidence,'RUNNER.stdout'),'wx',0o600),err=fs.openSync(path.join(evidence,'RUNNER.stderr'),'wx',0o600);
   try{
