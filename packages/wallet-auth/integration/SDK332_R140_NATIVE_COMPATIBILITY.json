@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.36",
+  "version": "1.3.0-pq.3.32-auth.37",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -324,8 +324,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
-      "bytes": 13343,
-      "sha256": "ec6aafa361e2b79e9f3c06071a1a890390e3ac19af795631b2b442f9aefbc082"
+      "bytes": 13399,
+      "sha256": "de91b9b18cfab291c7bca0a3bdb88e16f911505be356ce3afc1da5a1d8d34ae5"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
@@ -2064,5 +2064,23 @@
     "realLogin": false,
     "realRestoration": false,
     "realRevocation": false
+  },
+  "supplierR241": {
+    "handoff": {
+      "bytes": 11797,
+      "sha256": "aac646c3e69cce606c66db05f3591ee91e75f45e7ddd96ce9eb1b7542597322a"
+    },
+    "sourceDelta": [
+      {
+        "relative": "source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "bytes": 13399,
+        "sha256": "de91b9b18cfab291c7bca0a3bdb88e16f911505be356ce3afc1da5a1d8d34ae5"
+      }
+    ],
+    "namespaceOnly": true,
+    "actualFoundationControlsPassed": true,
+    "SourceQualified": false,
+    "NativeModuleBuilt": false,
+    "installed": false
   }
 }

@@ -137,7 +137,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  @synchronized(self){
   if(_retired)return [self fail:@"AUTH_IDENTITY_ORIGINAL_RETIRED" error:error];
   if(_ideConsumer&&![YNXActualIDEConsumerResources().path isEqual:_actualIDEResources])return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_CHANGED" error:error];
-  NSURL *expectedRegistry=YNXOriginalIDERegistryResources();
+  NSURL *expectedRegistry=_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
   if(_contractRelay)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(_projectControl)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-control" isDirectory:YES];
