@@ -55,5 +55,14 @@
   "normalCIPending": true,
   "newHeavyRequest": false,
   "kernelReference": "https://github.com/torvalds/linux/blob/v6.17/fs/proc/array.c",
-  "originalRefusedRun": 40101270671
+  "originalRefusedRun": 40101270671,
+  "codeCommit": "a07fba336139704d11f67811ba2e9f2ec3d3aad3",
+  "sourceGuard": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-kernel-memory-fields-source-guard-01.raw",
+    "bytes": 4440,
+    "sha256": "a5e2d45a68d781c3e590d704f8e409a01275e35516dd7bdc5107087c7cee728c",
+    "tests": 24,
+    "passed": true,
+    "seconds": 16.323621125
+  }
 }
