@@ -753,7 +753,10 @@ def assert_workflow_contract(raw):
     need("          set -euo pipefail\n" in copy_controls and "||" not in copy_controls)
     need("timeout 45s python3 -B scripts/ops/test_verify_original_native_copy_once.py -v 2>&1 | tee" in copy_controls)
     need("grep -F -c 'YNX_NATIVE_ROFD_STABLE_FINAL_PATH_DATA_PASS'" in copy_controls and '\" -eq 1' in copy_controls)
-    for leaf in ("scripts/ops/remote/verify-original-native-copy-once.sh", "scripts/ops/test_verify_original_native_copy_once.py"):
+    need("timeout 45s python3 -B scripts/ops/test_verify_retained_migration_preservation_once.py -v 2>&1 | tee" in copy_controls)
+    need("grep -F -c 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'" in copy_controls)
+    for leaf in ("scripts/ops/remote/verify-original-native-copy-once.sh", "scripts/ops/test_verify_original_native_copy_once.py",
+                 "scripts/ops/remote/verify-retained-migration-preservation-once.sh", "scripts/ops/test_verify_retained_migration_preservation_once.py"):
         need("      - '" + leaf + "'\n" in raw)
     signer_name = "Build and pin normal signer process binaries without running them"
     for name in NORMAL_STEP_NAMES:
@@ -1116,6 +1119,9 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("      - name: Verify Linux window controls without starting a node\n", "      - name: Silently omitted controls\n"),
             ("timeout 45s python3 -B scripts/ops/test_verify_original_native_copy_once.py", "timeout 90s python3 -B scripts/ops/test_verify_original_native_copy_once.py"),
             ("test_verify_original_native_copy_once.py -v 2>&1 | tee", "test_verify_original_native_copy_once.py -v 2>&1 || true | tee"),
+            ("timeout 45s python3 -B scripts/ops/test_verify_retained_migration_preservation_once.py", "timeout 90s python3 -B scripts/ops/test_verify_retained_migration_preservation_once.py"),
+            ("test_verify_retained_migration_preservation_once.py -v 2>&1 | tee", "test_verify_retained_migration_preservation_once.py -v 2>&1 || true | tee"),
+            ("grep -F -c 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'", "echo 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'"),
             (".cleanupComplete == true", ".cleanupComplete != false"),
             ("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n", "    if: false\n"),
         ]

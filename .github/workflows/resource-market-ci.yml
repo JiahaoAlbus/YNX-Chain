@@ -22,6 +22,8 @@ on:
       - 'scripts/ops/verify-original-native-copy.py'
       - 'scripts/ops/remote/verify-original-native-copy-once.sh'
       - 'scripts/ops/test_verify_original_native_copy_once.py'
+      - 'scripts/ops/remote/verify-retained-migration-preservation-once.sh'
+      - 'scripts/ops/test_verify_retained_migration_preservation_once.py'
       - 'scripts/verify/test_original_native_copy_guard.py'
       - 'scripts/ops/verify-retained-native-export.py'
       - 'scripts/verify/test_retained_native_export_guard.py'
@@ -606,6 +608,8 @@ jobs:
           python3 -B -m unittest discover -s scripts/verify -p 'test_retained_native_export_guard.py' -v
           timeout 45s python3 -B scripts/ops/test_verify_original_native_copy_once.py -v 2>&1 | tee "$RUNNER_TEMP/ynx-native-readonly-copy-source.log"
           test "$(grep -F -c 'YNX_NATIVE_ROFD_STABLE_FINAL_PATH_DATA_PASS' "$RUNNER_TEMP/ynx-native-readonly-copy-source.log")" -eq 1
+          timeout 45s python3 -B scripts/ops/test_verify_retained_migration_preservation_once.py -v 2>&1 | tee "$RUNNER_TEMP/ynx-retained-preservation-source.log"
+          test "$(grep -F -c 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS' "$RUNNER_TEMP/ynx-retained-preservation-source.log")" -eq 1
       - name: Verify Linux window controls without starting a node
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
