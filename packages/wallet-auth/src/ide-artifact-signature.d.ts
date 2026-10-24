@@ -42,6 +42,13 @@ export interface IDEArtifactSignatureData extends IDEArtifactPublisherBindingDat
  readonly nativeAdmission:false;readonly registered:false;readonly current:false;
  readonly publicationAuthorized:false;
 }
+/** Existing signed three-field ARTIFACT-RELEASE member, recovered and verified
+ * against independently supplied original public bytes. Not a key resolver,
+ * registration, Source-current verdict or publication approval. */
+export interface IDEArtifactSignedManifestData extends IDEArtifactSignatureData {
+ /** Exact original manifest bytes encoded as canonical base64url DATA. */
+ readonly manifestOriginal:string;
+}
 /** Explicit portable Node/Electron provider. Does not register a publisher. */
 export declare function createIDEArtifactPublisherKeyData(binding:IDEArtifactPublisherBindingData):IDEArtifactPublisherKeyData;
 export declare function readIDEArtifactPublisherPublicOriginalData(handle:IDEArtifactPublisherKeyData):Uint8Array;
@@ -60,3 +67,6 @@ export declare function signIDEArtifactManifestData(handle:IDEArtifactPublisherK
 /** Full dual-AND mathematics, with fixed local height zero. Never a registered
  * publisher/current-policy/permission verdict. Original Auth must check those. */
 export declare function inspectIDEArtifactSignatureData(signatureOriginal:Uint8Array,manifestOriginal:Uint8Array,expectedPublicOriginal:Uint8Array):Readonly<IDEArtifactSignatureData>;
+/** Uses the same original N1 verifier; no caller-supplied manifest or trusted
+ * public resolution is accepted from the signature. */
+export declare function inspectIDEArtifactSignedManifestData(signatureOriginal:Uint8Array,expectedPublicOriginal:Uint8Array):Readonly<IDEArtifactSignedManifestData>;

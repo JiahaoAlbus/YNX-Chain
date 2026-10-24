@@ -17,14 +17,14 @@ const hash = raw => createHash('sha256').update(raw).digest('hex');
 test('R211 normal publisher fixed presence is pinned for addon/helper with unchanged81 CPP and14/11 recipe', async () => {
   const {contract} = verifySDK332R140Source(root);
   const normal = [...contract.NativeInputs, ...contract.HelperInputs, ...contract.pureDeploymentInputs, contract.normalBuildTool];
-  assert.equal(contract.version, '1.3.0-pq.3.32-auth.30');
+  assert.equal(contract.version, '1.3.0-pq.3.32-auth.31');
   assert.equal(contract.NativeInputs.length, 92);
   assert.equal(contract.HelperInputs.length, 5);
   assert.equal(normal.length, 102);
   assert.equal(new Set([...normal, ...contract.sourceCurrentIOInputs].map(p => p.path)).size, 103);
   assert.equal(normal.filter(p => /\.(?:h|mm|cpp)$/.test(p.path)).length, 81);
   assert.deepEqual(contract.NativeInputs.find(p => p.path === leaf), {path: leaf, bytes: 7199, sha256: '9fa9078c9ce04da0e2253177a60b351031c94d67942f7fba06e224ab1b4e015b'});
-  assert.deepEqual(contract.NativeInputs.find(p => p.path === 'packages/wallet-auth/native/original-auth-identity-source-verifier.mjs'), {path: 'packages/wallet-auth/native/original-auth-identity-source-verifier.mjs', bytes: 20641, sha256: '950a173933046244fadb23031007a85b31e5a1f133d2a0e5b7e8fde39134c0fc'});
+  assert.deepEqual(contract.NativeInputs.find(p => p.path === 'packages/wallet-auth/native/original-auth-identity-source-verifier.mjs'), {path: 'packages/wallet-auth/native/original-auth-identity-source-verifier.mjs', bytes: 20978, sha256: '7670b7093f4ba6fe6f9a26c6b999ec7a4069fec7d46dd06105bc9661867c66cf'});
   const toolRaw = fs.readFileSync(path.join(root, contract.normalBuildTool.path), 'utf8');
   const addition = ',"original-ide-protected-publisher-dispatch.mjs"';
   assert.equal(toolRaw.split(addition).length - 1, 2);
