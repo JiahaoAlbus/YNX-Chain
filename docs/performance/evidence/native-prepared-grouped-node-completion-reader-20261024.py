@@ -28,8 +28,10 @@ phases=json.loads(subprocess.check_output([shutil.which('node') or 'node','--inp
 e.need(phases==receipt['nodePhases'],'original parsed node phase receipt differs')
 manifest_raw=capture(network/'network-manifest.json',1<<20);manifest=e.strict_json(manifest_raw)
 initial=e.strict_json(capture(network/'transactions.json',16<<20))['transactions']
-join=e.NodeCompletionJoin([n['rpcUrl'] for n in manifest['nodes']],phases,measurement['timeSeries'],8192)
+replica_tool=Path(__file__).with_name('native-prepared-replica-completion-reader-20261024.py')
+replica=load('replica_completion_consumer',replica_tool)
+join=replica.replica_join_type(e)([n['rpcUrl'] for n in manifest['nodes']],phases,measurement['timeSeries'])
 proof=e.verify_streams(network,str(Path(receipt['case'])/'network'),str(Path(receipt['case'])/'network/transactions-result.json'),manifest_raw,initial,report['readySenders']['intentSegments'],report['terminalStream'],report['transactions'],4,64<<20,node_completion_join=join)
-result=dict(schema=1,runId=api['id'],originalRunAPI=pin(run_api_path,65536),sourceCommit=receipt['sourceCommit'],diagnosticSource='1f21f1f2eed732c0948ac98ff7028bee5f2d6ca4',originalReceiptSHA256=e.digest(receipt_raw),originalClientSHA256=e.digest(raw),reader=pin(base/'frozen-readers/scripts/loadtest/native-stream-evidence.py',1<<20),nodeLogs=[pin(p,1<<20) for p in logs],join=proof['nodeCompletionJoin'],originalSignedTerminalIdentity=proof['originalPublicMemberManifest'],networkQualified=False,sustainedTPSQualified=False)
+result=dict(schema=1,runId=api['id'],originalRunAPI=pin(run_api_path,65536),sourceCommit=receipt['sourceCommit'],diagnosticSource='1f21f1f2eed732c0948ac98ff7028bee5f2d6ca4',originalReceiptSHA256=e.digest(receipt_raw),originalClientSHA256=e.digest(raw),reader=pin(base/'frozen-readers/scripts/loadtest/native-stream-evidence.py',1<<20),nodeLogs=[pin(p,1<<20) for p in logs],join=proof['nodeCompletionJoin'],replicaJoin=join.replica_result(),replicaConsumer=pin(replica_tool,1<<20),originalSignedTerminalIdentity=proof['originalPublicMemberManifest'],networkQualified=False,sustainedTPSQualified=False)
 with output.open('x') as f:json.dump(result,f,indent=2);f.write('\n')
 print(json.dumps(result['join']))

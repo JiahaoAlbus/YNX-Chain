@@ -1,0 +1,306 @@
+{
+  "schema": 1,
+  "sourceRun": 40091935654,
+  "newNetworkRun": false,
+  "qualifiedOriginalVerdict": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/independent-qualified-verdict-01.json",
+    "bytes": 495446,
+    "sha256": "a7a3c65a1a21aa5eb3a869b9e1442b2da38bf6382539d27934ca3581443d304a"
+  },
+  "derivedOriginalOutput": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/replica-durable-completion-02.json",
+    "bytes": 10792,
+    "sha256": "cefda02437e738e17ddbb7d98cf68e93f770166ed1c56a0e9829603e9124b698"
+  },
+  "consumer": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-prepared-replica-completion-reader-20261024.py",
+    "bytes": 9992,
+    "sha256": "47b736cdb982c1eacd823ded1098b58dd52e1f167b8c5df1143524ee931a8b22"
+  },
+  "cases": [
+    {
+      "label": "native-prepared-control",
+      "receipt": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/before-native-prepared-control/evidence/actual.json",
+        "bytes": 1168617,
+        "sha256": "b24d237f9c0d740026eb3fa952446af4202daf23801a95d7e4509c0083b6902f"
+      },
+      "originalNodeLogs": [
+        {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/before-native-prepared-control/abci-0.log",
+          "bytes": 64536,
+          "sha256": "eb14564ab1dddab2ede48f382c1613aa1153ec84f8afb8e2faf0aa5feb5ce2ef"
+        },
+        {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/before-native-prepared-control/abci-1.log",
+          "bytes": 64476,
+          "sha256": "fb51f20dbe3f2068ce41d3971bdec3d8834365ff6688b1d47195a7657e8d85ea"
+        },
+        {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/before-native-prepared-control/abci-2.log",
+          "bytes": 64502,
+          "sha256": "34ca7d1e2287bf3d57f0430e60edab4f21351f6043b5a7117543ad1435d883e9"
+        },
+        {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/before-native-prepared-control/abci-3.log",
+          "bytes": 64461,
+          "sha256": "b0a70ca07f6c30b4393f485dfdb6ce7a189295b17302338d1aa169af902aaff7"
+        }
+      ],
+      "originalSignedMemberIdentity": {
+        "members": 256,
+        "sha256": "9432faeececa131ad61f4a42cd8a34c58922b94617ce8a73425b00ae07b6c2d1",
+        "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+      },
+      "joinedTransactions": 8192,
+      "replicaCompletionIntervalsNs": {
+        "offerToFirstReplicaDurableCommit": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "maximumIntervalWidthNs": 40660,
+          "p50": {
+            "lowerNs": 968959340,
+            "upperNs": 969999999
+          },
+          "p95": {
+            "lowerNs": 1281959340,
+            "upperNs": 1282999999
+          },
+          "p99": {
+            "lowerNs": 1505959340,
+            "upperNs": 1506999999
+          }
+        },
+        "offerToThirdReplicaDurableCommit": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "maximumIntervalWidthNs": 40660,
+          "p50": {
+            "lowerNs": 1014959340,
+            "upperNs": 1015999999
+          },
+          "p95": {
+            "lowerNs": 1315959340,
+            "upperNs": 1316999999
+          },
+          "p99": {
+            "lowerNs": 1548959340,
+            "upperNs": 1549999999
+          }
+        },
+        "offerToAllReplicaDurableCommit": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "maximumIntervalWidthNs": 40660,
+          "p50": {
+            "lowerNs": 1037959340,
+            "upperNs": 1038999999
+          },
+          "p95": {
+            "lowerNs": 1346959340,
+            "upperNs": 1347999999
+          },
+          "p99": {
+            "lowerNs": 1570959340,
+            "upperNs": 1571999999
+          }
+        },
+        "replicaDurableCommitSpread": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "maximumIntervalWidthNs": 178,
+          "p50": {
+            "lowerNs": 61999822,
+            "upperNs": 62999999
+          },
+          "p95": {
+            "lowerNs": 125999822,
+            "upperNs": 126999999
+          },
+          "p99": {
+            "lowerNs": 129999822,
+            "upperNs": 130258415
+          }
+        }
+      },
+      "negativeChecks": [
+        {
+          "mutation": "missing_height",
+          "rejected": true,
+          "firstCause": "replica business height absent"
+        },
+        {
+          "mutation": "block_hash",
+          "rejected": true,
+          "firstCause": "replica block or post-state identity differs"
+        },
+        {
+          "mutation": "post_state_hash",
+          "rejected": true,
+          "firstCause": "replica block or post-state identity differs"
+        },
+        {
+          "mutation": "transaction_count",
+          "rejected": true,
+          "firstCause": "replica business block coverage differs"
+        }
+      ]
+    },
+    {
+      "label": "native-prepared-owned",
+      "receipt": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/after-native-prepared-owned/evidence/actual.json",
+        "bytes": 1153410,
+        "sha256": "7d699abbb21b5b7f6fbd563935ea7227d896b74588bb65e130334ec8aedc7b67"
+      },
+      "originalNodeLogs": [
+        {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/after-native-prepared-owned/abci-0.log",
+          "bytes": 64493,
+          "sha256": "58b56654a49c16e56e60998cf098c2201fb6a71c590f12461201adb1d451a936"
+        },
+        {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/after-native-prepared-owned/abci-1.log",
+          "bytes": 64472,
+          "sha256": "0f0d71be30db3681832b36c1d89c00b69d35fde66803f4bec3b97ea63cfdccfb"
+        },
+        {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/after-native-prepared-owned/abci-2.log",
+          "bytes": 64469,
+          "sha256": "0247f58d70316e4d10e82501a67d3f18abee9b3466034c4829403d0eec2186e5"
+        },
+        {
+          "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-run-40091935654/capture/after-native-prepared-owned/abci-3.log",
+          "bytes": 64492,
+          "sha256": "f1f025c53a39e1e1bc278ae8a2e4e716ae5349eaebc03940d7d0a1a8c3d40da4"
+        }
+      ],
+      "originalSignedMemberIdentity": {
+        "members": 256,
+        "sha256": "fb0348eecb88e45e252417b3787fab99140806664d994e97144a1486990ec18c",
+        "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+      },
+      "joinedTransactions": 8192,
+      "replicaCompletionIntervalsNs": {
+        "offerToFirstReplicaDurableCommit": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "maximumIntervalWidthNs": 14962,
+          "p50": {
+            "lowerNs": 936985038,
+            "upperNs": 937999999
+          },
+          "p95": {
+            "lowerNs": 1206985038,
+            "upperNs": 1207999999
+          },
+          "p99": {
+            "lowerNs": 1329985038,
+            "upperNs": 1330999999
+          }
+        },
+        "offerToThirdReplicaDurableCommit": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "maximumIntervalWidthNs": 14962,
+          "p50": {
+            "lowerNs": 978985038,
+            "upperNs": 979999999
+          },
+          "p95": {
+            "lowerNs": 1262985038,
+            "upperNs": 1263999999
+          },
+          "p99": {
+            "lowerNs": 1402985038,
+            "upperNs": 1403999999
+          }
+        },
+        "offerToAllReplicaDurableCommit": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "maximumIntervalWidthNs": 14962,
+          "p50": {
+            "lowerNs": 1003985038,
+            "upperNs": 1004999999
+          },
+          "p95": {
+            "lowerNs": 1289985038,
+            "upperNs": 1290999999
+          },
+          "p99": {
+            "lowerNs": 1410985038,
+            "upperNs": 1411999999
+          }
+        },
+        "replicaDurableCommitSpread": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "maximumIntervalWidthNs": 360,
+          "p50": {
+            "lowerNs": 76999640,
+            "upperNs": 77999999
+          },
+          "p95": {
+            "lowerNs": 161999640,
+            "upperNs": 162347475
+          },
+          "p99": {
+            "lowerNs": 161999640,
+            "upperNs": 162347475
+          }
+        }
+      },
+      "negativeChecks": [
+        {
+          "mutation": "missing_height",
+          "rejected": true,
+          "firstCause": "replica business height absent"
+        },
+        {
+          "mutation": "block_hash",
+          "rejected": true,
+          "firstCause": "replica block or post-state identity differs"
+        },
+        {
+          "mutation": "post_state_hash",
+          "rejected": true,
+          "firstCause": "replica block or post-state identity differs"
+        },
+        {
+          "mutation": "transaction_count",
+          "rejected": true,
+          "firstCause": "replica business block coverage differs"
+        }
+      ]
+    }
+  ],
+  "actualOriginalPositiveCases": 2,
+  "fullSignedRecordsPerCase": 8192,
+  "negativeChecks": 8,
+  "sharedRefactorMetricIdentity": true,
+  "groupedConsumer": {
+    "path": "docs/performance/evidence/native-prepared-grouped-node-completion-reader-20261024.py",
+    "bytes": 4889,
+    "sha256": "a7c711fae6d40955e13a4f345c0cd9cd78a5b962c690fe087bab23588e27dbb2"
+  },
+  "groupedWrongOriginalSource": {
+    "rejected": true,
+    "outputCreated": false,
+    "raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/replica-aware-grouped-wrong-source-01.raw",
+      "bytes": 1112,
+      "sha256": "46fa05161c23f57d8b9aa5043c2a4b4fd3e67295caa2f834bfe313c42d0247f5"
+    }
+  },
+  "bftQuorumFormationInstantMeasured": false,
+  "networkOrSustainedQualificationAdded": false
+}

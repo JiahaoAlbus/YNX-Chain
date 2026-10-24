@@ -176,7 +176,7 @@
     "changed": false,
     "hashMode": "original-json"
   },
-  "normalCIPending": true,
+  "normalCIPending": false,
   "codeCommit": "2103eeee703d5a5b8d31bc61bc8a72461788e2ca",
   "sourceGuard": {
     "initialAttempt": {
@@ -198,5 +198,25 @@
     "internalTree": "a39eac128aaa5588d41703f95cd78c902ba18413",
     "deltaSHA256": "46f26eed9da7f58a86b89743d68c31171c7c9577e2988b80f56a111f46d07005",
     "runtimeClientAndDiagnosticNodeTreesUnchanged": true
+  },
+  "normalCI": {
+    "runId": 40100522899,
+    "headCommit": "ca5d982db15da273c6f78a511e7791768f350626",
+    "event": "push",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "api": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/cached-fee-safe-byte-source-ca5d982db1/normal-ci-terminal-api.json",
+      "bytes": 12390,
+      "sha256": "2689b04d4510d66e6496bf62cab6cd36dcfdfb48f9148d4f48c46a125ffd0351"
+    },
+    "fullLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/cached-fee-safe-byte-source-ca5d982db1/normal-ci-full.raw",
+      "bytes": 725749,
+      "sha256": "1eb5ba4b924025615f9795b57383847c038f0ab8c4938664492432eb7a8ce897"
+    },
+    "bytePairOracleActuallyPassedInCI": true,
+    "interpretation": "CI qualifies exact ca5d982db runtime/source only; later offline consumer/metadata changes are separate and do not replace the original run"
   }
 }
