@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -144,7 +145,12 @@ func TestStreamingWorkloadGzipRealExecutionAcrossLegacyNonceBoundary(t *testing.
 }
 
 func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, candidates ...bool) {
-	path, manifest, m, migration, initial := senderFixture(t)
+	wide := len(candidates) >= 4 && candidates[3]
+	senderCount := 3
+	if wide {
+		senderCount = 32
+	}
+	path, manifest, m, migration, initial := senderFixture(t, senderCount)
 	o := streamingOptions()
 	if native {
 		o = nativeStreamingOptions()
@@ -156,6 +162,14 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		}
 		o.pacedWorkerInventory = new(pacedWorkerInventory)
 	}
+	if wide {
+		if !native || o.nativeStreamSubmitters != 16 {
+			t.Fatal("wide fixture requires explicit stream16")
+		}
+		o.rounds = 2
+		o.submissionOccupancy = new(submissionOccupancyRecorder)
+	}
+	expected := len(initial) * o.rounds
 	o.terminalGzip = compressed
 	o.output = filepath.Join(t.TempDir(), "transactions-result.json")
 	if native {
@@ -218,8 +232,24 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	var execute sync.Mutex
 	height := int64(migration.Height)
 	signed := 0
+	var entered atomic.Int64
+	firstWave := make(chan struct{})
+	measurementStarted := time.Now()
 	stats, runErr := runReadySenderPool(ctx, o, p, txs, results, func(index int) (time.Time, bool) {
 		began := time.Now()
+		if wide {
+			n := entered.Add(1)
+			if n == 16 {
+				close(firstWave)
+			}
+			if n <= 16 {
+				select {
+				case <-firstWave:
+				case <-ctx.Done():
+					return began, false
+				}
+			}
+		}
 		at := began.UTC()
 		results[index].SubmittedAt = &at
 		results[index].submitMonotonic = began
@@ -299,8 +329,15 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	if err := stream.close(); err != nil {
 		t.Fatal(err)
 	}
-	if runErr != nil || stats.Completed != len(initial)*34 || stats.Quarantined != 0 || stats.RoundsCompleted != 34 || stats.PeakInFlight > len(initial) || len(results) != len(initial) || signed != 102 {
+	if runErr != nil || stats.Completed != expected || stats.Quarantined != 0 || stats.RoundsCompleted != o.rounds || stats.PeakInFlight > len(initial) || len(results) != len(initial) || signed != expected {
 		t.Fatal("scoped controller differs", stats, runErr)
+	}
+	if wide {
+		occupancy := o.submissionOccupancy.snapshot(time.Since(measurementStarted))
+		if occupancy.CallbackStarted != int64(expected) || occupancy.CallbackReturned != int64(expected) || occupancy.ActiveCallbacksAtEnd != 0 || occupancy.PeakActiveCallbacks != 16 || occupancy.QueueWaitSamples != int64(expected) || occupancy.QueueWaitNs < 0 {
+			t.Fatal("actual sixteen submit callbacks or complete occupancy accounting differs", occupancy)
+		}
+		t.Logf("actual32sender/two-cycle signed workload: peak callbacks=%d completed=%d; first-wave barrier deliberately controls concurrency, timings are not capacity evidence", occupancy.PeakActiveCallbacks, expected)
 	}
 	if native {
 		if plan.Profile != streamingProfileName(o) || plan.NativePrefix.Submitters != o.concurrency || plan.NativePrefix.Observers != 4 {
@@ -312,11 +349,11 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		}
 		if o.nativeCanonicalCertificate {
 			parts := actual.PrefixReplay.WorkPhases.CertificatePublishDetails
-			if parts.CanonicalNative == nil || parts.CanonicalNative.Calls != 102 || parts.CanonicalNativeAccepted != 102 || parts.StrictJSON.Calls != 0 {
+			if parts.CanonicalNative == nil || parts.CanonicalNative.Calls != uint64(expected) || parts.CanonicalNativeAccepted != uint64(expected) || parts.StrictJSON.Calls != 0 {
 				t.Fatalf("actual signed canonical certificate branch differs: %+v", parts)
 			}
 		}
-		if actual.ObserverNativeFacts == nil || actual.ObserverNativeFacts.Lookups != 102 || actual.ObserverNativeFacts.Hits != 102 || actual.ObserverNativeFacts.FallbackFailures != 0 || actual.PrefixReplay.CanonicalByteLimit != 32<<20 || actual.TransactionVerifications != 102 {
+		if actual.ObserverNativeFacts == nil || actual.ObserverNativeFacts.Lookups != uint64(expected) || actual.ObserverNativeFacts.Hits != uint64(expected) || actual.ObserverNativeFacts.FallbackFailures != 0 || actual.PrefixReplay.CanonicalByteLimit != 32<<20 || actual.TransactionVerifications != uint64(expected) {
 			t.Fatal("actual native stream current-state/signature work differs", actual)
 		}
 		inventory := o.pacedWorkerInventory
@@ -327,13 +364,13 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		if nativeReader != nil || !reflect.DeepEqual(actual, finalNativeStats) {
 			t.Fatal("finished native reader or complete observation stats changed")
 		}
-		t.Logf("measurement reader released before original complete stream readback; all102 per-input verifications retained")
-		t.Logf("original signed execution+Commit+native readback+nonce34+stream recovery102 inputs; quorum remains unit gates, no network business TPS")
+		t.Logf("measurement reader released before original complete stream readback; all%d per-input verifications retained", expected)
+		t.Logf("signed execution+Commit+native readback+nonce%d+stream recovery%d inputs; quorum remains unit gates, no network business TPS", o.rounds, expected)
 	}
 	if o.evidenceBudget.Poisoned || o.evidenceBudget.AttemptedBytes != stats.IntentSegments.Bytes+int64(stream.report.Bytes) {
 		t.Fatal("encoded budget differs from exact complete inventories")
 	}
-	if err := verifyStreamingWorkloadEvidence(ctx, manifest, m, initial, 34, stats.IntentSegments, &stream.report, results, o.output, o.evidenceByteBudget); err != nil {
+	if err := verifyStreamingWorkloadEvidence(ctx, manifest, m, initial, o.rounds, stats.IntentSegments, &stream.report, results, o.output, o.evidenceByteBudget); err != nil {
 		t.Fatal(err)
 	}
 	reopened, err := consensus.NewBlockJournaledApplication(migration, statePath)

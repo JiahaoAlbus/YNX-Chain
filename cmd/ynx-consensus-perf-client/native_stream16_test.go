@@ -42,3 +42,7 @@ func TestNativeStreaming16RealExecutionNonceEvidenceAndRecovery(t *testing.T) {
 	// worker construction and business correctness, not sixteen-way saturation.
 	testStreamingWorkloadRealExecution(t, true, true, false, false, true)
 }
+
+func TestNativeStreaming16ConcurrentBusinessAndRecovery(t *testing.T) {
+	testStreamingWorkloadRealExecution(t, true, true, false, false, true, true)
+}
