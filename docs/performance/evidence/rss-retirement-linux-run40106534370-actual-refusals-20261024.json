@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "normalCI": {
+    "id": 40106534370,
+    "head": "2427b7d244af0cb6694149173f7fa0e7b741b7e7",
+    "conclusion": "success",
+    "sourceCommit": "d11da95f7c4303b9a8fc7e82203ca4e324e93ea9",
+    "api": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-pair-proof-source-2427b7d244/normal-ci-terminal-api.json",
+      "bytes": 12388,
+      "sha256": "36294a4e4efd297e5acb683cf47c2d444dad74aa8ff9b0a05869fd601eba9375"
+    },
+    "fullLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-pair-proof-source-2427b7d244/normal-ci-full.raw",
+      "bytes": 730157,
+      "sha256": "d528e154094e4bd58c0b8120416391c5ded6a4d0366cc419fdf03c113ec6ba9c"
+    }
+  },
+  "actualLinuxProbe": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-pair-proof-source-2427b7d244/actual-linux-exit-probe.json",
+    "bytes": 2172,
+    "sha256": "027ff6a2e82e82aaed8e423eca4936b17350552c01ef78e777cdb0b4fce2edc5",
+    "measurement": {
+      "probe": "actual_owned_procfs_exit",
+      "children": 16,
+      "validCaptures": 72,
+      "confirmedRetirements": 0,
+      "refusedUnknownSnapshots": 3,
+      "refusalSamples": [
+        {
+          "after": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25115,
+            "startTicks": 34474,
+            "state": "R",
+            "threads": 1
+          },
+          "before": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25115,
+            "startTicks": 34474,
+            "state": "S",
+            "threads": 1
+          },
+          "capturedAtUnixNs": 1792855380173041011,
+          "errno": 3,
+          "failedRead": "smaps_rollup",
+          "pid": 25115,
+          "retirementConfirmation": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25115,
+            "startTicks": 34474,
+            "state": "R",
+            "threads": 1
+          }
+        },
+        {
+          "after": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25128,
+            "startTicks": 34498,
+            "state": "R",
+            "threads": 1
+          },
+          "before": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25128,
+            "startTicks": 34498,
+            "state": "S",
+            "threads": 1
+          },
+          "capturedAtUnixNs": 1792855380414853159,
+          "errno": 3,
+          "failedRead": "smaps_rollup",
+          "pid": 25128,
+          "retirementConfirmation": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25128,
+            "startTicks": 34498,
+            "state": "R",
+            "threads": 1
+          }
+        },
+        {
+          "after": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25130,
+            "startTicks": 34502,
+            "state": "R",
+            "threads": 1
+          },
+          "before": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25130,
+            "startTicks": 34502,
+            "state": "S",
+            "threads": 1
+          },
+          "capturedAtUnixNs": 1792855380450522445,
+          "errno": 3,
+          "failedRead": "smaps_rollup",
+          "pid": 25130,
+          "retirementConfirmation": {
+            "group": 1814,
+            "parent": 25108,
+            "pid": 25130,
+            "startTicks": 34502,
+            "state": "R",
+            "threads": 1
+          }
+        }
+      ],
+      "performanceQualification": false
+    }
+  },
+  "interpretation": "Actual Linux subprocesses reproduced ESRCH while same PID/startTicks/thread1 remains R across both stat reads. All three snapshots stayed refused; CI success proves fail-closed behavior, not retirement-race elimination or resource admission.",
+  "singleConfirmationEliminatedFailure": false,
+  "actualFourNodeRepairVerified": false,
+  "newGrantRequested": false,
+  "newHeavyDispatch": false,
+  "originalRefusedRun": 40101270671,
+  "next": "Retain original kernel flags/virtual-memory/resident-page fields from those same stat reads and verify kernel semantics before changing acceptance; do not rerun heavy based only on green CI"
+}
