@@ -2416,5 +2416,7 @@ jobs:
           cache-dependency-path: packages/wallet-auth/package-lock.json
       - name: Install exact SDK dependencies without package scripts
         run: npm ci --ignore-scripts --no-audit --fund=false --fetch-retries=1 --fetch-timeout=30000 --prefix packages/wallet-auth
-      - name: Check only two affected post-hook source metadata cases; reuse entry and custody CI
-        run: node --test --test-name-pattern='fixed CLI graph|current source recipe' packages/wallet-auth/test/r200-recipe-closure.test.mjs
+      - name: Fetch only immutable inherited source baseline needed by the affected comparison
+        run: git fetch --no-tags --depth=1 origin b92b1b724ebdfe477a93e57e8df43a7ad7bff3c0
+      - name: Check only failed inherited source comparison; reuse passed graph case and earlier CI
+        run: node --test --test-name-pattern='current source recipe' packages/wallet-auth/test/r200-recipe-closure.test.mjs
