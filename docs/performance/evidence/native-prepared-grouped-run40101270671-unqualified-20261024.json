@@ -148,7 +148,17 @@
     "controllerTests": 92,
     "pairTests": 36,
     "negativeKernelTransitions": 16,
-    "underlyingRSSFailureFixed": false
+    "underlyingRSSFailureFixed": false,
+    "codeCommit": "79a92be8d10f58ebd1c8b23a6a63d4b11e399629",
+    "sourceGuard": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-refusal-context-source-guard-01.raw",
+      "bytes": 4445,
+      "sha256": "4e764f7da8edb18f8db935411b9c502de139dcc9133afa70736d55caae9cdabc",
+      "passed": true,
+      "tests": 24,
+      "seconds": 15.620392583
+    },
+    "normalCIPending": true
   },
   "next": "Complete bounded original artifact readback, correlate verifier process exit/receipt with last resource samples; reproduce underlying Linux exit/read condition before changing acceptance logic or scheduling a new frozen run"
 }
