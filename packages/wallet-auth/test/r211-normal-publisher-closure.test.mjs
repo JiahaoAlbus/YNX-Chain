@@ -17,7 +17,7 @@ const hash = raw => createHash('sha256').update(raw).digest('hex');
 test('R211 normal publisher fixed presence is pinned for addon/helper with unchanged81 CPP and14/11 recipe', async () => {
   const {contract} = verifySDK332R140Source(root);
   const normal = [...contract.NativeInputs, ...contract.HelperInputs, ...contract.pureDeploymentInputs, contract.normalBuildTool];
-  assert.equal(contract.version, '1.3.0-pq.3.32-auth.29');
+  assert.equal(contract.version, '1.3.0-pq.3.32-auth.30');
   assert.equal(contract.NativeInputs.length, 92);
   assert.equal(contract.HelperInputs.length, 5);
   assert.equal(normal.length, 102);
