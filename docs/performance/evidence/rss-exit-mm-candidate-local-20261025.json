@@ -28,11 +28,409 @@
       "sha256": "3e9b6546c5352a5ce7e67b2e3768b9dca482e01f14edc7c3dc5501f7aa6b79c1"
     }
   },
-  "normalCIPending": true,
+  "normalCIPending": false,
   "kernelReferences": [
     "https://github.com/torvalds/linux/blob/v6.17/include/linux/sched.h",
     "https://github.com/torvalds/linux/blob/v6.17/fs/proc/array.c",
     "https://github.com/torvalds/linux/blob/v6.17/kernel/exit.c"
   ],
-  "codeCommit": "b34fcf7e861ed413abe97edf3b232a5b2e198bf8"
+  "codeCommit": "b34fcf7e861ed413abe97edf3b232a5b2e198bf8",
+  "sourceGuard": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-kernel-fields-source-e9d67b028b/exit-mm-candidate-source-guard-01.raw",
+    "bytes": 4451,
+    "sha256": "bbf0ba1ff6a1e50a93b79a2df4306d56c4a8c43a98cfc5cf5fa1704906fe97e0",
+    "tests": 24,
+    "passed": true,
+    "seconds": 15.300202875
+  },
+  "normalCIRunId": 40110091557,
+  "normalCIHead": "0f0c9adcf390204ea5d00c07b1b570a325d717a0",
+  "normalCI": {
+    "runId": 40110091557,
+    "head": "0f0c9adcf390204ea5d00c07b1b570a325d717a0",
+    "conclusion": "success",
+    "fullRaw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/normal-ci-full.raw",
+      "bytes": 736691,
+      "sha256": "cf78fcde8ed7f398f57e2d0bffa7085e961b16ea678ab98050e4bc4139522476"
+    }
+  },
+  "actualLinuxCandidate": {
+    "probe": "actual_owned_procfs_exit_mm_candidate",
+    "children": 32,
+    "validCaptures": 124,
+    "confirmedExitedMM": 4,
+    "refusedUnknownSnapshots": 0,
+    "proofSamples": [
+      {
+        "pid": 25505,
+        "before": {
+          "pid": 25505,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112182,
+          "threads": 1,
+          "state": "S"
+        },
+        "after": {
+          "pid": 25505,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112182,
+          "threads": 1,
+          "state": "R"
+        },
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "capturedAtUnixNs": 1792858186945052379,
+        "afterStatMemory": {
+          "flags": 4194316,
+          "virtualBytes": 0,
+          "residentPages": 0,
+          "threads": 1,
+          "startTicks": 112182
+        },
+        "retirementConfirmation": {
+          "pid": 25505,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112182,
+          "threads": 1,
+          "state": "R"
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "virtualBytes": 0,
+          "residentPages": 0,
+          "threads": 1,
+          "startTicks": 112182
+        },
+        "outcome": "exited-mm"
+      },
+      {
+        "pid": 25508,
+        "before": {
+          "pid": 25508,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112190,
+          "threads": 1,
+          "state": "S"
+        },
+        "after": {
+          "pid": 25508,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112190,
+          "threads": 1,
+          "state": "R"
+        },
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "capturedAtUnixNs": 1792858187019952884,
+        "afterStatMemory": {
+          "flags": 4194316,
+          "virtualBytes": 0,
+          "residentPages": 0,
+          "threads": 1,
+          "startTicks": 112190
+        },
+        "retirementConfirmation": {
+          "pid": 25508,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112190,
+          "threads": 1,
+          "state": "R"
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "virtualBytes": 0,
+          "residentPages": 0,
+          "threads": 1,
+          "startTicks": 112190
+        },
+        "outcome": "exited-mm"
+      },
+      {
+        "pid": 25523,
+        "before": {
+          "pid": 25523,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112228,
+          "threads": 1,
+          "state": "S"
+        },
+        "after": {
+          "pid": 25523,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112228,
+          "threads": 1,
+          "state": "R"
+        },
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "capturedAtUnixNs": 1792858187399301543,
+        "afterStatMemory": {
+          "flags": 4194316,
+          "virtualBytes": 0,
+          "residentPages": 0,
+          "threads": 1,
+          "startTicks": 112228
+        },
+        "retirementConfirmation": {
+          "pid": 25523,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112228,
+          "threads": 1,
+          "state": "R"
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "virtualBytes": 0,
+          "residentPages": 0,
+          "threads": 1,
+          "startTicks": 112228
+        },
+        "outcome": "exited-mm"
+      },
+      {
+        "pid": 25527,
+        "before": {
+          "pid": 25527,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112238,
+          "threads": 1,
+          "state": "S"
+        },
+        "after": {
+          "pid": 25527,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112238,
+          "threads": 1,
+          "state": "R"
+        },
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "capturedAtUnixNs": 1792858187500517090,
+        "afterStatMemory": {
+          "flags": 4194316,
+          "virtualBytes": 0,
+          "residentPages": 0,
+          "threads": 1,
+          "startTicks": 112238
+        },
+        "retirementConfirmation": {
+          "pid": 25527,
+          "parent": 25490,
+          "group": 2137,
+          "startTicks": 112238,
+          "threads": 1,
+          "state": "R"
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "virtualBytes": 0,
+          "residentPages": 0,
+          "threads": 1,
+          "startTicks": 112238
+        },
+        "outcome": "exited-mm"
+      }
+    ],
+    "performanceQualification": false,
+    "heavyRecipeEnabled": false
+  },
+  "actualLinuxDefault": {
+    "probe": "actual_owned_procfs_exit",
+    "children": 32,
+    "validCaptures": 106,
+    "confirmedRetirements": 1,
+    "refusedUnknownSnapshots": 7,
+    "refusalSamples": [
+      {
+        "after": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25531,
+          "startTicks": 112249,
+          "state": "R",
+          "threads": 1
+        },
+        "afterStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 112249,
+          "threads": 1,
+          "virtualBytes": 0
+        },
+        "before": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25531,
+          "startTicks": 112249,
+          "state": "S",
+          "threads": 1
+        },
+        "capturedAtUnixNs": 1792858187610297403,
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "pid": 25531,
+        "retirementConfirmation": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25531,
+          "startTicks": 112249,
+          "state": "R",
+          "threads": 1
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 112249,
+          "threads": 1,
+          "virtualBytes": 0
+        }
+      },
+      {
+        "after": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25532,
+          "startTicks": 112251,
+          "state": "R",
+          "threads": 1
+        },
+        "afterStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 112251,
+          "threads": 1,
+          "virtualBytes": 0
+        },
+        "before": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25532,
+          "startTicks": 112251,
+          "state": "S",
+          "threads": 1
+        },
+        "capturedAtUnixNs": 1792858187631180016,
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "pid": 25532,
+        "retirementConfirmation": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25532,
+          "startTicks": 112251,
+          "state": "R",
+          "threads": 1
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 112251,
+          "threads": 1,
+          "virtualBytes": 0
+        }
+      },
+      {
+        "after": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25533,
+          "startTicks": 112253,
+          "state": "R",
+          "threads": 1
+        },
+        "afterStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 112253,
+          "threads": 1,
+          "virtualBytes": 0
+        },
+        "before": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25533,
+          "startTicks": 112253,
+          "state": "S",
+          "threads": 1
+        },
+        "capturedAtUnixNs": 1792858187653145556,
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "pid": 25533,
+        "retirementConfirmation": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25533,
+          "startTicks": 112253,
+          "state": "R",
+          "threads": 1
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 112253,
+          "threads": 1,
+          "virtualBytes": 0
+        }
+      },
+      {
+        "after": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25534,
+          "startTicks": 112255,
+          "state": "R",
+          "threads": 1
+        },
+        "afterStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 112255,
+          "threads": 1,
+          "virtualBytes": 0
+        },
+        "before": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25534,
+          "startTicks": 112255,
+          "state": "S",
+          "threads": 1
+        },
+        "capturedAtUnixNs": 1792858187674904872,
+        "errno": 3,
+        "failedRead": "smaps_rollup",
+        "pid": 25534,
+        "retirementConfirmation": {
+          "group": 2137,
+          "parent": 25490,
+          "pid": 25534,
+          "startTicks": 112255,
+          "state": "R",
+          "threads": 1
+        },
+        "retirementConfirmationStatMemory": {
+          "flags": 4194316,
+          "residentPages": 0,
+          "startTicks": 112255,
+          "threads": 1,
+          "virtualBytes": 0
+        }
+      }
+    ],
+    "performanceQualification": false
+  },
+  "interpretation": "Separate bounded real probes, not paired statistical failure-rate comparison or performance qualification. Candidate observed four original double-stat exited-MM proofs. Existing heavy paths keep default rejection."
 }
