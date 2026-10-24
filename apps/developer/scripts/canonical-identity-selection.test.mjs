@@ -42,7 +42,7 @@ test('missing or changed complete Native source and receipt mutation cannot subs
  const source=process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT;
  assert.ok(source,'Run Native source-selection controls with the original fixed supplier root.');
  try{
-  const rows=[...inputs.nativeSources,inputs.nativeComponent.receipt,inputs.nativeComponent.module];
+  const rows=[...inputs.nativeSources,inputs.nativeComponent.receipt,inputs.nativeComponent.module,...(inputs.nativeComponent.producerEvidence?.files||[])];
   const ideSource=fileURLToPath(new URL('../../../',import.meta.url));
   for(const row of rows){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});await copyFile(join(canonicalNativeSourcesForOwner({nativeSources:[row]},'ide').length?ideSource:source,row.path),p);}
   await verifyCanonicalNativeSourceSelection(root,root);

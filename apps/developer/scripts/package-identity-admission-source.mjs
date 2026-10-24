@@ -359,6 +359,7 @@ export async function verifyCanonicalNativeSourceSelection(root = canonicalNativ
   if(receiptBytes.length!==inputs.nativeComponent.receipt.bytes || sha256(receiptBytes)!==inputs.nativeComponent.receipt.sha256) throw Error('Canonical Native receipt bytes differ.');
   const record=validateCanonicalNativeBuildReceipt(JSON.parse(receiptBytes),inputs);
   await verifyRows(root,[inputs.nativeComponent.module]);
+  if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.36')await verifyComponentEvidence(record,root);
   return {root,sourceLeaves:inputs.nativeSources.length,buildInputLeaves:inputs.nativeBuildInputs.length,nativeQualified:false,registrationAccepted:false};
 }
 
