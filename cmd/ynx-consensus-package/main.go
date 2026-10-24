@@ -93,6 +93,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	verifyMigration := stringFlag("verify-migration-state", "verify one unbound YNX migration state and exit")
 	publicSummary := stringFlag("migration-public-summary", "json: emit bounded public metadata only after complete -verify-migration-state validation")
 	verifyExecution := stringFlag("verify-migration-execution", "read-only migration executor compatibility check; no validator binding, application restore, deployment, InitChain or PQ activation")
+	verifyPreservation := stringFlag("verify-migration-preservation", "read-only unbound Application import and complete original account/contract/history query check; no persistence, validator binding, InitChain or activation")
 	migrationPath := stringFlag("migration-state", "validated unbound YNX migration state")
 	validatorManifestPath := stringFlag("validator-manifest", "public-key-only production validator manifest")
 	genesisTime := stringFlag("genesis-time", "explicit whole-second UTC genesis time in RFC3339 format")
@@ -106,7 +107,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		return errors.New("unexpected positional arguments")
 	}
 	mode := ""
-	for _, name := range []string{"verify-package", "verify-migration-state", "verify-migration-execution"} {
+	for _, name := range []string{"verify-package", "verify-migration-state", "verify-migration-execution", "verify-migration-preservation"} {
 		if supplied[name] {
 			if mode != "" {
 				return errors.New("verification modes are mutually exclusive")
@@ -123,7 +124,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		if supplied["operator-plan-hash"] && (mode != "verify-package" || strings.TrimSpace(*operatorPlanHash) == "") {
 			return errors.New("-operator-plan-hash is allowed only for pinned package generation or -verify-package with a nonempty independent pin")
 		}
-		modeInput := map[string]string{"verify-package": *verifyPackage, "verify-migration-state": *verifyMigration, "verify-migration-execution": *verifyExecution}
+		modeInput := map[string]string{"verify-package": *verifyPackage, "verify-migration-state": *verifyMigration, "verify-migration-execution": *verifyExecution, "verify-migration-preservation": *verifyPreservation}
 		if strings.TrimSpace(modeInput[mode]) == "" {
 			return fmt.Errorf("-%s requires an existing input path", mode)
 		}
@@ -152,6 +153,8 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		}
 		_, err = fmt.Fprintf(stdout, "consensus migration execution passed: height=%d lastBlockHash=%s stateHash=%s blockers=0 scope=executor-compatibility-only validatorBinding=unchecked applicationRestore=unchecked deployment=not-performed initChain=not-performed pqActivation=not-performed\n", migration.Height, migration.LastBlockHash, migration.StateHash)
 		return err
+	case "verify-migration-preservation":
+		return verifyMigrationPreservation(*verifyPreservation, stdout)
 	case "verify-package":
 		if supplied["operator-plan-hash"] {
 			if err := consensus.VerifyProductionOperatorCandidatePackage(*verifyPackage, *operatorPlanHash); err != nil {

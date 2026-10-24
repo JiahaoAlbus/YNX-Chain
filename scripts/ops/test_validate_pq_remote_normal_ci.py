@@ -595,7 +595,7 @@ def assert_workflow_contract(raw):
     need("    needs: focused-go\n" in paired_job)
     need("    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1\n" in paired_job)
     need("    timeout-minutes: 5\n" in paired_job)
-    need("    timeout-minutes: 12\n" in job)
+    need("    timeout-minutes: 15\n" in job)
     need("permissions:\n  contents: read\n  actions: read\n" in raw)
     need("      normal_ci_run_id:\n" in raw)
     for leaf in ("scripts/ops/validate-pq-remote-normal-ci.py", "scripts/ops/test_validate_pq_remote_normal_ci.py"):
@@ -1106,7 +1106,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$'", "-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecoveryMissing$'"),
             ("steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'", "true"),
             ('--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', "--normal-run-id '${{ inputs.normal_ci_run_id }}'"),
-            ("    timeout-minutes: 12\n", "    timeout-minutes: 15\n"),
+            ("    timeout-minutes: 15\n", "    timeout-minutes: 18\n"),
             ("activeMs=105000, cleanupMs=15000, totalMs=120000", "activeMs=120000, cleanupMs=15000, totalMs=135000"),
             ("if started > now or remaining < 150:", "if remaining < 120:"),
             ("remaining = started + 12*60 - now", "remaining = started + 15*60 - now"),

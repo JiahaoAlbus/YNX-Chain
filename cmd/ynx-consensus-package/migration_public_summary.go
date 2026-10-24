@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"golang.org/x/sys/unix"
 )
 
@@ -70,74 +71,99 @@ func sameMigrationSummaryInput(a, b unix.Stat_t) bool {
 	return amOK && bmOK && acOK && bcOK && am == bm && ac == bc
 }
 
-// The new opt-in reader holds the original FD through full normal validation.
-// atime may change on a read; identity, mode, size, mtime and ctime may not.
-func writeMigrationPublicSummary(path string, output io.Writer) error {
+// Hold the exact original FD through complete validation and the caller's
+// read-only inspection. atime may change; identity, ns mtime/ctime may not.
+func withVerifiedMigrationInput(path string, inspect func(chain.ConsensusMigrationState, string, string) ([]byte, error)) ([]byte, error) {
 	absolute, err := filepath.Abs(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	resolved, err := filepath.EvalSymlinks(absolute)
 	if err != nil || resolved != absolute {
-		return errors.New("migration summary requires an existing original path without symlinks")
+		return nil, errors.New("migration check requires an existing original path without symlinks")
 	}
 	var before unix.Stat_t
 	if err = unix.Lstat(absolute, &before); err != nil {
-		return fmt.Errorf("stat original migration: %w", err)
+		return nil, fmt.Errorf("stat original migration: %w", err)
 	}
 	if before.Mode&unix.S_IFMT != unix.S_IFREG || before.Mode&0022 != 0 || before.Nlink != 1 || before.Size <= 0 || before.Size > migrationPublicSummaryMaximum {
-		return errors.New("migration summary requires one nonempty regular input within the existing 1GiB bound")
+		return nil, errors.New("migration check requires one nonempty regular input within the existing 1GiB bound")
 	}
 	fd, err := unix.Open(absolute, unix.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return fmt.Errorf("open original migration: %w", err)
+		return nil, fmt.Errorf("open original migration: %w", err)
 	}
 	f := os.NewFile(uintptr(fd), "original-public-migration")
 	defer f.Close()
 	check := func() error {
 		var opened, current unix.Stat_t
 		if unix.Fstat(fd, &opened) != nil || unix.Lstat(absolute, &current) != nil || !sameMigrationSummaryInput(before, opened) || !sameMigrationSummaryInput(before, current) {
-			return errors.New("original migration identity changed during public summary validation")
+			return errors.New("original migration identity changed during complete migration check")
 		}
 		return nil
 	}
 	if err = check(); err != nil {
-		return err
+		return nil, err
 	}
 	raw, err := io.ReadAll(io.LimitReader(f, migrationPublicSummaryMaximum+1))
 	if err != nil || int64(len(raw)) != before.Size || len(raw) > migrationPublicSummaryMaximum {
-		return errors.New("original migration changed or exceeded its existing read bound")
+		return nil, errors.New("original migration changed or exceeded its existing read bound")
 	}
 	if err = check(); err != nil {
-		return err
+		return nil, err
 	}
 	// This is the identical decoder -> ConsensusMigrationState.Validate path
 	// used by ordinary -verify-migration-state, not validation of a summary.
 	migration, err := verifyMigrationStatePayload(raw)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	digest := sha256.Sum256(raw)
-	summary := migrationPublicSummary{Version: migrationPublicSummaryVersion, Classification: "data",
-		SourceSHA256: hex.EncodeToString(digest[:]), SourceBytes: strconv.Itoa(len(raw)),
-		Height: strconv.FormatUint(migration.Height, 10), LastBlockHash: migration.LastBlockHash, StateHash: migration.StateHash}
-	for _, account := range migration.Accounts {
-		if accountaddress.IsCanonical(account.Address) {
-			summary.FirstCanonicalAccount = account.Address
-			break
-		}
+	// The callback may construct an entire Application. Release the additional
+	// raw input before that work, while retaining the same original FD guard.
+	sourceBytes := strconv.Itoa(len(raw))
+	raw = nil
+	encoded, err := inspect(migration, hex.EncodeToString(digest[:]), sourceBytes)
+	if err != nil {
+		return nil, err
 	}
-	encoded, err := json.Marshal(summary)
-	if err != nil || len(encoded)+1 > 4096 {
-		return errors.New("migration public summary exceeds its fixed output bound")
+	if err := check(); err != nil {
+		return nil, err
 	}
-	if err = check(); err != nil {
-		return err
-	}
+	return encoded, nil
+}
+
+func writeMigrationCheckOutput(output io.Writer, encoded []byte) error {
 	encoded = append(encoded, '\n')
 	n, err := output.Write(encoded)
 	if err == nil && n != len(encoded) {
 		return io.ErrShortWrite
 	}
 	return err
+}
+
+// The opt-in summary and preservation checks share the same bounded original
+// FD through strict complete validation and their read-only inspection. No
+// caller may substitute summary metadata for the original migration.
+func writeMigrationPublicSummary(path string, output io.Writer) error {
+	encoded, err := withVerifiedMigrationInput(path, func(migration chain.ConsensusMigrationState, sourceSHA256, sourceBytes string) ([]byte, error) {
+		summary := migrationPublicSummary{Version: migrationPublicSummaryVersion, Classification: "data",
+			SourceSHA256: sourceSHA256, SourceBytes: sourceBytes,
+			Height: strconv.FormatUint(migration.Height, 10), LastBlockHash: migration.LastBlockHash, StateHash: migration.StateHash}
+		for _, account := range migration.Accounts {
+			if accountaddress.IsCanonical(account.Address) {
+				summary.FirstCanonicalAccount = account.Address
+				break
+			}
+		}
+		encoded, err := json.Marshal(summary)
+		if err != nil || len(encoded)+1 > 4096 {
+			return nil, errors.New("migration public summary exceeds its fixed output bound")
+		}
+		return encoded, nil
+	})
+	if err != nil {
+		return err
+	}
+	return writeMigrationCheckOutput(output, encoded)
 }

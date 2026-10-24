@@ -515,7 +515,9 @@ jobs:
       group: ${{ github.event_name == 'workflow_dispatch' && (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 'ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade' || format('ynx-pq-source-{0}-{1}-{2}', github.workflow, github.ref, github.sha) }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    # Source regressions include actual historical counterexample recompiles.
+    # Remote windows retain their independent 12-minute admission below.
+    timeout-minutes: 15
     env:
       GOMAXPROCS: '2'
       GOGC: '50'
