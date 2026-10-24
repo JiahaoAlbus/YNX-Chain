@@ -1,0 +1,300 @@
+diff --git a/internal/consensus/state_hash_direct_fee_candidate.go b/internal/consensus/state_hash_direct_fee_candidate.go
+new file mode 100644
+index 000000000..01301a7ba
+--- /dev/null
++++ b/internal/consensus/state_hash_direct_fee_candidate.go
+@@ -0,0 +1,147 @@
++package consensus
++
++// Explicit experiment only. Production hashCommittedStateDocument remains on
++// the measured borrowed encoder. All original history bytes are still hashed.
++import (
++	"crypto/sha256"
++	"encoding/hex"
++	"encoding/json"
++	"errors"
++	"io"
++	"strconv"
++	"sync"
++)
++
++func hashDirectFeeDocument(doc committedStateHashDocument) (string, error) {
++	digest := sha256.New()
++	if err := encodeDirectFeeDocument(digest, doc); err != nil {
++		return "", err
++	}
++	return hex.EncodeToString(digest.Sum(nil)), nil
++}
++func encodeDirectFeeDocument(destination io.Writer, doc committedStateHashDocument) error {
++	if len(doc.FeeEvents) == 0 {
++		raw, err := json.Marshal(doc)
++		if err != nil {
++			return err
++		}
++		return writeStateHashPiece(destination, raw)
++	}
++	fees := doc.FeeEvents
++	doc.FeeEvents = []BFTFeeEvent{{}}
++	writer := directFeeScaffoldWriter{destination: destination, fees: fees}
++	return json.NewEncoder(&writer).Encode(doc)
++}
++
++type directFeeScratch struct{ data []byte }
++
++var directFeeScratchPool = sync.Pool{New: func() any { return &directFeeScratch{data: make([]byte, 0, 64<<10)} }}
++
++type directFeeScaffoldWriter struct {
++	destination io.Writer
++	fees        []BFTFeeEvent
++	wrote       bool
++}
++
++func (w *directFeeScaffoldWriter) Write(raw []byte) (int, error) {
++	if w.wrote || len(raw) < 3 || raw[len(raw)-1] != '\n' {
++		return 0, errors.New("direct fee scaffold requires one framed JSON document")
++	}
++	w.wrote = true
++	scaffold := raw[:len(raw)-1]
++	start, end, err := feeArrayBounds(scaffold)
++	if err != nil {
++		return 0, err
++	}
++	if err = writeStateHashPiece(w.destination, scaffold[:start]); err != nil {
++		return 0, err
++	}
++	scratch := directFeeScratchPool.Get().(*directFeeScratch)
++	buffer := scratch.data[:0]
++	defer func() {
++		if cap(buffer) <= 128<<10 {
++			scratch.data = buffer[:0]
++			directFeeScratchPool.Put(scratch)
++		}
++	}()
++	buffer = append(buffer, '[')
++	for index, event := range w.fees {
++		if index > 0 {
++			buffer = append(buffer, ',')
++		}
++		buffer, err = appendDirectFeeJSON(buffer, event)
++		if err != nil {
++			return 0, err
++		}
++		if len(buffer) >= 32<<10 {
++			if err = writeStateHashPiece(w.destination, buffer); err != nil {
++				return 0, err
++			}
++			buffer = buffer[:0]
++		}
++	}
++	buffer = append(buffer, ']')
++	if err = writeStateHashPiece(w.destination, buffer); err != nil {
++		return 0, err
++	}
++	if err = writeStateHashPiece(w.destination, scaffold[end:]); err != nil {
++		return 0, err
++	}
++	return len(raw), nil
++}
++
++// Generated business identifiers use JSON-safe ASCII. Any escaping, Unicode or
++// invalid UTF8 delegates to the standard encoder with its original HTML rules.
++func appendDirectJSONString(dst []byte, value string) []byte {
++	for i := 0; i < len(value); i++ {
++		c := value[i]
++		if c < 0x20 || c >= 0x80 || c == '"' || c == '\\' || c == '<' || c == '>' || c == '&' {
++			raw, _ := json.Marshal(value)
++			return append(dst, raw...)
++		}
++	}
++	dst = append(dst, '"')
++	dst = append(dst, value...)
++	return append(dst, '"')
++}
++func appendDirectFeeJSON(dst []byte, event BFTFeeEvent) ([]byte, error) {
++	dst = append(dst, `{"id":`...)
++	dst = appendDirectJSONString(dst, event.ID)
++	dst = append(dst, `,"policyVersion":`...)
++	dst = strconv.AppendInt(dst, int64(event.PolicyVersion), 10)
++	dst = append(dst, `,"txHash":`...)
++	dst = appendDirectJSONString(dst, event.TxHash)
++	dst = append(dst, `,"transactionType":`...)
++	dst = appendDirectJSONString(dst, event.TransactionType)
++	dst = append(dst, `,"payer":`...)
++	dst = appendDirectJSONString(dst, event.Payer)
++	dst = append(dst, `,"recipient":`...)
++	dst = appendDirectJSONString(dst, event.Recipient)
++	dst = append(dst, `,"grossFeeYnxt":`...)
++	dst = strconv.AppendInt(dst, int64(event.GrossFeeYNXT), 10)
++	dst = append(dst, `,"burnYnxt":`...)
++	dst = strconv.AppendInt(dst, int64(event.BurnYNXT), 10)
++	dst = append(dst, `,"validatorYnxt":`...)
++	dst = strconv.AppendInt(dst, int64(event.ValidatorYNXT), 10)
++	dst = append(dst, `,"providerYnxt":`...)
++	dst = strconv.AppendInt(dst, int64(event.ProviderYNXT), 10)
++	dst = append(dst, `,"protocolYnxt":`...)
++	dst = strconv.AppendInt(dst, int64(event.ProtocolYNXT), 10)
++	dst = append(dst, `,"treasuryYnxt":`...)
++	dst = strconv.AppendInt(dst, int64(event.TreasuryYNXT), 10)
++	dst = append(dst, `,"sponsored":`...)
++	dst = strconv.AppendBool(dst, event.Sponsored)
++	dst = append(dst, `,"source":`...)
++	dst = appendDirectJSONString(dst, event.Source)
++	dst = append(dst, `,"blockHeight":`...)
++	dst = strconv.AppendInt(dst, int64(event.BlockHeight), 10)
++	dst = append(dst, `,"recordedAt":`...)
++	raw, err := event.RecordedAt.MarshalJSON()
++	if err != nil {
++		return nil, err
++	}
++	dst = append(dst, raw...)
++	dst = append(dst, `,"auditHash":`...)
++	dst = appendDirectJSONString(dst, event.AuditHash)
++	return append(dst, '}'), nil
++}
+diff --git a/internal/consensus/state_hash_direct_fee_candidate_test.go b/internal/consensus/state_hash_direct_fee_candidate_test.go
+new file mode 100644
+index 000000000..71aaf1992
+--- /dev/null
++++ b/internal/consensus/state_hash_direct_fee_candidate_test.go
+@@ -0,0 +1,141 @@
++package consensus
++
++import (
++	"bytes"
++	"encoding/json"
++	"errors"
++	"io"
++	"math"
++	"strings"
++	"testing"
++	"time"
++)
++
++func TestDirectFeeHashCandidateExactBytes(t *testing.T) {
++	_, actual := retainedSealFixture(t)
++	weird := "\x00<>&\"\\\n汉字\u2028\u2029" + string([]byte{0xff})
++	for _, fees := range [][]BFTFeeEvent{nil, {}, actual.FeeEvents, {{ID: weird, PolicyVersion: -1, TxHash: strings.Repeat(weird, 2000), Payer: weird, Recipient: weird, TransactionType: weird, Source: weird, AuditHash: weird, GrossFeeYNXT: math.MinInt64, TreasuryYNXT: math.MaxInt64, Sponsored: true, RecordedAt: time.Date(2026, 1, 2, 3, 4, 5, 123, time.FixedZone("odd", 137*60))}}} {
++		state := actual
++		state.FeeEvents = fees
++		for version := 1; version <= 13; version++ {
++			doc := state.hashDocument("domain\x00<>&", version)
++			want, err := json.Marshal(doc)
++			if err != nil {
++				t.Fatal(err)
++			}
++			var got bytes.Buffer
++			if err = encodeDirectFeeDocument(&got, doc); err != nil || !bytes.Equal(got.Bytes(), want) {
++				t.Fatalf("canonical bytes differ len=%d/version%d: %v", len(fees), version, err)
++			}
++			digest, err := hashDirectFeeDocument(doc)
++			oracle, _ := legacyHashDocument(doc)
++			if err != nil || digest != oracle {
++				t.Fatal("canonical hash differs", err)
++			}
++		}
++	}
++	// Each non-ASCII/escaping byte must preserve encoding/json replacement rules.
++	for value := 0; value < 256; value++ {
++		s := string([]byte{byte(value)})
++		want, _ := json.Marshal(s)
++		if !bytes.Equal(appendDirectJSONString(nil, s), want) {
++			t.Fatal("string byte differs", value)
++		}
++	}
++	for _, when := range []time.Time{time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 1, 1, 0, 0, 0, 0, time.FixedZone("bad", 25*3600))} {
++		state := actual
++		state.FeeEvents = []BFTFeeEvent{{RecordedAt: when}}
++		doc := state.hashDocument("domain", 13)
++		if _, err := json.Marshal(doc); err == nil {
++			t.Fatal("oracle accepted invalid time")
++		}
++		if digest, err := hashDirectFeeDocument(doc); err == nil || digest != "" {
++			t.Fatal("candidate published hash after encoding error")
++		}
++	}
++}
++
++type directFeeFailSink struct {
++	err   error
++	short bool
++}
++
++func (w directFeeFailSink) Write(b []byte) (int, error) {
++	if w.short {
++		return len(b) - 1, nil
++	}
++	return 0, w.err
++}
++func TestDirectFeeHashCandidateSinkAndFraming(t *testing.T) {
++	_, state := retainedSealFixture(t)
++	doc := state.hashDocument("domain", 13)
++	first := errors.New("first sink failure")
++	if err := encodeDirectFeeDocument(directFeeFailSink{err: first}, doc); !errors.Is(err, first) {
++		t.Fatal(err)
++	}
++	if err := encodeDirectFeeDocument(directFeeFailSink{short: true}, doc); !errors.Is(err, io.ErrShortWrite) {
++		t.Fatal(err)
++	}
++	for _, raw := range []string{"", "{}", "{}\n"} {
++		w := directFeeScaffoldWriter{destination: io.Discard}
++		if _, err := w.Write([]byte(raw)); err == nil {
++			t.Fatal("invalid/missing scaffold accepted")
++		}
++	}
++	var sink bytes.Buffer
++	w := directFeeScaffoldWriter{destination: &sink, fees: state.FeeEvents}
++	doc.FeeEvents = []BFTFeeEvent{{}}
++	raw, _ := json.Marshal(doc)
++	raw = append(raw, '\n')
++	if _, err := w.Write(raw); err != nil {
++		t.Fatal(err)
++	}
++	if _, err := w.Write(raw); err == nil {
++		t.Fatal("repeated scaffold accepted")
++	}
++}
++
++func BenchmarkDirectFeeHashActualHistory(b *testing.B) {
++	_, state := retainedSealFixture(b)
++	doc := state.hashDocument("YNX_ABCI_STATE_V13", CommittedStateVersion)
++	want, err := legacyHashDocument(doc)
++	if err != nil || want != state.AppHash {
++		b.Fatal("real fixture hash differs", err)
++	}
++	for _, mode := range []struct {
++		name string
++		hash func(committedStateHashDocument) (string, error)
++	}{{"A-original", hashSingleBufferDocument}, {"B-direct", hashDirectFeeDocument}, {"B-direct", hashDirectFeeDocument}, {"A-original", hashSingleBufferDocument}, {"A-original", hashSingleBufferDocument}, {"B-direct", hashDirectFeeDocument}} {
++		b.Run(mode.name, func(b *testing.B) {
++			got, err := mode.hash(doc)
++			if err != nil || got != want {
++				b.Fatal("hash differs", err)
++			}
++			b.ReportAllocs()
++			b.ResetTimer()
++			for i := 0; i < b.N; i++ {
++				stateHashSink, err = mode.hash(doc)
++				if err != nil {
++					b.Fatal(err)
++				}
++			}
++		})
++	}
++}
++
++func TestDirectFeeHashCandidateParallelPrivateBuffers(t *testing.T) {
++	_, state := retainedSealFixture(t)
++	doc := state.hashDocument("YNX_ABCI_STATE_V13", CommittedStateVersion)
++	want, _ := legacyHashDocument(doc)
++	for worker := 0; worker < 4; worker++ {
++		t.Run("worker", func(t *testing.T) {
++			t.Parallel()
++			for i := 0; i < 4; i++ {
++				got, err := hashDirectFeeDocument(doc)
++				if err != nil || got != want {
++					t.Fatal("private encoder buffer changed hash", err)
++				}
++			}
++		})
++	}
++}

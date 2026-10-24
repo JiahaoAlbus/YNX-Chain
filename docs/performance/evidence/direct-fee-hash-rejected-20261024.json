@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "baselineSource": "759a9495f3b880e0397b860b4bfb2f0a5defbf41",
+  "candidateActivated": false,
+  "decision": "reject: no stable sameinput hash speedup; preserve original default",
+  "candidateSource": [
+    {
+      "path": "internal/consensus/state_hash_direct_fee_candidate.go",
+      "bytes": 4717,
+      "sha256": "bce0d5a490b609eeae08bb75918ebaae8b607e75d1fd30958d99c8831ec65a17"
+    },
+    {
+      "path": "internal/consensus/state_hash_direct_fee_candidate_test.go",
+      "bytes": 4644,
+      "sha256": "db6480dbca7c268831bbbab43943b6584350f69dcc8ad9522870e5a712118d9a"
+    }
+  ],
+  "replayablePatch": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/experiments/direct-fee-hash-rejected-20261024.patch",
+    "bytes": 10190,
+    "sha256": "ef395f876f23d896fcb3d3200765e86712f9970e6027723105c8427d29f7703c"
+  },
+  "order": "ABBAAB",
+  "rows": [
+    {
+      "mode": "A",
+      "ns": 813741,
+      "bytes": 76987,
+      "allocations": 2055
+    },
+    {
+      "mode": "B",
+      "ns": 784394,
+      "bytes": 77269,
+      "allocations": 2057
+    },
+    {
+      "mode": "B",
+      "ns": 811807,
+      "bytes": 77269,
+      "allocations": 2057
+    },
+    {
+      "mode": "A",
+      "ns": 779908,
+      "bytes": 76987,
+      "allocations": 2055
+    },
+    {
+      "mode": "A",
+      "ns": 771448,
+      "bytes": 76987,
+      "allocations": 2055
+    },
+    {
+      "mode": "B",
+      "ns": 795776,
+      "bytes": 77269,
+      "allocations": 2057
+    }
+  ],
+  "median": {
+    "A": {
+      "ns": 779908,
+      "bytes": 76987,
+      "allocations": 2055
+    },
+    "B": {
+      "ns": 795776,
+      "bytes": 77269,
+      "allocations": 2057
+    }
+  },
+  "latencyChangePercent": 2.0345989526969754,
+  "raw": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/direct-fee-hash-candidate-01.raw",
+      "bytes": 1393,
+      "sha256": "78c818384bb0cb2a1c1e92e0d1aef5d3413141aa6f958e4dfdebe1ada8720e72"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/direct-fee-hash-candidate-pooled-02.raw",
+      "bytes": 1393,
+      "sha256": "c0d41ed6dd552ca9ba78b8a60041b5eac4976e88a20019ddd9b93d9d11b7ac38"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/direct-fee-hash-candidate-race.raw",
+      "bytes": 64,
+      "sha256": "6ae54ddd236b299a3635adb5848285bde26587e70e727e3b85fcc1fe6af65412"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/direct-fee-hash-candidate-parallel-race.raw",
+      "bytes": 64,
+      "sha256": "59dec63dd1356db5d066ed0eb4595e8b5a73041e1922408fd3a47b82a38e9050"
+    }
+  ],
+  "scope": "Actual retained1024 fee history and same candidate binary, GOMAXPROCS1/darwinarm64/AppleM4/Go1.25.7; full canonical bytes/SHA compared across versions1..13, empty/nil/real/Unicode/invalidUTF8/time errors, all256byte strings, sink/framing/shortwrite/parallel-private-buffer negatives; no skipped history/semantic checks and no network throughput claim"
+}
