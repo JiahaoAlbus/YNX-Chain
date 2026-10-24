@@ -1,0 +1,37 @@
+{
+  "kind": "YNX-R234-PUBLIC-GO-DELTA-FIXTURE/v1",
+  "PUBLIC": true,
+  "Source13": false,
+  "Root": false,
+  "production": false,
+  "supplierHandoff": {
+    "bytes": 29569,
+    "sha256": "a59154e4e1abafac88049c940eb88d2c239c4d45c7ad267ee74302319d41d197"
+  },
+  "parent": {
+    "bytes": 28026,
+    "sha256": "8b02cc79e1c29bd4facbc948c785e5f46d8476e4477574fa9de07d4377b8fdc9"
+  },
+  "startupGap": {
+    "bytes": 2141,
+    "sha256": "cb118143ef35685ad714a96bf0c045eecfa11111ea6de567c073ba3c38aa9c16"
+  },
+  "actualR232Linux": {
+    "bytes": 6116,
+    "sha256": "8cffdbb5038c896137e9083fee75c5dca7940ec0d4918828ec1367cb470ddd28"
+  },
+  "files": [
+    {
+      "path": "source/internal/developerauthority/original_catalog_runtime.go",
+      "bytes": 6418,
+      "sha256": "5716fd714774c0e48d7fc29ae2902abd32a906e9b31bd0c263e284cb1daa2a91",
+      "parent": null
+    },
+    {
+      "path": "source/internal/developerauthority/original_catalog_runtime_test.go",
+      "bytes": 6988,
+      "sha256": "ca4b748109e275677ddfd9eb93aac6da2685a048442104538057c193eaa27694",
+      "parent": null
+    }
+  ]
+}
