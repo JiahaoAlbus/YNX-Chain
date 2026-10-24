@@ -20,7 +20,9 @@ import {createCentralBrowserSessionRegistry} from './central-browser-session-reg
 import {CentralBrowserSessionStore} from './central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
 import {OriginalHostTerminalJournal} from './original-host-terminal-journal.js';
-import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent} from './original-auth-identity-source-current.js';
+import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent,assertOriginalDeveloperPrincipalSource} from './original-auth-identity-source-current.js';
+import {verifyProductSessionProofV2,productSessionProofV2Digest} from './product-session-proof-v2.js';
+import {httpBodyDigest} from './session-proof.js';
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 // Actual same-process Host inventory, not registration or readiness authority.
@@ -270,7 +272,25 @@ export class ProductSessionGatewayNodeHost {
       const result=candidate.authenticateOriginalDeveloperHTTPRequest({method:v.method,path:v.path,body:v.body,proof},this.#now());
       this.#persist(candidate.snapshot());this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();return result;
     });
-    const original=verified.session,expires=Math.min(Date.parse(proof.expiresAt),Date.parse(original.expiresAt));
+    return await this.#retainOriginalDeveloperCredential(verified.session,v,proof);
+  }
+
+  async revalidateOriginalDeveloperHTTPRequest(input){
+    const v=privateData(input,['requestId','method','path','body','proofHeader']);
+    if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original HTTP current request is invalid');
+    const proof=decodeProductSessionGatewayProofHeaderV2(v.proofHeader);this.#assertStateIdentity();
+    const session=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===proof.sessionBinding);
+    if(!session||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original developer session is required');
+    verifyProductSessionProofV2(proof,session,{method:v.method,path:v.path,bodyDigest:httpBodyDigest(v.body)},this.#now());
+    if(!this.#handler.snapshot().consumedProofs.includes(productSessionProofV2Digest(proof)))fail('ORIGINAL_HTTP_NOT_AUTHENTICATED','Original HTTP proof has not entered the original replay ledger');
+    // Explicit current-only recheck of an original consumed proof. It never
+    // consumes/re-arms a nonce, extends expiry or executes a business effect.
+    return await this.#retainOriginalDeveloperCredential(session,v,proof);
+  }
+
+  async #retainOriginalDeveloperCredential(original,v,proof){
+    const expires=Math.min(Date.parse(proof.expiresAt),Date.parse(original.expiresAt));
+    const operation={requestId:v.requestId,method:v.method,path:v.path,body:v.body,proofHeader:v.proofHeader,walletControlProofHeader:null,session:original,at:this.#now().toISOString()};
     const credential=Object.freeze({}),view=Object.freeze({session:original,method:v.method,path:v.path,bodyDigest:proof.bodyDigest,proofExpiresMS:expires});
     const recheck=async()=>{
       this.#assertStateIdentity();const now=this.#now();if(now.getTime()<Date.parse(proof.issuedAt)||now.getTime()>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired');
@@ -285,7 +305,13 @@ export class ProductSessionGatewayNodeHost {
   }
 
   async currentExistingDeveloperPrincipal(input){
+    assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
     const credential=await this.authenticateOriginalDeveloperHTTPRequest(input);
+    return await handleOriginalDeveloperPrincipalCurrent(this.#authSourceCurrent,credential);
+  }
+  async recheckExistingDeveloperPrincipal(input){
+    assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
+    const credential=await this.revalidateOriginalDeveloperHTTPRequest(input);
     return await handleOriginalDeveloperPrincipalCurrent(this.#authSourceCurrent,credential);
   }
 
@@ -388,6 +414,13 @@ export class ProductSessionGatewayNodeHost {
       let corsHeaders = {};
       try {
         this.#assertStateIdentity();
+        if(new URL(request.url,'http://127.0.0.1').pathname==='/v1/developer/original-http-principal'){
+          const u=new URL(request.url,'http://127.0.0.1');if(request.method!=='POST'||u.search||u.hash||singleHeader(request.headers['content-type'])!=='application/json')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay is invalid');
+          let input;try{input=JSON.parse(await boundedBody(request,3145728));}catch{fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay body is invalid');}
+          const v=privateData(input,['operation','requestId','method','path','body','proofHeader']);if(!['authenticate','recheck'].includes(v.operation))fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay operation is invalid');
+          const {operation,...original}=v,result=operation==='authenticate'?await this.currentExistingDeveloperPrincipal(original):await this.recheckExistingDeveloperPrincipal(original);
+          this.#assertStateIdentity();response.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});response.end(canonicalJSON(result));return;
+        }
         if(new URL(request.url,'http://127.0.0.1').pathname==='/v1/auth-identity/source-current'){
           if(!this.#authSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
           // This existing original producer handler owns the private branding
@@ -586,6 +619,6 @@ function allowedHeaders(route) { return WALLET_SESSION_CONTROL_PATHS.includes(ro
 function nullableHeader(value) { return value === undefined ? null : Array.isArray(value) ? "" : value; }
 function noFollow() { return constants.O_NOFOLLOW ?? 0; }
 function ownedByProcess(stat) { return typeof process.getuid !== "function" || stat.uid === process.getuid(); }
-async function boundedBody(request) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > 1_048_576) fail("BODY_TOO_LARGE", "Product Session Gateway body exceeds policy"); chunks.push(chunk); } return Buffer.concat(chunks).toString("utf8"); }
+async function boundedBody(request,limit=1_048_576) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > limit) fail("BODY_TOO_LARGE", "Product Session Gateway body exceeds policy"); chunks.push(chunk); } return new TextDecoder('utf8',{fatal:true}).decode(Buffer.concat(chunks)); }
 function hostError(error) { if (!(error instanceof WalletAuthError)) return { status: 500, code: "INTERNAL", message: "Product Session Gateway host failed closed" }; const status = error.code === "CLOCK_UNAVAILABLE" ? 503 : error.code === "ORIGIN_NOT_ALLOWED" ? 403 : error.code === "ROUTE_NOT_FOUND" ? 404 : error.code === "METHOD_NOT_ALLOWED" ? 405 : error.code === "BODY_TOO_LARGE" ? 413 : error.code.startsWith("STATE_") ? 500 : 400; return { status, code: error.code, message: error.message }; }
 function fail(code, message) { throw new WalletAuthError(code, message); }

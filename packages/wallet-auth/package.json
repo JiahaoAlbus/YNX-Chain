@@ -320,7 +320,8 @@
     "test:r185-source-v2": "node --test --test-concurrency=1 test/r185-source-current-async-integration.test.mjs test/r185-source-current-v2-kernel.test.mjs test/r185-key-file-custody.test.mjs test/r185-source-intake.test.mjs",
     "test:r186-sign-partial": "node --test --test-name-pattern='^failed signer attempt' test/r185-source-current-v2-kernel.test.mjs && node --test test/r186-source-intake.test.mjs",
     "test:source8-r194-integration": "node --test test/source8-r194-js-integration.test.mjs test/source8-r194-source-intake.test.mjs && tsc -p test/tsconfig.source8-r194-types.json",
-    "test:source8-r194-ci": "npm run test:source8-r194-integration && node --test --test-concurrency=1 test/r191-developer-http-principal.test.mjs test/r194-project-control-canonical-member.test.mjs"
+    "test:source8-r194-ci": "npm run test:source8-r194-integration && node --test --test-concurrency=1 test/r191-developer-http-principal.test.mjs test/r194-project-control-canonical-member.test.mjs",
+    "test:r193-host-relay": "node --test test/r193-host-consumer-integration.test.mjs test/source8-r194-source-intake.test.mjs && tsc -p test/tsconfig.source8-r194-types.json && node --test --test-name-pattern=\"^original (recheck|relay)\" test/r191-developer-http-principal.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

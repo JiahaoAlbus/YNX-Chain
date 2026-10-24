@@ -92,6 +92,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
    const body=this.#body(p,profileDigest,state,challenge,v),signed=this.#signed(body,v,before);verifyOriginalAuthSourceCurrentV2(this.#root,this.#enrollment,p.raw,signed,this.#policy,before,challenge,{sequence:state.sequence,floor:state.floor,head:state.head,timeFloor:now,executionHeight:state.executionHeight},this.#time());await this.#post(p,before,body.expiresAtMs);return signed;
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
  }
+ assertDeveloperPrincipalPurpose(){this.#alive();if(!this.#initialized||this.#policy.signatureContract.purpose!=='ide-project-authority-v1')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');}
  async existingDeveloperPrincipal(credential){
   this.#alive();if(!this.#initialized||this.#entered||this.#policy.signatureContract.purpose!=='ide-project-authority-v1')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
   const first=await readOriginalDeveloperHTTPCredential(credential),s=first.session,matches=[];
