@@ -158,7 +158,23 @@
       "tests": 24,
       "seconds": 15.620392583
     },
-    "normalCIPending": true
+    "normalCIPending": false,
+    "normalCI": {
+      "id": 40102979223,
+      "head": "e9e5d1f7526b848a709cc9986f2a82a10bc2172b",
+      "conclusion": "success",
+      "originalAPI": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-refusal-source-e9e5d1f752/normal-ci-terminal-api.json",
+        "bytes": 12358,
+        "sha256": "60383f770661d2c1b4bc33cbe272e9570b053df5c11fe3ef379be059edd9e0c2"
+      },
+      "originalLog": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-refusal-source-e9e5d1f752/normal-ci-full.raw",
+        "bytes": 726587,
+        "sha256": "ada96fe997acaa846299d07b65ed742d5e8c9cb996bf095f68c97153836bd087"
+      },
+      "underlyingRSSReadFailureFixed": false
+    }
   },
   "next": "Complete bounded original artifact readback, correlate verifier process exit/receipt with last resource samples; reproduce underlying Linux exit/read condition before changing acceptance logic or scheduling a new frozen run"
 }
