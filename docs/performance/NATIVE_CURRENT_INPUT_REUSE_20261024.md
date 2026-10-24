@@ -70,3 +70,29 @@ claimed by this source change. The 1,000 valid final transactions/s for ten
 minutes and P95 finality <=3s targets remain unachieved. Node completion/client
 clock metadata likewise requires an actual same-run identity join before it
 can establish node-stage latency.
+
+## First cache-pair attempt: controller deadline identity defect
+
+Root's new single-use grant dispatched the frozen `7c4cac62a` source once as
+run 40044977213. The first bounded-cadence/cache-off case started nodes, then
+the original consumer rejected `streamingWorkload.maxRuntimeMs`: it still
+expected the old literal 30000, although the selected client command, plan and
+producer report use 40000. The synthetic composite test had repeated that old
+literal, masking the real producer/consumer mismatch.
+
+The original failure remains authoritative: case36.268s, pair36.576s,
+second side not started, no A/B qualification. Original terminal frames retain
+post-fsync samples and two empty owned scans for launcher38995/startTicks70748.
+Full selected artifact recovery/readback is a separate gate; this diagnostic
+does not turn the original failure into a successful experiment.
+
+The owning controller repair derives workload maxRuntimeMs from the original
+`STREAM_BUDGET.timeoutMs` and also binds top-level report timeoutMs to that same
+selected budget. It changes no timeout or resource allowance. Updating the
+composite fixture to the real40s producer shape reproduces the original RED;
+the repaired reader accepts it and rejects stale30s, off-by-one, bool and null
+values. All88 original controller source tests pass. Raw RED/green/full results
+are `native-original-max-runtime-{red,green,controller-all}.raw` in the original
+small-source artifact directory. Any next network attempt needs a new frozen
+source, successful original CI and a new Root grant; this consumed pair cannot
+be reopened to start its second side.

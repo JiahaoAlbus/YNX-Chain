@@ -1080,7 +1080,7 @@ class SupplySourceTests(unittest.TestCase):
         import base64,hashlib
         client,initial=self.submit8_report_fixture(True);network=Path("/tmp/ynx-stream-source-contract")
         client.update(schemaVersion=14,nativeStream8=True,nativeSubmit8=False,observerNativeFacts=True,observerPhaseTiming=True,endpointFairSubmission=False,
-            roundsRequested=4,roundsCompleted=4,senderMode="ready-pool",pacingMode="relative",retentionMode="latest_per_account_slots",gomaxprocs=1)
+            roundsRequested=4,roundsCompleted=4,senderMode="ready-pool",pacingMode="relative",retentionMode="latest_per_account_slots",gomaxprocs=1,timeoutMs=supply.STREAM_BUDGET["timeoutMs"])
         summary=client["summary"]
         for key in ("input","offered","submitted","checkTxResponses","checkTxAccepted","includedCodeZero","effectiveBusinessIncluded","quorumConfirmed","finalSubmitted"):summary[key]=8192
         summary["measurementWindowSeconds"]=20
@@ -1107,7 +1107,7 @@ class SupplySourceTests(unittest.TestCase):
         raw_manifest=json.dumps(dict(migrationStateHash="1"*64,genesisHash="2"*64)).encode()
         fixture=dict(kind="YNX_LOCAL_READY_SENDER_V1",manifestSha256=hashlib.sha256(raw_manifest).hexdigest(),migrationHash="1"*64,genesisHash="2"*64)
         plan=dict(kind="YNX_LOCAL_STREAM_WORKLOAD_PLAN_V1",profile="scoped_native_prefix_stream8_v1",fixture=fixture,senders=2048,rounds=4,plannedRecords=8192,requiredBalancePerSender=8,encodedEvidenceBudget=64<<20,timeoutMs=supply.STREAM_BUDGET["timeoutMs"],durableStoreByteLimit=32<<20,durableCacheInputByteBudget=64<<20,terminalEncoding="gzip",initialSignedHashes=[hashlib.sha256(base64.b64decode(t)).hexdigest().upper() for t in initial],nativePrefix=dict(offeredRate=1000,pacingMode="relative",submitters=8,observers=4,canonicalByteLimit=32<<20,observerNativeFacts=True,originalSuffixSetup=True,serializedReaderBudget=True))
-        raw_plan=json.dumps(plan).encode();client["streamingWorkload"]=dict(name=plan["profile"],plannedRecords=8192,rounds=4,maxRuntimeMs=30000,evidenceByteBudget=64<<20,evidenceVerified=True,evidenceReadbackMs=1,planPath=str(network/"transactions-result.json.streaming-plan.json"),planSha256=hashlib.sha256(raw_plan).hexdigest())
+        raw_plan=json.dumps(plan).encode();client["streamingWorkload"]=dict(name=plan["profile"],plannedRecords=8192,rounds=4,maxRuntimeMs=supply.STREAM_BUDGET["timeoutMs"],evidenceByteBudget=64<<20,evidenceVerified=True,evidenceReadbackMs=1,planPath=str(network/"transactions-result.json.streaming-plan.json"),planSha256=hashlib.sha256(raw_plan).hexdigest())
         client["terminalStream"]=dict(encoding="gzip")
         proof=dict(rowMetrics=metrics,intents=dict(bytes=123),terminal=dict(bytes=456),networkQualified=False)
         def capture(path,limit):
@@ -1122,6 +1122,17 @@ class SupplySourceTests(unittest.TestCase):
                 self.assertFalse(out["sustainedTPSQualified"])
                 return out
         check(client)
+        # The actual run40044977213 failed after complete business counters:
+        # the producer emitted40s but this consumer retained a30s literal.
+        # Bind both top-level and workload report to the selected original
+        # budget; stale, rounded, missing and bool values must still refuse.
+        self.assertEqual(client['streamingWorkload']['maxRuntimeMs'],40000)
+        for value in (30000,39999,40001,True,None):
+            for field in ('timeoutMs','maxRuntimeMs'):
+                bad=copy.deepcopy(client)
+                if field=='timeoutMs':bad[field]=value
+                else:bad['streamingWorkload'][field]=value
+                with self.subTest(field=field,value=value),self.assertRaises(RuntimeError):check(bad)
         remote=copy.deepcopy(client);remote_root=Path("/tmp/original-runner/ynx-linux-supply-case/network")
         remote["streamingWorkload"]["planPath"]=str(remote_root/"transactions-result.json.streaming-plan.json")
         with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:

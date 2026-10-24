@@ -1287,7 +1287,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     def same(a,b):return json.dumps(a,sort_keys=True,separators=(',',':'))==json.dumps(b,sort_keys=True,separators=(',',':'))
     expected=dict(schemaVersion=14,nativeStream8=True,prefixDurableReplay=True,prefixNativeClone=True,observerNativeFacts=True,
         observerPhaseTiming=True,sharedDurableReplay=False,endpointFairSubmission=False,roundsRequested=4,roundsCompleted=4,
-        concurrency=8,observerConcurrency=4,configuredOfferedRate=1000,senderMode="ready-pool",pacingMode=pacing,inclusionMode="block-scan",retentionMode="latest_per_account_slots",gomaxprocs=1)
+        concurrency=8,observerConcurrency=4,configuredOfferedRate=1000,senderMode="ready-pool",pacingMode=pacing,inclusionMode="block-scan",retentionMode="latest_per_account_slots",gomaxprocs=1,timeoutMs=STREAM_BUDGET["timeoutMs"])
     for key,value in expected.items():
         need(type(report.get(key)) is type(value) and report[key]==value,"actual native stream scope differs: "+key)
     need(not report.get("setupErrors") and all(report.get(k,False) is False for k in ("nativeSubmit8","nativeSuffixSetup","clientProcs2","endpointElasticSubmission")),"mixed native stream candidates/setup errors")
@@ -1300,7 +1300,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     for key,value in dict(prepared=total,offered=total,completed=total,quarantinedAccounts=0,roundsCompleted=4).items():
         need(type(ready.get(key)) is int and ready[key]==value,"stream ready coverage differs: "+key)
     need(type(ready.get("peakInFlightAccounts")) is int and 1<=ready["peakInFlightAccounts"]<=2048,"stream in-flight bound differs")
-    for key,value in dict(name="scoped_native_prefix_stream8_v1",plannedRecords=total,rounds=4,maxRuntimeMs=30000,evidenceByteBudget=64<<20,evidenceVerified=True).items():
+    for key,value in dict(name="scoped_native_prefix_stream8_v1",plannedRecords=total,rounds=4,maxRuntimeMs=STREAM_BUDGET["timeoutMs"],evidenceByteBudget=64<<20,evidenceVerified=True).items():
         need(type(work.get(key)) is type(value) and work[key]==value,"stream durable plan/report differs: "+key)
     need(type(work.get("evidenceReadbackMs")) in (int,float) and math.isfinite(work["evidenceReadbackMs"]) and work["evidenceReadbackMs"]>=0,"stream readback duration absent")
     output=network/"transactions-result.json";plan_path=Path(str(output)+".streaming-plan.json")
