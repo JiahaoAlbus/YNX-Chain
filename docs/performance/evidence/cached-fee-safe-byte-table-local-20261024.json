@@ -176,5 +176,27 @@
     "changed": false,
     "hashMode": "original-json"
   },
-  "normalCIPending": true
+  "normalCIPending": true,
+  "codeCommit": "2103eeee703d5a5b8d31bc61bc8a72461788e2ca",
+  "sourceGuard": {
+    "initialAttempt": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-source-guard-01.raw",
+      "bytes": 32399,
+      "sha256": "af089a11b15e6bf3d4623b8b60ba50e4ab24b8e358d239d1734cee69bce9f730",
+      "passed": false,
+      "firstCause": "Only internal source pin was advanced; controller fixtures still checked out old internal tree and correctly failed source identity. No test or guard was weakened."
+    },
+    "finalAttempt": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-source-guard-02.raw",
+      "bytes": 4447,
+      "sha256": "a1a7f851d58178d4616a289d5b373aea54f973cee7ae020cb1afaa449617101c",
+      "passed": true,
+      "tests": 24,
+      "seconds": 18.797517875
+    },
+    "sourceAndControllerCommit": "2103eeee703d5a5b8d31bc61bc8a72461788e2ca",
+    "internalTree": "a39eac128aaa5588d41703f95cd78c902ba18413",
+    "deltaSHA256": "46f26eed9da7f58a86b89743d68c31171c7c9577e2988b80f56a111f46d07005",
+    "runtimeClientAndDiagnosticNodeTreesUnchanged": true
+  }
 }
