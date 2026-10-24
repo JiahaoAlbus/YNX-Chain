@@ -10,9 +10,16 @@ import {canonical,sha} from '../native/original-auth-identity-source-verifier.mj
 import {verifyOriginalAuthSourceProfileV2,verifyOriginalAuthSourceTransitionV2,verifyOriginalAuthSourceCurrentV2,encodeOriginalAuthSourceStatementV2,canonicalOriginalAuthSourceEnvelopeV2} from '../native/original-auth-identity-source-v2-verifier.mjs';
 import {fetchOriginalNativeAuthorization} from '../native/original-ide-auth-proof-dispatch.mjs';
 import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthorizationCurrent} from './pq-wallet-policy.js';
+import {encodeOriginalIDEApprovalCurrentDATA,canonicalOriginalIDEApprovalCurrentDATA,verifyOriginalIDEApprovalCurrentDATA,inspectOriginalIDEApprovalScopeDATA,ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE} from '../native/original-ide-publication-approval-contract.mjs';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const CAP=393216,ZERO=Object.freeze({sequence:0,floor:0,head:'',timeFloor:0,executionHeight:'0'});
 const nonced=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{43}$/.test(value)&&Buffer.from(value,'base64url').toString('base64url')===value;
+// EXACT original Go store digest, without parsing decimal counters as Number.
+// Only opaque hash/counter/enum fields occur here; no alternate grant codec.
+import {originalApprovalStateHeadDATA} from '../native/original-ide-approval-state-head-data.mjs';
+import {readOriginalDeveloperHTTPCredential} from './product-session-gateway-node-host.js';
+import {encodeOriginalDeveloperPrincipalDATA} from '../native/original-developer-principal-data.mjs';
+export {originalApprovalStateHeadDATA};
 function parsed(raw,cap=CAP){if(typeof raw!=='string'||!raw.length||Buffer.byteLength(raw)>cap)fail('AUTH_SOURCE_V2_CAPACITY');let v;try{v=JSON.parse(raw);}catch{fail('AUTH_SOURCE_V2_CANONICAL');}if(canonical(v)!==raw)fail('AUTH_SOURCE_V2_CANONICAL');return v;}
 function hint(raw){const e=parsed(raw),b=Buffer.from(e.body??'','base64url');if(e.version!==2||e.role!=='profile'&&e.role!=='enrollment'&&e.role!=='current'||!b.length||b.length>65536||b.toString('base64url')!==e.body)fail('AUTH_SOURCE_V2_ENVELOPE');return parsed(new TextDecoder('utf8',{fatal:true}).decode(b),65536);}
 function exact(v,keys){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==keys.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')||!d.enumerable))fail('AUTH_SOURCE_V2_SCHEMA');}
@@ -85,6 +92,50 @@ export class OriginalAuthSourceCurrentV2Kernel {
    const body=this.#body(p,profileDigest,state,challenge,v),signed=this.#signed(body,v,before);verifyOriginalAuthSourceCurrentV2(this.#root,this.#enrollment,p.raw,signed,this.#policy,before,challenge,{sequence:state.sequence,floor:state.floor,head:state.head,timeFloor:now,executionHeight:state.executionHeight},this.#time());await this.#post(p,before,body.expiresAtMs);return signed;
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
  }
+ async existingDeveloperPrincipal(credential){
+  this.#alive();if(!this.#initialized||this.#entered||this.#policy.signatureContract.purpose!=='ide-project-authority-v1')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+  const first=await readOriginalDeveloperHTTPCredential(credential),s=first.session,matches=[];
+  for(const[digest,p]of this.#profiles){const a=p.body.selection.association,principal=p.body.selection.projectAuthority?.principal,state=this.#rows.get(digest);if(state?.status==='active'&&principal&&principal.account===s.account&&principal.deviceId===s.deviceId&&principal.sessionRef===s.sessionBinding&&['account','deviceId','clientId','productId','platform','applicationId'].every(k=>a[k]===s[k]))matches.push([digest,p,state]);}
+  if(matches.length!==1)fail('AUTH_ORIGINAL_PRINCIPAL_NOT_SELECTED');
+  const[digest,p,state]=matches[0],principal=p.body.selection.projectAuthority.principal;
+  if(principal.expiresMS>Date.parse(s.expiresAt))fail('AUTH_ORIGINAL_PRINCIPAL_SESSION_WINDOW');
+  // No default account/session generation or invented current reference: all
+  // seven fields come from the original Root-signed projectAuthority selection.
+  const currentRaw=await this.current(digest,randomBytes(32).toString('base64url'));
+  const after=await readOriginalDeveloperHTTPCredential(credential);
+  if(after!==first||this.#rows.get(digest)!==state)fail('AUTH_ORIGINAL_PRINCIPAL_POST_CHANGED');
+  const before=await this.#views(p);this.#verify(p,before);await this.#post(p,before,Math.min(principal.expiresMS,first.proofExpiresMS));
+  const finalCredential=await readOriginalDeveloperHTTPCredential(credential);this.#alive();this.#signer.assertCurrent(before.current);
+  if(finalCredential!==first)fail('AUTH_ORIGINAL_PRINCIPAL_POST_CHANGED');
+  if(this.#rows.get(digest)!==state||this.#time()>=Math.min(principal.expiresMS,first.proofExpiresMS))fail('AUTH_ORIGINAL_PRINCIPAL_POST_EXPIRED');
+  const original=encodeOriginalDeveloperPrincipalDATA({...principal,expiresMS:String(principal.expiresMS)});
+  return Object.freeze({version:'YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v1',principalOriginal:original.principalOriginal,principalSHA256:original.principalSHA256,profileDigest:digest,currentRaw,method:first.method,path:first.path,bodyDigest:first.bodyDigest,expiresAtMs:Math.min(principal.expiresMS,first.proofExpiresMS),dataOnly:true,authorized:false,nativeAdmission:false});
+ }
+ async publicationApprovalCurrent(profileDigest,scopeOriginal,currentOriginal){
+  this.#alive();if(!this.#initialized||this.#entered)fail('AUTH_SOURCE_V2_NOT_READY');
+  if(this.#policy.signatureContract.purpose!==ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE)fail('AUTH_PUBLICATION_DEDICATED_ISSUER_REQUIRED');
+  const p=this.#profiles.get(profileDigest),state=this.#rows.get(profileDigest);if(!p||!state||p.body.selection.publicationApprovalAuthority?.scopeOriginal!==scopeOriginal)fail('AUTH_PUBLICATION_SCOPE_NOT_SELECTED');
+  const scope=inspectOriginalIDEApprovalScopeDATA(scopeOriginal),body=parsed(currentOriginal,16384);if(!nonced(body.nonce))fail('AUTH_PUBLICATION_NONCE');const beforeTime=this.#time();if(beforeTime<body.issuedAtMs||beforeTime>=body.expiresAtMs||body.expiresAtMs>scope.expiresAtMs)fail('AUTH_PUBLICATION_CURRENT_EXPIRED');
+  const nonceKey='approval:'+profileDigest+':'+body.nonce;for(const[k,t]of this.#nonces)if(beforeTime-t>=30000)this.#nonces.delete(k);if(this.#nonces.has(nonceKey)||this.#nonces.size>=4096)fail('AUTH_PUBLICATION_REPLAY_OR_CAPACITY');
+  // The normal issuer cannot sign a caller-chosen state. Its exact stable
+  // state digest must already be the original protected Source journal head.
+  // Service Source liveness and the approval decision are separate. A revoked
+  // approval may have a negative current proof from a LIVE issuer; revoking
+  // the issuer Source itself must stop every signing operation.
+  const head=originalApprovalStateHeadDATA(scopeOriginal,currentOriginal);if(state.head!==head||state.status!=='active')fail('AUTH_PUBLICATION_STATE_NOT_CURRENT');
+  this.#entered=true;this.#nonces.set(nonceKey,beforeTime);this.#partial=Object.freeze({phase:'APPROVAL_SELECTED',profileDigest,nonce:body.nonce,scopeOriginal,currentOriginal});
+  try{
+   const before=await this.#views(p),v=this.#verify(p,before),key=sha(canonical({profileDigest,sequence:state.sequence})),journalRaw=this.#io.read(this.#loan,key+'.entered');if(sha(journalRaw)!==state.recordDigest||this.#io.read(this.#loan,key+'.terminal')!==canonical({version:2,eventDigest:state.recordDigest}))fail('AUTH_PUBLICATION_JOURNAL_CHANGED');
+   const binding={networkId:v.root.networkId,owner:v.enrollment.currentOwner,keyVersion:before.current.activeRevision,executionHeight:before.current.executionHeight};const message=encodeOriginalIDEApprovalCurrentDATA(binding,scopeOriginal,currentOriginal);
+   if(body.expiresAtMs>Math.min(v.profile.expiresAtMs,v.enrollment.expiresAtMs)||this.#time()>=body.expiresAtMs)fail('AUTH_PUBLICATION_CURRENT_EXPIRED');
+   const member=this.#signer.signCurrent(message,binding,before.current),raw=canonicalOriginalIDEApprovalCurrentDATA(binding,scopeOriginal,currentOriginal,Buffer.from(member).toString('base64url'));this.#partial=Object.freeze({phase:'APPROVAL_SIGNED',profileDigest,nonce:body.nonce,approvalCurrentOriginal:raw});
+   verifyOriginalIDEApprovalCurrentDATA(raw,before.current,scopeOriginal,body.nonce,{sequence:'0',floor:'0',decision:'',requestState:'',resultOriginalSHA256:'',scopeSHA256:'',timeFloor:0},this.#time());await this.#post(p,before,body.expiresAtMs);
+   if(this.#rows.get(profileDigest)!==state||this.#io.read(this.#loan,key+'.entered')!==journalRaw||this.#io.read(this.#loan,key+'.terminal')!==canonical({version:2,eventDigest:state.recordDigest}))fail('AUTH_PUBLICATION_POST_CURRENT_CHANGED');
+   // A retained IO/current check is itself a completion boundary. Recheck time
+   // after it, not only before entering a callback/native read.
+   this.#signer.assertCurrent(before.current);if(this.#time()>=body.expiresAtMs)fail('AUTH_PUBLICATION_POST_COMPLETION_EXPIRED');return raw;
+  }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
+ }
  retire(){this.#retired=true;}
  join(){if(!this.#retired||this.#entered)fail('AUTH_SOURCE_V2_JOIN_PENDING');}
  close(){if(this.#closeSelected){if(this.#closeFailed)throw this.#closeCause;return;}this.retire();this.join();this.#closeSelected=true;let first,present=false;try{if(this.#loan&&this.#io.close(this.#loan)!==undefined)fail('AUTH_SOURCE_V2_CLOSE_UNKNOWN');}catch(e){first=e;present=true;}try{this.#signer.close();}catch(e){if(!present){first=e;present=true;}}if(present){this.#closeFailed=true;this.#closeCause=first;this.#remember(first);throw first;}this.#closed=true;}
@@ -104,7 +155,7 @@ export class OriginalSourceCurrentV2KeyFile {
  assertCurrent(){if(this.#closeSelected||this.#fd===undefined||!this.#stat)fail('AUTH_SOURCE_V2_KEY_CLOSED');const a=this.#stat,same=(x,y)=>x.dev===y.dev&&x.ino===y.ino&&x.uid===y.uid&&x.gid===y.gid&&x.mode===y.mode&&x.nlink===y.nlink&&x.size===y.size&&x.mtimeMs===y.mtimeMs&&x.ctimeMs===y.ctimeMs;if(!same(a,fstatSync(this.#fd))||!same(a,lstatSync(this.#ref.path))||realpathSync(this.#ref.path)!==this.#ref.path)fail('AUTH_SOURCE_V2_KEY_CHANGED');for(const[p,s]of this.#parents){const end=lstatSync(p);if(!end.isDirectory()||end.isSymbolicLink()||end.dev!==s.dev||end.ino!==s.ino||end.uid!==s.uid||end.gid!==s.gid||end.mode!==s.mode)fail('AUTH_SOURCE_V2_KEY_PARENT_CHANGED');}}
  close(){if(this.#closeSelected){if(this.#closeFailed)throw this.#closeCause;return;}this.#closeSelected=true;this.wipe();try{if(this.#fd!==undefined)closeSync(this.#fd);}catch(e){this.#closeFailed=true;this.#closeCause=e;throw e;}}
 }
-export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic){
+export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readOnly=false){
  // No fallback to portable signing or caller crypto. Runtime check occurs
  // before any private file read; provider itself independently enforces it.
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_SOURCE_V2_NATIVE_RUNTIME_NOT_SUPPLIED');
@@ -118,6 +169,8 @@ export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic){
  try{
   a=new OriginalSourceCurrentV2KeyFile(entry.currentKeys.A);a.initialize();b=new OriginalSourceCurrentV2KeyFile(entry.currentKeys.B);b.initialize();keys=importKeyMaterial({format:KEY_MATERIAL_FORMAT,algorithmVersion:'YNX-BATCH/v0.1',suite:SUITE,pkcs8A:a.raw,pkcs8B:b.raw,pkA:Buffer.from(record.pkA,'hex'),pkB:Buffer.from(record.pkB,'hex')},{provider:'native'});
   const native=createRequire(import.meta.url)(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-source-current-dirfd.node',import.meta.url)));
-  service=new OriginalAuthSourceCurrentV2Kernel(rootRaw,enrollmentRaw,profiles,entry.policy,entry.node,signer,native);await service.initialize();return service;
+  if(readOnly&&typeof native.openV2Existing!=='function')fail('AUTH_PUBLICATION_READONLY_IO_NOT_SUPPLIED');
+  const io=readOnly?Object.freeze({openV2:(parent,leaf)=>native.openV2Existing(parent,leaf),ready:ref=>native.ready(ref),list:ref=>native.list(ref),read:(ref,name)=>native.read(ref,name),write:()=>fail('AUTH_PUBLICATION_QUERY_READONLY'),close:ref=>native.close(ref)}):native;
+  service=new OriginalAuthSourceCurrentV2Kernel(rootRaw,enrollmentRaw,profiles,entry.policy,entry.node,signer,io);await service.initialize();return service;
  }catch(error){return Object.freeze({partial:service??signer,error});}finally{a?.wipe();b?.wipe();}
 }

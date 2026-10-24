@@ -37,6 +37,18 @@ export class ProductSessionGatewayKernel {
   }
 
   // Trusted server-only read: no device proof replay, no new grant, no writes.
+  authenticateOriginalDeveloperHTTPRequest(input, at = new Date()) {
+    exactFields(input,['method','path','body','proof'],'Original developer HTTP identity');
+    if(typeof input.body!=='string'||new TextEncoder().encode(input.body).length>1048576||!['GET','POST','PUT','PATCH','DELETE'].includes(input.method))fail('INVALID_BODY','Original HTTP identity body/method is invalid');
+    const now=validDate(at),floor=this.#controlIntents===null?walletSessionControlClockFloor({consumedProofs:this.#proofs,audit:this.#audit}):productSessionControlClockFloor(this.snapshot());
+    if(now.getTime()<floor)fail('CLOCK_UNAVAILABLE','Original HTTP identity clock is behind durable history');
+    const session=this.#authority.snapshot().sessions.find(s=>s.sessionBinding===input.proof?.sessionBinding);
+    if(!session||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original developer identity requires its registered original session');
+    // Reuse original proof domain, complete stored session, current/revoke
+    // authority and durable replay set. No generation or role is invented.
+    return this.#authorize({...input,body:null},[],now,httpBodyDigest(input.body));
+  }
+
   revalidate(sessionInput, requiredScopes, productId, at = new Date(), businessRevalidation = false) {
     const session=parseProductSession(sessionInput);
     if(typeof businessRevalidation!=='boolean'||session.productId!==productId||(!businessRevalidation&&session.platform!=='web'))fail('CROSS_PRODUCT_SESSION','Backend cannot inspect another registered product or an unregistered platform');
@@ -371,11 +383,11 @@ export class ProductSessionGatewayKernel {
     return result;
   }
 
-  #authorize(request, requiredScopes, at) {
+  #authorize(request, requiredScopes, at, originalBodyDigest = null) {
     if (request.proof === null) fail("PROOF_REQUIRED", "A sender-constrained Product Session proof is required");
     const session = this.#authority.snapshot().sessions.find((item) => item.sessionBinding === request.proof?.sessionBinding);
     if (!session) fail("SESSION_NOT_FOUND", "Product Session was not found");
-    const proof = verifyProductSessionProofV2(request.proof, session, { method: request.method, path: request.path, bodyDigest: httpBodyDigest(canonicalJSON(request.body)) }, at);
+    const proof = verifyProductSessionProofV2(request.proof, session, { method: request.method, path: request.path, bodyDigest: originalBodyDigest??httpBodyDigest(canonicalJSON(request.body)) }, at);
     const proofDigest = productSessionProofV2Digest(proof);
     if (this.#proofs.includes(proofDigest)) fail("REPLAY", "Product Session proof was already consumed");
     if (this.#proofs.length >= 20_000) fail("CAPACITY", "Product Session proof replay store is at capacity");

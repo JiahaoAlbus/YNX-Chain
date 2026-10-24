@@ -136,3 +136,20 @@ export async function handleOriginalAuthSourceCurrent(service,method,url,now=Dat
  const parsed=new URL(url,'https://wallet-auth.ynxweb4.com');if(method!=='GET'||parsed.origin!=='https://wallet-auth.ynxweb4.com'||parsed.pathname!=='/v1/auth-identity/source-current'||parsed.hash||[...parsed.searchParams.keys()].sort().join('|')!=='nonce|profile')fail('AUTH_SOURCE_CURRENT_REQUEST_INVALID');
  return {status:200,headers:{'content-type':'application/json','cache-control':'no-store'},body:await service.current(parsed.searchParams.get('profile'),parsed.searchParams.get('nonce'),now)};
 }
+// Private normal issuer call, not a public mount or caller-provided provider.
+// Only the SAME release-selected original factory brand may select this path.
+export async function handleOriginalPublicationApprovalCurrent(service,profileDigest,scopeOriginal,currentOriginal){
+ if(!services.has(service)||typeof service.publicationApprovalCurrent!=='function')fail('AUTH_PUBLICATION_ORIGINAL_ISSUER_REQUIRED');
+ return await service.publicationApprovalCurrent(profileDigest,scopeOriginal,currentOriginal);
+}
+export async function handleOriginalDeveloperPrincipalCurrent(service,credential){
+ if(!services.has(service)||typeof service.existingDeveloperPrincipal!=='function')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+ return await service.existingDeveloperPrincipal(credential);
+}
+export async function loadOriginalPublicationApprovalIssuer(){
+ if(admittedSourceServices.length===0)return null;if(admittedSourceServices.length!==1)fail('AUTH_PUBLICATION_ISSUER_RELEASE_AMBIGUOUS');
+ const entry=admittedSourceServices[0];if(entry.version!==2||entry.policy.signatureContract.purpose!=='ide-publication-approval-authority-v1')fail('AUTH_PUBLICATION_DEDICATED_ISSUER_REQUIRED');
+ // Query never creates or updates the original Native journal, even when the
+ // approved namespace is missing. A separate protected capture owns writes.
+ const result=await loadReleaseSelectedOriginalSourceV2(entry,(path,digest)=>publicFile(path,digest,393216),true),service=result?.partial??result;services.add(service);sourceServiceDebt.add(service);return result;
+}
