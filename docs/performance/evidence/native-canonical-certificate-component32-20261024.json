@@ -1,0 +1,79 @@
+{
+  "scope": "local component only; no runtime selection or network qualification",
+  "signedBusinessTransactions": 32,
+  "feeEvents": 32,
+  "payloadBytes": 25763,
+  "iterationsPerPath": 224,
+  "rounds": [
+    {
+      "round": 0,
+      "iterations": 32,
+      "strictJSONAndCloneNs": 13548042,
+      "canonicalNativeNs": 1993791
+    },
+    {
+      "round": 1,
+      "iterations": 32,
+      "strictJSONAndCloneNs": 9265542,
+      "canonicalNativeNs": 2486625
+    },
+    {
+      "round": 2,
+      "iterations": 32,
+      "strictJSONAndCloneNs": 8372750,
+      "canonicalNativeNs": 1303125
+    },
+    {
+      "round": 3,
+      "iterations": 32,
+      "strictJSONAndCloneNs": 7224583,
+      "canonicalNativeNs": 1202584
+    },
+    {
+      "round": 4,
+      "iterations": 32,
+      "strictJSONAndCloneNs": 6052334,
+      "canonicalNativeNs": 1498625
+    },
+    {
+      "round": 5,
+      "iterations": 32,
+      "strictJSONAndCloneNs": 5929750,
+      "canonicalNativeNs": 1053458
+    },
+    {
+      "round": 6,
+      "iterations": 32,
+      "strictJSONAndCloneNs": 4839625,
+      "canonicalNativeNs": 1318500
+    }
+  ],
+  "controlTotalNs": 55232626,
+  "candidateTotalNs": 10856708,
+  "componentElapsedReductionPercent": 80.34366861354736,
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "go": "go1.25.7",
+    "gomaxprocs": 1,
+    "gogc": 100,
+    "gomemlimit": "off",
+    "exclusiveHost": false
+  },
+  "equality": {
+    "strictJSONState": true,
+    "canonicalBytes": true,
+    "fullValidate": true
+  },
+  "networkProof": false,
+  "runtimeSelected": false,
+  "sustained1000Qualified": false,
+  "raw": {
+    "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-canonical-certificate-matched32.raw",
+    "sha256": "f24e65aee8bfcaafe02a3b0edc73e7c9e30985b4d33ff87dc002412693d503f0"
+  },
+  "sourceFiles": {
+    "internal/consensus/block_journal_canonical_native.go": "268787fda55f4c7b091d8042d8231bd0f081666b5eeceece07e0056551be3b63",
+    "internal/consensus/block_journal_canonical_native_test.go": "0a182b32181efcfa065975b7482f807331d0046809698160b0dcf02e044df618"
+  }
+}
