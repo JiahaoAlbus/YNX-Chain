@@ -54,7 +54,7 @@ static void WalletPublisherFinalize(napi_env,void*raw,void*){
  p->finalized=true;WalletPublisherClose(p);
  if(p->environmentGone&&p->closed){walletPublisherApprovals.erase(p);delete p;}
 }
-enum class WalletPublisherMethod:uintptr_t {review=1,approve,current,retire,close};
+enum class WalletPublisherMethod:uintptr_t {review=1,approve,current,retire,close,outcome,saveOutcome};
 static napi_value WalletPublisherOperation(napi_env env,napi_callback_info info){
  napi_value self=nullptr,args[1];void*raw=nullptr;size_t count=1;
  if(napi_get_cb_info(env,info,&count,args,&self,&raw)!=napi_ok)return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
@@ -64,6 +64,21 @@ static napi_value WalletPublisherOperation(napi_env env,napi_callback_info info)
  if(p->busy)return Error(env,"WALLET_PUBLISHER_APPROVAL_BUSY");
  if(method==WalletPublisherMethod::retire){p->retired=true;[p->approval retire];return Undefined(env);}
  if(method==WalletPublisherMethod::close)return WalletPublisherClose(p)?Undefined(env):Error(env,p->closeFirst.empty()?"WALLET_PUBLISHER_CLOSE_PENDING":p->closeFirst.c_str());
+ // These two operations only recover the original held public result. They
+ // must survive parent/current retirement and an earlier business error, but
+ // retain the exact original tagged owner/env/thread and synchronous busy
+ // fence. Neither reacquires Source, approves, signs nor hands off a result.
+ if(method==WalletPublisherMethod::outcome||method==WalletPublisherMethod::saveOutcome){
+  if(p->closed||!p->approval)return Error(env,"WALLET_PUBLISHER_APPROVAL_CLOSED");
+  struct Busy {WalletPublisherApprovalOwner*p;explicit Busy(WalletPublisherApprovalOwner*v):p(v){p->busy=true;}~Busy(){p->busy=false;}}busy(p);
+  @try{try{
+   NSError*error=nil;
+   if(method==WalletPublisherMethod::saveOutcome&&(![p->approval saveOriginalSigningOutcome:&error]||error))return Error(env,IDEIdentityCode(error,"WALLET_PUBLISHER_OUTCOME_SAVE_UNKNOWN").c_str());
+   NSDictionary*result=[p->approval copyOriginalSigningOutcome:&error];
+   if(!result||error)return Error(env,IDEIdentityCode(error,"WALLET_PUBLISHER_OUTCOME_UNAVAILABLE").c_str());
+   return IDEIdentityPublic(env,result);
+  }catch(...){return Error(env,"WALLET_PUBLISHER_OUTCOME_EXCEPTION");}}@catch(NSException*){return Error(env,"WALLET_PUBLISHER_OUTCOME_EXCEPTION");}
+ }
  auto*parent=WalletPublisherParent(p);
  if(!parent)return WalletPublisherFail(p,"WALLET_PUBLISHER_ORIGINAL_PARENT_NOT_CURRENT"),Error(env,p->first.c_str());
  struct ParentBusy {IDEWalletSourceOwner*p;explicit ParentBusy(IDEWalletSourceOwner*v):p(v){p->busy++;}~ParentBusy(){p->busy--;}}parentBusy(parent);
@@ -101,8 +116,8 @@ static napi_value CaptureOriginalWalletPublisherApproval(napi_env env,napi_callb
  if(napi_add_env_cleanup_hook(env,WalletPublisherEnvironmentRetire,p)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_ENVIRONMENT_CUSTODY_UNKNOWN");return Error(env,p->first.c_str());}
  napi_value result=nullptr;
  if(napi_create_object(env,&result)!=napi_ok||napi_type_tag_object(env,result,&walletPublisherApprovalTag)!=napi_ok||napi_wrap(env,result,p,WalletPublisherFinalize,nullptr,nullptr)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_WRAP_UNKNOWN");return Error(env,p->first.c_str());}
- const char*names[]={"copyOriginalReview","approveOriginalReview","assertOriginalApprovalCurrent","retire","close"};
- for(uintptr_t i=0;i<5;i++){napi_property_descriptor d={names[i],nullptr,WalletPublisherOperation,nullptr,nullptr,nullptr,napi_default,(void*)(i+1)};if(napi_define_properties(env,result,1,&d)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_METHODS_UNKNOWN");return nullptr;}}
+ const char*names[]={"copyOriginalReview","approveOriginalReview","assertOriginalApprovalCurrent","retire","close","copyOriginalSigningOutcome","saveOriginalSigningOutcome"};
+ for(uintptr_t i=0;i<7;i++){napi_property_descriptor d={names[i],nullptr,WalletPublisherOperation,nullptr,nullptr,nullptr,napi_default,(void*)(i+1)};if(napi_define_properties(env,result,1,&d)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_METHODS_UNKNOWN");return nullptr;}}
  if(napi_object_freeze(env,result)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_FREEZE_UNKNOWN");return nullptr;}
  struct ParentBusy {IDEWalletSourceOwner*p;explicit ParentBusy(IDEWalletSourceOwner*v):p(v){p->busy++;}~ParentBusy(){p->busy--;}}busy(original);
  @try{try{

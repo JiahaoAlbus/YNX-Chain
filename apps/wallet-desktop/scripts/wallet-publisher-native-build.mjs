@@ -12,7 +12,7 @@ export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
  {path:'apps/wallet-desktop/native/original-artifact-publisher-store.mm',bytes:41258,sha256:'b5ddc4174abfe1959a4066d90fc8f28aa603a9a6c2d8f20520cf2ec66788552b'}
 ].map(Object.freeze));
 export const WALLET_PUBLISHER_APPROVAL_FLAG='-DYNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING=1';
-export const WALLET_PUBLISHER_APPROVAL_INPUT=Object.freeze({path:'apps/wallet-desktop/native/original-artifact-publisher-binding.inc.mm',bytes:10178,sha256:'add3470e361124eaf70549c08a62a98bdafedfcf14173f068a9dbc6b2faaca1c'});
+export const WALLET_PUBLISHER_APPROVAL_INPUT=Object.freeze({path:'apps/wallet-desktop/native/original-artifact-publisher-binding.inc.mm',bytes:11486,sha256:'4e36676825adff0690a231c9a4f3d628bb322cb32862ecd5a2cfdc7ad36af271'});
 const withApproval=Object.freeze([...WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_PUBLISHER_APPROVAL_INPUT]);
 export function walletPublisherNativeInputs(supplierNodeInputCount){
  if(![69,71,75,76,77].includes(supplierNodeInputCount))throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');

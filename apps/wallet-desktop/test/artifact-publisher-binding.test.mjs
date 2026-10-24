@@ -32,7 +32,18 @@ test('actual Main NAPI binding retains original parent and refuses recapture acr
  binding.PUBLICRetireParent(revokedParent);
  assert.throws(()=>revoked.copyOriginalReview(),/PARENT_NOT_CURRENT/);revoked.close();
  // No production signing entry, raw keys, transport or native parent escapes.
- assert.deepEqual(Object.getOwnPropertyNames(owner),['copyOriginalReview','approveOriginalReview','assertOriginalApprovalCurrent','retire','close']);
+ assert.deepEqual(Object.getOwnPropertyNames(owner),['copyOriginalReview','approveOriginalReview','assertOriginalApprovalCurrent','retire','close','copyOriginalSigningOutcome','saveOriginalSigningOutcome']);
+ binding.PUBLICPendingOutcome();const resultParent=binding.PUBLICParent(),resultOwner=capture(resultParent);
+ binding.PUBLICRetireParent(resultParent);resultOwner.retire();
+ assert.throws(()=>resultOwner.copyOriginalReview(),/PARENT_NOT_CURRENT/);
+ assert.throws(()=>resultOwner.close(),/OUTCOME_SAVE_REQUIRED/);
+ assert.equal(resultOwner.copyOriginalSigningOutcome().phase,'signed-outcome-unknown');
+ assert.throws(()=>resultOwner.copyOriginalSigningOutcome.call({}),/ORIGINAL_APPROVAL_REQUIRED/);
+ assert.throws(()=>resultOwner.saveOriginalSigningOutcome('extra'),/ARGUMENTS_INVALID/);
+ assert.equal(resultOwner.saveOriginalSigningOutcome().phase,'signed-unhanded');
+ resultOwner.close();resultOwner.close();
+ assert.throws(()=>resultOwner.copyOriginalSigningOutcome(),/APPROVAL_CLOSED/);
+ assert.throws(()=>capture(resultParent),/ORIGINAL_PARENT_REQUIRED/);
  const gc=spawnSync(process.execPath,['--expose-gc','-e',`const b=require(${JSON.stringify(binary)}),p=b.PUBLICParent();(()=>{b.captureOriginalWalletPublisherApproval(p)})();global.gc();setImmediate(()=>{global.gc();setImmediate(()=>{try{b.captureOriginalWalletPublisherApproval(p);process.exitCode=9}catch(e){if(!/CAPTURE_ONCE/.test(e.code))throw e;console.log('PUBLIC_GC_ONCE_PASS')}})})`],{encoding:'utf8',timeout:10000});
  assert.equal(gc.status,0,gc.stderr);assert.match(gc.stdout,/PUBLIC_GC_ONCE_PASS/);
 });
