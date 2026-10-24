@@ -14,7 +14,7 @@ function fixture(t,artifactRelease=false){
  // Both explicit PUBLIC variants may load in this process. Give their fake
  // Objective-C classes distinct names instead of relying on duplicate-class
  // runtime selection. Production source/class names remain unchanged.
- const compile=spawnSync('/usr/bin/xcrun',['clang++','-DYNXOriginalArtifactReleaseApproval=YNXPublicReleaseApproval'+(artifactRelease?'RoleOn':'RoleOff'),...(artifactRelease?['-DYNX_ORIGINAL_WALLET_ARTIFACT_CABI=1']:[]),'-std=c++17','-fobjc-arc','-mmacosx-version-min=13.0','-Wall','-Wextra','-Werror','-shared','-undefined','dynamic_lookup','-I'+headers,path.join(root,'test/native/artifact-publisher-binding-public.mm'),'-framework','Foundation','-o',binary],{encoding:'utf8',timeout:30000});
+ const compile=spawnSync('/usr/bin/xcrun',['clang++','-DYNXOriginalArtifactReleaseApproval=YNXPublicReleaseApproval'+(artifactRelease?'RoleOn':'RoleOff'),'-DYNXOriginalIDEWalletPeerLaunch=YNXPublicPeerLaunch'+(artifactRelease?'RoleOn':'RoleOff'),...(artifactRelease?['-DYNX_ORIGINAL_WALLET_ARTIFACT_CABI=1']:[]),'-std=c++17','-fobjc-arc','-mmacosx-version-min=13.0','-Wall','-Wextra','-Werror','-shared','-undefined','dynamic_lookup','-I'+headers,path.join(root,'test/native/artifact-publisher-binding-public.mm'),'-framework','Foundation','-o',binary],{encoding:'utf8',timeout:30000});
  assert.equal(compile.status,0,compile.stderr);
  return {temp,binary,binding:createRequire(import.meta.url)(binary)};
 }
@@ -76,4 +76,20 @@ test('explicit Main CABI role exposes one original sign call and preserves outco
  assert.throws(()=>debt.signOriginalRelease('PUBLIC-ref'),/OUTCOME_SAVE_REQUIRED/);assert.equal(b.PUBLICSigningCalls(),3);
  assert.equal(debt.copyOriginalSigningOutcome().phase,'signed-outcome-unknown');assert.throws(()=>debt.close(),/OUTCOME_SAVE_REQUIRED/);
  debt.retire();assert.equal(debt.saveOriginalSigningOutcome().phase,'signed-unhanded');assert.equal(b.PUBLICSigningCalls(),3);debt.close();
+ const channel=capture(b.PUBLICParent());channel.approveOriginalReview('PUBLIC-review');channel.signOriginalRelease('PUBLIC-ref');
+ assert.equal(typeof channel.sendOriginalPublicationResult,'function');
+ const retained=channel.copyOriginalPublicationResult();assert(retained instanceof Uint8Array);assert.equal(b.PUBLICSendCalls(),0);
+ retained.fill(0);const exact=Buffer.from(channel.copyOriginalPublicationResult());assert.notEqual(exact[0],0);
+ assert.throws(()=>channel.sendOriginalPublicationResult(new Uint8Array([1])),/ARGUMENTS_INVALID/);
+ assert.equal(await channel.sendOriginalPublicationResult(),undefined);assert.equal(b.PUBLICSendCalls(),1);
+ const sent=JSON.parse(b.PUBLICSentResult());assert.equal(sent.version,'YNX-IDE-ARTIFACT-RELEASE-RESULT/v1');assert.equal(sent.purpose,'ARTIFACT-RELEASE');assert.equal(sent.manifestOriginal,sent.invocationOriginal);assert.equal(sent.signatureOriginal,'AQID');assert.equal(Object.keys(sent).length,11);
+ assert.equal(b.PUBLICSentResult(),exact.toString());
+ assert.throws(()=>channel.sendOriginalPublicationResult(),/RESULT_ALREADY_SELECTED/);assert.equal(b.PUBLICSendCalls(),1);channel.close();
+ const unsigned=capture(b.PUBLICParent());unsigned.approveOriginalReview('PUBLIC-review');assert.throws(()=>unsigned.sendOriginalPublicationResult(),/SIGNED_RESULT_REQUIRED/);assert.equal(b.PUBLICSendCalls(),1);unsigned.close();
+ const held=capture(b.PUBLICParent());held.approveOriginalReview('PUBLIC-review');held.signOriginalRelease('PUBLIC-ref');b.PUBLICHoldSend();const pending=held.sendOriginalPublicationResult();
+ assert.throws(()=>held.close(),/CLOSE_PENDING/);assert(Buffer.from(held.copyOriginalPublicationResult()).equals(exact));b.PUBLICFinishSend();await pending;held.close();assert.equal(b.PUBLICSendCalls(),2);
+ const uncertain=capture(b.PUBLICParent());uncertain.approveOriginalReview('PUBLIC-review');uncertain.signOriginalRelease('PUBLIC-ref');b.PUBLICFailSend();assert.throws(()=>uncertain.sendOriginalPublicationResult(),/PUBLIC_QUEUE_UNKNOWN/);assert.equal(b.PUBLICSendCalls(),3);
+ assert.throws(()=>uncertain.sendOriginalPublicationResult(),/QUEUE_UNKNOWN|RESULT_ALREADY_SELECTED/);assert.equal(b.PUBLICSendCalls(),3);assert(Buffer.from(uncertain.copyOriginalPublicationResult()).equals(exact));uncertain.close();
+ const exit=spawnSync(process.execPath,['-e',`const b=require(${JSON.stringify(binary)});(async()=>{const p=b.PUBLICParent(),o=b.captureOriginalWalletPublisherApproval(p);o.approveOriginalReview('PUBLIC-review');o.signOriginalRelease('PUBLIC-ref');await o.sendOriginalPublicationResult();console.log('PUBLIC_QUEUED_OWNER_ENV_EXIT');})();`],{encoding:'utf8',timeout:10000});
+ assert.equal(exit.status,0,exit.stderr);assert.match(exit.stdout,/PUBLIC_QUEUED_OWNER_ENV_EXIT/);assert.doesNotMatch(exit.stderr,/FATAL|HandleScope/);
 });
