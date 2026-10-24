@@ -5,7 +5,7 @@ const pins={
  'src/product-session-gateway-http.js':'cced8361e116eb111ae28848bb10ac45128129ae69898755aa09ae67f7c0e432',
  'src/product-session-gateway-node-host.js':'b252ef02eeb2e3dce045608f66e891d3da0bffc3bbf6c1c1699051429ba8642a',
  'src/original-auth-identity-source-current.js':'d4efda732d5cc21fc443926aa07be11ebb95c1d46d7d84939fc4c5544e79e759',
- 'src/original-auth-source-current-v2.js':'e82f6612b691227f06dbed3c55c1dc553b6ebf10f49ff019a372b013a201009a',
+ 'src/original-auth-source-current-v2.js':'ffce0c998b4b33ec1688abfef596172241029d8faea46c8558c7e387aa1e2f55',
  'native/original-developer-principal-data.mjs':'7e0748cb9ab85839843469c6dca087ed0a0bc5d4ffcde34a2d0bf12d8ac9aab3',
  'native/original-ide-publication-approval-contract.mjs':'c37462cbf7bdb9ee7b327f0d33e8712d3bbc7b6aa0ae43a39f7ca426c69e33f6',
  'native/original-ide-approval-state-head-data.mjs':'28aa4713d6e9792294976b5318abc87c9be89b11fdb4f5e2f22152a5eab81786',
@@ -17,5 +17,5 @@ test('required relative native JS closure is included without new public credent
  for(const f of ['original-developer-principal-data.mjs','original-ide-project-control-contract.mjs','original-ide-approval-state-head-data.mjs','original-ide-publication-approval-contract.mjs'])assert.ok(p.files.includes('native/'+f),f);
  assert.equal(p.exports['./product-session-gateway-node-host'].import,'./src/product-session-gateway-node-host.js');
  for(const s of Object.keys(p.exports))assert.doesNotMatch(s,/credential|project-control|developer-principal/);
- assert.equal(p.version,'1.3.0-pq.3.32-auth.22'); // source-only successor; no republished Auth22 tarball.
+ assert.equal(p.version,'1.3.0-pq.3.32-auth.23'); // source-only successor; no published or installed package implied.
 });
