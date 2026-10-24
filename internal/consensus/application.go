@@ -354,15 +354,12 @@ func (a *Application) InitChain(_ context.Context, req *abcitypes.RequestInitCha
 		return nil, fmt.Errorf("CometBFT initial height %d must continue after migrated height %d", req.InitialHeight, a.migration.Height)
 	}
 	if len(req.AppStateBytes) > 0 {
-		var supplied chain.ConsensusMigrationState
-		if err := json.Unmarshal(req.AppStateBytes, &supplied); err != nil {
-			return nil, fmt.Errorf("decode CometBFT app state: %w", err)
+		canonical, err := a.migration.CanonicalJSON()
+		if err != nil {
+			return nil, err
 		}
-		if err := supplied.Validate(); err != nil {
-			return nil, fmt.Errorf("validate CometBFT app state: %w", err)
-		}
-		if supplied.StateHash != a.migration.StateHash {
-			return nil, fmt.Errorf("CometBFT app state hash %s does not match loaded migration %s", supplied.StateHash, a.migration.StateHash)
+		if _, _, err := validateCometMigrationAppState(req.AppStateBytes, a.migration, canonical); err != nil {
+			return nil, fmt.Errorf("validate CometBFT app state against complete original migration: %w", err)
 		}
 	}
 	appHash, err := hex.DecodeString(a.committed.AppHash)

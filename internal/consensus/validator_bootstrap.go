@@ -37,11 +37,12 @@ type ConsensusBootstrapPins struct {
 // It authorizes registration against a fixed original Ed25519 membership only.
 // It does not authorize PQ consensus or any validator-set/parameter update.
 type ConsensusBootstrap struct {
-	record           ValidatorBootstrapRecord
-	appState         []byte
-	genesisID        []byte
-	validatorSetHash []byte
-	members          map[string]ValidatorBootstrapMember
+	record             ValidatorBootstrapRecord
+	appState           []byte
+	migrationReference *cometMigrationReference
+	genesisID          []byte
+	validatorSetHash   []byte
+	members            map[string]ValidatorBootstrapMember
 }
 
 type ValidatorBootstrapMember struct {
@@ -83,8 +84,11 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 			return nil, err
 		}
 	}
+	if len(rawGenesis) == 0 || len(rawGenesis) > MaxCometGenesisBytes {
+		return nil, errors.New("raw Comet genesis must fit the existing nonempty 64 MiB input bound")
+	}
 	sum := sha256.Sum256(rawGenesis)
-	if len(rawGenesis) == 0 || !bytes.Equal(sum[:], genesisID) {
+	if !bytes.Equal(sum[:], genesisID) {
 		return nil, errors.New("raw Comet genesis differs from independent operator pin")
 	}
 	if err := migration.ValidateConsensusValidatorKeys(); err != nil {
@@ -112,20 +116,13 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	if !bytes.Equal(doc.AppHash, appHash) {
 		return nil, errors.New("pinned genesis AppHash differs from bound migration")
 	}
-	var embedded chain.ConsensusMigrationState
-	if err := json.Unmarshal(doc.AppState, &embedded); err != nil {
-		return nil, fmt.Errorf("decode pinned genesis AppState: %w", err)
-	}
-	if err := embedded.ValidateConsensusValidatorKeys(); err != nil {
-		return nil, err
-	}
 	canonical, err := migration.CanonicalJSON()
 	if err != nil {
 		return nil, err
 	}
-	embeddedCanonical, err := embedded.CanonicalJSON()
-	if err != nil || !bytes.Equal(canonical, embeddedCanonical) {
-		return nil, errors.New("pinned genesis AppState is not the complete bound migration")
+	appState, referenced, err := validateCometMigrationAppState(doc.AppState, migration, canonical)
+	if err != nil {
+		return nil, fmt.Errorf("pinned genesis AppState: %w", err)
 	}
 	expected := make(map[string]chain.ConsensusValidator)
 	for _, validator := range migration.Validators {
@@ -142,7 +139,11 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	}
 	b := &ConsensusBootstrap{
 		record:   ValidatorBootstrapRecord{CometGenesisSHA256: pins.CometGenesisSHA256, OriginalGenesisHash: pins.OriginalGenesisHash, MigrationStateHash: pins.MigrationStateHash, ChainID: doc.ChainID, InitialHeight: doc.InitialHeight, GenesisTime: doc.GenesisTime.UTC(), Params: doc.ConsensusParams.ToProto()},
-		appState: bytes.Clone(canonical), genesisID: bytes.Clone(genesisID), members: make(map[string]ValidatorBootstrapMember),
+		appState: appState, genesisID: bytes.Clone(genesisID), members: make(map[string]ValidatorBootstrapMember),
+	}
+	if referenced {
+		ref := newCometMigrationReference(migration, canonical)
+		b.migrationReference = &ref
 	}
 	var totalPower int64
 	for _, validator := range doc.Validators {
@@ -187,7 +188,16 @@ func (b *ConsensusBootstrap) matchesMigration(m chain.ConsensusMigrationState) e
 		return errors.New("missing or mismatched independent consensus bootstrap")
 	}
 	canonical, err := m.CanonicalJSON()
-	if err != nil || !bytes.Equal(canonical, b.appState) {
+	if err != nil {
+		return err
+	}
+	if b.migrationReference != nil {
+		if len(canonical) > maxCometMigrationBytes || newCometMigrationReference(m, canonical) != *b.migrationReference {
+			return errors.New("bootstrap complete migration changed")
+		}
+		return nil
+	}
+	if !bytes.Equal(canonical, b.appState) {
 		return errors.New("bootstrap migration changed")
 	}
 	return nil
@@ -220,12 +230,19 @@ func (b *ConsensusBootstrap) validateInitChain(req *abci.RequestInitChain) error
 	if req == nil || req.ChainId != b.record.ChainID || req.InitialHeight != b.record.InitialHeight || !req.Time.Equal(b.record.GenesisTime) || req.ConsensusParams == nil || !reflect.DeepEqual(*req.ConsensusParams, b.record.Params) {
 		return errors.New("InitChain differs from pinned genesis chain/height/time/params")
 	}
-	var state chain.ConsensusMigrationState
-	if err := json.Unmarshal(req.AppStateBytes, &state); err != nil {
-		return err
-	}
-	if err := b.matchesMigration(state); err != nil {
-		return err
+	if b.migrationReference != nil {
+		ref, err := decodeCometMigrationReference(req.AppStateBytes)
+		if err != nil || ref != *b.migrationReference {
+			return errors.New("InitChain differs from independently validated complete migration reference")
+		}
+	} else {
+		var state chain.ConsensusMigrationState
+		if err := json.Unmarshal(req.AppStateBytes, &state); err != nil {
+			return err
+		}
+		if err := b.matchesMigration(state); err != nil {
+			return err
+		}
 	}
 	if len(req.Validators) != len(b.members) {
 		return errors.New("InitChain validator count differs from pinned genesis")

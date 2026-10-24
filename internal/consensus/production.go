@@ -427,6 +427,13 @@ func verifyProductionCandidatePackage(root, independentOperatorHash string) erro
 	if err := migration.ValidateConsensusValidatorKeys(); err != nil {
 		return fmt.Errorf("validate common production migration: %w", err)
 	}
+	canonicalMigration, err := migration.CanonicalJSON()
+	if err != nil {
+		return err
+	}
+	if _, _, err := validateCometMigrationAppState(genesis.AppState, migration, canonicalMigration); err != nil {
+		return fmt.Errorf("common genesis differs from complete original migration sidecar: %w", err)
+	}
 	var operator *ProductionOperatorPlan
 	if manifest.OperatorProfile != "" || manifest.OperatorPlanHash != "" {
 		if manifest.OperatorProfile != ProductionOperatorPlanVersion {

@@ -253,7 +253,10 @@ func TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage(t *testing.T) {
 			f.mu.Unlock()
 		}
 		code, raw := f.read(t, "/status")
-		if code != 200 || !originalWalletStatusHealthy(raw, f.build) {
+		if code != http.StatusOK {
+			t.Fatalf("Gateway status fixture did not reach a successful handler response (cold=%v): %d %s", cold, code, raw)
+		}
+		if !originalWalletStatusHealthy(raw, f.build) {
 			// With the complete original gateway.go from fb99060a7 this is a
 			// real handler RED: CatchingUp/Persistence/Error/Build are absent.
 			t.Fatalf("actual Gateway response fails the existing Wallet contract (cold=%v): %d %s", cold, code, raw)

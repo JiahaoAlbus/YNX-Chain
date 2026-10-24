@@ -953,7 +953,7 @@ jobs:
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           # The complementary Host group below runs every excluded test with
           # the same timeout; this group still covers every non-Host test.
-          YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -skip '^TestProofHost' ./internal/consensus
+          YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus
       - name: Reproduce signed-history overwrite and unsafe rollback callers
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
@@ -1778,6 +1778,15 @@ jobs:
         env:
           YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
         run: YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost' ./internal/consensus
+      - name: Verify complete large original migration through normal package and cold recovery
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 3
+        run: |
+          set -euo pipefail
+          YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -v -run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$' ./internal/consensus | tee "$RUNNER_TEMP/ynx-large-migration-recovery.log"
+          grep -F -- '=== RUN   TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery' "$RUNNER_TEMP/ynx-large-migration-recovery.log"
+          grep -F -- '--- PASS: TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery (' "$RUNNER_TEMP/ynx-large-migration-recovery.log"
+          test "$(grep -F -c 'COMET_MIGRATION_REFERENCE_LARGE_CANONICAL_RECOVERY_PASS' "$RUNNER_TEMP/ynx-large-migration-recovery.log")" -eq 1
       - name: Verify normal registration of the retained original Host delivery
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
@@ -1786,9 +1795,11 @@ jobs:
         run: |
           set -euo pipefail
           test -s "$YNX_PROOF_HOST_SOURCE_FIXTURE_OUT/metadata.json"
-          go test -p 1 -count=1 -timeout=120s -v -run '^TestRegisterProofHostSourceNormalCommandRetainedFixture$' ./cmd/ynx-comet | tee "$RUNNER_TEMP/ynx-proof-host-source-register.log"
+          go test -p 1 -count=1 -timeout=120s -v -run '^(TestRegisterProofHostSourceNormalCommandRetainedFixture|TestProofHostWalletHandoffNormalCommandRetainedFixture)$' ./cmd/ynx-comet | tee "$RUNNER_TEMP/ynx-proof-host-source-register.log"
           grep -F -- '--- PASS: TestRegisterProofHostSourceNormalCommandRetainedFixture (' "$RUNNER_TEMP/ynx-proof-host-source-register.log"
           grep -F -- 'PROOF_HOST_SOURCE_REGISTERED_DATA_ONLY normalCLI=true RootGrant=false HostQualification=false' "$RUNNER_TEMP/ynx-proof-host-source-register.log"
+          grep -F -- '--- PASS: TestProofHostWalletHandoffNormalCommandRetainedFixture (' "$RUNNER_TEMP/ynx-proof-host-source-register.log"
+          test "$(grep -F -c 'PROOF_HOST_WALLET_MAIN_SOURCE_HANDOFF_DATA_ONLY' "$RUNNER_TEMP/ynx-proof-host-source-register.log")" -eq 1
       - name: Verify exact transaction Host selection and original acquire-current
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
