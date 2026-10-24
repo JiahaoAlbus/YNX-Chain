@@ -5,8 +5,11 @@ import {exactData} from './features/pq-transaction/transfer-binding.mjs';
 import {preparePQFinalityOriginal} from './wallet-pq-finality-original.mjs';
 import {preparePQHostSelectionRequest,parsePQHostSelectionResult} from './wallet-pq-host-selection.mjs';
 import {pqProcessCauseData} from './wallet-pq-verifier-capture.mjs';
+import {readCompletedPackagedPQCaller} from './wallet-pq-verifier-assets.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const originalSelectionCaptures=new WeakMap();
+export function readOriginalPQHostSelectionCapture(capture,original,binding){const read=originalSelectionCaptures.get(capture);if(!read)fail('PQ_FINALITY_ORIGINAL_SELECTION_REQUIRED');return read(original,binding);}
 function catalog(value){
  if(types.isProxy(value))fail('PQ_HOST_SELECTION_CATALOG_INVALID');
  exactData(value,['catalogPath','catalogSha256'],'PQ_HOST_SELECTION_CATALOG_INVALID');
@@ -22,7 +25,7 @@ const samePacket=(a,b)=>JSON.stringify(a.lifecycle)===JSON.stringify(b.lifecycle
  */
 export function createPQHostSelectionCapture({original,binding,sourceCatalog,evidence,selector}){
  const own=preparePQFinalityOriginal(original,binding),selectedBinding=Object.freeze({account:own.original.account,networkId:own.binding.chainId}),selectedCatalog=catalog(sourceCatalog),request=preparePQHostSelectionRequest(own.original,selectedBinding);
- let used=false,active=false,retired=false,stored=false,selected=false,pending=null,firstCause,firstCausePresent=false;
+ let used=false,active=false,retired=false,stored=false,selected=false,pending=null,firstCause,firstCausePresent=false,retainedSelection=null;
  const remember=cause=>{if(!firstCausePresent){firstCausePresent=true;firstCause=cause;}};
  const guardOwner=guard=>{guard.assert();if(guard.account!==own.original.account)fail('PQ_HOST_CONTEXT_MISMATCH');};
  const status=()=>Object.freeze({account:own.original.account,operationId:own.original.operationId,hash:own.original.hash,entered:used,active,retired,stored,selected,pendingSave:pending!==null,firstCausePresent,nativeGrant:false,proofVerified:false,canRetry:false,clearsOriginal:false});
@@ -53,7 +56,7 @@ export function createPQHostSelectionCapture({original,binding,sourceCatalog,evi
   stored=true;
  }
  const retire=()=>{retired=true;selected=false;selector.retire();};
- return Object.freeze({
+ const api=Object.freeze({
   status,retire,
   async join(){await pending?.work?.catch(()=>{});await selector.join();},
   assertSafeToClose(){if(active||pending)fail('PQ_HOST_SELECTION_UNCONFIRMED');selector.assertSafeToClose();evidence.assertSafeToClose();},
@@ -73,7 +76,7 @@ export function createPQHostSelectionCapture({original,binding,sourceCatalog,evi
      if(p.lifecycle.cleanupPending||!p.lifecycle.closeObserved||p.lifecycle.interruption!==null||p.lifecycle.stdoutTruncated||p.lifecycle.stderrTruncated||p.lifecycle.firstCausePresent||p.lifecycle.cleanupCausePresent||firstCausePresent)fail('PQ_HOST_SELECTION_PROCESS_INCOMPLETE');
      guardOwner(guard);if(retired)fail('PQ_HOST_SELECTION_RETIRED');
      const result=parsePQHostSelectionResult(p.result);guardOwner(guard);if(retired)fail('PQ_HOST_SELECTION_RETIRED');
-     selected=true;pending=null;return result;
+     selected=true;retainedSelection=result;pending=null;return result;
     }catch(cause){
      remember(cause);selected=false;
      if(stored&&r.phase==='metadata'&&r.index===r.queue.length){try{selector.assertSafeToClose();if(samePacket(selector.snapshot(),r.packet))pending=null;}catch{}}
@@ -95,4 +98,6 @@ export function createPQHostSelectionCapture({original,binding,sourceCatalog,evi
    }catch(cause){remember(cause);throw cause;}finally{active=false;}
   }
  });
+ originalSelectionCaptures.set(api,(original,binding)=>{const requested=preparePQFinalityOriginal(original,binding);if(!selected||!stored||active||retired||pending||!retainedSelection||JSON.stringify(requested.original)!==JSON.stringify(own.original)||requested.binding.chainId!==own.binding.chainId)fail('PQ_FINALITY_ORIGINAL_SELECTION_REQUIRED');readCompletedPackagedPQCaller(selector,'host-selection');return Object.freeze({...retainedSelection});});
+ return api;
 }

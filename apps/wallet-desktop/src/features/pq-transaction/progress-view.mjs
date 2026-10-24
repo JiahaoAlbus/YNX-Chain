@@ -1,7 +1,8 @@
 // Public DATA projection only. Its input must come from the original journal
 // or BFT parser; this module supplies no authority, transport or finality proof.
 const kinds = ['pq-transfer', 'pq-migration', 'pq-revocation', 'pq-typed-action'];
-const statuses = ['signed-unsubmitted', 'submission-unknown', 'rejection-observed', 'inclusion-observed'];
+const statuses = ['signed-unsubmitted', 'submission-unknown', 'rejection-observed', 'inclusion-observed','finality-save-unknown','finalized-succeeded','finalized-rejected'];
+const terminal=status=>['finalized-succeeded','finalized-rejected'].includes(status);
 const hashPattern = /^0x[0-9a-f]{64}$/;
 const accountPattern = /^0x[0-9a-f]{40}$/;
 const invalid = () => { throw Object.assign(new Error('The original PQ progress could not be verified.'), {code: 'PQ_TRANSACTION_PROGRESS_INVALID'}); };
@@ -25,7 +26,7 @@ function bindingOf(value) {
 
 function sameOriginal(value, binding) {
   if (value.account !== binding.account || value.hash !== binding.hash || value.kind !== binding.kind ||
-      value.retryAuthorized !== false || value.clearsOriginal !== false || value.consensusFinality !== false) invalid();
+      value.retryAuthorized !== false || value.clearsOriginal !== false || value.consensusFinality !== (terminal(value.status)&&value.storageConfirmed===true&&value.metadataConfirmed===true)) invalid();
 }
 
 function uint64(value, positive = false) {
@@ -50,9 +51,9 @@ function view(binding, status, source, storage = {}) {
   // A rejection proves neither successful admission nor absence from the chain.
   // Match the original journal's submitted semantics: only observed inclusion
   // establishes true, and only an unsubmitted original establishes false.
-  const observed = status === 'inclusion-observed' ? true : status === 'signed-unsubmitted' ? false : null;
+  const observed = status === 'inclusion-observed'||terminal(status) ? true : status === 'signed-unsubmitted' ? false : null;
   return Object.freeze({...binding, status, source, submitted: observed, included: observed,
-    consensusFinality: false, canRetry: false, clearsOriginal: false,
+    consensusFinality: terminal(status), ...(terminal(status)?{nativeGrant:false}:{}), canRetry: false, clearsOriginal: false,
     storageConfirmed: storage.storageConfirmed ?? null,
     metadataConfirmed: storage.metadataConfirmed ?? null,
     localResultHeld: storage.localResultHeld ?? null});
@@ -64,7 +65,7 @@ function journalView(input, binding) {
   sameOriginal(value, binding);
   if (!statuses.includes(value.status) || ['storageConfirmed', 'metadataConfirmed', 'localResultHeld'].some(key => typeof value[key] !== 'boolean') ||
       value.metadataConfirmed && !value.storageConfirmed || value.status === 'signed-unsubmitted' &&
-      (value.storageConfirmed || value.metadataConfirmed || value.localResultHeld)) invalid();
+      (value.storageConfirmed || value.metadataConfirmed || value.localResultHeld)||terminal(value.status)&&(!value.storageConfirmed||!value.metadataConfirmed||value.localResultHeld)) invalid();
   cause(value.firstCause); cause(value.storageCause);
   return view(binding, value.status, 'local-journal', value);
 }

@@ -2,9 +2,14 @@ import {createHash} from 'node:crypto';
 import {preparePQFinalityOriginal as preparePQTransferOriginal} from './wallet-pq-finality-original.mjs';
 import {parsePQTransferHostContext,preparePQHostSourceRequest} from './wallet-pq-host-context.mjs';
 import {pqProcessCauseData} from './wallet-pq-verifier-capture.mjs';
+import {readCompletedPackagedPQCaller} from './wallet-pq-verifier-assets.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const summaryFields=['sourceId','epoch','sourceFingerprint','sourceSha256','lifecycleSha256','contextSha256'];
+const originalHostReferences=new WeakMap();
+export function readPQHostReferenceTerminalContext(reference,original,binding){
+ const read=originalHostReferences.get(reference);if(!read)fail('PQ_FINALITY_ORIGINAL_HOST_REQUIRED');return read(original,binding);
+}
 /** Private original-Main holder. Each acquire/current is a new bounded
  * single-request producer child, never a daemon/token/signing authority.
  * createProducer is the fixed new-version packaged factory supplied by Main,
@@ -98,5 +103,11 @@ export function createPQHostContextReference({original,binding,selection,evidenc
   async join(){await Promise.allSettled([...jobs]);await Promise.all([...processes].map(p=>p.join()));},
   assertSafeToClose(){if(active||pending||jobs.size)fail('PQ_HOST_REFERENCE_UNCONFIRMED');for(const p of processes)p.assertSafeToClose();evidence.assertSafeToClose();},
   async close(){api.retire();await api.join();api.assertSafeToClose();state='closed';view=null;},
+ });
+ originalHostReferences.set(api,(original,binding)=>{
+  const requested=preparePQTransferOriginal(original,binding);
+  if(state!=='held'||!view||active||pending||jobs.size||processes.size!==3||JSON.stringify(requested.original)!==JSON.stringify(own.original)||requested.binding.chainId!==own.binding.chainId)fail('PQ_FINALITY_ORIGINAL_HOST_REQUIRED');
+  for(const caller of processes)readCompletedPackagedPQCaller(caller,'host-producer');
+  return Object.freeze(Object.fromEntries(summaryFields.map(k=>[k,view[k]])));
  });return api;
 }

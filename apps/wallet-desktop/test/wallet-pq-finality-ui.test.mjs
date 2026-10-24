@@ -58,3 +58,16 @@ test('cold recovery distinguishes bound verifier errors, incomplete runs and unv
 test('foreign or permission-inflated cold verifier records are unverified warnings, not trusted saved outcomes',async()=>{
  for(const change of [{hash:'0x'+'3'.repeat(64)},{account:'0x'+'4'.repeat(40)},{canRetry:true},{nativeGrant:true}]){const f=fixture(true);f.reply(async()=>({ok:true,value:{...restored(),records:[{...value(),status:'verifier-error-data',nativeGrant:false,...change}]}}));await f.buttons[1].click();assert.doesNotMatch(f.messages.at(-1),/Saved verifier errors: 1/);assert.match(f.messages.at(-1),/Unverified local records: 1/);assert.deepEqual(f.calls,[['restore',hash]]);}
 });
+test('bound protected terminal acknowledgement distinguishes execution success and on-chain rejection without Native or retry authority',async()=>{
+ for(const status of ['finalized-succeeded','finalized-rejected']){
+  const f=fixture(true),terminal={account,hash,status,stored:true,originalRetained:true,outboxRetired:true,consensusFinality:true,independentFinality:true,nativeGrant:false,canRetry:false,clearsOriginal:false};f.reply(async()=>({ok:true,value:terminal}));await f.buttons[3].click();assert.match(f.messages.at(-1),/Consensus-finalized/);assert.equal(f.buttons[3].disabled,true);await f.buttons[3].click();assert.equal(f.calls.length,1);
+ }
+});
+test('terminal-looking DTO with foreign binding or Native/retry inflation is not accepted as an original terminal acknowledgement',async()=>{
+ const terminal={account,hash,status:'finalized-succeeded',stored:true,originalRetained:true,outboxRetired:true,consensusFinality:true,independentFinality:true,nativeGrant:false,canRetry:false,clearsOriginal:false};
+ for(const edit of [{hash:'0x'+'f'.repeat(64)},{nativeGrant:true},{canRetry:true},{stored:false},{outboxRetired:false}]){const f=fixture(true);f.reply(async()=>({ok:true,value:{...terminal,...edit}}));await f.buttons[3].click();assert.match(f.messages.at(-1),/unbound/);}
+});
+test('cold terminal history offers no further query or verification action; pending local terminal exposes only its same-result save',async()=>{
+ const done=fixture(true,{...record,status:'pq-finalized-succeeded',consensusFinality:true});assert.equal(done.buttons.length,1);assert.match(done.buttons[0].textContent,/Consensus-finalized/);assert.equal(done.calls.length,0);
+ const held=fixture(true,{...record,status:'pq-finality-save-unknown',resultHeldInMemory:true});assert.equal(held.buttons[2].hidden,false);
+});

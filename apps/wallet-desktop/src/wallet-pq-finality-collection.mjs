@@ -30,6 +30,10 @@ export function createPQFinalityCollection({intentStore,networkId,evidence,trans
   join:()=>verification?.join(),
   assertSafeToClose(){if(active||pending)fail('PQ_FINALITY_EVIDENCE_UNCONFIRMED');verification?.assertSafeToClose();evidence.assertSafeToClose();},
   async verify(hash,guard){
+   if(typeof intentStore.readPQProgress==='function'){
+    const progress=await intentStore.readPQProgress(guard.account,hash,()=>guard.assert());guard.assert();
+    if(['finalized-succeeded','finalized-rejected'].includes(progress.status))return Object.freeze({account:guard.account,hash,status:progress.status,stored:true,originalRetained:true,outboxRetired:true,independentFinality:true,consensusFinality:true,nativeGrant:false,canRetry:false,clearsOriginal:false});
+   }
    if(typeof verification?.verify!=='function')fail('PQ_HOST_SOURCE_NOT_SUPPLIED');
    const collected=await api.collect(hash,guard);
    if(!collected.proofCollected)fail('PQ_FINALITY_PROOF_NOT_COLLECTED');

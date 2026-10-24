@@ -14,7 +14,7 @@ import {runInNewContext} from 'node:vm';
 import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
 import {pqFinalityRecordGeneration} from '../src/wallet-pq-finality-record.mjs';
 import {createPQHostSelectionCapture} from '../src/wallet-pq-host-selection-capture.mjs';
-async function fixture(t,{createSelection=null}={}){
+async function fixture(t,{createSelection=null,adoptTerminal=null}={}){
  const root=await fs.mkdtemp(path.join(tmpdir(),'wallet-host-main-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));const f=exportFixture();f.encode();
  let writes=0,fault=0,hostCalls=0,proofCalls=0,selectCalls=0,locked=false,missing=false,rejected=false,afterProof=()=>{},journalFault=false,journalCalls=0,flushCalls=0;const observations=[];
  const journalFile=path.join(root,'journal.json');await fs.writeFile(journalFile,JSON.stringify({schemaVersion:9,records:[],rejections:[],resolutions:[],signedPayments:[],payProgress:[],payHistory:[],preparations:[],pqOriginals:[original],sessionOriginals:[],sessionPublications:[],pqProgress:[]}),{mode:0o600});
@@ -25,7 +25,7 @@ async function fixture(t,{createSelection=null}={}){
   mode==='proof'?proofCalls++:hostCalls++;const child=new EventEmitter();for(const name of ['stdin','stdout','stderr']){child[name]=new EventEmitter();child[name].destroy=()=>{};}child.kill=()=>true;
   child.stdin.end=()=>queueMicrotask(()=>{child.stdout.emit('data',mode==='proof'?Buffer.from(JSON.stringify(rejected?{version:'YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1',code:'PROOF_REJECTED',error:'PUBLIC rejection; not a transaction failure claim'}:row.expectedResponse)):f.encode().stdout);if(mode==='proof')afterProof();child.emit('close',mode==='proof'&&rejected?1:0,null);});return child;
  }});}
- const service=createPQFinalityVerification({evidence,createSelection:createSelection&&((o,b)=>createSelection(o,b,evidence,f)),selectSource:async()=>{selectCalls++;if(missing)throw Object.assign(Error('PUBLIC no genuine source'),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});return f.selection;},createProducer:()=>kernel('host-producer'),createVerifier:()=>kernel('proof'),persistObservation:async(o,r)=>{journalCalls++;assert.equal(o,original);observations.push(r);return journal.savePQFinalityObservation(o,r);},flushObservation:async(o,r,g)=>{flushCalls++;g.assert();assert.equal(o,original);assert(observations.includes(r));return journal.flushPQFinalityObservation(o.account,o.hash,pqFinalityRecordGeneration(r),()=>g.assert());}});
+ const service=createPQFinalityVerification({evidence,adoptTerminal,createSelection:createSelection&&((o,b)=>createSelection(o,b,evidence,f)),selectSource:async()=>{selectCalls++;if(missing)throw Object.assign(Error('PUBLIC no genuine source'),{code:'PQ_HOST_SOURCE_NOT_SUPPLIED'});return f.selection;},createProducer:()=>kernel('host-producer'),createVerifier:()=>kernel('proof'),persistObservation:async(o,r)=>{journalCalls++;assert.equal(o,original);observations.push(r);return journal.savePQFinalityObservation(o,r);},flushObservation:async(o,r,g)=>{flushCalls++;g.assert();assert.equal(o,original);assert(observations.includes(r));return journal.flushPQFinalityObservation(o.account,o.hash,pqFinalityRecordGeneration(r),()=>g.assert());}});
  return {root,f,service,evidence,guard,journal,journalFile,observations,journalCounts:()=>({journalCalls,flushCalls}),journalFault:v=>{journalFault=v;},counts:()=>({hostCalls,proofCalls,selectCalls}),fault:n=>{fault=n;},lock:v=>{locked=v;},missing:()=>{missing=true;},rejectProof:()=>{rejected=true;},afterProof:fn=>{afterProof=fn;}};
 }
 test('Main verification orchestrates acquire/current, same original proof capture and final current without granting finality',async t=>{
@@ -105,8 +105,8 @@ test('retiring an unentered process settles join without spawning, including pre
 });
 test('normal Main close retires before joining actual proof owners and existing review cleanup',async()=>{
  const main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf('async function shutdownOriginalPQWallet(){'),end=main.indexOf('\nconst originalAdmissionExit=',start),calls=[];let release;
- const joined=new Promise(r=>{release=r;}),context={originalIDEIdentityPeer:undefined,pqFinalityCollection:{retire(){calls.push('retire');},join(){calls.push('join');return joined;}},walletAuthority:{shutdownPQReviews(){calls.push('reviews');return Promise.resolve();}}};
- assert(start>=0&&end>start);runInNewContext(main.slice(start,end)+'\nthis.shutdown=shutdownOriginalPQWallet;',context);let done=false;const work=context.shutdown().then(()=>{done=true;});assert.deepEqual(calls,['retire','reviews','join']);await Promise.resolve();assert.equal(done,false);release();await work;assert.equal(done,true);
+ const joined=new Promise(r=>{release=r;}),context={originalIDEIdentityPeer:undefined,originalProjectControl:{shutdown(){calls.push('control');return Promise.resolve();}},pqFinalityCollection:{retire(){calls.push('retire');},join(){calls.push('join');return joined;}},walletAuthority:{shutdownPQReviews(){calls.push('reviews');return Promise.resolve();}}};
+ assert(start>=0&&end>start);runInNewContext(main.slice(start,end)+'\nthis.shutdown=shutdownOriginalPQWallet;',context);let done=false;const work=context.shutdown().then(()=>{done=true;});assert.deepEqual(calls,['retire','reviews','join','control']);await Promise.resolve();assert.equal(done,false);release();await work;assert.equal(done,true);
  assert.match(main,/keyAccess\.subscribe\(status=>\{if\(status.locked\)pqFinalityCollection\?\.retire\(\)/);
 });
 test('predispatch storage failure can drain locally after retirement without launching the proof process',async t=>{
@@ -115,4 +115,16 @@ test('predispatch storage failure can drain locally after retirement without lau
  await assert.rejects(f.service.save(original,binding,f.guard),{code:'PQ_FINALITY_VERIFIER_PROCESS_INCOMPLETE'});
  assert.deepEqual(f.counts(),{selectCalls:1,hostCalls:2,proofCalls:0});assert.equal(f.service.pending(),false);f.service.assertSafeToClose();
  const found=await f.evidence.candidates(original,binding);assert(found.candidates.some(x=>x.kind==='verifier-result'));
+});
+test('successful-looking PUBLIC process output cannot enter protected terminal adoption; explicit save remains DATA without another process',async t=>{
+ let adopted=0;const f=await fixture(t,{adoptTerminal:async()=>{adopted++;assert.fail('PUBLIC callers have no terminal authority');}});
+ await assert.rejects(f.service.verify(original,binding,row.request.proof,f.guard),{code:'PQ_FINALITY_ORIGINAL_CALLER_REQUIRED'});assert.equal(adopted,0);assert.equal(f.service.pending(original),true);const counts=f.counts();
+ const saved=await f.service.save(original,binding,f.guard);assert.equal(saved.consensusFinality,false);assert.equal(adopted,0);assert.deepEqual(f.counts(),counts);assert.deepEqual(JSON.parse(await fs.readFile(f.journalFile,'utf8')).pqOriginals,[original]);f.service.assertSafeToClose();
+});
+test('changed Host on the final current boundary prevents terminal adoption and preserves raw proof evidence',async t=>{
+ let adopted=0;const f=await fixture(t,{adoptTerminal:async()=>{adopted++;assert.fail('changed Host cannot adopt');}});f.afterProof(()=>{f.f.exported.sourceFingerprint='f'.repeat(64);});
+ await assert.rejects(f.service.verify(original,binding,row.request.proof,f.guard),{code:'PQ_HOST_CONTEXT_MISMATCH'});assert.equal(adopted,0);assert.equal(f.counts().proofCalls,1);const refs=await f.evidence.candidates(original,binding);assert(refs.candidates.some(r=>r.kind==='verifier-result'));assert.deepEqual(JSON.parse(await fs.readFile(f.journalFile,'utf8')).pqOriginals,[original]);
+});
+test('normal proof-verifier exit1 rejection is error DATA, not an on-chain rejected terminal transaction',async t=>{
+ let adopted=0;const f=await fixture(t,{adoptTerminal:async()=>{adopted++;assert.fail('proof rejection cannot adopt terminal');}});f.rejectProof();const result=await f.service.verify(original,binding,row.request.proof,f.guard);assert.equal(result.status,'verifier-error-data');assert.equal(result.consensusFinality,false);assert.equal(adopted,0);assert.deepEqual(JSON.parse(await fs.readFile(f.journalFile,'utf8')).pqOriginals,[original]);
 });

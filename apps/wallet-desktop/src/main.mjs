@@ -64,6 +64,7 @@ import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
 import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
 import {createPQTypedActionFinalityNodeReader} from './features/pq-transaction/typed-action-finality-node.mjs';
 import {createPQFinalityVerification} from './wallet-pq-finality-verification.mjs';
+import {createPQFinalityHistoryProtection} from './wallet-pq-finality-history-protection.mjs';
 import {pqFinalityRecordGeneration} from './wallet-pq-finality-record.mjs';
 import {createPQTransactionNodeTransport} from './features/pq-transaction/node-transport.mjs';
 import {CctpEVMAdapter} from './features/cross-chain/cctp-action.mjs';
@@ -897,11 +898,11 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     acquire:acquireOriginalWalletRegisteredBinding,isOriginal:isOriginalWalletRegisteredBinding,files:new PQBackupFile(),
     chooseFile:async()=>{const selected=await keyAccess.withOwnedDialog(()=>dialog.showOpenDialog(mainWindow,{title:'Restore original registered PQ keys / 恢复已登记的原 PQ 密钥',properties:['openFile'],filters:[{name:'Original encrypted PQ backup',extensions:['ynxpq']}]}));return selected.canceled?null:selected.filePaths?.[0]??null;},
   });
-  const originalTransactionIntentStore=new FileTransactionIntentStore({filePath:path.join(userData,'transaction-intents-v1.json')});
+  const originalTransactionIntentStore=new FileTransactionIntentStore({filePath:path.join(userData,'transaction-intents-v1.json'),finalityProtection:createPQFinalityHistoryProtection(safeStorage)});
   const originalPQNodeTransport=createPQTransactionNodeTransport();
   const originalPQFinalityEvidence=new PQFinalityEvidence({directory:path.join(userData,'pq-finality-evidence-v1')});
   originalPQHostCatalogReceiver=createOriginalPQHostCatalogReceiver({directory:path.join(userData,'pq-host-registrations-v1')});
-  const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,verifierReceipt:originalPQVerifierReceipt,createSelection:(original,binding)=>createPQHostSelectionCapture({original,binding,evidence:originalPQFinalityEvidence,sourceCatalog:readOriginalPQHostSourceCatalog(original,binding),selector:createOriginalPQHostSelector()}),createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert())});
+  const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,verifierReceipt:originalPQVerifierReceipt,createSelection:(original,binding)=>createPQHostSelectionCapture({original,binding,evidence:originalPQFinalityEvidence,sourceCatalog:readOriginalPQHostSourceCatalog(original,binding),selector:createOriginalPQHostSelector()}),createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert()),adoptTerminal:(original,token,guard)=>originalTransactionIntentStore.adoptPQFinalityTerminal(original,token,()=>guard.assert())});
   pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:originalPQFinalityEvidence,transport:originalPQNodeTransport,typedTransport:createPQTypedActionFinalityNodeReader(),verification:originalPQFinalityVerification});
   pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,
     readTypedOriginal:createPQTypedActionNodeReader().readOriginal,

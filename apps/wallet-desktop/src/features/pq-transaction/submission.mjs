@@ -145,10 +145,13 @@ export function createPQTransactionSubmission({intentStore, networkId,
     async reconcile(hash, guard) {
       return exclusive(guard, async () => {
         const plan = await readPQSubmissionOriginal(intentStore,hash,{account:guard.account,networkId,guard});
-        if(typeof (plan.typed?readTypedOriginal:transport?.readOriginal)!=='function')throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
         const prior = await intentStore.readPQProgress(guard.account,hash,()=>guard.assert());
+        if(['finalized-succeeded','finalized-rejected'].includes(prior.status))return publicProgress(plan,guard);
+        if(typeof (plan.typed?readTypedOriginal:transport?.readOriginal)!=='function')throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
         if (!plan.typed && prior.status === 'signed-unsubmitted') throw failure('PQ_TRANSACTION_NOT_ENTERED');
+        if(typeof intentStore.withPQReadObservation!=='function')throw failure('PQ_TRANSACTION_JOURNAL_READ_GUARD_REQUIRED');
         guard.assert();
+        return intentStore.withPQReadObservation(guard.account,hash,()=>guard.assert(),async()=>{
         try {
           if(plan.typed){
             const t=plan.typed;let captured=false;
@@ -169,6 +172,7 @@ export function createPQTransactionSubmission({intentStore, networkId,
           try {await intentStore.savePQSubmissionFailure(guard.account,hash,error);} catch { /* retained by original store */ }
           throw error;
         }
+        });
       });
     },
     assertSafeToClose() {

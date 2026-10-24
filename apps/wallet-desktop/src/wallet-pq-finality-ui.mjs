@@ -2,22 +2,25 @@
  * wire, key, provider or independent trust selection crosses this interface. */
 export function appendPQFinalityActions({row,record,api,getKeyState,isCurrent,onResult,document:doc=document}){
  if(!['pq-transfer','pq-typed-action'].includes(record.kind)||!/^0x[0-9a-f]{64}$/.test(record.hash??''))return;
- let busy=false,uncertain=false,held=false;const buttons=[];
+ const terminalText=status=>status==='finalized-succeeded'?'共识最终确认：交易执行成功。原交易与核验证据已保留；不授予 Native/Root 权限，不重签或重发。 / Consensus-finalized: execution succeeded. Original and proof retained; no Native/Root grant, re-sign or resend.':'共识最终确认：交易在链上执行失败。原交易与核验证据已保留；不是证明校验失败，不授予重试权限。 / Consensus-finalized: execution rejected on-chain. Original and proof retained; not a proof-verifier error or retry permission.';
+ if(['pq-finalized-succeeded','pq-finalized-rejected'].includes(record.status)&&record.consensusFinality===true){const p=doc.createElement('p');p.textContent=terminalText(record.status.slice(3));row.append(p);return;}
+ let busy=false,uncertain=false,held=record.status==='pq-finality-save-unknown'&&record.resultHeldInMemory===true,finished=false;const buttons=[];
  const current=before=>{const s=getKeyState();return isCurrent()&&!s.locked&&!s.authenticating&&s.account===record.account&&s.account===before.account&&s.revision===before.revision;};
  const base=v=>v?.account===record.account&&v?.consensusFinality===false&&v?.independentFinality===false&&v?.canRetry===false&&v?.clearsOriginal===false;
  const notice='仅收集或读取资料，尚未独立验证；原交易保留，没有重签或发送。 / Evidence only, not independently verified. Original retained; no replacement signature or send.';
- function render(){const s=getKeyState();for(const {button,action}of buttons){button.hidden=action==='save'&&!held;button.disabled=busy||s.locked||s.authenticating||s.account!==record.account||['collect','verify'].includes(action)&&uncertain;}}
+ function render(){const s=getKeyState();for(const {button,action}of buttons){button.hidden=action==='save'&&!held;button.disabled=busy||s.locked||s.authenticating||s.account!==record.account||['collect','verify'].includes(action)&&(uncertain||finished);}}
  const actions=[['collect','只读收集证明资料（未验证） / Collect proof evidence (unverified)'],['restore','读取本地核验资料 / Read saved proof evidence'],['save','仅保存保留的核验资料 / Save held evidence locally']];
  if(record.kind==='pq-transfer'&&typeof api.verifyPQFinalityEvidence==='function')actions.push(['verify','使用原 Host 校验证明（不发送） / Check proof with original Host (no send)']);
  for(const [action,label]of actions){
   const button=doc.createElement('button');button.type='button';button.textContent=label;buttons.push({button,action});
   button.addEventListener('click',async()=>{
-   const before={...getKeyState()};if(busy||!current(before)||['collect','verify'].includes(action)&&uncertain||action==='save'&&!held)return;
+   const before={...getKeyState()};if(busy||!current(before)||['collect','verify'].includes(action)&&(uncertain||finished)||action==='save'&&!held)return;
    busy=true;if(['collect','verify'].includes(action))uncertain=true;if(action==='save')held=false;render();
    try{
     const response=await(action==='collect'?api.collectPQFinalityEvidence(record.hash):action==='verify'?api.verifyPQFinalityEvidence(record.hash):action==='restore'?api.restorePQFinalityEvidence(record.hash):api.savePQFinalityEvidence(record.hash));if(!current(before))return;
     const v=response?.value;
     if(response?.ok!==true){onResult(response?.error?.code==='PQ_HOST_SOURCE_NOT_SUPPLIED'?'原 Host 信任材料尚未供给，校验未启用；已取得的资料与原交易保留。没有签名或发送。 / Original Host source not supplied; verification unavailable. Evidence and original retained; no sign or send.':'核验资料操作未确认；请保留记录，先读取本地资料。没有重签或发送。 / Evidence operation unconfirmed. Preserve originals and read local evidence before another query. No re-sign or send.');return;}
+    if(['verify','save'].includes(action)&&['finalized-succeeded','finalized-rejected'].includes(v?.status)&&v.account===record.account&&v.hash===record.hash&&v.stored===true&&v.consensusFinality===true&&v.independentFinality===true&&v.nativeGrant===false&&v.originalRetained===true&&v.outboxRetired===true&&v.canRetry===false&&v.clearsOriginal===false){held=false;uncertain=false;finished=true;onResult(terminalText(v.status));return;}
     if(action==='restore'){
      if(!base(v)||v.hash!==record.hash||!Array.isArray(v.records)||v.records.length>1024||!Number.isSafeInteger(v.unreadable)||v.unreadable<0||typeof v.heldLocally!=='boolean'){onResult('本地资料尚未核实；原交易保留。 / Local evidence unverified; original retained.');return;}
      let errors=0,incomplete=0,unverified=v.unreadable;

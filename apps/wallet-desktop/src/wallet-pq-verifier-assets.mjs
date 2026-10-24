@@ -135,6 +135,15 @@ export async function preparePackagedPQHostSelectionInvocation(resourcesPath,ind
 export function createPackagedPQFinalityVerifier(options){return packagedCaller(options,'proof');}
 export function createPackagedPQHostProducer(options){return packagedCaller(options,'host-producer');}
 export function createPackagedPQHostSelector(options){return packagedCaller(options,'host-selection');}
+const originalPackagedCallers=new WeakMap();
+// Private object identity plus the fixed kernel's actual completed packet.
+// Neither a copied receipt nor a caller-provided lifecycle DTO passes this.
+export function readCompletedPackagedPQCaller(caller,mode){
+ const held=originalPackagedCallers.get(caller);if(!held||held.mode!==mode||!held.receipt)fail('PQ_FINALITY_ORIGINAL_CALLER_REQUIRED');
+ held.kernel.assertSafeToClose();const p=held.kernel.snapshot(),s=p.lifecycle;
+ if(!s.started||!s.closeObserved||s.cleanupPending||s.interruption!==null||s.stdoutTruncated||s.stderrTruncated||s.firstCausePresent||s.cleanupCausePresent||p.result.exitCode!==0||p.result.signal!==null)fail('PQ_FINALITY_ORIGINAL_CALLER_INCOMPLETE');
+ return Object.freeze({receipt:held.receipt,stdinSha256:s.stdinSha256,stdoutSha256:hash(p.result.stdout),stdoutBytes:p.result.stdout.length,stderrSha256:hash(p.result.stderr),stderrBytes:p.result.stderr.length});
+}
 function packagedCaller({app,independentReceipt=null},mode){
  // Normal factory has no injected spawn, filesystem, URL, clock or provider.
  // Its receipt is a private original-Main dependency, not a trust context.
@@ -163,5 +172,5 @@ function packagedCaller({app,independentReceipt=null},mode){
   },
   join:()=>kernel.join(),assertSafeToClose:()=>kernel.assertSafeToClose(),
  });
- return caller;
+ originalPackagedCallers.set(caller,{mode,receipt,kernel});return caller;
 }

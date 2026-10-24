@@ -3,20 +3,23 @@ import {createPQFinalityVerifierCapture} from './wallet-pq-verifier-capture.mjs'
 import {supportsPackagedPQTypedFinality} from './wallet-pq-verifier-assets.mjs';
 import {originalPQVerifierReceipt} from './wallet-pq-verifier-receipt.mjs';
 import {preparePQFinalityOriginal} from './wallet-pq-finality-original.mjs';
+import {createPQVerifiedFinalityTerminal} from './wallet-pq-finality-terminal.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const safe=owner=>{try{owner?.assertSafeToClose();return true;}catch{return false;}};
 /** Main-only orchestration of the original Host and proof callers. Source
  * selection is a private original-producer dependency, never IPC or ENV.
- * A result is retained DATA, not authority or a journal status transition.
+ * Parsed output remains DATA. Only an optional original-Main private adoption
+ * after sealed callers/current/evidence can atomically retire an outbox.
  */
-export function createPQFinalityVerification({evidence,selectSource,createSelection=null,createProducer,createVerifier,persistObservation,flushObservation,verifierReceipt=originalPQVerifierReceipt}){
+export function createPQFinalityVerification({evidence,selectSource,createSelection=null,createProducer,createVerifier,persistObservation,flushObservation,adoptTerminal=null,verifierReceipt=originalPQVerifierReceipt}){
  if(typeof persistObservation!=='function'||typeof flushObservation!=='function')fail('PQ_FINALITY_PRIVATE_JOURNAL_REQUIRED');
  if(createSelection!==null&&typeof createSelection!=='function')fail('PQ_HOST_SELECTION_OWNER_REQUIRED');
  // Capture this private original-Main component choice before any async work.
  // No mutable flag/renderer capability can turn a legacy component into fbec.
  const typedComponentAvailable=supportsPackagedPQTypedFinality(verifierReceipt);
  let operation=null,active=false;
- const safeOperation=own=>safe(own.selection)&&safe(own.host)&&safe(own.capture)&&safe(evidence)&&(!own.result||own.journalStored);
+ if(adoptTerminal!==null&&typeof adoptTerminal!=='function')fail('PQ_FINALITY_PRIVATE_JOURNAL_REQUIRED');
+ const safeOperation=own=>safe(own.selection)&&safe(own.host)&&safe(own.capture)&&safe(evidence)&&(!own.result||own.journalStored)&&(!own.terminal||own.terminalStored);
  const assertOwner=(original,binding,guard)=>{guard.assert();if(guard.account!==original.account||binding.account!==original.account)fail('PQ_HOST_CONTEXT_MISMATCH');};
  const retire=()=>{operation?.selection?.retire();operation?.host?.retire();operation?.capture?.retire();};
  return Object.freeze({
@@ -33,7 +36,7 @@ export function createPQFinalityVerification({evidence,selectSource,createSelect
     preparePQFinalityOriginal(original,binding);
     if(!typedComponentAvailable)fail('PQ_TYPED_VERIFIER_ASSET_NOT_SUPPLIED');
    }
-   active=true;const own={original,binding,selection:null,host:null,capture:null,work:null,result:null,journalStored:false};operation=own;
+   active=true;const own={original,binding,selection:null,host:null,capture:null,verifier:null,work:null,result:null,journalAttempted:false,journalStored:false,terminal:null,terminalStored:false,terminalResult:null};operation=own;
    const work=(async()=>{
     // Retain the selector's actual process/capture owner before the first
     // await. Lock and close must not discard its pending local-save debt.
@@ -43,11 +46,19 @@ export function createPQFinalityVerification({evidence,selectSource,createSelect
     own.host=createPQHostContextReference({original,binding,selection,evidence,createProducer});
     await own.host.acquire(guard);
     return own.host.withContext(guard,async(context,current)=>{
-     own.capture=createPQFinalityVerifierCapture({evidence,verifier:createVerifier()});
+     own.verifier=createVerifier();own.capture=createPQFinalityVerifierCapture({evidence,verifier:own.verifier});
      return own.capture.run(original,binding,{...context,proof},current);
     });
    })();own.work=work;
-   try{const result=await work;own.result=result;const saved=await persistObservation(original,result.journalRecord);if(saved?.stored!==true)fail('PQ_FINALITY_JOURNAL_SAVE_UNCONFIRMED');own.journalStored=true;guard.assert();return Object.freeze({account:original.account,hash:original.hash,status:result.observation.status,rawStored:true,observationStored:true,observation:result.observation,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});}
+   try{
+    const result=await work;own.result=result;guard.assert();
+    // Retain the private accepted fact before journal IO can fail or lock can
+    // retire the live Host. Every raw evidence file is already durable here.
+    if(adoptTerminal&&result.observation.status==='verifier-result-data')own.terminal=await createPQVerifiedFinalityTerminal({original,binding,result,selection:own.selection,host:own.host,verifier:own.verifier,evidence,guard});
+    own.journalAttempted=true;const saved=await persistObservation(original,result.journalRecord);if(saved?.stored!==true)fail('PQ_FINALITY_JOURNAL_SAVE_UNCONFIRMED');own.journalStored=true;guard.assert();
+    if(adoptTerminal&&own.terminal){const terminal=await adoptTerminal(original,own.terminal,guard);if(terminal?.stored!==true||terminal.consensusFinality!==true||terminal.nativeGrant!==false)fail('PQ_FINALITY_JOURNAL_SAVE_UNCONFIRMED');own.terminalResult=terminal;own.terminalStored=true;guard.assert();return Object.freeze({...terminal,account:original.account,hash:original.hash,rawStored:true,observationStored:true,nativeGrant:false,canRetry:false,clearsOriginal:false});}
+    return Object.freeze({account:original.account,hash:original.hash,status:result.observation.status,rawStored:true,observationStored:true,observation:result.observation,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});
+   }
    finally{active=false;retire();if(safeOperation(own))operation=null;}
   },
   // Explicit saving never selects a new source, runs current(), or constructs
@@ -60,9 +71,10 @@ export function createPQFinalityVerification({evidence,selectSource,createSelect
     if(own.selection&&!safe(own.selection))await own.selection.save(guard);
     if(own.host?.status().pendingSave)await own.host.saveHeld(guard);
     if(own.capture&&!safe(own.capture))await own.capture.save(guard);
-    if(own.result&&!own.journalStored){const saved=await flushObservation(original,own.result.journalRecord,guard);if(saved?.stored!==true)fail('PQ_FINALITY_JOURNAL_SAVE_UNCONFIRMED');own.journalStored=true;}
+    if(own.result&&!own.journalStored){const attempted=own.journalAttempted;own.journalAttempted=true;const saved=attempted?await flushObservation(original,own.result.journalRecord,guard):await persistObservation(original,own.result.journalRecord);if(saved?.stored!==true)fail('PQ_FINALITY_JOURNAL_SAVE_UNCONFIRMED');own.journalStored=true;}
+    if(own.terminal&&!own.terminalStored){const saved=await adoptTerminal(original,own.terminal,guard);if(saved?.stored!==true||saved.consensusFinality!==true||saved.nativeGrant!==false)fail('PQ_FINALITY_JOURNAL_SAVE_UNCONFIRMED');own.terminalResult=saved;own.terminalStored=true;}
     if(!safe(own.selection)||!safe(own.host)||!safe(own.capture)||!safe(evidence))fail('PQ_FINALITY_VERIFICATION_UNCONFIRMED');
-    operation=null;return Object.freeze({saved:true,account:original.account,hash:original.hash,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});
+    operation=null;if(own.terminalStored)return Object.freeze({...own.terminalResult,saved:true,account:original.account,hash:original.hash,nativeGrant:false,canRetry:false,clearsOriginal:false});return Object.freeze({saved:true,account:original.account,hash:original.hash,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});
    }finally{active=false;if(safeOperation(own))operation=null;}
   },
  });
