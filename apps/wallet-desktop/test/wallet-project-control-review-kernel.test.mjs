@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {WalletProjectControlReviewKernel} from '../src/wallet-project-control-review-kernel.mjs';
 function fixture(){
  const at=1800000000000,review={reviewId:'original',account:'owner',networkId:'testnet',command:{RequestID:'request',Action:'project.create',ProjectID:'project',TeamID:'',SubjectAccount:'',PublisherID:'',RuntimeOrigin:'',ExpectedRevision:'0',GrantExpiresMS:'0',Read:false,Publish:false,Runtime:false,Revoke:false,ExpiresMS:String(at+10000),PublicOriginalSHA256:''}};
- const records=[],calls=[];let clock=at,guard={account:'owner',revision:1,locked:false,authenticating:false},persistFail=false,selectFail=false,phase='decision-retained',selected=null,mutate=false;
+ const records=[],calls=[];let clock=at,guard={account:'owner',revision:1,locked:false,authenticating:false},persistFail=false,selectFail=false,phase='decision-retained',selected=null,mutate=false,saveHook=()=>{};
  const owner={assertCurrent(){calls.push('current');},copyOriginalReview(){return structuredClone({...review,command:{...review.command,...(mutate?{ProjectID:'foreign'}:{})}});},selectOriginalDecision(id,d){calls.push('select');selected=d;if(selectFail)throw Error('PUBLIC unknown Native result');},copyOriginalDecision(){calls.push('observe');return {reviewId:review.reviewId,decision:selected,recorded:true,phase};},retire(){calls.push('retire');}};
- const kernel=new WalletProjectControlReviewKernel({isOwner:x=>x===owner,now:()=>clock,persist:async r=>{calls.push('persist');if(persistFail)throw Error('PUBLIC save failure');records.push(r);}});
- return{kernel,owner,review,records,calls,getGuard:()=>({...guard}),guard:x=>{guard={...guard,...x};},clock:v=>{clock=v;},failPersist:()=>{persistFail=true;},failSelect:()=>{selectFail=true;},phase:v=>{phase=v;},mutate:()=>{mutate=true;}};
+ const kernel=new WalletProjectControlReviewKernel({isOwner:x=>x===owner,now:()=>clock,persist:async r=>{calls.push('persist');await saveHook(r);if(persistFail)throw Error('PUBLIC save failure');records.push(r);}});
+ return{kernel,owner,review,records,calls,getGuard:()=>({...guard}),guard:x=>{guard={...guard,...x};},clock:v=>{clock=v;},failPersist:()=>{persistFail=true;},failSelect:()=>{selectFail=true;},phase:v=>{phase=v;},mutate:()=>{mutate=true;},onSave:f=>{saveHook=f;}};
 }
 test('retains original command and persists choice before sole Native entry; never reports authorization',async()=>{
  const f=fixture();await f.kernel.capture(f.owner,f.getGuard);const result=await f.kernel.decide('original','approve',f.getGuard);
@@ -30,4 +30,13 @@ test('foreign Native object cannot become a review, and account binding is manda
 test('async recognition or decision cannot be mistaken for a completed synchronous Native operation',async()=>{
  const fake=new WalletProjectControlReviewKernel({isOwner:async()=>true,persist:async()=>{}});await assert.rejects(fake.capture({},()=>({})),/NATIVE_REQUIRED/);
  const f=fixture();await f.kernel.capture(f.owner,f.getGuard);f.owner.selectOriginalDecision=async()=>{};await assert.rejects(f.kernel.decide('original','approve',f.getGuard),/DECISION_UNKNOWN/);assert.equal(f.kernel.status().phase,'decision-unknown');await assert.rejects(f.kernel.decide('original','approve',f.getGuard));
+});
+test('original command changed during durable choice save cannot enter Native',async()=>{
+ const f=fixture();await f.kernel.capture(f.owner,f.getGuard);f.onSave(r=>{if(r.phase==='decision-selected')f.mutate();});await assert.rejects(f.kernel.decide('original','approve',f.getGuard),/ORIGINAL_CHANGED/);assert(!f.calls.includes('select'));assert.equal(f.kernel.status().nativeEntered,false);
+});
+test('storage failure after a definite Native outcome never erases that outcome',async()=>{
+ const f=fixture();await f.kernel.capture(f.owner,f.getGuard);f.onSave(r=>{if(r.phase==='decision-retained')throw Error('PUBLIC result save failed');});await assert.rejects(f.kernel.decide('original','approve',f.getGuard));assert.equal(f.kernel.status().phase,'decision-retained');assert.equal(f.kernel.status().storageCausePresent,true);assert.equal(f.calls.filter(x=>x==='select').length,1);
+});
+test('null and undefined thrown first/storage causes remain present',async()=>{
+ for(const thrown of [null,undefined]){const f=fixture();await f.kernel.capture(f.owner,f.getGuard);f.onSave(()=>{throw thrown;});let caught=false;try{await f.kernel.decide('original','approve',f.getGuard);}catch{caught=true;}assert(caught);assert.equal(f.kernel.status().firstCausePresent,true);assert.equal(f.kernel.status().storageCausePresent,true);}
 });
