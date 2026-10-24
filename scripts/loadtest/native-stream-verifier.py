@@ -49,9 +49,10 @@ def content_only(snapshot):
     return dict(files=[{k:v for k,v in row.items() if k!='stat'} for row in snapshot['files']],directories=[{k:v for k,v in row.items() if k!='stat'} for row in snapshot['directories']],bytes=snapshot['bytes'])
 
 def check_selection(controller,selection):
-    need(type(selection) is dict and set(selection)==CONFIG,'verifier explicit selection missing')
+    need(type(selection) is dict and set(selection) in (CONFIG,CONFIG|{'expected_submitters'}),'verifier explicit selection missing')
     need(all(type(selection[k]) is bool for k in CONFIG-{'pacing'}),'verifier selected booleans differ')
-    controller.recipe('grpc',controller.STREAM_PROFILE,selection['pacing'],True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=selection['expected_input_reuse'],canonical_certificate=selection['expected_canonical_certificate'],native_suffix_setup=selection['expected_native_suffix'],block_tip_hint=selection['expected_block_tip_hint'])
+    need('expected_submitters' not in selection or type(selection['expected_submitters']) is int and selection['expected_submitters']==16,'verifier submit16 selection differs')
+    controller.recipe('grpc',controller.STREAM_PROFILE,selection['pacing'],True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=selection['expected_input_reuse'],canonical_certificate=selection['expected_canonical_certificate'],native_suffix_setup=selection['expected_native_suffix'],block_tip_hint=selection['expected_block_tip_hint'],submitters=selection.get('expected_submitters',8))
 
 def produce(controller,case,selection,runtime_network=None):
     check_selection(controller,selection);case=Path(case).absolute();need(case.resolve()==case,'verifier case symlink differs');network=case/'network'

@@ -10,6 +10,60 @@ def measurement(rate=300,upper=2000000000):
     return dict(summary=dict(finalSubmittedPerMeasurementSecond=rate),offerLatencyIntervalsNs={n:copy.deepcopy(distribution) for n in ('offerToEffectiveBusinessInclusion','offerToFinal')})
 
 class NativeStreamPairTests(unittest.TestCase):
+    def test_submit16_pair_changes_only_explicit_worker_scope(self):
+        plan=supply.pair_recipe(supply.STREAM_SUBMIT16_PAIR)
+        before,after=plan['cases']
+        self.assertEqual(plan['kind'],'fixed-same-VM-native-stream-submit16-pair')
+        self.assertEqual(plan['input']['linux_supply_pacing'],'paired-native-stream-submit16')
+        self.assertNotIn('nativeStreamSubmitters',before)
+        self.assertEqual(after['nativeStreamSubmitters'],16)
+        self.assertEqual(before['profile']['concurrency'],8);self.assertEqual(after['profile']['concurrency'],16)
+        for case in (before,after):
+            self.assertEqual(case['pacingMode'],'bounded-cadence');self.assertTrue(case['nativeCurrentInputReuse'])
+            self.assertNotIn('nativeBlockTipHint',case);self.assertNotIn('nativeCanonicalCertificate',case)
+        b=copy.deepcopy(before);a=copy.deepcopy(after)
+        a.pop('nativeStreamSubmitters');a['profile']['concurrency']=8;a['profile']['name']=b['profile']['name']
+        self.assertEqual(a,b)
+        commands=[]
+        for n,case in zip((8,16),(before,after)):
+            command=supply.supply_client_command(Path('/build'),Path('/network/manifest'),Path('/network'),Path('/network/result'),case['profile'],'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,submitters=n)
+            self.assertEqual(command[command.index('-concurrency')+1],str(n));commands.append(command)
+        after_command=list(commands[1]);at=after_command.index('-native-stream-submitters');self.assertEqual(after_command[at+1],'16');del after_command[at:at+2]
+        after_command[after_command.index('-concurrency')+1]='8';self.assertEqual(commands[0],after_command)
+        self.assertEqual(supply.native_verifier_selection('bounded-cadence',True,False,False,False,16)['expected_submitters'],16)
+        self.assertNotIn('expected_submitters',supply.native_verifier_selection('bounded-cadence',True,False,False,False))
+        for n in (True,0,4,32,'16'):
+            with self.assertRaises(RuntimeError):supply.native_stream_profile('bounded-cadence',n)
+        for action in ('prepare','execute'):
+            self.assertIn('--'+action+'-pair --pair-kind native-stream-submit16 --observer-phases',Path('.github/workflows/chain-core.yml').read_text())
+
+    def test_submit16_pair_execution_binding_and_failure_stop(self):
+        code,calls,terminal=self.run_pair(comparison=supply.STREAM_SUBMIT16_PAIR)
+        self.assertEqual(code,0);self.assertEqual(calls,['bounded-cadence','bounded-cadence']);self.assertTrue(terminal['qualified'])
+        for fault in ('unknown','closure','binary','host'):
+            code,calls,terminal=self.run_pair(fault,supply.STREAM_SUBMIT16_PAIR)
+            self.assertEqual(code,1);self.assertEqual(len(calls),1);self.assertFalse(terminal['qualified'])
+        self.check_pair_recovery(supply.STREAM_SUBMIT16_PAIR)
+
+    def test_verifier_submit16_selection_is_explicit_and_typed(self):
+        selection=supply.native_verifier_selection('bounded-cadence',True,False,False,False,16)
+        supply.stream_verifier.check_selection(supply._verifier_controller(),selection)
+        for value in (True,8,0,32,'16'):
+            bad=dict(selection,expected_submitters=value)
+            with self.assertRaises(RuntimeError):supply.stream_verifier.check_selection(supply._verifier_controller(),bad)
+        with self.assertRaises(RuntimeError):supply.recipe(submitters=16)
+        before,after=supply.pair_recipe(supply.STREAM_SUBMIT16_PAIR)['cases']
+        self.assertEqual(before['resourceCaps'],after['resourceCaps'])
+        self.assertEqual(before['streamBudget'],after['streamBudget'])
+
+    def test_submit16_requires_explicit_typed_report_and_worker_inventory(self):
+        report=dict(nativeStream8=True,nativeSubmit8=False,concurrency=16,observerConcurrency=4,prefixNativeClone=True,pacedWorkers=dict(submitters=16,observers=4,submissionQueueCapacity=2048,observationQueueCapacities=[2048]*4))
+        with self.assertRaises(RuntimeError):supply.validate_submitter_selection(report,False,True,native_stream8=True)
+        self.assertEqual(supply.validate_submitter_selection(report,False,True,native_stream8=True,stream_submitters=16)['pacedWorkers']['submitters'],16)
+        for key,value in [('submitters',8),('observers',8),('submissionQueueCapacity',4096),('observationQueueCapacities',[2048]*8)]:
+            bad=copy.deepcopy(report);bad['pacedWorkers'][key]=value
+            with self.assertRaises(RuntimeError):supply.validate_submitter_selection(bad,False,True,native_stream8=True,stream_submitters=16)
+
     def test_canonical_pair_changes_only_certificate_with_cache_and_pace_fixed(self):
         before,after=supply.pair_recipe(supply.STREAM_CERTIFICATE_PAIR)['cases']
         self.assertEqual(before['pacingMode'],after['pacingMode'])
@@ -152,11 +206,12 @@ class NativeStreamPairTests(unittest.TestCase):
                 canonical=kind==supply.STREAM_CERTIFICATE_PAIR and index==1
                 suffix=kind==supply.STREAM_SUFFIX_PAIR and index==1
                 tip=kind==supply.STREAM_TIP_PAIR and index==1
+                submitters=16 if kind==supply.STREAM_SUBMIT16_PAIR and index==1 else 8
                 case=('before-' if index==0 else 'after-')+label
                 directory=root/case/'evidence';directory.mkdir(parents=True)
-                row=dict(sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),**({"nativeBlockTipHint":True} if tip else {}),binaries=pair['compiledBinaries'])
+                row=dict(**({"nativeStreamSubmitters":16} if submitters==16 else {}),sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),**({"nativeBlockTipHint":True} if tip else {}),binaries=pair['compiledBinaries'])
                 raw=json.dumps(row).encode();(directory/'actual.json').write_bytes(raw);rows.append((directory/'actual.json',raw))
-                cases.append(dict(order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
+                cases.append(dict(**({"submitters":submitters} if kind==supply.STREAM_SUBMIT16_PAIR else {}),order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
             pair['cases']=cases;pair['jointObservation']=supply.native_stream_pair_observation(cases)
             def verify(destination,mode,head,**kwargs):
                 index=0 if Path(destination).name.startswith('before-') else 1
@@ -169,6 +224,14 @@ class NativeStreamPairTests(unittest.TestCase):
             for fault in ('order','hostIdentity','sha256','measurement','mode','canonicalCertificate','nativeSuffixSetup','blockTipHint'):
                 changed=copy.deepcopy(pair);changed['cases'][1][fault]='changed'
                 with self.subTest(fault=fault),self.assertRaises(RuntimeError):check(changed)
+            if kind==supply.STREAM_SUBMIT16_PAIR:
+                changed=copy.deepcopy(pair);changed['cases'][1]['submitters']=8
+                with self.assertRaises(RuntimeError):check(changed)
+                bad_receipt=json.loads(rows[1][1]);bad_receipt['nativeStreamSubmitters']=8
+                bad_raw=json.dumps(bad_receipt).encode();rows[1][0].write_bytes(bad_raw)
+                rebound=copy.deepcopy(pair);rebound['cases'][1]['sha256']=hashlib.sha256(bad_raw).hexdigest()
+                with self.assertRaisesRegex(RuntimeError,'submitter receipt'):check(rebound)
+                rows[1][0].write_bytes(rows[1][1])
             if kind==supply.STREAM_SUFFIX_PAIR:
                 bad_receipt=json.loads(rows[1][1]);bad_receipt['nativeSuffixSetup']=False
                 bad_raw=json.dumps(bad_receipt).encode();rows[1][0].write_bytes(bad_raw)
@@ -216,6 +279,9 @@ class NativeStreamPairTests(unittest.TestCase):
                     self.assertIs(kwargs['native_suffix_setup'],False)
                     self.assertIs(kwargs['canonical_certificate'],False)
                     self.assertIs(kwargs['current_input_reuse'],True)
+                if comparison==supply.STREAM_SUBMIT16_PAIR:
+                    self.assertEqual(kwargs['submitters'],16 if calls else 8)
+                    self.assertFalse(kwargs['block_tip_hint']);self.assertFalse(kwargs['canonical_certificate']);self.assertFalse(kwargs['native_suffix_setup']);self.assertTrue(kwargs['current_input_reuse'])
                 calls.append(pace);case.mkdir()
                 row=dict(sourceCommit='a'*40,sourceTree='tree',internalTree='internal',compiler='compiler',binaries=pins,environment={},host=dict(uname='unit',cpuCount=4),nodePhases={},firstCause=None)
                 if fault=='unknown':row['firstCause']='submission UNKNOWN'
