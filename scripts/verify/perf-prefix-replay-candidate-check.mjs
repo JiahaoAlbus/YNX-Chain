@@ -7,20 +7,20 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {withFrozenAnchor} from './perf-commit-validation-timing-check.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
-export const source='7f4d8fdcd212953b6ffc5843a8ec039557a0056f';
-export const pairControllerSource='7f4d8fdcd212953b6ffc5843a8ec039557a0056f';
+export const source='fc80afc3296829b22e4533393524c77978d6b86e';
+export const pairControllerSource='fc80afc3296829b22e4533393524c77978d6b86e';
 export const pairControllerFiles=['scripts/loadtest/supply-linux-window.py','scripts/loadtest/test_supply_linux_window.py','.github/workflows/chain-core.yml','scripts/loadtest/native-stream-evidence.py','scripts/loadtest/test_native_stream_evidence.py','scripts/loadtest/pq-paired-linux-window.py','scripts/loadtest/native-stream-artifact.py','scripts/loadtest/test_native_stream_artifact.py','scripts/loadtest/test_native_stream_pair.py','scripts/loadtest/node-phase-timing.mjs','scripts/loadtest/node-phase-timing.test.mjs'];
 const parent='9cdaeb0a64bff4d26b2e4b1558c96863d2791640';
-const tree='36c134cdaffb13f0386070c6468acd1cc7b0b92d';
+const tree='c3593c8f86d661c90f579b1862421bd0f3857fb5';
 export const diagnosticNodeTree='139b38b63f39f0f24a771ed99e02fcbe25fc97cc';
-export const runtimeClientTree='e72763e1403caf173a389c79698b8ffe32c67fc2';
+export const runtimeClientTree='08217cd5583f6661734e606d7863977b55d7441e';
 const diagnosticGuard='scripts/verify/perf-commit-validation-timing-check.mjs';
 const diagnosticTests='scripts/verify/perf-commit-validation-timing-check.test.mjs';
 const git=(repo,...args)=>execFileSync('git',['-C',repo,...args],{env:{...process.env,GIT_OPTIONAL_LOCKS:'0'},maxBuffer:16<<20,stdio:['ignore','pipe','pipe']});
 const requireValue=(v,m)=>{if(!v)throw Error(m)};
 export function validatePrefixSource(repo=root){
  const delta=git(repo,'diff','--binary',parent,source,'--','internal');
- requireValue(createHash('sha256').update(delta).digest('hex')==='c6b656f038f2a2f192959f7d88d51a99de3593a43c7f37b95d0ffbbb6280c5a9','prefix source derivation differs');
+ requireValue(createHash('sha256').update(delta).digest('hex')==='997b9233ab3a089f0c2dead1c46370d19004881f1a07270ab847c8fb654e6a1f','prefix source derivation differs');
  requireValue(git(repo,'rev-parse','HEAD:internal').toString().trim()===tree,'current prefix internal tree differs');
  try{git(repo,'diff','--quiet',source,'--','internal')}catch{throw Error('current prefix source differs')}
  requireValue(!git(repo,'ls-files','--others','--exclude-standard','--','internal').toString().trim(),'untracked prefix internal input refused');
