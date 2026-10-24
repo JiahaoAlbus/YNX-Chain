@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "state": "DURABLE_VERIFIED_PUBLISHER_CAPTURE_JOURNAL_IMPLEMENTED_PUBLIC_SQL_API_TESTED_NOT_REGISTRATION_OR_SOURCE13",
+  "parent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r213-supply-20261024-r1/HANDOFF.json",
+    "bytes": 7442,
+    "sha256": "eab74dca7de61d9a91b122737ae9a6bba1f35151d8037dfcbab641195b276c4b",
+    "gitBlob": "368e40420aedb78ed438b669d917c0110f1fe3d7"
+  },
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/source/internal/developerauthority/original_publisher_capture_store.go",
+      "relative": "source/internal/developerauthority/original_publisher_capture_store.go",
+      "bytes": 13563,
+      "sha256": "87c9c594ce71fd02b5a27ebe217cde09bc38639dab36e6613085fe9c4a2412d4",
+      "gitBlob": "d1d7879f0db90f66fd85796b8382607969668cdb"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/source/internal/developerauthority/original_publisher_capture_store_test.go",
+      "relative": "source/internal/developerauthority/original_publisher_capture_store_test.go",
+      "bytes": 11313,
+      "sha256": "b08cd4eee6c72cb5ec58536da23cd0585fdd2a1ec9024203b0ae0ad6c12c456e",
+      "gitBlob": "e0601c2d527b074b3dc3a9f9bb6f80bc4bc13f16"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/source/internal/developerauthority/publisher_capture_schema.sql",
+      "relative": "source/internal/developerauthority/publisher_capture_schema.sql",
+      "bytes": 1978,
+      "sha256": "289e0ce6e4f094abe78a957c6346aca71baa007a13651ec34717b7e16bba3b15",
+      "gitBlob": "4a31380ad55df8e0c766d876c5f9dd996241351e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/CALLER.md",
+      "relative": "CALLER.md",
+      "bytes": 2616,
+      "sha256": "2c82adbba3facac5d766a09eab3893133560949614ab990237a56caf09c6a177",
+      "gitBlob": "e73027342618962e511c790872daa0e69844fb2d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/run-new-store.mjs",
+      "relative": "run-new-store.mjs",
+      "bytes": 1129,
+      "sha256": "5196aed9aa787011a9d7498b1a1fc179aa5973d3bbbf62b3569f2155d95b3b0c",
+      "gitBlob": "facecb4089e9aa9c8d873ebc0474897042b9eaa7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/evidence/publisher-capture-koDz4v/stdout",
+      "relative": "evidence/publisher-capture-koDz4v/stdout",
+      "bytes": 6920,
+      "sha256": "ac6964b6f92070191faf3ff5fa65c3156afd1a165262c2102222df48a28c0afc",
+      "gitBlob": "eac26b2cd8136253b22132d999bacc15775b28fc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/evidence/publisher-capture-zhcApt/stdout",
+      "relative": "evidence/publisher-capture-zhcApt/stdout",
+      "bytes": 5913,
+      "sha256": "f16ff514b1a1bf7b22046687b3940092b9c25b28920324a657d4dd1d2d891e60",
+      "gitBlob": "be0fbd7f233cb96a29f06118c2fc9073e4385376"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/evidence/publisher-capture-koDz4v/stderr",
+      "relative": "evidence/publisher-capture-koDz4v/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/evidence/publisher-capture-zhcApt/stderr",
+      "relative": "evidence/publisher-capture-zhcApt/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/evidence/publisher-capture-koDz4v/result.json",
+      "relative": "evidence/publisher-capture-koDz4v/result.json",
+      "bytes": 2524,
+      "sha256": "bff3d247bc0bdab149937b80d0022eb3a2d7db4429ad5dea6e95a66e81b0cf21",
+      "gitBlob": "d39fceb3ca77c18c9675f76acc26328015d34e13"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r214-supply-20261024-r1/evidence/publisher-capture-zhcApt/result.json",
+      "relative": "evidence/publisher-capture-zhcApt/result.json",
+      "bytes": 2524,
+      "sha256": "bff3d247bc0bdab149937b80d0022eb3a2d7db4429ad5dea6e95a66e81b0cf21",
+      "gitBlob": "d39fceb3ca77c18c9675f76acc26328015d34e13"
+    }
+  ],
+  "normalCallees": [
+    "openOriginalPublisherCaptureStore(ctx,originalPool)",
+    "store.retainOriginal(actualR213Observation,p,cmd,publicOriginal,registrationOriginal,caller)",
+    "store.capture(ctx,sameAttempt)",
+    "store.observeOriginal(ctx,sameAttempt)",
+    "store.observeOriginalBinding(ctx,sameVerifierOwnedBinding)",
+    "store.Close()"
+  ],
+  "persistence": [
+    "explicit unapplied migration, constructor checks only; no DDL/pool creation",
+    "one CTE statement binds monotonic original Source head plus unique capture ref/nonce/execution",
+    "copies exact principal/command/public/proof/verified original/both Source snapshots",
+    "same attempt once across concurrent calls, actual partial scan and panic retained before late failures",
+    "post-SQL R213 original completion fence; UNKNOWN never triggers retry or replacement",
+    "fresh store can read original execution by exact original binding without using new process execution id; DATA never clears UNKNOWN",
+    "Close keeps rows/history and borrowed pool"
+  ],
+  "tests": {
+    "newTop": 7,
+    "pass": 7,
+    "race": true,
+    "exit": 0,
+    "compiledGoClosure": 34,
+    "actualPinnedProcessAndDatabaseSQL": true,
+    "fixtures": "PUBLIC process metadata + explicit database/sql connector, not PostgreSQL/Root/deployment",
+    "cases": [
+      "eight concurrent calls -> one write",
+      "caller slice mutation cannot replace original",
+      "insert committed but response lost -> UNKNOWN; readback does not promote",
+      "post-write expiry -> committed original+UNKNOWN/no retry",
+      "duplicate ref/nonce and Source watermark rollback refused",
+      "driver panic retains partial and no second query",
+      "entropy failure and closed owner do not write/close caller pool",
+      "fresh independent store execution-id-independent reconciliation; sibling binding refused"
+    ]
+  },
+  "remaining": [
+    "ACL-bound Catalog activation/revoke and independent protected-publisher current/role checks",
+    "normal factory/HTTP issuer/dynamic capture caller integration",
+    "publication4/selector1 and full Source13",
+    "real admitted Root/resources, explicit SQL migration and PostgreSQL restart/concurrency/integration evidence"
+  ],
+  "truth": {
+    "migrationApplied": false,
+    "Root": false,
+    "registered": false,
+    "protectedCustodyAdmitted": false,
+    "authorized": false,
+    "Source13": false,
+    "mounted": false,
+    "production": false,
+    "FinanceResumed": false
+  }
+}
