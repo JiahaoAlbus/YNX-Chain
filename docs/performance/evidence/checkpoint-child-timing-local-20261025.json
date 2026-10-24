@@ -25,7 +25,7 @@
   },
   "networkPerformanceQualified": false,
   "sustainedTPSQualified": false,
-  "normalCIPending": true,
+  "normalCIPending": false,
   "raw": {
     "checkpoint-timing-red-01.raw": {
       "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/checkpoint-timing-red-01.raw",
@@ -72,5 +72,56 @@
   "codeCommit": "53d9669da",
   "controllerCodeCommit": "a02fa84574e2e61c379c894f2389dc8d8ada6e73",
   "internalTree": "a191bc07a650bc34fae386de27961ca6e7aacdbe",
-  "internalDeltaSHA256": "025c77b0670ecde47416e1a09aeee67f10d37cb902cda21a90deac0245d8164f"
+  "internalDeltaSHA256": "025c77b0670ecde47416e1a09aeee67f10d37cb902cda21a90deac0245d8164f",
+  "normalCI": {
+    "run": 40111618531,
+    "head": "d24e97b8d3373e294a9d7992e07b4ef532bd6dcf",
+    "statusObserved": "completed",
+    "conclusion": "success",
+    "successRequiredBeforeDispatch": true,
+    "api": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/normal-ci-terminal-api.json",
+      "bytes": 12404,
+      "sha256": "2b6c1f2d9b314845fd719ec2c9bbfa6adc211359ac428d93412451bb54712fc9"
+    },
+    "fullLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/normal-ci-full.raw",
+      "bytes": 737967,
+      "sha256": "adc521efda02848e8d291211eb94691409c1303c4d27c3990925cd52f67127dd"
+    },
+    "actualLinuxProbe": {
+      "candidate": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/actual_owned_procfs_exit_mm_candidate.json",
+        "bytes": 245,
+        "sha256": "f891e6d6a3d39235bd642bad92b3af72919432587d960bb260933ff1a5a83fcd"
+      },
+      "default": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/actual_owned_procfs_exit.json",
+        "bytes": 206,
+        "sha256": "f3a55c11cdaf08f100bad23b38ec05b655c637efae879bc003b7b390d1cddc18"
+      },
+      "candidateTargetHits": 0,
+      "defaultUnknownRefusals": 0,
+      "interpretation": "This run did not observe the exit window. It is not a target-window repair proof.",
+      "retainedPriorSameFunctionFourHitProbe": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/rss-exit-mm-source-0f0c9adcf3/actual_owned_procfs_exit_mm_candidate.json",
+        "bytes": 4411,
+        "sha256": "5ba2c98810ecbce7c3f9dd7d8e2a6933705049f505b141f8dcedd04a237fdad3"
+      }
+    },
+    "actualLinuxCheckpoint": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/actual-linux-retained1024-checkpoint.json",
+      "bytes": 301,
+      "sha256": "2f5809721baa268320db535761b80314179b2bdf376fa27b4d4d75895eead8ce"
+    }
+  },
+  "rootRequest": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/root-scheduling-request-with-evidence.json",
+    "bytes": 18093,
+    "sha256": "d62d59a0a1911b646c01423622656ce207b2d588c981a50b57b231477f825eb1",
+    "frozenRef": "codex/chain-native-prepared-grouped-mm-pair-d24e97b8d3",
+    "issuedToRoot": true,
+    "grantReceived": false,
+    "dispatched": false
+  }
 }
