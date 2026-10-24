@@ -10,9 +10,9 @@ import {sdkRuntimeUnionProfile} from '../scripts/sdk14-runtime-union.mjs';
 import {FIXED_SDK_RUNTIME_IDENTITIES,fixedSDKRuntimeManifestSources,relocateDesktopRuntimeSource} from '../scripts/release-provenance.mjs';
 const version='1.3.0-pq.3.32-auth.32',supply=process.env.WALLET_AUTH32_NORMAL_SUPPLY,sha=b=>createHash('sha256').update(b).digest('hex');
 const authPin={bytes:80280,sha256:'58b5bbfd4fd93b4ea18f27292cd7a82751583147858163e4ebd899d1eb16a986'},unionPin={bytes:1466009,sha256:'7543115cdd892e2a84c2af71a3e99200c17dd760ab0bcd4823df824748658e32',files:9424,totalBytes:77829265};
-test('Auth32 runtime profile selects exact564 Auth and9424 union, not31 manifests or an unselected33',()=>{
+test('Auth32 runtime profile selects exact564 Auth and9424 union, not31 manifests or an unselected34',()=>{
  assert.deepEqual(FIXED_SDK_RUNTIME_IDENTITIES[version],authPin);assert.deepEqual(sdkRuntimeUnionProfile(version),unionPin);
- assert.notDeepEqual(sdkRuntimeUnionProfile('1.3.0-pq.3.32-auth.31'),unionPin);assert.equal(FIXED_SDK_RUNTIME_IDENTITIES['1.3.0-pq.3.32-auth.33'],undefined);assert.throws(()=>sdkRuntimeUnionProfile('1.3.0-pq.3.32-auth.33'));
+ assert.notDeepEqual(sdkRuntimeUnionProfile('1.3.0-pq.3.32-auth.31'),unionPin);assert.equal(FIXED_SDK_RUNTIME_IDENTITIES['1.3.0-pq.3.32-auth.34'],undefined);assert.throws(()=>sdkRuntimeUnionProfile('1.3.0-pq.3.32-auth.34'));
 });
 test('actual supplied32 manifests and private caller relocation match without rerunning9424 dependency readback',{skip:!supply},()=>{
  const raw=fs.readFileSync(path.join(supply,'SDK32_CANONICAL_NORMAL_PREFIX_RUNTIME_ROLES_HANDOFF.json'));assert.equal(raw.length,9933);assert.equal(sha(raw),'cfb60af3669a72e3fdc638844b41b0fc01031aae05b24d9a8fab5e3722c454e3');const h=JSON.parse(raw);
