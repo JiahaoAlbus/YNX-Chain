@@ -20,6 +20,12 @@ def source(raw,seen=None):
     return zip_reader.Blocks(len(raw),fetch)
 
 class NativeStreamArtifactTests(unittest.TestCase):
+    def test_canonical_pair_selection_keeps_both_case_streams_and_receipts(self):
+        selected=zip_reader.Selection('network-pair')
+        for label,side in [('native-certificate-json','before'),('native-certificate-canonical','after')]:
+            case=side+'-'+label
+            self.assertEqual(selected.select('ynx-linux-supply-pair/'+case+'/network/transactions.json'),case+'/network/transactions.json')
+            self.assertEqual(selected.select('ynx-linux-supply-evidence/'+label+'-actual.json'),case+'/evidence/actual.json')
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name).resolve()/'capture'
     def test_original_go_public_archive_recovers_complete_signed_and_latency_identity(self):

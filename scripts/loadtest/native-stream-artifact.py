@@ -131,11 +131,11 @@ class Archive:
 
 class Selection:
     def __init__(self,mode):
-        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network") for _ in range(4)] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
+        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network") for _ in range(6)] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
     def select(self,name):
         if name.endswith('/'):return None
         if self.mode=='network-pair':
-            labels=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared')
+            labels=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared','native-certificate-json','native-certificate-canonical')
             if name=='ynx-linux-supply-evidence/actual.json':
                 need(name not in self.seen,'duplicate pair receipt');self.seen.add(name);return 'evidence/actual.json'
             for i,label in enumerate(labels):

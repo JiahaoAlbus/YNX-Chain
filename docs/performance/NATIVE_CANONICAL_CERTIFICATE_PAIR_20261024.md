@@ -19,3 +19,11 @@ python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind na
 验收报告需要分别给出提交、接收、有效入块、有效final速率，错误/UNKNOWN/积压，P50/P95/P99，以及节点Finalize/持久化Commit返回和客户端最终确认观察的关联。保留certificatePublish和新增复制/编码比较、严格JSON回退、摘要封装等阶段真实耗时，父子计时不得重复相加。节点返回时间不冒充最早quorum形成时刻，有限8192笔结果不冒充持续600秒达标。
 
 本轮针对性证据保存在owner的 `artifacts/chain-performance-20261017/native-stream-small-source/`：`native-canonical-pair-controller-final.raw` 12项PASS0.317s，`native-canonical-pair-supply-all.raw` 89项PASS14.915s，`native-canonical-pair-artifact.raw` 21项PASS1.292s；native workflow shell语法及两侧命令单轴差异也已验证。控制器模拟失败/资源/归档分支不算网络实测，真实102笔应用/客户端夹具证据另见 [发布阶段与客户端记录](NATIVE_CERTIFICATE_PUBLISH_PHASES_20261024.md)。
+
+## 原once运行及归档选择器修复
+
+Root随后签发具体once grant，冻结HEAD4e4d26a71205866765b57b000c5adf1b6361342a通过原CI40054594269。唯一实际Hosted dispatch于02:42:15.248706Z开始，原run40055278746/job120756796984 completed SUCCESS；原两侧native post-fsync终态qualified=true、firstCause=null，耗时32.616/32.836秒，pair67.755秒。原pair receipt SHA256为ee0c14ccb5129104c685ff02aea81feb79e1c027cea4bfd0bb0365102d3d443c。两侧及pair原双scan均只有同launcher39029/startTicks59139，原节点已清理。完整交易/性能结论仍须后续独立归档读回，不能仅凭workflow或native终态宣称优化收益。
+
+第一次使用冻结归档读取器时，实际只选择到配对总receipt，随后FileNotFoundError：`Selection`遗漏新native-certificate-json/native-certificate-canonical两个case标签，原中央目录中的两侧成员被跳过。保留原recovery-01、capture和range cache，复现RED后补两个标签及对应选择槽位；22项归档回归PASS1.173s。没有重跑网络、改业务资格或扩大ZIP选择范围到其他私有文件。
+
+原11个冻结reader、原request/plan/grant与4e tag均保持。为同一原artifact12545396925（98,359,737B）另存posthoc-reader-v2，只允许上述两行选择器差量，original SHA256 3b2eb0e4e939910f1db3d400c452a74f76d48e12aa4c440c427f2d19781be06f，fixed SHA256 9cd29341f584fbe86e19c0b2c5a4a9540ba7bf31ec34706d81775fc03f52a715。差量断言与scope manifest保存在owner run目录，继续按原60秒有界range/cache恢复同一artifact；没有whole ZIP下载或静默替换原读回失败。
