@@ -301,13 +301,21 @@ func (d *BlockJournalPrefixDecoder) makePrefixCertificate(data []byte, out Block
 				return nil, err
 			}
 		}
+		ownedStrict := false
 		if !canonicalReady {
-			if err := phases.measureCertificate("strictJSON", func() error { return decodeStrictJSON(certificate.payload, &canonical) }); err != nil {
+			if err := phases.measureCertificate("strictJSON", func() error {
+				var err error
+				canonical, ownedStrict, err = decodeOwnedNativeCertificate(certificate.payload, out.State)
+				return err
+			}); err != nil {
 				return nil, err
 			}
 		}
 		if err := phases.measureCertificate("nativeClone", func() error {
-			private, ok := canonical, canonicalReady
+			private, ok := canonical, canonicalReady || ownedStrict
+			if ownedStrict {
+				copyNativeAccountLots(&private)
+			}
 			if !ok {
 				private, ok = cloneNativeCommittedState(canonical)
 			}

@@ -1,0 +1,132 @@
+{
+  "scope": "same actual1024 history, same candidate binary, complete strict JSON plus original private clone oracle vs owned exact-capacity publication; not network TPS or RSS",
+  "baseCommit": "d9161f63578d18f91eb3e56d096361a2f7b97382",
+  "files": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_native_clone.go",
+      "bytes": 3714,
+      "sha256": "e00c2c41fa438c9373c69cb6fce3675479c229dc2bc443d695cebd59c5f32f79"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_prefix.go",
+      "bytes": 13016,
+      "sha256": "a8160e639f892b53787197d372ae62ba70c3da3dd8af88df99a1341020aa5661"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_owned_certificate.go",
+      "bytes": 1663,
+      "sha256": "d6338c18c3f86388d25510f8c6aa416c406a96b8823f2d72e1bc7d185c104730"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_owned_certificate_test.go",
+      "bytes": 5283,
+      "sha256": "28d75d7520adcbd22c5e640b18c94d620f111a41e1de068c5da1806a6b65bf89"
+    }
+  ],
+  "fixture": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/fixtures/state-hash-real-1024.json",
+    "bytes": 812656,
+    "sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+  },
+  "hardware": "Apple M4 / Go1.25.7 darwin arm64",
+  "environment": {
+    "GOMAXPROCS": "1",
+    "GOPROXY": "off",
+    "GOTOOLCHAIN": "local",
+    "buildParallelism": 1
+  },
+  "order": "ABBAAB,50ms per subbenchmark",
+  "rows": [
+    {
+      "order": 0,
+      "mode": "original_decode_then_clone",
+      "iterations": 13,
+      "nsPerOperation": 4267667,
+      "allocatedBytesPerOperation": 3554072,
+      "allocationsPerOperation": 9578
+    },
+    {
+      "order": 1,
+      "mode": "owned_exact_capacity_decode",
+      "iterations": 13,
+      "nsPerOperation": 3977484,
+      "allocatedBytesPerOperation": 2811345,
+      "allocationsPerOperation": 9542
+    },
+    {
+      "order": 2,
+      "mode": "owned_exact_capacity_decode",
+      "iterations": 13,
+      "nsPerOperation": 4011160,
+      "allocatedBytesPerOperation": 2811347,
+      "allocationsPerOperation": 9542
+    },
+    {
+      "order": 3,
+      "mode": "original_decode_then_clone",
+      "iterations": 13,
+      "nsPerOperation": 3950519,
+      "allocatedBytesPerOperation": 3554072,
+      "allocationsPerOperation": 9578
+    },
+    {
+      "order": 4,
+      "mode": "original_decode_then_clone",
+      "iterations": 13,
+      "nsPerOperation": 3995853,
+      "allocatedBytesPerOperation": 3554072,
+      "allocationsPerOperation": 9578
+    },
+    {
+      "order": 5,
+      "mode": "owned_exact_capacity_decode",
+      "iterations": 15,
+      "nsPerOperation": 3973133,
+      "allocatedBytesPerOperation": 2811346,
+      "allocationsPerOperation": 9542
+    }
+  ],
+  "medians": {
+    "original_decode_then_clone": {
+      "nsPerOperation": 3995853,
+      "allocatedBytesPerOperation": 3554072,
+      "allocationsPerOperation": 9578
+    },
+    "owned_exact_capacity_decode": {
+      "nsPerOperation": 3977484,
+      "allocatedBytesPerOperation": 2811346,
+      "allocationsPerOperation": 9542
+    }
+  },
+  "allocatedByteReductionPercent": 20.89788839393237,
+  "timingLimitation": "overlapping samples and concurrent focused race; allocation claim only, no stable timing improvement claim",
+  "verification": {
+    "strictErrorsAndNilEmptyIdentity": true,
+    "privateOwnershipAndExactSliceCapacity": true,
+    "originalLotsMapCopyRetained": true,
+    "fullConsensusABCIClientSuitesPassed": true,
+    "focusedRacePassed": true,
+    "sourceContractPending": true,
+    "normalCIPending": true
+  },
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/owned-certificate-final-full-go.raw",
+      "bytes": 198,
+      "sha256": "78f3e343b91785d5352d2d3a94de5508ea6f7a264d5e49e0072482b8132f1036"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/owned-certificate-final-race.raw",
+      "bytes": 64,
+      "sha256": "ee9ac0b79688487ca78f96623e2a4754ddd35e5cbe4b57bd38d81d23ff3b882a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/owned-certificate-final-phase-preserved-benchmark.raw",
+      "bytes": 1061,
+      "sha256": "d1f394c2d56d5dfbd343bb367b69a6d03857e0d54cac1ddd8d498f6e508eb59f"
+    }
+  ],
+  "networkRSSRepairProven": false,
+  "networkThroughputImprovementMeasured": false,
+  "sustained1000Qualified": false
+}

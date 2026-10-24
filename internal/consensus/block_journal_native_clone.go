@@ -44,12 +44,10 @@ func (d *BlockJournalPrefixDecoder) NativeCloneCacheInventory(ctx context.Contex
 	return out, nil
 }
 
-// cloneNativeCommittedState is deliberately limited to native accounts and fee
-// history. Any populated other domain falls back to the original strict JSON
-// path. Empty slices retain nil/empty identity but never share append capacity.
-// Reflection checks the whole schema so future mutable fields cannot silently
-// become shared by this candidate.
-func cloneNativeCommittedState(state CommittedState) (CommittedState, bool) {
+// Eligibility is shared by the private owned decoder and the public-result
+// copier. Reflection checks the whole schema; any other populated domain or
+// unsupported future mutable field retains the original strict JSON fallback.
+func nativeCommittedStateCloneSupported(state CommittedState) bool {
 	v := reflect.ValueOf(state)
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
@@ -57,17 +55,26 @@ func cloneNativeCommittedState(state CommittedState) (CommittedState, bool) {
 		switch t.Field(i).Name {
 		case "Accounts", "FeeEvents":
 			if !nativeCloneType(f.Type().Elem()) {
-				return CommittedState{}, false
+				return false
 			}
 		default:
 			if f.Kind() == reflect.Slice {
 				if f.Len() != 0 {
-					return CommittedState{}, false
+					return false
 				}
 			} else if !nativeCloneScalar(f.Kind()) {
-				return CommittedState{}, false
+				return false
 			}
 		}
+	}
+	return true
+}
+
+// Public results always receive independent slices/maps, preserving nil/empty
+// identity while dropping unused append capacity.
+func cloneNativeCommittedState(state CommittedState) (CommittedState, bool) {
+	if !nativeCommittedStateCloneSupported(state) {
+		return CommittedState{}, false
 	}
 	out := state
 	w := reflect.ValueOf(&out).Elem()
@@ -79,15 +86,22 @@ func cloneNativeCommittedState(state CommittedState) (CommittedState, bool) {
 			f.Set(private)
 		}
 	}
+	copyNativeAccountLots(&out)
+	return out, true
+}
+
+// Keep the original exact-size map copy: decoded maps can retain growth
+// buckets. Shared by ordinary clones and owned certificate publication.
+func copyNativeAccountLots(out *CommittedState) {
 	for i := range out.Accounts {
-		if state.Accounts[i].Lots != nil {
-			out.Accounts[i].Lots = make(map[string]int64, len(state.Accounts[i].Lots))
-			for key, amount := range state.Accounts[i].Lots {
-				out.Accounts[i].Lots[key] = amount
+		if lots := out.Accounts[i].Lots; lots != nil {
+			private := make(map[string]int64, len(lots))
+			for key, amount := range lots {
+				private[key] = amount
 			}
+			out.Accounts[i].Lots = private
 		}
 	}
-	return out, true
 }
 
 func nativeCloneScalar(k reflect.Kind) bool {
