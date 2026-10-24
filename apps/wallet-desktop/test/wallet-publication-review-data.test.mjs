@@ -6,6 +6,7 @@ import {pathToFileURL} from 'node:url';
 import path from 'node:path';
 import {runInNewContext} from 'node:vm';
 import {WalletIDEIdentityReviewKernel} from '../src/wallet-ide-identity-review-kernel.mjs';
+import {WalletIDEPublicationReviewKernel} from '../src/artifact-publication/publication-review-kernel.mjs';
 // Optional original SDK source path for this partial Main checkout only.
 // Resolves ONE public pure DATA parser, not a Native/provider substitute.
 const supplied=process.env.WALLET_PUBLICATION_SDK_ROOT;
@@ -40,4 +41,12 @@ test('actual Main review factory carries parsed semantics into the public review
  runInNewContext(text.replace(/^import .*;$/mg,'').replace('export function createWalletIDEIdentityReview','function createWalletIDEIdentityReview')+'\nthis.factory=createWalletIDEIdentityReview;',context);
  const review=context.factory({vault:{},requestOriginal:'PUBLIC request',expectedOriginal:'PUBLIC request',invocationOriginal:raw,purpose,assertCurrent(){},evidence});
  const view=review.describe();assert.equal(view.publication.projectId,manifest.projectId);assert.equal(view.publication.publicationAuthorized,false);assert.equal(review.status().decision,null);assert.equal(review.status().hasSignedResult,false);assert.doesNotMatch(JSON.stringify(view),/invocationOriginal|pkcs8|wire/);
+});
+test('normal Main factory passes its original Source to Native capture, adopts before read and never signs during review preparation',()=>{
+ const text=readFileSync(new URL('../src/wallet-ide-identity-review.mjs',import.meta.url),'utf8'),body={owner:'PUBLIC-owner',networkId:'PUBLIC-network',requestId:'PUBLIC-request',expiresAtMs:'30000'},source={PUBLIC:'not a production Source'};let captures=0;
+ const evidence={assertSafeToClose(){},persist(){assert.fail('description is not a choice');}},forbidden=()=>assert.fail('description cannot sign or return');
+ const native={copyOriginalReview:()=>({reviewId:'11111111-1111-4111-8111-111111111111',purpose:'ARTIFACT-RELEASE',requestId:body.requestId,account:body.owner,networkId:body.networkId,publication:manifest,publisherId:'PUBLIC-publisher',publisherRegistrationRef:'PUBLIC-ref',publisherRevision:'1',publisherKeyVersion:'2'}),signOriginalRelease:forbidden,copyOriginalSigningOutcome:forbidden,saveOriginalSigningOutcome:forbidden,copyOriginalPublicationResult:forbidden,sendOriginalPublicationResult:forbidden};
+ const context={inspectWalletIDEPublicationReviewData,WalletIDEIdentityReviewKernel,WalletIDEPublicationReviewKernel,Date,isWalletIDEIdentityEvidence:v=>v===evidence,inspectOriginalAuthIdentityRequest:()=>({body}),createOriginalAuthIdentityProofAction:forbidden,captureOriginalWalletPublisherApproval:value=>{assert.equal(value,source);captures++;return native;}};
+ runInNewContext(text.replace(/^import .*;$/mg,'').replace('export function createWalletIDEIdentityReview','function createWalletIDEIdentityReview')+'\nthis.factory=createWalletIDEIdentityReview;',context);
+ const review=context.factory({vault:{},requestOriginal:'PUBLIC request',expectedOriginal:'PUBLIC request',invocationOriginal:raw,purpose,assertCurrent(){},evidence,originalSource:source});assert.equal(captures,0);review.prepare();review.prepare();assert.equal(captures,1);assert.equal(review.describe().nativePublication.publisherKeyVersion,'2');assert.equal(review.status().decision,null);assert.equal(review.status().hasSignedResult,false);
 });

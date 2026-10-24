@@ -21,6 +21,10 @@ test('publication display cannot upgrade verified/current/authorized flags or in
  for(const key of ['artifactVerified','publisherCurrent','publicationAuthorized'])assert.throws(()=>fixture({purpose:'AUTH-PROTECTED-KEY-CALL',approvalAvailable:false,publication:{...publication,[key]:true}}),/REVIEW_INVALID/);
  const f=fixture({purpose:'AUTH-PROTECTED-KEY-CALL',approvalAvailable:false,publication});assert(f.children.some(x=>x.textContent.includes('<img src=x>')));assert(f.children.every(x=>x.innerHTML===undefined));
 });
+test('publication approval names its limited scope and does not infer returned result from recorded alone',async()=>{
+ const publication={byteSize:42,contentDigest:'a'.repeat(64),projectId:'PUBLIC-project',publishPurpose:'release',targetEnvironment:'testnet',version:'PUBLIC-v2',dataOnly:true,artifactVerified:false,publisherCurrent:false,publicationAuthorized:false},nativePublication={publisherId:'PUBLIC-publisher',publisherRegistrationRef:'PUBLIC-ref',publisherRevision:'1',publisherKeyVersion:'2',dataOnly:true};
+ for(const sendReturned of [false,true]){const f=fixture({purpose:'AUTH-PROTECTED-KEY-CALL',approvalAvailable:true,publication,nativePublication});assert.match(f.buttons[0].textContent,/Sign manifest and return/);assert(f.children.some(v=>v.textContent.includes('no remote deployment')));f.reply(async(id,decision)=>({ok:true,value:{reviewId:id,decision,recorded:true,sendReturned}}));await f.buttons[0].click();assert.match(f.messages.at(-1),sendReturned?/not remote authorization/:/return unconfirmed/);assert.equal(f.calls.length,1);}
+});
 test('displays exact purpose/account/network and sends only opaque review ID plus one explicit decision',async()=>{
  const f=fixture();for(const v of [f.review.purpose,f.review.account,f.review.networkId])assert(f.children.some(x=>x.textContent.includes(v)));assert.equal(f.calls.length,0);await f.buttons[0].click();assert.deepEqual(f.calls,[[f.review.reviewId,'approve']]);assert.match(f.messages.at(-1),/not identity authorization/);assert(f.buttons.every(b=>b.disabled));assert.doesNotMatch(JSON.stringify(f.calls),/proof|requestRaw|network|account/);
 });
