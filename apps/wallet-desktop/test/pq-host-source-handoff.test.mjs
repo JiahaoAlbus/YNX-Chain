@@ -20,7 +20,7 @@ test('SourceOwner normal handoff derives exact six-field request only from the v
 // enrollment, Protocol binary, Root or permission is minted by these fixtures.
 async function sourceFixture(){
  const events=[],owner=Object.freeze({PUBLIC:'not a Native owner'}),pair={catalogPath:'/PUBLIC/catalog.json',catalogSha256:'a'.repeat(64)};
- let locked=false,revoked=false,instanceId='PUBLIC-instance',readError=null,readErrorPresent=false,saveError=false,held=false,closeError=false,acquireError=null,recognized=true;
+ let locked=false,revoked=false,instanceId='PUBLIC-instance',readError=null,readErrorPresent=false,saveError=false,held=false,closeError=false,joinError=false,acquireError=null,recognized=true;
  const guard={account:binding.account,assert(){if(locked)throw Object.assign(Error('PUBLIC locked'),{code:'PUBLIC_LOCKED'});}};
  const native={
   acquireOriginalPQHostCatalogSource(){events.push('acquire');if(acquireError)throw acquireError;return owner;},
@@ -28,7 +28,7 @@ async function sourceFixture(){
   readOriginalPQHostCatalogHandoff(value,six){assert.equal(value,owner);assert.deepEqual(six,selection.preparePQHostCatalogBinding(original,binding));events.push('read');if(readErrorPresent)throw readError;return pair;},
   assertOriginalPQHostCatalogSourceCurrent(value,six){assert.equal(value,owner);assert.deepEqual(six,selection.preparePQHostCatalogBinding(original,binding));events.push('current');},
   observeOriginalPQHostCatalogSourceRevocation(){return{version:'YNX-PQ-HOST-CATALOG-SOURCE-OBSERVATION/v1',sourceId:'PUBLIC-source',instanceId,retired:false,revoked,current:!revoked,unknown:false,dataOnly:true,authorized:false};},
-  retireOriginalPQHostCatalogSource(){events.push('retire');},joinOriginalPQHostCatalogSource(){events.push('join');},
+  retireOriginalPQHostCatalogSource(){events.push('retire');},joinOriginalPQHostCatalogSource(){events.push('join');if(joinError)throw Object.assign(Error('PUBLIC child active'),{code:'PUBLIC_CHILD_ACTIVE'});},
   closeOriginalPQHostCatalogSource(){events.push('close');if(closeError)throw false;},readOriginalPQHostCatalogSourceStatus(){return{PUBLIC:true};}
  };
  const receiver={receive(six,result){assert.deepEqual(six,selection.preparePQHostCatalogBinding(original,binding));assert.deepEqual(result,pair);events.push('receive');if(saveError){held=true;throw Object.assign(Error('PUBLIC storage UNKNOWN'),{code:'PUBLIC_STORAGE_UNKNOWN'});}},select(){events.push('select');if(held)throw Error('PUBLIC held');return pair;},pending:()=>held,reconcile(){events.push('reconcile');held=false;},assertSafeToClose(){if(held)throw Error('PUBLIC held');}};
@@ -36,7 +36,7 @@ async function sourceFixture(){
  const fixed="const loadOriginalPQHostCatalogSource=()=>import('../../../packages/wallet-auth/src/original-pq-host-catalog-source.js');";
  assert(raw.includes(fixed));
  const create=Function('types','exactData','preparePQHostCatalogBinding','loadOriginalPQHostCatalogSource',raw.replace(/^import .*;\n/gm,'').replace(fixed,'').replace(/^export /gm,'')+'\nreturn createOriginalPQHostSource;')(types,exactData,selection.preparePQHostCatalogBinding,async()=>native);
- return{source:create({original,binding,receiver}),guard,events,owner,receiver,pair,lock:()=>{locked=true;},revoke:()=>{revoked=true;},changeInstance:()=>{instanceId='PUBLIC-replacement';},readError:value=>{readErrorPresent=true;readError=value;},saveError:()=>{saveError=true;},closeError:()=>{closeError=true;},partial:()=>{acquireError=Object.assign(Error('PUBLIC partial'),{partial:owner});},unrecognized:()=>{recognized=false;},afterRead:fn=>{const read=native.readOriginalPQHostCatalogHandoff;native.readOriginalPQHostCatalogHandoff=(...args)=>{const result=read(...args);fn();return result;};}};
+ return{source:create({original,binding,receiver}),guard,events,owner,receiver,pair,lock:()=>{locked=true;},revoke:()=>{revoked=true;},changeInstance:()=>{instanceId='PUBLIC-replacement';},readError:value=>{readErrorPresent=true;readError=value;},saveError:()=>{saveError=true;},closeError:()=>{closeError=true;},joinError:value=>{joinError=value;},partial:()=>{acquireError=Object.assign(Error('PUBLIC partial'),{partial:owner});},unrecognized:()=>{recognized=false;},afterRead:fn=>{const read=native.readOriginalPQHostCatalogHandoff;native.readOriginalPQHostCatalogHandoff=(...args)=>{const result=read(...args);fn();return result;};}};
 }
 test('controlled normal Source handoff actually invokes receive before selection and retains the same private owner',async()=>{
  const f=await sourceFixture();await f.source.acquire(f.guard);assert.deepEqual(f.source.catalog(),f.pair);
@@ -61,6 +61,12 @@ test('controlled unknown registrar outcome cannot be retried or discarded by clo
  const f=await sourceFixture();f.readError(false);await assert.rejects(f.source.acquire(f.guard),error=>error===false);
  await f.source.close();assert.throws(()=>f.source.assertSafeToClose());assert.throws(()=>f.source.save(f.guard),{code:'PQ_HOST_ORIGINAL_SOURCE_OUTCOME_UNKNOWN'});
  await assert.rejects(f.source.acquire(f.guard),{code:'PQ_HOST_ORIGINAL_SOURCE_ALREADY_ENTERED'});assert.equal(f.events.filter(x=>x==='read').length,1);
+});
+test('same original child later exits: confirmed cleanup closes resource but keeps first cleanup cause and UNKNOWN read debt',async()=>{
+ const f=await sourceFixture();f.readError(false);await assert.rejects(f.source.acquire(f.guard),error=>error===false);
+ f.joinError(true);await assert.rejects(f.source.close(),{code:'PUBLIC_CHILD_ACTIVE'});assert.equal(f.source.status().closed,false);assert(!f.events.includes('close'));
+ f.joinError(false);await f.source.close();assert.equal(f.source.status().closed,true);assert.equal(f.source.status().cleanupCausePresent,true);
+ assert.throws(()=>f.source.assertSafeToClose());assert.throws(()=>f.source.save(f.guard),{code:'PQ_HOST_ORIGINAL_SOURCE_OUTCOME_UNKNOWN'});assert.equal(f.events.filter(x=>x==='read').length,1);assert.equal(f.events.filter(x=>x==='acquire').length,1);
 });
 test('controlled receive UNKNOWN permits only same-byte local reconciliation, never another registrar call',async()=>{
  const f=await sourceFixture();f.saveError();await assert.rejects(f.source.acquire(f.guard),{code:'PUBLIC_STORAGE_UNKNOWN'});await f.source.close();assert.throws(()=>f.source.assertSafeToClose());

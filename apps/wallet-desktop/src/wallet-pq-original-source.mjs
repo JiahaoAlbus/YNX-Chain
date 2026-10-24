@@ -73,7 +73,11 @@ export function createOriginalPQHostSource({original,binding,receiver}){
    if(closed)return;
    try{api.retire();await api.join();
     if(owner){recognized();if(methods.closeOriginalPQHostCatalogSource(owner)!==undefined)fail('PQ_HOST_ORIGINAL_SOURCE_CLOSE_INCOMPLETE');}
-    if(cleanupPresent)throw cleanupCause;closed=true;
+    // Only the same original Native join and close acknowledgement may clear
+    // resource custody. Keep earlier cleanup diagnostics and independent
+    // UNKNOWN read debt: a past unjoined child must not mask its later actual
+    // exit, nor does confirmed cleanup imply registration success.
+    closed=true;
    }catch(cause){cleanup(cause);throw cause;}
   },
   // Explicit saving is only same-byte receiver reconciliation. No second
