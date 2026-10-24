@@ -80,6 +80,20 @@ func TestBlockJournalPrefixSuffixReplayDetailsRealSignedHistoryAndFailures(t *te
 			if parts.Finalize.Calls != 1 || parts.MemoryCommit.Calls != 1 || parts.FinalValidate.Calls != 1 || total > last.WorkPhases.SuffixReplay.DurationNs {
 				t.Fatal("child work/time coverage differs")
 			}
+			f := parts.FinalizeDetails
+			if f == nil {
+				t.Fatal("Finalize children missing")
+			}
+			var nested int64
+			for _, phase := range []BlockJournalPrefixPhase{f.CloneExecutionState, f.ExecuteTransactions, f.SealState, f.BuildResponse} {
+				if phase.Calls != 1 || phase.Errors != 0 || phase.DurationNs <= 0 {
+					t.Fatal("Finalize child coverage differs", phase)
+				}
+				nested += phase.DurationNs
+			}
+			if nested > parts.Finalize.DurationNs {
+				t.Fatal("Finalize children exceed parent")
+			}
 		} else if *parts != (BlockJournalFrameReplayPhases{}) {
 			t.Fatal("cold full replay mislabeled as suffix")
 		}
@@ -92,6 +106,15 @@ func TestBlockJournalPrefixSuffixReplayDetailsRealSignedHistoryAndFailures(t *te
 	last.WorkPhases.SuffixReplayDetails.FinalValidate.Calls = 999
 	if aggregate.SuffixReplayDetails.FinalValidate.Calls != expected {
 		t.Fatal("aggregate aliases caller counters")
+	}
+	last.WorkPhases.SuffixReplayDetails.FinalizeDetails.SealState.Calls = 999
+	if aggregate.SuffixReplayDetails.FinalizeDetails.SealState.Calls != aggregate.SuffixReplay.Calls {
+		t.Fatal("aggregate aliases nested Finalize counters")
+	}
+	copy := aggregate.SuffixReplayDetails.Clone()
+	copy.FinalizeDetails.SealState.Calls = 999
+	if aggregate.SuffixReplayDetails.FinalizeDetails.SealState.Calls != aggregate.SuffixReplay.Calls {
+		t.Fatal("clone aliases nested Finalize counters")
 	}
 	// Use the real31 ->32 append pair. The next real33 write compacts the
 	// checkpoint and cannot be assumed to preserve the previous byte prefix.

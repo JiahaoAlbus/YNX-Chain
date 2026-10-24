@@ -172,7 +172,7 @@ func (r *durableReader) stats() durableReaderStats {
 		r.prefixMu.Lock()
 		v := r.prefixStats
 		if v.WorkPhases.SuffixReplayDetails != nil {
-			details := *v.WorkPhases.SuffixReplayDetails
+			details := v.WorkPhases.SuffixReplayDetails.Clone()
 			v.WorkPhases.SuffixReplayDetails = &details
 		}
 		if v.WorkPhases.CertificatePublishDetails != nil {

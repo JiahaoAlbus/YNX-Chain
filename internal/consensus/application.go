@@ -628,7 +628,11 @@ func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestP
 	return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_ACCEPT}, nil
 }
 
-func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
+func (a *Application) FinalizeBlock(ctx context.Context, req *abcitypes.RequestFinalizeBlock) (*abcitypes.ResponseFinalizeBlock, error) {
+	return a.finalizeBlockWithReplayTiming(ctx, req, nil)
+}
+
+func (a *Application) finalizeBlockWithReplayTiming(_ context.Context, req *abcitypes.RequestFinalizeBlock, phases *BlockJournalFinalizePhases) (*abcitypes.ResponseFinalizeBlock, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.pending != nil {
@@ -653,42 +657,54 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		}
 		req = &owned
 	}
-	state := a.cloneExecutionState()
-	results := make([]*abcitypes.ExecTxResult, len(req.Txs))
-	for i, payload := range req.Txs {
-		next, tx, err := a.applyTransaction(state, payload, req.Height, req.Time)
-		if err != nil {
-			results[i] = &abcitypes.ExecTxResult{Code: transactionCode(err), Log: err.Error()}
-			continue
+	var state executionState
+	_ = phases.measure("cloneExecutionState", func() error { state = a.cloneExecutionState(); return nil })
+	var results []*abcitypes.ExecTxResult
+	_ = phases.measure("executeTransactions", func() error {
+		results = make([]*abcitypes.ExecTxResult, len(req.Txs))
+		for i, payload := range req.Txs {
+			next, tx, err := a.applyTransaction(state, payload, req.Height, req.Time)
+			if err != nil {
+				results[i] = &abcitypes.ExecTxResult{Code: transactionCode(err), Log: err.Error()}
+				continue
+			}
+			state = next
+			events := []abcitypes.Event{}
+			if tx.event.Type != "" {
+				events = append(events, tx.event)
+			}
+			results[i] = &abcitypes.ExecTxResult{
+				Code:    abcitypes.CodeTypeOK,
+				Data:    []byte(tx.resultHash(payload)),
+				GasUsed: tx.gasUsed(),
+				Log:     tx.typeName,
+				Events:  events,
+			}
 		}
-		state = next
-		events := []abcitypes.Event{}
-		if tx.event.Type != "" {
-			events = append(events, tx.event)
-		}
-		results[i] = &abcitypes.ExecTxResult{
-			Code:    abcitypes.CodeTypeOK,
-			Data:    []byte(tx.resultHash(payload)),
-			GasUsed: tx.gasUsed(),
-			Log:     tx.typeName,
-			Events:  events,
-		}
-	}
-	pending, err := sealCommittedState(a.migration, req.Height, state)
+		return nil
+	})
+	var pending CommittedState
+	err := phases.measure("sealState", func() error { var e error; pending, e = sealCommittedState(a.migration, req.Height, state); return e })
 	if err != nil {
 		return nil, fmt.Errorf("seal finalized YNX state: %w", err)
 	}
-	appHash, err := hex.DecodeString(pending.AppHash)
-	if err != nil {
-		return nil, err
-	}
-	response := &abcitypes.ResponseFinalizeBlock{TxResults: results, AppHash: appHash}
-	if a.blockJournal != nil {
-		hash, err := finalizeResponseHash(response)
+	var response *abcitypes.ResponseFinalizeBlock
+	if err := phases.measure("buildResponse", func() error {
+		appHash, err := hex.DecodeString(pending.AppHash)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		a.pendingBlockRequest, a.pendingBlockResponseHash = ownedRequest, hash
+		response = &abcitypes.ResponseFinalizeBlock{TxResults: results, AppHash: appHash}
+		if a.blockJournal != nil {
+			hash, err := finalizeResponseHash(response)
+			if err != nil {
+				return err
+			}
+			a.pendingBlockRequest, a.pendingBlockResponseHash = ownedRequest, hash
+		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 	a.pending = &pending
 	return response, nil

@@ -1,0 +1,48 @@
+{
+  "scope": "local actual32 signed application/journal readbacks; not network or before-after optimization proof",
+  "businessSignedExecutedCommitted": 32,
+  "suffixCalls": 30,
+  "finalize": {
+    "calls": 30,
+    "errors": 0,
+    "durationNs": 12405665
+  },
+  "finalizeChildren": {
+    "cloneExecutionState": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 146626
+    },
+    "executeTransactions": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 8729128
+    },
+    "sealState": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 3458666
+    },
+    "buildResponse": {
+      "calls": 30,
+      "errors": 0,
+      "durationNs": 15374
+    }
+  },
+  "shareOfFinalizePercent": {
+    "cloneExecutionState": 1.1819277725136057,
+    "executeTransactions": 70.36404739286446,
+    "sealState": 27.879730752039492,
+    "buildResponse": 0.12392725420201174
+  },
+  "unattributedFinalizeNs": 55871,
+  "gomaxprocs": 1,
+  "gogc": 100,
+  "gomemlimit": "off",
+  "exclusiveHost": false,
+  "rawSHA256": "7a8c9f2fca0e4db2da2c14461f3fc16b73a17d103dc2ea92b8049dfd6c6e64d0",
+  "frozenNetworkSource": "4e4d26a71205866765b57b000c5adf1b6361342a",
+  "networkRun": 40055278746,
+  "networkPerformanceMeasured": false,
+  "priorLocalRunSameConditionComparison": false
+}

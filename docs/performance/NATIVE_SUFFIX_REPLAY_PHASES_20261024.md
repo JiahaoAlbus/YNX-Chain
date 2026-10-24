@@ -31,3 +31,22 @@ GOMAXPROCS=1 go test -race ./internal/consensus -run '^Test(BlockJournal|NativeS
 ```
 
 原CI的prefix差量步骤自动匹配新测试。该细项API尚未被网络客户端选择，旧客户端计数与规范化证书配对读取器保持原形状。下一源码定位转向Finalize中的账户/手续费状态复制、交易执行与seal/app-hash成本，保留验签与完整Validate；网络对比仍只等待已提交Root的4e4d26a71具体一次性授权。持续1000有效final/s×600秒目标未达。
+
+## Finalize进一步细分
+
+后续诊断把同一原Finalize实现分为私有重放用计时入口：复制执行状态、执行交易及生成交易结果、seal状态、构造响应。原公开FinalizeBlock仍调用同一实现且不选计时；只在显式suffix细项API中分配Finalize计数。错误返回、单交易失败结果、持久化请求所有权和锁边界保持。新增计数嵌套在原Finalize内，原Finalize又包含在suffixReplay内，各层不能相加；聚合与客户端快照均深复制这层对象。
+
+另一次本机32笔真实签名日志测得30次增量Finalize累计12.405665ms：
+
+|Finalize子阶段|调用|累计ms|占本轮Finalize|
+|---|---:|---:|---:|
+|复制执行状态|30|0.146626|1.18%|
+|执行交易及结果构造|30|8.729128|70.36%|
+|seal状态|30|3.458666|27.88%|
+|构造响应|30|0.015374|0.12%|
+
+本轮主机未独占，绝对耗时与上面的早一轮明显不同，不能把12.406/4.733作为性能回退或仪表开销的同条件证据。当前结论只限定本轮内部占比：下一步重点是执行与seal内部真实成本，而不是继续盲改最外层复制。小账户/短手续费历史的占比也不能代替2048发送账户原生网络的结果。
+
+[本轮原始计数与摘要](evidence/native-finalize-children-local32-20261024.json)。原raw `native-finalize-child-real32-first.raw` PASS1.394s；新增子计数守恒与嵌套别名断言后，受影响block journal/native suffix/application/commit timing组race PASS12.125s，客户端快照race PASS1.674s，consensus/client vet通过。必要测试仍由原CI匹配，不另造网络或合成业务资格。
+
+Root后来签发了绑定冻结4e4d26a71的once grant。实际唯一Hosted dispatch开始02:42:15.248706Z，原run40055278746/job120756796984精确使用4e4；最初CLI JSON布尔值本地解析拒绝、未创建run的首因已保留，改用gh声明支持的raw-field输入后创建原run，没有重跑未知远端结果。源包记录所有原命令、时间、CI、grant及固定reader。此后Finalize诊断源码与该冻结网络源分离；原网络仍在途，结果未读回前不报告新TPS或延迟提升。

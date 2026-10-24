@@ -181,7 +181,18 @@ func replayBlockJournalFramesWithTiming(ctx context.Context, r io.Reader, migrat
 			}
 			j.replayedTxInputs += len(req.Txs)
 			var response *abci.ResponseFinalizeBlock
-			err := phases.measure("finalize", func() error { var e error; response, e = replay.FinalizeBlock(ctx, &req); return e })
+			err := phases.measure("finalize", func() error {
+				var details *BlockJournalFinalizePhases
+				if phases != nil {
+					if phases.FinalizeDetails == nil {
+						phases.FinalizeDetails = new(BlockJournalFinalizePhases)
+					}
+					details = phases.FinalizeDetails
+				}
+				var e error
+				response, e = replay.finalizeBlockWithReplayTiming(ctx, &req, details)
+				return e
+			})
 			if err != nil {
 				return CommittedState{}, err
 			}
