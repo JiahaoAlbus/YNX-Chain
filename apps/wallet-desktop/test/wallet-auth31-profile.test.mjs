@@ -17,7 +17,7 @@ test('Auth31 has an explicit independent92-input profile without relabeling Auth
  assert.deepEqual(p.tool,{bytes:14702,sha256:'83db7b575e57ceb67cf59efdc767c6988d30eb075877dca44ea55c003888e6be'});
  assert.equal(walletNativeSourceProfile('1.3.0-pq.3.32-auth.28').supplierNodeInputs,91);
  assert.deepEqual(sdkRuntimeUnionProfile(version),{bytes:1464442,sha256:'2070d6ca11b27693fa8d21b97fef71315aab89b2ef6b861105d087fa4657facc',files:9413,totalBytes:77777339});
- for(const n of [29,30,39])assert.throws(()=>walletNativeSourceProfile('1.3.0-pq.3.32-auth.'+n));
+ for(const n of [29,30,40])assert.throws(()=>walletNativeSourceProfile('1.3.0-pq.3.32-auth.'+n));
 });
 test('an Auth28 executed-record identity cannot be relabeled31 or reach supplier and binary reads',{skip:!root},()=>{
  const raw=fs.readFileSync(path.join(root,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')),old=walletNativeSourceProfile('1.3.0-pq.3.32-auth.28');let reads=0;
