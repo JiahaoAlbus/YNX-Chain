@@ -452,7 +452,10 @@ def assert_native_cabi_workflow_contract(raw):
     need(job.split("    steps:\n", 1)[0] == header and "continue-on-error:" not in job)
     push_source = raw.split("  pull_request:\n", 1)[0]
     for leaf in ("cmd/**", "scripts/fixtures/verify-artifact-release-cabi/**",
-                 "scripts/verify/artifact-release-cabi-check.sh"):
+                 "scripts/verify/artifact-release-cabi-check.sh",
+                 "scripts/fixtures/verify-project-control-cabi/**",
+                 "scripts/verify/project-control-cabi-check.sh",
+                 "scripts/verify/seal-project-control-cabi.py"):
         need(push_source.count("      - '" + leaf + "'\n") == 1)
     names = ("Checkout exact Native callee and independent caller source",
              "Install the original pinned Go toolchain",
@@ -464,7 +467,10 @@ def assert_native_cabi_workflow_contract(raw):
              "Verify complete Darwin migration package CLI against original contract inputs",
              "Seal only native library public outputs and exact compile inputs",
              "Upload only public native host archive header and evidence",
-             "Upload only public Main arm64 archive header and executed target evidence")
+             "Upload only public Main arm64 archive header and executed target evidence",
+             "Verify fixed CONTROL key lifecycle and actual C ABI dual signatures",
+             "Seal only executed CONTROL archive and fixed public inputs",
+             "Upload only public fixed CONTROL native archive header and evidence")
     need(len(steps) == len(names))
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
     lines = lambda step: [line for line in step.splitlines() if line.strip()]
@@ -512,7 +518,7 @@ def assert_native_cabi_workflow_contract(raw):
     for required in (
         "if command('git', 'rev-parse', 'HEAD') != os.environ['GITHUB_SHA']:",
         "if module.get('Version') != 'v1.6.5' or module.get('Replace'):",
-        "source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch',",
+        "source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/accountaddress',",
         "'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',",
         "'scripts/verify/artifact-release-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
         "sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}",
@@ -556,6 +562,20 @@ def assert_native_cabi_workflow_contract(raw):
         expected.extend("            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/" + label + "/" + leaf for leaf in leaves)
         expected.extend(["          if-no-files-found: error", "          retention-days: 7"])
         need(lines(step) == expected)
+
+    need(lines(steps[11]) == ["      - name: " + names[11], "        run: |", "          set -euo pipefail",
+        '          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+        "          go test -p 1 -count=1 -timeout=90s ./internal/ynxbatch -run '^TestProjectControl'",
+        '          bash scripts/verify/project-control-cabi-check.sh "$RUNNER_TEMP/ynx-project-control-cabi"'])
+    need(lines(steps[12]) == ["      - name: " + names[12], "        run: |", "          set -euo pipefail", "          umask 077",
+        '          python3 -B scripts/verify/seal-project-control-cabi.py "$RUNNER_TEMP/ynx-project-control-cabi"'])
+    expected = ["      - name: " + names[13],
+        "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "        with:",
+        "          name: ynx-project-control-cabi-native-${{ matrix.runner }}-${{ github.sha }}", "          path: |"]
+    expected.extend("            ${{ runner.temp }}/ynx-project-control-cabi/delivery/" + leaf for leaf in
+        ("libynx_project_control.a", "ynx_project_control.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json"))
+    expected.extend(["          if-no-files-found: error", "          retention-days: 7"])
+    need(lines(steps[13]) == expected)
 
 
 def assert_workflow_contract(raw):
@@ -919,7 +939,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         native, steps = workflow_steps(raw, "artifact-release-cabi")
         actual, arm = steps[3:5]
         runtime, contracts, darwin = steps[5:8]
-        seal, upload, arm_upload = steps[8:]
+        seal, upload, arm_upload = steps[8:11]
+        control, control_seal, control_upload = steps[11:]
 
         def change(before, after):
             self.assertIn(before, native)
@@ -984,7 +1005,16 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(arm_upload, arm_upload.replace("/delivery/darwin-arm64/SOURCE.json", "/input/SYNTHETIC-ONLY-b.der", 1)),
             change(arm_upload, arm_upload.replace("        if: runner.os == 'macOS'\n", "", 1)),
             raw.replace(native, native.replace(upload, "", 1).replace(seal, upload + seal, 1), 1),
-            raw.replace("      - 'scripts/fixtures/verify-artifact-release-cabi/**'\n", "", 1)]
+            raw.replace("      - 'scripts/fixtures/verify-artifact-release-cabi/**'\n", "", 1),
+            change(control, ""), change(control_seal, ""), change(control_upload, ""),
+            change(control, control.replace("        run: |\n", "        if: false\n        run: |\n", 1)),
+            change("go test -p 1 -count=1 -timeout=90s ./internal/ynxbatch -run '^TestProjectControl'", "true # skipped CONTROL original lifecycle"),
+            change('bash scripts/verify/project-control-cabi-check.sh "$RUNNER_TEMP/ynx-project-control-cabi"', "true # skipped actual CONTROL C caller"),
+            change(control_seal, control_seal.replace("        run: |\n", "        if: always()\n        run: |\n", 1)),
+            change(control_upload, control_upload.replace("if-no-files-found: error", "if-no-files-found: ignore", 1)),
+            change(control_upload, control_upload.replace("/delivery/SOURCE.json", "/input/SYNTHETIC-ONLY-a.der", 1)),
+            raw.replace(native, native.replace(control, "", 1).replace(control_upload, control_upload + control, 1), 1),
+            raw.replace("      - 'scripts/fixtures/verify-project-control-cabi/**'\n", "", 1)]
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):

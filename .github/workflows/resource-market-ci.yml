@@ -94,6 +94,9 @@ on:
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
       - 'scripts/fixtures/verify-artifact-release-cabi/**'
       - 'scripts/verify/artifact-release-cabi-check.sh'
+      - 'scripts/fixtures/verify-project-control-cabi/**'
+      - 'scripts/verify/project-control-cabi-check.sh'
+      - 'scripts/verify/seal-project-control-cabi.py'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/resource-market-ci.yml'
@@ -434,7 +437,7 @@ jobs:
           module = json.loads(command('go', 'list', '-m', '-json', 'github.com/cloudflare/circl'))
           if module.get('Version') != 'v1.6.5' or module.get('Replace'):
               raise RuntimeError('original fixed provider dependency required')
-          source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch',
+          source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/accountaddress',
               'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',
               'scripts/verify/artifact-release-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()
           sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}
@@ -503,6 +506,30 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/libynx_artifact_release.a
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/ynx_artifact_release.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/SOURCE.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Verify fixed CONTROL key lifecycle and actual C ABI dual signatures
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          go test -p 1 -count=1 -timeout=90s ./internal/ynxbatch -run '^TestProjectControl'
+          bash scripts/verify/project-control-cabi-check.sh "$RUNNER_TEMP/ynx-project-control-cabi"
+      - name: Seal only executed CONTROL archive and fixed public inputs
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B scripts/verify/seal-project-control-cabi.py "$RUNNER_TEMP/ynx-project-control-cabi"
+      - name: Upload only public fixed CONTROL native archive header and evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-project-control-cabi-native-${{ matrix.runner }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-project-control-cabi/delivery/libynx_project_control.a
+            ${{ runner.temp }}/ynx-project-control-cabi/delivery/ynx_project_control.h
+            ${{ runner.temp }}/ynx-project-control-cabi/delivery/SOURCE.json
+            ${{ runner.temp }}/ynx-project-control-cabi/delivery/PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-project-control-cabi/delivery/PUBLIC-INTEROP.json
           if-no-files-found: error
           retention-days: 7
 
