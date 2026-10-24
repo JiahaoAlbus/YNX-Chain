@@ -52,9 +52,9 @@
     "requiredInNormalCI": true,
     "locallySkippedOnDarwin": true,
     "processes": 16,
-    "maximumChildMemoryMiB": 8,
     "sourceDeadlineSeconds": 10,
-    "resourceQualification": false
+    "resourceQualification": false,
+    "childAllocationMiB": 8
   },
   "kernelReferences": [
     {
@@ -72,5 +72,14 @@
   "actualFourNodeRepairVerified": false,
   "normalCIPending": true,
   "newHeavyDispatch": false,
-  "next": "Run existing normal CI including actual bounded Linux procfs probe; inspect actual valid/retired/refused counts without treating a refusal as resource admission. Only then freeze and request another pressure1 once paired run."
+  "next": "Run existing normal CI including actual bounded Linux procfs probe; inspect actual valid/retired/refused counts without treating a refusal as resource admission. Only then freeze and request another pressure1 once paired run.",
+  "codeCommit": "37999dda0e45e961ce19c60f11f16ccd87e52ca8",
+  "sourceGuard": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-confirmation-source-guard-01.raw",
+    "bytes": 4436,
+    "sha256": "001710d3f89f01351809f51cfc624c8915a6374b3be37ea36baa94ab7edf7f50",
+    "tests": 24,
+    "passed": true,
+    "seconds": 16.7075845
+  }
 }
