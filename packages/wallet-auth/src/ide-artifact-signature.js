@@ -91,6 +91,22 @@ export function inspectIDEArtifactSignatureData(signatureOriginal,manifestOrigin
  return Object.freeze({...p.b,purpose,keyRole:role,signatureVerified:true,memberCount:1,memberIndex:0,dataOnly:true,trusted:false,authorized:false,nativeAdmission:false,registered:false,current:false,publicationAuthorized:false});
  }catch{invalid();}finally{verifier?.clear();}
 }
+// Normal Source selector counterpart. Recover only the EXISTING three-field
+// ARTIFACT-RELEASE message from the original batch decoder, then run the SAME
+// N1 verifier against independently selected registered public bytes. This is
+// not a key resolver, signature domain, registry or publication grant.
+export function inspectIDEArtifactSignedManifestData(signatureOriginal,expectedPublicOriginal){
+ try{
+  const wire=bytes(signatureOriginal,100000),expected=publicData(expectedPublicOriginal),decoded=decodeMember(wire),raw=decoded.message;
+  if(!Buffer.isBuffer(raw)||raw.length<4||raw.readUInt32BE(0)!==3)invalid();
+  let at=4;const fields=[];
+  for(const cap of [64,8192,16384]){if(at+4>raw.length)invalid();const n=raw.readUInt32BE(at);at+=4;if(!n||n>cap||n>raw.length-at)invalid();fields.push(raw.subarray(at,at+n));at+=n;}
+  if(at!==raw.length||!fields[0].equals(Buffer.from(messageTag))||!fields[1].equals(expected.raw)||!encodeFields(fields).equals(raw))invalid();
+  const manifestOriginal=Buffer.from(fields[2]);
+  const projection=inspectIDEArtifactSignatureData(new Uint8Array(wire),new Uint8Array(manifestOriginal),new Uint8Array(expected.raw));
+  return Object.freeze({...projection,manifestOriginal:manifestOriginal.toString('base64url')});
+ }catch{invalid();}
+}
 export function signIDEArtifactManifestData(handle,manifestOriginal,expectedPublicOriginal){
  const s=live(handle),p=publicData(expectedPublicOriginal),m=manifest(manifestOriginal,p);if(!s.raw.equals(p.raw))invalid();
  const signed=batchSign(s.native,{chainId:Buffer.from(p.b.networkId,'hex'),owner:p.b.subjectOwner,purpose},[message(p,m)]);let wire,first;
