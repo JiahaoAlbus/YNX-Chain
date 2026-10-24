@@ -1,0 +1,1873 @@
+{
+  "comparison": {
+    "schema": 1,
+    "runId": 40055278746,
+    "sourceCommit": "4e4d26a71205866765b57b000c5adf1b6361342a",
+    "originalQualifiedPairSHA256": "7861c05d0a95ba1874217daf73d7fbe1ac43db6c9e5ace417a152bc46b17a1db",
+    "cases": 2,
+    "finalTransactionsPerCase": 8192,
+    "metrics": {
+      "finalSubmittedPerMeasurementSecond": {
+        "before": 328.21861754321657,
+        "after": 321.80094541503786,
+        "change": -6.417672128178708,
+        "changePercent": -1.9553041129160453
+      },
+      "rpcSubmissionsPerMeasurementSecond": {
+        "before": 328.21861754321657,
+        "after": 321.80094541503786,
+        "change": -6.417672128178708,
+        "changePercent": -1.9553041129160453
+      },
+      "checkTxAcceptedPerMeasurementSecond": {
+        "before": 328.21861754321657,
+        "after": 321.80094541503786,
+        "change": -6.417672128178708,
+        "changePercent": -1.9553041129160453
+      },
+      "effectiveBusinessIncludedPerMeasurementSecond": {
+        "before": 328.21861754321657,
+        "after": 321.80094541503786,
+        "change": -6.417672128178708,
+        "changePercent": -1.9553041129160453
+      },
+      "measurementWindowSeconds": {
+        "before": 24.958974178,
+        "after": 25.45673068,
+        "change": 0.49775650200000143,
+        "changePercent": 1.9942987177683946
+      },
+      "offeredInterarrivalRate": {
+        "before": 345.7501344299296,
+        "after": 340.7003839185666,
+        "change": -5.049750511362959,
+        "changePercent": -1.4605201874148044
+      },
+      "clientCPU.totalNs": {
+        "before": 17784779000,
+        "after": 18006165000,
+        "change": 221386000,
+        "changePercent": 1.2448060220483947
+      },
+      "clientCPU.userNs": {
+        "before": 17058360000,
+        "after": 17268305000,
+        "change": 209945000,
+        "changePercent": 1.2307455112918309
+      },
+      "clientCPU.systemNs": {
+        "before": 726419000,
+        "after": 737860000,
+        "change": 11441000,
+        "changePercent": 1.574986337086437
+      },
+      "clientCPU.cpuPercentOfOneCore": {
+        "before": 71.25602313208091,
+        "after": 70.73241260075517,
+        "change": -0.523610531325744,
+        "changePercent": -0.7348298548112586
+      },
+      "sampledPeaks.rssBytes": {
+        "before": 1001398272,
+        "after": 1050992640,
+        "change": 49594368,
+        "changePercent": 4.952511841362561
+      },
+      "sampledPeaks.threads": {
+        "before": 65,
+        "after": 67,
+        "change": 2,
+        "changePercent": 3.076923076923066
+      },
+      "sampledPeaks.privateBytes": {
+        "before": 130315762,
+        "after": 124941853,
+        "change": -5373909,
+        "changePercent": -4.123759795073756
+      },
+      "sampledPeaks.buildBytes": {
+        "before": 119121298,
+        "after": 119121298,
+        "change": 0,
+        "changePercent": 0.0
+      },
+      "readerWall.loadNs": {
+        "before": 9180672282,
+        "after": 8977268508,
+        "change": -203403774,
+        "changePercent": -2.215565132401054
+      },
+      "readerWallPerFinalNs.loadNs": {
+        "before": 1120687.5344238281,
+        "after": 1095857.9721679688,
+        "change": -24829.562255859375,
+        "changePercent": -2.215565132401054
+      },
+      "readerWall.hashNs": {
+        "before": 273561688,
+        "after": 253436334,
+        "change": -20125354,
+        "changePercent": -7.356788206395337
+      },
+      "readerWallPerFinalNs.hashNs": {
+        "before": 33393.7607421875,
+        "after": 30937.052490234375,
+        "change": -2456.708251953125,
+        "changePercent": -7.356788206395337
+      },
+      "readerWall.captureNs": {
+        "before": 816648429,
+        "after": 816161603,
+        "change": -486826,
+        "changePercent": -0.059612678199372215
+      },
+      "readerWallPerFinalNs.captureNs": {
+        "before": 99688.52893066406,
+        "after": 99629.10192871094,
+        "change": -59.427001953125,
+        "changePercent": -0.059612678199372215
+      },
+      "readerWall.decodeNs": {
+        "before": 7965828082,
+        "after": 7775502387,
+        "change": -190325695,
+        "changePercent": -2.3892769595425967
+      },
+      "readerWallPerFinalNs.decodeNs": {
+        "before": 972391.1232910156,
+        "after": 949158.0062255859,
+        "change": -23233.117065429688,
+        "changePercent": -2.3892769595425967
+      },
+      "readerWall.indexPublishNs": {
+        "before": 114828451,
+        "after": 119032658,
+        "change": 4204207,
+        "changePercent": 3.6612938373609127
+      },
+      "readerWallPerFinalNs.indexPublishNs": {
+        "before": 14017.144897460938,
+        "after": 14530.353759765625,
+        "change": 513.2088623046875,
+        "changePercent": 3.6612938373609127
+      },
+      "readerWall.transactionVerifyNs": {
+        "before": 19741044,
+        "after": 27209556,
+        "change": 7468512,
+        "changePercent": 37.832406432000255
+      },
+      "readerWallPerFinalNs.transactionVerifyNs": {
+        "before": 2409.79541015625,
+        "after": 3321.47900390625,
+        "change": 911.68359375,
+        "changePercent": 37.832406432000255
+      },
+      "readerGate.acquisitions": {
+        "before": 103,
+        "after": 109,
+        "change": 6,
+        "changePercent": 5.825242718446599
+      },
+      "readerGate.waitNs": {
+        "before": 10546501412,
+        "after": 9956388992,
+        "change": -590112420,
+        "changePercent": -5.595338178484088
+      },
+      "readerGate.holdNs": {
+        "before": 9201284687,
+        "after": 9005372021,
+        "change": -195912666,
+        "changePercent": -2.129188180393926
+      },
+      "readerGate.maxWaitNs": {
+        "before": 329046481,
+        "after": 347792916,
+        "change": 18746435,
+        "changePercent": 5.697199660980412
+      },
+      "readerGate.maxHoldNs": {
+        "before": 448676822,
+        "after": 423753828,
+        "change": -24922994,
+        "changePercent": -5.554776350805124
+      },
+      "reader.snapshotValidations": {
+        "before": 29,
+        "after": 30,
+        "change": 1,
+        "changePercent": 3.4482758620689724
+      },
+      "reader.snapshotCacheHits": {
+        "before": 70,
+        "after": 77,
+        "change": 7,
+        "changePercent": 10.000000000000009
+      },
+      "reader.transactionVerifications": {
+        "before": 8192,
+        "after": 8192,
+        "change": 0,
+        "changePercent": 0.0
+      },
+      "reader.bytesHashed": {
+        "before": 319105067,
+        "after": 349135984,
+        "change": 30030917,
+        "changePercent": 9.410980929362678
+      },
+      "prefix.gateWait.calls": {
+        "before": 29,
+        "after": 30,
+        "change": 1,
+        "changePercent": 3.4482758620689724
+      },
+      "prefix.gateWait.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.gateWait.durationNs": {
+        "before": 51868,
+        "after": 54363,
+        "change": 2495,
+        "changePercent": 4.810287653273693
+      },
+      "prefix.prefixCheck.calls": {
+        "before": 29,
+        "after": 30,
+        "change": 1,
+        "changePercent": 3.4482758620689724
+      },
+      "prefix.prefixCheck.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.prefixCheck.durationNs": {
+        "before": 74569910,
+        "after": 68031183,
+        "change": -6538727,
+        "changePercent": -8.768586417765556
+      },
+      "prefix.privateJSON.calls": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateJSON.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateJSON.durationNs": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateValidate.calls": {
+        "before": 27,
+        "after": 28,
+        "change": 1,
+        "changePercent": 3.703703703703698
+      },
+      "prefix.privateValidate.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateValidate.durationNs": {
+        "before": 838679780,
+        "after": 851958723,
+        "change": 13278943,
+        "changePercent": 1.5833150287705822
+      },
+      "prefix.fullReplay.calls": {
+        "before": 2,
+        "after": 2,
+        "change": 0,
+        "changePercent": 0.0
+      },
+      "prefix.fullReplay.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.fullReplay.durationNs": {
+        "before": 587713398,
+        "after": 409107591,
+        "change": -178605807,
+        "changePercent": -30.389949864644738
+      },
+      "prefix.suffixSetup.calls": {
+        "before": 27,
+        "after": 28,
+        "change": 1,
+        "changePercent": 3.703703703703698
+      },
+      "prefix.suffixSetup.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.suffixSetup.durationNs": {
+        "before": 890827112,
+        "after": 730803776,
+        "change": -160023336,
+        "changePercent": -17.96345596630202
+      },
+      "prefix.suffixReplay.calls": {
+        "before": 27,
+        "after": 28,
+        "change": 1,
+        "changePercent": 3.703703703703698
+      },
+      "prefix.suffixReplay.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.suffixReplay.durationNs": {
+        "before": 2843756706,
+        "after": 3217856797,
+        "change": 374100091,
+        "changePercent": 13.155137013327888
+      },
+      "prefix.suffixEncode.calls": {
+        "before": 27,
+        "after": 28,
+        "change": 1,
+        "changePercent": 3.703703703703698
+      },
+      "prefix.suffixEncode.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.suffixEncode.durationNs": {
+        "before": 807031738,
+        "after": 852573599,
+        "change": 45541861,
+        "changePercent": 5.643131348571573
+      },
+      "prefix.canonicalCopy.calls": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.canonicalCopy.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.canonicalCopy.durationNs": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.certificatePublish.calls": {
+        "before": 29,
+        "after": 30,
+        "change": 1,
+        "changePercent": 3.4482758620689724
+      },
+      "prefix.certificatePublish.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.certificatePublish.durationNs": {
+        "before": 1685550450,
+        "after": 1369094443,
+        "change": -316456007,
+        "changePercent": -18.77463869443955
+      },
+      "prefix.privateNativeClone.calls": {
+        "before": 27,
+        "after": 28,
+        "change": 1,
+        "changePercent": 3.703703703703698
+      },
+      "prefix.privateNativeClone.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "prefix.privateNativeClone.durationNs": {
+        "before": 237053921,
+        "after": 275422910,
+        "change": 38368989,
+        "changePercent": 16.18576433502654
+      },
+      "supplyWall.pacingWaitNs": {
+        "before": 20352376161,
+        "after": 20068837375,
+        "change": -283538786,
+        "changePercent": -1.3931483172138326
+      },
+      "supplyWall.pacingPositiveRemainingNs": {
+        "before": 4660213189,
+        "after": 4640914984,
+        "change": -19298205,
+        "changePercent": -0.4141056260162479
+      },
+      "supplyWall.pacingWakeLatenessNs": {
+        "before": 15691705917,
+        "after": 15427563694,
+        "change": -264142223,
+        "changePercent": -1.6833238170353093
+      },
+      "supplyWall.signNs": {
+        "before": 760569345,
+        "after": 877125899,
+        "change": 116556554,
+        "changePercent": 15.324908210703647
+      },
+      "supplyWall.encodeNs": {
+        "before": 1448069656,
+        "after": 1316644568,
+        "change": -131425088,
+        "changePercent": -9.075881637008765
+      },
+      "supplyWall.journalAppendNs": {
+        "before": 330759716,
+        "after": 639692200,
+        "change": 308932484,
+        "changePercent": 93.40087956781291
+      },
+      "supplyWall.terminalSinkNs": {
+        "before": 993366859,
+        "after": 975386084,
+        "change": -17980775,
+        "changePercent": -1.8100840426769294
+      },
+      "observer.block_capture_and_merkle.attempts": {
+        "before": 122,
+        "after": 126,
+        "change": 4,
+        "changePercent": 3.2786885245901676
+      },
+      "observer.block_capture_and_merkle.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.block_capture_and_merkle.durationNs": {
+        "before": 67373257,
+        "after": 138418737,
+        "change": 71045480,
+        "changePercent": 105.45056475449894
+      },
+      "observer.block_envelope_verification.attempts": {
+        "before": 743,
+        "after": 820,
+        "change": 77,
+        "changePercent": 10.363391655450883
+      },
+      "observer.block_envelope_verification.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.block_envelope_verification.durationNs": {
+        "before": 28466028,
+        "after": 9552962,
+        "change": -18913066,
+        "changePercent": -66.44083256013099
+      },
+      "observer.block_query.attempts": {
+        "before": 614,
+        "after": 685,
+        "change": 71,
+        "changePercent": 11.56351791530945
+      },
+      "observer.block_query.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.block_query.durationNs": {
+        "before": 16478645962,
+        "after": 18907254403,
+        "change": 2428608441,
+        "changePercent": 14.737912608841807
+      },
+      "observer.block_results_query.attempts": {
+        "before": 130,
+        "after": 139,
+        "change": 9,
+        "changePercent": 6.923076923076921
+      },
+      "observer.block_results_query.errors": {
+        "before": 8,
+        "after": 13,
+        "change": 5,
+        "changePercent": 62.5
+      },
+      "observer.block_results_query.durationNs": {
+        "before": 7864029698,
+        "after": 8185923359,
+        "change": 321893661,
+        "changePercent": 4.0932406585629355
+      },
+      "observer.commit_query.attempts": {
+        "before": 130,
+        "after": 139,
+        "change": 9,
+        "changePercent": 6.923076923076921
+      },
+      "observer.commit_query.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.commit_query.durationNs": {
+        "before": 3868853056,
+        "after": 3956977614,
+        "change": 88124558,
+        "changePercent": 2.2777954273381473
+      },
+      "observer.durable_business_batch.attempts": {
+        "before": 103,
+        "after": 109,
+        "change": 6,
+        "changePercent": 5.825242718446599
+      },
+      "observer.durable_business_batch.errors": {
+        "before": 8,
+        "after": 6,
+        "change": -2,
+        "changePercent": -25.0
+      },
+      "observer.durable_business_batch.durationNs": {
+        "before": 19752013069,
+        "after": 18984081354,
+        "change": -767931715,
+        "changePercent": -3.887865567511384
+      },
+      "observer.published_info_query.attempts": {
+        "before": 95,
+        "after": 103,
+        "change": 8,
+        "changePercent": 8.421052631578952
+      },
+      "observer.published_info_query.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.published_info_query.durationNs": {
+        "before": 1476352234,
+        "after": 1785481618,
+        "change": 309129384,
+        "changePercent": 20.938728365821667
+      },
+      "observer.published_state_verification.attempts": {
+        "before": 95,
+        "after": 103,
+        "change": 8,
+        "changePercent": 8.421052631578952
+      },
+      "observer.published_state_verification.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.published_state_verification.durationNs": {
+        "before": 74334,
+        "after": 77916,
+        "change": 3582,
+        "changePercent": 4.81879086286221
+      },
+      "observer.quorum_verification.attempts": {
+        "before": 130,
+        "after": 139,
+        "change": 9,
+        "changePercent": 6.923076923076921
+      },
+      "observer.quorum_verification.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.quorum_verification.durationNs": {
+        "before": 23042724,
+        "after": 28253490,
+        "change": 5210766,
+        "changePercent": 22.61349829994057
+      },
+      "observer.transaction_inclusion_proof.attempts": {
+        "before": 9030,
+        "after": 8558,
+        "change": -472,
+        "changePercent": -5.227021040974533
+      },
+      "observer.transaction_inclusion_proof.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.transaction_inclusion_proof.durationNs": {
+        "before": 23778234,
+        "after": 86124150,
+        "change": 62345916,
+        "changePercent": 262.1974197074518
+      },
+      "observer.validators_query.attempts": {
+        "before": 130,
+        "after": 139,
+        "change": 9,
+        "changePercent": 6.923076923076921
+      },
+      "observer.validators_query.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "observer.validators_query.durationNs": {
+        "before": 2706883136,
+        "after": 3300384359,
+        "change": 593501223,
+        "changePercent": 21.92563155412115
+      },
+      "certificate.payloadCopy.calls": {
+        "before": 29,
+        "after": 30,
+        "change": 1,
+        "changePercent": 3.4482758620689724
+      },
+      "certificate.payloadCopy.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.payloadCopy.durationNs": {
+        "before": 67813817,
+        "after": 74289639,
+        "change": 6475822,
+        "changePercent": 9.549413801615092
+      },
+      "certificate.strictJSON.calls": {
+        "before": 29,
+        "after": 0,
+        "change": -29,
+        "changePercent": -100.0
+      },
+      "certificate.strictJSON.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.strictJSON.durationNs": {
+        "before": 1471998133,
+        "after": 0,
+        "change": -1471998133,
+        "changePercent": -100.0
+      },
+      "certificate.nativeClone.calls": {
+        "before": 29,
+        "after": 30,
+        "change": 1,
+        "changePercent": 3.4482758620689724
+      },
+      "certificate.nativeClone.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.nativeClone.durationNs": {
+        "before": 145390991,
+        "after": 82190373,
+        "change": -63200618,
+        "changePercent": -43.46941826677555
+      },
+      "certificate.canonicalNative.calls": {
+        "before": 0,
+        "after": 30,
+        "change": 30,
+        "changePercent": null
+      },
+      "certificate.canonicalNative.errors": {
+        "before": 0,
+        "after": 0,
+        "change": 0,
+        "changePercent": null
+      },
+      "certificate.canonicalNative.durationNs": {
+        "before": 0,
+        "after": 1212488790,
+        "change": 1212488790,
+        "changePercent": null
+      },
+      "certificate.payloadBytes": {
+        "before": 129436344,
+        "after": 131326016,
+        "change": 1889672,
+        "changePercent": 1.4599238062533715
+      },
+      "certificate.prefixBytesHashed": {
+        "before": 96944087,
+        "after": 98629157,
+        "change": 1685070,
+        "changePercent": 1.7381874977068001
+      },
+      "certificate.canonicalNativeAccepted": {
+        "before": 0,
+        "after": 30,
+        "change": 30,
+        "changePercent": null
+      }
+    },
+    "currentInputReuseBefore": {
+      "attempts": 94,
+      "errors": 0,
+      "enabled": true,
+      "hits": 65,
+      "misses": 29,
+      "comparedBytes": 207697058,
+      "lookupNs": 9600511,
+      "retainedInputBytes": 21526434
+    },
+    "currentInputReuseAfter": {
+      "attempts": 103,
+      "errors": 0,
+      "enabled": true,
+      "hits": 73,
+      "misses": 30,
+      "comparedBytes": 230381852,
+      "lookupNs": 10195050,
+      "retainedInputBytes": 21615118
+    },
+    "latencies": [
+      {
+        "latencyIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 7552,
+            "maxNs": 551908829,
+            "p50": {
+              "valid": true,
+              "lowerNs": 7552,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 282000000,
+              "upperNs": 282999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 443000000,
+              "upperNs": 443999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 474465,
+            "maxNs": 279690530,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1000000,
+              "upperNs": 1999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 85000000,
+              "upperNs": 85999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 147000000,
+              "upperNs": 147999999,
+              "overflow": false
+            }
+          },
+          "authenticatedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 374760620,
+            "maxNs": 1757286768,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1162000000,
+              "upperNs": 1162999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1504000000,
+              "upperNs": 1504999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1605000000,
+              "upperNs": 1605999999,
+              "overflow": false
+            }
+          },
+          "effectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 374760620,
+            "maxNs": 1757286768,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1162000000,
+              "upperNs": 1162999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1504000000,
+              "upperNs": 1504999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1605000000,
+              "upperNs": 1605999999,
+              "overflow": false
+            }
+          },
+          "final": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 666100750,
+            "maxNs": 2025927052,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1396000000,
+              "upperNs": 1396999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1743000000,
+              "upperNs": 1743999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1870000000,
+              "upperNs": 1870999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 666123003,
+            "maxNs": 2329727188,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1411000000,
+              "upperNs": 1411999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1843000000,
+              "upperNs": 1843999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2127000000,
+              "upperNs": 2127999999,
+              "overflow": false
+            }
+          }
+        },
+        "offerLatencyIntervalsNs": {
+          "offerToEffectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 374775372,
+            "maxNs": 2061086904,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1177000000,
+              "upperNs": 1177999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1598000000,
+              "upperNs": 1598999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1796000000,
+              "upperNs": 1796999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 666123003,
+            "maxNs": 2329727188,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1411000000,
+              "upperNs": 1411999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1843000000,
+              "upperNs": 1843999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2127000000,
+              "upperNs": 2127999999,
+              "overflow": false
+            }
+          }
+        },
+        "stageGapIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 7552,
+            "maxNs": 551908829,
+            "p50": {
+              "valid": true,
+              "lowerNs": 7552,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 282000000,
+              "upperNs": 282999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 443000000,
+              "upperNs": 443999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 474465,
+            "maxNs": 279690530,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1000000,
+              "upperNs": 1999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 85000000,
+              "upperNs": 85999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 147000000,
+              "upperNs": 147999999,
+              "overflow": false
+            }
+          },
+          "checkToObservedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 368339154,
+            "maxNs": 1682310379,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1155000000,
+              "upperNs": 1155999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1498000000,
+              "upperNs": 1498999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1604000000,
+              "upperNs": 1604999999,
+              "overflow": false
+            }
+          },
+          "observedInclusionToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 6128650,
+            "maxNs": 475443900,
+            "p50": {
+              "valid": true,
+              "lowerNs": 268000000,
+              "upperNs": 268999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 388000000,
+              "upperNs": 388999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 475000000,
+              "upperNs": 475443900,
+              "overflow": false
+            }
+          }
+        }
+      },
+      {
+        "latencyIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 2654,
+            "maxNs": 484354511,
+            "p50": {
+              "valid": true,
+              "lowerNs": 2654,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 325000000,
+              "upperNs": 325999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 447000000,
+              "upperNs": 447999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 469879,
+            "maxNs": 281374224,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1000000,
+              "upperNs": 1999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 86000000,
+              "upperNs": 86999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 147000000,
+              "upperNs": 147999999,
+              "overflow": false
+            }
+          },
+          "authenticatedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 388841236,
+            "maxNs": 1993668941,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1193000000,
+              "upperNs": 1193999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1620000000,
+              "upperNs": 1620999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1819000000,
+              "upperNs": 1819999999,
+              "overflow": false
+            }
+          },
+          "effectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 388841236,
+            "maxNs": 1993668941,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1193000000,
+              "upperNs": 1193999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1620000000,
+              "upperNs": 1620999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1819000000,
+              "upperNs": 1819999999,
+              "overflow": false
+            }
+          },
+          "final": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 590739744,
+            "maxNs": 2046660190,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1417000000,
+              "upperNs": 1417999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1802000000,
+              "upperNs": 1802999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1948000000,
+              "upperNs": 1948999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 590757651,
+            "maxNs": 2461391555,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1427000000,
+              "upperNs": 1427999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1957000000,
+              "upperNs": 1957999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2259000000,
+              "upperNs": 2259999999,
+              "overflow": false
+            }
+          }
+        },
+        "offerLatencyIntervalsNs": {
+          "offerToEffectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 415747532,
+            "maxNs": 2328941981,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1205000000,
+              "upperNs": 1205999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1757000000,
+              "upperNs": 1757999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2004000000,
+              "upperNs": 2004999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 590757651,
+            "maxNs": 2461391555,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1427000000,
+              "upperNs": 1427999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1957000000,
+              "upperNs": 1957999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2259000000,
+              "upperNs": 2259999999,
+              "overflow": false
+            }
+          }
+        },
+        "stageGapIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 2654,
+            "maxNs": 484354511,
+            "p50": {
+              "valid": true,
+              "lowerNs": 2654,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 325000000,
+              "upperNs": 325999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 447000000,
+              "upperNs": 447999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 469879,
+            "maxNs": 281374224,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1000000,
+              "upperNs": 1999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 86000000,
+              "upperNs": 86999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 147000000,
+              "upperNs": 147999999,
+              "overflow": false
+            }
+          },
+          "checkToObservedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 362234901,
+            "maxNs": 1973212640,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1179000000,
+              "upperNs": 1179999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1613000000,
+              "upperNs": 1613999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1819000000,
+              "upperNs": 1819999999,
+              "overflow": false
+            }
+          },
+          "observedInclusionToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 9172907,
+            "maxNs": 453543129,
+            "p50": {
+              "valid": true,
+              "lowerNs": 229000000,
+              "upperNs": 229999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 384000000,
+              "upperNs": 384999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 445000000,
+              "upperNs": 445999999,
+              "overflow": false
+            }
+          }
+        }
+      }
+    ],
+    "jointObservation": {
+      "finiteFinalRateIncreased": false,
+      "offerInclusionTailNotWorse": false,
+      "offerFinalTailNotWorse": false,
+      "finiteFinalP95UpperBoundWithin3s": true,
+      "finiteJointImprovementObserved": false,
+      "sustainedTPSQualified": false,
+      "interpretation": "Same-VM finite pair only; compare original complete-window rates and bounded per-row offer latency intervals, preserve worse results, drops/catchups/errors/backlogs. No default or sustained1000 promotion."
+    },
+    "sameHostIdentity": {
+      "bootID": "f6d4e707-b8f8-4143-9f4d-301575360051",
+      "pidNamespaceDevice": 4,
+      "pidNamespaceInode": 4026531836,
+      "uname": [
+        "Linux",
+        "runnervmtai0g",
+        "6.17.0-1022-azure",
+        "#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "x86_64",
+        "x86_64"
+      ],
+      "logicalCPUs": 4
+    },
+    "binaries": {
+      "ynx-abci": {
+        "sha256": "e6c3fb0ef3609bee8bb868a54c0618dd94f3ec82b17203218d0812a550689164",
+        "bytes": 26656961,
+        "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-abci: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-abci\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261024023224-4e4d26a71205\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=4e4d26a71205866765b57b000c5adf1b6361342a\n\tbuild\tvcs.time=2026-10-24T02:32:24Z\n\tbuild\tvcs.modified=false"
+      },
+      "cometbft": {
+        "sha256": "dbc49af9e123b17b06002ade4a783100843c0b718cf80c7f8167de125b2eb184",
+        "bytes": 37928076,
+        "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/cometbft: go1.25.14\n\tpath\tgithub.com/cometbft/cometbft/cmd/cometbft\n\tmod\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/fsnotify/fsnotify\tv1.7.0\th1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/google/orderedcode\tv0.0.1\th1:UzfcAexk9Vhv8+9pNOgRu41f16lHq725vPwnSeiG/Us=\n\tdep\tgithub.com/gorilla/websocket\tv1.5.3\th1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=\n\tdep\tgithub.com/hashicorp/golang-lru/v2\tv2.0.7\th1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=\n\tdep\tgithub.com/hashicorp/hcl\tv1.0.0\th1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=\n\tdep\tgithub.com/klauspost/compress\tv1.17.11\th1:In6xLpyWOi1+C7tXUUWv2ot1QvBjxevKAaI6IXrJmUc=\n\tdep\tgithub.com/lib/pq\tv1.12.0\th1:mC1zeiNamwKBecjHarAr26c/+d8V5w/u4J0I/yASbJo=\n\tdep\tgithub.com/magiconair/properties\tv1.8.7\th1:IeQXZAiQcpL9mgcAe1Nu6cX9LLw6ExEHKjN0VQdvPDY=\n\tdep\tgithub.com/minio/highwayhash\tv1.0.4\th1:asJizugGgchQod2ja9NJlGOWq4s7KsAWr5XUc9Clgl4=\n\tdep\tgithub.com/mitchellh/mapstructure\tv1.5.0\th1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pelletier/go-toml/v2\tv2.2.2\th1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/rcrowley/go-metrics\tv0.0.0-20201227073835-cf1acfcdf475\th1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=\n\tdep\tgithub.com/rs/cors\tv1.11.1\th1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=\n\tdep\tgithub.com/sagikazarmark/slog-shim\tv0.1.0\th1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=\n\tdep\tgithub.com/spf13/afero\tv1.11.0\th1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=\n\tdep\tgithub.com/spf13/cast\tv1.6.0\th1:GEiTHELF+vaR5dhz3VqZfFSzZjYbgeKDpBxQVS4GYJ0=\n\tdep\tgithub.com/spf13/cobra\tv1.9.1\th1:CXSaggrXdbHK9CF+8ywj8Amf7PBRmPCOJugH954Nnlo=\n\tdep\tgithub.com/spf13/pflag\tv1.0.6\th1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=\n\tdep\tgithub.com/spf13/viper\tv1.19.0\th1:RWq5SEjt8o25SROyN3z2OrDB9l7RPd3lwTWU8EcEdcI=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/subosito/gotenv\tv1.6.0\th1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sync\tv0.20.0\th1:e0PTpb7pjO8GAtTs2dQ6jYa5BWYlMuX047Dco/pItO4=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/ini.v1\tv1.67.0\th1:Dgnx+6+nfE+IfzjUEISNeydPJh9AXNNsWbGP9KzCsOA=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1"
+      },
+      "ynx-consensus-perf-fixture": {
+        "sha256": "bbc29ac518182348cc6d8a3e9e04a8da19d2686ca024da1092416c186e3056cf",
+        "bytes": 24894273,
+        "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-consensus-perf-fixture: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-fixture\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261024023224-4e4d26a71205\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=4e4d26a71205866765b57b000c5adf1b6361342a\n\tbuild\tvcs.time=2026-10-24T02:32:24Z\n\tbuild\tvcs.modified=false"
+      },
+      "ynx-consensus-perf-client": {
+        "sha256": "c88ee3d790ec052246e6f29480d910b3c1ff6dbf6d9e6259215a560a2080fb7b",
+        "bytes": 29641988,
+        "buildInfo": "/home/runner/work/_temp/ynx-linux-supply-build/ynx-consensus-perf-client: go1.25.14\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261024023224-4e4d26a71205\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\th1:jtCe5Do4EcHVf/FCyZMvkBm+AmsRGGyvswImXYAabdM=\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/gorilla/websocket\tv1.5.3\th1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/rcrowley/go-metrics\tv0.0.0-20201227073835-cf1acfcdf475\th1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.50.0\th1:zO47/JPrL6vsNkINmLoo/PH1gcxpls50DNogFvB5ZGI=\n\tdep\tgolang.org/x/net\tv0.53.0\th1:d+qAbo5L0orcWAr0a9JweQpjXF19LMXJE8Ey7hwOdUA=\n\tdep\tgolang.org/x/sys\tv0.43.0\th1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=\n\tdep\tgolang.org/x/text\tv0.36.0\th1:JfKh3XmcRPqZPKevfXVpI1wXPTqbkE5f7JA92a55Yxg=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260414002931-afd174a4e478\th1:RmoJA1ujG+/lRGNfUnOMfhCy5EipVMyvUE+KNbPbTlw=\n\tdep\tgoogle.golang.org/grpc\tv1.82.1\th1:NnAxzGRA0677vCa4BUkOAnO5+FfQqVl9iUXeD0IqcGE=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=4e4d26a71205866765b57b000c5adf1b6361342a\n\tbuild\tvcs.time=2026-10-24T02:32:24Z\n\tbuild\tvcs.modified=false"
+      }
+    },
+    "sustainedTPSQualified": false,
+    "interpretation": "Only original qualified same-VM/source/four-ELF8192x2. Negative wall/CPU changes indicate reduction; negative rate changes indicate regression. Per-final wall normalizes equal business coverage; wall totals and nested child phases overlap, never add. Sampled peaks are not hard upper bounds. No sustained1000TPS/600s qualification."
+  },
+  "businessNodeCommitAndResources": {
+    "schema": 1,
+    "runId": 40055278746,
+    "sourceCommit": "4e4d26a71205866765b57b000c5adf1b6361342a",
+    "qualifiedVerdictSHA256": "7861c05d0a95ba1874217daf73d7fbe1ac43db6c9e5ace417a152bc46b17a1db",
+    "cases": [
+      {
+        "mode": "bounded-cadence",
+        "canonicalCertificate": false,
+        "perNode": [
+          {
+            "node": 0,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 29
+          },
+          {
+            "node": 1,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 29
+          },
+          {
+            "node": 2,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 29
+          },
+          {
+            "node": 3,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 29
+          }
+        ],
+        "businessCommitPhases": {
+          "commit": {
+            "samples": 116,
+            "totalNs": 3793946903,
+            "meanNs": 32706438.818965517,
+            "p50Ns": 28618860,
+            "p95Ns": 70485452,
+            "p99Ns": 102619973
+          },
+          "close_file": {
+            "samples": 116,
+            "totalNs": 1181960,
+            "meanNs": 10189.310344827587,
+            "p50Ns": 9414,
+            "p95Ns": 17476,
+            "p99Ns": 23334
+          },
+          "delta_encode": {
+            "samples": 116,
+            "totalNs": 21744652,
+            "meanNs": 187453.89655172414,
+            "p50Ns": 157895,
+            "p95Ns": 390260,
+            "p99Ns": 884334
+          },
+          "file_sync": {
+            "samples": 116,
+            "totalNs": 296772982,
+            "meanNs": 2558387.775862069,
+            "p50Ns": 562817,
+            "p95Ns": 16871088,
+            "p99Ns": 42016314
+          },
+          "journal_maintenance": {
+            "samples": 116,
+            "totalNs": 156651922,
+            "meanNs": 1350447.603448276,
+            "p50Ns": 88521,
+            "p95Ns": 2766162,
+            "p99Ns": 37876953
+          },
+          "prepare_file": {
+            "samples": 116,
+            "totalNs": 15077664,
+            "meanNs": 129979.86206896552,
+            "p50Ns": 37386,
+            "p95Ns": 98280,
+            "p99Ns": 1968140
+          },
+          "validate": {
+            "samples": 116,
+            "totalNs": 3280770565,
+            "meanNs": 28282504.870689657,
+            "p50Ns": 26796281,
+            "p95Ns": 51296749,
+            "p99Ns": 59867138
+          },
+          "write": {
+            "samples": 116,
+            "totalNs": 20406858,
+            "meanNs": 175921.1896551724,
+            "p50Ns": 157634,
+            "p95Ns": 372864,
+            "p99Ns": 412874
+          },
+          "validate.app_hash": {
+            "samples": 116,
+            "totalNs": 2046819926,
+            "meanNs": 17644999.362068966,
+            "p50Ns": 17017425,
+            "p95Ns": 31187238,
+            "p99Ns": 39214590
+          },
+          "validate.semantics": {
+            "samples": 116,
+            "totalNs": 1216235602,
+            "meanNs": 10484789.672413792,
+            "p50Ns": 9699548,
+            "p95Ns": 19262822,
+            "p99Ns": 31453574
+          }
+        },
+        "sampledRSSPeak": 1001398272,
+        "rssAtAggregatePeakByRole": {
+          "launcher": 36352000,
+          "abci-0": 76800000,
+          "abci-1": 75292672,
+          "abci-2": 71376896,
+          "abci-3": 70897664,
+          "comet-0": 94470144,
+          "comet-1": 89567232,
+          "comet-2": 96559104,
+          "comet-3": 89628672,
+          "client": 300453888
+        },
+        "independentRolePeaks": {
+          "launcher": 62054400,
+          "fixture": 41172992,
+          "abci-0": 85196800,
+          "abci-1": 78290944,
+          "abci-2": 85164032,
+          "abci-3": 80416768,
+          "comet-0": 95547392,
+          "comet-1": 89587712,
+          "comet-2": 96587776,
+          "comet-3": 91422720,
+          "client": 300453888
+        }
+      },
+      {
+        "mode": "bounded-cadence",
+        "canonicalCertificate": true,
+        "perNode": [
+          {
+            "node": 0,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 30
+          },
+          {
+            "node": 1,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 30
+          },
+          {
+            "node": 2,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 30
+          },
+          {
+            "node": 3,
+            "businessTransactions": 8192,
+            "businessCommitSamples": 30
+          }
+        ],
+        "businessCommitPhases": {
+          "commit": {
+            "samples": 120,
+            "totalNs": 4212074739,
+            "meanNs": 35100622.825,
+            "p50Ns": 31617224,
+            "p95Ns": 61897595,
+            "p99Ns": 134591578
+          },
+          "close_file": {
+            "samples": 120,
+            "totalNs": 4384213,
+            "meanNs": 36535.10833333333,
+            "p50Ns": 8833,
+            "p95Ns": 19068,
+            "p99Ns": 29354
+          },
+          "delta_encode": {
+            "samples": 120,
+            "totalNs": 20954512,
+            "meanNs": 174620.93333333332,
+            "p50Ns": 160348,
+            "p95Ns": 339575,
+            "p99Ns": 488827
+          },
+          "file_sync": {
+            "samples": 120,
+            "totalNs": 395561922,
+            "meanNs": 3296349.35,
+            "p50Ns": 519943,
+            "p95Ns": 14522217,
+            "p99Ns": 75945233
+          },
+          "journal_maintenance": {
+            "samples": 120,
+            "totalNs": 266739199,
+            "meanNs": 2222826.658333333,
+            "p50Ns": 86729,
+            "p95Ns": 1118098,
+            "p99Ns": 45258282
+          },
+          "prepare_file": {
+            "samples": 120,
+            "totalNs": 27144066,
+            "meanNs": 226200.55,
+            "p50Ns": 34501,
+            "p95Ns": 185721,
+            "p99Ns": 1890500
+          },
+          "validate": {
+            "samples": 120,
+            "totalNs": 3468403452,
+            "meanNs": 28903362.1,
+            "p50Ns": 27886367,
+            "p95Ns": 56671511,
+            "p99Ns": 61218812
+          },
+          "write": {
+            "samples": 120,
+            "totalNs": 27394514,
+            "meanNs": 228287.61666666667,
+            "p50Ns": 161781,
+            "p95Ns": 334207,
+            "p99Ns": 3213988
+          },
+          "validate.app_hash": {
+            "samples": 120,
+            "totalNs": 2221534835,
+            "meanNs": 18512790.291666668,
+            "p50Ns": 17894668,
+            "p95Ns": 36180547,
+            "p99Ns": 46615671
+          },
+          "validate.semantics": {
+            "samples": 120,
+            "totalNs": 1235967319,
+            "meanNs": 10299727.658333333,
+            "p50Ns": 9336060,
+            "p95Ns": 21159767,
+            "p99Ns": 24481214
+          }
+        },
+        "sampledRSSPeak": 1050992640,
+        "rssAtAggregatePeakByRole": {
+          "launcher": 66187264,
+          "abci-0": 73129984,
+          "abci-1": 74223616,
+          "abci-2": 75513856,
+          "abci-3": 74399744,
+          "comet-0": 93958144,
+          "comet-1": 89636864,
+          "comet-2": 97931264,
+          "comet-3": 95100928,
+          "client": 310910976
+        },
+        "independentRolePeaks": {
+          "launcher": 68304896,
+          "fixture": 39526400,
+          "abci-0": 81010688,
+          "abci-1": 82198528,
+          "abci-2": 80867328,
+          "abci-3": 85131264,
+          "comet-0": 93974528,
+          "comet-1": 91373568,
+          "comet-2": 97964032,
+          "comet-3": 98062336,
+          "client": 310910976
+        }
+      }
+    ],
+    "networkOrSustainedQualificationAdded": false,
+    "interpretation": "Business heights only;4node execution samples are not4x business TPS. Per-role peaks occur at different times and must not be added; aggregate peak decomposition uses one actual sample. Stage children/quantiles are nested and not additive; batch density differs."
+  },
+  "nodeCompletionJoins": [
+    {
+      "records": 8192,
+      "publishedInfoAheadRows": 0,
+      "durableStateAheadRows": 0,
+      "maximumCalibrationErrorBoundNs": 491,
+      "nodeCompletionLatencyIntervalsNs": {
+        "offerToNodeFinalizeReturn": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 254309096,
+          "maximumUpperBoundNs": 1834272449,
+          "p50": {
+            "lowerNs": 983999018,
+            "upperNs": 984999999
+          },
+          "p95": {
+            "lowerNs": 1425999018,
+            "upperNs": 1426999999
+          },
+          "p99": {
+            "lowerNs": 1641999018,
+            "upperNs": 1642999999
+          }
+        },
+        "offerToNodeDurableCommitReturn": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 275287499,
+          "maximumUpperBoundNs": 1883779428,
+          "p50": {
+            "lowerNs": 1025999018,
+            "upperNs": 1026999999
+          },
+          "p95": {
+            "lowerNs": 1467999018,
+            "upperNs": 1468999999
+          },
+          "p99": {
+            "lowerNs": 1690999018,
+            "upperNs": 1691999999
+          }
+        },
+        "nodeCommitToClientFinalObservation": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 208206601,
+          "maximumUpperBoundNs": 675828128,
+          "p50": {
+            "lowerNs": 391999018,
+            "upperNs": 392999999
+          },
+          "p95": {
+            "lowerNs": 608999018,
+            "upperNs": 609999999
+          },
+          "p99": {
+            "lowerNs": 674999018,
+            "upperNs": 675828128
+          }
+        }
+      },
+      "independentSameVMAdmission": false,
+      "independentBFTVerification": false,
+      "bftQuorumFormationInstantMeasured": false,
+      "networkQualified": false,
+      "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+    },
+    {
+      "records": 8192,
+      "publishedInfoAheadRows": 0,
+      "durableStateAheadRows": 0,
+      "maximumCalibrationErrorBoundNs": 13651,
+      "nodeCompletionLatencyIntervalsNs": {
+        "offerToNodeFinalizeReturn": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 269560663,
+          "maximumUpperBoundNs": 2048545328,
+          "p50": {
+            "lowerNs": 1019972698,
+            "upperNs": 1020999999
+          },
+          "p95": {
+            "lowerNs": 1510972698,
+            "upperNs": 1511999999
+          },
+          "p99": {
+            "lowerNs": 1816972698,
+            "upperNs": 1817999999
+          }
+        },
+        "offerToNodeDurableCommitReturn": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 288022795,
+          "maximumUpperBoundNs": 2103644867,
+          "p50": {
+            "lowerNs": 1063972698,
+            "upperNs": 1064999999
+          },
+          "p95": {
+            "lowerNs": 1554972698,
+            "upperNs": 1555999999
+          },
+          "p99": {
+            "lowerNs": 1853972698,
+            "upperNs": 1854999999
+          }
+        },
+        "nodeCommitToClientFinalObservation": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minimumLowerBoundNs": 216717378,
+          "maximumUpperBoundNs": 528262397,
+          "p50": {
+            "lowerNs": 360972698,
+            "upperNs": 361999999
+          },
+          "p95": {
+            "lowerNs": 471972698,
+            "upperNs": 472999999
+          },
+          "p99": {
+            "lowerNs": 493972698,
+            "upperNs": 494999999
+          }
+        }
+      },
+      "independentSameVMAdmission": false,
+      "independentBFTVerification": false,
+      "bftQuorumFormationInstantMeasured": false,
+      "networkQualified": false,
+      "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+    }
+  ],
+  "qualifiedVerdict": {
+    "bytes": 531117,
+    "sha256": "7861c05d0a95ba1874217daf73d7fbe1ac43db6c9e5ace417a152bc46b17a1db"
+  },
+  "originalPublicRecovery": {
+    "members": 545,
+    "bytes": 43316445,
+    "selectedMemberManifestSHA256": "f151729cf643e4d7069ee6b9c1cba22bbf93c412982d67900b24a9debe0428bf",
+    "networkBytes": 0
+  },
+  "archiveSelectionRepair": {
+    "originalSource": "4e4d26a71205866765b57b000c5adf1b6361342a",
+    "originalReaderSHA256": "3b2eb0e4e939910f1db3d400c452a74f76d48e12aa4c440c427f2d19781be06f",
+    "fixedReaderSHA256": "9cd29341f584fbe86e19c0b2c5a4a9540ba7bf31ec34706d81775fc03f52a715",
+    "changes": "register two omitted canonical pair labels and corresponding per-case selection slots only",
+    "originalWorkflowUnchanged": true,
+    "networkRerun": false
+  }
+}
