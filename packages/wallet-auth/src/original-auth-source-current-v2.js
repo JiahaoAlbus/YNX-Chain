@@ -47,7 +47,18 @@ export class OriginalAuthSourceCurrentV2Kernel {
   return Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,snapshots[i]]));
  }
  #verify(profile,views){this.#alive();const v=verifyOriginalAuthSourceProfileV2(this.#root,this.#enrollment,profile.raw,this.#policy,views,this.#time());this.#signer.assertCurrent(views.current);if(this.#loan&&this.#io.ready(this.#loan)!==undefined)fail('AUTH_SOURCE_V2_CUSTODY_CHANGED');return v;}
- async #post(profile,before,expires=Infinity){const after=await this.#views(profile);sameViews(before,after);this.#verify(profile,after);if(this.#time()>=expires)fail('AUTH_SOURCE_V2_EXPIRED');return after;}
+ async #post(profile,before,expires=Infinity){const after=await this.#views(profile);sameViews(before,after);const v=this.#verify(profile,after);if(this.#time()>=Math.min(expires,v.profile.expiresAtMs,v.enrollment.expiresAtMs))fail('AUTH_SOURCE_V2_EXPIRED');return after;}
+ // An awaited post-check is not the caller's completion boundary: queued
+ // retirement/time/custody effects may run before its continuation resumes.
+ // Recheck actual same-owner custody and exact original receipt synchronously
+ // AFTER that await, then fence time/liveness after the last foreign read.
+ #completed(profile,views,expires=Infinity,receipt=null){
+  this.#alive();this.#signer.assertCurrent(views.current);
+  if(this.#loan&&this.#io.ready(this.#loan)!==undefined)fail('AUTH_SOURCE_V2_CUSTODY_CHANGED');
+  if(receipt&&(this.#rows.get(receipt.digest)!==receipt.state||this.#io.read(this.#loan,receipt.key+'.entered')!==receipt.raw||this.#io.read(this.#loan,receipt.key+'.terminal')!==receipt.terminal))fail('AUTH_SOURCE_V2_POST_COMPLETION_CHANGED');
+  const limit=Math.min(expires,profile.body.expiresAtMs,hint(this.#enrollment).expiresAtMs,this.#policy.signatureContract.purpose==='ide-project-control-authority-v1'?Number(profile.body.selection.projectControlCapture.expiresAtMs):Infinity);
+  const now=this.#time();this.#alive();if(now>=limit)fail('AUTH_SOURCE_V2_POST_COMPLETION_EXPIRED');
+ }
  async initialize(){
   if(this.#entered||this.#initialized||this.#loan)fail('AUTH_SOURCE_V2_ALREADY_SELECTED');this.#alive();this.#entered=true;
   try{
@@ -66,7 +77,10 @@ export class OriginalAuthSourceCurrentV2Kernel {
    }
    if(names.length!==events.length*2)fail('AUTH_SOURCE_V2_COLD_UNKNOWN');events.sort((a,b)=>a.projection.sequence-b.projection.sequence);
    for(const {raw,event,projection,body}of events){const old=this.#rows.get(event.profileDigest),p=this.#profiles.get(event.profileDigest);if(projection.sequence!==(old?old.sequence+1:p.body.minimumSequence)||event.previousDigest!==(old?.recordDigest??'')||old&&(projection.floor<old.floor||body.issuedAtMs<old.issuedAtMs||BigInt(projection.statementExecutionHeight)<BigInt(old.statementExecutionHeight)||old.status!=='active'&&projection.status!==old.status))fail('AUTH_SOURCE_V2_HISTORY_ROLLBACK');this.#rows.set(event.profileDigest,{...projection,issuedAtMs:body.issuedAtMs,recordDigest:sha(raw)});}
-   for(const [digest,p]of this.#profiles)await this.#post(p,observations.get(digest));this.#initialized=true;
+   const completed=new Map();for(const [digest,p]of this.#profiles)completed.set(digest,await this.#post(p,observations.get(digest)));
+   for(const [digest,p]of this.#profiles)this.#completed(p,completed.get(digest));
+   const finalTime=this.#time();this.#alive();for(const p of this.#profiles.values())if(finalTime>=Math.min(p.body.expiresAtMs,hint(this.#enrollment).expiresAtMs,this.#policy.signatureContract.purpose==='ide-project-control-authority-v1'?Number(p.body.selection.projectControlCapture.expiresAtMs):Infinity))fail('AUTH_SOURCE_V2_POST_COMPLETION_EXPIRED');
+   this.#initialized=true;
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
  }
  #body(p,digest,state,challenge,v){const now=this.#time();return {version:2,purpose:this.#policy.signatureContract.purpose,sourceId:v.profile.sourceId,enrollmentDigest:this.#policy.enrollmentDigest,profileDigest:digest,instanceId:v.profile.instanceId,generation:v.profile.generation,subjectOwner:v.profile.subjectOwner,subjectKeyVersion:v.subjectKeyVersion,sequence:state.sequence,floor:state.floor,head:state.head,status:state.status,nonce:challenge,issuedAtMs:now,expiresAtMs:Math.min(now+30000,v.profile.expiresAtMs,v.enrollment.expiresAtMs,this.#policy.signatureContract.purpose==='ide-project-control-authority-v1'?Number(p.body.selection.projectControlCapture.expiresAtMs):Infinity)};}
@@ -79,7 +93,9 @@ export class OriginalAuthSourceCurrentV2Kernel {
    // Signing and persistence are within one selected operation. Any later
    // exception preserves the exact signed partial and poisons this owner.
    const key=sha(canonical({profileDigest,sequence})),terminal=canonical({version:2,eventDigest:sha(raw)});this.#io.write(this.#loan,key+'.entered',raw);this.#io.write(this.#loan,key+'.terminal',terminal);if(this.#io.read(this.#loan,key+'.entered')!==raw||this.#io.read(this.#loan,key+'.terminal')!==terminal)fail('AUTH_SOURCE_V2_READBACK_UNKNOWN');
-   await this.#post(p,before,body.expiresAtMs);this.#rows.set(profileDigest,{...projection,issuedAtMs:body.issuedAtMs,recordDigest:sha(raw)});
+   const after=await this.#post(p,before,body.expiresAtMs);
+   this.#completed(p,after,body.expiresAtMs,{digest:profileDigest,state:old,key,raw,terminal});
+   this.#rows.set(profileDigest,{...projection,issuedAtMs:body.issuedAtMs,recordDigest:sha(raw)});
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
  }
  async current(profileDigest,challenge){
@@ -89,7 +105,9 @@ export class OriginalAuthSourceCurrentV2Kernel {
   const p=this.#profiles.get(profileDigest),state=this.#rows.get(profileDigest);if(!p||!state||state.status!=='active')fail('AUTH_SOURCE_V2_PROFILE_NOT_ACTIVE');const now=this.#time();for(const [n,t]of this.#nonces)if(now-t>=30000)this.#nonces.delete(n);const n=profileDigest+':'+challenge;if(this.#nonces.has(n)||this.#nonces.size>=4096)fail('AUTH_SOURCE_V2_REPLAY_OR_CAPACITY');this.#entered=true;
   try{this.#nonces.set(n,now);
    const before=await this.#views(p),v=this.#verify(p,before),key=sha(canonical({profileDigest,sequence:state.sequence})),raw=this.#io.read(this.#loan,key+'.entered');if(sha(raw)!==state.recordDigest||this.#io.read(this.#loan,key+'.terminal')!==canonical({version:2,eventDigest:state.recordDigest}))fail('AUTH_SOURCE_V2_HISTORY_CHANGED');
-   const body=this.#body(p,profileDigest,state,challenge,v),signed=this.#signed(body,v,before);verifyOriginalAuthSourceCurrentV2(this.#root,this.#enrollment,p.raw,signed,this.#policy,before,challenge,{sequence:state.sequence,floor:state.floor,head:state.head,timeFloor:now,executionHeight:state.executionHeight},this.#time());await this.#post(p,before,body.expiresAtMs);return signed;
+   const body=this.#body(p,profileDigest,state,challenge,v),signed=this.#signed(body,v,before);verifyOriginalAuthSourceCurrentV2(this.#root,this.#enrollment,p.raw,signed,this.#policy,before,challenge,{sequence:state.sequence,floor:state.floor,head:state.head,timeFloor:now,executionHeight:state.executionHeight},this.#time());
+   const after=await this.#post(p,before,body.expiresAtMs);
+   this.#completed(p,after,body.expiresAtMs,{digest:profileDigest,state,key,raw,terminal:canonical({version:2,eventDigest:state.recordDigest})});return signed;
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
  }
  assertDeveloperPrincipalPurpose(){this.#alive();if(!this.#initialized||this.#policy.signatureContract.purpose!=='ide-project-authority-v1')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');}

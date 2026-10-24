@@ -8,15 +8,15 @@ const root=fileURLToPath(new URL('../../../',import.meta.url)).replace(/\/$/,'')
  'native/original-auth-identity-joint-owner.h':'bdf37c7c11d483cba9f2b44dcdf3e9b3766b582ee6da86aece3a5b465e92605b',
  'native/original-auth-identity-joint-owner.mm':'8a2441c76515cb1c7de6def4a08392ee302d03c78a8f1a4aed1042ff6668ba42',
  'native/original-auth-identity-source-v2-verifier.mjs':'c18927ff9475cdc2e8acd5993cfb31d35e0cfda9e31d149748b4326d62a37694',
- 'src/original-auth-source-current-v2.js':'ffce0c998b4b33ec1688abfef596172241029d8faea46c8558c7e387aa1e2f55',
- 'src/product-session-gateway-node-host.js':'b252ef02eeb2e3dce045608f66e891d3da0bffc3bbf6c1c1699051429ba8642a',
+ 'src/original-auth-source-current-v2.js':'5a1bafd7e943cebadd6a61518b4f8caf8548667795d32289e5d32bbc6a4640aa',
+ 'src/product-session-gateway-node-host.js':'02f9a45e5a2e304cedf40741e6275e2e72b5f6c8321a49cdd1ae950d0f276083',
  'src/original-auth-identity-source-current.js':'d4efda732d5cc21fc443926aa07be11ebb95c1d46d7d84939fc4c5544e79e759',
  'native/original-ide-project-control-contract.mjs':'41b5e5aff29769f6e1d0e02d0bde1b3dc1242ee291b79863c081e720b68b8d39'
 };
-test('canonical control source matches the formal R201 successor and inherited R193 Host/member guards',()=>{for(const[p,h]of Object.entries(pins))assert.equal(createHash('sha256').update(readFileSync(new URL('../'+p,import.meta.url))).digest('hex'),h,p)});
+test('canonical control source retains R201 with the R204 Source and normal daemon successors',()=>{for(const[p,h]of Object.entries(pins))assert.equal(createHash('sha256').update(readFileSync(new URL('../'+p,import.meta.url))).digest('hex'),h,p)});
 test('new canonical recipe selects full control closure in the same original addon and helper without claiming a build',async()=>{
  const {contract}=verifySDK332R140Source(root),plan=await sdk332R140NativePlan(root,'/PUBLIC/UNUSED_HEADERS','arm64');
- assert.equal(contract.version,'1.3.0-pq.3.32-auth.26');assert.equal(contract.NativeInputs.length,91);assert.equal(contract.HelperInputs.length,5);
+ assert.equal(contract.version,'1.3.0-pq.3.32-auth.27');assert.equal(contract.NativeInputs.length,91);assert.equal(contract.HelperInputs.length,5);
  assert.equal(plan.plan.sources.length,14);assert.equal(plan.helperPlan.sources.length,11);assert.equal(plan.NativeBuild,false);assert.equal(plan.grant,false);assert.equal(plan.rebuildRequired,true);
  for(const f of ['original-ide-project-control-source.inc.mm','original-ide-project-control-capture.mjs','original-ide-project-control-contract.mjs','original-developer-principal-data.mjs','original-ide-publication-approval-contract.mjs'])assert.equal(contract.NativeInputs.filter(x=>x.path==='packages/wallet-auth/native/'+f).length,1);
  const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));for(const f of ['native/original-ide-project-control-source.inc.mm','native/original-ide-project-control-capture.mjs'])assert.ok(pkg.files.includes(f));
