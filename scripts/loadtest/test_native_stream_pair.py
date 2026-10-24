@@ -1,5 +1,5 @@
 """Native cadence pair controller counterexamples; no nodes, compiler or HTTP."""
-import contextlib,copy,hashlib,importlib.util,io,json,tempfile,unittest
+import contextlib,copy,hashlib,importlib.util,io,json,tempfile,unittest,weakref
 from pathlib import Path
 from unittest.mock import patch
 spec=importlib.util.spec_from_file_location('supply',Path(__file__).with_name('supply-linux-window.py'))
@@ -184,16 +184,26 @@ class NativeStreamPairTests(unittest.TestCase):
             rows[1][0].write_bytes(rows[1][1]+b' ')
             with self.assertRaises(RuntimeError):check(pair)
 
-    def run_pair(self,fault=None,comparison=None):
+    def run_pair(self,fault=None,comparison=None,require_first_row_released=False):
         with tempfile.TemporaryDirectory() as d:
             parent=Path(d).resolve();source=parent/'source';source.mkdir();build=parent/'build';build.mkdir();evidence=parent/'evidence';evidence.mkdir()
             for name in supply.BINARIES:(build/name).write_bytes(name.encode())
             pins={name:dict(sha256=hashlib.sha256(name.encode()).hexdigest(),bytes=len(name)) for name in supply.BINARIES}
             calls=[];host=dict(bootID='unit-boot',pidNamespaceInode=1);host_calls=[]
+            first_row=[];original_json=supply.stream_evidence.strict_json
+            class TrackedReceipt(dict):pass
+            def read_receipt(raw):
+                value=original_json(raw)
+                if require_first_row_released and value.get('sourceCommit')=='a'*40:
+                    value=TrackedReceipt(value)
+                    if not first_row:first_row.append(weakref.ref(value))
+                return value
+
             def host_identity():
                 host_calls.append(1)
                 return dict(host,bootID='changed') if fault=='host' and len(host_calls)>=4 else host
             def run(source,build,case,out,transport,profile,pace,**kwargs):
+                if require_first_row_released and calls:self.assertIsNone(first_row[0](),'complete first receipt survives into second activation')
                 if comparison==supply.STREAM_CERTIFICATE_PAIR:
                     self.assertIs(kwargs['canonical_certificate'],len(calls)==1)
                     self.assertIs(kwargs['current_input_reuse'],True)
@@ -219,10 +229,28 @@ class NativeStreamPairTests(unittest.TestCase):
             def observe(*args):
                 if fault=='post-fsync' and (evidence/'actual.json').exists():raise RuntimeError('post fsync resource violation')
                 return dict(elapsedMs=1,retainedBytes=1,logBytes=0,rssBytes=1,threads=1,availableMemoryBytes=2<<30,freeDiskBytes=10<<30,buildBytes=1) if fault!='missing-sample' else None
-            with patch.object(supply.sys,'platform','linux'),patch.object(supply.platform,'machine',return_value='x86_64'),patch.object(supply,'native_pair_host_identity',side_effect=host_identity),patch.object(supply.PairBudget,'observe',side_effect=observe),patch.object(supply,'empty_pair_closure',side_effect=closure),patch.object(supply,'run',side_effect=run),patch.object(supply,'native_stream_pair_case',side_effect=lambda row,case,mode,**kwargs:measurement(300 if mode=='relative' else 400)),patch.object(supply.signal,'signal'),patch.object(supply.signal,'setitimer'),contextlib.redirect_stdout(output):
+            with patch.object(supply.sys,'platform','linux'),patch.object(supply.platform,'machine',return_value='x86_64'),patch.object(supply,'native_pair_host_identity',side_effect=host_identity),patch.object(supply.PairBudget,'observe',side_effect=observe),patch.object(supply,'empty_pair_closure',side_effect=closure),patch.object(supply,'run',side_effect=run),patch.object(supply,'native_stream_pair_case',new=lambda row,case,mode,**kwargs:measurement(300 if mode=='relative' else 400)),patch.object(supply.stream_evidence,'strict_json',new=read_receipt),patch.object(supply.signal,'signal'),patch.object(supply.signal,'setitimer'),contextlib.redirect_stdout(output):
                 code=supply.run_native_stream_pair(source,build,parent/'pair',evidence/'actual.json',comparison or supply.STREAM_PAIR)
             terminal=json.loads(output.getvalue().split('YNX_NATIVE_STREAM_PAIR_TERMINAL ')[-1])
             return code,calls,terminal
+
+    def test_compact_identity_preserves_all_original_comparison_fields(self):
+        row=dict(sourceCommit='source',sourceTree='tree',internalTree='internal',compiler='compiler',binaries={'ELF':'hash'},environment={'GOMAXPROCS':'1'},host=dict(uname=['Linux'],cpuCount=4,cpuinfo='large diagnostic'),samples=['retained only on disk'])
+        identity=supply.native_stream_case_identity(row)
+        self.assertEqual(set(identity),{'sourceCommit','sourceTree','internalTree','compiler','binaries','environment','host'})
+        self.assertEqual(identity['host'],dict(uname=['Linux'],cpuCount=4))
+        for key in ('sourceCommit','sourceTree','internalTree','compiler','binaries','environment'):
+            changed=copy.deepcopy(row);changed[key]='different'
+            self.assertNotEqual(identity,supply.native_stream_case_identity(changed))
+            changed=copy.deepcopy(row);del changed[key]
+            with self.assertRaises(KeyError):supply.native_stream_case_identity(changed)
+        for key in ('uname','cpuCount'):
+            changed=copy.deepcopy(row);changed['host'][key]='different'
+            self.assertNotEqual(identity,supply.native_stream_case_identity(changed))
+
+    def test_first_complete_receipt_is_released_before_second_activation(self):
+        code,calls,terminal=self.run_pair(require_first_row_released=True)
+        self.assertEqual(code,0,terminal);self.assertEqual(len(calls),2)
 
     def test_serial_pair_success_has_post_fsync_two_scans(self):
         code,calls,terminal=self.run_pair()

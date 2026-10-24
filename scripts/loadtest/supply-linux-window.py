@@ -931,6 +931,15 @@ def native_stream_pair_observation(cases):
         interpretation="Same-VM finite pair only; compare original complete-window rates and bounded per-row offer latency intervals, preserve worse results, drops/catchups/errors/backlogs. No default or sustained1000 promotion.")
 
 
+def native_stream_case_identity(row):
+    # Full receipts stay immutable on disk; only these original equality fields
+    # are needed after qualification. Do not retain samples/tasks/known PIDs or
+    # the complete parsed receipt while the next case owns the same RSS budget.
+    identity={key:row[key] for key in ("sourceCommit","sourceTree","internalTree","compiler","binaries","environment")}
+    identity["host"]={key:row["host"][key] for key in ("uname","cpuCount")}
+    return identity
+
+
 def run_native_stream_pair(source,build,root,receipt,comparison=STREAM_PAIR):
     if sys.platform!="linux" or platform.machine()!="x86_64":raise RuntimeError("same native Linux amd64 VM required")
     source,build,root,receipt=map(lambda p:p.absolute(),(source,build,root,receipt))
@@ -967,13 +976,14 @@ def run_native_stream_pair(source,build,root,receipt,comparison=STREAM_PAIR):
             for name in BINARIES:
                 if row.get("binaries",{}).get(name,{}).get("sha256")!=binary_pins[name]["sha256"] or row["binaries"][name].get("bytes")!=binary_pins[name]["bytes"]:raise RuntimeError("original case ELF differs from pair build")
             if baseline is None:
-                baseline=row;result.update(sourceCommit=row["sourceCommit"],compiledBinaries=row["binaries"])
+                baseline=native_stream_case_identity(row);result.update(sourceCommit=row["sourceCommit"],compiledBinaries=row["binaries"])
             else:
                 for key in ("sourceCommit","sourceTree","internalTree","compiler","binaries","environment"):
                     if row.get(key)!=baseline.get(key):raise RuntimeError("native pair identity differs: "+key)
                 if row["host"]["uname"]!=baseline["host"]["uname"] or row["host"]["cpuCount"]!=baseline["host"]["cpuCount"]:raise RuntimeError("native case host differs")
             result["cases"][-1].update(measurement=measured,summary=measured["summary"],nodePhases=row["nodePhases"],hostIdentity=host)
             result["closureScans"].append(empty_pair_closure(budget))
+            del row  # Release the completed case before the next run() call.
             budget.observe()
         result["casesQualified"]=True;result["jointObservation"]=native_stream_pair_observation(result["cases"])
     except Exception as error:result["firstCause"]=str(error)

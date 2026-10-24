@@ -1,0 +1,184 @@
+{
+  "schema": 1,
+  "kind": "native-pair-original-RSS-refusal-and-receipt-lifetime-repair",
+  "sourceParent": "798185633516fbc7c91963719fe003fe96943bf1",
+  "originalFailure": {
+    "schema": 1,
+    "kind": "original-refused-pair-resource-evidence-not-throughput",
+    "runId": 40068452896,
+    "sourceCommit": "c594a557e9838cd13892dc53000fb371f9efa2ab",
+    "originalGrant": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-block-tip-pair-source-c594a557e/original-root-grant.json",
+      "bytes": 5713,
+      "sha256": "a8eb606732ecf79f82d8b7831e8a1a30e1e88e305cb17f80261e780bd0b8ae2f"
+    },
+    "request": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-block-tip-pair-source-c594a557e/root-scheduling-request-with-evidence.json",
+      "bytes": 13476,
+      "sha256": "d9d9eca4e373d3c23c23b060a8fa5d6c5b325445d1f299c8f378708903ec7879"
+    },
+    "originalLog": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-block-tip-pair-source-c594a557e/original-full.raw",
+      "bytes": 718283,
+      "sha256": "2304b2ab60962f7f28b4113f154b0fb79d51b66ac1d765b89ea7f76ba128c944"
+    },
+    "originalPairReceipt": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-block-tip-pair-run-40068452896/capture/evidence/actual.json",
+      "bytes": 304874,
+      "sha256": "aa53e00c7717f377776e3b0839fb8d3b13d01ab8a151557116062b9b1b226428"
+    },
+    "consumer": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-tip-failed-resource-reader-20261024.py",
+      "bytes": 6984,
+      "sha256": "fe27c7435e5498d2f82a3049b30d48740552446d374d11ae56529d5eda97d07e"
+    },
+    "sameVMIdentity": {
+      "bootID": "c609edd4-2d19-4383-bea8-f19acfd464e4",
+      "pidNamespaceDevice": 4,
+      "pidNamespaceInode": 4026531836,
+      "uname": [
+        "Linux",
+        "runnervm8k3b6",
+        "6.17.0-1022-azure",
+        "#22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "x86_64",
+        "x86_64"
+      ],
+      "logicalCPUs": 4
+    },
+    "cases": [
+      {
+        "label": "before-native-tip-full-block",
+        "originalReceipt": {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-block-tip-pair-run-40068452896/capture/before-native-tip-full-block/evidence/actual.json",
+          "bytes": 1161924,
+          "sha256": "6848ddf918a93bf230e8bbc204c9451f9e7b3b6ee53d63725e16cdb9ea901826"
+        },
+        "elapsedAtAggregatePeakMs": 22979,
+        "sampledAggregatePeakBytes": 1042145280,
+        "rssAtAggregatePeakByRole": {
+          "launcher": 36397056,
+          "abci-0": 79777792,
+          "abci-1": 78262272,
+          "abci-2": 70758400,
+          "abci-3": 80670720,
+          "comet-0": 92618752,
+          "comet-1": 90873856,
+          "comet-2": 92573696,
+          "comet-3": 90722304,
+          "client": 329490432
+        },
+        "independentRolePeaksNotAdditive": {
+          "launcher": 62021632,
+          "fixture": 38961152,
+          "abci-0": 85008384,
+          "abci-1": 80760832,
+          "abci-2": 84975616,
+          "abci-3": 82841600,
+          "comet-0": 92635136,
+          "comet-1": 98078720,
+          "comet-2": 92594176,
+          "comet-3": 95674368,
+          "client": 341630976
+        },
+        "originalCaseQualified": true,
+        "firstCause": null,
+        "completeTransactionStreamVerified": false
+      },
+      {
+        "label": "after-native-tip-status",
+        "originalReceipt": {
+          "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-block-tip-pair-run-40068452896/capture/after-native-tip-status/evidence/actual.json",
+          "bytes": 572010,
+          "sha256": "3c25b30a6361f52d6f5da6d5fc94fb7b0cdcdbae75b6b51085a405e8fb013c84"
+        },
+        "elapsedAtAggregatePeakMs": 20044,
+        "sampledAggregatePeakBytes": 1077927936,
+        "rssAtAggregatePeakByRole": {
+          "launcher": 65699840,
+          "abci-0": 78258176,
+          "abci-1": 78483456,
+          "abci-2": 82886656,
+          "abci-3": 80760832,
+          "comet-0": 90546176,
+          "comet-1": 94699520,
+          "comet-2": 92893184,
+          "comet-3": 92282880,
+          "client": 321417216
+        },
+        "independentRolePeaksNotAdditive": {
+          "launcher": 65699840,
+          "fixture": 35950592,
+          "abci-0": 78671872,
+          "abci-1": 78483456,
+          "abci-2": 82886656,
+          "abci-3": 80760832,
+          "comet-0": 90546176,
+          "comet-1": 94699520,
+          "comet-2": 92893184,
+          "comet-3": 93298688,
+          "client": 321417216
+        },
+        "originalCaseQualified": false,
+        "firstCause": "rssBytes cap exceeded/invalid",
+        "completeTransactionStreamVerified": false
+      }
+    ],
+    "originalRSSLimitBytes": 1073741824,
+    "refusedRSSExcessBytes": 4186112,
+    "originalPairQualified": false,
+    "originalCleanupScansVerified": true,
+    "newExecutionGranted": false,
+    "networkOrSustainedQualificationAdded": false,
+    "interpretation": "Separate aggregate-peak instants, not same transaction progress or a causal role delta. Full streams remain separate; no after TPS. Python receipt retention and allocator highwater require their own source/lifetime evidence. Original budgets unchanged."
+  },
+  "sameOriginalReceiptLiveAllocation": {
+    "schema": 1,
+    "kind": "original-receipt-Python-live-allocation-lifetime-not-RSS",
+    "runId": 40068452896,
+    "receiptBytes": 1161924,
+    "receiptSHA256": "6848ddf918a93bf230e8bbc204c9451f9e7b3b6ee53d63725e16cdb9ea901826",
+    "parsedReceiptLiveBytes": 2061988,
+    "compactIdentityAndRequiredResultLiveBytes": 244726,
+    "releasedTracedLiveBytes": 1817262,
+    "measurementAndNodePhasesRetained": true,
+    "allOriginalEqualityFieldsRetained": true,
+    "originalReceiptUnchanged": true,
+    "networkOrSustainedQualificationAdded": false,
+    "interpretation": "Same exact original before receipt; tracemalloc live Python allocations with gc after references released, not OS RSS, peak attribution, allocator return guarantee or a native rerun."
+  },
+  "sourceFiles": {
+    "scripts/loadtest/supply-linux-window.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/supply-linux-window.py",
+      "bytes": 176847,
+      "sha256": "0a52cecc47c05a41b8974b4a87fa8cd912add0bff09032c6f21dfd4462533d8a"
+    },
+    "scripts/loadtest/test_native_stream_pair.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_native_stream_pair.py",
+      "bytes": 23975,
+      "sha256": "fcde16dbbd435d2ca093791db136a2d96a74ec318adbd62fdf81a96fe3cc6261"
+    }
+  },
+  "evidence": {
+    "native-pair-receipt-lifetime-red.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-pair-receipt-lifetime-red.raw",
+      "bytes": 2036,
+      "sha256": "7de9cb6188f0b1de0d44b4fa117eda3bc3be4836b49217d30bce81b2be5b0558"
+    },
+    "native-pair-receipt-lifetime-green.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-pair-receipt-lifetime-green.raw",
+      "bytes": 118,
+      "sha256": "586d7323f3b4bf2ee27e3a49ff6ca020d9edfca58e1c2613766875d2e6fb86ad"
+    },
+    "native-pair-receipt-original-live-allocation.json": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-pair-receipt-original-live-allocation.json",
+      "bytes": 736,
+      "sha256": "0b2c5fc8f1b360ffa8f04893605c9453c9f76bc532bc0a961ed2d588b3e14542"
+    }
+  },
+  "defaultPromotion": false,
+  "networkMemoryRepairProven": false,
+  "networkImprovementMeasured": false,
+  "sustained1000Qualified": false,
+  "interpretation": "Original failed run remains failed. Minimal source ownership fix releases full parsed receipt before next case while retaining every original identity comparison, required summary/node phases and complete original disk evidence. No GC, budget, cap, node or GOGC change in production."
+}
