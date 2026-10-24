@@ -333,7 +333,8 @@
     "test:r197-cli-head-closure": "node --test test/r197-cli-native-closure.test.mjs && node --test --test-name-pattern=\"Auth25 recipe selects\" test/r197-canonical-source-intake.test.mjs",
     "test:original-native-control-interop": "node --test test/r199-native-control-interop.test.mjs",
     "test:normal-native-compile-reuse": "node --test test/normal-native-compile-reuse.test.mjs",
-    "test:r200-protected-publisher": "node --test --test-concurrency=1 test/r200-protected-publisher-contract.test.mjs test/r200-recipe-closure.test.mjs"
+    "test:r200-protected-publisher": "node --test --test-concurrency=1 test/r200-protected-publisher-contract.test.mjs test/r200-recipe-closure.test.mjs",
+    "test:normal-native-actual-record": "node --test test/normal-native-compile-reuse-actual.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
