@@ -3,7 +3,7 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-ide-native-close-r140-20261019, codex/wallet-sdk332-r140-compat-20261019, codex/wallet-joint-child-cleanup-debt-20261023, codex/wallet-auth4-deploy-material-20261023, codex/wallet-r154-paired-source-20261023, codex/wallet-developer-contract-client-20261023, codex/wallet-r159-typed-native-20261023, codex/wallet-artifact-contract-20261024, codex/wallet-artifact-go-interop-20261024, codex/wallet-r162-observation-20261024, codex/wallet-contract-registry-interop-20261024, codex/wallet-native-relay-source-scope-20261024, codex/wallet-contract-initiator-boundary-20261024, codex/wallet-contract-current-callee-20261024, codex/wallet-source-autonomous-scope-20261024, codex/wallet-typed-publication-r170-20261024, codex/wallet-native-main-thread-r172-20261024, codex/wallet-project-authority-r171-20261024, codex/wallet-project-reader-r174-20261024, codex/wallet-workspace-selector-r177-20261024, codex/wallet-artifact-verifier-cli-20261024, codex/wallet-main-publisher-hook-20261024, codex/wallet-publication-result-r181-20261024, codex/wallet-source-v2-r185-20261024, codex/wallet-source-sign-partial-r186-20261024, codex/wallet-canonical-source8-r194-20261024, codex/wallet-http-relay-r193-20261024, codex/wallet-control-source-r196-20261024, codex/wallet-publication-source-types-20261024, codex/wallet-control-dispatch-r197-20261024, codex/wallet-cli-head-closure-20261024, codex/wallet-native-control-interop-r199-20261024, codex/wallet-normal-compile-reuse-20261024, codex/wallet-protected-publisher-r200-20261024, codex/wallet-control-custody-r201-20261024, codex/wallet-principal-daemon-route-20261024, codex/wallet-auth-go-supplier-ci-20261024, codex/wallet-auth-go-private-node-r207-20261024, codex/wallet-auth-catalog-r209-ci-20261024, codex/wallet-auth-source-completion-r210-ci-20261024, codex/wallet-auth-publisher-current-r213-ci-20261024, codex/wallet-auth-publisher-capture-r214-ci-20261024, codex/wallet-auth-publisher-catalog-r215-ci-20261024]
+    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-ide-native-close-r140-20261019, codex/wallet-sdk332-r140-compat-20261019, codex/wallet-joint-child-cleanup-debt-20261023, codex/wallet-auth4-deploy-material-20261023, codex/wallet-r154-paired-source-20261023, codex/wallet-developer-contract-client-20261023, codex/wallet-r159-typed-native-20261023, codex/wallet-artifact-contract-20261024, codex/wallet-artifact-go-interop-20261024, codex/wallet-r162-observation-20261024, codex/wallet-contract-registry-interop-20261024, codex/wallet-native-relay-source-scope-20261024, codex/wallet-contract-initiator-boundary-20261024, codex/wallet-contract-current-callee-20261024, codex/wallet-source-autonomous-scope-20261024, codex/wallet-typed-publication-r170-20261024, codex/wallet-native-main-thread-r172-20261024, codex/wallet-project-authority-r171-20261024, codex/wallet-project-reader-r174-20261024, codex/wallet-workspace-selector-r177-20261024, codex/wallet-artifact-verifier-cli-20261024, codex/wallet-main-publisher-hook-20261024, codex/wallet-publication-result-r181-20261024, codex/wallet-source-v2-r185-20261024, codex/wallet-source-sign-partial-r186-20261024, codex/wallet-canonical-source8-r194-20261024, codex/wallet-http-relay-r193-20261024, codex/wallet-control-source-r196-20261024, codex/wallet-publication-source-types-20261024, codex/wallet-control-dispatch-r197-20261024, codex/wallet-cli-head-closure-20261024, codex/wallet-native-control-interop-r199-20261024, codex/wallet-normal-compile-reuse-20261024, codex/wallet-protected-publisher-r200-20261024, codex/wallet-control-custody-r201-20261024, codex/wallet-principal-daemon-route-20261024, codex/wallet-auth-go-supplier-ci-20261024, codex/wallet-auth-go-private-node-r207-20261024, codex/wallet-auth-catalog-r209-ci-20261024, codex/wallet-auth-source-completion-r210-ci-20261024, codex/wallet-auth-publisher-current-r213-ci-20261024, codex/wallet-auth-publisher-capture-r214-ci-20261024, codex/wallet-auth-publisher-catalog-r215-ci-20261024, codex/wallet-auth-factory-source-r216-ci-20261024]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -2657,5 +2657,44 @@ jobs:
             packages/wallet-auth/.ci-evidence/auth-r202-go-fixture
             packages/wallet-auth/.ci-evidence/auth-r207-private-node
             packages/wallet-auth/.ci-evidence/auth-r215-stage-controls
+          include-hidden-files: true
+          if-no-files-found: error
+
+  sdk-auth-factory-source-r216:
+    name: R216 actual factory and affected Catalog ${{ matrix.group }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth-factory-source-r216-ci-20261024'
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [A, B, C, D]
+    env:
+      YNX_R216_CI_GROUP: ${{ matrix.group }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.25.13'
+          cache: false
+      - name: Verify only new exact factory source staging boundaries
+        if: matrix.group == 'A'
+        run: |
+          mkdir -p packages/wallet-auth/.ci-evidence/auth-r216-stage-controls
+          node --test scripts/ci/auth-r216-factory-source-supply.test.mjs > packages/wallet-auth/.ci-evidence/auth-r216-stage-controls/stdout.log 2>&1 || { status=$?; cat packages/wallet-auth/.ci-evidence/auth-r216-stage-controls/stdout.log; exit "$status"; }
+          cat packages/wallet-auth/.ci-evidence/auth-r216-stage-controls/stdout.log
+      - name: Run only selected new factory or affected Catalog cases with exact private Node
+        run: node scripts/ci/run-auth-go-private-node.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: auth-r216-factory-source-evidence-${{ matrix.group }}
+          path: |
+            packages/wallet-auth/.ci-evidence/auth-r202-go-fixture
+            packages/wallet-auth/.ci-evidence/auth-r207-private-node
+            packages/wallet-auth/.ci-evidence/auth-r216-stage-controls
           include-hidden-files: true
           if-no-files-found: error
