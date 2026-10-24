@@ -661,12 +661,17 @@
       "path": "packages/wallet-auth/native/original-ide-publication-approval-dispatch.mjs",
       "bytes": 8939,
       "sha256": "5d5ce59ca4da1b23d4299fd2474a1500f2bab2fe26a399cbe376f06edce6fb4d"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-approval-state-head-data.mjs",
+      "bytes": 1599,
+      "sha256": "28aa4713d6e9792294976b5318abc87c9be89b11fdb4f5e2f22152a5eab81786"
     }
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 13673,
-    "sha256": "33160700dafefbee68eea7d313b1a2d0b035f68ab1db5b72440150605f2957ec"
+    "bytes": 13761,
+    "sha256": "d6b27f0dca1aca3e7314ce83b4a644bdda4f271083d76d3a9da7d718d71791a6"
   },
   "require": {
     "translationUnits": 13,
@@ -1642,6 +1647,36 @@
         "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
       },
       "newPublicationReadOnlyQualified": false
+    }
+  },
+  "supplierR197ClosureCorrection": {
+    "formalSourceHandoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/HANDOFF.json",
+      "bytes": 21720,
+      "sha256": "d838ab7ad734ad210f723a50b6f1052b37fbcaed4c68bac644945bf4448481ba"
+    },
+    "inheritedHeadInput": {
+      "path": "packages/wallet-auth/native/original-ide-approval-state-head-data.mjs",
+      "bytes": 1599,
+      "sha256": "28aa4713d6e9792294976b5318abc87c9be89b11fdb4f5e2f22152a5eab81786"
+    },
+    "supersededSourceCommit": "498e79197eb9c012d5767ff1c168802efde15a98",
+    "qualification": "Only matching source input declaration supersedes frozen498e source recipe. Runtime bytes and Auth24 API/semantics unchanged; no package release or source admission.",
+    "reason": "R197 publication dispatch makes original R189 head DATA a fixed CLI transitive native .mjs dependency.",
+    "normalNativeInputs": 85,
+    "helperInputs": 5,
+    "normalCanonicalInputs": 95,
+    "extendedSourceClosure": 96,
+    "normalTranslationUnits": 13,
+    "helperTranslationUnits": 11,
+    "runtimeOrCLISemanticsChanged": false,
+    "NativeBuild": false,
+    "Source13": false,
+    "production": false,
+    "supersededSourceHandoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-auth24-r197-matching-source-498e7919-20261024/SOURCE_HANDOFF.json",
+      "bytes": 26871,
+      "sha256": "630b8ccc6d16150cd5bb08cc7168c8b219b5ca5438e508f2e6dbe8513c133708"
     }
   }
 }
