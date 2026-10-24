@@ -1,5 +1,14 @@
 import fs from 'node:fs';import crypto from 'node:crypto';import path from 'node:path';
 const root=import.meta.dirname,sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+// Full normal dependency materialization is a separate owning entry. The
+// default command below builds only the minimum Auth/WalletConnect union.
+if(process.argv[2]==='--materialize-normal-runtime'){
+ const [requestPath,bytes,digest,...extra]=process.argv.slice(3);
+ if(extra.length||!path.isAbsolute(requestPath??'')||!/^\d+$/.test(bytes??'')||!/^[a-f0-9]{64}$/.test(digest??''))throw Error('exact materialization request path/bytes/SHA required');
+ const input=fs.readFileSync(requestPath);if(input.length!==Number(bytes)||sha(input)!==digest)throw Error('materialization request differs');
+ const {materializeNormalRuntimeDependencies}=await import('./normal-runtime-materialization.mjs');
+ const result=materializeNormalRuntimeDependencies(JSON.parse(input));console.log(JSON.stringify(result));
+}else{
 const [H,expectedBytes,expectedSHA]=process.argv.slice(2);
 if(!path.isAbsolute(H??'')||!/^\d+$/.test(expectedBytes??'')||!/^[a-f0-9]{64}$/.test(expectedSHA??''))throw Error('exact canonical handoff path/bytes/SHA required');
 const raw=fs.readFileSync(H);if(raw.length!==Number(expectedBytes)||sha(raw)!==expectedSHA)throw Error('canonical handoff differs');
@@ -20,5 +29,7 @@ const executor=rows.get('src/walletconnect-contract-initiator-boundary.js');if(!
 const body=Buffer.from(JSON.stringify({files,version:'YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'}));
 const out=fs.mkdtempSync(path.join(root,'evidence/manifest-')),manifest=path.join(out,'original-ide-contract-relay-runtime-manifest.json');
 fs.writeFileSync(manifest,body,{flag:'wx',mode:0o600});
-const result={normalSDK:{handoff:H,bytes:raw.length,sha256:sha(raw),commit:h.commit},parents:[a.ref,w.ref],manifest:{path:manifest,bytes:body.length,sha256:sha(body)},fileCount:files.length,sharedIdentical:shared,totalBytes:files.reduce((n,f)=>n+f.bytes,0),executor,installedSourceRoot:null,NativeAdmission:false,platformQualified:false,network:false,normalSuccessorWillRequireRegeneration:true};
+const result={normalSDK:{handoff:H,bytes:raw.length,sha256:sha(raw),commit:h.commit},parents:[a.ref,w.ref],manifest:{path:manifest,bytes:body.length,sha256:sha(body)},fileCount:files.length,sharedIdentical:shared,totalBytes:files.reduce((n,f)=>n+f.bytes,0),executor,installedSourceRoot:null,NativeAdmission:false,platformQualified:false,network:false,normalSuccessorWillRequireRegeneration:true,fullPackageDependencyMaterialization:false,App316CoverageVerified:false};
 fs.writeFileSync(path.join(out,'UNION.json'),JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});console.log(JSON.stringify(result));
+
+}

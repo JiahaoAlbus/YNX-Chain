@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.3.0-pq.3.32-auth.29",
+  "version": "1.3.0-pq.3.32-auth.30",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -286,7 +286,10 @@
     "native/original-ide-project-control-custody.mm",
     "native/original-ide-project-control-key-record.h",
     "native/original-ide-project-control-custody-source.inc.mm",
-    "native/original-ide-project-control-custody-data.mjs"
+    "native/original-ide-project-control-custody-data.mjs",
+    "scripts/normal-runtime-materialization.mjs",
+    "integration/WALLET_APP_RUNTIME_DEPENDENCIES_316.json",
+    "scripts/NORMAL_RUNTIME_MATERIALIZATION.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -346,7 +349,8 @@
     "test:main-c132-entry": "node --test test/main-c132-control-entry.test.mjs",
     "test:r204-source-completion": "node --test test-r204-source-completion.mjs",
     "test:r205-source-lifecycle": "node --test test-r205-source-lifecycle.mjs",
-    "test:r211-protected-publisher-current": "node --test test-protected-publisher-current.mjs"
+    "test:r211-protected-publisher-current": "node --test test-protected-publisher-current.mjs",
+    "test:normal-runtime-materialization": "node --test test/normal-runtime-materialization.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
