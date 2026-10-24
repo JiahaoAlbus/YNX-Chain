@@ -10,6 +10,35 @@ def measurement(rate=300,upper=2000000000):
     return dict(summary=dict(finalSubmittedPerMeasurementSecond=rate),offerLatencyIntervalsNs={n:copy.deepcopy(distribution) for n in ('offerToEffectiveBusinessInclusion','offerToFinal')})
 
 class NativeStreamPairTests(unittest.TestCase):
+    def test_grouped_prepared_pair_changes_only_pacing_with_original_caps(self):
+        plan=supply.pair_recipe(supply.STREAM_GROUPED_PAIR);before,after=plan['cases']
+        self.assertEqual(plan['kind'],'fixed-same-VM-native-prepared-grouped-cadence-pair');self.assertEqual(plan['input']['linux_supply_pacing'],'paired-native-prepared-grouped-cadence')
+        self.assertIs(before['nativePreparedCertificate'],True);self.assertIs(after['nativePreparedCertificate'],True)
+        self.assertEqual([r['pacingMode'] for r in plan['cases']],['bounded-cadence','grouped-cadence4'])
+        self.assertEqual(after['profile']['name'],before['profile']['name'].replace('-bounded-cadence','-grouped-cadence4'))
+        a,b=copy.deepcopy(after),copy.deepcopy(before);a['pacingMode']=b['pacingMode'];a['profile']['name']=b['profile']['name'];self.assertEqual(a,b)
+        commands=[]
+        for row in plan['cases']:
+            self.assertEqual(row['profile']['concurrency'],8);self.assertEqual(row['resourceCaps']['ownedRSSBytes'],1<<30)
+            commands.append(supply.supply_client_command(Path('/build'),Path('/network/manifest'),Path('/network'),Path('/network/result'),row['profile'],row['pacingMode'],True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,prepared=True))
+            self.assertIn('-native-prepared-certificate',commands[-1]);self.assertNotIn('-native-cached-fee-json',commands[-1])
+        a=list(commands[1]);a[a.index('grouped-cadence4')]='bounded-cadence';self.assertEqual(a,commands[0])
+        selection=supply.native_verifier_selection('grouped-cadence4',True,False,False,False,8,True);supply.stream_verifier.check_selection(supply._verifier_controller(),selection)
+        for delta in (dict(expected_input_reuse=False),dict(expected_prepared_certificate=False),dict(expected_submitters=16),dict(pacing='unknown')):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.stream_verifier.check_selection(supply._verifier_controller(),dict(selection,**delta))
+        args=dict(transport='grpc',profile_name=supply.STREAM_PROFILE,pacing='grouped-cadence4',observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,prepared=True)
+        for delta in (dict(current_input_reuse=False),dict(prepared=False),dict(submitters=16),dict(canonical_certificate=True),dict(native_suffix_setup=True),dict(block_tip_hint=True)):
+            with self.subTest(delta=delta),self.assertRaises(RuntimeError):supply.recipe(**dict(args,**delta))
+        for action in ('prepare','execute'):self.assertIn('--'+action+'-pair --pair-kind native-prepared-grouped-cadence --observer-phases',Path('.github/workflows/chain-core.yml').read_text())
+
+    def test_grouped_prepared_pair_original_recovery_and_first_failure_stop(self):
+        self.check_pair_recovery(supply.STREAM_GROUPED_PAIR)
+        code,calls,terminal=self.run_pair(comparison=supply.STREAM_GROUPED_PAIR)
+        self.assertEqual(code,0);self.assertEqual(calls,['bounded-cadence','grouped-cadence4']);self.assertTrue(terminal['qualified'])
+        for fault in ('unknown','closure','binary','host'):
+            code,calls,terminal=self.run_pair(fault,supply.STREAM_GROUPED_PAIR)
+            self.assertEqual(code,1);self.assertEqual(len(calls),1);self.assertFalse(terminal['qualified'])
+
     def test_prepared_pair_changes_only_private_publication(self):
         plan=supply.pair_recipe(supply.STREAM_PREPARED_PAIR);before,after=plan['cases']
         self.assertEqual(plan['kind'],'fixed-same-VM-native-prepared-certificate-pair')
@@ -238,12 +267,12 @@ class NativeStreamPairTests(unittest.TestCase):
                 suffix=kind==supply.STREAM_SUFFIX_PAIR and index==1
                 tip=kind==supply.STREAM_TIP_PAIR and index==1
                 submitters=16 if kind==supply.STREAM_SUBMIT16_PAIR and index==1 else 8
-                prepared=kind==supply.STREAM_PREPARED_PAIR and index==1
+                prepared=kind==supply.STREAM_GROUPED_PAIR or kind==supply.STREAM_PREPARED_PAIR and index==1
                 case=('before-' if index==0 else 'after-')+label
                 directory=root/case/'evidence';directory.mkdir(parents=True)
                 row=dict(**({"nativePreparedCertificate":True} if prepared else {}),**({"nativeStreamSubmitters":16} if submitters==16 else {}),sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),**({"nativeBlockTipHint":True} if tip else {}),binaries=pair['compiledBinaries'])
                 raw=json.dumps(row).encode();(directory/'actual.json').write_bytes(raw);rows.append((directory/'actual.json',raw))
-                cases.append(dict(**({"preparedCertificate":prepared} if kind==supply.STREAM_PREPARED_PAIR else {}),**({"submitters":submitters} if kind==supply.STREAM_SUBMIT16_PAIR else {}),order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
+                cases.append(dict(**({"preparedCertificate":prepared} if kind in (supply.STREAM_PREPARED_PAIR,supply.STREAM_GROUPED_PAIR) else {}),**({"submitters":submitters} if kind==supply.STREAM_SUBMIT16_PAIR else {}),order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
             pair['cases']=cases;pair['jointObservation']=supply.native_stream_pair_observation(cases)
             def verify(destination,mode,head,**kwargs):
                 index=0 if Path(destination).name.startswith('before-') else 1
@@ -256,7 +285,7 @@ class NativeStreamPairTests(unittest.TestCase):
             for fault in ('order','hostIdentity','sha256','measurement','mode','canonicalCertificate','nativeSuffixSetup','blockTipHint'):
                 changed=copy.deepcopy(pair);changed['cases'][1][fault]='changed'
                 with self.subTest(fault=fault),self.assertRaises(RuntimeError):check(changed)
-            if kind==supply.STREAM_PREPARED_PAIR:
+            if kind in (supply.STREAM_PREPARED_PAIR,supply.STREAM_GROUPED_PAIR):
                 changed=copy.deepcopy(pair);changed['cases'][1]['preparedCertificate']=False
                 with self.assertRaises(RuntimeError):check(changed)
                 bad_receipt=json.loads(rows[1][1]);bad_receipt['nativePreparedCertificate']=False

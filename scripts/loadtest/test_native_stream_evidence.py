@@ -204,6 +204,24 @@ class CurrentInputReuseMeasurementTests(unittest.TestCase):
             with self.subTest(changed=changed),self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(dict(reader,currentInputReuse=dict(stats,**changed)),True)
         with self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(reader,False)
 
+class NativeGroupedPreparedFixtureTests(unittest.TestCase):
+    def setUp(self):
+        selected=os.environ.get('YNX_NATIVE_GROUPED_PUBLIC_FIXTURE_DIR');self.assertTrue(selected,'required actual grouped prepared Go public fixture absent')
+        self.root=Path(selected).resolve();self.meta=evidence.strict_json((self.root/'PUBLIC_FIXTURE_SCOPE.json').read_bytes())
+        self.assertEqual(self.meta['kind'],'native_stream_public_unit_fixture_not_network');self.assertIs(self.meta['independentBFTProof'],False)
+    def test_actual_grouped_plan_original_hash_and_four_offer_pacing_bounds(self):
+        d=self.meta;self.assertEqual(d['pacingMode'],'grouped-cadence4')
+        plan=evidence.strict_json((self.root/'transactions-result.json.streaming-plan.json').read_bytes());native=plan['nativePrefix']
+        self.assertEqual(native['pacingMode'],'grouped-cadence4');self.assertIs(native['preparedCertificate'],True);self.assertIs(native['currentInputReuse'],True);self.assertEqual(native['submitters'],8);self.assertNotIn('clientCachedFeeJSON',native)
+        self.assertNotIn('clientCachedFeeJSON',d);self.assertNotIn('clientStateHashEncoding',d)
+        p=d['readySenders']['supply'];self.assertEqual(p['pacingWaitAttempts'],102);self.assertEqual(p['pacingFutureTargetAttempts']+p['pacingAlreadyDueAttempts'],102)
+        self.assertLessEqual(p['pacingPeakCatchupTargets'],3);self.assertLessEqual(p['pacingPositiveRemainingNs']+p['pacingWakeLatenessNs'],p['pacingWaitNs'])
+        details=d['durableReadback']['prefixReplay']['workPhases']['certificatePublishDetails'];self.assertEqual(details['preparedNativeAccepted']+details['strictJSON']['calls'],102)
+    def test_complete_actual_grouped_signed_terminal_stream(self):
+        d=self.meta;initial=evidence.strict_json((self.root/'transactions.json').read_bytes())['transactions']
+        proof=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20)
+        self.assertEqual(proof['validatedRecords'],102);self.assertEqual(proof['matchedLatestSlots'],3)
+
 class NativeCachedFeeClientFixtureTests(unittest.TestCase):
     def setUp(self):
         selected=os.environ.get('YNX_NATIVE_CACHED_FEE_PUBLIC_FIXTURE_DIR')

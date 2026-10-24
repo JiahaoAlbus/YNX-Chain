@@ -1,0 +1,276 @@
+{
+  "schema": 1,
+  "scope": "prepared native stream8 bounded versus existing grouped-cadence4; no nodes/network measurement",
+  "sourceBase": "f58edac78435561a81388ded54b16aa29d9885b5",
+  "baseNormalCI": {
+    "run": 40096429603,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "plan": {
+    "schema": 1,
+    "kind": "fixed-same-VM-native-prepared-grouped-cadence-pair",
+    "execute": false,
+    "requiresSeparateRootGrant": true,
+    "nodesStarted": false,
+    "pairCaps": {
+      "totalMs": 120000,
+      "retainedBytes": 536870912,
+      "logBytes": 2097152,
+      "buildBytes": 1073741824,
+      "metadataReserveMs": 500
+    },
+    "cases": [
+      {
+        "schema": 1,
+        "profile": {
+          "name": "supply-native-stream-2048x4-grpc-bounded-cadence-prepared",
+          "senders": 2048,
+          "rounds": 4,
+          "offeredRate": 1000,
+          "concurrency": 8,
+          "observers": 4,
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedProcesses": 10,
+          "longLivedChildren": 9,
+          "ownedRSSBytes": 1073741824,
+          "privateBytes": 268435456,
+          "threads": 320,
+          "availableMemoryFloorBytes": 1207959552,
+          "senderMode": "ready-pool"
+        },
+        "abciTransport": "grpc",
+        "pacingMode": "bounded-cadence",
+        "environment": {
+          "GOMAXPROCS": "1",
+          "GOGC": "100",
+          "GOMEMLIMIT": "off"
+        },
+        "execute": false,
+        "nativeStream8": true,
+        "nativePreparedCertificate": true,
+        "nativeStreamVerifier": true,
+        "verifierLifecycle": {
+          "clientExitRequired": true,
+          "completeCheckerPasses": 2,
+          "withinOriginalActiveMs": 45000,
+          "maximumConcurrentOwnedProcesses": 10,
+          "recordedChildRoles": 11
+        },
+        "observerPhaseTiming": true,
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "observerNativeFacts": true,
+        "nativeCurrentInputReuse": true,
+        "streamBudget": {
+          "evidenceBytes": 67108864,
+          "durableStoreBytes": 33554432,
+          "durableCacheBytes": 67108864,
+          "timeoutMs": 40000
+        },
+        "resourceCaps": {
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedRSSBytes": 1073741824,
+          "threads": 320,
+          "ownedProcesses": 10,
+          "privateBytes": 268435456,
+          "buildBytes": 1073741824,
+          "logBytes": 1048576,
+          "diskFloorBytes": 1073741824,
+          "rootReserveBytes": 445644800,
+          "compileReserveBytes": 1073741824,
+          "availableMemoryFloorBytes": 1207959552,
+          "sampleMs": 200,
+          "longLivedChildren": 9
+        },
+        "requiresSeparateRootGrant": true,
+        "nodesStarted": false,
+        "platform": "Linux native /proc; not macOS pressure1",
+        "interpretation": "Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion."
+      },
+      {
+        "schema": 1,
+        "profile": {
+          "name": "supply-native-stream-2048x4-grpc-grouped-cadence4-prepared",
+          "senders": 2048,
+          "rounds": 4,
+          "offeredRate": 1000,
+          "concurrency": 8,
+          "observers": 4,
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedProcesses": 10,
+          "longLivedChildren": 9,
+          "ownedRSSBytes": 1073741824,
+          "privateBytes": 268435456,
+          "threads": 320,
+          "availableMemoryFloorBytes": 1207959552,
+          "senderMode": "ready-pool"
+        },
+        "abciTransport": "grpc",
+        "pacingMode": "grouped-cadence4",
+        "environment": {
+          "GOMAXPROCS": "1",
+          "GOGC": "100",
+          "GOMEMLIMIT": "off"
+        },
+        "execute": false,
+        "nativeStream8": true,
+        "nativePreparedCertificate": true,
+        "nativeStreamVerifier": true,
+        "verifierLifecycle": {
+          "clientExitRequired": true,
+          "completeCheckerPasses": 2,
+          "withinOriginalActiveMs": 45000,
+          "maximumConcurrentOwnedProcesses": 10,
+          "recordedChildRoles": 11
+        },
+        "observerPhaseTiming": true,
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "observerNativeFacts": true,
+        "nativeCurrentInputReuse": true,
+        "streamBudget": {
+          "evidenceBytes": 67108864,
+          "durableStoreBytes": 33554432,
+          "durableCacheBytes": 67108864,
+          "timeoutMs": 40000
+        },
+        "resourceCaps": {
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedRSSBytes": 1073741824,
+          "threads": 320,
+          "ownedProcesses": 10,
+          "privateBytes": 268435456,
+          "buildBytes": 1073741824,
+          "logBytes": 1048576,
+          "diskFloorBytes": 1073741824,
+          "rootReserveBytes": 445644800,
+          "compileReserveBytes": 1073741824,
+          "availableMemoryFloorBytes": 1207959552,
+          "sampleMs": 200,
+          "longLivedChildren": 9
+        },
+        "requiresSeparateRootGrant": true,
+        "nodesStarted": false,
+        "platform": "Linux native /proc; not macOS pressure1",
+        "interpretation": "Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion."
+      }
+    ],
+    "order": "native-prepared-bounded then native-prepared-grouped; no second activation after any first failure/UNKNOWN/incomplete raw/unclean closure",
+    "input": {
+      "run_linux_supply": true,
+      "linux_supply_transport": "grpc",
+      "linux_supply_profile": "supply-native-stream-2048x4",
+      "linux_supply_pacing": "paired-native-prepared-grouped-cadence",
+      "measure_observer_phases": true,
+      "prefix_durable_replay": false
+    },
+    "binaries": "one original four-ELF build; SHA/buildInfo/source unchanged across both original cases",
+    "interpretation": "Explicit pair only: each8192 signed business inputs, original45+15/60s and RSS/thread/process/log guards, private256MiB each; aggregate retained512MiB including receipts, total120s/log2MiB/build1GiB. Same boot/PID namespace/host/launcher/source/ELFs, separate fresh ephemeral fixtures. Only the registered cadence, exact-input-cache, canonical-certificate or private-suffix axis changes; cache/certificate/suffix comparisons use bounded-cadence on both sides. No network or sustained TPS qualification from a recipe."
+  },
+  "originalPacerAlgorithmChanged": false,
+  "burstOffersPerGroup": 4,
+  "expiredSlotsReplayed": false,
+  "hashCandidateSelected": false,
+  "sourceTests": {
+    "controller": 91,
+    "pair": 36,
+    "evidence": 49,
+    "archive": 23,
+    "realSignedExecutionCommitReadbackInputs": 102
+  },
+  "unitPacing": {
+    "completionWaitAttempts": 49,
+    "completionWaitNs": 1325945250,
+    "completionSupplyWaitAttempts": 46,
+    "completionSupplyWaitNs": 1275283833,
+    "completionDrainWaitAttempts": 3,
+    "completionDrainWaitNs": 50661417,
+    "completionFailureWaitAttempts": 0,
+    "completionFailureWaitNs": 0,
+    "terminalSinkAttempts": 102,
+    "terminalSinkNs": 23954502,
+    "offerDecodeAttempts": 102,
+    "offerDecodeNs": 5309538,
+    "pacingWaitAttempts": 102,
+    "pacingWaitNs": 511176121,
+    "pacingFutureTargetAttempts": 30,
+    "pacingAlreadyDueAttempts": 72,
+    "pacingPositiveRemainingNs": 118127166,
+    "pacingWakeLatenessNs": 392988709,
+    "pacingMaxWakeLatenessNs": 33925917,
+    "pacingCatchupTargets": 6,
+    "pacingCadenceResets": 96,
+    "pacingPeakCatchupTargets": 1,
+    "dispatchAttempts": 102,
+    "dispatchNs": 127080,
+    "signAttempts": 99,
+    "signNs": 179863119,
+    "encodeAttempts": 99,
+    "encodeNs": 390393371,
+    "signedSuccessors": 99,
+    "journalSetupNs": 3317375,
+    "journalAppendAttempts": 71,
+    "journalAppendNs": 546833757,
+    "journalDurableEnvelopes": 102,
+    "journalDurableBytes": 108315
+  },
+  "unitProducerAndQuorum": "application pipeline only; unit quorum gates, no network capacity proof",
+  "networkImprovementMeasured": false,
+  "sustained1000Qualified": false,
+  "firstFailure": "new shared helper compared normalized plan relative with raw empty pacing; full-client real failures retained; assertion now uses original normalizer, no producer guard changed",
+  "raws": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-client-race-01.raw",
+      "bytes": 952,
+      "sha256": "bfc45b62ef26a5eaeeee0a932e3589886f9c1c24d2346570a9aeb924c0e36cd3"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-controller-01.raw",
+      "bytes": 191,
+      "sha256": "a684bd368b904a4ed98a28d496a3e7647a58492c2159dbc230f0776caceeaf9d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-pair-01.raw",
+      "bytes": 135,
+      "sha256": "3bf3640332b6e4206c55843b580d9a9a3d9bb1abf73efad9bab63972d7f165f7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-pair-02.raw",
+      "bytes": 135,
+      "sha256": "0b69d875be3c8c63892a0b3d99cbf0c5155df8a8e4d42cee9070744e11b42d08"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-evidence-01.raw",
+      "bytes": 9999,
+      "sha256": "0b3852605eb992a70a579c56f9e8056d5d9af5342e97baafc14a30d014ffade3"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-artifact-01.raw",
+      "bytes": 378,
+      "sha256": "6963d9bff1200e02870d891f5bae70773ce480c2c4fe01563195adff2ef9d2f3"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-full-client-01.raw",
+      "bytes": 5806,
+      "sha256": "5080a313bd74d995b2ebcf76890be6affecf8bfb1cd8bd43cc197316be8f323f"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-full-client-02.raw",
+      "bytes": 76,
+      "sha256": "9daf76457110c5fb360f7e36373637ae7d151e7a768f0d6c38dda52e0201e3a2"
+    }
+  ],
+  "fixture": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-certificate-pair-source-142dc8024/grouped-prepared-public-fixture/PUBLIC_FIXTURE_SCOPE.json",
+    "sha256": "dd55e0dfdfb414e3215846eece7225aa4037753ee4aeb9b45ff8ca2202c3a32e"
+  }
+}

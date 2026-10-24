@@ -157,6 +157,9 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		o.nativeCurrentInputReuse = true
 		o.nativePreparedCertificate = len(candidates) >= 5 && candidates[4]
 		o.nativeCachedFeeJSON = len(candidates) >= 6 && candidates[5]
+		if len(candidates) >= 7 && candidates[6] {
+			o.pacingMode = "grouped-cadence4"
+		}
 		o.nativeCanonicalCertificate = len(candidates) >= 1 && candidates[0]
 		o.nativeSuffixSetup = len(candidates) >= 2 && candidates[1]
 		if len(candidates) >= 3 && candidates[2] {
@@ -342,7 +345,8 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		t.Logf("actual32sender/two-cycle signed workload: peak callbacks=%d completed=%d; first-wave barrier deliberately controls concurrency, timings are not capacity evidence", occupancy.PeakActiveCallbacks, expected)
 	}
 	if native {
-		if plan.Profile != streamingProfileName(o) || plan.NativePrefix.Submitters != o.concurrency || plan.NativePrefix.Observers != 4 {
+		selectedPacingMode, modeErr := normalizeReadyPacingMode(o.pacingMode)
+		if modeErr != nil || plan.Profile != streamingProfileName(o) || plan.NativePrefix.Submitters != o.concurrency || plan.NativePrefix.Observers != 4 || plan.NativePrefix.PacingMode != selectedPacingMode {
 			t.Fatal("persisted plan does not bind actual worker scope", plan.NativePrefix)
 		}
 		actual := nativeReader.stats()
@@ -413,7 +417,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		t.Fatal("completed fixture claim was silently reusable")
 	}
 	if native && o.nativeStreamSubmitters == 0 {
-		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats)
+		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats, o.pacingMode)
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)
 }

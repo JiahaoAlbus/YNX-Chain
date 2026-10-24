@@ -131,11 +131,11 @@ class Archive:
 
 class Selection:
     def __init__(self,mode):
-        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network") for _ in range(14)] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
+        need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network") for _ in range(16)] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
     def select(self,name):
         if name.endswith('/'):return None
         if self.mode=='network-pair':
-            labels=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared','native-certificate-json','native-certificate-canonical','native-suffix-original','native-suffix-private','native-tip-full-block','native-tip-status','native-submit8','native-submit16','native-prepared-control','native-prepared-owned')
+            labels=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared','native-certificate-json','native-certificate-canonical','native-suffix-original','native-suffix-private','native-tip-full-block','native-tip-status','native-submit8','native-submit16','native-prepared-control','native-prepared-owned','native-prepared-bounded','native-prepared-grouped')
             if name=='ynx-linux-supply-evidence/actual.json':
                 need(name not in self.seen,'duplicate pair receipt');self.seen.add(name);return 'evidence/actual.json'
             for i,label in enumerate(labels):
@@ -328,7 +328,7 @@ def verify_network_pair(root,head,evidence,controller):
         suffix=kind==controller.STREAM_SUFFIX_PAIR and index==1
         tip=kind==controller.STREAM_TIP_PAIR and index==1
         submitters=16 if kind==controller.STREAM_SUBMIT16_PAIR and index==1 else 8
-        prepared=kind==controller.STREAM_PREPARED_PAIR and index==1
+        prepared=kind==controller.STREAM_GROUPED_PAIR or kind==controller.STREAM_PREPARED_PAIR and index==1
         case=('before-' if index==0 else 'after-')+label
         selected=pair['cases'][index]
         raw=evidence.capture(root/case/'evidence/actual.json',16<<20);receipt=evidence.strict_json(raw)
@@ -337,7 +337,7 @@ def verify_network_pair(root,head,evidence,controller):
         need(selected.get('nativeSuffixSetup',False) is suffix and receipt.get('nativeSuffixSetup',False) is suffix,'original pair private suffix selection differs')
         need(selected.get('blockTipHint',False) is tip and receipt.get('nativeBlockTipHint',False) is tip,'original pair tip hint selection differs')
         need(receipt.get('nativePreparedCertificate',False) is prepared,'original pair prepared producer differs')
-        if kind==controller.STREAM_PREPARED_PAIR:need(selected.get('preparedCertificate') is prepared,'original pair prepared axis differs')
+        if kind in (controller.STREAM_PREPARED_PAIR,controller.STREAM_GROUPED_PAIR):need(selected.get('preparedCertificate') is prepared,'original pair prepared axis differs')
         need(receipt.get('nativeStreamSubmitters',0)==(16 if submitters==16 else 0),'original pair explicit submitter receipt differs')
         if kind==controller.STREAM_SUBMIT16_PAIR:need(type(selected.get('submitters')) is int and selected['submitters']==submitters,'original pair submitter axis differs')
         need(selected.get('sha256')==hashlib.sha256(raw).hexdigest(),'original pair case receipt SHA differs')

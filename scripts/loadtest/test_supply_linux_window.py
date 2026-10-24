@@ -1141,9 +1141,9 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False):
+        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False,pacing="relative"):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached)
+                out=supply.validate_native_stream_report(row,network,pacing=pacing,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
@@ -1209,6 +1209,16 @@ class SupplySourceTests(unittest.TestCase):
             if fault=='errors':bad['clientStateHashEncoding']['encodingErrors']=1
             if fault=='marker':bad['nativeCachedFeeJSON']=False
             with self.subTest(cachedFault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True,cached=True)
+        grouped_plan=copy.deepcopy(cached_plan);grouped_plan['profile']='scoped_native_prefix_stream8_prepared_v1';grouped_plan['nativePrefix'].pop('clientCachedFeeJSON');grouped_plan['nativePrefix']['pacingMode']='grouped-cadence4'
+        raw_plan=json.dumps(grouped_plan).encode();grouped_client=copy.deepcopy(cached_client);grouped_client.pop('nativeCachedFeeJSON');grouped_client.pop('clientStateHashEncoding');grouped_client['pacingMode']='grouped-cadence4'
+        grouped_client['streamingWorkload'].update(name=grouped_plan['profile'],planSha256=hashlib.sha256(raw_plan).hexdigest())
+        check(grouped_client,prepared=True,pacing='grouped-cadence4')
+        with self.assertRaises(RuntimeError):check(grouped_client,prepared=True)
+        with self.assertRaises(RuntimeError):check(grouped_client,pacing='grouped-cadence4')
+        bad=copy.deepcopy(grouped_client);bad['readySenders']['supply']['pacingPeakCatchupTargets']=4
+        with self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4')
+        bad=copy.deepcopy(grouped_client);bad['nativeCachedFeeJSON']=True
+        with self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4')
         raw_plan=saved_plan
         # One explicit choice must bind producer expectation, durable plan,
         # top-level report, actual backend and accepted/fallback child counters.

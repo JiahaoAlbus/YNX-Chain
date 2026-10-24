@@ -98,6 +98,7 @@ on:
           - paired-native-canonical-certificate
           - paired-native-stream-suffix
           - paired-native-prepared-certificate
+          - paired-native-prepared-grouped-cadence
           - paired-native-stream-submit16
           - paired-native-block-tip-hint
         default: relative
@@ -266,6 +267,7 @@ jobs:
           go test -p 1 -race ./cmd/ynx-consensus-perf-client -run '^TestBlockScannerTip' -count=1 -timeout=45s -v
       - name: Verify prepared native snapshot ownership and signed stream candidate
         env:
+          YNX_NATIVE_GROUPED_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-grouped-public-fixture
           YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-prepared-public-fixture
         run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(PreparedNativeSnapshot|BlockJournalPreparedPrefix|PreparedNativeStreaming)' -count=1 -timeout=30s -v
       - name: Verify unselected cached fee JSON bytes and first errors
@@ -274,6 +276,7 @@ jobs:
         run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(CachedFeeHashCandidate|StateHashEncodingSelectedApplication|CachedFeeClient)' -count=1 -timeout=30s -v
       - name: Verify original native stream evidence identity and corruption negatives
         env:
+          YNX_NATIVE_GROUPED_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-grouped-public-fixture
           YNX_NATIVE_CACHED_FEE_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-cached-fee-public-fixture
           YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-stream-public-fixture
           YNX_NATIVE_CANONICAL_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-canonical-public-fixture
@@ -295,6 +298,7 @@ jobs:
             ${{ runner.temp }}/ynx-native-suffix-public-fixture
             ${{ runner.temp }}/ynx-native-prepared-public-fixture
             ${{ runner.temp }}/ynx-native-cached-fee-public-fixture
+            ${{ runner.temp }}/ynx-native-grouped-public-fixture
           if-no-files-found: ignore
           retention-days: 90
       - name: Verify actual prefix decoder phases and held-gate cancellation
@@ -429,7 +433,7 @@ jobs:
           fi
           if [ "$YNX_SUPPLY_PROFILE" = supply-native-stream-2048x4 ]; then
             test "$YNX_SUPPLY_TRANSPORT" = grpc
-            test "$YNX_SUPPLY_PACING" = relative || test "$YNX_SUPPLY_PACING" = bounded-cadence || test "$YNX_SUPPLY_PACING" = paired-native-stream-cadence || test "$YNX_SUPPLY_PACING" = paired-native-current-input || test "$YNX_SUPPLY_PACING" = paired-native-canonical-certificate || test "$YNX_SUPPLY_PACING" = paired-native-stream-suffix || test "$YNX_SUPPLY_PACING" = paired-native-block-tip-hint || test "$YNX_SUPPLY_PACING" = paired-native-stream-submit16 || test "$YNX_SUPPLY_PACING" = paired-native-prepared-certificate
+            test "$YNX_SUPPLY_PACING" = relative || test "$YNX_SUPPLY_PACING" = bounded-cadence || test "$YNX_SUPPLY_PACING" = paired-native-stream-cadence || test "$YNX_SUPPLY_PACING" = paired-native-current-input || test "$YNX_SUPPLY_PACING" = paired-native-canonical-certificate || test "$YNX_SUPPLY_PACING" = paired-native-stream-suffix || test "$YNX_SUPPLY_PACING" = paired-native-block-tip-hint || test "$YNX_SUPPLY_PACING" = paired-native-stream-submit16 || test "$YNX_SUPPLY_PACING" = paired-native-prepared-certificate || test "$YNX_SUPPLY_PACING" = paired-native-prepared-grouped-cadence
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             observer_args+=(--native-stream8 --prefix-replay --prefix-native-clone --observer-native-facts)
@@ -480,6 +484,10 @@ jobs:
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind native-stream-suffix --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-native-prepared-grouped-cadence ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            test "$YNX_PREFIX_REPLAY" = 0
+            python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind native-prepared-grouped-cadence --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           elif [ "$YNX_SUPPLY_PACING" = paired-native-prepared-certificate ]; then
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
@@ -550,6 +558,10 @@ jobs:
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0
             python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind native-stream-suffix --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+          elif [ "$YNX_SUPPLY_PACING" = paired-native-prepared-grouped-cadence ]; then
+            test "$YNX_OBSERVER_PHASE_TIMING" = 1
+            test "$YNX_PREFIX_REPLAY" = 0
+            python3 -B scripts/loadtest/supply-linux-window.py --execute-pair --pair-kind native-prepared-grouped-cadence --observer-phases --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-pair" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
           elif [ "$YNX_SUPPLY_PACING" = paired-native-prepared-certificate ]; then
             test "$YNX_OBSERVER_PHASE_TIMING" = 1
             test "$YNX_PREFIX_REPLAY" = 0

@@ -11,7 +11,7 @@ import (
 // Optional public cross-language fixture for the existing source CI. Copy only
 // original public envelopes/observations/manifests; never sender private keys.
 // Quorum remains a unit gate and is explicitly labelled, never network proof.
-func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats readySenderStats, terminal *terminalStreamReport, latest []transactionResult, reader durableReaderStats) {
+func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats readySenderStats, terminal *terminalStreamReport, latest []transactionResult, reader durableReaderStats, pacing string) {
 	t.Helper()
 	destination := os.Getenv("YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR")
 	if reader.PrefixReplay != nil && reader.PrefixReplay.NativeSuffixSetup {
@@ -22,6 +22,12 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 	}
 	if reader.PrefixReplay != nil && reader.PrefixReplay.PreparedCertificate {
 		destination = os.Getenv("YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR")
+	}
+	if pacing == "grouped-cadence4" {
+		if reader.PrefixReplay == nil || !reader.PrefixReplay.PreparedCertificate {
+			t.Fatal("grouped public fixture requires prepared scope")
+		}
+		destination = os.Getenv("YNX_NATIVE_GROUPED_PUBLIC_FIXTURE_DIR")
 	}
 	mode, _, _ := consensus.StateHashEncodingMeasurements()
 	if mode == consensus.StateHashCachedFeeJSON {
@@ -76,6 +82,9 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 		}
 	}
 	metadata := map[string]any{"durableReadback": reader, "kind": "native_stream_public_unit_fixture_not_network", "independentBFTProof": false, "runtimeNetworkRoot": network, "runtimeOutput": output, "senders": len(latest), "rounds": 34, "intents": intents, "boundedSummary": stats.BoundedSummary, "readySenders": stats, "terminalStream": terminal, "latest": latest}
+	if pacing == "grouped-cadence4" {
+		metadata["pacingMode"] = pacing
+	}
 	if mode == consensus.StateHashCachedFeeJSON {
 		metadata["clientCachedFeeJSON"] = true
 		metadata["clientStateHashEncoding"] = currentClientHashEncoding()

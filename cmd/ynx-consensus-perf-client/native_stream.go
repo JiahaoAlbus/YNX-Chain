@@ -9,7 +9,10 @@ import (
 // Separate opt-in scope. The original nativeSubmit8 single-round contract and
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
-	if o.nativeCachedFeeJSON && (!o.nativeStream8 || !o.nativePreparedCertificate || !o.nativeCurrentInputReuse || o.nativeStreamSubmitters != 0 || o.concurrency != 8 || o.clientProcs2 || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint) {
+	if o.nativeStream8 && o.pacingMode == "grouped-cadence4" && (!o.nativePreparedCertificate || !o.nativeCurrentInputReuse || o.concurrency != 8 || o.nativeStreamSubmitters != 0 || o.nativeCachedFeeJSON) {
+		return errors.New("grouped native stream requires explicit prepared/current-reuse8 and original hash encoding")
+	}
+	if o.nativeCachedFeeJSON && (!o.nativeStream8 || !o.nativePreparedCertificate || !o.nativeCurrentInputReuse || o.nativeStreamSubmitters != 0 || o.concurrency != 8 || o.clientProcs2 || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint || o.pacingMode == "grouped-cadence4") {
 		return errors.New("cached fee JSON requires explicit prepared/current-reuse native stream8 and no mixed candidate")
 	}
 	if o.nativePreparedCertificate && (!o.nativeStream8 || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint) {
