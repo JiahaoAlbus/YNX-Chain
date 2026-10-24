@@ -70,7 +70,7 @@ head() {
         chown 995:986 -- "$source"
         chmod 0600 -- "$source" ;;
       final-inplace) printf 'changed-final-byte' >> "$source" ;;
-      marker) printf '3\n' > "$marker" ;;
+      marker) printf '3\n' >| "$marker" ;;
       mode) chmod 0640 -- "$source" ;;
       nlink) ln -- "$source" "$source.extra-link" ;;
       *) exit 92 ;;
