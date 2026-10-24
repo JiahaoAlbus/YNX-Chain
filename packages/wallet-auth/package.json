@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.3.0-pq.3.32-auth.24",
+  "version": "1.3.0-pq.3.32-auth.25",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -279,7 +279,8 @@
     "native/original-ide-project-control-source.inc.mm",
     "native/original-ide-project-control-capture.mjs",
     "native/original-ide-project-control-dispatch.mjs",
-    "native/original-ide-publication-approval-dispatch.mjs"
+    "native/original-ide-publication-approval-dispatch.mjs",
+    "native/original-ide-protected-publisher-contract.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -329,9 +330,10 @@
     "test:r196-control-source": "node --test test/r196-canonical-source-intake.test.mjs test/r196-build-closure-guards.test.mjs test/r196-project-control-capture.test.mjs && tsc -p test/tsconfig.r196-source-types.json",
     "test:publication-source-types": "tsc -p test/tsconfig.publication-source-types.json",
     "test:r197-control-dispatch": "node --test --test-concurrency=1 test/r197-sdk-cli-consumer.test.mjs test/r197-canonical-source-intake.test.mjs test/r197-project-control-current-dispatch.test.mjs",
-    "test:r197-cli-head-closure": "node --test test/r197-cli-native-closure.test.mjs && node --test --test-name-pattern=\"Auth24 recipe selects\" test/r197-canonical-source-intake.test.mjs",
+    "test:r197-cli-head-closure": "node --test test/r197-cli-native-closure.test.mjs && node --test --test-name-pattern=\"Auth25 recipe selects\" test/r197-canonical-source-intake.test.mjs",
     "test:original-native-control-interop": "node --test test/r199-native-control-interop.test.mjs",
-    "test:normal-native-compile-reuse": "node --test test/normal-native-compile-reuse.test.mjs"
+    "test:normal-native-compile-reuse": "node --test test/normal-native-compile-reuse.test.mjs",
+    "test:r200-protected-publisher": "node --test --test-concurrency=1 test/r200-protected-publisher-contract.test.mjs test/r200-recipe-closure.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

@@ -100,6 +100,15 @@ export function fetchSourceCurrentV2(endpoint,spki,profileDigest,nonce){return f
 async function run(){
  let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>2097152)bad();chunks.push(chunk);}
  const input=parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)),2097152);
+ if(input?.operation==='ide-protected-publisher-registration-data/v1'){
+  exact(input,['operation','registrationOriginal','registeredCustodian','registeredContext','principal','command','expected']);exact(input.registeredContext,['chainId','nativeChainId','owner']);
+  const {parsePQAccountAuthorization}=await import('../src/pq-wallet-policy.js');
+  const {verifyOriginalProtectedPublisherRegistrationDATA}=await import('./original-ide-protected-publisher-contract.mjs');
+  const before=Date.now(),sender=parsePQAccountAuthorization(input.registeredCustodian,input.registeredContext);
+  const result=verifyOriginalProtectedPublisherRegistrationDATA(input.registrationOriginal,sender,input.principal,input.command,input.expected,before),after=Date.now();
+  if(after<before||after>=result.expiresAtMs||result.dataOnly!==true||result.signatureVerified!==true||result.authorized!==false||result.registered!==false||result.protectedCustodyAdmitted!==false||result.nativeAdmission!==false)bad('IDE_PUBLISHER_POST_COMPLETION_EXPIRED');
+  process.stdout.write(canonical(result)+'\n');return;
+ }
  if(input?.operation==='ide-project-control-current-native-node/v1'){
   const {dispatchOriginalProjectControlCurrent}=await import('./original-ide-project-control-dispatch.mjs');
   const result=await dispatchOriginalProjectControlCurrent(input);process.stdout.write(canonical(result)+'\n');if(!result.completed)process.exitCode=1;return;
