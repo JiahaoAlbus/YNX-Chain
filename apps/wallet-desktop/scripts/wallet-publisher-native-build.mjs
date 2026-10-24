@@ -7,7 +7,8 @@ export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
  '1.3.0-pq.3.32-auth.20':Object.freeze({version:'1.3.0-pq.3.32-auth.20',supplierNodeInputs:77,inventory:Object.freeze({bytes:51343,sha256:'408042f992ecbf4904e3677e4bb503e65ab6fb56990743adc1b19540829b9ea4'}),tool:Object.freeze({bytes:12387,sha256:'882c936591a31fed919cadb063a5d496182d82175cc80a80dbaaaf6d109e179e'})}),
  '1.3.0-pq.3.32-auth.23':Object.freeze({version:'1.3.0-pq.3.32-auth.23',supplierNodeInputs:82,inventory:Object.freeze({bytes:60578,sha256:'aafecb4804cdbe1c4c23cb8931cb495215142ec25d6890f5e8d850220da8b89c'}),tool:Object.freeze({bytes:13487,sha256:'c78a2448c9892a9943051bc7c5409f473f2a2838a11a165e908754ccd3090adf'})}),
  '1.3.0-pq.3.32-auth.26':Object.freeze({version:'1.3.0-pq.3.32-auth.26',supplierNodeInputs:91,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:73355,sha256:'ea01d04aa23788438efe349d9ddcfedaadd1865d2612553585a73d20ccf99c48'}),tool:Object.freeze({bytes:14606,sha256:'219d5e0435c216ce5e78a556843d9bbcfe2be5dc321cd6dc4a8a0883507c0aee'})}),
- '1.3.0-pq.3.32-auth.28':Object.freeze({version:'1.3.0-pq.3.32-auth.28',supplierNodeInputs:91,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:73355,sha256:'197dafc43bb8ab8c6de68aae0ba50b9a7f8cf5a48553e8a8c550ec4e794e21cd'}),tool:Object.freeze({bytes:14606,sha256:'219d5e0435c216ce5e78a556843d9bbcfe2be5dc321cd6dc4a8a0883507c0aee'})})
+ '1.3.0-pq.3.32-auth.28':Object.freeze({version:'1.3.0-pq.3.32-auth.28',supplierNodeInputs:91,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:73355,sha256:'197dafc43bb8ab8c6de68aae0ba50b9a7f8cf5a48553e8a8c550ec4e794e21cd'}),tool:Object.freeze({bytes:14606,sha256:'219d5e0435c216ce5e78a556843d9bbcfe2be5dc321cd6dc4a8a0883507c0aee'})}),
+ '1.3.0-pq.3.32-auth.31':Object.freeze({version:'1.3.0-pq.3.32-auth.31',supplierNodeInputs:92,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:73563,sha256:'c598c7f7541c6854885c5c227315cd9215a7aeefa3e1d1f23192bcd7acf72dbb'}),tool:Object.freeze({bytes:14702,sha256:'83db7b575e57ceb67cf59efdc767c6988d30eb075877dca44ea55c003888e6be'})})
 });
 export function walletNativeSourceProfile(version){if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');return WALLET_NATIVE_SOURCE_PROFILES[version];}
 export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
@@ -44,15 +45,15 @@ export const WALLET_ARTIFACT_CABI_INPUTS=Object.freeze([
 ].map(Object.freeze));
 const withCABI=Object.freeze([...withApproval,...WALLET_ARTIFACT_CABI_INPUTS]);
 export function walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease=false,projectControl=false,controlCABI=false){
- if(typeof controlCABI!=='boolean'||controlCABI&&(!projectControl||supplierNodeInputCount!==91))throw Error('WALLET_CONTROL_CABI_MATCHED_SDK26_REQUIRED');
- if(typeof projectControl!=='boolean'||projectControl&&![77,82,91].includes(supplierNodeInputCount))throw Error('WALLET_CONTROL_MATCHED_SDK20_OR_23_OR_26_REQUIRED');
+ if(typeof controlCABI!=='boolean'||controlCABI&&(!projectControl||![91,92].includes(supplierNodeInputCount)))throw Error('WALLET_CONTROL_CABI_MATCHED_SDK26_REQUIRED');
+ if(typeof projectControl!=='boolean'||projectControl&&![77,82,91,92].includes(supplierNodeInputCount))throw Error('WALLET_CONTROL_MATCHED_SDK20_OR_23_OR_26_REQUIRED');
  if(typeof artifactRelease!=='boolean')throw Error('WALLET_ARTIFACT_CABI_ROLE_INVALID');
- if(artifactRelease&&![77,91].includes(supplierNodeInputCount))throw Error('WALLET_ARTIFACT_CABI_SDK20_REQUIRED');
- if(![69,71,75,76,77,82,91].includes(supplierNodeInputCount))throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');
- const selected=artifactRelease&&supplierNodeInputCount===77?withCABI:[77,82,91].includes(supplierNodeInputCount)?withApproval:WALLET_PUBLISHER_NATIVE_INPUTS;
+ if(artifactRelease&&![77,91,92].includes(supplierNodeInputCount))throw Error('WALLET_ARTIFACT_CABI_SDK20_REQUIRED');
+ if(![69,71,75,76,77,82,91,92].includes(supplierNodeInputCount))throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');
+ const selected=artifactRelease&&supplierNodeInputCount===77?withCABI:[77,82,91,92].includes(supplierNodeInputCount)?withApproval:WALLET_PUBLISHER_NATIVE_INPUTS;
  // The new archive co-resides both ABIs. Combined roles retain BOTH fixed
  // headers/adapters, but NEVER also link the historical Go runtime archive.
- return Object.freeze([...selected,...(projectControl?WALLET_PROJECT_CONTROL_INPUTS:[]),...(controlCABI?WALLET_PROJECT_CONTROL_CABI_INPUTS:[]),...(artifactRelease&&supplierNodeInputCount===91?[...WALLET_ARTIFACT_CABI_INPUTS.slice(0,2),...(controlCABI?[]:[WALLET_PROJECT_CONTROL_CABI_INPUTS[2]])]:[])]);
+ return Object.freeze([...selected,...(projectControl?WALLET_PROJECT_CONTROL_INPUTS:[]),...(controlCABI?WALLET_PROJECT_CONTROL_CABI_INPUTS:[]),...(artifactRelease&&[91,92].includes(supplierNodeInputCount)?[...WALLET_ARTIFACT_CABI_INPUTS.slice(0,2),...(controlCABI?[]:[WALLET_PROJECT_CONTROL_CABI_INPUTS[2]])]:[])]);
 }
 export const SDK13_NODE_TRANSLATION_UNITS=Object.freeze([
  'apps/wallet-desktop/native/original-auth-identity-node.mm',
@@ -65,7 +66,7 @@ const fail=()=>{throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');};
  */
 export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInputCount=69,artifactRelease=false,projectControl=false,controlCABI=false){
  if(typeof repo!=='string'||!path.isAbsolute(repo)||path.normalize(repo)!==repo)fail();
- const walletInputs=walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease,projectControl,controlCABI),withCustody=supplierNodeInputCount===91;
+ const walletInputs=walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease,projectControl,controlCABI),withCustody=[91,92].includes(supplierNodeInputCount);
  const controlSources=projectControl?WALLET_PROJECT_CONTROL_INPUTS.filter(p=>p.path.endsWith('.mm')&&!p.path.endsWith('.inc.mm')).map(p=>path.join(repo,p.path)):[];
  const sources=(withCustody?SDK26_NODE_TRANSLATION_UNITS:SDK13_NODE_TRANSLATION_UNITS).map(n=>path.join(repo,n));
  if(plan.minimumSystemVersion!=='13.0'||JSON.stringify(plan.sources)!==JSON.stringify(sources)||!Array.isArray(plan.commands))fail();
@@ -87,7 +88,7 @@ export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInpu
   argv.splice(end,0,store,...controlSources);if(!withCustody)argv.splice(argv.indexOf('-lbsm'),0,'-framework','LocalAuthentication');
   if(artifactRelease||controlCABI){const archive=withCustody?WALLET_PROJECT_CONTROL_CABI_INPUTS[2]:WALLET_ARTIFACT_CABI_INPUTS[2];argv.splice(argv.lastIndexOf('-o'),0,path.join(repo,archive.path));argv.unshift('-I'+path.join(repo,'apps/wallet-desktop/native'));}
   if(artifactRelease)argv.unshift(WALLET_ARTIFACT_CABI_FLAG);
-  if([77,82,91].includes(supplierNodeInputCount))argv.unshift(WALLET_PUBLISHER_APPROVAL_FLAG);
+  if([77,82,91,92].includes(supplierNodeInputCount))argv.unshift(WALLET_PUBLISHER_APPROVAL_FLAG);
   if(projectControl)argv.unshift(WALLET_PROJECT_CONTROL_FLAG);
   if(controlCABI)argv.unshift(WALLET_PROJECT_CONTROL_CABI_FLAG);
   return {...command,argv};
