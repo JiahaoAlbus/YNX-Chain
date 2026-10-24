@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "kind": "local-same-signed-journal-capture-allocation-not-network-RSS",
+  "sourceParent": "cc8feed8b4f0663de034b588813f57a72f9ea35a",
+  "sourceFiles": {
+    "cmd/ynx-consensus-perf-client/durable_capture.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/durable_capture.go",
+      "bytes": 1676,
+      "sha256": "4763f4c7bde5f87e0c70fef5d31f2c5da8535536e592856211460e9ba428c042"
+    },
+    "cmd/ynx-consensus-perf-client/durable_capture_test.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/durable_capture_test.go",
+      "bytes": 4468,
+      "sha256": "d13228fda7a67113e3aa2ff5a8b3fabc895ba4d5e715d08d9f74e816ae0db2da"
+    },
+    "cmd/ynx-consensus-perf-client/durable_reader.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/cmd/ynx-consensus-perf-client/durable_reader.go",
+      "bytes": 24094,
+      "sha256": "6aab1e09cbbd90e3164531c80d81739b1ee6af115410f6bb2db9bd310e5205cf"
+    }
+  },
+  "environment": {
+    "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+    "go": "go version go1.25.7 darwin/arm64",
+    "gomaxprocs": 1
+  },
+  "sameInputCapture": {
+    "bytes": 3111,
+    "sha256": "26b9230092754d72d0df2dae35aab41afe0acae3f9be812d2425ce974ac7146b",
+    "samples": 16,
+    "baselineTotalAlloc": 193664,
+    "candidateTotalAlloc": 52224,
+    "baselineMallocs": 128,
+    "candidateMallocs": 48,
+    "baselineNs": 90917,
+    "candidateNs": 38292,
+    "baselineAllocsPerRun": 8,
+    "candidateAllocsPerRun": 3,
+    "networkRSSAttribution": "false"
+  },
+  "allocationReductionPercent": 73.03370786516854,
+  "selection": "Existing native-current-input-reuse explicit stream candidate only; legacy/default retain original ReadAll capture",
+  "raw": {
+    "native-measured-capture-safety-first.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-measured-capture-safety-first.raw",
+      "bytes": 2244,
+      "sha256": "eb65d436d7d8d61917df24f136d305a551581d54cb3e015f3da4cde5b5af4f85"
+    },
+    "native-stream102-allocation-profile.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-stream102-allocation-profile.raw",
+      "bytes": 587,
+      "sha256": "7cbe2d22b28d152ab686186f32362a5ff4b79a8d94d5ded269a2f150cdf0e795"
+    },
+    "native-stream102-allocation-profile.pprof": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-stream102-allocation-profile.pprof",
+      "bytes": 15041,
+      "sha256": "e58936fd2a461fae6f588ca4c03cf56bfc597df5fcc6542a40c9f34b648d1a48"
+    },
+    "native-stream102-alloc_space.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-stream102-alloc_space.raw",
+      "bytes": 18634,
+      "sha256": "85a203d9d077c166d1a95ed7052902f8aaa658d90b6bc97f2d006b941b827e2d"
+    },
+    "native-stream102-inuse_space.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-stream102-inuse_space.raw",
+      "bytes": 3963,
+      "sha256": "e3613c37f4d32d6e937dfaa5bda4042e678460b1692c891789b9d78b5fc4b760"
+    },
+    "native-stream102-measured-capture-profile.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-stream102-measured-capture-profile.raw",
+      "bytes": 587,
+      "sha256": "3084e9443a57345b6507606c1abec11b6f9f70a2d11421fdd3cd9db89c6f3b9d"
+    },
+    "native-stream102-measured-capture-profile.pprof": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-stream102-measured-capture-profile.pprof",
+      "bytes": 14590,
+      "sha256": "08b793b41fba028a89ebfcac7b5841b9cf505159237edf1c8bfc463aa3c1088f"
+    },
+    "native-stream102-measured-capture-alloc_space.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-stream102-measured-capture-alloc_space.raw",
+      "bytes": 21272,
+      "sha256": "152d4ed32265fd24f6938c78a1e406a1c655d6a2e4ff27acef163a8398c38e9f"
+    }
+  },
+  "invariants": [
+    "original read lock",
+    "first full hash and actual byte count",
+    "complete second capture plus EOF probe",
+    "second full SHA/length comparison",
+    "file identity recheck",
+    "signature/fee/nonce/quorum/durable rules unchanged"
+  ],
+  "networkRSSCauseProven": false,
+  "networkRetryAuthorized": false,
+  "networkImprovementMeasured": false,
+  "sustained1000Qualified": false,
+  "interpretation": "Exact same3111B signed journal/component16captures; whole102-unit profiles use separate ephemeral identities and sampled alloc_space, not matched network/RSS evidence or whole-process retained heap. Timing under race is diagnostic only."
+}

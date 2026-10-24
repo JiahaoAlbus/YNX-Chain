@@ -415,7 +415,12 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 		if _, err := f.Seek(0, io.SeekStart); err != nil {
 			return evidence, err
 		}
-		data, err := io.ReadAll(io.LimitReader(f, r.storeByteLimit+1))
+		var data []byte
+		if r.nativeCurrentInputReuse {
+			data, err = captureMeasuredDurableInput(ctx, f, size, r.storeByteLimit)
+		} else {
+			data, err = io.ReadAll(io.LimitReader(f, r.storeByteLimit+1))
+		}
 		if err != nil {
 			return evidence, err
 		}
