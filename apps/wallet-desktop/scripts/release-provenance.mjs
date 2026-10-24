@@ -13,6 +13,9 @@ import {verifySDK13NativeComponent,verifySDK13HelperBundle,SDK13_HELPER_ASSET,SD
 import {SDK_RUNTIME_UNIONS,sdkRuntimeUnionProfile,SDK14_RUNTIME_UNION_SOURCE} from './sdk14-runtime-union.mjs';
 import {canonicalNativeEvidencePlan} from './canonical-native-evidence.mjs';
 import {readSDK35ProductRuntime,assertSDK35ProductArchive} from './sdk35-product-runtime.mjs';
+import {readSDK36ProductRuntime,assertSDK36ProductArchive} from './sdk36-product-runtime.mjs';
+const readSDKProductRuntime=(root,commit)=>readSDK35ProductRuntime(root,commit)??readSDK36ProductRuntime(root,commit);
+const assertSDKProductArchive=(product,inventory)=>product?.public.kind==='YNX-WALLET-SDK36-PRODUCT-PACK/v1'?assertSDK36ProductArchive(product,inventory):assertSDK35ProductArchive(product,inventory);
 
 const projectDir = fileURLToPath(new URL("..", import.meta.url));
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim();
@@ -72,6 +75,7 @@ const SDK32_VERSION='1.3.0-pq.3.32-auth.32';
 const SDK33_VERSION='1.3.0-pq.3.32-auth.33';
 const SDK34_VERSION='1.3.0-pq.3.32-auth.34';
 const SDK35_VERSION='1.3.0-pq.3.32-auth.35';
+const SDK36_VERSION='1.3.0-pq.3.32-auth.36';
 // Auth28 adds this runtime module, but not its optional Source IO component.
 // Keep the exact URL bytes/path; do not turn packaging into Source activation.
 const SDK28_SOURCE_CURRENT_RULE=Object.freeze({sourcePath:'packages/wallet-auth/src/original-auth-source-current-v2.js',packedPath:'code/packages/wallet-auth/src/original-auth-source-current-v2.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-current-dirfd.node',operands:Object.freeze([Object.freeze({kind:'url',from:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',count:1})])});
@@ -94,7 +98,8 @@ export const FIXED_SDK_RUNTIME_IDENTITIES=Object.freeze({
  [SDK32_VERSION]:Object.freeze({bytes:80280,sha256:'58b5bbfd4fd93b4ea18f27292cd7a82751583147858163e4ebd899d1eb16a986'}),
  [SDK33_VERSION]:Object.freeze({bytes:80280,sha256:'19f2e15913232f1dd84a1152799f89201e60300879feb75e0f36cf2742830d84'}),
  [SDK34_VERSION]:Object.freeze({bytes:80280,sha256:'9dfcc99af154e826db909ad65ed57760cfbca53192fb405276f6da91bf9f2489'}),
- [SDK35_VERSION]:Object.freeze({bytes:80552,sha256:'d033551404b49ced72bf8ff2abe0df054889bc08287112ebefca940add11fd25'})
+ [SDK35_VERSION]:Object.freeze({bytes:80552,sha256:'d033551404b49ced72bf8ff2abe0df054889bc08287112ebefca940add11fd25'}),
+ [SDK36_VERSION]:Object.freeze({bytes:80553,sha256:'3844fa8a6ac8fdb98cd355530530833fbf57bc3ac1772f6d06610a3b3b6adc64'})
 });
 const FIXED_SDK_RUNTIME_MANIFEST='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
 export function fixedSDKRuntimeManifestSources(root,sourceCommit){
@@ -124,10 +129,10 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
 function selectedRelocationRules(sdkVersion){
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
-  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION&&sdkVersion!==SDK_CONTRACT_CURRENT_VERSION&&sdkVersion!==SDK_AUTONOMOUS_SCOPE_VERSION&&sdkVersion!==SDK_PROJECT_READER_VERSION&&sdkVersion!==SDK_WORKSPACE_SELECTION_VERSION&&sdkVersion!==SDK_PUBLICATION_RESULT_VERSION&&sdkVersion!==SDK_CONTROL_CUSTODY_VERSION&&sdkVersion!==SDK_PRINCIPAL_CURRENT_VERSION&&sdkVersion!==SDK31_VERSION&&sdkVersion!==SDK32_VERSION&&sdkVersion!==SDK33_VERSION&&sdkVersion!==SDK34_VERSION&&sdkVersion!==SDK35_VERSION)return PACKAGED_RELOCATION_RULES;
+  if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION&&sdkVersion!==SDK_CONTRACT_CURRENT_VERSION&&sdkVersion!==SDK_AUTONOMOUS_SCOPE_VERSION&&sdkVersion!==SDK_PROJECT_READER_VERSION&&sdkVersion!==SDK_WORKSPACE_SELECTION_VERSION&&sdkVersion!==SDK_PUBLICATION_RESULT_VERSION&&sdkVersion!==SDK_CONTROL_CUSTODY_VERSION&&sdkVersion!==SDK_PRINCIPAL_CURRENT_VERSION&&sdkVersion!==SDK31_VERSION&&sdkVersion!==SDK32_VERSION&&sdkVersion!==SDK33_VERSION&&sdkVersion!==SDK34_VERSION&&sdkVersion!==SDK35_VERSION&&sdkVersion!==SDK36_VERSION)return PACKAGED_RELOCATION_RULES;
   const selected=PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
     ?{...rule,operands:rule.operands.map(operand=>({...operand,count:3}))}:rule);
-  return [SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION].includes(sdkVersion)?[...selected,SDK28_SOURCE_CURRENT_RULE]:selected;
+  return [SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION].includes(sdkVersion)?[...selected,SDK28_SOURCE_CURRENT_RULE]:selected;
 }
 // Build/readback DATA only. The normal package caller MUST first obtain this
 // component from verifySDK13NativeComponent; it is never Source admission.
@@ -137,7 +142,7 @@ export function auth26PackagedNativeSources(inventoryBytes,component,availableNa
 }
 export function matchedCustodyPackagedNativeSources(inventoryBytes,component,availableNames){
  if(component?.sourceBytesVerified!==true||!Array.isArray(component.walletInputs)||!Array.isArray(availableNames))throw Error('Auth26 matched component must precede source selection');
- const inventory=JSON.parse(inventoryBytes);if(![SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION].includes(inventory.version))throw Error('Matched custody inventory required');
+ const inventory=JSON.parse(inventoryBytes);if(![SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION].includes(inventory.version))throw Error('Matched custody inventory required');
  const names=[...inventory.NativeInputs.map(p=>p.path),...component.walletInputs.map(p=>p.path),...inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...CANONICAL_NATIVE_EVIDENCE_TESTS];
  const pins=[...inventory.NativeInputs,...component.walletInputs].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));canonicalNativeInputSelection(inventory.version,names,inventoryBytes,pins);
  if(names.some(name=>!availableNames.includes(name)))throw Error('Auth26 selected Native source is missing from frozen Git');return names;
@@ -232,7 +237,7 @@ export function assertSDKRuntimePackCoverage(cwd,sourceCommit){
  const root=git(cwd,'rev-parse','--show-toplevel'),metadata=JSON.parse(git(root,'show',`${sourceCommit}:apps/wallet-desktop/package.json`));
  if(!Array.isArray(metadata.build?.files)||metadata.build.files.some(p=>typeof p!=='string'))throw Error('SDK_RUNTIME_PACK_FILTER_REQUIRED');
  const {FileMatcher}=createRequire(import.meta.url)('app-builder-lib/out/fileMatcher');
- const selected=new FileMatcher(cwd,'/PUBLIC/not-an-output',value=>value,metadata.build.files).createFilter(),manifests=fixedSDKRuntimeManifestSources(root,sourceCommit),seen=new Set(),product=readSDK35ProductRuntime(root,sourceCommit);
+ const selected=new FileMatcher(cwd,'/PUBLIC/not-an-output',value=>value,metadata.build.files).createFilter(),manifests=fixedSDKRuntimeManifestSources(root,sourceCommit),seen=new Set(),product=readSDKProductRuntime(root,sourceCommit);
  for(const manifest of manifests){const body=product?{files:[...(manifest.endsWith('/original-ide-auth-runtime-manifest.json')?product.authRows:product.unionRows).values()]}:JSON.parse(git(root,'show',`${sourceCommit}:${manifest}`));
   if(!Array.isArray(body.files))throw Error('SDK_RUNTIME_MANIFEST_INVALID');
   for(const row of body.files){const relative=row.path;
@@ -262,7 +267,7 @@ export async function writeRelocatedArchive(resources, cwd, output) {
   const before=archiveInventory(asar,archive),metadataInput=asar.extractFile(archive,'package.json'),dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit),evidence=nativeEvidencePlan(cwd,expected.sourceCommit);
   // Preserve the normal early refusal for already-canonical/foreign inputs,
   // before attempting any raw source-path lookup or creating output streams.
-  const product=readSDK35ProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(before)??null;
+  const product=readSDKProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(before)??null;
   const canonical=canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows],productRuntime?.manifestRows??[],productRuntime?.dataRows??[],productRuntime?.excludedRows??[]);
   for(const row of plan){
     const rawPath=row.sourcePath.startsWith('apps/wallet-desktop/')?row.sourcePath.slice('apps/wallet-desktop/'.length):SDK_ALIAS+'/'+row.sourcePath.slice('packages/wallet-auth/'.length);
@@ -303,7 +308,7 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
   const metadataInput=asar.extractFile(archive,'package.json');
   const dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit);
   const evidence=nativeEvidencePlan(cwd,expected.sourceCommit);
-  const product=readSDK35ProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(before)??null;
+  const product=readSDKProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(before)??null;
   const temporary=mkdtempSync(path.join(resources,".ynx-relocation-")),output=path.join(temporary,"app.asar");
   const nativeBefore=path.join(archive+'.unpacked','native/original-auth-identity.node'),nativeAfter=path.join(archive+'.unpacked',NATIVE_CANONICAL),backup=path.join(temporary,'original.asar');
   let nativeMoved=false,archiveMoved=false,replacement=false;
@@ -311,7 +316,7 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
     execFileSync(process.execPath,[fileURLToPath(import.meta.url),"--relocate-data-child",resources,cwd,output],{maxBuffer:16*1024*1024,stdio:"pipe"});
     const after=archiveInventory(asar,output);
     ensureUnchangedMembers(before,after,plan,metadataInput,dependencies,evidence,productRuntime);
-    assertSDK35ProductArchive(product,after);
+    assertSDKProductArchive(product,after);
     // Only packed operands change; retain the original unpacked tree, not a
     // newly copied native artifact. Verify again against that retained tree.
     mkdirSync(path.dirname(nativeAfter),{recursive:true});renameSync(nativeBefore,nativeAfter);nativeMoved=true;
@@ -363,10 +368,10 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   if(receipt.schemaVersion!==2||receipt.recipe!==RELOCATION_VERSION||receipt.sourceCommit!==expected.sourceCommit||!isDeepStrictEqual(receipt.files,publicRelocationRows(plan))||typeof receipt.metadataInputBase64!=='string') throw new Error("Packaged relocation receipt differs from source recipe");
   if(!isDeepStrictEqual(receipt.sdkDependencies,dependencies.public))throw Error('Packaged SDK dependency receipt differs from fixed source inputs');
   if(!isDeepStrictEqual(receipt.nativeBuildEvidence??[],evidence.public))throw Error('Packaged Native evidence receipt differs from fixed source inputs');
-  const product=readSDK35ProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(receipt.before)??null;
+  const product=readSDKProductRuntime(git(cwd,'rev-parse','--show-toplevel'),expected.sourceCommit),productRuntime=product?.prepare(receipt.before)??null;
   if(!isDeepStrictEqual(receipt.sdkProductRuntime??null,product?.public??null))throw Error('Packaged SDK product projection receipt differs from fixed source inputs');
   ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'),dependencies,evidence,productRuntime);
-  assertSDK35ProductArchive(product,receipt.after);
+  assertSDKProductArchive(product,receipt.after);
   if(!isDeepStrictEqual(archiveInventory(asar,archive),receipt.after)) throw new Error("Packaged archive differs from relocation receipt");
   const unavailableOptionalRuntimeAssets=plan.filter(row=>row.unavailableNativeAsset).map(row=>{
     if(receipt.after.some(member=>member.path===row.unavailableNativeAsset))throw Error('Unreviewed optional source-current Native module');
@@ -387,7 +392,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native').split('\n').filter(isCanonicalNativeSourceAsset);
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
   const sourceBytes=name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024});
-  const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
+  const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
   if(!lstatSync(localNative).isFile()||!lstatSync(localReceipt).isFile()||!nativeBytes.equals(readFileSync(localNative))||!nativeReceiptBytes.equals(readFileSync(localReceipt)))throw Error('Packaged native module or receipt differs from frozen build input');
   let originalR155=null,originalSDK13=null;
@@ -397,7 +402,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     if(!macAsarIntegrityVerified)throw Error('Original R155 component requires its matched Mac bundle');
     originalR155.helperBundle=verifyOriginalR155HelperBundle(path.dirname(resources));
   }
-  if([SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION].includes(sdkMetadata.version)){
+  if([SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION].includes(sdkMetadata.version)){
     const helperBytes=asar.extractFile(archive,canonicalSourcePath(SDK13_HELPER_ASSET)),localHelper=path.join(root,SDK13_HELPER_ASSET);
     if(!lstatSync(localHelper).isFile()||lstatSync(localHelper).isSymbolicLink()||!helperBytes.equals(readFileSync(localHelper)))throw Error('SDK13 packaged helper differs from matching build');
     originalSDK13=verifySDK13NativeComponent({record:nativeReceipt,inventoryBytes,moduleBytes:nativeBytes,helperBytes},sourceBytes);
@@ -409,7 +414,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // exact-inventory/role/command/byte component reader has succeeded above;
   // never infer authority or a compile set from arbitrary receipt argv.
   let selectedNativeNames=nativeSourceNames;
-  if([SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION].includes(sdkMetadata.version)){
+  if([SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION].includes(sdkMetadata.version)){
     selectedNativeNames=matchedCustodyPackagedNativeSources(inventoryBytes,originalSDK13,nativeSourceNames);
   }
   const nativeSelection=canonicalNativeInputSelection(sdkMetadata.version,selectedNativeNames,inventoryBytes,originalR155?.nodeInputFiles??nativeReceipt.inputFiles),nativeInputs=nativeSelection.inputs;
@@ -470,7 +475,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     unavailableOptionalRuntimeAssets,sdkProductRuntime:product?.public??null,
     sdkRuntimeDependenciesVerified:true,sdkRuntimeDependencies,
     staticPathRelocationVerified:true,staticPathRelocation:receipt.files,macAsarIntegrityVerified,
-    typeDeclarationExclusionReason: product?"Fixed SDK35 product selection retains required declarations; only declarations outside that selection are excluded.":"TypeScript declarations are compile-time files excluded by electron-builder; they are not claimed to be packaged runtime bytes.",
+    typeDeclarationExclusionReason: product?"Fixed SDK product selection retains required declarations; only declarations outside that selection are excluded.":"TypeScript declarations are compile-time files excluded by electron-builder; they are not claimed to be packaged runtime bytes.",
     asarSHA256: digest(readFileSync(archive)), files: verified };
 }
 
