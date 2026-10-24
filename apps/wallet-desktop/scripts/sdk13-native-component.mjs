@@ -3,7 +3,7 @@ import path from 'node:path';
 import {isDeepStrictEqual} from 'node:util';
 import {readFileSync,lstatSync,mkdirSync,writeFileSync} from 'node:fs';
 import {canonicalNativeInputSelection,verifyCanonicalNativeReceipt,CANONICAL_NATIVE_EVIDENCE_TESTS} from './canonical-package.mjs';
-import {walletPublisherNativeInputs,WALLET_NATIVE_SOURCE_PROFILES,WALLET_ARTIFACT_CABI_INPUTS,WALLET_PROJECT_CONTROL_INPUTS} from './wallet-publisher-native-build.mjs';
+import {walletPublisherNativeInputs,WALLET_NATIVE_SOURCE_PROFILES,WALLET_ARTIFACT_CABI_INPUTS,WALLET_PROJECT_CONTROL_INPUTS,WALLET_PROJECT_CONTROL_CABI_INPUTS} from './wallet-publisher-native-build.mjs';
 import {SDK_RUNTIME_UNIONS,sdkRuntimeUnionProfile,SDK14_RUNTIME_UNION_SOURCE,verifySDKRuntimeUnion} from './sdk14-runtime-union.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const fail=()=>{throw Error('Matched Wallet native component differs');};
@@ -36,6 +36,7 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  const inventory=JSON.parse(pinned(inventoryBytes,profile.inventory));
  if(inventory.version!==profile.version||record?.readbackOnly!==false||record?.commandsKind!=='executed-normal-build'||typeof readSource!=='function')fail();
  same(record.sourceInventory,{relative:'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',...profile.inventory});
+ if(profile.requiresRuntimeUnion&&!Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version))throw Error('WALLET_MATCHED_RUNTIME_UNION_NOT_SUPPLIED');
  if(Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version)){
   const union=sdkRuntimeUnionProfile(profile.version);
   same(record.runtimeUnion,{...union,filesVerified:union.files,sourceRoot:path.join(record.sourceRoot,'packages/wallet-auth'),NativeAdmission:false,installedImageQualified:false,platformQualified:false,networkActivated:false});
@@ -49,9 +50,10 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  const rows=supplier.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.relative.localeCompare(b.relative,'en'));
  same(helper.inputFiles,rows);
  for(const p of supplier)pinned(readSource(p.path),p);
- const artifactRelease=record.inputFiles?.some(p=>WALLET_ARTIFACT_CABI_INPUTS.some(c=>c.path===p.relative));
+ const artifactRelease=record.inputFiles?.some(p=>WALLET_ARTIFACT_CABI_INPUTS.slice(0,2).some(c=>c.path===p.relative));
  const projectControl=record.inputFiles?.some(p=>WALLET_PROJECT_CONTROL_INPUTS.some(c=>c.path===p.relative));
- const walletInputs=walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease,projectControl);
+ const controlCABI=record.inputFiles?.some(p=>WALLET_PROJECT_CONTROL_CABI_INPUTS.slice(0,2).some(c=>c.path===p.relative));
+ const walletInputs=walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease,projectControl,controlCABI);
  for(const p of walletInputs)pinned(readSource(p.path),p);
  const names=[...inventory.NativeInputs.map(p=>p.path),...walletInputs.map(p=>p.path),...inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...CANONICAL_NATIVE_EVIDENCE_TESTS];
  const selection=canonicalNativeInputSelection(inventory.version,names,inventoryBytes,record.inputFiles);
