@@ -7,7 +7,8 @@ export const SDK19_RUNTIME_UNION=Object.freeze({bytes:1453193,sha256:'a208e293f3
 export const SDK20_RUNTIME_UNION=Object.freeze({bytes:1453195,sha256:'6cfd7cdf412c007eb827096afb6eb8358ad0981debe2c40bc710f221b74b7b3a',files:9335,totalBytes:77271135});
 export const SDK23_RUNTIME_UNION=Object.freeze({bytes:1454232,sha256:'dc4427a01bad707eaae9861b92e22b251dc83ac3d2b9535b576b162df1e60b84',files:9342,totalBytes:77355747});
 export const SDK26_RUNTIME_UNION=Object.freeze({bytes:1455441,sha256:'98d83dffd7688cca98db4e421d26b3ed6c355686845087148b82bfa0c527202a',files:9350,totalBytes:77402024});
-export const SDK_RUNTIME_UNIONS=Object.freeze({'1.3.0-pq.3.32-auth.14':SDK14_RUNTIME_UNION,'1.3.0-pq.3.32-auth.18':SDK18_RUNTIME_UNION,'1.3.0-pq.3.32-auth.19':SDK19_RUNTIME_UNION,'1.3.0-pq.3.32-auth.20':SDK20_RUNTIME_UNION,'1.3.0-pq.3.32-auth.23':SDK23_RUNTIME_UNION,'1.3.0-pq.3.32-auth.26':SDK26_RUNTIME_UNION});
+export const SDK28_RUNTIME_UNION=Object.freeze({bytes:1455585,sha256:'abea187a58c2700834c16b0f9f594547c2d293ff46b988f1fbde66b38dcbe9b3',files:9351,totalBytes:77412980});
+export const SDK_RUNTIME_UNIONS=Object.freeze({'1.3.0-pq.3.32-auth.14':SDK14_RUNTIME_UNION,'1.3.0-pq.3.32-auth.18':SDK18_RUNTIME_UNION,'1.3.0-pq.3.32-auth.19':SDK19_RUNTIME_UNION,'1.3.0-pq.3.32-auth.20':SDK20_RUNTIME_UNION,'1.3.0-pq.3.32-auth.23':SDK23_RUNTIME_UNION,'1.3.0-pq.3.32-auth.26':SDK26_RUNTIME_UNION,'1.3.0-pq.3.32-auth.28':SDK28_RUNTIME_UNION});
 export function sdkRuntimeUnionProfile(version){if(typeof version!=='string'||!Object.hasOwn(SDK_RUNTIME_UNIONS,version))throw Error('WALLET_RUNTIME_UNION_VERSION_UNSUPPORTED');return SDK_RUNTIME_UNIONS[version];}
 export const SDK14_RUNTIME_UNION_SOURCE='packages/wallet-auth/native/original-ide-contract-relay-runtime-manifest.json';
 const sha=b=>createHash('sha256').update(b).digest('hex');
