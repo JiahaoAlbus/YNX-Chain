@@ -36,3 +36,16 @@ the key, cannot recover plaintext, and cannot silently change the account,
 product, context ID, or version without authentication failure. Callers must
 store the key outside the uploaded object and must not place it in `keyHint`,
 logs, analytics, URLs, or support tickets.
+
+`createClientSideRecoveryPackage` wraps a content key with a separate 256-bit
+recovery key and binds the package to the exact encryption context, generation,
+and recovery-policy identifier. `recoverClientSideEncryptionKey` rejects stale
+generations, wrong accounts/products/objects/versions, policy mismatches,
+tampered packages, and wrong recovery keys. The recovery key must be held in an
+OS keystore, hardware-backed store, or offline recovery system outside Cloud.
+
+`rotateClientSideEncryptedContent` decrypts and re-encrypts in memory using a
+new key and strictly increasing context version. It returns no partial output
+when authentication or encryption fails. Applications still need a durable
+two-phase client workflow around upload/commit and must keep the previous key
+until the new ciphertext, recovery package, and remote version are verified.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decryptClientSideContent, encryptClientSideContent, generateClientSideEncryptionKey, YNXCloudClient, YNXCloudError } from "../sdk/index.js";
+import { createClientSideRecoveryPackage, decryptClientSideContent, encryptClientSideContent, generateClientSideEncryptionKey, generateClientSideRecoveryKey, recoverClientSideEncryptionKey, rotateClientSideEncryptedContent, YNXCloudClient, YNXCloudError } from "../sdk/index.js";
 
 test("SDK binds the versioned endpoint and obtains a fresh product token", async () => {
   const calls = [];
@@ -117,4 +117,52 @@ test("SDK generates 256-bit client encryption keys and rejects weak inputs", asy
   await assert.rejects(encryptClientSideContent({ content: "x", key: "AA", context: { product: "cloud", account: "ynx1owner", contextId: "x" }, recoveryPolicy: "user-held" }), /32 bytes/);
   await assert.rejects(encryptClientSideContent({ content: "x", key: generated, context: { product: "cloud", account: "", contextId: "x" }, recoveryPolicy: "user-held" }), /account/);
   await assert.rejects(encryptClientSideContent({ content: "x", key: generated, context: { product: "cloud", account: "ynx1owner", contextId: "x" }, recoveryPolicy: "" }), /recoveryPolicy/);
+});
+
+test("SDK recovery package unwraps only with exact context, policy, and generation", async () => {
+  const key = await generateClientSideEncryptionKey();
+  const recoveryKey = await generateClientSideRecoveryKey();
+  const context = { product: "cloud", account: "ynx1owner", contextId: "artifact_42", version: 2 };
+  const packaged = await createClientSideRecoveryPackage({ key, recoveryKey, context, generation: 4, recoveryPolicyId: "offline-card-v2", keyHint: "safe-42" });
+  assert.equal(packaged.contentType, "application/vnd.ynx.cloud-key-recovery+json");
+  const recovered = await recoverClientSideEncryptionKey({ recoveryPackage: packaged.content, recoveryKey, expectedContext: context, expectedRecoveryPolicyId: "offline-card-v2", minimumGeneration: 4 });
+  assert.equal(recovered.key, key);
+  assert.equal(recovered.generation, 4);
+  assert.equal(recovered.keyHint, "safe-42");
+  await assert.rejects(recoverClientSideEncryptionKey({ recoveryPackage: packaged.content, recoveryKey, expectedContext: { ...context, account: "ynx1other" }, expectedRecoveryPolicyId: "offline-card-v2" }), /context/);
+  await assert.rejects(recoverClientSideEncryptionKey({ recoveryPackage: packaged.content, recoveryKey, expectedContext: context, expectedRecoveryPolicyId: "other-policy" }), /policy/);
+  await assert.rejects(recoverClientSideEncryptionKey({ recoveryPackage: packaged.content, recoveryKey, expectedContext: context, expectedRecoveryPolicyId: "offline-card-v2", minimumGeneration: 5 }), /stale/);
+});
+
+test("SDK recovery package rejects wrong keys, same-key wrapping, and tampering", async () => {
+  const key = await generateClientSideEncryptionKey();
+  const recoveryKey = await generateClientSideRecoveryKey();
+  const wrongRecoveryKey = await generateClientSideRecoveryKey();
+  const context = { product: "docs", account: "ynx1owner", contextId: "doc_7", version: 1 };
+  await assert.rejects(createClientSideRecoveryPackage({ key, recoveryKey: key, context, recoveryPolicyId: "offline-v1" }), /independent/);
+  const packaged = await createClientSideRecoveryPackage({ key, recoveryKey, context, recoveryPolicyId: "offline-v1" });
+  await assert.rejects(recoverClientSideEncryptionKey({ recoveryPackage: packaged.content, recoveryKey: wrongRecoveryKey, expectedContext: context, expectedRecoveryPolicyId: "offline-v1" }), /unwrapped|authenticated/);
+  const tampered = JSON.parse(new TextDecoder().decode(packaged.content));
+  tampered.wrappedKey = `${tampered.wrappedKey.startsWith("A") ? "B" : "A"}${tampered.wrappedKey.slice(1)}`;
+  await assert.rejects(recoverClientSideEncryptionKey({ recoveryPackage: new TextEncoder().encode(JSON.stringify(tampered)), recoveryKey, expectedContext: context, expectedRecoveryPolicyId: "offline-v1" }), /integrity/);
+  const truncated = JSON.parse(new TextDecoder().decode(packaged.content));
+  truncated.wrappedKey = "AA";
+  await assert.rejects(recoverClientSideEncryptionKey({ recoveryPackage: new TextEncoder().encode(JSON.stringify(truncated)), recoveryKey, expectedContext: context, expectedRecoveryPolicyId: "offline-v1" }), /wrapped-key length/);
+  const unsafeHint = JSON.parse(new TextDecoder().decode(packaged.content));
+  unsafeHint.keyHint = "support-ticket\nsecret";
+  await assert.rejects(recoverClientSideEncryptionKey({ recoveryPackage: new TextEncoder().encode(JSON.stringify(unsafeHint)), recoveryKey, expectedContext: context, expectedRecoveryPolicyId: "offline-v1" }), /key hint/);
+});
+
+test("SDK key rotation requires a new key and strictly increasing context version", async () => {
+  const currentKey = await generateClientSideEncryptionKey();
+  const nextKey = await generateClientSideEncryptionKey();
+  const context = { product: "cloud", account: "ynx1owner", contextId: "model.bin", version: 8 };
+  const encrypted = await encryptClientSideContent({ content: "rotation-safe-data", key: currentKey, context, recoveryPolicy: "offline package" });
+  const rotated = await rotateClientSideEncryptedContent({ content: encrypted.content, currentKey, nextKey, expectedContext: context, nextVersion: 9, recoveryPolicy: "offline package v2", keyHint: "safe-9" });
+  assert.equal(rotated.nextContext.version, 9);
+  assert.notEqual(rotated.previousKeyFingerprint, rotated.nextKeyFingerprint);
+  assert.equal(new TextDecoder().decode(await decryptClientSideContent({ content: rotated.content, key: nextKey, expectedContext: rotated.nextContext })), "rotation-safe-data");
+  await assert.rejects(decryptClientSideContent({ content: rotated.content, key: currentKey, expectedContext: rotated.nextContext }), /decrypt|authenticated/);
+  await assert.rejects(rotateClientSideEncryptedContent({ content: encrypted.content, currentKey, nextKey: currentKey, expectedContext: context, nextVersion: 9, recoveryPolicy: "offline" }), /differ/);
+  await assert.rejects(rotateClientSideEncryptedContent({ content: encrypted.content, currentKey, nextKey, expectedContext: context, nextVersion: 8, recoveryPolicy: "offline" }), /greater/);
 });

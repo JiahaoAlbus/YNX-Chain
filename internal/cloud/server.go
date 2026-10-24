@@ -16,18 +16,19 @@ import (
 )
 
 type Server struct {
-	service       *Service
-	mu            sync.Mutex
-	startedAt     time.Time
-	requests      map[string]int64
-	latencyMillis map[string]int64
-	limits        ServerLimits
-	inflight      chan struct{}
-	clients       map[string]clientWindow
-	rejections    map[string]int64
-	telemetry     telemetryState
-	telemetryOK   bool
-	telemetryErr  string
+	ideDeployments *ideDeploymentService
+	service        *Service
+	mu             sync.Mutex
+	startedAt      time.Time
+	requests       map[string]int64
+	latencyMillis  map[string]int64
+	limits         ServerLimits
+	inflight       chan struct{}
+	clients        map[string]clientWindow
+	rejections     map[string]int64
+	telemetry      telemetryState
+	telemetryOK    bool
+	telemetryErr   string
 }
 
 type ServerLimits struct {
@@ -139,7 +140,7 @@ func (s *Server) observe(next http.Handler) http.Handler {
 			encoded, _ := json.Marshal(record)
 			log.Print(string(encoded))
 		}()
-		client := directClient(r.RemoteAddr)
+		client := directClient(r.RemoteAddr, r.Header.Get("X-Forwarded-For"))
 		now := s.service.cfg.Now()
 		s.mu.Lock()
 		window := s.clients[client]
@@ -188,9 +189,15 @@ func (s *Server) persistTelemetryLocked() {
 		s.telemetryErr = "telemetry persistence failed"
 	}
 }
-func directClient(remote string) string {
+func directClient(remote, forwarded string) string {
 	host, _, err := net.SplitHostPort(remote)
 	if err == nil && host != "" {
+		if ip := net.ParseIP(host); ip != nil && ip.IsLoopback() {
+			candidate := strings.TrimSpace(strings.Split(forwarded, ",")[0])
+			if forwardedIP := net.ParseIP(candidate); forwardedIP != nil && !forwardedIP.IsUnspecified() {
+				return forwardedIP.String()
+			}
+		}
 		return host
 	}
 	if strings.TrimSpace(remote) == "" {
@@ -201,6 +208,7 @@ func directClient(remote string) string {
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	s.mountIDEDeployments(mux)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
 	mux.HandleFunc("GET /health/live", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Liveness()) })
 	mux.HandleFunc("GET /api/v1/health", s.auth(s.detailedHealth))

@@ -7,29 +7,101 @@ on:
       - 'apps/cloud/**'
       - 'apps/docs/**'
       - 'internal/cloud/**'
+      - 'internal/developerauthority/**'
       - 'infra/docker/cloud-compose.yml'
       - 'infra/docker/ynx-cloudd.Dockerfile'
       - 'infra/docker/ynx-cloudd.Dockerfile.dockerignore'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/cloud-security.yml'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/cloud-docs-ios-simulator.yml'
   pull_request:
     paths:
       - 'apps/cloud/**'
       - 'apps/docs/**'
       - 'internal/cloud/**'
+      - 'internal/developerauthority/**'
       - 'infra/docker/cloud-compose.yml'
       - 'infra/docker/ynx-cloudd.Dockerfile'
       - 'infra/docker/ynx-cloudd.Dockerfile.dockerignore'
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/cloud-security.yml'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/cloud-docs-ios-simulator.yml'
 
 permissions:
   contents: read
 
 jobs:
+  ide-consumer-source:
+    name: IDE consumer source integration only
+    if: >-
+      ${{ github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.head_ref == 'codex/cloud-key-recovery-rotation' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          # The fixed authorized baseline must remain available as this branch
+          # accumulates repairs; a shallow window cannot prove its ancestry.
+          fetch-depth: 0
+      - name: Enforce the authorized source-only delta
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline=f048f5ee028b9ab018c3a304ba3235a365b2174f
+          git merge-base --is-ancestor "$baseline" HEAD
+          git diff --name-only -z "$baseline" HEAD > "$RUNNER_TEMP/ide-consumer-paths"
+          while IFS= read -r -d '' file; do
+            case "$file" in
+              internal/cloud/ide_deployment*.go|internal/cloud/server.go) ;;
+              internal/developerauthority/*.go|internal/developerauthority/schema.sql) ;;
+              apps/cloud/cmd/ynx-cloudd/main.go|apps/cloud/cmd/ynx-cloudd/ide_runtime*.go) ;;
+              apps/cloud/sdk/index.js|apps/cloud/sdk/index.d.ts|apps/cloud/sdk/package.json) ;;
+              apps/cloud/sdk/observe-ide-deployment.mjs|apps/cloud/sdk/observe-ide-deployment.d.ts) ;;
+              apps/cloud/tests/ide-deployment*.test.mjs|apps/cloud/IDE_DEPLOYMENT_SOURCE_INPUTS.json) ;;
+              .github/workflows/cloud-security.yml|.github/workflows/ci.yml|.github/workflows/cloud-docs-ios-simulator.yml) ;;
+              *) printf 'Outside authorized IDE consumer scope: %s\n' "$file" >&2; exit 1 ;;
+            esac
+          done < "$RUNNER_TEMP/ide-consumer-paths"
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bind bridge test to the selected Node runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node_path="$(node -p 'process.execPath')"
+          test -x "$node_path"
+          printf 'YNX_IDE_TEST_NODE=%s\n' "$node_path" >> "$GITHUB_ENV"
+      - name: IDE deployment and Auth source integration
+        run: >-
+          go test -count=1 -timeout=90s
+          -run '^(TestIDEDeployment|TestCatalog|TestPublication)'
+          ./internal/cloud ./internal/developerauthority
+      - name: Original pool and normal-main ownership race regressions
+        run: >-
+          go test -race -count=1 -timeout=90s
+          -run '^(TestIDERuntime|TestPostgres)'
+          ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd
+      - name: Original SDK transport and observation integration
+        run: node --test apps/cloud/tests/ide-deployment*.test.mjs
+  # Full checks remain defined, but are NOT authorized for this narrow draft PR.
+  # Their skipped status must not be represented as full Cloud acceptance.
   security-recovery:
+    if: >-
+      ${{ !(github.event_name == 'pull_request' &&
+            github.event.pull_request.head.repo.full_name == github.repository &&
+            github.head_ref == 'codex/cloud-key-recovery-rotation') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -48,7 +120,7 @@ jobs:
       - name: Static security, dependency, SBOM, script, and artifact gate
         run: node apps/cloud/scripts/security-gate.mjs
       - name: Cloud control-plane tests
-        run: go test ./internal/cloud ./apps/cloud/cmd/ynx-cloudd
+        run: go test ./internal/cloud ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd
       - name: Cloud Web, SDK, accessibility, and product-boundary gates
         run: |
           npm --prefix apps/cloud test

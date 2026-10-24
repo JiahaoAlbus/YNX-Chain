@@ -9,6 +9,8 @@ for(const required of ['<main','aria-live','aria-label','Sign in with YNX Wallet
 }
 for(const required of ['id="erase-dialog"','id="erase-authorize"','id="erase-confirm"','id="erase-receipts"','DELETE CLOUD DATA'])if(!html.includes(required))throw new Error(`missing product-data erasure UI marker: ${required}`);
 const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
+if(!app.includes("location.pathname.startsWith('/cloud/')?'/cloud/api/v1':'/api/v1'"))throw new Error('public same-origin Cloud API mount is missing');
+if(!app.includes('https://web4.ynxweb4.com/cloud/auth/callback'))throw new Error('public Cloud Wallet callback is missing');
 const routineScopes=app.match(/const scopes=\[([^\]]+)\]/)?.[1]||'';
 if(routineScopes.includes('data.delete')||!app.includes("requestedScopes=erasing?['data.delete']:scopes")||!app.includes("token:state.erasureToken"))throw new Error('erasure must use a separate least-privilege Wallet session');
 const {locales,erasureT}=await import('../web/i18n.js');

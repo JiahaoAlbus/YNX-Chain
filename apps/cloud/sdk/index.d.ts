@@ -2,20 +2,35 @@ export type Product = "cloud" | "docs";
 export type ObjectKind = "file" | "folder" | "doc";
 export interface CloudObject { id: string; product: Product; owner: string; parentId?: string; kind: ObjectKind; name: string; mime?: string; size: number; hash?: string; version: number; starred: boolean; trashedAt?: string; createdAt: string; updatedAt: string }
 export interface ObjectPage { items: CloudObject[]; nextCursor?: string; limit: number; scanned: number }
-export interface ClientOptions { endpoint: string; product: Product; getAccessToken: () => string | Promise<string>; fetch?: typeof fetch; maxRetries?: number }
-export interface RequestOptions { method?: string; body?: unknown; headers?: HeadersInit; signal?: AbortSignal; response?: "json" | "response" | "bytes" | "text"; retry?: number }
+export interface ClientOptions { endpoint: string; product: Product; getAccessToken?: () => string | Promise<string>; getDeploymentRequestHeaders?: (request: Readonly<{ method: string; path: string; url: string; operationRequestId: string }>) => HeadersInit | Promise<HeadersInit>; fetch?: typeof fetch; maxRetries?: number }
+export interface RequestOptions { method?: string; body?: unknown; headers?: HeadersInit; signal?: AbortSignal; response?: "json" | "response" | "bytes" | "text"; retry?: number; redirect?: RequestRedirect }
+export interface IDEDeploymentBinding { projectId: string; version: string; contentDigest: string; publishPurpose: string; targetEnvironment: string; byteSize: number }
+export interface IDEDeploymentOperation { requestId: string; binding: IDEDeploymentBinding; manifestSHA256: string; approvalSHA256: string; publisherId: string; resourceId: string; state: "unknown" | "running" | "completed" | "failed"; deploymentId?: string; runtimeUrl?: string; runtimeKind?: string; runtimeHandle?: string; runtimeSeconds?: number; resourceApprovalRef?: string; exitCode?: number; createdAt: string; updatedAt: string; logs: Array<{ at: string; source: "cloud-operation"; message: string }> }
+export interface IDEDeploymentReadOptions { headers?: HeadersInit; signal?: AbortSignal }
+export declare class YNXCloudDeploymentUnknownError extends YNXCloudError { operationRequestId: string; state: "unknown" }
 export interface ClientEncryptionContext { product: Product; account: string; contextId: string; version?: number }
 export interface ClientEncryptionEnvelope { schemaVersion: 1; mediaType: "application/vnd.ynx.cloud-encrypted+json"; algorithm: "AES-256-GCM"; context: Required<ClientEncryptionContext>; nonce: string; ciphertext: string; ciphertextSha256: string; plaintextBytes: number }
 export interface ClientEncryptionMetadata { clientSide: true; algorithm: "AES-256-GCM"; keyHint: string; recoveryPolicy: string }
 export interface ClientEncryptionResult { content: Uint8Array; contentType: "application/vnd.ynx.cloud-encrypted+json"; encryption: ClientEncryptionMetadata; envelope: ClientEncryptionEnvelope }
+export interface ClientRecoveryPackage { schemaVersion: 1; mediaType: "application/vnd.ynx.cloud-key-recovery+json"; algorithm: "AES-256-GCM"; context: Required<ClientEncryptionContext>; generation: number; recoveryPolicyId: string; keyHint: string; keyFingerprint: string; nonce: string; wrappedKey: string; wrappedKeySha256: string }
+export interface ClientRecoveryPackageResult { content: Uint8Array; contentType: "application/vnd.ynx.cloud-key-recovery+json"; recoveryPackage: ClientRecoveryPackage }
+export interface RecoveredClientKey { key: string; generation: number; recoveryPolicyId: string; keyHint: string; context: Required<ClientEncryptionContext> }
+export interface RotatedClientEncryptionResult extends ClientEncryptionResult { previousContext: Required<ClientEncryptionContext>; nextContext: Required<ClientEncryptionContext>; previousKeyFingerprint: string; nextKeyFingerprint: string }
 export declare function generateClientSideEncryptionKey(): Promise<string>;
+export declare function generateClientSideRecoveryKey(): Promise<string>;
 export declare function encryptClientSideContent(options: { content: string | ArrayBuffer | ArrayBufferView; key: string; context: ClientEncryptionContext; recoveryPolicy: string; keyHint?: string }): Promise<ClientEncryptionResult>;
 export declare function decryptClientSideContent(options: { content: string | ArrayBuffer | ArrayBufferView; key: string; expectedContext: ClientEncryptionContext }): Promise<Uint8Array>;
-export declare class YNXCloudError extends Error { status: number; requestId: string; errorId: string; retryAfter: number }
+export declare function createClientSideRecoveryPackage(options: { key: string; recoveryKey: string; context: ClientEncryptionContext; generation?: number; recoveryPolicyId: string; keyHint?: string }): Promise<ClientRecoveryPackageResult>;
+export declare function recoverClientSideEncryptionKey(options: { recoveryPackage: string | ArrayBuffer | ArrayBufferView; recoveryKey: string; expectedContext: ClientEncryptionContext; expectedRecoveryPolicyId: string; minimumGeneration?: number }): Promise<RecoveredClientKey>;
+export declare function rotateClientSideEncryptedContent(options: { content: string | ArrayBuffer | ArrayBufferView; currentKey: string; nextKey: string; expectedContext: ClientEncryptionContext; nextVersion: number; recoveryPolicy: string; keyHint?: string }): Promise<RotatedClientEncryptionResult>;
+export declare class YNXCloudError extends Error { status: number; requestId: string; errorId: string; retryAfter: number; operationRequestId?: string }
 export declare class YNXCloudClient {
   constructor(options: ClientOptions);
   readonly endpoint: string; readonly product: Product;
   request(path: string, options?: RequestOptions): Promise<any>;
+  submitIDEDeployment(input: { requestId: string; manifest: string | ArrayBuffer | ArrayBufferView; artifact: Blob | ArrayBuffer | ArrayBufferView; approval: string | ArrayBuffer | ArrayBufferView; headers?: HeadersInit; signal?: AbortSignal }): Promise<IDEDeploymentOperation>;
+  getIDEDeploymentStatus(requestId: string, options?: IDEDeploymentReadOptions): Promise<IDEDeploymentOperation>;
+  getIDEDeploymentLogs(requestId: string, options?: IDEDeploymentReadOptions): Promise<{ requestId: string; operationLogs: IDEDeploymentOperation["logs"]; runtimeLogs: string; runtimeLogSource: "original-resource" }>;
   list(options?: Record<string, string | number | boolean | undefined>): Promise<ObjectPage>;
   getObject(id: string): Promise<CloudObject>; createObject(input: unknown): Promise<CloudObject>; deleteObject(id: string): Promise<unknown>;
   content(id: string, options?: { range?: string; signal?: AbortSignal }): Promise<Response>;
