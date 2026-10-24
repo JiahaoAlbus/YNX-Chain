@@ -25,7 +25,7 @@ const importStorageStateName = "state.blocks"
 // One original V2 checkpoint frame, including its existing framing/header.
 // This does not increase the core's 512MiB checkpoint payload bound or admit
 // block deltas. The original migration remains a separate, complete input.
-const importStorageCheckpointMaximum = (512 << 20) + len("YNX_ABCI_BLOCK_JOURNAL_V2\n") + 64 + 1 + 8 + 2*sha256.Size
+const importStorageCheckpointMaximum int64 = (512 << 20) + int64(len("YNX_ABCI_BLOCK_JOURNAL_V2\n")) + 64 + 1 + 8 + 2*sha256.Size
 
 type importStorageReceipt struct {
 	Version               string                      `json:"version"`
@@ -161,7 +161,7 @@ func readImportStorageCheckpoint(f *importStorageFile, migration chain.Consensus
 		return "", err
 	}
 	raw, err := io.ReadAll(io.LimitReader(f.file, importStorageCheckpointMaximum+1))
-	if err != nil || int64(len(raw)) != f.before.Size || len(raw) > importStorageCheckpointMaximum {
+	if err != nil || int64(len(raw)) != f.before.Size || int64(len(raw)) > importStorageCheckpointMaximum {
 		return "", errors.New("import checkpoint changed or exceeded its existing complete-frame bound")
 	}
 	if err := f.check(); err != nil {
