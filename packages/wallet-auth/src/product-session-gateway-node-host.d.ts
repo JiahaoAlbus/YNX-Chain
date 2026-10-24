@@ -8,6 +8,17 @@ export type OriginalReturnPublicationOutcome=Readonly<{state:'not_found';retryAu
  * After execute entered, later refusal does not undo the persisted original. */
 export type OriginalAccountPolicyRunner=(operation:OriginalAccountPolicyOperation,execute:(context:ProductSessionAccountContext&Readonly<{required:true}>)=>undefined)=>Promise<void>;
 export declare const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION: 1;
+/** Exact original HTTP bytes; the Host consumes the device proof once. */
+export type OriginalDeveloperHTTPRequest=Readonly<{requestId:string;method:string;path:string;body:string;proofHeader:string}>;
+declare const originalDeveloperHTTPCredential:unique symbol;
+/** Same-process reference only; cannot be restored from JSON or supplied as a DTO. */
+export type OriginalDeveloperHTTPCredential=Readonly<{[originalDeveloperHTTPCredential]:true}>;
+/** DATA from independently provisioned Source; not a project grant or Native admission. */
+export type OriginalDeveloperHTTPPrincipalDATA=Readonly<{
+  version:'YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v1';principalOriginal:string;principalSHA256:string;
+  profileDigest:string;currentRaw:string;method:string;path:string;bodyDigest:string;expiresAtMs:number;
+  dataOnly:true;authorized:false;nativeAdmission:false;
+}>;
 export type ProductSessionGatewayNodeHostOptions=Readonly<{
   now:()=>Date;statePath:string;tokenFactory:()=>string;
   centralBrowser?:boolean;centralBrowserEcosystem?:boolean;businessRevalidation?:boolean;
@@ -21,6 +32,8 @@ export declare class ProductSessionGatewayNodeHost {
   constructor(registry:unknown,options:ProductSessionGatewayNodeHostOptions);
   handler():(request:unknown,response:unknown)=>Promise<void>;
   snapshot():Readonly<Record<string,unknown>>;
+  authenticateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
+  currentExistingDeveloperPrincipal(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPPrincipalDATA>;
   publishOriginalProductSessionReturn(input:Readonly<{requestId:string;request:unknown;approval:unknown}>):Promise<OriginalReturnHostResponse>;
   readOriginalProductSessionReturnChallenge(input:Readonly<{requestId:string;reference:string;request:unknown}>):Promise<OriginalReturnHostResponse>;
   completeOriginalProductSessionReturn(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<OriginalReturnHostResponse>;

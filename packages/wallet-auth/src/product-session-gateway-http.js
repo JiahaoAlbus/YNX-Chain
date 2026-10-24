@@ -41,6 +41,7 @@ export class ProductSessionGatewayHttpHandler {
   }
 
   revalidate(session,scopes,productId,at,businessRevalidation=false){return this.#kernel.revalidate(session,scopes,productId,at,businessRevalidation)}
+  authenticateOriginalDeveloperHTTPRequest(input,at){return this.#kernel.authenticateOriginalDeveloperHTTPRequest(input,at);}
   snapshot() { return this.#kernel.snapshot(); }
 }
 

@@ -271,7 +271,11 @@
     "native/original-auth-identity-source-authority.mm",
     "native/original-auth-source-v2-native-data.h",
     "native/original-ide-identity-peer-wire.h",
-    "native/original-ide-identity-peer-endpoint.h"
+    "native/original-ide-identity-peer-endpoint.h",
+    "native/original-developer-principal-data.mjs",
+    "native/original-ide-project-control-contract.mjs",
+    "native/original-ide-approval-state-head-data.mjs",
+    "native/original-ide-publication-approval-contract.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -314,7 +318,9 @@
     "test:r177-workspace-selector": "node --test --test-concurrency=1 test/original-ide-workspace-project-selection-binding.test.mjs test/r177-source-intake.test.mjs && npm run test:types:node-private",
     "test:r181-publication-result": "node --test --test-concurrency=1 test/original-publication-result-peer-runtime.test.mjs test/r181-source-intake.test.mjs && npm run test:types:node-private",
     "test:r185-source-v2": "node --test --test-concurrency=1 test/r185-source-current-async-integration.test.mjs test/r185-source-current-v2-kernel.test.mjs test/r185-key-file-custody.test.mjs test/r185-source-intake.test.mjs",
-    "test:r186-sign-partial": "node --test --test-name-pattern='^failed signer attempt' test/r185-source-current-v2-kernel.test.mjs && node --test test/r186-source-intake.test.mjs"
+    "test:r186-sign-partial": "node --test --test-name-pattern='^failed signer attempt' test/r185-source-current-v2-kernel.test.mjs && node --test test/r186-source-intake.test.mjs",
+    "test:source8-r194-integration": "node --test test/source8-r194-js-integration.test.mjs test/source8-r194-source-intake.test.mjs && tsc -p test/tsconfig.source8-r194-types.json",
+    "test:source8-r194-ci": "npm run test:source8-r194-integration && node --test --test-concurrency=1 test/r191-developer-http-principal.test.mjs test/r194-project-control-canonical-member.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

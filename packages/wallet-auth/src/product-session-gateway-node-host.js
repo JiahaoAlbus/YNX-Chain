@@ -20,12 +20,19 @@ import {createCentralBrowserSessionRegistry} from './central-browser-session-reg
 import {CentralBrowserSessionStore} from './central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
 import {OriginalHostTerminalJournal} from './original-host-terminal-journal.js';
-import {handleOriginalAuthSourceCurrent} from './original-auth-identity-source-current.js';
+import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent} from './original-auth-identity-source-current.js';
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 // Actual same-process Host inventory, not registration or readiness authority.
 // No structural callback/DTO can enter this inventory.
 const originalRuntimeHostSources = new WeakMap();
+const originalDeveloperHTTPCredentials = new WeakMap();
+// Only the actual original Host below creates this opaque reference. There is
+// no public registration callback, JSON restore or caller-supplied capability.
+export async function readOriginalDeveloperHTTPCredential(credential){
+  const c=originalDeveloperHTTPCredentials.get(credential);if(!c)fail('ORIGINAL_HTTP_CREDENTIAL_REQUIRED','Original HTTP credential is unavailable');
+  await c.recheck();return c.view;
+}
 // Local transaction custody only. Not a Native-purpose/terminal authority.
 const originalPrivateTransactions = new WeakMap();
 function privateData(value,fields,strict=true){
@@ -245,6 +252,42 @@ export class ProductSessionGatewayNodeHost {
   }
 
   revalidate(session,scopes,productId,at,businessRevalidation=false,accountContext=null){this.#assertStateIdentity();const handler=this.#accountPolicy?this.#newHandler(this.#handler.snapshot(),this.#requiredAccountContext(accountContext)):this.#handler;const result=handler.revalidate(session,scopes,productId,this.#accountPolicy?this.#now():at,businessRevalidation);this.#assertStateIdentity();return result;}
+
+  // Same original Host transaction/persist/current machinery, not a second
+  // Auth store or a session DTO -> Principal conversion. Read-only business
+  // identity still consumes the original device HTTP proof exactly once.
+  async authenticateOriginalDeveloperHTTPRequest(input){
+    const v=privateData(input,['requestId','method','path','body','proofHeader']);
+    if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original HTTP identity request is invalid');
+    const proof=decodeProductSessionGatewayProofHeaderV2(v.proofHeader);this.#assertStateIdentity();
+    const session=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===proof.sessionBinding);
+    if(!session||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original developer session is required');
+    const operation={requestId:v.requestId,method:v.method,path:v.path,body:v.body,proofHeader:v.proofHeader,walletControlProofHeader:null,session,at:this.#now().toISOString()};
+    const before=snapshotDigest(this.#handler.snapshot());
+    const verified=await this.#withAccountPolicy(operation,context=>{
+      this.#assertStateIdentity();if(snapshotDigest(this.#handler.snapshot())!==before)fail('ACCOUNT_POLICY_OPERATION_CHANGED','Original HTTP identity state changed while borrowing current');
+      const candidate=this.#newHandler(this.#handler.snapshot(),context);
+      const result=candidate.authenticateOriginalDeveloperHTTPRequest({method:v.method,path:v.path,body:v.body,proof},this.#now());
+      this.#persist(candidate.snapshot());this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();return result;
+    });
+    const original=verified.session,expires=Math.min(Date.parse(proof.expiresAt),Date.parse(original.expiresAt));
+    const credential=Object.freeze({}),view=Object.freeze({session:original,method:v.method,path:v.path,bodyDigest:proof.bodyDigest,proofExpiresMS:expires});
+    const recheck=async()=>{
+      this.#assertStateIdentity();const now=this.#now();if(now.getTime()<Date.parse(proof.issuedAt)||now.getTime()>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired');
+      await this.#withAccountPolicy({...operation,at:now.toISOString()},context=>{
+        this.#assertStateIdentity();const h=this.#accountPolicy?this.#newHandler(this.#handler.snapshot(),context):this.#handler;
+        h.revalidate(original,[],'developer',this.#now(),true);this.#assertStateIdentity();return true;
+      });
+      const end=this.#now();if(end.getTime()<now.getTime()||end.getTime()>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired after current check');
+    };
+    originalDeveloperHTTPCredentials.set(credential,{view,recheck});
+    await recheck();return credential;
+  }
+
+  async currentExistingDeveloperPrincipal(input){
+    const credential=await this.authenticateOriginalDeveloperHTTPRequest(input);
+    return await handleOriginalDeveloperPrincipalCurrent(this.#authSourceCurrent,credential);
+  }
 
   // Fixed private caller uses the SAME kernel/state transaction as HTTP.
   // Caller must already hold an independently recognized Native association;
