@@ -69,7 +69,7 @@ func runtimeEngineFixture(t *testing.T, version int) (*runtimeConsumerEngineHarn
 	if err = json.Unmarshal(historicalPerformanceStateJSON(t, old), &initialApp); err != nil {
 		t.Fatal(err)
 	}
-	initialApp.bootstrap = f.bootstrap
+	initialApp.bootstrap = app.bootstrap
 	app.committed, app.replayStateVersion = initialApp, version
 	initResponse, err := app.InitChain(context.Background(), vf.initRequest(t))
 	if err != nil {

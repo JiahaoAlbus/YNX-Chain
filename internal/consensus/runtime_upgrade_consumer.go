@@ -58,14 +58,14 @@ func (a *Application) ConfirmConsensusRuntimeCheckpoint(chainID string, height i
 	}
 	trusted := runtimeUpgradeCheckpoint{chainID: chainID, cometGenesisSHA256: a.bootstrap.record.CometGenesisSHA256, height: height, appHash: hex.EncodeToString(appHash), appVersion: appVersion}
 	if a.runtimeUpgradeCursor == nil {
-		cursor, err := newRuntimeUpgradeCursor(a.runtimeUpgradeAuthorization, a.migration, a.committed, trusted)
+		cursor, err := newRuntimeUpgradeCursorOwned(a.runtimeUpgradeAuthorization, a.validatedMigration, a.committed, trusted)
 		if err != nil {
 			return err
 		}
 		a.runtimeUpgradeCursor = cursor
 		return nil
 	}
-	return a.runtimeUpgradeCursor.confirmCommitted(a.migration, a.committed, trusted)
+	return a.runtimeUpgradeCursor.confirmCommittedOwned(a.validatedMigration, a.committed, trusted)
 }
 
 // Info may describe an already validated file before handshake, but this does

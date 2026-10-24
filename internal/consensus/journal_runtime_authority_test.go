@@ -69,7 +69,7 @@ func TestRuntimeJournalNormalWriterPreservesHistoricalDomainsAndRequiresEngine(t
 					if err != nil {
 						t.Fatal("RUNTIME_JOURNAL_FACTORY_UNAVAILABLE", err)
 					}
-					if !bytes.Equal(original, runtimeJournalBytes(t, path)) || !journalStateEqual(t, app.committed, atomic.committed) || app.runtimeUpgradeCursor != nil || app.replayStateVersion != 0 || app.bootstrap != f.bootstrap || app.committed.bootstrap != f.bootstrap {
+					if !bytes.Equal(original, runtimeJournalBytes(t, path)) || !journalStateEqual(t, app.committed, atomic.committed) || app.runtimeUpgradeCursor != nil || app.replayStateVersion != 0 || !sameOwnedBootstrap(app.bootstrap, f.bootstrap) || app.committed.bootstrap != app.bootstrap {
 						t.Fatal("cold journal changed full history/accounts/nonces or self-authorized execution")
 					}
 					info, err := app.Info(context.Background(), &abci.RequestInfo{})

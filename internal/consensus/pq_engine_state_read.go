@@ -174,6 +174,18 @@ func readPQEngineCommittedState(path string, migration chain.ConsensusMigrationS
 }
 
 func readPQEngineCommittedStateWithCapture(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, engine *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, capture func(string) (*pqEngineStateRead, error)) (_ CommittedState, result error) {
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return CommittedState{}, err
+	}
+	return readPQEngineCommittedStateOwned(path, witness, engine, runtime, capture)
+}
+
+func readPQEngineCommittedStateOwned(path string, witness *validatedMigration, engine *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, capture func(string) (*pqEngineStateRead, error)) (_ CommittedState, result error) {
+	if err := witness.valid(); err != nil {
+		return CommittedState{}, err
+	}
+	migration, bootstrap := witness.migration, witness.bootstrap
 	r, err := capture(path)
 	if err != nil {
 		return CommittedState{}, err
@@ -184,7 +196,7 @@ func readPQEngineCommittedStateWithCapture(path string, migration chain.Consensu
 	var state CommittedState
 	switch r.layout {
 	case "snapshot-journal":
-		decoded, err := decodeSnapshotJournalWithBootstrap(context.Background(), r.data, migration, bootstrap)
+		decoded, err := decodeSnapshotJournalOwned(context.Background(), r.data, witness)
 		if err != nil {
 			return CommittedState{}, err
 		}
@@ -194,7 +206,7 @@ func readPQEngineCommittedStateWithCapture(path string, migration chain.Consensu
 		state = decoded.State
 	case "block-journal":
 		authority := &blockJournalReplayAuthority{bootstrap: bootstrap, engine: engine, runtime: runtime}
-		decoded, err := decodeBlockJournalWithAuthority(context.Background(), r.data, migration, nil, authority)
+		decoded, err := decodeBlockJournalOwned(context.Background(), r.data, witness, nil, authority)
 		if err != nil {
 			return CommittedState{}, err
 		}
@@ -211,7 +223,7 @@ func readPQEngineCommittedStateWithCapture(path string, migration chain.Consensu
 	if err := validateHistoricalStateFields(state, migration); err != nil {
 		return CommittedState{}, err
 	}
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return CommittedState{}, fmt.Errorf("validate read-only committed source: %w", err)
 	}
 	if err := r.unchanged(); err != nil {

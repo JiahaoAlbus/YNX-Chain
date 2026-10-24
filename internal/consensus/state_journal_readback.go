@@ -51,11 +51,20 @@ func DecodeSnapshotJournal(ctx context.Context, data []byte, migration chain.Con
 // bootstrap is independent operator configuration; never recover it from the
 // journal. The public legacy decoder deliberately continues to pass nil.
 func decodeSnapshotJournalWithBootstrap(ctx context.Context, data []byte, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap) (SnapshotJournalReadback, error) {
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return SnapshotJournalReadback{}, err
+	}
+	return decodeSnapshotJournalOwned(ctx, data, witness)
+}
+
+func decodeSnapshotJournalOwned(ctx context.Context, data []byte, witness *validatedMigration) (SnapshotJournalReadback, error) {
+	if err := witness.valid(); err != nil {
+		return SnapshotJournalReadback{}, err
+	}
+	migration, bootstrap := witness.migration, witness.bootstrap
 	var result SnapshotJournalReadback
 	if err := ctx.Err(); err != nil {
-		return result, err
-	}
-	if err := migration.Validate(); err != nil {
 		return result, err
 	}
 	header := []byte(snapshotJournalMagic + migration.StateHash + "\n")
@@ -111,7 +120,7 @@ func decodeSnapshotJournalWithBootstrap(ctx context.Context, data []byte, migrat
 		return SnapshotJournalReadback{}, err
 	}
 	result.State.bootstrap = bootstrap
-	if err := result.State.Validate(migration); err != nil {
+	if err := result.State.validateOwned(witness); err != nil {
 		return SnapshotJournalReadback{}, err
 	}
 	if err := ctx.Err(); err != nil {

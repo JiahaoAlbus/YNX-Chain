@@ -101,6 +101,18 @@ func replayValidatorRegistry(value *ValidatorRegistryState, bootstrap *Consensus
 }
 
 func validateValidatorRegistryState(s CommittedState, migration chain.ConsensusMigrationState) error {
+	witness, err := newValidatedMigration(migration, s.bootstrap)
+	if err != nil {
+		return err
+	}
+	s.bootstrap = witness.bootstrap
+	return validateValidatorRegistryStateOwned(s, witness)
+}
+
+func validateValidatorRegistryStateOwned(s CommittedState, witness *validatedMigration) error {
+	if err := witness.binds(s.bootstrap); err != nil {
+		return err
+	}
 	if s.ValidatorRegistry == nil {
 		if s.Version == 16 || s.Version == 17 || s.Version == ValidatorRegistryStateVersion || s.Version == PQEngineScheduleStateVersion {
 			return errors.New("registry state version cannot omit registry history")
@@ -109,9 +121,6 @@ func validateValidatorRegistryState(s CommittedState, migration chain.ConsensusM
 	}
 	if s.Version != 16 && s.Version != 17 && s.Version != ValidatorRegistryStateVersion && s.Version != PQEngineScheduleStateVersion {
 		return errors.New("legacy state version cannot carry validator registry")
-	}
-	if err := s.bootstrap.matchesMigration(migration); err != nil {
-		return err
 	}
 	_, err := replayValidatorRegistry(s.ValidatorRegistry, s.bootstrap, s.Height)
 	return err

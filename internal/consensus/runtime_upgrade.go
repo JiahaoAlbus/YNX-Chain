@@ -161,6 +161,19 @@ type runtimeUpgradeCursor struct {
 }
 
 func newRuntimeUpgradeCursor(a *RuntimeUpgradeAuthorization, migration chain.ConsensusMigrationState, committed CommittedState, trusted runtimeUpgradeCheckpoint) (*runtimeUpgradeCursor, error) {
+	witness, err := newValidatedMigration(migration, committed.bootstrap)
+	if err != nil {
+		return nil, err
+	}
+	committed.bootstrap = witness.bootstrap
+	return newRuntimeUpgradeCursorOwned(a, witness, committed, trusted)
+}
+
+func newRuntimeUpgradeCursorOwned(a *RuntimeUpgradeAuthorization, witness *validatedMigration, committed CommittedState, trusted runtimeUpgradeCheckpoint) (*runtimeUpgradeCursor, error) {
+	if err := witness.valid(); err != nil {
+		return nil, err
+	}
+	migration := witness.migration
 	p, err := a.Plan()
 	if err != nil {
 		return nil, err
@@ -168,7 +181,7 @@ func newRuntimeUpgradeCursor(a *RuntimeUpgradeAuthorization, migration chain.Con
 	if migration.StateHash != p.MigrationStateHash || migration.OriginalGenesisHash != p.OriginalGenesisHash {
 		return nil, errors.New("runtime upgrade cursor changed original migration")
 	}
-	if err := committed.Validate(migration); err != nil {
+	if err := committed.validateOwned(witness); err != nil {
 		return nil, err
 	}
 	c := &runtimeUpgradeCursor{plan: p}
@@ -213,6 +226,19 @@ func (c *runtimeUpgradeCursor) modeForNext(committed CommittedState, height int6
 }
 
 func (c *runtimeUpgradeCursor) confirmCommitted(migration chain.ConsensusMigrationState, committed CommittedState, trusted runtimeUpgradeCheckpoint) error {
+	witness, err := newValidatedMigration(migration, committed.bootstrap)
+	if err != nil {
+		return err
+	}
+	committed.bootstrap = witness.bootstrap
+	return c.confirmCommittedOwned(witness, committed, trusted)
+}
+
+func (c *runtimeUpgradeCursor) confirmCommittedOwned(witness *validatedMigration, committed CommittedState, trusted runtimeUpgradeCheckpoint) error {
+	if err := witness.valid(); err != nil {
+		return err
+	}
+	migration := witness.migration
 	if err := c.validateCheckpoint(committed, trusted); err != nil {
 		return err
 	}
@@ -222,7 +248,7 @@ func (c *runtimeUpgradeCursor) confirmCommitted(migration chain.ConsensusMigrati
 	// Schema 19/20 still require the original bootstrap and real complete
 	// registry/schedule validation. The runtime plan is not PQ authorization.
 	// The caller separately enforces PQEngineAuthorization and continuation.
-	if err := committed.Validate(migration); err != nil {
+	if err := committed.validateOwned(witness); err != nil {
 		return err
 	}
 	if committed.Version < c.stateVersion {

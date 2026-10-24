@@ -191,6 +191,14 @@ func (b *ConsensusBootstrap) matchesMigration(m chain.ConsensusMigrationState) e
 	if err != nil {
 		return err
 	}
+	return b.matchesCanonicalMigration(m, canonical)
+}
+
+// Only complete CanonicalJSON output is accepted by the private witness creator.
+func (b *ConsensusBootstrap) matchesCanonicalMigration(m chain.ConsensusMigrationState, canonical []byte) error {
+	if b == nil || b.record.MigrationStateHash != m.StateHash || b.record.OriginalGenesisHash != m.OriginalGenesisHash {
+		return errors.New("missing or mismatched independent consensus bootstrap")
+	}
 	if b.migrationReference != nil {
 		if len(canonical) > maxCometMigrationBytes || newCometMigrationReference(m, canonical) != *b.migrationReference {
 			return errors.New("bootstrap complete migration changed")

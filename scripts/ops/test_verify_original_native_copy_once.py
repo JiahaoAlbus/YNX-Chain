@@ -100,6 +100,7 @@ if [[ $mode == stable-tmp ]]; then
   mkdir -m 0700 -- "$root/original-guard"
   set +e
   (
+    trap - EXIT
     case_dir="$root/original-guard"
     # EXACT_ORIGINAL_TMP_GUARD
   )
@@ -107,13 +108,18 @@ if [[ $mode == stable-tmp ]]; then
   set -e
   [[ $original_result != 0 && ! -e $root/original-guard/data-verified ]] || exit 99
   grep -qx 'original-temp-or-partial-present' "$root/original-guard/first-cause"
+  kill -0 "$writer"
   printf '%s\n' 'YNX_NATIVE_ORIGINAL_TMP_GUARD_REPRODUCED_DATA_ONLY'
 fi
 set +e
-( ynx_native_copy_readonly_fd "$source" "$marker" "$case_dir" "$expected_bytes" )
+(
+  trap - EXIT
+  ynx_native_copy_readonly_fd "$source" "$marker" "$case_dir" "$expected_bytes"
+)
 result=$?
 set -e
 if [[ $mode == stable-tmp ]]; then
+  kill -0 "$writer"
   [[ $result == 0 && -f $case_dir/copy-receipt && ! -e $case_dir/first-cause ]] || exit 93
   [[ $(stat -c '%s' -- "$source.tmp") -gt $initial_tmp_bytes ]] || exit 94
   [[ $(stat -c '%d:%i:%f:%h:%u:%g:%s:%y:%z' -- "$source") == "$source_before" &&

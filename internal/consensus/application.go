@@ -31,6 +31,7 @@ type Application struct {
 	abcitypes.BaseApplication
 	mu                          sync.RWMutex
 	migration                   chain.ConsensusMigrationState
+	validatedMigration          *validatedMigration
 	committed                   CommittedState
 	pending                     *CommittedState
 	statePath                   string
@@ -197,31 +198,28 @@ func NewPersistentApplicationWithEngineAuthorization(state chain.ConsensusMigrat
 }
 
 func newPersistentApplicationWithAuthorization(state chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, hooks *committedPersistenceHooks, authorization *PQEngineAuthorization) (*Application, error) {
-	if err := state.Validate(); err != nil {
+	witness, err := newValidatedMigration(state, bootstrap)
+	if err != nil {
 		return nil, fmt.Errorf("invalid YNX consensus migration state: %w", err)
 	}
-	if err := validateMigrationPreservationClosure(state); err != nil {
+	return newPersistentApplicationOwned(witness, statePath, hooks, authorization)
+}
+
+// The only migration input of this private constructor is the owned witness.
+func newPersistentApplicationOwned(witness *validatedMigration, statePath string, hooks *committedPersistenceHooks, authorization *PQEngineAuthorization) (*Application, error) {
+	if err := witness.valid(); err != nil {
 		return nil, err
 	}
-	payload, err := state.CanonicalJSON()
-	if err != nil {
+	migration, bootstrap := witness.migration, witness.bootstrap
+	if err := validateMigrationPreservationClosure(migration); err != nil {
 		return nil, err
-	}
-	var migration chain.ConsensusMigrationState
-	if err := json.Unmarshal(payload, &migration); err != nil {
-		return nil, fmt.Errorf("clone YNX consensus migration state: %w", err)
-	}
-	if bootstrap != nil {
-		if err := bootstrap.matchesMigration(migration); err != nil {
-			return nil, err
-		}
 	}
 	persistedBefore, persistedBeforeErr := applicationPersistenceFile(strings.TrimSpace(statePath))
-	committed, err := loadCommittedStateWithBootstrap(strings.TrimSpace(statePath), migration, bootstrap)
+	committed, err := loadCommittedStateOwned(strings.TrimSpace(statePath), witness)
 	if err != nil {
 		return nil, err
 	}
-	if err := committed.Validate(migration); err != nil {
+	if err := committed.validateOwned(witness); err != nil {
 		return nil, fmt.Errorf("validate imported or restored application state: %w", err)
 	}
 	if err := authorization.ValidateCommittedSchedule(committed.PQEngineSchedule, committed.Height); err != nil {
@@ -254,6 +252,7 @@ func newPersistentApplicationWithAuthorization(state chain.ConsensusMigrationSta
 		bootstrap:             bootstrap,
 		persistenceHooks:      hooks,
 		migration:             migration,
+		validatedMigration:    witness,
 		committed:             committed,
 		statePath:             strings.TrimSpace(statePath),
 		feeRecipient:          feeRecipient,
@@ -284,12 +283,12 @@ func NewJournaledApplication(state chain.ConsensusMigrationState, path string) (
 func (a *Application) persistState(state CommittedState, timings *commitTimings) (result error) {
 	defer func() { a.observePersistenceResult(state, result) }()
 	if a.blockJournal != nil {
-		return a.blockJournal.replaceCheckpoint(state, a.migration)
+		return a.blockJournal.replaceCheckpointOwned(state, a.validatedMigration)
 	}
 	if a.journal != nil {
-		return a.journal.save(state, a.migration, timings)
+		return a.journal.saveOwned(state, a.validatedMigration, timings)
 	}
-	return saveCommittedStateWithHooksAndTimings(a.statePath, state, a.migration, a.persistenceHooks, timings)
+	return saveCommittedStateOwned(a.statePath, state, a.validatedMigration, a.persistenceHooks, timings)
 }
 
 // NewBlockJournaledApplication uses an explicit V2 checkpoint/block format.
@@ -904,7 +903,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 			Events:  events,
 		}
 	}
-	pending, err := sealCommittedState(a.migration, req.Height, state)
+	pending, err := sealCommittedStateOwned(a.validatedMigration, req.Height, state)
 	if err != nil {
 		return nil, fmt.Errorf("seal finalized YNX state: %w", err)
 	}
@@ -987,7 +986,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	}
 	var err error
 	if a.blockJournal != nil {
-		err = a.blockJournal.saveBlock(a.committed, *a.pending, a.pendingBlockRequest, a.pendingBlockResponseHash, a.migration, a.commitTimings)
+		err = a.blockJournal.saveBlockOwned(a.committed, *a.pending, a.pendingBlockRequest, a.pendingBlockResponseHash, a.validatedMigration, a.commitTimings)
 		a.observePersistenceResult(*a.pending, err)
 	} else {
 		err = a.persistState(*a.pending, a.commitTimings)

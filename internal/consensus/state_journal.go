@@ -330,13 +330,26 @@ func (j *snapshotJournal) save(state CommittedState, migration chain.ConsensusMi
 	if j.poisoned {
 		return errors.New("snapshot journal write outcome uncertain; reopen for recovery")
 	}
+	witness, err := newValidatedMigration(migration, state.bootstrap)
+	if err != nil {
+		j.poisoned = true
+		return err
+	}
+	state.bootstrap = witness.bootstrap
+	return j.saveOwned(state, witness, timings)
+}
+
+func (j *snapshotJournal) saveOwned(state CommittedState, witness *validatedMigration, timings *commitTimings) (err error) {
+	if j.poisoned {
+		return errors.New("snapshot journal write outcome uncertain; reopen for recovery")
+	}
 	defer func() {
 		if err != nil {
 			j.poisoned = true
 		}
 	}()
 	started := timings.start()
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return err
 	}
 	if state.Height <= j.height {

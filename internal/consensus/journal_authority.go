@@ -68,6 +68,8 @@ func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationS
 	if err != nil {
 		return nil, err
 	}
+	// Use the same detached bootstrap as the owning Application/witness.
+	bootstrap = a.bootstrap
 	var committed CommittedState
 	if block {
 		a.blockJournal, committed, err = openBlockJournalWithRuntimeAuthority(path, a.migration, bootstrap, authorization, runtime)

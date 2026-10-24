@@ -1091,9 +1091,9 @@ jobs:
           from pathlib import Path
           path = Path('internal/consensus/pq_engine_file_source.go')
           text = path.read_text()
-          fixed = 'readPQEngineCommittedStateWithCapture(statePath, migration, bootstrap, authorization, runtime, capture)'
+          fixed = 'readPQEngineCommittedStateOwned(statePath, witness, authorization, runtime, capture)'
           assert text.count(fixed) == 1
-          path.write_text(text.replace(fixed, 'loadCommittedStateWithBootstrap(statePath, migration, bootstrap)'))
+          path.write_text(text.replace(fixed, 'loadCommittedStateOwned(statePath, witness)'))
           PY
           set +e
           go test -p 1 -count=1 -timeout=90s -v -run '^TestPQEngineStateReadActualLayoutsRegistryRotationRevocation$' ./internal/consensus > "$YNX_READ_CASE/original-red.log" 2>&1

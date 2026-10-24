@@ -317,5 +317,9 @@ func TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery(t *testin
 	if !found || !reflect.DeepEqual(*view.Transaction, original) || view.OriginalGenesisHash != m.OriginalGenesisHash || view.SourceAnchor != m.StateHash {
 		t.Fatal("history was relabeled or lost original bytes/identity")
 	}
+	measureValidatedMigrationFreshRead(t, "large-atomic-json", m, b, path, cold.committed, cold.validatedMigration)
+	if !bytes.Equal(before, migrationHistoryRead(t, cold, MigrationHistoryTransactionPath+historyHash)) {
+		t.Fatal("owned fresh load altered complete original historical query")
+	}
 	t.Logf("COMET_MIGRATION_REFERENCE_LARGE_CANONICAL_RECOVERY_PASS scope=DATA noActivation=true canonicalBytes=%d genesisBytes=%d planBytes=%d fullSidecar=true originalHistory=true nodeStarted=false", sourceBytes, len(rawGenesis), len(plan))
 }

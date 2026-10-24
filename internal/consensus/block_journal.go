@@ -121,14 +121,39 @@ func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration cha
 }
 
 func replayBlockJournalWithAuthority(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (CommittedState, error) {
+	var bootstrap *ConsensusBootstrap
+	if authority != nil {
+		bootstrap = authority.bootstrap
+	}
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return CommittedState{}, err
+	}
+	if authority != nil {
+		ownedAuthority := *authority
+		ownedAuthority.bootstrap = witness.bootstrap
+		authority = &ownedAuthority
+	}
+	return replayBlockJournalOwned(ctx, r, witness, j, facts, authority)
+}
+
+func replayBlockJournalOwned(ctx context.Context, r io.Reader, witness *validatedMigration, j *blockJournal, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (CommittedState, error) {
+	var bootstrap *ConsensusBootstrap
+	if authority != nil {
+		bootstrap = authority.bootstrap
+	}
+	if err := witness.binds(bootstrap); err != nil {
+		return CommittedState{}, err
+	}
 	header := make([]byte, len(j.io.header))
 	if _, err := io.ReadFull(r, header); err != nil || !bytes.Equal(header, j.io.header) {
 		return CommittedState{}, errors.New("block journal format/migration mismatch")
 	}
-	replay, err := NewApplication(migration)
+	replay, err := newPersistentApplicationOwned(witness, "", nil, nil)
 	if err != nil {
 		return CommittedState{}, err
 	}
+	replay.committed.Initialized = true
 	replay.replayVerificationFacts = facts
 	if authority != nil {
 		replay.bootstrap = authority.bootstrap
@@ -164,7 +189,7 @@ func replayBlockJournalWithAuthority(ctx context.Context, r io.Reader, migration
 					return CommittedState{}, err
 				}
 			}
-			if err := record.Snapshot.Validate(migration); err != nil {
+			if err := record.Snapshot.validateOwned(witness); err != nil {
 				return CommittedState{}, err
 			}
 			replay.committed = *record.Snapshot
@@ -221,7 +246,7 @@ func replayBlockJournalWithAuthority(ctx context.Context, r io.Reader, migration
 	if j.io.records == 0 {
 		return CommittedState{}, errors.New("block journal missing complete checkpoint")
 	}
-	if err := replay.committed.Validate(migration); err != nil {
+	if err := replay.committed.validateOwned(witness); err != nil {
 		return CommittedState{}, err
 	}
 	j.io.height = replay.committed.Height
@@ -434,12 +459,25 @@ func (j *blockJournal) replaceCheckpoint(state CommittedState, migration chain.C
 	if j.io.poisoned {
 		return errors.New("block journal write outcome uncertain; reopen for recovery")
 	}
+	witness, err := newValidatedMigration(migration, state.bootstrap)
+	if err != nil {
+		j.io.poisoned = true
+		return err
+	}
+	state.bootstrap = witness.bootstrap
+	return j.replaceCheckpointOwned(state, witness)
+}
+
+func (j *blockJournal) replaceCheckpointOwned(state CommittedState, witness *validatedMigration) (err error) {
+	if j.io.poisoned {
+		return errors.New("block journal write outcome uncertain; reopen for recovery")
+	}
 	defer func() {
 		if err != nil {
 			j.io.poisoned = true
 		}
 	}()
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return err
 	}
 	if state.Height < j.io.height {
@@ -465,13 +503,26 @@ func (j *blockJournal) saveBlock(previous, next CommittedState, request []byte, 
 	if j.io.poisoned {
 		return errors.New("block journal write outcome uncertain; reopen for recovery")
 	}
+	witness, err := newValidatedMigration(migration, next.bootstrap)
+	if err != nil {
+		j.io.poisoned = true
+		return err
+	}
+	next.bootstrap = witness.bootstrap
+	return j.saveBlockOwned(previous, next, request, responseHash, witness, timings)
+}
+
+func (j *blockJournal) saveBlockOwned(previous, next CommittedState, request []byte, responseHash string, witness *validatedMigration, timings *commitTimings) (err error) {
+	if j.io.poisoned {
+		return errors.New("block journal write outcome uncertain; reopen for recovery")
+	}
 	defer func() {
 		if err != nil {
 			j.io.poisoned = true
 		}
 	}()
 	started := timings.start()
-	if err := next.Validate(migration); err != nil {
+	if err := next.validateOwned(witness); err != nil {
 		return err
 	}
 	if previous.Height != j.io.height || previous.AppHash != j.appHash || previous.Version != j.stateVersion || next.Version < previous.Version || next.Height != previous.Height+1 || len(request) == 0 || len(request) > blockJournalMaxRequest {

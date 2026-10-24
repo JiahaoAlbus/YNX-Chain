@@ -254,6 +254,19 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 }
 
 func sealCommittedState(migration chain.ConsensusMigrationState, height int64, execution executionState) (CommittedState, error) {
+	witness, err := newValidatedMigration(migration, execution.bootstrap)
+	if err != nil {
+		return CommittedState{}, err
+	}
+	execution.bootstrap = witness.bootstrap
+	return sealCommittedStateOwned(witness, height, execution)
+}
+
+func sealCommittedStateOwned(witness *validatedMigration, height int64, execution executionState) (CommittedState, error) {
+	if err := witness.binds(execution.bootstrap); err != nil {
+		return CommittedState{}, err
+	}
+	migration := witness.migration
 	state := CommittedState{
 		bootstrap:                  execution.bootstrap,
 		ValidatorRegistry:          cloneValidatorRegistry(execution.validatorRegistry),
@@ -344,18 +357,29 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		}
 		state.AppHash = hash
 	}
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return CommittedState{}, err
 	}
 	return state, nil
 }
 
 func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error {
-	if err := validateHistoricalStateFields(s, migration); err != nil {
+	witness, err := newValidatedMigration(migration, s.bootstrap)
+	if err != nil {
+		return fmt.Errorf("invalid migration anchor: %w", err)
+	}
+	s.bootstrap = witness.bootstrap
+	return s.validateOwned(witness)
+}
+
+// This entry accepts only the owned anchor, never an external migration plus a flag.
+func (s CommittedState) validateOwned(witness *validatedMigration) error {
+	if err := witness.binds(s.bootstrap); err != nil {
 		return err
 	}
-	if err := migration.Validate(); err != nil {
-		return fmt.Errorf("invalid migration anchor: %w", err)
+	migration := witness.migration
+	if err := validateHistoricalStateFields(s, migration); err != nil {
+		return err
 	}
 	if !supportedCommittedStateVersion(s.Version) {
 		return fmt.Errorf("unsupported committed state version %d", s.Version)
@@ -363,7 +387,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if (s.PQEngineSchedule != nil) != (s.Version == 17 || s.Version == PQEngineScheduleStateVersion) {
 		return errors.New("committed engine schedule requires its explicit state version")
 	}
-	if err := validateValidatorRegistryState(s, migration); err != nil {
+	if err := validateValidatorRegistryStateOwned(s, witness); err != nil {
 		return err
 	}
 	if err := validatePQEngineSchedule(s.PQEngineSchedule, s.bootstrap, s.ValidatorRegistry, s.Height); err != nil {
@@ -835,12 +859,28 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 }
 
 func loadCommittedStateWithBootstrap(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap) (CommittedState, error) {
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return CommittedState{}, err
+	}
+	return loadCommittedStateOwned(path, witness)
+}
+
+func loadCommittedStateOwned(path string, witness *validatedMigration) (CommittedState, error) {
+	if err := witness.valid(); err != nil {
+		return CommittedState{}, err
+	}
+	migration, bootstrap := witness.migration, witness.bootstrap
 	if strings.TrimSpace(path) == "" {
-		return initialCommittedState(migration), nil
+		state := initialCommittedState(migration)
+		state.bootstrap = bootstrap
+		return state, nil
 	}
 	info, err := os.Stat(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return initialCommittedState(migration), nil
+		state := initialCommittedState(migration)
+		state.bootstrap = bootstrap
+		return state, nil
 	}
 	if err != nil {
 		return CommittedState{}, fmt.Errorf("stat committed state: %w", err)
@@ -860,7 +900,7 @@ func loadCommittedStateWithBootstrap(path string, migration chain.ConsensusMigra
 	if err := validateHistoricalStateFields(state, migration); err != nil {
 		return CommittedState{}, err
 	}
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return CommittedState{}, fmt.Errorf("validate committed state: %w", err)
 	}
 	return state, nil
@@ -912,8 +952,20 @@ func saveCommittedStateWithHooksAndTimings(path string, state CommittedState, mi
 	if strings.TrimSpace(path) == "" {
 		return nil
 	}
+	witness, err := newValidatedMigration(migration, state.bootstrap)
+	if err != nil {
+		return err
+	}
+	state.bootstrap = witness.bootstrap
+	return saveCommittedStateOwned(path, state, witness, hooks, timings)
+}
+
+func saveCommittedStateOwned(path string, state CommittedState, witness *validatedMigration, hooks *committedPersistenceHooks, timings *commitTimings) error {
+	if strings.TrimSpace(path) == "" {
+		return nil
+	}
 	started := timings.start()
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return err
 	}
 	started = timings.mark("validate", started)

@@ -130,7 +130,7 @@ func TestAuthorizedJournalsRealRegistryScheduleAndColdContinuation(t *testing.T)
 				if err != nil || !journalStateEqual(t, cold.committed, a.committed) {
 					t.Fatal("authorized normal journal cold replay changed complete state", err)
 				}
-				if cold.bootstrap != f.bootstrap || cold.committed.bootstrap != f.bootstrap || cold.pqEngineAuthorization != auth || cold.replayStateVersion != 0 {
+				if !sameOwnedBootstrap(cold.bootstrap, f.bootstrap) || cold.committed.bootstrap != cold.bootstrap || cold.pqEngineAuthorization != auth || cold.replayStateVersion != 0 {
 					t.Fatal("trusted runtime source was dropped or decoder-only mode leaked")
 				}
 				a = cold

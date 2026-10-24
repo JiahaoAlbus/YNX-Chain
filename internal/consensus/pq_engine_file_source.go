@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 type PQEngineFileSource struct {
 	mu                   sync.Mutex
 	migration            chain.ConsensusMigrationState
+	validatedMigration   *validatedMigration
 	path                 string
 	bootstrap            *ConsensusBootstrap
 	authorization        *PQEngineAuthorization
@@ -45,25 +45,15 @@ func NewPQEngineFileSource(migration chain.ConsensusMigrationState, statePath st
 	if bootstrap == nil || authorization == nil || strings.TrimSpace(statePath) == "" {
 		return nil, errors.New("engine authority source requires pinned bootstrap, path and independent schedule authorization")
 	}
-	if err := migration.Validate(); err != nil {
-		return nil, err
-	}
-	if err := bootstrap.matchesMigration(migration); err != nil {
-		return nil, err
-	}
-	raw, err := migration.CanonicalJSON()
+	witness, err := newValidatedMigration(migration, bootstrap)
 	if err != nil {
-		return nil, err
-	}
-	var detached chain.ConsensusMigrationState
-	if err := json.Unmarshal(raw, &detached); err != nil {
 		return nil, err
 	}
 	path, err := filepath.Abs(statePath)
 	if err != nil {
 		return nil, err
 	}
-	return &PQEngineFileSource{migration: detached, path: path, bootstrap: bootstrap, authorization: authorization}, nil
+	return &PQEngineFileSource{migration: witness.migration, validatedMigration: witness, path: path, bootstrap: witness.bootstrap, authorization: authorization}, nil
 }
 
 func (s *PQEngineFileSource) ConsensusAuthorityForState(chainID string, committedHeight int64, appHash []byte) (cmttypes.ConsensusAuthority, error) {
@@ -127,17 +117,26 @@ func (s *PQEngineFileSource) loadSnapshot(height int64, hash []byte) (*PQEngineS
 	if capture == nil {
 		capture = capturePQEngineState
 	}
-	return loadPQEngineSnapshotWithCapture(s.migration, s.path, s.bootstrap, s.authorization, s.runtimeAuthorization, height, hash, capture)
+	return loadPQEngineSnapshotOwned(s.validatedMigration, s.path, s.authorization, s.runtimeAuthorization, height, hash, capture)
 }
 
 func loadPQEngineSnapshotWithCapture(migration chain.ConsensusMigrationState, statePath string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, committedHeight int64, committedAppHash []byte, capture func(string) (*pqEngineStateRead, error)) (*PQEngineSnapshot, error) {
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return nil, err
+	}
+	return loadPQEngineSnapshotOwned(witness, statePath, authorization, runtime, committedHeight, committedAppHash, capture)
+}
+
+func loadPQEngineSnapshotOwned(witness *validatedMigration, statePath string, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, committedHeight int64, committedAppHash []byte, capture func(string) (*pqEngineStateRead, error)) (*PQEngineSnapshot, error) {
+	if err := witness.valid(); err != nil {
+		return nil, err
+	}
+	bootstrap := witness.bootstrap
 	if bootstrap == nil || strings.TrimSpace(statePath) == "" || len(committedAppHash) != 32 {
 		return nil, errors.New("engine file source requires pinned bootstrap, committed path and full trusted AppHash")
 	}
-	if err := bootstrap.matchesMigration(migration); err != nil {
-		return nil, err
-	}
-	state, err := readPQEngineCommittedStateWithCapture(statePath, migration, bootstrap, authorization, runtime, capture)
+	state, err := readPQEngineCommittedStateOwned(statePath, witness, authorization, runtime, capture)
 	if err != nil {
 		return nil, fmt.Errorf("read committed engine authority: %w", err)
 	}
@@ -148,7 +147,7 @@ func loadPQEngineSnapshotWithCapture(migration chain.ConsensusMigrationState, st
 	if err != nil || !bytes.Equal(hash, committedAppHash) {
 		return nil, errors.New("application authority AppHash differs from trusted Comet state")
 	}
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return nil, err
 	}
 	if _, err := runtimeStateApplicationVersion(state, runtime); err != nil {

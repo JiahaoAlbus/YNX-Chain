@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -33,29 +32,26 @@ func DecodeBlockJournal(ctx context.Context, data []byte, migration chain.Consen
 // The cache's own mutex permits concurrent Decode calls without sharing Apps.
 // Like its mutex-containing cache, a decoder must not be copied after use.
 type BlockJournalDecoder struct {
-	migration chain.ConsensusMigrationState
-	native    nativeVerificationCache
+	migration          chain.ConsensusMigrationState
+	validatedMigration *validatedMigration
+	native             nativeVerificationCache
 }
 
 type BlockJournalVerificationStats nativeVerificationStats
 
 func NewBlockJournalDecoder(migration chain.ConsensusMigrationState) (*BlockJournalDecoder, error) {
-	if err := migration.Validate(); err != nil {
-		return nil, err
-	}
-	raw, err := migration.CanonicalJSON()
+	witness, err := newValidatedMigration(migration, nil)
 	if err != nil {
 		return nil, err
 	}
-	d := &BlockJournalDecoder{}
-	if err = json.Unmarshal(raw, &d.migration); err != nil {
-		return nil, err
-	}
-	return d, nil
+	return &BlockJournalDecoder{migration: witness.migration, validatedMigration: witness}, nil
 }
 
 func (d *BlockJournalDecoder) Decode(ctx context.Context, data []byte) (BlockJournalReadback, error) {
-	return decodeBlockJournalWithFacts(ctx, data, d.migration, &d.native)
+	if d == nil {
+		return BlockJournalReadback{}, errors.New("missing block journal decoder")
+	}
+	return decodeBlockJournalOwned(ctx, data, d.validatedMigration, &d.native, nil)
 }
 func (d *BlockJournalDecoder) VerificationStats() BlockJournalVerificationStats {
 	return BlockJournalVerificationStats(d.native.stats())
@@ -66,11 +62,29 @@ func decodeBlockJournalWithFacts(ctx context.Context, data []byte, migration cha
 }
 
 func decodeBlockJournalWithAuthority(ctx context.Context, data []byte, migration chain.ConsensusMigrationState, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (BlockJournalReadback, error) {
+	var bootstrap *ConsensusBootstrap
+	if authority != nil {
+		bootstrap = authority.bootstrap
+	}
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return BlockJournalReadback{}, err
+	}
+	if authority != nil {
+		ownedAuthority := *authority
+		ownedAuthority.bootstrap = witness.bootstrap
+		authority = &ownedAuthority
+	}
+	return decodeBlockJournalOwned(ctx, data, witness, facts, authority)
+}
+
+func decodeBlockJournalOwned(ctx context.Context, data []byte, witness *validatedMigration, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (BlockJournalReadback, error) {
+	if err := witness.valid(); err != nil {
+		return BlockJournalReadback{}, err
+	}
+	migration := witness.migration
 	var result BlockJournalReadback
 	if err := ctx.Err(); err != nil {
-		return result, err
-	}
-	if err := migration.Validate(); err != nil {
 		return result, err
 	}
 	header := []byte(blockJournalMagic + migration.StateHash + "\n")
@@ -78,7 +92,7 @@ func decodeBlockJournalWithAuthority(ctx context.Context, data []byte, migration
 		return result, errors.New("block journal readback exceeds bounded capacity")
 	}
 	j := &blockJournal{io: &snapshotJournal{header: header}}
-	state, err := replayBlockJournalWithAuthority(ctx, bytes.NewReader(data), migration, j, facts, authority)
+	state, err := replayBlockJournalOwned(ctx, bytes.NewReader(data), witness, j, facts, authority)
 	if err != nil {
 		return result, err
 	}
