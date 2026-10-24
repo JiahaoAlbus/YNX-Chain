@@ -4,6 +4,7 @@ import {appendPQBroadcastActions} from './wallet-pq-broadcast-ui.mjs';
 import {appendPQFinalityActions} from './wallet-pq-finality-ui.mjs';
 import {mountCctpUI} from './features/cross-chain/cctp-ui.mjs';
 import {mountWalletIDEIdentityPanel} from './wallet-ide-identity-panel.mjs';
+import {mountWalletProjectControlPanel} from './wallet-project-control-panel.mjs';
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
@@ -45,6 +46,7 @@ import {createFamilyUI} from './multichain-family-ui.mjs';
 let multichainUI;
 let cctpUI;
 let ideIdentityUI;
+let projectControlUI;
 let familyUI;
 
 // Explicit product copy only; never pass an original request/value container.
@@ -1243,6 +1245,7 @@ function renderKeyState(state) {
   if(securityChanged)familyUI?.invalidate();
   if(securityChanged&&typeof cctpUI!=='undefined')cctpUI?.invalidate();
   if(securityChanged)ideIdentityUI?.invalidate();else ideIdentityUI?.render();
+  if(securityChanged)projectControlUI?.invalidate();else projectControlUI?.render();
   multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
@@ -1297,4 +1300,11 @@ ideIdentityUI=mountWalletIDEIdentityPanel({root:ideIdentityRoot,api:window.ynxWa
 ideIdentityOpen.addEventListener('click',()=>ideIdentityDialog.showModal());ideIdentityClose.addEventListener('click',()=>ideIdentityDialog.close());
 ideIdentityDialog.addEventListener('close',()=>{ideIdentityUI.invalidate();void window.ynxWallet.retireIDEIdentityPeer().catch(()=>{});});
 window.addEventListener('blur',()=>ideIdentityUI.invalidate());
+const projectControlDialog=document.createElement('dialog'),projectControlRoot=document.createElement('section'),projectControlOpen=document.createElement('button'),projectControlClose=document.createElement('button');
+projectControlDialog.setAttribute('aria-label','项目控制请求 / Project control request');projectControlOpen.type='button';projectControlOpen.textContent='项目控制请求 / Project control request';projectControlClose.type='button';projectControlClose.textContent='关闭视图 / Close view';
+projectControlDialog.append(projectControlClose,projectControlRoot);document.body.append(projectControlDialog);document.querySelector('#open-multichain').parentElement.append(projectControlOpen);
+projectControlUI=mountWalletProjectControlPanel({root:projectControlRoot,api:window.ynxWallet,getKeyState:()=>keyState});
+projectControlOpen.addEventListener('click',()=>projectControlDialog.showModal());projectControlClose.addEventListener('click',()=>projectControlDialog.close());
+projectControlDialog.addEventListener('close',()=>{projectControlUI.invalidate();void window.ynxWallet.retireIDEProjectControl().catch(()=>{});});
+window.addEventListener('blur',()=>projectControlUI.invalidate());
 

@@ -1,6 +1,7 @@
 import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
 import {PQ_CONNECTION_METHODS,captureWalletPQConnection} from './wallet-pq-connection-contract.mjs';
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
+import {createOriginalWalletProjectControl} from './wallet-project-control.mjs';
 import {recordRPCMetadataFailure} from './rpc-metadata-failure-record.mjs';
 import {createPackagedPQFinalityVerifier,createPackagedPQHostProducer,createPackagedPQHostSelector} from './wallet-pq-verifier-assets.mjs';
 import {originalPQVerifierReceipt} from './wallet-pq-runtime-component.mjs';
@@ -165,7 +166,8 @@ let pqKeyPreparation;
 let pqBackupActions;
 let pqRegisteredRestore;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
-keyAccess.subscribe(status=>{if(status.locked)pqFinalityCollection?.retire();if(status.locked)originalIDEIdentityPeer?.retire();});
+const originalProjectControl=createOriginalWalletProjectControl();
+keyAccess.subscribe(status=>{if(status.locked)pqFinalityCollection?.retire();if(status.locked)originalIDEIdentityPeer?.retire();if(status.locked)originalProjectControl.retire();});
 // No lawful SAME-Vault custodian or inherited IDE control stream is provisioned
 // in R8/R9. Only the original main owner may replace this fixed source binding
 // after Auth/IDE integration. Never accept a renderer/ENV provider or key.
@@ -296,7 +298,7 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
 }
 async function shutdownOriginalPQWallet(){
   pqFinalityCollection?.retire();
-  await Promise.all([walletAuthority?.shutdownPQReviews(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown()]);
+  await Promise.all([walletAuthority?.shutdownPQReviews(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
 }
 const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
@@ -336,6 +338,11 @@ handleWalletIPC('wallet:ide-identity-peer-save',()=>sensitiveIPC(async()=>{const
 handleWalletIPC('wallet:ide-identity-peer-records',()=>sensitiveIPC(async()=>{const peer=await getOriginalIDEIdentityPeer();return peer.history(keyAccess.current());}));
 handleWalletIPC('wallet:ide-identity-peer-status',()=>safeIPC(()=>originalIDEIdentityPeer?.status()??{phase:'idle',dataOnly:true,userApproved:false,handoffAuthorized:false,retryAuthorized:false}));
 handleWalletIPC('wallet:ide-identity-peer-retire',()=>safeIPC(()=>{originalIDEIdentityPeer?.retire();return originalIDEIdentityPeer?.status()??{phase:'idle',dataOnly:true};}));
+handleWalletIPC('wallet:ide-project-control-start',()=>sensitiveIPC(()=>originalProjectControl.start(()=>keyAccess.current())));
+handleWalletIPC('wallet:ide-project-control-decide',(_event,reviewId,decision)=>sensitiveIPC(()=>originalProjectControl.decide(reviewId,decision,()=>keyAccess.current())));
+handleWalletIPC('wallet:ide-project-control-observe',()=>sensitiveIPC(()=>originalProjectControl.observeOriginal(()=>keyAccess.current())));
+handleWalletIPC('wallet:ide-project-control-close',()=>safeIPC(()=>originalProjectControl.closeReview()));
+handleWalletIPC('wallet:ide-project-control-retire',()=>safeIPC(()=>{originalProjectControl.retire();return originalProjectControl.status();}));
 handleWalletIPC('wallet:family-account', (_event, input) => sensitiveIPC(() => {
   if (!familyAccounts) throw new Error('Wallet is starting.');
   return familyAccounts.account(input);

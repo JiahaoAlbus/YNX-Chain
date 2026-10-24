@@ -191,7 +191,15 @@ static napi_value CaptureOriginalWalletPublisherApproval(napi_env env,napi_callb
  // prevents all business methods. No acquire replacement on failure.
  return result;
 }
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL) && YNX_ORIGINAL_WALLET_PROJECT_CONTROL == 1
+#import "original-project-control-binding.inc.mm"
+#endif
 static bool RegisterOriginalArtifactPublisherBinding(napi_env env,napi_value exports){
  napi_property_descriptor d={"captureOriginalWalletPublisherApproval",nullptr,CaptureOriginalWalletPublisherApproval,nullptr,nullptr,nullptr,napi_default,nullptr};
- return napi_define_properties(env,exports,1,&d)==napi_ok;
+ if(napi_define_properties(env,exports,1,&d)!=napi_ok)return false;
+#if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL) && YNX_ORIGINAL_WALLET_PROJECT_CONTROL == 1
+ return RegisterOriginalProjectControlBinding(env,exports);
+#else
+ return true;
+#endif
 }

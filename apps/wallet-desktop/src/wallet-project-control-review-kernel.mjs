@@ -7,7 +7,7 @@ const fail=code=>{throw Object.assign(Error(code),{code});};
 // Persist writes public lifecycle DATA to the original protected journal, not
 // keys/proofs or an authority record. No implicit transport, retry or sign.
 export class WalletProjectControlReviewKernel {
- #deps;#owner=null;#review=null;#context=null;#selected=null;#phase='idle';#busy=false;#retired=false;#sequence=0;#first;#storage;#hasFirst=false;#hasStorage=false;#nativeEntered=false;
+ #deps;#owner=null;#review=null;#context=null;#selected=null;#phase='idle';#busy=false;#retired=false;#sequence=0;#first;#storage;#hasFirst=false;#hasStorage=false;#needsSave=false;#nativeEntered=false;
  #retainFirst(cause){if(!this.#hasFirst){this.#hasFirst=true;this.#first=cause;}}
  constructor({isOwner,persist,now=Date.now}){if([isOwner,persist,now].some(v=>typeof v!=='function'))fail('CONTROL_DEPENDENCY_REQUIRED');this.#deps={isOwner,persist,now};}
  #current(guard){
@@ -15,8 +15,8 @@ export class WalletProjectControlReviewKernel {
   const now=this.#deps.now();if(!Number.isSafeInteger(now)||now<this.#context.floor||BigInt(now)>=BigInt(this.#review.command.ExpiresMS))fail('CONTROL_EXPIRED');this.#context.floor=now;
   if(this.#owner.assertCurrent()!==undefined||this.#retired)fail('CONTROL_NATIVE_CURRENT_REFUSED');
  }
- status(){return Object.freeze({reviewId:this.#review?.reviewId??null,decision:this.#selected,phase:this.#phase,nativeEntered:this.#nativeEntered,retired:this.#retired,firstCausePresent:this.#hasFirst,storageCausePresent:this.#hasStorage,dataOnly:true,approved:false,committed:false,retryAuthorized:false});}
- async #save(){const record=Object.freeze({...this.status(),sequence:String(++this.#sequence),account:this.#review.account,command:this.#review.command,...(this.#review.publisher?{publisher:this.#review.publisher}:{})});try{await this.#deps.persist(record);}catch(e){if(!this.#hasStorage){this.#hasStorage=true;this.#storage=e;}throw e;}}
+ status(){return Object.freeze({reviewId:this.#review?.reviewId??null,decision:this.#selected,phase:this.#phase,recorded:['decision-retained','rejected','cancelled'].includes(this.#phase),nativeEntered:this.#nativeEntered,retired:this.#retired,needsSave:this.#needsSave,firstCausePresent:this.#hasFirst,storageCausePresent:this.#hasStorage,dataOnly:true,approved:false,committed:false,retryAuthorized:false});}
+ async #save(){const record=Object.freeze({...this.status(),sequence:String(++this.#sequence),account:this.#review.account,command:this.#review.command,...(this.#review.publisher?{publisher:this.#review.publisher}:{})});try{await this.#deps.persist(record);this.#needsSave=false;}catch(e){this.#needsSave=true;if(!this.#hasStorage){this.#hasStorage=true;this.#storage=e;}throw e;}}
  async capture(owner,getGuard){
   if(this.#busy||this.#owner)fail('CONTROL_ORIGINAL_ALREADY_HELD');if(this.#deps.isOwner(owner)!==true)fail('CONTROL_ORIGINAL_NATIVE_REQUIRED');
   this.#owner=owner;this.#busy=true;

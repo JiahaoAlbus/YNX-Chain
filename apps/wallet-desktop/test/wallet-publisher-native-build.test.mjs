@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {composeWalletPublisherNativeBuildPlan,SDK13_NODE_TRANSLATION_UNITS,WALLET_PUBLISHER_NATIVE_INPUTS,walletPublisherNativeInputs,WALLET_ARTIFACT_CABI_INPUTS,WALLET_ARTIFACT_CABI_FLAG} from '../scripts/wallet-publisher-native-build.mjs';
+import {composeWalletPublisherNativeBuildPlan,SDK13_NODE_TRANSLATION_UNITS,WALLET_PUBLISHER_NATIVE_INPUTS,walletPublisherNativeInputs,WALLET_ARTIFACT_CABI_INPUTS,WALLET_ARTIFACT_CABI_FLAG,WALLET_PROJECT_CONTROL_INPUTS,WALLET_PROJECT_CONTROL_FLAG} from '../scripts/wallet-publisher-native-build.mjs';
 import {canonicalNativeInputSelection,CANONICAL_NATIVE_EVIDENCE_TESTS,verifyCanonicalNativeReceipt,PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
 const inventoryBytes=readFileSync(new URL('./fixtures/auth13-native-inventory.json',import.meta.url)),inventory=JSON.parse(inventoryBytes),repo='/PUBLIC/source',headers='/PUBLIC/headers';
 const hash=b=>createHash('sha256').update(b).digest('hex');
@@ -13,6 +13,14 @@ function originalPlan(universal=false){
  if(universal)commands.push({tool:'/usr/bin/lipo',argv:['-create',output+'.arm64',output+'.x64','-output',output]});
  return {sources,output,outputs:[output],commands,minimumSystemVersion:'13.0'};
 }
+test('explicit control role closes all five input pins and adds only two Main TUs',()=>{
+ const plan=composeWalletPublisherNativeBuildPlan(originalPlan(),repo,77,false,true);
+ assert.equal(plan.sources.length,16);assert.equal(plan.commands[0].argv[0],WALLET_PROJECT_CONTROL_FLAG);
+ const invBytes=readFileSync(new URL('./fixtures/auth20-native-inventory.json',import.meta.url)),inv=JSON.parse(invBytes),wallet=walletPublisherNativeInputs(77,false,true),rows=[...inv.NativeInputs,...wallet],names=[...rows.map(p=>p.path),...inv.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...CANONICAL_NATIVE_EVIDENCE_TESTS],pins=rows.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));
+ assert.equal(canonicalNativeInputSelection(inv.version,names,invBytes,pins).inputs.length,85);
+ for(const pin of WALLET_PROJECT_CONTROL_INPUTS){const b=readFileSync(new URL('../'+pin.path.replace('apps/wallet-desktop/',''),import.meta.url));assert.equal(b.length,pin.bytes);assert.equal(hash(b),pin.sha256);assert.throws(()=>canonicalNativeInputSelection(inv.version,names.filter(n=>n!==pin.path),invBytes,pins));}
+ assert.throws(()=>walletPublisherNativeInputs(76,false,true),/MATCHED_SDK20/);assert(!composeWalletPublisherNativeBuildPlan(originalPlan(),repo,77).commands[0].argv.includes(WALLET_PROJECT_CONTROL_FLAG));
+});
 test('Wallet adds exactly one user-addon TU and LocalAuthentication, preserving original supplier plan bytes',()=>{
  for(const universal of [false,true]){
   const original=originalPlan(universal),before=structuredClone(original),plan=composeWalletPublisherNativeBuildPlan(original,repo);

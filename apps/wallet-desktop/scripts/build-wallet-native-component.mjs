@@ -17,10 +17,10 @@ function assertMatchedOriginalBuild(){
  if(!toolStat.isFile()||toolStat.isSymbolicLink()||toolBytes.length!==profile.tool.bytes||hash(toolBytes)!==profile.tool.sha256)throw Error('WALLET_NATIVE_ORIGINAL_BUILD_TOOL_DIFFERS');
  return profile;
 }
-export function walletNativeComponentBuildPlan(arch,headers,artifactRelease=false){
+export function walletNativeComponentBuildPlan(arch,headers,artifactRelease=false,projectControl=false){
  const profile=assertMatchedOriginalBuild();
- for(const pin of walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease)){const file=path.join(repo,pin.path),stat=lstatSync(file),bytes=readFileSync(file);if(!stat.isFile()||stat.isSymbolicLink()||bytes.length!==pin.bytes||hash(bytes)!==pin.sha256)throw Error('WALLET_NATIVE_PUBLISHER_SOURCE_DIFFERS');}
- return composeWalletPublisherNativeBuildPlan(originalBuild.originalAuthNativeBuildPlan(arch,headers),repo,profile.supplierNodeInputs,artifactRelease);
+ for(const pin of walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease,projectControl)){const file=path.join(repo,pin.path),stat=lstatSync(file),bytes=readFileSync(file);if(!stat.isFile()||stat.isSymbolicLink()||bytes.length!==pin.bytes||hash(bytes)!==pin.sha256)throw Error('WALLET_NATIVE_PUBLISHER_SOURCE_DIFFERS');}
+ return composeWalletPublisherNativeBuildPlan(originalBuild.originalAuthNativeBuildPlan(arch,headers),repo,profile.supplierNodeInputs,artifactRelease,projectControl);
 }
 const regular=file=>{const stat=lstatSync(file);if(!stat.isFile()||stat.isSymbolicLink())throw Error('WALLET_NATIVE_BUILD_FILE_NOT_REGULAR');return readFileSync(file);};
 const pin=(relative,bytes)=>({relative,bytes:bytes.length,sha256:hash(bytes)});
@@ -29,8 +29,8 @@ function createExclusive(file,bytes,mode){let fd;try{fd=openSync(file,'wx',mode)
  * plus the separately pinned Wallet user-addon TU, then records real exits.
  * Never installs a service, accesses custody or claims Native admission.
  */
-export function buildWalletNativeComponent(arch,headers,artifactRelease=false){
- const node=walletNativeComponentBuildPlan(arch,headers,artifactRelease),helper=originalBuild.originalIDEHelperBuildPlan(arch),architectures=arch==='universal'?['arm64','x86_64']:[arch==='x64'?'x86_64':arch];
+export function buildWalletNativeComponent(arch,headers,artifactRelease=false,projectControl=false){
+ const node=walletNativeComponentBuildPlan(arch,headers,artifactRelease,projectControl),helper=originalBuild.originalIDEHelperBuildPlan(arch),architectures=arch==='universal'?['arm64','x86_64']:[arch==='x64'?'x86_64':arch];
  const profile=assertMatchedOriginalBuild(),inventoryPin=profile.inventory;
  if(JSON.stringify(helper.commands)!==JSON.stringify(sdk13HelperBuildCommands(repo,architectures)))throw Error('WALLET_NATIVE_HELPER_PLAN_DIFFERS');
  const inventoryRelative='packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',inventoryBytes=regular(path.join(repo,inventoryRelative));
@@ -55,13 +55,13 @@ export function buildWalletNativeComponent(arch,headers,artifactRelease=false){
  verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,helperBytes},name=>regular(path.join(repo,name)));
  createExclusive(helperAlias,helperBytes,0o755);
  createExclusive(recordPath,Buffer.from(JSON.stringify(record,null,2)+'\n'),0o600);
- return {recordPath,sourceInputs:supplier.length+node.walletInputFiles.length,nodeTranslationUnits:14,helperTranslationUnits:11,appSigned:false,nativeQualified:false,installed:false};
+ return {recordPath,sourceInputs:supplier.length+node.walletInputFiles.length,nodeTranslationUnits:node.sources.length,helperTranslationUnits:11,appSigned:false,nativeQualified:false,installed:false};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===here){
  if(process.platform!=='darwin')throw Error('AUTH_NATIVE_MAC_ONLY');
  assertMatchedOriginalBuild();
  const mode=process.argv[2];
- if(mode==='component'||mode==='component-artifact-release'){if(process.argv.length!==5)throw Error('WALLET_NATIVE_BUILD_ARGUMENTS_INVALID');buildWalletNativeComponent(process.argv[3],process.argv[4],mode==='component-artifact-release');}
+ if(['component','component-artifact-release','component-project-control','component-project-control-artifact-release'].includes(mode)){if(process.argv.length!==5)throw Error('WALLET_NATIVE_BUILD_ARGUMENTS_INVALID');buildWalletNativeComponent(process.argv[3],process.argv[4],mode.includes('artifact-release'),mode.includes('project-control'));}
  else {
  const helper=mode==='helper',io=mode==='source-current-io';
  if(helper&&process.argv.length!==4||io&&process.argv.length!==5||!helper&&!io&&process.argv.length!==4)throw Error('WALLET_NATIVE_BUILD_ARGUMENTS_INVALID');

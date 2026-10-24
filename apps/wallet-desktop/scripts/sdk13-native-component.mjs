@@ -3,7 +3,7 @@ import path from 'node:path';
 import {isDeepStrictEqual} from 'node:util';
 import {readFileSync,lstatSync,mkdirSync,writeFileSync} from 'node:fs';
 import {canonicalNativeInputSelection,verifyCanonicalNativeReceipt,CANONICAL_NATIVE_EVIDENCE_TESTS} from './canonical-package.mjs';
-import {walletPublisherNativeInputs,WALLET_NATIVE_SOURCE_PROFILES,WALLET_ARTIFACT_CABI_INPUTS} from './wallet-publisher-native-build.mjs';
+import {walletPublisherNativeInputs,WALLET_NATIVE_SOURCE_PROFILES,WALLET_ARTIFACT_CABI_INPUTS,WALLET_PROJECT_CONTROL_INPUTS} from './wallet-publisher-native-build.mjs';
 import {SDK_RUNTIME_UNIONS,sdkRuntimeUnionProfile,SDK14_RUNTIME_UNION_SOURCE,verifySDKRuntimeUnion} from './sdk14-runtime-union.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const fail=()=>{throw Error('Matched Wallet native component differs');};
@@ -50,7 +50,8 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  same(helper.inputFiles,rows);
  for(const p of supplier)pinned(readSource(p.path),p);
  const artifactRelease=record.inputFiles?.some(p=>WALLET_ARTIFACT_CABI_INPUTS.some(c=>c.path===p.relative));
- const walletInputs=walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease);
+ const projectControl=record.inputFiles?.some(p=>WALLET_PROJECT_CONTROL_INPUTS.some(c=>c.path===p.relative));
+ const walletInputs=walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease,projectControl);
  for(const p of walletInputs)pinned(readSource(p.path),p);
  const names=[...inventory.NativeInputs.map(p=>p.path),...walletInputs.map(p=>p.path),...inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...CANONICAL_NATIVE_EVIDENCE_TESTS];
  const selection=canonicalNativeInputSelection(inventory.version,names,inventoryBytes,record.inputFiles);
