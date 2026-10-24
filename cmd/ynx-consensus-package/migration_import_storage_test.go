@@ -53,6 +53,24 @@ func (importStorageFailedStdout) Write([]byte) (int, error) {
 	return 0, errors.New("synthetic original stdout unavailable")
 }
 
+func importStoragePrivateParent(t *testing.T) string {
+	t.Helper()
+	// testing's canonical temporary parent may be 0755. Create only our new
+	// exclusive child; never chmod that parent or relax the production guard.
+	parent := filepath.Join(canonicalPackageTempDir(t), "private-import-parent")
+	if err := os.Mkdir(parent, 0700); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if info.Mode() != os.ModeDir|0700 {
+		t.Fatalf("synthetic storage parent is not an actual private 0700 directory: %v", info.Mode())
+	}
+	return parent
+}
+
 func importStorageArgs(source, directory, phase, pin string) []string {
 	args := []string{"-verify-migration-import-storage", source, "-import-storage-directory", directory, "-import-storage-phase", phase}
 	if pin != "" {
@@ -183,7 +201,7 @@ func TestMigrationImportStorageNormalCommandSeparateCreateAndReopenProcesses(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	directory := filepath.Join(canonicalPackageTempDir(t), "exclusive-import")
+	directory := filepath.Join(importStoragePrivateParent(t), "exclusive-import")
 	created, diagnostic, firstPID, err := importStorageProcess(t, importStorageArgs(source, directory, "create", ""), false)
 	if err != nil || len(diagnostic) != 0 {
 		t.Fatalf("synthetic normal create failed: %v %s", err, diagnostic)
@@ -227,7 +245,7 @@ func TestMigrationImportStorageStdoutFailurePreservesUnknown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	directory := filepath.Join(canonicalPackageTempDir(t), "stdout-unknown")
+	directory := filepath.Join(importStoragePrivateParent(t), "stdout-unknown")
 	output, diagnostic, _, err := importStorageProcess(t, importStorageArgs(source, directory, "create", ""), true)
 	if err == nil || len(output) != 0 || !bytes.Contains(diagnostic, []byte("synthetic original stdout unavailable")) {
 		t.Fatalf("actual stdout failure became success: %v %s", err, diagnostic)
@@ -264,7 +282,7 @@ func TestMigrationImportStorageRejectsOriginalAndCheckpointChanges(t *testing.T)
 	}
 	for _, kind := range []string{"wrong-original", "wrong-pin", "tampered-repinned", "torn-tail-repinned", "missing-sidecar", "symlink-directory", "nonprivate-directory", "symlink-checkpoint", "hardlink-checkpoint"} {
 		t.Run(kind, func(t *testing.T) {
-			directory := filepath.Join(canonicalPackageTempDir(t), "retained")
+			directory := filepath.Join(importStoragePrivateParent(t), "retained")
 			var output, diagnostic bytes.Buffer
 			if err := runCommand(importStorageArgs(source, directory, "create", ""), &output, &diagnostic); err != nil {
 				t.Fatal(err)
@@ -332,7 +350,7 @@ func TestMigrationImportStorageRejectsOriginalAndCheckpointChanges(t *testing.T)
 }
 
 func TestMigrationImportStorageRejectsArgumentsBeforeReadOrCreate(t *testing.T) {
-	parent := canonicalPackageTempDir(t)
+	parent := importStoragePrivateParent(t)
 	source, directory := filepath.Join(parent, "must-not-open.json"), filepath.Join(parent, "must-not-create")
 	base := importStorageArgs(source, directory, "create", "")
 	cases := [][]string{
