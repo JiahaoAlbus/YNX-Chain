@@ -143,8 +143,12 @@ export async function handleOriginalPublicationApprovalCurrent(service,profileDi
  return await service.publicationApprovalCurrent(profileDigest,scopeOriginal,currentOriginal);
 }
 export async function handleOriginalDeveloperPrincipalCurrent(service,credential){
- if(!services.has(service)||typeof service.existingDeveloperPrincipal!=='function')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+ assertOriginalDeveloperPrincipalSource(service);
  return await service.existingDeveloperPrincipal(credential);
+}
+export function assertOriginalDeveloperPrincipalSource(service){
+ if(!services.has(service)||typeof service.existingDeveloperPrincipal!=='function'||typeof service.assertDeveloperPrincipalPurpose!=='function')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+ service.assertDeveloperPrincipalPurpose();
 }
 export async function loadOriginalPublicationApprovalIssuer(){
  if(admittedSourceServices.length===0)return null;if(admittedSourceServices.length!==1)fail('AUTH_PUBLICATION_ISSUER_RELEASE_AMBIGUOUS');
