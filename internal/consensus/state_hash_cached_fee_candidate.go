@@ -94,10 +94,20 @@ func (w *cachedFeeScaffoldWriter) Write(raw []byte) (int, error) {
 
 // Generated business identifiers use JSON-safe ASCII. Any escaping, Unicode or
 // invalid UTF8 delegates to the standard encoder with its original HTML rules.
+// Static JSON/HTML-safe byte classification; all other bytes retain the
+// standard encoding/json fallback, including invalid UTF-8 replacement.
+var cachedJSONStringSafeByte = func() [256]bool {
+	var safe [256]bool
+	for c := 0x20; c < 0x80; c++ {
+		safe[c] = c != '"' && c != '\\' && c != '<' && c != '>' && c != '&'
+	}
+	return safe
+}()
+
 func appendCachedJSONString(dst []byte, value string) []byte {
 	for i := 0; i < len(value); i++ {
 		c := value[i]
-		if c < 0x20 || c >= 0x80 || c == '"' || c == '\\' || c == '<' || c == '>' || c == '&' {
+		if !cachedJSONStringSafeByte[c] {
 			raw, _ := json.Marshal(value)
 			return append(dst, raw...)
 		}

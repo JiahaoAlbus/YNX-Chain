@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "baseCommit": "8ef4555a9",
+  "change": "Static safe-byte lookup replaces multiple per-byte branches in existing explicitly selected cached-fee JSON encoder",
+  "selectedScope": "cached-fee-time-json only; existing explicit native prepared/currentReuse8 client; original-json remains default",
+  "source": {
+    "path": "internal/consensus/state_hash_cached_fee_candidate.go",
+    "bytes": 5879,
+    "sha256": "b902d0e76c32c3bba10b32bc170bb7eb0fc4f2b525ab003145152a26c5c07832"
+  },
+  "test": {
+    "path": "internal/consensus/state_hash_cached_fee_candidate_test.go",
+    "bytes": 10575,
+    "sha256": "401e29b18afa3a7d973e160dc4e92ca68dc3287a281b5b239f7d8a1c9a5d53b4"
+  },
+  "hardware": "Apple M4 darwin/arm64",
+  "goVersion": "go1.25.7",
+  "gomaxprocs": 1,
+  "hashComparison": {
+    "schema": 1,
+    "scope": "Same existing selected cached-fee hash, old byte branches versus static safe-byte table; retained actual1024 history; no original-default/network comparison",
+    "sequence": "ABBAAB",
+    "gomaxprocs": 1,
+    "benchtime": "200ms",
+    "originalMedianNs": 739416.0,
+    "candidateMedianNs": 617804.0,
+    "medianChangePercent": -16.447033875382733,
+    "rows": [
+      {
+        "mode": "original",
+        "sourceSHA256": "0aad9f7be2cb948d02f5c639190b23f594ebedf2d55d35176d86602dd53ae801",
+        "nsPerOp": 739416.0,
+        "bytesPerOp": 28882,
+        "allocsPerOp": 1049,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-hash-abbaab-01.raw",
+        "sha256": "847c13eb54996ac0f30c24c108d1d1afcad5e3bbdb924a169a4e7a0291796c77"
+      },
+      {
+        "mode": "candidate",
+        "sourceSHA256": "b902d0e76c32c3bba10b32bc170bb7eb0fc4f2b525ab003145152a26c5c07832",
+        "nsPerOp": 652547.0,
+        "bytesPerOp": 28882,
+        "allocsPerOp": 1049,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-hash-abbaab-02.raw",
+        "sha256": "1308dcfcaa73f2584e58e1de69839e01aa778854ddc5de43a41d8414985002a7"
+      },
+      {
+        "mode": "candidate",
+        "sourceSHA256": "b902d0e76c32c3bba10b32bc170bb7eb0fc4f2b525ab003145152a26c5c07832",
+        "nsPerOp": 617804.0,
+        "bytesPerOp": 28882,
+        "allocsPerOp": 1049,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-hash-abbaab-03.raw",
+        "sha256": "abf06e99bed3cb788e98f6dd42a81211dd8d9c227dfd0c6e8389a0ba216e7933"
+      },
+      {
+        "mode": "original",
+        "sourceSHA256": "0aad9f7be2cb948d02f5c639190b23f594ebedf2d55d35176d86602dd53ae801",
+        "nsPerOp": 729994.0,
+        "bytesPerOp": 28883,
+        "allocsPerOp": 1049,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-hash-abbaab-04.raw",
+        "sha256": "e9d794f270817125d32cf325336219ef28e7d16e9a4960185498fbfeca25d816"
+      },
+      {
+        "mode": "original",
+        "sourceSHA256": "0aad9f7be2cb948d02f5c639190b23f594ebedf2d55d35176d86602dd53ae801",
+        "nsPerOp": 744722.0,
+        "bytesPerOp": 28882,
+        "allocsPerOp": 1049,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-hash-abbaab-05.raw",
+        "sha256": "c445ee40098d6a84eecc8efbdffcceeb23e92615ade98a2bcc539ab8db36313f"
+      },
+      {
+        "mode": "candidate",
+        "sourceSHA256": "b902d0e76c32c3bba10b32bc170bb7eb0fc4f2b525ab003145152a26c5c07832",
+        "nsPerOp": 616442.0,
+        "bytesPerOp": 28882,
+        "allocsPerOp": 1049,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-hash-abbaab-06.raw",
+        "sha256": "71ebe9134ded5d506b7ed6b0ef2f12f571fab348d8c7dc52c51e9ee5a5a3700e"
+      }
+    ]
+  },
+  "fullValidationComparison": {
+    "schema": 1,
+    "scope": "Existing cached-fee full semantic+hash validation, branch scan versus safe-byte table; actual1024; not current default/node/network",
+    "sequence": "ABBAAB",
+    "gomaxprocs": 1,
+    "benchtime": "200ms",
+    "originalMedianNs": 1204483.0,
+    "candidateMedianNs": 1097525.0,
+    "medianChangePercent": -8.879992494705203,
+    "rows": [
+      {
+        "mode": "original",
+        "sourceSHA256": "0aad9f7be2cb948d02f5c639190b23f594ebedf2d55d35176d86602dd53ae801",
+        "nsPerOp": 1195528.0,
+        "bytesPerOp": 195324,
+        "allocsPerOp": 1843,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-validate-abbaab-01.raw",
+        "sha256": "8e9445bd77d3b214a6f7d5f238ea445e019e80a6a11098c34aeec0b10a9b8080"
+      },
+      {
+        "mode": "candidate",
+        "sourceSHA256": "b902d0e76c32c3bba10b32bc170bb7eb0fc4f2b525ab003145152a26c5c07832",
+        "nsPerOp": 1078136.0,
+        "bytesPerOp": 195322,
+        "allocsPerOp": 1843,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-validate-abbaab-02.raw",
+        "sha256": "2c9ca2166e561e51cf64ce3ba1523b9ebe670a762a9f33295f563927a85c37d0"
+      },
+      {
+        "mode": "candidate",
+        "sourceSHA256": "b902d0e76c32c3bba10b32bc170bb7eb0fc4f2b525ab003145152a26c5c07832",
+        "nsPerOp": 1097525.0,
+        "bytesPerOp": 195322,
+        "allocsPerOp": 1843,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-validate-abbaab-03.raw",
+        "sha256": "5b5f94ee55a0ff02f2c9619d0ee7dca9c91f2147cd3daaec00ae6259cafa046d"
+      },
+      {
+        "mode": "original",
+        "sourceSHA256": "0aad9f7be2cb948d02f5c639190b23f594ebedf2d55d35176d86602dd53ae801",
+        "nsPerOp": 1204483.0,
+        "bytesPerOp": 195322,
+        "allocsPerOp": 1843,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-validate-abbaab-04.raw",
+        "sha256": "910d756782f699cf6a9dd2c17dc5f575f61fd470094d01c4dad34451587c5c65"
+      },
+      {
+        "mode": "original",
+        "sourceSHA256": "0aad9f7be2cb948d02f5c639190b23f594ebedf2d55d35176d86602dd53ae801",
+        "nsPerOp": 1406842.0,
+        "bytesPerOp": 195320,
+        "allocsPerOp": 1843,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-validate-abbaab-05.raw",
+        "sha256": "13929693a20cb85df941eaca81392d0ce71950f29c7e0e4c386490dafc792fdf"
+      },
+      {
+        "mode": "candidate",
+        "sourceSHA256": "b902d0e76c32c3bba10b32bc170bb7eb0fc4f2b525ab003145152a26c5c07832",
+        "nsPerOp": 1214363.0,
+        "bytesPerOp": 195324,
+        "allocsPerOp": 1843,
+        "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-validate-abbaab-06.raw",
+        "sha256": "24b4b847d104a788dd1633a05fb0c3fa33cdbac26daf11e45b7036bb631727dc"
+      }
+    ]
+  },
+  "selectedRace": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-safe-table-selected-race-01.raw",
+    "bytes": 5514,
+    "sha256": "92e29b27178b957cf797f499e43c182cace0d3e6c63d0748f551a222bee9a8e3",
+    "packageSeconds": {
+      "consensus": 8.024,
+      "client": 5.688
+    },
+    "allBytePairs": 65536,
+    "actualSelectedApplicationAndAbruptExit73": true,
+    "originalDecoderRecoveryAndNonceFence": true,
+    "actualClientSignedExecutedCommitted": 102,
+    "clientUnitProducerSharesProcess": true,
+    "independentBFTNodes": false
+  },
+  "profile": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/cached-fee-hash-focus-cpu-01.pprof",
+    "bytes": 3057,
+    "sha256": "2de3382007ed287e65c325fb8ca8046d5ef62b33e86be00c28969abe591f4a51",
+    "interpretation": "Short profile includes fixture initialization; used only to shortlist string scanning, not to attribute an exact benchmark CPU share"
+  },
+  "networkMeasured": false,
+  "sustained1000Qualified": false,
+  "pendingGroupRun": {
+    "frozenCommit": "1f21f1f2eed732c0948ac98ff7028bee5f2d6ca4",
+    "changed": false,
+    "hashMode": "original-json"
+  },
+  "normalCIPending": true
+}

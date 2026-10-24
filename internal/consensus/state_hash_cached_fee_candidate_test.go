@@ -98,6 +98,21 @@ func TestCachedFeeHashCandidateSinkAndFraming(t *testing.T) {
 	}
 }
 
+func TestCachedFeeHashCandidateStringBytePairs(t *testing.T) {
+	// Standard encoder oracle covers all byte pairs, including valid/invalid
+	// UTF-8 boundaries, HTML characters, controls and escaping after a safe
+	// prefix. A table lookup must not turn any byte into unchecked JSON.
+	for first := 0; first < 256; first++ {
+		for second := 0; second < 256; second++ {
+			value := "prefix" + string([]byte{byte(first), byte(second)}) + "suffix"
+			want, err := json.Marshal(value)
+			if err != nil || !bytes.Equal(appendCachedJSONString(nil, value), want) {
+				t.Fatalf("JSON bytes differ for pair %02x %02x: %v", first, second, err)
+			}
+		}
+	}
+}
+
 func BenchmarkCachedFeeHashActualHistory(b *testing.B) {
 	_, state := retainedSealFixture(b)
 	doc := state.hashDocument("YNX_ABCI_STATE_V13", CommittedStateVersion)
