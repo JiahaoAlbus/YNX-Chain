@@ -1,0 +1,349 @@
+diff --git a/internal/consensus/state.go b/internal/consensus/state.go
+index b073b6628..5604a8d12 100644
+--- a/internal/consensus/state.go
++++ b/internal/consensus/state.go
+@@ -275,6 +275,8 @@ func sealCommittedStateMeasuredMode(migration chain.ConsensusMigrationState, hei
+ 		unchanged = snapshotNativeSealState(state)
+ 	case sealWitnessCompact:
+ 		unchanged = snapshotNativeSealStateCompact(state)
++	case sealWitnessTimeRuns:
++		unchanged = snapshotNativeSealStateTimeRuns(state)
+ 	}
+ 	// Unknown modes deliberately retain the complete second hash.
+ 	started = timings.mark("witness_copy", started)
+diff --git a/internal/consensus/state_seal_guard.go b/internal/consensus/state_seal_guard.go
+index b53ff1d06..3085b824b 100644
+--- a/internal/consensus/state_seal_guard.go
++++ b/internal/consensus/state_seal_guard.go
+@@ -15,6 +15,7 @@ const (
+ 	sealWitnessNone sealWitnessMode = iota
+ 	sealWitnessFullCopy
+ 	sealWitnessCompact
++	sealWitnessTimeRuns
+ )
+ 
+ // The measured compact witness is used only while sealing newly owned state.
+@@ -35,6 +36,18 @@ func snapshotNativeSealStateCompact(s CommittedState) func(CommittedState) bool
+ }
+ 
+ func snapshotNativeSealStateWithFeeMode(s CommittedState, compact bool) func(CommittedState) bool {
++	snapshot := snapshotFullFeeRows
++	if compact {
++		snapshot = snapshotCompactFeeRows
++	}
++	return snapshotNativeSealStateWithFeeSnapshot(s, snapshot)
++}
++
++func snapshotNativeSealStateTimeRuns(s CommittedState) func(CommittedState) bool {
++	return snapshotNativeSealStateWithFeeSnapshot(s, snapshotTimeRunFeeRows)
++}
++
++func snapshotNativeSealStateWithFeeSnapshot(s CommittedState, snapshot func([]BFTFeeEvent) func([]BFTFeeEvent) bool) func(CommittedState) bool {
+ 	if len(s.FeeEvents) == 0 {
+ 		return nil
+ 	}
+@@ -90,12 +103,7 @@ func snapshotNativeSealStateWithFeeMode(s CommittedState, compact bool) func(Com
+ 			}
+ 		}
+ 	}
+-	var feesUnchanged func([]BFTFeeEvent) bool
+-	if compact {
+-		feesUnchanged = snapshotCompactFeeRows(s.FeeEvents)
+-	} else {
+-		feesUnchanged = snapshotFullFeeRows(s.FeeEvents)
+-	}
++	feesUnchanged := snapshot(s.FeeEvents)
+ 	header := s
+ 	header.Accounts, header.FeeEvents = nil, nil
+ 	return func(current CommittedState) bool {
+diff --git a/internal/consensus/fee_witness_time_runs_experiment_test.go b/internal/consensus/fee_witness_time_runs_experiment_test.go
+new file mode 100644
+index 000000000..fb76d1bfc
+--- /dev/null
++++ b/internal/consensus/fee_witness_time_runs_experiment_test.go
+@@ -0,0 +1,111 @@
++package consensus
++
++import (
++	"reflect"
++	"sync"
++	"testing"
++	"time"
++)
++
++func TestSealTimeRunFeeWitness(t *testing.T) {
++	_, state := retainedSealFixture(t)
++	original := append([]BFTFeeEvent(nil), state.FeeEvents...)
++	witness := snapshotTimeRunFeeRows(state.FeeEvents)
++	if !witness(original) {
++		t.Fatal("retained actual history changed")
++	}
++	// Every scalar/time field at every run boundary and both endpoints must
++	// remain covered. A matching digest is never used as mutation authority.
++	for row := range original {
++		if row != 0 && row != len(original)-1 && original[row].RecordedAt == original[row-1].RecordedAt {
++			continue
++		}
++		for field := 0; field < reflect.TypeOf(BFTFeeEvent{}).NumField(); field++ {
++			changed := append([]BFTFeeEvent(nil), original...)
++			v := reflect.ValueOf(&changed[row]).Elem().Field(field)
++			switch v.Kind() {
++			case reflect.String:
++				v.SetString(v.String() + "changed")
++			case reflect.Int, reflect.Int64:
++				v.SetInt(v.Int() + 1)
++			case reflect.Bool:
++				v.SetBool(!v.Bool())
++			case reflect.Struct:
++				if v.Type() != reflect.TypeOf(time.Time{}) {
++					t.Fatal("new schema needs explicit coverage")
++				}
++				v.Set(reflect.ValueOf(changed[row].RecordedAt.Add(time.Nanosecond)))
++			default:
++				t.Fatal("new schema needs explicit coverage")
++			}
++			if witness(changed) {
++				t.Fatalf("row %d field %d mutation accepted", row, field)
++			}
++		}
++	}
++	state.FeeEvents[0].AuditHash = "caller mutation"
++	if !witness(original) || witness(state.FeeEvents) || witness(original[:len(original)-1]) {
++		t.Fatal("snapshot aliases caller or ignores row count")
++	}
++	for _, events := range [][]BFTFeeEvent{nil, {}, {{RecordedAt: time.Now()}}, {{Source: "a"}, {Source: "b"}}} {
++		check := snapshotTimeRunFeeRows(events)
++		if !check(events) || check(append(append([]BFTFeeEvent(nil), events...), BFTFeeEvent{})) {
++			t.Fatal("empty, high entropy or mixed metadata fallback differs")
++		}
++	}
++	// Equal instants with distinct locations must remain unequal values.
++	when := time.Now()
++	events := make([]BFTFeeEvent, 8)
++	for i := range events {
++		events[i].RecordedAt = when
++	}
++	check := snapshotTimeRunFeeRows(events)
++	events[4].RecordedAt = when.In(time.FixedZone("same instant", 0))
++	if check(events) {
++		t.Fatal("time.Equal substituted for exact time value")
++	}
++	for _, count := range []int{2, 31, 32, 33, 128} {
++		rows := make([]BFTFeeEvent, count)
++		for i := range rows {
++			rows[i].RecordedAt = when.Add(time.Duration(i))
++		}
++		check := snapshotTimeRunFeeRows(rows) // high entropy: original fallback
++		if !check(rows) {
++			t.Fatal("high entropy fallback rejected unchanged values")
++		}
++		rows[count/2].RecordedAt = time.Time{}
++		if check(rows) {
++			t.Fatal("high entropy fallback lost owned time values")
++		}
++	}
++	var wg sync.WaitGroup
++	for i := 0; i < 8; i++ {
++		wg.Add(1)
++		go func() {
++			defer wg.Done()
++			for j := 0; j < 10; j++ {
++				if !witness(original) {
++					t.Error("concurrent witness changed")
++				}
++			}
++		}()
++	}
++	wg.Wait()
++}
++
++func BenchmarkFeeWitnessTimeRunsActualHistory(b *testing.B) {
++	_, state := retainedSealFixture(b)
++	for _, mode := range []struct {
++		name string
++		make func([]BFTFeeEvent) func([]BFTFeeEvent) bool
++	}{{"original", snapshotCompactFeeRows}, {"candidate", snapshotTimeRunFeeRows}} {
++		b.Run(mode.name, func(b *testing.B) {
++			b.ReportAllocs()
++			for i := 0; i < b.N; i++ {
++				if !mode.make(state.FeeEvents)(state.FeeEvents) {
++					b.Fatal("actual history witness differs")
++				}
++			}
++		})
++	}
++}
+diff --git a/internal/consensus/state_seal_time_runs_candidate.go b/internal/consensus/state_seal_time_runs_candidate.go
+new file mode 100644
+index 000000000..73f807bfc
+--- /dev/null
++++ b/internal/consensus/state_seal_time_runs_candidate.go
+@@ -0,0 +1,66 @@
++package consensus
++
++import "time"
++
++// Explicit sealing candidate. The runtime default remains compact; complete
++// value equality and original schema guards remain required.
++type timeRunFeeValues struct {
++	ID, TxHash, Payer, Recipient, AuditHash string
++	BlockHeight                             int64
++}
++
++type feeWitnessTimeRun struct {
++	end  int
++	when time.Time
++}
++
++func snapshotTimeRunFeeRows(input []BFTFeeEvent) func([]BFTFeeEvent) bool {
++	if len(input) == 0 {
++		return snapshotCompactFeeRows(input)
++	}
++	metadata, _ := splitSealFeeValues(input[0])
++	runs := 1
++	for i := 1; i < len(input); i++ {
++		other, _ := splitSealFeeValues(input[i])
++		if other != metadata {
++			return snapshotCompactFeeRows(input)
++		}
++		// Full value equality includes location and monotonic representation.
++		if input[i].RecordedAt != input[i-1].RecordedAt {
++			runs++
++		}
++	}
++	// A run owns 32 bytes instead of copying a 24-byte time per row. Avoid
++	// allocating the candidate when timestamp entropy erases the saving.
++	if runs*32 >= len(input)*24 {
++		return snapshotCompactFeeRows(input)
++	}
++	values := make([]timeRunFeeValues, len(input))
++	times := make([]feeWitnessTimeRun, 0, runs)
++	for i, event := range input {
++		values[i] = timeRunFeeValues{event.ID, event.TxHash, event.Payer, event.Recipient, event.AuditHash, event.BlockHeight}
++		if i == 0 || event.RecordedAt != input[i-1].RecordedAt {
++			times = append(times, feeWitnessTimeRun{i + 1, event.RecordedAt})
++		} else {
++			times[len(times)-1].end = i + 1
++		}
++	}
++	return func(current []BFTFeeEvent) bool {
++		if len(current) != len(values) {
++			return false
++		}
++		run := 0
++		for i, v := range values {
++			if i == times[run].end {
++				run++
++			}
++			expected := metadata
++			expected.ID, expected.TxHash, expected.Payer, expected.Recipient, expected.AuditHash = v.ID, v.TxHash, v.Payer, v.Recipient, v.AuditHash
++			expected.BlockHeight, expected.RecordedAt = v.BlockHeight, times[run].when
++			if current[i] != expected {
++				return false
++			}
++		}
++		return true
++	}
++}
+diff --git a/internal/consensus/state_seal_time_runs_candidate_test.go b/internal/consensus/state_seal_time_runs_candidate_test.go
+new file mode 100644
+index 000000000..271a901fb
+--- /dev/null
++++ b/internal/consensus/state_seal_time_runs_candidate_test.go
+@@ -0,0 +1,96 @@
++package consensus
++
++import (
++	"bytes"
++	"encoding/json"
++	"path/filepath"
++	"reflect"
++	"testing"
++	"time"
++)
++
++func TestSealTimeRunsCompleteMutationCoverage(t *testing.T) {
++	checkSealWitnessMutations(t, snapshotNativeSealStateTimeRuns)
++}
++
++func TestSealTimeRunsActualStateAndPersistence(t *testing.T) {
++	if defaultSealWitnessMode != sealWitnessCompact {
++		t.Fatal("experiment must not change runtime selection")
++	}
++	migration, fixture := retainedSealFixture(t)
++	app := &Application{committed: fixture}
++	execution := app.committedExecutionStateView()
++	want, err := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, sealWitnessCompact, nil)
++	if err != nil {
++		t.Fatal(err)
++	}
++	wantBytes, err := json.Marshal(want)
++	if err != nil {
++		t.Fatal(err)
++	}
++	for _, mode := range []sealWitnessMode{sealWitnessCompact, sealWitnessTimeRuns, sealWitnessTimeRuns, sealWitnessCompact} {
++		phases := &commitTimings{}
++		got, err := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, mode, phases)
++		actual, encodeErr := json.Marshal(got)
++		if err != nil || encodeErr != nil || !bytes.Equal(actual, wantBytes) || got.AppHash != fixture.AppHash {
++			t.Fatal("complete sealed bytes differ", err, encodeErr)
++		}
++		if err := got.Validate(migration); err != nil {
++			t.Fatal("original public validation failed", err)
++		}
++		if _, repeated := phases.stages["final_hash"]; repeated {
++			t.Fatal("candidate lost native witness eligibility")
++		}
++		for _, name := range []string{"clone_and_materialize", "initial_hash", "witness_copy", "semantic_validate", "witness_compare"} {
++			if phases.stages[name] <= 0 {
++				t.Fatal("missing full sealing phase", name)
++			}
++		}
++		path := filepath.Join(t.TempDir(), "state.json")
++		commit := &commitTimings{}
++		if err := saveCommittedStateWithTimings(path, got, migration, commit); err != nil {
++			t.Fatal(err)
++		}
++		reopened, err := loadCommittedState(path, migration)
++		if err != nil || !reflect.DeepEqual(got, reopened) {
++			t.Fatal("original atomic persistence/reopen differs", err)
++		}
++		t.Logf("mode=%d sealStagesNs=%v atomicCommitStagesNs=%v payloadBytes=%d", mode, phases.stages, commit.stages, commit.bytes)
++	}
++	for _, fault := range []string{"audit", "invalid_time"} {
++		bad := fixture
++		bad.FeeEvents = append([]BFTFeeEvent(nil), fixture.FeeEvents...)
++		if fault == "audit" {
++			bad.FeeEvents[1023].AuditHash = "tampered"
++		} else {
++			bad.FeeEvents[1023].RecordedAt = time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC)
++		}
++		app := &Application{committed: bad}
++		execution := app.committedExecutionStateView()
++		_, baseline := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, sealWitnessCompact, nil)
++		got, candidate := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, sealWitnessTimeRuns, nil)
++		if baseline == nil || candidate == nil || baseline.Error() != candidate.Error() || got.AppHash != "" {
++			t.Fatal("first error or failed hash publication changed", fault, baseline, candidate)
++		}
++	}
++}
++
++func BenchmarkSealTimeRunsActualHistory(b *testing.B) {
++	migration, fixture := retainedSealFixture(b)
++	app := &Application{committed: fixture}
++	execution := app.committedExecutionStateView()
++	for _, mode := range []struct {
++		name string
++		mode sealWitnessMode
++	}{{"original", sealWitnessCompact}, {"candidate", sealWitnessTimeRuns}} {
++		b.Run(mode.name, func(b *testing.B) {
++			b.ReportAllocs()
++			for i := 0; i < b.N; i++ {
++				got, err := sealCommittedStateMeasuredMode(migration, fixture.Height, execution, mode.mode, nil)
++				if err != nil || got.AppHash != fixture.AppHash {
++					b.Fatal("complete seal changed", err)
++				}
++			}
++		})
++	}
++}

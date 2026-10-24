@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "scope": "Complete local seal of retained actual1024 state; includes clone/materialize, hash, schema/ownership witness and semantic validation; excludes persistence/network; not business TPS",
+  "runtimeEnabled": false,
+  "sequence": "ABBAAB",
+  "gomaxprocs": 1,
+  "benchtime": "200ms",
+  "originalMedianNs": 1560036.0,
+  "candidateMedianNs": 1641859.0,
+  "medianChangePercent": 5.24494306541643,
+  "rows": [
+    {
+      "mode": "original",
+      "nsPerOp": 1560036.0,
+      "bytesPerOp": 820248,
+      "allocsPerOp": 5068,
+      "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-full-seal-abbaab-01.raw",
+      "sha256": "6aebd6442374f336981f4a396972cd882567358110e45efeda88e5683ee73183"
+    },
+    {
+      "mode": "candidate",
+      "nsPerOp": 1619012.0,
+      "bytesPerOp": 796199,
+      "allocsPerOp": 5069,
+      "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-full-seal-abbaab-02.raw",
+      "sha256": "46240981f125110f1a6c3a4079234eb9e35e9ab71e2eadcb64c0ce12bc6fdc17"
+    },
+    {
+      "mode": "candidate",
+      "nsPerOp": 1753900.0,
+      "bytesPerOp": 796198,
+      "allocsPerOp": 5069,
+      "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-full-seal-abbaab-03.raw",
+      "sha256": "1bc48191ebb714f2b83ff6ff19e996f7e8358e49ea7336c83e9589d8c81746a9"
+    },
+    {
+      "mode": "original",
+      "nsPerOp": 1555053.0,
+      "bytesPerOp": 820246,
+      "allocsPerOp": 5068,
+      "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-full-seal-abbaab-04.raw",
+      "sha256": "c490efc187d921149f4c0c8cde5f79084895de8a4d43e5d4dd6dc60e2945a322"
+    },
+    {
+      "mode": "original",
+      "nsPerOp": 1651732.0,
+      "bytesPerOp": 820246,
+      "allocsPerOp": 5068,
+      "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-full-seal-abbaab-05.raw",
+      "sha256": "add6c5d062b9fcfc8c52b6c13a0e99d457505b4e254d3b4c990699e63a5495e3"
+    },
+    {
+      "mode": "candidate",
+      "nsPerOp": 1641859.0,
+      "bytesPerOp": 796198,
+      "allocsPerOp": 5069,
+      "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-full-seal-abbaab-06.raw",
+      "sha256": "d66d94b3d51b04e448a2a9676affdf149c8c7206a34b9491e45b129e130c226b"
+    }
+  ],
+  "decision": "unselected: no measured full-sealing time improvement; component gain does not establish full-path gain",
+  "baseCommit": "65beec168b69c6b378a4cdae9ae0ce3648a77c26",
+  "sourceArchive": [
+    {
+      "repositoryPath": "internal/consensus/state.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/full-seal-candidate-state.go",
+      "bytes": 48478,
+      "sha256": "68a50b04e9bc087775a12f4cd8d9b3e6d51025d7130fc2ffc16b9a3cd8cdd3f1"
+    },
+    {
+      "repositoryPath": "internal/consensus/state_seal_guard.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/full-seal-candidate-state_seal_guard.go",
+      "bytes": 6991,
+      "sha256": "bee3220f09875cdf7562a6c88fd574c5566f9931554dec8943d2cbdd677128fa"
+    },
+    {
+      "repositoryPath": "internal/consensus/fee_witness_time_runs_experiment_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/full-seal-candidate-fee_witness_time_runs_experiment_test.go",
+      "bytes": 3454,
+      "sha256": "698f990ec30b6482ca9e98ac675fda906749bc90a0a24a6a74ea4776a55166f1"
+    },
+    {
+      "repositoryPath": "internal/consensus/state_seal_time_runs_candidate.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/full-seal-candidate-state_seal_time_runs_candidate.go",
+      "bytes": 1990,
+      "sha256": "6e9ba11dd120fbebe1874170e7908587246e98a6c3d723194468a5732bb81e08"
+    },
+    {
+      "repositoryPath": "internal/consensus/state_seal_time_runs_candidate_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/full-seal-candidate-state_seal_time_runs_candidate_test.go",
+      "bytes": 3629,
+      "sha256": "e3ec57d3cfdcda3b28f3b99e4e52771b8b184372748ede76c6d55b4b13844bc8"
+    }
+  ],
+  "patch": {
+    "path": "docs/performance/experiments/fee-witness-time-runs-full-seal-unselected-20261024.patch",
+    "bytes": 12357,
+    "sha256": "eade9cafcec870c08e7ca4dd1ec5f277a0730d9ac9c95e2d3d07921923df8c8f"
+  },
+  "runtimeSourceRestored": true,
+  "originalRuntimeDefault": "sealWitnessCompact",
+  "race": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/fee-witness-time-runs-full-seal-race-01.raw",
+    "sha256": "e122bc7d5cae0d9dc2a650c423dd42f9e47524938a4852e94357593535980843",
+    "passed": true,
+    "packageSeconds": 2.875
+  },
+  "qualification": {
+    "completeSealedBytesEqual": true,
+    "appHashEqual": true,
+    "publicValidatePassed": true,
+    "atomicPersistenceAndReopenEqual": true,
+    "firstErrorsPreserved": true,
+    "actualAbruptExitCandidateNotMeasured": true,
+    "networkOrSustainedBenefit": false
+  },
+  "caveat": "Three samples per mode; time ranges overlap. Observed median increase is not a general causal regression claim. No default activation, no new network throughput inference."
+}
