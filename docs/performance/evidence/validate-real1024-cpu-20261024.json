@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "sourceCommit": "c8b7a2f6b14034acbf4a4e801a3260b86a659368",
+  "toolchain": "go version go1.25.7 darwin/arm64",
+  "cpu": "Apple M4",
+  "platform": "darwin/arm64",
+  "GOMAXPROCS": 1,
+  "fixtures": [
+    {
+      "path": "docs/performance/fixtures/state-hash-real-1024.json",
+      "bytes": 812656,
+      "sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+    },
+    {
+      "path": "docs/performance/fixtures/state-hash-real-1024-migration.json",
+      "bytes": 73707,
+      "sha256": "8a73a627990a7719ca54fdc1afc3e05a29758db7070e9d7f3cd1e859579621c1"
+    }
+  ],
+  "raw": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/validate-real1024-profile.raw",
+      "bytes": 280,
+      "sha256": "3680a5c4a481668fe69145bb28453c4b4b0ecc8f423d0af70152e536ce09bac7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/validate-real1024-cpu.pprof",
+      "bytes": 6510,
+      "sha256": "84697558312dd4c5759cdc074171388351a3dfa5176e3ab21169e4590c38216c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/validate-real1024-profile-top.raw",
+      "bytes": 1832,
+      "sha256": "e40bf4af257e44e457bf4d78b959b235780f4820f618cc7c0b6673207e7e4141"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/validate-real1024-profile-cum.raw",
+      "bytes": 2402,
+      "sha256": "252d19c32ff95b7fd91f7904edad035f4de1b948d7650f3c8439af29b1fc776a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/validate-real1024-profile-lines.raw",
+      "bytes": 5892,
+      "sha256": "d1d54ce60f34fae7e77be5c58744d3a0d5cd5206a05ca1cddfb197a0a6daef31"
+    }
+  ],
+  "benchmark": {
+    "name": "BenchmarkStateAnchorComparison/records_first",
+    "iterations": 939,
+    "nsPerOp": 1211279,
+    "allocatedBytesPerOp": 243431,
+    "allocationsPerOp": 2849
+  },
+  "profile": {
+    "durationSeconds": 1.46,
+    "sampleSeconds": 1.16,
+    "hashPathCumulativePercent": 54.31,
+    "jsonStructEncodeCumulativePercent": 43.1,
+    "sha256BlockFlatPercent": 23.28,
+    "semanticValidationCumulativePercent": 22.41,
+    "feeValidationCumulativePercent": 13.79
+  },
+  "runtimeProductionChanged": false,
+  "networkOrSustainedQualification": false,
+  "interpretation": "Single short real1024 full Validate CPU diagnostic only; nested cumulative percentages overlap. Wholeprocess samples include benchmark setup/GC/runtime. Different CPU/history/platform from Linux8192 pair. No causal beforeafter speedup or capacity claim. Use to prioritize JSON/hash path without changing full canonical bytes/history/validation or removing persistence."
+}
