@@ -3,7 +3,7 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-ide-native-close-r140-20261019, codex/wallet-sdk332-r140-compat-20261019, codex/wallet-joint-child-cleanup-debt-20261023, codex/wallet-auth4-deploy-material-20261023, codex/wallet-r154-paired-source-20261023, codex/wallet-developer-contract-client-20261023, codex/wallet-r159-typed-native-20261023, codex/wallet-artifact-contract-20261024, codex/wallet-artifact-go-interop-20261024, codex/wallet-r162-observation-20261024, codex/wallet-contract-registry-interop-20261024, codex/wallet-native-relay-source-scope-20261024, codex/wallet-contract-initiator-boundary-20261024, codex/wallet-contract-current-callee-20261024, codex/wallet-source-autonomous-scope-20261024, codex/wallet-typed-publication-r170-20261024, codex/wallet-native-main-thread-r172-20261024, codex/wallet-project-authority-r171-20261024, codex/wallet-project-reader-r174-20261024, codex/wallet-workspace-selector-r177-20261024, codex/wallet-artifact-verifier-cli-20261024, codex/wallet-main-publisher-hook-20261024, codex/wallet-publication-result-r181-20261024, codex/wallet-source-v2-r185-20261024, codex/wallet-source-sign-partial-r186-20261024, codex/wallet-canonical-source8-r194-20261024, codex/wallet-http-relay-r193-20261024, codex/wallet-control-source-r196-20261024, codex/wallet-publication-source-types-20261024, codex/wallet-control-dispatch-r197-20261024, codex/wallet-cli-head-closure-20261024, codex/wallet-native-control-interop-r199-20261024, codex/wallet-normal-compile-reuse-20261024, codex/wallet-protected-publisher-r200-20261024]
+    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-pq-sdk-r1-20261018, codex/wallet-pq-action-transport-20261019, codex/wallet-ide-native-close-r140-20261019, codex/wallet-sdk332-r140-compat-20261019, codex/wallet-joint-child-cleanup-debt-20261023, codex/wallet-auth4-deploy-material-20261023, codex/wallet-r154-paired-source-20261023, codex/wallet-developer-contract-client-20261023, codex/wallet-r159-typed-native-20261023, codex/wallet-artifact-contract-20261024, codex/wallet-artifact-go-interop-20261024, codex/wallet-r162-observation-20261024, codex/wallet-contract-registry-interop-20261024, codex/wallet-native-relay-source-scope-20261024, codex/wallet-contract-initiator-boundary-20261024, codex/wallet-contract-current-callee-20261024, codex/wallet-source-autonomous-scope-20261024, codex/wallet-typed-publication-r170-20261024, codex/wallet-native-main-thread-r172-20261024, codex/wallet-project-authority-r171-20261024, codex/wallet-project-reader-r174-20261024, codex/wallet-workspace-selector-r177-20261024, codex/wallet-artifact-verifier-cli-20261024, codex/wallet-main-publisher-hook-20261024, codex/wallet-publication-result-r181-20261024, codex/wallet-source-v2-r185-20261024, codex/wallet-source-sign-partial-r186-20261024, codex/wallet-canonical-source8-r194-20261024, codex/wallet-http-relay-r193-20261024, codex/wallet-control-source-r196-20261024, codex/wallet-publication-source-types-20261024, codex/wallet-control-dispatch-r197-20261024, codex/wallet-cli-head-closure-20261024, codex/wallet-native-control-interop-r199-20261024, codex/wallet-normal-compile-reuse-20261024, codex/wallet-protected-publisher-r200-20261024, codex/wallet-control-custody-r201-20261024]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -2369,7 +2369,7 @@ jobs:
         run: npm run test:original-native-control-interop --prefix packages/wallet-auth
 
   sdk-normal-compile-reuse:
-    name: SDK original A actual executed record adapter delta
+    name: SDK exact zero-byte runtime inventory delta
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-normal-compile-reuse-20261024'
     runs-on: ubuntu-latest
     timeout-minutes: 4
@@ -2378,8 +2378,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24.19.0
-      - name: Check only new actual record schema and exact builder mapping delta
-        run: npm run test:normal-native-actual-record --prefix packages/wallet-auth
+      - name: Check only new exact empty runtime file handling; reuse prior schema cases
+        run: npm run test:normal-native-empty-runtime --prefix packages/wallet-auth
 
   sdk-protected-publisher-r200:
     name: SDK R200 source with actual record adapter integration delta
@@ -2399,3 +2399,24 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --fund=false --fetch-retries=1 --fetch-timeout=30000 --prefix packages/wallet-auth
       - name: Check only added actual record adapter; reuse unchanged R200 ten-case receipt
         run: npm run test:normal-native-actual-record --prefix packages/wallet-auth
+
+  sdk-control-custody-r201:
+    name: SDK R201 purpose-specific custody source delta
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-control-custody-r201-20261024'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: packages/wallet-auth/package-lock.json
+      - name: Install exact SDK dependencies without package scripts
+        run: npm ci --ignore-scripts --no-audit --fund=false --fetch-retries=1 --fetch-timeout=30000 --prefix packages/wallet-auth
+      - name: Fetch only immutable inherited source baseline needed by the affected comparison
+        run: git fetch --no-tags --depth=1 origin b92b1b724ebdfe477a93e57e8df43a7ad7bff3c0
+      - name: Check only failed inherited source comparison; reuse passed graph case and earlier CI
+        run: node --test --test-name-pattern='current source recipe' packages/wallet-auth/test/r200-recipe-closure.test.mjs

@@ -23,3 +23,26 @@ test('normal CLI writes one exclusive derived receipt and IDE verifies the same 
  assert.throws(()=>execFileSync(process.execPath,[adapter,'--request',req,'--output',out],{stdio:'pipe'}));
  const altered=JSON.parse(fs.readFileSync(out));altered.targetNormalInputCount=92;json(out,altered);assert.throws(()=>verifyNormalNativeCompileReuseBinding({request,receipt:ref(out)}),{code:'NATIVE_REUSE_DERIVED_RECEIPT_DIFFERS'});
 }));
+
+test('runtime empty-file pins remain exact while empty JSON and invalid pins refuse',()=>{
+ for(const variant of ['valid','negativeBytes','wrongEmptySHA','missingFile','emptyJSON'])fixture(({source,target,rp,call,updateTuple})=>{
+  for(const tuple of [source,target]){
+   const manifest=JSON.parse(fs.readFileSync(tuple.tuple.runtime.manifest.path));
+   for(const relative of ['node_modules/node-fetch-native/lib/empty.cjs','node_modules/node-fetch-native/lib/empty.mjs','node_modules/pino/.nojekyll']){
+    const file=path.join(tuple.tuple.runtime.root,relative);write(file,Buffer.alloc(0));
+    manifest.files.push({...ref(file),path:relative});
+   }
+   if(tuple===target){
+    const empty=manifest.files.at(-1);
+    if(variant==='negativeBytes')empty.bytes=-1;
+    if(variant==='wrongEmptySHA')empty.sha256='f'.repeat(64);
+    if(variant==='missingFile')fs.unlinkSync(path.join(tuple.tuple.runtime.root,empty.path));
+   }
+   json(tuple.tuple.runtime.manifest.path,manifest);tuple.tuple.runtime.manifest=ref(tuple.tuple.runtime.manifest.path);updateTuple(tuple);
+  }
+  if(variant==='emptyJSON')write(rp,Buffer.alloc(0));
+  if(variant==='valid'){
+   const result=call();assert.equal(result.sourceRuntime.files,5);assert.equal(result.targetRuntime.files,5);assert.equal(result.NativeQualified,false);
+  }else assert.throws(call,{code:{negativeBytes:'NATIVE_REUSE_PIN',wrongEmptySHA:'NATIVE_REUSE_INPUT_DIFFERS',missingFile:'ENOENT',emptyJSON:'NATIVE_REUSE_PIN'}[variant]});
+ });
+});

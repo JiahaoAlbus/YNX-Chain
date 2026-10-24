@@ -4,7 +4,7 @@ test('every native MJS reachable from the fixed CLI has a pinned Native source i
  const {contract}=verifySDK332R140Source(root),declared=new Set(contract.NativeInputs.map(x=>x.path)),queue=['packages/wallet-auth/native/original-auth-identity-source-verifier.mjs'],seen=new Set();
  while(queue.length){const p=queue.shift();if(seen.has(p))continue;seen.add(p);assert.ok(declared.has(p),'UNDECLARED_FIXED_CLI_NATIVE_DEPENDENCY: '+p);const ast=ts.createSourceFile(p,fs.readFileSync(path.join(root,p),'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
   function walk(n){let s;if((ts.isImportDeclaration(n)||ts.isExportDeclaration(n))&&n.moduleSpecifier&&ts.isStringLiteralLike(n.moduleSpecifier))s=n.moduleSpecifier.text;else if(ts.isCallExpression(n)&&n.expression.kind===ts.SyntaxKind.ImportKeyword&&n.arguments.length===1&&ts.isStringLiteralLike(n.arguments[0]))s=n.arguments[0].text;if(s?.startsWith('.')&&s.endsWith('.mjs')){const next=path.posix.normalize(path.posix.join(path.posix.dirname(p),s));if(next.startsWith('packages/wallet-auth/native/'))queue.push(next)}ts.forEachChild(n,walk)}walk(ast);
- }assert.ok(seen.has(head));assert.equal(seen.size,13);
+ }assert.ok(seen.has(head));assert.equal(seen.size,14);
 });
 test('normal addon, helper and source inventory all refuse a missing inherited head DATA dependency',async()=>{
  const {contract}=verifySDK332R140Source(root),all=[...contract.NativeInputs,...contract.HelperInputs,...contract.pureDeploymentInputs,contract.normalBuildTool,...contract.sourceCurrentIOInputs],temp=fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(),'ynx-r197-head-')));try{

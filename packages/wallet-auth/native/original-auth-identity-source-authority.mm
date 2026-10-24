@@ -1,4 +1,5 @@
 #import "original-auth-identity-source-authority.h"
+#include <algorithm>
 #import <Security/Security.h>
 #import "original-ide-helper-xpc-peer.h"
 #import "original-ide-helper-client.h"
@@ -41,6 +42,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  uint64_t _sequence,_floor,_timeFloor,_cachedCurrentExpiresMS;NSString *_headDigest,*_observationHeight;
  BOOL _relayLocalEntered;
  BOOL _projectLocalEntered,_ideProjectConsumer,_ideControlConsumer,_controlLocalEntered;
+ id _controlKeyBorrowToken;BOOL _controlKeyBorrowSelected;
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
@@ -192,6 +194,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "original-ide-contract-relay-runtime.inc.mm"
 #include "original-ide-project-authority-source.inc.mm"
 #include "original-ide-project-control-source.inc.mm"
+#include "original-ide-project-control-custody-source.inc.mm"
 - (BOOL)assertCurrent:(NSError **)error {return [self assertAuthenticatedNativePurpose:error];}
 - (BOOL)assertAuthenticatedNativePurpose:(NSError **)error {
  @synchronized(self){
@@ -421,7 +424,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (void)retire {@synchronized(self){_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return [_custody join:error];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return [_custody join:error];}}
 - (BOOL)close:(NSError **)error {
  @synchronized(self){[self retire];if(_closeSelected){if(error)*error=_cleanupCause;return _cleanupComplete;}
   if(![self join:error])return NO;_closeSelected=YES;BOOL filesClosed=YES;
