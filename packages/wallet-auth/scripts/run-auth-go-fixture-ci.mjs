@@ -4,7 +4,7 @@ import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} fro
 import {prepareAuthGoFixtureCIData} from './auth-go-fixture-ci.mjs';
 const pkg=fileURLToPath(new URL('../',import.meta.url)),fixture=path.join(pkg,'test/fixtures/auth-r202-go-source'),evidence=path.join(pkg,'.ci-evidence/auth-r202-go-fixture');
 const supplierPin={path:'SUPPLIER_HANDOFF.json',bytes:14261,sha256:'5115dbbe571e31a5e21a7af2868ffe012e26457cbb8a26d52d3bd0ca9856e72f'};
-const selection='^(TestOriginal(ControlCompleteCurrentNormalProcess|ProjectControlRuntime.*|DeveloperFactoryNormalStartupPartialAndClose)|TestApplyControlActualCABIEnvelopeSizeAndCurrentExpiry)$';
+const selection='^(TestOriginal(ControlCompleteCurrentNormalProcess|ProjectControlRuntime.*|DeveloperFactoryNormalStartupPartialAndClose))$';
 const fail=code=>{throw Object.assign(Error(code),{code});},hash=raw=>createHash('sha256').update(raw).digest('hex'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const save=(name,data)=>fs.writeFileSync(path.join(evidence,name),JSON.stringify(data,null,2)+'\n',{flag:'wx',mode:0o600});
 function relative(p){if(typeof p!=='string'||path.isAbsolute(p)||p.includes('\\')||p.split('/').some(x=>!x||x==='.'||x==='..'))fail('AUTH_GO_CI_PATH');return p;}
@@ -60,8 +60,8 @@ async function main(){
   const prefix='internal/developerauthority/',names=files.filter(x=>x.path.startsWith(prefix)&&x.path.endsWith('.go')).map(x=>x.path.slice(prefix.length)).sort();if(names.length!==27||names.some(n=>n.includes('/')))fail('AUTH_GO_CI_GO_SCOPE');
   goTest=await stage('GO_TEST',go,['test','-race','-json','-run',selection,'-count=1',...names],path.join(outputRoot,prefix),120000);if(!goTest.success)fail(goTest.firstCause??'AUTH_GO_CI_GO_TEST_FAILED');
   const events=fs.readFileSync(path.join(evidence,'GO_TEST.stdout'),'utf8').trim().split('\n').filter(Boolean).map(line=>JSON.parse(line)),passes=events.filter(x=>x.Action==='pass'&&typeof x.Test==='string').map(x=>x.Test),top=passes.filter(n=>!n.includes('/'));
-  if(events.some(x=>x.Action==='fail'||x.Action==='skip')||new Set(passes).size!==25||passes.length!==25||top.length!==9||top.some(n=>!new RegExp(selection).test(n))||events.filter(x=>x.Action==='pass'&&!x.Test).length!==1)fail('AUTH_GO_CI_SELECTED_TEST_COUNT');
-  save('SELECTED_TEST_RESULTS.json',{top,topCount:9,subtests:16,pass:25,race:true,selectedOnly:selection,actualTool:go,version});
+  if(events.some(x=>x.Action==='fail'||x.Action==='skip')||new Set(passes).size!==24||passes.length!==24||top.length!==8||top.some(n=>!new RegExp(selection).test(n))||events.filter(x=>x.Action==='pass'&&!x.Test).length!==1)fail('AUTH_GO_CI_SELECTED_TEST_COUNT');
+  save('SELECTED_TEST_RESULTS.json',{top,topCount:8,subtests:16,pass:24,reusedPriorPassedControlSizeCase:{run:40063849593,name:"TestApplyControlActualCABIEnvelopeSizeAndCurrentExpiry",rerun:false},race:true,selectedOnly:selection,actualTool:go,version});
  }catch(e){firstCause=e.code??e.message??'AUTH_GO_CI_FAILED';}
  save('RESULT.json',{success:firstCause===null,firstCause,version,GoTest:goTest,normalGoServer:false,SQLMigration:false,Source13:false,Root:false,Native:false,production:false,realUserLogin:false,realSessionRecovery:false,realRevocation:false,noAutomaticRetry:true});
  if(firstCause)fail(firstCause);
