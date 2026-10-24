@@ -18,8 +18,7 @@ func cloneCanonicalNativeCommittedState(state CommittedState) (CommittedState, b
 	if !ok {
 		return CommittedState{}, false
 	}
-	n := nativeCertificateNormalizer{plans: make(map[reflect.Type]nativeCertificateTypePlan)}
-	if !n.normalize(reflect.ValueOf(&private).Elem()) {
+	if !canonicalNativeCommittedValuePlan().normalize(reflect.ValueOf(&private).Elem()) {
 		return CommittedState{}, false
 	}
 	return private, true
@@ -111,26 +110,7 @@ func nativeCertificateJSONEmpty(v reflect.Value) bool {
 
 func (n *nativeCertificateNormalizer) normalize(v reflect.Value) bool {
 	if v.Type() == nativeCertificateTimeType {
-		value := v.Interface().(time.Time)
-		// UTC values have an exact allocation-free RFC3339 JSON round trip.
-		// Other zones use time.Time's own codec, including offset normalization.
-		if value.Location() == time.UTC && 0 <= value.Year() && value.Year() <= 9999 {
-			canonical := value.Round(0).UTC()
-			if canonical != value {
-				v.Set(reflect.ValueOf(canonical))
-			}
-			return true
-		}
-		raw, err := value.MarshalJSON()
-		if err != nil {
-			return false
-		}
-		var canonical time.Time
-		if err = canonical.UnmarshalJSON(raw); err != nil {
-			return false
-		}
-		v.Set(reflect.ValueOf(canonical))
-		return true
+		return normalizeNativeCertificateTime(v)
 	}
 	p := n.plan(v.Type())
 	if !p.supported {
@@ -171,4 +151,27 @@ func (n *nativeCertificateNormalizer) normalize(v reflect.Value) bool {
 	default:
 		return nativeCloneScalar(v.Kind())
 	}
+}
+
+func normalizeNativeCertificateTime(v reflect.Value) bool {
+	value := v.Interface().(time.Time)
+	// UTC values have an exact allocation-free RFC3339 JSON round trip.
+	// Other zones use time.Time's own codec, including offset normalization.
+	if value.Location() == time.UTC && 0 <= value.Year() && value.Year() <= 9999 {
+		canonical := value.Round(0).UTC()
+		if canonical != value {
+			v.Set(reflect.ValueOf(canonical))
+		}
+		return true
+	}
+	raw, err := value.MarshalJSON()
+	if err != nil {
+		return false
+	}
+	var canonical time.Time
+	if err = canonical.UnmarshalJSON(raw); err != nil {
+		return false
+	}
+	v.Set(reflect.ValueOf(canonical))
+	return true
 }

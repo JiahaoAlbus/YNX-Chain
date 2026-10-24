@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "kind": "same_payload_compiled_normalization_plan_local32_component_not_network",
+  "sourceParent": "30fa18d69013b9744015fbbbfa3a6d8169cf9b32",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "go": "go1.25.7",
+    "gomaxprocs": 1,
+    "gogc": 100,
+    "gomemlimit": "off",
+    "race": false,
+    "exclusiveHost": false
+  },
+  "signedExecutedCommittedTransactions": 32,
+  "payload": {
+    "sha256": "72f4acdbafe3029dc85a423a187722b23299b868256acdbaafc56730d15f7a03",
+    "bytes": 25763
+  },
+  "iterationsPerPath": 224,
+  "alternatingRounds": 7,
+  "reflectionCloneVersusCompiledNs": {
+    "control": 8156793,
+    "candidate": 2642582,
+    "changePercent": -67.60268404506526
+  },
+  "strictJSONPublicationVersusCompiledNs": {
+    "control": 38617874,
+    "candidate": 28455292,
+    "changePercent": -26.315746951787144
+  },
+  "firstCandidateCall": {
+    "durationNs": 316667,
+    "bytes": 135416,
+    "mallocs": 1192,
+    "includesPlanInThisSoleTestFreshProcess": true
+  },
+  "wholeProcessPublicationAllocation": {
+    "candidate": {
+      "ElapsedNs": 27152959,
+      "Bytes": 20066120,
+      "Mallocs": 26720,
+      "Collections": 4,
+      "PauseNs": 63751
+    },
+    "componentOnly": true,
+    "control": {
+      "ElapsedNs": 38640083,
+      "Bytes": 29793856,
+      "Mallocs": 74592,
+      "Collections": 6,
+      "PauseNs": 93916
+    },
+    "forcedGC": false,
+    "iterationsPerPath": 224,
+    "networkRSSCauseProved": false,
+    "payloadBytes": 25763,
+    "signedBusiness": 32,
+    "wholeProcessCounters": true
+  },
+  "networkImprovementMeasured": false,
+  "releaseQualified": false,
+  "sustainedTPSQualified": false,
+  "limits": "Same immutable payload shared by all paths, full equality/canonical bytes/Validate checked outside timing. Parent publication retains exact re-encode byte comparison and strict JSON fallback. First candidate includes immutable plan startup; warm loop excludes startup. No host isolation, no network attribution, no pure GC CPU claim, default-off canonical candidate unchanged in activation.",
+  "rawEvidence": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-canonical-plan-exact-payload.raw",
+      "bytes": 5654,
+      "sha256": "0490ff7b95a55c3b9e57708522d8f8715f6d968ef6f58fe8f1729a1b447215f2"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-canonical-plan-final-safety.raw",
+      "bytes": 2367,
+      "sha256": "50124aae8497baa0a1ff233f83eeed38657214fcfdb75611dbe4138b042f976b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-canonical-plan-stream102.raw",
+      "bytes": 601,
+      "sha256": "39dd5ef9b24f85796e2ff5c6c8aa2640d6016e6cf2b32b9ceaab26d8c7ab278a"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-canonical-plan-vet.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

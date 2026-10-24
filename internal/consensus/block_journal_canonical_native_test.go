@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"os"
 	"reflect"
@@ -94,8 +95,26 @@ func TestBlockJournalCertificateCanonicalNativeMatchedMeasurement(t *testing.T) 
 		}
 		return private
 	}
+	reflective := func() CommittedState {
+		private, ok := cloneNativeCommittedState(decoded.State)
+		if !ok {
+			t.Fatal("reference clone refused")
+		}
+		n := nativeCertificateNormalizer{plans: make(map[reflect.Type]nativeCertificateTypePlan)}
+		if !n.normalize(reflect.ValueOf(&private).Elem()) {
+			t.Fatal("reference normalization refused")
+		}
+		return private
+	}
+	t.Logf("matchedPayloadSHA256=%x payloadBytes=%d", sha256.Sum256(decoded.SnapshotJSON), len(decoded.SnapshotJSON))
 	expected := control()
+	var beforeFirst, afterFirst runtime.MemStats
+	runtime.ReadMemStats(&beforeFirst)
+	firstStarted := time.Now()
 	actual := candidate()
+	firstDuration := time.Since(firstStarted)
+	runtime.ReadMemStats(&afterFirst)
+	t.Logf("firstCandidateCallNs=%d firstCandidateCallBytes=%d firstCandidateCallMallocs=%d coldOnlyWhenSoleTestInFreshProcess=true", firstDuration.Nanoseconds(), afterFirst.TotalAlloc-beforeFirst.TotalAlloc, afterFirst.Mallocs-beforeFirst.Mallocs)
 	if !reflect.DeepEqual(actual, expected) || len(actual.FeeEvents) != 32 {
 		t.Fatal("candidate differs from control")
 	}
@@ -129,6 +148,22 @@ func TestBlockJournalCertificateCanonicalNativeMatchedMeasurement(t *testing.T) 
 		t.Logf("round=%d iterations=32 strictJSONAndCloneNs=%d canonicalNativeNs=%d", round, old.Nanoseconds(), next.Nanoseconds())
 	}
 	t.Logf("componentOnly=true signedBusiness=32 feeEvents=%d payloadBytes=%d iterationsPerPath=224 controlNs=%d candidateNs=%d go=%s os=%s arch=%s gomaxprocs=%d networkProof=false", len(actual.FeeEvents), len(decoded.SnapshotJSON), controlTotal.Nanoseconds(), candidateTotal.Nanoseconds(), runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.GOMAXPROCS(0))
+	if !reflect.DeepEqual(reflective(), expected) {
+		t.Fatal("reference normalization differs")
+	}
+	var reflectTotal, compiledTotal time.Duration
+	for round := 0; round < 7; round++ {
+		var a, b time.Duration
+		if round%2 == 0 {
+			a, b = measure(reflective), measure(candidate)
+		} else {
+			b, a = measure(candidate), measure(reflective)
+		}
+		reflectTotal += a
+		compiledTotal += b
+		t.Logf("planRound=%d iterations=32 reflectionNs=%d compiledNs=%d", round, a.Nanoseconds(), b.Nanoseconds())
+	}
+	t.Logf("samePayloadPlanOnly=true iterationsPerPath=224 reflectionNs=%d compiledNs=%d networkProof=false", reflectTotal.Nanoseconds(), compiledTotal.Nanoseconds())
 	oldDecoder, err := NewBlockJournalNativeSuffixPrefixDecoder(migration)
 	if err != nil {
 		t.Fatal(err)
@@ -228,6 +263,9 @@ func TestBlockJournalCertificateCanonicalNativeRejectsUnsupportedShapes(t *testi
 		if n.normalize(v.Elem()) {
 			t.Fatalf("future/custom schema accepted: %T", value)
 		}
+		if compileNativeCertificateValuePlan(v.Elem().Type()).normalize(v.Elem()) {
+			t.Fatalf("compiled plan accepted future/custom schema: %T", value)
+		}
 	}
 	state := CommittedState{Accounts: []chain.ConsensusAccount{{Address: string([]byte{0xff})}}}
 	if _, ok := cloneCanonicalNativeCommittedState(state); ok {
@@ -279,5 +317,74 @@ func TestBlockJournalCertificateCanonicalNativeRetainsRealSignedStateValidation(
 		if err != nil || !bytes.Equal(encoded, decoded.SnapshotJSON) || len(private.FeeEvents) != int(nonce) {
 			t.Fatal("history/hash/bytes changed", err)
 		}
+	}
+}
+
+func TestBlockJournalCertificateCanonicalNativeCompiledPlanPreservesDeferredCodecs(t *testing.T) {
+	for _, value := range []any{
+		struct {
+			Value futureCertificateScalar `json:"value,omitempty"`
+		}{},
+		struct {
+			Value futureCertificateScalar `json:"value,omitempty"`
+		}{Value: "present"},
+		struct {
+			Rows []futureCertificateScalar `json:"rows"`
+		}{},
+		struct {
+			Rows []futureCertificateScalar `json:"rows"`
+		}{Rows: []futureCertificateScalar{}},
+		struct {
+			Rows []futureCertificateScalar `json:"rows"`
+		}{Rows: []futureCertificateScalar{"present"}},
+		map[string]int64{string([]byte{0xff}): 1},
+	} {
+		original := reflect.New(reflect.TypeOf(value))
+		original.Elem().Set(reflect.ValueOf(value))
+		compiled := reflect.New(reflect.TypeOf(value))
+		compiled.Elem().Set(reflect.ValueOf(value))
+		n := nativeCertificateNormalizer{plans: make(map[reflect.Type]nativeCertificateTypePlan)}
+		a := n.normalize(original.Elem())
+		b := compileNativeCertificateValuePlan(compiled.Elem().Type()).normalize(compiled.Elem())
+		if a != b || a && !reflect.DeepEqual(original.Elem().Interface(), compiled.Elem().Interface()) {
+			t.Fatalf("deferred codec semantics differ: %T", value)
+		}
+	}
+}
+
+func TestBlockJournalCertificateCanonicalNativeCompiledPlanConcurrentOwnership(t *testing.T) {
+	state := CommittedState{Accounts: []chain.ConsensusAccount{{Address: "native", Lots: map[string]int64{"origin": 1}}}, FeeEvents: []BFTFeeEvent{{ID: "original", RecordedAt: time.Now().UTC()}}}
+	raw, err := encodeCommittedStateJSON(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected CommittedState
+	if err = decodeStrictJSON(raw, &expected); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan bool, 8)
+	for i := 0; i < 8; i++ {
+		go func() {
+			valid := true
+			for j := 0; j < 16; j++ {
+				got, ok := cloneCanonicalNativeCommittedState(state)
+				if !ok || !reflect.DeepEqual(got, expected) {
+					valid = false
+					break
+				}
+				got.Accounts[0].Lots["origin"] = 99
+				got.FeeEvents[0].ID = "private"
+			}
+			done <- valid
+		}()
+	}
+	for i := 0; i < 8; i++ {
+		if !<-done {
+			t.Fatal("shared plan/state mutated by independent call")
+		}
+	}
+	after, err := encodeCommittedStateJSON(state)
+	if err != nil || !bytes.Equal(raw, after) {
+		t.Fatal("plan shared mutable input", err)
 	}
 }
