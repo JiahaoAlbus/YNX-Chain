@@ -283,6 +283,8 @@ jobs:
             ${{ runner.temp }}/ynx-native-suffix-public-fixture
           if-no-files-found: ignore
           retention-days: 90
+      - name: Verify prepared native snapshot ownership candidate
+        run: go test -p 1 -race ./internal/consensus -run '^TestPreparedNativeSnapshot' -count=1 -timeout=30s -v
       - name: Verify actual prefix decoder phases and held-gate cancellation
         run: go test -p 1 ./internal/consensus -run '^TestBlockJournal(Prefix|BoundedPrefix|Certificate)' -count=1 -timeout=30s -v
       - name: Verify opt-in node phase timings against real durable execution

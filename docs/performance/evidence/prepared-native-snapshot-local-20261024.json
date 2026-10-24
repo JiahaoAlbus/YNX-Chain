@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "baseSource": "0c66b0fc90d47396abf6e5246877b83881fd0a8b",
+  "candidateSelectedByDecoder": false,
+  "defaultChanged": false,
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "cpu": "Apple M4",
+  "platform": "darwin/arm64",
+  "toolchain": "go version go1.25.7 darwin/arm64",
+  "GOMAXPROCS": 1,
+  "order": "ABBAAB",
+  "scope": "Complete state encode plus private normalized object construction and independent public/private payloads; retained real1024 history, no transactions generated or network nodes",
+  "rows": [
+    {
+      "order": 0,
+      "candidate": false,
+      "ns": 7012667,
+      "bytes": 4970208,
+      "allocations": 11597
+    },
+    {
+      "order": 1,
+      "candidate": true,
+      "ns": 3011200,
+      "bytes": 2500542,
+      "allocations": 4001
+    },
+    {
+      "order": 2,
+      "candidate": true,
+      "ns": 3054507,
+      "bytes": 2500532,
+      "allocations": 4001
+    },
+    {
+      "order": 3,
+      "candidate": false,
+      "ns": 7096494,
+      "bytes": 4970206,
+      "allocations": 11597
+    },
+    {
+      "order": 4,
+      "candidate": false,
+      "ns": 6944328,
+      "bytes": 4970211,
+      "allocations": 11597
+    },
+    {
+      "order": 5,
+      "candidate": true,
+      "ns": 3022033,
+      "bytes": 2500529,
+      "allocations": 4001
+    }
+  ],
+  "median": {
+    "baseline": {
+      "ns": 7012667,
+      "bytes": 4970208,
+      "allocations": 11597
+    },
+    "candidate": {
+      "ns": 3022033,
+      "bytes": 2500532,
+      "allocations": 4001
+    }
+  },
+  "changesPercent": {
+    "ns": -56.906081523620045,
+    "bytes": -49.68959045577167,
+    "allocations": -65.49969819780979
+  },
+  "candidateSource": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_prepared_native_snapshot.go",
+      "bytes": 925,
+      "sha256": "2e9924678ceab0efd5bbeb70a540eb14d544c41ee61bf254cec9bbc79ab5cd73"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_prepared_native_snapshot_test.go",
+      "bytes": 6621,
+      "sha256": "aacef36867f05e8483d89d8b773483a775f512b217262efe73006d2e16ad3741"
+    }
+  ],
+  "fixture": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/fixtures/state-hash-real-1024.json",
+      "bytes": 812656,
+      "sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/fixtures/state-hash-real-1024-migration.json",
+      "bytes": 73707,
+      "sha256": "8a73a627990a7719ca54fdc1afc3e05a29758db7070e9d7f3cd1e859579621c1"
+    }
+  ],
+  "raw": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-native-snapshot-first.raw",
+      "bytes": 502,
+      "sha256": "f7df2fa8722912f915950bddbef69d4e972021ca809bbd204748af818b8de645"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-native-snapshot-green-02.raw",
+      "bytes": 1665,
+      "sha256": "75440764a2f7495cc270b7d6f9a39696eb5fe5b4eda94e5ea27c5d49c4c898a2"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-native-snapshot-race.raw",
+      "bytes": 1885,
+      "sha256": "7b5ac8e2bfd0bc58c1b1c02dc793c9161069569a4347ba08bc22de77b56c36a0"
+    }
+  ],
+  "interpretation": "Local component only. Candidate owns and normalizes a private closed-schema native state, then encodes that object once; cannot decode arbitrary JSON or grant validation. Original strict decoder/default and full public Validate/Commit remain unchanged. Unsupported domain/schema/string/time returns no candidate and requires original route. Decoder integration and actual signed-stream/RSS/finality comparisons remain outstanding."
+}
