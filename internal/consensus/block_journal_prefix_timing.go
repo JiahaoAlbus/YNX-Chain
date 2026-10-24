@@ -11,6 +11,7 @@ type BlockJournalPrefixPhase struct {
 	DurationNs int64  `json:"durationNs"`
 }
 type BlockJournalPrefixWorkPhases struct {
+	PreparedEncodeDetails     *BlockJournalPreparedEncodePhases    `json:"preparedEncodeDetails,omitempty"`
 	SuffixReplayDetails       *BlockJournalFrameReplayPhases       `json:"suffixReplayDetails,omitempty"`
 	CertificatePublishDetails *BlockJournalPrefixCertificatePhases `json:"certificatePublishDetails,omitempty"`
 	GateWait                  BlockJournalPrefixPhase              `json:"gateWait"`
@@ -24,6 +25,43 @@ type BlockJournalPrefixWorkPhases struct {
 	CanonicalCopy             BlockJournalPrefixPhase              `json:"canonicalCopy"`
 	CertificatePublish        BlockJournalPrefixPhase              `json:"certificatePublish"`
 	PrivateNativeClone        *BlockJournalPrefixPhase             `json:"privateNativeClone,omitempty"`
+}
+
+// Sequential children included in SuffixEncode, enabled only for the explicit
+// prepared decoder's certificate timing API. Unsupported input retains the
+// original fallback encoder. A normalization fallback is not an error.
+type BlockJournalPreparedEncodePhases struct {
+	Normalize      BlockJournalPrefixPhase `json:"normalize"`
+	JSONEncode     BlockJournalPrefixPhase `json:"jsonEncode"`
+	PublicCopy     BlockJournalPrefixPhase `json:"publicCopy"`
+	FallbackEncode BlockJournalPrefixPhase `json:"fallbackEncode"`
+}
+
+func (p *BlockJournalPrefixWorkPhases) measurePrepared(name string, action func() error) error {
+	if p == nil || p.PreparedEncodeDetails == nil {
+		return action()
+	}
+	var phase *BlockJournalPrefixPhase
+	switch name {
+	case "normalize":
+		phase = &p.PreparedEncodeDetails.Normalize
+	case "jsonEncode":
+		phase = &p.PreparedEncodeDetails.JSONEncode
+	case "publicCopy":
+		phase = &p.PreparedEncodeDetails.PublicCopy
+	case "fallbackEncode":
+		phase = &p.PreparedEncodeDetails.FallbackEncode
+	default:
+		panic("unregistered prepared encode phase")
+	}
+	started := time.Now()
+	phase.Calls++
+	err := action()
+	phase.DurationNs += time.Since(started).Nanoseconds()
+	if err != nil {
+		phase.Errors++
+	}
+	return err
 }
 
 // Sequential children already included in CertificatePublish. These counters
@@ -116,6 +154,18 @@ func (p *BlockJournalPrefixWorkPhases) measure(name string, action func() error)
 
 // Add copies counters from a completed call, including failed phase attempts.
 func (p *BlockJournalPrefixWorkPhases) Add(other BlockJournalPrefixWorkPhases) {
+	if other.PreparedEncodeDetails != nil {
+		if p.PreparedEncodeDetails == nil {
+			p.PreparedEncodeDetails = new(BlockJournalPreparedEncodePhases)
+		}
+		target, source := p.PreparedEncodeDetails, other.PreparedEncodeDetails
+		targets := []*BlockJournalPrefixPhase{&target.Normalize, &target.JSONEncode, &target.PublicCopy, &target.FallbackEncode}
+		for i, value := range []BlockJournalPrefixPhase{source.Normalize, source.JSONEncode, source.PublicCopy, source.FallbackEncode} {
+			targets[i].Calls += value.Calls
+			targets[i].Errors += value.Errors
+			targets[i].DurationNs += value.DurationNs
+		}
+	}
 	if other.SuffixReplayDetails != nil {
 		if p.SuffixReplayDetails == nil {
 			p.SuffixReplayDetails = new(BlockJournalFrameReplayPhases)

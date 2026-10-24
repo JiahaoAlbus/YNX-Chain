@@ -219,13 +219,18 @@ class NativePreparedClientFixtureTests(unittest.TestCase):
         self.assertGreater(parts['preparedNativeAccepted'],0);self.assertGreater(parts['strictJSON']['calls'],0)
         self.assertEqual(parts['preparedNativeAccepted']+parts['strictJSON']['calls'],102);self.assertEqual(parts['nativeClone']['calls'],102)
         with self.assertRaises(RuntimeError):evidence.certificate_publish_measurements(phases,32<<20,True,True)
-        for fault in ('missing','bool','too-many','encoding','strict'):
+        for fault in ('missing','bool','too-many','encoding','strict','missing-encode','copy-count','time','child-bool','fallback'):
             bad=copy.deepcopy(phases);details=bad['certificatePublishDetails']
             if fault=='missing':details.pop('preparedNativeAccepted')
             if fault=='bool':details['preparedNativeAccepted']=True
             if fault=='too-many':details['preparedNativeAccepted']=103
             if fault=='encoding':bad['suffixEncode']['calls']=0;bad['suffixEncode']['durationNs']=0
             if fault=='strict':details['strictJSON']['calls']-=1
+            if fault=='missing-encode':bad.pop('preparedEncodeDetails')
+            if fault=='copy-count':bad['preparedEncodeDetails']['publicCopy']['calls']-=1
+            if fault=='time':bad['preparedEncodeDetails']['normalize']['durationNs']=bad['suffixEncode']['durationNs']+1
+            if fault=='child-bool':bad['preparedEncodeDetails']['normalize']['calls']=True
+            if fault=='fallback':bad['preparedEncodeDetails']['fallbackEncode']['calls']=1
             with self.subTest(fault=fault),self.assertRaises(RuntimeError):evidence.certificate_publish_measurements(bad,32<<20,True,True,prepared_native=True)
     def test_complete_actual_prepared_signed_terminal_stream(self):
         d=self.meta;initial=evidence.strict_json((self.root/'transactions.json').read_bytes())['transactions']

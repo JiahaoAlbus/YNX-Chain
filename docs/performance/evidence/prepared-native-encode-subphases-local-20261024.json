@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "scope": "local race actual signed102 prepared prefix subphase instrumentation; not network qualification or performance comparison",
+  "baselineSource": "7d822faadfe48c31c16487372efa7e6000eff29e",
+  "baselineNormalCI": {
+    "id": 40090683120,
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "transactions": 102,
+  "preparedPublications": 95,
+  "strictColdPublications": 7,
+  "phases": {
+    "suffixEncode": {
+      "calls": 95,
+      "errors": 0,
+      "durationNs": 270375160
+    },
+    "preparedEncodeDetails": {
+      "normalize": {
+        "calls": 95,
+        "errors": 0,
+        "durationNs": 21584079
+      },
+      "jsonEncode": {
+        "calls": 95,
+        "errors": 0,
+        "durationNs": 245493625
+      },
+      "publicCopy": {
+        "calls": 95,
+        "errors": 0,
+        "durationNs": 2817165
+      },
+      "fallbackEncode": {
+        "calls": 0,
+        "errors": 0,
+        "durationNs": 0
+      }
+    },
+    "certificatePublishDetails": {
+      "preparedNativeAccepted": 95,
+      "payloadCopy": {
+        "calls": 102,
+        "errors": 0,
+        "durationNs": 1828205
+      },
+      "strictJSON": {
+        "calls": 7,
+        "errors": 0,
+        "durationNs": 21110374
+      },
+      "nativeClone": {
+        "calls": 102,
+        "errors": 0,
+        "durationNs": 1815497
+      },
+      "payloadBytes": 4124155,
+      "prefixBytesHashed": 3526713
+    }
+  },
+  "conditions": {
+    "race": true,
+    "os": "darwin",
+    "arch": "arm64",
+    "hardware": "Apple M4",
+    "go": "1.25.7"
+  },
+  "networkQualified": false,
+  "sustained1000Proven": false,
+  "raws": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-encode-children-race-01.raw",
+      "bytes": 3191,
+      "sha256": "0aec6d462cdfc073caa2504a968324c7455a469eec2434a8f16c3fda86840988"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-encode-children-race-02.raw",
+      "bytes": 3484,
+      "sha256": "98a8ba48b89e251976a1f2b120393afc1c0a568c6515bf05582581f69494feb4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-encode-children-controller-01.raw",
+      "bytes": 191,
+      "sha256": "394e9e6b004e1d65232e60718bbf4a378037a4ddf93e11785f5f7ced50f24d69"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-encode-children-evidence-01.raw",
+      "bytes": 9255,
+      "sha256": "600bb7c6a7c80d43d737a5f80d1ed092ffff21272963d5141d52648cd9a56d5d"
+    }
+  ],
+  "fixture": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-encode-children-public-fixture/PUBLIC_FIXTURE_SCOPE.json",
+    "sha256": "689a03dc6b39812644cf5c91d43c93acac2798808df54701afaf728df299a4e7"
+  }
+}

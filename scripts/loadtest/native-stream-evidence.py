@@ -281,6 +281,19 @@ def certificate_publish_measurements(phases,canonical_limit,required=False,nativ
     need(integer(accepted,0,2**63-1),'canonical native accepted count invalid')
     prepared_accepted=details.get('preparedNativeAccepted',0)
     need(integer(prepared_accepted,0,2**63-1),'prepared accepted count invalid')
+    encode=phases.get('preparedEncodeDetails')
+    if prepared_native:
+        names=('normalize','jsonEncode','publicCopy','fallbackEncode')
+        need(type(encode) is dict and set(encode)==set(names),'prepared encode child inventory differs')
+        parent=phases.get('suffixEncode',{})
+        for part in (parent,*(encode[k] for k in names)):
+            need(type(part) is dict and set(part)=={'calls','errors','durationNs'} and all(integer(v,0,2**63-1) for v in part.values()),'prepared encode child counts/time invalid')
+            need(part['errors']<=part['calls'] and (part['calls']>0 and part['durationNs']>0 or part['calls']==part['errors']==part['durationNs']==0),'prepared encode empty/error coverage differs')
+        normalize,json_encode,public_copy,fallback=(encode[k] for k in names)
+        need(normalize['calls']==parent['calls'] and normalize['errors']==0 and json_encode['calls']+fallback['calls']==normalize['calls'] and public_copy['calls']==json_encode['calls']-json_encode['errors'] and public_copy['errors']==0,'prepared encode branch coverage differs')
+        need(prepared_accepted<=public_copy['calls'] and sum(encode[k]['errors'] for k in names)==parent['errors'] and sum(encode[k]['durationNs'] for k in names)<=parent['durationNs'],'prepared encode children exceed publication/parent coverage')
+    else:
+        need(encode is None,'unselected prepared encode child timings')
     if prepared_native:
         suffix=phases.get('suffixEncode',{});need(integer(suffix.get('calls'),0,2**63-1) and integer(suffix.get('errors'),0,2**63-1) and 0<prepared_accepted<=suffix['calls']-suffix['errors'],'prepared accepted lacks successful owned encoding')
     children=[details[k] for k in phase_names]+([candidate] if candidate is not None else [])

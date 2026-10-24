@@ -630,6 +630,7 @@ def validate_prefix_replay(report,expected,require_work_phases=False,expected_na
         phase_names={"gateWait","prefixCheck","privateJSON","privateValidate","fullReplay","suffixSetup","suffixReplay","suffixEncode","canonicalCopy","certificatePublish"}
         if expected_native_clone:phase_names.add("privateNativeClone")
         details_name={"certificatePublishDetails"} if isinstance(phases,dict) and "certificatePublishDetails" in phases else set()
+        if expected_prepared_certificate:details_name.add("preparedEncodeDetails")
         if not isinstance(phases,dict) or set(phases)!=phase_names|details_name:raise RuntimeError("prefix phase inventory differs")
         for phase in (phases[k] for k in phase_names):
             if (not isinstance(phase,dict) or set(phase)!={"calls","errors","durationNs"}

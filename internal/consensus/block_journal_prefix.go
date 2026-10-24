@@ -104,6 +104,9 @@ func (d *BlockJournalPrefixDecoder) DecodeWithPhaseTiming(ctx context.Context, d
 // It changes no validation, publication, high-water or byte ownership rules.
 func (d *BlockJournalPrefixDecoder) DecodeWithCertificatePhaseTiming(ctx context.Context, data []byte) (BlockJournalPrefixReadback, error) {
 	phases := &BlockJournalPrefixWorkPhases{CertificatePublishDetails: new(BlockJournalPrefixCertificatePhases)}
+	if d != nil && d.preparedNative {
+		phases.PreparedEncodeDetails = new(BlockJournalPreparedEncodePhases)
+	}
 	out, err := d.decode(ctx, data, phases)
 	out.WorkPhases = phases
 	return out, err
@@ -230,7 +233,7 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 			// Prepared mode includes private normalization and the independent public
 			// byte copy in this encoding phase; these are not free publication work.
 			if d.preparedNative {
-				payload, prepared, e = d.encodePreparedPrefixSnapshot(next)
+				payload, prepared, e = d.encodePreparedPrefixSnapshotWithTiming(next, phases)
 			} else {
 				payload, e = encodeCommittedStateJSON(next)
 			}

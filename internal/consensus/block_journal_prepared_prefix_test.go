@@ -29,6 +29,7 @@ func TestBlockJournalPreparedPrefixRealReplayOwnershipRotationAndRecovery(t *tes
 		t.Fatal("constructor defaults/axis differ")
 	}
 	fast, cold := 0, 0
+	var aggregate BlockJournalPrefixWorkPhases
 	var data, older, previous []byte
 	var expected BlockJournalPrefixReadback
 	for nonce := uint64(1); nonce <= 18; nonce++ {
@@ -63,17 +64,30 @@ func TestBlockJournalPreparedPrefixRealReplayOwnershipRotationAndRecovery(t *tes
 			t.Fatal("original current state/bytes/replay differs", nonce)
 		}
 		details := got.WorkPhases.CertificatePublishDetails
+		encode := got.WorkPhases.PreparedEncodeDetails
+		if encode == nil || expected.WorkPhases.PreparedEncodeDetails != nil {
+			t.Fatal("selected prepared timing inventory differs")
+		}
+		aggregate.Add(*got.WorkPhases)
 		if details.PreparedNativeAccepted > 0 {
 			fast++
 			if details.PreparedNativeAccepted != 1 || details.StrictJSON.Calls != 0 || details.NativeClone.Calls != 1 {
 				t.Fatal("prepared construction branch not actual", details)
+			}
+			if encode.Normalize.Calls != 1 || encode.JSONEncode.Calls != 1 || encode.PublicCopy.Calls != 1 || encode.FallbackEncode.Calls != 0 || encode.Normalize.DurationNs <= 0 || encode.JSONEncode.DurationNs <= 0 || encode.PublicCopy.DurationNs <= 0 || encode.Normalize.DurationNs+encode.JSONEncode.DurationNs+encode.PublicCopy.DurationNs > got.WorkPhases.SuffixEncode.DurationNs {
+				t.Fatal("prepared actual child clocks/parent differ", encode)
 			}
 		} else {
 			cold++
 			if details.StrictJSON.Calls != 1 {
 				t.Fatal("cold replay must retain strict JSON", details)
 			}
+			if *encode != (BlockJournalPreparedEncodePhases{}) {
+				t.Fatal("cold replay invented prepared work", encode)
+			}
 		}
+		// Aggregation must own counters, not the caller's result pointer.
+		encode.Normalize.Calls = 999
 		got.State.Accounts[0].Balance++
 		got.State.FeeEvents[0].ID = "caller changed"
 		got.SnapshotJSON[0] = '!'
@@ -84,6 +98,9 @@ func TestBlockJournalPreparedPrefixRealReplayOwnershipRotationAndRecovery(t *tes
 	}
 	if fast < 12 || cold < 2 {
 		t.Fatal("hot prepared and checkpoint rotation fallback not both covered", fast, cold)
+	}
+	if aggregate.PreparedEncodeDetails.Normalize.Calls != uint64(fast) || aggregate.PreparedEncodeDetails.JSONEncode.Calls != uint64(fast) || aggregate.PreparedEncodeDetails.PublicCopy.Calls != uint64(fast) {
+		t.Fatal("prepared child aggregate aliases or loses actual work", aggregate.PreparedEncodeDetails)
 	}
 	high := candidate.prefix.height
 	if old, err := candidate.Decode(context.Background(), older); err != nil || old.State.Height >= high || candidate.prefix.height != high {
@@ -164,6 +181,43 @@ func TestBlockJournalPreparedPrefixArbitraryPayloadAndProducerMismatchFailClosed
 	for _, limit := range []int{0, (16 << 20) - 1, (512 << 20) + 1} {
 		if _, err = NewBoundedBlockJournalPreparedNativePrefixDecoder(migration, limit); err == nil {
 			t.Fatal("original bound expanded", limit)
+		}
+	}
+}
+
+func TestBlockJournalPreparedPrefixFallbackEncodeTimingPreservesOriginalError(t *testing.T) {
+	migration, state := retainedSealFixture(t)
+	d, err := NewBoundedBlockJournalPreparedNativePrefixDecoder(migration, 32<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, failed := range []bool{false, true} {
+		// Invalid UTF8 is outside the closed normalizer but the original JSON
+		// encoder still handles it. An unencodable time exercises its error path.
+		bad := state
+		bad.AppHash = string([]byte{0xff})
+		if failed {
+			bad.FeeEvents = append([]BFTFeeEvent(nil), state.FeeEvents...)
+			bad.FeeEvents[0].RecordedAt = time.Date(10000, 1, 1, 0, 0, 0, 0, time.UTC)
+		}
+		original, originalErr := encodeCommittedStateJSON(bad)
+		phases := &BlockJournalPrefixWorkPhases{PreparedEncodeDetails: new(BlockJournalPreparedEncodePhases)}
+		var payload []byte
+		var prepared *preparedCanonicalNativeSnapshot
+		err = phases.measure("suffixEncode", func() error {
+			var e error
+			payload, prepared, e = d.encodePreparedPrefixSnapshotWithTiming(bad, phases)
+			return e
+		})
+		parts := phases.PreparedEncodeDetails
+		if prepared != nil || !bytes.Equal(payload, original) || (err == nil) != (originalErr == nil) || err != nil && err.Error() != originalErr.Error() {
+			t.Fatal("fallback encoder result/error changed", err, originalErr)
+		}
+		if parts.Normalize.Calls != 1 || parts.JSONEncode.Calls != 0 || parts.PublicCopy.Calls != 0 || parts.FallbackEncode.Calls != 1 || parts.Normalize.DurationNs <= 0 || parts.FallbackEncode.DurationNs <= 0 || parts.Normalize.DurationNs+parts.FallbackEncode.DurationNs > phases.SuffixEncode.DurationNs || parts.FallbackEncode.Errors != phases.SuffixEncode.Errors {
+			t.Fatal("fallback actual branch/error clocks differ", parts)
+		}
+		if failed != (err != nil) {
+			t.Fatal("original encode error path not reached")
 		}
 	}
 }

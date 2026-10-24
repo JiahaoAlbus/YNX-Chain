@@ -1173,7 +1173,10 @@ class SupplySourceTests(unittest.TestCase):
         prepared_stats=prepared_client['durableReadback']['prefixReplay'];prepared_stats['preparedCertificate']=True
         prepared_phases=prepared_stats['workPhases']
         prepared_phases['canonicalCopy']=dict(calls=0,errors=0,durationNs=0)
-        for phase in ('suffixSetup','suffixReplay','suffixEncode'):prepared_phases[phase]=dict(calls=1,errors=0,durationNs=1)
+        for phase in ('suffixSetup','suffixReplay'):prepared_phases[phase]=dict(calls=1,errors=0,durationNs=1)
+        prepared_phases['suffixEncode']=dict(calls=1,errors=0,durationNs=3)
+        prepared_phases['preparedEncodeDetails']={k:dict(calls=1,errors=0,durationNs=1) for k in ('normalize','jsonEncode','publicCopy')}
+        prepared_phases['preparedEncodeDetails']['fallbackEncode']=dict(calls=0,errors=0,durationNs=0)
         prepared_phases['certificatePublish']['calls']=2
         prepared_details=prepared_phases['certificatePublishDetails'];prepared_details['preparedNativeAccepted']=1
         prepared_details['payloadCopy']['calls']=2;prepared_details['nativeClone']['calls']=2
