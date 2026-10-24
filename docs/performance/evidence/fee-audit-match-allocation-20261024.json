@@ -1,0 +1,103 @@
+{
+  "kind": "same-build real retained 1024-row fee audit match allocation comparison; not business or network TPS",
+  "createdAt": "2026-10-24T07:59:59.938815+00:00",
+  "baseCommit": "4ee31b27497cc3a040775c2ae1efed951d9d261a",
+  "sourceFiles": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/fee_state.go",
+      "bytes": 4348,
+      "sha256": "5a6b36db14e86ec65aedef5d5868009cdaad7e136bbf1fc0961363309507013a"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/state.go",
+      "bytes": 48398,
+      "sha256": "d83d7e5521ef1f454ba615560ee24af0b95f72c76d12bb95f59e02e8d00ddeaa"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/fee_audit_encoding_test.go",
+      "bytes": 5078,
+      "sha256": "73f9bca3eaab598517380a56a9ac8450fa8c93147c8eb5e53c618b5c4ff589bf"
+    }
+  ],
+  "fixture": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/fixtures/state-hash-real-1024.json",
+    "bytes": 812656,
+    "sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+  },
+  "goVersion": "go version go1.25.7 darwin/arm64",
+  "hardware": "Apple M4, darwin/arm64",
+  "environment": {
+    "GOMAXPROCS": "1",
+    "GOPROXY": "off",
+    "GOTOOLCHAIN": "local",
+    "buildParallelism": 1
+  },
+  "benchmarkCommand": "go test -p 1 ./internal/consensus -run '^$' -bench '^BenchmarkFeeAuditMatchActualHistory$' -benchtime=50ms -count=3 -timeout=45s",
+  "order": "three original-string samples then three stack-compare samples; timings preliminary, allocation measured",
+  "rows": [
+    {
+      "mode": "original_hash_string",
+      "iterations": 244,
+      "nsPer1024Events": 237750,
+      "allocatedBytesPer1024Events": 131072,
+      "allocationsPer1024Events": 2048
+    },
+    {
+      "mode": "original_hash_string",
+      "iterations": 253,
+      "nsPer1024Events": 236446,
+      "allocatedBytesPer1024Events": 131072,
+      "allocationsPer1024Events": 2048
+    },
+    {
+      "mode": "original_hash_string",
+      "iterations": 226,
+      "nsPer1024Events": 244919,
+      "allocatedBytesPer1024Events": 131072,
+      "allocationsPer1024Events": 2048
+    },
+    {
+      "mode": "stack_hex_compare",
+      "iterations": 289,
+      "nsPer1024Events": 201957,
+      "allocatedBytesPer1024Events": 0,
+      "allocationsPer1024Events": 0
+    },
+    {
+      "mode": "stack_hex_compare",
+      "iterations": 292,
+      "nsPer1024Events": 236251,
+      "allocatedBytesPer1024Events": 0,
+      "allocationsPer1024Events": 0
+    },
+    {
+      "mode": "stack_hex_compare",
+      "iterations": 220,
+      "nsPer1024Events": 229111,
+      "allocatedBytesPer1024Events": 0,
+      "allocationsPer1024Events": 0
+    }
+  ],
+  "rawEvidence": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/fee-audit-stack-compare-benchmark.raw",
+      "bytes": 917,
+      "sha256": "cf96bed3c82006e8e4d5ab12151f59f1fd739ff02a338b6c8460ee6e169808c3"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/fee-audit-stack-full-consensus.raw",
+      "bytes": 122,
+      "sha256": "e6ad0a1961369e212f275b6ba7a1997bc74237302b80c1ec7a1c9f28fcc8b919"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/fee-audit-stack-focused-race.raw",
+      "bytes": 64,
+      "sha256": "30f9eb77519b8ab8609c64866a7967b728da20b5fd5097c994f7ad00d1ff3b7a"
+    }
+  ],
+  "equivalence": "same V1 domain/order/separators/time formatting/SHA256 and exact lowercase hex comparison; no history removed or trusted without rehash",
+  "networkImprovementMeasured": false,
+  "aggregateRSSImprovementMeasured": false,
+  "sustained1000Qualified": false,
+  "normalCIPending": true
+}

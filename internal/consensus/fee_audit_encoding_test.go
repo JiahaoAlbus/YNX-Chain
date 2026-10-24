@@ -53,6 +53,14 @@ func TestFeeAuditEncodingPreservesV1Hashes(t *testing.T) {
 		if got, want := feeEventAuditHash(event), legacyFeeEventAuditHash(event); got != want {
 			t.Fatalf("case %d: V1 hash changed: got %s want %s", i, got, want)
 		}
+		event.AuditHash = legacyFeeEventAuditHash(event)
+		if !feeEventAuditMatches(event) {
+			t.Fatalf("case %d: original V1 audit no longer matches", i)
+		}
+		event.ID += "changed"
+		if feeEventAuditMatches(event) {
+			t.Fatalf("case %d: mutated V1 payload accepted", i)
+		}
 	}
 }
 
@@ -64,5 +72,65 @@ func BenchmarkFeeEventAuditHash(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		feeAuditHashSink = feeEventAuditHash(event)
+	}
+}
+
+// Exact comparison semantics matter: decoding hex would also accept uppercase,
+// which the existing persisted audit contract deliberately rejects.
+func TestFeeAuditMatchPreservesExactEncodedComparison(t *testing.T) {
+	events := []BFTFeeEvent{feeAuditEncodingFixture()}
+	large := events[0]
+	large.ID = strings.Repeat("long-field-汉字\x00", 512)
+	large.RecordedAt = time.Date(2026, 10, 24, 1, 2, 3, 456, time.FixedZone("offset", 19800))
+	events = append(events, large)
+	for _, event := range events {
+		want := legacyFeeEventAuditHash(event)
+		candidates := []string{want, "", want[:63], want + "0", strings.ToUpper(want), strings.Repeat("0", 64)}
+		for index := range want {
+			changed := []byte(want)
+			changed[index] = 'g'
+			candidates = append(candidates, string(changed))
+		}
+		for _, value := range candidates {
+			event.AuditHash = value
+			if got := feeEventAuditMatches(event); got != (value == want) {
+				t.Fatalf("exact audit comparison changed for length %d", len(value))
+			}
+		}
+		event.AuditHash = want
+		event.GrossFeeYNXT++
+		if feeEventAuditMatches(event) {
+			t.Fatal("changed payload reused old audit hash")
+		}
+	}
+}
+
+var feeAuditMatchSink bool
+
+// One complete original 1024-row history on both sides, with full SHA-256 per
+// row. This measures audit matching only, never business or network throughput.
+func BenchmarkFeeAuditMatchActualHistory(b *testing.B) {
+	_, state := retainedSealFixture(b)
+	for _, candidate := range []struct {
+		name  string
+		match func(BFTFeeEvent) bool
+	}{
+		{"original_hash_string", func(event BFTFeeEvent) bool { return event.AuditHash == feeEventAuditHash(event) }},
+		{"stack_hex_compare", feeEventAuditMatches},
+	} {
+		b.Run(candidate.name, func(b *testing.B) {
+			for _, event := range state.FeeEvents {
+				if !candidate.match(event) {
+					b.Fatal("original actual history failed audit match")
+				}
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				for _, event := range state.FeeEvents {
+					feeAuditMatchSink = candidate.match(event)
+				}
+			}
+		})
 	}
 }

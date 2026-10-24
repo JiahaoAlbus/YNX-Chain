@@ -65,6 +65,21 @@ func newFeeEvent(txHash, txType, payer, recipient string, fee int64, source stri
 }
 
 func feeEventAuditHash(event BFTFeeEvent) string {
+	sum := feeEventAuditDigest(event)
+	return hex.EncodeToString(sum[:])
+}
+
+// Validation still hashes the complete current V1 payload. Compare the exact
+// lowercase encoding in a stack buffer instead of allocating a string for each
+// historical row. This accepts exactly the same bytes as feeEventAuditHash.
+func feeEventAuditMatches(event BFTFeeEvent) bool {
+	sum := feeEventAuditDigest(event)
+	var encoded [sha256.Size * 2]byte
+	hex.Encode(encoded[:], sum[:])
+	return event.AuditHash == string(encoded[:])
+}
+
+func feeEventAuditDigest(event BFTFeeEvent) [sha256.Size]byte {
 	// Keep the V1 byte contract while avoiding variadic formatting and a
 	// formatted string allocation for every historical event on validation.
 	// Larger fields still grow normally; this is not a record-size restriction.
@@ -89,6 +104,5 @@ func feeEventAuditHash(event BFTFeeEvent) string {
 	text(event.Source)
 	number(event.BlockHeight)
 	payload = event.RecordedAt.UTC().AppendFormat(payload, time.RFC3339Nano)
-	sum := sha256.Sum256(payload)
-	return hex.EncodeToString(sum[:])
+	return sha256.Sum256(payload)
 }
