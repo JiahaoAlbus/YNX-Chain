@@ -35,18 +35,27 @@ async function stage(name,tool,argv,cwd,wallMS,{input,environment,expectedExit=0
 }
 
 export async function runR237PrincipalCI(){
- if(process.argv.length!==2||process.platform!=='linux'||process.env.CI!=='true'||process.env.GITHUB_ACTIONS!=='true'||process.env.RUNNER_OS!=='Linux'||!/^\d+$/.test(process.env.GITHUB_RUN_ID??'')||!process.env.GITHUB_JOB)fail('R237_LINUX_ACTIONS_REQUIRED');
+ const remainingNinth=process.argv[2]==='--remaining-ninth';
+ if(process.argv.length!==(remainingNinth?3:2)||process.platform!=='linux'||process.env.CI!=='true'||process.env.GITHUB_ACTIONS!=='true'||process.env.RUNNER_OS!=='Linux'||!/^\d+$/.test(process.env.GITHUB_RUN_ID??'')||!process.env.GITHUB_JOB)fail('R237_LINUX_ACTIONS_REQUIRED');
  if(process.version!=='v24.19.0'||(process.env.NODE_OPTIONS??'')!==''||(process.env.NODE_PATH??'')!=='')fail('R237_NODE_SELECTION');
- fs.mkdirSync(path.dirname(evidence),{recursive:true});fs.mkdirSync(evidence,{mode:0o700});let firstCause=null;
+ fs.mkdirSync(path.dirname(evidence),{recursive:true});fs.mkdirSync(evidence,{mode:0o700});let firstCause=null;const passed=[];
+ const previousFirstEight={run:40092843345,job:120868896613,commit:'55fcb9c71a5437b935a50afe76fd555a7ad76559',passObserved:8,completeNine:false,originalStageSuccess:false,originalFirstCause:'AUTH_GO_CI_WALL_TIMEOUT',stdout:{artifactRelative:'auth-r237-principal/NODE_NEW9.stdout',bytes:2037,sha256:'f0cfb1e9167438f90b50b9f636af13014efc9ac0359d90c5553179b7df3171bb'},terminal:{artifactRelative:'auth-r237-principal/NODE_NEW9_TERMINAL.json',bytes:3678,sha256:'4b9c57f7513868e50df5034cffc937cd49d6ec59e2a0a34c4b554d1f2d408fe9'},referenceOnly:true,countedAsCurrentRunPass:false};
  try{
   const scratch=fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(),'ynx-r237-principal-CI-'))),prepared=prepareR237PrincipalCI({outputRoot:path.join(scratch,'closed-sdk')});save('PREPARE_RECEIPT.json',prepared);
-  save('NODE_TOOL.json',{tool:fs.realpathSync(process.execPath),version:process.version,argv:['--test','--test-reporter=tap',prepared.test],original30sBudget:true});
-  const result=await stage('NODE_NEW9',process.execPath,['--test','--test-reporter=tap',prepared.test],prepared.outputRoot,30000,{environment:{...process.env,TMPDIR:scratch}});
-  if(!result.success)fail(result.firstCause??'R237_NEW9_FAILED');
-  const text=fs.readFileSync(path.join(evidence,'NODE_NEW9.stdout'),'utf8'),passes=[...text.matchAll(/^ok \d+ - (.+)$/gm)].map(x=>x[1]);
-  if(passes.length!==9||new Set(passes).size!==9||passes.some(x=>!prepared.testNames.includes(x))||/^not ok/m.test(text)||/# SKIP|# TODO/.test(text)||!/^# tests 9$/m.test(text)||!/^# pass 9$/m.test(text)||!/^# fail 0$/m.test(text)||!/^# skipped 0$/m.test(text)||!/^# cancelled 0$/m.test(text))fail('R237_EXACT_NINE_REQUIRED');
-  save('SELECTED_TEST_RESULTS.json',{names:passes,pass:9,fail:0,skip:0,actualLoopbackHTTP:true,temporaryPUBLICBrandOnly:true,originalProductionThreeUnmodified:true,oldGreensRerun:false,Root:false,SourceAdmitted:false,serviceMounted:false});
+  if(prepared.testNames.length!==9||prepared.testNames[8]!=='normal branded Principal handler fences expiry after awaiting the original kernel')fail('R237_NINTH_SELECTION');
+  const selected=remainingNinth?[{name:prepared.testNames[8],index:8}]:prepared.testNames.map((name,index)=>({name,index}));
+  save('NODE_TOOL.json',{tool:fs.realpathSync(process.execPath),version:process.version,mode:remainingNinth?'remaining-ninth':'independent-nine',selectedNames:selected.map(p=>p.name),perChildWallMS:30000,originalProductionAndTestBytesUnchanged:true});
+  if(remainingNinth)save('PREVIOUS_FIRST_EIGHT_REFERENCE.json',previousFirstEight);
+  for(const {name,index}of selected){
+   const escaped=Array.from(name,c=>'\\^$.*+?()[]{}|'.includes(c)?'\\'+c:c).join(''),pattern='^'+escaped+'$',stageName='NODE_CASE_'+String(index+1).padStart(2,'0');
+   const result=await stage(stageName,process.execPath,['--test','--test-reporter=tap','--test-name-pattern='+pattern,prepared.test],prepared.outputRoot,30000,{environment:{...process.env,TMPDIR:scratch}});
+   if(!result.success)fail(result.firstCause??'R237_SELECTED_CASE_FAILED');
+   const text=fs.readFileSync(path.join(evidence,stageName+'.stdout'),'utf8'),actual=[...text.matchAll(/^ok \d+ - (.+)$/gm)].map(x=>x[1]);
+   if(actual.length!==1||actual[0]!==name||/^not ok/m.test(text)||/# SKIP|# TODO/.test(text)||!/^# tests 1$/m.test(text)||!/^# pass 1$/m.test(text)||!/^# fail 0$/m.test(text)||!/^# skipped 0$/m.test(text)||!/^# cancelled 0$/m.test(text))fail('R237_EXACT_SELECTED_ONE_REQUIRED');
+   passed.push(name);
+  }
+  save('SELECTED_TEST_RESULTS.json',{mode:remainingNinth?'remaining-ninth':'independent-nine',selectedPass:passed.length,expectedSelectedPass:selected.length,names:passed,fail:0,skip:0,allNinePassedInThisRun:!remainingNinth&&passed.length===9,previousFirstEightReference:remainingNinth?previousFirstEight:null,actualLoopbackHTTP:true,temporaryPUBLICBrandOnly:true,originalProductionThreeUnmodified:true,Root:false,SourceAdmitted:false,serviceMounted:false});
  }catch(e){firstCause=e.code??e.message??'R237_CI_FAILED';}
- save('RESULT.json',{success:firstCause===null,firstCause,noAutomaticRetry:true,Root:false,SourceAdmitted:false,serviceMounted:false,production:false,Native:false,Go:false,installed:false,realUserLogin:false});if(firstCause)fail(firstCause);
+ save('RESULT.json',{success:firstCause===null,firstCause,mode:remainingNinth?'remaining-ninth':'independent-nine',selectedPass:passed.length,expectedSelectedPass:remainingNinth?1:9,allNinePassedInThisRun:!remainingNinth&&firstCause===null&&passed.length===9,previousFirstEightReference:remainingNinth?previousFirstEight:null,noAutomaticRetry:true,Root:false,SourceAdmitted:false,serviceMounted:false,production:false,Native:false,Go:false,installed:false,realUserLogin:false});if(firstCause)fail(firstCause);
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))await runR237PrincipalCI();

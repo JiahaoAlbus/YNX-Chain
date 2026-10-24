@@ -2998,8 +2998,8 @@ jobs:
       - name: Original locked SDK dependencies
         working-directory: packages/wallet-auth
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Nine new original principal completion cases only
-        run: node scripts/ci/run-auth-r237-principal.mjs
+      - name: Complete ninth principal case after frozen first eight CI passes
+        run: node scripts/ci/run-auth-r237-principal.mjs --remaining-ninth
       - name: Two affected original principal and observation boundaries only
         run: |
           mkdir -p .ci-evidence/auth-r237-affected
