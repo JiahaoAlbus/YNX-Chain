@@ -14,8 +14,20 @@ export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
 export const WALLET_PUBLISHER_APPROVAL_FLAG='-DYNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING=1';
 export const WALLET_PUBLISHER_APPROVAL_INPUT=Object.freeze({path:'apps/wallet-desktop/native/original-artifact-publisher-binding.inc.mm',bytes:11486,sha256:'4e36676825adff0690a231c9a4f3d628bb322cb32862ecd5a2cfdc7ad36af271'});
 const withApproval=Object.freeze([...WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_PUBLISHER_APPROVAL_INPUT]);
-export function walletPublisherNativeInputs(supplierNodeInputCount){
+export const WALLET_ARTIFACT_CABI_FLAG='-DYNX_ORIGINAL_WALLET_ARTIFACT_CABI=1';
+// Separate Main private body and unchanged Protocol 395bb8d99 darwin-arm64
+// supply. These are explicit build inputs, never inferred from a local archive.
+export const WALLET_ARTIFACT_CABI_INPUTS=Object.freeze([
+ {path:'apps/wallet-desktop/native/original-artifact-publisher-cabi.h',bytes:4734,sha256:'f97eb8cafb4151113cd38a17a73a95d4534c1915986d1fa1ee15ada30964dd8a'},
+ {path:'apps/wallet-desktop/native/ynx_artifact_release.h',bytes:5089,sha256:'1da905e0b38581ad34a9cf995c36f8d368425df9242a35f4e49d7b41c8100616'},
+ {path:'apps/wallet-desktop/native/libynx_artifact_release.a',bytes:6994968,sha256:'c11e9522e0cfaf585987796a03e08b2acff99b5282c1c3622a65ad3b6211c643'}
+].map(Object.freeze));
+const withCABI=Object.freeze([...withApproval,...WALLET_ARTIFACT_CABI_INPUTS]);
+export function walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease=false){
+ if(typeof artifactRelease!=='boolean')throw Error('WALLET_ARTIFACT_CABI_ROLE_INVALID');
+ if(artifactRelease&&supplierNodeInputCount!==77)throw Error('WALLET_ARTIFACT_CABI_SDK20_REQUIRED');
  if(![69,71,75,76,77].includes(supplierNodeInputCount))throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');
+ if(artifactRelease)return withCABI;
  return supplierNodeInputCount===77?withApproval:WALLET_PUBLISHER_NATIVE_INPUTS;
 }
 export const SDK13_NODE_TRANSLATION_UNITS=Object.freeze([
@@ -26,14 +38,15 @@ const fail=()=>{throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');};
 /** Build-only composition. Original supplier bytes and helper recipe remain
  * unchanged. This extra private IO class is NOT Source/approval qualification.
  */
-export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInputCount=69){
+export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInputCount=69,artifactRelease=false){
  if(typeof repo!=='string'||!path.isAbsolute(repo)||path.normalize(repo)!==repo)fail();
- const walletInputs=walletPublisherNativeInputs(supplierNodeInputCount);
+ const walletInputs=walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease);
  const sources=SDK13_NODE_TRANSLATION_UNITS.map(n=>path.join(repo,n));
  if(plan.minimumSystemVersion!=='13.0'||JSON.stringify(plan.sources)!==JSON.stringify(sources)||!Array.isArray(plan.commands))fail();
  const store=path.join(repo,WALLET_PUBLISHER_NATIVE_INPUTS[1].path),output=path.join(repo,'apps/wallet-desktop/native/original-auth-identity.node');
  if(plan.output!==output||JSON.stringify(plan.outputs)!==JSON.stringify([output]))fail();
  const compilers=plan.commands.filter(c=>c.tool==='/usr/bin/clang++');
+ if(artifactRelease&&(compilers.length!==1||compilers[0].argv.filter(v=>v==='-arch').length!==1||compilers[0].argv[compilers[0].argv.indexOf('-arch')+1]!=='arm64'))throw Error('WALLET_ARTIFACT_CABI_ARCHITECTURE_NOT_SUPPLIED');
  if(compilers.length<1||compilers.length>2||plan.commands.length!==(compilers.length===2?3:1))fail();
  const commands=plan.commands.map(command=>{
   if(command.tool!=='/usr/bin/clang++'){
@@ -41,10 +54,11 @@ export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInpu
    return {...command,argv:[...command.argv]};
   }
   const argv=[...command.argv],start=argv.indexOf(sources[0]),end=argv.lastIndexOf('-o');
-  if(argv.some(a=>a.includes('YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING')))fail();
+  if(argv.some(a=>a.includes('YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING')||a.includes('YNX_ORIGINAL_WALLET_ARTIFACT_CABI')||a.includes('libynx_artifact_release')))fail();
   if(start<0||end!==start+sources.length||JSON.stringify(argv.slice(start,end))!==JSON.stringify(sources)||argv.includes(store)||argv.includes('LocalAuthentication'))fail();
   if(argv.filter(a=>a==='ServiceManagement').length!==1||argv.filter(a=>a==='AppKit').length!==1||argv.filter(a=>a==='-lbsm').length!==1)fail();
   argv.splice(end,0,store);argv.splice(argv.indexOf('-lbsm'),0,'-framework','LocalAuthentication');
+  if(artifactRelease){argv.splice(argv.lastIndexOf('-o'),0,path.join(repo,WALLET_ARTIFACT_CABI_INPUTS[2].path));argv.unshift(WALLET_ARTIFACT_CABI_FLAG,'-I'+path.join(repo,'apps/wallet-desktop/native'));}
   if(supplierNodeInputCount===77)argv.unshift(WALLET_PUBLISHER_APPROVAL_FLAG);
   return {...command,argv};
  });
