@@ -3,9 +3,10 @@
 import fs from 'node:fs';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';import {spawn} from 'node:child_process';import {tmpdir} from 'node:os';
 import {prepareAuthGoFixtureCIData} from './auth-go-fixture-ci.mjs';
 import {stageR209CatalogDelta} from '../../../scripts/ci/auth-r209-catalog-supply.mjs';
+import {stageR210SourceCompletionDelta} from '../../../scripts/ci/auth-r210-source-completion-supply.mjs';
 const pkg=fileURLToPath(new URL('../',import.meta.url)),fixture=path.join(pkg,'test/fixtures/auth-r202-go-source'),evidence=path.join(pkg,'.ci-evidence/auth-r202-go-fixture');
 const supplierPin={path:'SUPPLIER_HANDOFF.json',bytes:14261,sha256:'5115dbbe571e31a5e21a7af2868ffe012e26457cbb8a26d52d3bd0ca9856e72f'};
-const selection='^TestOriginalCatalogAuthority(ActualSameSourceAndHTTPPrincipal|NoAbsentOrPartialFactoryFallback)$';
+const selection='^TestOriginalSourcePostWatermarkCompletion';
 const fail=code=>{throw Object.assign(Error(code),{code});},hash=raw=>createHash('sha256').update(raw).digest('hex'),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const save=(name,data)=>fs.writeFileSync(path.join(evidence,name),JSON.stringify(data,null,2)+'\n',{flag:'wx',mode:0o600});
 function relative(p){if(typeof p!=='string'||path.isAbsolute(p)||p.includes('\\')||p.split('/').some(x=>!x||x==='.'||x==='..'))fail('AUTH_GO_CI_PATH');return p;}
@@ -57,12 +58,12 @@ async function main(){
   const files=checkSupply();save('SUPPLIER_VERIFIED.json',{supplierPin,files,PUBLIC:true,Source13:false,Root:false,production:false});
   const go=findGo(),versionTerm=await stage('GO_VERSION',go,['version'],pkg,5000);if(!versionTerm.success)fail(versionTerm.firstCause??'AUTH_GO_CI_TOOL_VERSION_FAILED');version=fs.readFileSync(path.join(evidence,'GO_VERSION.stdout'),'utf8').trim();const arch=process.arch==='x64'?'amd64':process.arch;
   if(version!=='go version go1.25.13 linux/'+arch)fail('AUTH_GO_CI_TOOL_VERSION_MISMATCH');save('GO_TOOL.json',{actualTool:go,version,architecture:process.arch,versionTerminal:versionTerm,PATHSource:'official CI setup-go PATH; no downloaded/replaced tool by this runner'});
-  const scratch=fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(),'ynx-auth-r202-go-CI-'))),outputRoot=path.join(scratch,'prepared'),prepared=prepareAuthGoFixtureCIData({fixtureRoot:path.join(fixture,'source'),files,nodeExecutable:fs.realpathSync(process.execPath),outputRoot});save('PREPARE_RECEIPT.json',prepared);save('R209_DELTA_RECEIPT.json',stageR209CatalogDelta({preparedRoot:outputRoot}));
-  const prefix='internal/developerauthority/',names=files.filter(x=>x.path.startsWith(prefix)&&x.path.endsWith('.go')).map(x=>x.path.slice(prefix.length)).concat(['original_catalog_authority.go','original_catalog_authority_test.go']).sort();if(names.length!==29||names.some(n=>n.includes('/')))fail('AUTH_GO_CI_GO_SCOPE');
+  const scratch=fs.realpathSync(fs.mkdtempSync(path.join(tmpdir(),'ynx-auth-r202-go-CI-'))),outputRoot=path.join(scratch,'prepared'),prepared=prepareAuthGoFixtureCIData({fixtureRoot:path.join(fixture,'source'),files,nodeExecutable:fs.realpathSync(process.execPath),outputRoot});save('PREPARE_RECEIPT.json',prepared);save('R209_DELTA_RECEIPT.json',stageR209CatalogDelta({preparedRoot:outputRoot}));save('R210_DELTA_RECEIPT.json',stageR210SourceCompletionDelta({preparedRoot:outputRoot}));
+  const prefix='internal/developerauthority/',names=files.filter(x=>x.path.startsWith(prefix)&&x.path.endsWith('.go')).map(x=>x.path.slice(prefix.length)).concat(['original_catalog_authority.go','original_catalog_authority_test.go','original_source_post_completion_test.go']).sort();if(names.length!==30||names.some(n=>n.includes('/')))fail('AUTH_GO_CI_GO_SCOPE');
   goTest=await stage('GO_TEST',go,['test','-race','-json','-run',selection,'-count=1',...names],path.join(outputRoot,prefix),120000);if(!goTest.success)fail(goTest.firstCause??'AUTH_GO_CI_GO_TEST_FAILED');
   const events=fs.readFileSync(path.join(evidence,'GO_TEST.stdout'),'utf8').trim().split('\n').filter(Boolean).map(line=>JSON.parse(line)),passes=events.filter(x=>x.Action==='pass'&&typeof x.Test==='string').map(x=>x.Test),top=passes.filter(n=>!n.includes('/'));
   if(events.some(x=>x.Action==='fail'||x.Action==='skip')||new Set(passes).size!==2||passes.length!==2||top.length!==2||top.some(n=>!new RegExp(selection).test(n))||events.filter(x=>x.Action==='pass'&&!x.Test).length!==1)fail('AUTH_GO_CI_SELECTED_TEST_COUNT');
-  save('SELECTED_TEST_RESULTS.json',{top,topCount:2,subtests:0,pass:2,race:true,selectedOnly:selection,actualTool:go,version,priorR202GreenGroupsRerun:false,Source13:false,Root:false});
+  save('SELECTED_TEST_RESULTS.json',{top,topCount:2,subtests:0,pass:2,race:true,selectedOnly:selection,actualTool:go,version,priorR202GreenGroupsRerun:false,priorCatalogCasesRerun:false,originalRawAndUnknownPreserved:true,Source13:false,Root:false});
  }catch(e){firstCause=e.code??e.message??'AUTH_GO_CI_FAILED';}
  save('RESULT.json',{success:firstCause===null,firstCause,version,GoTest:goTest,normalGoServer:false,SQLMigration:false,Source13:false,Root:false,Native:false,production:false,realUserLogin:false,realSessionRecovery:false,realRevocation:false,noAutomaticRetry:true});
  if(firstCause)fail(firstCause);

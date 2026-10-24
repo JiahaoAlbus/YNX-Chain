@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "state": "ORIGINAL_SOURCE_POST_DURABLE_WATERMARK_COMPLETION_FENCE_FIXED_PUBLIC_TESTED",
+  "parent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202/source/internal/developerauthority/original_control_runtime.go",
+    "bytes": 11941,
+    "sha256": "de5328f880c5479b1532651b127df1e41c9bcfe60096bbfb4946671af25f50fe",
+    "gitBlob": "d5c936576904e2bbc5622fc523f6612f1750058a"
+  },
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/source/internal/developerauthority/original_control_runtime.go",
+      "relative": "source/internal/developerauthority/original_control_runtime.go",
+      "bytes": 12767,
+      "sha256": "39ae71b4ca13b9f2060707c8217ac56c81887b53aa300cd8a44bf37f2c57a656",
+      "gitBlob": "020f9b4d582b8bd582170f20b63c7f4929d0423d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/source/internal/developerauthority/original_source_post_completion_test.go",
+      "relative": "source/internal/developerauthority/original_source_post_completion_test.go",
+      "bytes": 1573,
+      "sha256": "5ffccbd8efe1752b45ad2bf961836e7f2c8bb82fe0510adaaa4b1a04eb426697",
+      "gitBlob": "59b89a2d0d1455cf63b6172c3799c06c0eed6f44"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/run-new-completion.mjs",
+      "relative": "run-new-completion.mjs",
+      "bytes": 1101,
+      "sha256": "9b8e61ec17a86cee3cd0a2c24ebd5efcba7cddddd4cfaa33046242115d24a304",
+      "gitBlob": "47a4650a06dfda1afe2add12f86ef37d3582b154"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/observed-red/source/internal/developerauthority/original_control_runtime.go",
+      "relative": "observed-red/source/internal/developerauthority/original_control_runtime.go",
+      "bytes": 12565,
+      "sha256": "e29f19b750d201d3f93fdecd7d85cf128beabf708aafe9c430b5bbbe745a6bcf",
+      "gitBlob": "2cd0fb7a05ebfcb348917d6f9c52246c05d26eaf"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/evidence/source-completion-dp5UdR/stdout",
+      "relative": "evidence/source-completion-dp5UdR/stdout",
+      "bytes": 2308,
+      "sha256": "f78029dbf5ab57cd3dab8e138998071204ee0138c56cc4f2d9df2924fa454506",
+      "gitBlob": "241d477a4d38155cc305c80d69625f4addfeb5cb"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/observed-red/evidence/source-completion-SuF2R2/stdout",
+      "relative": "observed-red/evidence/source-completion-SuF2R2/stdout",
+      "bytes": 2864,
+      "sha256": "d10591c1da6bf2ad29bcfe06ad46b1c46b188f672546d75e98e6b3d48d778092",
+      "gitBlob": "d106c711b2e9526b95527c8e8cdc9804354b58d4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/evidence/source-completion-dp5UdR/stderr",
+      "relative": "evidence/source-completion-dp5UdR/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/observed-red/evidence/source-completion-SuF2R2/stderr",
+      "relative": "observed-red/evidence/source-completion-SuF2R2/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/evidence/source-completion-dp5UdR/result.json",
+      "relative": "evidence/source-completion-dp5UdR/result.json",
+      "bytes": 2199,
+      "sha256": "f66ab2f1011c3e39606a6545ef841d4242ce94a7ddad6d716f06a3ea6db08f2f",
+      "gitBlob": "07e1b58d968d107da6a503a7eb54cd68623f1f60"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r210-supply-20261024-r1/observed-red/evidence/source-completion-SuF2R2/result.json",
+      "relative": "observed-red/evidence/source-completion-SuF2R2/result.json",
+      "bytes": 2199,
+      "sha256": "25c30965e87cf04f84c06917beae204d8581617789e7930a702382a8d1186af3",
+      "gitBlob": "128dae60dfdaa9f0a915fd449691d8a95f4a507b"
+    }
+  ],
+  "defect": "Actual AssertSourceCurrent authenticated current, then awaited durable SQL watermark, then returned success without checking signed expiry/time rollback/context after completion.",
+  "repair": "Retain actual original before SQL; after original observe completes check fixed production clock, signed expiry/timeFloor, monotonic pre/post time and context. Late failure latches private first cause, returns UNKNOWN; subsequent calls do not re-enter verifier/SQL. Production clock fixed time.Now; private tests only can change it.",
+  "evidence": {
+    "controlledOmission": {
+      "tests": 2,
+      "failed": 2,
+      "exit": 1,
+      "note": "Exact real runtime method with new diagnostics/private clock retained but ONLY post-watermark fence deliberately omitted; actual public pinned verifier process+SQL connector return nil for expired/clock-rollback cases."
+    },
+    "fixed": {
+      "tests": 2,
+      "pass": 2,
+      "exit": 0,
+      "race": true
+    },
+    "oldGreenGroupsRerun": false
+  },
+  "integration": "Additional actual supplier dependency delta on R202 + R209 Catalog callee; preserve original SDK canonical Source service/daemon and empty admitted selection. No new Go server or fake Source13 implementation.",
+  "truth": {
+    "Source13": false,
+    "mounted": false,
+    "Root": false,
+    "production": false,
+    "grants": false,
+    "FinanceResumed": false
+  }
+}
