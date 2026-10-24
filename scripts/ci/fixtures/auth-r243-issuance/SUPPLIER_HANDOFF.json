@@ -1,0 +1,185 @@
+{
+  "kind": "AUTH_R243_FIXED_SOURCE_ISSUANCE_PRODUCER_NORMAL_ADMIN_SUPPLY/v1",
+  "parentSDK37": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261024/sdk37-normal-supply/SDK37_NORMAL_PREFIX_NATIVE_NAMESPACE_RUNTIME_HANDOFF.json",
+    "bytes": 9317,
+    "sha256": "3d922d6dbdb456bc4b2a92c07b96af1c504018f5f770f407fc0845457f98fd28"
+  },
+  "files": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/source/packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+      "bytes": 31985,
+      "sha256": "2bee15594c01ae2c6e62003e9b9e932d9f6663874587018e7b27a7ad8b2c3d77",
+      "blob": "16c0eff63d1ea117232e64b4f407b9b05596b0ea"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/source/packages/wallet-auth/scripts/ynx-auth-source-issue.mjs",
+      "bytes": 1285,
+      "sha256": "1d156452c85db26bde0fb6f808f4eaedfa1f7d1401082528ec3229cb1e3bbc72",
+      "blob": "1dcb8cb0f33f9237d38d0d1a9b6579882ecabc28"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/source/packages/wallet-auth/src/original-auth-identity-source-current.js",
+      "bytes": 19678,
+      "sha256": "6f783e8d4d46a2c74399e9e15a74f9adca2ade89f57cb741535481e4702a97a3",
+      "blob": "27f556f2c6aaa0b32e8397f2864aa3cace67d8d9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/source/packages/wallet-auth/src/original-auth-source-issuance-v2.js",
+      "bytes": 14973,
+      "sha256": "4bde60cb18839b82a0bbe6f751375b4aac2c64296799b31386c8cf2efca83ec7",
+      "blob": "f87a71cc01ef744d647424592a560ddb6ad782b7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/source/packages/wallet-auth/test-r243-source-issuance.mjs",
+      "bytes": 19117,
+      "sha256": "618e718c8dae14478818c0b16fc097839e10c0fa42ce14873df60b15194a1cff",
+      "blob": "0fe0cf2ffc8cfc24e713253bb40c69b34862fedc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/RESULT.json",
+      "bytes": 255,
+      "sha256": "c341dece8a69e1653b8c8dd64cf3efb47c876e9fd8636d06743deb5c3f245e49",
+      "blob": "64d263b3e5cbe546d79f914ea600ccff73193f7a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/issuance-14wgT6-RESULT.json",
+      "bytes": 221,
+      "sha256": "edcc04ae6d05bfbb4bbc917b4ba292857d2d9f2a786df3cafca2b44e764c56fa",
+      "blob": "e5fd567ad69c10a78dd9d150885ffb8e2b4bbd65"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/issuance-IxNrJL-RESULT.json",
+      "bytes": 255,
+      "sha256": "c341dece8a69e1653b8c8dd64cf3efb47c876e9fd8636d06743deb5c3f245e49",
+      "blob": "64d263b3e5cbe546d79f914ea600ccff73193f7a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/issuance-MS1Jmv-RESULT.json",
+      "bytes": 221,
+      "sha256": "c535c1212cc513239c05b5edaafa75fabec5f83d1c127e87453fdc41e68f6fe7",
+      "blob": "d954f8f8cc00b9845aefede8085bc144a864309a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/issuance-TuJ9oe-RESULT.json",
+      "bytes": 221,
+      "sha256": "c535c1212cc513239c05b5edaafa75fabec5f83d1c127e87453fdc41e68f6fe7",
+      "blob": "d954f8f8cc00b9845aefede8085bc144a864309a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/issuance-cfFUnd-RESULT.json",
+      "bytes": 221,
+      "sha256": "31a701b07a0178642b0cd1a74f61ddd9d06a6851433eb6f7710921ce984501dc",
+      "blob": "122ec8cef563db226b1535485451fb001f1ba3ef"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/issuance-j5t24Q-RESULT.json",
+      "bytes": 221,
+      "sha256": "edcc04ae6d05bfbb4bbc917b4ba292857d2d9f2a786df3cafca2b44e764c56fa",
+      "blob": "e5fd567ad69c10a78dd9d150885ffb8e2b4bbd65"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/issuance-ya2m9H-RESULT.json",
+      "bytes": 221,
+      "sha256": "edcc04ae6d05bfbb4bbc917b4ba292857d2d9f2a786df3cafca2b44e764c56fa",
+      "blob": "e5fd567ad69c10a78dd9d150885ffb8e2b4bbd65"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/stdout.log",
+      "bytes": 314,
+      "sha256": "46fe6f75da2e624e2e407ff97cf49850b95a9f00b6e21d095bf278d4963ca333",
+      "blob": "cc4b7810c929d9ec41d8f84428a9505f08e12ba6"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/unconfigured-stderr.log",
+      "bytes": 471,
+      "sha256": "68b6a942243be029ed221b892896ba4bf275a77b1dcc6635d473707e4318758e",
+      "blob": "a82f45562250101250968e7d95ad546ea1092a6b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r2/evidence/unconfigured-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    }
+  ],
+  "fixturePrefixParent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/source/packages/wallet-auth/test-publication-issuer.mjs",
+    "bytes": 14729,
+    "sha256": "e88232dfeec1f8bb4df3604e702e729356eacfe5ee8bde55d6c5519cc95465f2",
+    "blob": "87d0b387fa8c2d85d382c9bfa1aa072b6df083d5"
+  },
+  "actual": {
+    "tests": 2,
+    "pass": 2,
+    "skip": 0,
+    "rawRun": "/Volumes/西部数据/YNX-large-work/auth-owned-r243/evidence/issuance-IxNrJL",
+    "normalCLIUnconfiguredExit": 1,
+    "normalCLIStdoutBytes": 0,
+    "syntax": true,
+    "filter": "R243r2"
+  },
+  "normalCallChain": [
+    "ynx-auth-source-issue.mjs",
+    "loadOriginalAuthSourceIssuanceService (independent empty admittedSourceIssuance)",
+    "loadReleaseSelectedOriginalSourceIssuanceV2",
+    "root-owned pinned approval ORIGINAL + separately role-bound protected roleKeys native import",
+    "OriginalSourceIssuanceV2Kernel.initialize / issueSelected / assertOriginalCompletion"
+  ],
+  "independentApprovalTrust": "Exact root-owned protected approval original is selected ONLY by independently admitted compiled release refs/digest, never JSON/ENV/caller boolean. Its writer and actual lawful role custody are not supplied or synthesized. Its schema is not a Root grant.",
+  "scope": {
+    "purpose": "wallet-pq-host-catalog-source-v1",
+    "roles": [
+      "AUTH-SOURCE-ENROLLMENT",
+      "AUTH-SOURCE-PROFILE"
+    ],
+    "noCurrentKeysReuse": true,
+    "noHTTPMutationRoute": true,
+    "noPublicGenericSigner": true,
+    "originalEncodingAndBothPQ": true,
+    "selectedIntentPersistedBeforeSign": true,
+    "partialUNKNOWNNoRetry": true,
+    "firstCloseResultSticky": true
+  },
+  "next": {
+    "SDK": "Integrate exact new private src/native/script/test delta and normal bin, update real closure/Native identities, run only new controls in original CI; never hot-edit SDK37 or reuse old record",
+    "Root": "Coordinate independent actual role custody/approval and exact release admission separately; no credentials requested",
+    "MainA": "SDK37 actual matching build remains independent and ongoing; this is subsequent source delta not relabeling that candidate",
+    "Go": "Original physical Go main/module/mount still not supplied; no parallel server created"
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "localPUBLICVerified": true,
+    "normalCI": false,
+    "packed": false,
+    "realRoleSupplied": false,
+    "independentApprovalSupplied": false,
+    "Root": false,
+    "SourceQualified": false,
+    "activated": false,
+    "installed": false,
+    "production": false,
+    "privateKeyExported": false,
+    "FinancialWorkResumed": false
+  },
+  "parentOwnSupply": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r243-supply-20261024-r1/HANDOFF.json",
+    "bytes": 7913,
+    "sha256": "a6326dce1f561dd0f6398f9fd84074a6e4e8257d7b6b8b740cfde68a4e0af82c",
+    "blob": "c75dc3b9ff4dfe23e08f466e1a10aee6bf24e2c7"
+  },
+  "inheritedUnchangedControls": {
+    "tests": 13,
+    "pass": 13,
+    "skip": 0,
+    "rerun": false,
+    "reason": "Only cleanup catch now remembers same first/falsy failure; new two focused controls execute that change"
+  },
+  "correction": "SDK review: cleanup failure now enters UNKNOWN and preserves original firstCause, including falsy values; independent cleanup and first close result stay unchanged"
+}

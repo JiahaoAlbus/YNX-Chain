@@ -5,6 +5,7 @@ import {dirname,basename} from 'node:path';
 import {readFileSync,lstatSync,openSync,constants,closeSync,fstatSync,realpathSync} from 'node:fs';
 import {canonical,sha,originalSignatureContract,verifySourceEnrollment,verifySourceProfile,verifySourceTransitionOriginal} from '../native/original-auth-identity-source-verifier.mjs';
 import {loadReleaseSelectedOriginalSourceV2} from './original-auth-source-current-v2.js';
+import {loadReleaseSelectedOriginalSourceIssuanceV2} from './original-auth-source-issuance-v2.js';
 
 // PRIVATE Auth-current producer; a signature from this domain is NOT a Social
 // floor/NativeCore domain, ordinary QA, SSO or a four-op account permission.
@@ -13,6 +14,15 @@ const fail=code=>{throw Object.assign(new Error(code),{code});};
 // Actual independently admitted service registrations are release-owned.
 // No default root, key, caller provider, ENV override or enrollment is created.
 const admittedSourceServices=Object.freeze([]);
+// Independent protected ADMIN release selection; not currentKeys, request
+// JSON, ENV, a new signing route or permission inherited from a login.
+// Actual lawful role custody and independent approvals are NOT supplied yet.
+const admittedSourceIssuance=Object.freeze([]);
+export async function loadOriginalAuthSourceIssuanceService(){
+ if(admittedSourceIssuance.length===0)return null;
+ if(admittedSourceIssuance.length!==1)fail('AUTH_ISSUANCE_RELEASE_AMBIGUOUS');
+ return await loadReleaseSelectedOriginalSourceIssuanceV2(admittedSourceIssuance[0]);
+}
 const nonce=()=>randomBytes(32).toString('base64url');
 function sameKey(privateKey,expected){return privateKey instanceof KeyObject&&privateKey.type==='private'&&privateKey.asymmetricKeyType==='ed25519'&&createPublicKey(privateKey).equals(expected);}
 function publicFile(path,digest,maximum=32768){
@@ -152,8 +162,9 @@ export function assertOriginalAuthSourceCurrentService(service){
 // Private normal issuer call, not a public mount or caller-provided provider.
 // Only the SAME release-selected original factory brand may select this path.
 export async function handleOriginalPublicationApprovalCurrent(service,profileDigest,scopeOriginal,currentOriginal){
- if(!services.has(service)||typeof service.publicationApprovalCurrent!=='function')fail('AUTH_PUBLICATION_ORIGINAL_ISSUER_REQUIRED');
- return await service.publicationApprovalCurrent(profileDigest,scopeOriginal,currentOriginal);
+ if(!services.has(service)||typeof service.publicationApprovalCurrent!=='function'||typeof service.assertOriginalPublicationApprovalCompletion!=='function')fail('AUTH_PUBLICATION_ORIGINAL_ISSUER_REQUIRED');
+ const raw=await service.publicationApprovalCurrent(profileDigest,scopeOriginal,currentOriginal);
+ service.assertOriginalPublicationApprovalCompletion(profileDigest,scopeOriginal,currentOriginal,raw);return raw;
 }
 export async function handleOriginalDeveloperPrincipalCurrent(service,credential){
  assertOriginalDeveloperPrincipalSource(service);

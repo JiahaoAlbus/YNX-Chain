@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.37",
+  "version": "1.3.0-pq.3.32-auth.38",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -349,8 +349,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 31095,
-      "sha256": "81ddfc61004152275658945fd4b1d908b349584846b2931696dc4de21170ad8d"
+      "bytes": 31985,
+      "sha256": "2bee15594c01ae2c6e62003e9b9e932d9f6663874587018e7b27a7ad8b2c3d77"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -2081,6 +2081,33 @@
     "actualFoundationControlsPassed": true,
     "SourceQualified": false,
     "NativeModuleBuilt": false,
+    "installed": false
+  },
+  "supplierR243": {
+    "handoff": {
+      "bytes": 8928,
+      "sha256": "06333d2472b7ae8f11fa93bf325624bec4a618a8e9b445bab10bf7e70c73e4af"
+    },
+    "fixedPurpose": "wallet-pq-host-catalog-source-v1",
+    "roles": [
+      "AUTH-SOURCE-ENROLLMENT",
+      "AUTH-SOURCE-PROFILE"
+    ],
+    "normalAdminBin": "ynx-auth-source-issue",
+    "publicGenericSigner": false,
+    "normalHTTPMutation": false,
+    "realRoleSupplied": false,
+    "independentApprovalSupplied": false,
+    "SourceQualified": false,
+    "installed": false
+  },
+  "supplierR244": {
+    "handoff": {
+      "bytes": 4579,
+      "sha256": "7abb92552eff1f361a34ee10f861b7f1efc4195056f9a9cb41798d35b77fe3e5"
+    },
+    "sameOriginalCompletionAfterAwait": true,
+    "SourceQualified": false,
     "installed": false
   }
 }
