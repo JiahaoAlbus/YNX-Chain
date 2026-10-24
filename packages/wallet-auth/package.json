@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.3.0-pq.3.32-auth.31",
+  "version": "1.3.0-pq.3.32-auth.32",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -265,6 +265,11 @@
     "native/original-auth-identity-v2-contract.d.mts",
     "native/original-auth-identity-source-v2-verifier.mjs",
     "native/original-auth-identity-source-v2-verifier.d.mts",
+    "native/original-pq-host-catalog-source-contract.mjs",
+    "native/original-pq-host-catalog-source.h",
+    "native/original-pq-host-catalog-source.mm",
+    "native/original-pq-host-catalog-source-state.h",
+    "native/original-pq-host-catalog-receipt.h",
     "AUTH_RUNTIME_CLOSURE.md",
     "native/original-ide-auth-proof-dispatch.mjs",
     "native/original-auth-source-v2-dispatch.mjs",
@@ -289,7 +294,8 @@
     "native/original-ide-project-control-custody-data.mjs",
     "scripts/normal-runtime-materialization.mjs",
     "integration/WALLET_APP_RUNTIME_DEPENDENCIES_316.json",
-    "scripts/NORMAL_RUNTIME_MATERIALIZATION.md"
+    "scripts/NORMAL_RUNTIME_MATERIALIZATION.md",
+    "native/original-pq-host-catalog-task-exit.h"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -298,7 +304,7 @@
   },
   "scripts": {
     "build:central-browser": "esbuild src/central-browser-session-browser.js --bundle --platform=browser --format=iife --legal-comments=none --outfile=src/central-browser-session-browser.bundle.js",
-    "test": "node --test test/*.test.mjs test-signed-manifest-selector.mjs && npm run test:types",
+    "test": "node --test test/*.test.mjs test-signed-manifest-selector.mjs native/test-pq-catalog-source-contract.mjs test-pq-catalog-source-n1.mjs && npm run test:types",
     "test:types": "node test/check-type-closures.mjs",
     "check": "npm test",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
@@ -351,7 +357,8 @@
     "test:r205-source-lifecycle": "node --test test-r205-source-lifecycle.mjs",
     "test:r211-protected-publisher-current": "node --test test-protected-publisher-current.mjs",
     "test:normal-runtime-materialization": "node --test test/normal-runtime-materialization.test.mjs",
-    "test:r218-publication-selector": "node --test --test-concurrency=1 test-signed-manifest-selector.mjs test/r218-signed-manifest-recipe.test.mjs"
+    "test:r218-publication-selector": "node --test --test-concurrency=1 test-signed-manifest-selector.mjs test/r218-signed-manifest-recipe.test.mjs",
+    "test:r222-pq-source": "node --test --test-concurrency=1 native/test-pq-catalog-source-contract.mjs test-pq-catalog-source-n1.mjs test/r222-pq-native-recipe.test.mjs test/r222-pq-source-intake.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

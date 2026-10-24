@@ -14,25 +14,25 @@ const inventoryPath = 'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPA
 const leaf = 'packages/wallet-auth/native/original-ide-protected-publisher-dispatch.mjs';
 const hash = raw => createHash('sha256').update(raw).digest('hex');
 
-test('R211 normal publisher fixed presence is pinned for addon/helper with unchanged81 CPP and14/11 recipe', async () => {
+test('R211 fixed publisher presence remains pinned in the current87 CPP and15/11 successor recipe', async () => {
   const {contract} = verifySDK332R140Source(root);
   const normal = [...contract.NativeInputs, ...contract.HelperInputs, ...contract.pureDeploymentInputs, contract.normalBuildTool];
-  assert.equal(contract.version, '1.3.0-pq.3.32-auth.31');
-  assert.equal(contract.NativeInputs.length, 92);
+  assert.equal(contract.version, '1.3.0-pq.3.32-auth.32');
+  assert.equal(contract.NativeInputs.length, 99);
   assert.equal(contract.HelperInputs.length, 5);
-  assert.equal(normal.length, 102);
+  assert.equal(normal.length, 109);
   assert.equal(new Set([...normal, ...contract.sourceCurrentIOInputs].map(p => p.path)).size, 103);
-  assert.equal(normal.filter(p => /\.(?:h|mm|cpp)$/.test(p.path)).length, 81);
+  assert.equal(normal.filter(p => /\.(?:h|mm|cpp)$/.test(p.path)).length, 87);
   assert.deepEqual(contract.NativeInputs.find(p => p.path === leaf), {path: leaf, bytes: 7199, sha256: '9fa9078c9ce04da0e2253177a60b351031c94d67942f7fba06e224ab1b4e015b'});
   assert.deepEqual(contract.NativeInputs.find(p => p.path === 'packages/wallet-auth/native/original-auth-identity-source-verifier.mjs'), {path: 'packages/wallet-auth/native/original-auth-identity-source-verifier.mjs', bytes: 20978, sha256: '7670b7093f4ba6fe6f9a26c6b999ec7a4069fec7d46dd06105bc9661867c66cf'});
   const toolRaw = fs.readFileSync(path.join(root, contract.normalBuildTool.path), 'utf8');
   const addition = ',"original-ide-protected-publisher-dispatch.mjs"';
   assert.equal(toolRaw.split(addition).length - 1, 2);
-  // Removing only the two fixed-presence entries recovers the actual original
-  // Auth28 tool bytes. Source lists, compiler flags and execution stay intact.
-  assert.equal(hash(toolRaw.replaceAll(addition, '')), '219d5e0435c216ce5e78a556843d9bbcfe2be5dc321cd6dc4a8a0883507c0aee');
+  // R222 intentionally adds a new Native TU; retain R211 fixed presence while
+  // pinning the actual successor tool rather than claiming the Auth28 recipe.
+  assert.equal(hash(toolRaw), 'd39bdb9f8507ce82c4e184007eaf804cfb94dbbd441e93290bf7253d26883480');
   const selected = await sdk332R140NativePlan(root, '/PUBLIC/UNUSED_HEADERS', 'arm64');
-  assert.equal(selected.plan.sources.length, 14);
+  assert.equal(selected.plan.sources.length, 15);
   assert.equal(selected.helperPlan.sources.length, 11);
   assert.equal(selected.NativeBuild, false);
   assert.equal(selected.grant, false);

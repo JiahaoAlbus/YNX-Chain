@@ -40,6 +40,10 @@ struct JointLifecycle {
 @class YNXIDEHelperMessagePeer;
 @interface YNXAuthIdentitySourceAuthority : NSObject
 + (instancetype)acquireOriginalSource:(NSError **)error;
+// Separate original protected Wallet PQ catalog Source. No Auth/IDE purpose,
+// input path/provider, ordinary signing permit or Go DATA may qualify this.
++ (instancetype)acquireOriginalWalletPQHostCatalogSource:(NSError **)error;
+- (NSDictionary *)copyOriginalWalletPQHostCatalogContext:(NSError **)error;
 // Helper's own independently admitted Source, bound to ONE actual incoming
 // OS message. Peer identity supplies target only, never Source permission.
 // Failure plus nonnil result is the same cleanup partial; capture it first.
