@@ -1,0 +1,644 @@
+{
+  "version": 1,
+  "state": "ACTUAL_SOURCE_SELECTED_REGISTERED_PUBLIC_N1_PUBLICATION_SELECTOR_IMPLEMENTED_NOT_APPROVAL",
+  "parent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r219-supply-20261024-r1/HANDOFF.json",
+    "bytes": 24787,
+    "sha256": "6e5676f29fc88b6d35580aae9175f410507d83e6b9ff09b6155e312c044cb8b8",
+    "gitBlob": "d88abf07f937da0ef4de44c37b898e0495f1e69a"
+  },
+  "sourceDelta": [
+    {
+      "relative": "source/internal/developerauthority/original_factory_publication_selector.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publication_selector.go",
+      "bytes": 7032,
+      "sha256": "013824268a8cee24491ba86cafb9e8546dec2a90c017b53eda9e473b66b2249d",
+      "gitBlob": "2792459927492327df8c99ad0c268b58fd6b7b6f",
+      "parent": null
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publication_selector_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publication_selector_test.go",
+      "bytes": 6488,
+      "sha256": "5c65caa272977bab9bf9292b547e88f553c8610fd1f0f0d7a8b18e1f719c01a6",
+      "gitBlob": "4973fe0f7eb47ea99b28037bd76b380dc11cd3a2",
+      "parent": null
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publisher.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publisher.go",
+      "bytes": 10387,
+      "sha256": "191d6fdff90ac0b70a1bd154de995bdfac729813b34bad2e70a9208d6ccc448f",
+      "gitBlob": "2e7b6855217197cbec8b11cee540156aa5ee8a06",
+      "parent": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r219/source/internal/developerauthority/original_factory_publisher.go",
+        "bytes": 10256,
+        "sha256": "8bc850b81fd48b23a62301d3d5e370ea7f906721b7c19a220525409df56287e2",
+        "gitBlob": "452e2b211546cf0e4d94621703a37c65da3ab6bb"
+      }
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publisher_current.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publisher_current.go",
+      "bytes": 8845,
+      "sha256": "5d5e800731aeb1213dec36052ff309587525a5fb7ec504a6f2191dffca77a720",
+      "gitBlob": "dd5bc1c2028143299d58ecb09cb8415e6ddc1044",
+      "parent": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r219/source/internal/developerauthority/original_factory_publisher_current.go",
+        "bytes": 8558,
+        "sha256": "4128cd97bfecd5c1c94f4027d1ebfc79b0fa755e6cc7b4cdef8a033a3f26d4e3",
+        "gitBlob": "e4371b4c1c0bf929bf2555f4626d294c6bea2dcb"
+      }
+    },
+    {
+      "relative": "source/internal/developerauthority/original_signed_manifest.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_signed_manifest.go",
+      "bytes": 3932,
+      "sha256": "29aa611387d79242ec1cb4d4a70f26e4aadaee744c6fe9560636e3355fb3d446",
+      "gitBlob": "d9af61158c2429f2fa51699e7c76041247dd9edd",
+      "parent": null
+    }
+  ],
+  "sdkDelta": [
+    {
+      "relative": "source/packages/wallet-auth/src/ide-artifact-signature.js",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/packages/wallet-auth/src/ide-artifact-signature.js",
+      "bytes": 12634,
+      "sha256": "79879c18fe03bb0daa645f210848a8a6242c7ae57cdab99862710225819b9c0e",
+      "gitBlob": "09ee6932adc873e68ce9bd60bcb2dce0dd7ace70",
+      "parent": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r211/source/packages/wallet-auth/src/ide-artifact-signature.js",
+        "bytes": 11352,
+        "sha256": "cb4c2e730c207c1c4aeb96fef3ce73f1776915cc1abeb977c5b32d0d3f8ca01a",
+        "gitBlob": "29d3df930091a726d534abbec14208a364b718c0"
+      }
+    },
+    {
+      "relative": "source/packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "bytes": 20978,
+      "sha256": "7670b7093f4ba6fe6f9a26c6b999ec7a4069fec7d46dd06105bc9661867c66cf",
+      "gitBlob": "a9eaf25a353c179fb664c7c4b603869f2e62287d",
+      "parent": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r211/source/packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+        "bytes": 20641,
+        "sha256": "950a173933046244fadb23031007a85b31e5a1f133d2a0e5b7e8fde39134c0fc",
+        "gitBlob": "eeceb617ea659457b631800485e4746dd88642cf"
+      }
+    },
+    {
+      "relative": "source/packages/wallet-auth/test-signed-manifest-selector.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/packages/wallet-auth/test-signed-manifest-selector.mjs",
+      "bytes": 4229,
+      "sha256": "dcac32f5e9a2a8da98f7a69259533d5bbe43ad3c09410478d6bff90f3f0d20d8",
+      "gitBlob": "68ef510bf0614afb732673e21442e21134b9daea",
+      "parent": null
+    }
+  ],
+  "sourceClosureGo": 47,
+  "refs": [
+    {
+      "relative": "source/internal/developerauthority/catalog.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/catalog.go",
+      "bytes": 32190,
+      "sha256": "1272a1fedbe105fda179e730f6d6844bfb8996cac9a0d955cd169da299f3a366",
+      "gitBlob": "64808330c68f52f7c05e8ef3e964a83a45f72614"
+    },
+    {
+      "relative": "source/internal/developerauthority/catalog_control_size_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/catalog_control_size_test.go",
+      "bytes": 5209,
+      "sha256": "b80dafd37e5e0af61619d3aa3cffec3ade398ec7ee6fb078c0c0be9b67f39f27",
+      "gitBlob": "41290a5e0721110ee18a7e041eebd2e9a9fd42fe"
+    },
+    {
+      "relative": "source/internal/developerauthority/control_capture_schema.sql",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/control_capture_schema.sql",
+      "bytes": 1719,
+      "sha256": "9eb3ef9f053abd2f0fe4524c75ee6c6f0ca7ee19ba5da144af209926b4d93009",
+      "gitBlob": "90dbc2126c567096e8d4a6dc4661940aa384229b"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_delivery_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_delivery_test.go",
+      "bytes": 2413,
+      "sha256": "0cd34be8a6cac9d3533fb9a874a7432ab0edb1d1c532a6941f49da9427003a0e",
+      "gitBlob": "c29431ed3e3254944d283476e2b11856687bd9e6"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_issuer.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_issuer.go",
+      "bytes": 10026,
+      "sha256": "027e4fd752426eb58e3294ede40fa8fc699d209e955fc9cfa6da29b49ef62385",
+      "gitBlob": "3f2d86a276f12ffe2d69b5eb855963c727f60850"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_issuer_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_issuer_test.go",
+      "bytes": 5574,
+      "sha256": "95b4da5c353deaaa0039c2aaeebcbae2de1a03c2952accfcb34a0a0c93064147",
+      "gitBlob": "4bdee070d7bdec25339a8e99de473fac3218cb20"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_runtime.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_runtime.go",
+      "bytes": 3845,
+      "sha256": "6f75814fe576e8eb9593ee687263eb70a8dce410a0546df4ebfba5f303a1f9de",
+      "gitBlob": "529d9873eec045b89a3220577360d1b342a7315a"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_runtime_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_runtime_test.go",
+      "bytes": 2919,
+      "sha256": "9df95bcf5b496ab714e8a7816a35b86549d93944426bccbe6fa3f24fa9d5aac5",
+      "gitBlob": "a9caf06913aed96189b549ba7c1e4a7550f1d65b"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_store.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_store.go",
+      "bytes": 22036,
+      "sha256": "947e6fa4ed2be4b6c6b75fa7799b762bfcef793362791a78997ed3a8a553ff96",
+      "gitBlob": "2f9b9c5455c11c793accf5262891f53902c8a0a6"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_store_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_store_test.go",
+      "bytes": 18007,
+      "sha256": "d3f7c4af82617a7910508ece3f600535c1668065fab781a62843924ae4f426e9",
+      "gitBlob": "48ed592b21435493063ec312c92d1edcaa1296b4"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_verifier.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_verifier.go",
+      "bytes": 6531,
+      "sha256": "0e612b9833e31c285340426dbb3fe49cdc870b1d5ccc06a3e22f07a81ec1a040",
+      "gitBlob": "6b2ab21e628e721a70fa552c18b6ca58354f0672"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_approval_verifier_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_approval_verifier_test.go",
+      "bytes": 5980,
+      "sha256": "5859892d69d69bb505ae04675240fe561d925d82bd4e2ecfe1da112675209122",
+      "gitBlob": "38e989bd97ebf1f1502577cbc509e8c210599d5e"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_catalog_authority.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_catalog_authority.go",
+      "bytes": 1211,
+      "sha256": "2ac5d7dcf6729063a8e2228b3275bf55ad71db60a2477f014914f53e8cc35465",
+      "gitBlob": "02653f3064faeb7c46cbd3e763f3418a02f8bcc1"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_catalog_authority_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_catalog_authority_test.go",
+      "bytes": 2239,
+      "sha256": "291961e5665ca927dc731f3389175c8dbc738e42a8e538e8ebb015cfee252657",
+      "gitBlob": "b6b9a89f47e5352148029db1c79f51d0cda4f029"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_control_current.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_control_current.go",
+      "bytes": 9274,
+      "sha256": "60fff24d14044111b38afaa362f0a6a29160e0e3d7f82dbed221ffa26afa0dc4",
+      "gitBlob": "a69e362f391e6811b42329f88ded24b45bbe527d"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_control_current_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_control_current_test.go",
+      "bytes": 6104,
+      "sha256": "95684945884e9607680abbf6399a0e9cf2a8e5fd7da2b8885e61d1a4ae0c623e",
+      "gitBlob": "06d4a96db06c3040de080eef90fd06630d6b7bb9"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_control_runtime.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_control_runtime.go",
+      "bytes": 12767,
+      "sha256": "39ae71b4ca13b9f2060707c8217ac56c81887b53aa300cd8a44bf37f2c57a656",
+      "gitBlob": "020f9b4d582b8bd582170f20b63c7f4929d0423d"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_control_runtime_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_control_runtime_test.go",
+      "bytes": 10324,
+      "sha256": "43733c98d0e7e625bdae9cea635a8b7a48f20c2d168b15450a09bfe301b865b9",
+      "gitBlob": "af4545370a86d005e18825d4c8dab03eca8c2c5b"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_control_verifier.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_control_verifier.go",
+      "bytes": 3175,
+      "sha256": "ff8dba1e224e41c6e3db7d50cb385f16ef28d68ea3b710d8937cf2177a8105a9",
+      "gitBlob": "2d17b8b4599bc24e4c48c1649706e1a4b618e9bd"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_control_verifier_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_control_verifier_test.go",
+      "bytes": 3536,
+      "sha256": "ccbfd518c7a83d63b94532a8ebca5a55a00ae6dcaf527647d000495cdd49a675",
+      "gitBlob": "08a484b353970b9c4ee1250b8b3a07acbb472a8e"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_developer_factory.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_developer_factory.go",
+      "bytes": 5339,
+      "sha256": "e1c602e4925cbd8331b96798a68597847ae22b52402327e2800ac16c43d51db1",
+      "gitBlob": "504d4a9cff4e22c958d228108b7dd21767d3bdb8"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_catalog_read_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_catalog_read_test.go",
+      "bytes": 3839,
+      "sha256": "ba45a97f38789ae98b840b50b0cdb27840c2da6839fbd38ceec0eb951f98177e",
+      "gitBlob": "a4ad78c0f7dbf13fa282f489e27b205d85fc88d3"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publication_selector.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publication_selector.go",
+      "bytes": 7032,
+      "sha256": "013824268a8cee24491ba86cafb9e8546dec2a90c017b53eda9e473b66b2249d",
+      "gitBlob": "2792459927492327df8c99ad0c268b58fd6b7b6f"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publication_selector_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publication_selector_test.go",
+      "bytes": 6488,
+      "sha256": "5c65caa272977bab9bf9292b547e88f553c8610fd1f0f0d7a8b18e1f719c01a6",
+      "gitBlob": "4973fe0f7eb47ea99b28037bd76b380dc11cd3a2"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publisher.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publisher.go",
+      "bytes": 10387,
+      "sha256": "191d6fdff90ac0b70a1bd154de995bdfac729813b34bad2e70a9208d6ccc448f",
+      "gitBlob": "2e7b6855217197cbec8b11cee540156aa5ee8a06"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publisher_current.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publisher_current.go",
+      "bytes": 8845,
+      "sha256": "5d5e800731aeb1213dec36052ff309587525a5fb7ec504a6f2191dffca77a720",
+      "gitBlob": "dd5bc1c2028143299d58ecb09cb8415e6ddc1044"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publisher_reader_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publisher_reader_test.go",
+      "bytes": 5865,
+      "sha256": "bd62eb105916bdd76a708cf580e8d9aab9aa18126d0f33d313e3c7d1b23c7d4d",
+      "gitBlob": "62cc01a157431a090182ac9515c58f398b485bff"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_factory_publisher_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_factory_publisher_test.go",
+      "bytes": 13504,
+      "sha256": "c0ec1f746dfd92ee6b20bd22952b96fb6181833709ee5c4c9338c7360df27670",
+      "gitBlob": "ea7eac28f4b9272e46e556f1714e016b3119bc2e"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_http_principal.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_http_principal.go",
+      "bytes": 10565,
+      "sha256": "60cb41d1cf35d4cd7361c1ecf5a6d588200bcec079c21b0e5bf49200398ed517",
+      "gitBlob": "265c3763664c3e0443d2a4f684bdd2ec69df4b5e"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_http_principal_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_http_principal_test.go",
+      "bytes": 7250,
+      "sha256": "20ff95224ee69c1a68fa0541748987938e457c16ef09283bad746824d90118f8",
+      "gitBlob": "e4b092a0d810d201b81556e8f2707c0d5ab030dd"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_native_control_interop_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_native_control_interop_test.go",
+      "bytes": 1554,
+      "sha256": "080284c494d07635054af5923a6a14f51348e0db252f80ef83590a6cc00a5ad1",
+      "gitBlob": "fabe166d7578eb5dcd68171d0696439e2e5c493e"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publication_continuation_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publication_continuation_test.go",
+      "bytes": 6331,
+      "sha256": "a03628983c50c766135950d34112a5616af5e53ffd1b0fdd9b03eb87e81644f1",
+      "gitBlob": "cdb56bda8bfde25fe840abc591c723d2b4bb202c"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publication_fixture_expiry_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publication_fixture_expiry_test.go",
+      "bytes": 1182,
+      "sha256": "b1be539d5a6a4a2ff577e2fbc32cfd319dbe42e01b51b75a61e8e7b37011e66c",
+      "gitBlob": "e0ff0a9336fc3184d6c625ce5b91c4612c4ec72c"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_capture_store.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_capture_store.go",
+      "bytes": 13676,
+      "sha256": "c824fbb0c0498ccafd5c27b403771a21773b19d0bd942c2ee67990405b14e58b",
+      "gitBlob": "4f4fa7a8c2e5ebef459069078da869749d191ff2"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_capture_store_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_capture_store_test.go",
+      "bytes": 11313,
+      "sha256": "b08cd4eee6c72cb5ec58536da23cd0585fdd2a1ec9024203b0ae0ad6c12c456e",
+      "gitBlob": "e0601c2d527b074b3dc3a9f9bb6f80bc4bc13f16"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_catalog_transaction.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_catalog_transaction.go",
+      "bytes": 9262,
+      "sha256": "1694cc04c9786bd18cdf07a8b4489b642c307887cf84f7dda02b0883acde669a",
+      "gitBlob": "ca96c567e7ed9134ba023393e111a1d839940c6a"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_catalog_transaction_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_catalog_transaction_test.go",
+      "bytes": 20850,
+      "sha256": "23925d14a5b6cc27cbfeb5afc9b4cf75a356d2d0e26ea6a9eedbbfdf9ffab6e2",
+      "gitBlob": "39b27250b2c77dd0e1cdcc6c6cba77e5f8b9527a"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_current.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_current.go",
+      "bytes": 12885,
+      "sha256": "37795f27973115ae9d66419a58968d9f802c0208abc6784732d161fcaba2230c",
+      "gitBlob": "40d9bdfd76a8a2e177c8f55c3c7221addcaaada1"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_current_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_current_test.go",
+      "bytes": 8064,
+      "sha256": "3e19236fec2f038e2cbd7d2a6f8d40e69d885fd910aef89e2cefad61506f7090",
+      "gitBlob": "6c94c46cf6b948f92ec867ec5057ff81ff83b998"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_transaction_row.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_transaction_row.go",
+      "bytes": 5990,
+      "sha256": "602cc33be56e8f5f7b09fe0e62b11fa4aca979d607f1974ec006aee5c340a0aa",
+      "gitBlob": "6585031d1ad0ea878b9b530fd193574d622c2656"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_verifier.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_verifier.go",
+      "bytes": 2601,
+      "sha256": "d55fccd6eb818650ba8f9b344fc25cca0b35435d717051113190894c3e2d07d1",
+      "gitBlob": "0e6ac786ac618732306d33cce5bdd1a0bbe10dca"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_publisher_verifier_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_publisher_verifier_test.go",
+      "bytes": 2340,
+      "sha256": "dca15bd5966477c097b128cb016d898a3a1be8e8e2928246f7b8b62061346b35",
+      "gitBlob": "f7903ca4345fa5c4ebb947bf66ddeb4698bcce7f"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_signed_manifest.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_signed_manifest.go",
+      "bytes": 3932,
+      "sha256": "29aa611387d79242ec1cb4d4a70f26e4aadaee744c6fe9560636e3355fb3d446",
+      "gitBlob": "d9af61158c2429f2fa51699e7c76041247dd9edd"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_source_nonce.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_source_nonce.go",
+      "bytes": 6631,
+      "sha256": "d508f1c295d4fe9b0bbc7658dc300fa686fdce8111df2254e1e7d4f5c7e3063a",
+      "gitBlob": "5d8b5f61a9fddda3293849f632fa11ca44098dc2"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_source_post_completion_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_source_post_completion_test.go",
+      "bytes": 1573,
+      "sha256": "5ffccbd8efe1752b45ad2bf961836e7f2c8bb82fe0510adaaa4b1a04eb426697",
+      "gitBlob": "59b89a2d0d1455cf63b6172c3799c06c0eed6f44"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_source_process.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_source_process.go",
+      "bytes": 20678,
+      "sha256": "00b4e3c4e46f084a4836d174219f4c0410d37617c142b416b1bfee748bdcd4b8",
+      "gitBlob": "c1db0f872063b568107f6091a29a016466c6fa00"
+    },
+    {
+      "relative": "source/internal/developerauthority/original_source_process_test.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/original_source_process_test.go",
+      "bytes": 12001,
+      "sha256": "1f2147d8485c1547a15194d3f70398263206fa213919df4d4feddfaef81033f3",
+      "gitBlob": "2c9a01eee2a079b683950fad187335bb61635abc"
+    },
+    {
+      "relative": "source/internal/developerauthority/publication.go",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/publication.go",
+      "bytes": 14868,
+      "sha256": "02de4044a145c07bcc9f5280a9f7b50d65ebb74b412c90ce9fda07aa9ecbec58",
+      "gitBlob": "126b4bc522b7eb8ddb9898a7532dfe8752387349"
+    },
+    {
+      "relative": "source/internal/developerauthority/publisher_capture_schema.sql",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/publisher_capture_schema.sql",
+      "bytes": 1978,
+      "sha256": "289e0ce6e4f094abe78a957c6346aca71baa007a13651ec34717b7e16bba3b15",
+      "gitBlob": "4a31380ad55df8e0c766d876c5f9dd996241351e"
+    },
+    {
+      "relative": "source/internal/developerauthority/publisher_catalog_schema.sql",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/internal/developerauthority/publisher_catalog_schema.sql",
+      "bytes": 1058,
+      "sha256": "9c0e8bea232c1000ab1b2ae87522cd6b1996411d1ca637bbaa79efd73bc0be5c",
+      "gitBlob": "69156a3756d660f5a030b34e6feb81a314744015"
+    },
+    {
+      "relative": "source/packages/wallet-auth/src/ide-artifact-signature.js",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/packages/wallet-auth/src/ide-artifact-signature.js",
+      "bytes": 12634,
+      "sha256": "79879c18fe03bb0daa645f210848a8a6242c7ae57cdab99862710225819b9c0e",
+      "gitBlob": "09ee6932adc873e68ce9bd60bcb2dce0dd7ace70"
+    },
+    {
+      "relative": "source/packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "bytes": 20978,
+      "sha256": "7670b7093f4ba6fe6f9a26c6b999ec7a4069fec7d46dd06105bc9661867c66cf",
+      "gitBlob": "a9eaf25a353c179fb664c7c4b603869f2e62287d"
+    },
+    {
+      "relative": "source/packages/wallet-auth/test-signed-manifest-selector.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/source/packages/wallet-auth/test-signed-manifest-selector.mjs",
+      "bytes": 4229,
+      "sha256": "dcac32f5e9a2a8da98f7a69259533d5bbe43ad3c09410478d6bff90f3f0d20d8",
+      "gitBlob": "68ef510bf0614afb732673e21442e21134b9daea"
+    },
+    {
+      "relative": "CALLER.md",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/CALLER.md",
+      "bytes": 3440,
+      "sha256": "18700a1c51ec46ea102f9b0d94ac7cf0cfc168bd6efcd05d7b48568d44f90525",
+      "gitBlob": "6fdca2bbf7945a091dfaa5d302c61035b9006670"
+    },
+    {
+      "relative": "run-selector.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/run-selector.mjs",
+      "bytes": 1497,
+      "sha256": "772c8d5e0df3f84c12fb43bddf250d02345de39f70d931875db7a6e1b3c36d8d",
+      "gitBlob": "69a67b425d65d4108b018af0dcb7b2c33702ce0f"
+    },
+    {
+      "relative": "run-selector-go.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/run-selector-go.mjs",
+      "bytes": 1484,
+      "sha256": "d28a0666fd642a4d418cdeeafa9a6d5b363ac427e3a12e9f05220b2fea861f5d",
+      "gitBlob": "f620f0012fe659773a63de09bc247cd0c402827b"
+    },
+    {
+      "relative": "freeze.mjs",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/freeze.mjs",
+      "bytes": 5592,
+      "sha256": "bbfa497493ff99b0e4f36a6a5f61787dd4a6c6b004f7446d5129cf444ce5b0cb",
+      "gitBlob": "331ccb48c4274ca94bdef19196dd31e69676e5e4"
+    },
+    {
+      "relative": "evidence/selector-ZWTChK/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-ZWTChK/stdout",
+      "bytes": 573,
+      "sha256": "f7bcfaa589a9cd9ed68e42bdbeb2a7ec0fa66f1be40866f6b6014fe92fdc91f7",
+      "gitBlob": "44ba588e12efd6363f2851df55d318ceb2c1b04b"
+    },
+    {
+      "relative": "evidence/selector-ZWTChK/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-ZWTChK/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/selector-ZWTChK/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-ZWTChK/result.json",
+      "bytes": 383,
+      "sha256": "a7b253cc6ad88ff406c293b0e91a3015278c6362acc7585d3822b1d79925ca99",
+      "gitBlob": "383a9599a7d4a85136fa36bb56aab7bb3663584e"
+    },
+    {
+      "relative": "evidence/selector-go-5TR5iv/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-go-5TR5iv/stdout",
+      "bytes": 4825,
+      "sha256": "7643612fc3d848e1af042ac0c4e178998d3e3aef8bb4af449fbd13cecc181174",
+      "gitBlob": "eb66903c28f4f1117d4cff06f676d9a5c8b82a04"
+    },
+    {
+      "relative": "evidence/selector-go-5TR5iv/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-go-5TR5iv/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/selector-go-5TR5iv/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-go-5TR5iv/result.json",
+      "bytes": 3589,
+      "sha256": "847c7893c2e2f0faf21e73279c929205fbfafb7242c0ca36654396298ce4af05",
+      "gitBlob": "3cd19b2092d21bee5f763e36535a2f5cf67654c1"
+    },
+    {
+      "relative": "evidence/selector-go-EOodku/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-go-EOodku/stdout",
+      "bytes": 1315,
+      "sha256": "fd06db1e12ee7f6a8f59546d9b181a62543bd8b1973a6a28cfb5bc8ed8a84c5b",
+      "gitBlob": "f32a47b5564717c814f13a95916d1ee77960130e"
+    },
+    {
+      "relative": "evidence/selector-go-EOodku/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-go-EOodku/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/selector-go-EOodku/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-go-EOodku/result.json",
+      "bytes": 3674,
+      "sha256": "d6a18fb1e2ec2cb1980ae8713c9877b932cd6a3cdf3b42a4cb5dccf8408386b5",
+      "gitBlob": "f0fd88ae2d28abfe48a36195ee6c367da5152380"
+    },
+    {
+      "relative": "evidence/selector-huuUJ7/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-huuUJ7/stdout",
+      "bytes": 1537,
+      "sha256": "d559fa5ef55d79592d7a8cb84064886e1d2f84b2787469aa48ea3334ab82a896",
+      "gitBlob": "c2e48d7a0111ede70038731a17efc27e431e47b0"
+    },
+    {
+      "relative": "evidence/selector-huuUJ7/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-huuUJ7/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/selector-huuUJ7/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-huuUJ7/result.json",
+      "bytes": 181,
+      "sha256": "ae1df799af59444aafcc4ac7425a4612b0311b5a2ff1a80e5c59d35fd3cf70c4",
+      "gitBlob": "7f2eef36d21848a7279a4af03dff6d6086757120"
+    },
+    {
+      "relative": "evidence/selector-1gbHmc/stdout",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-1gbHmc/stdout",
+      "bytes": 1517,
+      "sha256": "cd5443fb048e04b3e50b47b1b0d8a8bdcfa512ae5660a15b6f7b932c34f2f4e3",
+      "gitBlob": "08865a52a31994309644fded013b38b16136e5e1"
+    },
+    {
+      "relative": "evidence/selector-1gbHmc/stderr",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-1gbHmc/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "relative": "evidence/selector-1gbHmc/result.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/evidence/selector-1gbHmc/result.json",
+      "bytes": 181,
+      "sha256": "ae1df799af59444aafcc4ac7425a4612b0311b5a2ff1a80e5c59d35fd3cf70c4",
+      "gitBlob": "7f2eef36d21848a7279a4af03dff6d6086757120"
+    },
+    {
+      "relative": "CLOSED_PUBLIC_RUNTIME_INVENTORY.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r218-supply-20261024-r1/CLOSED_PUBLIC_RUNTIME_INVENTORY.json",
+      "bytes": 3872692,
+      "sha256": "851d12ee7bdfb6e8d045d158ed8502c2687f092c463fd2534926c2f19a107def",
+      "gitBlob": "4a12e9a93765043111c8b95ab71044951d1c731b"
+    }
+  ],
+  "implementation": "Concrete normal factory derives purpose public from actual dedicated Source, fixed original SDK N1 verifies same member+embedded manifest, then original principal/Source/SQL binding current after async math; all actual partials/UNKNOWN held, returned id DATA only. Four actual approval/resource methods remain.",
+  "tests": {
+    "NodeActualDualPQAndNode24PermissionCLI": 5,
+    "GoActualFactoryProcessTLSAndSQLPublicMetadata": 5,
+    "affectedCurrentReader": 1,
+    "race": true,
+    "exit": 0,
+    "sourceClosureGo": 47,
+    "firstCauses": [
+      "huuUJ7 noncanonical test input refused by fixed CLI; no original signed bytes changed",
+      "1gbHmc source vendor link outside SDK root denied; fixed by closed owned public dependency materialization, no read grant widening"
+    ],
+    "runtimeRegularFiles": 9635,
+    "unrelatedOldGreenRerun": false
+  },
+  "compatibility": {
+    "canonicalSDKParentsReadBack": "677b30b25; exact two source leaf parents supplied by SDK, never edited live worktree",
+    "GoParent": "R219 fixture expiry cap inherited; sibling R221 caller-unit fixture can be composed without overwriting its test-only leaves",
+    "R219FullPinnedCallerFailure": "OPEN, not closed by selector evidence"
+  },
+  "truth": {
+    "Source8AndSelectorImplemented": true,
+    "Source13": false,
+    "Root": false,
+    "registered": false,
+    "authorized": false,
+    "protectedCustodyAdmitted": false,
+    "migrationApplied": false,
+    "mounted": false,
+    "production": false,
+    "FinanceResumed": false
+  }
+}
