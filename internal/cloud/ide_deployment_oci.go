@@ -218,16 +218,20 @@ func (e *OCIIDEDeploymentExecutor) ApplyExisting(ctx context.Context, p IDEDeplo
 		return empty, err
 	}
 	// Check the same original container identity, then fence the actual start.
-	if _, err := e.inspect(ctx, op); err != nil {
+	inspection, err := e.inspect(ctx, op)
+	if err != nil {
 		return empty, err
 	}
+	// Container names can be rebound between inspect and start. The verified
+	// instance, not its mutable name, is the only permitted effect target.
+	op.DeploymentID = inspection.ID
 	if err := current(); err != nil {
 		return empty, err
 	}
 	if !p.ExpiresAt.After(e.now()) {
 		return empty, ErrDenied
 	}
-	if _, err := e.run(ctx, "start", name); err != nil {
+	if _, err := e.run(ctx, "start", op.DeploymentID); err != nil {
 		return empty, err
 	}
 	return e.ObserveOriginal(ctx, op)
@@ -266,7 +270,14 @@ func (e *OCIIDEDeploymentExecutor) inspect(ctx context.Context, op IDEDeployment
 	if op.ResourceID != e.cfg.ResourceID || op.Binding.TargetEnvironment != e.cfg.TargetEnvironment || !productWriteKey.MatchString(op.RequestID) || len(op.ApprovalSHA256) != 64 {
 		return empty, ErrDenied
 	}
-	raw, err := e.run(ctx, "inspect", "--type=container", e.name(op.RequestID, op.ApprovalSHA256))
+	target := e.name(op.RequestID, op.ApprovalSHA256)
+	if op.DeploymentID != "" {
+		if !ideOCIDigest.MatchString("sha256:" + op.DeploymentID) {
+			return empty, ErrDenied
+		}
+		target = op.DeploymentID
+	}
+	raw, err := e.run(ctx, "inspect", "--type=container", target)
 	if err != nil {
 		return empty, err
 	}
@@ -275,6 +286,9 @@ func (e *OCIIDEDeploymentExecutor) inspect(ctx context.Context, op IDEDeployment
 		return empty, ErrIDEExistingRuntimeUnavailable
 	}
 	v := rows[0]
+	if op.DeploymentID != "" && v.ID != op.DeploymentID {
+		return empty, ErrIDEExistingRuntimeUnavailable
+	}
 	if len(v.ID) != 64 || !ideOCIDigest.MatchString("sha256:"+v.ID) || v.Config.Image != e.cfg.ImageDigest || v.Config.User != "10001:10001" || v.HostConfig.NetworkMode != "none" || !v.HostConfig.ReadonlyRootfs || v.HostConfig.Memory != 128<<20 || v.HostConfig.MemorySwap != 128<<20 || v.HostConfig.NanoCpus != 500000000 || v.HostConfig.PidsLimit != 64 {
 		return empty, ErrIDEExistingRuntimeUnavailable
 	}
@@ -349,6 +363,7 @@ func (e *OCIIDEDeploymentExecutor) ObserveOriginal(ctx context.Context, op IDEDe
 			if !ideRuntimeHandle.MatchString(op.RuntimeHandle) {
 				return IDEDeploymentResult{}, ErrInvalid
 			}
+			op.DeploymentID = v.ID
 			response, err := e.projectProbe(ctx, op)
 			if err != nil {
 				return IDEDeploymentResult{}, err
@@ -379,10 +394,11 @@ func (e *OCIIDEDeploymentExecutor) Logs(ctx context.Context, op IDEDeploymentOpe
 	if maximum < 1 || maximum > 64<<10 {
 		return nil, ErrInvalid
 	}
-	if _, err := e.inspect(ctx, op); err != nil {
+	inspection, err := e.inspect(ctx, op)
+	if err != nil {
 		return nil, err
 	}
-	body, err := e.run(ctx, "logs", "--tail=1000", "--timestamps", e.name(op.RequestID, op.ApprovalSHA256))
+	body, err := e.run(ctx, "logs", "--tail=1000", "--timestamps", inspection.ID)
 	if err != nil {
 		return nil, err
 	}

@@ -205,6 +205,9 @@ func (j *ideDeploymentJournal) recordTerminal(owner string, observed IDEDeployme
 	if prior.Binding != observed.Binding || prior.ManifestSHA256 != observed.ManifestSHA256 || prior.ApprovalSHA256 != observed.ApprovalSHA256 || prior.PublisherID != observed.PublisherID || prior.ResourceID != observed.ResourceID || prior.RuntimeSeconds != observed.RuntimeSeconds || prior.ResourceApprovalRef != observed.ResourceApprovalRef || prior.RuntimeHandle != observed.RuntimeHandle {
 		return ErrIDEDeploymentConflict
 	}
+	if prior.DeploymentID != "" && prior.DeploymentID != observed.DeploymentID {
+		return ErrIDEDeploymentConflict
+	}
 	if prior.State != "unknown" && !(prior.State == "running" && (observed.State == "completed" || observed.State == "failed")) {
 		return ErrIDEDeploymentConflict
 	}

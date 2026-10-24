@@ -53,7 +53,7 @@ func (e *OCIIDEDeploymentExecutor) RoundTripProject(ctx context.Context, op IDED
 	if err := forward.Write(&encoded); err != nil || encoded.Len() > MaxUploadBytes+(64<<10) {
 		return nil, ErrInvalid
 	}
-	result, err := e.input(ctx, encoded.Bytes(), "exec", "--interactive", e.name(op.RequestID, op.ApprovalSHA256), "/usr/local/bin/node", "-e", ideNodeHTTPBridge(e.cfg.HTTPPort))
+	result, err := e.input(ctx, encoded.Bytes(), "exec", "--interactive", state.ID, "/usr/local/bin/node", "-e", ideNodeHTTPBridge(e.cfg.HTTPPort))
 	if err != nil {
 		return nil, err
 	}
