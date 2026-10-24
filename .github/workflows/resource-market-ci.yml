@@ -2810,7 +2810,7 @@ jobs:
     needs: protocol-delivery
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-24.04
-    timeout-minutes: 6
+    timeout-minutes: 12
     env:
       GOMAXPROCS: '2'
       GOGC: '50'
@@ -2903,6 +2903,90 @@ jobs:
         with:
           name: ynx-pq-macos-proof-verifier-${{ github.sha }}
           path: ${{ runner.temp }}/ynx-pq-macos-proof-verifier
+          if-no-files-found: error
+          retention-days: 7
+      - name: Build the normal macOS SourceOwner registration CLI without executing it
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          umask 077
+          YNX_MAC_REGISTER="$RUNNER_TEMP/ynx-pq-macos-proof-source-register"
+          export YNX_MAC_REGISTER
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          test "$(df -Pk "$RUNNER_TEMP" | awk 'NR==2 {print $4}')" -gt 2097152
+          mkdir -m 0700 "$YNX_MAC_REGISTER"
+          for YNX_MAC_REGISTER_ARCH in arm64 amd64; do
+            CGO_ENABLED=0 GOOS=darwin GOARCH="$YNX_MAC_REGISTER_ARCH" go build -p 1 -trimpath -o "$YNX_MAC_REGISTER/ynx-comet-darwin-$YNX_MAC_REGISTER_ARCH" ./cmd/ynx-comet
+          done
+          python3 -B - <<'PY'
+          import hashlib, json, os, struct, subprocess
+          from pathlib import Path
+          root = Path(os.environ['YNX_MAC_REGISTER'])
+          def pin(path):
+              with path.open('rb') as source:
+                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
+              return dict(bytes=path.stat().st_size, sha256=digest)
+          binaries = {}
+          for arch, cpu in (('arm64', 0x0100000c), ('amd64', 0x01000007)):
+              name = 'ynx-comet-darwin-' + arch
+              path = root / name
+              with path.open('rb') as source:
+                  head = source.read(32)
+              if len(head) != 32 or head[:4] != b'\xcf\xfa\xed\xfe' or struct.unpack('<I', head[4:8])[0] != cpu or struct.unpack('<I', head[12:16])[0] != 2:
+                  raise RuntimeError('normal SourceOwner CLI is not the selected macOS Mach-O executable')
+              binaries[name] = pin(path)
+              if not 1 << 20 < binaries[name]['bytes'] <= 128 << 20:
+                  raise RuntimeError('macOS SourceOwner CLI exceeds the original per-binary bound')
+          names = ('internal/consensus/proof_host_selection.go',
+              'internal/consensus/proof_host_delivery.go', 'internal/consensus/proof_host_source.go',
+              'internal/consensus/pq_light_proof.go', 'internal/consensus/pq_engine_state_read.go',
+              'internal/consensus/inspect_operator_checkpoint.go',
+              'cmd/ynx-comet/register_proof_host_source.go', 'cmd/ynx-comet/initialize_application.go',
+              'cmd/ynx-comet/proof_host_wallet_handoff.go', 'cmd/ynx-comet/main.go')
+          record = dict(version='YNX-PQ-MACOS-PROOF-SOURCE-REGISTER-CANDIDATE/v1',
+              commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], runAttempt=os.environ['GITHUB_RUN_ATTEMPT'],
+              sourceTree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'], text=True).strip(),
+              platforms=['darwin/arm64', 'darwin/amd64'], goVersion=subprocess.check_output(['go','version'], text=True).strip(),
+              goMod=pin(Path('go.mod')), goSum=pin(Path('go.sum')),
+              cometForkTree=subprocess.check_output(['git','rev-parse','HEAD:third_party/cometbft'], text=True).strip(),
+              sources={name:dict(**pin(Path(name)), gitBlob=subprocess.check_output(['git','rev-parse','HEAD:'+name], text=True).strip()) for name in names},
+              sourcePinsScope='direct registration, original-file checks, CLI and entrypoint leaves; complete linked program identified by sourceTree and module pins',
+              binaries=binaries, entrypoint='cmd/ynx-comet', binaryScope='complete normal ynx-comet CLI, not a registration-only executable',
+              registrationCallee='consensus.RegisterProofHostSourceCatalogForWallet',
+              fixedCommand='register-proof-host-source',
+              fixedArgvContract=['register-proof-host-source', '--wallet-request-stdin', 'true',
+                  '--delivery-manifest', '<protected-original-delivery.json>',
+                  '--delivery-manifest-sha256', '<independent-manifest-sha256>',
+                  '--binding', '<protected-original-binding.json>', '--binding-sha256', '<independent-binding-sha256>',
+                  '--output', '<new-exclusive-private-catalog>'],
+              requestFields=['operationId','account','networkId','originalHash','nativeWireHash','transactionHash'],
+              requestMaxBytes=4096, requestHasVersion=False, requestSelectsPathsOrPins=False,
+              resultFields=['catalogPath','catalogSha256'],
+              catalogContract='YNX-CONSENSUS-PROOF-HOST-SOURCE-CATALOG/v1',
+              protectedSourceOwnerInvocationRequired=True, independentOriginalBindingAndDeliveryPinsRequired=True,
+              walletMainRegistrationOutputAllowedInStdinMode=False,
+              crossCompiled=True, cgoEnabled=False, executed=False, executedOnMacOS=False, runtimeStarted=False,
+              productInstalled=False, publicDataOnly=True, nativeRootAuthorized=False, sourceDeploymentQualified=False,
+              publicDeployment=False, pqActivation=False, nodeStartAuthorized=False,
+              purpose='normal SourceOwner registration DATA callee for the original protected Wallet handoff; this artifact does not authenticate a SourceOwner, install a caller or authorize other ynx-comet commands')
+          with (root / 'SOURCE.json').open('x') as target:
+              target.write(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n')
+          expected = {'SOURCE.json', 'ynx-comet-darwin-arm64', 'ynx-comet-darwin-amd64'}
+          if {path.name for path in root.iterdir()} != expected or any(not path.is_file() or path.is_symlink() for path in root.iterdir()):
+              raise RuntimeError('macOS registration delivery must contain exactly two normal executables and SOURCE.json')
+          print('YNX_MACOS_PROOF_SOURCE_REGISTER ' + json.dumps(record, sort_keys=True, separators=(',', ':')))
+          PY
+          test -z "$(git status --porcelain --untracked-files=normal)"
+      - name: Upload only public macOS SourceOwner registration executables and exact source pins
+        timeout-minutes: 1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-macos-proof-source-register-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-macos-proof-source-register/ynx-comet-darwin-arm64
+            ${{ runner.temp }}/ynx-pq-macos-proof-source-register/ynx-comet-darwin-amd64
+            ${{ runner.temp }}/ynx-pq-macos-proof-source-register/SOURCE.json
           if-no-files-found: error
           retention-days: 7
 

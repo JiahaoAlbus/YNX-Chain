@@ -610,9 +610,52 @@ def assert_runtime_gateway_identity_workflow_contract(raw):
         raise AssertionError("actual runtime identity observation must follow its build")
 
 
+def assert_macos_source_register_workflow_contract(raw):
+    """Check supply boundaries; the CI build/seal checks the actual artifacts."""
+    job, steps = workflow_steps(raw, "proof-verifier-macos")
+    def need(value):
+        if not value:
+            raise AssertionError("normal macOS SourceOwner registration supply changed")
+    named = lambda name: [step for step in steps if step.startswith("      - name: " + name + "\n")]
+    builds = named("Build the normal macOS SourceOwner registration CLI without executing it")
+    uploads = named("Upload only public macOS SourceOwner registration executables and exact source pins")
+    need(len(builds) == len(uploads) == 1 and "continue-on-error:" not in job and "permissions:" not in job)
+    need("    timeout-minutes: 12\n" in job)
+    build, upload = builds[0], uploads[0]
+    need(steps.index(build) < steps.index(upload) and not re.search(r"(?m)^        if:", build + upload))
+    need("        timeout-minutes: 5\n" in build and "        timeout-minutes: 1\n" in upload)
+    need("set -euo pipefail" in build and "||" not in build and not re.search(r"\bsudo\b", build + upload))
+    parts = build.split("          python3 -B - <<'PY'\n")
+    need(len(parts) == 2 and "for YNX_MAC_REGISTER_ARCH in arm64 amd64; do" in parts[0])
+    command = 'CGO_ENABLED=0 GOOS=darwin GOARCH="$YNX_MAC_REGISTER_ARCH" go build -p 1 -trimpath -o "$YNX_MAC_REGISTER/ynx-comet-darwin-$YNX_MAC_REGISTER_ARCH" ./cmd/ynx-comet'
+    need(parts[0].count(command) == 1 and not any("ynx-comet-darwin-" in line and " go build " not in line for line in parts[0].splitlines()))
+    need('test "$(git rev-parse HEAD)" = "$GITHUB_SHA"' in build and build.count('test -z "$(git status --porcelain --untracked-files=normal)"') == 2)
+    body = parts[1].split("          PY\n")
+    need(len(body) == 2 and body[1].strip() == 'test -z "$(git status --porcelain --untracked-files=normal)"')
+    need(body[0].count("subprocess.check_output(") == 4 and not re.search(r"\b(?:subprocess\.(?:Popen|run|call|check_call)|os\.(?:system|popen|exec\w*)|exec|eval)\s*\(", body[0]))
+    evidence = ("hashlib.file_digest(source, 'sha256')", "binaries[name] = pin(path)",
+        "head[:4] != b'\\xcf\\xfa\\xed\\xfe'", "0x0100000c", "0x01000007", "head[12:16])[0] != 2",
+        "gitBlob=subprocess.check_output(['git','rev-parse','HEAD:'+name]", "sourceTree=subprocess.check_output(['git','rev-parse','HEAD^{tree}']",
+        "pin(Path(name))", "'internal/consensus/proof_host_selection.go'", "'cmd/ynx-comet/register_proof_host_source.go'", "'cmd/ynx-comet/main.go'",
+        "RegisterProofHostSourceCatalogForWallet", "requestMaxBytes=4096", "resultFields=['catalogPath','catalogSha256']",
+        "executed=False", "nativeRootAuthorized=False", "productInstalled=False")
+    need(all(token in body[0] for token in evidence))
+    files = ["ynx-comet-darwin-arm64", "ynx-comet-darwin-amd64", "SOURCE.json"]
+    need(re.findall(r"(?m)^            (.+)$", upload) == ["${{ runner.temp }}/ynx-pq-macos-proof-source-register/" + name for name in files])
+    need("          path: |\n" in upload and "          if-no-files-found: error\n" in upload)
+    need("uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in upload)
+    need(re.findall(r"(?m)^          name: (.+)$", upload) == ["ynx-pq-macos-proof-source-register-${{ github.sha }}"])
+    old_build = named("Build only the existing offline verifier for macOS callers")
+    old_upload = named("Upload only public macOS verifier executables and exact source pins")
+    need(len(old_build) == len(old_upload) == 1 and steps.index(old_build[0]) < steps.index(old_upload[0]) < steps.index(build))
+    need("          name: ynx-pq-macos-proof-verifier-${{ github.sha }}\n" in old_upload[0])
+    need("          path: ${{ runner.temp }}/ynx-pq-macos-proof-verifier\n" in old_upload[0])
+
+
 def assert_workflow_contract(raw):
     assert_native_cabi_workflow_contract(raw)
     assert_runtime_gateway_identity_workflow_contract(raw)
+    assert_macos_source_register_workflow_contract(raw)
     job, steps = workflow_steps(raw)
 
     def need(condition):
@@ -794,7 +837,7 @@ def assert_workflow_contract(raw):
     need(all(caddy_steps.index(step) < caddy_steps.index(control_seals[0]) for step in qualified_caddy_steps))
     need(caddy_steps.index(control_seals[0]) < caddy_steps.index(control_uploads[0]))
     need(raw.count("bash scripts/verify/public-bft-gateway-ingress-check.sh") == 1)
-    need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 6\n" in mac_job)
+    need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 12\n" in mac_job)
     need("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n" in mac_job)
     need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
     combined = steps + delivery_steps
@@ -963,6 +1006,33 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_macos_source_registration_supply_requires_real_build_closed_artifact_and_data_only(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_macos_source_register_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "proof-verifier-macos")
+        build = next(step for step in steps if step.startswith(
+            "      - name: Build the normal macOS SourceOwner registration CLI without executing it\n"))
+        upload = next(step for step in steps if step.startswith(
+            "      - name: Upload only public macOS SourceOwner registration executables and exact source pins\n"))
+        changes = [
+            raw.replace(build, "", 1),
+            raw.replace(build, build.replace("        timeout-minutes: 5\n", "        timeout-minutes: 10\n", 1), 1),
+            raw.replace(build, build.replace("        run: |\n", "        if: false\n        run: |\n", 1), 1),
+            raw.replace(build, build.replace("in arm64 amd64; do", "in arm64; do", 1), 1),
+            raw.replace(build, build.replace("go build -p 1 -trimpath", "echo pretend-build -p 1 -trimpath", 1), 1),
+            raw.replace(build, build.replace("          python3 -B - <<'PY'\n", '          "$YNX_MAC_REGISTER/ynx-comet-darwin-arm64" register-proof-host-source\n' + "          python3 -B - <<'PY'\n", 1), 1),
+            raw.replace(build, build.replace("binaries[name] = pin(path)", "binaries[name] = dict(bytes=1, sha256='0'*64)", 1), 1),
+            raw.replace(build, build.replace("gitBlob=subprocess.check_output(['git','rev-parse','HEAD:'+name], text=True).strip()", "gitBlob='unobserved'", 1), 1),
+            raw.replace(build, build.replace("requestMaxBytes=4096", "requestMaxBytes=65536", 1), 1),
+            raw.replace(build, build.replace("publicDataOnly=True, nativeRootAuthorized=False", "publicDataOnly=True, nativeRootAuthorized=True", 1), 1),
+            raw.replace(upload, upload.replace("          path: |\n", "          path: ${{ runner.temp }}/ynx-pq-macos-proof-source-register\n", 1), 1),
+            raw.replace(upload, upload.replace("          if-no-files-found: error\n", "            ${{ runner.temp }}/original/priv_validator_key.json\n          if-no-files-found: error\n", 1), 1),
+        ]
+        for index, changed in enumerate(changes):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_macos_source_register_workflow_contract(changed)
 
     def test_runtime_gateway_identity_rejects_old_labels_and_unobserved_binary(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
