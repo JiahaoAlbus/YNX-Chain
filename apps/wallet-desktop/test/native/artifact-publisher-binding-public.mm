@@ -19,13 +19,15 @@ static std::unordered_set<IDEWalletSourceOwner*>parents;
 static IDEWalletSourceOwner*IDEWalletOriginal(napi_env env,napi_value value){void*raw=nullptr;if(napi_unwrap(env,value,&raw)!=napi_ok)return nullptr;auto*p=static_cast<IDEWalletSourceOwner*>(raw);return parents.count(p)&&p->env==env?p:nullptr;}
 static bool IDEWalletCurrent(IDEWalletSourceOwner*p,bool bound){return p&&!p->closed&&!p->retired&&p->first.empty()&&(!bound||p->bound);}
 static bool publicPendingOutcome=false;
-@implementation YNXOriginalArtifactReleaseApproval {BOOL approved,retired,pendingOutcome;}
+static unsigned publicSigningCalls=0;
+static IDEWalletSourceOwner*publicRetireOnSign=nullptr;
+@implementation YNXOriginalArtifactReleaseApproval {BOOL approved,retired,pendingOutcome,signedOnce;}
 +(instancetype)captureWalletSource:(YNXOriginalIDEWalletIdentitySource*)source transport:(YNXOriginalIDEWalletPeerLaunch*)transport error:(NSError**)error {(void)source;(void)transport;(void)error;YNXOriginalArtifactReleaseApproval*p=[[super alloc]init];p->pendingOutcome=publicPendingOutcome;publicPendingOutcome=false;return p;}
 -(NSDictionary*)copyOriginalReview:(NSError**)error {if(retired){if(error)*error=[NSError errorWithDomain:@"PUBLIC" code:1 userInfo:@{NSLocalizedDescriptionKey:@"PUBLIC_RETIRED"}];return nil;}return approved?@{@"reviewId":@"PUBLIC-review",@"actualApprovalRef":@"PUBLIC-ref"}:@{@"reviewId":@"PUBLIC-review"};}
 -(BOOL)approveOriginalReview:(NSString*)review error:(NSError**)error {(void)error;if(approved||retired||![review isEqual:@"PUBLIC-review"])return NO;approved=YES;return YES;}
 -(BOOL)assertOriginalApprovalCurrent:(NSString*)ref error:(NSError**)error {(void)error;return approved&&!retired&&[ref isEqual:@"PUBLIC-ref"];}
 -(NSDictionary*)selectOriginalSigning:(NSString*)ref error:(NSError**)error {(void)ref;(void)error;return nil;}
--(NSDictionary*)signOriginalRelease:(NSString*)ref error:(NSError**)error {(void)ref;(void)error;return nil;}
+-(NSDictionary*)signOriginalRelease:(NSString*)ref error:(NSError**)error {if(!approved||retired||signedOnce||![ref isEqual:@"PUBLIC-ref"]){if(error)*error=[NSError errorWithDomain:@"PUBLIC" code:1 userInfo:@{NSLocalizedDescriptionKey:@"PUBLIC_SIGN_REFUSED"}];return nil;}signedOnce=YES;publicSigningCalls++;if(publicRetireOnSign){publicRetireOnSign->retired=true;publicRetireOnSign=nullptr;}if(pendingOutcome){if(error)*error=[NSError errorWithDomain:@"PUBLIC" code:1 userInfo:@{NSLocalizedDescriptionKey:@"PUBLIC_OUTCOME_SAVE_REQUIRED"}];return nil;}return [self copyOriginalSigningOutcome:error];}
 -(NSDictionary*)copyOriginalSigningOutcome:(NSError**)error {(void)error;return @{@"phase":pendingOutcome?@"signed-outcome-unknown":@"signed-unhanded"};}
 -(BOOL)saveOriginalSigningOutcome:(NSError**)error {(void)error;pendingOutcome=NO;return YES;}
 -(void)retire {retired=YES;}
@@ -35,5 +37,7 @@ static bool publicPendingOutcome=false;
 static napi_value Parent(napi_env env,napi_callback_info info){(void)info;auto*p=new IDEWalletSourceOwner{};p->env=env;p->transport=(YNXOriginalIDEWalletPeerLaunch*)[NSObject new];napi_value result;napi_create_object(env,&result);parents.insert(p);napi_wrap(env,result,p,[](napi_env,void*raw,void*){auto*p=static_cast<IDEWalletSourceOwner*>(raw);parents.erase(p);delete p;},nullptr,nullptr);return result;}
 static napi_value RetireParent(napi_env env,napi_callback_info info){napi_value value;if(!IDEIdentityArgc(env,info,1,&value,nullptr,nullptr))return Error(env,"PUBLIC_ARGS");auto*p=IDEWalletOriginal(env,value);if(!p)return Error(env,"PUBLIC_PARENT");p->retired=true;return Undefined(env);}
 static napi_value PendingOutcome(napi_env env,napi_callback_info info){(void)info;publicPendingOutcome=true;return Undefined(env);}
-static napi_value Register(napi_env env,napi_value exports){napi_property_descriptor methods[]={{"PUBLICParent",nullptr,Parent,nullptr,nullptr,nullptr,napi_default,nullptr},{"PUBLICRetireParent",nullptr,RetireParent,nullptr,nullptr,nullptr,napi_default,nullptr},{"PUBLICPendingOutcome",nullptr,PendingOutcome,nullptr,nullptr,nullptr,napi_default,nullptr}};napi_define_properties(env,exports,3,methods);return RegisterOriginalArtifactPublisherBinding(env,exports)?exports:nullptr;}
+static napi_value RetireOnSign(napi_env env,napi_callback_info info){napi_value value;if(!IDEIdentityArgc(env,info,1,&value,nullptr,nullptr))return Error(env,"PUBLIC_ARGS");publicRetireOnSign=IDEWalletOriginal(env,value);return Undefined(env);}
+static napi_value SigningCalls(napi_env env,napi_callback_info info){(void)info;napi_value value;napi_create_uint32(env,publicSigningCalls,&value);return value;}
+static napi_value Register(napi_env env,napi_value exports){napi_property_descriptor methods[]={{"PUBLICParent",nullptr,Parent,nullptr,nullptr,nullptr,napi_default,nullptr},{"PUBLICRetireParent",nullptr,RetireParent,nullptr,nullptr,nullptr,napi_default,nullptr},{"PUBLICPendingOutcome",nullptr,PendingOutcome,nullptr,nullptr,nullptr,napi_default,nullptr},{"PUBLICRetireOnSign",nullptr,RetireOnSign,nullptr,nullptr,nullptr,napi_default,nullptr},{"PUBLICSigningCalls",nullptr,SigningCalls,nullptr,nullptr,nullptr,napi_default,nullptr}};napi_define_properties(env,exports,5,methods);return RegisterOriginalArtifactPublisherBinding(env,exports)?exports:nullptr;}
 NAPI_MODULE(NODE_GYP_MODULE_NAME,Register)

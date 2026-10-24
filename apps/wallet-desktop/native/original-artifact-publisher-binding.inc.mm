@@ -1,6 +1,9 @@
 // Included ONLY by the original SDK Main-role hook, in its original NAPI TU.
 // No signer/provider callbacks, public owner descriptors or secret exports.
 #import "original-artifact-publisher-store.h"
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI) && YNX_ORIGINAL_WALLET_ARTIFACT_CABI != 1
+#error YNX_ORIGINAL_WALLET_ARTIFACT_CABI_REQUIRES_ONE
+#endif
 struct WalletPublisherApprovalOwner {
  napi_env env=nullptr;pthread_t thread{};napi_ref parent=nullptr;
  YNXOriginalArtifactReleaseApproval*__strong approval=nil;
@@ -54,12 +57,12 @@ static void WalletPublisherFinalize(napi_env,void*raw,void*){
  p->finalized=true;WalletPublisherClose(p);
  if(p->environmentGone&&p->closed){walletPublisherApprovals.erase(p);delete p;}
 }
-enum class WalletPublisherMethod:uintptr_t {review=1,approve,current,retire,close,outcome,saveOutcome};
+enum class WalletPublisherMethod:uintptr_t {review=1,approve,current,retire,close,outcome,saveOutcome,sign};
 static napi_value WalletPublisherOperation(napi_env env,napi_callback_info info){
  napi_value self=nullptr,args[1];void*raw=nullptr;size_t count=1;
  if(napi_get_cb_info(env,info,&count,args,&self,&raw)!=napi_ok)return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
  auto method=static_cast<WalletPublisherMethod>((uintptr_t)raw);
- if(!IDEIdentityArgc(env,info,method==WalletPublisherMethod::approve||method==WalletPublisherMethod::current?1:0,args,&self,&raw))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
+ if(!IDEIdentityArgc(env,info,method==WalletPublisherMethod::approve||method==WalletPublisherMethod::current||method==WalletPublisherMethod::sign?1:0,args,&self,&raw))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");
  auto*p=WalletPublisherOriginal(env,self);if(!p)return Error(env,"WALLET_PUBLISHER_ORIGINAL_APPROVAL_REQUIRED");
  if(p->busy)return Error(env,"WALLET_PUBLISHER_APPROVAL_BUSY");
  if(method==WalletPublisherMethod::retire){p->retired=true;[p->approval retire];return Undefined(env);}
@@ -90,9 +93,21 @@ static napi_value WalletPublisherOperation(napi_env env,napi_callback_info info)
   else {
    NSData*bytes=IDEIdentityString(env,args[0],128);NSString*identifier=bytes?[[NSString alloc]initWithData:bytes encoding:NSUTF8StringEncoding]:nil;
    if(!identifier)return Error(env,"WALLET_PUBLISHER_APPROVAL_ID_INVALID");
-   BOOL ok=method==WalletPublisherMethod::approve?[p->approval approveOriginalReview:identifier error:&error]:[p->approval assertOriginalApprovalCurrent:identifier error:&error];
-   if(!ok||error)return WalletPublisherFail(p,IDEIdentityCode(error,"WALLET_PUBLISHER_APPROVAL_REFUSED").c_str()),Error(env,p->first.c_str());
-   review=[p->approval copyOriginalReview:&error];
+   if(method==WalletPublisherMethod::sign){
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+    // Fixed synchronous original Native effect. It owns once/intent/custody,
+    // result retention and durable save BEFORE returning any public DATA.
+    // This wrapper never supplies a signer, private record or send callback.
+    review=[p->approval signOriginalRelease:identifier error:&error];
+    if(!review||error)return WalletPublisherFail(p,IDEIdentityCode(error,"WALLET_PUBLISHER_SIGN_OUTCOME_UNKNOWN").c_str()),Error(env,p->first.c_str());
+#else
+    return Error(env,"WALLET_PUBLISHER_FIXED_CABI_NOT_SUPPLIED");
+#endif
+   }else{
+    BOOL ok=method==WalletPublisherMethod::approve?[p->approval approveOriginalReview:identifier error:&error]:[p->approval assertOriginalApprovalCurrent:identifier error:&error];
+    if(!ok||error)return WalletPublisherFail(p,IDEIdentityCode(error,"WALLET_PUBLISHER_APPROVAL_REFUSED").c_str()),Error(env,p->first.c_str());
+    review=[p->approval copyOriginalReview:&error];
+   }
   }
   if(!review||error)return WalletPublisherFail(p,IDEIdentityCode(error,"WALLET_PUBLISHER_REVIEW_UNAVAILABLE").c_str()),Error(env,p->first.c_str());
   napi_value result=IDEIdentityPublic(env,review);
@@ -116,8 +131,12 @@ static napi_value CaptureOriginalWalletPublisherApproval(napi_env env,napi_callb
  if(napi_add_env_cleanup_hook(env,WalletPublisherEnvironmentRetire,p)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_ENVIRONMENT_CUSTODY_UNKNOWN");return Error(env,p->first.c_str());}
  napi_value result=nullptr;
  if(napi_create_object(env,&result)!=napi_ok||napi_type_tag_object(env,result,&walletPublisherApprovalTag)!=napi_ok||napi_wrap(env,result,p,WalletPublisherFinalize,nullptr,nullptr)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_WRAP_UNKNOWN");return Error(env,p->first.c_str());}
- const char*names[]={"copyOriginalReview","approveOriginalReview","assertOriginalApprovalCurrent","retire","close","copyOriginalSigningOutcome","saveOriginalSigningOutcome"};
- for(uintptr_t i=0;i<7;i++){napi_property_descriptor d={names[i],nullptr,WalletPublisherOperation,nullptr,nullptr,nullptr,napi_default,(void*)(i+1)};if(napi_define_properties(env,result,1,&d)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_METHODS_UNKNOWN");return nullptr;}}
+ const char*names[]={"copyOriginalReview","approveOriginalReview","assertOriginalApprovalCurrent","retire","close","copyOriginalSigningOutcome","saveOriginalSigningOutcome"
+#if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
+ ,"signOriginalRelease"
+#endif
+ };
+ for(uintptr_t i=0;i<sizeof(names)/sizeof(names[0]);i++){napi_property_descriptor d={names[i],nullptr,WalletPublisherOperation,nullptr,nullptr,nullptr,napi_default,(void*)(i+1)};if(napi_define_properties(env,result,1,&d)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_METHODS_UNKNOWN");return nullptr;}}
  if(napi_object_freeze(env,result)!=napi_ok){WalletPublisherFail(p,"WALLET_PUBLISHER_FREEZE_UNKNOWN");return nullptr;}
  struct ParentBusy {IDEWalletSourceOwner*p;explicit ParentBusy(IDEWalletSourceOwner*v):p(v){p->busy++;}~ParentBusy(){p->busy--;}}busy(original);
  @try{try{

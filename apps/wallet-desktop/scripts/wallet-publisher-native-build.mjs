@@ -12,7 +12,7 @@ export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
  {path:'apps/wallet-desktop/native/original-artifact-publisher-store.mm',bytes:41258,sha256:'b5ddc4174abfe1959a4066d90fc8f28aa603a9a6c2d8f20520cf2ec66788552b'}
 ].map(Object.freeze));
 export const WALLET_PUBLISHER_APPROVAL_FLAG='-DYNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING=1';
-export const WALLET_PUBLISHER_APPROVAL_INPUT=Object.freeze({path:'apps/wallet-desktop/native/original-artifact-publisher-binding.inc.mm',bytes:11486,sha256:'4e36676825adff0690a231c9a4f3d628bb322cb32862ecd5a2cfdc7ad36af271'});
+export const WALLET_PUBLISHER_APPROVAL_INPUT=Object.freeze({path:'apps/wallet-desktop/native/original-artifact-publisher-binding.inc.mm',bytes:12428,sha256:'e1025409c0f52400e0fded9a6d49cfe6ee4a69aca951abb15446228d8fa4b505'});
 const withApproval=Object.freeze([...WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_PUBLISHER_APPROVAL_INPUT]);
 export const WALLET_ARTIFACT_CABI_FLAG='-DYNX_ORIGINAL_WALLET_ARTIFACT_CABI=1';
 // Separate Main private body and unchanged Protocol 395bb8d99 darwin-arm64
