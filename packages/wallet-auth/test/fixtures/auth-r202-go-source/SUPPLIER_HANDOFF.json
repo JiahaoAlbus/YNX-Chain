@@ -1,0 +1,252 @@
+{
+  "version": 1,
+  "state": "FULL_AUTH_SUPPLIER_GO_PUBLIC_CI_SOURCE_CLOSURE_NOT_NORMAL_SERVER",
+  "date": "2026-10-24",
+  "goFiles": 27,
+  "publicJSON": 2,
+  "schemaExecuted": false,
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/catalog.go",
+      "relative": "internal/developerauthority/catalog.go",
+      "bytes": 26345,
+      "sha256": "c830e7a66cbba07d1822a980c09fddc79c4adfe9bdfaf54e3cd1baf333eaee43",
+      "gitBlob": "f7c0ee93130e43b3d1c352a4f492b0605b7a4b13"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/catalog_control_size_test.go",
+      "relative": "internal/developerauthority/catalog_control_size_test.go",
+      "bytes": 5209,
+      "sha256": "b80dafd37e5e0af61619d3aa3cffec3ade398ec7ee6fb078c0c0be9b67f39f27",
+      "gitBlob": "41290a5e0721110ee18a7e041eebd2e9a9fd42fe"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_delivery_test.go",
+      "relative": "internal/developerauthority/original_approval_delivery_test.go",
+      "bytes": 2413,
+      "sha256": "0cd34be8a6cac9d3533fb9a874a7432ab0edb1d1c532a6941f49da9427003a0e",
+      "gitBlob": "c29431ed3e3254944d283476e2b11856687bd9e6"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_issuer.go",
+      "relative": "internal/developerauthority/original_approval_issuer.go",
+      "bytes": 10026,
+      "sha256": "027e4fd752426eb58e3294ede40fa8fc699d209e955fc9cfa6da29b49ef62385",
+      "gitBlob": "3f2d86a276f12ffe2d69b5eb855963c727f60850"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_issuer_test.go",
+      "relative": "internal/developerauthority/original_approval_issuer_test.go",
+      "bytes": 5574,
+      "sha256": "95b4da5c353deaaa0039c2aaeebcbae2de1a03c2952accfcb34a0a0c93064147",
+      "gitBlob": "4bdee070d7bdec25339a8e99de473fac3218cb20"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_runtime.go",
+      "relative": "internal/developerauthority/original_approval_runtime.go",
+      "bytes": 3845,
+      "sha256": "6f75814fe576e8eb9593ee687263eb70a8dce410a0546df4ebfba5f303a1f9de",
+      "gitBlob": "529d9873eec045b89a3220577360d1b342a7315a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_runtime_test.go",
+      "relative": "internal/developerauthority/original_approval_runtime_test.go",
+      "bytes": 2919,
+      "sha256": "9df95bcf5b496ab714e8a7816a35b86549d93944426bccbe6fa3f24fa9d5aac5",
+      "gitBlob": "a9caf06913aed96189b549ba7c1e4a7550f1d65b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_store.go",
+      "relative": "internal/developerauthority/original_approval_store.go",
+      "bytes": 22036,
+      "sha256": "947e6fa4ed2be4b6c6b75fa7799b762bfcef793362791a78997ed3a8a553ff96",
+      "gitBlob": "2f9b9c5455c11c793accf5262891f53902c8a0a6"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_store_test.go",
+      "relative": "internal/developerauthority/original_approval_store_test.go",
+      "bytes": 18007,
+      "sha256": "d3f7c4af82617a7910508ece3f600535c1668065fab781a62843924ae4f426e9",
+      "gitBlob": "48ed592b21435493063ec312c92d1edcaa1296b4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_verifier.go",
+      "relative": "internal/developerauthority/original_approval_verifier.go",
+      "bytes": 6531,
+      "sha256": "0e612b9833e31c285340426dbb3fe49cdc870b1d5ccc06a3e22f07a81ec1a040",
+      "gitBlob": "6b2ab21e628e721a70fa552c18b6ca58354f0672"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_approval_verifier_test.go",
+      "relative": "internal/developerauthority/original_approval_verifier_test.go",
+      "bytes": 5980,
+      "sha256": "5859892d69d69bb505ae04675240fe561d925d82bd4e2ecfe1da112675209122",
+      "gitBlob": "38e989bd97ebf1f1502577cbc509e8c210599d5e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_control_current.go",
+      "relative": "internal/developerauthority/original_control_current.go",
+      "bytes": 9274,
+      "sha256": "60fff24d14044111b38afaa362f0a6a29160e0e3d7f82dbed221ffa26afa0dc4",
+      "gitBlob": "a69e362f391e6811b42329f88ded24b45bbe527d"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_control_current_test.go",
+      "relative": "internal/developerauthority/original_control_current_test.go",
+      "bytes": 6104,
+      "sha256": "95684945884e9607680abbf6399a0e9cf2a8e5fd7da2b8885e61d1a4ae0c623e",
+      "gitBlob": "06d4a96db06c3040de080eef90fd06630d6b7bb9"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_control_runtime.go",
+      "relative": "internal/developerauthority/original_control_runtime.go",
+      "bytes": 11941,
+      "sha256": "de5328f880c5479b1532651b127df1e41c9bcfe60096bbfb4946671af25f50fe",
+      "gitBlob": "d5c936576904e2bbc5622fc523f6612f1750058a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_control_runtime_test.go",
+      "relative": "internal/developerauthority/original_control_runtime_test.go",
+      "bytes": 10324,
+      "sha256": "43733c98d0e7e625bdae9cea635a8b7a48f20c2d168b15450a09bfe301b865b9",
+      "gitBlob": "af4545370a86d005e18825d4c8dab03eca8c2c5b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_control_verifier.go",
+      "relative": "internal/developerauthority/original_control_verifier.go",
+      "bytes": 3175,
+      "sha256": "ff8dba1e224e41c6e3db7d50cb385f16ef28d68ea3b710d8937cf2177a8105a9",
+      "gitBlob": "2d17b8b4599bc24e4c48c1649706e1a4b618e9bd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_control_verifier_test.go",
+      "relative": "internal/developerauthority/original_control_verifier_test.go",
+      "bytes": 3536,
+      "sha256": "ccbfd518c7a83d63b94532a8ebca5a55a00ae6dcaf527647d000495cdd49a675",
+      "gitBlob": "08a484b353970b9c4ee1250b8b3a07acbb472a8e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_developer_factory.go",
+      "relative": "internal/developerauthority/original_developer_factory.go",
+      "bytes": 5007,
+      "sha256": "c4b48741312b26b02551be61e4a7b2c120966873c0faa90c8fcd977e8b3cf90a",
+      "gitBlob": "adada7f699a248f8d3e64e0e054efa638f1e6df6"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_http_principal.go",
+      "relative": "internal/developerauthority/original_http_principal.go",
+      "bytes": 10565,
+      "sha256": "60cb41d1cf35d4cd7361c1ecf5a6d588200bcec079c21b0e5bf49200398ed517",
+      "gitBlob": "265c3763664c3e0443d2a4f684bdd2ec69df4b5e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_http_principal_test.go",
+      "relative": "internal/developerauthority/original_http_principal_test.go",
+      "bytes": 7250,
+      "sha256": "20ff95224ee69c1a68fa0541748987938e457c16ef09283bad746824d90118f8",
+      "gitBlob": "e4b092a0d810d201b81556e8f2707c0d5ab030dd"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_native_control_interop_test.go",
+      "relative": "internal/developerauthority/original_native_control_interop_test.go",
+      "bytes": 1554,
+      "sha256": "080284c494d07635054af5923a6a14f51348e0db252f80ef83590a6cc00a5ad1",
+      "gitBlob": "fabe166d7578eb5dcd68171d0696439e2e5c493e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_publisher_verifier.go",
+      "relative": "internal/developerauthority/original_publisher_verifier.go",
+      "bytes": 2601,
+      "sha256": "d55fccd6eb818650ba8f9b344fc25cca0b35435d717051113190894c3e2d07d1",
+      "gitBlob": "0e6ac786ac618732306d33cce5bdd1a0bbe10dca"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_publisher_verifier_test.go",
+      "relative": "internal/developerauthority/original_publisher_verifier_test.go",
+      "bytes": 2340,
+      "sha256": "dca15bd5966477c097b128cb016d898a3a1be8e8e2928246f7b8b62061346b35",
+      "gitBlob": "f7903ca4345fa5c4ebb947bf66ddeb4698bcce7f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_source_nonce.go",
+      "relative": "internal/developerauthority/original_source_nonce.go",
+      "bytes": 6631,
+      "sha256": "d508f1c295d4fe9b0bbc7658dc300fa686fdce8111df2254e1e7d4f5c7e3063a",
+      "gitBlob": "5d8b5f61a9fddda3293849f632fa11ca44098dc2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_source_process.go",
+      "relative": "internal/developerauthority/original_source_process.go",
+      "bytes": 20678,
+      "sha256": "00b4e3c4e46f084a4836d174219f4c0410d37617c142b416b1bfee748bdcd4b8",
+      "gitBlob": "c1db0f872063b568107f6091a29a016466c6fa00"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/original_source_process_test.go",
+      "relative": "internal/developerauthority/original_source_process_test.go",
+      "bytes": 12001,
+      "sha256": "1f2147d8485c1547a15194d3f70398263206fa213919df4d4feddfaef81033f3",
+      "gitBlob": "2c9a01eee2a079b683950fad187335bb61635abc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/publication.go",
+      "relative": "internal/developerauthority/publication.go",
+      "bytes": 14016,
+      "sha256": "db5a8807e728a36c6b1db9b86785642796ce739c28e3becb3f33f37366b97efe",
+      "gitBlob": "7050f6b6bae19e6dd45b4197d57d8583a540c5df"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/internal/developerauthority/control_capture_schema.sql",
+      "relative": "internal/developerauthority/control_capture_schema.sql",
+      "bytes": 1719,
+      "sha256": "9eb3ef9f053abd2f0fe4524c75ee6c6f0ca7ee19ba5da144af209926b4d93009",
+      "gitBlob": "90dbc2126c567096e8d4a6dc4661940aa384229b"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/packages/wallet-auth/test/fixtures/native-control-public-interop.json",
+      "relative": "packages/wallet-auth/test/fixtures/native-control-public-interop.json",
+      "bytes": 86706,
+      "sha256": "32d90211e6f019b1d073fe7a5692384a7821c9f1cd0708506fa1c679bb5e1aba",
+      "gitBlob": "c90e80aa9f0b3be3809facc9cf1843d185393a01"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-go-ci-closure-20261024-r1/source/packages/wallet-auth/test/fixtures/native-control-154a7b211-public-interop.json",
+      "relative": "packages/wallet-auth/test/fixtures/native-control-154a7b211-public-interop.json",
+      "bytes": 86706,
+      "sha256": "9e6639840b56f51cc5faa95de69a30b2c6c4fed68b9318e08d16fe4b038f57ec",
+      "gitBlob": "b14f50be06424ffc2456c0b64c5ae1fb72cb9d5e"
+    }
+  ],
+  "sourceParent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-supply-20261024-r1/HANDOFF.json",
+    "bytes": 14865,
+    "sha256": "43b66b57e102128fc2f4d5636735d8f0465b77094a09c3f4daa73cc39dbf7168"
+  },
+  "testAddendum": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r202-supply-20261024-test-addendum-r1/HANDOFF.json",
+    "bytes": 1335,
+    "sha256": "40e3b5f8ef8dd713bf31d0ee39e439d4ebb8395fb54b063494990da48255265c"
+  },
+  "reuse": {
+    "rawDirectory": "/Volumes/西部数据/YNX-large-work/auth-owned-r202/evidence/current-factory-xrVuC4",
+    "top": 9,
+    "subtests": 16,
+    "pass": 25,
+    "race": true,
+    "rerun": false
+  },
+  "CIAdapter": {
+    "onlyFile": "internal/developerauthority/original_source_process_test.go",
+    "onlyConstant": "fixtureNode",
+    "permitted": "Temporary PUBLIC CI fixture copy may replace only fixtureNode constant with actual independently selected CI Node absolute path. Production OriginalSourceVerifierConfig/Node pin/Root/normal package unchanged. No environment provider/fallback.",
+    "goInvocation": "command-line file list, selected new R202 groups only, not a new Go module/server"
+  },
+  "productionMount": "Existing normal Wallet Gateway Node owner per Root; this Go supplier fixture does not establish an HTTP issuer or Source13.",
+  "truth": {
+    "Source13": false,
+    "Root": false,
+    "livePG": false,
+    "production": false,
+    "NativeGrant": false
+  }
+}
