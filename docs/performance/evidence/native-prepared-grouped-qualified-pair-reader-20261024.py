@@ -10,6 +10,7 @@ base=Path(sys.argv[1]).resolve()
 capture,logpath,runpath,out=map(Path,sys.argv[2:6])
 trusted_grant_bytes=int(sys.argv[6]);trusted_grant_sha=sys.argv[7]
 assert 0<trusted_grant_bytes<=65536 and len(trusted_grant_sha)==64 and all(c in "0123456789abcdef" for c in trusted_grant_sha)
+assert trusted_grant_bytes==8148 and trusted_grant_sha=='1d8ea37a21a1266d91a92fabc49361c78c0a96ce4662014c4ef6e870a617fda4'
 def pin(path):
  raw=path.read_bytes();return dict(path=str(path),bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest())
 def read(path):return json.loads(path.read_bytes())
@@ -21,14 +22,16 @@ def frames(prefix):return [json.loads(line.split(prefix,1)[1]) for line in logpa
 def stamp(value):return datetime.datetime.fromisoformat(value.replace('Z','+00:00'))
 grant_path=base/'original-root-grant.json';grant=read(grant_path)
 assert pin(grant_path)['bytes']==trusted_grant_bytes and pin(grant_path)['sha256']==trusted_grant_sha
-assert grant['sourceCommit']=='1f21f1f2eed732c0948ac98ff7028bee5f2d6ca4' and grant['once'] is True and type(grant['RootFreshPressure']) is int and grant['RootFreshPressure']==1
-assert grant['frozenRef']=='refs/tags/codex/chain-native-prepared-grouped-pair-1f21f1f2e'
+assert grant['sourceCommit']=='1f21f1f2eed732c0948ac98ff7028bee5f2d6ca4' and grant['once'] is True and type(grant['freshRootPressure']) is int and grant['freshRootPressure']==1
+assert grant['frozenRef']=='codex/chain-native-prepared-grouped-pair-1f21f1f2e'
 source_ref=grant['frozenRef'].removeprefix('refs/tags/')
 request=read(base/'root-scheduling-request-with-evidence.json');plan=read(base/'plan.json')
 assert pin(base/'root-scheduling-request-with-evidence.json')['bytes']==17475 and pin(base/'root-scheduling-request-with-evidence.json')['sha256']=='cb58f119fd1fe9d709789c26211d690769850102a2b6cbe4a5a02007ceb63e2e'
 assert pin(base/'plan.json')['bytes']==6017 and pin(base/'plan.json')['sha256']=='7eecbeb085f278bc236cc4d6729d63a7118827cabdc86497209a4e648a5b2281'
 assert pin(base/'root-scheduling-request-with-evidence.json')['bytes']==grant['request']['bytes'] and pin(base/'root-scheduling-request-with-evidence.json')['sha256']==grant['request']['sha256']
-assert pin(base/'plan.json')['bytes']==grant['planBytes'] and pin(base/'plan.json')['sha256']==grant['planSHA256']
+assert request['planSHA256']==pin(base/'plan.json')['sha256'] and request['plan']==plan
+assert set(grant['frozenReaders'])==set(request['frozenReaders'])
+assert all(grant['frozenReaders'][name]['bytes']==expected['bytes'] and grant['frozenReaders'][name]['sha256']==expected['sha256'] for name,expected in request['frozenReaders'].items())
 assert request['sourceCommit']==grant['sourceCommit'] and request['frozenRef']==source_ref and request['workflowInputs']==grant['workflowInputs'] and {k:str(v).lower() if type(v) is bool else v for k,v in plan['input'].items()}==grant['workflowInputs']
 assert request['plan']==plan and request['planSHA256']==pin(base/'plan.json')['sha256']
 assert plan['kind']=='fixed-same-VM-native-prepared-grouped-cadence-pair'
@@ -55,7 +58,10 @@ expected_argv=['/opt/homebrew/bin/gh','workflow','run','chain-core.yml','--ref',
 for k,v in grant['workflowInputs'].items():expected_argv+=['-f',k+'='+v]
 assert actual['command']==expected_argv and actual['sourceCommit']==grant['sourceCommit'] and actual['grantSHA256']==pin(grant_path)['sha256']
 assert actual['once'] is True and actual['resultUnknownUntilReadback'] is True and sent['returncode']==0 and not sent['stderr']
-assert stamp(grant['at'])<=stamp(actual['at'])<stamp(grant['startBy']) and abs((stamp(api['created_at'])-stamp(actual['at'])).total_seconds())<=10
+assert stamp(grant['issuedAt'])<=stamp(actual['at'])<stamp(grant['startDeadline']) and abs((stamp(api['created_at'])-stamp(actual['at'])).total_seconds())<=10
+pressure_path=logpath.parent/'pre-dispatch-local-pressure-01.json';pressure=read(pressure_path)
+assert type(pressure['kernelPressureLevel']) is int and pressure['kernelPressureLevel']==1 and pressure['rootGrantFreshPressure']==1 and pressure['rootGrantSHA256']==trusted_grant_sha and pressure['at']==actual['at']
+assert len(pressure_path.read_bytes())<=65536
 listed=read(logpath.parent/'original-dispatch-run-list-api.json')['workflow_runs'];matched=[r for r in listed if r['head_sha']==grant['sourceCommit'] and r['event']=='workflow_dispatch']
 assert len(matched)==1 and matched[0]['id']==api['id'] and matched[0]['run_attempt']==1
 wrapped=dict(sha256=pin(grant_path)['sha256'])
@@ -84,7 +90,7 @@ contract['freshAdmission']=dict(nativeMemAvailableFloorBytes=case_caps['availabl
 contract['privateByteAccounting']='Original per-case private256MiB, sampledRSS1GiB, aggregate512MiB incl receipts, logs2MiB/build1GiB. Build before pair120s is only within original whole20minute job; no invented compile hard RSS/timeout.'
 pair_path=capture/'evidence/actual.json';pair=read(pair_path);terms=frames('YNX_NATIVE_STREAM_PAIR_TERMINAL ');assert len(terms)==1;term=terms[0]
 assert term.get('pairReceiptSHA256')==pin(pair_path)['sha256']
-result=dict(schema=1,kind='original-native-prepared-grouped-pair-qualified-readback',runId=run['databaseId'],sourceCommit=contract['sourceCommit'],sourceRef=contract['sourceRef'],originalGrantSHA256=wrapped['sha256'],originalRun=pin(runpath),originalLog=pin(logpath),originalPairReceipt=pin(pair_path),consumerTool=pin(Path(__file__)),frozenReaders=frozen_pins,normalCILog=pin(normal_log),archiveReader=pin(repaired),archiveReaderScope='exact frozen original, no posthoc repair',terminal=term,nativePairQualified=False,slotReturned=False,cases=[],sustainedTPSQualified=False,firstCause=pair.get('firstCause') or term.get('firstCause'))
+result=dict(schema=1,kind='original-native-prepared-grouped-pair-qualified-readback',runId=run['databaseId'],sourceCommit=contract['sourceCommit'],sourceRef=contract['sourceRef'],originalGrantSHA256=wrapped['sha256'],originalPreDispatchPressure=pin(pressure_path),originalRun=pin(runpath),originalLog=pin(logpath),originalPairReceipt=pin(pair_path),consumerTool=pin(Path(__file__)),frozenReaders=frozen_pins,normalCILog=pin(normal_log),archiveReader=pin(repaired),archiveReaderScope='exact frozen original, no posthoc repair',terminal=term,nativePairQualified=False,slotReturned=False,cases=[],sustainedTPSQualified=False,firstCause=pair.get('firstCause') or term.get('firstCause'))
 try:
  closure(term['postFsyncClosureScans'],pair['launcher']);result['slotReturned']=True
 except Exception as error:result['slotClosureDiagnostic']=str(error) or type(error).__name__

@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "runId": 40101270671,
+  "sourceCommit": "1f21f1f2eed732c0948ac98ff7028bee5f2d6ca4",
+  "frozenRef": "codex/chain-native-prepared-grouped-pair-1f21f1f2e",
+  "workflowEvent": "workflow_dispatch",
+  "attempt": 1,
+  "createdAt": "2026-10-24T14:09:52Z",
+  "statusAtOriginalReadback": "in_progress",
+  "actualRootGrant": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/original-root-grant.json",
+    "bytes": 8148,
+    "sha256": "1d8ea37a21a1266d91a92fabc49361c78c0a96ce4662014c4ef6e870a617fda4"
+  },
+  "originalRootGrantPath": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/CHAIN_GROUPED_PAIR_PRESSURE1_ONCE_GRANT_20261024T140728Z.json",
+  "freshLocalPressure": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/pre-dispatch-local-pressure-01.json",
+    "bytes": 442,
+    "sha256": "2cacd48318825f16360bdf7808ec55ce49a2e27fd9c278cba67079bdb4c5d0f0",
+    "level": 1,
+    "at": "2026-10-24T14:09:50.734901+00:00"
+  },
+  "onceIntent": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/actual-dispatch-once.json",
+    "bytes": 732,
+    "sha256": "b3a66e2743103d680862a0f6a2e95696b469b826cebba2f568a4114382f9120c"
+  },
+  "actualDispatchResult": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/actual-dispatch-result.json",
+    "bytes": 54,
+    "sha256": "6379c17d798191f995d43b0950ea7787779fe29c9af7354b25de37a514ff207d"
+  },
+  "originalUniqueRunReadback": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/original-dispatch-run-list-api.json",
+    "bytes": 12405,
+    "sha256": "09c504e01be5c9db8d9c8815d078136f0e1e21a25ebf4d34092ab8127cc39c5a"
+  },
+  "jobId": 120893741442,
+  "heavySlot": "Hosted Linux original frozen bounded/grouped pair; running, not returned",
+  "prematureQualification": {
+    "rejected": true,
+    "outputCreated": false,
+    "raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/independent-premature-qualification-rejected-01.raw",
+      "bytes": 1392,
+      "sha256": "2ce84866c732ff1139cb605285c636825633f54f35cb7a615f61f09156de748d"
+    }
+  },
+  "normalFrozenCI": 40097737114,
+  "newCachedFeeCINotMixed": 40100522899,
+  "networkMetricsAvailable": false,
+  "nativePairQualified": false,
+  "sustainedTPSQualified": false
+}
