@@ -1,0 +1,54 @@
+{
+  "kind": "YNX-R231-PUBLIC-GO-DELTA-FIXTURE/v1",
+  "PUBLIC": true,
+  "Source13": false,
+  "Root": false,
+  "production": false,
+  "supplierHandoff": {
+    "bytes": 32674,
+    "sha256": "180fcc139b3fd5fe060bb51055ded1d812dada9cb128db65c430ab1acea1ff2f"
+  },
+  "parent": {
+    "bytes": 32969,
+    "sha256": "d98c6681917487d57e2a3acb7e62d91cf0331dec0f46957992c09050e6b30b3a"
+  },
+  "firstCI": {
+    "bytes": 6762,
+    "sha256": "f32de2fbaff9c54844e8ed96e3126736dd9603ba1c13d3b8db3d407fcc71d20f"
+  },
+  "files": [
+    {
+      "path": "source/internal/developerauthority/original_factory_publication_test.go",
+      "bytes": 17421,
+      "sha256": "a2a1271e6ac59e4a0b05808caa872de81c2620885dda52e0f0fd5307ff64755d",
+      "parent": {
+        "bytes": 16246,
+        "sha256": "2d0f88657fa9289380ed0420bf6b65b310a8be56175bc55c74220bcfad3c83d7"
+      }
+    },
+    {
+      "path": "source/internal/developerauthority/original_source_process.go",
+      "bytes": 21709,
+      "sha256": "48675ae0598b06e14eed42ae7a1763d4df75dd0dec971213ee3242d8984ef36f",
+      "parent": {
+        "bytes": 20678,
+        "sha256": "00b4e3c4e46f084a4836d174219f4c0410d37617c142b416b1bfee748bdcd4b8"
+      }
+    },
+    {
+      "path": "source/internal/developerauthority/original_source_process_test.go",
+      "bytes": 12254,
+      "sha256": "69786eb3f1fb251fef0dec93deb972d43e85eba145379b3b2bcf46c30e604ea9",
+      "parent": {
+        "bytes": 12001,
+        "sha256": "1f2147d8485c1547a15194d3f70398263206fa213919df4d4feddfaef81033f3"
+      }
+    },
+    {
+      "path": "source/internal/developerauthority/original_source_stream_pin_test.go",
+      "bytes": 2708,
+      "sha256": "3b1236811925983eefb7ac1be2c1a8766838fc20e51cbf9e233656c5b12c28b7",
+      "parent": null
+    }
+  ]
+}
