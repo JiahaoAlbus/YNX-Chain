@@ -16,7 +16,7 @@ const root=fileURLToPath(new URL('../../../',import.meta.url)).replace(/\/$/,'')
 test('canonical control source retains R201 with the R204 Source and normal daemon successors',()=>{for(const[p,h]of Object.entries(pins))assert.equal(createHash('sha256').update(readFileSync(new URL('../'+p,import.meta.url))).digest('hex'),h,p)});
 test('new canonical recipe selects full control closure in the same original addon and helper without claiming a build',async()=>{
  const {contract}=verifySDK332R140Source(root),plan=await sdk332R140NativePlan(root,'/PUBLIC/UNUSED_HEADERS','arm64');
- assert.equal(contract.version,'1.3.0-pq.3.32-auth.28');assert.equal(contract.NativeInputs.length,91);assert.equal(contract.HelperInputs.length,5);
+ assert.equal(contract.version,'1.3.0-pq.3.32-auth.29');assert.equal(contract.NativeInputs.length,92);assert.equal(contract.HelperInputs.length,5);
  assert.equal(plan.plan.sources.length,14);assert.equal(plan.helperPlan.sources.length,11);assert.equal(plan.NativeBuild,false);assert.equal(plan.grant,false);assert.equal(plan.rebuildRequired,true);
  for(const f of ['original-ide-project-control-source.inc.mm','original-ide-project-control-capture.mjs','original-ide-project-control-contract.mjs','original-developer-principal-data.mjs','original-ide-publication-approval-contract.mjs'])assert.equal(contract.NativeInputs.filter(x=>x.path==='packages/wallet-auth/native/'+f).length,1);
  const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));for(const f of ['native/original-ide-project-control-source.inc.mm','native/original-ide-project-control-capture.mjs'])assert.ok(pkg.files.includes(f));
