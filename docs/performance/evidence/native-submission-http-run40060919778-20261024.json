@@ -1,0 +1,519 @@
+{
+  "schema": 1,
+  "kind": "full_original8192x2_submission_HTTP_diagnosis_not_new_network_measurement",
+  "runId": 40060919778,
+  "sourceCommit": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+  "sourceParent": "12c60b6ed146b9a2024a8dce1f7b49f1f66a7a2b",
+  "originalQualifiedPairSHA256": "9966c308c44d1a7a18fec285fbc31cc31a7013a91ba75fb630875d5f26c4a1d6",
+  "cases": [
+    {
+      "schema": 1,
+      "kind": "original_complete_native_stream_HTTP_trace_diagnosis",
+      "runId": 40060919778,
+      "sourceCommit": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+      "nativeSuffixSetup": false,
+      "canonicalCertificate": false,
+      "originalQualifiedPair": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/original-pair-qualified-verdict.json",
+        "bytes": 600197,
+        "sha256": "9966c308c44d1a7a18fec285fbc31cc31a7013a91ba75fb630875d5f26c4a1d6"
+      },
+      "originalReceiptSHA256": "8d27e31d6f0d0a0f33d31d7b110d89e5655b727c9edb0fb2dcca47d5818ae003",
+      "originalClientSHA256": "59cd4b6a2659c85cec677e6677071c1afa3e344840d3964b59ab55483d839312",
+      "originalPublicMemberManifest": {
+        "members": 256,
+        "sha256": "d19ced7be7fbb043ffdb3b3712c15f5a9f7f3369956bb6d75bab4de56c57f00d",
+        "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+      },
+      "submissionTrace": {
+        "samples": 8192,
+        "hookCalls": {
+          "getConnCalls": 8192,
+          "gotConnCalls": 8192,
+          "wroteRequestCalls": 8192,
+          "firstByteCalls": 8192
+        },
+        "writeErrors": 0,
+        "reusedConnections": 8181,
+        "writeFirstByteHookOverlaps": 0,
+        "durationsMs": {
+          "beforeGetConnMs": {
+            "samples": 8192,
+            "p50": 0.036038,
+            "p95": 0.063579,
+            "p99": 0.190977
+          },
+          "connectionAcquireMs": {
+            "samples": 8192,
+            "p50": 0.003507,
+            "p95": 55.970471,
+            "p99": 102.283899
+          },
+          "connectionToWriteMs": {
+            "samples": 8192,
+            "p50": 0.01061,
+            "p95": 0.036238,
+            "p99": 0.201166
+          },
+          "writeToFirstByteMs": {
+            "samples": 8192,
+            "p50": 2.001125,
+            "p95": 36.664492,
+            "p99": 98.240465
+          },
+          "firstByteToReturnMs": {
+            "samples": 8192,
+            "p50": 0.169097,
+            "p95": 22.036663,
+            "p99": 40.305911
+          },
+          "callbackReturnMs": {
+            "samples": 8192,
+            "p50": 3.302453,
+            "p95": 106.405032,
+            "p99": 184.062767
+          }
+        },
+        "interpretation": "Monotonic original client HTTP hooks; single-attempt rows only. First-byte wait includes server/transport scheduling; response tail includes body/decode/identity checks. Concurrent write/first-byte hooks may overlap: omit negative intervals and retain their count/sample denominator. Not pure network/server time and not additive across parallel callbacks.",
+        "connectionAcquireByReuse": {
+          "reused": {
+            "samples": 8181,
+            "totalNs": 77169255526,
+            "meanNs": 9432741.171739396,
+            "p50Ns": 3506,
+            "p95Ns": 55970471,
+            "p99Ns": 102283899
+          },
+          "new": {
+            "samples": 11,
+            "totalNs": 7633687,
+            "meanNs": 693971.5454545454,
+            "p50Ns": 217517,
+            "p95Ns": 2800955,
+            "p99Ns": 2800955
+          }
+        },
+        "intervalTotalsNs": {
+          "beforeGetConnMs": {
+            "samples": 8192,
+            "totalNs": 353120608,
+            "minNs": 13315,
+            "maxNs": 19228055,
+            "meanNs": 43105.54296875
+          },
+          "connectionAcquireMs": {
+            "samples": 8192,
+            "totalNs": 77176889213,
+            "minNs": 1032,
+            "maxNs": 214847601,
+            "meanNs": 9421006.984008789
+          },
+          "connectionToWriteMs": {
+            "samples": 8192,
+            "totalNs": 491532675,
+            "minNs": 3447,
+            "maxNs": 40387144,
+            "meanNs": 60001.54724121094
+          },
+          "writeToFirstByteMs": {
+            "samples": 8192,
+            "totalNs": 81678887537,
+            "minNs": 508311,
+            "maxNs": 273088785,
+            "meanNs": 9970567.326293945
+          },
+          "firstByteToReturnMs": {
+            "samples": 8192,
+            "totalNs": 34642776252,
+            "minNs": 21400,
+            "maxNs": 82850720,
+            "meanNs": 4228854.522949219
+          },
+          "callbackReturnMs": {
+            "samples": 8192,
+            "totalNs": 194343206285,
+            "minNs": 586548,
+            "maxNs": 314910104,
+            "meanNs": 23723535.923461914
+          }
+        },
+        "maximumRetainedTraceRecords": 8192,
+        "errorOccurrences": 50040,
+        "errorOccurrencesByStage": {
+          "block_scan_wait": 49963,
+          "local_durable_readback": 77
+        },
+        "networkOrSustainedQualificationAdded": false
+      },
+      "originalBusinessSummary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 50040,
+        "measurementWindowSeconds": 32.290845751,
+        "rpcSubmissionsPerMeasurementSecond": 253.69419132499203,
+        "checkTxAcceptedPerMeasurementSecond": 253.69419132499203,
+        "codeZeroIncludedPerMeasurementSecond": 253.69419132499203,
+        "effectiveBusinessIncludedPerMeasurementSecond": 253.69419132499203,
+        "quorumConfirmedPerMeasurementSecond": 253.69419132499203,
+        "finalSubmittedPerMeasurementSecond": 253.69419132499203,
+        "offeredEventSpanSeconds": 30.248626844,
+        "offeredInterarrivalRate": 270.78915159498337,
+        "submissionEventSpanSeconds": 30.572372532,
+        "submissionInterarrivalRate": 267.9216338681765,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "submissionOccupancy": {
+        "callbackStarted": 8192,
+        "callbackReturned": 8192,
+        "activeCallbacksAtEnd": 0,
+        "peakActiveCallbacks": 8,
+        "callbackBusyNs": 194347248533,
+        "queueWaitSamples": 8192,
+        "queueWaitNs": 575309398984,
+        "peakQueueWaitNs": 609590389,
+        "measurementWallNs": 32290845751,
+        "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+      },
+      "consumer": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-stream-submission-trace.py",
+        "bytes": 9969,
+        "sha256": "ea72b967b132d9c4b9827dc0b87f2b87b453cdd3297862c2070aae2d7bf2d14d"
+      },
+      "streamReader": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-stream-evidence.py",
+        "bytes": 34248,
+        "sha256": "09e4f6932b8388d4e6bb46f43d053cb89b27a718bcd64738c895f492aa6f109d"
+      },
+      "frozenController": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-source-ea2dc6b80/frozen-readers/scripts/loadtest/supply-linux-window.py",
+        "bytes": 173184,
+        "sha256": "daed29406e02459e75329af340a41f1a22bfbc7b5171bf620947a7ec925352e7"
+      },
+      "networkOrSustainedQualificationAdded": false,
+      "interpretation": "Offline full8192 signed/terminal identity join. Original monotonic HTTP hook boundaries include transport/server/client scheduling and response decode. Hook overlaps retain separate denominators; quantiles and worker wall totals are not additive. Original poll errorOccurrences remain in business summary, independent of zero terminal business failures."
+    },
+    {
+      "schema": 1,
+      "kind": "original_complete_native_stream_HTTP_trace_diagnosis",
+      "runId": 40060919778,
+      "sourceCommit": "ea2dc6b80b17f49751dbf7752e167c051564e20d",
+      "nativeSuffixSetup": true,
+      "canonicalCertificate": false,
+      "originalQualifiedPair": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-run-40060919778/original-pair-qualified-verdict.json",
+        "bytes": 600197,
+        "sha256": "9966c308c44d1a7a18fec285fbc31cc31a7013a91ba75fb630875d5f26c4a1d6"
+      },
+      "originalReceiptSHA256": "f0ccdfec5060867e430cd2105f988495aef925e5f3faae7b152d20204a78e3be",
+      "originalClientSHA256": "f8eb74a266c1a039e4f08dd7aaa625211d5a37950caee2c4ed78bd7528197b9a",
+      "originalPublicMemberManifest": {
+        "members": 256,
+        "sha256": "7329bf7abbbc46ff5acd5afbb64595d953aad23c1f2ce1055a35f32c5f762a4f",
+        "encoding": "sha256 of canonical sorted-key compact JSON descriptors(path,bytes,sha256), each followed by LF; intent sequence then terminal sequence; not a whole-ZIP digest"
+      },
+      "submissionTrace": {
+        "samples": 8192,
+        "hookCalls": {
+          "getConnCalls": 8192,
+          "gotConnCalls": 8192,
+          "wroteRequestCalls": 8192,
+          "firstByteCalls": 8192
+        },
+        "writeErrors": 0,
+        "reusedConnections": 8183,
+        "writeFirstByteHookOverlaps": 0,
+        "durationsMs": {
+          "beforeGetConnMs": {
+            "samples": 8192,
+            "p50": 0.035637,
+            "p95": 0.062597,
+            "p99": 0.106171
+          },
+          "connectionAcquireMs": {
+            "samples": 8192,
+            "p50": 0.003667,
+            "p95": 54.789536,
+            "p99": 113.360068
+          },
+          "connectionToWriteMs": {
+            "samples": 8192,
+            "p50": 0.010409,
+            "p95": 0.034344,
+            "p99": 0.227585
+          },
+          "writeToFirstByteMs": {
+            "samples": 8192,
+            "p50": 2.099567,
+            "p95": 40.636814,
+            "p99": 105.486815
+          },
+          "firstByteToReturnMs": {
+            "samples": 8192,
+            "p50": 0.162574,
+            "p95": 20.733852,
+            "p99": 36.606488
+          },
+          "callbackReturnMs": {
+            "samples": 8192,
+            "p50": 3.524622,
+            "p95": 108.398226,
+            "p99": 189.730816
+          }
+        },
+        "interpretation": "Monotonic original client HTTP hooks; single-attempt rows only. First-byte wait includes server/transport scheduling; response tail includes body/decode/identity checks. Concurrent write/first-byte hooks may overlap: omit negative intervals and retain their count/sample denominator. Not pure network/server time and not additive across parallel callbacks.",
+        "connectionAcquireByReuse": {
+          "reused": {
+            "samples": 8183,
+            "totalNs": 78887123859,
+            "meanNs": 9640367.08529879,
+            "p50Ns": 3667,
+            "p95Ns": 54789536,
+            "p99Ns": 113360068
+          },
+          "new": {
+            "samples": 9,
+            "totalNs": 2753992,
+            "meanNs": 305999.1111111111,
+            "p50Ns": 239659,
+            "p95Ns": 784567,
+            "p99Ns": 784567
+          }
+        },
+        "intervalTotalsNs": {
+          "beforeGetConnMs": {
+            "samples": 8192,
+            "totalNs": 321829440,
+            "minNs": 13586,
+            "maxNs": 3067978,
+            "meanNs": 39285.8203125
+          },
+          "connectionAcquireMs": {
+            "samples": 8192,
+            "totalNs": 78889877851,
+            "minNs": 1042,
+            "maxNs": 232647218,
+            "meanNs": 9630112.042358398
+          },
+          "connectionToWriteMs": {
+            "samples": 8192,
+            "totalNs": 543251225,
+            "minNs": 4057,
+            "maxNs": 40589231,
+            "meanNs": 66314.84680175781
+          },
+          "writeToFirstByteMs": {
+            "samples": 8192,
+            "totalNs": 85654286347,
+            "minNs": 494244,
+            "maxNs": 193915946,
+            "meanNs": 10455845.501342773
+          },
+          "firstByteToReturnMs": {
+            "samples": 8192,
+            "totalNs": 32184743679,
+            "minNs": 21941,
+            "maxNs": 80583193,
+            "meanNs": 3928801.7186279297
+          },
+          "callbackReturnMs": {
+            "samples": 8192,
+            "totalNs": 197593988542,
+            "minNs": 586097,
+            "maxNs": 281200595,
+            "meanNs": 24120359.92944336
+          }
+        },
+        "maximumRetainedTraceRecords": 8192,
+        "errorOccurrences": 51095,
+        "errorOccurrencesByStage": {
+          "block_scan_wait": 50891,
+          "local_durable_readback": 204
+        },
+        "networkOrSustainedQualificationAdded": false
+      },
+      "originalBusinessSummary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 51095,
+        "measurementWindowSeconds": 31.467346049,
+        "rpcSubmissionsPerMeasurementSecond": 260.33336231290895,
+        "checkTxAcceptedPerMeasurementSecond": 260.33336231290895,
+        "codeZeroIncludedPerMeasurementSecond": 260.33336231290895,
+        "effectiveBusinessIncludedPerMeasurementSecond": 260.33336231290895,
+        "quorumConfirmedPerMeasurementSecond": 260.33336231290895,
+        "finalSubmittedPerMeasurementSecond": 260.33336231290895,
+        "offeredEventSpanSeconds": 30.032191824,
+        "offeredInterarrivalRate": 272.7406660160656,
+        "submissionEventSpanSeconds": 30.044645717,
+        "submissionInterarrivalRate": 272.62761149369555,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "submissionOccupancy": {
+        "callbackStarted": 8192,
+        "callbackReturned": 8192,
+        "activeCallbacksAtEnd": 0,
+        "peakActiveCallbacks": 8,
+        "callbackBusyNs": 197598597410,
+        "queueWaitSamples": 8192,
+        "queueWaitNs": 847446411690,
+        "peakQueueWaitNs": 798062912,
+        "measurementWallNs": 31467346049,
+        "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+      },
+      "consumer": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-stream-submission-trace.py",
+        "bytes": 9969,
+        "sha256": "ea72b967b132d9c4b9827dc0b87f2b87b453cdd3297862c2070aae2d7bf2d14d"
+      },
+      "streamReader": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-stream-evidence.py",
+        "bytes": 34248,
+        "sha256": "09e4f6932b8388d4e6bb46f43d053cb89b27a718bcd64738c895f492aa6f109d"
+      },
+      "frozenController": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-suffix-pair-source-ea2dc6b80/frozen-readers/scripts/loadtest/supply-linux-window.py",
+        "bytes": 173184,
+        "sha256": "daed29406e02459e75329af340a41f1a22bfbc7b5171bf620947a7ec925352e7"
+      },
+      "networkOrSustainedQualificationAdded": false,
+      "interpretation": "Offline full8192 signed/terminal identity join. Original monotonic HTTP hook boundaries include transport/server/client scheduling and response decode. Hook overlaps retain separate denominators; quantiles and worker wall totals are not additive. Original poll errorOccurrences remain in business summary, independent of zero terminal business failures."
+    }
+  ],
+  "noNewRPCOrSubmission": true,
+  "networkOrSustainedQualificationAdded": false,
+  "connectionPoolCausationProved": false,
+  "scope": "Client HTTP monotonic hook observations, not pure server/TCP/CPU. Exact nearest-rank quantiles from all8192 verified signed/terminal rows each. Missing or repeated hooks refuse diagnosis; overlaps retain separate counts. Retain <=8192 thin HTTP rows only, not full payloads. Default stream readback shape remains unchanged.",
+  "tests": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-http-trace-unit-final.raw",
+      "bytes": 948,
+      "sha256": "3659472da89f228866974b2c50d97e1b2023fcde0e93e3b22db9d3f2800ebb36"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-http-trace-fixtures-final.raw",
+      "bytes": 8888,
+      "sha256": "94d65d08c4d589763d1fa86fbb87ed4309b0929529197958c366ee762e65b480"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-http-trace-supply.raw",
+      "bytes": 189,
+      "sha256": "61a78037fe6ea587983545037cd2ae9e4c0667cadbf91bedce2aa98a459da72b"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-http-trace-pair.raw",
+      "bytes": 114,
+      "sha256": "b1bda2c4c7b37dc3f4912d6c1a3d53088bd73b32ca97d9115eed6b03902df30e"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-stream-small-source/native-http-trace-archive.raw",
+      "bytes": 378,
+      "sha256": "341b08db70b7296deb22247f969424e5d9f997341ae0e1fe6b94aea2fe9d8cf5"
+    }
+  ]
+}

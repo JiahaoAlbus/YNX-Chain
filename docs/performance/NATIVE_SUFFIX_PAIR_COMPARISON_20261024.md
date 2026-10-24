@@ -1,6 +1,6 @@
 # 私有已验证 suffix 初始化同条件四节点结果：run40060919778
 
-完整独立读回已通过。初始化累计耗时下降20.80%，有效final速率253.694→260.333/s（+2.62%），但入块和最终确认尾延迟均变差；finiteJointImprovementObserved=false，候选保持默认关闭。两侧各8192笔签名业务全部提交、接受、有效入块、BFT确认和持久化，失败/UNKNOWN/timeout/notSubmitted均0。单次固定顺序不能估计方差，也未达到持续1000有效final/s×600秒。
+完整独立读回已通过。初始化累计耗时下降20.80%，有效final速率253.694→260.333/s（+2.62%），但入块和最终确认尾延迟均变差；finiteJointImprovementObserved=false，候选保持默认关闭。两侧各8192笔签名业务全部提交、接受、有效入块、BFT确认和持久化，业务终态失败/UNKNOWN/timeout/notSubmitted均0。业务终态成功不等于观察轮询全无错误：原summary.errorOccurrences为50040/51095，完整机器JSON已保留；该计数包含逐交易的block_scan_wait等诊断累计，不等同50040/51095次独立RPC失败；其中block_results_query错误6/8次、durable_business_batch错误3/5次，不能写成所有RPC/观察尝试error为0。单次固定顺序不能估计方差，也未达到持续1000有效final/s×600秒。
 
 冻结源码ea2dc6b80b17f49751dbf7752e167c051564e20d，tag codex/chain-native-suffix-pair-ea2dc6b80，原CI40060431754成功。AMD EPYC7763型号标称64核，runner实际分配4 logical CPU；Go1.25.14/linux-amd64，GOMAXPROCS1/GOGC100/GOMEMLIMIT off。相同一次四ELF构建、相同VM/boot/PID namespace与launcher。两侧均2048发送账户×4轮、bounded-cadence、输入复用开启、8提交者/4观察者、canonical证书关闭；唯一开关native-suffix-setup false→true。不能与旧EPYC9V74 VM的328/s作跨运行优化归因。后续只读字段计划源码7585b33c6没有进入本次冻结运行。
 

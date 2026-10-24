@@ -16,6 +16,20 @@ class NativeStreamEvidenceTests(unittest.TestCase):
     def verify(self,budget=4<<20):
         d=self.meta
         return evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],budget)
+    def test_optional_submission_join_preserves_complete_original_identity(self):
+        class CountJoin:
+            def __init__(self):self.count=0
+            def add(self,row):self.count+=1
+            def result(self):return dict(records=self.count)
+        d=self.meta;join=CountJoin();base=self.verify()
+        proof=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20,submission_trace_join=join)
+        self.assertEqual(proof['submissionTraceJoin'],dict(records=102))
+        self.assertEqual({k:v for k,v in proof.items() if k!='submissionTraceJoin'},base)
+        spec=importlib.util.spec_from_file_location('unit_trace_join',Path(__file__).with_name('native-stream-submission-trace.py'));module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        spec=importlib.util.spec_from_file_location('trace_unit_controller',Path(__file__).with_name('supply-linux-window.py'));controller=importlib.util.module_from_spec(spec);spec.loader.exec_module(controller)
+        with self.assertRaisesRegex(RuntimeError,'HTTP trace absent'):
+            evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),self.initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20,submission_trace_join=module.SubmissionTraceJoin(102,controller.validate_submission_phases))
+
     def test_original_go_client_clock_has_exact_full_coverage(self):
         d=self.meta;timeline=d['boundedSummary']['timeSeries']
         clock=evidence.client_clock_measurements(timeline,d['terminalStream']['records'],True)
@@ -344,5 +358,56 @@ class NodeCompletionJoinTests(unittest.TestCase):
         row.update(durableStateHeight=4,durableStateAppHash='D'*64)
         join=evidence.NodeCompletionJoin(endpoints,phases,timeline,1);join.add(row)
         self.assertEqual(join.result()['durableStateAheadRows'],1)
+
+class SubmissionTraceJoinTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        spec=importlib.util.spec_from_file_location('trace_join_test',Path(__file__).with_name('native-stream-submission-trace.py'));cls.module=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.module)
+        spec=importlib.util.spec_from_file_location('trace_controller_test',Path(__file__).with_name('supply-linux-window.py'));cls.controller=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.controller)
+    def join(self,total=1):return self.module.SubmissionTraceJoin(total,self.controller.validate_submission_phases)
+    def row(self):return dict(checkTxMs=.00006,signedTransaction='unused-payload',submissionPhases=dict(getConnCalls=1,gotConnCalls=1,wroteRequestCalls=1,firstByteCalls=1,writeErrors=0,firstGetConnNs=0,firstGotConnNs=10,firstWroteRequestNs=20,firstResponseByteNs=50,firstConnReused=True,callbackReturnNs=70))
+    def test_exact_intervals_and_owned_thin_facts(self):
+        join=self.join();row=self.row();join.add(row);row['submissionPhases']['gotConnCalls']=99
+        self.assertEqual(set(join.rows[0]),{'submissionPhases','checkTxMs'})
+        got=join.result();self.assertEqual(got['samples'],1);self.assertEqual(got['reusedConnections'],1)
+        for key,value in dict(beforeGetConnMs=0,connectionAcquireMs=10,connectionToWriteMs=10,writeToFirstByteMs=30,firstByteToReturnMs=20,callbackReturnMs=70).items():
+            self.assertEqual(got['intervalTotalsNs'][key]['totalNs'],value)
+            self.assertAlmostEqual(got['durationsMs'][key]['p95'],value/1e6)
+        got['intervalTotalsNs']['callbackReturnMs']['totalNs']=999
+        self.assertEqual(join.result()['intervalTotalsNs']['callbackReturnMs']['totalNs'],70)
+    def test_reused_and_new_connection_denominators_are_exact(self):
+        join=self.join(2);join.add(self.row());row=self.row();row['submissionPhases']['firstConnReused']=False;row['submissionPhases']['firstGotConnNs']=15;join.add(row);got=join.result()['connectionAcquireByReuse']
+        self.assertEqual(got['reused']['samples'],1);self.assertEqual(got['reused']['meanNs'],10)
+        self.assertEqual(got['new']['samples'],1);self.assertEqual(got['new']['p95Ns'],15)
+        join=self.join();join.add(self.row());self.assertIsNone(join.result()['connectionAcquireByReuse']['new']['p95Ns'])
+
+    def test_original_poll_occurrences_preserved_separately_from_business(self):
+        row=self.row();row['errors']=[dict(stage='block_scan_wait',count=3),dict(stage='block_results_query',count=1)]
+        join=self.join();join.add(row);got=join.result()
+        self.assertEqual(got['errorOccurrences'],4)
+        self.assertEqual(got['errorOccurrencesByStage'],dict(block_scan_wait=3,block_results_query=1))
+        for value in (0,True,-1):
+            row=self.row();row['errors']=[dict(stage='block_scan_wait',count=value)];join=self.join()
+            with self.subTest(value=value),self.assertRaises(RuntimeError):join.add(row)
+
+    def test_overlap_keeps_missing_denominator_and_no_negative_wait(self):
+        row=self.row();row['submissionPhases']['firstResponseByteNs']=15;join=self.join();join.add(row);got=join.result()
+        self.assertEqual(got['writeFirstByteHookOverlaps'],1)
+        self.assertEqual(got['durationsMs']['writeToFirstByteMs']['samples'],0)
+        self.assertIsNone(got['durationsMs']['writeToFirstByteMs']['p95'])
+        self.assertIsNone(got['intervalTotalsNs']['writeToFirstByteMs']['meanNs'])
+    def test_incomplete_bounds_and_missing_hooks_refuse(self):
+        for count in (True,0,8193):
+            with self.subTest(count=count),self.assertRaises(RuntimeError):self.join(count)
+        with self.assertRaises(RuntimeError):self.join().add({})
+        join=self.join(2);join.add(self.row())
+        with self.assertRaises(RuntimeError):join.result()
+        join=self.join();join.add(self.row())
+        with self.assertRaises(RuntimeError):join.add(self.row())
+        for key,value in (('gotConnCalls',2),('writeErrors',1),('firstGetConnNs',True),('firstGotConnNs',51),('callbackReturnNs',1)):
+            row=self.row();row['submissionPhases'][key]=value;join=self.join();join.add(row)
+            with self.subTest(key=key),self.assertRaises(RuntimeError):join.result()
+        row=self.row();del row['submissionPhases']['firstResponseByteNs'];join=self.join();join.add(row)
+        with self.assertRaises(RuntimeError):join.result()
 
 if __name__=='__main__':unittest.main()

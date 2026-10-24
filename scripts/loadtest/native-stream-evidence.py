@@ -132,7 +132,7 @@ def qualified_terminal_publication(row):
     return height,state,info
 
 
-def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial,intents,terminal,latest,rounds,evidence_limit,measure_latency=False,node_completion_join=None):
+def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial,intents,terminal,latest,rounds,evidence_limit,measure_latency=False,node_completion_join=None,submission_trace_join=None):
     need(node_completion_join is None or isinstance(node_completion_join,NodeCompletionJoin),'original node completion join type differs')
     fold=LatencyFold() if measure_latency else None
     root=Path(capture_root).absolute();runtime_root=Path(runtime_root);output=Path(runtime_output)
@@ -215,6 +215,7 @@ def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial
             need(json.dumps(latest[index%senders],sort_keys=True,separators=(',',':'))==json.dumps(row,sort_keys=True,separators=(',',':')),'latest slot differs from original terminal');matched_latest+=1
         if fold is not None:fold.add(row)
         if node_completion_join is not None:node_completion_join.add(row)
+        if submission_trace_join is not None:submission_trace_join.add(row)
         matched+=1
     try:next(intents_iter)
     except StopIteration:pass
@@ -224,6 +225,7 @@ def verify_streams(capture_root,runtime_root,runtime_output,manifest_raw,initial
 
     if fold is not None:result['rowMetrics']=fold.result()
     if node_completion_join is not None:result['nodeCompletionJoin']=node_completion_join.result()
+    if submission_trace_join is not None:result['submissionTraceJoin']=submission_trace_join.result()
     return result
 
 

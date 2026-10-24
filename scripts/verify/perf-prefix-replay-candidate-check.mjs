@@ -9,7 +9,7 @@ import {withFrozenAnchor} from './perf-commit-validation-timing-check.mjs';
 const root=fileURLToPath(new URL('../../',import.meta.url));
 export const source='7585b33c6eb30bbfde0e2cabe822c3edcfbdfbd5';
 export const pairControllerSource='7585b33c6eb30bbfde0e2cabe822c3edcfbdfbd5';
-export const pairControllerFiles=['scripts/loadtest/supply-linux-window.py','scripts/loadtest/test_supply_linux_window.py','.github/workflows/chain-core.yml','scripts/loadtest/native-stream-evidence.py','scripts/loadtest/test_native_stream_evidence.py','scripts/loadtest/pq-paired-linux-window.py','scripts/loadtest/native-stream-artifact.py','scripts/loadtest/test_native_stream_artifact.py','scripts/loadtest/test_native_stream_pair.py','scripts/loadtest/node-phase-timing.mjs','scripts/loadtest/node-phase-timing.test.mjs'];
+export const pairControllerFiles=['scripts/loadtest/supply-linux-window.py','scripts/loadtest/test_supply_linux_window.py','.github/workflows/chain-core.yml','scripts/loadtest/native-stream-evidence.py','scripts/loadtest/native-stream-submission-trace.py','scripts/loadtest/test_native_stream_evidence.py','scripts/loadtest/pq-paired-linux-window.py','scripts/loadtest/native-stream-artifact.py','scripts/loadtest/test_native_stream_artifact.py','scripts/loadtest/test_native_stream_pair.py','scripts/loadtest/node-phase-timing.mjs','scripts/loadtest/node-phase-timing.test.mjs'];
 const parent='9cdaeb0a64bff4d26b2e4b1558c96863d2791640';
 const tree='48692552d9c33da6b53c85be09519404e8e94653';
 export const diagnosticNodeTree='139b38b63f39f0f24a771ed99e02fcbe25fc97cc';
