@@ -14,10 +14,11 @@ source_tree=$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{tree}')
 source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 # Fail before allocating a build candidate if either separately pinned input is
 # absent or changed. These are source roots, never runtime qualification flags.
+node --test scripts/sdk36-canonical-runtime-manifest.test.mjs
 node --input-type=module -e "import('./scripts/package-identity-admission-source.mjs').then(m=>m.verifyCanonicalIdentityAdmissionSource())"
 canonical_native_root=$(node scripts/package-identity-admission-source.mjs --native-source-root)
 canonical_app_native_root=$(node scripts/identity-app-custody-source.mjs)
-node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs scripts/sdk14-native-build-receipt.test.mjs scripts/sdk35-native-component.test.mjs scripts/sdk35-product-layout.test.mjs
+node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs scripts/sdk14-native-build-receipt.test.mjs scripts/sdk36-native-component.test.mjs scripts/sdk36-product-layout.test.mjs
 node --test scripts/native-wallet-transport-recipe.test.mjs
 node --test scripts/native-source-ownership.test.mjs
 node --test scripts/admit-derived-native.test.mjs
