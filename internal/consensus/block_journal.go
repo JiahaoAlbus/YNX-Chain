@@ -328,57 +328,55 @@ func (j *blockJournal) checkCurrentFile() (*os.File, error) {
 }
 
 func (j *blockJournal) replaceCheckpointLocked(state CommittedState) error {
-	payload, err := encodeBlockCheckpoint(state)
-	if err != nil {
-		return err
-	}
-	if len(payload) > blockJournalMaxFrame {
-		return errors.New("checkpoint exceeds block journal frame bound")
-	}
-	temp, err := os.CreateTemp(filepath.Dir(j.io.path), ".ynx-block-checkpoint-*")
-	if err != nil {
-		return err
-	}
-	defer temp.Close()
-	defer os.Remove(temp.Name())
-	if err := temp.Chmod(0o600); err != nil {
-		return err
-	}
-	if n, err := temp.Write(j.io.header); err != nil || n != len(j.io.header) {
-		return errors.Join(err, io.ErrShortWrite)
-	}
-	if err := j.writeFrame(temp, payload, false); err != nil {
-		return err
-	}
-	if err := errors.Join(temp.Sync(), temp.Close()); err != nil {
-		return err
-	}
-	if err := j.io.checkpoint("compaction_synced"); err != nil {
-		return err
-	}
-	if err := os.Rename(temp.Name(), j.io.path); err != nil {
-		return err
-	}
-	if err := j.io.checkpoint("compaction_renamed"); err != nil {
-		return err
-	}
-	if err := syncJournalDirectory(j.io.path); err != nil {
-		return err
-	}
-	j.io.identity, err = os.Stat(j.io.path)
-	if err != nil {
-		return err
-	}
-	j.io.end = int64(len(j.io.header) + snapshotJournalHeader + len(payload))
-	j.io.observedSize = j.io.end
-	j.io.height = state.Height
-	j.appHash = state.AppHash
-	j.io.records = 1
-	j.io.compactions++
-	j.blocks = 0
-	j.tailBytes = 0
-	j.checkpointBytesWritten += int64(len(payload))
-	return nil
+	return visitBlockCheckpointPayload(state, func(payload []byte) error {
+		if len(payload) > blockJournalMaxFrame {
+			return errors.New("checkpoint exceeds block journal frame bound")
+		}
+		temp, err := os.CreateTemp(filepath.Dir(j.io.path), ".ynx-block-checkpoint-*")
+		if err != nil {
+			return err
+		}
+		defer temp.Close()
+		defer os.Remove(temp.Name())
+		if err := temp.Chmod(0o600); err != nil {
+			return err
+		}
+		if n, err := temp.Write(j.io.header); err != nil || n != len(j.io.header) {
+			return errors.Join(err, io.ErrShortWrite)
+		}
+		if err := j.writeFrame(temp, payload, false); err != nil {
+			return err
+		}
+		if err := errors.Join(temp.Sync(), temp.Close()); err != nil {
+			return err
+		}
+		if err := j.io.checkpoint("compaction_synced"); err != nil {
+			return err
+		}
+		if err := os.Rename(temp.Name(), j.io.path); err != nil {
+			return err
+		}
+		if err := j.io.checkpoint("compaction_renamed"); err != nil {
+			return err
+		}
+		if err := syncJournalDirectory(j.io.path); err != nil {
+			return err
+		}
+		j.io.identity, err = os.Stat(j.io.path)
+		if err != nil {
+			return err
+		}
+		j.io.end = int64(len(j.io.header) + snapshotJournalHeader + len(payload))
+		j.io.observedSize = j.io.end
+		j.io.height = state.Height
+		j.appHash = state.AppHash
+		j.io.records = 1
+		j.io.compactions++
+		j.blocks = 0
+		j.tailBytes = 0
+		j.checkpointBytesWritten += int64(len(payload))
+		return nil
+	})
 }
 
 func (j *blockJournal) replaceCheckpoint(state CommittedState, migration chain.ConsensusMigrationState) (err error) {

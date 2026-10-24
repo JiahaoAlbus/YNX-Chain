@@ -1,0 +1,150 @@
+{
+  "scope": "actual retained1024 history, same binary ABBAAB checkpoint encoding+complete SHA consumption comparison; no node/network TPS",
+  "baseCommit": "1c86e2bad07f505ef39db7b324b8db225fde4088",
+  "files": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal.go",
+      "bytes": 16888,
+      "sha256": "537e5cbc7bcdb1b3bc743af34af30a05898c5f5beb84c7ed281a84cfde6ac208"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_checkpoint_payload.go",
+      "bytes": 1106,
+      "sha256": "23f1e0a192ba4a8ab2e613c5365fb85d0de9bf18edaa6bba7e08ff27fcd523ae"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_checkpoint_payload_test.go",
+      "bytes": 5728,
+      "sha256": "5268957a3108b095ea3db3d5d1f31f2067daddd5d2ce764a46839290b0957d83"
+    }
+  ],
+  "fixture": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/fixtures/state-hash-real-1024.json",
+    "bytes": 812656,
+    "sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+  },
+  "hardware": "Apple M4; Go1.25.7 darwin/arm64",
+  "environment": {
+    "GOMAXPROCS": "1",
+    "GOGC": "unset(default)",
+    "GOMEMLIMIT": "unset(default)",
+    "GOPROXY": "off",
+    "GOTOOLCHAIN": "local",
+    "buildParallelism": 1
+  },
+  "order": "ABBAAB,50ms per component subbenchmark",
+  "rows": [
+    {
+      "order": 0,
+      "mode": "original_marshal_copy",
+      "iterations": 60,
+      "nsPerOperation": 867565,
+      "allocatedBytesPerOperation": 707591,
+      "allocationsPerOperation": 2052
+    },
+    {
+      "order": 1,
+      "mode": "borrowed_encoder_buffer",
+      "iterations": 76,
+      "nsPerOperation": 767543,
+      "allocatedBytesPerOperation": 76787,
+      "allocationsPerOperation": 2052
+    },
+    {
+      "order": 2,
+      "mode": "borrowed_encoder_buffer",
+      "iterations": 84,
+      "nsPerOperation": 795306,
+      "allocatedBytesPerOperation": 76787,
+      "allocationsPerOperation": 2052
+    },
+    {
+      "order": 3,
+      "mode": "original_marshal_copy",
+      "iterations": 80,
+      "nsPerOperation": 864147,
+      "allocatedBytesPerOperation": 707590,
+      "allocationsPerOperation": 2052
+    },
+    {
+      "order": 4,
+      "mode": "original_marshal_copy",
+      "iterations": 78,
+      "nsPerOperation": 862312,
+      "allocatedBytesPerOperation": 707591,
+      "allocationsPerOperation": 2052
+    },
+    {
+      "order": 5,
+      "mode": "borrowed_encoder_buffer",
+      "iterations": 85,
+      "nsPerOperation": 765975,
+      "allocatedBytesPerOperation": 76787,
+      "allocationsPerOperation": 2052
+    }
+  ],
+  "medians": {
+    "borrowed_encoder_buffer": {
+      "nsPerOperation": 767543,
+      "allocatedBytesPerOperation": 76787,
+      "allocationsPerOperation": 2052
+    },
+    "original_marshal_copy": {
+      "nsPerOperation": 864147,
+      "allocatedBytesPerOperation": 707591,
+      "allocationsPerOperation": 2052
+    }
+  },
+  "allocatedByteReductionPercent": 89.1481095717724,
+  "componentMedianElapsedReductionPercent": 11.179116516055721,
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-reader-finish-pair-source-1c86e2bad/checkpoint-borrowed-focused-and-benchmark.raw",
+      "bytes": 995,
+      "sha256": "b10a1296e6a55ec49c9369c90bf3bf3cf8fc3580ed14aa12a8fd4175dce6ac11"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-reader-finish-pair-source-1c86e2bad/checkpoint-borrowed-focused-race.raw",
+      "bytes": 64,
+      "sha256": "bd679c95fdb3f926647bb63133777cacb471b254edd5a3a0ffecc644268b8fa7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-reader-finish-pair-source-1c86e2bad/checkpoint-borrowed-full-go.raw",
+      "bytes": 198,
+      "sha256": "1861fb04fe2186cf6d22a5f202d897a77564280b476fa86c129bea22ca30e1ca"
+    }
+  ],
+  "originalFailureTimingContext": {
+    "runId": 40075983041,
+    "source": "4ee31b27497cc3a040775c2ae1efed951d9d261a",
+    "qualified": false,
+    "diagnosis": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verifier-pair-source-4ee31b274/original-failed-node-phase-diagnosis.json",
+      "bytes": 42364,
+      "sha256": "b062184b79f5818d74aa6dbc7d034441846ddec8d76f4e4b96d8afae7d848f02"
+    },
+    "height18Nodes": 4,
+    "height18MaintenanceMeanMs": 174.99907625,
+    "height18MaintenanceMaxMs": 213.68306,
+    "attribution": "matches original16-block checkpoint boundary; substage attribution absent; not all encoding or disk; not a before-after comparison"
+  },
+  "invariants": {
+    "payloadAndFrameBytesEqualToOriginalMarshal": true,
+    "actualDurableFileBytesEqual": true,
+    "originalSyncCloseRenameDirectorySyncAndFaultOrderRetained": true,
+    "originalEncodingAndSinkFirstCauseRetained": true,
+    "uncertainWriterRefusesFurtherUseUntilRecovery": true,
+    "allHistoricalStateRetained": true
+  },
+  "fullTests": {
+    "consensusSeconds": 7.382,
+    "abciSeconds": 0.54,
+    "clientSeconds": 14.626,
+    "focusedPersistenceRaceSeconds": 9.618
+  },
+  "networkRSSRepairProven": false,
+  "networkThroughputImprovementMeasured": false,
+  "sustained1000Qualified": false,
+  "currentNetworkRun40078716515Source": "1c86e2bad07f505ef39db7b324b8db225fde4088; this new source is not in that frozen run",
+  "normalCIPending": true
+}
